@@ -1,0 +1,1 @@
+# dynatrace-snowflake-observability-agent
