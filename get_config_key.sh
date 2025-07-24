@@ -1,19 +1,25 @@
 #!/usr/bin/env bash
 #
 #
-# These materials contain confidential information and
-# trade secrets of Dynatrace LLC.  You shall
-# maintain the materials as confidential and shall not
-# disclose its contents to any third party except as may
-# be required by law or regulation.  Use, disclosure,
-# or reproduction is prohibited without the prior express
-# written permission of Dynatrace LLC.
-# 
-# All Compuware products listed within the materials are
-# trademarks of Dynatrace LLC.  All other company
-# or product names are trademarks of their respective owners.
-# 
-# Copyright (c) 2024 Dynatrace LLC.  All rights reserved.
+# Copyright (c) 2025 Dynatrace Open Source
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 #
 #
 # This script retrieves a value from a JSON configuration file (stored in BUILD_CONFIG_FILE=build/config.json) 

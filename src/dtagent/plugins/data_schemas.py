@@ -5,25 +5,30 @@ Plugin file for processing data schemas plugin data.
 ##region ------------------------------ IMPORTS  -----------------------------------------
 #
 #
-# These materials contain confidential information and
-# trade secrets of Dynatrace LLC.  You shall
-# maintain the materials as confidential and shall not
-# disclose its contents to any third party except as may
-# be required by law or regulation.  Use, disclosure,
-# or reproduction is prohibited without the prior express
-# written permission of Dynatrace LLC.
+# Copyright (c) 2025 Dynatrace Open Source
 #
-# All Compuware products listed within the materials are
-# trademarks of Dynatrace LLC.  All other company
-# or product names are trademarks of their respective owners.
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
 #
-# Copyright (c) 2024 Dynatrace LLC.  All rights reserved.
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 #
 #
 from typing import Any, Dict
 
 from dtagent.plugins import Plugin
-from dtagent.context import get_context_by_name
 from dtagent.otel.events import EventType
 from dtagent.util import _from_json, _pack_values_to_json_strings
 
@@ -53,6 +58,34 @@ class DataSchemasPlugin(Plugin):
 
         return {k: __process(k, v) for k, v in properties_value.items()}
 
+    def _prepare_event_payload(self, row_dict):
+        """defines event type, title and additional payload"""
+        return (
+            EventType.CUSTOM_INFO,
+            row_dict.get("_MESSAGE"),
+            {
+                "timestamp": row_dict.get("TIMESTAMP"),
+                "snowflake.object.event": "snowflake.object.ddl",
+            },
+        )
+
+    def _report_all_entries_as_events(
+        self, row_dict, event_type, title, *, start_time, end_time, properties, context
+    ):  # pylint: disable=unused-argument
+        """defines how all entries as events should be reported"""
+
+        _attributes = _from_json(row_dict["ATTRIBUTES"])
+        _attributes["snowflake.object.ddl.properties"] = self._compress_properties(_attributes.get("snowflake.object.ddl.properties", {}))
+        row_dict["ATTRIBUTES"] = _pack_values_to_json_strings(_attributes)
+        return self._events.report_via_api(
+            title=title,
+            query_data=row_dict,
+            additional_payload=properties,
+            start_time_key=start_time,
+            event_type=event_type,
+            context=context,
+        )
+
     def process(self, run_proc: bool = True) -> int:
         """
         Processes data for data schemas plugin.
@@ -60,41 +93,17 @@ class DataSchemasPlugin(Plugin):
             processed_spending_metrics [int]: number of events reported from APP.V_DATA_SCHEMAS.
         """
 
-        t_data_schemas = "APP.V_DATA_SCHEMAS"
-
-        __context = get_context_by_name("data_schemas")
-
-        processed_events_cnt = 0
-        last_processed_timestamp = self._configuration.get_last_measurement_update(self._session, "data_schemas")
-
-        for row_dict in self._get_table_rows(t_data_schemas):
-            last_processed_timestamp = row_dict.get("TIMESTAMP")
-            _attributes = _from_json(row_dict["ATTRIBUTES"])
-            _attributes["snowflake.object.ddl.properties"] = self._compress_properties(
-                _attributes.get("snowflake.object.ddl.properties", {})
-            )
-            row_dict["ATTRIBUTES"] = _pack_values_to_json_strings(_attributes)
-            if self._events.report_via_api(
-                title=row_dict.get("_MESSAGE"),
-                query_data=row_dict,
-                additional_payload={
-                    "timestamp": last_processed_timestamp,
-                    "snowflake.object.event": "snowflake.object.ddl",
-                },
-                start_time_key="TIMESTAMP",
-                event_type=EventType.CUSTOM_INFO,
-                context=__context,
-            ):
-                processed_events_cnt += 1
-
-        if run_proc:
-            self._report_execution(
-                "data_schemas",
-                str(last_processed_timestamp),
-                None,
-                {
-                    "processed_data_schemas_count": processed_events_cnt,
-                },
-            )
+        _, _, _, processed_events_cnt = self._log_entries(
+            f_entry_generator=lambda: self._get_table_rows("APP.V_DATA_SCHEMAS"),
+            context_name="data_schemas",
+            report_logs=False,
+            report_timestamp_events=False,
+            report_metrics=False,
+            log_completion=run_proc,
+            report_all_as_events=True,
+            start_time="TIMESTAMP",
+            event_payload_prepare=self._prepare_event_payload,
+            f_report_event=self._report_all_entries_as_events,
+        )
 
         return processed_events_cnt

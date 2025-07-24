@@ -5,26 +5,31 @@ Plugin file for processing event usage plugin data.
 ##region ------------------------------ IMPORTS  -----------------------------------------
 #
 #
-# These materials contain confidential information and
-# trade secrets of Dynatrace LLC.  You shall
-# maintain the materials as confidential and shall not
-# disclose its contents to any third party except as may
-# be required by law or regulation.  Use, disclosure,
-# or reproduction is prohibited without the prior express
-# written permission of Dynatrace LLC.
+# Copyright (c) 2025 Dynatrace Open Source
 #
-# All Compuware products listed within the materials are
-# trademarks of Dynatrace LLC.  All other company
-# or product names are trademarks of their respective owners.
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
 #
-# Copyright (c) 2024 Dynatrace LLC.  All rights reserved.
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 #
 #
 
 from typing import Tuple
 from dtagent.util import _unpack_json_dict
 from dtagent.plugins import Plugin
-from dtagent.context import get_context_by_name
 
 ##endregion COMPILE_REMOVE
 
@@ -36,6 +41,23 @@ class EventUsagePlugin(Plugin):
     Event usage plugin class.
     """
 
+    def _report_event_usage_log(self, row_dict, __context, log_level):
+        """sends single log line for event usage plugin"""
+        unpacked_dict = _unpack_json_dict(row_dict, ["DIMENSIONS", "METRICS"])
+        start_ts = row_dict.get("START_TIME")
+        processed_timestamp = row_dict.get("END_TIME")
+        self._logs.send_log(
+            "Event Usage",
+            extra={
+                "timestamp": start_ts,
+                "event.start": start_ts,
+                "event.end": processed_timestamp,
+                **unpacked_dict,
+            },
+            context=__context,
+            log_level=log_level,
+        )
+
     def process(self, run_proc: bool = True) -> Tuple[int, int]:
         """
         Processes data for event usage plugin.
@@ -44,43 +66,12 @@ class EventUsagePlugin(Plugin):
             processed_event_metrics_cnt [int]: number of metrics reported from APP.V_EVENT_USAGE_HISTORY.
         """
 
-        t_event_usage = "APP.V_EVENT_USAGE_HISTORY"
-
-        _context_name = "event_usage"
-        __context = get_context_by_name(_context_name)
-
-        processed_entries_cnt = 0
-        processed_event_metrics_cnt = 0
-        processed_timestamp = self._configuration.get_last_measurement_update(self._session, _context_name)
-
-        for row_dict in self._get_table_rows(t_event_usage):
-            unpacked_dict = _unpack_json_dict(row_dict, ["DIMENSIONS", "METRICS"])
-            start_ts = row_dict.get("START_TIME")
-            processed_timestamp = row_dict.get("END_TIME")
-            self._logs.send_log(
-                "Event Usage",
-                extra={
-                    "timestamp": start_ts,
-                    "event.start": start_ts,
-                    "event.end": processed_timestamp,
-                    **unpacked_dict,
-                },
-                context=__context,
-            )
-
-            processed_entries_cnt += 1
-            if self._metrics.discover_report_metrics(row_dict):
-                processed_event_metrics_cnt += 1
-
-        if run_proc:
-            self._report_execution(
-                "event_usage",
-                str(processed_timestamp),
-                None,
-                {
-                    "processed_event_usage_count": processed_entries_cnt,
-                    "metrics_sent_count": processed_event_metrics_cnt,
-                },
-            )
+        processed_entries_cnt, _, processed_event_metrics_cnt, _ = self._log_entries(
+            f_entry_generator=lambda: self._get_table_rows("APP.V_EVENT_USAGE_HISTORY"),
+            context_name="event_usage",
+            report_timestamp_events=False,
+            log_completion=run_proc,
+            f_report_log=self._report_event_usage_log,
+        )
 
         return processed_entries_cnt, processed_event_metrics_cnt

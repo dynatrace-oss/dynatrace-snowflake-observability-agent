@@ -1,19 +1,25 @@
 #!/usr/bin/env python3
 #
 #
-# These materials contain confidential information and
-# trade secrets of Dynatrace LLC.  You shall
-# maintain the materials as confidential and shall not
-# disclose its contents to any third party except as may
-# be required by law or regulation.  Use, disclosure,
-# or reproduction is prohibited without the prior express
-# written permission of Dynatrace LLC.
+# Copyright (c) 2025 Dynatrace Open Source
 #
-# All Compuware products listed within the materials are
-# trademarks of Dynatrace LLC.  All other company
-# or product names are trademarks of their respective owners.
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
 #
-# Copyright (c) 2024 Dynatrace LLC.  All rights reserved.
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 #
 #
 
@@ -85,9 +91,7 @@ class TestDocumentation:
             for entry in semantics
             if entry["source"] == "sql" and entry["type"] in ("metric", "dimension", "attribute", "event timestamp")
         ]
-        missing_docs_listed = "\n".join(
-            [f'{data["type"]}: {data["name"]} [{data["source"]}] [{data["plugin"]}]' for data in missing_docs]
-        )
+        missing_docs_listed = "\n".join([f'{data["type"]}: {data["name"]} [{data["source"]}] [{data["plugin"]}]' for data in missing_docs])
         assert not missing_docs, f"We are missing documentation for semantics:\n {missing_docs_listed}"
 
         missing_sql = [
@@ -98,15 +102,11 @@ class TestDocumentation:
             and entry["plugin"] != ""
             and not entry["runtime"]
         ]
-        missing_sql_listed = "\n".join(
-            [f'{data["type"]}: {data["name"]} [{data["source"]}] [{data["plugin"]}]' for data in missing_sql]
-        )
+        missing_sql_listed = "\n".join([f'{data["type"]}: {data["name"]} [{data["source"]}] [{data["plugin"]}]' for data in missing_sql])
         assert not missing_sql, f"We have documentation for fields not reported in telemetry:\n {missing_sql_listed}"
 
         found_core_attribute = [
-            entry
-            for entry in semantics
-            if entry["name"] == context.CONTEXT_NAME and entry["plugin"] == "" and entry["type"] == "attribute"
+            entry for entry in semantics if entry["name"] == context.CONTEXT_NAME and entry["plugin"] == "" and entry["type"] == "attribute"
         ]
         assert found_core_attribute, f"Did not find core attribute <{context.CONTEXT_NAME}>"
 
@@ -182,22 +182,16 @@ class TestDocumentation:
 
                         if isinstance(attr_description, dict):
                             if is_blank(attr_description.get("__description", None)):
-                                problems.append(
-                                    f"Missing <__description> for {sem_type}: {attr_key} = {attr_description}"
-                                )
+                                problems.append(f"Missing <__description> for {sem_type}: {attr_key} = {attr_description}")
                             if "__example" not in attr_description:
                                 problems.append(f"Missing <__example> for {sem_type}: {attr_key} = {attr_description}")
                             if sem_type == "metrics":
                                 if is_blank(attr_description.get("unit", None)):
                                     problems.append(f"Missing <unit> for {sem_type}: {attr_key} = {attr_description}")
                                 if not __is_unit_name_correct(attr_description.get("unit", "")):
-                                    problems.append(
-                                        f"Value <unit> for {sem_type}: {attr_key} = {attr_description} is incorrect"
-                                    )
+                                    problems.append(f"Value <unit> for {sem_type}: {attr_key} = {attr_description} is incorrect")
                                 if is_blank(attr_description.get("displayName", None)):
-                                    problems.append(
-                                        f"Missing <displayName> for {sem_type}: {attr_key} = {attr_description}"
-                                    )
+                                    problems.append(f"Missing <displayName> for {sem_type}: {attr_key} = {attr_description}")
                             if (
                                 "__context_names" not in attr_description
                                 or not isinstance(attr_description["__context_names"], list)

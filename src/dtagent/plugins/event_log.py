@@ -5,29 +5,33 @@ Plugin file for processing event log plugin data.
 ##region ------------------------------ IMPORTS  -----------------------------------------
 #
 #
-# These materials contain confidential information and
-# trade secrets of Dynatrace LLC.  You shall
-# maintain the materials as confidential and shall not
-# disclose its contents to any third party except as may
-# be required by law or regulation.  Use, disclosure,
-# or reproduction is prohibited without the prior express
-# written permission of Dynatrace LLC.
+# Copyright (c) 2025 Dynatrace Open Source
 #
-# All Compuware products listed within the materials are
-# trademarks of Dynatrace LLC.  All other company
-# or product names are trademarks of their respective owners.
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
 #
-# Copyright (c) 2024 Dynatrace LLC.  All rights reserved.
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 #
 #
-import gc
 import logging
 from typing import Dict, Generator, Tuple
+import uuid
 import pandas as pd
-from dtagent import LOG, LL_TRACE
 from dtagent.util import _unpack_json_dict
 from dtagent.plugins import Plugin
-from dtagent.context import get_context_by_name, CONTEXT_NAME, RUN_ID_NAME
 
 ##endregion COMPILE_REMOVE
 
@@ -51,122 +55,82 @@ class EventLogPlugin(Plugin):
 
             yield row_dict
 
-    def _process_log_entries(self, __context: Dict[str, str], resource_attributes: Dict, run_proc: bool = True) -> int:
+    def _process_log_line(self, row_dict, __context, log_level):  # pylint: disable=unused-argument
+        """Processes single log line for event log"""
+
+        unpacked_dicts = _unpack_json_dict(row_dict, ["_RECORD", "_RECORD_ATTRIBUTES", "_RESOURCE_ATTRIBUTES", "_VALUE_OBJECT"])
+        prefixed_dicts = {f"snowflake.event.scope.{k}": v for k, v in _unpack_json_dict(row_dict, ["_SCOPE"]).items()}
+        reserved_dicts = _unpack_json_dict(row_dict, ["_RESERVED"])
+        s_log_level = unpacked_dicts.get("severity_text", "INFO")
+
+        event_dict = {
+            k.lower(): v
+            for k, v in row_dict.items()
+            if (k != "START_TIME" or not pd.isna(v)) and k[0] != "_"  # no empty start_time or _underscored keys
+        }
+
+        self._logs.send_log(
+            str(row_dict.get("_CONTENT") or row_dict.get("_MESSAGE", "event log entry")),
+            extra={**unpacked_dicts, **prefixed_dicts, **reserved_dicts, **event_dict, **self._configuration.get("resource.attributes")},
+            log_level=getattr(logging, s_log_level, logging.INFO),
+            context=__context,
+        )
+
+        return True
+
+    def _process_log_entries(self, run_id: str, run_proc: bool = True) -> int:
         """Processing entries that are not metrics"""
-        processed_last_timestamp = None
-        processed_entries_cnt = 0
 
-        for row_dict in self._get_events():
-            unpacked_dicts = _unpack_json_dict(
-                row_dict, ["_RECORD", "_RECORD_ATTRIBUTES", "_RESOURCE_ATTRIBUTES", "_VALUE_OBJECT"]
-            )
-            prefixed_dicts = {
-                f"snowflake.event.scope.{k}": v for k, v in _unpack_json_dict(row_dict, ["_SCOPE"]).items()
-            }
-            reserved_dicts = _unpack_json_dict(row_dict, ["_RESERVED"])
-            s_log_level = unpacked_dicts.get("severity_text", "INFO")
-
-            event_dict = {
-                k.lower(): v
-                for k, v in row_dict.items()
-                if (k != "START_TIME" or not pd.isna(v)) and k[0] != "_"  # no empty start_time or _underscored keys
-            }
-
-            self._logs.send_log(
-                str(row_dict.get("_CONTENT") or row_dict.get("_MESSAGE", "event log entry")),
-                extra={**unpacked_dicts, **prefixed_dicts, **reserved_dicts, **event_dict, **resource_attributes},
-                log_level=getattr(logging, s_log_level, logging.INFO),
-                context=__context,
-            )
-
-            processed_last_timestamp = row_dict.get("TIMESTAMP", None)
-            processed_entries_cnt += 1
-
-            if processed_entries_cnt % 100:  # invoking garbage collection every 100 entries.
-
-                gc.collect()
-
-        if processed_last_timestamp and run_proc:
-            self._report_execution(
-                "event_log",
-                str(processed_last_timestamp),
-                None,
-                {"entries": processed_entries_cnt},
-            )
+        processed_entries_cnt, _, _, _ = self._log_entries(
+            f_entry_generator=self._get_events,
+            context_name="event_log",
+            run_uuid=run_id,
+            report_metrics=False,
+            report_timestamp_events=False,
+            f_report_log=self._process_log_line,
+            log_completion=run_proc,
+        )
 
         return processed_entries_cnt
 
-    def _process_metric_entries(self, __context: Dict[str, str], run_proc: bool = True) -> Tuple[int, int, int, int]:
+    def _process_metric_entries(self, run_id: str, run_proc: bool = True) -> Tuple[int, int, int, int]:
+        """Processes metric entries for event log"""
+
         t_event_log_metrics_instrumented = "APP.V_EVENT_LOG_METRICS_INSTRUMENTED"
         (metric_entries_cnt, metric_logs_cnt, metric_metrics_cnt, metric_event_cnt) = self._log_entries(
             lambda: self._get_table_rows(t_event_log_metrics_instrumented),
             context_name="event_log_metrics",
-            run_uuid=__context[RUN_ID_NAME],
+            run_uuid=run_id,
             start_time="TIMESTAMP",
             log_completion=run_proc,
         )
 
         return metric_entries_cnt, metric_logs_cnt, metric_metrics_cnt, metric_event_cnt
 
-    def _process_span_entries(self, __context: Dict[str, str], run_proc: bool = True) -> int:
-        t_event_log_spans_instrumented = "APP.V_EVENT_LOG_SPANS_INSTRUMENTED"
-        span_count = 0
-        processing_errors = []
-        span_events_added = 0
-        context_name = "event_log_spans"
-        context = {**__context, CONTEXT_NAME: context_name}
+    def _process_span_entries(self, run_id, run_proc: bool = True) -> int:
+        """Processes span entries for event log"""
 
-        for row_dict in self._get_table_rows(t_event_log_spans_instrumented):
-            _span_id = row_dict.get("_SPAN_ID", None)
+        s_entries, _, _, _ = self._process_span_rows(
+            f_entry_generator=lambda: self._get_table_rows("APP.V_EVENT_LOG_SPANS_INSTRUMENTED"),
+            view_name="APP.V_EVENT_LOG_SPANS_INSTRUMENTED",
+            context_name="event_log_spans",
+            run_uuid=run_id,
+            query_id_col_name="_SPAN_ID",
+            parent_query_id_col_name="_PARENT_SPAN_ID",
+            log_completion=run_proc,
+        )
 
-            if _span_id is None:
-                LOG.warning("Problem with given row in event log: %s", row_dict)
-            else:
-                LOG.log(LL_TRACE, "Processing query history for %s", _span_id)
-                span_events_added += self._process_row(
-                    row=row_dict,
-                    processed_ids=None,
-                    processing_errors=processing_errors,
-                    row_id_col="_SPAN_ID",
-                    parent_row_id_col="_PARENT_SPAN_ID",
-                    view_name=t_event_log_spans_instrumented,
-                    context=context,
-                )
-                span_count += 1
-
-        if not self._spans.flush_traces():
-            processing_errors.append("Problem flushing traces")
-
-        processing_errors_count = len(processing_errors)
-        if processing_errors_count > 0:
-            LOG.warning("Following problems where discovered when processing event log traces: %s", processing_errors)
-
-        from snowflake.snowpark.functions import current_timestamp
-
-        if run_proc:
-            self._report_execution(
-                context_name,
-                current_timestamp(),
-                None,
-                {
-                    "even_log_span_count": span_count,
-                    "processing_errors_count": processing_errors_count,
-                    "span_events_added_count": span_events_added,
-                },
-            )
-
-        return span_count
+        return len(s_entries)
 
     def process(self, run_proc: bool = True) -> int:
         """
         Analyzes changes in the event log
         """
-        __context = get_context_by_name("event_log")
-        resource_attributes = self._configuration.get("resource.attributes")
+        run_id = str(uuid.uuid4().hex)
 
-        m_entries_cnt, m_logs_cnt, m_metrics_cnt, m_event_cnt = self._process_metric_entries(__context, run_proc)
-        s_entries_cnt = self._process_span_entries(__context, run_proc)
-        l_entries_cnt = self._process_log_entries(__context, resource_attributes, run_proc)
+        s_entries_cnt = self._process_span_entries(run_id, run_proc)
+        m_entries_cnt, m_logs_cnt, m_metrics_cnt, m_event_cnt = self._process_metric_entries(run_id, run_proc)
+        l_entries_cnt = self._process_log_entries(run_id, run_proc)
 
         return (
             l_entries_cnt + m_entries_cnt + s_entries_cnt,

@@ -5,25 +5,30 @@ Plugin file for processing query history plugin data.
 ##region ------------------------------ IMPORTS  -----------------------------------------
 #
 #
-# These materials contain confidential information and
-# trade secrets of Dynatrace LLC.  You shall
-# maintain the materials as confidential and shall not
-# disclose its contents to any third party except as may
-# be required by law or regulation.  Use, disclosure,
-# or reproduction is prohibited without the prior express
-# written permission of Dynatrace LLC.
+# Copyright (c) 2025 Dynatrace Open Source
 #
-# All Compuware products listed within the materials are
-# trademarks of Dynatrace LLC.  All other company
-# or product names are trademarks of their respective owners.
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
 #
-# Copyright (c) 2024 Dynatrace LLC.  All rights reserved.
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 #
 #
 
 import logging
 from typing import Any, Tuple, Dict, List
-from snowflake.snowpark.functions import current_timestamp
 from dtagent import LOG, LL_TRACE
 from dtagent.util import (
     _from_json,
@@ -109,67 +114,23 @@ class QueryHistoryPlugin(Plugin):
                     context=__context,
                 )
 
-        # initialize the recent queries cache
-        processed_query_ids: list[str] = []
-        processing_errors: list[str] = []
-        span_events_added = 0
-
-        t_recent_queries = "APP.V_RECENT_QUERIES"
-
         if run_proc:
             # getting list of recent queries with their query operator stats (query profile)
             self._session.call("APP.P_REFRESH_RECENT_QUERIES", log_on_exception=True)
             # getting slow queries and checking if they would benefit from acceleration
             self._session.call("APP.P_GET_ACCELERATION_ESTIMATES", log_on_exception=True)
 
-        for row_dict in self._get_table_rows(t_recent_queries):
-            query_id = row_dict.get("QUERY_ID", None)
-            if query_id is None:
-                LOG.warning("Problem with given row in query history: %r", row_dict)
-            else:
-                LOG.log(LL_TRACE, "Processing query history for %r", query_id)
-                span_events_added += self._process_row(
-                    row=row_dict,
-                    processed_ids=processed_query_ids,
-                    processing_errors=processing_errors,
-                    row_id_col="QUERY_ID",
-                    parent_row_id_col="PARENT_QUERY_ID",
-                    view_name="APP.V_RECENT_QUERIES",
-                    f_span_events=__f_span_events,
-                    f_log_events=__f_log_events,
-                    context=__context,
-                )
+        t_recent_queries = "APP.V_RECENT_QUERIES"
 
-        joint_processed_query_ids = "|".join(processed_query_ids)
-
-        if not self._metrics.flush_metrics():
-            processing_errors.append("Problem flushing metrics cache")
-
-        if not self._spans.flush_traces():
-            processing_errors.append("Problem flushing traces")
-
-        processing_errors_count = len(processing_errors)
-        if processing_errors_count > 0:
-            LOG.warning("Following problems where discovered when processing query history: %s", str(processing_errors))
-
-        if run_proc:
-            self._report_execution(
-                "query_history",
-                current_timestamp(),
-                None,
-                {
-                    "joint_processed_query_ids": joint_processed_query_ids,
-                    "processing_errors_count": processing_errors_count,
-                    "span_events_added_count": span_events_added,
-                },
-            )
-
-            self._session.call(
-                "STATUS.UPDATE_PROCESSED_QUERIES",
-                joint_processed_query_ids,
-                processing_errors_count,
-                span_events_added,
-            )
+        processed_query_ids, _, processing_errors_count, span_events_added = self._process_span_rows(
+            f_entry_generator=lambda: self._get_table_rows(t_recent_queries),
+            view_name=t_recent_queries,
+            context_name="query_history",
+            log_completion=run_proc,
+            report_status=run_proc,
+            f_span_events=__f_span_events,
+            f_log_events=__f_log_events,
+        )
 
         return (
             len(processed_query_ids),
