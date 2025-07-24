@@ -1,0 +1,84 @@
+delivers:
+  - name: DTAGENT_DB
+    type: database
+  - name: DTAGENT_ADMIN
+    type: role
+    comment: role used to create and own other objects
+  - name: DTAGENT_VIEWER
+    type: role
+    comment: role used to execute procedures, query views, and run tasks
+  - name: DTAGENT_WH
+    type: warehouse
+  - name: DTAGENT_RS
+    type: resource monitor
+  - name: DTAGENT_API_INTEGRATION
+    type: external access integration
+  - name: DTAGENT_DB.PUBLIC
+    type: schema
+  - name: DTAGENT_DB.CONFIG
+    type: schema
+  - name: DTAGENT_DB.CONFIG.INSTRUMENTS
+    type: table
+  - name: DTAGENT_DB.CONFIG.CONFIGURATIONS
+    type: table
+  - name: DTAGENT_DB.CONFIG.DTAGENT_API_KEY
+    type: secret
+  - name: DTAGENT_DB.CONFIG.DTAGENT_NETWORK_RULE
+    type: network rule
+  - name: DTAGENT_DB.CONFIG.UPDATE_FROM_CONFIGURATIONS()
+    type: procedure
+  - name: DTAGENT_DB.CONFIG.UPDATE_ALL_PLUGINS_SCHEDULE()
+    type: procedure
+  - name: DTAGENT_DB.CONFIG.UPDATE_PLUGIN_SCHEDULE(varchar)
+    type: procedure
+  - name: DTAGENT_DB.CONFIG.SET_RESOURCE_MONITOR(int)
+    type: procedure
+  - name: DTAGENT_DB.STATUS
+    type: schema
+  - name: DTAGENT_DB.STATUS.PROCESSED_MEASUREMENTS_LOG
+    type: table
+  - name: DTAGENT_DB.STATUS.LOG_PROCESSED_MEASUREMENTS(text,text,text,text)
+    type: function
+  - name: DTAGENT_DB.APP
+    type: schema
+  - name: DTAGENT_DB.APP.F_GET_CONFIG_VALUE(text,variant)
+    type: function
+  - name: DTAGENT_DB.APP.F_LAST_PROCESSED_TS(text)
+    type: function
+  - name: DTAGENT_DB.APP.SEND_TELEMETRY(variant,object)
+    type: procedure
+    language: python
+  - name: DTAGENT_DB.APP.DTAGENT(array)
+    type: procedure
+    language: python
+references:
+  - name: SNOWFLAKE
+    type: application
+    privileges: IMPORTED PRIVILEGES ON DATABASE
+    granted to: DTAGENT_VIEWER
+  - name: ACCOUNT
+    privileges: 
+      - MONITOR
+      - MONITOR USAGE
+      - MONITOR EXECUTION
+    granted to: DTAGENT_VIEWER
+  - name: ACCOUNT
+    privileges: MODIFY LOG LEVEL
+    granted to: DTAGENT_ADMIN
+  - name: ACCOUNT
+    privileges: MODIFY SESSION LOG LEVEL
+    granted to: DTAGENT_VIEWER
+  - name: ACCOUNT
+    privileges: MANAGE GRANTS
+    granted to: DTAGENT_ADMIN
+  - name: ACCOUNT
+    privileges: 
+      - EXECUTE TASK
+    granted to: DTAGENT_VIEWER
+  - name: DATABASE DTAGENT_DB
+    privileges: 
+      - OPERATE on all TASKS
+      - OPERATE on future TASKS
+    granted to: DTAGENT_VIEWER
+
+

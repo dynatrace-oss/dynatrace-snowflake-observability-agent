@@ -1,0 +1,11 @@
+{
+    "PLUGINS": {
+        "QUERY_HISTORY": {
+            "SCHEDULE_GRANTS": "USING CRON */30 * * * * UTC",
+            "SCHEDULE": "USING CRON */30 * * * * UTC",
+            "IS_DISABLED": false,
+            "SLOW_QUERIES_THRESHOLD": 10000,
+            "SLOW_QUERIES_TO_ANALYZE_LIMIT": 50
+        }
+    }
+}

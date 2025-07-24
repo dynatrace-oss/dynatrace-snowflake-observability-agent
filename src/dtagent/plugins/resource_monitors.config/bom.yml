@@ -1,0 +1,23 @@
+delivers:
+  - name: DTAGENT_DB.APP.TMP_RESOURCE_MONITORS
+    type: transient table
+  - name: DTAGENT_DB.APP.TMP_WAREHOUSES
+    type: transient table
+  - name: DTAGENT_DB.APP.V_RESOURCE_MONITORS
+    type: view
+  - name: DTAGENT_DB.APP.V_WAREHOUSES
+    type: view
+  - name: DTAGENT_DB.CONFIG.P_REFRESH_RESOURCE_MONITORS()
+    type: procedure
+  - name: DTAGENT_DB.CONFIG.UPDATE_RESOURCE_MONITORS_CONF()
+    type: procedure
+  - name: DTAGENT_DB.APP.TASK_DTAGENT_RESOURCE_MONITORS
+    type: task
+
+references:
+  - name: SHOW RESOURCE MONITORS
+    type: command
+    privileges: USAGE
+  - name: SHOW WAREHOUSES
+    type: command
+    privileges: USAGE

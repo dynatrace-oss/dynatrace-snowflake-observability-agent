@@ -1,0 +1,22 @@
+delivers:
+  - name: DTAGENT_DB.APP.V_SERVERLESS_TASKS
+    type: view
+  - name: DTAGENT_DB.APP.V_TASK_VERSIONS
+    type: view
+  - name: DTAGENT_DB.APP.V_TASK_HISTORY
+    type: view
+  - name: DTAGENT_DB.CONFIG.UPDATE_TASKS_CONF()
+    type: procedure
+  - name: DTAGENT_DB.APP.TASK_DTAGENT_TASKS
+    type: task
+
+references:
+  - name: SNOWFLAKE.ACCOUNT_USAGE.SERVERLESS_TASK_HISTORY
+    type: view
+    privileges: SELECT
+  - name: SNOWFLAKE.ACCOUNT_USAGE.TASK_VERSIONS
+    type: view
+    privileges: SELECT
+  - name: INFORMATION_SCHEMA.TASK_HISTORY()
+    type: function
+    privileges: USAGE

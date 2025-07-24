@@ -1,0 +1,16 @@
+delivers:
+  - name: DTAGENT_DB.APP.F_GET_FINISHED_QUERIES()
+    type: procedure
+  - name: DTAGENT_DB.APP.F_GET_RUNNING_QUERIES()
+    type: procedure
+  - name: DTAGENT_DB.APP.DTAGENT_DB.APP.F_ACTIVE_QUERIES_INSTRUMENTED()
+    type: procedure
+  - name: DTAGENT_DB.APP.TASK_DTAGENT_ACTIVE_QUERIES
+    type: task
+  - name: DTAGENT_DB.CONFIG.UPDATE_ACTIVE_QUERIES_CONF()
+    type: procedure
+
+references:
+  - name: INFORMATION_SCHEMA.QUERY_HISTORY
+    type: function
+    privileges: USAGE

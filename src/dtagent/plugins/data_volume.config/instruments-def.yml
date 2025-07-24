@@ -1,0 +1,85 @@
+#  *
+#  * These materials contain confidential information and
+#  * trade secrets of Dynatrace LLC.  You shall
+#  * maintain the materials as confidential and shall not
+#  * disclose its contents to any third party except as may
+#  * be required by law or regulation.  Use disclosure
+#  * or reproduction is prohibited without the prior express
+#  * written permission of Dynatrace LLC.
+#  *
+#  * All Compuware products listed within the materials are
+#  * trademarks of Dynatrace LLC.  All other company
+#  * or product names are trademarks of their respective owners.
+#  *
+#  * Copyright (c) 2024 Dynatrace LLC.  All rights reserved.
+#  *
+#  *
+#  * Catalog of instrumentation known to Dynatrace Snowflake Observability Agent - data_volume plugin
+#  *
+
+dimensions:
+    db.collection.name:
+        __example: analytics_db.public.sales_data
+        __description:
+            The full name of the table, including the catalog, schema, and
+            table name.
+    db.namespace:
+        __example: analytics_db
+        __description: The name of the database that contains the table.
+    snowflake.table.type:
+        __example: BASE TABLE
+        __description: |
+            The type of the table, such as:
+            - BASE TABLE,
+            - TEMPORARY TABLE,
+            - EXTERNAL TABLE.
+
+#  * Metric definitions
+#  * KEY                  - will be matched against METRICS object with measurements prepared for sending
+#  * VALUE[__description]   - __description of the metrics - in the future we should rather update semantic dictionary instead of pushing it constantly
+#  * VALUE[unit]          - the unit of the metric
+
+metrics:
+    snowflake.data.rows:
+        __example: "1000000"
+        __description: Sum of all rows in all objects in this scope.
+        displayName: Row Count
+        unit: rows
+    snowflake.data.size:
+        __example: "1073741824"
+        __description: Total size (in bytes) of all objects in this scope.
+        displayName: Table Size in Bytes
+        unit: bytes
+    snowflake.table.time_since.last_ddl:
+        __example: "2880"
+        __description:
+            Time (in minutes) since last time given objects structure was
+            altered.
+        displayName: Time Since Last DDL
+        unit: min
+    snowflake.table.time_since.last_update:
+        __example: "1440"
+        __description:
+            Time (in minutes) since last time content of given objects was
+            updated.
+        displayName: Time Since Last Update
+        unit: min
+
+event_timestamps:
+    snowflake.table.ddl:
+        __example: "2024-11-01 12:00:00.000"
+        __description: |
+            Timestamp of the last DDL operation performed on the table or
+            view. All supported table/view DDL operations update this field:
+            - CREATE,
+            - ALTER,
+            - DROP,
+            - UNDROP
+    snowflake.table.update:
+        __example: "2024-11-10 16:45:00.000"
+        __description:
+            Date and time the object was last altered by a DML, DDL, or background
+            metadata operation.
+    snowflake.event.trigger:
+        __example: "snowflake.table.update"
+        __description: Additionally to sending logs, each entry in `EVENT_TIMESTAMPS` is sent as event with key set to `snowflake.event.trigger`, value to key from `EVENT_TIMESTAMPS` and `timestamp` set to the key value.

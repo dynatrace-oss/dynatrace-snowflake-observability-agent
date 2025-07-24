@@ -1,0 +1,38 @@
+delivers:
+  - name: DTAGENT_DB.APP.TMP_USERS
+    type: transient table
+  - name: DTAGENT_DB.APP.TMP_USERS_HELPER
+    type: transient table
+  - name: DTAGENT_DB.APP.V_USERS_INSTRUMENTED
+    type: view
+  - name: DTAGENT_DB.APP.V_USERS_ALL_PRIVILEGES_INSTRUMENTED
+    type: view
+  - name: DTAGENT_DB.APP.V_USERS_ALL_ROLES_INSTRUMENTED
+    type: view
+  - name: DTAGENT_DB.APP.V_USERS_DIRECT_ROLES_INSTRUMENTED
+    type: view
+  - name: DTAGENT_DB.APP.V_USERS_REMOVED_DIRECT_ROLES_INSTRUMENTED
+    type: view
+  - name: DTAGENT_DB.CONFIG.P_GET_USERS()
+    type: procedure
+  - name: DTAGENT_DB.CONFIG.UPDATE_USERS_CONF()
+    type: procedure
+  - name: DTAGENT_DB.APP.TASK_DTAGENT_USERS
+    type: task
+
+references:
+  - name: SNOWFLAKE.ACCOUNT_USAGE.USERS
+    type: view
+    privileges: SELECT
+  - name: SNOWFLAKE.ACCOUNT_USAGE.LOGIN_HISTORY
+    type: view
+    privileges: SELECT
+  - name: SNOWFLAKE.ACCOUNT_USAGE.GRANTS_TO_USERS
+    type: view
+    privileges: SELECT
+  - name: SNOWFLAKE.ACCOUNT_USAGE.ROLES
+    type: view
+    privileges: SELECT
+  - name: SNOWFLAKE.ACCOUNT_USAGE.GRANTS_TO_ROLES
+    type: view
+    privileges: SELECT

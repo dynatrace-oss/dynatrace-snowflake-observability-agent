@@ -1,0 +1,35 @@
+delivers:
+  - name: DTAGENT_DB.APP.P_GRANT_MONITOR_DYNAMIC_TABLES()
+    type: procedure
+  - name: DTAGENT_DB.APP.V_DYNAMIC_TABLE_GRAPH_HISTORY_INSTRUMENTED
+    type: view
+  - name: DTAGENT_DB.APP.V_DYNAMIC_TABLE_REFRESH_HISTORY_INSTRUMENTED
+    type: view
+  - name: DTAGENT_DB.APP.V_DYNAMIC_TABLES_INSTRUMENTED
+    type: view
+  - name: DTAGENT_DB.CONFIG.UPDATE_DYNAMIC_TABLES_CONF()
+    type: procedure
+  - name: DTAGENT_DB.APP.TASK_DTAGENT_DYNAMIC_TABLES
+    type: task
+
+references:
+  - name: SHOW DATABASES
+    type: command
+    privileges: USAGE
+  - name: ALL DYNAMIC TABLES IN DATABASE $database
+    privileges: MONITOR
+    granted to: DTAGENT_VIEWER
+    comment: We grant that on every database selected in configuration or all (default)
+  - name: ALL FUTURE TABLES IN DATABASE $database
+    privileges: MONITOR
+    granted to: DTAGENT_VIEWER
+    comment: We grant that on every database selected in configuration or all (default)
+  - name: INFORMATION_SCHEMA.DYNAMIC_TABLE_REFRESH_HISTORY
+    privileges: USAGE
+    granted to: DTAGENT_VIEWER
+  - name: INFORMATION_SCHEMA.DYNAMIC_TABLE_GRAPH_HISTORY
+    privileges: USAGE
+    granted to: DTAGENT_VIEWER
+  - name: INFORMATION_SCHEMA.DYNAMIC_TABLES
+    privileges: USAGE
+    granted to: DTAGENT_VIEWER

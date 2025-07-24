@@ -1,0 +1,12 @@
+delivers:
+  - name: DTAGENT_DB.APP.V_DATA_VOLUME
+    type: view
+  - name: DTAGENT_DB.CONFIG.UPDATE_DATA_VOLUME_CONF()
+    type: procedure
+  - name: DTAGENT_DB.APP.TASK_DTAGENT_DATA_VOLUME
+    type: task
+
+references:
+  - name: SNOWFLAKE.ACCOUNT_USAGE.TABLES
+    type: view
+    privileges: SELECT

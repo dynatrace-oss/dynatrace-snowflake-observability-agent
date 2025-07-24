@@ -1,0 +1,141 @@
+#  *
+#  * These materials contain confidential information and
+#  * trade secrets of Dynatrace LLC.  You shall
+#  * maintain the materials as confidential and shall not
+#  * disclose its contents to any third party except as may
+#  * be required by law or regulation.  Use, disclosure,
+#  * or reproduction is prohibited without the prior express
+#  * written permission of Dynatrace LLC.
+#  *
+#  * All Compuware products listed within the materials are
+#  * trademarks of Dynatrace LLC.  All other company
+#  * or product names are trademarks of their respective owners.
+#  *
+#  * Copyright (c) 2024 Dynatrace LLC.  All rights reserved.
+#  *
+#  * Catalog of instrumentation known to Dynatrace Snowflake Observability Agent - login_history plugin
+attributes:
+  authentication.factor.first:
+    __context_names:
+      - login_history
+    __example: password123
+    __description: The first factor used for authentication, typically a password.
+  authentication.factor.second:
+    __context_names:
+      - login_history
+    __example: MFA_TOKEN_ABC123
+    __description:
+      The second factor used for authentication, such as an MFA token,
+      or NULL if not applicable.
+  authentication.type:
+    __context_names:
+      - sessions
+    __example: PASSWORD
+    __description: The type of authentication used for the session.
+  client.application.id:
+    __context_names:
+      - sessions
+    __example: app123
+    __description: The ID of the client application used for the session.
+  client.application.version:
+    __context_names:
+      - sessions
+    __example: 1.0.0
+    __description: The version of the client application used for the session.
+  client.build_id:
+    __context_names:
+      - sessions
+    __example: build123
+    __description: The build ID of the client application.
+  client.environment:
+    __context_names:
+      - sessions
+    __example: PRODUCTION
+    __description: The environment of the client application.
+  client.version:
+    __context_names:
+      - login_history
+      - sessions
+    __example: 1.0.0
+    __description: The version of the client software used to connect to Snowflake.
+  db.snowflake.connection:
+    __context_names:
+      - login_history
+    __example: connection_1
+    __description: The name of the connection used by the client, or NULL if the
+      client is not using a connection URL.
+  error.code:
+    __context_names:
+      - login_history
+    __example: ERR001
+    __description:
+      The error code associated with the login attempt, if it was not
+      successful.
+  event.id:
+    __context_names:
+      - login_history
+      - sessions
+    __example: "123456789"
+    __description: A unique identifier for the login attempt or the login event
+      associated with the session.
+  event.related_id:
+    __context_names:
+      - login_history
+    __example: "987654321"
+    __description: An identifier for a related event, if applicable.
+  session.id:
+    __context_names:
+      - sessions
+    __example: session123
+    __description: The unique identifier for the session.
+  snowflake.session.closed_reason:
+    __context_names:
+      - sessions
+    __example: USER_LOGOUT
+    __description: The reason the session was closed.
+  snowflake.session.start:
+    __context_names:
+      - sessions
+    __example: "1633046400000000000"
+    __description: The start time of the session.
+  status.code:
+    __context_names:
+      - login_history
+    __example: OK
+    __description:
+      The status of the login attempt, indicating success (OK) or failure
+      (ERROR).
+  status.message:
+    __context_names:
+      - login_history
+    __example: Login successful
+    __description:
+      A message providing additional details about the status of the
+      login attempt.
+dimensions:
+  client.ip:
+    __context_names:
+      - login_history
+    __example: 192.168.1.1
+    __description: The IP address of the client that initiated the event.
+  client.type:
+    __context_names:
+      - login_history
+    __example: JDBC_DRIVER
+    __description:
+      The type of client used to connect to Snowflake, such as JDBC_DRIVER
+      or ODBC_DRIVER.
+  db.user:
+    __context_names:
+      - login_history
+      - sessions
+    __example: john_doe
+    __description: The user who performed the event in the database.
+  event.name:
+    __context_names:
+      - login_history
+    __example: LOGIN
+    __description: |
+      The type of event that occurred, such as:
+      - LOGIN,
+      - LOGOUT.

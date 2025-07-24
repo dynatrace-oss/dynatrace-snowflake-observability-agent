@@ -1,0 +1,16 @@
+{
+    "PLUGINS": {
+        "DATA_VOLUME": {
+            "INCLUDE": [
+                "DTAGENT_DB.%.%",
+                "%.PUBLIC.%"
+            ],
+            "EXCLUDE": [
+                "%.INFORMATION_SCHEMA.%",
+                "%.%.TMP_%"
+            ],
+            "SCHEDULE": "USING CRON 30 0,4,8,12,16,20 * * * UTC",
+            "IS_DISABLED": false
+        }
+    }
+}

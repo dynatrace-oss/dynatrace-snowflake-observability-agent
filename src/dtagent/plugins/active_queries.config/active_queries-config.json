@@ -1,0 +1,10 @@
+{
+    "PLUGINS": {
+        "ACTIVE_QUERIES": {
+            "SCHEDULE": "USING CRON */6 * * * * UTC",
+            "IS_DISABLED": false,
+            "FAST_MODE": true,
+            "REPORT_EXECUTION_STATUS": []
+        }
+    }
+}

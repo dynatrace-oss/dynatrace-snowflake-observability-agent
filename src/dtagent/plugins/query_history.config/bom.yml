@@ -1,0 +1,46 @@
+delivers:
+  - name: DTAGENT_DB.STATUS.PROCESSED_QUERIES_CACHE
+    type: table
+  - name: DTAGENT_DB.STATUS.UPDATE_PROCESSED_QUERIES(text,int,int)
+    type: procedure
+  - name: DTAGENT_DB.APP.TMP_RECENT_QUERIES
+    type: transient table
+  - name: DTAGENT_DB.APP.TMP_QUERY_OPERATOR_STATS
+    type: transient table
+  - name: DTAGENT_DB.APP.TMP_QUERY_ACCELERATION_ESTIMATES
+    type: transient table
+  - name: DTAGENT_DB.APP.V_QUERY_HISTORY
+    type: view
+  - name: DTAGENT_DB.APP.V_QUERY_HISTORY_INSTRUMENTED
+    type: view
+  - name: DTAGENT_DB.APP.V_RECENT_QUERIES
+    type: view
+  - name: DTAGENT_DB.CONFIG.P_GET_ACCELERATION_ESTIMATES()
+    type: procedure
+  - name: DTAGENT_DB.CONFIG.UPDATE_QUERY_HISTORY_CONF()
+    type: procedure
+  - name: DTAGENT_DB.APP.TASK_DTAGENT_QUERY_HISTORY
+    type: task
+
+references:
+  - name: SNOWFLAKE.ACCOUNT_USAGE.ACCESS_HISTORY
+    type: view
+    privileges: SELECT
+  - name: SNOWFLAKE.ACCOUNT_USAGE.QUERY_HISTORY
+    type: view
+    privileges: SELECT
+  - name: SNOWFLAKE.ACCOUNT_USAGE.SESSIONS
+    type: view
+    privileges: SELECT
+  - name: SYSTEM$ESTIMATE_QUERY_ACCELERATION
+    type: function
+    privileges: USAGE
+  - name: GET_QUERY_OPERATOR_STATS
+    type: function
+    privileges: USAGE
+  - name: ENABLE_UNREDACTED_QUERY_SYNTAX_ERROR
+    type: account parameter
+    privileges: ALTER
+  - name: SHOW WAREHOUSES
+    type: command
+    privileges: USAGE

@@ -1,0 +1,8 @@
+{
+    "PLUGINS": {
+        "WAREHOUSE_USAGE": {
+            "SCHEDULE": "USING CRON 0 * * * * UTC",
+            "IS_DISABLED": false
+        }
+    }
+}

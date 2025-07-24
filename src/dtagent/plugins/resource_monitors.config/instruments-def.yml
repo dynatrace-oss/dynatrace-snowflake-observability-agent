@@ -1,0 +1,184 @@
+#  *
+#  * These materials contain confidential information and
+#  * trade secrets of Dynatrace LLC.  You shall
+#  * maintain the materials as confidential and shall not
+#  * disclose its contents to any third party except as may
+#  * be required by law or regulation.  Use, disclosure,
+#  * or reproduction is prohibited without the prior express
+#  * written permission of Dynatrace LLC.
+#  *
+#  * All Compuware products listed within the materials are
+#  * trademarks of Dynatrace LLC.  All other company
+#  * or product names are trademarks of their respective owners.
+#  *
+#  * Copyright (c) 2024 Dynatrace LLC.  All rights reserved.
+#  *
+#  * Catalog of instrumentation known to Dynatrace Snowflake Observability Agent - resource monitors plugin
+
+attributes:
+    snowflake.budget.name:
+        __example: BUDGET_2024
+        __description: The name of the budget associated with the warehouse.
+    snowflake.credits.quota:
+        __example: "1000"
+        __description: The credit quota of the resource monitor.
+    snowflake.credits.quota.remaining:
+        __example: "500"
+        __description: The remaining credits of the resource monitor.
+    snowflake.credits.quota.used:
+        __example: "500"
+        __description: The credits used by the resource monitor.
+    snowflake.resource_monitor.frequency:
+        __example: DAILY
+        __description: The frequency of the resource monitor.
+    snowflake.resource_monitor.is_active:
+        __example: "true"
+        __description: Indicates if the resource monitor is active.
+    snowflake.resource_monitor.level:
+        __example: ACCOUNT
+        __description: The level of the resource monitor.
+    snowflake.warehouse.execution_state:
+        __example: RUNNING
+        __description: The execution state of the warehouse.
+    snowflake.warehouse.has_query_acceleration_enabled:
+        __example: "true"
+        __description: Indicates if query acceleration is enabled for the warehouse.
+    snowflake.warehouse.is_auto_resume:
+        __example: "true"
+        __description: Indicates if the warehouse is set to auto-resume.
+    snowflake.warehouse.is_auto_suspend:
+        __example: "true"
+        __description: Indicates if the warehouse is set to auto-suspend.
+    snowflake.warehouse.is_current:
+        __example: "true"
+        __description: Indicates if the warehouse is the current warehouse.
+    snowflake.warehouse.is_default:
+        __example: "true"
+        __description: Indicates if the warehouse is the default warehouse.
+    snowflake.warehouse.is_unmonitored:
+        __example: "true"
+        __description: Indicates if the warehouse is NOT monitored by a resource monitor.
+    snowflake.warehouse.owner:
+        __example: admin
+        __description: The owner of the warehouse.
+    snowflake.warehouse.owner.role_type:
+        __example: SYSADMIN
+        __description: The role type of the warehouse owner.
+    snowflake.warehouse.scaling_policy:
+        __example: STANDARD
+        __description: The scaling policy of the warehouse.
+    snowflake.warehouse.size:
+        __example: X-SMALL
+        __description: The size of the warehouse.
+    snowflake.warehouse.type:
+        __example: STANDARD
+        __description: The type of the warehouse.
+    snowflake.warehouses.names:
+        __example: COMPUTE_WH
+        __description: The names of the warehouses monitored.
+dimensions:
+    snowflake.resource_monitor.name:
+        __example: RM_MONITOR
+        __description: The name of the resource monitor.
+    snowflake.warehouse.name:
+        __example: COMPUTE_WH
+        __description: The name of the warehouse.
+event_timestamps:
+    snowflake.resource_monitor.created_on:
+        __example: "2024-10-15 12:34:56.789"
+        __description: The timestamp when the resource monitor was created.
+    snowflake.resource_monitor.end_time:
+        __example: "2024-11-30 23:59:59.999"
+        __description: The timestamp when the resource monitor ended.
+    snowflake.resource_monitor.start_time:
+        __example: "2024-11-01 00:00:00.000"
+        __description: The timestamp when the resource monitor started.
+    snowflake.warehouse.created_on:
+        __example: "2024-09-01 08:00:00.000"
+        __description: The timestamp when the warehouse was created.
+    snowflake.warehouse.resumed_on:
+        __example: "2024-11-15 09:00:00.000"
+        __description: The timestamp when the warehouse was last resumed.
+    snowflake.warehouse.updated_on:
+        __example: "2024-11-10 14:30:00.000"
+        __description: The timestamp when the warehouse was last updated.
+    snowflake.event.trigger:
+        __example: "snowflake.warehouse.resumed_on"
+        __description: Additionally to sending logs, each entry in `EVENT_TIMESTAMPS` is sent as event with key set to `snowflake.event.trigger`, value to key from `EVENT_TIMESTAMPS` and `timestamp` set to the key value.
+
+metrics:
+    snowflake.acceleration.scale_factor.max:
+        __example: "2"
+        __description: Maximal scale factor for query acceleration in the given warehouse
+        displayName: Query Acceleration Max Scale Factor
+        unit: factor
+    snowflake.compute.available:
+        __example: "60"
+        __description: Percentage of available resources in given warehouse.
+        displayName: Percentage Available
+        unit: percent
+    snowflake.compute.other:
+        __example: "10"
+        __description: Percentage of other resources in given warehouse
+        displayName: Percentage Other
+        unit: percent
+    snowflake.compute.provisioning:
+        __example: "20"
+        __description: Percentage of provisioning resources in given warehouse.
+        displayName: Percentage Provisioning
+        unit: percent
+    snowflake.compute.quiescing:
+        __example: "10"
+        __description: Percentage of quiescing resources in given warehouse.
+        displayName: Percentage Quiescing
+        unit: percent
+    snowflake.credits.quota:
+        __example: "1000"
+        __description: Total number of credits allowed for the given resource monitor
+        displayName: Credits Quota
+        unit: credits
+    snowflake.credits.quota.remaining:
+        __example: "250"
+        __description: Number of credits remaining for the given resource monitor
+        displayName: Credits Remaining
+        unit: credits
+    snowflake.credits.quota.used:
+        __example: "750"
+        __description: Number of credits used by the given resource monitor
+        displayName: Credits Used
+        unit: credits
+    snowflake.credits.quota.used_pct:
+        __example: "75"
+        __description: Percentage of quota used by given resource monitor
+        displayName: Percentage Quota Used
+        unit: percent
+    snowflake.queries.queued:
+        __example: "5"
+        __description: Current number of queued queries in the given warehouse
+        displayName: Queued Queries
+        unit: queries
+    snowflake.queries.running:
+        __example: "15"
+        __description: Current number of running queries in the given warehouse
+        displayName: Running Queries
+        unit: queries
+    snowflake.resource_monitor.warehouses:
+        __example: "5"
+        __description: Number of warehouses monitored by the given resource monitor
+        displayName: Warehouses Count
+        unit: warehouses
+    snowflake.warehouse.clusters.max:
+        __example: "10"
+        __description: Maximal number of clusters in the given warehouse
+        displayName: Maximum Cluster Count
+        unit: clusters
+    snowflake.warehouse.clusters.min:
+        __example: "1"
+        __description: Minimal number of clusters in the given warehouse
+        displayName: Minimum Cluster Count
+        unit: clusters
+    snowflake.warehouse.clusters.started:
+        __example: "3"
+        __description: Current number of started clusters in the given warehouse
+        displayName: Started Clusters
+        unit: clusters

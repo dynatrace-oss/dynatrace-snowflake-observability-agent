@@ -1,0 +1,15 @@
+{
+    "PLUGINS": {
+        "SHARES": {
+            "SCHEDULE": "USING CRON */30 * * * * UTC",
+            "IS_DISABLED": false,
+            "EXCLUDE_FROM_MONITORING": [],
+            "EXCLUDE": [
+                ""
+            ],
+            "INCLUDE": [
+                "%.%.%"
+            ]
+        }
+    }
+}
