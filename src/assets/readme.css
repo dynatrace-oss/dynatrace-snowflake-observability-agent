@@ -1,0 +1,5 @@
+@import url('index.css');
+
+h2 {
+    page-break-before: always;
+}

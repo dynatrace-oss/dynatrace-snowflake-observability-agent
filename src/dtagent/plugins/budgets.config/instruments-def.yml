@@ -1,0 +1,78 @@
+#  *
+#  * These materials contain confidential information and
+#  * trade secrets of Dynatrace LLC.  You shall
+#  * maintain the materials as confidential and shall not
+#  * disclose its contents to any third party except as may
+#  * be required by law or regulation.  Use disclosure
+#  * or reproduction is prohibited without the prior express
+#  * written permission of Dynatrace LLC.
+#  *
+#  * All Compuware products listed within the materials are
+#  * trademarks of Dynatrace LLC.  All other company
+#  * or product names are trademarks of their respective owners.
+#  *
+#  * Copyright (c) 2024 Dynatrace LLC.  All rights reserved.
+#  *
+# Catalog of instrumentation known to Dynatrace Snowflake Observability Agent - budgets plugin
+attributes:
+    snowflake.budget.owner:
+        __example: budget_admin
+        __description:
+            The owner of the budget, typically the user or role responsible
+            for managing the budget.
+    snowflake.budget.owner.role_type:
+        __example: ACCOUNTADMIN
+        __description:
+            The type of role assigned to the budget owner, indicating their
+            level of access and responsibilities.
+    snowflake.budget.resource:
+        __example: '[ "database1", "warehouse1" ]'
+        __description:
+            The resources linked to the budget, such as databases, warehouses,
+            or other Snowflake objects that the budget monitors.
+dimensions:
+    db.namespace:
+        __example: analytics_db
+        __description:
+            The name of the database that was specified in the context of
+            the query at compilation.
+    snowflake.budget.name:
+        __example: monthly_budget
+        __description: Name of the budget.
+    snowflake.schema.name:
+        __example: public
+        __description: Schema that was specified in the context of the query at compilation.
+    snowflake.service.type:
+        __example: WAREHOUSE_METERING
+        __description: |
+            Type of service that is consuming credits, which can be one
+            of the following:
+            - AUTO_CLUSTERING,
+            - HYBRID_TABLE_REQUESTS,
+            - MATERIALIZED_VIEW,
+            - PIPE,
+            - QUERY_ACCELERATION,
+            - SEARCH_OPTIMIZATION,
+            - SERVERLESS_ALERTS,
+            - SERVERLESS_TASK,
+            - SNOWPIPE_STREAMING,
+            - WAREHOUSE_METERING,
+            - WAREHOUSE_METERING_READER
+event_timestamps:
+    snowflake.budget.created_on:
+        __example: "2024-11-30 23:59:59.999"
+        __description: The timestamp when the budget was created.
+    snowflake.event.trigger:
+        __example: "snowflake.budget.created_on"
+        __description: Additionally to sending logs, each entry in `EVENT_TIMESTAMPS` is sent as event with key set to `snowflake.event.trigger`, value to key from `EVENT_TIMESTAMPS` and `timestamp` set to the key value.
+metrics:
+    snowflake.credits.limit:
+        __example: "100"
+        __description: The number of credits set as the spending limit for the budget.
+        displayName: Budget Spending Limit
+        unit: credits
+    snowflake.credits.spent:
+        __example: "75"
+        __description: Number of credits used.
+        displayName: Credits Spent
+        unit: credits

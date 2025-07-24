@@ -1,0 +1,20 @@
+delivers:
+  - name: DTAGENT_DB.APP.V_TRUST_CENTER_FINDINGS
+    type: view
+  - name: DTAGENT_DB.APP.V_TRUST_CENTER_METRICS
+    type: view
+  - name: DTAGENT_DB.CONFIG.UPDATE_TRUST_CENTER_CONF()
+    type: procedure
+  - name: DTAGENT_DB.APP.TASK_DTAGENT_TRUST_CENTER
+    type: task
+
+references:
+  - name: SNOWFLAKE.TRUST_CENTER_VIEWER
+    type: role
+    privileges: APPLICATION ROLE
+    granted to: DTAGENT_VIEWER
+  - name: SNOWFLAKE.TRUST_CENTER.FINDINGS
+    type: view
+    privileges: SELECT
+    granted to: DTAGENT_VIEWER
+

@@ -1,0 +1,12 @@
+ENTITY_NAME;NEW ENTITY_NAME
+snowagent.debug.span_events_added;dsoa.debug.span.events.added
+snowagent.debug.span_events_failed;dsoa.debug.span.events.failed
+snowagent.run.context;dsoa.run.context
+snowagent.run.id;dsoa.run.id
+snowagent.task.exec.id;dsoa.task.exec.id
+snowagent.task.name;dsoa.task.name
+snowagent.task.exec.status;dsoa.task.exec.status
+snowagent.task.exec.id;dsoa.task.exec.id
+snowagent.deployment.parameter;dsoa.deployment.parameter
+snowagent.task;dsoa.task
+snowagent.bizevent;dsoa.bizevent

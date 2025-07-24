@@ -1,0 +1,102 @@
+"""Instruments are a set of defined payload properties which allow for setting e.g. metric dimensions."""
+
+##region ------------------------------ IMPORTS  -----------------------------------------
+#
+#
+# These materials contain confidential information and
+# trade secrets of Dynatrace LLC.  You shall
+# maintain the materials as confidential and shall not
+# disclose its contents to any third party except as may
+# be required by law or regulation.  Use, disclosure,
+# or reproduction is prohibited without the prior express
+# written permission of Dynatrace LLC.
+#
+# All Compuware products listed within the materials are
+# trademarks of Dynatrace LLC.  All other company
+# or product names are trademarks of their respective owners.
+#
+# Copyright (c) 2024 Dynatrace LLC.  All rights reserved.
+#
+#
+
+from typing import Any, Dict, Optional
+
+from dtagent.config import Configuration
+
+##endregion COMPILE_REMOVE
+
+
+##region ------------------------ INSTRUMENTS INIT ----------------------------------------
+class Instruments:
+    """Gathers defined payload properties from CONFIG.V_INSTRUMENTS"""
+
+    def __init__(self, configuration: Configuration):
+        self._configuration = configuration
+        self._init_instruments_api()
+
+    def _gen_metric_definition_line(self, metric_name: str, metric_details: Dict[str, str]) -> str:
+        """Generates a single doc line that will be sent along with actual data to Dynatrace Metrics API v2
+
+        Args:
+            metric_name (str): name of the metric
+            metric_details (Dict[str, str]): details (displayName, unit) for that metric
+
+        Returns:
+            str: single doc line for given metric
+        """
+
+        def __gen_metric_details(metric_details: Dict[str, str], metric_name: str) -> str:
+            """
+            Helper function that packs together displayName and other metadata about each metric
+            according to the Dynatrace Metrics v2 API specs
+            """
+            from dtagent.util import _esc  # COMPILE_REMOVE
+
+            return ",".join(
+                [
+                    f'dt.meta.{k}="{_esc(v)}"'
+                    for k, v in {
+                        "displayName": " ".join(metric_name.split(".")[-1:]).replace("_", " ").title(),
+                        **metric_details,
+                    }.items()
+                    if k[:2] != "__"  # skip internal names
+                ]
+            )
+
+        return f"#{metric_name} gauge {__gen_metric_details(metric_details, metric_name)}"
+
+    def _init_instruments_api(self) -> None:
+        """
+        Initializes metadata lines for all instruments registered in the Configuration.
+        For the time being all instruments are reported as 'gauge'
+
+        Returns a map of metadata lines by metric name
+        """
+        m_instruments = self._configuration.get("instruments")
+
+        self._instruments_cache = {
+            metric_name: self._gen_metric_definition_line(metric_name, metric_details)
+            for metric_name, metric_details in m_instruments["metrics"].items()
+        }
+
+    def get_metric_definition(
+        self, metric_name: str, local_metrics_def: Optional[Dict[str, Dict[str, Any]]] = None
+    ) -> str:
+        """
+        Returns set of instruments for metric of given name, with optional local semantic dictionary which might be provided at runtime
+        """
+        result = self._instruments_cache.get(metric_name, None)
+
+        if result is None:
+            # we could use (local_metrics_def or {}) but I think this will be faster, on top of calling this only when really needed
+            if local_metrics_def is not None and metric_name in local_metrics_def:
+                result = self._gen_metric_definition_line(metric_name, local_metrics_def[metric_name])
+
+                self._instruments_cache[metric_name] = result  # caching results for the time being
+            else:
+                result = ""
+
+        return result
+
+
+##endregion

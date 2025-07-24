@@ -1,0 +1,22 @@
+delivers:
+  - name: DTAGENT_DB.APP.V_WAREHOUSE_EVENT_HISTORY
+    type: view
+  - name: DTAGENT_DB.APP.V_WAREHOUSE_LOAD_HISTORY
+    type: view
+  - name: DTAGENT_DB.APP.V_WAREHOUSE_METERING_HISTORY
+    type: view
+  - name: DTAGENT_DB.CONFIG.UPDATE_WAREHOUSE_USAGE_CONF()
+    type: procedure
+  - name: DTAGENT_DB.APP.TASK_DTAGENT_WAREHOUSE_USAGE
+    type: task
+
+references:
+  - name: SNOWFLAKE.ACCOUNT_USAGE.WAREHOUSE_EVENTS_HISTORY
+    type: view
+    privileges: SELECT
+  - name: SNOWFLAKE.ACCOUNT_USAGE.WAREHOUSE_LOAD_HISTORY
+    type: view
+    privileges: SELECT
+  - name: SNOWFLAKE.ACCOUNT_USAGE.WAREHOUSE_METERING_HISTORY    
+    type: view
+    privileges: SELECT

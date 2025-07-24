@@ -1,0 +1,17 @@
+delivers:
+  - name: DTAGENT_DB.APP.V_LOGIN_HISTORY
+    type: view
+  - name: DTAGENT_DB.APP.V_SESSIONS
+    type: view
+  - name: DTAGENT_DB.CONFIG.UPDATE_LOGIN_HISTORY_CONF()
+    type: procedure
+  - name: DTAGENT_DB.APP.TASK_DTAGENT_LOGIN_HISTORY
+    type: task
+
+references:
+  - name: SNOWFLAKE.ACCOUNT_USAGE.LOGIN_HISTORY
+    type: view
+    privileges: SELECT
+  - name: SNOWFLAKE.ACCOUNT_USAGE.SESSIONS
+    type: view
+    privileges: SELECT

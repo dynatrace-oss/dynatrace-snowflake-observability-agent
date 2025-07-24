@@ -1,0 +1,40 @@
+[
+    {
+        "START_TIME": 1732101411467179000,
+        "DIMENSIONS": {
+            "db.collection.name": "DTAGENT_DB.STATUS.PROCESSED_QUERIES_CACHE",
+            "db.namespace": "DTAGENT_DB"
+        },
+        "ATTRIBUTES": {
+            "snowflake.table_type": "BASE TABLE"
+        },
+        "EVENT_TIMESTAMPS": {
+            "data_update": 1731675389099000000,
+            "ddl": 1731436379508000000
+        },
+        "METRICS": {
+            "snowflake.data.rows": 0,
+            "snowflake.data.size": 0,
+            "snowflake.table.time_since.last_ddl": 4030,
+            "snowflake.table.time_since.last_update": 46
+        }
+    },
+    {
+        "START_TIME": 1732101440728007000,
+        "DIMENSIONS": {
+            "db.collection.name": "DEV_DB.PUBLIC.SALES",
+            "db.namespace": "DEV_DB"
+        },
+        "ATTRIBUTES": {
+            "snowflake.table_type": "BASE TABLE"
+        },
+        "EVENT_TIMESTAMPS": {
+            "data_update": 1707344711267000000
+        },
+        "METRICS": {
+            "snowflake.data.rows": 2,
+            "snowflake.data.size": 2048,
+            "snowflake.table.time_since.last_update": 405557
+        }
+    }
+]

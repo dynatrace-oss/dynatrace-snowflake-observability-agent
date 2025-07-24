@@ -1,0 +1,173 @@
+* {
+    margin: 0;
+    box-sizing: border-box;
+    font-family: DTFlow, DT-Flow, Helvetica, sans-serif;
+    line-height: 1.2;
+}
+
+p {
+    padding: 0.5em 0;
+    text-align: justify;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    padding: 0.5em 0;
+    text-align: left;
+}
+
+ul, ol {
+    margin-top: 10px;
+}
+
+ol ul {
+    margin-top: 5px;
+}
+
+ul > li, ol > li {
+    padding: 0.25em 0;
+    margin-left: 0 !important;
+}
+
+ul > li > p, ol > li > p {
+    padding: 0;
+}
+
+strong, b {
+    padding: 0px;
+}
+
+table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    margin: 10px 0;
+    font-size: 12px;
+    text-align: left;
+    line-height: 1.5;
+}
+
+th, td {
+    padding: 10px 13px;
+    border: 1px solid #ddd;
+}
+
+td {
+    word-break: break-all;
+    white-space: pre-wrap;
+}
+
+a {
+    padding-left: 0px;
+    padding-right: 0px;
+}
+
+ul > li, ol > li {
+    margin-left: 1.2em;
+    line-height: 1.1;
+}
+
+tr:nth-child(even) {
+    background-color: #f2f2f2;
+}
+
+th {
+    color: white;
+    background-color: #999999;
+}
+
+h3#theme-security {
+    color: #EB453C;
+}
+h3#theme-security + table th {
+    background-color: #EB453C;
+}
+
+h3#theme-operations {
+    color: #F9741B;
+}
+h3#theme-operations + table th {
+    background-color: #F9741B;
+}
+
+h3#theme-costs {
+    color: #20A27F;
+}
+h3#theme-costs + table th {
+    background-color: #20A27F;
+}
+
+h3#theme-performance {
+    color: #0081CC;
+}
+h3#theme-performance + table th {
+    background-color: #0081CC;
+}
+
+h3#theme-quality {
+    color: #800080;
+}
+h3#theme-quality + table th {
+    background-color: #800080;
+}
+h4#sending-logs {
+    color: #696969; /* Dim Gray */
+}
+h4#sending-tracesspans {
+    color: #228B22; /* Forest Green */
+}
+h4#sending-metrics {
+    color: #1E90FF; /* Dodger Blue */
+}
+h4#sending-events {
+    color: #BDB76B; /* Dark Khaki */
+}
+h4#sending-bizevents {
+    color: #FF8C00; /* Dark Orange */
+}
+
+tr:hover {
+    background-color: #ddd;
+}
+
+pre {
+    font-family: 'Courier New', Courier, monospace;
+    white-space: pre-wrap;
+}
+
+code {
+    font-family: 'Courier New', Courier, monospace;
+    background-color: aliceblue;
+    font-size: 0.9em;
+}
+
+pre code {
+    display: block;
+    page-break-inside: avoid;
+    margin-left: 0;
+    border-color: gray;
+    border-width: 1px;
+    border-style: solid;
+    padding: 0.5em;
+}
+
+pre code * {
+    font-family: 'Courier New', Courier, monospace !important;
+    font-size: 0.9em !important;
+    line-height: 0.9 !important;
+    padding: 0;
+}
+
+blockquote {
+    page-break-inside: avoid;
+}
+
+img { 
+    display:block;
+    float:none;
+    margin-left:auto;
+    margin-right:auto;
+    width: 30%;
+}
+figure figcaption[aria-hidden="true"] {
+    display: none;
+}

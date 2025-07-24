@@ -1,0 +1,61 @@
+#  *
+#  * These materials contain confidential information and
+#  * trade secrets of Dynatrace LLC.  You shall
+#  * maintain the materials as confidential and shall not
+#  * disclose its contents to any third party except as may
+#  * be required by law or regulation.  Use disclosure
+#  * or reproduction is prohibited without the prior express
+#  * written permission of Dynatrace LLC.
+#  *
+#  * All Compuware products listed within the materials are
+#  * trademarks of Dynatrace LLC.  All other company
+#  * or product names are trademarks of their respective owners.
+#  *
+#  * Copyright (c) 2024 Dynatrace LLC.  All rights reserved.
+#  *
+# Catalog of instrumentation known to Dynatrace Snowflake Observability Agent - data_schemas plugin
+attributes:
+    snowflake.query.id:
+        __example: 01b30d58-0604-6e1c-0040-e003029c1322
+        __description: An internal, system-generated identifier for the SQL statement.
+    db.user:
+        __example: SYSTEM
+        __description: The user who issued the query.
+    snowflake.query.parent_id:
+        __example: 01b2fd01-0604-6864-0040-e003029abda2
+        __description: The query ID of the parent job or NULL if the job does not have a parent.
+    snowflake.query.root_id:
+        __example: 01b2fd00-0604-6864-0040-e003029abd82
+        __description: The query ID of the top most job in the chain or NULL if the job does not have a parent.
+    snowflake.object.ddl.modified:
+        __example: '{ "DTAGENT_DB.APP.TMP_RECENT_QUERIES": {
+            "objectColumns": "HISTOGRAM_METRICS, COUNTER_METRICS, START_TIME, STATUS_CODE, SESSION_ID, QUERY_ID, DIMENSIONS, END_TIME, NAME, ATTRIBUTES, PARENT_QUERY_ID",
+            "objectDomain": "Table" } }'
+        __description: A JSON array that specifies the objects that were associated with a write operation in the query.
+    snowflake.object.type:
+        __example: "Table"
+        __description: |
+            The domain of the object defined or modified by the DDL operation, which includes all objects that can be tagged and:
+            - MASKING POLICY,
+            - ROW ACCESS POLICY,
+            - TAG.
+    snowflake.object.id:
+        __example: 747545
+        __description: An identifier for the object, which is unique within a given account and domain.
+    snowflake.object.name:
+        __example: "DTAGENT_DB.APP.TMP_RECENT_QUERIES"
+        __description: The fully qualified name of the object defined or modified by the DDL operation.
+    snowflake.object.ddl.operation:
+        __example: "REPLACE"
+        __description: |
+            The SQL keyword that specifies the operation on the table, view, or column:
+            - ALTER,
+            - CREATE,
+            - DROP,
+            - REPLACE, 
+            - UNDROP.
+    snowflake.object.ddl.properties:
+        __example: '{"creationMode": "CREATE", "columns": {"ADD": ["ATTRIBUTE","JOB_ID"]}}'
+        __description: |
+            A JSON array that specifies the object or column properties when you create, modify, drop, or undrop the object or column. 
+            There are two types of properties: atomic and compound.

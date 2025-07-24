@@ -1,0 +1,68 @@
+delivers:
+  - name: ACCOUNT_BUDGET_ADMIN
+    type: role
+  - name: ACCOUNT_BUDGET_MONITOR
+    type: role
+  - name: BUDGET_OWNER
+    type: role
+  - name: DTAGENT_DB.APP.DTAGENT_BUDGET
+    type: snowflake.core.budget
+  - name: DTAGENT_DB.APP.TMP_BUDGETS
+    type: transient table
+  - name: DTAGENT_DB.APP.TMP_BUDGETS_LIMITS
+    type: transient table
+  - name: DTAGENT_DB.APP.TMP_BUDGETS_RESOURCES
+    type: transient table
+  - name: DTAGENT_DB.APP.TMP_BUDGET_SPENDING
+    type: transient table
+  - name: DTAGENT_DB.APP.P_GET_BUDGETS()
+    type: procedure
+  - name: DTAGENT_DB.APP.V_BUDGET_SPENDINGS
+    type: view
+  - name: DTAGENT_DB.APP.V_BUDGET_DETAILS
+    type: view
+  - name: DTAGENT_DB.CONFIG.UPDATE_BUDGETS_CONF()
+    type: procedure
+  - name: DTAGENT_DB.APP.TASK_DTAGENT_BUDGETS
+    type: task
+
+references:
+  - name: SNOWFLAKE
+    type: application
+    privileges: IMPORTED PRIVILEGES ON DATABASE
+    granted to: ACCOUNT_BUDGET_ADMIN
+  - name: SNOWFLAKE.BUDGET_ADMIN
+    type: role
+    privileges: APPLICATION ROLE
+    granted to: ACCOUNT_BUDGET_ADMIN
+  - name: SNOWFLAKE.BUDGET_VIEWER
+    type: role
+    privileges: APPLICATION ROLE
+    granted to: ACCOUNT_BUDGET_MONITOR
+  - name: SNOWFLAKE.BUDGET_CREATOR
+    type: role
+    privileges: DATABASE ROLE
+    granted to: BUDGET_OWNER
+  - name: ACCOUNT_BUDGET_ADMIN
+    type: role
+    privileges: ROLE
+    granted to: DTAGENT_ADMIN
+  - name: ACCOUNT_BUDGET_MONITOR
+    type: role
+    privileges: ROLE
+    granted to: DTAGENT_VIEWER
+  - name: BUDGET_OWNER
+    type: role
+    privileges: ROLE
+    granted to: DTAGENT_ADMIN
+  - name: SNOWFLAKE.CORE.BUDGET
+    type: command
+  - name: "$budget!GET_LINKED_RESOURCES"
+    type: procedure
+    comment: We call this procedure on each budget defined in Snowflake
+  - name: "$budget!GET_SPENDING_LIMIT"
+    type: procedure
+    comment: We call this procedure on each budget defined in Snowflake
+  - name: "$budget!GET_SPENDING_HISTORY"
+    type: procedure
+    comment: We call this procedure on each budget defined in Snowflake

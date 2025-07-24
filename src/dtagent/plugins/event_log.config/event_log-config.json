@@ -1,0 +1,11 @@
+{
+    "PLUGINS": {
+        "EVENT_LOG": {
+            "MAX_ENTRIES": 10000,
+            "RETENTION_HOURS": 12,
+            "SCHEDULE": "USING CRON */30 * * * * UTC",
+            "SCHEDULE_CLEANUP": "USING CRON 0 * * * * UTC",
+            "IS_DISABLED": false
+        }
+    }
+}

@@ -1,0 +1,85 @@
+#  *
+#  * These materials contain confidential information and
+#  * trade secrets of Dynatrace LLC.  You shall
+#  * maintain the materials as confidential and shall not
+#  * disclose its contents to any third party except as may
+#  * be required by law or regulation.  Use, disclosure,
+#  * or reproduction is prohibited without the prior express
+#  * written permission of Dynatrace LLC.
+#  *
+#  * All Compuware products listed within the materials are
+#  * trademarks of Dynatrace LLC.  All other company
+#  * or product names are trademarks of their respective owners.
+#  *
+#  * Copyright (c) 2024 Dynatrace LLC.  All rights reserved.
+#  *
+#  * Catalog of instrumentation known to Dynatrace Snowflake Observability Agent - trust_center plugin
+
+attributes:
+    error.code:
+        __example: ERR001
+        __description: The error code associated with the scanner, if any.
+    event.id:
+        __example: event123
+        __description: A unique identifier for the security event.
+    event.kind:
+        __example: SECURITY_EVENT
+        __description: The kind of event, in this case, 'SECURITY_EVENT'.
+    snowflake.entity.details:
+        __example: Contains user data
+        __description: Additional details about the entity involved in the event.
+    snowflake.entity.id:
+        __example: entity123
+        __description: The unique identifier for the entity involved in the event.
+    snowflake.entity.name:
+        __example: User Table
+        __description: The name of the entity involved in the event.
+    snowflake.entity.type:
+        __example: table
+        __description:
+            The type of entity involved in the event, such as a table, view,
+            or user.
+    snowflake.trust_center.scanner.name:
+        __example: 2.4
+        __description: The name of the scanner used in the Trust Center.
+    snowflake.trust_center.scanner.description:
+        __example: Ensure monitoring and alerting exist for password sign-in without MFA
+        __description: A short description of the scanner used in the Trust Center.
+    snowflake.trust_center.scanner.package.name:
+        __example: CIS Package
+        __description: The name of the scanner package used in the Trust Center.
+    status.message:
+        __example: 2.4 Ensure monitoring and alerting exist for password sign-in without MFA
+        __description:
+            The name and description of the scanner, providing additional details about the
+            status.
+dimensions:
+    event.category:
+        __example: Warning
+        __description:
+            The category of the event, such as 'Warning' or 'Vulnerability
+            management', based on the severity.
+    snowflake.trust_center.scanner.id:
+        __example: scanner123
+        __description: The unique identifier for the scanner used in the Trust Center.
+    snowflake.trust_center.scanner.package.id:
+        __example: package123
+        __description:
+            The unique identifier for the scanner package used in the Trust
+            Center.
+    snowflake.trust_center.scanner.type:
+        __example: CIS Benchmarks
+        __description:
+            The type of scanner used in the Trust Center, such as 'CIS Benchmarks'
+            or 'Threat Intelligence'.
+    vulnerability.risk.level:
+        __example: HIGH
+        __description:
+            The risk level of the vulnerability, such as LOW, MEDIUM, HIGH,
+            or CRITICAL.
+metrics:
+    snowflake.trust_center.findings:
+        __example: "10"
+        __description: The total number of findings at risk identified by the scanner.
+        displayName: Trust Center Findings Count
+        unit: count

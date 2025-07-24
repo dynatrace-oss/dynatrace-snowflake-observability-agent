@@ -1,0 +1,29 @@
+{
+    "CORE": {
+        "DYNATRACE_TENANT_ADDRESS": "abc12345.live.dynatrace.com",
+        "DEPLOYMENT_ENVIRONMENT": "TEST",
+        "SNOWFLAKE_ACCOUNT_NAME": "my_snowflake_account.us-east-1",
+        "SNOWFLAKE_HOST_NAME": "my_snowflake_account.us-east-1.snowflakecomputing.com",
+        "SNOWFLAKE_CREDIT_QUOTA": 5,
+        "LOG_LEVEL": "DEBUG",
+        "TAG": "090"
+    },
+    "OTEL": {
+        "SPANS": {
+            "EXPORT_TIMEOUT_MILLIS": 5000,
+            "MAX_EXPORT_BATCH_SIZE": 60
+        }
+    },
+    "PLUGINS": {
+        "ACTIVE_QUERIES": {
+            "SCHEDULE": "20 MINUTE"
+        },
+        "DATA_VOLUME": {
+            "SCHEDULE": "USING CRON 30 */4 * * * UTC",
+            "EXCLUDE": [
+                "%.INFORMATION_SCHEMA.%",
+                "%.%.TMP_%"
+            ]
+        }
+    }
+}

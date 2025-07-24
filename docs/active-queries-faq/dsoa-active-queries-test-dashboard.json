@@ -1,0 +1,1205 @@
+{
+  "version": "6",
+  "defaultTimeframe": {
+    "from": "now()-24h",
+    "to": "now()"
+  },
+  "defaultSegments": [],
+  "sections": [
+    {
+      "id": "a026e758-0072-4844-a14b-7f93830248f0",
+      "type": "dql",
+      "title": "active_queries - task runs - execution time - via bizevents",
+      "filterSegments": [],
+      "drilldownPath": [],
+      "previousFilterSegments": [],
+      "showInput": false,
+      "height": 136,
+      "state": {
+        "input": {
+          "timeframe": {
+            "from": "now()-24h",
+            "to": "now()"
+          },
+          "value": "fetch bizevents\n| filter db.system == \"snowflake\"\n| filter dsoa.run.context == \"self-monitoring\"\n| filter deployment.environment == \"PROD\" // <-- set to your configuration CORE.DEPLOYMENT_ENVIRONMENT\n| filter dsoa.task.name == \"active_queries\"\n| sort timestamp asc\n| summarize {\n  timestamp = takeFirst(timestamp) + 2h,\n  snowagent.run.duration = max(timestamp) - min(timestamp),\n  count = count()\n}, by: {\n  deployment.environment,\n  deployment.environment.tag = coalesce(deployment.environment.tag, env_tag),\n  dsoa.task.exec.id,\n  dsoa.task.name\n}\n| filter count > 1\n| makeTimeseries {\n  snowagent.run.duration = sum(snowagent.run.duration)\n}, by: {\n  deployment.environment,\n  dsoa.run.context = dsoa.task.name\n}"
+        },
+        "visualizationSettings": {
+          "thresholds": [],
+          "chartSettings": {
+            "gapPolicy": "gap",
+            "circleChartSettings": {
+              "groupingThresholdType": "relative",
+              "groupingThresholdValue": 0,
+              "valueType": "relative"
+            },
+            "categoryOverrides": {},
+            "curve": "linear",
+            "pointsDisplay": "auto",
+            "categoricalBarChartSettings": {
+              "layout": "horizontal",
+              "categoryAxisTickLayout": "horizontal",
+              "scale": "absolute",
+              "groupMode": "stacked",
+              "colorPaletteMode": "multi-color",
+              "valueAxisScale": "linear"
+            },
+            "colorPalette": "categorical",
+            "valueRepresentation": "absolute",
+            "truncationMode": "middle",
+            "xAxisScaling": "analyzedTimeframe",
+            "xAxisLabel": "timeframe",
+            "xAxisIsLabelVisible": false,
+            "hiddenLegendFields": [
+              "interval",
+              "snowagent.run.duration"
+            ],
+            "fieldMapping": {
+              "timestamp": "timeframe",
+              "leftAxisValues": [
+                "snowagent.run.duration"
+              ]
+            },
+            "leftYAxisSettings": {},
+            "legend": {
+              "hidden": true
+            }
+          },
+          "singleValue": {
+            "showLabel": true,
+            "label": "",
+            "prefixIcon": "AnalyticsIcon",
+            "isIconVisible": false,
+            "autoscale": true,
+            "alignment": "center",
+            "colorThresholdTarget": "value"
+          },
+          "table": {
+            "rowDensity": "condensed",
+            "enableSparklines": false,
+            "hiddenColumns": [],
+            "linewrapEnabled": false,
+            "lineWrapIds": [],
+            "monospacedFontEnabled": false,
+            "monospacedFontColumns": [],
+            "firstVisibleRowIndex": 0,
+            "columnWidths": {},
+            "columnTypeOverrides": [
+              {
+                "fields": [
+                  "snowagent.run.duration"
+                ],
+                "value": "sparkline",
+                "id": 1747081036904
+              }
+            ]
+          },
+          "honeycomb": {
+            "shape": "hexagon",
+            "legend": {
+              "hidden": false,
+              "position": "auto",
+              "ratio": "auto"
+            },
+            "dataMappings": {},
+            "displayedFields": [],
+            "truncationMode": "middle",
+            "colorMode": "color-palette",
+            "colorPalette": "categorical"
+          },
+          "histogram": {
+            "legend": {
+              "position": "auto"
+            },
+            "yAxis": {
+              "label": "Frequency",
+              "isLabelVisible": true,
+              "scale": "linear"
+            },
+            "colorPalette": "categorical",
+            "dataMappings": [],
+            "variant": "single",
+            "truncationMode": "middle"
+          },
+          "valueBoundaries": {
+            "min": "auto",
+            "max": "auto"
+          },
+          "autoSelectVisualization": false,
+          "legend": {
+            "showLegend": false,
+            "position": "auto",
+            "ratio": 17
+          },
+          "unitsOverrides": [
+            {
+              "identifier": "snowagent.run.duration",
+              "unitCategory": "time",
+              "baseUnit": "nanosecond",
+              "displayUnit": null,
+              "decimals": 2,
+              "suffix": "",
+              "delimiter": false,
+              "added": 1747081176959
+            }
+          ]
+        },
+        "querySettings": {
+          "maxResultRecords": 1000,
+          "defaultScanLimitGbytes": 500,
+          "maxResultMegaBytes": 1,
+          "defaultSamplingRatio": 10,
+          "enableSampling": false
+        },
+        "visualization": "lineChart",
+        "state": "success",
+        "davis": {
+          "includeLogs": true,
+          "davisVisualization": {
+            "isAvailable": true
+          }
+        }
+      }
+    },
+    {
+      "id": "d9008928-8647-4e6d-a9c6-b979872180f7",
+      "type": "dql",
+      "title": "active_queries - procedure calls - total elapsed time - via query_history logs",
+      "filterSegments": [],
+      "drilldownPath": [],
+      "previousFilterSegments": [],
+      "showInput": false,
+      "height": 112,
+      "state": {
+        "input": {
+          "timeframe": {
+            "from": "now()-24h",
+            "to": "now()"
+          },
+          "value": "fetch logs\n| filter db.system == \"snowflake\"\n| filter deployment.environment == \"PROD\" // <-- set to your configuration CORE.DEPLOYMENT_ENVIRONMENT\n| filter dsoa.run.context == \"query_history\"\n| filter startsWith(db.query.text, \"call DTAGENT_\") and contains(db.query.text, \"_DB.APP.DTAGENT(\")\n| filter matchesPattern(db.query.text, \"\"\"'call DTAGENT' ('_' LD:tag)?  '_DB.APP.DTAGENT(ARRAY_CONSTRUCT(' SQS:plugin_name '))'\"\"\")\n| parse `db.query.text`, \"\"\"'call DTAGENT' ('_' LD:env_tag)?  '_DB.APP.DTAGENT(ARRAY_CONSTRUCT(' \nARRAY{\n    SQS*:i\n    ', '?\n}{1,}:plugin_names\n'))'\n\"\"\"\n| fieldsAdd plugins_count = arraySize(plugin_names)\n| expand dsoa.task.name = plugin_names \n| filter dsoa.task.name == \"active_queries\"\n| fields dsoa.task.name\n       , timestamp\n       , snowflake.query.execution_status\n       , snowflake.time.total_elapsed = toLong(snowflake.time.total_elapsed) / plugins_count\n       , snowflake.time.execution = toLong(snowflake.time.execution) / plugins_count\n       , snowflake.time.compilation = toLong(snowflake.time.compilation) / plugins_count\n| makeTimeseries snowflake.time.total_elapsed = max(snowflake.time.total_elapsed)\n    // , by: {dsoa.task.name}\n"
+        },
+        "visualizationSettings": {
+          "thresholds": [],
+          "chartSettings": {
+            "gapPolicy": "connect",
+            "circleChartSettings": {
+              "groupingThresholdType": "relative",
+              "groupingThresholdValue": 0,
+              "valueType": "relative"
+            },
+            "categoryOverrides": {},
+            "curve": "linear",
+            "pointsDisplay": "auto",
+            "categoricalBarChartSettings": {
+              "layout": "horizontal",
+              "categoryAxisTickLayout": "horizontal",
+              "scale": "absolute",
+              "groupMode": "stacked",
+              "colorPaletteMode": "multi-color",
+              "valueAxisScale": "linear"
+            },
+            "colorPalette": "categorical",
+            "valueRepresentation": "absolute",
+            "truncationMode": "middle",
+            "xAxisScaling": "analyzedTimeframe",
+            "xAxisLabel": "timeframe",
+            "xAxisIsLabelVisible": false,
+            "hiddenLegendFields": [
+              "interval"
+            ],
+            "fieldMapping": {
+              "timestamp": "timeframe",
+              "leftAxisValues": [
+                "snowflake.time.total_elapsed"
+              ]
+            },
+            "leftYAxisSettings": {},
+            "legend": {
+              "hidden": true
+            }
+          },
+          "singleValue": {
+            "showLabel": true,
+            "label": "",
+            "prefixIcon": "AnalyticsIcon",
+            "isIconVisible": false,
+            "autoscale": true,
+            "alignment": "center",
+            "colorThresholdTarget": "value"
+          },
+          "table": {
+            "rowDensity": "condensed",
+            "enableSparklines": false,
+            "hiddenColumns": [],
+            "linewrapEnabled": false,
+            "lineWrapIds": [],
+            "monospacedFontEnabled": false,
+            "monospacedFontColumns": [],
+            "firstVisibleRowIndex": 0,
+            "columnWidths": {},
+            "columnTypeOverrides": [
+              {
+                "fields": [
+                  "snowflake.time.total_elapsed"
+                ],
+                "value": "sparkline",
+                "id": 1747081639148
+              }
+            ]
+          },
+          "honeycomb": {
+            "shape": "hexagon",
+            "legend": {
+              "hidden": false,
+              "position": "auto",
+              "ratio": "auto"
+            },
+            "dataMappings": {},
+            "displayedFields": [],
+            "truncationMode": "middle",
+            "colorMode": "color-palette",
+            "colorPalette": "categorical"
+          },
+          "histogram": {
+            "legend": {
+              "position": "auto"
+            },
+            "yAxis": {
+              "label": "Frequency",
+              "isLabelVisible": true,
+              "scale": "linear"
+            },
+            "colorPalette": "categorical",
+            "dataMappings": [],
+            "variant": "single",
+            "truncationMode": "middle"
+          },
+          "valueBoundaries": {
+            "min": "auto",
+            "max": "auto"
+          },
+          "autoSelectVisualization": false,
+          "unitsOverrides": [
+            {
+              "identifier": "snowflake.time.total_elapsed",
+              "unitCategory": "time",
+              "baseUnit": "millisecond",
+              "displayUnit": null,
+              "decimals": 2,
+              "suffix": "",
+              "delimiter": false,
+              "added": 1747081508222
+            },
+            {
+              "identifier": "snowflake.time.execution",
+              "unitCategory": "time",
+              "baseUnit": "millisecond",
+              "displayUnit": null,
+              "decimals": 2,
+              "suffix": "",
+              "delimiter": false,
+              "added": 1747081573538
+            }
+          ]
+        },
+        "querySettings": {
+          "maxResultRecords": 1000,
+          "defaultScanLimitGbytes": 500,
+          "maxResultMegaBytes": 1,
+          "defaultSamplingRatio": 10,
+          "enableSampling": false
+        },
+        "visualization": "lineChart",
+        "state": "success",
+        "davis": {
+          "includeLogs": true,
+          "davisVisualization": {
+            "isAvailable": true
+          }
+        }
+      }
+    },
+    {
+      "id": "c9fe72e9-d0b1-4906-ae6f-b2225df0ec03",
+      "type": "dql",
+      "title": "active_queries - number of queries vs execution time - via log lines",
+      "filterSegments": [],
+      "drilldownPath": [],
+      "previousFilterSegments": [],
+      "showInput": false,
+      "height": 166,
+      "state": {
+        "input": {
+          "timeframe": {
+            "from": "now()-24h",
+            "to": "now()"
+          },
+          "value": "fetch logs\n| filter db.system == \"snowflake\"\n| filter deployment.environment == \"PROD\" // <-- set to your configuration CORE.DEPLOYMENT_ENVIRONMENT\n| filter dsoa.run.context == \"active_queries\"\n| sort timestamp asc\n| summarize {\n  timestamp = takeFirst(timestamp),\n  start = takeFirst(timestamp),\n  end = takeLast(timestamp),\n  timeframe = timeframe(from: takeFirst(timestamp), to:takeLast(timestamp)),\n  count = count()\n}, by: {\n  dsoa.run.id\n}"
+        },
+        "visualizationSettings": {
+          "thresholds": [],
+          "chartSettings": {
+            "gapPolicy": "gap",
+            "circleChartSettings": {
+              "groupingThresholdType": "relative",
+              "groupingThresholdValue": 0,
+              "valueType": "relative"
+            },
+            "categoryOverrides": {},
+            "curve": "linear",
+            "pointsDisplay": "auto",
+            "categoricalBarChartSettings": {
+              "layout": "horizontal",
+              "categoryAxisTickLayout": "horizontal",
+              "scale": "absolute",
+              "groupMode": "stacked",
+              "colorPaletteMode": "multi-color",
+              "valueAxisScale": "linear"
+            },
+            "colorPalette": "categorical",
+            "valueRepresentation": "absolute",
+            "truncationMode": "middle",
+            "xAxisScaling": "analyzedTimeframe",
+            "xAxisLabel": "timeframe",
+            "xAxisIsLabelVisible": false,
+            "hiddenLegendFields": [
+              "count"
+            ],
+            "fieldMapping": {
+              "timestamp": "timeframe",
+              "leftAxisValues": [
+                "count"
+              ]
+            },
+            "leftYAxisSettings": {},
+            "legend": {
+              "hidden": true
+            }
+          },
+          "singleValue": {
+            "showLabel": true,
+            "label": "",
+            "prefixIcon": "AnalyticsIcon",
+            "isIconVisible": false,
+            "autoscale": true,
+            "alignment": "center",
+            "colorThresholdTarget": "value"
+          },
+          "table": {
+            "rowDensity": "condensed",
+            "enableSparklines": false,
+            "hiddenColumns": [],
+            "linewrapEnabled": false,
+            "lineWrapIds": [],
+            "monospacedFontEnabled": false,
+            "monospacedFontColumns": [],
+            "firstVisibleRowIndex": 0,
+            "columnWidths": {},
+            "columnTypeOverrides": []
+          },
+          "honeycomb": {
+            "shape": "hexagon",
+            "legend": {
+              "hidden": false,
+              "position": "auto",
+              "ratio": "auto"
+            },
+            "dataMappings": {},
+            "displayedFields": [],
+            "truncationMode": "middle",
+            "colorMode": "color-palette",
+            "colorPalette": "categorical"
+          },
+          "histogram": {
+            "legend": {
+              "position": "auto"
+            },
+            "yAxis": {
+              "label": "Frequency",
+              "isLabelVisible": true,
+              "scale": "linear"
+            },
+            "colorPalette": "categorical",
+            "dataMappings": [],
+            "variant": "single",
+            "truncationMode": "middle"
+          },
+          "valueBoundaries": {
+            "min": "auto",
+            "max": "auto"
+          },
+          "autoSelectVisualization": false
+        },
+        "querySettings": {
+          "maxResultRecords": 1000,
+          "defaultScanLimitGbytes": 500,
+          "maxResultMegaBytes": 1,
+          "defaultSamplingRatio": 10,
+          "enableSampling": false
+        },
+        "visualization": "barChart",
+        "state": "success",
+        "davis": {
+          "includeLogs": true,
+          "davisVisualization": {
+            "isAvailable": true
+          }
+        }
+      }
+    },
+    {
+      "id": "ab745992-a7de-4da6-b824-7f6a3bdde4b2",
+      "type": "dql",
+      "filterSegments": [],
+      "drilldownPath": [],
+      "previousFilterSegments": [],
+      "showInput": false,
+      "height": 340,
+      "state": {
+        "input": {
+          "timeframe": {
+            "from": "now()-24h",
+            "to": "now()"
+          },
+          "value": "fetch logs\n    , scanLimitGBytes: -1\n| filter db.system == \"snowflake\"\n| filter deployment.environment == \"PROD\" // <-- set to your configuration CORE.DEPLOYMENT_ENVIRONMENT\n| filter dsoa.run.context == \"active_queries\"\n| makeTimeseries count()\n  , by: {snowflake.query.execution_status}\n  , interval: 15min"
+        },
+        "visualizationSettings": {
+          "thresholds": [],
+          "chartSettings": {
+            "gapPolicy": "gap",
+            "circleChartSettings": {
+              "groupingThresholdType": "relative",
+              "groupingThresholdValue": 0,
+              "valueType": "relative"
+            },
+            "categoryOverrides": {},
+            "curve": "linear",
+            "pointsDisplay": "auto",
+            "categoricalBarChartSettings": {
+              "layout": "horizontal",
+              "categoryAxisTickLayout": "horizontal",
+              "scale": "absolute",
+              "groupMode": "stacked",
+              "colorPaletteMode": "multi-color",
+              "valueAxisScale": "linear"
+            },
+            "colorPalette": "categorical",
+            "valueRepresentation": "absolute",
+            "truncationMode": "middle",
+            "xAxisScaling": "analyzedTimeframe",
+            "xAxisLabel": "timeframe",
+            "xAxisIsLabelVisible": false,
+            "hiddenLegendFields": [
+              "interval",
+              "count()"
+            ],
+            "fieldMapping": {
+              "timestamp": "timeframe",
+              "leftAxisValues": [
+                "count()"
+              ]
+            },
+            "leftYAxisSettings": {
+              "scale": "log"
+            },
+            "seriesOverrides": [
+              {
+                "seriesId": [
+                  "RUNNING"
+                ],
+                "override": {
+                  "geometry": "bar",
+                  "color": {
+                    "Default": "var(--dt-colors-charts-categorical-themed-blue-steel-color-01-default, #438fb1)"
+                  }
+                }
+              },
+              {
+                "seriesId": [
+                  "QUEUED"
+                ],
+                "override": {
+                  "color": {
+                    "Default": "var(--dt-colors-charts-loglevel-severe-default, #d56b1a)"
+                  }
+                }
+              },
+              {
+                "seriesId": [
+                  "QUEUED_REPARING_WAREHOUSE"
+                ],
+                "override": {
+                  "color": {
+                    "Default": "var(--dt-colors-charts-apdex-poor-default, #d56b1a)"
+                  }
+                }
+              },
+              {
+                "seriesId": [
+                  "FAILED_WITH_ERROR"
+                ],
+                "override": {
+                  "color": {
+                    "Default": "var(--dt-colors-charts-loglevel-emergency-default, #ae132d)"
+                  }
+                }
+              },
+              {
+                "seriesId": [
+                  "SUCCESS"
+                ],
+                "override": {
+                  "color": {
+                    "Default": "var(--dt-colors-charts-categorical-color-13-default, #1c520a)"
+                  }
+                }
+              }
+            ],
+            "legend": {
+              "position": "bottom",
+              "hidden": false
+            },
+            "tooltip": {
+              "seriesDisplayMode": "multi-line",
+              "variant": "shared"
+            }
+          },
+          "singleValue": {
+            "showLabel": true,
+            "label": "",
+            "prefixIcon": "AnalyticsIcon",
+            "isIconVisible": false,
+            "autoscale": true,
+            "alignment": "center",
+            "colorThresholdTarget": "value"
+          },
+          "table": {
+            "rowDensity": "condensed",
+            "enableSparklines": false,
+            "hiddenColumns": [],
+            "linewrapEnabled": false,
+            "lineWrapIds": [],
+            "monospacedFontEnabled": false,
+            "monospacedFontColumns": [],
+            "firstVisibleRowIndex": 0,
+            "columnWidths": {},
+            "columnTypeOverrides": [
+              {
+                "fields": [
+                  "count()"
+                ],
+                "value": "sparkline",
+                "id": 1747081963916
+              }
+            ]
+          },
+          "honeycomb": {
+            "shape": "hexagon",
+            "legend": {
+              "hidden": false,
+              "position": "auto",
+              "ratio": "auto"
+            },
+            "dataMappings": {},
+            "displayedFields": [],
+            "truncationMode": "middle",
+            "colorMode": "color-palette",
+            "colorPalette": "categorical"
+          },
+          "histogram": {
+            "legend": {
+              "position": "auto"
+            },
+            "yAxis": {
+              "label": "Frequency",
+              "isLabelVisible": true,
+              "scale": "linear"
+            },
+            "colorPalette": "categorical",
+            "dataMappings": [],
+            "variant": "single",
+            "truncationMode": "middle"
+          },
+          "valueBoundaries": {
+            "min": "auto",
+            "max": "auto"
+          },
+          "autoSelectVisualization": true
+        },
+        "querySettings": {
+          "maxResultRecords": 1000,
+          "defaultScanLimitGbytes": 500,
+          "maxResultMegaBytes": 1,
+          "defaultSamplingRatio": 10,
+          "enableSampling": false
+        },
+        "visualization": "lineChart",
+        "state": "success",
+        "davis": {
+          "includeLogs": true,
+          "davisVisualization": {
+            "isAvailable": true
+          }
+        }
+      },
+      "title": "active_queries - number per query status - RUNNING as bars"
+    },
+    {
+      "id": "0b195966-7f61-45d8-9c2b-b3146473b4b7",
+      "type": "dql",
+      "filterSegments": [],
+      "drilldownPath": [],
+      "previousFilterSegments": [],
+      "state": {
+        "input": {
+          "timeframe": {
+            "from": "now()-24h",
+            "to": "now()"
+          },
+          "value": "fetch logs\n    , scanLimitGBytes: -1\n| filter db.system == \"snowflake\"\n| filter deployment.environment == \"PROD\" // <-- set to your configuration CORE.DEPLOYMENT_ENVIRONMENT\n| filter in(dsoa.run.context, {\"active_queries\", \"query_history\"})\n| filter isNotNull(snowflake.query.id) \n//     and (isNotNull(snowflake.time.execution) or isNotNull(snowflake.time.running))\n| fields timestamp, \n         snowflake.query.id, \n         snowflake.query.execution_status,\n         snowflake.time.execution, \n         snowflake.time.running,\n         snowflake.time.elapsed = coalesce(snowflake.time.execution, snowflake.time.running, 0),\n         dsoa.run.context,\n         snowflake.warehouse.name,\n         db.query.text\n| sort timestamp asc\n| summarize {\n    count = count(), \n    timestamp.first = takeFirst(timestamp),\n    timestamp.last = takeLast(timestamp),\n    \n    snowflake.time.execution.max = max(toDouble(snowflake.time.execution)/1000.0/60.0),\n    snowflake.time.running.max = max(toDouble(snowflake.time.running)/1000.0/60.0),\n    snowflake.time.elapsed.max = max(toDouble(snowflake.time.elapsed)/1000.0/60.0),\n    dsoa.run.contexts = collectDistinct(dsoa.run.context),\n\n    snowflake.warehouse.name = takeAny(snowflake.warehouse.name),\n\n    db.query.text = takeAny(db.query.text)\n  }\n  , by: { \n    snowflake.query.id \n  }\n| filter snowflake.time.elapsed.max > 10.0 // <-- set to 2x interval of active_queries task scheduled \n| makeTimeseries count()\n  , by: {\n    snowflake.warehouse.name\n  }\n  , time: timestamp.first"
+        },
+        "visualizationSettings": {
+          "autoSelectVisualization": false,
+          "thresholds": [],
+          "chartSettings": {
+            "gapPolicy": "gap",
+            "circleChartSettings": {
+              "groupingThresholdType": "relative",
+              "groupingThresholdValue": 0,
+              "valueType": "relative"
+            },
+            "categoryOverrides": {},
+            "curve": "linear",
+            "pointsDisplay": "auto",
+            "categoricalBarChartSettings": {
+              "layout": "horizontal",
+              "categoryAxisTickLayout": "horizontal",
+              "scale": "absolute",
+              "groupMode": "stacked",
+              "colorPaletteMode": "multi-color",
+              "valueAxisScale": "linear"
+            },
+            "colorPalette": "categorical",
+            "valueRepresentation": "absolute",
+            "truncationMode": "middle",
+            "xAxisScaling": "analyzedTimeframe",
+            "xAxisLabel": "timeframe",
+            "xAxisIsLabelVisible": false,
+            "hiddenLegendFields": [
+              "snowflake.time.execution"
+            ],
+            "leftYAxisSettings": {},
+            "fieldMapping": {
+              "timestamp": "timeframe",
+              "leftAxisValues": [
+                "count()"
+              ]
+            },
+            "legend": {
+              "position": "bottom",
+              "hidden": false
+            }
+          },
+          "singleValue": {
+            "showLabel": true,
+            "label": "",
+            "prefixIcon": "AnalyticsIcon",
+            "isIconVisible": false,
+            "autoscale": true,
+            "alignment": "center",
+            "colorThresholdTarget": "value"
+          },
+          "table": {
+            "rowDensity": "condensed",
+            "enableSparklines": false,
+            "hiddenColumns": [],
+            "linewrapEnabled": false,
+            "lineWrapIds": [],
+            "monospacedFontEnabled": false,
+            "monospacedFontColumns": [],
+            "firstVisibleRowIndex": 0,
+            "columnWidths": {},
+            "columnTypeOverrides": [
+              {
+                "fields": [
+                  "count()"
+                ],
+                "value": "sparkline",
+                "id": 1747134747824
+              }
+            ],
+            "columnOrder": [
+              "[\"timeframe\",\"start\"]",
+              "[\"timeframe\",\"end\"]",
+              "[\"interval\"]",
+              "[\"snowflake.warehouse.name\"]",
+              "[\"count()\"]"
+            ]
+          },
+          "honeycomb": {
+            "shape": "hexagon",
+            "legend": {
+              "hidden": false,
+              "position": "auto",
+              "ratio": "auto"
+            },
+            "dataMappings": {
+              "value": "snowflake.warehouse.name"
+            },
+            "displayedFields": [
+              "snowflake.warehouse.name"
+            ],
+            "truncationMode": "middle",
+            "colorMode": "color-palette",
+            "colorPalette": "categorical"
+          },
+          "histogram": {
+            "legend": {
+              "position": "auto"
+            },
+            "yAxis": {
+              "label": "Frequency",
+              "isLabelVisible": true,
+              "scale": "linear"
+            },
+            "colorPalette": "categorical",
+            "dataMappings": [],
+            "variant": "single",
+            "truncationMode": "middle"
+          },
+          "valueBoundaries": {
+            "min": "auto",
+            "max": "auto"
+          },
+          "legend": {
+            "showLegend": false,
+            "position": "auto",
+            "ratio": 28
+          }
+        },
+        "querySettings": {
+          "maxResultRecords": 1000,
+          "defaultScanLimitGbytes": 500,
+          "maxResultMegaBytes": 1,
+          "defaultSamplingRatio": 10,
+          "enableSampling": false
+        },
+        "state": "success",
+        "davis": {
+          "includeLogs": true,
+          "davisVisualization": {
+            "isAvailable": true
+          }
+        },
+        "visualization": "barChart"
+      },
+      "showInput": false,
+      "height": 180,
+      "title": "active_queries - number of slow queries reported by warehouse name"
+    },
+    {
+      "id": "e8b12cab-8224-4f4f-a257-f5802d407942",
+      "type": "dql",
+      "filterSegments": [],
+      "drilldownPath": [],
+      "previousFilterSegments": [],
+      "state": {
+        "input": {
+          "timeframe": {
+            "from": "now()-24h",
+            "to": "now()"
+          },
+          "value": "fetch logs\n    , scanLimitGBytes: -1\n| filter db.system == \"snowflake\"\n| filter deployment.environment == \"PROD\" // <-- set to your configuration CORE.DEPLOYMENT_ENVIRONMENT\n| filter in(dsoa.run.context, {\"active_queries\", \"query_history\"})\n| filter isNotNull(snowflake.query.id) \n//     and (isNotNull(snowflake.time.execution) or isNotNull(snowflake.time.running))\n| fields timestamp, \n         snowflake.query.id, \n         snowflake.query.execution_status,\n         snowflake.time.execution, \n         snowflake.time.running,\n         snowflake.time.elapsed = coalesce(snowflake.time.execution, snowflake.time.running, 0),\n         dsoa.run.context,\n         snowflake.warehouse.name,\n         db.query.text\n| sort timestamp asc\n| summarize {\n    count = count(), \n    timestamp.first = takeFirst(timestamp),\n    timestamp.last = takeLast(timestamp),\n    \n    snowflake.time.execution.max = max(toDouble(snowflake.time.execution)/1000.0/60.0),\n    snowflake.time.running.max = max(toDouble(snowflake.time.running)/1000.0/60.0),\n    snowflake.time.elapsed.max = max(toDouble(snowflake.time.elapsed)/1000.0/60.0),\n    dsoa.run.contexts = collectDistinct(dsoa.run.context),\n\n    snowflake.warehouse.name = takeAny(snowflake.warehouse.name),\n\n    db.query.text = takeAny(db.query.text)\n  }\n  , by: { \n    snowflake.query.id \n  }\n| filter snowflake.time.elapsed.max > 20.0 // <-- set to 2x interval of active_queries task scheduled\n\n// unhide to see all long-running queries  -->\n\n// execution time should not be higher then last reported (running) time + interval \n//| filterOut coalesce(snowflake.time.execution.max, 0) < coalesce(snowflake.time.running.max, 0) + 10\n// list only queries not reported by active_queries\n        and in(\"active_queries\", dsoa.run.contexts)"
+        },
+        "visualizationSettings": {
+          "thresholds": [],
+          "chartSettings": {
+            "gapPolicy": "gap",
+            "circleChartSettings": {
+              "groupingThresholdType": "relative",
+              "groupingThresholdValue": 0,
+              "valueType": "relative"
+            },
+            "categoryOverrides": {},
+            "curve": "linear",
+            "pointsDisplay": "auto",
+            "categoricalBarChartSettings": {
+              "layout": "horizontal",
+              "categoryAxisTickLayout": "horizontal",
+              "scale": "absolute",
+              "groupMode": "stacked",
+              "colorPaletteMode": "multi-color",
+              "valueAxisScale": "linear"
+            },
+            "colorPalette": "categorical",
+            "valueRepresentation": "absolute",
+            "truncationMode": "middle",
+            "xAxisScaling": "auto",
+            "xAxisLabel": "timestamp.first",
+            "xAxisIsLabelVisible": false,
+            "hiddenLegendFields": [
+              "snowflake.time.execution"
+            ],
+            "leftYAxisSettings": {},
+            "fieldMapping": {
+              "timestamp": "timestamp.first",
+              "leftAxisValues": [
+                "count"
+              ]
+            }
+          },
+          "singleValue": {
+            "showLabel": true,
+            "label": "",
+            "prefixIcon": "AnalyticsIcon",
+            "isIconVisible": false,
+            "autoscale": true,
+            "alignment": "center",
+            "colorThresholdTarget": "value"
+          },
+          "table": {
+            "rowDensity": "condensed",
+            "enableSparklines": false,
+            "hiddenColumns": [],
+            "linewrapEnabled": false,
+            "lineWrapIds": [],
+            "monospacedFontEnabled": false,
+            "monospacedFontColumns": [],
+            "firstVisibleRowIndex": 0,
+            "columnWidths": {
+              "[\"snowflake.time.running.max\"]": 92,
+              "[\"snowflake.time.execution.max\"]": 76,
+              "[\"snowflake.time.elapsed.max\"]": 83
+            },
+            "columnTypeOverrides": [],
+            "columnOrder": [
+              "[\"snowflake.query.id\"]",
+              "[\"count\"]",
+              "[\"timestamp.first\"]",
+              "[\"timestamp.last\"]",
+              "[\"snowflake.time.running.max\"]",
+              "[\"snowflake.time.execution.max\"]",
+              "[\"snowflake.time.elapsed.max\"]",
+              "[\"dsoa.run.contexts\"]",
+              "[\"db.query.text\"]",
+              "[\"snowflake.warehouse.name\"]"
+            ]
+          },
+          "honeycomb": {
+            "shape": "hexagon",
+            "legend": {
+              "hidden": false,
+              "position": "auto",
+              "ratio": "auto"
+            },
+            "dataMappings": {},
+            "displayedFields": [],
+            "truncationMode": "middle",
+            "colorMode": "color-palette",
+            "colorPalette": "categorical"
+          },
+          "histogram": {
+            "legend": {
+              "position": "auto"
+            },
+            "yAxis": {
+              "label": "Frequency",
+              "isLabelVisible": true,
+              "scale": "linear"
+            },
+            "colorPalette": "categorical",
+            "dataMappings": [],
+            "variant": "single",
+            "truncationMode": "middle"
+          },
+          "valueBoundaries": {
+            "min": "auto",
+            "max": "auto"
+          },
+          "autoSelectVisualization": true
+        },
+        "querySettings": {
+          "maxResultRecords": 1000,
+          "defaultScanLimitGbytes": 500,
+          "maxResultMegaBytes": 1,
+          "defaultSamplingRatio": 10,
+          "enableSampling": false
+        },
+        "state": "success",
+        "davis": {
+          "includeLogs": true,
+          "davisVisualization": {
+            "isAvailable": true
+          }
+        },
+        "visualization": "table"
+      },
+      "showInput": true,
+      "height": 184,
+      "title": "active_queries - list of slow queries NOT reported"
+    },
+    {
+      "id": "de74fbb7-ff76-49a7-873d-0f07a3e2ac05",
+      "type": "dql",
+      "title": "active_queries - max running time reported",
+      "filterSegments": [],
+      "drilldownPath": [],
+      "previousFilterSegments": [],
+      "state": {
+        "input": {
+          "timeframe": {
+            "from": "now()-24h",
+            "to": "now()"
+          },
+          "value": "timeseries snowflake.time.running.max = max(snowflake.time.running)\n  , by: { \n    deployment.environment, \n    snowflake.query.execution_status \n  }\n| filter deployment.environment == \"PROD\" // <-- set to your configuration CORE.DEPLOYMENT_ENVIRONMENT\n| fieldsRemove deployment.environment"
+        },
+        "visualizationSettings": {
+          "thresholds": [],
+          "chartSettings": {
+            "gapPolicy": "gap",
+            "circleChartSettings": {
+              "groupingThresholdType": "relative",
+              "groupingThresholdValue": 0,
+              "valueType": "relative"
+            },
+            "categoryOverrides": {},
+            "curve": "linear",
+            "pointsDisplay": "auto",
+            "categoricalBarChartSettings": {
+              "layout": "horizontal",
+              "categoryAxisTickLayout": "horizontal",
+              "scale": "absolute",
+              "groupMode": "stacked",
+              "colorPaletteMode": "multi-color",
+              "valueAxisScale": "linear"
+            },
+            "colorPalette": "categorical",
+            "valueRepresentation": "absolute",
+            "truncationMode": "middle",
+            "xAxisScaling": "analyzedTimeframe",
+            "xAxisLabel": "timeframe",
+            "xAxisIsLabelVisible": false,
+            "hiddenLegendFields": [
+              "interval",
+              "snowflake.time.running.avg"
+            ],
+            "fieldMapping": {
+              "timestamp": "timeframe",
+              "leftAxisValues": [
+                "snowflake.time.running.max"
+              ]
+            },
+            "leftYAxisSettings": {
+              "isLabelVisible": true,
+              "label": "Query Running Time"
+            },
+            "legend": {
+              "hidden": true
+            }
+          },
+          "singleValue": {
+            "showLabel": true,
+            "label": "",
+            "prefixIcon": "AnalyticsIcon",
+            "isIconVisible": false,
+            "autoscale": true,
+            "alignment": "center",
+            "colorThresholdTarget": "value"
+          },
+          "table": {
+            "rowDensity": "condensed",
+            "enableSparklines": false,
+            "hiddenColumns": [],
+            "linewrapEnabled": false,
+            "lineWrapIds": [],
+            "monospacedFontEnabled": false,
+            "monospacedFontColumns": [],
+            "firstVisibleRowIndex": 0,
+            "columnWidths": {},
+            "columnTypeOverrides": []
+          },
+          "honeycomb": {
+            "shape": "hexagon",
+            "legend": {
+              "hidden": false,
+              "position": "auto",
+              "ratio": "auto"
+            },
+            "dataMappings": {},
+            "displayedFields": [],
+            "truncationMode": "middle",
+            "colorMode": "color-palette",
+            "colorPalette": "categorical"
+          },
+          "histogram": {
+            "legend": {
+              "position": "auto"
+            },
+            "yAxis": {
+              "label": "Frequency",
+              "isLabelVisible": true,
+              "scale": "linear"
+            },
+            "colorPalette": "categorical",
+            "dataMappings": [],
+            "variant": "single",
+            "truncationMode": "middle"
+          },
+          "valueBoundaries": {
+            "min": "auto",
+            "max": "auto"
+          },
+          "autoSelectVisualization": true,
+          "legend": {
+            "showLegend": false,
+            "position": "auto",
+            "ratio": 19
+          }
+        },
+        "querySettings": {
+          "maxResultRecords": 1000,
+          "defaultScanLimitGbytes": 500,
+          "maxResultMegaBytes": 1,
+          "defaultSamplingRatio": 10,
+          "enableSampling": false
+        },
+        "visualization": "lineChart",
+        "state": "success",
+        "davis": {
+          "includeLogs": true,
+          "davisVisualization": {
+            "isAvailable": true
+          }
+        }
+      },
+      "height": 192,
+      "showInput": false
+    },
+    {
+      "id": "b87f9a1d-00d1-46c4-9e75-d80056aafbb8",
+      "type": "dql",
+      "filterSegments": [],
+      "drilldownPath": [],
+      "previousFilterSegments": [],
+      "state": {
+        "input": {
+          "timeframe": {
+            "from": "now()-24h",
+            "to": "now()"
+          },
+          "value": "fetch logs\n    // HINT:\n    // <-- ensure you have the correct timerange when those queries should be seen\n    // \n    , from: -1d \n    , scanLimitGBytes: -1\n| filter db.system == \"snowflake\"\n| filter deployment.environment == \"PROD\" // <-- set to your configuration CORE.DEPLOYMENT_ENVIRONMENT\n| filter in(dsoa.run.context, {\"active_queries\", \"query_history\"})\n| filter isNotNull(snowflake.query.id) \n| filter in(snowflake.query.id, {\n  // HINT: \n  // <-- list queries you want to check here\n  //\n  \"01bc4ee9-0415-2b08-0047-e38331e15252\",\n  \"01bc5059-0415-2fb1-0047-e38331e4d65e\"\n})\n| fields timestamp, \n         query_id = snowflake.query.id, \n         execution_status = snowflake.query.execution_status,\n         t_execution = toDouble(snowflake.time.execution)/1000.0/60.0, \n         t_running = toDouble(snowflake.time.running)/1000.0/60.0,\n         t_elapsed = toDouble(coalesce(snowflake.time.execution, snowflake.time.running, 0))/1000.0/60.0,\n         plugin = dsoa.run.context,\n         warehouse = snowflake.warehouse.name,\n         db.query.text\n| sort query_id asc, timestamp asc"
+        },
+        "visualizationSettings": {
+          "thresholds": [],
+          "chartSettings": {
+            "gapPolicy": "gap",
+            "circleChartSettings": {
+              "groupingThresholdType": "relative",
+              "groupingThresholdValue": 0,
+              "valueType": "relative"
+            },
+            "categoryOverrides": {},
+            "curve": "linear",
+            "pointsDisplay": "auto",
+            "categoricalBarChartSettings": {
+              "layout": "horizontal",
+              "categoryAxisTickLayout": "horizontal",
+              "scale": "absolute",
+              "groupMode": "stacked",
+              "colorPaletteMode": "multi-color",
+              "valueAxisScale": "linear"
+            },
+            "colorPalette": "categorical",
+            "valueRepresentation": "absolute",
+            "truncationMode": "middle",
+            "xAxisScaling": "auto",
+            "xAxisLabel": "timestamp",
+            "xAxisIsLabelVisible": false,
+            "hiddenLegendFields": [
+              "snowflake.time.running",
+              "snowflake.time.elapsed",
+              "snowflake.time.execution"
+            ],
+            "fieldMapping": {
+              "timestamp": "timestamp",
+              "leftAxisValues": [
+                "t_execution"
+              ]
+            },
+            "leftYAxisSettings": {}
+          },
+          "singleValue": {
+            "showLabel": true,
+            "label": "",
+            "prefixIcon": "AnalyticsIcon",
+            "isIconVisible": false,
+            "autoscale": true,
+            "alignment": "center",
+            "colorThresholdTarget": "value"
+          },
+          "table": {
+            "rowDensity": "condensed",
+            "enableSparklines": false,
+            "hiddenColumns": [],
+            "linewrapEnabled": false,
+            "lineWrapIds": [],
+            "monospacedFontEnabled": false,
+            "monospacedFontColumns": [],
+            "firstVisibleRowIndex": 0,
+            "columnWidths": {
+              "[\"snowflake.query.execution_status\"]": 101,
+              "[\"snowflake.time.execution\"]": 74
+            },
+            "columnTypeOverrides": []
+          },
+          "honeycomb": {
+            "shape": "hexagon",
+            "legend": {
+              "hidden": false,
+              "position": "auto",
+              "ratio": "auto"
+            },
+            "dataMappings": {},
+            "displayedFields": [],
+            "truncationMode": "middle",
+            "colorMode": "color-palette",
+            "colorPalette": "categorical"
+          },
+          "histogram": {
+            "legend": {
+              "position": "auto"
+            },
+            "yAxis": {
+              "label": "Frequency",
+              "isLabelVisible": true,
+              "scale": "linear"
+            },
+            "colorPalette": "categorical",
+            "dataMappings": [],
+            "variant": "single",
+            "truncationMode": "middle"
+          },
+          "valueBoundaries": {
+            "min": "auto",
+            "max": "auto"
+          },
+          "autoSelectVisualization": true
+        },
+        "querySettings": {
+          "maxResultRecords": 1000,
+          "defaultScanLimitGbytes": 500,
+          "maxResultMegaBytes": 1,
+          "defaultSamplingRatio": 10,
+          "enableSampling": false
+        },
+        "visualization": "table",
+        "state": "success",
+        "davis": {
+          "includeLogs": true,
+          "davisVisualization": {
+            "isAvailable": true
+          }
+        }
+      }
+    }
+  ]
+}

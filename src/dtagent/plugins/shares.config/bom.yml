@@ -1,0 +1,49 @@
+delivers:
+  - name: DTAGENT_DB.APP.TMP_SHARES
+    type: transient table
+  - name: DTAGENT_DB.APP.TMP_OUTBOUND_SHARES
+    type: transient table
+  - name: DTAGENT_DB.APP.TMP_INBOUND_SHARES
+    type: transient table
+  - name: DTAGENT_DB.APP.V_SHARE_EVENTS
+    type: view
+  - name: DTAGENT_DB.APP.V_INBOUND_SHARE_TABLES
+    type: view
+  - name: DTAGENT_DB.APP.V_OUTBOUND_SHARE_TABLES
+    type: view
+  - name: DTAGENT_DB.CONFIG.P_GET_SHARES()
+    type: procedure
+  - name: DTAGENT_DB.CONFIG.P_GRANT_IMPORTED_PRIVILEGES(varchar)
+    type: procedure
+  - name: DTAGENT_DB.CONFIG.P_LIST_INBOUND_TABLES(varchar,varchar,boolean)
+    type: procedure
+  - name: DTAGENT_DB.CONFIG.UPDATE_SHARES_CONF()
+    type: procedure
+  - name: DTAGENT_DB.APP.TASK_DTAGENT_SHARES
+    type: task
+
+references:
+  - name: $shared_database
+    type: share
+    privileges: IMPORTED PRIVILEGES ON DATABASE
+    granted to: DTAGENT_VIEWER
+  - name: $shared_database.INFORMATION_SCHEMA.TABLES
+    type: view
+    privileges: SELECT
+    granted to: DTAGENT_VIEWER
+  - name: ACCOUNT
+    privileges: IMPORT SHARE
+    granted to: DTAGENT_VIEWER
+    comment: |
+      We just need to read the metadata about the shares and objects being shared
+      wish there was a way with less privilege
+  - name: SHOW SHARES
+    type: command
+    privileges: USAGE
+  - name: SHOW GRANTS TO SHARE $share
+    type: command
+    privileges: USAGE
+  - name: SNOWFLAKE.ACCOUNT_USAGE.DATABASES
+    type: view
+    privileges: SELECT
+    granted to: DTAGENT_VIEWER

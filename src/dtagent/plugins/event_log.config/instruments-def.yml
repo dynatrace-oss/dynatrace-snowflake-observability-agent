@@ -1,0 +1,68 @@
+#  *
+#  * These materials contain confidential information and
+#  * trade secrets of Dynatrace LLC.  You shall
+#  * maintain the materials as confidential and shall not
+#  * disclose its contents to any third party except as may
+#  * be required by law or regulation.  Use, disclosure,
+#  * or reproduction is prohibited without the prior express
+#  * written permission of Dynatrace LLC.
+#  *
+#  * All Compuware products listed within the materials are
+#  * trademarks of Dynatrace LLC.  All other company
+#  * or product names are trademarks of their respective owners.
+#  *
+#  * Copyright (c) 2024 Dynatrace LLC.  All rights reserved.
+#  *
+#  * Catalog of instrumentation known to Dynatrace Snowflake Observability Agent - event_log plugin (empty for now)
+
+dimensions:
+  db.namespace:
+    __example: PROD_DB
+    __description:
+        The name of the database that was specified in the context of
+        the query at compilation.
+    __context_names:
+      - event_log_metrics
+      - event_log_spans
+  snowflake.schema.name:
+    __example: public
+    __description: The name of the schema in which the query was executed.
+    __context_names:
+      - event_log_metrics
+      - event_log_spans
+  snowflake.role.name:
+    __example: SYSADMIN
+    __description: The role used to execute the query.
+    __context_names:
+      - event_log_metrics
+      - event_log_spans
+  snowflake.warehouse.name:
+    __example: COMPUTE_WH
+    __description: The warehouse used to execute the query.
+    __context_names:
+      - event_log_metrics
+      - event_log_spans
+  snowflake.query.id:
+    __example: b1bbaa7f-8144-4e50-947a-b7e9bf7d62d5
+    __description: The unique identifier for the query.
+    __context_names:
+      - event_log_metrics
+      - event_log_spans
+
+metrics:
+  process.cpu.utilization:
+    displayName: "Process CPU Utilization"
+    unit: "1"
+    __context_names:
+      - event_log_metrics
+    __example: "0.015"
+    __description: "The percentage of CPU utilization by the process."
+    __is_defined_at_runtime: true
+  process.memory.usage:
+    displayName: "Process Memory Usage"
+    unit: "bytes"
+    __context_names:
+      - event_log_metrics
+    __example: "34844672"
+    __description: "The total memory usage by the process in bytes."
+    __is_defined_at_runtime: true

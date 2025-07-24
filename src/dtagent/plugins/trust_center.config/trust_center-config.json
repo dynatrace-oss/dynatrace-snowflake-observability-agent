@@ -1,0 +1,9 @@
+{
+    "PLUGINS": {
+        "TRUST_CENTER": {
+            "SCHEDULE": "USING CRON 30 */12 * * * UTC",
+            "LOG_DETAILS": false,
+            "IS_DISABLED": false
+        }
+    }
+}
