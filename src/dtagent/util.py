@@ -395,9 +395,11 @@ def get_now_timestamp() -> datetime.datetime:
     return datetime.datetime.now(datetime.timezone.utc)
 
 def is_select_for_table(table_name_or_query:str) -> bool:
-    """Returns True if given table name is in fact a SELECT statement
+    """Returns True if given table name is in fact a SELECT statement or a SHOW ... ->> SELECT ... statement
     """
-    return table_name_or_query.lstrip()[:7].upper() == "SELECT "
+    import re
+    pattern = re.compile(r"^\s*(SELECT|SHOW.*->>\s*SELECT)", re.IGNORECASE | re.DOTALL)
+    return pattern.match(table_name_or_query) is not None
 
 ##endregion
 

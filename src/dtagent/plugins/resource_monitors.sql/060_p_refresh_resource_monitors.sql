@@ -60,11 +60,30 @@ $$
 DECLARE
     tr_tmp_resource_monitors    TEXT DEFAULT 'truncate table APP.TMP_RESOURCE_MONITORS;';
     q_show_resource_monitors    TEXT DEFAULT 'show resource monitors;';
-    q_pop_tmp_res_mon           TEXT DEFAULT 'insert into APP.TMP_RESOURCE_MONITORS select * from table(result_scan(last_query_id()));';
+    q_pop_tmp_res_mon           TEXT DEFAULT 'insert into APP.TMP_RESOURCE_MONITORS select 
+                                                "name", 
+                                                "credit_quota", "used_credits", "remaining_credits", "level", "frequency", 
+                                                "start_time", "end_time", 
+                                                "notify_at", "suspend_at", "suspend_immediately_at", 
+                                                "created_on", 
+                                                "owner", "comment", "notify_users" 
+                                              from table(result_scan(last_query_id()));';
 
     tr_tmp_warehouses           TEXT DEFAULT 'truncate table APP.TMP_WAREHOUSES;';
     q_show_warehouses           TEXT DEFAULT 'show warehouses;';
-    q_pop_tmp_wh                TEXT DEFAULT 'insert into APP.TMP_WAREHOUSES select * from table(result_scan(last_query_id()));';
+    q_pop_tmp_wh                TEXT DEFAULT 'insert into APP.TMP_WAREHOUSES select 
+                                                "name", "state", "type", "size", 
+                                                "min_cluster_count", "max_cluster_count", 
+                                                "started_clusters", "running", "queued", 
+                                                "is_default", "is_current", "auto_suspend", "auto_resume", 
+                                                "available", "provisioning", "quiescing", "other", 
+                                                "created_on", "resumed_on", "updated_on", 
+                                                "owner", "comment", "enable_query_acceleration", "query_acceleration_max_scale_factor", 
+                                                "resource_monitor", 
+                                                "actives", "pendings", "failed", "suspended", 
+                                                "uuid", "scaling_policy", null as "budget", 
+                                                "owner_role_type", "resource_constraint" 
+                                              from table(result_scan(last_query_id()));';
 
 BEGIN
     EXECUTE IMMEDIATE :tr_tmp_resource_monitors;

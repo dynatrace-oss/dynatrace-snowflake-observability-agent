@@ -99,7 +99,7 @@ def _generate_semantics_tables(json_data: Dict, plugin_name: str, no_global_cont
     __tables = ""
     for key in ["dimensions", "attributes", "metrics", "event_timestamps"]:
         if key in json_data and len(json_data[key]):
-            __tables += f"#### {key.replace('_', ' ').capitalize()} at the `{plugin_name}` plugin\n\n"
+            __tables += f"### {key.replace('_', ' ').capitalize()} at the `{plugin_name}` plugin\n\n"
             __tables += f"| Identifier {'| Name | Unit ' if key == 'metrics' else ''}| Description | Example {'| Context Name ' if no_global_context_name else ''}|\n"
             __tables += f"|------------{'|------|------' if key == 'metrics' else ''}|-------------|---------{'|--------------' if no_global_context_name else ''}|\n"
 
@@ -145,7 +145,7 @@ def _generate_plugins_info(dtagent_plugins_path: str) -> Tuple[str, List]:
                 plugin_info_sec = f"{plugin_name}_info_sec"
                 __plugins_toc.append(f"* [{plugin_title}](#{plugin_info_sec})")
 
-                __content += f'<a name="{plugin_info_sec}"></a>\n\n### The {plugin_title} plugin\n'
+                __content += f'<a name="{plugin_info_sec}"></a>\n\n## The {plugin_title} plugin\n'
 
                 if os.path.isfile(f_info_md):
                     __content += _read_file(f_info_md) + "\n"
@@ -153,7 +153,7 @@ def _generate_plugins_info(dtagent_plugins_path: str) -> Tuple[str, List]:
                 __content += f"[Show semantics for this plugin](#{plugin_name}_semantics_sec)\n\n"
 
                 if os.path.isfile(config_file_path) or os.path.isfile(f_config_md):
-                    __content += f"#### {plugin_title} default configuration\n\n"
+                    __content += f"### {plugin_title} default configuration\n\n"
                     __content += (
                         "To disable this plugin, set `IS_DISABLED` to `true`.\n\n"
                         "In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you need to explicitly set `IS_ENABLED` to `true` to enable selected plugins; `IS_DISABLED` is not checked then."
@@ -203,7 +203,7 @@ def _generate_semantics_section(dtagent_conf_path: str, dtagent_plugins_path: st
         core_semantics_sec = "core_semantics_sec"
         __plugins_toc.append(f"* [Shared semantics](#{core_semantics_sec})")
 
-        __content += f'<a name="{core_semantics_sec}"></a>\n\n### Dynatrace Snowflake Observability Agent `core` semantics\n\n'
+        __content += f'<a name="{core_semantics_sec}"></a>\n\n## Dynatrace Snowflake Observability Agent `core` semantics\n\n'
         __content += _generate_semantics_tables(core_semantics, "core", False)
 
     # Add the semantics for each plugin
@@ -224,7 +224,7 @@ def _generate_semantics_section(dtagent_conf_path: str, dtagent_plugins_path: st
                         plugin_semantics_sec = f"{plugin_name}_semantics_sec"
                         __plugins_toc.append(f"* [{plugin_title}](#{plugin_semantics_sec})")
 
-                        __content += f'<a name="{plugin_semantics_sec}"></a>\n\n### The `{plugin_title}` plugin semantics\n\n'
+                        __content += f'<a name="{plugin_semantics_sec}"></a>\n\n## The `{plugin_title}` plugin semantics\n\n'
                         __content += f"[Show plugin description](#{plugin_name}_info_sec)\n\n"
 
                         if no_global_context_name:
@@ -304,9 +304,21 @@ def _extract_appendix_info(header_file_path: str) -> Tuple[str, str]:
 
 
 def generate_readme_content(dtagent_conf_path: str, dtagent_plugins_path: str) -> str:
-    """Generates readme from sources"""
+    """
+    Generates readme from sources
+
+    Returns:
+        content of the README.md file
+    """
 
     # Add the content of src/dtagent.conf/info.md to README.md
+    readme_full_content = _read_file(os.path.join(dtagent_conf_path, "info.md"))
+    readme_short_content = readme_full_content + ""
+    plugins_content = ""
+    semantics_content = ""
+    appendix_content = ""
+
+    # Read other markdown files
     dpo_content = _read_file("DPO.md")
     usecases_content = _read_file("USECASES.md")
     architecture_content = _read_file("ARCHITECTURE.md")
@@ -317,7 +329,6 @@ def generate_readme_content(dtagent_conf_path: str, dtagent_plugins_path: str) -
 
     # Generate appendices for all CSV files in src/assets/
     assets_path = "src/assets"
-    appendix_content = ""
     appendix_toc = []
     if os.path.exists(assets_path):
         for asset_file_path in sorted(os.listdir(assets_path)):
@@ -328,46 +339,65 @@ def generate_readme_content(dtagent_conf_path: str, dtagent_plugins_path: str) -
                 if title and anchor:
                     appendix_toc.append(f"* [{title}](README.md#{anchor})")
 
-    readme_content = _read_file(os.path.join(dtagent_conf_path, "info.md"))
     if appendix_toc:
-        readme_content += "\n".join(appendix_toc) + "\n"
-    readme_content += "\n"
-    readme_content += _lower_headers_one_level(dpo_content) + "\n"
-    readme_content += _lower_headers_one_level(usecases_content) + "\n"
-    readme_content += _lower_headers_one_level(architecture_content) + "\n"
+        readme_full_content += "\n".join(appendix_toc) + "\n"
+        readme_short_content += "* [Appendix](APPENDIX.md)\n"
+
+    # Combine all contents into full content README for PDF generation
+    readme_full_content += "\n"
+    readme_full_content += _lower_headers_one_level(dpo_content) + "\n"
+    readme_full_content += _lower_headers_one_level(usecases_content) + "\n"
+    readme_full_content += _lower_headers_one_level(architecture_content) + "\n"
 
     plugins_content, plugins_toc = _generate_plugins_info(dtagent_plugins_path)
-    readme_content += "## Plugins\n\n"
-    readme_content += "\n".join(plugins_toc)
-    readme_content += "\n\n"
-    readme_content += plugins_content
+    readme_full_content += "## Plugins\n\n"
+    readme_full_content += "\n".join(plugins_toc)
+    readme_full_content += "\n\n"
+    readme_full_content += _lower_headers_one_level(plugins_content)
 
     semantics_content, semantics_toc = _generate_semantics_section(dtagent_conf_path, dtagent_plugins_path)
-    readme_content += "## Semantic Dictionary\n\n"
-    readme_content += "\n".join(semantics_toc)
-    readme_content += "\n\n"
-    readme_content += semantics_content
+    readme_full_content += "## Semantic Dictionary\n\n"
+    readme_full_content += "\n".join(semantics_toc)
+    readme_full_content += "\n\n"
+    readme_full_content += _lower_headers_one_level(semantics_content)
 
-    readme_content += _lower_headers_one_level(install_content) + "\n"
-    readme_content += _lower_headers_one_level(changelog_content) + "\n"
-    readme_content += _lower_headers_one_level(contributing_content)
+    readme_full_content += _lower_headers_one_level(install_content) + "\n"
+    readme_full_content += _lower_headers_one_level(changelog_content) + "\n"
+    readme_full_content += _lower_headers_one_level(contributing_content)
 
-    readme_content += appendix_content
+    readme_full_content += appendix_content
 
-    readme_content += _lower_headers_one_level(copyright_content)
-    readme_content = re.sub(r"\b[A-Z_]+\.md#", "#", readme_content)  # removing references between .md files
+    readme_full_content += _lower_headers_one_level(copyright_content)
+    readme_full_content = re.sub(r"\b[A-Z_]+\.md#", "#", readme_full_content)  # removing references between .md files
 
-    readme_content = (
-        readme_content.replace("DPO.md", _turn_header_into_link(dpo_content))
+    readme_full_content = (
+        readme_full_content.replace("DPO.md", _turn_header_into_link(dpo_content))
         .replace("USECASES.md", _turn_header_into_link(usecases_content))
         .replace("ARCHITECTURE.md", _turn_header_into_link(architecture_content))
         .replace("INSTALL.md", _turn_header_into_link(install_content))
         .replace("CHANGELOG.md", _turn_header_into_link(changelog_content))
         .replace("CONTRIBUTING.md", _turn_header_into_link(contributing_content))
-        .replace("README.md", _turn_header_into_link(readme_content))
+        .replace("README.md", _turn_header_into_link(readme_full_content))
     )
 
-    return readme_content
+    # Postprocess the short README.md content
+    plugins_content = (
+        "# Plugins\n\n"
+        + "\n".join(plugins_toc)
+        + plugins_content.replace("[Show semantics for this plugin](#", "[Show semantics for this plugin](SEMANTICS.md#").rstrip()
+        + "\n"
+    )
+    semantics_content = (
+        "# Semantic Dictionary\n\n"
+        + "\n".join(semantics_toc)
+        + semantics_content.replace("[Show plugin description](#", "[Show plugin description](PLUGINS.md#").rstrip()
+        + "\n"
+    )
+    appendix_content = ("# Appendix\n\n" + "\n".join(appendix_toc) + "\n\n" + appendix_content.rstrip() + "\n").replace(
+        "README.md#appendix", "#appendix"
+    )
+
+    return readme_full_content, readme_short_content, plugins_content, semantics_content, appendix_content
 
 
 def main():
@@ -379,15 +409,29 @@ def main():
     dtagent_plugins_path = os.path.join(base_path, "dtagent", "plugins")
 
     # Initialize the content of README.md
-    readme_content = generate_readme_content(dtagent_conf_path, dtagent_plugins_path)
+    readme_full_content, readme_short_content, plugins_content, semantics_content, appendix_content = generate_readme_content(
+        dtagent_conf_path, dtagent_plugins_path
+    )
 
     # Update headers for INSTALL and CONTRIBUTING
 
-    # Write the README.md file
+    # Write the markdown files
     with open("README.md", "w", encoding="utf-8") as file:
-        file.write(readme_content)
+        file.write(readme_short_content)
 
-    print("README.md has been generated successfully.")
+    with open("PLUGINS.md", "w", encoding="utf-8") as file:
+        file.write(plugins_content)
+
+    with open("SEMANTICS.md", "w", encoding="utf-8") as file:
+        file.write(semantics_content)
+
+    with open("APPENDIX.md", "w", encoding="utf-8") as file:
+        file.write(appendix_content)
+
+    with open("_readme_full.md", "w", encoding="utf-8") as file:
+        file.write(readme_full_content)
+
+    print("Documentation has been successfully refreshed.")
 
 
 if __name__ == "__main__":

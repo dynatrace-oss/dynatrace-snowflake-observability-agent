@@ -32,7 +32,7 @@ from typing import Dict, List, Tuple, Any, Optional
 import requests
 from dtagent.otel.otel_manager import OtelManager
 from dtagent.util import StringEnum, get_timestamp_in_ms
-from dtagent.otel import _log_warning, USER_AGENT
+from dtagent.otel import _log_warning
 
 ##endregion COMPILE_REMOVE
 
@@ -104,8 +104,7 @@ class Events:
             headers = {
                 "Authorization": f'Api-Token {self._configuration.get("dt.token")}',
                 "Content-Type": "application/json",
-                "User-Agent": USER_AGENT,
-            }
+            } | OtelManager.get_dsoa_headers()
 
             _payload_to_repeat = []  # we will keep events that failed to be delivered
             events_send = 0

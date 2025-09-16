@@ -27,7 +27,7 @@
 ##endregion COMPILE_REMOVE
 
 import requests
-from dtagent.otel import _log_warning
+from dtagent.otel import _log_warning, USER_AGENT
 
 ##region ------------------------ OTEL base class---------------------------------
 
@@ -86,6 +86,11 @@ class OtelManager:
 
             LOG.error(error_message)
             raise RuntimeError(error_message)
+
+    @staticmethod
+    def get_dsoa_headers() -> dict:
+        """Returns headers required for DSOA to DT communication"""
+        return {"User-Agent": USER_AGENT, "X-Dynatrace-Attr": "dt.ingest.origin=snowflake-dsoa"}
 
 
 class CustomLoggingSession(requests.Session):
