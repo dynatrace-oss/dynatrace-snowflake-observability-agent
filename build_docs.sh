@@ -34,12 +34,11 @@ CURRENT_DATE=$(date +%Y-%m-%d)
 PYTHONPATH="$PYTHONPATH:./src" python -m build.compile_bom
 PYTHONPATH="$PYTHONPATH:./src" python -m build.update_docs
 
-# we keep CONTRIBUTING in PDF grep -v "CONTRIBUTING.md" README.md |\
-sed -E "s/# Dynatrace Snowflake Observability Agent$/# Dynatrace Snowflake Observability Agent (v$VERSION)\n<a id='dynatrace-snowflake-observability-agent'><\/a>/" README.md >README.tmp.md
-echo "" >>README.tmp.md
-echo "**Dynatrace Snowflake Observability Agent** Version: $VERSION.$BUILD ($CURRENT_DATE)" >>README.tmp.md
+sed -E "s/# Dynatrace Snowflake Observability Agent$/# Dynatrace Snowflake Observability Agent (v$VERSION)\n<a id='dynatrace-snowflake-observability-agent'><\/a>/" _readme_full.md > _readme_full.tmp.md
+echo "" >>_readme_full.tmp.md
+echo "**Dynatrace Snowflake Observability Agent** Version: $VERSION.$BUILD ($CURRENT_DATE)" >>_readme_full.tmp.md
 
-pandoc README.tmp.md \
+pandoc _readme_full.tmp.md \
     -o "Dynatrace-Snowflake-Observability-Agent-$VERSION.pdf" \
     -f markdown \
     -t pdf \
@@ -47,14 +46,6 @@ pandoc README.tmp.md \
     --css=src/assets/readme.css \
     --metadata title=" "
 
-rm README.tmp.md
+rm _readme_full.*
 
-pandoc INSTALL.md \
-    -o Dynatrace-Snowflake-Observability-Agent-install.pdf \
-    -f markdown \
-    -t pdf \
-    --pdf-engine=weasyprint \
-    --css=src/assets/index.css \
-    --metadata title=" "
-
-echo "Dynatrace-Snowflake-Observability-Agent-$VERSION.pdf and Dynatrace-Snowflake-Observability-Agent-install.pdf files successfully created"
+echo "Dynatrace-Snowflake-Observability-Agent-install.pdf files successfully created"

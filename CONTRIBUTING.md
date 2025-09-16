@@ -129,7 +129,7 @@ and deployment (also delivered in distribution package):
 
 The following figure illustrates all the steps to build code ready to be deployed, build the documentation, and finally prepare the distribution package.
 
-![step by step Dynatrace Snowflake Observability Agent build process](src/assets/dsoa-build-steps.jpg)
+<img src="src/assets/dsoa-build-steps.jpg" alt="Dynatrace Snowflake Observability Agent build process" style="width: 100%">
 
 The build process for the Dynatrace Snowflake Observability Agent package involves several steps:
 

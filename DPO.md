@@ -4,8 +4,34 @@ In today's data-driven world, maintaining a robust and efficient data platform i
 
 * [Why observability is crucial](#why-observability-is-crucial)
 * [The five core themes of DPO](#the-five-core-themes-of-dpo)
+  * [Security theme](#security-theme)
+  * [Operations theme](#operations-theme)
+    * [Infrastructure monitoring](#infrastructure-monitoring)
+    * [Apps Monitoring](#apps-monitoring)
+  * [Costs theme](#costs-theme)
+    * [Resource management](#resource-management)
+    * [Cost monitoring](#cost-monitoring)
+    * [Optimizing warehouse parameters](#optimizing-warehouse-parameters)
+  * [Performance theme](#performance-theme)
+    * [Detecting and analyzing slow queries](#detecting-and-analyzing-slow-queries)
+    * [Identifying tables leading to query slowdown](#identifying-tables-leading-to-query-slowdown)
+    * [Optimizing warehouses](#optimizing-warehouses)
+  * [Quality theme](#quality-theme)
+    * [Freshness](#freshness)
+    * [Distribution](#distribution)
+    * [Volume](#volume)
+    * [Schema](#schema)
+    * [Lineage](#lineage)
 * [The three tiers of Data Platform Observability](#the-three-tiers-of-data-platform-observability)
+  * [T1. Data Infrastructure Observability](#t1-data-infrastructure-observability)
+  * [T2. Data Apps and Pipelines Observability](#t2-data-apps-and-pipelines-observability)
+  * [T3. Data Quality and Governance Observability](#t3-data-quality-and-governance-observability)
 * [Aligning the three tiers with the five themes](#aligning-the-three-tiers-with-the-five-themes)
+  * [Security](#security)
+  * [Operations](#operations)
+  * [Costs](#costs)
+  * [Performance](#performance)
+  * [Quality](#quality)
 * [How Dynatrace can help](#how-dynatrace-can-help)
 
 ## Why observability is crucial
@@ -22,7 +48,7 @@ When you do not adhere to the Data Platform Observability paradigm and lose trac
 
 ## The five core themes of DPO
 
-![Five themes of Data Platform Observability](src/assets/data-platform-observability-themes.jpg){style="width: 1500px; max-width: 100%; max-height: 100%;"}
+<img src="src/assets/data-platform-observability-themes.jpg" alt="Five themes of Data Platform Observability" style="width: 1500px; max-width: 100%; max-height: 100%;">
 
 Building on the importance of Data Platform Observability (DPO) in ensuring the health and performance of your data ecosystem, we can analyze DPO through five core themes:
 
@@ -193,7 +219,9 @@ It can be a challenging task, especially when using a diverse stack of tools and
 * **Scalability**: Handling large-scale environments without impacting performance.
 * **Collaboration**: Facilitating collaboration between data engineers, analysts, and business stakeholders.
 
-![observability across three tiers of data platform](src/assets/data-platform-observability-tiers.jpg){width=60%}
+<img src="src/assets/data-platform-observability-tiers.jpg" alt="observability across three tiers of data platform" width="60%">
+
+<a id="t1-data-infrastructure-observability"></a>
 
 ### T1. Data Infrastructure Observability
 
@@ -201,9 +229,13 @@ Monitoring infrastructure components such as CPU, memory, and network usage is c
 
 [Acceldata discusses](https://www.acceldata.io/article/top-ten-use-cases-for-data-observability) various use cases for data observability, including infrastructure design, capacity planning, and performance tuning. This article highlights how observability can optimize resource allocation and improve system performance
 
+<a id="t2-data-apps-and-pipelines-observability"></a>
+
 ### T2. Data Apps and Pipelines Observability
 
 [Monitoring orchestration events, tasks, and pipeline execution ensures smooth operation](https://firsteigen.com/blog/top-data-pipeline-monitoring-tools/). By tracking the execution of data pipelines, including task completion times, error rates, and data flow, we can detect and resolve issues promptly, improving the reliability of data processing. This proactive approach minimizes downtime and enhances overall system performance, ensuring that data-driven decisions are based on accurate and timely information.
+
+<a id="t3-data-quality-and-governance-observability"></a>
 
 ### T3. Data Quality and Governance Observability
 
@@ -253,7 +285,7 @@ Though there is a lot of focus on the data quality, we can see is just a piece o
 
 Dynatrace provides a comprehensive solution to achieve this across three observability tiers: infrastructure, applications/pipelines, and quality/governance.
 
-![building Data Platform Observability with Dynatrace](src/assets/data-platform-observability-dt.jpg){width=60%}
+<img src="src/assets/data-platform-observability-dt.jpg" alt="building Data Platform Observability with Dynatrace" width="60%">
 
 Dynatrace integrates multiple data sources, including Snowflake, to offer a holistic view of the data platform. This integration enhances monitoring and proactive issue resolution, ensuring high data quality for both internal and external customers. By combining multiple telemetry sources, Dynatrace provides a comprehensive view of costs, performance, and security.
 
