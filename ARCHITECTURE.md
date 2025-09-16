@@ -215,7 +215,7 @@ Apart from sending telemetry prepared by plugins, Dynatrace Snowflake Observabil
 The `sources` parameter specifies the content to be sent to Dynatrace and can be:
 
 * a fully qualified name of a view or table,
-* a `SELECT` SQL statement,
+* a `SELECT` or `SHOW ->> SELECT` SQL statement,
 * a single object, or
 * an array of objects.
 

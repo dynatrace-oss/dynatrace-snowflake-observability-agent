@@ -39,7 +39,7 @@ if ( not exists (
     where TABLE_CATALOG = 'DTAGENT_DB'
     and TABLE_SCHEMA = 'APP'
     and TABLE_NAME = 'TMP_RECENT_QUERIES'
-    and COLUMN_NAME = 'IS_ROOT'
+    and COLUMN_NAME = 'TIMESTAMP'
 ))
 then
     -- Add the column
