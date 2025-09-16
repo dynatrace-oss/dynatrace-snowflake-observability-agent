@@ -47,6 +47,7 @@ from dtagent.plugins import Plugin
 
 import types
 import sys
+import re
 import json
 import uuid
 import time

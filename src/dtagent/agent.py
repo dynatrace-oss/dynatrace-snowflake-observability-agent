@@ -38,6 +38,7 @@ from dtagent.util import get_now_timestamp_formatted
 
 import types
 import sys
+import re
 import json
 import uuid
 import time

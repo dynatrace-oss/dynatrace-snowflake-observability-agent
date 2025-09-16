@@ -303,17 +303,16 @@ def _extract_appendix_info(header_file_path: str) -> Tuple[str, str]:
     return title, anchor
 
 
-def generate_readme_content(dtagent_conf_path: str, dtagent_plugins_path: str) -> str:
+def generate_readme_content(dtagent_conf_path: str, dtagent_plugins_path: str) -> Tuple[str, str, str, str, str]:
     """
     Generates readme from sources
 
     Returns:
-        content of the README.md file
+        A tuple containing the content for: readme_full_content, readme_short_content, plugins_content, semantics_content, appendix_content
     """
 
     # Add the content of src/dtagent.conf/info.md to README.md
-    readme_full_content = _read_file(os.path.join(dtagent_conf_path, "info.md"))
-    readme_short_content = readme_full_content + ""
+    readme_short_content = readme_full_content = _read_file(os.path.join(dtagent_conf_path, "info.md"))
     plugins_content = ""
     semantics_content = ""
     appendix_content = ""
