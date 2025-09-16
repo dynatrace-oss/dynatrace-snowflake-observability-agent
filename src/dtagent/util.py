@@ -25,6 +25,7 @@
 #
 
 import os
+import re
 import json
 import datetime
 from typing import Any, Dict, List, Optional, Union
@@ -39,6 +40,7 @@ NANOSECOND_CONVERSION_RATE = 1000 * 1000 * 1000
 _59_MINUTES_IN_SEC = 59 * 60
 _9_MINUTES_IN_SEC = 9 * 60
 EVENT_TIMESTAMP_KEYS_PAYLOAD_NAME = "snowflake.event.trigger"
+P_SELECT_QUERY = re.compile(r"^\s*(SELECT|SHOW.*->>\s*SELECT)", re.IGNORECASE | re.DOTALL)
 
 def _esc(v: Any) -> Any:
     """
@@ -148,7 +150,6 @@ def _clean_key(key: str) -> str:
     """
     Ensures there are only lowercase alphanumeric and underscore characters in the key
     """
-    import re
     ans = re.sub(r'[^a-zA-Z0-9_\s]', '', key)
     cs = re.sub(r'\s+', '_', ans)
     return cs.lower()
@@ -301,7 +302,6 @@ def _get_service_name(config_dict: str) -> str:
     if "core.snowflake_account_name" in config_dict:
         return config_dict["core.snowflake_account_name"]
 
-    import re
     m = re.match(r"(.*?)\.snowflakecomputing\.com$", config_dict["core.snowflake_host_name"])
     return m.group(1) if m else config_dict["core.snowflake_host_name"]
 
@@ -397,9 +397,7 @@ def get_now_timestamp() -> datetime.datetime:
 def is_select_for_table(table_name_or_query:str) -> bool:
     """Returns True if given table name is in fact a SELECT statement or a SHOW ... ->> SELECT ... statement
     """
-    import re
-    pattern = re.compile(r"^\s*(SELECT|SHOW.*->>\s*SELECT)", re.IGNORECASE | re.DOTALL)
-    return pattern.match(table_name_or_query) is not None
+    return P_SELECT_QUERY.match(table_name_or_query) is not None
 
 ##endregion
 

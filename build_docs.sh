@@ -48,4 +48,4 @@ pandoc _readme_full.tmp.md \
 
 rm _readme_full.*
 
-echo "Dynatrace-Snowflake-Observability-Agent-install.pdf files successfully created"
+echo "Dynatrace-Snowflake-Observability-Agent-$VERSION.pdf file successfully created"
