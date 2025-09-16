@@ -131,7 +131,6 @@
         "*.toml"
     ],
     "focus.highlightRange": "none",
-    "pylint.path": ["${workspaceFolder}/.venv/bin/pylint"],
     "pylint.args": [
         "--disable=C0111,C0415,C0301,W0621", 
         "--max-line-length=140"
