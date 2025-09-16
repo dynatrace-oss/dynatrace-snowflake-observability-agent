@@ -29,7 +29,7 @@ import logging
 from typing import Dict, Optional, Any
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk._logs import LoggerProvider
-from dtagent.otel import IS_OTEL_BELOW_1_21, USER_AGENT
+from dtagent.otel import IS_OTEL_BELOW_1_21
 from dtagent.otel.otel_manager import CustomLoggingSession, OtelManager
 
 ##endregion COMPILE_REMOVE
@@ -62,7 +62,7 @@ class Logs:
 
             def __init__(self, *args, **kwargs):
                 super().__init__(*args, **kwargs)
-                self._session.headers["User-Agent"] = USER_AGENT
+                self._session.headers.update(OtelManager.get_dsoa_headers())
 
         self._otel_logger_provider = LoggerProvider(resource=resource)
         self._otel_logger_provider.add_log_record_processor(

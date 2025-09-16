@@ -31,8 +31,6 @@ from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider, Tracer
 from opentelemetry.sdk.trace.id_generator import RandomIdGenerator
 from dtagent.otel.otel_manager import CustomLoggingSession, OtelManager
-from dtagent.otel import USER_AGENT
-
 
 ##endregion COMPILE_REMOVE
 
@@ -131,7 +129,7 @@ class Spans:
 
             def __init__(self, *args, **kwargs):
                 super().__init__(*args, **kwargs)
-                self._session.headers["User-Agent"] = USER_AGENT
+                self._session.headers.update(OtelManager.get_dsoa_headers())
 
         exporter = CustomUserAgentOTLPSpanExporter(
             endpoint=f'{self._configuration.get("otlp.http")}/v1/traces',
