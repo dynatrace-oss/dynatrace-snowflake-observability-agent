@@ -129,14 +129,15 @@ and deployment (also delivered in distribution package):
 
 The following figure illustrates all the steps to build code ready to be deployed, build the documentation, and finally prepare the distribution package.
 
-<img src="src/assets/dsoa-build-steps.jpg" alt="Dynatrace Snowflake Observability Agent build process" style="width: 100%">
+![Dynatrace Snowflake Observability Agent build process](src/assets/dsoa-build-steps.jpg)
+
 
 The build process for the Dynatrace Snowflake Observability Agent package involves several steps:
 
 1. **Compilation**: The `compile.sh` script is used to create `_version.py` and complete Python code for both main stored procedures, resulting in a single file for each (`_dtagent.py` and `_send_telemetry.py`). The `##INSERT` directive is used to control the order in which source Python files are assembled into the main one. **NOTE**: When Snowflake reports issues in those stored procedures, the lines in the Python code will correspond to the lines in these two files.
-1. **Building and embedding**: The `build.sh` script creates a single default configuration file (`build/config-default.json`) and a semantic dictionary file (`build/instruments-def.json`). It also copies over all SQL files from all `*.sql` folders. During the build process, the compiled Python files are embedded into the templates for the `APP.DTAGENT(sources array)` and `APP.SEND_TELEMETRY(sources variant, params object)` procedures respectively. The corresponding SQL files reference precompiled Python code to be embedded with the `##INSERT` directive.
-1. **Documentation Update**: The `build_doc.sh` script ensures that the documentation in `README.md` and PDF files is up to date, including all changes to the default configuration and semantic dictionary definition.
-1. **Packaging**: The `package.sh` script copies all files intended for delivery into a separate folder (`package`), which is eventually zipped into an archive with the version and build number in the name.
+2. **Building and embedding**: The `build.sh` script creates a single default configuration file (`build/config-default.json`) and a semantic dictionary file (`build/instruments-def.json`). It also copies over all SQL files from all `*.sql` folders. During the build process, the compiled Python files are embedded into the templates for the `APP.DTAGENT(sources array)` and `APP.SEND_TELEMETRY(sources variant, params object)` procedures respectively. The corresponding SQL files reference precompiled Python code to be embedded with the `##INSERT` directive.
+3. **Documentation Update**: The `build_doc.sh` script ensures that the documentation in `README.md` and PDF files is up to date, including all changes to the default configuration and semantic dictionary definition.
+4. **Packaging**: The `package.sh` script copies all files intended for delivery into a separate folder (`package`), which is eventually zipped into an archive with the version and build number in the name.
 
 ## Setting up development environment
 

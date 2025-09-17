@@ -48,7 +48,7 @@ When you do not adhere to the Data Platform Observability paradigm and lose trac
 
 ## The five core themes of DPO
 
-<img src="src/assets/data-platform-observability-themes.jpg" alt="Five themes of Data Platform Observability" style="width: 1500px; max-width: 100%; max-height: 100%;">
+![Five themes of Data Platform Observability](src/assets/data-platform-observability-themes.jpg)
 
 Building on the importance of Data Platform Observability (DPO) in ensuring the health and performance of your data ecosystem, we can analyze DPO through five core themes:
 

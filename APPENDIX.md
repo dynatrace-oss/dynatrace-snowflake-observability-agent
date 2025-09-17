@@ -156,7 +156,7 @@ This table provides a clear mapping between the old names (version 0.7) and the 
 | snowflake.operator_exec_time | snowflake.query.operator.time |
 | snowflake.table.event | snowflake.event.trigger |
 
-`*` represent possible values that might been present as part of the field name: `(warehouse.load.|warehouse.credits.|table.dynamic.|trust_center.|table_qs.|event_usage.|table.|budget.|budget.spending.|serverless_tasks.|resource_monitor.|warehouse.|query.)`
+`*` represents possible values that might been present as part of the field name: `(warehouse.load.|warehouse.credits.|table.dynamic.|trust_center.|table_qs.|event_usage.|table.|budget.|budget.spending.|serverless_tasks.|resource_monitor.|warehouse.|query.)`
 
 <a name="appendix-b-sec"></a>
 
