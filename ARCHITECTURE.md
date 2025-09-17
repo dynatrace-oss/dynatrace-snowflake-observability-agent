@@ -2,7 +2,7 @@
 
 Dynatrace Snowflake Observability Agent was designed to augment [Data Platform Observability](DPO.md) capabilities already offered by Dynatrace with OneAgent and custom telemetry (including logs and bizevents) delivered by ETL and other applications. Dynatrace Snowflake Observability Agent aims to fullfil the promise of Data Platform Observability by delivering telemetry data already present in Snowflake directly to Dynatrace as logs, traces, events, and metrics. Depending on what type of telemetry is sent by given Dynatrace Snowflake Observability Agent plugin one or more [Data Platform Observability themes](DPO.md#the-five-core-themes-of-dpo) can be supported over one or multiple [layers of Data Platform Observability](DPO.md#the-three-tiers-of-data-platform-observability).
 
-<img src="src/assets/data-platform-observability-dsoa.jpg" alt="High level Data Platform Observability architecture with Dynatrace Snowflake Observability Agent delivering telemetry to Dynatrace" style="width: 1000px; max-width: 100%; max-height: 100%;">
+![High level Data Platform Observability architecture with Dynatrace Snowflake Observability Agent delivering telemetry to Dynatrace](src/assets/data-platform-observability-dsoa.jpg)
 
 The main capabilities offered by Dynatrace Snowflake Observability Agent are:
 
@@ -38,7 +38,7 @@ Dynatrace Snowflake Observability Agent is designed to take full advantage of Sn
 
 The following figure illustrates, at high level, how telemetry data flows from Snowflake sources to Dynatrace for consumption.
 
-<img src="src/assets/dsoa-overview.jpg" alt="Overview of flow of telemetry data through Dynatrace Snowflake Observability Agent to Dynatrace" style="width: 100%">
+![Overview of flow of telemetry data through Dynatrace Snowflake Observability Agent to Dynatrace](src/assets/dsoa-overview.jpg)
 
 Dynatrace Snowflake Observability Agent is designed for easy extension with new plugins, each of which can utilize the core functions to deliver telemetry data via logs, spans/traces, events, bizevents, and metrics.
 
@@ -57,7 +57,7 @@ Since it is possible to run multiple Dynatrace Snowflake Observability Agent ins
 
 The figure below depicts objects which are created and maintained by Dynatrace Snowflake Observability Agent within dedicated database in Snowflake:
 
-<img src="src/assets/dsoa-snowflake-objects.jpg" alt="Dynatrace Snowflake Observability Agent objects in Snowflake" style="width: 100%">
+![Dynatrace Snowflake Observability Agent objects in Snowflake](src/assets/dsoa-snowflake-objects.jpg)
 
 ### The `APP` schema
 
@@ -97,7 +97,7 @@ Telemetry delivered by Dynatrace Snowflake Observability Agent to Dynatrace beco
 
 The following figure depicts in details, each step of how the telemetry data flows from Snowflake telemetry sources through Dynatrace Snowflake Observability Agent to Dynatrace; in this case execution of `query_history` plugin is used as example.
 
-<img src="src/assets/dsoa-dataflow.jpg" alt="detailed flow of telemetry data on query history from Snowflake sources through Dynatrace Snowflake Observability Agent to Dynatrace Grail and further" style="width: 100%">
+![Detailed flow of telemetry data on query history from Snowflake sources through Dynatrace Snowflake Observability Agent to Dynatrace Grail and further](src/assets/dsoa-dataflow.jpg)
 
 1. The process starts with Snowflake task `TASK_DTAGENT_QUERY_HISTORY` calling the `DTAGENT()` procedure with `query_history` as a parameter:
 
@@ -105,19 +105,19 @@ The following figure depicts in details, each step of how the telemetry data flo
     * A query tag is set for the session to identify this particular execution of Dynatrace Snowflake Observability Agent in Snowflake telemetry.
     * Before starting the processing, a BizEvent is sent to Dynatrace to indicate the start of a single plugin execution; a single all to `DTAGENT()` procedure can execute one or more plugins, one by one.
 
-1. The `query_history` plugin initializes telemetry data for sending by calling the `P_REFRESH_RECENT_QUERIES()` procedure, which
+2. The `query_history` plugin initializes telemetry data for sending by calling the `P_REFRESH_RECENT_QUERIES()` procedure, which
 
     * data from `QUERY_HISTORY` and `ACCESS_HISTORY` tables, filtering out already processed queries, and
     * prepares a standardized view with telemetry based on that information.
 
-1. For the slowest queries, the plugin enhances the telemetry with
+3. For the slowest queries, the plugin enhances the telemetry with
 
     * a query profile by calling `GET_QUERY_OPERATOR_STATS()`, and
     * estimated query acceleration with estimates from `SYSTEM$ESTIMATE_QUERY_ACCELERATION()`.
 
-1. Telemetry for each query is then sent to Dynatrace as traces, logs, and metrics; no events are sent by the `query_history` plugin.
+4. Telemetry for each query is then sent to Dynatrace as traces, logs, and metrics; no events are sent by the `query_history` plugin.
 
-1. The execution of Dynatrace Snowflake Observability Agent finalizes with
+5. The execution of Dynatrace Snowflake Observability Agent finalizes with
 
     * the list of processed queries is put into the `PROCESSED_QUERIES_CACHE` to avoid processing them again,
     * execution stats being recorded in the `PROCESSED_MEASUREMENTS_LOG` table,

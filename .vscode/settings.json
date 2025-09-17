@@ -158,5 +158,7 @@
     "[ignore]": {
         "editor.defaultFormatter": "foxundermoon.shell-format"
     },
-    "python.terminal.activateEnvInCurrentTerminal": true
+    "python.terminal.activateEnvInCurrentTerminal": true,
+    "markdown.extension.tableFormatter.normalizeIndentation": true,
+    "editor.indentSize": "tabSize"
 }

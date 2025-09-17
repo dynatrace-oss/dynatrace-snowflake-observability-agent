@@ -274,7 +274,7 @@ def _generate_appendix(appx_name: str) -> str:
         if group_value is not None:
             group_name_cleaned = re.sub(r"\\\.", ".", group_value)[:-1]
             appendix_content += (
-                f"\n`*` represent possible values that might been present as part of the field name: `{group_name_cleaned}`\n"
+                f"\n`*` represents possible values that might been present as part of the field name: `{group_name_cleaned}`\n"
             )
 
     return appendix_content + "\n"
