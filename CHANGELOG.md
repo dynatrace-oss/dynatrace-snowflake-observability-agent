@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## Dynatrace Snowflake Observability Agent 0.9.1
+
+Released on September 18, 2025
+
+### Improved in 0.9.1
+
+* **Telemetry Sender**: `SEND_TELEMETRY` procedure now supports `SHOW` statements, enabling more flexible and powerful custom queries/
+* **Modular Documentation**: The documentation has been restructured into multiple files (`PLUGINS.md`, `SEMANTICS.md`, `APPENDIX.md`) for improved readability and maintainability.
+
+### Fixed in 0.9.1
+
+* **Resource Monitors**: Queries now use explicit column selection to prevent errors caused by changes in the column order of `SHOW WAREHOUSES` command results.
+* **Query History**: Fixed upgrade for procedure `P_REFRESH_RECENT_QUERIES` to ensure it works correctly when upgrading from versions prior to 0.8.3.
+
 ## Dynatrace Snowflake Observability Agent 0.9.0
 
 Released on July 25, 2025

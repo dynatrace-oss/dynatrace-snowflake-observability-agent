@@ -108,7 +108,7 @@ limit 50
 ;
 ```
 
-![[dsoa-active-queries-processing-log.png]]
+![dsoa active queries processing log](dsoa-active-queries-processing-log.png)
 
 ## Step 2: Validate Data in Dynatrace
 

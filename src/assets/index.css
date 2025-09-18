@@ -166,7 +166,7 @@ img {
     float:none;
     margin-left:auto;
     margin-right:auto;
-    width: 30%;
+    width: 100%;
 }
 figure figcaption[aria-hidden="true"] {
     display: none;

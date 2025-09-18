@@ -29,7 +29,7 @@ import sys
 from typing import Dict, Union, Optional
 from dtagent.otel.otel_manager import OtelManager
 from dtagent.util import get_timestamp_in_ms, get_now_timestamp
-from dtagent.otel import _log_warning, USER_AGENT
+from dtagent.otel import _log_warning
 
 
 ##endregion COMPILE_REMOVE
@@ -71,8 +71,7 @@ class Metrics:
             headers = {
                 "Authorization": f'Api-Token {self._configuration.get("dt.token")}',
                 "Content-Type": "text/plain",
-                "User-Agent": USER_AGENT,
-            }
+            } | OtelManager.get_dsoa_headers()
             data_sent_ok = True
 
             try:
