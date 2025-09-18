@@ -40,7 +40,7 @@ NANOSECOND_CONVERSION_RATE = 1000 * 1000 * 1000
 _59_MINUTES_IN_SEC = 59 * 60
 _9_MINUTES_IN_SEC = 9 * 60
 EVENT_TIMESTAMP_KEYS_PAYLOAD_NAME = "snowflake.event.trigger"
-P_SELECT_QUERY = re.compile(r"^\s*(SELECT|SHOW.*->>\s*SELECT)", re.IGNORECASE | re.DOTALL)
+P_SELECT_QUERY = re.compile(r"^\s*(SELECT|SHOW\s+[^>]*->>\s*SELECT)", re.IGNORECASE | re.DOTALL)
 
 def _esc(v: Any) -> Any:
     """

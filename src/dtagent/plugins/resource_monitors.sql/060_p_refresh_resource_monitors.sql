@@ -81,6 +81,8 @@ DECLARE
                                                 "owner", "comment", "enable_query_acceleration", "query_acceleration_max_scale_factor", 
                                                 "resource_monitor", 
                                                 "actives", "pendings", "failed", "suspended", 
+                                                -- The "budget" column does not exist in the source data, but is required by the target table schema.
+                                                -- Insert a hardcoded NULL to maintain column alignment with APP.TMP_WAREHOUSES.
                                                 "uuid", "scaling_policy", null as "budget", 
                                                 "owner_role_type", "resource_constraint" 
                                               from table(result_scan(last_query_id()));';
