@@ -35,7 +35,7 @@ from dtagent.context import CONTEXT_NAME
 from dtagent.otel.events import EventType
 from dtagent.otel.otel_manager import OtelManager
 from dtagent.version import VERSION
-from dtagent.otel import _log_warning, USER_AGENT
+from dtagent.otel import _log_warning
 
 
 ##endregion COMPILE_REMOVE
@@ -91,8 +91,7 @@ class BizEvents:
                 "Authorization": f'Api-Token {self._configuration.get("dt.token")}',
                 "Accept": "application/json",
                 "Content-Type": "application/cloudevent-batch+json",
-                "User-Agent": USER_AGENT,
-            }
+            } | OtelManager.get_dsoa_headers()
 
             payload = json.dumps(_payload_list)
             payload_cnt = len(_payload_list)
