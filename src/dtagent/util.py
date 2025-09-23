@@ -1,4 +1,5 @@
 """Collection of utility function for Dynatrace Snowflake Observability Agent"""
+
 ##region ------------------------------ IMPORTS  -----------------------------------------
 #
 #
@@ -42,11 +43,12 @@ _9_MINUTES_IN_SEC = 9 * 60
 EVENT_TIMESTAMP_KEYS_PAYLOAD_NAME = "snowflake.event.trigger"
 P_SELECT_QUERY = re.compile(r"^\s*(SELECT|SHOW\s+[^>]*->>\s*SELECT)", re.IGNORECASE | re.DOTALL)
 
+
 def _esc(v: Any) -> Any:
     """
     Helper function that escapes " with \" if given object is a string
     """
-    return v.replace('\\', '\\\\').replace('"', '\\"') if isinstance(v, str) else v
+    return v.replace("\\", "\\\\").replace('"', '\\"') if isinstance(v, str) else v
 
 
 def _from_json(val: Any) -> Any:
@@ -86,7 +88,8 @@ def _pack_values_to_json_strings(value: Any, level: int = 0, max_list_level: int
     Returns:
         Union[Dict[str, str], List[str], str]: A new dictionary, list, or value with all values converted to JSON strings.
     """
-    def __is_not_empty(v:Any) -> bool:
+
+    def __is_not_empty(v: Any) -> bool:
         return v is not None and v != {} and v != "{}" and v != [] and v != "[]"
 
     if isinstance(value, dict) and level == 0:
@@ -114,17 +117,10 @@ def _unpack_json_list(to_unpack: Dict, keys: List) -> List:
     """
     from itertools import chain
 
-    return list(chain(
-            # packing multiple dicts into a single one
-            *[
-                # getting list from JSON if it is a string
-                _from_json(val)
-                for val
-                # getting values from the given dict - if they don't exit they default to an empty list
-                in [to_unpack.get(key, []) for key in keys]
-                if val is not None and val != ''
-            ]
-        ))
+    # packing multiple dicts into a single one
+    # getting list from JSON if it is a string
+    # getting values from the given dict - if they don't exit they default to an empty list
+    return list(chain(*[_from_json(val) for val in [to_unpack.get(key, []) for key in keys] if val is not None and val != ""]))
 
 
 def _unpack_json_dict(to_unpack: Dict, keys: List) -> Dict:
@@ -133,25 +129,18 @@ def _unpack_json_dict(to_unpack: Dict, keys: List) -> Dict:
     when we expect a dictionary to work with
     """
     from collections import ChainMap
-    return dict(ChainMap(
-            # packing multiple dicts into a single one
-            *[
-                # getting dict from JSON if it is a string
-                _from_json(val)
-                for val
-                # getting values from the given dict - if they don't exit they default to an empty dict
-                in [to_unpack.get(key, {}) for key in keys]
-                if val is not None and val != ''
-            ]
-        ))
+
+    # packing multiple dicts into a single one
+    # getting dict from JSON if it is a string
+    return dict(ChainMap(*[_from_json(val) for val in [to_unpack.get(key, {}) for key in keys] if val is not None and val != ""]))
 
 
 def _clean_key(key: str) -> str:
     """
     Ensures there are only lowercase alphanumeric and underscore characters in the key
     """
-    ans = re.sub(r'[^a-zA-Z0-9_\s]', '', key)
-    cs = re.sub(r'\s+', '_', ans)
+    ans = re.sub(r"[^a-zA-Z0-9_\s]", "", key)
+    cs = re.sub(r"\s+", "_", ans)
     return cs.lower()
 
 
@@ -178,8 +167,8 @@ def _cleanup_dict(d: Any, skip_first_level_hidden=False) -> Union[dict, list, st
 
     if isinstance(d, dict):
         return {
-            k:v for k,v in
-            {
+            k: v
+            for k, v in {
                 k: _cleanup_dict(v)
                 for k, v in d.items()
                 # this is checking if v is not None, NaN, NaF, and not an empty dictionary
@@ -197,9 +186,9 @@ def _cleanup_dict(d: Any, skip_first_level_hidden=False) -> Union[dict, list, st
     return d
 
 
-def _adjust_timestamp(row_dict: Dict, start_time: str = 'START_TIME', end_time: str = 'END_TIME', now: Optional[int] = None) -> Dict:
+def _adjust_timestamp(row_dict: Dict, start_time: str = "START_TIME", end_time: str = "END_TIME", now: Optional[int] = None) -> Dict:
     """
-    Updates START_TIME/TIMESTAMP and END_TIME when they are outside the boundaries in 
+    Updates START_TIME/TIMESTAMP and END_TIME when they are outside the boundaries in
     https://docs.dynatrace.com/docs/ingest-from/opentelemetry/getting-started/traces/ingest#ingestion-limits,
     i.e., should not be 60min in past or 10min in the future.
     The algorithm will attempt to keep period length is intact
@@ -326,10 +315,8 @@ def _unpack_payload(query_data: Dict) -> Dict:
 
     unpacked_payload = {
         attribute_key: attribute_value
-        for attribute_key, attribute_value
-        in _unpack_json_dict(
-            query_data,
-            ["DIMENSIONS", "ATTRIBUTES", "METRICS", "EVENT_TIMESTAMPS"]
+        for attribute_key, attribute_value in _unpack_json_dict(
+            query_data, ["DIMENSIONS", "ATTRIBUTES", "METRICS", "EVENT_TIMESTAMPS"]
         ).items()
         if _is_not_blank(attribute_value)
     }
@@ -338,8 +325,7 @@ def _unpack_payload(query_data: Dict) -> Dict:
 
 
 def get_timestamp_in_ms(query_data: Dict, ts_key: str, conversion_unit: int = 1e6, default_ts=None):
-    """Returns timetamp in miliseconds by converting value retrieved from query_data under given ts_key
-    """
+    """Returns timestamp in miliseconds by converting value retrieved from query_data under given ts_key"""
     ts = query_data.get(ts_key, None)
     if ts is not None and not pd.isna(ts):
         if isinstance(ts, datetime.datetime):
@@ -362,8 +348,8 @@ def ensure_timezone_aware(dt: datetime.datetime) -> datetime.datetime:
     from zoneinfo import ZoneInfo
 
     if dt.tzinfo is None:
-        system_tz = os.environ.get('TZ', 'UTC')
-        if system_tz in ['UTC', 'etc/utc', 'Etc/UTC']:
+        system_tz = os.environ.get("TZ", "UTC")
+        if system_tz in ["UTC", "etc/utc", "Etc/UTC"]:
             dt = dt.replace(tzinfo=ZoneInfo("UTC"))
         else:
             local_tz = ZoneInfo("Europe/Warsaw")
@@ -386,18 +372,21 @@ def format_datetime(dt: datetime.datetime) -> str:
     utc_time = dt.astimezone(ZoneInfo("UTC"))
     return utc_time.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
 
+
 def get_now_timestamp_formatted() -> str:
     """Uses format_datetime() to format now() as "%Y-%m-%dT%H:%M:%S.%f{3}Z" """
     return format_datetime(get_now_timestamp())
+
 
 def get_now_timestamp() -> datetime.datetime:
     """Returns current timestamp as datetime object"""
     return datetime.datetime.now(datetime.timezone.utc)
 
-def is_select_for_table(table_name_or_query:str) -> bool:
-    """Returns True if given table name is in fact a SELECT statement or a SHOW ... ->> SELECT ... statement
-    """
+
+def is_select_for_table(table_name_or_query: str) -> bool:
+    """Returns True if given table name is in fact a SELECT statement or a SHOW ... ->> SELECT ... statement"""
     return P_SELECT_QUERY.match(table_name_or_query) is not None
+
 
 ##endregion
 
@@ -406,7 +395,9 @@ def is_select_for_table(table_name_or_query:str) -> bool:
 
 class StringEnum(str, Enum):
     """Customer implementation of the StrEnum that ensures case of enum values is kept - unlike in StrEnum"""
+
     def __str__(self):
         return self.name
+
 
 ##endregion

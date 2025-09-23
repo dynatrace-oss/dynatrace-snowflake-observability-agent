@@ -131,7 +131,6 @@ The following figure illustrates all the steps to build code ready to be deploye
 
 ![Dynatrace Snowflake Observability Agent build process](src/assets/dsoa-build-steps.jpg)
 
-
 The build process for the Dynatrace Snowflake Observability Agent package involves several steps:
 
 1. **Compilation**: The `compile.sh` script is used to create `_version.py` and complete Python code for both main stored procedures, resulting in a single file for each (`_dtagent.py` and `_send_telemetry.py`). The `##INSERT` directive is used to control the order in which source Python files are assembled into the main one. **NOTE**: When Snowflake reports issues in those stored procedures, the lines in the Python code will correspond to the lines in these two files.
