@@ -159,6 +159,13 @@
         "editor.defaultFormatter": "foxundermoon.shell-format"
     },
     "python.terminal.activateEnvInCurrentTerminal": true,
+    "[ini]": {
+        "editor.formatOnSave": false,
+        "editor.defaultFormatter": null
+    },
+    "files.associations": {
+        ".sqlfluff": "ini"
+    },
     "markdown.extension.tableFormatter.normalizeIndentation": true,
     "editor.indentSize": "tabSize"
 }

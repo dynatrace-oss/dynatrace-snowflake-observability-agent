@@ -1,0 +1,44 @@
+name: Quality Checks
+
+on:
+  push:
+    branches: ["devel", "dev/*"]
+  pull_request:
+    branches: ["devel", "dev/*"]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install flake8 black sqlfluff yamllint pylint
+          npm install -g markdownlint-cli
+
+      - name: Lint Python
+        run: flake8 src/ test/ || exit 1
+
+      - name: Format Python
+        run: black --check src/ test/ || exit 1
+
+      - name: Pylint Python
+        run: |
+          pylint src/
+          pylint test/
+
+      - name: Lint SQL
+        run: sqlfluff lint src/*.sql --ignore parsing --disable-progress-bar || exit 1
+
+      - name: Lint YAML
+        run: yamllint . || exit 1
+
+      - name: Lint Markdown
+        run: markdownlint '**/*.md' || exit 1
