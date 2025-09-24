@@ -38,6 +38,15 @@ from dtagent.version import VERSION, BUILD
 class Configuration:
     """Class initializing Configuration from Snowflake config.configurations table"""
 
+    RESOURCE_ATTRIBUTES = {
+        "db.system": "snowflake",
+        "service.name": "",
+        "deployment.environment": "",
+        "host.name": "",
+        "telemetry.exporter.version": f"{VERSION}.{BUILD}",
+        "telemetry.exporter.name": "dynatrace.snowagent",
+    }
+
     def __init__(self, session: snowpark.Session) -> Dict:
         """
         Returns configuration based on data in config_data.configuration and (currently) hardcoded list of instruments
@@ -154,13 +163,11 @@ class Configuration:
             "metrics.http": f"https://{config_dict['core.dynatrace_tenant_address']}/api/v2/metrics/ingest",
             "events.http": f"https://{config_dict['core.dynatrace_tenant_address']}/api/v2/events/ingest",
             "bizevents.http": f"https://{config_dict['core.dynatrace_tenant_address']}/api/v2/bizevents/ingest",
-            "resource.attributes": {
-                "db.system": "snowflake",
+            "resource.attributes": Configuration.RESOURCE_ATTRIBUTES
+            | {
                 "service.name": _get_service_name(config_dict),
                 "deployment.environment": config_dict["core.deployment_environment"],
                 "host.name": config_dict["core.snowflake_host_name"],
-                "telemetry.exporter.version": f"{VERSION}.{BUILD}",
-                "telemetry.exporter.name": "dynatrace.snowagent",
             },
             "otel": __unpack_prefixed_keys(config_dict, "otel."),
             "plugins": __unpack_prefixed_keys(config_dict, "plugins."),

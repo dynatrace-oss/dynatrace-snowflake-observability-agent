@@ -397,6 +397,7 @@ All telemetry delivered by this plugin is reported as `dsoa.run.context == "quer
 | snowflake.&#8203;query.&#8203;step.&#8203;id | Identifier of the step in the query plan. | 1 |
 | snowflake.&#8203;query.&#8203;tag | The tag associated with the query. | tag1 |
 | snowflake.&#8203;query.&#8203;transaction_id | The transaction ID associated with the query. | txn123 |
+| snowflake.&#8203;query.&#8203;with_operator_stats | Indicates if the query was executed with operator<br>-level statistics enabled. | True |
 | snowflake.&#8203;release_version | The release version of Snowflake at the time of query execution. | 5.0 |
 | snowflake.&#8203;role.&#8203;type | The type of role used to execute the query. | PRIMARY |
 | snowflake.&#8203;schema.&#8203;id | The unique identifier of the schema involved in the query. | schema123 |
