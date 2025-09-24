@@ -70,6 +70,11 @@ attributes:
     snowflake.error.message:
         __example: Syntax error
         __description: The error message returned by the query, if any.
+    snowflake.query.with_operator_stats:
+        __example: true
+        __description:
+            Indicates if the query was executed with operator-level statistics
+            enabled.
     snowflake.query.accel_est.estimated_query_times:
         __example: '{ "scaleFactor1": 10, "scaleFactor2": 5 }'
         __description:

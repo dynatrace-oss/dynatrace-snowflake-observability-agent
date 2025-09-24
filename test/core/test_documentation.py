@@ -76,12 +76,10 @@ class TestDocumentation:
 
                 assert os.path.getsize(full_path), f"Documentation file {full_path} seems to be empty"
 
-    def test_matching_documentation(self, pickle_conf: str):
+    def test_matching_documentation(self):
         from test.list_semantics import list_semantics
         from dtagent import context
-        from test._utils import get_config
-
-        c = get_config(pickle_conf)
+        from dtagent.config import Configuration
 
         data = list_semantics("src")
         semantics = self._aggregate_data(data)
@@ -110,7 +108,7 @@ class TestDocumentation:
         ]
         assert found_core_attribute, f"Did not find core attribute <{context.CONTEXT_NAME}>"
 
-        core_dimensions = set(c.get(key="resource.attributes").keys())
+        core_dimensions = set(Configuration.RESOURCE_ATTRIBUTES.keys())
         found_core_dimensions = set(
             [
                 entry["name"]
