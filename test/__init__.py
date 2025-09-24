@@ -25,7 +25,6 @@ import json
 import os
 from typing import Any, Dict
 
-from narwhals import Boolean
 from dtagent.agent import DynatraceSnowAgent
 from dtagent.config import Configuration
 from snowflake import snowpark
