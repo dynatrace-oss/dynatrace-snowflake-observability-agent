@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## Dynatrace Snowflake Observability Agent 0.9.2
+
+Released on October 18, 2025
+
+### Plugins Updated in 0.8.3
+
+* **Query History**: Plugin configuration enables to set the maximum number of slowest queries (with execution time above given threshold) to retrieve query plan and acceleration estimates.
+
+
 ## Dynatrace Snowflake Observability Agent 0.9.1
 
 Released on September 18, 2025
