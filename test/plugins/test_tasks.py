@@ -22,36 +22,40 @@
 #
 #
 class TestTasks:
+    PICKLES = {
+        "APP.V_SERVERLESS_TASKS": "test/test_data/tasks_serverless.pkl",
+        "APP.V_TASK_HISTORY": "test/test_data/tasks_history.pkl",
+        "APP.V_TASK_VERSIONS": "test/test_data/tasks_versions.pkl",
+    }
+
     def test_tasks(self):
         from typing import Generator, Dict
 
+        from unittest.mock import patch
         from test import TestDynatraceSnowAgent, _get_session
         import test._utils as utils
 
         from dtagent.plugins.tasks import TasksPlugin
         from dtagent import plugins
 
-        T_SERVERLESS_TASKS = "APP.V_SERVERLESS_TASKS"
-        T_TASK_HISTORY = "APP.V_TASK_HISTORY"
-        T_TASK_VERSIONS = "APP.V_TASK_VERSIONS"
-
-        pkl_dict = {
-            T_SERVERLESS_TASKS: "test/test_data/tasks_serverless.pkl",
-            T_TASK_HISTORY: "test/test_data/tasks_history.pkl",
-            T_TASK_VERSIONS: "test/test_data/tasks_versions.pkl",
-        }
         # -----------------------------------------------------
 
-        if utils.should_pickle(list(pkl_dict.values())):
-            session = _get_session()
-            utils._pickle_data_history(session, T_SERVERLESS_TASKS, pkl_dict[T_SERVERLESS_TASKS])
-            utils._pickle_data_history(session, T_TASK_HISTORY, pkl_dict[T_TASK_HISTORY])
-            utils._pickle_data_history(session, T_TASK_VERSIONS, pkl_dict[T_TASK_VERSIONS])
+        utils._pickle_all(_get_session(), self.PICKLES)
 
         class TestTasksPlugin(TasksPlugin):
+            @patch("dtagent.otel.events.requests.post")
+            @patch("dtagent.otel.bizevents.requests.post")
+            def process(self, run_proc: bool = True, mock_bizevents_post=None, mock_events_post=None) -> int:
+                from dtagent.otel.otel_manager import OtelManager
 
-            def _get_table_rows(self, table_name: str = None) -> Generator[Dict, None, None]:
-                return utils._get_unpickled_entries(pkl_dict[table_name], limit=2)
+                OtelManager.reset_current_fail_count()
+                mock_events_post.side_effect = utils.side_effect_function
+                mock_bizevents_post.side_effect = utils.side_effect_function
+                logging.debug("EXECUTING TestTasksPlugin.process()")
+                return super().process(run_proc)
+
+            def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
+                return utils._safe_get_unpickled_entries(TestTasks.PICKLES, t_data, limit=2)
 
         def __local_get_plugin_class(source: str):
             return TestTasksPlugin
@@ -63,7 +67,9 @@ class TestTasks:
 
         import logging
 
-        utils._logging_findings(session, TestDynatraceSnowAgent(session), "test_tasks", logging.INFO, show_detailed_logs=1)
+        utils._logging_findings(
+            session, TestDynatraceSnowAgent(session, utils.get_config()), "test_tasks", logging.INFO, show_detailed_logs=1
+        )
 
 
 if __name__ == "__main__":

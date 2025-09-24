@@ -22,8 +22,13 @@
 #
 #
 class TestResMon:
+    T_DATA_RESMON = "APP.V_RESOURCE_MONITORS"
+    T_DATA_WHS = "APP.V_WAREHOUSES"
+    PICKLES = {T_DATA_RESMON: "test/test_data/resource_monitors.pkl", T_DATA_WHS: "test/test_data/warehouses.pkl"}
+
     def test_res_mon(self):
         import logging
+        from unittest.mock import patch
 
         from typing import Dict, Generator
 
@@ -31,24 +36,30 @@ class TestResMon:
         from test import TestDynatraceSnowAgent, _get_session
         from dtagent.plugins.resource_monitors import ResourceMonitorsPlugin
 
-        T_DATA_RESMON = "APP.V_RESOURCE_MONITORS"
-        T_DATA_WHS = "APP.V_WAREHOUSES"
-        pkl_dict = {T_DATA_RESMON: "test/test_data/resource_monitors.pkl", T_DATA_WHS: "test/test_data/warehouses.pkl"}
-
         # ======================================================================
 
-        if utils.should_pickle(list(pkl_dict.values())):
+        if utils.should_pickle(self.PICKLES.values()):
             session = _get_session()
             session.call("APP.P_REFRESH_RESOURCE_MONITORS", log_on_exception=True)
             utils._pickle_data_history(
-                session, T_DATA_RESMON, pkl_dict[T_DATA_RESMON], lambda df: df.sort("IS_ACCOUNT_LEVEL", ascending=False)
+                session, self.T_DATA_RESMON, self.PICKLES[self.T_DATA_RESMON], lambda df: df.sort("IS_ACCOUNT_LEVEL", ascending=False)
             )
-            utils._pickle_data_history(session, T_DATA_WHS, pkl_dict[T_DATA_WHS])
+            utils._pickle_data_history(session, self.T_DATA_WHS, self.PICKLES[self.T_DATA_WHS])
 
         class TestResourceMonitorsPlugin(ResourceMonitorsPlugin):
+            @patch("dtagent.otel.events.requests.post")
+            @patch("dtagent.otel.bizevents.requests.post")
+            def process(self, run_proc: bool = True, mock_bizevents_post=None, mock_events_post=None) -> int:
+                from dtagent.otel.otel_manager import OtelManager
 
-            def _get_table_rows(self, table_name: str = None) -> Generator[Dict, None, None]:
-                return utils._get_unpickled_entries(pkl_dict[table_name], limit=2)
+                OtelManager.reset_current_fail_count()
+                mock_events_post.side_effect = utils.side_effect_function
+                mock_bizevents_post.side_effect = utils.side_effect_function
+                logging.debug("EXECUTING TestResourceMonitorsPlugin.process()")
+                return super().process(run_proc)
+
+            def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
+                return utils._safe_get_unpickled_entries(TestResMon.PICKLES, t_data, limit=2)
 
         def __local_get_plugin_class(source: str):
             return TestResourceMonitorsPlugin
@@ -60,7 +71,9 @@ class TestResMon:
         # ======================================================================
 
         session = _get_session()
-        utils._logging_findings(session, TestDynatraceSnowAgent(session), "test_resource_monitors", logging.INFO, show_detailed_logs=0)
+        utils._logging_findings(
+            session, TestDynatraceSnowAgent(session, utils.get_config()), "test_resource_monitors", logging.INFO, show_detailed_logs=0
+        )
 
 
 if __name__ == "__main__":

@@ -22,8 +22,11 @@
 #
 #
 class TestQueryHist:
+    PICKLES = {"APP.V_RECENT_QUERIES": "test/test_data/recent_queries2.pkl"}
+
     def test_query_hist(self):
         import logging
+        from unittest.mock import patch
 
         from typing import Dict, Generator
 
@@ -34,15 +37,12 @@ class TestQueryHist:
         from test import TestDynatraceSnowAgent, _get_session
         from dtagent.plugins.query_history import QueryHistoryPlugin
 
-        T_DATA_RECENT_QUERIES = "APP.V_RECENT_QUERIES"
-        PICKLE_NAME = "test/test_data/recent_queries2.pkl"
-
         # ======================================================================
 
-        if utils.should_pickle([PICKLE_NAME]):
+        if utils.should_pickle(self.PICKLES.values()):
             session = _get_session()
             session.call("APP.P_REFRESH_RECENT_QUERIES", log_on_exception=True)
-            utils._pickle_data_history(session, T_DATA_RECENT_QUERIES, PICKLE_NAME)
+            utils._pickle_all(_get_session(), self.PICKLES)
 
         from dtagent.otel.spans import Spans
 
@@ -55,7 +55,7 @@ class TestQueryHist:
                 parent_row_id_col: str,
                 row_id: str,
             ) -> Generator[Dict, None, None]:
-                pandas_df = pd.read_pickle(PICKLE_NAME)
+                pandas_df = pd.read_pickle(TestQueryHist.PICKLES[view_name])
                 print(f"Unpickled for {view_name} at {parent_row_id_col} = {row_id}")
 
                 pandas_df = pandas_df[pandas_df[parent_row_id_col] == row_id]
@@ -68,9 +68,19 @@ class TestQueryHist:
                     yield row_dict
 
         class TestQueryHistoryPlugin(QueryHistoryPlugin):
+            @patch("dtagent.otel.events.requests.post")
+            @patch("dtagent.otel.bizevents.requests.post")
+            def process(self, run_proc: bool = True, mock_bizevents_post=None, mock_events_post=None) -> int:
+                from dtagent.otel.otel_manager import OtelManager
 
-            def _get_table_rows(self, table_name: str = None) -> Generator[Dict, None, None]:
-                return utils._get_unpickled_entries(PICKLE_NAME, limit=3)
+                OtelManager.reset_current_fail_count()
+                mock_events_post.side_effect = utils.side_effect_function
+                mock_bizevents_post.side_effect = utils.side_effect_function
+                logging.debug("EXECUTING TestQueryHistoryPlugin.process()")
+                return super().process(run_proc)
+
+            def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
+                return utils._safe_get_unpickled_entries(TestQueryHist.PICKLES, t_data, limit=3)
 
         class TestSpanDynatraceSnowAgent(TestDynatraceSnowAgent):
             from opentelemetry.sdk.resources import Resource
@@ -89,7 +99,9 @@ class TestQueryHist:
 
         session = _get_session()
         # when sending spans log level cannot be set, hence "" to omit it in the utils
-        utils._logging_findings(session, TestSpanDynatraceSnowAgent(session), "test_query_history", logging.INFO, show_detailed_logs=0)
+        utils._logging_findings(
+            session, TestSpanDynatraceSnowAgent(session, utils.get_config()), "test_query_history", logging.INFO, show_detailed_logs=0
+        )
 
 
 if __name__ == "__main__":

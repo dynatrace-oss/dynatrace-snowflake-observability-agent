@@ -22,8 +22,15 @@
 #
 #
 class TestShares:
+    PICKLES = {
+        "APP.V_INBOUND_SHARE_TABLES": "test/test_data/inbound_shares.pkl",
+        "APP.V_OUTBOUND_SHARE_TABLES": "test/test_data/outbound_shares.pkl",
+        "APP.V_SHARE_EVENTS": "test/test_data/shares.pkl",
+    }
+
     def test_shares(self):
         import logging
+        from unittest.mock import patch
 
         from typing import Dict, Generator
 
@@ -31,28 +38,27 @@ class TestShares:
         from test import TestDynatraceSnowAgent, _get_session
         from dtagent.plugins.shares import SharesPlugin
 
-        T_DATA_INBOUND = "APP.V_INBOUND_SHARE_TABLES"
-        T_DATA_OUTBOUND = "APP.V_OUTBOUND_SHARE_TABLES"
-        T_SHARE_DATA = "APP.V_SHARE_EVENTS"
-        pkl_dict = {
-            T_DATA_INBOUND: "test/test_data/inbound_shares.pkl",
-            T_DATA_OUTBOUND: "test/test_data/outbound_shares.pkl",
-            T_SHARE_DATA: "test/test_data/shares.pkl",
-        }
-
         # ======================================================================
 
-        if utils.should_pickle(list(pkl_dict.values())):
+        if utils.should_pickle(self.PICKLES.values()):
             session = _get_session()
             session.call("APP.P_GET_SHARES", log_on_exception=True)
-            utils._pickle_data_history(session, T_DATA_INBOUND, pkl_dict[T_DATA_INBOUND])
-            utils._pickle_data_history(session, T_DATA_OUTBOUND, pkl_dict[T_DATA_OUTBOUND])
-            utils._pickle_data_history(session, T_SHARE_DATA, pkl_dict[T_SHARE_DATA])
+            utils._pickle_all(session, self.PICKLES, force=True)
 
         class TestSharesPlugin(SharesPlugin):
+            @patch("dtagent.otel.events.requests.post")
+            @patch("dtagent.otel.bizevents.requests.post")
+            def process(self, run_proc: bool = True, mock_bizevents_post=None, mock_events_post=None) -> int:
+                from dtagent.otel.otel_manager import OtelManager
 
-            def _get_table_rows(self, table_name: str = None) -> Generator[Dict, None, None]:
-                return utils._get_unpickled_entries(pkl_dict[table_name], limit=2)
+                OtelManager.reset_current_fail_count()
+                mock_events_post.side_effect = utils.side_effect_function
+                mock_bizevents_post.side_effect = utils.side_effect_function
+                logging.debug("EXECUTING TestSharesPlugin.process()")
+                return super().process(run_proc)
+
+            def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
+                return utils._safe_get_unpickled_entries(TestShares.PICKLES, t_data, limit=2)
 
         def __local_get_plugin_class(source: str):
             return TestSharesPlugin
@@ -64,7 +70,9 @@ class TestShares:
         # ======================================================================
 
         session = _get_session()
-        utils._logging_findings(session, TestDynatraceSnowAgent(session), "test_shares", logging.INFO, show_detailed_logs=0)
+        utils._logging_findings(
+            session, TestDynatraceSnowAgent(session, utils.get_config()), "test_shares", logging.INFO, show_detailed_logs=0
+        )
 
 
 if __name__ == "__main__":

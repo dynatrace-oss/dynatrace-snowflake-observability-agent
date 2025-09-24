@@ -60,3 +60,61 @@ jobs:
 
       - name: Run TestDocumentation tests
         run: pytest test/core/test_documentation.py -k "TestDocumentation"
+
+  test-core:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Install Git LFS
+        run: git lfs install
+
+      - name: Pull LFS objects
+        run: git lfs pull
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11.12'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pytest-mock
+
+      - name: Run core tests
+        run: |
+          pytest test/core/test_config.py -k "TestConfig"
+          pytest test/core/test_util.py -k "TestUtil"
+          pytest test/core/test_views_structure.py -k "TestViews"
+          pytest test/core/test_connector.py -k "TestTelemetrySender"
+      - name: Run OTEL tests
+        run: |
+          pytest test/otel/test_events.py -k "TestEvents"
+          pytest test/otel/test_otel_manager.py -k "TestOtelManager"
+
+  test-plugins:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Install Git LFS
+        run: git lfs install
+
+      - name: Pull LFS objects
+        run: git lfs pull
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11.12'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pytest-mock
+
+      - name: Run plugin tests
+        run: pytest test/plugins/

@@ -45,6 +45,7 @@ from dtagent.util import (
     NANOSECOND_CONVERSION_RATE,
     EVENT_TIMESTAMP_KEYS_PAYLOAD_NAME,
     is_select_for_table,
+    is_regular_mode,
 )
 from dtagent.otel.events import Events, EventType
 from dtagent.otel.bizevents import BizEvents
@@ -142,13 +143,14 @@ class Plugin(ABC):
         if last_timestamp is None or str(last_timestamp) == "None":
             last_timestamp = self._configuration.get_last_measurement_update(self._session, measurements_source)
 
-        self._session.call(
-            "STATUS.LOG_PROCESSED_MEASUREMENTS",
-            str(measurements_source),
-            last_timestamp,
-            str(last_id),
-            str(entries_count),
-        )
+        if is_regular_mode(self._session):
+            self._session.call(
+                "STATUS.LOG_PROCESSED_MEASUREMENTS",
+                str(measurements_source),
+                last_timestamp,
+                str(last_id),
+                str(entries_count),
+            )
 
     def _process_span_rows(
         self,

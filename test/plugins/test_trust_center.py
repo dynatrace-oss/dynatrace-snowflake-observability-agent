@@ -22,26 +22,39 @@
 #
 #
 class TestTrustCenter:
+    PICKLES = {
+        "APP.V_TRUST_CENTER_METRICS": "test/test_data/trust_center_metrics.pkl",
+        "APP.V_TRUST_CENTER_INSTRUMENTED": "test/test_data/trust_center_instr.pkl",
+    }
+
     def test_trust_center(self):
 
         from typing import Generator, Dict
         import logging
+        from unittest.mock import patch
         from test import TestDynatraceSnowAgent, _get_session
         import test._utils as utils
         from dtagent.plugins.trust_center import TrustCenterPlugin
         from dtagent import plugins
 
-        T_DATA_TRUST_CENTER = "APP.V_TRUST_CENTER"
-        PICKLE_NAME_TRUST_CENTER = "test/test_data/trust_center_hist.pkl"
         # -----------------------------------------------------
 
-        if utils.should_pickle([PICKLE_NAME_TRUST_CENTER]):
-            utils._pickle_data_history(_get_session(), T_DATA_TRUST_CENTER, PICKLE_NAME_TRUST_CENTER)
+        utils._pickle_all(_get_session(), self.PICKLES)
 
         class TestTrustCenterPlugin(TrustCenterPlugin):
+            @patch("dtagent.otel.events.requests.post")
+            @patch("dtagent.otel.bizevents.requests.post")
+            def process(self, run_proc: bool = True, mock_bizevents_post=None, mock_events_post=None) -> int:
+                from dtagent.otel.otel_manager import OtelManager
 
-            def _get_table_rows(self, table_name: str = None) -> Generator[Dict, None, None]:
-                return utils._get_unpickled_entries(PICKLE_NAME_TRUST_CENTER, limit=2)
+                OtelManager.reset_current_fail_count()
+                mock_events_post.side_effect = utils.side_effect_function
+                mock_bizevents_post.side_effect = utils.side_effect_function
+                logging.debug("EXECUTING TestTrustCenterPlugin.process()")
+                return super().process(run_proc)
+
+            def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
+                return utils._safe_get_unpickled_entries(TestTrustCenter.PICKLES, t_data, limit=2)
 
         def __local_get_plugin_class(source: str):
             return TestTrustCenterPlugin
@@ -51,7 +64,9 @@ class TestTrustCenter:
         # ======================================================================
 
         session = _get_session()
-        utils._logging_findings(session, TestDynatraceSnowAgent(session), "test_trust_center", logging.INFO, show_detailed_logs=0)
+        utils._logging_findings(
+            session, TestDynatraceSnowAgent(session, utils.get_config()), "test_trust_center", logging.INFO, show_detailed_logs=0
+        )
 
 
 if __name__ == "__main__":

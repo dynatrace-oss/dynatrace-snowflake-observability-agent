@@ -24,6 +24,8 @@
 import json
 import os
 from typing import Any, Dict
+
+from narwhals import Boolean
 from dtagent.agent import DynatraceSnowAgent
 from dtagent.config import Configuration
 from snowflake import snowpark
@@ -38,7 +40,7 @@ read_secret(
 )
 
 
-def _get_creds() -> Dict:
+def _get_credentials() -> Dict:
     """
     {
         "account": "<your snowflake account>",
@@ -51,36 +53,21 @@ def _get_creds() -> Dict:
     }
     """
     credentials = {}
-    creds_path = "test/credentials.json"
-    if os.path.isfile(creds_path):
-        with open(creds_path, "r", encoding="utf-8") as f:
+    credentials_path = "test/credentials.json"
+    if os.path.isfile(credentials_path):
+        with open(credentials_path, "r", encoding="utf-8") as f:
             credentials = json.loads(f.read())
-    else:
-        basic_creds_file = ".ci/test-creds.json"
-        # this distinction is made to avoid loading files with tokens to jenkins pipeline, when running script locally it is recommended to create apropriate credentials file
-        with open(basic_creds_file, "r", encoding="utf-8") as basic_creds:
-            credentials = json.loads(basic_creds.read())
-
-        credentials["account"] = os.environ.get("SNOWFLAKE_ACC_NAME")
-        credentials["user"] = os.environ.get("SNOWFLAKE_USER_NAME")
-        credentials["password"] = os.environ.get("SNOWFLAKE_USER_PASSWORD")
-
-        tag = os.environ.get("TEST_TAG", None)
-        if tag is not None:
-            for key in ["role", "warehouse", "database"]:
-                underscore_pos = credentials[key].find("_")
-                credentials[key] = credentials[key][: underscore_pos + 1] + tag + "_" + credentials[key][underscore_pos + 1 :]
-
-    return credentials
+    return credentials or {"local_testing": True}
 
 
 def _get_session() -> snowpark.Session:
     # Import the Session class from the snowflake.snowpark package
     from snowflake.snowpark import Session
 
-    creds = _get_creds()
-    session = Session.builder.configs(creds).create()
-    session.use_warehouse(creds.get("warehouse"))
+    credentials = _get_credentials()
+    session = Session.builder.configs(credentials).create()
+    if "warehouse" in credentials:
+        session.use_warehouse(credentials["warehouse"])
 
     return session
 
@@ -95,9 +82,13 @@ class TestConfiguration(Configuration):
 
 class TestDynatraceSnowAgent(DynatraceSnowAgent):
 
+    def __init__(self, session: snowpark.Session, config: Configuration) -> None:
+        self._local_configuration = config
+        super().__init__(session)
+
     def _get_config(self, session: snowpark.Session) -> Configuration:
         return _overwrite_plugin_local_config_key(
-            TestConfiguration(session),
+            self._local_configuration,
             "users",
             "roles_monitoring_mode",
             ["DIRECT_ROLES", "ALL_ROLES", "ALL_PRIVILEGES"],

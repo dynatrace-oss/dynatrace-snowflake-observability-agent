@@ -22,23 +22,22 @@
 #
 #
 class TestDataVol:
+    PICKLES = {"APP.V_DATA_VOLUME": "test/test_data/data_volume.pkl"}
+
     def test_data_vol(self):
         from typing import Dict, Generator
         from dtagent.plugins.data_volume import DataVolumePlugin
         from test import _get_session, TestDynatraceSnowAgent
         import test._utils as utils
 
-        PICKLE_NAME = "test/test_data/data_volume.pkl"
-        T_DATA = "APP.V_DATA_VOLUME"
         # ======================================================================
 
-        if utils.should_pickle([PICKLE_NAME]):
-            utils._pickle_data_history(_get_session(), T_DATA, PICKLE_NAME)
+        utils._pickle_all(_get_session(), self.PICKLES)
 
         class TestDataVolumePlugin(DataVolumePlugin):
 
-            def _get_table_rows(self, table_name: str = None) -> Generator[Dict, None, None]:
-                return utils._get_unpickled_entries(PICKLE_NAME, limit=2)
+            def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
+                return utils._safe_get_unpickled_entries(TestDataVol.PICKLES, t_data, limit=2)
 
         def __local_get_plugin_class(source: str):
             return TestDataVolumePlugin
@@ -51,7 +50,9 @@ class TestDataVol:
         import logging
 
         session = _get_session()
-        utils._logging_findings(session, TestDynatraceSnowAgent(session), "test_data_volume", logging.INFO, show_detailed_logs=0)
+        utils._logging_findings(
+            session, TestDynatraceSnowAgent(session, utils.get_config()), "test_data_volume", logging.INFO, show_detailed_logs=0
+        )
 
 
 if __name__ == "__main__":

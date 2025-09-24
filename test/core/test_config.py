@@ -45,7 +45,7 @@ class TestConfig:
 
         from build import prepare_config
 
-        d_config = prepare_config._get_config("./build/config-default.json")
+        d_config = prepare_config._get_config("./test/conf/config-default.json")
         assert d_config is not None, "Could not load config"
 
         l_config = prepare_config._prepare_config_for_ingest(d_config)
