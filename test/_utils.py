@@ -39,7 +39,17 @@ TEST_CONFIG_FILE_NAME = "./test/conf/config-download.json"
 
 
 def _pickle_all(session: snowpark.Session, pickles: dict, force: bool = False):
-    """Pickle all tables provided in the pickles dictionary if necessary or forced"""
+    """
+    Pickle all tables provided in the pickles dictionary if necessary or forced.
+
+    Args:
+        session (snowpark.Session): The Snowflake session used to access tables.
+        pickles (dict): A dictionary mapping table names to pickle file names.
+        force (bool, optional): If True, force pickling even if not necessary. Defaults to False.
+
+    Returns:
+        None
+    """
     if force or should_pickle(pickles.values()):
         for table_name, pickle_name in pickles.items():
             _pickle_data_history(session, table_name, pickle_name)
