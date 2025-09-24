@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Dynatrace Snowflake Observability Agent 0.9.2
 
-Released on October 18, 2025
+Upcoming release (planned for October 18, 2025)
 
 ### Plugins Updated in 0.9.2
 
