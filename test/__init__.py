@@ -23,13 +23,13 @@
 #
 import json
 import os
-from typing import Any, Dict
+from typing import Any, Dict, List
 
-from dtagent.agent import DynatraceSnowAgent
-from dtagent.config import Configuration
 from snowflake import snowpark
 
 from _snowflake import read_secret
+from dtagent.agent import DynatraceSnowAgent
+from dtagent.config import Configuration
 
 read_secret(
     secret_name="dtagent_token",
@@ -80,6 +80,7 @@ class TestConfiguration(Configuration):
 
 
 class TestDynatraceSnowAgent(DynatraceSnowAgent):
+    from unittest.mock import patch
 
     def __init__(self, session: snowpark.Session, config: Configuration) -> None:
         self._local_configuration = config
@@ -92,6 +93,29 @@ class TestDynatraceSnowAgent(DynatraceSnowAgent):
             "roles_monitoring_mode",
             ["DIRECT_ROLES", "ALL_ROLES", "ALL_PRIVILEGES"],
         )
+
+    @patch("dtagent.otel.otel_manager.CustomLoggingSession.send")
+    @patch("dtagent.otel.metrics.requests.post")
+    @patch("dtagent.otel.events.requests.post")
+    @patch("dtagent.otel.bizevents.requests.post")
+    def process(
+        self,
+        sources: List,
+        run_proc: bool = True,
+        mock_bizevents_post=None,
+        mock_events_post=None,
+        mock_metrics_post=None,
+        mock_otel_post=None,
+    ) -> Dict:
+        import test._utils as utils
+        from dtagent.otel.otel_manager import OtelManager
+
+        OtelManager.reset_current_fail_count()
+        mock_events_post.side_effect = utils.side_effect_function
+        mock_bizevents_post.side_effect = utils.side_effect_function
+        mock_metrics_post.side_effect = utils.side_effect_function
+        mock_otel_post.side_effect = utils.side_effect_function
+        return super().process(sources, run_proc)
 
 
 def _overwrite_plugin_local_config_key(test_conf: TestConfiguration, plugin_name: str, key_name: str, new_value: Any):

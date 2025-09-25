@@ -132,7 +132,7 @@
     ],
     "focus.highlightRange": "none",
     "pylint.args": [
-        "--disable=C0111,C0415,C0301,W0621", 
+        "--disable=C0111,C0415,C0301,W0621,W0150", 
         "--max-line-length=140"
     ],
     "vsicons.presets.jsonOfficial": true,

@@ -148,7 +148,8 @@ class TestConfig:
 
         c = get_config(pickle_conf)
 
-        assert c.get("otlp.http") is not None
+        assert c.get("logs.http") is not None
+        assert c.get("spans.http") is not None
         assert isinstance(c.get(otel_module="spans", key="export_timeout_millis"), int)
         assert isinstance(c.get(otel_module="spans", key="max_export_batch_size"), int)
         assert c.get("resource.attributes").get("telemetry.exporter.name") == "dynatrace.snowagent"

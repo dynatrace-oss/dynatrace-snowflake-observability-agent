@@ -250,16 +250,23 @@ def get_config(pickle_conf: str = None) -> TestConfiguration:
         with open(TEST_CONFIG_FILE_NAME, "r", encoding="utf-8") as f:
             conf = json.load(f)
     else:  # we need to create the config from scratch with dummy settings based on defaults
+        from dtagent.otel.metrics import Metrics
+        from dtagent.otel.events import Events
+        from dtagent.otel.bizevents import BizEvents
+        from dtagent.otel.logs import Logs
+        from dtagent.otel.spans import Spans
+
         dt_url = "dsoa2025.live.dynatrace.com"
         sf_name = "test.dsoa2025"
         plugins = {}
         instruments = {"dimensions": {}, "metrics": {}, "attributes": {}, "event_timestamps": {}}
         conf = {
             "dt.token": "dt0c01.XXXXXXXXXXXXXXXXXXXXXXXX.XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-            "otlp.http": f"https://{dt_url}/api/v2/otlp",
-            "metrics.http": f"https://{dt_url}/api/v2/metrics/ingest",
-            "events.http": f"https://{dt_url}/api/v2/events/ingest",
-            "bizevents.http": f"https://{dt_url}/api/v2/bizevents/ingest",
+            "logs.http": f"https://{dt_url}{Logs.ENDPOINT_PATH}",
+            "spans.http": f"https://{dt_url}{Spans.ENDPOINT_PATH}",
+            "metrics.http": f"https://{dt_url}{Metrics.ENDPOINT_PATH}",
+            "events.http": f"https://{dt_url}{Events.ENDPOINT_PATH}",
+            "bizevents.http": f"https://{dt_url}{BizEvents.ENDPOINT_PATH}",
             "resource.attributes": Configuration.RESOURCE_ATTRIBUTES
             | {
                 "service.name": sf_name,
@@ -365,13 +372,21 @@ def is_blank(value):
 
 def side_effect_function(*args, **kwargs):
     from unittest.mock import MagicMock
+    from dtagent.otel.bizevents import BizEvents
+    from dtagent.otel.events import Events
+    from dtagent.otel.logs import Logs
+    from dtagent.otel.metrics import Metrics
+    from dtagent.otel.spans import Spans
 
     mock_response = MagicMock()
 
-    if args[0].endswith("/api/v2/bizevents/ingest"):  # For BizEvents
+    if args[0].endswith(BizEvents.ENDPOINT_PATH) or args[0].endswith(Metrics.ENDPOINT_PATH):  # For BizEvents and Metrics
         mock_response.status_code = 202
 
-    if args[0].endswith("/api/v2/events/ingest"):  # For events
+    if args[0].endswith(Events.ENDPOINT_PATH):  # For events
         mock_response.status_code = 201
+
+    if args[0].endswith(Logs.ENDPOINT_PATH) or args[0].endswith(Spans.ENDPOINT_PATH):  # For logs and spans
+        mock_response.status_code = 200
 
     return mock_response

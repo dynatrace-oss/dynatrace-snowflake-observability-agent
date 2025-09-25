@@ -42,6 +42,8 @@ class Logs:
 
     from dtagent.config import Configuration  # COMPILE_REMOVE
 
+    ENDPOINT_PATH = "/api/v2/otlp/v1/logs"
+
     def __init__(self, resource: Resource, configuration: Configuration):
         self._otel_logger: Optional[logging.Logger] = None
         self._otel_logger_provider: Optional[LoggerProvider] = None
@@ -68,7 +70,7 @@ class Logs:
         self._otel_logger_provider.add_log_record_processor(
             BatchLogRecordProcessor(
                 CustomUserAgentOTLPLogExporter(
-                    endpoint=f'{self._configuration.get("otlp.http")}/v1/logs',
+                    endpoint=f'{self._configuration.get("logs.http")}',
                     headers={"Authorization": f'Api-Token {self._configuration.get("dt.token")}'},
                     session=CustomLoggingSession(),
                 )

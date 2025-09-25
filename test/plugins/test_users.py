@@ -49,16 +49,6 @@ class TestUsers:
             utils._pickle_all(session, self.PICKLES, force=True)
 
         class TestUsersPlugin(UsersPlugin):
-            @patch("dtagent.otel.events.requests.post")
-            @patch("dtagent.otel.bizevents.requests.post")
-            def process(self, run_proc: bool = True, mock_bizevents_post=None, mock_events_post=None) -> int:
-                from dtagent.otel.otel_manager import OtelManager
-
-                OtelManager.reset_current_fail_count()
-                mock_events_post.side_effect = utils.side_effect_function
-                mock_bizevents_post.side_effect = utils.side_effect_function
-                logging.debug("EXECUTING TestUsersPlugin.process()")
-                return super().process(run_proc)
 
             def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
                 return utils._get_unpickled_entries(TestUsers.PICKLES[t_data], limit=2)

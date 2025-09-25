@@ -47,16 +47,6 @@ class TestResMon:
             utils._pickle_data_history(session, self.T_DATA_WHS, self.PICKLES[self.T_DATA_WHS])
 
         class TestResourceMonitorsPlugin(ResourceMonitorsPlugin):
-            @patch("dtagent.otel.events.requests.post")
-            @patch("dtagent.otel.bizevents.requests.post")
-            def process(self, run_proc: bool = True, mock_bizevents_post=None, mock_events_post=None) -> int:
-                from dtagent.otel.otel_manager import OtelManager
-
-                OtelManager.reset_current_fail_count()
-                mock_events_post.side_effect = utils.side_effect_function
-                mock_bizevents_post.side_effect = utils.side_effect_function
-                logging.debug("EXECUTING TestResourceMonitorsPlugin.process()")
-                return super().process(run_proc)
 
             def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
                 return utils._safe_get_unpickled_entries(TestResMon.PICKLES, t_data, limit=2)

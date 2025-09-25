@@ -81,7 +81,7 @@ class OtelManager:
     @staticmethod
     def verify_communication() -> None:
         """Checks if run should be aborted. Raises RuntimeError with last known response code, if current fails exceed max allowed."""
-        if OtelManager._to_abort:
+        if OtelManager._to_abort and OtelManager.get_current_fail_count() >= OtelManager.get_max_fails():
             from dtagent import LOG
 
             error_message = f"""Too many failed attempts to send data to Dynatrace ({OtelManager.get_current_fail_count()} / {OtelManager.get_max_fails()}), aborting run. Last response:
@@ -106,7 +106,7 @@ class CustomLoggingSession(requests.Session):
         response: requests.Response = super().send(request, **kwargs)
         if response.status_code >= 300:
             OtelManager.increase_current_fail_count(response)
-            _log_warning(response, response.request.body)
+            _log_warning(response, response.request.body, source=response.url.rsplit("/", 1)[-1])
         else:
             OtelManager.set_current_fail_count(0)
         return response
