@@ -167,7 +167,13 @@ class TestConfiguration(Configuration):
         self._config = configuration
 
 
-def _merge_pickles_from_tests():
+def _merge_pickles_from_tests() -> Dict[str, str]:
+    """Merges all PICKLES dictionaries from test_*.py files in the plugins directory into a single dictionary.
+
+    Returns:
+        Dict: A dictionary containing all merged PICKLES dictionaries,
+        mapping all table names to their corresponding pickle file paths.
+    """
     import importlib
     import inspect
 
