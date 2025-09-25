@@ -99,6 +99,8 @@ class Spans:
         "SPAN_KIND_CONSUMER": SpanKind.CONSUMER,
     }
 
+    ENDPOINT_PATH = "/api/v2/otlp/v1/traces"
+
     def __init__(self, resource: Resource, configuration: Configuration):
         """Initializes tracers."""
 
@@ -132,7 +134,7 @@ class Spans:
                 self._session.headers.update(OtelManager.get_dsoa_headers())
 
         exporter = CustomUserAgentOTLPSpanExporter(
-            endpoint=f'{self._configuration.get("otlp.http")}/v1/traces',
+            endpoint=f'{self._configuration.get("spans.http")}',
             headers={"Authorization": f'Api-Token {self._configuration.get("dt.token")}'},
             session=CustomLoggingSession(),
         )

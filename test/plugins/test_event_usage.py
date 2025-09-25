@@ -22,26 +22,25 @@
 #
 #
 class TestEventUsage:
+    PICKLES = {"APP.V_EVENT_USAGE_HISTORY": "test/test_data/event_usage.pkl"}
+
     def test_event_usage(self):
-        import test._utils as utils
         import logging
-        from test import _get_session, TestDynatraceSnowAgent
+        from unittest.mock import patch
+        import test._utils as utils
+        from test import TestDynatraceSnowAgent, _get_session
+        from typing import Dict, Generator
 
         from dtagent.plugins.event_usage import EventUsagePlugin
-        from typing import Generator, Dict
-
-        T_EVENT_USAGE_HIST = "APP.V_EVENT_USAGE_HISTORY"
-        PICKLE_NAME = "test/test_data/event_usage.pkl"
 
         # ======================================================================
 
-        if utils.should_pickle([PICKLE_NAME]):
-            utils._pickle_data_history(_get_session(), T_EVENT_USAGE_HIST, PICKLE_NAME)
+        utils._pickle_all(_get_session(), self.PICKLES)
 
         class TestEventUsagePlugin(EventUsagePlugin):
 
-            def _get_table_rows(self, table_name: str = None) -> Generator[Dict, None, None]:
-                return utils._get_unpickled_entries(PICKLE_NAME, limit=2)
+            def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
+                return utils._safe_get_unpickled_entries(TestEventUsage.PICKLES, t_data, limit=2)
 
         def __local_get_plugin_class(source: str):
             return TestEventUsagePlugin
@@ -53,7 +52,9 @@ class TestEventUsage:
         # ======================================================================
 
         session = _get_session()
-        utils._logging_findings(session, TestDynatraceSnowAgent(session), "test_event_usage", logging.INFO, show_detailed_logs=0)
+        utils._logging_findings(
+            session, TestDynatraceSnowAgent(session, utils.get_config()), "test_event_usage", logging.INFO, show_detailed_logs=0
+        )
 
 
 if __name__ == "__main__":

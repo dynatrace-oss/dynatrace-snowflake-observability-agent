@@ -27,7 +27,7 @@
 #
 from dtagent import AbstractDynatraceSnowAgentConnector
 from dtagent.version import VERSION
-from dtagent.util import get_now_timestamp_formatted
+from dtagent.util import get_now_timestamp_formatted, is_regular_mode
 
 ##endregion COMPILE_REMOVE
 
@@ -108,7 +108,8 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
 
             self.report_execution_status(status="STARTED", task_name=source, exec_id=exec_id)
 
-            self._session.query_tag = f"dsoa.version:{ str(VERSION) }.plugin:{ c_source.__name__ }.{ exec_id }"
+            if is_regular_mode(self._session):
+                self._session.query_tag = f"dsoa.version:{ str(VERSION) }.plugin:{ c_source.__name__ }.{ exec_id }"
 
             if inspect.isclass(c_source):
                 #
@@ -139,7 +140,8 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
         """ "wrapping up, shutting logger and tracer"""
         self._logs.shutdown_logger()
         self._spans.shutdown_tracer()
-        self._session.query_tag = None
+        if is_regular_mode(self._session):
+            self._session.query_tag = None
 
 
 def main(session: snowpark.Session, sources: List) -> dict:

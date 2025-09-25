@@ -38,7 +38,7 @@ from dtagent.otel.metrics import Metrics
 from dtagent.otel.events import Events
 from dtagent.otel.bizevents import BizEvents
 from dtagent.context import get_context_by_name
-from dtagent.util import get_now_timestamp_formatted
+from dtagent.util import get_now_timestamp_formatted, is_regular_mode
 
 ##endregion COMPILE_REMOVE
 
@@ -91,7 +91,8 @@ class AbstractDynatraceSnowAgentConnector:
         # --- initializing
         self._session = session
 
-        session.query_tag = "dsoa:" + get_now_timestamp_formatted()
+        if is_regular_mode(session):
+            session.query_tag = "dsoa:" + get_now_timestamp_formatted()
 
         self._configuration = self._get_config(session)
 
@@ -166,4 +167,6 @@ class AbstractDynatraceSnowAgentConnector:
         """wrapping up, shutting logger and tracer"""
         self._logs.shutdown_logger()
         self._spans.shutdown_tracer()
-        self._session.query_tag = None
+
+        if is_regular_mode(self._session):
+            self._session.query_tag = None

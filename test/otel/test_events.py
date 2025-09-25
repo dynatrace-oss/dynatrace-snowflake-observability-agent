@@ -21,10 +21,13 @@
 # SOFTWARE.
 #
 #
+from unittest.mock import patch
 
 from dtagent.otel.events import EventType
 from dtagent.context import get_context_by_name
 from dtagent.util import get_now_timestamp, get_now_timestamp_formatted
+from test import side_effect_function
+from test._utils import get_config
 
 
 class TestEvents:
@@ -34,7 +37,7 @@ class TestEvents:
         from test import _get_session, TestDynatraceSnowAgent
 
         cls._session = _get_session()
-        cls._dtagent = TestDynatraceSnowAgent(cls._session)
+        cls._dtagent = TestDynatraceSnowAgent(cls._session, get_config())
 
     @classmethod
     def teardown_class(cls):
@@ -47,9 +50,11 @@ class TestEvents:
         assert isinstance(t, EventType), "event type should be of EventType"
         assert str(t) == "CUSTOM_ALERT", "event type {t} should render in capital letters"
 
-    def test_send_events_directly(self):
+    @patch("dtagent.otel.events.requests.post")
+    def test_send_events_directly(self, mock_events_post):
         import time
 
+        mock_events_post.side_effect = side_effect_function
         events = self._dtagent._get_events()
 
         assert events.send_event(
@@ -117,9 +122,11 @@ class TestEvents:
 
         assert events.flush_events()
 
-    def test_send_bizevents_directly(self):
+    @patch("dtagent.otel.bizevents.requests.post")
+    def test_send_bizevents_directly(self, mock_events_post):
         import time
 
+        mock_events_post.side_effect = side_effect_function
         events = self._dtagent._get_bizevents()
 
         events_sent = events.send_events(
@@ -168,9 +175,11 @@ class TestEvents:
 
         assert events_sent == 5
 
-    def test_send_results_as_events(self):
+    @patch("dtagent.otel.events.requests.post")
+    def test_send_results_as_events(self, mock_events_post):
         from test import _utils
 
+        mock_events_post.side_effect = side_effect_function
         events = self._dtagent._get_events()
 
         PICKLE_NAME = "test/test_data/data_volume.pkl"
@@ -184,9 +193,11 @@ class TestEvents:
 
         assert events.flush_events()
 
-    def test_send_results_as_bizevents(self):
+    @patch("dtagent.otel.bizevents.requests.post")
+    def test_send_results_as_bizevents(self, mock_events_post):
         from test import _utils
 
+        mock_events_post.side_effect = side_effect_function
         bizevents = self._dtagent._get_bizevents()
 
         PICKLE_NAME = "test/test_data/data_volume.pkl"
@@ -201,7 +212,9 @@ class TestEvents:
 
         assert events_sent == 2
 
-    def test_dtagent_bizevents(self):
+    @patch("dtagent.otel.bizevents.requests.post")
+    def test_dtagent_bizevents(self, mock_events_post):
+        mock_events_post.side_effect = side_effect_function
         bizevents = self._dtagent._get_bizevents()
 
         cnt = bizevents.report_via_api(

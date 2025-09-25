@@ -53,7 +53,8 @@ class Configuration:
 
         {
             'dt.token': YOUR_TOKEN,
-            'otlp.http':    'https://DYNATRACE_TENANT_ADDRESS/api/v2/otlp',
+            'logs.http':    'https://DYNATRACE_TENANT_ADDRESS/api/v2/otlp/v1/logs',
+            'spans.http':    'https://DYNATRACE_TENANT_ADDRESS/api/v2/otlp/v1/traces',
             'metrics.http': 'https://DYNATRACE_TENANT_ADDRESS/api/v2/metrics/ingest',
             'events.http': 'https://DYNATRACE_TENANT_ADDRESS/api/v2/events/ingest',
             'bizevents.http': 'https://DYNATRACE_TENANT_ADDRESS/api/v2/bizevents/ingest',
@@ -82,6 +83,11 @@ class Configuration:
             }
         }
         """
+        from dtagent.otel.metrics import Metrics  # COMPILE_REMOVE
+        from dtagent.otel.events import Events  # COMPILE_REMOVE
+        from dtagent.otel.bizevents import BizEvents  # COMPILE_REMOVE
+        from dtagent.otel.logs import Logs  # COMPILE_REMOVE
+        from dtagent.otel.spans import Spans  # COMPILE_REMOVE
 
         def __rewrite_with_types(config_df: dict) -> dict:
             """
@@ -159,10 +165,11 @@ class Configuration:
 
         self._config = {
             "dt.token": os.environ.get("DTAGENT_TOKEN", _snowflake.get_generic_secret_string("dtagent_token")),
-            "otlp.http": f"https://{config_dict['core.dynatrace_tenant_address']}/api/v2/otlp",
-            "metrics.http": f"https://{config_dict['core.dynatrace_tenant_address']}/api/v2/metrics/ingest",
-            "events.http": f"https://{config_dict['core.dynatrace_tenant_address']}/api/v2/events/ingest",
-            "bizevents.http": f"https://{config_dict['core.dynatrace_tenant_address']}/api/v2/bizevents/ingest",
+            "logs.http": f"https://{config_dict['core.dynatrace_tenant_address']}{Logs.ENDPOINT_PATH}",
+            "spans.http": f"https://{config_dict['core.dynatrace_tenant_address']}{Spans.ENDPOINT_PATH}",
+            "metrics.http": f"https://{config_dict['core.dynatrace_tenant_address']}{Metrics.ENDPOINT_PATH}",
+            "events.http": f"https://{config_dict['core.dynatrace_tenant_address']}{Events.ENDPOINT_PATH}",
+            "bizevents.http": f"https://{config_dict['core.dynatrace_tenant_address']}{BizEvents.ENDPOINT_PATH}",
             "resource.attributes": Configuration.RESOURCE_ATTRIBUTES
             | {
                 "service.name": _get_service_name(config_dict),

@@ -22,28 +22,24 @@
 #
 #
 class TestLoginHist:
+    PICKLES = {"APP.V_LOGIN_HISTORY": "test/test_data/login_history.pkl", "APP.V_SESSIONS": "test/test_data/sessions.pkl"}
+
     def test_login_hist(self):
         import logging
+        from unittest.mock import patch
         from typing import Dict, Generator
         import test._utils as utils
         from test import TestDynatraceSnowAgent, _get_session
         from dtagent.plugins.login_history import LoginHistoryPlugin
 
-        T_DATA_LOGINH = "APP.V_LOGIN_HISTORY"
-        T_DATA_SESSIONS = "APP.V_SESSIONS"
-        pkl_dict = {T_DATA_LOGINH: "test/test_data/login_history.pkl", T_DATA_SESSIONS: "test/test_data/sessions.pkl"}
-
         # ======================================================================
 
-        if utils.should_pickle(list(pkl_dict.values())):
-            session = _get_session()
-            utils._pickle_data_history(session, T_DATA_LOGINH, pkl_dict[T_DATA_LOGINH])
-            utils._pickle_data_history(session, T_DATA_SESSIONS, pkl_dict[T_DATA_SESSIONS])
+        utils._pickle_all(_get_session(), self.PICKLES)
 
         class TestLoginHistoryPlugin(LoginHistoryPlugin):
 
-            def _get_table_rows(self, table_name: str = None) -> Generator[Dict, None, None]:
-                return utils._get_unpickled_entries(pkl_dict[table_name], limit=2)
+            def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
+                return utils._safe_get_unpickled_entries(TestLoginHist.PICKLES, t_data, limit=2)
 
         def __local_get_plugin_class(source: str):
             return TestLoginHistoryPlugin
@@ -55,7 +51,9 @@ class TestLoginHist:
         # ======================================================================
         session = _get_session()
 
-        utils._logging_findings(session, TestDynatraceSnowAgent(session), "test_login_history", logging.INFO, show_detailed_logs=0)
+        utils._logging_findings(
+            session, TestDynatraceSnowAgent(session, utils.get_config()), "test_login_history", logging.INFO, show_detailed_logs=0
+        )
 
 
 if __name__ == "__main__":
