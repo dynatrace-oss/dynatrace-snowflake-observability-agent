@@ -56,6 +56,11 @@ class OtelManager:
         return OtelManager._consecutive_fail_count
 
     @staticmethod
+    def reset_current_fail_count():
+        """Resets current API ingest fail count to 0"""
+        OtelManager._consecutive_fail_count = 0
+
+    @staticmethod
     def increase_current_fail_count(last_response: requests.Response, increase_by: int = 1) -> None:
         """
         Increases run time API fail count by specified number (default: 1).
@@ -76,10 +81,10 @@ class OtelManager:
     @staticmethod
     def verify_communication() -> None:
         """Checks if run should be aborted. Raises RuntimeError with last known response code, if current fails exceed max allowed."""
-        if OtelManager._to_abort:
+        if OtelManager._to_abort and OtelManager.get_current_fail_count() >= OtelManager.get_max_fails():
             from dtagent import LOG
 
-            error_message = f"""Too many failed attempts to send data to Dynatrace, aborting run. Last response:
+            error_message = f"""Too many failed attempts to send data to Dynatrace ({OtelManager.get_current_fail_count()} / {OtelManager.get_max_fails()}), aborting run. Last response:
                                 error code: {OtelManager._last_response.status_code},
                                 reason: {OtelManager._last_response.reason},
                                 response: {OtelManager._last_response.text}"""
@@ -101,7 +106,7 @@ class CustomLoggingSession(requests.Session):
         response: requests.Response = super().send(request, **kwargs)
         if response.status_code >= 300:
             OtelManager.increase_current_fail_count(response)
-            _log_warning(response, response.request.body)
+            _log_warning(response, response.request.body, source=response.url.rsplit("/", 1)[-1])
         else:
             OtelManager.set_current_fail_count(0)
         return response

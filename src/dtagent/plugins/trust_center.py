@@ -81,7 +81,7 @@ class TrustCenterPlugin(Plugin):
         """
         Processes data for trust center plugin.
         Returns
-            processed_entries_cnt [int]: number of entries reported from APP.V_TRUST_CENTER,
+            processed_entries_cnt [int]: number of entries reported from APP.V_TRUST_CENTER_* views.,
         """
 
         run_id = str(uuid.uuid4().hex)

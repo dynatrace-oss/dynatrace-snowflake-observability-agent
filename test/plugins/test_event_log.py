@@ -22,42 +22,31 @@
 #
 #
 class TestEventLog:
+    PICKLES = {
+        "APP.V_EVENT_LOG": "test/test_data/event_log.pkl",
+        "APP.V_EVENT_LOG_METRICS_INSTRUMENTED": "test/test_data/event_log_metrics.pkl",
+        "APP.V_EVENT_LOG_SPANS_INSTRUMENTED": "test/test_data/event_log_spans.pkl",
+    }
+
     def test_event_log(self):
         import logging
+        from unittest.mock import patch
+        import test._utils as utils
+        from test import TestDynatraceSnowAgent, _get_session
         from typing import Dict, Generator
 
-        from test import _get_session, TestDynatraceSnowAgent
-
         from dtagent.plugins.event_log import EventLogPlugin
-        import test._utils as utils
 
-        PICKLE_NAME = "test/test_data/event_log.pkl"
-        PICKLE_NAME_METRICS = "test/test_data/event_log_metrics.pkl"
-        PICKLE_NAME_SPANS = "test/test_data/event_log_spans.pkl"
-
-        T_DATA = "APP.V_EVENT_LOG"
-        T_DATA_METRICS = "APP.V_EVENT_LOG_METRICS_INSTRUMENTED"
-        T_DATA_SPANS = "APP.V_EVENT_LOG_SPANS_INSTRUMENTED"
-
-        pkl_dict = {T_DATA: PICKLE_NAME, T_DATA_METRICS: PICKLE_NAME_METRICS, T_DATA_SPANS: PICKLE_NAME_SPANS}
         # ======================================================================
 
-        if utils.should_pickle([PICKLE_NAME, PICKLE_NAME_METRICS, PICKLE_NAME_SPANS]):
-            utils._pickle_data_history(_get_session(), T_DATA, PICKLE_NAME)
-            utils._pickle_data_history(_get_session(), T_DATA_METRICS, PICKLE_NAME_METRICS)
-            utils._pickle_data_history(_get_session(), T_DATA_SPANS, PICKLE_NAME_SPANS)
+        utils._pickle_all(_get_session(), self.PICKLES)
 
         class TestEventLogPlugin(EventLogPlugin):
-
             def _get_events(self) -> Generator[Dict, None, None]:
-                return utils._get_unpickled_entries(PICKLE_NAME, limit=2)
+                return self._get_table_rows("APP.V_EVENT_LOG")
 
-            def _get_table_rows(self, table_name: str = None) -> Generator[Dict, None, None]:
-                return utils._get_unpickled_entries(pkl_dict[table_name], limit=2)
-
-            def process(self, run_proc: bool = True) -> int:
-                logging.debug("EXECUTING TestEventLogPlugin.process()")
-                return super().process(run_proc)
+            def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
+                return utils._safe_get_unpickled_entries(TestEventLog.PICKLES, t_data, limit=2)
 
         def __local_get_plugin_class(source: str):
             return TestEventLogPlugin
@@ -69,7 +58,9 @@ class TestEventLog:
         # ======================================================================
 
         session = _get_session()
-        utils._logging_findings(session, TestDynatraceSnowAgent(session), "test_event_log", logging.INFO, show_detailed_logs=0)
+        utils._logging_findings(
+            session, TestDynatraceSnowAgent(session, utils.get_config()), "test_event_log", logging.INFO, show_detailed_logs=0
+        )
 
 
 if __name__ == "__main__":

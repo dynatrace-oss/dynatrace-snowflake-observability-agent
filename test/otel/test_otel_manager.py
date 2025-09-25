@@ -24,7 +24,7 @@
 
 import pytest
 from dtagent.otel.otel_manager import OtelManager
-from test._utils import LocalTelemetrySender, read_clean_json_from_file
+from test._utils import LocalTelemetrySender, get_config, read_clean_json_from_file
 from test import _get_session
 import os
 
@@ -42,10 +42,12 @@ class TestOtelManager:
             structured_test_data = read_clean_json_from_file("test/test_data/telemetry_structured.json")
 
             session = _get_session()
-            sender = LocalTelemetrySender(session, {"auto_mode": False, "logs": False, "events": True, "bizevents": True, "metrics": True})
+            sender = LocalTelemetrySender(
+                session, {"auto_mode": False, "logs": False, "events": True, "bizevents": True, "metrics": True}, config=get_config()
+            )
             OtelManager.set_max_fail_count(max_fails_allowed)
 
-            with pytest.raises(RuntimeError, match="Too many failed attempts to send data to Dynatrace, aborting run."):
+            with pytest.raises(RuntimeError, match="Too many failed attempts to send data to Dynatrace \\(\\d+ / \\d+\\), aborting run"):
                 i = 0
                 while i < max_fails_allowed or max_fails_allowed <= OtelManager.get_current_fail_count():
                     sender.send_data(structured_test_data[0])

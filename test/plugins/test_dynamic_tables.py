@@ -22,36 +22,29 @@
 #
 #
 class TestDynamicTables:
+    PICKLES = {
+        "APP.V_DYNAMIC_TABLES_INSTRUMENTED": "test/test_data/dynamic_tables.pkl",
+        "APP.V_DYNAMIC_TABLE_REFRESH_HISTORY_INSTRUMENTED": "test/test_data/dynamic_table_refresh_history.pkl",
+        "APP.V_DYNAMIC_TABLE_GRAPH_HISTORY_INSTRUMENTED": "test/test_data/dynamic_table_graph_history.pkl",
+    }
+
     def test_dynamic_tables(self):
         import logging
+        from unittest.mock import patch
 
         from typing import Dict, Generator
         from dtagent.plugins.dynamic_tables import DynamicTablesPlugin
         import test._utils as utils
         from test import TestDynatraceSnowAgent, _get_session
 
-        T_DYNAMIC_TABLES = "APP.V_DYNAMIC_TABLES_INSTRUMENTED"
-        T_DYNAMIC_TABLE_REFRESH_HISTORY = "APP.V_DYNAMIC_TABLE_REFRESH_HISTORY_INSTRUMENTED"
-        T_DYNAMIC_TABLE_GRAPH_HISTORY = "APP.V_DYNAMIC_TABLE_GRAPH_HISTORY_INSTRUMENTED"
-
-        pkl_dict = {
-            T_DYNAMIC_TABLES: "test/test_data/dynamic_tables.pkl",
-            T_DYNAMIC_TABLE_REFRESH_HISTORY: "test/test_data/dynamic_table_refresh_history.pkl",
-            T_DYNAMIC_TABLE_GRAPH_HISTORY: "test/test_data/dynamic_table_graph_history.pkl",
-        }
-
         # ======================================================================
 
-        if utils.should_pickle(list(pkl_dict.values())):
-            session = _get_session()
-            utils._pickle_data_history(session, T_DYNAMIC_TABLES, pkl_dict[T_DYNAMIC_TABLES])
-            utils._pickle_data_history(session, T_DYNAMIC_TABLE_REFRESH_HISTORY, pkl_dict[T_DYNAMIC_TABLE_REFRESH_HISTORY])
-            utils._pickle_data_history(session, T_DYNAMIC_TABLE_GRAPH_HISTORY, pkl_dict[T_DYNAMIC_TABLE_GRAPH_HISTORY])
+        utils._pickle_all(_get_session(), self.PICKLES)
 
         class TestDynamicTablesPlugin(DynamicTablesPlugin):
 
-            def _get_table_rows(self, table_name: str = None) -> Generator[Dict, None, None]:
-                return utils._get_unpickled_entries(pkl_dict[table_name], limit=2)
+            def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
+                return utils._safe_get_unpickled_entries(TestDynamicTables.PICKLES, t_data, limit=2)
 
         def __local_get_plugin_class(source: str):
             return TestDynamicTablesPlugin
@@ -63,7 +56,9 @@ class TestDynamicTables:
         # ======================================================================
         session = _get_session()
 
-        utils._logging_findings(session, TestDynatraceSnowAgent(session), "test_dynamic_tables", logging.DEBUG, show_detailed_logs=1)
+        utils._logging_findings(
+            session, TestDynatraceSnowAgent(session, utils.get_config()), "test_dynamic_tables", logging.DEBUG, show_detailed_logs=1
+        )
 
 
 if __name__ == "__main__":

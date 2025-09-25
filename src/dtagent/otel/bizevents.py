@@ -49,6 +49,8 @@ class BizEvents:
     from dtagent.config import Configuration  # COMPILE_REMOVE
     from dtagent.otel.instruments import Instruments  # COMPILE_REMOVE
 
+    ENDPOINT_PATH = "/api/v2/bizevents/ingest"
+
     def __init__(self, configuration: Configuration):
         """Initializing payload cache and fields from configuration."""
         self.PAYLOAD_CACHE: List[Dict[str, Any]] = []

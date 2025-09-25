@@ -25,12 +25,13 @@
 #
 #
 
+import datetime
+import json
 import os
 import re
-import json
-import datetime
-from typing import Any, Dict, List, Optional, Union
 from enum import Enum
+from typing import Any, Dict, List, Optional, Union
+
 import pandas as pd
 
 ##endregion COMPILE_REMOVE
@@ -386,6 +387,11 @@ def get_now_timestamp() -> datetime.datetime:
 def is_select_for_table(table_name_or_query: str) -> bool:
     """Returns True if given table name is in fact a SELECT statement or a SHOW ... ->> SELECT ... statement"""
     return P_SELECT_QUERY.match(table_name_or_query) is not None
+
+
+def is_regular_mode(session) -> bool:
+    """Checks if we are running in regular mode, i.e., not local testing mode"""
+    return session.connection.account is not None
 
 
 ##endregion

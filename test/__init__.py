@@ -23,12 +23,13 @@
 #
 import json
 import os
-from typing import Any, Dict
-from dtagent.agent import DynatraceSnowAgent
-from dtagent.config import Configuration
+from typing import Any, Dict, List
+
 from snowflake import snowpark
 
 from _snowflake import read_secret
+from dtagent.agent import DynatraceSnowAgent
+from dtagent.config import Configuration
 
 read_secret(
     secret_name="dtagent_token",
@@ -38,7 +39,7 @@ read_secret(
 )
 
 
-def _get_creds() -> Dict:
+def _get_credentials() -> Dict:
     """
     {
         "account": "<your snowflake account>",
@@ -51,36 +52,21 @@ def _get_creds() -> Dict:
     }
     """
     credentials = {}
-    creds_path = "test/credentials.json"
-    if os.path.isfile(creds_path):
-        with open(creds_path, "r", encoding="utf-8") as f:
+    credentials_path = "test/credentials.json"
+    if os.path.isfile(credentials_path):
+        with open(credentials_path, "r", encoding="utf-8") as f:
             credentials = json.loads(f.read())
-    else:
-        basic_creds_file = ".ci/test-creds.json"
-        # this distinction is made to avoid loading files with tokens to jenkins pipeline, when running script locally it is recommended to create apropriate credentials file
-        with open(basic_creds_file, "r", encoding="utf-8") as basic_creds:
-            credentials = json.loads(basic_creds.read())
-
-        credentials["account"] = os.environ.get("SNOWFLAKE_ACC_NAME")
-        credentials["user"] = os.environ.get("SNOWFLAKE_USER_NAME")
-        credentials["password"] = os.environ.get("SNOWFLAKE_USER_PASSWORD")
-
-        tag = os.environ.get("TEST_TAG", None)
-        if tag is not None:
-            for key in ["role", "warehouse", "database"]:
-                underscore_pos = credentials[key].find("_")
-                credentials[key] = credentials[key][: underscore_pos + 1] + tag + "_" + credentials[key][underscore_pos + 1 :]
-
-    return credentials
+    return credentials or {"local_testing": True}
 
 
 def _get_session() -> snowpark.Session:
     # Import the Session class from the snowflake.snowpark package
     from snowflake.snowpark import Session
 
-    creds = _get_creds()
-    session = Session.builder.configs(creds).create()
-    session.use_warehouse(creds.get("warehouse"))
+    credentials = _get_credentials()
+    session = Session.builder.configs(credentials).create()
+    if "warehouse" in credentials:
+        session.use_warehouse(credentials["warehouse"])
 
     return session
 
@@ -94,17 +80,66 @@ class TestConfiguration(Configuration):
 
 
 class TestDynatraceSnowAgent(DynatraceSnowAgent):
+    from unittest.mock import patch
+
+    def __init__(self, session: snowpark.Session, config: Configuration) -> None:
+        self._local_configuration = config
+        super().__init__(session)
 
     def _get_config(self, session: snowpark.Session) -> Configuration:
         return _overwrite_plugin_local_config_key(
-            TestConfiguration(session),
+            self._local_configuration,
             "users",
             "roles_monitoring_mode",
             ["DIRECT_ROLES", "ALL_ROLES", "ALL_PRIVILEGES"],
         )
+
+    @patch("dtagent.otel.otel_manager.CustomLoggingSession.send")
+    @patch("dtagent.otel.metrics.requests.post")
+    @patch("dtagent.otel.events.requests.post")
+    @patch("dtagent.otel.bizevents.requests.post")
+    def process(
+        self,
+        sources: List,
+        run_proc: bool = True,
+        mock_bizevents_post=None,
+        mock_events_post=None,
+        mock_metrics_post=None,
+        mock_otel_post=None,
+    ) -> Dict:
+        from dtagent.otel.otel_manager import OtelManager
+
+        OtelManager.reset_current_fail_count()
+        mock_events_post.side_effect = side_effect_function
+        mock_bizevents_post.side_effect = side_effect_function
+        mock_metrics_post.side_effect = side_effect_function
+        mock_otel_post.side_effect = side_effect_function
+        return super().process(sources, run_proc)
 
 
 def _overwrite_plugin_local_config_key(test_conf: TestConfiguration, plugin_name: str, key_name: str, new_value: Any):
     # added to make sure we always run tests for each mode in users plugin
     test_conf._config["plugins"][plugin_name][key_name] = new_value
     return test_conf
+
+
+def side_effect_function(*args, **kwargs):
+    from unittest.mock import MagicMock
+    from dtagent.otel.bizevents import BizEvents
+    from dtagent.otel.events import Events
+    from dtagent.otel.logs import Logs
+    from dtagent.otel.metrics import Metrics
+    from dtagent.otel.spans import Spans
+
+    mock_response = MagicMock()
+
+    if args[0].endswith(BizEvents.ENDPOINT_PATH) or args[0].endswith(Metrics.ENDPOINT_PATH):  # For BizEvents and Metrics
+        mock_response.status_code = 202
+
+    if args[0].endswith(Events.ENDPOINT_PATH):  # For events
+        mock_response.status_code = 201
+
+    if args[0].endswith(Logs.ENDPOINT_PATH) or args[0].endswith(Spans.ENDPOINT_PATH):  # For logs and spans
+        mock_response.status_code = 200
+
+    return mock_response

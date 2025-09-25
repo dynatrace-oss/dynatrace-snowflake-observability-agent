@@ -25,6 +25,7 @@
 #
 #
 import sys
+import requests
 
 from typing import Dict, Union, Optional
 from dtagent.otel.otel_manager import OtelManager
@@ -42,6 +43,8 @@ class Metrics:
 
     from dtagent.config import Configuration  # COMPILE_REMOVE
     from dtagent.otel.instruments import Instruments  # COMPILE_REMOVE
+
+    ENDPOINT_PATH = "/api/v2/metrics/ingest"
 
     def __init__(self, instruments: Instruments, configuration: Configuration):
         self.PAYLOAD_CACHE: str = ""
@@ -66,8 +69,6 @@ class Metrics:
             """
             Sends given payload to Dynatrace
             """
-            import requests
-
             headers = {
                 "Authorization": f'Api-Token {self._configuration.get("dt.token")}',
                 "Content-Type": "text/plain",
