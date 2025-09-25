@@ -368,25 +368,3 @@ def lowercase_keys(data: Any) -> Any:
 
 def is_blank(value):
     return value is None or value == ""
-
-
-def side_effect_function(*args, **kwargs):
-    from unittest.mock import MagicMock
-    from dtagent.otel.bizevents import BizEvents
-    from dtagent.otel.events import Events
-    from dtagent.otel.logs import Logs
-    from dtagent.otel.metrics import Metrics
-    from dtagent.otel.spans import Spans
-
-    mock_response = MagicMock()
-
-    if args[0].endswith(BizEvents.ENDPOINT_PATH) or args[0].endswith(Metrics.ENDPOINT_PATH):  # For BizEvents and Metrics
-        mock_response.status_code = 202
-
-    if args[0].endswith(Events.ENDPOINT_PATH):  # For events
-        mock_response.status_code = 201
-
-    if args[0].endswith(Logs.ENDPOINT_PATH) or args[0].endswith(Spans.ENDPOINT_PATH):  # For logs and spans
-        mock_response.status_code = 200
-
-    return mock_response

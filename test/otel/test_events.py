@@ -26,7 +26,8 @@ from unittest.mock import patch
 from dtagent.otel.events import EventType
 from dtagent.context import get_context_by_name
 from dtagent.util import get_now_timestamp, get_now_timestamp_formatted
-from test._utils import side_effect_function, get_config
+from test import side_effect_function
+from test._utils import get_config
 
 
 class TestEvents:

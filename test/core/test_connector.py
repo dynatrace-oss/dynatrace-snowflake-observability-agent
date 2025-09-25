@@ -28,8 +28,8 @@ from unittest.mock import patch
 
 from dtagent.util import get_now_timestamp, get_now_timestamp_formatted
 from test import _get_credentials, _get_session
-from test import _utils
-from test._utils import LocalTelemetrySender, read_clean_json_from_file, telemetry_test_sender, side_effect_function
+from test import _utils, side_effect_function
+from test._utils import LocalTelemetrySender, read_clean_json_from_file, telemetry_test_sender
 from snowflake import snowpark
 
 LOG = logging.getLogger("DTAGENT_TEST")
@@ -62,12 +62,12 @@ class TestTelemetrySender:
         import random
 
         rows_cnt = random.randint(10, 20)
-        mock_events_post.side_effect = _utils.side_effect_function
-        mock_bizevents_post.side_effect = _utils.side_effect_function
-        mock_metrics_post.side_effect = _utils.side_effect_function
-        mock_otel_post.side_effect = _utils.side_effect_function
-        mock_metrics_post.side_effect = _utils.side_effect_function
-        mock_otel_post.side_effect = _utils.side_effect_function
+        mock_events_post.side_effect = side_effect_function
+        mock_bizevents_post.side_effect = side_effect_function
+        mock_metrics_post.side_effect = side_effect_function
+        mock_otel_post.side_effect = side_effect_function
+        mock_metrics_post.side_effect = side_effect_function
+        mock_otel_post.side_effect = side_effect_function
 
         session = _get_session()
         results = telemetry_test_sender(
@@ -91,10 +91,10 @@ class TestTelemetrySender:
         import random
 
         rows_cnt = random.randint(410, 500)
-        mock_events_post.side_effect = _utils.side_effect_function
-        mock_bizevents_post.side_effect = _utils.side_effect_function
-        mock_metrics_post.side_effect = _utils.side_effect_function
-        mock_otel_post.side_effect = _utils.side_effect_function
+        mock_events_post.side_effect = side_effect_function
+        mock_bizevents_post.side_effect = side_effect_function
+        mock_metrics_post.side_effect = side_effect_function
+        mock_otel_post.side_effect = side_effect_function
 
         LOG.debug("We will send %s rows as BizEvents", rows_cnt)
 
@@ -119,10 +119,10 @@ class TestTelemetrySender:
     @patch("dtagent.otel.events.requests.post")
     @patch("dtagent.otel.bizevents.requests.post")
     def test_dtagent_bizevents(self, mock_bizevents_post, mock_events_post, mock_metrics_post, mock_otel_post):
-        mock_events_post.side_effect = _utils.side_effect_function
-        mock_bizevents_post.side_effect = _utils.side_effect_function
-        mock_metrics_post.side_effect = _utils.side_effect_function
-        mock_otel_post.side_effect = _utils.side_effect_function
+        mock_events_post.side_effect = side_effect_function
+        mock_bizevents_post.side_effect = side_effect_function
+        mock_metrics_post.side_effect = side_effect_function
+        mock_otel_post.side_effect = side_effect_function
         session = _get_session()
 
         sender = LocalTelemetrySender(
@@ -149,10 +149,10 @@ class TestTelemetrySender:
     @patch("dtagent.otel.events.requests.post")
     @patch("dtagent.otel.bizevents.requests.post")
     def test_automode(self, mock_bizevents_post, mock_events_post, mock_metrics_post, mock_otel_post):
-        mock_events_post.side_effect = _utils.side_effect_function
-        mock_bizevents_post.side_effect = _utils.side_effect_function
-        mock_metrics_post.side_effect = _utils.side_effect_function
-        mock_otel_post.side_effect = _utils.side_effect_function
+        mock_events_post.side_effect = side_effect_function
+        mock_bizevents_post.side_effect = side_effect_function
+        mock_metrics_post.side_effect = side_effect_function
+        mock_otel_post.side_effect = side_effect_function
         session = _get_session()
 
         structured_test_data = read_clean_json_from_file("test/test_data/telemetry_structured.json")

@@ -107,14 +107,13 @@ class TestDynatraceSnowAgent(DynatraceSnowAgent):
         mock_metrics_post=None,
         mock_otel_post=None,
     ) -> Dict:
-        import test._utils as utils
         from dtagent.otel.otel_manager import OtelManager
 
         OtelManager.reset_current_fail_count()
-        mock_events_post.side_effect = utils.side_effect_function
-        mock_bizevents_post.side_effect = utils.side_effect_function
-        mock_metrics_post.side_effect = utils.side_effect_function
-        mock_otel_post.side_effect = utils.side_effect_function
+        mock_events_post.side_effect = side_effect_function
+        mock_bizevents_post.side_effect = side_effect_function
+        mock_metrics_post.side_effect = side_effect_function
+        mock_otel_post.side_effect = side_effect_function
         return super().process(sources, run_proc)
 
 
@@ -122,3 +121,25 @@ def _overwrite_plugin_local_config_key(test_conf: TestConfiguration, plugin_name
     # added to make sure we always run tests for each mode in users plugin
     test_conf._config["plugins"][plugin_name][key_name] = new_value
     return test_conf
+
+
+def side_effect_function(*args, **kwargs):
+    from unittest.mock import MagicMock
+    from dtagent.otel.bizevents import BizEvents
+    from dtagent.otel.events import Events
+    from dtagent.otel.logs import Logs
+    from dtagent.otel.metrics import Metrics
+    from dtagent.otel.spans import Spans
+
+    mock_response = MagicMock()
+
+    if args[0].endswith(BizEvents.ENDPOINT_PATH) or args[0].endswith(Metrics.ENDPOINT_PATH):  # For BizEvents and Metrics
+        mock_response.status_code = 202
+
+    if args[0].endswith(Events.ENDPOINT_PATH):  # For events
+        mock_response.status_code = 201
+
+    if args[0].endswith(Logs.ENDPOINT_PATH) or args[0].endswith(Spans.ENDPOINT_PATH):  # For logs and spans
+        mock_response.status_code = 200
+
+    return mock_response

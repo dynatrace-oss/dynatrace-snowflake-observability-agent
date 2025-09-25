@@ -165,7 +165,7 @@ class Plugin(ABC):
         report_status: bool = False,
         f_log_events: Optional[Callable] = None,
         f_span_events: Optional[Callable] = None,
-    ):
+    ):  # pylint: disable=R0913
         """
         Performs span processing on entire row
         Args:
@@ -351,7 +351,7 @@ class Plugin(ABC):
             EventType.CUSTOM_INFO,
         )
 
-    def _log_entries(
+    def _log_entries(  # pylint: disable=R0913
         self,
         f_entry_generator: Callable[[Dict, None], None],
         context_name: str,
