@@ -101,10 +101,20 @@ def _logging_findings(
 
 
 def _safe_get_unpickled_entries(pickles: dict, table_name: str, *args, **kwargs) -> Generator[Dict, None, None]:
-    """Safely get unpickled entries for the given table name from the pickles dictionary
+    """
+    Safely get unpickled entries for the given table name from the pickles dictionary.
+
+    Args:
+        pickles (dict): Dictionary mapping table names to pickle file paths.
+        table_name (str): The name of the table to retrieve unpickled entries for.
+        *args: Additional positional arguments passed to the underlying unpickling function.
+        **kwargs: Additional keyword arguments passed to the underlying unpickling function.
+
+    Returns:
+        Generator[Dict, None, None]: A generator yielding dictionaries representing unpickled entries for the specified table.
 
     Raises:
-        ValueError: In case the table name is not found in the pickles dictionary
+        ValueError: If the table name is not found in the pickles dictionary.
     """
     if table_name not in pickles:
         raise ValueError(f"Unknown table name: {table_name}")
