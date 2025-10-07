@@ -44,6 +44,10 @@ jobs:
             VERSION_NUMBER="${VERSION_NUMBER#v}"
           else
             VERSION_NUMBER=$(grep '^VERSION' src/dtagent/version.py | cut -d '"' -f 2)
+            if [[ -z "$VERSION_NUMBER" ]]; then
+              echo "Error: Failed to extract version from src/dtagent/version.py. File may be missing or format may be incorrect."
+              exit 1
+            fi
           fi
           echo "VERSION=${VERSION_NUMBER}" >> $GITHUB_OUTPUT
 
