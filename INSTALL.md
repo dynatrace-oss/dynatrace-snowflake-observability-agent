@@ -230,4 +230,4 @@ snow connection add --connection-name snow_agent_$config_name \
                     --authenticator externalbrowser
 ```
 
-If you have any issues setting up the connection check [the SnowCli documentation](https://docs.snowflake.com/en/user-guide/snowsql)
+If you have any issues setting up the connection check [the SnowCli documentation](https://docs.snowflake.com/en/user-guide/snowsql).
