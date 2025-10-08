@@ -31,3 +31,5 @@ fetch logs
   dsoa.run.id
 }
 ```
+
+If you have any concerns about getting correct results reported by this plugin, please refer to [Root Cause Analysis: Missing Long-Running Queries](docs/debug/active-queries-faq/readme.md).
