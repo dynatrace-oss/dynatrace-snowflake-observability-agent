@@ -1,5 +1,5 @@
 """
-Parses and builds the documentation from all instruments-def.yml, info.md, config.md, and the default config files.
+Parses and builds the documentation from all instruments-def.yml, readme.md, config.md, and the default config files.
 """
 
 #
@@ -124,7 +124,7 @@ def _generate_semantics_tables(json_data: Dict, plugin_name: str, no_global_cont
 
 
 def _generate_plugins_info(dtagent_plugins_path: str) -> Tuple[str, List]:
-    """Gathers plugin info from info.md files and their default config files."""
+    """Gathers plugin info from readme.md files and their default config files."""
 
     __content = ""
     __plugins_toc = []
@@ -134,7 +134,7 @@ def _generate_plugins_info(dtagent_plugins_path: str) -> Tuple[str, List]:
         plugin_path = os.path.join(dtagent_plugins_path, plugin_folder)
         if os.path.isdir(plugin_path):
 
-            f_info_md = os.path.join(plugin_path, "info.md")
+            f_info_md = os.path.join(plugin_path, "readme.md")
             f_config_md = os.path.join(plugin_path, "config.md")
             config_file_name = f"{plugin_folder.split('.')[0]}-config.json"
             config_file_path = os.path.join(plugin_path, config_file_name)
@@ -311,8 +311,8 @@ def generate_readme_content(dtagent_conf_path: str, dtagent_plugins_path: str) -
         A tuple containing the content for: readme_full_content, readme_short_content, plugins_content, semantics_content, appendix_content
     """
 
-    # Add the content of src/dtagent.conf/info.md to README.md
-    readme_short_content = readme_full_content = _read_file(os.path.join(dtagent_conf_path, "info.md"))
+    # Add the content of src/dtagent.conf/readme.md to README.md
+    readme_short_content = readme_full_content = _read_file(os.path.join(dtagent_conf_path, "readme.md"))
     plugins_content = ""
     semantics_content = ""
     appendix_content = ""
@@ -367,6 +367,9 @@ def generate_readme_content(dtagent_conf_path: str, dtagent_plugins_path: str) -
     readme_full_content += appendix_content
 
     readme_full_content += _lower_headers_one_level(copyright_content)
+    readme_full_content = re.sub(
+        r"\]\(docs\/", "](https://github.com/dynatrace-oss/dynatrace-snowflake-observability-agent/tree/main/docs/", readme_full_content
+    )  # replace internal links to docs with absolute links to GitHub
     readme_full_content = re.sub(r"\b[A-Z_]+\.md#", "#", readme_full_content)  # removing references between .md files
 
     readme_full_content = (

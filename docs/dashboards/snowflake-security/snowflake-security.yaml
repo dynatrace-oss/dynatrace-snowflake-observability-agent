@@ -1,0 +1,1056 @@
+#
+# Copyright (c) 2025 Dynatrace Open Source
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the Software), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+#
+# DASHBOARD: Snowflake Security
+# DESCRIPTION: Snowflake Security monitoring - login issues, admin activity, trust center issues
+# OWNER: sebastian.kruk
+# PLUGINS: login_history, query_history, trust_center
+# TAGS: security
+#
+version: 19
+variables:
+  - version: 2
+    key: Environment
+    type: query
+    visible: true
+    editable: true
+    input: |-
+      fetch logs
+      | filter coalesce(dsoa.run.context, snowagent.run.context, service.namespace) == "login_history"
+      | fields deployment.environment
+      | dedup deployment.environment
+      | sort deployment.environment asc
+    multiple: true
+    defaultValue:
+      - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
+  - version: 2
+    key: Snowflake_Role_Name
+    type: query
+    visible: true
+    editable: true
+    input: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter coalesce(dsoa.run.context, snowagent.run.context, service.namespace) == "query_history"
+      | filter in(deployment.environment, array($Environment))
+      | filter in(snowflake.role.name,
+            array(splitString($Additional_ADMIN_Roles, "|"),
+              {"ACCOUNTADMIN", "SECURITYADMIN", "SYSADMIN", "USERADMIN"}
+            )
+          )
+      | fields snowflake.role.name
+      | dedup snowflake.role.name
+      | sort snowflake.role.name
+    multiple: true
+    defaultValue:
+      - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
+  - version: 2
+    key: Query_Execution_Status
+    type: query
+    visible: true
+    editable: true
+    input: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter coalesce(dsoa.run.context, snowagent.run.context, service.namespace) == "query_history"
+      | filter in(deployment.environment, array($Environment))
+      | filter in(snowflake.role.name, array($Snowflake_Role_Name))
+      | fields snowflake.query.execution_status
+      | dedup snowflake.query.execution_status
+      | sort snowflake.query.execution_status asc
+    multiple: true
+    defaultValue:
+      - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
+  - version: 2
+    key: Operation_Name
+    type: query
+    visible: true
+    editable: true
+    input: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter coalesce(dsoa.run.context, snowagent.run.context, service.namespace) == "query_history"
+      | filter in(deployment.environment, array($Environment))
+      | filter in(snowflake.role.name, array($Snowflake_Role_Name))
+      | fields db.operation.name
+      | dedup db.operation.name
+      | sort db.operation.name
+    multiple: true
+    defaultValue:
+      - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
+  - version: 2
+    key: TrustCenter_Risk_Level
+    type: query
+    visible: true
+    editable: true
+    input: |-
+      fetch logs
+      | filter db.system == "snowflake"
+          and (dsoa.run.context == "trust_center" or snowagent.run.context == "trust_center")
+          and in(deployment.environment, array($Environment))
+      | summarize risk_level = collectDistinct(record(level=vulnerability.risk.level, id=coalesce(
+        if(vulnerability.risk.level == "CRITICAL", 0),
+        if(vulnerability.risk.level == "HIGH", 1),
+        if(vulnerability.risk.level == "MEDIUM", 2),
+        if(vulnerability.risk.level == "LOW", 3),
+        4
+      )))
+      | expand risk_level
+      | sort risk_level[id]
+      | summarize risk_level = collectDistinct(risk_level[level])
+    multiple: true
+    defaultValue:
+      - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
+  - version: 2
+    key: Login_Problems
+    type: query
+    visible: true
+    editable: true
+    input: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter coalesce(dsoa.run.context, snowagent.run.context, service.namespace) == "login_history"
+      | filter isNotNull(error.code)
+      | filter in(deployment.environment, array($Environment))
+      | filter if(in("Human user", array($Logins_User_Types)), matchesValue(db.user, "*.*"))
+            or if(in("Service user", array($Logins_User_Types)), not matchesValue(db.user, "*.*"))
+      | fields status.message
+      | dedup status.message
+      | sort status.message asc
+    multiple: true
+    defaultValue:
+      - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
+  - version: 2
+    key: Logins_User_Types
+    type: query
+    visible: true
+    editable: true
+    input: data record(login_user_type = "Human user"), record(login_user_type = "Service user")
+    multiple: true
+    defaultValue:
+      - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
+  - version: 2
+    key: Exclude_SYSTEM_user
+    type: query
+    visible: true
+    editable: true
+    input: data record(sysusr = "Yes"), record(sysusr = "No")
+    multiple: false
+  - version: 2
+    key: Exclude_our_system_users
+    type: query
+    visible: false
+    editable: true
+    input: |
+      fetch logs
+        | filter db.system == "snowflake"
+            and db.user == "TERRAFORM_USER"
+        | summarize db_user = collectDistinct(db.user)
+        // | fields db_user_and_all = array("*", db_user)
+    multiple: false
+  - version: 2
+    key: Additional_ADMIN_Roles
+    type: query
+    visible: false
+    editable: true
+    input: data record(roles="DEMIGOD|DTAGENT_ADMIN")
+    multiple: false
+    defaultValue: DEMIGOD|DTAGENT_ADMIN
+tiles:
+  "2":
+    title: Top 10 users with login problems
+    type: data
+    query: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter coalesce(dsoa.run.context, snowagent.run.context, service.namespace) == "login_history"
+      | filter isNotNull(error.code)
+        // -- BEGIN: env filters
+      | filter in(deployment.environment, array($Environment))
+      | filter if(in("Human user", array($Logins_User_Types)), matchesValue(db.user, "*.*"))
+            or if(in("Service user", array($Logins_User_Types)), not matchesValue(db.user, "*.*"))
+      | filter in(status.message, array($Login_Problems))
+        // -- END: env filters| fields timestamp, db.user, deployment.environment, status.message
+        | fieldsAdd db.user=hashSha1(db.user)
+      | summarize cnt = count(), by: {
+         db.user
+      }
+      | sort cnt desc
+      | limit 10
+    visualization: categoricalBarChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        legend:
+          hidden: true
+        categoricalBarChartSettings:
+          categoryAxisLabel: db.user
+          categoryAxis:
+            - db.user
+          valueAxis:
+            - cnt
+          valueAxisLabel: cnt
+        colorPalette: fireplace
+      thresholds: []
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "3":
+    title: Top 10 client IP addresses with login problems
+    type: data
+    query: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter coalesce(dsoa.run.context, snowagent.run.context, service.namespace) == "login_history"
+      | filter isNotNull(error.code)
+        // -- BEGIN: env filters
+      | filter in(deployment.environment, array($Environment))
+      | filter if(in("Human user", array($Logins_User_Types)), matchesValue(db.user, "*.*"))
+            or if(in("Service user", array($Logins_User_Types)), not matchesValue(db.user, "*.*"))
+      | filter in(status.message, array($Login_Problems))
+      | parse `client.environment`, """JSON{
+        DATA:application
+      }(strict=false):client"""
+      | fieldsAdd client.application = coalesce(client[application], client.application.id)
+        // | filter ($client_application == "*" or client.application == $client_application)
+      | filterOut client.ip == "0.0.0.0"
+        // -- END: env filters
+      | fields timestamp, db.user, deployment.environment, client.ip=substring(client.ip, from:0, to:3)
+      | summarize cnt = count(), by: {
+          client.ip
+      }
+      | sort cnt desc
+      | limit 10
+    visualization: categoricalBarChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        legend:
+          hidden: true
+        categoricalBarChartSettings:
+          categoryAxisLabel: client.ip
+          categoryAxis:
+            - client.ip
+          valueAxis:
+            - cnt
+          valueAxisLabel: cnt
+        colorPalette: fireplace
+      thresholds: []
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "6":
+    type: markdown
+    content: '### Problems with login to Snowflake'
+    davis:
+      componentState:
+        inputData: null
+  "9":
+    type: markdown
+    content: |
+      ### Logins by people and service users by authentication type
+    davis:
+      componentState:
+        inputData: null
+  "17":
+    title: Admin roles activity over time
+    description: admin activity monitoring
+    type: data
+    query: |
+      fetch logs
+        | filter db.system == "snowflake"
+        | filter coalesce(dsoa.run.context, snowagent.run.context, service.namespace) == "query_history"
+            and in(snowflake.role.name, array($Snowflake_Role_Name))
+            and in(deployment.environment, array($Environment))
+            and in(snowflake.query.execution_status, $Query_Execution_Status)
+            and in(db.operation.name, array($Operation_Name))
+        // | filter db.sql.table=="query_history"
+        | filterOut if($Exclude_SYSTEM_user == "Yes", db.user == "SYSTEM") or in(db.user, $Exclude_our_system_users)
+        | fields db.user, snowflake.role.name, content, timestamp
+        | makeTimeseries cnt = count(), by: {
+          db.user,
+          snowflake.role.name
+        }
+        , bins: 20
+        // | sort cnt desc
+    visualization: barChart
+    visualizationSettings:
+      dataMapping:
+        displayedFields:
+          - snowflake.role.name
+          - db.user
+      chartSettings:
+        truncationMode: start
+        xAxisLabel: timeframe
+        xAxisScaling: analyzedTimeframe
+        colorPalette: blue
+        tooltip:
+          variant: shared
+          seriesDisplayMode: multi-line
+        fieldMapping:
+          leftAxisValues:
+            - cnt
+          timestamp: timeframe
+      legend:
+        ratio: 11
+      autoSelectVisualization: false
+      thresholds: []
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+    timeframe:
+      tileTimeframe:
+        from: now()-2h
+        to: now()
+      tileTimeframeEnabled: false
+  "19":
+    type: markdown
+    content: |
+      ### Admin activity monitoring
+    davis:
+      componentState:
+        inputData: null
+  "20":
+    title: Top 10 Users with admin activity
+    description: admin activity monitoring
+    type: data
+    query: |-
+      fetch logs
+        | filter db.system == "snowflake"
+        | filter coalesce(dsoa.run.context, snowagent.run.context, service.namespace) == "query_history"
+            and in(deployment.environment, array($Environment))
+            and in(snowflake.role.name, array($Snowflake_Role_Name))
+            and in(snowflake.query.execution_status, array($Query_Execution_Status))
+            and in(db.operation.name, array($Operation_Name))
+        | filterOut if($Exclude_SYSTEM_user == "Yes", db.user == "SYSTEM") or in(db.user, $Exclude_our_system_users)
+        | fields db.user, snowflake.role.name, content, timestamp
+        | summarize cnt = count(), by: {
+          db.user
+        }
+        | sort cnt desc
+        | limit 10
+    visualization: categoricalBarChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        categoricalBarChartSettings:
+          categoryAxisLabel: db.user
+          categoryAxis:
+            - db.user
+          valueAxis:
+            - cnt
+          valueAxisLabel: cnt
+        colorPalette: blue-turquoise
+      autoSelectVisualization: false
+      thresholds: []
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+    timeframe:
+      tileTimeframe:
+        from: now()-2h
+        to: now()
+      tileTimeframeEnabled: false
+  "21":
+    title: Security Violations - Table
+    type: data
+    query: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter coalesce(dsoa.run.context, snowagent.run.context, service.namespace) == "trust_center"
+          and in(deployment.environment, array($Environment))
+          and in(vulnerability.risk.level, array($TrustCenter_Risk_Level))
+      | fields timestamp, status.message, event.category, vulnerability.risk.level, snowflake.trust_center.scanner.type,
+        snowflake.trust_center.scanner.id, deployment.environment
+      | append [
+          fetch events
+          | filter db.system == "snowflake"
+          | filter coalesce(dsoa.run.context, snowagent.run.context, service.namespace) == "trust_center"
+              and in(deployment.environment, array($Environment))
+              and in(vulnerability.risk.level, array($TrustCenter_Risk_Level))
+          | fields timestamp, vulnerability.risk.level, snowflake.trust_center.scanner.id, deployment.environment
+      ]
+      | sort timestamp desc
+      | summarize {
+        last_timestamp = takeFirst(timestamp)
+      }, by: {
+        status.message,
+        event.category,
+        vulnerability.risk.level,
+        snowflake.trust_center.scanner.type,
+        snowflake.trust_center.scanner.id,
+        deployment.environment
+      }
+      | fields
+        `Scan Date`=formatTimestamp(last_timestamp, format:"yyyy-MM-dd"),
+        `Problem Descriptions`=status.message,
+        `Problem Category`=event.category,
+        `Risk Level`=vulnerability.risk.level,
+        `Scanner Type`=snowflake.trust_center.scanner.type,
+        `Scanner ID`=snowflake.trust_center.scanner.id,
+        `Environment`=deployment.environment
+    visualization: table
+    visualizationSettings:
+      table:
+        sortBy:
+          columnId: '["Scan Time"]'
+          direction: descending
+        columnWidths:
+          '["event.category"]': 265.5
+          '["status.message"]': 746
+          '["Problem Descriptions"]': 534
+        columnTypeOverrides:
+          - fields:
+              - content
+            id: 1740574981135
+            value: log-content
+      autoSelectVisualization: true
+      thresholds: []
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+    timeframe:
+      tileTimeframe:
+        from: now()-30d
+        to: now()
+      tileTimeframeEnabled: false
+  "22":
+    title: List of admin activity (limit to last 1k results)
+    description: admin activity monitoring
+    type: data
+    query: |
+      fetch logs
+        | filter db.system == "snowflake"
+        | filter coalesce(dsoa.run.context, snowagent.run.context, service.namespace) == "query_history"
+            and in(deployment.environment, array($Environment))
+            and in(snowflake.role.name, array($Snowflake_Role_Name))
+            and isNotNull(db.query.text)
+            and in(snowflake.query.execution_status, array($Query_Execution_Status))
+            and in(db.operation.name, array($Operation_Name))
+        | filterOut if($Exclude_SYSTEM_user == "Yes", db.user == "SYSTEM") or in(db.user, $Exclude_our_system_users)
+        // | filter db.sql.table=="query_history"
+        | fields db.user, snowflake.role.name, deployment.environment, db.query.text, timestamp, db.operation.name,
+            snowflake.query.execution_status
+        | sort timestamp desc
+        | limit 1000
+    visualization: table
+    visualizationSettings:
+      table:
+        columnWidths:
+          '["deployment.environment"]': 172
+        columnTypeOverrides:
+          - fields:
+              - content
+            id: 1740575161776
+            value: log-content
+      autoSelectVisualization: false
+      thresholds: []
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+    timeframe:
+      tileTimeframe:
+        from: now()-2h
+        to: now()
+      tileTimeframeEnabled: false
+  "23":
+    title: Top Role name with admin activity
+    description: admin activity monitoring
+    type: data
+    query: |-
+      fetch logs
+        | filter db.system == "snowflake"
+        | filter coalesce(dsoa.run.context, snowagent.run.context, service.namespace) == "query_history"
+            and in(deployment.environment, array($Environment))
+            and in(snowflake.role.name, array($Snowflake_Role_Name))
+            and in(snowflake.query.execution_status, array($Query_Execution_Status))
+            and in(db.operation.name, array($Operation_Name))
+        | filterOut if($Exclude_SYSTEM_user == "Yes", db.user == "SYSTEM") or in(db.user, $Exclude_our_system_users)
+        | fields db.user, snowflake.role.name, content, timestamp
+        | summarize cnt = count(), by: {
+          snowflake.role.name
+        }
+        | sort cnt desc
+        | limit 10
+    visualization: categoricalBarChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        categoricalBarChartSettings:
+          categoryAxisLabel: snowflake.role.name
+          categoryAxis:
+            - snowflake.role.name
+          valueAxis:
+            - cnt
+          valueAxisLabel: cnt
+        colorPalette: blue
+      autoSelectVisualization: false
+      thresholds: []
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+    timeframe:
+      tileTimeframe:
+        from: now()-2h
+        to: now()
+      tileTimeframeEnabled: false
+  "24":
+    type: markdown
+    content: '### Trust Center monitoring'
+    davis:
+      componentState:
+        inputData: null
+  "25":
+    title: Security Violations
+    type: data
+    query: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter coalesce(dsoa.run.context, snowagent.run.context, service.namespace) == "trust_center"
+          and in(deployment.environment, array($Environment))
+          and in(vulnerability.risk.level, array($TrustCenter_Risk_Level))
+      | fields timestamp, vulnerability.risk.level, snowflake.trust_center.scanner.id, deployment.environment
+      | fieldsAdd full_date = timestamp(getYear(timestamp), getMonth(timestamp), getDayOfMonth(timestamp), 0, 0, 0)
+      | append [
+          fetch events
+          | filter db.system == "snowflake"
+          | filter coalesce(dsoa.run.context, snowagent.run.context, service.namespace) == "trust_center"
+              and in(deployment.environment, array($Environment))
+              and in(vulnerability.risk.level, array($TrustCenter_Risk_Level))
+          | fields timestamp, vulnerability.risk.level, snowflake.trust_center.scanner.id, deployment.environment
+          | fieldsAdd full_date = timestamp(getYear(timestamp), getMonth(timestamp), getDayOfMonth(timestamp), 0, 0, 0)
+      ]
+      | makeTimeseries countDistinct(snowflake.trust_center.scanner.id), by: {
+          vulnerability.risk.level, deployment.environment
+      }
+    visualization: areaChart
+    visualizationSettings:
+      autoSelectVisualization: false
+      dataMapping:
+        displayedFields:
+          - vulnerability.risk.level
+          - deployment.environment
+      chartSettings:
+        truncationMode: middle
+        xAxisLabel: timeframe
+        xAxisScaling: analyzedTimeframe
+        seriesOverrides:
+          - seriesId:
+              - LOW
+            override:
+              color:
+                Default: 'var(--dt-colors-charts-logstatus-none-default, #2c2f3f)'
+          - seriesId:
+              - MEDIUM
+            override:
+              color:
+                Default: 'var(--dt-colors-charts-categorical-color-01-default, #134fc9)'
+        fieldMapping:
+          leftAxisValues:
+            - countDistinct(snowflake.trust_center.scanner.id)
+          timestamp: timeframe
+        gapPolicy: connect
+      legend:
+        ratio: 15
+      thresholds: []
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "26":
+    title: Distinct users by authentication type
+    type: data
+    query: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter coalesce(dsoa.run.context, snowagent.run.context, service.namespace) == "login_history"
+        // -- BEGIN: env filters
+      | filter in(deployment.environment, array($Environment))
+      | filter if(in("Human user", array($Logins_User_Types)), matchesValue(db.user, "*.*"))
+            or if(in("Service user", array($Logins_User_Types)), not matchesValue(db.user, "*.*"))
+      | filter exists(authentication.factor.first)
+      | fields db.user, authentication.factor.first
+      | summarize countDistinct(db.user), by: {
+          authentication.factor.first
+      }
+    visualization: pieChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        legend:
+          position: right
+        categoricalBarChartSettings:
+          valueAxis:
+            - countDistinct(db.user)
+          valueAxisLabel: countDistinct(db.user)
+          categoryAxis:
+            - authentication.factor.first
+          categoryAxisLabel: authentication.factor.first
+        circleChartSettings:
+          valueType: relative
+          groupingThresholdType: relative
+      legend:
+        ratio: 47
+      autoSelectVisualization: false
+      thresholds: []
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "27":
+    title: Distinct users using password
+    type: data
+    query: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter coalesce(dsoa.run.context, snowagent.run.context, service.namespace) == "login_history"
+        // -- BEGIN: env filters
+      | filter in(deployment.environment, array($Environment))
+      | filter if(in("Human user", array($Logins_User_Types)), matchesValue(db.user, "*.*"))
+            or if(in("Service user", array($Logins_User_Types)), not matchesValue(db.user, "*.*"))
+      | filter exists(authentication.factor.first)
+          and matchesValue(authentication.factor.first, "PASSWORD")
+      | fields db.user
+      | summarize countDistinct(db.user)
+    visualization: singleValue
+    visualizationSettings:
+      singleValue:
+        labelMode: none
+        label: countDistinct(db.user)
+        recordField: countDistinct(db.user)
+        prefixIcon: ""
+        trend:
+          isVisible: true
+      autoSelectVisualization: false
+      thresholds: []
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "28":
+    title: Human logins history using password - full list
+    type: data
+    query: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter coalesce(dsoa.run.context, snowagent.run.context, service.namespace) == "login_history"
+        // -- BEGIN: env filters
+      | filter in(deployment.environment, array($Environment))
+      | filter if(in("Human user", array($Logins_User_Types)), matchesValue(db.user, "*.*"))
+            or if(in("Service user", array($Logins_User_Types)), not matchesValue(db.user, "*.*"))
+      | filter exists(authentication.factor.first)
+          AND matchesValue(authentication.factor.first, "PASSWORD")
+      | summarize {
+        last_timestamp = takeLast(timestamp)
+      }, by:{
+        deployment.environment,
+        db.user,
+        authentication.factor.first,
+        authentication.factor.second = coalesce(authentication.factor.second, "-")
+      }
+      | sort last_timestamp desc
+      | fields
+        `Last attempt`=last_timestamp,
+        `Environment`=deployment.environment,
+        `User`=hashSha1(db.user),
+        `First Auth Factor`=authentication.factor.first,
+        `Second Auth Factor`=authentication.factor.second
+    visualization: table
+    visualizationSettings:
+      table:
+        columnTypeOverrides:
+          - fields:
+              - content
+            id: 1741081597133
+            value: log-content
+      autoSelectVisualization: false
+      thresholds: []
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "30":
+    title: Top 10 Deployment Environment
+    type: data
+    query: |-
+      fetch logs
+        | filter db.system == "snowflake"
+        | filter coalesce(dsoa.run.context, snowagent.run.context, service.namespace) == "query_history"
+            and in(deployment.environment, array($Environment))
+            and in(snowflake.role.name, array($Snowflake_Role_Name))
+            and in(snowflake.query.execution_status, array($Query_Execution_Status))
+            and in(db.operation.name, array($Operation_Name))
+        | filterOut if($Exclude_SYSTEM_user == "Yes", db.user == "SYSTEM") or in(db.user, $Exclude_our_system_users)
+        | fields deployment.environment, timestamp
+        | summarize cnt = count(), by: {
+          deployment.environment
+        }
+        | sort cnt desc
+        | limit 10
+    visualization: categoricalBarChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        categoricalBarChartSettings:
+          categoryAxisLabel: deployment.environment
+          categoryAxis:
+            - deployment.environment
+          valueAxis:
+            - cnt
+          valueAxisLabel: cnt
+        colorPalette: brown
+      autoSelectVisualization: false
+      thresholds: []
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "31":
+    title: Login incidents over time
+    type: data
+    query: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter coalesce(dsoa.run.context, snowagent.run.context, service.namespace) == "login_history"
+      | filter isNotNull(error.code)
+        // -- BEGIN: env filters
+      | filter in(deployment.environment, array($Environment))
+      | filter if(in("Human user", array($Logins_User_Types)), matchesValue(db.user, "*.*"))
+            or if(in("Service user", array($Logins_User_Types)), not matchesValue(db.user, "*.*"))
+      | filter in(status.message, array($Login_Problems))
+        // -- END: env filters| fields timestamp, db.user, deployment.environment, status.message
+      | makeTimeseries count(), by: {
+          status.message,
+          deployment.environment
+      }
+      , bins: 20
+    visualization: barChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        legend:
+          hidden: true
+        colorPalette: fireplace
+        tooltip:
+          variant: shared
+          seriesDisplayMode: multi-line
+      legend:
+        ratio: 19
+      autoSelectVisualization: false
+      thresholds: []
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "32":
+    title: Top 10 environments  with login problems
+    type: data
+    query: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter coalesce(dsoa.run.context, snowagent.run.context, service.namespace) == "login_history"
+      | filter isNotNull(error.code)
+        // -- BEGIN: env filters
+      | filter in(deployment.environment, array($Environment))
+      | filter if(in("Human user", array($Logins_User_Types)), matchesValue(db.user, "*.*"))
+            or if(in("Service user", array($Logins_User_Types)), not matchesValue(db.user, "*.*"))
+      | filter in(status.message, array($Login_Problems))
+        // -- END: env filters| fields timestamp, db.user, deployment.environment, status.message
+      | summarize cnt = count(), by: {
+          deployment.environment
+      }
+      | sort cnt desc
+      | limit 10
+    visualization: categoricalBarChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        legend:
+          hidden: true
+        categoricalBarChartSettings:
+          categoryAxisLabel: deployment.environment
+          categoryAxis:
+            - deployment.environment
+          valueAxis:
+            - cnt
+          valueAxisLabel: cnt
+        colorPalette: fireplace
+      thresholds: []
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "33":
+    title: Login incidents over time
+    type: data
+    query: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter coalesce(dsoa.run.context, snowagent.run.context, service.namespace) == "login_history"
+      | filter isNotNull(error.code)
+        // -- BEGIN: env filters
+      | filter in(deployment.environment, array($Environment))
+      | filter if(in("Human user", array($Logins_User_Types)), matchesValue(db.user, "*.*"))
+            or if(in("Service user", array($Logins_User_Types)), not matchesValue(db.user, "*.*"))
+      | filter in(status.message, array($Login_Problems))
+        // -- END: env filters| fields timestamp, db.user, deployment.environment, status.message
+      | fields `Timestamp`=timestamp,
+               `Environment`=deployment.environment,
+               `User`=hashSha1(db.user),
+               `Login Problem`=status.message
+    visualization: table
+    visualizationSettings:
+      autoSelectVisualization: false
+      thresholds: []
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+layouts:
+  "2":
+    x: 11
+    "y": 46
+    w: 13
+    h: 6
+  "3":
+    x: 11
+    "y": 40
+    w: 13
+    h: 6
+  "6":
+    x: 0
+    "y": 33
+    w: 24
+    h: 1
+  "9":
+    x: 0
+    "y": 52
+    w: 24
+    h: 1
+  "17":
+    x: 0
+    "y": 14
+    w: 24
+    h: 7
+  "19":
+    x: 0
+    "y": 13
+    w: 24
+    h: 1
+  "20":
+    x: 7
+    "y": 21
+    w: 9
+    h: 6
+  "21":
+    x: 0
+    "y": 7
+    w: 24
+    h: 6
+  "22":
+    x: 0
+    "y": 27
+    w: 24
+    h: 6
+  "23":
+    x: 16
+    "y": 21
+    w: 8
+    h: 6
+  "24":
+    x: 0
+    "y": 0
+    w: 24
+    h: 1
+  "25":
+    x: 0
+    "y": 1
+    w: 24
+    h: 6
+  "26":
+    x: 0
+    "y": 53
+    w: 7
+    h: 7
+  "27":
+    x: 7
+    "y": 53
+    w: 4
+    h: 7
+  "28":
+    x: 11
+    "y": 53
+    w: 13
+    h: 7
+  "30":
+    x: 0
+    "y": 21
+    w: 7
+    h: 6
+  "31":
+    x: 0
+    "y": 34
+    w: 24
+    h: 6
+  "32":
+    x: 0
+    "y": 40
+    w: 11
+    h: 6
+  "33":
+    x: 0
+    "y": 46
+    w: 11
+    h: 6
+importedWithCode: false
+settings:
+  defaultTimeframe:
+    value:
+      from: now()-7d
+      to: now()
+    enabled: true
