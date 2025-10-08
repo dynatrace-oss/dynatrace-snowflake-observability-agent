@@ -140,7 +140,7 @@ The build process for the Dynatrace Snowflake Observability Agent package involv
 
 ## Setting up development environment
 
-This guide is for developers who want to contribute to the Dynatrace Snowflake Observability Agent. If you only want to install and use the agent, please refer to the [INSTALL.md](INSTALL.md) guide.
+This guide was created for developers who want to contribute to the Dynatrace Snowflake Observability Agent. If you only want to install and use the agent, please refer to the [INSTALL.md](INSTALL.md) guide.
 
 ### Prerequisites
 
