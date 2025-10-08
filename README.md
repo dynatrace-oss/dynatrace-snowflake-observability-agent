@@ -12,6 +12,7 @@ Table of content:
 * [Plugins](PLUGINS.md)
 * [Semantic dictionary](SEMANTICS.md)
 * [How to install](INSTALL.md)
+* [Example dashboards](docs/dashboards)
 * [Changelog](CHANGELOG.md)
 * [Contributing](CONTRIBUTING.md)
 * [Appendix](APPENDIX.md)
