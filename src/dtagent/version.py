@@ -31,7 +31,7 @@ File contains constants with version number [str] and build number [int].
 
 ##region --------------------------- VERSION INFO ------------------------------------
 
-VERSION = "0.9.1"
+VERSION = "0.9.2"
 BUILD = 0
 
 ##endregion
