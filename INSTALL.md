@@ -25,14 +25,14 @@ The `$file_prefix` parameter is optional and can take multiple values:
 
 You should store the Access Token for your Dynatrace tenant (to which you want to send telemetry from your environment) as the environment variable `DTAGENT_TOKEN`. The token should have the following scopes enabled:
 
-| Scope ID                     | Scope Name                            |
-|------------------------------|---------------------------------------|
-| `logs.ingest`                | Ingest Logs                           |
-| `metrics.ingest`             | Ingest Metrics                        |
-| `events.ingest`              | Ingest Events                         |
-| `bizevents.ingest`           | Ingest BizEvents                      |
-| `openTelemetryTrace.ingest`  | Ingest OpenTelemetry Traces           |
-| `openpipeline.events.custom` | OpenPipeline - Ingest Events (Custom) |
+| Scope ID                    | Scope Name                   | Comment                      |
+|-----------------------------|------------------------------|------------------------------|
+| `logs.ingest`               | Ingest Logs                  |                              |
+| `metrics.ingest`            | Ingest Metrics               |                              |
+| `bizevents.ingest`          | Ingest BizEvents             |                              |
+| `openpipeline.events`       | OpenPipeline - Ingest Events |                              |
+| `openTelemetryTrace.ingest` | Ingest OpenTelemetry Traces  |                              |
+| `events.ingest`             | Ingest Events                | Not required version>=0.9.1  |
 
 We **strongly** recommend to ensure your token is not recorded in shell script history; please find an example how to define `DTAGENT_TOKEN` environment variable on Linux or WSL below:
 
