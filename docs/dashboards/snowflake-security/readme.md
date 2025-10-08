@@ -12,7 +12,7 @@ This dashboard provides insights into the security aspects of your Snowflake acc
 ## Query History of Users with Excessive Privileges
 
 - Monitors the query history of users with excessive privileges (e.g., admin roles) to safeguard sensitive data and detect potential misuse.
-- By analyzing query patterns, it helps identify unusual or unauthorized access to sensitive information, ensuring that powerful accounts are used responsibly.
+- Analyzes query patterns and helps identify unusual or unauthorized access to sensitive information, ensuring that powerful accounts are used responsibly.
 - This proactive oversight helps maintain data integrity, prevent insider threats, and enforce strict access controls.
 ![Admin activity monitoring](./img/02-admin-activity.png)
 
