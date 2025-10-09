@@ -56,8 +56,8 @@ class TestTelemetrySender:
 
     @patch("dtagent.otel.otel_manager.CustomLoggingSession.send")
     @patch("dtagent.otel.metrics.requests.post")
-    @patch("dtagent.otel.events.requests.post")
-    @patch("dtagent.otel.bizevents.requests.post")
+    @patch("dtagent.otel.events.davis.requests.post")
+    @patch("dtagent.otel.events.bizevents.requests.post")
     def test_viewsend(self, mock_bizevents_post, mock_events_post, mock_metrics_post, mock_otel_post):
         import random
 

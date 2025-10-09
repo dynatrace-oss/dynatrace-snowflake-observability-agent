@@ -30,6 +30,7 @@ from snowflake import snowpark
 from _snowflake import read_secret
 from dtagent.agent import DynatraceSnowAgent
 from dtagent.config import Configuration
+from dtagent.otel.events.generic import GenericEvents
 
 read_secret(
     secret_name="dtagent_token",
@@ -109,6 +110,7 @@ class TestDynatraceSnowAgent(DynatraceSnowAgent):
     ) -> Dict:
         from dtagent.otel.otel_manager import OtelManager
 
+        # FIXME we need to detect if we run the test against real endpoint or mock
         OtelManager.reset_current_fail_count()
         mock_events_post.side_effect = side_effect_function
         mock_bizevents_post.side_effect = side_effect_function
@@ -133,7 +135,11 @@ def side_effect_function(*args, **kwargs):
 
     mock_response = MagicMock()
 
-    if args[0].endswith(BizEvents.ENDPOINT_PATH) or args[0].endswith(Metrics.ENDPOINT_PATH):  # For BizEvents and Metrics
+    if (
+        args[0].endswith(BizEvents.ENDPOINT_PATH)
+        or args[0].endswith(GenericEvents.ENDPOINT_PATH)
+        or args[0].endswith(Metrics.ENDPOINT_PATH)
+    ):  # For BizEvents, OpenPipeline Events, and Metrics
         mock_response.status_code = 202
 
     if args[0].endswith(DavisEvents.ENDPOINT_PATH):  # For events
