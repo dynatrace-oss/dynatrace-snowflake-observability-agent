@@ -48,7 +48,7 @@ from dtagent.version import VERSION
 ##region ------------------------ Davis EVENTS ---------------------------------
 
 
-class Events:
+class DavisEvents:
     """
     Allows for parsing and sending (Davis) Events payloads via Events v2 API
     https://docs.dynatrace.com/docs/discover-dynatrace/platform/openpipeline/reference/api-ingestion-reference#davis-events
@@ -70,8 +70,9 @@ class Events:
         self._configuration = configuration
         self._resource_attributes = self._configuration.get("resource.attributes")
         self._valid_event_types = {}
-        self._retry_delay = self._configuration.get(otel_module="events", key="retry_delay", default_value=10000)
-        self._max_retries = self._configuration.get(otel_module="events", key="max_retries", default_value=5)
+        self._retry_delay = self._configuration.get(otel_module="davis_events", key="retry_delay", default_value=10000)
+        self._max_retries = self._configuration.get(otel_module="davis_events", key="max_retries", default_value=5)
+        self._api_url = self._configuration.get("davis_events.http")
 
     def _send_events(self, payload: Optional[Dict[str, Any]] = None) -> bool:
         """Sends given payload of a single event to Dynatrace.
@@ -115,7 +116,7 @@ class Events:
                 try:
                     payload = json.dumps(_payload)
                     response = requests.post(
-                        self._configuration.get("events.http"),
+                        self._api_url,
                         headers=headers,
                         data=payload,
                         timeout=30,

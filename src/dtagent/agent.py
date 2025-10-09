@@ -78,8 +78,10 @@ from opentelemetry import version as otel_version
 ##INSERT src/dtagent/otel/spans.py
 ##INSERT src/dtagent/otel/metrics.py
 ##INSERT src/dtagent/otel/logs.py
-##INSERT src/dtagent/otel/events.py
-##INSERT src/dtagent/otel/bizevents.py
+##INSERT src/dtagent/otel/events/__init__.py
+##INSERT src/dtagent/otel/events/davis.py
+##INSERT src/dtagent/otel/events/generic.py
+##INSERT src/dtagent/otel/events/bizevents.py
 ##INSERT src/dtagent/plugins/*.py
 ##INSERT src/dtagent/__init__.py
 

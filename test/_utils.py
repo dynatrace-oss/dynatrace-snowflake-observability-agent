@@ -251,8 +251,8 @@ def get_config(pickle_conf: str = None) -> TestConfiguration:
             conf = json.load(f)
     else:  # we need to create the config from scratch with dummy settings based on defaults
         from dtagent.otel.metrics import Metrics
-        from dtagent.otel.events import Events
-        from dtagent.otel.bizevents import BizEvents
+        from dtagent.otel.events.davis import DavisEvents
+        from dtagent.otel.events.bizevents import BizEvents
         from dtagent.otel.logs import Logs
         from dtagent.otel.spans import Spans
 
@@ -265,7 +265,7 @@ def get_config(pickle_conf: str = None) -> TestConfiguration:
             "logs.http": f"https://{dt_url}{Logs.ENDPOINT_PATH}",
             "spans.http": f"https://{dt_url}{Spans.ENDPOINT_PATH}",
             "metrics.http": f"https://{dt_url}{Metrics.ENDPOINT_PATH}",
-            "events.http": f"https://{dt_url}{Events.ENDPOINT_PATH}",
+            "davis_events.http": f"https://{dt_url}{DavisEvents.ENDPOINT_PATH}",
             "bizevents.http": f"https://{dt_url}{BizEvents.ENDPOINT_PATH}",
             "resource.attributes": Configuration.RESOURCE_ATTRIBUTES
             | {

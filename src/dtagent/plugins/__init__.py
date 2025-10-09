@@ -47,8 +47,9 @@ from dtagent.util import (
     is_select_for_table,
     is_regular_mode,
 )
-from dtagent.otel.events import Events, EventType
-from dtagent.otel.bizevents import BizEvents
+from dtagent.otel.events import EventType
+from dtagent.otel.events.davis import DavisEvents
+from dtagent.otel.events.bizevents import BizEvents
 from dtagent.otel.logs import Logs
 from dtagent.otel.spans import Spans
 from dtagent.otel.metrics import Metrics
@@ -72,7 +73,7 @@ class Plugin(ABC):
         spans: Optional[Spans] = None,
         metrics: Optional[Metrics] = None,
         configuration: Optional[Configuration] = None,
-        events: Optional[Events] = None,
+        events: Optional[DavisEvents] = None,
         bizevents: Optional[BizEvents] = None,
     ):
         """Sets session variables."""

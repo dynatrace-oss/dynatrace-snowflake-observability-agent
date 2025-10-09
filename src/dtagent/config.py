@@ -1,4 +1,4 @@
-"""File contatning Configuration class and methods"""
+"""File with Configuration class and methods"""
 
 ##region ------------------------------ IMPORTS  -----------------------------------------
 #
@@ -77,15 +77,15 @@ class Configuration:
                     },
                     ...
                 },
-                'dimesion_sets': {
+                'dimension_sets': {
                     'set1': [], ...
                 }
             }
         }
         """
         from dtagent.otel.metrics import Metrics  # COMPILE_REMOVE
-        from dtagent.otel.events import Events  # COMPILE_REMOVE
-        from dtagent.otel.bizevents import BizEvents  # COMPILE_REMOVE
+        from dtagent.otel.events.davis import DavisEvents  # COMPILE_REMOVE
+        from dtagent.otel.events.bizevents import BizEvents  # COMPILE_REMOVE
         from dtagent.otel.logs import Logs  # COMPILE_REMOVE
         from dtagent.otel.spans import Spans  # COMPILE_REMOVE
 
@@ -93,12 +93,12 @@ class Configuration:
             """
             This function rewrites the pandas dataframe with config to a dict type and assigns desired types to fields.
             List format in configuration table should be as follows to work properly:
-                List values must start with `[` and end with `]`, all fields must be seperated with `, `. Values within the list should be enclosed in double quotes (").
+                List values must start with `[` and end with `]`, all fields must be separated with `, `. Values within the list should be enclosed in double quotes (").
                 All items within the list must be the same type.
             Args:
                 config_df (dict) - pandas dataframe with configuration table contents
             Returns:
-                processed_dict (dict) - dictionary with refromatted field types
+                processed_dict (dict) - dictionary with reformatted field types
             """
             import builtins
 
@@ -168,7 +168,7 @@ class Configuration:
             "logs.http": f"https://{config_dict['core.dynatrace_tenant_address']}{Logs.ENDPOINT_PATH}",
             "spans.http": f"https://{config_dict['core.dynatrace_tenant_address']}{Spans.ENDPOINT_PATH}",
             "metrics.http": f"https://{config_dict['core.dynatrace_tenant_address']}{Metrics.ENDPOINT_PATH}",
-            "events.http": f"https://{config_dict['core.dynatrace_tenant_address']}{Events.ENDPOINT_PATH}",
+            "davis_events.http": f"https://{config_dict['core.dynatrace_tenant_address']}{DavisEvents.ENDPOINT_PATH}",
             "bizevents.http": f"https://{config_dict['core.dynatrace_tenant_address']}{BizEvents.ENDPOINT_PATH}",
             "resource.attributes": Configuration.RESOURCE_ATTRIBUTES
             | {
@@ -193,7 +193,7 @@ class Configuration:
         otel_module: Optional[str] = None,
         default_value: Optional[Any] = None,
     ) -> any:
-        """Returns configuraiton value for the given key in either given context or for the given plugin name
+        """Returns configuration value for the given key in either given context or for the given plugin name
 
         Args:
             key (str): Configuration key for which to return value

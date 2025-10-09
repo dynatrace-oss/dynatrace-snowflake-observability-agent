@@ -35,8 +35,8 @@ from dtagent.otel.logs import Logs
 from dtagent.otel.otel_manager import OtelManager
 from dtagent.otel.spans import Spans
 from dtagent.otel.metrics import Metrics
-from dtagent.otel.events import Events
-from dtagent.otel.bizevents import BizEvents
+from dtagent.otel.events.davis import DavisEvents
+from dtagent.otel.events.bizevents import BizEvents
 from dtagent.context import get_context_by_name
 from dtagent.util import get_now_timestamp_formatted, is_regular_mode
 
@@ -118,9 +118,9 @@ class AbstractDynatraceSnowAgentConnector:
         """Returns new Metrics instance"""
         return Metrics(self._instruments, self._configuration)
 
-    def _get_events(self) -> Events:
+    def _get_events(self) -> DavisEvents:
         """Returns new Events instance"""
-        return Events(self._configuration)
+        return DavisEvents(self._configuration)
 
     def _get_bizevents(self) -> BizEvents:
         """Returns new BizEvents instance"""

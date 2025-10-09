@@ -33,8 +33,8 @@ from dtagent.otel.instruments import Instruments
 from dtagent.otel.logs import Logs
 from dtagent.otel.spans import Spans
 from dtagent.otel.metrics import Metrics
-from dtagent.otel.events import Events
-from dtagent.otel.bizevents import BizEvents
+from dtagent.otel.events.davis import DavisEvents
+from dtagent.otel.events.bizevents import BizEvents
 from dtagent.version import VERSION
 from dtagent.plugins import Plugin
 
@@ -88,8 +88,10 @@ from opentelemetry import version as otel_version
 ##INSERT src/dtagent/otel/spans.py
 ##INSERT src/dtagent/otel/metrics.py
 ##INSERT src/dtagent/otel/logs.py
-##INSERT src/dtagent/otel/events.py
-##INSERT src/dtagent/otel/bizevents.py
+##INSERT src/dtagent/otel/events/__init__.py
+##INSERT src/dtagent/otel/events/davis.py
+##INSERT src/dtagent/otel/events/generic.py
+##INSERT src/dtagent/otel/events/bizevents.py
 ##INSERT src/dtagent/plugins/__init__.py
 ##INSERT src/dtagent/__init__.py
 
@@ -131,7 +133,7 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
         # in case of auto-mode disabled we will send the source as bizevents
         self._send_bizevents = self._params.get("bizevents", False)
 
-    def process(self):
+    def process(self, run_proc: bool = True) -> None:
         """we don't use it but Plugin marks it as abstract"""
 
         return None
@@ -139,7 +141,7 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
     def _get_source_rows(self, source: Union[str, dict, list]) -> Generator[Dict, None, None]:
         """Delivers generator over different types of sources.
         For a name of view/table to query it will use _get_table_rows().
-        For a single object it will wrap it as a list and will continute to ...
+        For a single object it will wrap it as a list and will continue to ...
         For a list of objects it will deliver a generator over that list.
 
         Args:
@@ -214,7 +216,7 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
                             from dtagent import LOG  # COMPILE_REMOVE
 
                             self.report_execution_status(status="FAILED", task_name="telemetry_sender", exec_id=exec_id)
-                            LOG.error("Could not send event due to " + e)
+                            LOG.error("Could not send event due to %s", e)
 
                     entries_cnt += 1
             else:
