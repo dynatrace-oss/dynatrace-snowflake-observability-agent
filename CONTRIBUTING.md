@@ -140,11 +140,65 @@ The build process for the Dynatrace Snowflake Observability Agent package involv
 
 ## Setting up development environment
 
-You will need [Python 3.9](https://www.python.org/) or newer and [git](https://git-scm.com/).
-If you are on Windows, you will need to install WSL2. Please refer to the `Prerequisites` in [the installation documentation](INSTALL.md) for more details.
+This guide was created for developers who want to contribute to the Dynatrace Snowflake Observability Agent. If you only want to install and use the agent, please refer to the [INSTALL.md](INSTALL.md) guide.
 
-The recommended setup is to use [VS Code](https://code.visualstudio.com/) with [Snowflake plugin](https://marketplace.visualstudio.com/items?itemName=snowflake.snowflake-vsc). Though neither of those are necessary, and any IDE that supports python and SQL should do.
-On Windows, after installing WSL, it is necessary to open your IDE of choice using WSL (see [Setting up WSL on VS Code guide)](https://learn.microsoft.com/en-us/windows/wsl/tutorials/wsl-vscode).
+### Prerequisites
+
+You will need the following software installed:
+
+* [Python](https://www.python.org/) (3.9 or newer)
+* [Git](https://git-scm.com/)
+* On Windows, [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install) is required.
+
+The recommended setup is to use [VS Code](https://code.visualstudio.com/) with the [Snowflake plugin](https://marketplace.visualstudio.com/items?itemName=snowflake.snowflake-vsc).
+
+### Environment Setup
+
+1. **Clone the repository:**
+
+    ```bash
+    git clone https://github.com/dynatrace-oss/dynatrace-snowflake-observability-agent.git
+    cd dynatrace-snowflake-observability-agent
+    ```
+
+1. **Create and activate a virtual environment:**
+
+    ```bash
+    python -m venv .venv
+    source .venv/bin/activate
+    ```
+
+1. **Install dependencies:**
+
+    The `setup.sh` script can help install most of the required tools.
+
+    ```bash
+    ./setup.sh
+    ```
+
+    Alternatively, you can install them manually. You will need the dependencies for running the agent (see `INSTALL.md`) plus the development dependencies.
+
+### System Dependencies
+
+For **Ubuntu/Debian**:
+
+  ```bash
+  sudo apt-get update
+  sudo apt-get install -y pango cairo gdk-pixbuf libffi pandoc
+  ```
+
+For **macOS** (using [Homebrew](https://brew.sh/)):
+
+  ```bash
+  brew install pango cairo gdk-pixbuf libffi pandoc
+  ```
+
+Additional **Python packages** for all platforms are listed in `requirements.txt`.
+Install them using pip:
+
+  ```bash
+  pip install -r requirements.txt
+  ```
 
 ## Building Dynatrace Snowflake Observability Agent
 

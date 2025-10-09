@@ -99,6 +99,7 @@
         "snowflakedb",
         "snowpark",
         "SNOWPIPE",
+        "softprops",
         "specversion",
         "spendings",
         "SQLERRM",
