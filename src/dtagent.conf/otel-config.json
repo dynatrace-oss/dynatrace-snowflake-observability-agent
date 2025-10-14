@@ -12,6 +12,10 @@
             "MAX_RETRIES": 5,
             "MAX_BATCH_SIZE": 1000000
         },
+        "EVENTS": {
+            "MAX_RETRIES": 5,
+            "RETRY_DELAY": 10000
+        },
         "DAVIS_EVENTS": {
             "MAX_RETRIES": 5,
             "RETRY_DELAY": 10000

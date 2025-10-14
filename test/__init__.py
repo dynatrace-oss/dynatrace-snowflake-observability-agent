@@ -97,8 +97,8 @@ class TestDynatraceSnowAgent(DynatraceSnowAgent):
 
     @patch("dtagent.otel.otel_manager.CustomLoggingSession.send")
     @patch("dtagent.otel.metrics.requests.post")
-    @patch("dtagent.otel.events.requests.post")
-    @patch("dtagent.otel.bizevents.requests.post")
+    @patch("dtagent.otel.events.davis.requests.post")
+    @patch("dtagent.otel.events.bizevents.requests.post")
     def process(
         self,
         sources: List,
@@ -135,17 +135,21 @@ def side_effect_function(*args, **kwargs):
 
     mock_response = MagicMock()
 
+    request_url = args[0].url if hasattr(args[0], "url") else str(args[0])
+
+    mock_response.status_code = 500
+
     if (
-        args[0].endswith(BizEvents.ENDPOINT_PATH)
-        or args[0].endswith(GenericEvents.ENDPOINT_PATH)
-        or args[0].endswith(Metrics.ENDPOINT_PATH)
+        request_url.endswith(BizEvents.ENDPOINT_PATH)
+        or request_url.endswith(GenericEvents.ENDPOINT_PATH)
+        or request_url.endswith(Metrics.ENDPOINT_PATH)
     ):  # For BizEvents, OpenPipeline Events, and Metrics
         mock_response.status_code = 202
 
-    if args[0].endswith(DavisEvents.ENDPOINT_PATH):  # For events
+    if request_url.endswith(DavisEvents.ENDPOINT_PATH):  # For events
         mock_response.status_code = 201
 
-    if args[0].endswith(Logs.ENDPOINT_PATH) or args[0].endswith(Spans.ENDPOINT_PATH):  # For logs and spans
+    if request_url.endswith(Logs.ENDPOINT_PATH) or request_url.endswith(Spans.ENDPOINT_PATH):  # For logs and spans
         mock_response.status_code = 200
 
     return mock_response

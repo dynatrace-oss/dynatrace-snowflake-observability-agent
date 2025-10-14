@@ -50,7 +50,7 @@ class TestEvents:
         assert isinstance(t, EventType), "event type should be of EventType"
         assert str(t) == "CUSTOM_ALERT", "event type {t} should render in capital letters"
 
-    @patch("dtagent.otel.events.requests.post")
+    @patch("dtagent.otel.events.davis.requests.post")
     def test_send_events_directly(self, mock_events_post):
         import time
 
@@ -122,7 +122,7 @@ class TestEvents:
 
         assert events.flush_events()
 
-    @patch("dtagent.otel.bizevents.requests.post")
+    @patch("dtagent.otel.events.bizevents.requests.post")
     def test_send_bizevents_directly(self, mock_events_post):
         import time
 
@@ -175,7 +175,7 @@ class TestEvents:
 
         assert events_sent == 5
 
-    @patch("dtagent.otel.events.requests.post")
+    @patch("dtagent.otel.events.davis.requests.post")
     def test_send_results_as_events(self, mock_events_post):
         from test import _utils
 
@@ -193,7 +193,7 @@ class TestEvents:
 
         assert events.flush_events()
 
-    @patch("dtagent.otel.bizevents.requests.post")
+    @patch("dtagent.otel.events.bizevents.requests.post")
     def test_send_results_as_bizevents(self, mock_events_post):
         from test import _utils
 
@@ -212,7 +212,7 @@ class TestEvents:
 
         assert events_sent == 2
 
-    @patch("dtagent.otel.bizevents.requests.post")
+    @patch("dtagent.otel.events.bizevents.requests.post")
     def test_dtagent_bizevents(self, mock_events_post):
         mock_events_post.side_effect = side_effect_function
         bizevents = self._dtagent._get_bizevents()

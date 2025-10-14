@@ -84,6 +84,7 @@ class Configuration:
         }
         """
         from dtagent.otel.metrics import Metrics  # COMPILE_REMOVE
+        from dtagent.otel.events.generic import GenericEvents  # COMPILE_REMOVE
         from dtagent.otel.events.davis import DavisEvents  # COMPILE_REMOVE
         from dtagent.otel.events.bizevents import BizEvents  # COMPILE_REMOVE
         from dtagent.otel.logs import Logs  # COMPILE_REMOVE
@@ -168,8 +169,9 @@ class Configuration:
             "logs.http": f"https://{config_dict['core.dynatrace_tenant_address']}{Logs.ENDPOINT_PATH}",
             "spans.http": f"https://{config_dict['core.dynatrace_tenant_address']}{Spans.ENDPOINT_PATH}",
             "metrics.http": f"https://{config_dict['core.dynatrace_tenant_address']}{Metrics.ENDPOINT_PATH}",
+            "events.http": f"https://{config_dict['core.dynatrace_tenant_address']}{GenericEvents.ENDPOINT_PATH}",
             "davis_events.http": f"https://{config_dict['core.dynatrace_tenant_address']}{DavisEvents.ENDPOINT_PATH}",
-            "bizevents.http": f"https://{config_dict['core.dynatrace_tenant_address']}{BizEvents.ENDPOINT_PATH}",
+            "biz_events.http": f"https://{config_dict['core.dynatrace_tenant_address']}{BizEvents.ENDPOINT_PATH}",
             "resource.attributes": Configuration.RESOURCE_ATTRIBUTES
             | {
                 "service.name": _get_service_name(config_dict),

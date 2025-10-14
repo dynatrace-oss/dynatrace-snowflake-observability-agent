@@ -57,7 +57,7 @@ class BizEvents(AbstractEvents):
         AbstractEvents.__init__(
             self,
             configuration,
-            event_type="davis_events",
+            event_type="biz_events",
             default_params={"max_payload_bytes": 5120000, "api_content_type": "application/cloudevent-batch+json"},
         )
 

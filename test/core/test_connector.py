@@ -58,11 +58,11 @@ class TestTelemetrySender:
     @patch("dtagent.otel.metrics.requests.post")
     @patch("dtagent.otel.events.davis.requests.post")
     @patch("dtagent.otel.events.bizevents.requests.post")
-    def test_viewsend(self, mock_bizevents_post, mock_events_post, mock_metrics_post, mock_otel_post):
+    def test_viewsend(self, mock_bizevents_post, mock_davis_post, mock_metrics_post, mock_otel_post):
         import random
 
         rows_cnt = random.randint(10, 20)
-        mock_events_post.side_effect = side_effect_function
+        mock_davis_post.side_effect = side_effect_function
         mock_bizevents_post.side_effect = side_effect_function
         mock_metrics_post.side_effect = side_effect_function
         mock_otel_post.side_effect = side_effect_function
@@ -85,8 +85,8 @@ class TestTelemetrySender:
 
     @patch("dtagent.otel.otel_manager.CustomLoggingSession.send")
     @patch("dtagent.otel.metrics.requests.post")
-    @patch("dtagent.otel.events.requests.post")
-    @patch("dtagent.otel.bizevents.requests.post")
+    @patch("dtagent.otel.events.davis.requests.post")
+    @patch("dtagent.otel.events.bizevents.requests.post")
     def test_large_view_send_as_be(self, mock_bizevents_post, mock_events_post, mock_metrics_post, mock_otel_post):
         import random
 
@@ -116,8 +116,8 @@ class TestTelemetrySender:
 
     @patch("dtagent.otel.otel_manager.CustomLoggingSession.send")
     @patch("dtagent.otel.metrics.requests.post")
-    @patch("dtagent.otel.events.requests.post")
-    @patch("dtagent.otel.bizevents.requests.post")
+    @patch("dtagent.otel.events.davis.requests.post")
+    @patch("dtagent.otel.events.bizevents.requests.post")
     def test_dtagent_bizevents(self, mock_bizevents_post, mock_events_post, mock_metrics_post, mock_otel_post):
         mock_events_post.side_effect = side_effect_function
         mock_bizevents_post.side_effect = side_effect_function
@@ -146,8 +146,8 @@ class TestTelemetrySender:
 
     @patch("dtagent.otel.otel_manager.CustomLoggingSession.send")
     @patch("dtagent.otel.metrics.requests.post")
-    @patch("dtagent.otel.events.requests.post")
-    @patch("dtagent.otel.bizevents.requests.post")
+    @patch("dtagent.otel.events.davis.requests.post")
+    @patch("dtagent.otel.events.bizevents.requests.post")
     def test_automode(self, mock_bizevents_post, mock_events_post, mock_metrics_post, mock_otel_post):
         mock_events_post.side_effect = side_effect_function
         mock_bizevents_post.side_effect = side_effect_function
