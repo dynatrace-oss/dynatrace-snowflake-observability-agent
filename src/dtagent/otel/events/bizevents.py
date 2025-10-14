@@ -61,7 +61,7 @@ class BizEvents(AbstractEvents):
             default_params={"max_payload_bytes": 5120000, "api_content_type": "application/cloudevent-batch+json"},
         )
 
-    def send_events(self, events: List[Dict[str, Any]], context: Optional[Dict[str, Any]] = None) -> bool:
+    def send_events(self, events: List[Dict[str, Any]], context: Optional[Dict[str, Any]] = None, **kwargs) -> bool:
         """Sends give list of events (in dict form) as CloudEvents to Dynatrace BizEvents endpoint
 
         Args:

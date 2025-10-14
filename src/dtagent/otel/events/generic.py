@@ -66,7 +66,7 @@ class GenericEvents(AbstractEvents):
         """Initializes configuration's resources for events"""
         AbstractEvents.__init__(self, configuration, event_type="events")
 
-    def send_events(self, events: List[Dict[str, Any]], context: Optional[Dict[str, Any]] = None) -> bool:
+    def send_events(self, events: List[Dict[str, Any]], context: Optional[Dict[str, Any]] = None, **kwargs) -> bool:
         return self._send_events(events)  # TODO
 
 

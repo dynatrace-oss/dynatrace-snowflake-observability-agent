@@ -128,10 +128,12 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
         # in case of auto-mode disabled we will send the source as plain logs
         self._send_logs = self._params.get("logs", True)
         # in case of auto-mode enable we can disable sending events based on EVENT_TIMESTAMPS
-        # in case of auto-mode disabled we will send the source as plain events
+        # in case of auto-mode disabled we can send the source via generic events API
         self._send_events = self._params.get("events", self._auto_mode)
-        # in case of auto-mode disabled we will send the source as bizevents
-        self._send_bizevents = self._params.get("bizevents", False)
+        # in case of auto-mode disabled we can send the source via Davis events API (slower)
+        self._send_davis_events = self._params.get("davis_events", False)
+        # in case of auto-mode disabled we can send the source as bizevents
+        self._send_biz_events = next((self._params[key] for key in ["biz_events", "bizevents"] if key in self._params), False)
 
     def process(self, run_proc: bool = True) -> None:
         """we don't use it but Plugin marks it as abstract"""
@@ -175,7 +177,7 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
 
         self.report_execution_status(status="STARTED", task_name="telemetry_sender", exec_id=exec_id)
 
-        entries_cnt, logs_cnt, metrics_cnt, events_cnt, bizevents_cnt = (0, 0, 0, 0, 0)
+        entries_cnt, logs_cnt, metrics_cnt, events_cnt, bizevents_cnt, davis_events_cnt = (0, 0, 0, 0, 0, 0)
         if self._auto_mode:
             entries_cnt, logs_cnt, metrics_cnt, events_cnt = self._log_entries(
                 lambda: self._get_source_rows(source),
@@ -187,7 +189,7 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
                 log_completion=False,
             )
         else:
-            if self._send_logs or self._send_events:
+            if self._send_logs or self._send_davis_events:
                 for row_dict in self._get_source_rows(source):
                     from dtagent.util import _cleanup_dict  # COMPILE_REMOVE
 
@@ -204,9 +206,9 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
                         )
                         logs_cnt += 1
 
-                    if self._send_events:
+                    if self._send_davis_events:
                         try:
-                            events_cnt += self._events.report_via_api(
+                            davis_events_cnt += self._davis_events.report_via_api(
                                 query_data=row_dict,
                                 event_type=(EventType[row_dict["event.type"]] if "event.type" in row_dict else EventType.CUSTOM_INFO),
                                 title=row_dict.get("_message", f"Log entry sent with {self.__context_name}"),
@@ -222,7 +224,7 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
             else:
                 entries_cnt = sum(1 for _ in self._get_source_rows(source))
 
-            if self._send_bizevents:
+            if self._send_biz_events or self._send_events:
                 import itertools
 
                 chunk_size = 100
@@ -233,16 +235,25 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
                         yield chunk
 
                 for chunk in __chunked_iterable(self._get_source_rows(source), chunk_size):
-                    bizevents_cnt += self._bizevents.report_via_api(
-                        chunk,
-                        self.__context,
-                        event_type=EventType.CUSTOM_INFO,
-                        is_data_structured=False,
-                    )
-                bizevents_cnt += self._bizevents.flush_events()
+                    if self._send_biz_events:
+                        bizevents_cnt += self._biz_events.report_via_api(
+                            chunk,
+                            self.__context,
+                            event_type=EventType.CUSTOM_INFO,
+                            is_data_structured=False,
+                        )
+                    if self._send_events:
+                        events_cnt += self._events.report_via_api(
+                            chunk,
+                            self.__context,
+                            event_type=EventType.CUSTOM_INFO,
+                            is_data_structured=False,
+                        )
+                bizevents_cnt += self._biz_events.flush_events()
+                events_cnt += self._events.flush_events()
 
-            if self._send_events:
-                self._events.flush_events()
+            if self._send_davis_events:
+                self._davis_events.flush_events()
 
         self.report_execution_status(status="FINISHED", task_name="telemetry_sender", exec_id=exec_id)
 
@@ -255,11 +266,12 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
                 "log_lines": logs_cnt,
                 "metrics": metrics_cnt,
                 "events": events_cnt,
-                "bizevents": bizevents_cnt,
+                "biz_events": bizevents_cnt,
+                "davis_events": davis_events_cnt,
             },
         )
 
-        return (entries_cnt, logs_cnt, metrics_cnt, events_cnt, bizevents_cnt)
+        return (entries_cnt, logs_cnt, metrics_cnt, events_cnt, bizevents_cnt, davis_events_cnt)
 
 
 def main(session: snowpark.Session, source: Union[str, dict, list], params: dict) -> str:

@@ -8,7 +8,7 @@ snowflake.local.yml
 output/**
 log.*
 *.log
-credentials.json
+*credentials.json
 *.pyc
 build/*
 package/*

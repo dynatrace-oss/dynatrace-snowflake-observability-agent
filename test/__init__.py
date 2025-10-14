@@ -30,7 +30,6 @@ from snowflake import snowpark
 from _snowflake import read_secret
 from dtagent.agent import DynatraceSnowAgent
 from dtagent.config import Configuration
-from dtagent.otel.events.generic import GenericEvents
 
 read_secret(
     secret_name="dtagent_token",
@@ -97,6 +96,7 @@ class TestDynatraceSnowAgent(DynatraceSnowAgent):
 
     @patch("dtagent.otel.otel_manager.CustomLoggingSession.send")
     @patch("dtagent.otel.metrics.requests.post")
+    @patch("dtagent.otel.events.generic.requests.post")
     @patch("dtagent.otel.events.davis.requests.post")
     @patch("dtagent.otel.events.bizevents.requests.post")
     def process(
@@ -104,6 +104,7 @@ class TestDynatraceSnowAgent(DynatraceSnowAgent):
         sources: List,
         run_proc: bool = True,
         mock_bizevents_post=None,
+        mock_davis_post=None,
         mock_events_post=None,
         mock_metrics_post=None,
         mock_otel_post=None,
@@ -113,6 +114,7 @@ class TestDynatraceSnowAgent(DynatraceSnowAgent):
         # FIXME we need to detect if we run the test against real endpoint or mock
         OtelManager.reset_current_fail_count()
         mock_events_post.side_effect = side_effect_function
+        mock_davis_post.side_effect = side_effect_function
         mock_bizevents_post.side_effect = side_effect_function
         mock_metrics_post.side_effect = side_effect_function
         mock_otel_post.side_effect = side_effect_function
@@ -127,6 +129,7 @@ def _overwrite_plugin_local_config_key(test_conf: TestConfiguration, plugin_name
 
 def side_effect_function(*args, **kwargs):
     from unittest.mock import MagicMock
+    from dtagent.otel.events.generic import GenericEvents
     from dtagent.otel.events.bizevents import BizEvents
     from dtagent.otel.events.davis import DavisEvents
     from dtagent.otel.logs import Logs

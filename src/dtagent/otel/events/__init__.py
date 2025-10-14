@@ -262,7 +262,7 @@ class AbstractEvents(ABC):
         return self._send_events()
 
     @abstractmethod
-    def send_events(self, events: List[Dict[str, Any]], context: Optional[Dict[str, Any]] = None) -> bool:
+    def send_events(self, events: List[Dict[str, Any]], context: Optional[Dict[str, Any]] = None, **kwargs) -> bool:
         """Sends given list of events to Dynatrace via the chosen API.
 
         This is an abstract method that must be implemented in subclasses.
@@ -270,26 +270,35 @@ class AbstractEvents(ABC):
         Args:
             events (List): List of events data, each in form of dict
             context (Dict, optional): Additional information that should be appended to event data. Defaults to None.
+            **kwargs: Additional keyword arguments to be processed by child classes
 
         Returns:
             int: Count of all events that went through (or were scheduled successfully); -1 indicates a problem
         """
-        return self._send_events(events | (context or {}))
+        return self._send_events([event | (context or {}) for event in events])
 
     def report_via_api(
         self,
         query_data: Union[List[Dict[str, Any]], Generator[Dict, None, None]],
-        context: Optional[Dict] = None,
         event_type: Optional[Union[str, EventType]] = None,
+        *,
         is_data_structured: bool = True,
+        context: Optional[Dict] = None,
+        additional_payload: Optional[dict] = None,
+        **kwargs,
     ) -> int:
         """
         Generates and sends payload with selected events to Dynatrace via the chosen API.
 
         Args:
             query_data (Union[List[Dict], Generator[Dict, None, None]]): List or generator of dictionaries with data to be sent as events
-            context (Optional[Dict], optional): Additional context that should be added to the event properties. Defaults to None.
             event_type (Optional[Union[str, EventType]], optional): Event type to report under. Defaults to None.
+            is_data_structured (bool, optional): Indicates whether the data in query_data is structured into a DSOA standardized dictionary. Defaults to True.
+            context (Optional[Dict], optional): Additional context that should be added to the event properties. Defaults to None.
+            additional_payload (Dict, optional): Additional lines of payload,
+                                                 formatted as dict which is merged with unpacked query_data contents.
+
+            **kwargs: Additional keyword arguments to be passed to send_events()
 
         Returns:
             int: Count of all events that went through (or were scheduled successfully); -1 indicates a problem
@@ -297,9 +306,12 @@ class AbstractEvents(ABC):
         from dtagent.util import _unpack_payload  # COMPILE_REMOVE
 
         _event_type = {"event.type": str(event_type)} if event_type is not None else {}
-        _events = [(_unpack_payload(query_datum) if is_data_structured else query_datum) | _event_type for query_datum in query_data]
+        _events = [
+            (_unpack_payload(query_datum) if is_data_structured else query_datum) | _event_type | (additional_payload or {})
+            for query_datum in query_data
+        ]
 
-        return self.send_events(_events, context)
+        return self.send_events(_events, context, **kwargs)
 
 
 ##endregion

@@ -125,7 +125,7 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
                         metrics=self._metrics,
                         configuration=self._configuration,
                         events=self._events,
-                        bizevents=self._bizevents,
+                        bizevents=self._biz_events,
                     ).process(run_proc)
                     #
                     self.report_execution_status(status="FINISHED", task_name=source, exec_id=exec_id)

@@ -127,7 +127,7 @@ class TestEvents:
         import time
 
         mock_events_post.side_effect = side_effect_function
-        events = self._dtagent._get_bizevents()
+        events = self._dtagent._get_biz_events()
 
         events_sent = events.send_events(
             [{"test.bizevent.message": "Dynatrace Snowflake Observability Agent test event 123", "test.ts": get_now_timestamp_formatted()}]
@@ -198,7 +198,7 @@ class TestEvents:
         from test import _utils
 
         mock_events_post.side_effect = side_effect_function
-        bizevents = self._dtagent._get_bizevents()
+        bizevents = self._dtagent._get_biz_events()
 
         PICKLE_NAME = "test/test_data/data_volume.pkl"
 
@@ -215,7 +215,7 @@ class TestEvents:
     @patch("dtagent.otel.events.bizevents.requests.post")
     def test_dtagent_bizevents(self, mock_events_post):
         mock_events_post.side_effect = side_effect_function
-        bizevents = self._dtagent._get_bizevents()
+        bizevents = self._dtagent._get_biz_events()
 
         cnt = bizevents.report_via_api(
             context=get_context_by_name("self-monitoring"),

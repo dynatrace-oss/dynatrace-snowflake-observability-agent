@@ -48,7 +48,7 @@ from dtagent.util import (
     is_regular_mode,
 )
 from dtagent.otel.events import EventType
-from dtagent.otel.events.davis import DavisEvents
+from dtagent.otel.events.generic import GenericEvents
 from dtagent.otel.events.bizevents import BizEvents
 from dtagent.otel.logs import Logs
 from dtagent.otel.spans import Spans
@@ -73,7 +73,7 @@ class Plugin(ABC):
         spans: Optional[Spans] = None,
         metrics: Optional[Metrics] = None,
         configuration: Optional[Configuration] = None,
-        events: Optional[DavisEvents] = None,
+        events: Optional[GenericEvents] = None,
         bizevents: Optional[BizEvents] = None,
     ):
         """Sets session variables."""
