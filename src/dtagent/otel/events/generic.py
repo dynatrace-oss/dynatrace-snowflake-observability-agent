@@ -33,6 +33,7 @@ from abc import ABC, abstractmethod
 from types import NoneType
 from typing import Any, Dict, List, Optional, Tuple, Union, Generator
 
+from inflect import k
 import requests
 
 from dtagent.context import CONTEXT_NAME
@@ -41,6 +42,7 @@ from dtagent.otel.otel_manager import OtelManager
 from dtagent.otel.events import EventType, AbstractEvents
 from dtagent.util import StringEnum, get_timestamp_in_ms
 from dtagent.version import VERSION
+import datetime
 
 
 ##endregion COMPILE_REMOVE
@@ -62,12 +64,87 @@ class GenericEvents(AbstractEvents):
 
     ENDPOINT_PATH = "/platform/ingest/v1/events"
 
-    def __init__(self, configuration: Configuration):
+    def __init__(self, configuration: Configuration, event_type: str = "events"):
         """Initializes configuration's resources for events"""
-        AbstractEvents.__init__(self, configuration, event_type="events")
+        AbstractEvents.__init__(self, configuration, event_type=event_type)
 
-    def send_events(self, events: List[Dict[str, Any]], context: Optional[Dict[str, Any]] = None, **kwargs) -> bool:
-        return self._send_events(events)  # TODO
+    def _pack_event_data(
+        self, event_type: Union[str, EventType], event_data: Dict[str, Any], context: Optional[Dict[str, Any]] = None, **kwargs
+    ) -> Dict[str, Any]:
+        """
+        Packs given event data into payload accepted by Dynatrace Events API
+        Args:
+            event_type (str): Event type, e.g. EventType.CUSTOM_ALERT
+            event_data (Dict[str, Any]): Event data in form of dict
+            context (Optional[Dict[str, Any]]): Additional context to be added to event properties
+            **kwargs: Additional parameters, like title, start_time_key, end_time_key, additional_payload, timeout
+        Returns:
+            Dict[str, Any]: Event payload in form accepted by Dynatrace Events API
+        """
+        from dtagent.util import _cleanup_dict, _pack_values_to_json_strings, _unpack_payload  # COMPILE_REMOVE
+
+        def __limit_to_api(properties: Dict[str, str]) -> Dict:
+            """Limit values to no longer than 4096 characters"""
+            for key in properties:
+                if isinstance(properties[key], str) and len(properties[key]) > 4096:
+                    properties[key] = properties[key][:4096]
+
+            return properties
+
+        title = str(event_data.get("_MESSAGE", "")) or kwargs.get("title", "Dynatrace Snowflake Observability Agent event")
+        event_data_extended = kwargs.get("additional_payload", {}) | _unpack_payload(event_data)
+
+        start_ts = get_timestamp_in_ms(event_data, kwargs.get("start_time_key", "START_TIME"), 1e6, None)
+        end_ts = get_timestamp_in_ms(event_data, kwargs.get("end_time_key", "END_TIME"), 1e6, None)
+
+        # we have map non-simple types to string, as events are not capable of mapping lists
+        for key, value in event_data_extended.items():
+            if not isinstance(value, (int, float, str, bool, NoneType)):
+                event_data_extended[key] = str(value)
+
+        if isinstance(event_type, EventType) and event_type not in EventType:
+            raise ValueError(f"{event_type} is not a valid EventType value")
+
+        event_payload = {
+            "eventType": str(event_type),
+            "title": title,
+            "properties": __limit_to_api(
+                _pack_values_to_json_strings(
+                    _cleanup_dict(event_data_extended or {}) | (self._resource_attributes or {}) | (context or {}), max_list_level=1
+                )
+            ),
+        }
+
+        if kwargs.get("timeout", None) is not None and kwargs.get("timeout", None) <= 360:  # max available timeout 6h
+            event_payload["timeout"] = kwargs.get("timeout", None)
+
+        if start_ts:
+            event_payload["startTime"] = start_ts
+
+        if end_ts:
+            event_payload["endTime"] = end_ts
+
+        return event_payload
+
+    def send_events(
+        self,
+        events_data: List[Dict[str, Any]],
+        event_type: Optional[Union[str, EventType]] = EventType.CUSTOM_ALERT,
+        context: Optional[Dict[str, Any]] = None,
+        **kwargs,
+    ) -> bool:
+
+        generic_events = [
+            self._pack_event_data(
+                event_type=event_type,
+                event_data=event_data,
+                context=context,
+                **kwargs,
+            )
+            for event_data in events_data
+        ]
+
+        return self._send_events(generic_events)
 
 
 ##endregion

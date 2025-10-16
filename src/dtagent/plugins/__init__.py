@@ -329,8 +329,21 @@ class Plugin(ABC):
 
         return True
 
-    def report_event(self, row_dict, event_type, *, title, start_time, end_time, properties, __context):
-        """Generic method reporting single log line for _log_entries. To be overwritten by plugins when required"""
+    def report_event(self, row_dict, event_type, *, title, start_time, end_time, properties, __context) -> int:
+        """
+        Generic method reporting single log line for _log_entries. To be overwritten by plugins when required
+
+        Args:
+            row_dict (Dict): row dictionary
+            event_type (str): event type
+            title (str): event title
+            start_time (str): start time key in row_dict
+            end_time (str): end time key in row_dict
+            properties (Dict): additional properties to be added to event payload
+            context (Optional[Dict]): additional context to be added to event payload
+        Returns:
+            int: 1+ if event was reported successfully, 0 otherwise
+        """
         return self._events.report_via_api(
             query_data=row_dict,
             event_type=event_type,
@@ -435,7 +448,7 @@ class Plugin(ABC):
                     if ts_dt >= last_timestamp:
                         title, properties, event_type = f_event_timestamp_payload_prepare(key, ts, row_dict)
 
-                        if self._events.report_via_api(
+                        processed_events_cnt += self._events.report_via_api(
                             query_data=row_dict,
                             title=title,
                             additional_payload=properties,
@@ -443,8 +456,7 @@ class Plugin(ABC):
                             event_type=event_type,
                             end_time_key=end_time,
                             context=__context,
-                        ):
-                            processed_events_cnt += 1
+                        )
 
             if event_payload_prepare is not None and (
                 report_all_as_events
@@ -454,7 +466,7 @@ class Plugin(ABC):
                 )
             ):
                 event_type, title, properties = event_payload_prepare(row_dict)
-                if f_report_event(
+                processed_events_cnt += f_report_event(
                     row_dict,
                     event_type,
                     title,
@@ -462,8 +474,7 @@ class Plugin(ABC):
                     end_time=end_time,
                     properties=properties,
                     context=__context,
-                ):
-                    processed_events_cnt += 1
+                )
             elif report_logs:
                 # wrapper for logging so that it can be overwritten if required
                 # logging can be conditional, therefore f_report_log must return something
@@ -477,6 +488,7 @@ class Plugin(ABC):
                 gc.collect()
 
         entries_dict = {"processed_entries_cnt": processed_entries_cnt}
+        processed_events_cnt += self._events.flush_events()
 
         if report_all_as_events or report_timestamp_events or event_payload_prepare:
             entries_dict["processed_events_cnt"] = processed_events_cnt

@@ -71,8 +71,20 @@ class DataSchemasPlugin(Plugin):
 
     def _report_all_entries_as_events(
         self, row_dict, event_type, title, *, start_time, end_time, properties, context
-    ):  # pylint: disable=unused-argument
-        """defines how all entries as events should be reported"""
+    ) -> int:  # pylint: disable=unused-argument
+        """
+        Defines how all entries as events should be reported
+        Args:
+            row_dict (Dict): row dictionary
+            event_type (str): event type
+            title (str): event title
+            start_time (str): start time key in row_dict
+            end_time (str): end time key in row_dict
+            properties (Dict): additional properties to be added to event payload
+            context (Optional[Dict]): additional context to be added to event payload
+        Returns:
+            int: number of events reported (1+ if successful, 0 otherwise)
+        """
 
         _attributes = _from_json(row_dict["ATTRIBUTES"])
         _attributes["snowflake.object.ddl.properties"] = self._compress_properties(_attributes.get("snowflake.object.ddl.properties", {}))

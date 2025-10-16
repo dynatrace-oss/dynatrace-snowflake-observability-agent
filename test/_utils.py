@@ -225,7 +225,7 @@ def telemetry_test_sender(
     """
     Invokes send_data function on a LocalTelemetrySender instance, which uses pickled data for testing purposes
     Returns:
-        Tuple[int, int, int, int]: Count of objects, log lines, metrics, events, and bizevents sent
+        Tuple[int, int, int, int, int]: Count of objects, log lines, metrics, events, bizevents, and davis events sent
     """
     sender = LocalTelemetrySender(session, params, limit_results=limit_results, config=config)
     results = sender.send_data(sources)

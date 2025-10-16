@@ -150,13 +150,15 @@ class AbstractDynatraceSnowAgentConnector:
                 "dsoa.task.exec.status": str(status),
             }
 
-            self._biz_events.report_via_api(
-                context=get_context_by_name("self-monitoring"),
+            bizevents_sent = self._biz_events.report_via_api(
+                query_data=[data_dict | (details_dict or {})],
                 event_type="dsoa.task",
-                query_data=[data_dict if details_dict is None else data_dict | details_dict],
+                context=get_context_by_name("self-monitoring"),
                 is_data_structured=False,
             )
-            self._biz_events.flush_events()
+            bizevents_sent += self._biz_events.flush_events()
+            if bizevents_sent == 0:
+                LOG.warning("Unable to report task execution status via BizEvents: %s", str(data_dict))
 
     def _set_max_consecutive_fails(self):
         OtelManager.set_max_fail_count(self._configuration.get("max_consecutive_api_fails", context="otel", default_value=10))

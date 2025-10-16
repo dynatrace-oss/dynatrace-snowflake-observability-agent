@@ -171,7 +171,7 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
             source (Union[str, dict, list]): the source of telemetry data
 
         Returns:
-            Tuple[int, int, int, int]: Count of objects, log lines, metrics, events, and bizevents sent
+            Tuple[int, int, int, int, int]: Count of objects, log lines, metrics, events, bizevents, and davis events sent
         """
         from dtagent.otel.events import EventType  # COMPILE_REMOVE
 
@@ -229,7 +229,26 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
 
                 chunk_size = 100
 
-                def __chunked_iterable(iterable, size):
+                def __chunked_iterable(iterable, size) -> Generator[List, None, None]:
+                    """
+                    Yields chunks of the given iterable, each of the specified size.
+
+                    This function takes an iterable and divides it into smaller lists (chunks) of a given size.
+                    It uses itertools.islice to efficiently slice the iterator without loading the entire iterable into memory.
+
+                    Args:
+                        iterable: An iterable object (e.g., list, tuple, generator) to be chunked.
+                        size: An integer specifying the maximum size of each chunk. Must be positive.
+
+                    Yields:
+                        list: A list containing up to 'size' elements from the iterable. The last chunk may be smaller if the iterable's length is not divisible by 'size'.
+
+                    Raises:
+                        ValueError: If 'size' is not a positive integer.
+
+                    Note:
+                        This is a generator function, so it yields chunks lazily.
+                    """
                     it = iter(iterable)
                     while chunk := list(itertools.islice(it, size)):
                         yield chunk
@@ -237,23 +256,23 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
                 for chunk in __chunked_iterable(self._get_source_rows(source), chunk_size):
                     if self._send_biz_events:
                         bizevents_cnt += self._biz_events.report_via_api(
-                            chunk,
-                            self.__context,
+                            query_data=chunk,
                             event_type=EventType.CUSTOM_INFO,
+                            context=self.__context,
                             is_data_structured=False,
                         )
                     if self._send_events:
                         events_cnt += self._events.report_via_api(
-                            chunk,
-                            self.__context,
+                            query_data=chunk,
                             event_type=EventType.CUSTOM_INFO,
+                            context=self.__context,
                             is_data_structured=False,
                         )
                 bizevents_cnt += self._biz_events.flush_events()
                 events_cnt += self._events.flush_events()
 
             if self._send_davis_events:
-                self._davis_events.flush_events()
+                davis_events_cnt += self._davis_events.flush_events()
 
         self.report_execution_status(status="FINISHED", task_name="telemetry_sender", exec_id=exec_id)
 

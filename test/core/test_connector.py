@@ -168,6 +168,8 @@ class TestTelemetrySender:
         structured_test_data = read_clean_json_from_file("test/test_data/telemetry_structured.json")
         unstructured_test_data = read_clean_json_from_file("test/test_data/telemetry_unstructured.json")
 
+        # Results are (Count of objects, log lines, metrics, events, bizevents, and davis events sent)
+
         # sending all data from a given (standard structure) view
         assert (2, 2, 2, 3, 0, 0) == telemetry_test_sender(session, "APP.V_DATA_VOLUME", {}, config=_utils.get_config())
         # sending data from a given (standard structure) view, excluding metrics

@@ -107,6 +107,142 @@ class AbstractEvents(ABC):
             otel_module=event_type, key="api_post_timeout", default_value=_default_params.get("api_post_timeout", 30)
         )
 
+    def _send(self, _payload_list: List[Dict[str, Any]], _retries: int = 0) -> Tuple[int, List[Dict[str, Any]]]:
+        """
+        Sends given payload to Dynatrace
+
+        Args:
+            _payload_list (List[Dict[str, Any]]): List of events to be sent
+            _retries (int, optional): Current retry count. Defaults to 0.
+        """
+        from dtagent import LL_TRACE, LOG  # COMPILE_REMOVE
+
+        response = None
+        events_count = -1  # something was wrong with events sent - resetting to -1
+        _payload_to_repeat = []  # we will keep events that failed to be delivered
+
+        headers = {
+            "Authorization": f'Api-Token {self._configuration.get("dt.token")}',
+            "Accept": "application/json",
+            "Content-Type": self._api_content_type,
+        } | OtelManager.get_dsoa_headers()
+
+        payload = json.dumps(_payload_list)
+        payload_cnt = len(_payload_list)
+        try:
+            LOG.log(
+                LL_TRACE,
+                "Sending %d bytes payload with %d %s records to %s",
+                sys.getsizeof(payload),
+                payload_cnt,
+                self._api_event_type,
+                self._api_url,
+            )
+
+            LOG.log(
+                LL_TRACE,
+                "Sending %s as %s records to %s",
+                payload,
+                self._api_event_type,
+                self._api_url,
+            )
+
+            response = requests.post(
+                self._api_url,
+                headers=headers,
+                data=payload,
+                timeout=self._api_post_timeout,
+            )
+
+            LOG.log(
+                LL_TRACE,
+                "Sent payload with %d %s records; response: %s",
+                payload_cnt,
+                self._api_event_type,
+                response.status_code,
+            )
+
+            if response.status_code == 202:
+                events_count = payload_cnt
+                OtelManager.set_current_fail_count(0)
+            else:
+                _log_warning(response, _payload_list, self._api_event_type)
+
+        except requests.exceptions.RequestException as e:
+            if isinstance(e, requests.exceptions.Timeout):
+                LOG.error(
+                    "The request to send %d bytes payload with %d %s records timed out after 5 minutes. (retry = %d)",
+                    sys.getsizeof(_payload_list),
+                    len(_payload_list),
+                    self._api_event_type,
+                    _retries,
+                )
+            else:
+                LOG.error(
+                    "An error occurred when sending %d bytes payload with %d %s records (retry = %d): %s",
+                    sys.getsizeof(_payload_list),
+                    len(_payload_list),
+                    self._api_event_type,
+                    _retries,
+                    e,
+                )
+        finally:
+            if response is not None and response.status_code in self._ingest_retry_statuses:
+                if _retries < self._max_retries:
+                    time.sleep(self._retry_delay_ms / 1000)
+                    repeated_events_send, _payload_to_repeat = self._send(_payload_list, _retries + 1)
+                    events_count += repeated_events_send
+                else:
+                    LOG.warning(
+                        "Failed to send all %s data with %d (max=%d) attempts; last status code = %s",
+                        self._api_event_type,
+                        _retries,
+                        self._max_retries,
+                        response.status_code,
+                    )
+                    _payload_to_repeat = _payload_list
+                    OtelManager.increase_current_fail_count(response)
+
+            elif response is not None and response.status_code >= 300:
+                OtelManager.increase_current_fail_count(response)
+
+            OtelManager.verify_communication()
+
+        return events_count, _payload_to_repeat
+
+    def _split_payload(self, payload: List[Dict[str, Any]]) -> Generator[List[Dict[str, Any]], None, None]:
+        """
+        Enables to iterate over "ingestible" chunks of events payload
+        Args:
+            payload (List[Dict[str, Any]]): List of events to be sent
+        Yields:
+            Generator[List[Dict[str, Any]], None, None]: generator of lists of events, each within allowed limits
+        """
+        from dtagent import LL_TRACE, LOG  # COMPILE_REMOVE
+
+        current_chunk = []
+        current_size = 0
+        for event in payload:
+            event_size = sys.getsizeof(json.dumps(event))
+            if event_size > self._max_payload_bytes:
+                LOG.warning(
+                    "%s records size %d exceeds max payload size %d, skipping event",
+                    self._api_event_type,
+                    event_size,
+                    self._max_payload_bytes,
+                )
+                continue
+            if current_size + event_size > self._max_payload_bytes or len(current_chunk) >= self._max_event_count:
+                yield current_chunk
+                current_chunk = []
+                current_size = 0
+
+            current_chunk.append(event)
+            current_size += event_size
+
+        if current_chunk:
+            yield current_chunk
+
     def _send_events(self, payload: Optional[List[Dict[str, Any]]] = None) -> int:
         """Sends given payload of events to Dynatrace via the chosen API.
         The code attempts to accumulate to the maximal size of payload allowed - and
@@ -121,139 +257,20 @@ class AbstractEvents(ABC):
         """
         from dtagent import LL_TRACE, LOG  # COMPILE_REMOVE
 
-        events_sent = 0
-
-        def __send(_payload_list: List[Dict[str, Any]], _retries: int = 0) -> int:
-            """
-            Sends given payload to Dynatrace
-            """
-
-            response = None
-            events_count = -1  # something was wrong with events sent - resetting to -1
-
-            headers = {
-                "Authorization": f'Api-Token {self._configuration.get("dt.token")}',
-                "Accept": "application/json",
-                "Content-Type": self._api_content_type,
-            } | OtelManager.get_dsoa_headers()
-
-            payload = json.dumps(_payload_list)
-            payload_cnt = len(_payload_list)
-            try:
-                LOG.log(
-                    LL_TRACE,
-                    "Sending %d bytes payload with %d %s records to %s",
-                    sys.getsizeof(payload),
-                    payload_cnt,
-                    self._api_event_type,
-                    self._api_url,
-                )
-
-                LOG.log(
-                    LL_TRACE,
-                    "Sending %s as %s records to %s",
-                    payload,
-                    self._api_event_type,
-                    self._api_url,
-                )
-
-                response = requests.post(
-                    self._api_url,
-                    headers=headers,
-                    data=payload,
-                    timeout=self._api_post_timeout,
-                )
-
-                LOG.log(
-                    LL_TRACE,
-                    "Sent payload with %d %s records; response: %s",
-                    payload_cnt,
-                    self._api_event_type,
-                    response.status_code,
-                )
-
-                if response.status_code == 202:
-                    events_count = payload_cnt
-                    OtelManager.set_current_fail_count(0)
-                else:
-                    _log_warning(response, _payload_list, self._api_event_type)
-
-            except requests.exceptions.RequestException as e:
-                if isinstance(e, requests.exceptions.Timeout):
-                    LOG.error(
-                        "The request to send %d bytes payload with %d %s records timed out after 5 minutes. (retry = %d)",
-                        sys.getsizeof(_payload_list),
-                        len(_payload_list),
-                        self._api_event_type,
-                        _retries,
-                    )
-                else:
-                    LOG.error(
-                        "An error occurred when sending %d bytes payload with %d %s records (retry = %d): %s",
-                        sys.getsizeof(_payload_list),
-                        len(_payload_list),
-                        self._api_event_type,
-                        _retries,
-                        e,
-                    )
-            finally:
-                if response is not None and response.status_code in self._ingest_retry_statuses:
-                    if _retries < self._max_retries:
-                        time.sleep(self._retry_delay_ms)
-                        events_count = __send(_payload_list, _retries + 1)
-                    else:
-                        LOG.warning(
-                            "Failed to send all %s data with %d (max=%d) attempts; last status code = %s",
-                            self._api_event_type,
-                            _retries,
-                            self._max_retries,
-                            response.status_code,
-                        )
-                        OtelManager.increase_current_fail_count(response)
-
-                elif response is not None and response.status_code >= 300:
-                    OtelManager.increase_current_fail_count(response)
-
-                OtelManager.verify_communication()
-
-            return events_count
-
-        def __split_payload(payload: List[Dict[str, Any]]) -> Generator[List[Dict[str, Any]], None, None]:
-            """Enables to iterate over "ingestible" chunks of events payload"""
-            current_chunk = []
-            current_size = 0
-            for event in payload:
-                event_size = sys.getsizeof(json.dumps(event))
-                if event_size > self._max_payload_bytes:
-                    LOG.warning(
-                        "%s records size %d exceeds max payload size %d, skipping event",
-                        self._api_event_type,
-                        event_size,
-                        self._max_payload_bytes,
-                    )
-                    continue
-                if current_size + event_size > self._max_payload_bytes or len(current_chunk) >= self._max_event_count:
-                    yield current_chunk
-                    current_chunk = []
-                    current_size = 0
-
-                current_chunk.append(event)
-                current_size += event_size
-
-            if current_chunk:
-                yield current_chunk
-
-        events_sent = 0
+        events_count = 0
 
         if payload is not None:
             self.PAYLOAD_CACHE += payload
 
         if payload is None or len(self.PAYLOAD_CACHE) >= self._max_event_count:
-            for events_chunk in __split_payload(self.PAYLOAD_CACHE):
-                events_sent += __send(events_chunk)
-            self.PAYLOAD_CACHE = []
+            collected_events_failed_to_send = []
+            for events_chunk in self._split_payload(self.PAYLOAD_CACHE):
+                events_sent, events_failed_to_send = self._send(events_chunk)
+                events_count += events_sent
+                collected_events_failed_to_send += events_failed_to_send
+            self.PAYLOAD_CACHE = collected_events_failed_to_send
 
-        return events_sent
+        return events_count
 
     def flush_events(self) -> int:
         """
@@ -262,29 +279,51 @@ class AbstractEvents(ABC):
         return self._send_events()
 
     @abstractmethod
-    def send_events(self, events: List[Dict[str, Any]], context: Optional[Dict[str, Any]] = None, **kwargs) -> bool:
+    def _pack_event_data(
+        self, event_type: Union[str, EventType], event_data: Dict[str, Any], context: Optional[Dict[str, Any]] = None, **kwargs
+    ) -> Dict[str, Any]:
+        """Packs given event data into payload accepted by Dynatrace Events API
+        Args:
+            event_type (str): Event type, e.g. EventType.CUSTOM_ALERT
+            event_data (Dict[str, Any]): Event data in form of dict
+            context (Optional[Dict[str, Any]]): Additional context to be added to event properties
+            **kwargs: Additional parameters, like title, start_time_key, end_time_key, additional_payload, timeout, or formatted_time
+        Returns:
+            Dict[str, Any]: Event payload in form accepted by Dynatrace BizEvents endpoint
+        """
+        raise NotImplementedError("This is an abstract method and should be implemented in child classes")
+
+    @abstractmethod
+    def send_events(
+        self,
+        events_data: List[Dict[str, Any]],
+        event_type: Optional[Union[str, EventType]] = None,
+        context: Optional[Dict[str, Any]] = None,
+        **kwargs,
+    ) -> bool:
         """Sends given list of events to Dynatrace via the chosen API.
 
         This is an abstract method that must be implemented in subclasses.
 
         Args:
             events (List): List of events data, each in form of dict
+            event_type (Optional[Union[str, EventType]], optional): Event type to report under. Defaults to None.
+            is_data_structured (bool, optional): Indicates whether the data in events_data is structured into a DSOA standardized dictionary. Defaults to True.
             context (Dict, optional): Additional information that should be appended to event data. Defaults to None.
             **kwargs: Additional keyword arguments to be processed by child classes
 
         Returns:
             int: Count of all events that went through (or were scheduled successfully); -1 indicates a problem
         """
-        return self._send_events([event | (context or {}) for event in events])
+        raise NotImplementedError("This is an abstract method and should be implemented in child classes")
 
     def report_via_api(
         self,
-        query_data: Union[List[Dict[str, Any]], Generator[Dict, None, None]],
-        event_type: Optional[Union[str, EventType]] = None,
+        query_data: Union[List[Dict[str, Any]], Generator[Dict, None, None], Dict[str, Any]],
+        event_type: Optional[Union[str, EventType]],
         *,
         is_data_structured: bool = True,
         context: Optional[Dict] = None,
-        additional_payload: Optional[dict] = None,
         **kwargs,
     ) -> int:
         """
@@ -305,13 +344,12 @@ class AbstractEvents(ABC):
         """
         from dtagent.util import _unpack_payload  # COMPILE_REMOVE
 
-        _event_type = {"event.type": str(event_type)} if event_type is not None else {}
-        _events = [
-            (_unpack_payload(query_datum) if is_data_structured else query_datum) | _event_type | (additional_payload or {})
-            for query_datum in query_data
-        ]
+        _event_data = [query_data] if isinstance(query_data, dict) else query_data
+        # unpacking only if data is structured; otherwise using as-is
+        if is_data_structured:
+            _event_data = [_unpack_payload(query_datum) for query_datum in _event_data]
 
-        return self.send_events(_events, context, **kwargs)
+        return self.send_events(_event_data, event_type, context, **kwargs)
 
 
 ##endregion
