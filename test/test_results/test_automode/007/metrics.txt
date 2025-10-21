@@ -1,0 +1,11 @@
+snowflake.data.rows,db.system="snowflake",service.name="test.dsoa2025",deployment.environment="TEST",host.name="test.dsoa2025.snowflakecomputing.com",db.collection.name="DTAGENT_DB.STATUS.PROCESSED_QUERIES_CACHE",db.namespace="DTAGENT_DB" 0 0
+#snowflake.data.rows gauge dt.meta.displayName="Row Count",dt.meta.unit="rows"
+snowflake.data.size,db.system="snowflake",service.name="test.dsoa2025",deployment.environment="TEST",host.name="test.dsoa2025.snowflakecomputing.com",db.collection.name="DTAGENT_DB.STATUS.PROCESSED_QUERIES_CACHE",db.namespace="DTAGENT_DB" 0 0
+#snowflake.data.size gauge dt.meta.displayName="Table Size in Bytes",dt.meta.unit="bytes"
+snowflake.table.time_since.last_ddl,db.system="snowflake",service.name="test.dsoa2025",deployment.environment="TEST",host.name="test.dsoa2025.snowflakecomputing.com",db.collection.name="DTAGENT_DB.STATUS.PROCESSED_QUERIES_CACHE",db.namespace="DTAGENT_DB" 4030 0
+#snowflake.table.time_since.last_ddl gauge dt.meta.displayName="Time Since Last DDL",dt.meta.unit="min"
+snowflake.table.time_since.last_update,db.system="snowflake",service.name="test.dsoa2025",deployment.environment="TEST",host.name="test.dsoa2025.snowflakecomputing.com",db.collection.name="DTAGENT_DB.STATUS.PROCESSED_QUERIES_CACHE",db.namespace="DTAGENT_DB" 46 0
+#snowflake.table.time_since.last_update gauge dt.meta.displayName="Time Since Last Update",dt.meta.unit="min"
+snowflake.data.rows,db.system="snowflake",service.name="test.dsoa2025",deployment.environment="TEST",host.name="test.dsoa2025.snowflakecomputing.com",db.collection.name="DEV_DB.PUBLIC.SALES",db.namespace="DEV_DB" 2 0
+snowflake.data.size,db.system="snowflake",service.name="test.dsoa2025",deployment.environment="TEST",host.name="test.dsoa2025.snowflakecomputing.com",db.collection.name="DEV_DB.PUBLIC.SALES",db.namespace="DEV_DB" 2048 0
+snowflake.table.time_since.last_update,db.system="snowflake",service.name="test.dsoa2025",deployment.environment="TEST",host.name="test.dsoa2025.snowflakecomputing.com",db.collection.name="DEV_DB.PUBLIC.SALES",db.namespace="DEV_DB" 405557 0

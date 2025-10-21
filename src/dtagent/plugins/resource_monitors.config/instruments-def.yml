@@ -110,7 +110,7 @@ metrics:
     snowflake.acceleration.scale_factor.max:
         __example: "2"
         __description: Maximal scale factor for query acceleration in the given warehouse
-        displayName: Query Acceleration Max Scale Factor
+        displayName: Query Acceleration Upper Limit Scale Factor
         unit: factor
     snowflake.compute.available:
         __example: "60"

@@ -1,6 +1,10 @@
 {
     "OTEL": {
         "MAX_CONSECUTIVE_API_FAILS": 10,
+        "LOGS": {
+            "EXPORT_TIMEOUT_MILLIS": 10000,
+            "MAX_EXPORT_BATCH_SIZE": 100
+        },
         "SPANS": {
             "EXPORT_TIMEOUT_MILLIS": 10000,
             "MAX_EXPORT_BATCH_SIZE": 50,

@@ -52,7 +52,7 @@ def _log_warning(response: requests.Response, _payload, source: str = "data") ->
         response.status_code,
         response.reason,
         response.text,
-        _payload,
+        str(_payload)[:100],
     )
 
 

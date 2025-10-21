@@ -95,7 +95,7 @@ metrics:
             - warehouse_usage_metering
         __example: "10"
         __description: The total number of credits used by the warehouse.
-        displayName: Total Credits Used
+        displayName: Snowflake Credits Used
         unit: credits
     snowflake.load.blocked:
         __context_names:

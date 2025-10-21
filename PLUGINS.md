@@ -51,6 +51,8 @@ fetch logs
 }
 ```
 
+If you have any concerns about getting correct results reported by this plugin, please refer to [Root Cause Analysis: Missing Long-Running Queries](docs/debug/active-queries-faq/readme.md).
+
 [Show semantics for this plugin](SEMANTICS.md#active_queries_semantics_sec)
 
 ### Active Queries default configuration

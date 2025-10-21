@@ -1,0 +1,21 @@
+[
+  {
+    "content": "telemetry_sender",
+    "data_update": 1731675389099000000,
+    "ddl": 1731436379508000000,
+    "snowflake.table.time_since.last_ddl": 4030,
+    "snowflake.table.time_since.last_update": 46,
+    "snowflake.table_type": "BASE TABLE",
+    "db.collection.name": "DTAGENT_DB.STATUS.PROCESSED_QUERIES_CACHE",
+    "db.namespace": "DTAGENT_DB",
+    "dsoa.run.context": "telemetry_sender"
+  },
+  {
+    "content": "New entry to STATUS.LOG_PROCESSED_MEASUREMENTS from telemetry_sender",
+    "entries": 1,
+    "log_lines": 1,
+    "metrics": 1,
+    "events": 2,
+    "dsoa.run.context": "self_monitoring"
+  }
+]

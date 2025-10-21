@@ -1,0 +1,56 @@
+[
+  {
+    "content": "Outbound share details for DATA_SCIENTIST_DEVEL_DS_CI360_SHARE",
+    "snowflake.grant.created_on": 1687246726499000000,
+    "snowflake.grant.by": "DEMIGOD",
+    "snowflake.grant.grantee": "DEVDYNATRACEDIGITALBUSINESSDW.DATA_SCIENTIST_DEVEL_DS_CI360_SHARE",
+    "snowflake.grant.on": "DATABASE",
+    "snowflake.grant.privilege": "USAGE",
+    "snowflake.grant.to": "SHARE",
+    "snowflake.share.is_secure_objects_only": true,
+    "snowflake.share.kind": "OUTBOUND",
+    "snowflake.share.owner": "DEMIGOD",
+    "snowflake.share.shared_from": "WMBJBCQ.DEVDYNATRACEDIGITALBUSINESSDW",
+    "snowflake.share.shared_to": "WMBJBCQ.CI360TESTACCOUNT",
+    "db.namespace": "DATA_SCIENTIST_DEV_DB",
+    "snowflake.grant.name": "DATA_SCIENTIST_DEV_DB",
+    "snowflake.share.name": "DATA_SCIENTIST_DEVEL_DS_CI360_SHARE",
+    "dsoa.run.context": "outbound_shares"
+  },
+  {
+    "content": "Outbound share details for DATA_SCIENTIST_DEVEL_DS_CI360_SHARE",
+    "snowflake.grant.created_on": 1668416468928000000,
+    "snowflake.grant.by": "INTEGRATION_CONSUMPTION_FORECASTING_ROLE",
+    "snowflake.grant.grantee": "DEVDYNATRACEDIGITALBUSINESSDW.DATA_SCIENTIST_DEVEL_DS_CI360_SHARE",
+    "snowflake.grant.on": "SCHEMA",
+    "snowflake.grant.privilege": "USAGE",
+    "snowflake.grant.to": "SHARE",
+    "snowflake.share.is_secure_objects_only": true,
+    "snowflake.share.kind": "OUTBOUND",
+    "snowflake.share.owner": "DEMIGOD",
+    "snowflake.share.shared_from": "WMBJBCQ.DEVDYNATRACEDIGITALBUSINESSDW",
+    "snowflake.share.shared_to": "WMBJBCQ.CI360TESTACCOUNT",
+    "db.namespace": "DATA_SCIENTIST_DEV_DB",
+    "snowflake.grant.name": "DATA_SCIENTIST_DEV_DB.ACCOUNT_EXPERIENCE",
+    "snowflake.share.name": "DATA_SCIENTIST_DEVEL_DS_CI360_SHARE",
+    "dsoa.run.context": "outbound_shares"
+  },
+  {
+    "content": "Inbound share details for BIET_MONITORING_SHARE",
+    "snowflake.share.has_details_reported": true,
+    "snowflake.share.kind": "INBOUND",
+    "snowflake.share.shared_from": "WMBJBCQ.CI360TESTACCOUNT",
+    "db.namespace": "CI360_SHARE_MONITORING_DB",
+    "snowflake.share.name": "BIET_MONITORING_SHARE",
+    "dsoa.run.context": "inbound_shares"
+  },
+  {
+    "content": "Inbound share details for BIET_MONITORING_SHARE",
+    "snowflake.share.has_details_reported": true,
+    "snowflake.share.kind": "INBOUND",
+    "snowflake.share.shared_from": "WMBJBCQ.DYNATRACEDIGITALBUSINESSDW",
+    "db.namespace": "DT_SHARE_MONITORING_DB",
+    "snowflake.share.name": "BIET_MONITORING_SHARE",
+    "dsoa.run.context": "inbound_shares"
+  }
+]

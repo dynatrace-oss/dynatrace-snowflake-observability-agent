@@ -175,7 +175,7 @@ class Plugin(ABC):
             context_name (str): name of the Plugin calling
             run_uuid (str): stringified uuid unique to run
             query_id_col_name (str): name of the column containing the query id. Defaults to QUERY_ID
-            parent_query_id_col_name (str): name of the column containing pareny query id. Defaults to PARENT_QUERY_ID
+            parent_query_id_col_name (str): name of the column containing parent query id. Defaults to PARENT_QUERY_ID
             log_completion (bool): indicator whether to log the completion of reporting the payload to DTAGENT_DB.STATUS.LOG_PROCESSED_MEASUREMENTS
             update_status (bool): indicator whether to log the processed ids to DTAGENT_DB.STATUS.UPDATE_PROCESSED_QUERIES
             f_log_events (Callable): function specifying how events should be logged. Only takes a single, unpacked row as param

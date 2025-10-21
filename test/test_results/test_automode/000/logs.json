@@ -1,0 +1,32 @@
+[
+  {
+    "content": "telemetry_sender",
+    "snowflake.table.update": 1736851468626000000,
+    "snowflake.data.rows": 6,
+    "snowflake.data.size": 1024,
+    "snowflake.table.time_since.last_update": 81983,
+    "snowflake.table.type": "BASE TABLE",
+    "db.collection.name": "DEV_DB.PUBLIC.SALESMANAGERREGIONS",
+    "db.namespace": "DEV_DB",
+    "dsoa.run.context": "telemetry_sender"
+  },
+  {
+    "content": "telemetry_sender",
+    "snowflake.table.ddl": 1733122324468000000,
+    "snowflake.table.update": 1741707972204000000,
+    "snowflake.table.time_since.last_ddl": 144135,
+    "snowflake.table.time_since.last_update": 1041,
+    "snowflake.table.type": "BASE TABLE",
+    "db.collection.name": "DTAGENT_DB.STATUS.PROCESSED_QUERIES_CACHE",
+    "db.namespace": "DTAGENT_DB",
+    "dsoa.run.context": "telemetry_sender"
+  },
+  {
+    "content": "New entry to STATUS.LOG_PROCESSED_MEASUREMENTS from telemetry_sender",
+    "entries": 2,
+    "log_lines": 2,
+    "metrics": 2,
+    "events": 3,
+    "dsoa.run.context": "self_monitoring"
+  }
+]

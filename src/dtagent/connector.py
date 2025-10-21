@@ -164,7 +164,9 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
             for row_dict in source:
                 yield row_dict
 
-    def send_data(self, source: Union[str, dict, list], exec_id: str = get_now_timestamp_formatted()) -> Tuple[int, int, int, int, int]:
+    def send_data(
+        self, source_data: Union[str, dict, list], exec_id: str = get_now_timestamp_formatted()
+    ) -> Tuple[int, int, int, int, int]:
         """Sends telemetry data from given source based on the parameters provided to the stored procedure
 
         Args:
@@ -180,7 +182,7 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
         entries_cnt, logs_cnt, metrics_cnt, events_cnt, bizevents_cnt, davis_events_cnt = (0, 0, 0, 0, 0, 0)
         if self._auto_mode:
             entries_cnt, logs_cnt, metrics_cnt, events_cnt = self._log_entries(
-                lambda: self._get_source_rows(source),
+                lambda: self._get_source_rows(source_data),
                 self.__context_name,
                 report_logs=self._send_logs,
                 report_metrics=self._send_metrics,
@@ -190,17 +192,20 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
             )
         else:
             if self._send_logs or self._send_davis_events:
-                for row_dict in self._get_source_rows(source):
+                for row_dict in self._get_source_rows(source_data):
                     from dtagent.util import _cleanup_dict  # COMPILE_REMOVE
 
                     processed_last_timestamp = row_dict.get("timestamp", None)
-                    event_dict = _cleanup_dict({"timestamp": processed_last_timestamp, **row_dict})
+                    _message = row_dict.get("_message", None)
+                    clean_dict = {
+                        k: v for k, v in _cleanup_dict({"timestamp": processed_last_timestamp, **row_dict}).items() if k != "_message"
+                    }
                     s_log_level = "INFO" if row_dict.get("status.code", "OK") == "OK" else "ERROR"
 
                     if self._send_logs:
                         self._logs.send_log(
-                            row_dict.get("_message", f"Log entry sent with {self.__context_name}"),
-                            extra=event_dict,
+                            message=_message or f"Log entry sent with {self.__context_name}",
+                            extra=clean_dict,
                             log_level=getattr(logging, s_log_level, logging.INFO),
                             context=self.__context,
                         )
@@ -209,9 +214,9 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
                     if self._send_davis_events:
                         try:
                             davis_events_cnt += self._davis_events.report_via_api(
-                                query_data=row_dict,
+                                query_data=clean_dict,
                                 event_type=(EventType[row_dict["event.type"]] if "event.type" in row_dict else EventType.CUSTOM_INFO),
-                                title=row_dict.get("_message", f"Log entry sent with {self.__context_name}"),
+                                title=_message or f"Event sent with {self.__context_name}",
                                 context=self.__context,
                             )
                         except ValueError as e:
@@ -222,7 +227,7 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
 
                     entries_cnt += 1
             else:
-                entries_cnt = sum(1 for _ in self._get_source_rows(source))
+                entries_cnt = sum(1 for _ in self._get_source_rows(source_data))
 
             if self._send_biz_events or self._send_events:
                 import itertools
@@ -253,11 +258,12 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
                     while chunk := list(itertools.islice(it, size)):
                         yield chunk
 
-                for chunk in __chunked_iterable(self._get_source_rows(source), chunk_size):
+                for chunk in __chunked_iterable(self._get_source_rows(source_data), chunk_size):
                     if self._send_biz_events:
                         bizevents_cnt += self._biz_events.report_via_api(
                             query_data=chunk,
                             event_type=EventType.CUSTOM_INFO,
+                            title=f"BizEvent sent with {self.__context_name}",
                             context=self.__context,
                             is_data_structured=False,
                         )
@@ -265,6 +271,7 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
                         events_cnt += self._events.report_via_api(
                             query_data=chunk,
                             event_type=EventType.CUSTOM_INFO,
+                            title=f"Event sent with {self.__context_name}",
                             context=self.__context,
                             is_data_structured=False,
                         )

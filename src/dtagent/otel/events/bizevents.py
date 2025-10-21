@@ -98,7 +98,7 @@ class BizEvents(AbstractEvents):
             # event data with bizevents specific extra info
             | _cleanup_data(
                 {
-                    "type": event_type,
+                    "type": str(event_data.get("event.type", event_type)),
                     "data": event_data | _event_extra,
                 }
             )

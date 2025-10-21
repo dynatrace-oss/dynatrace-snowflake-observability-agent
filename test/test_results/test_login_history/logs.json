@@ -1,0 +1,26 @@
+[
+  {
+    "content": "login_history",
+    "authentiacation.factor.first": "SAML2_ASSERTION",
+    "client.version": "1.22.1",
+    "event.id": 18260702004593906,
+    "status.code": "OK",
+    "client.ip": "82.177.196.146",
+    "client.type": "OTHER",
+    "db.user": "SEBASTIAN.KRUK",
+    "event.name": "LOGIN",
+    "dsoa.run.context": "login_history"
+  },
+  {
+    "content": "login_history",
+    "authentiacation.factor.first": "PASSWORD",
+    "client.version": "1.21.0",
+    "event.id": 18260702004595858,
+    "status.code": "OK",
+    "client.ip": "52.29.224.53",
+    "client.type": "OTHER",
+    "db.user": "SNOWAGENT_ADMIN",
+    "event.name": "LOGIN",
+    "dsoa.run.context": "login_history"
+  }
+]

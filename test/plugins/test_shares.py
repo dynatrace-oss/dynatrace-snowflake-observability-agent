@@ -22,12 +22,15 @@
 #
 #
 class TestShares:
+    import pytest
+
     PICKLES = {
         "APP.V_INBOUND_SHARE_TABLES": "test/test_data/inbound_shares.pkl",
         "APP.V_OUTBOUND_SHARE_TABLES": "test/test_data/outbound_shares.pkl",
         "APP.V_SHARE_EVENTS": "test/test_data/shares.pkl",
     }
 
+    @pytest.mark.xdist_group(name="test_telemetry")
     def test_shares(self):
         import logging
         from unittest.mock import patch
@@ -60,9 +63,7 @@ class TestShares:
         # ======================================================================
 
         session = _get_session()
-        utils._logging_findings(
-            session, TestDynatraceSnowAgent(session, utils.get_config()), "test_shares", logging.INFO, show_detailed_logs=0
-        )
+        utils._logging_findings(session, TestDynatraceSnowAgent(session, utils.get_config()), "test_shares", logging.INFO, False)
 
 
 if __name__ == "__main__":

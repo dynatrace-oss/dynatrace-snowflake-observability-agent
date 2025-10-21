@@ -22,8 +22,11 @@
 #
 #
 class TestQueryHist:
+    import pytest
+
     PICKLES = {"APP.V_RECENT_QUERIES": "test/test_data/recent_queries2.pkl"}
 
+    @pytest.mark.xdist_group(name="test_telemetry")
     def test_query_hist(self):
         import logging
         from unittest.mock import patch
@@ -89,9 +92,7 @@ class TestQueryHist:
 
         session = _get_session()
         # when sending spans log level cannot be set, hence "" to omit it in the utils
-        utils._logging_findings(
-            session, TestSpanDynatraceSnowAgent(session, utils.get_config()), "test_query_history", logging.INFO, show_detailed_logs=0
-        )
+        utils._logging_findings(session, TestSpanDynatraceSnowAgent(session, utils.get_config()), "test_query_history", logging.INFO, False)
 
 
 if __name__ == "__main__":
