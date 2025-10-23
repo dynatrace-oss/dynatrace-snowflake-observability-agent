@@ -44,9 +44,11 @@ process_files() {
   local src_file=$1
   local dest_file=$2
 
+  echo "# pylint: disable=W0404, W0105, C0302", C0412, C0413 > "$dest_file"
+
   gawk 'match($0, /[#]{2}INSERT (.+)/, a) {system("sed -e \"1,/##endregion COMPILE_REMOVE/d\" "a[1]); next } 1' "$src_file" |
     sed -e '/##region.* IMPORTS/,/##endregion COMPILE_REMOVE/d' |
-    grep -v '# COMPILE_REMOVE' >"$dest_file"
+    grep -v '# COMPILE_REMOVE' >> "$dest_file"
 
   if [[ "$OSTYPE" == "darwin"* ]]; then
     sed -i '' -e '/dtagent/!b' -e '/import/d' "$dest_file"

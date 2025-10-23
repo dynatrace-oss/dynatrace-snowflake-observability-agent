@@ -30,7 +30,7 @@ import json
 import os
 import re
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, Generator
 
 import pandas as pd
 
@@ -83,7 +83,7 @@ def _pack_values_to_json_strings(value: Any, level: int = 0, max_list_level: int
 
     Args:
         value (Any): The original value, which can be a dictionary, list, or other types.
-        max_list_level (int, default = 2): Maximum nesting level on which list elements will be parsed seperately.
+        max_list_level (int, default = 2): Maximum nesting level on which list elements will be parsed separately.
                                             If list is found further than this level, it will be stringified as a whole.
 
     Returns:
@@ -274,7 +274,7 @@ def _get_timestamp_in_sec(ts: float = 0, conversion_unit: float = 1, timezone=da
 
     Args:
         ts (float, optional): timestamp epoch value. Defaults to 0.
-        conversion_unit (float, optional): conversation unit, e.g., 1000 * 1000 * 1000 for nanosec to sec. Defaults to 1.
+        conversion_unit (float, optional): conversation unit, e.g., 1000 * 1000 * 1000 for nanoseconds to sec. Defaults to 1.
                                             If converting to nanoseconds it is recommended to use NANOSECOND_CONVERSION_RATE const.
         timezone (_type_, optional): timezone. Defaults to datetime.timezone.utc.
 
@@ -325,8 +325,35 @@ def _unpack_payload(query_data: Dict) -> Dict:
     return unpacked_payload
 
 
+def _chunked_iterable(iterable, size: int) -> Generator[List, None, None]:
+    """
+    Yields chunks of the given iterable, each of the specified size.
+
+    This function takes an iterable and divides it into smaller lists (chunks) of a given size.
+    It uses itertools.islice to efficiently slice the iterator without loading the entire iterable into memory.
+
+    Args:
+        iterable: An iterable object (e.g., list, tuple, generator) to be chunked.
+        size: An integer specifying the maximum size of each chunk. Must be positive.
+
+    Yields:
+        list: A list containing up to 'size' elements from the iterable. The last chunk may be smaller if the iterable's length is not divisible by 'size'.
+
+    Raises:
+        ValueError: If 'size' is not a positive integer.
+
+    Note:
+        This is a generator function, so it yields chunks lazily.
+    """
+    import itertools
+
+    it = iter(iterable)
+    while chunk := list(itertools.islice(it, size)):
+        yield chunk
+
+
 def get_timestamp_in_ms(query_data: Dict, ts_key: str, conversion_unit: int = 1e6, default_ts=None):
-    """Returns timestamp in miliseconds by converting value retrieved from query_data under given ts_key"""
+    """Returns timestamp in milliseconds by converting value retrieved from query_data under given ts_key"""
     ts = query_data.get(ts_key, None)
     if ts is not None and not pd.isna(ts):
         if isinstance(ts, datetime.datetime):

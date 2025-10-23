@@ -89,8 +89,8 @@ from opentelemetry import version as otel_version
 ##INSERT src/dtagent/otel/metrics.py
 ##INSERT src/dtagent/otel/logs.py
 ##INSERT src/dtagent/otel/events/__init__.py
-##INSERT src/dtagent/otel/events/davis.py
 ##INSERT src/dtagent/otel/events/generic.py
+##INSERT src/dtagent/otel/events/davis.py
 ##INSERT src/dtagent/otel/events/bizevents.py
 ##INSERT src/dtagent/plugins/__init__.py
 ##INSERT src/dtagent/__init__.py
@@ -230,35 +230,11 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
                 entries_cnt = sum(1 for _ in self._get_source_rows(source_data))
 
             if self._send_biz_events or self._send_events:
-                import itertools
+                from dtagent.util import _chunked_iterable  # COMPILE_REMOVE
 
                 chunk_size = 100
 
-                def __chunked_iterable(iterable, size) -> Generator[List, None, None]:
-                    """
-                    Yields chunks of the given iterable, each of the specified size.
-
-                    This function takes an iterable and divides it into smaller lists (chunks) of a given size.
-                    It uses itertools.islice to efficiently slice the iterator without loading the entire iterable into memory.
-
-                    Args:
-                        iterable: An iterable object (e.g., list, tuple, generator) to be chunked.
-                        size: An integer specifying the maximum size of each chunk. Must be positive.
-
-                    Yields:
-                        list: A list containing up to 'size' elements from the iterable. The last chunk may be smaller if the iterable's length is not divisible by 'size'.
-
-                    Raises:
-                        ValueError: If 'size' is not a positive integer.
-
-                    Note:
-                        This is a generator function, so it yields chunks lazily.
-                    """
-                    it = iter(iterable)
-                    while chunk := list(itertools.islice(it, size)):
-                        yield chunk
-
-                for chunk in __chunked_iterable(self._get_source_rows(source_data), chunk_size):
+                for chunk in _chunked_iterable(self._get_source_rows(source_data), chunk_size):
                     if self._send_biz_events:
                         bizevents_cnt += self._biz_events.report_via_api(
                             query_data=chunk,

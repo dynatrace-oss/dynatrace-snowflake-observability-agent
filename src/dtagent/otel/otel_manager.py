@@ -106,7 +106,7 @@ class CustomLoggingSession(requests.Session):
         response: requests.Response = super().send(request, **kwargs)
         if response.status_code >= 300:
             OtelManager.increase_current_fail_count(response)
-            _log_warning(response, response.request.body[:-100], source=response.url.rsplit("/", 1)[-1])
+            _log_warning(response, response.request.body, source=response.url.rsplit("/", 1)[-1])
         else:
             OtelManager.set_current_fail_count(0)
         return response

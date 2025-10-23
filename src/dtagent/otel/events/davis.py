@@ -149,8 +149,6 @@ class DavisEvents(GenericEvents):
         Yields:
             Generator[List[Dict[str, Any]], None, None]: generator of lists of events, each within allowed limits
         """
-        from dtagent import LL_TRACE, LOG  # COMPILE_REMOVE
-
         yield payload
 
 

@@ -41,8 +41,16 @@ def _gen_resource(config: Configuration) -> Resource:
     return Resource.create(attributes=config.get("resource.attributes"))
 
 
-def _log_warning(response: requests.Response, _payload, source: str = "data") -> None:
-    """Logs warning of problems while sending to DT"""
+def _log_warning(response: requests.Response, payload, source: str = "data", max_payload_length_reported: int = 100) -> None:
+    """
+    Logs a warning when sending data to Dynatrace fails.
+
+    Args:
+        response (requests.Response): The HTTP response object from the request.
+        payload: The payload that was attempted to be sent.
+        source (str): A string indicating the source of the data (default is "data").
+        max_payload_length_reported (int): Maximum length of the payload to include in the log
+    """
 
     from dtagent import LOG  # COMPILE_REMOVE
 
@@ -52,7 +60,7 @@ def _log_warning(response: requests.Response, _payload, source: str = "data") ->
         response.status_code,
         response.reason,
         response.text,
-        str(_payload)[:100],
+        str(payload)[:max_payload_length_reported],
     )
 
 
