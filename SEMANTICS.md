@@ -289,7 +289,7 @@ All telemetry delivered by this plugin is reported as `dsoa.run.context == "even
 
 | Identifier | Name | Unit | Description | Example |
 |------------|------|------|-------------|---------|
-| snowflake.&#8203;credits.&#8203;used | Credits Used for Event Table | credits | Number of credits billed for loading data into the event table during the START_TIME and END_TIME window. | 15 |
+| snowflake.&#8203;credits.&#8203;used | Snowflake Credits Used | credits | Number of credits billed for loading data into the event table during the START_TIME and END_TIME window. | 15 |
 | snowflake.&#8203;data.&#8203;ingested | Bytes Ingested for Event Table | bytes | Number of bytes of data loaded during the START_TIME and END_TIME window. | 10485760 |
 
 <a name="login_history_semantics_sec"></a>
@@ -443,7 +443,7 @@ All telemetry delivered by this plugin is reported as `dsoa.run.context == "quer
 | snowflake.&#8203;rows.&#8203;updated | Rows Updated | rows | Number of rows updated by the query. | 300 |
 | snowflake.&#8203;rows.&#8203;written_to_result | Rows Written to Result | rows | Number of rows written to a result object. For CREATE TABLE AS SELECT (CTAS) and all DML operations, this result is 1;. | 1 |
 | snowflake.&#8203;time.&#8203;child_queries_wait | Child Queries Wait Time | ms | Time (in milliseconds) to complete the cached lookup when calling a memoizable function. | 200 |
-| snowflake.&#8203;time.&#8203;compilation | Compilation Time | ms | Compilation time (in milliseconds) | 5000 |
+| snowflake.&#8203;time.&#8203;compilation | Query Compilation Time | ms | Compilation time (in milliseconds) | 5000 |
 | snowflake.&#8203;time.&#8203;execution | Execution Time | ms | Execution time (in milliseconds) | 100000 |
 | snowflake.&#8203;time.&#8203;fault_handling | Fault Handling Time | ms | Total execution time (in milliseconds) for query retries caused by errors that are not actionable. | 1500 |
 | snowflake.&#8203;time.&#8203;list_external_files | List External Files Time | ms | Time (in milliseconds) spent listing external files. | 300 |
@@ -498,7 +498,7 @@ All telemetry delivered by this plugin is reported as `dsoa.run.context == "reso
 
 | Identifier | Name | Unit | Description | Example |
 |------------|------|------|-------------|---------|
-| snowflake.&#8203;acceleration.&#8203;scale_factor.&#8203;max | Query Acceleration Max Scale Factor | factor | Maximal scale factor for query acceleration in the given warehouse | 2 |
+| snowflake.&#8203;acceleration.&#8203;scale_factor.&#8203;max | Query Acceleration Upper Limit Scale Factor | factor | Maximal scale factor for query acceleration in the given warehouse | 2 |
 | snowflake.&#8203;compute.&#8203;available | Percentage Available | percent | Percentage of available resources in given warehouse. | 60 |
 | snowflake.&#8203;compute.&#8203;other | Percentage Other | percent | Percentage of other resources in given warehouse | 10 |
 | snowflake.&#8203;compute.&#8203;provisioning | Percentage Provisioning | percent | Percentage of provisioning resources in given warehouse. | 20 |
@@ -647,7 +647,7 @@ This plugin delivers telemetry in multiple contexts. To filter by one of plugin'
 
 | Identifier | Name | Unit | Description | Example | Context Name |
 |------------|------|------|-------------|---------|--------------|
-| snowflake.&#8203;credits.&#8203;used | Serverless Tasks Credits Used | credits | Number of credits billed for serverless task usage during the START_TIME and END_TIME window. | 10 | serverless_tasks |
+| snowflake.&#8203;credits.&#8203;used | Snowflake Credits Used | credits | Number of credits billed for serverless task usage during the START_TIME and END_TIME window. | 10 | serverless_tasks |
 
 ### Event timestamps at the `Tasks` plugin
 
@@ -786,7 +786,7 @@ This plugin delivers telemetry in multiple contexts. To filter by one of plugin'
 |------------|------|------|-------------|---------|--------------|
 | snowflake.&#8203;credits.&#8203;cloud_services | Cloud Services Credits Used | credits | The number of credits used for cloud services. | 2 | warehouse_usage_metering |
 | snowflake.&#8203;credits.&#8203;compute | Compute Credits Used | credits | The number of credits used for compute. | 8 | warehouse_usage_metering |
-| snowflake.&#8203;credits.&#8203;used | Total Credits Used | credits | The total number of credits used by the warehouse. | 10 | warehouse_usage_metering |
+| snowflake.&#8203;credits.&#8203;used | Snowflake Credits Used | credits | The total number of credits used by the warehouse. | 10 | warehouse_usage_metering |
 | snowflake.&#8203;load.&#8203;blocked | Average Blocked Queries | count | The average number of queries blocked by a transaction lock. | 0 | warehouse_usage_load |
 | snowflake.&#8203;load.&#8203;queued.&#8203;overloaded | Average Queued Queries (Load) | count | The average number of queries queued due to load. | 2 | warehouse_usage_load |
 | snowflake.&#8203;load.&#8203;queued.&#8203;provisioning | Average Queued Queries (Provisioning) | count | The average number of queries queued due to provisioning. | 1 | warehouse_usage_load |
