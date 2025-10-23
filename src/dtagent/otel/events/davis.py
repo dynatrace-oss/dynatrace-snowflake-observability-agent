@@ -139,6 +139,27 @@ class DavisEvents(GenericEvents):
 
         return events_send, _payload_to_repeat
 
+    def _add_data_to_payload(self, payload: Dict[str, Any], event_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Adds given properties to event payload under 'properties' key
+        Args:
+            payload (Dict[str, Any]): Event payload in form of dict
+            event_data (Dict[str, Any]): Properties to be added to event payload
+        Returns:
+            Dict[str, Any]: Event payload with added event data
+        """
+
+        def __limit_to_api(properties: Dict[str, str]) -> Dict:
+            """Limit values to no longer than 4096 characters as per API documentation."""
+            for key in properties:
+                if isinstance(properties[key], str) and len(properties[key]) > 4096:
+                    properties[key] = properties[key][:4096]
+
+            return properties
+
+        payload["properties"] = __limit_to_api(event_data or {})
+        return payload
+
     def _split_payload(self, payload: List[Dict[str, Any]]) -> Generator[List[Dict[str, Any]], None, None]:
         """
         Overrides GenericEvents.__split_payload() as Events v2 API does not support sending multiple events at the same time,
