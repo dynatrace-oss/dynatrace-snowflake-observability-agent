@@ -1,0 +1,81 @@
+[
+  {
+    "specversion": "1.0",
+    "source": "test.dsoa2025.snowflakecomputing.com",
+    "type": "dsoa.bizevent",
+    "data": {
+      "test.bizevent.message": "Dynatrace Snowflake Observability Agent test event 123",
+      "app.bundle": "bizevents",
+      "app.id": "dynatrace.snowagent",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent"
+    }
+  },
+  {
+    "specversion": "1.0",
+    "source": "test.dsoa2025.snowflakecomputing.com",
+    "type": "dsoa.bizevent",
+    "data": {
+      "test.event.dtagent.number": 10,
+      "test.event.dtagent.text": "some text",
+      "test.event.dtagent.bool": true,
+      "app.bundle": "bizevents",
+      "app.id": "dynatrace.snowagent",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent"
+    }
+  },
+  {
+    "specversion": "1.0",
+    "source": "test.dsoa2025.snowflakecomputing.com",
+    "type": "CUSTOM_ANNOTATION",
+    "data": {
+      "test.event.dtagent.info": "timeout",
+      "event.type": "CUSTOM_ANNOTATION",
+      "app.bundle": "bizevents",
+      "app.id": "dynatrace.snowagent",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent"
+    }
+  },
+  {
+    "specversion": "1.0",
+    "source": "test.dsoa2025.snowflakecomputing.com",
+    "type": "dsoa.bizevent",
+    "data": {
+      "test.event.dtagent.info": "10 min in the past",
+      "app.bundle": "bizevents",
+      "app.id": "dynatrace.snowagent",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent"
+    }
+  },
+  {
+    "specversion": "1.0",
+    "source": "test.dsoa2025.snowflakecomputing.com",
+    "type": "dsoa.bizevent",
+    "data": {
+      "test.event.dtagent.info": "15 min in the future",
+      "test.event.dtagent.timeout": 15,
+      "app.bundle": "bizevents",
+      "app.id": "dynatrace.snowagent",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent"
+    }
+  }
+]

@@ -22,8 +22,11 @@
 #
 #
 class TestEventUsage:
+    import pytest
+
     PICKLES = {"APP.V_EVENT_USAGE_HISTORY": "test/test_data/event_usage.pkl"}
 
+    @pytest.mark.xdist_group(name="test_telemetry")
     def test_event_usage(self):
         import logging
         from unittest.mock import patch
@@ -52,9 +55,7 @@ class TestEventUsage:
         # ======================================================================
 
         session = _get_session()
-        utils._logging_findings(
-            session, TestDynatraceSnowAgent(session, utils.get_config()), "test_event_usage", logging.INFO, show_detailed_logs=0
-        )
+        utils._logging_findings(session, TestDynatraceSnowAgent(session, utils.get_config()), "test_event_usage", logging.INFO, False)
 
 
 if __name__ == "__main__":

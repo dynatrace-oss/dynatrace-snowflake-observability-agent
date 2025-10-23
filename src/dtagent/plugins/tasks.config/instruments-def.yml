@@ -231,5 +231,5 @@ metrics:
         __description:
             Number of credits billed for serverless task usage during the
             START_TIME and END_TIME window.
-        displayName: Serverless Tasks Credits Used
+        displayName: Snowflake Credits Used
         unit: credits

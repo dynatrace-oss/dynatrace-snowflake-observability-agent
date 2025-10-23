@@ -27,10 +27,12 @@ toml
 tzlocal
 #%DEV:
 streamlit
-snowflake-snowpark-python
+snowflake-snowpark-python==1.40.0
+snowflake-connector-python[secure-local-storage]
 opentelemetry-api==1.26.0
 opentelemetry-sdk==1.26.0
 opentelemetry-exporter-otlp-proto-http==1.26.0
+opentelemetry-proto==1.26.0
 snowflake-core==1.5.1
 uuid
 jsonstrip
@@ -40,7 +42,10 @@ inflect
 markdown2
 weasyprint
 pyyaml
+# github tests
 pylint
 flake8
-pylint
+black
+sqlfluff
+yamllint
 #%:DEV

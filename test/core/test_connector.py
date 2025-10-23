@@ -27,9 +27,9 @@ import logging
 from unittest.mock import patch
 
 from dtagent.util import get_now_timestamp, get_now_timestamp_formatted
-from test import _get_credentials, _get_session
-from test import _utils, side_effect_function
+from test import _get_session, _utils
 from test._utils import LocalTelemetrySender, read_clean_json_from_file, telemetry_test_sender
+from test._mocks.telemetry import MockTelemetryClient
 from snowflake import snowpark
 
 LOG = logging.getLogger("DTAGENT_TEST")
@@ -54,47 +54,34 @@ class TestTelemetrySender:
     * sending all data from a given (custom structure) view as logs, events, and bizevents
     """
 
-    @patch("dtagent.otel.otel_manager.CustomLoggingSession.send")
-    @patch("dtagent.otel.metrics.requests.post")
-    @patch("dtagent.otel.events.requests.post")
-    @patch("dtagent.otel.bizevents.requests.post")
-    def test_viewsend(self, mock_bizevents_post, mock_events_post, mock_metrics_post, mock_otel_post):
+    import pytest
+
+    @pytest.mark.xdist_group(name="test_telemetry")
+    def test_viewsend(self):  # ):
         import random
 
         rows_cnt = random.randint(10, 20)
-        mock_events_post.side_effect = side_effect_function
-        mock_bizevents_post.side_effect = side_effect_function
-        mock_metrics_post.side_effect = side_effect_function
-        mock_otel_post.side_effect = side_effect_function
-        mock_metrics_post.side_effect = side_effect_function
-        mock_otel_post.side_effect = side_effect_function
 
         session = _get_session()
         results = telemetry_test_sender(
             session,
             "APP.V_EVENT_LOG",
-            {"auto_mode": False, "logs": True, "events": True, "bizevents": True},
+            {"auto_mode": False, "logs": True, "events": True, "bizevents": True, "davis_events": True},
             limit_results=rows_cnt,
             config=_utils.get_config(),
         )
 
         assert results[0] == rows_cnt  # all
         assert results[1] == rows_cnt  # logs
-        assert results[-2] == rows_cnt  # events
-        assert results[-1] == rows_cnt  # bizevents
+        assert results[-3] == rows_cnt  # events
+        assert results[-2] == rows_cnt  # biz_events
+        assert results[-1] == rows_cnt  # davis_events
 
-    @patch("dtagent.otel.otel_manager.CustomLoggingSession.send")
-    @patch("dtagent.otel.metrics.requests.post")
-    @patch("dtagent.otel.events.requests.post")
-    @patch("dtagent.otel.bizevents.requests.post")
-    def test_large_view_send_as_be(self, mock_bizevents_post, mock_events_post, mock_metrics_post, mock_otel_post):
+    @pytest.mark.xdist_group(name="test_telemetry")
+    def test_large_view_send_as_be(self):
         import random
 
         rows_cnt = random.randint(410, 500)
-        mock_events_post.side_effect = side_effect_function
-        mock_bizevents_post.side_effect = side_effect_function
-        mock_metrics_post.side_effect = side_effect_function
-        mock_otel_post.side_effect = side_effect_function
 
         LOG.debug("We will send %s rows as BizEvents", rows_cnt)
 
@@ -105,24 +92,19 @@ class TestTelemetrySender:
             {"auto_mode": False, "logs": False, "events": False, "bizevents": True},
             limit_results=rows_cnt,
             config=_utils.get_config(),
+            test_source=None,  # we don to record tests with variable data size
         )
 
         LOG.debug("We have sent %d rows as BizEvents", results[-1])
 
         assert results[0] == rows_cnt  # all
         assert results[1] == 0  # logs
-        assert results[-2] == 0  # events
-        assert results[-1] == rows_cnt  # bizevents
+        assert results[-3] == 0  # events
+        assert results[-2] == rows_cnt  # bizevents
+        assert results[-1] == 0  # bizevents
 
-    @patch("dtagent.otel.otel_manager.CustomLoggingSession.send")
-    @patch("dtagent.otel.metrics.requests.post")
-    @patch("dtagent.otel.events.requests.post")
-    @patch("dtagent.otel.bizevents.requests.post")
-    def test_dtagent_bizevents(self, mock_bizevents_post, mock_events_post, mock_metrics_post, mock_otel_post):
-        mock_events_post.side_effect = side_effect_function
-        mock_bizevents_post.side_effect = side_effect_function
-        mock_metrics_post.side_effect = side_effect_function
-        mock_otel_post.side_effect = side_effect_function
+    @pytest.mark.xdist_group(name="test_telemetry")
+    def test_connector_bizevents(self):
         session = _get_session()
 
         sender = LocalTelemetrySender(
@@ -130,82 +112,111 @@ class TestTelemetrySender:
             {"auto_mode": False, "logs": False, "events": False, "bizevents": True},
             config=_utils.get_config(),
         )
-        results = sender.send_data(
-            [
-                {
-                    "event.provider": str(sender._configuration.get(context="resource.attributes", key="host.name")),
-                    "dsoa.task.exec.id": get_now_timestamp_formatted(),
-                    "dsoa.task.name": "test_events",
-                    "dsoa.task.exec.status": "FINISHED",
-                }
-            ]
-        )
-        sender.teardown()
+        data = [
+            {
+                "event.provider": str(sender._configuration.get(context="resource.attributes", key="host.name")),
+                "dsoa.task.exec.id": get_now_timestamp_formatted(),
+                "dsoa.task.name": "test_events",
+                "dsoa.task.exec.status": "FINISHED",
+            }
+        ]
+        mock_client = MockTelemetryClient("test_connector_bizevents")
+        with mock_client.mock_telemetry_sending():
+            results = sender.send_data(data)
+            sender._logs.shutdown_logger()
+            sender._spans.shutdown_tracer()
+        mock_client.store_or_test_results()
 
-        assert results[-1] == 1
+        assert results[-2] == 1
 
-    @patch("dtagent.otel.otel_manager.CustomLoggingSession.send")
-    @patch("dtagent.otel.metrics.requests.post")
-    @patch("dtagent.otel.events.requests.post")
-    @patch("dtagent.otel.bizevents.requests.post")
-    def test_automode(self, mock_bizevents_post, mock_events_post, mock_metrics_post, mock_otel_post):
-        mock_events_post.side_effect = side_effect_function
-        mock_bizevents_post.side_effect = side_effect_function
-        mock_metrics_post.side_effect = side_effect_function
-        mock_otel_post.side_effect = side_effect_function
+    @pytest.mark.xdist_group(name="test_telemetry")
+    def test_automode(self):
         session = _get_session()
 
         structured_test_data = read_clean_json_from_file("test/test_data/telemetry_structured.json")
         unstructured_test_data = read_clean_json_from_file("test/test_data/telemetry_unstructured.json")
 
+        # Results are (Count of objects, log lines, metrics, events, bizevents, and davis events sent)
+
         # sending all data from a given (standard structure) view
-        assert (2, 2, 2, 3, 0) == telemetry_test_sender(session, "APP.V_DATA_VOLUME", {}, config=_utils.get_config())
+        assert (2, 2, 2, 3, 0, 0) == telemetry_test_sender(
+            session, "APP.V_DATA_VOLUME", {}, config=_utils.get_config(), test_source="test_automode/000"
+        )
         # sending data from a given (standard structure) view, excluding metrics
-        assert (2, 2, 0, 3, 0) == telemetry_test_sender(session, "APP.V_DATA_VOLUME", {"metrics": False}, config=_utils.get_config())
+        assert (2, 2, 0, 3, 0, 0) == telemetry_test_sender(
+            session, "APP.V_DATA_VOLUME", {"metrics": False}, config=_utils.get_config(), test_source="test_automode/001"
+        )
         # sending data from a given (standard structure) view, excluding events
-        assert (2, 2, 2, 0, 0) == telemetry_test_sender(session, "APP.V_DATA_VOLUME", {"events": False}, config=_utils.get_config())
+        assert (2, 2, 2, 0, 0, 0) == telemetry_test_sender(
+            session, "APP.V_DATA_VOLUME", {"events": False}, config=_utils.get_config(), test_source="test_automode/002"
+        )
         # sending data from a given (standard structure) view, excluding logs
-        assert (2, 0, 2, 3, 0) == telemetry_test_sender(session, "APP.V_DATA_VOLUME", {"logs": False}, config=_utils.get_config())
+        assert (2, 0, 2, 3, 0, 0) == telemetry_test_sender(
+            session, "APP.V_DATA_VOLUME", {"logs": False}, config=_utils.get_config(), test_source="test_automode/003"
+        )
 
         # sending all data from a given (standard structure) object
-        assert (1, 1, 1, 2, 0) == telemetry_test_sender(session, structured_test_data[0], {}, config=_utils.get_config())
+        assert (1, 1, 1, 2, 0, 0) == telemetry_test_sender(
+            session, structured_test_data[0], {}, config=_utils.get_config(), test_source="test_automode/004"
+        )
         # sending all data from a given (standard structure) view
-        assert (2, 2, 2, 3, 0) == telemetry_test_sender(session, structured_test_data, {}, config=_utils.get_config())
+        assert (2, 2, 2, 3, 0, 0) == telemetry_test_sender(
+            session, structured_test_data, {}, config=_utils.get_config(), test_source="test_automode/005"
+        )
         # sending data from a given (standard structure) view, excluding metrics
-        assert (2, 2, 0, 3, 0) == telemetry_test_sender(session, structured_test_data, {"metrics": False}, config=_utils.get_config())
+        assert (2, 2, 0, 3, 0, 0) == telemetry_test_sender(
+            session, structured_test_data, {"metrics": False}, config=_utils.get_config(), test_source="test_automode/006"
+        )
         # sending data from a given (standard structure) view, excluding events
-        assert (2, 2, 2, 0, 0) == telemetry_test_sender(session, structured_test_data, {"events": False}, config=_utils.get_config())
+        assert (2, 2, 2, 0, 0, 0) == telemetry_test_sender(
+            session, structured_test_data, {"events": False}, config=_utils.get_config(), test_source="test_automode/007"
+        )
         # sending data from a given (standard structure) view, excluding logs
-        assert (2, 0, 2, 3, 0) == telemetry_test_sender(session, structured_test_data, {"logs": False}, config=_utils.get_config())
+        assert (2, 0, 2, 3, 0, 0) == telemetry_test_sender(
+            session, structured_test_data, {"logs": False}, config=_utils.get_config(), test_source="test_automode/008"
+        )
 
         # sending all data from a given (custom structure) view as logs
-        assert (3, 3, 0, 0, 0) == telemetry_test_sender(session, unstructured_test_data, {"auto_mode": False}, config=_utils.get_config())
+        assert (3, 3, 0, 0, 0, 0) == telemetry_test_sender(
+            session, unstructured_test_data, {"auto_mode": False}, config=_utils.get_config(), test_source="test_automode/009"
+        )
         # sending all data from a given (custom structure) view as events
-        assert (3, 0, 0, 3, 0) == telemetry_test_sender(
-            session, unstructured_test_data, {"auto_mode": False, "logs": False, "events": True}, config=_utils.get_config()
+        assert (3, 0, 0, 3, 0, 0) == telemetry_test_sender(
+            session,
+            unstructured_test_data,
+            {"auto_mode": False, "logs": False, "events": True},
+            config=_utils.get_config(),
+            test_source="test_automode/010",
         )
         # sending all data from a given (custom structure) view as bizevents
-        assert (3, 0, 0, 0, 3) == telemetry_test_sender(
-            session, unstructured_test_data, {"auto_mode": False, "logs": False, "bizevents": True}, config=_utils.get_config()
+        assert (3, 0, 0, 0, 3, 0) == telemetry_test_sender(
+            session,
+            unstructured_test_data,
+            {"auto_mode": False, "logs": False, "bizevents": True},
+            config=_utils.get_config(),
+            test_source="test_automode/011",
         )
         # sending all data from a given (custom structure) view as logs, events, and bizevents
-        assert (3, 3, 0, 3, 3) == telemetry_test_sender(
+        assert (3, 3, 0, 3, 3, 0) == telemetry_test_sender(
             session,
             unstructured_test_data,
             {"auto_mode": False, "logs": True, "events": True, "bizevents": True},
             config=_utils.get_config(),
+            test_source="test_automode/012",
         )
         # sending single data point from a given (custom structure) view as logs, events, and bizevents
-        assert (1, 1, 0, 1, 1) == telemetry_test_sender(
+        assert (1, 1, 0, 1, 1, 0) == telemetry_test_sender(
             session,
             unstructured_test_data[0],
             {"auto_mode": False, "logs": True, "events": True, "bizevents": True},
             config=_utils.get_config(),
+            test_source="test_automode/013",
         )
         # sending single data point from a given (custom structure) with datetime objects view as logs, events, and bizevents
-        assert (1, 1, 0, 1, 1) == telemetry_test_sender(
+        assert (1, 1, 0, 1, 1, 0) == telemetry_test_sender(
             session,
             unstructured_test_data[0] | {"observed_at": get_now_timestamp()},
             {"auto_mode": False, "logs": True, "events": True, "bizevents": True},
             config=_utils.get_config(),
+            test_source="test_automode/014",
         )

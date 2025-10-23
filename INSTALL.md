@@ -80,11 +80,14 @@ The `$file_prefix` parameter is optional and can take multiple values:
 
 You should store the Access Token for your Dynatrace tenant (to which you want to send telemetry from your environment) as the environment variable `DTAGENT_TOKEN`. The token should have the following scopes enabled:
 
-* `logs.ingest`
-* `metrics.ingest`
-* `events.ingest`
-* `bizevents.ingest`
-* `openTelemetryTrace.ingest`
+| Scope ID                    | Scope Name                   | Comment                      |
+|-----------------------------|------------------------------|------------------------------|
+| `logs.ingest`               | Ingest Logs                  |                              |
+| `metrics.ingest`            | Ingest Metrics               |                              |
+| `bizevents.ingest`          | Ingest BizEvents             |                              |
+| `openpipeline.events`       | OpenPipeline - Ingest Events |                              |
+| `openTelemetryTrace.ingest` | Ingest OpenTelemetry Traces  |                              |
+| `events.ingest`             | Ingest Events                | Not required version>=0.9.1  |
 
 We **strongly** recommend to ensure your token is not recorded in shell script history; please find an example how to define `DTAGENT_TOKEN` environment variable on Linux or WSL below:
 
@@ -98,6 +101,7 @@ If you do not set the `DTAGENT_TOKEN` environment variable, or if it does not co
 
 * The Dynatrace Snowflake Observability Agent deployment process **WILL NOT** send self-monitoring BizEvents to your Dynatrace tenant to mark the start and finish of the deployment process.
 * The deployment process *will not be able* to set `DTAGENT_API_KEY` when deploying the complete configuration (`./deploy.sh $config_name`) or when updating just the API key (`./deploy.sh $config_name apikey`). In these cases, **YOU WILL** be prompted to provide the correct `DTAGENT_TOKEN` value during deployment.
+* The deployment process *will not be able* to send BizEvents to your Dynatrace tenant to mark the start and finish of the deployment process.
 
 No additional objects need to be provided for the deployment process on the Snowflake side. Dynatrace Snowflake Observability Agent will build a database to store his information - `DTAGENT_DB` by default or `DTAGENT_{TAG}_DB` if tag is provided (see [Multitenancy](#multitenancy)).
 

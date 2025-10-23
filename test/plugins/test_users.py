@@ -22,6 +22,8 @@
 #
 #
 class TestUsers:
+    import pytest
+
     PICKLES = {
         "APP.V_USERS_INSTRUMENTED": "test/test_data/users_hist.pkl",
         "APP.V_USERS_ALL_PRIVILEGES_INSTRUMENTED": "test/test_data/users_all_privileges.pkl",
@@ -30,6 +32,7 @@ class TestUsers:
         "APP.V_USERS_REMOVED_DIRECT_ROLES_INSTRUMENTED": "test/test_data/users_roles_direct_removed.pkl",
     }
 
+    @pytest.mark.xdist_group(name="test_telemetry")
     def test_users(self):
 
         import logging
@@ -51,7 +54,9 @@ class TestUsers:
         class TestUsersPlugin(UsersPlugin):
 
             def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
-                return utils._safe_get_unpickled_entries(TestUsers.PICKLES, t_data, limit=2)
+                for r in utils._safe_get_unpickled_entries(TestUsers.PICKLES, t_data, limit=2):
+                    print(f"USER DATA at {t_data}: {r}")
+                    yield r
 
         def __local_get_plugin_class(source: str):
             return TestUsersPlugin
@@ -61,9 +66,7 @@ class TestUsers:
         # ======================================================================
 
         session = _get_session()
-        utils._logging_findings(
-            session, TestDynatraceSnowAgent(session, utils.get_config()), "test_users", logging.INFO, show_detailed_logs=0
-        )
+        utils._logging_findings(session, TestDynatraceSnowAgent(session, utils.get_config()), "test_users", logging.INFO, False)
 
 
 if __name__ == "__main__":

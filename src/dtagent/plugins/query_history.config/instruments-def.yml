@@ -406,7 +406,7 @@ metrics:
     snowflake.time.compilation:
         __example: "5000"
         __description: Compilation time (in milliseconds)
-        displayName: Compilation Time
+        displayName: Query Compilation Time
         unit: ms
     snowflake.time.execution:
         __example: "100000"

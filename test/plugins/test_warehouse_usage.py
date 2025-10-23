@@ -22,12 +22,15 @@
 #
 #
 class TestWhUsage:
+    import pytest
+
     PICKLES = {
         "APP.V_WAREHOUSE_EVENT_HISTORY": "test/test_data/wh_usage_events.pkl",
         "APP.V_WAREHOUSE_LOAD_HISTORY": "test/test_data/wh_usage_loads.pkl",
         "APP.V_WAREHOUSE_METERING_HISTORY": "test/test_data/wh_usage_metering.pkl",
     }
 
+    @pytest.mark.xdist_group(name="test_telemetry")
     def test_wh_usage(self):
         from dtagent.plugins.warehouse_usage import WarehouseUsagePlugin
         from dtagent import plugins
@@ -54,9 +57,7 @@ class TestWhUsage:
         # ======================================================================
 
         session = _get_session()
-        utils._logging_findings(
-            session, TestDynatraceSnowAgent(session, utils.get_config()), "test_warehouse_usage", logging.INFO, show_detailed_logs=1
-        )
+        utils._logging_findings(session, TestDynatraceSnowAgent(session, utils.get_config()), "test_warehouse_usage", logging.INFO, True)
 
 
 if __name__ == "__main__":

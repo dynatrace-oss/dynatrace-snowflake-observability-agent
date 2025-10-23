@@ -78,8 +78,10 @@ from opentelemetry import version as otel_version
 ##INSERT src/dtagent/otel/spans.py
 ##INSERT src/dtagent/otel/metrics.py
 ##INSERT src/dtagent/otel/logs.py
-##INSERT src/dtagent/otel/events.py
-##INSERT src/dtagent/otel/bizevents.py
+##INSERT src/dtagent/otel/events/__init__.py
+##INSERT src/dtagent/otel/events/generic.py
+##INSERT src/dtagent/otel/events/davis.py
+##INSERT src/dtagent/otel/events/bizevents.py
 ##INSERT src/dtagent/plugins/*.py
 ##INSERT src/dtagent/__init__.py
 
@@ -109,7 +111,7 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
             self.report_execution_status(status="STARTED", task_name=source, exec_id=exec_id)
 
             if is_regular_mode(self._session):
-                self._session.query_tag = f"dsoa.version:{ str(VERSION) }.plugin:{ c_source.__name__ }.{ exec_id }"
+                self._session.query_tag = f"dsoa.version:{str(VERSION)}.plugin:{c_source.__name__}.{exec_id}"
 
             if inspect.isclass(c_source):
                 #
@@ -123,7 +125,7 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
                         metrics=self._metrics,
                         configuration=self._configuration,
                         events=self._events,
-                        bizevents=self._bizevents,
+                        bizevents=self._biz_events,
                     ).process(run_proc)
                     #
                     self.report_execution_status(status="FINISHED", task_name=source, exec_id=exec_id)

@@ -22,12 +22,15 @@
 #
 #
 class TestEventLog:
+    import pytest
+
     PICKLES = {
         "APP.V_EVENT_LOG": "test/test_data/event_log.pkl",
         "APP.V_EVENT_LOG_METRICS_INSTRUMENTED": "test/test_data/event_log_metrics.pkl",
         "APP.V_EVENT_LOG_SPANS_INSTRUMENTED": "test/test_data/event_log_spans.pkl",
     }
 
+    @pytest.mark.xdist_group(name="test_telemetry")
     def test_event_log(self):
         import logging
         from unittest.mock import patch
@@ -58,9 +61,7 @@ class TestEventLog:
         # ======================================================================
 
         session = _get_session()
-        utils._logging_findings(
-            session, TestDynatraceSnowAgent(session, utils.get_config()), "test_event_log", logging.INFO, show_detailed_logs=0
-        )
+        utils._logging_findings(session, TestDynatraceSnowAgent(session, utils.get_config()), "test_event_log", logging.INFO, False)
 
 
 if __name__ == "__main__":

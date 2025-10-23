@@ -22,11 +22,14 @@
 #
 #
 class TestBudgets:
+    import pytest
+
     PICKLES = {
         "APP.V_BUDGET_DETAILS": "test/test_data/budgets.pkl",
         "APP.V_BUDGET_SPENDINGS": "test/test_data/budget_spendings.pkl",
     }
 
+    @pytest.mark.xdist_group(name="test_telemetry")
     def test_budgets(self):
         from unittest.mock import patch
         from typing import Dict, Generator
@@ -55,9 +58,7 @@ class TestBudgets:
         import logging
 
         session = _get_session()
-        utils._logging_findings(
-            session, TestDynatraceSnowAgent(session, utils.get_config()), "test_budget", logging.INFO, show_detailed_logs=0
-        )
+        utils._logging_findings(session, TestDynatraceSnowAgent(session, utils.get_config()), "test_budget", logging.INFO, False)
 
 
 if __name__ == "__main__":

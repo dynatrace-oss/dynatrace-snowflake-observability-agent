@@ -1,0 +1,125 @@
+[
+  {
+    "specversion": "1.0",
+    "source": "test.dsoa2025.snowflakecomputing.com",
+    "type": "dsoa.task",
+    "data": {
+      "event.provider": "test.dsoa2025.snowflakecomputing.com",
+      "dsoa.task.name": "telemetry_sender",
+      "dsoa.task.exec.status": "STARTED",
+      "app.bundle": "self-monitoring",
+      "app.id": "dynatrace.snowagent",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "dsoa.run.context": "self-monitoring"
+    }
+  },
+  {
+    "specversion": "1.0",
+    "source": "test.dsoa2025.snowflakecomputing.com",
+    "type": "CUSTOM_INFO",
+    "data": {
+      "status.code": "OK",
+      "_message": "This is a test object 1",
+      "value.int": 10,
+      "value.str": "test",
+      "value.bool": true,
+      "value.list": [
+        1,
+        2,
+        3
+      ],
+      "value.dict": {
+        "k": "v",
+        "k2": 2
+      },
+      "app.bundle": "telemetry_sender",
+      "app.id": "dynatrace.snowagent",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "dsoa.run.context": "telemetry_sender"
+    }
+  },
+  {
+    "specversion": "1.0",
+    "source": "test.dsoa2025.snowflakecomputing.com",
+    "type": "PERFORMANCE_EVENT",
+    "data": {
+      "status.code": "OK",
+      "_message": "This is a test object 2",
+      "event.type": "PERFORMANCE_EVENT",
+      "value.int": 10000000,
+      "value.str": "test 2",
+      "value.bool": false,
+      "value.list": [
+        1,
+        2
+      ],
+      "value.dict": {
+        "k": 1,
+        "k2": 2
+      },
+      "app.bundle": "telemetry_sender",
+      "app.id": "dynatrace.snowagent",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "dsoa.run.context": "telemetry_sender"
+    }
+  },
+  {
+    "specversion": "1.0",
+    "source": "test.dsoa2025.snowflakecomputing.com",
+    "type": "ERROR_EVENT",
+    "data": {
+      "status.code": "ERROR",
+      "event.type": "ERROR_EVENT",
+      "test.message": "This is a test object 3",
+      "value.int": -10,
+      "value.str": "error test",
+      "value.bool": null,
+      "value.list": [
+        1,
+        3
+      ],
+      "value.dict": {
+        "k": false,
+        "k2": true
+      },
+      "app.bundle": "telemetry_sender",
+      "app.id": "dynatrace.snowagent",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "dsoa.run.context": "telemetry_sender"
+    }
+  },
+  {
+    "specversion": "1.0",
+    "source": "test.dsoa2025.snowflakecomputing.com",
+    "type": "dsoa.task",
+    "data": {
+      "event.provider": "test.dsoa2025.snowflakecomputing.com",
+      "dsoa.task.name": "telemetry_sender",
+      "dsoa.task.exec.status": "FINISHED",
+      "app.bundle": "self-monitoring",
+      "app.id": "dynatrace.snowagent",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "dsoa.run.context": "self-monitoring"
+    }
+  }
+]

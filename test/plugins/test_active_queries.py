@@ -22,8 +22,11 @@
 #
 #
 class TestActiveQueries:
+    import pytest
+
     PICKLES = {"SELECT * FROM TABLE(DTAGENT_DB.APP.F_ACTIVE_QUERIES_INSTRUMENTED())": "test/test_data/active_queries.pkl"}
 
+    @pytest.mark.xdist_group(name="test_telemetry")
     def test_active_queries(self):
         import logging
         from unittest.mock import patch
@@ -52,9 +55,7 @@ class TestActiveQueries:
         # ======================================================================
         session = _get_session()
 
-        utils._logging_findings(
-            session, TestDynatraceSnowAgent(session, utils.get_config()), "test_active_queries", logging.DEBUG, show_detailed_logs=1
-        )
+        utils._logging_findings(session, TestDynatraceSnowAgent(session, utils.get_config()), "test_active_queries", logging.DEBUG, True)
 
 
 if __name__ == "__main__":

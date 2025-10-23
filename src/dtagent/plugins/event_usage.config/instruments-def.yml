@@ -20,7 +20,7 @@ metrics:
     __description:
       Number of credits billed for loading data into the event table
       during the START_TIME and END_TIME window.
-    displayName: Credits Used for Event Table
+    displayName: Snowflake Credits Used
     unit: credits
   snowflake.data.ingested:
     __example: "10485760"

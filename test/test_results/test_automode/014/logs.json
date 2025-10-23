@@ -1,0 +1,27 @@
+[
+  {
+    "content": "This is a test object 1",
+    "status.code": "OK",
+    "value.int": 10,
+    "value.str": "test",
+    "value.bool": true,
+    "value.list": [
+      1,
+      2,
+      3
+    ],
+    "value.dict": {
+      "k": "v",
+      "k2": 2
+    },
+    "dsoa.run.context": "telemetry_sender"
+  },
+  {
+    "content": "New entry to STATUS.LOG_PROCESSED_MEASUREMENTS from telemetry_sender",
+    "entries": 1,
+    "log_lines": 1,
+    "events": 1,
+    "biz_events": 1,
+    "dsoa.run.context": "self_monitoring"
+  }
+]

@@ -35,8 +35,9 @@ from dtagent.otel.logs import Logs
 from dtagent.otel.otel_manager import OtelManager
 from dtagent.otel.spans import Spans
 from dtagent.otel.metrics import Metrics
-from dtagent.otel.events import Events
-from dtagent.otel.bizevents import BizEvents
+from dtagent.otel.events.generic import GenericEvents
+from dtagent.otel.events.davis import DavisEvents
+from dtagent.otel.events.bizevents import BizEvents
 from dtagent.context import get_context_by_name
 from dtagent.util import get_now_timestamp_formatted, is_regular_mode
 
@@ -103,7 +104,8 @@ class AbstractDynatraceSnowAgentConnector:
             self._spans = self._get_spans(resource)
             self._metrics = self._get_metrics()
             self._events = self._get_events()
-            self._bizevents = self._get_bizevents()
+            self._davis_events = self._get_davis_events()
+            self._biz_events = self._get_biz_events()
             self._set_max_consecutive_fails()
 
     def _get_spans(self, resource: Resource) -> Spans:
@@ -118,11 +120,15 @@ class AbstractDynatraceSnowAgentConnector:
         """Returns new Metrics instance"""
         return Metrics(self._instruments, self._configuration)
 
-    def _get_events(self) -> Events:
+    def _get_events(self) -> GenericEvents:
         """Returns new Events instance"""
-        return Events(self._configuration)
+        return GenericEvents(self._configuration)
 
-    def _get_bizevents(self) -> BizEvents:
+    def _get_davis_events(self) -> DavisEvents:
+        """Returns new Events instance"""
+        return DavisEvents(self._configuration)
+
+    def _get_biz_events(self) -> BizEvents:
         """Returns new BizEvents instance"""
         return BizEvents(self._configuration)
 
@@ -144,13 +150,15 @@ class AbstractDynatraceSnowAgentConnector:
                 "dsoa.task.exec.status": str(status),
             }
 
-            self._bizevents.report_via_api(
-                context=get_context_by_name("self-monitoring"),
+            bizevents_sent = self._biz_events.report_via_api(
+                query_data=[data_dict | (details_dict or {})],
                 event_type="dsoa.task",
-                query_data=[data_dict if details_dict is None else data_dict | details_dict],
+                context=get_context_by_name("self-monitoring"),
                 is_data_structured=False,
             )
-            self._bizevents.flush_events()
+            bizevents_sent += self._biz_events.flush_events()
+            if bizevents_sent == 0:
+                LOG.warning("Unable to report task execution status via BizEvents: %s", str(data_dict))
 
     def _set_max_consecutive_fails(self):
         OtelManager.set_max_fail_count(self._configuration.get("max_consecutive_api_fails", context="otel", default_value=10))

@@ -22,8 +22,11 @@
 #
 #
 class TestDataSchemas:
+    import pytest
+
     PICKLES = {"APP.V_DATA_SCHEMAS": "test/test_data/data_schemas.pkl"}
 
+    @pytest.mark.xdist_group(name="test_telemetry")
     def test_data_schemas(self):
         from typing import Dict, Generator
         from dtagent.plugins.data_schemas import DataSchemasPlugin
@@ -50,9 +53,7 @@ class TestDataSchemas:
         import logging
 
         session = _get_session()
-        utils._logging_findings(
-            session, TestDynatraceSnowAgent(session, utils.get_config()), "test_data_schemas", logging.INFO, show_detailed_logs=0
-        )
+        utils._logging_findings(session, TestDynatraceSnowAgent(session, utils.get_config()), "test_data_schemas", logging.INFO, False)
 
 
 if __name__ == "__main__":

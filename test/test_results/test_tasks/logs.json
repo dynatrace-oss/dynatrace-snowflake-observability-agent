@@ -1,0 +1,32 @@
+[
+  {
+    "content": "New Tasks History entry for DTAGENT_DB",
+    "snowflake.task.graph.root_id": "01bb391a-b277-2d03-0000-000000000d2d",
+    "snowflake.task.graph.version": 2,
+    "snowflake.task.run.attempt": 1,
+    "snowflake.task.run.group_id": "484a88f5-af2d-4d24-9bea-f4adf7c23c1b",
+    "snowflake.task.run.id": 1745884800000,
+    "snowflake.task.run.scheduled_from": "SCHEDULE",
+    "snowflake.task.run.scheduled_time": "2025-04-29 00:00:00.000 Z",
+    "snowflake.task.run.state": "SCHEDULED",
+    "db.namespace": "DTAGENT_DB",
+    "snowflake.schema.name": "APP",
+    "snowflake.task.name": "TASK_DTAGENT_USERS",
+    "dsoa.run.context": "task_history"
+  },
+  {
+    "content": "New Tasks History entry for DTAGENT_DB",
+    "snowflake.task.graph.root_id": "01bb391a-0307-d549-0000-000000000d22",
+    "snowflake.task.graph.version": 2,
+    "snowflake.task.run.attempt": 1,
+    "snowflake.task.run.group_id": "b3a683bb-c10c-4ce6-b24d-5babf7c4dd79",
+    "snowflake.task.run.id": 1745869628961,
+    "snowflake.task.run.scheduled_from": "SCHEDULE",
+    "snowflake.task.run.scheduled_time": "2025-04-28 19:47:08.961 Z",
+    "snowflake.task.run.state": "SCHEDULED",
+    "db.namespace": "DTAGENT_DB",
+    "snowflake.schema.name": "APP",
+    "snowflake.task.name": "TASK_DTAGENT_DATA_SCHEMAS",
+    "dsoa.run.context": "task_history"
+  }
+]
