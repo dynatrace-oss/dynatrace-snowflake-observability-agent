@@ -6,6 +6,10 @@
             "EXCLUDE": [],
             "INCLUDE": [
                 "%"
+            ],
+            "TELEMETRY": [
+                "EVENTS",
+                "BIZ_EVENTS"
             ]
         }
     }

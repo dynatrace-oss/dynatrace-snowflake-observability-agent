@@ -9,6 +9,10 @@
             ],
             "INCLUDE": [
                 "%.%.%"
+            ],
+            "TELEMETRY": [
+                "LOGS",
+                "BIZ_EVENTS"
             ]
         }
     }
