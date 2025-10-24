@@ -131,7 +131,7 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
         # in case of auto-mode disabled we can send the source via generic events API
         self._send_events = self._params.get("events", self._auto_mode)
         # in case of auto-mode disabled we can send the source via Davis events API (slower)
-        self._send_davis_events = self._params.get("davis_events", False)
+        self._send_davis_events = next((self._params[key] for key in ["davis_events", "davis"] if key in self._params), False)
         # in case of auto-mode disabled we can send the source as bizevents
         self._send_biz_events = next((self._params[key] for key in ["biz_events", "bizevents"] if key in self._params), False)
 
@@ -217,6 +217,7 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
                                 query_data=clean_dict,
                                 event_type=(EventType[row_dict["event.type"]] if "event.type" in row_dict else EventType.CUSTOM_INFO),
                                 title=_message or f"Event sent with {self.__context_name}",
+                                is_data_structured=False,
                                 context=self.__context,
                             )
                         except ValueError as e:

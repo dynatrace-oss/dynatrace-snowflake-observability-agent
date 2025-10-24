@@ -58,7 +58,7 @@ Released on July 14, 2025.
 * **Enhanced Communication Handling**: Improved auto-detection of communication issues between Snowflake and Dynatrace, reducing time to wrap up processes that were unsuccessful in sending telemetry to Dynatrace.
 * **Optimized Deployment**: Monitoring grants are no longer granted during deployment time, reducing time to deploy the complete agent.
 * **Cost Optimization**: Tasks are now scheduled `USING CRON` to reduce costs of running the agent by saturating usage of warehouse time.
-* **Enhanced Deployment Script**: Improved interaction in `deploy.sh` when `DT_TOKEN` is not provided.
+* **Enhanced Deployment Script**: Improved interaction in `deploy.sh` when `DTAGENT_TOKEN` is not provided.
 
 ### Fixed in 0.8.3
 

@@ -67,6 +67,20 @@ class GenericEvents(AbstractEvents):
         """Initializes configuration's resources for events"""
         AbstractEvents.__init__(self, configuration, event_type=event_type)
 
+    def _add_data_to_payload(self, payload: Dict[str, Any], event_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Adds given event_data to event payload.
+        This is a separate method to allow overriding in child classes,
+        especially in DavisEvents where event data needs to be set under 'properties' key.
+        Args:
+            payload (Dict[str, Any]): Event payload in form of dict
+            event_data (Dict[str, Any]): Properties to be added to event payload
+        Returns:
+            Dict[str, Any]: Event payload with added event data
+        """
+        payload |= event_data
+        return payload
+
     def _pack_event_data(
         self, event_type: Union[str, EventType], event_data: Dict[str, Any], context: Optional[Dict[str, Any]] = None, **kwargs
     ) -> Dict[str, Any]:
@@ -81,14 +95,6 @@ class GenericEvents(AbstractEvents):
             Dict[str, Any]: Event payload in form accepted by Dynatrace Events API
         """
         from dtagent.util import _cleanup_dict, _pack_values_to_json_strings, _unpack_payload  # COMPILE_REMOVE
-
-        def __limit_to_api(properties: Dict[str, str]) -> Dict:
-            """Limit values to no longer than 4096 characters"""
-            for key in properties:
-                if isinstance(properties[key], str) and len(properties[key]) > 4096:
-                    properties[key] = properties[key][:4096]
-
-            return properties
 
         title = (
             str(event_data.get("_MESSAGE", ""))
@@ -110,15 +116,15 @@ class GenericEvents(AbstractEvents):
         if isinstance(event_type, EventType) and event_type not in EventType:
             raise ValueError(f"{event_type} is not a valid EventType value")
 
-        event_payload = {
-            "eventType": str(event_data.get("event.type", event_type)),
-            "title": title,
-            "properties": __limit_to_api(
-                _pack_values_to_json_strings(
-                    _cleanup_dict(event_data_extended or {}) | (self._resource_attributes or {}) | (context or {}), max_list_level=1
-                )
+        event_payload = self._add_data_to_payload(
+            {
+                "eventType": str(event_data.get("event.type", event_type)),
+                "title": title,
+            },
+            _pack_values_to_json_strings(
+                _cleanup_dict(event_data_extended or {}) | (self._resource_attributes or {}) | (context or {}), max_list_level=1
             ),
-        }
+        )
 
         if kwargs.get("timeout", None) is not None and kwargs.get("timeout", None) <= 360:  # max available timeout 6h
             event_payload["timeout"] = kwargs.get("timeout", None)

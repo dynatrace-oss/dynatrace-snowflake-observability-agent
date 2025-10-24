@@ -181,10 +181,10 @@ class TestTelemetrySender:
             session, unstructured_test_data, {"auto_mode": False}, config=_utils.get_config(), test_source="test_automode/009"
         )
         # sending all data from a given (custom structure) view as events
-        assert (3, 0, 0, 3, 0, 0) == telemetry_test_sender(
+        assert (3, 0, 0, 3, 0, 3) == telemetry_test_sender(
             session,
             unstructured_test_data,
-            {"auto_mode": False, "logs": False, "events": True},
+            {"auto_mode": False, "logs": False, "events": True, "davis_events": True},
             config=_utils.get_config(),
             test_source="test_automode/010",
         )
