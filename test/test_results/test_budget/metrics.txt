@@ -1,2 +1,2 @@
-snowflake.credits.limit,db.system="snowflake",service.name="test.dsoa2025",deployment.environment="TEST",host.name="test.dsoa2025.snowflakecomputing.com",db.namespace="DTAGENT_DB",snowflake.budget.name="DTAGENT_BUDGET",snowflake.schema.name="APP" 10
+snowflake.credits.limit,db.system="snowflake",service.name="test.dsoa2025",deployment.environment="TEST",host.name="test.dsoa2025.snowflakecomputing.com",dsoa.run.context="budgets",db.namespace="DTAGENT_DB",snowflake.budget.name="DTAGENT_BUDGET",snowflake.schema.name="APP" 10
 #snowflake.credits.limit gauge dt.meta.displayName="Budget Spending Limit",dt.meta.unit="credits"

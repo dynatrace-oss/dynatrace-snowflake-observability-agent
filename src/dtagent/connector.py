@@ -111,13 +111,13 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
         """
         Initialization for TelemetrySender class.
         """
-        from dtagent.context import get_context_by_name  # COMPILE_REMOVE
+        from dtagent.context import get_context_name_and_run_id  # COMPILE_REMOVE
 
         Plugin.__init__(self, session=session)
         AbstractDynatraceSnowAgentConnector.__init__(self, session)
 
         self.__context_name = "telemetry_sender"
-        self.__context = get_context_by_name(self.__context_name)
+        self.__context = get_context_name_and_run_id(self.__context_name)
 
         self._params = params or {}
         # if not turned off we expect that data delivered in source follows Dynatrace Snowflake Observability Agent data structure

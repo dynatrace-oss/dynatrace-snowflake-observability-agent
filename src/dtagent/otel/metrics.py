@@ -136,11 +136,12 @@ class Metrics:
         """
         return self._send_metrics()
 
-    def report_via_metrics_api(self, query_data: Dict, start_time: str = "START_TIME") -> bool:
+    def report_via_metrics_api(self, query_data: Dict, start_time: str = "START_TIME", context_name: Optional[str] = None) -> bool:
         """
         Generates payload with Metrics v2 API
         """
         from dtagent import LOG, LL_TRACE  # COMPILE_REMOVE
+        from dtagent.context import get_context_name  # COMPILE_REMOVE
         from dtagent.util import _unpack_json_dict, _esc, _check_timestamp_ms, _is_not_blank  # COMPILE_REMOVE
 
         local_metrics_def = _unpack_json_dict(query_data, ["_INSTRUMENTS_DEF"])
@@ -191,7 +192,7 @@ class Metrics:
 
         payload_lines = []
         # list all dimensions with their values from the provided data
-        all_dimensions = {**self._resattr_dims, **_unpack_json_dict(query_data, ["DIMENSIONS"])}
+        all_dimensions = {**self._resattr_dims, **get_context_name(context_name), **_unpack_json_dict(query_data, ["DIMENSIONS"])}
         LOG.log(LL_TRACE, "all_dimensions = %r", all_dimensions)
 
         # prepare dimensions for metrics
@@ -209,13 +210,13 @@ class Metrics:
 
         return self._send_metrics(payload)
 
-    def discover_report_metrics(self, query_data: Dict, start_time: str = "START_TIME") -> bool:
+    def discover_report_metrics(self, query_data: Dict, start_time: str = "START_TIME", context_name: Optional[str] = None) -> bool:
         """
         Checks if METRICS section is defined in query data, returns false if not
         otherwise reports metrics and returns result of report_via_metrics_api
         """
         if "METRICS" in query_data:
-            return self.report_via_metrics_api(query_data, start_time)
+            return self.report_via_metrics_api(query_data, start_time, context_name=context_name)
         return False
 
 

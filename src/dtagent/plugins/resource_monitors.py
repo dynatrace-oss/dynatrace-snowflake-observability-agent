@@ -32,7 +32,7 @@ from typing import Tuple
 from snowflake.snowpark.functions import current_timestamp
 from dtagent.util import _unpack_json_dict
 from dtagent.plugins import Plugin
-from dtagent.context import get_context_by_name
+from dtagent.context import get_context_name_and_run_id
 from dtagent.otel.events import EventType
 
 ##endregion COMPILE_REMOVE
@@ -126,7 +126,7 @@ class ResourceMonitorsPlugin(Plugin):
             self._logs.send_log(
                 "There is no ACCOUNT level resource monitor setup",
                 log_level=logging.ERROR,
-                context=get_context_by_name(context_name, run_id),
+                context=get_context_name_and_run_id(context_name, run_id),
             )
 
         _, _, processed_wh, _ = self._log_entries(

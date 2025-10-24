@@ -24,7 +24,7 @@
 from unittest.mock import patch
 
 from dtagent.otel.events import EventType
-from dtagent.context import get_context_by_name
+from dtagent.context import get_context_name_and_run_id
 from dtagent.util import get_now_timestamp, get_now_timestamp_formatted
 from test._utils import get_config
 from test._mocks.telemetry import MockTelemetryClient
@@ -127,7 +127,7 @@ class TestEvents:
                     additional_payload={
                         "test.event.dtagent.info": "15 min in the future",
                     },
-                    context=get_context_by_name("data_volume"),
+                    context=get_context_name_and_run_id("data_volume"),
                     end_time=fifteen_minutes_from_now_ms,
                 )
                 assert events_sent + events.flush_events() >= 0
@@ -228,7 +228,7 @@ class TestEvents:
             events_sent = bizevents.report_via_api(
                 query_data=_utils._get_unpickled_entries(PICKLE_NAME, limit=2),
                 event_type=str(EventType.CUSTOM_INFO),
-                context=get_context_by_name("data_volume"),
+                context=get_context_name_and_run_id("data_volume"),
             )
 
             events_sent += bizevents.flush_events()
@@ -242,7 +242,7 @@ class TestEvents:
             bizevents = self._dtagent._get_biz_events()
 
             cnt = bizevents.report_via_api(
-                context=get_context_by_name("self-monitoring"),
+                context=get_context_name_and_run_id("self-monitoring"),
                 event_type="dsoa.task",
                 query_data=[
                     {

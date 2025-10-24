@@ -38,7 +38,7 @@ from dtagent.otel.metrics import Metrics
 from dtagent.otel.events.generic import GenericEvents
 from dtagent.otel.events.davis import DavisEvents
 from dtagent.otel.events.bizevents import BizEvents
-from dtagent.context import get_context_by_name
+from dtagent.context import get_context_name_and_run_id
 from dtagent.util import get_now_timestamp_formatted, is_regular_mode
 
 ##endregion COMPILE_REMOVE
@@ -153,7 +153,7 @@ class AbstractDynatraceSnowAgentConnector:
             bizevents_sent = self._biz_events.report_via_api(
                 query_data=[data_dict | (details_dict or {})],
                 event_type="dsoa.task",
-                context=get_context_by_name("self-monitoring"),
+                context=get_context_name_and_run_id("self-monitoring"),
                 is_data_structured=False,
             )
             bizevents_sent += self._biz_events.flush_events()

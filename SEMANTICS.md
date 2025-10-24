@@ -26,6 +26,7 @@
 | db.&#8203;system | The database management system (DBMS) product being used. It is always 'snowflake' | snowflake |
 | deployment.&#8203;environment | The deployment environment, e.g., production, staging, or development. | PROD |
 | deployment.&#8203;environment.&#8203;tag | Optional tag for the deployment environment in multitenancy mode | SA080 |
+| dsoa.&#8203;run.&#8203;context | The name of the Dynatrace Snowflake Observability Agent plugin (or part of plugin) used to produce the telemetry (logs, traces, metrics, or events). | query_history |
 | host.&#8203;name | The name of the host. | mysnowflake.us-east-1.snowflakecomputing.com |
 | service.&#8203;name | The name of the service. | mysnowflake.us-east-1 |
 | telemetry.&#8203;exporter.&#8203;name | The name of the telemetry exporter. It is always 'dynatrace.snowagent' | dynatrace.snowagent |
@@ -35,7 +36,6 @@
 
 | Identifier | Description | Example |
 |------------|-------------|---------|
-| dsoa.&#8203;run.&#8203;context | The name of the Dynatrace Snowflake Observability Agent plugin (or part of plugin) used to produce the telemetry (logs, traces, metrics, or events). | query_history |
 | dsoa.&#8203;run.&#8203;id | Unique ID of each execution of the Dynatrace Snowflake Observability Agent plugin. It can be used to differentiate between telemetry produced between two executions, e.g., to calculate the change in the system. | 4aa7c76c-e98c-4b8b-a5b3-a8a721bbde2d |
 | snowflake.&#8203;event.&#8203;type | Type of (timestamp based) event | snowflake.table.update |
 
