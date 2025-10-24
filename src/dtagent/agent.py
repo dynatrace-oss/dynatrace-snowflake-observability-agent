@@ -102,6 +102,11 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
         from dtagent import LOG
 
         results: dict = {}
+
+        telemetry_allowed = set(
+            [k for k, v in self._configuration.get(key="OTEL", default_value={}) if not isinstance(v, dict) and v.get("IS_DISABLED", False)]
+        )
+
         for source in sources:
             from dtagent.plugins import _get_plugin_class  # COMPILE_REMOVE
 
@@ -113,6 +118,11 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
             if is_regular_mode(self._session):
                 self._session.query_tag = f"dsoa.version:{str(VERSION)}.plugin:{c_source.__name__}.{exec_id}"
 
+            plugin_telemetry_allowed = (
+                set(self._configuration.get(plugin_name=source, key="TELEMETRY", default_value=["LOGS,SPANS,METRICS,EVENTS,BIZ_EVENTS"]))
+                & telemetry_allowed
+            )
+
             if inspect.isclass(c_source):
                 #
                 # running the plugin
@@ -120,12 +130,12 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
                 try:
                     results[source] = c_source(
                         session=self._session,
-                        logs=self._logs,
-                        spans=self._spans,
-                        metrics=self._metrics,
                         configuration=self._configuration,
-                        events=self._events,
-                        bizevents=self._biz_events,
+                        logs=self._logs if "LOGS" in plugin_telemetry_allowed else None,
+                        spans=self._spans if "SPANS" in plugin_telemetry_allowed else None,
+                        metrics=self._metrics if "METRICS" in plugin_telemetry_allowed else None,
+                        events=self._events if "EVENTS" in plugin_telemetry_allowed else None,
+                        bizevents=self._biz_events if "BIZ_EVENTS" in plugin_telemetry_allowed else None,
                     ).process(run_proc)
                     #
                     self.report_execution_status(status="FINISHED", task_name=source, exec_id=exec_id)
