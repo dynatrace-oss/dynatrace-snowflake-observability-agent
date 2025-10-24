@@ -11,7 +11,7 @@
     "value.int": 10,
     "value.list": "[1, \"2\", 3]",
     "value.str": "test",
-    "dsoa.run.context": "telemetry_sender",
+    "dsoa.run.context": "test_automode/013",
     "eventType": "CUSTOM_INFO",
     "title": "This is a test object 1"
   }

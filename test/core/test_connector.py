@@ -66,7 +66,7 @@ class TestTelemetrySender:
         results = telemetry_test_sender(
             session,
             "APP.V_EVENT_LOG",
-            {"auto_mode": False, "logs": True, "events": True, "bizevents": True, "davis_events": True},
+            {"auto_mode": False, "context": "test_viewsend", "logs": True, "events": True, "bizevents": True, "davis_events": True},
             limit_results=rows_cnt,
             config=_utils.get_config(),
         )
@@ -89,7 +89,7 @@ class TestTelemetrySender:
         results = telemetry_test_sender(
             session,
             "APP.V_EVENT_LOG",
-            {"auto_mode": False, "logs": False, "events": False, "bizevents": True},
+            {"auto_mode": False, "context": "test_large_view_send_as_be", "logs": False, "events": False, "bizevents": True},
             limit_results=rows_cnt,
             config=_utils.get_config(),
             test_source=None,  # we don to record tests with variable data size
@@ -140,51 +140,91 @@ class TestTelemetrySender:
 
         # sending all data from a given (standard structure) view
         assert (2, 2, 2, 3, 0, 0) == telemetry_test_sender(
-            session, "APP.V_DATA_VOLUME", {}, config=_utils.get_config(), test_source="test_automode/000"
+            session,
+            "APP.V_DATA_VOLUME",
+            {"context": "test_automode/000"},
+            config=_utils.get_config(),
+            test_source="test_automode/000",
         )
         # sending data from a given (standard structure) view, excluding metrics
         assert (2, 2, 0, 3, 0, 0) == telemetry_test_sender(
-            session, "APP.V_DATA_VOLUME", {"metrics": False}, config=_utils.get_config(), test_source="test_automode/001"
+            session,
+            "APP.V_DATA_VOLUME",
+            {"context": "test_automode/001", "metrics": False},
+            config=_utils.get_config(),
+            test_source="test_automode/001",
         )
         # sending data from a given (standard structure) view, excluding events
         assert (2, 2, 2, 0, 0, 0) == telemetry_test_sender(
-            session, "APP.V_DATA_VOLUME", {"events": False}, config=_utils.get_config(), test_source="test_automode/002"
+            session,
+            "APP.V_DATA_VOLUME",
+            {"context": "test_automode/002", "events": False},
+            config=_utils.get_config(),
+            test_source="test_automode/002",
         )
         # sending data from a given (standard structure) view, excluding logs
         assert (2, 0, 2, 3, 0, 0) == telemetry_test_sender(
-            session, "APP.V_DATA_VOLUME", {"logs": False}, config=_utils.get_config(), test_source="test_automode/003"
+            session,
+            "APP.V_DATA_VOLUME",
+            {"context": "test_automode/003", "logs": False},
+            config=_utils.get_config(),
+            test_source="test_automode/003",
         )
 
         # sending all data from a given (standard structure) object
         assert (1, 1, 1, 2, 0, 0) == telemetry_test_sender(
-            session, structured_test_data[0], {}, config=_utils.get_config(), test_source="test_automode/004"
+            session,
+            structured_test_data[0],
+            {"context": "test_automode/004"},
+            config=_utils.get_config(),
+            test_source="test_automode/004",
         )
         # sending all data from a given (standard structure) view
         assert (2, 2, 2, 3, 0, 0) == telemetry_test_sender(
-            session, structured_test_data, {}, config=_utils.get_config(), test_source="test_automode/005"
+            session,
+            structured_test_data,
+            {"context": "test_automode/005"},
+            config=_utils.get_config(),
+            test_source="test_automode/005",
         )
         # sending data from a given (standard structure) view, excluding metrics
         assert (2, 2, 0, 3, 0, 0) == telemetry_test_sender(
-            session, structured_test_data, {"metrics": False}, config=_utils.get_config(), test_source="test_automode/006"
+            session,
+            structured_test_data,
+            {"context": "test_automode/006", "metrics": False},
+            config=_utils.get_config(),
+            test_source="test_automode/006",
         )
         # sending data from a given (standard structure) view, excluding events
         assert (2, 2, 2, 0, 0, 0) == telemetry_test_sender(
-            session, structured_test_data, {"events": False}, config=_utils.get_config(), test_source="test_automode/007"
+            session,
+            structured_test_data,
+            {"context": "test_automode/007", "events": False},
+            config=_utils.get_config(),
+            test_source="test_automode/007",
         )
         # sending data from a given (standard structure) view, excluding logs
         assert (2, 0, 2, 3, 0, 0) == telemetry_test_sender(
-            session, structured_test_data, {"logs": False}, config=_utils.get_config(), test_source="test_automode/008"
+            session,
+            structured_test_data,
+            {"context": "test_automode/008", "logs": False},
+            config=_utils.get_config(),
+            test_source="test_automode/008",
         )
 
         # sending all data from a given (custom structure) view as logs
         assert (3, 3, 0, 0, 0, 0) == telemetry_test_sender(
-            session, unstructured_test_data, {"auto_mode": False}, config=_utils.get_config(), test_source="test_automode/009"
+            session,
+            unstructured_test_data,
+            {"context": "test_automode/009", "auto_mode": False},
+            config=_utils.get_config(),
+            test_source="test_automode/009",
         )
         # sending all data from a given (custom structure) view as events
         assert (3, 0, 0, 3, 0, 3) == telemetry_test_sender(
             session,
             unstructured_test_data,
-            {"auto_mode": False, "logs": False, "events": True, "davis_events": True},
+            {"context": "test_automode/010", "auto_mode": False, "logs": False, "events": True, "davis_events": True},
             config=_utils.get_config(),
             test_source="test_automode/010",
         )
@@ -192,7 +232,7 @@ class TestTelemetrySender:
         assert (3, 0, 0, 0, 3, 0) == telemetry_test_sender(
             session,
             unstructured_test_data,
-            {"auto_mode": False, "logs": False, "bizevents": True},
+            {"context": "test_automode/011", "auto_mode": False, "logs": False, "bizevents": True},
             config=_utils.get_config(),
             test_source="test_automode/011",
         )
@@ -200,7 +240,7 @@ class TestTelemetrySender:
         assert (3, 3, 0, 3, 3, 0) == telemetry_test_sender(
             session,
             unstructured_test_data,
-            {"auto_mode": False, "logs": True, "events": True, "bizevents": True},
+            {"context": "test_automode/012", "auto_mode": False, "logs": True, "events": True, "bizevents": True},
             config=_utils.get_config(),
             test_source="test_automode/012",
         )
@@ -208,7 +248,7 @@ class TestTelemetrySender:
         assert (1, 1, 0, 1, 1, 0) == telemetry_test_sender(
             session,
             unstructured_test_data[0],
-            {"auto_mode": False, "logs": True, "events": True, "bizevents": True},
+            {"context": "test_automode/013", "auto_mode": False, "logs": True, "events": True, "bizevents": True},
             config=_utils.get_config(),
             test_source="test_automode/013",
         )
@@ -216,7 +256,7 @@ class TestTelemetrySender:
         assert (1, 1, 0, 1, 1, 0) == telemetry_test_sender(
             session,
             unstructured_test_data[0] | {"observed_at": get_now_timestamp()},
-            {"auto_mode": False, "logs": True, "events": True, "bizevents": True},
+            {"context": "test_automode/014", "auto_mode": False, "logs": True, "events": True, "bizevents": True},
             config=_utils.get_config(),
             test_source="test_automode/014",
         )

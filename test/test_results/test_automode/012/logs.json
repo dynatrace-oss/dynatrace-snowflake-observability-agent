@@ -14,7 +14,7 @@
       "k": "v",
       "k2": 2
     },
-    "dsoa.run.context": "telemetry_sender"
+    "dsoa.run.context": "test_automode/012"
   },
   {
     "content": "This is a test object 2",
@@ -30,10 +30,10 @@
       "k": 1,
       "k2": 2
     },
-    "dsoa.run.context": "telemetry_sender"
+    "dsoa.run.context": "test_automode/012"
   },
   {
-    "content": "Log entry sent with telemetry_sender",
+    "content": "Log entry sent with test_automode/012",
     "status.code": "ERROR",
     "event.type": "ERROR_EVENT",
     "test.message": "This is a test object 3",
@@ -47,10 +47,10 @@
       "k": false,
       "k2": true
     },
-    "dsoa.run.context": "telemetry_sender"
+    "dsoa.run.context": "test_automode/012"
   },
   {
-    "content": "New entry to STATUS.LOG_PROCESSED_MEASUREMENTS from telemetry_sender",
+    "content": "New entry to STATUS.LOG_PROCESSED_MEASUREMENTS from test_automode/012",
     "entries": 3,
     "log_lines": 3,
     "events": 3,
