@@ -5,7 +5,7 @@
     "type": "dsoa.task",
     "data": {
       "event.provider": "test.dsoa2025.snowflakecomputing.com",
-      "dsoa.task.name": "telemetry_sender",
+      "dsoa.task.name": "test_automode/014",
       "dsoa.task.exec.status": "STARTED",
       "app.bundle": "self-monitoring",
       "app.id": "dynatrace.snowagent",
@@ -36,14 +36,14 @@
         "k": "v",
         "k2": 2
       },
-      "app.bundle": "telemetry_sender",
+      "app.bundle": "test_automode/014",
       "app.id": "dynatrace.snowagent",
       "db.system": "snowflake",
       "service.name": "test.dsoa2025",
       "deployment.environment": "TEST",
       "host.name": "test.dsoa2025.snowflakecomputing.com",
       "telemetry.exporter.name": "dynatrace.snowagent",
-      "dsoa.run.context": "telemetry_sender"
+      "dsoa.run.context": "test_automode/014"
     }
   },
   {
@@ -52,7 +52,7 @@
     "type": "dsoa.task",
     "data": {
       "event.provider": "test.dsoa2025.snowflakecomputing.com",
-      "dsoa.task.name": "telemetry_sender",
+      "dsoa.task.name": "test_automode/014",
       "dsoa.task.exec.status": "FINISHED",
       "app.bundle": "self-monitoring",
       "app.id": "dynatrace.snowagent",

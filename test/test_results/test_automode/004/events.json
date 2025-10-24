@@ -15,7 +15,7 @@
     "deployment.environment": "TEST",
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
-    "dsoa.run.context": "telemetry_sender",
+    "dsoa.run.context": "test_automode/004",
     "eventType": "CUSTOM_INFO",
     "title": "Table event data_update."
   },
@@ -35,7 +35,7 @@
     "deployment.environment": "TEST",
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
-    "dsoa.run.context": "telemetry_sender",
+    "dsoa.run.context": "test_automode/004",
     "eventType": "CUSTOM_INFO",
     "title": "Table event ddl."
   }

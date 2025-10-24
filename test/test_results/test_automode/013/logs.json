@@ -14,10 +14,10 @@
       "k": "v",
       "k2": 2
     },
-    "dsoa.run.context": "telemetry_sender"
+    "dsoa.run.context": "test_automode/013"
   },
   {
-    "content": "New entry to STATUS.LOG_PROCESSED_MEASUREMENTS from telemetry_sender",
+    "content": "New entry to STATUS.LOG_PROCESSED_MEASUREMENTS from test_automode/013",
     "entries": 1,
     "log_lines": 1,
     "events": 1,
