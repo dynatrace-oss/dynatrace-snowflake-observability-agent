@@ -158,6 +158,14 @@
     "markdown.extension.toc.orderedList": false,
     "markdown.extension.toc.slugifyMode": "github",
     "markdown.extension.list.indentationSize": "inherit",
+    "[markdown]": {
+        "editor.defaultFormatter": "yzhang.markdown-all-in-one",
+        "editor.formatOnSave": true,
+        "editor.detectIndentation": false,
+        "editor.indentSize": "tabSize",
+        "editor.tabSize": 2,
+        "editor.wordWrap": "on"
+    },
     "[shellscript]": {
         "editor.defaultFormatter": "foxundermoon.shell-format"
     },

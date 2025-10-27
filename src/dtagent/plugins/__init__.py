@@ -53,7 +53,7 @@ from dtagent.otel.events.bizevents import BizEvents
 from dtagent.otel.logs import Logs
 from dtagent.otel.spans import Spans
 from dtagent.otel.metrics import Metrics
-from dtagent.context import CONTEXT_NAME, get_context_by_name
+from dtagent.context import CONTEXT_NAME, get_context_name_and_run_id
 
 ##endregion COMPILE_REMOVE
 
@@ -129,7 +129,7 @@ class Plugin(ABC):
             yield row_dict
 
     def _report_execution(self, measurements_source: str, last_timestamp, last_id, entries_count: dict):
-        __context = get_context_by_name("self_monitoring")
+        __context = get_context_name_and_run_id("self_monitoring")
 
         # we cannot use last timestamp when sending logs to DT, because when it is set to snowpark.current_timestamp, the value is taken from a snowflake table
         # for DT it would look like 'Column[current_timestamp]'
@@ -192,7 +192,7 @@ class Plugin(ABC):
         processing_errors: list[str] = []
         span_events_added = 0
 
-        __context = get_context_by_name(context_name, run_uuid)
+        __context = get_context_name_and_run_id(context_name, run_uuid)
 
         for row_dict in f_entry_generator():
             query_id = row_dict.get(query_id_col_name, None)
@@ -284,7 +284,7 @@ class Plugin(ABC):
         row_id = row.get(row_id_col, None)
         LOG.log(LL_TRACE, "Processing row with id = %s", row_id)
 
-        if not self._metrics.report_via_metrics_api(row):
+        if not self._metrics.report_via_metrics_api(row, context_name=context.get(CONTEXT_NAME, None)):
             processing_errors.append(f"Problem sending row {row_id} as metric")
 
         span_events_added = 0
@@ -423,7 +423,7 @@ class Plugin(ABC):
         if f_event_timestamp_payload_prepare is None:
             f_event_timestamp_payload_prepare = self.prepare_timestamp_event
 
-        __context = get_context_by_name(context_name, run_uuid)
+        __context = get_context_name_and_run_id(context_name, run_uuid)
 
         self.processed_last_timestamp = None
         processed_entries_cnt = 0
@@ -435,7 +435,7 @@ class Plugin(ABC):
 
         for row_dict in f_entry_generator():
 
-            if report_metrics and self._metrics.discover_report_metrics(row_dict, start_time):
+            if report_metrics and self._metrics.discover_report_metrics(row_dict, start_time, context_name):
                 processed_metrics_cnt += 1
 
             self.processed_last_timestamp = row_dict.get("TIMESTAMP", None)

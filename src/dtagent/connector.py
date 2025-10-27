@@ -111,13 +111,10 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
         """
         Initialization for TelemetrySender class.
         """
-        from dtagent.context import get_context_by_name  # COMPILE_REMOVE
+        from dtagent.context import get_context_name_and_run_id  # COMPILE_REMOVE
 
         Plugin.__init__(self, session=session)
         AbstractDynatraceSnowAgentConnector.__init__(self, session)
-
-        self.__context_name = "telemetry_sender"
-        self.__context = get_context_by_name(self.__context_name)
 
         self._params = params or {}
         # if not turned off we expect that data delivered in source follows Dynatrace Snowflake Observability Agent data structure
@@ -134,6 +131,9 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
         self._send_davis_events = next((self._params[key] for key in ["davis_events", "davis"] if key in self._params), False)
         # in case of auto-mode disabled we can send the source as bizevents
         self._send_biz_events = next((self._params[key] for key in ["biz_events", "bizevents"] if key in self._params), False)
+
+        self.__context_name = self._params.get("context", "telemetry_sender")
+        self.__context = get_context_name_and_run_id(self.__context_name)
 
     def process(self, run_proc: bool = True) -> None:
         """we don't use it but Plugin marks it as abstract"""
@@ -177,7 +177,7 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
         """
         from dtagent.otel.events import EventType  # COMPILE_REMOVE
 
-        self.report_execution_status(status="STARTED", task_name="telemetry_sender", exec_id=exec_id)
+        self.report_execution_status(status="STARTED", task_name=self.__context_name, exec_id=exec_id)
 
         entries_cnt, logs_cnt, metrics_cnt, events_cnt, bizevents_cnt, davis_events_cnt = (0, 0, 0, 0, 0, 0)
         if self._auto_mode:
@@ -223,7 +223,7 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
                         except ValueError as e:
                             from dtagent import LOG  # COMPILE_REMOVE
 
-                            self.report_execution_status(status="FAILED", task_name="telemetry_sender", exec_id=exec_id)
+                            self.report_execution_status(status="FAILED", task_name=self.__context_name, exec_id=exec_id)
                             LOG.error("Could not send event due to %s", e)
 
                     entries_cnt += 1
@@ -258,7 +258,7 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
             if self._send_davis_events:
                 davis_events_cnt += self._davis_events.flush_events()
 
-        self.report_execution_status(status="FINISHED", task_name="telemetry_sender", exec_id=exec_id)
+        self.report_execution_status(status="FINISHED", task_name=self.__context_name, exec_id=exec_id)
 
         self._report_execution(
             self.__context_name,

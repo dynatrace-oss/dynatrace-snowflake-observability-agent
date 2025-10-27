@@ -33,7 +33,7 @@ CONTEXT_NAME = "dsoa.run.context"
 RUN_ID_NAME = "dsoa.run.id"
 
 
-def get_context_by_name(context_name: str, run_id: Optional[str] = None) -> Dict[str, str]:
+def get_context_name_and_run_id(context_name: str, run_id: Optional[str] = None) -> Dict[str, str]:
     """Generates the complete context dictionary based on the given name and optional run ID"""
     import uuid
 
@@ -41,3 +41,8 @@ def get_context_by_name(context_name: str, run_id: Optional[str] = None) -> Dict
         CONTEXT_NAME: context_name,
         RUN_ID_NAME: run_id or str(uuid.uuid4().hex),
     }
+
+
+def get_context_name(context_name: Optional[str] = None) -> Dict[str, str]:
+    """Generates the context dictionary based on the given context name if provided, otherwise returns empty dict"""
+    return {CONTEXT_NAME: context_name} if context_name else {}

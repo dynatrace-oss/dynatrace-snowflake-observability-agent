@@ -103,10 +103,10 @@ class TestDocumentation:
         missing_sql_listed = "\n".join([f'{data["type"]}: {data["name"]} [{data["source"]}] [{data["plugin"]}]' for data in missing_sql])
         assert not missing_sql, f"We have documentation for fields not reported in telemetry:\n {missing_sql_listed}"
 
-        found_core_attribute = [
-            entry for entry in semantics if entry["name"] == context.CONTEXT_NAME and entry["plugin"] == "" and entry["type"] == "attribute"
+        found_core_dimension = [
+            entry for entry in semantics if entry["name"] == context.CONTEXT_NAME and entry["plugin"] == "" and entry["type"] == "dimension"
         ]
-        assert found_core_attribute, f"Did not find core attribute <{context.CONTEXT_NAME}>"
+        assert found_core_dimension, f"Did not find core dimension <{context.CONTEXT_NAME}>"
 
         core_dimensions = set(Configuration.RESOURCE_ATTRIBUTES.keys())
         found_core_dimensions = set(

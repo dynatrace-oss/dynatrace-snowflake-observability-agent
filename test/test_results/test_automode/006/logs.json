@@ -1,6 +1,6 @@
 [
   {
-    "content": "telemetry_sender",
+    "content": "test_automode/006",
     "data_update": 1731675389099000000,
     "ddl": 1731436379508000000,
     "snowflake.table.time_since.last_ddl": 4030,
@@ -8,10 +8,10 @@
     "snowflake.table_type": "BASE TABLE",
     "db.collection.name": "DTAGENT_DB.STATUS.PROCESSED_QUERIES_CACHE",
     "db.namespace": "DTAGENT_DB",
-    "dsoa.run.context": "telemetry_sender"
+    "dsoa.run.context": "test_automode/006"
   },
   {
-    "content": "telemetry_sender",
+    "content": "test_automode/006",
     "data_update": 1707344711267000000,
     "snowflake.data.rows": 2,
     "snowflake.data.size": 2048,
@@ -19,10 +19,10 @@
     "snowflake.table_type": "BASE TABLE",
     "db.collection.name": "DEV_DB.PUBLIC.SALES",
     "db.namespace": "DEV_DB",
-    "dsoa.run.context": "telemetry_sender"
+    "dsoa.run.context": "test_automode/006"
   },
   {
-    "content": "New entry to STATUS.LOG_PROCESSED_MEASUREMENTS from telemetry_sender",
+    "content": "New entry to STATUS.LOG_PROCESSED_MEASUREMENTS from test_automode/006",
     "entries": 2,
     "log_lines": 2,
     "events": 3,

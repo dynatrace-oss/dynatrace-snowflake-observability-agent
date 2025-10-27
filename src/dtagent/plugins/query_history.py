@@ -37,7 +37,7 @@ from dtagent.util import (
     _pack_values_to_json_strings,
 )
 from dtagent.plugins import Plugin
-from dtagent.context import get_context_by_name
+from dtagent.context import get_context_name_and_run_id
 
 ##endregion COMPILE_REMOVE
 
@@ -58,7 +58,7 @@ class QueryHistoryPlugin(Plugin):
             - number of problems
             - number of span events created
         """
-        __context = get_context_by_name("query_history")
+        __context = get_context_name_and_run_id("query_history")
 
         def __get_query_operator_event_name(operator: Dict) -> str:
             """Returns string with query operator event."""
