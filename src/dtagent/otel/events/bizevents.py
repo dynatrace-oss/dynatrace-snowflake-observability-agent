@@ -111,7 +111,7 @@ class BizEvents(AbstractEvents):
         event_type: Optional[Union[str, EventType]] = "dsoa.bizevent",
         context: Optional[Dict[str, Any]] = None,
         **kwargs
-    ) -> bool:
+    ) -> int:
         """Sends give list of events (in dict form) as CloudEvents to Dynatrace BizEvents endpoint
 
         Args:

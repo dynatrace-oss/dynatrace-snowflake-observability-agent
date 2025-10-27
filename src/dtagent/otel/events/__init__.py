@@ -300,7 +300,7 @@ class AbstractEvents(ABC):
         event_type: Optional[Union[str, EventType]] = None,
         context: Optional[Dict[str, Any]] = None,
         **kwargs,
-    ) -> bool:
+    ) -> int:
         """Sends given list of events to Dynatrace via the chosen API.
 
         This is an abstract method that must be implemented in subclasses.

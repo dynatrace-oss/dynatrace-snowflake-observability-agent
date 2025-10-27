@@ -26,6 +26,7 @@
 #
 
 import requests
+from typing import Any
 from opentelemetry.sdk.resources import Resource
 from opentelemetry import version as otel_version
 from dtagent.config import Configuration
@@ -62,6 +63,44 @@ def _log_warning(response: requests.Response, payload, source: str = "data", max
         response.text,
         str(payload)[:max_payload_length_reported],
     )
+
+
+class NoOpTelemetry:
+    """A no-operation telemetry class used when telemetry is disabled."""
+
+    def __getattr__(self, name):
+
+        def __void_method(*args, **kwargs):
+            """Dummy method that will not do anything or return anything"""
+            pass
+
+        def __int_method(*args, **kwargs):
+            """Dummy method that will not do anything and return 0"""
+            return 0
+
+        def __bool_method(*args, **kwargs):
+            """Dummy method that will not do anything and return False"""
+            return False
+
+        def _not_implemented(*args, **kwargs):
+            """In case a method is not implemented, log it."""
+            from dtagent import LOG  # COMPILE_REMOVE
+
+            LOG.warning(f"Method '{name}' is not implemented in NoOpTelemetry.")
+
+        if name in ("send_log", "flush_logs", "shutdown_logger", "shutdown_tracer", "flush_metrics"):
+            return __void_method
+
+        if name in ("generate_span", "flush_events", "send_events", "report_via_api"):
+            return __int_method
+
+        if name in ("flush_traces", "report_via_metrics_api", "discover_report_metrics"):
+            return __bool_method
+
+        return _not_implemented
+
+
+NO_OP_TELEMETRY = NoOpTelemetry()
 
 
 IS_OTEL_BELOW_1_21 = otel_version.__version__ < "1.21.0"

@@ -99,13 +99,10 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
         """Starts plugins specified in sources executions"""
         # --- processing measurement sources
         import inspect
-        from dtagent import LOG
+        from dtagent import LOG  # COMPILE_REMOVE
+        from dtagent.otel import NO_OP_TELEMETRY  # COMPILE_REMOVE
 
         results: dict = {}
-
-        telemetry_allowed = set(
-            [k for k, v in self._configuration.get(key="OTEL", default_value={}) if not isinstance(v, dict) and v.get("IS_DISABLED", False)]
-        )
 
         for source in sources:
             from dtagent.plugins import _get_plugin_class  # COMPILE_REMOVE
@@ -119,8 +116,12 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
                 self._session.query_tag = f"dsoa.version:{str(VERSION)}.plugin:{c_source.__name__}.{exec_id}"
 
             plugin_telemetry_allowed = (
-                set(self._configuration.get(plugin_name=source, key="TELEMETRY", default_value=["LOGS,SPANS,METRICS,EVENTS,BIZ_EVENTS"]))
-                & telemetry_allowed
+                set(
+                    self._configuration.get(
+                        plugin_name=source, key="TELEMETRY", default_value=["logs", "spans", "metrics", "events", "biz_events"]
+                    )
+                )
+                & self.telemetry_allowed
             )
 
             if inspect.isclass(c_source):
@@ -131,11 +132,11 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
                     results[source] = c_source(
                         session=self._session,
                         configuration=self._configuration,
-                        logs=self._logs if "LOGS" in plugin_telemetry_allowed else None,
-                        spans=self._spans if "SPANS" in plugin_telemetry_allowed else None,
-                        metrics=self._metrics if "METRICS" in plugin_telemetry_allowed else None,
-                        events=self._events if "EVENTS" in plugin_telemetry_allowed else None,
-                        bizevents=self._biz_events if "BIZ_EVENTS" in plugin_telemetry_allowed else None,
+                        logs=self._logs if "logs" in plugin_telemetry_allowed else NO_OP_TELEMETRY,
+                        spans=self._spans if "spans" in plugin_telemetry_allowed else NO_OP_TELEMETRY,
+                        metrics=self._metrics if "metrics" in plugin_telemetry_allowed else NO_OP_TELEMETRY,
+                        events=self._events if "events" in plugin_telemetry_allowed else NO_OP_TELEMETRY,
+                        bizevents=self._biz_events if "biz_events" in plugin_telemetry_allowed else NO_OP_TELEMETRY,
                     ).process(run_proc)
                     #
                     self.report_execution_status(status="FINISHED", task_name=source, exec_id=exec_id)
@@ -147,13 +148,6 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
                 LOG.warning(f"""Requested measuring source {source} that is not implemented: {results[source]}""")
 
         return results
-
-    def teardown(self) -> None:
-        """ "wrapping up, shutting logger and tracer"""
-        self._logs.shutdown_logger()
-        self._spans.shutdown_tracer()
-        if is_regular_mode(self._session):
-            self._session.query_tag = None
 
 
 def main(session: snowpark.Session, sources: List) -> dict:

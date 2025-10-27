@@ -97,6 +97,14 @@ class AbstractDynatraceSnowAgentConnector:
 
         self._configuration = self._get_config(session)
 
+        self.telemetry_allowed = set(
+            [
+                k
+                for k, v in self._configuration.get(key="OTEL", default_value={}).items()
+                if isinstance(v, dict) and not v.get("is_disabled", False)
+            ]
+        )
+
         if self._configuration:
             resource = _gen_resource(self._configuration)
             self._instruments = Instruments(self._configuration)
@@ -139,9 +147,11 @@ class AbstractDynatraceSnowAgentConnector:
         return Configuration(session)
 
     def report_execution_status(self, status: str, task_name: str, exec_id: str, details_dict: Optional[dict] = None):
-        """Sends BizEvent for given task with given status"""
+        """Sends BizEvent for given task with given status if BizEvents are allowed and send_bizevents_on_run is enabled"""
 
-        if self._configuration.get(plugin_name="self_monitoring", key="send_bizevents_on_run", default_value=True):
+        if "biz_events" in self.telemetry_allowed and self._configuration.get(
+            plugin_name="self_monitoring", key="send_bizevents_on_run", default_value=True
+        ):
 
             data_dict = {
                 "event.provider": str(self._configuration.get(context="resource.attributes", key="host.name")),
