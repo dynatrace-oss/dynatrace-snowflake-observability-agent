@@ -221,15 +221,15 @@ The `sources` parameter specifies the content to be sent to Dynatrace and can be
 
 The `params` parameter is an object with the following keys (parameters) that can be used to control the behavior of the `DTAGENT_DB.APP.SEND_TELEMETRY` procedure:
 
-| Param Name     | Default Value      | Description |
-|----------------|--------------------|-------------|
+| Param Name     | Default Value      | Description                                                                                                                                                                |
+| -------------- | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `auto_mode`    | `true`             | If not set to `false`, Dynatrace Snowflake Observability Agent expects that data delivered in the `source` follows Dynatrace Snowflake Observability Agent data structure. |
-| `context`      | `telemetry_sender` | Name of the context to identify the data source. This way we can differentiate between data delivered via `SEND_TELEMETRY` or even use `F_LAST_PROCESSED_TS()` |
-| `metrics`      | `true`             | Should we send metrics based on `METRICS` (auto-mode only). |
-| `logs`         | `true`             | `false` will disable sending telemetry as logs. |
-| `events`       | `$auto_mode`       | `false` will disable sending events based on `EVENT_TIMESTAMPS` (auto-mode); otherwise, `true` will enable sending custom objects as events. |
-| `biz_events`   | `false`            | `true` will enable sending custom objects as bizevents. |
-| `davis_events` | `false`            | `true` will enable sending custom objects as Davis events. |
+| `context`      | `telemetry_sender` | Name of the context to identify the data source. This way we can differentiate between data delivered via `SEND_TELEMETRY` or even use `F_LAST_PROCESSED_TS()`             |
+| `metrics`      | `true`             | Should we send metrics based on `METRICS` (auto-mode only).                                                                                                                |
+| `logs`         | `true`             | `false` will disable sending telemetry as logs.                                                                                                                            |
+| `events`       | `$auto_mode`       | `false` will disable sending events based on `EVENT_TIMESTAMPS` (auto-mode); otherwise, `true` will enable sending custom objects as events.                               |
+| `biz_events`   | `false`            | `true` will enable sending custom objects as bizevents.                                                                                                                    |
+| `davis_events` | `false`            | `true` will enable sending custom objects as Davis events.                                                                                                                 |
 
 This stored procedure returns a tuple with number of objects sent:
 
