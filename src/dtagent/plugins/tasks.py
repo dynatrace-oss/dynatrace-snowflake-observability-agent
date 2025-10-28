@@ -28,7 +28,7 @@ Plugin file for processing tasks plugin data.
 #
 
 import uuid
-from typing import Tuple
+from typing import Tuple, Dict
 from src.dtagent.plugins import Plugin
 
 ##endregion COMPILE_REMOVE
@@ -41,7 +41,7 @@ class TasksPlugin(Plugin):
     Tasks plugin class.
     """
 
-    def process(self, run_proc: bool = True) -> Tuple[int, int, int, int]:
+    def process(self, run_proc: bool = True) -> Dict[str, int]:  # FIXME
         """
         Processes the measures on serverless tasks, task history and task versions.
         Returns number of processed: serverless tasks, serverless task metrics, entries in task history, entries in task versions - in this order.

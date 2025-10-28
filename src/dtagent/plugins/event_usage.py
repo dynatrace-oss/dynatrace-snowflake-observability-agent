@@ -27,7 +27,7 @@ Plugin file for processing event usage plugin data.
 #
 #
 
-from typing import Tuple
+from typing import Tuple, Dict
 from dtagent.util import _unpack_json_dict
 from dtagent.plugins import Plugin
 
@@ -58,7 +58,7 @@ class EventUsagePlugin(Plugin):
             log_level=log_level,
         )
 
-    def process(self, run_proc: bool = True) -> Tuple[int, int]:
+    def process(self, run_proc: bool = True) -> Dict[str, int]:  # FIXME
         """
         Processes data for event usage plugin.
         Returns

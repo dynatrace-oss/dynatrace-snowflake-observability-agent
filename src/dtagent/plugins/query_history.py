@@ -49,7 +49,7 @@ class QueryHistoryPlugin(Plugin):
     Query history plugin class.
     """
 
-    def process(self, run_proc: bool = True) -> Tuple[int, int, int]:
+    def process(self, run_proc: bool = True) -> Dict[str, int]:  # TODO
         """
         The actual function to process query history:
 
@@ -57,6 +57,7 @@ class QueryHistoryPlugin(Plugin):
             - number of queries
             - number of problems
             - number of span events created
+            - number of metrics sent
         """
         __context = get_context_name_and_run_id("query_history")
 
@@ -122,7 +123,7 @@ class QueryHistoryPlugin(Plugin):
 
         t_recent_queries = "APP.V_RECENT_QUERIES"
 
-        processed_query_ids, _, processing_errors_count, span_events_added = self._process_span_rows(
+        processed_query_ids, _, processing_errors_count, span_events_added, metrics_sent = self._process_span_rows(
             f_entry_generator=lambda: self._get_table_rows(t_recent_queries),
             view_name=t_recent_queries,
             context_name="query_history",
@@ -132,11 +133,7 @@ class QueryHistoryPlugin(Plugin):
             f_log_events=__f_log_events,
         )
 
-        return (
-            len(processed_query_ids),
-            processing_errors_count,
-            span_events_added,
-        )
+        return (len(processed_query_ids), processing_errors_count, span_events_added, metrics_sent)
 
 
 ##endregion

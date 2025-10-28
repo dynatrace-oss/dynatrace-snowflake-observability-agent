@@ -28,7 +28,7 @@ Plugin file for processing users plugin data.
 #
 
 import uuid
-from typing import Tuple
+from typing import Tuple, Dict
 from snowflake.snowpark.functions import current_timestamp
 from dtagent.plugins import Plugin
 
@@ -48,7 +48,7 @@ class UsersPlugin(Plugin):
     Users plugin class.
     """
 
-    def process(self, run_proc: bool = True) -> Tuple[int, int]:
+    def process(self, run_proc: bool = True) -> Dict[str, int]:  # FIXME
         """
         Processes data for users plugin.
         Returns

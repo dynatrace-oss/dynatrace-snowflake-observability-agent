@@ -28,7 +28,7 @@ Plugin file for processing resource monitors plugin data.
 #
 import uuid
 import logging
-from typing import Tuple
+from typing import Tuple, Dict
 from snowflake.snowpark.functions import current_timestamp
 from dtagent.util import _unpack_json_dict
 from dtagent.plugins import Plugin
@@ -100,7 +100,7 @@ class ResourceMonitorsPlugin(Plugin):
 
         return False
 
-    def process(self, run_proc: bool = True) -> Tuple[int, int, int, int]:
+    def process(self, run_proc: bool = True) -> Dict[str, int]:  # FIXME
         """
         Processes the measures on resource monitors.
         Returns number of (processed resources monitors, unattached resource monitors, processed warehouses, unmonitored warehouses)

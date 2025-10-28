@@ -59,7 +59,7 @@ class LoginHistoryPlugin(Plugin):
         }
         return EventType.CUSTOM_ALERT, "Failed login attempt", payload
 
-    def process(self, run_proc: bool = True) -> Tuple[int, int, int, int]:
+    def process(self, run_proc: bool = True) -> Dict[str, int]:  # FIXME
         """
         Processes the measures on login history.
         """

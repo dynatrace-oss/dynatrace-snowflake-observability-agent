@@ -28,7 +28,7 @@ Plugin file for processing warehouse usage plugin data.
 #
 
 import uuid
-from typing import Tuple
+from typing import Tuple, Dict
 from src.dtagent.plugins import Plugin
 
 ##endregion COMPILE_REMOVE
@@ -41,7 +41,7 @@ class WarehouseUsagePlugin(Plugin):
     Warehouse usage plugin class.
     """
 
-    def process(self, run_proc: bool = True) -> Tuple[int, int, int, int, int]:
+    def process(self, run_proc: bool = True) -> Dict[str, int]:  # FIXME
         """
         Processes data for warehouse usage plugin.
         Returns

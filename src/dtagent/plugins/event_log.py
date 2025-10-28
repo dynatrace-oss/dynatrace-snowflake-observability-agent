@@ -110,7 +110,7 @@ class EventLogPlugin(Plugin):
     def _process_span_entries(self, run_id, run_proc: bool = True) -> int:
         """Processes span entries for event log"""
 
-        s_entries, _, _, _ = self._process_span_rows(
+        s_entries, _, _, _, _ = self._process_span_rows(
             f_entry_generator=lambda: self._get_table_rows("APP.V_EVENT_LOG_SPANS_INSTRUMENTED"),
             view_name="APP.V_EVENT_LOG_SPANS_INSTRUMENTED",
             context_name="event_log_spans",

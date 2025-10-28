@@ -27,7 +27,7 @@ Plugin file for processing active queries plugin data.
 #
 #
 
-from typing import Tuple
+from typing import Tuple, Dict
 from dtagent.plugins import Plugin
 
 ##endregion COMPILE_REMOVE
@@ -40,7 +40,7 @@ class ActiveQueriesPlugin(Plugin):
     Active queries plugin class.
     """
 
-    def process(self, run_proc: bool = True) -> Tuple[int, int, int, int]:
+    def process(self, run_proc: bool = True) -> Dict[str, int]:  # FIXME
         """
         Processes the measures on active queries
         """

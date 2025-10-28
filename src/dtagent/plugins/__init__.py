@@ -35,6 +35,7 @@ from abc import ABC, abstractmethod
 import datetime
 from snowflake import snowpark
 from snowflake.snowpark.functions import current_timestamp
+from tomlkit import key
 from dtagent import LOG, LL_TRACE
 from dtagent.config import Configuration
 from dtagent.util import (
@@ -166,7 +167,7 @@ class Plugin(ABC):
         report_status: bool = False,
         f_log_events: Optional[Callable] = None,
         f_span_events: Optional[Callable] = None,
-    ):  # pylint: disable=R0913
+    ) -> Tuple[List[str], str, int, int, int]:  # pylint: disable=R0913
         """
         Performs span processing on entire row
         Args:
@@ -186,6 +187,7 @@ class Plugin(ABC):
             joint_processed_query_ids (str): concatenated string of all reported query ids with '|' as delimiter
             processing_errors_count (int): number of errors encountered during processing
             span_events_added (int): number of span events added
+            metrics_sent (int): number of metrics sent
         """
 
         processed_query_ids: list[str] = []
@@ -200,7 +202,7 @@ class Plugin(ABC):
                 LOG.warning("Problem with given row in %s: %r", context_name, row_dict)
             else:
                 LOG.log(LL_TRACE, "Processing %s for %r", context_name, query_id)
-                span_events_added += self._process_row(
+                _span_events_added, _metrics_sent = self._process_row(
                     row=row_dict,
                     processed_ids=processed_query_ids,
                     processing_errors=processing_errors,
@@ -211,8 +213,11 @@ class Plugin(ABC):
                     f_log_events=f_log_events,
                     context=__context,
                 )
+                span_events_added += _span_events_added
+                metrics_sent += _metrics_sent
 
-        if not self._metrics.flush_metrics():
+        metrics_sent += self._metrics.flush_metrics()
+        if metrics_sent == 0:
             processing_errors.append("Problem flushing metrics cache")
 
         if not self._spans.flush_traces():
@@ -244,12 +249,7 @@ class Plugin(ABC):
                 span_events_added,
             )
 
-        return (
-            processed_query_ids,
-            joint_processed_query_ids,
-            processing_errors_count,
-            span_events_added,
-        )
+        return (processed_query_ids, joint_processed_query_ids, processing_errors_count, span_events_added, metrics_sent)
 
     def _process_row(
         self,
@@ -263,7 +263,7 @@ class Plugin(ABC):
         f_span_events: Optional[Callable[[Dict[str, Any]], Tuple[List[Dict[str, Any]], int]]] = None,
         f_log_events: Optional[Callable[[Dict[str, Any]], None]] = None,
         context: Optional[Dict] = None,
-    ) -> int:
+    ) -> Tuple[int, int]:
         """
         Processing single row with data, with optional recursion done within span generation
 
@@ -278,13 +278,14 @@ class Plugin(ABC):
             f_log_events:                       function that will log current span and its events
             context:                            context information reported as additional attributes in log/span payload
         Return:
-            int: accumulated number of span events generated
+            int, int: accumulated number of span events generated and number of metrics sent
         """
 
         row_id = row.get(row_id_col, None)
         LOG.log(LL_TRACE, "Processing row with id = %s", row_id)
 
-        if not self._metrics.report_via_metrics_api(row, context_name=context.get(CONTEXT_NAME, None)):
+        metrics_sent = self._metrics.discover_report_metrics(row, "START_TIME", context_name=view_name)
+        if metrics_sent <= 0:
             processing_errors.append(f"Problem sending row {row_id} as metric")
 
         span_events_added = 0
@@ -304,7 +305,7 @@ class Plugin(ABC):
         if row_id is not None and processed_ids is not None:
             processed_ids.append(row_id)
 
-        return span_events_added
+        return span_events_added, metrics_sent
 
     def get_log_level(self, row_dict):
         """Generic method getting log level based on status.code key value. To be overwritten by plugins when required"""
@@ -435,8 +436,8 @@ class Plugin(ABC):
 
         for row_dict in f_entry_generator():
 
-            if report_metrics and self._metrics.discover_report_metrics(row_dict, start_time, context_name):
-                processed_metrics_cnt += 1
+            if report_metrics:
+                processed_metrics_cnt += self._metrics.discover_report_metrics(row_dict, start_time, context_name)
 
             self.processed_last_timestamp = row_dict.get("TIMESTAMP", None)
 
@@ -490,6 +491,8 @@ class Plugin(ABC):
         entries_dict = {"processed_entries_cnt": processed_entries_cnt}
         processed_events_cnt += self._events.flush_events()
 
+        processed_metrics_cnt += self._metrics.flush_metrics()
+
         if report_all_as_events or report_timestamp_events or event_payload_prepare:
             entries_dict["processed_events_cnt"] = processed_events_cnt
         if report_logs:
@@ -505,14 +508,29 @@ class Plugin(ABC):
                 entries_dict,
             )
 
-        if processed_metrics_cnt > 0:
-            self._metrics.flush_metrics()
-
         return processed_entries_cnt, processed_logs_cnt, processed_metrics_cnt, processed_events_cnt
 
     @abstractmethod
-    def process(self, run_proc: bool = True):
-        """Abstract method for plugin processing."""
+    def process(self, run_proc: bool = True) -> Dict[str, int]:
+        """
+        Abstract method for plugin processing.
+
+        Args:
+            run_proc (bool): indicator whether processing should be logged as completed
+
+        Returns:
+            Dict[str,int]: dictionary with telemetry counts
+
+            Example:
+                {
+                    "entries": 10,
+                    "log_lines": 10,
+                    "metrics": 5,
+                    "events": 5,
+                    "biz_events": 2,
+                    "davis_events": 0,
+                }
+        """
         # Implement method process() at plugins
 
 

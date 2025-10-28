@@ -28,7 +28,7 @@ Plugin file for processing budgets plugin data.
 #
 
 import uuid
-from typing import Tuple
+from typing import Tuple, Dict
 from snowflake.snowpark.functions import current_timestamp
 from dtagent.plugins import Plugin
 
@@ -41,7 +41,7 @@ class BudgetsPlugin(Plugin):
     Budgets plugin class.
     """
 
-    def process(self, run_proc: bool = True) -> Tuple[int, int, int, int]:
+    def process(self, run_proc: bool = True) -> Dict[str, int]:  # FIXME
         """
         Processes data for budgets plugin.
         Returns:
