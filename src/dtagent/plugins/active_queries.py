@@ -50,7 +50,7 @@ class ActiveQueriesPlugin(Plugin):
             Example:
             {
                 "entries": entries_cnt,
-                "log": logs_cnt,
+                "log_lines": logs_cnt,
                 "metrics": metrics_cnt,
                 "events": events_cnt
             }
@@ -65,7 +65,7 @@ class ActiveQueriesPlugin(Plugin):
             log_completion=run_proc,
         )
 
-        return {"active_queries": {"entries": entries_cnt, "log": logs_cnt, "metrics": metrics_cnt, "events": events_cnt}}
+        return {"active_queries": {"entries": entries_cnt, "log_lines": logs_cnt, "metrics": metrics_cnt, "events": events_cnt}}
 
 
 ##endregion

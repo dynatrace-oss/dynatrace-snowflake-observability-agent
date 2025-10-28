@@ -535,7 +535,7 @@ class Plugin(ABC):
                 { "context_name":
                     {
                         "entries": 10,
-                        "log": 10,
+                        "log_lines": 10,
                         "metrics": 5,
                         "events": 5,
                         "biz_events": 2,
