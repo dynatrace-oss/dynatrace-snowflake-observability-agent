@@ -98,14 +98,24 @@ class DataSchemasPlugin(Plugin):
             context=context,
         )
 
-    def process(self, run_proc: bool = True) -> int:
+    def process(self, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
         """
         Processes data for data schemas plugin.
         Returns:
-            processed_spending_metrics [int]: number of events reported from APP.V_DATA_SCHEMAS.
+            Dict[str,Dict[str,int]]: A dictionary with telemetry counts for data schemas.
+
+            Example:
+            {
+                "data_schemas": {
+                    "entries": entries_cnt,
+                    "logs": logs_cnt,
+                    "metrics": metrics_cnt,
+                    "events": events_cnt,
+                }
+            }
         """
 
-        _, _, _, processed_events_cnt = self._log_entries(
+        entries_cnt, logs_cnt, metrics_cnt, events_cnt = self._log_entries(
             f_entry_generator=lambda: self._get_table_rows("APP.V_DATA_SCHEMAS"),
             context_name="data_schemas",
             report_logs=False,
@@ -118,4 +128,11 @@ class DataSchemasPlugin(Plugin):
             f_report_event=self._report_all_entries_as_events,
         )
 
-        return processed_events_cnt
+        return {
+            "data_schemas": {
+                "entries": entries_cnt,
+                "logs": logs_cnt,
+                "metrics": metrics_cnt,
+                "events": events_cnt,
+            }
+        }

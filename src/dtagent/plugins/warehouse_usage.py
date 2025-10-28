@@ -41,7 +41,7 @@ class WarehouseUsagePlugin(Plugin):
     Warehouse usage plugin class.
     """
 
-    def process(self, run_proc: bool = True) -> Dict[str, int]:
+    def process(self, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
         """
         Processes data for warehouse usage plugin.
         Returns:

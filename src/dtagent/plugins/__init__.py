@@ -38,6 +38,7 @@ from snowflake.snowpark.functions import current_timestamp
 from tomlkit import key
 from dtagent import LOG, LL_TRACE
 from dtagent.config import Configuration
+from dtagent.otel import logs
 from dtagent.util import (
     _unpack_json_dict,
     _cleanup_dict,
@@ -167,7 +168,7 @@ class Plugin(ABC):
         report_status: bool = False,
         f_log_events: Optional[Callable] = None,
         f_span_events: Optional[Callable] = None,
-    ) -> Tuple[List[str], str, int, int, int]:  # pylint: disable=R0913
+    ) -> Tuple[List[str], int, int, int, int, int]:  # pylint: disable=R0913
         """
         Performs span processing on entire row
         Args:
@@ -179,20 +180,25 @@ class Plugin(ABC):
             parent_query_id_col_name (str): name of the column containing parent query id. Defaults to PARENT_QUERY_ID
             log_completion (bool): indicator whether to log the completion of reporting the payload to DTAGENT_DB.STATUS.LOG_PROCESSED_MEASUREMENTS
             update_status (bool): indicator whether to log the processed ids to DTAGENT_DB.STATUS.UPDATE_PROCESSED_QUERIES
-            f_log_events (Callable): function specifying how events should be logged. Only takes a single, unpacked row as param
+            f_log_events (Callable): function specifying how events should be logged. Only takes a single, unpacked row as param; Returns number of logs sent.
             f_span_events (Callable): function specifying how events should reported as spans. Only takes a single, unpacked row as param.
 
         Returns:
-            processed_query_ids (list[str]): list of all processed ids
-            joint_processed_query_ids (str): concatenated string of all reported query ids with '|' as delimiter
-            processing_errors_count (int): number of errors encountered during processing
-            span_events_added (int): number of span events added
-            metrics_sent (int): number of metrics sent
+            Tuple containing:
+                processed_query_ids (list[str]): list of all processed ids
+                processing_errors_count (int): number of errors encountered during processing
+                span_events_added (int): number of span events added
+                spans_sent (int): number of spans sent
+                logs_sent (int): number of logs sent
+                metrics_sent (int): number of metrics sent
         """
 
         processed_query_ids: list[str] = []
         processing_errors: list[str] = []
         span_events_added = 0
+        spans_sent = 0
+        logs_sent = 0
+        metrics_sent = 0
 
         __context = get_context_name_and_run_id(context_name, run_uuid)
 
@@ -202,7 +208,7 @@ class Plugin(ABC):
                 LOG.warning("Problem with given row in %s: %r", context_name, row_dict)
             else:
                 LOG.log(LL_TRACE, "Processing %s for %r", context_name, query_id)
-                _span_events_added, _metrics_sent = self._process_row(
+                _span_events_added, _spans_sent, _logs_sent, _metrics_sent = self._process_row(
                     row=row_dict,
                     processed_ids=processed_query_ids,
                     processing_errors=processing_errors,
@@ -214,6 +220,8 @@ class Plugin(ABC):
                     context=__context,
                 )
                 span_events_added += _span_events_added
+                spans_sent += _spans_sent
+                logs_sent += _logs_sent
                 metrics_sent += _metrics_sent
 
         metrics_sent += self._metrics.flush_metrics()
@@ -249,7 +257,7 @@ class Plugin(ABC):
                 span_events_added,
             )
 
-        return (processed_query_ids, joint_processed_query_ids, processing_errors_count, span_events_added, metrics_sent)
+        return (processed_query_ids, processing_errors_count, span_events_added, spans_sent, logs_sent, metrics_sent)
 
     def _process_row(
         self,
@@ -275,10 +283,14 @@ class Plugin(ABC):
             parent_row_id_col (str):            name of the column with parent ID representing the parent row - necessary in context of spans
             view_name (str):                    view which contains all the information to be processed - required for recursion in spans
             f_span_events:                      function that will produce a list of span events to be sent
-            f_log_events:                       function that will log current span and its events
+            f_log_events:                       function that will log current span and its events; will return number of logs sent
             context:                            context information reported as additional attributes in log/span payload
         Return:
-            int, int: accumulated number of span events generated and number of metrics sent
+            Tuple containing:
+                span_events_added (int):           number of span events added when processing this row
+                spans_cnt (int):                   number of spans sent when processing this row
+                logs_cnt (int):                    number of logs sent when processing this row
+                metrics_sent (int):                number of metrics sent when processing this row
         """
 
         row_id = row.get(row_id_col, None)
@@ -288,9 +300,9 @@ class Plugin(ABC):
         if metrics_sent <= 0:
             processing_errors.append(f"Problem sending row {row_id} as metric")
 
-        span_events_added = 0
+        span_events_added, spans_sent, logs_sent = 0, 0, 0
         if row.get("IS_ROOT", True):  # processing top level rows only: marked as IS_ROOT or missing that marker
-            span_events_added = self._spans.generate_span(
+            span_events_added, spans_sent, logs_sent = self._spans.generate_span(
                 row,
                 self._session,
                 row_id_col,
@@ -305,7 +317,7 @@ class Plugin(ABC):
         if row_id is not None and processed_ids is not None:
             processed_ids.append(row_id)
 
-        return span_events_added, metrics_sent
+        return span_events_added, spans_sent, logs_sent, metrics_sent
 
     def get_log_level(self, row_dict):
         """Generic method getting log level based on status.code key value. To be overwritten by plugins when required"""
@@ -512,7 +524,7 @@ class Plugin(ABC):
         return processed_entries_cnt, processed_logs_cnt, processed_metrics_cnt, processed_events_cnt
 
     @abstractmethod
-    def process(self, run_proc: bool = True) -> Dict[str, int]:  # TODO update return type should be Dict[str, Dict[str, int]]
+    def process(self, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
         """
         Abstract method for plugin processing.
 
@@ -523,13 +535,15 @@ class Plugin(ABC):
             Dict[str,int]: dictionary with telemetry counts
 
             Example:
-                {
-                    "entries": 10,
-                    "log_lines": 10,
-                    "metrics": 5,
-                    "events": 5,
-                    "biz_events": 2,
-                    "davis_events": 0,
+                { "context_name":
+                    {
+                        "entries": 10,
+                        "log": 10,
+                        "metrics": 5,
+                        "events": 5,
+                        "biz_events": 2,
+                        "davis_events": 0,
+                    }
                 }
         """
         # Implement method process() at plugins

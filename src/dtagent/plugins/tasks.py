@@ -41,7 +41,7 @@ class TasksPlugin(Plugin):
     Tasks plugin class.
     """
 
-    def process(self, run_proc: bool = True) -> Dict[str, int]:
+    def process(self, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
         """
         Processes the measures on serverless tasks, task history and task versions.
         Returns:

@@ -30,6 +30,7 @@ Plugin file for processing query history plugin data.
 import logging
 from typing import Any, Tuple, Dict, List
 from dtagent import LOG, LL_TRACE
+from dtagent.otel import logs, spans
 from dtagent.util import (
     _from_json,
     _unpack_json_dict,
@@ -49,15 +50,24 @@ class QueryHistoryPlugin(Plugin):
     Query history plugin class.
     """
 
-    def process(self, run_proc: bool = True) -> Dict[str, Dict[str, int]]:  # TODO
+    def process(self, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
         """
         The actual function to process query history:
 
         Returns:
-            - number of queries
-            - number of problems
-            - number of span events created
-            - number of metrics sent
+            Dict[str,Dict[str,int]]: A dictionary with telemetry counts for query history.
+
+            Example:
+            {
+                "query_history": {
+                    "entries": processed_query_count,
+                    "logs": logs_sent,
+                    "metrics": metrics_sent,
+                    "spans": spans_sent,
+                    "span_events": span_events_added,
+                    "errors": processing_errors_count,
+                }
+            }
         """
         __context = get_context_name_and_run_id("query_history")
 
@@ -90,8 +100,12 @@ class QueryHistoryPlugin(Plugin):
 
             return span_events, failed_events
 
-        def __f_log_events(query_dict: Dict[str, Any]):
-            """Logs events for query history."""
+        def __f_log_events(query_dict: Dict[str, Any]) -> int:
+            """
+            Logs events for query history.
+
+            Returns:
+                int: Number of log lines sent."""
 
             log_dict = _unpack_json_dict(
                 query_dict,
@@ -107,6 +121,8 @@ class QueryHistoryPlugin(Plugin):
                 },
                 context=__context,
             )
+            logs_sent = 1
+
             for operator in _unpack_json_list(query_dict, ["QUERY_OPERATOR_STATS"]):
                 self._logs.send_log(
                     f"Query operator: {__get_query_operator_event_name(operator)}",
@@ -114,6 +130,9 @@ class QueryHistoryPlugin(Plugin):
                     log_level=logging.INFO,
                     context=__context,
                 )
+                logs_sent += 1
+
+            return logs_sent
 
         if run_proc:
             # getting list of recent queries with their query operator stats (query profile)
@@ -123,7 +142,7 @@ class QueryHistoryPlugin(Plugin):
 
         t_recent_queries = "APP.V_RECENT_QUERIES"
 
-        processed_query_ids, _, processing_errors_count, span_events_added, metrics_sent = self._process_span_rows(
+        processed_query_ids, processing_errors_count, span_events_added, spans_sent, logs_sent, metrics_sent = self._process_span_rows(
             f_entry_generator=lambda: self._get_table_rows(t_recent_queries),
             view_name=t_recent_queries,
             context_name="query_history",
@@ -133,7 +152,17 @@ class QueryHistoryPlugin(Plugin):
             f_log_events=__f_log_events,
         )
 
-        return (len(processed_query_ids), processing_errors_count, span_events_added, metrics_sent)
+        # return (len(processed_query_ids), processing_errors_count, span_events_added, metrics_sent)
+        return {
+            "query_history": {
+                "entries": len(processed_query_ids),
+                "logs": logs_sent,
+                "metrics": metrics_sent,
+                "spans": spans_sent,
+                "span_events": span_events_added,
+                "errors": processing_errors_count,
+            }
+        }
 
 
 ##endregion

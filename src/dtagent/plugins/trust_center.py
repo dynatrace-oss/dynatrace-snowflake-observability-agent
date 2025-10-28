@@ -77,11 +77,21 @@ class TrustCenterPlugin(Plugin):
 
         return EventType.CUSTOM_ALERT, "Trust Center Critical problem", {}
 
-    def process(self, run_proc: bool = True) -> int:
+    def process(self, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
         """
         Processes data for trust center plugin.
         Returns
-            processed_entries_cnt [int]: number of entries reported from APP.V_TRUST_CENTER_* views.,
+            Dict[str,int]: A dictionary with counts of processed telemetry data.
+
+            Example:
+            {
+                "trust_center": {
+                    "entries": entries_cnt,
+                    "logs": logs_cnt,
+                    "metrics": metrics_cnt,
+                    "events": events_cnt
+                }
+            }
         """
 
         run_id = str(uuid.uuid4().hex)
@@ -96,7 +106,7 @@ class TrustCenterPlugin(Plugin):
             report_timestamp_events=False,
         )
 
-        processed_entries_cnt, _, _, events_sent_cnt = self._log_entries(
+        entries_cnt, logs_cnt, _, events_sent_cnt = self._log_entries(
             f_entry_generator=lambda: self._get_table_rows("APP.V_TRUST_CENTER_INSTRUMENTED"),
             context_name="trust_center",
             run_uuid=run_id,
@@ -110,15 +120,24 @@ class TrustCenterPlugin(Plugin):
             f_get_log_level=self._get_severity_log_level,
         )
 
+        results_dict = {
+            "trust_center": {
+                "entries": entries_cnt,
+                "logs": logs_cnt,
+                "metrics": metrics_sent_cnt,
+                "events": events_sent_cnt,
+            }
+        }
+
         if run_proc:
             self._report_execution(
                 "trust_center",
                 str(self.processed_last_timestamp),
                 None,
-                {"entries": processed_entries_cnt, "metrics_sent": metrics_sent_cnt, "events_sent": events_sent_cnt},
+                results_dict,
             )
 
-        return processed_entries_cnt
+        return results_dict
 
 
 ##endregion

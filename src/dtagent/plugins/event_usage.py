@@ -58,7 +58,7 @@ class EventUsagePlugin(Plugin):
             log_level=log_level,
         )
 
-    def process(self, run_proc: bool = True) -> Dict[str, int]:
+    def process(self, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
         """
         Processes data for event usage plugin.
         Returns:
@@ -67,7 +67,7 @@ class EventUsagePlugin(Plugin):
             Example:
             {
                 "entries": entries_cnt,
-                "log_lines": logs_cnt,
+                "log": logs_cnt,
                 "metrics": metrics_cnt,
                 "events": events_cnt
             }
@@ -84,7 +84,7 @@ class EventUsagePlugin(Plugin):
         return {
             "event_usage": {
                 "entries": processed_entries_cnt,
-                "log_lines": processed_logs_cnt,
+                "log": processed_logs_cnt,
                 "metrics": processed_event_metrics_cnt,
                 "events": processed_events_cnt,
             }

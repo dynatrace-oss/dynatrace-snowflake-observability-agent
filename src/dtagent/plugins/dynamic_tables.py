@@ -41,7 +41,7 @@ class DynamicTablesPlugin(Plugin):
     Dynamic tables plugin class.
     """
 
-    def process(self, run_proc: bool = True) -> Dict[str, int]:
+    def process(self, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
         """
         Processes the measures on dynamic tables
 
