@@ -305,7 +305,9 @@ class Spans:
             if f_log_events:
                 logs_cnt += f_log_events(d_span)
 
-            subspan_events_added, subspan_spans_cnt, subspan_logs_cnt = __process_subrows(row_id) if d_span.get("IS_PARENT", False) else 0
+            subspan_events_added, subspan_spans_cnt, subspan_logs_cnt = (
+                __process_subrows(row_id) if d_span.get("IS_PARENT", False) else (0, 0, 0)
+            )
 
             current_span.set_status(StatusCode[d_span.get("STATUS_CODE", "UNSET")])
             current_span.end(int(d_span["END_TIME"]))

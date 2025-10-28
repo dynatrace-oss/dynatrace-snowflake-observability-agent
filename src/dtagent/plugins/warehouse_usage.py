@@ -81,7 +81,7 @@ class WarehouseUsagePlugin(Plugin):
             "warehouse_usage",
             run_uuid=run_id,
             log_completion=run_proc,
-        )[0]
+        )
 
         entries_wh_load_cnt, logs_wh_load_cnt, metrics_wh_load_cnt, events_wh_load_cnt = self._log_entries(
             lambda: self._get_table_rows(t_wh_load_hist),

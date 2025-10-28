@@ -293,7 +293,7 @@ class Plugin(ABC):
         row_id = row.get(row_id_col, None)
         LOG.log(LL_TRACE, "Processing row with id = %s", row_id)
 
-        metrics_sent = self._metrics.discover_report_metrics(row, "START_TIME", context_name=view_name)
+        metrics_sent = self._metrics.discover_report_metrics(row, "START_TIME", context_name=context.get(CONTEXT_NAME, None))
         if metrics_sent <= 0:
             processing_errors.append(f"Problem sending row {row_id} as metric")
 
