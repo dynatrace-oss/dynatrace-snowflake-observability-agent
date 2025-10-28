@@ -32,13 +32,10 @@ import logging
 import inspect
 from typing import Tuple, Dict, List, Callable, Union, Generator, Optional, Any
 from abc import ABC, abstractmethod
-import datetime
 from snowflake import snowpark
 from snowflake.snowpark.functions import current_timestamp
-from tomlkit import key
 from dtagent import LOG, LL_TRACE
 from dtagent.config import Configuration
-from dtagent.otel import logs
 from dtagent.util import (
     _unpack_json_dict,
     _cleanup_dict,
@@ -155,7 +152,7 @@ class Plugin(ABC):
                 str(entries_count),
             )
 
-    def _process_span_rows(
+    def _process_span_rows(  # pylint: disable=R0913
         self,
         f_entry_generator: Callable,
         view_name: str,
@@ -168,7 +165,7 @@ class Plugin(ABC):
         report_status: bool = False,
         f_log_events: Optional[Callable] = None,
         f_span_events: Optional[Callable] = None,
-    ) -> Tuple[List[str], int, int, int, int, int]:  # pylint: disable=R0913
+    ) -> Tuple[List[str], int, int, int, int, int]:
         """
         Performs span processing on entire row
         Args:

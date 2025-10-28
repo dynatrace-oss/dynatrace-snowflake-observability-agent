@@ -81,7 +81,11 @@ class Metrics:
             } | OtelManager.get_dsoa_headers()
 
             _clean_payload = _payload.replace("\n\n", "\n").strip()
-            data_sent_size = len([l for l in _clean_payload.split("\n") if not l.startswith("#")]) if _clean_payload != "" else 0
+            data_sent_size = (
+                len([line for line in _clean_payload.split("\n") if not line.startswith("#") and line.strip() != ""])
+                if _clean_payload != ""
+                else 0
+            )
 
             try:
                 response = requests.post(
