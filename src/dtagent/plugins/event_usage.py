@@ -58,15 +58,22 @@ class EventUsagePlugin(Plugin):
             log_level=log_level,
         )
 
-    def process(self, run_proc: bool = True) -> Dict[str, int]:  # FIXME
+    def process(self, run_proc: bool = True) -> Dict[str, int]:
         """
         Processes data for event usage plugin.
-        Returns
-            processed_entries_cnt [int]: number of entries reported from APP.V_EVENT_USAGE_HISTORY,
-            processed_event_metrics_cnt [int]: number of metrics reported from APP.V_EVENT_USAGE_HISTORY.
+        Returns:
+            Dict[str,int]: A dictionary with counts of processed telemetry data.
+
+            Example:
+            {
+                "entries": entries_cnt,
+                "log_lines": logs_cnt,
+                "metrics": metrics_cnt,
+                "events": events_cnt
+            }
         """
 
-        processed_entries_cnt, _, processed_event_metrics_cnt, _ = self._log_entries(
+        processed_entries_cnt, processed_logs_cnt, processed_event_metrics_cnt, processed_events_cnt = self._log_entries(
             f_entry_generator=lambda: self._get_table_rows("APP.V_EVENT_USAGE_HISTORY"),
             context_name="event_usage",
             report_timestamp_events=False,
@@ -74,4 +81,11 @@ class EventUsagePlugin(Plugin):
             f_report_log=self._report_event_usage_log,
         )
 
-        return processed_entries_cnt, processed_event_metrics_cnt
+        return {
+            "event_usage": {
+                "entries": processed_entries_cnt,
+                "log_lines": processed_logs_cnt,
+                "metrics": processed_event_metrics_cnt,
+                "events": processed_events_cnt,
+            }
+        }

@@ -49,7 +49,7 @@ class QueryHistoryPlugin(Plugin):
     Query history plugin class.
     """
 
-    def process(self, run_proc: bool = True) -> Dict[str, int]:  # TODO
+    def process(self, run_proc: bool = True) -> Dict[str, Dict[str, int]]:  # TODO
         """
         The actual function to process query history:
 

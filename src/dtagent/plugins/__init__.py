@@ -410,10 +410,11 @@ class Plugin(ABC):
             f_event_timestamp_payload_prepare (function): function preparing title, properties and event type for timestamp events. Defaults to prepare_timestamp_event
 
         Returns:
-            entries (int): number of entries processed sent
-            logs (int): number of log entries sent
-            metrics (int): number of metrics generated and sent
-            events (int): number of events sent
+              Tuple with counts of processed telemetry data:
+                entries (int): number of entries processed sent
+                logs (int): number of log entries sent
+                metrics (int): number of metrics generated and sent
+                events (int): number of events sent
         """
         if f_get_log_level is None:
             f_get_log_level = self.get_log_level
@@ -511,7 +512,7 @@ class Plugin(ABC):
         return processed_entries_cnt, processed_logs_cnt, processed_metrics_cnt, processed_events_cnt
 
     @abstractmethod
-    def process(self, run_proc: bool = True) -> Dict[str, int]:
+    def process(self, run_proc: bool = True) -> Dict[str, int]:  # TODO update return type should be Dict[str, Dict[str, int]]
         """
         Abstract method for plugin processing.
 

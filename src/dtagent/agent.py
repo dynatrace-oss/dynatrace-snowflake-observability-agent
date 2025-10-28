@@ -95,8 +95,30 @@ from opentelemetry import version as otel_version
 class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
     """Main DynatraceSnowAgent class managing plugins executions"""
 
-    def process(self, sources: List, run_proc: bool = True) -> Dict:
-        """Starts plugins specified in sources executions"""
+    def process(self, sources: List, run_proc: bool = True) -> Dict[str, Union[Dict[str, int], str]]:
+        """
+        Starts plugins specified in sources executions
+
+        Args:
+            sources (List): List of measurement sources (plugins) to execute
+            run_proc (bool): Whether to actually run the preparation procedures and log results
+
+        Returns:
+            Dict[str,Union[Dict[str,int],str]]: A dictionary with plugin names as keys and their
+            processing results (telemetry counts dictionary) or error message (if requested source is not implemented) as values.
+
+            Example:
+            {
+                "active_queries": {
+                    "entries": 10,
+                    "log_lines": 100,
+                    "metrics": 5,
+                    "events": 2
+                },
+                "some_other_plugin": "not_implemented"
+            }
+
+        """
         # --- processing measurement sources
         import inspect
         from dtagent import LOG  # COMPILE_REMOVE
@@ -144,7 +166,7 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
                     self.handle_interrupted_run(source, exec_id, str(e))
             else:
                 self.report_execution_status(status="FAILED", task_name=source, exec_id=exec_id)
-                results[source] = c_source
+                results[source] = {"not_implemented": c_source}
                 LOG.warning(f"""Requested measuring source {source} that is not implemented: {results[source]}""")
 
         return results

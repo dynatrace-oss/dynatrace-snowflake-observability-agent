@@ -41,19 +41,34 @@ class WarehouseUsagePlugin(Plugin):
     Warehouse usage plugin class.
     """
 
-    def process(self, run_proc: bool = True) -> Dict[str, int]:  # FIXME
+    def process(self, run_proc: bool = True) -> Dict[str, int]:
         """
         Processes data for warehouse usage plugin.
-        Returns
-            processed_wh_events_cnt [int]: number of entries reported from APP.V_WAREHOUSE_EVENT_HISTORY,
-            processed_wh_load_cnt [int]: number of entries reported from APP.V_WAREHOUSE_LOAD_HISTORY,
-            processed_wh_metering_cnt [int]: number of entries reported from APP.V_WAREHOUSE_METERING_HISTORY,
-            wh_metering_metrics_cnt [int]: number of metrics reported from APP.V_WAREHOUSE_METERING_HISTORY.
-        """
+        Returns:
+            Dict[str,int]: A dictionary with telemetry counts for warehouse usage.
 
-        processed_wh_events_cnt = 0
-        processed_wh_load_cnt = 0
-        processed_wh_metering_cnt = 0
+            Example:
+            {
+                "warehouse_usage": {
+                    "entries": entries_wh_events_cnt,
+                    "logs": logs_wh_events_cnt,
+                    "metrics": metrics_wh_events_cnt,
+                    "events": events_wh_events_cnt,
+                },
+                "warehouse_usage_load": {
+                    "entries": entries_wh_load_cnt,
+                    "logs": logs_wh_load_cnt,
+                    "metrics": metrics_wh_load_cnt,
+                    "events": events_wh_load_cnt,
+                },
+                "warehouse_usage_metering": {
+                    "entries": entries_wh_metering_cnt,
+                    "logs": logs_wh_metering_cnt,
+                    "metrics": metrics_wh_metering_cnt,
+                    "events": events_wh_metering_cnt,
+                },
+            }
+        """
 
         t_wh_events = "APP.V_WAREHOUSE_EVENT_HISTORY"
         t_wh_load_hist = "APP.V_WAREHOUSE_LOAD_HISTORY"
@@ -61,31 +76,44 @@ class WarehouseUsagePlugin(Plugin):
 
         run_id = str(uuid.uuid4().hex)
 
-        processed_wh_events_cnt = self._log_entries(
+        entries_wh_events_cnt, logs_wh_events_cnt, metrics_wh_events_cnt, events_wh_events_cnt = self._log_entries(
             lambda: self._get_table_rows(t_wh_events),
             "warehouse_usage",
             run_uuid=run_id,
             log_completion=run_proc,
         )[0]
 
-        processed_wh_load_cnt, _, wh_load_metrics_cnt, _ = self._log_entries(
+        entries_wh_load_cnt, logs_wh_load_cnt, metrics_wh_load_cnt, events_wh_load_cnt = self._log_entries(
             lambda: self._get_table_rows(t_wh_load_hist),
             "warehouse_usage_load",
             run_uuid=run_id,
             log_completion=run_proc,
         )
 
-        processed_wh_metering_cnt, _, wh_metering_metrics_cnt, _ = self._log_entries(
+        entries_wh_metering_cnt, logs_wh_metering_cnt, metrics_wh_metering_cnt, events_wh_metering_cnt = self._log_entries(
             lambda: self._get_table_rows(t_wh_metering_hist),
             "warehouse_usage_metering",
             run_uuid=run_id,
             log_completion=run_proc,
         )
 
-        return (
-            processed_wh_events_cnt,
-            processed_wh_load_cnt,
-            wh_load_metrics_cnt,
-            processed_wh_metering_cnt,
-            wh_metering_metrics_cnt,
-        )
+        return {
+            "warehouse_usage": {
+                "entries": entries_wh_events_cnt,
+                "logs": logs_wh_events_cnt,
+                "metrics": metrics_wh_events_cnt,
+                "events": events_wh_events_cnt,
+            },
+            "warehouse_usage_load": {
+                "entries": entries_wh_load_cnt,
+                "logs": logs_wh_load_cnt,
+                "metrics": metrics_wh_load_cnt,
+                "events": events_wh_load_cnt,
+            },
+            "warehouse_usage_metering": {
+                "entries": entries_wh_metering_cnt,
+                "logs": logs_wh_metering_cnt,
+                "metrics": metrics_wh_metering_cnt,
+                "events": events_wh_metering_cnt,
+            },
+        }

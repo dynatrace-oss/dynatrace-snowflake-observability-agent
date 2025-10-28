@@ -100,10 +100,27 @@ class ResourceMonitorsPlugin(Plugin):
 
         return False
 
-    def process(self, run_proc: bool = True) -> Dict[str, int]:  # FIXME
+    def process(self, run_proc: bool = True) -> Dict[str, int]:
         """
         Processes the measures on resource monitors.
-        Returns number of (processed resources monitors, unattached resource monitors, processed warehouses, unmonitored warehouses)
+        Returns:
+            Dict[str,int]: A dictionary with counts of processed telemetry data.
+
+            Example:
+            {
+                "resource_monitors": {
+                    "entries": entries_cnt,
+                    "logs": logs_cnt,
+                    "metrics": metrics_cnt,
+                    "events": events_cnt,
+                },
+                "warehouses": {
+                    "entries": entries_cnt,
+                    "logs": logs_cnt,
+                    "metrics": metrics_cnt,
+                    "events": events_cnt,
+                },
+            }
         """
         run_id = str(uuid.uuid4().hex)
         context_name = "resource_monitors"
@@ -112,7 +129,12 @@ class ResourceMonitorsPlugin(Plugin):
             # we need to refresh the temporary tables with resource monitors and warehouse telemetry
             self._session.call("APP.P_REFRESH_RESOURCE_MONITORS")
 
-        _, _, processed_rm, _ = self._log_entries(
+        (
+            resource_monitors_entries_cnt,
+            resource_monitors_logs_cnt,
+            resource_monitors_metrics_cnt,
+            resource_monitors_events_cnt,
+        ) = self._log_entries(
             f_entry_generator=lambda: self._get_table_rows("APP.V_RESOURCE_MONITORS"),
             context_name=context_name,
             run_uuid=run_id,
@@ -129,7 +151,12 @@ class ResourceMonitorsPlugin(Plugin):
                 context=get_context_name_and_run_id(context_name, run_id),
             )
 
-        _, _, processed_wh, _ = self._log_entries(
+        (
+            warehouses_entries_cnt,
+            warehouses_logs_cnt,
+            warehouses_metrics_cnt,
+            warehouses_events_cnt,
+        ) = self._log_entries(
             f_entry_generator=lambda: self._get_table_rows("APP.V_WAREHOUSES"),
             context_name=context_name,
             run_uuid=run_id,
@@ -138,20 +165,30 @@ class ResourceMonitorsPlugin(Plugin):
             log_completion=False,
         )
 
+        results_dict = {
+            "resource_monitors": {
+                "entries": resource_monitors_entries_cnt,
+                "logs": resource_monitors_logs_cnt,
+                "metrics": resource_monitors_metrics_cnt,
+                "events": resource_monitors_events_cnt,
+            },
+            "warehouses": {
+                "entries": warehouses_entries_cnt,
+                "logs": warehouses_logs_cnt,
+                "metrics": warehouses_metrics_cnt,
+                "events": warehouses_events_cnt,
+            },
+        }
+
         if run_proc:
             self._report_execution(
                 "resource_monitors",
                 current_timestamp(),
                 None,
-                {
-                    "resource_monitors.count": processed_rm,
-                    "resource_monitors.unattached": self.unattached_rms,
-                    "warehouses.count": processed_wh,
-                    "warehouses.unmonitored": self.unmonitored_wh,
-                },
+                results_dict,
             )
 
-        return processed_rm, self.unattached_rms, processed_wh, self.unmonitored_wh
+        return results_dict
 
 
 ##endregion

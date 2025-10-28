@@ -41,15 +41,34 @@ class TasksPlugin(Plugin):
     Tasks plugin class.
     """
 
-    def process(self, run_proc: bool = True) -> Dict[str, int]:  # FIXME
+    def process(self, run_proc: bool = True) -> Dict[str, int]:
         """
         Processes the measures on serverless tasks, task history and task versions.
-        Returns number of processed: serverless tasks, serverless task metrics, entries in task history, entries in task versions - in this order.
-        """
+        Returns:
+            Dict[str,int]: A dictionary with telemetry counts for tasks.
 
-        task_history_entries_cnt = 0
-        task_versions_entries_cnt = 0
-        serverless_task_history_entries_cnt = 0
+            Example:
+            {
+                "serverless_tasks": {
+                    "entries": serverless_tasks_entries_cnt,
+                    "logs": serverless_task_logs_cnt,
+                    "metrics": serverless_tasks_metrics_cnt,
+                    "events": serverless_tasks_events_cnt,
+                },
+                "task_versions": {
+                    "entries": task_versions_entries_cnt,
+                    "logs": task_versions_logs_cnt,
+                    "metrics": task_versions_metrics_cnt,
+                    "events": task_versions_events_cnt,
+                },
+                "task_history": {
+                    "entries": task_history_entries_cnt,
+                    "logs": task_history_logs_cnt,
+                    "metrics": task_history_metrics_cnt,
+                    "events": task_history_events_cnt,
+                },
+            }
+        """
 
         t_serverless_task = "APP.V_SERVERLESS_TASKS"
         t_task_hist = "APP.V_TASK_HISTORY"
@@ -58,10 +77,10 @@ class TasksPlugin(Plugin):
         run_id = str(uuid.uuid4().hex)
 
         (
-            serverless_task_history_entries_cnt,
-            _,
+            serverless_tasks_entries_cnt,
+            serverless_task_logs_cnt,
             serverless_tasks_metrics_cnt,
-            _,
+            serverless_tasks_events_cnt,
         ) = self._log_entries(
             lambda: self._get_table_rows(t_serverless_task),
             "serverless_tasks",
@@ -70,26 +89,50 @@ class TasksPlugin(Plugin):
             log_completion=run_proc,
         )
 
-        task_versions_entries_cnt = self._log_entries(
+        (
+            task_versions_entries_cnt,
+            task_versions_logs_cnt,
+            task_versions_metrics_cnt,
+            task_versions_events_cnt,
+        ) = self._log_entries(
             lambda: self._get_table_rows(t_task_versions),
             "task_versions",
             run_uuid=run_id,
             log_completion=run_proc,
-        )[0]
+        )
 
-        task_history_entries_cnt = self._log_entries(
+        (
+            task_history_entries_cnt,
+            task_history_logs_cnt,
+            task_history_metrics_cnt,
+            task_history_events_cnt,
+        ) = self._log_entries(
             lambda: self._get_table_rows(t_task_hist),
             "task_history",
             run_uuid=run_id,
             log_completion=run_proc,
-        )[0]
-
-        return (
-            serverless_task_history_entries_cnt,
-            serverless_tasks_metrics_cnt,
-            task_history_entries_cnt,
-            task_versions_entries_cnt,
         )
+
+        return {
+            "serverless_tasks": {
+                "entries": serverless_tasks_entries_cnt,
+                "logs": serverless_task_logs_cnt,
+                "metrics": serverless_tasks_metrics_cnt,
+                "events": serverless_tasks_events_cnt,
+            },
+            "task_versions": {
+                "entries": task_versions_entries_cnt,
+                "logs": task_versions_logs_cnt,
+                "metrics": task_versions_metrics_cnt,
+                "events": task_versions_events_cnt,
+            },
+            "task_history": {
+                "entries": task_history_entries_cnt,
+                "logs": task_history_logs_cnt,
+                "metrics": task_history_metrics_cnt,
+                "events": task_history_events_cnt,
+            },
+        }
 
 
 ##endregion

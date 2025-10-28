@@ -40,21 +40,32 @@ class ActiveQueriesPlugin(Plugin):
     Active queries plugin class.
     """
 
-    def process(self, run_proc: bool = True) -> Dict[str, int]:  # FIXME
+    def process(self, run_proc: bool = True) -> Dict[str, int]:
         """
         Processes the measures on active queries
+
+        Returns:
+            Dict[str,int]: A dictionary with counts of processed telemetry data.
+
+            Example:
+            {
+                "entries": entries_cnt,
+                "log_lines": logs_cnt,
+                "metrics": metrics_cnt,
+                "events": events_cnt
+            }
         """
         t_active_queries = "SELECT * FROM TABLE(DTAGENT_DB.APP.F_ACTIVE_QUERIES_INSTRUMENTED())"
 
-        active_queries_cnt = self._log_entries(
+        entries_cnt, logs_cnt, metrics_cnt, events_cnt = self._log_entries(
             lambda: self._get_table_rows(t_active_queries),
             "active_queries",
             report_timestamp_events=False,
             report_metrics=True,
             log_completion=run_proc,
-        )[0]
+        )
 
-        return active_queries_cnt
+        return {"active_queries": {"entries": entries_cnt, "log_lines": logs_cnt, "metrics": metrics_cnt, "events": events_cnt}}
 
 
 ##endregion
