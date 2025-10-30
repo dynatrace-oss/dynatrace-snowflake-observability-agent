@@ -452,12 +452,19 @@ class Plugin(ABC):
 
         for row_dict in f_entry_generator():
 
-            if report_metrics:
+            was_processed = False
+
+            if report_metrics and not getattr(self._metrics, "NOT_ENABLED", False):
                 processed_metrics_cnt += self._metrics.discover_report_metrics(row_dict, start_time, context_name)
+                was_processed = True
 
             self.processed_last_timestamp = row_dict.get("TIMESTAMP", None)
 
-            if report_timestamp_events and len(_unpack_json_dict(row_dict, ["EVENT_TIMESTAMPS"])) > 0:
+            if (
+                report_timestamp_events
+                and not getattr(self._events, "NOT_ENABLED", False)
+                and len(_unpack_json_dict(row_dict, ["EVENT_TIMESTAMPS"])) > 0
+            ):
 
                 for key, ts in _unpack_json_dict(row_dict, ["EVENT_TIMESTAMPS"]).items():
                     ts_dt = _get_timestamp_in_sec(ts, NANOSECOND_CONVERSION_RATE)
@@ -474,12 +481,17 @@ class Plugin(ABC):
                             end_time_key=end_time,
                             context=__context,
                         )
+                        was_processed = True
 
-            if event_payload_prepare is not None and (
-                report_all_as_events
-                or self._has_event(
-                    value_to_compare=event_value_to_check,
-                    column_value=row_dict.get(event_column_to_check, None),
+            if (
+                event_payload_prepare is not None
+                and not getattr(self._events, "NOT_ENABLED", False)
+                and (
+                    report_all_as_events
+                    or self._has_event(
+                        value_to_compare=event_value_to_check,
+                        column_value=row_dict.get(event_column_to_check, None),
+                    )
                 )
             ):
                 event_type, title, properties = event_payload_prepare(row_dict)
@@ -492,16 +504,21 @@ class Plugin(ABC):
                     properties=properties,
                     context=__context,
                 )
-            elif report_logs:
+                was_processed = True
+            elif (
+                report_logs
+                and not getattr(self._logs, "NOT_ENABLED", False)
+                and f_report_log(row_dict, __context, f_get_log_level(row_dict))
+            ):
                 # wrapper for logging so that it can be overwritten if required
                 # logging can be conditional, therefore f_report_log must return something
-                if f_report_log(row_dict, __context, f_get_log_level(row_dict)):
-                    processed_logs_cnt += 1
+                processed_logs_cnt += 1
+                was_processed = True
 
-            processed_entries_cnt += 1
+            if was_processed:
+                processed_entries_cnt += 1
 
             if processed_entries_cnt % 100:  # invoking garbage collection every 100 entries.
-
                 gc.collect()
 
         entries_dict = {"processed_entries_cnt": processed_entries_cnt}

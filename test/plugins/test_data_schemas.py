@@ -52,7 +52,6 @@ class TestDataSchemas:
         # ======================================================================
         import logging
 
-        # Test different disabled telemetry combinations
         disabled_combinations = [
             [],
             ["events"],
@@ -63,7 +62,6 @@ class TestDataSchemas:
         for disabled_telemetry in disabled_combinations:
             utils.execute_telemetry_test(
                 TestDynatraceSnowAgent,
-                "test_data_schemas",
                 "data_schemas",
                 disabled_telemetry=disabled_telemetry,
                 affecting_types_for_entries=["events"],

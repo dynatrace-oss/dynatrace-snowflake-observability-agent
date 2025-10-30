@@ -35,6 +35,7 @@ from dtagent.config import Configuration
 from dtagent.connector import TelemetrySender
 from dtagent import config
 from dtagent.util import is_select_for_table
+import test
 from test._mocks.telemetry import MockTelemetryClient
 
 TEST_CONFIG_FILE_NAME = "./test/conf/config-download.json"
@@ -256,7 +257,12 @@ def telemetry_test_sender(
 
 
 def execute_telemetry_test(
-    agent_class, test_name, plugin_key, disabled_telemetry, base_count=Dict[str, int], affecting_types_for_entries: List[str] = None
+    agent_class,
+    plugin_key: str,
+    disabled_telemetry: List[str],
+    base_count=Dict[str, int],
+    test_name: str = None,
+    affecting_types_for_entries: List[str] = None,
 ):
     """
     Generalized test function for telemetry plugins.
@@ -273,6 +279,8 @@ def execute_telemetry_test(
     from test import _get_session
 
     affecting_types_for_entries = affecting_types_for_entries or ["logs", "metrics", "spans"]
+    test_name = test_name or f"test_{plugin_key}"
+
     config = get_config()
     session = _get_session()
 
@@ -298,7 +306,7 @@ def execute_telemetry_test(
     events_expected = base_count.get("events", 0) if "events" not in disabled_telemetry else 0
 
     assert results[test_name][plugin_key].get("entries", 0) == entries_expected
-    assert results[test_name][plugin_key].get("logs", 0) == logs_expected
+    assert results[test_name][plugin_key].get("log_lines", 0) == logs_expected
     assert results[test_name][plugin_key].get("spans", 0) == spans_expected
     assert results[test_name][plugin_key].get("metrics", 0) == metrics_expected
     assert results[test_name][plugin_key].get("events", 0) == events_expected
