@@ -81,7 +81,7 @@ def _logging_findings(
     log_tag: str,
     log_level: logging,
     show_detailed_logs: bool,
-):
+) -> Dict[str, Dict[str, int]]:
     from test import is_local_testing
 
     if log_level != "":
@@ -101,6 +101,8 @@ def _logging_findings(
     session.close()
 
     print(f"!!!! RESULTS = {results}")
+
+    return results
 
 
 def _safe_get_unpickled_entries(pickles: dict, table_name: str, *args, **kwargs) -> Generator[Dict, None, None]:

@@ -21,6 +21,9 @@
 # SOFTWARE.
 #
 #
+from test import TestConfiguration
+
+
 class TestQueryHist:
     import pytest
 
@@ -92,7 +95,33 @@ class TestQueryHist:
 
         session = _get_session()
         # when sending spans log level cannot be set, hence "" to omit it in the utils
-        utils._logging_findings(session, TestSpanDynatraceSnowAgent(session, utils.get_config()), "test_query_history", logging.INFO, False)
+        _local_configuration = utils.get_config()
+
+        def __execute_test(disabled_telemetry: list):
+
+            for telemetry_type in ("spans", "logs", "metrics", "events"):
+                _local_configuration._config["otel"][telemetry_type]["is_disabled"] = telemetry_type in disabled_telemetry
+
+            results = utils._logging_findings(
+                session, TestSpanDynatraceSnowAgent(session, _local_configuration), "test_query_history", logging.INFO, False
+            )
+
+            assert "test_query_history" in results
+            assert "query_history" in results["test_query_history"]
+            assert results["test_query_history"]["query_history"].get("entries", 0) == 3
+            # assert results["test_query_history"]["query_history"].get("errors", 0) == 0
+            assert results["test_query_history"]["query_history"].get("logs", 0) == (3 if "logs" not in disabled_telemetry else 0)
+            assert results["test_query_history"]["query_history"].get("spans", 0) == (3 if "spans" not in disabled_telemetry else 0)
+            assert results["test_query_history"]["query_history"].get("metrics", 0) >= (3 if "metrics" not in disabled_telemetry else 0)
+            assert results["test_query_history"]["query_history"].get("events", 0) == 0
+
+        __execute_test(disabled_telemetry=[])
+        __execute_test(disabled_telemetry=["logs"])
+        __execute_test(disabled_telemetry=["spans"])
+        __execute_test(disabled_telemetry=["metrics"])
+        __execute_test(disabled_telemetry=["logs", "metrics"])
+        __execute_test(disabled_telemetry=["metrics", "logs"])
+        __execute_test(disabled_telemetry=["logs", "spans", "metrics", "events"])
 
 
 if __name__ == "__main__":
