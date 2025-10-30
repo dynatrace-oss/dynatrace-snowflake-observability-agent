@@ -68,6 +68,9 @@ def _log_warning(response: requests.Response, payload, source: str = "data", max
 class NoOpTelemetry:
     """A no-operation telemetry class used when telemetry is disabled."""
 
+    def __init__(self):
+        self.NOT_ENABLED = True
+
     def __getattr__(self, name):
 
         def __void_method(*args, **kwargs):
@@ -77,6 +80,13 @@ class NoOpTelemetry:
         def __int_method(*args, **kwargs):
             """Dummy method that will not do anything and return 0"""
             return 0
+
+        def __zero_tuple_method(length):
+            def method(*args, **kwargs):
+                """Dummy method that returns a tuple of zeros of specified length"""
+                return tuple(0 for _ in range(length))
+
+            return method
 
         def __bool_method(*args, **kwargs):
             """Dummy method that will not do anything and return False"""
@@ -88,14 +98,17 @@ class NoOpTelemetry:
 
             LOG.warning(f"Method '{name}' is not implemented in NoOpTelemetry.")
 
-        if name in ("send_log", "flush_logs", "shutdown_logger", "shutdown_tracer", "flush_metrics"):
+        if name in ("send_log", "flush_logs", "shutdown_logger", "shutdown_tracer"):
             return __void_method
 
-        if name in ("generate_span", "flush_events", "send_events", "report_via_api"):
+        if name in ("flush_events", "send_events", "report_via_api", "flush_metrics"):
             return __int_method
 
         if name in ("flush_traces", "report_via_metrics_api", "discover_report_metrics"):
             return __bool_method
+
+        if name in ("generate_span"):
+            return __zero_tuple_method(3)
 
         return _not_implemented
 

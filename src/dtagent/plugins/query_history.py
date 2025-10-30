@@ -112,25 +112,28 @@ class QueryHistoryPlugin(Plugin):
                 ["DIMENSIONS", "ATTRIBUTES", "METRICS"],
             )
 
-            self._logs.send_log(
-                log_dict.get("db.query.text", "Snowflake Query"),
-                extra={
-                    "timestamp": query_dict["START_TIME"],
-                    "end_time": query_dict["END_TIME"],
-                    **log_dict,
-                },
-                context=__context,
-            )
-            logs_sent = 1
-
-            for operator in _unpack_json_list(query_dict, ["QUERY_OPERATOR_STATS"]):
+            if not getattr(self._logs, "NOT_ENABLED", False):
                 self._logs.send_log(
-                    f"Query operator: {__get_query_operator_event_name(operator)}",
-                    extra=operator,
-                    log_level=logging.INFO,
+                    log_dict.get("db.query.text", "Snowflake Query"),
+                    extra={
+                        "timestamp": query_dict["START_TIME"],
+                        "end_time": query_dict["END_TIME"],
+                        **log_dict,
+                    },
                     context=__context,
                 )
-                logs_sent += 1
+                logs_sent = 1
+
+                for operator in _unpack_json_list(query_dict, ["QUERY_OPERATOR_STATS"]):
+                    self._logs.send_log(
+                        f"Query operator: {__get_query_operator_event_name(operator)}",
+                        extra=operator,
+                        log_level=logging.INFO,
+                        context=__context,
+                    )
+                    logs_sent += 1
+            else:
+                logs_sent = 0
 
             return logs_sent
 

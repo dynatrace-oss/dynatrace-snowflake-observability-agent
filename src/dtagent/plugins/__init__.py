@@ -32,6 +32,7 @@ import logging
 import inspect
 from typing import Tuple, Dict, List, Callable, Union, Generator, Optional, Any
 from abc import ABC, abstractmethod
+from requests import get
 from snowflake import snowpark
 from snowflake.snowpark.functions import current_timestamp
 from dtagent import LOG, LL_TRACE
@@ -298,21 +299,26 @@ class Plugin(ABC):
             processing_errors.append(f"Problem sending row {row_id} as metric")
 
         span_events_added, spans_sent, logs_sent = 0, 0, 0
-        if row.get("IS_ROOT", True):  # processing top level rows only: marked as IS_ROOT or missing that marker
-            span_events_added, spans_sent, logs_sent = self._spans.generate_span(
-                row,
-                self._session,
-                row_id_col,
-                parent_row_id_col,
-                is_top_level=True,
-                view_name=view_name,
-                f_span_events=f_span_events,
-                f_log_events=f_log_events,
-                context=context,
-            )
+        if not getattr(self._spans, "NOT_ENABLED", False):
+            if row.get("IS_ROOT", True):  # processing top level rows only: marked as IS_ROOT or missing that marker
+                span_events_added, spans_sent, logs_sent = self._spans.generate_span(
+                    row,
+                    self._session,
+                    row_id_col,
+                    parent_row_id_col,
+                    is_top_level=True,
+                    view_name=view_name,
+                    f_span_events=f_span_events,
+                    f_log_events=f_log_events,
+                    context=context,
+                    processed_ids=processed_ids,
+                )
 
-        if row_id is not None and processed_ids is not None:
-            processed_ids.append(row_id)
+        elif f_log_events is not None and not getattr(self._logs, "NOT_ENABLED", False):
+            logs_sent = f_log_events(row)
+
+            if row_id is not None and processed_ids is not None and logs_sent > 0:
+                processed_ids.append(row_id)
 
         return span_events_added, spans_sent, logs_sent, metrics_sent
 

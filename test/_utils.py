@@ -76,11 +76,7 @@ def _pickle_data_history(
 
 
 def _logging_findings(
-    session: snowpark.Session,
-    dtagent,
-    log_tag: str,
-    log_level: logging,
-    show_detailed_logs: bool,
+    session: snowpark.Session, dtagent, log_tag: str, log_level: logging, show_detailed_logs: bool, disabled_telemetry: List[str] = None
 ) -> Dict[str, Dict[str, int]]:
     from test import is_local_testing
 
@@ -96,7 +92,7 @@ def _logging_findings(
 
         print(LOG.getEffectiveLevel())
 
-    results = dtagent.process([str(log_tag)], False)
+    results = dtagent.process([str(log_tag)], False, disabled_telemetry=disabled_telemetry)
     dtagent.teardown()
     session.close()
 
@@ -257,6 +253,55 @@ def telemetry_test_sender(
     mock_client.store_or_test_results()
 
     return results
+
+
+def execute_telemetry_test(
+    agent_class, test_name, plugin_key, disabled_telemetry, base_count=Dict[str, int], affecting_types_for_entries: List[str] = None
+):
+    """
+    Generalized test function for telemetry plugins.
+
+    Args:
+        agent_class: The agent class to instantiate
+        test_name: Name of the test
+        plugin_key: Key for the plugin in results
+        disabled_telemetry: List of disabled telemetry types
+        base_count: Base count for expectations for each telemetry type
+        affecting_types_for_entries: Telemetry types that affect entries count
+        metrics_at_least: Whether metrics should be at least or exactly the expected
+    """
+    from test import _get_session
+
+    affecting_types_for_entries = affecting_types_for_entries or ["logs", "metrics", "spans"]
+    config = get_config()
+    session = _get_session()
+
+    for telemetry_type in ("spans", "logs", "metrics", "events"):
+        config._config["otel"][telemetry_type]["is_disabled"] = telemetry_type in disabled_telemetry
+
+    results = _logging_findings(
+        session,
+        agent_class(session, config),
+        test_name,
+        logging.INFO,
+        False,
+        disabled_telemetry,
+    )
+
+    assert test_name in results
+    assert plugin_key in results[test_name]
+
+    entries_expected = base_count.get("entries", 0) if not all(t in disabled_telemetry for t in affecting_types_for_entries) else 0
+    logs_expected = base_count.get("logs", 0) if "logs" not in disabled_telemetry else 0
+    spans_expected = base_count.get("spans", 0) if "spans" not in disabled_telemetry else 0
+    metrics_expected = base_count.get("metrics", 0) if "metrics" not in disabled_telemetry else 0
+    events_expected = base_count.get("events", 0) if "events" not in disabled_telemetry else 0
+
+    assert results[test_name][plugin_key].get("entries", 0) == entries_expected
+    assert results[test_name][plugin_key].get("logs", 0) == logs_expected
+    assert results[test_name][plugin_key].get("spans", 0) == spans_expected
+    assert results[test_name][plugin_key].get("metrics", 0) == metrics_expected
+    assert results[test_name][plugin_key].get("events", 0) == events_expected
 
 
 def get_config(pickle_conf: str = None) -> TestConfiguration:

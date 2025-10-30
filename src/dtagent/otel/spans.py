@@ -193,6 +193,7 @@ class Spans:
         f_log_events: Optional[Callable[[Dict[str, Any]], None]] = None,
         context: Optional[Dict] = None,
         is_top_level: bool = False,
+        processed_ids: Optional[List[str]] = None,
     ) -> Tuple[int, int, int]:
         """
         Sends aggregated query history row as a OTLP span
@@ -245,6 +246,7 @@ class Spans:
                     f_span_events=f_span_events,
                     f_log_events=f_log_events,
                     context=context,
+                    processed_ids=processed_ids,
                 )
                 span_events_added += _span_events_added
                 spans_cnt += _spans_cnt
@@ -311,6 +313,9 @@ class Spans:
 
             current_span.set_status(StatusCode[d_span.get("STATUS_CODE", "UNSET")])
             current_span.end(int(d_span["END_TIME"]))
+
+            if row_id is not None and processed_ids is not None:
+                processed_ids.append(row_id)
 
         LOG.log(LL_TRACE, "Leaving span reporting for %r", row_id)
         OtelManager.verify_communication()
