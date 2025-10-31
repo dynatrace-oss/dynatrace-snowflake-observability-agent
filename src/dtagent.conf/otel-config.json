@@ -41,5 +41,8 @@
             ],
             "IS_DISABLED": false
         }
+    },
+    "PLUGINS": {
+        "DISABLED_BY_DEFAULT": false
     }
 }
