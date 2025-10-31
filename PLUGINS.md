@@ -68,7 +68,13 @@ In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you 
             "SCHEDULE": "USING CRON */6 * * * * UTC",
             "IS_DISABLED": false,
             "FAST_MODE": true,
-            "REPORT_EXECUTION_STATUS": []
+            "REPORT_EXECUTION_STATUS": [],
+            "TELEMETRY": [
+                "LOGS",
+                "METRICS",
+                "SPANS",
+                "BIZ_EVENTS"
+            ]
         }
     }
 }
@@ -101,7 +107,13 @@ In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you 
         "BUDGETS": {
             "QUOTA": 10,
             "SCHEDULE": "USING CRON 30 0 * * * UTC",
-            "IS_DISABLED": false
+            "IS_DISABLED": false,
+            "TELEMETRY": [
+                "LOGS",
+                "METRICS",
+                "EVENTS",
+                "BIZ_EVENTS"
+            ]
         }
     }
 }
@@ -129,6 +141,10 @@ In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you 
             "EXCLUDE": [],
             "INCLUDE": [
                 "%"
+            ],
+            "TELEMETRY": [
+                "EVENTS",
+                "BIZ_EVENTS"
             ]
         }
     }
@@ -170,7 +186,11 @@ In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you 
                 "%.%.TMP_%"
             ],
             "SCHEDULE": "USING CRON 30 0,4,8,12,16,20 * * * UTC",
-            "IS_DISABLED": false
+            "IS_DISABLED": false,
+            "TELEMETRY": [
+                "METRICS",
+                "BIZ_EVENTS"
+            ]
         }
     }
 }
@@ -208,7 +228,12 @@ In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you 
             ],
             "SCHEDULE": "USING CRON */30 * * * * UTC",
             "SCHEDULE_GRANTS": "USING CRON 30 */12 * * * UTC",
-            "IS_DISABLED": false
+            "IS_DISABLED": false,
+            "TELEMETRY": [
+                "METRICS",
+                "LOGS",
+                "BIZ_EVENTS"
+            ]
         }
     }
 }
@@ -262,7 +287,13 @@ In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you 
             "RETENTION_HOURS": 12,
             "SCHEDULE": "USING CRON */30 * * * * UTC",
             "SCHEDULE_CLEANUP": "USING CRON 0 * * * * UTC",
-            "IS_DISABLED": false
+            "IS_DISABLED": false,
+            "TELEMETRY": [
+                "METRICS",
+                "LOGS",
+                "BIZ_EVENTS",
+                "SPANS"
+            ]
         }
     }
 }
@@ -297,7 +328,12 @@ In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you 
     "PLUGINS": {
         "EVENT_USAGE": {
             "SCHEDULE": "USING CRON 0 * * * * UTC",
-            "IS_DISABLED": false
+            "IS_DISABLED": false,
+            "TELEMETRY": [
+                "METRICS",
+                "LOGS",
+                "BIZ_EVENTS"
+            ]
         }
     }
 }
@@ -334,7 +370,11 @@ In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you 
     "PLUGINS": {
         "LOGIN_HISTORY": {
             "SCHEDULE": "USING CRON */30 * * * * UTC",
-            "IS_DISABLED": false
+            "IS_DISABLED": false,
+            "TELEMETRY": [
+                "LOGS",
+                "BIZ_EVENTS"
+            ]
         }
     }
 }
@@ -373,7 +413,13 @@ In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you 
             "SCHEDULE": "USING CRON */30 * * * * UTC",
             "IS_DISABLED": false,
             "SLOW_QUERIES_THRESHOLD": 10000,
-            "SLOW_QUERIES_TO_ANALYZE_LIMIT": 50
+            "SLOW_QUERIES_TO_ANALYZE_LIMIT": 50,
+            "TELEMETRY": [
+                "METRICS",
+                "LOGS",
+                "BIZ_EVENTS",
+                "SPANS"
+            ]
         }
     }
 }
@@ -419,7 +465,13 @@ In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you 
     "PLUGINS": {
         "RESOURCE_MONITORS": {
             "SCHEDULE": "USING CRON */30 * * * * UTC",
-            "IS_DISABLED": false
+            "IS_DISABLED": false,
+            "TELEMETRY": [
+                "LOGS",
+                "METRICS",
+                "EVENTS",
+                "BIZ_EVENTS"
+            ]
         }
     }
 }
@@ -458,6 +510,11 @@ In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you 
             ],
             "INCLUDE": [
                 "%.%.%"
+            ],
+            "TELEMETRY": [
+                "LOGS",
+                "EVENTS",
+                "BIZ_EVENTS"
             ]
         }
     }
@@ -495,7 +552,13 @@ In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you 
     "PLUGINS": {
         "TASKS": {
             "SCHEDULE": "USING CRON 30 * * * * UTC",
-            "IS_DISABLED": false
+            "IS_DISABLED": false,
+            "TELEMETRY": [
+                "LOGS",
+                "METRICS",
+                "EVENTS",
+                "BIZ_EVENTS"
+            ]
         }
     }
 }
@@ -527,7 +590,13 @@ In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you 
         "TRUST_CENTER": {
             "SCHEDULE": "USING CRON 30 */12 * * * UTC",
             "LOG_DETAILS": false,
-            "IS_DISABLED": false
+            "IS_DISABLED": false,
+            "TELEMETRY": [
+                "METRICS",
+                "LOGS",
+                "EVENTS",
+                "BIZ_EVENTS"
+            ]
         }
     }
 }
@@ -569,7 +638,11 @@ In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you 
             "IS_DISABLED": false,
             "IS_HASHED": true,
             "RETAIN_EMAIL_HASH_MAP": false,
-            "ROLES_MONITORING_MODE": []
+            "ROLES_MONITORING_MODE": [],
+            "TELEMETRY": [
+                "LOGS",
+                "BIZ_EVENTS"
+            ]
         }
     }
 }
@@ -599,7 +672,12 @@ In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you 
     "PLUGINS": {
         "WAREHOUSE_USAGE": {
             "SCHEDULE": "USING CRON 0 * * * * UTC",
-            "IS_DISABLED": false
+            "IS_DISABLED": false,
+            "TELEMETRY": [
+                "LOGS",
+                "METRICS",
+                "BIZ_EVENTS"
+            ]
         }
     }
 }
