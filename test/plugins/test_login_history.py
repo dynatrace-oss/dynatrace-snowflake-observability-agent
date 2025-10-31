@@ -52,9 +52,25 @@ class TestLoginHist:
         plugins._get_plugin_class = __local_get_plugin_class
 
         # ======================================================================
-        session = _get_session()
 
-        utils._logging_findings(session, TestDynatraceSnowAgent(session, utils.get_config()), "test_login_history", logging.INFO, False)
+        disabled_combinations = [
+            [],
+            ["logs"],
+            ["events"],
+            ["logs", "events"],
+        ]
+
+        for disabled_telemetry in disabled_combinations:
+            utils.execute_telemetry_test(
+                TestDynatraceSnowAgent,
+                test_name="login_history",
+                disabled_telemetry=disabled_telemetry,
+                affecting_types_for_entries=["logs", "events"],
+                base_count={
+                    "login_history": {"entries": 2, "logs": 2, "metrics": 0, "events": 0},
+                    "sessions": {"entries": 0, "logs": 0, "metrics": 0, "events": 0},
+                },
+            )
 
 
 if __name__ == "__main__":

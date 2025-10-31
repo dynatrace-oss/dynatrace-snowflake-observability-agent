@@ -51,19 +51,19 @@ class TasksPlugin(Plugin):
             {
                 "serverless_tasks": {
                     "entries": serverless_tasks_entries_cnt,
-                    "logs": serverless_task_logs_cnt,
+                    "log_lines": serverless_task_logs_cnt,
                     "metrics": serverless_tasks_metrics_cnt,
                     "events": serverless_tasks_events_cnt,
                 },
                 "task_versions": {
                     "entries": task_versions_entries_cnt,
-                    "logs": task_versions_logs_cnt,
+                    "log_lines": task_versions_logs_cnt,
                     "metrics": task_versions_metrics_cnt,
                     "events": task_versions_events_cnt,
                 },
                 "task_history": {
                     "entries": task_history_entries_cnt,
-                    "logs": task_history_logs_cnt,
+                    "log_lines": task_history_logs_cnt,
                     "metrics": task_history_metrics_cnt,
                     "events": task_history_events_cnt,
                 },
@@ -116,19 +116,19 @@ class TasksPlugin(Plugin):
         return {
             "serverless_tasks": {
                 "entries": serverless_tasks_entries_cnt,
-                "logs": serverless_task_logs_cnt,
+                "log_lines": serverless_task_logs_cnt,
                 "metrics": serverless_tasks_metrics_cnt,
                 "events": serverless_tasks_events_cnt,
             },
             "task_versions": {
                 "entries": task_versions_entries_cnt,
-                "logs": task_versions_logs_cnt,
+                "log_lines": task_versions_logs_cnt,
                 "metrics": task_versions_metrics_cnt,
                 "events": task_versions_events_cnt,
             },
             "task_history": {
                 "entries": task_history_entries_cnt,
-                "logs": task_history_logs_cnt,
+                "log_lines": task_history_logs_cnt,
                 "metrics": task_history_metrics_cnt,
                 "events": task_history_events_cnt,
             },

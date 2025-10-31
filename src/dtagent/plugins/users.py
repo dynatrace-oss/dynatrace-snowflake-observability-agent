@@ -58,13 +58,13 @@ class UsersPlugin(Plugin):
             {
                 "users": {
                     "entries": entries_cnt,
-                    "logs": logs_cnt,
+                    "log_lines": logs_cnt,
                     "metrics": metrics_cnt,
                     "events": events_cnt,
                 },
                 "users_direct_roles": {
                     "entries": entries_cnt,
-                    "logs": logs_cnt,
+                    "log_lines": logs_cnt,
                     "metrics": metrics_cnt,
                     "events": events_cnt,
                 },
@@ -98,7 +98,7 @@ class UsersPlugin(Plugin):
             view_name = view[6:-13].lower()  # remove APP.V_ prefix and _INSTRUMENTED suffix
             results_dict[view_name] = {
                 "entries": entries_cnt,
-                "logs": logs_cnt,
+                "log_lines": logs_cnt,
                 "metrics": metrics_cnt,
                 "events": events_cnt,
             }

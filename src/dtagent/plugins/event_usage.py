@@ -41,7 +41,7 @@ class EventUsagePlugin(Plugin):
     Event usage plugin class.
     """
 
-    def _report_event_usage_log(self, row_dict, __context, log_level):
+    def _report_event_usage_log(self, row_dict: Dict, __context: Dict, log_level: int) -> bool:
         """sends single log line for event usage plugin"""
         unpacked_dict = _unpack_json_dict(row_dict, ["DIMENSIONS", "METRICS"])
         start_ts = row_dict.get("START_TIME")
@@ -57,6 +57,7 @@ class EventUsagePlugin(Plugin):
             context=__context,
             log_level=log_level,
         )
+        return True
 
     def process(self, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
         """

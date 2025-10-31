@@ -12,6 +12,7 @@
             ],
             "TELEMETRY": [
                 "LOGS",
+                "EVENTS",
                 "BIZ_EVENTS"
             ]
         }

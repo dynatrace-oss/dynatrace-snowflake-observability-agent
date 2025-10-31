@@ -52,19 +52,19 @@ class DynamicTablesPlugin(Plugin):
             {
                 "dynamic_tables": {
                     "entries": entries_cnt,
-                    "logs": logs_cnt,
+                    "log_lines": logs_cnt,
                     "metrics": metrics_cnt,
                     "events": event_cnt,
                 },
                 "dynamic_table_refresh_history": {
                     "entries": entries_refresh_cnt,
-                    "logs": logs_refresh_cnt,
+                    "log_lines": logs_refresh_cnt,
                     "metrics": metrics_refresh_cnt,
                     "events": event_refresh_cnt,
                 },
                 "dynamic_table_graph_history": {
                     "entries": entries_graph_cnt,
-                    "logs": logs_graph_cnt,
+                    "log_lines": logs_graph_cnt,
                     "metrics": metrics_graph_cnt,
                     "events": event_graph_cnt,
                 },
@@ -103,19 +103,19 @@ class DynamicTablesPlugin(Plugin):
         return {
             "dynamic_tables": {
                 "entries": entries_cnt,
-                "logs": logs_cnt,
+                "log_lines": logs_cnt,
                 "metrics": metrics_cnt,
                 "events": event_cnt,
             },
             "dynamic_table_refresh_history": {
                 "entries": entries_refresh_cnt,
-                "logs": logs_refresh_cnt,
+                "log_lines": logs_refresh_cnt,
                 "metrics": metrics_refresh_cnt,
                 "events": event_refresh_cnt,
             },
             "dynamic_table_graph_history": {
                 "entries": entries_graph_cnt,
-                "logs": logs_graph_cnt,
+                "log_lines": logs_graph_cnt,
                 "metrics": metrics_graph_cnt,
                 "events": event_graph_cnt,
             },

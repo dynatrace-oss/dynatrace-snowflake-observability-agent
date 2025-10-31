@@ -5,6 +5,8 @@
             "IS_DISABLED": false,
             "TELEMETRY": [
                 "LOGS",
+                "METRICS",
+                "EVENTS",
                 "BIZ_EVENTS"
             ]
         }

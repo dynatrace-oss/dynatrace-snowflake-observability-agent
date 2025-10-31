@@ -107,9 +107,9 @@ class TestQueryHist:
         for disabled_telemetry in disabled_combinations:
             utils.execute_telemetry_test(
                 TestSpanDynatraceSnowAgent,
-                "query_history",
+                test_name="test_query_history",
                 disabled_telemetry=disabled_telemetry,
-                base_count={"entries": 3, "logs": 3, "metrics": 111, "spans": 3},
+                base_count={"query_history": {"entries": 3, "log_lines": 3, "metrics": 111, "spans": 3}},
             )
 
 

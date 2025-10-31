@@ -51,13 +51,13 @@ class BudgetsPlugin(Plugin):
             {
                 "budgets": {
                     "entries": budgets_cnt,
-                    "logs": logs_budgets_cnt,
+                    "log_lines": logs_budgets_cnt,
                     "metrics": budgets_metrics_cnt,
                     "events": budgets_events_cnt,
                 },
                 "spendings": {
                     "entries": spendings_cnt,
-                    "logs": logs_spendings_cnt,
+                    "log_lines": logs_spendings_cnt,
                     "metrics": spending_metrics_cnt,
                     "events": spending_events_cnt,
                 },
@@ -95,13 +95,13 @@ class BudgetsPlugin(Plugin):
         results_dict = {
             "budgets": {
                 "entries": budgets_cnt,
-                "logs": logs_budgets_cnt,
+                "log_lines": logs_budgets_cnt,
                 "metrics": budgets_metrics_cnt,
                 "events": budgets_events_cnt,
             },
             "spendings": {
                 "entries": spendings_cnt,
-                "logs": logs_spendings_cnt,
+                "log_lines": logs_spendings_cnt,
                 "metrics": spending_metrics_cnt,
                 "events": spending_events_cnt,
             },

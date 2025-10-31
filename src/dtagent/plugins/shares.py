@@ -51,19 +51,19 @@ class SharesPlugin(Plugin):
             {
                 "outbound_shares": {
                     "entries": outbound_share_entries_cnt,
-                    "logs": outbound_share_logs_cnt,
+                    "log_lines": outbound_share_logs_cnt,
                     "metrics": outbound_share_metrics_cnt,
                     "events": outbound_share_events_cnt,
                 },
                 "inbound_shares": {
                     "entries": inbound_share_entries_cnt,
-                    "logs": inbound_share_logs_cnt,
+                    "log_lines": inbound_share_logs_cnt,
                     "metrics": inbound_share_metrics_cnt,
                     "events": inbound_share_events_cnt,
                 },
                 "shares": {
                     "entries": shares_entries_cnt,
-                    "logs": shares_logs_cnt,
+                    "log_lines": shares_logs_cnt,
                     "metrics": shares_metrics_cnt,
                     "events": shares_events_cnt,
                 },
@@ -121,19 +121,19 @@ class SharesPlugin(Plugin):
         return {
             "outbound_shares": {
                 "entries": outbound_share_entries_cnt,
-                "logs": outbound_share_logs_cnt,
+                "log_lines": outbound_share_logs_cnt,
                 "metrics": outbound_share_metrics_cnt,
                 "events": outbound_share_events_cnt,
             },
             "inbound_shares": {
                 "entries": inbound_share_entries_cnt,
-                "logs": inbound_share_logs_cnt,
+                "log_lines": inbound_share_logs_cnt,
                 "metrics": inbound_share_metrics_cnt,
                 "events": inbound_share_events_cnt,
             },
             "shares": {
                 "entries": shares_entries_cnt,
-                "logs": shares_logs_cnt,
+                "log_lines": shares_logs_cnt,
                 "metrics": shares_metrics_cnt,
                 "events": shares_events_cnt,
             },

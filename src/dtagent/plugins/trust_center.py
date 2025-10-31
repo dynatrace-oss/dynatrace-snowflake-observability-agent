@@ -53,7 +53,7 @@ class TrustCenterPlugin(Plugin):
         }
         return severity_mapping.get(row_dict.get("_SEVERITY"), logging.INFO)
 
-    def _report_instrumented_log(self, row_dict, __context, log_level):
+    def _report_instrumented_log(self, row_dict: Dict, __context: Dict, log_level: int) -> bool:
         """Defines custom log reporting approach"""
         unpacked_dicts = _unpack_json_dict(row_dict, ["DIMENSIONS", "ATTRIBUTES", "METRICS"])
 
@@ -87,7 +87,7 @@ class TrustCenterPlugin(Plugin):
             {
                 "trust_center": {
                     "entries": entries_cnt,
-                    "logs": logs_cnt,
+                    "log_lines": logs_cnt,
                     "metrics": metrics_cnt,
                     "events": events_cnt
                 }
@@ -96,7 +96,7 @@ class TrustCenterPlugin(Plugin):
 
         run_id = str(uuid.uuid4().hex)
 
-        _, _, metrics_sent_cnt, _ = self._log_entries(
+        metric_entries_cnt, _, metrics_sent_cnt, _ = self._log_entries(
             f_entry_generator=lambda: self._get_table_rows("APP.V_TRUST_CENTER_METRICS"),
             context_name="trust_center",
             run_uuid=run_id,
@@ -123,10 +123,10 @@ class TrustCenterPlugin(Plugin):
         results_dict = {
             "trust_center": {
                 "entries": entries_cnt,
-                "logs": logs_cnt,
-                "metrics": metrics_sent_cnt,
+                "log_lines": logs_cnt,
                 "events": events_sent_cnt,
-            }
+            },
+            "trust_center_metrics": {"entries": metric_entries_cnt, "metrics": metrics_sent_cnt},
         }
 
         if run_proc:

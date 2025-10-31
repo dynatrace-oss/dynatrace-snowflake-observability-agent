@@ -108,7 +108,7 @@ class DataSchemasPlugin(Plugin):
             {
                 "data_schemas": {
                     "entries": entries_cnt,
-                    "logs": logs_cnt,
+                    "log_lines": logs_cnt,
                     "metrics": metrics_cnt,
                     "events": events_cnt,
                 }
@@ -131,7 +131,7 @@ class DataSchemasPlugin(Plugin):
         return {
             "data_schemas": {
                 "entries": entries_cnt,
-                "logs": logs_cnt,
+                "log_lines": logs_cnt,
                 "metrics": metrics_cnt,
                 "events": events_cnt,
             }

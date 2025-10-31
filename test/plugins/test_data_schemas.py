@@ -62,10 +62,10 @@ class TestDataSchemas:
         for disabled_telemetry in disabled_combinations:
             utils.execute_telemetry_test(
                 TestDynatraceSnowAgent,
-                "data_schemas",
+                test_name="test_data_schemas",
                 disabled_telemetry=disabled_telemetry,
                 affecting_types_for_entries=["events"],
-                base_count={"entries": 2, "events": 2},
+                base_count={"data_schemas": {"entries": 2, "events": 2}},
             )
 
 

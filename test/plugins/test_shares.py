@@ -62,8 +62,25 @@ class TestShares:
 
         # ======================================================================
 
-        session = _get_session()
-        utils._logging_findings(session, TestDynatraceSnowAgent(session, utils.get_config()), "test_shares", logging.INFO, False)
+        disabled_combinations = [
+            # [],
+            ["logs"],
+            ["events"],
+            ["logs", "events"],
+        ]
+
+        for disabled_telemetry in disabled_combinations:
+            utils.execute_telemetry_test(
+                TestDynatraceSnowAgent,
+                test_name="test_shares",
+                disabled_telemetry=disabled_telemetry,
+                affecting_types_for_entries=["logs"],  # there is not test data for events
+                base_count={
+                    "outbound_shares": {"entries": 2, "log_lines": 2, "metrics": 0, "events": 0},
+                    "inbound_shares": {"entries": 2, "log_lines": 2, "metrics": 0, "events": 0},
+                    "shares": {"entries": 0, "log_lines": 0, "metrics": 0, "events": 0},
+                },
+            )
 
 
 if __name__ == "__main__":

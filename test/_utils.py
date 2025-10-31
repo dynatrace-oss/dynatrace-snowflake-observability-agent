@@ -258,10 +258,9 @@ def telemetry_test_sender(
 
 def execute_telemetry_test(
     agent_class,
-    plugin_key: str,
     disabled_telemetry: List[str],
-    base_count=Dict[str, int],
-    test_name: str = None,
+    base_count: Dict[str, Dict[str, int]],
+    test_name: str,
     affecting_types_for_entries: List[str] = None,
 ):
     """
@@ -279,7 +278,6 @@ def execute_telemetry_test(
     from test import _get_session
 
     affecting_types_for_entries = affecting_types_for_entries or ["logs", "metrics", "spans"]
-    test_name = test_name or f"test_{plugin_key}"
 
     config = get_config()
     session = _get_session()
@@ -297,19 +295,23 @@ def execute_telemetry_test(
     )
 
     assert test_name in results
-    assert plugin_key in results[test_name]
 
-    entries_expected = base_count.get("entries", 0) if not all(t in disabled_telemetry for t in affecting_types_for_entries) else 0
-    logs_expected = base_count.get("logs", 0) if "logs" not in disabled_telemetry else 0
-    spans_expected = base_count.get("spans", 0) if "spans" not in disabled_telemetry else 0
-    metrics_expected = base_count.get("metrics", 0) if "metrics" not in disabled_telemetry else 0
-    events_expected = base_count.get("events", 0) if "events" not in disabled_telemetry else 0
+    for plugin_key in base_count.keys():
+        assert plugin_key in results[test_name]
 
-    assert results[test_name][plugin_key].get("entries", 0) == entries_expected
-    assert results[test_name][plugin_key].get("log_lines", 0) == logs_expected
-    assert results[test_name][plugin_key].get("spans", 0) == spans_expected
-    assert results[test_name][plugin_key].get("metrics", 0) == metrics_expected
-    assert results[test_name][plugin_key].get("events", 0) == events_expected
+        logs_expected = base_count[plugin_key].get("log_lines", 0) if "logs" not in disabled_telemetry else 0
+        spans_expected = base_count[plugin_key].get("spans", 0) if "spans" not in disabled_telemetry else 0
+        metrics_expected = base_count[plugin_key].get("metrics", 0) if "metrics" not in disabled_telemetry else 0
+        events_expected = base_count[plugin_key].get("events", 0) if "events" not in disabled_telemetry else 0
+        entries_expected = (
+            base_count[plugin_key].get("entries", 0) if (logs_expected + spans_expected + metrics_expected + events_expected > 0) else 0
+        )
+
+        assert results[test_name][plugin_key].get("entries", 0) == entries_expected
+        assert results[test_name][plugin_key].get("log_lines", 0) == logs_expected
+        assert results[test_name][plugin_key].get("spans", 0) == spans_expected
+        assert results[test_name][plugin_key].get("metrics", 0) == metrics_expected
+        assert results[test_name][plugin_key].get("events", 0) == events_expected
 
 
 def get_config(pickle_conf: str = None) -> TestConfiguration:

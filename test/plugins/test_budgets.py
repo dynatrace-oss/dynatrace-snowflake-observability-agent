@@ -55,10 +55,26 @@ class TestBudgets:
         plugins._get_plugin_class = __local_get_plugin_class
 
         # ======================================================================
-        import logging
+        disabled_combinations = [
+            [],
+            ["metrics"],
+            ["logs"],
+            ["events"],
+            ["logs", "metrics"],
+            ["logs", "spans", "metrics", "events"],
+        ]
 
-        session = _get_session()
-        utils._logging_findings(session, TestDynatraceSnowAgent(session, utils.get_config()), "test_budget", logging.INFO, False)
+        for disabled_telemetry in disabled_combinations:
+            utils.execute_telemetry_test(
+                TestDynatraceSnowAgent,
+                test_name="test_budget",
+                disabled_telemetry=disabled_telemetry,
+                affecting_types_for_entries=["logs", "metrics"],  # no events tests data
+                base_count={
+                    "budgets": {"entries": 1, "log_lines": 1, "metrics": 1, "events": 0},
+                    "spendings": {"entries": 0, "log_lines": 0, "metrics": 0, "events": 0},
+                },
+            )
 
 
 if __name__ == "__main__":

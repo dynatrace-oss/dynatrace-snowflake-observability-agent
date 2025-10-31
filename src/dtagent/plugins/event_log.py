@@ -55,7 +55,7 @@ class EventLogPlugin(Plugin):
 
             yield row_dict
 
-    def _process_log_line(self, row_dict, __context, log_level):  # pylint: disable=unused-argument
+    def _process_log_line(self, row_dict: Dict, __context: Dict, log_level: int) -> bool:  # pylint: disable=unused-argument
         """Processes single log line for event log"""
 
         unpacked_dicts = _unpack_json_dict(row_dict, ["_RECORD", "_RECORD_ATTRIBUTES", "_RESOURCE_ATTRIBUTES", "_VALUE_OBJECT"])
@@ -160,19 +160,19 @@ class EventLogPlugin(Plugin):
             {
                 "event_log": {
                     "entries": l_entries_cnt,
-                    "logs": l_logs_cnt,
+                    "log_lines": l_logs_cnt,
                     "metrics": l_metrics_cnt,
                     "events": l_events_cnt,
                 },
                 "event_log_metrics": {
                     "entries": m_entries_cnt,
-                    "logs": m_logs_cnt,
+                    "log_lines": m_logs_cnt,
                     "metrics": m_metrics_cnt,
                     "events": m_event_cnt,
                 },
                 "event_log_spans": {
                     "entries": s_entries_cnt,
-                    "logs": s_logs_sent,
+                    "log_lines": s_logs_sent,
                     "metrics": s_metrics_sent,
                     "spans": s_spans_sent,
                     "span_events": s_span_events_added,
@@ -196,19 +196,19 @@ class EventLogPlugin(Plugin):
         return {
             "event_log": {
                 "entries": l_entries_cnt,
-                "logs": l_logs_cnt,
+                "log_lines": l_logs_cnt,
                 "metrics": l_metrics_cnt,
                 "events": l_events_cnt,
             },
             "event_log_metrics": {
                 "entries": m_entries_cnt,
-                "logs": m_logs_cnt,
+                "log_lines": m_logs_cnt,
                 "metrics": m_metrics_cnt,
                 "events": m_event_cnt,
             },
             "event_log_spans": {
                 "entries": s_entries_cnt,
-                "logs": s_logs_sent,
+                "log_lines": s_logs_sent,
                 "metrics": s_metrics_sent,
                 "spans": s_spans_sent,
                 "span_events": s_span_events_added,

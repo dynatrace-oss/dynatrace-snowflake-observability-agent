@@ -7,6 +7,7 @@
             "TELEMETRY": [
                 "METRICS",
                 "LOGS",
+                "EVENTS",
                 "BIZ_EVENTS"
             ]
         }

@@ -70,13 +70,13 @@ class LoginHistoryPlugin(Plugin):
             {
                 "login_history": {
                     "entries": entries_cnt,
-                    "logs": logs_cnt,
+                    "log_lines": logs_cnt,
                     "metrics": metrics_cnt,
                     "events": event_cnt,
                 },
                 "sessions": {
                     "entries": entries_cnt,
-                    "logs": logs_cnt,
+                    "log_lines": logs_cnt,
                     "metrics": metrics_cnt,
                     "events": event_cnt,
                 },
@@ -107,13 +107,13 @@ class LoginHistoryPlugin(Plugin):
         return {
             "login_history": {
                 "entries": login_history_entries_cnt,
-                "logs": login_history_logs_cnt,
+                "log_lines": login_history_logs_cnt,
                 "metrics": login_history_metrics_cnt,
                 "events": login_history_events_cnt,
             },
             "sessions": {
                 "entries": sessions_entries_cnt,
-                "logs": session_logs_cnt,
+                "log_lines": session_logs_cnt,
                 "metrics": session_metrics_cnt,
                 "events": session_events_cnt,
             },

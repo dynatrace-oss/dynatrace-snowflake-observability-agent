@@ -322,12 +322,12 @@ class Plugin(ABC):
 
         return span_events_added, spans_sent, logs_sent, metrics_sent
 
-    def get_log_level(self, row_dict):
+    def get_log_level(self, row_dict: Dict) -> int:
         """Generic method getting log level based on status.code key value. To be overwritten by plugins when required"""
         s_log_level = "INFO" if row_dict.get("status.code", "OK") == "OK" else "ERROR"
         return getattr(logging, s_log_level, logging.INFO)
 
-    def report_log(self, row_dict, __context, log_level):
+    def report_log(self, row_dict: Dict, __context: Dict, log_level: int) -> bool:
         """Generic method reporting single log line for _log_entries. To be overwritten by plugins when required"""
         log_dict = _unpack_json_dict(
             row_dict,
@@ -345,7 +345,17 @@ class Plugin(ABC):
 
         return True
 
-    def report_event(self, row_dict, event_type, *, title, start_time, end_time, properties, __context) -> int:
+    def report_event(
+        self,
+        row_dict: Dict,
+        event_type: Union[str, EventType],
+        *,
+        title: Optional[str],
+        start_time: Optional[str],
+        end_time: Optional[str],
+        properties: Optional[Dict[str, Any]],
+        __context: Optional[Dict[str, Any]],
+    ) -> int:
         """
         Generic method reporting single log line for _log_entries. To be overwritten by plugins when required
 
@@ -370,7 +380,9 @@ class Plugin(ABC):
             context=__context,
         )
 
-    def prepare_timestamp_event(self, key, ts, row_dict):  # pylint: disable=unused-argument
+    def prepare_timestamp_event(
+        self, key: str, ts: Any, row_dict: Dict
+    ) -> Tuple[str, Dict[str, Any], EventType]:  # pylint: disable=unused-argument
         """Defines title, properties and event type for timestamp events. To be overwritten by plugins"""
         return (
             f"Table event {key}.",
@@ -397,10 +409,22 @@ class Plugin(ABC):
         event_column_to_check: Optional[str] = None,
         event_value_to_check: Optional[str] = None,
         event_payload_prepare: Optional[Callable] = None,
-        f_get_log_level: Optional[Callable] = None,
-        f_report_log: Optional[Callable] = None,
-        f_report_event: Optional[Callable] = None,
-        f_event_timestamp_payload_prepare: Optional[Callable] = None,
+        f_get_log_level: Optional[Callable[[Dict], int]] = None,
+        f_report_log: Optional[Callable[[Dict, Dict, int], bool]] = None,
+        f_report_event: Optional[
+            Callable[
+                [
+                    Dict,
+                    Union[str, EventType],
+                    Optional[str],
+                    Optional[str],
+                    Optional[Dict[str, Any]],
+                    Optional[Dict[str, Any]],
+                ],
+                int,
+            ]
+        ] = None,
+        f_event_timestamp_payload_prepare: Optional[Callable[[str, Any, Dict], Tuple[str, Dict[str, Any], EventType]]] = None,
     ) -> Tuple[int, int, int, int]:
         """Processes entries delivered by f_entry_generator. By default all entries are sent as logs.
         Unless disabled matching metrics are also generated
@@ -455,8 +479,10 @@ class Plugin(ABC):
             was_processed = False
 
             if report_metrics and not getattr(self._metrics, "NOT_ENABLED", False):
-                processed_metrics_cnt += self._metrics.discover_report_metrics(row_dict, start_time, context_name)
-                was_processed = True
+                _metrics_sent = self._metrics.discover_report_metrics(row_dict, start_time, context_name)
+                if _metrics_sent:
+                    processed_metrics_cnt += _metrics_sent
+                    was_processed = True
 
             self.processed_last_timestamp = row_dict.get("TIMESTAMP", None)
 
@@ -521,10 +547,16 @@ class Plugin(ABC):
             if processed_entries_cnt % 100:  # invoking garbage collection every 100 entries.
                 gc.collect()
 
-        entries_dict = {"processed_entries_cnt": processed_entries_cnt}
-        processed_events_cnt += self._events.flush_events()
+        _flushed_events_cnt = self._events.flush_events()
+        _flushed_metrics_cnt = self._metrics.flush_metrics()
 
-        processed_metrics_cnt += self._metrics.flush_metrics()
+        processed_events_cnt += _flushed_events_cnt
+        processed_metrics_cnt += _flushed_metrics_cnt
+
+        if _flushed_events_cnt > 0 or _flushed_metrics_cnt > 0:
+            processed_entries_cnt += max(_flushed_events_cnt, _flushed_metrics_cnt)
+
+        entries_dict = {"processed_entries_cnt": processed_entries_cnt}
 
         if report_all_as_events or report_timestamp_events or event_payload_prepare:
             entries_dict["processed_events_cnt"] = processed_events_cnt

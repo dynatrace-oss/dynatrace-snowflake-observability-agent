@@ -61,7 +61,7 @@ class QueryHistoryPlugin(Plugin):
             {
                 "query_history": {
                     "entries": processed_query_count,
-                    "logs": logs_sent,
+                    "log_lines": logs_sent,
                     "metrics": metrics_sent,
                     "spans": spans_sent,
                     "span_events": span_events_added,

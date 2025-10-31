@@ -61,7 +61,7 @@ class ResourceMonitorsPlugin(Plugin):
             EventType.CUSTOM_INFO,
         )
 
-    def _process_log_rm(self, row_dict, __context, log_level):  # pylint: disable=unused-argument
+    def _process_log_rm(self, row_dict: Dict, __context: Dict, log_level: int) -> bool:  # pylint: disable=unused-argument
         """processes logging for resource monitors"""
         if not row_dict.get("IS_ACTIVE", False):
             self.unattached_rms += 1
@@ -83,7 +83,7 @@ class ResourceMonitorsPlugin(Plugin):
             EventType.CUSTOM_INFO,
         )
 
-    def _process_log_wh(self, row_dict, __context, log_level):  # pylint: disable=unused-argument
+    def _process_log_wh(self, row_dict: Dict, __context: Dict, log_level: int) -> bool:  # pylint: disable=unused-argument
         """Processes logs for warehouses view in resource monitors"""
         # we use custom log level here, so passed log_level remains unused
         payload = _unpack_json_dict(row_dict, ["DIMENSIONS", "ATTRIBUTES", "METRICS"])
@@ -110,13 +110,13 @@ class ResourceMonitorsPlugin(Plugin):
             {
                 "resource_monitors": {
                     "entries": entries_cnt,
-                    "logs": logs_cnt,
+                    "log_lines": logs_cnt,
                     "metrics": metrics_cnt,
                     "events": events_cnt,
                 },
                 "warehouses": {
                     "entries": entries_cnt,
-                    "logs": logs_cnt,
+                    "log_lines": logs_cnt,
                     "metrics": metrics_cnt,
                     "events": events_cnt,
                 },
@@ -168,13 +168,13 @@ class ResourceMonitorsPlugin(Plugin):
         results_dict = {
             "resource_monitors": {
                 "entries": resource_monitors_entries_cnt,
-                "logs": resource_monitors_logs_cnt,
+                "log_lines": resource_monitors_logs_cnt,
                 "metrics": resource_monitors_metrics_cnt,
                 "events": resource_monitors_events_cnt,
             },
             "warehouses": {
                 "entries": warehouses_entries_cnt,
-                "logs": warehouses_logs_cnt,
+                "log_lines": warehouses_logs_cnt,
                 "metrics": warehouses_metrics_cnt,
                 "events": warehouses_events_cnt,
             },

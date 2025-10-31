@@ -52,7 +52,7 @@ class DataVolumePlugin(Plugin):
             {
                 "data_volume": {
                     "entries": entries_cnt,
-                    "logs": logs_cnt,
+                    "log_lines": logs_cnt,
                     "metrics": metrics_cnt,
                     "events": events_cnt,
                 }
@@ -68,7 +68,7 @@ class DataVolumePlugin(Plugin):
         processed_tables = {
             "data_volume": {
                 "entries": entries_cnt,
-                "logs": logs_cnt,
+                "log_lines": logs_cnt,
                 "metrics": metrics_cnt,
                 "events": events_cnt,
             }

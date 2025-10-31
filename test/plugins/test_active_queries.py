@@ -64,10 +64,10 @@ class TestActiveQueries:
         for disabled_telemetry in disabled_combinations:
             utils.execute_telemetry_test(
                 TestDynatraceSnowAgent,
-                "active_queries",
+                test_name="test_active_queries",
                 disabled_telemetry=disabled_telemetry,
                 affecting_types_for_entries=["logs", "metrics"],
-                base_count={"entries": 2, "logs": 2, "metrics": 10},
+                base_count={"active_queries": {"entries": 2, "log_lines": 2, "metrics": 10}},
             )
 
 

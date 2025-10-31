@@ -57,9 +57,27 @@ class TestDynamicTables:
         plugins._get_plugin_class = __local_get_plugin_class
 
         # ======================================================================
-        session = _get_session()
 
-        utils._logging_findings(session, TestDynatraceSnowAgent(session, utils.get_config()), "test_dynamic_tables", logging.DEBUG, True)
+        disabled_combinations = [
+            [],
+            ["metrics"],
+            ["logs"],
+            ["metrics", "logs"],
+            ["metrics", "logs", "events"],
+        ]
+
+        for disabled_telemetry in disabled_combinations:
+            utils.execute_telemetry_test(
+                TestDynatraceSnowAgent,
+                test_name="test_dynamic_tables",
+                disabled_telemetry=disabled_telemetry,
+                affecting_types_for_entries=["logs", "metrics"],
+                base_count={
+                    "dynamic_tables": {"entries": 2, "log_lines": 2, "metrics": 10, "events": 0},
+                    "dynamic_table_refresh_history": {"entries": 2, "log_lines": 2, "metrics": 10, "events": 0},
+                    "dynamic_table_graph_history": {"entries": 2, "log_lines": 2, "metrics": 2, "events": 0},
+                },
+            )
 
 
 if __name__ == "__main__":
