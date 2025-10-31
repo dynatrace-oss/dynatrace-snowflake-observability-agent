@@ -308,10 +308,10 @@ class Plugin(ABC):
                     parent_row_id_col,
                     is_top_level=True,
                     view_name=view_name,
-                    f_span_events=f_span_events,
-                    f_log_events=f_log_events,
                     context=context,
                     processed_ids=processed_ids,
+                    f_span_events=f_span_events,
+                    f_log_events=f_log_events,
                 )
 
         elif f_log_events is not None and not getattr(self._logs, "NOT_ENABLED", False):

@@ -181,7 +181,7 @@ class Spans:
 
             yield row_dict
 
-    def generate_span(
+    def generate_span(  # pylint: disable=R0913
         self,
         d_span: Dict[str, Any],
         session: snowpark.Session,
