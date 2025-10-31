@@ -294,8 +294,8 @@ class Plugin(ABC):
         row_id = row.get(row_id_col, None)
         LOG.log(LL_TRACE, "Processing row with id = %s", row_id)
 
-        metrics_sent = self._metrics.discover_report_metrics(row, "START_TIME", context_name=context.get(CONTEXT_NAME, None))
-        if metrics_sent <= 0:
+        metrics_sent, metrics_cnt = self._metrics.discover_report_metrics(row, "START_TIME", context_name=context.get(CONTEXT_NAME, None))
+        if not metrics_sent:
             processing_errors.append(f"Problem sending row {row_id} as metric")
 
         span_events_added, spans_sent, logs_sent = 0, 0, 0
@@ -320,7 +320,7 @@ class Plugin(ABC):
             if row_id is not None and processed_ids is not None and logs_sent > 0:
                 processed_ids.append(row_id)
 
-        return span_events_added, spans_sent, logs_sent, metrics_sent
+        return span_events_added, spans_sent, logs_sent, metrics_cnt
 
     def get_log_level(self, row_dict: Dict) -> int:
         """Generic method getting log level based on status.code key value. To be overwritten by plugins when required"""
@@ -479,10 +479,9 @@ class Plugin(ABC):
             was_processed = False
 
             if report_metrics and not getattr(self._metrics, "NOT_ENABLED", False):
-                _metrics_sent = self._metrics.discover_report_metrics(row_dict, start_time, context_name)
-                if _metrics_sent:
-                    processed_metrics_cnt += _metrics_sent
-                    was_processed = True
+                _metrics_sent, _metrics_cnt = self._metrics.discover_report_metrics(row_dict, start_time, context_name)
+                processed_metrics_cnt += _metrics_cnt
+                was_processed |= _metrics_sent
 
             self.processed_last_timestamp = row_dict.get("TIMESTAMP", None)
 
@@ -547,14 +546,8 @@ class Plugin(ABC):
             if processed_entries_cnt % 100:  # invoking garbage collection every 100 entries.
                 gc.collect()
 
-        _flushed_events_cnt = self._events.flush_events()
-        _flushed_metrics_cnt = self._metrics.flush_metrics()
-
-        processed_events_cnt += _flushed_events_cnt
-        processed_metrics_cnt += _flushed_metrics_cnt
-
-        if _flushed_events_cnt > 0 or _flushed_metrics_cnt > 0:
-            processed_entries_cnt += max(_flushed_events_cnt, _flushed_metrics_cnt)
+        processed_events_cnt += self._events.flush_events()
+        processed_metrics_cnt += self._metrics.flush_metrics()
 
         entries_dict = {"processed_entries_cnt": processed_entries_cnt}
 

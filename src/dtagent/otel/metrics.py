@@ -27,7 +27,7 @@
 import sys
 import requests
 
-from typing import Dict, Union, Optional
+from typing import Dict, Union, Optional, Tuple
 from dtagent.otel.otel_manager import OtelManager
 from dtagent.util import get_timestamp_in_ms, get_now_timestamp
 from dtagent.otel import _log_warning
@@ -230,7 +230,9 @@ class Metrics:
 
         return self._send_metrics(payload)
 
-    def discover_report_metrics(self, query_data: Dict, start_time: str = "START_TIME", context_name: Optional[str] = None) -> int:
+    def discover_report_metrics(
+        self, query_data: Dict, start_time: str = "START_TIME", context_name: Optional[str] = None
+    ) -> Tuple[bool, int]:
         """
         Checks if METRICS section is defined in query data, returns false if not
         otherwise reports metrics and returns result of report_via_metrics_api
@@ -239,11 +241,11 @@ class Metrics:
             start_time (str): key in query_data containing start time
             context_name (Optional[str]): optional context name to add to dimensions
         Returns:
-            int: number of metric lines (without description lines) successfully sent
+            Tuple[bool, int]: boolean indicating if METRICS section was found, and number of metric lines (without description lines) successfully sent
         """
         if "METRICS" in query_data:
-            return self.report_via_metrics_api(query_data, start_time, context_name=context_name)
-        return 0
+            return True, self.report_via_metrics_api(query_data, start_time, context_name=context_name)
+        return False, 0
 
 
 ##endregion

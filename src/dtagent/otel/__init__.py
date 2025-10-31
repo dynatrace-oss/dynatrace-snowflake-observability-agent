@@ -88,6 +88,10 @@ class NoOpTelemetry:
 
             return method
 
+        def __dummy_discover_report_metrics(*args, **kwargs):
+            """Dummy method that will not do anything and return False, 0"""
+            return False, 0
+
         def __bool_method(*args, **kwargs):
             """Dummy method that will not do anything and return False"""
             return False
@@ -104,8 +108,11 @@ class NoOpTelemetry:
         if name in ("flush_events", "send_events", "report_via_api", "flush_metrics"):
             return __int_method
 
-        if name in ("flush_traces", "report_via_metrics_api", "discover_report_metrics"):
+        if name in ("flush_traces", "report_via_metrics_api"):
             return __bool_method
+
+        if name in ("discover_report_metrics"):
+            return __dummy_discover_report_metrics
 
         if name in ("generate_span"):
             return __zero_tuple_method(3)
