@@ -355,6 +355,7 @@ def get_config(pickle_conf: str = None) -> TestConfiguration:
                 "deployment.environment": "TEST",
                 "host.name": f"{sf_name}.snowflakecomputing.com",
             },
+            "otel": {},
             "plugins": plugins,
             "instruments": instruments,
         }
@@ -362,7 +363,8 @@ def get_config(pickle_conf: str = None) -> TestConfiguration:
             plugin_conf = lowercase_keys(read_clean_json_from_file(file_path))
             plugins.update(plugin_conf.get("plugins", {}))
         otel_config = lowercase_keys(read_clean_json_from_file("src/dtagent.conf/otel-config.json"))
-        conf |= otel_config
+        conf["otel"] |= otel_config.get("otel", {})
+        conf["plugins"] |= otel_config.get("plugins", {})
         for file_path in find_files("src/", "instruments-def.yml"):
             instruments_data = read_clean_yml_from_file(file_path)
             instruments["dimensions"].update(instruments_data.get("dimensions", {}))
