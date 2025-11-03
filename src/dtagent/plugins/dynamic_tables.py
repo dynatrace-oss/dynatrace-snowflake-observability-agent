@@ -119,6 +119,7 @@ class DynamicTablesPlugin(Plugin):
                 "metrics": metrics_graph_cnt,
                 "events": event_graph_cnt,
             },
+            "dsoa.run.id": run_id,
         }
 
 

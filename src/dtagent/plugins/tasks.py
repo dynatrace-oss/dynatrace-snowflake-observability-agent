@@ -132,6 +132,7 @@ class TasksPlugin(Plugin):
                 "metrics": task_history_metrics_cnt,
                 "events": task_history_events_cnt,
             },
+            "dsoa.run.id": run_id,
         }
 
 

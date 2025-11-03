@@ -26,6 +26,7 @@ Plugin file for processing data schemas plugin data.
 # SOFTWARE.
 #
 #
+import uuid
 from typing import Any, Dict
 
 from dtagent.plugins import Plugin
@@ -115,9 +116,12 @@ class DataSchemasPlugin(Plugin):
             }
         """
 
+        run_id = str(uuid.uuid4().hex)
+
         entries_cnt, logs_cnt, metrics_cnt, events_cnt = self._log_entries(
             f_entry_generator=lambda: self._get_table_rows("APP.V_DATA_SCHEMAS"),
             context_name="data_schemas",
+            run_uuid=run_id,
             report_logs=False,
             report_timestamp_events=False,
             report_metrics=False,
@@ -132,7 +136,8 @@ class DataSchemasPlugin(Plugin):
             "data_schemas": {
                 "entries": entries_cnt,
                 "log_lines": logs_cnt,
-                "metrics": metrics_cnt,
                 "events": events_cnt,
-            }
+                "metrics": metrics_cnt,
+            },
+            "dsoa.run.id": run_id,
         }

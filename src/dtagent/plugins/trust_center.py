@@ -137,7 +137,7 @@ class TrustCenterPlugin(Plugin):
                 results_dict,
             )
 
-        return results_dict
+        return results_dict | {"dsoa.run.id": run_id}
 
 
 ##endregion

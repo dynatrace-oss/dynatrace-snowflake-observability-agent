@@ -137,4 +137,5 @@ class SharesPlugin(Plugin):
                 "metrics": shares_metrics_cnt,
                 "events": shares_events_cnt,
             },
+            "dsoa.run.id": run_id,
         }

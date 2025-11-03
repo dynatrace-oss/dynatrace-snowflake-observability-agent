@@ -26,7 +26,7 @@ Plugin file for processing active queries plugin data.
 # SOFTWARE.
 #
 #
-
+import uuid
 from typing import Tuple, Dict
 from dtagent.plugins import Plugin
 
@@ -57,15 +57,21 @@ class ActiveQueriesPlugin(Plugin):
         """
         t_active_queries = "SELECT * FROM TABLE(DTAGENT_DB.APP.F_ACTIVE_QUERIES_INSTRUMENTED())"
 
+        run_id = str(uuid.uuid4().hex)
+
         entries_cnt, logs_cnt, metrics_cnt, events_cnt = self._log_entries(
             lambda: self._get_table_rows(t_active_queries),
             "active_queries",
+            run_uuid=run_id,
             report_timestamp_events=False,
             report_metrics=True,
             log_completion=run_proc,
         )
 
-        return {"active_queries": {"entries": entries_cnt, "log_lines": logs_cnt, "metrics": metrics_cnt, "events": events_cnt}}
+        return {
+            "active_queries": {"entries": entries_cnt, "log_lines": logs_cnt, "metrics": metrics_cnt, "events": events_cnt},
+            "dsoa.run.id": run_id,
+        }
 
 
 ##endregion

@@ -161,7 +161,9 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
                         bizevents=self._biz_events if "biz_events" in plugin_telemetry_allowed else NO_OP_TELEMETRY,
                     ).process(run_proc)
                     #
-                    self.report_execution_status(status="FINISHED", task_name=source, exec_id=exec_id)
+                    self.report_execution_status(
+                        status="FINISHED", task_name=source, exec_id=exec_id, details_dict={"results": results[source]}
+                    )
                 except RuntimeError as e:
                     self.handle_interrupted_run(source, exec_id, str(e))
             else:

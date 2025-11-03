@@ -214,6 +214,7 @@ class EventLogPlugin(Plugin):
                 "span_events": s_span_events_added,
                 "errors": s_errors_count,
             },
+            "dsoa.run.id": run_id,
         }
 
 

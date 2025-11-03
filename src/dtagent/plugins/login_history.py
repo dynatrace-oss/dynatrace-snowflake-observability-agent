@@ -117,6 +117,7 @@ class LoginHistoryPlugin(Plugin):
                 "metrics": session_metrics_cnt,
                 "events": session_events_cnt,
             },
+            "dsoa.run.id": run_id,
         }
 
 

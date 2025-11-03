@@ -116,4 +116,5 @@ class WarehouseUsagePlugin(Plugin):
                 "metrics": metrics_wh_metering_cnt,
                 "events": events_wh_metering_cnt,
             },
+            "dsoa.run.id": run_id,
         }

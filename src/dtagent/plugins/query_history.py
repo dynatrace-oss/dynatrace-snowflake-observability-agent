@@ -26,7 +26,7 @@ Plugin file for processing query history plugin data.
 # SOFTWARE.
 #
 #
-
+import uuid
 import logging
 from typing import Any, Tuple, Dict, List
 from dtagent import LOG, LL_TRACE
@@ -144,11 +144,12 @@ class QueryHistoryPlugin(Plugin):
             self._session.call("APP.P_GET_ACCELERATION_ESTIMATES", log_on_exception=True)
 
         t_recent_queries = "APP.V_RECENT_QUERIES"
-
+        run_id = str(uuid.uuid4().hex)
         processed_query_ids, processing_errors_count, span_events_added, spans_sent, logs_sent, metrics_sent = self._process_span_rows(
             f_entry_generator=lambda: self._get_table_rows(t_recent_queries),
             view_name=t_recent_queries,
             context_name="query_history",
+            run_uuid=run_id,
             log_completion=run_proc,
             report_status=run_proc,
             f_span_events=__f_span_events,
@@ -164,7 +165,8 @@ class QueryHistoryPlugin(Plugin):
                 "spans": spans_sent,
                 "span_events": span_events_added,
                 "errors": processing_errors_count,
-            }
+            },
+            "dsoa.run.id": run_id,
         }
 
 

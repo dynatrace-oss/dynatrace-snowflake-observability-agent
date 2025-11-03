@@ -26,7 +26,7 @@ Plugin file for processing event usage plugin data.
 # SOFTWARE.
 #
 #
-
+import uuid
 from typing import Tuple, Dict
 from dtagent.util import _unpack_json_dict
 from dtagent.plugins import Plugin
@@ -73,10 +73,11 @@ class EventUsagePlugin(Plugin):
                 "events": events_cnt
             }
         """
-
+        run_id = str(uuid.uuid4().hex)
         processed_entries_cnt, processed_logs_cnt, processed_event_metrics_cnt, processed_events_cnt = self._log_entries(
             f_entry_generator=lambda: self._get_table_rows("APP.V_EVENT_USAGE_HISTORY"),
             context_name="event_usage",
+            run_uuid=run_id,
             report_timestamp_events=False,
             log_completion=run_proc,
             f_report_log=self._report_event_usage_log,
@@ -88,5 +89,6 @@ class EventUsagePlugin(Plugin):
                 "log_lines": processed_logs_cnt,
                 "metrics": processed_event_metrics_cnt,
                 "events": processed_events_cnt,
-            }
+            },
+            "dsoa.run.id": run_id,
         }

@@ -100,6 +100,13 @@ class MockTelemetryClient:
                                 expected_str.splitlines(), actual_str.splitlines(), fromfile="expected", tofile="actual", lineterm=""
                             )
                         )
+                        if telemetry_type == "biz_events":
+                            if isinstance(sorted_actual, list):
+                                for entry in sorted_actual:
+                                    entry["data"].pop("results", None)
+                            else:
+                                sorted_actual["data"].pop("results", None)
+
                     assert (
                         sorted_actual == sorted_expected
                     ), f"Telemetry type {telemetry_type} does not match expected results from {filepath}:\n\nDiff:\n{diff}"

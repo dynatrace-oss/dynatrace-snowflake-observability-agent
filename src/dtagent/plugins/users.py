@@ -107,7 +107,7 @@ class UsersPlugin(Plugin):
         if run_proc:
             self._report_execution("users", current_timestamp() if processed_entries_cnt > 0 else None, None, results_dict)
 
-        return results_dict
+        return results_dict | {"dsoa.run.id": run_id}
 
 
 ##endregion

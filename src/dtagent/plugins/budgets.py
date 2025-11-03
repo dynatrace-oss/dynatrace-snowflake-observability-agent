@@ -115,4 +115,4 @@ class BudgetsPlugin(Plugin):
                 results_dict,
             )
 
-        return results_dict
+        return results_dict | {"dsoa.run.id": run_id}

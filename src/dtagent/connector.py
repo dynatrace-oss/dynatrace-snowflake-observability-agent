@@ -184,6 +184,7 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
                 }
         """
         from dtagent.otel.events import EventType  # COMPILE_REMOVE
+        from dtagent.context import RUN_ID_NAME  # COMPILE_REMOVE
 
         self.report_execution_status(status="STARTED", task_name=self.__context_name, exec_id=exec_id)
 
@@ -267,12 +268,15 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
                 davis_events_cnt += self._davis_events.flush_events()
 
         results_dict = {
-            "entries": entries_cnt,
-            "log_lines": logs_cnt,
-            "metrics": metrics_cnt,
-            "events": events_cnt,
-            "biz_events": bizevents_cnt,
-            "davis_events": davis_events_cnt,
+            self.__context_name: {
+                "entries": entries_cnt,
+                "log_lines": logs_cnt,
+                "metrics": metrics_cnt,
+                "events": events_cnt,
+                "biz_events": bizevents_cnt,
+                "davis_events": davis_events_cnt,
+            },
+            "dsoa.run.id": self.__context[RUN_ID_NAME],
         }
 
         self.report_execution_status(status="FINISHED", task_name=self.__context_name, exec_id=exec_id)

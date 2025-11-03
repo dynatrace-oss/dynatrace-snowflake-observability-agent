@@ -26,7 +26,7 @@ Plugin file for processing data volume plugin data.
 # SOFTWARE.
 #
 #
-
+import uuid
 from snowflake.snowpark.functions import current_timestamp
 from dtagent.plugins import Plugin
 from typing import Dict
@@ -58,10 +58,11 @@ class DataVolumePlugin(Plugin):
                 }
             }
         """
-
+        run_id = str(uuid.uuid4().hex)
         entries_cnt, logs_cnt, metrics_cnt, events_cnt = self._log_entries(
             f_entry_generator=lambda: self._get_table_rows("APP.V_DATA_VOLUME"),
             context_name="data_volume",
+            run_uuid=run_id,
             report_logs=False,
             log_completion=False,
         )
@@ -71,7 +72,8 @@ class DataVolumePlugin(Plugin):
                 "log_lines": logs_cnt,
                 "metrics": metrics_cnt,
                 "events": events_cnt,
-            }
+            },
+            "dsoa.run.id": run_id,
         }
         if run_proc:
             self._report_execution(
