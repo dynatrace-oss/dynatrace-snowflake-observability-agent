@@ -32,7 +32,6 @@ import logging
 import inspect
 from typing import Tuple, Dict, List, Callable, Union, Generator, Optional, Any
 from abc import ABC, abstractmethod
-from requests import get
 from snowflake import snowpark
 from snowflake.snowpark.functions import current_timestamp
 from dtagent import LOG, LL_TRACE

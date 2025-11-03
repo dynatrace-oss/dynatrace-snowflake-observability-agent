@@ -233,14 +233,14 @@ The `params` object controls how `DTAGENT_DB.APP.SEND_TELEMETRY` works. Key opti
 
 This stored procedure returns a object with number of records sent:
 
-```json
+```jsonc
 {
-    "entries":      $all_entries_sent,
-    "log_lines":    $entries_sent_as_logs,
-    "metrics":      $entries_sent_as_metrics,
-    "events":       $entries_sent_as_events,
-    "biz_events":   $entries_sent_as_bizevents,
-    "davis_events": $entries_sent_as_davis_events,
+    "entries":      100, // all entries sent,
+    "log_lines":    100, // entries sent as logs,
+    "metrics":      150, // entries sent as metrics,
+    "events":       10,  // entries sent as events,
+    "biz_events":   2,   // entries sent as bizevents,
+    "davis_events": 0,   // entries sent as davis_events,
 }
 ```
 

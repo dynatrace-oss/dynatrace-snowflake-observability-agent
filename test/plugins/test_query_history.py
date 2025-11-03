@@ -21,9 +21,6 @@
 # SOFTWARE.
 #
 #
-from test import TestConfiguration
-
-
 class TestQueryHist:
     import pytest
 
