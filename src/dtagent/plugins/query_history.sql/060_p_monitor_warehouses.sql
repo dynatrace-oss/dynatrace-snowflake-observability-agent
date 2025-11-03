@@ -33,8 +33,8 @@ execute as caller
 as
 $$
 DECLARE
-    q_show_warehouses   TEXT DEFAULT    'show warehouses';
-    c_warehouse_names   CURSOR FOR      select "name" as name from TABLE(result_scan(last_query_id())) 
+    c_warehouse_names   CURSOR FOR      SHOW WAREHOUSES ->>
+                                        select "name" as name from $1
                                         where name not in (
                                             select NAME
                                             from snowflake.account_usage.grants_to_roles
@@ -47,10 +47,7 @@ DECLARE
 
     q_grant_monitor     TEXT DEFAULT    '';
 BEGIN
-    -- list all warehouses
-    EXECUTE IMMEDIATE :q_show_warehouses;
-
-    -- iterate over warehouses
+    -- iterate over unmonitored warehouses
     FOR r_wh IN c_warehouse_names DO
         q_grant_monitor := 'grant monitor on warehouse ' || r_wh.name || '  to role DTAGENT_VIEWER;';
 

@@ -79,8 +79,7 @@ execute as caller
 as
 $$
 DECLARE
-    q_get_shares                TEXT DEFAULT 'SHOW SHARES;';
-    q_pop_shares                TEXT DEFAULT 'insert into DTAGENT_DB.APP.TMP_SHARES select * from table(result_scan(last_query_id()));';
+    q_get_shares                TEXT DEFAULT 'SHOW SHARES ->> insert into DTAGENT_DB.APP.TMP_SHARES select * from $1;';
 
     tr_sh_table                 TEXT DEFAULT 'truncate table if exists DTAGENT_DB.APP.TMP_SHARES;';
     tr_out_table                TEXT DEFAULT 'truncate table if exists DTAGENT_DB.APP.TMP_OUTBOUND_SHARES;';
@@ -97,15 +96,13 @@ BEGIN
     EXECUTE IMMEDIATE :tr_in_table;
 
     EXECUTE IMMEDIATE :q_get_shares;
-    EXECUTE IMMEDIATE :q_pop_shares;
-
 
     for share in c_shares do
         db_name := share.database_name;
         share_kind := share.kind;
         share_name := share.name; 
         if (:share_kind = 'OUTBOUND') then 
-            EXECUTE IMMEDIATE concat('show grants to share ', :share_name);
+            EXECUTE IMMEDIATE concat('SHOW GRANTS TO SHARE ', :share_name);
 
             insert into DTAGENT_DB.APP.TMP_OUTBOUND_SHARES
                 select t.*, :share_name from table(result_scan(last_query_id())) t;
