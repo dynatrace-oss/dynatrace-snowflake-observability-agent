@@ -60,8 +60,30 @@ class TestEventLog:
 
         # ======================================================================
 
-        session = _get_session()
-        utils._logging_findings(session, TestDynatraceSnowAgent(session, utils.get_config()), "test_event_log", logging.INFO, False)
+        disabled_combinations = [
+            [],
+            ["metrics"],
+            ["logs"],
+            ["spans"],
+            ["metrics", "logs"],
+            ["metrics", "spans"],
+            ["logs", "spans"],
+            ["metrics", "logs", "spans"],
+            ["metrics", "logs", "events", "spans"],
+        ]
+
+        for disabled_telemetry in disabled_combinations:
+            utils.execute_telemetry_test(
+                TestDynatraceSnowAgent,
+                test_name="test_event_log",
+                disabled_telemetry=disabled_telemetry,
+                affecting_types_for_entries=["logs", "metrics", "spans"],
+                base_count={
+                    "event_log": {"entries": 2, "log_lines": 2, "metrics": 0, "events": 0},
+                    "event_log_metrics": {"entries": 2, "log_lines": 2, "metrics": 4, "events": 0},
+                    "event_log_spans": {"entries": 2, "log_lines": 0, "metrics": 0, "spans": 2, "span_events": 0, "errors": 3},
+                },
+            )
 
 
 if __name__ == "__main__":

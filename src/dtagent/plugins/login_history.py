@@ -59,16 +59,35 @@ class LoginHistoryPlugin(Plugin):
         }
         return EventType.CUSTOM_ALERT, "Failed login attempt", payload
 
-    def process(self, run_proc: bool = True) -> Tuple[int, int, int, int]:
+    def process(self, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
         """
         Processes the measures on login history.
+
+        Returns:
+            Dict[str,int]: A dictionary with counts of processed telemetry data.
+
+            Example:
+            {
+                "login_history": {
+                    "entries": entries_cnt,
+                    "log_lines": logs_cnt,
+                    "metrics": metrics_cnt,
+                    "events": event_cnt,
+                },
+                "sessions": {
+                    "entries": entries_cnt,
+                    "log_lines": logs_cnt,
+                    "metrics": metrics_cnt,
+                    "events": event_cnt,
+                },
+            }
         """
         t_sessions = "APP.V_SESSIONS"
         t_login_history = "APP.V_LOGIN_HISTORY"
 
         run_id = str(uuid.uuid4().hex)
 
-        login_history_entries_cnt = self._log_entries(
+        login_history_entries_cnt, login_history_logs_cnt, login_history_metrics_cnt, login_history_events_cnt = self._log_entries(
             f_entry_generator=lambda: self._get_table_rows(t_login_history),
             context_name="login_history",
             run_uuid=run_id,
@@ -76,16 +95,29 @@ class LoginHistoryPlugin(Plugin):
             start_time="TIMESTAMP",
             event_column_to_check="error.code",
             event_payload_prepare=self._prepare_event_payload_failed_login,
-        )[0]
+        )
 
-        sessions_entries_cnt = self._log_entries(
+        sessions_entries_cnt, session_logs_cnt, session_metrics_cnt, session_events_cnt = self._log_entries(
             f_entry_generator=lambda: self._get_table_rows(t_sessions),
             context_name="sessions",
             run_uuid=run_id,
             log_completion=run_proc,
-        )[0]
+        )
 
-        return login_history_entries_cnt, sessions_entries_cnt
+        return {
+            "login_history": {
+                "entries": login_history_entries_cnt,
+                "log_lines": login_history_logs_cnt,
+                "metrics": login_history_metrics_cnt,
+                "events": login_history_events_cnt,
+            },
+            "sessions": {
+                "entries": sessions_entries_cnt,
+                "log_lines": session_logs_cnt,
+                "metrics": session_metrics_cnt,
+                "events": session_events_cnt,
+            },
+        }
 
 
 ##endregion

@@ -52,8 +52,21 @@ class TestDataVol:
         # ======================================================================
         import logging
 
-        session = _get_session()
-        utils._logging_findings(session, TestDynatraceSnowAgent(session, utils.get_config()), "test_data_volume", logging.INFO, False)
+        disabled_combinations = [
+            [],
+            ["metrics"],
+            ["events"],
+            ["metrics", "events"],
+        ]
+
+        for disabled_telemetry in disabled_combinations:
+            utils.execute_telemetry_test(
+                TestDynatraceSnowAgent,
+                test_name="test_data_volume",
+                disabled_telemetry=disabled_telemetry,
+                affecting_types_for_entries=["metrics"],  # no events in data volume test data
+                base_count={"data_volume": {"entries": 2, "log_lines": 0, "metrics": 7, "events": 0}},
+            )
 
 
 if __name__ == "__main__":

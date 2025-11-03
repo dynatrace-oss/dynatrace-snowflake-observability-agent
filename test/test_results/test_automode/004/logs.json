@@ -14,7 +14,7 @@
     "content": "New entry to STATUS.LOG_PROCESSED_MEASUREMENTS from test_automode/004",
     "entries": 1,
     "log_lines": 1,
-    "metrics": 1,
+    "metrics": 4,
     "events": 2,
     "dsoa.run.context": "self_monitoring"
   }

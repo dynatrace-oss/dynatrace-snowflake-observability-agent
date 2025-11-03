@@ -3,26 +3,31 @@
         "MAX_CONSECUTIVE_API_FAILS": 10,
         "LOGS": {
             "EXPORT_TIMEOUT_MILLIS": 10000,
-            "MAX_EXPORT_BATCH_SIZE": 100
+            "MAX_EXPORT_BATCH_SIZE": 100,
+            "IS_DISABLED": false
         },
         "SPANS": {
             "EXPORT_TIMEOUT_MILLIS": 10000,
             "MAX_EXPORT_BATCH_SIZE": 50,
             "MAX_EVENT_COUNT": 2000,
             "MAX_ATTRIBUTES_PER_EVENT_COUNT": 250,
-            "MAX_SPAN_ATTRIBUTES": 250
+            "MAX_SPAN_ATTRIBUTES": 250,
+            "IS_DISABLED": false
         },
         "METRICS": {
             "MAX_RETRIES": 5,
-            "MAX_BATCH_SIZE": 1000000
+            "MAX_BATCH_SIZE": 1000000,
+            "IS_DISABLED": false
         },
         "EVENTS": {
             "MAX_RETRIES": 5,
-            "RETRY_DELAY_MS": 10000
+            "RETRY_DELAY_MS": 10000,
+            "IS_DISABLED": false
         },
         "DAVIS_EVENTS": {
             "MAX_RETRIES": 5,
-            "RETRY_DELAY_MS": 10000
+            "RETRY_DELAY_MS": 10000,
+            "IS_DISABLED": false
         },
         "BIZ_EVENTS": {
             "MAX_RETRIES": 5,
@@ -33,7 +38,11 @@
                 429,
                 502,
                 503
-            ]
+            ],
+            "IS_DISABLED": false
         }
+    },
+    "PLUGINS": {
+        "DISABLED_BY_DEFAULT": false
     }
 }

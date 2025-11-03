@@ -28,7 +28,7 @@ Plugin file for processing shares plugin data.
 #
 
 import uuid
-from typing import Tuple
+from typing import Tuple, Dict
 from dtagent.plugins import Plugin
 
 ##endregion COMPILE_REMOVE
@@ -41,13 +41,33 @@ class SharesPlugin(Plugin):
     Shares plugin class.
     """
 
-    def process(self, run_proc: bool = True) -> Tuple[int, int]:
+    def process(self, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
         """
         Processes data for shares plugin.
-        Returns
-            outbound_share_entries [int]: number of entries reported from APP.V_OUTBOUND_SHARE_TABLES,
-            inbound_share_entries [int]: number of entries reported from APP.V_INBOUND_SHARE_TABLES.
-            share_events [int]: number of timestamp events for shares from APP.V_SHARE_EVENTS
+        Returns:
+            Dict[str,int]: A dictionary with telemetry counts for shares.
+
+            Example:
+            {
+                "outbound_shares": {
+                    "entries": outbound_share_entries_cnt,
+                    "log_lines": outbound_share_logs_cnt,
+                    "metrics": outbound_share_metrics_cnt,
+                    "events": outbound_share_events_cnt,
+                },
+                "inbound_shares": {
+                    "entries": inbound_share_entries_cnt,
+                    "log_lines": inbound_share_logs_cnt,
+                    "metrics": inbound_share_metrics_cnt,
+                    "events": inbound_share_events_cnt,
+                },
+                "shares": {
+                    "entries": shares_entries_cnt,
+                    "log_lines": shares_logs_cnt,
+                    "metrics": shares_metrics_cnt,
+                    "events": shares_events_cnt,
+                },
+            }
         """
 
         t_outbound_shares = "APP.V_OUTBOUND_SHARE_TABLES"
@@ -59,21 +79,36 @@ class SharesPlugin(Plugin):
             # call to list inbound and outbound shares to temporary tables
             self._session.call("APP.P_GET_SHARES", log_on_exception=True)
 
-        outbound_share_entries = self._log_entries(
+        (
+            outbound_share_entries_cnt,
+            outbound_share_logs_cnt,
+            outbound_share_metrics_cnt,
+            outbound_share_events_cnt,
+        ) = self._log_entries(
             f_entry_generator=lambda: self._get_table_rows(t_outbound_shares),
             context_name="outbound_shares",
             run_uuid=run_id,
             log_completion=run_proc,
-        )[0]
+        )
 
-        inbound_share_entries = self._log_entries(
+        (
+            inbound_share_entries_cnt,
+            inbound_share_logs_cnt,
+            inbound_share_metrics_cnt,
+            inbound_share_events_cnt,
+        ) = self._log_entries(
             f_entry_generator=lambda: self._get_table_rows(t_inbound_shares),
             context_name="inbound_shares",
             run_uuid=run_id,
             log_completion=run_proc,
-        )[0]
+        )
 
-        share_events = self._log_entries(
+        (
+            shares_entries_cnt,
+            shares_logs_cnt,
+            shares_metrics_cnt,
+            shares_events_cnt,
+        ) = self._log_entries(
             f_entry_generator=lambda: self._get_table_rows(t_share_events),
             context_name="shares",
             run_uuid=run_id,
@@ -81,6 +116,25 @@ class SharesPlugin(Plugin):
             report_logs=False,
             report_metrics=False,
             report_timestamp_events=True,
-        )[-1]
+        )
 
-        return outbound_share_entries, inbound_share_entries, share_events
+        return {
+            "outbound_shares": {
+                "entries": outbound_share_entries_cnt,
+                "log_lines": outbound_share_logs_cnt,
+                "metrics": outbound_share_metrics_cnt,
+                "events": outbound_share_events_cnt,
+            },
+            "inbound_shares": {
+                "entries": inbound_share_entries_cnt,
+                "log_lines": inbound_share_logs_cnt,
+                "metrics": inbound_share_metrics_cnt,
+                "events": inbound_share_events_cnt,
+            },
+            "shares": {
+                "entries": shares_entries_cnt,
+                "log_lines": shares_logs_cnt,
+                "metrics": shares_metrics_cnt,
+                "events": shares_events_cnt,
+            },
+        }

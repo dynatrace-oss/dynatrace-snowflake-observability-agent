@@ -56,8 +56,26 @@ class TestWhUsage:
 
         # ======================================================================
 
-        session = _get_session()
-        utils._logging_findings(session, TestDynatraceSnowAgent(session, utils.get_config()), "test_warehouse_usage", logging.INFO, True)
+        disabled_combinations = [
+            [],
+            ["logs"],
+            ["metrics"],
+            ["logs", "metrics"],
+            ["logs", "metrics", "events"],
+        ]
+
+        for disabled_telemetry in disabled_combinations:
+            utils.execute_telemetry_test(
+                TestDynatraceSnowAgent,
+                test_name="test_warehouse_usage",
+                disabled_telemetry=disabled_telemetry,
+                affecting_types_for_entries=["logs", "metrics"],
+                base_count={
+                    "warehouse_usage": {"entries": 0, "log_lines": 0, "metrics": 0, "events": 0},
+                    "warehouse_usage_load": {"entries": 0, "log_lines": 0, "metrics": 0, "events": 0},
+                    "warehouse_usage_metering": {"entries": 0, "log_lines": 0, "metrics": 0, "events": 0},
+                },
+            )
 
 
 if __name__ == "__main__":

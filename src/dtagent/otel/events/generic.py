@@ -143,7 +143,7 @@ class GenericEvents(AbstractEvents):
         event_type: Optional[Union[str, EventType]] = EventType.CUSTOM_ALERT,
         context: Optional[Dict[str, Any]] = None,
         **kwargs,
-    ) -> bool:
+    ) -> int:
 
         generic_events = [
             self._pack_event_data(

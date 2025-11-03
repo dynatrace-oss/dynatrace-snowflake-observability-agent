@@ -45,7 +45,7 @@ class MockTelemetryClient:
         self.is_test_results_missing = not self.expected_results
         self.test_results: Dict[str, List[Any]] = {}
 
-    def store_or_test_results(self):
+    def store_or_test_results(self, disabled_telemetry: List[str] = None) -> None:
         """
         Store the collected test results into files for future reference.
         """
@@ -67,8 +67,13 @@ class MockTelemetryClient:
             for telemetry_type, content in self.test_results.items():
                 self._save_telemetry_test_data(telemetry_type, content)
         else:
+            disabled_telemetry = disabled_telemetry or []
             # otherwise we will test if save_test_results would match expected results
             for telemetry_type, expected_content in self.expected_results.items():
+                # skip disabled telemetry types
+                if telemetry_type in disabled_telemetry:
+                    continue
+
                 actual_content = self.test_results.get(telemetry_type, [])
 
                 # Sort both lists for comparison, handling dicts by serializing with sorted keys
@@ -213,7 +218,7 @@ class MockTelemetryClient:
         from opentelemetry.proto.collector.trace.v1.trace_service_pb2 import ExportTraceServiceRequest
 
         def __extract_value(kv_pair):
-            """Extracts the value from a key-value pair in prodbuf stream based on its type.
+            """Extracts the value from a key-value pair in protobuf stream based on its type.
 
             Args:
                     kv_pair: The key-value pair to extract the value from.

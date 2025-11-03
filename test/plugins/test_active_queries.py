@@ -53,9 +53,22 @@ class TestActiveQueries:
         plugins._get_plugin_class = __local_get_plugin_class
 
         # ======================================================================
-        session = _get_session()
+        disabled_combinations = [
+            [],
+            ["metrics"],
+            ["logs"],
+            ["logs", "metrics"],
+            ["logs", "spans", "metrics", "events"],
+        ]
 
-        utils._logging_findings(session, TestDynatraceSnowAgent(session, utils.get_config()), "test_active_queries", logging.DEBUG, True)
+        for disabled_telemetry in disabled_combinations:
+            utils.execute_telemetry_test(
+                TestDynatraceSnowAgent,
+                test_name="test_active_queries",
+                disabled_telemetry=disabled_telemetry,
+                affecting_types_for_entries=["logs", "metrics"],
+                base_count={"active_queries": {"entries": 2, "log_lines": 2, "metrics": 10}},
+            )
 
 
 if __name__ == "__main__":

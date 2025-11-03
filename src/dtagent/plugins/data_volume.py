@@ -29,6 +29,7 @@ Plugin file for processing data volume plugin data.
 
 from snowflake.snowpark.functions import current_timestamp
 from dtagent.plugins import Plugin
+from typing import Dict
 
 ##endregion COMPILE_REMOVE
 
@@ -40,24 +41,44 @@ class DataVolumePlugin(Plugin):
     Data volume plugin class.
     """
 
-    def process(self, run_proc: bool = True) -> int:
+    def process(self, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
         """
         Processes the measures on data volume
+
+        Returns:
+            Dict[str,int]: A dictionary with telemetry counts for data volume.
+
+            Example:
+            {
+                "data_volume": {
+                    "entries": entries_cnt,
+                    "log_lines": logs_cnt,
+                    "metrics": metrics_cnt,
+                    "events": events_cnt,
+                }
+            }
         """
 
-        _, _, processed_tables, _ = self._log_entries(
+        entries_cnt, logs_cnt, metrics_cnt, events_cnt = self._log_entries(
             f_entry_generator=lambda: self._get_table_rows("APP.V_DATA_VOLUME"),
             context_name="data_volume",
             report_logs=False,
             log_completion=False,
         )
-
+        processed_tables = {
+            "data_volume": {
+                "entries": entries_cnt,
+                "log_lines": logs_cnt,
+                "metrics": metrics_cnt,
+                "events": events_cnt,
+            }
+        }
         if run_proc:
             self._report_execution(
                 "data_volume",
                 current_timestamp(),
                 None,
-                {"tables": processed_tables},
+                processed_tables,
             )
 
         return processed_tables

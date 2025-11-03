@@ -90,9 +90,24 @@ class TestQueryHist:
 
         # ======================================================================
 
-        session = _get_session()
-        # when sending spans log level cannot be set, hence "" to omit it in the utils
-        utils._logging_findings(session, TestSpanDynatraceSnowAgent(session, utils.get_config()), "test_query_history", logging.INFO, False)
+        # Test different disabled telemetry combinations
+        disabled_combinations = [
+            [],
+            ["logs"],
+            ["spans"],
+            ["metrics"],
+            ["logs", "metrics"],
+            ["metrics", "spans"],
+            ["logs", "spans", "metrics", "events"],
+        ]
+
+        for disabled_telemetry in disabled_combinations:
+            utils.execute_telemetry_test(
+                TestSpanDynatraceSnowAgent,
+                test_name="test_query_history",
+                disabled_telemetry=disabled_telemetry,
+                base_count={"query_history": {"entries": 3, "log_lines": 3, "metrics": 111, "spans": 3}},
+            )
 
 
 if __name__ == "__main__":

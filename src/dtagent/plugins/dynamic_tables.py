@@ -28,7 +28,7 @@ Plugin file for processing dynamic tables plugin data.
 #
 
 import uuid
-from typing import Tuple
+from typing import Tuple, Dict
 from dtagent.plugins import Plugin
 
 ##endregion COMPILE_REMOVE
@@ -41,9 +41,34 @@ class DynamicTablesPlugin(Plugin):
     Dynamic tables plugin class.
     """
 
-    def process(self, run_proc: bool = True) -> Tuple[int, int, int, int]:
+    def process(self, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
         """
         Processes the measures on dynamic tables
+
+        Returns:
+            Dict[str,int]: A dictionary with counts of processed telemetry data.
+
+            Example:
+            {
+                "dynamic_tables": {
+                    "entries": entries_cnt,
+                    "log_lines": logs_cnt,
+                    "metrics": metrics_cnt,
+                    "events": event_cnt,
+                },
+                "dynamic_table_refresh_history": {
+                    "entries": entries_refresh_cnt,
+                    "log_lines": logs_refresh_cnt,
+                    "metrics": metrics_refresh_cnt,
+                    "events": event_refresh_cnt,
+                },
+                "dynamic_table_graph_history": {
+                    "entries": entries_graph_cnt,
+                    "log_lines": logs_graph_cnt,
+                    "metrics": metrics_graph_cnt,
+                    "events": event_graph_cnt,
+                },
+            }
         """
         t_dynamic_tables = "APP.V_DYNAMIC_TABLES_INSTRUMENTED"
         t_dynamic_table_refresh_history = "APP.V_DYNAMIC_TABLE_REFRESH_HISTORY_INSTRUMENTED"
@@ -75,12 +100,26 @@ class DynamicTablesPlugin(Plugin):
             log_completion=run_proc,
         )
 
-        return (
-            entries_cnt + entries_refresh_cnt + entries_graph_cnt,
-            logs_cnt + logs_refresh_cnt + logs_graph_cnt,
-            metrics_cnt + metrics_refresh_cnt + metrics_graph_cnt,
-            event_cnt + event_refresh_cnt + event_graph_cnt,
-        )
+        return {
+            "dynamic_tables": {
+                "entries": entries_cnt,
+                "log_lines": logs_cnt,
+                "metrics": metrics_cnt,
+                "events": event_cnt,
+            },
+            "dynamic_table_refresh_history": {
+                "entries": entries_refresh_cnt,
+                "log_lines": logs_refresh_cnt,
+                "metrics": metrics_refresh_cnt,
+                "events": event_refresh_cnt,
+            },
+            "dynamic_table_graph_history": {
+                "entries": entries_graph_cnt,
+                "log_lines": logs_graph_cnt,
+                "metrics": metrics_graph_cnt,
+                "events": event_graph_cnt,
+            },
+        }
 
 
 ##endregion

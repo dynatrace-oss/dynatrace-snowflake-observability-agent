@@ -135,10 +135,10 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
         self.__context_name = self._params.get("context", "telemetry_sender")
         self.__context = get_context_name_and_run_id(self.__context_name)
 
-    def process(self, run_proc: bool = True) -> None:
+    def process(self, run_proc: bool = True) -> Dict[str, int]:
         """we don't use it but Plugin marks it as abstract"""
 
-        return None
+        return {}
 
     def _get_source_rows(self, source: Union[str, dict, list]) -> Generator[Dict, None, None]:
         """Delivers generator over different types of sources.
@@ -164,16 +164,24 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
             for row_dict in source:
                 yield row_dict
 
-    def send_data(
-        self, source_data: Union[str, dict, list], exec_id: str = get_now_timestamp_formatted()
-    ) -> Tuple[int, int, int, int, int]:
+    def send_data(self, source_data: Union[str, dict, list], exec_id: str = get_now_timestamp_formatted()) -> Dict[str, int]:
         """Sends telemetry data from given source based on the parameters provided to the stored procedure
 
         Args:
             source (Union[str, dict, list]): the source of telemetry data
 
         Returns:
-            Tuple[int, int, int, int, int]: Count of objects, log lines, metrics, events, bizevents, and davis events sent
+            Dict[str,int]: Count of objects, log lines, metrics, events, bizevents, and davis events sent
+
+            Example:
+                {
+                    "entries": 10,
+                    "log_lines": 10,
+                    "metrics": 5,
+                    "events": 5,
+                    "biz_events": 2,
+                    "davis_events": 0,
+                }
         """
         from dtagent.otel.events import EventType  # COMPILE_REMOVE
 
@@ -258,23 +266,25 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
             if self._send_davis_events:
                 davis_events_cnt += self._davis_events.flush_events()
 
+        results_dict = {
+            "entries": entries_cnt,
+            "log_lines": logs_cnt,
+            "metrics": metrics_cnt,
+            "events": events_cnt,
+            "biz_events": bizevents_cnt,
+            "davis_events": davis_events_cnt,
+        }
+
         self.report_execution_status(status="FINISHED", task_name=self.__context_name, exec_id=exec_id)
 
         self._report_execution(
             self.__context_name,
             get_now_timestamp_formatted(),
             None,
-            {
-                "entries": entries_cnt,
-                "log_lines": logs_cnt,
-                "metrics": metrics_cnt,
-                "events": events_cnt,
-                "biz_events": bizevents_cnt,
-                "davis_events": davis_events_cnt,
-            },
+            results_dict,
         )
 
-        return (entries_cnt, logs_cnt, metrics_cnt, events_cnt, bizevents_cnt, davis_events_cnt)
+        return results_dict
 
 
 def main(session: snowpark.Session, source: Union[str, dict, list], params: dict) -> str:

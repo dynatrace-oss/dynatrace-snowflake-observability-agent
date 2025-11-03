@@ -109,6 +109,7 @@ class TestDynatraceSnowAgent(DynatraceSnowAgent):
         self,
         sources: List,
         run_proc: bool = True,
+        disabled_telemetry: List[str] = None,
     ) -> Dict:
         from dtagent.otel.otel_manager import OtelManager
         from test._mocks.telemetry import MockTelemetryClient
@@ -126,7 +127,7 @@ class TestDynatraceSnowAgent(DynatraceSnowAgent):
                 self._logs.flush_logs()
                 self._spans.flush_traces()
                 time.sleep(5)
-            mock_client.store_or_test_results()
+            mock_client.store_or_test_results(disabled_telemetry=disabled_telemetry)
         else:
             process_results = super().process(sources, run_proc)
 

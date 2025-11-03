@@ -56,11 +56,29 @@ class TestTasks:
         plugins._get_plugin_class = __local_get_plugin_class
 
         # ======================================================================
-        session = _get_session()
 
-        import logging
+        disabled_combinations = [
+            [],
+            ["logs"],
+            ["events"],
+            ["metrics"],
+            ["logs", "events"],
+            ["metrics", "events"],
+            ["logs", "events", "metrics"],
+        ]
 
-        utils._logging_findings(session, TestDynatraceSnowAgent(session, utils.get_config()), "test_tasks", logging.INFO, True)
+        for disabled_telemetry in disabled_combinations:
+            utils.execute_telemetry_test(
+                TestDynatraceSnowAgent,
+                test_name="test_tasks",
+                disabled_telemetry=disabled_telemetry,
+                affecting_types_for_entries=["logs", "metrics", "events"],
+                base_count={
+                    "serverless_tasks": {"entries": 0, "log_lines": 0, "metrics": 0, "events": 0},
+                    "task_versions": {"entries": 0, "log_lines": 0, "metrics": 0, "events": 0},
+                    "task_history": {"entries": 2, "log_lines": 2, "metrics": 0, "events": 0},
+                },
+            )
 
 
 if __name__ == "__main__":

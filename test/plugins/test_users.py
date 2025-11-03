@@ -65,8 +65,26 @@ class TestUsers:
 
         # ======================================================================
 
-        session = _get_session()
-        utils._logging_findings(session, TestDynatraceSnowAgent(session, utils.get_config()), "test_users", logging.INFO, False)
+        disabled_combinations = [
+            [],
+            ["logs"],
+            ["logs", "metrics", "events"],
+        ]
+
+        for disabled_telemetry in disabled_combinations:
+            utils.execute_telemetry_test(
+                TestDynatraceSnowAgent,
+                test_name="test_users",
+                disabled_telemetry=disabled_telemetry,
+                affecting_types_for_entries=["logs"],
+                base_count={
+                    "users": {"entries": 2, "log_lines": 2},
+                    "users_direct_roles": {"entries": 0, "log_lines": 0},
+                    "users_removed_direct_roles": {"entries": 2, "log_lines": 2},
+                    "users_all_roles": {"entries": 2, "log_lines": 2},
+                    "users_all_privileges": {"entries": 2, "log_lines": 2},
+                },
+            )
 
 
 if __name__ == "__main__":

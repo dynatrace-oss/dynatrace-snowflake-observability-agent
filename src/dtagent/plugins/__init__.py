@@ -32,7 +32,6 @@ import logging
 import inspect
 from typing import Tuple, Dict, List, Callable, Union, Generator, Optional, Any
 from abc import ABC, abstractmethod
-import datetime
 from snowflake import snowpark
 from snowflake.snowpark.functions import current_timestamp
 from dtagent import LOG, LL_TRACE
@@ -153,7 +152,7 @@ class Plugin(ABC):
                 str(entries_count),
             )
 
-    def _process_span_rows(
+    def _process_span_rows(  # pylint: disable=R0913
         self,
         f_entry_generator: Callable,
         view_name: str,
@@ -166,7 +165,7 @@ class Plugin(ABC):
         report_status: bool = False,
         f_log_events: Optional[Callable] = None,
         f_span_events: Optional[Callable] = None,
-    ):  # pylint: disable=R0913
+    ) -> Tuple[List[str], int, int, int, int, int]:
         """
         Performs span processing on entire row
         Args:
@@ -178,19 +177,25 @@ class Plugin(ABC):
             parent_query_id_col_name (str): name of the column containing parent query id. Defaults to PARENT_QUERY_ID
             log_completion (bool): indicator whether to log the completion of reporting the payload to DTAGENT_DB.STATUS.LOG_PROCESSED_MEASUREMENTS
             update_status (bool): indicator whether to log the processed ids to DTAGENT_DB.STATUS.UPDATE_PROCESSED_QUERIES
-            f_log_events (Callable): function specifying how events should be logged. Only takes a single, unpacked row as param
+            f_log_events (Callable): function specifying how events should be logged. Only takes a single, unpacked row as param; Returns number of logs sent.
             f_span_events (Callable): function specifying how events should reported as spans. Only takes a single, unpacked row as param.
 
         Returns:
-            processed_query_ids (list[str]): list of all processed ids
-            joint_processed_query_ids (str): concatenated string of all reported query ids with '|' as delimiter
-            processing_errors_count (int): number of errors encountered during processing
-            span_events_added (int): number of span events added
+            Tuple containing:
+                processed_query_ids (list[str]): list of all processed ids
+                processing_errors_count (int): number of errors encountered during processing
+                span_events_added (int): number of span events added
+                spans_sent (int): number of spans sent
+                logs_sent (int): number of logs sent
+                metrics_sent (int): number of metrics sent
         """
 
         processed_query_ids: list[str] = []
         processing_errors: list[str] = []
         span_events_added = 0
+        spans_sent = 0
+        logs_sent = 0
+        metrics_sent = 0
 
         __context = get_context_name_and_run_id(context_name, run_uuid)
 
@@ -200,7 +205,7 @@ class Plugin(ABC):
                 LOG.warning("Problem with given row in %s: %r", context_name, row_dict)
             else:
                 LOG.log(LL_TRACE, "Processing %s for %r", context_name, query_id)
-                span_events_added += self._process_row(
+                _span_events_added, _spans_sent, _logs_sent, _metrics_sent = self._process_row(
                     row=row_dict,
                     processed_ids=processed_query_ids,
                     processing_errors=processing_errors,
@@ -211,8 +216,13 @@ class Plugin(ABC):
                     f_log_events=f_log_events,
                     context=__context,
                 )
+                span_events_added += _span_events_added
+                spans_sent += _spans_sent
+                logs_sent += _logs_sent
+                metrics_sent += _metrics_sent
 
-        if not self._metrics.flush_metrics():
+        metrics_sent += self._metrics.flush_metrics()
+        if metrics_sent == 0:
             processing_errors.append("Problem flushing metrics cache")
 
         if not self._spans.flush_traces():
@@ -244,12 +254,7 @@ class Plugin(ABC):
                 span_events_added,
             )
 
-        return (
-            processed_query_ids,
-            joint_processed_query_ids,
-            processing_errors_count,
-            span_events_added,
-        )
+        return (processed_query_ids, processing_errors_count, span_events_added, spans_sent, logs_sent, metrics_sent)
 
     def _process_row(
         self,
@@ -263,7 +268,7 @@ class Plugin(ABC):
         f_span_events: Optional[Callable[[Dict[str, Any]], Tuple[List[Dict[str, Any]], int]]] = None,
         f_log_events: Optional[Callable[[Dict[str, Any]], None]] = None,
         context: Optional[Dict] = None,
-    ) -> int:
+    ) -> Tuple[int, int]:
         """
         Processing single row with data, with optional recursion done within span generation
 
@@ -275,43 +280,53 @@ class Plugin(ABC):
             parent_row_id_col (str):            name of the column with parent ID representing the parent row - necessary in context of spans
             view_name (str):                    view which contains all the information to be processed - required for recursion in spans
             f_span_events:                      function that will produce a list of span events to be sent
-            f_log_events:                       function that will log current span and its events
+            f_log_events:                       function that will log current span and its events; will return number of logs sent
             context:                            context information reported as additional attributes in log/span payload
         Return:
-            int: accumulated number of span events generated
+            Tuple containing:
+                span_events_added (int):           number of span events added when processing this row
+                spans_cnt (int):                   number of spans sent when processing this row
+                logs_cnt (int):                    number of logs sent when processing this row
+                metrics_sent (int):                number of metrics sent when processing this row
         """
 
         row_id = row.get(row_id_col, None)
         LOG.log(LL_TRACE, "Processing row with id = %s", row_id)
 
-        if not self._metrics.report_via_metrics_api(row, context_name=context.get(CONTEXT_NAME, None)):
+        metrics_sent, metrics_cnt = self._metrics.discover_report_metrics(row, "START_TIME", context_name=context.get(CONTEXT_NAME, None))
+        if not metrics_sent:
             processing_errors.append(f"Problem sending row {row_id} as metric")
 
-        span_events_added = 0
-        if row.get("IS_ROOT", True):  # processing top level rows only: marked as IS_ROOT or missing that marker
-            span_events_added = self._spans.generate_span(
-                row,
-                self._session,
-                row_id_col,
-                parent_row_id_col,
-                is_top_level=True,
-                view_name=view_name,
-                f_span_events=f_span_events,
-                f_log_events=f_log_events,
-                context=context,
-            )
+        span_events_added, spans_sent, logs_sent = 0, 0, 0
+        if not getattr(self._spans, "NOT_ENABLED", False):
+            if row.get("IS_ROOT", True):  # processing top level rows only: marked as IS_ROOT or missing that marker
+                span_events_added, spans_sent, logs_sent = self._spans.generate_span(
+                    row,
+                    self._session,
+                    row_id_col,
+                    parent_row_id_col,
+                    is_top_level=True,
+                    view_name=view_name,
+                    context=context,
+                    processed_ids=processed_ids,
+                    f_span_events=f_span_events,
+                    f_log_events=f_log_events,
+                )
 
-        if row_id is not None and processed_ids is not None:
-            processed_ids.append(row_id)
+        elif f_log_events is not None and not getattr(self._logs, "NOT_ENABLED", False):
+            logs_sent = f_log_events(row)
 
-        return span_events_added
+            if row_id is not None and processed_ids is not None and logs_sent > 0:
+                processed_ids.append(row_id)
 
-    def get_log_level(self, row_dict):
+        return span_events_added, spans_sent, logs_sent, metrics_cnt
+
+    def get_log_level(self, row_dict: Dict) -> int:
         """Generic method getting log level based on status.code key value. To be overwritten by plugins when required"""
         s_log_level = "INFO" if row_dict.get("status.code", "OK") == "OK" else "ERROR"
         return getattr(logging, s_log_level, logging.INFO)
 
-    def report_log(self, row_dict, __context, log_level):
+    def report_log(self, row_dict: Dict, __context: Dict, log_level: int) -> bool:
         """Generic method reporting single log line for _log_entries. To be overwritten by plugins when required"""
         log_dict = _unpack_json_dict(
             row_dict,
@@ -329,7 +344,17 @@ class Plugin(ABC):
 
         return True
 
-    def report_event(self, row_dict, event_type, *, title, start_time, end_time, properties, __context) -> int:
+    def report_event(
+        self,
+        row_dict: Dict,
+        event_type: Union[str, EventType],
+        *,
+        title: Optional[str],
+        start_time: Optional[str],
+        end_time: Optional[str],
+        properties: Optional[Dict[str, Any]],
+        __context: Optional[Dict[str, Any]],
+    ) -> int:
         """
         Generic method reporting single log line for _log_entries. To be overwritten by plugins when required
 
@@ -354,7 +379,9 @@ class Plugin(ABC):
             context=__context,
         )
 
-    def prepare_timestamp_event(self, key, ts, row_dict):  # pylint: disable=unused-argument
+    def prepare_timestamp_event(
+        self, key: str, ts: Any, row_dict: Dict
+    ) -> Tuple[str, Dict[str, Any], EventType]:  # pylint: disable=unused-argument
         """Defines title, properties and event type for timestamp events. To be overwritten by plugins"""
         return (
             f"Table event {key}.",
@@ -381,10 +408,22 @@ class Plugin(ABC):
         event_column_to_check: Optional[str] = None,
         event_value_to_check: Optional[str] = None,
         event_payload_prepare: Optional[Callable] = None,
-        f_get_log_level: Optional[Callable] = None,
-        f_report_log: Optional[Callable] = None,
-        f_report_event: Optional[Callable] = None,
-        f_event_timestamp_payload_prepare: Optional[Callable] = None,
+        f_get_log_level: Optional[Callable[[Dict], int]] = None,
+        f_report_log: Optional[Callable[[Dict, Dict, int], bool]] = None,
+        f_report_event: Optional[
+            Callable[
+                [
+                    Dict,
+                    Union[str, EventType],
+                    Optional[str],
+                    Optional[str],
+                    Optional[Dict[str, Any]],
+                    Optional[Dict[str, Any]],
+                ],
+                int,
+            ]
+        ] = None,
+        f_event_timestamp_payload_prepare: Optional[Callable[[str, Any, Dict], Tuple[str, Dict[str, Any], EventType]]] = None,
     ) -> Tuple[int, int, int, int]:
         """Processes entries delivered by f_entry_generator. By default all entries are sent as logs.
         Unless disabled matching metrics are also generated
@@ -409,10 +448,11 @@ class Plugin(ABC):
             f_event_timestamp_payload_prepare (function): function preparing title, properties and event type for timestamp events. Defaults to prepare_timestamp_event
 
         Returns:
-            entries (int): number of entries processed sent
-            logs (int): number of log entries sent
-            metrics (int): number of metrics generated and sent
-            events (int): number of events sent
+              Tuple with counts of processed telemetry data:
+                entries (int): number of entries processed sent
+                logs (int): number of log entries sent
+                metrics (int): number of metrics generated and sent
+                events (int): number of events sent
         """
         if f_get_log_level is None:
             f_get_log_level = self.get_log_level
@@ -435,12 +475,20 @@ class Plugin(ABC):
 
         for row_dict in f_entry_generator():
 
-            if report_metrics and self._metrics.discover_report_metrics(row_dict, start_time, context_name):
-                processed_metrics_cnt += 1
+            was_processed = False
+
+            if report_metrics and not getattr(self._metrics, "NOT_ENABLED", False):
+                _metrics_sent, _metrics_cnt = self._metrics.discover_report_metrics(row_dict, start_time, context_name)
+                processed_metrics_cnt += _metrics_cnt
+                was_processed |= _metrics_sent
 
             self.processed_last_timestamp = row_dict.get("TIMESTAMP", None)
 
-            if report_timestamp_events and len(_unpack_json_dict(row_dict, ["EVENT_TIMESTAMPS"])) > 0:
+            if (
+                report_timestamp_events
+                and not getattr(self._events, "NOT_ENABLED", False)
+                and len(_unpack_json_dict(row_dict, ["EVENT_TIMESTAMPS"])) > 0
+            ):
 
                 for key, ts in _unpack_json_dict(row_dict, ["EVENT_TIMESTAMPS"]).items():
                     ts_dt = _get_timestamp_in_sec(ts, NANOSECOND_CONVERSION_RATE)
@@ -457,12 +505,17 @@ class Plugin(ABC):
                             end_time_key=end_time,
                             context=__context,
                         )
+                        was_processed = True
 
-            if event_payload_prepare is not None and (
-                report_all_as_events
-                or self._has_event(
-                    value_to_compare=event_value_to_check,
-                    column_value=row_dict.get(event_column_to_check, None),
+            if (
+                event_payload_prepare is not None
+                and not getattr(self._events, "NOT_ENABLED", False)
+                and (
+                    report_all_as_events
+                    or self._has_event(
+                        value_to_compare=event_value_to_check,
+                        column_value=row_dict.get(event_column_to_check, None),
+                    )
                 )
             ):
                 event_type, title, properties = event_payload_prepare(row_dict)
@@ -475,20 +528,27 @@ class Plugin(ABC):
                     properties=properties,
                     context=__context,
                 )
-            elif report_logs:
+                was_processed = True
+            elif (
+                report_logs
+                and not getattr(self._logs, "NOT_ENABLED", False)
+                and f_report_log(row_dict, __context, f_get_log_level(row_dict))
+            ):
                 # wrapper for logging so that it can be overwritten if required
                 # logging can be conditional, therefore f_report_log must return something
-                if f_report_log(row_dict, __context, f_get_log_level(row_dict)):
-                    processed_logs_cnt += 1
+                processed_logs_cnt += 1
+                was_processed = True
 
-            processed_entries_cnt += 1
+            if was_processed:
+                processed_entries_cnt += 1
 
             if processed_entries_cnt % 100:  # invoking garbage collection every 100 entries.
-
                 gc.collect()
 
-        entries_dict = {"processed_entries_cnt": processed_entries_cnt}
         processed_events_cnt += self._events.flush_events()
+        processed_metrics_cnt += self._metrics.flush_metrics()
+
+        entries_dict = {"processed_entries_cnt": processed_entries_cnt}
 
         if report_all_as_events or report_timestamp_events or event_payload_prepare:
             entries_dict["processed_events_cnt"] = processed_events_cnt
@@ -505,14 +565,31 @@ class Plugin(ABC):
                 entries_dict,
             )
 
-        if processed_metrics_cnt > 0:
-            self._metrics.flush_metrics()
-
         return processed_entries_cnt, processed_logs_cnt, processed_metrics_cnt, processed_events_cnt
 
     @abstractmethod
-    def process(self, run_proc: bool = True):
-        """Abstract method for plugin processing."""
+    def process(self, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
+        """
+        Abstract method for plugin processing.
+
+        Args:
+            run_proc (bool): indicator whether processing should be logged as completed
+
+        Returns:
+            Dict[str,int]: dictionary with telemetry counts
+
+            Example:
+                { "context_name":
+                    {
+                        "entries": 10,
+                        "log_lines": 10,
+                        "metrics": 5,
+                        "events": 5,
+                        "biz_events": 2,
+                        "davis_events": 0,
+                    }
+                }
+        """
         # Implement method process() at plugins
 
 
