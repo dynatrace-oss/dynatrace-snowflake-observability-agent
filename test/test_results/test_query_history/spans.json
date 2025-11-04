@@ -73,6 +73,7 @@
     "snowflake.role.name": "DTAGENT_ADMIN",
     "snowflake.warehouse.name": "DTAGENT_WH",
     "dsoa.run.context": "query_history",
+    "dsoa.run.plugin": "test_query_history",
     "dsoa.debug.span.events.added": 0,
     "dsoa.debug.span.events.failed": 0
   },
@@ -150,6 +151,7 @@
     "snowflake.role.name": "DTAGENT_ADMIN",
     "snowflake.warehouse.name": "DTAGENT_WH",
     "dsoa.run.context": "query_history",
+    "dsoa.run.plugin": "test_query_history",
     "dsoa.debug.span.events.added": 0,
     "dsoa.debug.span.events.failed": 0
   },
@@ -218,6 +220,7 @@
     "snowflake.role.name": "DTAGENT_ADMIN",
     "snowflake.warehouse.name": "DTAGENT_WH",
     "dsoa.run.context": "query_history",
+    "dsoa.run.plugin": "test_query_history",
     "dsoa.debug.span.events.added": 0,
     "dsoa.debug.span.events.failed": 0
   }

@@ -24,6 +24,7 @@
     "snowflake.warehouse.name": "DTAGENT_SKRUK_WH",
     "telemetry.sdk.language": "sql",
     "dsoa.run.context": "event_log_spans",
+    "dsoa.run.plugin": "test_event_log",
     "dsoa.debug.span.events.added": 0,
     "dsoa.debug.span.events.failed": 0
   },
@@ -52,6 +53,7 @@
     "snowflake.warehouse.name": "DTAGENT_SKRUK_WH",
     "telemetry.sdk.language": "sql",
     "dsoa.run.context": "event_log_spans",
+    "dsoa.run.plugin": "test_event_log",
     "dsoa.debug.span.events.added": 0,
     "dsoa.debug.span.events.failed": 0
   }
