@@ -26,12 +26,12 @@ Plugin file for processing data schemas plugin data.
 # SOFTWARE.
 #
 #
-import uuid
 from typing import Any, Dict
 
 from dtagent.plugins import Plugin
 from dtagent.otel.events import EventType
 from dtagent.util import _from_json, _pack_values_to_json_strings
+from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPILE_REMOVE
 
 ##endregion COMPILE_REMOVE
 
@@ -99,9 +99,14 @@ class DataSchemasPlugin(Plugin):
             context=context,
         )
 
-    def process(self, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
+    def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
         """
         Processes data for data schemas plugin.
+
+        Args:
+            run_id (str): unique run identifier
+            run_proc (bool): indicator whether processing should be logged as completed
+
         Returns:
             Dict[str,Dict[str,int]]: A dictionary with telemetry counts for data schemas.
 
@@ -115,11 +120,9 @@ class DataSchemasPlugin(Plugin):
                     "events": events_cnt,
                 }
             },
-            "dsoa.run.id": run_id,
+            RUN_ID_KEY: run_id,
             }
         """
-
-        run_id = str(uuid.uuid4().hex)
 
         entries_cnt, logs_cnt, metrics_cnt, events_cnt = self._log_entries(
             f_entry_generator=lambda: self._get_table_rows("APP.V_DATA_SCHEMAS"),
@@ -136,7 +139,8 @@ class DataSchemasPlugin(Plugin):
         )
 
         return {
-            "dsoa.run.results": {
+            RUN_PLUGIN_KEY: "data_schemas",
+            RUN_RESULTS_KEY: {
                 "data_schemas": {
                     "entries": entries_cnt,
                     "log_lines": logs_cnt,
@@ -144,5 +148,5 @@ class DataSchemasPlugin(Plugin):
                     "metrics": metrics_cnt,
                 },
             },
-            "dsoa.run.id": run_id,
+            RUN_ID_KEY: run_id,
         }

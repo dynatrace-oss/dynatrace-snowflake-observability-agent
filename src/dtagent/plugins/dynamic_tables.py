@@ -27,9 +27,9 @@ Plugin file for processing dynamic tables plugin data.
 #
 #
 
-import uuid
 from typing import Tuple, Dict
 from dtagent.plugins import Plugin
+from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPILE_REMOVE
 
 ##endregion COMPILE_REMOVE
 
@@ -41,9 +41,13 @@ class DynamicTablesPlugin(Plugin):
     Dynamic tables plugin class.
     """
 
-    def process(self, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
+    def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
         """
         Processes the measures on dynamic tables
+
+        Args:
+            run_id (str): unique run identifier
+            run_proc (bool): indicator whether processing should be logged as completed
 
         Returns:
             Dict[str,int]: A dictionary with counts of processed telemetry data.
@@ -77,8 +81,6 @@ class DynamicTablesPlugin(Plugin):
         t_dynamic_table_refresh_history = "APP.V_DYNAMIC_TABLE_REFRESH_HISTORY_INSTRUMENTED"
         t_dynamic_table_graph_history = "APP.V_DYNAMIC_TABLE_GRAPH_HISTORY_INSTRUMENTED"
 
-        run_id = str(uuid.uuid4().hex)
-
         (entries_cnt, logs_cnt, metrics_cnt, event_cnt) = self._log_entries(
             lambda: self._get_table_rows(t_dynamic_tables),
             "dynamic_tables",
@@ -104,7 +106,8 @@ class DynamicTablesPlugin(Plugin):
         )
 
         return {
-            "dsoa.run.results": {
+            RUN_PLUGIN_KEY: "dynamic_tables",
+            RUN_RESULTS_KEY: {
                 "dynamic_tables": {
                     "entries": entries_cnt,
                     "log_lines": logs_cnt,
@@ -124,7 +127,7 @@ class DynamicTablesPlugin(Plugin):
                     "events": event_graph_cnt,
                 },
             },
-            "dsoa.run.id": run_id,
+            RUN_ID_KEY: run_id,
         }
 
 

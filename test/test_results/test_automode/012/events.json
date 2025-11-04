@@ -13,7 +13,8 @@
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.context": "test_automode/012",
     "eventType": "CUSTOM_INFO",
-    "title": "This is a test object 1"
+    "title": "This is a test object 1",
+    "dsoa.run.plugin": "telemetry_sender"
   },
   {
     "status.code": "OK",
@@ -30,7 +31,8 @@
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.context": "test_automode/012",
     "eventType": "PERFORMANCE_EVENT",
-    "title": "This is a test object 2"
+    "title": "This is a test object 2",
+    "dsoa.run.plugin": "telemetry_sender"
   },
   {
     "status.code": "ERROR",
@@ -47,6 +49,7 @@
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.context": "test_automode/012",
     "eventType": "ERROR_EVENT",
-    "title": "Event sent with test_automode/012"
+    "title": "Event sent with test_automode/012",
+    "dsoa.run.plugin": "telemetry_sender"
   }
 ]

@@ -15,7 +15,8 @@
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.context": "test_automode/000",
     "eventType": "CUSTOM_INFO",
-    "title": "Table event snowflake.table.update."
+    "title": "Table event snowflake.table.update.",
+    "dsoa.run.plugin": "telemetry_sender"
   },
   {
     "snowflake.event.trigger": "snowflake.table.ddl",
@@ -35,7 +36,8 @@
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.context": "test_automode/000",
     "eventType": "CUSTOM_INFO",
-    "title": "Table event snowflake.table.ddl."
+    "title": "Table event snowflake.table.ddl.",
+    "dsoa.run.plugin": "telemetry_sender"
   },
   {
     "snowflake.event.trigger": "snowflake.table.update",
@@ -55,6 +57,7 @@
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.context": "test_automode/000",
     "eventType": "CUSTOM_INFO",
-    "title": "Table event snowflake.table.update."
+    "title": "Table event snowflake.table.update.",
+    "dsoa.run.plugin": "telemetry_sender"
   }
 ]

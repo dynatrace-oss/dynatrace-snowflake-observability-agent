@@ -27,9 +27,9 @@ Plugin file for processing tasks plugin data.
 #
 #
 
-import uuid
 from typing import Tuple, Dict
-from src.dtagent.plugins import Plugin
+from dtagent.plugins import Plugin
+from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPILE_REMOVE
 
 ##endregion COMPILE_REMOVE
 
@@ -41,9 +41,14 @@ class TasksPlugin(Plugin):
     Tasks plugin class.
     """
 
-    def process(self, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
+    def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
         """
         Processes the measures on serverless tasks, task history and task versions.
+
+        Args:
+            run_id (str): unique run identifier
+            run_proc (bool): indicator whether processing should be logged as completed
+
         Returns:
             Dict[str,int]: A dictionary with telemetry counts for tasks.
 
@@ -76,8 +81,6 @@ class TasksPlugin(Plugin):
         t_serverless_task = "APP.V_SERVERLESS_TASKS"
         t_task_hist = "APP.V_TASK_HISTORY"
         t_task_versions = "APP.V_TASK_VERSIONS"
-
-        run_id = str(uuid.uuid4().hex)
 
         (
             serverless_tasks_entries_cnt,
@@ -117,7 +120,8 @@ class TasksPlugin(Plugin):
         )
 
         return {
-            "dsoa.run.results": {
+            RUN_PLUGIN_KEY: "tasks",
+            RUN_RESULTS_KEY: {
                 "serverless_tasks": {
                     "entries": serverless_tasks_entries_cnt,
                     "log_lines": serverless_task_logs_cnt,
@@ -137,7 +141,7 @@ class TasksPlugin(Plugin):
                     "events": task_history_events_cnt,
                 },
             },
-            "dsoa.run.id": run_id,
+            RUN_ID_KEY: run_id,
         }
 
 

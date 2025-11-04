@@ -27,9 +27,9 @@ Plugin file for processing shares plugin data.
 #
 #
 
-import uuid
 from typing import Tuple, Dict
 from dtagent.plugins import Plugin
+from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPILE_REMOVE
 
 ##endregion COMPILE_REMOVE
 
@@ -41,9 +41,14 @@ class SharesPlugin(Plugin):
     Shares plugin class.
     """
 
-    def process(self, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
+    def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
         """
         Processes data for shares plugin.
+
+        Args:
+            run_id (str): unique run identifier
+            run_proc (bool): indicator whether processing should be logged as completed
+
         Returns:
             Dict[str,int]: A dictionary with telemetry counts for shares.
 
@@ -76,7 +81,6 @@ class SharesPlugin(Plugin):
         t_outbound_shares = "APP.V_OUTBOUND_SHARE_TABLES"
         t_inbound_shares = "APP.V_INBOUND_SHARE_TABLES"
         t_share_events = "APP.V_SHARE_EVENTS"
-        run_id = str(uuid.uuid4().hex)
 
         if run_proc:
             # call to list inbound and outbound shares to temporary tables
@@ -122,7 +126,8 @@ class SharesPlugin(Plugin):
         )
 
         return {
-            "dsoa.run.results": {
+            RUN_PLUGIN_KEY: "shares",
+            RUN_RESULTS_KEY: {
                 "outbound_shares": {
                     "entries": outbound_share_entries_cnt,
                     "log_lines": outbound_share_logs_cnt,
@@ -142,5 +147,5 @@ class SharesPlugin(Plugin):
                     "events": shares_events_cnt,
                 },
             },
-            "dsoa.run.id": run_id,
+            RUN_ID_KEY: run_id,
         }

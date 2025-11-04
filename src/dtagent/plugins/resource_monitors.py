@@ -26,13 +26,13 @@ Plugin file for processing resource monitors plugin data.
 # SOFTWARE.
 #
 #
-import uuid
 import logging
 from typing import Tuple, Dict
+from regex import R
 from snowflake.snowpark.functions import current_timestamp
 from dtagent.util import _unpack_json_dict
 from dtagent.plugins import Plugin
-from dtagent.context import get_context_name_and_run_id
+from dtagent.context import get_context_name_and_run_id, RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPILE_REMOVE
 from dtagent.otel.events import EventType
 
 ##endregion COMPILE_REMOVE
@@ -100,9 +100,14 @@ class ResourceMonitorsPlugin(Plugin):
 
         return False
 
-    def process(self, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
+    def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
         """
         Processes the measures on resource monitors.
+
+        Args:
+            run_id (str): unique run identifier
+            run_proc (bool): indicator whether processing should be logged as completed
+
         Returns:
             Dict[str,int]: A dictionary with counts of processed telemetry data.
 
@@ -125,7 +130,6 @@ class ResourceMonitorsPlugin(Plugin):
             "dsoa.run.id": "uuid_string"
             }
         """
-        run_id = str(uuid.uuid4().hex)
         context_name = "resource_monitors"
 
         if run_proc:
@@ -151,7 +155,7 @@ class ResourceMonitorsPlugin(Plugin):
             self._logs.send_log(
                 "There is no ACCOUNT level resource monitor setup",
                 log_level=logging.ERROR,
-                context=get_context_name_and_run_id(context_name, run_id),
+                context=get_context_name_and_run_id(plugin_name=self._plugin_name, context_name=context_name, run_id=run_id),
             )
 
         (
@@ -184,14 +188,9 @@ class ResourceMonitorsPlugin(Plugin):
         }
 
         if run_proc:
-            self._report_execution(
-                "resource_monitors",
-                current_timestamp(),
-                None,
-                results_dict,
-            )
+            self._report_execution("resource_monitors", current_timestamp(), None, results_dict, run_id=run_id)
 
-        return {"dsoa.run.results": results_dict, "dsoa.run.id": run_id}
+        return {RUN_PLUGIN_KEY: "resource_monitors", RUN_RESULTS_KEY: results_dict, RUN_ID_KEY: run_id}
 
 
 ##endregion

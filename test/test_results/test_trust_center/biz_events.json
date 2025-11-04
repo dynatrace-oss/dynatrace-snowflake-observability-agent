@@ -25,6 +25,7 @@
       "event.provider": "test.dsoa2025.snowflakecomputing.com",
       "dsoa.task.name": "test_trust_center",
       "dsoa.task.exec.status": "FINISHED",
+      "dsoa.run.plugin": "trust_center",
       "app.bundle": "self-monitoring",
       "app.id": "dynatrace.snowagent",
       "db.system": "snowflake",

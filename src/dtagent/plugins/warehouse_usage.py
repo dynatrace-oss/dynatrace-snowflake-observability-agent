@@ -27,9 +27,9 @@ Plugin file for processing warehouse usage plugin data.
 #
 #
 
-import uuid
 from typing import Tuple, Dict
-from src.dtagent.plugins import Plugin
+from dtagent.plugins import Plugin
+from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPILE_REMOVE
 
 ##endregion COMPILE_REMOVE
 
@@ -41,9 +41,14 @@ class WarehouseUsagePlugin(Plugin):
     Warehouse usage plugin class.
     """
 
-    def process(self, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
+    def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
         """
         Processes data for warehouse usage plugin.
+
+        Args:
+            run_id (str): unique run identifier
+            run_proc (bool): indicator whether processing should be logged as completed
+
         Returns:
             Dict[str,int]: A dictionary with telemetry counts for warehouse usage.
 
@@ -77,8 +82,6 @@ class WarehouseUsagePlugin(Plugin):
         t_wh_load_hist = "APP.V_WAREHOUSE_LOAD_HISTORY"
         t_wh_metering_hist = "APP.V_WAREHOUSE_METERING_HISTORY"
 
-        run_id = str(uuid.uuid4().hex)
-
         entries_wh_events_cnt, logs_wh_events_cnt, metrics_wh_events_cnt, events_wh_events_cnt = self._log_entries(
             lambda: self._get_table_rows(t_wh_events),
             "warehouse_usage",
@@ -101,7 +104,8 @@ class WarehouseUsagePlugin(Plugin):
         )
 
         return {
-            "dsoa.run.results": {
+            RUN_PLUGIN_KEY: "warehouse_usage",
+            RUN_RESULTS_KEY: {
                 "warehouse_usage": {
                     "entries": entries_wh_events_cnt,
                     "log_lines": logs_wh_events_cnt,
@@ -121,5 +125,5 @@ class WarehouseUsagePlugin(Plugin):
                     "events": events_wh_metering_cnt,
                 },
             },
-            "dsoa.run.id": run_id,
+            RUN_ID_KEY: run_id,
         }

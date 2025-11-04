@@ -8,7 +8,8 @@
     "snowflake.table_type": "BASE TABLE",
     "db.collection.name": "DTAGENT_DB.STATUS.PROCESSED_QUERIES_CACHE",
     "db.namespace": "DTAGENT_DB",
-    "dsoa.run.context": "test_automode/004"
+    "dsoa.run.context": "test_automode/004",
+    "dsoa.run.plugin": "telemetry_sender"
   },
   {
     "content": "New entry to STATUS.LOG_PROCESSED_MEASUREMENTS from test_automode/004",
@@ -20,6 +21,7 @@
       "log_lines": 1,
       "metrics": 4
     },
-    "dsoa.run.context": "self_monitoring"
+    "dsoa.run.context": "self_monitoring",
+    "dsoa.run.plugin": "telemetry_sender"
   }
 ]

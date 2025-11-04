@@ -33,7 +33,7 @@ from typing import Any, Dict, Generator, List, Optional, Union
 
 import requests
 
-from dtagent.context import CONTEXT_NAME
+from dtagent.context import RUN_CONTEXT_KEY
 from dtagent.otel import _log_warning
 from dtagent.otel.events import EventType, AbstractEvents
 from dtagent.otel.otel_manager import OtelManager
@@ -86,7 +86,7 @@ class BizEvents(AbstractEvents):
             {
                 "app.version": self._resource_attributes.get("telemetry.exporter.version", "0.0.0"),
                 "app.short_version": VERSION,
-                "app.bundle": _context.get(CONTEXT_NAME, "bizevents"),
+                "app.bundle": _context.get(RUN_CONTEXT_KEY, "bizevents"),
                 "app.id": "dynatrace.snowagent",
             }
             | self._resource_attributes

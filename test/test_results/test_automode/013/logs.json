@@ -14,7 +14,8 @@
       "k": "v",
       "k2": 2
     },
-    "dsoa.run.context": "test_automode/013"
+    "dsoa.run.context": "test_automode/013",
+    "dsoa.run.plugin": "telemetry_sender"
   },
   {
     "content": "New entry to STATUS.LOG_PROCESSED_MEASUREMENTS from test_automode/013",
@@ -26,6 +27,7 @@
       "log_lines": 1,
       "metrics": 0
     },
-    "dsoa.run.context": "self_monitoring"
+    "dsoa.run.context": "self_monitoring",
+    "dsoa.run.plugin": "telemetry_sender"
   }
 ]

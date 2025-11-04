@@ -38,7 +38,8 @@ from dtagent.otel.metrics import Metrics
 from dtagent.otel.events.generic import GenericEvents
 from dtagent.otel.events.davis import DavisEvents
 from dtagent.otel.events.bizevents import BizEvents
-from dtagent.context import get_context_name_and_run_id
+from dtagent.version import VERSION
+from dtagent.context import get_context_name_and_run_id, RUN_VERSION_KEY  # COMPILE_REMOVE
 from dtagent.util import get_now_timestamp_formatted, is_regular_mode
 
 ##endregion COMPILE_REMOVE
@@ -93,7 +94,7 @@ class AbstractDynatraceSnowAgentConnector:
         self._session = session
 
         if is_regular_mode(session):
-            session.query_tag = "dsoa:" + get_now_timestamp_formatted()
+            session.query_tag = json.dumps({RUN_VERSION_KEY: str(VERSION)})
 
         self._configuration = self._get_config(session)
 
@@ -163,7 +164,7 @@ class AbstractDynatraceSnowAgentConnector:
             bizevents_sent = self._biz_events.report_via_api(
                 query_data=[data_dict | (details_dict or {})],
                 event_type="dsoa.task",
-                context=get_context_name_and_run_id("self-monitoring"),
+                context=get_context_name_and_run_id(plugin_name=task_name, context_name="self-monitoring", run_id=exec_id),
                 is_data_structured=False,
             )
             bizevents_sent += self._biz_events.flush_events()

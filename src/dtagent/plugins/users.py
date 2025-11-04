@@ -27,10 +27,10 @@ Plugin file for processing users plugin data.
 #
 #
 
-import uuid
 from typing import Tuple, Dict
 from snowflake.snowpark.functions import current_timestamp
 from dtagent.plugins import Plugin
+from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPILE_REMOVE
 
 ##endregion COMPILE_REMOVE
 
@@ -48,9 +48,14 @@ class UsersPlugin(Plugin):
     Users plugin class.
     """
 
-    def process(self, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
+    def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
         """
         Processes data for users plugin.
+
+        Args:
+            run_id (str): unique run identifier
+            run_proc (bool): indicator whether processing should be logged as completed
+
         Returns:
             Dict[str,int]: A dictionary with telemetry counts for users.
 
@@ -77,7 +82,6 @@ class UsersPlugin(Plugin):
 
         modes = self._configuration.get(plugin_name="users", key="roles_monitoring_mode", default_value=[])
         processed_entries_cnt = 0
-        run_id = str(uuid.uuid4().hex)
 
         views_list = ["APP.V_USERS_INSTRUMENTED"]
 
@@ -108,9 +112,9 @@ class UsersPlugin(Plugin):
             processed_entries_cnt += entries_cnt
 
         if run_proc:
-            self._report_execution("users", current_timestamp() if processed_entries_cnt > 0 else None, None, results_dict)
+            self._report_execution("users", current_timestamp() if processed_entries_cnt > 0 else None, None, results_dict, run_id=run_id)
 
-        return {"dsoa.run.results": results_dict, "dsoa.run.id": run_id}
+        return {RUN_PLUGIN_KEY: "users", RUN_RESULTS_KEY: results_dict, RUN_ID_KEY: run_id}
 
 
 ##endregion

@@ -63,7 +63,7 @@ class TestLoginHist:
         for disabled_telemetry in disabled_combinations:
             utils.execute_telemetry_test(
                 TestDynatraceSnowAgent,
-                test_name="login_history",
+                test_name="test_login_history",
                 disabled_telemetry=disabled_telemetry,
                 affecting_types_for_entries=["logs", "events"],
                 base_count={

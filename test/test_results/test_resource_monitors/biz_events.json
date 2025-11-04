@@ -25,6 +25,7 @@
       "event.provider": "test.dsoa2025.snowflakecomputing.com",
       "dsoa.task.name": "test_resource_monitors",
       "dsoa.task.exec.status": "FINISHED",
+      "dsoa.run.plugin": "resource_monitors",
       "app.bundle": "self-monitoring",
       "app.id": "dynatrace.snowagent",
       "db.system": "snowflake",

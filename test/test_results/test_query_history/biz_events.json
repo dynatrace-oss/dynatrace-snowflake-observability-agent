@@ -25,6 +25,7 @@
       "event.provider": "test.dsoa2025.snowflakecomputing.com",
       "dsoa.task.name": "test_query_history",
       "dsoa.task.exec.status": "FINISHED",
+      "dsoa.run.plugin": "query_history",
       "app.bundle": "self-monitoring",
       "app.id": "dynatrace.snowagent",
       "db.system": "snowflake",

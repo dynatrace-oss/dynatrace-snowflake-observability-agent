@@ -9,6 +9,7 @@
       "log_lines": 0,
       "metrics": 0
     },
+    "dsoa.run.plugin": "telemetry_sender",
     "dsoa.run.context": "self_monitoring"
   }
 ]

@@ -26,7 +26,6 @@ Plugin file for processing query history plugin data.
 # SOFTWARE.
 #
 #
-import uuid
 import logging
 from typing import Any, Tuple, Dict, List
 from dtagent import LOG, LL_TRACE
@@ -38,7 +37,7 @@ from dtagent.util import (
     _pack_values_to_json_strings,
 )
 from dtagent.plugins import Plugin
-from dtagent.context import get_context_name_and_run_id
+from dtagent.context import get_context_name_and_run_id, RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPILE_REMOVE
 
 ##endregion COMPILE_REMOVE
 
@@ -50,9 +49,13 @@ class QueryHistoryPlugin(Plugin):
     Query history plugin class.
     """
 
-    def process(self, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
+    def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
         """
         The actual function to process query history:
+
+        Args:
+            run_id (str): unique run identifier
+            run_proc (bool): indicator whether processing should be logged as completed
 
         Returns:
             Dict[str,Dict[str,int]]: A dictionary with telemetry counts for query history.
@@ -72,7 +75,7 @@ class QueryHistoryPlugin(Plugin):
             "dsoa.run.id": "uuid_string"
             }
         """
-        __context = get_context_name_and_run_id("query_history")
+        __context = get_context_name_and_run_id(plugin_name=self._plugin_name, context_name="query_history", run_id=run_id)
 
         def __get_query_operator_event_name(operator: Dict) -> str:
             """Returns string with query operator event."""
@@ -147,7 +150,6 @@ class QueryHistoryPlugin(Plugin):
             self._session.call("APP.P_GET_ACCELERATION_ESTIMATES", log_on_exception=True)
 
         t_recent_queries = "APP.V_RECENT_QUERIES"
-        run_id = str(uuid.uuid4().hex)
         processed_query_ids, processing_errors_count, span_events_added, spans_sent, logs_sent, metrics_sent = self._process_span_rows(
             f_entry_generator=lambda: self._get_table_rows(t_recent_queries),
             view_name=t_recent_queries,
@@ -161,7 +163,8 @@ class QueryHistoryPlugin(Plugin):
 
         # return (len(processed_query_ids), processing_errors_count, span_events_added, metrics_sent)
         return {
-            "dsoa.run.results": {
+            RUN_PLUGIN_KEY: "query_history",
+            RUN_RESULTS_KEY: {
                 "query_history": {
                     "entries": len(processed_query_ids),
                     "log_lines": logs_sent,
@@ -171,7 +174,7 @@ class QueryHistoryPlugin(Plugin):
                     "errors": processing_errors_count,
                 },
             },
-            "dsoa.run.id": run_id,
+            RUN_ID_KEY: run_id,
         }
 
 

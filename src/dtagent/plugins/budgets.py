@@ -27,10 +27,10 @@ Plugin file for processing budgets plugin data.
 #
 #
 
-import uuid
 from typing import Tuple, Dict
 from snowflake.snowpark.functions import current_timestamp
 from dtagent.plugins import Plugin
+from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPILE_REMOVE
 
 ##endregion COMPILE_REMOVE
 
@@ -41,9 +41,14 @@ class BudgetsPlugin(Plugin):
     Budgets plugin class.
     """
 
-    def process(self, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
+    def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
         """
         Processes data for budgets plugin.
+
+        Args:
+            run_id (str): unique run identifier
+            run_proc (bool): indicator whether processing should be logged as completed
+
         Returns:
             Dict[str,int]: A dictionary with counts of processed telemetry data.
 
@@ -79,8 +84,6 @@ class BudgetsPlugin(Plugin):
             # this procedure ensures that the budgets and spendings tables are up to date
             self._session.call(p_refresh_budgets)
 
-        run_id = str(uuid.uuid4().hex)
-
         budgets_cnt, logs_budgets_cnt, budgets_metrics_cnt, budgets_events_cnt = self._log_entries(
             lambda: self._get_table_rows(t_get_budgets),
             "budgets",
@@ -113,11 +116,6 @@ class BudgetsPlugin(Plugin):
         }
 
         if run_proc:
-            self._report_execution(
-                "budgets",
-                current_timestamp(),
-                None,
-                results_dict,
-            )
+            self._report_execution("budgets", current_timestamp(), None, results_dict, run_id=run_id)
 
-        return {"dsoa.run.results": results_dict, "dsoa.run.id": run_id}
+        return {RUN_PLUGIN_KEY: "budgets", RUN_RESULTS_KEY: results_dict, RUN_ID_KEY: run_id}

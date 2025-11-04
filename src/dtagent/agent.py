@@ -128,6 +128,7 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
         import inspect
         from dtagent import LOG  # COMPILE_REMOVE
         from dtagent.otel import NO_OP_TELEMETRY  # COMPILE_REMOVE
+        from dtagent.context import RUN_PLUGIN_KEY, RUN_ID_KEY, RUN_VERSION_KEY  # COMPILE_REMOVE
 
         results: dict = {}
 
@@ -135,12 +136,12 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
             from dtagent.plugins import _get_plugin_class  # COMPILE_REMOVE
 
             c_source = _get_plugin_class(source)
-            exec_id = get_now_timestamp_formatted()
-
-            self.report_execution_status(status="STARTED", task_name=source, exec_id=exec_id)
+            run_id = str(uuid.uuid4().hex)
 
             if is_regular_mode(self._session):
-                self._session.query_tag = f"dsoa.version:{str(VERSION)}.plugin:{c_source.__name__}.{exec_id}"
+                self._session.query_tag = json.dumps({RUN_VERSION_KEY: str(VERSION), RUN_PLUGIN_KEY: c_source.__name__, RUN_ID_KEY: run_id})
+
+            self.report_execution_status(status="STARTED", task_name=source, exec_id=run_id)
 
             plugin_telemetry_allowed = (
                 set(
@@ -157,6 +158,7 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
                 #
                 try:
                     results[source] = c_source(
+                        plugin_name=source,
                         session=self._session,
                         configuration=self._configuration,
                         logs=self._logs if "logs" in plugin_telemetry_allowed else NO_OP_TELEMETRY,
@@ -164,14 +166,14 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
                         metrics=self._metrics if "metrics" in plugin_telemetry_allowed else NO_OP_TELEMETRY,
                         events=self._events if "events" in plugin_telemetry_allowed else NO_OP_TELEMETRY,
                         bizevents=self._biz_events if "biz_events" in plugin_telemetry_allowed else NO_OP_TELEMETRY,
-                    ).process(run_proc)
+                    ).process(run_id, run_proc)
                     #
 
-                    self.report_execution_status(status="FINISHED", task_name=source, exec_id=exec_id, details_dict=results[source])
+                    self.report_execution_status(status="FINISHED", task_name=source, exec_id=run_id, details_dict=results[source])
                 except RuntimeError as e:
-                    self.handle_interrupted_run(source, exec_id, str(e))
+                    self.handle_interrupted_run(source, run_id, str(e))
             else:
-                self.report_execution_status(status="FAILED", task_name=source, exec_id=exec_id)
+                self.report_execution_status(status="FAILED", task_name=source, exec_id=run_id)
                 results[source] = {"not_implemented": c_source}
                 LOG.warning(f"""Requested measuring source {source} that is not implemented: {results[source]}""")
 

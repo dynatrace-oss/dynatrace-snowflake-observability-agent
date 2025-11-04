@@ -35,6 +35,7 @@ from abc import ABC, abstractmethod
 from snowflake import snowpark
 from snowflake.snowpark.functions import current_timestamp
 from dtagent import LOG, LL_TRACE
+from dtagent import context
 from dtagent.config import Configuration
 from dtagent.util import (
     _unpack_json_dict,
@@ -52,7 +53,7 @@ from dtagent.otel.events.bizevents import BizEvents
 from dtagent.otel.logs import Logs
 from dtagent.otel.spans import Spans
 from dtagent.otel.metrics import Metrics
-from dtagent.context import CONTEXT_NAME, get_context_name_and_run_id
+from dtagent.context import RUN_CONTEXT_KEY, get_context_name_and_run_id
 
 ##endregion COMPILE_REMOVE
 
@@ -67,6 +68,7 @@ class Plugin(ABC):
     def __init__(
         self,
         *,
+        plugin_name: str,
         session: snowpark.Session,
         logs: Optional[Logs] = None,
         spans: Optional[Spans] = None,
@@ -77,6 +79,7 @@ class Plugin(ABC):
     ):
         """Sets session variables."""
 
+        self._plugin_name = plugin_name
         self._session = session
 
         if logs is not None:
@@ -127,8 +130,8 @@ class Plugin(ABC):
 
             yield row_dict
 
-    def _report_execution(self, measurements_source: str, last_timestamp, last_id, entries_count: dict):
-        __context = get_context_name_and_run_id("self_monitoring")
+    def _report_execution(self, measurements_source: str, last_timestamp, last_id, entries_count: dict, run_id: str):
+        __context = get_context_name_and_run_id(plugin_name=self._plugin_name, context_name="self_monitoring", run_id=run_id)
 
         # we cannot use last timestamp when sending logs to DT, because when it is set to snowpark.current_timestamp, the value is taken from a snowflake table
         # for DT it would look like 'Column[current_timestamp]'
@@ -157,8 +160,8 @@ class Plugin(ABC):
         f_entry_generator: Callable,
         view_name: str,
         context_name: str,
+        run_uuid: str,
         *,
-        run_uuid: str = str(uuid.uuid4().hex),
         query_id_col_name: str = "QUERY_ID",
         parent_query_id_col_name: str = "PARENT_QUERY_ID",
         log_completion: bool = True,
@@ -197,7 +200,7 @@ class Plugin(ABC):
         logs_sent = 0
         metrics_sent = 0
 
-        __context = get_context_name_and_run_id(context_name, run_uuid)
+        __context = get_context_name_and_run_id(plugin_name=self._plugin_name, context_name=context_name, run_id=run_uuid)
 
         for row_dict in f_entry_generator():
             query_id = row_dict.get(query_id_col_name, None)
@@ -244,6 +247,7 @@ class Plugin(ABC):
                     "processing_errors_count": processing_errors_count,
                     "span_events_added_count": span_events_added,
                 },
+                run_id=run_uuid,
             )
 
         if report_status:
@@ -293,7 +297,9 @@ class Plugin(ABC):
         row_id = row.get(row_id_col, None)
         LOG.log(LL_TRACE, "Processing row with id = %s", row_id)
 
-        metrics_sent, metrics_cnt = self._metrics.discover_report_metrics(row, "START_TIME", context_name=context.get(CONTEXT_NAME, None))
+        metrics_sent, metrics_cnt = self._metrics.discover_report_metrics(
+            row, "START_TIME", context_name=context.get(RUN_CONTEXT_KEY, None)
+        )
         if not metrics_sent:
             processing_errors.append(f"Problem sending row {row_id} as metric")
 
@@ -336,7 +342,7 @@ class Plugin(ABC):
         event_dict = _cleanup_dict({"timestamp": self.processed_last_timestamp, **log_dict})
 
         self._logs.send_log(
-            row_dict.get("_MESSAGE", __context.get(CONTEXT_NAME)),
+            row_dict.get("_MESSAGE", __context.get(RUN_CONTEXT_KEY)),
             extra=event_dict,
             log_level=log_level,
             context=__context,
@@ -396,8 +402,8 @@ class Plugin(ABC):
         self,
         f_entry_generator: Callable[[Dict, None], None],
         context_name: str,
+        run_uuid: str,
         *,
-        run_uuid: str = str(uuid.uuid4().hex),
         report_logs: bool = True,
         report_metrics: bool = True,
         report_timestamp_events: bool = True,
@@ -463,7 +469,7 @@ class Plugin(ABC):
         if f_event_timestamp_payload_prepare is None:
             f_event_timestamp_payload_prepare = self.prepare_timestamp_event
 
-        __context = get_context_name_and_run_id(context_name, run_uuid)
+        __context = get_context_name_and_run_id(plugin_name=self._plugin_name, context_name=context_name, run_id=run_uuid)
 
         self.processed_last_timestamp = None
         processed_entries_cnt = 0
@@ -558,21 +564,17 @@ class Plugin(ABC):
             entries_dict["processed_metrics_cnt"] = processed_metrics_cnt
 
         if log_completion:
-            self._report_execution(
-                context_name,
-                str(self.processed_last_timestamp),
-                None,
-                entries_dict,
-            )
+            self._report_execution(context_name, str(self.processed_last_timestamp), None, entries_dict, run_id=run_uuid)
 
         return processed_entries_cnt, processed_logs_cnt, processed_metrics_cnt, processed_events_cnt
 
     @abstractmethod
-    def process(self, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
+    def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
         """
         Abstract method for plugin processing.
 
         Args:
+            run_id (str): unique run identifier
             run_proc (bool): indicator whether processing should be logged as completed
 
         Returns:
