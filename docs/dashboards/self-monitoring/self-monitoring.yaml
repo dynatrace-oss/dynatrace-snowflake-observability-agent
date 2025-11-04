@@ -147,7 +147,7 @@ tiles:
     query: |-
       fetch bizevents
       | filter db.system == "snowflake"
-      | filter dsoa.run.context == "self-monitoring"
+      | filter dsoa.run.context == "self_monitoring"
       | filter in(deployment.environment, array($Accounts))
       | filter in(dsoa.task.name, array($Plugin_Names))
       | sort timestamp asc
@@ -259,7 +259,7 @@ tiles:
     query: |-
       fetch bizevents
       | filter db.system == "snowflake"
-      | filter dsoa.run.context == "self-monitoring"
+      | filter dsoa.run.context == "self_monitoring"
       | filter in(deployment.environment, array($Accounts))
       | filter in(dsoa.task.name, array($Plugin_Names))
       | sort timestamp asc
@@ -305,7 +305,7 @@ tiles:
     query: |-
       fetch bizevents
       | filter db.system == "snowflake"
-      | filter dsoa.run.context == "self-monitoring"
+      | filter dsoa.run.context == "self_monitoring"
       | filter in(deployment.environment, array($Accounts))
       | filter in(dsoa.task.name, array($Plugin_Names))
       | sort timestamp asc
@@ -388,7 +388,7 @@ tiles:
     query: |-
       fetch bizevents
       | filter db.system == "snowflake"
-      | filter dsoa.run.context == "self-monitoring"
+      | filter dsoa.run.context == "self_monitoring"
       | filter in(deployment.environment, array($Accounts))
       | filter in(dsoa.task.name, array($Plugin_Names))
       | sort timestamp desc

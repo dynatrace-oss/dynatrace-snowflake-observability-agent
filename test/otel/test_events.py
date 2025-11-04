@@ -248,7 +248,7 @@ class TestEvents:
 
             cnt = bizevents.report_via_api(
                 context=get_context_name_and_run_id(
-                    plugin_name="test_send_events_directly", context_name="self-monitoring", run_id=str(uuid.uuid4().hex)
+                    plugin_name="test_send_events_directly", context_name="self_monitoring", run_id=str(uuid.uuid4().hex)
                 ),
                 event_type="dsoa.task",
                 query_data=[
