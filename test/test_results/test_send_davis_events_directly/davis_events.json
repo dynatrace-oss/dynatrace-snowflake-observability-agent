@@ -75,6 +75,7 @@
       "deployment.environment": "TEST",
       "host.name": "test.dsoa2025.snowflakecomputing.com",
       "telemetry.exporter.name": "dynatrace.snowagent",
+      "dsoa.run.plugin": "test_send_events_directly",
       "dsoa.run.context": "data_volume"
     }
   }

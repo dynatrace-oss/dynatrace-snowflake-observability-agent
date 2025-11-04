@@ -147,7 +147,9 @@ class AbstractDynatraceSnowAgentConnector:
         """
         return Configuration(session)
 
-    def report_execution_status(self, status: str, task_name: str, exec_id: str, details_dict: Optional[dict] = None):
+    def report_execution_status(
+        self, status: str, task_name: str, exec_id: str, details_dict: Optional[dict] = None, plugin_name: str = None
+    ):
         """Sends BizEvent for given task with given status if BizEvents are allowed and send_bizevents_on_run is enabled"""
 
         if "biz_events" in self.telemetry_allowed and self._configuration.get(
@@ -164,7 +166,7 @@ class AbstractDynatraceSnowAgentConnector:
             bizevents_sent = self._biz_events.report_via_api(
                 query_data=[data_dict | (details_dict or {})],
                 event_type="dsoa.task",
-                context=get_context_name_and_run_id(plugin_name=task_name, context_name="self-monitoring", run_id=exec_id),
+                context=get_context_name_and_run_id(plugin_name=plugin_name or task_name, context_name="self-monitoring", run_id=exec_id),
                 is_data_structured=False,
             )
             bizevents_sent += self._biz_events.flush_events()

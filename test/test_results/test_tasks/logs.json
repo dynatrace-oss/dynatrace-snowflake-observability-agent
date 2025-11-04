@@ -12,7 +12,8 @@
     "db.namespace": "DTAGENT_DB",
     "snowflake.schema.name": "APP",
     "snowflake.task.name": "TASK_DTAGENT_USERS",
-    "dsoa.run.context": "task_history"
+    "dsoa.run.context": "task_history",
+    "dsoa.run.plugin": "test_tasks"
   },
   {
     "content": "New Tasks History entry for DTAGENT_DB",
@@ -27,6 +28,7 @@
     "db.namespace": "DTAGENT_DB",
     "snowflake.schema.name": "APP",
     "snowflake.task.name": "TASK_DTAGENT_DATA_SCHEMAS",
-    "dsoa.run.context": "task_history"
+    "dsoa.run.context": "task_history",
+    "dsoa.run.plugin": "test_tasks"
   }
 ]

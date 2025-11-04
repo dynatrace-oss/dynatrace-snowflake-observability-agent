@@ -22,7 +22,7 @@
 # SOFTWARE.
 #
 #
-
+import uuid
 import logging
 from unittest.mock import patch
 
@@ -122,6 +122,7 @@ class TestTelemetrySender:
             session,
             {"auto_mode": False, "logs": False, "events": False, "bizevents": True},
             config=_utils.get_config(),
+            exec_id=str(uuid.uuid4().hex),
         )
         data = [
             {

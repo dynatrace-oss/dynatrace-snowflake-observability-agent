@@ -108,7 +108,7 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
     """Telemetry sender class delivers possibility of sending custom data
     from Snowflake to Grail, not being limited by plugins."""
 
-    def __init__(self, session: snowpark.Session, params: dict, exec_id: str = None) -> None:
+    def __init__(self, session: snowpark.Session, params: dict, exec_id: str) -> None:
         """
         Initialization for TelemetrySender class.
 
@@ -202,7 +202,7 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
         if is_regular_mode(self._session):
             self._session.query_tag = json.dumps({RUN_VERSION_KEY: str(VERSION), RUN_PLUGIN_KEY: self.__context_name, RUN_ID_KEY: exec_id})
 
-        self.report_execution_status(status="STARTED", task_name=self.__context_name, exec_id=exec_id)
+        self.report_execution_status(status="STARTED", task_name=self.__context_name, exec_id=exec_id, plugin_name=self._plugin_name)
 
         entries_cnt, logs_cnt, metrics_cnt, events_cnt, bizevents_cnt, davis_events_cnt = (0, 0, 0, 0, 0, 0)
         if self._auto_mode:
@@ -249,7 +249,9 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
                         except ValueError as e:
                             from dtagent import LOG  # COMPILE_REMOVE
 
-                            self.report_execution_status(status="FAILED", task_name=self.__context_name, exec_id=exec_id)
+                            self.report_execution_status(
+                                status="FAILED", task_name=self.__context_name, exec_id=exec_id, plugin_name=self._plugin_name
+                            )
                             LOG.error("Could not send event due to %s", e)
 
                     entries_cnt += 1
@@ -303,7 +305,9 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
         )
         exec_results = {RUN_RESULTS_KEY: results_dict, RUN_ID_KEY: self.__context[RUN_ID_KEY]}
 
-        self.report_execution_status(status="FINISHED", task_name=self.__context_name, exec_id=exec_id, details_dict=exec_results)
+        self.report_execution_status(
+            status="FINISHED", task_name=self.__context_name, exec_id=exec_id, details_dict=exec_results, plugin_name=self._plugin_name
+        )
 
         return exec_results
 

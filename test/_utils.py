@@ -23,6 +23,7 @@
 #
 import os
 import sys
+import uuid
 import datetime
 from typing import Any, Generator, Dict, List, Optional, Callable, Tuple
 import logging
@@ -209,12 +210,12 @@ def _merge_pickles_from_tests() -> Dict[str, str]:
 class LocalTelemetrySender(TelemetrySender):
     PICKLES = _merge_pickles_from_tests()
 
-    def __init__(self, session: snowpark.Session, params: dict, limit_results: int = 2, config: TestConfiguration = None):
+    def __init__(self, session: snowpark.Session, params: dict, exec_id: str, limit_results: int = 2, config: TestConfiguration = None):
 
         self._local_config = config
         self.limit_results = limit_results
 
-        TelemetrySender.__init__(self, session, params)
+        TelemetrySender.__init__(self, session, params, exec_id)
 
         self._configuration.get_last_measurement_update = lambda *args, **kwargs: datetime.datetime.fromtimestamp(
             0, tz=datetime.timezone.utc
@@ -244,7 +245,7 @@ def telemetry_test_sender(
     config._config["otel"]["spans"]["max_export_batch_size"] = 1
     config._config["otel"]["logs"]["max_export_batch_size"] = 1
 
-    sender = LocalTelemetrySender(session, params, limit_results=limit_results, config=config)
+    sender = LocalTelemetrySender(session, params, limit_results=limit_results, config=config, exec_id=str(uuid.uuid4().hex))
 
     mock_client = MockTelemetryClient(test_source)
     with mock_client.mock_telemetry_sending():

@@ -14,7 +14,8 @@
       "deployment.environment": "TEST",
       "host.name": "test.dsoa2025.snowflakecomputing.com",
       "telemetry.exporter.name": "dynatrace.snowagent",
-      "dsoa.run.context": "self-monitoring"
+      "dsoa.run.context": "self-monitoring",
+      "dsoa.run.plugin": "test_login_history"
     }
   },
   {
@@ -25,7 +26,7 @@
       "event.provider": "test.dsoa2025.snowflakecomputing.com",
       "dsoa.task.name": "test_login_history",
       "dsoa.task.exec.status": "FINISHED",
-      "dsoa.run.plugin": "login_history",
+      "dsoa.run.plugin": "test_login_history",
       "app.bundle": "self-monitoring",
       "app.id": "dynatrace.snowagent",
       "db.system": "snowflake",

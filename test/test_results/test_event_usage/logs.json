@@ -3,11 +3,13 @@
     "content": "Event Usage",
     "snowflake.credits.used": 0.001007024,
     "snowflake.data.ingested": 736,
-    "dsoa.run.context": "event_usage"
+    "dsoa.run.context": "event_usage",
+    "dsoa.run.plugin": "test_event_usage"
   },
   {
     "content": "Event Usage",
     "snowflake.credits.used": 0.000215595,
-    "dsoa.run.context": "event_usage"
+    "dsoa.run.context": "event_usage",
+    "dsoa.run.plugin": "test_event_usage"
   }
 ]

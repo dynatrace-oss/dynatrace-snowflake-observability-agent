@@ -30,7 +30,8 @@
     "snowflake.schema.name": "APP",
     "snowflake.warehouse.name": "DTAGENT_SKRUK_WH",
     "telemetry.sdk.language": "python",
-    "dsoa.run.context": "event_log_metrics"
+    "dsoa.run.context": "event_log_metrics",
+    "dsoa.run.plugin": "test_event_log"
   },
   {
     "content": "event_log_metrics",
@@ -63,7 +64,8 @@
     "snowflake.schema.name": "APP",
     "snowflake.warehouse.name": "DTAGENT_SKRUK_WH",
     "telemetry.sdk.language": "python",
-    "dsoa.run.context": "event_log_metrics"
+    "dsoa.run.context": "event_log_metrics",
+    "dsoa.run.plugin": "test_event_log"
   },
   {
     "content": "Invalid type dict for attribute 'snowflake.query.operator.stats' value. Expected one of ['bool', 'str', 'bytes', 'int', 'float'] or a sequence of those types",
@@ -96,7 +98,8 @@
     "deployment.environment": "TEST",
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
-    "dsoa.run.context": "event_log"
+    "dsoa.run.context": "event_log",
+    "dsoa.run.plugin": "test_event_log"
   },
   {
     "content": "UPDATE state.datasources SET last_transform = '2025-02-07 12:26:07.0', last_extract = '2025-02-07 12:26:07.0', last_extract_id = 1738922400000 WHERE datasource = 'Spine.UnassignedConsumption'",
@@ -115,7 +118,7 @@
     "snowagent.run.context": "query_history",
     "snowagent.run.id": "5c0188ef23e84fb99fd31ffddd8d0dcd",
     "snowflake.cluster_number": 1,
-    "snowflake.credits.cloud_services": 4.7e-05,
+    "snowflake.credits.cloud_services": 0.000047,
     "snowflake.data.scanned": 44032,
     "snowflake.data.scanned_from_cache": 1,
     "snowflake.data.written": 22016,
@@ -179,6 +182,7 @@
     "deployment.environment": "TEST",
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
-    "dsoa.run.context": "event_log"
+    "dsoa.run.context": "event_log",
+    "dsoa.run.plugin": "test_event_log"
   }
 ]

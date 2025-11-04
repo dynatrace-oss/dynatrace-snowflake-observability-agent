@@ -9,7 +9,8 @@
     "client.type": "OTHER",
     "db.user": "SEBASTIAN.KRUK",
     "event.name": "LOGIN",
-    "dsoa.run.context": "login_history"
+    "dsoa.run.context": "login_history",
+    "dsoa.run.plugin": "test_login_history"
   },
   {
     "content": "login_history",
@@ -21,6 +22,7 @@
     "client.type": "OTHER",
     "db.user": "SNOWAGENT_ADMIN",
     "event.name": "LOGIN",
-    "dsoa.run.context": "login_history"
+    "dsoa.run.context": "login_history",
+    "dsoa.run.plugin": "test_login_history"
   }
 ]
