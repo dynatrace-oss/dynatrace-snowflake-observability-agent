@@ -35,7 +35,6 @@ from abc import ABC, abstractmethod
 from snowflake import snowpark
 from snowflake.snowpark.functions import current_timestamp
 from dtagent import LOG, LL_TRACE
-from dtagent import context
 from dtagent.config import Configuration
 from dtagent.util import (
     _unpack_json_dict,
