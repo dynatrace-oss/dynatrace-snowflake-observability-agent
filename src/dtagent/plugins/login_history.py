@@ -68,6 +68,7 @@ class LoginHistoryPlugin(Plugin):
 
             Example:
             {
+            "dsoa.run.results": {
                 "login_history": {
                     "entries": entries_cnt,
                     "log_lines": logs_cnt,
@@ -80,6 +81,8 @@ class LoginHistoryPlugin(Plugin):
                     "metrics": metrics_cnt,
                     "events": event_cnt,
                 },
+            },
+            "dsoa.run.id": "uuid_string"
             }
         """
         t_sessions = "APP.V_SESSIONS"
@@ -105,17 +108,19 @@ class LoginHistoryPlugin(Plugin):
         )
 
         return {
-            "login_history": {
-                "entries": login_history_entries_cnt,
-                "log_lines": login_history_logs_cnt,
-                "metrics": login_history_metrics_cnt,
-                "events": login_history_events_cnt,
-            },
-            "sessions": {
-                "entries": sessions_entries_cnt,
-                "log_lines": session_logs_cnt,
-                "metrics": session_metrics_cnt,
-                "events": session_events_cnt,
+            "dsoa.run.results": {
+                "login_history": {
+                    "entries": login_history_entries_cnt,
+                    "log_lines": login_history_logs_cnt,
+                    "metrics": login_history_metrics_cnt,
+                    "events": login_history_events_cnt,
+                },
+                "sessions": {
+                    "entries": sessions_entries_cnt,
+                    "log_lines": session_logs_cnt,
+                    "metrics": session_metrics_cnt,
+                    "events": session_events_cnt,
+                },
             },
             "dsoa.run.id": run_id,
         }

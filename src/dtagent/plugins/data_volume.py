@@ -50,12 +50,15 @@ class DataVolumePlugin(Plugin):
 
             Example:
             {
+            "dsoa.run.results": {
                 "data_volume": {
                     "entries": entries_cnt,
                     "log_lines": logs_cnt,
                     "metrics": metrics_cnt,
                     "events": events_cnt,
                 }
+            },
+            "dsoa.run.id": "uuid_string"
             }
         """
         run_id = str(uuid.uuid4().hex)
@@ -66,24 +69,24 @@ class DataVolumePlugin(Plugin):
             report_logs=False,
             log_completion=False,
         )
-        processed_tables = {
-            "data_volume": {
-                "entries": entries_cnt,
-                "log_lines": logs_cnt,
-                "metrics": metrics_cnt,
-                "events": events_cnt,
-            },
-            "dsoa.run.id": run_id,
+        results_dict = {
+            "entries": entries_cnt,
+            "log_lines": logs_cnt,
+            "metrics": metrics_cnt,
+            "events": events_cnt,
         }
         if run_proc:
             self._report_execution(
                 "data_volume",
                 current_timestamp(),
                 None,
-                processed_tables,
+                results_dict,
             )
 
-        return processed_tables
+        return {
+            "dsoa.run.results": {"data_volume": results_dict},
+            "dsoa.run.id": run_id,
+        }
 
 
 ##endregion

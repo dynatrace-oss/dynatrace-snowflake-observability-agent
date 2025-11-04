@@ -59,6 +59,7 @@ class QueryHistoryPlugin(Plugin):
 
             Example:
             {
+            "dsoa.run.results": {
                 "query_history": {
                     "entries": processed_query_count,
                     "log_lines": logs_sent,
@@ -66,7 +67,9 @@ class QueryHistoryPlugin(Plugin):
                     "spans": spans_sent,
                     "span_events": span_events_added,
                     "errors": processing_errors_count,
-                }
+                },
+            },
+            "dsoa.run.id": "uuid_string"
             }
         """
         __context = get_context_name_and_run_id("query_history")
@@ -158,13 +161,15 @@ class QueryHistoryPlugin(Plugin):
 
         # return (len(processed_query_ids), processing_errors_count, span_events_added, metrics_sent)
         return {
-            "query_history": {
-                "entries": len(processed_query_ids),
-                "log_lines": logs_sent,
-                "metrics": metrics_sent,
-                "spans": spans_sent,
-                "span_events": span_events_added,
-                "errors": processing_errors_count,
+            "dsoa.run.results": {
+                "query_history": {
+                    "entries": len(processed_query_ids),
+                    "log_lines": logs_sent,
+                    "metrics": metrics_sent,
+                    "spans": spans_sent,
+                    "span_events": span_events_added,
+                    "errors": processing_errors_count,
+                },
             },
             "dsoa.run.id": run_id,
         }

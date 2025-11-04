@@ -48,20 +48,25 @@ class BudgetsPlugin(Plugin):
             Dict[str,int]: A dictionary with counts of processed telemetry data.
 
             Example:
-            {
-                "budgets": {
-                    "entries": budgets_cnt,
-                    "log_lines": logs_budgets_cnt,
-                    "metrics": budgets_metrics_cnt,
-                    "events": budgets_events_cnt,
+                {
+                "dsoa.run.results": {
+                    "budgets":
+                    {
+                        "entries": budgets_cnt,
+                        "log_lines": logs_budgets_cnt,
+                        "metrics": budgets_metrics_cnt,
+                        "events": budgets_events_cnt,
+                    },
+                    "spendings":
+                    {
+                        "entries": spendings_cnt,
+                        "log_lines": logs_spendings_cnt,
+                        "metrics": spending_metrics_cnt,
+                        "events": spending_events_cnt,
+                    },
                 },
-                "spendings": {
-                    "entries": spendings_cnt,
-                    "log_lines": logs_spendings_cnt,
-                    "metrics": spending_metrics_cnt,
-                    "events": spending_events_cnt,
-                },
-            }
+                "dsoa.run.id": "uuid_string"
+                }
         """
 
         budgets_cnt = 0
@@ -115,4 +120,4 @@ class BudgetsPlugin(Plugin):
                 results_dict,
             )
 
-        return results_dict | {"dsoa.run.id": run_id}
+        return {"dsoa.run.results": results_dict, "dsoa.run.id": run_id}

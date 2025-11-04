@@ -276,6 +276,7 @@ def execute_telemetry_test(
         metrics_at_least: Whether metrics should be at least or exactly the expected
     """
     from test import _get_session
+    from dtagent.context import RUN_ID_NAME, RUN_RESULTS_NAME
 
     affecting_types_for_entries = affecting_types_for_entries or ["logs", "metrics", "spans"]
 
@@ -295,9 +296,10 @@ def execute_telemetry_test(
     )
 
     assert test_name in results
+    assert RUN_RESULTS_NAME in results[test_name]
 
     for plugin_key in base_count.keys():
-        assert plugin_key in results[test_name]
+        assert plugin_key in results[test_name][RUN_RESULTS_NAME]
 
         logs_expected = base_count[plugin_key].get("log_lines", 0) if "logs" not in disabled_telemetry else 0
         spans_expected = base_count[plugin_key].get("spans", 0) if "spans" not in disabled_telemetry else 0
@@ -307,11 +309,11 @@ def execute_telemetry_test(
             base_count[plugin_key].get("entries", 0) if (logs_expected + spans_expected + metrics_expected + events_expected > 0) else 0
         )
 
-        assert results[test_name][plugin_key].get("entries", 0) == entries_expected
-        assert results[test_name][plugin_key].get("log_lines", 0) == logs_expected
-        assert results[test_name][plugin_key].get("spans", 0) == spans_expected
-        assert results[test_name][plugin_key].get("metrics", 0) == metrics_expected
-        assert results[test_name][plugin_key].get("events", 0) == events_expected
+        assert results[test_name][RUN_RESULTS_NAME][plugin_key].get("entries", 0) == entries_expected
+        assert results[test_name][RUN_RESULTS_NAME][plugin_key].get("log_lines", 0) == logs_expected
+        assert results[test_name][RUN_RESULTS_NAME][plugin_key].get("spans", 0) == spans_expected
+        assert results[test_name][RUN_RESULTS_NAME][plugin_key].get("metrics", 0) == metrics_expected
+        assert results[test_name][RUN_RESULTS_NAME][plugin_key].get("events", 0) == events_expected
 
 
 def get_config(pickle_conf: str = None) -> TestConfiguration:

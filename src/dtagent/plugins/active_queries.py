@@ -49,10 +49,16 @@ class ActiveQueriesPlugin(Plugin):
 
             Example:
             {
-                "entries": entries_cnt,
-                "log_lines": logs_cnt,
-                "metrics": metrics_cnt,
-                "events": events_cnt
+            "dsoa.run.results": {
+                "active_queries":
+                {
+                    "entries": entries_cnt,
+                    "log_lines": logs_cnt,
+                    "metrics": metrics_cnt,
+                    "events": events_cnt
+                }
+            },
+            "dsoa.run.id": "uuid_string"
             }
         """
         t_active_queries = "SELECT * FROM TABLE(DTAGENT_DB.APP.F_ACTIVE_QUERIES_INSTRUMENTED())"
@@ -69,7 +75,9 @@ class ActiveQueriesPlugin(Plugin):
         )
 
         return {
-            "active_queries": {"entries": entries_cnt, "log_lines": logs_cnt, "metrics": metrics_cnt, "events": events_cnt},
+            "dsoa.run.results": {
+                "active_queries": {"entries": entries_cnt, "log_lines": logs_cnt, "metrics": metrics_cnt, "events": events_cnt}
+            },
             "dsoa.run.id": run_id,
         }
 

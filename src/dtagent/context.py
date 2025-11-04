@@ -31,6 +31,7 @@ from typing import Dict, Optional
 
 CONTEXT_NAME = "dsoa.run.context"
 RUN_ID_NAME = "dsoa.run.id"
+RUN_RESULTS_NAME = "dsoa.run.results"
 
 
 def get_context_name_and_run_id(context_name: str, run_id: Optional[str] = None) -> Dict[str, str]:

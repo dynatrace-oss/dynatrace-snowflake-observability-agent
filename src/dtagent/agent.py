@@ -109,11 +109,16 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
 
             Example:
             {
-                "active_queries": {
-                    "entries": 10,
-                    "log_lines": 100,
-                    "metrics": 5,
-                    "events": 2
+                "plugin_name": {
+                    "dsoa.run.results": {
+                        "context_name": {
+                            "entries": 10,
+                            "log_lines": 100,
+                            "metrics": 5,
+                            "events": 2
+                        }
+                    },
+                    "dsoa.run.id": "uuid_string"
                 },
                 "some_other_plugin": "not_implemented"
             }
@@ -161,9 +166,8 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
                         bizevents=self._biz_events if "biz_events" in plugin_telemetry_allowed else NO_OP_TELEMETRY,
                     ).process(run_proc)
                     #
-                    self.report_execution_status(
-                        status="FINISHED", task_name=source, exec_id=exec_id, details_dict={"results": results[source]}
-                    )
+
+                    self.report_execution_status(status="FINISHED", task_name=source, exec_id=exec_id, details_dict=results[source])
                 except RuntimeError as e:
                     self.handle_interrupted_run(source, exec_id, str(e))
             else:

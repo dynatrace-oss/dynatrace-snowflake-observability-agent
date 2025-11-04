@@ -101,11 +101,13 @@ class MockTelemetryClient:
                             )
                         )
                         if telemetry_type == "biz_events":
+                            from dtagent.context import RUN_ID_NAME, RUN_RESULTS_NAME
+
                             if isinstance(sorted_actual, list):
                                 for entry in sorted_actual:
-                                    entry["data"].pop("results", None)
+                                    entry["data"].pop(RUN_RESULTS_NAME, None)
                             else:
-                                sorted_actual["data"].pop("results", None)
+                                sorted_actual["data"].pop(RUN_RESULTS_NAME, None)
 
                     assert (
                         sorted_actual == sorted_expected

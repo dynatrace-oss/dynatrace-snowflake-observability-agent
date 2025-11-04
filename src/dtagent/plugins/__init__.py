@@ -579,7 +579,9 @@ class Plugin(ABC):
             Dict[str,int]: dictionary with telemetry counts
 
             Example:
-                { "context_name":
+                {
+                "dsoa.run.results": {
+                    "context_name":
                     {
                         "entries": 10,
                         "log_lines": 10,
@@ -587,7 +589,9 @@ class Plugin(ABC):
                         "events": 5,
                         "biz_events": 2,
                         "davis_events": 0,
-                    }
+                    },
+                },
+                "dsoa.run.id": "uuid_string"
                 }
         """
         # Implement method process() at plugins

@@ -56,6 +56,7 @@ class UsersPlugin(Plugin):
 
             Example:
             {
+            "dsoa.run.results": {
                 "users": {
                     "entries": entries_cnt,
                     "log_lines": logs_cnt,
@@ -69,6 +70,8 @@ class UsersPlugin(Plugin):
                     "events": events_cnt,
                 },
                 ...
+            },
+            "dsoa.run.id": "uuid_string"
             }
         """
 
@@ -107,7 +110,7 @@ class UsersPlugin(Plugin):
         if run_proc:
             self._report_execution("users", current_timestamp() if processed_entries_cnt > 0 else None, None, results_dict)
 
-        return results_dict | {"dsoa.run.id": run_id}
+        return {"dsoa.run.results": results_dict, "dsoa.run.id": run_id}
 
 
 ##endregion

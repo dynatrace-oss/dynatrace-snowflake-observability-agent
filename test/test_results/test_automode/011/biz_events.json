@@ -119,7 +119,17 @@
       "deployment.environment": "TEST",
       "host.name": "test.dsoa2025.snowflakecomputing.com",
       "telemetry.exporter.name": "dynatrace.snowagent",
-      "dsoa.run.context": "self-monitoring"
+      "dsoa.run.context": "self-monitoring",
+      "dsoa.run.results": {
+        "test_automode/011": {
+          "biz_events": 3,
+          "davis_events": 0,
+          "entries": 3,
+          "events": 0,
+          "log_lines": 0,
+          "metrics": 0
+        }
+      }
     }
   }
 ]

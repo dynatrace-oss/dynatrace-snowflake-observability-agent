@@ -85,12 +85,15 @@ class TrustCenterPlugin(Plugin):
 
             Example:
             {
+            "dsoa.run.results": {
                 "trust_center": {
                     "entries": entries_cnt,
                     "log_lines": logs_cnt,
                     "metrics": metrics_cnt,
                     "events": events_cnt
                 }
+            },
+            "dsoa.run.id": "uuid_string"
             }
         """
 
@@ -137,7 +140,7 @@ class TrustCenterPlugin(Plugin):
                 results_dict,
             )
 
-        return results_dict | {"dsoa.run.id": run_id}
+        return {"dsoa.run.results": results_dict, "dsoa.run.id": run_id}
 
 
 ##endregion

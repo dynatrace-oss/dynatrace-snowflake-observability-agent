@@ -50,6 +50,7 @@ class DynamicTablesPlugin(Plugin):
 
             Example:
             {
+            "dsoa.run.results": {
                 "dynamic_tables": {
                     "entries": entries_cnt,
                     "log_lines": logs_cnt,
@@ -68,6 +69,8 @@ class DynamicTablesPlugin(Plugin):
                     "metrics": metrics_graph_cnt,
                     "events": event_graph_cnt,
                 },
+            },
+            "dsoa.run.id": "uuid_string"
             }
         """
         t_dynamic_tables = "APP.V_DYNAMIC_TABLES_INSTRUMENTED"
@@ -101,23 +104,25 @@ class DynamicTablesPlugin(Plugin):
         )
 
         return {
-            "dynamic_tables": {
-                "entries": entries_cnt,
-                "log_lines": logs_cnt,
-                "metrics": metrics_cnt,
-                "events": event_cnt,
-            },
-            "dynamic_table_refresh_history": {
-                "entries": entries_refresh_cnt,
-                "log_lines": logs_refresh_cnt,
-                "metrics": metrics_refresh_cnt,
-                "events": event_refresh_cnt,
-            },
-            "dynamic_table_graph_history": {
-                "entries": entries_graph_cnt,
-                "log_lines": logs_graph_cnt,
-                "metrics": metrics_graph_cnt,
-                "events": event_graph_cnt,
+            "dsoa.run.results": {
+                "dynamic_tables": {
+                    "entries": entries_cnt,
+                    "log_lines": logs_cnt,
+                    "metrics": metrics_cnt,
+                    "events": event_cnt,
+                },
+                "dynamic_table_refresh_history": {
+                    "entries": entries_refresh_cnt,
+                    "log_lines": logs_refresh_cnt,
+                    "metrics": metrics_refresh_cnt,
+                    "events": event_refresh_cnt,
+                },
+                "dynamic_table_graph_history": {
+                    "entries": entries_graph_cnt,
+                    "log_lines": logs_graph_cnt,
+                    "metrics": metrics_graph_cnt,
+                    "events": event_graph_cnt,
+                },
             },
             "dsoa.run.id": run_id,
         }

@@ -126,7 +126,7 @@ class TestDynatraceSnowAgent(DynatraceSnowAgent):
                 process_results = super().process(sources, run_proc)
                 self._logs.flush_logs()
                 self._spans.flush_traces()
-                time.sleep(5)
+                time.sleep(1)
             mock_client.store_or_test_results(disabled_telemetry=disabled_telemetry)
         else:
             process_results = super().process(sources, run_proc)

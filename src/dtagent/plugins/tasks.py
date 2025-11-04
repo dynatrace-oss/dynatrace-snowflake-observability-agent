@@ -49,6 +49,7 @@ class TasksPlugin(Plugin):
 
             Example:
             {
+            "dsoa.run.results": {
                 "serverless_tasks": {
                     "entries": serverless_tasks_entries_cnt,
                     "log_lines": serverless_task_logs_cnt,
@@ -67,6 +68,8 @@ class TasksPlugin(Plugin):
                     "metrics": task_history_metrics_cnt,
                     "events": task_history_events_cnt,
                 },
+            },
+            "dsoa.run.id": "uuid_string"
             }
         """
 
@@ -114,23 +117,25 @@ class TasksPlugin(Plugin):
         )
 
         return {
-            "serverless_tasks": {
-                "entries": serverless_tasks_entries_cnt,
-                "log_lines": serverless_task_logs_cnt,
-                "metrics": serverless_tasks_metrics_cnt,
-                "events": serverless_tasks_events_cnt,
-            },
-            "task_versions": {
-                "entries": task_versions_entries_cnt,
-                "log_lines": task_versions_logs_cnt,
-                "metrics": task_versions_metrics_cnt,
-                "events": task_versions_events_cnt,
-            },
-            "task_history": {
-                "entries": task_history_entries_cnt,
-                "log_lines": task_history_logs_cnt,
-                "metrics": task_history_metrics_cnt,
-                "events": task_history_events_cnt,
+            "dsoa.run.results": {
+                "serverless_tasks": {
+                    "entries": serverless_tasks_entries_cnt,
+                    "log_lines": serverless_task_logs_cnt,
+                    "metrics": serverless_tasks_metrics_cnt,
+                    "events": serverless_tasks_events_cnt,
+                },
+                "task_versions": {
+                    "entries": task_versions_entries_cnt,
+                    "log_lines": task_versions_logs_cnt,
+                    "metrics": task_versions_metrics_cnt,
+                    "events": task_versions_events_cnt,
+                },
+                "task_history": {
+                    "entries": task_history_entries_cnt,
+                    "log_lines": task_history_logs_cnt,
+                    "metrics": task_history_metrics_cnt,
+                    "events": task_history_events_cnt,
+                },
             },
             "dsoa.run.id": run_id,
         }

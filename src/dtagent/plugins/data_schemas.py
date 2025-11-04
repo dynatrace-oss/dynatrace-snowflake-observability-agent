@@ -107,12 +107,15 @@ class DataSchemasPlugin(Plugin):
 
             Example:
             {
+            "dsoa.run.results": {
                 "data_schemas": {
                     "entries": entries_cnt,
                     "log_lines": logs_cnt,
                     "metrics": metrics_cnt,
                     "events": events_cnt,
                 }
+            },
+            "dsoa.run.id": run_id,
             }
         """
 
@@ -133,11 +136,13 @@ class DataSchemasPlugin(Plugin):
         )
 
         return {
-            "data_schemas": {
-                "entries": entries_cnt,
-                "log_lines": logs_cnt,
-                "events": events_cnt,
-                "metrics": metrics_cnt,
+            "dsoa.run.results": {
+                "data_schemas": {
+                    "entries": entries_cnt,
+                    "log_lines": logs_cnt,
+                    "events": events_cnt,
+                    "metrics": metrics_cnt,
+                },
             },
             "dsoa.run.id": run_id,
         }

@@ -49,6 +49,7 @@ class WarehouseUsagePlugin(Plugin):
 
             Example:
             {
+            "dsoa.run.results": {
                 "warehouse_usage": {
                     "entries": entries_wh_events_cnt,
                     "log_lines": logs_wh_events_cnt,
@@ -67,6 +68,8 @@ class WarehouseUsagePlugin(Plugin):
                     "metrics": metrics_wh_metering_cnt,
                     "events": events_wh_metering_cnt,
                 },
+            },
+            "dsoa.run.id": "uuid_string"
             }
         """
 
@@ -98,23 +101,25 @@ class WarehouseUsagePlugin(Plugin):
         )
 
         return {
-            "warehouse_usage": {
-                "entries": entries_wh_events_cnt,
-                "log_lines": logs_wh_events_cnt,
-                "metrics": metrics_wh_events_cnt,
-                "events": events_wh_events_cnt,
-            },
-            "warehouse_usage_load": {
-                "entries": entries_wh_load_cnt,
-                "log_lines": logs_wh_load_cnt,
-                "metrics": metrics_wh_load_cnt,
-                "events": events_wh_load_cnt,
-            },
-            "warehouse_usage_metering": {
-                "entries": entries_wh_metering_cnt,
-                "log_lines": logs_wh_metering_cnt,
-                "metrics": metrics_wh_metering_cnt,
-                "events": events_wh_metering_cnt,
+            "dsoa.run.results": {
+                "warehouse_usage": {
+                    "entries": entries_wh_events_cnt,
+                    "log_lines": logs_wh_events_cnt,
+                    "metrics": metrics_wh_events_cnt,
+                    "events": events_wh_events_cnt,
+                },
+                "warehouse_usage_load": {
+                    "entries": entries_wh_load_cnt,
+                    "log_lines": logs_wh_load_cnt,
+                    "metrics": metrics_wh_load_cnt,
+                    "events": events_wh_load_cnt,
+                },
+                "warehouse_usage_metering": {
+                    "entries": entries_wh_metering_cnt,
+                    "log_lines": logs_wh_metering_cnt,
+                    "metrics": metrics_wh_metering_cnt,
+                    "events": events_wh_metering_cnt,
+                },
             },
             "dsoa.run.id": run_id,
         }

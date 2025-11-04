@@ -158,6 +158,7 @@ class EventLogPlugin(Plugin):
 
             Example:
             {
+            "dsoa.run.results": {
                 "event_log": {
                     "entries": l_entries_cnt,
                     "log_lines": l_logs_cnt,
@@ -178,6 +179,8 @@ class EventLogPlugin(Plugin):
                     "span_events": s_span_events_added,
                     "errors": s_errors_count,
                 },
+            },
+            "dsoa.run.id": "uuid_string"
             }
         """
         run_id = str(uuid.uuid4().hex)
@@ -194,25 +197,27 @@ class EventLogPlugin(Plugin):
         l_entries_cnt, l_logs_cnt, l_metrics_cnt, l_events_cnt = self._process_log_entries(run_id, run_proc)
 
         return {
-            "event_log": {
-                "entries": l_entries_cnt,
-                "log_lines": l_logs_cnt,
-                "metrics": l_metrics_cnt,
-                "events": l_events_cnt,
-            },
-            "event_log_metrics": {
-                "entries": m_entries_cnt,
-                "log_lines": m_logs_cnt,
-                "metrics": m_metrics_cnt,
-                "events": m_event_cnt,
-            },
-            "event_log_spans": {
-                "entries": s_entries_cnt,
-                "log_lines": s_logs_sent,
-                "metrics": s_metrics_sent,
-                "spans": s_spans_sent,
-                "span_events": s_span_events_added,
-                "errors": s_errors_count,
+            "dsoa.run.results": {
+                "event_log": {
+                    "entries": l_entries_cnt,
+                    "log_lines": l_logs_cnt,
+                    "metrics": l_metrics_cnt,
+                    "events": l_events_cnt,
+                },
+                "event_log_metrics": {
+                    "entries": m_entries_cnt,
+                    "log_lines": m_logs_cnt,
+                    "metrics": m_metrics_cnt,
+                    "events": m_event_cnt,
+                },
+                "event_log_spans": {
+                    "entries": s_entries_cnt,
+                    "log_lines": s_logs_sent,
+                    "metrics": s_metrics_sent,
+                    "spans": s_spans_sent,
+                    "span_events": s_span_events_added,
+                    "errors": s_errors_count,
+                },
             },
             "dsoa.run.id": run_id,
         }

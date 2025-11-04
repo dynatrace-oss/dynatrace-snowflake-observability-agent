@@ -175,12 +175,17 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
 
             Example:
                 {
-                    "entries": 10,
-                    "log_lines": 10,
-                    "metrics": 5,
-                    "events": 5,
-                    "biz_events": 2,
-                    "davis_events": 0,
+                "dsoa.run.results": {
+                    "telemetry_sender": {
+                        "entries": 10,
+                        "log_lines": 10,
+                        "metrics": 5,
+                        "events": 5,
+                        "biz_events": 2,
+                        "davis_events": 0,
+                    }
+                },
+                "dsoa.run.id": "uuid_string"
                 }
         """
         from dtagent.otel.events import EventType  # COMPILE_REMOVE
@@ -275,20 +280,19 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
                 "events": events_cnt,
                 "biz_events": bizevents_cnt,
                 "davis_events": davis_events_cnt,
-            },
-            "dsoa.run.id": self.__context[RUN_ID_NAME],
+            }
         }
-
-        self.report_execution_status(status="FINISHED", task_name=self.__context_name, exec_id=exec_id)
-
         self._report_execution(
             self.__context_name,
             get_now_timestamp_formatted(),
             None,
             results_dict,
         )
+        exec_results = {"dsoa.run.results": results_dict, "dsoa.run.id": self.__context[RUN_ID_NAME]}
 
-        return results_dict
+        self.report_execution_status(status="FINISHED", task_name=self.__context_name, exec_id=exec_id, details_dict=exec_results)
+
+        return exec_results
 
 
 def main(session: snowpark.Session, source: Union[str, dict, list], params: dict) -> str:
