@@ -43,8 +43,7 @@ TEST_CONFIG_FILE_NAME = "./test/conf/config-download.json"
 
 
 def _pickle_all(session: snowpark.Session, pickles: dict, force: bool = False):
-    """
-    Pickle all tables provided in the pickles dictionary if necessary or forced.
+    """Pickle all tables provided in the pickles dictionary if necessary or forced.
 
     Args:
         session (snowpark.Session): The Snowflake session used to access tables.
@@ -104,8 +103,7 @@ def _logging_findings(
 
 
 def _safe_get_unpickled_entries(pickles: dict, table_name: str, *args, **kwargs) -> Generator[Dict, None, None]:
-    """
-    Safely get unpickled entries for the given table name from the pickles dictionary.
+    """Safely get unpickled entries for the given table name from the pickles dictionary.
 
     Args:
         pickles (dict): Dictionary mapping table names to pickle file paths.
@@ -237,8 +235,16 @@ class LocalTelemetrySender(TelemetrySender):
 def telemetry_test_sender(
     session: snowpark.Session, sources: str, params: dict, limit_results: int = 2, config: TestConfiguration = None, test_source: str = None
 ) -> Tuple[int, int, int, int, int]:
-    """
-    Invokes send_data function on a LocalTelemetrySender instance, which uses pickled data for testing purposes
+    """Invokes send_data function on a LocalTelemetrySender instance, which uses pickled data for testing purposes
+
+    Args:
+        session (snowpark.Session): The Snowflake session used to access tables.
+        sources (str): The telemetry sources to send data from.
+        params (dict): Parameters for the TelemetrySender.
+        limit_results (int, optional): Limit on the number of results to process. Defaults to 2.
+        config (TestConfiguration, optional): Configuration for the TelemetrySender. Defaults to None.
+        test_source (str, optional): The source name for the telemetry test. Defaults to None.
+
     Returns:
         Tuple[int, int, int, int, int, int]: Count of objects, log lines, metrics, events, bizevents, and davis events sent
     """
@@ -264,8 +270,7 @@ def execute_telemetry_test(
     test_name: str,
     affecting_types_for_entries: List[str] = None,
 ):
-    """
-    Generalized test function for telemetry plugins.
+    """Generalized test function for telemetry plugins.
 
     Args:
         agent_class: The agent class to instantiate

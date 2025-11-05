@@ -83,12 +83,13 @@ class OtelManager:
         if OtelManager._to_abort and OtelManager.get_current_fail_count() >= OtelManager.get_max_fails():
             from dtagent import LOG
 
-            error_message = f"""Too many failed attempts to send data to Dynatrace
-                                ({OtelManager.get_current_fail_count()} / {OtelManager.get_max_fails()}), aborting run.
-                                Last response:
-                                error code: {OtelManager._last_response.status_code},
-                                reason: {OtelManager._last_response.reason},
-                                response: {OtelManager._last_response.text}"""
+            error_message = (
+                "Too many failed attempts to send data to Dynatrace "
+                f"({OtelManager.get_current_fail_count()} / {OtelManager.get_max_fails()}), aborting run. Last response:\n"
+                f"                                error code: {OtelManager._last_response.status_code},\n"
+                f"                                reason: {OtelManager._last_response.reason},\n"
+                f"                                response: {OtelManager._last_response.text}"
+            )
 
             LOG.error(error_message)
             raise RuntimeError(error_message)

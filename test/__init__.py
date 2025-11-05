@@ -46,7 +46,7 @@ read_secret(
 
 @functools.lru_cache(maxsize=1)
 def _get_credentials() -> Dict:
-    """
+    """Returns credentials for Snowflake connection used in tests.
     {
         "account": "<your snowflake account>",
         "user": "<your snowflake user>",

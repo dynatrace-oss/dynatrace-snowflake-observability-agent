@@ -48,9 +48,7 @@ class MockTelemetryClient:
         self.test_results: Dict[str, List[Any]] = {}
 
     def store_or_test_results(self, disabled_telemetry: List[str] = None) -> None:
-        """
-        Store the collected test results into files for future reference.
-        """
+        """Store the collected test results into files for future reference."""
         # Remove duplicates while preserving order
         dedup_results = {}
         for telemetry_type, content in self.test_results.items():
@@ -142,9 +140,7 @@ class MockTelemetryClient:
             yield
 
     def _load_test_results(self) -> Dict[str, Any]:
-        """
-        Load expected test results from files into a dictionary.
-        """
+        """Load expected test results from files into a dictionary."""
         telemetry_types = ["logs", "spans", "metrics", "events", "biz_events"]
         expected_results = {}
         for telemetry_type in telemetry_types:
@@ -154,8 +150,7 @@ class MockTelemetryClient:
         return expected_results
 
     def _determine_file_name(self, telemetry_type: str) -> tuple[str, str]:
-        """
-        Determines file path and extension based on given telemetry type
+        """Determines file path and extension based on given telemetry type
 
         Args:
             telemetry_type (str): telemetry type name
@@ -168,8 +163,7 @@ class MockTelemetryClient:
         return ext, filepath
 
     def _load_telemetry_test_data(self, telemetry_type: str) -> Any:
-        """
-        Load telemetry test data from a file.
+        """Load telemetry test data from a file.
 
         Args:
             telemetry_type: The type of telemetry data ("logs", "spans", "metrics", "events", "biz_events").
@@ -191,12 +185,11 @@ class MockTelemetryClient:
         return None
 
     def _save_telemetry_test_data(self, telemetry_type: str, content: List[Union[str, dict, bytes]]) -> None:
-        """
-        Save telemetry test data to a file.
+        """Save telemetry test data to a file.
 
         Args:
             telemetry_type: The type of telemetry data ("logs", "spans", "metrics", "events", "biz_events").
-            data: The telemetry data to save.
+            content: The telemetry data to save.
         """
         ext, filepath = self._determine_file_name(telemetry_type)
 
@@ -213,8 +206,7 @@ class MockTelemetryClient:
                     f.write("\n".join(content))
 
     def _decode_object_from_protobuf(self, protobuf_bytes: bytes, telemetry_type: str = "logs") -> List[Dict[str, Any]]:
-        """
-        Decode protobuf logs to extract key-value pairs from log bodies.
+        """Decode protobuf logs to extract key-value pairs from log bodies.
 
         Args:
             protobuf_bytes: The binary protobuf data from OpenTelemetry logs
@@ -290,16 +282,14 @@ class MockTelemetryClient:
         return kv_data
 
     def _side_effect_function(self, *args, **kwargs):
-        """
-        Side effect function to handle telemetry data processing.
+        """Side effect function to handle telemetry data processing.
         It ensures proper status codes are set for different telemetry types.
         It collects sent telemetry data into test_results for later verification.
         It also checks against expected_results if available.
         """
 
         def __determine_telemetry_type(url: str, mock_response: MagicMock) -> str:
-            """
-            Returns telemetry type based on the URL for the request.
+            """Returns telemetry type based on the URL for the request.
             Sets the correct status code for the mock response.
 
             Args:
@@ -340,8 +330,7 @@ class MockTelemetryClient:
             return telemetry_type
 
         def __determine_url_and_data(args, kwargs) -> tuple[str, Any]:
-            """
-            Handle both requests.post mocks (args[0] is url) and CustomLoggingSession.send mocks (args[0] is request)
+            """Handle both requests.post mocks (args[0] is url) and CustomLoggingSession.send mocks (args[0] is request)
 
             Args:
                 *args: Positional arguments
@@ -365,8 +354,7 @@ class MockTelemetryClient:
             return url, data
 
         def __cleanup_telemetry_dict(data_dict: Dict[str, Any]) -> Dict[str, Any]:
-            """
-            Remove dynamic fields from telemetry data dictionary for comparison.
+            """Remove dynamic fields from telemetry data dictionary for comparison.
 
             Args:
                 data_dict (Dict[str, Any]): The telemetry data dictionary.
@@ -411,8 +399,7 @@ class MockTelemetryClient:
             return cleaned_dict
 
         def __cleanup_metric_lines(lines: str) -> List[str]:
-            """
-            Remove dynamic fields from metric lines for comparison and turns a multiline string into a list of lines.
+            """Remove dynamic fields from metric lines for comparison and turns a multiline string into a list of lines.
 
             Args:
                 lines (List[str]): The list of metric lines.
