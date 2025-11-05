@@ -51,14 +51,14 @@ dimensions:
       - WAREHOUSE_METERING,
       - WAREHOUSE_METERING_READER
 event_timestamps:
-  snowflake.budget.created_on:
-    __example: "2024-11-30 23:59:59.999"
-    __description: The timestamp when the budget was created.
   snowflake.event.trigger:
     __example: "snowflake.budget.created_on"
     __description:
       Additionally to sending logs, each entry in `EVENT_TIMESTAMPS` is sent as event with key set to `snowflake.event.trigger`, value to
       key from `EVENT_TIMESTAMPS` and `timestamp` set to the key value.
+  snowflake.budget.created_on:
+    __example: "2024-11-30 23:59:59.999"
+    __description: The timestamp when the budget was created.
 metrics:
   snowflake.credits.limit:
     __example: "100"

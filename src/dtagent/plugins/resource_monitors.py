@@ -28,7 +28,7 @@ import logging
 from typing import Tuple, Dict
 from regex import R
 from snowflake.snowpark.functions import current_timestamp
-from dtagent.util import _unpack_json_dict
+from dtagent.util import _unpack_json_dict, EVENT_TIMESTAMP_KEYS_PAYLOAD_NAME
 from dtagent.plugins import Plugin
 from dtagent.context import get_context_name_and_run_id, RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPILE_REMOVE
 from dtagent.otel.events import EventType
@@ -52,7 +52,7 @@ class ResourceMonitorsPlugin(Plugin):
             f"Resource monitor {payload.get('snowflake.resource_monitor.name', '')} event: {key}",
             {
                 "timestamp": ts,
-                "snowflake.resource_monitor.event": key,
+                EVENT_TIMESTAMP_KEYS_PAYLOAD_NAME: key,
             },
             EventType.CUSTOM_INFO,
         )

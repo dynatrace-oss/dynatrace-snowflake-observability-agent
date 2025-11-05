@@ -99,7 +99,7 @@ def _generate_semantics_tables(json_data: Dict, plugin_name: str, no_global_cont
         if key in json_data and len(json_data[key]):
             __tables += f"### {key.replace('_', ' ').capitalize()} at the `{plugin_name}` plugin\n\n"
             __tables += (
-                f"| Identifier {'| Name | Unit ' if key == 'metrics' else ''}| Description | Example"
+                f"| Identifier {'| Name | Unit ' if key == 'metrics' else ''}| Description | Example "
                 f"{'| Context Name ' if no_global_context_name else ''}|\n"
             )
             __tables += (

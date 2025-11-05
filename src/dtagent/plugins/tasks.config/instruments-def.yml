@@ -213,11 +213,6 @@ dimensions:
     __example: COMPUTE_WH
     __description: The name of the warehouse.
 event_timestamps:
-  snowflake.task.graph.version.created_on:
-    __context_names:
-      - task_versions
-    __example: "1633046400000000000"
-    __description: The creation time of the task graph version.
   snowflake.event.trigger:
     __context_names:
       - task_versions
@@ -225,6 +220,11 @@ event_timestamps:
     __description:
       Additionally to sending logs, each entry in `EVENT_TIMESTAMPS` is sent as event with key set to `snowflake.event.trigger`, value to
       key from `EVENT_TIMESTAMPS` and `timestamp` set to the key value.
+  snowflake.task.graph.version.created_on:
+    __context_names:
+      - task_versions
+    __example: "1633046400000000000"
+    __description: The creation time of the task graph version.
 metrics:
   snowflake.credits.used:
     __context_names:

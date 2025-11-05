@@ -61,6 +61,11 @@ metrics:
     unit: min
 
 event_timestamps:
+  snowflake.event.trigger:
+    __example: "snowflake.table.update"
+    __description:
+      Additionally to sending logs, each entry in `EVENT_TIMESTAMPS` is sent as event with key set to `snowflake.event.trigger`, value to
+      key from `EVENT_TIMESTAMPS` and `timestamp` set to the key value.
   snowflake.table.ddl:
     __example: "2024-11-01 12:00:00.000"
     __description: |
@@ -73,8 +78,3 @@ event_timestamps:
   snowflake.table.update:
     __example: "2024-11-10 16:45:00.000"
     __description: Date and time the object was last altered by a DML, DDL, or background metadata operation.
-  snowflake.event.trigger:
-    __example: "snowflake.table.update"
-    __description:
-      Additionally to sending logs, each entry in `EVENT_TIMESTAMPS` is sent as event with key set to `snowflake.event.trigger`, value to
-      key from `EVENT_TIMESTAMPS` and `timestamp` set to the key value.
