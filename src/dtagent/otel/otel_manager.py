@@ -62,8 +62,7 @@ class OtelManager:
 
     @staticmethod
     def increase_current_fail_count(last_response: requests.Response, increase_by: int = 1) -> None:
-        """
-        Increases run time API fail count by specified number (default: 1).
+        """Increases run time API fail count by specified number (default: 1).
         Updates last known response, flips the flag if current fail exceeds max allowed
         """
         OtelManager._consecutive_fail_count += increase_by
@@ -84,7 +83,9 @@ class OtelManager:
         if OtelManager._to_abort and OtelManager.get_current_fail_count() >= OtelManager.get_max_fails():
             from dtagent import LOG
 
-            error_message = f"""Too many failed attempts to send data to Dynatrace ({OtelManager.get_current_fail_count()} / {OtelManager.get_max_fails()}), aborting run. Last response:
+            error_message = f"""Too many failed attempts to send data to Dynatrace
+                                ({OtelManager.get_current_fail_count()} / {OtelManager.get_max_fails()}), aborting run.
+                                Last response:
                                 error code: {OtelManager._last_response.status_code},
                                 reason: {OtelManager._last_response.reason},
                                 response: {OtelManager._last_response.text}"""

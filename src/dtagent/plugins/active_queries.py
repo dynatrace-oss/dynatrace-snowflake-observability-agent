@@ -1,6 +1,4 @@
-"""
-Plugin file for processing active queries plugin data.
-"""
+"""Plugin file for processing active queries plugin data."""
 
 ##region ------------------------------ IMPORTS  -----------------------------------------
 #
@@ -36,13 +34,10 @@ from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPI
 
 
 class ActiveQueriesPlugin(Plugin):
-    """
-    Active queries plugin class.
-    """
+    """Active queries plugin class."""
 
     def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
-        """
-        Processes the measures on active queries
+        """Processes the measures on active queries
 
         Args:
             run_id (str): unique run identifier

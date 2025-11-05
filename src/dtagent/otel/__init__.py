@@ -38,13 +38,11 @@ from dtagent.version import VERSION
 ##region ------------------------ OTEL INIT ----------------------------------------
 def _gen_resource(config: Configuration) -> Resource:
     """Generates configuration's resource.attributes field"""
-
     return Resource.create(attributes=config.get("resource.attributes"))
 
 
 def _log_warning(response: requests.Response, payload, source: str = "data", max_payload_length_reported: int = 100) -> None:
-    """
-    Logs a warning when sending data to Dynatrace fails.
+    """Logs a warning when sending data to Dynatrace fails.
 
     Args:
         response (requests.Response): The HTTP response object from the request.
@@ -72,6 +70,7 @@ class NoOpTelemetry:
         self.NOT_ENABLED = True
 
     def __getattr__(self, name):
+        """Returns a no-op method for any attribute or function access."""
 
         def __void_method(*args, **kwargs):
             """Dummy method that will not do anything or return anything"""

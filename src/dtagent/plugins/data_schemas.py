@@ -1,6 +1,4 @@
-"""
-Plugin file for processing data schemas plugin data.
-"""
+"""Plugin file for processing data schemas plugin data."""
 
 ##region ------------------------------ IMPORTS  -----------------------------------------
 #
@@ -39,9 +37,7 @@ from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPI
 
 
 class DataSchemasPlugin(Plugin):
-    """
-    Data schemas plugin class.
-    """
+    """Data schemas plugin class."""
 
     def _compress_properties(self, properties_value: Dict) -> Dict:
         """Ensures that snowflake.object.ddl.properties is compressed in the 'columns' object"""
@@ -60,7 +56,7 @@ class DataSchemasPlugin(Plugin):
         return {k: __process(k, v) for k, v in properties_value.items()}
 
     def _prepare_event_payload(self, row_dict):
-        """defines event type, title and additional payload"""
+        """Defines event type, title and additional payload"""
         return (
             EventType.CUSTOM_INFO,
             row_dict.get("_MESSAGE"),
@@ -73,8 +69,8 @@ class DataSchemasPlugin(Plugin):
     def _report_all_entries_as_events(
         self, row_dict, event_type, title, *, start_time, end_time, properties, context
     ) -> int:  # pylint: disable=unused-argument
-        """
-        Defines how all entries as events should be reported
+        """Defines how all entries as events should be reported
+
         Args:
             row_dict (Dict): row dictionary
             event_type (str): event type
@@ -83,6 +79,7 @@ class DataSchemasPlugin(Plugin):
             end_time (str): end time key in row_dict
             properties (Dict): additional properties to be added to event payload
             context (Optional[Dict]): additional context to be added to event payload
+
         Returns:
             int: number of events reported (1+ if successful, 0 otherwise)
         """
@@ -100,8 +97,7 @@ class DataSchemasPlugin(Plugin):
         )
 
     def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
-        """
-        Processes data for data schemas plugin.
+        """Processes data for data schemas plugin.
 
         Args:
             run_id (str): unique run identifier

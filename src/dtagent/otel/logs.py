@@ -52,9 +52,7 @@ class Logs:
         self._setup_logger(resource)
 
     def _setup_logger(self, resource: Resource) -> None:
-        """
-        All necessary actions to initialize logging via OpenTelemetry
-        """
+        """All necessary actions to initialize logging via OpenTelemetry"""
         from opentelemetry.exporter.otlp.proto.http._log_exporter import OTLPLogExporter
         from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
         from opentelemetry.sdk._logs import LoggingHandler
@@ -91,17 +89,14 @@ class Logs:
         log_level: int = logging.INFO,
         context: Optional[Dict] = None,
     ):
-        """
-        Util function to ensure we send logs correctly
-        """
+        """Util function to ensure we send logs correctly"""
         from dtagent import LOG, LL_TRACE  # COMPILE_REMOVE
         from dtagent.util import _to_json, _cleanup_data, _cleanup_dict  # COMPILE_REMOVE
 
         def __adjust_log_attribute(key: str, value: Any) -> Any:
-            """
-            Ensures following things:
-                - numeric timestamps are converted to strings
-                - non-primitive type values are sent as JSON strings (only for otel < 1.21.0)
+            """Ensures following things:
+            - numeric timestamps are converted to strings
+            - non-primitive type values are sent as JSON strings (only for otel < 1.21.0)
             """
             if key == "timestamp" and str(value).isnumeric():
                 value = str(int(value))
@@ -148,13 +143,13 @@ class Logs:
         OtelManager.verify_communication()
 
     def flush_logs(self) -> None:
-        """flushes remaining logs."""
+        """Flushes remaining logs."""
 
         if self._otel_logger_provider:
             self._otel_logger_provider.force_flush()
 
     def shutdown_logger(self) -> None:
-        """flushes remaining logs and shuts down the logger."""
+        """Flushes remaining logs and shuts down the logger."""
 
         if self._otel_logger_provider:
             self._otel_logger_provider.force_flush()

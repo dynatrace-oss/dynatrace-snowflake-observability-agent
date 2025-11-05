@@ -1,6 +1,4 @@
-"""
-Compiles all bom.yml files into a single Bill of Material (BOM) for SnowAgent
-"""
+"""Compiles all bom.yml files into a single Bill of Material (BOM) for SnowAgent"""
 
 #
 #
@@ -91,11 +89,11 @@ def ordered_dump(data, stream=None, Dumper=yaml.Dumper, **kwargs):
 
 
 def write_csv(data, filename):
-    # Extract the keys from the first dictionary as the header
+    """Extract the keys from the first dictionary as the header and write to a CSV file."""
     header = ["name", "type"] + list({key for d in data for key in d.keys() if key not in ["name", "type", "comment"]}) + ["comment"]
 
     # Open the CSV file for writing
-    with open(filename, "w", newline="") as csvfile:
+    with open(filename, "w", newline="", encoding="UTF-8") as csvfile:
         import csv
 
         writer = csv.DictWriter(csvfile, fieldnames=header, delimiter="\t")

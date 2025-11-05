@@ -48,4 +48,5 @@ flake8
 black
 sqlfluff
 yamllint
+flake8-docstrings
 #%:DEV

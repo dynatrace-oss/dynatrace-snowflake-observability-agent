@@ -1,6 +1,4 @@
-"""
-Plugin file for processing budgets plugin data.
-"""
+"""Plugin file for processing budgets plugin data."""
 
 ##region ------------------------------ IMPORTS  -----------------------------------------
 #
@@ -37,13 +35,10 @@ from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPI
 
 ##region ------------------ MEASUREMENT SOURCE: BUDGETS --------------------------------
 class BudgetsPlugin(Plugin):
-    """
-    Budgets plugin class.
-    """
+    """Budgets plugin class."""
 
     def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
-        """
-        Processes data for budgets plugin.
+        """Processes data for budgets plugin.
 
         Args:
             run_id (str): unique run identifier

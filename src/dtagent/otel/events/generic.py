@@ -51,8 +51,7 @@ import datetime
 
 
 class GenericEvents(AbstractEvents):
-    """
-    Enables for parsing and sending Events via OpenPipeline Events API
+    """Enables for parsing and sending Events via OpenPipeline Events API
     https://docs.dynatrace.com/docs/discover-dynatrace/platform/openpipeline/reference/api-ingestion-reference
 
     Note: OpenPipeline Events API does support sending multiple events at the same time, similar to BizEvents.
@@ -68,13 +67,14 @@ class GenericEvents(AbstractEvents):
         AbstractEvents.__init__(self, configuration, event_type=event_type)
 
     def _add_data_to_payload(self, payload: Dict[str, Any], event_data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Adds given event_data to event payload.
+        """Adds given event_data to event payload.
         This is a separate method to allow overriding in child classes,
         especially in DavisEvents where event data needs to be set under 'properties' key.
+
         Args:
             payload (Dict[str, Any]): Event payload in form of dict
             event_data (Dict[str, Any]): Properties to be added to event payload
+
         Returns:
             Dict[str, Any]: Event payload with added event data
         """
@@ -84,13 +84,14 @@ class GenericEvents(AbstractEvents):
     def _pack_event_data(
         self, event_type: Union[str, EventType], event_data: Dict[str, Any], context: Optional[Dict[str, Any]] = None, **kwargs
     ) -> Dict[str, Any]:
-        """
-        Packs given event data into payload accepted by Dynatrace Events API
+        """Packs given event data into payload accepted by Dynatrace Events API.
+
         Args:
             event_type (str): Event type, e.g. EventType.CUSTOM_ALERT
             event_data (Dict[str, Any]): Event data in form of dict
             context (Optional[Dict[str, Any]]): Additional context to be added to event properties
             **kwargs: Additional parameters, like title, start_time_key, end_time_key, additional_payload, timeout
+
         Returns:
             Dict[str, Any]: Event payload in form accepted by Dynatrace Events API
         """
@@ -144,6 +145,23 @@ class GenericEvents(AbstractEvents):
         context: Optional[Dict[str, Any]] = None,
         **kwargs,
     ) -> int:
+        """Sends given list of events to Dynatrace via the generic OpenPipeline API.
+
+        Args:
+            events_data (List):                                     List of events data, each in form of dict
+            event_type (Optional[Union[str, EventType]], optional): Event type to report under. Defaults to None.
+            context (Dict, optional):                               Additional information that should be appended to event data based on
+                                                                    agent execution context. Defaults to None.
+            **kwargs:                                               Additional keyword arguments to be processed by child classes:
+                additional_payload (Dict, optional):                    Additional lines of payload,
+                title (str, optional):                                  Event title,
+                start_time_key (str, optional):                         Key in event_data dict to be used as event start time,
+                end_time_key (str, optional):                           Key in event_data dict to be used as event end time,
+                timeout (int, optional):                                Timeout for sending events,
+
+        Returns:
+            int: Count of all events that went through (or were scheduled successfully); -1 indicates a problem
+        """
 
         generic_events = [
             self._pack_event_data(

@@ -1,6 +1,4 @@
-"""
-Parses and builds the documentation from all instruments-def.yml, readme.md, config.md, and the default config files.
-"""
+"""Parses and builds the documentation from all instruments-def.yml, readme.md, config.md, and the default config files."""
 
 #
 #
@@ -100,8 +98,14 @@ def _generate_semantics_tables(json_data: Dict, plugin_name: str, no_global_cont
     for key in ["dimensions", "attributes", "metrics", "event_timestamps"]:
         if key in json_data and len(json_data[key]):
             __tables += f"### {key.replace('_', ' ').capitalize()} at the `{plugin_name}` plugin\n\n"
-            __tables += f"| Identifier {'| Name | Unit ' if key == 'metrics' else ''}| Description | Example {'| Context Name ' if no_global_context_name else ''}|\n"
-            __tables += f"|------------{'|------|------' if key == 'metrics' else ''}|-------------|---------{'|--------------' if no_global_context_name else ''}|\n"
+            __tables += (
+                f"| Identifier {'| Name | Unit ' if key == 'metrics' else ''}| Description | Example"
+                f"{'| Context Name ' if no_global_context_name else ''}|\n"
+            )
+            __tables += (
+                f"|------------{'|------|------' if key == 'metrics' else ''}|-------------|---------"
+                f"{'|--------------' if no_global_context_name else ''}|\n"
+            )
 
             for key_id, details in sorted(json_data[key].items()):
                 key_id = key_id.replace(".", ".&#8203;")
@@ -156,7 +160,8 @@ def _generate_plugins_info(dtagent_plugins_path: str) -> Tuple[str, List]:
                     __content += f"### {plugin_title} default configuration\n\n"
                     __content += (
                         "To disable this plugin, set `IS_DISABLED` to `true`.\n\n"
-                        "In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you need to explicitly set `IS_ENABLED` to `true` to enable selected plugins; `IS_DISABLED` is not checked then."
+                        "In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, "
+                        "you need to explicitly set `IS_ENABLED` to `true` to enable selected plugins; `IS_DISABLED` is not checked then."
                         "\n\n"
                     )
                     __content += "```json\n" + _read_file(config_file_path) + "\n```\n\n"
@@ -228,7 +233,11 @@ def _generate_semantics_section(dtagent_conf_path: str, dtagent_plugins_path: st
                         __content += f"[Show plugin description](#{plugin_name}_info_sec)\n\n"
 
                         if no_global_context_name:
-                            __content += f"This plugin delivers telemetry in multiple contexts. To filter by one of plugin's context names (reported as `{RUN_CONTEXT_KEY}`), please check the `Context Name` column below.\n\n"
+                            __content += (
+                                "This plugin delivers telemetry in multiple contexts. "
+                                f"To filter by one of plugin's context names (reported as `{RUN_CONTEXT_KEY}`), "
+                                "please check the `Context Name` column below.\n\n"
+                            )
                         else:
                             __content += (
                                 f'All telemetry delivered by this plugin is reported as `{RUN_CONTEXT_KEY} == "{plugin_name}"`.\n\n'
@@ -240,8 +249,7 @@ def _generate_semantics_section(dtagent_conf_path: str, dtagent_plugins_path: st
 
 
 def _generate_appendix(appx_name: str) -> str:
-    """
-    Function to generate the appendix section for README.md
+    """Function to generate the appendix section for README.md
 
     Args:
         appx_name (str): Prefix for the appendix, e.g., "appx-a-appendix-name"
@@ -283,8 +291,7 @@ def _generate_appendix(appx_name: str) -> str:
 
 
 def _extract_appendix_info(header_file_path: str) -> Tuple[str, str]:
-    """
-    Extract appendix title and anchor from header markdown file.
+    """Extract appendix title and anchor from header markdown file.
 
     Args:
         header_file_path (str): Path to the header markdown file
@@ -306,8 +313,7 @@ def _extract_appendix_info(header_file_path: str) -> Tuple[str, str]:
 
 
 def generate_readme_content(dtagent_conf_path: str, dtagent_plugins_path: str) -> Tuple[str, str, str, str, str]:
-    """
-    Generates readme from sources
+    """Generates readme from sources
 
     Returns:
         A tuple containing the content for: readme_full_content, readme_short_content, plugins_content, semantics_content, appendix_content

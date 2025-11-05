@@ -1,9 +1,4 @@
-"""
-Refactors config files to 3 levels of nesting (path, value, type) and redirects it to build/.
-Excludes keys starting with _ prefix.
-Args:
-    sys.argv[1:] (str): path to config files, specified when running `deploy.sh`
-"""
+"""Refactors config files to 3 levels of nesting (path, value, type) and redirects it to build/."""
 
 #
 #
@@ -92,10 +87,10 @@ def _prepare_config_for_ingest(config_data: dict) -> list:
 
 
 def _merge_json_files(*file_names: str) -> list:
-    """Enables to load given files with configuration JSONs one by one, and keep overriding existing keys (path)
+    """Loads and merges multiple configuration JSON files, overriding existing keys (by path) with values from later files.
 
     Returns:
-        list: the result is a merge of multiple configurations with values from last files in the list overriding those in previous positions
+        list: Merged configuration as a list, with later files' values overriding earlier ones for duplicate paths.
     """
     merged: dict[Any, Any] = {}
 
@@ -111,9 +106,9 @@ def _merge_json_files(*file_names: str) -> list:
 
 
 def main():
-    """
-    Refactors config files to 3 levels of nesting (path, value, type) and redirects it to build/.
+    """Refactors config files to 3 levels of nesting (path, value, type) and redirects it to build/.
     Excludes keys starting with _ prefix.
+
     Args:
         sys.argv[1:] (str): path to config files, specified when running `deploy.sh`
     """

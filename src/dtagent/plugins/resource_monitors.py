@@ -1,6 +1,4 @@
-"""
-Plugin file for processing resource monitors plugin data.
-"""
+"""Plugin file for processing resource monitors plugin data."""
 
 ##region ------------------------------ IMPORTS  -----------------------------------------
 #
@@ -41,16 +39,14 @@ from dtagent.otel.events import EventType
 
 
 class ResourceMonitorsPlugin(Plugin):
-    """
-    Resource monitors plugin class.
-    """
+    """Resource monitors plugin class."""
 
     unattached_rms: int = 0
     unmonitored_wh: int = 0
     has_account_rm: bool = False
 
     def _prepare_event_timestamps_payload_rm(self, key, ts, row_dict):
-        """prepares event timestamp payload for resource monitors"""
+        """Prepares event timestamp payload for resource monitors"""
         payload = _unpack_json_dict(row_dict, ["DIMENSIONS"])
         return (
             f"Resource monitor {payload.get('snowflake.resource_monitor.name', '')} event: {key}",
@@ -62,7 +58,7 @@ class ResourceMonitorsPlugin(Plugin):
         )
 
     def _process_log_rm(self, row_dict: Dict, __context: Dict, log_level: int) -> bool:  # pylint: disable=unused-argument
-        """processes logging for resource monitors"""
+        """Processes logging for resource monitors"""
         if not row_dict.get("IS_ACTIVE", False):
             self.unattached_rms += 1
 
@@ -101,8 +97,7 @@ class ResourceMonitorsPlugin(Plugin):
         return False
 
     def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
-        """
-        Processes the measures on resource monitors.
+        """Processes the measures on resource monitors.
 
         Args:
             run_id (str): unique run identifier

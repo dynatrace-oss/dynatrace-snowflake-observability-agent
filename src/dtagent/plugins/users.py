@@ -1,6 +1,4 @@
-"""
-Plugin file for processing users plugin data.
-"""
+"""Plugin file for processing users plugin data."""
 
 ##region ------------------------------ IMPORTS  -----------------------------------------
 #
@@ -44,13 +42,10 @@ ROLE_REPORTING_MODES_VIEWS = {
 
 
 class UsersPlugin(Plugin):
-    """
-    Users plugin class.
-    """
+    """Users plugin class."""
 
     def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
-        """
-        Processes data for users plugin.
+        """Processes data for users plugin.
 
         Args:
             run_id (str): unique run identifier

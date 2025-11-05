@@ -1,6 +1,4 @@
-"""
-Plugin file for processing trust center plugin data.
-"""
+"""Plugin file for processing trust center plugin data."""
 
 ##region ------------------------------ IMPORTS  -----------------------------------------
 #
@@ -39,9 +37,7 @@ from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPI
 
 
 class TrustCenterPlugin(Plugin):
-    """
-    Trust center plugin class.
-    """
+    """Trust center plugin class."""
 
     def _get_severity_log_level(self, row_dict) -> str:
         """Maps severity from the given severity to log level"""
@@ -78,8 +74,7 @@ class TrustCenterPlugin(Plugin):
         return EventType.CUSTOM_ALERT, "Trust Center Critical problem", {}
 
     def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
-        """
-        Processes data for trust center plugin.
+        """Processes data for trust center plugin.
 
         Args:
             run_id (str): unique run identifier

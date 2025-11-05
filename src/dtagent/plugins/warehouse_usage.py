@@ -1,6 +1,4 @@
-"""
-Plugin file for processing warehouse usage plugin data.
-"""
+"""Plugin file for processing warehouse usage plugin data."""
 
 ##region ------------------------------ IMPORTS  -----------------------------------------
 #
@@ -37,13 +35,10 @@ from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPI
 
 
 class WarehouseUsagePlugin(Plugin):
-    """
-    Warehouse usage plugin class.
-    """
+    """Warehouse usage plugin class."""
 
     def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
-        """
-        Processes data for warehouse usage plugin.
+        """Processes data for warehouse usage plugin.
 
         Args:
             run_id (str): unique run identifier

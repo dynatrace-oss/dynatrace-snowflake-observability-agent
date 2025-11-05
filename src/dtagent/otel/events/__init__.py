@@ -76,9 +76,10 @@ class AbstractEvents(ABC):
         """Initializing payload cache and fields from configuration.
 
         Args:
-            configuration (Configuration): Current configuration of the agent
-            event_type (str, optional): Name of the events. Defaults to "events".
-            defaults (Optional[Dict[str, Any]], optional): Dictionary with overrides for default values for API parameters. Defaults to None.
+            configuration (Configuration):                          Current configuration of the agent
+            event_type (str, optional):                             Name of the events. Defaults to "events".
+            default_params (Optional[Dict[str, Any]], optional):    Dictionary with overrides for default values for API parameters.
+                                                                    Defaults to None.
         """
         _default_params = default_params or {}
 
@@ -108,8 +109,7 @@ class AbstractEvents(ABC):
         )
 
     def _send(self, _payload_list: List[Dict[str, Any]], _retries: int = 0) -> Tuple[int, List[Dict[str, Any]]]:
-        """
-        Sends given payload to Dynatrace
+        """Sends given payload to Dynatrace
 
         Args:
             _payload_list (List[Dict[str, Any]]): List of events to be sent
@@ -211,8 +211,7 @@ class AbstractEvents(ABC):
         return events_count, _payload_to_repeat
 
     def _split_payload(self, payload: List[Dict[str, Any]]) -> Generator[List[Dict[str, Any]], None, None]:
-        """
-        Enables to iterate over "ingestible" chunks of events payload
+        """Enables to iterate over "ingestible" chunks of events payload
         Args:
             payload (List[Dict[str, Any]]): List of events to be sent
         Yields:
@@ -273,9 +272,7 @@ class AbstractEvents(ABC):
         return events_count
 
     def flush_events(self) -> int:
-        """
-        Flush business events cache
-        """
+        """Flush business events cache"""
         return self._send_events()
 
     @abstractmethod
@@ -283,6 +280,7 @@ class AbstractEvents(ABC):
         self, event_type: Union[str, EventType], event_data: Dict[str, Any], context: Optional[Dict[str, Any]] = None, **kwargs
     ) -> Dict[str, Any]:
         """Packs given event data into payload accepted by Dynatrace Events API
+
         Args:
             event_type (str): Event type, e.g. EventType.CUSTOM_ALERT
             event_data (Dict[str, Any]): Event data in form of dict
@@ -306,17 +304,19 @@ class AbstractEvents(ABC):
         This is an abstract method that must be implemented in subclasses.
 
         Args:
-            events_data (List): List of events data, each in form of dict
+            events_data (List):                                     List of events data, each in form of dict
             event_type (Optional[Union[str, EventType]], optional): Event type to report under. Defaults to None.
-            context (Dict, optional): Additional information that should be appended to event data based on agent execution context. Defaults to None.
-            **kwargs: Additional keyword arguments to be processed by child classes:
-                is_data_structured (bool, optional): Indicates whether the data in events_data is structured into a DSOA standardized dictionary. Defaults to True.
-                additional_payload (Dict, optional): Additional lines of payload,
-                title (str, optional): Event title,
-                start_time_key (str, optional): Key in event_data dict to be used as event start time,
-                end_time_key (str, optional): Key in event_data dict to be used as event end time,
-                timeout (int, optional): Timeout for sending events,
-                formatted_time (bool, optional): Indicates whether the time values in event_data are already formatted
+            context (Dict, optional):                               Additional information that should be appended to event data based on
+                                                                    agent execution context. Defaults to None.
+            **kwargs:                                Additional keyword arguments to be processed by child classes:
+                is_data_structured (bool, optional):    Indicates whether the data in events_data is structured into a
+                                                        DSOA standardized dictionary. Defaults to True.
+                additional_payload (Dict, optional):    Additional lines of payload,
+                title (str, optional):                  Event title,
+                start_time_key (str, optional):         Key in event_data dict to be used as event start time,
+                end_time_key (str, optional):           Key in event_data dict to be used as event end time,
+                timeout (int, optional):                Timeout for sending events,
+                formatted_time (bool, optional):        Indicates whether the time values in event_data are already formatted
 
         Returns:
             int: Count of all events that went through (or were scheduled successfully); -1 indicates a problem
@@ -332,24 +332,24 @@ class AbstractEvents(ABC):
         context: Optional[Dict] = None,
         **kwargs,
     ) -> int:
-        """
-        Generates and sends payload with selected events to Dynatrace via the chosen API.
+        """Generates and sends payload with selected events to Dynatrace via the chosen API.
 
         Args:
             query_data (Union[List[Dict], Generator[Dict, None, None]]): List or generator of dictionaries with data to be sent as events
-            event_type (Optional[Union[str, EventType]], optional): Event type to report under. Defaults to None.
-            is_data_structured (bool, optional): Indicates whether the data in query_data is structured into a DSOA standardized dictionary. Defaults to True.
-            context (Optional[Dict], optional): Additional context that should be added to the event properties based on agent execution context. Defaults to None.
-
-                                                 formatted as dict which is merged with unpacked query_data contents.
+            event_type (Optional[Union[str, EventType]], optional):      Event type to report under. Defaults to None.
+            is_data_structured (bool, optional):                         Indicates whether the data in query_data is structured into a
+                                                                         DSOA standardized dictionary. Defaults to True.
+            context (Optional[Dict], optional):                          Additional context that should be added to the event properties,
+                                                                         formatted as dict which is merged with unpacked query_data contents
+                                                                         based on agent execution context. Defaults to None.
 
             **kwargs: Additional keyword arguments to be passed to send_events() and processed in child classes:
-                additional_payload (Dict, optional): Additional lines of payload,
-                title (str, optional): Event title,
-                start_time_key (str, optional): Key in event_data dict to be used as event start time,
-                end_time_key (str, optional): Key in event_data dict to be used as event end time,
-                timeout (int, optional): Timeout for sending events,
-                formatted_time (bool, optional): Indicates whether the time values in event_data are already formatted
+                additional_payload (Dict, optional):        Additional lines of payload,
+                title (str, optional):                      Event title,
+                start_time_key (str, optional):             Key in event_data dict to be used as event start time,
+                end_time_key (str, optional):               Key in event_data dict to be used as event end time,
+                timeout (int, optional):                    Timeout for sending events,
+                formatted_time (bool, optional):            Indicates whether the time values in event_data are already formatted
 
         Returns:
             int: Count of all events that went through (or were scheduled successfully); -1 indicates a problem
