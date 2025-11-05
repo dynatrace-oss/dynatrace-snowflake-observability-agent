@@ -17,4 +17,3 @@ references:
     type: view
     privileges: SELECT
     granted to: DTAGENT_VIEWER
-

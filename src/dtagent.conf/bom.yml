@@ -57,7 +57,7 @@ references:
     privileges: IMPORTED PRIVILEGES ON DATABASE
     granted to: DTAGENT_VIEWER
   - name: ACCOUNT
-    privileges: 
+    privileges:
       - MONITOR
       - MONITOR USAGE
       - MONITOR EXECUTION
@@ -72,13 +72,11 @@ references:
     privileges: MANAGE GRANTS
     granted to: DTAGENT_ADMIN
   - name: ACCOUNT
-    privileges: 
+    privileges:
       - EXECUTE TASK
     granted to: DTAGENT_VIEWER
   - name: DATABASE DTAGENT_DB
-    privileges: 
+    privileges:
       - OPERATE on all TASKS
       - OPERATE on future TASKS
     granted to: DTAGENT_VIEWER
-
-

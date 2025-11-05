@@ -167,7 +167,7 @@ tiles:
         inputData: null
   "1":
     type: markdown
-    content: '# Resource Monitors'
+    content: "# Resource Monitors"
     davis:
       componentState:
         inputData: null
@@ -330,19 +330,19 @@ tiles:
           rules:
             - id: 0
               color:
-                Default: 'var(--dt-colors-charts-categorical-color-09-default, #649438)'
+                Default: "var(--dt-colors-charts-categorical-color-09-default, #649438)"
               comparator: <
               label: ""
               value: 50
             - id: 1
               color:
-                Default: 'var(--dt-colors-charts-categorical-color-14-default, #d56b1a)'
+                Default: "var(--dt-colors-charts-categorical-color-14-default, #d56b1a)"
               comparator: <
               label: ""
               value: 99
             - id: 2
               color:
-                Default: 'var(--dt-colors-charts-categorical-color-12-default, #cd3741)'
+                Default: "var(--dt-colors-charts-categorical-color-12-default, #cd3741)"
               comparator: ≥
               label: ""
               value: 100
@@ -364,7 +364,7 @@ tiles:
         inputData: null
   "4":
     type: markdown
-    content: '# Warehouses'
+    content: "# Warehouses"
     davis:
       componentState:
         inputData: null
@@ -407,19 +407,19 @@ tiles:
           rules:
             - id: 0
               color:
-                Default: 'var(--dt-colors-charts-categorical-color-09-default, #649438)'
+                Default: "var(--dt-colors-charts-categorical-color-09-default, #649438)"
               comparator: =
               label: ""
               value: INFO
             - id: 1
               color:
-                Default: 'var(--dt-colors-charts-categorical-color-14-default, #d56b1a)'
+                Default: "var(--dt-colors-charts-categorical-color-14-default, #d56b1a)"
               comparator: =
               label: ""
               value: WARN
             - id: 2
               color:
-                Default: 'var(--dt-colors-charts-categorical-color-12-default, #cd3741)'
+                Default: "var(--dt-colors-charts-categorical-color-12-default, #cd3741)"
               comparator: =
               label: ""
               value: ERROR
@@ -661,19 +661,19 @@ tiles:
           rules:
             - id: 0
               color:
-                Default: 'var(--dt-colors-charts-categorical-color-09-default, #649438)'
+                Default: "var(--dt-colors-charts-categorical-color-09-default, #649438)"
               comparator: <
               label: ""
               value: 50
             - id: 1
               color:
-                Default: 'var(--dt-colors-charts-categorical-color-14-default, #d56b1a)'
+                Default: "var(--dt-colors-charts-categorical-color-14-default, #d56b1a)"
               comparator: <
               label: ""
               value: 99
             - id: 2
               color:
-                Default: 'var(--dt-colors-charts-categorical-color-12-default, #cd3741)'
+                Default: "var(--dt-colors-charts-categorical-color-12-default, #cd3741)"
               comparator: ≥
               label: ""
               value: 100
@@ -782,7 +782,7 @@ tiles:
           visibleSections: VISUALIZATION
   "10":
     type: markdown
-    content: '# Slow queries'
+    content: "# Slow queries"
     davis:
       componentState:
         inputData: null
@@ -1181,7 +1181,10 @@ tiles:
         deployment.environment,
         snowflake.warehouse.name
       }
-      | fieldsAdd warehouse_events = record( ts = start_events[], event_delay = finish_events[] - start_events[], warehouse_action = warehouse_action[])
+      | fieldsAdd warehouse_events = record(
+          ts = start_events[],
+          event_delay = finish_events[] - start_events[],
+          warehouse_action = warehouse_action[])
       | expand warehouse_events
       | fields event_timestamp = warehouse_events[ts],
                deployment.environment,

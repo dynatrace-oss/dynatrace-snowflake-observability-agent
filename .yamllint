@@ -2,18 +2,25 @@ extends: default
 rules:
   line-length:
     max: 140
-    level: warning
+    level: error
   indentation:
     spaces: 2
-    level: warning
+    level: error
   document-start:
     present: false
   trailing-spaces:
-    level: warning
+    level: error
   empty-lines:
     max: 2
-    level: warning
+    level: error
   new-line-at-end-of-file:
-    level: warning
+    level: error
   brackets:
-    level: warning
+    level: error
+  # GitHub Actions use "on" as a key, which conflicts with the truthy check.
+  truthy: disable
+  # Prettier and yamllint have conflicting comment spacing rules.
+  comments: disable
+# Ignore virtual environment directories
+ignore: |
+  .venv/

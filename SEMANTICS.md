@@ -37,6 +37,7 @@
 | Identifier | Description | Example |
 |------------|-------------|---------|
 | dsoa.&#8203;run.&#8203;id | Unique ID of each execution of the Dynatrace Snowflake Observability Agent plugin. It can be used to differentiate between telemetry produced between two executions, e.g., to calculate the change in the system. | 4aa7c76c-e98c-4b8b-a5b3-a8a721bbde2d |
+| observed_timestamp | The timestamp (in epoch nanoseconds) when the event was observed. | 1741768500000000000 |
 | snowflake.&#8203;event.&#8203;type | Type of (timestamp based) event | snowflake.table.update |
 
 <a name="active_queries_semantics_sec"></a>
@@ -139,8 +140,8 @@ All telemetry delivered by this plugin is reported as `dsoa.run.context == "data
 |------------|-------------|---------|
 | db.&#8203;user | The user who issued the query. | SYSTEM |
 | snowflake.&#8203;object.&#8203;ddl.&#8203;modified | A JSON array that specifies the objects that were associated with a write operation in the query. | { "DTAGENT_DB.APP.TMP_RECENT_QUERIES": { "objectColumns": "HISTOGRAM_METRICS, COUNTER_METRICS, START_TIME, STATUS_CODE, SESSION_ID, QUERY_ID, DIMENSIONS, END_TIME, NAME, ATTRIBUTES, PARENT_QUERY_ID", "objectDomain": "Table" } } |
-| snowflake.&#8203;object.&#8203;ddl.&#8203;operation | The SQL keyword that specifies the operation on the table, view, or column: <br>- ALTER, <br>- CREATE, <br>- DROP, <br>- REPLACE,  <br>- UNDROP.  | REPLACE |
-| snowflake.&#8203;object.&#8203;ddl.&#8203;properties | A JSON array that specifies the object or column properties when you create, modify, drop, or undrop the object or column.  There are two types of properties: atomic and compound.  | {"creationMode": "CREATE", "columns": {"ADD": ["ATTRIBUTE","JOB_ID"]}} |
+| snowflake.&#8203;object.&#8203;ddl.&#8203;operation | The SQL keyword that specifies the operation on the table, view, or column: <br>- ALTER, <br>- CREATE, <br>- DROP, <br>- REPLACE, <br>- UNDROP.  | REPLACE |
+| snowflake.&#8203;object.&#8203;ddl.&#8203;properties | A JSON array that specifies the object or column properties when you create, modify, drop, or undrop the object or column. There are two types of properties: atomic and compound.  | {"creationMode": "CREATE", "columns": {"ADD": ["ATTRIBUTE","JOB_ID"]}} |
 | snowflake.&#8203;object.&#8203;id | An identifier for the object, which is unique within a given account and domain. | 747545 |
 | snowflake.&#8203;object.&#8203;name | The fully qualified name of the object defined or modified by the DDL operation. | DTAGENT_DB.APP.TMP_RECENT_QUERIES |
 | snowflake.&#8203;object.&#8203;type | The domain of the object defined or modified by the DDL operation, which includes all objects that can be tagged and: <br>- MASKING POLICY, <br>- ROW ACCESS POLICY, <br>- TAG.  | Table |

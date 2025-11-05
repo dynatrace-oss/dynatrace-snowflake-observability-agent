@@ -16,113 +16,110 @@
 #  * Catalog of instrumentation known to Dynatrace Snowflake Observability Agent - active queries plugin
 
 attributes:
-    db.operation.name:
-        __example: SELECT
-        __description: |
-            The type of operation performed by the query, such as:
-            - SELECT,
-            - INSERT,
-            - UPDATE.
-    db.query.text:
-        __example: SELECT * FROM sales_data
-        __description: The text of the SQL query.
-    session.id:
-        __example: "123456789"
-        __description:
-            The unique identifier for the session in which the query was
-            executed.
-    snowflake.error.code:
-        __example: "1001"
-        __description: The error code if the query failed.
-    snowflake.error.message:
-        __example: Syntax error in SQL statement
-        __description: The error message if the query failed.
-    snowflake.query.hash:
-        __example: hash_abcdef
-        __description: The hash value of the query text.
-    snowflake.query.hash_version:
-        __example: "1"
-        __description: The version of the query hash logic.
-    snowflake.query.id:
-        __example: b1bbaa7f-8144-4e50-947a-b7e9bf7d62d5
-        __description: The unique identifier for the query.
-    snowflake.query.parametrized_hash:
-        __example: param_hash_abcdef
-        __description: The hash value of the parameterized query text.
-    snowflake.query.parametrized_hash_version:
-        __example: "1"
-        __description: The version of the parameterized query hash logic.
-    snowflake.query.tag:
-        __example: daily_report
-        __description: The tag associated with the query, if any.
-    snowflake.schema.name:
-        __example: public
-        __description: The name of the schema in which the query was executed.
-    snowflake.warehouse.type:
-        __example: STANDARD
-        __description: The type of warehouse used to execute the query.
+  db.operation.name:
+    __example: SELECT
+    __description: |
+      The type of operation performed by the query, such as:
+      - SELECT,
+      - INSERT,
+      - UPDATE.
+  db.query.text:
+    __example: SELECT * FROM sales_data
+    __description: The text of the SQL query.
+  session.id:
+    __example: "123456789"
+    __description: The unique identifier for the session in which the query was executed.
+  snowflake.error.code:
+    __example: "1001"
+    __description: The error code if the query failed.
+  snowflake.error.message:
+    __example: Syntax error in SQL statement
+    __description: The error message if the query failed.
+  snowflake.query.hash:
+    __example: hash_abcdef
+    __description: The hash value of the query text.
+  snowflake.query.hash_version:
+    __example: "1"
+    __description: The version of the query hash logic.
+  snowflake.query.id:
+    __example: b1bbaa7f-8144-4e50-947a-b7e9bf7d62d5
+    __description: The unique identifier for the query.
+  snowflake.query.parametrized_hash:
+    __example: param_hash_abcdef
+    __description: The hash value of the parameterized query text.
+  snowflake.query.parametrized_hash_version:
+    __example: "1"
+    __description: The version of the parameterized query hash logic.
+  snowflake.query.tag:
+    __example: daily_report
+    __description: The tag associated with the query, if any.
+  snowflake.schema.name:
+    __example: public
+    __description: The name of the schema in which the query was executed.
+  snowflake.warehouse.type:
+    __example: STANDARD
+    __description: The type of warehouse used to execute the query.
 dimensions:
-    db.namespace:
-        __example: analytics_db
-        __description: The name of the database in which the query was executed.
-    db.user:
-        __example: john_doe
-        __description: The name of the user who executed the query.
-    snowflake.query.execution_status:
-        __example: FAILED_WITH_ERROR
-        __description: |
-            The execution status of the query, such as:
-            - RESUMING_WAREHOUSE,
-            - RUNNING,
-            - QUEUED,
-            - BLOCKED,
-            - SUCCESS,
-            - FAILED_WITH_ERROR,
-            - FAILED_WITH_INCIDENT.
-    snowflake.role.name:
-        __example: analyst_role
-        __description: The role that was active in the session at the time of the query.
-    snowflake.warehouse.name:
-        __example: compute_wh
-        __description: The name of the warehouse used to execute the query.
+  db.namespace:
+    __example: analytics_db
+    __description: The name of the database in which the query was executed.
+  db.user:
+    __example: john_doe
+    __description: The name of the user who executed the query.
+  snowflake.query.execution_status:
+    __example: FAILED_WITH_ERROR
+    __description: |
+      The execution status of the query, such as:
+      - RESUMING_WAREHOUSE,
+      - RUNNING,
+      - QUEUED,
+      - BLOCKED,
+      - SUCCESS,
+      - FAILED_WITH_ERROR,
+      - FAILED_WITH_INCIDENT.
+  snowflake.role.name:
+    __example: analyst_role
+    __description: The role that was active in the session at the time of the query.
+  snowflake.warehouse.name:
+    __example: compute_wh
+    __description: The name of the warehouse used to execute the query.
 
 #  * Metric definitions
-#  * KEY                  - will be matched against METRICS object with measurements prepared for sending
-#  * VALUE[__description]   - __description of the metrics - in the future we should rather update semantic dictionary instead of pushing it constantly
-#  * VALUE[unit]          - the unit of the metric
+#  * KEY                    - will be matched against METRICS object with measurements prepared for sending
+#  * VALUE[__description]   - __description of the metrics -
+#                             in the future we should rather update semantic dictionary instead of pushing it constantly
+#  * VALUE[unit]            - the unit of the metric
 
 metrics:
-    snowflake.time.compilation:
-        __example: "5000"
-        __description: |
-            The total compilation time of the currently running query.
-        displayName: Query Compilation Time
-        unit: ms
-    snowflake.time.running:
-        __example: "120000"
-        __description: |
-            The total running time of the currently running query.
-        displayName: Query Running Time
-        unit: ms
-    snowflake.time.execution:
-        __example: "100000"
-        __description: Execution time (in milliseconds)
-        displayName: Execution Time
-        unit: ms
-    snowflake.time.total_elapsed:
-        __example: "120000"
-        __description: Elapsed time (in milliseconds).
-        displayName: Total Elapsed Time
-        unit: ms
-    snowflake.data.written_to_result:
-        __example: "1048576"
-        __description: Number of bytes written to a result object.
-        displayName: Bytes Written to Result
-        unit: bytes
-    snowflake.rows.written_to_result:
-        __example: "1"
-        __description:
-            Number of rows written to a result object. For CREATE TABLE AS
-            SELECT (CTAS) and all DML operations, this result is 1;.
-        displayName: Rows Written to Result
-        unit: rows
+  snowflake.time.compilation:
+    __example: "5000"
+    __description: |
+      The total compilation time of the currently running query.
+    displayName: Query Compilation Time
+    unit: ms
+  snowflake.time.running:
+    __example: "120000"
+    __description: |
+      The total running time of the currently running query.
+    displayName: Query Running Time
+    unit: ms
+  snowflake.time.execution:
+    __example: "100000"
+    __description: Execution time (in milliseconds)
+    displayName: Execution Time
+    unit: ms
+  snowflake.time.total_elapsed:
+    __example: "120000"
+    __description: Elapsed time (in milliseconds).
+    displayName: Total Elapsed Time
+    unit: ms
+  snowflake.data.written_to_result:
+    __example: "1048576"
+    __description: Number of bytes written to a result object.
+    displayName: Bytes Written to Result
+    unit: bytes
+  snowflake.rows.written_to_result:
+    __example: "1"
+    __description: Number of rows written to a result object. For CREATE TABLE AS SELECT (CTAS) and all DML operations, this result is 1;.
+    displayName: Rows Written to Result
+    unit: rows

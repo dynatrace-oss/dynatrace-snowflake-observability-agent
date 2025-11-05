@@ -15,113 +15,113 @@
 #  *
 
 attributes:
-    db.user:
-        __context_names:
-            - warehouse_usage
-        __example: admin
-        __description: The user who initiated the event.
-    snowflake.query.id:
-        __context_names:
-            - warehouse_usage
-        __example: query123
-        __description: The unique identifier for the query associated with the event.
-    snowflake.role.name:
-        __context_names:
-            - warehouse_usage
-        __example: SYSADMIN
-        __description: The role name associated with the event.
-    snowflake.warehouse.cluster.number:
-        __context_names:
-            - warehouse_usage
-        __example: "1"
-        __description: The number of the cluster within the warehouse.
-    snowflake.warehouse.clusters.count:
-        __context_names:
-            - warehouse_usage
-        __example: "2"
-        __description: The number of clusters in the warehouse.
-    snowflake.warehouse.event.reason:
-        __context_names:
-            - warehouse_usage
-        __example: USER_REQUEST
-        __description: The reason for the event.
-    snowflake.warehouse.id:
-        __context_names:
-            - warehouse_usage
-            - warehouse_usage_load
-            - warehouse_usage_metering
-        __example: wh123
-        __description: The unique identifier for the warehouse.
-    snowflake.warehouse.size:
-        __context_names:
-            - warehouse_usage
-        __example: X-SMALL
-        __description: The size of the warehouse.
+  db.user:
+    __context_names:
+      - warehouse_usage
+    __example: admin
+    __description: The user who initiated the event.
+  snowflake.query.id:
+    __context_names:
+      - warehouse_usage
+    __example: query123
+    __description: The unique identifier for the query associated with the event.
+  snowflake.role.name:
+    __context_names:
+      - warehouse_usage
+    __example: SYSADMIN
+    __description: The role name associated with the event.
+  snowflake.warehouse.cluster.number:
+    __context_names:
+      - warehouse_usage
+    __example: "1"
+    __description: The number of the cluster within the warehouse.
+  snowflake.warehouse.clusters.count:
+    __context_names:
+      - warehouse_usage
+    __example: "2"
+    __description: The number of clusters in the warehouse.
+  snowflake.warehouse.event.reason:
+    __context_names:
+      - warehouse_usage
+    __example: USER_REQUEST
+    __description: The reason for the event.
+  snowflake.warehouse.id:
+    __context_names:
+      - warehouse_usage
+      - warehouse_usage_load
+      - warehouse_usage_metering
+    __example: wh123
+    __description: The unique identifier for the warehouse.
+  snowflake.warehouse.size:
+    __context_names:
+      - warehouse_usage
+    __example: X-SMALL
+    __description: The size of the warehouse.
 dimensions:
-    snowflake.warehouse.event.name:
-        __context_names:
-            - warehouse_usage
-        __example: WAREHOUSE_START
-        __description: The name of the event.
-    snowflake.warehouse.event.state:
-        __context_names:
-            - warehouse_usage
-        __example: STARTED
-        __description: The state of the event, such as STARTED or COMPLETED.
-    snowflake.warehouse.name:
-        __context_names:
-            - warehouse_usage
-            - warehouse_usage_load
-            - warehouse_usage_metering
-        __example: COMPUTE_WH
-        __description: The name of the warehouse.
+  snowflake.warehouse.event.name:
+    __context_names:
+      - warehouse_usage
+    __example: WAREHOUSE_START
+    __description: The name of the event.
+  snowflake.warehouse.event.state:
+    __context_names:
+      - warehouse_usage
+    __example: STARTED
+    __description: The state of the event, such as STARTED or COMPLETED.
+  snowflake.warehouse.name:
+    __context_names:
+      - warehouse_usage
+      - warehouse_usage_load
+      - warehouse_usage_metering
+    __example: COMPUTE_WH
+    __description: The name of the warehouse.
 metrics:
-    snowflake.credits.cloud_services:
-        __context_names:
-            - warehouse_usage_metering
-        __example: "2"
-        __description: The number of credits used for cloud services.
-        displayName: Cloud Services Credits Used
-        unit: credits
-    snowflake.credits.compute:
-        __context_names:
-            - warehouse_usage_metering
-        __example: "8"
-        __description: The number of credits used for compute.
-        displayName: Compute Credits Used
-        unit: credits
-    snowflake.credits.used:
-        __context_names:
-            - warehouse_usage_metering
-        __example: "10"
-        __description: The total number of credits used by the warehouse.
-        displayName: Snowflake Credits Used
-        unit: credits
-    snowflake.load.blocked:
-        __context_names:
-            - warehouse_usage_load
-        __example: "0"
-        __description: The average number of queries blocked by a transaction lock.
-        displayName: Average Blocked Queries
-        unit: count
-    snowflake.load.queued.overloaded:
-        __context_names:
-            - warehouse_usage_load
-        __example: "2"
-        __description: The average number of queries queued due to load.
-        displayName: Average Queued Queries (Load)
-        unit: count
-    snowflake.load.queued.provisioning:
-        __context_names:
-            - warehouse_usage_load
-        __example: "1"
-        __description: The average number of queries queued due to provisioning.
-        displayName: Average Queued Queries (Provisioning)
-        unit: count
-    snowflake.load.running:
-        __context_names:
-            - warehouse_usage_load
-        __example: "5"
-        __description: The average number of running queries.
-        displayName: Average Running Queries
-        unit: count
+  snowflake.credits.cloud_services:
+    __context_names:
+      - warehouse_usage_metering
+    __example: "2"
+    __description: The number of credits used for cloud services.
+    displayName: Cloud Services Credits Used
+    unit: credits
+  snowflake.credits.compute:
+    __context_names:
+      - warehouse_usage_metering
+    __example: "8"
+    __description: The number of credits used for compute.
+    displayName: Compute Credits Used
+    unit: credits
+  snowflake.credits.used:
+    __context_names:
+      - warehouse_usage_metering
+    __example: "10"
+    __description: The total number of credits used by the warehouse.
+    displayName: Snowflake Credits Used
+    unit: credits
+  snowflake.load.blocked:
+    __context_names:
+      - warehouse_usage_load
+    __example: "0"
+    __description: The average number of queries blocked by a transaction lock.
+    displayName: Average Blocked Queries
+    unit: count
+  snowflake.load.queued.overloaded:
+    __context_names:
+      - warehouse_usage_load
+    __example: "2"
+    __description: The average number of queries queued due to load.
+    displayName: Average Queued Queries (Load)
+    unit: count
+  snowflake.load.queued.provisioning:
+    __context_names:
+      - warehouse_usage_load
+    __example: "1"
+    __description: The average number of queries queued due to provisioning.
+    displayName: Average Queued Queries (Provisioning)
+    unit: count
+  snowflake.load.running:
+    __context_names:
+      - warehouse_usage_load
+    __example: "5"
+    __description: The average number of running queries.
+    displayName: Average Running Queries
+    unit: count
