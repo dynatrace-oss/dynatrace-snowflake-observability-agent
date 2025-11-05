@@ -93,7 +93,7 @@ def write_csv(data, filename):
     header = ["name", "type"] + list({key for d in data for key in d.keys() if key not in ["name", "type", "comment"]}) + ["comment"]
 
     # Open the CSV file for writing
-    with open(filename, "w", newline="", encoding="UTF-8") as csvfile:
+    with open(filename, "w", newline="", encoding="utf-8") as csvfile:
         import csv
 
         writer = csv.DictWriter(csvfile, fieldnames=header, delimiter="\t")
