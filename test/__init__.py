@@ -119,7 +119,8 @@ class TestDynatraceSnowAgent(DynatraceSnowAgent):
         OtelManager.reset_current_fail_count()
 
         if is_local_testing():
-            mock_client = MockTelemetryClient(sources[0] if sources else None)
+            source_name = sources[0] if sources else None
+            mock_client = MockTelemetryClient(source_name)
             with mock_client.mock_telemetry_sending():
                 import time
 

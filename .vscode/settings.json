@@ -18,6 +18,7 @@
     "editor.formatOnPaste": true,
     "editor.tabSize": 2,
     "editor.defaultFormatter": "ms-python.black-formatter",
+    "editor.rulers": [140],
     "debug.javascript.terminalOptions": {},
     "debug.javascript.debugByLinkOptions": "on",
     "black-formatter.args": [
@@ -123,6 +124,7 @@
         "uuidgen",
         "venv",
         "Vidhya",
+        "viewsend",
         "Waltham",
         "weasyprint",
         "xdist",
@@ -180,9 +182,16 @@
         "editor.formatOnSave": false,
         "editor.defaultFormatter": null
     },
+    "files.trimTrailingWhitespace": true,
     "files.associations": {
         ".sqlfluff": "ini"
     },
     "markdown.extension.tableFormatter.normalizeIndentation": true,
-    "editor.indentSize": "tabSize"
+    "editor.indentSize": "tabSize",
+    "[yml]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[yaml]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    }
 }

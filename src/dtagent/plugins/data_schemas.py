@@ -31,6 +31,7 @@ from typing import Any, Dict
 from dtagent.plugins import Plugin
 from dtagent.otel.events import EventType
 from dtagent.util import _from_json, _pack_values_to_json_strings
+from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPILE_REMOVE
 
 ##endregion COMPILE_REMOVE
 
@@ -98,26 +99,35 @@ class DataSchemasPlugin(Plugin):
             context=context,
         )
 
-    def process(self, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
+    def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
         """
         Processes data for data schemas plugin.
+
+        Args:
+            run_id (str): unique run identifier
+            run_proc (bool): indicator whether processing should be logged as completed
+
         Returns:
             Dict[str,Dict[str,int]]: A dictionary with telemetry counts for data schemas.
 
             Example:
             {
+            "dsoa.run.results": {
                 "data_schemas": {
                     "entries": entries_cnt,
                     "log_lines": logs_cnt,
                     "metrics": metrics_cnt,
                     "events": events_cnt,
                 }
+            },
+            RUN_ID_KEY: run_id,
             }
         """
 
         entries_cnt, logs_cnt, metrics_cnt, events_cnt = self._log_entries(
             f_entry_generator=lambda: self._get_table_rows("APP.V_DATA_SCHEMAS"),
             context_name="data_schemas",
+            run_uuid=run_id,
             report_logs=False,
             report_timestamp_events=False,
             report_metrics=False,
@@ -129,10 +139,14 @@ class DataSchemasPlugin(Plugin):
         )
 
         return {
-            "data_schemas": {
-                "entries": entries_cnt,
-                "log_lines": logs_cnt,
-                "metrics": metrics_cnt,
-                "events": events_cnt,
-            }
+            RUN_PLUGIN_KEY: "data_schemas",
+            RUN_RESULTS_KEY: {
+                "data_schemas": {
+                    "entries": entries_cnt,
+                    "log_lines": logs_cnt,
+                    "events": events_cnt,
+                    "metrics": metrics_cnt,
+                },
+            },
+            RUN_ID_KEY: run_id,
         }

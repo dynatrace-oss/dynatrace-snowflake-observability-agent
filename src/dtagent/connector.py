@@ -25,10 +25,11 @@
 # SOFTWARE.
 #
 #
+from pdb import run
 from dtagent import AbstractDynatraceSnowAgentConnector
 
 from dtagent.config import Configuration
-from dtagent.util import get_now_timestamp_formatted
+from dtagent.util import get_now_timestamp_formatted, is_regular_mode
 from dtagent.otel.instruments import Instruments
 from dtagent.otel.logs import Logs
 from dtagent.otel.spans import Spans
@@ -107,13 +108,18 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
     """Telemetry sender class delivers possibility of sending custom data
     from Snowflake to Grail, not being limited by plugins."""
 
-    def __init__(self, session: snowpark.Session, params: dict):
+    def __init__(self, session: snowpark.Session, params: dict, exec_id: str) -> None:
         """
         Initialization for TelemetrySender class.
+
+        Args:
+            session (snowpark.Session): snowflake snowpark session
+            params (dict): parameters for telemetry sending
+            exec_id (str): unique execution identifier
         """
         from dtagent.context import get_context_name_and_run_id  # COMPILE_REMOVE
 
-        Plugin.__init__(self, session=session)
+        Plugin.__init__(self, plugin_name="telemetry_sender", session=session)
         AbstractDynatraceSnowAgentConnector.__init__(self, session)
 
         self._params = params or {}
@@ -132,10 +138,10 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
         # in case of auto-mode disabled we can send the source as bizevents
         self._send_biz_events = next((self._params[key] for key in ["biz_events", "bizevents"] if key in self._params), False)
 
-        self.__context_name = self._params.get("context", "telemetry_sender")
-        self.__context = get_context_name_and_run_id(self.__context_name)
+        self.__context_name = self._params.get("context", self._plugin_name)
+        self.__context = get_context_name_and_run_id(plugin_name=self._plugin_name, context_name=self.__context_name, run_id=exec_id)
 
-    def process(self, run_proc: bool = True) -> Dict[str, int]:
+    def process(self, run_id: str, run_proc: bool = True) -> Dict[str, int]:
         """we don't use it but Plugin marks it as abstract"""
 
         return {}
@@ -164,7 +170,7 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
             for row_dict in source:
                 yield row_dict
 
-    def send_data(self, source_data: Union[str, dict, list], exec_id: str = get_now_timestamp_formatted()) -> Dict[str, int]:
+    def send_data(self, source_data: Union[str, dict, list]) -> Dict[str, int]:
         """Sends telemetry data from given source based on the parameters provided to the stored procedure
 
         Args:
@@ -175,23 +181,35 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
 
             Example:
                 {
-                    "entries": 10,
-                    "log_lines": 10,
-                    "metrics": 5,
-                    "events": 5,
-                    "biz_events": 2,
-                    "davis_events": 0,
+                "dsoa.run.results": {
+                    "telemetry_sender": {
+                        "entries": 10,
+                        "log_lines": 10,
+                        "metrics": 5,
+                        "events": 5,
+                        "biz_events": 2,
+                        "davis_events": 0,
+                    }
+                },
+                "dsoa.run.id": "uuid_string"
                 }
         """
         from dtagent.otel.events import EventType  # COMPILE_REMOVE
+        from dtagent.context import RUN_ID_KEY, RUN_PLUGIN_KEY, RUN_VERSION_KEY, RUN_RESULTS_KEY  # COMPILE_REMOVE
 
-        self.report_execution_status(status="STARTED", task_name=self.__context_name, exec_id=exec_id)
+        exec_id = self.__context[RUN_ID_KEY]
+
+        if is_regular_mode(self._session):
+            self._session.query_tag = json.dumps({RUN_VERSION_KEY: str(VERSION), RUN_PLUGIN_KEY: self.__context_name, RUN_ID_KEY: exec_id})
+
+        self.report_execution_status(status="STARTED", task_name=self.__context_name, exec_id=exec_id, plugin_name=self._plugin_name)
 
         entries_cnt, logs_cnt, metrics_cnt, events_cnt, bizevents_cnt, davis_events_cnt = (0, 0, 0, 0, 0, 0)
         if self._auto_mode:
             entries_cnt, logs_cnt, metrics_cnt, events_cnt = self._log_entries(
                 lambda: self._get_source_rows(source_data),
                 self.__context_name,
+                run_uuid=exec_id,
                 report_logs=self._send_logs,
                 report_metrics=self._send_metrics,
                 report_timestamp_events=self._send_events,
@@ -231,7 +249,9 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
                         except ValueError as e:
                             from dtagent import LOG  # COMPILE_REMOVE
 
-                            self.report_execution_status(status="FAILED", task_name=self.__context_name, exec_id=exec_id)
+                            self.report_execution_status(
+                                status="FAILED", task_name=self.__context_name, exec_id=exec_id, plugin_name=self._plugin_name
+                            )
                             LOG.error("Could not send event due to %s", e)
 
                     entries_cnt += 1
@@ -267,34 +287,39 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
                 davis_events_cnt += self._davis_events.flush_events()
 
         results_dict = {
-            "entries": entries_cnt,
-            "log_lines": logs_cnt,
-            "metrics": metrics_cnt,
-            "events": events_cnt,
-            "biz_events": bizevents_cnt,
-            "davis_events": davis_events_cnt,
+            self.__context_name: {
+                "entries": entries_cnt,
+                "log_lines": logs_cnt,
+                "metrics": metrics_cnt,
+                "events": events_cnt,
+                "biz_events": bizevents_cnt,
+                "davis_events": davis_events_cnt,
+            }
         }
-
-        self.report_execution_status(status="FINISHED", task_name=self.__context_name, exec_id=exec_id)
-
         self._report_execution(
             self.__context_name,
             get_now_timestamp_formatted(),
             None,
             results_dict,
+            run_id=exec_id,
+        )
+        exec_results = {RUN_RESULTS_KEY: results_dict, RUN_ID_KEY: self.__context[RUN_ID_KEY]}
+
+        self.report_execution_status(
+            status="FINISHED", task_name=self.__context_name, exec_id=exec_id, details_dict=exec_results, plugin_name=self._plugin_name
         )
 
-        return results_dict
+        return exec_results
 
 
 def main(session: snowpark.Session, source: Union[str, dict, list], params: dict) -> str:
     """
     MAIN entry to this stored procedure - this is where the fun begins
     """
-    sender = TelemetrySender(session, params)
-    exec_id = get_now_timestamp_formatted()
+    exec_id = str(uuid.uuid4().hex)
+    sender = TelemetrySender(session, params, exec_id)
     try:
-        results = sender.send_data(source, exec_id)
+        results = sender.send_data(source)
     except RuntimeError as e:
         sender.handle_interrupted_run(source, exec_id, str(e))
 

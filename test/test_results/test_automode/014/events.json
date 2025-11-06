@@ -13,6 +13,7 @@
     "value.str": "test",
     "dsoa.run.context": "test_automode/014",
     "eventType": "CUSTOM_INFO",
-    "title": "This is a test object 1"
+    "title": "This is a test object 1",
+    "dsoa.run.plugin": "telemetry_sender"
   }
 ]

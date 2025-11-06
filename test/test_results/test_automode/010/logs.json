@@ -1,9 +1,15 @@
 [
   {
     "content": "New entry to STATUS.LOG_PROCESSED_MEASUREMENTS from test_automode/010",
-    "entries": 3,
-    "events": 3,
-    "davis_events": 3,
-    "dsoa.run.context": "self_monitoring"
+    "test_automode/010": {
+      "biz_events": 0,
+      "davis_events": 3,
+      "entries": 3,
+      "events": 3,
+      "log_lines": 0,
+      "metrics": 0
+    },
+    "dsoa.run.context": "self_monitoring",
+    "dsoa.run.plugin": "telemetry_sender"
   }
 ]

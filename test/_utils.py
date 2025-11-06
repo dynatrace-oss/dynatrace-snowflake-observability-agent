@@ -23,6 +23,7 @@
 #
 import os
 import sys
+import uuid
 import datetime
 from typing import Any, Generator, Dict, List, Optional, Callable, Tuple
 import logging
@@ -209,12 +210,12 @@ def _merge_pickles_from_tests() -> Dict[str, str]:
 class LocalTelemetrySender(TelemetrySender):
     PICKLES = _merge_pickles_from_tests()
 
-    def __init__(self, session: snowpark.Session, params: dict, limit_results: int = 2, config: TestConfiguration = None):
+    def __init__(self, session: snowpark.Session, params: dict, exec_id: str, limit_results: int = 2, config: TestConfiguration = None):
 
         self._local_config = config
         self.limit_results = limit_results
 
-        TelemetrySender.__init__(self, session, params)
+        TelemetrySender.__init__(self, session, params, exec_id)
 
         self._configuration.get_last_measurement_update = lambda *args, **kwargs: datetime.datetime.fromtimestamp(
             0, tz=datetime.timezone.utc
@@ -244,7 +245,7 @@ def telemetry_test_sender(
     config._config["otel"]["spans"]["max_export_batch_size"] = 1
     config._config["otel"]["logs"]["max_export_batch_size"] = 1
 
-    sender = LocalTelemetrySender(session, params, limit_results=limit_results, config=config)
+    sender = LocalTelemetrySender(session, params, limit_results=limit_results, config=config, exec_id=str(uuid.uuid4().hex))
 
     mock_client = MockTelemetryClient(test_source)
     with mock_client.mock_telemetry_sending():
@@ -276,6 +277,7 @@ def execute_telemetry_test(
         metrics_at_least: Whether metrics should be at least or exactly the expected
     """
     from test import _get_session
+    from dtagent.context import RUN_ID_KEY, RUN_RESULTS_KEY
 
     affecting_types_for_entries = affecting_types_for_entries or ["logs", "metrics", "spans"]
 
@@ -295,9 +297,10 @@ def execute_telemetry_test(
     )
 
     assert test_name in results
+    assert RUN_RESULTS_KEY in results[test_name]
 
     for plugin_key in base_count.keys():
-        assert plugin_key in results[test_name]
+        assert plugin_key in results[test_name][RUN_RESULTS_KEY]
 
         logs_expected = base_count[plugin_key].get("log_lines", 0) if "logs" not in disabled_telemetry else 0
         spans_expected = base_count[plugin_key].get("spans", 0) if "spans" not in disabled_telemetry else 0
@@ -307,11 +310,11 @@ def execute_telemetry_test(
             base_count[plugin_key].get("entries", 0) if (logs_expected + spans_expected + metrics_expected + events_expected > 0) else 0
         )
 
-        assert results[test_name][plugin_key].get("entries", 0) == entries_expected
-        assert results[test_name][plugin_key].get("log_lines", 0) == logs_expected
-        assert results[test_name][plugin_key].get("spans", 0) == spans_expected
-        assert results[test_name][plugin_key].get("metrics", 0) == metrics_expected
-        assert results[test_name][plugin_key].get("events", 0) == events_expected
+        assert results[test_name][RUN_RESULTS_KEY][plugin_key].get("entries", 0) == entries_expected
+        assert results[test_name][RUN_RESULTS_KEY][plugin_key].get("log_lines", 0) == logs_expected
+        assert results[test_name][RUN_RESULTS_KEY][plugin_key].get("spans", 0) == spans_expected
+        assert results[test_name][RUN_RESULTS_KEY][plugin_key].get("metrics", 0) == metrics_expected
+        assert results[test_name][RUN_RESULTS_KEY][plugin_key].get("events", 0) == events_expected
 
 
 def get_config(pickle_conf: str = None) -> TestConfiguration:

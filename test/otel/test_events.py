@@ -21,6 +21,7 @@
 # SOFTWARE.
 #
 #
+import uuid
 from unittest.mock import patch
 
 from dtagent.otel.events import EventType
@@ -51,7 +52,7 @@ class TestEvents:
         assert str(t) == "CUSTOM_ALERT", "event type {t} should render in capital letters"
 
     def test_send_events_directly(self):
-
+        # FIXME
         def _test_send_events_directly(test_mode="davis"):
             import time
 
@@ -127,7 +128,9 @@ class TestEvents:
                     additional_payload={
                         "test.event.dtagent.info": "15 min in the future",
                     },
-                    context=get_context_name_and_run_id("data_volume"),
+                    context=get_context_name_and_run_id(
+                        plugin_name="test_send_events_directly", context_name="data_volume", run_id=str(uuid.uuid4().hex)
+                    ),
                     end_time=fifteen_minutes_from_now_ms,
                 )
                 assert events_sent + events.flush_events() >= 0
@@ -228,7 +231,9 @@ class TestEvents:
             events_sent = bizevents.report_via_api(
                 query_data=_utils._get_unpickled_entries(PICKLE_NAME, limit=2),
                 event_type=str(EventType.CUSTOM_INFO),
-                context=get_context_name_and_run_id("data_volume"),
+                context=get_context_name_and_run_id(
+                    plugin_name="test_send_results_as_bizevents", context_name="data_volume", run_id=str(uuid.uuid4().hex)
+                ),
             )
 
             events_sent += bizevents.flush_events()
@@ -242,7 +247,9 @@ class TestEvents:
             bizevents = self._dtagent._get_biz_events()
 
             cnt = bizevents.report_via_api(
-                context=get_context_name_and_run_id("self-monitoring"),
+                context=get_context_name_and_run_id(
+                    plugin_name="test_send_events_directly", context_name="self_monitoring", run_id=str(uuid.uuid4().hex)
+                ),
                 event_type="dsoa.task",
                 query_data=[
                     {

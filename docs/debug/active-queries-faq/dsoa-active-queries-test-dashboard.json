@@ -21,7 +21,7 @@
             "from": "now()-24h",
             "to": "now()"
           },
-          "value": "fetch bizevents\n| filter db.system == \"snowflake\"\n| filter dsoa.run.context == \"self-monitoring\"\n| filter deployment.environment == \"PROD\" // <-- set to your configuration CORE.DEPLOYMENT_ENVIRONMENT\n| filter dsoa.task.name == \"active_queries\"\n| sort timestamp asc\n| summarize {\n  timestamp = takeFirst(timestamp) + 2h,\n  snowagent.run.duration = max(timestamp) - min(timestamp),\n  count = count()\n}, by: {\n  deployment.environment,\n  deployment.environment.tag = coalesce(deployment.environment.tag, env_tag),\n  dsoa.task.exec.id,\n  dsoa.task.name\n}\n| filter count > 1\n| makeTimeseries {\n  snowagent.run.duration = sum(snowagent.run.duration)\n}, by: {\n  deployment.environment,\n  dsoa.run.context = dsoa.task.name\n}"
+          "value": "fetch bizevents\n| filter db.system == \"snowflake\"\n| filter dsoa.run.context == \"self_monitoring\"\n| filter deployment.environment == \"PROD\" // <-- set to your configuration CORE.DEPLOYMENT_ENVIRONMENT\n| filter dsoa.task.name == \"active_queries\"\n| sort timestamp asc\n| summarize {\n  timestamp = takeFirst(timestamp) + 2h,\n  snowagent.run.duration = max(timestamp) - min(timestamp),\n  count = count()\n}, by: {\n  deployment.environment,\n  deployment.environment.tag = coalesce(deployment.environment.tag, env_tag),\n  dsoa.task.exec.id,\n  dsoa.task.name\n}\n| filter count > 1\n| makeTimeseries {\n  snowagent.run.duration = sum(snowagent.run.duration)\n}, by: {\n  deployment.environment,\n  dsoa.run.context = dsoa.task.name\n}"
         },
         "visualizationSettings": {
           "thresholds": [],

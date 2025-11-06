@@ -27,9 +27,9 @@ Plugin file for processing dynamic tables plugin data.
 #
 #
 
-import uuid
 from typing import Tuple, Dict
 from dtagent.plugins import Plugin
+from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPILE_REMOVE
 
 ##endregion COMPILE_REMOVE
 
@@ -41,15 +41,20 @@ class DynamicTablesPlugin(Plugin):
     Dynamic tables plugin class.
     """
 
-    def process(self, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
+    def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
         """
         Processes the measures on dynamic tables
+
+        Args:
+            run_id (str): unique run identifier
+            run_proc (bool): indicator whether processing should be logged as completed
 
         Returns:
             Dict[str,int]: A dictionary with counts of processed telemetry data.
 
             Example:
             {
+            "dsoa.run.results": {
                 "dynamic_tables": {
                     "entries": entries_cnt,
                     "log_lines": logs_cnt,
@@ -68,13 +73,13 @@ class DynamicTablesPlugin(Plugin):
                     "metrics": metrics_graph_cnt,
                     "events": event_graph_cnt,
                 },
+            },
+            "dsoa.run.id": "uuid_string"
             }
         """
         t_dynamic_tables = "APP.V_DYNAMIC_TABLES_INSTRUMENTED"
         t_dynamic_table_refresh_history = "APP.V_DYNAMIC_TABLE_REFRESH_HISTORY_INSTRUMENTED"
         t_dynamic_table_graph_history = "APP.V_DYNAMIC_TABLE_GRAPH_HISTORY_INSTRUMENTED"
-
-        run_id = str(uuid.uuid4().hex)
 
         (entries_cnt, logs_cnt, metrics_cnt, event_cnt) = self._log_entries(
             lambda: self._get_table_rows(t_dynamic_tables),
@@ -101,24 +106,28 @@ class DynamicTablesPlugin(Plugin):
         )
 
         return {
-            "dynamic_tables": {
-                "entries": entries_cnt,
-                "log_lines": logs_cnt,
-                "metrics": metrics_cnt,
-                "events": event_cnt,
+            RUN_PLUGIN_KEY: "dynamic_tables",
+            RUN_RESULTS_KEY: {
+                "dynamic_tables": {
+                    "entries": entries_cnt,
+                    "log_lines": logs_cnt,
+                    "metrics": metrics_cnt,
+                    "events": event_cnt,
+                },
+                "dynamic_table_refresh_history": {
+                    "entries": entries_refresh_cnt,
+                    "log_lines": logs_refresh_cnt,
+                    "metrics": metrics_refresh_cnt,
+                    "events": event_refresh_cnt,
+                },
+                "dynamic_table_graph_history": {
+                    "entries": entries_graph_cnt,
+                    "log_lines": logs_graph_cnt,
+                    "metrics": metrics_graph_cnt,
+                    "events": event_graph_cnt,
+                },
             },
-            "dynamic_table_refresh_history": {
-                "entries": entries_refresh_cnt,
-                "log_lines": logs_refresh_cnt,
-                "metrics": metrics_refresh_cnt,
-                "events": event_refresh_cnt,
-            },
-            "dynamic_table_graph_history": {
-                "entries": entries_graph_cnt,
-                "log_lines": logs_graph_cnt,
-                "metrics": metrics_graph_cnt,
-                "events": event_graph_cnt,
-            },
+            RUN_ID_KEY: run_id,
         }
 
 

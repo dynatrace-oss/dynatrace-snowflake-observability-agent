@@ -35,7 +35,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union, Generator
 
 import requests
 
-from dtagent.context import CONTEXT_NAME
+from dtagent.context import RUN_CONTEXT_KEY
 from dtagent.otel import _log_warning
 from dtagent.otel.otel_manager import OtelManager
 from dtagent.otel.events import EventType, AbstractEvents

@@ -60,8 +60,8 @@ jobs:
         run: |
           chmod +x *.sh
           ./package.sh full
-          BUILD_NUMBER=$(grep 'BUILD =' build/_version.py | awk '{print $3}')
-          echo "ZIP_NAME=dynatrace_snowflake_observability_agent-${{ steps.get_version.outputs.VERSION }}.${BUILD_NUMBER}.zip" >> $GITHUB_OUTPUT
+          BUILD_NR=$(grep 'BUILD =' build/_version.py | awk '{print $3}')
+          echo "ZIP_NAME=dynatrace_snowflake_observability_agent-${{ steps.get_version.outputs.VERSION }}.${BUILD_NR}.zip" >> $GITHUB_OUTPUT
           echo "PDF_NAME=Dynatrace-Snowflake-Observability-Agent-${{ steps.get_version.outputs.VERSION }}.pdf" >> $GITHUB_OUTPUT
 
       - name: Upload build artifacts

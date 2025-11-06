@@ -31,6 +31,8 @@ from unittest.mock import MagicMock, patch, Mock
 
 from git import Union
 
+from dtagent.context import RUN_ID_KEY, RUN_RESULTS_KEY
+
 
 class MockTelemetryClient:
 
@@ -100,6 +102,13 @@ class MockTelemetryClient:
                                 expected_str.splitlines(), actual_str.splitlines(), fromfile="expected", tofile="actual", lineterm=""
                             )
                         )
+                        if telemetry_type == "biz_events":
+                            if isinstance(sorted_actual, list):
+                                for entry in sorted_actual:
+                                    entry["data"].pop(RUN_RESULTS_KEY, None)
+                            else:
+                                sorted_actual["data"].pop(RUN_RESULTS_KEY, None)
+
                     assert (
                         sorted_actual == sorted_expected
                     ), f"Telemetry type {telemetry_type} does not match expected results from {filepath}:\n\nDiff:\n{diff}"
@@ -390,7 +399,8 @@ class MockTelemetryClient:
                     # id in biz events and events is unique per event
                     "id",
                     # each agent run has a different run id
-                    "dsoa.run.id",
+                    RUN_ID_KEY,
+                    RUN_RESULTS_KEY,
                     "dsoa.task.exec.id",
                     # DSOA versions
                     "app.version",

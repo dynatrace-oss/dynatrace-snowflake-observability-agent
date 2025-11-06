@@ -14,7 +14,8 @@
       "k": "v",
       "k2": 2
     },
-    "dsoa.run.context": "test_automode/012"
+    "dsoa.run.context": "test_automode/012",
+    "dsoa.run.plugin": "telemetry_sender"
   },
   {
     "content": "This is a test object 2",
@@ -30,7 +31,8 @@
       "k": 1,
       "k2": 2
     },
-    "dsoa.run.context": "test_automode/012"
+    "dsoa.run.context": "test_automode/012",
+    "dsoa.run.plugin": "telemetry_sender"
   },
   {
     "content": "Log entry sent with test_automode/012",
@@ -47,14 +49,20 @@
       "k": false,
       "k2": true
     },
-    "dsoa.run.context": "test_automode/012"
+    "dsoa.run.context": "test_automode/012",
+    "dsoa.run.plugin": "telemetry_sender"
   },
   {
     "content": "New entry to STATUS.LOG_PROCESSED_MEASUREMENTS from test_automode/012",
-    "entries": 3,
-    "log_lines": 3,
-    "events": 3,
-    "biz_events": 3,
-    "dsoa.run.context": "self_monitoring"
+    "test_automode/012": {
+      "biz_events": 3,
+      "davis_events": 0,
+      "entries": 3,
+      "events": 3,
+      "log_lines": 3,
+      "metrics": 0
+    },
+    "dsoa.run.context": "self_monitoring",
+    "dsoa.run.plugin": "telemetry_sender"
   }
 ]

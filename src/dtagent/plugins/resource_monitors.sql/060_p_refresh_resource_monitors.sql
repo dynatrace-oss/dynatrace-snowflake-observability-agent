@@ -59,8 +59,8 @@ as
 $$
 DECLARE
     tr_tmp_resource_monitors    TEXT DEFAULT 'truncate table APP.TMP_RESOURCE_MONITORS;';
-    q_show_resource_monitors    TEXT DEFAULT 'show resource monitors;';
-    q_pop_tmp_res_mon           TEXT DEFAULT 'insert into APP.TMP_RESOURCE_MONITORS select 
+    q_show_resource_monitors    TEXT DEFAULT 'SHOW RESOURCE MONITORS ->>
+                                              insert into APP.TMP_RESOURCE_MONITORS select 
                                                 "name", 
                                                 "credit_quota", "used_credits", "remaining_credits", "level", "frequency", 
                                                 "start_time", "end_time", 
@@ -70,8 +70,8 @@ DECLARE
                                               from table(result_scan(last_query_id()));';
 
     tr_tmp_warehouses           TEXT DEFAULT 'truncate table APP.TMP_WAREHOUSES;';
-    q_show_warehouses           TEXT DEFAULT 'show warehouses;';
-    q_pop_tmp_wh                TEXT DEFAULT 'insert into APP.TMP_WAREHOUSES select 
+    q_show_warehouses           TEXT DEFAULT 'SHOW WAREHOUSES ->>
+                                              insert into APP.TMP_WAREHOUSES select 
                                                 "name", "state", "type", "size", 
                                                 "min_cluster_count", "max_cluster_count", 
                                                 "started_clusters", "running", "queued", 
@@ -90,11 +90,9 @@ DECLARE
 BEGIN
     EXECUTE IMMEDIATE :tr_tmp_resource_monitors;
     EXECUTE IMMEDIATE :q_show_resource_monitors;
-    EXECUTE IMMEDIATE :q_pop_tmp_res_mon;
 
     EXECUTE IMMEDIATE :tr_tmp_warehouses;
     EXECUTE IMMEDIATE :q_show_warehouses;
-    EXECUTE IMMEDIATE :q_pop_tmp_wh;
 
     RETURN 'tables APP.TMP_RESOURCE_MONITORS, APP.TMP_WAREHOUSES updated';
 EXCEPTION

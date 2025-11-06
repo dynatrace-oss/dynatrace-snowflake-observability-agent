@@ -27,9 +27,9 @@ Plugin file for processing tasks plugin data.
 #
 #
 
-import uuid
 from typing import Tuple, Dict
-from src.dtagent.plugins import Plugin
+from dtagent.plugins import Plugin
+from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPILE_REMOVE
 
 ##endregion COMPILE_REMOVE
 
@@ -41,14 +41,20 @@ class TasksPlugin(Plugin):
     Tasks plugin class.
     """
 
-    def process(self, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
+    def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
         """
         Processes the measures on serverless tasks, task history and task versions.
+
+        Args:
+            run_id (str): unique run identifier
+            run_proc (bool): indicator whether processing should be logged as completed
+
         Returns:
             Dict[str,int]: A dictionary with telemetry counts for tasks.
 
             Example:
             {
+            "dsoa.run.results": {
                 "serverless_tasks": {
                     "entries": serverless_tasks_entries_cnt,
                     "log_lines": serverless_task_logs_cnt,
@@ -67,14 +73,14 @@ class TasksPlugin(Plugin):
                     "metrics": task_history_metrics_cnt,
                     "events": task_history_events_cnt,
                 },
+            },
+            "dsoa.run.id": "uuid_string"
             }
         """
 
         t_serverless_task = "APP.V_SERVERLESS_TASKS"
         t_task_hist = "APP.V_TASK_HISTORY"
         t_task_versions = "APP.V_TASK_VERSIONS"
-
-        run_id = str(uuid.uuid4().hex)
 
         (
             serverless_tasks_entries_cnt,
@@ -114,24 +120,28 @@ class TasksPlugin(Plugin):
         )
 
         return {
-            "serverless_tasks": {
-                "entries": serverless_tasks_entries_cnt,
-                "log_lines": serverless_task_logs_cnt,
-                "metrics": serverless_tasks_metrics_cnt,
-                "events": serverless_tasks_events_cnt,
+            RUN_PLUGIN_KEY: "tasks",
+            RUN_RESULTS_KEY: {
+                "serverless_tasks": {
+                    "entries": serverless_tasks_entries_cnt,
+                    "log_lines": serverless_task_logs_cnt,
+                    "metrics": serverless_tasks_metrics_cnt,
+                    "events": serverless_tasks_events_cnt,
+                },
+                "task_versions": {
+                    "entries": task_versions_entries_cnt,
+                    "log_lines": task_versions_logs_cnt,
+                    "metrics": task_versions_metrics_cnt,
+                    "events": task_versions_events_cnt,
+                },
+                "task_history": {
+                    "entries": task_history_entries_cnt,
+                    "log_lines": task_history_logs_cnt,
+                    "metrics": task_history_metrics_cnt,
+                    "events": task_history_events_cnt,
+                },
             },
-            "task_versions": {
-                "entries": task_versions_entries_cnt,
-                "log_lines": task_versions_logs_cnt,
-                "metrics": task_versions_metrics_cnt,
-                "events": task_versions_events_cnt,
-            },
-            "task_history": {
-                "entries": task_history_entries_cnt,
-                "log_lines": task_history_logs_cnt,
-                "metrics": task_history_metrics_cnt,
-                "events": task_history_events_cnt,
-            },
+            RUN_ID_KEY: run_id,
         }
 
 

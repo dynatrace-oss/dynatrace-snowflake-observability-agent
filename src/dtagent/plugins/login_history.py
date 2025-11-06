@@ -27,11 +27,11 @@ Plugin file for processing login history plugin data.
 #
 #
 
-import uuid
 from typing import Tuple, Dict
 from dtagent.otel.events import EventType
 from dtagent.util import _unpack_payload
 from dtagent.plugins import Plugin
+from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPILE_REMOVE
 
 ##endregion COMPILE_REMOVE
 
@@ -59,15 +59,20 @@ class LoginHistoryPlugin(Plugin):
         }
         return EventType.CUSTOM_ALERT, "Failed login attempt", payload
 
-    def process(self, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
+    def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
         """
         Processes the measures on login history.
+
+        Args:
+            run_id (str): unique run identifier
+            run_proc (bool): indicator whether processing should be logged as completed
 
         Returns:
             Dict[str,int]: A dictionary with counts of processed telemetry data.
 
             Example:
             {
+            "dsoa.run.results": {
                 "login_history": {
                     "entries": entries_cnt,
                     "log_lines": logs_cnt,
@@ -80,12 +85,12 @@ class LoginHistoryPlugin(Plugin):
                     "metrics": metrics_cnt,
                     "events": event_cnt,
                 },
+            },
+            "dsoa.run.id": "uuid_string"
             }
         """
         t_sessions = "APP.V_SESSIONS"
         t_login_history = "APP.V_LOGIN_HISTORY"
-
-        run_id = str(uuid.uuid4().hex)
 
         login_history_entries_cnt, login_history_logs_cnt, login_history_metrics_cnt, login_history_events_cnt = self._log_entries(
             f_entry_generator=lambda: self._get_table_rows(t_login_history),
@@ -105,18 +110,22 @@ class LoginHistoryPlugin(Plugin):
         )
 
         return {
-            "login_history": {
-                "entries": login_history_entries_cnt,
-                "log_lines": login_history_logs_cnt,
-                "metrics": login_history_metrics_cnt,
-                "events": login_history_events_cnt,
+            RUN_PLUGIN_KEY: "login_history",
+            RUN_RESULTS_KEY: {
+                "login_history": {
+                    "entries": login_history_entries_cnt,
+                    "log_lines": login_history_logs_cnt,
+                    "metrics": login_history_metrics_cnt,
+                    "events": login_history_events_cnt,
+                },
+                "sessions": {
+                    "entries": sessions_entries_cnt,
+                    "log_lines": session_logs_cnt,
+                    "metrics": session_metrics_cnt,
+                    "events": session_events_cnt,
+                },
             },
-            "sessions": {
-                "entries": sessions_entries_cnt,
-                "log_lines": session_logs_cnt,
-                "metrics": session_metrics_cnt,
-                "events": session_events_cnt,
-            },
+            RUN_ID_KEY: run_id,
         }
 
 

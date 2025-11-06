@@ -14,6 +14,7 @@
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.context": "data_schemas",
+    "dsoa.run.plugin": "test_data_schemas",
     "eventType": "CUSTOM_INFO",
     "title": "Objects accessed by query 01b165f1-0604-1812-0040-e0030291d142 run by STEFAN.SCHWEIGER"
   },
@@ -33,6 +34,7 @@
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.context": "data_schemas",
+    "dsoa.run.plugin": "test_data_schemas",
     "eventType": "CUSTOM_INFO",
     "title": "Objects accessed by query 01b165fb-0604-1945-0040-e0030291c3be run by STEFAN.SCHWEIGER"
   }

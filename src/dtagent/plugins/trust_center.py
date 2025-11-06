@@ -26,12 +26,12 @@ Plugin file for processing trust center plugin data.
 # SOFTWARE.
 #
 #
-import uuid
 import logging
 from dtagent.otel.events import EventType
 from dtagent.plugins import Plugin
 from dtagent.util import _unpack_json_dict
 from typing import Tuple, Dict
+from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPILE_REMOVE
 
 ##endregion COMPILE_REMOVE
 
@@ -77,24 +77,30 @@ class TrustCenterPlugin(Plugin):
 
         return EventType.CUSTOM_ALERT, "Trust Center Critical problem", {}
 
-    def process(self, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
+    def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
         """
         Processes data for trust center plugin.
-        Returns
+
+        Args:
+            run_id (str): unique run identifier
+            run_proc (bool): indicator whether processing should be logged as completed
+
+        Returns:
             Dict[str,int]: A dictionary with counts of processed telemetry data.
 
             Example:
             {
+            "dsoa.run.results": {
                 "trust_center": {
                     "entries": entries_cnt,
                     "log_lines": logs_cnt,
                     "metrics": metrics_cnt,
                     "events": events_cnt
                 }
+            },
+            "dsoa.run.id": "uuid_string"
             }
         """
-
-        run_id = str(uuid.uuid4().hex)
 
         metric_entries_cnt, _, metrics_sent_cnt, _ = self._log_entries(
             f_entry_generator=lambda: self._get_table_rows("APP.V_TRUST_CENTER_METRICS"),
@@ -130,14 +136,9 @@ class TrustCenterPlugin(Plugin):
         }
 
         if run_proc:
-            self._report_execution(
-                "trust_center",
-                str(self.processed_last_timestamp),
-                None,
-                results_dict,
-            )
+            self._report_execution("trust_center", str(self.processed_last_timestamp), None, results_dict, run_id=run_id)
 
-        return results_dict
+        return {RUN_PLUGIN_KEY: "trust_center", RUN_RESULTS_KEY: results_dict, RUN_ID_KEY: run_id}
 
 
 ##endregion

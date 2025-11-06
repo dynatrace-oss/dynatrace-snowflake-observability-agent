@@ -63,6 +63,7 @@
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.context": "data_volume",
+    "dsoa.run.plugin": "test_send_events_directly",
     "eventType": "CUSTOM_DEPLOYMENT",
     "title": "Dynatrace Snowflake Observability Agent test event 6"
   }

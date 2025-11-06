@@ -26,10 +26,10 @@ Plugin file for processing event usage plugin data.
 # SOFTWARE.
 #
 #
-
 from typing import Tuple, Dict
 from dtagent.util import _unpack_json_dict
 from dtagent.plugins import Plugin
+from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPILE_REMOVE
 
 ##endregion COMPILE_REMOVE
 
@@ -59,34 +59,48 @@ class EventUsagePlugin(Plugin):
         )
         return True
 
-    def process(self, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
+    def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
         """
         Processes data for event usage plugin.
+
+        Args:
+            run_id (str): unique run identifier
+            run_proc (bool): indicator whether processing should be logged as completed
+
         Returns:
             Dict[str,int]: A dictionary with counts of processed telemetry data.
 
             Example:
             {
-                "entries": entries_cnt,
-                "log_lines": logs_cnt,
-                "metrics": metrics_cnt,
-                "events": events_cnt
+            "dsoa.run.results": {
+                "event_usage": {
+                    "entries": entries_cnt,
+                    "log_lines": logs_cnt,
+                    "metrics": metrics_cnt,
+                    "events": events_cnt
+                },
+            },
+            "dsoa.run.id": "uuid_string"
             }
         """
-
         processed_entries_cnt, processed_logs_cnt, processed_event_metrics_cnt, processed_events_cnt = self._log_entries(
             f_entry_generator=lambda: self._get_table_rows("APP.V_EVENT_USAGE_HISTORY"),
             context_name="event_usage",
+            run_uuid=run_id,
             report_timestamp_events=False,
             log_completion=run_proc,
             f_report_log=self._report_event_usage_log,
         )
 
         return {
-            "event_usage": {
-                "entries": processed_entries_cnt,
-                "log_lines": processed_logs_cnt,
-                "metrics": processed_event_metrics_cnt,
-                "events": processed_events_cnt,
-            }
+            RUN_PLUGIN_KEY: "event_usage",
+            RUN_RESULTS_KEY: {
+                "event_usage": {
+                    "entries": processed_entries_cnt,
+                    "log_lines": processed_logs_cnt,
+                    "metrics": processed_event_metrics_cnt,
+                    "events": processed_events_cnt,
+                },
+            },
+            RUN_ID_KEY: run_id,
         }

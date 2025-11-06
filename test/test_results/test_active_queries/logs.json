@@ -22,7 +22,8 @@
     "snowflake.query.execution_status": "SUCCESS",
     "snowflake.role.name": "DTAGENT_SKRUK_ADMIN",
     "snowflake.warehouse.name": "DTAGENT_SKRUK_WH",
-    "dsoa.run.context": "active_queries"
+    "dsoa.run.context": "active_queries",
+    "dsoa.run.plugin": "test_active_queries"
   },
   {
     "content": "SQL query SUCCESS at DTAGENT_SKRUK_DB",
@@ -47,6 +48,7 @@
     "snowflake.query.execution_status": "SUCCESS",
     "snowflake.role.name": "DTAGENT_SKRUK_ADMIN",
     "snowflake.warehouse.name": "DTAGENT_SKRUK_WH",
-    "dsoa.run.context": "active_queries"
+    "dsoa.run.context": "active_queries",
+    "dsoa.run.plugin": "test_active_queries"
   }
 ]

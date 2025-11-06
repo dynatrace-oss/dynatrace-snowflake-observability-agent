@@ -26,9 +26,9 @@ Plugin file for processing active queries plugin data.
 # SOFTWARE.
 #
 #
-
 from typing import Tuple, Dict
 from dtagent.plugins import Plugin
+from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPILE_REMOVE
 
 ##endregion COMPILE_REMOVE
 
@@ -40,19 +40,29 @@ class ActiveQueriesPlugin(Plugin):
     Active queries plugin class.
     """
 
-    def process(self, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
+    def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
         """
         Processes the measures on active queries
+
+        Args:
+            run_id (str): unique run identifier
+            run_proc (bool): indicator whether processing should be logged as completed
 
         Returns:
             Dict[str,int]: A dictionary with counts of processed telemetry data.
 
             Example:
             {
-                "entries": entries_cnt,
-                "log_lines": logs_cnt,
-                "metrics": metrics_cnt,
-                "events": events_cnt
+            "dsoa.run.results": {
+                "active_queries":
+                {
+                    "entries": entries_cnt,
+                    "log_lines": logs_cnt,
+                    "metrics": metrics_cnt,
+                    "events": events_cnt
+                }
+            },
+            "dsoa.run.id": "uuid_string"
             }
         """
         t_active_queries = "SELECT * FROM TABLE(DTAGENT_DB.APP.F_ACTIVE_QUERIES_INSTRUMENTED())"
@@ -60,12 +70,19 @@ class ActiveQueriesPlugin(Plugin):
         entries_cnt, logs_cnt, metrics_cnt, events_cnt = self._log_entries(
             lambda: self._get_table_rows(t_active_queries),
             "active_queries",
+            run_uuid=run_id,
             report_timestamp_events=False,
             report_metrics=True,
             log_completion=run_proc,
         )
 
-        return {"active_queries": {"entries": entries_cnt, "log_lines": logs_cnt, "metrics": metrics_cnt, "events": events_cnt}}
+        return {
+            RUN_PLUGIN_KEY: "active_queries",
+            RUN_RESULTS_KEY: {
+                "active_queries": {"entries": entries_cnt, "log_lines": logs_cnt, "metrics": metrics_cnt, "events": events_cnt}
+            },
+            RUN_ID_KEY: run_id,
+        }
 
 
 ##endregion

@@ -35,8 +35,8 @@ execute as caller
 as
 $$
 DECLARE
-    q_show_databases        TEXT DEFAULT    'show databases';
-    c_database_names        CURSOR FOR      with cte_includes as (
+    c_database_names        CURSOR FOR      SHOW DATABASES ->> 
+                                            with cte_includes as (
                                                 select distinct split_part(ci.VALUE, '.', 0) as db_pattern
                                                 from CONFIG.CONFIGURATIONS c, table(flatten(c.VALUE)) ci
                                                 where c.PATH = 'plugins.dynamic_tables.include'
@@ -56,9 +56,6 @@ DECLARE
     q_grant_monitor_all     TEXT DEFAULT    '';
     q_grant_monitor_future  TEXT DEFAULT    '';
 BEGIN
-    -- list all warehouses
-    EXECUTE IMMEDIATE :q_show_databases;
-
     -- iterate over warehouses
     FOR r_db IN c_database_names DO
         q_grant_monitor_all := 'grant monitor on all dynamic tables in database ' || r_db.name || '  to role DTAGENT_VIEWER;';

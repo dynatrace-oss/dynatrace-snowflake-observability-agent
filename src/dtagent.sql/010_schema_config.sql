@@ -29,5 +29,3 @@ use role DTAGENT_ADMIN; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 create schema if not exists CONFIG;
 
 grant usage on schema CONFIG to role DTAGENT_VIEWER;
-
-show grants on schema CONFIG;

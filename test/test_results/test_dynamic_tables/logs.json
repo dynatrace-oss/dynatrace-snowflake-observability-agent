@@ -15,7 +15,8 @@
     "db.namespace": "DYNAMIC_TABLE_DB",
     "snowflake.schema.name": "DYNAMIC_TABLE_SCH",
     "snowflake.table.full_name": "DYNAMIC_TABLE_DB.DYNAMIC_TABLE_SCH.EMPLOYEE_DET",
-    "dsoa.run.context": "dynamic_tables"
+    "dsoa.run.context": "dynamic_tables",
+    "dsoa.run.plugin": "test_dynamic_tables"
   },
   {
     "content": "dynamic_table_refresh_history",
@@ -33,7 +34,8 @@
     "db.namespace": "DYNAMIC_TABLE_DB",
     "snowflake.schema.name": "DYNAMIC_TABLE_SCH",
     "snowflake.table.full_name": "DYNAMIC_TABLE_DB.DYNAMIC_TABLE_SCH.EMPLOYEE_DET",
-    "dsoa.run.context": "dynamic_table_refresh_history"
+    "dsoa.run.context": "dynamic_table_refresh_history",
+    "dsoa.run.plugin": "test_dynamic_tables"
   },
   {
     "content": "dynamic_table_refresh_history",
@@ -51,7 +53,8 @@
     "db.namespace": "DYNAMIC_TABLE_DB",
     "snowflake.schema.name": "DYNAMIC_TABLE_SCH",
     "snowflake.table.full_name": "DYNAMIC_TABLE_DB.DYNAMIC_TABLE_SCH.EMPLOYEE_DET",
-    "dsoa.run.context": "dynamic_table_refresh_history"
+    "dsoa.run.context": "dynamic_table_refresh_history",
+    "dsoa.run.plugin": "test_dynamic_tables"
   },
   {
     "content": "dynamic_table_graph_history",
@@ -77,6 +80,7 @@
     "db.namespace": "DYNAMIC_TABLE_DB",
     "snowflake.schema.name": "DYNAMIC_TABLE_SCH",
     "snowflake.table.full_name": "DYNAMIC_TABLE_DB.DYNAMIC_TABLE_SCH.EMPLOYEE_DET",
-    "dsoa.run.context": "dynamic_table_graph_history"
+    "dsoa.run.context": "dynamic_table_graph_history",
+    "dsoa.run.plugin": "test_dynamic_tables"
   }
 ]

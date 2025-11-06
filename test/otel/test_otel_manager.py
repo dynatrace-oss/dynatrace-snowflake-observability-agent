@@ -21,7 +21,7 @@
 # SOFTWARE.
 #
 #
-
+import uuid
 import pytest
 from dtagent.otel.otel_manager import OtelManager
 from test._utils import LocalTelemetrySender, get_config, read_clean_json_from_file
@@ -43,7 +43,10 @@ class TestOtelManager:
 
             session = _get_session()
             sender = LocalTelemetrySender(
-                session, {"auto_mode": False, "logs": False, "events": True, "bizevents": True, "metrics": True}, config=get_config()
+                session,
+                {"auto_mode": False, "logs": False, "events": True, "bizevents": True, "metrics": True},
+                config=get_config(),
+                exec_id=str(uuid.uuid4().hex),
             )
             OtelManager.set_max_fail_count(max_fails_allowed)
 

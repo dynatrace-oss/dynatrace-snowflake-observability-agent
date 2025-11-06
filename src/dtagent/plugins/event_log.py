@@ -28,10 +28,10 @@ Plugin file for processing event log plugin data.
 #
 import logging
 from typing import Dict, Generator, Tuple
-import uuid
 import pandas as pd
 from dtagent.util import _unpack_json_dict
 from dtagent.plugins import Plugin
+from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPILE_REMOVE
 
 ##endregion COMPILE_REMOVE
 
@@ -149,15 +149,20 @@ class EventLogPlugin(Plugin):
             metrics_sent,
         )
 
-    def process(self, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
+    def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
         """
         Analyzes changes in the event log
+
+        Args:
+            run_id (str): unique run identifier
+            run_proc (bool): indicator whether processing should be logged as completed
 
         Returns:
             Dict[str, Dict[str, int]: A dictionary with counts of processed telemetry data.
 
             Example:
             {
+            "dsoa.run.results": {
                 "event_log": {
                     "entries": l_entries_cnt,
                     "log_lines": l_logs_cnt,
@@ -178,10 +183,10 @@ class EventLogPlugin(Plugin):
                     "span_events": s_span_events_added,
                     "errors": s_errors_count,
                 },
+            },
+            "dsoa.run.id": "uuid_string"
             }
         """
-        run_id = str(uuid.uuid4().hex)
-
         (
             s_entries_cnt,
             s_errors_count,
@@ -194,26 +199,30 @@ class EventLogPlugin(Plugin):
         l_entries_cnt, l_logs_cnt, l_metrics_cnt, l_events_cnt = self._process_log_entries(run_id, run_proc)
 
         return {
-            "event_log": {
-                "entries": l_entries_cnt,
-                "log_lines": l_logs_cnt,
-                "metrics": l_metrics_cnt,
-                "events": l_events_cnt,
+            RUN_PLUGIN_KEY: "event_log",
+            RUN_RESULTS_KEY: {
+                "event_log": {
+                    "entries": l_entries_cnt,
+                    "log_lines": l_logs_cnt,
+                    "metrics": l_metrics_cnt,
+                    "events": l_events_cnt,
+                },
+                "event_log_metrics": {
+                    "entries": m_entries_cnt,
+                    "log_lines": m_logs_cnt,
+                    "metrics": m_metrics_cnt,
+                    "events": m_event_cnt,
+                },
+                "event_log_spans": {
+                    "entries": s_entries_cnt,
+                    "log_lines": s_logs_sent,
+                    "metrics": s_metrics_sent,
+                    "spans": s_spans_sent,
+                    "span_events": s_span_events_added,
+                    "errors": s_errors_count,
+                },
             },
-            "event_log_metrics": {
-                "entries": m_entries_cnt,
-                "log_lines": m_logs_cnt,
-                "metrics": m_metrics_cnt,
-                "events": m_event_cnt,
-            },
-            "event_log_spans": {
-                "entries": s_entries_cnt,
-                "log_lines": s_logs_sent,
-                "metrics": s_metrics_sent,
-                "spans": s_spans_sent,
-                "span_events": s_span_events_added,
-                "errors": s_errors_count,
-            },
+            RUN_ID_KEY: run_id,
         }
 
 

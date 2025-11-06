@@ -169,7 +169,7 @@ def _generate_plugins_info(dtagent_plugins_path: str) -> Tuple[str, List]:
 def _generate_semantics_section(dtagent_conf_path: str, dtagent_plugins_path: str) -> Tuple[str, List]:
     """Generates semantics sections for .md file."""
 
-    from src.dtagent.context import CONTEXT_NAME
+    from src.dtagent.context import RUN_CONTEXT_KEY
 
     def __contains_key(d: Dict, key: str) -> bool:
         """Returns True if there is at least on key with given name
@@ -228,9 +228,11 @@ def _generate_semantics_section(dtagent_conf_path: str, dtagent_plugins_path: st
                         __content += f"[Show plugin description](#{plugin_name}_info_sec)\n\n"
 
                         if no_global_context_name:
-                            __content += f"This plugin delivers telemetry in multiple contexts. To filter by one of plugin's context names (reported as `{CONTEXT_NAME}`), please check the `Context Name` column below.\n\n"
+                            __content += f"This plugin delivers telemetry in multiple contexts. To filter by one of plugin's context names (reported as `{RUN_CONTEXT_KEY}`), please check the `Context Name` column below.\n\n"
                         else:
-                            __content += f'All telemetry delivered by this plugin is reported as `{CONTEXT_NAME} == "{plugin_name}"`.\n\n'
+                            __content += (
+                                f'All telemetry delivered by this plugin is reported as `{RUN_CONTEXT_KEY} == "{plugin_name}"`.\n\n'
+                            )
 
                         __content += plugin_semantics
 

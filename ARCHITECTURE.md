@@ -352,7 +352,7 @@ Example of task status bizevent payload.
     "event.type": "dsoa.task",
     "host.name": "snowflakecomputing.com",
     "service.name": "dynatrace",
-    "dsoa.run.context": "self-monitoring",
+    "dsoa.run.context": "self_monitoring",
     "dsoa.run.id": "2c8988a1b94d43aeaa11d3c83d45468b",
     "dsoa.task.exec.id": "2025-03-18 10:58:59.364252",
     "dsoa.task.exec.status": "STARTED",

@@ -53,7 +53,8 @@ variables:
       | filter in(deployment.environment, array($Accounts))
       | filter matchesPattern(db.query.text,
           """'call DTAGENT' ('_' LD:tag)?  '_DB.APP.DTAGENT(ARRAY_CONSTRUCT(' ARRAY{SQS:plugin_name ', '?}{1,}:plugin_names '))'""")
-      | parse `db.query.text`, """'call DTAGENT' ('_' LD:env_tag)?  '_DB.APP.DTAGENT(ARRAY_CONSTRUCT(' ARRAY{SQS:plugin_name ', '?}{1,}:plugin_names '))'"""
+      | parse `db.query.text`,
+          """'call DTAGENT' ('_' LD:env_tag)?  '_DB.APP.DTAGENT(ARRAY_CONSTRUCT(' ARRAY{SQS:plugin_name ', '?}{1,}:plugin_names '))'"""
       | expand plugin_name = plugin_names
       | fields plugin_name
       | dedup plugin_name
@@ -73,7 +74,8 @@ variables:
       | filter in(deployment.environment, array($Accounts))
       | filter matchesPattern(db.query.text,
           """'call DTAGENT' ('_' LD:tag)?  '_DB.APP.DTAGENT(ARRAY_CONSTRUCT(' ARRAY{SQS:plugin_name ', '?}{1,}:plugin_names '))'""")
-      | parse `db.query.text`, """'call DTAGENT' ('_' LD:env_tag)?  '_DB.APP.DTAGENT(ARRAY_CONSTRUCT(' ARRAY{SQS:plugin_name ', '?}{1,}:plugin_names '))'"""
+      | parse `db.query.text`,
+          """'call DTAGENT' ('_' LD:env_tag)?  '_DB.APP.DTAGENT(ARRAY_CONSTRUCT(' ARRAY{SQS:plugin_name ', '?}{1,}:plugin_names '))'"""
       | expand plugin_name = plugin_names
       | fields plugin_name
       | filter in(plugin_name, array($Plugin_Names))
@@ -147,7 +149,7 @@ tiles:
     query: |-
       fetch bizevents
       | filter db.system == "snowflake"
-      | filter dsoa.run.context == "self-monitoring"
+      | filter dsoa.run.context == "self_monitoring"
       | filter in(deployment.environment, array($Accounts))
       | filter in(dsoa.task.name, array($Plugin_Names))
       | sort timestamp asc
@@ -215,7 +217,8 @@ tiles:
       | filter snowflake.query.execution_status != "SUCCESS"
       | filter matchesPattern(db.query.text,
           """'call DTAGENT' ('_' LD:tag)?  '_DB.APP.DTAGENT(ARRAY_CONSTRUCT(' ARRAY{SQS:plugin_name ', '?}{1,}:plugin_names '))'""")
-      | parse `db.query.text`, """'call DTAGENT' ('_' LD:env_tag)?  '_DB.APP.DTAGENT(ARRAY_CONSTRUCT(' ARRAY{SQS:plugin_name ', '?}{1,}:plugin_names '))'"""
+      | parse `db.query.text`,
+          """'call DTAGENT' ('_' LD:env_tag)?  '_DB.APP.DTAGENT(ARRAY_CONSTRUCT(' ARRAY{SQS:plugin_name ', '?}{1,}:plugin_names '))'"""
       | expand plugin_name = plugin_names
       | fields plugin_name, timestamp, snowflake.query.execution_status
       | makeTimeseries count(), by: {
@@ -259,7 +262,7 @@ tiles:
     query: |-
       fetch bizevents
       | filter db.system == "snowflake"
-      | filter dsoa.run.context == "self-monitoring"
+      | filter dsoa.run.context == "self_monitoring"
       | filter in(deployment.environment, array($Accounts))
       | filter in(dsoa.task.name, array($Plugin_Names))
       | sort timestamp asc
@@ -305,7 +308,7 @@ tiles:
     query: |-
       fetch bizevents
       | filter db.system == "snowflake"
-      | filter dsoa.run.context == "self-monitoring"
+      | filter dsoa.run.context == "self_monitoring"
       | filter in(deployment.environment, array($Accounts))
       | filter in(dsoa.task.name, array($Plugin_Names))
       | sort timestamp asc
@@ -388,7 +391,7 @@ tiles:
     query: |-
       fetch bizevents
       | filter db.system == "snowflake"
-      | filter dsoa.run.context == "self-monitoring"
+      | filter dsoa.run.context == "self_monitoring"
       | filter in(deployment.environment, array($Accounts))
       | filter in(dsoa.task.name, array($Plugin_Names))
       | sort timestamp desc
@@ -456,7 +459,8 @@ tiles:
       | filter in(deployment.environment, array($Accounts))
       | filter matchesPattern(db.query.text,
           """'call DTAGENT' ('_' LD:tag)?  '_DB.APP.DTAGENT(ARRAY_CONSTRUCT(' ARRAY{SQS:plugin_name ', '?}{1,}:plugin_names '))'""")
-      | parse `db.query.text`, """'call DTAGENT' ('_' LD:env_tag)?  '_DB.APP.DTAGENT(ARRAY_CONSTRUCT(' ARRAY{SQS:plugin_name ', '?}{1,}:plugin_names '))'"""
+      | parse `db.query.text`,
+          """'call DTAGENT' ('_' LD:env_tag)?  '_DB.APP.DTAGENT(ARRAY_CONSTRUCT(' ARRAY{SQS:plugin_name ', '?}{1,}:plugin_names '))'"""
       | fieldsAdd plugins_count = arraySize(plugin_names)
       | expand plugin_name = plugin_names
       | filter in(plugin_name, array($Plugin_Names))
