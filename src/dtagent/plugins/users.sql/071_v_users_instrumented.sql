@@ -47,6 +47,7 @@ select
         'snowflake.user.comment',                                           u.comment,
         'snowflake.user.is_disabled',                                       u.disabled,
         'snowflake.user.is_locked',                                         u.snowflake_lock,
+        'snowflake.user.is_from_organization',                              u.is_from_organization_user,
         'snowflake.user.default.warehouse',                                 u.default_warehouse,
         'snowflake.user.default.namespace',                                 u.default_namespace,
         'snowflake.user.default.role',                                      u.default_role,

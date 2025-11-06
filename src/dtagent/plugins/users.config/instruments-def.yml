@@ -97,6 +97,11 @@ attributes:
     __context_names:
       - users
     __description: Indicates if the user account is locked by Snowflake.
+  snowflake.user.is_from_organization:
+    __example: "true"
+    __context_names:
+      - users
+    __description: Indicates if the user was imported from a global organization.
   snowflake.user.locked_until_time:
     __example: "1615479617866000000"
     __context_names:
