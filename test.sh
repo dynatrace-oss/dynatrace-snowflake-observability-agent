@@ -42,8 +42,8 @@ TEST_FILE_PATH="test/plugins/$TEST_NAME.py"
 PLUGIN_NAME=$(echo "$TEST_NAME" | sed 's/test_//g')
 PLUGIN_FILE="src/dtagent/plugins/$PLUGIN_NAME.py"
 
-SRC_IGNORED_CASES=C0301,W0611,E0401,C0415,C0411,R0914,R0902,R0903,R0913,R1737,R0912,W0107,C0103,W1203,R0915
-TEST_IGNORED_CASES=$SRC_IGNORED_CASES,C0114,C0115,C0116,W0212,E0611,W0613,R1702,R1718
+SRC_IGNORED_CASES=$(grep '^disable=' .pylintrc | sed 's/disable=//')
+TEST_IGNORED_CASES=$(grep '^disable=' test/.pylintrc | sed 's/disable=//')
 
 # make sure to pass src/... as $1 and test/... as $2
 code_quality_checks() {
@@ -55,20 +55,24 @@ code_quality_checks() {
 
         echo "Running code quality check for $1"
         # descriptions of disabled test cases are available in build.sh
-        
+
         pylint "$1" --disable=$SRC_IGNORED_CASES --output-format=parseable > $SOURCE_CODE_QUALITY_CHECK_FILE
 
         echo "Running code quality check for $2"
         pylint "$2" --disable=$TEST_IGNORED_CASES --output-format=parseable > $TEST_CODE_QUALITY_CHECK_FILE
-        
-        if ! grep -q "at 10.00/10" "$SOURCE_CODE_QUALITY_CHECK_FILE" || ! grep -q "at 10.00/10" "$TEST_CODE_QUALITY_CHECK_FILE"; then
-            
+
+        if (
+            [ -s "$SOURCE_CODE_QUALITY_CHECK_FILE" ] && ! grep -q "at 10.00/10" "$SOURCE_CODE_QUALITY_CHECK_FILE" \
+        ) || (
+            [ -s "$TEST_CODE_QUALITY_CHECK_FILE" ] && ! grep -q "at 10.00/10" "$TEST_CODE_QUALITY_CHECK_FILE" \
+        ); then
+
             echo "Found code quality issues."
-            
+
             ! grep -q "at 10.00/10" "$SOURCE_CODE_QUALITY_CHECK_FILE" && echo "Result file $SOURCE_CODE_QUALITY_CHECK_FILE is not empty."
             ! grep -q "at 10.00/10" "$TEST_CODE_QUALITY_CHECK_FILE" && echo "Result file $TEST_CODE_QUALITY_CHECK_FILE is not empty."
             echo "Check the content and sort out code quality issues before proceeding."
-            
+
             exit 1
         else
             rm $SOURCE_CODE_QUALITY_CHECK_FILE
@@ -120,6 +124,6 @@ else
 
     # it looks like calling pytest from python with parameters would quite a hassle, so I decided to make the call in this script, not at the end of test classes
     # it also excludes calling pytest when pickling which would be pointless as both files (current result and exemplary) would point to the same file
-    
+
     pytest -s -v --result="$LOG_FILE_NAME" --exemplary_result="$EXEMPLARY_RESULT_FILE" test/plugins/test_1_validate.py
 fi
