@@ -254,7 +254,7 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
 
                     entries_cnt += 1
 
-                    if entries_cnt % 100:
+                    if entries_cnt % 100 == 0:
                         gc.collect()
 
             else:
