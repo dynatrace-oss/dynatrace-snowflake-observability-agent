@@ -58,7 +58,7 @@ select
   OBJECT_CONSTRUCT(
     'snowflake.user.privilege',                   concat(ar.privilege, ':', ar.granted_on),
     'snowflake.user.privilege.grants_on',         listagg(distinct ar.child_role, ','),
-    'snowflake.user.privilege.granted_by',        array_agg(distinct granted_by),
+    'snowflake.user.privilege.granted_by',        array_agg(distinct granted_by)
   )                                                   as ATTRIBUTES,
   OBJECT_CONSTRUCT(
     'snowflake.user.privilege.last_altered',      extract(epoch_nanosecond from max(created_on))

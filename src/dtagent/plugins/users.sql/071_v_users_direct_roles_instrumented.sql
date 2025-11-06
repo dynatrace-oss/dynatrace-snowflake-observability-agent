@@ -34,7 +34,7 @@ select
   )                                                     as DIMENSIONS,
   OBJECT_CONSTRUCT(
     'snowflake.user.roles.direct',                array_agg(role),
-    'snowflake.user.roles.granted_by',            array_agg(granted_by),
+    'snowflake.user.roles.granted_by',            array_agg(granted_by)
   )                                                     as ATTRIBUTES,
   OBJECT_CONSTRUCT(
     'snowflake.user.roles.last_altered',          extract(epoch_nanosecond from max(created_on))

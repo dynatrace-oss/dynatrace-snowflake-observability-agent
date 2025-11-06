@@ -34,7 +34,7 @@ select
     'db.user',                                  grantee_name
   )                                                     as DIMENSIONS,
   OBJECT_CONSTRUCT(
-    'snowflake.user.roles.direct.removed',      listagg(role),
+    'snowflake.user.roles.direct.removed',      listagg(role)
   )                                                     as ATTRIBUTES,
   OBJECT_CONSTRUCT(
     'snowflake.user.roles.direct.removed_on',   extract(epoch_nanosecond from date_trunc(hour, deleted_on))

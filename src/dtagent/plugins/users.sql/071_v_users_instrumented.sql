@@ -58,7 +58,7 @@ select
         -- attributes that are neither metrics nor event timestamps
         'snowflake.user.expires_at',                                        extract(epoch_nanosecond from u.expires_at),
         'snowflake.user.locked_until_time',                                 extract(epoch_nanosecond from u.locked_until_time),
-        'snowflake.user.bypass_mfa_until',                                  extract(epoch_nanosecond from u.bypass_mfa_until),
+        'snowflake.user.bypass_mfa_until',                                  extract(epoch_nanosecond from u.bypass_mfa_until)
     )                                                                                       as ATTRIBUTES,
     OBJECT_CONSTRUCT(
         'snowflake.user.created_on',                                        extract(epoch_nanosecond from u.created_on),
