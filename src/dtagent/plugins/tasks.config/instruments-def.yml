@@ -224,7 +224,7 @@ event_timestamps:
     __context_names:
       - task_versions
     __example: "1633046400000000000"
-    __description: The creation time of the task graph version.
+    __description: The timestamp when the task graph version was created.
 metrics:
   snowflake.credits.used:
     __context_names:

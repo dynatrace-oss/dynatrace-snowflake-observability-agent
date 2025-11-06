@@ -68,6 +68,7 @@ class TestUsers:
         disabled_combinations = [
             [],
             ["logs"],
+            ["events"],
             ["logs", "metrics", "events"],
         ]
 

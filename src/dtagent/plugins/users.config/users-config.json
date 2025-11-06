@@ -8,6 +8,7 @@
             "ROLES_MONITORING_MODE": [],
             "TELEMETRY": [
                 "LOGS",
+                "EVENTS",
                 "BIZ_EVENTS"
             ]
         }

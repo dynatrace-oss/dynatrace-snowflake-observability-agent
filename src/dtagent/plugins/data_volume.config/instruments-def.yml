@@ -68,13 +68,7 @@ event_timestamps:
       key from `EVENT_TIMESTAMPS` and `timestamp` set to the key value.
   snowflake.table.ddl:
     __example: "2024-11-01 12:00:00.000"
-    __description: |
-      Timestamp of the last DDL operation performed on the table or
-      view. All supported table/view DDL operations update this field:
-      - CREATE,
-      - ALTER,
-      - DROP,
-      - UNDROP
-  snowflake.table.update:
-    __example: "2024-11-10 16:45:00.000"
-    __description: Date and time the object was last altered by a DML, DDL, or background metadata operation.
+    __description: The timestamp of the last DDL operation performed on the table or view, including CREATE, ALTER, DROP, or UNDROP.
+    snowflake.table.update:
+      __example: "2024-11-10 16:45:00.000"
+      __description: The timestamp of the last time the object was altered by a DML, DDL, or background metadata operation.
