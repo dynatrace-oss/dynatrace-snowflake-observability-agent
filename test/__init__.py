@@ -81,14 +81,6 @@ def _get_session() -> snowpark.Session:
     return session
 
 
-class TestConfiguration(Configuration):
-
-    def get_last_measurement_update(self, session: snowpark.Session, source: str):
-        from dtagent.util import _get_timestamp_in_sec
-
-        return _get_timestamp_in_sec()
-
-
 class TestDynatraceSnowAgent(DynatraceSnowAgent):
 
     def __init__(self, session: snowpark.Session, config: Configuration) -> None:
@@ -137,6 +129,17 @@ class TestDynatraceSnowAgent(DynatraceSnowAgent):
     def teardown(self) -> None:
         self._logs.flush_logs()
         self._spans.flush_traces()
+
+
+class TestConfiguration(Configuration):
+
+    def __init__(self, configuration: dict):  # pylint: disable=W0231
+        self._config = configuration
+
+    def get_last_measurement_update(self, session: snowpark.Session, source: str):
+        from dtagent.util import _get_timestamp_in_sec
+
+        return _get_timestamp_in_sec()
 
 
 def _overwrite_plugin_local_config_key(test_conf: TestConfiguration, plugin_name: str, key_name: str, new_value: Any):
