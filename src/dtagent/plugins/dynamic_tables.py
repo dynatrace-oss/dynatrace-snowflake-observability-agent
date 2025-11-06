@@ -1,6 +1,4 @@
-"""
-Plugin file for processing dynamic tables plugin data.
-"""
+"""Plugin file for processing dynamic tables plugin data."""
 
 ##region ------------------------------ IMPORTS  -----------------------------------------
 #
@@ -37,13 +35,10 @@ from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPI
 
 
 class DynamicTablesPlugin(Plugin):
-    """
-    Dynamic tables plugin class.
-    """
+    """Dynamic tables plugin class."""
 
     def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
-        """
-        Processes the measures on dynamic tables
+        """Processes the measures on dynamic tables
 
         Args:
             run_id (str): unique run identifier

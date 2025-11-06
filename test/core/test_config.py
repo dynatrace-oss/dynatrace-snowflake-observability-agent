@@ -132,7 +132,7 @@ class TestConfig:
 
                 plugin_key = plugin.upper()
 
-                assert "PLUGINS" in d_conf, "Plugins key is missing from the configuratio"
+                assert "PLUGINS" in d_conf, "Plugins key is missing from the configuration"
 
                 assert plugin_key in d_conf["PLUGINS"], f"{plugin} key is missing from the configuration"
 

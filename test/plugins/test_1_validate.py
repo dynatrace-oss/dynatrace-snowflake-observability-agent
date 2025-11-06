@@ -45,13 +45,13 @@ def prepare_result_text(result: str) -> Union[str, None]:
 
         Args:
             text (str): text to check
-            tag (str): tag to discover at the begining of a line
+            tag (str): tag to discover at the beginning of a line
 
         Returns:
             bool: True if such line was discovered
         """
         for line in text.splitlines():
-            if line.startswith(tag) and not "_OTLP" in line:
+            if line.startswith(tag) and "_OTLP" not in line:
                 return True
         return False
 

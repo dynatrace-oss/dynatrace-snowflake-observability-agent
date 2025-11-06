@@ -1,6 +1,4 @@
-"""
-File contains constants with version number [str] and build number [int].
-"""
+"""File contains constants with version number [str] and build number [int]."""
 
 ##region ------------------------------ IMPORTS  -----------------------------------------
 #

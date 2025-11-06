@@ -1,6 +1,4 @@
-"""
-Plugin file for processing event usage plugin data.
-"""
+"""Plugin file for processing event usage plugin data."""
 
 ##region ------------------------------ IMPORTS  -----------------------------------------
 #
@@ -37,12 +35,10 @@ from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPI
 
 
 class EventUsagePlugin(Plugin):
-    """
-    Event usage plugin class.
-    """
+    """Event usage plugin class."""
 
     def _report_event_usage_log(self, row_dict: Dict, __context: Dict, log_level: int) -> bool:
-        """sends single log line for event usage plugin"""
+        """Sends single log line for event usage plugin"""
         unpacked_dict = _unpack_json_dict(row_dict, ["DIMENSIONS", "METRICS"])
         start_ts = row_dict.get("START_TIME")
         processed_timestamp = row_dict.get("END_TIME")
@@ -60,8 +56,7 @@ class EventUsagePlugin(Plugin):
         return True
 
     def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
-        """
-        Processes data for event usage plugin.
+        """Processes data for event usage plugin.
 
         Args:
             run_id (str): unique run identifier

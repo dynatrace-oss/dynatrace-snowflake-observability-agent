@@ -84,6 +84,11 @@ dimensions:
     __example: COMPUTE_WH
     __description: The name of the warehouse.
 event_timestamps:
+  snowflake.event.trigger:
+    __example: "snowflake.warehouse.resumed_on"
+    __description:
+      Additionally to sending logs, each entry in `EVENT_TIMESTAMPS` is sent as event with key set to `snowflake.event.trigger`, value to
+      key from `EVENT_TIMESTAMPS` and `timestamp` set to the key value.
   snowflake.resource_monitor.created_on:
     __example: "2024-10-15 12:34:56.789"
     __description: The timestamp when the resource monitor was created.
@@ -102,11 +107,6 @@ event_timestamps:
   snowflake.warehouse.updated_on:
     __example: "2024-11-10 14:30:00.000"
     __description: The timestamp when the warehouse was last updated.
-  snowflake.event.trigger:
-    __example: "snowflake.warehouse.resumed_on"
-    __description:
-      Additionally to sending logs, each entry in `EVENT_TIMESTAMPS` is sent as event with key set to `snowflake.event.trigger`, value to
-      key from `EVENT_TIMESTAMPS` and `timestamp` set to the key value.
 
 metrics:
   snowflake.acceleration.scale_factor.max:

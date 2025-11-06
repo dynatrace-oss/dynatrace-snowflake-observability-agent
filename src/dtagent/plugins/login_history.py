@@ -1,6 +1,4 @@
-"""
-Plugin file for processing login history plugin data.
-"""
+"""Plugin file for processing login history plugin data."""
 
 ##region ------------------------------ IMPORTS  -----------------------------------------
 #
@@ -39,9 +37,7 @@ from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPI
 
 
 class LoginHistoryPlugin(Plugin):
-    """
-    Login history plugin class.
-    """
+    """Login history plugin class."""
 
     def _prepare_event_payload_failed_login(self, row_dict: dict) -> Tuple[EventType, str, Dict]:
         """Defines what payload should be sent once error.code column is present in the row"""
@@ -60,8 +56,7 @@ class LoginHistoryPlugin(Plugin):
         return EventType.CUSTOM_ALERT, "Failed login attempt", payload
 
     def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
-        """
-        Processes the measures on login history.
+        """Processes the measures on login history.
 
         Args:
             run_id (str): unique run identifier

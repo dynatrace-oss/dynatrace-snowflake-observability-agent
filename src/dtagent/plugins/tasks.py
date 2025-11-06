@@ -1,6 +1,4 @@
-"""
-Plugin file for processing tasks plugin data.
-"""
+"""Plugin file for processing tasks plugin data."""
 
 ##region ------------------------------ IMPORTS  -----------------------------------------
 #
@@ -37,13 +35,10 @@ from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPI
 
 
 class TasksPlugin(Plugin):
-    """
-    Tasks plugin class.
-    """
+    """Tasks plugin class."""
 
     def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
-        """
-        Processes the measures on serverless tasks, task history and task versions.
+        """Processes the measures on serverless tasks, task history and task versions.
 
         Args:
             run_id (str): unique run identifier

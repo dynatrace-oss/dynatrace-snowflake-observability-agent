@@ -1,6 +1,4 @@
-"""
-Plugin file for processing data volume plugin data.
-"""
+"""Plugin file for processing data volume plugin data."""
 
 ##region ------------------------------ IMPORTS  -----------------------------------------
 #
@@ -37,13 +35,10 @@ from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPI
 
 
 class DataVolumePlugin(Plugin):
-    """
-    Data volume plugin class.
-    """
+    """Data volume plugin class."""
 
     def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
-        """
-        Processes the measures on data volume
+        """Processes the measures on data volume
 
         Args:
             run_id (str): unique run identifier

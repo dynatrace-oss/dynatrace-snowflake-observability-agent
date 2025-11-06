@@ -1,6 +1,4 @@
-"""
-Init file for all plugins, contains generic methods.
-"""
+"""Init file for all plugins, contains generic methods."""
 
 ##region ------------------------------ IMPORTS  -----------------------------------------
 #
@@ -60,9 +58,7 @@ from dtagent.context import RUN_CONTEXT_KEY, get_context_name_and_run_id
 
 
 class Plugin(ABC):
-    """
-    Generic plugin class, base for all plugins.
-    """
+    """Generic plugin class, base for all plugins."""
 
     def __init__(
         self,
@@ -132,7 +128,8 @@ class Plugin(ABC):
     def _report_execution(self, measurements_source: str, last_timestamp, last_id, entries_count: dict, run_id: str):
         __context = get_context_name_and_run_id(plugin_name=self._plugin_name, context_name="self_monitoring", run_id=run_id)
 
-        # we cannot use last timestamp when sending logs to DT, because when it is set to snowpark.current_timestamp, the value is taken from a snowflake table
+        # we cannot use last timestamp when sending logs to DT,
+        # because when it is set to snowpark.current_timestamp, the value is taken from a snowflake table
         # for DT it would look like 'Column[current_timestamp]'
         self._logs.send_log(
             f"New entry to STATUS.LOG_PROCESSED_MEASUREMENTS from {measurements_source}",
@@ -168,28 +165,31 @@ class Plugin(ABC):
         f_log_events: Optional[Callable] = None,
         f_span_events: Optional[Callable] = None,
     ) -> Tuple[List[str], int, int, int, int, int]:
-        """
-        Performs span processing on entire row
+        """Performs span processing on entire row
+
         Args:
-            f_entry_generator (Callable): function extracting rows from view
-            view_name (str): name of the view which contains parent ids
-            context_name (str): name of the Plugin calling
-            run_uuid (str): stringified uuid unique to run
-            query_id_col_name (str): name of the column containing the query id. Defaults to QUERY_ID
+            f_entry_generator (Callable):   function extracting rows from view
+            view_name (str):                name of the view which contains parent ids
+            context_name (str):             name of the Plugin calling
+            run_uuid (str):                 stringified uuid unique to run
+            query_id_col_name (str):        name of the column containing the query id. Defaults to QUERY_ID
             parent_query_id_col_name (str): name of the column containing parent query id. Defaults to PARENT_QUERY_ID
-            log_completion (bool): indicator whether to log the completion of reporting the payload to DTAGENT_DB.STATUS.LOG_PROCESSED_MEASUREMENTS
-            update_status (bool): indicator whether to log the processed ids to DTAGENT_DB.STATUS.UPDATE_PROCESSED_QUERIES
-            f_log_events (Callable): function specifying how events should be logged. Only takes a single, unpacked row as param; Returns number of logs sent.
-            f_span_events (Callable): function specifying how events should reported as spans. Only takes a single, unpacked row as param.
+            log_completion (bool):          indicator whether to log the completion of reporting the payload to
+                                            DTAGENT_DB.STATUS.LOG_PROCESSED_MEASUREMENTS
+            update_status (bool):           indicator whether to log the processed ids to DTAGENT_DB.STATUS.UPDATE_PROCESSED_QUERIES
+            f_log_events (Callable):        function specifying how events should be logged. Only takes a single, unpacked row as param;
+                                            Returns number of logs sent.
+            f_span_events (Callable):       function specifying how events should reported as spans.
+                                            Only takes a single, unpacked row as param.
 
         Returns:
             Tuple containing:
-                processed_query_ids (list[str]): list of all processed ids
-                processing_errors_count (int): number of errors encountered during processing
-                span_events_added (int): number of span events added
-                spans_sent (int): number of spans sent
-                logs_sent (int): number of logs sent
-                metrics_sent (int): number of metrics sent
+                processed_query_ids (list[str]):    list of all processed ids
+                processing_errors_count (int):      number of errors encountered during processing
+                span_events_added (int):            number of span events added
+                spans_sent (int):                   number of spans sent
+                logs_sent (int):                    number of logs sent
+                metrics_sent (int):                 number of metrics sent
         """
 
         processed_query_ids: list[str] = []
@@ -272,19 +272,18 @@ class Plugin(ABC):
         f_log_events: Optional[Callable[[Dict[str, Any]], None]] = None,
         context: Optional[Dict] = None,
     ) -> Tuple[int, int]:
-        """
-        Processing single row with data, with optional recursion done within span generation
+        """Processing single row with data, with optional recursion done within span generation
 
         Args:
-            row (Dict):                         object with measurements to be sent to DT
-            processed_ids (List):               accumulated list of IDs processed by this and sub calls
-            processing_errors (List):           accumulated list of errors reported when processing this and sub calls
-            row_id_col (str):                   name of the column with ID representing the row being processed
-            parent_row_id_col (str):            name of the column with parent ID representing the parent row - necessary in context of spans
-            view_name (str):                    view which contains all the information to be processed - required for recursion in spans
-            f_span_events:                      function that will produce a list of span events to be sent
-            f_log_events:                       function that will log current span and its events; will return number of logs sent
-            context:                            context information reported as additional attributes in log/span payload
+            row (Dict):                object with measurements to be sent to DT
+            processed_ids (List):      accumulated list of IDs processed by this and sub calls
+            processing_errors (List):  accumulated list of errors reported when processing this and sub calls
+            row_id_col (str):          name of the column with ID representing the row being processed
+            parent_row_id_col (str):   name of the column with parent ID representing the parent row - necessary in context of spans
+            view_name (str):           view which contains all the information to be processed - required for recursion in spans
+            f_span_events:             function that will produce a list of span events to be sent
+            f_log_events:              function that will log current span and its events; will return number of logs sent
+            context:                   context information reported as additional attributes in log/span payload
         Return:
             Tuple containing:
                 span_events_added (int):           number of span events added when processing this row
@@ -360,8 +359,7 @@ class Plugin(ABC):
         properties: Optional[Dict[str, Any]],
         __context: Optional[Dict[str, Any]],
     ) -> int:
-        """
-        Generic method reporting single log line for _log_entries. To be overwritten by plugins when required
+        """Generic method reporting single log line for _log_entries. To be overwritten by plugins when required
 
         Args:
             row_dict (Dict): row dictionary
@@ -443,14 +441,18 @@ class Plugin(ABC):
             report_all_as_events (bool): we can enable when we want all rows to be sent as events
             start_time (str): name of the key containing the start time
             end_time (str): name of the key containing the end time
-            log_completion (bool): indicator whether to log the completion of reporting the payload to DTAGENT_DB.STATUS.LOG_PROCESSED_MEASUREMENTS
+            log_completion (bool): indicator whether to log the completion of reporting the payload to
+                                   DTAGENT_DB.STATUS.LOG_PROCESSED_MEASUREMENTS
             event_column_to_check (str): if this columns exists in the payload, an event will be sent instead of log
-            event_value_to_check (str): if the previously stated event_column_to_check exists and is not None and this argument is not None, the event will be sent if the column value is equal to event_value_to_check
-            event_payload_prepare (function): additional function preparing payload for the event. Must be defined is any non-timestamp events are to be reported
+            event_value_to_check (str): if the previously stated event_column_to_check exists and is not None and this argument is not None,
+                                        the event will be sent if the column value is equal to event_value_to_check
+            event_payload_prepare (function): additional function preparing payload for the event.
+                                              Must be defined is any non-timestamp events are to be reported
             f_get_log_level (function): function for setting log level, only takes row dictionary as argument. Defaults to get_log_level
             f_report_log (function): function for sending a single log line. Defaults to report_log
             f_report_event (function): function for sending a single event. Defaults to report_event
-            f_event_timestamp_payload_prepare (function): function preparing title, properties and event type for timestamp events. Defaults to prepare_timestamp_event
+            f_event_timestamp_payload_prepare (function): function preparing title, properties and event type for timestamp events.
+                                                          Defaults to prepare_timestamp_event
 
         Returns:
               Tuple with counts of processed telemetry data:
@@ -569,8 +571,7 @@ class Plugin(ABC):
 
     @abstractmethod
     def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
-        """
-        Abstract method for plugin processing.
+        """Abstract method for plugin processing.
 
         Args:
             run_id (str): unique run identifier

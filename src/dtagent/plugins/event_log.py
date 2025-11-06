@@ -1,6 +1,4 @@
-"""
-Plugin file for processing event log plugin data.
-"""
+"""Plugin file for processing event log plugin data."""
 
 ##region ------------------------------ IMPORTS  -----------------------------------------
 #
@@ -39,9 +37,7 @@ from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPI
 
 
 class EventLogPlugin(Plugin):
-    """
-    Event log plugin class.
-    """
+    """Event log plugin class."""
 
     def _get_events(self) -> Generator[Dict, None, None]:
         """Fetches data from APP.EVENT_LOG, with limit set in configuration."""
@@ -79,8 +75,7 @@ class EventLogPlugin(Plugin):
         return True
 
     def _process_log_entries(self, run_id: str, run_proc: bool = True) -> Tuple[int, int, int, int]:
-        """
-        Processing entries that are not metrics
+        """Processing entries that are not metrics
 
         Returns:
             Tuple[int, int, int, int]: number of processed entries, logs, metrics, events
@@ -113,8 +108,7 @@ class EventLogPlugin(Plugin):
         return metric_entries_cnt, metric_logs_cnt, metric_metrics_cnt, metric_event_cnt
 
     def _process_span_entries(self, run_id, run_proc: bool = True) -> Tuple[int, int, int, int, int, int]:
-        """
-        Processes span entries for event log
+        """Processes span entries for event log
 
         Returns:
             Tuple[int, int, int, int, int, int]: number of processed spans, processing errors,
@@ -150,8 +144,7 @@ class EventLogPlugin(Plugin):
         )
 
     def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
-        """
-        Analyzes changes in the event log
+        """Analyzes changes in the event log
 
         Args:
             run_id (str): unique run identifier

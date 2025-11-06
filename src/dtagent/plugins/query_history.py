@@ -1,6 +1,4 @@
-"""
-Plugin file for processing query history plugin data.
-"""
+"""Plugin file for processing query history plugin data."""
 
 ##region ------------------------------ IMPORTS  -----------------------------------------
 #
@@ -45,13 +43,10 @@ from dtagent.context import get_context_name_and_run_id, RUN_PLUGIN_KEY, RUN_RES
 
 
 class QueryHistoryPlugin(Plugin):
-    """
-    Query history plugin class.
-    """
+    """Query history plugin class."""
 
     def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
-        """
-        The actual function to process query history:
+        """The actual function to process query history:
 
         Args:
             run_id (str): unique run identifier
@@ -107,11 +102,11 @@ class QueryHistoryPlugin(Plugin):
             return span_events, failed_events
 
         def __f_log_events(query_dict: Dict[str, Any]) -> int:
-            """
-            Logs events for query history.
+            """Logs events for query history.
 
             Returns:
-                int: Number of log lines sent."""
+                int: Number of log lines sent.
+            """
 
             log_dict = _unpack_json_dict(
                 query_dict,

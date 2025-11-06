@@ -29,7 +29,8 @@ from typing import Dict, List
 class TestDocumentation:
 
     def _aggregate_data(self, data: List[Dict]) -> List[Dict]:
-        """Aggregates given list of objects by 'name' and 'type' keys, merging other keys (dimensions, plugin, source) as comma separated values
+        """Aggregates given list of objects by 'name' and 'type' keys,
+        merging other keys (dimensions, plugin, source) as comma separated values.
 
         Args:
             data (List[Dict]): List of field/metric documentation objects
@@ -123,7 +124,9 @@ class TestDocumentation:
         ), f"Problem with core dimensions for resource.attributes, should be {core_dimensions}, is {found_core_dimensions}"
 
     def test_clean_field_description(self):
-        """This test will ensure we do not have any forbidden characters in the body of description or other non-private fields in instrumentation semantics"""
+        """This test will ensure we do not have any forbidden characters in the body of description or
+        other non-private fields in instrumentation semantics
+        """
         from test._utils import find_files
 
         problems = []

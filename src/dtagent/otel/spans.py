@@ -46,7 +46,7 @@ class ExistingIdGenerator(RandomIdGenerator):
     """
 
     def __init__(self):
-        """Initializes generator with an empty span and trace ids -> this will make sure generator will fallback to super() implementation"""
+        """Initializes generator with an empty span and trace ids; this will make sure generator will fallback to super() implementation"""
         super().__init__()
 
         self.span_id = None
@@ -75,12 +75,14 @@ class ExistingIdGenerator(RandomIdGenerator):
                 LOG.debug("Invalid trace_id: %s", d_span["_TRACE_ID"])
 
     def generate_span_id(self) -> int:
+        """Generates span id based on either the stored value or the super() implementation if no value stored."""
         span_id = super().generate_span_id() if self.span_id is None or self.span_id == INVALID_SPAN_ID else self.span_id
 
         self.span_id = None
         return span_id
 
     def generate_trace_id(self) -> int:
+        """Generates trace id based on either the stored value or the super() implementation if no value stored."""
         trace_id = super().generate_trace_id() if self.trace_id is None or self.trace_id == INVALID_TRACE_ID else self.trace_id
 
         self.trace_id = None
@@ -117,9 +119,7 @@ class Spans:
         return Spans.SPAN_KIND_MAP.get(d_span.get("_SPAN_KIND")) or (SpanKind.SERVER if is_top_level else SpanKind.INTERNAL)
 
     def _setup_tracer(self, resource: Resource) -> None:
-        """
-        Sets up OTLP Trace for sending spans to Dynatrace
-        """
+        """Sets up OTLP Trace for sending spans to Dynatrace"""
         from opentelemetry.sdk.trace import SpanLimits
         from opentelemetry import trace
         from opentelemetry.sdk.trace.export import BatchSpanProcessor
@@ -195,19 +195,20 @@ class Spans:
         is_top_level: bool = False,
         processed_ids: Optional[List[str]] = None,
     ) -> Tuple[int, int, int]:
-        """
-        Sends aggregated query history row as a OTLP span
+        """Sends aggregated query history row as a OTLP span.
 
         Args:
-            d_span (Dict[str, Any]):               data row representing a span to be sent
-            session (snowpark.Session):            Snowflake Snowpark session
-            row_id_col (str):                      name of the column with row ID representing the row
-            parent_row_id_col (str):               name of the column with parent ID representing the parent row
-            view_name (str):                       view which contains all the information to be processed - required for recursion in spans
-            f_span_events (Callable):              function that will produce a list of span events to be sent; Returns Tuple[List[Dict[str, Any]], int]
-            f_log_events (Callable):               function that will log current span and its events; will return number of logs sent
-            context (Dict, optional):              context information reported as additional attributes in log/span payload
-            is_top_level (bool):                   indicator whether the span is a top level one (without parent)
+            d_span (Dict[str, Any]):                data row representing a span to be sent
+            session (snowpark.Session):             Snowflake Snowpark session
+            row_id_col (str):                       name of the column with row ID representing the row
+            parent_row_id_col (str):                name of the column with parent ID representing the parent row
+            view_name (str):                        view which contains all the information to be processed; required for recursion in spans
+            f_span_events (Callable):               function that will produce a list of span events to be sent;
+                                                    Returns Tuple[List[Dict[str, Any]], int]
+            f_log_events (Callable):                function that will log current span and its events; will return number of logs sent
+            context (Dict, optional):               context information reported as additional attributes in log/span payload
+            is_top_level (bool):                    indicator whether the span is a top level one (without parent)
+            processed_ids (List[str], optional):    list where processed row ids will be appended to avoid duplicate processing
 
         Return:
             int     Number of span events generated
@@ -220,8 +221,7 @@ class Spans:
         from opentelemetry.sdk.trace import StatusCode
 
         def __process_subrows(row_id: str):
-            """
-            Generates sub-spans for specified row_id
+            """Generates sub-spans for specified row_id
 
             Return:
                 int     Number of span events generated

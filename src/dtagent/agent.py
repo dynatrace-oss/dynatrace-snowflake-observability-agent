@@ -96,8 +96,7 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
     """Main DynatraceSnowAgent class managing plugins executions"""
 
     def process(self, sources: List, run_proc: bool = True) -> Dict[str, Union[Dict[str, int], str]]:
-        """
-        Starts plugins specified in sources executions
+        """Starts plugins specified in sources executions
 
         Args:
             sources (List): List of measurement sources (plugins) to execute
@@ -181,9 +180,7 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
 
 
 def main(session: snowpark.Session, sources: List) -> dict:
-    """
-    MAIN entry to this stored procedure - this is where the fun begins
-    """
+    """MAIN entry to this stored procedure - this is where the fun begins"""
     agent = DynatraceSnowAgent(session)
     results = agent.process(sources)
     agent.teardown()

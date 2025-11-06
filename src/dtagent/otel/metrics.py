@@ -57,8 +57,7 @@ class Metrics:
         self._max_batch_size = self._configuration.get(otel_module="metrics", key="max_batch_size", default_value=1000000)
 
     def _send_metrics(self, payload: Optional[str] = None) -> int:
-        """
-        Sends given payload of metrics with metadata to Dynatrace.
+        """Sends given payload of metrics with metadata to Dynatrace.
         The code attempts to accumulate to the maximal size of payload allowed - and
         will flush before we would exceed with new payload increment.
         IMPORTANT: call _flush_metrics() to flush at the end of processing
@@ -72,9 +71,7 @@ class Metrics:
         from dtagent import LOG, LL_TRACE  # COMPILE_REMOVE
 
         def __send(_payload: str, _retries: int = 0) -> int:
-            """
-            Sends given payload to Dynatrace
-            """
+            """Sends given payload to Dynatrace"""
             headers = {
                 "Authorization": f'Api-Token {self._configuration.get("dt.token")}',
                 "Content-Type": "text/plain",
@@ -143,14 +140,11 @@ class Metrics:
         return data_sent_size
 
     def flush_metrics(self) -> int:
-        """
-        Flush metrics cache
-        """
+        """Flush metrics cache"""
         return self._send_metrics()
 
     def report_via_metrics_api(self, query_data: Dict, start_time: str = "START_TIME", context_name: Optional[str] = None) -> int:
-        """
-        Generates payload with Metrics v2 API
+        """Generates payload with Metrics v2 API
 
         Args:
             query_data (Dict): query data containing METRICS section
@@ -167,9 +161,7 @@ class Metrics:
         local_metrics_def = _unpack_json_dict(query_data, ["_INSTRUMENTS_DEF"])
 
         def __combined_dimensions(unpacked_dict: Dict[str, str]) -> str:
-            """
-            Helper function that renders given dictionary as Dynatrace metrics line.
-            """
+            """Helper function that renders given dictionary as Dynatrace metrics line."""
             return ",".join(f'{_esc(k)}="{_esc(item)}"' for k, item in unpacked_dict.items())
 
         def __payload_lines(dimensions: str, metric_name: str, metric_value: Union[str, dict], ts: Optional[int]) -> str:
@@ -233,15 +225,16 @@ class Metrics:
     def discover_report_metrics(
         self, query_data: Dict, start_time: str = "START_TIME", context_name: Optional[str] = None
     ) -> Tuple[bool, int]:
-        """
-        Checks if METRICS section is defined in query data, returns false if not
-        otherwise reports metrics and returns result of report_via_metrics_api
+        """Checks if METRICS section is defined in query data, returns false if not
+        otherwise reports metrics and returns result of report_via_metrics_api.
+
         Args:
-            query_data (Dict): query data containing METRICS section
-            start_time (str): key in query_data containing start time
-            context_name (Optional[str]): optional context name to add to dimensions
+            query_data (Dict):              query data containing METRICS section
+            start_time (str):               key in query_data containing start time
+            context_name (Optional[str]):   optional context name to add to dimensions
         Returns:
-            Tuple[bool, int]: boolean indicating if METRICS section was found, and number of metric lines (without description lines) successfully sent
+            Tuple[bool, int]: boolean indicating if METRICS section was found, and
+                              number of metric lines (without description lines) successfully sent
         """
         if "METRICS" in query_data:
             return True, self.report_via_metrics_api(query_data, start_time, context_name=context_name)

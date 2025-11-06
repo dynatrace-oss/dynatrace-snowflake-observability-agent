@@ -46,9 +46,7 @@ P_SELECT_QUERY = re.compile(r"^\s*(SELECT|SHOW\s+[^>]*->>\s*SELECT)", re.IGNOREC
 
 
 def _esc(v: Any) -> Any:
-    """
-    Helper function that escapes " with \" if given object is a string
-    """
+    r"""Helper function that escapes " with \" if given object is a string"""
     return v.replace("\\", "\\\\").replace('"', '\\"') if isinstance(v, str) else v
 
 
@@ -78,8 +76,7 @@ def _cleanup_data(value: Any) -> Any:
 
 
 def _pack_values_to_json_strings(value: Any, level: int = 0, max_list_level: int = 2) -> Union[Dict[str, str], List[str], str]:
-    """
-    Recursively convert all values in a dictionary to JSON strings.
+    """Recursively convert all values in a dictionary to JSON strings.
 
     Args:
         value (Any): The original value, which can be a dictionary, list, or other types.
@@ -112,8 +109,7 @@ def _to_json(content: any) -> str:
 
 
 def _unpack_json_list(to_unpack: Dict, keys: List) -> List:
-    """
-    Helper function that will ensure we do not run into empty, null, or string values
+    """Helper function that will ensure we do not run into empty, null, or string values
     when we expect a list to work with
     """
     from itertools import chain
@@ -125,8 +121,7 @@ def _unpack_json_list(to_unpack: Dict, keys: List) -> List:
 
 
 def _unpack_json_dict(to_unpack: Dict, keys: List) -> Dict:
-    """
-    Helper function that will ensure we do not run into empty, null, or string values
+    """Helper function that will ensure we do not run into empty, null, or string values
     when we expect a dictionary to work with
     """
     from collections import ChainMap
@@ -137,9 +132,7 @@ def _unpack_json_dict(to_unpack: Dict, keys: List) -> Dict:
 
 
 def _clean_key(key: str) -> str:
-    """
-    Ensures there are only lowercase alphanumeric and underscore characters in the key
-    """
+    """Ensures there are only lowercase alphanumeric and underscore characters in the key"""
     ans = re.sub(r"[^a-zA-Z0-9_\s]", "", key)
     cs = re.sub(r"\s+", "_", ans)
     return cs.lower()
@@ -150,7 +143,8 @@ def _cleanup_dict(d: Any, skip_first_level_hidden=False) -> Union[dict, list, st
 
     Args:
         d (any): The input data, which can be a dictionary, list, or any other type.
-        skip_first_level_hidden (bool, optional): If True, it skips keys starting with an underscore at the first level of the dictionary. Defaults to False.
+        skip_first_level_hidden (bool, optional): If True, it skips keys starting with an underscore at the first level of the dictionary.
+                                                  Defaults to False.
 
     Returns:
         Union[dict, list]: _description_
@@ -188,8 +182,7 @@ def _cleanup_dict(d: Any, skip_first_level_hidden=False) -> Union[dict, list, st
 
 
 def _adjust_timestamp(row_dict: Dict, start_time: str = "START_TIME", end_time: str = "END_TIME", now: Optional[int] = None) -> Dict:
-    """
-    Updates START_TIME/TIMESTAMP and END_TIME when they are outside the boundaries in
+    """Updates START_TIME/TIMESTAMP and END_TIME when they are outside the boundaries in
     https://docs.dynatrace.com/docs/ingest-from/opentelemetry/getting-started/traces/ingest#ingestion-limits,
     i.e., should not be 60min in past or 10min in the future.
     The algorithm will attempt to keep period length is intact
@@ -285,8 +278,7 @@ def _get_timestamp_in_sec(ts: float = 0, conversion_unit: float = 1, timezone=da
 
 
 def _get_service_name(config_dict: str) -> str:
-    """
-    Returns snowflake full account name either as account name from config
+    """Returns snowflake full account name either as account name from config
     or matching given pattern on snowflake host name
     """
     if "core.snowflake_account_name" in config_dict:
@@ -297,9 +289,7 @@ def _get_service_name(config_dict: str) -> str:
 
 
 def _is_not_blank(value: Any) -> bool:
-    """
-    Helper function to check whether given value is empty or null
-    """
+    """Helper function to check whether given value is empty or null."""
     return value is not None and str(value).strip() != ""
 
 
@@ -326,8 +316,7 @@ def _unpack_payload(query_data: Dict) -> Dict:
 
 
 def _chunked_iterable(iterable, size: int) -> Generator[List, None, None]:
-    """
-    Yields chunks of the given iterable, each of the specified size.
+    """Yields chunks of the given iterable, each of the specified size.
 
     This function takes an iterable and divides it into smaller lists (chunks) of a given size.
     It uses itertools.islice to efficiently slice the iterator without loading the entire iterable into memory.
@@ -337,7 +326,8 @@ def _chunked_iterable(iterable, size: int) -> Generator[List, None, None]:
         size: An integer specifying the maximum size of each chunk. Must be positive.
 
     Yields:
-        list: A list containing up to 'size' elements from the iterable. The last chunk may be smaller if the iterable's length is not divisible by 'size'.
+        list: A list containing up to 'size' elements from the iterable.
+              The last chunk may be smaller if the iterable's length is not divisible by 'size'.
 
     Raises:
         ValueError: If 'size' is not a positive integer.
@@ -402,7 +392,7 @@ def format_datetime(dt: datetime.datetime) -> str:
 
 
 def get_now_timestamp_formatted() -> str:
-    """Uses format_datetime() to format now() as "%Y-%m-%dT%H:%M:%S.%f{3}Z" """
+    """Uses format_datetime() to format now() as "%Y-%m-%dT%H:%M:%S.%f{3}Z"."""
     return format_datetime(get_now_timestamp())
 
 
@@ -427,9 +417,10 @@ def is_regular_mode(session) -> bool:
 
 
 class StringEnum(str, Enum):
-    """Customer implementation of the StrEnum that ensures case of enum values is kept - unlike in StrEnum"""
+    """Custom implementation of the StrEnum that ensures case of enum values is kept - unlike in StrEnum"""
 
     def __str__(self):
+        """Returns string representation of the enum value keeping the case."""
         return self.name
 
 

@@ -1,6 +1,4 @@
-"""
-Init module for dtagent.
-"""
+"""Init module for dtagent."""
 
 ##region ------------------------------ IMPORTS  -----------------------------------------
 #
@@ -142,9 +140,7 @@ class AbstractDynatraceSnowAgentConnector:
         return BizEvents(self._configuration)
 
     def _get_config(self, session: snowpark.Session) -> Configuration:
-        """
-        Wrapper around Configuration constructor call to re-use in Test
-        """
+        """Wrapper around Configuration constructor call to re-use in Test"""
         return Configuration(session)
 
     def report_execution_status(
@@ -185,7 +181,7 @@ class AbstractDynatraceSnowAgentConnector:
             LOG.error("Unable to report failed run due to: %s", str(e2))
 
     def teardown(self) -> None:
-        """wrapping up, shutting logger and tracer"""
+        """Wrapping up, shutting logger and tracer"""
         self._logs.shutdown_logger()
         self._spans.shutdown_tracer()
 

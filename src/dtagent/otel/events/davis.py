@@ -50,8 +50,7 @@ from dtagent.version import VERSION
 
 
 class DavisEvents(GenericEvents):
-    """
-    Allows for parsing and sending (Davis) Events payloads via Events v2 API
+    """Allows for parsing and sending (Davis) Events payloads via Events v2 API
     https://docs.dynatrace.com/docs/discover-dynatrace/platform/openpipeline/reference/api-ingestion-reference#davis-events
 
     Note: Events API does not support sending multiple events at the same time, as a bulk, like in BizEvents or OpenPipelineEvents.
@@ -140,8 +139,7 @@ class DavisEvents(GenericEvents):
         return events_send, _payload_to_repeat
 
     def _add_data_to_payload(self, payload: Dict[str, Any], event_data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Adds given properties to event payload under 'properties' key
+        """Adds given properties to event payload under 'properties' key
         Args:
             payload (Dict[str, Any]): Event payload in form of dict
             event_data (Dict[str, Any]): Properties to be added to event payload
@@ -161,8 +159,7 @@ class DavisEvents(GenericEvents):
         return payload
 
     def _split_payload(self, payload: List[Dict[str, Any]]) -> Generator[List[Dict[str, Any]], None, None]:
-        """
-        Overrides GenericEvents.__split_payload() as Events v2 API does not support sending multiple events at the same time,
+        """Overrides _split_payload from GenericEvents as Events v2 API does not support sending multiple events at the same time,
         and hence we do not need to split payloads.
 
         Args:

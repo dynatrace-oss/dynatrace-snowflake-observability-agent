@@ -48,8 +48,7 @@ class Configuration:
     }
 
     def __init__(self, session: snowpark.Session) -> Dict:
-        """
-        Returns configuration based on data in config_data.configuration and (currently) hardcoded list of instruments
+        """Returns configuration based on data in config_data.configuration and (currently) hardcoded list of instruments
 
         {
             'dt.token': YOUR_TOKEN,
@@ -68,7 +67,8 @@ class Configuration:
             'instruments': {
                 'metrics': {
                     'snowflake.data.scanned_from_cache': {
-                        'description': 'The percentage of data scanned from the local disk cache. The value ranges from 0.0 to 1.0. Multiply by 100 to get a true percentage.',
+                        'description': 'The percentage of data scanned from the local disk cache.
+                                        The value ranges from 0.0 to 1.0. Multiply by 100 to get a true percentage.',
                         'unit': 'percent'
                     },
                     ....
@@ -91,13 +91,16 @@ class Configuration:
         from dtagent.otel.spans import Spans  # COMPILE_REMOVE
 
         def __rewrite_with_types(config_df: dict) -> dict:
-            """
-            This function rewrites the pandas dataframe with config to a dict type and assigns desired types to fields.
+            """This function rewrites the pandas dataframe with config to a dict type and assigns desired types to fields.
+
             List format in configuration table should be as follows to work properly:
-                List values must start with `[` and end with `]`, all fields must be separated with `, `. Values within the list should be enclosed in double quotes (").
+                List values must start with `[` and end with `]`, all fields must be separated with `, `.
+                Values within the list should be enclosed in double quotes (").
                 All items within the list must be the same type.
+
             Args:
                 config_df (dict) - pandas dataframe with configuration table contents
+
             Returns:
                 processed_dict (dict) - dictionary with reformatted field types
             """
@@ -110,7 +113,8 @@ class Configuration:
             return processed_dict
 
         def __unpack_prefixed_keys(config: dict, prefix: Optional[str] = None) -> dict:
-            """Traverses key path (dot separated) to unpack flat dict into a dictionary where only numbers, strings, or lists are in the values-leaves
+            """Traverses key path (dot separated) to unpack flat dict into a dictionary where only numbers, strings, or
+            lists are in the values-leaves.
 
             Args:
                 config (dict): Dictionary to unpack
@@ -198,9 +202,10 @@ class Configuration:
         """Returns configuration value for the given key in either given context or for the given plugin name
 
         Args:
-            key (str): Configuration key for which to return value
-            context (str, optional): First level key under which a dict is kept as a value. Defaults to None.
-            plugin_name (str, optional): Name of the key under the "plugins" key in configs; dictionary is expected under that plugin name. Defaults to None.
+            key (str):                   Configuration key for which to return value
+            context (str, optional):     First level key under which a dict is kept as a value. Defaults to None.
+            plugin_name (str, optional): Name of the key under the "plugins" key in configs; dictionary is expected under that plugin name.
+                                         Defaults to None.
 
         Returns:
             any: Value for the given configuration key in given context or plugin.
@@ -222,9 +227,7 @@ class Configuration:
         return return_key
 
     def get_last_measurement_update(self, session: snowpark.Session, source: str):
-        """
-        Checks STATUS.PROCESSED_MEASUREMENTS_LOG to get last update for the given source
-        """
+        """Checks STATUS.PROCESSED_MEASUREMENTS_LOG to get last update for the given source"""
         from dtagent.util import _get_timestamp_in_sec  # COMPILE_REMOVE
 
         last_ts = session.sql(f"select APP.F_LAST_PROCESSED_TS('{source}');").collect()[0][0]
