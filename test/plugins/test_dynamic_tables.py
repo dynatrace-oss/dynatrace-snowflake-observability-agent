@@ -75,7 +75,7 @@ class TestDynamicTables:
                 base_count={
                     "dynamic_tables": {"entries": 2, "log_lines": 2, "metrics": 10, "events": 0},
                     "dynamic_table_refresh_history": {"entries": 2, "log_lines": 2, "metrics": 10, "events": 0},
-                    "dynamic_table_graph_history": {"entries": 2, "log_lines": 2, "metrics": 2, "events": 0},
+                    "dynamic_table_graph_history": {"entries": 2, "log_lines": 2, "metrics": 2, "events": 2},
                 },
             )
 

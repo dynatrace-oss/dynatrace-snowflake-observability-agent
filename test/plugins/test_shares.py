@@ -76,9 +76,9 @@ class TestShares:
                 disabled_telemetry=disabled_telemetry,
                 affecting_types_for_entries=["logs"],  # there is not test data for events
                 base_count={
-                    "outbound_shares": {"entries": 2, "log_lines": 2, "metrics": 0, "events": 0},
-                    "inbound_shares": {"entries": 2, "log_lines": 2, "metrics": 0, "events": 0},
-                    "shares": {"entries": 0, "log_lines": 0, "metrics": 0, "events": 0},
+                    "outbound_shares": {"entries": 2, "log_lines": 2, "metrics": 0, "events": 2},
+                    "inbound_shares": {"entries": 2, "log_lines": 2, "metrics": 0, "events": 2},
+                    "shares": {"entries": 2, "log_lines": 0, "metrics": 0, "events": 2},
                 },
             )
 

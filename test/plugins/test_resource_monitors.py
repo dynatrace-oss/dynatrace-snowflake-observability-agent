@@ -81,8 +81,8 @@ class TestResMon:
                 disabled_telemetry=disabled_telemetry,
                 affecting_types_for_entries=["logs", "metrics", "events"],
                 base_count={
-                    "resource_monitors": {"entries": 2, "log_lines": 0, "metrics": 10, "events": 0},
-                    "warehouses": {"entries": 2, "log_lines": 0, "metrics": 12, "events": 0},
+                    "resource_monitors": {"entries": 2, "log_lines": 0, "metrics": 10, "events": 4},
+                    "warehouses": {"entries": 2, "log_lines": 0, "metrics": 12, "events": 6},
                 },
             )
 
