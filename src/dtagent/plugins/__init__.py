@@ -549,7 +549,7 @@ class Plugin(ABC):
             if was_processed:
                 processed_entries_cnt += 1
 
-            if processed_entries_cnt % 100:  # invoking garbage collection every 100 entries.
+            if processed_entries_cnt % 100 == 0:  # invoking garbage collection every 100 entries.
                 gc.collect()
 
         processed_events_cnt += self._events.flush_events()
