@@ -18,7 +18,7 @@
     "db.namespace": "DTAGENT_DB",
     "snowflake.budget.name": "DTAGENT_BUDGET",
     "snowflake.schema.name": "APP",
-    "dsoa.run.context": "budgets",
-    "dsoa.run.plugin": "test_budget"
+    "dsoa.run.plugin": "test_budget",
+    "dsoa.run.context": "budgets"
   }
 ]
