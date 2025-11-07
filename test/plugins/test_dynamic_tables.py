@@ -71,7 +71,7 @@ class TestDynamicTables:
                 TestDynatraceSnowAgent,
                 test_name="test_dynamic_tables",
                 disabled_telemetry=disabled_telemetry,
-                affecting_types_for_entries=["logs", "metrics"],
+                affecting_types_for_entries=["logs", "metrics", "events"],
                 base_count={
                     "dynamic_tables": {"entries": 2, "log_lines": 2, "metrics": 10, "events": 0},
                     "dynamic_table_refresh_history": {"entries": 2, "log_lines": 2, "metrics": 10, "events": 0},
