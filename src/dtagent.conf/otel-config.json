@@ -21,7 +21,14 @@
         },
         "EVENTS": {
             "MAX_RETRIES": 5,
+            "MAX_PAYLOAD_BYTES": 10240000,
+            "MAX_EVENT_COUNT": 25000,
             "RETRY_DELAY_MS": 10000,
+            "RETRY_ON_STATUS": [
+                429,
+                502,
+                503
+            ],
             "IS_DISABLED": false
         },
         "DAVIS_EVENTS": {
