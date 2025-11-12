@@ -47,13 +47,17 @@ TEST_CODE_QUALITY_CHECK_FILE=.logs/test-code-quality-$(date '+%Y%m%d-%H%M%S').lo
 # R1737 - use-yield-from - yield from reparse objects it iterates on to strings, so it doesn't fit our use case
 # R0915 - too-many-statements in a function
 
-SRC_IGNORED_CASES=C0301,W0611,E0401,C0415,C0411,R0914,R0902,R0903,R0913,R1737,R0912,W0107,C0103,W1203,R0915,W0511
-TEST_IGNORED_CASES=$SRC_IGNORED_CASES,C0114,C0115,C0116,W0212,E0611,W0613,R1702,R1718
+SRC_IGNORED_CASES=$(grep '^disable=' .pylintrc | sed 's/disable=//')
+TEST_IGNORED_CASES=$(grep '^disable=' test/.pylintrc | sed 's/disable=//')
 
 pylint src/ --recursive=y --disable=$SRC_IGNORED_CASES --output-format=parseable >$SOURCE_CODE_QUALITY_CHECK_FILE
-pylint test/ --recursive=y --disable=$TEST_IGNORED_CASES, --output-format=parseable >$TEST_CODE_QUALITY_CHECK_FILE
+pylint test/ --recursive=y --disable=$TEST_IGNORED_CASES --output-format=parseable >$TEST_CODE_QUALITY_CHECK_FILE
 
-if ! grep -q "at 10.00/10" "$SOURCE_CODE_QUALITY_CHECK_FILE" || ! grep -q "at 10.00/10" "$TEST_CODE_QUALITY_CHECK_FILE"; then
+if (
+    [ -s "$SOURCE_CODE_QUALITY_CHECK_FILE" ] && ! grep -q "at 10.00/10" "$SOURCE_CODE_QUALITY_CHECK_FILE" \
+) || (
+    [ -s "$TEST_CODE_QUALITY_CHECK_FILE" ] && ! grep -q "at 10.00/10" "$TEST_CODE_QUALITY_CHECK_FILE" \
+); then
     echo "Found code quality issues."
 
     ! grep -q "at 10.00/10" "$SOURCE_CODE_QUALITY_CHECK_FILE" && echo "Result file $SOURCE_CODE_QUALITY_CHECK_FILE is not empty."
@@ -96,9 +100,9 @@ CONFIG_TEMPLATE_FILE="conf/config-template.json"
 CONFIG_TEMPLATE="$(jq '.[]' $CONFIG_TEMPLATE_FILE)"
 
 merged_sections=$(jq -s '
-    reduce .[] as $item ({}; 
+    reduce .[] as $item ({};
         .PLUGINS += $item.PLUGINS // {} |
-        .OTEL += $item.OTEL // {} 
+        .OTEL += $item.OTEL // {}
     )' "${PLUGINS_CONFIG_FILES[@]}")
 
 # Combine the merged sections with the rest of the template

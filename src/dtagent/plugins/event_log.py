@@ -46,7 +46,7 @@ class EventLogPlugin(Plugin):
         i_limit = self._configuration.get(plugin_name="event_log", key="max_entries", default_value=10000)
         df_recent_events = self._session.table(t_event_log).limit(i_limit)
 
-        for row in df_recent_events.collect():
+        for row in df_recent_events.to_local_iterator():
             row_dict = row.as_dict(recursive=True)
 
             yield row_dict

@@ -37,6 +37,7 @@ from dtagent.connector import TelemetrySender
 from dtagent import config
 from dtagent.util import is_select_for_table
 import test
+from test import TestConfiguration
 from test._mocks.telemetry import MockTelemetryClient
 
 TEST_CONFIG_FILE_NAME = "./test/conf/config-download.json"
@@ -172,12 +173,6 @@ def _get_unpickled_entries(
 def should_pickle(pickle_files: list) -> bool:
 
     return (len(sys.argv) > 1 and sys.argv[1] == "-p") or any(not os.path.exists(file_name) for file_name in pickle_files)
-
-
-class TestConfiguration(Configuration):
-
-    def __init__(self, configuration: dict):  # pylint: disable=W0231
-        self._config = configuration
 
 
 def _merge_pickles_from_tests() -> Dict[str, str]:

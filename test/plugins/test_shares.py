@@ -63,7 +63,7 @@ class TestShares:
         # ======================================================================
 
         disabled_combinations = [
-            # [],
+            [],
             ["logs"],
             ["events"],
             ["logs", "events"],
@@ -74,11 +74,11 @@ class TestShares:
                 TestDynatraceSnowAgent,
                 test_name="test_shares",
                 disabled_telemetry=disabled_telemetry,
-                affecting_types_for_entries=["logs"],  # there is not test data for events
+                affecting_types_for_entries=["logs", "events"],  # there is not test data for events
                 base_count={
-                    "outbound_shares": {"entries": 2, "log_lines": 2, "metrics": 0, "events": 0},
+                    "outbound_shares": {"entries": 2, "log_lines": 2, "metrics": 0, "events": 2},
                     "inbound_shares": {"entries": 2, "log_lines": 2, "metrics": 0, "events": 0},
-                    "shares": {"entries": 0, "log_lines": 0, "metrics": 0, "events": 0},
+                    "shares": {"entries": 2, "log_lines": 0, "metrics": 0, "events": 2},
                 },
             )
 

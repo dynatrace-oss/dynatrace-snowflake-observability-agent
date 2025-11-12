@@ -95,7 +95,7 @@ class UsersPlugin(Plugin):
                 "users",
                 run_uuid=run_id,
                 log_completion=False,
-                report_timestamp_events=False,
+                report_timestamp_events=True,
             )
             view_name = view[6:-13].lower()  # remove APP.V_ prefix and _INSTRUMENTED suffix
             results_dict[view_name] = {

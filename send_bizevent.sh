@@ -70,7 +70,7 @@ elif [ "$(./get_config_key.sh plugins.self_monitoring.send_bizevents_on_deploy)"
             "dsoa.deployment.status": "${STATUS}",
             "dsoa.deployment.id": "${DEPLOYMENT_ID}"
         }
-        EOF
+EOF
         ) >/dev/null 2>&1; then
         exit 1
     fi

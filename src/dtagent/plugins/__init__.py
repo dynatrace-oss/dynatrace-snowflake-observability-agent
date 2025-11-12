@@ -120,7 +120,7 @@ class Plugin(ABC):
         """
         df = self._session.sql(t_data) if is_select_for_table(t_data) else self._session.table(t_data)
 
-        for row in df.collect():
+        for row in df.to_local_iterator():
             row_dict = row.as_dict(recursive=True)
 
             yield row_dict
@@ -549,7 +549,7 @@ class Plugin(ABC):
             if was_processed:
                 processed_entries_cnt += 1
 
-            if processed_entries_cnt % 100:  # invoking garbage collection every 100 entries.
+            if processed_entries_cnt % 100 == 0:  # invoking garbage collection every 100 entries.
                 gc.collect()
 
         processed_events_cnt += self._events.flush_events()

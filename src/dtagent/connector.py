@@ -25,7 +25,7 @@
 # SOFTWARE.
 #
 #
-from pdb import run
+import gc
 from dtagent import AbstractDynatraceSnowAgentConnector
 
 from dtagent.config import Configuration
@@ -253,6 +253,10 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
                             LOG.error("Could not send event due to %s", e)
 
                     entries_cnt += 1
+
+                    if entries_cnt % 100 == 0:
+                        gc.collect()
+
             else:
                 entries_cnt = sum(1 for _ in self._get_source_rows(source_data))
 
@@ -278,6 +282,8 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
                             context=self.__context,
                             is_data_structured=False,
                         )
+                    gc.collect()
+
                 bizevents_cnt += self._biz_events.flush_events()
                 events_cnt += self._events.flush_events()
 

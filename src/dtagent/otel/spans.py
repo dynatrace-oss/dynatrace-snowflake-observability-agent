@@ -176,7 +176,7 @@ class Spans:
 
         df_sub_rows = session.table(view_name).filter(col(parent_row_id_col) == row_id)
 
-        for row in df_sub_rows.collect():
+        for row in df_sub_rows.to_local_iterator():
             row_dict = row.as_dict(recursive=True)
 
             yield row_dict

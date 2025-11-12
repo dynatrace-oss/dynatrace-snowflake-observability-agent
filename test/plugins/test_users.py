@@ -68,6 +68,7 @@ class TestUsers:
         disabled_combinations = [
             [],
             ["logs"],
+            ["events"],
             ["logs", "metrics", "events"],
         ]
 
@@ -78,11 +79,11 @@ class TestUsers:
                 disabled_telemetry=disabled_telemetry,
                 affecting_types_for_entries=["logs"],
                 base_count={
-                    "users": {"entries": 2, "log_lines": 2},
-                    "users_direct_roles": {"entries": 0, "log_lines": 0},
-                    "users_removed_direct_roles": {"entries": 2, "log_lines": 2},
-                    "users_all_roles": {"entries": 2, "log_lines": 2},
-                    "users_all_privileges": {"entries": 2, "log_lines": 2},
+                    "users": {"entries": 2, "events": 5, "log_lines": 2},
+                    "users_direct_roles": {"entries": 2, "events": 2, "log_lines": 2},
+                    "users_removed_direct_roles": {"entries": 2, "events": 2, "log_lines": 2},
+                    "users_all_roles": {"entries": 2, "events": 2, "log_lines": 2},
+                    "users_all_privileges": {"entries": 2, "events": 2, "log_lines": 2},
                 },
             )
 

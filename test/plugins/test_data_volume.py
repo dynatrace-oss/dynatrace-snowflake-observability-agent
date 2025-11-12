@@ -64,8 +64,8 @@ class TestDataVol:
                 TestDynatraceSnowAgent,
                 test_name="test_data_volume",
                 disabled_telemetry=disabled_telemetry,
-                affecting_types_for_entries=["metrics"],  # no events in data volume test data
-                base_count={"data_volume": {"entries": 2, "log_lines": 0, "metrics": 7, "events": 0}},
+                affecting_types_for_entries=["metrics", "events"],
+                base_count={"data_volume": {"entries": 2, "log_lines": 0, "metrics": 7, "events": 3}},
             )
 
 

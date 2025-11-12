@@ -234,17 +234,17 @@ event_timestamps:
       - dynamic_table_refresh_history
       - dynamic_table_graph_history
     __example: "2024-11-20 19:53:47.448 Z"
-    __description: The description of the dynamic table is valid after this time.
+    __description: The timestamp after which the description of the dynamic table is valid.
   snowflake.table.dynamic.scheduling.resumed_on:
     __context_names:
       - dynamic_table_graph_history
     __example: "2024-11-25 08:09:53.695 Z"
-    __description: Optional timestamp when it was last resumed if dynamic table is ACTIVE.
+    __description: The timestamp when the dynamic table was last resumed, if ACTIVE.
   snowflake.table.dynamic.scheduling.suspended_on:
     __context_names:
       - dynamic_table_graph_history
     __example: "2024-11-25 06:09:53.695 Z"
-    __description: Optional timestamp when the dynamic table was suspended.
+    __description: The timestamp when the dynamic table was suspended.
 metrics:
   snowflake.partitions.added:
     __context_names:

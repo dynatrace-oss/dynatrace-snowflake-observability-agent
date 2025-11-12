@@ -69,9 +69,9 @@ class TestBudgets:
                 TestDynatraceSnowAgent,
                 test_name="test_budget",
                 disabled_telemetry=disabled_telemetry,
-                affecting_types_for_entries=["logs", "metrics"],  # no events tests data
+                affecting_types_for_entries=["logs", "metrics", "events"],
                 base_count={
-                    "budgets": {"entries": 1, "log_lines": 1, "metrics": 1, "events": 0},
+                    "budgets": {"entries": 1, "log_lines": 1, "metrics": 1, "events": 1},
                     "spendings": {"entries": 0, "log_lines": 0, "metrics": 0, "events": 0},
                 },
             )
