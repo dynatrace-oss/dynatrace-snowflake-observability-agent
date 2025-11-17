@@ -40,18 +40,39 @@ with cte_event_log as (
       )
       and TIMESTAMP > DTAGENT_DB.APP.F_LAST_PROCESSED_TS('event_log_metrics')
 )
+, cte_record_attributes as (
+    SELECT 
+        l.TIMESTAMP,
+        l.RESOURCE_ATTRIBUTES,
+        l.RECORD_ATTRIBUTES as snow_record_attr,
+        l.RECORD,
+        l.VALUE,
+        OBJECT_AGG(
+            CASE 
+                WHEN l.RESOURCE_ATTRIBUTES:"application" is NULL
+                THEN r.key
+                ELSE concat(l.RESOURCE_ATTRIBUTES:"application", '.', r.key)
+            END, 
+            r.value) AS RECORD_ATTRIBUTES
+    FROM cte_event_log l,
+    LATERAL FLATTEN(input => RECORD_ATTRIBUTES) r
+    GROUP BY all
+)
 select 
   extract(epoch_nanosecond from to_timestamp(l.TIMESTAMP))           as TIMESTAMP,
 
   MAP_CAT(
-      RESOURCE_ATTRIBUTES::map(varchar,variant),
-      OBJECT_CONSTRUCT(
-          'db.namespace',                 RESOURCE_ATTRIBUTES:"snow.database.name",
-          'snowflake.schema.name',        RESOURCE_ATTRIBUTES:"snow.schema.name",
-          'snowflake.role.name',          RESOURCE_ATTRIBUTES:"snow.session.role.primary.name",
-          'snowflake.warehouse.name',     RESOURCE_ATTRIBUTES:"snow.warehouse.name",
-          'snowflake.query.id',           RESOURCE_ATTRIBUTES:"snow.query.id"
-      )::map(varchar,variant)
+      RECORD_ATTRIBUTES::map(varchar,variant),
+      MAP_CAT(
+          RESOURCE_ATTRIBUTES::map(varchar,variant),
+          OBJECT_CONSTRUCT(
+              'db.namespace',                 RESOURCE_ATTRIBUTES:"snow.database.name",
+              'snowflake.schema.name',        RESOURCE_ATTRIBUTES:"snow.schema.name",
+              'snowflake.role.name',          RESOURCE_ATTRIBUTES:"snow.session.role.primary.name",
+              'snowflake.warehouse.name',     RESOURCE_ATTRIBUTES:"snow.warehouse.name",
+              'snowflake.query.id',           RESOURCE_ATTRIBUTES:"snow.query.id"
+          )::map(varchar,variant)
+        )
   )                                                                 as DIMENSIONS,
   OBJECT_AGG(
       RECORD:metric:name::varchar,
@@ -68,8 +89,8 @@ select
             'unit', RECORD:metric:unit
         )
   )                                                                 as _INSTRUMENTS_DEF
-from cte_event_log l
-group by TIMESTAMP, DIMENSIONS
+from cte_record_attributes l
+group by all
 order by TIMESTAMP asc
 ;
 
