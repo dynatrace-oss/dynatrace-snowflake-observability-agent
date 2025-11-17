@@ -90,7 +90,7 @@ select
         )
   )                                                                 as _INSTRUMENTS_DEF
 from cte_record_attributes l
-group by all
+group by TIMESTAMP, DIMENSIONS
 order by TIMESTAMP asc
 ;
 
