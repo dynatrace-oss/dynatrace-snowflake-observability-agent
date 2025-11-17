@@ -55,7 +55,7 @@ with cte_event_log as (
             END, 
             r.value) AS RECORD_ATTRIBUTES
     FROM cte_event_log l,
-    LATERAL FLATTEN(input => RECORD_ATTRIBUTES) r
+    LATERAL FLATTEN(input => l.RECORD_ATTRIBUTES) r
     GROUP BY all
 )
 select 
