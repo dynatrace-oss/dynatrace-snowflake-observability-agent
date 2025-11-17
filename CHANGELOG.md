@@ -8,7 +8,7 @@ Released on November 20, 2025
 
 ### Breaking Changes in 0.9.2
 
-* **Self-monitoring Telemetry**: All self-monitoring telemetry will now have `dsoa.run.context` set to `self_monitoring` instead of `self-monitoring`.
+* **Self-monitoring Telemetry**: All self-monitoring telemetry will now have `dsoa.run.context` set to `self_monitoring` (underscore) instead of `self-monitoring` (hyphen).
 
 ### New in 0.9.2
 
