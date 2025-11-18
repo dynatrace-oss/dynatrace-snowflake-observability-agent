@@ -179,8 +179,7 @@ All telemetry delivered by this plugin is reported as `dsoa.run.context == "data
 | Identifier | Description | Example |
 |------------|-------------|---------|
 | snowflake.&#8203;event.&#8203;trigger | Additionally to sending logs, each entry in `EVENT_TIMESTAMPS` is sent as event with key set to `snowflake.event.trigger`, value to key from `EVENT_TIMESTAMPS` and `timestamp` set to the key value. | snowflake.table.update |
-| snowflake.&#8203;table.&#8203;ddl | Timestamp of the last DDL operation performed on the table or view. All supported table/view DDL operations update this field: <br>- CREATE, <br>- ALTER, <br>- DROP, <br>- UNDROP  | 2024-11-01 12:00:00.000 |
-| snowflake.&#8203;table.&#8203;update | Date and time the object was last altered by a DML, DDL, or background metadata operation. | 2024-11-10 16:45:00.000 |
+| snowflake.&#8203;table.&#8203;ddl | The timestamp of the last DDL operation performed on the table or view, including CREATE, ALTER, DROP, or UNDROP. | 2024-11-01 12:00:00.000 |
 
 <a name="dynamic_tables_semantics_sec"></a>
 
@@ -249,9 +248,9 @@ This plugin delivers telemetry in multiple contexts. To filter by one of plugin'
 | Identifier | Description | Example | Context Name |
 |------------|-------------|---------|--------------|
 | snowflake.&#8203;event.&#8203;trigger | Additionally to sending logs, each entry in `EVENT_TIMESTAMPS` is sent as event with key set to `snowflake.event.trigger`, value to key from `EVENT_TIMESTAMPS` and `timestamp` set to the key value. | snowflake.table.dynamic.scheduling.resumed_on | dynamic_table_refresh_history, dynamic_table_graph_history |
-| snowflake.&#8203;table.&#8203;dynamic.&#8203;graph.&#8203;valid_from | The description of the dynamic table is valid after this time. | 2024-11-20 19:53:47.448 Z | dynamic_table_refresh_history, dynamic_table_graph_history |
-| snowflake.&#8203;table.&#8203;dynamic.&#8203;scheduling.&#8203;resumed_on | Optional timestamp when it was last resumed if dynamic table is ACTIVE. | 2024-11-25 08:09:53.695 Z | dynamic_table_graph_history |
-| snowflake.&#8203;table.&#8203;dynamic.&#8203;scheduling.&#8203;suspended_on | Optional timestamp when the dynamic table was suspended. | 2024-11-25 06:09:53.695 Z | dynamic_table_graph_history |
+| snowflake.&#8203;table.&#8203;dynamic.&#8203;graph.&#8203;valid_from | The timestamp after which the description of the dynamic table is valid. | 2024-11-20 19:53:47.448 Z | dynamic_table_refresh_history, dynamic_table_graph_history |
+| snowflake.&#8203;table.&#8203;dynamic.&#8203;scheduling.&#8203;resumed_on | The timestamp when the dynamic table was last resumed, if ACTIVE. | 2024-11-25 08:09:53.695 Z | dynamic_table_graph_history |
+| snowflake.&#8203;table.&#8203;dynamic.&#8203;scheduling.&#8203;suspended_on | The timestamp when the dynamic table was suspended. | 2024-11-25 06:09:53.695 Z | dynamic_table_graph_history |
 
 <a name="event_log_semantics_sec"></a>
 
@@ -583,11 +582,11 @@ This plugin delivers telemetry in multiple contexts. To filter by one of plugin'
 | Identifier | Description | Example | Context Name |
 |------------|-------------|---------|--------------|
 | snowflake.&#8203;event.&#8203;trigger | Additionally to sending logs, each entry in `EVENT_TIMESTAMPS` is sent as event with key set to `snowflake.event.trigger`, value to key from `EVENT_TIMESTAMPS` and `timestamp` set to the key value. | snowflake.grant.created_on | outbound_shares, inbound_shares |
-| snowflake.&#8203;grant.&#8203;created_on | Timestamp of the date of creating the grant. | 1639051180946000000 | outbound_shares |
-| snowflake.&#8203;share.&#8203;created_on | Timestamp of the date of creating the share. | 1639051180714000000 | outbound_shares, inbound_shares |
-| snowflake.&#8203;table.&#8203;created_on | Creation time of the table. | 1649940827875000000 | inbound_shares |
-| snowflake.&#8203;table.&#8203;ddl | Timestamp of the last DDL operation performed on the table or view. | 1639940327875000000 | inbound_shares |
-| snowflake.&#8203;table.&#8203;update | Date and time the object was last altered by a DML, DDL, or background metadata operation. | 1649962827875000000 | inbound_shares |
+| snowflake.&#8203;grant.&#8203;created_on | The timestamp when the grant was created. | 1639051180946000000 | outbound_shares |
+| snowflake.&#8203;share.&#8203;created_on | The timestamp when the share was created. | 1639051180714000000 | outbound_shares, inbound_shares |
+| snowflake.&#8203;table.&#8203;created_on | The timestamp when the table was created. | 1649940827875000000 | inbound_shares |
+| snowflake.&#8203;table.&#8203;ddl | The timestamp of the last DDL operation performed on the table or view. | 1639940327875000000 | inbound_shares |
+| snowflake.&#8203;table.&#8203;update | The timestamp when the object was last altered by a DML, DDL, or background metadata operation. | 1649962827875000000 | inbound_shares |
 
 <a name="tasks_semantics_sec"></a>
 
@@ -655,7 +654,7 @@ This plugin delivers telemetry in multiple contexts. To filter by one of plugin'
 | Identifier | Description | Example | Context Name |
 |------------|-------------|---------|--------------|
 | snowflake.&#8203;event.&#8203;trigger | Additionally to sending logs, each entry in `EVENT_TIMESTAMPS` is sent as event with key set to `snowflake.event.trigger`, value to key from `EVENT_TIMESTAMPS` and `timestamp` set to the key value. | snowflake.task.graph.version.created_on | task_versions |
-| snowflake.&#8203;task.&#8203;graph.&#8203;version.&#8203;created_on | The creation time of the task graph version. | 1633046400000000000 | task_versions |
+| snowflake.&#8203;task.&#8203;graph.&#8203;version.&#8203;created_on | The timestamp when the task graph version was created. | 1633046400000000000 | task_versions |
 
 <a name="trust_center_semantics_sec"></a>
 
@@ -703,54 +702,61 @@ All telemetry delivered by this plugin is reported as `dsoa.run.context == "trus
 
 [Show plugin description](PLUGINS.md#users_info_sec)
 
-All telemetry delivered by this plugin is reported as `dsoa.run.context == "users"`.
+This plugin delivers telemetry in multiple contexts. To filter by one of plugin's context names (reported as `dsoa.run.context`), please check the `Context Name` column below.
 
 ### Dimensions at the `Users` plugin
 
-| Identifier | Description | Example |
-|------------|-------------|---------|
-| db.&#8203;user | Snowflake user who issued the query. | admin |
+| Identifier | Description | Example | Context Name |
+|------------|-------------|---------|--------------|
+| db.&#8203;user | Snowflake user who issued the query. | admin | users |
 
 ### Attributes at the `Users` plugin
 
-| Identifier | Description | Example |
-|------------|-------------|---------|
-| snowflake.&#8203;user.&#8203;bypass_mfa_until | The time until which the user can bypass MFA. | 2024-11-06T00:00:00Z |
-| snowflake.&#8203;user.&#8203;comment | Any comments associated with the user. | New user account |
-| snowflake.&#8203;user.&#8203;created_on | The creation time of the user account. | 1651830381846000000 |
-| snowflake.&#8203;user.&#8203;default.&#8203;namespace | The default namespace for the user. | PUBLIC |
-| snowflake.&#8203;user.&#8203;default.&#8203;role | The default role for the user. | SYSADMIN |
-| snowflake.&#8203;user.&#8203;default.&#8203;secondary_role | The default secondary role for the user. | SECURITYADMIN |
-| snowflake.&#8203;user.&#8203;default.&#8203;warehouse | The default warehouse for the user. | COMPUTE_WH |
-| snowflake.&#8203;user.&#8203;deleted_on | The deletion time of the user account, if applicable. | 1615219846384000000 |
-| snowflake.&#8203;user.&#8203;display_name | The display name of the user. | John Doe |
-| snowflake.&#8203;user.&#8203;email | The email address of the user. | `jdoe@example.com` |
-| snowflake.&#8203;user.&#8203;expires_at | The expiration date of the user account. | 1620213179885000000 |
-| snowflake.&#8203;user.&#8203;ext_authn.&#8203;duo | Indicates if Duo authentication is enabled for the user. | true |
-| snowflake.&#8203;user.&#8203;ext_authn.&#8203;uid | The external authentication UID for the user. | ext123 |
-| snowflake.&#8203;user.&#8203;has_password | Indicates if the user has a password set. | true |
-| snowflake.&#8203;user.&#8203;id | The unique identifier for the user. | 12345 |
-| snowflake.&#8203;user.&#8203;is_disabled | Indicates if the user account is disabled. | false |
-| snowflake.&#8203;user.&#8203;is_locked | Indicates if the user account is locked by Snowflake. | false |
-| snowflake.&#8203;user.&#8203;last_success_login | The last successful login time of the user. | 1732181350954000000 |
-| snowflake.&#8203;user.&#8203;locked_until_time | The time until which the user account is locked. | 1615479617866000000 |
-| snowflake.&#8203;user.&#8203;must_change_password | Indicates if the user must change their password. | true |
-| snowflake.&#8203;user.&#8203;name | The login name of the user. | jdoe |
-| snowflake.&#8203;user.&#8203;name.&#8203;first | The first name of the user. | John |
-| snowflake.&#8203;user.&#8203;name.&#8203;last | The last name of the user. | Doe |
-| snowflake.&#8203;user.&#8203;owner | The role that owns the user account. | ACCOUNTADMIN |
-| snowflake.&#8203;user.&#8203;password_last_set_time | The last time the user's password was set. | 1615219848053000000 |
-| snowflake.&#8203;user.&#8203;privilege | Name of the privilege and type of object this privilege granted on to the user or role. Composed as `privilege:granted_on_object`. | CREATE SERVICE:SCHEMA |
-| snowflake.&#8203;user.&#8203;privilege.&#8203;granted_by | Array of all roles which granted grants to a user for a privilege. | ['ACCOUNTADMIN'] |
-| snowflake.&#8203;user.&#8203;privilege.&#8203;grants_on | List of all objects of given type on which given privilege was given; both object type and privilege are reported as `snowflake.user.privilege` | ['TRUST_CENTER_ADMIN', 'COMPUTE_WH'] |
-| snowflake.&#8203;user.&#8203;privilege.&#8203;last_altered | Nanosecond timestamp of the last alteration to user's privileges. | 1732181350954000000 |
-| snowflake.&#8203;user.&#8203;roles.&#8203;all | Comma separated list of all roles granted to a user. | SNOWFLAKE_FINANCE,MONITORING |
-| snowflake.&#8203;user.&#8203;roles.&#8203;direct | List of all direct roles granted to user. | ['DEVOPS_ROLE', 'SYSADMIN', 'ACCOUNTADMIN'] |
-| snowflake.&#8203;user.&#8203;roles.&#8203;direct.&#8203;removed | Name of the role that was revoked from user. | ACCOUNTADMIN |
-| snowflake.&#8203;user.&#8203;roles.&#8203;direct.&#8203;removed_on | Nanosecond timestamp of the last deletion of a direct role to a user. | 1718260900411000000 |
-| snowflake.&#8203;user.&#8203;roles.&#8203;granted_by | Array of admin roles that were used to grant current list of user roles. | ['DEMIGOD', 'SECURITYADMIN', 'ACCOUNTADMIN'] |
-| snowflake.&#8203;user.&#8203;roles.&#8203;last_altered | Nanosecond timestamp of last alteration of roles granted to user. | 1718260900411000000 |
-| snowflake.&#8203;user.&#8203;type | Specifies the type of user | LEGACY_SERVICE |
+| Identifier | Description | Example | Context Name |
+|------------|-------------|---------|--------------|
+| snowflake.&#8203;user.&#8203;bypass_mfa_until | The time until which the user can bypass MFA. | 2024-11-06T00:00:00Z | users |
+| snowflake.&#8203;user.&#8203;comment | Any comments associated with the user. | New user account | users |
+| snowflake.&#8203;user.&#8203;default.&#8203;namespace | The default namespace for the user. | PUBLIC | users |
+| snowflake.&#8203;user.&#8203;default.&#8203;role | The default role for the user. | SYSADMIN | users |
+| snowflake.&#8203;user.&#8203;default.&#8203;secondary_role | The default secondary role for the user. | SECURITYADMIN | users |
+| snowflake.&#8203;user.&#8203;default.&#8203;warehouse | The default warehouse for the user. | COMPUTE_WH | users |
+| snowflake.&#8203;user.&#8203;display_name | The display name of the user. | John Doe | users |
+| snowflake.&#8203;user.&#8203;email | The email address of the user. | `jdoe@example.com` | users |
+| snowflake.&#8203;user.&#8203;expires_at | The expiration date of the user account. | 1620213179885000000 | users |
+| snowflake.&#8203;user.&#8203;ext_authn.&#8203;duo | Indicates if Duo authentication is enabled for the user. | true | users |
+| snowflake.&#8203;user.&#8203;ext_authn.&#8203;uid | The external authentication UID for the user. | ext123 | users |
+| snowflake.&#8203;user.&#8203;has_password | Indicates if the user has a password set. | true | users |
+| snowflake.&#8203;user.&#8203;id | The unique identifier for the user. | 12345 | users |
+| snowflake.&#8203;user.&#8203;is_disabled | Indicates if the user account is disabled. | false | users |
+| snowflake.&#8203;user.&#8203;is_from_organization | Indicates if the user was imported from a global organization. | true | users |
+| snowflake.&#8203;user.&#8203;is_locked | Indicates if the user account is locked by Snowflake. | false | users |
+| snowflake.&#8203;user.&#8203;locked_until_time | The time until which the user account is locked. | 1615479617866000000 | users |
+| snowflake.&#8203;user.&#8203;must_change_password | Indicates if the user must change their password. | true | users |
+| snowflake.&#8203;user.&#8203;name | The login name of the user. | jdoe | users |
+| snowflake.&#8203;user.&#8203;name.&#8203;first | The first name of the user. | John | users |
+| snowflake.&#8203;user.&#8203;name.&#8203;last | The last name of the user. | Doe | users |
+| snowflake.&#8203;user.&#8203;owner | The role that owns the user account. | ACCOUNTADMIN | users |
+| snowflake.&#8203;user.&#8203;privilege | Name of the privilege and type of object this privilege granted on to the user or role. Composed as `privilege:granted_on_object`. | CREATE SERVICE:SCHEMA | users_all_privileges |
+| snowflake.&#8203;user.&#8203;privilege.&#8203;granted_by | Array of all roles which granted grants to a user for a privilege. | ['ACCOUNTADMIN'] | users_all_privileges |
+| snowflake.&#8203;user.&#8203;privilege.&#8203;grants_on | List of all objects of given type on which given privilege was given; both object type and privilege are reported as `snowflake.user.privilege` | ['TRUST_CENTER_ADMIN', 'COMPUTE_WH'] | users_all_privileges |
+| snowflake.&#8203;user.&#8203;roles.&#8203;all | Comma separated list of all roles granted to a user. | SNOWFLAKE_FINANCE,MONITORING | users_all_roles |
+| snowflake.&#8203;user.&#8203;roles.&#8203;direct | List of all direct roles granted to user. | ['DEVOPS_ROLE', 'SYSADMIN', 'ACCOUNTADMIN'] | users_direct_roles |
+| snowflake.&#8203;user.&#8203;roles.&#8203;direct.&#8203;removed | Name of the role that was revoked from user. | ACCOUNTADMIN | users_removed_direct_roles |
+| snowflake.&#8203;user.&#8203;roles.&#8203;granted_by | Array of admin roles that were used to grant current list of user roles. | ['DEMIGOD', 'SECURITYADMIN', 'ACCOUNTADMIN'] | users_all_roles, users_direct_roles |
+| snowflake.&#8203;user.&#8203;type | Specifies the type of user | LEGACY_SERVICE | users |
+
+### Event timestamps at the `Users` plugin
+
+| Identifier | Description | Example | Context Name |
+|------------|-------------|---------|--------------|
+| snowflake.&#8203;event.&#8203;trigger | Additionally to sending logs, each entry in `EVENT_TIMESTAMPS` is sent as event with key set to `snowflake.event.trigger`, value to key from `EVENT_TIMESTAMPS` and `timestamp` set to the key value. | snowflake.user.last_success_login | users, users_all_privileges, users_all_roles, users_direct_roles, users_removed_direct_roles |
+| snowflake.&#8203;user.&#8203;created_on | The timestamp of the user account creation. | 1651830381846000000 | users |
+| snowflake.&#8203;user.&#8203;deleted_on | The timestamp of the user account deletion. | 1615219846384000000 | users |
+| snowflake.&#8203;user.&#8203;last_success_login | The timestamp of the last successful login by the user. | 1732181350954000000 | users |
+| snowflake.&#8203;user.&#8203;password_last_set_time | The timestamp of the last password change for the user. | 1615219848053000000 | users |
+| snowflake.&#8203;user.&#8203;privilege.&#8203;last_altered | The timestamp of the last alteration to the user's privileges. | 1732181350954000000 | users_all_privileges |
+| snowflake.&#8203;user.&#8203;roles.&#8203;direct.&#8203;removed_on | The timestamp of the last removal of a direct role from the user. | 1718260900411000000 | users_removed_direct_roles |
+| snowflake.&#8203;user.&#8203;roles.&#8203;last_altered | The timestamp of the last alteration to the roles granted to the user. | 1718260900411000000 | users_all_roles, users_direct_roles |
 
 <a name="warehouse_usage_semantics_sec"></a>
 

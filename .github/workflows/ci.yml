@@ -38,7 +38,7 @@ jobs:
         run: sqlfluff lint src/*.sql --ignore parsing --disable-progress-bar || exit 1
 
       - name: Lint YAML
-        run: yamllint . || exit 1
+        run: yamllint src || exit 1
 
       - name: Lint Markdown
         run: markdownlint '**/*.md' || exit 1

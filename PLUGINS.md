@@ -641,6 +641,7 @@ In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you 
             "ROLES_MONITORING_MODE": [],
             "TELEMETRY": [
                 "LOGS",
+                "EVENTS",
                 "BIZ_EVENTS"
             ]
         }
