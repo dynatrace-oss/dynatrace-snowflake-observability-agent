@@ -242,9 +242,14 @@ class Plugin(ABC):
                 current_timestamp(),
                 None,
                 {
-                    "joint_processed_query_ids": joint_processed_query_ids,
-                    "processing_errors_count": processing_errors_count,
-                    "span_events_added_count": span_events_added,
+                    context_name: {
+                        "metrics": metrics_sent,
+                        "log_lines": logs_sent,
+                        "span_events": span_events_added,
+                        "spans": spans_sent,
+                        "errors": processing_errors_count,
+                        "entries": len(processed_query_ids),
+                    }
                 },
                 run_id=run_uuid,
             )
@@ -556,17 +561,17 @@ class Plugin(ABC):
         processed_events_cnt += self._events.flush_events()
         processed_metrics_cnt += self._metrics.flush_metrics()
 
-        entries_dict = {"processed_entries_cnt": processed_entries_cnt}
+        entries_dict = {"entries": processed_entries_cnt}
 
         if report_all_as_events or report_timestamp_events or event_payload_prepare:
-            entries_dict["processed_events_cnt"] = processed_events_cnt
+            entries_dict["events"] = processed_events_cnt
         if report_logs:
-            entries_dict["processed_logs_cnt"] = processed_logs_cnt
+            entries_dict["log_lines"] = processed_logs_cnt
         if report_metrics:
-            entries_dict["processed_metrics_cnt"] = processed_metrics_cnt
+            entries_dict["metrics"] = processed_metrics_cnt
 
         if log_completion:
-            self._report_execution(context_name, str(self.processed_last_timestamp), None, entries_dict, run_id=run_uuid)
+            self._report_execution(context_name, str(self.processed_last_timestamp), None, {context_name: entries_dict}, run_id=run_uuid)
 
         return processed_entries_cnt, processed_logs_cnt, processed_metrics_cnt, processed_events_cnt
 

@@ -68,17 +68,19 @@ class DataVolumePlugin(Plugin):
             log_completion=False,
         )
         results_dict = {
-            "entries": entries_cnt,
-            "log_lines": logs_cnt,
-            "metrics": metrics_cnt,
-            "events": events_cnt,
+            "data_volume": {
+                "entries": entries_cnt,
+                "log_lines": logs_cnt,
+                "metrics": metrics_cnt,
+                "events": events_cnt,
+            }
         }
         if run_proc:
             self._report_execution("data_volume", current_timestamp(), None, results_dict, run_id=run_id)
 
         return {
             RUN_PLUGIN_KEY: "data_volume",
-            RUN_RESULTS_KEY: {"data_volume": results_dict},
+            RUN_RESULTS_KEY: results_dict,
             RUN_ID_KEY: run_id,
         }
 
