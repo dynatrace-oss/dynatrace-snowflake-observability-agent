@@ -60,6 +60,8 @@ from dtagent.context import RUN_CONTEXT_KEY, get_context_name_and_run_id
 class Plugin(ABC):
     """Generic plugin class, base for all plugins."""
 
+    PLUGIN_NAME = "generic_plugin"
+
     def __init__(
         self,
         *,
@@ -356,11 +358,13 @@ class Plugin(ABC):
             ["DIMENSIONS", "ATTRIBUTES", "METRICS", "EVENT_TIMESTAMPS"],
         )
 
-        event_dict = _cleanup_dict({"timestamp": self.processed_last_timestamp, **log_dict})
+        log_data = _cleanup_dict({"timestamp": self.processed_last_timestamp, **log_dict})
+
+        LOG.debug("Sending logs %s", str(log_data))
 
         self._logs.send_log(
             row_dict.get("_MESSAGE", __context.get(RUN_CONTEXT_KEY)),
-            extra=event_dict,
+            extra=log_data,
             log_level=log_level,
             context=__context,
         )
@@ -501,12 +505,15 @@ class Plugin(ABC):
 
         for row_dict in f_entry_generator():
 
+            LOG.debug("Processing row: %s; process logs = %s", str(row_dict), str(report_logs))
+
             was_processed = False
 
             if report_metrics and not getattr(self._metrics, "NOT_ENABLED", False):
                 _metrics_sent, _metrics_cnt = self._metrics.discover_report_metrics(row_dict, start_time, context_name)
                 processed_metrics_cnt += _metrics_cnt
                 was_processed |= _metrics_sent
+                LOG.debug("Sending metrics %s / %d | %s", str(_metrics_sent), _metrics_cnt, str(was_processed))
 
             self.processed_last_timestamp = row_dict.get("TIMESTAMP", None)
 
@@ -587,6 +594,16 @@ class Plugin(ABC):
             self._report_execution(context_name, str(self.processed_last_timestamp), None, {context_name: entries_dict}, run_id=run_uuid)
 
         return processed_entries_cnt, processed_logs_cnt, processed_metrics_cnt, processed_events_cnt
+
+    def _report_results(self, results: Dict[str, any], run_id: str) -> Dict[str, any]:
+        """Generic method reporting results after processing is done. To be overwritten by plugins when required"""
+        from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPILE_REMOVE
+
+        return {
+            RUN_PLUGIN_KEY: self.PLUGIN_NAME,
+            RUN_RESULTS_KEY: results,
+            RUN_ID_KEY: run_id,
+        }
 
     @abstractmethod
     def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:

@@ -37,6 +37,8 @@ from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPI
 class DynamicTablesPlugin(Plugin):
     """Dynamic tables plugin class."""
 
+    PLUGIN_NAME = "dynamic_tables"
+
     def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
         """Processes the measures on dynamic tables
 
@@ -100,9 +102,8 @@ class DynamicTablesPlugin(Plugin):
             log_completion=run_proc,
         )
 
-        return {
-            RUN_PLUGIN_KEY: "dynamic_tables",
-            RUN_RESULTS_KEY: {
+        return self._report_results(
+            {
                 "dynamic_tables": {
                     "entries": entries_cnt,
                     "log_lines": logs_cnt,
@@ -122,8 +123,8 @@ class DynamicTablesPlugin(Plugin):
                     "events": event_graph_cnt,
                 },
             },
-            RUN_ID_KEY: run_id,
-        }
+            run_id,
+        )
 
 
 ##endregion

@@ -37,6 +37,8 @@ from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPI
 class WarehouseUsagePlugin(Plugin):
     """Warehouse usage plugin class."""
 
+    PLUGIN_NAME = "warehouse_usage"
+
     def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
         """Processes data for warehouse usage plugin.
 
@@ -98,9 +100,8 @@ class WarehouseUsagePlugin(Plugin):
             log_completion=run_proc,
         )
 
-        return {
-            RUN_PLUGIN_KEY: "warehouse_usage",
-            RUN_RESULTS_KEY: {
+        return self._report_results(
+            {
                 "warehouse_usage": {
                     "entries": entries_wh_events_cnt,
                     "log_lines": logs_wh_events_cnt,
@@ -120,5 +121,5 @@ class WarehouseUsagePlugin(Plugin):
                     "events": events_wh_metering_cnt,
                 },
             },
-            RUN_ID_KEY: run_id,
-        }
+            run_id,
+        )

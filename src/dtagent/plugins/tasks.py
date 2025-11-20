@@ -37,6 +37,8 @@ from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPI
 class TasksPlugin(Plugin):
     """Tasks plugin class."""
 
+    PLUGIN_NAME = "tasks"
+
     def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
         """Processes the measures on serverless tasks, task history and task versions.
 
@@ -114,9 +116,8 @@ class TasksPlugin(Plugin):
             log_completion=run_proc,
         )
 
-        return {
-            RUN_PLUGIN_KEY: "tasks",
-            RUN_RESULTS_KEY: {
+        return self._report_results(
+            {
                 "serverless_tasks": {
                     "entries": serverless_tasks_entries_cnt,
                     "log_lines": serverless_task_logs_cnt,
@@ -136,8 +137,8 @@ class TasksPlugin(Plugin):
                     "events": task_history_events_cnt,
                 },
             },
-            RUN_ID_KEY: run_id,
-        }
+            run_id,
+        )
 
 
 ##endregion
