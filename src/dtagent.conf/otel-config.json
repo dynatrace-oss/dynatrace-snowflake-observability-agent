@@ -15,11 +15,14 @@
             "IS_DISABLED": false
         },
         "METRICS": {
+            "API_POST_TIMEOUT": 30,
             "MAX_RETRIES": 5,
             "MAX_BATCH_SIZE": 1000000,
+            "RETRY_DELAY_MS": 10000,
             "IS_DISABLED": false
         },
         "EVENTS": {
+            "API_POST_TIMEOUT": 30,
             "MAX_RETRIES": 5,
             "MAX_PAYLOAD_BYTES": 10240000,
             "MAX_EVENT_COUNT": 25000,
@@ -32,15 +35,17 @@
             "IS_DISABLED": false
         },
         "DAVIS_EVENTS": {
+            "API_POST_TIMEOUT": 30,
             "MAX_RETRIES": 5,
             "RETRY_DELAY_MS": 10000,
             "IS_DISABLED": false
         },
         "BIZ_EVENTS": {
+            "API_POST_TIMEOUT": 30,
             "MAX_RETRIES": 5,
             "MAX_PAYLOAD_BYTES": 5120000,
             "MAX_EVENT_COUNT": 400,
-            "RETRY_DELAY_MS": 10000,
+            "RETRY_DELAY_MS": 30000,
             "RETRY_ON_STATUS": [
                 429,
                 502,

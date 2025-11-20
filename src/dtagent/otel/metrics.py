@@ -26,6 +26,7 @@
 #
 import sys
 import requests
+import time
 
 from typing import Dict, Union, Optional, Tuple
 from dtagent.otel.otel_manager import OtelManager
@@ -55,6 +56,8 @@ class Metrics:
         }
         self._max_retries = self._configuration.get(otel_module="metrics", key="max_retries", default_value=5)
         self._max_batch_size = self._configuration.get(otel_module="metrics", key="max_batch_size", default_value=1000000)
+        self._retry_delay_ms = self._configuration.get(otel_module="metrics", key="retry_delay_ms", default_value=10000)
+        self._api_post_timeout = self._configuration.get(otel_module="metrics", key="api_post_timeout", default_value=30)
 
     def _send_metrics(self, payload: Optional[str] = None) -> int:
         """Sends given payload of metrics with metadata to Dynatrace.
@@ -89,7 +92,7 @@ class Metrics:
                     self._configuration.get("metrics.http"),
                     headers=headers,
                     data=_clean_payload,
-                    timeout=15 if _retries < 2 else 30,
+                    timeout=self._api_post_timeout,
                 )
 
                 LOG.log(LL_TRACE, "Sent %d bytes of metrics payload; response: %s", len(_payload), response.status_code)
@@ -115,6 +118,7 @@ class Metrics:
                     )
 
                 if _retries < self._max_retries:
+                    time.sleep(self._retry_delay_ms / 1000)
                     data_sent_size = __send(_payload, _retries + 1)
                 else:
                     LOG.warning("Failed to send metrics within 3 attempts")
