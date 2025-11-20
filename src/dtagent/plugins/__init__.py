@@ -318,8 +318,8 @@ class Plugin(ABC):
         metrics_sent, metrics_cnt = self._metrics.discover_report_metrics(
             row, "START_TIME", context_name=context.get(RUN_CONTEXT_KEY, None)
         )
-        if metrics_sent and metrics_cnt == 0:
-            # report when metrics were intended to be sent, but none were delivered
+        if not metrics_sent:
+            # report when metrics failed to send
             processing_errors.append(f"Problem sending row {row_id} as metric")
 
         span_events_added, spans_sent, logs_sent = 0, 0, 0
