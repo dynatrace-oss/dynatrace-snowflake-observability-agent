@@ -198,7 +198,7 @@ class Metrics:
                 value = metric_value
             return (
                 f"{metric_name},{dimensions} {value}"
-                + ("" if ts is None else f" {ts}")
+                + ("" if not ts else f" {ts}")
                 + "\n"
                 + self._instruments.get_metric_definition(metric_name, local_metrics_def)
             )
