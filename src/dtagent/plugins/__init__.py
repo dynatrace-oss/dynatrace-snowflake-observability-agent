@@ -509,7 +509,6 @@ class Plugin(ABC):
                 _metrics_sent, _metrics_cnt = self._metrics.discover_report_metrics(row_dict, start_time, context_name)
                 processed_metrics_cnt += _metrics_cnt
                 was_processed |= _metrics_sent
-                LOG.debug("Sending metrics %s / %d | %s", str(_metrics_sent), _metrics_cnt, str(was_processed))
 
             self.processed_last_timestamp = row_dict.get("TIMESTAMP", None)
 
