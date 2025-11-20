@@ -590,7 +590,7 @@ class Plugin(ABC):
 
         return processed_entries_cnt, processed_logs_cnt, processed_metrics_cnt, processed_events_cnt
 
-    def _report_results(self, results: Dict[str, any], run_id: str) -> Dict[str, any]:
+    def _report_results(self, results: Dict[str, Any], run_id: str) -> Dict[str, Any]:
         """Generic method reporting results after processing is done. To be overwritten by plugins when required"""
         from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPILE_REMOVE
 
