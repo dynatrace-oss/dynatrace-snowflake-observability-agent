@@ -41,7 +41,8 @@ with cte_event_log as (
       )
       and TIMESTAMP > GREATEST( timeadd(hour, -24, current_timestamp), DTAGENT_DB.APP.F_LAST_PROCESSED_TS('event_log_spans') )
       and RESOURCE_ATTRIBUTES:"application"::varchar is null or RESOURCE_ATTRIBUTES:"application"::varchar not in ('openflow') -- exclude known high volume applications
-      limit 10000 -- safety limit to avoid long running queries
+    order by TIMESTAMP asc
+    limit 10000 -- safety limit to avoid long running queries
 )
 , cte_span_events as (
     select

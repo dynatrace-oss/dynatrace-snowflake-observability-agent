@@ -65,9 +65,8 @@ where not regexp_like(SCOPE['name'], 'DTAGENT(_\\S*)?_OTLP')     -- we do not lo
   )
   and TIMESTAMP > GREATEST( timeadd(hour, -24, current_timestamp), DTAGENT_DB.APP.F_LAST_PROCESSED_TS('event_log') )
   and RESOURCE_ATTRIBUTES:"application"::varchar is null or RESOURCE_ATTRIBUTES:"application"::varchar not in ('openflow') -- exclude known high volume applications
-  limit 10000 -- safety limit to avoid long running queries
-
 order by TIMESTAMP asc
+limit 10000 -- safety limit to avoid long running queries
 ;
 
 grant select on table DTAGENT_DB.APP.V_EVENT_LOG to role DTAGENT_VIEWER;
