@@ -408,7 +408,7 @@ def is_select_for_table(table_name_or_query: str) -> bool:
 
 def is_regular_mode(session) -> bool:
     """Checks if we are running in regular mode, i.e., not local testing mode"""
-    return session.connection.account is not None
+    return session.session_id != 1
 
 
 ##endregion

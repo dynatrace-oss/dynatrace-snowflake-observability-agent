@@ -150,6 +150,19 @@ class Plugin(ABC):
                 str(last_id),
                 str(entries_count),
             )
+        else:
+            LOG.info(
+                "Skipping STATUS.LOG_PROCESSED_MEASUREMENTS call in non-regular mode"
+                " for source %s with last_timestamp %s, last_id %s, entries_count %s;"
+                " session.connection = %s; session.connection.account = %s, session.session_id = %s",
+                measurements_source,
+                str(last_timestamp),
+                str(last_id),
+                str(entries_count),
+                str(self._session.connection),
+                str(self._session.connection.account),
+                str(self._session.session_id),
+            )
 
     def _process_span_rows(  # pylint: disable=R0913
         self,
