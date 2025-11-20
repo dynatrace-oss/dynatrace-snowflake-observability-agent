@@ -6,10 +6,10 @@
             "FAST_MODE": true,
             "REPORT_EXECUTION_STATUS": [],
             "TELEMETRY": [
-                "LOGS",
-                "METRICS",
-                "SPANS",
-                "BIZ_EVENTS"
+                "logs",
+                "metrics",
+                "spans",
+                "biz_events"
             ]
         }
     }

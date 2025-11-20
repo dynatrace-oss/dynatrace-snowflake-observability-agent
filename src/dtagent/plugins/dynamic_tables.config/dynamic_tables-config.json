@@ -11,9 +11,9 @@
             "SCHEDULE_GRANTS": "USING CRON 30 */12 * * * UTC",
             "IS_DISABLED": false,
             "TELEMETRY": [
-                "METRICS",
-                "LOGS",
-                "BIZ_EVENTS"
+                "metrics",
+                "logs",
+                "biz_events"
             ]
         }
     }

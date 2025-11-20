@@ -12,8 +12,8 @@
             "SCHEDULE": "USING CRON 30 0,4,8,12,16,20 * * * UTC",
             "IS_DISABLED": false,
             "TELEMETRY": [
-                "METRICS",
-                "BIZ_EVENTS"
+                "metrics",
+                "biz_events"
             ]
         }
     }

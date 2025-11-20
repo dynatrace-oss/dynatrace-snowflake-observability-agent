@@ -4,9 +4,9 @@
             "SCHEDULE": "USING CRON 0 * * * * UTC",
             "IS_DISABLED": false,
             "TELEMETRY": [
-                "METRICS",
-                "LOGS",
-                "BIZ_EVENTS"
+                "metrics",
+                "logs",
+                "biz_events"
             ]
         }
     }

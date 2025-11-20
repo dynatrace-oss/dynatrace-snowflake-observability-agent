@@ -8,8 +8,8 @@
                 "%"
             ],
             "TELEMETRY": [
-                "EVENTS",
-                "BIZ_EVENTS"
+                "events",
+                "biz_events"
             ]
         }
     }

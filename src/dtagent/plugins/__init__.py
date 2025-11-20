@@ -360,8 +360,6 @@ class Plugin(ABC):
 
         log_data = _cleanup_dict({"timestamp": self.processed_last_timestamp, **log_dict})
 
-        LOG.debug("Sending logs %s", str(log_data))
-
         self._logs.send_log(
             row_dict.get("_MESSAGE", __context.get(RUN_CONTEXT_KEY)),
             extra=log_data,
@@ -504,8 +502,6 @@ class Plugin(ABC):
         last_timestamp = self._configuration.get_last_measurement_update(self._session, context_name)
 
         for row_dict in f_entry_generator():
-
-            LOG.debug("Processing row: %s; process logs = %s", str(row_dict), str(report_logs))
 
             was_processed = False
 
