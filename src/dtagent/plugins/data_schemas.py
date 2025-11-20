@@ -49,7 +49,8 @@ class DataSchemasPlugin(Plugin):
             if k == "columns":
                 result = defaultdict(list)
                 for column, details in v.items():
-                    result[details["subOperationType"]].append(column)
+                    sub_op_type = details.get("subOperationType", "unknown")
+                    result[str(sub_op_type)].append(column)
                 return dict(result)
             if k == "creationMode":
                 return v.get("value", v)
