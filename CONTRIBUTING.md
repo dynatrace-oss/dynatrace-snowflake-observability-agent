@@ -256,7 +256,61 @@ After successfully deploying the Dynatrace Snowflake Observability Agent, you ca
 ./test.sh $test_name
 ```
 
-All tests are implemented with the `pytest` framework and stored in the `test` folder. Before running the tests, make sure to create the `test/credentials.json` file from the `test/credentials.jsonc` template.
+All tests are implemented with the `pytest` framework and stored in the `test` folder.
+
+### Test Execution Modes
+
+There are two ways of running tests:
+
+1. **Local mode with Mocked APIs**: If `test/credentials.json` is NOT present, the tests will run locally with mocked Dynatrace APIs, without sending data to Dynatrace. This is useful for rapid development and testing without requiring a live Snowflake or Dynatrace connection.
+
+2. **Live mode with actual APIs**: If `test/credentials.json` IS present, the tests will connect to Snowflake to determine the connection to Dynatrace and will send the data to the actual Dynatrace APIs.
+
+### Test Data
+
+Tests use example test data from the `test/test_data` folder. Currently, pickle (`*.pkl`) files are used, and ndJSON files are provided for reference only. Tests from version (1) will check the payload (at the mocked APIs) to be sent against expected data in `test_results`.
+
+### Creating Tests for New Plugins
+
+New plugins should have their corresponding tests created. In case of new plugins or significant changes in how data is delivered, test data (and results) should be regenerated as described in the test.
+
+### Setting Up Test Environment
+
+To run tests in live mode (version 2), you need to:
+
+1. **Create a test deployment** with configuration in `conf/config-test.json` that looks like:
+
+    ```json
+    [
+        {
+            "CORE": {
+                "DYNATRACE_TENANT_ADDRESS": "abc12345.live.dynatracelabs.com",
+                "DEPLOYMENT_ENVIRONMENT": "TEST",
+                "SNOWFLAKE_ACCOUNT_NAME": "your_snowflake_account.us-east-1",
+                "SNOWFLAKE_HOST_NAME": "your_snowflake_account.us-east-1.snowflakecomputing.com",
+                "SNOWFLAKE_CREDIT_QUOTA": 1,
+                "LOG_LEVEL": "DEBUG"
+            },
+            "PLUGINS": {
+                "DISABLED_BY_DEFAULT": true
+            }
+        }
+    ]
+    ```
+
+2. **Create `test/credentials.json`** from the `test/credentials.jsonc` template to reference that deployment.
+
+3. **Generate `test/conf/config-download.json`** by running:
+
+    ```bash
+    PYTHONPATH="./src" pytest -s -v "test/core/test_config.py::TestConfig::test_init" --pickle_conf y
+    ```
+
+### Running Tests in Local Mode
+
+For tests in version (1) (local mode with mocked APIs), `test/conf/config-download.json` should NOT be present. It is a good practice to temporarily disable these files by prefixing them with an underscore (e.g., `_config-download.json` and `_credentials.json`). The gitignore ensures that files prefixed with underscore are not tracked.
+
+### Running Individual Tests
 
 Parameter `$test_name` is required and needs to be the name of the file - excluding the extension - from the `/test/plugins` directory that you want to run. The test files follow the naming pattern `/test/plugins/test_*.py`.
 

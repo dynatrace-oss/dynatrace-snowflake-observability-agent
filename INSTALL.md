@@ -80,14 +80,14 @@ The `$file_prefix` parameter is optional and can take multiple values:
 
 You should store the Access Token for your Dynatrace tenant (to which you want to send telemetry from your environment) as the environment variable `DTAGENT_TOKEN`. The token should have the following scopes enabled:
 
-| Scope ID                    | Scope Name                   | Comment                      |
-|-----------------------------|------------------------------|------------------------------|
-| `logs.ingest`               | Ingest Logs                  |                              |
-| `metrics.ingest`            | Ingest Metrics               |                              |
-| `bizevents.ingest`          | Ingest BizEvents             |                              |
-| `openpipeline.events`       | OpenPipeline - Ingest Events |                              |
-| `openTelemetryTrace.ingest` | Ingest OpenTelemetry Traces  |                              |
-| `events.ingest`             | Ingest Events                | Not required version>=0.9.1  |
+| Scope ID                    | Scope Name                   | Comment                     |
+| --------------------------- | ---------------------------- | --------------------------- |
+| `logs.ingest`               | Ingest Logs                  |                             |
+| `metrics.ingest`            | Ingest Metrics               |                             |
+| `bizevents.ingest`          | Ingest BizEvents             |                             |
+| `openpipeline.events`       | OpenPipeline - Ingest Events |                             |
+| `openTelemetryTrace.ingest` | Ingest OpenTelemetry Traces  |                             |
+| `events.ingest`             | Ingest Events                | Not required version>=0.9.1 |
 
 We **strongly** recommend to ensure your token is not recorded in shell script history; please find an example how to define `DTAGENT_TOKEN` environment variable on Linux or WSL below:
 
@@ -106,6 +106,8 @@ If you do not set the `DTAGENT_TOKEN` environment variable, or if it does not co
 No additional objects need to be provided for the deployment process on the Snowflake side. Dynatrace Snowflake Observability Agent will build a database to store his information - `DTAGENT_DB` by default or `DTAGENT_{TAG}_DB` if tag is provided (see [Multitenancy](#multitenancy)).
 
 The complete log of deployment and the script executed during deployment is available as `.logs/dtagent-deploy-$config_name-$current_date.log`.
+
+> **Troubleshooting:** If tasks are running in Snowflake but no data appears in Dynatrace, please refer to [Troubleshooting: No Data in Dynatrace](docs/debug/no-data-in-dt/readme.md) for a comprehensive debugging guide.
 
 ## Setting up a profile
 
@@ -213,16 +215,16 @@ which is a recommended way for users authenticating with external SSO:
 ```bash
 Snowflake account name: ${YOUR_SNOWFLAKE_ACCOUNT_NAME.REGION_NAME}
 Snowflake username: ${YOUR_USERNAME}
-Snowflake password [optional]: 
-Role for the connection [optional]: 
-Warehouse for the connection [optional]: 
-Database for the connection [optional]: 
-Schema for the connection [optional]: 
-Connection host [optional]: 
-Connection port [optional]: 
-Snowflake region [optional]: 
+Snowflake password [optional]:
+Role for the connection [optional]:
+Warehouse for the connection [optional]:
+Database for the connection [optional]:
+Schema for the connection [optional]:
+Connection host [optional]:
+Connection port [optional]:
+Snowflake region [optional]:
 Authentication method [optional]: externalbrowser
-Path to private key file [optional]: 
+Path to private key file [optional]:
 ```
 
 You can also run this command to fill in the required and recommended parts:

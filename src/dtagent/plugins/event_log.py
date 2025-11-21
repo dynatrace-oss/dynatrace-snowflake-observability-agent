@@ -39,6 +39,8 @@ from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPI
 class EventLogPlugin(Plugin):
     """Event log plugin class."""
 
+    PLUGIN_NAME = "event_log"
+
     def _get_events(self) -> Generator[Dict, None, None]:
         """Fetches data from APP.EVENT_LOG, with limit set in configuration."""
 
@@ -191,9 +193,8 @@ class EventLogPlugin(Plugin):
         m_entries_cnt, m_logs_cnt, m_metrics_cnt, m_event_cnt = self._process_metric_entries(run_id, run_proc)
         l_entries_cnt, l_logs_cnt, l_metrics_cnt, l_events_cnt = self._process_log_entries(run_id, run_proc)
 
-        return {
-            RUN_PLUGIN_KEY: "event_log",
-            RUN_RESULTS_KEY: {
+        return self._report_results(
+            {
                 "event_log": {
                     "entries": l_entries_cnt,
                     "log_lines": l_logs_cnt,
@@ -215,8 +216,8 @@ class EventLogPlugin(Plugin):
                     "errors": s_errors_count,
                 },
             },
-            RUN_ID_KEY: run_id,
-        }
+            run_id,
+        )
 
 
 ##endregion

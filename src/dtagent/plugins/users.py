@@ -44,6 +44,8 @@ ROLE_REPORTING_MODES_VIEWS = {
 class UsersPlugin(Plugin):
     """Users plugin class."""
 
+    PLUGIN_NAME = "users"
+
     def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
         """Processes data for users plugin.
 
@@ -109,7 +111,7 @@ class UsersPlugin(Plugin):
         if run_proc:
             self._report_execution("users", current_timestamp() if processed_entries_cnt > 0 else None, None, results_dict, run_id=run_id)
 
-        return {RUN_PLUGIN_KEY: "users", RUN_RESULTS_KEY: results_dict, RUN_ID_KEY: run_id}
+        return self._report_results(results_dict, run_id)
 
 
 ##endregion

@@ -52,7 +52,6 @@ class TestEvents:
         assert str(t) == "CUSTOM_ALERT", "event type {t} should render in capital letters"
 
     def test_send_events_directly(self):
-        # FIXME
         def _test_send_events_directly(test_mode="davis"):
             import time
 

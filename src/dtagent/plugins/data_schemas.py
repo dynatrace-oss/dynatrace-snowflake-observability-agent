@@ -39,6 +39,8 @@ from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPI
 class DataSchemasPlugin(Plugin):
     """Data schemas plugin class."""
 
+    PLUGIN_NAME = "data_schemas"
+
     def _compress_properties(self, properties_value: Dict) -> Dict:
         """Ensures that snowflake.object.ddl.properties is compressed in the 'columns' object"""
         from collections import defaultdict
@@ -47,7 +49,8 @@ class DataSchemasPlugin(Plugin):
             if k == "columns":
                 result = defaultdict(list)
                 for column, details in v.items():
-                    result[details["subOperationType"]].append(column)
+                    sub_op_type = details.get("subOperationType", "unknown")
+                    result[str(sub_op_type)].append(column)
                 return dict(result)
             if k == "creationMode":
                 return v.get("value", v)
@@ -134,9 +137,8 @@ class DataSchemasPlugin(Plugin):
             f_report_event=self._report_all_entries_as_events,
         )
 
-        return {
-            RUN_PLUGIN_KEY: "data_schemas",
-            RUN_RESULTS_KEY: {
+        return self._report_results(
+            {
                 "data_schemas": {
                     "entries": entries_cnt,
                     "log_lines": logs_cnt,
@@ -144,5 +146,5 @@ class DataSchemasPlugin(Plugin):
                     "metrics": metrics_cnt,
                 },
             },
-            RUN_ID_KEY: run_id,
-        }
+            run_id,
+        )

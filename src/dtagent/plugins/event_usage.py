@@ -37,6 +37,8 @@ from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPI
 class EventUsagePlugin(Plugin):
     """Event usage plugin class."""
 
+    PLUGIN_NAME = "event_usage"
+
     def _report_event_usage_log(self, row_dict: Dict, __context: Dict, log_level: int) -> bool:
         """Sends single log line for event usage plugin"""
         unpacked_dict = _unpack_json_dict(row_dict, ["DIMENSIONS", "METRICS"])
@@ -87,9 +89,8 @@ class EventUsagePlugin(Plugin):
             f_report_log=self._report_event_usage_log,
         )
 
-        return {
-            RUN_PLUGIN_KEY: "event_usage",
-            RUN_RESULTS_KEY: {
+        return self._report_results(
+            {
                 "event_usage": {
                     "entries": processed_entries_cnt,
                     "log_lines": processed_logs_cnt,
@@ -97,5 +98,5 @@ class EventUsagePlugin(Plugin):
                     "events": processed_events_cnt,
                 },
             },
-            RUN_ID_KEY: run_id,
-        }
+            run_id,
+        )

@@ -60,6 +60,8 @@ from dtagent.context import RUN_CONTEXT_KEY, get_context_name_and_run_id
 class Plugin(ABC):
     """Generic plugin class, base for all plugins."""
 
+    PLUGIN_NAME = "generic_plugin"
+
     def __init__(
         self,
         *,
@@ -149,6 +151,19 @@ class Plugin(ABC):
                 last_timestamp,
                 str(last_id),
                 str(entries_count),
+            )
+        else:
+            LOG.info(
+                "Skipping STATUS.LOG_PROCESSED_MEASUREMENTS call in non-regular mode"
+                " for source %s with last_timestamp %s, last_id %s, entries_count %s;"
+                " session.connection = %s; session.connection.account = %s, session.session_id = %s",
+                measurements_source,
+                str(last_timestamp),
+                str(last_id),
+                str(entries_count),
+                str(self._session.connection),
+                str(self._session.connection.account),
+                str(self._session.session_id),
             )
 
     def _process_span_rows(  # pylint: disable=R0913
@@ -242,9 +257,14 @@ class Plugin(ABC):
                 current_timestamp(),
                 None,
                 {
-                    "joint_processed_query_ids": joint_processed_query_ids,
-                    "processing_errors_count": processing_errors_count,
-                    "span_events_added_count": span_events_added,
+                    context_name: {
+                        "metrics": metrics_sent,
+                        "log_lines": logs_sent,
+                        "span_events": span_events_added,
+                        "spans": spans_sent,
+                        "errors": processing_errors_count,
+                        "entries": len(processed_query_ids),
+                    }
                 },
                 run_id=run_uuid,
             )
@@ -299,6 +319,7 @@ class Plugin(ABC):
             row, "START_TIME", context_name=context.get(RUN_CONTEXT_KEY, None)
         )
         if not metrics_sent:
+            # report when metrics failed to send
             processing_errors.append(f"Problem sending row {row_id} as metric")
 
         span_events_added, spans_sent, logs_sent = 0, 0, 0
@@ -337,11 +358,11 @@ class Plugin(ABC):
             ["DIMENSIONS", "ATTRIBUTES", "METRICS", "EVENT_TIMESTAMPS"],
         )
 
-        event_dict = _cleanup_dict({"timestamp": self.processed_last_timestamp, **log_dict})
+        log_data = _cleanup_dict({"timestamp": self.processed_last_timestamp, **log_dict})
 
         self._logs.send_log(
             row_dict.get("_MESSAGE", __context.get(RUN_CONTEXT_KEY)),
-            extra=event_dict,
+            extra=log_data,
             log_level=log_level,
             context=__context,
         )
@@ -555,19 +576,29 @@ class Plugin(ABC):
         processed_events_cnt += self._events.flush_events()
         processed_metrics_cnt += self._metrics.flush_metrics()
 
-        entries_dict = {"processed_entries_cnt": processed_entries_cnt}
+        entries_dict = {"entries": processed_entries_cnt}
 
         if report_all_as_events or report_timestamp_events or event_payload_prepare:
-            entries_dict["processed_events_cnt"] = processed_events_cnt
+            entries_dict["events"] = processed_events_cnt
         if report_logs:
-            entries_dict["processed_logs_cnt"] = processed_logs_cnt
+            entries_dict["log_lines"] = processed_logs_cnt
         if report_metrics:
-            entries_dict["processed_metrics_cnt"] = processed_metrics_cnt
+            entries_dict["metrics"] = processed_metrics_cnt
 
         if log_completion:
-            self._report_execution(context_name, str(self.processed_last_timestamp), None, entries_dict, run_id=run_uuid)
+            self._report_execution(context_name, str(self.processed_last_timestamp), None, {context_name: entries_dict}, run_id=run_uuid)
 
         return processed_entries_cnt, processed_logs_cnt, processed_metrics_cnt, processed_events_cnt
+
+    def _report_results(self, results: Dict[str, Any], run_id: str) -> Dict[str, Any]:
+        """Generic method reporting results after processing is done. To be overwritten by plugins when required"""
+        from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPILE_REMOVE
+
+        return {
+            RUN_PLUGIN_KEY: self.PLUGIN_NAME,
+            RUN_RESULTS_KEY: results,
+            RUN_ID_KEY: run_id,
+        }
 
     @abstractmethod
     def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:

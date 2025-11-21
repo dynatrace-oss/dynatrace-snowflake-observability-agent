@@ -45,6 +45,8 @@ from dtagent.context import get_context_name_and_run_id, RUN_PLUGIN_KEY, RUN_RES
 class QueryHistoryPlugin(Plugin):
     """Query history plugin class."""
 
+    PLUGIN_NAME = "query_history"
+
     def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
         """The actual function to process query history:
 
@@ -157,9 +159,8 @@ class QueryHistoryPlugin(Plugin):
         )
 
         # return (len(processed_query_ids), processing_errors_count, span_events_added, metrics_sent)
-        return {
-            RUN_PLUGIN_KEY: "query_history",
-            RUN_RESULTS_KEY: {
+        return self._report_results(
+            {
                 "query_history": {
                     "entries": len(processed_query_ids),
                     "log_lines": logs_sent,
@@ -169,8 +170,8 @@ class QueryHistoryPlugin(Plugin):
                     "errors": processing_errors_count,
                 },
             },
-            RUN_ID_KEY: run_id,
-        }
+            run_id,
+        )
 
 
 ##endregion

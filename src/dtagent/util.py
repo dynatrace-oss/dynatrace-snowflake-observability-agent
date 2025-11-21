@@ -349,7 +349,7 @@ def get_timestamp_in_ms(query_data: Dict, ts_key: str, conversion_unit: int = 1e
         if isinstance(ts, datetime.datetime):
             # Ensure timezone awareness before converting to timestamp
             ts = ensure_timezone_aware(ts)
-            return ts.timestamp() * 1000
+            return int(ts.timestamp() * 1000)
         return int(int(ts) / conversion_unit)
     return default_ts
 
@@ -408,7 +408,7 @@ def is_select_for_table(table_name_or_query: str) -> bool:
 
 def is_regular_mode(session) -> bool:
     """Checks if we are running in regular mode, i.e., not local testing mode"""
-    return session.connection.account is not None
+    return session.session_id != 1
 
 
 ##endregion

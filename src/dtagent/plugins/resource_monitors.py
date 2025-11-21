@@ -41,6 +41,8 @@ from dtagent.otel.events import EventType
 class ResourceMonitorsPlugin(Plugin):
     """Resource monitors plugin class."""
 
+    PLUGIN_NAME = "resource_monitors"
+
     unattached_rms: int = 0
     unmonitored_wh: int = 0
     has_account_rm: bool = False
@@ -185,7 +187,7 @@ class ResourceMonitorsPlugin(Plugin):
         if run_proc:
             self._report_execution("resource_monitors", current_timestamp(), None, results_dict, run_id=run_id)
 
-        return {RUN_PLUGIN_KEY: "resource_monitors", RUN_RESULTS_KEY: results_dict, RUN_ID_KEY: run_id}
+        return self._report_results(results_dict, run_id)
 
 
 ##endregion

@@ -37,6 +37,8 @@ from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPI
 class DataVolumePlugin(Plugin):
     """Data volume plugin class."""
 
+    PLUGIN_NAME = "data_volume"
+
     def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
         """Processes the measures on data volume
 
@@ -68,19 +70,17 @@ class DataVolumePlugin(Plugin):
             log_completion=False,
         )
         results_dict = {
-            "entries": entries_cnt,
-            "log_lines": logs_cnt,
-            "metrics": metrics_cnt,
-            "events": events_cnt,
+            "data_volume": {
+                "entries": entries_cnt,
+                "log_lines": logs_cnt,
+                "metrics": metrics_cnt,
+                "events": events_cnt,
+            }
         }
         if run_proc:
             self._report_execution("data_volume", current_timestamp(), None, results_dict, run_id=run_id)
 
-        return {
-            RUN_PLUGIN_KEY: "data_volume",
-            RUN_RESULTS_KEY: {"data_volume": results_dict},
-            RUN_ID_KEY: run_id,
-        }
+        return self._report_results(results_dict, run_id)
 
 
 ##endregion

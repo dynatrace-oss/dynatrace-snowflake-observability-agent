@@ -5,10 +5,10 @@
             "LOG_DETAILS": false,
             "IS_DISABLED": false,
             "TELEMETRY": [
-                "METRICS",
-                "LOGS",
-                "EVENTS",
-                "BIZ_EVENTS"
+                "metrics",
+                "logs",
+                "events",
+                "biz_events"
             ]
         }
     }

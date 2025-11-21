@@ -138,7 +138,9 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
             run_id = str(uuid.uuid4().hex)
 
             if is_regular_mode(self._session):
-                self._session.query_tag = json.dumps({RUN_VERSION_KEY: str(VERSION), RUN_PLUGIN_KEY: c_source.__name__, RUN_ID_KEY: run_id})
+                self._session.query_tag = json.dumps(
+                    {RUN_VERSION_KEY: str(VERSION), RUN_PLUGIN_KEY: c_source.PLUGIN_NAME, RUN_ID_KEY: run_id}
+                )
 
             self.report_execution_status(status="STARTED", task_name=source, exec_id=run_id)
 

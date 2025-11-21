@@ -7,10 +7,10 @@
             "SLOW_QUERIES_THRESHOLD": 10000,
             "SLOW_QUERIES_TO_ANALYZE_LIMIT": 50,
             "TELEMETRY": [
-                "METRICS",
-                "LOGS",
-                "BIZ_EVENTS",
-                "SPANS"
+                "metrics",
+                "logs",
+                "biz_events",
+                "spans"
             ]
         }
     }

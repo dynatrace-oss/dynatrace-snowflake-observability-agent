@@ -70,19 +70,19 @@ In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you 
             "FAST_MODE": true,
             "REPORT_EXECUTION_STATUS": [],
             "TELEMETRY": [
-                "LOGS",
-                "METRICS",
-                "SPANS",
-                "BIZ_EVENTS"
+                "logs",
+                "metrics",
+                "spans",
+                "biz_events"
             ]
         }
     }
 }
 ```
 
-> **IMPORTANT**: For the `query_history` and `active_queries` plugins to report telemetry for all queries, the `DTAGENT_VIEWER` role must be granted `MONITOR` privileges on all warehouses.  
-> This is ensured by default through the periodic execution of the `APP.P_MONITOR_WAREHOUSES()` procedure, triggered by the `APP.TASK_DTAGENT_QUERY_HISTORY_GRANTS` task.  
-> The schedule for this special task can be configured using the `PLUGINS.QUERY_HISTORY.SCHEDULE_GRANTS` configuration option.  
+> **IMPORTANT**: For the `query_history` and `active_queries` plugins to report telemetry for all queries, the `DTAGENT_VIEWER` role must be granted `MONITOR` privileges on all warehouses.
+> This is ensured by default through the periodic execution of the `APP.P_MONITOR_WAREHOUSES()` procedure, triggered by the `APP.TASK_DTAGENT_QUERY_HISTORY_GRANTS` task.
+> The schedule for this special task can be configured using the `PLUGINS.QUERY_HISTORY.SCHEDULE_GRANTS` configuration option.
 > Since this procedure runs with the elevated privileges of the `DTAGENT_ADMIN` role, you may choose to disable it and manually ensure that the `DTAGENT_VIEWER` role is granted the appropriate `MONITOR` rights.
 
 <a name="budgets_info_sec"></a>
@@ -109,10 +109,10 @@ In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you 
             "SCHEDULE": "USING CRON 30 0 * * * UTC",
             "IS_DISABLED": false,
             "TELEMETRY": [
-                "LOGS",
-                "METRICS",
-                "EVENTS",
-                "BIZ_EVENTS"
+                "logs",
+                "metrics",
+                "events",
+                "biz_events"
             ]
         }
     }
@@ -143,8 +143,8 @@ In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you 
                 "%"
             ],
             "TELEMETRY": [
-                "EVENTS",
-                "BIZ_EVENTS"
+                "events",
+                "biz_events"
             ]
         }
     }
@@ -188,8 +188,8 @@ In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you 
             "SCHEDULE": "USING CRON 30 0,4,8,12,16,20 * * * UTC",
             "IS_DISABLED": false,
             "TELEMETRY": [
-                "METRICS",
-                "BIZ_EVENTS"
+                "metrics",
+                "biz_events"
             ]
         }
     }
@@ -230,18 +230,18 @@ In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you 
             "SCHEDULE_GRANTS": "USING CRON 30 */12 * * * UTC",
             "IS_DISABLED": false,
             "TELEMETRY": [
-                "METRICS",
-                "LOGS",
-                "BIZ_EVENTS"
+                "metrics",
+                "logs",
+                "biz_events"
             ]
         }
     }
 }
 ```
 
-> **IMPORTANT**: For this plugin to function correctly, `MONITOR on DYNAMIC TABLES` must be granted to the `DTAGENT_VIEWER` role.  
-> By default, this is handled by the `P_GRANT_MONITOR_DYNAMIC_TABLES()` procedure, which is executed with the elevated privileges of the `DTAGENT_ADMIN` role, via the `APP.TASK_DTAGENT_DYNAMIC_TABLES_GRANTS` task.  
-> The schedule for this task can be configured separately using the `PLUGINS.DYNAMIC_TABLES.SCHEDULE_GRANTS` configuration option.  
+> **IMPORTANT**: For this plugin to function correctly, `MONITOR on DYNAMIC TABLES` must be granted to the `DTAGENT_VIEWER` role.
+> By default, this is handled by the `P_GRANT_MONITOR_DYNAMIC_TABLES()` procedure, which is executed with the elevated privileges of the `DTAGENT_ADMIN` role, via the `APP.TASK_DTAGENT_DYNAMIC_TABLES_GRANTS` task.
+> The schedule for this task can be configured separately using the `PLUGINS.DYNAMIC_TABLES.SCHEDULE_GRANTS` configuration option.
 > Alternatively, you may choose to disable this special task and manually ensure that the `DTAGENT_VIEWER` role is granted the necessary `MONITOR` rights.
 
 <a name="event_log_info_sec"></a>
@@ -289,17 +289,17 @@ In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you 
             "SCHEDULE_CLEANUP": "USING CRON 0 * * * * UTC",
             "IS_DISABLED": false,
             "TELEMETRY": [
-                "METRICS",
-                "LOGS",
-                "BIZ_EVENTS",
-                "SPANS"
+                "metrics",
+                "logs",
+                "biz_events",
+                "spans"
             ]
         }
     }
 }
 ```
 
-> **IMPORTANT**: A dedicated cleanup task, `APP.TASK_DTAGENT_EVENT_LOG_CLEANUP`, ensures that the `EVENT_LOG` table contains only data no older than the duration you define with the `PLUGINS.EVENT_LOG.RETENTION_HOURS` configuration option.  
+> **IMPORTANT**: A dedicated cleanup task, `APP.TASK_DTAGENT_EVENT_LOG_CLEANUP`, ensures that the `EVENT_LOG` table contains only data no older than the duration you define with the `PLUGINS.EVENT_LOG.RETENTION_HOURS` configuration option.
 > You can schedule this task separately using the `PLUGINS.EVENT_LOG.SCHEDULE_CLEANUP` configuration option, run the cleanup procedure `APP.P_CLEANUP_EVENT_LOG()` manually, or manage the retention of data in the `EVENT_LOG` table yourself.
 
 > **INFO**: The `EVENT_LOG` table cleanup process works only if this specific instance of Dynatrace Snowflake Observability Agent set up the table.
@@ -330,9 +330,9 @@ In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you 
             "SCHEDULE": "USING CRON 0 * * * * UTC",
             "IS_DISABLED": false,
             "TELEMETRY": [
-                "METRICS",
-                "LOGS",
-                "BIZ_EVENTS"
+                "metrics",
+                "logs",
+                "biz_events"
             ]
         }
     }
@@ -372,8 +372,8 @@ In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you 
             "SCHEDULE": "USING CRON */30 * * * * UTC",
             "IS_DISABLED": false,
             "TELEMETRY": [
-                "LOGS",
-                "BIZ_EVENTS"
+                "logs",
+                "biz_events"
             ]
         }
     }
@@ -415,10 +415,10 @@ In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you 
             "SLOW_QUERIES_THRESHOLD": 10000,
             "SLOW_QUERIES_TO_ANALYZE_LIMIT": 50,
             "TELEMETRY": [
-                "METRICS",
-                "LOGS",
-                "BIZ_EVENTS",
-                "SPANS"
+                "metrics",
+                "logs",
+                "biz_events",
+                "spans"
             ]
         }
     }
@@ -432,8 +432,8 @@ The following options control this behavior:
 * `PLUGINS.QUERY_HISTORY.SLOW_QUERIES_THRESHOLD`: The execution time threshold in milliseconds. Queries running longer than this are considered slow and eligible for analysis. Default: `10000` (10 seconds).
 * `PLUGINS.QUERY_HISTORY.MAX_SLOWEST_QUERIES`: The maximum number of slowest queries to analyze. Default: `50`.
 
-> **IMPORTANT**: For the `query_history` and `active_queries` plugins to report telemetry for all queries, the `DTAGENT_VIEWER` role must be granted `MONITOR` privileges on all warehouses.  
-> This is ensured by default through the periodic execution of the `APP.P_MONITOR_WAREHOUSES()` procedure, triggered by the `APP.TASK_DTAGENT_QUERY_HISTORY_GRANTS` task.  
+> **IMPORTANT**: For the `query_history` and `active_queries` plugins to report telemetry for all queries, the `DTAGENT_VIEWER` role must be granted `MONITOR` privileges on all warehouses.
+> This is ensured by default through the periodic execution of the `APP.P_MONITOR_WAREHOUSES()` procedure, triggered by the `APP.TASK_DTAGENT_QUERY_HISTORY_GRANTS` task.
 > The schedule for this special task can be configured using the `PLUGINS.QUERY_HISTORY.SCHEDULE_GRANTS` configuration option.
 > Since this procedure runs with the elevated privileges of the `DTAGENT_ADMIN` role, you may choose to disable it and
 > manually ensure that the `DTAGENT_VIEWER` role is granted the appropriate `MONITOR` rights.
@@ -467,10 +467,10 @@ In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you 
             "SCHEDULE": "USING CRON */30 * * * * UTC",
             "IS_DISABLED": false,
             "TELEMETRY": [
-                "LOGS",
-                "METRICS",
-                "EVENTS",
-                "BIZ_EVENTS"
+                "logs",
+                "metrics",
+                "events",
+                "biz_events"
             ]
         }
     }
@@ -512,9 +512,9 @@ In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you 
                 "%.%.%"
             ],
             "TELEMETRY": [
-                "LOGS",
-                "EVENTS",
-                "BIZ_EVENTS"
+                "logs",
+                "events",
+                "biz_events"
             ]
         }
     }
@@ -554,10 +554,10 @@ In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you 
             "SCHEDULE": "USING CRON 30 * * * * UTC",
             "IS_DISABLED": false,
             "TELEMETRY": [
-                "LOGS",
-                "METRICS",
-                "EVENTS",
-                "BIZ_EVENTS"
+                "logs",
+                "metrics",
+                "events",
+                "biz_events"
             ]
         }
     }
@@ -592,10 +592,10 @@ In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you 
             "LOG_DETAILS": false,
             "IS_DISABLED": false,
             "TELEMETRY": [
-                "METRICS",
-                "LOGS",
-                "EVENTS",
-                "BIZ_EVENTS"
+                "metrics",
+                "logs",
+                "events",
+                "biz_events"
             ]
         }
     }
@@ -640,8 +640,9 @@ In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you 
             "RETAIN_EMAIL_HASH_MAP": false,
             "ROLES_MONITORING_MODE": [],
             "TELEMETRY": [
-                "LOGS",
-                "BIZ_EVENTS"
+                "logs",
+                "events",
+                "biz_events"
             ]
         }
     }
@@ -674,9 +675,9 @@ In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you 
             "SCHEDULE": "USING CRON 0 * * * * UTC",
             "IS_DISABLED": false,
             "TELEMETRY": [
-                "LOGS",
-                "METRICS",
-                "BIZ_EVENTS"
+                "logs",
+                "metrics",
+                "biz_events"
             ]
         }
     }

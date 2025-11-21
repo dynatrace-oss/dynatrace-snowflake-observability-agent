@@ -39,6 +39,8 @@ from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPI
 class LoginHistoryPlugin(Plugin):
     """Login history plugin class."""
 
+    PLUGIN_NAME = "login_history"
+
     def _prepare_event_payload_failed_login(self, row_dict: dict) -> Tuple[EventType, str, Dict]:
         """Defines what payload should be sent once error.code column is present in the row"""
 
@@ -104,9 +106,8 @@ class LoginHistoryPlugin(Plugin):
             log_completion=run_proc,
         )
 
-        return {
-            RUN_PLUGIN_KEY: "login_history",
-            RUN_RESULTS_KEY: {
+        return self._report_results(
+            {
                 "login_history": {
                     "entries": login_history_entries_cnt,
                     "log_lines": login_history_logs_cnt,
@@ -120,8 +121,8 @@ class LoginHistoryPlugin(Plugin):
                     "events": session_events_cnt,
                 },
             },
-            RUN_ID_KEY: run_id,
-        }
+            run_id,
+        )
 
 
 ##endregion

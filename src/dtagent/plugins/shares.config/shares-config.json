@@ -11,9 +11,9 @@
                 "%.%.%"
             ],
             "TELEMETRY": [
-                "LOGS",
-                "EVENTS",
-                "BIZ_EVENTS"
+                "logs",
+                "events",
+                "biz_events"
             ]
         }
     }

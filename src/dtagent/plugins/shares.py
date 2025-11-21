@@ -37,6 +37,8 @@ from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPI
 class SharesPlugin(Plugin):
     """Shares plugin class."""
 
+    PLUGIN_NAME = "shares"
+
     def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
         """Processes data for shares plugin.
 
@@ -120,9 +122,8 @@ class SharesPlugin(Plugin):
             report_timestamp_events=True,
         )
 
-        return {
-            RUN_PLUGIN_KEY: "shares",
-            RUN_RESULTS_KEY: {
+        return self._report_results(
+            {
                 "outbound_shares": {
                     "entries": outbound_share_entries_cnt,
                     "log_lines": outbound_share_logs_cnt,
@@ -142,5 +143,5 @@ class SharesPlugin(Plugin):
                     "events": shares_events_cnt,
                 },
             },
-            RUN_ID_KEY: run_id,
-        }
+            run_id,
+        )

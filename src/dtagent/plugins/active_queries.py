@@ -36,6 +36,8 @@ from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPI
 class ActiveQueriesPlugin(Plugin):
     """Active queries plugin class."""
 
+    PLUGIN_NAME = "active_queries"
+
     def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
         """Processes the measures on active queries
 
@@ -71,13 +73,10 @@ class ActiveQueriesPlugin(Plugin):
             log_completion=run_proc,
         )
 
-        return {
-            RUN_PLUGIN_KEY: "active_queries",
-            RUN_RESULTS_KEY: {
-                "active_queries": {"entries": entries_cnt, "log_lines": logs_cnt, "metrics": metrics_cnt, "events": events_cnt}
-            },
-            RUN_ID_KEY: run_id,
-        }
+        return self._report_results(
+            {"active_queries": {"entries": entries_cnt, "log_lines": logs_cnt, "metrics": metrics_cnt, "events": events_cnt}},
+            run_id,
+        )
 
 
 ##endregion

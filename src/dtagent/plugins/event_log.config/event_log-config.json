@@ -7,10 +7,10 @@
             "SCHEDULE_CLEANUP": "USING CRON 0 * * * * UTC",
             "IS_DISABLED": false,
             "TELEMETRY": [
-                "METRICS",
-                "LOGS",
-                "BIZ_EVENTS",
-                "SPANS"
+                "metrics",
+                "logs",
+                "biz_events",
+                "spans"
             ]
         }
     }
