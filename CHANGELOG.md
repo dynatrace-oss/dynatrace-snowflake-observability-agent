@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Dynatrace Snowflake Observability Agent 0.9.2
 
-Released on November 20, 2025
+Released on November 24, 2025
 
 ### Breaking Changes in 0.9.2
 
@@ -12,21 +12,23 @@ Released on November 20, 2025
 
 ### New in 0.9.2
 
-* **Example Dashboards**: Added example dashboards to help users visualize and interpret telemetry data.
+* **Example Dashboards**: Added example dashboards to help users visualize and interpret telemetry data, including costs monitoring, self-monitoring, and Snowflake security dashboards with descriptions and screenshots.
 * **Configurable Query Analysis**: Introduced options to configure minimum query runtime and the maximum number of top queries for deeper analysis, providing greater flexibility in performance monitoring.
 * **Telemetry Configuration**: It is now possible to exclude certain telemetry types, e.g., events, spans, from being sent, either globally or on a per-plugin basis.
+* **Event Log Metrics**: Extended support for `RECORD_ATTRIBUTES` in event log metrics for richer telemetry data.
 
 ### Improved in 0.9.2
 
 * **Data Schema Plugin**: Now reports on objects (tables, schemas, databases) modified by DDL queries as events.
 * **Query Robustness**: Improved query robustness in the Resource Monitors and Users plugins by using explicit column selection to prevent errors from column order changes in `SHOW WAREHOUSES` and `SNOWFLAKE.ACCOUNT_USAGE.USERS`.
-* **Telemetry Sender**: Enabled labeling and classification of telemetry calls for better differentiation and analysis of query data.
-* **Event Handling**: Expanded event-handling capabilities, including support for sending multiple events in a single call.
+* **Telemetry Sender**: Enabled labeling and classification of telemetry calls for better differentiation and analysis of query data. Added `SEND_TELEMETRY` support for `SHOW` statements, enabling more flexible custom queries.
+* **Event Handling**: Expanded event-handling capabilities, including support for sending multiple events in a single call and improved handling of Davis events.
 * **Metric Dimensions**: Plugin and context names are now available as metric dimensions, improving traceability.
-* **Telemetry Query Performance**: Improved performance of reading and processing telemetry data by using simpler queries.
+* **Telemetry Query Performance**: Improved performance of reading and processing telemetry data by using simpler queries. Added safety limits and ordering to event log queries to handle high-volume applications.
 * **Self-monitoring**: Agent execution now returns detailed status information, including the number of telemetry objects sent by type, plugin, and run context. The deployment process also reports its start and finish as BizEvents, compatible with other telemetry.
+* **Configuration**: API post timeout and retry delay are now configurable for metrics and events, providing better control over telemetry delivery.
 * **Code Quality & Testing**: Streamlined internal plugin implementations and extended tests for all plugins. Added a suite of code quality checks to the automated build process.
-* **Documentation**: Updated documentation to reflect new features, and improved the structure for easier navigation as online GitHub pages.
+* **Documentation**: Updated documentation to reflect new features, improved the structure for easier navigation as online GitHub pages, and added comprehensive troubleshooting guide for debugging data delivery issues.
 
 ## Dynatrace Snowflake Observability Agent 0.9.1
 
