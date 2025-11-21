@@ -59,7 +59,7 @@ with cte_event_log as (
             r.value) AS RECORD_ATTRIBUTES
     FROM cte_event_log l,
     LATERAL FLATTEN(input => l.RECORD_ATTRIBUTES) r
-    WHERE l.RECORD_ATTRIBUTES is not null
+    WHERE l.RECORD_ATTRIBUTES IS NOT NULL
     GROUP BY all
     --
     UNION ALL
