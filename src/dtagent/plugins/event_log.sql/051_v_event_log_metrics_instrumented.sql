@@ -72,7 +72,7 @@ with cte_event_log as (
         l.VALUE,
         OBJECT_CONSTRUCT() AS RECORD_ATTRIBUTES
     FROM cte_event_log l
-    WHERE l.RECORD_ATTRIBUTES is null
+    WHERE l.RECORD_ATTRIBUTES IS NULL
 -- ;
 )
 select
