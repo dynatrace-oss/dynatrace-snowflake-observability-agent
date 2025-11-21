@@ -10,7 +10,11 @@ p {
     text-align: justify;
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1 {
+    padding: 0.5em 0;
+    text-align: center;
+}
+h2, h3, h4, h5, h6 {
     padding: 0.5em 0;
     text-align: left;
 }
@@ -161,7 +165,7 @@ blockquote {
     page-break-inside: avoid;
 }
 
-img { 
+img {
     display:block;
     float:none;
     margin-left:auto;
@@ -170,4 +174,9 @@ img {
 }
 figure figcaption[aria-hidden="true"] {
     display: none;
+}
+img.dsoa-logo {
+    width: 200px !important;
+    margin-bottom: 20px;
+    text-align: center;
 }
