@@ -59,7 +59,21 @@ with cte_event_log as (
             r.value) AS RECORD_ATTRIBUTES
     FROM cte_event_log l,
     LATERAL FLATTEN(input => l.RECORD_ATTRIBUTES) r
+    WHERE l.RECORD_ATTRIBUTES is not null
     GROUP BY all
+    --
+    UNION ALL
+
+    SELECT
+        l.TIMESTAMP,
+        l.RESOURCE_ATTRIBUTES,
+        l.RECORD_ATTRIBUTES as snow_record_attr,
+        l.RECORD,
+        l.VALUE,
+        OBJECT_CONSTRUCT() AS RECORD_ATTRIBUTES
+    FROM cte_event_log l
+    WHERE l.RECORD_ATTRIBUTES is null
+-- ;
 )
 select
   extract(epoch_nanosecond from to_timestamp(l.TIMESTAMP))           as TIMESTAMP,
