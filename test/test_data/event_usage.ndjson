@@ -1,0 +1,2 @@
+{"START_TIME": 1760681130776361000, "END_TIME": 1760681190776361000, "DIMENSIONS": "{}", "METRICS": "{\n  \"snowflake.credits.used\": 0.001007024,\n  \"snowflake.data.ingested\": 736\n}"}
+{"START_TIME": 1760681130800238000, "END_TIME": 1760681190800238000, "DIMENSIONS": "{}", "METRICS": "{\n  \"snowflake.credits.used\": 0.000215595,\n  \"snowflake.data.ingested\": 0\n}"}

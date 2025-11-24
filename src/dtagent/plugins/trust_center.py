@@ -1,6 +1,4 @@
-"""
-Plugin file for processing trust center plugin data.
-"""
+"""Plugin file for processing trust center plugin data."""
 
 ##region ------------------------------ IMPORTS  -----------------------------------------
 #
@@ -26,13 +24,12 @@ Plugin file for processing trust center plugin data.
 # SOFTWARE.
 #
 #
-import uuid
 import logging
 from dtagent.otel.events import EventType
 from dtagent.plugins import Plugin
-from dtagent.context import get_context_by_name
 from dtagent.util import _unpack_json_dict
-from dtagent import LOG
+from typing import Tuple, Dict
+from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPILE_REMOVE
 
 ##endregion COMPILE_REMOVE
 
@@ -40,12 +37,11 @@ from dtagent import LOG
 
 
 class TrustCenterPlugin(Plugin):
-    """
-    Trust center plugin class.
-    """
+    """Trust center plugin class."""
 
-    @staticmethod
-    def __to_loglevel(severity):
+    PLUGIN_NAME = "trust_center"
+
+    def _get_severity_log_level(self, row_dict) -> str:
         """Maps severity from the given severity to log level"""
         severity_mapping = {
             "CRITICAL": logging.CRITICAL,
@@ -53,27 +49,58 @@ class TrustCenterPlugin(Plugin):
             "MEDIUM": logging.WARN,
             "LOW": logging.INFO,
         }
-        return severity_mapping.get(severity, logging.INFO)
+        return severity_mapping.get(row_dict.get("_SEVERITY"), logging.INFO)
 
-    def process(self, run_proc: bool = True) -> int:
+    def _report_instrumented_log(self, row_dict: Dict, __context: Dict, log_level: int) -> bool:
+        """Defines custom log reporting approach"""
+        unpacked_dicts = _unpack_json_dict(row_dict, ["DIMENSIONS", "ATTRIBUTES", "METRICS"])
+
+        self._logs.send_log(
+            f"TrustCenter event: {row_dict.get('_MESSAGE')}",
+            extra={
+                "timestamp": self.processed_last_timestamp,
+                "event.start": row_dict.get("EVENT_START"),
+                "event.end": row_dict.get("EVENT_END"),
+                "status_code": row_dict.get("STATUS_CODE"),
+                **unpacked_dicts,
+            },
+            log_level=log_level,
+            context=__context,
+        )
+
+        return True
+
+    def _prepare_event_payload_critical_risk(self, row_dict: dict) -> Tuple[EventType, str, Dict]:  # pylint: disable=unused-argument
+        """Defines what payload should be sent once vulnerability.risk.level is CRITICAL"""
+
+        return EventType.CUSTOM_ALERT, "Trust Center Critical problem", {}
+
+    def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
+        """Processes data for trust center plugin.
+
+        Args:
+            run_id (str): unique run identifier
+            run_proc (bool): indicator whether processing should be logged as completed
+
+        Returns:
+            Dict[str,int]: A dictionary with counts of processed telemetry data.
+
+            Example:
+            {
+            "dsoa.run.results": {
+                "trust_center": {
+                    "entries": entries_cnt,
+                    "log_lines": logs_cnt,
+                    "metrics": metrics_cnt,
+                    "events": events_cnt
+                }
+            },
+            "dsoa.run.id": "uuid_string"
+            }
         """
-        Processes data for trust center plugin.
-        Returns
-            processed_entries_cnt [int]: number of entries reported from APP.V_TRUST_CENTER,
-        """
 
-        run_id = str(uuid.uuid4().hex)
-        __context = get_context_by_name("trust_center", run_id=run_id)
-
-        processed_entries_cnt = 0
-        metrics_sent_cnt = 0
-        events_sent_cnt = 0
-        processed_last_timestamp = None
-        t_trust_center_history = "APP.V_TRUST_CENTER_INSTRUMENTED"
-        t_trust_center_metrics = "APP.V_TRUST_CENTER_METRICS"
-
-        _, _, metrics_sent_cnt, _ = self._log_entries(
-            f_entry_generator=lambda: self._get_table_rows(t_trust_center_metrics),
+        metric_entries_cnt, _, metrics_sent_cnt, _ = self._log_entries(
+            f_entry_generator=lambda: self._get_table_rows("APP.V_TRUST_CENTER_METRICS"),
             context_name="trust_center",
             run_uuid=run_id,
             log_completion=False,
@@ -82,50 +109,33 @@ class TrustCenterPlugin(Plugin):
             report_timestamp_events=False,
         )
 
-        for row_dict in self._get_table_rows(t_trust_center_history):
-            unpacked_dicts = _unpack_json_dict(row_dict, ["DIMENSIONS", "ATTRIBUTES", "METRICS"])
+        entries_cnt, logs_cnt, _, events_sent_cnt = self._log_entries(
+            f_entry_generator=lambda: self._get_table_rows("APP.V_TRUST_CENTER_INSTRUMENTED"),
+            context_name="trust_center",
+            run_uuid=run_id,
+            log_completion=False,
+            start_time="EVENT_START",
+            end_time="EVENT_END",
+            event_column_to_check="vulnerability.risk.level",
+            event_value_to_check="CRITICAL",
+            event_payload_prepare=self._prepare_event_payload_critical_risk,
+            f_report_log=self._report_instrumented_log,
+            f_get_log_level=self._get_severity_log_level,
+        )
 
-            _message = row_dict.get("_MESSAGE")
-            log_level = TrustCenterPlugin.__to_loglevel(unpacked_dicts.get("_SEVERITY"))
-            processed_last_timestamp = row_dict.get("TIMESTAMP", None)
-
-            self._logs.send_log(
-                f"TrustCenter event: {_message}",
-                extra={
-                    "timestamp": processed_last_timestamp,
-                    "event.start": row_dict.get("EVENT_START"),
-                    "event.end": row_dict.get("EVENT_END"),
-                    "status_code": row_dict.get("STATUS_CODE"),
-                    **unpacked_dicts,
-                },
-                log_level=log_level,
-                context=__context,
-            )
-
-            if self._has_event(column_value=unpacked_dicts.get("vulnerability.risk.level", None), value_to_compare="CRITICAL"):
-                if self._events.report_via_api(
-                    query_data=row_dict,
-                    event_type=EventType.CUSTOM_ALERT,
-                    title="Trust Center Critical problem",
-                    start_time_key="EVENT_START",
-                    end_time_key="EVENT_END",
-                    context=__context,
-                ):
-                    events_sent_cnt += 1
-                else:
-                    LOG.warning("Could not send event from trust center plugin")
-
-            processed_entries_cnt += 1
+        results_dict = {
+            "trust_center": {
+                "entries": entries_cnt,
+                "log_lines": logs_cnt,
+                "events": events_sent_cnt,
+            },
+            "trust_center_metrics": {"entries": metric_entries_cnt, "metrics": metrics_sent_cnt},
+        }
 
         if run_proc:
-            self._report_execution(
-                "trust_center",
-                str(processed_last_timestamp),
-                None,
-                {"entries": processed_entries_cnt, "metrics_sent": metrics_sent_cnt, "events_sent": events_sent_cnt},
-            )
+            self._report_execution("trust_center", str(self.processed_last_timestamp), None, results_dict, run_id=run_id)
 
-        return processed_entries_cnt
+        return self._report_results(results_dict, run_id)
 
 
 ##endregion

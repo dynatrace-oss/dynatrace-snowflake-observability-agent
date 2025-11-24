@@ -1,6 +1,4 @@
-"""
-Plugin file for processing users plugin data.
-"""
+"""Plugin file for processing users plugin data."""
 
 ##region ------------------------------ IMPORTS  -----------------------------------------
 #
@@ -27,10 +25,10 @@ Plugin file for processing users plugin data.
 #
 #
 
-import uuid
-from typing import Tuple
+from typing import Tuple, Dict
 from snowflake.snowpark.functions import current_timestamp
 from dtagent.plugins import Plugin
+from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPILE_REMOVE
 
 ##endregion COMPILE_REMOVE
 
@@ -44,22 +42,43 @@ ROLE_REPORTING_MODES_VIEWS = {
 
 
 class UsersPlugin(Plugin):
-    """
-    Users plugin class.
-    """
+    """Users plugin class."""
 
-    def process(self, run_proc: bool = True) -> Tuple[int, int]:
-        """
-        Processes data for users plugin.
-        Returns
-            processed_entries_cnt [int]: number of entries reported from desired views,
-            processed_logs_cnt [int]: number of logs sent.
+    PLUGIN_NAME = "users"
+
+    def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
+        """Processes data for users plugin.
+
+        Args:
+            run_id (str): unique run identifier
+            run_proc (bool): indicator whether processing should be logged as completed
+
+        Returns:
+            Dict[str,int]: A dictionary with telemetry counts for users.
+
+            Example:
+            {
+            "dsoa.run.results": {
+                "users": {
+                    "entries": entries_cnt,
+                    "log_lines": logs_cnt,
+                    "metrics": metrics_cnt,
+                    "events": events_cnt,
+                },
+                "users_direct_roles": {
+                    "entries": entries_cnt,
+                    "log_lines": logs_cnt,
+                    "metrics": metrics_cnt,
+                    "events": events_cnt,
+                },
+                ...
+            },
+            "dsoa.run.id": "uuid_string"
+            }
         """
 
         modes = self._configuration.get(plugin_name="users", key="roles_monitoring_mode", default_value=[])
         processed_entries_cnt = 0
-        processed_logs_cnt = 0
-        run_id = str(uuid.uuid4().hex)
 
         views_list = ["APP.V_USERS_INSTRUMENTED"]
 
@@ -70,27 +89,29 @@ class UsersPlugin(Plugin):
         for mode in modes:
             views_list.extend(ROLE_REPORTING_MODES_VIEWS[str(mode).upper()])
 
+        results_dict = {}
+
         for view in views_list:
-            entries, logs, _, _ = self._log_entries(
+            entries_cnt, logs_cnt, metrics_cnt, events_cnt = self._log_entries(
                 lambda view=view: self._get_table_rows(view),
                 "users",
                 run_uuid=run_id,
                 log_completion=False,
-                report_timestamp_events=False,
+                report_timestamp_events=True,
             )
-
-            processed_entries_cnt += entries
-            processed_logs_cnt += logs
+            view_name = view[6:-13].lower()  # remove APP.V_ prefix and _INSTRUMENTED suffix
+            results_dict[view_name] = {
+                "entries": entries_cnt,
+                "log_lines": logs_cnt,
+                "metrics": metrics_cnt,
+                "events": events_cnt,
+            }
+            processed_entries_cnt += entries_cnt
 
         if run_proc:
-            self._report_execution(
-                "users",
-                current_timestamp() if processed_entries_cnt > 0 else None,
-                None,
-                {"processed_entries_cnt": processed_entries_cnt, "processed_logs_cnt": processed_logs_cnt},
-            )
+            self._report_execution("users", current_timestamp() if processed_entries_cnt > 0 else None, None, results_dict, run_id=run_id)
 
-        return processed_entries_cnt, processed_logs_cnt
+        return self._report_results(results_dict, run_id)
 
 
 ##endregion

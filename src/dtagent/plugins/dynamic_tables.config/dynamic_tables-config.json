@@ -9,7 +9,12 @@
             ],
             "SCHEDULE": "USING CRON */30 * * * * UTC",
             "SCHEDULE_GRANTS": "USING CRON 30 */12 * * * UTC",
-            "IS_DISABLED": false
+            "IS_DISABLED": false,
+            "TELEMETRY": [
+                "metrics",
+                "logs",
+                "biz_events"
+            ]
         }
     }
 }

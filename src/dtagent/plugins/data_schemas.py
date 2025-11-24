@@ -1,6 +1,4 @@
-"""
-Plugin file for processing data schemas plugin data.
-"""
+"""Plugin file for processing data schemas plugin data."""
 
 ##region ------------------------------ IMPORTS  -----------------------------------------
 #
@@ -29,9 +27,9 @@ Plugin file for processing data schemas plugin data.
 from typing import Any, Dict
 
 from dtagent.plugins import Plugin
-from dtagent.context import get_context_by_name
 from dtagent.otel.events import EventType
 from dtagent.util import _from_json, _pack_values_to_json_strings
+from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPILE_REMOVE
 
 ##endregion COMPILE_REMOVE
 
@@ -39,9 +37,9 @@ from dtagent.util import _from_json, _pack_values_to_json_strings
 
 
 class DataSchemasPlugin(Plugin):
-    """
-    Data schemas plugin class.
-    """
+    """Data schemas plugin class."""
+
+    PLUGIN_NAME = "data_schemas"
 
     def _compress_properties(self, properties_value: Dict) -> Dict:
         """Ensures that snowflake.object.ddl.properties is compressed in the 'columns' object"""
@@ -51,7 +49,8 @@ class DataSchemasPlugin(Plugin):
             if k == "columns":
                 result = defaultdict(list)
                 for column, details in v.items():
-                    result[details["subOperationType"]].append(column)
+                    sub_op_type = details.get("subOperationType", "unknown")
+                    result[str(sub_op_type)].append(column)
                 return dict(result)
             if k == "creationMode":
                 return v.get("value", v)
@@ -59,48 +58,93 @@ class DataSchemasPlugin(Plugin):
 
         return {k: __process(k, v) for k, v in properties_value.items()}
 
-    def process(self, run_proc: bool = True) -> int:
-        """
-        Processes data for data schemas plugin.
+    def _prepare_event_payload(self, row_dict):
+        """Defines event type, title and additional payload"""
+        return (
+            EventType.CUSTOM_INFO,
+            row_dict.get("_MESSAGE"),
+            {
+                "timestamp": row_dict.get("TIMESTAMP"),
+                "snowflake.object.event": "snowflake.object.ddl",
+            },
+        )
+
+    def _report_all_entries_as_events(
+        self, row_dict, event_type, title, *, start_time, end_time, properties, context
+    ) -> int:  # pylint: disable=unused-argument
+        """Defines how all entries as events should be reported
+
+        Args:
+            row_dict (Dict): row dictionary
+            event_type (str): event type
+            title (str): event title
+            start_time (str): start time key in row_dict
+            end_time (str): end time key in row_dict
+            properties (Dict): additional properties to be added to event payload
+            context (Optional[Dict]): additional context to be added to event payload
+
         Returns:
-            processed_spending_metrics [int]: number of events reported from APP.V_DATA_SCHEMAS.
+            int: number of events reported (1+ if successful, 0 otherwise)
         """
 
-        t_data_schemas = "APP.V_DATA_SCHEMAS"
+        _attributes = _from_json(row_dict["ATTRIBUTES"])
+        _attributes["snowflake.object.ddl.properties"] = self._compress_properties(_attributes.get("snowflake.object.ddl.properties", {}))
+        row_dict["ATTRIBUTES"] = _pack_values_to_json_strings(_attributes)
+        return self._events.report_via_api(
+            title=title,
+            query_data=row_dict,
+            additional_payload=properties,
+            start_time_key=start_time,
+            event_type=event_type,
+            context=context,
+        )
 
-        __context = get_context_by_name("data_schemas")
+    def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
+        """Processes data for data schemas plugin.
 
-        processed_events_cnt = 0
-        last_processed_timestamp = self._configuration.get_last_measurement_update(self._session, "data_schemas")
+        Args:
+            run_id (str): unique run identifier
+            run_proc (bool): indicator whether processing should be logged as completed
 
-        for row_dict in self._get_table_rows(t_data_schemas):
-            last_processed_timestamp = row_dict.get("TIMESTAMP")
-            _attributes = _from_json(row_dict["ATTRIBUTES"])
-            _attributes["snowflake.object.ddl.properties"] = self._compress_properties(
-                _attributes.get("snowflake.object.ddl.properties", {})
-            )
-            row_dict["ATTRIBUTES"] = _pack_values_to_json_strings(_attributes)
-            if self._events.report_via_api(
-                title=row_dict.get("_MESSAGE"),
-                query_data=row_dict,
-                additional_payload={
-                    "timestamp": last_processed_timestamp,
-                    "snowflake.object.event": "snowflake.object.ddl",
+        Returns:
+            Dict[str,Dict[str,int]]: A dictionary with telemetry counts for data schemas.
+
+            Example:
+            {
+            "dsoa.run.results": {
+                "data_schemas": {
+                    "entries": entries_cnt,
+                    "log_lines": logs_cnt,
+                    "metrics": metrics_cnt,
+                    "events": events_cnt,
+                }
+            },
+            RUN_ID_KEY: run_id,
+            }
+        """
+
+        entries_cnt, logs_cnt, metrics_cnt, events_cnt = self._log_entries(
+            f_entry_generator=lambda: self._get_table_rows("APP.V_DATA_SCHEMAS"),
+            context_name="data_schemas",
+            run_uuid=run_id,
+            report_logs=False,
+            report_timestamp_events=False,
+            report_metrics=False,
+            log_completion=run_proc,
+            report_all_as_events=True,
+            start_time="TIMESTAMP",
+            event_payload_prepare=self._prepare_event_payload,
+            f_report_event=self._report_all_entries_as_events,
+        )
+
+        return self._report_results(
+            {
+                "data_schemas": {
+                    "entries": entries_cnt,
+                    "log_lines": logs_cnt,
+                    "events": events_cnt,
+                    "metrics": metrics_cnt,
                 },
-                start_time_key="TIMESTAMP",
-                event_type=EventType.CUSTOM_INFO,
-                context=__context,
-            ):
-                processed_events_cnt += 1
-
-        if run_proc:
-            self._report_execution(
-                "data_schemas",
-                str(last_processed_timestamp),
-                None,
-                {
-                    "processed_data_schemas_count": processed_events_cnt,
-                },
-            )
-
-        return processed_events_cnt
+            },
+            run_id,
+        )

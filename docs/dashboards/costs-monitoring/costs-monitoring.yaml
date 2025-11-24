@@ -1,0 +1,1310 @@
+#
+# Copyright (c) 2025 Dynatrace Open Source
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the Software), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+#
+# DASHBOARD: Costs Monitoring 0.9.2
+# DESCRIPTION:  Snowflake Cost Monitoring dashboard
+# OWNER: sebastian.kruk
+# PLUGINS: query_history, resource_monitors, warehouse_usage
+# TAGS: costs
+#
+version: 19
+variables:
+  - version: 2
+    key: Accounts
+    type: query
+    visible: true
+    editable: true
+    input: |-
+      fetch events
+      | filter db.system == "snowflake"
+      | filter isNotNull(deployment.environment)
+      | fields deployment.environment
+      | dedup deployment.environment
+      | sort deployment.environment asc
+    multiple: true
+    defaultValue:
+      - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
+  - version: 2
+    key: Prefix
+    type: query
+    visible: true
+    editable: true
+    input: |-
+      fetch events
+      | filter db.system == "snowflake"
+      | filter isNotNull(snowflake.resource_monitor.name)
+      | filter in(deployment.environment, array($Accounts))
+      | parse `snowflake.resource_monitor.name`, """DATA:env "_" LDATA"""
+      | append [
+        fetch events
+        | filter db.system == "snowflake"
+        | filter isNotNull(snowflake.warehouse.name)
+        | filter in(deployment.environment, array($Accounts))
+        | parse `snowflake.warehouse.name`, """DATA:env "_" LDATA"""
+      ]
+      | fields env
+      | dedup env
+      | sort env asc
+    multiple: true
+    defaultValue:
+      - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
+  - version: 2
+    key: Resource_Monitors
+    type: query
+    visible: true
+    editable: true
+    input: |-
+      fetch events
+      | filter db.system == "snowflake"
+      | filter isNotNull(snowflake.resource_monitor.name)
+      | filter in(deployment.environment, array($Accounts))
+      | filter iAny(startsWith(snowflake.resource_monitor.name, concat(array($Prefix)[], "_")))
+      | fields snowflake.resource_monitor.name
+      | dedup snowflake.resource_monitor.name
+      | sort snowflake.resource_monitor.name asc
+    multiple: true
+    defaultValue:
+      - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
+  - version: 2
+    key: Warehouses
+    type: query
+    visible: true
+    editable: true
+    input: |-
+      fetch events
+      | filter db.system == "snowflake"
+      | filter isNotNull(snowflake.warehouse.name)
+      | filter in(deployment.environment, array($Accounts))
+      | filter isNull(snowflake.resource_monitor.name) or in(snowflake.resource_monitor.name, array($Resource_Monitors))
+      | fields snowflake.warehouse.name
+      | dedup snowflake.warehouse.name
+      | sort snowflake.warehouse.name asc
+    multiple: true
+    defaultValue:
+      - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
+  - version: 2
+    key: Slow_Query_Min
+    type: text
+    visible: true
+    editable: true
+    defaultValue: "60"
+tiles:
+  "0":
+    title: Credits used
+    type: data
+    query: |-
+      timeseries snowflake.credits.quota.used = max(snowflake.credits.quota.used), by: {
+          snowflake.resource_monitor.name,
+          deployment.environment,
+          service.name
+      }
+      | filter in(deployment.environment, array($Accounts))
+           and iAny(startsWith(snowflake.resource_monitor.name, concat(array($Prefix)[], "_")))
+           and in(snowflake.resource_monitor.name, array($Resource_Monitors))
+           // and in(snowflake.warehouse.name, array($Warehouses))
+      | fieldsAdd snow_account = coalesce(deployment.environment, service.name)
+      | fieldsRemove deployment.environment, service.name
+      | summarize {
+          snowflake.credits.quota.used = max(snowflake.credits.quota.used[])
+      }, by: {
+          timeframe,
+          interval,
+          snowflake.resource_monitor.name,
+          snow_account
+      }
+    visualization: lineChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        leftYAxisSettings:
+          label: Credits Used
+          isLabelVisible: true
+        xAxisLabel: timeframe
+        xAxisScaling: analyzedTimeframe
+        fieldMapping:
+          leftAxisValues:
+            - snowflake.credits.quota.used
+          timestamp: timeframe
+        gapPolicy: connect
+        legend:
+          position: bottom
+      legend:
+        ratio: 18
+      thresholds: []
+      dataMapping:
+        displayedFields:
+          - snowflake.resource_monitor.name
+          - snow_account
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "1":
+    type: markdown
+    content: "# Resource Monitors"
+    davis:
+      componentState:
+        inputData: null
+  "2":
+    title: Credits quota
+    type: data
+    query: |-
+      timeseries snowflake.credits.quota = max(snowflake.credits.quota), by: {
+          snowflake.resource_monitor.name,
+          deployment.environment,
+          service.name
+      }
+      | filter in(deployment.environment, array($Accounts))
+           and iAny(startsWith(snowflake.resource_monitor.name, concat(array($Prefix)[], "_")))
+           and in(snowflake.resource_monitor.name, array($Resource_Monitors))
+           // and in(snowflake.warehouse.name, array($Warehouses))
+      | fieldsAdd snow_account = coalesce(deployment.environment, service.name)
+      | fieldsRemove deployment.environment, service.name
+      | summarize {
+          snowflake.credits.quota = max(snowflake.credits.quota[])
+      }, by: {
+          timeframe,
+          interval,
+          snowflake.resource_monitor.name,
+          snow_account
+      }
+    visualization: davis
+    visualizationSettings:
+      autoSelectVisualization: false
+      thresholds: []
+      chartSettings:
+        gapPolicy: connect
+        circleChartSettings:
+          groupingThresholdType: relative
+          groupingThresholdValue: 0
+          valueType: relative
+        categoryOverrides: {}
+        categoricalBarChartSettings:
+          categoryAxis: snowflake.resource_monitor.name
+          categoryAxisLabel: snowflake.resource_monitor.name
+          valueAxis: interval
+          valueAxisLabel: interval
+        hiddenLegendFields:
+          - snowflake.resource_monitor
+        fieldMapping:
+          timestamp: timeframe
+          leftAxisValues:
+            - snowflake.credits.quota
+      singleValue:
+        labelMode: custom
+        label: ""
+        prefixIcon: ""
+        recordField: snowflake.resource_monitor.name
+        autoscale: true
+        alignment: center
+        colorThresholdTarget: value
+      table:
+        rowDensity: condensed
+        enableSparklines: false
+        hiddenColumns: []
+        lineWrapIds: []
+        columnWidths: {}
+        columnTypeOverrides:
+          - fields:
+              - snowflake.credits.quota
+            value: sparkline
+            id: 1755691686510
+      honeycomb:
+        shape: hexagon
+        legend: auto
+        dataMappings:
+          value: interval
+        displayedFields:
+          - snowflake.resource_monitor.name
+        colorMode: color-palette
+        colorPalette: blue
+      histogram:
+        dataMappings:
+          - valueAxis: interval
+            rangeAxis: ""
+      valueBoundaries:
+        min:
+          mode: auto
+        max:
+          mode: auto
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: true
+      componentState:
+        selectedAnalyzerName: dt.statistics.ui.anomaly_detection.AutoAdaptiveAnomalyDetectionAnalyzer
+        inputData:
+          dt.statistics.ui.anomaly_detection.AutoAdaptiveAnomalyDetectionAnalyzer:
+            generalParameters:
+              timeframe:
+                startTime: "2025-09-19T07:19:49.111Z"
+                endTime: "2025-10-03T07:19:49.111Z"
+              resolveDimensionalQueryData: true
+              logVerbosity: INFO
+            numberOfSignalFluctuations: 1
+            alertCondition: OUTSIDE
+            alertOnMissingData: false
+            violatingSamples: 1
+            slidingWindow: 10
+            dealertingSamples: 3
+      davisVisualization:
+        isAvailable: true
+        settings:
+          visibleSections: VISUALIZATION
+  "3":
+    title: Credits quota used
+    type: data
+    query: |-
+      timeseries snowflake.credits.quota.used_pct = max(snowflake.credits.quota.used_pct), by: {
+          snowflake.resource_monitor.name,
+          deployment.environment,
+          service.name
+      }
+      | filter in(deployment.environment, array($Accounts))
+           and iAny(startsWith(snowflake.resource_monitor.name, concat(array($Prefix)[], "_")))
+           and in(snowflake.resource_monitor.name, array($Resource_Monitors))
+           // and in(snowflake.warehouse.name, array($Warehouses))
+      | fieldsAdd snow_account = coalesce(deployment.environment, service.name)
+      | fieldsRemove deployment.environment, service.name
+      | summarize {
+          snowflake.credits.quota.used_pct = max(snowflake.credits.quota.used_pct[])
+      }, by: {
+          timeframe,
+          interval,
+          snowflake.resource_monitor.name,
+          snow_account
+      }
+    visualization: lineChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        leftYAxisSettings:
+          label: Percentage Quota Used
+          isLabelVisible: true
+        xAxisLabel: timeframe
+        xAxisScaling: analyzedTimeframe
+        fieldMapping:
+          leftAxisValues:
+            - snowflake.credits.quota.used_pct
+          timestamp: timeframe
+        gapPolicy: connect
+        legend:
+          position: bottom
+      legend:
+        ratio: 18
+      thresholds:
+        - id: 1
+          field: ""
+          title: Percentage used
+          isEnabled: true
+          rules:
+            - id: 0
+              color:
+                Default: "var(--dt-colors-charts-categorical-color-09-default, #649438)"
+              comparator: <
+              label: ""
+              value: 50
+            - id: 1
+              color:
+                Default: "var(--dt-colors-charts-categorical-color-14-default, #d56b1a)"
+              comparator: <
+              label: ""
+              value: 99
+            - id: 2
+              color:
+                Default: "var(--dt-colors-charts-categorical-color-12-default, #cd3741)"
+              comparator: ≥
+              label: ""
+              value: 100
+      dataMapping:
+        displayedFields:
+          - snowflake.resource_monitor.name
+          - snow_account
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "4":
+    type: markdown
+    content: "# Warehouses"
+    davis:
+      componentState:
+        inputData: null
+  "5":
+    title: Warehouses without resource monitors
+    type: data
+    query: |2
+       fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.context == "resource_monitors"
+      | filter in(deployment.environment, array($Accounts))
+      | sort timestamp asc
+      | summarize {
+          timestamp = takeLast(timestamp),
+          loglevel = takeLast(loglevel)
+      }, by: {
+          deployment.environment, snowflake.warehouse.name
+      }
+      | filterOut loglevel == "INFO"
+      | sort loglevel asc, timestamp desc
+      | fields
+        `Last seen`=timestamp,
+        `Account`=deployment.environment,
+        `Warehouse`=coalesce(snowflake.warehouse.name, "-"),
+        `Level`=loglevel,
+        `Explanation`=if(loglevel == "WARN",
+                         concat("Warehouse ", snowflake.warehouse.name, " does not have Resource Monitor assigned"),
+                         else: concat("Account ", deployment.environment, " does not have global resource monitor defined"))
+    visualization: table
+    visualizationSettings:
+      table:
+        columnWidths:
+          '["snow_account"]': 303.71875
+          '["Explanation"]': 1161
+      thresholds:
+        - id: 1
+          field: Level
+          title: ""
+          isEnabled: true
+          rules:
+            - id: 0
+              color:
+                Default: "var(--dt-colors-charts-categorical-color-09-default, #649438)"
+              comparator: =
+              label: ""
+              value: INFO
+            - id: 1
+              color:
+                Default: "var(--dt-colors-charts-categorical-color-14-default, #d56b1a)"
+              comparator: =
+              label: ""
+              value: WARN
+            - id: 2
+              color:
+                Default: "var(--dt-colors-charts-categorical-color-12-default, #cd3741)"
+              comparator: =
+              label: ""
+              value: ERROR
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "6":
+    title: Query execution time per warehouse
+    type: data
+    query: |
+      timeseries snowflake.time.execution = sum(snowflake.time.execution), by: {
+          snowflake.warehouse.name,
+          deployment.environment,
+          service.name
+      }
+      | filter in(deployment.environment, array($Accounts))
+           and iAny(startsWith(snowflake.warehouse.name, concat(array($Prefix)[], "_")))
+           // and in(snowflake.resource_monitor.name, array($Resource_Monitors))
+           and in(snowflake.warehouse.name, array($Warehouses))
+      | fieldsAdd snow_account = coalesce(deployment.environment, service.name)
+      | fieldsRemove service.name, deployment.environment
+      | summarize {
+          snowflake.time.execution = sum(snowflake.time.execution[])
+      }, by: {
+          timeframe,
+          interval,
+        // snowflake.warehouse.name,
+          snow_account
+      }
+    visualization: barChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        leftYAxisSettings:
+          label: Execution Time
+          isLabelVisible: true
+        xAxisLabel: timeframe
+        xAxisScaling: analyzedTimeframe
+        fieldMapping:
+          leftAxisValues:
+            - snowflake.time.execution
+          timestamp: timeframe
+      legend:
+        ratio: 13
+      thresholds: []
+      dataMapping:
+        displayedFields:
+          - snow_account
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "7":
+    title: Queued overload time per warehouse
+    type: data
+    query: |-
+      timeseries snowflake.time.queued.overload = sum(snowflake.time.queued.overload), by: {
+          snowflake.warehouse.name,
+          deployment.environment,
+          service.name
+      }
+      | fieldsAdd key = concat(deployment.environment, "|", snowflake.warehouse.name)
+      | joinNested rs = [
+        fetch events
+        | filter db.system == "snowflake"
+        | filter isNotNull(snowflake.warehouse.event)
+        | filter isNotNull(snowflake.resource_monitor.name) and isNotNull(snowflake.warehouse.name)
+        | summarize {count()}, by: {
+          snowflake.resource_monitor.name,
+          snowflake.warehouse.name,
+          deployment.environment}
+        | fieldsAdd key = concat(deployment.environment, "|", snowflake.warehouse.name)
+      ], on: {left[key] == right[key]}
+       , fields: {snowflake.resource_monitor.name}
+      | expand rs = rs
+      | fieldsAdd snowflake.resource_monitor.name = rs[snowflake.resource_monitor.name]
+      | fieldsRemove rs
+      | filter in(deployment.environment, array($Accounts))
+           and iAny(startsWith(snowflake.warehouse.name, concat(array($Prefix)[], "_")))
+           and (isNull(snowflake.resource_monitor.name) or in(snowflake.resource_monitor.name, array($Resource_Monitors)))
+           and in(snowflake.warehouse.name, array($Warehouses))
+      | fieldsRemove snowflake.resource_monitor.name
+      | fieldsAdd snow_account = coalesce(deployment.environment, service.name)
+      | fieldsRemove deployment.environment, service.name
+      | summarize {
+          snowflake.time.queued.overload = sum(snowflake.time.queued.overload[])
+      }, by: {
+          timeframe,
+          interval,
+          snowflake.warehouse.name,
+          snow_account
+      }
+    visualization: barChart
+    visualizationSettings:
+      dataMapping:
+        displayedFields:
+          - snowflake.warehouse.name
+          - snow_account
+      chartSettings:
+        leftYAxisSettings:
+          label: Queued Overload Time
+          isLabelVisible: true
+        xAxisLabel: timeframe
+        xAxisScaling: analyzedTimeframe
+        tooltip:
+          seriesDisplayMode: multi-line
+        fieldMapping:
+          leftAxisValues:
+            - snowflake.time.queued.overload
+          timestamp: timeframe
+      legend:
+        ratio: 20
+      thresholds: []
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "8":
+    title: Queued provisioning time per warehouse
+    type: data
+    query: |-
+      timeseries snowflake.time.queued.provisioning = sum(snowflake.time.queued.provisioning), by: {
+          snowflake.warehouse.name,
+          deployment.environment,
+          service.name
+      }
+      | fieldsAdd key = concat(deployment.environment, "|", snowflake.warehouse.name)
+      | joinNested rs = [
+        fetch events
+        | filter db.system == "snowflake"
+        | filter isNotNull(snowflake.warehouse.event)
+        | filter isNotNull(snowflake.resource_monitor.name) and isNotNull(snowflake.warehouse.name)
+        | summarize {count()}, by: {
+          snowflake.resource_monitor.name,
+          snowflake.warehouse.name,
+          deployment.environment}
+        | fieldsAdd key = concat(deployment.environment, "|", snowflake.warehouse.name)
+      ], on: {left[key] == right[key]}
+       , fields: {snowflake.resource_monitor.name}
+      | expand rs = rs
+      | fieldsAdd snowflake.resource_monitor.name = rs[snowflake.resource_monitor.name]
+      | fieldsRemove rs
+      | filter in(deployment.environment, array($Accounts))
+           and iAny(startsWith(snowflake.warehouse.name, concat(array($Prefix)[], "_")))
+           and (isNull(snowflake.resource_monitor.name) or in(snowflake.resource_monitor.name, array($Resource_Monitors)))
+           and in(snowflake.warehouse.name, array($Warehouses))
+      | fieldsRemove snowflake.resource_monitor.name
+      | fieldsAdd snow_account = coalesce(deployment.environment, service.name)
+      | fieldsRemove deployment.environment, service.name
+      | summarize {
+          ssnowflake.time.queued.provisioning = sum(snowflake.time.queued.provisioning[])
+      }, by: {
+          timeframe,
+          interval,
+          snowflake.warehouse.name,
+          snow_account
+      }
+    visualization: barChart
+    visualizationSettings:
+      dataMapping:
+        displayedFields:
+          - snowflake.warehouse.name
+          - snow_account
+      chartSettings:
+        truncationMode: middle
+        xAxisLabel: timeframe
+        xAxisScaling: analyzedTimeframe
+        fieldMapping:
+          leftAxisValues:
+            - ssnowflake.time.queued.provisioning
+          timestamp: timeframe
+      legend:
+        ratio: 21
+      thresholds: []
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "9":
+    title: Credits quota usage preditiction
+    type: data
+    query: |-
+      timeseries snowflake.credits.quota.used_pct = max(snowflake.credits.quota.used_pct), by: {
+          snowflake.resource_monitor.name,
+          deployment.environment,
+          service.name
+      }, interval: 24h
+      , from: -15d
+      , to: -1d
+      | filter in(deployment.environment, array($Accounts))
+           and iAny(startsWith(snowflake.resource_monitor.name, concat(array($Prefix)[], "_")))
+           and in(snowflake.resource_monitor.name, array($Resource_Monitors))
+           // and in(snowflake.warehouse.name, array($Warehouses))
+      | fieldsAdd snow_account = coalesce(deployment.environment, service.name)
+      | fieldsRemove deployment.environment, service.name
+      | sort snowflake.credits.quota.used_pct desc
+      // | limit 10
+    visualization: davis
+    visualizationSettings:
+      autoSelectVisualization: false
+      thresholds:
+        - id: 1
+          field: ""
+          title: Percentage used
+          isEnabled: true
+          rules:
+            - id: 0
+              color:
+                Default: "var(--dt-colors-charts-categorical-color-09-default, #649438)"
+              comparator: <
+              label: ""
+              value: 50
+            - id: 1
+              color:
+                Default: "var(--dt-colors-charts-categorical-color-14-default, #d56b1a)"
+              comparator: <
+              label: ""
+              value: 99
+            - id: 2
+              color:
+                Default: "var(--dt-colors-charts-categorical-color-12-default, #cd3741)"
+              comparator: ≥
+              label: ""
+              value: 100
+      chartSettings:
+        xAxisScaling: analyzedTimeframe
+        gapPolicy: connect
+        circleChartSettings:
+          groupingThresholdType: relative
+          groupingThresholdValue: 0
+          valueType: relative
+        categoryOverrides: {}
+        categoricalBarChartSettings:
+          categoryAxis:
+            - snowflake.resource_monitor.name
+            - snow_account
+          categoryAxisLabel: snowflake.resource_monitor.name,snow_account
+          valueAxis:
+            - interval
+          valueAxisLabel: interval
+          tooltipVariant: single
+        hiddenLegendFields:
+          - snowflake.resource_monitor
+          - interval
+        fieldMapping:
+          timestamp: timeframe
+          leftAxisValues:
+            - snowflake.credits.quota.used_pct
+        truncationMode: middle
+        valueRepresentation: absolute
+        xAxisLabel: timeframe
+        xAxisIsLabelVisible: false
+        leftYAxisSettings:
+          isLabelVisible: true
+          label: Percentage Quota Used
+      singleValue:
+        trend:
+          trendType: auto
+          isVisible: true
+        labelMode: custom
+        label: ""
+        prefixIcon: ""
+        recordField: snowflake.resource_monitor.name
+        autoscale: true
+        alignment: center
+        colorThresholdTarget: value
+      table:
+        rowDensity: condensed
+        enableSparklines: false
+        hiddenColumns: []
+        lineWrapIds: []
+        columnWidths: {}
+        columnTypeOverrides:
+          - fields:
+              - snowflake.credits.quota.used_pct
+            value: sparkline
+            id: 1756104321690
+      honeycomb:
+        shape: hexagon
+        legend: auto
+        dataMappings:
+          value: interval
+        displayedFields:
+          - snowflake.resource_monitor.name
+          - snow_account
+        colorMode: color-palette
+        colorPalette: blue
+      histogram:
+        dataMappings:
+          - valueAxis: interval
+            rangeAxis: ""
+        variant: single
+        displayedFields:
+          - snowflake.resource_monitor.name
+      valueBoundaries:
+        min:
+          mode: auto
+        max:
+          mode: auto
+      legend:
+        showLegend: false
+        position: auto
+        ratio: 18
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: true
+      componentState:
+        selectedAnalyzerName: dt.statistics.ui.ForecastAnalyzer
+        inputData:
+          dt.statistics.ui.ForecastAnalyzer:
+            generalParameters:
+              timeframe:
+                startTime: now()-14d
+                endTime: now()
+              resolveDimensionalQueryData: true
+              logVerbosity: INFO
+            forecastHorizon: 7
+            forecastOffset: 0
+      davisVisualization:
+        isAvailable: true
+        settings:
+          visibleSections: VISUALIZATION
+  "10":
+    type: markdown
+    content: "# Slow queries"
+    davis:
+      componentState:
+        inputData: null
+  "11":
+    title: Count of queries slower then $Slow_Query_Min min by user over time
+    type: data
+    query: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.context == "query_history"
+      | filter isNotNull(snowflake.query.id)
+      | fieldsAdd snowflake.time.running.in_min = toLong(snowflake.time.total_elapsed)/1000/60
+      | filter toLong(snowflake.time.running.in_min) > toDouble($Slow_Query_Min)
+      | fieldsAdd key = concat(deployment.environment, "|", snowflake.warehouse.name)
+      | joinNested rs = [
+        fetch events
+        | filter db.system == "snowflake"
+        | filter isNotNull(snowflake.warehouse.event)
+        | filter isNotNull(snowflake.resource_monitor.name) and isNotNull(snowflake.warehouse.name)
+        | summarize {count()}, by: {
+          snowflake.resource_monitor.name,
+          snowflake.warehouse.name,
+          deployment.environment}
+        | fieldsAdd key = concat(deployment.environment, "|", snowflake.warehouse.name)
+      ], on: {left[key] == right[key]}
+       , fields: {snowflake.resource_monitor.name}
+      | expand rs = rs
+      | fieldsAdd snowflake.resource_monitor.name = rs[snowflake.resource_monitor.name]
+      | fieldsRemove rs
+      | filter in(deployment.environment, array($Accounts))
+           and iAny(startsWith(snowflake.warehouse.name, concat(array($Prefix)[], "_")))
+           and in(snowflake.resource_monitor.name, array($Resource_Monitors))
+           and in(snowflake.warehouse.name, array($Warehouses))
+      | fieldsRemove snowflake.resource_monitor.name
+      | makeTimeseries  count(), by: { db.user }
+      //, interval: 1h
+    visualization: barChart
+    visualizationSettings:
+      chartSettings:
+        legend:
+          position: bottom
+        tooltip:
+          seriesDisplayMode: multi-line
+      legend:
+        ratio: 19
+      autoSelectVisualization: false
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "12":
+    title: Top 100 slowest queries running longer than $Slow_Query_Min minutes
+    type: data
+    query: |
+      fetch logs, scanLimitGBytes:-1
+      | filter db.system == "snowflake"
+      | filter dsoa.run.context == "query_history"
+      | filter isNotNull(snowflake.query.id)
+      | fieldsAdd snowflake.time.running.in_min = toLong(snowflake.time.total_elapsed)/1000/60
+      | filter toLong(snowflake.time.running.in_min) > toDouble($Slow_Query_Min)
+      | fieldsAdd key = concat(deployment.environment, "|", snowflake.warehouse.name)
+      | joinNested rs = [
+        fetch events
+        | filter db.system == "snowflake"
+        | filter isNotNull(snowflake.warehouse.event)
+        | filter isNotNull(snowflake.resource_monitor.name) and isNotNull(snowflake.warehouse.name)
+        | summarize {count()}, by: {
+          snowflake.resource_monitor.name,
+          snowflake.warehouse.name,
+          deployment.environment}
+        | fieldsAdd key = concat(deployment.environment, "|", snowflake.warehouse.name)
+      ], on: {left[key] == right[key]}
+       , fields: {snowflake.resource_monitor.name}
+      | expand rs = rs
+      | fieldsAdd snowflake.resource_monitor.name = rs[snowflake.resource_monitor.name]
+      | fieldsRemove rs
+      | filter in(deployment.environment, array($Accounts))
+           and iAny(startsWith(snowflake.warehouse.name, concat(array($Prefix)[], "_")))
+           and in(snowflake.resource_monitor.name, array($Resource_Monitors))
+           and in(snowflake.warehouse.name, array($Warehouses))
+      | fieldsAdd snowflake.time.duration = toDuration(1000*1000*toLong(snowflake.time.total_elapsed))
+      | sort snowflake.time.total_elapsed desc
+      | limit 100
+      | fields
+        `Duration`=snowflake.time.duration,
+        `Start Time`=timestamp-snowflake.time.duration,
+        `Query ID`=snowflake.query.id,
+        `User`=db.user,
+        `Account`=deployment.environment,
+        `Warehouse`=snowflake.warehouse.name,
+        `Resource Monitor`=coalesce(snowflake.resource_monitor.name, "-"),
+        `Query SQL`=substring(db.query.text, to: 15)
+    visualization: table
+    visualizationSettings:
+      table:
+        columnTypeOverrides:
+          - fields:
+              - content
+            id: 1759145367565
+            value: log-content
+      autoSelectVisualization: false
+      unitsOverrides:
+        - identifier: snowflake.time.running.in_min
+          unitCategory: time
+          baseUnit: minute
+          displayUnit: null
+          decimals: 2
+          suffix: ""
+          delimiter: false
+          added: 1759145749114
+        - identifier: snowflake.time.running
+          unitCategory: time
+          baseUnit: millisecond
+          displayUnit: null
+          decimals: 2
+          suffix: ""
+          delimiter: false
+          added: 1759145797490
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "13":
+    title: Queries currently running longer than $Slow_Query_Min minutes
+    type: data
+    query: |
+      fetch logs, from: -12h
+      | filter isNotNull(snowflake.query.id)
+      | filter dsoa.run.context == "active_queries"
+      | filter isNotNull(snowflake.time.running)
+      | fieldsAdd snowflake.time.running.in_min = toLong(snowflake.time.running)/1000/60
+      | filter toLong(snowflake.time.running.in_min) > toDouble($Slow_Query_Min)
+      | fieldsAdd key = concat(deployment.environment, "|", snowflake.warehouse.name)
+      | joinNested rs = [
+        fetch events
+        | filter db.system == "snowflake"
+        | filter isNotNull(snowflake.warehouse.event)
+        | filter isNotNull(snowflake.resource_monitor.name) and isNotNull(snowflake.warehouse.name)
+        | summarize {count()}, by: {
+          snowflake.resource_monitor.name,
+          snowflake.warehouse.name,
+          deployment.environment}
+        | fieldsAdd key = concat(deployment.environment, "|", snowflake.warehouse.name)
+      ], on: {left[key] == right[key]}
+       , fields: {snowflake.resource_monitor.name}
+      | expand rs = rs
+      | fieldsAdd snowflake.resource_monitor.name = rs[snowflake.resource_monitor.name]
+      | fieldsRemove rs
+      | filter in(deployment.environment, array($Accounts))
+           and iAny(startsWith(snowflake.warehouse.name, concat(array($Prefix)[], "_")))
+           and in(snowflake.resource_monitor.name, array($Resource_Monitors))
+           and in(snowflake.warehouse.name, array($Warehouses))
+      | sort timestamp asc
+      | summarize {
+        timestamp = takeLast(timestamp),
+        snowflake.time.running = takeLast(snowflake.time.running),
+        snowflake.time.running.in_min = takeLast(snowflake.time.running.in_min),
+        dsoa.run.last_id = takeLast(dsoa.run.id)
+      }, by: {
+        dsoa.run.id,
+        snowflake.query.id,
+        snowflake.warehouse.name,
+        deployment.environment,
+        db.query.text,
+        db.user
+      }
+      | filter dsoa.run.last_id == dsoa.run.id
+      | join [
+        fetch logs, from: -12h
+        | filter isNotNull(snowflake.query.id)
+        | filter dsoa.run.context == "query_history"
+        | filter in(deployment.environment, array($Accounts))
+             and iAny(startsWith(snowflake.warehouse.name, concat(array($Prefix)[], "_")))
+             and in(snowflake.resource_monitor.name, array($Resource_Monitors))
+             and in(snowflake.warehouse.name, array($Warehouses))
+        | fields snowflake.query.id, is_finished = true
+      ]
+      , on: {left[snowflake.query.id] == right[snowflake.query.id]}
+      , kind:leftOuter
+      , fields: {is_finished}
+      | filterOut is_finished
+      | fieldsRemove is_finished
+      | fieldsAdd snowflake.time.duration = toDuration(1000*1000*toLong(snowflake.time.running))
+      | fields
+        `Start Time`=timestamp - snowflake.time.duration,
+        `Duration`=snowflake.time.duration,
+        `Query ID`=snowflake.query.id,
+        `User`=db.user,
+        `Warehouse`=snowflake.warehouse.name,
+        `Account`=deployment.environment,
+        `Query SQL`=db.query.text
+    visualization: table
+    visualizationSettings:
+      autoSelectVisualization: true
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "14":
+    title: Slow queries that might exhaust credits
+    type: data
+    query: |-
+      fetch logs, from: -12h
+      | filter isNotNull(snowflake.query.id)
+      | filter dsoa.run.context == "active_queries"
+      | filter isNotNull(snowflake.time.running)
+      | fieldsAdd snowflake.time.running.in_min = toLong(snowflake.time.running)/1000/60
+      | filter toLong(snowflake.time.running.in_min) > 5
+      | sort timestamp asc
+      | summarize {
+        timestamp = takeLast(timestamp),
+        snowflake.time.running = takeLast(snowflake.time.running),
+        snowflake.time.running.in_min = takeLast(snowflake.time.running.in_min),
+        dsoa.run.last_id = takeLast(dsoa.run.id)
+      }, by: {
+        dsoa.run.id,
+        snowflake.query.id,
+        snowflake.query.hash,
+        snowflake.warehouse.name,
+        snowflake.warehouse.size,
+        deployment.environment,
+        db.query.text,
+        db.user
+      }
+      | filter dsoa.run.last_id == dsoa.run.id
+      // --- filter out finished queries --
+      | join [
+        fetch logs, from: -12h
+        | filter isNotNull(snowflake.query.id)
+        | filter dsoa.run.context == "query_history"
+        | fields snowflake.query.id, is_finished = true
+      ]
+      , on: {left[snowflake.query.id] == right[snowflake.query.id]}
+      , kind:leftOuter
+      , fields: {is_finished}
+      | filterOut is_finished
+      | fieldsRemove is_finished
+      // -- filter out queries without resource monitor
+      | fieldsAdd join_key = concat(deployment.environment, "|", snowflake.warehouse.name)
+      | join [
+        fetch events
+        | filter db.system == "snowflake"
+        | filter dsoa.run.context == "resource_monitors"
+        | filter snowflake.resource_monitor.name != "ACCOUNT_GLOBAL_MONITOR"
+        | filter isNotNull(snowflake.warehouse.name) and isNotNull(snowflake.resource_monitor.name)
+        | summarize snowflake.credits.quota.remaining = toDouble(takeLast(snowflake.credits.quota.remaining)),
+               by: {join_key = concat(deployment.environment, "|", snowflake.warehouse.name),
+                    snowflake.warehouse.size,
+                    snowflake.resource_monitor.name}
+      ]
+      , on: { left[join_key] == right[join_key]}
+      , fields: {snowflake.resource_monitor.name, snowflake.credits.quota.remaining}
+      , kind:leftOuter
+      | fieldsRemove join_key
+      | filterOut isNull(snowflake.resource_monitor.name)
+      // ------
+      | filter in(deployment.environment, array($Accounts))
+           and iAny(startsWith(snowflake.warehouse.name, concat(array($Prefix)[], "_")))
+           and in(snowflake.resource_monitor.name, array($Resource_Monitors))
+           and in(snowflake.warehouse.name, array($Warehouses))
+      // in case it starts running slowly
+      // | sort snowflake.time.running desc
+      // | limit 10
+      | join [
+        fetch logs, from:-7d
+        | filter db.system == "snowflake"
+        | filter dsoa.run.context == "query_history"
+        | filter snowflake.time.total_elapsed > 30*60*1000 // were running over half-hour
+        | summarize {snowflake.time.total_elapsed = toLong(max(snowflake.time.total_elapsed))/1000}, by: {snowflake.query.hash}
+      ]
+      , on: { left[snowflake.query.hash] == right[snowflake.query.hash] }
+      , fields: {snowflake.time.total_elapsed}
+      , kind:leftOuter
+      | lookup [
+        data
+          record(snowflake.warehouse.size = "X-Small", snowflake.warehouse.cost = 1),
+          record(snowflake.warehouse.size = "Small", snowflake.warehouse.cost = 2),
+          record(snowflake.warehouse.size = "Medium", snowflake.warehouse.cost = 4),
+          record(snowflake.warehouse.size = "Large", snowflake.warehouse.cost = 8),
+          record(snowflake.warehouse.size = "X-Large", snowflake.warehouse.cost = 16),
+          record(snowflake.warehouse.size = "XX-Large", snowflake.warehouse.cost = 32),
+          record(snowflake.warehouse.size = "XXX-Large", snowflake.warehouse.cost = 64)
+        ], sourceField:snowflake.warehouse.size
+         , lookupField:snowflake.warehouse.size
+         , fields:{snowflake.warehouse.cost}
+      | fieldsAdd
+          snowflake.query.credits.current = snowflake.warehouse.cost*snowflake.time.running/1000/60/60,   // credits are per hour
+          snowflake.query.credits.estimated = snowflake.warehouse.cost*snowflake.time.total_elapsed/60/60 // credits are per hour
+      | fieldsAdd
+          snowflake.query.credits.expected = snowflake.query.credits.estimated - snowflake.query.credits.current
+      | filter snowflake.query.credits.expected > snowflake.credits.quota.remaining
+      | fieldsAdd snowflake.time.duration = toDuration(1000*1000*toLong(snowflake.time.running))
+      | fields
+          `Start Time`=timestamp - snowflake.time.duration,
+          `Duration`=snowflake.time.duration,
+          `Time Elapsed`=coalesce(snowflake.time.total_elapsed, snowflake.time.duration),
+          `Current Costs`=coalesce(snowflake.query.credits.current, 0),
+          `Estimated Costs`=coalesce(snowflake.query.credits.estimated, 0),
+          `Expected Costs`=coalesce(snowflake.query.credits.expected, 0),
+          `Query SQL`=substring(db.query.text, to: 15),
+          `Query Hash`=snowflake.query.hash,
+          `Account`=deployment.environment,
+          `Warehouse`=snowflake.warehouse.name,
+          `Warehouse Size`=coalesce(snowflake.warehouse.size, "-"),
+          `Warehouse Costs`=coalesce(snowflake.warehouse.cost, "-")
+    visualization: table
+    visualizationSettings:
+      autoSelectVisualization: true
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "15":
+    title: Delays in resuming and suspending warehouses
+    type: data
+    query: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.context == "warehouse_usage"
+      | filter contains(snowflake.warehouse.event.name, "WAREHOUSE")
+      | fieldsAdd key = concat(deployment.environment, "|", snowflake.warehouse.name)
+      | filter in(deployment.environment, array($Accounts))
+           and iAny(startsWith(snowflake.warehouse.name, concat(array($Prefix)[], "_")))
+           and in(snowflake.warehouse.name, array($Warehouses))
+      | joinNested rs = [
+        fetch events
+        | filter db.system == "snowflake"
+        | filter isNotNull(snowflake.warehouse.event)
+        | filter in(deployment.environment, array($Accounts))
+             and iAny(startsWith(snowflake.warehouse.name, concat(array($Prefix)[], "_")))
+             // and (isNull(snowflake.resource_monitor.name) or in(snowflake.resource_monitor.name, array($Resource_Monitors)))
+             and in(snowflake.warehouse.name, array($Warehouses))
+        | summarize {count()}, by: {
+          snowflake.resource_monitor.name,
+          snowflake.warehouse.name,
+          deployment.environment}
+        | fieldsAdd key = concat(deployment.environment, "|", snowflake.warehouse.name)
+      ], on: {left[key] == right[key]}
+       , fields: {snowflake.resource_monitor.name}
+      | expand rs = rs
+      | fieldsAdd snowflake.resource_monitor.name = rs[snowflake.resource_monitor.name]
+      | fieldsRemove rs
+      | filter (isNull(snowflake.resource_monitor.name) or in(snowflake.resource_monitor.name, array($Resource_Monitors)))
+      | fieldsRemove snowflake.resource_monitor.name
+      | parse `observed_timestamp`, """JSONTIMESTAMP:ots"""
+      | fieldsAdd obs_timestamp = asTimestamp(ots)
+      | sort obs_timestamp asc
+      | fields obs_timestamp,
+               deployment.environment,
+               snowflake.warehouse.name,
+               snowflake.warehouse.event.name,
+               snowflake.warehouse.event.state,
+               snowflake.warehouse.cluster.number,
+               warehouse_state = if(snowflake.warehouse.event.name == "WAREHOUSE_CONSISTENT", "FINISHED", else: "STARTING"),
+               warehouse_action = if(snowflake.warehouse.event.name == "RESUME_WAREHOUSE", "RESUME",
+                                     else: if(snowflake.warehouse.event.name == "SUSPEND_WAREHOUSE", "SUSPEND"))
+      | fieldsAdd event_start = if(warehouse_state == "STARTING", obs_timestamp),
+                  event_finish = if(warehouse_state == "FINISHED", obs_timestamp)
+      | summarize {
+        start_events = arrayRemoveNulls(collectArray(event_start)),
+        finish_events = arrayRemoveNulls(collectArray(event_finish)),
+        warehouse_action = arrayRemoveNulls(collectArray(warehouse_action))
+      }, by: {
+        deployment.environment,
+        snowflake.warehouse.name
+      }
+      | fieldsAdd warehouse_events = record(
+          ts = start_events[],
+          event_delay = finish_events[] - start_events[],
+          warehouse_action = warehouse_action[])
+      | expand warehouse_events
+      | fields event_timestamp = warehouse_events[ts],
+               deployment.environment,
+               snowflake.warehouse.name,
+               event_delay = warehouse_events[event_delay],
+               warehouse_action = warehouse_events[warehouse_action]
+      | filterOut isNull(event_timestamp)
+      | makeTimeseries event_delay = sum(event_delay)
+          , by: {warehouse_action, snowflake.warehouse.name, deployment.environment}
+          , time: event_timestamp
+          // , interval: 1h
+    visualization: barChart
+    visualizationSettings:
+      autoSelectVisualization: false
+      unitsOverrides:
+        - identifier: event_delay
+          unitCategory: time
+          baseUnit: nanosecond
+          displayUnit: null
+          decimals: 2
+          suffix: ""
+          delimiter: false
+          added: 1759150685068
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+layouts:
+  "0":
+    x: 0
+    "y": 31
+    w: 12
+    h: 5
+  "1":
+    x: 0
+    "y": 30
+    w: 24
+    h: 1
+  "2":
+    x: 12
+    "y": 31
+    w: 12
+    h: 5
+  "3":
+    x: 0
+    "y": 36
+    w: 12
+    h: 5
+  "4":
+    x: 0
+    "y": 0
+    w: 24
+    h: 1
+  "5":
+    x: 0
+    "y": 1
+    w: 24
+    h: 5
+  "6":
+    x: 0
+    "y": 6
+    w: 24
+    h: 5
+  "7":
+    x: 0
+    "y": 11
+    w: 24
+    h: 6
+  "8":
+    x: 0
+    "y": 17
+    w: 24
+    h: 7
+  "9":
+    x: 12
+    "y": 36
+    w: 12
+    h: 5
+  "10":
+    x: 0
+    "y": 41
+    w: 24
+    h: 1
+  "11":
+    x: 0
+    "y": 50
+    w: 24
+    h: 5
+  "12":
+    x: 0
+    "y": 55
+    w: 24
+    h: 3
+  "13":
+    x: 0
+    "y": 42
+    w: 24
+    h: 4
+  "14":
+    x: 0
+    "y": 46
+    w: 24
+    h: 4
+  "15":
+    x: 0
+    "y": 24
+    w: 24
+    h: 6
+settings:
+  defaultTimeframe:
+    value:
+      from: now()-14d
+      to: now()
+    enabled: true
+importedWithCode: false

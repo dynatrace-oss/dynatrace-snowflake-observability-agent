@@ -1,6 +1,4 @@
-"""
-Plugin file for processing data volume plugin data.
-"""
+"""Plugin file for processing data volume plugin data."""
 
 ##region ------------------------------ IMPORTS  -----------------------------------------
 #
@@ -26,18 +24,10 @@ Plugin file for processing data volume plugin data.
 # SOFTWARE.
 #
 #
-
 from snowflake.snowpark.functions import current_timestamp
-from dtagent.util import (
-    _unpack_json_dict,
-    _get_timestamp_in_sec,
-    NANOSECOND_CONVERSION_RATE,
-    EVENT_TIMESTAMP_KEYS_PAYLOAD_NAME,
-)
 from dtagent.plugins import Plugin
-from dtagent.context import get_context_by_name
-from dtagent.otel.events import EventType
-from dtagent import LOG
+from typing import Dict
+from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPILE_REMOVE
 
 ##endregion COMPILE_REMOVE
 
@@ -45,53 +35,52 @@ from dtagent import LOG
 
 
 class DataVolumePlugin(Plugin):
-    """
-    Data volume plugin class.
-    """
+    """Data volume plugin class."""
 
-    def process(self, run_proc: bool = True) -> int:
+    PLUGIN_NAME = "data_volume"
+
+    def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
+        """Processes the measures on data volume
+
+        Args:
+            run_id (str): unique run identifier
+            run_proc (bool): indicator whether processing should be logged as completed
+
+        Returns:
+            Dict[str,int]: A dictionary with telemetry counts for data volume.
+
+            Example:
+            {
+            "dsoa.run.results": {
+                "data_volume": {
+                    "entries": entries_cnt,
+                    "log_lines": logs_cnt,
+                    "metrics": metrics_cnt,
+                    "events": events_cnt,
+                }
+            },
+            "dsoa.run.id": "uuid_string"
+            }
         """
-        Processes the measures on data volume
-        """
-
-        t_data_volume = "APP.V_DATA_VOLUME"
-        __context = get_context_by_name("data_volume")
-
-        # get the timestamp of the last processed log entry
-        last_timestamp = self._configuration.get_last_measurement_update(self._session, "data_volume")
-
-        processed_tables = 0
-
-        for row_dict in self._get_table_rows(t_data_volume):
-            if self._metrics.discover_report_metrics(row_dict):
-                processed_tables += 1
-
-            for key, ts in _unpack_json_dict(row_dict, ["EVENT_TIMESTAMPS"]).items():
-                ts_dt = _get_timestamp_in_sec(ts, NANOSECOND_CONVERSION_RATE)  # converting from nanoseconds to seconds
-                if ts_dt >= last_timestamp:
-                    if not self._events.report_via_api(
-                        row_dict,
-                        EventType.CUSTOM_INFO,
-                        title=f"Table event {key}.",
-                        additional_payload={
-                            "timestamp": ts,
-                            EVENT_TIMESTAMP_KEYS_PAYLOAD_NAME: key,
-                        },
-                        context=__context,
-                    ):
-                        LOG.warning("Could not send event from data volume plugin")
-
-        self._metrics.flush_metrics()
-
+        entries_cnt, logs_cnt, metrics_cnt, events_cnt = self._log_entries(
+            f_entry_generator=lambda: self._get_table_rows("APP.V_DATA_VOLUME"),
+            context_name="data_volume",
+            run_uuid=run_id,
+            report_logs=False,
+            log_completion=False,
+        )
+        results_dict = {
+            "data_volume": {
+                "entries": entries_cnt,
+                "log_lines": logs_cnt,
+                "metrics": metrics_cnt,
+                "events": events_cnt,
+            }
+        }
         if run_proc:
-            self._report_execution(
-                "data_volume",
-                current_timestamp(),
-                None,
-                {"tables": processed_tables},
-            )
+            self._report_execution("data_volume", current_timestamp(), None, results_dict, run_id=run_id)
 
-        return processed_tables
+        return self._report_results(results_dict, run_id)
 
 
 ##endregion

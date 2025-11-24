@@ -1,17 +1,17 @@
 --
 --
 -- Copyright (c) 2025 Dynatrace Open Source
--- 
+--
 -- Permission is hereby granted, free of charge, to any person obtaining a copy
 -- of this software and associated documentation files (the "Software"), to deal
 -- in the Software without restriction, including without limitation the rights
 -- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 -- copies of the Software, and to permit persons to whom the Software is
 -- furnished to do so, subject to the following conditions:
--- 
+--
 -- The above copyright notice and this permission notice shall be included in all
 -- copies or substantial portions of the Software.
--- 
+--
 -- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 -- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 -- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -49,18 +49,20 @@ WITH directRolesMapping AS (
   SELECT name, 'USAGE', 'ROLE', name, 0
     FROM SNOWFLAKE.account_usage.roles
     WHERE deleted_on IS NULL
-  ) 
+  )
 select
-  current_timestamp                                     as TIMESTAMP,
+  current_timestamp                                   as TIMESTAMP,
   OBJECT_CONSTRUCT(
     'db.user',                                    grantee_name
   )                                                   as DIMENSIONS,
   OBJECT_CONSTRUCT(
     'snowflake.user.privilege',                   concat(ar.privilege, ':', ar.granted_on),
     'snowflake.user.privilege.grants_on',         listagg(distinct ar.child_role, ','),
-    'snowflake.user.privilege.granted_by',        array_agg(distinct granted_by),
-    'snowflake.user.privilege.last_altered',      extract(epoch_nanosecond from max(created_on)) -- not reported as EVENT_TIMESTAMPS as we do not want to send events, and it would mess up documentation test
-  )                                                   as ATTRIBUTES
+    'snowflake.user.privilege.granted_by',        array_agg(distinct granted_by)
+  )                                                   as ATTRIBUTES,
+  OBJECT_CONSTRUCT(
+    'snowflake.user.privilege.last_altered',      extract(epoch_nanosecond from max(created_on))
+  )                                                   as EVENT_TIMESTAMPS
 from SNOWFLAKE.ACCOUNT_USAGE.GRANTS_TO_USERS gtu
 left join allRoles ar
       on ar.parent_role = gtu.role

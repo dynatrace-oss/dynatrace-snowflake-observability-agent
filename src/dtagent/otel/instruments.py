@@ -52,8 +52,7 @@ class Instruments:
         """
 
         def __gen_metric_details(metric_details: Dict[str, str], metric_name: str) -> str:
-            """
-            Helper function that packs together displayName and other metadata about each metric
+            """Helper function that packs together displayName and other metadata about each metric
             according to the Dynatrace Metrics v2 API specs
             """
             from dtagent.util import _esc  # COMPILE_REMOVE
@@ -72,8 +71,7 @@ class Instruments:
         return f"#{metric_name} gauge {__gen_metric_details(metric_details, metric_name)}"
 
     def _init_instruments_api(self) -> None:
-        """
-        Initializes metadata lines for all instruments registered in the Configuration.
+        """Initializes metadata lines for all instruments registered in the Configuration.
         For the time being all instruments are reported as 'gauge'
 
         Returns a map of metadata lines by metric name
@@ -86,8 +84,8 @@ class Instruments:
         }
 
     def get_metric_definition(self, metric_name: str, local_metrics_def: Optional[Dict[str, Dict[str, Any]]] = None) -> str:
-        """
-        Returns set of instruments for metric of given name, with optional local semantic dictionary which might be provided at runtime
+        """Returns set of instruments for metric of given name,
+        with optional local semantic dictionary which might be provided at runtime.
         """
         result = self._instruments_cache.get(metric_name, None)
 

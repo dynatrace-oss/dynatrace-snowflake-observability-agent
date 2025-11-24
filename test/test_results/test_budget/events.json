@@ -1,0 +1,22 @@
+[
+  {
+    "eventType": "CUSTOM_INFO",
+    "title": "Table event snowflake.budget.created_on.",
+    "snowflake.event.trigger": "snowflake.budget.created_on",
+    "snowflake.budget.created_on": 1723624213723000000,
+    "snowflake.credits.limit": 10,
+    "snowflake.budget.owner": "ACCOUNTADMIN",
+    "snowflake.budget.owner.role_type": "ROLE",
+    "snowflake.budget.resource": "[{\"snowflake.budget.resource.domain\": \"DATABASE\", \"snowflake.budget.resource.name\": \"DTAGENT_DB\"}, {\"snowflake.budget.resource.domain\": \"WAREHOUSE\", \"snowflake.budget.resource.name\": \"DTAGENT_WH\"}]",
+    "db.namespace": "DTAGENT_DB",
+    "snowflake.budget.name": "DTAGENT_BUDGET",
+    "snowflake.schema.name": "APP",
+    "db.system": "snowflake",
+    "service.name": "test.dsoa2025",
+    "deployment.environment": "TEST",
+    "host.name": "test.dsoa2025.snowflakecomputing.com",
+    "telemetry.exporter.name": "dynatrace.snowagent",
+    "dsoa.run.plugin": "test_budget",
+    "dsoa.run.context": "budgets"
+  }
+]

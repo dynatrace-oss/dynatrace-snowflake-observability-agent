@@ -30,6 +30,20 @@
 #              =               - which will remove :DEV tags from deploy.sh
 #
 
+# Function to check if a command exists
+command_exists() {
+  command -v "$1" >/dev/null 2>&1
+}
+
+# Check for required commands
+required_commands=("pylint" "python" "pandoc" "zip")
+for cmd in "${required_commands[@]}"; do
+  if ! command_exists "$cmd"; then
+    echo "Error: Required command '$cmd' is not installed. Please install it before running this script."
+    exit 1
+  fi
+done
+
 PARAM=$1
 
 # Resetting the package directory

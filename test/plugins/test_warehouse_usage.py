@@ -22,36 +22,32 @@
 #
 #
 class TestWhUsage:
+    import pytest
+
+    PICKLES = {
+        "APP.V_WAREHOUSE_EVENT_HISTORY": "test/test_data/wh_usage_events.pkl",
+        "APP.V_WAREHOUSE_LOAD_HISTORY": "test/test_data/wh_usage_loads.pkl",
+        "APP.V_WAREHOUSE_METERING_HISTORY": "test/test_data/wh_usage_metering.pkl",
+    }
+
+    @pytest.mark.xdist_group(name="test_telemetry")
     def test_wh_usage(self):
         from dtagent.plugins.warehouse_usage import WarehouseUsagePlugin
         from dtagent import plugins
         import test._utils as utils
         from test import TestDynatraceSnowAgent, _get_session
         from typing import Generator, Dict
+        from unittest.mock import patch
         import logging
-
-        T_WH_EVENTS = "APP.V_WAREHOUSE_EVENT_HISTORY"
-        T_WH_LOADS = "APP.V_WAREHOUSE_LOAD_HISTORY"
-        T_WH_METERING = "APP.V_WAREHOUSE_METERING_HISTORY"
-
-        pkl_dict = {
-            T_WH_EVENTS: "test/test_data/wh_usage_events.pkl",
-            T_WH_LOADS: "test/test_data/wh_usage_loads.pkl",
-            T_WH_METERING: "test/test_data/wh_usage_metering.pkl",
-        }
 
         # -----------------------------------------------------
 
-        if utils.should_pickle(list(pkl_dict.values())):
-            session = _get_session()
-            utils._pickle_data_history(session, T_WH_EVENTS, pkl_dict[T_WH_EVENTS])
-            utils._pickle_data_history(session, T_WH_LOADS, pkl_dict[T_WH_LOADS])
-            utils._pickle_data_history(session, T_WH_METERING, pkl_dict[T_WH_METERING])
+        utils._pickle_all(_get_session(), self.PICKLES)
 
         class TestWarehouseUsagePlugin(WarehouseUsagePlugin):
 
-            def _get_table_rows(self, table_name: str = None) -> Generator[Dict, None, None]:
-                return utils._get_unpickled_entries(pkl_dict[table_name], limit=2)
+            def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
+                return utils._safe_get_unpickled_entries(TestWhUsage.PICKLES, t_data, limit=2)
 
         def __local_get_plugin_class(source: str):
             return TestWarehouseUsagePlugin
@@ -60,8 +56,26 @@ class TestWhUsage:
 
         # ======================================================================
 
-        session = _get_session()
-        utils._logging_findings(session, TestDynatraceSnowAgent(session), "test_warehouse_usage", logging.INFO, show_detailed_logs=1)
+        disabled_combinations = [
+            [],
+            ["logs"],
+            ["metrics"],
+            ["logs", "metrics"],
+            ["logs", "metrics", "events"],
+        ]
+
+        for disabled_telemetry in disabled_combinations:
+            utils.execute_telemetry_test(
+                TestDynatraceSnowAgent,
+                test_name="test_warehouse_usage",
+                disabled_telemetry=disabled_telemetry,
+                affecting_types_for_entries=["logs", "metrics"],
+                base_count={
+                    "warehouse_usage": {"entries": 0, "log_lines": 0, "metrics": 0, "events": 0},
+                    "warehouse_usage_load": {"entries": 0, "log_lines": 0, "metrics": 0, "events": 0},
+                    "warehouse_usage_metering": {"entries": 0, "log_lines": 0, "metrics": 0, "events": 0},
+                },
+            )
 
 
 if __name__ == "__main__":

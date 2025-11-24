@@ -1,0 +1,86 @@
+[
+  {
+    "content": "dynamic_tables",
+    "snowflake.table.dynamic.lag.max": 68,
+    "snowflake.table.dynamic.lag.mean": 25,
+    "snowflake.table.dynamic.lag.target.time_above": 13,
+    "snowflake.table.dynamic.lag.target.value": 60,
+    "snowflake.table.dynamic.lag.target.within_ratio": 1,
+    "snowflake.table.dynamic.lag.target.type": "USER_DEFINED",
+    "snowflake.table.dynamic.latest.code": "SUCCESS",
+    "snowflake.table.dynamic.latest.data_timestamp": "2025-03-12 08:58:41.695 Z",
+    "snowflake.table.dynamic.latest.state": "SUCCEEDED",
+    "snowflake.table.dynamic.scheduling.state": "ACTIVE",
+    "db.collection.name": "EMPLOYEE_DET",
+    "db.namespace": "DYNAMIC_TABLE_DB",
+    "snowflake.schema.name": "DYNAMIC_TABLE_SCH",
+    "snowflake.table.full_name": "DYNAMIC_TABLE_DB.DYNAMIC_TABLE_SCH.EMPLOYEE_DET",
+    "dsoa.run.plugin": "test_dynamic_tables",
+    "dsoa.run.context": "dynamic_tables"
+  },
+  {
+    "content": "dynamic_table_refresh_history",
+    "snowflake.query.id": "01baf403-0413-a61d-0040-e0030579d1e2",
+    "snowflake.table.dynamic.graph.valid_from": "2024-11-20 19:53:47.448 Z",
+    "snowflake.table.dynamic.refresh.action": "NO_DATA",
+    "snowflake.table.dynamic.refresh.code": "SUCCESS",
+    "snowflake.table.dynamic.refresh.completion_target": "2025-03-12 06:59:41.695 Z",
+    "snowflake.table.dynamic.refresh.data_timestamp": "2025-03-12 06:59:29.695 Z",
+    "snowflake.table.dynamic.refresh.end": "2025-03-12 06:59:31.035 Z",
+    "snowflake.table.dynamic.refresh.start": "2025-03-12 06:59:30.668 Z",
+    "snowflake.table.dynamic.refresh.state": "SUCCEEDED",
+    "snowflake.table.dynamic.refresh.trigger": "SCHEDULED",
+    "db.collection.name": "EMPLOYEE_DET",
+    "db.namespace": "DYNAMIC_TABLE_DB",
+    "snowflake.schema.name": "DYNAMIC_TABLE_SCH",
+    "snowflake.table.full_name": "DYNAMIC_TABLE_DB.DYNAMIC_TABLE_SCH.EMPLOYEE_DET",
+    "dsoa.run.plugin": "test_dynamic_tables",
+    "dsoa.run.context": "dynamic_table_refresh_history"
+  },
+  {
+    "content": "dynamic_table_refresh_history",
+    "snowflake.query.id": "01baf404-0413-a501-0040-e003057a220e",
+    "snowflake.table.dynamic.graph.valid_from": "2024-11-20 19:53:47.448 Z",
+    "snowflake.table.dynamic.refresh.action": "NO_DATA",
+    "snowflake.table.dynamic.refresh.code": "SUCCESS",
+    "snowflake.table.dynamic.refresh.completion_target": "2025-03-12 07:00:29.695 Z",
+    "snowflake.table.dynamic.refresh.data_timestamp": "2025-03-12 07:00:17.695 Z",
+    "snowflake.table.dynamic.refresh.end": "2025-03-12 07:00:19.468 Z",
+    "snowflake.table.dynamic.refresh.start": "2025-03-12 07:00:19.058 Z",
+    "snowflake.table.dynamic.refresh.state": "SUCCEEDED",
+    "snowflake.table.dynamic.refresh.trigger": "SCHEDULED",
+    "db.collection.name": "EMPLOYEE_DET",
+    "db.namespace": "DYNAMIC_TABLE_DB",
+    "snowflake.schema.name": "DYNAMIC_TABLE_SCH",
+    "snowflake.table.full_name": "DYNAMIC_TABLE_DB.DYNAMIC_TABLE_SCH.EMPLOYEE_DET",
+    "dsoa.run.plugin": "test_dynamic_tables",
+    "dsoa.run.context": "dynamic_table_refresh_history"
+  },
+  {
+    "content": "dynamic_table_graph_history",
+    "snowflake.table.dynamic.graph.valid_from": 1732132427448000000,
+    "snowflake.table.dynamic.lag.target.value": 60,
+    "db.query.text": "SELECT A.EMP_ID,A.EMP_NAME,A.EMP_ADDRESS, B.SKILL_ID,B.SKILL_NAME,B.SKILL_LEVEL\n    FROM EMPLOYEE A, EMPLOYEE_SKILL B\n    WHERE A.EMP_ID=B.EMP_ID\n    ORDER BY B.SKILL_ID ;",
+    "snowflake.table.dynamic.graph.alter_trigger": [
+      "CREATE_DYNAMIC_TABLE"
+    ],
+    "snowflake.table.dynamic.graph.inputs": [
+      {
+        "kind": "TABLE",
+        "name": "DYNAMIC_TABLE_DB.DYNAMIC_TABLE_SCH.EMPLOYEE"
+      },
+      {
+        "kind": "TABLE",
+        "name": "DYNAMIC_TABLE_DB.DYNAMIC_TABLE_SCH.EMPLOYEE_SKILL"
+      }
+    ],
+    "snowflake.table.dynamic.lag.target.type": "USER_DEFINED",
+    "snowflake.table.dynamic.scheduling.state": "ACTIVE",
+    "db.collection.name": "EMPLOYEE_DET",
+    "db.namespace": "DYNAMIC_TABLE_DB",
+    "snowflake.schema.name": "DYNAMIC_TABLE_SCH",
+    "snowflake.table.full_name": "DYNAMIC_TABLE_DB.DYNAMIC_TABLE_SCH.EMPLOYEE_DET",
+    "dsoa.run.plugin": "test_dynamic_tables",
+    "dsoa.run.context": "dynamic_table_graph_history"
+  }
+]

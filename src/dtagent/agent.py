@@ -27,7 +27,7 @@
 #
 from dtagent import AbstractDynatraceSnowAgentConnector
 from dtagent.version import VERSION
-from dtagent.util import get_now_timestamp_formatted
+from dtagent.util import get_now_timestamp_formatted, is_regular_mode
 
 ##endregion COMPILE_REMOVE
 
@@ -78,8 +78,10 @@ from opentelemetry import version as otel_version
 ##INSERT src/dtagent/otel/spans.py
 ##INSERT src/dtagent/otel/metrics.py
 ##INSERT src/dtagent/otel/logs.py
-##INSERT src/dtagent/otel/events.py
-##INSERT src/dtagent/otel/bizevents.py
+##INSERT src/dtagent/otel/events/__init__.py
+##INSERT src/dtagent/otel/events/generic.py
+##INSERT src/dtagent/otel/events/davis.py
+##INSERT src/dtagent/otel/events/bizevents.py
 ##INSERT src/dtagent/plugins/*.py
 ##INSERT src/dtagent/__init__.py
 
@@ -93,22 +95,63 @@ from opentelemetry import version as otel_version
 class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
     """Main DynatraceSnowAgent class managing plugins executions"""
 
-    def process(self, sources: List, run_proc: bool = True) -> Dict:
-        """Starts plugins specified in sources executions"""
+    def process(self, sources: List, run_proc: bool = True) -> Dict[str, Union[Dict[str, int], str]]:
+        """Starts plugins specified in sources executions
+
+        Args:
+            sources (List): List of measurement sources (plugins) to execute
+            run_proc (bool): Whether to actually run the preparation procedures and log results
+
+        Returns:
+            Dict[str,Union[Dict[str,int],str]]: A dictionary with plugin names as keys and their
+            processing results (telemetry counts dictionary) or error message (if requested source is not implemented) as values.
+
+            Example:
+            {
+                "plugin_name": {
+                    "dsoa.run.results": {
+                        "context_name": {
+                            "entries": 10,
+                            "log_lines": 100,
+                            "metrics": 5,
+                            "events": 2
+                        }
+                    },
+                    "dsoa.run.id": "uuid_string"
+                },
+                "some_other_plugin": "not_implemented"
+            }
+
+        """
         # --- processing measurement sources
         import inspect
-        from dtagent import LOG
+        from dtagent import LOG  # COMPILE_REMOVE
+        from dtagent.otel import NO_OP_TELEMETRY  # COMPILE_REMOVE
+        from dtagent.context import RUN_PLUGIN_KEY, RUN_ID_KEY, RUN_VERSION_KEY  # COMPILE_REMOVE
 
         results: dict = {}
+
         for source in sources:
             from dtagent.plugins import _get_plugin_class  # COMPILE_REMOVE
 
             c_source = _get_plugin_class(source)
-            exec_id = get_now_timestamp_formatted()
+            run_id = str(uuid.uuid4().hex)
 
-            self.report_execution_status(status="STARTED", task_name=source, exec_id=exec_id)
+            if is_regular_mode(self._session):
+                self._session.query_tag = json.dumps(
+                    {RUN_VERSION_KEY: str(VERSION), RUN_PLUGIN_KEY: c_source.PLUGIN_NAME, RUN_ID_KEY: run_id}
+                )
 
-            self._session.query_tag = f"dsoa.version:{ str(VERSION) }.plugin:{ c_source.__name__ }.{ exec_id }"
+            self.report_execution_status(status="STARTED", task_name=source, exec_id=run_id)
+
+            plugin_telemetry_allowed = (
+                set(
+                    self._configuration.get(
+                        plugin_name=source, key="TELEMETRY", default_value=["logs", "spans", "metrics", "events", "biz_events"]
+                    )
+                )
+                & self.telemetry_allowed
+            )
 
             if inspect.isclass(c_source):
                 #
@@ -116,36 +159,30 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
                 #
                 try:
                     results[source] = c_source(
+                        plugin_name=source,
                         session=self._session,
-                        logs=self._logs,
-                        spans=self._spans,
-                        metrics=self._metrics,
                         configuration=self._configuration,
-                        events=self._events,
-                        bizevents=self._bizevents,
-                    ).process(run_proc)
+                        logs=self._logs if "logs" in plugin_telemetry_allowed else NO_OP_TELEMETRY,
+                        spans=self._spans if "spans" in plugin_telemetry_allowed else NO_OP_TELEMETRY,
+                        metrics=self._metrics if "metrics" in plugin_telemetry_allowed else NO_OP_TELEMETRY,
+                        events=self._events if "events" in plugin_telemetry_allowed else NO_OP_TELEMETRY,
+                        bizevents=self._biz_events if "biz_events" in plugin_telemetry_allowed else NO_OP_TELEMETRY,
+                    ).process(run_id, run_proc)
                     #
-                    self.report_execution_status(status="FINISHED", task_name=source, exec_id=exec_id)
+
+                    self.report_execution_status(status="FINISHED", task_name=source, exec_id=run_id, details_dict=results[source])
                 except RuntimeError as e:
-                    self.handle_interrupted_run(source, exec_id, str(e))
+                    self.handle_interrupted_run(source, run_id, str(e))
             else:
-                self.report_execution_status(status="FAILED", task_name=source, exec_id=exec_id)
-                results[source] = c_source
+                self.report_execution_status(status="FAILED", task_name=source, exec_id=run_id)
+                results[source] = {"not_implemented": c_source}
                 LOG.warning(f"""Requested measuring source {source} that is not implemented: {results[source]}""")
 
         return results
 
-    def teardown(self) -> None:
-        """ "wrapping up, shutting logger and tracer"""
-        self._logs.shutdown_logger()
-        self._spans.shutdown_tracer()
-        self._session.query_tag = None
-
 
 def main(session: snowpark.Session, sources: List) -> dict:
-    """
-    MAIN entry to this stored procedure - this is where the fun begins
-    """
+    """MAIN entry to this stored procedure - this is where the fun begins"""
     agent = DynatraceSnowAgent(session)
     results = agent.process(sources)
     agent.teardown()

@@ -1,0 +1,38 @@
+[
+  {
+    "content": "TrustCenter event: [MEDIUM] Native Apps Event Sharing Check Ensure Event Table is configured for Native Application event sharing",
+    "status_code": "OK",
+    "error.code": "SECURITY_ESSENTIALS_NA_CONSUMER_ES_CHECK",
+    "event.id": 252009,
+    "event.kind": "SECURITY_EVENT",
+    "snowflake.trust_center.scanner.description": "Ensure Event Table is configured for Native Application event sharing",
+    "snowflake.trust_center.scanner.name": "Native Apps Event Sharing Check",
+    "snowflake.trust_center.scanner.package.name": "Security Essentials",
+    "status.message": "[MEDIUM] Native Apps Event Sharing Check Ensure Event Table is configured for Native Application event sharing",
+    "event.category": "Vulnerability management",
+    "snowflake.trust_center.scanner.id": "SECURITY_ESSENTIALS_NA_CONSUMER_ES_CHECK",
+    "snowflake.trust_center.scanner.package.id": "SECURITY_ESSENTIALS",
+    "snowflake.trust_center.scanner.type": "Vulnerability",
+    "vulnerability.risk.level": "MEDIUM",
+    "dsoa.run.context": "trust_center",
+    "dsoa.run.plugin": "test_trust_center"
+  },
+  {
+    "content": "TrustCenter event: [CRITICAL] 3.1 Ensure that an account-level network policy has been configured to only allow access from trusted IP addresses",
+    "status_code": "OK",
+    "error.code": "SECURITY_ESSENTIALS_CIS3_1",
+    "event.id": 252010,
+    "event.kind": "SECURITY_EVENT",
+    "snowflake.trust_center.scanner.description": "Ensure that an account-level network policy has been configured to only allow access from trusted IP addresses",
+    "snowflake.trust_center.scanner.name": 3.1,
+    "snowflake.trust_center.scanner.package.name": "Security Essentials",
+    "status.message": "[CRITICAL] 3.1 Ensure that an account-level network policy has been configured to only allow access from trusted IP addresses",
+    "event.category": "Vulnerability management",
+    "snowflake.trust_center.scanner.id": "SECURITY_ESSENTIALS_CIS3_1",
+    "snowflake.trust_center.scanner.package.id": "SECURITY_ESSENTIALS",
+    "snowflake.trust_center.scanner.type": "Vulnerability",
+    "vulnerability.risk.level": "CRITICAL",
+    "dsoa.run.context": "trust_center",
+    "dsoa.run.plugin": "test_trust_center"
+  }
+]

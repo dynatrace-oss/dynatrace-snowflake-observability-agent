@@ -1,17 +1,17 @@
 --
 --
 -- Copyright (c) 2025 Dynatrace Open Source
--- 
+--
 -- Permission is hereby granted, free of charge, to any person obtaining a copy
 -- of this software and associated documentation files (the "Software"), to deal
 -- in the Software without restriction, including without limitation the rights
 -- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 -- copies of the Software, and to permit persons to whom the Software is
 -- furnished to do so, subject to the following conditions:
--- 
+--
 -- The above copyright notice and this permission notice shall be included in all
 -- copies or substantial portions of the Software.
--- 
+--
 -- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 -- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 -- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -35,29 +35,29 @@ execute as caller
 as
 $$
 DECLARE
-    q_show_databases        TEXT DEFAULT    'show databases';
-    c_database_names        CURSOR FOR      with cte_includes as (
-                                                select distinct split_part(ci.VALUE, '.', 0) as db_pattern
-                                                from CONFIG.CONFIGURATIONS c, table(flatten(c.VALUE)) ci
-                                                where c.PATH = 'plugins.dynamic_tables.include'
-                                            )
-                                            , cte_excludes as (
-                                                select distinct split_part(ce.VALUE, '.', 0) as db_pattern
-                                                from CONFIG.CONFIGURATIONS c, table(flatten(c.VALUE)) ce
-                                                where c.PATH = 'plugins.dynamic_tables.exclude'
-                                            )
-                                            select "name" as name 
-                                            from TABLE(result_scan(last_query_id())) 
-                                            where "kind" = 'STANDARD'
-                                                and name LIKE ANY (select db_pattern from cte_includes)
-                                                and not name LIKE ANY (select db_pattern from cte_excludes)
-                                            ;
+    rs_database_names       RESULTSET;
 
     q_grant_monitor_all     TEXT DEFAULT    '';
     q_grant_monitor_future  TEXT DEFAULT    '';
 BEGIN
-    -- list all warehouses
-    EXECUTE IMMEDIATE :q_show_databases;
+    rs_database_names := (SHOW DATABASES ->>
+                            with cte_includes as (
+                                select distinct split_part(ci.VALUE, '.', 0) as db_pattern
+                                from CONFIG.CONFIGURATIONS c, table(flatten(c.VALUE)) ci
+                                where c.PATH = 'plugins.dynamic_tables.include'
+                            )
+                            , cte_excludes as (
+                                select distinct split_part(ce.VALUE, '.', 0) as db_pattern
+                                from CONFIG.CONFIGURATIONS c, table(flatten(c.VALUE)) ce
+                                where c.PATH = 'plugins.dynamic_tables.exclude'
+                            )
+                            select "name" as name
+                            from $1
+                            where "kind" = 'STANDARD'
+                                and name LIKE ANY (select db_pattern from cte_includes)
+                                and not name LIKE ANY (select db_pattern from cte_excludes))
+                            ;
+    LET c_database_names CURSOR FOR rs_database_names;
 
     -- iterate over warehouses
     FOR r_db IN c_database_names DO
@@ -73,7 +73,7 @@ BEGIN
 EXCEPTION
   when statement_error then
     SYSTEM$LOG_WARN(SQLERRM);
-    
+
     return SQLERRM;
 END;
 $$

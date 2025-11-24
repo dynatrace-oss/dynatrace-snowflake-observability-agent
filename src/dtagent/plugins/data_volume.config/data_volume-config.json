@@ -10,7 +10,11 @@
                 "%.%.TMP_%"
             ],
             "SCHEDULE": "USING CRON 30 0,4,8,12,16,20 * * * UTC",
-            "IS_DISABLED": false
+            "IS_DISABLED": false,
+            "TELEMETRY": [
+                "metrics",
+                "biz_events"
+            ]
         }
     }
 }

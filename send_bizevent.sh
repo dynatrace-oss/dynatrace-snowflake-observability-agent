@@ -44,21 +44,34 @@ elif [ "$(./get_config_key.sh plugins.self_monitoring.send_bizevents_on_deploy)"
         PARAM="full_deployment"
     fi
 
+    VERSION="$(grep 'VERSION =' build/700_dtagent.sql | awk -F'"' '{print $2}')"
+    BUILD="$(grep 'BUILD =' build/700_dtagent.sql | awk -F' ' '{print $3}')"
+
     if ! curl -f -X POST "https://${DT_ADDRESS}/api/v2/bizevents/ingest" \
         -H "Authorization: Api-Token ${DTAGENT_TOKEN}" \
         -H 'Content-Type: application/json' \
-        -d "{
-            \"event.type\": \"CUSTOM_DEPLOYMENT\",
-            \"event.title\": \"${TITLE}\",
-            \"db.system\": \"snowflake\",
-            \"deployment.environment\": \"$(./get_config_key.sh core.deployment_environment)\",
-            \"host.name\": \"$(./get_config_key.sh core.snowflake_host_name)\",
-            \"telemetry.exporter.name\": \"dynatrace.snowagent\",
-            \"telemetry.exporter.version\": \"$(grep 'VERSION =' build/700_dtagent.sql | awk -F'"' '{print $2}')\",
-            \"dsoa.deployment.parameter\": \"${PARAM}\",
-            \"dsoa.deployment.status\": \"${STATUS}\",
-            \"dsoa.deployment.id\": \"${DEPLOYMENT_ID}\"
-        }" >/dev/null 2>&1; then
+        -d @<(cat <<EOF
+        {
+            "event.type": "CUSTOM_DEPLOYMENT",
+            "event.title": "${TITLE}",
+            "db.system": "snowflake",
+            "deployment.environment": "$(./get_config_key.sh core.deployment_environment)",
+            "host.name": "$(./get_config_key.sh core.snowflake_host_name)",
+            "app.version": "${VERSION}.${BUILD}",
+            "app.short_version": "${VERSION}",
+            "app.bundle": "self_monitoring",
+            "app.id": "dynatrace.snowagent",
+            "dsoa.run.context": "self_monitoring",
+            "dsoa.run.plugin": "deployment",
+            "dsoa.run.id": "${DEPLOYMENT_ID}",
+            "telemetry.exporter.name": "dynatrace.snowagent",
+            "telemetry.exporter.version": "${VERSION}",
+            "dsoa.deployment.parameter": "${PARAM}",
+            "dsoa.deployment.status": "${STATUS}",
+            "dsoa.deployment.id": "${DEPLOYMENT_ID}"
+        }
+EOF
+        ) >/dev/null 2>&1; then
         exit 1
     fi
 fi

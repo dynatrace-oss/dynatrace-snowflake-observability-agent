@@ -42,6 +42,8 @@ class Logs:
 
     from dtagent.config import Configuration  # COMPILE_REMOVE
 
+    ENDPOINT_PATH = "/api/v2/otlp/v1/logs"
+
     def __init__(self, resource: Resource, configuration: Configuration):
         self._otel_logger: Optional[logging.Logger] = None
         self._otel_logger_provider: Optional[LoggerProvider] = None
@@ -50,9 +52,7 @@ class Logs:
         self._setup_logger(resource)
 
     def _setup_logger(self, resource: Resource) -> None:
-        """
-        All necessary actions to initialize logging via OpenTelemetry
-        """
+        """All necessary actions to initialize logging via OpenTelemetry"""
         from opentelemetry.exporter.otlp.proto.http._log_exporter import OTLPLogExporter
         from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
         from opentelemetry.sdk._logs import LoggingHandler
@@ -68,10 +68,12 @@ class Logs:
         self._otel_logger_provider.add_log_record_processor(
             BatchLogRecordProcessor(
                 CustomUserAgentOTLPLogExporter(
-                    endpoint=f'{self._configuration.get("otlp.http")}/v1/logs',
+                    endpoint=f'{self._configuration.get("logs.http")}',
                     headers={"Authorization": f'Api-Token {self._configuration.get("dt.token")}'},
                     session=CustomLoggingSession(),
-                )
+                ),
+                export_timeout_millis=self._configuration.get(otel_module="logs", key="export_timeout_millis", default_value=10000),
+                max_export_batch_size=self._configuration.get(otel_module="logs", key="max_export_batch_size", default_value=100),
             )
         )
         handler = LoggingHandler(level=logging.NOTSET, logger_provider=self._otel_logger_provider)
@@ -87,17 +89,14 @@ class Logs:
         log_level: int = logging.INFO,
         context: Optional[Dict] = None,
     ):
-        """
-        Util function to ensure we send logs correctly
-        """
+        """Util function to ensure we send logs correctly"""
         from dtagent import LOG, LL_TRACE  # COMPILE_REMOVE
         from dtagent.util import _to_json, _cleanup_data, _cleanup_dict  # COMPILE_REMOVE
 
         def __adjust_log_attribute(key: str, value: Any) -> Any:
-            """
-            Ensures following things:
-                - numeric timestamps are converted to strings
-                - non-primitive type values are sent as JSON strings (only for otel < 1.21.0)
+            """Ensures following things:
+            - numeric timestamps are converted to strings
+            - non-primitive type values are sent as JSON strings (only for otel < 1.21.0)
             """
             if key == "timestamp" and str(value).isnumeric():
                 value = str(int(value))
@@ -143,8 +142,14 @@ class Logs:
 
         OtelManager.verify_communication()
 
+    def flush_logs(self) -> None:
+        """Flushes remaining logs."""
+
+        if self._otel_logger_provider:
+            self._otel_logger_provider.force_flush()
+
     def shutdown_logger(self) -> None:
-        """flushes remaining logs and shuts down the logger."""
+        """Flushes remaining logs and shuts down the logger."""
 
         if self._otel_logger_provider:
             self._otel_logger_provider.force_flush()

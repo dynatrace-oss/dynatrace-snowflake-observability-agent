@@ -1,0 +1,56 @@
+[
+  {
+    "specversion": "1.0",
+    "source": "test.dsoa2025.snowflakecomputing.com",
+    "type": "dsoa.task",
+    "data": {
+      "event.provider": "test.dsoa2025.snowflakecomputing.com",
+      "dsoa.task.name": "telemetry_sender",
+      "dsoa.task.exec.status": "STARTED",
+      "app.bundle": "self_monitoring",
+      "app.id": "dynatrace.snowagent",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "dsoa.run.context": "self_monitoring"
+    }
+  },
+  {
+    "specversion": "1.0",
+    "source": "test.dsoa2025.snowflakecomputing.com",
+    "type": "CUSTOM_INFO",
+    "data": {
+      "event.provider": "test.dsoa2025.snowflakecomputing.com",
+      "dsoa.task.name": "test_events",
+      "dsoa.task.exec.status": "FINISHED",
+      "app.bundle": "telemetry_sender",
+      "app.id": "dynatrace.snowagent",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "dsoa.run.context": "telemetry_sender"
+    }
+  },
+  {
+    "specversion": "1.0",
+    "source": "test.dsoa2025.snowflakecomputing.com",
+    "type": "dsoa.task",
+    "data": {
+      "event.provider": "test.dsoa2025.snowflakecomputing.com",
+      "dsoa.task.name": "telemetry_sender",
+      "dsoa.task.exec.status": "FINISHED",
+      "app.bundle": "self_monitoring",
+      "app.id": "dynatrace.snowagent",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "dsoa.run.context": "self_monitoring"
+    }
+  }
+]

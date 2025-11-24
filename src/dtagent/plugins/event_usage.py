@@ -1,6 +1,4 @@
-"""
-Plugin file for processing event usage plugin data.
-"""
+"""Plugin file for processing event usage plugin data."""
 
 ##region ------------------------------ IMPORTS  -----------------------------------------
 #
@@ -26,11 +24,10 @@ Plugin file for processing event usage plugin data.
 # SOFTWARE.
 #
 #
-
-from typing import Tuple
+from typing import Tuple, Dict
 from dtagent.util import _unpack_json_dict
 from dtagent.plugins import Plugin
-from dtagent.context import get_context_by_name
+from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPILE_REMOVE
 
 ##endregion COMPILE_REMOVE
 
@@ -38,55 +35,68 @@ from dtagent.context import get_context_by_name
 
 
 class EventUsagePlugin(Plugin):
-    """
-    Event usage plugin class.
-    """
+    """Event usage plugin class."""
 
-    def process(self, run_proc: bool = True) -> Tuple[int, int]:
-        """
-        Processes data for event usage plugin.
-        Returns
-            processed_entries_cnt [int]: number of entries reported from APP.V_EVENT_USAGE_HISTORY,
-            processed_event_metrics_cnt [int]: number of metrics reported from APP.V_EVENT_USAGE_HISTORY.
-        """
+    PLUGIN_NAME = "event_usage"
 
-        t_event_usage = "APP.V_EVENT_USAGE_HISTORY"
+    def _report_event_usage_log(self, row_dict: Dict, __context: Dict, log_level: int) -> bool:
+        """Sends single log line for event usage plugin"""
+        unpacked_dict = _unpack_json_dict(row_dict, ["DIMENSIONS", "METRICS"])
+        start_ts = row_dict.get("START_TIME")
+        processed_timestamp = row_dict.get("END_TIME")
+        self._logs.send_log(
+            "Event Usage",
+            extra={
+                "timestamp": start_ts,
+                "event.start": start_ts,
+                "event.end": processed_timestamp,
+                **unpacked_dict,
+            },
+            context=__context,
+            log_level=log_level,
+        )
+        return True
 
-        _context_name = "event_usage"
-        __context = get_context_by_name(_context_name)
+    def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
+        """Processes data for event usage plugin.
 
-        processed_entries_cnt = 0
-        processed_event_metrics_cnt = 0
-        processed_timestamp = self._configuration.get_last_measurement_update(self._session, _context_name)
+        Args:
+            run_id (str): unique run identifier
+            run_proc (bool): indicator whether processing should be logged as completed
 
-        for row_dict in self._get_table_rows(t_event_usage):
-            unpacked_dict = _unpack_json_dict(row_dict, ["DIMENSIONS", "METRICS"])
-            start_ts = row_dict.get("START_TIME")
-            processed_timestamp = row_dict.get("END_TIME")
-            self._logs.send_log(
-                "Event Usage",
-                extra={
-                    "timestamp": start_ts,
-                    "event.start": start_ts,
-                    "event.end": processed_timestamp,
-                    **unpacked_dict,
+        Returns:
+            Dict[str,int]: A dictionary with counts of processed telemetry data.
+
+            Example:
+            {
+            "dsoa.run.results": {
+                "event_usage": {
+                    "entries": entries_cnt,
+                    "log_lines": logs_cnt,
+                    "metrics": metrics_cnt,
+                    "events": events_cnt
                 },
-                context=__context,
-            )
+            },
+            "dsoa.run.id": "uuid_string"
+            }
+        """
+        processed_entries_cnt, processed_logs_cnt, processed_event_metrics_cnt, processed_events_cnt = self._log_entries(
+            f_entry_generator=lambda: self._get_table_rows("APP.V_EVENT_USAGE_HISTORY"),
+            context_name="event_usage",
+            run_uuid=run_id,
+            report_timestamp_events=False,
+            log_completion=run_proc,
+            f_report_log=self._report_event_usage_log,
+        )
 
-            processed_entries_cnt += 1
-            if self._metrics.discover_report_metrics(row_dict):
-                processed_event_metrics_cnt += 1
-
-        if run_proc:
-            self._report_execution(
-                "event_usage",
-                str(processed_timestamp),
-                None,
-                {
-                    "processed_event_usage_count": processed_entries_cnt,
-                    "metrics_sent_count": processed_event_metrics_cnt,
+        return self._report_results(
+            {
+                "event_usage": {
+                    "entries": processed_entries_cnt,
+                    "log_lines": processed_logs_cnt,
+                    "metrics": processed_event_metrics_cnt,
+                    "events": processed_events_cnt,
                 },
-            )
-
-        return processed_entries_cnt, processed_event_metrics_cnt
+            },
+            run_id,
+        )

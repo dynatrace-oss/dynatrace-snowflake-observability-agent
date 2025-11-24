@@ -15,116 +15,212 @@
 #  *
 #  * Catalog of instrumentation known to Dynatrace Snowflake Observability Agent - users plugin
 
-attributes:
-    snowflake.user.bypass_mfa_until:
-        __example: "2024-11-06T00:00:00Z"
-        __description: The time until which the user can bypass MFA.
-    snowflake.user.comment:
-        __example: New user account
-        __description: Any comments associated with the user.
-    snowflake.user.default.namespace:
-        __example: PUBLIC
-        __description: The default namespace for the user.
-    snowflake.user.default.role:
-        __example: SYSADMIN
-        __description: The default role for the user.
-    snowflake.user.default.secondary_role:
-        __example: SECURITYADMIN
-        __description: The default secondary role for the user.
-    snowflake.user.default.warehouse:
-        __example: COMPUTE_WH
-        __description: The default warehouse for the user.
-    snowflake.user.display_name:
-        __example: John Doe
-        __description: The display name of the user.
-    snowflake.user.email:
-        __example: jdoe@example.com
-        __description: The email address of the user.
-    snowflake.user.expires_at:
-        __example: "1620213179885000000"
-        __description: The expiration date of the user account.
-    snowflake.user.ext_authn.duo:
-        __example: "true"
-        __description: Indicates if Duo authentication is enabled for the user.
-    snowflake.user.ext_authn.uid:
-        __example: ext123
-        __description: The external authentication UID for the user.
-    snowflake.user.has_password:
-        __example: "true"
-        __description: Indicates if the user has a password set.
-    snowflake.user.id:
-        __example: "12345"
-        __description: The unique identifier for the user.
-    snowflake.user.is_disabled:
-        __example: "false"
-        __description: Indicates if the user account is disabled.
-    snowflake.user.is_locked:
-        __example: "false"
-        __description: Indicates if the user account is locked by Snowflake.
-    snowflake.user.locked_until_time:
-        __example: "1615479617866000000"
-        __description: The time until which the user account is locked.
-    snowflake.user.must_change_password:
-        __example: "true"
-        __description: Indicates if the user must change their password.
-    snowflake.user.name:
-        __example: jdoe
-        __description: The login name of the user.
-    snowflake.user.name.first:
-        __example: John
-        __description: The first name of the user.
-    snowflake.user.name.last:
-        __example: Doe
-        __description: The last name of the user.
-    snowflake.user.owner:
-        __example: ACCOUNTADMIN
-        __description: The role that owns the user account.
-    snowflake.user.type:
-        __example: LEGACY_SERVICE
-        __description: Specifies the type of user
-    snowflake.user.created_on:
-        __example: "1651830381846000000"
-        __description: The creation time of the user account.
-    snowflake.user.deleted_on:
-        __example: "1615219846384000000"
-        __description: The deletion time of the user account, if applicable.
-    snowflake.user.last_success_login:
-        __example: "1732181350954000000"
-        __description: The last successful login time of the user.
-    snowflake.user.password_last_set_time:
-        __example: "1615219848053000000"
-        __description: The last time the user's password was set.
-    snowflake.user.privilege:
-        __example: "CREATE SERVICE:SCHEMA"
-        __description: Name of the privilege and type of object this privilege granted on to the user or role. Composed as `privilege:granted_on_object`.
-    snowflake.user.privilege.grants_on:
-        __example: ["TRUST_CENTER_ADMIN", "COMPUTE_WH"]
-        __description: List of all objects of given type on which given privilege was given; both object type and privilege are reported as `snowflake.user.privilege`
-    snowflake.user.privilege.granted_by:
-        __example: ["ACCOUNTADMIN"]
-        __description: Array of all roles which granted grants to a user for a privilege.
-    snowflake.user.roles.last_altered:
-        __example: "1718260900411000000"
-        __description: Nanosecond timestamp of last alteration of roles granted to user.
-    snowflake.user.roles.all:
-        __example: "SNOWFLAKE_FINANCE,MONITORING"
-        __description: Comma separated list of all roles granted to a user.
-    snowflake.user.roles.granted_by:
-        __example: ["DEMIGOD", "SECURITYADMIN", "ACCOUNTADMIN"]
-        __description: Array of admin roles that were used to grant current list of user roles.
-    snowflake.user.roles.direct:
-        __example: ["DEVOPS_ROLE", "SYSADMIN", "ACCOUNTADMIN"]
-        __description: List of all direct roles granted to user.
-    snowflake.user.privilege.last_altered:
-        __example: "1732181350954000000"
-        __description: Nanosecond timestamp of the last alteration to user's privileges.
-    snowflake.user.roles.direct.removed:
-        __example: "ACCOUNTADMIN"
-        __description: Name of the role that was revoked from user.
-    snowflake.user.roles.direct.removed_on:
-        __example: "1718260900411000000"
-        __description: Nanosecond timestamp of the last deletion of a direct role to a user.
 dimensions:
-    db.user:
-        __example: admin
-        __description: Snowflake user who issued the query.
+  db.user:
+    __example: admin
+    __context_names:
+      - users
+    __description: Snowflake user who issued the query.
+attributes:
+  snowflake.user.bypass_mfa_until:
+    __example: "2024-11-06T00:00:00Z"
+    __context_names:
+      - users
+    __description: The time until which the user can bypass MFA.
+  snowflake.user.comment:
+    __example: New user account
+    __context_names:
+      - users
+    __description: Any comments associated with the user.
+  snowflake.user.default.namespace:
+    __example: PUBLIC
+    __context_names:
+      - users
+    __description: The default namespace for the user.
+  snowflake.user.default.role:
+    __example: SYSADMIN
+    __context_names:
+      - users
+    __description: The default role for the user.
+  snowflake.user.default.secondary_role:
+    __example: SECURITYADMIN
+    __context_names:
+      - users
+    __description: The default secondary role for the user.
+  snowflake.user.default.warehouse:
+    __example: COMPUTE_WH
+    __context_names:
+      - users
+    __description: The default warehouse for the user.
+  snowflake.user.display_name:
+    __example: John Doe
+    __context_names:
+      - users
+    __description: The display name of the user.
+  snowflake.user.email:
+    __example: jdoe@example.com
+    __context_names:
+      - users
+    __description: The email address of the user.
+  snowflake.user.expires_at:
+    __example: "1620213179885000000"
+    __context_names:
+      - users
+    __description: The expiration date of the user account.
+  snowflake.user.ext_authn.duo:
+    __example: "true"
+    __context_names:
+      - users
+    __description: Indicates if Duo authentication is enabled for the user.
+  snowflake.user.ext_authn.uid:
+    __example: ext123
+    __context_names:
+      - users
+    __description: The external authentication UID for the user.
+  snowflake.user.has_password:
+    __example: "true"
+    __context_names:
+      - users
+    __description: Indicates if the user has a password set.
+  snowflake.user.id:
+    __example: "12345"
+    __context_names:
+      - users
+    __description: The unique identifier for the user.
+  snowflake.user.is_disabled:
+    __example: "false"
+    __context_names:
+      - users
+    __description: Indicates if the user account is disabled.
+  snowflake.user.is_locked:
+    __example: "false"
+    __context_names:
+      - users
+    __description: Indicates if the user account is locked by Snowflake.
+  snowflake.user.is_from_organization:
+    __example: "true"
+    __context_names:
+      - users
+    __description: Indicates if the user was imported from a global organization.
+  snowflake.user.locked_until_time:
+    __example: "1615479617866000000"
+    __context_names:
+      - users
+    __description: The time until which the user account is locked.
+  snowflake.user.must_change_password:
+    __example: "true"
+    __context_names:
+      - users
+    __description: Indicates if the user must change their password.
+  snowflake.user.name:
+    __example: jdoe
+    __context_names:
+      - users
+    __description: The login name of the user.
+  snowflake.user.name.first:
+    __example: John
+    __context_names:
+      - users
+    __description: The first name of the user.
+  snowflake.user.name.last:
+    __example: Doe
+    __context_names:
+      - users
+    __description: The last name of the user.
+  snowflake.user.owner:
+    __example: ACCOUNTADMIN
+    __context_names:
+      - users
+    __description: The role that owns the user account.
+  snowflake.user.type:
+    __example: LEGACY_SERVICE
+    __context_names:
+      - users
+    __description: Specifies the type of user
+  snowflake.user.privilege:
+    __example: "CREATE SERVICE:SCHEMA"
+    __context_names:
+      - users_all_privileges
+    __description:
+      Name of the privilege and type of object this privilege granted on to the user or role. Composed as `privilege:granted_on_object`.
+  snowflake.user.privilege.grants_on:
+    __example: ["TRUST_CENTER_ADMIN", "COMPUTE_WH"]
+    __context_names:
+      - users_all_privileges
+    __description:
+      List of all objects of given type on which given privilege was given; both object type and privilege are reported as
+      `snowflake.user.privilege`
+  snowflake.user.privilege.granted_by:
+    __example: ["ACCOUNTADMIN"]
+    __context_names:
+      - users_all_privileges
+    __description: Array of all roles which granted grants to a user for a privilege.
+  snowflake.user.roles.all:
+    __example: "SNOWFLAKE_FINANCE,MONITORING"
+    __context_names:
+      - users_all_roles
+    __description: Comma separated list of all roles granted to a user.
+  snowflake.user.roles.granted_by:
+    __example: ["DEMIGOD", "SECURITYADMIN", "ACCOUNTADMIN"]
+    __context_names:
+      - users_all_roles
+      - users_direct_roles
+    __description: Array of admin roles that were used to grant current list of user roles.
+  snowflake.user.roles.direct:
+    __example: ["DEVOPS_ROLE", "SYSADMIN", "ACCOUNTADMIN"]
+    __context_names:
+      - users_direct_roles
+    __description: List of all direct roles granted to user.
+  snowflake.user.roles.direct.removed:
+    __example: "ACCOUNTADMIN"
+    __context_names:
+      - users_removed_direct_roles
+    __description: Name of the role that was revoked from user.
+event_timestamps:
+  snowflake.event.trigger:
+    __example: "snowflake.user.last_success_login"
+    __context_names:
+      - users
+      - users_all_privileges
+      - users_all_roles
+      - users_direct_roles
+      - users_removed_direct_roles
+    __description:
+      Additionally to sending logs, each entry in `EVENT_TIMESTAMPS` is sent as event with key set to `snowflake.event.trigger`, value to
+      key from `EVENT_TIMESTAMPS` and `timestamp` set to the key value.
+  snowflake.user.privilege.last_altered:
+    __example: "1732181350954000000"
+    __context_names:
+      - users_all_privileges
+    __description: The timestamp of the last alteration to the user's privileges.
+  snowflake.user.roles.last_altered:
+    __example: "1718260900411000000"
+    __context_names:
+      - users_all_roles
+      - users_direct_roles
+    __description: The timestamp of the last alteration to the roles granted to the user.
+  snowflake.user.created_on:
+    __example: "1651830381846000000"
+    __context_names:
+      - users
+    __description: The timestamp of the user account creation.
+  snowflake.user.deleted_on:
+    __example: "1615219846384000000"
+    __context_names:
+      - users
+    __description: The timestamp of the user account deletion.
+  snowflake.user.last_success_login:
+    __example: "1732181350954000000"
+    __context_names:
+      - users
+    __description: The timestamp of the last successful login by the user.
+  snowflake.user.password_last_set_time:
+    __example: "1615219848053000000"
+    __context_names:
+      - users
+    __description: The timestamp of the last password change for the user.
+  snowflake.user.roles.direct.removed_on:
+    __example: "1718260900411000000"
+    __context_names:
+      - users_removed_direct_roles
+    __description: The timestamp of the last removal of a direct role from the user.
