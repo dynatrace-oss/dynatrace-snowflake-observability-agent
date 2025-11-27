@@ -45,6 +45,7 @@ def read_secret(
                 import json
 
                 config = json.loads(f.read())
+                config = (config[0] if isinstance(config, list) and config and isinstance(config[0], dict) else config) or {}
                 SECRETS[secret_name] = config.get(from_field, None)
         except FileNotFoundError as e:
             import logging

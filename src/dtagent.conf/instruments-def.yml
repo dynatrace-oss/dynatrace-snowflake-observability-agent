@@ -36,23 +36,32 @@ dimensions:
   telemetry.exporter.version:
     __description: "The version of the telemetry exporter."
     __example: "0.8.0.17308403933"
+  dsoa.run.context:
+    __description:
+      "The name of the Dynatrace Snowflake Observability Agent plugin (or part of plugin) used to produce the telemetry (logs, traces,
+      metrics, or events)."
+    __example: "query_history"
 #  * Attribute definitions
 #  * KEY                  - will be matched against ATTRIBUTES object with measurements prepared for sending
-#  * VALUE[description]   - description of the attributes - in the future we should rather update semantic dictionary instead of pushing it constantly
+#  * VALUE[description]   - description of the attributes -
+#                           in the future we should rather update semantic dictionary instead of pushing it constantly
 #  * VALUE[example]       - the example of attribute value
 attributes:
-  dsoa.run.context:
-    __description: "The name of the Dynatrace Snowflake Observability Agent plugin (or part of plugin) used to produce the telemetry (logs, traces, metrics, or events)."
-    __example: "query_history"
   dsoa.run.id:
-    __description: "Unique ID of each execution of the Dynatrace Snowflake Observability Agent plugin. It can be used to differentiate between telemetry produced between two executions, e.g., to calculate the change in the system."
+    __description:
+      "Unique ID of each execution of the Dynatrace Snowflake Observability Agent plugin. It can be used to differentiate between telemetry
+      produced between two executions, e.g., to calculate the change in the system."
     __example: "4aa7c76c-e98c-4b8b-a5b3-a8a721bbde2d"
   snowflake.event.type:
     __description: "Type of (timestamp based) event"
     __example: "snowflake.table.update"
+  observed_timestamp:
+    __description: "The timestamp (in epoch nanoseconds) when the event was observed."
+    __example: "1741768500000000000"
 
 #  * Metric definitions
 #  * KEY                  - will be matched against METRICS object with measurements prepared for sending
-#  * VALUE[description]   - description of the metrics - in the future we should rather update semantic dictionary instead of pushing it constantly
+#  * VALUE[description]   - description of the metrics -
+#                           in the future we should rather update semantic dictionary instead of pushing it constantly
 #  * VALUE[unit]          - the unit of the metric
 metrics: {}

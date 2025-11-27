@@ -22,23 +22,25 @@
 #
 #
 class TestDataSchemas:
+    import pytest
+
+    PICKLES = {"APP.V_DATA_SCHEMAS": "test/test_data/data_schemas.pkl"}
+
+    @pytest.mark.xdist_group(name="test_telemetry")
     def test_data_schemas(self):
         from typing import Dict, Generator
         from dtagent.plugins.data_schemas import DataSchemasPlugin
         from test import _get_session, TestDynatraceSnowAgent
         import test._utils as utils
 
-        PICKLE_NAME = "test/test_data/data_schemas.pkl"
-        T_DATA = "APP.V_DATA_SCHEMAS"
         # ======================================================================
 
-        if utils.should_pickle([PICKLE_NAME]):
-            utils._pickle_data_history(_get_session(), T_DATA, PICKLE_NAME)
+        utils._pickle_all(_get_session(), self.PICKLES)
 
         class TestDataSchemasPlugin(DataSchemasPlugin):
 
-            def _get_table_rows(self, table_name: str = None) -> Generator[Dict, None, None]:
-                return utils._get_unpickled_entries(PICKLE_NAME, limit=2)
+            def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
+                return utils._safe_get_unpickled_entries(TestDataSchemas.PICKLES, t_data, limit=2)
 
         def __local_get_plugin_class(source: str):
             return TestDataSchemasPlugin
@@ -50,8 +52,21 @@ class TestDataSchemas:
         # ======================================================================
         import logging
 
-        session = _get_session()
-        utils._logging_findings(session, TestDynatraceSnowAgent(session), "test_data_schemas", logging.INFO, show_detailed_logs=0)
+        disabled_combinations = [
+            [],
+            ["events"],
+            ["logs", "events"],
+            ["logs", "spans", "metrics", "events"],
+        ]
+
+        for disabled_telemetry in disabled_combinations:
+            utils.execute_telemetry_test(
+                TestDynatraceSnowAgent,
+                test_name="test_data_schemas",
+                disabled_telemetry=disabled_telemetry,
+                affecting_types_for_entries=["events"],
+                base_count={"data_schemas": {"entries": 2, "events": 2}},
+            )
 
 
 if __name__ == "__main__":

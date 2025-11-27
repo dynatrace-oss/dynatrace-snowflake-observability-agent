@@ -1,6 +1,4 @@
-"""
-Plugin file for processing query history plugin data.
-"""
+"""Plugin file for processing query history plugin data."""
 
 ##region ------------------------------ IMPORTS  -----------------------------------------
 #
@@ -26,10 +24,10 @@ Plugin file for processing query history plugin data.
 # SOFTWARE.
 #
 #
-
 import logging
 from typing import Any, Tuple, Dict, List
 from dtagent import LOG, LL_TRACE
+from dtagent.otel import logs, spans
 from dtagent.util import (
     _from_json,
     _unpack_json_dict,
@@ -37,7 +35,7 @@ from dtagent.util import (
     _pack_values_to_json_strings,
 )
 from dtagent.plugins import Plugin
-from dtagent.context import get_context_by_name
+from dtagent.context import get_context_name_and_run_id, RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPILE_REMOVE
 
 ##endregion COMPILE_REMOVE
 
@@ -45,20 +43,36 @@ from dtagent.context import get_context_by_name
 
 
 class QueryHistoryPlugin(Plugin):
-    """
-    Query history plugin class.
-    """
+    """Query history plugin class."""
 
-    def process(self, run_proc: bool = True) -> Tuple[int, int, int]:
-        """
-        The actual function to process query history:
+    PLUGIN_NAME = "query_history"
+
+    def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
+        """The actual function to process query history:
+
+        Args:
+            run_id (str): unique run identifier
+            run_proc (bool): indicator whether processing should be logged as completed
 
         Returns:
-            - number of queries
-            - number of problems
-            - number of span events created
+            Dict[str,Dict[str,int]]: A dictionary with telemetry counts for query history.
+
+            Example:
+            {
+            "dsoa.run.results": {
+                "query_history": {
+                    "entries": processed_query_count,
+                    "log_lines": logs_sent,
+                    "metrics": metrics_sent,
+                    "spans": spans_sent,
+                    "span_events": span_events_added,
+                    "errors": processing_errors_count,
+                },
+            },
+            "dsoa.run.id": "uuid_string"
+            }
         """
-        __context = get_context_by_name("query_history")
+        __context = get_context_name_and_run_id(plugin_name=self._plugin_name, context_name="query_history", run_id=run_id)
 
         def __get_query_operator_event_name(operator: Dict) -> str:
             """Returns string with query operator event."""
@@ -89,31 +103,46 @@ class QueryHistoryPlugin(Plugin):
 
             return span_events, failed_events
 
-        def __f_log_events(query_dict: Dict[str, Any]):
-            """Logs events for query history."""
+        def __f_log_events(query_dict: Dict[str, Any]) -> int:
+            """Logs events for query history.
+
+            Returns:
+                int: Number of log lines sent.
+            """
 
             log_dict = _unpack_json_dict(
                 query_dict,
                 ["DIMENSIONS", "ATTRIBUTES", "METRICS"],
             )
 
-            self._logs.send_log(
-                log_dict.get("db.query.text", "Snowflake Query"),
-                extra={
-                    "timestamp": query_dict["START_TIME"],
-                    "end_time": query_dict["END_TIME"],
-                    **log_dict,
-                },
-                context=__context,
-            )
-            for operator in _unpack_json_list(query_dict, ["QUERY_OPERATOR_STATS"]):
+            if not getattr(self._logs, "NOT_ENABLED", False):
                 self._logs.send_log(
-                    f"Query operator: {__get_query_operator_event_name(operator)}",
-                    extra=operator,
-                    log_level=logging.INFO,
+                    log_dict.get("db.query.text", "Snowflake Query"),
+                    extra={
+                        "timestamp": query_dict["START_TIME"],
+                        "end_time": query_dict["END_TIME"],
+                        **log_dict,
+                    },
                     context=__context,
                 )
+                logs_sent = 1
 
+<<<<<<< HEAD
+=======
+                for operator in _unpack_json_list(query_dict, ["QUERY_OPERATOR_STATS"]):
+                    self._logs.send_log(
+                        f"Query operator: {__get_query_operator_event_name(operator)}",
+                        extra=operator,
+                        log_level=logging.INFO,
+                        context=__context,
+                    )
+                    logs_sent += 1
+            else:
+                logs_sent = 0
+
+            return logs_sent
+
+>>>>>>> main
         if run_proc:
             # getting list of recent queries with their query operator stats (query profile)
             self._session.call("APP.P_REFRESH_RECENT_QUERIES", log_on_exception=True)
@@ -121,21 +150,30 @@ class QueryHistoryPlugin(Plugin):
             self._session.call("APP.P_GET_ACCELERATION_ESTIMATES", log_on_exception=True)
 
         t_recent_queries = "APP.V_RECENT_QUERIES"
-
-        processed_query_ids, _, processing_errors_count, span_events_added = self._process_span_rows(
+        processed_query_ids, processing_errors_count, span_events_added, spans_sent, logs_sent, metrics_sent = self._process_span_rows(
             f_entry_generator=lambda: self._get_table_rows(t_recent_queries),
             view_name=t_recent_queries,
             context_name="query_history",
+            run_uuid=run_id,
             log_completion=run_proc,
             report_status=run_proc,
             f_span_events=__f_span_events,
             f_log_events=__f_log_events,
         )
 
-        return (
-            len(processed_query_ids),
-            processing_errors_count,
-            span_events_added,
+        # return (len(processed_query_ids), processing_errors_count, span_events_added, metrics_sent)
+        return self._report_results(
+            {
+                "query_history": {
+                    "entries": len(processed_query_ids),
+                    "log_lines": logs_sent,
+                    "metrics": metrics_sent,
+                    "spans": spans_sent,
+                    "span_events": span_events_added,
+                    "errors": processing_errors_count,
+                },
+            },
+            run_id,
         )
 
 

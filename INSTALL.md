@@ -2,10 +2,65 @@
 
 Dynatrace Snowflake Observability Agent comes in the form of a series of SQL scripts (accompanied with a few configuration files), which need to be deployed at Snowflake by executing them in the correct order.
 
+This document assumes you are installing from the distribution package (`dynatrace_snowflake_observability_agent-*.zip`). If you are a developer and want to build from source, please refer to the [CONTRIBUTING.md](CONTRIBUTING.md) guide.
+
+## Prerequisites
+
+Before you can deploy the agent, you need to ensure the following tools are installed on your system.
+
+### Windows Users
+On Windows, it is necessary to install Windows Subsystem for Linux (WSL) version 2.0 or higher. The deployment scripts must be run through WSL. See [Install WSL guide](https://learn.microsoft.com/en-us/windows/wsl/install) for more details.
+
+### All Users
+You will need the following command-line tools:
+
+* **bash**: The deployment scripts are written in bash.
+* **Snowflake CLI**: For connecting to and deploying objects in Snowflake.
+* **jq**: For processing JSON files.
+* **gawk**: For text processing.
+
+You can run the included `./setup.sh` script, which will attempt to install these dependencies for you.
+
+Alternatively, you can install them manually:
+
+#### Snowflake CLI
+Install using `pipx` (recommended):
+
+```bash
+# If you do not have pipx installed, run:
+# on Ubuntu/Debian
+sudo apt install pipx
+# on macOS
+brew install pipx
+
+# With pipx installed, run:
+pipx install snowflake-cli-labs
+```
+
+Or on macOS with Homebrew:
+
+```bash
+brew tap snowflakedb/snowflake-cli
+brew install snowflake-cli
+```
+
+#### jq and gawk
+
+On **Ubuntu/Debian**:
+
+```bash
+sudo apt install jq gawk
+```
+
+On **macOS** (with Homebrew):
+
+```bash
+brew install jq gawk
+```
+
 ## Deploying Dynatrace Snowflake Observability Agent
 
 The default option to install Dynatrace Snowflake Observability Agent is from the distribution package.
-Should you require to install Dynatrace Snowflake Observability Agent from the sources, please check the [Installing Dynatrace Snowflake Observability Agent from sources](#installing-dynatrace-snowflake-observability-agent-from-sources) section before continuing here.
 To deploy Dynatrace Snowflake Observability Agent, run the `./deploy.sh` command:
 
 ```bash
@@ -25,11 +80,14 @@ The `$file_prefix` parameter is optional and can take multiple values:
 
 You should store the Access Token for your Dynatrace tenant (to which you want to send telemetry from your environment) as the environment variable `DTAGENT_TOKEN`. The token should have the following scopes enabled:
 
-* `logs.ingest`
-* `metrics.ingest`
-* `events.ingest`
-* `bizevents.ingest`
-* `openTelemetryTrace.ingest`
+| Scope ID                    | Scope Name                   | Comment                     |
+| --------------------------- | ---------------------------- | --------------------------- |
+| `logs.ingest`               | Ingest Logs                  |                             |
+| `metrics.ingest`            | Ingest Metrics               |                             |
+| `bizevents.ingest`          | Ingest BizEvents             |                             |
+| `openpipeline.events`       | OpenPipeline - Ingest Events |                             |
+| `openTelemetryTrace.ingest` | Ingest OpenTelemetry Traces  |                             |
+| `events.ingest`             | Ingest Events                | Not required version>=0.9.1 |
 
 We **strongly** recommend to ensure your token is not recorded in shell script history; please find an example how to define `DTAGENT_TOKEN` environment variable on Linux or WSL below:
 
@@ -43,10 +101,13 @@ If you do not set the `DTAGENT_TOKEN` environment variable, or if it does not co
 
 * The Dynatrace Snowflake Observability Agent deployment process **WILL NOT** send self-monitoring BizEvents to your Dynatrace tenant to mark the start and finish of the deployment process.
 * The deployment process *will not be able* to set `DTAGENT_API_KEY` when deploying the complete configuration (`./deploy.sh $config_name`) or when updating just the API key (`./deploy.sh $config_name apikey`). In these cases, **YOU WILL** be prompted to provide the correct `DTAGENT_TOKEN` value during deployment.
+* The deployment process *will not be able* to send BizEvents to your Dynatrace tenant to mark the start and finish of the deployment process.
 
 No additional objects need to be provided for the deployment process on the Snowflake side. Dynatrace Snowflake Observability Agent will build a database to store his information - `DTAGENT_DB` by default or `DTAGENT_{TAG}_DB` if tag is provided (see [Multitenancy](#multitenancy)).
 
 The complete log of deployment and the script executed during deployment is available as `.logs/dtagent-deploy-$config_name-$current_date.log`.
+
+> **Troubleshooting:** If tasks are running in Snowflake but no data appears in Dynatrace, please refer to [Troubleshooting: No Data in Dynatrace](docs/debug/no-data-in-dt/readme.md) for a comprehensive debugging guide.
 
 ## Setting up a profile
 
@@ -148,131 +209,31 @@ To list your currently defined connections run:
 snow connection list
 ```
 
-Here is an example of how to fill in the form to configure connection based on external browser authentication, which is a recommended way for users authenticating with external SSO:
+Here is an example of how to fill in the form to configure connection based on external browser authentication,
+which is a recommended way for users authenticating with external SSO:
 
 ```bash
 Snowflake account name: ${YOUR_SNOWFLAKE_ACCOUNT_NAME.REGION_NAME}
 Snowflake username: ${YOUR_USERNAME}
-Snowflake password [optional]: 
-Role for the connection [optional]: 
-Warehouse for the connection [optional]: 
-Database for the connection [optional]: 
-Schema for the connection [optional]: 
-Connection host [optional]: 
-Connection port [optional]: 
-Snowflake region [optional]: 
+Snowflake password [optional]:
+Role for the connection [optional]:
+Warehouse for the connection [optional]:
+Database for the connection [optional]:
+Schema for the connection [optional]:
+Connection host [optional]:
+Connection port [optional]:
+Snowflake region [optional]:
 Authentication method [optional]: externalbrowser
-Path to private key file [optional]: 
+Path to private key file [optional]:
 ```
 
 You can also run this command to fill in the required and recommended parts:
 
 ```bash
-snow connection add --connection-name snow_agent_$config_name --account ${YOUR_SNOWFLAKE_ACCOUNT_NAME.REGION_NAME} --user ${YOUR_USERNAME} --authenticator externalbrowser
+snow connection add --connection-name snow_agent_$config_name \
+                    --account ${YOUR_SNOWFLAKE_ACCOUNT_NAME.REGION_NAME} \
+                    --user ${YOUR_USERNAME} \
+                    --authenticator externalbrowser
 ```
 
 If you have any issues setting up the connection check [the SnowCli documentation](https://docs.snowflake.com/en/user-guide/snowsql).
-
-## Prerequisites
-
-### Windows Subsystem for Linux
-
-On Windows it is necessary to install Windows Subsystem for Linux before proceeding with the following steps. Dynatrace Snowflake Observability Agent must be executed through WSL to guarantee proper functioning: WSL version 2.0 or higher is recommended (see [Install WSL guide)](https://learn.microsoft.com/en-us/windows/wsl/install):
-
-### MacOS
-
-You will need `brew` installed and up to date (XCode) Command Line Tools.
-
-To install `brew` go to [Brew installation](https://docs.brew.sh/Installation)
-To update Command Line Tools you need to run
-
-```bash
-xcode-select --install
-```
-
-or go to Software Update in System Settings
-
-## Installing Dynatrace Snowflake Observability Agent from sources
-
-For the development purposes you can install Dynatrace Snowflake Observability Agent from sources.
-
-### Getting local copy of Dynatrace Snowflake Observability Agent
-
-To get the source code of Dynatrace Snowflake Observability Agent you will need `git` installed.
-Run the following command:
-
-```bash
-git clone https://github.com/dynatrace-oss/dynatrace-snowflake-observability-agent.git
-```
-
-Otherwise you should receive a package with Dynatrace Snowflake Observability Agent named `dynatrace_snowflake_observability_agent-$version.zip` which you should unpack.
-
-### Installing necessary software
-
-You can simply run `./setup.sh` to install all necessary software on your MacOS or Ubuntu.
-
-#### Creating virtual environment
-
-Once you have Python (only versions 3.9 through 3.11 are supported) installed, it is a good practice to operate with Python code within a virtual environment (see [Virtual Environment Guide](https://docs.python.org/3/library/venv.html)). To create and active one run:
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-```
-
-#### Installing required packages
-
-Packages necessary to run the program should be installed using following commands.
-
-We need [Snowflake CLI](https://github.com/snowflakedb/snowflake-cli) installed either via pipx
-
-```bash
-# if You do not have pipx installed, run
-sudo apt install pipx
-# with pipx installed, run
-pipx install snowflake-cli-labs
-```
-
-or Homebrew (macOS only):
-
-```bash
-brew tap snowflakedb/snowflake-cli
-brew install snowflake-cli
-snow --help
-```
-
-Once this is done install the remaining Python packages:
-
-```bash
-pip install -r requirements.txt
-```
-
-Finally, you need to install few more development tools:
-
-* [jq](https://github.com/jqlang/jq)
-
-In Windows WSL / Ubuntu linux run:
-
-```bash
-sudo apt install jq
-```
-
-On macOS run:
-
-```bash
-brew install jq
-```
-
-* gawk
-
-In Windows WSL / Ubuntu linux run:
-
-```bash
-sudo apt install gawk
-```
-
-On macOS run:
-
-```bash
-brew install gawk
-```

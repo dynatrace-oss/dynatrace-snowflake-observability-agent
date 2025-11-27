@@ -1,0 +1,151 @@
+{
+  "CORE": {
+    "DYNATRACE_TENANT_ADDRESS": "abc12345.live.dynatrace.com",
+    "DEPLOYMENT_ENVIRONMENT": "TEST",
+    "SNOWFLAKE_ACCOUNT_NAME": "-",
+    "SNOWFLAKE_HOST_NAME": "-",
+    "SNOWFLAKE_CREDIT_QUOTA": 5,
+    "LOG_LEVEL": "WARN",
+    "TAG": "",
+    "PROCEDURE_TIMEOUT": 3600
+  },
+  "OTEL": {
+    "MAX_CONSECUTIVE_API_FAILS": 10,
+    "SPANS": {
+      "EXPORT_TIMEOUT_MILLIS": 10000,
+      "MAX_EXPORT_BATCH_SIZE": 50,
+      "MAX_EVENT_COUNT": 2000,
+      "MAX_ATTRIBUTES_PER_EVENT_COUNT": 250,
+      "MAX_SPAN_ATTRIBUTES": 250
+    },
+    "METRICS": {
+      "MAX_RETRIES": 5,
+      "MAX_BATCH_SIZE": 1000000
+    },
+    "EVENTS": {
+      "MAX_RETRIES": 5,
+      "RETRY_DELAY": 10000
+    },
+    "BIZ_EVENTS": {
+      "MAX_RETRIES": 5,
+      "MAX_PAYLOAD_BYTES": 5120000,
+      "MAX_EVENT_COUNT": 400,
+      "RETRY_DELAY_MS": 10000,
+      "RETRY_ON_STATUS": [
+        429,
+        502,
+        503
+      ]
+    }
+  },
+  "PLUGINS": {
+    "DISABLED_BY_DEFAULT": false,
+    "SELF_MONITORING": {
+      "SEND_BIZEVENTS_ON_DEPLOY": true,
+      "SEND_BIZEVENTS_ON_RUN": true
+    },
+    "EVENT_LOG": {
+      "MAX_ENTRIES": 10000,
+      "RETENTION_HOURS": 12,
+      "SCHEDULE": "USING CRON */30 * * * * UTC",
+      "SCHEDULE_CLEANUP": "USING CRON 0 * * * * UTC",
+      "IS_DISABLED": false
+    },
+    "DATA_SCHEMAS": {
+      "SCHEDULE": "USING CRON 0 0,8,16 * * * UTC",
+      "IS_DISABLED": false,
+      "EXCLUDE": [],
+      "INCLUDE": [
+        "%"
+      ]
+    },
+    "BUDGETS": {
+      "QUOTA": 10,
+      "SCHEDULE": "USING CRON 30 0 * * * UTC",
+      "IS_DISABLED": false
+    },
+    "USERS": {
+      "SCHEDULE": "USING CRON 0 0 * * * UTC",
+      "IS_DISABLED": false,
+      "IS_HASHED": true,
+      "RETAIN_EMAIL_HASH_MAP": false,
+      "ROLES_MONITORING_MODE": [
+        "DIRECT_ROLES",
+        "ALL_ROLES",
+        "ALL_PRIVILEGES"
+      ]
+    },
+    "LOGIN_HISTORY": {
+      "SCHEDULE": "USING CRON */30 * * * * UTC",
+      "IS_DISABLED": false
+    },
+    "TRUST_CENTER": {
+      "SCHEDULE": "USING CRON 30 */12 * * * UTC",
+      "LOG_DETAILS": false,
+      "IS_DISABLED": false
+    },
+    "WAREHOUSE_USAGE": {
+      "SCHEDULE": "USING CRON 0 * * * * UTC",
+      "IS_DISABLED": false
+    },
+    "RESOURCE_MONITORS": {
+      "SCHEDULE": "USING CRON */30 * * * * UTC",
+      "IS_DISABLED": false
+    },
+    "DYNAMIC_TABLES": {
+      "INCLUDE": [
+        "%.%.%"
+      ],
+      "EXCLUDE": [
+        "DTAGENT_DB.%.%"
+      ],
+      "SCHEDULE": "USING CRON */30 * * * * UTC",
+      "SCHEDULE_GRANTS": "USING CRON 30 */12 * * * UTC",
+      "IS_DISABLED": false
+    },
+    "TASKS": {
+      "SCHEDULE": "USING CRON 30 * * * * UTC",
+      "IS_DISABLED": false
+    },
+    "EVENT_USAGE": {
+      "SCHEDULE": "USING CRON 0 * * * * UTC",
+      "IS_DISABLED": false
+    },
+    "SHARES": {
+      "SCHEDULE": "USING CRON */30 * * * * UTC",
+      "IS_DISABLED": false,
+      "EXCLUDE_FROM_MONITORING": [],
+      "EXCLUDE": [
+        ""
+      ],
+      "INCLUDE": [
+        "%.%.%"
+      ]
+    },
+    "ACTIVE_QUERIES": {
+      "SCHEDULE": "USING CRON */6 * * * * UTC",
+      "IS_DISABLED": false,
+      "FAST_MODE": true,
+      "REPORT_EXECUTION_STATUS": []
+    },
+    "QUERY_HISTORY": {
+      "SCHEDULE_GRANTS": "USING CRON */30 * * * * UTC",
+      "SCHEDULE": "USING CRON */30 * * * * UTC",
+      "IS_DISABLED": false,
+      "SLOW_QUERIES_THRESHOLD": 10000,
+      "SLOW_QUERIES_TO_ANALYZE_LIMIT": 50
+    },
+    "DATA_VOLUME": {
+      "INCLUDE": [
+        "DTAGENT_DB.%.%",
+        "%.PUBLIC.%"
+      ],
+      "EXCLUDE": [
+        "%.INFORMATION_SCHEMA.%",
+        "%.%.TMP_%"
+      ],
+      "SCHEDULE": "USING CRON 30 0,4,8,12,16,20 * * * UTC",
+      "IS_DISABLED": false
+    }
+  }
+}

@@ -25,8 +25,10 @@
 #
 #
 import sys
+import requests
+import time
 
-from typing import Dict, Union, Optional
+from typing import Dict, Union, Optional, Tuple
 from dtagent.otel.otel_manager import OtelManager
 from dtagent.util import get_timestamp_in_ms, get_now_timestamp
 from dtagent.otel import _log_warning
@@ -43,6 +45,8 @@ class Metrics:
     from dtagent.config import Configuration  # COMPILE_REMOVE
     from dtagent.otel.instruments import Instruments  # COMPILE_REMOVE
 
+    ENDPOINT_PATH = "/api/v2/metrics/ingest"
+
     def __init__(self, instruments: Instruments, configuration: Configuration):
         self.PAYLOAD_CACHE: str = ""
         self._configuration = configuration
@@ -52,34 +56,43 @@ class Metrics:
         }
         self._max_retries = self._configuration.get(otel_module="metrics", key="max_retries", default_value=5)
         self._max_batch_size = self._configuration.get(otel_module="metrics", key="max_batch_size", default_value=1000000)
+        self._retry_delay_ms = self._configuration.get(otel_module="metrics", key="retry_delay_ms", default_value=10000)
+        self._api_post_timeout = self._configuration.get(otel_module="metrics", key="api_post_timeout", default_value=30)
 
-    def _send_metrics(self, payload: Optional[str] = None) -> bool:
-        """
-        Sends given payload of metrics with metadata to Dynatrace.
+    def _send_metrics(self, payload: Optional[str] = None) -> int:
+        """Sends given payload of metrics with metadata to Dynatrace.
         The code attempts to accumulate to the maximal size of payload allowed - and
         will flush before we would exceed with new payload increment.
         IMPORTANT: call _flush_metrics() to flush at the end of processing
+
+        Args:
+            payload (Optional[str]): additional payload (lines of metrics with their description) to send along with cached one
+
+        Returns:
+            int: number of metric lines (without description lines) successfully sent
         """
         from dtagent import LOG, LL_TRACE  # COMPILE_REMOVE
 
-        def __send(_payload: str, _retries: int = 0) -> bool:
-            """
-            Sends given payload to Dynatrace
-            """
-            import requests
-
+        def __send(_payload: str, _retries: int = 0) -> int:
+            """Sends given payload to Dynatrace"""
             headers = {
                 "Authorization": f'Api-Token {self._configuration.get("dt.token")}',
                 "Content-Type": "text/plain",
             } | OtelManager.get_dsoa_headers()
-            data_sent_ok = True
+
+            _clean_payload = _payload.replace("\n\n", "\n").strip()
+            data_sent_size = (
+                len([line for line in _clean_payload.split("\n") if not line.startswith("#") and line.strip() != ""])
+                if _clean_payload != ""
+                else 0
+            )
 
             try:
                 response = requests.post(
                     self._configuration.get("metrics.http"),
                     headers=headers,
-                    data=_payload.replace("\n\n", "\n"),
-                    timeout=15 if _retries < 2 else 30,
+                    data=_clean_payload,
+                    timeout=self._api_post_timeout,
                 )
 
                 LOG.log(LL_TRACE, "Sent %d bytes of metrics payload; response: %s", len(_payload), response.status_code)
@@ -105,16 +118,17 @@ class Metrics:
                     )
 
                 if _retries < self._max_retries:
-                    __send(_payload, _retries + 1)
+                    time.sleep(self._retry_delay_ms / 1000)
+                    data_sent_size = __send(_payload, _retries + 1)
                 else:
                     LOG.warning("Failed to send metrics within 3 attempts")
                     OtelManager.increase_current_fail_count(response)
                     OtelManager.verify_communication()
-                    data_sent_ok = False
+                    data_sent_size = 0
 
-            return data_sent_ok
+            return data_sent_size
 
-        data_sent_ok = True
+        data_sent_size = 0
 
         if (
             payload is not None
@@ -124,30 +138,34 @@ class Metrics:
             self.PAYLOAD_CACHE += f"\n{payload}" if self.PAYLOAD_CACHE != "" else payload
         else:
             if len(self.PAYLOAD_CACHE) > 0:
-                data_sent_ok = __send(self.PAYLOAD_CACHE)
+                data_sent_size = __send(self.PAYLOAD_CACHE)
             self.PAYLOAD_CACHE = payload or ""
 
-        return data_sent_ok
+        return data_sent_size
 
-    def flush_metrics(self) -> bool:
-        """
-        Flush metrics cache
-        """
+    def flush_metrics(self) -> int:
+        """Flush metrics cache"""
         return self._send_metrics()
 
-    def report_via_metrics_api(self, query_data: Dict, start_time: str = "START_TIME") -> bool:
-        """
-        Generates payload with Metrics v2 API
+    def report_via_metrics_api(self, query_data: Dict, start_time: str = "START_TIME", context_name: Optional[str] = None) -> int:
+        """Generates payload with Metrics v2 API
+
+        Args:
+            query_data (Dict): query data containing METRICS section
+            start_time (str): key in query_data containing start time
+            context_name (Optional[str]): optional context name to add to dimensions
+
+        Returns:
+            int: number of metric lines (without description lines) successfully sent
         """
         from dtagent import LOG, LL_TRACE  # COMPILE_REMOVE
+        from dtagent.context import get_context_name  # COMPILE_REMOVE
         from dtagent.util import _unpack_json_dict, _esc, _check_timestamp_ms, _is_not_blank  # COMPILE_REMOVE
 
         local_metrics_def = _unpack_json_dict(query_data, ["_INSTRUMENTS_DEF"])
 
         def __combined_dimensions(unpacked_dict: Dict[str, str]) -> str:
-            """
-            Helper function that renders given dictionary as Dynatrace metrics line.
-            """
+            """Helper function that renders given dictionary as Dynatrace metrics line."""
             return ",".join(f'{_esc(k)}="{_esc(item)}"' for k, item in unpacked_dict.items())
 
         def __payload_lines(dimensions: str, metric_name: str, metric_value: Union[str, dict], ts: Optional[int]) -> str:
@@ -180,7 +198,7 @@ class Metrics:
                 value = metric_value
             return (
                 f"{metric_name},{dimensions} {value}"
-                + ("" if ts is None else f" {ts}")
+                + ("" if not ts else f" {ts}")
                 + "\n"
                 + self._instruments.get_metric_definition(metric_name, local_metrics_def)
             )
@@ -190,7 +208,7 @@ class Metrics:
 
         payload_lines = []
         # list all dimensions with their values from the provided data
-        all_dimensions = {**self._resattr_dims, **_unpack_json_dict(query_data, ["DIMENSIONS"])}
+        all_dimensions = {**self._resattr_dims, **get_context_name(context_name), **_unpack_json_dict(query_data, ["DIMENSIONS"])}
         LOG.log(LL_TRACE, "all_dimensions = %r", all_dimensions)
 
         # prepare dimensions for metrics
@@ -208,14 +226,23 @@ class Metrics:
 
         return self._send_metrics(payload)
 
-    def discover_report_metrics(self, query_data: Dict, start_time: str = "START_TIME") -> bool:
-        """
-        Checks if METRICS section is defined in query data, returns false if not
-        otherwise reports metrics and returns result of report_via_metrics_api
+    def discover_report_metrics(
+        self, query_data: Dict, start_time: str = "START_TIME", context_name: Optional[str] = None
+    ) -> Tuple[bool, int]:
+        """Checks if METRICS section is defined in query data, returns false if not
+        otherwise reports metrics and returns result of report_via_metrics_api.
+
+        Args:
+            query_data (Dict):              query data containing METRICS section
+            start_time (str):               key in query_data containing start time
+            context_name (Optional[str]):   optional context name to add to dimensions
+        Returns:
+            Tuple[bool, int]: boolean indicating if METRICS section was found, and
+                              number of metric lines (without description lines) successfully sent
         """
         if "METRICS" in query_data:
-            return self.report_via_metrics_api(query_data, start_time)
-        return False
+            return True, self.report_via_metrics_api(query_data, start_time, context_name=context_name)
+        return False, 0
 
 
 ##endregion

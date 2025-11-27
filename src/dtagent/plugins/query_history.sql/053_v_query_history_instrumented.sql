@@ -126,7 +126,8 @@ select
         'snowflake.query.operator.parent_ids',                      NULL,
         'snowflake.query.operator.attributes',                      NULL,
         'snowflake.query.operator.stats',                           NULL,
-        'snowflake.query.operator.time',                            NULL
+        'snowflake.query.operator.time',                            NULL,
+        'snowflake.query.with_operator_stats',                      FALSE
     )                                                                                                                   as ATTRIBUTES,
     -- metrics
     OBJECT_CONSTRUCT(

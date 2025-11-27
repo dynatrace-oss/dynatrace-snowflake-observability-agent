@@ -1,6 +1,4 @@
-"""
-Plugin file for processing warehouse usage plugin data.
-"""
+"""Plugin file for processing warehouse usage plugin data."""
 
 ##region ------------------------------ IMPORTS  -----------------------------------------
 #
@@ -27,9 +25,9 @@ Plugin file for processing warehouse usage plugin data.
 #
 #
 
-import uuid
-from typing import Tuple
-from src.dtagent.plugins import Plugin
+from typing import Tuple, Dict
+from dtagent.plugins import Plugin
+from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPILE_REMOVE
 
 ##endregion COMPILE_REMOVE
 
@@ -37,55 +35,91 @@ from src.dtagent.plugins import Plugin
 
 
 class WarehouseUsagePlugin(Plugin):
-    """
-    Warehouse usage plugin class.
-    """
+    """Warehouse usage plugin class."""
 
-    def process(self, run_proc: bool = True) -> Tuple[int, int, int, int, int]:
-        """
-        Processes data for warehouse usage plugin.
-        Returns
-            processed_wh_events_cnt [int]: number of entries reported from APP.V_WAREHOUSE_EVENT_HISTORY,
-            processed_wh_load_cnt [int]: number of entries reported from APP.V_WAREHOUSE_LOAD_HISTORY,
-            processed_wh_metering_cnt [int]: number of entries reported from APP.V_WAREHOUSE_METERING_HISTORY,
-            wh_metering_metrics_cnt [int]: number of metrics reported from APP.V_WAREHOUSE_METERING_HISTORY.
-        """
+    PLUGIN_NAME = "warehouse_usage"
 
-        processed_wh_events_cnt = 0
-        processed_wh_load_cnt = 0
-        processed_wh_metering_cnt = 0
+    def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
+        """Processes data for warehouse usage plugin.
+
+        Args:
+            run_id (str): unique run identifier
+            run_proc (bool): indicator whether processing should be logged as completed
+
+        Returns:
+            Dict[str,int]: A dictionary with telemetry counts for warehouse usage.
+
+            Example:
+            {
+            "dsoa.run.results": {
+                "warehouse_usage": {
+                    "entries": entries_wh_events_cnt,
+                    "log_lines": logs_wh_events_cnt,
+                    "metrics": metrics_wh_events_cnt,
+                    "events": events_wh_events_cnt,
+                },
+                "warehouse_usage_load": {
+                    "entries": entries_wh_load_cnt,
+                    "log_lines": logs_wh_load_cnt,
+                    "metrics": metrics_wh_load_cnt,
+                    "events": events_wh_load_cnt,
+                },
+                "warehouse_usage_metering": {
+                    "entries": entries_wh_metering_cnt,
+                    "log_lines": logs_wh_metering_cnt,
+                    "metrics": metrics_wh_metering_cnt,
+                    "events": events_wh_metering_cnt,
+                },
+            },
+            "dsoa.run.id": "uuid_string"
+            }
+        """
 
         t_wh_events = "APP.V_WAREHOUSE_EVENT_HISTORY"
         t_wh_load_hist = "APP.V_WAREHOUSE_LOAD_HISTORY"
         t_wh_metering_hist = "APP.V_WAREHOUSE_METERING_HISTORY"
 
-        run_id = str(uuid.uuid4().hex)
-
-        processed_wh_events_cnt = self._log_entries(
+        entries_wh_events_cnt, logs_wh_events_cnt, metrics_wh_events_cnt, events_wh_events_cnt = self._log_entries(
             lambda: self._get_table_rows(t_wh_events),
             "warehouse_usage",
             run_uuid=run_id,
             log_completion=run_proc,
-        )[0]
+        )
 
-        processed_wh_load_cnt, _, wh_load_metrics_cnt, _ = self._log_entries(
+        entries_wh_load_cnt, logs_wh_load_cnt, metrics_wh_load_cnt, events_wh_load_cnt = self._log_entries(
             lambda: self._get_table_rows(t_wh_load_hist),
             "warehouse_usage_load",
             run_uuid=run_id,
             log_completion=run_proc,
         )
 
-        processed_wh_metering_cnt, _, wh_metering_metrics_cnt, _ = self._log_entries(
+        entries_wh_metering_cnt, logs_wh_metering_cnt, metrics_wh_metering_cnt, events_wh_metering_cnt = self._log_entries(
             lambda: self._get_table_rows(t_wh_metering_hist),
             "warehouse_usage_metering",
             run_uuid=run_id,
             log_completion=run_proc,
         )
 
-        return (
-            processed_wh_events_cnt,
-            processed_wh_load_cnt,
-            wh_load_metrics_cnt,
-            processed_wh_metering_cnt,
-            wh_metering_metrics_cnt,
+        return self._report_results(
+            {
+                "warehouse_usage": {
+                    "entries": entries_wh_events_cnt,
+                    "log_lines": logs_wh_events_cnt,
+                    "metrics": metrics_wh_events_cnt,
+                    "events": events_wh_events_cnt,
+                },
+                "warehouse_usage_load": {
+                    "entries": entries_wh_load_cnt,
+                    "log_lines": logs_wh_load_cnt,
+                    "metrics": metrics_wh_load_cnt,
+                    "events": events_wh_load_cnt,
+                },
+                "warehouse_usage_metering": {
+                    "entries": entries_wh_metering_cnt,
+                    "log_lines": logs_wh_metering_cnt,
+                    "metrics": metrics_wh_metering_cnt,
+                    "events": events_wh_metering_cnt,
+                },
+            },
+            run_id,
         )

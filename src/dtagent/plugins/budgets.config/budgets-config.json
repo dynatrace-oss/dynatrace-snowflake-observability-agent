@@ -3,7 +3,13 @@
         "BUDGETS": {
             "QUOTA": 10,
             "SCHEDULE": "USING CRON 30 0 * * * UTC",
-            "IS_DISABLED": false
+            "IS_DISABLED": false,
+            "TELEMETRY": [
+                "logs",
+                "metrics",
+                "events",
+                "biz_events"
+            ]
         }
     }
 }

@@ -14,216 +14,212 @@
 #  * Copyright (c) 2024 Dynatrace LLC.  All rights reserved.
 #  *
 attributes:
-    snowflake.data.rows:
-        __context_names:
-            - inbound_shares
-        __example: 20000
-        __description: Number of rows in the table.
-    snowflake.data.size:
-        __context_names:
-            - inbound_shares
-        __example: 800000
-        __description: Number of bytes accessed by a scan of the table.
-    snowflake.grant.by:
-        __context_names:
-            - outbound_shares
-        __example: ACCOUNTADMIN
-        __description: Shows the name of the account which made the grant.
-    snowflake.grant.grantee:
-        __context_names:
-            - outbound_shares
-        __example: PARTNER_ACCOUNT
-        __description: Shows the grantee account name.
-    snowflake.grant.on:
-        __context_names:
-            - outbound_shares
-        __example: DATABASE
-        __description: Shows on what type of object the grant was made.
-    snowflake.grant.option:
-        __context_names:
-            - outbound_shares
-        __example: false
-        __description: Indicates if grant option is available.
-    snowflake.grant.privilege:
-        __context_names:
-            - outbound_shares
-        __example: USAGE
-        __description: Shows the type of privilege granted.
-    snowflake.grant.to:
-        __context_names:
-            - outbound_shares
-        __example: SHARE
-        __description: Shows to what the grant was made.
-    snowflake.share.is_secure_objects_only:
-        __context_names:
-            - outbound_shares
-            - inbound_shares
-        __example: true
-        __description: Indicates if the share is only for secure objects.
-    snowflake.share.kind:
-        __context_names:
-            - outbound_shares
-            - inbound_shares
-        __example: OUTBOUND
-        __description: Indicates the type of share.
-    snowflake.share.listing_global_name:
-        __context_names:
-            - outbound_shares
-            - inbound_shares
-        __example: GLOBAL_SHARE_NAME
-        __description: Global name of the share listing.
-    snowflake.share.owner:
-        __context_names:
-            - outbound_shares
-            - inbound_shares
-        __example: ACCOUNTADMIN
-        __description: Shows the account owning the share.
-    snowflake.share.shared_from:
-        __context_names:
-            - outbound_shares
-            - inbound_shares
-        __example: SNOWFLAKE
-        __description: Shows the owner account of the share.
-    snowflake.share.shared_to:
-        __context_names:
-            - outbound_shares
-            - inbound_shares
-        __example: PARTNER_ACCOUNT
-        __description: Shows the account the share was made to.
-    snowflake.table.clustering_key:
-        __context_names:
-            - inbound_shares
-        __example: DATE
-        __description: Clustering key for the table.
-    snowflake.table.comment:
-        __context_names:
-            - inbound_shares
-        __example:
-            The tables defined in this database that are accessible to the
-            current user's role.
-        __description: Comment for this table.
-    snowflake.table.is_auto_clustering_on:
-        __context_names:
-            - inbound_shares
-        __example: "YES"
-        __description: Indicates whether automatic clustering is enabled for the table.
-    snowflake.table.is_dynamic:
-        __context_names:
-            - inbound_shares
-        __example: "NO"
-        __description: Indicates whether the table is a dynamic table.
-    snowflake.table.is_iceberg:
-        __context_names:
-            - inbound_shares
-        __example: "NO"
-        __description: Indicates whether the table is an Iceberg table.
-    snowflake.table.is_temporary:
-        __context_names:
-            - inbound_shares
-        __example: "NO"
-        __description: Indicates whether this is a temporary table.
-    snowflake.table.is_transient:
-        __context_names:
-            - inbound_shares
-        __example: "NO"
-        __description: Indicates whether this is a transient table.
-    snowflake.table.is_hybrid:
-        __context_names:
-            - inbound_shares
-        __example: FALSE
-        __description: Indicates whether this is a hybrid table.
-    snowflake.share.has_db_deleted:
-        __context_names:
-            - inbound_shares
-        __example: FALSE
-        __description: Indicates whether DB related to that INBOUND share has been deleted.
-    snowflake.share.has_details_reported:
-        __context_names:
-            - inbound_shares
-        __example: FALSE
-        __description: Indicates whether or not details on this share should be reported.
-    snowflake.table.last_ddl_by:
-        __context_names:
-            - inbound_shares
-        __example: DBA_USER
-        __description: The current username for the user who executed the last DDL operation.
-    snowflake.table.owner:
-        __context_names:
-            - inbound_shares
-        __example: ACCOUNTADMIN
-        __description: Name of the role that owns the table.
-    snowflake.table.retention_time:
-        __context_names:
-            - inbound_shares
-        __example: 5
-        __description: Number of days that historical data is retained for Time Travel.
-    snowflake.table.type:
-        __context_names:
-            - inbound_shares
-        __example: BASE TABLE
-        __description: Indicates the table type.
+  snowflake.data.rows:
+    __context_names:
+      - inbound_shares
+    __example: 20000
+    __description: Number of rows in the table.
+  snowflake.data.size:
+    __context_names:
+      - inbound_shares
+    __example: 800000
+    __description: Number of bytes accessed by a scan of the table.
+  snowflake.grant.by:
+    __context_names:
+      - outbound_shares
+    __example: ACCOUNTADMIN
+    __description: Shows the name of the account which made the grant.
+  snowflake.grant.grantee:
+    __context_names:
+      - outbound_shares
+    __example: PARTNER_ACCOUNT
+    __description: Shows the grantee account name.
+  snowflake.grant.on:
+    __context_names:
+      - outbound_shares
+    __example: DATABASE
+    __description: Shows on what type of object the grant was made.
+  snowflake.grant.option:
+    __context_names:
+      - outbound_shares
+    __example: false
+    __description: Indicates if grant option is available.
+  snowflake.grant.privilege:
+    __context_names:
+      - outbound_shares
+    __example: USAGE
+    __description: Shows the type of privilege granted.
+  snowflake.grant.to:
+    __context_names:
+      - outbound_shares
+    __example: SHARE
+    __description: Shows to what the grant was made.
+  snowflake.share.is_secure_objects_only:
+    __context_names:
+      - outbound_shares
+      - inbound_shares
+    __example: true
+    __description: Indicates if the share is only for secure objects.
+  snowflake.share.kind:
+    __context_names:
+      - outbound_shares
+      - inbound_shares
+    __example: OUTBOUND
+    __description: Indicates the type of share.
+  snowflake.share.listing_global_name:
+    __context_names:
+      - outbound_shares
+      - inbound_shares
+    __example: GLOBAL_SHARE_NAME
+    __description: Global name of the share listing.
+  snowflake.share.owner:
+    __context_names:
+      - outbound_shares
+      - inbound_shares
+    __example: ACCOUNTADMIN
+    __description: Shows the account owning the share.
+  snowflake.share.shared_from:
+    __context_names:
+      - outbound_shares
+      - inbound_shares
+    __example: SNOWFLAKE
+    __description: Shows the owner account of the share.
+  snowflake.share.shared_to:
+    __context_names:
+      - outbound_shares
+      - inbound_shares
+    __example: PARTNER_ACCOUNT
+    __description: Shows the account the share was made to.
+  snowflake.table.clustering_key:
+    __context_names:
+      - inbound_shares
+    __example: DATE
+    __description: Clustering key for the table.
+  snowflake.table.comment:
+    __context_names:
+      - inbound_shares
+    __example: The tables defined in this database that are accessible to the current user's role.
+    __description: Comment for this table.
+  snowflake.table.is_auto_clustering_on:
+    __context_names:
+      - inbound_shares
+    __example: "YES"
+    __description: Indicates whether automatic clustering is enabled for the table.
+  snowflake.table.is_dynamic:
+    __context_names:
+      - inbound_shares
+    __example: "NO"
+    __description: Indicates whether the table is a dynamic table.
+  snowflake.table.is_iceberg:
+    __context_names:
+      - inbound_shares
+    __example: "NO"
+    __description: Indicates whether the table is an Iceberg table.
+  snowflake.table.is_temporary:
+    __context_names:
+      - inbound_shares
+    __example: "NO"
+    __description: Indicates whether this is a temporary table.
+  snowflake.table.is_transient:
+    __context_names:
+      - inbound_shares
+    __example: "NO"
+    __description: Indicates whether this is a transient table.
+  snowflake.table.is_hybrid:
+    __context_names:
+      - inbound_shares
+    __example: false
+    __description: Indicates whether this is a hybrid table.
+  snowflake.share.has_db_deleted:
+    __context_names:
+      - inbound_shares
+    __example: false
+    __description: Indicates whether DB related to that INBOUND share has been deleted.
+  snowflake.share.has_details_reported:
+    __context_names:
+      - inbound_shares
+    __example: false
+    __description: Indicates whether or not details on this share should be reported.
+  snowflake.table.last_ddl_by:
+    __context_names:
+      - inbound_shares
+    __example: DBA_USER
+    __description: The current username for the user who executed the last DDL operation.
+  snowflake.table.owner:
+    __context_names:
+      - inbound_shares
+    __example: ACCOUNTADMIN
+    __description: Name of the role that owns the table.
+  snowflake.table.retention_time:
+    __context_names:
+      - inbound_shares
+    __example: 5
+    __description: Number of days that historical data is retained for Time Travel.
+  snowflake.table.type:
+    __context_names:
+      - inbound_shares
+    __example: BASE TABLE
+    __description: Indicates the table type.
 dimensions:
-    db.collection.name:
-        __context_names:
-            - inbound_shares
-        __example: SALES_DATA
-        __description: Name of the shared Snowflake table.
-    db.namespace:
-        __context_names:
-            - outbound_shares
-            - inbound_shares
-        __example: DEV_DB
-        __description: Name of the database used to store shared data.
-    snowflake.grant.name:
-        __context_names:
-            - outbound_shares
-        __example: READ_ACCESS
-        __description: Name of the grant to a share.
-    snowflake.schema.name:
-        __context_names:
-            - inbound_shares
-        __example: PUBLIC
-        __description: Name of the schema where the table is located.
-    snowflake.share.name:
-        __context_names:
-            - outbound_shares
-            - inbound_shares
-        __example: SAMPLE_DATA
-        __description: Name of the share.
+  db.collection.name:
+    __context_names:
+      - inbound_shares
+    __example: SALES_DATA
+    __description: Name of the shared Snowflake table.
+  db.namespace:
+    __context_names:
+      - outbound_shares
+      - inbound_shares
+    __example: DEV_DB
+    __description: Name of the database used to store shared data.
+  snowflake.grant.name:
+    __context_names:
+      - outbound_shares
+    __example: READ_ACCESS
+    __description: Name of the grant to a share.
+  snowflake.schema.name:
+    __context_names:
+      - inbound_shares
+    __example: PUBLIC
+    __description: Name of the schema where the table is located.
+  snowflake.share.name:
+    __context_names:
+      - outbound_shares
+      - inbound_shares
+    __example: SAMPLE_DATA
+    __description: Name of the share.
 event_timestamps:
-    snowflake.event.trigger:
-        __context_names:
-            - outbound_shares
-            - inbound_shares
-        __example: "snowflake.grant.created_on"
-        __description: Additionally to sending logs, each entry in `EVENT_TIMESTAMPS` is sent as event with key set to `snowflake.event.trigger`, value to key from `EVENT_TIMESTAMPS` and `timestamp` set to the key value.
-    snowflake.grant.created_on:
-        __context_names:
-            - outbound_shares
-        __example: 1639051180946000000
-        __description: Timestamp of the date of creating the grant.
-    snowflake.share.created_on:
-        __context_names:
-            - outbound_shares
-            - inbound_shares
-        __example: 1639051180714000000
-        __description: Timestamp of the date of creating the share.
-    snowflake.table.created_on:
-        __context_names:
-            - inbound_shares
-        __example: 1649940827875000000
-        __description: Creation time of the table.
-    snowflake.table.ddl:
-        __context_names:
-            - inbound_shares
-        __example: 1639940327875000000
-        __description:
-            Timestamp of the last DDL operation performed on the table or
-            view.
-    snowflake.table.update:
-        __context_names:
-            - inbound_shares
-        __example: 1649962827875000000
-        __description:
-            Date and time the object was last altered by a DML, DDL, or background
-            metadata operation.
+  snowflake.event.trigger:
+    __context_names:
+      - outbound_shares
+      - inbound_shares
+    __example: "snowflake.grant.created_on"
+    __description:
+      Additionally to sending logs, each entry in `EVENT_TIMESTAMPS` is sent as event with key set to `snowflake.event.trigger`, value to
+      key from `EVENT_TIMESTAMPS` and `timestamp` set to the key value.
+  snowflake.grant.created_on:
+    __context_names:
+      - outbound_shares
+    __example: 1639051180946000000
+    __description: The timestamp when the grant was created.
+  snowflake.share.created_on:
+    __context_names:
+      - outbound_shares
+      - inbound_shares
+    __example: 1639051180714000000
+    __description: The timestamp when the share was created.
+  snowflake.table.created_on:
+    __context_names:
+      - inbound_shares
+    __example: 1649940827875000000
+    __description: The timestamp when the table was created.
+  snowflake.table.ddl:
+    __context_names:
+      - inbound_shares
+    __example: 1639940327875000000
+    __description: The timestamp of the last DDL operation performed on the table or view.
+  snowflake.table.update:
+    __context_names:
+      - inbound_shares
+    __example: 1649962827875000000
+    __description: The timestamp when the object was last altered by a DML, DDL, or background metadata operation.

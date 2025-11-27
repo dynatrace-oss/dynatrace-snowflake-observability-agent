@@ -1,0 +1,50 @@
+[
+  {
+    "specversion": "1.0",
+    "source": "test.dsoa2025.snowflakecomputing.com",
+    "type": "CUSTOM_INFO",
+    "data": {
+      "snowflake.table.update": 1736851468626000000,
+      "snowflake.data.rows": 6,
+      "snowflake.data.size": 1024,
+      "snowflake.table.time_since.last_update": 81983,
+      "snowflake.table.type": "BASE TABLE",
+      "db.collection.name": "DEV_DB.PUBLIC.SALESMANAGERREGIONS",
+      "db.namespace": "DEV_DB",
+      "app.bundle": "data_volume",
+      "app.id": "dynatrace.snowagent",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "dsoa.run.context": "data_volume",
+      "dsoa.run.plugin": "test_send_results_as_bizevents"
+    }
+  },
+  {
+    "specversion": "1.0",
+    "source": "test.dsoa2025.snowflakecomputing.com",
+    "type": "CUSTOM_INFO",
+    "data": {
+      "snowflake.table.ddl": 1733122324468000000,
+      "snowflake.table.update": 1741707972204000000,
+      "snowflake.data.rows": 0,
+      "snowflake.data.size": 0,
+      "snowflake.table.time_since.last_ddl": 144135,
+      "snowflake.table.time_since.last_update": 1041,
+      "snowflake.table.type": "BASE TABLE",
+      "db.collection.name": "DTAGENT_DB.STATUS.PROCESSED_QUERIES_CACHE",
+      "db.namespace": "DTAGENT_DB",
+      "app.bundle": "data_volume",
+      "app.id": "dynatrace.snowagent",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "dsoa.run.context": "data_volume",
+      "dsoa.run.plugin": "test_send_results_as_bizevents"
+    }
+  }
+]

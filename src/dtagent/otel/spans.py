@@ -30,6 +30,7 @@ from opentelemetry.trace import SpanKind, INVALID_SPAN_ID, INVALID_TRACE_ID
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider, Tracer
 from opentelemetry.sdk.trace.id_generator import RandomIdGenerator
+from dtagent.otel import logs
 from dtagent.otel.otel_manager import CustomLoggingSession, OtelManager
 
 ##endregion COMPILE_REMOVE
@@ -45,7 +46,7 @@ class ExistingIdGenerator(RandomIdGenerator):
     """
 
     def __init__(self):
-        """Initializes generator with an empty span and trace ids -> this will make sure generator will fallback to super() implementation"""
+        """Initializes generator with an empty span and trace ids; this will make sure generator will fallback to super() implementation"""
         super().__init__()
 
         self.span_id = None
@@ -74,12 +75,14 @@ class ExistingIdGenerator(RandomIdGenerator):
                 LOG.debug("Invalid trace_id: %s", d_span["_TRACE_ID"])
 
     def generate_span_id(self) -> int:
+        """Generates span id based on either the stored value or the super() implementation if no value stored."""
         span_id = super().generate_span_id() if self.span_id is None or self.span_id == INVALID_SPAN_ID else self.span_id
 
         self.span_id = None
         return span_id
 
     def generate_trace_id(self) -> int:
+        """Generates trace id based on either the stored value or the super() implementation if no value stored."""
         trace_id = super().generate_trace_id() if self.trace_id is None or self.trace_id == INVALID_TRACE_ID else self.trace_id
 
         self.trace_id = None
@@ -99,6 +102,8 @@ class Spans:
         "SPAN_KIND_CONSUMER": SpanKind.CONSUMER,
     }
 
+    ENDPOINT_PATH = "/api/v2/otlp/v1/traces"
+
     def __init__(self, resource: Resource, configuration: Configuration):
         """Initializes tracers."""
 
@@ -114,9 +119,7 @@ class Spans:
         return Spans.SPAN_KIND_MAP.get(d_span.get("_SPAN_KIND")) or (SpanKind.SERVER if is_top_level else SpanKind.INTERNAL)
 
     def _setup_tracer(self, resource: Resource) -> None:
-        """
-        Sets up OTLP Trace for sending spans to Dynatrace
-        """
+        """Sets up OTLP Trace for sending spans to Dynatrace"""
         from opentelemetry.sdk.trace import SpanLimits
         from opentelemetry import trace
         from opentelemetry.sdk.trace.export import BatchSpanProcessor
@@ -132,7 +135,7 @@ class Spans:
                 self._session.headers.update(OtelManager.get_dsoa_headers())
 
         exporter = CustomUserAgentOTLPSpanExporter(
-            endpoint=f'{self._configuration.get("otlp.http")}/v1/traces',
+            endpoint=f'{self._configuration.get("spans.http")}',
             headers={"Authorization": f'Api-Token {self._configuration.get("dt.token")}'},
             session=CustomLoggingSession(),
         )
@@ -173,12 +176,12 @@ class Spans:
 
         df_sub_rows = session.table(view_name).filter(col(parent_row_id_col) == row_id)
 
-        for row in df_sub_rows.collect():
+        for row in df_sub_rows.to_local_iterator():
             row_dict = row.as_dict(recursive=True)
 
             yield row_dict
 
-    def generate_span(
+    def generate_span(  # pylint: disable=R0913
         self,
         d_span: Dict[str, Any],
         session: snowpark.Session,
@@ -190,12 +193,27 @@ class Spans:
         f_log_events: Optional[Callable[[Dict[str, Any]], None]] = None,
         context: Optional[Dict] = None,
         is_top_level: bool = False,
-    ) -> int:
-        """
-        Sends aggregated query history row as a OTLP span
+        processed_ids: Optional[List[str]] = None,
+    ) -> Tuple[int, int, int]:
+        """Sends aggregated query history row as a OTLP span.
+
+        Args:
+            d_span (Dict[str, Any]):                data row representing a span to be sent
+            session (snowpark.Session):             Snowflake Snowpark session
+            row_id_col (str):                       name of the column with row ID representing the row
+            parent_row_id_col (str):                name of the column with parent ID representing the parent row
+            view_name (str):                        view which contains all the information to be processed; required for recursion in spans
+            f_span_events (Callable):               function that will produce a list of span events to be sent;
+                                                    Returns Tuple[List[Dict[str, Any]], int]
+            f_log_events (Callable):                function that will log current span and its events; will return number of logs sent
+            context (Dict, optional):               context information reported as additional attributes in log/span payload
+            is_top_level (bool):                    indicator whether the span is a top level one (without parent)
+            processed_ids (List[str], optional):    list where processed row ids will be appended to avoid duplicate processing
 
         Return:
             int     Number of span events generated
+            int     Number of spans generated
+            int     Number of logs sent
         """
         from dtagent import LOG, LL_TRACE  # COMPILE_REMOVE
         from dtagent.util import _adjust_timestamp, _unpack_json_dict  # COMPILE_REMOVE
@@ -203,14 +221,23 @@ class Spans:
         from opentelemetry.sdk.trace import StatusCode
 
         def __process_subrows(row_id: str):
-            """Generates sub-spans for specified row_id"""
+            """Generates sub-spans for specified row_id
+
+            Return:
+                int     Number of span events generated
+                int     Number of spans generated
+                int     Number of logs sent
+            """
 
             LOG.log(LL_TRACE, "- will process sub-spans -")
 
             span_events_added = 0
+            spans_cnt = 0
+            logs_cnt = 0
+
             for row_dict in self._get_sub_rows(session, view_name, parent_row_id_col, row_id):
                 LOG.log(LL_TRACE, "Will generate sub-span for %s", row_dict[row_id_col])
-                span_events_added += self.generate_span(
+                _span_events_added, _spans_cnt, _logs_cnt = self.generate_span(
                     row_dict,
                     session,
                     row_id_col,
@@ -219,14 +246,20 @@ class Spans:
                     f_span_events=f_span_events,
                     f_log_events=f_log_events,
                     context=context,
+                    processed_ids=processed_ids,
                 )
+                span_events_added += _span_events_added
+                spans_cnt += _spans_cnt
+                logs_cnt += _logs_cnt
 
             LOG.log(LL_TRACE, "- have processed sub-spans -")
-            return span_events_added
+            return span_events_added, spans_cnt, logs_cnt
 
         events_added = 0
         events_failed = 0
         subspan_events_added = 0
+        spans_cnt = 0
+        logs_cnt = 0
 
         _adjust_timestamp(d_span)
 
@@ -245,6 +278,7 @@ class Spans:
             attributes=span_attributes,
             kind=self._get_span_kind(d_span, is_top_level),
         ) as current_span:
+            spans_cnt += 1
 
             row_id = d_span.get(row_id_col, None)
             LOG.log(LL_TRACE, "Processing span for row_id = %r at start_time=%r", row_id, d_span["START_TIME"])
@@ -271,17 +305,22 @@ class Spans:
             )
 
             if f_log_events:
-                f_log_events(d_span)
+                logs_cnt += f_log_events(d_span)
 
-            subspan_events_added = __process_subrows(row_id) if d_span.get("IS_PARENT", False) else 0
+            subspan_events_added, subspan_spans_cnt, subspan_logs_cnt = (
+                __process_subrows(row_id) if d_span.get("IS_PARENT", False) else (0, 0, 0)
+            )
 
             current_span.set_status(StatusCode[d_span.get("STATUS_CODE", "UNSET")])
             current_span.end(int(d_span["END_TIME"]))
 
+            if row_id is not None and processed_ids is not None:
+                processed_ids.append(row_id)
+
         LOG.log(LL_TRACE, "Leaving span reporting for %r", row_id)
         OtelManager.verify_communication()
 
-        return subspan_events_added + events_added
+        return subspan_events_added + events_added, subspan_spans_cnt + spans_cnt, subspan_logs_cnt + logs_cnt
 
     def flush_traces(self) -> bool:
         """Force flushes the cached traces."""

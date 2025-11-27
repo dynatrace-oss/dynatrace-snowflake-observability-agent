@@ -3,7 +3,8 @@ delivers:
     type: table|view
     comment: |
       Dynatrace Snowflake Observability Agent can setup an event table if one does not exist.
-      It creates a view over an existing event log table if that table was not setup by the actual Dynatrace Snowflake Observability Agent instance.
+      It creates a view over an existing event log table if that table was not setup by the actual
+      Dynatrace Snowflake Observability Agent instance.
   - name: DTAGENT_DB.APP.SETUP_EVENT_TABLE()
     type: procedure
   - name: DTAGENT_DB.APP.P_CLEANUP_EVENT_LOG()

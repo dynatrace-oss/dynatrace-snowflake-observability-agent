@@ -18,9 +18,7 @@
 dimensions:
   db.namespace:
     __example: PROD_DB
-    __description:
-        The name of the database that was specified in the context of
-        the query at compilation.
+    __description: The name of the database that was specified in the context of the query at compilation.
     __context_names:
       - event_log_metrics
       - event_log_spans

@@ -22,28 +22,27 @@
 #
 #
 class TestLoginHist:
+    import pytest
+
+    PICKLES = {"APP.V_LOGIN_HISTORY": "test/test_data/login_history.pkl", "APP.V_SESSIONS": "test/test_data/sessions.pkl"}
+
+    @pytest.mark.xdist_group(name="test_telemetry")
     def test_login_hist(self):
         import logging
+        from unittest.mock import patch
         from typing import Dict, Generator
         import test._utils as utils
         from test import TestDynatraceSnowAgent, _get_session
         from dtagent.plugins.login_history import LoginHistoryPlugin
 
-        T_DATA_LOGINH = "APP.V_LOGIN_HISTORY"
-        T_DATA_SESSIONS = "APP.V_SESSIONS"
-        pkl_dict = {T_DATA_LOGINH: "test/test_data/login_history.pkl", T_DATA_SESSIONS: "test/test_data/sessions.pkl"}
-
         # ======================================================================
 
-        if utils.should_pickle(list(pkl_dict.values())):
-            session = _get_session()
-            utils._pickle_data_history(session, T_DATA_LOGINH, pkl_dict[T_DATA_LOGINH])
-            utils._pickle_data_history(session, T_DATA_SESSIONS, pkl_dict[T_DATA_SESSIONS])
+        utils._pickle_all(_get_session(), self.PICKLES)
 
         class TestLoginHistoryPlugin(LoginHistoryPlugin):
 
-            def _get_table_rows(self, table_name: str = None) -> Generator[Dict, None, None]:
-                return utils._get_unpickled_entries(pkl_dict[table_name], limit=2)
+            def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
+                return utils._safe_get_unpickled_entries(TestLoginHist.PICKLES, t_data, limit=2)
 
         def __local_get_plugin_class(source: str):
             return TestLoginHistoryPlugin
@@ -53,9 +52,25 @@ class TestLoginHist:
         plugins._get_plugin_class = __local_get_plugin_class
 
         # ======================================================================
-        session = _get_session()
 
-        utils._logging_findings(session, TestDynatraceSnowAgent(session), "test_login_history", logging.INFO, show_detailed_logs=0)
+        disabled_combinations = [
+            [],
+            ["logs"],
+            ["events"],
+            ["logs", "events"],
+        ]
+
+        for disabled_telemetry in disabled_combinations:
+            utils.execute_telemetry_test(
+                TestDynatraceSnowAgent,
+                test_name="test_login_history",
+                disabled_telemetry=disabled_telemetry,
+                affecting_types_for_entries=["logs", "events"],
+                base_count={
+                    "login_history": {"entries": 2, "log_lines": 2, "metrics": 0, "events": 0},
+                    "sessions": {"entries": 0, "log_lines": 0, "metrics": 0, "events": 0},
+                },
+            )
 
 
 if __name__ == "__main__":

@@ -5,7 +5,12 @@
             "IS_DISABLED": false,
             "IS_HASHED": true,
             "RETAIN_EMAIL_HASH_MAP": false,
-            "ROLES_MONITORING_MODE": []
+            "ROLES_MONITORING_MODE": [],
+            "TELEMETRY": [
+                "logs",
+                "events",
+                "biz_events"
+            ]
         }
     }
 }

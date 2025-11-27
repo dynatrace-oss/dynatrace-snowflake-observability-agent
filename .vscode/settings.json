@@ -18,6 +18,7 @@
     "editor.formatOnPaste": true,
     "editor.tabSize": 2,
     "editor.defaultFormatter": "ms-python.black-formatter",
+    "editor.rulers": [140],
     "debug.javascript.terminalOptions": {},
     "debug.javascript.debugByLinkOptions": "on",
     "black-formatter.args": [
@@ -42,11 +43,14 @@
         "dashboarding",
         "DATEADD",
         "deadsnakes",
+        "dedup",
+        "descr",
         "devel",
         "docstrings",
         "doesn't",
         "dsoa",
         "DTAGENT",
+        "Dynatrace",
         "ECAC",
         "ensurepath",
         "externalbrowser",
@@ -61,10 +65,14 @@
         "jsonstrip",
         "judgements",
         "Kamatchi",
+        "kvlist",
+        "LDATA",
+        "levelname",
         "libcairo",
         "libgdk",
         "libpango",
         "libpangocairo",
+        "lineterm",
         "listagg",
         "Luhansk",
         "Majeure",
@@ -76,15 +84,19 @@
         "multitenancy",
         "mysnowflake",
         "Neev",
+        "numpy",
+        "openpipeline",
         "pandoc",
         "pango",
         "parseable",
         "perc",
         "pipx",
         "pixbuf",
+        "pycache",
         "pylint",
         "pytest",
         "PYTHONPATH",
+        "pyyaml",
         "quiescing",
         "Ramdoss",
         "representer",
@@ -97,15 +109,19 @@
         "snowflakedb",
         "snowpark",
         "SNOWPIPE",
+        "softprops",
         "specversion",
         "spendings",
         "SQLERRM",
+        "sqlfluff",
         "SQLROWCOUNT",
+        "streamlit",
         "subrows",
         "subspan",
         "Suri",
         "timeadd",
         "timediff",
+        "tofile",
         "Trapelo",
         "tzlocal",
         "UNDROP",
@@ -115,8 +131,10 @@
         "uuidgen",
         "venv",
         "Vidhya",
+        "viewsend",
         "Waltham",
         "weasyprint",
+        "xdist",
         "Xometry"
     ],
     "cSpell.ignorePaths": [
@@ -132,7 +150,7 @@
     ],
     "focus.highlightRange": "none",
     "pylint.args": [
-        "--disable=C0111,C0415,C0301,W0621", 
+        "--disable=C0111,C0415,C0301,W0621,W0150",
         "--max-line-length=140"
     ],
     "vsicons.presets.jsonOfficial": true,
@@ -152,6 +170,14 @@
     "markdown.extension.toc.orderedList": false,
     "markdown.extension.toc.slugifyMode": "github",
     "markdown.extension.list.indentationSize": "inherit",
+    "[markdown]": {
+        "editor.defaultFormatter": "yzhang.markdown-all-in-one",
+        "editor.formatOnSave": true,
+        "editor.detectIndentation": false,
+        "editor.indentSize": "tabSize",
+        "editor.tabSize": 2,
+        "editor.wordWrap": "on"
+    },
     "[shellscript]": {
         "editor.defaultFormatter": "foxundermoon.shell-format"
     },
@@ -159,6 +185,20 @@
         "editor.defaultFormatter": "foxundermoon.shell-format"
     },
     "python.terminal.activateEnvInCurrentTerminal": true,
+    "[ini]": {
+        "editor.formatOnSave": false,
+        "editor.defaultFormatter": null
+    },
+    "files.trimTrailingWhitespace": true,
+    "files.associations": {
+        ".sqlfluff": "ini"
+    },
     "markdown.extension.tableFormatter.normalizeIndentation": true,
-    "editor.indentSize": "tabSize"
+    "editor.indentSize": "tabSize",
+    "[yml]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[yaml]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    }
 }

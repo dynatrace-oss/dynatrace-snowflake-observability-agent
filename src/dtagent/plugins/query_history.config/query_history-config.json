@@ -5,7 +5,13 @@
             "SCHEDULE": "USING CRON */30 * * * * UTC",
             "IS_DISABLED": false,
             "SLOW_QUERIES_THRESHOLD": 10000,
-            "SLOW_QUERIES_TO_ANALYZE_LIMIT": 50
+            "SLOW_QUERIES_TO_ANALYZE_LIMIT": 50,
+            "TELEMETRY": [
+                "metrics",
+                "logs",
+                "biz_events",
+                "spans"
+            ]
         }
     }
 }

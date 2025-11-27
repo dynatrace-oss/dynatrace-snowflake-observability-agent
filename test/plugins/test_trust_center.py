@@ -22,26 +22,32 @@
 #
 #
 class TestTrustCenter:
+    import pytest
+
+    PICKLES = {
+        "APP.V_TRUST_CENTER_METRICS": "test/test_data/trust_center_metrics.pkl",
+        "APP.V_TRUST_CENTER_INSTRUMENTED": "test/test_data/trust_center_instr.pkl",
+    }
+
+    @pytest.mark.xdist_group(name="test_telemetry")
     def test_trust_center(self):
 
         from typing import Generator, Dict
         import logging
+        from unittest.mock import patch
         from test import TestDynatraceSnowAgent, _get_session
         import test._utils as utils
         from dtagent.plugins.trust_center import TrustCenterPlugin
         from dtagent import plugins
 
-        T_DATA_TRUST_CENTER = "APP.V_TRUST_CENTER"
-        PICKLE_NAME_TRUST_CENTER = "test/test_data/trust_center_hist.pkl"
         # -----------------------------------------------------
 
-        if utils.should_pickle([PICKLE_NAME_TRUST_CENTER]):
-            utils._pickle_data_history(_get_session(), T_DATA_TRUST_CENTER, PICKLE_NAME_TRUST_CENTER)
+        utils._pickle_all(_get_session(), self.PICKLES)
 
         class TestTrustCenterPlugin(TrustCenterPlugin):
 
-            def _get_table_rows(self, table_name: str = None) -> Generator[Dict, None, None]:
-                return utils._get_unpickled_entries(PICKLE_NAME_TRUST_CENTER, limit=2)
+            def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
+                return utils._safe_get_unpickled_entries(TestTrustCenter.PICKLES, t_data, limit=2)
 
         def __local_get_plugin_class(source: str):
             return TestTrustCenterPlugin
@@ -50,8 +56,28 @@ class TestTrustCenter:
 
         # ======================================================================
 
-        session = _get_session()
-        utils._logging_findings(session, TestDynatraceSnowAgent(session), "test_trust_center", logging.INFO, show_detailed_logs=0)
+        disabled_combinations = [
+            [],
+            ["metrics"],
+            ["logs"],
+            ["events"],
+            ["metrics", "logs"],
+            ["metrics", "events"],
+            ["logs", "events"],
+            ["metrics", "logs", "events"],
+        ]
+
+        for disabled_telemetry in disabled_combinations:
+            utils.execute_telemetry_test(
+                TestDynatraceSnowAgent,
+                test_name="test_trust_center",
+                disabled_telemetry=disabled_telemetry,
+                affecting_types_for_entries=["logs", "metrics", "events"],
+                base_count={
+                    "trust_center": {"entries": 2, "log_lines": 2, "events": 0},
+                    "trust_center_metrics": {"entries": 2, "metrics": 2},
+                },
+            )
 
 
 if __name__ == "__main__":

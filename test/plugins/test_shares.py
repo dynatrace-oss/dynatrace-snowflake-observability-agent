@@ -22,8 +22,18 @@
 #
 #
 class TestShares:
+    import pytest
+
+    PICKLES = {
+        "APP.V_INBOUND_SHARE_TABLES": "test/test_data/inbound_shares.pkl",
+        "APP.V_OUTBOUND_SHARE_TABLES": "test/test_data/outbound_shares.pkl",
+        "APP.V_SHARE_EVENTS": "test/test_data/shares.pkl",
+    }
+
+    @pytest.mark.xdist_group(name="test_telemetry")
     def test_shares(self):
         import logging
+        from unittest.mock import patch
 
         from typing import Dict, Generator
 
@@ -31,28 +41,17 @@ class TestShares:
         from test import TestDynatraceSnowAgent, _get_session
         from dtagent.plugins.shares import SharesPlugin
 
-        T_DATA_INBOUND = "APP.V_INBOUND_SHARE_TABLES"
-        T_DATA_OUTBOUND = "APP.V_OUTBOUND_SHARE_TABLES"
-        T_SHARE_DATA = "APP.V_SHARE_EVENTS"
-        pkl_dict = {
-            T_DATA_INBOUND: "test/test_data/inbound_shares.pkl",
-            T_DATA_OUTBOUND: "test/test_data/outbound_shares.pkl",
-            T_SHARE_DATA: "test/test_data/shares.pkl",
-        }
-
         # ======================================================================
 
-        if utils.should_pickle(list(pkl_dict.values())):
+        if utils.should_pickle(self.PICKLES.values()):
             session = _get_session()
             session.call("APP.P_GET_SHARES", log_on_exception=True)
-            utils._pickle_data_history(session, T_DATA_INBOUND, pkl_dict[T_DATA_INBOUND])
-            utils._pickle_data_history(session, T_DATA_OUTBOUND, pkl_dict[T_DATA_OUTBOUND])
-            utils._pickle_data_history(session, T_SHARE_DATA, pkl_dict[T_SHARE_DATA])
+            utils._pickle_all(session, self.PICKLES, force=True)
 
         class TestSharesPlugin(SharesPlugin):
 
-            def _get_table_rows(self, table_name: str = None) -> Generator[Dict, None, None]:
-                return utils._get_unpickled_entries(pkl_dict[table_name], limit=2)
+            def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
+                return utils._safe_get_unpickled_entries(TestShares.PICKLES, t_data, limit=2)
 
         def __local_get_plugin_class(source: str):
             return TestSharesPlugin
@@ -63,8 +62,25 @@ class TestShares:
 
         # ======================================================================
 
-        session = _get_session()
-        utils._logging_findings(session, TestDynatraceSnowAgent(session), "test_shares", logging.INFO, show_detailed_logs=0)
+        disabled_combinations = [
+            [],
+            ["logs"],
+            ["events"],
+            ["logs", "events"],
+        ]
+
+        for disabled_telemetry in disabled_combinations:
+            utils.execute_telemetry_test(
+                TestDynatraceSnowAgent,
+                test_name="test_shares",
+                disabled_telemetry=disabled_telemetry,
+                affecting_types_for_entries=["logs", "events"],  # there is not test data for events
+                base_count={
+                    "outbound_shares": {"entries": 2, "log_lines": 2, "metrics": 0, "events": 2},
+                    "inbound_shares": {"entries": 2, "log_lines": 2, "metrics": 0, "events": 0},
+                    "shares": {"entries": 2, "log_lines": 0, "metrics": 0, "events": 2},
+                },
+            )
 
 
 if __name__ == "__main__":

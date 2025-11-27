@@ -1,4 +1,5 @@
 """Collection of utility function for Dynatrace Snowflake Observability Agent"""
+
 ##region ------------------------------ IMPORTS  -----------------------------------------
 #
 #
@@ -24,12 +25,13 @@
 #
 #
 
+import datetime
+import json
 import os
 import re
-import json
-import datetime
-from typing import Any, Dict, List, Optional, Union
 from enum import Enum
+from typing import Any, Dict, List, Optional, Union, Generator
+
 import pandas as pd
 
 ##endregion COMPILE_REMOVE
@@ -42,11 +44,10 @@ _9_MINUTES_IN_SEC = 9 * 60
 EVENT_TIMESTAMP_KEYS_PAYLOAD_NAME = "snowflake.event.trigger"
 P_SELECT_QUERY = re.compile(r"^\s*(SELECT|SHOW\s+[^>]*->>\s*SELECT)", re.IGNORECASE | re.DOTALL)
 
+
 def _esc(v: Any) -> Any:
-    """
-    Helper function that escapes " with \" if given object is a string
-    """
-    return v.replace('\\', '\\\\').replace('"', '\\"') if isinstance(v, str) else v
+    r"""Helper function that escapes " with \" if given object is a string"""
+    return v.replace("\\", "\\\\").replace('"', '\\"') if isinstance(v, str) else v
 
 
 def _from_json(val: Any) -> Any:
@@ -75,18 +76,18 @@ def _cleanup_data(value: Any) -> Any:
 
 
 def _pack_values_to_json_strings(value: Any, level: int = 0, max_list_level: int = 2) -> Union[Dict[str, str], List[str], str]:
-    """
-    Recursively convert all values in a dictionary to JSON strings.
+    """Recursively convert all values in a dictionary to JSON strings.
 
     Args:
         value (Any): The original value, which can be a dictionary, list, or other types.
-        max_list_level (int, default = 2): Maximum nesting level on which list elements will be parsed seperately.
+        max_list_level (int, default = 2): Maximum nesting level on which list elements will be parsed separately.
                                             If list is found further than this level, it will be stringified as a whole.
 
     Returns:
         Union[Dict[str, str], List[str], str]: A new dictionary, list, or value with all values converted to JSON strings.
     """
-    def __is_not_empty(v:Any) -> bool:
+
+    def __is_not_empty(v: Any) -> bool:
         return v is not None and v != {} and v != "{}" and v != [] and v != "[]"
 
     if isinstance(value, dict) and level == 0:
@@ -108,50 +109,32 @@ def _to_json(content: any) -> str:
 
 
 def _unpack_json_list(to_unpack: Dict, keys: List) -> List:
-    """
-    Helper function that will ensure we do not run into empty, null, or string values
+    """Helper function that will ensure we do not run into empty, null, or string values
     when we expect a list to work with
     """
     from itertools import chain
 
-    return list(chain(
-            # packing multiple dicts into a single one
-            *[
-                # getting list from JSON if it is a string
-                _from_json(val)
-                for val
-                # getting values from the given dict - if they don't exit they default to an empty list
-                in [to_unpack.get(key, []) for key in keys]
-                if val is not None and val != ''
-            ]
-        ))
+    # packing multiple dicts into a single one
+    # getting list from JSON if it is a string
+    # getting values from the given dict - if they don't exit they default to an empty list
+    return list(chain(*[_from_json(val) for val in [to_unpack.get(key, []) for key in keys] if val is not None and val != ""]))
 
 
 def _unpack_json_dict(to_unpack: Dict, keys: List) -> Dict:
-    """
-    Helper function that will ensure we do not run into empty, null, or string values
+    """Helper function that will ensure we do not run into empty, null, or string values
     when we expect a dictionary to work with
     """
     from collections import ChainMap
-    return dict(ChainMap(
-            # packing multiple dicts into a single one
-            *[
-                # getting dict from JSON if it is a string
-                _from_json(val)
-                for val
-                # getting values from the given dict - if they don't exit they default to an empty dict
-                in [to_unpack.get(key, {}) for key in keys]
-                if val is not None and val != ''
-            ]
-        ))
+
+    # packing multiple dicts into a single one
+    # getting dict from JSON if it is a string
+    return dict(ChainMap(*[_from_json(val) for val in [to_unpack.get(key, {}) for key in keys] if val is not None and val != ""]))
 
 
 def _clean_key(key: str) -> str:
-    """
-    Ensures there are only lowercase alphanumeric and underscore characters in the key
-    """
-    ans = re.sub(r'[^a-zA-Z0-9_\s]', '', key)
-    cs = re.sub(r'\s+', '_', ans)
+    """Ensures there are only lowercase alphanumeric and underscore characters in the key"""
+    ans = re.sub(r"[^a-zA-Z0-9_\s]", "", key)
+    cs = re.sub(r"\s+", "_", ans)
     return cs.lower()
 
 
@@ -160,7 +143,8 @@ def _cleanup_dict(d: Any, skip_first_level_hidden=False) -> Union[dict, list, st
 
     Args:
         d (any): The input data, which can be a dictionary, list, or any other type.
-        skip_first_level_hidden (bool, optional): If True, it skips keys starting with an underscore at the first level of the dictionary. Defaults to False.
+        skip_first_level_hidden (bool, optional): If True, it skips keys starting with an underscore at the first level of the dictionary.
+                                                  Defaults to False.
 
     Returns:
         Union[dict, list]: _description_
@@ -178,8 +162,8 @@ def _cleanup_dict(d: Any, skip_first_level_hidden=False) -> Union[dict, list, st
 
     if isinstance(d, dict):
         return {
-            k:v for k,v in
-            {
+            k: v
+            for k, v in {
                 k: _cleanup_dict(v)
                 for k, v in d.items()
                 # this is checking if v is not None, NaN, NaF, and not an empty dictionary
@@ -197,9 +181,8 @@ def _cleanup_dict(d: Any, skip_first_level_hidden=False) -> Union[dict, list, st
     return d
 
 
-def _adjust_timestamp(row_dict: Dict, start_time: str = 'START_TIME', end_time: str = 'END_TIME', now: Optional[int] = None) -> Dict:
-    """
-    Updates START_TIME/TIMESTAMP and END_TIME when they are outside the boundaries in 
+def _adjust_timestamp(row_dict: Dict, start_time: str = "START_TIME", end_time: str = "END_TIME", now: Optional[int] = None) -> Dict:
+    """Updates START_TIME/TIMESTAMP and END_TIME when they are outside the boundaries in
     https://docs.dynatrace.com/docs/ingest-from/opentelemetry/getting-started/traces/ingest#ingestion-limits,
     i.e., should not be 60min in past or 10min in the future.
     The algorithm will attempt to keep period length is intact
@@ -284,7 +267,7 @@ def _get_timestamp_in_sec(ts: float = 0, conversion_unit: float = 1, timezone=da
 
     Args:
         ts (float, optional): timestamp epoch value. Defaults to 0.
-        conversion_unit (float, optional): conversation unit, e.g., 1000 * 1000 * 1000 for nanosec to sec. Defaults to 1.
+        conversion_unit (float, optional): conversation unit, e.g., 1000 * 1000 * 1000 for nanoseconds to sec. Defaults to 1.
                                             If converting to nanoseconds it is recommended to use NANOSECOND_CONVERSION_RATE const.
         timezone (_type_, optional): timezone. Defaults to datetime.timezone.utc.
 
@@ -295,8 +278,7 @@ def _get_timestamp_in_sec(ts: float = 0, conversion_unit: float = 1, timezone=da
 
 
 def _get_service_name(config_dict: str) -> str:
-    """
-    Returns snowflake full account name either as account name from config
+    """Returns snowflake full account name either as account name from config
     or matching given pattern on snowflake host name
     """
     if "core.snowflake_account_name" in config_dict:
@@ -307,9 +289,7 @@ def _get_service_name(config_dict: str) -> str:
 
 
 def _is_not_blank(value: Any) -> bool:
-    """
-    Helper function to check whether given value is empty or null
-    """
+    """Helper function to check whether given value is empty or null."""
     return value is not None and str(value).strip() != ""
 
 
@@ -326,10 +306,8 @@ def _unpack_payload(query_data: Dict) -> Dict:
 
     unpacked_payload = {
         attribute_key: attribute_value
-        for attribute_key, attribute_value
-        in _unpack_json_dict(
-            query_data,
-            ["DIMENSIONS", "ATTRIBUTES", "METRICS", "EVENT_TIMESTAMPS"]
+        for attribute_key, attribute_value in _unpack_json_dict(
+            query_data, ["DIMENSIONS", "ATTRIBUTES", "METRICS", "EVENT_TIMESTAMPS"]
         ).items()
         if _is_not_blank(attribute_value)
     }
@@ -337,15 +315,41 @@ def _unpack_payload(query_data: Dict) -> Dict:
     return unpacked_payload
 
 
-def get_timestamp_in_ms(query_data: Dict, ts_key: str, conversion_unit: int = 1e6, default_ts=None):
-    """Returns timetamp in miliseconds by converting value retrieved from query_data under given ts_key
+def _chunked_iterable(iterable, size: int) -> Generator[List, None, None]:
+    """Yields chunks of the given iterable, each of the specified size.
+
+    This function takes an iterable and divides it into smaller lists (chunks) of a given size.
+    It uses itertools.islice to efficiently slice the iterator without loading the entire iterable into memory.
+
+    Args:
+        iterable: An iterable object (e.g., list, tuple, generator) to be chunked.
+        size: An integer specifying the maximum size of each chunk. Must be positive.
+
+    Yields:
+        list: A list containing up to 'size' elements from the iterable.
+              The last chunk may be smaller if the iterable's length is not divisible by 'size'.
+
+    Raises:
+        ValueError: If 'size' is not a positive integer.
+
+    Note:
+        This is a generator function, so it yields chunks lazily.
     """
+    import itertools
+
+    it = iter(iterable)
+    while chunk := list(itertools.islice(it, size)):
+        yield chunk
+
+
+def get_timestamp_in_ms(query_data: Dict, ts_key: str, conversion_unit: int = 1e6, default_ts=None):
+    """Returns timestamp in milliseconds by converting value retrieved from query_data under given ts_key"""
     ts = query_data.get(ts_key, None)
     if ts is not None and not pd.isna(ts):
         if isinstance(ts, datetime.datetime):
             # Ensure timezone awareness before converting to timestamp
             ts = ensure_timezone_aware(ts)
-            return ts.timestamp() * 1000
+            return int(ts.timestamp() * 1000)
         return int(int(ts) / conversion_unit)
     return default_ts
 
@@ -362,8 +366,8 @@ def ensure_timezone_aware(dt: datetime.datetime) -> datetime.datetime:
     from zoneinfo import ZoneInfo
 
     if dt.tzinfo is None:
-        system_tz = os.environ.get('TZ', 'UTC')
-        if system_tz in ['UTC', 'etc/utc', 'Etc/UTC']:
+        system_tz = os.environ.get("TZ", "UTC")
+        if system_tz in ["UTC", "etc/utc", "Etc/UTC"]:
             dt = dt.replace(tzinfo=ZoneInfo("UTC"))
         else:
             local_tz = ZoneInfo("Europe/Warsaw")
@@ -386,18 +390,26 @@ def format_datetime(dt: datetime.datetime) -> str:
     utc_time = dt.astimezone(ZoneInfo("UTC"))
     return utc_time.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
 
+
 def get_now_timestamp_formatted() -> str:
-    """Uses format_datetime() to format now() as "%Y-%m-%dT%H:%M:%S.%f{3}Z" """
+    """Uses format_datetime() to format now() as "%Y-%m-%dT%H:%M:%S.%f{3}Z"."""
     return format_datetime(get_now_timestamp())
+
 
 def get_now_timestamp() -> datetime.datetime:
     """Returns current timestamp as datetime object"""
     return datetime.datetime.now(datetime.timezone.utc)
 
-def is_select_for_table(table_name_or_query:str) -> bool:
-    """Returns True if given table name is in fact a SELECT statement or a SHOW ... ->> SELECT ... statement
-    """
+
+def is_select_for_table(table_name_or_query: str) -> bool:
+    """Returns True if given table name is in fact a SELECT statement or a SHOW ... ->> SELECT ... statement"""
     return P_SELECT_QUERY.match(table_name_or_query) is not None
+
+
+def is_regular_mode(session) -> bool:
+    """Checks if we are running in regular mode, i.e., not local testing mode"""
+    return session.session_id != 1
+
 
 ##endregion
 
@@ -405,8 +417,11 @@ def is_select_for_table(table_name_or_query:str) -> bool:
 
 
 class StringEnum(str, Enum):
-    """Customer implementation of the StrEnum that ensures case of enum values is kept - unlike in StrEnum"""
+    """Custom implementation of the StrEnum that ensures case of enum values is kept - unlike in StrEnum"""
+
     def __str__(self):
+        """Returns string representation of the enum value keeping the case."""
         return self.name
+
 
 ##endregion

@@ -14,222 +14,222 @@
 #  * Copyright (c) 2024 Dynatrace LLC.  All rights reserved.
 #  *
 attributes:
-    db.query.text:
-        __context_names:
-            - task_versions
-        __example: SELECT * FROM users;
-        __description: The text of the query.
-    snowflake.database.id:
-        __context_names:
-            - serverless_tasks
-            - task_versions
-        __example: db123
-        __description: The unique identifier for the database.
-    snowflake.error.code:
-        __context_names:
-            - task_history
-        __example: ERR123
-        __description: The error code returned by the task.
-    snowflake.error.message:
-        __context_names:
-            - task_history
-        __example: Syntax error
-        __description: The error message returned by the task.
-    snowflake.query.hash:
-        __context_names:
-            - task_history
-        __example: hash123
-        __description: The hash of the query.
-    snowflake.query.hash_version:
-        __context_names:
-            - task_history
-        __example: v1
-        __description: The version of the query hash.
-    snowflake.query.id:
-        __context_names:
-            - task_history
-        __example: query123
-        __description: The unique identifier for the query.
-    snowflake.query.parametrized_hash:
-        __context_names:
-            - task_history
-        __example: param_hash123
-        __description: The parameterized hash of the query.
-    snowflake.query.parametrized_hash_version:
-        __context_names:
-            - task_history
-        __example: v1
-        __description: The version of the parameterized query hash.
-    snowflake.schema.id:
-        __context_names:
-            - serverless_tasks
-            - task_versions
-        __example: schema123
-        __description: The unique identifier for the schema.
-    snowflake.task.condition:
-        __context_names:
-            - task_versions
-            - task_history
-        __example: status = 'SUCCESS'
-        __description: The condition text of the task.
-    snowflake.task.config:
-        __context_names:
-            - task_history
-        __example: config123
-        __description: The configuration of the task.
-    snowflake.task.config.allow_overlap:
-        __context_names:
-            - task_versions
-        __example: "true"
-        __description: Indicates if overlapping execution is allowed.
-    snowflake.task.end_time:
-        __context_names:
-            - serverless_tasks
-        __example: "1633046700000000000"
-        __description: The end time of the task.
-    snowflake.task.error_integration:
-        __context_names:
-            - task_versions
-        __example: error_integration123
-        __description: The error integration for the task.
-    snowflake.task.graph.root_id:
-        __context_names:
-            - task_versions
-            - task_history
-        __example: root123
-        __description: The root ID of the task graph.
-    snowflake.task.graph.version:
-        __context_names:
-            - task_versions
-            - task_history
-        __example: v1
-        __description: The version of the task graph.
-    snowflake.task.id:
-        __context_names:
-            - serverless_tasks
-            - task_versions
-        __example: task123
-        __description: The unique identifier for the task.
-    snowflake.task.instance_id:
-        __context_names:
-            - serverless_tasks
-        __example: instance123
-        __description: The unique identifier for the task instance.
-    snowflake.task.last_committed_on:
-        __context_names:
-            - task_versions
-        __example: "1633046400000000000"
-        __description: The last committed time of the task.
-    snowflake.task.last_suspended_on:
-        __context_names:
-            - task_versions
-        __example: "1633046700000000000"
-        __description: The last suspended time of the task.
-    snowflake.task.owner:
-        __context_names:
-            - task_versions
-        __example: admin
-        __description: The owner of the task.
-    snowflake.task.predecessors:
-        __context_names:
-            - task_versions
-        __example: taskA, taskB
-        __description: The predecessors of the task.
-    snowflake.task.run.attempt:
-        __context_names:
-            - task_history
-        __example: "1"
-        __description: The attempt number of the task run.
-    snowflake.task.run.completed_time:
-        __context_names:
-            - task_history
-        __example: "1633046700000000000"
-        __description: The completed time of the task run.
-    snowflake.task.run.group_id:
-        __context_names:
-            - task_history
-        __example: group123
-        __description: The group ID of the task run.
-    snowflake.task.run.id:
-        __context_names:
-            - task_history
-        __example: run123
-        __description: The unique identifier for the task run.
-    snowflake.task.run.return_value:
-        __context_names:
-            - task_history
-        __example: "0"
-        __description: The return value of the task run.
-    snowflake.task.run.scheduled_time:
-        __context_names:
-            - task_history
-        __example: "1633046400000000000"
-        __description: The scheduled time of the task run.
-    snowflake.task.run.scheduled_from:
-        __context_names:
-            - task_history
-        __example: CRON
-        __description: The source from which the task was scheduled.
-    snowflake.task.run.state:
-        __context_names:
-            - task_history
-        __example: RUNNING
-        __description: The state of the task run.
-    snowflake.task.schedule:
-        __context_names:
-            - task_versions
-        __example: 0 0 * * *
-        __description: The schedule of the task.
-    snowflake.task.start_time:
-        __context_names:
-            - serverless_tasks
-        __example: "1633046400000000000"
-        __description: The start time of the task.
+  db.query.text:
+    __context_names:
+      - task_versions
+    __example: SELECT * FROM users;
+    __description: The text of the query.
+  snowflake.database.id:
+    __context_names:
+      - serverless_tasks
+      - task_versions
+    __example: db123
+    __description: The unique identifier for the database.
+  snowflake.error.code:
+    __context_names:
+      - task_history
+    __example: ERR123
+    __description: The error code returned by the task.
+  snowflake.error.message:
+    __context_names:
+      - task_history
+    __example: Syntax error
+    __description: The error message returned by the task.
+  snowflake.query.hash:
+    __context_names:
+      - task_history
+    __example: hash123
+    __description: The hash of the query.
+  snowflake.query.hash_version:
+    __context_names:
+      - task_history
+    __example: v1
+    __description: The version of the query hash.
+  snowflake.query.id:
+    __context_names:
+      - task_history
+    __example: query123
+    __description: The unique identifier for the query.
+  snowflake.query.parametrized_hash:
+    __context_names:
+      - task_history
+    __example: param_hash123
+    __description: The parameterized hash of the query.
+  snowflake.query.parametrized_hash_version:
+    __context_names:
+      - task_history
+    __example: v1
+    __description: The version of the parameterized query hash.
+  snowflake.schema.id:
+    __context_names:
+      - serverless_tasks
+      - task_versions
+    __example: schema123
+    __description: The unique identifier for the schema.
+  snowflake.task.condition:
+    __context_names:
+      - task_versions
+      - task_history
+    __example: status = 'SUCCESS'
+    __description: The condition text of the task.
+  snowflake.task.config:
+    __context_names:
+      - task_history
+    __example: config123
+    __description: The configuration of the task.
+  snowflake.task.config.allow_overlap:
+    __context_names:
+      - task_versions
+    __example: "true"
+    __description: Indicates if overlapping execution is allowed.
+  snowflake.task.end_time:
+    __context_names:
+      - serverless_tasks
+    __example: "1633046700000000000"
+    __description: The end time of the task.
+  snowflake.task.error_integration:
+    __context_names:
+      - task_versions
+    __example: error_integration123
+    __description: The error integration for the task.
+  snowflake.task.graph.root_id:
+    __context_names:
+      - task_versions
+      - task_history
+    __example: root123
+    __description: The root ID of the task graph.
+  snowflake.task.graph.version:
+    __context_names:
+      - task_versions
+      - task_history
+    __example: v1
+    __description: The version of the task graph.
+  snowflake.task.id:
+    __context_names:
+      - serverless_tasks
+      - task_versions
+    __example: task123
+    __description: The unique identifier for the task.
+  snowflake.task.instance_id:
+    __context_names:
+      - serverless_tasks
+    __example: instance123
+    __description: The unique identifier for the task instance.
+  snowflake.task.last_committed_on:
+    __context_names:
+      - task_versions
+    __example: "1633046400000000000"
+    __description: The last committed time of the task.
+  snowflake.task.last_suspended_on:
+    __context_names:
+      - task_versions
+    __example: "1633046700000000000"
+    __description: The last suspended time of the task.
+  snowflake.task.owner:
+    __context_names:
+      - task_versions
+    __example: admin
+    __description: The owner of the task.
+  snowflake.task.predecessors:
+    __context_names:
+      - task_versions
+    __example: taskA, taskB
+    __description: The predecessors of the task.
+  snowflake.task.run.attempt:
+    __context_names:
+      - task_history
+    __example: "1"
+    __description: The attempt number of the task run.
+  snowflake.task.run.completed_time:
+    __context_names:
+      - task_history
+    __example: "1633046700000000000"
+    __description: The completed time of the task run.
+  snowflake.task.run.group_id:
+    __context_names:
+      - task_history
+    __example: group123
+    __description: The group ID of the task run.
+  snowflake.task.run.id:
+    __context_names:
+      - task_history
+    __example: run123
+    __description: The unique identifier for the task run.
+  snowflake.task.run.return_value:
+    __context_names:
+      - task_history
+    __example: "0"
+    __description: The return value of the task run.
+  snowflake.task.run.scheduled_time:
+    __context_names:
+      - task_history
+    __example: "1633046400000000000"
+    __description: The scheduled time of the task run.
+  snowflake.task.run.scheduled_from:
+    __context_names:
+      - task_history
+    __example: CRON
+    __description: The source from which the task was scheduled.
+  snowflake.task.run.state:
+    __context_names:
+      - task_history
+    __example: RUNNING
+    __description: The state of the task run.
+  snowflake.task.schedule:
+    __context_names:
+      - task_versions
+    __example: 0 0 * * *
+    __description: The schedule of the task.
+  snowflake.task.start_time:
+    __context_names:
+      - serverless_tasks
+    __example: "1633046400000000000"
+    __description: The start time of the task.
 dimensions:
-    db.namespace:
-        __context_names:
-            - serverless_tasks
-            - task_versions
-            - task_history
-        __example: PROD_DB
-        __description: The name of the database.
-    snowflake.schema.name:
-        __context_names:
-            - serverless_tasks
-            - task_versions
-            - task_history
-        __example: public
-        __description: The name of the schema.
-    snowflake.task.name:
-        __context_names:
-            - serverless_tasks
-            - task_versions
-            - task_history
-        __example: daily_backup_task
-        __description: The name of the task.
-    snowflake.warehouse.name:
-        __context_names:
-            - task_versions
-        __example: COMPUTE_WH
-        __description: The name of the warehouse.
+  db.namespace:
+    __context_names:
+      - serverless_tasks
+      - task_versions
+      - task_history
+    __example: PROD_DB
+    __description: The name of the database.
+  snowflake.schema.name:
+    __context_names:
+      - serverless_tasks
+      - task_versions
+      - task_history
+    __example: public
+    __description: The name of the schema.
+  snowflake.task.name:
+    __context_names:
+      - serverless_tasks
+      - task_versions
+      - task_history
+    __example: daily_backup_task
+    __description: The name of the task.
+  snowflake.warehouse.name:
+    __context_names:
+      - task_versions
+    __example: COMPUTE_WH
+    __description: The name of the warehouse.
 event_timestamps:
-    snowflake.task.graph.version.created_on:
-        __context_names:
-            - task_versions
-        __example: "1633046400000000000"
-        __description: The creation time of the task graph version.
-    snowflake.event.trigger:
-        __context_names:
-            - task_versions
-        __example: "snowflake.task.graph.version.created_on"
-        __description: Additionally to sending logs, each entry in `EVENT_TIMESTAMPS` is sent as event with key set to `snowflake.event.trigger`, value to key from `EVENT_TIMESTAMPS` and `timestamp` set to the key value.
+  snowflake.event.trigger:
+    __context_names:
+      - task_versions
+    __example: "snowflake.task.graph.version.created_on"
+    __description:
+      Additionally to sending logs, each entry in `EVENT_TIMESTAMPS` is sent as event with key set to `snowflake.event.trigger`, value to
+      key from `EVENT_TIMESTAMPS` and `timestamp` set to the key value.
+  snowflake.task.graph.version.created_on:
+    __context_names:
+      - task_versions
+    __example: "1633046400000000000"
+    __description: The timestamp when the task graph version was created.
 metrics:
-    snowflake.credits.used:
-        __context_names:
-            - serverless_tasks
-        __example: "10"
-        __description:
-            Number of credits billed for serverless task usage during the
-            START_TIME and END_TIME window.
-        displayName: Serverless Tasks Credits Used
-        unit: credits
+  snowflake.credits.used:
+    __context_names:
+      - serverless_tasks
+    __example: "10"
+    __description: Number of credits billed for serverless task usage during the START_TIME and END_TIME window.
+    displayName: Snowflake Credits Used
+    unit: credits

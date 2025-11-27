@@ -8,7 +8,7 @@ snowflake.local.yml
 output/**
 log.*
 *.log
-credentials.json
+*credentials*.json
 *.pyc
 build/*
 package/*
@@ -20,5 +20,5 @@ metrics/*
 LICENSE.md
 *-deploy-script*
 *.pdf
-test/conf/config-download.json
+test/conf/*config-download.json
 dynatrace-snowflake-observability-agent

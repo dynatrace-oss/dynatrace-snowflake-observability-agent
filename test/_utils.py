@@ -23,20 +23,40 @@
 #
 import os
 import sys
+import uuid
 import datetime
-from typing import Generator, Dict, List, Optional, Callable, Tuple
+from typing import Any, Generator, Dict, List, Optional, Callable, Tuple
 import logging
 import json
-from test import TestDynatraceSnowAgent, _get_session
 import fnmatch
 import jsonstrip
+from unittest.mock import patch, Mock
 from snowflake import snowpark
 from dtagent.config import Configuration
 from dtagent.connector import TelemetrySender
 from dtagent import config
 from dtagent.util import is_select_for_table
+import test
+from test import TestConfiguration
+from test._mocks.telemetry import MockTelemetryClient
 
 TEST_CONFIG_FILE_NAME = "./test/conf/config-download.json"
+
+
+def _pickle_all(session: snowpark.Session, pickles: dict, force: bool = False):
+    """Pickle all tables provided in the pickles dictionary if necessary or forced.
+
+    Args:
+        session (snowpark.Session): The Snowflake session used to access tables.
+        pickles (dict): A dictionary mapping table names to pickle file names.
+        force (bool, optional): If True, force pickling even if not necessary. Defaults to False.
+
+    Returns:
+        None
+    """
+    if force or should_pickle(pickles.values()):
+        for table_name, pickle_name in pickles.items():
+            _pickle_data_history(session, table_name, pickle_name)
 
 
 def _pickle_data_history(
@@ -58,16 +78,13 @@ def _pickle_data_history(
 
 
 def _logging_findings(
-    session: snowpark.Session,
-    dtagent: TestDynatraceSnowAgent,
-    log_tag: str,
-    log_level: logging,
-    show_detailed_logs: int,
-):
+    session: snowpark.Session, dtagent, log_tag: str, log_level: logging, show_detailed_logs: bool, disabled_telemetry: List[str] = None
+) -> Dict[str, Dict[str, int]]:
+    from test import is_local_testing
 
     if log_level != "":
         logging.basicConfig(level=log_level)
-    if show_detailed_logs != 0:
+    if show_detailed_logs:
         from dtagent import LOG, LL_TRACE
 
         console_handler = logging.StreamHandler()  # Console handler
@@ -77,11 +94,31 @@ def _logging_findings(
 
         print(LOG.getEffectiveLevel())
 
-    results = dtagent.process([str(log_tag)], False)
-    print(f"!!!! RESULTS = {results}")
-
+    results = dtagent.process([str(log_tag)], False, disabled_telemetry=disabled_telemetry)
     dtagent.teardown()
     session.close()
+
+    print(f"!!!! RESULTS = {results}")
+
+    return results
+
+
+def _safe_get_unpickled_entries(pickles: dict, table_name: str, *args, **kwargs) -> Generator[Dict, None, None]:
+    """Safely get unpickled entries for the given table name from the pickles dictionary.
+
+    Args:
+        pickles (dict): Dictionary mapping table names to pickle file paths.
+        table_name (str): The name of the table to retrieve unpickled entries for.
+
+    Returns:
+        Generator[Dict, None, None]: A generator yielding dictionaries representing unpickled entries for the specified table.
+
+    Raises:
+        ValueError: If the table name is not found in the pickles dictionary.
+    """
+    if table_name not in pickles:
+        raise ValueError(f"Unknown table name: {table_name}")
+    return _get_unpickled_entries(pickles[table_name], *args, **kwargs)
 
 
 def _get_unpickled_entries(
@@ -93,11 +130,28 @@ def _get_unpickled_entries(
 ) -> Generator[Dict, None, None]:
     import pandas as pd
 
+    ndjson_name = os.path.splitext(pickle_name)[0] + ".ndjson"
+    # if os.path.exists(ndjson_name):
+    #     # Read from safer NDJSON format
+    #     pandas_df = pd.read_json(ndjson_name, lines=True)
+    #     print(f"Read from NDJSON {ndjson_name}")
+    # else:
+    # Fallback to pickle and generate NDJSON
     pandas_df = pd.read_pickle(pickle_name)
-
     print(f"Unpickled {pickle_name}")
-    #####
+
+    collected_rows = []
+
     if limit is not None:
+        if 0 < len(pandas_df) < limit:
+            n_repeats = limit // len(pandas_df)
+            is_remainder = limit % len(pandas_df) > 0
+
+            dfs_to_concat = [pandas_df] * (n_repeats + (1 if is_remainder else 0))
+
+            # Concatenate them and reset the index
+            pandas_df = pd.concat(dfs_to_concat, ignore_index=True)
+
         pandas_df = pandas_df.head(limit)
 
     for _, row in pandas_df.iterrows():
@@ -107,7 +161,13 @@ def _get_unpickled_entries(
         if adjust_ts:
             _adjust_timestamp(row_dict, start_time=start_time, end_time=end_time)
 
+        collected_rows.append(row_dict)
         yield row_dict
+
+    if not os.path.exists(ndjson_name):
+        with open(ndjson_name, "w", encoding="utf-8") as f:
+            for row in collected_rows:
+                f.write(json.dumps(row) + "\n")
 
 
 def should_pickle(pickle_files: list) -> bool:
@@ -115,57 +175,206 @@ def should_pickle(pickle_files: list) -> bool:
     return (len(sys.argv) > 1 and sys.argv[1] == "-p") or any(not os.path.exists(file_name) for file_name in pickle_files)
 
 
-class TestConfiguration(Configuration):
-    def __init__(self, configuration: dict):
-        self._config = configuration
+def _merge_pickles_from_tests() -> Dict[str, str]:
+    """Merges all PICKLES dictionaries from test_*.py files in the plugins directory into a single dictionary.
+
+    Returns:
+        Dict: A dictionary containing all merged PICKLES dictionaries,
+        mapping all table names to their corresponding pickle file paths.
+    """
+    import importlib
+    import inspect
+
+    pickles = {}
+    plugins_dir = os.path.join(os.path.dirname(__file__), "plugins")
+    for filename in os.listdir(plugins_dir):
+        if filename.startswith("test_") and filename.endswith(".py"):
+            module_name = f"test.plugins.{filename[:-3]}"
+            try:
+                module = importlib.import_module(module_name)
+                for _, member in inspect.getmembers(module):
+                    if inspect.isclass(member) and hasattr(member, "PICKLES"):
+                        pickles.update(member.PICKLES)
+            except ImportError as e:
+                print(f"Could not import {module_name}: {e}")
+    return pickles
 
 
 class LocalTelemetrySender(TelemetrySender):
-    PICKLE_NAME = "test/test_data/data_volume.pkl"
-    T_DATA = "APP.V_DATA_VOLUME"
+    PICKLES = _merge_pickles_from_tests()
 
-    def __init__(self, session, params: dict):
+    def __init__(self, session: snowpark.Session, params: dict, exec_id: str, limit_results: int = 2, config: TestConfiguration = None):
 
-        TelemetrySender.__init__(self, session, params)
+        self._local_config = config
+        self.limit_results = limit_results
+
+        TelemetrySender.__init__(self, session, params, exec_id)
 
         self._configuration.get_last_measurement_update = lambda *args, **kwargs: datetime.datetime.fromtimestamp(
             0, tz=datetime.timezone.utc
         )
 
-    def _get_table_rows(self, _table_name: str = None) -> Generator[Dict, None, None]:
-        if _table_name == LocalTelemetrySender.T_DATA:
-            return _get_unpickled_entries(LocalTelemetrySender.PICKLE_NAME, limit=2)
+    def _get_config(self, session: snowpark.Session) -> Configuration:
+        return self._local_config if self._local_config else TelemetrySender._get_config(self, session)
 
-        return TelemetrySender._get_table_rows(self, _table_name)
+    def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
+        if t_data in self.PICKLES:
+            return _get_unpickled_entries(self.PICKLES[t_data], limit=self.limit_results)
+
+        return TelemetrySender._get_table_rows(self, t_data)
 
     def _flush_logs(self) -> None:
         self._logs._otel_logger_provider.force_flush()
 
 
-def telemetry_test_sender(session, source, params) -> Tuple[int, int, int, int, int]:
-    """
+def telemetry_test_sender(
+    session: snowpark.Session, sources: str, params: dict, limit_results: int = 2, config: TestConfiguration = None, test_source: str = None
+) -> Tuple[int, int, int, int, int]:
+    """Invokes send_data function on a LocalTelemetrySender instance, which uses pickled data for testing purposes
+
+    Args:
+        session (snowpark.Session): The Snowflake session used to access tables.
+        sources (str): The telemetry sources to send data from.
+        params (dict): Parameters for the TelemetrySender.
+        limit_results (int, optional): Limit on the number of results to process. Defaults to 2.
+        config (TestConfiguration, optional): Configuration for the TelemetrySender. Defaults to None.
+        test_source (str, optional): The source name for the telemetry test. Defaults to None.
+
     Returns:
-        Tuple[int, int, int, int]: Count of objects, log lines, metrics, events, and bizevents sent
+        Tuple[int, int, int, int, int, int]: Count of objects, log lines, metrics, events, bizevents, and davis events sent
     """
-    sender = LocalTelemetrySender(session, params)
-    results = sender.send_data(source)
-    sender.teardown()
+    config._config["otel"]["spans"]["max_export_batch_size"] = 1
+    config._config["otel"]["logs"]["max_export_batch_size"] = 1
+
+    sender = LocalTelemetrySender(session, params, limit_results=limit_results, config=config, exec_id=str(uuid.uuid4().hex))
+
+    mock_client = MockTelemetryClient(test_source)
+    with mock_client.mock_telemetry_sending():
+        results = sender.send_data(sources)
+        sender._logs.shutdown_logger()
+        sender._spans.shutdown_tracer()
+    mock_client.store_or_test_results()
 
     return results
 
 
-def get_config(pickle_conf: str) -> TestConfiguration:
+def execute_telemetry_test(
+    agent_class,
+    disabled_telemetry: List[str],
+    base_count: Dict[str, Dict[str, int]],
+    test_name: str,
+    affecting_types_for_entries: List[str] = None,
+):
+    """Generalized test function for telemetry plugins.
+
+    Args:
+        agent_class: The agent class to instantiate
+        test_name: Name of the test
+        plugin_key: Key for the plugin in results
+        disabled_telemetry: List of disabled telemetry types
+        base_count: Base count for expectations for each telemetry type
+        affecting_types_for_entries: Telemetry types that affect entries count
+        metrics_at_least: Whether metrics should be at least or exactly the expected
+    """
+    from test import _get_session
+    from dtagent.context import RUN_ID_KEY, RUN_RESULTS_KEY
+
+    affecting_types_for_entries = affecting_types_for_entries or ["logs", "metrics", "spans"]
+
+    config = get_config()
+    session = _get_session()
+
+    for telemetry_type in ("spans", "logs", "metrics", "events"):
+        config._config["otel"][telemetry_type]["is_disabled"] = telemetry_type in disabled_telemetry
+
+    results = _logging_findings(
+        session,
+        agent_class(session, config),
+        test_name,
+        logging.INFO,
+        False,
+        disabled_telemetry,
+    )
+
+    assert test_name in results
+    assert RUN_RESULTS_KEY in results[test_name]
+
+    for plugin_key in base_count.keys():
+        assert plugin_key in results[test_name][RUN_RESULTS_KEY]
+
+        logs_expected = base_count[plugin_key].get("log_lines", 0) if "logs" not in disabled_telemetry else 0
+        spans_expected = base_count[plugin_key].get("spans", 0) if "spans" not in disabled_telemetry else 0
+        metrics_expected = base_count[plugin_key].get("metrics", 0) if "metrics" not in disabled_telemetry else 0
+        events_expected = base_count[plugin_key].get("events", 0) if "events" not in disabled_telemetry else 0
+        entries_expected = (
+            base_count[plugin_key].get("entries", 0) if (logs_expected + spans_expected + metrics_expected + events_expected > 0) else 0
+        )
+
+        assert results[test_name][RUN_RESULTS_KEY][plugin_key].get("entries", 0) == entries_expected
+        assert results[test_name][RUN_RESULTS_KEY][plugin_key].get("log_lines", 0) == logs_expected
+        assert results[test_name][RUN_RESULTS_KEY][plugin_key].get("spans", 0) == spans_expected
+        assert results[test_name][RUN_RESULTS_KEY][plugin_key].get("metrics", 0) == metrics_expected
+        assert results[test_name][RUN_RESULTS_KEY][plugin_key].get("events", 0) == events_expected
+
+
+def get_config(pickle_conf: str = None) -> TestConfiguration:
     conf = {}
-    if not os.path.isfile(TEST_CONFIG_FILE_NAME) or pickle_conf == "y":
+    if pickle_conf == "y":  # recreate the config file
+        from test import _get_session
+
         session = _get_session()
         conf_class = config.Configuration(session)
         conf = conf_class._config
 
         with open(TEST_CONFIG_FILE_NAME, "w", encoding="utf-8") as f:
             json.dump(conf, f, indent=4)
-    else:
+
+    elif os.path.isfile(TEST_CONFIG_FILE_NAME):  # load existing config file
         with open(TEST_CONFIG_FILE_NAME, "r", encoding="utf-8") as f:
             conf = json.load(f)
+    else:  # we need to create the config from scratch with dummy settings based on defaults
+        from dtagent.otel.metrics import Metrics
+        from dtagent.otel.events.generic import GenericEvents
+        from dtagent.otel.events.davis import DavisEvents
+        from dtagent.otel.events.bizevents import BizEvents
+        from dtagent.otel.logs import Logs
+        from dtagent.otel.spans import Spans
+
+        dt_url = "dsoa2025.live.dynatrace.com"
+        sf_name = "test.dsoa2025"
+        plugins = {}
+        instruments = {"dimensions": {}, "metrics": {}, "attributes": {}, "event_timestamps": {}}
+        conf = {
+            "dt.token": "dt0c01.XXXXXXXXXXXXXXXXXXXXXXXX.XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+            "logs.http": f"https://{dt_url}{Logs.ENDPOINT_PATH}",
+            "spans.http": f"https://{dt_url}{Spans.ENDPOINT_PATH}",
+            "metrics.http": f"https://{dt_url}{Metrics.ENDPOINT_PATH}",
+            "events.http": f"https://{dt_url}{GenericEvents.ENDPOINT_PATH}",
+            "davis_events.http": f"https://{dt_url}{DavisEvents.ENDPOINT_PATH}",
+            "biz_events.http": f"https://{dt_url}{BizEvents.ENDPOINT_PATH}",
+            "resource.attributes": Configuration.RESOURCE_ATTRIBUTES
+            | {
+                "service.name": sf_name,
+                "deployment.environment": "TEST",
+                "host.name": f"{sf_name}.snowflakecomputing.com",
+            },
+            "otel": {},
+            "plugins": plugins,
+            "instruments": instruments,
+        }
+        for file_path in find_files("src/dtagent/plugins", "*-config.json"):
+            plugin_conf = lowercase_keys(read_clean_json_from_file(file_path))
+            plugins.update(plugin_conf.get("plugins", {}))
+        otel_config = lowercase_keys(read_clean_json_from_file("src/dtagent.conf/otel-config.json"))
+        conf["otel"] |= otel_config.get("otel", {})
+        conf["plugins"] |= otel_config.get("plugins", {})
+        for file_path in find_files("src/", "instruments-def.yml"):
+            instruments_data = read_clean_yml_from_file(file_path)
+            instruments["dimensions"].update(instruments_data.get("dimensions", {}))
+            instruments["metrics"].update(instruments_data.get("metrics", {}))
+            instruments["attributes"].update(instruments_data.get("attributes", {}))
+            instruments["event_timestamps"].update(instruments_data.get("event_timestamps", {}))
+        conf["instruments"] = instruments
 
     return TestConfiguration(conf)
 
@@ -179,7 +388,7 @@ def read_clean_json_from_file(file_path: str) -> List[Dict]:
     Returns:
         List[Dict]: dictionary based on the content of the JSON/JSONC file
     """
-    logging.debug("Reading file: %s", file_path)
+    logging.debug("Reading clean json file: %s", file_path)
 
     with open(file_path, "r", encoding="utf-8") as file:
 
@@ -203,7 +412,7 @@ def read_clean_yml_from_file(file_path: str) -> List[Dict]:
     """
     import yaml
 
-    logging.debug("Reading file: %s", file_path)
+    logging.debug("Reading clean yml file: %s", file_path)
 
     with open(file_path, "r", encoding="utf-8") as f:
         data = yaml.safe_load(f)
@@ -224,6 +433,24 @@ def find_files(directory: str, filename_pattern: str) -> List[str]:
         for filename in fnmatch.filter(files, filename_pattern):
             matches.append(os.path.join(root, filename))
     return matches
+
+
+def lowercase_keys(data: Any) -> Any:
+    """Lowercases recursively all keys in a dictionary (including nested dictionaries and lists)
+
+    Args:
+        data (Any): Input data (dict, list, or other)
+
+    Returns:
+        Any: Data with all dictionary keys lowercased
+    """
+    if isinstance(data, dict):
+        return {k.lower(): lowercase_keys(v) for k, v in data.items()}
+
+    if isinstance(data, list):
+        return [lowercase_keys(item) for item in data]
+
+    return data
 
 
 def is_blank(value):

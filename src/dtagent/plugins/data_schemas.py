@@ -1,6 +1,4 @@
-"""
-Plugin file for processing data schemas plugin data.
-"""
+"""Plugin file for processing data schemas plugin data."""
 
 ##region ------------------------------ IMPORTS  -----------------------------------------
 #
@@ -31,6 +29,7 @@ from typing import Any, Dict
 from dtagent.plugins import Plugin
 from dtagent.otel.events import EventType
 from dtagent.util import _from_json, _pack_values_to_json_strings
+from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPILE_REMOVE
 
 ##endregion COMPILE_REMOVE
 
@@ -38,9 +37,9 @@ from dtagent.util import _from_json, _pack_values_to_json_strings
 
 
 class DataSchemasPlugin(Plugin):
-    """
-    Data schemas plugin class.
-    """
+    """Data schemas plugin class."""
+
+    PLUGIN_NAME = "data_schemas"
 
     def _compress_properties(self, properties_value: Dict) -> Dict:
         """Ensures that snowflake.object.ddl.properties is compressed in the 'columns' object"""
@@ -50,7 +49,8 @@ class DataSchemasPlugin(Plugin):
             if k == "columns":
                 result = defaultdict(list)
                 for column, details in v.items():
-                    result[details["subOperationType"]].append(column)
+                    sub_op_type = details.get("subOperationType", "unknown")
+                    result[str(sub_op_type)].append(column)
                 return dict(result)
             if k == "creationMode":
                 return v.get("value", v)
@@ -59,7 +59,7 @@ class DataSchemasPlugin(Plugin):
         return {k: __process(k, v) for k, v in properties_value.items()}
 
     def _prepare_event_payload(self, row_dict):
-        """defines event type, title and additional payload"""
+        """Defines event type, title and additional payload"""
         return (
             EventType.CUSTOM_INFO,
             row_dict.get("_MESSAGE"),
@@ -71,8 +71,21 @@ class DataSchemasPlugin(Plugin):
 
     def _report_all_entries_as_events(
         self, row_dict, event_type, title, *, start_time, end_time, properties, context
-    ):  # pylint: disable=unused-argument
-        """defines how all entries as events should be reported"""
+    ) -> int:  # pylint: disable=unused-argument
+        """Defines how all entries as events should be reported
+
+        Args:
+            row_dict (Dict): row dictionary
+            event_type (str): event type
+            title (str): event title
+            start_time (str): start time key in row_dict
+            end_time (str): end time key in row_dict
+            properties (Dict): additional properties to be added to event payload
+            context (Optional[Dict]): additional context to be added to event payload
+
+        Returns:
+            int: number of events reported (1+ if successful, 0 otherwise)
+        """
 
         _attributes = _from_json(row_dict["ATTRIBUTES"])
         _attributes["snowflake.object.ddl.properties"] = self._compress_properties(_attributes.get("snowflake.object.ddl.properties", {}))
@@ -86,16 +99,34 @@ class DataSchemasPlugin(Plugin):
             context=context,
         )
 
-    def process(self, run_proc: bool = True) -> int:
-        """
-        Processes data for data schemas plugin.
+    def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
+        """Processes data for data schemas plugin.
+
+        Args:
+            run_id (str): unique run identifier
+            run_proc (bool): indicator whether processing should be logged as completed
+
         Returns:
-            processed_spending_metrics [int]: number of events reported from APP.V_DATA_SCHEMAS.
+            Dict[str,Dict[str,int]]: A dictionary with telemetry counts for data schemas.
+
+            Example:
+            {
+            "dsoa.run.results": {
+                "data_schemas": {
+                    "entries": entries_cnt,
+                    "log_lines": logs_cnt,
+                    "metrics": metrics_cnt,
+                    "events": events_cnt,
+                }
+            },
+            RUN_ID_KEY: run_id,
+            }
         """
 
-        _, _, _, processed_events_cnt = self._log_entries(
+        entries_cnt, logs_cnt, metrics_cnt, events_cnt = self._log_entries(
             f_entry_generator=lambda: self._get_table_rows("APP.V_DATA_SCHEMAS"),
             context_name="data_schemas",
+            run_uuid=run_id,
             report_logs=False,
             report_timestamp_events=False,
             report_metrics=False,
@@ -106,4 +137,14 @@ class DataSchemasPlugin(Plugin):
             f_report_event=self._report_all_entries_as_events,
         )
 
-        return processed_events_cnt
+        return self._report_results(
+            {
+                "data_schemas": {
+                    "entries": entries_cnt,
+                    "log_lines": logs_cnt,
+                    "events": events_cnt,
+                    "metrics": metrics_cnt,
+                },
+            },
+            run_id,
+        )

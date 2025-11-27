@@ -29,7 +29,8 @@ from typing import Dict, List
 class TestDocumentation:
 
     def _aggregate_data(self, data: List[Dict]) -> List[Dict]:
-        """Aggregates given list of objects by 'name' and 'type' keys, merging other keys (dimensions, plugin, source) as comma separated values
+        """Aggregates given list of objects by 'name' and 'type' keys,
+        merging other keys (dimensions, plugin, source) as comma separated values.
 
         Args:
             data (List[Dict]): List of field/metric documentation objects
@@ -76,12 +77,10 @@ class TestDocumentation:
 
                 assert os.path.getsize(full_path), f"Documentation file {full_path} seems to be empty"
 
-    def test_matching_documentation(self, pickle_conf: str):
+    def test_matching_documentation(self):
         from test.list_semantics import list_semantics
         from dtagent import context
-        from test._utils import get_config
-
-        c = get_config(pickle_conf)
+        from dtagent.config import Configuration
 
         data = list_semantics("src")
         semantics = self._aggregate_data(data)
@@ -105,12 +104,14 @@ class TestDocumentation:
         missing_sql_listed = "\n".join([f'{data["type"]}: {data["name"]} [{data["source"]}] [{data["plugin"]}]' for data in missing_sql])
         assert not missing_sql, f"We have documentation for fields not reported in telemetry:\n {missing_sql_listed}"
 
-        found_core_attribute = [
-            entry for entry in semantics if entry["name"] == context.CONTEXT_NAME and entry["plugin"] == "" and entry["type"] == "attribute"
+        found_core_dimension = [
+            entry
+            for entry in semantics
+            if entry["name"] == context.RUN_CONTEXT_KEY and entry["plugin"] == "" and entry["type"] == "dimension"
         ]
-        assert found_core_attribute, f"Did not find core attribute <{context.CONTEXT_NAME}>"
+        assert found_core_dimension, f"Did not find core dimension <{context.RUN_CONTEXT_KEY}>"
 
-        core_dimensions = set(c.get(key="resource.attributes").keys())
+        core_dimensions = set(Configuration.RESOURCE_ATTRIBUTES.keys())
         found_core_dimensions = set(
             [
                 entry["name"]
@@ -123,7 +124,9 @@ class TestDocumentation:
         ), f"Problem with core dimensions for resource.attributes, should be {core_dimensions}, is {found_core_dimensions}"
 
     def test_clean_field_description(self):
-        """This test will ensure we do not have any forbidden characters in the body of description or other non-private fields in instrumentation semantics"""
+        """This test will ensure we do not have any forbidden characters in the body of description or
+        other non-private fields in instrumentation semantics
+        """
         from test._utils import find_files
 
         problems = []

@@ -1,0 +1,25 @@
+[
+  {
+    "eventType": "CUSTOM_INFO",
+    "title": "Table event snowflake.table.dynamic.graph.valid_from.",
+    "snowflake.event.trigger": "snowflake.table.dynamic.graph.valid_from",
+    "snowflake.table.dynamic.graph.valid_from": 1732132427448000000,
+    "snowflake.table.dynamic.lag.target.value": 60,
+    "db.query.text": "SELECT A.EMP_ID,A.EMP_NAME,A.EMP_ADDRESS, B.SKILL_ID,B.SKILL_NAME,B.SKILL_LEVEL\n    FROM EMPLOYEE A, EMPLOYEE_SKILL B\n    WHERE A.EMP_ID=B.EMP_ID\n    ORDER BY B.SKILL_ID ;",
+    "snowflake.table.dynamic.graph.alter_trigger": "[\"CREATE_DYNAMIC_TABLE\"]",
+    "snowflake.table.dynamic.graph.inputs": "[{\"kind\": \"TABLE\", \"name\": \"DYNAMIC_TABLE_DB.DYNAMIC_TABLE_SCH.EMPLOYEE\"}, {\"kind\": \"TABLE\", \"name\": \"DYNAMIC_TABLE_DB.DYNAMIC_TABLE_SCH.EMPLOYEE_SKILL\"}]",
+    "snowflake.table.dynamic.lag.target.type": "USER_DEFINED",
+    "snowflake.table.dynamic.scheduling.state": "ACTIVE",
+    "db.collection.name": "EMPLOYEE_DET",
+    "db.namespace": "DYNAMIC_TABLE_DB",
+    "snowflake.schema.name": "DYNAMIC_TABLE_SCH",
+    "snowflake.table.full_name": "DYNAMIC_TABLE_DB.DYNAMIC_TABLE_SCH.EMPLOYEE_DET",
+    "db.system": "snowflake",
+    "service.name": "test.dsoa2025",
+    "deployment.environment": "TEST",
+    "host.name": "test.dsoa2025.snowflakecomputing.com",
+    "telemetry.exporter.name": "dynatrace.snowagent",
+    "dsoa.run.plugin": "test_dynamic_tables",
+    "dsoa.run.context": "dynamic_table_graph_history"
+  }
+]

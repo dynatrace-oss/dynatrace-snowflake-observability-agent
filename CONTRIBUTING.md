@@ -131,7 +131,6 @@ The following figure illustrates all the steps to build code ready to be deploye
 
 ![Dynatrace Snowflake Observability Agent build process](src/assets/dsoa-build-steps.jpg)
 
-
 The build process for the Dynatrace Snowflake Observability Agent package involves several steps:
 
 1. **Compilation**: The `compile.sh` script is used to create `_version.py` and complete Python code for both main stored procedures, resulting in a single file for each (`_dtagent.py` and `_send_telemetry.py`). The `##INSERT` directive is used to control the order in which source Python files are assembled into the main one. **NOTE**: When Snowflake reports issues in those stored procedures, the lines in the Python code will correspond to the lines in these two files.
@@ -141,11 +140,65 @@ The build process for the Dynatrace Snowflake Observability Agent package involv
 
 ## Setting up development environment
 
-You will need [Python 3.9](https://www.python.org/) or newer and [git](https://git-scm.com/).
-If you are on Windows, you will need to install WSL2. Please refer to the `Prerequisites` in [the installation documentation](INSTALL.md) for more details.
+This guide was created for developers who want to contribute to the Dynatrace Snowflake Observability Agent. If you only want to install and use the agent, please refer to the [INSTALL.md](INSTALL.md) guide.
 
-The recommended setup is to use [VS Code](https://code.visualstudio.com/) with [Snowflake plugin](https://marketplace.visualstudio.com/items?itemName=snowflake.snowflake-vsc). Though neither of those are necessary, and any IDE that supports python and SQL should do.
-On Windows, after installing WSL, it is necessary to open your IDE of choice using WSL (see [Setting up WSL on VS Code guide)](https://learn.microsoft.com/en-us/windows/wsl/tutorials/wsl-vscode).
+### Prerequisites
+
+You will need the following software installed:
+
+* [Python](https://www.python.org/) (3.9 or newer)
+* [Git](https://git-scm.com/)
+* On Windows, [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install) is required.
+
+The recommended setup is to use [VS Code](https://code.visualstudio.com/) with the [Snowflake plugin](https://marketplace.visualstudio.com/items?itemName=snowflake.snowflake-vsc).
+
+### Environment Setup
+
+1. **Clone the repository:**
+
+    ```bash
+    git clone https://github.com/dynatrace-oss/dynatrace-snowflake-observability-agent.git
+    cd dynatrace-snowflake-observability-agent
+    ```
+
+1. **Create and activate a virtual environment:**
+
+    ```bash
+    python -m venv .venv
+    source .venv/bin/activate
+    ```
+
+1. **Install dependencies:**
+
+    The `setup.sh` script can help install most of the required tools.
+
+    ```bash
+    ./setup.sh
+    ```
+
+    Alternatively, you can install them manually. You will need the dependencies for running the agent (see `INSTALL.md`) plus the development dependencies.
+
+### System Dependencies
+
+For **Ubuntu/Debian**:
+
+  ```bash
+  sudo apt-get update
+  sudo apt-get install -y pango cairo gdk-pixbuf libffi pandoc
+  ```
+
+For **macOS** (using [Homebrew](https://brew.sh/)):
+
+  ```bash
+  brew install pango cairo gdk-pixbuf libffi pandoc
+  ```
+
+Additional **Python packages** for all platforms are listed in `requirements.txt`.
+Install them using pip:
+
+  ```bash
+  pip install -r requirements.txt
+  ```
 
 ## Building Dynatrace Snowflake Observability Agent
 
@@ -203,7 +256,61 @@ After successfully deploying the Dynatrace Snowflake Observability Agent, you ca
 ./test.sh $test_name
 ```
 
-All tests are implemented with the `pytest` framework and stored in the `test` folder. Before running the tests, make sure to create the `test/credentials.json` file from the `test/credentials.jsonc` template.
+All tests are implemented with the `pytest` framework and stored in the `test` folder.
+
+### Test Execution Modes
+
+There are two ways of running tests:
+
+1. **Local mode with Mocked APIs**: If `test/credentials.json` is NOT present, the tests will run locally with mocked Dynatrace APIs, without sending data to Dynatrace. This is useful for rapid development and testing without requiring a live Snowflake or Dynatrace connection.
+
+2. **Live mode with actual APIs**: If `test/credentials.json` IS present, the tests will connect to Snowflake to determine the connection to Dynatrace and will send the data to the actual Dynatrace APIs.
+
+### Test Data
+
+Tests use example test data from the `test/test_data` folder. Currently, pickle (`*.pkl`) files are used, and ndJSON files are provided for reference only. Tests from version (1) will check the payload (at the mocked APIs) to be sent against expected data in `test_results`.
+
+### Creating Tests for New Plugins
+
+New plugins should have their corresponding tests created. In case of new plugins or significant changes in how data is delivered, test data (and results) should be regenerated as described in the test.
+
+### Setting Up Test Environment
+
+To run tests in live mode (version 2), you need to:
+
+1. **Create a test deployment** with configuration in `conf/config-test.json` that looks like:
+
+    ```json
+    [
+        {
+            "CORE": {
+                "DYNATRACE_TENANT_ADDRESS": "abc12345.live.dynatracelabs.com",
+                "DEPLOYMENT_ENVIRONMENT": "TEST",
+                "SNOWFLAKE_ACCOUNT_NAME": "your_snowflake_account.us-east-1",
+                "SNOWFLAKE_HOST_NAME": "your_snowflake_account.us-east-1.snowflakecomputing.com",
+                "SNOWFLAKE_CREDIT_QUOTA": 1,
+                "LOG_LEVEL": "DEBUG"
+            },
+            "PLUGINS": {
+                "DISABLED_BY_DEFAULT": true
+            }
+        }
+    ]
+    ```
+
+2. **Create `test/credentials.json`** from the `test/credentials.jsonc` template to reference that deployment.
+
+3. **Generate `test/conf/config-download.json`** by running:
+
+    ```bash
+    PYTHONPATH="./src" pytest -s -v "test/core/test_config.py::TestConfig::test_init" --pickle_conf y
+    ```
+
+### Running Tests in Local Mode
+
+For tests in version (1) (local mode with mocked APIs), `test/conf/config-download.json` should NOT be present. It is a good practice to temporarily disable these files by prefixing them with an underscore (e.g., `_config-download.json` and `_credentials.json`). The gitignore ensures that files prefixed with underscore are not tracked.
+
+### Running Individual Tests
 
 Parameter `$test_name` is required and needs to be the name of the file - excluding the extension - from the `/test/plugins` directory that you want to run. The test files follow the naming pattern `/test/plugins/test_*.py`.
 

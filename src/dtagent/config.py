@@ -1,4 +1,4 @@
-"""File contatning Configuration class and methods"""
+"""File with Configuration class and methods"""
 
 ##region ------------------------------ IMPORTS  -----------------------------------------
 #
@@ -38,13 +38,22 @@ from dtagent.version import VERSION, BUILD
 class Configuration:
     """Class initializing Configuration from Snowflake config.configurations table"""
 
+    RESOURCE_ATTRIBUTES = {
+        "db.system": "snowflake",
+        "service.name": "",
+        "deployment.environment": "",
+        "host.name": "",
+        "telemetry.exporter.version": f"{VERSION}.{BUILD}",
+        "telemetry.exporter.name": "dynatrace.snowagent",
+    }
+
     def __init__(self, session: snowpark.Session) -> Dict:
-        """
-        Returns configuration based on data in config_data.configuration and (currently) hardcoded list of instruments
+        """Returns configuration based on data in config_data.configuration and (currently) hardcoded list of instruments
 
         {
             'dt.token': YOUR_TOKEN,
-            'otlp.http':    'https://DYNATRACE_TENANT_ADDRESS/api/v2/otlp',
+            'logs.http':    'https://DYNATRACE_TENANT_ADDRESS/api/v2/otlp/v1/logs',
+            'spans.http':    'https://DYNATRACE_TENANT_ADDRESS/api/v2/otlp/v1/traces',
             'metrics.http': 'https://DYNATRACE_TENANT_ADDRESS/api/v2/metrics/ingest',
             'events.http': 'https://DYNATRACE_TENANT_ADDRESS/api/v2/events/ingest',
             'bizevents.http': 'https://DYNATRACE_TENANT_ADDRESS/api/v2/bizevents/ingest',
@@ -58,7 +67,8 @@ class Configuration:
             'instruments': {
                 'metrics': {
                     'snowflake.data.scanned_from_cache': {
-                        'description': 'The percentage of data scanned from the local disk cache. The value ranges from 0.0 to 1.0. Multiply by 100 to get a true percentage.',
+                        'description': 'The percentage of data scanned from the local disk cache.
+                                        The value ranges from 0.0 to 1.0. Multiply by 100 to get a true percentage.',
                         'unit': 'percent'
                     },
                     ....
@@ -67,23 +77,32 @@ class Configuration:
                     },
                     ...
                 },
-                'dimesion_sets': {
+                'dimension_sets': {
                     'set1': [], ...
                 }
             }
         }
         """
+        from dtagent.otel.metrics import Metrics  # COMPILE_REMOVE
+        from dtagent.otel.events.generic import GenericEvents  # COMPILE_REMOVE
+        from dtagent.otel.events.davis import DavisEvents  # COMPILE_REMOVE
+        from dtagent.otel.events.bizevents import BizEvents  # COMPILE_REMOVE
+        from dtagent.otel.logs import Logs  # COMPILE_REMOVE
+        from dtagent.otel.spans import Spans  # COMPILE_REMOVE
 
         def __rewrite_with_types(config_df: dict) -> dict:
-            """
-            This function rewrites the pandas dataframe with config to a dict type and assigns desired types to fields.
+            """This function rewrites the pandas dataframe with config to a dict type and assigns desired types to fields.
+
             List format in configuration table should be as follows to work properly:
-                List values must start with `[` and end with `]`, all fields must be seperated with `, `. Values within the list should be enclosed in double quotes (").
+                List values must start with `[` and end with `]`, all fields must be separated with `, `.
+                Values within the list should be enclosed in double quotes (").
                 All items within the list must be the same type.
+
             Args:
                 config_df (dict) - pandas dataframe with configuration table contents
+
             Returns:
-                processed_dict (dict) - dictionary with refromatted field types
+                processed_dict (dict) - dictionary with reformatted field types
             """
             import builtins
 
@@ -94,7 +113,8 @@ class Configuration:
             return processed_dict
 
         def __unpack_prefixed_keys(config: dict, prefix: Optional[str] = None) -> dict:
-            """Traverses key path (dot separated) to unpack flat dict into a dictionary where only numbers, strings, or lists are in the values-leaves
+            """Traverses key path (dot separated) to unpack flat dict into a dictionary where only numbers, strings, or
+            lists are in the values-leaves.
 
             Args:
                 config (dict): Dictionary to unpack
@@ -150,17 +170,17 @@ class Configuration:
 
         self._config = {
             "dt.token": os.environ.get("DTAGENT_TOKEN", _snowflake.get_generic_secret_string("dtagent_token")),
-            "otlp.http": f"https://{config_dict['core.dynatrace_tenant_address']}/api/v2/otlp",
-            "metrics.http": f"https://{config_dict['core.dynatrace_tenant_address']}/api/v2/metrics/ingest",
-            "events.http": f"https://{config_dict['core.dynatrace_tenant_address']}/api/v2/events/ingest",
-            "bizevents.http": f"https://{config_dict['core.dynatrace_tenant_address']}/api/v2/bizevents/ingest",
-            "resource.attributes": {
-                "db.system": "snowflake",
+            "logs.http": f"https://{config_dict['core.dynatrace_tenant_address']}{Logs.ENDPOINT_PATH}",
+            "spans.http": f"https://{config_dict['core.dynatrace_tenant_address']}{Spans.ENDPOINT_PATH}",
+            "metrics.http": f"https://{config_dict['core.dynatrace_tenant_address']}{Metrics.ENDPOINT_PATH}",
+            "events.http": f"https://{config_dict['core.dynatrace_tenant_address']}{GenericEvents.ENDPOINT_PATH}",
+            "davis_events.http": f"https://{config_dict['core.dynatrace_tenant_address']}{DavisEvents.ENDPOINT_PATH}",
+            "biz_events.http": f"https://{config_dict['core.dynatrace_tenant_address']}{BizEvents.ENDPOINT_PATH}",
+            "resource.attributes": Configuration.RESOURCE_ATTRIBUTES
+            | {
                 "service.name": _get_service_name(config_dict),
                 "deployment.environment": config_dict["core.deployment_environment"],
                 "host.name": config_dict["core.snowflake_host_name"],
-                "telemetry.exporter.version": f"{VERSION}.{BUILD}",
-                "telemetry.exporter.name": "dynatrace.snowagent",
             },
             "otel": __unpack_prefixed_keys(config_dict, "otel."),
             "plugins": __unpack_prefixed_keys(config_dict, "plugins."),
@@ -179,12 +199,13 @@ class Configuration:
         otel_module: Optional[str] = None,
         default_value: Optional[Any] = None,
     ) -> any:
-        """Returns configuraiton value for the given key in either given context or for the given plugin name
+        """Returns configuration value for the given key in either given context or for the given plugin name
 
         Args:
-            key (str): Configuration key for which to return value
-            context (str, optional): First level key under which a dict is kept as a value. Defaults to None.
-            plugin_name (str, optional): Name of the key under the "plugins" key in configs; dictionary is expected under that plugin name. Defaults to None.
+            key (str):                   Configuration key for which to return value
+            context (str, optional):     First level key under which a dict is kept as a value. Defaults to None.
+            plugin_name (str, optional): Name of the key under the "plugins" key in configs; dictionary is expected under that plugin name.
+                                         Defaults to None.
 
         Returns:
             any: Value for the given configuration key in given context or plugin.
@@ -206,9 +227,7 @@ class Configuration:
         return return_key
 
     def get_last_measurement_update(self, session: snowpark.Session, source: str):
-        """
-        Checks STATUS.PROCESSED_MEASUREMENTS_LOG to get last update for the given source
-        """
+        """Checks STATUS.PROCESSED_MEASUREMENTS_LOG to get last update for the given source"""
         from dtagent.util import _get_timestamp_in_sec  # COMPILE_REMOVE
 
         last_ts = session.sql(f"select APP.F_LAST_PROCESSED_TS('{source}');").collect()[0][0]

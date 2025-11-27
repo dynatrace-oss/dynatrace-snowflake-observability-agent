@@ -1,0 +1,100 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - main
+      - devel
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      create_release:
+        description: "Create a draft release (for testing)"
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  build-and-release:
+    name: Build and Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Needed to create releases
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Required for git history access
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libcairo2 libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf2.0-0 libffi-dev pandoc
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Get Version
+        id: get_version
+        run: |
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            VERSION_NUMBER="${{ github.ref_name }}"
+            VERSION_NUMBER="${VERSION_NUMBER#v}"
+          else
+            VERSION_NUMBER=$(grep '^VERSION' src/dtagent/version.py | cut -d '"' -f 2)
+            if [[ -z "$VERSION_NUMBER" ]]; then
+              echo "Error: Failed to extract version from src/dtagent/version.py. File may be missing or format may be incorrect."
+              exit 1
+            fi
+          fi
+          echo "VERSION=${VERSION_NUMBER}" >> $GITHUB_OUTPUT
+
+      - name: Clean up previous build artifacts
+        run: |
+          rm -f dynatrace_snowflake_observability_agent-*.zip
+          rm -f Dynatrace-Snowflake-Observability-Agent-*.pdf
+
+      - name: Run package script
+        id: package
+        run: |
+          chmod +x *.sh
+          ./package.sh full
+          BUILD_NR=$(grep 'BUILD =' build/_version.py | awk '{print $3}')
+          echo "ZIP_NAME=dynatrace_snowflake_observability_agent-${{ steps.get_version.outputs.VERSION }}.${BUILD_NR}.zip" >> $GITHUB_OUTPUT
+          echo "PDF_NAME=Dynatrace-Snowflake-Observability-Agent-${{ steps.get_version.outputs.VERSION }}.pdf" >> $GITHUB_OUTPUT
+
+      - name: Upload build artifacts
+        if: github.ref_type != 'tag' && inputs.create_release == false
+        uses: actions/upload-artifact@v4
+        with:
+          name: dsoa-package-${{ steps.get_version.outputs.VERSION }}
+          path: |
+            ${{ steps.package.outputs.ZIP_NAME }}
+            ${{ steps.package.outputs.PDF_NAME }}
+
+      - name: Extract Release Notes from CHANGELOG
+        id: extract_release_notes
+        if: github.ref_type == 'tag' || inputs.create_release == true
+        run: |
+          VERSION_HEADER="## Dynatrace Snowflake Observability Agent ${{ steps.get_version.outputs.VERSION }}"
+          # Use awk to find the section for the current version and print until the next ## heading
+          awk -v header="$VERSION_HEADER" '
+            $0 == header { in_section=1; next }
+            /^## / { if (in_section) exit }
+            in_section { print }
+          ' CHANGELOG.md > release_notes.md
+
+      - name: Create GitHub Release
+        if: github.ref_type == 'tag' || inputs.create_release == true
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Dynatrace Snowflake Observability Agent ${{ steps.get_version.outputs.VERSION }}
+          body_path: release_notes.md
+          draft: ${{ inputs.create_release == true }}
+          files: |
+            ${{ steps.package.outputs.ZIP_NAME }}
+            ${{ steps.package.outputs.PDF_NAME }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

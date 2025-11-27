@@ -22,27 +22,28 @@
 #
 #
 class TestActiveQueries:
+    import pytest
+
+    PICKLES = {"SELECT * FROM TABLE(DTAGENT_DB.APP.F_ACTIVE_QUERIES_INSTRUMENTED())": "test/test_data/active_queries.pkl"}
+
+    @pytest.mark.xdist_group(name="test_telemetry")
     def test_active_queries(self):
         import logging
+        from unittest.mock import patch
 
         from typing import Dict, Generator
         from dtagent.plugins.active_queries import ActiveQueriesPlugin
         import test._utils as utils
         from test import TestDynatraceSnowAgent, _get_session
 
-        T_ACTIVE_QUERIES = "SELECT * FROM TABLE(APP.F_ACTIVE_QUERIES_INSTRUMENTED())"
-        PKL_ACTIVE_QUERIES = "test/test_data/active_queries.pkl"
-
         # ======================================================================
 
-        if utils.should_pickle([PKL_ACTIVE_QUERIES]):
-            session = _get_session()
-            utils._pickle_data_history(session, T_ACTIVE_QUERIES, PKL_ACTIVE_QUERIES)
+        utils._pickle_all(_get_session(), self.PICKLES)
 
         class TestActiveQueriesPlugin(ActiveQueriesPlugin):
 
-            def _get_table_rows(self, table_name: str = None) -> Generator[Dict, None, None]:
-                return utils._get_unpickled_entries(PKL_ACTIVE_QUERIES, limit=2)
+            def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
+                return utils._safe_get_unpickled_entries(TestActiveQueries.PICKLES, t_data, limit=2)
 
         def __local_get_plugin_class(source: str):
             return TestActiveQueriesPlugin
@@ -52,9 +53,22 @@ class TestActiveQueries:
         plugins._get_plugin_class = __local_get_plugin_class
 
         # ======================================================================
-        session = _get_session()
+        disabled_combinations = [
+            [],
+            ["metrics"],
+            ["logs"],
+            ["logs", "metrics"],
+            ["logs", "spans", "metrics", "events"],
+        ]
 
-        utils._logging_findings(session, TestDynatraceSnowAgent(session), "test_active_queries", logging.DEBUG, show_detailed_logs=1)
+        for disabled_telemetry in disabled_combinations:
+            utils.execute_telemetry_test(
+                TestDynatraceSnowAgent,
+                test_name="test_active_queries",
+                disabled_telemetry=disabled_telemetry,
+                affecting_types_for_entries=["logs", "metrics"],
+                base_count={"active_queries": {"entries": 2, "log_lines": 2, "metrics": 10}},
+            )
 
 
 if __name__ == "__main__":

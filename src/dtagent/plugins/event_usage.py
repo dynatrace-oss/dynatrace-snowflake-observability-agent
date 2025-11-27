@@ -1,6 +1,4 @@
-"""
-Plugin file for processing event usage plugin data.
-"""
+"""Plugin file for processing event usage plugin data."""
 
 ##region ------------------------------ IMPORTS  -----------------------------------------
 #
@@ -26,10 +24,10 @@ Plugin file for processing event usage plugin data.
 # SOFTWARE.
 #
 #
-
-from typing import Tuple
+from typing import Tuple, Dict
 from dtagent.util import _unpack_json_dict
 from dtagent.plugins import Plugin
+from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPILE_REMOVE
 
 ##endregion COMPILE_REMOVE
 
@@ -37,12 +35,12 @@ from dtagent.plugins import Plugin
 
 
 class EventUsagePlugin(Plugin):
-    """
-    Event usage plugin class.
-    """
+    """Event usage plugin class."""
 
-    def _report_event_usage_log(self, row_dict, __context, log_level):
-        """sends single log line for event usage plugin"""
+    PLUGIN_NAME = "event_usage"
+
+    def _report_event_usage_log(self, row_dict: Dict, __context: Dict, log_level: int) -> bool:
+        """Sends single log line for event usage plugin"""
         unpacked_dict = _unpack_json_dict(row_dict, ["DIMENSIONS", "METRICS"])
         start_ts = row_dict.get("START_TIME")
         processed_timestamp = row_dict.get("END_TIME")
@@ -57,21 +55,48 @@ class EventUsagePlugin(Plugin):
             context=__context,
             log_level=log_level,
         )
+        return True
 
-    def process(self, run_proc: bool = True) -> Tuple[int, int]:
-        """
-        Processes data for event usage plugin.
-        Returns
-            processed_entries_cnt [int]: number of entries reported from APP.V_EVENT_USAGE_HISTORY,
-            processed_event_metrics_cnt [int]: number of metrics reported from APP.V_EVENT_USAGE_HISTORY.
-        """
+    def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
+        """Processes data for event usage plugin.
 
-        processed_entries_cnt, _, processed_event_metrics_cnt, _ = self._log_entries(
+        Args:
+            run_id (str): unique run identifier
+            run_proc (bool): indicator whether processing should be logged as completed
+
+        Returns:
+            Dict[str,int]: A dictionary with counts of processed telemetry data.
+
+            Example:
+            {
+            "dsoa.run.results": {
+                "event_usage": {
+                    "entries": entries_cnt,
+                    "log_lines": logs_cnt,
+                    "metrics": metrics_cnt,
+                    "events": events_cnt
+                },
+            },
+            "dsoa.run.id": "uuid_string"
+            }
+        """
+        processed_entries_cnt, processed_logs_cnt, processed_event_metrics_cnt, processed_events_cnt = self._log_entries(
             f_entry_generator=lambda: self._get_table_rows("APP.V_EVENT_USAGE_HISTORY"),
             context_name="event_usage",
+            run_uuid=run_id,
             report_timestamp_events=False,
             log_completion=run_proc,
             f_report_log=self._report_event_usage_log,
         )
 
-        return processed_entries_cnt, processed_event_metrics_cnt
+        return self._report_results(
+            {
+                "event_usage": {
+                    "entries": processed_entries_cnt,
+                    "log_lines": processed_logs_cnt,
+                    "metrics": processed_event_metrics_cnt,
+                    "events": processed_events_cnt,
+                },
+            },
+            run_id,
+        )

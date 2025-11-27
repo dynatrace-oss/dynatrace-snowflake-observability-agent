@@ -45,7 +45,7 @@ class TestConfig:
 
         from build import prepare_config
 
-        d_config = prepare_config._get_config("./build/config-default.json")
+        d_config = prepare_config._get_config("./test/conf/config-default.json")
         assert d_config is not None, "Could not load config"
 
         l_config = prepare_config._prepare_config_for_ingest(d_config)
@@ -132,7 +132,7 @@ class TestConfig:
 
                 plugin_key = plugin.upper()
 
-                assert "PLUGINS" in d_conf, "Plugins key is missing from the configuratio"
+                assert "PLUGINS" in d_conf, "Plugins key is missing from the configuration"
 
                 assert plugin_key in d_conf["PLUGINS"], f"{plugin} key is missing from the configuration"
 
@@ -148,7 +148,8 @@ class TestConfig:
 
         c = get_config(pickle_conf)
 
-        assert c.get("otlp.http") is not None
+        assert c.get("logs.http") is not None
+        assert c.get("spans.http") is not None
         assert isinstance(c.get(otel_module="spans", key="export_timeout_millis"), int)
         assert isinstance(c.get(otel_module="spans", key="max_export_batch_size"), int)
         assert c.get("resource.attributes").get("telemetry.exporter.name") == "dynatrace.snowagent"

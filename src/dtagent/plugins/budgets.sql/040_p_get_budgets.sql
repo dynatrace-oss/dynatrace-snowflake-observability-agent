@@ -53,8 +53,7 @@ execute as owner
 as
 $$
 DECLARE
-    q_get_budgets               TEXT DEFAULT 'show SNOWFLAKE.CORE.BUDGET;';
-    q_pop_budgets               TEXT DEFAULT 'insert into DTAGENT_DB.APP.TMP_BUDGETS select * from table(result_scan(last_query_id()));';
+    q_get_budgets               TEXT DEFAULT 'show SNOWFLAKE.CORE.BUDGET ->> insert into DTAGENT_DB.APP.TMP_BUDGETS select * from $1;';
 
     tr_budgets                  TEXT DEFAULT 'truncate table DTAGENT_DB.APP.TMP_BUDGETS;';
     tr_linked_resources         TEXT DEFAULT 'truncate table DTAGENT_DB.APP.TMP_BUDGETS_RESOURCES;';
@@ -75,7 +74,6 @@ BEGIN
     EXECUTE IMMEDIATE :tr_spendings;
 
     EXECUTE IMMEDIATE :q_get_budgets;
-    EXECUTE IMMEDIATE :q_pop_budgets;
 
     FOR budget IN c_budgets DO
         budget_name := budget.name;

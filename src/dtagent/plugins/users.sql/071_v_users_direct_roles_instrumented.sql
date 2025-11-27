@@ -1,17 +1,17 @@
 --
 --
 -- Copyright (c) 2025 Dynatrace Open Source
--- 
+--
 -- Permission is hereby granted, free of charge, to any person obtaining a copy
 -- of this software and associated documentation files (the "Software"), to deal
 -- in the Software without restriction, including without limitation the rights
 -- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 -- copies of the Software, and to permit persons to whom the Software is
 -- furnished to do so, subject to the following conditions:
--- 
+--
 -- The above copyright notice and this permission notice shall be included in all
 -- copies or substantial portions of the Software.
--- 
+--
 -- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 -- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 -- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -34,9 +34,11 @@ select
   )                                                     as DIMENSIONS,
   OBJECT_CONSTRUCT(
     'snowflake.user.roles.direct',                array_agg(role),
-    'snowflake.user.roles.granted_by',            array_agg(granted_by),
-    'snowflake.user.roles.last_altered',          extract(epoch_nanosecond from max(created_on)) -- not reported as EVENT_TIMESTAMPS as we do not want to send events, and it would mess up documentation test
-  )                                                     as ATTRIBUTES
+    'snowflake.user.roles.granted_by',            array_agg(granted_by)
+  )                                                     as ATTRIBUTES,
+  OBJECT_CONSTRUCT(
+    'snowflake.user.roles.last_altered',          extract(epoch_nanosecond from max(created_on))
+  )                                                     as EVENT_TIMESTAMPS
 from snowflake.account_usage.grants_to_users
 where deleted_on is null and ((DATE(DTAGENT_DB.APP.F_LAST_PROCESSED_TS('users')) != CURRENT_DATE()) or created_on > DTAGENT_DB.APP.F_LAST_PROCESSED_TS('users'))
 group by grantee_name;
