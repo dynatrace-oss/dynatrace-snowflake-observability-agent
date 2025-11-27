@@ -24,12 +24,7 @@
 # SOFTWARE.
 #
 #
-<<<<<<< HEAD
-
-from typing import Tuple
-=======
 from typing import Tuple, Dict
->>>>>>> main
 from dtagent.plugins import Plugin
 from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPILE_REMOVE
 

@@ -127,8 +127,6 @@ class QueryHistoryPlugin(Plugin):
                 )
                 logs_sent = 1
 
-<<<<<<< HEAD
-=======
                 for operator in _unpack_json_list(query_dict, ["QUERY_OPERATOR_STATS"]):
                     self._logs.send_log(
                         f"Query operator: {__get_query_operator_event_name(operator)}",
@@ -142,7 +140,6 @@ class QueryHistoryPlugin(Plugin):
 
             return logs_sent
 
->>>>>>> main
         if run_proc:
             # getting list of recent queries with their query operator stats (query profile)
             self._session.call("APP.P_REFRESH_RECENT_QUERIES", log_on_exception=True)
