@@ -2,6 +2,81 @@
 
 All notable changes to this project will be documented in this file.
 
+## Dynatrace Snowflake Observability Agent 0.9.3
+
+Released on January 15, 2026
+
+### Breaking Changes in 0.9.3
+
+* **Optional DTAGENT_ADMIN Role**: Re-architected SnowAgent to make the use of `DTAGENT_ADMIN` role optional, enabling deployment with reduced privileges. Deployment vs. upgrade now has separate permission requirements with owner-admin-viewer role separation.
+
+### New in 0.9.3
+
+* **SDLC Events Support**: Implemented support for Software Development Life Cycle (SDLC) events in SnowAgent, enabling pipelines-related telemetry for Snowflake and SnowAgent self-monitoring.
+* **Database-Level Event Tables**: Added support for Snowflake event log tables at the database level (`SNOWFLAKE.TELEMETRY.EVENTS`), in addition to the existing global account-level table.
+* **Span Events from Event Log**: Extended support to generate span events from Snowflake `event_log` tables.
+* **Performance Explorer Dashboard**: New dashboard for exploring performance data based on SnowAgent telemetry.
+* **Snowflake Consumption Dashboard**: New 3rd generation Dynatrace dashboard for monitoring Snowflake consumption metrics.
+
+### Improved in 0.9.3
+
+#### Architecture & Multi-Tenancy
+
+* **Multi-Tenancy Data Reuse**: Refactored code so that multi-tenant instances can re-use existing data prepared by other instances, reducing redundant telemetry processing.
+* **Selective Plugin Deployment**: Enabled deployment of SnowAgent with only selected plugins, allowing customization based on use case requirements.
+* **Custom Warehouse Support**: Added ability to disable the built-in Resource Monitor or use a customer-provided warehouse instead of `DTAGENT_WH`.
+* **Centralized Warehouse Monitoring**: Moved the procedure for regranting monitoring privileges on warehouses to the core module, enabling reuse across plugins.
+
+#### Query & Data Processing
+
+* **Error-Resilient Query Processing**: Queries are no longer marked as processed when exceptions occur during data sending, preventing data loss.
+* **Query History Views**: Refactored query history plugin views so that `V_QUERY_HISTORY_INSTRUMENTED` is the final view in the processing chain.
+* **Timestamp Analysis**: Investigated and documented the source of `overwritten1.timestamp` fields in query reports.
+* **Transient Table Review**: Reviewed the use of `CREATE TRANSIENT TABLE IF NOT EXISTS` pattern to address upgrade issues.
+* **Performance Optimization**: Improved performance and memory handling in DSOA core processing.
+
+#### Event Log Processing
+
+* **Timestamp Handling**: Improved how `last-timestamp` is set during event log processing to prevent data loss.
+* **Event Table Fine-Tuning**: Added ability to configure event log table settings for cost optimization.
+* **History Depth Configuration**: Added configuration option to control how far back in history SnowAgent should pick up previous telemetry data.
+
+#### Dynamic Tables
+
+* **Selective Database Monitoring**: Limited granting of monitoring privileges for dynamic tables to only selected databases as specified in configuration.
+
+### Configuration
+
+* **Snowflake Account Identification**: Improved how Snowflake account is identified in configuration, clarifying the distinction between account name, account locator, and host name.
+* **Data Retention Configuration**: Added ability to configure data retention on `DTAGENT_*` objects.
+* **Simplified Configuration Format**: Simplified configuration files for SnowAgent (YAML format with lowercase keys to match Snowflake configuration table paths).
+* **Instruments Review**: Reviewed the necessity of `V_INSTRUMENTS` view with consideration for compile-time inclusion in Python code.
+
+### Deployment
+
+* **Independent Manual Mode**: Manual deploy mode can now be invoked independently from other parameters, supporting teardown and selective deployment with SQL review.
+* **Multiple Deployment Patterns**: Enabled passing multiple deployment patterns at the same time (e.g., `./deploy.sh test 053_v_ac|70`).
+* **Upgrade Process**: Delivered SnowAgent upgrade process supporting custom queries for version migrations, column alterations, and removal of deprecated procedures.
+* **Apps URL Detection**: Deployment process now detects if `.apps.` URL is used for Dynatrace API and handles it appropriately.
+
+### Dashboards
+
+* **Self-Monitoring Dashboard**: Updated self-monitoring dashboard with latest telemetry improvements.
+* **Performance Explorer**: Created new dashboard for exploring SnowAgent performance data.
+* **Consumption Dashboard**: Implemented Snowflake Consumption dashboard in DT 3rd generation format.
+
+### Documentation
+
+* **Bill of Materials**: BOM files are now included as part of the documentation with structured tables.
+* **Semantic Dictionary Process**: Established process for sharing SnowAgent semantics into the semantic dictionary repository.
+* **Git Flow Documentation**: Updated developer documentation to reflect the change from git-flow to main branch workflow, including guidance on feature branches, release branches, and tags.
+
+### Testing
+
+* **Extended Code Quality**: Extended code quality checks to include `build/*.py` files (unused imports and other issues).
+* **Stored Procedure Hierarchy**: Added tests to verify hierarchy of stored procedure calls represented in spans using `parent_query_id` and `root_query_id`.
+* **Synthetic Test Data**: Extended plugin test framework to operate on fully synthetic JSON data instead of pickled data with Dynatrace response comparison.
+
 ## Dynatrace Snowflake Observability Agent 0.9.2
 
 Released on November 24, 2025
