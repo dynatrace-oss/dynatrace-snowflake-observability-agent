@@ -2,9 +2,9 @@ name: Quality Checks
 
 on:
   push:
-    branches: ["devel", "master", "dev/*", "release/*", "feature/*", "hotfix/*"]
+    branches: ["devel", "main", "dev/*", "release/*", "feature/*", "hotfix/*"]
   pull_request:
-    branches: ["devel", "master", "dev/*", "release/*", "feature/*", "hotfix/*"]
+    branches: ["devel", "main", "dev/*", "release/*", "feature/*", "hotfix/*"]
 
 jobs:
   lint:
