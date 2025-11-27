@@ -26,7 +26,6 @@
 #
 import logging
 from typing import Dict, Generator, Tuple
-import uuid
 import pandas as pd
 from dtagent.util import _unpack_json_dict
 from dtagent.plugins import Plugin

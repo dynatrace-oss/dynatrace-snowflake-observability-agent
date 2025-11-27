@@ -24,7 +24,6 @@
 # SOFTWARE.
 #
 #
-import uuid
 import logging
 from typing import Tuple, Dict
 from regex import R
