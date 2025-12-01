@@ -150,3 +150,57 @@ setup() {
         echo "✓ PDF documentation exists"
     fi
 }
+
+@test "package.sh creates a valid package zip with build files and documentation" {
+    run ./package.sh
+    [ "$status" -eq 0 ]
+
+    # Find the latest zip file
+    zip_file=$(ls dynatrace_snowflake_observability_agent-*.zip | tail -1)
+    echo "zip_file: $zip_file"
+    [ -f "$zip_file" ]
+
+    # Check that the zip contains the PDF
+    pdf_file=$(unzip -l "$zip_file" | grep Dynatrace-Snowflake-Observability-Agent-*.pdf)
+    echo "pdf_file: $pdf_file"
+    [ -n "$pdf_file" ]
+
+    # Check that build/ directory exists in zip
+    build_dir=$(unzip -l "$zip_file" | grep "^.*build/$")
+    echo "build_dir: $build_dir"
+    [ -n "$build_dir" ]
+
+    # Check that config-default.json is in build/
+    config_file=$(unzip -l "$zip_file" | grep "build/config-default.json")
+    echo "config_file: $config_file"
+    [ -n "$config_file" ]
+
+    # Check that instruments-def.json is in build/
+    instruments_file=$(unzip -l "$zip_file" | grep "build/instruments-def.json")
+    echo "instruments_file: $instruments_file"
+    [ -n "$instruments_file" ]
+
+    # Check that conf/ exists
+    conf_dir=$(unzip -l "$zip_file" | grep "^.*conf/$")
+    echo "conf_dir: $conf_dir"
+    [ -n "$conf_dir" ]
+
+    # Check that docs/ exists
+    docs_dir=$(unzip -l "$zip_file" | grep "^.*docs/$")
+    echo "docs_dir: $docs_dir"
+    [ -n "$docs_dir" ]
+
+    # Check that bom.yml is in docs/
+    bom_file=$(unzip -l "$zip_file" | grep "docs/bom.yml")
+    echo "bom_file: $bom_file"
+    [ -n "$bom_file" ]
+
+    # Check that deploy.sh is present
+    deploy_script=$(unzip -l "$zip_file" | grep "deploy.sh")
+    echo "deploy_script: $deploy_script"
+    [ -n "$deploy_script" ]
+
+    # Check that there are many SQL files in build/
+    sql_count=$(unzip -l "$zip_file" | grep "build/.*\.sql$" | wc -l)
+    [ "$sql_count" -gt 50 ]
+}

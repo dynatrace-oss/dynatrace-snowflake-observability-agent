@@ -15,9 +15,3 @@ setup() {
     run ./deploy.sh
     [ "$status" -ne 0 ]  # Should fail without ENV
 }
-
-@test "package.sh requires build files" {
-    run ./package.sh
-    # May fail if build/ files missing, but check it runs
-    [ "$status" -eq 0 ] || [ "$status" -eq 1 ]
-}
