@@ -1,21 +1,21 @@
 # Semantic Dictionary
 
-* [Shared semantics](#core_semantics_sec)
-* [Active Queries](#active_queries_semantics_sec)
-* [Budgets](#budgets_semantics_sec)
-* [Data Schemas](#data_schemas_semantics_sec)
-* [Data Volume](#data_volume_semantics_sec)
-* [Dynamic Tables](#dynamic_tables_semantics_sec)
-* [Event Log](#event_log_semantics_sec)
-* [Event Usage](#event_usage_semantics_sec)
-* [Login History](#login_history_semantics_sec)
-* [Query History](#query_history_semantics_sec)
-* [Resource Monitors](#resource_monitors_semantics_sec)
-* [Shares](#shares_semantics_sec)
-* [Tasks](#tasks_semantics_sec)
-* [Trust Center](#trust_center_semantics_sec)
-* [Users](#users_semantics_sec)
-* [Warehouse Usage](#warehouse_usage_semantics_sec)<a name="core_semantics_sec"></a>
+- [Shared semantics](#core_semantics_sec)
+- [Active Queries](#active_queries_semantics_sec)
+- [Budgets](#budgets_semantics_sec)
+- [Data Schemas](#data_schemas_semantics_sec)
+- [Data Volume](#data_volume_semantics_sec)
+- [Dynamic Tables](#dynamic_tables_semantics_sec)
+- [Event Log](#event_log_semantics_sec)
+- [Event Usage](#event_usage_semantics_sec)
+- [Login History](#login_history_semantics_sec)
+- [Query History](#query_history_semantics_sec)
+- [Resource Monitors](#resource_monitors_semantics_sec)
+- [Shares](#shares_semantics_sec)
+- [Tasks](#tasks_semantics_sec)
+- [Trust Center](#trust_center_semantics_sec)
+- [Users](#users_semantics_sec)
+- [Warehouse Usage](#warehouse_usage_semantics_sec)<a name="core_semantics_sec"></a>
 
 ## Dynatrace Snowflake Observability Agent `core` semantics
 
@@ -63,7 +63,7 @@ All telemetry delivered by this plugin is reported as `dsoa.run.context == "acti
 | Identifier                                              | Description                                                                                      | Example                              |
 | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------ |
 | db.&#8203;operation.&#8203;name                         | The type of operation performed by the query, such as: <br>- SELECT, <br>- INSERT, <br>- UPDATE. | SELECT                               |
-| db.&#8203;query.&#8203;text                             | The text of the SQL query.                                                                       | SELECT * FROM sales_data             |
+| db.&#8203;query.&#8203;text                             | The text of the SQL query.                                                                       | SELECT \* FROM sales_data            |
 | session.&#8203;id                                       | The unique identifier for the session in which the query was executed.                           | 123456789                            |
 | snowflake.&#8203;error.&#8203;code                      | The error code if the query failed.                                                              | 1001                                 |
 | snowflake.&#8203;error.&#8203;message                   | The error message if the query failed.                                                           | Syntax error in SQL statement        |
@@ -187,7 +187,8 @@ All telemetry delivered by this plugin is reported as `dsoa.run.context == "data
 
 [Show plugin description](PLUGINS.md#dynamic_tables_info_sec)
 
-This plugin delivers telemetry in multiple contexts. To filter by one of plugin's context names (reported as `dsoa.run.context`), please check the `Context Name` column below.
+This plugin delivers telemetry in multiple contexts. To filter by one of plugin's context names (reported as `dsoa.run.context`), please
+check the `Context Name` column below.
 
 ### Dimensions at the `Dynamic Tables` plugin
 
@@ -258,7 +259,8 @@ This plugin delivers telemetry in multiple contexts. To filter by one of plugin'
 
 [Show plugin description](PLUGINS.md#event_log_info_sec)
 
-This plugin delivers telemetry in multiple contexts. To filter by one of plugin's context names (reported as `dsoa.run.context`), please check the `Context Name` column below.
+This plugin delivers telemetry in multiple contexts. To filter by one of plugin's context names (reported as `dsoa.run.context`), please
+check the `Context Name` column below.
 
 ### Dimensions at the `Event Log` plugin
 
@@ -298,7 +300,8 @@ All telemetry delivered by this plugin is reported as `dsoa.run.context == "even
 
 [Show plugin description](PLUGINS.md#login_history_info_sec)
 
-This plugin delivers telemetry in multiple contexts. To filter by one of plugin's context names (reported as `dsoa.run.context`), please check the `Context Name` column below.
+This plugin delivers telemetry in multiple contexts. To filter by one of plugin's context names (reported as `dsoa.run.context`), please
+check the `Context Name` column below.
 
 ### Dimensions at the `Login History` plugin
 
@@ -362,7 +365,7 @@ All telemetry delivered by this plugin is reported as `dsoa.run.context == "quer
 | client.&#8203;build_id                                                    | The build ID of the client application.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | build123                                                                                                                                                              |
 | client.&#8203;environment                                                 | The environment of the client application.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | production                                                                                                                                                            |
 | client.&#8203;version                                                     | The version of the client.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | 1.0.0                                                                                                                                                                 |
-| db.&#8203;query.&#8203;text                                               | The text of the query.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | SELECT * FROM users;                                                                                                                                                  |
+| db.&#8203;query.&#8203;text                                               | The text of the query.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | SELECT \* FROM users;                                                                                                                                                 |
 | db.&#8203;snowflake.&#8203;tables                                         | The tables involved in the query.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | users                                                                                                                                                                 |
 | db.&#8203;snowflake.&#8203;views                                          | The views involved in the query.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | user_view                                                                                                                                                             |
 | dsoa.&#8203;debug.&#8203;span.&#8203;events.&#8203;added                  | Internal debug field indicating the number of span events successfully added to the given span.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | 5                                                                                                                                                                     |
@@ -384,7 +387,7 @@ All telemetry delivered by this plugin is reported as `dsoa.run.context == "quer
 | snowflake.&#8203;query.&#8203;hash_version                                | The version of the query hash.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | v1                                                                                                                                                                    |
 | snowflake.&#8203;query.&#8203;id                                          | The unique identifier for the query.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | b1bbaa7f-8144-4e50-947a-b7e9bf7d62d5                                                                                                                                  |
 | snowflake.&#8203;query.&#8203;is_client_generated                         | Indicates if the statement was generated by the client.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | true                                                                                                                                                                  |
-| snowflake.&#8203;query.&#8203;operator.&#8203;attributes                  | Information about the operator, depending on the operator type.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | { "equality_join_condition": "(T4.C = T1.C)",   "join_type": "INNER" }                                                                                                |
+| snowflake.&#8203;query.&#8203;operator.&#8203;attributes                  | Information about the operator, depending on the operator type.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | { "equality_join_condition": "(T4.C = T1.C)", "join_type": "INNER" }                                                                                                  |
 | snowflake.&#8203;query.&#8203;operator.&#8203;id                          | The operator’s identifier, unique within the query. Values start at 0.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | 0                                                                                                                                                                     |
 | snowflake.&#8203;query.&#8203;operator.&#8203;parent_ids                  | Identifiers of the parent operators for this operator, or NULL if this is the final operator in the query plan.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | [0]                                                                                                                                                                   |
 | snowflake.&#8203;query.&#8203;operator.&#8203;stats                       | Statistics about the operator (e.g., the number of output rows from the operator).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | { "input_rows": 64, "output_rows": 64 }                                                                                                                               |
@@ -532,7 +535,8 @@ All telemetry delivered by this plugin is reported as `dsoa.run.context == "reso
 
 [Show plugin description](PLUGINS.md#shares_info_sec)
 
-This plugin delivers telemetry in multiple contexts. To filter by one of plugin's context names (reported as `dsoa.run.context`), please check the `Context Name` column below.
+This plugin delivers telemetry in multiple contexts. To filter by one of plugin's context names (reported as `dsoa.run.context`), please
+check the `Context Name` column below.
 
 ### Dimensions at the `Shares` plugin
 
@@ -594,7 +598,8 @@ This plugin delivers telemetry in multiple contexts. To filter by one of plugin'
 
 [Show plugin description](PLUGINS.md#tasks_info_sec)
 
-This plugin delivers telemetry in multiple contexts. To filter by one of plugin's context names (reported as `dsoa.run.context`), please check the `Context Name` column below.
+This plugin delivers telemetry in multiple contexts. To filter by one of plugin's context names (reported as `dsoa.run.context`), please
+check the `Context Name` column below.
 
 ### Dimensions at the `Tasks` plugin
 
@@ -607,41 +612,41 @@ This plugin delivers telemetry in multiple contexts. To filter by one of plugin'
 
 ### Attributes at the `Tasks` plugin
 
-| Identifier                                               | Description                                    | Example              | Context Name                    |
-| -------------------------------------------------------- | ---------------------------------------------- | -------------------- | ------------------------------- |
-| db.&#8203;query.&#8203;text                              | The text of the query.                         | SELECT * FROM users; | task_versions                   |
-| snowflake.&#8203;database.&#8203;id                      | The unique identifier for the database.        | db123                | serverless_tasks, task_versions |
-| snowflake.&#8203;error.&#8203;code                       | The error code returned by the task.           | ERR123               | task_history                    |
-| snowflake.&#8203;error.&#8203;message                    | The error message returned by the task.        | Syntax error         | task_history                    |
-| snowflake.&#8203;query.&#8203;hash                       | The hash of the query.                         | hash123              | task_history                    |
-| snowflake.&#8203;query.&#8203;hash_version               | The version of the query hash.                 | v1                   | task_history                    |
-| snowflake.&#8203;query.&#8203;id                         | The unique identifier for the query.           | query123             | task_history                    |
-| snowflake.&#8203;query.&#8203;parametrized_hash          | The parameterized hash of the query.           | param_hash123        | task_history                    |
-| snowflake.&#8203;query.&#8203;parametrized_hash_version  | The version of the parameterized query hash.   | v1                   | task_history                    |
-| snowflake.&#8203;schema.&#8203;id                        | The unique identifier for the schema.          | schema123            | serverless_tasks, task_versions |
-| snowflake.&#8203;task.&#8203;condition                   | The condition text of the task.                | status = 'SUCCESS'   | task_versions, task_history     |
-| snowflake.&#8203;task.&#8203;config                      | The configuration of the task.                 | config123            | task_history                    |
-| snowflake.&#8203;task.&#8203;config.&#8203;allow_overlap | Indicates if overlapping execution is allowed. | true                 | task_versions                   |
-| snowflake.&#8203;task.&#8203;end_time                    | The end time of the task.                      | 1633046700000000000  | serverless_tasks                |
-| snowflake.&#8203;task.&#8203;error_integration           | The error integration for the task.            | error_integration123 | task_versions                   |
-| snowflake.&#8203;task.&#8203;graph.&#8203;root_id        | The root ID of the task graph.                 | root123              | task_versions, task_history     |
-| snowflake.&#8203;task.&#8203;graph.&#8203;version        | The version of the task graph.                 | v1                   | task_versions, task_history     |
-| snowflake.&#8203;task.&#8203;id                          | The unique identifier for the task.            | task123              | serverless_tasks, task_versions |
-| snowflake.&#8203;task.&#8203;instance_id                 | The unique identifier for the task instance.   | instance123          | serverless_tasks                |
-| snowflake.&#8203;task.&#8203;last_committed_on           | The last committed time of the task.           | 1633046400000000000  | task_versions                   |
-| snowflake.&#8203;task.&#8203;last_suspended_on           | The last suspended time of the task.           | 1633046700000000000  | task_versions                   |
-| snowflake.&#8203;task.&#8203;owner                       | The owner of the task.                         | admin                | task_versions                   |
-| snowflake.&#8203;task.&#8203;predecessors                | The predecessors of the task.                  | taskA, taskB         | task_versions                   |
-| snowflake.&#8203;task.&#8203;run.&#8203;attempt          | The attempt number of the task run.            | 1                    | task_history                    |
-| snowflake.&#8203;task.&#8203;run.&#8203;completed_time   | The completed time of the task run.            | 1633046700000000000  | task_history                    |
-| snowflake.&#8203;task.&#8203;run.&#8203;group_id         | The group ID of the task run.                  | group123             | task_history                    |
-| snowflake.&#8203;task.&#8203;run.&#8203;id               | The unique identifier for the task run.        | run123               | task_history                    |
-| snowflake.&#8203;task.&#8203;run.&#8203;return_value     | The return value of the task run.              | 0                    | task_history                    |
-| snowflake.&#8203;task.&#8203;run.&#8203;scheduled_from   | The source from which the task was scheduled.  | CRON                 | task_history                    |
-| snowflake.&#8203;task.&#8203;run.&#8203;scheduled_time   | The scheduled time of the task run.            | 1633046400000000000  | task_history                    |
-| snowflake.&#8203;task.&#8203;run.&#8203;state            | The state of the task run.                     | RUNNING              | task_history                    |
-| snowflake.&#8203;task.&#8203;schedule                    | The schedule of the task.                      | `0 0 * * *`          | task_versions                   |
-| snowflake.&#8203;task.&#8203;start_time                  | The start time of the task.                    | 1633046400000000000  | serverless_tasks                |
+| Identifier                                               | Description                                    | Example               | Context Name                    |
+| -------------------------------------------------------- | ---------------------------------------------- | --------------------- | ------------------------------- |
+| db.&#8203;query.&#8203;text                              | The text of the query.                         | SELECT \* FROM users; | task_versions                   |
+| snowflake.&#8203;database.&#8203;id                      | The unique identifier for the database.        | db123                 | serverless_tasks, task_versions |
+| snowflake.&#8203;error.&#8203;code                       | The error code returned by the task.           | ERR123                | task_history                    |
+| snowflake.&#8203;error.&#8203;message                    | The error message returned by the task.        | Syntax error          | task_history                    |
+| snowflake.&#8203;query.&#8203;hash                       | The hash of the query.                         | hash123               | task_history                    |
+| snowflake.&#8203;query.&#8203;hash_version               | The version of the query hash.                 | v1                    | task_history                    |
+| snowflake.&#8203;query.&#8203;id                         | The unique identifier for the query.           | query123              | task_history                    |
+| snowflake.&#8203;query.&#8203;parametrized_hash          | The parameterized hash of the query.           | param_hash123         | task_history                    |
+| snowflake.&#8203;query.&#8203;parametrized_hash_version  | The version of the parameterized query hash.   | v1                    | task_history                    |
+| snowflake.&#8203;schema.&#8203;id                        | The unique identifier for the schema.          | schema123             | serverless_tasks, task_versions |
+| snowflake.&#8203;task.&#8203;condition                   | The condition text of the task.                | status = 'SUCCESS'    | task_versions, task_history     |
+| snowflake.&#8203;task.&#8203;config                      | The configuration of the task.                 | config123             | task_history                    |
+| snowflake.&#8203;task.&#8203;config.&#8203;allow_overlap | Indicates if overlapping execution is allowed. | true                  | task_versions                   |
+| snowflake.&#8203;task.&#8203;end_time                    | The end time of the task.                      | 1633046700000000000   | serverless_tasks                |
+| snowflake.&#8203;task.&#8203;error_integration           | The error integration for the task.            | error_integration123  | task_versions                   |
+| snowflake.&#8203;task.&#8203;graph.&#8203;root_id        | The root ID of the task graph.                 | root123               | task_versions, task_history     |
+| snowflake.&#8203;task.&#8203;graph.&#8203;version        | The version of the task graph.                 | v1                    | task_versions, task_history     |
+| snowflake.&#8203;task.&#8203;id                          | The unique identifier for the task.            | task123               | serverless_tasks, task_versions |
+| snowflake.&#8203;task.&#8203;instance_id                 | The unique identifier for the task instance.   | instance123           | serverless_tasks                |
+| snowflake.&#8203;task.&#8203;last_committed_on           | The last committed time of the task.           | 1633046400000000000   | task_versions                   |
+| snowflake.&#8203;task.&#8203;last_suspended_on           | The last suspended time of the task.           | 1633046700000000000   | task_versions                   |
+| snowflake.&#8203;task.&#8203;owner                       | The owner of the task.                         | admin                 | task_versions                   |
+| snowflake.&#8203;task.&#8203;predecessors                | The predecessors of the task.                  | taskA, taskB          | task_versions                   |
+| snowflake.&#8203;task.&#8203;run.&#8203;attempt          | The attempt number of the task run.            | 1                     | task_history                    |
+| snowflake.&#8203;task.&#8203;run.&#8203;completed_time   | The completed time of the task run.            | 1633046700000000000   | task_history                    |
+| snowflake.&#8203;task.&#8203;run.&#8203;group_id         | The group ID of the task run.                  | group123              | task_history                    |
+| snowflake.&#8203;task.&#8203;run.&#8203;id               | The unique identifier for the task run.        | run123                | task_history                    |
+| snowflake.&#8203;task.&#8203;run.&#8203;return_value     | The return value of the task run.              | 0                     | task_history                    |
+| snowflake.&#8203;task.&#8203;run.&#8203;scheduled_from   | The source from which the task was scheduled.  | CRON                  | task_history                    |
+| snowflake.&#8203;task.&#8203;run.&#8203;scheduled_time   | The scheduled time of the task run.            | 1633046400000000000   | task_history                    |
+| snowflake.&#8203;task.&#8203;run.&#8203;state            | The state of the task run.                     | RUNNING               | task_history                    |
+| snowflake.&#8203;task.&#8203;schedule                    | The schedule of the task.                      | `0 0 * * *`           | task_versions                   |
+| snowflake.&#8203;task.&#8203;start_time                  | The start time of the task.                    | 1633046400000000000   | serverless_tasks                |
 
 ### Metrics at the `Tasks` plugin
 
@@ -702,7 +707,8 @@ All telemetry delivered by this plugin is reported as `dsoa.run.context == "trus
 
 [Show plugin description](PLUGINS.md#users_info_sec)
 
-This plugin delivers telemetry in multiple contexts. To filter by one of plugin's context names (reported as `dsoa.run.context`), please check the `Context Name` column below.
+This plugin delivers telemetry in multiple contexts. To filter by one of plugin's context names (reported as `dsoa.run.context`), please
+check the `Context Name` column below.
 
 ### Dimensions at the `Users` plugin
 
@@ -764,7 +770,8 @@ This plugin delivers telemetry in multiple contexts. To filter by one of plugin'
 
 [Show plugin description](PLUGINS.md#warehouse_usage_info_sec)
 
-This plugin delivers telemetry in multiple contexts. To filter by one of plugin's context names (reported as `dsoa.run.context`), please check the `Context Name` column below.
+This plugin delivers telemetry in multiple contexts. To filter by one of plugin's context names (reported as `dsoa.run.context`), please
+check the `Context Name` column below.
 
 ### Dimensions at the `Warehouse Usage` plugin
 

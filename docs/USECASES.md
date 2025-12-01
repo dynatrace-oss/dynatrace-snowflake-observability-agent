@@ -1,12 +1,14 @@
 # Use Case Highlights
 
-Dynatrace Snowflake Observability Agent delivers telemetry to implement all five [Data Platform Observability](DPO.md) themes. Here are some example use cases which can be realized with observability data gathered and delivered to Dynatrace by Dynatrace Snowflake Observability Agent.
+Dynatrace Snowflake Observability Agent delivers telemetry to implement all five [Data Platform Observability](DPO.md) themes. Here are some
+example use cases which can be realized with observability data gathered and delivered to Dynatrace by Dynatrace Snowflake Observability
+Agent.
 
-* [Theme: Security](#theme-security)
-* [Theme: Operations](#theme-operations)
-* [Theme: Costs](#theme-costs)
-* [Theme: Performance](#theme-performance)
-* [Theme: Quality](#theme-quality)
+- [Theme: Security](#theme-security)
+- [Theme: Operations](#theme-operations)
+- [Theme: Costs](#theme-costs)
+- [Theme: Performance](#theme-performance)
+- [Theme: Quality](#theme-quality)
 
 ## Theme: Security
 
