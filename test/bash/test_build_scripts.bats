@@ -10,6 +10,37 @@ setup() {
     run timeout 15 ./build.sh
     # Allow it to pass even if it fails due to missing dependencies, as long as it doesn't crash immediately
     [ "$status" -eq 0 ] || [ "$status" -eq 1 ]  # 0 for success, 1 for build failure
+
+    # Check that expected files are created in build directory
+    [ -f "build/_dtagent.py" ]
+    [ -f "build/_send_telemetry.py" ]
+    [ -f "build/_version.py" ]
+    [ -f "build/instruments-def.json" ]
+    [ -f "build/config-default.json" ]
+
+    # Check that config-default.json is valid JSON and matches schema
+    if command -v jq &> /dev/null && [ -f "build/config-default.json" ]; then
+        # Check that it's valid JSON
+        run jq empty build/config-default.json
+        [ "$status" -eq 0 ]
+
+        # Check that it has the required top-level keys
+        run jq -e '.CORE and .OTEL and .PLUGINS' build/config-default.json
+        [ "$status" -eq 0 ]
+
+        # Validate schema if jsonschema is available
+        if command -v jsonschema &> /dev/null && [ -f "test/config-default.schema.json" ]; then
+            run jsonschema -i build/config-default.json test/config-default.schema.json
+            [ "$status" -eq 0 ]
+        fi
+    fi
+
+    # Check that SQL files are copied (excluding *.off.sql files)
+    # Count SQL files in src (excluding *.off.sql)
+    expected_sql_count=$(find src -type f \( -name "*.sql" ! -name "*.off.sql" \) |  wc -l)
+    # Count SQL files in build
+    actual_sql_count=$(find build -maxdepth 1 -type f -name "*.sql" | grep -v ".off.sql" | wc -l)
+    [ "$actual_sql_count" -eq "$expected_sql_count" ]
 }
 
 @test "build_docs.sh creates expected documentation files" {
@@ -31,41 +62,45 @@ setup() {
     if [ -f "README.md" ]; then
         echo "✓ README.md exists"
     fi
-    if [ -f "build/bom.yml" ]; then
-        echo "✓ build/bom.yml exists"
+    if [ -f "build/bom.json" ]; then
+        echo "✓ build/bom.json exists"
 
-        # Validate bom.yml structure and schema
+        # Validate bom.json structure and schema
         if command -v jq &> /dev/null; then
             # Check that it's valid JSON
-            run jq empty build/bom.yml
+            run jq empty build/bom.json
             [ "$status" -eq 0 ]
 
             # Check that it has the required top-level keys
-            run jq -e '.delivers and .references' build/bom.yml
+            run jq -e '.delivers and .references' build/bom.json
             [ "$status" -eq 0 ]
 
             # Check that delivers is an array
-            run jq -e '.delivers | type == "array"' build/bom.yml
+            run jq -e '.delivers | type == "array"' build/bom.json
             [ "$status" -eq 0 ]
 
             # Check that references is an array
-            run jq -e '.references | type == "array"' build/bom.yml
+            run jq -e '.references | type == "array"' build/bom.json
             [ "$status" -eq 0 ]
 
             # Check that delivers array has content
-            delivers_count=$(jq '.delivers | length' build/bom.yml)
+            delivers_count=$(jq '.delivers | length' build/bom.json)
             [ "$delivers_count" -gt 0 ]
 
             # Check that references array has content
-            references_count=$(jq '.references | length' build/bom.yml)
+            references_count=$(jq '.references | length' build/bom.json)
             [ "$references_count" -gt 0 ]
 
             # Validate schema if jsonschema is available
             if command -v jsonschema &> /dev/null && [ -f "test/bom.schema.json" ]; then
-                run jsonschema -i build/bom.yml test/bom.schema.json
+                run jsonschema -i build/bom.json test/bom.schema.json
                 [ "$status" -eq 0 ]
             fi
         fi
+
+        # Check for CSV files
+        [ -f "build/bom_delivers.csv" ]
+        [ -f "build/bom_references.csv" ]
 
         # Run markdownlint on generated markdown files if they exist
         if command -v markdownlint &> /dev/null; then
