@@ -250,13 +250,54 @@ This will prepare a distribution package called `dynatrace_snowflake_observabili
 
 ## Testing Dynatrace Snowflake Observability Agent locally
 
-After successfully deploying the Dynatrace Snowflake Observability Agent, you can run tests using:
+Dynatrace Snowflake Observability Agent has comprehensive test suites covering different aspects of the codebase:
+
+### Test Suites Overview
+
+1. **Core Tests** (`test/core/`): Test core functionality, configuration, utilities, and views structure
+2. **OTel Tests** (`test/otel/`): Test OpenTelemetry integration and telemetry sending
+3. **Plugin Tests** (`test/plugins/`): Test individual plugins with mocked or live APIs
+4. **Bash Tests** (`test/bash/`): Test bash scripts using the Bats framework
+
+All tests are implemented with the `pytest` framework except for bash tests which use Bats.
+
+### Running All Tests
+
+#### VS Code Test Explorer
+
+* Open Test Explorer view (`Ctrl+Shift+P` → "Test: Focus on Test Explorer")
+* Click "Run All Tests" to execute all Python and bash tests
+* Individual test suites can be run by expanding the test tree
+
+#### Command Line
+
+Run all Python tests:
 
 ```bash
-./test.sh $test_name
+pytest
 ```
 
-All tests are implemented with the `pytest` framework and stored in the `test` folder.
+Run all bash tests:
+
+```bash
+./test/bash/run_tests.sh
+```
+
+Run specific test suites:
+
+```bash
+# Core tests
+pytest test/core/
+
+# OTel tests
+pytest test/otel/
+
+# Plugin tests
+pytest test/plugins/
+
+# Bash tests
+./test/bash/run_tests.sh
+```
 
 ### Test Execution Modes
 
@@ -284,7 +325,7 @@ To run tests in live mode (version 2), you need to:
     [
         {
             "CORE": {
-                "DYNATRACE_TENANT_ADDRESS": "abc12345.live.dynatracelabs.com",
+                "DYNATRACE_TENANT_ADDRESS": "abc12345.live.dynatrace.com",
                 "DEPLOYMENT_ENVIRONMENT": "TEST",
                 "SNOWFLAKE_ACCOUNT_NAME": "your_snowflake_account.us-east-1",
                 "SNOWFLAKE_HOST_NAME": "your_snowflake_account.us-east-1.snowflakecomputing.com",
@@ -310,7 +351,7 @@ To run tests in live mode (version 2), you need to:
 
 For tests in version (1) (local mode with mocked APIs), `test/conf/config-download.json` should NOT be present. It is a good practice to temporarily disable these files by prefixing them with an underscore (e.g., `_config-download.json` and `_credentials.json`). The gitignore ensures that files prefixed with underscore are not tracked.
 
-### Running Individual Tests
+### Running Individual Plugin Tests
 
 Parameter `$test_name` is required and needs to be the name of the file - excluding the extension - from the `/test/plugins` directory that you want to run. The test files follow the naming pattern `/test/plugins/test_*.py`.
 
