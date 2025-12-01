@@ -61,6 +61,23 @@ jobs:
       - name: Run TestDocumentation tests
         run: pytest test/core/test_documentation.py -k "TestDocumentation"
 
+  test-bash:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Bats
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bats
+
+      - name: Install jq (required by some tests)
+        run: sudo apt-get install -y jq
+
+      - name: Run bash tests
+        run: ./test/bash/run_tests.sh
+
   test-core:
     runs-on: ubuntu-latest
     steps:
@@ -83,12 +100,18 @@ jobs:
           pip install -r requirements.txt
           pip install pytest-mock
 
+      - name: Install Bats (for bash tests)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bats jq
+
       - name: Run core tests
         run: |
           pytest test/core/test_config.py -k "TestConfig"
           pytest test/core/test_util.py -k "TestUtil"
           pytest test/core/test_views_structure.py -k "TestViews"
           pytest test/core/test_connector.py -k "TestTelemetrySender"
+          pytest test/core/test_bash_scripts.py -k "test_bash_scripts"
       - name: Run OTEL tests
         run: |
           pytest test/otel/test_events.py -k "TestEvents"
@@ -115,6 +138,11 @@ jobs:
         run: |
           pip install -r requirements.txt
           pip install pytest-mock
+
+      - name: Install Bats (for bash tests)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bats jq
 
       - name: Run plugin tests
         run: pytest test/plugins/
