@@ -261,6 +261,13 @@ Dynatrace Snowflake Observability Agent has comprehensive test suites covering d
 
 All tests are implemented with the `pytest` framework except for bash tests which use Bats.
 
+For detailed information about each test suite, see the README files in each test directory:
+
+* [Main tests](test/readme.md)
+* [Core tests](test/core/readme.md)
+* [OTel tests](test/otel/readme.md)
+* [Plugin tests](test/plugins/readme.md)
+
 ### Running All Tests
 
 #### VS Code Test Explorer

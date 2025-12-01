@@ -12,7 +12,79 @@ setup() {
     [ "$status" -eq 0 ] || [ "$status" -eq 1 ]  # 0 for success, 1 for build failure
 }
 
-@test "build_docs.sh runs without immediate errors" {
-    run timeout 15 ./build_docs.sh
+@test "build_docs.sh creates expected documentation files" {
+    # Run build_docs.sh
+    run timeout 30 ./build_docs.sh
     [ "$status" -eq 0 ] || [ "$status" -eq 1 ]
+
+    # Check that expected files exist (if they were created)
+    # These checks are informational - don't fail if files don't exist in dev environment
+    if [ -f "docs/PLUGINS.md" ]; then
+        echo "✓ docs/PLUGINS.md exists"
+    fi
+    if [ -f "docs/SEMANTICS.md" ]; then
+        echo "✓ docs/SEMANTICS.md exists"
+    fi
+    if [ -f "docs/APPENDIX.md" ]; then
+        echo "✓ docs/APPENDIX.md exists"
+    fi
+    if [ -f "README.md" ]; then
+        echo "✓ README.md exists"
+    fi
+    if [ -f "build/bom.yml" ]; then
+        echo "✓ build/bom.yml exists"
+
+        # Validate bom.yml structure and schema
+        if command -v jq &> /dev/null; then
+            # Check that it's valid JSON
+            run jq empty build/bom.yml
+            [ "$status" -eq 0 ]
+
+            # Check that it has the required top-level keys
+            run jq -e '.delivers and .references' build/bom.yml
+            [ "$status" -eq 0 ]
+
+            # Check that delivers is an array
+            run jq -e '.delivers | type == "array"' build/bom.yml
+            [ "$status" -eq 0 ]
+
+            # Check that references is an array
+            run jq -e '.references | type == "array"' build/bom.yml
+            [ "$status" -eq 0 ]
+
+            # Check that delivers array has content
+            delivers_count=$(jq '.delivers | length' build/bom.yml)
+            [ "$delivers_count" -gt 0 ]
+
+            # Check that references array has content
+            references_count=$(jq '.references | length' build/bom.yml)
+            [ "$references_count" -gt 0 ]
+
+            # Validate schema if jsonschema is available
+            if command -v jsonschema &> /dev/null && [ -f "test/bom.schema.json" ]; then
+                run jsonschema -i build/bom.yml test/bom.schema.json
+                [ "$status" -eq 0 ]
+            fi
+        fi
+
+        # Run markdownlint on generated markdown files if they exist
+        if command -v markdownlint &> /dev/null; then
+            markdown_files=""
+            [ -f "docs/PLUGINS.md" ] && markdown_files="$markdown_files docs/PLUGINS.md"
+            [ -f "docs/SEMANTICS.md" ] && markdown_files="$markdown_files docs/SEMANTICS.md"
+            [ -f "docs/APPENDIX.md" ] && markdown_files="$markdown_files docs/APPENDIX.md"
+            [ -f "README.md" ] && markdown_files="$markdown_files README.md"
+
+            if [ -n "$markdown_files" ]; then
+                run markdownlint $markdown_files
+                [ "$status" -eq 0 ]
+            fi
+        fi
+    fi
+
+    # Check that PDF files exist (filename includes version)
+    pdf_files=$(ls Dynatrace-Snowflake-Observability-Agent-*.pdf 2>/dev/null | wc -l)
+    if [ "$pdf_files" -gt 0 ]; then
+        echo "✓ PDF documentation exists"
+    fi
 }

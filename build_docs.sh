@@ -31,8 +31,15 @@ VERSION=$(grep 'VERSION =' build/_version.py | awk -F'"' '{print $2}')
 BUILD=$(grep 'BUILD =' build/_version.py | sed -E -e 's/^.*[=] ([0-9]+)\s*/\1/')
 CURRENT_DATE=$(date +%Y-%m-%d)
 
+rm _readme_full.md 2>/dev/null
+rm build/bom.yml 2>/dev/null
+
 PYTHONPATH="$PYTHONPATH:./src" python -m build.compile_bom
 PYTHONPATH="$PYTHONPATH:./src" python -m build.update_docs
+
+if [ ! -f _readme_full.md ] || [ ! -f build/bom.yml ]; then
+    exit 10
+fi
 
 sed -E "s/# Dynatrace Snowflake Observability Agent$/# Dynatrace Snowflake Observability Agent (v$VERSION)\n<a id='dynatrace-snowflake-observability-agent'><\/a>/" _readme_full.md > _readme_full.tmp.md
 echo "" >>_readme_full.tmp.md

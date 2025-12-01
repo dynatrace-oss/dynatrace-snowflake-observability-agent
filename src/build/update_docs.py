@@ -326,13 +326,13 @@ def generate_readme_content(dtagent_conf_path: str, dtagent_plugins_path: str) -
     appendix_content = ""
 
     # Read other markdown files
-    dpo_content = _read_file("DPO.md")
-    usecases_content = _read_file("USECASES.md")
-    architecture_content = _read_file("ARCHITECTURE.md")
-    install_content = _read_file("INSTALL.md")
-    changelog_content = _read_file("CHANGELOG.md")
-    contributing_content = _read_file("CONTRIBUTING.md")
-    copyright_content = _read_file("COPYRIGHT.md")
+    dpo_content = _read_file("docs/DPO.md")
+    usecases_content = _read_file("docs/USECASES.md")
+    architecture_content = _read_file("docs/ARCHITECTURE.md")
+    install_content = _read_file("docs/INSTALL.md")
+    changelog_content = _read_file("docs/CHANGELOG.md")
+    contributing_content = _read_file("docs/CONTRIBUTING.md")
+    copyright_content = _read_file("docs/COPYRIGHT.md")
 
     # Generate appendices for all CSV files in src/assets/
     assets_path = "src/assets"
@@ -348,7 +348,7 @@ def generate_readme_content(dtagent_conf_path: str, dtagent_plugins_path: str) -
 
     if appendix_toc:
         readme_full_content += "\n".join(appendix_toc) + "\n"
-        readme_short_content += "* [Appendix](APPENDIX.md)\n"
+        readme_short_content += "* [Appendix](docs/APPENDIX.md)\n"
 
     # Combine all contents into full content README for PDF generation
     readme_full_content += "\n"
@@ -377,6 +377,9 @@ def generate_readme_content(dtagent_conf_path: str, dtagent_plugins_path: str) -
     readme_full_content += _lower_headers_one_level(copyright_content)
     readme_full_content = re.sub(
         r"\]\(docs\/", "](https://github.com/dynatrace-oss/dynatrace-snowflake-observability-agent/tree/main/docs/", readme_full_content
+    )  # replace internal links to docs with absolute links to GitHub
+    readme_full_content = re.sub(
+        r"\]\(test\/", "](https://github.com/dynatrace-oss/dynatrace-snowflake-observability-agent/tree/main/test/", readme_full_content
     )  # replace internal links to docs with absolute links to GitHub
     readme_full_content = re.sub(r"\b[A-Z_]+\.md#", "#", readme_full_content)  # removing references between .md files
 
@@ -429,13 +432,13 @@ def main():
     with open("README.md", "w", encoding="utf-8") as file:
         file.write(readme_short_content)
 
-    with open("PLUGINS.md", "w", encoding="utf-8") as file:
+    with open("docs/PLUGINS.md", "w", encoding="utf-8") as file:
         file.write(plugins_content)
 
-    with open("SEMANTICS.md", "w", encoding="utf-8") as file:
+    with open("docs/SEMANTICS.md", "w", encoding="utf-8") as file:
         file.write(semantics_content)
 
-    with open("APPENDIX.md", "w", encoding="utf-8") as file:
+    with open("docs/APPENDIX.md", "w", encoding="utf-8") as file:
         file.write(appendix_content)
 
     with open("_readme_full.md", "w", encoding="utf-8") as file:

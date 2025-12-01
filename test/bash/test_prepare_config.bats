@@ -2,6 +2,8 @@
 
 setup() {
     cd "$BATS_TEST_DIRNAME/../.."
+    # Set BUILD_CONFIG_FILE to avoid issues when sourcing
+    export BUILD_CONFIG_FILE="/tmp/test_config.json"
     # Source the script to test its functions
     source prepare_config.sh
 }
