@@ -38,6 +38,7 @@ PYTHONPATH="$PYTHONPATH:./src" python -m build.compile_bom
 PYTHONPATH="$PYTHONPATH:./src" python -m build.update_docs
 
 if [ ! -f _readme_full.md ] || [ ! -f build/bom.yml ]; then
+    echo "Error: Required files missing" >&2
     exit 10
 fi
 
