@@ -41,6 +41,33 @@ setup() {
     # Count SQL files in build
     actual_sql_count=$(find build -maxdepth 1 -type f -name "*.sql" | grep -v ".off.sql" | wc -l)
     [ "$actual_sql_count" -eq "$expected_sql_count" ]
+
+    # Check that 70*.sql files have correct handler functions
+    for sql_file in build/70*.sql; do
+        if [ -f "$sql_file" ]; then
+            # Extract handler value
+            handler=$(grep "handler = " "$sql_file" | sed "s/.*handler = '\([^']*\)'.*/\1/")
+            if [ -z "$handler" ]; then
+                echo "Handler not found in $sql_file"
+                exit 1
+            fi
+            # Extract Python code between $$ and $$
+            # Find the line numbers of $$
+            start_line=$(grep -n '^[$][$]' "$sql_file" | head -1 | cut -d: -f1)
+            end_line=$(grep -n '^[$][$]' "$sql_file" | tail -1 | cut -d: -f1)
+            if [ -z "$start_line" ] || [ -z "$end_line" ]; then
+                echo "Python code delimiters not found in $sql_file"
+                exit 1
+            fi
+            # Extract lines between start+1 and end-1
+            python_code=$(sed -n "$((start_line+1)),$((end_line-1))p" "$sql_file")
+            # Check if def $handler( exists
+            if ! echo "$python_code" | grep -q "def $handler("; then
+                echo "Handler function '$handler' not found in $sql_file"
+                exit 1
+            fi
+        fi
+    done
 }
 
 @test "build_docs.sh creates expected documentation files" {
