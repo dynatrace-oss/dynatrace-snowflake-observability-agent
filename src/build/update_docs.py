@@ -380,7 +380,7 @@ def generate_readme_content(dtagent_conf_path: str, dtagent_plugins_path: str) -
     )  # replace internal links to docs with absolute links to GitHub
     readme_full_content = re.sub(
         r"\]\(test\/", "](https://github.com/dynatrace-oss/dynatrace-snowflake-observability-agent/tree/main/test/", readme_full_content
-    )  # replace internal links to docs with absolute links to GitHub
+    )  # replace internal links to test directory with absolute links to GitHub
     readme_full_content = re.sub(r"\b[A-Z_]+\.md#", "#", readme_full_content)  # removing references between .md files
 
     readme_full_content = (
