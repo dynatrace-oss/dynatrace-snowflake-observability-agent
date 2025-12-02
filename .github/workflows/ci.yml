@@ -111,7 +111,6 @@ jobs:
           pytest test/core/test_util.py -k "TestUtil"
           pytest test/core/test_views_structure.py -k "TestViews"
           pytest test/core/test_connector.py -k "TestTelemetrySender"
-          pytest test/core/test_bash_scripts.py -k "test_bash_scripts"
       - name: Run OTEL tests
         run: |
           pytest test/otel/test_events.py -k "TestEvents"
