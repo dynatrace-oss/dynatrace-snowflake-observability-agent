@@ -36,7 +36,7 @@ command_exists() {
 }
 
 # Check for required commands
-required_commands=("pylint" "python" "pandoc" "zip")
+required_commands=("pylint" "python" "pandoc" "zip" "gawk")
 for cmd in "${required_commands[@]}"; do
   if ! command_exists "$cmd"; then
     echo "Error: Required command '$cmd' is not installed. Please install it before running this script."

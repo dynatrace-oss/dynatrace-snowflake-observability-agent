@@ -22,3 +22,4 @@ LICENSE.md
 *.pdf
 test/conf/*config-download.json
 dynatrace-snowflake-observability-agent
+*.pkg

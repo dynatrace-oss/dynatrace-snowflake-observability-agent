@@ -61,6 +61,30 @@ jobs:
       - name: Run TestDocumentation tests
         run: pytest test/core/test_documentation.py -k "TestDocumentation"
 
+  test-bash:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11.12"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pytest-mock
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bats jq gawk pandoc zip
+
+      - name: Run bash tests
+        run: ./test/bash/run_tests.sh
+
   test-core:
     runs-on: ubuntu-latest
     steps:
@@ -82,6 +106,11 @@ jobs:
         run: |
           pip install -r requirements.txt
           pip install pytest-mock
+
+      - name: Install Bats (for bash tests)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bats jq
 
       - name: Run core tests
         run: |
@@ -115,6 +144,11 @@ jobs:
         run: |
           pip install -r requirements.txt
           pip install pytest-mock
+
+      - name: Install Bats (for bash tests)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bats jq
 
       - name: Run plugin tests
         run: pytest test/plugins/
