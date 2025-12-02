@@ -19,7 +19,6 @@ setup() {
     [ -f "build/_dtagent.py" ]
     [ -f "build/_send_telemetry.py" ]
     [ -f "build/_version.py" ]
-    [ -f "build/instruments-def.json" ]
     [ -f "build/config-default.json" ]
 
     # Check that config-default.json is valid JSON and matches schema
@@ -185,11 +184,6 @@ setup() {
     config_file=$(unzip -l "$zip_file" | grep "build/config-default.json")
     echo "config_file: $config_file"
     [ -n "$config_file" ]
-
-    # Check that instruments-def.json is in build/
-    instruments_file=$(unzip -l "$zip_file" | grep "build/instruments-def.json")
-    echo "instruments_file: $instruments_file"
-    [ -n "$instruments_file" ]
 
     # Check that conf/ exists
     conf_dir=$(unzip -l "$zip_file" | grep "^.*conf/$")

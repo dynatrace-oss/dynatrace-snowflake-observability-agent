@@ -19,7 +19,10 @@ teardown() {
     run ./scripts/dev/compile.sh
     [ "$status" -eq 0 ]
     [ -f build/_version.py ]
+    [ -f build/_semantics.py ]
+    [ -f build/_metric_semantics.txt ]
     [ -f build/_dtagent.py ]
     [ -f build/_send_telemetry.py ]
+
     grep -q "BUILD =" build/_version.py
 }
