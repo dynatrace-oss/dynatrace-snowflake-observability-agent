@@ -28,7 +28,7 @@
 # Source-only imports
 from dtagent.config import Configuration
 from dtagent.otel import _gen_resource
-from dtagent.otel.instruments import Instruments
+from dtagent.otel.semantics import Semantics
 from dtagent.otel.logs import Logs
 from dtagent.otel.otel_manager import OtelManager
 from dtagent.otel.spans import Spans
@@ -106,7 +106,7 @@ class AbstractDynatraceSnowAgentConnector:
 
         if self._configuration:
             resource = _gen_resource(self._configuration)
-            self._instruments = Instruments(self._configuration)
+            self._instruments = Semantics()
             self._logs = self._get_logs(resource)
             self._spans = self._get_spans(resource)
             self._metrics = self._get_metrics()

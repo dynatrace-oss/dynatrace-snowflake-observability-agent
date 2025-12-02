@@ -27,18 +27,17 @@
 
 from typing import Any, Dict, Optional
 
-from dtagent.config import Configuration
-
 ##endregion COMPILE_REMOVE
 
 
 ##region ------------------------ INSTRUMENTS INIT ----------------------------------------
-class Instruments:
+class Semantics:
     """Gathers defined payload properties from CONFIG.V_INSTRUMENTS"""
 
-    def __init__(self, configuration: Configuration):
-        self._configuration = configuration
-        self._init_instruments_api()
+    def __init__(self):
+        self._metric_semantics = {
+            ##INSERT build/_metric_semantics.txt
+        }
 
     def _gen_metric_definition_line(self, metric_name: str, metric_details: Dict[str, str]) -> str:
         """Generates a single doc line that will be sent along with actual data to Dynatrace Metrics API v2
@@ -70,31 +69,18 @@ class Instruments:
 
         return f"#{metric_name} gauge {__gen_metric_details(metric_details, metric_name)}"
 
-    def _init_instruments_api(self) -> None:
-        """Initializes metadata lines for all instruments registered in the Configuration.
-        For the time being all instruments are reported as 'gauge'
-
-        Returns a map of metadata lines by metric name
-        """
-        m_instruments = self._configuration.get("instruments")
-
-        self._instruments_cache = {
-            metric_name: self._gen_metric_definition_line(metric_name, metric_details)
-            for metric_name, metric_details in m_instruments["metrics"].items()
-        }
-
     def get_metric_definition(self, metric_name: str, local_metrics_def: Optional[Dict[str, Dict[str, Any]]] = None) -> str:
         """Returns set of instruments for metric of given name,
         with optional local semantic dictionary which might be provided at runtime.
         """
-        result = self._instruments_cache.get(metric_name, None)
+        result = self._metric_semantics.get(metric_name, None)
 
         if result is None:
             # we could use (local_metrics_def or {}) but I think this will be faster, on top of calling this only when really needed
             if local_metrics_def is not None and metric_name in local_metrics_def:
                 result = self._gen_metric_definition_line(metric_name, local_metrics_def[metric_name])
 
-                self._instruments_cache[metric_name] = result  # caching results for the time being
+                self._metric_semantics[metric_name] = result  # caching results for the time being
             else:
                 result = ""
 

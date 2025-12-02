@@ -43,11 +43,11 @@ class Metrics:
     """Allows for parsing and sending metrics data."""
 
     from dtagent.config import Configuration  # COMPILE_REMOVE
-    from dtagent.otel.instruments import Instruments  # COMPILE_REMOVE
+    from dtagent.otel.semantics import Semantics  # COMPILE_REMOVE
 
     ENDPOINT_PATH = "/api/v2/metrics/ingest"
 
-    def __init__(self, instruments: Instruments, configuration: Configuration):
+    def __init__(self, instruments: Semantics, configuration: Configuration):
         self.PAYLOAD_CACHE: str = ""
         self._configuration = configuration
         self._instruments = instruments

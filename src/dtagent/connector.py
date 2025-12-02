@@ -30,7 +30,7 @@ from dtagent import AbstractDynatraceSnowAgentConnector
 
 from dtagent.config import Configuration
 from dtagent.util import get_now_timestamp_formatted, is_regular_mode
-from dtagent.otel.instruments import Instruments
+from dtagent.otel.semantics import Semantics
 from dtagent.otel.logs import Logs
 from dtagent.otel.spans import Spans
 from dtagent.otel.metrics import Metrics
@@ -85,7 +85,7 @@ from opentelemetry import version as otel_version
 ##INSERT src/dtagent/config.py
 ##INSERT src/dtagent/otel/otel_manager.py
 ##INSERT src/dtagent/otel/__init__.py
-##INSERT src/dtagent/otel/instruments.py
+##INSERT build/_semantics.py
 ##INSERT src/dtagent/otel/spans.py
 ##INSERT src/dtagent/otel/metrics.py
 ##INSERT src/dtagent/otel/logs.py
