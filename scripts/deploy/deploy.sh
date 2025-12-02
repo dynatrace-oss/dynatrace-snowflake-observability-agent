@@ -50,11 +50,12 @@
 
 ENV=$1
 PARAM=$2
+CWD=$(dirname "$0")
 
 if [ "$PARAM" == "manual" ]; then
-    "$(dirname "$0")/setup.sh"
+    "$CWD/setup.sh"
 else
-    "$(dirname "$0")/setup.sh" $ENV
+    "$CWD/setup.sh" $ENV
 fi
 
 echo "Deploying Dynatrace Snowflake Observability Agent with [$ENV] configuration, using PARAM=[$PARAM]"
@@ -98,15 +99,15 @@ jq -c '.[]' conf/config-$ENV.json | while read CURRENT_CONFIG; do
     DEPLOYMENT_ID=$(uuidgen)
 
     if [ "$BASE_CONF" != "" ]; then
-        $(dirname "$0")/prepare_config.sh "${DEFAULT_CONFIG_FILE}" "${BASE_CONF}" "${CURRENT_CONFIG}"
+        $CWD/prepare_config.sh "${DEFAULT_CONFIG_FILE}" "${BASE_CONF}" "${CURRENT_CONFIG}"
     else
 
         # leaving in case bash script causes some unforseen issues
         # $PYTHON_EXE ./src/build/prepare_config.py $DEFAULT_CONFIG_FILE ${PLUGINS_CONFIG_FILES[@]} $CONFIG_FILE
-        $(dirname "$0")/prepare_config.sh "${DEFAULT_CONFIG_FILE}" "${CURRENT_CONFIG}"
+        $CWD/prepare_config.sh "${DEFAULT_CONFIG_FILE}" "${CURRENT_CONFIG}"
     fi
 
-    DEPLOYMENT_ENV="$($(dirname "$0")/get_config_key.sh core.deployment_environment)"
+    DEPLOYMENT_ENV="$($CWD/get_config_key.sh core.deployment_environment)"
     CONNECTION_ENV="${DEPLOYMENT_ENV,,}" # convert to lower case
 
     if [ "$PARAM" == "manual" ]; then
@@ -118,7 +119,7 @@ jq -c '.[]' conf/config-$ENV.json | while read CURRENT_CONFIG; do
     fi
 
     # preparing one big deployment script
-    $(dirname "$0")/prepare_deploy_script.sh "${INSTALL_SCRIPT_SQL}" "${ENV}" "${PARAM}"
+    $CWD/prepare_deploy_script.sh "${INSTALL_SCRIPT_SQL}" "${ENV}" "${PARAM}"
 
     if [ -s "$INSTALL_SCRIPT_SQL" ] && [ "$PARAM" != "manual" ]; then
 
@@ -127,7 +128,7 @@ jq -c '.[]' conf/config-$ENV.json | while read CURRENT_CONFIG; do
             # this is taken care of in the update_config.py, and config_file doesn't exist necessary data is taken from environment variables
             SNOWFLAKE_ACCOUNT_NAME=${SNOWFLAKE_ACC_NAME}
         else
-            SNOWFLAKE_ACCOUNT_NAME="$($(dirname "$0")/get_config_key.sh core.snowflake_account_name)"
+            SNOWFLAKE_ACCOUNT_NAME="$($CWD/get_config_key.sh core.snowflake_account_name)"
         fi
 
         INSTALL_SCRIPT_LOG="Dynatrace-Snowflake-Observability-Agent-deploy-$ITER_NR-$DEPLOYMENT_ENV-$(date '+%Y%m%d-%H%M%S').log"
@@ -146,7 +147,7 @@ jq -c '.[]' conf/config-$ENV.json | while read CURRENT_CONFIG; do
         fi
 
         if [ "$PARAM" != 'no_dep' ]; then
-            if ! $(dirname "$0")/send_bizevent.sh "${PARAM}" "STARTED" "${DEPLOYMENT_ID}"; then
+            if ! $CWD/send_bizevent.sh "${PARAM}" "STARTED" "${DEPLOYMENT_ID}"; then
                 echo "Encountered issues when sending deployment bizevent, proceeding..."
             fi
         fi
@@ -191,7 +192,7 @@ jq -c '.[]' conf/config-$ENV.json | while read CURRENT_CONFIG; do
     ITER_NR=$(expr $ITER_NR + 1)
 
     if [ "$PARAM" != 'no_dep' ]; then
-        if ! $(dirname "$0")/send_bizevent.sh "${PARAM}" "FINISHED" "${DEPLOYMENT_ID}"; then
+        if ! $CWD/send_bizevent.sh "${PARAM}" "FINISHED" "${DEPLOYMENT_ID}"; then
             echo "Encountered issues when sending deployment bizevent, proceeding..."
         fi
     fi

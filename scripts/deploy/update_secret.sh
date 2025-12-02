@@ -28,8 +28,9 @@
 # * INSTALL_SCRIPT_SQL  [REQUIRED] - the path to the temporary SQL script to be executed against Snowflake
 
 INSTALL_SCRIPT_SQL="$1"
+CWD=$(dirname "$0")
 
-DYNATRACE_TENANT_ADDRESS=$($(dirname "$0")/get_config_key.sh core.dynatrace_tenant_address)
+DYNATRACE_TENANT_ADDRESS=$($CWD/get_config_key.sh core.dynatrace_tenant_address)
 
 if [ -z "$DTAGENT_TOKEN" ]; then
     echo "Environment variable DTAGENT_TOKEN is not defined."

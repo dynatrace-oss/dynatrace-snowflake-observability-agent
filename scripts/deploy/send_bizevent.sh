@@ -26,12 +26,13 @@
 PARAM="$1"
 STATUS="$2"
 DEPLOYMENT_ID="$3"
+CWD=$(dirname "$0")
 
 if [[ -z "$DTAGENT_TOKEN" || ! "$DTAGENT_TOKEN" =~ ^dt0c[0-9]{0,2}\.[a-zA-Z0-9]{24}\.[a-zA-Z0-9]{64}$ ]]; then
     echo "Environment variable DTAGENT_TOKEN is not set or is not a valid Dynatrace token; skipping sending bizevents."
 
-elif [ "$($(dirname "$0")/get_config_key.sh plugins.self_monitoring.send_bizevents_on_deploy)" = "true" ]; then
-    DT_ADDRESS="$($(dirname "$0")/get_config_key.sh core.dynatrace_tenant_address)"
+elif [ "$($CWD/get_config_key.sh plugins.self_monitoring.send_bizevents_on_deploy)" = "true" ]; then
+    DT_ADDRESS="$($CWD/get_config_key.sh core.dynatrace_tenant_address)"
 
     if [ "$PARAM" == "config" ]; then
         TITLE="New Dynatrace Snowflake Observability Agent config and instruments deployment."
@@ -55,8 +56,8 @@ elif [ "$($(dirname "$0")/get_config_key.sh plugins.self_monitoring.send_bizeven
             "event.type": "CUSTOM_DEPLOYMENT",
             "event.title": "${TITLE}",
             "db.system": "snowflake",
-            "deployment.environment": "$($(dirname "$0")/get_config_key.sh core.deployment_environment)",
-            "host.name": "$($(dirname "$0")/get_config_key.sh core.snowflake_host_name)",
+            "deployment.environment": "$($CWD/get_config_key.sh core.deployment_environment)",
+            "host.name": "$($CWD/get_config_key.sh core.snowflake_host_name)",
             "app.version": "${VERSION}.${BUILD}",
             "app.short_version": "${VERSION}",
             "app.bundle": "self_monitoring",
