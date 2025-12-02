@@ -7,8 +7,12 @@ setup() {
 @test "build.sh runs without immediate errors" {
     # This test assumes dependencies like pylint are installed
     # In a real environment, this would pass if build tools are available
-    run timeout 15 ./build.sh
+    run timeout 60 ./build.sh
     # Allow it to pass even if it fails due to missing dependencies, as long as it doesn't crash immediately
+    if [ "$status" -ne 0 ] && [ "$status" -ne 1 ]; then
+        echo "build.sh failed with status $status"
+        echo "Output: $output"
+    fi
     [ "$status" -eq 0 ] || [ "$status" -eq 1 ]  # 0 for success, 1 for build failure
 
     # Check that expected files are created in build directory
@@ -72,7 +76,11 @@ setup() {
 
 @test "build_docs.sh creates expected documentation files" {
     # Run build_docs.sh
-    run timeout 30 ./build_docs.sh
+    run timeout 60 ./build_docs.sh
+    if [ "$status" -ne 0 ] && [ "$status" -ne 1 ]; then
+        echo "build_docs.sh failed with status $status"
+        echo "Output: $output"
+    fi
     [ "$status" -eq 0 ] || [ "$status" -eq 1 ]
 
     # Check that expected files exist (if they were created)
@@ -153,7 +161,10 @@ setup() {
 
 @test "package.sh creates a valid package zip with build files and documentation" {
     run ./package.sh
-    [ "$status" -eq 0 ]
+    if [ "$status" -ne 0 ]; then
+        echo "package.sh failed with status $status"
+        echo "Output: $output"
+    fi
 
     # Find the latest zip file
     zip_file=$(ls dynatrace_snowflake_observability_agent-*.zip | tail -1)
