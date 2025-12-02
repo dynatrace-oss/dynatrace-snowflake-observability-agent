@@ -5,7 +5,7 @@ setup() {
     # Set BUILD_CONFIG_FILE to avoid issues when sourcing
     export BUILD_CONFIG_FILE="/tmp/test_config.json"
     # Source the script to test its functions
-    source prepare_config.sh
+    source scripts/deploy/prepare_config.sh
 }
 
 @test "get_config returns file content for valid file" {

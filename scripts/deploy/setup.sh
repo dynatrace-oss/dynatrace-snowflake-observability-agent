@@ -68,7 +68,7 @@ fi
 
 if ! command -v "snow" &>/dev/null; then
     echo "Snowflake CLI is STILL missing - fallback scenario"
-    ./install_snow_cli.sh
+    $(dirname "$0")/install_snow_cli.sh
 fi
 
 echo "Checking for Snowflake connection profiles"

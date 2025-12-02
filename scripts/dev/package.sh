@@ -50,7 +50,7 @@ PARAM=$1
 rm -Rf package/*
 
 # building Dynatrace Snowflake Observability Agent and documentation
-./build_docs.sh
+./scripts/dev/build_docs.sh
 
 # copying Dynatrace Snowflake Observability Agent compiled code
 mkdir -v -p package/build
@@ -60,20 +60,19 @@ cp -v build/instruments-def.json build/config-default.json package/build/
 mkdir -v package/conf
 cp -v conf/config-template.json package/conf/
 
-cp -v setup.sh prepare_config.sh update_secret.sh install_snow_cli.sh send_bizevent.sh package/
-cp -v prepare_instruments_ingest.sh prepare_configuration_ingest.sh prepare_deploy_script.sh get_config_key.sh package/
-cp -v refactor_field_names.sh src/assets/fields-refactoring.csv src/assets/dsoa-fields-refactoring.csv package/
+cp -v scripts/deploy/*.sh package/
+cp -v src/assets/fields-refactoring.csv src/assets/dsoa-fields-refactoring.csv package/
 
 # preparing the deploy.sh script
 if [ "$PARAM" == "full" ]; then
-  sed -E -e "s/[.]\/src/.\/py/g" deploy.sh \
+  sed -E -e "s/[.]\/src/.\/py/g" scripts/deploy/deploy.sh \
     >package/deploy.sh
 else
   awk 'BEGIN { print_out=1; }
       /^[#][%]DEV[:].*/ { print_out=0; }
       { if (print_out==1) print $0; }
       /^[#][%][:]DEV.*/ { print_out=1; }' \
-    deploy.sh |
+    scripts/deploy/deploy.sh |
     sed -E -e "s/[.]\/src/.\/py/g" \
       >package/deploy.sh
 fi
@@ -88,10 +87,8 @@ VERSION=$(grep 'VERSION =' build/_version.py | awk -F'"' '{print $2}')
 # copying documentation
 cp -v INSTALL.md "Dynatrace-Snowflake-Observability-Agent-$VERSION.pdf" CHANGELOG.md Dynatrace-Snowflake-Observability-Agent-install.pdf package/
 
-# copying license file if exists
-# it will only be available in packages created for customers entering private preview
-# LICENSE.md file is created from the LICENSE.template.md where customer specific information is filled in
-cp -v LICENSE.md package/
+# copying license file
+cp -v LICENSE package/
 
 # copying the documentation
 mkdir -v -p package/docs

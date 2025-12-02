@@ -17,7 +17,7 @@ teardown() {
 }
 
 @test "refactor_field_names.sh replaces identifiers in files" {
-    run ./refactor_field_names.sh "$TEST_CSV" "$TEST_DIR"
+    run ./scripts/deploy/refactor_field_names.sh "$TEST_CSV" "$TEST_DIR"
     [ "$status" -eq 0 ]
     grep -q "new_field" "$TEST_DIR/test.txt"
     grep -q "new_field" "$TEST_DIR/test.py"

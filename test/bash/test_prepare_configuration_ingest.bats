@@ -27,7 +27,7 @@ teardown() {
 }
 
 @test "prepare_configuration_ingest.sh generates correct SQL" {
-    run ./prepare_configuration_ingest.sh
+    run ./scripts/deploy/prepare_configuration_ingest.sh
     [ "$status" -eq 0 ]
     [[ "$output" =~ "INSERT INTO TEMP_CONFIG" ]]
     [[ "$output" =~ "PARSE_JSON" ]]

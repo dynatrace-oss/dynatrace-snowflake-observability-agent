@@ -24,16 +24,33 @@ teardown() {
 
 @test "update_secret.sh succeeds with valid token" {
     export DTAGENT_TOKEN="dt0c01.TEST12345678901234567890.TEST123456789012345678901234567890123456789012345678901234567890"
-    run ./update_secret.sh "$TEST_SQL_FILE"
+    run ./scripts/deploy/update_secret.sh "$TEST_SQL_FILE"
+    if [ "$status" -ne 0 ]; then
+        echo "update_secret.sh failed with status $status"
+        echo "Output: $output"
+    fi
     [ "$status" -eq 0 ]
     # Check that SQL was appended
-    grep -q "create or replace secret DTAGENT_API_KEY" "$TEST_SQL_FILE"
+    run grep -q "create or replace secret DTAGENT_API_KEY" "$TEST_SQL_FILE"
+    if [ "$status" -ne 0 ]; then
+        echo "Content of $TEST_SQL_FILE:"
+        cat "$TEST_SQL_FILE"
+    fi
+    [ "$status" -eq 0 ]
+    run grep -q "test.dynatrace.com" "$TEST_SQL_FILE"
+    if [ "$status" -ne 0 ]; then
+        echo "Content of $TEST_SQL_FILE:"
+        cat "$TEST_SQL_FILE"
+        echo "Content of TEST_CONFIG_FILE:"
+        cat "$TEST_CONFIG_FILE"
+    fi
+    [ "$status" -eq 0 ]
     grep -q "test.dynatrace.com" "$TEST_SQL_FILE"
 }
 
 @test "update_secret.sh fails with invalid token" {
     export DTAGENT_TOKEN="invalid_token"
-    run ./update_secret.sh "$TEST_SQL_FILE"
+    run ./scripts/deploy/update_secret.sh "$TEST_SQL_FILE"
     [ "$status" -eq 1 ]
     # Check warning message
     [[ "$output" =~ "DTAGENT_API_KEY will NOT be updated" ]]

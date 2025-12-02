@@ -29,7 +29,7 @@
 
 INSTALL_SCRIPT_SQL="$1"
 
-DYNATRACE_TENANT_ADDRESS=$(./get_config_key.sh core.dynatrace_tenant_address)
+DYNATRACE_TENANT_ADDRESS=$($(dirname "$0")/get_config_key.sh core.dynatrace_tenant_address)
 
 if [ -z "$DTAGENT_TOKEN" ]; then
     echo "Environment variable DTAGENT_TOKEN is not defined."
@@ -67,7 +67,7 @@ create or replace external access integration DTAGENT_API_INTEGRATION
     allowed_network_rules = (DTAGENT_DB.CONFIG.DTAGENT_NETWORK_RULE)
     allowed_authentication_secrets = (DTAGENT_DB.CONFIG.DTAGENT_API_KEY)
     enabled = TRUE;
-    
+
 grant ownership on integration DTAGENT_API_INTEGRATION to role DTAGENT_ADMIN revoke current grants;
 grant usage on integration DTAGENT_API_INTEGRATION to role DTAGENT_VIEWER;
 

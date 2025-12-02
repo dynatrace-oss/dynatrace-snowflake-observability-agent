@@ -5,36 +5,36 @@ setup() {
 }
 
 @test "build.sh has valid bash syntax" {
-    run bash -n build.sh
+    run bash -n scripts/dev/build.sh
     [ "$status" -eq 0 ]
 }
 
 @test "compile.sh has valid bash syntax" {
-    run bash -n compile.sh
+    run bash -n scripts/dev/compile.sh
     [ "$status" -eq 0 ]
 }
 
 @test "build_docs.sh has valid bash syntax" {
-    run bash -n build_docs.sh
+    run bash -n scripts/dev/build_docs.sh
     [ "$status" -eq 0 ]
 }
 
 @test "deploy.sh has valid bash syntax" {
-    run bash -n deploy.sh
+    run bash -n scripts/deploy/deploy.sh
     [ "$status" -eq 0 ]
 }
 
 @test "install_snow_cli.sh has valid bash syntax" {
-    run bash -n install_snow_cli.sh
+    run bash -n scripts/deploy/install_snow_cli.sh
     [ "$status" -eq 0 ]
 }
 
 @test "package.sh has valid bash syntax" {
-    run bash -n package.sh
+    run bash -n scripts/dev/package.sh
     [ "$status" -eq 0 ]
 }
 
 @test "setup.sh has valid bash syntax" {
-    run bash -n setup.sh
+    run bash -n scripts/deploy/setup.sh
     [ "$status" -eq 0 ]
 }

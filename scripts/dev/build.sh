@@ -78,7 +78,7 @@ else
 fi
 
 # Compiling to build/_dtagent.py
-./compile.sh
+./scripts/dev/compile.sh
 
 if [ $? -eq 1 ]; then
     exit 1

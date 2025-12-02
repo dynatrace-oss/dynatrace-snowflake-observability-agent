@@ -43,7 +43,7 @@ PARAM="$3"
 #
 # checking multitenancy TAG
 #
-TAG=$(./get_config_key.sh core.tag)
+TAG=$($(dirname "$0")/get_config_key.sh core.tag)
 TAG=${TAG:-""}
 
 echo "Deploying with tag "${TAG}""
@@ -115,7 +115,7 @@ if [ "$PARAM" == 'apikey' ] || [ "$PARAM" == "manual" ] || [ "$PARAM" == "" ]; t
     #
     echo "Updating API Key from environment variable DTAGENT_TOKEN in $ENV environment"
 
-    ./update_secret.sh "${INSTALL_SCRIPT_SQL}"
+    $(dirname "$0")/update_secret.sh "${INSTALL_SCRIPT_SQL}"
 
     echo "Updating all plugins from the configuration provided"
 
@@ -128,8 +128,8 @@ fi
 #
 # ensuring we have replaced configuration and instruments file upload with inline INSERT
 #
-SQL_INGEST_CONFIG=$(./prepare_configuration_ingest.sh)
-SQL_INGEST_INSTRUMENTS=$(./prepare_instruments_ingest.sh)
+SQL_INGEST_CONFIG=$($(dirname "$0")/prepare_configuration_ingest.sh)
+SQL_INGEST_INSTRUMENTS=$($(dirname "$0")/prepare_instruments_ingest.sh)
 
 awk -v config="${SQL_INGEST_CONFIG}" '
   BEGIN { in_block = 0 }
@@ -143,7 +143,7 @@ awk -v config="${SQL_INGEST_CONFIG}" '
   /--%:UPLOAD:INSTRUMENTS/ { in_block = 0 }
   !in_block { print }
 ' |
-    awk 'BEGIN { print_out=1; } 
+    awk 'BEGIN { print_out=1; }
     /^[#][%]UPLOAD:SKIP[:].*/ { print_out=0; }
     { if (print_out==1) print $0; }
     /^[#][%][:]UPLOAD:SKIP.*/ { print_out=1; }' \
