@@ -32,14 +32,34 @@ from typing import Any, Dict, Optional
 
 ##region ------------------------ INSTRUMENTS INIT ----------------------------------------
 class Semantics:
-    """Gathers defined payload properties from CONFIG.V_INSTRUMENTS"""
+    """Enables retrieval of metric semantics definitions for given metric names."""
 
     def __init__(self):
         self._metric_semantics = {
+            ##region ---------------------------- CODE  -----------------------------------------
             ##INSERT build/_metric_semantics.txt
+            ##endregion CODE
         }
 
-    def _gen_metric_definition_line(self, metric_name: str, metric_details: Dict[str, str]) -> str:
+    def get_metric_definition(self, metric_name: str, local_metrics_def: Optional[Dict[str, Dict[str, Any]]] = None) -> str:
+        """Returns set of instruments for metric of given name,
+        with optional local semantic dictionary which might be provided at runtime.
+        """
+        result = self._metric_semantics.get(metric_name, None)
+
+        if result is None:
+            # we could use (local_metrics_def or {}) but I think this will be faster, on top of calling this only when really needed
+            if local_metrics_def is not None and metric_name in local_metrics_def:
+                result = Semantics.gen_metric_definition_line(metric_name, local_metrics_def[metric_name])
+
+                self._metric_semantics[metric_name] = result  # caching results for the time being
+            else:
+                result = ""
+
+        return result
+
+    @classmethod
+    def gen_metric_definition_line(cls, metric_name: str, metric_details: Dict[str, str]) -> str:
         """Generates a single doc line that will be sent along with actual data to Dynatrace Metrics API v2
 
         Args:
@@ -68,23 +88,6 @@ class Semantics:
             )
 
         return f"#{metric_name} gauge {__gen_metric_details(metric_details, metric_name)}"
-
-    def get_metric_definition(self, metric_name: str, local_metrics_def: Optional[Dict[str, Dict[str, Any]]] = None) -> str:
-        """Returns set of instruments for metric of given name,
-        with optional local semantic dictionary which might be provided at runtime.
-        """
-        result = self._metric_semantics.get(metric_name, None)
-
-        if result is None:
-            # we could use (local_metrics_def or {}) but I think this will be faster, on top of calling this only when really needed
-            if local_metrics_def is not None and metric_name in local_metrics_def:
-                result = self._gen_metric_definition_line(metric_name, local_metrics_def[metric_name])
-
-                self._metric_semantics[metric_name] = result  # caching results for the time being
-            else:
-                result = ""
-
-        return result
 
 
 ##endregion

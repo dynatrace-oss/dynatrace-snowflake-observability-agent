@@ -47,10 +47,10 @@ class Metrics:
 
     ENDPOINT_PATH = "/api/v2/metrics/ingest"
 
-    def __init__(self, instruments: Semantics, configuration: Configuration):
+    def __init__(self, semantics: Semantics, configuration: Configuration):
         self.PAYLOAD_CACHE: str = ""
         self._configuration = configuration
-        self._instruments = instruments
+        self._semantics = semantics
         self._resattr_dims = {
             k: v for k, v in self._configuration.get("resource.attributes").items() if not k.startswith("telemetry.exporter.")
         }
@@ -200,7 +200,7 @@ class Metrics:
                 f"{metric_name},{dimensions} {value}"
                 + ("" if not ts else f" {ts}")
                 + "\n"
-                + self._instruments.get_metric_definition(metric_name, local_metrics_def)
+                + self._semantics.get_metric_definition(metric_name, local_metrics_def)
             )
 
         timestamp = get_timestamp_in_ms(query_data, start_time, 1e6, int(get_now_timestamp().timestamp() * 1000))

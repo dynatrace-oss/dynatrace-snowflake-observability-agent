@@ -38,6 +38,19 @@ check_missing_imports() {
 }
 
 #
+# This script is used to preprocess single *.py src/file before it can be referenced in other files,
+# which are source for those processed in process_files function
+#
+preprocess_files() {
+  local src_file=$1
+  local dest_file=$2
+
+  gawk 'match($0, /[#]{2}INSERT (.+)/, a) {system("cat \""a[1]"\""); next } 1' "$src_file" > "$dest_file"
+
+  black --line-length 140 "$dest_file"
+}
+
+#
 # This script is used to create single 700_dtagent.py src/file from src/dtagent package
 #
 process_files() {
@@ -58,6 +71,10 @@ process_files() {
 
   check_missing_imports "$dest_file"
 }
+
+PYTHONPATH=src python src/build/assemble_semantics.py
+
+preprocess_files "src/dtagent/otel/semantics.py" "build/_semantics.py"
 
 process_files "src/dtagent/agent.py" "build/_dtagent.py"
 process_files "src/dtagent/connector.py" "build/_send_telemetry.py"
