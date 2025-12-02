@@ -26,19 +26,19 @@ teardown() {
 }
 
 @test "get_config_key.sh returns correct value for existing key" {
-    run ./get_config_key.sh test.key1
+    run ./scripts/deploy/get_config_key.sh test.key1
     [ "$status" -eq 0 ]
     [ "$output" = "value1" ]
 }
 
 @test "get_config_key.sh returns empty for non-existing key" {
-    run ./get_config_key.sh test.nonexistent
+    run ./scripts/deploy/get_config_key.sh test.nonexistent
     [ "$status" -eq 0 ]
     [ "$output" = "" ]
 }
 
 @test "get_config_key.sh handles multiple calls" {
-    run ./get_config_key.sh test.key2
+    run ./scripts/deploy/get_config_key.sh test.key2
     [ "$status" -eq 0 ]
     [ "$output" = "value2" ]
 }

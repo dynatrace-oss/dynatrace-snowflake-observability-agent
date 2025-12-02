@@ -7,7 +7,7 @@ setup() {
 @test "build.sh runs without immediate errors" {
     # This test assumes dependencies like pylint are installed
     # In a real environment, this would pass if build tools are available
-    run timeout 60 ./build.sh
+    run timeout 60 ./scripts/dev/build.sh
     # Allow it to pass even if it fails due to missing dependencies, as long as it doesn't crash immediately
     if [ "$status" -ne 0 ] && [ "$status" -ne 1 ]; then
         echo "build.sh failed with status $status"
@@ -76,7 +76,7 @@ setup() {
 
 @test "build_docs.sh creates expected documentation files" {
     # Run build_docs.sh
-    run timeout 60 ./build_docs.sh
+    run timeout 60 ./scripts/dev/build_docs.sh
     if [ "$status" -ne 0 ] && [ "$status" -ne 1 ]; then
         echo "build_docs.sh failed with status $status"
         echo "Output: $output"
@@ -160,7 +160,7 @@ setup() {
 }
 
 @test "package.sh creates a valid package zip with build files and documentation" {
-    run ./package.sh
+    run ./scripts/dev/package.sh
     if [ "$status" -ne 0 ]; then
         echo "package.sh failed with status $status"
         echo "Output: $output"
@@ -172,7 +172,7 @@ setup() {
     [ -f "$zip_file" ]
 
     # Check that the zip contains the PDF
-    pdf_file=$(unzip -l "$zip_file" | grep Dynatrace-Snowflake-Observability-Agent-*.pdf)
+    pdf_file=$(unzip -l "$zip_file" | grep "Dynatrace-Snowflake-Observability-Agent-[0-9.]*pdf")
     echo "pdf_file: $pdf_file"
     [ -n "$pdf_file" ]
 
@@ -196,6 +196,11 @@ setup() {
     echo "conf_dir: $conf_dir"
     [ -n "$conf_dir" ]
 
+    # Check that config-template.json is in conf/
+    config_template_file=$(unzip -l "$zip_file" | grep "conf/config-template.json")
+    echo "config_template_file: $config_template_file"
+    [ -n "$config_template_file" ]
+
     # Check that docs/ exists
     docs_dir=$(unzip -l "$zip_file" | grep "^.*docs/$")
     echo "docs_dir: $docs_dir"
@@ -206,10 +211,85 @@ setup() {
     echo "bom_file: $bom_file"
     [ -n "$bom_file" ]
 
+    # Check that bom_references.csv is in docs/
+    bom_references_csv=$(unzip -l "$zip_file" | grep "docs/bom_references.csv")
+    echo "bom_references_csv: $bom_references_csv"
+    [ -n "$bom_references_csv" ]
+
+    # Check that dashboards.zip is in docs/
+    dashboards_zip=$(unzip -l "$zip_file" | grep "docs/dashboards.zip")
+    echo "dashboards_zip: $dashboards_zip"
+    [ -n "$dashboards_zip" ]
+
+    # Check that debug.zip is in docs/
+    debug_zip=$(unzip -l "$zip_file" | grep "docs/debug.zip")
+    echo "debug_zip: $debug_zip"
+    [ -n "$debug_zip" ]
+
+    # Check that bom_delivers.csv is in docs/
+    bom_delivers_csv=$(unzip -l "$zip_file" | grep "docs/bom_delivers.csv")
+    echo "bom_delivers_csv: $bom_delivers_csv"
+    [ -n "$bom_delivers_csv" ]
+
     # Check that deploy.sh is present
     deploy_script=$(unzip -l "$zip_file" | grep "deploy.sh")
     echo "deploy_script: $deploy_script"
     [ -n "$deploy_script" ]
+
+    # Check that get_config_key.sh is present
+    get_config_key_script=$(unzip -l "$zip_file" | grep "get_config_key.sh")
+    echo "get_config_key_script: $get_config_key_script"
+    [ -n "$get_config_key_script" ]
+
+    # Check that install_snow_cli.sh is present
+    install_snow_cli_script=$(unzip -l "$zip_file" | grep "install_snow_cli.sh")
+    echo "install_snow_cli_script: $install_snow_cli_script"
+    [ -n "$install_snow_cli_script" ]
+
+    # Check that prepare_config.sh is present
+    prepare_config_script=$(unzip -l "$zip_file" | grep "prepare_config.sh")
+    echo "prepare_config_script: $prepare_config_script"
+    [ -n "$prepare_config_script" ]
+
+    # Check that prepare_configuration_ingest.sh is present
+    prepare_configuration_ingest_script=$(unzip -l "$zip_file" | grep "prepare_configuration_ingest.sh")
+    echo "prepare_configuration_ingest_script: $prepare_configuration_ingest_script"
+    [ -n "$prepare_configuration_ingest_script" ]
+
+    # Check that prepare_deploy_script.sh is present
+    prepare_deploy_script_script=$(unzip -l "$zip_file" | grep "prepare_deploy_script.sh")
+    echo "prepare_deploy_script_script: $prepare_deploy_script_script"
+    [ -n "$prepare_deploy_script_script" ]
+
+    # Check that prepare_instruments_ingest.sh is present
+    prepare_instruments_ingest_script=$(unzip -l "$zip_file" | grep "prepare_instruments_ingest.sh")
+    echo "prepare_instruments_ingest_script: $prepare_instruments_ingest_script"
+    [ -n "$prepare_instruments_ingest_script" ]
+
+    # Check that refactor_field_names.sh is present
+    refactor_field_names_script=$(unzip -l "$zip_file" | grep "refactor_field_names.sh")
+    echo "refactor_field_names_script: $refactor_field_names_script"
+    [ -n "$refactor_field_names_script" ]
+
+    # Check that send_bizevent.sh is present
+    send_bizevent_script=$(unzip -l "$zip_file" | grep "send_bizevent.sh")
+    echo "send_bizevent_script: $send_bizevent_script"
+    [ -n "$send_bizevent_script" ]
+
+    # Check that setup.sh is present
+    setup_script=$(unzip -l "$zip_file" | grep "setup.sh")
+    echo "setup_script: $setup_script"
+    [ -n "$setup_script" ]
+
+    # Check that update_secret.sh is present
+    update_secret_script=$(unzip -l "$zip_file" | grep "update_secret.sh")
+    echo "update_secret_script: $update_secret_script"
+    [ -n "$update_secret_script" ]
+
+    # Check that LICENSE file is present
+    license_file=$(unzip -l "$zip_file" | grep "LICENSE")
+    echo "license_file: $license_file"
+    [ -n "$license_file" ]
 
     # Check that there are many SQL files in build/
     sql_count=$(unzip -l "$zip_file" | grep "build/.*\.sql$" | wc -l)

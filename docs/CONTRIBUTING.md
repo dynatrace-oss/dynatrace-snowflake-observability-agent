@@ -117,7 +117,7 @@ These are located in the **`src/dtagent/plugins`** directory.
 
 Dynatrace Snowflake Observability Agent comes with a number of bash scripts used to support development (see
 [Working with Dynatrace Snowflake Observability Agent source code](#working-with-dynatrace-snowflake-observability-agent-source-code) for
-details):
+details) in `./scripts/dev/` folder, including:
 
 - `./compile.sh` compiles Python code into Snowpark code,
 - `./build.sh` builds Snowpark code into SQL scripts,
@@ -126,7 +126,7 @@ details):
 - `./test.sh` runs a single plugin test,
 - `./test_core.sh` runs a test in Jenkins context,
 
-and deployment (also delivered in distribution package):
+and deployment (also delivered in distribution package) in `./scripts/deploy/` folder, including:
 
 - `./deploy.sh` used to deploy Dynatrace Snowflake Observability Agent,
 - `./setup.sh` ensures all prerequisites for deploying Dynatrace Snowflake Observability Agent are met,
@@ -137,7 +137,7 @@ and deployment (also delivered in distribution package):
 - `./prepare_instruments_ingest.sh` prepares SQL script that will update semantic dictionary,
 - `./update_secret.sh` is called to setup Dynatrace token as API Key,
 - `./refactor_field_names.sh` call to update names of fields in your DQL code,
-- `./send_event.sh` is called to send bizevents to Dynatrace to indicate when deployment starts and finishes.
+- `./send_bizevent.sh` is called to send bizevents to Dynatrace to indicate when deployment starts and finishes.
 
 ## Working with Dynatrace Snowflake Observability Agent source code
 
@@ -199,7 +199,7 @@ The recommended setup is to use [VS Code](https://code.visualstudio.com/) with t
    The `setup.sh` script can help install most of the required tools.
 
    ```bash
-   ./setup.sh
+   ./scripts/deploy/setup.sh
    ```
 
    Alternatively, you can install them manually. You will need the dependencies for running the agent (see `INSTALL.md`) plus the
@@ -232,16 +232,16 @@ If you checked out sources from git, once the environment is set up, before you 
 for someone else to deploy it, you need to run:
 
 ```bash
-./build.sh
+./scripts/dev/build.sh
 ```
 
-The build process ensures all SQL and JSON files are ready to be deployed by starting with the invocation of `./compile.sh`, which creates a
+The build process ensures all SQL and JSON files are ready to be deployed by starting with the invocation of `./scripts/dev/compile.sh`, which creates a
 single Python script for the main Dynatrace Snowflake Observability Agent procedure (`./build/_dtagent.py`) and the telemetry sender
 procedure (`./build/telemetry.py`). During the build, these Python files are embedded into the templates for the
 `APP.DTAGENT(sources array)` and `APP.SEND_TELEMETRY(sources variant, params object)` procedures, respectively.". Other source files,
 including configuration and semantic dictionary, are also copied into the `./build` directory.
 
-After successfully compiling and building the Dynatrace Snowflake Observability Agent, you need to deploy it using the `./deploy.sh` command
+After successfully compiling and building the Dynatrace Snowflake Observability Agent, you need to deploy it using the `./scripts/deploy/deploy.sh` command
 (see [installation documentation for more details](INSTALL.md)).
 
 ## Updating documentation
@@ -277,7 +277,7 @@ export WEASYPRINT_DLL_DIRECTORIES=/opt/homebrew/lib
 In case we want to share Dynatrace Snowflake Observability Agent with other users, we can call:
 
 ```bash
-./package.sh
+./scripts/dev/package.sh
 ```
 
 This will prepare a distribution package called `dynatrace_snowflake_observability_agent-$VERSION.$BUILD.zip`. The package will contain
@@ -414,7 +414,7 @@ To test a single plugin, you can call:
 If you want to (re)initialize the test data, you need to run:
 
 ```bash
-./test.sh test_$plugin_name -p
+./scripts/dev/test.sh test_$plugin_name -p
 ```
 
 The SQL files stored in the `test` folder can be used to run some additional tests manually.
