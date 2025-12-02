@@ -27,6 +27,12 @@
 # It processes the scripts in src/sql and looks for ##INSERT $fileName hints
 #
 
+# Check for required commands
+if ! command -v gawk &> /dev/null; then
+    echo "Error: Required command 'gawk' is not installed."
+    exit 1
+fi
+
 # Cleaning up build directory
 rm -Rf build/*
 

@@ -77,13 +77,10 @@ jobs:
           pip install -r requirements.txt
           pip install pytest-mock
 
-      - name: Install Bats
+      - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y bats
-
-      - name: Install jq (required by some tests)
-        run: sudo apt-get install -y jq
+          sudo apt-get install -y bats jq gawk pandoc zip
 
       - name: Run bash tests
         run: ./test/bash/run_tests.sh
