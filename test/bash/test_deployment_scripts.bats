@@ -5,13 +5,13 @@ setup() {
 }
 
 @test "setup.sh checks for missing tools" {
-    run ./setup.sh
+    run ./scripts/deploy/setup.sh
     # It should check for jq, etc., and may install if missing
     # But in test, just check it runs
     [ "$status" -eq 0 ] || [ "$status" -eq 1 ]
 }
 
 @test "deploy.sh requires ENV parameter" {
-    run ./deploy.sh
+    run ./scripts/deploy/deploy.sh
     [ "$status" -ne 0 ]  # Should fail without ENV
 }

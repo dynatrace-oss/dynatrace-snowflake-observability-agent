@@ -20,7 +20,7 @@ teardown() {
 }
 
 @test "prepare_instruments_ingest.sh generates correct SQL" {
-    run ./prepare_instruments_ingest.sh
+    run ./scripts/deploy/prepare_instruments_ingest.sh
     [ "$status" -eq 0 ]
     [[ "$output" =~ "INSERT INTO TEMP_INSTRUMENTS" ]]
     [[ "$output" =~ "PARSE_JSON" ]]

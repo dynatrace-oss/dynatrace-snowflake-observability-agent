@@ -16,7 +16,7 @@ teardown() {
 }
 
 @test "compile.sh creates compiled files" {
-    run ./compile.sh
+    run ./scripts/dev/compile.sh
     [ "$status" -eq 0 ]
     [ -f build/_version.py ]
     [ -f build/_dtagent.py ]

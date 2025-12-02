@@ -25,7 +25,7 @@
 #
 # This script is used to build target documentation into README.md file
 
-./build.sh
+./scripts/dev/build.sh
 
 VERSION=$(grep 'VERSION =' build/_version.py | awk -F'"' '{print $2}')
 BUILD=$(grep 'BUILD =' build/_version.py | sed -E -e 's/^.*[=] ([0-9]+)\s*/\1/')

@@ -38,7 +38,7 @@ teardown() {
 
 @test "send_bizevent.sh skips with invalid token" {
     export DTAGENT_TOKEN="invalid"
-    run ./send_bizevent.sh "test" "success" "123"
+    run ./scripts/deploy/send_bizevent.sh "test" "success" "123"
     [ "$status" -eq 0 ]
     [[ "$output" =~ "DTAGENT_TOKEN is not set or is not a valid Dynatrace token" ]]
 }
@@ -55,7 +55,7 @@ teardown() {
 ]
 EOF
     export DTAGENT_TOKEN="dt0c01.TEST12345678901234567890.TEST123456789012345678901234567890123456789012345678901234567890"
-    run ./send_bizevent.sh "test" "success" "123"
+    run ./scripts/deploy/send_bizevent.sh "test" "success" "123"
     [ "$status" -eq 0 ]
     # Should not output the skipping message, but since curl is not mocked, it might fail or succeed
     # For now, just check it doesn't complain about token
