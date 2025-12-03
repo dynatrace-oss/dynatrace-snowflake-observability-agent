@@ -17,7 +17,7 @@ teardown() {
 
 @test "convert and git mv object JSON" {
     cd "$TEST_DIR"
-    run "$CWD/scripts/dev/convert_to_yaml.sh" "$TEST_DIR/test_object.json"
+    run "$CWD/tools/config_to_yaml.sh" "$TEST_DIR/test_object.json"
     if [ "$status" -ne 0 ]; then
         echo "build.sh failed with status $status"
         echo "Output: $output"
