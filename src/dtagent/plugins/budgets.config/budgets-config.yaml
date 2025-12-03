@@ -1,15 +1,10 @@
-{
-    "PLUGINS": {
-        "BUDGETS": {
-            "QUOTA": 10,
-            "SCHEDULE": "USING CRON 30 0 * * * UTC",
-            "IS_DISABLED": false,
-            "TELEMETRY": [
-                "logs",
-                "metrics",
-                "events",
-                "biz_events"
-            ]
-        }
-    }
-}
+plugins:
+  budgets:
+    quota: 10
+    schedule: USING CRON 30 0 * * * UTC
+    is_disabled: false
+    telemetry:
+      - logs
+      - metrics
+      - events
+      - biz_events

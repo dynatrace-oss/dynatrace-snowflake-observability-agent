@@ -1,17 +1,12 @@
-{
-    "PLUGINS": {
-        "QUERY_HISTORY": {
-            "SCHEDULE_GRANTS": "USING CRON */30 * * * * UTC",
-            "SCHEDULE": "USING CRON */30 * * * * UTC",
-            "IS_DISABLED": false,
-            "SLOW_QUERIES_THRESHOLD": 10000,
-            "SLOW_QUERIES_TO_ANALYZE_LIMIT": 50,
-            "TELEMETRY": [
-                "metrics",
-                "logs",
-                "biz_events",
-                "spans"
-            ]
-        }
-    }
-}
+plugins:
+  query_history:
+    schedule_grants: USING CRON */30 * * * * UTC
+    schedule: USING CRON */30 * * * * UTC
+    is_disabled: false
+    slow_queries_threshold: 10000
+    slow_queries_to_analyze_limit: 50
+    telemetry:
+      - metrics
+      - logs
+      - biz_events
+      - spans

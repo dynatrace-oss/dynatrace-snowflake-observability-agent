@@ -1,16 +1,11 @@
-{
-    "PLUGINS": {
-        "ACTIVE_QUERIES": {
-            "SCHEDULE": "USING CRON */6 * * * * UTC",
-            "IS_DISABLED": false,
-            "FAST_MODE": true,
-            "REPORT_EXECUTION_STATUS": [],
-            "TELEMETRY": [
-                "logs",
-                "metrics",
-                "spans",
-                "biz_events"
-            ]
-        }
-    }
-}
+plugins:
+  active_queries:
+    schedule: USING CRON */6 * * * * UTC
+    is_disabled: false
+    fast_mode: true
+    report_execution_status: []
+    telemetry:
+      - logs
+      - metrics
+      - spans
+      - biz_events

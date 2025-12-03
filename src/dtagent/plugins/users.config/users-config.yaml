@@ -1,16 +1,11 @@
-{
-    "PLUGINS": {
-        "USERS": {
-            "SCHEDULE": "USING CRON 0 0 * * * UTC",
-            "IS_DISABLED": false,
-            "IS_HASHED": true,
-            "RETAIN_EMAIL_HASH_MAP": false,
-            "ROLES_MONITORING_MODE": [],
-            "TELEMETRY": [
-                "logs",
-                "events",
-                "biz_events"
-            ]
-        }
-    }
-}
+plugins:
+  users:
+    schedule: USING CRON 0 0 * * * UTC
+    is_disabled: false
+    is_hashed: true
+    retain_email_hash_map: false
+    roles_monitoring_mode: []
+    telemetry:
+      - logs
+      - events
+      - biz_events

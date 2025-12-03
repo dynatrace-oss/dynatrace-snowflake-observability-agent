@@ -1,20 +1,13 @@
-{
-    "PLUGINS": {
-        "SHARES": {
-            "SCHEDULE": "USING CRON */30 * * * * UTC",
-            "IS_DISABLED": false,
-            "EXCLUDE_FROM_MONITORING": [],
-            "EXCLUDE": [
-                ""
-            ],
-            "INCLUDE": [
-                "%.%.%"
-            ],
-            "TELEMETRY": [
-                "logs",
-                "events",
-                "biz_events"
-            ]
-        }
-    }
-}
+plugins:
+  shares:
+    schedule: USING CRON */30 * * * * UTC
+    is_disabled: false
+    exclude_from_monitoring: []
+    exclude:
+      - ""
+    include:
+      - '%.%.%'
+    telemetry:
+      - logs
+      - events
+      - biz_events

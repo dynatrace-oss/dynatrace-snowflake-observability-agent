@@ -1,60 +1,48 @@
-{
-    "OTEL": {
-        "MAX_CONSECUTIVE_API_FAILS": 10,
-        "LOGS": {
-            "EXPORT_TIMEOUT_MILLIS": 10000,
-            "MAX_EXPORT_BATCH_SIZE": 100,
-            "IS_DISABLED": false
-        },
-        "SPANS": {
-            "EXPORT_TIMEOUT_MILLIS": 10000,
-            "MAX_EXPORT_BATCH_SIZE": 50,
-            "MAX_EVENT_COUNT": 2000,
-            "MAX_ATTRIBUTES_PER_EVENT_COUNT": 250,
-            "MAX_SPAN_ATTRIBUTES": 250,
-            "IS_DISABLED": false
-        },
-        "METRICS": {
-            "API_POST_TIMEOUT": 30,
-            "MAX_RETRIES": 5,
-            "MAX_BATCH_SIZE": 1000000,
-            "RETRY_DELAY_MS": 10000,
-            "IS_DISABLED": false
-        },
-        "EVENTS": {
-            "API_POST_TIMEOUT": 30,
-            "MAX_RETRIES": 5,
-            "MAX_PAYLOAD_BYTES": 10240000,
-            "MAX_EVENT_COUNT": 25000,
-            "RETRY_DELAY_MS": 10000,
-            "RETRY_ON_STATUS": [
-                429,
-                502,
-                503
-            ],
-            "IS_DISABLED": false
-        },
-        "DAVIS_EVENTS": {
-            "API_POST_TIMEOUT": 30,
-            "MAX_RETRIES": 5,
-            "RETRY_DELAY_MS": 10000,
-            "IS_DISABLED": false
-        },
-        "BIZ_EVENTS": {
-            "API_POST_TIMEOUT": 30,
-            "MAX_RETRIES": 5,
-            "MAX_PAYLOAD_BYTES": 5120000,
-            "MAX_EVENT_COUNT": 400,
-            "RETRY_DELAY_MS": 30000,
-            "RETRY_ON_STATUS": [
-                429,
-                502,
-                503
-            ],
-            "IS_DISABLED": false
-        }
-    },
-    "PLUGINS": {
-        "DISABLED_BY_DEFAULT": false
-    }
-}
+otel:
+  max_consecutive_api_fails: 10
+  logs:
+    export_timeout_millis: 10000
+    max_export_batch_size: 100
+    is_disabled: false
+  spans:
+    export_timeout_millis: 10000
+    max_export_batch_size: 50
+    max_event_count: 2000
+    max_attributes_per_event_count: 250
+    max_span_attributes: 250
+    is_disabled: false
+  metrics:
+    api_post_timeout: 30
+    max_retries: 5
+    max_batch_size: 1000000
+    retry_delay_ms: 10000
+    is_disabled: false
+  events:
+    api_post_timeout: 30
+    max_retries: 5
+    max_payload_bytes: 10240000
+    max_event_count: 25000
+    retry_delay_ms: 10000
+    retry_on_status:
+      - 429
+      - 502
+      - 503
+    is_disabled: false
+  davis_events:
+    api_post_timeout: 30
+    max_retries: 5
+    retry_delay_ms: 10000
+    is_disabled: false
+  biz_events:
+    api_post_timeout: 30
+    max_retries: 5
+    max_payload_bytes: 5120000
+    max_event_count: 400
+    retry_delay_ms: 30000
+    retry_on_status:
+      - 429
+      - 502
+      - 503
+    is_disabled: false
+plugins:
+  disabled_by_default: false

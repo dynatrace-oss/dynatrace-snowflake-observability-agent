@@ -1,20 +1,13 @@
-{
-    "PLUGINS": {
-        "DYNAMIC_TABLES": {
-            "INCLUDE": [
-                "%.%.%"
-            ],
-            "EXCLUDE": [
-                "DTAGENT_DB.%.%"
-            ],
-            "SCHEDULE": "USING CRON */30 * * * * UTC",
-            "SCHEDULE_GRANTS": "USING CRON 30 */12 * * * UTC",
-            "IS_DISABLED": false,
-            "TELEMETRY": [
-                "metrics",
-                "logs",
-                "biz_events"
-            ]
-        }
-    }
-}
+plugins:
+  dynamic_tables:
+    include:
+      - '%.%.%'
+    exclude:
+      - DTAGENT_DB.%.%
+    schedule: USING CRON */30 * * * * UTC
+    schedule_grants: USING CRON 30 */12 * * * UTC
+    is_disabled: false
+    telemetry:
+      - metrics
+      - logs
+      - biz_events

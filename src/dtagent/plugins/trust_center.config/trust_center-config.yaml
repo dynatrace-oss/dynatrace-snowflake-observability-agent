@@ -1,15 +1,10 @@
-{
-    "PLUGINS": {
-        "TRUST_CENTER": {
-            "SCHEDULE": "USING CRON 30 */12 * * * UTC",
-            "LOG_DETAILS": false,
-            "IS_DISABLED": false,
-            "TELEMETRY": [
-                "metrics",
-                "logs",
-                "events",
-                "biz_events"
-            ]
-        }
-    }
-}
+plugins:
+  trust_center:
+    schedule: USING CRON 30 */12 * * * UTC
+    log_details: false
+    is_disabled: false
+    telemetry:
+      - metrics
+      - logs
+      - events
+      - biz_events

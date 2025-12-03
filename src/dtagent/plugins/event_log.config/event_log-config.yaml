@@ -1,17 +1,12 @@
-{
-    "PLUGINS": {
-        "EVENT_LOG": {
-            "MAX_ENTRIES": 10000,
-            "RETENTION_HOURS": 12,
-            "SCHEDULE": "USING CRON */30 * * * * UTC",
-            "SCHEDULE_CLEANUP": "USING CRON 0 * * * * UTC",
-            "IS_DISABLED": false,
-            "TELEMETRY": [
-                "metrics",
-                "logs",
-                "biz_events",
-                "spans"
-            ]
-        }
-    }
-}
+plugins:
+  event_log:
+    max_entries: 10000
+    retention_hours: 12
+    schedule: USING CRON */30 * * * * UTC
+    schedule_cleanup: USING CRON 0 * * * * UTC
+    is_disabled: false
+    telemetry:
+      - metrics
+      - logs
+      - biz_events
+      - spans

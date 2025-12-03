@@ -1,14 +1,9 @@
-{
-    "PLUGINS": {
-        "TASKS": {
-            "SCHEDULE": "USING CRON 30 * * * * UTC",
-            "IS_DISABLED": false,
-            "TELEMETRY": [
-                "logs",
-                "metrics",
-                "events",
-                "biz_events"
-            ]
-        }
-    }
-}
+plugins:
+  tasks:
+    schedule: USING CRON 30 * * * * UTC
+    is_disabled: false
+    telemetry:
+      - logs
+      - metrics
+      - events
+      - biz_events
