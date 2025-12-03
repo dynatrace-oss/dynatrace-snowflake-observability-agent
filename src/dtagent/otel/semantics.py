@@ -53,7 +53,7 @@ class Semantics:
         Returns:
             str: single doc line for given metric, or empty string if no semantics found
         """
-        result = self._metric_semantics.get(metric_name, None)
+        result = self._metric_semantics.get(metric_name)
 
         if result is None and local_metrics_def is not None and metric_name in local_metrics_def:
             # we could use (local_metrics_def or {}) but I think this will be faster, on top of calling this only when really needed
