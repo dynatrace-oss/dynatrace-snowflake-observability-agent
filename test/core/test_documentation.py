@@ -127,13 +127,13 @@ class TestDocumentation:
         """This test will ensure we do not have any forbidden characters in the body of description or
         other non-private fields in instrumentation semantics
         """
-        from test._utils import find_files
+        from build.utils import find_files
 
         problems = []
         instruments_def_files = find_files("src", "instruments-def.yml")
 
         for file in instruments_def_files:
-            from test._utils import read_clean_yml_from_file
+            from build.utils import read_clean_yml_from_file
 
             d_inst = read_clean_yml_from_file(file)
 
@@ -151,8 +151,8 @@ class TestDocumentation:
 
     def test_check_required_fields(self):
         """Testing for description, __example, unit, and displayName"""
-
-        from test._utils import find_files, is_blank
+        from build.utils import find_files
+        from test._utils import is_blank
 
         problems = []
         instruments_def_files = find_files("src", "instruments-def.yml")
@@ -172,7 +172,7 @@ class TestDocumentation:
             return re.match(p_unit, unit)
 
         for file in instruments_def_files:
-            from test._utils import read_clean_yml_from_file
+            from build.utils import read_clean_yml_from_file
 
             d_inst = read_clean_yml_from_file(file)
 

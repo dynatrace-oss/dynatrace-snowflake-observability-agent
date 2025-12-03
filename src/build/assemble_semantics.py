@@ -29,29 +29,17 @@ Assemble metric semantics from instruments-def.yml files.
 import yaml
 import os
 from dtagent.otel.semantics import Semantics
+from build.utils import find_files, read_clean_yml_from_file, get_metric_semantics
 
 
 def main():
     """Main function to assemble metric semantics."""
-    # Find all instruments-def.yml
-    files = []
-    for root, _, files_in in os.walk("src"):
-        for f in files_in:
-            if f == "instruments-def.yml":
-                files.append(os.path.join(root, f))
-
-    all_metrics = {}
-    for f in files:
-        with open(f, encoding="utf-8") as fh:
-            data = yaml.safe_load(fh)
-        if "metrics" in data:
-            for k, v in data["metrics"].items():
-                all_metrics[k] = v
 
     # Generate the file
     with open("build/_metric_semantics.txt", "w", encoding="utf-8") as fh:
-        for k, v in all_metrics.items():
-            line = Semantics.gen_metric_definition_line(k, v)
+        all_metrics = get_metric_semantics(gen_metric_description_line=True)
+
+        for k, line in all_metrics.items():
             fh.write(f"\"{k}\": '{line}',\n")
 
 

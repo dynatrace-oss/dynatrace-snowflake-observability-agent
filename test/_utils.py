@@ -39,6 +39,7 @@ from dtagent.util import is_select_for_table
 import test
 from test import TestConfiguration
 from test._mocks.telemetry import MockTelemetryClient
+from build.utils import find_files, get_metric_semantics
 
 TEST_CONFIG_FILE_NAME = "./test/conf/config-download.json"
 
@@ -366,11 +367,7 @@ def get_config(pickle_conf: str = None) -> TestConfiguration:
         otel_config = lowercase_keys(read_clean_json_from_file("src/dtagent.conf/otel-config.json"))
         conf["otel"] |= otel_config.get("otel", {})
         conf["plugins"] |= otel_config.get("plugins", {})
-        metric_semantics = {}
-        for file_path in find_files("src/", "instruments-def.yml"):
-            instruments_data = read_clean_yml_from_file(file_path)
-            metric_semantics.update(instruments_data.get("metrics", {}))
-        conf["metric_semantics"] = metric_semantics
+        conf["metric_semantics"] = get_metric_semantics()
 
     return TestConfiguration(conf)
 
@@ -395,40 +392,6 @@ def read_clean_json_from_file(file_path: str) -> List[Dict]:
         return data
 
     return {}
-
-
-def read_clean_yml_from_file(file_path: str) -> List[Dict]:
-    """Reads given file into a dictionary.
-
-    Args:
-        file_path (str): path to the file with yaml content
-
-    Returns:
-        List[Dict]: dictionary based on the content of the YML/YAML file
-    """
-    import yaml
-
-    logging.debug("Reading clean yml file: %s", file_path)
-
-    with open(file_path, "r", encoding="utf-8") as f:
-        data = yaml.safe_load(f)
-
-        return data
-
-    return {}
-
-
-def find_files(directory: str, filename_pattern: str) -> List[str]:
-    """Lists all files with given name in the given directory
-    Returns:
-        list: List of file paths
-    """
-
-    matches = []
-    for root, _, files in os.walk(directory):
-        for filename in fnmatch.filter(files, filename_pattern):
-            matches.append(os.path.join(root, filename))
-    return matches
 
 
 def lowercase_keys(data: Any) -> Any:
