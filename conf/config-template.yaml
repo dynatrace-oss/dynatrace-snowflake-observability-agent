@@ -1,22 +1,15 @@
-[
-    {
-        "CORE": {
-            "DYNATRACE_TENANT_ADDRESS": "abc12345.live.dynatrace.com",
-            "DEPLOYMENT_ENVIRONMENT": "TEST",
-            "SNOWFLAKE_ACCOUNT_NAME": "-",
-            "SNOWFLAKE_HOST_NAME": "-",
-            "SNOWFLAKE_CREDIT_QUOTA": 5,
-            "LOG_LEVEL": "WARN",
-            "TAG": "",
-            "PROCEDURE_TIMEOUT": 3600
-        },
-        "OTEL": {},
-        "PLUGINS": {
-            "DISABLED_BY_DEFAULT": false,
-            "SELF_MONITORING": {
-                "SEND_BIZEVENTS_ON_DEPLOY": true,
-                "SEND_BIZEVENTS_ON_RUN": true
-            }
-        }
-    }
-]
+core:
+  dynatrace_tenant_address: abc12345.live.dynatrace.com
+  deployment_environment: TEST
+  snowflake_account_name: '-'
+  snowflake_host_name: '-'
+  snowflake_credit_quota: 5
+  log_level: WARN
+  tag: ""
+  procedure_timeout: 3600
+otel: {}
+plugins:
+  disabled_by_default: false
+  self_monitoring:
+    send_bizevents_on_deploy: true
+    send_bizevents_on_run: true
