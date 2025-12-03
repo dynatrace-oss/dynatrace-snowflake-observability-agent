@@ -44,14 +44,14 @@ def find_files(directory: str, filename_pattern: str) -> List[str]:
     return matches
 
 
-def read_clean_yml_from_file(file_path: str) -> List[Dict]:
+def read_clean_yml_from_file(file_path: str) -> Dict[str, Any]:
     """Reads given file into a dictionary.
 
     Args:
         file_path (str): path to the file with yaml content
 
     Returns:
-        List[Dict]: dictionary based on the content of the YML/YAML file
+        Dict[str, Any]: dictionary based on the content of the YML/YAML file
     """
     import yaml
 
