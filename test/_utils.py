@@ -214,7 +214,7 @@ class LocalTelemetrySender(TelemetrySender):
         self._configuration.get_last_measurement_update = lambda *args, **kwargs: datetime.datetime.fromtimestamp(
             0, tz=datetime.timezone.utc
         )
-        self._semantics._metric_semantics = get_metric_semantics(gen_metric_description_line=True)
+        setattr(self._semantics, "_metric_semantics", get_metric_semantics(gen_metric_description_line=True))
 
     def _get_config(self, session: snowpark.Session) -> Configuration:
         return self._local_config if self._local_config else TelemetrySender._get_config(self, session)

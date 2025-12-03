@@ -1,9 +1,7 @@
 # Appendix
 
-- [Appendix A: Migrating semantics from version 0.7 to 0.8](#appendix-a-migrating-semantics-from-version-07-to-08)
-  - [Field Name Mapping](#field-name-mapping)
-- [Appendix B: Migrating meta-field semantics to version 0.8.3 or higher](#appendix-b-migrating-meta-field-semantics-to-version-083-or-higher)
-  - [Meta-Field Name Mapping](#meta-field-name-mapping)
+- [Appendix A: Migrating semantics from version 0.7 to 0.8](#appendix-a-sec)
+- [Appendix B: Migrating meta-field semantics to version 0.8.3 or higher](#appendix-b-sec)
 
 <a name="appendix-a-sec"></a>
 
