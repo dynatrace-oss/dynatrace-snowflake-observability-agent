@@ -84,10 +84,14 @@ def _get_session() -> snowpark.Session:
 class TestDynatraceSnowAgent(DynatraceSnowAgent):
 
     def __init__(self, session: snowpark.Session, config: Configuration) -> None:
+        from build.utils import get_metric_semantics
+
         self._local_configuration = config
         self._local_configuration._config["otel"]["spans"]["max_export_batch_size"] = 1
         self._local_configuration._config["otel"]["logs"]["max_export_batch_size"] = 1
         super().__init__(session)
+
+        self._semantics._metric_semantics = get_metric_semantics(gen_metric_description_line=True)
 
     def _get_config(self, session: snowpark.Session) -> Configuration:
         return _overwrite_plugin_local_config_key(
