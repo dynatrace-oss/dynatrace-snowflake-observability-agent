@@ -35,7 +35,7 @@ elif [ "$($CWD/get_config_key.sh plugins.self_monitoring.send_bizevents_on_deplo
     DT_ADDRESS="$($CWD/get_config_key.sh core.dynatrace_tenant_address)"
 
     if [ "$PARAM" == "config" ]; then
-        TITLE="New Dynatrace Snowflake Observability Agent config and instruments deployment."
+        TITLE="New Dynatrace Snowflake Observability Agent config deployment."
     elif [ "$PARAM" == "teardown" ]; then
         TITLE="Dynatrace Snowflake Observability Agent teardown initiated."
     elif [ "$PARAM" == "apikey" ]; then

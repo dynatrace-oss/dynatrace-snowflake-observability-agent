@@ -17,8 +17,6 @@ delivers:
     type: schema
   - name: DTAGENT_DB.CONFIG
     type: schema
-  - name: DTAGENT_DB.CONFIG.INSTRUMENTS
-    type: table
   - name: DTAGENT_DB.CONFIG.CONFIGURATIONS
     type: table
   - name: DTAGENT_DB.CONFIG.DTAGENT_API_KEY

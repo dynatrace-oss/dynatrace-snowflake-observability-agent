@@ -166,7 +166,7 @@
         "MD028": false
     },
     "markdown.extension.toc.updateOnSave": true,
-    "markdown.extension.toc.unorderedList.marker": "*",
+    "markdown.extension.toc.unorderedList.marker": "-",
     "markdown.extension.toc.levels": "2..6",
     "markdown.extension.toc.orderedList": false,
     "markdown.extension.toc.slugifyMode": "github",

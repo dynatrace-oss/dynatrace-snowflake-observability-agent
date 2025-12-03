@@ -343,7 +343,6 @@ def get_config(pickle_conf: str = None) -> TestConfiguration:
         dt_url = "dsoa2025.live.dynatrace.com"
         sf_name = "test.dsoa2025"
         plugins = {}
-        instruments = {"dimensions": {}, "metrics": {}, "attributes": {}, "event_timestamps": {}}
         conf = {
             "dt.token": "dt0c01.XXXXXXXXXXXXXXXXXXXXXXXX.XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
             "logs.http": f"https://{dt_url}{Logs.ENDPOINT_PATH}",
@@ -360,7 +359,6 @@ def get_config(pickle_conf: str = None) -> TestConfiguration:
             },
             "otel": {},
             "plugins": plugins,
-            "instruments": instruments,
         }
         for file_path in find_files("src/dtagent/plugins", "*-config.json"):
             plugin_conf = lowercase_keys(read_clean_json_from_file(file_path))
@@ -368,13 +366,11 @@ def get_config(pickle_conf: str = None) -> TestConfiguration:
         otel_config = lowercase_keys(read_clean_json_from_file("src/dtagent.conf/otel-config.json"))
         conf["otel"] |= otel_config.get("otel", {})
         conf["plugins"] |= otel_config.get("plugins", {})
+        metric_semantics = {}
         for file_path in find_files("src/", "instruments-def.yml"):
             instruments_data = read_clean_yml_from_file(file_path)
-            instruments["dimensions"].update(instruments_data.get("dimensions", {}))
-            instruments["metrics"].update(instruments_data.get("metrics", {}))
-            instruments["attributes"].update(instruments_data.get("attributes", {}))
-            instruments["event_timestamps"].update(instruments_data.get("event_timestamps", {}))
-        conf["instruments"] = instruments
+            metric_semantics.update(instruments_data.get("metrics", {}))
+        conf["metric_semantics"] = metric_semantics
 
     return TestConfiguration(conf)
 

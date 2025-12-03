@@ -63,7 +63,8 @@ Released on January 15, 2026
 - **Data Retention Configuration**: Added ability to configure data retention on `DTAGENT_*` objects.
 - **Simplified Configuration Format**: Simplified configuration files for SnowAgent (YAML format with lowercase keys to match Snowflake
   configuration table paths).
-- **Instruments Review**: Reviewed the necessity of `V_INSTRUMENTS` view with consideration for compile-time inclusion in Python code.
+- **Metric Semantics**: `V_INSTRUMENTS` has been refactored to separate metric semantics from attribute semantics, improving clarity
+  and performance.
 
 ### Deployment
 

@@ -44,19 +44,24 @@ class Semantics:
     def get_metric_definition(self, metric_name: str, local_metrics_def: Optional[Dict[str, Dict[str, Any]]] = None) -> str:
         """Returns set of instruments for metric of given name,
         with optional local semantic dictionary which might be provided at runtime.
+
+        Args:
+            metric_name (str): name of the metric to retrieve semantics for
+            local_metrics_def (Optional[Dict[str, Dict[str, Any]]], optional): local dictionary of metric semantics definitions.
+                Defaults to None.
+
+        Returns:
+            str: single doc line for given metric, or empty string if no semantics found
         """
         result = self._metric_semantics.get(metric_name, None)
 
-        if result is None:
+        if result is None and local_metrics_def is not None and metric_name in local_metrics_def:
             # we could use (local_metrics_def or {}) but I think this will be faster, on top of calling this only when really needed
-            if local_metrics_def is not None and metric_name in local_metrics_def:
-                result = Semantics.gen_metric_definition_line(metric_name, local_metrics_def[metric_name])
+            result = Semantics.gen_metric_definition_line(metric_name, local_metrics_def[metric_name])
 
-                self._metric_semantics[metric_name] = result  # caching results for the time being
-            else:
-                result = ""
+            self._metric_semantics[metric_name] = result  # caching results for the time being
 
-        return result
+        return result or ""
 
     @classmethod
     def gen_metric_definition_line(cls, metric_name: str, metric_details: Dict[str, str]) -> str:

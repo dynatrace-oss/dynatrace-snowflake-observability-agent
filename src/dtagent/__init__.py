@@ -106,7 +106,7 @@ class AbstractDynatraceSnowAgentConnector:
 
         if self._configuration:
             resource = _gen_resource(self._configuration)
-            self._instruments = Semantics()
+            self._semantics = Semantics()
             self._logs = self._get_logs(resource)
             self._spans = self._get_spans(resource)
             self._metrics = self._get_metrics()
@@ -125,7 +125,7 @@ class AbstractDynatraceSnowAgentConnector:
 
     def _get_metrics(self) -> Metrics:
         """Returns new Metrics instance"""
-        return Metrics(self._instruments, self._configuration)
+        return Metrics(self._semantics, self._configuration)
 
     def _get_events(self) -> GenericEvents:
         """Returns new Events instance"""

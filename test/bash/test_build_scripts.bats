@@ -255,11 +255,6 @@ setup() {
     echo "prepare_deploy_script_script: $prepare_deploy_script_script"
     [ -n "$prepare_deploy_script_script" ]
 
-    # Check that prepare_instruments_ingest.sh is present
-    prepare_instruments_ingest_script=$(unzip -l "$zip_file" | grep "prepare_instruments_ingest.sh")
-    echo "prepare_instruments_ingest_script: $prepare_instruments_ingest_script"
-    [ -n "$prepare_instruments_ingest_script" ]
-
     # Check that refactor_field_names.sh is present
     refactor_field_names_script=$(unzip -l "$zip_file" | grep "refactor_field_names.sh")
     echo "refactor_field_names_script: $refactor_field_names_script"
