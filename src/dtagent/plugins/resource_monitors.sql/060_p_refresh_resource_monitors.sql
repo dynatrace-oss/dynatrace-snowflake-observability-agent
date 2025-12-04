@@ -27,7 +27,7 @@
 -- * APP.TMP_WAREHOUSES
 --
 use role DTAGENT_ADMIN; use database DTAGENT_DB; use warehouse DTAGENT_WH;
-create transient table if not exists APP.TMP_RESOURCE_MONITORS(
+create or replace transient table APP.TMP_RESOURCE_MONITORS(
         name text,
         credit_quota text, used_credits text, remaining_credits text, level text, frequency text,
         start_time timestamp_ltz, end_time timestamp_ltz,
@@ -37,7 +37,7 @@ create transient table if not exists APP.TMP_RESOURCE_MONITORS(
     DATA_RETENTION_TIME_IN_DAYS = 0;
 grant select on table APP.TMP_RESOURCE_MONITORS to role DTAGENT_VIEWER;
 
-create transient table if not exists APP.TMP_WAREHOUSES(
+create or replace transient table APP.TMP_WAREHOUSES(
             name text, state text, type text, size text,
             min_cluster_count int, max_cluster_count int,
             started_clusters int, running int, queued int,

@@ -56,7 +56,7 @@ create or replace transient table DTAGENT_DB.APP.TMP_USERS_HELPER (
     DATA_RETENTION_TIME_IN_DAYS = 0;
 grant select on table DTAGENT_DB.APP.TMP_USERS_HELPER to role DTAGENT_VIEWER;
 
-create transient table if not exists DTAGENT_DB.STATUS.EMAIL_HASH_MAP (email text, email_hash text) DATA_RETENTION_TIME_IN_DAYS = 0;
+create or replace transient table DTAGENT_DB.STATUS.EMAIL_HASH_MAP (email text, email_hash text) DATA_RETENTION_TIME_IN_DAYS = 0;
 grant select on table DTAGENT_DB.STATUS.EMAIL_HASH_MAP to role DTAGENT_VIEWER;
 
 create or replace procedure DTAGENT_DB.APP.P_GET_USERS()
