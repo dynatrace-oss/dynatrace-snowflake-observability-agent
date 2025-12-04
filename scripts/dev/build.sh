@@ -132,7 +132,7 @@ done
 
 sqlfluff lint build/70*.sql --ignore parsing --disable-progress-bar
 if [ $? -ne 0 ]; then
-    echo "Code quality check failed for $file"
+    echo "Code quality check failed for SQL files in build/70*.sql"
     exit 1
 fi
 

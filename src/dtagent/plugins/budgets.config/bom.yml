@@ -57,12 +57,16 @@ references:
     granted to: DTAGENT_ADMIN
   - name: SNOWFLAKE.CORE.BUDGET
     type: command
+    privileges: USAGE
   - name: "$budget!GET_LINKED_RESOURCES"
     type: procedure
+    privileges: USAGE
     comment: We call this procedure on each budget defined in Snowflake
   - name: "$budget!GET_SPENDING_LIMIT"
     type: procedure
+    privileges: USAGE
     comment: We call this procedure on each budget defined in Snowflake
   - name: "$budget!GET_SPENDING_HISTORY"
     type: procedure
+    privileges: USAGE
     comment: We call this procedure on each budget defined in Snowflake

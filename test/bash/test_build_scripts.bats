@@ -125,12 +125,17 @@ setup() {
             references_count=$(yq '.references | length' build/bom.yml)
             [ "$references_count" -gt 0 ]
 
-            # Validate schema if jsonschema is available
             # Validate schema if check-jsonschema is available
-            if command -v check-jsonschema &> /dev/null && [ -f "test/config-default.schema.json" ]; then
-                run check-jsonschema --schemafile test/config-default.schema.json build/config-default.yml
+            if command -v check-jsonschema &> /dev/null && [ -f "test/bom.schema.json" ]; then
+                run check-jsonschema --schemafile test/bom.schema.json build/bom.yml
                 [ "$status" -eq 0 ]
             fi
+        fi
+
+        # Validate schema if check-jsonschema is available
+        if command -v check-jsonschema &> /dev/null && [ -f "test/config-default.schema.json" ]; then
+            run check-jsonschema --schemafile test/config-default.schema.json build/config-default.yml
+            [ "$status" -eq 0 ]
         fi
 
         # Check for CSV files

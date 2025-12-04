@@ -20,7 +20,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install flake8 black sqlfluff yamllint pylint
+          pip install flake8 black sqlfluff yamllint pylint check-jsonschema
           npm install -g markdownlint-cli
 
       - name: Lint Python
@@ -42,6 +42,9 @@ jobs:
 
       - name: Lint Markdown
         run: markdownlint '**/*.md' || exit 1
+
+      - name: Lint BOM files
+        run: find src -name "bom.yml" -exec check-jsonschema --schemafile test/src-bom.schema.json {} \;
 
   test-documentation:
     runs-on: ubuntu-latest
