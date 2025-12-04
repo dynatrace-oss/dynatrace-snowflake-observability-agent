@@ -10,6 +10,8 @@ Released on January 15, 2026
 
 - **Optional DTAGENT_ADMIN Role**: Re-architected SnowAgent to make the use of `DTAGENT_ADMIN` role optional, enabling deployment with
   reduced privileges. Deployment vs. upgrade now has separate permission requirements with owner-admin-viewer role separation.
+- **Multi-configuration deployment**: Multi-configuration deployment is no longer supported. Each DSOA instance must be deployed
+  separately with its own configuration.
 
 ### New in 0.9.3
 

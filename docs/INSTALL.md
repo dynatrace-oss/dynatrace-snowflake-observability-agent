@@ -22,6 +22,7 @@ You will need the following command-line tools:
 - **bash**: The deployment scripts are written in bash.
 - **Snowflake CLI**: For connecting to and deploying objects in Snowflake.
 - **jq**: For processing JSON files.
+- **yq**: For processing YAML files.
 - **gawk**: For text processing.
 
 You can run the included `./setup.sh` script, which will attempt to install these dependencies for you.
@@ -55,13 +56,13 @@ brew install snowflake-cli
 On **Ubuntu/Debian**:
 
 ```bash
-sudo apt install jq gawk
+sudo apt install jq yq gawk
 ```
 
 On **macOS** (with Homebrew):
 
 ```bash
-brew install jq gawk
+brew install jq yq gawk
 ```
 
 ## Deploying Dynatrace Snowflake Observability Agent
@@ -112,18 +113,18 @@ If you do not set the `DTAGENT_TOKEN` environment variable, or if it does not co
 
 - The Dynatrace Snowflake Observability Agent deployment process **WILL NOT** send self-monitoring BizEvents to your Dynatrace tenant to
   mark the start and finish of the deployment process.
-- The deployment process _will not be able_ to set `DTAGENT_API_KEY` when deploying the complete configuration (`./deploy.sh $config_name`)
+- The deployment process _is not be able_ to set `DTAGENT_API_KEY` when deploying the complete configuration (`./deploy.sh $config_name`)
   or when updating just the API key (`./deploy.sh $config_name apikey`). In these cases, **YOU WILL** be prompted to provide the correct
   `DTAGENT_TOKEN` value during deployment.
 - The deployment process _will not be able_ to send BizEvents to your Dynatrace tenant to mark the start and finish of the deployment
   process.
 
 No additional objects need to be provided for the deployment process on the Snowflake side. Dynatrace Snowflake Observability Agent will
-build a database to store his information - `DTAGENT_DB` by default or `DTAGENT_{TAG}_DB` if tag is provided (see
+build a database to store his information - `DTAGENT_DB` by default or `DTAGENT_{$core.tag}_DB` if tag is provided (see
 [Multitenancy](#multitenancy)).
 
 The complete log of deployment and the script executed during deployment is available as
-`.logs/dtagent-deploy-$config_name-$current_date.log`.
+`.logs/dsoa-deploy-$config_name-$current_date.log`.
 
 > **Troubleshooting:** If tasks are running in Snowflake but no data appears in Dynatrace, please refer to
 > [Troubleshooting: No Data in Dynatrace](docs/debug/no-data-in-dt/readme.md) for a comprehensive debugging guide.
@@ -138,10 +139,10 @@ a profile configuration file for each Snowflake-Dynatrace pair.
 ### Creating profile configuration file for Snowflake-Dynatrace connection
 
 You must create the deployment configuration file in the `conf/` directory. The file must follow `config-$config_name.yml` naming
-convention and the content as presented in the `conf/config-template.yml` template. Make sure the `CORE` entries; you can skip the rest.
+convention and the content as presented in the `conf/config-template.yml` template. Make sure the `core` entries; you can skip the rest.
 Optionally you can adjust plugin configurations.
 
-One of the configuration options for each Dynatrace Snowflake Observability Agent plugin is the `SCHEDULE`, which determines when the
+One of the configuration options for each Dynatrace Snowflake Observability Agent plugin is the `schedule`, which determines when the
 Snowflake task responsible for executing this plugin should start. By default, the majority of tasks are scheduled to execute on the hour or
 half hour to increase warehouse utilization and reduce costs. Dynatrace Snowflake Observability Agent allows you to configure the schedule
 for each plugin separately using one of three formats:
@@ -153,71 +154,23 @@ for each plugin separately using one of three formats:
 > **NOTE:** Due to Snowflake limitations, using task graph definition (`AFTER`) requires all tasks in one graph to be owned by the same
 > role.
 
-#### Multi-configuration deployment
-
-The configuration file is a JSON array containing multiple configuration definitions — one for each environment. This enables you to deploy
-to several environments, potentially with similar settings, in a single operation.
-
-**HINT:** When specifying multiple configurations, the first configuration in the array serves as the base. All subsequent configurations
-inherit settings from the first, so you only need to specify the differences for each additional environment. This helps reduce duplication
-of common configuration values.
-
-```jsonc
-[
-  {
-    "CORE": {
-      "DEPLOYMENT_ENVIRONMENT": "ENV1",
-      /// ...
-    },
-    "OTEL": {
-      /// ...
-    },
-    "PLUGINS": {
-      /// ...
-    },
-  },
-  {
-    "CORE": {
-      "DEPLOYMENT_ENVIRONMENT": "ENV2",
-    },
-  },
-]
-```
-
 #### Multitenancy
 
 If you want to deliver telemetry from one Snowflake account to multiple Dynatrace tenants, or require different configurations and schedules
 for some plugins, you can achieve this by creating configuration with multiple deployment environment (Dynatrace Snowflake Observability
-Agent instances) definitions. Specify a different `CORE.DEPLOYMENT_ENVIRONMENT` parameter for each instance. We **strongly** recommend also
-defining a unique `CORE.TAG` for each additional Dynatrace Snowflake Observability Agent instance running on the same Snowflake account.
+Agent instances) definitions. Specify a different `core.deployment_environment` parameter for each instance. We **strongly** recommend also
+defining a unique `core.tag` for each additional Dynatrace Snowflake Observability Agent instance running on the same Snowflake account.
 
 Example:
 
-```jsonc
-[
-  {
-    //...
-    "CORE": {
-      //...
-      "DEPLOYMENT_ENVIRONMENT": "TEST-MT001",
-      //...
-      "TAG": "MT001",
-    },
-    //...
-  },
-]
+```yaml
+- core:
+  deployment_environment: test-mt001
+  tag: mt001
 ```
 
 You can specify the configuration for each instance in a separate configuration file or use the multi-configuration deployment described
 above.
-
-#### IMPORTANT
-
-- Running `./deploy.sh $config_name` expects a `conf/config-$config_name.yml` file with at least one configuration defined.
-- If you have multiple `CORE.DEPLOYMENT_ENVIRONMENT` values specified in a single configuration file, you will need a
-  [matching `snow connection` profile for each one](#setting-up-connection-to-snowflake).
-- If you plan to deploy configurations that send telemetry to different Dynatrace tenants, **DO NOT** define the `DTAGENT_TOKEN` environment
-  variable in advance; you will be prompted to provide it separately for each configuration as needed.
 
 ### Setting up connection to Snowflake
 
@@ -229,7 +182,7 @@ To deploy Dynatrace Snowflake Observability Agent properly, the specified user m
 Snowflake account.
 
 **HINT:** Running `./setup.sh $config_name` or `./deploy.sh $config_name` will prompt you to create Snowflake connection profiles named
-`snow_agent_$ENV`, where `ENV` matches each `CORE.DEPLOYMENT_ENVIRONMENT` in your configuration. If these profiles do not exist, you will be
+`snow_agent_$ENV`, where `ENV` matches each `core.deployment_environment` in your configuration. If these profiles do not exist, you will be
 prompted to create them.
 
 **WARNING:** If you wish to use a different connection name or pattern, you must modify the `./deploy.sh` script and update the

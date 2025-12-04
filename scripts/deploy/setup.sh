@@ -31,7 +31,7 @@ CWD=$(dirname "$0")
 echo "Checking for missing tools"
 
 TO_INSTALL=""
-for cmd in "jq"; do
+for cmd in "jq" "yq"; do
     if ! command -v "$cmd" &>/dev/null; then
         echo "$cmd is missing"
         TO_INSTALL="$cmd $TO_INSTALL"

@@ -98,7 +98,7 @@ CONNECTION_ENV="${DEPLOYMENT_ENV,,}" # convert to lower case
 NOW_TS=$(date '+%Y%m%d-%H%M%S')
 
 if [ "$PARAM" == "manual" ]; then
-    INSTALL_SCRIPT_SQL="DSOA-deploy-script-${DEPLOYMENT_ENV}-${NOW_TS}.sql"
+    INSTALL_SCRIPT_SQL="dsoa-deploy-script-${DEPLOYMENT_ENV}-${NOW_TS}.sql"
 else
     INSTALL_SCRIPT_SQL=$(mktemp -p build)
     # clean up this way, because rm did not always work
@@ -118,7 +118,7 @@ if [ -s "$INSTALL_SCRIPT_SQL" ] && [ "$PARAM" != "manual" ]; then
         SNOWFLAKE_ACCOUNT_NAME="$($CWD/get_config_key.sh core.snowflake_account_name)"
     fi
 
-    INSTALL_SCRIPT_LOG="DSOA-deploy-$DEPLOYMENT_ENV-${NOW_TS}.log"
+    INSTALL_SCRIPT_LOG="dsoa-deploy-$DEPLOYMENT_ENV-${NOW_TS}.log"
     #%DEV:
     mkdir .logs 2>&1
     INSTALL_SCRIPT_LOG=".logs/$INSTALL_SCRIPT_LOG"
