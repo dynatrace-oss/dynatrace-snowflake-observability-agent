@@ -121,4 +121,19 @@ find src -type f \( -name "*.sql" ! -name "*.off.sql" \) | while IFS= read -r sq
     gawk 'match($0, /[#]{2}INSERT (.+)/, a) {system("cat src/"a[1]); next } 1' $sql_file >$dest_file
 done
 
+for file in build/*.py; do
+    echo "Validating $file"
+    pylint "$file" --disable=$SRC_IGNORED_CASES --output-format=parseable
+    if [ $? -ne 0 ]; then
+        echo "Code quality check failed for $file"
+        exit 1
+    fi
+done
+
+sqlfluff lint build/70*.sql --ignore parsing --disable-progress-bar
+if [ $? -ne 0 ]; then
+    echo "Code quality check failed for $file"
+    exit 1
+fi
+
 echo "Building Dynatrace Snowflake Observability Agent done"
