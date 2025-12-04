@@ -1,5 +1,5 @@
 #!/usr/bin/env bats
-
+# TODO double check this test
 setup() {
     cd "$BATS_TEST_DIRNAME/../.."
     # Set BUILD_CONFIG_FILE to avoid issues when sourcing

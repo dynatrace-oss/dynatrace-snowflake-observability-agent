@@ -23,9 +23,9 @@
 #
 #
 # Refactors config files to 3 levels of nesting (path, value, type) and redirects it to build/.
-# Excludes keys starting with _ prefix. 
+# Excludes keys starting with _ prefix.
 # Args: path(s) to config files, specified when running `deploy.sh`
-
+#FIXME review for YAML parsing
 
 # Returns dictionary based on the JSON content of given file - or an empty dictionary
 # Args:
@@ -43,7 +43,7 @@ get_config() {
   fi
 }
 
-# Converts configuration in a form of a dictionary, just like in config/config-template.json
+# Converts configuration in a form of a dictionary, just like in config/config-template.yaml
 #     In order to properly load the data into table with 3 columns (path, value, type) we need to flatten the json to one level of nesting.
 #     This will allow for inputting json key as context, nested json key as key and nested json value as value into CONFIG.CONFIGURATIONS.
 #     To get the desired values of keys from the structure of the config json, we need to combine some of the keys into one.
@@ -57,12 +57,12 @@ prepare_config_for_ingest() {
   echo "$config_data" | jq -r '
     def flatten:
       . as $in
-      | (paths(scalars|true) as $p 
+      | (paths(scalars|true) as $p
       | {"PATH": ($p | map(tostring | ascii_downcase) | join(".")), "TYPE": (getpath($p) | type), "VALUE": getpath($p)}) as $out
       | $out;
     def flatten_arrays:
       . as $in
-      | (paths(arrays) as $p 
+      | (paths(arrays) as $p
       | {"PATH": ($p | map(tostring | ascii_downcase) | join(".")), "TYPE": "list", "VALUE": getpath($p)}) as $out
       | $out;
     [flatten, flatten_arrays]
@@ -82,10 +82,10 @@ merge_json() {
     merged=$(jq -s '.[0] + .[1]' <(echo "$merged") <(echo "$flattened"))
   done
   echo "$merged" |\
-   jq -r 'group_by(.PATH) 
-        | map(last) 
-        | map(select(.PATH | test("\\.[0-9]+$") | not)) 
-        | map(select(.PATH | test("^_") | not)) 
+   jq -r 'group_by(.PATH)
+        | map(last)
+        | map(select(.PATH | test("\\.[0-9]+$") | not))
+        | map(select(.PATH | test("^_") | not))
         | sort_by(.PATH)' | jq '
   def update_type:
     if .TYPE == "number" then .TYPE = "int"

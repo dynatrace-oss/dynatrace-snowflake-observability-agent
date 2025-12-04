@@ -41,7 +41,7 @@ from test import TestConfiguration
 from test._mocks.telemetry import MockTelemetryClient
 from build.utils import find_files, get_metric_semantics
 
-TEST_CONFIG_FILE_NAME = "./test/conf/config-download.json"
+TEST_CONFIG_FILE_NAME = "./test/conf/config-download.yaml"
 
 
 def _pickle_all(session: snowpark.Session, pickles: dict, force: bool = False):
@@ -362,10 +362,10 @@ def get_config(pickle_conf: str = None) -> TestConfiguration:
             "otel": {},
             "plugins": plugins,
         }
-        for file_path in find_files("src/dtagent/plugins", "*-config.json"):
+        for file_path in find_files("src/dtagent/plugins", "*-config.yaml"):
             plugin_conf = lowercase_keys(read_clean_json_from_file(file_path))
             plugins.update(plugin_conf.get("plugins", {}))
-        otel_config = lowercase_keys(read_clean_json_from_file("src/dtagent.conf/otel-config.json"))
+        otel_config = lowercase_keys(read_clean_json_from_file("src/dtagent.conf/otel-config.yaml"))
         conf["otel"] |= otel_config.get("otel", {})
         conf["plugins"] |= otel_config.get("plugins", {})
         conf["metric_semantics"] = get_metric_semantics()

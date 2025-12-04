@@ -88,21 +88,23 @@ fi
 PLUGINS_CONFIG_FILES=()
 while IFS= read -r -d '' file; do
     PLUGINS_CONFIG_FILES+=("$file")
-done < <(find ./src -type f -name "*-config.json" -print0)
-CONFIG_TEMPLATE_FILE="conf/config-template.json"
-CONFIG_TEMPLATE="$(jq '.[]' $CONFIG_TEMPLATE_FILE)"
+done < <(find ./src -type f -name "*-config.yaml" -print0)
+CONFIG_TEMPLATE_FILE="conf/config-template.yaml"
+CONFIG_TEMPLATE="$(jq '.[]' $CONFIG_TEMPLATE_FILE)" #FIXME: this assumes that yq is aliased to jq
 
+#FIXME: this assumes that yq is aliased to jq
 merged_sections=$(jq -s '
     reduce .[] as $item ({};
-        .PLUGINS += $item.PLUGINS // {} |
-        .OTEL += $item.OTEL // {}
+        .plugins += $item.plugins // {} |
+        .otel += $item.otel // {}
     )' "${PLUGINS_CONFIG_FILES[@]}")
 
 # Combine the merged sections with the rest of the template
+#FIXME: this assumes that yq is aliased to jq
 jq --argjson sections "$merged_sections" '
-    .PLUGINS = (.PLUGINS + $sections.PLUGINS) |
-    .OTEL = (.OTEL + $sections.OTEL)
-' <<<"$CONFIG_TEMPLATE" >./build/config-default.json
+    .plugins = (.plugins + $sections.plugins) |
+    .otel = (.otel + $sections.otel)
+' <<<"$CONFIG_TEMPLATE" >./build/config-default.yaml
 
 # Building SQL files in build
 find src -type f \( -name "*.sql" ! -name "*.off.sql" \) | while IFS= read -r sql_file; do

@@ -44,8 +44,8 @@ SNOWFLAKE_HOST_NAME=
 ### Configuring Dynatrace connection
 
 Dynatrace Snowflake Observability Agent exports data to configured Dynatrace tenants. In this part, we configure the connection to Dynatrace
-based on a combination of configuration files and environment variables. We create a new file following the config-$environment.json naming
-convention, with content as presented in the conf/config-template.json template. We also need to set environment variables to specify the
+based on a combination of configuration files and environment variables. We create a new file following the `config-$environment.yaml` naming
+convention, with content as presented in the conf/config-template.yaml template. We also need to set environment variables to specify the
 connection to the Dynatrace tenant. The following variables need to be set:
 
 ```bash

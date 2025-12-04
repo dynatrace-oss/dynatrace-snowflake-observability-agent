@@ -15,7 +15,7 @@ log.*
 build/*
 package/*
 .logs/*
-instruments-def.json
+instruments-def.*
 metrics/*
 *.zip
 !config-basic.json

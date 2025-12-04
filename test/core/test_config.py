@@ -33,7 +33,7 @@ class TestConfig:
     def test_config_load(self):
         from build import prepare_config
 
-        d_config = prepare_config._get_config("./conf/config-template.json")
+        d_config = prepare_config._get_config("./conf/config-template.yaml")
 
         assert d_config is not None, "Could not load config"
         assert "CORE" in d_config, "There is no CORE key defined"
@@ -45,7 +45,7 @@ class TestConfig:
 
         from build import prepare_config
 
-        d_config = prepare_config._get_config("./test/conf/config-default.json")
+        d_config = prepare_config._get_config("./test/conf/config-default.yaml")
         assert d_config is not None, "Could not load config"
 
         l_config = prepare_config._prepare_config_for_ingest(d_config)
@@ -75,7 +75,7 @@ class TestConfig:
 
         if os.path.isfile(custom_config_file):
 
-            l_config = prepare_config._merge_json_files("./conf/config-template.json", custom_config_file)
+            l_config = prepare_config._merge_json_files("./conf/config-template.yaml", custom_config_file)
 
             assert len(l_config) > 0, "We were expecting some data here"
 
@@ -121,7 +121,7 @@ class TestConfig:
         for directory in glob.glob("src/dtagent/plugins/*.config"):
             if any(os.scandir(directory)):  # exclude empty dirs
                 plugin = os.path.basename(directory).split(".")[0]
-                full_path = f"{directory}/{plugin}-config.json"
+                full_path = f"{directory}/{plugin}-config.yaml"
 
                 assert os.path.isfile(full_path), f"Configuration file {full_path} is missing"
 
