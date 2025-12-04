@@ -88,8 +88,6 @@ Released on January 15, 2026
 
 - **Bill of Materials**: BOM files are now included as part of the documentation with structured tables.
 - **Semantic Dictionary Process**: Established process for sharing SnowAgent semantics into the semantic dictionary repository.
-- **Git Flow Documentation**: Updated developer documentation to reflect the change from git-flow to main branch workflow, including
-  guidance on feature branches, release branches, and tags.
 
 ### Testing
 
