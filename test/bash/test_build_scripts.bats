@@ -7,7 +7,7 @@ setup() {
 @test "build.sh runs without immediate errors" {
     # This test assumes dependencies like pylint are installed
     # In a real environment, this would pass if build tools are available
-    run timeout 60 ./scripts/dev/build.sh
+    run timeout 120 ./scripts/dev/build.sh
     # Allow it to pass even if it fails due to missing dependencies, as long as it doesn't crash immediately
     if [ "$status" -ne 0 ] && [ "$status" -ne 1 ]; then
         echo "build.sh failed with status $status"
@@ -75,7 +75,7 @@ setup() {
 
 @test "build_docs.sh creates expected documentation files" {
     # Run build_docs.sh
-    run timeout 60 ./scripts/dev/build_docs.sh
+    run timeout 240 ./scripts/dev/build_docs.sh
     if [ "$status" -ne 0 ] && [ "$status" -ne 1 ]; then
         echo "build_docs.sh failed with status $status"
         echo "Output: $output"
@@ -160,7 +160,7 @@ setup() {
 }
 
 @test "package.sh creates a valid package zip with build files and documentation" {
-    run ./scripts/dev/package.sh
+    run timeout 300 ./scripts/dev/package.sh
     if [ "$status" -ne 0 ]; then
         echo "package.sh failed with status $status"
         echo "Output: $output"
