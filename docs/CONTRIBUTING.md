@@ -101,7 +101,7 @@ The core of Dynatrace Snowflake Observability Agent code is located in the follo
 ### Internal telemetry API code
 
 The telemetry API Python code is located in the **`src/dtagent/otel`** package, with default configuration is in
-`src/dtagent.conf/otel-config.yaml`.
+`src/dtagent.conf/otel-config.yml`.
 
 ### Plugin code
 
@@ -152,7 +152,7 @@ The build process for the Dynatrace Snowflake Observability Agent package involv
    resulting in a single file for each (`_dtagent.py` and `_send_telemetry.py`). The `##INSERT` directive is used to control the order in
    which source Python files are assembled into the main one. **NOTE**: When Snowflake reports issues in those stored procedures, the lines
    in the Python code will correspond to the lines in these two files.
-2. **Building and embedding**: The `build.sh` script creates a single default configuration file (`build/config-default.yaml`).
+2. **Building and embedding**: The `build.sh` script creates a single default configuration file (`build/config-default.yml`).
    It also copies over all SQL files from all `*.sql` folders. During the build
    process, the compiled Python files are embedded into the templates for the `APP.DTAGENT(sources array)` and
    `APP.SEND_TELEMETRY(sources variant, params object)` procedures respectively. The corresponding SQL files reference precompiled Python
@@ -246,7 +246,7 @@ After successfully compiling and building the Dynatrace Snowflake Observability 
 
 ## Updating documentation
 
-If you have made any changes to the documentation files (`info.md`), configuration files (`*.conf/*-config.yaml`), semantic dictionary files
+If you have made any changes to the documentation files (`info.md`), configuration files (`*.conf/*-config.yml`), semantic dictionary files
 (`*.conf/instruments-def.yml`), added a new plugin, or simply want to refresh the documentation, you need to run:
 
 ```bash
@@ -366,7 +366,7 @@ New plugins should have their corresponding tests created. In case of new plugin
 
 To run tests in live mode (version 2), you need to:
 
-1. **Create a test deployment** with configuration in `conf/config-test.yaml` that looks like:
+1. **Create a test deployment** with configuration in `conf/config-test.yml` that looks like:
 
    ```yaml
    core:
@@ -385,7 +385,7 @@ To run tests in live mode (version 2), you need to:
 
 2. **Create `test/credentials.json`** from the `test/credentials.jsonc` template to reference that deployment.
 
-3. **Generate `test/conf/config-download.yaml`** by running:
+3. **Generate `test/conf/config-download.yml`** by running:
 
    ```bash
    PYTHONPATH="./src" pytest -s -v "test/core/test_config.py::TestConfig::test_init" --pickle_conf y
@@ -393,8 +393,8 @@ To run tests in live mode (version 2), you need to:
 
 ### Running Tests in Local Mode
 
-For tests in version (1) (local mode with mocked APIs), `test/conf/config-download.yaml` should NOT be present. It is a good practice to
-temporarily disable these files by prefixing them with an underscore (e.g., `_config-download.yaml` and `_credentials.json`). The gitignore
+For tests in version (1) (local mode with mocked APIs), `test/conf/config-download.yml` should NOT be present. It is a good practice to
+temporarily disable these files by prefixing them with an underscore (e.g., `_config-download.yml` and `_credentials.json`). The gitignore
 ensures that files prefixed with underscore are not tracked.
 
 ### Running Individual Plugin Tests

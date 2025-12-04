@@ -29,7 +29,7 @@
 #
 # Args:
 # * INSTALL_SCRIPT_SQL [REQUIRED] - path to the file where installation script must be written to
-# * ENV                [REQUIRED] - needs to be a environment identifier so that there is a config-$ENV.yaml file in the same folder as this script
+# * ENV                [REQUIRED] - needs to be a environment identifier so that there is a config-$ENV.yml file in the same folder as this script
 # * PARAM              [OPTIONAL] - can be either
 #                       = config         - which will update Dynatrace Snowflake Observability Agent configuration
 #                       = apikey         - which will install new Dynatrace Token for Dynatrace Snowflake Observability Agent

@@ -43,7 +43,7 @@ get_config() {
   fi
 }
 
-# Converts configuration in a form of a dictionary, just like in config/config-template.yaml
+# Converts configuration in a form of a dictionary, just like in config/config-template.yml
 #     In order to properly load the data into table with 3 columns (path, value, type) we need to flatten the json to one level of nesting.
 #     This will allow for inputting json key as context, nested json key as key and nested json value as value into CONFIG.CONFIGURATIONS.
 #     To get the desired values of keys from the structure of the config json, we need to combine some of the keys into one.

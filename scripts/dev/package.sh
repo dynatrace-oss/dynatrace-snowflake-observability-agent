@@ -55,10 +55,10 @@ rm -Rf package/*
 # copying Dynatrace Snowflake Observability Agent compiled code
 mkdir -v -p package/build
 cp -v build/*.sql package/build/
-cp -v build/config-default.yaml package/build/
+cp -v build/config-default.yml package/build/
 
 mkdir -v package/conf
-cp -v conf/config-template.yaml package/conf/
+cp -v conf/config-template.yml package/conf/
 
 cp -v scripts/deploy/*.sh package/
 cp -v src/assets/fields-refactoring.csv src/assets/dsoa-fields-refactoring.csv package/

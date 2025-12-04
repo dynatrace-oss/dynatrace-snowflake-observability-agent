@@ -88,8 +88,8 @@ fi
 PLUGINS_CONFIG_FILES=()
 while IFS= read -r -d '' file; do
     PLUGINS_CONFIG_FILES+=("$file")
-done < <(find ./src -type f -name "*-config.yaml" -print0)
-CONFIG_TEMPLATE_FILE="conf/config-template.yaml"
+done < <(find ./src -type f -name "*-config.yml" -print0)
+CONFIG_TEMPLATE_FILE="conf/config-template.yml"
 CONFIG_TEMPLATE="$(jq '.[]' $CONFIG_TEMPLATE_FILE)" #FIXME: this assumes that yq is aliased to jq
 
 #FIXME: this assumes that yq is aliased to jq
@@ -104,7 +104,7 @@ merged_sections=$(jq -s '
 jq --argjson sections "$merged_sections" '
     .plugins = (.plugins + $sections.plugins) |
     .otel = (.otel + $sections.otel)
-' <<<"$CONFIG_TEMPLATE" >./build/config-default.yaml
+' <<<"$CONFIG_TEMPLATE" >./build/config-default.yml
 
 # Building SQL files in build
 find src -type f \( -name "*.sql" ! -name "*.off.sql" \) | while IFS= read -r sql_file; do

@@ -15,7 +15,7 @@ CWD=$(dirname "$0")
 # Compute output file (assuming single object; for arrays, this handles the first)
 BASE_NAME=$(basename "$JSON_FILE" .json)
 DIR=$(dirname "$JSON_FILE")
-OUTPUT_FILE="$DIR/$BASE_NAME.yaml"
+OUTPUT_FILE="$DIR/$BASE_NAME.yml"
 
 # Do the git mv trick
 mv "$OUTPUT_FILE" "${OUTPUT_FILE}.bak"

@@ -39,7 +39,7 @@ from dtagent.config import Configuration
 read_secret(
     secret_name="dtagent_token",
     from_field="_DTAGENT_API_KEY",
-    from_file="conf/config-test.yaml",
+    from_file="conf/config-test.yml",
     env_name="DTAGENT_TOKEN",
 )
 

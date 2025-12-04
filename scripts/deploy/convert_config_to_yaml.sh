@@ -47,13 +47,13 @@ if [ "$IS_ARRAY" = "true" ]; then
     LENGTH=$(jq '. | length' "$JSON_FILE")
     for i in $(seq 0 $((LENGTH-1))); do
         if [ $i -eq 0 ]; then
-            OUTPUT_FILE="$DIR/$BASE_NAME.yaml"
+            OUTPUT_FILE="$DIR/$BASE_NAME.yml"
         else
-            OUTPUT_FILE="$DIR/${BASE_NAME}_$i.yaml"
+            OUTPUT_FILE="$DIR/${BASE_NAME}_$i.yml"
         fi
         jq ".[$i] | walk(if type == \"object\" then with_entries(.key |= ascii_downcase) else . end)" "$JSON_FILE" | yq -P > "$OUTPUT_FILE"
     done
 else
-    OUTPUT_FILE="$DIR/$BASE_NAME.yaml"
+    OUTPUT_FILE="$DIR/$BASE_NAME.yml"
     jq 'walk(if type == "object" then with_entries(.key |= ascii_downcase) else . end)' "$JSON_FILE" | yq -P > "$OUTPUT_FILE"
 fi

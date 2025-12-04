@@ -137,8 +137,8 @@ a profile configuration file for each Snowflake-Dynatrace pair.
 
 ### Creating profile configuration file for Snowflake-Dynatrace connection
 
-You must create the deployment configuration file in the `conf/` directory. The file must follow `config-$config_name.yaml` naming
-convention and the content as presented in the `conf/config-template.yaml` template. Make sure the `CORE` entries; you can skip the rest.
+You must create the deployment configuration file in the `conf/` directory. The file must follow `config-$config_name.yml` naming
+convention and the content as presented in the `conf/config-template.yml` template. Make sure the `CORE` entries; you can skip the rest.
 Optionally you can adjust plugin configurations.
 
 One of the configuration options for each Dynatrace Snowflake Observability Agent plugin is the `SCHEDULE`, which determines when the
@@ -213,7 +213,7 @@ above.
 
 #### IMPORTANT
 
-- Running `./deploy.sh $config_name` expects a `conf/config-$config_name.yaml` file with at least one configuration defined.
+- Running `./deploy.sh $config_name` expects a `conf/config-$config_name.yml` file with at least one configuration defined.
 - If you have multiple `CORE.DEPLOYMENT_ENVIRONMENT` values specified in a single configuration file, you will need a
   [matching `snow connection` profile for each one](#setting-up-connection-to-snowflake).
 - If you plan to deploy configurations that send telemetry to different Dynatrace tenants, **DO NOT** define the `DTAGENT_TOKEN` environment

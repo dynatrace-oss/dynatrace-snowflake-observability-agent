@@ -31,7 +31,7 @@
 #%:DEV
 #
 # Args:
-# * ENV      [REQUIRED] - needs to be a environment identifier so that there is a config-$ENV.yaml file in the same folder as this script
+# * ENV      [REQUIRED] - needs to be a environment identifier so that there is a config-$ENV.yml file in the same folder as this script
 # * PARAM1   [OPTIONAL] - can be either
 #              = config         - which will update Dynatrace Snowflake Observability Agent configuration
 #              = apikey         - which will install new Dynatrace Token for Dynatrace Snowflake Observability Agent
@@ -42,7 +42,7 @@
 # * PARAM2   [OPTIONAL] - if set to
 #              = no_dep         - the deploy procedure will omit the step of sending script to snowflake
 #              = service_user   - the deploy will use jenkins service user data from environment variables
-#              = *              - the deploy will be executed using data from "conf/config-$1.yaml"
+#              = *              - the deploy will be executed using data from "conf/config-$1.yml"
 # * PARAM3   [OPTIONAL] - if set to
 #              = skip_confirm   - will not wait for confirmation before deploying to Snowflake
 #%:DEV
@@ -72,11 +72,11 @@ if [ "$3" == 'service_user' ] && [ -z "$DTAGENT_TOKEN" ]; then
 fi
 #%:DEV
 
-DEFAULT_CONFIG_FILE="build/config-default.yaml"
-CONFIG_FILE="conf/config-$ENV.yaml"
+DEFAULT_CONFIG_FILE="build/config-default.yml"
+CONFIG_FILE="conf/config-$ENV.yml"
 
 if [ ! -f "$CONFIG_FILE" ]; then
-    echo "There is no configuration file [conf/config-$ENV.yaml]"
+    echo "There is no configuration file [conf/config-$ENV.yml]"
     #%DEV:
     # we could just exit if config file doesn't exist and we either do not want to deploy at all or want to deploy through jenkins
     if [ "$3" != 'no_dep' ] && [ "$3" != 'service_user' ]; then
@@ -92,7 +92,7 @@ export BUILD_CONFIG_FILE="build/config.json"
 BASE_CONF=""
 DEPLOYMENT_ID=""
 ITER_NR=1
-jq -c '.[]' conf/config-$ENV.yaml | while read CURRENT_CONFIG; do
+jq -c '.[]' conf/config-$ENV.yml | while read CURRENT_CONFIG; do
     # looping through all the configurations in the config file
     # this is necessary because we need to be able to deploy multiple configurations at once
 

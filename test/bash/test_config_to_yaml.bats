@@ -23,7 +23,7 @@ teardown() {
         echo "Output: $output"
     fi
     [ "$status" -eq 0 ]
-    [ -f "$TEST_DIR/test_object.yaml" ]
+    [ -f "$TEST_DIR/test_object.yml" ]
     [ ! -f "$TEST_DIR/test_object.json" ]
 
     run git status --porcelain

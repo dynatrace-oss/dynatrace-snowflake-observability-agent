@@ -19,21 +19,21 @@ setup() {
     [ -f "build/_dtagent.py" ]
     [ -f "build/_send_telemetry.py" ]
     [ -f "build/_version.py" ]
-    [ -f "build/config-default.yaml" ]
+    [ -f "build/config-default.yml" ]
 
-    # Check that config-default.yaml is valid JSON and matches schema
-    if command -v jq &> /dev/null && [ -f "build/config-default.yaml" ]; then
+    # Check that config-default.yml is valid JSON and matches schema
+    if command -v jq &> /dev/null && [ -f "build/config-default.yml" ]; then
         # Check that it's valid JSON
-        run jq empty build/config-default.yaml
+        run jq empty build/config-default.yml
         [ "$status" -eq 0 ]
 
         # Check that it has the required top-level keys
-        run jq -e '.core and .otel and .plugins' build/config-default.yaml
+        run jq -e '.core and .otel and .plugins' build/config-default.yml
         [ "$status" -eq 0 ]
 
         # Validate schema if jsonschema is available
         if command -v jsonschema &> /dev/null && [ -f "test/config-default.schema.json" ]; then
-            run jsonschema -i build/config-default.yaml test/config-default.schema.json
+            run jsonschema -i build/config-default.yml test/config-default.schema.json
             [ "$status" -eq 0 ]
         fi
     fi
@@ -180,8 +180,8 @@ setup() {
     echo "build_dir: $build_dir"
     [ -n "$build_dir" ]
 
-    # Check that config-default.yaml is in build/
-    config_file=$(unzip -l "$zip_file" | grep "build/config-default.yaml")
+    # Check that config-default.yml is in build/
+    config_file=$(unzip -l "$zip_file" | grep "build/config-default.yml")
     echo "config_file: $config_file"
     [ -n "$config_file" ]
 
@@ -190,8 +190,8 @@ setup() {
     echo "conf_dir: $conf_dir"
     [ -n "$conf_dir" ]
 
-    # Check that config-template.yaml is in conf/
-    config_template_file=$(unzip -l "$zip_file" | grep "conf/config-template.yaml")
+    # Check that config-template.yml is in conf/
+    config_template_file=$(unzip -l "$zip_file" | grep "conf/config-template.yml")
     echo "config_template_file: $config_template_file"
     [ -n "$config_template_file" ]
 

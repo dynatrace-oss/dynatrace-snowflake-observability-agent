@@ -21,7 +21,7 @@ Before starting this troubleshooting guide, ensure you have:
 
 - Access to both Snowflake and Dynatrace environments
 - `DTAGENT_VIEWER` role permissions in Snowflake
-- Access to the agent's configuration file (`conf/config-$env.yaml`)
+- Access to the agent's configuration file (`conf/config-$env.yml`)
 - The deployment scripts (`deploy.sh`)
 
 ## Common Symptoms
@@ -106,7 +106,7 @@ Dynatrace Snowflake Observability Agent sets up network allowlists at the **stor
 
 Incorrect URL configuration is a frequent cause of connection failures. The agent requires the correct Dynatrace tenant address format.
 
-**Check your configuration file** (`conf/config-$env.yaml`):
+**Check your configuration file** (`conf/config-$env.yml`):
 
 ```json
 {

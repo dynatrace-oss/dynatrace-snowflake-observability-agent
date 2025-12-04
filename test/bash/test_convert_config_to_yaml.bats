@@ -13,8 +13,8 @@ teardown() {
 @test "convert object JSON to YAML" {
     run scripts/deploy/convert_config_to_yaml.sh "$TEST_DIR/test_object.json"
     [ "$status" -eq 0 ]
-    [ -f "$TEST_DIR/test_object.yaml" ]
-    run cat "$TEST_DIR/test_object.yaml"
+    [ -f "$TEST_DIR/test_object.yml" ]
+    run cat "$TEST_DIR/test_object.yml"
     [[ "$output" == *"core:"* ]]
     [[ "$output" == *"dynatrace_tenant_address: test.com"* ]]
 }
@@ -22,12 +22,12 @@ teardown() {
 @test "convert array JSON to multiple YAMLs" {
     run scripts/deploy/convert_config_to_yaml.sh "$TEST_DIR/test_array.json"
     [ "$status" -eq 0 ]
-    [ -f "$TEST_DIR/test_array.yaml" ]
-    [ -f "$TEST_DIR/test_array_1.yaml" ]
-    run cat "$TEST_DIR/test_array.yaml"
+    [ -f "$TEST_DIR/test_array.yml" ]
+    [ -f "$TEST_DIR/test_array_1.yml" ]
+    run cat "$TEST_DIR/test_array.yml"
     [[ "$output" == *"core:"* ]]
     [[ "$output" == *"dynatrace_tenant_address: test1.com"* ]]
-    run cat "$TEST_DIR/test_array_1.yaml"
+    run cat "$TEST_DIR/test_array_1.yml"
     [[ "$output" == *"dynatrace_tenant_address: test2.com"* ]]
 }
 

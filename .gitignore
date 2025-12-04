@@ -4,8 +4,8 @@ connection.json
 *.token
 config.json
 config-*.json
-config.yaml
-config-*.yaml
+config.yml
+config-*.yml
 snowflake.local.yml
 output/**
 log.*
