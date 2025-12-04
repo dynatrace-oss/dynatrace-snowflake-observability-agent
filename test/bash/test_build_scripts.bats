@@ -24,16 +24,16 @@ setup() {
     # Check that config-default.yml is valid JSON and matches schema
     if command -v jq &> /dev/null && [ -f "build/config-default.yml" ]; then
         # Check that it's valid JSON
-        run jq empty build/config-default.yml
+        run yq '.. | select(. == [] or . == {})' build/config-default.yml
         [ "$status" -eq 0 ]
 
         # Check that it has the required top-level keys
-        run jq -e '.core and .otel and .plugins' build/config-default.yml
+        run yq -e '.core and .otel and .plugins' build/config-default.yml
         [ "$status" -eq 0 ]
 
         # Validate schema if jsonschema is available
-        if command -v jsonschema &> /dev/null && [ -f "test/config-default.schema.json" ]; then
-            run jsonschema -i build/config-default.yml test/config-default.schema.json
+        if command -v check-jsonschema &> /dev/null && [ -f "test/config-default.schema.json" ]; then
+            run check-jsonschema --schemafile test/config-default.schema.json build/config-default.yml
             [ "$status" -eq 0 ]
         fi
     fi
@@ -96,38 +96,39 @@ setup() {
     if [ -f "README.md" ]; then
         echo "✓ README.md exists"
     fi
-    if [ -f "build/bom.json" ]; then
-        echo "✓ build/bom.json exists"
+    if [ -f "build/bom.yml" ]; then
+        echo "✓ build/bom.yml exists"
 
-        # Validate bom.json structure and schema
-        if command -v jq &> /dev/null; then
-            # Check that it's valid JSON
-            run jq empty build/bom.json
+        # Validate bom.yml structure and schema
+        if command -v yq &> /dev/null; then
+            # Check that it's valid YAML
+            run yq '.. | select(. == [] or . == {})' build/bom.yml
             [ "$status" -eq 0 ]
 
             # Check that it has the required top-level keys
-            run jq -e '.delivers and .references' build/bom.json
+            run yq -e '.delivers and .references' build/bom.yml
             [ "$status" -eq 0 ]
 
             # Check that delivers is an array
-            run jq -e '.delivers | type == "array"' build/bom.json
+            run yq -e '.delivers | tag == "!!seq"' build/bom.yml
             [ "$status" -eq 0 ]
 
             # Check that references is an array
-            run jq -e '.references | type == "array"' build/bom.json
+            run yq -e '.references | tag == "!!seq"' build/bom.yml
             [ "$status" -eq 0 ]
 
             # Check that delivers array has content
-            delivers_count=$(jq '.delivers | length' build/bom.json)
+            delivers_count=$(yq '.delivers | length' build/bom.yml)
             [ "$delivers_count" -gt 0 ]
 
             # Check that references array has content
-            references_count=$(jq '.references | length' build/bom.json)
+            references_count=$(yq '.references | length' build/bom.yml)
             [ "$references_count" -gt 0 ]
 
             # Validate schema if jsonschema is available
-            if command -v jsonschema &> /dev/null && [ -f "test/bom.schema.json" ]; then
-                run jsonschema -i build/bom.json test/bom.schema.json
+            # Validate schema if check-jsonschema is available
+            if command -v check-jsonschema &> /dev/null && [ -f "test/config-default.schema.json" ]; then
+                run check-jsonschema --schemafile test/config-default.schema.json build/config-default.yml
                 [ "$status" -eq 0 ]
             fi
         fi

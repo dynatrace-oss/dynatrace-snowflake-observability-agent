@@ -42,9 +42,9 @@ def read_secret(
     if not SECRETS[secret_name] and from_file and from_field:
         try:
             with open(from_file, "r", encoding="utf-8") as f:
-                import json
+                import yaml
 
-                config = json.loads(f.read())
+                config = yaml.safe_load(f.read())
                 config = (config[0] if isinstance(config, list) and config and isinstance(config[0], dict) else config) or {}
                 SECRETS[secret_name] = config.get(from_field, None)
         except FileNotFoundError as e:

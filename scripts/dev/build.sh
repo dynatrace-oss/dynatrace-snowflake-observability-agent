@@ -27,9 +27,16 @@
 # It processes the scripts in src/sql and looks for ##INSERT $fileName hints
 #
 
+set -e
+
 # Check for required commands
 if ! command -v gawk &> /dev/null; then
     echo "Error: Required command 'gawk' is not installed."
+    exit 1
+fi
+
+if ! command -v yq &> /dev/null; then
+    echo "Error: Required command 'yq' is not installed."
     exit 1
 fi
 
@@ -90,21 +97,17 @@ while IFS= read -r -d '' file; do
     PLUGINS_CONFIG_FILES+=("$file")
 done < <(find ./src -type f -name "*-config.yml" -print0)
 CONFIG_TEMPLATE_FILE="conf/config-template.yml"
-CONFIG_TEMPLATE="$(jq '.[]' $CONFIG_TEMPLATE_FILE)" #FIXME: this assumes that yq is aliased to jq
+CONFIG_TEMPLATE="$(yq '.' $CONFIG_TEMPLATE_FILE)"
 
-#FIXME: this assumes that yq is aliased to jq
-merged_sections=$(jq -s '
-    reduce .[] as $item ({};
-        .plugins += $item.plugins // {} |
-        .otel += $item.otel // {}
-    )' "${PLUGINS_CONFIG_FILES[@]}")
+merged_sections="{}"
+for file in "${PLUGINS_CONFIG_FILES[@]}"; do
+    merged_sections=$(yq '.plugins = (.plugins // {}) + load("'$file'").plugins | .otel = (.otel // {}) + load("'$file'").otel' <<<"$merged_sections")
+done
 
 # Combine the merged sections with the rest of the template
-#FIXME: this assumes that yq is aliased to jq
-jq --argjson sections "$merged_sections" '
-    .plugins = (.plugins + $sections.plugins) |
-    .otel = (.otel + $sections.otel)
-' <<<"$CONFIG_TEMPLATE" >./build/config-default.yml
+echo "$merged_sections" > /tmp/merged.yml
+yq '.plugins = (.plugins // {}) + load("/tmp/merged.yml").plugins | .otel = (.otel // {}) + load("/tmp/merged.yml").otel' "$CONFIG_TEMPLATE_FILE" >./build/config-default.yml
+rm /tmp/merged.yml
 
 # Building SQL files in build
 find src -type f \( -name "*.sql" ! -name "*.off.sql" \) | while IFS= read -r sql_file; do
