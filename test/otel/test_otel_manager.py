@@ -24,7 +24,7 @@
 import uuid
 import pytest
 from dtagent.otel.otel_manager import OtelManager
-from test._utils import LocalTelemetrySender, get_config, read_clean_json_from_file
+from test._utils import LocalTelemetrySender, get_config, read_clean_data_from_file
 from test import _get_session
 import os
 
@@ -39,7 +39,7 @@ class TestOtelManager:
 
         try:
             max_fails_allowed = 5
-            structured_test_data = read_clean_json_from_file("test/test_data/telemetry_structured.json")
+            structured_test_data = read_clean_data_from_file("test/test_data/telemetry_structured.json")
 
             session = _get_session()
             sender = LocalTelemetrySender(

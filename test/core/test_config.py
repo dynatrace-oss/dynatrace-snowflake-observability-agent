@@ -25,7 +25,7 @@
 
 import glob
 import os
-import json
+import yaml
 
 
 class TestConfig:
@@ -36,10 +36,10 @@ class TestConfig:
         d_config = prepare_config._get_config("./conf/config-template.yml")
 
         assert d_config is not None, "Could not load config"
-        assert "CORE" in d_config, "There is no CORE key defined"
-        assert "OTEL" in d_config, "There is no OTEL key defined"
-        assert "PLUGINS" in d_config, "There is no PLUGINS key defined"
-        assert "DYNATRACE_TENANT_ADDRESS" in d_config["CORE"], "There is no core.DYNATRACE_TENANT_ADDRESS present"
+        assert "core" in d_config, "There is no core key defined"
+        assert "otel" in d_config, "There is no otel key defined"
+        assert "plugins" in d_config, "There is no plugins key defined"
+        assert "dynatrace_tenant_address" in d_config["core"], "There is no core.dynatrace_tenant_address present"
 
     def test_prepare_config_for_ingest(self):
 
@@ -111,37 +111,35 @@ class TestConfig:
     def test_plugin_conf(self):
 
         d_config_extra_keys = {
-            "BUDGETS": ["QUOTA"],
-            "DATA_VOLUME": ["INCLUDE", "EXCLUDE"],
-            "DYNAMIC_TABLES": ["INCLUDE", "EXCLUDE"],
-            "EVENT_LOG": ["MAX_ENTRIES", "RETENTION_HOURS"],
-            "QUERY_HISTORY": ["SLOW_QUERIES_THRESHOLD", "SLOW_QUERIES_TO_ANALYZE_LIMIT"],
+            "budgets": ["quota"],
+            "data_volume": ["include", "exclude"],
+            "dynamic_tables": ["include", "exclude"],
+            "event_log": ["max_entries", "retention_hours"],
+            "query_history": ["slow_queries_threshold", "slow_queries_to_analyze_limit"],
         }
 
         for directory in glob.glob("src/dtagent/plugins/*.config"):
             if any(os.scandir(directory)):  # exclude empty dirs
-                plugin = os.path.basename(directory).split(".")[0]
-                full_path = f"{directory}/{plugin}-config.yml"
+                plugin_key = os.path.basename(directory).split(".")[0]
+                full_path = f"{directory}/{plugin_key}-config.yml"
 
                 assert os.path.isfile(full_path), f"Configuration file {full_path} is missing"
 
                 assert os.path.getsize(full_path), f"Configuration file {full_path} seems to be empty"
 
                 with open(full_path, "r", encoding="utf-8") as conf_file:
-                    d_conf = json.load(conf_file)
+                    d_conf = yaml.safe_load(conf_file)
 
-                plugin_key = plugin.upper()
+                assert "plugins" in d_conf, "Plugins key is missing from the configuration"
 
-                assert "PLUGINS" in d_conf, "Plugins key is missing from the configuration"
+                assert plugin_key in d_conf["plugins"], f"{plugin_key} key is missing from the configuration"
 
-                assert plugin_key in d_conf["PLUGINS"], f"{plugin} key is missing from the configuration"
+                assert "schedule" in d_conf["plugins"][plugin_key], f"Schedule is missing from the {plugin_key} config"
 
-                assert "SCHEDULE" in d_conf["PLUGINS"][plugin_key], f"Schedule is missing from the {plugin} config"
-
-                assert "IS_DISABLED" in d_conf["PLUGINS"][plugin_key], f"is_disabled key is missing from the {plugin_key} config"
+                assert "is_disabled" in d_conf["plugins"][plugin_key], f"is_disabled key is missing from the {plugin_key} config"
 
                 for key in d_config_extra_keys.get(plugin_key, []):
-                    assert key in d_conf["PLUGINS"][plugin_key], f"{key} is missing from {plugin} config"
+                    assert key in d_conf["plugins"][plugin_key], f"{key} is missing from {plugin_key} config"
 
     def test_init(self, pickle_conf: str):
         from test._utils import get_config
