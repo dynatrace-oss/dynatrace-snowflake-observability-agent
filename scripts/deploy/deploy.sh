@@ -84,117 +84,92 @@ if [ ! -f "$CONFIG_FILE" ]; then
         exit 1
         #%DEV:
     fi
-#%:DEV
+    #%:DEV
 fi
 
 export BUILD_CONFIG_FILE="build/config.json"
 
-BASE_CONF=""
-DEPLOYMENT_ID=""
-ITER_NR=1
-jq -c '.[]' conf/config-$ENV.yml | while read CURRENT_CONFIG; do
-    # looping through all the configurations in the config file
-    # this is necessary because we need to be able to deploy multiple configurations at once
+DEPLOYMENT_ID=$(uuidgen)
 
-    DEPLOYMENT_ID=$(uuidgen)
+$CWD/prepare_config.sh "${DEFAULT_CONFIG_FILE}" "${CONFIG_FILE}"
 
-    if [ "$BASE_CONF" != "" ]; then
-        $CWD/prepare_config.sh "${DEFAULT_CONFIG_FILE}" "${BASE_CONF}" "${CURRENT_CONFIG}"
+DEPLOYMENT_ENV="$($CWD/get_config_key.sh core.deployment_environment)"
+CONNECTION_ENV="${DEPLOYMENT_ENV,,}" # convert to lower case
+NOW_TS=$(date '+%Y%m%d-%H%M%S')
+
+if [ "$PARAM" == "manual" ]; then
+    INSTALL_SCRIPT_SQL="DSOA-deploy-script-${DEPLOYMENT_ENV}-${NOW_TS}.sql"
+else
+    INSTALL_SCRIPT_SQL=$(mktemp -p build)
+    # clean up this way, because rm did not always work
+    trap " rm -f ${INSTALL_SCRIPT_SQL} " EXIT
+fi
+
+# preparing one big deployment script
+$CWD/prepare_deploy_script.sh "${INSTALL_SCRIPT_SQL}" "${ENV}" "${PARAM}"
+
+if [ -s "$INSTALL_SCRIPT_SQL" ] && [ "$PARAM" != "manual" ]; then
+
+    if [ "${PARAM}" == "service_user" ]; then
+        # added for Jenkins to be able to skip this step, as it will never find the config file
+        # this is taken care of in the update_config.py, and config_file doesn't exist necessary data is taken from environment variables
+        SNOWFLAKE_ACCOUNT_NAME=${SNOWFLAKE_ACC_NAME}
     else
-
-        # leaving in case bash script causes some unforseen issues
-        # $PYTHON_EXE ./src/build/prepare_config.py $DEFAULT_CONFIG_FILE ${PLUGINS_CONFIG_FILES[@]} $CONFIG_FILE
-        $CWD/prepare_config.sh "${DEFAULT_CONFIG_FILE}" "${CURRENT_CONFIG}"
+        SNOWFLAKE_ACCOUNT_NAME="$($CWD/get_config_key.sh core.snowflake_account_name)"
     fi
 
-    DEPLOYMENT_ENV="$($CWD/get_config_key.sh core.deployment_environment)"
-    CONNECTION_ENV="${DEPLOYMENT_ENV,,}" # convert to lower case
-
-    if [ "$PARAM" == "manual" ]; then
-        INSTALL_SCRIPT_SQL="dynatrace-snowflake-observability-agent-deploy-script-${ITER_NR}-${DEPLOYMENT_ENV}-$(date '+%Y%m%d-%H%M%S').sql"
-    else
-        INSTALL_SCRIPT_SQL=$(mktemp -p build)
-        # clean up this way, because rm did not always work
-        trap " rm -f ${INSTALL_SCRIPT_SQL} " EXIT
-    fi
-
-    # preparing one big deployment script
-    $CWD/prepare_deploy_script.sh "${INSTALL_SCRIPT_SQL}" "${ENV}" "${PARAM}"
-
-    if [ -s "$INSTALL_SCRIPT_SQL" ] && [ "$PARAM" != "manual" ]; then
-
-        if [ "${PARAM}" == "service_user" ]; then
-            # added for Jenkins to be able to skip this step, as it will never find the config file
-            # this is taken care of in the update_config.py, and config_file doesn't exist necessary data is taken from environment variables
-            SNOWFLAKE_ACCOUNT_NAME=${SNOWFLAKE_ACC_NAME}
-        else
-            SNOWFLAKE_ACCOUNT_NAME="$($CWD/get_config_key.sh core.snowflake_account_name)"
-        fi
-
-        INSTALL_SCRIPT_LOG="Dynatrace-Snowflake-Observability-Agent-deploy-$ITER_NR-$DEPLOYMENT_ENV-$(date '+%Y%m%d-%H%M%S').log"
-        #%DEV:
-        mkdir .logs 2>&1
-        INSTALL_SCRIPT_LOG=".logs/$INSTALL_SCRIPT_LOG"
-        #%:DEV
-        echo -e "\n\n--------\n"
-        cat "$INSTALL_SCRIPT_SQL"
-        echo -e "\n--------\n\n"
-
-        echo -e "Deploying to Snowflake with the snow_agent_$CONNECTION_ENV connection profile and as the $DEPLOYMENT_ENV deployment environment\n"
-
-        if [ "$4" != 'skip_confirm' ]; then
-            read -p "Press Enter if you wish to continue deployment with script above or Ctrl+C to exit" </dev/tty
-        fi
-
-        if [ "$PARAM" != 'no_dep' ]; then
-            if ! $CWD/send_bizevent.sh "${PARAM}" "STARTED" "${DEPLOYMENT_ID}"; then
-                echo "Encountered issues when sending deployment bizevent, proceeding..."
-            fi
-        fi
-
-        #%DEV:
-        if [ "$3" != 'no_dep' ] && [ "$3" != 'service_user' ]; then
-            #%:DEV
-            pushd build
-            snow sql --connection "snow_agent_$CONNECTION_ENV" \
-                --filename "$(basename ${INSTALL_SCRIPT_SQL})"
-            popd
-            #%DEV:
-        elif [ "$3" == 'service_user' ]; then
-
-            pushd build
-            snow sql --temporary-connection \
-                --account ${SNOWFLAKE_ACCOUNT_NAME} \
-                --user ${SNOWFLAKE_USER_NAME} \
-                --filename "$(basename ${INSTALL_SCRIPT_SQL})"
-            popd
-        fi
-        #%:DEV
-
-        cat "$INSTALL_SCRIPT_SQL" >>"$INSTALL_SCRIPT_LOG"
-
-        rm ${INSTALL_SCRIPT_SQL}
-
-    elif [ "$PARAM" == 'manual' ]; then
-        echo "Skipping automated deployment"
-    else
-        echo "No scripts matching requested deploy filter: $PARAM"
-    fi
-
-    if [ $ITER_NR -eq 1 ]; then
-        BASE_CONF=${CURRENT_CONFIG}
-    fi
-
+    INSTALL_SCRIPT_LOG="DSOA-deploy-$DEPLOYMENT_ENV-${NOW_TS}.log"
     #%DEV:
-    # with manual deployment the loop is fast enough to set the same timestamp for multiple scripts so the file content overwrites
-    # we need something to make sure they are named uniquely
+    mkdir .logs 2>&1
+    INSTALL_SCRIPT_LOG=".logs/$INSTALL_SCRIPT_LOG"
     #%:DEV
-    ITER_NR=$(expr $ITER_NR + 1)
+    echo -e "\n\n--------\n"
+    cat "$INSTALL_SCRIPT_SQL"
+    echo -e "\n--------\n\n"
+
+    echo -e "Deploying to Snowflake with the snow_agent_$CONNECTION_ENV connection profile and as the $DEPLOYMENT_ENV deployment environment\n"
+
+    if [ "$4" != 'skip_confirm' ]; then
+        read -p "Press Enter if you wish to continue deployment with script above or Ctrl+C to exit" </dev/tty
+    fi
 
     if [ "$PARAM" != 'no_dep' ]; then
-        if ! $CWD/send_bizevent.sh "${PARAM}" "FINISHED" "${DEPLOYMENT_ID}"; then
+        if ! $CWD/send_bizevent.sh "${PARAM}" "STARTED" "${DEPLOYMENT_ID}"; then
             echo "Encountered issues when sending deployment bizevent, proceeding..."
         fi
     fi
 
-done # end of while loop over config file entries
+    #%DEV:
+    if [ "$3" != 'no_dep' ] && [ "$3" != 'service_user' ]; then
+        #%:DEV
+        pushd build
+        snow sql --connection "snow_agent_$CONNECTION_ENV" \
+            --filename "$(basename ${INSTALL_SCRIPT_SQL})"
+        popd
+        #%DEV:
+    elif [ "$3" == 'service_user' ]; then
+
+        pushd build
+        snow sql --temporary-connection \
+            --account ${SNOWFLAKE_ACCOUNT_NAME} \
+            --user ${SNOWFLAKE_USER_NAME} \
+            --filename "$(basename ${INSTALL_SCRIPT_SQL})"
+        popd
+    fi
+    #%:DEV
+
+    cat "$INSTALL_SCRIPT_SQL" >>"$INSTALL_SCRIPT_LOG"
+
+    rm ${INSTALL_SCRIPT_SQL}
+
+elif [ "$PARAM" == 'manual' ]; then
+    echo "Skipping automated deployment"
+else
+    echo "No scripts matching requested deploy filter: $PARAM"
+fi
+
+if [ "$PARAM" != 'no_dep' ]; then
+    if ! $CWD/send_bizevent.sh "${PARAM}" "FINISHED" "${DEPLOYMENT_ID}"; then
+        echo "Encountered issues when sending deployment bizevent, proceeding..."
+    fi
+fi
