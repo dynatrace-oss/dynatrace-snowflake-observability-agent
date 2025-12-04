@@ -5,7 +5,10 @@ setup() {
     TEST_DIR="$(mktemp -d)"
     cp test/bash/test_object.json "$TEST_DIR"
     cd "$TEST_DIR"
+    git config init.defaultBranch main
     git init
+    git config user.name "Test User"
+    git config user.email "test@example.com"
     git add test_object.json
     git commit -m "initial"
 }
