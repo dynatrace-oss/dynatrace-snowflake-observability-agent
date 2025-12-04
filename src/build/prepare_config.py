@@ -45,11 +45,7 @@ def _get_config(config_path: str, first_entry_only: bool = True) -> dict:
 
     if os.path.isfile(config_path):
         with open(config_path, "r", encoding="utf-8") as f:
-            try:
-                config = json.load(f) or {}
-            except json.JSONDecodeError:
-                f.seek(0)  # Reset file pointer
-                config = yaml.safe_load(f) or {}
+            config = yaml.safe_load(f) or {}
         if isinstance(config, list) and first_entry_only and len(config) > 0:
             return config[0]
     return config

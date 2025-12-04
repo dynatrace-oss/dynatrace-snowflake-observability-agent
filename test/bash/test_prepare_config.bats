@@ -1,5 +1,4 @@
 #!/usr/bin/env bats
-# TODO double check this test
 setup() {
     cd "$BATS_TEST_DIRNAME/../.."
     # Set BUILD_CONFIG_FILE to avoid issues when sourcing
@@ -62,8 +61,8 @@ setup() {
     # Create temporary config files
     CONFIG_FILE1=$(mktemp)
     CONFIG_FILE2=$(mktemp)
-    echo '{"core": {"key1": "value1"}}' > "$CONFIG_FILE1"
-    echo '{"core": {"key2": "value2"}}' > "$CONFIG_FILE2"
+    echo -e "core:\n  key1: value1" > "$CONFIG_FILE1"
+    echo -e "core:\n  key2: value2" > "$CONFIG_FILE2"
 
     # Run the script with the config files
     run bash scripts/deploy/prepare_config.sh "$CONFIG_FILE1" "$CONFIG_FILE2"

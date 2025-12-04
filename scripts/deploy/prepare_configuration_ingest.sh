@@ -25,7 +25,7 @@
 #
 # This is a script for prepares SQL code that will insert configuration into temporary table
 SELECT_STATEMENTS=""
-#FIXME we will be working with YAML now?
+
 while IFS= read -r config; do
   ESCAPED_CONFIG=$(echo "$config" | sed "s/'/''/g")
   SELECT_STATEMENTS+="SELECT PARSE_JSON('$ESCAPED_CONFIG') as data UNION ALL "

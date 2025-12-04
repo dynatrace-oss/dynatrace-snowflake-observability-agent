@@ -113,7 +113,7 @@ If you do not set the `DTAGENT_TOKEN` environment variable, or if it does not co
 
 - The Dynatrace Snowflake Observability Agent deployment process **WILL NOT** send self-monitoring BizEvents to your Dynatrace tenant to
   mark the start and finish of the deployment process.
-- The deployment process _is not be able_ to set `DTAGENT_API_KEY` when deploying the complete configuration (`./deploy.sh $config_name`)
+- The deployment process _is not able_ to set `DTAGENT_API_KEY` when deploying the complete configuration (`./deploy.sh $config_name`)
   or when updating just the API key (`./deploy.sh $config_name apikey`). In these cases, **YOU WILL** be prompted to provide the correct
   `DTAGENT_TOKEN` value during deployment.
 - The deployment process _will not be able_ to send BizEvents to your Dynatrace tenant to mark the start and finish of the deployment

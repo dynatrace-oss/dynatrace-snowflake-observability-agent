@@ -101,7 +101,12 @@ CONFIG_TEMPLATE="$(yq '.' $CONFIG_TEMPLATE_FILE)"
 
 merged_sections="{}"
 for file in "${PLUGINS_CONFIG_FILES[@]}"; do
-    merged_sections=$(yq '.plugins = (.plugins // {}) + load("'$file'").plugins | .otel = (.otel // {}) + load("'$file'").otel' <<<"$merged_sections")
+    merged_sections=$(yq '
+        . as $base
+        | load("'"$file"'") as $f
+        | .plugins = ($base.plugins // {}) + ($f.plugins // {})
+        | .otel = ($base.otel // {}) + ($f.otel // {})
+    ' <<<"$merged_sections")
 done
 
 # Combine the merged sections with the rest of the template

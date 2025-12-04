@@ -25,7 +25,6 @@
 # Refactors config files to 3 levels of nesting (path, value, type) and redirects it to build/.
 # Excludes keys starting with _ prefix.
 # Args: path(s) to config files, specified when running `deploy.sh`
-#FIXME review for YAML parsing
 
 # Returns dictionary based on the YAML content of given file - or an empty dictionary
 # Args:

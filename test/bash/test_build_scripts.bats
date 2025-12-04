@@ -21,9 +21,9 @@ setup() {
     [ -f "build/_version.py" ]
     [ -f "build/config-default.yml" ]
 
-    # Check that config-default.yml is valid JSON and matches schema
+    # Check that config-default.yml is valid YAML and matches schema
     if command -v jq &> /dev/null && [ -f "build/config-default.yml" ]; then
-        # Check that it's valid JSON
+        # Check that it's valid YAML
         run yq '.. | select(. == [] or . == {})' build/config-default.yml
         [ "$status" -eq 0 ]
 
@@ -31,7 +31,7 @@ setup() {
         run yq -e '.core and .otel and .plugins' build/config-default.yml
         [ "$status" -eq 0 ]
 
-        # Validate schema if jsonschema is available
+        # Validate schema if JSON schema is available
         if command -v check-jsonschema &> /dev/null && [ -f "test/config-default.schema.json" ]; then
             run check-jsonschema --schemafile test/config-default.schema.json build/config-default.yml
             [ "$status" -eq 0 ]

@@ -25,7 +25,7 @@ import os
 import sys
 import uuid
 import datetime
-from typing import Any, Generator, Dict, List, Optional, Callable, Tuple
+from typing import Any, Generator, Union, Dict, List, Optional, Callable, Tuple
 import logging
 import json
 import yaml
@@ -373,7 +373,7 @@ def get_config(pickle_conf: str = None) -> TestConfiguration:
     return TestConfiguration(conf)
 
 
-def read_clean_data_from_file(file_path: str, is_yaml: bool = False) -> List[Dict]:
+def read_clean_data_from_file(file_path: str, is_yaml: bool = False) -> Union[Dict, List[Dict], Any]:
     """Reads given file (YAML, JSON, JSONC) into a dictionary, in case this is JSONC a clean JSON content is provided before turning into dict
 
     Args:
