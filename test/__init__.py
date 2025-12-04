@@ -21,7 +21,7 @@
 # SOFTWARE.
 #
 #
-import json
+import yaml
 import os
 from contextlib import contextmanager
 import re
@@ -57,10 +57,10 @@ def _get_credentials() -> Dict:
     }
     """
     credentials = {}
-    credentials_path = "test/credentials.json"
+    credentials_path = "test/credentials.yaml"
     if os.path.isfile(credentials_path):
         with open(credentials_path, "r", encoding="utf-8") as f:
-            credentials = json.loads(f.read())
+            credentials = yaml.safe_load(f.read())
 
     return credentials or {"local_testing": True}
 
