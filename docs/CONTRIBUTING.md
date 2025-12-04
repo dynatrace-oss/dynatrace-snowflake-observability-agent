@@ -134,7 +134,6 @@ and deployment (also delivered in distribution package) in `./scripts/deploy/` f
 - `./prepare_deploy_script.sh` generates a single deployment SQL script,
 - `./prepare_config.sh` prepares single configuration document for uploading to Snowflake,
 - `./prepare_configuration_ingest.sh` prepares SQL script that will update configuration,
-- `./prepare_instruments_ingest.sh` prepares SQL script that will update semantic dictionary,
 - `./update_secret.sh` is called to setup Dynatrace token as API Key,
 - `./refactor_field_names.sh` call to update names of fields in your DQL code,
 - `./send_bizevent.sh` is called to send bizevents to Dynatrace to indicate when deployment starts and finishes.
@@ -148,12 +147,13 @@ distribution package.
 
 The build process for the Dynatrace Snowflake Observability Agent package involves several steps:
 
-1. **Compilation**: The `compile.sh` script is used to create `_version.py` and complete Python code for both main stored procedures,
+1. **Compilation**: The `compile.sh` script is used to create `_version.py`, pre-compile `dtagent.otel.semantics.Semantics` to include
+   metric semantics dictionary, and complete Python code for both main stored procedures,
    resulting in a single file for each (`_dtagent.py` and `_send_telemetry.py`). The `##INSERT` directive is used to control the order in
    which source Python files are assembled into the main one. **NOTE**: When Snowflake reports issues in those stored procedures, the lines
    in the Python code will correspond to the lines in these two files.
-2. **Building and embedding**: The `build.sh` script creates a single default configuration file (`build/config-default.json`) and a
-   semantic dictionary file (`build/instruments-def.json`). It also copies over all SQL files from all `*.sql` folders. During the build
+2. **Building and embedding**: The `build.sh` script creates a single default configuration file (`build/config-default.json`).
+   It also copies over all SQL files from all `*.sql` folders. During the build
    process, the compiled Python files are embedded into the templates for the `APP.DTAGENT(sources array)` and
    `APP.SEND_TELEMETRY(sources variant, params object)` procedures respectively. The corresponding SQL files reference precompiled Python
    code to be embedded with the `##INSERT` directive.

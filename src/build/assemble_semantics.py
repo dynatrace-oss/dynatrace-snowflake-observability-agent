@@ -1,4 +1,7 @@
-#!/usr/bin/env bash
+#!/usr/bin/env python3
+"""
+Assemble metric semantics from instruments-def.yml files.
+"""
 #
 #
 # Copyright (c) 2025 Dynatrace Open Source
@@ -22,15 +25,23 @@
 # SOFTWARE.
 #
 #
-#
-# This is a script for prepares SQL code that will insert instrumetns definition into temporary table
-INSTRUMENTS_FILE="build/instruments-def.json"
 
-FILTERED_JSON=$(jq 'walk(if type == "object" then with_entries(select(.key | test("^__") | not)) else . end)' "$INSTRUMENTS_FILE")
-COMPRESSED_JSON=$(echo "$FILTERED_JSON" | jq -c .)
-ESCAPED_JSON=$(echo "$COMPRESSED_JSON" | sed "s/'/''/g")
+import yaml
+import os
+from dtagent.otel.semantics import Semantics
+from build.utils import find_files, read_clean_yml_from_file, get_metric_semantics
 
-# the final SQL code
-SQL="INSERT INTO TEMP_INSTRUMENTS (DATA) SELECT (PARSE_JSON('"$ESCAPED_JSON"'));"
 
-echo $SQL
+def main():
+    """Main function to assemble metric semantics."""
+
+    # Generate the file
+    with open("build/_metric_semantics.txt", "w", encoding="utf-8") as fh:
+        all_metrics = get_metric_semantics(gen_metric_description_line=True)
+
+        for k, line in all_metrics.items():
+            fh.write(f"\"{k}\": '{line}',\n")
+
+
+if __name__ == "__main__":
+    main()

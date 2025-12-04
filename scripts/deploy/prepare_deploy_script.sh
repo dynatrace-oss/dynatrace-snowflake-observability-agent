@@ -60,7 +60,6 @@ if [ "$PARAM" == 'config' ]; then
     FILES_FOR_CONF_UPDATE=(
         "build/031_configuration_table.sql"
         "build/032_f_get_config_value.sql"
-        "build/033_instruments_table.sql"
         "build/035_resource_monitor.sql"
         "build/036_update_plugin_schedule.sql"
         "build/037_update_all_plugins_schedule.sql"
@@ -127,10 +126,9 @@ EOF
 fi
 
 #
-# ensuring we have replaced configuration and instruments file upload with inline INSERT
+# ensuring we have replaced configuration file upload with inline INSERT
 #
 SQL_INGEST_CONFIG=$($CWD/prepare_configuration_ingest.sh)
-SQL_INGEST_INSTRUMENTS=$($CWD/prepare_instruments_ingest.sh)
 
 awk -v config="${SQL_INGEST_CONFIG}" '
   BEGIN { in_block = 0 }
@@ -138,12 +136,6 @@ awk -v config="${SQL_INGEST_CONFIG}" '
   /--%:UPLOAD:CONFIG/ { in_block = 0 }
   !in_block { print }
 ' "$INSTALL_SCRIPT_SQL" |
-    awk -v config="${SQL_INGEST_INSTRUMENTS}" '
-  BEGIN { in_block = 0 }
-  /--%UPLOAD:INSTRUMENTS/ { print; print config; in_block = 1; next }
-  /--%:UPLOAD:INSTRUMENTS/ { in_block = 0 }
-  !in_block { print }
-' |
     awk 'BEGIN { print_out=1; }
     /^[#][%]UPLOAD:SKIP[:].*/ { print_out=0; }
     { if (print_out==1) print $0; }

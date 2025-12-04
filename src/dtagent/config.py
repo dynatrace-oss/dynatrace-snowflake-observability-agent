@@ -48,8 +48,7 @@ class Configuration:
     }
 
     def __init__(self, session: snowpark.Session) -> Dict:
-        """Returns configuration based on data in config_data.configuration and (currently) hardcoded list of instruments
-
+        """Returns configuration based on data in config_data.configuration
         {
             'dt.token': YOUR_TOKEN,
             'logs.http':    'https://DYNATRACE_TENANT_ADDRESS/api/v2/otlp/v1/logs',
@@ -63,23 +62,6 @@ class Configuration:
                 'host.name': 'YOUR_SNOWFLAKE_ACCOUNT.YOUR_AWS_REGION.snowflakecomputing.com',
                 'telemetry.exporter.name': 'dynatrace.snowagent',
                 'deployment.environment.tag': 'SA080',
-            },
-            'instruments': {
-                'metrics': {
-                    'snowflake.data.scanned_from_cache': {
-                        'description': 'The percentage of data scanned from the local disk cache.
-                                        The value ranges from 0.0 to 1.0. Multiply by 100 to get a true percentage.',
-                        'unit': 'percent'
-                    },
-                    ....
-                    'snowflake.credits.cloud_services': {
-                        'description': 'Number of credits used for cloud services.'
-                    },
-                    ...
-                },
-                'dimension_sets': {
-                    'set1': [], ...
-                }
             }
         }
         """
@@ -160,14 +142,6 @@ class Configuration:
             LOG.debug(f"Setting log level to {default_log_level} from config.LOG_LEVEL={config_dict['core.log_level']}")
             LOG.setLevel(default_log_level)
 
-        instruments_table = "CONFIG.V_INSTRUMENTS"
-        instruments_row = session.table(instruments_table).take(None)  # should take the first row or none
-        instruments_dict = (
-            json.loads(instruments_row[0])
-            if instruments_row
-            else {"dimensions": {}, "attributes": {}, "event_timestamps": {}, "metrics": {}}
-        )
-
         self._config = {
             "dt.token": os.environ.get("DTAGENT_TOKEN", _snowflake.get_generic_secret_string("dtagent_token")),
             "logs.http": f"https://{config_dict['core.dynatrace_tenant_address']}{Logs.ENDPOINT_PATH}",
@@ -184,7 +158,6 @@ class Configuration:
             },
             "otel": __unpack_prefixed_keys(config_dict, "otel."),
             "plugins": __unpack_prefixed_keys(config_dict, "plugins."),
-            "instruments": instruments_dict,
         }
         if config_dict.get("core.tag"):
             self._config["resource.attributes"]["deployment.environment.tag"] = config_dict["core.tag"]

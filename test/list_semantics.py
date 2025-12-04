@@ -81,7 +81,7 @@ def _get_telemetry_attributes_from_instruments(instruments_data: str, plugin_nam
 
 def _process_instruments_file(file_path: str) -> List[Dict]:
     """Analyzes given instruments-def.yaml file for a list of metrics"""
-    from test._utils import read_clean_yml_from_file
+    from build.utils import read_clean_yml_from_file
 
     logging.debug("Processing file: %s", file_path)
 
@@ -182,7 +182,7 @@ def list_semantics(src_dir: str) -> List[Dict]:
     Returns:
         List[Dict]: the resulting dictionary
     """
-    from test._utils import find_files
+    from build.utils import find_files
 
     results = []
 

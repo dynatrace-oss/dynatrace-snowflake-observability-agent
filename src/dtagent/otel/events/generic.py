@@ -58,7 +58,6 @@ class GenericEvents(AbstractEvents):
     """
 
     from dtagent.config import Configuration  # COMPILE_REMOVE
-    from dtagent.otel.instruments import Instruments  # COMPILE_REMOVE
 
     ENDPOINT_PATH = "/platform/ingest/v1/events"
 

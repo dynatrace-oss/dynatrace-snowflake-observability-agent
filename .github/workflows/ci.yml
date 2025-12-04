@@ -107,10 +107,10 @@ jobs:
           pip install -r requirements.txt
           pip install pytest-mock
 
-      - name: Install Bats (for bash tests)
+      - name: Install JQ (for tests)
         run: |
           sudo apt-get update
-          sudo apt-get install -y bats jq
+          sudo apt-get install -y jq
 
       - name: Run core tests
         run: |
@@ -145,10 +145,10 @@ jobs:
           pip install -r requirements.txt
           pip install pytest-mock
 
-      - name: Install Bats (for bash tests)
+      - name: Install JQ (for tests)
         run: |
           sudo apt-get update
-          sudo apt-get install -y bats jq
+          sudo apt-get install -y jq
 
       - name: Run plugin tests
         run: pytest test/plugins/

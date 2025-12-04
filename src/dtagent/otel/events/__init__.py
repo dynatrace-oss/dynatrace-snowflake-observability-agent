@@ -68,7 +68,6 @@ class AbstractEvents(ABC):
     """This is an abstract class for OpenPipelineEvents and BizEvents implementations"""
 
     from dtagent.config import Configuration  # COMPILE_REMOVE
-    from dtagent.otel.instruments import Instruments  # COMPILE_REMOVE
 
     ENDPOINT_PATH = None  # to be defined in child classes
 

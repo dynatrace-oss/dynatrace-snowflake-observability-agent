@@ -39,6 +39,7 @@ from dtagent.util import is_select_for_table
 import test
 from test import TestConfiguration
 from test._mocks.telemetry import MockTelemetryClient
+from build.utils import find_files, get_metric_semantics
 
 TEST_CONFIG_FILE_NAME = "./test/conf/config-download.json"
 
@@ -213,6 +214,7 @@ class LocalTelemetrySender(TelemetrySender):
         self._configuration.get_last_measurement_update = lambda *args, **kwargs: datetime.datetime.fromtimestamp(
             0, tz=datetime.timezone.utc
         )
+        setattr(self._semantics, "_metric_semantics", get_metric_semantics(gen_metric_description_line=True))
 
     def _get_config(self, session: snowpark.Session) -> Configuration:
         return self._local_config if self._local_config else TelemetrySender._get_config(self, session)
@@ -343,7 +345,6 @@ def get_config(pickle_conf: str = None) -> TestConfiguration:
         dt_url = "dsoa2025.live.dynatrace.com"
         sf_name = "test.dsoa2025"
         plugins = {}
-        instruments = {"dimensions": {}, "metrics": {}, "attributes": {}, "event_timestamps": {}}
         conf = {
             "dt.token": "dt0c01.XXXXXXXXXXXXXXXXXXXXXXXX.XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
             "logs.http": f"https://{dt_url}{Logs.ENDPOINT_PATH}",
@@ -360,7 +361,6 @@ def get_config(pickle_conf: str = None) -> TestConfiguration:
             },
             "otel": {},
             "plugins": plugins,
-            "instruments": instruments,
         }
         for file_path in find_files("src/dtagent/plugins", "*-config.json"):
             plugin_conf = lowercase_keys(read_clean_json_from_file(file_path))
@@ -368,13 +368,7 @@ def get_config(pickle_conf: str = None) -> TestConfiguration:
         otel_config = lowercase_keys(read_clean_json_from_file("src/dtagent.conf/otel-config.json"))
         conf["otel"] |= otel_config.get("otel", {})
         conf["plugins"] |= otel_config.get("plugins", {})
-        for file_path in find_files("src/", "instruments-def.yml"):
-            instruments_data = read_clean_yml_from_file(file_path)
-            instruments["dimensions"].update(instruments_data.get("dimensions", {}))
-            instruments["metrics"].update(instruments_data.get("metrics", {}))
-            instruments["attributes"].update(instruments_data.get("attributes", {}))
-            instruments["event_timestamps"].update(instruments_data.get("event_timestamps", {}))
-        conf["instruments"] = instruments
+        conf["metric_semantics"] = get_metric_semantics()
 
     return TestConfiguration(conf)
 
@@ -399,40 +393,6 @@ def read_clean_json_from_file(file_path: str) -> List[Dict]:
         return data
 
     return {}
-
-
-def read_clean_yml_from_file(file_path: str) -> List[Dict]:
-    """Reads given file into a dictionary.
-
-    Args:
-        file_path (str): path to the file with yaml content
-
-    Returns:
-        List[Dict]: dictionary based on the content of the YML/YAML file
-    """
-    import yaml
-
-    logging.debug("Reading clean yml file: %s", file_path)
-
-    with open(file_path, "r", encoding="utf-8") as f:
-        data = yaml.safe_load(f)
-
-        return data
-
-    return {}
-
-
-def find_files(directory: str, filename_pattern: str) -> List[str]:
-    """Lists all files with given name in the given directory
-    Returns:
-        list: List of file paths
-    """
-
-    matches = []
-    for root, _, files in os.walk(directory):
-        for filename in fnmatch.filter(files, filename_pattern):
-            matches.append(os.path.join(root, filename))
-    return matches
 
 
 def lowercase_keys(data: Any) -> Any:

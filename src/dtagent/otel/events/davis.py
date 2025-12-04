@@ -59,7 +59,6 @@ class DavisEvents(GenericEvents):
     """
 
     from dtagent.config import Configuration  # COMPILE_REMOVE
-    from dtagent.otel.instruments import Instruments  # COMPILE_REMOVE
 
     ENDPOINT_PATH = "/api/v2/events/ingest"
 

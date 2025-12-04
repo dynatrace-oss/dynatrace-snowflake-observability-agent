@@ -83,19 +83,6 @@ fi
 if [ $? -eq 1 ]; then
     exit 1
 fi
-# Assembling instrument definitions configuration
-TMP_INST=$(mktemp -d -p build)
-find src -type f -name instruments-def.yml | while IFS= read -r inst_file; do
-    source_conf_name=$(basename "$(dirname "$inst_file")")
-    source_name=${source_conf_name%.*}
-    echo "Assembling from $source_name"
-
-    python -c "import yaml, json; print(json.dumps(yaml.load(open('$inst_file'), Loader=yaml.FullLoader), indent=4))" >"${TMP_INST}/${source_name}-instruments-def.json"
-
-done
-
-jq -n 'reduce inputs as $i ({}; . * $i) | walk(if type == "object" then with_entries(select(.key | test("^__") | not)) else . end)' $(find $TMP_INST -type f) >build/instruments-def.json
-rm -Rf $TMP_INST
 
 # Assembling per-plugin configuration into one file
 PLUGINS_CONFIG_FILES=()

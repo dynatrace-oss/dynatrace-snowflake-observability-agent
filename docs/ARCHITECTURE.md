@@ -101,11 +101,9 @@ In order for Dynatrace Snowflake Observability Agent to communicate with Dynatra
 
 ### The `CONFIG` schema
 
-Contains two tables:
+Contains one table:
 
 - `CONFIGURATIONS` with all configurable options of Dynatrace Snowflake Observability Agent, including internal API and plugins
-- `INSTRUMENTS` for semantic dictionary definitions of all dimensions, attributes, and metrics that Dynatrace Snowflake Observability Agent
-  can deliver to Dynatrace.
 
 Information from both tables is used to initialize Dynatrace Snowflake Observability Agent main stored procedures.
 
@@ -136,7 +134,7 @@ Snowflake Observability Agent to Dynatrace; in this case execution of `query_his
 
 1. The process starts with Snowflake task `TASK_DTAGENT_QUERY_HISTORY` calling the `DTAGENT()` procedure with `query_history` as a
    parameter:
-   - The procedure initializes by reading the configuration and semantic dictionary (instruments).
+   - The procedure initializes by reading the configuration.
    - A query tag is set for the session to identify this particular execution of Dynatrace Snowflake Observability Agent in Snowflake
      telemetry.
    - Before starting the processing, a BizEvent is sent to Dynatrace to indicate the start of a single plugin execution; a single all to
@@ -426,7 +424,7 @@ With `SEND_BIZEVENTS_ON_DEPLOY`, Dynatrace Snowflake Observability Agent will se
 the type of deployment, the event titles will be set as follows:
 
 - full deployment ("New complete Dynatrace Snowflake Observability Agent deployment."),
-- configuration update ("New Dynatrace Snowflake Observability Agent config and instruments deployment."),
+- configuration update ("New Dynatrace Snowflake Observability Agent config deployment."),
 - teardown ("Dynatrace Snowflake Observability Agent teardown initiated."),
 - API key update ("Dynatrace Snowflake Observability Agent API key redeployed.").
 
