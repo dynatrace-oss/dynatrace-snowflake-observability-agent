@@ -47,11 +47,11 @@ Plugin tests support two execution modes:
 * Runs without live Snowflake/Dynatrace connections
 * Uses pickled test data from `test/test_data/`
 * Validates against expected results in `test/test_results/`
-* **Default mode** when `test/credentials.yaml` is not present
+* **Default mode** when `test/credentials.yml` is not present
 
 ### 2. Live Mode (Actual APIs)
 
-* Requires `test/credentials.yaml` to be present
+* Requires `test/credentials.yml` to be present
 * Connects to actual Snowflake and Dynatrace environments
 * Sends real telemetry data
 * Useful for end-to-end validation

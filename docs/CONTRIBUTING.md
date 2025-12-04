@@ -345,11 +345,11 @@ pytest test/plugins/
 
 There are two ways of running tests:
 
-1. **Local mode with Mocked APIs**: If `test/credentials.yaml` is NOT present, the tests will run locally with mocked Dynatrace APIs,
+1. **Local mode with Mocked APIs**: If `test/credentials.yml` is NOT present, the tests will run locally with mocked Dynatrace APIs,
    without sending data to Dynatrace. This is useful for rapid development and testing without requiring a live Snowflake or Dynatrace
    connection.
 
-2. **Live mode with actual APIs**: If `test/credentials.yaml` IS present, the tests will connect to Snowflake to determine the connection to
+2. **Live mode with actual APIs**: If `test/credentials.yml` IS present, the tests will connect to Snowflake to determine the connection to
    Dynatrace and will send the data to the actual Dynatrace APIs.
 
 ### Test Data
@@ -383,7 +383,7 @@ To run tests in live mode (version 2), you need to:
      disabled_by_default: true
    ```
 
-2. **Create `test/credentials.yaml`** from the `test/credentials.template.yaml` template to reference that deployment.
+2. **Create `test/credentials.yaml`** from the `test/credentials.template.yml` template to reference that deployment.
 
 3. **Generate `test/conf/config-download.yml`** by running:
 
@@ -394,7 +394,7 @@ To run tests in live mode (version 2), you need to:
 ### Running Tests in Local Mode
 
 For tests in version (1) (local mode with mocked APIs), `test/conf/config-download.yml` should NOT be present. It is a good practice to
-temporarily disable these files by prefixing them with an underscore (e.g., `_config-download.yml` and `_credentials.yaml`). The gitignore
+temporarily disable these files by prefixing them with an underscore (e.g., `_config-download.yml` and `_credentials.yml`). The gitignore
 ensures that files prefixed with underscore are not tracked.
 
 ### Running Individual Plugin Tests

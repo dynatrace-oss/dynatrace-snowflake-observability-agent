@@ -57,7 +57,7 @@ def _get_credentials() -> Dict:
     }
     """
     credentials = {}
-    credentials_path = "test/credentials.yaml"
+    credentials_path = "test/credentials.yml"
     if os.path.isfile(credentials_path):
         with open(credentials_path, "r", encoding="utf-8") as f:
             credentials = yaml.safe_load(f.read())

@@ -101,7 +101,7 @@ pytest test/plugins/
 
 ### Live Mode
 
-- Requires `test/credentials.yaml` configuration
+- Requires `test/credentials.yml` configuration
 - Connects to actual Snowflake and Dynatrace environments
 - Sends real telemetry data
 - Useful for end-to-end validation
@@ -142,7 +142,7 @@ pytest test/plugins/
 
 ### Test Environment Setup
 
-1. Copy `test/credentials.template.yaml` to `test/credentials.yaml` (for live mode)
+1. Copy `test/credentials.template.yaml` to `test/credentials.yml` (for live mode)
 2. Generate config: `pytest test/core/test_config.py::TestConfig::test_init --pickle_conf y`
 3. Run tests in local mode (recommended for development)
 
