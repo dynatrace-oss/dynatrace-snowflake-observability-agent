@@ -101,7 +101,7 @@ In order for Dynatrace Snowflake Observability Agent to communicate with Dynatra
 
 ### The `CONFIG` schema
 
-Contains one tables:
+Contains one table:
 
 - `CONFIGURATIONS` with all configurable options of Dynatrace Snowflake Observability Agent, including internal API and plugins
 
