@@ -10,7 +10,7 @@ snowflake.local.yml
 output/**
 log.*
 *.log
-*credentials*.json
+*credentials*.*
 *.pyc
 build/*
 package/*
