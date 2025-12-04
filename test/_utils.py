@@ -374,7 +374,8 @@ def get_config(pickle_conf: str = None) -> TestConfiguration:
 
 
 def read_clean_data_from_file(file_path: str, is_yaml: bool = False) -> Union[Dict, List[Dict], Any]:
-    """Reads given file (YAML, JSON, JSONC) into a dictionary, in case this is JSONC a clean JSON content is provided before turning into dict
+    """Reads given file (YAML, JSON, JSONC) into a dictionary.
+    In case this is JSONC a clean JSON content is provided before turning into dict
 
     Args:
         file_path (str): path to the file with YAML, JSON or JSONC content

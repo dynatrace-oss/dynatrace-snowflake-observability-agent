@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
-"""
-Assemble metric semantics from instruments-def.yml files.
-"""
+"""Assemble metric semantics from instruments-def.yml files."""
 #
 #
 # Copyright (c) 2025 Dynatrace Open Source

@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
-"""
-Utility functions for building and testing the agent.
-"""
+"""Utility functions for building and testing the agent."""
 #
 #
 # Copyright (c) 2025 Dynatrace Open Source
