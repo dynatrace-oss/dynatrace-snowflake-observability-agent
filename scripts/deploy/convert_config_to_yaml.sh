@@ -23,6 +23,10 @@
 #
 #
 
+# Use this script to covert your configuration file in JSON into the new YAML format.
+# If you have multiple configuration objects in the JSON file (i.e., a JSON array), multiple YAML files will be created,
+# one per configuration object.
+#
 # PARAMS: $1 - path to JSON file to convert
 
 if ! command -v jq &> /dev/null || ! command -v yq &> /dev/null; then
