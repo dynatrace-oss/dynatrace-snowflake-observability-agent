@@ -30,31 +30,6 @@
 use role DTAGENT_ADMIN; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 
 -- initializing TMP_RECENT_QUERIES so that we don't have to call this procedure during the deploy time
--- FIXME in DP-11368
-EXECUTE IMMEDIATE $$
-BEGIN
-if ( not exists (
-    select 1
-    from INFORMATION_SCHEMA.COLUMNS
-    where TABLE_CATALOG = 'DTAGENT_DB'
-    and TABLE_SCHEMA = 'APP'
-    and TABLE_NAME = 'TMP_RECENT_QUERIES'
-    and COLUMN_NAME = 'TIMESTAMP'
-))
-then
-    -- Add the column
-    drop table if exists DTAGENT_DB.APP.TMP_RECENT_QUERIES;
-    return 'Old version of TMP_RECENT_QUERIES dropped';
-else
-    return 'Already on new version of TMP_RECENT_QUERIES';
-end if;
-EXCEPTION
-when statement_error then
-    SYSTEM$LOG_WARN(SQLERRM);
-    return SQLERRM;
-END;
-$$
-;
 
 create or replace transient table DTAGENT_DB.APP.TMP_RECENT_QUERIES DATA_RETENTION_TIME_IN_DAYS = 0 as select *, false as IS_PARENT, false as IS_ROOT from APP.V_QUERY_HISTORY_INSTRUMENTED limit 0;
 grant select on table DTAGENT_DB.APP.TMP_RECENT_QUERIES to role DTAGENT_VIEWER;

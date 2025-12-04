@@ -24,31 +24,6 @@
 
 use role DTAGENT_ADMIN; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 
--- FIXME in DP-11368
-EXECUTE IMMEDIATE $$
-BEGIN
-    if ( not exists (
-        select 1
-        from INFORMATION_SCHEMA.COLUMNS
-        where TABLE_CATALOG = 'DTAGENT_DB'
-        and TABLE_SCHEMA = 'APP'
-        and TABLE_NAME = 'TMP_INBOUND_SHARES'
-        and COLUMN_NAME = 'DETAILS'
-    ))
-    then
-        -- Add the column
-        drop table if exists DTAGENT_DB.APP.TMP_INBOUND_SHARES;
-        return 'Old version of TMP_INBOUND_SHARES dropped';
-    else
-        return 'Already on new version of TMP_INBOUND_SHARES';
-    end if;
-EXCEPTION
-    when statement_error then
-        SYSTEM$LOG_WARN(SQLERRM);
-        return SQLERRM;
-END;
-$$
-;
 
 create or replace transient table DTAGENT_DB.APP.TMP_SHARES (
         created_on timestamp_ltz,
