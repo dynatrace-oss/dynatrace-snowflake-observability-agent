@@ -100,13 +100,13 @@ The following tables list the Snowflake objects that this plugin delivers data f
 
 #### Objects delivered by the `Active Queries` plugin
 
-| Name                                                          | Type      |
-| ------------------------------------------------------------- | --------- |
-| DTAGENT_DB.APP.F_GET_FINISHED_QUERIES()                       | procedure |
-| DTAGENT_DB.APP.F_GET_RUNNING_QUERIES()                        | procedure |
-| DTAGENT_DB.APP.DTAGENT_DB.APP.F_ACTIVE_QUERIES_INSTRUMENTED() | procedure |
-| DTAGENT_DB.APP.TASK_DTAGENT_ACTIVE_QUERIES                    | task      |
-| DTAGENT_DB.CONFIG.UPDATE_ACTIVE_QUERIES_CONF()                | procedure |
+| Name                                           | Type      |
+| ---------------------------------------------- | --------- |
+| DTAGENT_DB.APP.F_GET_FINISHED_QUERIES()        | procedure |
+| DTAGENT_DB.APP.F_GET_RUNNING_QUERIES()         | procedure |
+| DTAGENT_DB.APP.F_ACTIVE_QUERIES_INSTRUMENTED() | procedure |
+| DTAGENT_DB.APP.TASK_DTAGENT_ACTIVE_QUERIES     | task      |
+| DTAGENT_DB.CONFIG.UPDATE_ACTIVE_QUERIES_CONF() | procedure |
 
 #### Objects referenced by the `Active Queries` plugin
 
@@ -450,12 +450,12 @@ The following tables list the Snowflake objects that this plugin delivers data f
 
 #### Objects referenced by the `Event Log` plugin
 
-| Name            | Type    | Privileges               | Granted to    | Comment                                                                                                                                                                                          |
-| --------------- | ------- | ------------------------ | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| SHOW PARAMETERS | command | USAGE                    |               | We call `show PARAMETERS like 'EVENT_TABLE' in ACCOUNT` to determine if event table is already setup, and whether this is a table setup by this Dynatrace Snowflake Observability Agent instance |
-| ACCOUNT         | account | MODIFY LOG LEVEL         | DTAGENT_ADMIN |                                                                                                                                                                                                  |
-| ACCOUNT         | account | MODIFY SESSION LOG LEVEL | DTAGENT_ADMIN |                                                                                                                                                                                                  |
-| $event_table    | table   | SELECT                   | DTAGENT_VIEW  | This is in case an event log table was not setup by this Dynatrace Snowflake Observability Agent instance                                                                                        |
+| Name            | Type    | Privileges               | Granted to     | Comment                                                                                                                                                                                          |
+| --------------- | ------- | ------------------------ | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| SHOW PARAMETERS | command | USAGE                    |                | We call `show PARAMETERS like 'EVENT_TABLE' in ACCOUNT` to determine if event table is already setup, and whether this is a table setup by this Dynatrace Snowflake Observability Agent instance |
+| ACCOUNT         | account | MODIFY LOG LEVEL         | DTAGENT_ADMIN  |                                                                                                                                                                                                  |
+| ACCOUNT         | account | MODIFY SESSION LOG LEVEL | DTAGENT_ADMIN  |                                                                                                                                                                                                  |
+| $event_table    | table   | SELECT                   | DTAGENT_VIEWER | This is in case an event log table was not setup by this Dynatrace Snowflake Observability Agent instance                                                                                        |
 
 <a name="event_usage_info_sec"></a>
 
