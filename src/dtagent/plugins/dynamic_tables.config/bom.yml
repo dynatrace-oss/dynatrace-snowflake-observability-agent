@@ -17,19 +17,24 @@ references:
     type: command
     privileges: USAGE
   - name: ALL DYNAMIC TABLES IN DATABASE $database
+    type: dynamic table
     privileges: MONITOR
     granted to: DTAGENT_VIEWER
     comment: We grant that on every database selected in configuration or all (default)
   - name: ALL FUTURE TABLES IN DATABASE $database
+    type: table
     privileges: MONITOR
     granted to: DTAGENT_VIEWER
     comment: We grant that on every database selected in configuration or all (default)
   - name: INFORMATION_SCHEMA.DYNAMIC_TABLE_REFRESH_HISTORY
+    type: view
     privileges: USAGE
     granted to: DTAGENT_VIEWER
   - name: INFORMATION_SCHEMA.DYNAMIC_TABLE_GRAPH_HISTORY
+    type: view
     privileges: USAGE
     granted to: DTAGENT_VIEWER
   - name: INFORMATION_SCHEMA.DYNAMIC_TABLES
+    type: view
     privileges: USAGE
     granted to: DTAGENT_VIEWER

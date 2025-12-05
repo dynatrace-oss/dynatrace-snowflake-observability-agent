@@ -55,25 +55,31 @@ references:
     privileges: IMPORTED PRIVILEGES ON DATABASE
     granted to: DTAGENT_VIEWER
   - name: ACCOUNT
+    type: account
     privileges:
       - MONITOR
       - MONITOR USAGE
       - MONITOR EXECUTION
     granted to: DTAGENT_VIEWER
   - name: ACCOUNT
+    type: account
     privileges: MODIFY LOG LEVEL
     granted to: DTAGENT_ADMIN
   - name: ACCOUNT
+    type: account
     privileges: MODIFY SESSION LOG LEVEL
     granted to: DTAGENT_VIEWER
   - name: ACCOUNT
+    type: account
     privileges: MANAGE GRANTS
     granted to: DTAGENT_ADMIN
   - name: ACCOUNT
+    type: account
     privileges:
       - EXECUTE TASK
     granted to: DTAGENT_VIEWER
   - name: DATABASE DTAGENT_DB
+    type: database
     privileges:
       - OPERATE on all TASKS
       - OPERATE on future TASKS
