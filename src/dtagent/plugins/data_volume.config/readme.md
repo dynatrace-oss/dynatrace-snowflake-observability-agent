@@ -3,8 +3,8 @@ Additionally, it sends events when there are changes in table structure (DDL) or
 
 The following information is reported:
 
-* table type,
-* timestamp of the last data update and the time elapsed since then,
-* timestamp of the last DDL and the time elapsed since then,
-* number of bytes in the table, and
-* number of rows in the table.
+- table type,
+- timestamp of the last data update and the time elapsed since then,
+- timestamp of the last DDL and the time elapsed since then,
+- number of bytes in the table, and
+- number of rows in the table.

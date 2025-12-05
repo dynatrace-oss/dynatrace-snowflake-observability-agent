@@ -4,10 +4,10 @@ By default, this plugin executes every 30 minutes and analyzes queries that fini
 
 Among the information it provides are:
 
-* the IDs of processed queries,
-* runtimes of processed queries,
-* numbers of credits used by processed queries,
-* number of bytes scanned during the completion of a query, and
-* number of partitions scanned during the completion of a query.
+- the IDs of processed queries,
+- runtimes of processed queries,
+- numbers of credits used by processed queries,
+- number of bytes scanned during the completion of a query, and
+- number of partitions scanned during the completion of a query.
 
 Each query execution is reported as a log line and span, with a hierarchy of spans made from the relation to parent queries. If the query profile was retrieved with `QUERY_OPERATOR_STATS`, it is delivered as span events and additional log lines. This plugin also delivers many metrics based on telemetry information provided by Snowflake.

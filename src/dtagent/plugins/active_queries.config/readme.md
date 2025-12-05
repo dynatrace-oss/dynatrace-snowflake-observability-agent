@@ -7,8 +7,8 @@ By default information on all queries is reported as logs and metrics.
 
 Active queries can be reported in two different modes:
 
-* Fast mode - only reports currently active queries. Chosen with `PLUGINS.ACTIVE_QUERIES.FAST_MODE` set to `true`.
-* Normal mode - reports queries with start timestamp up to 15 minutes from the current time. Chosen with `PLUGINS.ACTIVE_QUERIES.FAST_MODE` set to `false`.
+- Fast mode - only reports currently active queries. Chosen with `PLUGINS.ACTIVE_QUERIES.FAST_MODE` set to `true`.
+- Normal mode - reports queries with start timestamp up to 15 minutes from the current time. Chosen with `PLUGINS.ACTIVE_QUERIES.FAST_MODE` set to `false`.
 
 Additionally, you can decide to monitor details for queries only with selected execution status, by using the `PLUGINS.ACTIVE_QUERIES.REPORT_EXECUTION_STATUS` configuration parameter; by default: no additional filters are applied with `PLUGINS.ACTIVE_QUERIES.REPORT_EXECUTION_STATUS` set to empty (`[]`).
 Multiple statuses can be chosen (for example: `["RUNNING", "QUEUED"]`). This filtering will be applied on top of the chosen mode.

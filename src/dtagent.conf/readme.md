@@ -6,12 +6,12 @@
 
 Table of content:
 
-* [Data Platform Observability](docs/DPO.md)
-* [Use cases](docs/USECASES.md)
-* [Architecture](docs/ARCHITECTURE.md)
-* [Plugins](docs/PLUGINS.md)
-* [Semantic dictionary](docs/SEMANTICS.md)
-* [How to install](docs/INSTALL.md)
-* [Example dashboards](docs/dashboards)
-* [Changelog](docs/CHANGELOG.md)
-* [Contributing](docs/CONTRIBUTING.md)
+- [Data Platform Observability](docs/DPO.md)
+- [Use cases](docs/USECASES.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Plugins](docs/PLUGINS.md)
+- [Semantic dictionary](docs/SEMANTICS.md)
+- [How to install](docs/INSTALL.md)
+- [Example dashboards](docs/dashboards)
+- [Changelog](docs/CHANGELOG.md)
+- [Contributing](docs/CONTRIBUTING.md)

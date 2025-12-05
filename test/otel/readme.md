@@ -4,8 +4,8 @@ This directory contains tests for the OpenTelemetry integration and telemetry fu
 
 ## Test Files
 
-* `test_events.py`: Tests for business event handling and sending
-* `test_otel_manager.py`: Tests for the OpenTelemetry manager and configuration
+- `test_events.py`: Tests for business event handling and sending
+- `test_otel_manager.py`: Tests for the OpenTelemetry manager and configuration
 
 ## Running Tests
 
@@ -24,38 +24,38 @@ pytest test/otel/ -v
 
 ### Events Tests (`test_events.py`)
 
-* Business event creation and formatting
-* Event sending to Dynatrace APIs
-* Event payload validation
-* Error handling for event transmission
+- Business event creation and formatting
+- Event sending to Dynatrace APIs
+- Event payload validation
+- Error handling for event transmission
 
 ### OTel Manager Tests (`test_otel_manager.py`)
 
-* OpenTelemetry manager initialization
-* Configuration loading and validation
-* Telemetry pipeline setup
-* Metric and span handling
+- OpenTelemetry manager initialization
+- Configuration loading and validation
+- Telemetry pipeline setup
+- Metric and span handling
 
 ## Test Data
 
 OTel tests use mock data and don't require live Dynatrace connections. Tests validate:
 
-* Event payload structure
-* API request formatting
-* Configuration parameter handling
-* Error scenarios and edge cases
+- Event payload structure
+- API request formatting
+- Configuration parameter handling
+- Error scenarios and edge cases
 
 ## Dependencies
 
-* `pytest` for test execution
-* `pytest-mock` for API mocking
-* OpenTelemetry Python packages
-* Dynatrace API client libraries
+- `pytest` for test execution
+- `pytest-mock` for API mocking
+- OpenTelemetry Python packages
+- Dynatrace API client libraries
 
 ## Configuration
 
 OTel tests use configuration from:
 
-* `src/dtagent.conf/otel-config.yml` for default settings
-* Mock configurations for test scenarios
-* Environment variable overrides where applicable
+- `src/dtagent.conf/otel-config.yml` for default settings
+- Mock configurations for test scenarios
+- Environment variable overrides where applicable
