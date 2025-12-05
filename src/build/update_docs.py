@@ -92,23 +92,56 @@ def _get_clean_description(details: dict) -> str:
     return description.replace("\n", " ").replace("-", "<br>-")
 
 
+def _generate_markdown_table(columns: List[str], rows_data: List[List]) -> str:
+    """Generates a Markdown table with left-aligned columns based on max content length.
+
+    Args:
+        columns: List of column header strings.
+        rows_data: List of rows, each row is a list of cell values.
+
+    Returns:
+        Markdown table string.
+    """
+    # Calculate column widths
+    column_widths = []
+    for i, header in enumerate(columns):
+        max_len = len(header)
+        for row in rows_data:
+            max_len = max(max_len, len(str(row[i])))
+        column_widths.append(max_len)
+
+    # Generate header
+    header = "| " + " | ".join(f"{h:<{w}}" for h, w in zip(columns, column_widths)) + " |\n"
+    separator = "| " + " | ".join("-" * w for w in column_widths) + " |\n"
+
+    # Generate rows
+    rows = ""
+    for row_data in rows_data:
+        row = "| " + " | ".join(f"{str(cell):<{w}}" for cell, w in zip(row_data, column_widths)) + " |\n"
+        rows += row
+
+    return header + separator + rows + "\n"
+
+
 def _generate_semantics_tables(json_data: Dict, plugin_name: str, no_global_context_name: bool) -> str:
     """Generates tables with semantics."""
     __tables = ""
     for key in ["dimensions", "attributes", "metrics", "event_timestamps"]:
         if key in json_data and len(json_data[key]):
             __tables += f"### {key.replace('_', ' ').capitalize()} at the `{plugin_name}` plugin\n\n"
-            __tables += (
-                f"| Identifier {'| Name | Unit ' if key == 'metrics' else ''}| Description | Example "
-                f"{'| Context Name ' if no_global_context_name else ''}|\n"
-            )
-            __tables += (
-                f"|------------{'|------|------' if key == 'metrics' else ''}|-------------|---------"
-                f"{'|--------------' if no_global_context_name else ''}|\n"
-            )
 
+            # Define columns based on key
+            if key == "metrics":
+                columns = ["Identifier", "Name", "Unit", "Description", "Example"]
+            else:
+                columns = ["Identifier", "Description", "Example"]
+            if no_global_context_name:
+                columns.append("Context Name")
+
+            # Prepare rows data
+            rows_data = []
             for key_id, details in sorted(json_data[key].items()):
-                key_id = key_id.replace(".", ".&#8203;")
+                key_id = key_id.replace(".", ".&#8203;")  # Replace "." with ".&#8203;" to avoid breaking links
                 description = _get_clean_description(details)
                 example = details.get("__example", "")
                 if isinstance(example, str) and ("@" in example or "* *" in example):
@@ -116,15 +149,44 @@ def _generate_semantics_tables(json_data: Dict, plugin_name: str, no_global_cont
                 if key == "metrics":
                     name = details.get("displayName", "")
                     unit = details.get("unit", "")
-                    __tables += f"| {key_id} | {name} | {unit} | {description} | {example} |"
+                    row = [key_id, name, unit, description, example]
                 else:
-                    __tables += f"| {key_id} | {description} | {example} |"
+                    row = [key_id, description, example]
                 if no_global_context_name:
                     context_names = ", ".join(details.get("__context_names", []))
-                    __tables += f" {context_names} |"
-                __tables += "\n"
-            __tables += "\n"
+                    row.append(context_names)
+                rows_data.append(row)
+
+            __tables += _generate_markdown_table(columns, rows_data)
     return __tables
+
+
+def _generate_bom_tables(bom_data: Dict, plugin_name: str, scope: str) -> str:
+    """Generates tables with bom information."""
+    if scope not in bom_data or not bom_data[scope]:
+        return ""
+
+    items = bom_data[scope]
+
+    # Fixed column order
+    columns = ["name", "type", "privileges", "granted to", "language", "comment"]
+    # Filter to only include columns that have data in at least one item
+    present_columns = [col for col in columns if any(col in item for item in items)]
+    column_headers = [col.capitalize() for col in present_columns]
+
+    # Prepare rows data
+    rows_data = []
+    for item in items:
+        row = []
+        for key in present_columns:
+            value = item.get(key, "")
+            if isinstance(value, list):
+                value = ", ".join(str(v) for v in value)
+            value = str(value).replace("|", "/").replace("\n", " ")
+            row.append(value)
+        rows_data.append(row)
+
+    return _generate_markdown_table(column_headers, rows_data)
 
 
 def _generate_plugins_info(dtagent_plugins_path: str) -> Tuple[str, List]:
@@ -140,14 +202,15 @@ def _generate_plugins_info(dtagent_plugins_path: str) -> Tuple[str, List]:
 
             f_info_md = os.path.join(plugin_path, "readme.md")
             f_config_md = os.path.join(plugin_path, "config.md")
+            f_bom_yml = os.path.join(plugin_path, "bom.yml")
             config_file_name = f"{plugin_folder.split('.')[0]}-config.yml"
             config_file_path = os.path.join(plugin_path, config_file_name)
 
-            if os.path.isfile(f_info_md) or os.path.isfile(f_config_md) or os.path.isfile(config_file_path):
+            if os.path.isfile(f_info_md) or os.path.isfile(f_config_md) or os.path.isfile(config_file_path) or os.path.isfile(f_bom_yml):
                 plugin_name = _get_plugin_name(plugin_folder)
                 plugin_title = _get_plugin_title(plugin_name)
                 plugin_info_sec = f"{plugin_name}_info_sec"
-                __plugins_toc.append(f"* [{plugin_title}](#{plugin_info_sec})")
+                __plugins_toc.append(f"- [{plugin_title}](#{plugin_info_sec})")
 
                 __content += f'<a name="{plugin_info_sec}"></a>\n\n## The {plugin_title} plugin\n'
 
@@ -167,6 +230,18 @@ def _generate_plugins_info(dtagent_plugins_path: str) -> Tuple[str, List]:
                     __content += "```json\n" + _read_file(config_file_path) + "\n```\n\n"
                     if os.path.isfile(f_config_md):
                         __content += _read_file(f_config_md) + "\n"
+
+                if os.path.isfile(f_bom_yml):
+                    bom_data = yaml.safe_load(_read_file(f_bom_yml))
+
+                    __content += f"### {plugin_title} Bill of Materials\n\n"
+                    __content += "The following tables list the Snowflake objects that this plugin delivers data from or references.\n\n"
+
+                    __content += f"#### Objects delivered by the `{plugin_title}` plugin\n\n"
+                    __content += _generate_bom_tables(bom_data, plugin_name, "delivers")
+
+                    __content += f"#### Objects referenced by the `{plugin_title}` plugin\n\n"
+                    __content += _generate_bom_tables(bom_data, plugin_name, "references")
 
     return __content, __plugins_toc
 
@@ -206,7 +281,7 @@ def _generate_semantics_section(dtagent_conf_path: str, dtagent_plugins_path: st
     with open(core_semantics_path, "r", encoding="utf-8") as file:
         core_semantics = yaml.safe_load(file)
         core_semantics_sec = "core_semantics_sec"
-        __plugins_toc.append(f"* [Shared semantics](#{core_semantics_sec})")
+        __plugins_toc.append(f"- [Shared semantics](#{core_semantics_sec})")
 
         __content += f'<a name="{core_semantics_sec}"></a>\n\n## Dynatrace Snowflake Observability Agent `core` semantics\n\n'
         __content += _generate_semantics_tables(core_semantics, "core", False)
@@ -227,7 +302,7 @@ def _generate_semantics_section(dtagent_conf_path: str, dtagent_plugins_path: st
                     plugin_semantics = _generate_semantics_tables(plugin_input, plugin_title, no_global_context_name)
                     if plugin_semantics:
                         plugin_semantics_sec = f"{plugin_name}_semantics_sec"
-                        __plugins_toc.append(f"* [{plugin_title}](#{plugin_semantics_sec})")
+                        __plugins_toc.append(f"- [{plugin_title}](#{plugin_semantics_sec})")
 
                         __content += f'<a name="{plugin_semantics_sec}"></a>\n\n## The `{plugin_title}` plugin semantics\n\n'
                         __content += f"[Show plugin description](#{plugin_name}_info_sec)\n\n"
@@ -344,11 +419,11 @@ def generate_readme_content(dtagent_conf_path: str, dtagent_plugins_path: str) -
                 appendix_content += _generate_appendix(os.path.join(assets_path, base_name))
                 title, anchor = _extract_appendix_info(os.path.join(assets_path, asset_file_path))
                 if title and anchor:
-                    appendix_toc.append(f"* [{title}](README.md#{anchor})")
+                    appendix_toc.append(f"- [{title}](README.md#{anchor})")
 
     if appendix_toc:
         readme_full_content += "\n".join(appendix_toc) + "\n"
-        readme_short_content += "* [Appendix](docs/APPENDIX.md)\n"
+        readme_short_content += "- [Appendix](docs/APPENDIX.md)\n"
 
     # Combine all contents into full content README for PDF generation
     readme_full_content += "\n"

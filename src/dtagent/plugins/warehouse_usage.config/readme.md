@@ -2,6 +2,6 @@ The `warehouse usage` plugin delivers detailed information regarding warehouses'
 
 It sends:
 
-* metrics on hourly credit usage of warehouses,
-* metrics on query load values for executed queries,
-* log entries on warehouse events, such as creating, dropping, altering, resizing, resuming, or suspending a cluster or the entire warehouse.
+- metrics on hourly credit usage of warehouses,
+- metrics on query load values for executed queries,
+- log entries on warehouse events, such as creating, dropping, altering, resizing, resuming, or suspending a cluster or the entire warehouse.

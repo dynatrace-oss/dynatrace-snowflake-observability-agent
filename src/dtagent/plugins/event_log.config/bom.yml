@@ -39,5 +39,5 @@ references:
   - name: $event_table
     type: table
     privileges: SELECT
-    granted to: DTAGENT_VIEW
+    granted to: DTAGENT_VIEWER
     comment: This is in case an event log table was not setup by this Dynatrace Snowflake Observability Agent instance

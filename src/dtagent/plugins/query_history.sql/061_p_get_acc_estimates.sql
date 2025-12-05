@@ -1,7 +1,7 @@
 use role DTAGENT_ADMIN; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 
 -- creating table  DTAGENT_DB.APP.TMP_QUERY_ACCELERATION_ESTIMATES to ensure it exists when deploying fresh
-create transient table if not exists DTAGENT_DB.APP.TMP_QUERY_ACCELERATION_ESTIMATES (QUERY_ID varchar, ATTRIBUTES object) DATA_RETENTION_TIME_IN_DAYS = 0;
+create or replace transient table DTAGENT_DB.APP.TMP_QUERY_ACCELERATION_ESTIMATES (QUERY_ID varchar, ATTRIBUTES object) DATA_RETENTION_TIME_IN_DAYS = 0;
 grant select on table DTAGENT_DB.APP.TMP_QUERY_ACCELERATION_ESTIMATES to role DTAGENT_VIEWER;
 
 
@@ -22,7 +22,7 @@ DECLARE
                                          and METRICS['snowflake.data.spilled.local'] = 0
                                          and METRICS['snowflake.data.spilled.remote'] = 0
                                          and METRICS['snowflake.partitions.scanned'] < 0.9*METRICS['snowflake.partitions.total']
-                                       qualify ROW_NUMBER() OVER (order by execution_time desc) < APP.F_GET_CONFIG_VALUE('plugins.query_history.slow_queries_to_analyze_limit', 100)::int 
+                                       qualify ROW_NUMBER() OVER (order by execution_time desc) < APP.F_GET_CONFIG_VALUE('plugins.query_history.slow_queries_to_analyze_limit', 100)::int
                                        order by execution_time desc;
 
     query_id                VARCHAR DEFAULT '';
@@ -49,7 +49,7 @@ BEGIN
 EXCEPTION
   when statement_error then
     SYSTEM$LOG_WARN(SQLERRM);
-    
+
     return SQLERRM;
 END;
 $$

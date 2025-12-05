@@ -44,7 +44,6 @@ Released on January 15, 2026
 - **Query History Views**: Refactored query history plugin views so that `V_QUERY_HISTORY_INSTRUMENTED` is the final view in the processing
   chain.
 - **Timestamp Analysis**: Investigated and documented the source of `overwritten1.timestamp` fields in query reports.
-- **Transient Table Review**: Reviewed the use of `CREATE TRANSIENT TABLE IF NOT EXISTS` pattern to address upgrade issues.
 - **Performance Optimization**: Improved performance and memory handling in DSOA core processing.
 
 #### Event Log Processing

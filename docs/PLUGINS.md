@@ -94,6 +94,26 @@ plugins:
 > Since this procedure runs with the elevated privileges of the `DTAGENT_ADMIN` role, you may choose to disable it and manually ensure that
 > the `DTAGENT_VIEWER` role is granted the appropriate `MONITOR` rights.
 
+### Active Queries Bill of Materials
+
+The following tables list the Snowflake objects that this plugin delivers data from or references.
+
+#### Objects delivered by the `Active Queries` plugin
+
+| Name                                           | Type      |
+| ---------------------------------------------- | --------- |
+| DTAGENT_DB.APP.F_GET_FINISHED_QUERIES()        | procedure |
+| DTAGENT_DB.APP.F_GET_RUNNING_QUERIES()         | procedure |
+| DTAGENT_DB.APP.F_ACTIVE_QUERIES_INSTRUMENTED() | procedure |
+| DTAGENT_DB.APP.TASK_DTAGENT_ACTIVE_QUERIES     | task      |
+| DTAGENT_DB.CONFIG.UPDATE_ACTIVE_QUERIES_CONF() | procedure |
+
+#### Objects referenced by the `Active Queries` plugin
+
+| Name                             | Type     | Privileges |
+| -------------------------------- | -------- | ---------- |
+| INFORMATION_SCHEMA.QUERY_HISTORY | function | USAGE      |
+
 <a name="budgets_info_sec"></a>
 
 ## The Budgets plugin
@@ -127,6 +147,44 @@ plugins:
 
 ```
 
+### Budgets Bill of Materials
+
+The following tables list the Snowflake objects that this plugin delivers data from or references.
+
+#### Objects delivered by the `Budgets` plugin
+
+| Name                                    | Type                  |
+| --------------------------------------- | --------------------- |
+| ACCOUNT_BUDGET_ADMIN                    | role                  |
+| ACCOUNT_BUDGET_MONITOR                  | role                  |
+| BUDGET_OWNER                            | role                  |
+| DTAGENT_DB.APP.DTAGENT_BUDGET           | snowflake.core.budget |
+| DTAGENT_DB.APP.TMP_BUDGETS              | transient table       |
+| DTAGENT_DB.APP.TMP_BUDGETS_LIMITS       | transient table       |
+| DTAGENT_DB.APP.TMP_BUDGETS_RESOURCES    | transient table       |
+| DTAGENT_DB.APP.TMP_BUDGET_SPENDING      | transient table       |
+| DTAGENT_DB.APP.P_GET_BUDGETS()          | procedure             |
+| DTAGENT_DB.APP.V_BUDGET_SPENDINGS       | view                  |
+| DTAGENT_DB.APP.V_BUDGET_DETAILS         | view                  |
+| DTAGENT_DB.CONFIG.UPDATE_BUDGETS_CONF() | procedure             |
+| DTAGENT_DB.APP.TASK_DTAGENT_BUDGETS     | task                  |
+
+#### Objects referenced by the `Budgets` plugin
+
+| Name                         | Type        | Privileges                      | Granted to             | Comment                                                    |
+| ---------------------------- | ----------- | ------------------------------- | ---------------------- | ---------------------------------------------------------- |
+| SNOWFLAKE                    | application | IMPORTED PRIVILEGES ON DATABASE | ACCOUNT_BUDGET_ADMIN   |                                                            |
+| SNOWFLAKE.BUDGET_ADMIN       | role        | APPLICATION ROLE                | ACCOUNT_BUDGET_ADMIN   |                                                            |
+| SNOWFLAKE.BUDGET_VIEWER      | role        | APPLICATION ROLE                | ACCOUNT_BUDGET_MONITOR |                                                            |
+| SNOWFLAKE.BUDGET_CREATOR     | role        | DATABASE ROLE                   | BUDGET_OWNER           |                                                            |
+| ACCOUNT_BUDGET_ADMIN         | role        | ROLE                            | DTAGENT_ADMIN          |                                                            |
+| ACCOUNT_BUDGET_MONITOR       | role        | ROLE                            | DTAGENT_VIEWER         |                                                            |
+| BUDGET_OWNER                 | role        | ROLE                            | DTAGENT_ADMIN          |                                                            |
+| SNOWFLAKE.CORE.BUDGET        | command     | USAGE                           |                        |                                                            |
+| $budget!GET_LINKED_RESOURCES | procedure   | USAGE                           |                        | We call this procedure on each budget defined in Snowflake |
+| $budget!GET_SPENDING_LIMIT   | procedure   | USAGE                           |                        | We call this procedure on each budget defined in Snowflake |
+| $budget!GET_SPENDING_HISTORY | procedure   | USAGE                           |                        | We call this procedure on each budget defined in Snowflake |
+
 <a name="data_schemas_info_sec"></a>
 
 ## The Data Schemas plugin
@@ -156,6 +214,24 @@ plugins:
       - biz_events
 
 ```
+
+### Data Schemas Bill of Materials
+
+The following tables list the Snowflake objects that this plugin delivers data from or references.
+
+#### Objects delivered by the `Data Schemas` plugin
+
+| Name                                         | Type      |
+| -------------------------------------------- | --------- |
+| DTAGENT_DB.APP.V_DATA_SCHEMAS                | view      |
+| DTAGENT_DB.CONFIG.UPDATE_DATA_SCHEMAS_CONF() | procedure |
+| DTAGENT_DB.APP.TASK_DTAGENT_DATA_SCHEMAS     | task      |
+
+#### Objects referenced by the `Data Schemas` plugin
+
+| Name                                   | Type | Privileges |
+| -------------------------------------- | ---- | ---------- |
+| SNOWFLAKE.ACCOUNT_USAGE.ACCESS_HISTORY | view | SELECT     |
 
 <a name="data_volume_info_sec"></a>
 
@@ -197,6 +273,24 @@ plugins:
       - biz_events
 
 ```
+
+### Data Volume Bill of Materials
+
+The following tables list the Snowflake objects that this plugin delivers data from or references.
+
+#### Objects delivered by the `Data Volume` plugin
+
+| Name                                        | Type      |
+| ------------------------------------------- | --------- |
+| DTAGENT_DB.APP.V_DATA_VOLUME                | view      |
+| DTAGENT_DB.CONFIG.UPDATE_DATA_VOLUME_CONF() | procedure |
+| DTAGENT_DB.APP.TASK_DTAGENT_DATA_VOLUME     | task      |
+
+#### Objects referenced by the `Data Volume` plugin
+
+| Name                           | Type | Privileges |
+| ------------------------------ | ---- | ---------- |
+| SNOWFLAKE.ACCOUNT_USAGE.TABLES | view | SELECT     |
 
 <a name="dynamic_tables_info_sec"></a>
 
@@ -243,6 +337,32 @@ plugins:
 > The schedule for this task can be configured separately using the `PLUGINS.DYNAMIC_TABLES.SCHEDULE_GRANTS` configuration option.  
 > Alternatively, you may choose to disable this special task and manually ensure that the `DTAGENT_VIEWER` role is granted the necessary
 > `MONITOR` rights.
+
+### Dynamic Tables Bill of Materials
+
+The following tables list the Snowflake objects that this plugin delivers data from or references.
+
+#### Objects delivered by the `Dynamic Tables` plugin
+
+| Name                                                        | Type      |
+| ----------------------------------------------------------- | --------- |
+| DTAGENT_DB.APP.P_GRANT_MONITOR_DYNAMIC_TABLES()             | procedure |
+| DTAGENT_DB.APP.V_DYNAMIC_TABLE_GRAPH_HISTORY_INSTRUMENTED   | view      |
+| DTAGENT_DB.APP.V_DYNAMIC_TABLE_REFRESH_HISTORY_INSTRUMENTED | view      |
+| DTAGENT_DB.APP.V_DYNAMIC_TABLES_INSTRUMENTED                | view      |
+| DTAGENT_DB.CONFIG.UPDATE_DYNAMIC_TABLES_CONF()              | procedure |
+| DTAGENT_DB.APP.TASK_DTAGENT_DYNAMIC_TABLES                  | task      |
+
+#### Objects referenced by the `Dynamic Tables` plugin
+
+| Name                                             | Type          | Privileges | Granted to     | Comment                                                                    |
+| ------------------------------------------------ | ------------- | ---------- | -------------- | -------------------------------------------------------------------------- |
+| SHOW DATABASES                                   | command       | USAGE      |                |                                                                            |
+| ALL DYNAMIC TABLES IN DATABASE $database         | dynamic table | MONITOR    | DTAGENT_VIEWER | We grant that on every database selected in configuration or all (default) |
+| ALL FUTURE TABLES IN DATABASE $database          | table         | MONITOR    | DTAGENT_VIEWER | We grant that on every database selected in configuration or all (default) |
+| INFORMATION_SCHEMA.DYNAMIC_TABLE_REFRESH_HISTORY | view          | USAGE      | DTAGENT_VIEWER |                                                                            |
+| INFORMATION_SCHEMA.DYNAMIC_TABLE_GRAPH_HISTORY   | view          | USAGE      | DTAGENT_VIEWER |                                                                            |
+| INFORMATION_SCHEMA.DYNAMIC_TABLES                | view          | USAGE      | DTAGENT_VIEWER |                                                                            |
 
 <a name="event_log_info_sec"></a>
 
@@ -311,6 +431,32 @@ plugins:
 > **INFO**: The `EVENT_LOG` table cleanup process works only if this specific instance of Dynatrace Snowflake Observability Agent set up the
 > table.
 
+### Event Log Bill of Materials
+
+The following tables list the Snowflake objects that this plugin delivers data from or references.
+
+#### Objects delivered by the `Event Log` plugin
+
+| Name                                            | Type       | Comment                                                                                                                                                                                                                                |
+| ----------------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| DTAGENT_DB.STATUS.EVENT_LOG                     | table/view | Dynatrace Snowflake Observability Agent can setup an event table if one does not exist. It creates a view over an existing event log table if that table was not setup by the actual Dynatrace Snowflake Observability Agent instance. |
+| DTAGENT_DB.APP.SETUP_EVENT_TABLE()              | procedure  |                                                                                                                                                                                                                                        |
+| DTAGENT_DB.APP.P_CLEANUP_EVENT_LOG()            | procedure  |                                                                                                                                                                                                                                        |
+| DTAGENT_DB.APP.V_EVENT_LOG                      | view       |                                                                                                                                                                                                                                        |
+| DTAGENT_DB.APP.V_EVENT_LOG_SPANS_INSTRUMENTED   | view       |                                                                                                                                                                                                                                        |
+| DTAGENT_DB.APP.V_EVENT_LOG_METRICS_INSTRUMENTED | view       |                                                                                                                                                                                                                                        |
+| DTAGENT_DB.CONFIG.UPDATE_EVENT_LOG_CONF()       | procedure  |                                                                                                                                                                                                                                        |
+| DTAGENT_DB.APP.TASK_DTAGENT_EVENT_LOG           | task       |                                                                                                                                                                                                                                        |
+
+#### Objects referenced by the `Event Log` plugin
+
+| Name            | Type    | Privileges               | Granted to     | Comment                                                                                                                                                                                          |
+| --------------- | ------- | ------------------------ | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| SHOW PARAMETERS | command | USAGE                    |                | We call `show PARAMETERS like 'EVENT_TABLE' in ACCOUNT` to determine if event table is already setup, and whether this is a table setup by this Dynatrace Snowflake Observability Agent instance |
+| ACCOUNT         | account | MODIFY LOG LEVEL         | DTAGENT_ADMIN  |                                                                                                                                                                                                  |
+| ACCOUNT         | account | MODIFY SESSION LOG LEVEL | DTAGENT_ADMIN  |                                                                                                                                                                                                  |
+| $event_table    | table   | SELECT                   | DTAGENT_VIEWER | This is in case an event log table was not setup by this Dynatrace Snowflake Observability Agent instance                                                                                        |
+
 <a name="event_usage_info_sec"></a>
 
 ## The Event Usage plugin
@@ -344,6 +490,24 @@ plugins:
       - biz_events
 
 ```
+
+### Event Usage Bill of Materials
+
+The following tables list the Snowflake objects that this plugin delivers data from or references.
+
+#### Objects delivered by the `Event Usage` plugin
+
+| Name                                        | Type      |
+| ------------------------------------------- | --------- |
+| DTAGENT_DB.APP.V_EVENT_USAGE_HISTORY        | view      |
+| DTAGENT_DB.CONFIG.UPDATE_EVENT_USAGE_CONF() | procedure |
+| DTAGENT_DB.APP.TASK_DTAGENT_EVENT_USAGE     | task      |
+
+#### Objects referenced by the `Event Usage` plugin
+
+| Name                                        | Type | Privileges |
+| ------------------------------------------- | ---- | ---------- |
+| SNOWFLAKE.ACCOUNT_USAGE.EVENT_USAGE_HISTORY | view | SELECT     |
 
 <a name="login_history_info_sec"></a>
 
@@ -382,6 +546,26 @@ plugins:
       - biz_events
 
 ```
+
+### Login History Bill of Materials
+
+The following tables list the Snowflake objects that this plugin delivers data from or references.
+
+#### Objects delivered by the `Login History` plugin
+
+| Name                                          | Type      |
+| --------------------------------------------- | --------- |
+| DTAGENT_DB.APP.V_LOGIN_HISTORY                | view      |
+| DTAGENT_DB.APP.V_SESSIONS                     | view      |
+| DTAGENT_DB.CONFIG.UPDATE_LOGIN_HISTORY_CONF() | procedure |
+| DTAGENT_DB.APP.TASK_DTAGENT_LOGIN_HISTORY     | task      |
+
+#### Objects referenced by the `Login History` plugin
+
+| Name                                  | Type | Privileges |
+| ------------------------------------- | ---- | ---------- |
+| SNOWFLAKE.ACCOUNT_USAGE.LOGIN_HISTORY | view | SELECT     |
+| SNOWFLAKE.ACCOUNT_USAGE.SESSIONS      | view | SELECT     |
 
 <a name="query_history_info_sec"></a>
 
@@ -442,12 +626,43 @@ The following options control this behavior:
 - `PLUGINS.QUERY_HISTORY.MAX_SLOWEST_QUERIES`: The maximum number of slowest queries to analyze. Default: `50`.
 
 > **IMPORTANT**: For the `query_history` and `active_queries` plugins to report telemetry for all queries, the `DTAGENT_VIEWER` role must be
-> granted `MONITOR` privileges on all warehouses.  
-> This is ensured by default through the periodic execution of the `APP.P_MONITOR_WAREHOUSES()` procedure, triggered by the
-> `APP.TASK_DTAGENT_QUERY_HISTORY_GRANTS` task.  
-> The schedule for this special task can be configured using the `PLUGINS.QUERY_HISTORY.SCHEDULE_GRANTS` configuration option. Since this
-> procedure runs with the elevated privileges of the `DTAGENT_ADMIN` role, you may choose to disable it and manually ensure that the
-> `DTAGENT_VIEWER` role is granted the appropriate `MONITOR` rights.
+> granted `MONITOR` privileges on all warehouses. This is ensured by default through the periodic execution of the
+> `APP.P_MONITOR_WAREHOUSES()` procedure, triggered by the `APP.TASK_DTAGENT_QUERY_HISTORY_GRANTS` task. The schedule for this special task
+> can be configured using the `PLUGINS.QUERY_HISTORY.SCHEDULE_GRANTS` configuration option. Since this procedure runs with the elevated
+> privileges of the `DTAGENT_ADMIN` role, you may choose to disable it and manually ensure that the `DTAGENT_VIEWER` role is granted the
+> appropriate `MONITOR` rights.
+
+### Query History Bill of Materials
+
+The following tables list the Snowflake objects that this plugin delivers data from or references.
+
+#### Objects delivered by the `Query History` plugin
+
+| Name                                                     | Type            |
+| -------------------------------------------------------- | --------------- |
+| DTAGENT_DB.STATUS.PROCESSED_QUERIES_CACHE                | table           |
+| DTAGENT_DB.STATUS.UPDATE_PROCESSED_QUERIES(text,int,int) | procedure       |
+| DTAGENT_DB.APP.TMP_RECENT_QUERIES                        | transient table |
+| DTAGENT_DB.APP.TMP_QUERY_OPERATOR_STATS                  | transient table |
+| DTAGENT_DB.APP.TMP_QUERY_ACCELERATION_ESTIMATES          | transient table |
+| DTAGENT_DB.APP.V_QUERY_HISTORY                           | view            |
+| DTAGENT_DB.APP.V_QUERY_HISTORY_INSTRUMENTED              | view            |
+| DTAGENT_DB.APP.V_RECENT_QUERIES                          | view            |
+| DTAGENT_DB.CONFIG.P_GET_ACCELERATION_ESTIMATES()         | procedure       |
+| DTAGENT_DB.CONFIG.UPDATE_QUERY_HISTORY_CONF()            | procedure       |
+| DTAGENT_DB.APP.TASK_DTAGENT_QUERY_HISTORY                | task            |
+
+#### Objects referenced by the `Query History` plugin
+
+| Name                                   | Type              | Privileges |
+| -------------------------------------- | ----------------- | ---------- |
+| SNOWFLAKE.ACCOUNT_USAGE.ACCESS_HISTORY | view              | SELECT     |
+| SNOWFLAKE.ACCOUNT_USAGE.QUERY_HISTORY  | view              | SELECT     |
+| SNOWFLAKE.ACCOUNT_USAGE.SESSIONS       | view              | SELECT     |
+| SYSTEM$ESTIMATE_QUERY_ACCELERATION     | function          | USAGE      |
+| GET_QUERY_OPERATOR_STATS               | function          | USAGE      |
+| ENABLE_UNREDACTED_QUERY_SYNTAX_ERROR   | account parameter | ALTER      |
+| SHOW WAREHOUSES                        | command           | USAGE      |
 
 <a name="resource_monitors_info_sec"></a>
 
@@ -488,6 +703,29 @@ plugins:
       - biz_events
 
 ```
+
+### Resource Monitors Bill of Materials
+
+The following tables list the Snowflake objects that this plugin delivers data from or references.
+
+#### Objects delivered by the `Resource Monitors` plugin
+
+| Name                                              | Type            |
+| ------------------------------------------------- | --------------- |
+| DTAGENT_DB.APP.TMP_RESOURCE_MONITORS              | transient table |
+| DTAGENT_DB.APP.TMP_WAREHOUSES                     | transient table |
+| DTAGENT_DB.APP.V_RESOURCE_MONITORS                | view            |
+| DTAGENT_DB.APP.V_WAREHOUSES                       | view            |
+| DTAGENT_DB.CONFIG.P_REFRESH_RESOURCE_MONITORS()   | procedure       |
+| DTAGENT_DB.CONFIG.UPDATE_RESOURCE_MONITORS_CONF() | procedure       |
+| DTAGENT_DB.APP.TASK_DTAGENT_RESOURCE_MONITORS     | task            |
+
+#### Objects referenced by the `Resource Monitors` plugin
+
+| Name                   | Type    | Privileges |
+| ---------------------- | ------- | ---------- |
+| SHOW RESOURCE MONITORS | command | USAGE      |
+| SHOW WAREHOUSES        | command | USAGE      |
 
 <a name="shares_info_sec"></a>
 
@@ -530,6 +768,37 @@ plugins:
       - biz_events
 
 ```
+
+### Shares Bill of Materials
+
+The following tables list the Snowflake objects that this plugin delivers data from or references.
+
+#### Objects delivered by the `Shares` plugin
+
+| Name                                                             | Type            |
+| ---------------------------------------------------------------- | --------------- |
+| DTAGENT_DB.APP.TMP_SHARES                                        | transient table |
+| DTAGENT_DB.APP.TMP_OUTBOUND_SHARES                               | transient table |
+| DTAGENT_DB.APP.TMP_INBOUND_SHARES                                | transient table |
+| DTAGENT_DB.APP.V_SHARE_EVENTS                                    | view            |
+| DTAGENT_DB.APP.V_INBOUND_SHARE_TABLES                            | view            |
+| DTAGENT_DB.APP.V_OUTBOUND_SHARE_TABLES                           | view            |
+| DTAGENT_DB.CONFIG.P_GET_SHARES()                                 | procedure       |
+| DTAGENT_DB.CONFIG.P_GRANT_IMPORTED_PRIVILEGES(varchar)           | procedure       |
+| DTAGENT_DB.CONFIG.P_LIST_INBOUND_TABLES(varchar,varchar,boolean) | procedure       |
+| DTAGENT_DB.CONFIG.UPDATE_SHARES_CONF()                           | procedure       |
+| DTAGENT_DB.APP.TASK_DTAGENT_SHARES                               | task            |
+
+#### Objects referenced by the `Shares` plugin
+
+| Name                                       | Type    | Privileges                      | Granted to     | Comment                                                                                                              |
+| ------------------------------------------ | ------- | ------------------------------- | -------------- | -------------------------------------------------------------------------------------------------------------------- |
+| $shared_database                           | share   | IMPORTED PRIVILEGES ON DATABASE | DTAGENT_VIEWER |                                                                                                                      |
+| $shared_database.INFORMATION_SCHEMA.TABLES | view    | SELECT                          | DTAGENT_VIEWER |                                                                                                                      |
+| ACCOUNT                                    | account | IMPORT SHARE                    | DTAGENT_VIEWER | We just need to read the metadata about the shares and objects being shared wish there was a way with less privilege |
+| SHOW SHARES                                | command | USAGE                           |                |                                                                                                                      |
+| SHOW GRANTS TO SHARE $share                | command | USAGE                           |                |                                                                                                                      |
+| SNOWFLAKE.ACCOUNT_USAGE.DATABASES          | view    | SELECT                          | DTAGENT_VIEWER |                                                                                                                      |
 
 <a name="tasks_info_sec"></a>
 
@@ -575,6 +844,28 @@ plugins:
 
 ```
 
+### Tasks Bill of Materials
+
+The following tables list the Snowflake objects that this plugin delivers data from or references.
+
+#### Objects delivered by the `Tasks` plugin
+
+| Name                                  | Type      |
+| ------------------------------------- | --------- |
+| DTAGENT_DB.APP.V_SERVERLESS_TASKS     | view      |
+| DTAGENT_DB.APP.V_TASK_VERSIONS        | view      |
+| DTAGENT_DB.APP.V_TASK_HISTORY         | view      |
+| DTAGENT_DB.CONFIG.UPDATE_TASKS_CONF() | procedure |
+| DTAGENT_DB.APP.TASK_DTAGENT_TASKS     | task      |
+
+#### Objects referenced by the `Tasks` plugin
+
+| Name                                            | Type     | Privileges |
+| ----------------------------------------------- | -------- | ---------- |
+| SNOWFLAKE.ACCOUNT_USAGE.SERVERLESS_TASK_HISTORY | view     | SELECT     |
+| SNOWFLAKE.ACCOUNT_USAGE.TASK_VERSIONS           | view     | SELECT     |
+| INFORMATION_SCHEMA.TASK_HISTORY()               | function | USAGE      |
+
 <a name="trust_center_info_sec"></a>
 
 ## The Trust Center plugin
@@ -610,6 +901,26 @@ plugins:
       - biz_events
 
 ```
+
+### Trust Center Bill of Materials
+
+The following tables list the Snowflake objects that this plugin delivers data from or references.
+
+#### Objects delivered by the `Trust Center` plugin
+
+| Name                                         | Type      |
+| -------------------------------------------- | --------- |
+| DTAGENT_DB.APP.V_TRUST_CENTER_FINDINGS       | view      |
+| DTAGENT_DB.APP.V_TRUST_CENTER_METRICS        | view      |
+| DTAGENT_DB.CONFIG.UPDATE_TRUST_CENTER_CONF() | procedure |
+| DTAGENT_DB.APP.TASK_DTAGENT_TRUST_CENTER     | task      |
+
+#### Objects referenced by the `Trust Center` plugin
+
+| Name                            | Type | Privileges       | Granted to     |
+| ------------------------------- | ---- | ---------------- | -------------- |
+| SNOWFLAKE.TRUST_CENTER_VIEWER   | role | APPLICATION ROLE | DTAGENT_VIEWER |
+| SNOWFLAKE.TRUST_CENTER.FINDINGS | view | SELECT           | DTAGENT_VIEWER |
 
 <a name="users_info_sec"></a>
 
@@ -661,6 +972,35 @@ plugins:
 
 ```
 
+### Users Bill of Materials
+
+The following tables list the Snowflake objects that this plugin delivers data from or references.
+
+#### Objects delivered by the `Users` plugin
+
+| Name                                                     | Type            |
+| -------------------------------------------------------- | --------------- |
+| DTAGENT_DB.APP.TMP_USERS                                 | transient table |
+| DTAGENT_DB.APP.TMP_USERS_HELPER                          | transient table |
+| DTAGENT_DB.APP.V_USERS_INSTRUMENTED                      | view            |
+| DTAGENT_DB.APP.V_USERS_ALL_PRIVILEGES_INSTRUMENTED       | view            |
+| DTAGENT_DB.APP.V_USERS_ALL_ROLES_INSTRUMENTED            | view            |
+| DTAGENT_DB.APP.V_USERS_DIRECT_ROLES_INSTRUMENTED         | view            |
+| DTAGENT_DB.APP.V_USERS_REMOVED_DIRECT_ROLES_INSTRUMENTED | view            |
+| DTAGENT_DB.CONFIG.P_GET_USERS()                          | procedure       |
+| DTAGENT_DB.CONFIG.UPDATE_USERS_CONF()                    | procedure       |
+| DTAGENT_DB.APP.TASK_DTAGENT_USERS                        | task            |
+
+#### Objects referenced by the `Users` plugin
+
+| Name                                    | Type | Privileges |
+| --------------------------------------- | ---- | ---------- |
+| SNOWFLAKE.ACCOUNT_USAGE.USERS           | view | SELECT     |
+| SNOWFLAKE.ACCOUNT_USAGE.LOGIN_HISTORY   | view | SELECT     |
+| SNOWFLAKE.ACCOUNT_USAGE.GRANTS_TO_USERS | view | SELECT     |
+| SNOWFLAKE.ACCOUNT_USAGE.ROLES           | view | SELECT     |
+| SNOWFLAKE.ACCOUNT_USAGE.GRANTS_TO_ROLES | view | SELECT     |
+
 <a name="warehouse_usage_info_sec"></a>
 
 ## The Warehouse Usage plugin
@@ -695,3 +1035,25 @@ plugins:
       - biz_events
 
 ```
+
+### Warehouse Usage Bill of Materials
+
+The following tables list the Snowflake objects that this plugin delivers data from or references.
+
+#### Objects delivered by the `Warehouse Usage` plugin
+
+| Name                                            | Type      |
+| ----------------------------------------------- | --------- |
+| DTAGENT_DB.APP.V_WAREHOUSE_EVENT_HISTORY        | view      |
+| DTAGENT_DB.APP.V_WAREHOUSE_LOAD_HISTORY         | view      |
+| DTAGENT_DB.APP.V_WAREHOUSE_METERING_HISTORY     | view      |
+| DTAGENT_DB.CONFIG.UPDATE_WAREHOUSE_USAGE_CONF() | procedure |
+| DTAGENT_DB.APP.TASK_DTAGENT_WAREHOUSE_USAGE     | task      |
+
+#### Objects referenced by the `Warehouse Usage` plugin
+
+| Name                                               | Type | Privileges |
+| -------------------------------------------------- | ---- | ---------- |
+| SNOWFLAKE.ACCOUNT_USAGE.WAREHOUSE_EVENTS_HISTORY   | view | SELECT     |
+| SNOWFLAKE.ACCOUNT_USAGE.WAREHOUSE_LOAD_HISTORY     | view | SELECT     |
+| SNOWFLAKE.ACCOUNT_USAGE.WAREHOUSE_METERING_HISTORY | view | SELECT     |

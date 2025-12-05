@@ -3,7 +3,7 @@ delivers:
     type: procedure
   - name: DTAGENT_DB.APP.F_GET_RUNNING_QUERIES()
     type: procedure
-  - name: DTAGENT_DB.APP.DTAGENT_DB.APP.F_ACTIVE_QUERIES_INSTRUMENTED()
+  - name: DTAGENT_DB.APP.F_ACTIVE_QUERIES_INSTRUMENTED()
     type: procedure
   - name: DTAGENT_DB.APP.TASK_DTAGENT_ACTIVE_QUERIES
     type: task
