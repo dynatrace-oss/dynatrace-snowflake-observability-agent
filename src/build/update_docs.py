@@ -92,6 +92,37 @@ def _get_clean_description(details: dict) -> str:
     return description.replace("\n", " ").replace("-", "<br>-")
 
 
+def _generate_markdown_table(columns: List[str], rows_data: List[List]) -> str:
+    """Generates a Markdown table with left-aligned columns based on max content length.
+
+    Args:
+        columns: List of column header strings.
+        rows_data: List of rows, each row is a list of cell values.
+
+    Returns:
+        Markdown table string.
+    """
+    # Calculate column widths
+    column_widths = []
+    for i, header in enumerate(columns):
+        max_len = len(header)
+        for row in rows_data:
+            max_len = max(max_len, len(str(row[i])))
+        column_widths.append(max_len)
+
+    # Generate header
+    header = "| " + " | ".join(f"{h:<{w}}" for h, w in zip(columns, column_widths)) + " |\n"
+    separator = "| " + " | ".join("-" * w for w in column_widths) + " |\n"
+
+    # Generate rows
+    rows = ""
+    for row_data in rows_data:
+        row = "| " + " | ".join(f"{str(cell):<{w}}" for cell, w in zip(row_data, column_widths)) + " |\n"
+        rows += row
+
+    return header + separator + rows + "\n"
+
+
 def _generate_semantics_tables(json_data: Dict, plugin_name: str, no_global_context_name: bool) -> str:
     """Generates tables with semantics."""
     __tables = ""
@@ -126,25 +157,7 @@ def _generate_semantics_tables(json_data: Dict, plugin_name: str, no_global_cont
                     row.append(context_names)
                 rows_data.append(row)
 
-            # Calculate column widths
-            column_widths = []
-            for i, header in enumerate(columns):
-                max_len = len(header)
-                for row in rows_data:
-                    max_len = max(max_len, len(str(row[i])))
-                column_widths.append(max_len)
-
-            # Generate header
-            header = "| " + " | ".join(f"{h:<{w}}" for h, w in zip(columns, column_widths)) + " |\n"
-            separator = "| " + " | ".join("-" * w for w in column_widths) + " |\n"
-
-            # Generate rows
-            rows = ""
-            for row_data in rows_data:
-                row = "| " + " | ".join(f"{str(cell):<{w}}" for cell, w in zip(row_data, column_widths)) + " |\n"
-                rows += row
-
-            __tables += header + separator + rows + "\n"
+            __tables += _generate_markdown_table(columns, rows_data)
     return __tables
 
 
@@ -173,25 +186,7 @@ def _generate_bom_tables(bom_data: Dict, plugin_name: str, scope: str) -> str:
             row.append(value)
         rows_data.append(row)
 
-    # Calculate column widths: max length of header and all values in column
-    column_widths = []
-    for i, header in enumerate(column_headers):
-        max_len = len(header)
-        for row in rows_data:
-            max_len = max(max_len, len(row[i]))
-        column_widths.append(max_len)
-
-    # Generate header
-    header = "| " + " | ".join(f"{h:<{w}}" for h, w in zip(column_headers, column_widths)) + " |\n"
-    separator = "| " + " | ".join("-" * w for w in column_widths) + " |\n"
-
-    # Generate rows
-    rows = ""
-    for row_data in rows_data:
-        row = "| " + " | ".join(f"{cell:<{w}}" for cell, w in zip(row_data, column_widths)) + " |\n"
-        rows += row
-
-    return header + separator + rows + "\n"
+    return _generate_markdown_table(column_headers, rows_data)
 
 
 def _generate_plugins_info(dtagent_plugins_path: str) -> Tuple[str, List]:
