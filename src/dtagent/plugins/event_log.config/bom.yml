@@ -29,12 +29,15 @@ references:
       to determine if event table is already setup, and
       whether this is a table setup by this Dynatrace Snowflake Observability Agent instance
   - name: ACCOUNT
+    type: account
     privileges: MODIFY LOG LEVEL
     granted to: DTAGENT_ADMIN
   - name: ACCOUNT
+    type: account
     privileges: MODIFY SESSION LOG LEVEL
     granted to: DTAGENT_ADMIN
   - name: $event_table
+    type: table
     privileges: SELECT
     granted to: DTAGENT_VIEW
     comment: This is in case an event log table was not setup by this Dynatrace Snowflake Observability Agent instance

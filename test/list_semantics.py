@@ -80,7 +80,7 @@ def _get_telemetry_attributes_from_instruments(instruments_data: str, plugin_nam
 
 
 def _process_instruments_file(file_path: str) -> List[Dict]:
-    """Analyzes given instruments-def.yaml file for a list of metrics"""
+    """Analyzes given instruments-def.yml file for a list of metrics"""
     from build.utils import read_clean_yml_from_file
 
     logging.debug("Processing file: %s", file_path)

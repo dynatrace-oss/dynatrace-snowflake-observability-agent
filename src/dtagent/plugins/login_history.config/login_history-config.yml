@@ -1,0 +1,7 @@
+plugins:
+  login_history:
+    schedule: USING CRON */30 * * * * UTC
+    is_disabled: false
+    telemetry:
+      - logs
+      - biz_events

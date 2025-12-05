@@ -43,6 +43,7 @@ markdown2
 weasyprint
 pyyaml
 # github tests
+check-jsonschema
 pylint
 flake8
 black

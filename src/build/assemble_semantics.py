@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
-"""
-Assemble metric semantics from instruments-def.yml files.
-"""
+"""Assemble metric semantics from instruments-def.yml files."""
 #
 #
 # Copyright (c) 2025 Dynatrace Open Source
@@ -26,10 +24,7 @@ Assemble metric semantics from instruments-def.yml files.
 #
 #
 
-import yaml
-import os
-from dtagent.otel.semantics import Semantics
-from build.utils import find_files, read_clean_yml_from_file, get_metric_semantics
+from build.utils import get_metric_semantics
 
 
 def main():

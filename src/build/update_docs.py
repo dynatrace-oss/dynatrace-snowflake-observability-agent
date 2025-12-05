@@ -140,7 +140,7 @@ def _generate_plugins_info(dtagent_plugins_path: str) -> Tuple[str, List]:
 
             f_info_md = os.path.join(plugin_path, "readme.md")
             f_config_md = os.path.join(plugin_path, "config.md")
-            config_file_name = f"{plugin_folder.split('.')[0]}-config.json"
+            config_file_name = f"{plugin_folder.split('.')[0]}-config.yml"
             config_file_path = os.path.join(plugin_path, config_file_name)
 
             if os.path.isfile(f_info_md) or os.path.isfile(f_config_md) or os.path.isfile(config_file_path):

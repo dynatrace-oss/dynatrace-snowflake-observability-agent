@@ -25,10 +25,10 @@ import os
 import sys
 import uuid
 import datetime
-from typing import Any, Generator, Dict, List, Optional, Callable, Tuple
+from typing import Any, Generator, Union, Dict, List, Optional, Callable, Tuple
 import logging
 import json
-import fnmatch
+import yaml
 import jsonstrip
 from unittest.mock import patch, Mock
 from snowflake import snowpark
@@ -41,7 +41,7 @@ from test import TestConfiguration
 from test._mocks.telemetry import MockTelemetryClient
 from build.utils import find_files, get_metric_semantics
 
-TEST_CONFIG_FILE_NAME = "./test/conf/config-download.json"
+TEST_CONFIG_FILE_NAME = "./test/conf/config-download.yml"
 
 
 def _pickle_all(session: snowpark.Session, pickles: dict, force: bool = False):
@@ -329,11 +329,11 @@ def get_config(pickle_conf: str = None) -> TestConfiguration:
         conf = conf_class._config
 
         with open(TEST_CONFIG_FILE_NAME, "w", encoding="utf-8") as f:
-            json.dump(conf, f, indent=4)
+            yaml.safe_dump(conf, f)
 
     elif os.path.isfile(TEST_CONFIG_FILE_NAME):  # load existing config file
         with open(TEST_CONFIG_FILE_NAME, "r", encoding="utf-8") as f:
-            conf = json.load(f)
+            conf = yaml.safe_load(f)
     else:  # we need to create the config from scratch with dummy settings based on defaults
         from dtagent.otel.metrics import Metrics
         from dtagent.otel.events.generic import GenericEvents
@@ -362,10 +362,10 @@ def get_config(pickle_conf: str = None) -> TestConfiguration:
             "otel": {},
             "plugins": plugins,
         }
-        for file_path in find_files("src/dtagent/plugins", "*-config.json"):
-            plugin_conf = lowercase_keys(read_clean_json_from_file(file_path))
+        for file_path in find_files("src/dtagent/plugins", "*-config.yml"):
+            plugin_conf = lowercase_keys(read_clean_data_from_file(file_path, is_yaml=True))
             plugins.update(plugin_conf.get("plugins", {}))
-        otel_config = lowercase_keys(read_clean_json_from_file("src/dtagent.conf/otel-config.json"))
+        otel_config = lowercase_keys(read_clean_data_from_file("src/dtagent.conf/otel-config.yml", is_yaml=True))
         conf["otel"] |= otel_config.get("otel", {})
         conf["plugins"] |= otel_config.get("plugins", {})
         conf["metric_semantics"] = get_metric_semantics()
@@ -373,22 +373,26 @@ def get_config(pickle_conf: str = None) -> TestConfiguration:
     return TestConfiguration(conf)
 
 
-def read_clean_json_from_file(file_path: str) -> List[Dict]:
-    """Reads given file into a dictionary, in case this is JSONC a clean JSON content is provided before turning into dict
+def read_clean_data_from_file(file_path: str, is_yaml: bool = False) -> Union[Dict, List[Dict], Any]:
+    """Reads given file (YAML, JSON, JSONC) into a dictionary.
+    In case this is JSONC a clean JSON content is provided before turning into dict
 
     Args:
-        file_path (str): path to the file with JSON or JSONC content
+        file_path (str): path to the file with YAML, JSON or JSONC content
 
     Returns:
-        List[Dict]: dictionary based on the content of the JSON/JSONC file
+        List[Dict]: dictionary based on the content of the YAML|JSON|JSONC file
     """
     logging.debug("Reading clean json file: %s", file_path)
 
     with open(file_path, "r", encoding="utf-8") as file:
 
-        jsonc_str = file.read()
-        json_str = jsonstrip.strip(jsonc_str)
-        data = json.loads(json_str)
+        data_str = file.read()
+        if is_yaml:
+            data = yaml.safe_load(data_str)
+        else:
+            json_str = jsonstrip.strip(data_str)
+            data = json.loads(json_str)
 
         return data
 

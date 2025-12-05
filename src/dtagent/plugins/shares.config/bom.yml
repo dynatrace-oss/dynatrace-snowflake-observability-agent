@@ -32,6 +32,7 @@ references:
     privileges: SELECT
     granted to: DTAGENT_VIEWER
   - name: ACCOUNT
+    type: account
     privileges: IMPORT SHARE
     granted to: DTAGENT_VIEWER
     comment: |

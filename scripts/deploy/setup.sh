@@ -31,7 +31,7 @@ CWD=$(dirname "$0")
 echo "Checking for missing tools"
 
 TO_INSTALL=""
-for cmd in "jq"; do
+for cmd in "jq" "yq"; do
     if ! command -v "$cmd" &>/dev/null; then
         echo "$cmd is missing"
         TO_INSTALL="$cmd $TO_INSTALL"
@@ -82,7 +82,7 @@ if [ "$ENV" == '' ]; then
 else
     EXISTING_CONNECTIONS=$(snow connection list)
 
-    for DEPLOYMENT_ENV in $(jq -r '.[].CORE.DEPLOYMENT_ENVIRONMENT' conf/config-$ENV.json); do
+    for DEPLOYMENT_ENV in $(jq -r '.[].core.deployment_environment' conf/config-$ENV.yml); do
         echo "Checking connection profile for $DEPLOYMENT_ENV..."
         CONNECTION_ENV="${DEPLOYMENT_ENV,,}" # convert to lower case
         if ! echo "$EXISTING_CONNECTIONS" | grep -E -q "snow_agent_$CONNECTION_ENV\s"; then

@@ -1,0 +1,12 @@
+[
+  {
+    "CORE": {
+      "DYNATRACE_TENANT_ADDRESS": "test1.com"
+    }
+  },
+  {
+    "CORE": {
+      "DYNATRACE_TENANT_ADDRESS": "test2.com"
+    }
+  }
+]

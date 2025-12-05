@@ -22,7 +22,7 @@
 # SOFTWARE.
 #
 #
-# This script retrieves a value from a JSON configuration file (stored in BUILD_CONFIG_FILE=build/config.json) 
+# This script retrieves a value from a JSON configuration file (stored in BUILD_CONFIG_FILE=build/config.json)
 # based on the provided key name.
 # It uses jq to parse the JSON file and extract the value associated with the specified key.
 

@@ -72,17 +72,18 @@ In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you 
 selected plugins; `IS_DISABLED` is not checked then.
 
 ```json
-{
-  "PLUGINS": {
-    "ACTIVE_QUERIES": {
-      "SCHEDULE": "USING CRON */6 * * * * UTC",
-      "IS_DISABLED": false,
-      "FAST_MODE": true,
-      "REPORT_EXECUTION_STATUS": [],
-      "TELEMETRY": ["logs", "metrics", "spans", "biz_events"]
-    }
-  }
-}
+plugins:
+  active_queries:
+    schedule: USING CRON */6 * * * * UTC
+    is_disabled: false
+    fast_mode: true
+    report_execution_status: []
+    telemetry:
+      - logs
+      - metrics
+      - spans
+      - biz_events
+
 ```
 
 > **IMPORTANT**: For the `query_history` and `active_queries` plugins to report telemetry for all queries, the `DTAGENT_VIEWER` role must be
@@ -113,16 +114,17 @@ In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you 
 selected plugins; `IS_DISABLED` is not checked then.
 
 ```json
-{
-  "PLUGINS": {
-    "BUDGETS": {
-      "QUOTA": 10,
-      "SCHEDULE": "USING CRON 30 0 * * * UTC",
-      "IS_DISABLED": false,
-      "TELEMETRY": ["logs", "metrics", "events", "biz_events"]
-    }
-  }
-}
+plugins:
+  budgets:
+    quota: 10
+    schedule: USING CRON 30 0 * * * UTC
+    is_disabled: false
+    telemetry:
+      - logs
+      - metrics
+      - events
+      - biz_events
+
 ```
 
 <a name="data_schemas_info_sec"></a>
@@ -142,17 +144,17 @@ In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you 
 selected plugins; `IS_DISABLED` is not checked then.
 
 ```json
-{
-  "PLUGINS": {
-    "DATA_SCHEMAS": {
-      "SCHEDULE": "USING CRON 0 0,8,16 * * * UTC",
-      "IS_DISABLED": false,
-      "EXCLUDE": [],
-      "INCLUDE": ["%"],
-      "TELEMETRY": ["events", "biz_events"]
-    }
-  }
-}
+plugins:
+  data_schemas:
+    schedule: USING CRON 0 0,8,16 * * * UTC
+    is_disabled: false
+    exclude: []
+    include:
+      - '%'
+    telemetry:
+      - events
+      - biz_events
+
 ```
 
 <a name="data_volume_info_sec"></a>
@@ -180,17 +182,20 @@ In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you 
 selected plugins; `IS_DISABLED` is not checked then.
 
 ```json
-{
-  "PLUGINS": {
-    "DATA_VOLUME": {
-      "INCLUDE": ["DTAGENT_DB.%.%", "%.PUBLIC.%"],
-      "EXCLUDE": ["%.INFORMATION_SCHEMA.%", "%.%.TMP_%"],
-      "SCHEDULE": "USING CRON 30 0,4,8,12,16,20 * * * UTC",
-      "IS_DISABLED": false,
-      "TELEMETRY": ["metrics", "biz_events"]
-    }
-  }
-}
+plugins:
+  data_volume:
+    include:
+      - DTAGENT_DB.%.%
+      - '%.PUBLIC.%'
+    exclude:
+      - '%.INFORMATION_SCHEMA.%'
+      - '%.%.TMP_%'
+    schedule: USING CRON 30 0,4,8,12,16,20 * * * UTC
+    is_disabled: false
+    telemetry:
+      - metrics
+      - biz_events
+
 ```
 
 <a name="dynamic_tables_info_sec"></a>
@@ -216,18 +221,20 @@ In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you 
 selected plugins; `IS_DISABLED` is not checked then.
 
 ```json
-{
-  "PLUGINS": {
-    "DYNAMIC_TABLES": {
-      "INCLUDE": ["%.%.%"],
-      "EXCLUDE": ["DTAGENT_DB.%.%"],
-      "SCHEDULE": "USING CRON */30 * * * * UTC",
-      "SCHEDULE_GRANTS": "USING CRON 30 */12 * * * UTC",
-      "IS_DISABLED": false,
-      "TELEMETRY": ["metrics", "logs", "biz_events"]
-    }
-  }
-}
+plugins:
+  dynamic_tables:
+    include:
+      - '%.%.%'
+    exclude:
+      - DTAGENT_DB.%.%
+    schedule: USING CRON */30 * * * * UTC
+    schedule_grants: USING CRON 30 */12 * * * UTC
+    is_disabled: false
+    telemetry:
+      - metrics
+      - logs
+      - biz_events
+
 ```
 
 > **IMPORTANT**: For this plugin to function correctly, `MONITOR on DYNAMIC TABLES` must be granted to the `DTAGENT_VIEWER` role.  
@@ -281,18 +288,19 @@ In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you 
 selected plugins; `IS_DISABLED` is not checked then.
 
 ```json
-{
-  "PLUGINS": {
-    "EVENT_LOG": {
-      "MAX_ENTRIES": 10000,
-      "RETENTION_HOURS": 12,
-      "SCHEDULE": "USING CRON */30 * * * * UTC",
-      "SCHEDULE_CLEANUP": "USING CRON 0 * * * * UTC",
-      "IS_DISABLED": false,
-      "TELEMETRY": ["metrics", "logs", "biz_events", "spans"]
-    }
-  }
-}
+plugins:
+  event_log:
+    max_entries: 10000
+    retention_hours: 12
+    schedule: USING CRON */30 * * * * UTC
+    schedule_cleanup: USING CRON 0 * * * * UTC
+    is_disabled: false
+    telemetry:
+      - metrics
+      - logs
+      - biz_events
+      - spans
+
 ```
 
 > **IMPORTANT**: A dedicated cleanup task, `APP.TASK_DTAGENT_EVENT_LOG_CLEANUP`, ensures that the `EVENT_LOG` table contains only data no
@@ -326,15 +334,15 @@ In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you 
 selected plugins; `IS_DISABLED` is not checked then.
 
 ```json
-{
-  "PLUGINS": {
-    "EVENT_USAGE": {
-      "SCHEDULE": "USING CRON 0 * * * * UTC",
-      "IS_DISABLED": false,
-      "TELEMETRY": ["metrics", "logs", "biz_events"]
-    }
-  }
-}
+plugins:
+  event_usage:
+    schedule: USING CRON 0 * * * * UTC
+    is_disabled: false
+    telemetry:
+      - metrics
+      - logs
+      - biz_events
+
 ```
 
 <a name="login_history_info_sec"></a>
@@ -365,15 +373,14 @@ In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you 
 selected plugins; `IS_DISABLED` is not checked then.
 
 ```json
-{
-  "PLUGINS": {
-    "LOGIN_HISTORY": {
-      "SCHEDULE": "USING CRON */30 * * * * UTC",
-      "IS_DISABLED": false,
-      "TELEMETRY": ["logs", "biz_events"]
-    }
-  }
-}
+plugins:
+  login_history:
+    schedule: USING CRON */30 * * * * UTC
+    is_disabled: false
+    telemetry:
+      - logs
+      - biz_events
+
 ```
 
 <a name="query_history_info_sec"></a>
@@ -410,18 +417,19 @@ In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you 
 selected plugins; `IS_DISABLED` is not checked then.
 
 ```json
-{
-  "PLUGINS": {
-    "QUERY_HISTORY": {
-      "SCHEDULE_GRANTS": "USING CRON */30 * * * * UTC",
-      "SCHEDULE": "USING CRON */30 * * * * UTC",
-      "IS_DISABLED": false,
-      "SLOW_QUERIES_THRESHOLD": 10000,
-      "SLOW_QUERIES_TO_ANALYZE_LIMIT": 50,
-      "TELEMETRY": ["metrics", "logs", "biz_events", "spans"]
-    }
-  }
-}
+plugins:
+  query_history:
+    schedule_grants: USING CRON */30 * * * * UTC
+    schedule: USING CRON */30 * * * * UTC
+    is_disabled: false
+    slow_queries_threshold: 10000
+    slow_queries_to_analyze_limit: 50
+    telemetry:
+      - metrics
+      - logs
+      - biz_events
+      - spans
+
 ```
 
 The plugin can be configured to retrieve query plan and acceleration estimates for the slowest queries. This analysis uses telemetry from
@@ -469,15 +477,16 @@ In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you 
 selected plugins; `IS_DISABLED` is not checked then.
 
 ```json
-{
-  "PLUGINS": {
-    "RESOURCE_MONITORS": {
-      "SCHEDULE": "USING CRON */30 * * * * UTC",
-      "IS_DISABLED": false,
-      "TELEMETRY": ["logs", "metrics", "events", "biz_events"]
-    }
-  }
-}
+plugins:
+  resource_monitors:
+    schedule: USING CRON */30 * * * * UTC
+    is_disabled: false
+    telemetry:
+      - logs
+      - metrics
+      - events
+      - biz_events
+
 ```
 
 <a name="shares_info_sec"></a>
@@ -506,18 +515,20 @@ In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you 
 selected plugins; `IS_DISABLED` is not checked then.
 
 ```json
-{
-  "PLUGINS": {
-    "SHARES": {
-      "SCHEDULE": "USING CRON */30 * * * * UTC",
-      "IS_DISABLED": false,
-      "EXCLUDE_FROM_MONITORING": [],
-      "EXCLUDE": [""],
-      "INCLUDE": ["%.%.%"],
-      "TELEMETRY": ["logs", "events", "biz_events"]
-    }
-  }
-}
+plugins:
+  shares:
+    schedule: USING CRON */30 * * * * UTC
+    is_disabled: false
+    exclude_from_monitoring: []
+    exclude:
+      - ""
+    include:
+      - '%.%.%'
+    telemetry:
+      - logs
+      - events
+      - biz_events
+
 ```
 
 <a name="tasks_info_sec"></a>
@@ -552,15 +563,16 @@ In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you 
 selected plugins; `IS_DISABLED` is not checked then.
 
 ```json
-{
-  "PLUGINS": {
-    "TASKS": {
-      "SCHEDULE": "USING CRON 30 * * * * UTC",
-      "IS_DISABLED": false,
-      "TELEMETRY": ["logs", "metrics", "events", "biz_events"]
-    }
-  }
-}
+plugins:
+  tasks:
+    schedule: USING CRON 30 * * * * UTC
+    is_disabled: false
+    telemetry:
+      - logs
+      - metrics
+      - events
+      - biz_events
+
 ```
 
 <a name="trust_center_info_sec"></a>
@@ -586,16 +598,17 @@ In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you 
 selected plugins; `IS_DISABLED` is not checked then.
 
 ```json
-{
-  "PLUGINS": {
-    "TRUST_CENTER": {
-      "SCHEDULE": "USING CRON 30 */12 * * * UTC",
-      "LOG_DETAILS": false,
-      "IS_DISABLED": false,
-      "TELEMETRY": ["metrics", "logs", "events", "biz_events"]
-    }
-  }
-}
+plugins:
+  trust_center:
+    schedule: USING CRON 30 */12 * * * UTC
+    log_details: false
+    is_disabled: false
+    telemetry:
+      - metrics
+      - logs
+      - events
+      - biz_events
+
 ```
 
 <a name="users_info_sec"></a>
@@ -634,18 +647,18 @@ In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you 
 selected plugins; `IS_DISABLED` is not checked then.
 
 ```json
-{
-  "PLUGINS": {
-    "USERS": {
-      "SCHEDULE": "USING CRON 0 0 * * * UTC",
-      "IS_DISABLED": false,
-      "IS_HASHED": true,
-      "RETAIN_EMAIL_HASH_MAP": false,
-      "ROLES_MONITORING_MODE": [],
-      "TELEMETRY": ["logs", "events", "biz_events"]
-    }
-  }
-}
+plugins:
+  users:
+    schedule: USING CRON 0 0 * * * UTC
+    is_disabled: false
+    is_hashed: true
+    retain_email_hash_map: false
+    roles_monitoring_mode: []
+    telemetry:
+      - logs
+      - events
+      - biz_events
+
 ```
 
 <a name="warehouse_usage_info_sec"></a>
@@ -672,13 +685,13 @@ In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you 
 selected plugins; `IS_DISABLED` is not checked then.
 
 ```json
-{
-  "PLUGINS": {
-    "WAREHOUSE_USAGE": {
-      "SCHEDULE": "USING CRON 0 * * * * UTC",
-      "IS_DISABLED": false,
-      "TELEMETRY": ["logs", "metrics", "biz_events"]
-    }
-  }
-}
+plugins:
+  warehouse_usage:
+    schedule: USING CRON 0 * * * * UTC
+    is_disabled: false
+    telemetry:
+      - logs
+      - metrics
+      - biz_events
+
 ```

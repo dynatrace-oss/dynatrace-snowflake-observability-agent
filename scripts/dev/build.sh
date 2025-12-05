@@ -27,9 +27,16 @@
 # It processes the scripts in src/sql and looks for ##INSERT $fileName hints
 #
 
+set -e
+
 # Check for required commands
 if ! command -v gawk &> /dev/null; then
     echo "Error: Required command 'gawk' is not installed."
+    exit 1
+fi
+
+if ! command -v yq &> /dev/null; then
+    echo "Error: Required command 'yq' is not installed."
     exit 1
 fi
 
@@ -88,21 +95,24 @@ fi
 PLUGINS_CONFIG_FILES=()
 while IFS= read -r -d '' file; do
     PLUGINS_CONFIG_FILES+=("$file")
-done < <(find ./src -type f -name "*-config.json" -print0)
-CONFIG_TEMPLATE_FILE="conf/config-template.json"
-CONFIG_TEMPLATE="$(jq '.[]' $CONFIG_TEMPLATE_FILE)"
+done < <(find ./src -type f -name "*-config.yml" -print0)
+CONFIG_TEMPLATE_FILE="conf/config-template.yml"
+CONFIG_TEMPLATE="$(yq '.' $CONFIG_TEMPLATE_FILE)"
 
-merged_sections=$(jq -s '
-    reduce .[] as $item ({};
-        .PLUGINS += $item.PLUGINS // {} |
-        .OTEL += $item.OTEL // {}
-    )' "${PLUGINS_CONFIG_FILES[@]}")
+merged_sections="{}"
+for file in "${PLUGINS_CONFIG_FILES[@]}"; do
+    merged_sections=$(yq '
+        . as $base
+        | load("'"$file"'") as $f
+        | .plugins = ($base.plugins // {}) + ($f.plugins // {})
+        | .otel = ($base.otel // {}) + ($f.otel // {})
+    ' <<<"$merged_sections")
+done
 
 # Combine the merged sections with the rest of the template
-jq --argjson sections "$merged_sections" '
-    .PLUGINS = (.PLUGINS + $sections.PLUGINS) |
-    .OTEL = (.OTEL + $sections.OTEL)
-' <<<"$CONFIG_TEMPLATE" >./build/config-default.json
+echo "$merged_sections" > /tmp/merged.yml
+yq '.plugins = (.plugins // {}) + load("/tmp/merged.yml").plugins | .otel = (.otel // {}) + load("/tmp/merged.yml").otel' "$CONFIG_TEMPLATE_FILE" >./build/config-default.yml
+rm /tmp/merged.yml
 
 # Building SQL files in build
 find src -type f \( -name "*.sql" ! -name "*.off.sql" \) | while IFS= read -r sql_file; do
@@ -110,5 +120,20 @@ find src -type f \( -name "*.sql" ! -name "*.off.sql" \) | while IFS= read -r sq
     dest_file="build/$(basename $sql_file)" # Add your processing logic here
     gawk 'match($0, /[#]{2}INSERT (.+)/, a) {system("cat src/"a[1]); next } 1' $sql_file >$dest_file
 done
+
+for file in build/*.py; do
+    echo "Validating $file"
+    pylint "$file" --disable=$SRC_IGNORED_CASES --output-format=parseable
+    if [ $? -ne 0 ]; then
+        echo "Code quality check failed for $file"
+        exit 1
+    fi
+done
+
+sqlfluff lint build/70*.sql --ignore parsing --disable-progress-bar
+if [ $? -ne 0 ]; then
+    echo "Code quality check failed for SQL files in build/70*.sql"
+    exit 1
+fi
 
 echo "Building Dynatrace Snowflake Observability Agent done"

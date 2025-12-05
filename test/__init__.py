@@ -21,7 +21,7 @@
 # SOFTWARE.
 #
 #
-import json
+import yaml
 import os
 from contextlib import contextmanager
 import re
@@ -39,7 +39,7 @@ from dtagent.config import Configuration
 read_secret(
     secret_name="dtagent_token",
     from_field="_DTAGENT_API_KEY",
-    from_file="conf/config-test.json",
+    from_file="conf/config-test.yml",
     env_name="DTAGENT_TOKEN",
 )
 
@@ -57,10 +57,10 @@ def _get_credentials() -> Dict:
     }
     """
     credentials = {}
-    credentials_path = "test/credentials.json"
+    credentials_path = "test/credentials.yml"
     if os.path.isfile(credentials_path):
         with open(credentials_path, "r", encoding="utf-8") as f:
-            credentials = json.loads(f.read())
+            credentials = yaml.safe_load(f.read())
 
     return credentials or {"local_testing": True}
 

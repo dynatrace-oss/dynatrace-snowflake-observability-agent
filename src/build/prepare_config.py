@@ -28,10 +28,11 @@ import json
 import sys
 import os
 from typing import Any
+import yaml
 
 
 def _get_config(config_path: str, first_entry_only: bool = True) -> dict:
-    """Returns dictionary based on the JSON content of given file - or an empty dictionary
+    """Returns dictionary based on the JSON or YAML content of given file - or an empty dictionary
 
     Args:
         config_path (str): path to the file to load JSON into dict
@@ -44,14 +45,14 @@ def _get_config(config_path: str, first_entry_only: bool = True) -> dict:
 
     if os.path.isfile(config_path):
         with open(config_path, "r", encoding="utf-8") as f:
-            config = json.load(f) or {}
+            config = yaml.safe_load(f) or {}
         if isinstance(config, list) and first_entry_only and len(config) > 0:
             return config[0]
     return config
 
 
 def _prepare_config_for_ingest(config_data: dict) -> list:
-    """Converts configuration in a form of a dictionary, just like in config/config-template.json
+    """Converts configuration in a form of a dictionary, just like in config/config-template.yml
 
        In order to properly load the data into table with 3 columns (path, value, type) we need to flatten the json to one level of nesting.
        This will allow for inputting json key as context, nested json key as key and nested json value as value into CONFIG.CONFIGURATIONS.

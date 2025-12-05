@@ -56,6 +56,6 @@ OTel tests use mock data and don't require live Dynatrace connections. Tests val
 
 OTel tests use configuration from:
 
-* `src/dtagent.conf/otel-config.json` for default settings
+* `src/dtagent.conf/otel-config.yml` for default settings
 * Mock configurations for test scenarios
 * Environment variable overrides where applicable

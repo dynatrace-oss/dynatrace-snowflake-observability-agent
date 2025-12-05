@@ -101,11 +101,8 @@ In order for Dynatrace Snowflake Observability Agent to communicate with Dynatra
 
 ### The `CONFIG` schema
 
-Contains one table:
-
-- `CONFIGURATIONS` with all configurable options of Dynatrace Snowflake Observability Agent, including internal API and plugins
-
-Information from both tables is used to initialize Dynatrace Snowflake Observability Agent main stored procedures.
+Contains `CONFIGURATIONS` table with all configurable options of Dynatrace Snowflake Observability Agent, including internal API and plugins.
+Information from this table is used to initialize Dynatrace Snowflake Observability Agent main stored procedures.
 
 Additionally, a set of helper procedures is delivered to change the behavior of Dynatrace Snowflake Observability Agent that is not
 initialized during runtime, e.g., the number of credits allowed daily by internal resource monitor, or the schedule of each plugin's

@@ -1,0 +1,13 @@
+plugins:
+  shares:
+    schedule: USING CRON */30 * * * * UTC
+    is_disabled: false
+    exclude_from_monitoring: []
+    exclude:
+      - ""
+    include:
+      - '%.%.%'
+    telemetry:
+      - logs
+      - events
+      - biz_events

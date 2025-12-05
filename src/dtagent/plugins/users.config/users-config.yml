@@ -1,0 +1,11 @@
+plugins:
+  users:
+    schedule: USING CRON 0 0 * * * UTC
+    is_disabled: false
+    is_hashed: true
+    retain_email_hash_map: false
+    roles_monitoring_mode: []
+    telemetry:
+      - logs
+      - events
+      - biz_events

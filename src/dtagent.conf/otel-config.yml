@@ -1,0 +1,48 @@
+otel:
+  max_consecutive_api_fails: 10
+  logs:
+    export_timeout_millis: 10000
+    max_export_batch_size: 100
+    is_disabled: false
+  spans:
+    export_timeout_millis: 10000
+    max_export_batch_size: 50
+    max_event_count: 2000
+    max_attributes_per_event_count: 250
+    max_span_attributes: 250
+    is_disabled: false
+  metrics:
+    api_post_timeout: 30
+    max_retries: 5
+    max_batch_size: 1000000
+    retry_delay_ms: 10000
+    is_disabled: false
+  events:
+    api_post_timeout: 30
+    max_retries: 5
+    max_payload_bytes: 10240000
+    max_event_count: 25000
+    retry_delay_ms: 10000
+    retry_on_status:
+      - 429
+      - 502
+      - 503
+    is_disabled: false
+  davis_events:
+    api_post_timeout: 30
+    max_retries: 5
+    retry_delay_ms: 10000
+    is_disabled: false
+  biz_events:
+    api_post_timeout: 30
+    max_retries: 5
+    max_payload_bytes: 5120000
+    max_event_count: 400
+    retry_delay_ms: 30000
+    retry_on_status:
+      - 429
+      - 502
+      - 503
+    is_disabled: false
+plugins:
+  disabled_by_default: false

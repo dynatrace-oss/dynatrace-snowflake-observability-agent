@@ -1,0 +1,8 @@
+plugins:
+  event_usage:
+    schedule: USING CRON 0 * * * * UTC
+    is_disabled: false
+    telemetry:
+      - metrics
+      - logs
+      - biz_events

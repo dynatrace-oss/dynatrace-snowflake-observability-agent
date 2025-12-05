@@ -1,0 +1,9 @@
+{
+  "CORE": {
+    "DYNATRACE_TENANT_ADDRESS": "test.com",
+    "DEPLOYMENT_ENVIRONMENT": "TEST"
+  },
+  "PLUGINS": {
+    "DISABLED_BY_DEFAULT": true
+  }
+}

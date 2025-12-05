@@ -1,0 +1,10 @@
+plugins:
+  trust_center:
+    schedule: USING CRON 30 */12 * * * UTC
+    log_details: false
+    is_disabled: false
+    telemetry:
+      - metrics
+      - logs
+      - events
+      - biz_events

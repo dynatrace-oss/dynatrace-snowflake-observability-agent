@@ -1,0 +1,10 @@
+plugins:
+  data_schemas:
+    schedule: USING CRON 0 0,8,16 * * * UTC
+    is_disabled: false
+    exclude: []
+    include:
+      - '%'
+    telemetry:
+      - events
+      - biz_events

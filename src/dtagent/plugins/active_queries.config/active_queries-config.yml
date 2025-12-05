@@ -1,0 +1,11 @@
+plugins:
+  active_queries:
+    schedule: USING CRON */6 * * * * UTC
+    is_disabled: false
+    fast_mode: true
+    report_execution_status: []
+    telemetry:
+      - logs
+      - metrics
+      - spans
+      - biz_events

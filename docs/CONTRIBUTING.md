@@ -101,7 +101,7 @@ The core of Dynatrace Snowflake Observability Agent code is located in the follo
 ### Internal telemetry API code
 
 The telemetry API Python code is located in the **`src/dtagent/otel`** package, with default configuration is in
-`src/dtagent.conf/otel-config.json`.
+`src/dtagent.conf/otel-config.yml`.
 
 ### Plugin code
 
@@ -152,7 +152,7 @@ The build process for the Dynatrace Snowflake Observability Agent package involv
    resulting in a single file for each (`_dtagent.py` and `_send_telemetry.py`). The `##INSERT` directive is used to control the order in
    which source Python files are assembled into the main one. **NOTE**: When Snowflake reports issues in those stored procedures, the lines
    in the Python code will correspond to the lines in these two files.
-2. **Building and embedding**: The `build.sh` script creates a single default configuration file (`build/config-default.json`).
+2. **Building and embedding**: The `build.sh` script creates a single default configuration file (`build/config-default.yml`).
    It also copies over all SQL files from all `*.sql` folders. During the build
    process, the compiled Python files are embedded into the templates for the `APP.DTAGENT(sources array)` and
    `APP.SEND_TELEMETRY(sources variant, params object)` procedures respectively. The corresponding SQL files reference precompiled Python
@@ -246,7 +246,7 @@ After successfully compiling and building the Dynatrace Snowflake Observability 
 
 ## Updating documentation
 
-If you have made any changes to the documentation files (`info.md`), configuration files (`*.conf/*-config.json`), semantic dictionary files
+If you have made any changes to the documentation files (`info.md`), configuration files (`*.conf/*-config.yml`), semantic dictionary files
 (`*.conf/instruments-def.yml`), added a new plugin, or simply want to refresh the documentation, you need to run:
 
 ```bash
@@ -345,11 +345,11 @@ pytest test/plugins/
 
 There are two ways of running tests:
 
-1. **Local mode with Mocked APIs**: If `test/credentials.json` is NOT present, the tests will run locally with mocked Dynatrace APIs,
+1. **Local mode with Mocked APIs**: If `test/credentials.yml` is NOT present, the tests will run locally with mocked Dynatrace APIs,
    without sending data to Dynatrace. This is useful for rapid development and testing without requiring a live Snowflake or Dynatrace
    connection.
 
-2. **Live mode with actual APIs**: If `test/credentials.json` IS present, the tests will connect to Snowflake to determine the connection to
+2. **Live mode with actual APIs**: If `test/credentials.yml` IS present, the tests will connect to Snowflake to determine the connection to
    Dynatrace and will send the data to the actual Dynatrace APIs.
 
 ### Test Data
@@ -366,29 +366,26 @@ New plugins should have their corresponding tests created. In case of new plugin
 
 To run tests in live mode (version 2), you need to:
 
-1. **Create a test deployment** with configuration in `conf/config-test.json` that looks like:
+1. **Create a test deployment** with configuration in `conf/config-test.yml` that looks like:
 
-   ```json
-   [
-     {
-       "CORE": {
-         "DYNATRACE_TENANT_ADDRESS": "abc12345.live.dynatrace.com",
-         "DEPLOYMENT_ENVIRONMENT": "TEST",
-         "SNOWFLAKE_ACCOUNT_NAME": "your_snowflake_account.us-east-1",
-         "SNOWFLAKE_HOST_NAME": "your_snowflake_account.us-east-1.snowflakecomputing.com",
-         "SNOWFLAKE_CREDIT_QUOTA": 1,
-         "LOG_LEVEL": "DEBUG"
-       },
-       "PLUGINS": {
-         "DISABLED_BY_DEFAULT": true
-       }
-     }
-   ]
+   ```yaml
+   core:
+     dynatrace_tenant_address: abc12345.live.dynatrace.com
+     deployment_environment: TEST
+     snowflake_account_name: 'your_snowflake_account.us-east-1'
+     snowflake_host_name: 'your_snowflake_account.us-east-1.snowflakecomputing.com'
+     snowflake_credit_quota: 1
+     log_level: DEBUG
+     tag: ""
+     procedure_timeout: 3600
+   otel: {}
+   plugins:
+     disabled_by_default: true
    ```
 
-2. **Create `test/credentials.json`** from the `test/credentials.jsonc` template to reference that deployment.
+2. **Create `test/credentials.yaml`** from the `test/credentials.template.yml` template to reference that deployment.
 
-3. **Generate `test/conf/config-download.json`** by running:
+3. **Generate `test/conf/config-download.yml`** by running:
 
    ```bash
    PYTHONPATH="./src" pytest -s -v "test/core/test_config.py::TestConfig::test_init" --pickle_conf y
@@ -396,8 +393,8 @@ To run tests in live mode (version 2), you need to:
 
 ### Running Tests in Local Mode
 
-For tests in version (1) (local mode with mocked APIs), `test/conf/config-download.json` should NOT be present. It is a good practice to
-temporarily disable these files by prefixing them with an underscore (e.g., `_config-download.json` and `_credentials.json`). The gitignore
+For tests in version (1) (local mode with mocked APIs), `test/conf/config-download.yml` should NOT be present. It is a good practice to
+temporarily disable these files by prefixing them with an underscore (e.g., `_config-download.yml` and `_credentials.yml`). The gitignore
 ensures that files prefixed with underscore are not tracked.
 
 ### Running Individual Plugin Tests

@@ -1,0 +1,13 @@
+plugins:
+  data_volume:
+    include:
+      - DTAGENT_DB.%.%
+      - '%.PUBLIC.%'
+    exclude:
+      - '%.INFORMATION_SCHEMA.%'
+      - '%.%.TMP_%'
+    schedule: USING CRON 30 0,4,8,12,16,20 * * * UTC
+    is_disabled: false
+    telemetry:
+      - metrics
+      - biz_events
