@@ -6,21 +6,21 @@ This directory contains tests for individual plugins in Dynatrace Snowflake Obse
 
 Each plugin has a corresponding test file following the pattern `test_*.py`. Current plugin tests include:
 
-* `test_active_queries.py`: Tests for active queries monitoring
-* `test_budgets.py`: Tests for budget monitoring
-* `test_data_schemas.py`: Tests for data schema monitoring
-* `test_data_volume.py`: Tests for data volume monitoring
-* `test_dynamic_tables.py`: Tests for dynamic table monitoring
-* `test_event_log.py`: Tests for event log monitoring
-* `test_event_usage.py`: Tests for event usage monitoring
-* `test_login_history.py`: Tests for login history monitoring
-* `test_query_history.py`: Tests for query history monitoring
-* `test_resource_monitors.py`: Tests for resource monitor tracking
-* `test_shares.py`: Tests for share monitoring
-* `test_tasks.py`: Tests for task monitoring
-* `test_trust_center.py`: Tests for trust center monitoring
-* `test_users.py`: Tests for user monitoring
-* `test_warehouse_usage.py`: Tests for warehouse usage monitoring
+- `test_active_queries.py`: Tests for active queries monitoring
+- `test_budgets.py`: Tests for budget monitoring
+- `test_data_schemas.py`: Tests for data schema monitoring
+- `test_data_volume.py`: Tests for data volume monitoring
+- `test_dynamic_tables.py`: Tests for dynamic table monitoring
+- `test_event_log.py`: Tests for event log monitoring
+- `test_event_usage.py`: Tests for event usage monitoring
+- `test_login_history.py`: Tests for login history monitoring
+- `test_query_history.py`: Tests for query history monitoring
+- `test_resource_monitors.py`: Tests for resource monitor tracking
+- `test_shares.py`: Tests for share monitoring
+- `test_tasks.py`: Tests for task monitoring
+- `test_trust_center.py`: Tests for trust center monitoring
+- `test_users.py`: Tests for user monitoring
+- `test_warehouse_usage.py`: Tests for warehouse usage monitoring
 
 ## Running Tests
 
@@ -44,17 +44,17 @@ Plugin tests support two execution modes:
 
 ### 1. Local Mode (Mocked APIs)
 
-* Runs without live Snowflake/Dynatrace connections
-* Uses pickled test data from `test/test_data/`
-* Validates against expected results in `test/test_results/`
-* **Default mode** when `test/credentials.yml` is not present
+- Runs without live Snowflake/Dynatrace connections
+- Uses pickled test data from `test/test_data/`
+- Validates against expected results in `test/test_results/`
+- **Default mode** when `test/credentials.yml` is not present
 
 ### 2. Live Mode (Actual APIs)
 
-* Requires `test/credentials.yml` to be present
-* Connects to actual Snowflake and Dynatrace environments
-* Sends real telemetry data
-* Useful for end-to-end validation
+- Requires `test/credentials.yml` to be present
+- Connects to actual Snowflake and Dynatrace environments
+- Sends real telemetry data
+- Useful for end-to-end validation
 
 ## Test Data Management
 
@@ -73,9 +73,9 @@ This creates new pickle files in `test/test_data/` and result files in `test/tes
 
 ### Test Data Structure
 
-* **Input data**: Pickle files (`.pkl`) in `test/test_data/`
-* **Expected results**: Text files in `test/test_results/`
-* **Reference data**: NDJSON files for human-readable inspection
+- **Input data**: Pickle files (`.pkl`) in `test/test_data/`
+- **Expected results**: Text files in `test/test_results/`
+- **Reference data**: NDJSON files for human-readable inspection
 
 ## Plugin Test Structure
 
@@ -89,15 +89,15 @@ Each plugin test typically includes:
 
 ## Dependencies
 
-* `pytest` for test execution
-* `pytest-mock` for API and dependency mocking
-* Plugin-specific dependencies (Snowflake connectors, etc.)
-* Bats framework (for bash script testing integration)
+- `pytest` for test execution
+- `pytest-mock` for API and dependency mocking
+- Plugin-specific dependencies (Snowflake connectors, etc.)
+- Bats framework (for bash script testing integration)
 
 ## Configuration
 
 Plugin tests use:
 
-* Default plugin configurations from `src/dtagent.conf/`
-* Test-specific overrides in `test/conf/`
-* Environment variables for live testing mode
+- Default plugin configurations from `src/dtagent.conf/`
+- Test-specific overrides in `test/conf/`
+- Environment variables for live testing mode

@@ -212,12 +212,14 @@ For **Ubuntu/Debian**:
 ```bash
 sudo apt-get update
 sudo apt-get install -y pango cairo gdk-pixbuf libffi pandoc
+
+npm install -g prettier
 ```
 
 For **macOS** (using [Homebrew](https://brew.sh/)):
 
 ```bash
-brew install pango cairo gdk-pixbuf libffi pandoc
+brew install pango cairo gdk-pixbuf libffi pandoc prettier
 ```
 
 Additional **Python packages** for all platforms are listed in `requirements.txt`. Install them using pip:
@@ -260,9 +262,10 @@ If the build process fails to run, you might need to install the following packa
 
 ```bash
 # on macOS
-brew install pango cairo gdk-pixbuf libffi
+brew install pango cairo gdk-pixbuf libffi prettier
 # on Ubuntu
 sudo apt-get install libcairo2 libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf2.0-0 libffi-dev
+pip install -r requirements.txt
 ```
 
 In some cases, you may need to also set up `WEASYPRINT_DLL_DIRECTORIES`:

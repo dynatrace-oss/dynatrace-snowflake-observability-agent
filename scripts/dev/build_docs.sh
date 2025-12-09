@@ -56,9 +56,13 @@ pandoc _readme_full.tmp.md \
 
 rm _readme_full.*
 
-npx prettier --write README.md
-npx prettier --write docs/PLUGINS.md
-npx prettier --write docs/SEMANTICS.md
-npx prettier --write docs/APPENDIX.md
+if command -v prettier >/dev/null 2>&1; then
+    prettier --write README.md
+    prettier --write docs/PLUGINS.md
+    prettier --write docs/SEMANTICS.md
+    prettier --write docs/APPENDIX.md
+else
+    echo "prettier not found, skipping formatting"
+fi
 
 echo "Dynatrace-Snowflake-Observability-Agent-$VERSION.pdf file successfully created"

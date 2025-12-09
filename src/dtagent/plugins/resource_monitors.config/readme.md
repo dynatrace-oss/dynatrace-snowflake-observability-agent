@@ -4,7 +4,7 @@ By default, it executes every 30 minutes and resumes the analysis from where it 
 
 This plugin:
 
-* logs the current state of each resource monitor and warehouse,
-* logs an error if an account-level monitor setup is missing,
-* logs a warning if a warehouse is not monitored at all, and
-* sends events on all new activities of monitors and warehouses.
+- logs the current state of each resource monitor and warehouse,
+- logs an error if an account-level monitor setup is missing,
+- logs a warning if a warehouse is not monitored at all, and
+- sends events on all new activities of monitors and warehouses.
