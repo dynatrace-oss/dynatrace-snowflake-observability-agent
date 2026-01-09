@@ -93,11 +93,6 @@
     "severity_text": "WARN",
     "snowflake.event.scope.name": "opentelemetry.attributes",
     "record_type": "LOG",
-    "db.system": "snowflake",
-    "service.name": "test.dsoa2025",
-    "deployment.environment": "TEST",
-    "host.name": "test.dsoa2025.snowflakecomputing.com",
-    "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.context": "event_log",
     "dsoa.run.plugin": "test_event_log"
   },
@@ -177,11 +172,6 @@
     "severity_text": "INFO",
     "snowflake.event.scope.name": "DTAGENT_OTLP",
     "record_type": "LOG",
-    "db.system": "snowflake",
-    "service.name": "test.dsoa2025",
-    "deployment.environment": "TEST",
-    "host.name": "test.dsoa2025.snowflakecomputing.com",
-    "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.context": "event_log",
     "dsoa.run.plugin": "test_event_log"
   }
