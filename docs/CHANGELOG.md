@@ -24,6 +24,11 @@ Released on January 15, 2026
 - **Performance Explorer Dashboard**: New dashboard for exploring performance data based on SnowAgent telemetry.
 - **Snowflake Consumption Dashboard**: New 3rd generation Dynatrace dashboard for monitoring Snowflake consumption metrics.
 
+### Fixed in 0.9.3
+
+- **Log Timestamp Handling**: Fixed an issue where timestamps in logs were sent as nanoseconds instead of milliseconds.
+- **Event Log Resource Attributes**: Fixed an issue where resource attribute fields were duplicated in event log entries.
+
 ### Improved in 0.9.3
 
 #### Architecture & Multi-Tenancy

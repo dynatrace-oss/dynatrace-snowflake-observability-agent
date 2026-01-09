@@ -30,7 +30,7 @@ import json
 import os
 import re
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union, Generator
+from typing import Any, Dict, List, Optional, Union, Generator, Tuple
 
 import pandas as pd
 
@@ -241,25 +241,29 @@ def _adjust_timestamp(row_dict: Dict, start_time: str = "START_TIME", end_time: 
     return row_dict
 
 
-def _check_timestamp_ms(timestamp_ns: int) -> Optional[int]:
+def validate_timestamp_ms(timestamp_ms: int, allowed_past_minutes: int = 24 * 60 - 5, allowed_future_minutes: int = 10) -> Optional[int]:
     """Checks given timestamp (in ms) whether it is in the range accepted by Dynatrace metrics API, i.e., between [-1h, +10min],
     but to play safe we check [-55min, 0]
 
     Args:
-        timestamp_ns (int): timestamp in ms to check
+        timestamp_ms (int): timestamp in ms to check
+        allowed_past_minutes (int, optional): allowed past range in minutes. Defaults to 24*60 - 5 (about 1435 minutes, or ~24 hours).
+                                              For logs and events, use defaults; for metrics, use 55.
+        allowed_future_minutes (int, optional): allowed future range in minutes. Defaults to 10.
 
     Returns:
         Optional[int]: given timestamp or None if timestamp is out of range
     """
 
-    timestamp = datetime.datetime.fromtimestamp(timestamp_ns / 1e3, tz=datetime.timezone.utc)
+    timestamp = datetime.datetime.fromtimestamp(timestamp_ms / 1e3, tz=datetime.timezone.utc)
     now = get_now_timestamp()
-    one_hour_ago = now - datetime.timedelta(minutes=55)
+    min_past = now - datetime.timedelta(minutes=allowed_past_minutes)
+    max_future = now + datetime.timedelta(minutes=allowed_future_minutes)
 
-    if timestamp < one_hour_ago or timestamp > now:
+    if timestamp < min_past or timestamp > max_future:
         return None
 
-    return timestamp_ns
+    return timestamp_ms
 
 
 def _get_timestamp_in_sec(ts: float = 0, conversion_unit: float = 1, timezone=datetime.timezone.utc) -> datetime.datetime:
@@ -350,6 +354,14 @@ def get_timestamp_in_ms(query_data: Dict, ts_key: str, conversion_unit: int = 1e
             # Ensure timezone awareness before converting to timestamp
             ts = ensure_timezone_aware(ts)
             return int(ts.timestamp() * 1000)
+        if isinstance(ts, str):
+            try:
+                # Parse ISO format datetime string (replace Z with +00:00 for fromisoformat)
+                ts = datetime.datetime.fromisoformat(ts.replace("Z", "+00:00"))
+                ts = ensure_timezone_aware(ts)
+                return int(ts.timestamp() * 1000)
+            except ValueError:
+                pass  # Fall through to numeric conversion if parsing fails
         return int(int(ts) / conversion_unit)
     return default_ts
 
