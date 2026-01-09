@@ -354,6 +354,14 @@ def get_timestamp_in_ms(query_data: Dict, ts_key: str, conversion_unit: int = 1e
             # Ensure timezone awareness before converting to timestamp
             ts = ensure_timezone_aware(ts)
             return int(ts.timestamp() * 1000)
+        if isinstance(ts, str):
+            try:
+                # Parse ISO format datetime string (replace Z with +00:00 for fromisoformat)
+                ts = datetime.datetime.fromisoformat(ts.replace("Z", "+00:00"))
+                ts = ensure_timezone_aware(ts)
+                return int(ts.timestamp() * 1000)
+            except ValueError:
+                pass  # Fall through to numeric conversion if parsing fails
         return int(int(ts) / conversion_unit)
     return default_ts
 
