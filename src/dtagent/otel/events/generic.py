@@ -39,7 +39,7 @@ from dtagent.context import RUN_CONTEXT_KEY
 from dtagent.otel import _log_warning
 from dtagent.otel.otel_manager import OtelManager
 from dtagent.otel.events import EventType, AbstractEvents
-from dtagent.util import StringEnum, get_timestamp_in_ms
+from dtagent.util import StringEnum, get_timestamp_in_ms, validate_timestamp_ms
 from dtagent.version import VERSION
 import datetime
 
@@ -108,6 +108,9 @@ class GenericEvents(AbstractEvents):
         start_ts = get_timestamp_in_ms(event_data, kwargs.get("start_time_key", "START_TIME"), 1e6, None)
         end_ts = get_timestamp_in_ms(event_data, kwargs.get("end_time_key", "END_TIME"), 1e6, None)
 
+        observed_timestamp = get_timestamp_in_ms(event_data, "timestamp")
+        timestamp = validate_timestamp_ms(observed_timestamp) if observed_timestamp else None
+
         # we have map non-simple types to string, as events are not capable of mapping lists
         # for key, value in event_data_extended.items():
         #     if not isinstance(value, (int, float, str, bool, NoneType)):
@@ -134,6 +137,12 @@ class GenericEvents(AbstractEvents):
 
         if end_ts:
             event_payload["endTime"] = end_ts
+
+        if timestamp:
+            event_payload["timestamp"] = timestamp
+
+        if observed_timestamp and observed_timestamp != timestamp:
+            event_payload["observed_timestamp"] = observed_timestamp
 
         return event_payload
 
