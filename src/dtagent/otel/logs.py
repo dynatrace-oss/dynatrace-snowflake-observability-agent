@@ -29,6 +29,7 @@ import logging
 from typing import Dict, Optional, Any
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk._logs import LoggerProvider
+from dtagent.util import get_timestamp_in_ms, validate_timestamp_ms
 from dtagent.otel import IS_OTEL_BELOW_1_21
 from dtagent.otel.otel_manager import CustomLoggingSession, OtelManager
 
@@ -110,14 +111,23 @@ class Logs:
         # otherwise OTEL seems to be sending objects cannot be deserialized on the Dynatrace side
         o_extra = {k: __adjust_log_attribute(k, v) for k, v in _cleanup_data(extra).items() if v} if extra else {}
 
+        observed_timestamp = get_timestamp_in_ms(o_extra, "timestamp")
+        if observed_timestamp:
+            timestamp = validate_timestamp_ms(observed_timestamp)
+            o_extra["timestamp"] = timestamp
+
         LOG.log(LL_TRACE, o_extra)
         payload = _cleanup_dict(
             {
-                "observed_timestamp": o_extra.get("timestamp", ""),
+                "observed_timestamp": observed_timestamp or "",
                 **o_extra,
                 **(context or {}),
             }
         )
+        if (
+            payload.get("telemetry.sdk.language") == "python"
+        ):  # remove telemetry.sdk.language="python" which is added by OTEL by default as resource attribute
+            del payload["telemetry.sdk.language"]
         if message is None:
             message = "-"
 

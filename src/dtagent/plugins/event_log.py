@@ -69,7 +69,7 @@ class EventLogPlugin(Plugin):
 
         self._logs.send_log(
             str(row_dict.get("_CONTENT") or row_dict.get("_MESSAGE", "event log entry")),
-            extra={**unpacked_dicts, **prefixed_dicts, **reserved_dicts, **event_dict, **self._configuration.get("resource.attributes")},
+            extra={**unpacked_dicts, **prefixed_dicts, **reserved_dicts, **event_dict},
             log_level=getattr(logging, s_log_level, logging.INFO),
             context=__context,
         )

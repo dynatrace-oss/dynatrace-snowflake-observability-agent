@@ -268,6 +268,10 @@ class Spans:
                 _unpack_json_dict(d_span, ["DIMENSIONS", "ATTRIBUTES", "METRICS"]) | (context or {})
             )  # context is Dynatrace Snowflake Observability Agent context, not a span one
         )
+        if (
+            span_attributes.get("telemetry.sdk.language") == "python"
+        ):  # remove telemetry.sdk.language="python" which is added by OTEL by default as resource attribute
+            del span_attributes["telemetry.sdk.language"]
 
         self._otel_id_generator.set_span_row(d_span)
 

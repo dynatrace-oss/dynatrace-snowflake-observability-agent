@@ -30,7 +30,7 @@ import time
 
 from typing import Dict, Union, Optional, Tuple
 from dtagent.otel.otel_manager import OtelManager
-from dtagent.util import get_timestamp_in_ms, get_now_timestamp
+from dtagent.util import get_timestamp_in_ms, get_now_timestamp, validate_timestamp_ms
 from dtagent.otel import _log_warning
 
 
@@ -160,7 +160,7 @@ class Metrics:
         """
         from dtagent import LOG, LL_TRACE  # COMPILE_REMOVE
         from dtagent.context import get_context_name  # COMPILE_REMOVE
-        from dtagent.util import _unpack_json_dict, _esc, _check_timestamp_ms, _is_not_blank  # COMPILE_REMOVE
+        from dtagent.util import _unpack_json_dict, _esc, _is_not_blank  # COMPILE_REMOVE
 
         local_metrics_def = _unpack_json_dict(query_data, ["_INSTRUMENTS_DEF"])
 
@@ -204,7 +204,7 @@ class Metrics:
             )
 
         timestamp = get_timestamp_in_ms(query_data, start_time, 1e6, int(get_now_timestamp().timestamp() * 1000))
-        timestamp = _check_timestamp_ms(timestamp)
+        timestamp = validate_timestamp_ms(timestamp, allowed_past_minutes=55, allowed_future_minutes=10)
 
         payload_lines = []
         # list all dimensions with their values from the provided data
