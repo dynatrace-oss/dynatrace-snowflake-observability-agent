@@ -29,7 +29,6 @@
     "snowflake.role.name": "DTAGENT_SKRUK_ADMIN",
     "snowflake.schema.name": "APP",
     "snowflake.warehouse.name": "DTAGENT_SKRUK_WH",
-    "telemetry.sdk.language": "python",
     "dsoa.run.context": "event_log_metrics",
     "dsoa.run.plugin": "test_event_log"
   },
@@ -63,7 +62,6 @@
     "snowflake.role.name": "DTAGENT_SKRUK_ADMIN",
     "snowflake.schema.name": "APP",
     "snowflake.warehouse.name": "DTAGENT_SKRUK_WH",
-    "telemetry.sdk.language": "python",
     "dsoa.run.context": "event_log_metrics",
     "dsoa.run.plugin": "test_event_log"
   },
@@ -86,7 +84,6 @@
     "snow.session.role.primary.name": "DTAGENT_ADMIN",
     "snow.warehouse.id": 4637,
     "snow.warehouse.name": "DTAGENT_WH",
-    "telemetry.sdk.language": "python",
     "code.filepath": "/usr/lib/python_udf/5dc6be55a3cd750f7a845533bacb523ed5bf419a303f987f5c6daae4105f654e/lib/python3.10/site-packages/opentelemetry/attributes/__init__.py",
     "code.function": "_clean_attribute",
     "code.lineno": 101,
@@ -165,7 +162,6 @@
     "snow.session.role.primary.name": "DTAGENT_ADMIN",
     "snow.warehouse.id": 4637,
     "snow.warehouse.name": "DTAGENT_WH",
-    "telemetry.sdk.language": "python",
     "code.filepath": "_udf_code.py",
     "code.function": "send_log",
     "code.lineno": 982,

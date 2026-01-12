@@ -124,6 +124,10 @@ class Logs:
                 **(context or {}),
             }
         )
+        if (
+            payload.get("telemetry.sdk.language") == "python"
+        ):  # remove telemetry.sdk.language="python" which is added by OTEL by default as resource attribute
+            del payload["telemetry.sdk.language"]
         if message is None:
             message = "-"
 
