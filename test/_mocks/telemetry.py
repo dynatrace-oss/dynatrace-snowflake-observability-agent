@@ -267,7 +267,7 @@ class MockTelemetryClient:
                     if telemetry_type == "logs":
                         kv_pairs = list(record.attributes or [])
                         if record.body.HasField("kvlist_value"):
-                            kv_pairs |= record.body.kvlist_value.values
+                            kv_pairs.extend(record.body.kvlist_value.values)
                         else:
                             kv_datum["content"] = __extract_value(record.body)
                     elif telemetry_type == "spans":
