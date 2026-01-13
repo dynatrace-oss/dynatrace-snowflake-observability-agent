@@ -23,37 +23,20 @@
 --
 --
 -- We need resource monitor setup for Dynatrace Snowflake Observability Agent to ensure we don't spent too much credits
+-- This is a procedure that allows to set correct values based on the value provided
+-- It is called initially with just one credit, and later it is called by CONFIG.UPDATE_FROM_CONFIGURATIONS()
 --
-use role ACCOUNTADMIN; use schema DTAGENT_DB.CONFIG; use warehouse DTAGENT_WH;
+use role DTAGENT_ADMIN; use schema DTAGENT_DB.CONFIG; use warehouse DTAGENT_WH;
 
+create or replace procedure DTAGENT_DB.CONFIG.P_UPDATE_RESOURCE_MONITOR(SNOWFLAKE_CREDIT_QUOTA int)
+returns int
+language SQL
+execute as caller
+as
 $$
 begin
-  set this_user = current_user();
-
-  create or replace resource monitor DTAGENT_RS with
-    credit_quota = 1
-    frequency = DAILY
-    start_timestamp = IMMEDIATELY
-    notify_users = ($this_user)
-    triggers
-      on  50 percent do notify
-      on 100 percent do suspend
-      on 110 percent do suspend_immediate;
-
+  execute immediate 'create or replace resource monitor DTAGENT_RS set credit_quota = ' || SNOWFLAKE_CREDIT_QUOTA;
   return 0;
-exception
-  when statement_error then
-    create or replace resource monitor DTAGENT_RS with
-      credit_quota = 1
-      frequency = DAILY
-      start_timestamp = IMMEDIATELY
-      triggers
-        on  50 percent do notify
-        on 100 percent do suspend
-        on 110 percent do suspend_immediate;
-  return 1;
 end;
 $$
 ;
-grant ownership on resource monitor DTAGENT_RS to role DTAGENT_ADMIN revoke current grants;
-alter warehouse if exists DTAGENT_WH set resource_monitor = DTAGENT_RS;
