@@ -107,9 +107,5 @@ $$
 grant usage on procedure DTAGENT_DB.APP.P_REFRESH_RESOURCE_MONITORS() to role DTAGENT_VIEWER;
 alter procedure DTAGENT_DB.APP.P_REFRESH_RESOURCE_MONITORS() set LOG_LEVEL = WARN;
 
-use role ACCOUNTADMIN;
-grant ownership on table DTAGENT_DB.APP.TMP_RESOURCE_MONITORS to role DTAGENT_ADMIN copy current grants;
-grant ownership on table DTAGENT_DB.APP.TMP_WAREHOUSES to role DTAGENT_ADMIN copy current grants;
-
 -- use role DTAGENT_VIEWER;
 -- call DTAGENT_DB.APP.P_REFRESH_RESOURCE_MONITORS();

@@ -81,6 +81,7 @@ Released on January 15, 2026
 - **Upgrade Process**: Delivered SnowAgent upgrade process supporting custom queries for version migrations, column alterations, and removal
   of deprecated procedures.
 - **Apps URL Detection**: Deployment process now detects if `.apps.` URL is used for Dynatrace API and handles it appropriately.
+- **Budget for DSOA**: Using the Budgets plugin no longer creates a budget for agent itself by default.
 
 ### Dashboards
 

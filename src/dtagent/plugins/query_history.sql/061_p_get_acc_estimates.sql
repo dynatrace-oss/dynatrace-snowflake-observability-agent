@@ -57,7 +57,4 @@ $$
 
 grant usage on procedure DTAGENT_DB.APP.P_GET_ACCELERATION_ESTIMATES() to role DTAGENT_VIEWER;
 
-use role ACCOUNTADMIN;
-grant ownership on table DTAGENT_DB.APP.TMP_QUERY_ACCELERATION_ESTIMATES to role DTAGENT_ADMIN copy current grants;
-
 -- call DTAGENT_DB.APP.P_GET_ACCELERATION_ESTIMATES(1000, 50);

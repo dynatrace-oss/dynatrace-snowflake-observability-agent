@@ -134,9 +134,5 @@ $$
 
 grant usage on procedure DTAGENT_DB.APP.P_GET_USERS() to role DTAGENT_VIEWER;
 
-use role ACCOUNTADMIN;
-grant ownership on table DTAGENT_DB.APP.TMP_USERS to role DTAGENT_ADMIN copy current grants;
-grant ownership on table DTAGENT_DB.APP.TMP_USERS_HELPER to role DTAGENT_ADMIN copy current grants;
-
 -- use role DTAGENT_ADMIN;
 -- call DTAGENT_DB.APP.P_GET_USERS();

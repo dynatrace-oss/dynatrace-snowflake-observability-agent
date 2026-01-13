@@ -166,29 +166,5 @@ $$
 grant usage on procedure DTAGENT_DB.APP.P_REFRESH_RECENT_QUERIES() to role DTAGENT_VIEWER;
 alter procedure DTAGENT_DB.APP.P_REFRESH_RECENT_QUERIES() set LOG_LEVEL = WARN;
 
--- enabling to see redacted queries
-
-use role ACCOUNTADMIN;
-alter ACCOUNT set ENABLE_UNREDACTED_QUERY_SYNTAX_ERROR=TRUE;
-
-/*
-
-use role accountadmin;
-select *
-from DTAGENT_DB.STATUS.EVENT_LOG
--- where
---   SCOPE['name'] = 'DTAGENT'
---   and RECORD['severity_text'] = 'DEBUG'
---   and RECORD_TYPE = 'LOG'
-order by timestamp desc
-limit 10;
-
- */
-
-
-use role ACCOUNTADMIN;
-grant ownership on table DTAGENT_DB.APP.TMP_RECENT_QUERIES to role DTAGENT_ADMIN copy current grants;
-grant ownership on table DTAGENT_DB.APP.TMP_QUERY_OPERATOR_STATS to role DTAGENT_ADMIN copy current grants;
-
 -- call DTAGENT_DB.APP.P_REFRESH_RECENT_QUERIES();
 
