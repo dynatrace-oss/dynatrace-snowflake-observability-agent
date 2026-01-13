@@ -58,12 +58,7 @@ if [ "$PARAM" == 'config' ]; then
         >>"$INSTALL_SCRIPT_SQL"
 
     FILES_FOR_CONF_UPDATE=(
-        "build/031_configuration_table.sql"
-        "build/032_f_get_config_value.sql"
-        "build/035_resource_monitor.sql"
-        "build/036_update_plugin_schedule.sql"
-        "build/037_update_all_plugins_schedule.sql"
-        "build/038_update_configuration.sql"
+        "build/config/040_update_config.sql"
     )
 
     for file in "${FILES_FOR_CONF_UPDATE[@]}"; do
