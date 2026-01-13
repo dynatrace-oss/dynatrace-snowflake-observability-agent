@@ -1,8 +1,8 @@
 core:
   dynatrace_tenant_address: abc12345.live.dynatrace.com
   deployment_environment: TEST
-  snowflake_account_name: '-'
-  snowflake_host_name: '-'
+  snowflake_account_name: "-"
+  snowflake_host_name: "-"
   snowflake_credit_quota: 5
   log_level: WARN
   tag: ""
@@ -10,6 +10,7 @@ core:
 otel: {}
 plugins:
   disabled_by_default: false
+  deploy_disabled_plugins: true
   self_monitoring:
     send_bizevents_on_deploy: true
     send_bizevents_on_run: true

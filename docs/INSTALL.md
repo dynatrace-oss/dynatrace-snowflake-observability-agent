@@ -157,6 +157,17 @@ The following table describes all available `core` configuration options:
 | `tag`                      | String  | No       | `""`    | Optional custom tag for Dynatrace Snowflake Observability Agent specific Snowflake objects. Used for multitenancy scenarios |
 | `procedure_timeout`        | Integer | No       | 3600    | Timeout in seconds for stored procedure execution. Default is 1 hour (3600 seconds)                                         |
 
+#### Plugin Configuration Options
+
+The `plugins` section allows you to configure plugin behavior globally and individually:
+
+| Configuration Key                 | Type    | Default | Description                                                                                                                                        |
+| --------------------------------- | ------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `plugins.disabled_by_default`     | Boolean | `false` | When set to `true`, all plugins are disabled by default unless explicitly enabled                                                                  |
+| `plugins.deploy_disabled_plugins` | Boolean | `true`  | Deploy plugin code even if the plugin is disabled. When `true`, disabled plugins' SQL objects and procedures are deployed but not scheduled to run |
+
+Each individual plugin can be configured with plugin-specific options. See the plugin documentation for available configuration options per plugin.
+
 #### OpenTelemetry Configuration Options
 
 The `otel` section allows you to configure OpenTelemetry behavior. By default, you can leave this section empty (`otel: {}`) to use default values. Advanced users can configure the following options:
