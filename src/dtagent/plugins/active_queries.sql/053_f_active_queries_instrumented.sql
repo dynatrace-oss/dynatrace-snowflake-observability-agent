@@ -1,17 +1,17 @@
 --
 --
 -- Copyright (c) 2025 Dynatrace Open Source
--- 
+--
 -- Permission is hereby granted, free of charge, to any person obtaining a copy
 -- of this software and associated documentation files (the "Software"), to deal
 -- in the Software without restriction, including without limitation the rights
 -- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 -- copies of the Software, and to permit persons to whom the Software is
 -- furnished to do so, subject to the following conditions:
--- 
+--
 -- The above copyright notice and this permission notice shall be included in all
 -- copies or substantial portions of the Software.
--- 
+--
 -- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 -- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 -- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,7 +23,7 @@
 --
 --
 -- APP.V_ACTIVE_QUERIES_INSTRUMENTED() takes list of  queries and all their information from APP.V_ACTIVE_QUERIES()
--- and translates into actual semantics expected by our metrics, spans, etc. 
+-- and translates into actual semantics expected by our metrics, spans, etc.
 -- It delivers information ready to be consumed and sent over by DTAGENT_DB.APP.DTAGENT()
 -- !!!
 -- WARNING: ensure you keep instruments-def.yml and this function in sync !!!
@@ -49,7 +49,7 @@ execute as caller
 AS
 $$
 DECLARE
-    c_active_queries_instrumented CURSOR FOR 
+    c_active_queries_instrumented CURSOR FOR
         with cte_all_queries as (
             (
                 select * from TABLE(DTAGENT_DB.APP.F_GET_RUNNING_QUERIES())
@@ -60,7 +60,7 @@ DECLARE
             )
         )
         , cte_active_queries as (
-            select 
+            select
                 START_TIME,
                 END_TIME,
 
@@ -96,10 +96,10 @@ DECLARE
                 ROWS_WRITTEN_TO_RESULT,
             from cte_all_queries aq
             where
-                ( array_size(DTAGENT_DB.APP.F_GET_CONFIG_VALUE('plugins.active_queries.report_execution_status', [])) = 0
-            or array_contains(EXECUTION_STATUS::variant, DTAGENT_DB.APP.F_GET_CONFIG_VALUE('plugins.active_queries.report_execution_status', [])::array) )
+                ( array_size(DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE('plugins.active_queries.report_execution_status', [])) = 0
+            or array_contains(EXECUTION_STATUS::variant, DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE('plugins.active_queries.report_execution_status', [])::array) )
         )
-        select 
+        select
             qh.END_TIME::timestamp_ltz                                                                                          as TIMESTAMP,
 
             qh.query_id                                                                                                         as QUERY_ID,
@@ -150,11 +150,11 @@ DECLARE
                 'snowflake.data.written_to_result',                         qh.bytes_written_to_result,
                 'snowflake.rows.written_to_result',                         qh.rows_written_to_result
             )                                                                                                                   as METRICS
-        from 
+        from
             cte_active_queries qh
-        order by 
+        order by
             TIMESTAMP asc;
-    
+
 BEGIN
     OPEN c_active_queries_instrumented;
 

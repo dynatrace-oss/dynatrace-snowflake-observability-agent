@@ -18,11 +18,11 @@ DECLARE
     c_queries_to_analyze    CURSOR FOR select query_id,
                                               METRICS['snowflake.time.execution']::int as execution_time,
                                        from APP.TMP_RECENT_QUERIES
-                                       where execution_time > APP.F_GET_CONFIG_VALUE('plugins.query_history.slow_queries_threshold', 10000)::int
+                                       where execution_time > CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.slow_queries_threshold', 10000)::int
                                          and METRICS['snowflake.data.spilled.local'] = 0
                                          and METRICS['snowflake.data.spilled.remote'] = 0
                                          and METRICS['snowflake.partitions.scanned'] < 0.9*METRICS['snowflake.partitions.total']
-                                       qualify ROW_NUMBER() OVER (order by execution_time desc) < APP.F_GET_CONFIG_VALUE('plugins.query_history.slow_queries_to_analyze_limit', 100)::int
+                                       qualify ROW_NUMBER() OVER (order by execution_time desc) < CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.slow_queries_to_analyze_limit', 100)::int
                                        order by execution_time desc;
 
     query_id                VARCHAR DEFAULT '';

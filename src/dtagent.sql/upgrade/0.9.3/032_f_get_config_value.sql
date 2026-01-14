@@ -23,18 +23,4 @@
 --
 use role DTAGENT_ADMIN; use schema DTAGENT_DB.APP; use warehouse DTAGENT_WH;
 
-create or replace function DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE(s_path text, default_value variant)
-returns variant
-language sql
-AS
-$$
-  select coalesce(
-    (select value::variant
-     from CONFIG.CONFIGURATIONS
-     where PATH = s_path
-     limit 1),
-    default_value
-  )
-$$;
-
-grant usage on function DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE(text, variant) to role DTAGENT_VIEWER;
+drop function if exists DTAGENT_DB.APP.F_GET_CONFIG_VALUE(text, variant);

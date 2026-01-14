@@ -90,7 +90,7 @@ This is the main schema maintained by Dynatrace Snowflake Observability Agent. I
   tables/views/queries or array/objects to Dynatrace.
 
 Additionally, a set of helper functions to check the timestamp of the last telemetry piece of a given type processed so far
-(`F_LAST_PROCESSED_TS()`) or get configuration parameters (`F_GET_CONFIG_VALUE()`), plus procedures helping to set up and maintain the event
+(`F_LAST_PROCESSED_TS()`) or get configuration parameters (`CONFIG.F_GET_CONFIG_VALUE()`), plus procedures helping to set up and maintain the event
 log table, if it is set up by and managed this Dynatrace Snowflake Observability Agent instance.
 
 Plugins can define their main and helper views, helper procedures, and tasks which invoke Dynatrace Snowflake Observability Agent with the

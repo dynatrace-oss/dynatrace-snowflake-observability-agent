@@ -70,9 +70,9 @@ DECLARE
                                                 METRICS['snowflake.time.transaction_blocked'] > 0 or
                                                 METRICS['snowflake.time.repair'] > 0
                                                 )
-                                            or execution_time > APP.F_GET_CONFIG_VALUE('plugins.query_history.slow_queries_threshold', 10000)::int
+                                            or execution_time > CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.slow_queries_threshold', 10000)::int
                                             )
-                                       qualify ROW_NUMBER() OVER (order by execution_time desc) < APP.F_GET_CONFIG_VALUE('plugins.query_history.slow_queries_to_analyze_limit', 100)::int
+                                       qualify ROW_NUMBER() OVER (order by execution_time desc) < CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.slow_queries_to_analyze_limit', 100)::int
                                        order by execution_time desc
                                        ;
     c_query_operator_stats  CURSOR FOR WITH

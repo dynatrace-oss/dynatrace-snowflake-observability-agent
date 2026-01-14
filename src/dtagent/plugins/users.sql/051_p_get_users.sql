@@ -94,7 +94,7 @@ BEGIN
     EXECUTE IMMEDIATE :create_snap;
 
     -- update email to hash map with new entries to dtagent_db.app.tmp_users_snapshot
-    if ((DTAGENT_DB.APP.F_GET_CONFIG_VALUE('plugins.users.retain_email_hash_map', FALSE)::boolean) = TRUE) then
+    if ((DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE('plugins.users.retain_email_hash_map', FALSE)::boolean) = TRUE) then
         merge into DTAGENT_DB.STATUS.EMAIL_HASH_MAP as trg using (select email, email_hash from DTAGENT_DB.APP.TMP_USERS_SNAPSHOT) as src
             on trg.email = src.email
             when not matched and src.email is not null then

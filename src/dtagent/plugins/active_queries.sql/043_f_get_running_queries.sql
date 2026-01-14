@@ -1,17 +1,17 @@
 --
 --
 -- Copyright (c) 2025 Dynatrace Open Source
--- 
+--
 -- Permission is hereby granted, free of charge, to any person obtaining a copy
 -- of this software and associated documentation files (the "Software"), to deal
 -- in the Software without restriction, including without limitation the rights
 -- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 -- copies of the Software, and to permit persons to whom the Software is
 -- furnished to do so, subject to the following conditions:
--- 
+--
 -- The above copyright notice and this permission notice shall be included in all
 -- copies or substantial portions of the Software.
--- 
+--
 -- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 -- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 -- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -57,7 +57,7 @@ $$
 DECLARE
     cfg CURSOR  FOR SELECT fast_mode
                    FROM (SELECT
-                        DTAGENT_DB.APP.F_GET_CONFIG_VALUE('plugins.active_queries.fast_mode', true::variant)::boolean AS fast_mode);
+                        DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE('plugins.active_queries.fast_mode', true::variant)::boolean AS fast_mode);
     res         RESULTSET;
     run_query   BOOLEAN;
 BEGIN
@@ -88,24 +88,24 @@ BEGIN
             error_code::number,
             error_message::varchar,
             compilation_time::number,
-            IFF(execution_status in ('RUNNING', 'QUEUED', 'RESUMING_WAREHOUSE') or 
-                coalesce(total_elapsed_time, -1) < 0, 
-                null, 
+            IFF(execution_status in ('RUNNING', 'QUEUED', 'RESUMING_WAREHOUSE') or
+                coalesce(total_elapsed_time, -1) < 0,
+                null,
                 total_elapsed_time)::number                                             as total_elapsed_time,
-            IFF(execution_status in ('RUNNING', 'QUEUED', 'RESUMING_WAREHOUSE') or 
-                coalesce(execution_time, -1) < 0, 
-                null, 
+            IFF(execution_status in ('RUNNING', 'QUEUED', 'RESUMING_WAREHOUSE') or
+                coalesce(execution_time, -1) < 0,
+                null,
                 execution_time)::number                                                 as execution_time,
             IFF(execution_status = 'RUNNING',
-                IFF(coalesce(timediff(ms, start_time, l_end_time), 0) < 0, 0, 
-                    coalesce(timediff(ms, start_time, l_end_time), 0)), 
+                IFF(coalesce(timediff(ms, start_time, l_end_time), 0) < 0, 0,
+                    coalesce(timediff(ms, start_time, l_end_time), 0)),
                 null)::number                                                           as running_time,
             IFF(execution_status = 'RUNNING', null, bytes_written_to_result)::number    as bytes_written_to_result,
-            IFF(execution_status = 'RUNNING', null, rows_written_to_result)::number     as rows_written_to_result 
+            IFF(execution_status = 'RUNNING', null, rows_written_to_result)::number     as rows_written_to_result
         FROM TABLE(INFORMATION_SCHEMA.QUERY_HISTORY(
                 END_TIME_RANGE_START => current_timestamp(),
                 RESULT_LIMIT => 10000))
-        WHERE :run_query 
+        WHERE :run_query
     );
 
     RETURN TABLE(res);

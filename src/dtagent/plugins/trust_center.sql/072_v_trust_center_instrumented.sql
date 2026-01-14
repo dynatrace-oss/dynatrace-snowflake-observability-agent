@@ -1,17 +1,17 @@
 --
 --
 -- Copyright (c) 2025 Dynatrace Open Source
--- 
+--
 -- Permission is hereby granted, free of charge, to any person obtaining a copy
 -- of this software and associated documentation files (the "Software"), to deal
 -- in the Software without restriction, including without limitation the rights
 -- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 -- copies of the Software, and to permit persons to whom the Software is
 -- furnished to do so, subject to the following conditions:
--- 
+--
 -- The above copyright notice and this permission notice shall be included in all
 -- copies or substantial portions of the Software.
--- 
+--
 -- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 -- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 -- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -36,11 +36,11 @@ select
     extract(epoch_nanosecond from tcf.start_timestamp)                                                          as EVENT_START,
     extract(epoch_nanosecond from tcf.end_timestamp)                                                            as EVENT_END,
     extract(epoch_nanosecond from tcf.created_on)                                                               as TIMESTAMP,
-    
+
     -- metric and span dimensions
     OBJECT_CONSTRUCT(
-        'event.category',                                           IFF(tcf.severity = 'LOW', 
-                                                                        'Warning', 
+        'event.category',                                           IFF(tcf.severity = 'LOW',
+                                                                        'Warning',
                                                                         'Vulnerability management'),
         'vulnerability.risk.level',                                 coalesce(tcf.severity, 'NONE'),
         'snowflake.trust_center.scanner.id',                        tcf.scanner_id,
@@ -58,12 +58,12 @@ select
         'snowflake.entity.id',                                      ate.value:entity_id,
         'snowflake.entity.name',                                    ate.value:entity_name,
         'snowflake.entity.type',                                    ate.value:entity_object_type,
-        'snowflake.entity.details',                                 coalesce(ate.value:entity_detail, 
+        'snowflake.entity.details',                                 coalesce(ate.value:entity_detail,
                                                                              ate.value:entity_details)
     )
                                                                                                                 as ATTRIBUTES
 from DTAGENT_DB.APP.V_TRUST_CENTER_FINDINGS tcf
-   , lateral flatten (input => IFF(DTAGENT_DB.APP.F_GET_CONFIG_VALUE('plugins.trust_center.log_details', FALSE)::boolean, AT_RISK_ENTITIES, []), path=>'', outer=>TRUE) ate
+   , lateral flatten (input => IFF(DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE('plugins.trust_center.log_details', FALSE)::boolean, AT_RISK_ENTITIES, []), path=>'', outer=>TRUE) ate
 order by
     tcf.created_on asc
 ;
