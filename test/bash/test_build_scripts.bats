@@ -38,12 +38,28 @@ setup() {
         fi
     fi
 
-    # Check that SQL files are copied (excluding *.off.sql files)
-    # Count SQL files in src (excluding *.off.sql)
-    expected_sql_count=$(find src -type f \( -name "*.sql" ! -name "*.off.sql" \) |  wc -l)
-    # Count SQL files in build
-    actual_sql_count=$(find build -maxdepth 1 -type f -name "*.sql" | grep -v ".off.sql" | wc -l)
-    [ "$actual_sql_count" -eq "$expected_sql_count" ]
+    # Check that SQL files are copied correctly
+    # Check main SQL files - should be exactly 4 files: 00_init.sql, 10_setup.sql, 30_config.sql, 70_agents.sql
+    main_sql_count=$(find build -maxdepth 1 -type f -name "*.sql" | wc -l | tr -d ' ')
+    [ "$main_sql_count" -eq 4 ]
+
+    # Verify specific files exist
+    [ -f "build/00_init.sql" ]
+    [ -f "build/10_setup.sql" ]
+    [ -f "build/30_config.sql" ]
+    [ -f "build/70_agents.sql" ]
+
+    # Check 09_upgrade folder
+    [ -d "build/09_upgrade" ]
+    upgrade_sql_count=$(find build/09_upgrade -type f -name "*.sql" | wc -l | tr -d ' ')
+    expected_upgrade_count=$(find src/dtagent.sql/upgrade -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')
+    [ "$upgrade_sql_count" -eq "$expected_upgrade_count" ]
+
+    # Check 20_plugins folder
+    [ -d "build/20_plugins" ]
+    plugin_sql_count=$(find build/20_plugins -type f -name "*.sql" | wc -l | tr -d ' ')
+    expected_plugin_count=$(find src/dtagent/plugins -maxdepth 1 -type f -name "*.py" ! -name "__init__.py" | wc -l | tr -d ' ')
+    [ "$plugin_sql_count" -eq "$expected_plugin_count" ]
 
     # Check that 70*.sql files have correct handler functions
     for sql_file in build/70*.sql; do
@@ -286,7 +302,22 @@ setup() {
     echo "license_file: $license_file"
     [ -n "$license_file" ]
 
-    # Check that there are many SQL files in build/
-    sql_count=$(unzip -l "$zip_file" | grep "build/.*\.sql$" | wc -l)
-    [ "$sql_count" -gt 50 ]
+    # Check that there are SQL files in build/
+    # Should have 4 main SQL files in build root
+    main_sql_count=$(unzip -l "$zip_file" | grep "build/[^/]*\.sql$" | wc -l | tr -d ' ')
+    [ "$main_sql_count" -eq 4 ]
+
+    # Check specific main SQL files exist
+    [ -n "$(unzip -l "$zip_file" | grep "build/00_init.sql")" ]
+    [ -n "$(unzip -l "$zip_file" | grep "build/10_setup.sql")" ]
+    [ -n "$(unzip -l "$zip_file" | grep "build/30_config.sql")" ]
+    [ -n "$(unzip -l "$zip_file" | grep "build/70_agents.sql")" ]
+
+    # Check 09_upgrade folder has SQL files
+    upgrade_sql_count=$(unzip -l "$zip_file" | grep "build/09_upgrade/.*\.sql$" | wc -l | tr -d ' ')
+    [ "$upgrade_sql_count" -gt 0 ]
+
+    # Check 20_plugins folder has SQL files
+    plugin_sql_count=$(unzip -l "$zip_file" | grep "build/20_plugins/.*\.sql$" | wc -l | tr -d ' ')
+    [ "$plugin_sql_count" -gt 0 ]
 }

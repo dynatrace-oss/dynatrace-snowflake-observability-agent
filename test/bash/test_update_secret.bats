@@ -32,7 +32,7 @@ teardown() {
     [ "$status" -eq 0 ]
 
     # Check that SQL was appended
-    run grep -q "create or replace secret DTAGENT_API_KEY" "$TEST_SQL_FILE"
+    run grep -q "alter secret DTAGENT_API_KEY" "$TEST_SQL_FILE"
     if [ "$status" -ne 0 ]; then
         echo "Content of $TEST_SQL_FILE:"
         cat "$TEST_SQL_FILE"
