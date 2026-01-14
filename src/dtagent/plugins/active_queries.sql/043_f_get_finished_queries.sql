@@ -57,7 +57,7 @@ $$
 DECLARE
     cfg CURSOR  FOR SELECT not fast_mode,
                             greatest(
-                                  timeadd(minute, -1, DTAGENT_DB.APP.F_LAST_PROCESSED_TS('active_queries'))
+                                  timeadd(minute, -1, DTAGENT_DB.STATUS.F_LAST_PROCESSED_TS('active_queries'))
                                 , timeadd(hour, -1, current_timestamp()))                         AS end_time_start_range
                    FROM (SELECT
                         DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE('plugins.active_queries.fast_mode', true::variant)::boolean AS fast_mode);

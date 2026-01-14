@@ -90,7 +90,7 @@ This is the main schema maintained by Dynatrace Snowflake Observability Agent. I
   tables/views/queries or array/objects to Dynatrace.
 
 Additionally, a set of helper functions to check the timestamp of the last telemetry piece of a given type processed so far
-(`F_LAST_PROCESSED_TS()`) or get configuration parameters (`CONFIG.F_GET_CONFIG_VALUE()`), plus procedures helping to set up and maintain the event
+(`STATUS.F_LAST_PROCESSED_TS()`) or get configuration parameters (`CONFIG.F_GET_CONFIG_VALUE()`), plus procedures helping to set up and maintain the event
 log table, if it is set up by and managed this Dynatrace Snowflake Observability Agent instance.
 
 Plugins can define their main and helper views, helper procedures, and tasks which invoke Dynatrace Snowflake Observability Agent with the
@@ -274,7 +274,7 @@ The `params` object controls how `DTAGENT_DB.APP.SEND_TELEMETRY` works. Key opti
 | Param          | Default            | Description                                                                                    |
 | -------------- | ------------------ | ---------------------------------------------------------------------------------------------- |
 | `auto_mode`    | `true`             | Expects data in [default structure](#default-data-structure) unless set to `false`.            |
-| `context`      | `telemetry_sender` | Identifies custom data source; used for tracking with `F_LAST_PROCESSED_TS()`.                 |
+| `context`      | `telemetry_sender` | Identifies custom data source; used for tracking with `STATUS.F_LAST_PROCESSED_TS()`.          |
 | `metrics`      | `true`             | Enables sending metrics (only in auto-mode).                                                   |
 | `logs`         | `true`             | Enables/disables sending logs.                                                                 |
 | `events`       | `$auto_mode`       | In auto-mode, disables/enables events from `EVENT_TIMESTAMPS`; in manual mode, enables events. |

@@ -63,7 +63,7 @@ where not regexp_like(SCOPE['name'], 'DTAGENT(_\\S*)?_OTLP')     -- we do not lo
    -- only report status other than DEBUG/INFO for DBs that are related to this particular dtagent,
    or (_RECORD['severity_text']::varchar not in ('DEBUG', 'INFO') and nvl(_resource_attributes['snow.database.name']::varchar, '') = 'DTAGENT_DB') -- DTAGENT_DB will be replaced with DTAGENT_$TAG_DB during deploy
   )
-  and TIMESTAMP > GREATEST( timeadd(hour, -24, current_timestamp), DTAGENT_DB.APP.F_LAST_PROCESSED_TS('event_log') )
+  and TIMESTAMP > GREATEST( timeadd(hour, -24, current_timestamp), DTAGENT_DB.STATUS.F_LAST_PROCESSED_TS('event_log') )
   and (RESOURCE_ATTRIBUTES:"application"::varchar is null or RESOURCE_ATTRIBUTES:"application"::varchar not in ('openflow')) -- exclude known high volume applications
 order by TIMESTAMP asc
 limit 10000 -- safety limit to avoid long running queries

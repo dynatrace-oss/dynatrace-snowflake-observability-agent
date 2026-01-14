@@ -41,7 +41,7 @@ delivers:
     type: schema
   - name: DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE(text,variant)
     type: function
-  - name: DTAGENT_DB.APP.F_LAST_PROCESSED_TS(text)
+  - name: DTAGENT_DB.STATUS.F_LAST_PROCESSED_TS(text)
     type: function
   - name: DTAGENT_DB.APP.SEND_TELEMETRY(variant,object)
     type: procedure

@@ -83,7 +83,7 @@ DECLARE
                                                                       is_from_organization_user
                                                                  from SNOWFLAKE.ACCOUNT_USAGE.USERS
                                                                 where DELETED_ON is null
-                                                                   or DELETED_ON > DTAGENT_DB.APP.F_LAST_PROCESSED_TS(\'users\');';
+                                                                   or DELETED_ON > DTAGENT_DB.STATUS.F_LAST_PROCESSED_TS(\'users\');';
     del_snap          TEXT DEFAULT 'drop table DTAGENT_DB.APP.TMP_USERS_SNAPSHOT';
     tr_map            TEXT DEFAULT 'truncate table if exists DTAGENT_DB.STATUS.EMAIL_HASH_MAP;';
 BEGIN
@@ -105,7 +105,7 @@ BEGIN
     end if;
 
     -- if first run of the day, truncate helper to report everything from snapshot
-    if (DATE(DTAGENT_DB.APP.F_LAST_PROCESSED_TS('users')) = DATEADD(day, -1, (CURRENT_DATE()))) then
+    if (DATE(DTAGENT_DB.STATUS.F_LAST_PROCESSED_TS('users')) = DATEADD(day, -1, (CURRENT_DATE()))) then
         EXECUTE IMMEDIATE :tr_us_h_table;
     end if;
 

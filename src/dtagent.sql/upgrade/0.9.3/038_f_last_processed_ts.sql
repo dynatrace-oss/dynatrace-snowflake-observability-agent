@@ -23,14 +23,4 @@
 --
 use role DTAGENT_ADMIN; use schema DTAGENT_DB.CONFIG; use warehouse DTAGENT_WH;
 
-create or replace function DTAGENT_DB.STATUS.F_LAST_PROCESSED_TS(t_measurement_source text)
-returns timestamp_ltz
-AS
-$$
-  select NVL(max(LAST_TIMESTAMP), '1970-01-01'::timestamp_ltz)
-  from DTAGENT_DB.STATUS.PROCESSED_MEASUREMENTS_LOG
-  where MEASUREMENTS_SOURCE = t_measurement_source
-$$
-;
-
-grant usage on function DTAGENT_DB.STATUS.F_LAST_PROCESSED_TS(text) to role DTAGENT_VIEWER;
+drop function if exists DTAGENT_DB.APP.F_LAST_PROCESSED_TS(text);
