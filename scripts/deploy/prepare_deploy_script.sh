@@ -25,20 +25,20 @@
 #
 # This is a script for preparing single SQL deploy script
 # which could be installed automatically (by deploy.sh) or manually on Snowflake
-# Call as ./prepare_deploy_script.sh "$INSTALL_SCRIPT_SQL" "$ENV" "$PARAM"
+# Call as ./prepare_deploy_script.sh "$INSTALL_SCRIPT_SQL" "$ENV" "$SCOPE" "$FROM_VERSION"
 #
 # Args:
 # * INSTALL_SCRIPT_SQL [REQUIRED] - path to the file where installation script must be written to
-# * ENV                [REQUIRED] - needs to be a environment identifier so that there is a config-$ENV.yml file in the same folder as this script
-# * PARAM              [OPTIONAL] - can be either
-#                       = config         - which will update Dynatrace Snowflake Observability Agent configuration
-#                       = apikey         - which will install new Dynatrace Token for Dynatrace Snowflake Observability Agent
-#                       = manual         - this will prepare the complete installation script but will not run snowflake-cli to run it
-#                       = teardown       - this will remove Dynatrace Snowflake Observability Agent completely
-#                       = *              - this will be used to ONLY process scripts PREFIXed with this value, or ALL if none provided
+# * ENV                [REQUIRED] - environment identifier (config-$ENV.yml must exist)
+# * SCOPE              [REQUIRED] - deployment scope:
+#                       init, setup, plugins, config, agents, apikey, all, teardown, upgrade, or file_part
+# * FROM_VERSION       [OPTIONAL] - version number for upgrade scope
+#
+
 INSTALL_SCRIPT_SQL="$1"
 ENV="$2"
-PARAM="$3"
+SCOPE="$3"
+FROM_VERSION="$4"
 CWD=$(dirname "$0")
 
 #
@@ -49,7 +49,45 @@ TAG=${TAG:-""}
 
 echo "Deploying with tag "${TAG}""
 
-if [ "$PARAM" == 'config' ]; then
+# Map scope to file prefixes
+case "$SCOPE" in
+    init)
+        SQL_FILES="00_init.sql"
+        ;;
+    setup)
+        SQL_FILES="10_setup.sql"
+        ;;
+    plugins)
+        SQL_FILES="20_plugins/*.sql"
+        ;;
+    config)
+        SQL_FILES="30_config.sql"
+        ;;
+    agents)
+        SQL_FILES="70_agents.sql"
+        ;;
+    all)
+        SQL_FILES="*.sql" # FIXME - we need to exclude upgrade here, but include apikey
+        ;;
+    upgrade)
+        if [ -z "$FROM_VERSION" ]; then
+            echo "ERROR: --from-version required for upgrade scope"
+            exit 1
+        fi
+        # Process upgrade scripts >= FROM_VERSION
+        SQL_FILES="09_upgrade/*.sql" #FIXME no version number is used here
+        ;;
+    apikey|teardown)
+        # These are handled specially below
+        SQL_FILES=""
+        ;;
+    *)
+        # Treat as file_part - custom prefix
+        SQL_FILES="$SCOPE*.sql"
+        ;;
+esac
+
+if [ "$SCOPE" == 'config' ]; then
     #
     #   --- script for updating Dynatrace Snowflake Observability Agent configuration ----
     #
@@ -66,30 +104,40 @@ if [ "$PARAM" == 'config' ]; then
     done
 fi
 
-if [ "$PARAM" != 'apikey' ] && [ "$PARAM" != 'config' ] && [ "$PARAM" != 'teardown' ]; then
+if [ "$SCOPE" != 'apikey' ] && [ "$SCOPE" != 'config' ] && [ "$SCOPE" != 'teardown' ]; then
     #
     #   --- script for updating whole or part of Dynatrace Snowflake Observability Agent  ----
     #
-    if [ "$PARAM" == '' ] || [ "$PARAM" == "manual" ]; then
-        SQL_FILES='*.sql'
-    else
-        SQL_FILES="$PARAM*.sql"
-    fi
 
     echo "Will process [build/$SQL_FILES]"
 
     #
     #   --- building one big script to be run
     #
-    find 'build/'$SQL_FILES -type f -print |
-        sort |
-        xargs -I {} sh -c 'echo "-- SCRIPT: $1"; cat "$1"' _ {} \; \
-            >"$INSTALL_SCRIPT_SQL"
+    if [ "$SCOPE" == "upgrade" ]; then
+        # For upgrade, filter by version
+        find build/$SQL_FILES -type f -print |
+            awk -F'/' -v from_ver="$FROM_VERSION" '
+                {
+                    # Extract version from filename (e.g., 09_upgrade/v1.2.3_something.sql)
+                    match($0, /v([0-9]+\.[0-9]+\.[0-9]+)/, arr);
+                    if (arr[1] >= from_ver || arr[1] == "") print $0;
+                }
+            ' |
+            sort |
+            xargs -I {} sh -c 'echo "-- SCRIPT: $1"; cat "$1"' _ {} \; \
+                >"$INSTALL_SCRIPT_SQL"
+    else
+        find build/$SQL_FILES -type f -print 2>/dev/null |
+            sort |
+            xargs -I {} sh -c 'echo "-- SCRIPT: $1"; cat "$1"' _ {} \; \
+                >"$INSTALL_SCRIPT_SQL"
+    fi
 
     echo "Deploy script prepared"
 fi
 
-if [ "$PARAM" == 'teardown' ]; then
+if [ "$SCOPE" == 'teardown' ]; then
     cat <<EOF >>$INSTALL_SCRIPT_SQL
 use role ACCOUNTADMIN;
 
@@ -104,7 +152,7 @@ drop resource monitor if exists DTAGENT_RS;
 EOF
 fi
 
-if [ "$PARAM" == 'apikey' ] || [ "$PARAM" == "manual" ] || [ "$PARAM" == "" ]; then
+if [ "$SCOPE" == 'apikey' ] || [ "$SCOPE" == 'all' ]; then
     #
     #   --- we do not update API key each time we run - you need to request that explicitly
     #
@@ -159,7 +207,7 @@ else
     fi
 fi
 
-if [ "$PARAM" == 'manual' ]; then
+if [ "$SCOPE" == 'manual' ]; then
     echo "-----"
     echo "Dynatrace Snowflake Observability Agent Deployment SQL script has been created in file ${INSTALL_SCRIPT_SQL}"
     echo "-----"
