@@ -100,7 +100,6 @@ if [ "$SCOPE" == "upgrade" ] && [ "$FROM_VERSION" == '' ]; then
     echo "--from-version parameter is required when scope=upgrade"
     exit 1
 fi
-# FIXME implement upgrade procedure
 
 #%DEV:
 # we only need to check DTAGENT_TOKEN if we are deploying through Jenkins
@@ -164,11 +163,15 @@ filter_plugin_code() {
         awk -v plugin="$plugin_name" '
             BEGIN { active=1; }
             /^([#]|[-]{2})[%]PLUGIN:/ {
-                if (index($0, plugin":") > 0) active=0; #FIXME: we should be more precise here
+                # Match PLUGIN:plugin_name: with colon after plugin name
+                pattern = "[%]PLUGIN:" plugin ":"
+                if (index($0, pattern) > 0) active=0;
             }
             { if (active==1) print $0; }
             /^([#]|[-]{2})[%][:]PLUGIN:/ {
-                if (index($0, plugin) > 0) active=1; #FIXME: we should be more precise here
+                # Match :PLUGIN:plugin_name (end marker, no trailing colon)
+                pattern = "[%]:PLUGIN:" plugin
+                if (index($0, pattern) > 0 && index($0, pattern ":") == 0) active=1;
             }
         ' "$temp_file" > "$output_file"
         cp "$output_file" "$temp_file"

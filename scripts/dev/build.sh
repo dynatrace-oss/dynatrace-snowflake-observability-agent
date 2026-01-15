@@ -197,12 +197,12 @@ while IFS= read -r pdir; do
     fi
 done < <(plugin_dirs)
 
-# build/09_upgrade/$version.sql <- combine(src/dtagent.sql/upgrade/$version/*.sql)
+# build/09_upgrade/v$version.sql <- combine(src/dtagent.sql/upgrade/$version/*.sql)
 if [ -d "src/dtagent.sql/upgrade" ]; then
     while IFS= read -r vdir; do
         vname="$(basename "$vdir")"
-        : > "build/09_upgrade/${vname}.sql"
-        append_sql_dir "$vdir" "build/09_upgrade/${vname}.sql"
+        : > "build/09_upgrade/v${vname}.sql"
+        append_sql_dir "$vdir" "build/09_upgrade/v${vname}.sql"
     done < <(find "src/dtagent.sql/upgrade" -mindepth 1 -maxdepth 1 -type d | sort)
 fi
 

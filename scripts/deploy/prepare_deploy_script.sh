@@ -67,7 +67,7 @@ case "$SCOPE" in
         SQL_FILES="70_agents.sql"
         ;;
     all)
-        SQL_FILES="*.sql" # FIXME - we need to exclude upgrade here, but include apikey
+        SQL_FILES="00_init.sql 10_setup.sql 20_plugins/*.sql 30_config.sql 70_agents.sql"
         ;;
     upgrade)
         if [ -z "$FROM_VERSION" ]; then
@@ -75,7 +75,7 @@ case "$SCOPE" in
             exit 1
         fi
         # Process upgrade scripts >= FROM_VERSION
-        SQL_FILES="09_upgrade/*.sql" #FIXME no version number is used here
+        SQL_FILES="09_upgrade/*.sql"
         ;;
     apikey|teardown)
         # These are handled specially below
@@ -118,10 +118,21 @@ if [ "$SCOPE" != 'apikey' ] && [ "$SCOPE" != 'config' ] && [ "$SCOPE" != 'teardo
         # For upgrade, filter by version
         find build/$SQL_FILES -type f -print |
             awk -F'/' -v from_ver="$FROM_VERSION" '
+                function version_to_num(v) {
+                    split(v, parts, ".");
+                    return parts[1] * 1000000 + parts[2] * 1000 + parts[3];
+                }
                 {
-                    # Extract version from filename (e.g., 09_upgrade/v1.2.3_something.sql)
-                    match($0, /v([0-9]+\.[0-9]+\.[0-9]+)/, arr);
-                    if (arr[1] >= from_ver || arr[1] == "") print $0;
+                    # Extract version from filename (e.g., 09_upgrade/v1.2.3.sql or v1.2.3_something.sql)
+                    if (match($0, /v([0-9]+\.[0-9]+\.[0-9]+)/, arr)) {
+                        file_ver = arr[1];
+                        if (version_to_num(file_ver) >= version_to_num(from_ver)) {
+                            print $0;
+                        }
+                    } else {
+                        # Print files without version numbers
+                        print $0;
+                    }
                 }
             ' |
             sort |
