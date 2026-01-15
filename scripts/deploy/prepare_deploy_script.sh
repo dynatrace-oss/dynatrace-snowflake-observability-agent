@@ -87,24 +87,7 @@ case "$SCOPE" in
         ;;
 esac
 
-if [ "$SCOPE" == 'config' ]; then
-    #
-    #   --- script for updating Dynatrace Snowflake Observability Agent configuration ----
-    #
-    echo "Will update configuration"
-    echo -e "\n\n--- local configuration ---\n" \
-        >>"$INSTALL_SCRIPT_SQL"
-
-    FILES_FOR_CONF_UPDATE=(
-        "build/config/040_update_config.sql"
-    )
-
-    for file in "${FILES_FOR_CONF_UPDATE[@]}"; do
-        cat $file >>"$INSTALL_SCRIPT_SQL"
-    done
-fi
-
-if [ "$SCOPE" != 'apikey' ] && [ "$SCOPE" != 'config' ] && [ "$SCOPE" != 'teardown' ]; then
+if [ "$SCOPE" != 'apikey' ] && [ "$SCOPE" != 'teardown' ]; then
     #
     #   --- script for updating whole or part of Dynatrace Snowflake Observability Agent  ----
     #

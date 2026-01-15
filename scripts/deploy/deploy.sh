@@ -144,7 +144,7 @@ else
 fi
 
 # Get list of plugins to exclude
-EXCLUDED_PLUGINS=$($CWD/list_plugin_to_exclude.sh)
+EXCLUDED_PLUGINS=$($CWD/list_plugins_to_exclude.sh)
 
 # Filter function to remove disabled plugin code
 filter_plugin_code() {
@@ -188,6 +188,13 @@ if [ "$SCOPE" != "apikey" ] && [ "$SCOPE" != "teardown" ]; then
     FILTERED_SQL=$(mktemp -p build)
     filter_plugin_code "${INSTALL_SCRIPT_SQL}" "${FILTERED_SQL}"
     mv "${FILTERED_SQL}" "${INSTALL_SCRIPT_SQL}"
+fi
+
+# Remove double newlines from the deployment script
+if [ $(uname -s) = 'Darwin' ]; then
+    sed -i '' '/^$/N;/^\n$/d' "$INSTALL_SCRIPT_SQL"
+else
+    sed -i '/^$/N;/^\n$/d' "$INSTALL_SCRIPT_SQL"
 fi
 
 if [ -s "$INSTALL_SCRIPT_SQL" ] && ! has_option "manual"; then
@@ -245,6 +252,7 @@ if [ -s "$INSTALL_SCRIPT_SQL" ] && ! has_option "manual"; then
 
 elif has_option "manual"; then
     echo "Skipping automated deployment"
+    echo "Deployment script generated at: ${INSTALL_SCRIPT_SQL}"
 else
     echo "No scripts matching requested deploy filter: $SCOPE"
 fi
