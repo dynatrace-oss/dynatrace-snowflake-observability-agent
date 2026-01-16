@@ -86,6 +86,13 @@ class MockTelemetryClient:
                 sorted_expected = sorted(expected_content, key=sort_key)
                 import difflib
 
+                if telemetry_type == "logs":
+                    for entry in sorted_actual:
+                        # this should be always present in OTEL logs but is dynamically added by SDK per log
+                        assert entry.pop("code.file.path"), "Expected 'code.file.path' in log attributes"
+                        assert entry.pop("code.function.name"), "Expected 'code.function.name' in log attributes"
+                        assert entry.pop("code.line.number"), "Expected 'code.line.number' in log attributes"
+
                 if sorted_actual != sorted_expected:
                     _, filepath = self._determine_file_name(telemetry_type)
                     if telemetry_type == "metrics":
@@ -258,8 +265,11 @@ class MockTelemetryClient:
                     kv_datum = {}
                     kv_pairs = None
                     if telemetry_type == "logs":
+                        kv_pairs = list(record.attributes or [])
                         if record.body.HasField("kvlist_value"):
-                            kv_pairs = record.body.kvlist_value.values
+                            kv_pairs.extend(record.body.kvlist_value.values)
+                        else:
+                            kv_datum["content"] = __extract_value(record.body)
                     elif telemetry_type == "spans":
                         kv_pairs = record.attributes
 
