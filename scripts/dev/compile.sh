@@ -47,7 +47,7 @@ preprocess_files() {
 
   gawk 'match($0, /[#]{2}INSERT (.+)/, a) {system("cat \""a[1]"\""); next } 1' "$src_file" > "$dest_file"
 
-  black --line-length 140 "$file"
+  black --line-length 140 "$dest_file"
 
   echo "Preprocessed $dest_file"
 }
