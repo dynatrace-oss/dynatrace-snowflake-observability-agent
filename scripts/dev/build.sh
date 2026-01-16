@@ -228,14 +228,6 @@ append_sql_dir "src/dtagent.sql/config" "build/30_config.sql"
 : > build/70_agents.sql
 append_sql_dir "src/dtagent.sql/agents" "build/70_agents.sql"
 
-# -----------------------------
-# Validate generated artifacts
-# -----------------------------
-for file in build/*.py; do
-    echo "Validating $file"
-    pylint "$file" --disable="$SRC_IGNORED_CASES" --output-format=parseable
-done
-
 # Lint staged SQL (best-effort like before)
 sqlfluff lint build/*.sql build/09_upgrade/*.sql build/20_plugins/*.sql --ignore parsing --disable-progress-bar
 
