@@ -125,8 +125,10 @@ rm -f "$tmp_merged"
 
 process_sql_with_inserts() {
     local in_file="$1"
+    local keep_copyright="${2:-0}"
+
     # Strip copyright headers (lines between two -- lines before and two -- lines after)
-    gawk '
+    gawk -v DEBUG=0 -v keep_copyright="$keep_copyright" '
         match($0, /[#]{2}INSERT (.+)/, a) {
             system("cat src/"a[1]);
             next
@@ -134,7 +136,7 @@ process_sql_with_inserts() {
         BEGIN{
             preamb1=0
             preamb2=0
-            printout=0
+            printout=keep_copyright
         }
         printout { print $0; next }
         !/^--\s*$/ { preamb2=0 }
@@ -161,14 +163,9 @@ append_sql_dir() {
     while IFS= read -r f; do
         [ -f "$f" ] || continue
 
-        if [ "$first_file" = 1 ]; then
-            # Keep copyright header from first file only
-            cat "$f" >> "$dest_file"
-            first_file=0
-        else
-            # Strip copyright header from subsequent files
-            process_sql_with_inserts "$f" >> "$dest_file"
-        fi
+        process_sql_with_inserts "$f" "$first_file" >> "$dest_file"
+        first_file=0
+
         printf "\n" >> "$dest_file"
     done < <(find "$src_dir" -maxdepth 1 -type f -name "*.sql" ! -name "*.off.sql" | sort)
 }
