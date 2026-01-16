@@ -143,59 +143,8 @@ else
     trap " rm -f ${INSTALL_SCRIPT_SQL} " EXIT
 fi
 
-# Get list of plugins to exclude
-EXCLUDED_PLUGINS=$($CWD/list_plugins_to_exclude.sh)
-
-# Filter function to remove disabled plugin code
-filter_plugin_code() {
-    local input_file=$1
-    local output_file=$2
-
-    if [ -z "$EXCLUDED_PLUGINS" ]; then
-        cat "$input_file" > "$output_file"
-        return
-    fi
-
-    local temp_file=$(mktemp)
-    cp "$input_file" "$temp_file"
-
-    for plugin_name in $EXCLUDED_PLUGINS; do
-        awk -v plugin="$plugin_name" '
-            BEGIN { active=1; }
-            /^([#]|[-]{2})[%]PLUGIN:/ {
-                # Match PLUGIN:plugin_name: with colon after plugin name
-                pattern = "[%]PLUGIN:" plugin ":"
-                if (index($0, pattern) > 0) active=0;
-            }
-            { if (active==1) print $0; }
-            /^([#]|[-]{2})[%][:]PLUGIN:/ {
-                # Match :PLUGIN:plugin_name (end marker, no trailing colon)
-                pattern = "[%]:PLUGIN:" plugin
-                if (index($0, pattern) > 0 && index($0, pattern ":") == 0) active=1;
-            }
-        ' "$temp_file" > "$output_file"
-        cp "$output_file" "$temp_file"
-    done
-
-    rm "$temp_file"
-}
-
 # preparing one big deployment script
 $CWD/prepare_deploy_script.sh "${INSTALL_SCRIPT_SQL}" "${ENV}" "${SCOPE}" "${FROM_VERSION}"
-
-# Apply plugin filtering for non-special scopes
-if [ "$SCOPE" != "apikey" ] && [ "$SCOPE" != "teardown" ]; then
-    FILTERED_SQL=$(mktemp -p build)
-    filter_plugin_code "${INSTALL_SCRIPT_SQL}" "${FILTERED_SQL}"
-    mv "${FILTERED_SQL}" "${INSTALL_SCRIPT_SQL}"
-fi
-
-# Remove double newlines from the deployment script
-if [ $(uname -s) = 'Darwin' ]; then
-    sed -i '' '/^$/N;/^\n$/d' "$INSTALL_SCRIPT_SQL"
-else
-    sed -i '/^$/N;/^\n$/d' "$INSTALL_SCRIPT_SQL"
-fi
 
 if [ -s "$INSTALL_SCRIPT_SQL" ] && ! has_option "manual"; then
 

@@ -180,6 +180,71 @@ awk -v config="${SQL_INGEST_CONFIG}" '
     /^[#][%][:]UPLOAD:SKIP.*/ { print_out=1; }' \
         >temp.sql && mv temp.sql "$INSTALL_SCRIPT_SQL"
 
+
+# Filter function to remove disabled plugin code
+filter_plugin_code() {
+    local input_file=$1
+    local output_file=$2
+
+    if [ -z "$EXCLUDED_PLUGINS" ]; then
+        cat "$input_file" > "$output_file"
+        return
+    fi
+
+    local temp_file=$(mktemp)
+    cp "$input_file" "$temp_file"
+
+    for plugin_name in $EXCLUDED_PLUGINS; do
+        awk -v plugin="$plugin_name" '
+            BEGIN { active=1; }
+            {
+                # Check for start marker: --%PLUGIN:plugin_name: or #%PLUGIN:plugin_name:
+                if ($0 ~ /^(--|#)%PLUGIN:/) {
+                    start_pattern = "%PLUGIN:" plugin ":"
+                    if (index($0, start_pattern) > 0) {
+                        active=0;
+                    }
+                }
+
+                # Print line only if active
+                if (active==1) print $0;
+
+                # Check for end marker: --%:PLUGIN:plugin_name or #%:PLUGIN:plugin_name
+                if ($0 ~ /^(--|#)%:PLUGIN:/) {
+                    end_pattern = "%:PLUGIN:" plugin
+                    # Make sure we match the exact plugin name, not a prefix
+                    if (index($0, end_pattern) > 0) {
+                        # Check if followed by end of line or whitespace, not another colon
+                        idx = index($0, end_pattern)
+                        len = length(end_pattern)
+                        rest = substr($0, idx + len)
+                        if (rest == "" || rest ~ /^[ \t]*$/) {
+                            active=1;
+                        }
+                    }
+                }
+            }
+        ' "$temp_file" > "$output_file"
+        cp "$output_file" "$temp_file"
+    done
+
+    rm "$temp_file"
+}
+
+# Get list of plugins to exclude
+EXCLUDED_PLUGINS=$($CWD/list_plugins_to_exclude.sh)
+
+# Apply plugin filtering for non-special scopes
+if [ "$SCOPE" != "apikey" ] && [ "$SCOPE" != "teardown" ]; then
+    if [ -n "$EXCLUDED_PLUGINS" ]; then
+        EXCLUDED_PLUGINS_FORMATTED=$(echo "$EXCLUDED_PLUGINS" | tr '\n' ',' | sed 's/,$//')
+        echo "Filtering out disabled plugins: $EXCLUDED_PLUGINS_FORMATTED"
+        FILTERED_SQL=$(mktemp)
+        filter_plugin_code "${INSTALL_SCRIPT_SQL}" "${FILTERED_SQL}"
+        mv "${FILTERED_SQL}" "${INSTALL_SCRIPT_SQL}"
+    fi
+fi
+
 #
 #   --- Running the scripts (or configuration update) with SnowSQL
 #   Removing SQL comments, as SnowCLI has problems reading them.
@@ -201,6 +266,14 @@ else
         sed -i -E -e "s/${TAG}_${TAG}_/${TAG}_/g" "$INSTALL_SCRIPT_SQL"
     fi
 fi
+
+# Remove double newlines from the deployment script
+if [ $(uname -s) = 'Darwin' ]; then
+    sed -i '' '/^$/N;/^\n$/d' "$INSTALL_SCRIPT_SQL"
+else
+    sed -i '/^$/N;/^\n$/d' "$INSTALL_SCRIPT_SQL"
+fi
+
 
 if [ "$SCOPE" == 'manual' ]; then
     echo "-----"
