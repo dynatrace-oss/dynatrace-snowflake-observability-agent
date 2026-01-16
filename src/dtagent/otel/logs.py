@@ -30,7 +30,6 @@ from typing import Dict, Optional, Any
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk._logs import LoggerProvider
 from dtagent.util import get_timestamp_in_ms, validate_timestamp_ms
-from dtagent.otel import IS_OTEL_BELOW_1_21
 from dtagent.otel.otel_manager import CustomLoggingSession, OtelManager
 
 ##endregion COMPILE_REMOVE
@@ -65,6 +64,24 @@ class Logs:
                 super().__init__(*args, **kwargs)
                 self._session.headers.update(OtelManager.get_dsoa_headers())
 
+        class CustomOTelTimestampFilter(logging.Filter):
+            """
+            Reads record.timestamp (int epoch millisec) and applies it
+            to the Python LogRecord timing fields.
+            """
+
+            def filter(self, record: logging.LogRecord) -> bool:
+                ts_ms = getattr(record, "timestamp", None)
+                if ts_ms is None:
+                    return True
+
+                delattr(record, "timestamp")
+
+                ts_ms = int(ts_ms)
+                record.created = ts_ms / 1_000
+                record.msecs = ts_ms % 1_000
+                return True
+
         self._otel_logger_provider = LoggerProvider(resource=resource)
         self._otel_logger_provider.add_log_record_processor(
             BatchLogRecordProcessor(
@@ -78,6 +95,7 @@ class Logs:
             )
         )
         handler = LoggingHandler(level=logging.NOTSET, logger_provider=self._otel_logger_provider)
+        handler.addFilter(CustomOTelTimestampFilter())
 
         self._otel_logger = logging.getLogger("DTAGENT_OTLP")
         self._otel_logger.setLevel(logging.NOTSET)
@@ -102,53 +120,44 @@ class Logs:
             if key == "timestamp" and str(value).isnumeric():
                 value = str(int(value))
 
-            if IS_OTEL_BELOW_1_21 and not isinstance(value, (bool, str, bytes, int, float)):
-                value = _to_json(value)
-
             return value
 
         # the following conversions through JSON are necessary to ensure certain objects like datetime are properly serialized,
         # otherwise OTEL seems to be sending objects cannot be deserialized on the Dynatrace side
         o_extra = {k: __adjust_log_attribute(k, v) for k, v in _cleanup_data(extra).items() if v} if extra else {}
 
+        # first we record original timestamp in milliseconds as observed_timestamp attribute
+        timestamp = None
         observed_timestamp = get_timestamp_in_ms(o_extra, "timestamp")
         if observed_timestamp:
+            # we validate the original timestamp and record value that is correct for ingest
             timestamp = validate_timestamp_ms(observed_timestamp)
             o_extra["timestamp"] = timestamp
 
         LOG.log(LL_TRACE, o_extra)
-        payload = _cleanup_dict(
-            {
-                "observed_timestamp": observed_timestamp or "",
-                **o_extra,
-                **(context or {}),
-            }
-        )
+
+        raw_payload = o_extra | (context or {})
         if (
-            payload.get("telemetry.sdk.language") == "python"
+            raw_payload.get("telemetry.sdk.language") == "python"
         ):  # remove telemetry.sdk.language="python" which is added by OTEL by default as resource attribute
-            del payload["telemetry.sdk.language"]
+            del raw_payload["telemetry.sdk.language"]
+
+        if observed_timestamp and observed_timestamp != timestamp:
+            raw_payload["observed_timestamp"] = observed_timestamp
+
+        payload = _cleanup_dict(raw_payload)
+
         if message is None:
             message = "-"
 
-        if IS_OTEL_BELOW_1_21:
-            self._otel_logger.log(level=log_level, msg=message, extra=payload)
-            LOG.log(
-                LL_TRACE,
-                "Sent log %s with extra content of count %d at level %d",
-                message,
-                len(o_extra),
-                log_level,
-            )
-        else:
-            self._otel_logger.log(level=log_level, msg={"content": message, **payload})
-            LOG.log(
-                LL_TRACE,
-                "Sent log %s with message content of count %d at level %d",
-                message,
-                len(o_extra),
-                log_level,
-            )
+        self._otel_logger.log(level=log_level, msg=message, extra=payload)
+        LOG.log(
+            LL_TRACE,
+            "Sent log %s with extra content of count %d at level %d",
+            message,
+            len(o_extra),
+            log_level,
+        )
 
         OtelManager.verify_communication()
 
