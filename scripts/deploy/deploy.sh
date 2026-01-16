@@ -144,7 +144,7 @@ else
 fi
 
 # preparing one big deployment script
-$CWD/prepare_deploy_script.sh "${INSTALL_SCRIPT_SQL}" "${ENV}" "${SCOPE}" "${FROM_VERSION}"
+$CWD/prepare_deploy_script.sh "${INSTALL_SCRIPT_SQL}" "${ENV}" "${SCOPE}" "${FROM_VERSION}" "${has_option "manual"}"
 
 if [ -s "$INSTALL_SCRIPT_SQL" ] && ! has_option "manual"; then
 

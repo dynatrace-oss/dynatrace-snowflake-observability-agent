@@ -39,6 +39,7 @@ INSTALL_SCRIPT_SQL="$1"
 ENV="$2"
 SCOPE="$3"
 FROM_VERSION="$4"
+IS_MANUAL="$5"
 CWD=$(dirname "$0")
 
 #
@@ -274,7 +275,7 @@ fi
 $SED_INPLACE '/^$/N;/^\n$/d' "$INSTALL_SCRIPT_SQL"
 
 
-if [ "$SCOPE" == 'manual' ]; then
+if [ "$IS_MANUAL" == "true" ]; then
     echo "-----"
     echo "Dynatrace Snowflake Observability Agent Deployment SQL script has been created in file ${INSTALL_SCRIPT_SQL}"
     echo "-----"

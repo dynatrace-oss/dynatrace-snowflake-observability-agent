@@ -27,7 +27,7 @@ teardown() {
 
 @test "prepare_deploy_script.sh runs with manual param" {
     export DTAGENT_TOKEN="dt0c01.TEST12345678901234567890.TEST123456789012345678901234567890123456789012345678901234567890"
-    run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "manual"
+    run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "001_test" "" "manual"
     [ "$status" -eq 0 ]
     [ -s "$TEST_SQL_FILE" ]  # file should not be empty
     grep -q "SELECT 1" "$TEST_SQL_FILE"
