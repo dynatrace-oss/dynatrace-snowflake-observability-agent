@@ -246,45 +246,32 @@ if [ "$SCOPE" != "apikey" ] && [ "$SCOPE" != "teardown" ]; then
 fi
 
 #
-#   --- Running the scripts (or configuration update) with SnowSQL
-#   Removing SQL and Python comments, as SnowCLI has problems reading them.
+#   Cleaning up the final script
 #
+# Set sed in-place flag based on OS
 if [ $(uname -s) = 'Darwin' ]; then
-    # Remove SQL line comments
-    sed -i "" -E -e 's/--.*$//' "$INSTALL_SCRIPT_SQL"
-    # Remove SQL block comments
-    sed -i "" -E -e '/^\/\*/,/\*\//d' "$INSTALL_SCRIPT_SQL"
-    # Remove Python comment-only lines (with or without leading whitespace)
-    sed -i "" -E -e '/^[[:space:]]*#/d' "$INSTALL_SCRIPT_SQL"
-    # Remove Python inline comments
-    sed -i "" -E -e 's/[[:space:]]+#.*$//' "$INSTALL_SCRIPT_SQL"
-
-    if [ -n "$TAG" ]; then
-        sed -i "" -E -e "s/DTAGENT_/DTAGENT_${TAG}_/g" "$INSTALL_SCRIPT_SQL"
-        sed -i "" -E -e "s/${TAG}_${TAG}_/${TAG}_/g" "$INSTALL_SCRIPT_SQL"
-    fi
-
-    # Remove double newlines from the deployment script
-    sed -i '' '/^$/N;/^\n$/d' "$INSTALL_SCRIPT_SQL"
-
+    SED_INPLACE="sed -i ''"
 else
-    # Remove SQL line comments
-    sed -i -E -e 's/--.*$//' "$INSTALL_SCRIPT_SQL"
-    # Remove SQL block comments
-    sed -i -E -e '/^\/\*/,/\*\//d' "$INSTALL_SCRIPT_SQL"
-    # Remove Python comment-only lines (with or without leading whitespace)
-    sed -i -E -e '/^[[:space:]]*#/d' "$INSTALL_SCRIPT_SQL"
-    # Remove Python inline comments
-    sed -i -E -e 's/[[:space:]]+#.*$//' "$INSTALL_SCRIPT_SQL"
-
-    if [ -n "$TAG" ]; then
-        sed -i -E -e "s/DTAGENT_/DTAGENT_${TAG}_/g" "$INSTALL_SCRIPT_SQL"
-        sed -i -E -e "s/${TAG}_${TAG}_/${TAG}_/g" "$INSTALL_SCRIPT_SQL"
-    fi
-
-    # Remove double newlines from the deployment script
-    sed -i '/^$/N;/^\n$/d' "$INSTALL_SCRIPT_SQL"
+    SED_INPLACE="sed -i"
 fi
+
+# Remove SQL line comments
+$SED_INPLACE -E -e 's/--.*$//' "$INSTALL_SCRIPT_SQL"
+# Remove SQL block comments
+$SED_INPLACE -E -e '/^\/\*/,/\*\//d' "$INSTALL_SCRIPT_SQL"
+# Remove Python comment-only lines (with or without leading whitespace)
+$SED_INPLACE -E -e '/^[[:space:]]*#/d' "$INSTALL_SCRIPT_SQL"
+# Remove Python inline comments
+$SED_INPLACE -E -e 's/[[:space:]]+#.*$//' "$INSTALL_SCRIPT_SQL"
+
+# Handle multitenancy TAG replacements
+if [ -n "$TAG" ]; then
+    $SED_INPLACE -E -e "s/DTAGENT_/DTAGENT_${TAG}_/g" "$INSTALL_SCRIPT_SQL"
+    $SED_INPLACE -E -e "s/${TAG}_${TAG}_/${TAG}_/g" "$INSTALL_SCRIPT_SQL"
+fi
+
+# Remove double newlines from the deployment script
+$SED_INPLACE '/^$/N;/^\n$/d' "$INSTALL_SCRIPT_SQL"
 
 
 if [ "$SCOPE" == 'manual' ]; then
