@@ -80,19 +80,54 @@ class DocstringRemover(ast.NodeTransformer):
 def remove_docstrings(file_path: str) -> None:
     """
     Remove docstrings from a Python file in-place.
+    Preserves #%PLUGIN: markers that are used to identify plugin sections.
 
     Args:
         file_path: Path to the Python file to process
     """
     with open(file_path, "r", encoding="utf-8") as f:
-        code = f.read()
+        content = f.read()
 
-    tree = ast.parse(code)
-    remover = DocstringRemover()
-    new_tree = remover.visit(tree)
+    # Split content by plugin markers
+    lines = content.split("\n")
+    sections = []
+    current_section = []
+
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("#%PLUGIN:") or stripped.startswith("#%:PLUGIN:"):
+            # Save current section if it has content
+            if current_section:
+                sections.append(("code", "\n".join(current_section)))
+                current_section = []
+            # Save marker
+            sections.append(("marker", line))
+        else:
+            current_section.append(line)
+
+    # Don't forget the last section
+    if current_section:
+        sections.append(("code", "\n".join(current_section)))
+
+    # Process each code section
+    result_parts = []
+    for section_type, section_content in sections:
+        if section_type == "marker":
+            result_parts.append(section_content)
+        else:
+            # Process code section
+            try:
+                tree = ast.parse(section_content)
+                remover = DocstringRemover()
+                new_tree = remover.visit(tree)
+                processed = ast.unparse(new_tree)
+                result_parts.append(processed)
+            except SyntaxError:
+                # If section can't be parsed (e.g., incomplete code), keep as-is
+                result_parts.append(section_content)
 
     with open(file_path, "w", encoding="utf-8") as f:
-        f.write(ast.unparse(new_tree))
+        f.write("\n".join(result_parts))
 
 
 if __name__ == "__main__":

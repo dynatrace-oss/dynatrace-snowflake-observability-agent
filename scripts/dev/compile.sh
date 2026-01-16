@@ -47,6 +47,8 @@ preprocess_files() {
 
   gawk 'match($0, /[#]{2}INSERT (.+)/, a) {system("cat \""a[1]"\""); next } 1' "$src_file" > "$dest_file"
 
+  black --line-length 140 "$file"
+
   echo "Preprocessed $dest_file"
 }
 
@@ -127,7 +129,6 @@ process_files "src/dtagent/connector.py" "build/_send_telemetry.py"
 # -----------------------------
 for file in build/*.py; do
     echo "Validating $file"
-    black --line-length 140 "$file"
     pylint "$file" --disable="W0404,W0105,C0302,C0412,C0114,C0413,C0115,C0116,R0913" --output-format=parseable
 done
 
