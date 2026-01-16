@@ -47,9 +47,6 @@ preprocess_files() {
 
   gawk 'match($0, /[#]{2}INSERT (.+)/, a) {system("cat \""a[1]"\""); next } 1' "$src_file" > "$dest_file"
 
-  echo "Removing docstrings from compiled files"
-  python3 src/build/remove_docstrings.py "$dest_file"
-
   black --line-length 140 "$dest_file"
 }
 
@@ -60,7 +57,7 @@ process_files() {
   local src_file=$1
   local dest_file=$2
 
-  echo "# pylint: disable=W0404, W0105, C0302, C0412, C0413" > "$dest_file"
+  echo "# pylint: disable=W0404,W0105,C0302,C0412,C0114,C0413,C0115,C0116,R0913" > "$dest_file"
 
   gawk '
     function plugin_name_from_path(p, t) {
@@ -107,13 +104,22 @@ process_files() {
     sed -i -e '/dtagent/!b' -e '/import/d' "$dest_file"
   fi
 
+  echo "Removing docstrings from compiled file $dest_file"
+  python3 src/build/remove_docstrings.py "$dest_file"
+
+  # C0304: Final newline missing (missing-final-newline)
+  echo "" >> "$dest_file"
+
   check_missing_imports "$dest_file"
+
+  pylint --disable=W0404,W0105,C0302,C0412,C0114,C0413,C0115,C0116,R0913 "$dest_file"
+
+  echo "Processed $dest_file"
 }
 
 echo "Will process source files to build final _dtagent.py and _send_telemetry.py"
+
 process_files "src/dtagent/agent.py" "build/_dtagent.py"
-echo "Processed _dtagent.py"
 process_files "src/dtagent/connector.py" "build/_send_telemetry.py"
-echo "Processed _send_telemetry.py"
 
 echo "Compiling Dynatrace Snowflake Observability Agent done"

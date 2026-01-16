@@ -34,25 +34,45 @@ class DocstringRemover(ast.NodeTransformer):
 
     def visit_FunctionDef(self, node):
         self.generic_visit(node)
-        if node.body and isinstance(node.body[0], ast.Expr) and isinstance(node.body[0].value, (ast.Str, ast.Constant)):
+        if (
+            node.body
+            and isinstance(node.body[0], ast.Expr)
+            and isinstance(node.body[0].value, ast.Constant)
+            and isinstance(node.body[0].value.value, str)
+        ):
             node.body = node.body[1:] or [ast.Pass()]
         return node
 
     def visit_AsyncFunctionDef(self, node):
         self.generic_visit(node)
-        if node.body and isinstance(node.body[0], ast.Expr) and isinstance(node.body[0].value, (ast.Str, ast.Constant)):
+        if (
+            node.body
+            and isinstance(node.body[0], ast.Expr)
+            and isinstance(node.body[0].value, ast.Constant)
+            and isinstance(node.body[0].value.value, str)
+        ):
             node.body = node.body[1:] or [ast.Pass()]
         return node
 
     def visit_ClassDef(self, node):
         self.generic_visit(node)
-        if node.body and isinstance(node.body[0], ast.Expr) and isinstance(node.body[0].value, (ast.Str, ast.Constant)):
+        if (
+            node.body
+            and isinstance(node.body[0], ast.Expr)
+            and isinstance(node.body[0].value, ast.Constant)
+            and isinstance(node.body[0].value.value, str)
+        ):
             node.body = node.body[1:] or [ast.Pass()]
         return node
 
     def visit_Module(self, node):
         self.generic_visit(node)
-        if node.body and isinstance(node.body[0], ast.Expr) and isinstance(node.body[0].value, (ast.Str, ast.Constant)):
+        if (
+            node.body
+            and isinstance(node.body[0], ast.Expr)
+            and isinstance(node.body[0].value, ast.Constant)
+            and isinstance(node.body[0].value.value, str)
+        ):
             node.body = node.body[1:]
         return node
 
