@@ -47,6 +47,9 @@ preprocess_files() {
 
   gawk 'match($0, /[#]{2}INSERT (.+)/, a) {system("cat \""a[1]"\""); next } 1' "$src_file" > "$dest_file"
 
+  echo "Removing docstrings from compiled files"
+  python3 src/build/remove_docstrings.py "$dest_file"
+
   black --line-length 140 "$dest_file"
 }
 
@@ -106,10 +109,6 @@ process_files() {
 
   check_missing_imports "$dest_file"
 }
-
-PYTHONPATH=src python src/build/assemble_semantics.py
-
-preprocess_files "src/dtagent/otel/semantics.py" "build/_semantics.py"
 
 echo "Will process source files to build final _dtagent.py and _send_telemetry.py"
 process_files "src/dtagent/agent.py" "build/_dtagent.py"
