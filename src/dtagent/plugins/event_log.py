@@ -99,7 +99,7 @@ class EventLogPlugin(Plugin):
         """Processes metric entries for event log"""
 
         t_event_log_metrics_instrumented = "APP.V_EVENT_LOG_METRICS_INSTRUMENTED"
-        (metric_entries_cnt, metric_logs_cnt, metric_metrics_cnt, metric_event_cnt) = self._log_entries(
+        metric_entries_cnt, metric_logs_cnt, metric_metrics_cnt, metric_event_cnt = self._log_entries(
             lambda: self._get_table_rows(t_event_log_metrics_instrumented),
             context_name="event_log_metrics",
             run_uuid=run_id,

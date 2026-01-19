@@ -43,7 +43,6 @@ from dtagent.otel.events.generic import GenericEvents
 from dtagent.util import StringEnum, get_timestamp_in_ms
 from dtagent.version import VERSION
 
-
 ##endregion COMPILE_REMOVE
 
 ##region ------------------------ Davis EVENTS ---------------------------------

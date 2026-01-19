@@ -46,7 +46,7 @@ pyyaml
 check-jsonschema
 pylint
 flake8
-black
+black==26.1.0
 sqlfluff
 yamllint
 flake8-docstrings

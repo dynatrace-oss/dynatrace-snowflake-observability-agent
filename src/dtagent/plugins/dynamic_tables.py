@@ -78,7 +78,7 @@ class DynamicTablesPlugin(Plugin):
         t_dynamic_table_refresh_history = "APP.V_DYNAMIC_TABLE_REFRESH_HISTORY_INSTRUMENTED"
         t_dynamic_table_graph_history = "APP.V_DYNAMIC_TABLE_GRAPH_HISTORY_INSTRUMENTED"
 
-        (entries_cnt, logs_cnt, metrics_cnt, event_cnt) = self._log_entries(
+        entries_cnt, logs_cnt, metrics_cnt, event_cnt = self._log_entries(
             lambda: self._get_table_rows(t_dynamic_tables),
             "dynamic_tables",
             run_uuid=run_id,
@@ -86,7 +86,7 @@ class DynamicTablesPlugin(Plugin):
             log_completion=run_proc,
         )
 
-        (entries_refresh_cnt, logs_refresh_cnt, metrics_refresh_cnt, event_refresh_cnt) = self._log_entries(
+        entries_refresh_cnt, logs_refresh_cnt, metrics_refresh_cnt, event_refresh_cnt = self._log_entries(
             lambda: self._get_table_rows(t_dynamic_table_refresh_history),
             "dynamic_table_refresh_history",
             run_uuid=run_id,
@@ -94,7 +94,7 @@ class DynamicTablesPlugin(Plugin):
             log_completion=run_proc,
         )
 
-        (entries_graph_cnt, logs_graph_cnt, metrics_graph_cnt, event_graph_cnt) = self._log_entries(
+        entries_graph_cnt, logs_graph_cnt, metrics_graph_cnt, event_graph_cnt = self._log_entries(
             lambda: self._get_table_rows(t_dynamic_table_graph_history),
             "dynamic_table_graph_history",
             run_uuid=run_id,
