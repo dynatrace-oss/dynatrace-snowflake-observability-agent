@@ -78,10 +78,44 @@ EOSQL
 
     cat > build/70_agents.sql << 'EOSQL'
 -- Agent definitions
-CREATE PROCEDURE main_agent() AS BEGIN SELECT 1; END;
---%PLUGIN:test_plugin:
-CREATE PROCEDURE test_plugin_agent() AS BEGIN SELECT 2; END;
---%:PLUGIN:test_plugin
+CREATE PROCEDURE main_agent()
+returns object
+language python
+runtime_version = '3.11'
+packages = (
+    'requests',
+    'pandas',
+    'tzlocal',
+    'snowflake-snowpark-python',
+    'opentelemetry-api',
+    'opentelemetry-sdk',
+    'opentelemetry-exporter-otlp-proto-http'
+)
+handler = 'main'
+external_access_integrations = (DTAGENT_API_INTEGRATION)
+secrets = ('dtagent_token'=DTAGENT_DB.CONFIG.DTAGENT_API_KEY)
+execute as caller
+as
+$$
+# -- language=Python
+#%PLUGIN:test_plugin:
+class TestPlugin(Plugin):
+    PLUGIN_NAME = 'test_plugin'
+
+    def process(self, run_id: str, run_proc: bool=True) -> Dict[str, Dict[str, int]]:
+        pass
+#%:PLUGIN:test_plugin
+#%PLUGIN:active_plugin:
+class ActivePlugin(Plugin):
+    PLUGIN_NAME = 'active_plugin'
+
+    def process(self, run_id: str, run_proc: bool=True) -> Dict[str, Dict[str, int]]:
+        pass
+#%:PLUGIN:active_plugin
+
+$$
+;
+END;
 EOSQL
 }
 
@@ -221,7 +255,7 @@ EOF
     grep -q "main_agent" "$TEST_SQL_FILE"
 
     # Should NOT include test_plugin_agent
-    ! grep -q "test_plugin_agent" "$TEST_SQL_FILE"
+    ! grep -q "class TestPlugin" "$TEST_SQL_FILE"
 }
 
 @test "prepare_deploy_script.sh removes inactive plugins from all scope" {
@@ -255,9 +289,12 @@ EOF
     grep -q "MAIN_SCHEMA" "$TEST_SQL_FILE"
     grep -q "active_plugin_table" "$TEST_SQL_FILE"
     grep -q "active_plugin_handler" "$TEST_SQL_FILE"
+    grep -q "class ActivePlugin" "$TEST_SQL_FILE"
 
     # Should NOT include test_plugin code anywhere
     ! grep -q "test_plugin_table" "$TEST_SQL_FILE"
     ! grep -q "test_plugin_handler" "$TEST_SQL_FILE"
     ! grep -q "test_plugin_agent" "$TEST_SQL_FILE"
+    ! grep -q "class TestPlugin" "$TEST_SQL_FILE"
+
 }
