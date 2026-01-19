@@ -51,7 +51,7 @@ BEGIN
     create event table if not exists DTAGENT_DB.STATUS.EVENT_LOG;
     alter account set event_table = DTAGENT_DB.STATUS.EVENT_LOG;
 
-    grant ownership on table DTAGENT_DB.STATUS.EVENT_LOG to role DTAGENT_ADMIN revoke current grants;
+    grant ownership on table DTAGENT_DB.STATUS.EVENT_LOG to role DTAGENT_OWNER revoke current grants;
     grant select, delete on table DTAGENT_DB.STATUS.EVENT_LOG to role DTAGENT_VIEWER;
 
     grant modify log level on account to role DTAGENT_ADMIN; -- FIXME: should be granted to DTAGENT_VIEWER?
@@ -68,7 +68,7 @@ BEGIN
     EXECUTE IMMEDIATE concat('create view if not exists DTAGENT_DB.STATUS.EVENT_LOG as select * from ', :s_event_table_name);
     EXECUTE IMMEDIATE concat('grant select on table ', :s_event_table_name, ' to role DTAGENT_VIEWER');
 
-    grant ownership on view DTAGENT_DB.STATUS.EVENT_LOG to role DTAGENT_ADMIN revoke current grants;
+    grant ownership on view DTAGENT_DB.STATUS.EVENT_LOG to role DTAGENT_ADMIN revoke current grants; -- FIXME: should be DTAGENT_OWNER?
     grant select on view DTAGENT_DB.STATUS.EVENT_LOG to role DTAGENT_VIEWER;
 
     RETURN 'Dynatrace Snowflake Observability Agent will use predefined Event table';
