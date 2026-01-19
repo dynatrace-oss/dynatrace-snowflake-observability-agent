@@ -65,10 +65,7 @@ class Logs:
                 self._session.headers.update(OtelManager.get_dsoa_headers())
 
         class CustomOTelTimestampFilter(logging.Filter):
-            """
-            Reads record.timestamp (int epoch millisec) and applies it
-            to the Python LogRecord timing fields.
-            """
+            """Reads record.timestamp (int epoch millisec) and applies it to the Python LogRecord timing fields."""
 
             def filter(self, record: logging.LogRecord) -> bool:
                 ts_ms = getattr(record, "timestamp", None)

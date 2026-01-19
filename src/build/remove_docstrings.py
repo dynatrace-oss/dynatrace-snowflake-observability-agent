@@ -20,8 +20,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 #
-"""
-Removes docstrings from Python source files using AST transformation.
+"""Removes docstrings from Python source files using AST transformation.
+
 This is used during the build process to reduce the size of deployed code.
 """
 
@@ -33,6 +33,7 @@ class DocstringRemover(ast.NodeTransformer):
     """AST transformer that removes docstrings from functions, classes, and modules."""
 
     def visit_FunctionDef(self, node):
+        """Remove docstring from function definition."""
         self.generic_visit(node)
         if (
             node.body
@@ -44,6 +45,7 @@ class DocstringRemover(ast.NodeTransformer):
         return node
 
     def visit_AsyncFunctionDef(self, node):
+        """Remove docstring from async function definition."""
         self.generic_visit(node)
         if (
             node.body
@@ -55,6 +57,7 @@ class DocstringRemover(ast.NodeTransformer):
         return node
 
     def visit_ClassDef(self, node):
+        """Remove docstring from class definition."""
         self.generic_visit(node)
         if (
             node.body
@@ -66,6 +69,7 @@ class DocstringRemover(ast.NodeTransformer):
         return node
 
     def visit_Module(self, node):
+        """Remove docstring from module."""
         self.generic_visit(node)
         if (
             node.body
@@ -78,8 +82,8 @@ class DocstringRemover(ast.NodeTransformer):
 
 
 def remove_docstrings(file_path: str) -> None:
-    """
-    Remove docstrings from a Python file in-place.
+    """Remove docstrings from a Python file in-place.
+
     Preserves #%PLUGIN: markers that are used to identify plugin sections.
 
     Args:
