@@ -1,6 +1,4 @@
-"""
-Test to ensure DTAGENT_ADMIN role usage is restricted to admin files only.
-"""
+"""Test to ensure DTAGENT_ADMIN role usage is restricted to admin files only."""
 
 import os
 import re
@@ -60,9 +58,7 @@ class TestAdminRoleUsage:
         return find_sql_files(str(root_dir))
 
     def test_admin_role_not_in_non_admin_files(self, sql_files):
-        """
-        Test that DTAGENT_ADMIN role is not used outside admin files.
-
+        """Test that DTAGENT_ADMIN role is not used outside admin files.
         This ensures proper separation of admin operations.
         """
         violations_by_file = {}
