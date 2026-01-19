@@ -21,6 +21,6 @@
 --
 --
 --
-use role DTAGENT_ADMIN; use schema DTAGENT_DB.CONFIG; use warehouse DTAGENT_WH;
+use role DTAGENT_OWNER; use schema DTAGENT_DB.CONFIG; use warehouse DTAGENT_WH;
 
 drop function if exists DTAGENT_DB.APP.F_LAST_PROCESSED_TS(text);

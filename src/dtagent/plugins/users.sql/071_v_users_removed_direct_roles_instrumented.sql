@@ -21,7 +21,7 @@
 -- SOFTWARE.
 --
 --
-use role DTAGENT_ADMIN; use database DTAGENT_DB; use warehouse DTAGENT_WH;
+use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 
 -- this view should only be reported to dt tenant if plugins.users.roles_monitoring_mode is set to direct_roles
 -- always roles deleted since last execution

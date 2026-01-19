@@ -24,7 +24,7 @@
 --
 -- APP.V_SESSIONS() return events (less than 1000) from SNOWFLAKE.ACCOUNT_USAGE.SESSIONS view since the last time we checked (but not further than 1 day)
 --
-use role DTAGENT_ADMIN; use database DTAGENT_DB; use warehouse DTAGENT_WH;
+use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 create or replace view DTAGENT_DB.APP.V_SESSIONS
 as
 select

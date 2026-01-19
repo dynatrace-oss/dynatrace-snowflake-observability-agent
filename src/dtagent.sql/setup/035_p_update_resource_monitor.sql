@@ -26,7 +26,7 @@
 -- This is a procedure that allows to set correct values based on the value provided
 -- It is called initially with just one credit, and later it is called by CONFIG.UPDATE_FROM_CONFIGURATIONS()
 --
-use role DTAGENT_ADMIN; use schema DTAGENT_DB.CONFIG; use warehouse DTAGENT_WH;
+use role DTAGENT_OWNER; use schema DTAGENT_DB.CONFIG; use warehouse DTAGENT_WH;
 
 create or replace procedure DTAGENT_DB.CONFIG.P_UPDATE_RESOURCE_MONITOR(SNOWFLAKE_CREDIT_QUOTA int)
 returns int

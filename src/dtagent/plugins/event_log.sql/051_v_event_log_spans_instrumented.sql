@@ -25,7 +25,7 @@
 -- APP.V_EVENT_LOG_SPANS_INSTRUMENTED() is a shorthand to retrieve spans/traces from event log filtered by only new, non OTEL logs
 -- https://docs.snowflake.com/en/developer-guide/logging-tracing/tracing-accessing-events
 --
-use role DTAGENT_ADMIN; use database DTAGENT_DB; use warehouse DTAGENT_WH;
+use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 
 create or replace view DTAGENT_DB.APP.V_EVENT_LOG_SPANS_INSTRUMENTED
 as

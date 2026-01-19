@@ -26,7 +26,7 @@
 --
 -- !! Must be invoked after creation of CONFIG.CONFIGURATIONS table (031_configuration_table)
 --
-use role DTAGENT_ADMIN; use database DTAGENT_DB; use warehouse DTAGENT_WH;
+use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 
 create or replace procedure DTAGENT_DB.APP.P_GRANT_MONITOR_DYNAMIC_TABLES()
 returns text

@@ -55,5 +55,5 @@ exception
 end;
 $$
 ;
-grant ownership on resource monitor DTAGENT_RS to role DTAGENT_ADMIN revoke current grants;
+grant ownership on resource monitor DTAGENT_RS to role DTAGENT_OWNER revoke current grants;
 alter warehouse if exists DTAGENT_WH set resource_monitor = DTAGENT_RS;

@@ -21,7 +21,7 @@
 --
 --
 --
-use role DTAGENT_ADMIN; use schema DTAGENT_DB.CONFIG; use warehouse DTAGENT_WH;
+use role DTAGENT_OWNER; use schema DTAGENT_DB.CONFIG; use warehouse DTAGENT_WH;
 
 -- upgrade from version <0.8.3
 drop procedure if exists DTAGENT_DB.CONFIG.UPDATE_PLUGIN_SCHEDULE(varchar);

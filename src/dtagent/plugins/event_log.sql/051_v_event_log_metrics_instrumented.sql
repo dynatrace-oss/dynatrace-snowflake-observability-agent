@@ -24,7 +24,7 @@
 --
 -- APP.V_EVENT_LOG_METRICS_INSTRUMENTED() is a shorthand to retrieve metrics from event log filtered by only new, non OTEL logs
 --
-use role DTAGENT_ADMIN; use database DTAGENT_DB; use warehouse DTAGENT_WH;
+use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 
 create or replace view DTAGENT_DB.APP.V_EVENT_LOG_METRICS_INSTRUMENTED
 as

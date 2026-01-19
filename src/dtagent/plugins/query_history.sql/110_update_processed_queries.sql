@@ -1,17 +1,17 @@
 --
 --
 -- Copyright (c) 2025 Dynatrace Open Source
--- 
+--
 -- Permission is hereby granted, free of charge, to any person obtaining a copy
 -- of this software and associated documentation files (the "Software"), to deal
 -- in the Software without restriction, including without limitation the rights
 -- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 -- copies of the Software, and to permit persons to whom the Software is
 -- furnished to do so, subject to the following conditions:
--- 
+--
 -- The above copyright notice and this permission notice shall be included in all
 -- copies or substantial portions of the Software.
--- 
+--
 -- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 -- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 -- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -22,10 +22,10 @@
 --
 --
 --
--- APP.UPDATE_PROCESSED_QUERIES() will update cache with analyzed queries in STATUS.PROCESSED_QUERIES_CACHE 
--- and will log number of successfully analyzed and problematic ones in STATUS.PROCESSED_MEASUREMENTS_LOG 
--- 
-use role DTAGENT_ADMIN; use database DTAGENT_DB; use warehouse DTAGENT_WH;
+-- APP.UPDATE_PROCESSED_QUERIES() will update cache with analyzed queries in STATUS.PROCESSED_QUERIES_CACHE
+-- and will log number of successfully analyzed and problematic ones in STATUS.PROCESSED_MEASUREMENTS_LOG
+--
+use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 create or replace procedure DTAGENT_DB.STATUS.UPDATE_PROCESSED_QUERIES(query_ids text, processing_errors_count int, span_events_added int)
 returns int
 language sql
@@ -43,12 +43,12 @@ begin
         processed_time
     )
     WITH cte_query_ids AS (
-        select 
+        select
             t.value as query_id
-        from 
+        from
             table(split_to_table(:query_ids, '|')) as t
     )
-    select 
+    select
         qh.start_time,
         qh.query_id,
         qh.session_id,
@@ -62,7 +62,7 @@ begin
     ;
 
     inserted_queries := SQLROWCOUNT;
-    
+
     open c_last_timestamp;
     fetch c_last_timestamp into last_timestamp;
     close c_last_timestamp;
@@ -74,7 +74,7 @@ begin
         object_construct(
             'queries',      :inserted_queries,
             'errors',       :processing_errors_count,
-            'span_events',  :span_events_added 
+            'span_events',  :span_events_added
         )::text
     );
 

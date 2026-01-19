@@ -26,7 +26,7 @@
 -- * APP.TMP_RESOURCE_MONITORS
 -- * APP.TMP_WAREHOUSES
 --
-use role DTAGENT_ADMIN; use database DTAGENT_DB; use warehouse DTAGENT_WH;
+use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 create or replace transient table APP.TMP_RESOURCE_MONITORS(
         name text,
         credit_quota text, used_credits text, remaining_credits text, level text, frequency text,

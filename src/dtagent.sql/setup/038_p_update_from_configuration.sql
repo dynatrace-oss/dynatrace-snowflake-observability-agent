@@ -25,7 +25,9 @@
 -- This stored procedure will update configuration of Dynatrace Snowflake Observability Agent
 -- HINT: call `./deploy.sh $ENV config` to initialize your Dynatrace Snowflake Observability Agent deployment with proper config-$ENV.yml file
 --
-use role DTAGENT_ADMIN; use schema DTAGENT_DB.CONFIG; use warehouse DTAGENT_WH;
+-- This procedure is intended to be called by DTAGENT_OWNER role only!
+--
+use role DTAGENT_OWNER; use schema DTAGENT_DB.CONFIG; use warehouse DTAGENT_WH;
 
 create or replace procedure DTAGENT_DB.CONFIG.UPDATE_FROM_CONFIGURATIONS()
 returns varchar not null

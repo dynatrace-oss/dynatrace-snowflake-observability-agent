@@ -1,17 +1,17 @@
 --
 --
 -- Copyright (c) 2025 Dynatrace Open Source
--- 
+--
 -- Permission is hereby granted, free of charge, to any person obtaining a copy
 -- of this software and associated documentation files (the "Software"), to deal
 -- in the Software without restriction, including without limitation the rights
 -- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 -- copies of the Software, and to permit persons to whom the Software is
 -- furnished to do so, subject to the following conditions:
--- 
+--
 -- The above copyright notice and this permission notice shall be included in all
 -- copies or substantial portions of the Software.
--- 
+--
 -- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 -- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 -- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -22,13 +22,9 @@
 --
 --
 --
--- Initializing Dynatrace Snowflake Observability Agent by creating: admin role
+-- Initializing Dynatrace Snowflake Observability Agent by creating: OWNER role
+-- This role owns all objects within the DTAGENT_DB application database
 --
 use role ACCOUNTADMIN;
-create role if not exists DTAGENT_ADMIN;
-grant role DTAGENT_ADMIN to role ACCOUNTADMIN;
-
--- this is required to grant monitoring privileges on warehouses and dynamic tables to the DTAGENT_VIEWER role
-grant manage grants on ACCOUNT to role DTAGENT_ADMIN;
-
-grant MODIFY LOG LEVEL on account to role DTAGENT_ADMIN;
+create role if not exists DTAGENT_OWNER;
+grant role DTAGENT_OWNER to role ACCOUNTADMIN;

@@ -24,7 +24,7 @@
 --
 -- APP.P_CLEANUP_EVENT_LOG(INT) will remove old event_log entries, with number of hours to retain
 --
-use role DTAGENT_ADMIN; use database DTAGENT_DB; use warehouse DTAGENT_WH;
+use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 
 drop procedure if exists DTAGENT_DB.APP.P_CLEANUP_EVENT_LOG(INT);
 

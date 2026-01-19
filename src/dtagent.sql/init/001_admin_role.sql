@@ -22,16 +22,16 @@
 --
 --
 --
---  This task ensures Dynatrace Snowflake Observability Agent is called periodically
+-- Initializing Dynatrace Snowflake Observability Agent by creating: admin role
+-- This role is used to grant necessary privileges to the DTAGENT_VIEWER role
 --
-use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
-create or replace task DTAGENT_DB.APP.TASK_DTAGENT_SHARES
-    warehouse = DTAGENT_WH
-    schedule = 'USING CRON */30 * * * * UTC' -- every 30 minutes at 00:00, 00:30, 01:00, ..., 23:30 UTC
-    allow_overlapping_execution = FALSE
-as
-    call DTAGENT_DB.APP.DTAGENT(ARRAY_CONSTRUCT('shares'));
+use role ACCOUNTADMIN;
+create role if not exists DTAGENT_ADMIN;
+grant role DTAGENT_ADMIN to role ACCOUNTADMIN;
 
-grant ownership on task DTAGENT_DB.APP.TASK_DTAGENT_SHARES to role DTAGENT_VIEWER revoke current grants;
-grant operate, monitor on task DTAGENT_DB.APP.TASK_DTAGENT_SHARES to role DTAGENT_VIEWER;
-alter task if exists DTAGENT_DB.APP.TASK_DTAGENT_SHARES resume;
+-- this is required to grant monitoring privileges on warehouses and dynamic tables to the DTAGENT_VIEWER role
+grant manage grants on ACCOUNT to role DTAGENT_ADMIN;
+
+grant MODIFY LOG LEVEL on account to role DTAGENT_ADMIN; -- FIXME: should this be owner, admin or viewer?
+
+grant ownership on role DTAGENT_ADMIN to role DTAGENT_OWNER;

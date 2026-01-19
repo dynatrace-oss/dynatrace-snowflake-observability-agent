@@ -21,7 +21,7 @@
 --
 --
 --
-use role DTAGENT_ADMIN; use schema DTAGENT_DB.CONFIG; use warehouse DTAGENT_WH;
+use role DTAGENT_OWNER; use schema DTAGENT_DB.CONFIG; use warehouse DTAGENT_WH;
 
 create or replace function DTAGENT_DB.STATUS.F_LAST_PROCESSED_TS(t_measurement_source text)
 returns timestamp_ltz

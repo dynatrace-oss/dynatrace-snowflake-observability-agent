@@ -1,17 +1,17 @@
 --
 --
 -- Copyright (c) 2025 Dynatrace Open Source
--- 
+--
 -- Permission is hereby granted, free of charge, to any person obtaining a copy
 -- of this software and associated documentation files (the "Software"), to deal
 -- in the Software without restriction, including without limitation the rights
 -- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 -- copies of the Software, and to permit persons to whom the Software is
 -- furnished to do so, subject to the following conditions:
--- 
+--
 -- The above copyright notice and this permission notice shall be included in all
 -- copies or substantial portions of the Software.
--- 
+--
 -- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 -- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 -- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -24,7 +24,7 @@
 --
 -- APP.V_DYNAMIC_TABLES_INSTRUMENTED() returns metadata for all dynamic tables defined in Snowflake.
 --
-use role DTAGENT_ADMIN; use database DTAGENT_DB; use warehouse DTAGENT_WH;
+use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 
 create or replace view APP.V_DYNAMIC_TABLES_INSTRUMENTED
 as
@@ -39,7 +39,7 @@ with cte_includes as (
     where c.PATH = 'plugins.dynamic_tables.exclude'
 )
 , cte_dynamic_tables as (
-    select 
+    select
         current_timestamp                   as TIMESTAMP,
 
         NAME,
@@ -62,13 +62,13 @@ with cte_includes as (
         SCHEDULING_STATE:reason_message     as SCHEDULING_STATE_REASON_MESSAGE,
         SCHEDULING_STATE:suspended_on       as SCHEDULING_STATE_SUSPENDED_ON,
         SCHEDULING_STATE:resumed_on         as SCHEDULING_STATE_RESUMED_ON
-    from 
+    from
         table(INFORMATION_SCHEMA.DYNAMIC_TABLES())
     where
             QUALIFIED_NAME LIKE ANY (select db_pattern from cte_includes)
     and not QUALIFIED_NAME LIKE ANY (select db_pattern from cte_excludes)
 )
-select 
+select
     extract(epoch_nanosecond from to_timestamp(qh.TIMESTAMP))                                                           as TIMESTAMP,
 
     qh.QUALIFIED_NAME                                                                                                   as NAME,
@@ -106,16 +106,16 @@ select
         'snowflake.table.dynamic.scheduling.resumed_on',            extract(epoch_nanosecond from to_timestamp(qh.SCHEDULING_STATE_RESUMED_ON))
     )                                                                                                                   as EVENT_TIMESTAMPS
 
-from 
+from
     cte_dynamic_tables qh
-order by 
+order by
     TIMESTAMP asc
 ;
 grant select on table APP.V_DYNAMIC_TABLES_INSTRUMENTED to role DTAGENT_VIEWER;
 
 /*
 use role DTAGENT_VIEWER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
-select * 
-from APP.V_DYNAMIC_TABLES_INSTRUMENTED 
+select *
+from APP.V_DYNAMIC_TABLES_INSTRUMENTED
 limit 10;
  */
