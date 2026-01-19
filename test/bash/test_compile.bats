@@ -26,3 +26,19 @@ teardown() {
 
     grep -q "BUILD =" build/_version.py
 }
+
+@test "compile.sh removes docstrings from compiled files" {
+    run ./scripts/dev/compile.sh
+    [ "$status" -eq 0 ]
+
+    # Check that compiled files exist
+    [ -f build/_dtagent.py ]
+    [ -f build/_send_telemetry.py ]
+
+    # Check that docstrings are removed (no triple quotes followed by text)
+    # We're checking that there are no typical docstring patterns
+    ! grep -E '^\s*"""[^"]*"""' build/_dtagent.py
+    ! grep -E "^\s*'''[^']*'''" build/_dtagent.py
+    ! grep -E '^\s*"""[^"]*"""' build/_send_telemetry.py
+    ! grep -E "^\s*'''[^']*'''" build/_send_telemetry.py
+}

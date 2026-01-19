@@ -88,6 +88,14 @@ case "$SCOPE" in
         ;;
 esac
 
+# Check if required SQL files exist in build folder (skip for scopes with empty SQL_FILES)
+if [ -n "$SQL_FILES" ]; then
+    if ! find build/$SQL_FILES -type f 2>/dev/null | grep -q .; then
+        echo "ERROR: Build files missing for scope $SCOPE"
+        exit 1
+    fi
+fi
+
 if [ "$SCOPE" != 'apikey' ] && [ "$SCOPE" != 'teardown' ]; then
     #
     #   --- script for updating whole or part of Dynatrace Snowflake Observability Agent  ----
@@ -251,28 +259,28 @@ fi
 #
 # Set sed in-place flag based on OS
 if [ $(uname -s) = 'Darwin' ]; then
-    SED_INPLACE="sed -i ''"
+    SED_INPLACE=("sed" "-i" "")
 else
-    SED_INPLACE="sed -i"
+    SED_INPLACE=("sed" "-i")
 fi
 
 # Remove SQL line comments
-$SED_INPLACE -E -e 's/--.*$//' "$INSTALL_SCRIPT_SQL"
+"${SED_INPLACE[@]}" -E -e 's/--.*$//' "$INSTALL_SCRIPT_SQL"
 # Remove SQL block comments
-$SED_INPLACE -E -e '/^\/\*/,/\*\//d' "$INSTALL_SCRIPT_SQL"
+"${SED_INPLACE[@]}" -E -e '/^\/\*/,/\*\//d' "$INSTALL_SCRIPT_SQL"
 # Remove Python comment-only lines (with or without leading whitespace)
-$SED_INPLACE -E -e '/^[[:space:]]*#/d' "$INSTALL_SCRIPT_SQL"
+"${SED_INPLACE[@]}" -E -e '/^[[:space:]]*#/d' "$INSTALL_SCRIPT_SQL"
 # Remove Python inline comments
-$SED_INPLACE -E -e 's/[[:space:]]+#.*$//' "$INSTALL_SCRIPT_SQL"
+"${SED_INPLACE[@]}" -E -e 's/[[:space:]]+#.*$//' "$INSTALL_SCRIPT_SQL"
 
 # Handle multitenancy TAG replacements
 if [ -n "$TAG" ]; then
-    $SED_INPLACE -E -e "s/DTAGENT_/DTAGENT_${TAG}_/g" "$INSTALL_SCRIPT_SQL"
-    $SED_INPLACE -E -e "s/${TAG}_${TAG}_/${TAG}_/g" "$INSTALL_SCRIPT_SQL"
+    "${SED_INPLACE[@]}" -E -e "s/DTAGENT_/DTAGENT_${TAG}_/g" "$INSTALL_SCRIPT_SQL"
+    "${SED_INPLACE[@]}" -E -e "s/${TAG}_${TAG}_/${TAG}_/g" "$INSTALL_SCRIPT_SQL"
 fi
 
 # Remove double newlines from the deployment script
-$SED_INPLACE '/^$/N;/^\n$/d' "$INSTALL_SCRIPT_SQL"
+"${SED_INPLACE[@]}" '/^$/N;/^\n$/d' "$INSTALL_SCRIPT_SQL"
 
 
 if [ "$IS_MANUAL" == "true" ]; then

@@ -32,7 +32,9 @@
 # * --scope        [OPTIONAL] - deployment scope (default: all):
 #                               init, setup, plugins, config, agents, apikey, all, teardown, upgrade, or file_part
 # * --from-version [OPTIONAL] - version number for upgrade scope (required if scope=upgrade)
+# * --output-file  [OPTIONAL] - output file path for manual mode (default: dsoa-deploy-script-{ENV}-{TIMESTAMP}.sql)
 # * --options      [OPTIONAL] - comma-separated: manual, service_user, skip_confirm, no_dep
+
 #
 
 ENV=$1
@@ -41,6 +43,7 @@ shift
 # Parse arguments
 SCOPE="all"
 FROM_VERSION=""
+OUTPUT_FILE=""
 OPTIONS_STR=""
 
 while [[ $# -gt 0 ]]; do
@@ -51,6 +54,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --from-version=*)
             FROM_VERSION="${1#*=}"
+            shift
+            ;;
+        --output-file=*)
+            OUTPUT_FILE="${1#*=}"
             shift
             ;;
         --options=*)
@@ -67,6 +74,7 @@ done
 # Parse options into array
 IFS=',' read -ra OPTIONS <<< "$OPTIONS_STR"
 
+
 # Check if option is present
 has_option() {
     local opt=$1
@@ -79,8 +87,10 @@ has_option() {
 CWD=$(dirname "$0")
 
 if has_option "manual"; then
+    IS_MANUAL="true"
     "$CWD/setup.sh"
 else
+    IS_MANUAL="false"
     "$CWD/setup.sh" $ENV
 fi
 
@@ -135,8 +145,12 @@ DEPLOYMENT_ENV="$($CWD/get_config_key.sh core.deployment_environment)"
 CONNECTION_ENV="${DEPLOYMENT_ENV,,}" # convert to lower case
 NOW_TS=$(date '+%Y%m%d-%H%M%S')
 
-if has_option "manual"; then
-    INSTALL_SCRIPT_SQL="dsoa-deploy-script-${DEPLOYMENT_ENV}-${NOW_TS}.sql"
+if $IS_MANUAL; then
+    if [ -n "$OUTPUT_FILE" ]; then
+        INSTALL_SCRIPT_SQL="$OUTPUT_FILE"
+    else
+        INSTALL_SCRIPT_SQL="dsoa-deploy-script-${DEPLOYMENT_ENV}-${NOW_TS}.sql"
+    fi
 else
     INSTALL_SCRIPT_SQL=$(mktemp -p build)
     # clean up this way, because rm did not always work
@@ -144,9 +158,13 @@ else
 fi
 
 # preparing one big deployment script
-$CWD/prepare_deploy_script.sh "${INSTALL_SCRIPT_SQL}" "${ENV}" "${SCOPE}" "${FROM_VERSION}" "${has_option "manual"}"
+$CWD/prepare_deploy_script.sh "${INSTALL_SCRIPT_SQL}" "${ENV}" "${SCOPE}" "${FROM_VERSION}" "${IS_MANUAL}"
+if [ $? -ne 0 ]; then
+    echo "ERROR: Deploy preparation failed"
+    exit 1
+fi
 
-if [ -s "$INSTALL_SCRIPT_SQL" ] && ! has_option "manual"; then
+if [ -s "$INSTALL_SCRIPT_SQL" ] && ! $IS_MANUAL; then
 
     if has_option "service_user"; then
         # added for Jenkins to be able to skip this step, as it will never find the config file
@@ -167,7 +185,7 @@ if [ -s "$INSTALL_SCRIPT_SQL" ] && ! has_option "manual"; then
 
     echo -e "Deploying to Snowflake with the snow_agent_$CONNECTION_ENV connection profile and as the $DEPLOYMENT_ENV deployment environment\n"
 
-    if ! has_option "skip_confirm"; then
+    if ! $IS_MANUAL && ! has_option "skip_confirm"; then
         read -p "Press Enter if you wish to continue deployment with script above or Ctrl+C to exit" </dev/tty
     fi
 
@@ -199,7 +217,7 @@ if [ -s "$INSTALL_SCRIPT_SQL" ] && ! has_option "manual"; then
 
     rm ${INSTALL_SCRIPT_SQL}
 
-elif has_option "manual"; then
+elif $IS_MANUAL; then
     echo "Skipping automated deployment"
     echo "Deployment script generated at: ${INSTALL_SCRIPT_SQL}"
 else
