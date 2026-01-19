@@ -8,14 +8,23 @@ Released on January 15, 2026
 
 ### Breaking Changes in 0.9.3
 
-- **Optional DTAGENT_ADMIN Role**: Re-architected SnowAgent to make the use of `DTAGENT_ADMIN` role optional, enabling deployment with
-  reduced privileges. Deployment vs. upgrade now has separate permission requirements with owner-admin-viewer role separation.
+- **DTAGENT_OWNER Role Introduction**: Re-architected SnowAgent to introduce `DTAGENT_OWNER` role that owns all SnowAgent artifacts
+  (database, schemas, tables, procedures, tasks). The `DTAGENT_ADMIN` role is now reserved exclusively for elevated administrative
+  privileges (role grants, ownership transfers), while `DTAGENT_VIEWER` handles regular telemetry-related operations. This separation
+  improves security and enables deployment with reduced privileges.
+- **Deployment vs. Upgrade Permission Requirements**: Deployment and upgrade now have separate permission requirements with the new
+  owner-admin-viewer role separation model.
 - **Deployment configuration**: Deployment configuration files are now in YAML format. Multi-configuration deployment is no longer supported.
   Each DSOA instance must be deployed separately with its own configuration. Use `convert_config_to_yaml.sh` script to convert configuration
   files to YAML format and split existing multi-configuration files into separate YAML files.
 
 ### New in 0.9.3
 
+- **Admin Deployment Scope**: New `admin` deployment scope for administrative operations, enabling granular control over privilege-related
+  deployments.
+  - Created `build/10_admin.sql` compiled from `src/dtagent.sql/admin/*.sql` and plugin-specific `admin/*.sql` files
+  - Added `--scope=admin` option to `deploy.sh` for deploying only administrative components (role grants, ownership transfers)
+  - Enforces strict separation: `DTAGENT_ADMIN` role usage restricted to admin files only, validated by automated tests
 - **SDLC Events Support**: Implemented support for Software Development Life Cycle (SDLC) events in SnowAgent, enabling pipelines-related
   telemetry for Snowflake and SnowAgent self-monitoring.
 - **Database-Level Event Tables**: Added support for Snowflake event log tables at the database level (`SNOWFLAKE.TELEMETRY.EVENTS`), in
@@ -33,6 +42,21 @@ Released on January 15, 2026
 
 #### Architecture & Multi-Tenancy
 
+- **Three-Tier Role Model**: Implemented `DTAGENT_OWNER` → `DTAGENT_ADMIN` → `DTAGENT_VIEWER` role hierarchy:
+  - `DTAGENT_OWNER`: Owns all SnowAgent artifacts (database, schemas, tables, procedures, tasks)
+  - `DTAGENT_ADMIN`: Handles elevated administrative operations (role grants, ownership transfers, privilege management)
+  - `DTAGENT_VIEWER`: Executes regular telemetry collection and processing operations
+- **Security Model Enhancement**: Isolated administrative operations (using `DTAGENT_ADMIN` role) in dedicated admin scripts, ensuring
+  administrative privileges are only used in appropriate contexts. Added automated tests (`test_admin_role_usage.py`) to enforce this
+  separation.
+- **Build Artifact Reorganization**: Updated build artifact numbering to accommodate new admin scope:
+  - `00_init.sql` - Initialization (unchanged)
+  - `09_upgrade/v*.sql` - Upgrades (unchanged)
+  - `10_admin.sql` - Administrative setup (NEW)
+  - `20_setup.sql` - General setup (previously `10_setup.sql`)
+  - `30_plugins/` - Plugin definitions (previously `20_plugins/`)
+  - `40_config.sql` - Configuration (previously `30_config.sql`)
+  - `70_agents.sql` - Agent definitions (unchanged)
 - **Multi-Tenancy Data Reuse**: Refactored code so that multi-tenant instances can re-use existing data prepared by other instances,
   reducing redundant telemetry processing.
 - **Selective Plugin Deployment**: Enabled deployment of SnowAgent with only selected plugins, allowing customization based on use case

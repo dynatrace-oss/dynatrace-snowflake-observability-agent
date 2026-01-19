@@ -203,15 +203,31 @@ if [ -d "src/dtagent.sql/upgrade" ]; then
     done < <(find "src/dtagent.sql/upgrade" -mindepth 1 -maxdepth 1 -type d | sort)
 fi
 
-# build/10_setup.sql <- combine(src/dtagent.sql/setup/*.sql)
-: > build/10_setup.sql
-append_sql_dir "src/dtagent.sql/setup" "build/10_setup.sql"
+# build/10_admin.sql <- combine(src/dtagent.sql/admin/*.sql, plugin admin/*.sql wrapped in plugin blocks)
+: > build/10_admin.sql
+append_sql_dir "src/dtagent.sql/admin" "build/10_admin.sql"
 
-# build/20_plugins/$plugin_name.sql <- combine(src/dtagent/plugins/$plugin_name.sql/*.sql) (excluding init/) wrapped in plugin blocks
 while IFS= read -r pdir; do
     pbase="$(basename "$pdir")"
     pname="${pbase%.sql}"
-    dest="build/20_plugins/${pname}.sql"
+    admin_dir="$pdir/admin"
+    if compgen -G "$admin_dir/*.sql" > /dev/null; then
+        echo "--%PLUGIN:${pname}:" >> build/10_admin.sql
+        append_sql_dir "$admin_dir" "build/10_admin.sql" 0
+        echo "--%:PLUGIN:${pname}" >> build/10_admin.sql
+        printf "\n" >> build/10_admin.sql
+    fi
+done < <(plugin_dirs)
+
+# build/20_setup.sql <- combine(src/dtagent.sql/setup/*.sql)
+: > build/20_setup.sql
+append_sql_dir "src/dtagent.sql/setup" "build/20_setup.sql"
+
+# build/30_plugins/$plugin_name.sql <- combine(src/dtagent/plugins/$plugin_name.sql/*.sql) (excluding init/) wrapped in plugin blocks
+while IFS= read -r pdir; do
+    pbase="$(basename "$pdir")"
+    pname="${pbase%.sql}"
+    dest="build/30_plugins/${pname}.sql"
     : > "$dest"
 
     echo "--%PLUGIN:${pname}:" >> "$dest"
@@ -220,15 +236,15 @@ while IFS= read -r pdir; do
     printf "\n" >> "$dest"
 done < <(plugin_dirs)
 
-# build/30_config.sql <- combine(src/dtagent.sql/config/*.sql)
-: > build/30_config.sql
-append_sql_dir "src/dtagent.sql/config" "build/30_config.sql"
+# build/40_config.sql <- combine(src/dtagent.sql/config/*.sql)
+: > build/40_config.sql
+append_sql_dir "src/dtagent.sql/config" "build/40_config.sql"
 
 # build/70_agents.sql <- combine(src/dtagent.sql/agents/*.sql)
 : > build/70_agents.sql
 append_sql_dir "src/dtagent.sql/agents" "build/70_agents.sql"
 
 # Lint staged SQL (best-effort like before)
-sqlfluff lint build/*.sql build/09_upgrade/*.sql build/20_plugins/*.sql --ignore parsing --disable-progress-bar
+sqlfluff lint build/*.sql build/09_upgrade/*.sql build/30_plugins/*.sql --ignore parsing --disable-progress-bar
 
 echo "Building Dynatrace Snowflake Observability Agent done"

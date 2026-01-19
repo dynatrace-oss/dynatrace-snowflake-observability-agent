@@ -40,6 +40,9 @@ Table of content:
     - [Sending logs and metrics from a view](#sending-logs-and-metrics-from-a-view)
     - [Sending logs, events, and bizevents from an array of custom objects](#sending-logs-events-and-bizevents-from-an-array-of-custom-objects)
 - [Dynatrace Snowflake Observability Agent self-monitoring](#dynatrace-snowflake-observability-agent-self-monitoring)
+  - [Build Artifacts](#build-artifacts)
+  - [Deployment Scopes](#deployment-scopes)
+  - [Security Model](#security-model)
 
 ## High-Level overview
 
@@ -438,3 +441,39 @@ Example of deployment bizevent payload.
   "dsoa.deployment.parameter": "full_deployment"
 }
 ```
+
+### Build Artifacts
+
+The build process creates staged SQL scripts in the `build/` directory:
+
+- `00_init.sql` - Initialization scripts (database, roles, basic setup)
+- `09_upgrade/v*.sql` - Version-specific upgrade scripts
+- `10_admin.sql` - Administrative operations (role grants, ownership transfers)
+- `20_setup.sql` - Core setup (schemas, tables, procedures)
+- `30_plugins/*.sql` - Individual plugin definitions
+- `40_config.sql` - Configuration management
+- `70_agents.sql` - Agent task definitions
+
+### Deployment Scopes
+
+The deployment script supports the following scopes:
+
+- `init` - Deploy initialization scripts only
+- `admin` - Deploy administrative operations (role setup, ownership)
+- `setup` - Deploy core setup scripts
+- `plugins` - Deploy plugin definitions
+- `config` - Deploy configuration
+- `agents` - Deploy agent tasks
+- `apikey` - Update API key secrets
+- `upgrade` - Upgrade from a specific version
+- `all` - Deploy everything (default)
+- `teardown` - Remove the agent
+
+### Security Model
+
+Administrative operations (DTAGENT_ADMIN role usage) are isolated in:
+
+- `src/dtagent.sql/admin/*.sql`
+- `src/dtagent/plugins/*.sql/admin/*.sql`
+
+This ensures proper separation of concerns and controlled access to admin privileges.

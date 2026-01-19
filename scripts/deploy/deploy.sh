@@ -30,7 +30,7 @@
 # Args:
 # * ENV            [REQUIRED] - environment identifier (config-$ENV.yml must exist)
 # * --scope        [OPTIONAL] - deployment scope (default: all):
-#                               init, setup, plugins, config, agents, apikey, all, teardown, upgrade, or file_part
+#                               init, admin, setup, plugins, config, agents, apikey, all, teardown, upgrade, or file_part
 # * --from-version [OPTIONAL] - version number for upgrade scope (required if scope=upgrade)
 # * --output-file  [OPTIONAL] - output file path for manual mode (default: dsoa-deploy-script-{ENV}-{TIMESTAMP}.sql)
 # * --options      [OPTIONAL] - comma-separated: manual, service_user, skip_confirm, no_dep
