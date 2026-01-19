@@ -132,10 +132,11 @@ if [ "$SCOPE" != 'apikey' ] && [ "$SCOPE" != 'teardown' ]; then
             xargs -I {} sh -c 'echo "-- SCRIPT: $1"; cat "$1"' _ {} \; \
                 >"$INSTALL_SCRIPT_SQL"
     else
-        find build/$SQL_FILES -type f -print 2>/dev/null |
-            sort |
-            xargs -I {} sh -c 'echo "-- SCRIPT: $1"; cat "$1"' _ {} \; \
-                >"$INSTALL_SCRIPT_SQL"
+        # Process each SQL file pattern separately
+        for pattern in $SQL_FILES; do
+            find build/$pattern -type f -print 2>/dev/null
+        done | sort | xargs -I {} sh -c 'echo "-- SCRIPT: $1"; cat "$1"' _ {} \; \
+            >"$INSTALL_SCRIPT_SQL"
     fi
 
     echo "Deploy script prepared"
@@ -281,7 +282,6 @@ fi
 
 # Remove double newlines from the deployment script
 "${SED_INPLACE[@]}" '/^$/N;/^\n$/d' "$INSTALL_SCRIPT_SQL"
-
 
 if [ "$IS_MANUAL" == "true" ]; then
     echo "-----"

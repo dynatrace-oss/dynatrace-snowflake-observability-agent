@@ -45,6 +45,11 @@ CREATE PROCEDURE test_plugin_proc() AS BEGIN SELECT 2; END;
 --%:PLUGIN:test_plugin
 EOSQL
 
+    cat > build/30_config.sql << 'EOSQL'
+-- Config code
+SELECT 'config';
+EOSQL
+
     cat > build/20_plugins/test_plugin.sql << 'EOSQL'
 --%PLUGIN:test_plugin:
 CREATE OR REPLACE PROCEDURE test_plugin_handler()
@@ -82,7 +87,7 @@ EOSQL
 
 teardown() {
     rm -f "$TEST_CONFIG_FILE" "$TEST_SQL_FILE"
-    rm -f build/001_test.sql build/00_init.sql build/10_setup.sql build/70_agents.sql
+    rm -f build/001_test.sql build/00_init.sql build/10_setup.sql build/30_config.sql build/70_agents.sql
     rm -rf build/09_upgrade build/20_plugins
     unset BUILD_CONFIG_FILE
 }
@@ -245,10 +250,6 @@ EOF
 
     run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "all" "" "manual"
     [ "$status" -eq 0 ]
-
-    echo "=== Generated SQL file content ==="
-    cat "$TEST_SQL_FILE"
-    echo "=== End of SQL file ==="
 
     # Should include main code and active_plugin
     grep -q "MAIN_SCHEMA" "$TEST_SQL_FILE"
