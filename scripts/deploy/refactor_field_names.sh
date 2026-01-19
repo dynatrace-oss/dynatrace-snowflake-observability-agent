@@ -26,7 +26,7 @@ csv_file="$1"
 code_directory="$2"
 
 # Set sed in-place flag based on OS
-if [ $(uname -s) = 'Darwin' ]; then
+if [ "$(uname -s)" = 'Darwin' ]; then
     SED_INPLACE="sed -i ''"
 else
     SED_INPLACE="sed -i"
