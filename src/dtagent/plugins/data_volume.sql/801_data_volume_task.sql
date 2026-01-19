@@ -33,7 +33,6 @@ create or replace task DTAGENT_DB.APP.TASK_DTAGENT_DATA_VOLUME
 as
     call DTAGENT_DB.APP.DTAGENT(ARRAY_CONSTRUCT('data_volume'));
 
--- grant ownership on task DTAGENT_DB.APP.TASK_DTAGENT_DATA_VOLUME to role DTAGENT_ADMIN revoke current grants;
 grant ownership on task DTAGENT_DB.APP.TASK_DTAGENT_DATA_VOLUME to role DTAGENT_VIEWER revoke current grants;
 grant operate, monitor on task DTAGENT_DB.APP.TASK_DTAGENT_DATA_VOLUME to role DTAGENT_VIEWER;
 alter task if exists DTAGENT_DB.APP.TASK_DTAGENT_DATA_VOLUME resume;

@@ -60,7 +60,7 @@ EXCEPTION
 END;
 $$
 ;
-grant usage on procedure DTAGENT_DB.APP.P_CLEANUP_EVENT_LOG() to role DTAGENT_VIEWER;
+grant usage on procedure DTAGENT_DB.APP.P_CLEANUP_EVENT_LOG() to role DTAGENT_ADMIN;
 alter procedure DTAGENT_DB.APP.P_CLEANUP_EVENT_LOG() set LOG_LEVEL = WARN;
 
 /*
