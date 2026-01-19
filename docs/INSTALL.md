@@ -71,22 +71,61 @@ The default option to install Dynatrace Snowflake Observability Agent is from th
 Observability Agent, run the `./deploy.sh` command:
 
 ```bash
-./deploy.sh $config_name $file_prefix
+./deploy.sh $ENV [--scope=SCOPE] [--from-version=VERSION] [--output-file=FILE] [--options=OPTIONS]
 ```
 
-The `$config_name` parameter is required and must match one of the previously created configuration files.
+### Required Parameters
 
-The `$file_prefix` parameter is optional and can take multiple values:
+- **`$ENV`** (required): Environment identifier that must match one of the previously created configuration files. The file must be named `config-$ENV.yml` in the `conf/` directory.
 
-- If left empty, all SQL scripts will be executed at once.
-- If set to `config`, the configuration table will be updated using the config file specified by the `$config_name` parameter.
-- If set to `apikey`, the Dynatrace Access Token (API Key) will be stored in Snowflake and made available only to the Dynatrace Snowflake
-  Observability Agent stored procedure.
-- If set to `manual`, a complete SQL script with all commands necessary to deploy and set up Dynatrace Snowflake Observability Agent will be
-  produced; use the Snowflake Web UI to execute it.
-- If set to `teardown`, Dynatrace Snowflake Observability Agent will be uninstalled from your Snowflake account.
-- If set to any other value, only the files with base names starting with that `$file_prefix` will be executed as part of the deployment
-  procedure.
+### Optional Parameters
+
+- **`--scope=SCOPE`** (optional, default: `all`): Specifies the deployment scope. Valid values:
+  - `init` - Initialize database and basic structure
+  - `setup` - Set up roles, warehouses, and security
+  - `plugins` - Deploy plugin code and views
+  - `config` - Update configuration table only
+  - `agents` - Deploy agent procedures and tasks
+  - `apikey` - Update Dynatrace Access Token only
+  - `all` - Full deployment without upgrade step (default)
+  - `teardown` - Uninstall Dynatrace Snowflake Observability Agent from your Snowflake account
+  - `upgrade` - Upgrade from a previous version (requires `--from-version`)
+  - `file_pattern` - Any other value will deploy only files matching that pattern
+
+- **`--from-version=VERSION`** (required when `--scope=upgrade`): Specifies the version number you are upgrading from (e.g., `0.9.2`).
+
+- **`--output-file=FILE`** (optional): Custom output file path for manual mode. If not specified, defaults to `dsoa-deploy-script-{ENV}-{TIMESTAMP}.sql`.
+
+- **`--options=OPTIONS`** (optional): Comma-separated list of deployment options:
+  - `manual` - Generate SQL script without executing it. You can review and execute it manually.
+  - `service_user` - Use service user authentication (for CI/CD pipelines)
+  - `skip_confirm` - Skip deployment confirmation prompt
+  - `no_dep` - Skip sending deployment BizEvents to Dynatrace
+
+### Examples
+
+```bash
+# Full deployment to 'dev' environment
+./deploy.sh dev
+
+# Deploy only configuration changes
+./deploy.sh prod --scope=config
+
+# Upgrade from version 0.9.2
+./deploy.sh test --scope=upgrade --from-version=0.9.2
+
+# Generate manual deployment script for review
+./deploy.sh prod --options=manual --output-file=my-deployment.sql
+
+# Deploy only plugins matching a pattern
+./deploy.sh dev --scope=053_v_ac
+
+# Deploy multiple patterns (using pipe separator)
+./deploy.sh test --scope="053_v_ac|70"
+
+# CI/CD deployment with service user (skip confirmation and BizEvents)
+./deploy.sh prod --options=service_user,skip_confirm
+```
 
 You should store the Access Token for your Dynatrace tenant (to which you want to send telemetry from your environment) as the environment
 variable `DTAGENT_TOKEN`. The token should have the following scopes enabled:

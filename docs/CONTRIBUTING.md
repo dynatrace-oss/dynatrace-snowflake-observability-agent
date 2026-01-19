@@ -243,8 +243,14 @@ procedure (`./build/telemetry.py`). During the build, these Python files are emb
 `APP.DTAGENT(sources array)` and `APP.SEND_TELEMETRY(sources variant, params object)` procedures, respectively.". Other source files,
 including configuration and semantic dictionary, are also copied into the `./build` directory.
 
-After successfully compiling and building the Dynatrace Snowflake Observability Agent, you need to deploy it using the `./scripts/deploy/deploy.sh` command
-(see [installation documentation for more details](INSTALL.md)).
+After successfully compiling and building the Dynatrace Snowflake Observability Agent, you need to deploy it using the `./scripts/deploy/deploy.sh` command.
+The deployment script supports various scopes and options for flexible deployment:
+
+```bash
+./scripts/deploy/deploy.sh $ENV [--scope=SCOPE] [--from-version=VERSION] [--output-file=FILE] [--options=OPTIONS]
+```
+
+For full details on all parameters, scopes, and deployment options, see the [INSTALL.md](INSTALL.md) documentation.
 
 ## Updating documentation
 

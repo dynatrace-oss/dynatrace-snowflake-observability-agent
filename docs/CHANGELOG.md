@@ -75,11 +75,17 @@ Released on January 15, 2026
 
 ### Deployment
 
-- **Independent Manual Mode**: Manual deploy mode can now be invoked independently from other parameters, supporting teardown and selective
-  deployment with SQL review.
-- **Multiple Deployment Patterns**: Enabled passing multiple deployment patterns at the same time (e.g., `./deploy.sh test 053_v_ac|70`).
-- **Upgrade Process**: Delivered SnowAgent upgrade process supporting custom queries for version migrations, column alterations, and removal
-  of deprecated procedures.
+- **Enhanced Deployment Script**: Completely refactored `deploy.sh` with improved parameter handling. The script now uses named parameters
+  (`--scope`, `--from-version`, `--output-file`, `--options`) instead of positional arguments for better clarity and flexibility.
+- **Structured Deployment Scopes**: Introduced well-defined deployment scopes (`init`, `setup`, `plugins`, `config`, `agents`, `apikey`,
+  `all`, `teardown`, `upgrade`) that allow granular control over what gets deployed.
+- **Independent Manual Mode**: Manual deploy mode can now be invoked independently from other parameters via `--options=manual`, supporting
+  teardown and selective deployment with SQL review. Custom output file paths can be specified with `--output-file`.
+- **Deployment Options**: Added `--options` parameter supporting comma-separated flags: `manual` (generate SQL without execution),
+  `service_user` (CI/CD authentication), `skip_confirm` (bypass deployment confirmation), and `no_dep` (skip BizEvents).
+- **Multiple Deployment Patterns**: Enabled passing multiple deployment patterns at the same time (e.g., `./deploy.sh test --scope="053_v_ac|70"`).
+- **Upgrade Process**: Delivered SnowAgent upgrade process with `--scope=upgrade --from-version=VERSION` parameters, supporting custom
+  queries for version migrations, column alterations, and removal of deprecated procedures.
 - **Apps URL Detection**: Deployment process now detects if `.apps.` URL is used for Dynatrace API and handles it appropriately.
 - **Budget for DSOA**: Using the Budgets plugin no longer creates a budget for agent itself by default.
 
