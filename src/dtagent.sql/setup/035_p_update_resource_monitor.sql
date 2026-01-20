@@ -35,7 +35,7 @@ execute as caller
 as
 $$
 begin
-  execute immediate 'create or replace resource monitor DTAGENT_RS set credit_quota = ' || SNOWFLAKE_CREDIT_QUOTA;
+  execute immediate 'alter resource monitor DTAGENT_RS set credit_quota = ' || SNOWFLAKE_CREDIT_QUOTA;
   return 0;
 end;
 $$
