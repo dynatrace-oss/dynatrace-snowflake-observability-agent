@@ -103,7 +103,7 @@ BEGIN
                         from TABLE(result_scan(last_query_id()));
                 else
                     insert into DTAGENT_DB.APP.TMP_INBOUND_SHARES(SHARE_NAME, DETAILS)
-                        select :share_name, OBJECT_CONSTRUCT('HAS_DB_DELETED', TRUE); -- FIXME this needs to be reported in TMP_SHARES
+                        select :share_name, OBJECT_CONSTRUCT('HAS_DB_DELETED', TRUE);
                 end if;
             end if;
 

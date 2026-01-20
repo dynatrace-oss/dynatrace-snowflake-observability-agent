@@ -171,7 +171,7 @@ if [ "$SCOPE" == 'apikey' ] || [ "$SCOPE" == 'all' ]; then
     echo "Updating all plugins from the configuration provided"
 
     cat <<EOF >>$INSTALL_SCRIPT_SQL
-use role ACCOUNTADMIN; use database DTAGENT_DB; use schema CONFIG; use warehouse DTAGENT_WH;
+use role DTAGENT_OWNER; use database DTAGENT_DB; use schema CONFIG; use warehouse DTAGENT_WH;
 call DTAGENT_DB.CONFIG.UPDATE_FROM_CONFIGURATIONS();
 EOF
 fi

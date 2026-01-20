@@ -142,7 +142,7 @@ begin
     end for;
 
     -- we update the schedule for the main task of the plugin
-    call DTAGENT_DB.CONFIG.UPDATE_TASK_SCHEDULE(:PLUGIN_NAME); -- FIXME
+    call DTAGENT_DB.CONFIG.UPDATE_TASK_SCHEDULE(:PLUGIN_NAME);
 
     -- we update the schedule for auxiliary tasks if provided
     if (AUX_TASK_NAMES is not null) then

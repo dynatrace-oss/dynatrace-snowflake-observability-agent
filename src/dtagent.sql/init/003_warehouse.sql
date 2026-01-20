@@ -35,7 +35,6 @@ create warehouse if not exists DTAGENT_WH with
     auto_resume=TRUE
     auto_suspend=60;
 grant ownership on warehouse DTAGENT_WH to role DTAGENT_OWNER revoke current grants;
--- FIXME: check config updates to makes sure they are run as owner
 grant modify on warehouse DTAGENT_WH to role DTAGENT_OWNER;
 grant usage, operate on warehouse DTAGENT_WH to role DTAGENT_VIEWER;
 

@@ -32,6 +32,4 @@ grant role DTAGENT_ADMIN to role ACCOUNTADMIN;
 -- this is required to grant monitoring privileges on warehouses and dynamic tables to the DTAGENT_VIEWER role
 grant manage grants on ACCOUNT to role DTAGENT_ADMIN;
 
-grant MODIFY LOG LEVEL on account to role DTAGENT_ADMIN; -- FIXME: should this be owner, admin or viewer?
-
 grant ownership on role DTAGENT_ADMIN to role DTAGENT_OWNER;
