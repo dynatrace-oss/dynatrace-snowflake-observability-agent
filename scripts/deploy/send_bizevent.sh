@@ -45,8 +45,8 @@ elif [ "$($CWD/get_config_key.sh plugins.self_monitoring.send_bizevents_on_deplo
         PARAM="full_deployment"
     fi
 
-    VERSION="$(grep 'VERSION =' build/700_dtagent.sql | awk -F'"' '{print $2}')"
-    BUILD="$(grep 'BUILD =' build/700_dtagent.sql | awk -F' ' '{print $3}')"
+    VERSION="$(grep 'VERSION =' build/70_agents.sql | awk -F'"' '{print $2}')"
+    BUILD="$(grep 'BUILD =' build/70_agents.sql | awk -F' ' '{print $3}')"
 
     if ! curl -f -X POST "https://${DT_ADDRESS}/api/v2/bizevents/ingest" \
         -H "Authorization: Api-Token ${DTAGENT_TOKEN}" \

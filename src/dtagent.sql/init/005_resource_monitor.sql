@@ -26,15 +26,15 @@
 --
 use role ACCOUNTADMIN; use schema DTAGENT_DB.CONFIG; use warehouse DTAGENT_WH;
 
-$$
+EXECUTE IMMEDIATE $$
+declare
+    the_user varchar default current_user();
 begin
-  set this_user = current_user();
-
   create or replace resource monitor DTAGENT_RS with
     credit_quota = 1
     frequency = DAILY
     start_timestamp = IMMEDIATELY
-    notify_users = ($this_user)
+    notify_users = (:the_user)
     triggers
       on  50 percent do notify
       on 100 percent do suspend
@@ -51,9 +51,10 @@ exception
         on  50 percent do notify
         on 100 percent do suspend
         on 110 percent do suspend_immediate;
-  return 1;
+  return the_user;
 end;
 $$
 ;
+
 grant ownership on resource monitor DTAGENT_RS to role DTAGENT_ADMIN revoke current grants;
 alter warehouse if exists DTAGENT_WH set resource_monitor = DTAGENT_RS;
