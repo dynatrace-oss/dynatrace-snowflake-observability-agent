@@ -101,7 +101,7 @@ Released on January 15, 2026
 
 - **Enhanced Deployment Script**: Completely refactored `deploy.sh` with improved parameter handling. The script now uses named parameters
   (`--scope`, `--from-version`, `--output-file`, `--options`) instead of positional arguments for better clarity and flexibility.
-- **Structured Deployment Scopes**: Introduced well-defined deployment scopes (`init`, `setup`, `plugins`, `config`, `agents`, `apikey`,
+- **Structured Deployment Scopes**: Introduced well-defined deployment scopes (`init`, `admin`, `setup`, `plugins`, `config`, `agents`, `apikey`,
   `all`, `teardown`, `upgrade`) that allow granular control over what gets deployed.
 - **Independent Manual Mode**: Manual deploy mode can now be invoked independently from other parameters via `--options=manual`, supporting
   teardown and selective deployment with SQL review. Custom output file paths can be specified with `--output-file`.

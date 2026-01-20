@@ -31,7 +31,7 @@
 # * INSTALL_SCRIPT_SQL [REQUIRED] - path to the file where installation script must be written to
 # * ENV                [REQUIRED] - environment identifier (config-$ENV.yml must exist)
 # * SCOPE              [REQUIRED] - deployment scope:
-#                       init, setup, plugins, config, agents, apikey, all, teardown, upgrade, or file_part
+#                       init, admin, setup, plugins, config, agents, apikey, all, teardown, upgrade, or file_part
 # * FROM_VERSION       [OPTIONAL] - version number for upgrade scope
 #
 
@@ -55,20 +55,23 @@ case "$SCOPE" in
     init)
         SQL_FILES="00_init.sql"
         ;;
+    admin)
+        SQL_FILES="10_admin.sql"
+        ;;
     setup)
-        SQL_FILES="10_setup.sql"
+        SQL_FILES="20_setup.sql"
         ;;
     plugins)
-        SQL_FILES="20_plugins/*.sql"
+        SQL_FILES="30_plugins/*.sql"
         ;;
     config)
-        SQL_FILES="30_config.sql"
+        SQL_FILES="40_config.sql"
         ;;
     agents)
         SQL_FILES="70_agents.sql"
         ;;
     all)
-        SQL_FILES="00_init.sql 10_setup.sql 20_plugins/*.sql 30_config.sql 70_agents.sql"
+        SQL_FILES="00_init.sql 10_admin.sql 20_setup.sql 30_plugins/*.sql 40_config.sql 70_agents.sql"
         ;;
     upgrade)
         if [ -z "$FROM_VERSION" ]; then

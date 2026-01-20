@@ -15,7 +15,13 @@ def find_sql_files(root_dir: str) -> dict[str, list[Path]]:
     # Find all SQL files
     for sql_file in root.rglob("*.sql"):
         # Skip test files and build artifacts
-        if "test" in sql_file.parts or "build" in sql_file.parts:
+        if (
+            "test" in sql_file.parts
+            or "build" in sql_file.parts
+            or "upgrade" in sql_file.parts
+            or "init" in sql_file.parts
+            or not sql_file.is_file()
+        ):
             continue
 
         # Check if file is in admin directory

@@ -42,7 +42,7 @@ fi
 
 # Cleaning up build directory
 rm -rf build
-mkdir -p build/09_upgrade build/20_plugins
+mkdir -p build/09_upgrade build/30_plugins
 
 SOURCE_CODE_QUALITY_CHECK_FILE=.logs/source-code-quality-$(date '+%Y%m%d-%H%M%S').log
 TEST_CODE_QUALITY_CHECK_FILE=.logs/test-code-quality-$(date '+%Y%m%d-%H%M%S').log

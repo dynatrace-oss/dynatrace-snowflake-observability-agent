@@ -82,7 +82,8 @@ Observability Agent, run the `./deploy.sh` command:
 
 - **`--scope=SCOPE`** (optional, default: `all`): Specifies the deployment scope. Valid values:
   - `init` - Initialize database and basic structure
-  - `setup` - Set up roles, warehouses, and security
+  - `admin` - Administrative operations (role grants, ownership transfers)
+  - `setup` - Set up core schemas, tables, and procedures
   - `plugins` - Deploy plugin code and views
   - `config` - Update configuration table only
   - `agents` - Deploy agent procedures and tasks

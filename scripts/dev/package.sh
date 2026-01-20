@@ -56,7 +56,7 @@ rm -Rf package/*
 mkdir -v -p package/build
 cp -v build/*.sql package/build/
 cp -rv build/09_upgrade package/build/
-cp -rv build/20_plugins package/build/
+cp -rv build/30_plugins package/build/
 cp -v build/config-default.yml package/build/
 
 mkdir -v package/conf
