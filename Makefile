@@ -19,7 +19,7 @@ lint-markdown:
 	markdownlint '**/*.md'
 
 lint-bom:
-	find src -name "bom.yml" -exec check-jsonschema --schemafile test/src-bom.schema.json {} \;
+	find src -name "bom.yml" -exec sh -c 'printf "%-50s " "$1"; check-jsonschema --schemafile test/src-bom.schema.json "$1"' _ {} \;
 
 # Run all linting checks (stops on first failure, like CI)
 lint: lint-python lint-format lint-pylint lint-sql lint-yaml lint-markdown lint-bom

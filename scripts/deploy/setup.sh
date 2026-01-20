@@ -82,7 +82,7 @@ if [ "$ENV" == '' ]; then
 else
     EXISTING_CONNECTIONS=$(snow connection list)
 
-    for DEPLOYMENT_ENV in $(jq -r '.[].core.deployment_environment' conf/config-$ENV.yml); do
+    for DEPLOYMENT_ENV in $(yq -r '.core.deployment_environment' conf/config-$ENV.yml); do
         echo "Checking connection profile for $DEPLOYMENT_ENV..."
         CONNECTION_ENV="${DEPLOYMENT_ENV,,}" # convert to lower case
         if ! echo "$EXISTING_CONNECTIONS" | grep -E -q "snow_agent_$CONNECTION_ENV\s"; then
