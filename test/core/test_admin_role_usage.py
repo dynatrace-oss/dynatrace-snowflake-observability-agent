@@ -1,9 +1,21 @@
-"""Test to ensure DTAGENT_ADMIN role usage is restricted to admin files only."""
+"""Test to ensure role usage and deployment scope restrictions are properly enforced."""
 
 import os
 import re
 from pathlib import Path
+from isort import file
 import pytest
+
+
+def should_skip_sql_file(sql_file: Path) -> bool:
+    """Check if SQL file should be skipped during analysis."""
+    return (
+        "test" in sql_file.parts
+        or "build" in sql_file.parts
+        or "upgrade" in sql_file.parts
+        or "init" in sql_file.parts
+        or not sql_file.is_file()
+    )
 
 
 def find_sql_files(root_dir: str) -> dict[str, list[Path]]:
@@ -15,13 +27,7 @@ def find_sql_files(root_dir: str) -> dict[str, list[Path]]:
     # Find all SQL files
     for sql_file in root.rglob("*.sql"):
         # Skip test files and build artifacts
-        if (
-            "test" in sql_file.parts
-            or "build" in sql_file.parts
-            or "upgrade" in sql_file.parts
-            or "init" in sql_file.parts
-            or not sql_file.is_file()
-        ):
+        if should_skip_sql_file(sql_file):
             continue
 
         # Check if file is in admin directory
@@ -98,3 +104,150 @@ class TestAdminRoleUsage:
 
         assert admin_sql.is_file(), "build/10_admin.sql should exist after build"
         assert admin_sql.stat().st_size > 0, "build/10_admin.sql should not be empty"
+
+
+class TestDeploymentScopes:
+    """Test suite for deployment scope configuration and restrictions."""
+
+    def test_all_scope_includes_admin_scripts(self):
+        """Test that 'all' scope in prepare_deploy_script.sh includes admin scripts (10_admin.sql).
+        This ensures complete deployment includes administrative setup.
+        """
+        deploy_script = Path(__file__).parent.parent.parent / "scripts" / "deploy" / "prepare_deploy_script.sh"
+
+        assert deploy_script.exists(), "prepare_deploy_script.sh not found"
+
+        content = deploy_script.read_text()
+
+        # Find the 'all' scope case
+        all_scope_pattern = r'all\)\s*SQL_FILES="([^"]+)"'
+        match = re.search(all_scope_pattern, content, re.MULTILINE)
+
+        assert match, "Could not find 'all' scope definition in prepare_deploy_script.sh"
+
+        sql_files = match.group(1)
+
+        # Check that 10_admin.sql is included
+        assert "10_admin.sql" in sql_files, f"'all' scope must include 10_admin.sql. Found: {sql_files}"
+
+        # Also verify the expected files are present
+        expected_files = ["00_init.sql", "10_admin.sql", "20_setup.sql", "40_config.sql", "70_agents.sql"]
+        for expected_file in expected_files:
+            assert expected_file in sql_files, f"'all' scope missing expected file: {expected_file}. Found: {sql_files}"
+
+
+class TestAccountAdminRoleUsage:
+    """Test suite for ACCOUNTADMIN role usage restrictions."""
+
+    @pytest.fixture(scope="class")
+    def build_sql_files(self):
+        """Get built SQL files from package/build directory."""
+        build_dir = Path(__file__).parent.parent.parent / "package" / "build"
+
+        if not build_dir.exists():
+            pytest.skip("package/build directory not found. This is expected in dev environment.")
+
+        return {
+            "init": build_dir / "00_init.sql",
+            "admin": build_dir / "10_admin.sql",
+            "setup": build_dir / "20_setup.sql",
+            "plugins": list((build_dir / "30_plugins").glob("*.sql")) if (build_dir / "30_plugins").exists() else [],
+            "config": build_dir / "40_config.sql",
+            "agents": build_dir / "70_agents.sql",
+            "upgrade": list((build_dir / "09_upgrade").glob("*.sql")) if (build_dir / "09_upgrade").exists() else [],
+        }
+
+    def check_accountadmin_usage(self, file_path: Path) -> list[tuple[int, str]]:
+        """Check for ACCOUNTADMIN role usage in any form."""
+        violations = []
+
+        if not file_path.exists() or not file_path.is_file():
+            return violations
+
+        with open(file_path, "r", encoding="utf-8") as f:
+            for line_num, line in enumerate(f, 1):
+                # Skip comments
+                if line.strip().startswith("--") or line.strip().startswith("#"):
+                    continue
+
+                # Check for ACCOUNTADMIN usage (case-insensitive)
+                if re.search(r"\bACCOUNTADMIN\b", line, re.IGNORECASE):
+                    violations.append((line_num, line.strip()))
+
+        return violations
+
+    def test_accountadmin_only_in_init_and_upgrade(self, build_sql_files):
+        """Test that ACCOUNTADMIN role is used only in init (00_init.sql) and upgrade scripts.
+        This ensures proper privilege separation and security boundaries.
+        """
+        violations_by_file = {}
+
+        # Check files that should NOT contain ACCOUNTADMIN
+        restricted_files = {
+            "admin": build_sql_files["admin"],
+            "setup": build_sql_files["setup"],
+            "plugins": build_sql_files["plugins"],
+            "config": build_sql_files["config"],
+            "agents": build_sql_files["agents"],
+        }
+
+        for scope, file_path_list in restricted_files.items():
+            for file_path in file_path_list if isinstance(file_path_list, list) else [file_path_list]:
+                if file_path.exists():
+                    violations = self.check_accountadmin_usage(file_path)
+                    if violations:
+                        violations_by_file[f"{scope} ({file_path})"] = violations
+
+        if violations_by_file:
+            error_msg = "Found ACCOUNTADMIN usage in non-init/upgrade files:\n\n"
+            for file_path, violations in violations_by_file.items():
+                error_msg += f"{file_path}:\n"
+                for line_num, line in violations:
+                    error_msg += f"  Line {line_num}: {line}\n"
+                error_msg += "\n"
+            error_msg += "\nACCOUNTADMIN should only be used in:\n"
+            error_msg += "  - 00_init.sql (initialization)\n"
+            error_msg += "  - 09_upgrade/*.sql (upgrade scripts)\n"
+
+            pytest.fail(error_msg)
+
+    def test_accountadmin_exists_in_init(self, build_sql_files):
+        """Test that ACCOUNTADMIN is actually used in init script.
+        This verifies that initial setup uses proper admin privileges.
+        """
+        init_file = build_sql_files["init"]
+
+        if not init_file.exists():
+            pytest.skip("00_init.sql not found in package/build")
+
+        violations = self.check_accountadmin_usage(init_file)
+
+        assert len(violations) > 0, (
+            "00_init.sql should contain ACCOUNTADMIN usage for initial setup. " "If this is intentional, update the test."
+        )
+
+    def test_accountadmin_in_source_files(self):
+        """Test that ACCOUNTADMIN in source files is only in init and upgrade directories."""
+        src_dir = Path(__file__).parent.parent.parent / "src"
+        violations_by_file = {}
+
+        # Find all SQL files in src
+        for sql_file in src_dir.rglob("*.sql"):
+            if should_skip_sql_file(sql_file):
+                continue
+            violations = self.check_accountadmin_usage(sql_file)
+            if violations:
+                violations_by_file[str(sql_file.relative_to(src_dir))] = violations
+
+        if violations_by_file:
+            error_msg = "Found ACCOUNTADMIN usage in source files outside init/upgrade:\n\n"
+            for file_path, violations in violations_by_file.items():
+                error_msg += f"{file_path}:\n"
+                for line_num, line in violations:
+                    error_msg += f"  Line {line_num}: {line}\n"
+                error_msg += "\n"
+            error_msg += "\nACCOUNTADMIN should only be used in:\n"
+            error_msg += "  - src/**/init/*.sql (initialization scripts)\n"
+            error_msg += "  - src/**/upgrade/*.sql (upgrade scripts)\n"
+
+            pytest.fail(error_msg)
