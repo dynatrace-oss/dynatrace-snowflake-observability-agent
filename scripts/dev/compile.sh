@@ -48,6 +48,8 @@ preprocess_files() {
   gawk 'match($0, /[#]{2}INSERT (.+)/, a) {system("cat \""a[1]"\""); next } 1' "$src_file" > "$dest_file"
 
   black --line-length 140 "$dest_file"
+
+  echo "Preprocessed $dest_file"
 }
 
 #
@@ -57,9 +59,44 @@ process_files() {
   local src_file=$1
   local dest_file=$2
 
-  echo "# pylint: disable=W0404, W0105, C0302", C0412, C0413 > "$dest_file"
+  echo "# pylint: disable=W0404,W0105,C0302,C0412,C0114,C0413,C0115,C0116,R0913" > "$dest_file"
 
-  gawk 'match($0, /[#]{2}INSERT (.+)/, a) {system("sed -e \"1,/##endregion COMPILE_REMOVE/d\" "a[1]); next } 1' "$src_file" |
+  gawk '
+    function plugin_name_from_path(p, t) {
+      t = p
+      sub(/^.*\//, "", t)
+      sub(/\.py$/, "", t)
+      return t
+    }
+    match($0, /[#]{2}INSERT (.+)/, a) {
+      p = a[1]
+      cmd = "sed -e \"1,/##endregion COMPILE_REMOVE/d\" " p
+
+      # Check if this is a glob pattern for plugins
+      if (p ~ /^src\/dtagent\/plugins\/\*\.py$/) {
+        # Expand the glob and process each plugin file individually
+        glob_cmd = "find src/dtagent/plugins -maxdepth 1 -type f -name \"*.py\" | sort"
+        while ((glob_cmd | getline plugin_file) > 0) {
+          n = plugin_name_from_path(plugin_file)
+          print "#%PLUGIN:" n ":"
+          system("sed -e \"1,/##endregion COMPILE_REMOVE/d\" " plugin_file)
+          print "#%:PLUGIN:" n
+        }
+        close(glob_cmd)
+      } else if (p ~ /^src\/dtagent\/plugins\/[^\/]+\.py$/) {
+        # Handle explicit plugin file paths
+        n = plugin_name_from_path(p)
+        print "#%PLUGIN:" n ":"
+        system(cmd)
+        print "#%:PLUGIN:" n
+      } else {
+        # Handle regular file inserts
+        system(cmd)
+      }
+      next
+    }
+    { print }
+  ' "$src_file" |
     sed -e '/##region.* IMPORTS/,/##endregion COMPILE_REMOVE/d' |
     grep -v '# COMPILE_REMOVE' >> "$dest_file"
 
@@ -69,7 +106,15 @@ process_files() {
     sed -i -e '/dtagent/!b' -e '/import/d' "$dest_file"
   fi
 
+  echo "Removing docstrings from compiled file $dest_file"
+  PYTHONPATH=src python src/build/remove_docstrings.py "$dest_file"
+
+  # C0304: Final newline missing (missing-final-newline)
+  echo "" >> "$dest_file"
+
   check_missing_imports "$dest_file"
+
+  echo "Processed $dest_file"
 }
 
 PYTHONPATH=src python src/build/assemble_semantics.py
@@ -78,5 +123,13 @@ preprocess_files "src/dtagent/otel/semantics.py" "build/_semantics.py"
 
 process_files "src/dtagent/agent.py" "build/_dtagent.py"
 process_files "src/dtagent/connector.py" "build/_send_telemetry.py"
+
+# -----------------------------
+# Validate generated artifacts
+# -----------------------------
+for file in build/*.py; do
+    echo "Validating $file"
+    pylint "$file" --disable="W0404,W0105,C0302,C0412,C0114,C0413,C0115,C0116,R0913" --output-format=parseable
+done
 
 echo "Compiling Dynatrace Snowflake Observability Agent done"

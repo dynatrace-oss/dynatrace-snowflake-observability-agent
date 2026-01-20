@@ -70,9 +70,9 @@ DECLARE
                                                 METRICS['snowflake.time.transaction_blocked'] > 0 or
                                                 METRICS['snowflake.time.repair'] > 0
                                                 )
-                                            or execution_time > APP.F_GET_CONFIG_VALUE('plugins.query_history.slow_queries_threshold', 10000)::int
+                                            or execution_time > CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.slow_queries_threshold', 10000)::int
                                             )
-                                       qualify ROW_NUMBER() OVER (order by execution_time desc) < APP.F_GET_CONFIG_VALUE('plugins.query_history.slow_queries_to_analyze_limit', 100)::int
+                                       qualify ROW_NUMBER() OVER (order by execution_time desc) < CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.slow_queries_to_analyze_limit', 100)::int
                                        order by execution_time desc
                                        ;
     c_query_operator_stats  CURSOR FOR WITH
@@ -165,30 +165,6 @@ $$
 
 grant usage on procedure DTAGENT_DB.APP.P_REFRESH_RECENT_QUERIES() to role DTAGENT_VIEWER;
 alter procedure DTAGENT_DB.APP.P_REFRESH_RECENT_QUERIES() set LOG_LEVEL = WARN;
-
--- enabling to see redacted queries
-
-use role ACCOUNTADMIN;
-alter ACCOUNT set ENABLE_UNREDACTED_QUERY_SYNTAX_ERROR=TRUE;
-
-/*
-
-use role accountadmin;
-select *
-from DTAGENT_DB.STATUS.EVENT_LOG
--- where
---   SCOPE['name'] = 'DTAGENT'
---   and RECORD['severity_text'] = 'DEBUG'
---   and RECORD_TYPE = 'LOG'
-order by timestamp desc
-limit 10;
-
- */
-
-
-use role ACCOUNTADMIN;
-grant ownership on table DTAGENT_DB.APP.TMP_RECENT_QUERIES to role DTAGENT_ADMIN copy current grants;
-grant ownership on table DTAGENT_DB.APP.TMP_QUERY_OPERATOR_STATS to role DTAGENT_ADMIN copy current grants;
 
 -- call DTAGENT_DB.APP.P_REFRESH_RECENT_QUERIES();
 

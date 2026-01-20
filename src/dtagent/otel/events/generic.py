@@ -43,7 +43,6 @@ from dtagent.util import StringEnum, get_timestamp_in_ms, validate_timestamp_ms
 from dtagent.version import VERSION
 import datetime
 
-
 ##endregion COMPILE_REMOVE
 
 

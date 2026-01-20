@@ -25,20 +25,21 @@
 #
 # This is a script for preparing single SQL deploy script
 # which could be installed automatically (by deploy.sh) or manually on Snowflake
-# Call as ./prepare_deploy_script.sh "$INSTALL_SCRIPT_SQL" "$ENV" "$PARAM"
+# Call as ./prepare_deploy_script.sh "$INSTALL_SCRIPT_SQL" "$ENV" "$SCOPE" "$FROM_VERSION"
 #
 # Args:
 # * INSTALL_SCRIPT_SQL [REQUIRED] - path to the file where installation script must be written to
-# * ENV                [REQUIRED] - needs to be a environment identifier so that there is a config-$ENV.yml file in the same folder as this script
-# * PARAM              [OPTIONAL] - can be either
-#                       = config         - which will update Dynatrace Snowflake Observability Agent configuration
-#                       = apikey         - which will install new Dynatrace Token for Dynatrace Snowflake Observability Agent
-#                       = manual         - this will prepare the complete installation script but will not run snowflake-cli to run it
-#                       = teardown       - this will remove Dynatrace Snowflake Observability Agent completely
-#                       = *              - this will be used to ONLY process scripts PREFIXed with this value, or ALL if none provided
+# * ENV                [REQUIRED] - environment identifier (config-$ENV.yml must exist)
+# * SCOPE              [REQUIRED] - deployment scope:
+#                       init, setup, plugins, config, agents, apikey, all, teardown, upgrade, or file_part
+# * FROM_VERSION       [OPTIONAL] - version number for upgrade scope
+#
+
 INSTALL_SCRIPT_SQL="$1"
 ENV="$2"
-PARAM="$3"
+SCOPE="$3"
+FROM_VERSION="$4"
+IS_MANUAL="$5"
 CWD=$(dirname "$0")
 
 #
@@ -49,52 +50,99 @@ TAG=${TAG:-""}
 
 echo "Deploying with tag "${TAG}""
 
-if [ "$PARAM" == 'config' ]; then
-    #
-    #   --- script for updating Dynatrace Snowflake Observability Agent configuration ----
-    #
-    echo "Will update configuration"
-    echo -e "\n\n--- local configuration ---\n" \
-        >>"$INSTALL_SCRIPT_SQL"
+# Map scope to file prefixes
+case "$SCOPE" in
+    init)
+        SQL_FILES="00_init.sql"
+        ;;
+    setup)
+        SQL_FILES="10_setup.sql"
+        ;;
+    plugins)
+        SQL_FILES="20_plugins/*.sql"
+        ;;
+    config)
+        SQL_FILES="30_config.sql"
+        ;;
+    agents)
+        SQL_FILES="70_agents.sql"
+        ;;
+    all)
+        SQL_FILES="00_init.sql 10_setup.sql 20_plugins/*.sql 30_config.sql 70_agents.sql"
+        ;;
+    upgrade)
+        if [ -z "$FROM_VERSION" ]; then
+            echo "ERROR: --from-version required for upgrade scope"
+            exit 1
+        fi
+        # Process upgrade scripts >= FROM_VERSION
+        SQL_FILES="09_upgrade/*.sql"
+        ;;
+    apikey|teardown)
+        # These are handled specially below
+        SQL_FILES=""
+        ;;
+    *)
+        # Treat as file_part - custom prefix
+        SQL_FILES="$SCOPE*.sql"
+        ;;
+esac
 
-    FILES_FOR_CONF_UPDATE=(
-        "build/031_configuration_table.sql"
-        "build/032_f_get_config_value.sql"
-        "build/035_resource_monitor.sql"
-        "build/036_update_plugin_schedule.sql"
-        "build/037_update_all_plugins_schedule.sql"
-        "build/038_update_configuration.sql"
-    )
-
-    for file in "${FILES_FOR_CONF_UPDATE[@]}"; do
-        cat $file >>"$INSTALL_SCRIPT_SQL"
-    done
+# Check if required SQL files exist in build folder (skip for scopes with empty SQL_FILES)
+if [ -n "$SQL_FILES" ]; then
+    if ! find build/$SQL_FILES -type f 2>/dev/null | grep -q .; then
+        echo "ERROR: Build files missing for scope $SCOPE"
+        exit 1
+    fi
 fi
 
-if [ "$PARAM" != 'apikey' ] && [ "$PARAM" != 'config' ] && [ "$PARAM" != 'teardown' ]; then
+if [ "$SCOPE" != 'apikey' ] && [ "$SCOPE" != 'teardown' ]; then
     #
     #   --- script for updating whole or part of Dynatrace Snowflake Observability Agent  ----
     #
-    if [ "$PARAM" == '' ] || [ "$PARAM" == "manual" ]; then
-        SQL_FILES='*.sql'
-    else
-        SQL_FILES="$PARAM*.sql"
-    fi
 
     echo "Will process [build/$SQL_FILES]"
 
     #
     #   --- building one big script to be run
     #
-    find 'build/'$SQL_FILES -type f -print |
-        sort |
-        xargs -I {} sh -c 'echo "-- SCRIPT: $1"; cat "$1"' _ {} \; \
+    if [ "$SCOPE" == "upgrade" ]; then
+        # For upgrade, filter by version
+        find build/$SQL_FILES -type f -print |
+            awk -v from_ver="$FROM_VERSION" '
+                function version_to_num(v) {
+                    split(v, parts, ".");
+                    return parts[1] * 1000000 + parts[2] * 1000 + parts[3];
+                }
+                {
+                    # Extract version from filename (e.g., 09_upgrade/v1.2.3.sql or v1.2.3_something.sql)
+                    if (match($0, /v[0-9]+\.[0-9]+\.[0-9]+/)) {
+                        # Extract the matched version string
+                        file_ver = substr($0, RSTART + 1, RLENGTH - 1);
+                        if (version_to_num(file_ver) > version_to_num(from_ver)) {
+                            print $0;
+                        }
+                    } else {
+                        # Print files without version numbers
+                        print $0;
+                    }
+                }
+            ' |
+            sort |
+            xargs -I {} sh -c 'echo "-- SCRIPT: $1"; cat "$1"' _ {} \; \
+                >"$INSTALL_SCRIPT_SQL"
+    else
+        # Process each SQL file pattern separately
+        for pattern in $SQL_FILES; do
+            find build/$pattern -type f -print 2>/dev/null
+        done | sort | xargs -I {} sh -c 'echo "-- SCRIPT: $1"; cat "$1"' _ {} \; \
             >"$INSTALL_SCRIPT_SQL"
+    fi
 
     echo "Deploy script prepared"
 fi
 
-if [ "$PARAM" == 'teardown' ]; then
+if [ "$SCOPE" == 'teardown' ]; then
     cat <<EOF >>$INSTALL_SCRIPT_SQL
 use role ACCOUNTADMIN;
 
@@ -109,7 +157,7 @@ drop resource monitor if exists DTAGENT_RS;
 EOF
 fi
 
-if [ "$PARAM" == 'apikey' ] || [ "$PARAM" == "manual" ] || [ "$PARAM" == "" ]; then
+if [ "$SCOPE" == 'apikey' ] || [ "$SCOPE" == 'all' ]; then
     #
     #   --- we do not update API key each time we run - you need to request that explicitly
     #
@@ -142,29 +190,100 @@ awk -v config="${SQL_INGEST_CONFIG}" '
     /^[#][%][:]UPLOAD:SKIP.*/ { print_out=1; }' \
         >temp.sql && mv temp.sql "$INSTALL_SCRIPT_SQL"
 
-#
-#   --- Running the scripts (or configuration update) with SnowSQL
-#   Removing SQL comments, as SnowCLI has problems reading them.
-#
-if [ $(uname -s) = 'Darwin' ]; then
-    sed -i "" -E -e 's/--.*$//' "$INSTALL_SCRIPT_SQL"
-    sed -i "" -E -e '/^\/\*/,/\*\//d' "$INSTALL_SCRIPT_SQL"
 
-    if [ -n "$TAG" ]; then
-        sed -i "" -E -e "s/DTAGENT_/DTAGENT_${TAG}_/g" "$INSTALL_SCRIPT_SQL"
-        sed -i "" -E -e "s/${TAG}_${TAG}_/${TAG}_/g" "$INSTALL_SCRIPT_SQL"
+# Filter function to remove disabled plugin code
+filter_plugin_code() {
+    local input_file=$1
+    local output_file=$2
+
+    if [ -z "$EXCLUDED_PLUGINS" ]; then
+        cat "$input_file" > "$output_file"
+        return
     fi
-else
-    sed -i -E -e 's/--.*$//' "$INSTALL_SCRIPT_SQL"
-    sed -i -E -e '/^\/\*/,/\*\//d' "$INSTALL_SCRIPT_SQL"
 
-    if [ -n "$TAG" ]; then
-        sed -i -E -e "s/DTAGENT_/DTAGENT_${TAG}_/g" "$INSTALL_SCRIPT_SQL"
-        sed -i -E -e "s/${TAG}_${TAG}_/${TAG}_/g" "$INSTALL_SCRIPT_SQL"
+    local temp_file=$(mktemp)
+    cp "$input_file" "$temp_file"
+
+    for plugin_name in $EXCLUDED_PLUGINS; do
+        awk -v plugin="$plugin_name" '
+            BEGIN { active=1; }
+            {
+                # Check for start marker: --%PLUGIN:plugin_name: or #%PLUGIN:plugin_name:
+                if ($0 ~ /^(--|#)%PLUGIN:/) {
+                    start_pattern = "%PLUGIN:" plugin ":"
+                    if (index($0, start_pattern) > 0) {
+                        active=0;
+                    }
+                }
+
+                # Print line only if active
+                if (active==1) print $0;
+
+                # Check for end marker: --%:PLUGIN:plugin_name or #%:PLUGIN:plugin_name
+                if ($0 ~ /^(--|#)%:PLUGIN:/) {
+                    end_pattern = "%:PLUGIN:" plugin
+                    # Make sure we match the exact plugin name, not a prefix
+                    if (index($0, end_pattern) > 0) {
+                        # Check if followed by end of line or whitespace, not another colon
+                        idx = index($0, end_pattern)
+                        len = length(end_pattern)
+                        rest = substr($0, idx + len)
+                        if (rest == "" || rest ~ /^[ \t]*$/) {
+                            active=1;
+                        }
+                    }
+                }
+            }
+        ' "$temp_file" > "$output_file"
+        cp "$output_file" "$temp_file"
+    done
+
+    rm "$temp_file"
+}
+
+# Get list of plugins to exclude
+EXCLUDED_PLUGINS=$($CWD/list_plugins_to_exclude.sh)
+
+# Apply plugin filtering for non-special scopes
+if [ "$SCOPE" != "apikey" ] && [ "$SCOPE" != "teardown" ]; then
+    if [ -n "$EXCLUDED_PLUGINS" ]; then
+        EXCLUDED_PLUGINS_FORMATTED=$(echo "$EXCLUDED_PLUGINS" | tr '\n' ',' | sed 's/,$//')
+        echo "Filtering out disabled plugins: $EXCLUDED_PLUGINS_FORMATTED"
+        FILTERED_SQL=$(mktemp)
+        filter_plugin_code "${INSTALL_SCRIPT_SQL}" "${FILTERED_SQL}"
+        mv "${FILTERED_SQL}" "${INSTALL_SCRIPT_SQL}"
     fi
 fi
 
-if [ "$PARAM" == 'manual' ]; then
+#
+#   Cleaning up the final script
+#
+# Set sed in-place flag based on OS
+if [ $(uname -s) = 'Darwin' ]; then
+    SED_INPLACE=("sed" "-i" "")
+else
+    SED_INPLACE=("sed" "-i")
+fi
+
+# Remove SQL line comments
+"${SED_INPLACE[@]}" -E -e 's/--.*$//' "$INSTALL_SCRIPT_SQL"
+# Remove SQL block comments
+"${SED_INPLACE[@]}" -E -e '/^\/\*/,/\*\//d' "$INSTALL_SCRIPT_SQL"
+# Remove Python comment-only lines (with or without leading whitespace)
+"${SED_INPLACE[@]}" -E -e '/^[[:space:]]*#/d' "$INSTALL_SCRIPT_SQL"
+# Remove Python inline comments
+"${SED_INPLACE[@]}" -E -e 's/[[:space:]]+#.*$//' "$INSTALL_SCRIPT_SQL"
+
+# Handle multitenancy TAG replacements
+if [ -n "$TAG" ]; then
+    "${SED_INPLACE[@]}" -E -e "s/DTAGENT_/DTAGENT_${TAG}_/g" "$INSTALL_SCRIPT_SQL"
+    "${SED_INPLACE[@]}" -E -e "s/${TAG}_${TAG}_/${TAG}_/g" "$INSTALL_SCRIPT_SQL"
+fi
+
+# Remove double newlines from the deployment script
+"${SED_INPLACE[@]}" '/^$/N;/^\n$/d' "$INSTALL_SCRIPT_SQL"
+
+if [ "$IS_MANUAL" == "true" ]; then
     echo "-----"
     echo "Dynatrace Snowflake Observability Agent Deployment SQL script has been created in file ${INSTALL_SCRIPT_SQL}"
     echo "-----"

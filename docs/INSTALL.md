@@ -71,34 +71,73 @@ The default option to install Dynatrace Snowflake Observability Agent is from th
 Observability Agent, run the `./deploy.sh` command:
 
 ```bash
-./deploy.sh $config_name $file_prefix
+./deploy.sh $ENV [--scope=SCOPE] [--from-version=VERSION] [--output-file=FILE] [--options=OPTIONS]
 ```
 
-The `$config_name` parameter is required and must match one of the previously created configuration files.
+### Required Parameters
 
-The `$file_prefix` parameter is optional and can take multiple values:
+- **`$ENV`** (required): Environment identifier that must match one of the previously created configuration files. The file must be named `config-$ENV.yml` in the `conf/` directory.
 
-- If left empty, all SQL scripts will be executed at once.
-- If set to `config`, the configuration table will be updated using the config file specified by the `$config_name` parameter.
-- If set to `apikey`, the Dynatrace Access Token (API Key) will be stored in Snowflake and made available only to the Dynatrace Snowflake
-  Observability Agent stored procedure.
-- If set to `manual`, a complete SQL script with all commands necessary to deploy and set up Dynatrace Snowflake Observability Agent will be
-  produced; use the Snowflake Web UI to execute it.
-- If set to `teardown`, Dynatrace Snowflake Observability Agent will be uninstalled from your Snowflake account.
-- If set to any other value, only the files with base names starting with that `$file_prefix` will be executed as part of the deployment
-  procedure.
+### Optional Parameters
+
+- **`--scope=SCOPE`** (optional, default: `all`): Specifies the deployment scope. Valid values:
+  - `init` - Initialize database and basic structure
+  - `setup` - Set up roles, warehouses, and security
+  - `plugins` - Deploy plugin code and views
+  - `config` - Update configuration table only
+  - `agents` - Deploy agent procedures and tasks
+  - `apikey` - Update Dynatrace Access Token only
+  - `all` - Full deployment without upgrade step (default)
+  - `teardown` - Uninstall Dynatrace Snowflake Observability Agent from your Snowflake account
+  - `upgrade` - Upgrade from a previous version (requires `--from-version`)
+  - `file_pattern` - Any other value will deploy only files matching that pattern
+
+- **`--from-version=VERSION`** (required when `--scope=upgrade`): Specifies the version number you are upgrading from (e.g., `0.9.2`).
+
+- **`--output-file=FILE`** (optional): Custom output file path for manual mode. If not specified, defaults to `dsoa-deploy-script-{ENV}-{TIMESTAMP}.sql`.
+
+- **`--options=OPTIONS`** (optional): Comma-separated list of deployment options:
+  - `manual` - Generate SQL script without executing it. You can review and execute it manually.
+  - `service_user` - Use service user authentication (for CI/CD pipelines)
+  - `skip_confirm` - Skip deployment confirmation prompt
+  - `no_dep` - Skip sending deployment BizEvents to Dynatrace
+
+### Examples
+
+```bash
+# Full deployment to 'dev' environment
+./deploy.sh dev
+
+# Deploy only configuration changes
+./deploy.sh prod --scope=config
+
+# Upgrade from version 0.9.2
+./deploy.sh test --scope=upgrade --from-version=0.9.2
+
+# Generate manual deployment script for review
+./deploy.sh prod --options=manual --output-file=my-deployment.sql
+
+# Deploy only plugins matching a pattern
+./deploy.sh dev --scope=053_v_ac
+
+# Deploy multiple patterns (using pipe separator)
+./deploy.sh test --scope="053_v_ac|70"
+
+# CI/CD deployment with service user (skip confirmation and BizEvents)
+./deploy.sh prod --options=service_user,skip_confirm
+```
 
 You should store the Access Token for your Dynatrace tenant (to which you want to send telemetry from your environment) as the environment
 variable `DTAGENT_TOKEN`. The token should have the following scopes enabled:
 
-| Scope ID                    | Scope Name                   | Comment                     |
-| --------------------------- | ---------------------------- | --------------------------- |
-| `logs.ingest`               | Ingest Logs                  |                             |
-| `metrics.ingest`            | Ingest Metrics               |                             |
-| `bizevents.ingest`          | Ingest BizEvents             |                             |
-| `openpipeline.events`       | OpenPipeline - Ingest Events |                             |
-| `openTelemetryTrace.ingest` | Ingest OpenTelemetry Traces  |                             |
-| `events.ingest`             | Ingest Events                | Not required version>=0.9.1 |
+| Scope ID                    | Scope Name                   | Comment |
+| --------------------------- | ---------------------------- | ------- |
+| `logs.ingest`               | Ingest Logs                  |         |
+| `metrics.ingest`            | Ingest Metrics               |         |
+| `bizevents.ingest`          | Ingest BizEvents             |         |
+| `openpipeline.events`       | OpenPipeline - Ingest Events |         |
+| `openTelemetryTrace.ingest` | Ingest OpenTelemetry Traces  |         |
+| `events.ingest`             | Ingest Events                | <0.9.1  |
 
 We **strongly** recommend to ensure your token is not recorded in shell script history; please find an example how to define `DTAGENT_TOKEN`
 environment variable on Linux or WSL below:
@@ -141,6 +180,74 @@ a profile configuration file for each Snowflake-Dynatrace pair.
 You must create the deployment configuration file in the `conf/` directory. The file must follow `config-$config_name.yml` naming
 convention and the content as presented in the `conf/config-template.yml` template. Make sure the `core` entries; you can skip the rest.
 Optionally you can adjust plugin configurations.
+
+#### Core Configuration Options
+
+The following table describes all available `core` configuration options:
+
+| Configuration Key          | Type    | Required | Default | Description                                                                                                                 |
+| -------------------------- | ------- | -------- | ------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `dynatrace_tenant_address` | String  | Yes      | -       | The address of your Dynatrace tenant (e.g., `abc12345.live.dynatrace.com`)                                                  |
+| `deployment_environment`   | String  | Yes      | -       | Unique identifier for the deployment environment                                                                            |
+| `snowflake_account_name`   | String  | Yes      | -       | Your Snowflake account name                                                                                                 |
+| `snowflake_host_name`      | String  | Yes      | -       | Your Snowflake host name                                                                                                    |
+| `snowflake_credit_quota`   | Integer | Yes      | 5       | Credit quota limit for Snowflake operations                                                                                 |
+| `log_level`                | String  | Yes      | `WARN`  | Logging level. Valid values: `DEBUG`, `INFO`, `WARN`, `ERROR`                                                               |
+| `tag`                      | String  | No       | `""`    | Optional custom tag for Dynatrace Snowflake Observability Agent specific Snowflake objects. Used for multitenancy scenarios |
+| `procedure_timeout`        | Integer | No       | 3600    | Timeout in seconds for stored procedure execution. Default is 1 hour (3600 seconds)                                         |
+
+#### Plugin Configuration Options
+
+The `plugins` section allows you to configure plugin behavior globally and individually:
+
+| Configuration Key                 | Type    | Default | Description                                                                                                                                        |
+| --------------------------------- | ------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `plugins.disabled_by_default`     | Boolean | `false` | When set to `true`, all plugins are disabled by default unless explicitly enabled                                                                  |
+| `plugins.deploy_disabled_plugins` | Boolean | `true`  | Deploy plugin code even if the plugin is disabled. When `true`, disabled plugins' SQL objects and procedures are deployed but not scheduled to run |
+
+Each individual plugin can be configured with plugin-specific options. See the plugin documentation for available configuration options per plugin.
+
+#### OpenTelemetry Configuration Options
+
+The `otel` section allows you to configure OpenTelemetry behavior. By default, you can leave this section empty (`otel: {}`) to use default values. Advanced users can configure the following options:
+
+| Configuration Key                      | Type           | Default | Description                                                                |
+| -------------------------------------- | -------------- | ------- | -------------------------------------------------------------------------- |
+| `max_consecutive_api_fails`            | Integer        | -       | Maximum number of consecutive API failures before circuit breaker triggers |
+| `logs.export_timeout_millis`           | Integer        | -       | Export timeout for logs in milliseconds                                    |
+| `logs.max_export_batch_size`           | Integer        | -       | Maximum batch size for log exports                                         |
+| `logs.is_disabled`                     | Boolean        | `false` | Disable log telemetry export                                               |
+| `spans.export_timeout_millis`          | Integer        | -       | Export timeout for spans in milliseconds                                   |
+| `spans.max_export_batch_size`          | Integer        | -       | Maximum batch size for span exports                                        |
+| `spans.max_event_count`                | Integer        | -       | Maximum number of events per span                                          |
+| `spans.max_attributes_per_event_count` | Integer        | -       | Maximum number of attributes per event                                     |
+| `spans.max_span_attributes`            | Integer        | -       | Maximum number of attributes per span                                      |
+| `spans.is_disabled`                    | Boolean        | `false` | Disable span telemetry export                                              |
+| `metrics.api_post_timeout`             | Integer        | -       | API POST timeout for metrics in seconds                                    |
+| `metrics.max_retries`                  | Integer        | -       | Maximum retry attempts for metrics export                                  |
+| `metrics.max_batch_size`               | Integer        | -       | Maximum batch size for metrics                                             |
+| `metrics.retry_delay_ms`               | Integer        | -       | Delay between retries in milliseconds                                      |
+| `metrics.is_disabled`                  | Boolean        | `false` | Disable metrics telemetry export                                           |
+| `events.api_post_timeout`              | Integer        | -       | API POST timeout for events in seconds                                     |
+| `events.max_retries`                   | Integer        | -       | Maximum retry attempts for events export                                   |
+| `events.max_payload_bytes`             | Integer        | -       | Maximum payload size for events in bytes                                   |
+| `events.max_event_count`               | Integer        | -       | Maximum number of events per batch                                         |
+| `events.retry_delay_ms`                | Integer        | -       | Delay between retries in milliseconds                                      |
+| `events.retry_on_status`               | Array[Integer] | -       | HTTP status codes that trigger retry                                       |
+| `events.is_disabled`                   | Boolean        | `false` | Disable events telemetry export                                            |
+| `davis_events.api_post_timeout`        | Integer        | -       | API POST timeout for Davis events in seconds                               |
+| `davis_events.max_retries`             | Integer        | -       | Maximum retry attempts for Davis events export                             |
+| `davis_events.retry_delay_ms`          | Integer        | -       | Delay between retries in milliseconds                                      |
+| `davis_events.is_disabled`             | Boolean        | `false` | Disable Davis events telemetry export                                      |
+| `biz_events.api_post_timeout`          | Integer        | -       | API POST timeout for business events in seconds                            |
+| `biz_events.max_retries`               | Integer        | -       | Maximum retry attempts for business events export                          |
+| `biz_events.max_payload_bytes`         | Integer        | -       | Maximum payload size for business events in bytes                          |
+| `biz_events.max_event_count`           | Integer        | -       | Maximum number of business events per batch                                |
+| `biz_events.retry_delay_ms`            | Integer        | -       | Delay between retries in milliseconds                                      |
+| `biz_events.retry_on_status`           | Array[Integer] | -       | HTTP status codes that trigger retry                                       |
+| `biz_events.is_disabled`               | Boolean        | `false` | Disable business events telemetry export                                   |
+
+#### Plugin Scheduling
 
 One of the configuration options for each Dynatrace Snowflake Observability Agent plugin is the `schedule`, which determines when the
 Snowflake task responsible for executing this plugin should start. By default, the majority of tasks are scheduled to execute on the hour or

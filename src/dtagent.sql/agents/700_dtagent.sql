@@ -1,17 +1,17 @@
 --
 --
 -- Copyright (c) 2025 Dynatrace Open Source
--- 
+--
 -- Permission is hereby granted, free of charge, to any person obtaining a copy
 -- of this software and associated documentation files (the "Software"), to deal
 -- in the Software without restriction, including without limitation the rights
 -- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 -- copies of the Software, and to permit persons to whom the Software is
 -- furnished to do so, subject to the following conditions:
--- 
+--
 -- The above copyright notice and this permission notice shall be included in all
 -- copies or substantial portions of the Software.
--- 
+--
 -- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 -- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 -- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -22,7 +22,7 @@
 --
 --
 --
--- DTAGENT_DB.APP.DTAGENT() is the core procedure of Dynatrace Snowflake Observability Agent. 
+-- DTAGENT_DB.APP.DTAGENT() is the core procedure of Dynatrace Snowflake Observability Agent.
 -- It is responsible for sending data (prepared by other procedures in the app schema) as: metrics, spans, and logs
 --
 use role DTAGENT_ADMIN; use database DTAGENT_DB; use warehouse DTAGENT_WH;
@@ -44,8 +44,8 @@ handler = 'main'
 external_access_integrations = (DTAGENT_API_INTEGRATION)
 secrets = ('dtagent_token'=DTAGENT_DB.CONFIG.DTAGENT_API_KEY)
 execute as caller
-as 
-$$ 
+as
+$$
 # -- language=Python
 ##INSERT ../build/_dtagent.py
 $$

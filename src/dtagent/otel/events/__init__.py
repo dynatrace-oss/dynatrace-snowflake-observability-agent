@@ -42,7 +42,6 @@ from dtagent.otel.otel_manager import OtelManager
 from dtagent.util import StringEnum, get_timestamp_in_ms
 from dtagent.version import VERSION
 
-
 ##endregion COMPILE_REMOVE
 
 ##region ------------------------ Abstract EVENTS ---------------------------------

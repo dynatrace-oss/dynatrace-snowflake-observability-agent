@@ -114,11 +114,5 @@ $$
 
 grant usage on procedure DTAGENT_DB.APP.P_GET_BUDGETS() to role DTAGENT_VIEWER;
 
-use role ACCOUNTADMIN;
-grant ownership on table DTAGENT_DB.APP.TMP_BUDGETS to role DTAGENT_ADMIN copy current grants;
-grant ownership on table DTAGENT_DB.APP.TMP_BUDGETS_RESOURCES to role DTAGENT_ADMIN copy current grants;
-grant ownership on table DTAGENT_DB.APP.TMP_BUDGETS_LIMITS to role DTAGENT_ADMIN copy current grants;
-grant ownership on table DTAGENT_DB.APP.TMP_BUDGET_SPENDING to role DTAGENT_ADMIN copy current grants;
-
 -- use role DTAGENT_VIEWER;
 -- call DTAGENT_DB.APP.P_GET_BUDGETS();

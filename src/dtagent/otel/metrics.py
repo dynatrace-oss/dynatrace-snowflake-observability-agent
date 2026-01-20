@@ -33,7 +33,6 @@ from dtagent.otel.otel_manager import OtelManager
 from dtagent.util import get_timestamp_in_ms, get_now_timestamp, validate_timestamp_ms
 from dtagent.otel import _log_warning
 
-
 ##endregion COMPILE_REMOVE
 
 ##region ------------------------ OpenTelemetry METRICS ---------------------------------

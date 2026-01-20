@@ -1,16 +1,16 @@
 --
 -- Copyright (c) 2025 Dynatrace Open Source
--- 
+--
 -- Permission is hereby granted, free of charge, to any person obtaining a copy
 -- of this software and associated documentation files (the "Software"), to deal
 -- in the Software without restriction, including without limitation the rights
 -- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 -- copies of the Software, and to permit persons to whom the Software is
 -- furnished to do so, subject to the following conditions:
--- 
+--
 -- The above copyright notice and this permission notice shall be included in all
 -- copies or substantial portions of the Software.
--- 
+--
 -- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 -- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 -- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -21,12 +21,10 @@
 --
 --
 --
-use role DTAGENT_ADMIN; use schema DTAGENT_DB.CONFIG; use warehouse DTAGENT_WH; 
+use role DTAGENT_ADMIN; use schema DTAGENT_DB.CONFIG; use warehouse DTAGENT_WH;
 
--- upgrade from version <0.8.3
-drop procedure if exists DTAGENT_DB.CONFIG.UPDATE_PLUGIN_SCHEDULE(varchar);
 create or replace procedure DTAGENT_DB.CONFIG.UPDATE_TASK_SCHEDULE(
-    PLUGIN_NAME varchar, 
+    PLUGIN_NAME varchar,
     AUX_TASK_NAME varchar default null)
 returns varchar not null
 language SQL
@@ -59,9 +57,9 @@ begin
         else
             -- Get the current predecessors (AFTER dependencies) for the task
             execute immediate concat('describe task ', TASK_NAME);
-            let C_PREDECESSORS CURSOR for select distinct value as predecessor 
+            let C_PREDECESSORS CURSOR for select distinct value as predecessor
                                           from table(flatten(input => (select "predecessors" from table(result_scan(last_query_id())))));
-            
+
             -- Remove any AFTER dependency if present
             for REC in C_PREDECESSORS do
                 execute immediate concat(ALTER_TASK_STMT, ' remove after ', REC.predecessor, ';');
@@ -86,11 +84,11 @@ $$
 grant usage on procedure DTAGENT_DB.CONFIG.UPDATE_TASK_SCHEDULE(varchar, varchar) to role DTAGENT_VIEWER;
 
 
--- 
+--
 
 
 create or replace procedure DTAGENT_DB.CONFIG.UPDATE_PLUGIN_SCHEDULE(
-        PLUGIN_NAME varchar, 
+        PLUGIN_NAME varchar,
         AUX_TASK_NAMES array default array_construct())
 returns varchar not null
 language SQL
@@ -110,9 +108,9 @@ begin
     UPPER_PLUGIN_NAME := upper(:PLUGIN_NAME);
 
     -- validate the plugin configuration schedule
-    SCHEDULE_PATH := 'plugins.' || :PLUGIN_NAME || '.schedule'; 
+    SCHEDULE_PATH := 'plugins.' || :PLUGIN_NAME || '.schedule';
     SCHEDULE := (select VALUE from CONFIG.CONFIGURATIONS where PATH = :SCHEDULE_PATH);
-    
+
     if (SCHEDULE is null) then
         return 'invalid plugin name or plugin schedule not uploaded to config table';
     end if;
@@ -121,7 +119,7 @@ begin
     ALL_TASK_NAMES := array_construct(concat('DTAGENT_DB.APP.TASK_DTAGENT_', :UPPER_PLUGIN_NAME));
     if (AUX_TASK_NAMES is not null) then
         for i in 0 to array_size(:AUX_TASK_NAMES)-1 do
-            ALL_TASK_NAMES := array_cat(ALL_TASK_NAMES, 
+            ALL_TASK_NAMES := array_cat(ALL_TASK_NAMES,
                               array_construct(concat('DTAGENT_DB.APP.TASK_DTAGENT_', :UPPER_PLUGIN_NAME, '_', :AUX_TASK_NAMES[i])));
         end for;
     end if;
@@ -131,11 +129,11 @@ begin
     IS_ENABLED := NVL((select VALUE::boolean from DTAGENT_DB.CONFIG.CONFIGURATIONS where PATH = 'plugins.' || :PLUGIN_NAME || '.is_enabled'), false);
 
     -- if the plugin is disabled, we suspend all tasks related to the plugin and return a message
-    if (IS_DISABLED or (IS_DISABLED_BY_DEFAULT and not IS_ENABLED)) then  
+    if (IS_DISABLED or (IS_DISABLED_BY_DEFAULT and not IS_ENABLED)) then
         -- if the plugin is disabled, we suspend the task and return a message
         for i in 0 to array_size(:ALL_TASK_NAMES) - 1 do
             execute immediate concat('alter task if exists ', :ALL_TASK_NAMES[i], ' suspend;');
-        end for;      
+        end for;
         return concat('plugin ', :PLUGIN_NAME, ' is disabled (globally = ', :IS_DISABLED_BY_DEFAULT, ')');
     end if;
 
@@ -144,7 +142,7 @@ begin
     -- we first suspend all tasks related to the plugin to avoid overlapping executions
     for i in 0 to array_size(:ALL_TASK_NAMES) - 1 do
         execute immediate concat('alter task if exists ', :ALL_TASK_NAMES[i], ' suspend;');
-    end for;      
+    end for;
 
     -- we update the schedule for the main task of the plugin
     call DTAGENT_DB.CONFIG.UPDATE_TASK_SCHEDULE(:PLUGIN_NAME);
@@ -161,7 +159,7 @@ begin
     for i in 0 to array_size(:ALL_TASK_NAMES) - 1 do
         AUX_TASK_NAME := ALL_TASK_NAMES[i];
         execute immediate concat('alter task if exists ', :AUX_TASK_NAME, ' resume;');
-    end for;      
+    end for;
 
     return 'schedule for ' || :PLUGIN_NAME || ' plugin set to ' || :SCHEDULE;
 exception

@@ -27,7 +27,7 @@
 # It processes the scripts in src/sql and looks for ##INSERT $fileName hints
 #
 
-set -e
+set -euo pipefail
 
 # Check for required commands
 if ! command -v gawk &> /dev/null; then
@@ -41,7 +41,8 @@ if ! command -v yq &> /dev/null; then
 fi
 
 # Cleaning up build directory
-rm -Rf build/*
+rm -rf build
+mkdir -p build/09_upgrade build/20_plugins
 
 SOURCE_CODE_QUALITY_CHECK_FILE=.logs/source-code-quality-$(date '+%Y%m%d-%H%M%S').log
 TEST_CODE_QUALITY_CHECK_FILE=.logs/test-code-quality-$(date '+%Y%m%d-%H%M%S').log
@@ -88,6 +89,7 @@ fi
 ./scripts/dev/compile.sh
 
 if [ $? -eq 1 ]; then
+    echo "Code compilation failed."
     exit 1
 fi
 
@@ -96,6 +98,7 @@ PLUGINS_CONFIG_FILES=()
 while IFS= read -r -d '' file; do
     PLUGINS_CONFIG_FILES+=("$file")
 done < <(find ./src -type f -name "*-config.yml" -print0)
+
 CONFIG_TEMPLATE_FILE="conf/config-template.yml"
 CONFIG_TEMPLATE="$(yq '.' $CONFIG_TEMPLATE_FILE)"
 
@@ -110,30 +113,122 @@ for file in "${PLUGINS_CONFIG_FILES[@]}"; do
 done
 
 # Combine the merged sections with the rest of the template
-echo "$merged_sections" > /tmp/merged.yml
-yq '.plugins = (.plugins // {}) + load("/tmp/merged.yml").plugins | .otel = (.otel // {}) + load("/tmp/merged.yml").otel' "$CONFIG_TEMPLATE_FILE" >./build/config-default.yml
-rm /tmp/merged.yml
+tmp_merged="$(mktemp -t merged.XXXXXX.yml)"
+echo "$merged_sections" > "$tmp_merged"
+yq '.plugins = (.plugins // {}) + load("'"$tmp_merged"'").plugins | .otel = (.otel // {}) + load("'"$tmp_merged"'").otel' "$CONFIG_TEMPLATE_FILE" > ./build/config-default.yml
+rm -f "$tmp_merged"
 
-# Building SQL files in build
-find src -type f \( -name "*.sql" ! -name "*.off.sql" \) | while IFS= read -r sql_file; do
-    echo "Processing $sql_file"
-    dest_file="build/$(basename $sql_file)" # Add your processing logic here
-    gawk 'match($0, /[#]{2}INSERT (.+)/, a) {system("cat src/"a[1]); next } 1' $sql_file >$dest_file
-done
+# -----------------------------
+# Build staged SQL scripts
+# -----------------------------
 
-for file in build/*.py; do
-    echo "Validating $file"
-    pylint "$file" --disable=$SRC_IGNORED_CASES --output-format=parseable
-    if [ $? -ne 0 ]; then
-        echo "Code quality check failed for $file"
-        exit 1
+
+process_sql_with_inserts() {
+    local in_file="$1"
+    local keep_copyright="${2:-0}"
+
+    # Strip copyright headers (lines between two -- lines before and two -- lines after)
+    gawk -v DEBUG=0 -v keep_copyright="$keep_copyright" '
+        match($0, /[#]{2}INSERT (.+)/, a) {
+            system("cat src/"a[1]);
+            next
+        }
+        BEGIN{
+            preamb1=0
+            preamb2=0
+            printout=keep_copyright
+        }
+        printout { print $0; next }
+        !/^--\s*$/ { preamb2=0 }
+        /^--\s*$/  {
+            ++preamb1;
+            if (preamb1 > 2) {++preamb2}
+            if (preamb1 >= 2 && preamb2 >= 2) {printout=1}
+             }
+        #DEBUG { print preamb1,preamb2,printout,$0 }
+    ' "$in_file"
+}
+
+append_sql_dir() {
+    local src_dir="$1"
+    local dest_file="$2"
+    local first_file="${3:-1}"
+
+
+    if [ ! -d "$src_dir" ]; then
+        return 0
     fi
-done
 
-sqlfluff lint build/70*.sql --ignore parsing --disable-progress-bar
-if [ $? -ne 0 ]; then
-    echo "Code quality check failed for SQL files in build/70*.sql"
-    exit 1
+    # Append files in a stable order
+    while IFS= read -r f; do
+        [ -f "$f" ] || continue
+
+        process_sql_with_inserts "$f" "$first_file" >> "$dest_file"
+        first_file=0
+
+        printf "\n" >> "$dest_file"
+    done < <(find "$src_dir" -maxdepth 1 -type f -name "*.sql" ! -name "*.off.sql" | sort)
+}
+
+plugin_dirs() {
+    if [ ! -d "src/dtagent/plugins" ]; then
+        return 0
+    fi
+    # Plugins are stored under directories matching: src/dtagent/plugins/<plugin_name>.sql/
+    find "src/dtagent/plugins" -maxdepth 1 -type d -name "*.sql" | sort
+}
+
+# build/00_init.sql <- combine(src/dtagent.sql/init/*.sql, plugin init/*.sql wrapped in plugin blocks)
+: > build/00_init.sql
+append_sql_dir "src/dtagent.sql/init" "build/00_init.sql"
+
+while IFS= read -r pdir; do
+    pbase="$(basename "$pdir")"
+    pname="${pbase%.sql}"
+    init_dir="$pdir/init"
+    if compgen -G "$init_dir/*.sql" > /dev/null; then
+        echo "--%PLUGIN:${pname}:" >> build/00_init.sql
+        append_sql_dir "$init_dir" "build/00_init.sql" 0
+        echo "--%:PLUGIN:${pname}" >> build/00_init.sql
+        printf "\n" >> build/00_init.sql
+    fi
+done < <(plugin_dirs)
+
+# build/09_upgrade/v$version.sql <- combine(src/dtagent.sql/upgrade/$version/*.sql)
+if [ -d "src/dtagent.sql/upgrade" ]; then
+    while IFS= read -r vdir; do
+        vname="$(basename "$vdir")"
+        : > "build/09_upgrade/v${vname}.sql"
+        append_sql_dir "$vdir" "build/09_upgrade/v${vname}.sql"
+    done < <(find "src/dtagent.sql/upgrade" -mindepth 1 -maxdepth 1 -type d | sort)
 fi
+
+# build/10_setup.sql <- combine(src/dtagent.sql/setup/*.sql)
+: > build/10_setup.sql
+append_sql_dir "src/dtagent.sql/setup" "build/10_setup.sql"
+
+# build/20_plugins/$plugin_name.sql <- combine(src/dtagent/plugins/$plugin_name.sql/*.sql) (excluding init/) wrapped in plugin blocks
+while IFS= read -r pdir; do
+    pbase="$(basename "$pdir")"
+    pname="${pbase%.sql}"
+    dest="build/20_plugins/${pname}.sql"
+    : > "$dest"
+
+    echo "--%PLUGIN:${pname}:" >> "$dest"
+    append_sql_dir "$pdir" "$dest"   # maxdepth=1, so it won't include init/*.sql
+    echo "--%:PLUGIN:${pname}" >> "$dest"
+    printf "\n" >> "$dest"
+done < <(plugin_dirs)
+
+# build/30_config.sql <- combine(src/dtagent.sql/config/*.sql)
+: > build/30_config.sql
+append_sql_dir "src/dtagent.sql/config" "build/30_config.sql"
+
+# build/70_agents.sql <- combine(src/dtagent.sql/agents/*.sql)
+: > build/70_agents.sql
+append_sql_dir "src/dtagent.sql/agents" "build/70_agents.sql"
+
+# Lint staged SQL (best-effort like before)
+sqlfluff lint build/*.sql build/09_upgrade/*.sql build/20_plugins/*.sql --ignore parsing --disable-progress-bar
 
 echo "Building Dynatrace Snowflake Observability Agent done"

@@ -203,7 +203,7 @@ class Configuration:
         """Checks STATUS.PROCESSED_MEASUREMENTS_LOG to get last update for the given source"""
         from dtagent.util import _get_timestamp_in_sec  # COMPILE_REMOVE
 
-        last_ts = session.sql(f"select APP.F_LAST_PROCESSED_TS('{source}');").collect()[0][0]
+        last_ts = session.sql(f"select STATUS.F_LAST_PROCESSED_TS('{source}');").collect()[0][0]
 
         if last_ts:
             import pytz

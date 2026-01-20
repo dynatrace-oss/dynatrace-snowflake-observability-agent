@@ -29,7 +29,7 @@ delivers:
     type: procedure
   - name: DTAGENT_DB.CONFIG.UPDATE_PLUGIN_SCHEDULE(varchar)
     type: procedure
-  - name: DTAGENT_DB.CONFIG.SET_RESOURCE_MONITOR(int)
+  - name: DTAGENT_DB.CONFIG.P_UPDATE_RESOURCE_MONITOR(int)
     type: procedure
   - name: DTAGENT_DB.STATUS
     type: schema
@@ -39,9 +39,9 @@ delivers:
     type: function
   - name: DTAGENT_DB.APP
     type: schema
-  - name: DTAGENT_DB.APP.F_GET_CONFIG_VALUE(text,variant)
+  - name: DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE(text,variant)
     type: function
-  - name: DTAGENT_DB.APP.F_LAST_PROCESSED_TS(text)
+  - name: DTAGENT_DB.STATUS.F_LAST_PROCESSED_TS(text)
     type: function
   - name: DTAGENT_DB.APP.SEND_TELEMETRY(variant,object)
     type: procedure

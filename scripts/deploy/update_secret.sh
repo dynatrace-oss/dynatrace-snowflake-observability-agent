@@ -50,26 +50,12 @@ fi
 cat <<EOF >>$INSTALL_SCRIPT_SQL
 use role DTAGENT_ADMIN; use schema DTAGENT_DB.CONFIG; use warehouse DTAGENT_WH;
 
-create or replace secret DTAGENT_API_KEY type = GENERIC_STRING secret_string = '$DTAGENT_TOKEN';
-grant ownership on secret DTAGENT_API_KEY to role DTAGENT_ADMIN revoke current grants;
-grant usage on secret DTAGENT_API_KEY to role DTAGENT_VIEWER;
+alter secret DTAGENT_API_KEY set secret_string = '$DTAGENT_TOKEN';
+alter network rule DTAGENT_NETWORK_RULE set value_list = ('$DYNATRACE_TENANT_ADDRESS', 'dynatrace.com');
 
-create or replace network rule DTAGENT_DB.CONFIG.DTAGENT_NETWORK_RULE
-                  mode = EGRESS
-                  type = HOST_PORT
-                  value_list = ('$DYNATRACE_TENANT_ADDRESS', 'dynatrace.com');
-
-grant ownership on network rule DTAGENT_DB.CONFIG.DTAGENT_NETWORK_RULE to role DTAGENT_ADMIN revoke current grants;
-grant usage on network rule DTAGENT_DB.CONFIG.DTAGENT_NETWORK_RULE to role DTAGENT_VIEWER;
-
-use role ACCOUNTADMIN;
-
-create or replace external access integration DTAGENT_API_INTEGRATION
+alter external access integration DTAGENT_API_INTEGRATION set
     allowed_network_rules = (DTAGENT_DB.CONFIG.DTAGENT_NETWORK_RULE)
     allowed_authentication_secrets = (DTAGENT_DB.CONFIG.DTAGENT_API_KEY)
     enabled = TRUE;
-
-grant ownership on integration DTAGENT_API_INTEGRATION to role DTAGENT_ADMIN revoke current grants;
-grant usage on integration DTAGENT_API_INTEGRATION to role DTAGENT_VIEWER;
 
 EOF

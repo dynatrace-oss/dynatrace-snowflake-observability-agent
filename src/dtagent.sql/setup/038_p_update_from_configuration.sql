@@ -37,12 +37,12 @@ declare
     SNOWFLAKE_CREDIT_QUOTA INT;
     PROCEDURE_TIMEOUT INT;
 begin
-    SNOWFLAKE_CREDIT_QUOTA := (select DTAGENT_DB.APP.F_GET_CONFIG_VALUE('core.snowflake_credit_quota', 5));
+    SNOWFLAKE_CREDIT_QUOTA := (select DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE('core.snowflake_credit_quota', 5));
     if (SNOWFLAKE_CREDIT_QUOTA IS NOT NULL) then
-        call DTAGENT_DB.CONFIG.SET_RESOURCE_MONITOR(:SNOWFLAKE_CREDIT_QUOTA);
+        call DTAGENT_DB.CONFIG.P_UPDATE_RESOURCE_MONITOR(:SNOWFLAKE_CREDIT_QUOTA);
     end if;
 
-    PROCEDURE_TIMEOUT := (select DTAGENT_DB.APP.F_GET_CONFIG_VALUE('core.procedure_timeout', 3600));
+    PROCEDURE_TIMEOUT := (select DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE('core.procedure_timeout', 3600));
     if (PROCEDURE_TIMEOUT IS NOT NULL) then
         execute immediate 'ALTER WAREHOUSE DTAGENT_WH SET STATEMENT_TIMEOUT_IN_SECONDS = ' || :PROCEDURE_TIMEOUT ||  ';';
     end if;
@@ -56,6 +56,4 @@ exception
 end
 $$;
 
--- we need to use ACCOUNTADMIN role to be able to call the procedure SET_RESOURCE_MONITOR() which is referenced in the UPDATE_FROM_CONFIGURATIONS() procedure
-use role ACCOUNTADMIN; use database DTAGENT_DB; use schema CONFIG; use warehouse DTAGENT_WH;
 call DTAGENT_DB.CONFIG.UPDATE_FROM_CONFIGURATIONS();
