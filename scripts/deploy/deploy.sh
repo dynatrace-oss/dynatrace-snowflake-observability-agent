@@ -141,6 +141,34 @@ DEPLOYMENT_ID=$(uuidgen)
 
 $CWD/prepare_config.sh "${DEFAULT_CONFIG_FILE}" "${CONFIG_FILE}"
 
+# Validate and fix dynatrace_tenant_address if it uses deprecated .apps.dynatrace.com domain
+TENANT_ADDRESS="$($CWD/get_config_key.sh core.dynatrace_tenant_address)"
+if [[ "$TENANT_ADDRESS" == *".apps.dynatrace.com"* ]]; then
+    # Replace .apps.dynatrace.com with .live.dynatrace.com in the config file
+    FIXED_TENANT_ADDRESS="${TENANT_ADDRESS//.apps.dynatrace.com/.live.dynatrace.com}"
+
+    # Update the JSON config file
+    jq --arg old_val "$TENANT_ADDRESS" --arg new_val "$FIXED_TENANT_ADDRESS" \
+        'map(if .PATH == "core.dynatrace_tenant_address" then .VALUE = $new_val else . end)' \
+        "$BUILD_CONFIG_FILE" > "${BUILD_CONFIG_FILE}.tmp" && mv "${BUILD_CONFIG_FILE}.tmp" "$BUILD_CONFIG_FILE"
+
+    echo ""
+    echo "╔══════════════════════════════════════════════════════════════════════════════════╗"
+    echo "║                                   ⚠️  WARNING  ⚠️                                  ║"
+    echo "╠══════════════════════════════════════════════════════════════════════════════════╣"
+    echo "║                                                                                  ║"
+    echo "║  The dynatrace_tenant_address uses incorrect domain for API:                     ║"
+    echo "║  .apps.dynatrace.com                                                             ║"
+    echo "║                                                                                  ║"
+    echo "║  Current value: $TENANT_ADDRESS                                      ║"
+    echo "║                                                                                  ║"
+    echo "║  This will be automatically replaced with: $FIXED_TENANT_ADDRESS           ║"
+    echo "║                                                                                  ║"
+    echo "╚══════════════════════════════════════════════════════════════════════════════════╝"
+    echo ""
+    sleep 5
+fi
+
 DEPLOYMENT_ENV="$($CWD/get_config_key.sh core.deployment_environment)"
 CONNECTION_ENV="${DEPLOYMENT_ENV,,}" # convert to lower case
 NOW_TS=$(date '+%Y%m%d-%H%M%S')
