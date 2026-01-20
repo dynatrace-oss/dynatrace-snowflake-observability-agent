@@ -1,9 +1,7 @@
 """Test to ensure role usage and deployment scope restrictions are properly enforced."""
 
-import os
 import re
 from pathlib import Path
-from isort import file
 import pytest
 
 
