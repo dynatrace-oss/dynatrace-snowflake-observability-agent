@@ -35,6 +35,7 @@ class Semantics:
     """Enables retrieval of metric semantics definitions for given metric names."""
 
     def __init__(self):
+        """Initialize the semantics with metric definitions."""
         self._metric_semantics = {
             ##region ---------------------------- CODE  -----------------------------------------
             ##INSERT build/_metric_semantics.txt

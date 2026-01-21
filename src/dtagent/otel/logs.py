@@ -45,6 +45,7 @@ class Logs:
     ENDPOINT_PATH = "/api/v2/otlp/v1/logs"
 
     def __init__(self, resource: Resource, configuration: Configuration):
+        """Initialize the OTLP logs exporter."""
         self._otel_logger: Optional[logging.Logger] = None
         self._otel_logger_provider: Optional[LoggerProvider] = None
         self._configuration = configuration

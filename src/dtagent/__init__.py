@@ -88,6 +88,7 @@ class AbstractDynatraceSnowAgentConnector:
     """Abstract base class for DynatraceSnowAgent class"""
 
     def __init__(self, session: snowpark.Session) -> None:
+        """Initialize the connector with a Snowpark session."""
         # --- initializing
         self._session = session
 
