@@ -13,7 +13,7 @@ delivers:
     type: task
   - name: DTAGENT_DB.APP.TASK_DTAGENT_DYNAMIC_TABLES_GRANTS
     type: task
-    comment: Admin task owned by DTAGENT_ADMIN to grant MONITOR privileges on dynamic tables
+    comment: (Admin scope only) Admin task owned by DTAGENT_ADMIN to grant MONITOR privileges on dynamic tables
 
 references:
   - name: SHOW DATABASES

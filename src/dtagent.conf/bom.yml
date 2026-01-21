@@ -6,7 +6,9 @@ delivers:
     comment: role that owns all SnowAgent artifacts (database, schemas, tables, procedures, tasks)
   - name: DTAGENT_ADMIN
     type: role
-    comment: role that handles elevated administrative operations (role grants, ownership transfers, privilege management)
+    comment:
+      (Optional - only when admin scope is installed) role that handles elevated administrative operations (role grants, ownership
+      transfers, privilege management)
   - name: DTAGENT_VIEWER
     type: role
     comment: role that executes regular telemetry collection and processing operations

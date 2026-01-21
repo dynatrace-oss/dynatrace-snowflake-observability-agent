@@ -42,14 +42,15 @@ Released on January 15, 2026
 
 #### Architecture & Multi-Tenancy
 
-- **Three-Tier Role Model**: Implemented `DTAGENT_OWNER` → `DTAGENT_ADMIN` → `DTAGENT_VIEWER` role hierarchy:
+- **Flexible Role Model**: Implemented role hierarchy with `ACCOUNTADMIN` \u2192 `DTAGENT_OWNER` \u2192 `DTAGENT_VIEWER` as primary hierarchy and `DTAGENT_OWNER` \u2192 `DTAGENT_ADMIN` as optional admin branch:
   - `DTAGENT_OWNER`: Owns all SnowAgent artifacts (database, schemas, tables, procedures, tasks)
-  - `DTAGENT_ADMIN`: Handles elevated administrative operations (role grants, ownership transfers, privilege management)
+  - `DTAGENT_ADMIN`: **Optional role** that handles elevated administrative operations (role grants, ownership transfers, privilege management). Only created when `--scope=admin` is deployed.
   - `DTAGENT_VIEWER`: Executes regular telemetry collection and processing operations
   - Enables flexible deployment: organizations can run `--scope=init` with `ACCOUNTADMIN` to create base structure, then use
     `DTAGENT_OWNER` for regular deployment scopes, restricting use of elevated privileges to only necessary operations
-- **Security Model Enhancement**: Isolated administrative operations (using `DTAGENT_ADMIN` role) in dedicated admin scripts, ensuring
-  administrative privileges are only used in appropriate contexts. Added automated tests (`test_admin_role_usage.py`) to enforce this
+  - Organizations can choose to skip both `init` and `admin` scopes entirely, avoiding creation of `DTAGENT_ADMIN` role and performing initialization manually for maximum security control
+- **Security Model Enhancement**: Isolated administrative operations (using `DTAGENT_ADMIN` role when present) in dedicated admin scripts, ensuring
+  administrative privileges are only used in appropriate contexts. When `DTAGENT_ADMIN` is not deployed, administrative operations must be performed manually. Added automated tests (`test_admin_role_usage.py`) to enforce this
   separation.
 - **Build Artifact Reorganization**: Updated build artifact numbering to accommodate new admin scope:
   - `00_init.sql` - Initialization (unchanged)

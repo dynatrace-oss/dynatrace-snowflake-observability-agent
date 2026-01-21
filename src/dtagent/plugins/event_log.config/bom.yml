@@ -21,7 +21,7 @@ delivers:
     type: task
   - name: DTAGENT_DB.APP.TASK_DTAGENT_EVENT_LOG_CLEANUP
     type: task
-    comment: Cleanup task owned by DTAGENT_ADMIN to remove old event log entries
+    comment: (Admin scope only) Cleanup task owned by DTAGENT_ADMIN to remove old event log entries
 
 references:
   - name: SHOW PARAMETERS

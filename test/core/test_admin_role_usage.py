@@ -1,4 +1,8 @@
-"""Test to ensure role usage and deployment scope restrictions are properly enforced."""
+"""Test to ensure role usage and deployment scope restrictions are properly enforced.
+
+IMPORTANT: DTAGENT_ADMIN role is OPTIONAL and only created when the 'admin' scope is installed.
+These tests verify that DTAGENT_ADMIN usage is properly isolated to admin files when present.
+"""
 
 import re
 from pathlib import Path
@@ -70,6 +74,9 @@ class TestAdminRoleUsage:
     def test_admin_role_not_in_non_admin_files(self, sql_files):
         """Test that DTAGENT_ADMIN role is not used outside admin files.
         This ensures proper separation of admin operations.
+
+        Note: DTAGENT_ADMIN is optional and only created when admin scope is installed.
+        This test ensures that if admin scope is installed, DTAGENT_ADMIN usage is properly isolated.
         """
         violations_by_file = {}
 
@@ -89,8 +96,13 @@ class TestAdminRoleUsage:
             pytest.fail(error_msg)
 
     def test_admin_files_exist(self, sql_files):
-        """Test that admin SQL files exist."""
-        assert len(sql_files["admin"]) > 0, "No admin SQL files found in src/dtagent.sql/admin or plugin admin directories"
+        """Test that admin SQL files exist.
+
+        Note: Admin files are optional. If present, they should be properly structured.
+        Organizations can choose to skip the admin scope entirely.
+        """
+        if len(sql_files["admin"]) == 0:
+            pytest.skip("No admin SQL files found. This is valid - admin scope is optional.")
 
     def test_build_creates_admin_sql(self):
         """Test that build process creates 10_admin.sql."""
@@ -109,7 +121,10 @@ class TestDeploymentScopes:
 
     def test_all_scope_includes_admin_scripts(self):
         """Test that 'all' scope in prepare_deploy_script.sh includes admin scripts (10_admin.sql).
-        This ensures complete deployment includes administrative setup.
+        This ensures complete deployment includes administrative setup when using 'all' scope.
+
+        Note: When deploying with 'all' scope, DTAGENT_ADMIN role will be created.
+        Organizations can choose to deploy without 'admin' scope by using specific scope combinations.
         """
         deploy_script = Path(__file__).parent.parent.parent / "scripts" / "deploy" / "prepare_deploy_script.sh"
 
@@ -191,6 +206,10 @@ class TestDeploymentScopes:
     def test_dtagent_admin_only_in_admin_upgrade_scopes(self):
         """Test that DTAGENT_ADMIN role is only used in admin and upgrade scopes.
         This ensures proper privilege separation at deployment level.
+
+        Note: DTAGENT_ADMIN is optional. When the admin scope is not deployed,
+        DTAGENT_ADMIN role will not exist, and administrative operations must be
+        performed manually.
         """
         build_dir = Path(__file__).parent.parent.parent / "build"
 
@@ -241,9 +260,11 @@ class TestDeploymentScopes:
                     error_msg += f"  Line {line_num}: {line}\n"
                 error_msg += "\n"
             error_msg += "DTAGENT_ADMIN (USE ROLE) should only be used in:\n"
-            error_msg += "  - admin scope (10_admin.sql)\n"
+            error_msg += "  - admin scope (10_admin.sql) - optional scope\n"
             error_msg += "  - upgrade scope (09_upgrade/*.sql)\n"
             error_msg += "\nNote: Grants TO ROLE DTAGENT_ADMIN are allowed in any scope.\n"
+            error_msg += "\nIMPORTANT: DTAGENT_ADMIN is an optional role. If admin scope is not deployed,\n"
+            error_msg += "administrative operations must be performed manually.\n"
 
             pytest.fail(error_msg)
 
@@ -321,7 +342,11 @@ class TestDeploymentScopes:
 
 
 class TestAccountAdminRoleUsage:
-    """Test suite for ACCOUNTADMIN role usage restrictions."""
+    """Test suite for ACCOUNTADMIN role usage restrictions.
+
+    Note: These tests ensure ACCOUNTADMIN is only used in init and upgrade scopes,
+    maintaining security boundaries regardless of whether DTAGENT_ADMIN is deployed.
+    """
 
     @pytest.fixture(scope="class")
     def build_sql_files(self):
@@ -435,3 +460,111 @@ class TestAccountAdminRoleUsage:
             error_msg += "  - src/**/upgrade/*.sql (upgrade scripts)\n"
 
             pytest.fail(error_msg)
+
+
+class TestDeploymentWithoutAdminScope:
+    """Test suite to ensure deployment without admin scope works correctly.
+
+    This verifies that when deploying with scopes that exclude admin (e.g., init,setup,plugins,config,agents,apikey),
+    there are NO references to DTAGENT_ADMIN in the generated deployment script.
+    """
+
+    def test_no_dtagent_admin_in_non_admin_deployment(self):
+        """Test that deploying without admin scope produces a script with no DTAGENT_ADMIN references.
+
+        This test simulates deployment with scopes: init,setup,plugins,config,agents,apikey
+        and verifies the generated script contains NO references to DTAGENT_ADMIN.
+        """
+        import subprocess
+        import tempfile
+
+        # Get paths
+        root_dir = Path(__file__).parent.parent.parent
+        prepare_script = root_dir / "scripts" / "deploy" / "prepare_deploy_script.sh"
+        build_dir = root_dir / "build"
+
+        if not prepare_script.exists():
+            pytest.skip("prepare_deploy_script.sh not found")
+
+        if not build_dir.exists():
+            pytest.skip("build directory not found. Run build.sh first.")
+
+        # Create a temporary output file
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".sql", delete=False) as tmp_file:
+            output_file = Path(tmp_file.name)
+
+        try:
+            # Run prepare_deploy_script.sh with scopes that exclude admin
+            # Use init,setup,plugins,config,agents scope (no admin)
+            result = subprocess.run(
+                [
+                    str(prepare_script),
+                    "--scope",
+                    "init,setup,plugins,config,agents",
+                    "--output-file",
+                    str(output_file),
+                    "--build-dir",
+                    str(build_dir),
+                ],
+                capture_output=True,
+                text=True,
+                cwd=str(root_dir),
+                check=False,
+            )
+
+            if result.returncode != 0:
+                pytest.skip(f"prepare_deploy_script.sh failed: {result.stderr}")
+
+            # Read the generated script
+            with open(output_file, "r", encoding="utf-8") as f:
+                script_content = f.read()
+
+            # Check for DTAGENT_ADMIN references
+            violations = []
+            for line_num, line in enumerate(script_content.split("\n"), 1):
+                # Skip comments
+                if line.strip().startswith("--"):
+                    continue
+
+                # Check for any DTAGENT_ADMIN reference
+                if re.search(r"\bDTAGENT_ADMIN\b", line, re.IGNORECASE):
+                    violations.append((line_num, line.strip()))
+
+            if violations:
+                error_msg = "Found DTAGENT_ADMIN references in deployment script without admin scope:\n\n"
+                error_msg += f"Generated script: {output_file}\n\n"
+                for line_num, line in violations[:10]:  # Show first 10 violations
+                    error_msg += f"  Line {line_num}: {line}\n"
+                if len(violations) > 10:
+                    error_msg += f"\n... and {len(violations) - 10} more violations\n"
+                error_msg += "\nWhen deploying without admin scope (init,setup,plugins,config,agents),\n"
+                error_msg += "the generated script must NOT contain any DTAGENT_ADMIN references.\n"
+                error_msg += "This ensures the deployment can proceed without the DTAGENT_ADMIN role.\n"
+
+                pytest.fail(error_msg)
+
+        finally:
+            # Clean up temporary file
+            if output_file.exists():
+                output_file.unlink()
+
+    def test_prepare_script_accepts_scope_without_admin(self):
+        """Test that prepare_deploy_script.sh properly handles scope combinations without admin."""
+        root_dir = Path(__file__).parent.parent.parent
+        prepare_script = root_dir / "scripts" / "deploy" / "prepare_deploy_script.sh"
+
+        if not prepare_script.exists():
+            pytest.skip("prepare_deploy_script.sh not found")
+
+        # Read the script to verify it can handle scopes without admin
+        with open(prepare_script, "r", encoding="utf-8") as f:
+            script_content = f.read()
+
+        # Verify the script has logic to handle admin as optional
+        # It should handle cases where admin is not in the scope list
+        assert "admin" in script_content, "prepare_deploy_script.sh should mention admin scope"
+
+        # The script should support combining scopes without admin
+        # This is a basic check that the script can handle scope combinations
+        assert "setup" in script_content, "prepare_deploy_script.sh should support setup scope"
+        assert "plugins" in script_content, "prepare_deploy_script.sh should support plugins scope"

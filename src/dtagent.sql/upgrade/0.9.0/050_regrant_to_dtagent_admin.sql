@@ -22,17 +22,17 @@
 --
 --
 use role ACCOUNTADMIN;
-grant ownership on table DTAGENT_DB.APP.TMP_USERS to role DTAGENT_ADMIN copy current grants;
-grant ownership on table DTAGENT_DB.APP.TMP_USERS_HELPER to role DTAGENT_ADMIN copy current grants;
-grant ownership on table DTAGENT_DB.APP.TMP_SHARES to role DTAGENT_ADMIN copy current grants;
-grant ownership on table DTAGENT_DB.APP.TMP_OUTBOUND_SHARES to role DTAGENT_ADMIN copy current grants;
-grant ownership on table DTAGENT_DB.APP.TMP_INBOUND_SHARES to role DTAGENT_ADMIN copy current grants;
-grant ownership on table DTAGENT_DB.APP.TMP_RESOURCE_MONITORS to role DTAGENT_ADMIN copy current grants;
-grant ownership on table DTAGENT_DB.APP.TMP_WAREHOUSES to role DTAGENT_ADMIN copy current grants;
-grant ownership on table DTAGENT_DB.APP.TMP_QUERY_ACCELERATION_ESTIMATES to role DTAGENT_ADMIN copy current grants;
-grant ownership on table DTAGENT_DB.APP.TMP_BUDGETS to role DTAGENT_ADMIN copy current grants;
-grant ownership on table DTAGENT_DB.APP.TMP_BUDGETS_RESOURCES to role DTAGENT_ADMIN copy current grants;
-grant ownership on table DTAGENT_DB.APP.TMP_BUDGETS_LIMITS to role DTAGENT_ADMIN copy current grants;
-grant ownership on table DTAGENT_DB.APP.TMP_BUDGET_SPENDING to role DTAGENT_ADMIN copy current grants;
-grant ownership on table DTAGENT_DB.APP.TMP_RECENT_QUERIES to role DTAGENT_ADMIN copy current grants;
-grant ownership on table DTAGENT_DB.APP.TMP_QUERY_OPERATOR_STATS to role DTAGENT_ADMIN copy current grants;
+grant ownership on table DTAGENT_DB.APP.TMP_USERS to role DTAGENT_OWNER copy current grants;
+grant ownership on table DTAGENT_DB.APP.TMP_USERS_HELPER to role DTAGENT_OWNER copy current grants;
+grant ownership on table DTAGENT_DB.APP.TMP_SHARES to role DTAGENT_OWNER copy current grants;
+grant ownership on table DTAGENT_DB.APP.TMP_OUTBOUND_SHARES to role DTAGENT_OWNER copy current grants;
+grant ownership on table DTAGENT_DB.APP.TMP_INBOUND_SHARES to role DTAGENT_OWNER copy current grants;
+grant ownership on table DTAGENT_DB.APP.TMP_RESOURCE_MONITORS to role DTAGENT_OWNER copy current grants;
+grant ownership on table DTAGENT_DB.APP.TMP_WAREHOUSES to role DTAGENT_OWNER copy current grants;
+grant ownership on table DTAGENT_DB.APP.TMP_QUERY_ACCELERATION_ESTIMATES to role DTAGENT_OWNER copy current grants;
+grant ownership on table DTAGENT_DB.APP.TMP_BUDGETS to role DTAGENT_OWNER copy current grants;
+grant ownership on table DTAGENT_DB.APP.TMP_BUDGETS_RESOURCES to role DTAGENT_OWNER copy current grants;
+grant ownership on table DTAGENT_DB.APP.TMP_BUDGETS_LIMITS to role DTAGENT_OWNER copy current grants;
+grant ownership on table DTAGENT_DB.APP.TMP_BUDGET_SPENDING to role DTAGENT_OWNER copy current grants;
+grant ownership on table DTAGENT_DB.APP.TMP_RECENT_QUERIES to role DTAGENT_OWNER copy current grants;
+grant ownership on table DTAGENT_DB.APP.TMP_QUERY_OPERATOR_STATS to role DTAGENT_OWNER copy current grants;

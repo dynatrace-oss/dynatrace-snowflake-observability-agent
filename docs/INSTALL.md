@@ -81,8 +81,8 @@ Observability Agent, run the `./deploy.sh` command:
 ### Optional Parameters
 
 - **`--scope=SCOPE`** (optional, default: `all`): Specifies the deployment scope. Valid values:
-  - `init` - Initialize database and basic structure
-  - `admin` - Administrative operations (role grants, ownership transfers)
+  - `init` - Initialize database and basic structure - **Optional** (can be performed manually)
+  - `admin` - Administrative operations (creates DTAGENT_ADMIN role, role grants, ownership transfers) - **Optional**
   - `setup` - Set up core schemas, tables, and procedures
   - `plugins` - Deploy plugin code and views
   - `config` - Update configuration table only
@@ -92,7 +92,9 @@ Observability Agent, run the `./deploy.sh` command:
   - `teardown` - Uninstall Dynatrace Snowflake Observability Agent from your Snowflake account
   - `upgrade` - Upgrade from a previous version (requires `--from-version`)
   - `file_pattern` - Any other value will deploy only files matching that pattern
-  
+
+  **Note:** The `admin` scope is **optional**. If not installed, the `DTAGENT_ADMIN` role will not be created, and administrative operations (such as granting MONITOR privileges on warehouses) must be performed manually.
+
   **Multiple scopes** can be specified as a comma-separated list (e.g., `setup,plugins,config,agents`). This allows you to deploy only specific components in a single operation. Note that `all`, `apikey`, and `teardown` cannot be combined with other scopes.
 
 - **`--from-version=VERSION`** (required when `--scope=upgrade`): Specifies the version number you are upgrading from (e.g., `0.9.2`).
@@ -135,40 +137,80 @@ Observability Agent, run the `./deploy.sh` command:
 
 ### Understanding the Role Model and Deployment Flexibility
 
-Dynatrace Snowflake Observability Agent uses a three-tier role model to provide flexible security and deployment options:
+Dynatrace Snowflake Observability Agent uses a flexible role model to provide security and deployment options:
 
 #### Role Hierarchy
 
 - **`DTAGENT_OWNER`**: Owns all Dynatrace Snowflake Observability Agent artifacts (database, schemas, tables, procedures, tasks). This role creates and manages all objects within the `DTAGENT_DB` database.
 
-- **`DTAGENT_ADMIN`**: Handles elevated administrative operations including role grants, ownership transfers, and privilege management. This role has `MANAGE GRANTS` privilege on the account to grant monitoring privileges on warehouses and dynamic tables to `DTAGENT_VIEWER`.
+- **`DTAGENT_ADMIN`** (Optional): Handles elevated administrative operations including role grants, ownership transfers, and privilege management. This role has `MANAGE GRANTS` privilege on the account to grant monitoring privileges on warehouses and dynamic tables to `DTAGENT_VIEWER`. **This role is only created when the `admin` scope is installed.**
 
 - **`DTAGENT_VIEWER`**: Executes regular telemetry collection and processing operations. This role runs all agent tasks and queries telemetry data from Snowflake, then sends it to Dynatrace.
 
-The role hierarchy is: `ACCOUNTADMIN` → `DTAGENT_OWNER` → `DTAGENT_ADMIN` → `DTAGENT_VIEWER`
+The role hierarchy is:
+
+- Primary hierarchy: `ACCOUNTADMIN` → `DTAGENT_OWNER` → `DTAGENT_VIEWER`
+- Admin branch (optional): `DTAGENT_OWNER` → `DTAGENT_ADMIN`
 
 #### Deployment Scope Privileges
 
 Different deployment scopes require different privilege levels:
 
-| Scope      | Required Role   | Description                                                                  |
-| ---------- | --------------- | ---------------------------------------------------------------------------- |
-| `init`     | `ACCOUNTADMIN`  | Creates roles, database, warehouse, and initial structure                    |
-| `admin`    | `DTAGENT_ADMIN` | Performs administrative operations (role grants, ownership transfers)        |
-| `setup`    | `DTAGENT_OWNER` | Creates schemas, tables, procedures, and core objects                        |
-| `plugins`  | `DTAGENT_OWNER` | Deploys plugin code, views, and procedures                                   |
-| `config`   | `DTAGENT_OWNER` | Updates configuration table                                                  |
-| `agents`   | `DTAGENT_OWNER` | Deploys agent tasks and schedules                                            |
-| `apikey`   | `DTAGENT_OWNER` | Updates Dynatrace API key secret                                             |
-| `upgrade`  | `DTAGENT_OWNER` | Runs upgrade scripts (may require `DTAGENT_ADMIN` for some version upgrades) |
-| `all`      | `ACCOUNTADMIN`  | Full deployment including init and admin scopes                              |
-| `teardown` | `ACCOUNTADMIN`  | Removes all Dynatrace Snowflake Observability Agent objects                  |
+| Scope      | Required Role   | Description                                                                         |
+| ---------- | --------------- | ----------------------------------------------------------------------------------- |
+| `init`     | `ACCOUNTADMIN`  | Creates roles, database, warehouse, and initial structure                           |
+| `admin`    | `DTAGENT_ADMIN` | **Optional.** Performs administrative operations (role grants, ownership transfers) |
+| `setup`    | `DTAGENT_OWNER` | Creates schemas, tables, procedures, and core objects                               |
+| `plugins`  | `DTAGENT_OWNER` | Deploys plugin code, views, and procedures                                          |
+| `config`   | `DTAGENT_OWNER` | Updates configuration table                                                         |
+| `agents`   | `DTAGENT_OWNER` | Deploys agent tasks and schedules                                                   |
+| `apikey`   | `DTAGENT_OWNER` | Updates Dynatrace API key secret                                                    |
+| `upgrade`  | `DTAGENT_OWNER` | Runs upgrade scripts (may require `DTAGENT_ADMIN` for some version upgrades)        |
+| `all`      | `ACCOUNTADMIN`  | Full deployment including init and admin scopes (creates DTAGENT_ADMIN)             |
+| `teardown` | `ACCOUNTADMIN`  | Removes all Dynatrace Snowflake Observability Agent objects                         |
+
+**Note:** The `admin` scope is optional. If you skip it, `DTAGENT_ADMIN` will not be created, and you must manually grant required privileges (e.g., MONITOR on warehouses).
 
 #### Restricting Elevated Privileges
 
-If you want to minimize the use of elevated privileges in your organization, you have two deployment options:
+If you want to minimize the use of elevated privileges in your organization, you have several deployment options:
 
-##### Option 1: Split Deployment by Scope
+##### Option 1: Manual Initialization Without Init or Admin Scopes (Most Restrictive)
+
+Manually create the required roles and database structure, then skip both `init` and `admin` scopes entirely:
+
+```bash
+# Manually create roles and database as ACCOUNTADMIN:
+# CREATE ROLE DTAGENT_OWNER;
+# CREATE ROLE DTAGENT_VIEWER;
+# GRANT ROLE DTAGENT_VIEWER TO ROLE DTAGENT_OWNER;
+# CREATE DATABASE DTAGENT_DB;
+# ...
+
+# Deploy without init or admin scopes
+./deploy.sh $ENV --scope=setup,plugins,config,agents
+```
+
+**Important:** Without init and admin scopes, you must manually create all required objects and grant privileges.
+
+##### Option 2: Deploy With Init But Without Admin Scope
+
+```bash
+# Have an administrator run init scope once
+./deploy.sh $ENV --scope=init --options=manual --output-file=init-script.sql
+# Review init-script.sql and execute it as ACCOUNTADMIN
+
+# Deploy all components except admin scope
+./deploy.sh $ENV --scope=setup,plugins,config,agents
+```
+
+**Important:** Without the admin scope, you must manually grant required privileges:
+
+- Grant `MONITOR` privilege on warehouses to `DTAGENT_VIEWER` for query_history plugin
+- Grant `MONITOR` privilege on dynamic tables to `DTAGENT_VIEWER` for dynamic_tables plugin
+- Other plugin-specific privileges as documented in each plugin's configuration
+
+##### Option 3: Split Deployment by Scope (With Admin)
 
 Have an administrator with `ACCOUNTADMIN` privileges run the `init` scope once to create the base roles and database:
 
@@ -177,7 +219,13 @@ Have an administrator with `ACCOUNTADMIN` privileges run the `init` scope once t
 # Review init-script.sql and execute it as ACCOUNTADMIN
 ```
 
-Then, have a user with `DTAGENT_OWNER` role run the remaining scopes:
+Then, run the admin scope to create `DTAGENT_ADMIN` and set up automated privilege grants:
+
+```bash
+./deploy.sh $ENV --scope=admin
+```
+
+Finally, have a user with `DTAGENT_OWNER` role run the remaining scopes:
 
 ```bash
 # As a user granted DTAGENT_OWNER role
@@ -187,7 +235,7 @@ Then, have a user with `DTAGENT_OWNER` role run the remaining scopes:
 ./deploy.sh $ENV --scope=agents
 ```
 
-##### Option 2: Separate Admin Operations
+##### Option 4: Separate Admin Operations (Alternative)
 
 Similarly, you can separate the `admin` scope (which requires `DTAGENT_ADMIN` privileges for granting monitoring permissions) from other operations:
 

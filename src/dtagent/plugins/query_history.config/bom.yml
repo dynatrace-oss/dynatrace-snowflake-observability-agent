@@ -21,12 +21,12 @@ delivers:
     type: procedure
   - name: DTAGENT_DB.APP.P_MONITOR_WAREHOUSES()
     type: procedure
-    comment: Procedure owned by DTAGENT_ADMIN to grant MONITOR privilege on warehouses
+    comment: (Admin scope only) Procedure owned by DTAGENT_ADMIN to grant MONITOR privilege on warehouses
   - name: DTAGENT_DB.APP.TASK_DTAGENT_QUERY_HISTORY
     type: task
   - name: DTAGENT_DB.APP.TASK_DTAGENT_QUERY_HISTORY_GRANTS
     type: task
-    comment: Admin task owned by DTAGENT_ADMIN to grant MONITOR privileges on warehouses
+    comment: (Admin scope only) Admin task owned by DTAGENT_ADMIN to grant MONITOR privileges on warehouses
 
 references:
   - name: SNOWFLAKE.ACCOUNT_USAGE.ACCESS_HISTORY

@@ -37,4 +37,4 @@ grant IMPORTED PRIVILEGES on database SNOWFLAKE to role DTAGENT_VIEWER;
 grant EXECUTE TASK on ACCOUNT to role DTAGENT_VIEWER;
 
 -- viewer permissions are a subset of those for the admin
-grant role DTAGENT_VIEWER to role DTAGENT_ADMIN;
+grant role DTAGENT_VIEWER to role DTAGENT_OWNER;
