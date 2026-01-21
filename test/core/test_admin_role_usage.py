@@ -132,9 +132,9 @@ class TestDeploymentScopes:
 
         content = deploy_script.read_text()
 
-        # Find the 'all' scope case
-        all_scope_pattern = r'all\)\s*SQL_FILES="([^"]+)"'
-        match = re.search(all_scope_pattern, content, re.MULTILINE)
+        # Find the 'all' scope case (which uses echo to return files)
+        all_scope_pattern = r'all\)\s*echo\s+"([^"]+)"'
+        match = re.search(all_scope_pattern, content, re.MULTILINE | re.DOTALL)
 
         assert match, "Could not find 'all' scope definition in prepare_deploy_script.sh"
 
