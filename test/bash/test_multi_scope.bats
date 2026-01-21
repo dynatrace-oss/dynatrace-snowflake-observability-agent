@@ -112,12 +112,16 @@ teardown() {
     [[ "$output" == *"cannot be combined"* ]]
 }
 
-# Test: Error - combining 'apikey' with other scopes
-@test "prepare_deploy_script.sh: error when 'apikey' combined with other scopes" {
-    run bash scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "setup,apikey" "" "true"
-    [ "$status" -ne 0 ]
-    [[ "$output" == *"ERROR"* ]]
-    [[ "$output" == *"cannot be combined"* ]]
+# Test: Success - combining 'apikey' with other scopes (now allowed)
+@test "prepare_deploy_script.sh: success when 'apikey' combined with other scopes" {
+    run bash scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "setup,plugins,config,agents,apikey" "" "true"
+    [ "$status" -eq 0 ]
+    grep -q "setup" "$TEST_SQL_FILE"
+    grep -q "plugin" "$TEST_SQL_FILE"
+    grep -q "config" "$TEST_SQL_FILE"
+    grep -q "agents" "$TEST_SQL_FILE"
+    # Verify apikey content is included
+    grep -q "Updating API Key" "$TEST_SQL_FILE" || grep -q "UPDATE_FROM_CONFIGURATIONS" "$TEST_SQL_FILE"
 }
 
 # Test: Error - combining 'teardown' with other scopes
@@ -188,4 +192,35 @@ teardown() {
     ! grep -q "init" "$TEST_SQL_FILE"
     ! grep -q "admin" "$TEST_SQL_FILE"
     ! grep -q "agents" "$TEST_SQL_FILE"
+}
+
+# Test: apikey can be combined at the beginning
+@test "prepare_deploy_script.sh: multi-scope 'apikey,setup,config' works with apikey first" {
+    run bash scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "apikey,setup,config" "" "true"
+    [ "$status" -eq 0 ]
+    grep -q "setup" "$TEST_SQL_FILE"
+    grep -q "config" "$TEST_SQL_FILE"
+    grep -q "UPDATE_FROM_CONFIGURATIONS" "$TEST_SQL_FILE"
+}
+
+# Test: apikey can be combined in the middle
+@test "prepare_deploy_script.sh: multi-scope 'setup,apikey,config' works with apikey in middle" {
+    run bash scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "setup,apikey,config" "" "true"
+    [ "$status" -eq 0 ]
+    grep -q "setup" "$TEST_SQL_FILE"
+    grep -q "config" "$TEST_SQL_FILE"
+    grep -q "UPDATE_FROM_CONFIGURATIONS" "$TEST_SQL_FILE"
+}
+
+# Test: Full deployment flow without admin using apikey
+@test "prepare_deploy_script.sh: multi-scope 'init,setup,plugins,config,agents,apikey' complete flow" {
+    run bash scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "init,setup,plugins,config,agents,apikey" "" "true"
+    [ "$status" -eq 0 ]
+    grep -q "init" "$TEST_SQL_FILE"
+    grep -q "setup" "$TEST_SQL_FILE"
+    grep -q "plugin" "$TEST_SQL_FILE"
+    grep -q "config" "$TEST_SQL_FILE"
+    grep -q "agents" "$TEST_SQL_FILE"
+    grep -q "UPDATE_FROM_CONFIGURATIONS" "$TEST_SQL_FILE"
+    ! grep -q "admin" "$TEST_SQL_FILE"
 }

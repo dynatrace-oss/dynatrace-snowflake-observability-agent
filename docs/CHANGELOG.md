@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+### Improved
+
+- **Flexible Scope Combinations**: The `apikey` deployment scope can now be combined with other scopes (e.g., `setup,plugins,config,agents,apikey`),
+  enabling more flexible deployment workflows. Previously, `apikey` could only be used alone. The restrictions on `all` and `teardown`
+  remain unchanged (they cannot be combined with other scopes).
+
 ## Dynatrace Snowflake Observability Agent 0.9.3
 
 Released on January 15, 2026

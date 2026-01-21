@@ -94,6 +94,7 @@ map_scope_to_files() {
 }
 
 # Parse comma-separated scopes and build SQL_FILES list
+INCLUDE_APIKEY=false
 if [[ "$SCOPE" == *,* ]]; then
     # Multiple scopes provided
     SQL_FILES=""
@@ -103,9 +104,15 @@ if [[ "$SCOPE" == *,* ]]; then
         single_scope=$(echo "$single_scope" | xargs)
 
         # Check for special scopes that can't be combined
-        if [ "$single_scope" == "apikey" ] || [ "$single_scope" == "teardown" ] || [ "$single_scope" == "all" ]; then
+        if [ "$single_scope" == "teardown" ] || [ "$single_scope" == "all" ]; then
             echo "ERROR: Scope '$single_scope' cannot be combined with other scopes"
             exit 1
+        fi
+
+        # Track apikey scope separately
+        if [ "$single_scope" == "apikey" ]; then
+            INCLUDE_APIKEY=true
+            continue
         fi
 
         files=$(map_scope_to_files "$single_scope")
@@ -121,6 +128,12 @@ else
     if [ "$SCOPE" == "upgrade" ] && [ -z "$FROM_VERSION" ]; then
         echo "ERROR: --from-version required for upgrade scope"
         exit 1
+    fi
+    # Track apikey scope
+    if [ "$SCOPE" == "apikey" ]; then
+        INCLUDE_APIKEY=true
+    elif [ "$SCOPE" == "all" ]; then
+        INCLUDE_APIKEY=true
     fi
     SQL_FILES=$(map_scope_to_files "$SCOPE")
 fi
@@ -195,7 +208,7 @@ drop resource monitor if exists DTAGENT_RS;
 EOF
 fi
 
-if [ "$SCOPE" == 'apikey' ] || [ "$SCOPE" == 'all' ]; then
+if [ "$INCLUDE_APIKEY" == "true" ]; then
     #
     #   --- we do not update API key each time we run - you need to request that explicitly
     #

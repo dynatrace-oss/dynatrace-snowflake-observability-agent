@@ -31,8 +31,8 @@
 # * ENV            [REQUIRED] - environment identifier (config-$ENV.yml must exist)
 # * --scope        [OPTIONAL] - deployment scope (default: all):
 #                               init, admin, setup, plugins, config, agents, apikey, all, teardown, upgrade, or file_part
-#                               Multiple scopes can be specified as comma-separated list (e.g., setup,plugins,config)
-#                               Note: apikey, teardown, and all cannot be combined with other scopes
+#                               Multiple scopes can be specified as comma-separated list (e.g., setup,plugins,config,agents,apikey)
+#                               Note: teardown and all cannot be combined with other scopes
 # * --from-version [OPTIONAL] - version number for upgrade scope (required if scope=upgrade)
 # * --output-file  [OPTIONAL] - output file path for manual mode (default: dsoa-deploy-script-{ENV}-{TIMESTAMP}.sql)
 # * --options      [OPTIONAL] - comma-separated: manual, service_user, skip_confirm, no_dep

@@ -386,14 +386,15 @@ class TestAccountAdminRoleUsage:
         return violations
 
     def test_accountadmin_only_in_init_and_upgrade(self, build_sql_files):
-        """Test that ACCOUNTADMIN role is used only in init (00_init.sql) and upgrade scripts.
+        """Test that ACCOUNTADMIN role is used only in init (00_init.sql), admin (10_admin.sql), and upgrade scripts.
         This ensures proper privilege separation and security boundaries.
+
+        Note: admin scope requires ACCOUNTADMIN to create DTAGENT_ADMIN role and grant MANAGE GRANTS privilege.
         """
         violations_by_file = {}
 
         # Check files that should NOT contain ACCOUNTADMIN
         restricted_files = {
-            "admin": build_sql_files["admin"],
             "setup": build_sql_files["setup"],
             "plugins": build_sql_files["plugins"],
             "config": build_sql_files["config"],
@@ -416,6 +417,7 @@ class TestAccountAdminRoleUsage:
                 error_msg += "\n"
             error_msg += "\nACCOUNTADMIN should only be used in:\n"
             error_msg += "  - 00_init.sql (initialization)\n"
+            error_msg += "  - 10_admin.sql (admin role creation and grants)\n"
             error_msg += "  - 09_upgrade/*.sql (upgrade scripts)\n"
 
             pytest.fail(error_msg)
@@ -436,7 +438,10 @@ class TestAccountAdminRoleUsage:
         )
 
     def test_accountadmin_in_source_files(self):
-        """Test that ACCOUNTADMIN in source files is only in init and upgrade directories."""
+        """Test that ACCOUNTADMIN in source files is only in init, admin, and upgrade directories.
+
+        Admin files require ACCOUNTADMIN to create DTAGENT_ADMIN role and grant MANAGE GRANTS privilege.
+        """
         src_dir = Path(__file__).parent.parent.parent / "src"
         violations_by_file = {}
 
@@ -444,12 +449,18 @@ class TestAccountAdminRoleUsage:
         for sql_file in src_dir.rglob("*.sql"):
             if should_skip_sql_file(sql_file):
                 continue
+
+            # Skip files in init, admin, or upgrade directories
+            path_parts = sql_file.relative_to(src_dir).parts
+            if "init" in path_parts or "admin" in path_parts or "upgrade" in path_parts:
+                continue
+
             violations = self.check_accountadmin_usage(sql_file)
             if violations:
                 violations_by_file[str(sql_file.relative_to(src_dir))] = violations
 
         if violations_by_file:
-            error_msg = "Found ACCOUNTADMIN usage in source files outside init/upgrade:\n\n"
+            error_msg = "Found ACCOUNTADMIN usage in source files outside init/admin/upgrade:\n\n"
             for file_path, violations in violations_by_file.items():
                 error_msg += f"{file_path}:\n"
                 for line_num, line in violations:
@@ -457,6 +468,7 @@ class TestAccountAdminRoleUsage:
                 error_msg += "\n"
             error_msg += "\nACCOUNTADMIN should only be used in:\n"
             error_msg += "  - src/**/init/*.sql (initialization scripts)\n"
+            error_msg += "  - src/**/admin/*.sql (admin role and privilege scripts)\n"
             error_msg += "  - src/**/upgrade/*.sql (upgrade scripts)\n"
 
             pytest.fail(error_msg)
