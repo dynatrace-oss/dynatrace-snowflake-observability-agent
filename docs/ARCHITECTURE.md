@@ -43,6 +43,9 @@ Table of content:
   - [Build Artifacts](#build-artifacts)
   - [Deployment Scopes](#deployment-scopes)
   - [Security Model](#security-model)
+    - [Role Responsibilities](#role-responsibilities)
+    - [Administrative Operation Isolation](#administrative-operation-isolation)
+    - [Privilege Separation for Deployment](#privilege-separation-for-deployment)
 
 ## High-Level overview
 
@@ -67,14 +70,23 @@ plugin focusing on delivering telemetry from one or more sources related to a sp
 ## Dynatrace Snowflake Observability Agent objects in Snowflake
 
 Dynatrace Snowflake Observability Agent is fully contained within a single database (`DTAGENT_DB`) with a dedicated warehouse (`DTAGENT_WH`)
-and two roles per each Dynatrace Snowflake Observability Agent instance deployed:
+and three roles per each Dynatrace Snowflake Observability Agent instance deployed:
 
-- `DTAGENT_ADMIN` that owns all other objects, and
+- `DTAGENT_OWNER` that owns all Dynatrace Snowflake Observability Agent objects (database, schemas, tables, procedures, tasks),
+- `DTAGENT_ADMIN` that handles elevated administrative operations (role grants, ownership transfers, privilege management), and
 - `DTAGENT_VIEWER` that is designed to query and send telemetry data.
 
+The role hierarchy is: `ACCOUNTADMIN` → `DTAGENT_OWNER` → `DTAGENT_ADMIN` → `DTAGENT_VIEWER`
+
+This three-tier model enables flexible deployment with reduced privileges:
+
+- **`DTAGENT_OWNER`** creates and manages all objects, but does not require `ACCOUNTADMIN` privileges for most operations
+- **`DTAGENT_ADMIN`** has `MANAGE GRANTS` privilege to grant monitoring permissions on warehouses and dynamic tables, but does not own the objects
+- **`DTAGENT_VIEWER`** executes all regular telemetry collection tasks and queries, with no administrative privileges
+
 Since it is possible to run multiple Dynatrace Snowflake Observability Agent instances within one Snowflake account, additional instances
-(deployed in a multitenancy mode), have the names of those four objects include the tag name, i.e., `DTAGENT_$TAG_DB`, `DTAGENT_$TAG_WH`,
-`DTAGENT_$TAG_ADMIN`, and `DTAGENT_$TAG_VIEWER`.
+(deployed in a multitenancy mode), have the names of those objects include the tag name, i.e., `DTAGENT_$TAG_DB`, `DTAGENT_$TAG_WH`,
+`DTAGENT_$TAG_OWNER`, `DTAGENT_$TAG_ADMIN`, and `DTAGENT_$TAG_VIEWER`.
 
 The figure below depicts objects which are created and maintained by Dynatrace Snowflake Observability Agent within dedicated database in
 Snowflake:
@@ -471,9 +483,58 @@ The deployment script supports the following scopes:
 
 ### Security Model
 
-Administrative operations (DTAGENT_ADMIN role usage) are isolated in:
+Dynatrace Snowflake Observability Agent implements a three-tier role-based security model to enable flexible deployment while maintaining security best practices.
 
-- `src/dtagent.sql/admin/*.sql`
-- `src/dtagent/plugins/*.sql/admin/*.sql`
+#### Role Responsibilities
 
-This ensures proper separation of concerns and controlled access to admin privileges.
+##### DTAGENT_OWNER
+
+- Owns all Dynatrace Snowflake Observability Agent objects: database, schemas, tables, procedures, tasks
+- Creates and manages all objects within `DTAGENT_DB`
+- Can be used for most deployment operations (`setup`, `plugins`, `config`, `agents` scopes)
+- Does not require `ACCOUNTADMIN` privileges for most operations
+- Owns both `DTAGENT_ADMIN` and `DTAGENT_VIEWER` roles
+
+##### DTAGENT_ADMIN
+
+- Handles elevated administrative operations that require account-level privileges
+- Has `MANAGE GRANTS` privilege to grant monitoring permissions on warehouses and dynamic tables to `DTAGENT_VIEWER`
+- Has `EXECUTE TASK` privilege to manage task execution
+- Used exclusively in admin scope operations (`--scope=admin`)
+- Inherits all permissions from `DTAGENT_VIEWER` (via role grant)
+- Does not own any objects (owned by `DTAGENT_OWNER`)
+
+##### DTAGENT_VIEWER
+
+- Executes all regular telemetry collection and processing operations
+- Runs all agent tasks to query telemetry data and send it to Dynatrace
+- Has `MONITOR`, `MONITOR USAGE`, and `MONITOR EXECUTION` privileges on account
+- Has `IMPORTED PRIVILEGES` on `SNOWFLAKE` database to access account usage views
+- Has `USAGE` on `DTAGENT_DB` and `OPERATE` on tasks
+- Has no administrative privileges
+
+#### Administrative Operation Isolation
+
+Administrative operations (requiring `DTAGENT_ADMIN` role) are isolated in dedicated admin files:
+
+- `src/dtagent.sql/admin/*.sql` - Core administrative operations
+- `src/dtagent/plugins/*.sql/admin/*.sql` - Plugin-specific administrative operations
+
+These files are compiled into `build/10_admin.sql` and deployed only when using `--scope=admin`. This ensures that:
+
+1. Administrative privileges are only used in appropriate contexts
+2. Regular operations can run without elevated privileges
+3. Security audits can easily identify privileged operations
+
+Automated tests (`test_admin_role_usage.py`) enforce this separation by verifying that `DTAGENT_ADMIN` role usage is restricted to admin files only.
+
+#### Privilege Separation for Deployment
+
+Organizations can leverage this role model to maintain strict separation of duties:
+
+1. **Initial Setup**: Use `ACCOUNTADMIN` to run `--scope=init` creating roles and base structure
+2. **Administrative Operations**: Use `DTAGENT_ADMIN` (or delegate to `ACCOUNTADMIN`) to run `--scope=admin` for privilege grants
+3. **Regular Deployment**: Use `DTAGENT_OWNER` to run other scopes (`setup`, `plugins`, `config`, `agents`)
+4. **Runtime Operations**: All tasks execute as `DTAGENT_VIEWER` with minimal required privileges
+
+This enables deployment and maintenance without requiring `ACCOUNTADMIN` access for routine operations, while still allowing organizations to maintain control over account-level privilege grants.

@@ -128,6 +128,77 @@ Observability Agent, run the `./deploy.sh` command:
 ./deploy.sh prod --options=service_user,skip_confirm
 ```
 
+### Understanding the Role Model and Deployment Flexibility
+
+Dynatrace Snowflake Observability Agent uses a three-tier role model to provide flexible security and deployment options:
+
+#### Role Hierarchy
+
+- **`DTAGENT_OWNER`**: Owns all Dynatrace Snowflake Observability Agent artifacts (database, schemas, tables, procedures, tasks). This role creates and manages all objects within the `DTAGENT_DB` database.
+
+- **`DTAGENT_ADMIN`**: Handles elevated administrative operations including role grants, ownership transfers, and privilege management. This role has `MANAGE GRANTS` privilege on the account to grant monitoring privileges on warehouses and dynamic tables to `DTAGENT_VIEWER`.
+
+- **`DTAGENT_VIEWER`**: Executes regular telemetry collection and processing operations. This role runs all agent tasks and queries telemetry data from Snowflake, then sends it to Dynatrace.
+
+The role hierarchy is: `ACCOUNTADMIN` → `DTAGENT_OWNER` → `DTAGENT_ADMIN` → `DTAGENT_VIEWER`
+
+#### Deployment Scope Privileges
+
+Different deployment scopes require different privilege levels:
+
+| Scope      | Required Role   | Description                                                                  |
+| ---------- | --------------- | ---------------------------------------------------------------------------- |
+| `init`     | `ACCOUNTADMIN`  | Creates roles, database, warehouse, and initial structure                    |
+| `admin`    | `DTAGENT_ADMIN` | Performs administrative operations (role grants, ownership transfers)        |
+| `setup`    | `DTAGENT_OWNER` | Creates schemas, tables, procedures, and core objects                        |
+| `plugins`  | `DTAGENT_OWNER` | Deploys plugin code, views, and procedures                                   |
+| `config`   | `DTAGENT_OWNER` | Updates configuration table                                                  |
+| `agents`   | `DTAGENT_OWNER` | Deploys agent tasks and schedules                                            |
+| `apikey`   | `DTAGENT_OWNER` | Updates Dynatrace API key secret                                             |
+| `upgrade`  | `DTAGENT_OWNER` | Runs upgrade scripts (may require `DTAGENT_ADMIN` for some version upgrades) |
+| `all`      | `ACCOUNTADMIN`  | Full deployment including init and admin scopes                              |
+| `teardown` | `ACCOUNTADMIN`  | Removes all Dynatrace Snowflake Observability Agent objects                  |
+
+#### Restricting Elevated Privileges
+
+If you want to minimize the use of elevated privileges in your organization, you have two deployment options:
+
+##### Option 1: Split Deployment by Scope
+
+Have an administrator with `ACCOUNTADMIN` privileges run the `init` scope once to create the base roles and database:
+
+```bash
+./deploy.sh $ENV --scope=init --options=manual --output-file=init-script.sql
+# Review init-script.sql and execute it as ACCOUNTADMIN
+```
+
+Then, have a user with `DTAGENT_OWNER` role run the remaining scopes:
+
+```bash
+# As a user granted DTAGENT_OWNER role
+./deploy.sh $ENV --scope=setup
+./deploy.sh $ENV --scope=plugins
+./deploy.sh $ENV --scope=config
+./deploy.sh $ENV --scope=agents
+```
+
+##### Option 2: Separate Admin Operations
+
+Similarly, you can separate the `admin` scope (which requires `DTAGENT_ADMIN` privileges for granting monitoring permissions) from other operations:
+
+```bash
+# Have an administrator run admin scope
+./deploy.sh $ENV --scope=admin --options=manual --output-file=admin-script.sql
+# Review and execute as DTAGENT_ADMIN or ACCOUNTADMIN
+
+# Regular deployment without admin operations
+./deploy.sh $ENV --scope=setup,plugins,config,agents
+```
+
+This approach allows organizations to maintain strict separation of duties while still deploying and maintaining Dynatrace Snowflake Observability Agent effectively.
+
+### Dynatrace API Token Setup
+
 You should store the Access Token for your Dynatrace tenant (to which you want to send telemetry from your environment) as the environment
 variable `DTAGENT_TOKEN`. The token should have the following scopes enabled:
 
@@ -186,16 +257,17 @@ Optionally you can adjust plugin configurations.
 
 The following table describes all available `core` configuration options:
 
-| Configuration Key          | Type    | Required | Default | Description                                                                                                                 |
-| -------------------------- | ------- | -------- | ------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `dynatrace_tenant_address` | String  | Yes      | -       | The address of your Dynatrace tenant (e.g., `abc12345.live.dynatrace.com`)                                                  |
-| `deployment_environment`   | String  | Yes      | -       | Unique identifier for the deployment environment                                                                            |
-| `snowflake_account_name`   | String  | Yes      | -       | Your Snowflake account name                                                                                                 |
-| `snowflake_host_name`      | String  | Yes      | -       | Your Snowflake host name                                                                                                    |
-| `snowflake_credit_quota`   | Integer | Yes      | 5       | Credit quota limit for Snowflake operations                                                                                 |
-| `log_level`                | String  | Yes      | `WARN`  | Logging level. Valid values: `DEBUG`, `INFO`, `WARN`, `ERROR`                                                               |
-| `tag`                      | String  | No       | `""`    | Optional custom tag for Dynatrace Snowflake Observability Agent specific Snowflake objects. Used for multitenancy scenarios |
-| `procedure_timeout`        | Integer | No       | 3600    | Timeout in seconds for stored procedure execution. Default is 1 hour (3600 seconds)                                         |
+| Configuration Key                       | Type    | Required | Default | Description                                                                                                                          |
+| --------------------------------------- | ------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `dynatrace_tenant_address`              | String  | Yes      | -       | The address of your Dynatrace tenant (e.g., `abc12345.live.dynatrace.com`)                                                           |
+| `deployment_environment`                | String  | Yes      | -       | Unique identifier for the deployment environment                                                                                     |
+| `snowflake_account_name`                | String  | Yes      | -       | Your Snowflake account name                                                                                                          |
+| `snowflake_host_name`                   | String  | Yes      | -       | Your Snowflake host name                                                                                                             |
+| `snowflake_credit_quota`                | Integer | Yes      | 5       | Credit quota limit for Snowflake operations                                                                                          |
+| `snowflake_data_retention_time_in_days` | Integer | No       | 1       | Data retention time in days for permanent tables in `DTAGENT_DB`. Does not affect transient tables which always have 0-day retention |
+| `log_level`                             | String  | Yes      | `WARN`  | Logging level. Valid values: `DEBUG`, `INFO`, `WARN`, `ERROR`                                                                        |
+| `tag`                                   | String  | No       | `""`    | Optional custom tag for Dynatrace Snowflake Observability Agent specific Snowflake objects. Used for multitenancy scenarios          |
+| `procedure_timeout`                     | Integer | No       | 3600    | Timeout in seconds for stored procedure execution. Default is 1 hour (3600 seconds)                                                  |
 
 #### Plugin Configuration Options
 

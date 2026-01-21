@@ -46,6 +46,8 @@ Released on January 15, 2026
   - `DTAGENT_OWNER`: Owns all SnowAgent artifacts (database, schemas, tables, procedures, tasks)
   - `DTAGENT_ADMIN`: Handles elevated administrative operations (role grants, ownership transfers, privilege management)
   - `DTAGENT_VIEWER`: Executes regular telemetry collection and processing operations
+  - Enables flexible deployment: organizations can run `--scope=init` with `ACCOUNTADMIN` to create base structure, then use
+    `DTAGENT_OWNER` for regular deployment scopes, restricting use of elevated privileges to only necessary operations
 - **Security Model Enhancement**: Isolated administrative operations (using `DTAGENT_ADMIN` role) in dedicated admin scripts, ensuring
   administrative privileges are only used in appropriate contexts. Added automated tests (`test_admin_role_usage.py`) to enforce this
   separation.
@@ -91,7 +93,11 @@ Released on January 15, 2026
 
 - **Snowflake Account Identification**: Improved how Snowflake account is identified in configuration, clarifying the distinction between
   account name, account locator, and host name.
-- **Data Retention Configuration**: Added ability to configure data retention on `DTAGENT_*` objects.
+- **Data Retention Configuration**: Added ability to configure data retention on `DTAGENT_DB` permanent tables via the
+  `snowflake_data_retention_time_in_days` configuration parameter (default: 1 day). This sets the database-level
+  `DATA_RETENTION_TIME_IN_DAYS` parameter which applies to all permanent (non-transient) tables. Note that transient tables (used for
+  temporary processing data) always have 0-day retention and are not affected by this setting. This allows organizations to balance data
+  availability for troubleshooting with storage costs.
 - **Simplified Configuration Format**: Simplified configuration files for SnowAgent (YAML format with lowercase keys to match Snowflake
   configuration table paths).
 - **Metric Semantics**: `V_INSTRUMENTS` has been refactored to separate metric semantics from attribute semantics, improving clarity
