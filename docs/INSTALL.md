@@ -92,6 +92,8 @@ Observability Agent, run the `./deploy.sh` command:
   - `teardown` - Uninstall Dynatrace Snowflake Observability Agent from your Snowflake account
   - `upgrade` - Upgrade from a previous version (requires `--from-version`)
   - `file_pattern` - Any other value will deploy only files matching that pattern
+  
+  **Multiple scopes** can be specified as a comma-separated list (e.g., `setup,plugins,config,agents`). This allows you to deploy only specific components in a single operation. Note that `all`, `apikey`, and `teardown` cannot be combined with other scopes.
 
 - **`--from-version=VERSION`** (required when `--scope=upgrade`): Specifies the version number you are upgrading from (e.g., `0.9.2`).
 
@@ -111,6 +113,9 @@ Observability Agent, run the `./deploy.sh` command:
 
 # Deploy only configuration changes
 ./deploy.sh prod --scope=config
+
+# Deploy multiple scopes in one operation
+./deploy.sh prod --scope=setup,plugins,config,agents
 
 # Upgrade from version 0.9.2
 ./deploy.sh test --scope=upgrade --from-version=0.9.2

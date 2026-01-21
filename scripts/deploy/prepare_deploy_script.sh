@@ -50,46 +50,80 @@ TAG=${TAG:-""}
 
 echo "Deploying with tag "${TAG}""
 
-# Map scope to file prefixes
-case "$SCOPE" in
-    init)
-        SQL_FILES="00_init.sql"
-        ;;
-    admin)
-        SQL_FILES="10_admin.sql"
-        ;;
-    setup)
-        SQL_FILES="20_setup.sql"
-        ;;
-    plugins)
-        SQL_FILES="30_plugins/*.sql"
-        ;;
-    config)
-        SQL_FILES="40_config.sql"
-        ;;
-    agents)
-        SQL_FILES="70_agents.sql"
-        ;;
-    all)
-        SQL_FILES="00_init.sql 10_admin.sql 20_setup.sql 30_plugins/*.sql 40_config.sql 70_agents.sql"
-        ;;
-    upgrade)
-        if [ -z "$FROM_VERSION" ]; then
-            echo "ERROR: --from-version required for upgrade scope"
+# Function to map a single scope to file pattern
+map_scope_to_files() {
+    local scope="$1"
+    case "$scope" in
+        init)
+            echo "00_init.sql"
+            ;;
+        admin)
+            echo "10_admin.sql"
+            ;;
+        setup)
+            echo "20_setup.sql"
+            ;;
+        plugins)
+            echo "30_plugins/*.sql"
+            ;;
+        config)
+            echo "40_config.sql"
+            ;;
+        agents)
+            echo "70_agents.sql"
+            ;;
+        all)
+            echo "00_init.sql 10_admin.sql 20_setup.sql 30_plugins/*.sql 40_config.sql 70_agents.sql"
+            ;;
+        upgrade)
+            if [ -z "$FROM_VERSION" ]; then
+                return 1
+            fi
+            # Process upgrade scripts >= FROM_VERSION
+            echo "09_upgrade/*.sql"
+            ;;
+        apikey|teardown)
+            # These are handled specially below
+            echo ""
+            ;;
+        *)
+            # Treat as file_part - custom prefix
+            echo "${scope}*.sql"
+            ;;
+    esac
+}
+
+# Parse comma-separated scopes and build SQL_FILES list
+if [[ "$SCOPE" == *,* ]]; then
+    # Multiple scopes provided
+    SQL_FILES=""
+    IFS=',' read -ra SCOPE_ARRAY <<< "$SCOPE"
+    for single_scope in "${SCOPE_ARRAY[@]}"; do
+        # Trim whitespace
+        single_scope=$(echo "$single_scope" | xargs)
+
+        # Check for special scopes that can't be combined
+        if [ "$single_scope" == "apikey" ] || [ "$single_scope" == "teardown" ] || [ "$single_scope" == "all" ]; then
+            echo "ERROR: Scope '$single_scope' cannot be combined with other scopes"
             exit 1
         fi
-        # Process upgrade scripts >= FROM_VERSION
-        SQL_FILES="09_upgrade/*.sql"
-        ;;
-    apikey|teardown)
-        # These are handled specially below
-        SQL_FILES=""
-        ;;
-    *)
-        # Treat as file_part - custom prefix
-        SQL_FILES="$SCOPE*.sql"
-        ;;
-esac
+
+        files=$(map_scope_to_files "$single_scope")
+        if [ -n "$files" ]; then
+            SQL_FILES="$SQL_FILES $files"
+        fi
+    done
+    # Remove leading/trailing spaces and deduplicate
+    SQL_FILES=$(echo "$SQL_FILES" | xargs)
+else
+    # Single scope
+    # Special validation for upgrade scope
+    if [ "$SCOPE" == "upgrade" ] && [ -z "$FROM_VERSION" ]; then
+        echo "ERROR: --from-version required for upgrade scope"
+        exit 1
+    fi
+    SQL_FILES=$(map_scope_to_files "$SCOPE")
+fi
 
 # Check if required SQL files exist in build folder (skip for scopes with empty SQL_FILES)
 if [ -n "$SQL_FILES" ]; then
