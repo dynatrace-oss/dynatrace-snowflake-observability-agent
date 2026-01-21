@@ -4,6 +4,7 @@ core:
   snowflake_account_name: "-"
   snowflake_host_name: "-"
   snowflake_credit_quota: 5
+  snowflake_data_retention_time_in_days: 1
   log_level: WARN
   tag: ""
   procedure_timeout: 3600

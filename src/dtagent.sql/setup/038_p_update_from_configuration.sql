@@ -38,6 +38,7 @@ $$
 declare
     SNOWFLAKE_CREDIT_QUOTA INT;
     PROCEDURE_TIMEOUT INT;
+    DATA_RETENTION_TIME_IN_DAYS INT;
 begin
     SNOWFLAKE_CREDIT_QUOTA := (select DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE('core.snowflake_credit_quota', 5));
     if (SNOWFLAKE_CREDIT_QUOTA IS NOT NULL) then
@@ -47,6 +48,11 @@ begin
     PROCEDURE_TIMEOUT := (select DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE('core.procedure_timeout', 3600));
     if (PROCEDURE_TIMEOUT IS NOT NULL) then
         execute immediate 'ALTER WAREHOUSE DTAGENT_WH SET STATEMENT_TIMEOUT_IN_SECONDS = ' || :PROCEDURE_TIMEOUT ||  ';';
+    end if;
+
+    DATA_RETENTION_TIME_IN_DAYS := (select DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE('core.snowflake_data_retention_time_in_days', 1));
+    if (DATA_RETENTION_TIME_IN_DAYS IS NOT NULL) then
+        execute immediate 'ALTER DATABASE DTAGENT_DB SET DATA_RETENTION_TIME_IN_DAYS = ' || :DATA_RETENTION_TIME_IN_DAYS || ';';
     end if;
 
     call DTAGENT_DB.CONFIG.UPDATE_ALL_PLUGINS_SCHEDULE();

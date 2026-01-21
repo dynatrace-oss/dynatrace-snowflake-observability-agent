@@ -30,6 +30,10 @@ create database if not exists DTAGENT_DB;
 -- Set default LOG_LEVEL for all procedures in this database
 alter database DTAGENT_DB set LOG_LEVEL = WARN;
 
+-- Set default DATA_RETENTION_TIME_IN_DAYS for all non-transient tables in this database
+-- This will be overridden by the configured value in the config table after deployment
+alter database DTAGENT_DB set DATA_RETENTION_TIME_IN_DAYS = 1;
+
 grant ownership on database DTAGENT_DB to role DTAGENT_OWNER;
 grant usage on database DTAGENT_DB to role DTAGENT_VIEWER;
 
