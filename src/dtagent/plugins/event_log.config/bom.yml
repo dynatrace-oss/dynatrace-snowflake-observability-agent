@@ -19,6 +19,9 @@ delivers:
     type: procedure
   - name: DTAGENT_DB.APP.TASK_DTAGENT_EVENT_LOG
     type: task
+  - name: DTAGENT_DB.APP.TASK_DTAGENT_EVENT_LOG_CLEANUP
+    type: task
+    comment: Cleanup task owned by DTAGENT_ADMIN to remove old event log entries
 
 references:
   - name: SHOW PARAMETERS
@@ -30,14 +33,12 @@ references:
       whether this is a table setup by this Dynatrace Snowflake Observability Agent instance
   - name: ACCOUNT
     type: account
-    privileges: MODIFY LOG LEVEL
-    granted to: DTAGENT_ADMIN
-  - name: ACCOUNT
-    type: account
     privileges: MODIFY SESSION LOG LEVEL
-    granted to: DTAGENT_ADMIN
+    granted to: DTAGENT_VIEWER
   - name: $event_table
     type: table
-    privileges: SELECT
+    privileges:
+      - SELECT
+      - DELETE
     granted to: DTAGENT_VIEWER
     comment: This is in case an event log table was not setup by this Dynatrace Snowflake Observability Agent instance
