@@ -53,8 +53,6 @@ $$
 ---------------------------------------------------------------------
 grant usage on procedure DTAGENT_DB.APP.SEND_TELEMETRY(variant, object) to role DTAGENT_VIEWER;
 
-alter procedure DTAGENT_DB.APP.SEND_TELEMETRY(variant, object) set LOG_LEVEL = INFO;
-
 
 
 

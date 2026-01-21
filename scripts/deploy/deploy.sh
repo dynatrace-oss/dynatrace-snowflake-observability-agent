@@ -204,7 +204,7 @@ if [ -s "$INSTALL_SCRIPT_SQL" ] && ! $IS_MANUAL; then
 
     INSTALL_SCRIPT_LOG="dsoa-deploy-$DEPLOYMENT_ENV-${NOW_TS}.log"
     #%DEV:
-    mkdir .logs 2>&1
+    mkdir -p .logs 2>/dev/null
     INSTALL_SCRIPT_LOG=".logs/$INSTALL_SCRIPT_LOG"
     #%:DEV
     echo -e "\n\n--------\n"

@@ -54,8 +54,6 @@ $$
 ---------------------------------------------------------------------
 grant usage on procedure DTAGENT_DB.APP.DTAGENT(array) to role DTAGENT_VIEWER;
 
-alter procedure DTAGENT_DB.APP.DTAGENT(array) set LOG_LEVEL = INFO;
-
 
 
 

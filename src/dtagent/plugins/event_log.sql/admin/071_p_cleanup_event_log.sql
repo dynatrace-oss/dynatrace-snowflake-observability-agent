@@ -61,7 +61,6 @@ END;
 $$
 ;
 grant usage on procedure DTAGENT_DB.APP.P_CLEANUP_EVENT_LOG() to role DTAGENT_ADMIN;
-alter procedure DTAGENT_DB.APP.P_CLEANUP_EVENT_LOG() set LOG_LEVEL = WARN;
 
 /*
 use role DTAGENT_VIEWER;

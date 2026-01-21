@@ -32,4 +32,4 @@ grant role DTAGENT_ADMIN to role ACCOUNTADMIN;
 -- this is required to grant monitoring privileges on warehouses and dynamic tables to the DTAGENT_VIEWER role
 grant manage grants on ACCOUNT to role DTAGENT_ADMIN;
 
-grant ownership on role DTAGENT_ADMIN to role DTAGENT_OWNER;
+grant ownership on role DTAGENT_ADMIN to role DTAGENT_OWNER revoke current grants;

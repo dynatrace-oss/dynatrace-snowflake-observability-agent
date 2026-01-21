@@ -39,4 +39,4 @@ grant IMPORTED PRIVILEGES on database SNOWFLAKE to role DTAGENT_VIEWER;
 
 grant EXECUTE TASK on account to role DTAGENT_VIEWER;
 
-grant ownership on role DTAGENT_VIEWER to role DTAGENT_OWNER;
+grant ownership on role DTAGENT_VIEWER to role DTAGENT_OWNER revoke current grants;

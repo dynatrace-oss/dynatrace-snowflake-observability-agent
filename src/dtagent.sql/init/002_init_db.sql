@@ -27,6 +27,9 @@
 use role ACCOUNTADMIN;
 create database if not exists DTAGENT_DB;
 
+-- Set default LOG_LEVEL for all procedures in this database
+alter database DTAGENT_DB set LOG_LEVEL = WARN;
+
 grant ownership on database DTAGENT_DB to role DTAGENT_OWNER;
 grant usage on database DTAGENT_DB to role DTAGENT_VIEWER;
 

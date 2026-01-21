@@ -69,4 +69,3 @@ $$
 ;
 
 grant ownership on procedure DTAGENT_DB.APP.P_MONITOR_WAREHOUSES to role DTAGENT_ADMIN;
-alter procedure DTAGENT_DB.APP.P_MONITOR_WAREHOUSES() set LOG_LEVEL = WARN;
