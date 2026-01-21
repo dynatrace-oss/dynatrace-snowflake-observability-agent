@@ -202,7 +202,7 @@ if [ -s "$INSTALL_SCRIPT_SQL" ] && ! $IS_MANUAL; then
         SNOWFLAKE_ACCOUNT_NAME="$($CWD/get_config_key.sh core.snowflake_account_name)"
     fi
 
-    INSTALL_SCRIPT_LOG="dsoa-deploy-$DEPLOYMENT_ENV-${NOW_TS}.log"
+    INSTALL_SCRIPT_LOG="dsoa-deploy-log-$DEPLOYMENT_ENV-${NOW_TS}.sql"
     #%DEV:
     mkdir -p .logs 2>/dev/null
     INSTALL_SCRIPT_LOG=".logs/$INSTALL_SCRIPT_LOG"

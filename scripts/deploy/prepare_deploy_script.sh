@@ -154,8 +154,9 @@ drop integration if exists DTAGENT_API_INTEGRATION;
 drop database if exists DTAGENT_DB;
 drop warehouse if exists DTAGENT_WH;
 
-drop role if exists DTAGENT_ADMIN;
 drop role if exists DTAGENT_VIEWER;
+drop role if exists DTAGENT_ADMIN;
+drop role if exists DTAGENT_OWNER;
 drop resource monitor if exists DTAGENT_RS;
 EOF
 fi

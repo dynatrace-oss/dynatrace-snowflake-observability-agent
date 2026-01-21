@@ -164,7 +164,7 @@ build a database to store his information - `DTAGENT_DB` by default or `DTAGENT_
 [Multitenancy](#multitenancy)).
 
 The complete log of deployment and the script executed during deployment is available as
-`.logs/dsoa-deploy-$config_name-$current_date.log`.
+`.logs/dsoa-deploy-log-$config_name-$current_date.sql`.
 
 > **Troubleshooting:** If tasks are running in Snowflake but no data appears in Dynatrace, please refer to
 > [Troubleshooting: No Data in Dynatrace](docs/debug/no-data-in-dt/readme.md) for a comprehensive debugging guide.

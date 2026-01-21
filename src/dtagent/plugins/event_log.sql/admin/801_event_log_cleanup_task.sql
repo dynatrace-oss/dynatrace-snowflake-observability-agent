@@ -39,7 +39,7 @@ create or replace task DTAGENT_DB.APP.TASK_DTAGENT_EVENT_LOG_CLEANUP
 as
     call DTAGENT_DB.APP.P_CLEANUP_EVENT_LOG();
 
-grant ownership on task DTAGENT_DB.APP.TASK_DTAGENT_EVENT_LOG_CLEANUP to role DTAGENT_ADMIN;
+grant ownership on task DTAGENT_DB.APP.TASK_DTAGENT_EVENT_LOG_CLEANUP to role DTAGENT_ADMIN revoke current grants;
 grant monitor on task DTAGENT_DB.APP.TASK_DTAGENT_EVENT_LOG_CLEANUP to role DTAGENT_VIEWER;
 alter task if exists DTAGENT_DB.APP.TASK_DTAGENT_EVENT_LOG_CLEANUP resume;
 

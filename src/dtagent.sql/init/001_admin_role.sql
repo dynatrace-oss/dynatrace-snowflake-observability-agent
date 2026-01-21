@@ -27,9 +27,11 @@
 --
 use role ACCOUNTADMIN;
 create role if not exists DTAGENT_ADMIN;
-grant role DTAGENT_ADMIN to role ACCOUNTADMIN;
+grant ownership on role DTAGENT_ADMIN to role DTAGENT_OWNER revoke current grants;
+
+grant role DTAGENT_ADMIN to role DTAGENT_OWNER;
 
 -- this is required to grant monitoring privileges on warehouses and dynamic tables to the DTAGENT_VIEWER role
-grant manage grants on ACCOUNT to role DTAGENT_ADMIN;
+grant MANAGE GRANTS on ACCOUNT to role DTAGENT_ADMIN;
+grant EXECUTE TASK on ACCOUNT to role DTAGENT_ADMIN;
 
-grant ownership on role DTAGENT_ADMIN to role DTAGENT_OWNER revoke current grants;

@@ -26,17 +26,15 @@
 --
 use role ACCOUNTADMIN;
 create role if not exists DTAGENT_VIEWER;
-
--- viewer permissions are a subset of those for the admin
-grant role DTAGENT_VIEWER to role DTAGENT_ADMIN;
-
+grant ownership on role DTAGENT_VIEWER to role DTAGENT_OWNER revoke current grants;
 grant MONITOR on ACCOUNT to role DTAGENT_VIEWER;
 grant MONITOR USAGE on ACCOUNT to role DTAGENT_VIEWER;
 grant MONITOR EXECUTION on ACCOUNT to role DTAGENT_VIEWER;
 
-grant MODIFY SESSION LOG LEVEL on account to role DTAGENT_VIEWER;
+grant MODIFY SESSION LOG LEVEL on ACCOUNT to role DTAGENT_VIEWER;
 grant IMPORTED PRIVILEGES on database SNOWFLAKE to role DTAGENT_VIEWER;
 
-grant EXECUTE TASK on account to role DTAGENT_VIEWER;
+grant EXECUTE TASK on ACCOUNT to role DTAGENT_VIEWER;
 
-grant ownership on role DTAGENT_VIEWER to role DTAGENT_OWNER revoke current grants;
+-- viewer permissions are a subset of those for the admin
+grant role DTAGENT_VIEWER to role DTAGENT_ADMIN;
