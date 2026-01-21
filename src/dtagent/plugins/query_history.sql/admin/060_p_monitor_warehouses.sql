@@ -68,4 +68,4 @@ END;
 $$
 ;
 
-grant ownership on procedure DTAGENT_DB.APP.P_MONITOR_WAREHOUSES to role DTAGENT_ADMIN;
+grant ownership on procedure DTAGENT_DB.APP.P_MONITOR_WAREHOUSES() to role DTAGENT_ADMIN revoke current grants;
