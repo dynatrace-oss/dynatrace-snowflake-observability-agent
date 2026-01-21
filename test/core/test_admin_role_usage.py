@@ -133,6 +133,192 @@ class TestDeploymentScopes:
         for expected_file in expected_files:
             assert expected_file in sql_files, f"'all' scope missing expected file: {expected_file}. Found: {sql_files}"
 
+    def test_accountadmin_only_in_init_upgrade_scopes(self):
+        """Test that ACCOUNTADMIN role is only used in init and upgrade scopes.
+        This ensures proper privilege separation at deployment level.
+        """
+        build_dir = Path(__file__).parent.parent.parent / "build"
+
+        if not build_dir.exists():
+            pytest.skip("build directory not found. Run build.sh first.")
+
+        # Files that should NOT contain ACCOUNTADMIN
+        restricted_files = {
+            "admin": build_dir / "10_admin.sql",
+            "setup": build_dir / "20_setup.sql",
+            "config": build_dir / "40_config.sql",
+            "agents": build_dir / "70_agents.sql",
+        }
+
+        # Check plugins separately
+        plugins_dir = build_dir / "30_plugins"
+        if plugins_dir.exists():
+            for plugin_file in plugins_dir.glob("*.sql"):
+                restricted_files[f"plugins/{plugin_file.name}"] = plugin_file
+
+        violations_by_file = {}
+
+        for scope, file_path in restricted_files.items():
+            if not file_path.exists():
+                continue
+
+            with open(file_path, "r", encoding="utf-8") as f:
+                for line_num, line in enumerate(f, 1):
+                    # Skip comments
+                    if line.strip().startswith("--"):
+                        continue
+
+                    # Check for ACCOUNTADMIN usage
+                    if re.search(r"\bACCOUNTADMIN\b", line, re.IGNORECASE):
+                        if scope not in violations_by_file:
+                            violations_by_file[scope] = []
+                        violations_by_file[scope].append((line_num, line.strip()))
+
+        if violations_by_file:
+            error_msg = "Found ACCOUNTADMIN usage outside init/upgrade scopes:\n\n"
+            for scope, violations in violations_by_file.items():
+                error_msg += f"{scope} scope:\n"
+                for line_num, line in violations:
+                    error_msg += f"  Line {line_num}: {line}\n"
+                error_msg += "\n"
+            error_msg += "ACCOUNTADMIN should only be used in:\n"
+            error_msg += "  - init scope (00_init.sql)\n"
+            error_msg += "  - upgrade scope (09_upgrade/*.sql)\n"
+            error_msg += "  - teardown operations (handled separately)\n"
+
+            pytest.fail(error_msg)
+
+    def test_dtagent_admin_only_in_admin_upgrade_scopes(self):
+        """Test that DTAGENT_ADMIN role is only used in admin and upgrade scopes.
+        This ensures proper privilege separation at deployment level.
+        """
+        build_dir = Path(__file__).parent.parent.parent / "build"
+
+        if not build_dir.exists():
+            pytest.skip("build directory not found. Run build.sh first.")
+
+        # Files that should NOT contain DTAGENT_ADMIN (except in comments or grants TO DTAGENT_ADMIN)
+        restricted_files = {
+            "init": build_dir / "00_init.sql",
+            "setup": build_dir / "20_setup.sql",
+            "config": build_dir / "40_config.sql",
+            "agents": build_dir / "70_agents.sql",
+        }
+
+        # Check plugins separately
+        plugins_dir = build_dir / "30_plugins"
+        if plugins_dir.exists():
+            for plugin_file in plugins_dir.glob("*.sql"):
+                restricted_files[f"plugins/{plugin_file.name}"] = plugin_file
+
+        violations_by_file = {}
+
+        for scope, file_path in restricted_files.items():
+            if not file_path.exists():
+                continue
+
+            with open(file_path, "r", encoding="utf-8") as f:
+                for line_num, line in enumerate(f, 1):
+                    # Skip comments
+                    if line.strip().startswith("--"):
+                        continue
+
+                    # Skip lines that grant TO DTAGENT_ADMIN (these are allowed everywhere)
+                    if re.search(r"\bTO\s+ROLE\s+DTAGENT_ADMIN\b", line, re.IGNORECASE):
+                        continue
+
+                    # Check for USE ROLE DTAGENT_ADMIN (not allowed outside admin/upgrade scope)
+                    if re.search(r"\bUSE\s+ROLE\s+DTAGENT_ADMIN\b", line, re.IGNORECASE):
+                        if scope not in violations_by_file:
+                            violations_by_file[scope] = []
+                        violations_by_file[scope].append((line_num, line.strip()))
+
+        if violations_by_file:
+            error_msg = "Found DTAGENT_ADMIN role usage (USE ROLE) outside admin/upgrade scopes:\n\n"
+            for scope, violations in violations_by_file.items():
+                error_msg += f"{scope} scope:\n"
+                for line_num, line in violations:
+                    error_msg += f"  Line {line_num}: {line}\n"
+                error_msg += "\n"
+            error_msg += "DTAGENT_ADMIN (USE ROLE) should only be used in:\n"
+            error_msg += "  - admin scope (10_admin.sql)\n"
+            error_msg += "  - upgrade scope (09_upgrade/*.sql)\n"
+            error_msg += "\nNote: Grants TO ROLE DTAGENT_ADMIN are allowed in any scope.\n"
+
+            pytest.fail(error_msg)
+
+    def test_no_hardcoded_roles_in_shell_scripts(self):
+        """Test that shell scripts don't contain hardcoded ACCOUNTADMIN or DTAGENT_ADMIN references.
+        Scripts should use variables or configuration, not hardcoded role names.
+        Exception: teardown SQL generation is allowed to use these roles.
+        """
+        scripts_dir = Path(__file__).parent.parent.parent / "scripts" / "deploy"
+
+        if not scripts_dir.exists():
+            pytest.skip("scripts/deploy directory not found.")
+
+        violations_by_file = {}
+
+        for script_file in scripts_dir.glob("*.sh"):
+            in_teardown_section = False
+            in_heredoc = False
+
+            with open(script_file, "r", encoding="utf-8") as f:
+                for line_num, line in enumerate(f, 1):
+                    # Check if we're entering teardown section
+                    if "== 'teardown'" in line:
+                        in_teardown_section = True
+                        continue
+
+                    # Check if we're exiting teardown section (next if statement)
+                    if in_teardown_section and line.strip().startswith("if ["):
+                        in_teardown_section = False
+                        in_heredoc = False
+
+                    # Track heredoc blocks
+                    if "<<EOF" in line:
+                        in_heredoc = True
+                        continue
+                    if in_heredoc and line.strip() == "EOF":
+                        in_heredoc = False
+                        continue
+
+                    # Skip comments
+                    if line.strip().startswith("#"):
+                        continue
+
+                    # Skip lines in teardown SQL generation blocks
+                    if in_teardown_section and in_heredoc:
+                        continue
+
+                    # Check for hardcoded ACCOUNTADMIN (except in documentation/help text)
+                    if re.search(r"\bACCOUNTADMIN\b", line, re.IGNORECASE):
+                        # Allow in case statements, conditionals, or documentation
+                        if not any(pattern in line for pattern in ["case ", "if [", "==", "#", "echo", "'"]):
+                            if script_file.name not in violations_by_file:
+                                violations_by_file[script_file.name] = []
+                            violations_by_file[script_file.name].append((line_num, "ACCOUNTADMIN", line.strip()))
+
+                    # Check for hardcoded DTAGENT_ADMIN
+                    if re.search(r"\bDTAGENT_ADMIN\b", line):
+                        # Allow in case statements, conditionals, or documentation
+                        if not any(pattern in line for pattern in ["case ", "if [", "==", "#", "echo", "'"]):
+                            if script_file.name not in violations_by_file:
+                                violations_by_file[script_file.name] = []
+                            violations_by_file[script_file.name].append((line_num, "DTAGENT_ADMIN", line.strip()))
+
+        if violations_by_file:
+            error_msg = "Found hardcoded role references in shell scripts:\n\n"
+            for file_name, violations in violations_by_file.items():
+                error_msg += f"{file_name}:\n"
+                for line_num, role, line in violations:
+                    error_msg += f"  Line {line_num} ({role}): {line}\n"
+                error_msg += "\n"
+            error_msg += "Shell scripts should not contain hardcoded role names outside teardown blocks.\n"
+            error_msg += "These are handled in SQL files during deployment.\n"
+
+            pytest.fail(error_msg)
+
 
 class TestAccountAdminRoleUsage:
     """Test suite for ACCOUNTADMIN role usage restrictions."""
