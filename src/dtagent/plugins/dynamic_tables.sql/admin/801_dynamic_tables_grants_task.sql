@@ -24,6 +24,7 @@
 --
 --  This task ensures Dynatrace Snowflake Observability Agent is called periodically
 --
+--%OPTION:dtagent_admin:
 use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 
 create or replace task DTAGENT_DB.APP.TASK_DTAGENT_DYNAMIC_TABLES_GRANTS
@@ -38,3 +39,4 @@ grant monitor on task DTAGENT_DB.APP.TASK_DTAGENT_DYNAMIC_TABLES_GRANTS to role 
 alter task if exists DTAGENT_DB.APP.TASK_DTAGENT_DYNAMIC_TABLES_GRANTS resume;
 
 -- alter task if exists DTAGENT_DB.APP.TASK_DTAGENT_DYNAMIC_TABLES suspend;
+--%:OPTION:dtagent_admin

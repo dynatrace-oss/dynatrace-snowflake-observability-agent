@@ -82,6 +82,14 @@ The source code of Dynatrace Snowflake Observability Agent is organized into sev
    - `80x` for task definitions, and
    - `90x` for plugin-specific update procedures.
 
+   **Conditional Code Blocks**: SQL scripts support annotation blocks for conditional inclusion:
+   - `--%PLUGIN:plugin_name:` / `--%:PLUGIN:plugin_name` - Code included only when plugin is enabled
+   - `--%OPTION:option_name:` / `--%:OPTION:option_name` - Code included only when optional component is enabled
+     - `dtagent_admin` - Admin role code (excluded when `core.snowflake.roles.admin` is `"-"`)
+     - `resource_monitor` - Resource monitor code (excluded when `core.snowflake.resource_monitor.name` is `"-"`)
+
+   These blocks are automatically filtered during deployment based on configuration.
+
 1. **Configuration files**: Defined for the core and telemetry API, and separately for each plugin. These are located in `*.conf` folders.
 
 1. **Documentation files**: Each part of Dynatrace Snowflake Observability Agent and each plugin has documentation in `info.md` files,
@@ -301,7 +309,11 @@ Dynatrace Snowflake Observability Agent has comprehensive test suites covering d
 1. **Core Tests** (`test/core/`): Test core functionality, configuration, utilities, and views structure
 2. **OTel Tests** (`test/otel/`): Test OpenTelemetry integration and telemetry sending
 3. **Plugin Tests** (`test/plugins/`): Test individual plugins with mocked or live APIs
-4. **Bash Tests** (`test/bash/`): Test bash scripts using the Bats framework
+4. **Bash Tests** (`test/bash/`): Test bash scripts using the Bats framework, including:
+   - Custom object name replacement (`test_custom_object_names.bats`)
+   - Optional object filtering (`test_optional_objects.bats`)
+   - Configuration conversion (`test_convert_config_to_yaml.bats`)
+   - Deployment script utilities (`test_list_options_to_exclude.bats`)
 
 All tests are implemented with the `pytest` framework except for bash tests which use Bats.
 
@@ -381,12 +393,14 @@ To run tests in live mode (version 2), you need to:
    core:
      dynatrace_tenant_address: abc12345.live.dynatrace.com
      deployment_environment: TEST
-     snowflake_account_name: 'your_snowflake_account.us-east-1'
-     snowflake_host_name: 'your_snowflake_account.us-east-1.snowflakecomputing.com'
-     snowflake_credit_quota: 1
      log_level: DEBUG
      tag: ""
      procedure_timeout: 3600
+     snowflake:
+       account_name: 'your_snowflake_account.us-east-1'
+       host_name: 'your_snowflake_account.us-east-1.snowflakecomputing.com'
+       resource_monitor:
+         credit_quota: 1
    otel: {}
    plugins:
      disabled_by_default: true

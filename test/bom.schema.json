@@ -10,7 +10,11 @@
       "description": "List of objects delivered by the agent",
       "items": {
         "type": "object",
-        "required": ["name", "type", "plugins"],
+        "required": [
+          "name",
+          "type",
+          "plugins"
+        ],
         "properties": {
           "name": {
             "type": "string",
@@ -35,6 +39,14 @@
           "language": {
             "type": "string",
             "description": "Programming language (for procedures/functions)"
+          },
+          "optional": {
+            "type": "boolean",
+            "description": "Whether this object is optional and can be excluded from deployment"
+          },
+          "config_key": {
+            "type": "string",
+            "description": "Configuration key that controls whether this object is deployed"
           }
         },
         "additionalProperties": false
@@ -45,7 +57,12 @@
       "description": "List of external references/permissions required",
       "items": {
         "type": "object",
-        "required": ["name", "type", "privileges", "plugins"],
+        "required": [
+          "name",
+          "type",
+          "privileges",
+          "plugins"
+        ],
         "properties": {
           "name": {
             "type": "string",
@@ -86,12 +103,23 @@
           "granted to": {
             "type": "string",
             "description": "Role to which privileges are granted"
+          },
+          "optional": {
+            "type": "boolean",
+            "description": "Whether this reference is optional and can be excluded from deployment"
+          },
+          "config_key": {
+            "type": "string",
+            "description": "Configuration key that controls whether this reference is used"
           }
         },
         "additionalProperties": false
       }
     }
   },
-  "required": ["delivers", "references"],
+  "required": [
+    "delivers",
+    "references"
+  ],
   "additionalProperties": false
 }

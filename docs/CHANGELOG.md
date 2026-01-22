@@ -4,11 +4,40 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+### Breaking Changes
+
+- **Configuration Structure Refactored**: Reorganized Snowflake-related configuration into a nested `snowflake` structure under `core`. This improves organization and enables object-specific settings:
+  - `core.snowflake_account_name` → `core.snowflake.account_name`
+  - `core.snowflake_host_name` → `core.snowflake.host_name`
+  - `core.snowflake_credit_quota` → `core.snowflake.resource_monitor.credit_quota`
+  - `core.snowflake_data_retention_time_in_days` → `core.snowflake.database.data_retention_time_in_days`
+
+  **Migration**: The `convert_config_to_yaml.sh` script automatically migrates old paths to the new structure. Existing JSON config files will be converted with updated paths.
+
+### New Features
+
+- **Custom Snowflake Object Names**: Added ability to customize names for all Snowflake objects created by the agent:
+  - `core.snowflake.database.name` - Custom database name (default: `DTAGENT_DB`)
+  - `core.snowflake.warehouse.name` - Custom warehouse name (default: `DTAGENT_WH`)
+  - `core.snowflake.resource_monitor.name` - Custom resource monitor name (default: `DTAGENT_RS`, use `"-"` to skip)
+  - `core.snowflake.roles.owner` - Custom owner role name (default: `DTAGENT_OWNER`)
+  - `core.snowflake.roles.admin` - Custom admin role name (default: `DTAGENT_ADMIN`, use `"-"` to skip)
+  - `core.snowflake.roles.viewer` - Custom viewer role name (default: `DTAGENT_VIEWER`)
+
+  Missing or empty values use default names. Set admin role or resource monitor to `"-"` to skip their creation entirely.
+
+  **Use Case - Deployment Without Admin Rights**: This feature enables organizations to pre-create all Snowflake objects with custom names (performed by DBAs with ACCOUNTADMIN), then deploy the agent using only `DTAGENT_OWNER` privileges with `--scope=setup,plugins,config,agents,apikey`. This approach eliminates the need for elevated privileges during regular deployments, ideal for organizations with strict privilege separation policies.
+
+  **Validation**: Custom names are validated against Snowflake identifier rules (alphanumeric, underscore, dollar sign; must start with letter/underscore; max 255 chars). Deployment fails if validation errors occur.
+
+- **Optional Object Deployment**: When `snowflake.roles.admin` or `snowflake.resource_monitor.name` is set to `"-"`, the deployment process automatically excludes all related SQL code from the deployment script. This allows for lightweight deployments without admin role management or resource monitoring overhead. Attempting to deploy with `scope=admin` when the admin role is disabled will result in a deployment error with clear guidance.
+
 ### Improved
 
 - **Flexible Scope Combinations**: The `apikey` deployment scope can now be combined with other scopes (e.g., `setup,plugins,config,agents,apikey`),
   enabling more flexible deployment workflows. Previously, `apikey` could only be used alone. The restrictions on `all` and `teardown`
   remain unchanged (they cannot be combined with other scopes).
+- **Configuration Migration Tool Enhanced**: The `convert_config_to_yaml.sh` script now automatically migrates old configuration paths to the new nested structure.
 
 ## Dynatrace Snowflake Observability Agent 0.9.3
 

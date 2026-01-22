@@ -1,5 +1,6 @@
 # Plugins
 
+- [Core Objects](#core_bom_sec)
 - [Active Queries](#active_queries_info_sec)
 - [Budgets](#budgets_info_sec)
 - [Data Schemas](#data_schemas_info_sec)
@@ -14,7 +15,53 @@
 - [Tasks](#tasks_info_sec)
 - [Trust Center](#trust_center_info_sec)
 - [Users](#users_info_sec)
-- [Warehouse Usage](#warehouse_usage_info_sec)<a name="active_queries_info_sec"></a>
+- [Warehouse Usage](#warehouse_usage_info_sec)<a name="core_bom_sec"></a>
+
+## Core Snowflake Objects
+
+The Dynatrace Snowflake Observability Agent creates and uses the following Snowflake objects.
+
+### Objects delivered by the agent
+
+| Name                                                              | Type                        | Language | Comment                                                                                                                                                                                                                                                                       |
+| ----------------------------------------------------------------- | --------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| DTAGENT_DB                                                        | database                    |          |                                                                                                                                                                                                                                                                               |
+| DTAGENT_OWNER                                                     | role                        |          | role that owns all SnowAgent artifacts (database, schemas, tables, procedures, tasks)                                                                                                                                                                                         |
+| DTAGENT_ADMIN                                                     | role                        |          | (Optional - created only when admin scope is installed and core.snowflake.roles.admin is not set to "-") Role that handles elevated administrative operations (role grants, ownership transfers, privilege management). When disabled, admin deployment scope cannot be used. |
+| DTAGENT_VIEWER                                                    | role                        |          | role that executes regular telemetry collection and processing operations                                                                                                                                                                                                     |
+| DTAGENT_WH                                                        | warehouse                   |          |                                                                                                                                                                                                                                                                               |
+| DTAGENT_RS                                                        | resource monitor            |          | (Optional - created only when core.snowflake.resource_monitor.name is not set to "-") Resource monitor for controlling credit consumption. When disabled, no resource monitoring will be applied to the warehouse.                                                            |
+| DTAGENT_API_INTEGRATION                                           | external access integration |          |                                                                                                                                                                                                                                                                               |
+| DTAGENT_DB.PUBLIC                                                 | schema                      |          |                                                                                                                                                                                                                                                                               |
+| DTAGENT_DB.CONFIG                                                 | schema                      |          |                                                                                                                                                                                                                                                                               |
+| DTAGENT_DB.CONFIG.CONFIGURATIONS                                  | table                       |          |                                                                                                                                                                                                                                                                               |
+| DTAGENT_DB.CONFIG.DTAGENT_API_KEY                                 | secret                      |          |                                                                                                                                                                                                                                                                               |
+| DTAGENT_DB.CONFIG.DTAGENT_NETWORK_RULE                            | network rule                |          |                                                                                                                                                                                                                                                                               |
+| DTAGENT_DB.CONFIG.UPDATE_FROM_CONFIGURATIONS()                    | procedure                   |          |                                                                                                                                                                                                                                                                               |
+| DTAGENT_DB.CONFIG.UPDATE_ALL_PLUGINS_SCHEDULE()                   | procedure                   |          |                                                                                                                                                                                                                                                                               |
+| DTAGENT_DB.CONFIG.UPDATE_PLUGIN_SCHEDULE(varchar,array)           | procedure                   |          |                                                                                                                                                                                                                                                                               |
+| DTAGENT_DB.CONFIG.P_UPDATE_RESOURCE_MONITOR(int)                  | procedure                   |          | Optional (controlled by core.snowflake.resource_monitor.name). Only created when resource monitor is enabled                                                                                                                                                                  |
+| DTAGENT_DB.STATUS                                                 | schema                      |          |                                                                                                                                                                                                                                                                               |
+| DTAGENT_DB.STATUS.PROCESSED_MEASUREMENTS_LOG                      | table                       |          |                                                                                                                                                                                                                                                                               |
+| DTAGENT_DB.STATUS.LOG_PROCESSED_MEASUREMENTS(text,text,text,text) | function                    |          |                                                                                                                                                                                                                                                                               |
+| DTAGENT_DB.APP                                                    | schema                      |          |                                                                                                                                                                                                                                                                               |
+| DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE(text,variant)                | function                    |          |                                                                                                                                                                                                                                                                               |
+| DTAGENT_DB.STATUS.F_LAST_PROCESSED_TS(text)                       | function                    |          |                                                                                                                                                                                                                                                                               |
+| DTAGENT_DB.APP.SEND_TELEMETRY(variant,object)                     | procedure                   | python   |                                                                                                                                                                                                                                                                               |
+| DTAGENT_DB.APP.DTAGENT(array)                                     | procedure                   | python   |                                                                                                                                                                                                                                                                               |
+
+### Objects referenced by the agent
+
+| Name                | Type        | Privileges                                    | Granted to     | Comment                                                                                      |
+| ------------------- | ----------- | --------------------------------------------- | -------------- | -------------------------------------------------------------------------------------------- |
+| SNOWFLAKE           | application | IMPORTED PRIVILEGES ON DATABASE               | DTAGENT_VIEWER |                                                                                              |
+| ACCOUNT             | account     | MONITOR, MONITOR USAGE, MONITOR EXECUTION     | DTAGENT_VIEWER |                                                                                              |
+| ACCOUNT             | account     | MODIFY SESSION LOG LEVEL                      | DTAGENT_VIEWER |                                                                                              |
+| ACCOUNT             | account     | MANAGE GRANTS, EXECUTE TASK                   | DTAGENT_ADMIN  | Optional (controlled by core.snowflake.roles.admin). Only granted when admin role is enabled |
+| ACCOUNT             | account     | EXECUTE TASK                                  | DTAGENT_VIEWER |                                                                                              |
+| DATABASE DTAGENT_DB | database    | OPERATE on all TASKS, OPERATE on future TASKS | DTAGENT_VIEWER |                                                                                              |
+
+<a name="active_queries_info_sec"></a>
 
 ## The Active Queries plugin
 
@@ -87,12 +134,10 @@ plugins:
 ```
 
 > **IMPORTANT**: For the `query_history` and `active_queries` plugins to report telemetry for all queries, the `DTAGENT_VIEWER` role must be
-> granted `MONITOR` privileges on all warehouses.  
-> This is ensured by default through the periodic execution of the `APP.P_MONITOR_WAREHOUSES()` procedure, triggered by the
-> `APP.TASK_DTAGENT_QUERY_HISTORY_GRANTS` task.  
-> The schedule for this special task can be configured using the `PLUGINS.QUERY_HISTORY.SCHEDULE_GRANTS` configuration option.  
-> Since this procedure runs with the elevated privileges of the `DTAGENT_ADMIN` role, you may choose to disable it and manually ensure that
-> the `DTAGENT_VIEWER` role is granted the appropriate `MONITOR` rights.
+> granted `MONITOR` privileges on all warehouses. By default, when the `admin` scope is installed, this is ensured through the periodic
+> execution of the `APP.P_MONITOR_WAREHOUSES()` procedure, triggered by the `APP.TASK_DTAGENT_QUERY_HISTORY_GRANTS` task. The schedule for
+> this special task can be configured using the `PLUGINS.QUERY_HISTORY.SCHEDULE_GRANTS` configuration option. Since this procedure runs with
+> the elevated privileges of the `DTAGENT_ADMIN` role (which is only created when the `admin` scope is installed), you may choose to:
 
 ### Active Queries Bill of Materials
 
@@ -331,12 +376,11 @@ plugins:
 
 ```
 
-> **IMPORTANT**: For this plugin to function correctly, `MONITOR on DYNAMIC TABLES` must be granted to the `DTAGENT_VIEWER` role.  
-> By default, this is handled by the `P_GRANT_MONITOR_DYNAMIC_TABLES()` procedure, which is executed with the elevated privileges of the
-> `DTAGENT_ADMIN` role, via the `APP.TASK_DTAGENT_DYNAMIC_TABLES_GRANTS` task.  
-> The schedule for this task can be configured separately using the `PLUGINS.DYNAMIC_TABLES.SCHEDULE_GRANTS` configuration option.  
-> Alternatively, you may choose to disable this special task and manually ensure that the `DTAGENT_VIEWER` role is granted the necessary
-> `MONITOR` rights.
+> **IMPORTANT**: For this plugin to function correctly, `MONITOR on DYNAMIC TABLES` must be granted to the `DTAGENT_VIEWER` role. By
+> default, when the `admin` scope is installed, this is handled by the `P_GRANT_MONITOR_DYNAMIC_TABLES()` procedure, which is executed with
+> the elevated privileges of the `DTAGENT_ADMIN` role (created only when the `admin` scope is installed), via the
+> `APP.TASK_DTAGENT_DYNAMIC_TABLES_GRANTS` task. The schedule for this task can be configured separately using the
+> `PLUGINS.DYNAMIC_TABLES.SCHEDULE_GRANTS` configuration option. Alternatively, you may choose to:
 
 ### Dynamic Tables Bill of Materials
 
@@ -344,15 +388,15 @@ The following tables list the Snowflake objects that this plugin delivers data f
 
 #### Objects delivered by the `Dynamic Tables` plugin
 
-| Name                                                        | Type      | Comment                                                                         |
-| ----------------------------------------------------------- | --------- | ------------------------------------------------------------------------------- |
-| DTAGENT_DB.APP.P_GRANT_MONITOR_DYNAMIC_TABLES()             | procedure |                                                                                 |
-| DTAGENT_DB.APP.V_DYNAMIC_TABLE_GRAPH_HISTORY_INSTRUMENTED   | view      |                                                                                 |
-| DTAGENT_DB.APP.V_DYNAMIC_TABLE_REFRESH_HISTORY_INSTRUMENTED | view      |                                                                                 |
-| DTAGENT_DB.APP.V_DYNAMIC_TABLES_INSTRUMENTED                | view      |                                                                                 |
-| DTAGENT_DB.CONFIG.UPDATE_DYNAMIC_TABLES_CONF()              | procedure |                                                                                 |
-| DTAGENT_DB.APP.TASK_DTAGENT_DYNAMIC_TABLES                  | task      |                                                                                 |
-| DTAGENT_DB.APP.TASK_DTAGENT_DYNAMIC_TABLES_GRANTS           | task      | Admin task owned by DTAGENT_ADMIN to grant MONITOR privileges on dynamic tables |
+| Name                                                        | Type      | Comment                                                                                            |
+| ----------------------------------------------------------- | --------- | -------------------------------------------------------------------------------------------------- |
+| DTAGENT_DB.APP.P_GRANT_MONITOR_DYNAMIC_TABLES()             | procedure |                                                                                                    |
+| DTAGENT_DB.APP.V_DYNAMIC_TABLE_GRAPH_HISTORY_INSTRUMENTED   | view      |                                                                                                    |
+| DTAGENT_DB.APP.V_DYNAMIC_TABLE_REFRESH_HISTORY_INSTRUMENTED | view      |                                                                                                    |
+| DTAGENT_DB.APP.V_DYNAMIC_TABLES_INSTRUMENTED                | view      |                                                                                                    |
+| DTAGENT_DB.CONFIG.UPDATE_DYNAMIC_TABLES_CONF()              | procedure |                                                                                                    |
+| DTAGENT_DB.APP.TASK_DTAGENT_DYNAMIC_TABLES                  | task      |                                                                                                    |
+| DTAGENT_DB.APP.TASK_DTAGENT_DYNAMIC_TABLES_GRANTS           | task      | (Admin scope only) Admin task owned by DTAGENT_ADMIN to grant MONITOR privileges on dynamic tables |
 
 #### Objects referenced by the `Dynamic Tables` plugin
 
@@ -448,7 +492,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 | DTAGENT_DB.APP.V_EVENT_LOG_METRICS_INSTRUMENTED | view       |                                                                                                                                                                                                                                        |
 | DTAGENT_DB.CONFIG.UPDATE_EVENT_LOG_CONF()       | procedure  |                                                                                                                                                                                                                                        |
 | DTAGENT_DB.APP.TASK_DTAGENT_EVENT_LOG           | task       |                                                                                                                                                                                                                                        |
-| DTAGENT_DB.APP.TASK_DTAGENT_EVENT_LOG_CLEANUP   | task       | Cleanup task owned by DTAGENT_ADMIN to remove old event log entries                                                                                                                                                                    |
+| DTAGENT_DB.APP.TASK_DTAGENT_EVENT_LOG_CLEANUP   | task       | (Admin scope only) Cleanup task owned by DTAGENT_ADMIN to remove old event log entries                                                                                                                                                 |
 
 #### Objects referenced by the `Event Log` plugin
 
@@ -627,11 +671,13 @@ The following options control this behavior:
 - `PLUGINS.QUERY_HISTORY.MAX_SLOWEST_QUERIES`: The maximum number of slowest queries to analyze. Default: `50`.
 
 > **IMPORTANT**: For the `query_history` and `active_queries` plugins to report telemetry for all queries, the `DTAGENT_VIEWER` role must be
-> granted `MONITOR` privileges on all warehouses. This is ensured by default through the periodic execution of the
-> `APP.P_MONITOR_WAREHOUSES()` procedure, triggered by the `APP.TASK_DTAGENT_QUERY_HISTORY_GRANTS` task. The schedule for this special task
-> can be configured using the `PLUGINS.QUERY_HISTORY.SCHEDULE_GRANTS` configuration option. Since this procedure runs with the elevated
-> privileges of the `DTAGENT_ADMIN` role, you may choose to disable it and manually ensure that the `DTAGENT_VIEWER` role is granted the
-> appropriate `MONITOR` rights.
+> granted `MONITOR` privileges on all warehouses. By default, when the `admin` scope is installed, this is ensured through the periodic
+> execution of the `APP.P_MONITOR_WAREHOUSES()` procedure, triggered by the `APP.TASK_DTAGENT_QUERY_HISTORY_GRANTS` task. The schedule for
+> this special task can be configured using the `PLUGINS.QUERY_HISTORY.SCHEDULE_GRANTS` configuration option. Since this procedure runs with
+> the elevated privileges of the `DTAGENT_ADMIN` role (which is only created when the `admin` scope is installed), you may choose to:
+>
+> - Skip the `admin` scope entirely and manually grant `MONITOR` privileges on warehouses to `DTAGENT_VIEWER`
+> - Install the `admin` scope and disable the automated grant task, then manually manage `MONITOR` privileges
 
 ### Query History Bill of Materials
 
@@ -639,21 +685,21 @@ The following tables list the Snowflake objects that this plugin delivers data f
 
 #### Objects delivered by the `Query History` plugin
 
-| Name                                                     | Type            | Comment                                                                     |
-| -------------------------------------------------------- | --------------- | --------------------------------------------------------------------------- |
-| DTAGENT_DB.STATUS.PROCESSED_QUERIES_CACHE                | table           |                                                                             |
-| DTAGENT_DB.STATUS.UPDATE_PROCESSED_QUERIES(text,int,int) | procedure       |                                                                             |
-| DTAGENT_DB.APP.TMP_RECENT_QUERIES                        | transient table |                                                                             |
-| DTAGENT_DB.APP.TMP_QUERY_OPERATOR_STATS                  | transient table |                                                                             |
-| DTAGENT_DB.APP.TMP_QUERY_ACCELERATION_ESTIMATES          | transient table |                                                                             |
-| DTAGENT_DB.APP.V_QUERY_HISTORY                           | view            |                                                                             |
-| DTAGENT_DB.APP.V_QUERY_HISTORY_INSTRUMENTED              | view            |                                                                             |
-| DTAGENT_DB.APP.V_RECENT_QUERIES                          | view            |                                                                             |
-| DTAGENT_DB.CONFIG.P_GET_ACCELERATION_ESTIMATES()         | procedure       |                                                                             |
-| DTAGENT_DB.CONFIG.UPDATE_QUERY_HISTORY_CONF()            | procedure       |                                                                             |
-| DTAGENT_DB.APP.P_MONITOR_WAREHOUSES()                    | procedure       | Procedure owned by DTAGENT_ADMIN to grant MONITOR privilege on warehouses   |
-| DTAGENT_DB.APP.TASK_DTAGENT_QUERY_HISTORY                | task            |                                                                             |
-| DTAGENT_DB.APP.TASK_DTAGENT_QUERY_HISTORY_GRANTS         | task            | Admin task owned by DTAGENT_ADMIN to grant MONITOR privileges on warehouses |
+| Name                                                     | Type            | Comment                                                                                        |
+| -------------------------------------------------------- | --------------- | ---------------------------------------------------------------------------------------------- |
+| DTAGENT_DB.STATUS.PROCESSED_QUERIES_CACHE                | table           |                                                                                                |
+| DTAGENT_DB.STATUS.UPDATE_PROCESSED_QUERIES(text,int,int) | procedure       |                                                                                                |
+| DTAGENT_DB.APP.TMP_RECENT_QUERIES                        | transient table |                                                                                                |
+| DTAGENT_DB.APP.TMP_QUERY_OPERATOR_STATS                  | transient table |                                                                                                |
+| DTAGENT_DB.APP.TMP_QUERY_ACCELERATION_ESTIMATES          | transient table |                                                                                                |
+| DTAGENT_DB.APP.V_QUERY_HISTORY                           | view            |                                                                                                |
+| DTAGENT_DB.APP.V_QUERY_HISTORY_INSTRUMENTED              | view            |                                                                                                |
+| DTAGENT_DB.APP.V_RECENT_QUERIES                          | view            |                                                                                                |
+| DTAGENT_DB.CONFIG.P_GET_ACCELERATION_ESTIMATES()         | procedure       |                                                                                                |
+| DTAGENT_DB.CONFIG.UPDATE_QUERY_HISTORY_CONF()            | procedure       |                                                                                                |
+| DTAGENT_DB.APP.P_MONITOR_WAREHOUSES()                    | procedure       | (Admin scope only) Procedure owned by DTAGENT_ADMIN to grant MONITOR privilege on warehouses   |
+| DTAGENT_DB.APP.TASK_DTAGENT_QUERY_HISTORY                | task            |                                                                                                |
+| DTAGENT_DB.APP.TASK_DTAGENT_QUERY_HISTORY_GRANTS         | task            | (Admin scope only) Admin task owned by DTAGENT_ADMIN to grant MONITOR privileges on warehouses |
 
 #### Objects referenced by the `Query History` plugin
 

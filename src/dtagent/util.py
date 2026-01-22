@@ -281,15 +281,61 @@ def _get_timestamp_in_sec(ts: float = 0, conversion_unit: float = 1, timezone=da
     return datetime.datetime.fromtimestamp(ts / conversion_unit, tz=timezone)
 
 
-def _get_service_name(config_dict: str) -> str:
-    """Returns snowflake full account name either as account name from config
-    or matching given pattern on snowflake host name
-    """
-    if "core.snowflake_account_name" in config_dict:
-        return config_dict["core.snowflake_account_name"]
+def _get_snowflake_account_info(config_dict: dict, session=None) -> Tuple[str, str]:
+    """Returns Snowflake account identifier and host name, deriving them if not provided.
 
-    m = re.match(r"(.*?)\.snowflakecomputing\.com$", config_dict["core.snowflake_host_name"])
-    return m.group(1) if m else config_dict["core.snowflake_host_name"]
+    Resolution priority:
+    1. Use values from config if explicitly provided and not "-"
+    2. Derive missing values from provided values
+    3. Query Snowflake for account info (if session provided and values still missing)
+
+    Args:
+        config_dict: Configuration dictionary containing Snowflake connection details
+        session: Optional Snowflake session for querying account information
+
+    Returns:
+        Tuple[str, str]: (account_name, host_name)
+            - account_name: Snowflake account identifier (e.g., 'myorg-myaccount' or 'account.region')
+            - host_name: Snowflake host name (e.g., 'myorg-myaccount.snowflakecomputing.com')
+    """
+    account_name = config_dict.get("core.snowflake.account_name", "")
+    host_name = config_dict.get("core.snowflake.host_name", "")
+
+    # Normalize placeholder values to empty strings
+    if account_name == "-":
+        account_name = ""
+    if host_name == "-":
+        host_name = ""
+
+    # If we have both values, return them
+    if account_name and host_name:
+        return account_name, host_name
+
+    # If we have host_name but not account_name, extract account from host
+    if host_name and not account_name:
+        m = re.match(r"(.*?)\.snowflakecomputing\.com$", host_name)
+        account_name = m.group(1) if m else host_name
+        return account_name, host_name
+
+    # If we have account_name but not host_name, derive host from account
+    if account_name and not host_name:
+        if not account_name.endswith(".snowflakecomputing.com"):
+            host_name = f"{account_name}.snowflakecomputing.com"
+        else:
+            host_name = account_name
+        return account_name, host_name
+
+    # If we have neither, try to query Snowflake
+    if session:
+        try:
+            result = session.sql("SELECT CURRENT_ORGANIZATION_NAME() || '-' || CURRENT_ACCOUNT_NAME() as account_identifier").collect()
+            if result and len(result) > 0:
+                account_identifier = result[0]["ACCOUNT_IDENTIFIER"]
+                return account_identifier, f"{account_identifier}.snowflakecomputing.com"
+        except Exception:  # pylint: disable=broad-except
+            pass  # Fall back to empty strings if query fails
+
+    return account_name, host_name
 
 
 def _is_not_blank(value: Any) -> bool:

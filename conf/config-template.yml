@@ -1,13 +1,41 @@
 core:
   dynatrace_tenant_address: abc12345.live.dynatrace.com
   deployment_environment: TEST
-  snowflake_account_name: "-"
-  snowflake_host_name: "-"
-  snowflake_credit_quota: 5
-  snowflake_data_retention_time_in_days: 1
   log_level: WARN
   tag: ""
   procedure_timeout: 3600
+
+  snowflake:
+    # Snowflake account identifier in the format: orgname-accountname (preferred)
+    # Example: myorg-myaccount
+    # Legacy format (account locator) also supported: myaccount.region
+    # See: https://docs.snowflake.com/en/user-guide/admin-account-identifier
+    #
+    # RECOMMENDED: Provide account_name for best performance (avoids SQL query at startup)
+    # OPTIONAL: Set to "-" to auto-detect via Snowflake query (adds ~100ms startup time)
+    account_name: "-"
+
+    # Snowflake host name (optional - can be derived from account_name)
+    # If not provided or set to "-", will be automatically derived
+    # Format: <account_identifier>.snowflakecomputing.com
+    # Example: myorg-myaccount.snowflakecomputing.com
+    host_name: "-"
+
+    database:
+      name: "" # Default: DTAGENT_DB
+      data_retention_time_in_days: 1
+
+    warehouse:
+      name: "" # Default: DTAGENT_WH
+
+    resource_monitor:
+      name: "" # Default: DTAGENT_RS, use "-" to skip
+      credit_quota: 5
+
+    roles:
+      owner: "" # Default: DTAGENT_OWNER
+      admin: "" # Default: DTAGENT_ADMIN, use "-" to skip
+      viewer: "" # Default: DTAGENT_VIEWER
 otel: {}
 plugins:
   disabled_by_default: false

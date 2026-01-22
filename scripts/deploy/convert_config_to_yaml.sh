@@ -27,6 +27,12 @@
 # If you have multiple configuration objects in the JSON file (i.e., a JSON array), multiple YAML files will be created,
 # one per configuration object.
 #
+# This script also automatically migrates old configuration paths to the new structure:
+# - SNOWFLAKE_ACCOUNT_NAME -> SNOWFLAKE.ACCOUNT_NAME
+# - SNOWFLAKE_HOST_NAME -> SNOWFLAKE.HOST_NAME
+# - SNOWFLAKE_CREDIT_QUOTA -> SNOWFLAKE.RESOURCE_MONITOR.CREDIT_QUOTA
+# - SNOWFLAKE_DATA_RETENTION_TIME_IN_DAYS -> SNOWFLAKE.DATABASE.DATA_RETENTION_TIME_IN_DAYS
+#
 # PARAMS: $1 - path to JSON file to convert
 
 if ! command -v jq &> /dev/null || ! command -v yq &> /dev/null; then
@@ -44,6 +50,37 @@ fi
 BASE_NAME=$(basename "$JSON_FILE" .json)
 DIR=$(dirname "$JSON_FILE")
 
+# Function to migrate old config paths to new structure
+migrate_config_paths() {
+    jq '
+        # Migrate CORE.SNOWFLAKE_* paths to nested SNOWFLAKE structure
+        if type == "object" and has("CORE") then
+            .CORE as $core |
+            # Check if we have any old SNOWFLAKE_* keys to migrate
+            if ($core | has("SNOWFLAKE_ACCOUNT_NAME") or has("SNOWFLAKE_HOST_NAME") or
+                has("SNOWFLAKE_CREDIT_QUOTA") or has("SNOWFLAKE_DATA_RETENTION_TIME_IN_DAYS")) then
+                .CORE = (
+                    # Build new SNOWFLAKE object
+                    {
+                        "SNOWFLAKE": (
+                            (if $core.SNOWFLAKE_ACCOUNT_NAME then {"ACCOUNT_NAME": $core.SNOWFLAKE_ACCOUNT_NAME} else {} end) +
+                            (if $core.SNOWFLAKE_HOST_NAME then {"HOST_NAME": $core.SNOWFLAKE_HOST_NAME} else {} end) +
+                            (if $core.SNOWFLAKE_CREDIT_QUOTA then {"RESOURCE_MONITOR": {"CREDIT_QUOTA": $core.SNOWFLAKE_CREDIT_QUOTA}} else {} end) +
+                            (if $core.SNOWFLAKE_DATA_RETENTION_TIME_IN_DAYS then {"DATABASE": {"DATA_RETENTION_TIME_IN_DAYS": $core.SNOWFLAKE_DATA_RETENTION_TIME_IN_DAYS}} else {} end)
+                        )
+                    } +
+                    # Keep all other CORE keys except the old SNOWFLAKE_* ones
+                    ($core | del(.SNOWFLAKE_ACCOUNT_NAME, .SNOWFLAKE_HOST_NAME, .SNOWFLAKE_CREDIT_QUOTA, .SNOWFLAKE_DATA_RETENTION_TIME_IN_DAYS))
+                )
+            else
+                .
+            end
+        else
+            .
+        end
+    '
+}
+
 # Check if array using jq
 IS_ARRAY=$(jq -e 'type == "array"' "$JSON_FILE")
 
@@ -55,9 +92,17 @@ if [ "$IS_ARRAY" = "true" ]; then
         else
             OUTPUT_FILE="$DIR/${BASE_NAME}_$i.yml"
         fi
-        jq ".[$i] | walk(if type == \"object\" then with_entries(.key |= ascii_downcase) else . end)" "$JSON_FILE" | yq -P > "$OUTPUT_FILE"
+        # Extract item, migrate paths, convert keys to lowercase, then convert to YAML
+        jq ".[$i]" "$JSON_FILE" | migrate_config_paths | \
+            jq 'walk(if type == "object" then with_entries(.key |= ascii_downcase) else . end)' | \
+            yq -P > "$OUTPUT_FILE"
+        echo "Created: $OUTPUT_FILE (with migrated paths)"
     done
 else
     OUTPUT_FILE="$DIR/$BASE_NAME.yml"
-    jq 'walk(if type == "object" then with_entries(.key |= ascii_downcase) else . end)' "$JSON_FILE" | yq -P > "$OUTPUT_FILE"
+    # Migrate paths, convert keys to lowercase, then convert to YAML
+    cat "$JSON_FILE" | migrate_config_paths | \
+        jq 'walk(if type == "object" then with_entries(.key |= ascii_downcase) else . end)' | \
+        yq -P > "$OUTPUT_FILE"
+    echo "Created: $OUTPUT_FILE (with migrated paths)"
 fi

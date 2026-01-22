@@ -24,6 +24,7 @@
 --
 --  This task ensures Dynatrace Snowflake Observability Agent is called periodically
 --
+--%OPTION:dtagent_admin:
 use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 
 -- IMPORTANT: this task is executed as DTAGENT_ADMIN, so it can grant MONITOR privilege to DTAGENT_VIEWER
@@ -42,4 +43,4 @@ as
 grant ownership on task DTAGENT_DB.APP.TASK_DTAGENT_QUERY_HISTORY_GRANTS to role DTAGENT_ADMIN revoke current grants;
 grant monitor on task DTAGENT_DB.APP.TASK_DTAGENT_QUERY_HISTORY_GRANTS to role DTAGENT_VIEWER;
 alter task if exists DTAGENT_DB.APP.TASK_DTAGENT_QUERY_HISTORY_GRANTS resume;
-
+--%:OPTION:dtagent_admin

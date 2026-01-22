@@ -6,6 +6,65 @@ need to be deployed at Snowflake by executing them in the correct order.
 This document assumes you are installing from the distribution package (`dynatrace_snowflake_observability_agent-*.zip`). If you are a
 developer and want to build from source, please refer to the [CONTRIBUTING.md](CONTRIBUTING.md) guide.
 
+## Table of Contents
+
+- [Table of Contents](#table-of-contents)
+- [Prerequisites](#prerequisites)
+  - [Windows Users](#windows-users)
+  - [All Users](#all-users)
+    - [Snowflake CLI](#snowflake-cli)
+    - [jq and gawk](#jq-and-gawk)
+- [Quick Start](#quick-start)
+- [Deploying Dynatrace Snowflake Observability Agent](#deploying-dynatrace-snowflake-observability-agent)
+  - [Understanding the Deployment Process](#understanding-the-deployment-process)
+  - [Deployment Commands](#deployment-commands)
+    - [Required Parameters](#required-parameters)
+    - [Optional Parameters](#optional-parameters)
+    - [Examples](#examples)
+  - [Understanding the Role Model and Deployment Flexibility](#understanding-the-role-model-and-deployment-flexibility)
+    - [Role Hierarchy](#role-hierarchy)
+    - [Deployment Scope Privileges](#deployment-scope-privileges)
+    - [Restricting Elevated Privileges](#restricting-elevated-privileges)
+      - [Option 1: Pre-Created Objects with Custom Names (Most Restrictive - No ACCOUNTADMIN Required)](#option-1-pre-created-objects-with-custom-names-most-restrictive---no-accountadmin-required)
+        - [Benefits](#benefits)
+      - [Option 2: Manual Initialization Without Init or Admin Scopes](#option-2-manual-initialization-without-init-or-admin-scopes)
+      - [Option 3: Deploy With Init But Without Admin Scope](#option-3-deploy-with-init-but-without-admin-scope)
+      - [Option 4: Split Deployment by Scope (With Admin)](#option-4-split-deployment-by-scope-with-admin)
+      - [Option 4: Separate Admin Operations (Alternative)](#option-4-separate-admin-operations-alternative)
+  - [Dynatrace API Token Setup](#dynatrace-api-token-setup)
+- [Setting up a profile](#setting-up-a-profile)
+  - [Creating profile configuration file for Snowflake-Dynatrace connection](#creating-profile-configuration-file-for-snowflake-dynatrace-connection)
+    - [Core Configuration Options](#core-configuration-options)
+    - [Custom Object Names](#custom-object-names)
+      - [Use Case: Deploying Without Admin Rights](#use-case-deploying-without-admin-rights)
+        - [Example Configuration](#example-configuration)
+        - [Deployment Command](#deployment-command)
+      - [Validation Rules](#validation-rules)
+      - [Mutual Exclusivity with TAG](#mutual-exclusivity-with-tag)
+    - [Plugin Configuration Options](#plugin-configuration-options)
+    - [OpenTelemetry Configuration Options](#opentelemetry-configuration-options)
+    - [Plugin Scheduling](#plugin-scheduling)
+    - [Multitenancy](#multitenancy)
+- [Setting up connection to Snowflake](#setting-up-connection-to-snowflake)
+  - [Automatic Connection Setup (Recommended)](#automatic-connection-setup-recommended)
+  - [Manual Connection Setup](#manual-connection-setup)
+  - [Verifying Your Connections](#verifying-your-connections)
+  - [Connection Configuration Example](#connection-configuration-example)
+  - [Understanding Snowflake Account Identifiers](#understanding-snowflake-account-identifiers)
+    - [Recommended Format: Organization-Account Name (`orgname-accountname`)](#recommended-format-organization-account-name-orgname-accountname)
+    - [Legacy Format: Account Locator (`account.region`)](#legacy-format-account-locator-accountregion)
+    - [Configuration Best Practices](#configuration-best-practices)
+    - [How to Find Your Account Identifier](#how-to-find-your-account-identifier)
+    - [Host Name Derivation](#host-name-derivation)
+- [Common Configuration Mistakes](#common-configuration-mistakes)
+  - [Mistake 1: Using Account Locator Without Understanding](#mistake-1-using-account-locator-without-understanding)
+  - [Mistake 2: Connection Profile Name Mismatch](#mistake-2-connection-profile-name-mismatch)
+  - [Mistake 3: Confusing ENV with deployment\_environment](#mistake-3-confusing-env-with-deployment_environment)
+  - [Mistake 4: Reusing Tags or Deployment Environments](#mistake-4-reusing-tags-or-deployment-environments)
+  - [Mistake 5: Including Tag in deployment\_environment](#mistake-5-including-tag-in-deployment_environment)
+  - [Mistake 6: Not Using Lowercase for Connection Names](#mistake-6-not-using-lowercase-for-connection-names)
+  - [Quick Diagnostic Commands](#quick-diagnostic-commands)
+
 ## Prerequisites
 
 Before you can deploy the agent, you need to ensure the following tools are installed on your system.
@@ -65,20 +124,140 @@ On **macOS** (with Homebrew):
 brew install jq yq gawk
 ```
 
+## Quick Start
+
+1. **Create configuration file** (choose a descriptive `$ENV` name for your file):
+
+   ```bash
+   cp conf/config-template.yml conf/config-$ENV.yml
+   # Example: cp conf/config-template.yml conf/config-production.yml
+   ```
+
+2. **Edit configuration** - Set your `deployment_environment` and other parameters:
+
+   ```yaml
+   core:
+     deployment_environment: PRODUCTION  # This identifies your instance in telemetry
+     tag: ""                             # Optional: Use for multitenancy (suffixes Snowflake objects)
+     snowflake:
+       # Use organization-account format (recommended)
+       account_name: "myorg-myaccount"
+       host_name: "-"  # Will be auto-derived
+       # ... other settings
+   ```
+
+3. **Set up Snowflake CLI connection** (based on your `deployment_environment`, not file name):
+
+   ```bash
+   # Automatic setup (recommended):
+   ./setup.sh production
+
+   # The script will create connection: snow_agent_production
+   # (derived from deployment_environment, converted to lowercase)
+   ```
+
+4. **Deploy**:
+
+   ```bash
+   ./deploy.sh production
+   ```
+
+**Important to understand:**
+
+- `production` in the commands above is the `$ENV` parameter - it only locates the file `config-production.yml`
+- The actual Snowflake connection used is `snow_agent_<deployment_environment>` (from inside the config file)
+- In this example, if `deployment_environment: PRODUCTION`, the connection name is `snow_agent_production` (lowercase)
+
 ## Deploying Dynatrace Snowflake Observability Agent
 
-The default option to install Dynatrace Snowflake Observability Agent is from the distribution package. To deploy Dynatrace Snowflake
-Observability Agent, run the `./deploy.sh` command:
+### Understanding the Deployment Process
+
+The deployment process uses your `$ENV` parameter only to locate the configuration file. Everything else is driven by values **inside** that configuration file.
+
+**Step-by-step flow when you run `./deploy.sh $ENV`:**
+
+1. **Configuration Loading**:
+   - Loads file: `conf/config-$ENV.yml`
+   - The `$ENV` parameter is only used here
+
+2. **Value Extraction**:
+   - Reads `core.deployment_environment` from inside the config
+   - Reads `core.tag` from inside the config
+
+3. **Connection Selection**:
+   - Uses Snowflake CLI connection: `snow_agent_<deployment_environment_lowercase>`
+   - This is NOT based on `$ENV`, but on `deployment_environment` value
+
+4. **Object Creation**:
+   - Creates Snowflake objects with naming: `DTAGENT_<tag>_*` (if tag provided)
+   - Without tag: `DTAGENT_*`
+
+5. **Configuration Storage**:
+   - Stores `deployment_environment` in Snowflake tables
+   - This value is used at runtime
+
+6. **Runtime Identification**:
+   - Agent reads `deployment_environment` from Snowflake tables
+   - Sends all telemetry with dimension: `deployment.environment: "<deployment_environment>"`
+
+**Visual Example:**
+
+```bash
+./deploy.sh prod-useast
+```
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+│ Step 1: Load config-prod-useast.yml                         │
+│ (ENV parameter: "prod-useast" used only here)              │
+└─────────────────────────────────────────────────────────────┘
+                          ↓
+┌─────────────────────────────────────────────────────────────┐
+│ Step 2: Extract values from config file:                    │
+│   deployment_environment: "PRODUCTION_US_EAST_1"           │
+│   tag: "USEAST"                                            │
+└─────────────────────────────────────────────────────────────┘
+                          ↓
+┌─────────────────────────────────────────────────────────────┐
+│ Step 3: Use Snowflake connection:                          │
+│   snow_agent_production_us_east_1                          │
+│   (from deployment_environment, lowercase)                  │
+└─────────────────────────────────────────────────────────────┘
+                          ↓
+┌─────────────────────────────────────────────────────────────┐
+│ Step 4: Create Snowflake objects:                          │
+│   DTAGENT_USEAST_DB                                        │
+│   DTAGENT_USEAST_WH                                        │
+│   DTAGENT_USEAST_OWNER (role)                             │
+│   (from tag)                                               │
+└─────────────────────────────────────────────────────────────┘
+                          ↓
+┌─────────────────────────────────────────────────────────────┐
+│ Step 5: Store in DTAGENT_USEAST_DB.APP.DTAGENT_CONFIG:    │
+│   deployment_environment: "PRODUCTION_US_EAST_1"           │
+│   deployment_environment_tag: "USEAST"                     │
+└─────────────────────────────────────────────────────────────┘
+                          ↓
+┌─────────────────────────────────────────────────────────────┐
+│ Step 6: Runtime - Send telemetry to Dynatrace:            │
+│   deployment.environment: "PRODUCTION_US_EAST_1"           │
+│   deployment.environment.tag: "USEAST"                     │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Deployment Commands
+
+To deploy Dynatrace Snowflake Observability Agent, run the `./deploy.sh` command:
 
 ```bash
 ./deploy.sh $ENV [--scope=SCOPE] [--from-version=VERSION] [--output-file=FILE] [--options=OPTIONS]
 ```
 
-### Required Parameters
+#### Required Parameters
 
 - **`$ENV`** (required): Environment identifier that must match one of the previously created configuration files. The file must be named `config-$ENV.yml` in the `conf/` directory.
 
-### Optional Parameters
+#### Optional Parameters
 
 - **`--scope=SCOPE`** (optional, default: `all`): Specifies the deployment scope. Valid values:
   - `init` - Initialize database and basic structure - **Optional** (can be performed manually)
@@ -107,7 +286,7 @@ Observability Agent, run the `./deploy.sh` command:
   - `skip_confirm` - Skip deployment confirmation prompt
   - `no_dep` - Skip sending deployment BizEvents to Dynatrace
 
-### Examples
+#### Examples
 
 ```bash
 # Full deployment to 'dev' environment
@@ -175,9 +354,28 @@ Different deployment scopes require different privilege levels:
 
 If you want to minimize the use of elevated privileges in your organization, you have several deployment options:
 
-##### Option 1: Manual Initialization Without Init or Admin Scopes (Most Restrictive)
+##### Option 1: Pre-Created Objects with Custom Names (Most Restrictive - No ACCOUNTADMIN Required)
 
-Manually create the required roles and database structure, then skip both `init` and `admin` scopes entirely:
+Use [Custom Object Names](#custom-object-names) to reference objects that have been pre-created by your database administrators. This approach allows deployment without any elevated privileges:
+
+```bash
+# 1. DBA pre-creates objects as ACCOUNTADMIN (one-time setup)
+# 2. Configure custom names in conf/config-prod.yml to match pre-created objects
+# 3. Deploy without init or admin scopes (no ACCOUNTADMIN required)
+./deploy.sh prod --scope=setup,plugins,config,agents,apikey
+```
+
+###### Benefits
+
+- No `ACCOUNTADMIN` access required during deployment
+- Full control over object names and structure
+- Ideal for organizations with strict privilege separation
+
+See the [Custom Object Names](#custom-object-names) section for detailed configuration and use case examples.
+
+##### Option 2: Manual Initialization Without Init or Admin Scopes
+
+Manually create the required roles and database structure using default names, then skip both `init` and `admin` scopes:
 
 ```bash
 # Manually create roles and database as ACCOUNTADMIN:
@@ -188,12 +386,12 @@ Manually create the required roles and database structure, then skip both `init`
 # ...
 
 # Deploy without init or admin scopes
-./deploy.sh $ENV --scope=setup,plugins,config,agents
+./deploy.sh $ENV --scope=setup,plugins,config,agents,apikey
 ```
 
 **Important:** Without init and admin scopes, you must manually create all required objects and grant privileges.
 
-##### Option 2: Deploy With Init But Without Admin Scope
+##### Option 3: Deploy With Init But Without Admin Scope
 
 ```bash
 # Have an administrator run init scope once
@@ -210,7 +408,7 @@ Manually create the required roles and database structure, then skip both `init`
 - Grant `MONITOR` privilege on dynamic tables to `DTAGENT_VIEWER` for dynamic_tables plugin
 - Other plugin-specific privileges as documented in each plugin's configuration
 
-##### Option 3: Split Deployment by Scope (With Admin)
+##### Option 4: Split Deployment by Scope (With Admin)
 
 Have an administrator with `ACCOUNTADMIN` privileges run the `init` scope once to create the base roles and database:
 
@@ -229,10 +427,7 @@ Finally, have a user with `DTAGENT_OWNER` role run the remaining scopes:
 
 ```bash
 # As a user granted DTAGENT_OWNER role
-./deploy.sh $ENV --scope=setup
-./deploy.sh $ENV --scope=plugins
-./deploy.sh $ENV --scope=config
-./deploy.sh $ENV --scope=agents
+./deploy.sh $ENV --scope=setup,plugins,config,agents,apikey
 ```
 
 ##### Option 4: Separate Admin Operations (Alternative)
@@ -310,17 +505,107 @@ Optionally you can adjust plugin configurations.
 
 The following table describes all available `core` configuration options:
 
-| Configuration Key                       | Type    | Required | Default | Description                                                                                                                          |
-| --------------------------------------- | ------- | -------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `dynatrace_tenant_address`              | String  | Yes      | -       | The address of your Dynatrace tenant (e.g., `abc12345.live.dynatrace.com`)                                                           |
-| `deployment_environment`                | String  | Yes      | -       | Unique identifier for the deployment environment                                                                                     |
-| `snowflake_account_name`                | String  | Yes      | -       | Your Snowflake account name                                                                                                          |
-| `snowflake_host_name`                   | String  | Yes      | -       | Your Snowflake host name                                                                                                             |
-| `snowflake_credit_quota`                | Integer | Yes      | 5       | Credit quota limit for Snowflake operations                                                                                          |
-| `snowflake_data_retention_time_in_days` | Integer | No       | 1       | Data retention time in days for permanent tables in `DTAGENT_DB`. Does not affect transient tables which always have 0-day retention |
-| `log_level`                             | String  | Yes      | `WARN`  | Logging level. Valid values: `DEBUG`, `INFO`, `WARN`, `ERROR`                                                                        |
-| `tag`                                   | String  | No       | `""`    | Optional custom tag for Dynatrace Snowflake Observability Agent specific Snowflake objects. Used for multitenancy scenarios          |
-| `procedure_timeout`                     | Integer | No       | 3600    | Timeout in seconds for stored procedure execution. Default is 1 hour (3600 seconds)                                                  |
+| Configuration Key                                | Type    | Required    | Default          | Description                                                                                                                                                                                                                                                                                                                          |
+| ------------------------------------------------ | ------- | ----------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `dynatrace_tenant_address`                       | String  | Yes         | -                | The address of your Dynatrace tenant (e.g., `abc12345.live.dynatrace.com`)                                                                                                                                                                                                                                                           |
+| `deployment_environment`                         | String  | Yes         | -                | Unique identifier for the deployment environment                                                                                                                                                                                                                                                                                     |
+| `log_level`                                      | String  | Yes         | `WARN`           | Logging level. Valid values: `DEBUG`, `INFO`, `WARN`, `ERROR`                                                                                                                                                                                                                                                                        |
+| `tag`                                            | String  | No          | `""`             | Optional custom tag for Dynatrace Snowflake Observability Agent specific Snowflake objects. Used for multitenancy scenarios                                                                                                                                                                                                          |
+| `procedure_timeout`                              | Integer | No          | 3600             | Timeout in seconds for stored procedure execution. Default is 1 hour (3600 seconds)                                                                                                                                                                                                                                                  |
+| **Snowflake Configuration**                      |         |             |                  |                                                                                                                                                                                                                                                                                                                                      |
+| `snowflake.account_name`                         | String  | Recommended | (auto-detected)  | Your Snowflake account identifier in format `orgname-accountname` (e.g., `myorg-myaccount`). If not provided, will be auto-detected via SQL query at startup (adds ~100ms startup time). Legacy format `account.region` also supported. See [Account identifiers](https://docs.snowflake.com/en/user-guide/admin-account-identifier) |
+| `snowflake.host_name`                            | String  | No          | (derived)        | Your Snowflake host name (e.g., `myorg-myaccount.snowflakecomputing.com`). If not provided or set to "-", will be automatically derived from `account_name` or auto-detected                                                                                                                                                         |
+| `snowflake.database.name`                        | String  | No          | `DTAGENT_DB`     | Custom name for the Dynatrace agent database. Empty or missing value uses default                                                                                                                                                                                                                                                    |
+| `snowflake.database.data_retention_time_in_days` | Integer | No          | 1                | Data retention time in days for permanent tables in the database. Does not affect transient tables which always have 0-day retention                                                                                                                                                                                                 |
+| `snowflake.warehouse.name`                       | String  | No          | `DTAGENT_WH`     | Custom name for the Dynatrace agent warehouse. Empty or missing value uses default                                                                                                                                                                                                                                                   |
+| `snowflake.resource_monitor.name`                | String  | No          | `DTAGENT_RS`     | Custom name for the resource monitor. Empty/missing uses default, `"-"` skips creation (**see note below**)                                                                                                                                                                                                                          |
+| `snowflake.resource_monitor.credit_quota`        | Integer | Yes         | 5                | Credit quota limit for Snowflake operations                                                                                                                                                                                                                                                                                          |
+| `snowflake.roles.owner`                          | String  | No          | `DTAGENT_OWNER`  | Custom name for the owner role. Empty or missing value uses default                                                                                                                                                                                                                                                                  |
+| `snowflake.roles.admin`                          | String  | No          | `DTAGENT_ADMIN`  | Custom name for the admin role. Empty/missing uses default, `"-"` skips creation (**see note below**)                                                                                                                                                                                                                                |
+| `snowflake.roles.viewer`                         | String  | No          | `DTAGENT_VIEWER` | Custom name for the viewer role. Empty or missing value uses default                                                                                                                                                                                                                                                                 |
+
+> **Note on Optional Objects**: When `snowflake.roles.admin` or `snowflake.resource_monitor.name` is set to `"-"`, the corresponding object will not be created during deployment. All SQL code related to these objects will be automatically excluded from the deployment script. If you set `snowflake.roles.admin` to `"-"`, you cannot use the `admin` deployment scope as it requires the admin role to exist.
+
+#### Custom Object Names
+
+By default, Dynatrace Snowflake Observability Agent creates Snowflake objects with standard names (e.g., `DTAGENT_DB`, `DTAGENT_WH`, `DTAGENT_OWNER`). You can customize these names using the configuration options described above. This feature is useful when:
+
+- You need to comply with organizational naming conventions
+- You want to avoid naming conflicts with existing objects
+- You prefer more descriptive or context-specific names
+- **You want to pre-create objects and deploy without elevated privileges** (see use case below)
+
+##### Use Case: Deploying Without Admin Rights
+
+Custom object names enable a deployment model where database administrators pre-create all necessary Snowflake objects, allowing the agent to be deployed without requiring `ACCOUNTADMIN` or elevated privileges:
+
+1. **Pre-creation Phase** (performed by DBA with ACCOUNTADMIN):
+   - Create custom-named database, warehouse, resource monitor, and roles
+   - Grant necessary privileges to the owner role
+   - Set up the required object structure
+
+2. **Deployment Phase** (can be performed by regular user with owner role):
+   - Configure custom names to match pre-created objects
+   - Deploy using restricted scopes: `--scope=setup,plugins,config,apikey`
+   - Skip `init` and `admin` scopes entirely
+
+This approach is ideal for organizations with strict privilege separation policies where regular users should not have `ACCOUNTADMIN` access.
+
+###### Example Configuration
+
+```yaml
+core:
+  deployment_environment: prod
+  snowflake:
+    # Recommended: Use organization-account format
+    account_name: myorg-myaccount
+    host_name: "-"  # Will be derived as myorg-myaccount.snowflakecomputing.com
+
+    # Alternative: Legacy locator format
+    # account_name: myaccount.us-east-1
+    # host_name: myaccount.us-east-1.snowflakecomputing.com
+    database:
+      name: DT_MONITORING_DB
+    warehouse:
+      name: DT_MONITORING_WH
+    resource_monitor:
+      name: DT_MONITORING_RS  # or "-" if pre-created separately
+    roles:
+      owner: DT_MONITORING_OWNER
+      admin: "-"  # Skip admin role - privileges granted manually by DBA
+      viewer: DT_MONITORING_VIEWER
+```
+
+###### Deployment Command
+
+```bash
+# Deploy without init/admin scopes (no ACCOUNTADMIN required)
+./deploy.sh prod --scope=setup,plugins,config,agents,apikey
+```
+
+##### Validation Rules
+
+Custom names must follow Snowflake identifier rules:
+
+- Can contain only letters (A-Z, a-z), numbers (0-9), underscores (_), and dollar signs ($)
+- Must start with a letter or underscore (not a number)
+- Cannot contain spaces or special characters
+- Maximum length is 255 characters
+- Names are case-insensitive in Snowflake
+
+The deployment script will validate all custom names before proceeding. If validation fails, the deployment will stop with an error message.
+
+##### Mutual Exclusivity with TAG
+
+Custom object names and the `tag` configuration option are mutually exclusive. You cannot use both features simultaneously because:
+
+- Custom names provide direct object naming control for isolation
+- The `tag` option enables multitenancy by appending suffixes to object names
+
+If you specify both custom object names and a `tag` value, the deployment will fail with an error. Choose one approach based on your needs:
+
+- Use **custom names** for simple deployments with specific naming requirements
+- Use **tag** for multitenancy scenarios where multiple agent instances share the same Snowflake account
 
 #### Plugin Configuration Options
 
@@ -390,56 +675,154 @@ for each plugin separately using one of three formats:
 #### Multitenancy
 
 If you want to deliver telemetry from one Snowflake account to multiple Dynatrace tenants, or require different configurations and schedules
-for some plugins, you can achieve this by creating configuration with multiple deployment environment (Dynatrace Snowflake Observability
-Agent instances) definitions. Specify a different `core.deployment_environment` parameter for each instance. We **strongly** recommend also
-defining a unique `core.tag` for each additional Dynatrace Snowflake Observability Agent instance running on the same Snowflake account.
+for some plugins, you can deploy multiple Dynatrace Snowflake Observability Agent instances on the same Snowflake account.
 
-Example:
+**Requirements for each instance:**
+
+1. **Unique `deployment_environment`** - Identifies the instance in Dynatrace telemetry
+2. **Unique `tag`** - Prevents Snowflake object naming conflicts
+3. **Unique Snowflake CLI connection** - Named `snow_agent_<deployment_environment_lowercase>`
+
+**Important distinctions:**
+
+- `deployment_environment` → Used for telemetry dimensions in Dynatrace (e.g., `PRODUCTION_TENANT_A`)
+- `tag` → Used to suffix Snowflake object names (e.g., `TNA` creates `DTAGENT_TNA_DB`)
+- These serve **different purposes** and should NOT be combined
+
+**Valid multitenancy configuration:**
 
 ```yaml
-- core:
-  deployment_environment: test-mt001
-  tag: mt001
+# File: conf/config-prod-tenant-a.yml
+core:
+  deployment_environment: PRODUCTION_TENANT_A  # Unique telemetry identifier
+  tag: TNA                                      # Unique object suffix
+  dynatrace:
+    api_url: https://tenant-a.live.dynatrace.com/api/v2/otlp
+  # ... other config
 ```
 
-You can specify the configuration for each instance in a separate configuration file or use the multi-configuration deployment described
-above.
+```yaml
+# File: conf/config-prod-tenant-b.yml
+core:
+  deployment_environment: PRODUCTION_TENANT_B  # Different from tenant A
+  tag: TNB                                      # Different from tenant A
+  dynatrace:
+    api_url: https://tenant-b.live.dynatrace.com/api/v2/otlp
+  # ... other config
+```
 
-### Setting up connection to Snowflake
-
-You must add a connection definition to Snowflake using the following command. The connection name must follow this pattern:
-`snow_agent_$config_name`. Only the required fields are necessary, as external authentication is used by default. These connection profiles
-are used **ONLY** during the deployment process.
-
-To deploy Dynatrace Snowflake Observability Agent properly, the specified user must be able to assume the `ACCOUNTADMIN` role on the target
-Snowflake account.
-
-**HINT:** Running `./setup.sh $config_name` or `./deploy.sh $config_name` will prompt you to create Snowflake connection profiles named
-`snow_agent_$ENV`, where `ENV` matches each `core.deployment_environment` in your configuration. If these profiles do not exist, you will be
-prompted to create them.
-
-**WARNING:** If you wish to use a different connection name or pattern, you must modify the `./deploy.sh` script and update the
-`--connection` parameter in the `snow sql` call.
+**Deploy both instances:**
 
 ```bash
-snow connection add --connection-name snow_agent_$ENV
+# Setup connections for both
+./setup.sh prod-tenant-a  # Creates: snow_agent_production_tenant_a
+./setup.sh prod-tenant-b  # Creates: snow_agent_production_tenant_b
+
+# Deploy both
+./deploy.sh prod-tenant-a  # Uses: snow_agent_production_tenant_a, creates: DTAGENT_TNA_*
+./deploy.sh prod-tenant-b  # Uses: snow_agent_production_tenant_b, creates: DTAGENT_TNB_*
 ```
 
-To list your currently defined connections run:
+**Critical warnings:**
+
+❌ **Never reuse `deployment_environment` across instances** - This causes:
+
+- Indistinguishable telemetry in Dynatrace
+- Confusion about which instance generated which data
+
+❌ **Never reuse `tag` across instances** - This causes:
+
+- Snowflake object naming conflicts
+- Data corruption as instances overwrite each other's tables
+- Deployment failures
+
+❌ **Don't include tag in `deployment_environment`** - They serve different purposes:
+
+```yaml
+# ❌ Wrong:
+deployment_environment: PRODUCTION_TNA  # Don't mix concerns
+tag: TNA
+
+# ✅ Correct:
+deployment_environment: PRODUCTION_TENANT_A  # Logical environment name
+tag: TNA                                      # Separate object suffix
+```
+
+You can specify the configuration for each instance in separate configuration files (as shown above) or use multi-configuration deployment described below.
+
+## Setting up connection to Snowflake
+
+You must configure Snowflake CLI connection profiles for deployment. The connection profile name **must** follow this pattern: `snow_agent_<deployment_environment_in_lowercase>`
+
+**The connection profile name is derived from `deployment_environment` inside your config file, NOT from the `$ENV` parameter you use when running scripts.**
+
+The user configured in the connection profile must be able to assume the `ACCOUNTADMIN` role on the target Snowflake account.
+
+### Automatic Connection Setup (Recommended)
+
+Running `./setup.sh $ENV` will:
+
+1. Read `core.deployment_environment` from `conf/config-$ENV.yml`
+2. Convert it to lowercase
+3. Check if `snow_agent_<deployment_environment_lowercase>` exists
+4. Prompt you to create it if it doesn't exist
+
+```bash
+# Example: For config-prod-useast.yml with deployment_environment: "PRODUCTION_US_EAST_1"
+./setup.sh prod-useast
+
+# Output:
+# Checking connection profile for PRODUCTION_US_EAST_1...
+# WARNING: No Dynatrace Snowflake Observability Agent connection is defined for the PRODUCTION_US_EAST_1 environment. Creating it now...
+#
+# This will create: snow_agent_production_us_east_1
+```
+
+### Manual Connection Setup
+
+If you need to create the connection manually, first determine the correct name:
+
+```bash
+# Step 1: Find your deployment_environment value
+yq -r '.core.deployment_environment' conf/config-$ENV.yml
+
+# Example output: PRODUCTION_US_EAST_1
+
+# Step 2: Convert to lowercase and add prefix
+# Connection name: snow_agent_production_us_east_1
+
+# Step 3: Create the connection
+snow connection add --connection-name snow_agent_production_us_east_1
+```
+
+### Verifying Your Connections
+
+To list currently configured connections:
 
 ```bash
 snow connection list
 ```
 
-Here is an example of how to fill in the form to configure connection based on external browser authentication, which is a recommended way
-for users authenticating with external SSO:
+You should see connection names like:
+
+```text
+snow_agent_production
+snow_agent_production_us_east_1
+snow_agent_test_tenant_001
+```
+
+### Connection Configuration Example
+
+When creating a connection, use external browser authentication for SSO (recommended):
+
+**Important:** The `Snowflake account name` prompt in the `snow connection add` command asks for your **account identifier**, which should match your `account_name` in the config file.
 
 ```bash
-Snowflake account name: ${YOUR_SNOWFLAKE_ACCOUNT_NAME.REGION_NAME}
-Snowflake username: ${YOUR_USERNAME}
+# Recommended format (orgname-accountname):
+Snowflake account name: myorg-myaccount
+Snowflake username: john.doe@company.com
 Snowflake password [optional]:
 Role for the connection [optional]:
-Warehouse for the connection [optional]:
 Database for the connection [optional]:
 Schema for the connection [optional]:
 Connection host [optional]:
@@ -449,13 +832,336 @@ Authentication method [optional]: externalbrowser
 Path to private key file [optional]:
 ```
 
-You can also run this command to fill in the required and recommended parts:
+**Complete command example** (for automated setups):
 
 ```bash
-snow connection add --connection-name snow_agent_$config_name \
-                    --account ${YOUR_SNOWFLAKE_ACCOUNT_NAME.REGION_NAME} \
-                    --user ${YOUR_USERNAME} \
-                    --authenticator externalbrowser
+# For config with deployment_environment: "PRODUCTION_US_EAST_1"
+# Using recommended orgname-accountname format
+snow connection add \
+  --connection-name snow_agent_production_us_east_1 \
+  --account myorg-myaccount \
+  --user john.doe@company.com \
+  --authenticator externalbrowser
 ```
 
-If you have any issues setting up the connection check [the SnowCli documentation](https://docs.snowflake.com/en/user-guide/snowsql).
+**Important:** The connection name must exactly match `snow_agent_` + your `deployment_environment` value in lowercase.
+
+### Understanding Snowflake Account Identifiers
+
+Snowflake supports two formats for account identifiers, which can cause confusion:
+
+#### Recommended Format: Organization-Account Name (`orgname-accountname`)
+
+**Example:** `myorg-myaccount`
+
+This is the **preferred** modern format that Snowflake recommends using. It consists of:
+
+- Your organization name (`myorg`)
+- Your account name (`myaccount`)
+- Connected with a hyphen
+
+**Advantages:**
+
+- Clear, human-readable account identification
+- Works consistently across all Snowflake regions
+- Provides a meaningful account name in telemetry (e.g., Dynatrace dimensions)
+
+#### Legacy Format: Account Locator (`account.region`)
+
+**Example:** `abc12345.us-east-1`
+
+This is the **legacy** format that uses:
+
+- A randomly-generated account locator (`abc12345`)
+- The region identifier (`us-east-1`)
+
+**Disadvantages:**
+
+- Account locator is a random string that's hard to remember
+- Less meaningful in monitoring and telemetry
+- Considered legacy by Snowflake (though still supported)
+
+#### Configuration Best Practices
+
+**Recommended configuration (provides best performance):**
+
+```yaml
+core:
+  snowflake:
+    account_name: myorg-myaccount  # Clear, meaningful identifier
+    host_name: "-"                 # Auto-derived: myorg-myaccount.snowflakecomputing.com
+```
+
+**Minimal configuration (auto-detects at startup with ~100ms overhead):**
+
+```yaml
+core:
+  snowflake:
+    account_name: "-"  # Will query Snowflake: CURRENT_ORGANIZATION_NAME() || '-' || CURRENT_ACCOUNT_NAME()
+    host_name: "-"     # Will be derived from auto-detected account_name
+```
+
+**Why provide account_name?**
+
+- ✅ **Faster startup**: Avoids SQL query during agent initialization
+- ✅ **Explicit configuration**: Clear documentation of which account is being monitored
+- ✅ **Offline validation**: Can validate config without connecting to Snowflake
+
+**When to use auto-detection:**
+
+- Running in multiple environments with different accounts
+- Dynamic/automated deployments where account isn't known in advance
+- Simplified configuration (accepts ~100ms startup overhead)
+
+**Legacy configuration (still supported):**
+
+```yaml
+core:
+  snowflake:
+    account_name: abc12345.us-east-1                # Account locator format
+    host_name: abc12345.us-east-1.snowflakecomputing.com  # Must match
+```
+
+#### How to Find Your Account Identifier
+
+To find your Snowflake account identifier, run this query in Snowflake:
+
+```sql
+-- Returns organization and account names
+SELECT
+  CURRENT_ORGANIZATION_NAME() || '-' || CURRENT_ACCOUNT_NAME() as account_identifier,
+  CURRENT_ACCOUNT() as account_locator,
+  CURRENT_REGION() as region;
+```
+
+Example output:
+
+```text
+ACCOUNT_IDENTIFIER: myorg-myaccount
+ACCOUNT_LOCATOR: abc12345
+REGION: AWS_US_EAST_1
+```
+
+Use `ACCOUNT_IDENTIFIER` for your config (recommended) or construct the legacy format as `ACCOUNT_LOCATOR.REGION`.
+
+#### Host Name Derivation
+
+When `host_name` is not provided or set to `"-"`, it will be automatically derived:
+
+- For `orgname-accountname` format: `orgname-accountname.snowflakecomputing.com`
+- For `account.region` format: `account.region.snowflakecomputing.com`
+
+This eliminates the need to manually specify both values and reduces configuration errors.
+
+## Common Configuration Mistakes
+
+### Mistake 1: Using Account Locator Without Understanding
+
+**Symptom:** Random strings appear as account names in Dynatrace telemetry.
+
+**Cause:** Using legacy account locator format (`abc12345.us-east-1`) instead of the meaningful organization-account format (`myorg-myaccount`).
+
+**Wrong:**
+
+```yaml
+snowflake:
+  account_name: abc12345.us-east-1  # Random locator - hard to identify in Dynatrace
+```
+
+**In Dynatrace, you'll see:**
+
+```text
+service.name: abc12345.us-east-1  # What account is this?
+```
+
+**Correct:**
+
+```yaml
+snowflake:
+  account_name: myorg-myaccount  # Clear, meaningful identifier
+```
+
+**In Dynatrace, you'll see:**
+
+```text
+service.name: myorg-myaccount  # Clearly identifiable!
+```
+
+### Mistake 2: Connection Profile Name Mismatch
+
+**Symptom:** Deployment fails with "Connection 'snow_agent_xxx' not found" error.
+
+**Cause:** The Snowflake CLI connection profile name doesn't match your `deployment_environment`.
+
+**Example of the problem:**
+
+```yaml
+# File: config-prod.yml
+core:
+  deployment_environment: PRODUCTION_US_EAST
+```
+
+```bash
+# Wrong connection created:
+snow connection add --connection-name snow_agent_prod  # ❌ Based on file name!
+
+# Deployment fails because it looks for:
+# snow_agent_production_us_east  # ✓ Based on deployment_environment!
+```
+
+**Solution:**
+
+```bash
+# Find the correct deployment_environment:
+yq -r '.core.deployment_environment' conf/config-prod.yml
+# Output: PRODUCTION_US_EAST
+
+# Create matching connection (lowercase):
+snow connection add --connection-name snow_agent_production_us_east
+
+# Or use automatic setup:
+./setup.sh prod
+```
+
+### Mistake 3: Confusing ENV with deployment_environment
+
+**Symptom:** Trying to create connections or objects based on the file name instead of config values.
+
+**Wrong approach:**
+
+```bash
+# File: config-prod-useast.yml
+# Thinking: "I need snow_agent_prod-useast"  # ❌ Wrong!
+
+snow connection add --connection-name snow_agent_prod-useast  # ❌ Wrong!
+```
+
+**Correct approach:**
+
+```bash
+# File: config-prod-useast.yml (this is just for file organization)
+# Check what's INSIDE the file:
+yq -r '.core.deployment_environment' conf/config-prod-useast.yml
+# Output: PRODUCTION_US_EAST_1
+
+# Create connection based on deployment_environment:
+snow connection add --connection-name snow_agent_production_us_east_1  # ✓ Correct!
+```
+
+**Remember:**
+
+- File name (`ENV` parameter) = Your organizational choice
+- `deployment_environment` = What actually matters for connections and deployment
+
+### Mistake 4: Reusing Tags or Deployment Environments
+
+**Symptom:** Deployment fails, or instances overwrite each other's data.
+
+**Cause:** Two configuration files use the same `tag` or `deployment_environment`.
+
+**Wrong:**
+
+```yaml
+# File: config-prod-mt001.yml
+core:
+  deployment_environment: PRODUCTION  # ❌ Same!
+  tag: MT001
+
+# File: config-prod-mt002.yml
+core:
+  deployment_environment: PRODUCTION  # ❌ Same!
+  tag: MT002
+```
+
+**Result:** Both instances send telemetry with the same `deployment.environment` dimension, making them indistinguishable in Dynatrace.
+
+**Correct:**
+
+```yaml
+# File: config-prod-mt001.yml
+core:
+  deployment_environment: PRODUCTION_TENANT_001  # ✓ Unique!
+  tag: MT001                                      # ✓ Unique!
+
+# File: config-prod-mt002.yml
+core:
+  deployment_environment: PRODUCTION_TENANT_002  # ✓ Different!
+  tag: MT002                                      # ✓ Different!
+```
+
+### Mistake 5: Including Tag in deployment_environment
+
+**Symptom:** Redundant or confusing naming that mixes concerns.
+
+**Wrong:**
+
+```yaml
+core:
+  deployment_environment: PRODUCTION_MT001  # ❌ Tag included in environment name
+  tag: MT001                                 # Redundant
+```
+
+**Why it's wrong:**
+
+- `deployment_environment` is for logical environment identification in telemetry
+- `tag` is for Snowflake object name disambiguation
+- Mixing them creates confusion and redundancy
+
+**Correct:**
+
+```yaml
+core:
+  deployment_environment: PRODUCTION_US_EAST  # ✓ Logical environment
+  tag: MT001                                   # ✓ Separate object suffix
+```
+
+**This creates clear separation:**
+
+- Telemetry dimension: `deployment.environment: "PRODUCTION_US_EAST"`
+- Additional dimension: `deployment.environment.tag: "MT001"`
+- Snowflake objects: `DTAGENT_MT001_DB`, `DTAGENT_MT001_WH`
+
+### Mistake 6: Not Using Lowercase for Connection Names
+
+**Symptom:** Connection not found even though you created it.
+
+**Cause:** Snowflake CLI connection names are case-sensitive.
+
+**Wrong:**
+
+```bash
+# Your deployment_environment: PRODUCTION_US_EAST
+snow connection add --connection-name snow_agent_PRODUCTION_US_EAST  # ❌ Uppercase!
+```
+
+**Correct:**
+
+```bash
+# Always convert to lowercase:
+snow connection add --connection-name snow_agent_production_us_east  # ✓ Lowercase!
+```
+
+**Tip:** The deployment scripts automatically convert `deployment_environment` to lowercase when looking for connections:
+
+```bash
+CONNECTION_ENV="${DEPLOYMENT_ENV,,}"  # Bash syntax for lowercase conversion
+```
+
+### Quick Diagnostic Commands
+
+If you're experiencing issues, use these commands to diagnose:
+
+```bash
+# 1. Check what deployment_environment is in your config:
+yq -r '.core.deployment_environment' conf/config-$ENV.yml
+
+# 2. Check what connection name should be (lowercase):
+yq -r '.core.deployment_environment' conf/config-$ENV.yml | tr '[:upper:]' '[:lower:]' | sed 's/^/snow_agent_/'
+
+# 3. List your current connections:
+snow connection list
+
+# 4. Check if the required connection exists:
+EXPECTED_CONN=$(yq -r '.core.deployment_environment' conf/config-$ENV.yml | tr '[:upper:]' '[:lower:]' | sed 's/^/snow_agent_/')
+snow connection list | grep -q "$EXPECTED_CONN" && echo "✓ Connection exists" || echo "✗ Connection missing"
+```

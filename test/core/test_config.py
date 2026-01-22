@@ -91,9 +91,9 @@ class TestConfig:
                 and m_config["core.dynatrace_tenant_address"]["TYPE"] == "str"
             )
             assert (
-                m_config["core.snowflake_account_name"]["PATH"] == "core.snowflake_account_name"
-                and m_config["core.snowflake_account_name"]["VALUE"] != "-"
-                and m_config["core.snowflake_account_name"]["TYPE"] == "str"
+                m_config["core.snowflake.account_name"]["PATH"] == "core.snowflake.account_name"
+                and m_config["core.snowflake.account_name"]["VALUE"] != "-"
+                and m_config["core.snowflake.account_name"]["TYPE"] == "str"
             )
             assert (
                 m_config["otel.spans.export_timeout_millis"]["PATH"] == "otel.spans.export_timeout_millis"

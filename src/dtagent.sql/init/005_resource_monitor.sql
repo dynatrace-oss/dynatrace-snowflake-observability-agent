@@ -24,6 +24,7 @@
 --
 -- We need resource monitor setup for Dynatrace Snowflake Observability Agent to ensure we don't spent too much credits
 --
+--%OPTION:resource_monitor:
 use role ACCOUNTADMIN; use schema DTAGENT_DB.CONFIG; use warehouse DTAGENT_WH;
 
 EXECUTE IMMEDIATE $$
@@ -58,3 +59,4 @@ $$
 
 grant ownership on resource monitor DTAGENT_RS to role DTAGENT_OWNER revoke current grants;
 alter warehouse if exists DTAGENT_WH set resource_monitor = DTAGENT_RS;
+--%:OPTION:resource_monitor

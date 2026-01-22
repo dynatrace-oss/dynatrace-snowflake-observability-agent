@@ -24,6 +24,7 @@
 --
 --  This task ensures Dynatrace Snowflake Observability Agent is called periodically
 --
+--%OPTION:dtagent_admin:
 use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 
 -- IMPORTANT: this task is executed as DTAGENT_ADMIN, so it can alter EVENT_LOG table
@@ -44,3 +45,4 @@ grant monitor on task DTAGENT_DB.APP.TASK_DTAGENT_EVENT_LOG_CLEANUP to role DTAG
 alter task if exists DTAGENT_DB.APP.TASK_DTAGENT_EVENT_LOG_CLEANUP resume;
 
 -- alter task if exists DTAGENT_DB.APP.TASK_DTAGENT_EVENT_LOG_CLEANUP suspend;
+--%:OPTION:dtagent_admin
