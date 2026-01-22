@@ -17,5 +17,5 @@ plugins:
   data_volume:
     schedule: USING CRON 30 */4 * * * UTC
     exclude:
-      - '%.INFORMATION_SCHEMA.%'
-      - '%.%.TMP_%'
+      - "%.INFORMATION_SCHEMA.%"
+      - "%.%.TMP_%"
