@@ -15,7 +15,7 @@ setup() {
 EOF
     export BUILD_CONFIG_FILE="$TEST_CONFIG_FILE"
     TEST_SQL_FILE=$(mktemp)
-    mkdir -p build/09_upgrade build/20_plugins
+    mkdir -p build/09_upgrade build/30_plugins
     echo "SELECT 1;" > build/001_test.sql
     # Create test upgrade files with different versions
     echo "-- v0.9.0 upgrade" > build/09_upgrade/v0.9.0.sql
@@ -37,7 +37,12 @@ CREATE TABLE active_plugin_table (id INT);
 --%:PLUGIN:active_plugin
 EOSQL
 
-    cat > build/10_setup.sql << 'EOSQL'
+    cat > build/10_admin.sql << 'EOSQL'
+-- Admin code
+CREATE ROLE IF NOT EXISTS DTAGENT_ADMIN;
+EOSQL
+
+    cat > build/20_setup.sql << 'EOSQL'
 -- Setup code
 CREATE PROCEDURE main_proc() AS BEGIN SELECT 1; END;
 --%PLUGIN:test_plugin:
@@ -45,12 +50,12 @@ CREATE PROCEDURE test_plugin_proc() AS BEGIN SELECT 2; END;
 --%:PLUGIN:test_plugin
 EOSQL
 
-    cat > build/30_config.sql << 'EOSQL'
+    cat > build/40_config.sql << 'EOSQL'
 -- Config code
 SELECT 'config';
 EOSQL
 
-    cat > build/20_plugins/test_plugin.sql << 'EOSQL'
+    cat > build/30_plugins/test_plugin.sql << 'EOSQL'
 --%PLUGIN:test_plugin:
 CREATE OR REPLACE PROCEDURE test_plugin_handler()
 RETURNS TABLE()
@@ -63,7 +68,7 @@ $$;
 --%:PLUGIN:test_plugin
 EOSQL
 
-    cat > build/20_plugins/active_plugin.sql << 'EOSQL'
+    cat > build/30_plugins/active_plugin.sql << 'EOSQL'
 --%PLUGIN:active_plugin:
 CREATE OR REPLACE PROCEDURE active_plugin_handler()
 RETURNS TABLE()
@@ -121,8 +126,8 @@ EOSQL
 
 teardown() {
     rm -f "$TEST_CONFIG_FILE" "$TEST_SQL_FILE"
-    rm -f build/001_test.sql build/00_init.sql build/10_setup.sql build/30_config.sql build/70_agents.sql
-    rm -rf build/09_upgrade build/20_plugins
+    rm -f build/001_test.sql build/00_init.sql build/10_admin.sql build/20_setup.sql build/40_config.sql build/70_agents.sql
+    rm -rf build/09_upgrade build/30_plugins
     unset BUILD_CONFIG_FILE
 }
 

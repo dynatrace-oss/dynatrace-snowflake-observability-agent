@@ -29,7 +29,7 @@
 -- WARNING: ensure you keep instruments-def.yml and this function in sync !!!
 -- !!!
 --
-use role DTAGENT_ADMIN; use database DTAGENT_DB; use warehouse DTAGENT_WH;
+use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 
 create or replace procedure DTAGENT_DB.APP.F_ACTIVE_QUERIES_INSTRUMENTED()
 returns table (

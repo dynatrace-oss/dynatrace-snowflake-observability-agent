@@ -21,13 +21,14 @@ EOF
     export BUILD_CONFIG_FILE="$TEST_CONFIG_FILE"
 
     # Create necessary build artifacts for deployment tests
-    mkdir -p build/09_upgrade build/20_plugins conf
+    mkdir -p build/09_upgrade build/30_plugins conf
     echo "SELECT 'init';" > build/00_init.sql
-    echo "SELECT 'setup';" > build/10_setup.sql
-    echo "SELECT 'config';" > build/30_config.sql
+    echo "SELECT 'admin';" > build/10_admin.sql
+    echo "SELECT 'setup';" > build/20_setup.sql
+    echo "SELECT 'config';" > build/40_config.sql
     echo "SELECT 'agents';" > build/70_agents.sql
     echo "SELECT 'upgrade 1.0.0';" > build/09_upgrade/v1.0.0.sql
-    echo "SELECT 'plugin';" > build/20_plugins/test_plugin.sql
+    echo "SELECT 'plugin';" > build/30_plugins/test_plugin.sql
 
     # Create minimal config file
     cp "$TEST_CONFIG_FILE" "conf/config-test.json"
@@ -38,8 +39,8 @@ EOF
 teardown() {
     rm -f "$TEST_CONFIG_FILE"
     rm -f conf/config-test.json conf/config-test.yml
-    rm -f build/00_init.sql build/10_setup.sql build/30_config.sql build/70_agents.sql
-    rm -rf build/09_upgrade build/20_plugins
+    rm -f build/00_init.sql build/10_admin.sql build/20_setup.sql build/40_config.sql build/70_agents.sql
+    rm -rf build/09_upgrade build/30_plugins
     unset BUILD_CONFIG_FILE
 }
 

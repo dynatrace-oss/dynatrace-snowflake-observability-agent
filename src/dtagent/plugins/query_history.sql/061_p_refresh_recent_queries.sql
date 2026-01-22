@@ -27,7 +27,7 @@
 -- * APP.TMP_QUERY_OPERATOR_STATS where results from calling GET_QUERY_OPERATOR_STATS() per each query are kept
 -- both tables are created to have a cached data which Dynatrace Snowflake Observability Agent can send, especially when recursively sending query log as spans
 --
-use role DTAGENT_ADMIN; use database DTAGENT_DB; use warehouse DTAGENT_WH;
+use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 
 -- initializing TMP_RECENT_QUERIES so that we don't have to call this procedure during the deploy time
 
@@ -164,7 +164,6 @@ $$
 ;
 
 grant usage on procedure DTAGENT_DB.APP.P_REFRESH_RECENT_QUERIES() to role DTAGENT_VIEWER;
-alter procedure DTAGENT_DB.APP.P_REFRESH_RECENT_QUERIES() set LOG_LEVEL = WARN;
 
 -- call DTAGENT_DB.APP.P_REFRESH_RECENT_QUERIES();
 

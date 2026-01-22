@@ -21,7 +21,7 @@
 -- SOFTWARE.
 --
 --
-use role DTAGENT_ADMIN; use schema DTAGENT_DB.CONFIG; use warehouse DTAGENT_WH;
+use role DTAGENT_OWNER; use schema DTAGENT_DB.CONFIG; use warehouse DTAGENT_WH;
 
 create table if not exists DTAGENT_DB.CONFIG.CONFIGURATIONS (
     PATH            varchar     not null,
@@ -29,7 +29,7 @@ create table if not exists DTAGENT_DB.CONFIG.CONFIGURATIONS (
     TYPE            varchar     not null
 );
 
-grant update on CONFIG.CONFIGURATIONS to role DTAGENT_ADMIN;
+grant update on CONFIG.CONFIGURATIONS to role DTAGENT_OWNER;
 grant select on CONFIG.CONFIGURATIONS to role DTAGENT_VIEWER;
 
 

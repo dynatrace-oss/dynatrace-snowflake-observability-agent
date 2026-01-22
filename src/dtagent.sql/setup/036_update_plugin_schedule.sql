@@ -21,7 +21,7 @@
 --
 --
 --
-use role DTAGENT_ADMIN; use schema DTAGENT_DB.CONFIG; use warehouse DTAGENT_WH;
+use role DTAGENT_OWNER; use schema DTAGENT_DB.CONFIG; use warehouse DTAGENT_WH;
 
 create or replace procedure DTAGENT_DB.CONFIG.UPDATE_TASK_SCHEDULE(
     PLUGIN_NAME varchar,
@@ -80,9 +80,6 @@ exception
 end;
 $$
 ;
-
-grant usage on procedure DTAGENT_DB.CONFIG.UPDATE_TASK_SCHEDULE(varchar, varchar) to role DTAGENT_VIEWER;
-
 
 --
 
@@ -168,5 +165,3 @@ exception
 end;
 $$
 ;
-
-grant usage on procedure DTAGENT_DB.CONFIG.UPDATE_PLUGIN_SCHEDULE(varchar, array) to role DTAGENT_VIEWER;

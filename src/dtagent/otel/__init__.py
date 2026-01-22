@@ -67,6 +67,7 @@ class NoOpTelemetry:
     """A no-operation telemetry class used when telemetry is disabled."""
 
     def __init__(self):
+        """Initialize the no-op telemetry instance."""
         self.NOT_ENABLED = True
 
     def __getattr__(self, name):

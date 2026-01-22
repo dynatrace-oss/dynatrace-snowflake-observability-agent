@@ -31,7 +31,7 @@
 # * INSTALL_SCRIPT_SQL [REQUIRED] - path to the file where installation script must be written to
 # * ENV                [REQUIRED] - environment identifier (config-$ENV.yml must exist)
 # * SCOPE              [REQUIRED] - deployment scope:
-#                       init, setup, plugins, config, agents, apikey, all, teardown, upgrade, or file_part
+#                       init, admin, setup, plugins, config, agents, apikey, all, teardown, upgrade, or file_part
 # * FROM_VERSION       [OPTIONAL] - version number for upgrade scope
 #
 
@@ -50,43 +50,93 @@ TAG=${TAG:-""}
 
 echo "Deploying with tag "${TAG}""
 
-# Map scope to file prefixes
-case "$SCOPE" in
-    init)
-        SQL_FILES="00_init.sql"
-        ;;
-    setup)
-        SQL_FILES="10_setup.sql"
-        ;;
-    plugins)
-        SQL_FILES="20_plugins/*.sql"
-        ;;
-    config)
-        SQL_FILES="30_config.sql"
-        ;;
-    agents)
-        SQL_FILES="70_agents.sql"
-        ;;
-    all)
-        SQL_FILES="00_init.sql 10_setup.sql 20_plugins/*.sql 30_config.sql 70_agents.sql"
-        ;;
-    upgrade)
-        if [ -z "$FROM_VERSION" ]; then
-            echo "ERROR: --from-version required for upgrade scope"
+# Function to map a single scope to file pattern
+map_scope_to_files() {
+    local scope="$1"
+    case "$scope" in
+        init)
+            echo "00_init.sql"
+            ;;
+        admin)
+            echo "10_admin.sql"
+            ;;
+        setup)
+            echo "20_setup.sql"
+            ;;
+        plugins)
+            echo "30_plugins/*.sql"
+            ;;
+        config)
+            echo "40_config.sql"
+            ;;
+        agents)
+            echo "70_agents.sql"
+            ;;
+        all)
+            echo "00_init.sql 10_admin.sql 20_setup.sql 30_plugins/*.sql 40_config.sql 70_agents.sql"
+            ;;
+        upgrade)
+            if [ -z "$FROM_VERSION" ]; then
+                return 1
+            fi
+            # Process upgrade scripts >= FROM_VERSION
+            echo "09_upgrade/*.sql"
+            ;;
+        apikey|teardown)
+            # These are handled specially below
+            echo ""
+            ;;
+        *)
+            # Treat as file_part - custom prefix
+            echo "${scope}*.sql"
+            ;;
+    esac
+}
+
+# Parse comma-separated scopes and build SQL_FILES list
+INCLUDE_APIKEY=false
+if [[ "$SCOPE" == *,* ]]; then
+    # Multiple scopes provided
+    SQL_FILES=""
+    IFS=',' read -ra SCOPE_ARRAY <<< "$SCOPE"
+    for single_scope in "${SCOPE_ARRAY[@]}"; do
+        # Trim whitespace
+        single_scope=$(echo "$single_scope" | xargs)
+
+        # Check for special scopes that can't be combined
+        if [ "$single_scope" == "teardown" ] || [ "$single_scope" == "all" ]; then
+            echo "ERROR: Scope '$single_scope' cannot be combined with other scopes"
             exit 1
         fi
-        # Process upgrade scripts >= FROM_VERSION
-        SQL_FILES="09_upgrade/*.sql"
-        ;;
-    apikey|teardown)
-        # These are handled specially below
-        SQL_FILES=""
-        ;;
-    *)
-        # Treat as file_part - custom prefix
-        SQL_FILES="$SCOPE*.sql"
-        ;;
-esac
+
+        # Track apikey scope separately
+        if [ "$single_scope" == "apikey" ]; then
+            INCLUDE_APIKEY=true
+            continue
+        fi
+
+        files=$(map_scope_to_files "$single_scope")
+        if [ -n "$files" ]; then
+            SQL_FILES="$SQL_FILES $files"
+        fi
+    done
+    # Remove leading/trailing spaces and deduplicate
+    SQL_FILES=$(echo "$SQL_FILES" | xargs)
+else
+    # Single scope
+    # Special validation for upgrade scope
+    if [ "$SCOPE" == "upgrade" ] && [ -z "$FROM_VERSION" ]; then
+        echo "ERROR: --from-version required for upgrade scope"
+        exit 1
+    fi
+    # Track apikey scope
+    if [ "$SCOPE" == "apikey" ]; then
+        INCLUDE_APIKEY=true
+    elif [ "$SCOPE" == "all" ]; then
+        INCLUDE_APIKEY=true
+    fi
+    SQL_FILES=$(map_scope_to_files "$SCOPE")
+fi
 
 # Check if required SQL files exist in build folder (skip for scopes with empty SQL_FILES)
 if [ -n "$SQL_FILES" ]; then
@@ -151,13 +201,14 @@ drop integration if exists DTAGENT_API_INTEGRATION;
 drop database if exists DTAGENT_DB;
 drop warehouse if exists DTAGENT_WH;
 
-drop role if exists DTAGENT_ADMIN;
 drop role if exists DTAGENT_VIEWER;
+drop role if exists DTAGENT_ADMIN;
+drop role if exists DTAGENT_OWNER;
 drop resource monitor if exists DTAGENT_RS;
 EOF
 fi
 
-if [ "$SCOPE" == 'apikey' ] || [ "$SCOPE" == 'all' ]; then
+if [ "$INCLUDE_APIKEY" == "true" ]; then
     #
     #   --- we do not update API key each time we run - you need to request that explicitly
     #
@@ -168,7 +219,7 @@ if [ "$SCOPE" == 'apikey' ] || [ "$SCOPE" == 'all' ]; then
     echo "Updating all plugins from the configuration provided"
 
     cat <<EOF >>$INSTALL_SCRIPT_SQL
-use role ACCOUNTADMIN; use database DTAGENT_DB; use schema CONFIG; use warehouse DTAGENT_WH;
+use role DTAGENT_OWNER; use database DTAGENT_DB; use schema CONFIG; use warehouse DTAGENT_WH;
 call DTAGENT_DB.CONFIG.UPDATE_FROM_CONFIGURATIONS();
 EOF
 fi

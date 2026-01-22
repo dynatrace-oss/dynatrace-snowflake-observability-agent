@@ -21,6 +21,6 @@
 --
 --
 --
-use role DTAGENT_ADMIN; use schema DTAGENT_DB.APP; use warehouse DTAGENT_WH;
+use role DTAGENT_OWNER; use schema DTAGENT_DB.APP; use warehouse DTAGENT_WH;
 
 drop function if exists DTAGENT_DB.APP.F_GET_CONFIG_VALUE(text, variant);

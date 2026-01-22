@@ -24,7 +24,7 @@
 --
 -- Initializing the config schema
 --
-use role DTAGENT_ADMIN; use database DTAGENT_DB; use warehouse DTAGENT_WH;
+use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 
 create schema if not exists CONFIG;
 

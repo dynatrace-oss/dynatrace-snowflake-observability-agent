@@ -1,16 +1,16 @@
 --
 -- Copyright (c) 2025 Dynatrace Open Source
--- 
+--
 -- Permission is hereby granted, free of charge, to any person obtaining a copy
 -- of this software and associated documentation files (the "Software"), to deal
 -- in the Software without restriction, including without limitation the rights
 -- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 -- copies of the Software, and to permit persons to whom the Software is
 -- furnished to do so, subject to the following conditions:
--- 
+--
 -- The above copyright notice and this permission notice shall be included in all
 -- copies or substantial portions of the Software.
--- 
+--
 -- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 -- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 -- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -21,7 +21,7 @@
 --
 --
 --
-use role DTAGENT_ADMIN; use schema DTAGENT_DB.CONFIG; use warehouse DTAGENT_WH; 
+use role DTAGENT_OWNER; use schema DTAGENT_DB.CONFIG; use warehouse DTAGENT_WH;
 
 create or replace procedure DTAGENT_DB.CONFIG.UPDATE_ALL_PLUGINS_SCHEDULE()
 returns text
@@ -30,15 +30,15 @@ execute as caller
 as
 $$
 declare
-    c_plugins               CURSOR  for select 
+    c_plugins               CURSOR  for select
                                         split_part(PATH, '.', 2) as plugin_name,
                                         array_agg(
-                                            case 
+                                            case
                                                 when PATH like 'plugins.%.schedule_%' then split_part(PATH, '_', -1)
                                                 else null
                                             end
                                         ) as aux_names
-                                    from DTAGENT_DB.CONFIG.CONFIGURATIONS 
+                                    from DTAGENT_DB.CONFIG.CONFIGURATIONS
                                     where PATH like '%.schedule%'
                                     group by all;
     plugin_name             TEXT;
@@ -59,5 +59,3 @@ exception
 end;
 $$
 ;
-
-grant usage on procedure DTAGENT_DB.CONFIG.UPDATE_ALL_PLUGINS_SCHEDULE() to role DTAGENT_VIEWER;

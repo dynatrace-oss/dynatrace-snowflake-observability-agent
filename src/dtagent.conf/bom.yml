@@ -1,12 +1,17 @@
 delivers:
   - name: DTAGENT_DB
     type: database
+  - name: DTAGENT_OWNER
+    type: role
+    comment: role that owns all SnowAgent artifacts (database, schemas, tables, procedures, tasks)
   - name: DTAGENT_ADMIN
     type: role
-    comment: role used to create and own other objects
+    comment:
+      (Optional - only when admin scope is installed) role that handles elevated administrative operations (role grants, ownership
+      transfers, privilege management)
   - name: DTAGENT_VIEWER
     type: role
-    comment: role used to execute procedures, query views, and run tasks
+    comment: role that executes regular telemetry collection and processing operations
   - name: DTAGENT_WH
     type: warehouse
   - name: DTAGENT_RS
@@ -27,7 +32,7 @@ delivers:
     type: procedure
   - name: DTAGENT_DB.CONFIG.UPDATE_ALL_PLUGINS_SCHEDULE()
     type: procedure
-  - name: DTAGENT_DB.CONFIG.UPDATE_PLUGIN_SCHEDULE(varchar)
+  - name: DTAGENT_DB.CONFIG.UPDATE_PLUGIN_SCHEDULE(varchar,array)
     type: procedure
   - name: DTAGENT_DB.CONFIG.P_UPDATE_RESOURCE_MONITOR(int)
     type: procedure
@@ -63,15 +68,13 @@ references:
     granted to: DTAGENT_VIEWER
   - name: ACCOUNT
     type: account
-    privileges: MODIFY LOG LEVEL
-    granted to: DTAGENT_ADMIN
-  - name: ACCOUNT
-    type: account
     privileges: MODIFY SESSION LOG LEVEL
     granted to: DTAGENT_VIEWER
   - name: ACCOUNT
     type: account
-    privileges: MANAGE GRANTS
+    privileges:
+      - MANAGE GRANTS
+      - EXECUTE TASK
     granted to: DTAGENT_ADMIN
   - name: ACCOUNT
     type: account

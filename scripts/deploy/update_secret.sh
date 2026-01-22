@@ -48,7 +48,7 @@ if [[ -z "$DTAGENT_TOKEN" || ! $DTAGENT_TOKEN =~ ^dt[0-9]{1}c[0-9]{2}\.[A-Za-z0-
 fi
 
 cat <<EOF >>$INSTALL_SCRIPT_SQL
-use role DTAGENT_ADMIN; use schema DTAGENT_DB.CONFIG; use warehouse DTAGENT_WH;
+use role DTAGENT_OWNER; use schema DTAGENT_DB.CONFIG; use warehouse DTAGENT_WH;
 
 alter secret DTAGENT_API_KEY set secret_string = '$DTAGENT_TOKEN';
 alter network rule DTAGENT_NETWORK_RULE set value_list = ('$DYNATRACE_TENANT_ADDRESS', 'dynatrace.com');

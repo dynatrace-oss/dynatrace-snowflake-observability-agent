@@ -22,7 +22,7 @@
 --
 --
 
-use role DTAGENT_ADMIN; use database DTAGENT_DB; use warehouse DTAGENT_WH;
+use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 
 create or replace transient table DTAGENT_DB.APP.TMP_USERS (
         email_hash text, email text, user_id number, name text,
@@ -134,5 +134,5 @@ $$
 
 grant usage on procedure DTAGENT_DB.APP.P_GET_USERS() to role DTAGENT_VIEWER;
 
--- use role DTAGENT_ADMIN;
+-- use role DTAGENT_OWNER;
 -- call DTAGENT_DB.APP.P_GET_USERS();

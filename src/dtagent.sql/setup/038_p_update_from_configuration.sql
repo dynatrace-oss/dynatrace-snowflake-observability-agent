@@ -25,7 +25,9 @@
 -- This stored procedure will update configuration of Dynatrace Snowflake Observability Agent
 -- HINT: call `./deploy.sh $ENV config` to initialize your Dynatrace Snowflake Observability Agent deployment with proper config-$ENV.yml file
 --
-use role DTAGENT_ADMIN; use schema DTAGENT_DB.CONFIG; use warehouse DTAGENT_WH;
+-- This procedure is intended to be called by DTAGENT_OWNER role only!
+--
+use role DTAGENT_OWNER; use schema DTAGENT_DB.CONFIG; use warehouse DTAGENT_WH;
 
 create or replace procedure DTAGENT_DB.CONFIG.UPDATE_FROM_CONFIGURATIONS()
 returns varchar not null
@@ -36,6 +38,7 @@ $$
 declare
     SNOWFLAKE_CREDIT_QUOTA INT;
     PROCEDURE_TIMEOUT INT;
+    DATA_RETENTION_TIME_IN_DAYS INT;
 begin
     SNOWFLAKE_CREDIT_QUOTA := (select DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE('core.snowflake_credit_quota', 5));
     if (SNOWFLAKE_CREDIT_QUOTA IS NOT NULL) then
@@ -45,6 +48,11 @@ begin
     PROCEDURE_TIMEOUT := (select DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE('core.procedure_timeout', 3600));
     if (PROCEDURE_TIMEOUT IS NOT NULL) then
         execute immediate 'ALTER WAREHOUSE DTAGENT_WH SET STATEMENT_TIMEOUT_IN_SECONDS = ' || :PROCEDURE_TIMEOUT ||  ';';
+    end if;
+
+    DATA_RETENTION_TIME_IN_DAYS := (select DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE('core.snowflake_data_retention_time_in_days', 1));
+    if (DATA_RETENTION_TIME_IN_DAYS IS NOT NULL) then
+        execute immediate 'ALTER DATABASE DTAGENT_DB SET DATA_RETENTION_TIME_IN_DAYS = ' || :DATA_RETENTION_TIME_IN_DAYS || ';';
     end if;
 
     call DTAGENT_DB.CONFIG.UPDATE_ALL_PLUGINS_SCHEDULE();

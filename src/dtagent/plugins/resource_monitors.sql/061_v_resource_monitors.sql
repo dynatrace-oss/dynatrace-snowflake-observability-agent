@@ -1,17 +1,17 @@
 --
 --
 -- Copyright (c) 2025 Dynatrace Open Source
--- 
+--
 -- Permission is hereby granted, free of charge, to any person obtaining a copy
 -- of this software and associated documentation files (the "Software"), to deal
 -- in the Software without restriction, including without limitation the rights
 -- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 -- copies of the Software, and to permit persons to whom the Software is
 -- furnished to do so, subject to the following conditions:
--- 
+--
 -- The above copyright notice and this permission notice shall be included in all
 -- copies or substantial portions of the Software.
--- 
+--
 -- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 -- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 -- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -24,13 +24,13 @@
 --
 -- APP.V_RESOURCE_MONITORS() joins two transient tables: APP.TMP_RESOURCE_MONITORS and APP.TMP_WAREHOUSES to analyze resource monitors
 --
-use role DTAGENT_ADMIN; use database DTAGENT_DB; use warehouse DTAGENT_WH;
+use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 create or replace view DTAGENT_DB.APP.V_RESOURCE_MONITORS
 as
 with cte_by_resource_monitor as (
     select
         rm.name               as resource_monitor,
-        
+
         array_agg(wh.name)    as warehouses,
         rm.level              as monitoring_level,
         rm.frequency          as reset_frequency,
@@ -48,7 +48,7 @@ with cte_by_resource_monitor as (
     or ((wh.resource_monitor is null or wh.resource_monitor = 'null') and rm.level = 'ACCOUNT')
     group by all
 )
--- 
+--
 select
     extract(epoch_nanosecond from current_timestamp)                                                                    as START_TIME,
     monitoring_level is not null and monitoring_level = 'ACCOUNT'                                                       as IS_ACCOUNT_LEVEL,
@@ -63,10 +63,10 @@ select
         'snowflake.resource_monitor.level',                         dv.monitoring_level,
         'snowflake.resource_monitor.frequency',                     dv.reset_frequency,
         'snowflake.resource_monitor.is_active',                     IS_ACTIVE,
-        'snowflake.warehouses.names',                               CASE 
-                                                                     WHEN IS_ACTIVE 
-                                                                     THEN dv.warehouses 
-                                                                     ELSE null 
+        'snowflake.warehouses.names',                               CASE
+                                                                     WHEN IS_ACTIVE
+                                                                     THEN dv.warehouses
+                                                                     ELSE null
                                                                      END
     )                                                                                                                   as ATTRIBUTES,
     OBJECT_CONSTRUCT(
@@ -81,8 +81,8 @@ select
                                                   THEN 100.0 * credits_used / credits_quota
                                                   ELSE 0
                                                   END,
-        'snowflake.credits.quota',                           dv.credits_quota,                     
-        'snowflake.credits.quota.used',                      dv.credits_used,                     
+        'snowflake.credits.quota',                           dv.credits_quota,
+        'snowflake.credits.quota.used',                      dv.credits_used,
         'snowflake.credits.quota.remaining',                 dv.credits_remaining,
         'snowflake.resource_monitor.warehouses',             array_size(dv.warehouses)
     )                                                                                                                   as METRICS

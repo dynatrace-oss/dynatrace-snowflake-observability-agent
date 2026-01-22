@@ -344,14 +344,15 @@ The following tables list the Snowflake objects that this plugin delivers data f
 
 #### Objects delivered by the `Dynamic Tables` plugin
 
-| Name                                                        | Type      |
-| ----------------------------------------------------------- | --------- |
-| DTAGENT_DB.APP.P_GRANT_MONITOR_DYNAMIC_TABLES()             | procedure |
-| DTAGENT_DB.APP.V_DYNAMIC_TABLE_GRAPH_HISTORY_INSTRUMENTED   | view      |
-| DTAGENT_DB.APP.V_DYNAMIC_TABLE_REFRESH_HISTORY_INSTRUMENTED | view      |
-| DTAGENT_DB.APP.V_DYNAMIC_TABLES_INSTRUMENTED                | view      |
-| DTAGENT_DB.CONFIG.UPDATE_DYNAMIC_TABLES_CONF()              | procedure |
-| DTAGENT_DB.APP.TASK_DTAGENT_DYNAMIC_TABLES                  | task      |
+| Name                                                        | Type      | Comment                                                                         |
+| ----------------------------------------------------------- | --------- | ------------------------------------------------------------------------------- |
+| DTAGENT_DB.APP.P_GRANT_MONITOR_DYNAMIC_TABLES()             | procedure |                                                                                 |
+| DTAGENT_DB.APP.V_DYNAMIC_TABLE_GRAPH_HISTORY_INSTRUMENTED   | view      |                                                                                 |
+| DTAGENT_DB.APP.V_DYNAMIC_TABLE_REFRESH_HISTORY_INSTRUMENTED | view      |                                                                                 |
+| DTAGENT_DB.APP.V_DYNAMIC_TABLES_INSTRUMENTED                | view      |                                                                                 |
+| DTAGENT_DB.CONFIG.UPDATE_DYNAMIC_TABLES_CONF()              | procedure |                                                                                 |
+| DTAGENT_DB.APP.TASK_DTAGENT_DYNAMIC_TABLES                  | task      |                                                                                 |
+| DTAGENT_DB.APP.TASK_DTAGENT_DYNAMIC_TABLES_GRANTS           | task      | Admin task owned by DTAGENT_ADMIN to grant MONITOR privileges on dynamic tables |
 
 #### Objects referenced by the `Dynamic Tables` plugin
 
@@ -447,15 +448,15 @@ The following tables list the Snowflake objects that this plugin delivers data f
 | DTAGENT_DB.APP.V_EVENT_LOG_METRICS_INSTRUMENTED | view       |                                                                                                                                                                                                                                        |
 | DTAGENT_DB.CONFIG.UPDATE_EVENT_LOG_CONF()       | procedure  |                                                                                                                                                                                                                                        |
 | DTAGENT_DB.APP.TASK_DTAGENT_EVENT_LOG           | task       |                                                                                                                                                                                                                                        |
+| DTAGENT_DB.APP.TASK_DTAGENT_EVENT_LOG_CLEANUP   | task       | Cleanup task owned by DTAGENT_ADMIN to remove old event log entries                                                                                                                                                                    |
 
 #### Objects referenced by the `Event Log` plugin
 
 | Name            | Type    | Privileges               | Granted to     | Comment                                                                                                                                                                                          |
 | --------------- | ------- | ------------------------ | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | SHOW PARAMETERS | command | USAGE                    |                | We call `show PARAMETERS like 'EVENT_TABLE' in ACCOUNT` to determine if event table is already setup, and whether this is a table setup by this Dynatrace Snowflake Observability Agent instance |
-| ACCOUNT         | account | MODIFY LOG LEVEL         | DTAGENT_ADMIN  |                                                                                                                                                                                                  |
-| ACCOUNT         | account | MODIFY SESSION LOG LEVEL | DTAGENT_ADMIN  |                                                                                                                                                                                                  |
-| $event_table    | table   | SELECT                   | DTAGENT_VIEWER | This is in case an event log table was not setup by this Dynatrace Snowflake Observability Agent instance                                                                                        |
+| ACCOUNT         | account | MODIFY SESSION LOG LEVEL | DTAGENT_VIEWER |                                                                                                                                                                                                  |
+| $event_table    | table   | SELECT, DELETE           | DTAGENT_VIEWER | This is in case an event log table was not setup by this Dynatrace Snowflake Observability Agent instance                                                                                        |
 
 <a name="event_usage_info_sec"></a>
 
@@ -638,19 +639,21 @@ The following tables list the Snowflake objects that this plugin delivers data f
 
 #### Objects delivered by the `Query History` plugin
 
-| Name                                                     | Type            |
-| -------------------------------------------------------- | --------------- |
-| DTAGENT_DB.STATUS.PROCESSED_QUERIES_CACHE                | table           |
-| DTAGENT_DB.STATUS.UPDATE_PROCESSED_QUERIES(text,int,int) | procedure       |
-| DTAGENT_DB.APP.TMP_RECENT_QUERIES                        | transient table |
-| DTAGENT_DB.APP.TMP_QUERY_OPERATOR_STATS                  | transient table |
-| DTAGENT_DB.APP.TMP_QUERY_ACCELERATION_ESTIMATES          | transient table |
-| DTAGENT_DB.APP.V_QUERY_HISTORY                           | view            |
-| DTAGENT_DB.APP.V_QUERY_HISTORY_INSTRUMENTED              | view            |
-| DTAGENT_DB.APP.V_RECENT_QUERIES                          | view            |
-| DTAGENT_DB.CONFIG.P_GET_ACCELERATION_ESTIMATES()         | procedure       |
-| DTAGENT_DB.CONFIG.UPDATE_QUERY_HISTORY_CONF()            | procedure       |
-| DTAGENT_DB.APP.TASK_DTAGENT_QUERY_HISTORY                | task            |
+| Name                                                     | Type            | Comment                                                                     |
+| -------------------------------------------------------- | --------------- | --------------------------------------------------------------------------- |
+| DTAGENT_DB.STATUS.PROCESSED_QUERIES_CACHE                | table           |                                                                             |
+| DTAGENT_DB.STATUS.UPDATE_PROCESSED_QUERIES(text,int,int) | procedure       |                                                                             |
+| DTAGENT_DB.APP.TMP_RECENT_QUERIES                        | transient table |                                                                             |
+| DTAGENT_DB.APP.TMP_QUERY_OPERATOR_STATS                  | transient table |                                                                             |
+| DTAGENT_DB.APP.TMP_QUERY_ACCELERATION_ESTIMATES          | transient table |                                                                             |
+| DTAGENT_DB.APP.V_QUERY_HISTORY                           | view            |                                                                             |
+| DTAGENT_DB.APP.V_QUERY_HISTORY_INSTRUMENTED              | view            |                                                                             |
+| DTAGENT_DB.APP.V_RECENT_QUERIES                          | view            |                                                                             |
+| DTAGENT_DB.CONFIG.P_GET_ACCELERATION_ESTIMATES()         | procedure       |                                                                             |
+| DTAGENT_DB.CONFIG.UPDATE_QUERY_HISTORY_CONF()            | procedure       |                                                                             |
+| DTAGENT_DB.APP.P_MONITOR_WAREHOUSES()                    | procedure       | Procedure owned by DTAGENT_ADMIN to grant MONITOR privilege on warehouses   |
+| DTAGENT_DB.APP.TASK_DTAGENT_QUERY_HISTORY                | task            |                                                                             |
+| DTAGENT_DB.APP.TASK_DTAGENT_QUERY_HISTORY_GRANTS         | task            | Admin task owned by DTAGENT_ADMIN to grant MONITOR privileges on warehouses |
 
 #### Objects referenced by the `Query History` plugin
 

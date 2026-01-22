@@ -47,6 +47,7 @@ class Metrics:
     ENDPOINT_PATH = "/api/v2/metrics/ingest"
 
     def __init__(self, semantics: Semantics, configuration: Configuration):
+        """Initialize the metrics exporter."""
         self.PAYLOAD_CACHE: str = ""
         self._configuration = configuration
         self._semantics = semantics

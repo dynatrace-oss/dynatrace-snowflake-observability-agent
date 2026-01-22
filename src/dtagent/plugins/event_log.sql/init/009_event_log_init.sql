@@ -1,17 +1,17 @@
 --
 --
 -- Copyright (c) 2025 Dynatrace Open Source
--- 
+--
 -- Permission is hereby granted, free of charge, to any person obtaining a copy
 -- of this software and associated documentation files (the "Software"), to deal
 -- in the Software without restriction, including without limitation the rights
 -- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 -- copies of the Software, and to permit persons to whom the Software is
 -- furnished to do so, subject to the following conditions:
--- 
+--
 -- The above copyright notice and this permission notice shall be included in all
 -- copies or substantial portions of the Software.
--- 
+--
 -- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 -- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 -- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -22,10 +22,10 @@
 --
 --
 --
--- Configuring event logs table 
+-- Configuring event logs table
 -- and enable logs collection on the account level
 --
-use role ACCOUNTADMIN; use database DTAGENT_DB; use schema STATUS; use warehouse DTAGENT_WH;  
+use role ACCOUNTADMIN; use database DTAGENT_DB; use schema STATUS; use warehouse DTAGENT_WH;
 
 create or replace procedure DTAGENT_DB.APP.SETUP_EVENT_TABLE()
 returns TEXT
@@ -50,12 +50,11 @@ BEGIN
 
     create event table if not exists DTAGENT_DB.STATUS.EVENT_LOG;
     alter account set event_table = DTAGENT_DB.STATUS.EVENT_LOG;
-    
-    grant ownership on table DTAGENT_DB.STATUS.EVENT_LOG to role DTAGENT_ADMIN revoke current grants;
+
+    grant ownership on table DTAGENT_DB.STATUS.EVENT_LOG to role DTAGENT_OWNER revoke current grants;
     grant select, delete on table DTAGENT_DB.STATUS.EVENT_LOG to role DTAGENT_VIEWER;
-    
-    grant modify log level on account to role DTAGENT_ADMIN;
-    grant modify session log level on account to role DTAGENT_VIEWER;
+
+    grant modify session LOG LEVEL on account to role DTAGENT_VIEWER;
     alter account set log_level = WARN;
 
     RETURN 'Dynatrace Snowflake Observability Agent has setup own Event table';
@@ -68,7 +67,7 @@ BEGIN
     EXECUTE IMMEDIATE concat('create view if not exists DTAGENT_DB.STATUS.EVENT_LOG as select * from ', :s_event_table_name);
     EXECUTE IMMEDIATE concat('grant select on table ', :s_event_table_name, ' to role DTAGENT_VIEWER');
 
-    grant ownership on view DTAGENT_DB.STATUS.EVENT_LOG to role DTAGENT_ADMIN revoke current grants;
+    grant ownership on view DTAGENT_DB.STATUS.EVENT_LOG to role DTAGENT_OWNER revoke current grants;
     grant select on view DTAGENT_DB.STATUS.EVENT_LOG to role DTAGENT_VIEWER;
 
     RETURN 'Dynatrace Snowflake Observability Agent will use predefined Event table';
@@ -83,8 +82,8 @@ call DTAGENT_DB.APP.SETUP_EVENT_TABLE();
 --
 -- EXAMPLE CALL:
 /*
-select * 
-from DTAGENT_DB.STATUS.EVENT_LOG 
+select *
+from DTAGENT_DB.STATUS.EVENT_LOG
 -- where
 --   SCOPE['name'] = 'DTAGENT'
 --   and RECORD['severity_text'] = 'DEBUG'

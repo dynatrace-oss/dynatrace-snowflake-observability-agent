@@ -1,17 +1,17 @@
 --
 --
 -- Copyright (c) 2025 Dynatrace Open Source
--- 
+--
 -- Permission is hereby granted, free of charge, to any person obtaining a copy
 -- of this software and associated documentation files (the "Software"), to deal
 -- in the Software without restriction, including without limitation the rights
 -- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 -- copies of the Software, and to permit persons to whom the Software is
 -- furnished to do so, subject to the following conditions:
--- 
+--
 -- The above copyright notice and this permission notice shall be included in all
 -- copies or substantial portions of the Software.
--- 
+--
 -- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 -- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 -- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,11 +23,11 @@
 --
 --
 -- APP.V_DATA_VOLUME() is a shorthand to retrieve data volume information from all tables in the system
--- 
-use role DTAGENT_ADMIN; use database DTAGENT_DB; use warehouse DTAGENT_WH;
+--
+use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 
 create or replace view DTAGENT_DB.APP.V_DATA_VOLUME
-as 
+as
 with cte_includes as (
     select ci.VALUE as full_table_name_pattern
     from CONFIG.CONFIGURATIONS c,
@@ -42,7 +42,7 @@ with cte_includes as (
 )
 , cte_data_volume as (
     select
-        concat(t.TABLE_CATALOG, '.', 
+        concat(t.TABLE_CATALOG, '.',
             t.TABLE_SCHEMA, '.',
             t.TABLE_NAME)               as table_full_name,
         t.table_catalog,
@@ -73,13 +73,13 @@ select
     )                                                                                                                   as ATTRIBUTES,
     OBJECT_CONSTRUCT(
         'snowflake.table.update',                                   extract(epoch_nanosecond from dv.last_altered),
-        'snowflake.table.ddl',                                      extract(epoch_nanosecond from dv.last_ddl)                       
+        'snowflake.table.ddl',                                      extract(epoch_nanosecond from dv.last_ddl)
     )                                                                                                                   as EVENT_TIMESTAMPS,
     -- metrics
     OBJECT_CONSTRUCT(
         'snowflake.table.time_since.last_update',                   timediff('minute', dv.last_altered, current_timestamp),
         'snowflake.table.time_since.last_ddl',                      timediff('minute', dv.last_ddl, current_timestamp),
-        'snowflake.data.rows',                                      dv.row_count,                     
+        'snowflake.data.rows',                                      dv.row_count,
         'snowflake.data.size',                                      dv.bytes
     )                                                                                                                   as METRICS
 from cte_data_volume dv
@@ -90,7 +90,7 @@ grant select on table DTAGENT_DB.APP.V_DATA_VOLUME to role DTAGENT_VIEWER;
 -- example call
 /*
 use database DTAGENT_DB; use warehouse DTAGENT_WH; use role DTAGENT_VIEWER;
-select * 
-from DTAGENT_DB.APP.V_DATA_VOLUME 
+select *
+from DTAGENT_DB.APP.V_DATA_VOLUME
 limit 10;
  */

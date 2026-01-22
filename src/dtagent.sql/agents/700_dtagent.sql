@@ -25,7 +25,7 @@
 -- DTAGENT_DB.APP.DTAGENT() is the core procedure of Dynatrace Snowflake Observability Agent.
 -- It is responsible for sending data (prepared by other procedures in the app schema) as: metrics, spans, and logs
 --
-use role DTAGENT_ADMIN; use database DTAGENT_DB; use warehouse DTAGENT_WH;
+use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 
 create or replace procedure DTAGENT_DB.APP.DTAGENT(sources array)
 returns object
@@ -53,8 +53,6 @@ $$
 
 ---------------------------------------------------------------------
 grant usage on procedure DTAGENT_DB.APP.DTAGENT(array) to role DTAGENT_VIEWER;
-
-alter procedure DTAGENT_DB.APP.DTAGENT(array) set LOG_LEVEL = INFO;
 
 
 

@@ -30,7 +30,9 @@
 # Args:
 # * ENV            [REQUIRED] - environment identifier (config-$ENV.yml must exist)
 # * --scope        [OPTIONAL] - deployment scope (default: all):
-#                               init, setup, plugins, config, agents, apikey, all, teardown, upgrade, or file_part
+#                               init, admin, setup, plugins, config, agents, apikey, all, teardown, upgrade, or file_part
+#                               Multiple scopes can be specified as comma-separated list (e.g., setup,plugins,config,agents,apikey)
+#                               Note: teardown and all cannot be combined with other scopes
 # * --from-version [OPTIONAL] - version number for upgrade scope (required if scope=upgrade)
 # * --output-file  [OPTIONAL] - output file path for manual mode (default: dsoa-deploy-script-{ENV}-{TIMESTAMP}.sql)
 # * --options      [OPTIONAL] - comma-separated: manual, service_user, skip_confirm, no_dep
@@ -141,6 +143,34 @@ DEPLOYMENT_ID=$(uuidgen)
 
 $CWD/prepare_config.sh "${DEFAULT_CONFIG_FILE}" "${CONFIG_FILE}"
 
+# Validate and fix dynatrace_tenant_address if it uses deprecated .apps.dynatrace.com domain
+TENANT_ADDRESS="$($CWD/get_config_key.sh core.dynatrace_tenant_address)"
+if [[ "$TENANT_ADDRESS" == *".apps.dynatrace.com"* ]]; then
+    # Replace .apps.dynatrace.com with .live.dynatrace.com in the config file
+    FIXED_TENANT_ADDRESS="${TENANT_ADDRESS//.apps.dynatrace.com/.live.dynatrace.com}"
+
+    # Update the JSON config file
+    jq --arg old_val "$TENANT_ADDRESS" --arg new_val "$FIXED_TENANT_ADDRESS" \
+        'map(if .PATH == "core.dynatrace_tenant_address" then .VALUE = $new_val else . end)' \
+        "$BUILD_CONFIG_FILE" > "${BUILD_CONFIG_FILE}.tmp" && mv "${BUILD_CONFIG_FILE}.tmp" "$BUILD_CONFIG_FILE"
+
+    echo ""
+    echo "╔══════════════════════════════════════════════════════════════════════════════════╗"
+    echo "║                                   ⚠️  WARNING  ⚠️                                  ║"
+    echo "╠══════════════════════════════════════════════════════════════════════════════════╣"
+    echo "║                                                                                  ║"
+    echo "║  The dynatrace_tenant_address uses incorrect domain for API:                     ║"
+    echo "║  .apps.dynatrace.com                                                             ║"
+    echo "║                                                                                  ║"
+    echo "║  Current value: $TENANT_ADDRESS                                      ║"
+    echo "║                                                                                  ║"
+    echo "║  This will be automatically replaced with: $FIXED_TENANT_ADDRESS           ║"
+    echo "║                                                                                  ║"
+    echo "╚══════════════════════════════════════════════════════════════════════════════════╝"
+    echo ""
+    sleep 5
+fi
+
 DEPLOYMENT_ENV="$($CWD/get_config_key.sh core.deployment_environment)"
 CONNECTION_ENV="${DEPLOYMENT_ENV,,}" # convert to lower case
 NOW_TS=$(date '+%Y%m%d-%H%M%S')
@@ -174,9 +204,9 @@ if [ -s "$INSTALL_SCRIPT_SQL" ] && ! $IS_MANUAL; then
         SNOWFLAKE_ACCOUNT_NAME="$($CWD/get_config_key.sh core.snowflake_account_name)"
     fi
 
-    INSTALL_SCRIPT_LOG="dsoa-deploy-$DEPLOYMENT_ENV-${NOW_TS}.log"
+    INSTALL_SCRIPT_LOG="dsoa-deploy-log-$DEPLOYMENT_ENV-${NOW_TS}.sql"
     #%DEV:
-    mkdir .logs 2>&1
+    mkdir -p .logs 2>/dev/null
     INSTALL_SCRIPT_LOG=".logs/$INSTALL_SCRIPT_LOG"
     #%:DEV
     echo -e "\n\n--------\n"

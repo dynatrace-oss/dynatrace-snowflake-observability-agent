@@ -24,7 +24,7 @@
 --
 -- APP.V_DYNAMIC_TABLE_REFRESH_HISTORY_INSTRUMENTED() returns metadata for all dynamic table refresh history
 --
-use role DTAGENT_ADMIN; use database DTAGENT_DB; use warehouse DTAGENT_WH;
+use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 
 create or replace view APP.V_DYNAMIC_TABLE_REFRESH_HISTORY_INSTRUMENTED
 as

@@ -1,17 +1,17 @@
 --
 --
 -- Copyright (c) 2025 Dynatrace Open Source
--- 
+--
 -- Permission is hereby granted, free of charge, to any person obtaining a copy
 -- of this software and associated documentation files (the "Software"), to deal
 -- in the Software without restriction, including without limitation the rights
 -- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 -- copies of the Software, and to permit persons to whom the Software is
 -- furnished to do so, subject to the following conditions:
--- 
+--
 -- The above copyright notice and this permission notice shall be included in all
 -- copies or substantial portions of the Software.
--- 
+--
 -- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 -- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 -- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -24,30 +24,30 @@
 --
 -- APP.V_QUERY_HISTORY() looks up for new queries that were not processed yet but finished within last 75 minutes
 -- It delivered all information we could get from SNOWFLAKE.ACCOUNT_USAGE.QUERY_HISTORY and ACCESS_HISTORY
--- 
-use role DTAGENT_ADMIN; use database DTAGENT_DB; use warehouse DTAGENT_WH;
+--
+use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 
 create or replace view APP.V_QUERY_HISTORY
-as 
+as
 with cte_queries_to_check as (
-    select 
+    select
         qh.query_id,
         qh.start_time,
         qh.end_time,
         qh.session_id
-    from 
+    from
         SNOWFLAKE.ACCOUNT_USAGE.QUERY_HISTORY qh
-    where 
+    where
         qh.end_time >= timeadd(minute, -120, current_timestamp)
     and qh.query_text is not null
     and qh.query_id not in (
-            select query_id 
-            from STATUS.PROCESSED_QUERIES_CACHE 
+            select query_id
+            from STATUS.PROCESSED_QUERIES_CACHE
             where processed_time is not null
         )
 )
 , cte_access_history as (
-    select 
+    select
         ah.query_id                                                             as query_id,
         ah.query_start_time                                                     as start_time,
         ah.parent_query_id,
@@ -62,12 +62,12 @@ with cte_queries_to_check as (
                 array_agg(
                     split_part(t.VALUE:objectName::varchar, '.', 1)::variant),
                 array_agg(
-                    split_part(v.VALUE:objectName::varchar, '.', 1)::variant) 
+                    split_part(v.VALUE:objectName::varchar, '.', 1)::variant)
             )
         )                                                                       as query_dbs
-    from 
+    from
         SNOWFLAKE.ACCOUNT_USAGE.ACCESS_HISTORY      ah
-    inner join 
+    inner join
         cte_queries_to_check                        cqc
     on cqc.query_id = ah.query_id
     and cqc.start_time = ah.query_start_time,
@@ -75,7 +75,7 @@ with cte_queries_to_check as (
         TABLE(flatten(ah.direct_objects_accessed))  v
     group by all
 )
-select 
+select
     qh.start_time,
     qh.end_time,
 
@@ -105,13 +105,13 @@ select
     qh.release_version,
 
     case
-        when ah.query_tables is not null and ARRAY_SIZE(ah.query_tables) > 0 
+        when ah.query_tables is not null and ARRAY_SIZE(ah.query_tables) > 0
         then GET(ah.query_tables, 0)
         else NULL                -- we use database_name provided by snowflake as the worst case scenario as it can be wrong at times
     end as table_name,           -- this is a primary database name
 
     case
-        when table_name is not null 
+        when table_name is not null
         then split_part(table_name, '.', 1)
         else qh.database_name       -- we use database_name provided by snowflake as the worst case scenario as it can be wrong at times
     end as database_name,           -- this is a primary database name
@@ -121,7 +121,7 @@ select
     ah.query_views,
     qh.query_retry_cause,
 
-    qh.warehouse_id,    
+    qh.warehouse_id,
     qh.warehouse_type,
     qh.warehouse_size,
 
@@ -143,7 +143,7 @@ select
     s.client_build_id,
     s.client_version,
     s.closed_reason,
-    
+
     // metrics
 
     qh.query_load_percent,
@@ -159,7 +159,7 @@ select
     qh.queued_overload_time,
     qh.queued_provisioning_time,
     qh.queued_repair_time,
-    
+
     qh.bytes_spilled_to_local_storage,
     qh.bytes_spilled_to_remote_storage,
     qh.bytes_sent_over_the_network,
@@ -169,17 +169,17 @@ select
     qh.outbound_data_transfer_bytes,
     qh.outbound_data_transfer_cloud,
     qh.outbound_data_transfer_region,
-    
+
     qh.bytes_read_from_result,
     qh.bytes_scanned,
     qh.bytes_written,
     qh.bytes_written_to_result,
     qh.bytes_deleted,
-    
+
     qh.partitions_scanned,
     qh.partitions_total,
     qh.percentage_scanned_from_cache,
-    
+
     qh.query_acceleration_bytes_scanned,
     qh.query_acceleration_partitions_scanned,
     qh.query_acceleration_upper_limit_scale_factor,
@@ -195,19 +195,19 @@ select
 
     qh.rows_written_to_result,
     qh.query_retry_time,
-    
+
     qh.external_function_total_sent_rows,
     qh.external_function_total_sent_bytes,
 
     qh.fault_handling_time
-from 
+from
     SNOWFLAKE.ACCOUNT_USAGE.QUERY_HISTORY           qh
 inner join
     cte_queries_to_check                            cqc
  on  cqc.query_id = qh.query_id
  and cqc.start_time = qh.start_time
 left join
-    cte_access_history                              ah 
+    cte_access_history                              ah
  on  ah.query_id = qh.query_id
  and ah.start_time = qh.start_time
 left join
@@ -219,13 +219,13 @@ left join
     STATUS.EVENT_LOG l
  on l.RECORD_TYPE = 'SPAN'
  and l.RESOURCE_ATTRIBUTES:"snow.query.id"::varchar = qh.query_id
-where 
+where
     qh.end_time >= timeadd(minute, -120, current_timestamp)
 -- this will ensure we do not report some strange Snowflake-internal queries
-and not (qh.QUERY_TEXT = '' and 
+and not (qh.QUERY_TEXT = '' and
          qh.USER_NAME = 'SYSTEM' and
-         qh.ROLE_NAME is null and 
-         qh.DATABASE_NAME is null and 
+         qh.ROLE_NAME is null and
+         qh.DATABASE_NAME is null and
          qh.SCHEMA_NAME is null)
 ;
 grant select on table APP.V_QUERY_HISTORY to role DTAGENT_VIEWER;
@@ -233,8 +233,8 @@ grant select on table APP.V_QUERY_HISTORY to role DTAGENT_VIEWER;
 -- example call
 /*
 use database DTAGENT_DB; use warehouse DTAGENT_WH; use role DTAGENT_VIEWER;
-select * 
-from DTAGENT_DB.APP.V_QUERY_HISTORY 
+select *
+from DTAGENT_DB.APP.V_QUERY_HISTORY
 where parent_query_id is not null
 limit 10;
  */

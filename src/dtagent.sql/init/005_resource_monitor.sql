@@ -51,10 +51,10 @@ exception
         on  50 percent do notify
         on 100 percent do suspend
         on 110 percent do suspend_immediate;
-  return the_user;
+  return 1;
 end;
 $$
 ;
 
-grant ownership on resource monitor DTAGENT_RS to role DTAGENT_ADMIN revoke current grants;
+grant ownership on resource monitor DTAGENT_RS to role DTAGENT_OWNER revoke current grants;
 alter warehouse if exists DTAGENT_WH set resource_monitor = DTAGENT_RS;

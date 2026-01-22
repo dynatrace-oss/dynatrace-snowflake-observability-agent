@@ -2,20 +2,37 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+### Improved
+
+- **Flexible Scope Combinations**: The `apikey` deployment scope can now be combined with other scopes (e.g., `setup,plugins,config,agents,apikey`),
+  enabling more flexible deployment workflows. Previously, `apikey` could only be used alone. The restrictions on `all` and `teardown`
+  remain unchanged (they cannot be combined with other scopes).
+
 ## Dynatrace Snowflake Observability Agent 0.9.3
 
 Released on January 15, 2026
 
 ### Breaking Changes in 0.9.3
 
-- **Optional DTAGENT_ADMIN Role**: Re-architected SnowAgent to make the use of `DTAGENT_ADMIN` role optional, enabling deployment with
-  reduced privileges. Deployment vs. upgrade now has separate permission requirements with owner-admin-viewer role separation.
+- **DTAGENT_OWNER Role Introduction**: Re-architected SnowAgent to introduce `DTAGENT_OWNER` role that owns all SnowAgent artifacts
+  (database, schemas, tables, procedures, tasks). The `DTAGENT_ADMIN` role is now reserved exclusively for elevated administrative
+  privileges (role grants, ownership transfers), while `DTAGENT_VIEWER` handles regular telemetry-related operations. This separation
+  improves security and enables deployment with reduced privileges.
+- **Deployment vs. Upgrade Permission Requirements**: Deployment and upgrade now have separate permission requirements with the new
+  owner-admin-viewer role separation model.
 - **Deployment configuration**: Deployment configuration files are now in YAML format. Multi-configuration deployment is no longer supported.
   Each DSOA instance must be deployed separately with its own configuration. Use `convert_config_to_yaml.sh` script to convert configuration
   files to YAML format and split existing multi-configuration files into separate YAML files.
 
 ### New in 0.9.3
 
+- **Admin Deployment Scope**: New `admin` deployment scope for administrative operations, enabling granular control over privilege-related
+  deployments.
+  - Created `build/10_admin.sql` compiled from `src/dtagent.sql/admin/*.sql` and plugin-specific `admin/*.sql` files
+  - Added `--scope=admin` option to `deploy.sh` for deploying only administrative components (role grants, ownership transfers)
+  - Enforces strict separation: `DTAGENT_ADMIN` role usage restricted to admin files only, validated by automated tests
 - **SDLC Events Support**: Implemented support for Software Development Life Cycle (SDLC) events in SnowAgent, enabling pipelines-related
   telemetry for Snowflake and SnowAgent self-monitoring.
 - **Database-Level Event Tables**: Added support for Snowflake event log tables at the database level (`SNOWFLAKE.TELEMETRY.EVENTS`), in
@@ -33,6 +50,24 @@ Released on January 15, 2026
 
 #### Architecture & Multi-Tenancy
 
+- **Flexible Role Model**: Implemented role hierarchy with `ACCOUNTADMIN` \u2192 `DTAGENT_OWNER` \u2192 `DTAGENT_VIEWER` as primary hierarchy and `DTAGENT_OWNER` \u2192 `DTAGENT_ADMIN` as optional admin branch:
+  - `DTAGENT_OWNER`: Owns all SnowAgent artifacts (database, schemas, tables, procedures, tasks)
+  - `DTAGENT_ADMIN`: **Optional role** that handles elevated administrative operations (role grants, ownership transfers, privilege management). Only created when `--scope=admin` is deployed.
+  - `DTAGENT_VIEWER`: Executes regular telemetry collection and processing operations
+  - Enables flexible deployment: organizations can run `--scope=init` with `ACCOUNTADMIN` to create base structure, then use
+    `DTAGENT_OWNER` for regular deployment scopes, restricting use of elevated privileges to only necessary operations
+  - Organizations can choose to skip both `init` and `admin` scopes entirely, avoiding creation of `DTAGENT_ADMIN` role and performing initialization manually for maximum security control
+- **Security Model Enhancement**: Isolated administrative operations (using `DTAGENT_ADMIN` role when present) in dedicated admin scripts, ensuring
+  administrative privileges are only used in appropriate contexts. When `DTAGENT_ADMIN` is not deployed, administrative operations must be performed manually. Added automated tests (`test_admin_role_usage.py`) to enforce this
+  separation.
+- **Build Artifact Reorganization**: Updated build artifact numbering to accommodate new admin scope:
+  - `00_init.sql` - Initialization (unchanged)
+  - `09_upgrade/v*.sql` - Upgrades (unchanged)
+  - `10_admin.sql` - Administrative setup (NEW)
+  - `20_setup.sql` - General setup (previously `10_setup.sql`)
+  - `30_plugins/` - Plugin definitions (previously `20_plugins/`)
+  - `40_config.sql` - Configuration (previously `30_config.sql`)
+  - `70_agents.sql` - Agent definitions (unchanged)
 - **Multi-Tenancy Data Reuse**: Refactored code so that multi-tenant instances can re-use existing data prepared by other instances,
   reducing redundant telemetry processing.
 - **Selective Plugin Deployment**: Enabled deployment of SnowAgent with only selected plugins, allowing customization based on use case
@@ -67,7 +102,11 @@ Released on January 15, 2026
 
 - **Snowflake Account Identification**: Improved how Snowflake account is identified in configuration, clarifying the distinction between
   account name, account locator, and host name.
-- **Data Retention Configuration**: Added ability to configure data retention on `DTAGENT_*` objects.
+- **Data Retention Configuration**: Added ability to configure data retention on `DTAGENT_DB` permanent tables via the
+  `snowflake_data_retention_time_in_days` configuration parameter (default: 1 day). This sets the database-level
+  `DATA_RETENTION_TIME_IN_DAYS` parameter which applies to all permanent (non-transient) tables. Note that transient tables (used for
+  temporary processing data) always have 0-day retention and are not affected by this setting. This allows organizations to balance data
+  availability for troubleshooting with storage costs.
 - **Simplified Configuration Format**: Simplified configuration files for SnowAgent (YAML format with lowercase keys to match Snowflake
   configuration table paths).
 - **Metric Semantics**: `V_INSTRUMENTS` has been refactored to separate metric semantics from attribute semantics, improving clarity
@@ -77,7 +116,7 @@ Released on January 15, 2026
 
 - **Enhanced Deployment Script**: Completely refactored `deploy.sh` with improved parameter handling. The script now uses named parameters
   (`--scope`, `--from-version`, `--output-file`, `--options`) instead of positional arguments for better clarity and flexibility.
-- **Structured Deployment Scopes**: Introduced well-defined deployment scopes (`init`, `setup`, `plugins`, `config`, `agents`, `apikey`,
+- **Structured Deployment Scopes**: Introduced well-defined deployment scopes (`init`, `admin`, `setup`, `plugins`, `config`, `agents`, `apikey`,
   `all`, `teardown`, `upgrade`) that allow granular control over what gets deployed.
 - **Independent Manual Mode**: Manual deploy mode can now be invoked independently from other parameters via `--options=manual`, supporting
   teardown and selective deployment with SQL review. Custom output file paths can be specified with `--output-file`.

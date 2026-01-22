@@ -24,7 +24,7 @@
 
 -- using cases for array objects is something we should practice in order not to send empty arrays to DT
 -- once an array is empty snowflake often puts and reads the row as '[]' so best to replace it with nulls
-use role DTAGENT_ADMIN; use database DTAGENT_DB; use warehouse DTAGENT_WH;
+use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 create or replace view DTAGENT_DB.APP.V_DATA_SCHEMAS
 as
 with cte_includes as (

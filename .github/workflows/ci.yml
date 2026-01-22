@@ -24,7 +24,7 @@ jobs:
           npm install -g markdownlint-cli
 
       - name: Lint Python
-        run: flake8 src/ test/ || exit 1
+        run: flake8 --config=.flake8 src/ test/ || exit 1
 
       - name: Format Python
         run: black --check src/ test/ || exit 1
@@ -44,7 +44,7 @@ jobs:
         run: markdownlint '**/*.md' || exit 1
 
       - name: Lint BOM files
-        run: find src -name "bom.yml" -exec check-jsonschema --schemafile test/src-bom.schema.json {} \;
+        run: find src -name "bom.yml" -exec sh -c 'printf "%-50s " "$$1"; check-jsonschema --schemafile test/src-bom.schema.json "$$1" || check-jsonschema --schemafile test/src-bom.schema.json "$$1"' _ {} \;
 
   test-documentation:
     runs-on: ubuntu-latest
