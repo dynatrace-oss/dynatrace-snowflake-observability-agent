@@ -67,4 +67,4 @@ grant usage on procedure DTAGENT_DB.APP.P_CLEANUP_EVENT_LOG() to role DTAGENT_AD
 use role DTAGENT_VIEWER;
 call DTAGENT_DB.APP.P_CLEANUP_EVENT_LOG();
 */
----%:OPTION:dtagent_admin
+--%:OPTION:dtagent_admin

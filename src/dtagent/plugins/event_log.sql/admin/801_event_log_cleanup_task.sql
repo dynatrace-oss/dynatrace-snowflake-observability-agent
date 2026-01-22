@@ -45,4 +45,4 @@ grant monitor on task DTAGENT_DB.APP.TASK_DTAGENT_EVENT_LOG_CLEANUP to role DTAG
 alter task if exists DTAGENT_DB.APP.TASK_DTAGENT_EVENT_LOG_CLEANUP resume;
 
 -- alter task if exists DTAGENT_DB.APP.TASK_DTAGENT_EVENT_LOG_CLEANUP suspend;
----%:OPTION:dtagent_admin
+--%:OPTION:dtagent_admin

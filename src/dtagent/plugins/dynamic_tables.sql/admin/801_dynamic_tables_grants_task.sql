@@ -39,4 +39,4 @@ grant monitor on task DTAGENT_DB.APP.TASK_DTAGENT_DYNAMIC_TABLES_GRANTS to role 
 alter task if exists DTAGENT_DB.APP.TASK_DTAGENT_DYNAMIC_TABLES_GRANTS resume;
 
 -- alter task if exists DTAGENT_DB.APP.TASK_DTAGENT_DYNAMIC_TABLES suspend;
----%:OPTION:dtagent_admin
+--%:OPTION:dtagent_admin
