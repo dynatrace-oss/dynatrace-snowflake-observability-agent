@@ -82,6 +82,14 @@ The source code of Dynatrace Snowflake Observability Agent is organized into sev
    - `80x` for task definitions, and
    - `90x` for plugin-specific update procedures.
 
+   **Conditional Code Blocks**: SQL scripts support annotation blocks for conditional inclusion:
+   - `--%PLUGIN:plugin_name:` / `--%:PLUGIN:plugin_name` - Code included only when plugin is enabled
+   - `--%OPTION:option_name:` / `--%:OPTION:option_name` - Code included only when optional component is enabled
+     - `dtagent_admin` - Admin role code (excluded when `core.snowflake.roles.admin` is `"-"`)
+     - `resource_monitor` - Resource monitor code (excluded when `core.snowflake.resource_monitor.name` is `"-"`)
+
+   These blocks are automatically filtered during deployment based on configuration.
+
 1. **Configuration files**: Defined for the core and telemetry API, and separately for each plugin. These are located in `*.conf` folders.
 
 1. **Documentation files**: Each part of Dynatrace Snowflake Observability Agent and each plugin has documentation in `info.md` files,

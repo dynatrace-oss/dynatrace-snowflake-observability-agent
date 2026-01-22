@@ -6,9 +6,11 @@ delivers:
     comment: role that owns all SnowAgent artifacts (database, schemas, tables, procedures, tasks)
   - name: DTAGENT_ADMIN
     type: role
-    comment:
-      (Optional - only when admin scope is installed) role that handles elevated administrative operations (role grants, ownership
-      transfers, privilege management)
+    optional: true
+    config_key: core.snowflake.roles.admin
+    comment: >
+      (Optional - created only when core.snowflake.roles.admin is not set to "-") Role that handles elevated administrative operations (role
+      grants, ownership transfers, privilege management). When disabled, admin deployment scope cannot be used.
   - name: DTAGENT_VIEWER
     type: role
     comment: role that executes regular telemetry collection and processing operations
@@ -16,6 +18,11 @@ delivers:
     type: warehouse
   - name: DTAGENT_RS
     type: resource monitor
+    optional: true
+    config_key: core.snowflake.resource_monitor.name
+    comment: >
+      (Optional - created only when core.snowflake.resource_monitor.name is not set to "-") Resource monitor for controlling credit
+      consumption. When disabled, no resource monitoring will be applied to the warehouse.
   - name: DTAGENT_API_INTEGRATION
     type: external access integration
   - name: DTAGENT_DB.PUBLIC
@@ -36,6 +43,9 @@ delivers:
     type: procedure
   - name: DTAGENT_DB.CONFIG.P_UPDATE_RESOURCE_MONITOR(int)
     type: procedure
+    optional: true
+    config_key: core.snowflake.resource_monitor.name
+    comment: Only created when resource monitor is enabled
   - name: DTAGENT_DB.STATUS
     type: schema
   - name: DTAGENT_DB.STATUS.PROCESSED_MEASUREMENTS_LOG
@@ -76,6 +86,9 @@ references:
       - MANAGE GRANTS
       - EXECUTE TASK
     granted to: DTAGENT_ADMIN
+    optional: true
+    config_key: core.snowflake.roles.admin
+    comment: Only granted when admin role is enabled
   - name: ACCOUNT
     type: account
     privileges:

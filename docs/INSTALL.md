@@ -323,11 +323,13 @@ The following table describes all available `core` configuration options:
 | `snowflake.database.name`                        | String  | No       | `DTAGENT_DB`     | Custom name for the Dynatrace agent database. Empty or missing value uses default                                                    |
 | `snowflake.database.data_retention_time_in_days` | Integer | No       | 1                | Data retention time in days for permanent tables in the database. Does not affect transient tables which always have 0-day retention |
 | `snowflake.warehouse.name`                       | String  | No       | `DTAGENT_WH`     | Custom name for the Dynatrace agent warehouse. Empty or missing value uses default                                                   |
-| `snowflake.resource_monitor.name`                | String  | No       | `DTAGENT_RS`     | Custom name for the resource monitor. Empty/missing uses default, `"-"` skips creation                                               |
+| `snowflake.resource_monitor.name`                | String  | No       | `DTAGENT_RS`     | Custom name for the resource monitor. Empty/missing uses default, `"-"` skips creation (**see note below**)                          |
 | `snowflake.resource_monitor.credit_quota`        | Integer | Yes      | 5                | Credit quota limit for Snowflake operations                                                                                          |
 | `snowflake.roles.owner`                          | String  | No       | `DTAGENT_OWNER`  | Custom name for the owner role. Empty or missing value uses default                                                                  |
-| `snowflake.roles.admin`                          | String  | No       | `DTAGENT_ADMIN`  | Custom name for the admin role. Empty/missing uses default, `"-"` skips creation                                                     |
+| `snowflake.roles.admin`                          | String  | No       | `DTAGENT_ADMIN`  | Custom name for the admin role. Empty/missing uses default, `"-"` skips creation (**see note below**)                                |
 | `snowflake.roles.viewer`                         | String  | No       | `DTAGENT_VIEWER` | Custom name for the viewer role. Empty or missing value uses default                                                                 |
+
+> **Note on Optional Objects**: When `snowflake.roles.admin` or `snowflake.resource_monitor.name` is set to `"-"`, the corresponding object will not be created during deployment. All SQL code related to these objects will be automatically excluded from the deployment script. If you set `snowflake.roles.admin` to `"-"`, you cannot use the `admin` deployment scope as it requires the admin role to exist.
 
 #### Plugin Configuration Options
 

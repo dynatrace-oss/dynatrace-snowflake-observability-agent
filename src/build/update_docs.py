@@ -180,6 +180,19 @@ def _generate_bom_tables(bom_data: Dict, plugin_name: str, scope: str) -> str:
         row = []
         for key in present_columns:
             value = item.get(key, "")
+
+            # Enhance comment field with optional/config_key information
+            if key == "comment":
+                comment = str(value) if value else ""
+                # Add optional indicator if not already mentioned in comment
+                if item.get("optional") and "optional" not in comment.lower():
+                    config_key = item.get("config_key", "")
+                    optional_info = "Optional"
+                    if config_key:
+                        optional_info += f" (controlled by {config_key})"
+                    comment = f"{optional_info}. {comment}" if comment else optional_info
+                value = comment
+
             if isinstance(value, list):
                 value = ", ".join(str(v) for v in value)
             value = str(value).replace("|", "/").replace("\n", " ")
@@ -189,11 +202,28 @@ def _generate_bom_tables(bom_data: Dict, plugin_name: str, scope: str) -> str:
     return _generate_markdown_table(column_headers, rows_data)
 
 
-def _generate_plugins_info(dtagent_plugins_path: str) -> Tuple[str, List]:
+def _generate_plugins_info(dtagent_plugins_path: str, dtagent_conf_path: str) -> Tuple[str, List]:
     """Gathers plugin info from readme.md files and their default config files."""
 
     __content = ""
     __plugins_toc = []
+
+    # Add the core BOM section first
+    core_bom_path = os.path.join(dtagent_conf_path, "bom.yml")
+    if os.path.isfile(core_bom_path):
+        core_bom_sec = "core_bom_sec"
+        __plugins_toc.append(f"- [Core Objects](#{core_bom_sec})")
+
+        __content += f'<a name="{core_bom_sec}"></a>\n\n## Core Snowflake Objects\n\n'
+        __content += "The Dynatrace Snowflake Observability Agent creates and uses the following Snowflake objects.\n\n"
+
+        bom_data = yaml.safe_load(_read_file(core_bom_path))
+
+        __content += "### Objects delivered by the agent\n\n"
+        __content += _generate_bom_tables(bom_data, "core", "delivers")
+
+        __content += "### Objects referenced by the agent\n\n"
+        __content += _generate_bom_tables(bom_data, "core", "references")
 
     # Iterate over each plugin folder in src/dtagent/plugins
     for plugin_folder in sorted(os.listdir(dtagent_plugins_path)):
@@ -431,7 +461,7 @@ def generate_readme_content(dtagent_conf_path: str, dtagent_plugins_path: str) -
     readme_full_content += _lower_headers_one_level(usecases_content) + "\n"
     readme_full_content += _lower_headers_one_level(architecture_content) + "\n"
 
-    plugins_content, plugins_toc = _generate_plugins_info(dtagent_plugins_path)
+    plugins_content, plugins_toc = _generate_plugins_info(dtagent_plugins_path, dtagent_conf_path)
     readme_full_content += "## Plugins\n\n"
     readme_full_content += "\n".join(plugins_toc)
     readme_full_content += "\n\n"

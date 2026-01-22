@@ -294,6 +294,56 @@ filter_plugin_code() {
     rm "$temp_file"
 }
 
+# Filter function to remove disabled optional component code
+filter_option_code() {
+    local input_file=$1
+    local output_file=$2
+
+    if [ -z "$EXCLUDED_OPTIONS" ]; then
+        cat "$input_file" > "$output_file"
+        return
+    fi
+
+    local temp_file=$(mktemp)
+    cp "$input_file" "$temp_file"
+
+    for option_name in $EXCLUDED_OPTIONS; do
+        awk -v option="$option_name" '
+            BEGIN { active=1; }
+            {
+                # Check for start marker: --%OPTION:option_name: or #%OPTION:option_name:
+                if ($0 ~ /^(--|#)%OPTION:/) {
+                    start_pattern = "%OPTION:" option ":"
+                    if (index($0, start_pattern) > 0) {
+                        active=0;
+                    }
+                }
+
+                # Print line only if active
+                if (active==1) print $0;
+
+                # Check for end marker: --%:OPTION:option_name or #%:OPTION:option_name
+                if ($0 ~ /^(--|#)%:OPTION:/) {
+                    end_pattern = "%:OPTION:" option
+                    # Make sure we match the exact option name, not a prefix
+                    if (index($0, end_pattern) > 0) {
+                        # Check if followed by end of line or whitespace
+                        idx = index($0, end_pattern)
+                        len = length(end_pattern)
+                        rest = substr($0, idx + len)
+                        if (rest == "" || rest ~ /^[ \t]*$/) {
+                            active=1;
+                        }
+                    }
+                }
+            }
+        ' "$temp_file" > "$output_file"
+        cp "$output_file" "$temp_file"
+    done
+
+    rm "$temp_file"
+}
+
 # Get list of plugins to exclude
 EXCLUDED_PLUGINS=$($CWD/list_plugins_to_exclude.sh)
 
@@ -306,6 +356,29 @@ if [ "$SCOPE" != "apikey" ] && [ "$SCOPE" != "teardown" ]; then
         filter_plugin_code "${INSTALL_SCRIPT_SQL}" "${FILTERED_SQL}"
         mv "${FILTERED_SQL}" "${INSTALL_SCRIPT_SQL}"
     fi
+fi
+
+# Get list of optional components to exclude
+EXCLUDED_OPTIONS=$($CWD/list_options_to_exclude.sh)
+
+# Apply option filtering for all scopes
+if [ -n "$EXCLUDED_OPTIONS" ]; then
+    EXCLUDED_OPTIONS_FORMATTED=$(echo "$EXCLUDED_OPTIONS" | tr ' ' ',' | sed 's/,$//')
+    echo "Filtering out disabled optional components: $EXCLUDED_OPTIONS_FORMATTED"
+    FILTERED_SQL=$(mktemp)
+    filter_option_code "${INSTALL_SCRIPT_SQL}" "${FILTERED_SQL}"
+    mv "${FILTERED_SQL}" "${INSTALL_SCRIPT_SQL}"
+fi
+
+# Check if admin scope is requested but dtagent_admin is disabled
+if [[ "$SCOPE" == *"admin"* ]] && [[ "$EXCLUDED_OPTIONS" == *"dtagent_admin"* ]]; then
+    echo "ERROR: Deployment scope 'admin' was requested, but core.snowflake.roles.admin is set to '-' (disabled)."
+    echo "       The admin role will not be created and no admin-related operations can be performed."
+    echo ""
+    echo "To fix this:"
+    echo "  1. Remove 'admin' from the deployment scope, OR"
+    echo "  2. Set core.snowflake.roles.admin to a valid role name (or leave empty for default 'DTAGENT_ADMIN')"
+    exit 1
 fi
 
 #

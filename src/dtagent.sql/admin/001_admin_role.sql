@@ -25,6 +25,7 @@
 -- Initializing Dynatrace Snowflake Observability Agent by creating: admin role
 -- This role is used to grant necessary privileges to the DTAGENT_VIEWER role
 --
+--%OPTION:dtagent_admin:
 use role ACCOUNTADMIN;
 create role if not exists DTAGENT_ADMIN;
 grant ownership on role DTAGENT_ADMIN to role DTAGENT_OWNER revoke current grants;
@@ -34,4 +35,4 @@ grant role DTAGENT_ADMIN to role DTAGENT_OWNER;
 -- this is required to grant monitoring privileges on warehouses and dynamic tables to the DTAGENT_VIEWER role
 grant MANAGE GRANTS on ACCOUNT to role DTAGENT_ADMIN;
 grant EXECUTE TASK on ACCOUNT to role DTAGENT_ADMIN;
-
+--%:OPTION:dtagent_admin

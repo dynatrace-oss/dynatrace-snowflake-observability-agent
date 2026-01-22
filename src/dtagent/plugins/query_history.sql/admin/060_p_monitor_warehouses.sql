@@ -25,6 +25,7 @@
 -- APP.P_MONITOR_WAREHOUSES() will grant MONITOR privilege to DTAGENT_VIEWER so that all queries are visible in query_history
 -- this procedure is deprecated and not deployed to Snowflake
 --
+--%OPTION:dtagent_admin:
 use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 create or replace procedure DTAGENT_DB.APP.P_MONITOR_WAREHOUSES()
 returns text
@@ -69,3 +70,4 @@ $$
 ;
 
 grant ownership on procedure DTAGENT_DB.APP.P_MONITOR_WAREHOUSES() to role DTAGENT_ADMIN revoke current grants;
+--%:OPTION:dtagent_admin

@@ -26,6 +26,8 @@ All notable changes to this project will be documented in this file.
 
   Missing or empty values use default names. Set admin role or resource monitor to `"-"` to skip their creation entirely.
 
+- **Optional Object Deployment**: When `snowflake.roles.admin` or `snowflake.resource_monitor.name` is set to `"-"`, the deployment process automatically excludes all related SQL code from the deployment script. This allows for lightweight deployments without admin role management or resource monitoring overhead. Attempting to deploy with `scope=admin` when the admin role is disabled will result in a deployment error with clear guidance.
+
 ### Improved
 
 - **Flexible Scope Combinations**: The `apikey` deployment scope can now be combined with other scopes (e.g., `setup,plugins,config,agents,apikey`),

@@ -38,6 +38,14 @@
           "language": {
             "type": "string",
             "description": "Programming language (for procedures/functions)"
+          },
+          "optional": {
+            "type": "boolean",
+            "description": "Whether this object is optional and may not be created"
+          },
+          "config_key": {
+            "type": "string",
+            "description": "Configuration key that determines if this optional object is created"
           }
         },
         "additionalProperties": false
@@ -93,6 +101,14 @@
           "granted to": {
             "type": "string",
             "description": "Role to which privileges are granted"
+          },
+          "optional": {
+            "type": "boolean",
+            "description": "Whether this reference is optional and may not be needed"
+          },
+          "config_key": {
+            "type": "string",
+            "description": "Configuration key that determines if this optional reference is needed"
           }
         },
         "additionalProperties": false
