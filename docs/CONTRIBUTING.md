@@ -7,16 +7,53 @@ conventions for naming dimensions, attributes, and metrics.
 
 Table of content:
 
-- [Semantic conventions](#semantic-conventions):
+- [Writing Plugins](#writing-plugins)
+- [Semantic conventions](#semantic-conventions)
   - [Field and metric naming rules](#field-and-metric-naming-rules)
   - [Snowflake stored procedure, table, and view creation rules](#snowflake-stored-procedure-table-and-view-creation-rules)
   - [On metric types](#on-metric-types)
+- [Source code overview](#source-code-overview)
+  - [Core code](#core-code)
+  - [Internal telemetry API code](#internal-telemetry-api-code)
+  - [Plugin code](#plugin-code)
+  - [Bash scripts](#bash-scripts)
 - [Working with Dynatrace Snowflake Observability Agent source code](#working-with-dynatrace-snowflake-observability-agent-source-code)
-  - [Setting up development environment](#setting-up-development-environment)
-  - [Building Dynatrace Snowflake Observability Agent](#building-dynatrace-snowflake-observability-agent)
-  - [Testing Dynatrace Snowflake Observability Agent locally](#testing-dynatrace-snowflake-observability-agent-locally)
-  - [Updating documentation](#updating-documentation)
-  - [Packaging Dynatrace Snowflake Observability Agent for distribution](#packaging-dynatrace-snowflake-observability-agent-for-distribution)
+- [Setting up development environment](#setting-up-development-environment)
+  - [Prerequisites](#prerequisites)
+  - [Environment Setup](#environment-setup)
+  - [System Dependencies](#system-dependencies)
+- [Building Dynatrace Snowflake Observability Agent](#building-dynatrace-snowflake-observability-agent)
+- [Updating documentation](#updating-documentation)
+- [Packaging Dynatrace Snowflake Observability Agent for distribution](#packaging-dynatrace-snowflake-observability-agent-for-distribution)
+- [Testing Dynatrace Snowflake Observability Agent locally](#testing-dynatrace-snowflake-observability-agent-locally)
+  - [Test Suites Overview](#test-suites-overview)
+  - [Running All Tests](#running-all-tests)
+    - [VS Code Test Explorer](#vs-code-test-explorer)
+    - [Command Line](#command-line)
+  - [Test Execution Modes](#test-execution-modes)
+  - [Test Data](#test-data)
+  - [Creating Tests for New Plugins](#creating-tests-for-new-plugins)
+  - [Setting Up Test Environment](#setting-up-test-environment)
+  - [Running Tests in Local Mode](#running-tests-in-local-mode)
+  - [Running Individual Plugin Tests](#running-individual-plugin-tests)
+
+## Writing Plugins
+
+For a comprehensive guide on how to write a plugin for the Dynatrace Snowflake Observability Agent, including step-by-step instructions,
+complete examples, configuration details, testing guidelines, and best practices, please refer to the dedicated
+**[Plugin Development Guide](PLUGIN_DEVELOPMENT.md)**.
+
+The Plugin Development Guide covers:
+
+- Complete plugin structure and file organization
+- Step-by-step plugin creation with working examples
+- Python class implementation patterns
+- SQL views, procedures, and task definitions
+- Configuration and semantic dictionary setup
+- Bill of Materials (BOM) documentation
+- Comprehensive testing strategies
+- Common patterns and advanced topics
+- Troubleshooting and debugging tips
 
 ## Semantic conventions
 
