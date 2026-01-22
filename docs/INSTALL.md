@@ -6,6 +6,46 @@ need to be deployed at Snowflake by executing them in the correct order.
 This document assumes you are installing from the distribution package (`dynatrace_snowflake_observability_agent-*.zip`). If you are a
 developer and want to build from source, please refer to the [CONTRIBUTING.md](CONTRIBUTING.md) guide.
 
+## Table of Contents
+
+- [Prerequisites](#prerequisites)
+  - [Windows Users](#windows-users)
+  - [All Users](#all-users)
+    - [Snowflake CLI](#snowflake-cli)
+    - [jq and gawk](#jq-and-gawk)
+- [Quick Start](#quick-start)
+- [Deploying Dynatrace Snowflake Observability Agent](#deploying-dynatrace-snowflake-observability-agent)
+  - [Understanding the Deployment Process](#understanding-the-deployment-process)
+  - [Deployment Commands](#deployment-commands)
+    - [Required Parameters](#required-parameters)
+    - [Optional Parameters](#optional-parameters)
+    - [Examples](#examples)
+  - [Understanding the Role Model and Deployment Flexibility](#understanding-the-role-model-and-deployment-flexibility)
+    - [Role Hierarchy](#role-hierarchy)
+    - [Deployment Scope Privileges](#deployment-scope-privileges)
+    - [Restricting Elevated Privileges](#restricting-elevated-privileges)
+  - [Dynatrace API Token Setup](#dynatrace-api-token-setup)
+- [Setting up a profile](#setting-up-a-profile)
+  - [Creating profile configuration file for Snowflake-Dynatrace connection](#creating-profile-configuration-file-for-snowflake-dynatrace-connection)
+    - [Core Configuration Options](#core-configuration-options)
+    - [Custom Object Names](#custom-object-names)
+    - [Plugin Configuration Options](#plugin-configuration-options)
+    - [OpenTelemetry Configuration Options](#opentelemetry-configuration-options)
+    - [Plugin Scheduling](#plugin-scheduling)
+    - [Multitenancy](#multitenancy)
+- [Setting up connection to Snowflake](#setting-up-connection-to-snowflake)
+  - [Automatic Connection Setup (Recommended)](#automatic-connection-setup-recommended)
+  - [Manual Connection Setup](#manual-connection-setup)
+  - [Verifying Your Connections](#verifying-your-connections)
+  - [Connection Configuration Example](#connection-configuration-example)
+- [Common Configuration Mistakes](#common-configuration-mistakes)
+  - [Mistake 1: Connection Profile Name Mismatch](#mistake-1-connection-profile-name-mismatch)
+  - [Mistake 2: Confusing ENV with deployment_environment](#mistake-2-confusing-env-with-deployment_environment)
+  - [Mistake 3: Reusing Tags or Deployment Environments](#mistake-3-reusing-tags-or-deployment-environments)
+  - [Mistake 4: Including Tag in deployment_environment](#mistake-4-including-tag-in-deployment_environment)
+  - [Mistake 5: Not Using Lowercase for Connection Names](#mistake-5-not-using-lowercase-for-connection-names)
+  - [Quick Diagnostic Commands](#quick-diagnostic-commands)
+
 ## Prerequisites
 
 Before you can deploy the agent, you need to ensure the following tools are installed on your system.
@@ -65,20 +105,138 @@ On **macOS** (with Homebrew):
 brew install jq yq gawk
 ```
 
+## Quick Start
+
+1. **Create configuration file** (choose a descriptive `$ENV` name for your file):
+
+   ```bash
+   cp conf/config-template.yml conf/config-$ENV.yml
+   # Example: cp conf/config-template.yml conf/config-production.yml
+   ```
+
+2. **Edit configuration** - Set your `deployment_environment` and other parameters:
+
+   ```yaml
+   core:
+     deployment_environment: PRODUCTION  # This identifies your instance in telemetry
+     tag: ""                             # Optional: Use for multitenancy (suffixes Snowflake objects)
+     snowflake:
+       account_name: "myaccount.region"
+       # ... other settings
+   ```
+
+3. **Set up Snowflake CLI connection** (based on your `deployment_environment`, not file name):
+
+   ```bash
+   # Automatic setup (recommended):
+   ./setup.sh production
+
+   # The script will create connection: snow_agent_production
+   # (derived from deployment_environment, converted to lowercase)
+   ```
+
+4. **Deploy**:
+
+   ```bash
+   ./deploy.sh production
+   ```
+
+**Important to understand:**
+
+- `production` in the commands above is the `$ENV` parameter - it only locates the file `config-production.yml`
+- The actual Snowflake connection used is `snow_agent_<deployment_environment>` (from inside the config file)
+- In this example, if `deployment_environment: PRODUCTION`, the connection name is `snow_agent_production` (lowercase)
+
 ## Deploying Dynatrace Snowflake Observability Agent
 
-The default option to install Dynatrace Snowflake Observability Agent is from the distribution package. To deploy Dynatrace Snowflake
-Observability Agent, run the `./deploy.sh` command:
+### Understanding the Deployment Process
+
+The deployment process uses your `$ENV` parameter only to locate the configuration file. Everything else is driven by values **inside** that configuration file.
+
+**Step-by-step flow when you run `./deploy.sh $ENV`:**
+
+1. **Configuration Loading**:
+   - Loads file: `conf/config-$ENV.yml`
+   - The `$ENV` parameter is only used here
+
+2. **Value Extraction**:
+   - Reads `core.deployment_environment` from inside the config
+   - Reads `core.tag` from inside the config
+
+3. **Connection Selection**:
+   - Uses Snowflake CLI connection: `snow_agent_<deployment_environment_lowercase>`
+   - This is NOT based on `$ENV`, but on `deployment_environment` value
+
+4. **Object Creation**:
+   - Creates Snowflake objects with naming: `DTAGENT_<tag>_*` (if tag provided)
+   - Without tag: `DTAGENT_*`
+
+5. **Configuration Storage**:
+   - Stores `deployment_environment` in Snowflake tables
+   - This value is used at runtime
+
+6. **Runtime Identification**:
+   - Agent reads `deployment_environment` from Snowflake tables
+   - Sends all telemetry with dimension: `deployment.environment: "<deployment_environment>"`
+
+**Visual Example:**
+
+```bash
+./deploy.sh prod-useast
+```
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+│ Step 1: Load config-prod-useast.yml                         │
+│ (ENV parameter: "prod-useast" used only here)              │
+└─────────────────────────────────────────────────────────────┘
+                          ↓
+┌─────────────────────────────────────────────────────────────┐
+│ Step 2: Extract values from config file:                    │
+│   deployment_environment: "PRODUCTION_US_EAST_1"           │
+│   tag: "USEAST"                                            │
+└─────────────────────────────────────────────────────────────┘
+                          ↓
+┌─────────────────────────────────────────────────────────────┐
+│ Step 3: Use Snowflake connection:                          │
+│   snow_agent_production_us_east_1                          │
+│   (from deployment_environment, lowercase)                  │
+└─────────────────────────────────────────────────────────────┘
+                          ↓
+┌─────────────────────────────────────────────────────────────┐
+│ Step 4: Create Snowflake objects:                          │
+│   DTAGENT_USEAST_DB                                        │
+│   DTAGENT_USEAST_WH                                        │
+│   DTAGENT_USEAST_OWNER (role)                             │
+│   (from tag)                                               │
+└─────────────────────────────────────────────────────────────┘
+                          ↓
+┌─────────────────────────────────────────────────────────────┐
+│ Step 5: Store in DTAGENT_USEAST_DB.APP.DTAGENT_CONFIG:    │
+│   deployment_environment: "PRODUCTION_US_EAST_1"           │
+│   deployment_environment_tag: "USEAST"                     │
+└─────────────────────────────────────────────────────────────┘
+                          ↓
+┌─────────────────────────────────────────────────────────────┐
+│ Step 6: Runtime - Send telemetry to Dynatrace:            │
+│   deployment.environment: "PRODUCTION_US_EAST_1"           │
+│   deployment.environment.tag: "USEAST"                     │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Deployment Commands
+
+To deploy Dynatrace Snowflake Observability Agent, run the `./deploy.sh` command:
 
 ```bash
 ./deploy.sh $ENV [--scope=SCOPE] [--from-version=VERSION] [--output-file=FILE] [--options=OPTIONS]
 ```
 
-### Required Parameters
+#### Required Parameters
 
 - **`$ENV`** (required): Environment identifier that must match one of the previously created configuration files. The file must be named `config-$ENV.yml` in the `conf/` directory.
 
-### Optional Parameters
+#### Optional Parameters
 
 - **`--scope=SCOPE`** (optional, default: `all`): Specifies the deployment scope. Valid values:
   - `init` - Initialize database and basic structure - **Optional** (can be performed manually)
@@ -107,7 +265,7 @@ Observability Agent, run the `./deploy.sh` command:
   - `skip_confirm` - Skip deployment confirmation prompt
   - `no_dep` - Skip sending deployment BizEvents to Dynatrace
 
-### Examples
+#### Examples
 
 ```bash
 # Full deployment to 'dev' environment
@@ -396,7 +554,7 @@ core:
 
 ```bash
 # Deploy without init/admin scopes (no ACCOUNTADMIN required)
-./deploy.sh prod --scope=setup,plugins,config,apikey
+./deploy.sh prod --scope=setup,plugins,config,agents,apikey
 ```
 
 ##### Validation Rules
@@ -491,56 +649,151 @@ for each plugin separately using one of three formats:
 #### Multitenancy
 
 If you want to deliver telemetry from one Snowflake account to multiple Dynatrace tenants, or require different configurations and schedules
-for some plugins, you can achieve this by creating configuration with multiple deployment environment (Dynatrace Snowflake Observability
-Agent instances) definitions. Specify a different `core.deployment_environment` parameter for each instance. We **strongly** recommend also
-defining a unique `core.tag` for each additional Dynatrace Snowflake Observability Agent instance running on the same Snowflake account.
+for some plugins, you can deploy multiple Dynatrace Snowflake Observability Agent instances on the same Snowflake account.
 
-Example:
+**Requirements for each instance:**
+
+1. **Unique `deployment_environment`** - Identifies the instance in Dynatrace telemetry
+2. **Unique `tag`** - Prevents Snowflake object naming conflicts
+3. **Unique Snowflake CLI connection** - Named `snow_agent_<deployment_environment_lowercase>`
+
+**Important distinctions:**
+
+- `deployment_environment` → Used for telemetry dimensions in Dynatrace (e.g., `PRODUCTION_TENANT_A`)
+- `tag` → Used to suffix Snowflake object names (e.g., `TNA` creates `DTAGENT_TNA_DB`)
+- These serve **different purposes** and should NOT be combined
+
+**Valid multitenancy configuration:**
 
 ```yaml
-- core:
-  deployment_environment: test-mt001
-  tag: mt001
+# File: conf/config-prod-tenant-a.yml
+core:
+  deployment_environment: PRODUCTION_TENANT_A  # Unique telemetry identifier
+  tag: TNA                                      # Unique object suffix
+  dynatrace:
+    api_url: https://tenant-a.live.dynatrace.com/api/v2/otlp
+  # ... other config
 ```
 
-You can specify the configuration for each instance in a separate configuration file or use the multi-configuration deployment described
-above.
+```yaml
+# File: conf/config-prod-tenant-b.yml
+core:
+  deployment_environment: PRODUCTION_TENANT_B  # Different from tenant A
+  tag: TNB                                      # Different from tenant A
+  dynatrace:
+    api_url: https://tenant-b.live.dynatrace.com/api/v2/otlp
+  # ... other config
+```
 
-### Setting up connection to Snowflake
-
-You must add a connection definition to Snowflake using the following command. The connection name must follow this pattern:
-`snow_agent_$config_name`. Only the required fields are necessary, as external authentication is used by default. These connection profiles
-are used **ONLY** during the deployment process.
-
-To deploy Dynatrace Snowflake Observability Agent properly, the specified user must be able to assume the `ACCOUNTADMIN` role on the target
-Snowflake account.
-
-**HINT:** Running `./setup.sh $config_name` or `./deploy.sh $config_name` will prompt you to create Snowflake connection profiles named
-`snow_agent_$ENV`, where `ENV` matches each `core.deployment_environment` in your configuration. If these profiles do not exist, you will be
-prompted to create them.
-
-**WARNING:** If you wish to use a different connection name or pattern, you must modify the `./deploy.sh` script and update the
-`--connection` parameter in the `snow sql` call.
+**Deploy both instances:**
 
 ```bash
-snow connection add --connection-name snow_agent_$ENV
+# Setup connections for both
+./setup.sh prod-tenant-a  # Creates: snow_agent_production_tenant_a
+./setup.sh prod-tenant-b  # Creates: snow_agent_production_tenant_b
+
+# Deploy both
+./deploy.sh prod-tenant-a  # Uses: snow_agent_production_tenant_a, creates: DTAGENT_TNA_*
+./deploy.sh prod-tenant-b  # Uses: snow_agent_production_tenant_b, creates: DTAGENT_TNB_*
 ```
 
-To list your currently defined connections run:
+**Critical warnings:**
+
+❌ **Never reuse `deployment_environment` across instances** - This causes:
+
+- Indistinguishable telemetry in Dynatrace
+- Confusion about which instance generated which data
+
+❌ **Never reuse `tag` across instances** - This causes:
+
+- Snowflake object naming conflicts
+- Data corruption as instances overwrite each other's tables
+- Deployment failures
+
+❌ **Don't include tag in `deployment_environment`** - They serve different purposes:
+
+```yaml
+# ❌ Wrong:
+deployment_environment: PRODUCTION_TNA  # Don't mix concerns
+tag: TNA
+
+# ✅ Correct:
+deployment_environment: PRODUCTION_TENANT_A  # Logical environment name
+tag: TNA                                      # Separate object suffix
+```
+
+You can specify the configuration for each instance in separate configuration files (as shown above) or use multi-configuration deployment described below.
+
+## Setting up connection to Snowflake
+
+You must configure Snowflake CLI connection profiles for deployment. The connection profile name **must** follow this pattern: `snow_agent_<deployment_environment_in_lowercase>`
+
+**The connection profile name is derived from `deployment_environment` inside your config file, NOT from the `$ENV` parameter you use when running scripts.**
+
+The user configured in the connection profile must be able to assume the `ACCOUNTADMIN` role on the target Snowflake account.
+
+### Automatic Connection Setup (Recommended)
+
+Running `./setup.sh $ENV` will:
+
+1. Read `core.deployment_environment` from `conf/config-$ENV.yml`
+2. Convert it to lowercase
+3. Check if `snow_agent_<deployment_environment_lowercase>` exists
+4. Prompt you to create it if it doesn't exist
+
+```bash
+# Example: For config-prod-useast.yml with deployment_environment: "PRODUCTION_US_EAST_1"
+./setup.sh prod-useast
+
+# Output:
+# Checking connection profile for PRODUCTION_US_EAST_1...
+# WARNING: No Dynatrace Snowflake Observability Agent connection is defined for the PRODUCTION_US_EAST_1 environment. Creating it now...
+#
+# This will create: snow_agent_production_us_east_1
+```
+
+### Manual Connection Setup
+
+If you need to create the connection manually, first determine the correct name:
+
+```bash
+# Step 1: Find your deployment_environment value
+yq -r '.core.deployment_environment' conf/config-$ENV.yml
+
+# Example output: PRODUCTION_US_EAST_1
+
+# Step 2: Convert to lowercase and add prefix
+# Connection name: snow_agent_production_us_east_1
+
+# Step 3: Create the connection
+snow connection add --connection-name snow_agent_production_us_east_1
+```
+
+### Verifying Your Connections
+
+To list currently configured connections:
 
 ```bash
 snow connection list
 ```
 
-Here is an example of how to fill in the form to configure connection based on external browser authentication, which is a recommended way
-for users authenticating with external SSO:
+You should see connection names like:
+
+```text
+snow_agent_production
+snow_agent_production_us_east_1
+snow_agent_test_tenant_001
+```
+
+### Connection Configuration Example
+
+When creating a connection, use external browser authentication for SSO (recommended):
 
 ```bash
-Snowflake account name: ${YOUR_SNOWFLAKE_ACCOUNT_NAME.REGION_NAME}
-Snowflake username: ${YOUR_USERNAME}
+Snowflake account name: myaccount.us-east-1
+Snowflake username: john.doe@company.com
 Snowflake password [optional]:
 Role for the connection [optional]:
-Warehouse for the connection [optional]:
 Database for the connection [optional]:
 Schema for the connection [optional]:
 Connection host [optional]:
@@ -550,13 +803,196 @@ Authentication method [optional]: externalbrowser
 Path to private key file [optional]:
 ```
 
-You can also run this command to fill in the required and recommended parts:
+**Complete command example** (for automated setups):
 
 ```bash
-snow connection add --connection-name snow_agent_$config_name \
-                    --account ${YOUR_SNOWFLAKE_ACCOUNT_NAME.REGION_NAME} \
-                    --user ${YOUR_USERNAME} \
-                    --authenticator externalbrowser
+# For config with deployment_environment: "PRODUCTION_US_EAST_1"
+snow connection add \
+  --connection-name snow_agent_production_us_east_1 \
+  --account myaccount.us-east-1 \
+  --user john.doe@company.com \
+  --authenticator externalbrowser
 ```
 
-If you have any issues setting up the connection check [the SnowCli documentation](https://docs.snowflake.com/en/user-guide/snowsql).
+**Important:** The connection name must exactly match `snow_agent_` + your `deployment_environment` value in lowercase.
+
+## Common Configuration Mistakes
+
+### Mistake 1: Connection Profile Name Mismatch
+
+**Symptom:** Deployment fails with "Connection 'snow_agent_xxx' not found" error.
+
+**Cause:** The Snowflake CLI connection profile name doesn't match your `deployment_environment`.
+
+**Example of the problem:**
+
+```yaml
+# File: config-prod.yml
+core:
+  deployment_environment: PRODUCTION_US_EAST
+```
+
+```bash
+# Wrong connection created:
+snow connection add --connection-name snow_agent_prod  # ❌ Based on file name!
+
+# Deployment fails because it looks for:
+# snow_agent_production_us_east  # ✓ Based on deployment_environment!
+```
+
+**Solution:**
+
+```bash
+# Find the correct deployment_environment:
+yq -r '.core.deployment_environment' conf/config-prod.yml
+# Output: PRODUCTION_US_EAST
+
+# Create matching connection (lowercase):
+snow connection add --connection-name snow_agent_production_us_east
+
+# Or use automatic setup:
+./setup.sh prod
+```
+
+### Mistake 2: Confusing ENV with deployment_environment
+
+**Symptom:** Trying to create connections or objects based on the file name instead of config values.
+
+**Wrong approach:**
+
+```bash
+# File: config-prod-useast.yml
+# Thinking: "I need snow_agent_prod-useast"  # ❌ Wrong!
+
+snow connection add --connection-name snow_agent_prod-useast  # ❌ Wrong!
+```
+
+**Correct approach:**
+
+```bash
+# File: config-prod-useast.yml (this is just for file organization)
+# Check what's INSIDE the file:
+yq -r '.core.deployment_environment' conf/config-prod-useast.yml
+# Output: PRODUCTION_US_EAST_1
+
+# Create connection based on deployment_environment:
+snow connection add --connection-name snow_agent_production_us_east_1  # ✓ Correct!
+```
+
+**Remember:**
+
+- File name (`ENV` parameter) = Your organizational choice
+- `deployment_environment` = What actually matters for connections and deployment
+
+### Mistake 3: Reusing Tags or Deployment Environments
+
+**Symptom:** Deployment fails, or instances overwrite each other's data.
+
+**Cause:** Two configuration files use the same `tag` or `deployment_environment`.
+
+**Wrong:**
+
+```yaml
+# File: config-prod-mt001.yml
+core:
+  deployment_environment: PRODUCTION  # ❌ Same!
+  tag: MT001
+
+# File: config-prod-mt002.yml
+core:
+  deployment_environment: PRODUCTION  # ❌ Same!
+  tag: MT002
+```
+
+**Result:** Both instances send telemetry with the same `deployment.environment` dimension, making them indistinguishable in Dynatrace.
+
+**Correct:**
+
+```yaml
+# File: config-prod-mt001.yml
+core:
+  deployment_environment: PRODUCTION_TENANT_001  # ✓ Unique!
+  tag: MT001                                      # ✓ Unique!
+
+# File: config-prod-mt002.yml
+core:
+  deployment_environment: PRODUCTION_TENANT_002  # ✓ Different!
+  tag: MT002                                      # ✓ Different!
+```
+
+### Mistake 4: Including Tag in deployment_environment
+
+**Symptom:** Redundant or confusing naming that mixes concerns.
+
+**Wrong:**
+
+```yaml
+core:
+  deployment_environment: PRODUCTION_MT001  # ❌ Tag included in environment name
+  tag: MT001                                 # Redundant
+```
+
+**Why it's wrong:**
+
+- `deployment_environment` is for logical environment identification in telemetry
+- `tag` is for Snowflake object name disambiguation
+- Mixing them creates confusion and redundancy
+
+**Correct:**
+
+```yaml
+core:
+  deployment_environment: PRODUCTION_US_EAST  # ✓ Logical environment
+  tag: MT001                                   # ✓ Separate object suffix
+```
+
+**This creates clear separation:**
+
+- Telemetry dimension: `deployment.environment: "PRODUCTION_US_EAST"`
+- Additional dimension: `deployment.environment.tag: "MT001"`
+- Snowflake objects: `DTAGENT_MT001_DB`, `DTAGENT_MT001_WH`
+
+### Mistake 5: Not Using Lowercase for Connection Names
+
+**Symptom:** Connection not found even though you created it.
+
+**Cause:** Snowflake CLI connection names are case-sensitive.
+
+**Wrong:**
+
+```bash
+# Your deployment_environment: PRODUCTION_US_EAST
+snow connection add --connection-name snow_agent_PRODUCTION_US_EAST  # ❌ Uppercase!
+```
+
+**Correct:**
+
+```bash
+# Always convert to lowercase:
+snow connection add --connection-name snow_agent_production_us_east  # ✓ Lowercase!
+```
+
+**Tip:** The deployment scripts automatically convert `deployment_environment` to lowercase when looking for connections:
+
+```bash
+CONNECTION_ENV="${DEPLOYMENT_ENV,,}"  # Bash syntax for lowercase conversion
+```
+
+### Quick Diagnostic Commands
+
+If you're experiencing issues, use these commands to diagnose:
+
+```bash
+# 1. Check what deployment_environment is in your config:
+yq -r '.core.deployment_environment' conf/config-$ENV.yml
+
+# 2. Check what connection name should be (lowercase):
+yq -r '.core.deployment_environment' conf/config-$ENV.yml | tr '[:upper:]' '[:lower:]' | sed 's/^/snow_agent_/'
+
+# 3. List your current connections:
+snow connection list
+
+# 4. Check if the required connection exists:
+EXPECTED_CONN=$(yq -r '.core.deployment_environment' conf/config-$ENV.yml | tr '[:upper:]' '[:lower:]' | sed 's/^/snow_agent_/')
+snow connection list | grep -q "$EXPECTED_CONN" && echo "✓ Connection exists" || echo "✗ Connection missing"
+```
