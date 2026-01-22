@@ -204,7 +204,9 @@ drop warehouse if exists DTAGENT_WH;
 drop role if exists DTAGENT_VIEWER;
 drop role if exists DTAGENT_ADMIN;
 drop role if exists DTAGENT_OWNER;
+--%OPTION:resource_monitor:
 drop resource monitor if exists DTAGENT_RS;
+--%:OPTION:resource_monitor
 EOF
 fi
 
