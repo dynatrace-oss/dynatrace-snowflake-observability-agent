@@ -381,12 +381,14 @@ To run tests in live mode (version 2), you need to:
    core:
      dynatrace_tenant_address: abc12345.live.dynatrace.com
      deployment_environment: TEST
-     snowflake_account_name: 'your_snowflake_account.us-east-1'
-     snowflake_host_name: 'your_snowflake_account.us-east-1.snowflakecomputing.com'
-     snowflake_credit_quota: 1
      log_level: DEBUG
      tag: ""
      procedure_timeout: 3600
+     snowflake:
+       account_name: 'your_snowflake_account.us-east-1'
+       host_name: 'your_snowflake_account.us-east-1.snowflakecomputing.com'
+       resource_monitor:
+         credit_quota: 1
    otel: {}
    plugins:
      disabled_by_default: true

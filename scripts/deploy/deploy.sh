@@ -201,7 +201,7 @@ if [ -s "$INSTALL_SCRIPT_SQL" ] && ! $IS_MANUAL; then
         # this is taken care of in the update_config.py, and config_file doesn't exist necessary data is taken from environment variables
         SNOWFLAKE_ACCOUNT_NAME=${SNOWFLAKE_ACC_NAME}
     else
-        SNOWFLAKE_ACCOUNT_NAME="$($CWD/get_config_key.sh core.snowflake_account_name)"
+        SNOWFLAKE_ACCOUNT_NAME="$($CWD/get_config_key.sh core.snowflake.account_name)"
     fi
 
     INSTALL_SCRIPT_LOG="dsoa-deploy-log-$DEPLOYMENT_ENV-${NOW_TS}.sql"

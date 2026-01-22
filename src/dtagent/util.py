@@ -285,11 +285,11 @@ def _get_service_name(config_dict: str) -> str:
     """Returns snowflake full account name either as account name from config
     or matching given pattern on snowflake host name
     """
-    if "core.snowflake_account_name" in config_dict:
-        return config_dict["core.snowflake_account_name"]
+    if "core.snowflake.account_name" in config_dict:
+        return config_dict["core.snowflake.account_name"]
 
-    m = re.match(r"(.*?)\.snowflakecomputing\.com$", config_dict["core.snowflake_host_name"])
-    return m.group(1) if m else config_dict["core.snowflake_host_name"]
+    m = re.match(r"(.*?)\.snowflakecomputing\.com$", config_dict["core.snowflake.host_name"])
+    return m.group(1) if m else config_dict["core.snowflake.host_name"]
 
 
 def _is_not_blank(value: Any) -> bool:

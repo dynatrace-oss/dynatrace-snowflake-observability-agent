@@ -57,7 +57,7 @@ elif [ "$($CWD/get_config_key.sh plugins.self_monitoring.send_bizevents_on_deplo
             "event.title": "${TITLE}",
             "db.system": "snowflake",
             "deployment.environment": "$($CWD/get_config_key.sh core.deployment_environment)",
-            "host.name": "$($CWD/get_config_key.sh core.snowflake_host_name)",
+            "host.name": "$($CWD/get_config_key.sh core.snowflake.host_name)",
             "app.version": "${VERSION}.${BUILD}",
             "app.short_version": "${VERSION}",
             "app.bundle": "self_monitoring",

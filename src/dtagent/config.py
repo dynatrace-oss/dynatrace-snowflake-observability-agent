@@ -125,7 +125,7 @@ class Configuration:
         default_config = {
             "core.dynatrace_tenant_address": "",
             "core.deployment_environment": "TEST",
-            "core.snowflake_host_name": "",
+            "core.snowflake.host_name": "",
             "core.log_level": "WARN",
         }
         config_table = "CONFIG.CONFIGURATIONS"
@@ -154,7 +154,7 @@ class Configuration:
             | {
                 "service.name": _get_service_name(config_dict),
                 "deployment.environment": config_dict["core.deployment_environment"],
-                "host.name": config_dict["core.snowflake_host_name"],
+                "host.name": config_dict["core.snowflake.host_name"],
             },
             "otel": __unpack_prefixed_keys(config_dict, "otel."),
             "plugins": __unpack_prefixed_keys(config_dict, "plugins."),

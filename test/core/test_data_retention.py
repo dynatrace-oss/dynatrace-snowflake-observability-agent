@@ -112,8 +112,8 @@ class TestDataRetention:
 
         # Check that the procedure retrieves the retention config
         assert re.search(
-            r"F_GET_CONFIG_VALUE\s*\(\s*['\"]core\.snowflake_data_retention_time_in_days['\"]", content, re.IGNORECASE
-        ), f"Missing F_GET_CONFIG_VALUE for core.snowflake_data_retention_time_in_days in {config_proc_file}"
+            r"F_GET_CONFIG_VALUE\s*\(\s*['\"]core\.snowflake\.database\.data_retention_time_in_days['\"]", content, re.IGNORECASE
+        ), f"Missing F_GET_CONFIG_VALUE for core.snowflake.database.data_retention_time_in_days in {config_proc_file}"
 
         # Check that the procedure executes ALTER DATABASE with retention time
         assert re.search(
@@ -121,7 +121,7 @@ class TestDataRetention:
         ), f"Missing ALTER DATABASE statement for DATA_RETENTION_TIME_IN_DAYS in {config_proc_file}"
 
     def test_config_template_has_retention_parameter(self):
-        """Test that the configuration template includes the snowflake_data_retention_time_in_days parameter with default value 1."""
+        """Test that the configuration template includes the data_retention_time_in_days parameter with default value 1."""
         config_template_file = "conf/config-template.yml"
 
         with open(config_template_file, "r", encoding="utf-8") as f:
@@ -129,8 +129,8 @@ class TestDataRetention:
 
         # Check that the config includes the retention parameter
         assert re.search(
-            r"snowflake_data_retention_time_in_days:\s*1", content
-        ), f"Missing or incorrect snowflake_data_retention_time_in_days in {config_template_file}"
+            r"data_retention_time_in_days:\s*1", content
+        ), f"Missing or incorrect data_retention_time_in_days in {config_template_file}"
 
     def test_all_transient_tables_explicitly_marked(self):
         """Test that all tables marked as TRANSIENT are explicitly using the TRANSIENT keyword.

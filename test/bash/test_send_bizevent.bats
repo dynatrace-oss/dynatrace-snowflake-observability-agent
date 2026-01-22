@@ -22,7 +22,7 @@ setup() {
     "VALUE": "test"
   },
   {
-    "PATH": "core.snowflake_host_name",
+    "PATH": "core.snowflake.host_name",
     "TYPE": "str",
     "VALUE": "test.snowflake.com"
   }
