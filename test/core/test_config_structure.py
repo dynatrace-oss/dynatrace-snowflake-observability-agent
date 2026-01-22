@@ -11,27 +11,25 @@ class TestSnowflakeConfigStructure:
         # This test verifies that the configuration flattening logic
         # properly handles the new nested structure
 
-        # Sample configuration with new structure
-        config_yaml = """
-        core:
-          dynatrace_tenant_address: test.dynatrace.com
-          deployment_environment: TEST
-          snowflake:
-            account_name: myaccount.us-east-1
-            host_name: myaccount.snowflakecomputing.com
-            database:
-              name: CUSTOM_DB
-              data_retention_time_in_days: 7
-            warehouse:
-              name: CUSTOM_WH
-            resource_monitor:
-              name: CUSTOM_RS
-              credit_quota: 10
-            roles:
-              owner: CUSTOM_OWNER
-              admin: CUSTOM_ADMIN
-              viewer: CUSTOM_VIEWER
-        """
+        # Sample configuration with new structure:
+        # core:
+        #   dynatrace_tenant_address: test.dynatrace.com
+        #   deployment_environment: TEST
+        #   snowflake:
+        #     account_name: myaccount.us-east-1
+        #     host_name: myaccount.snowflakecomputing.com
+        #     database:
+        #       name: CUSTOM_DB
+        #       data_retention_time_in_days: 7
+        #     warehouse:
+        #       name: CUSTOM_WH
+        #     resource_monitor:
+        #       name: CUSTOM_RS
+        #       credit_quota: 10
+        #     roles:
+        #       owner: CUSTOM_OWNER
+        #       admin: CUSTOM_ADMIN
+        #       viewer: CUSTOM_VIEWER
 
         # When flattened, these should become:
         expected_paths = [
