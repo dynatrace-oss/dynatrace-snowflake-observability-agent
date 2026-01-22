@@ -50,6 +50,92 @@ TAG=${TAG:-""}
 
 echo "Deploying with tag "${TAG}""
 
+#
+# Get custom object names from config
+#
+CUSTOM_DB=$($CWD/get_config_key.sh core.snowflake.database.name)
+CUSTOM_WH=$($CWD/get_config_key.sh core.snowflake.warehouse.name)
+CUSTOM_RS=$($CWD/get_config_key.sh core.snowflake.resource_monitor.name)
+CUSTOM_OWNER=$($CWD/get_config_key.sh core.snowflake.roles.owner)
+CUSTOM_ADMIN=$($CWD/get_config_key.sh core.snowflake.roles.admin)
+CUSTOM_VIEWER=$($CWD/get_config_key.sh core.snowflake.roles.viewer)
+
+# Function to validate Snowflake object name
+validate_snowflake_name() {
+    local name="$1"
+    local object_type="$2"
+
+    # Skip validation for empty, "-", or null
+    if [ -z "$name" ] || [ "$name" = "-" ] || [ "$name" = "null" ]; then
+        return 0
+    fi
+
+    # Check for spaces
+    if [[ "$name" =~ [[:space:]] ]]; then
+        echo "ERROR: Invalid $object_type name '$name': contains spaces"
+        return 1
+    fi
+
+    # Check for invalid characters (must be alphanumeric, underscore, or dollar sign)
+    if [[ ! "$name" =~ ^[A-Za-z_][A-Za-z0-9_\$]*$ ]]; then
+        echo "ERROR: Invalid $object_type name '$name': must start with letter or underscore, and contain only letters, numbers, underscores, or dollar signs"
+        return 1
+    fi
+
+    # Check length (Snowflake max identifier length is 255)
+    if [ ${#name} -gt 255 ]; then
+        echo "ERROR: Invalid $object_type name '$name': exceeds maximum length of 255 characters"
+        return 1
+    fi
+
+    return 0
+}
+
+# Check if both TAG and custom names are set (mutually exclusive)
+CUSTOM_NAMES_USED=false
+if [ -n "$CUSTOM_DB" ] && [ "$CUSTOM_DB" != "null" ] && [ "$CUSTOM_DB" != "" ]; then CUSTOM_NAMES_USED=true; fi
+if [ -n "$CUSTOM_WH" ] && [ "$CUSTOM_WH" != "null" ] && [ "$CUSTOM_WH" != "" ]; then CUSTOM_NAMES_USED=true; fi
+if [ -n "$CUSTOM_RS" ] && [ "$CUSTOM_RS" != "null" ] && [ "$CUSTOM_RS" != "" ] && [ "$CUSTOM_RS" != "-" ]; then CUSTOM_NAMES_USED=true; fi
+if [ -n "$CUSTOM_OWNER" ] && [ "$CUSTOM_OWNER" != "null" ] && [ "$CUSTOM_OWNER" != "" ]; then CUSTOM_NAMES_USED=true; fi
+if [ -n "$CUSTOM_ADMIN" ] && [ "$CUSTOM_ADMIN" != "null" ] && [ "$CUSTOM_ADMIN" != "" ] && [ "$CUSTOM_ADMIN" != "-" ]; then CUSTOM_NAMES_USED=true; fi
+if [ -n "$CUSTOM_VIEWER" ] && [ "$CUSTOM_VIEWER" != "null" ] && [ "$CUSTOM_VIEWER" != "" ]; then CUSTOM_NAMES_USED=true; fi
+
+if [ -n "$TAG" ] && [ "$CUSTOM_NAMES_USED" = true ]; then
+    echo "ERROR: Cannot use both multitenancy TAG ('$TAG') and custom Snowflake object names"
+    echo "       Please either use core.tag for multitenancy OR custom object names, not both"
+    exit 1
+fi
+
+# Validate custom names if provided
+if [ "$CUSTOM_NAMES_USED" = true ]; then
+    validate_snowflake_name "$CUSTOM_DB" "database" || exit 1
+    validate_snowflake_name "$CUSTOM_WH" "warehouse" || exit 1
+    validate_snowflake_name "$CUSTOM_RS" "resource monitor" || exit 1
+    validate_snowflake_name "$CUSTOM_OWNER" "owner role" || exit 1
+    validate_snowflake_name "$CUSTOM_ADMIN" "admin role" || exit 1
+    validate_snowflake_name "$CUSTOM_VIEWER" "viewer role" || exit 1
+
+    echo "Using custom Snowflake object names:"
+    if [ -n "$CUSTOM_DB" ] && [ "$CUSTOM_DB" != "null" ] && [ "$CUSTOM_DB" != "" ]; then
+        echo "  Database: $CUSTOM_DB"
+    fi
+    if [ -n "$CUSTOM_WH" ] && [ "$CUSTOM_WH" != "null" ] && [ "$CUSTOM_WH" != "" ]; then
+        echo "  Warehouse: $CUSTOM_WH"
+    fi
+    if [ -n "$CUSTOM_RS" ] && [ "$CUSTOM_RS" != "null" ] && [ "$CUSTOM_RS" != "" ] && [ "$CUSTOM_RS" != "-" ]; then
+        echo "  Resource Monitor: $CUSTOM_RS"
+    fi
+    if [ -n "$CUSTOM_OWNER" ] && [ "$CUSTOM_OWNER" != "null" ] && [ "$CUSTOM_OWNER" != "" ]; then
+        echo "  Owner Role: $CUSTOM_OWNER"
+    fi
+    if [ -n "$CUSTOM_ADMIN" ] && [ "$CUSTOM_ADMIN" != "null" ] && [ "$CUSTOM_ADMIN" != "" ] && [ "$CUSTOM_ADMIN" != "-" ]; then
+        echo "  Admin Role: $CUSTOM_ADMIN"
+    fi
+    if [ -n "$CUSTOM_VIEWER" ] && [ "$CUSTOM_VIEWER" != "null" ] && [ "$CUSTOM_VIEWER" != "" ]; then
+        echo "  Viewer Role: $CUSTOM_VIEWER"
+    fi
+fi
+
 # Function to map a single scope to file pattern
 map_scope_to_files() {
     local scope="$1"
@@ -400,10 +486,41 @@ fi
 # Remove Python inline comments
 "${SED_INPLACE[@]}" -E -e 's/[[:space:]]+#.*$//' "$INSTALL_SCRIPT_SQL"
 
-# Handle multitenancy TAG replacements
+# Handle multitenancy TAG replacements OR custom object name replacements (mutually exclusive)
 if [ -n "$TAG" ]; then
+    echo "Applying multitenancy TAG replacements..."
     "${SED_INPLACE[@]}" -E -e "s/DTAGENT_/DTAGENT_${TAG}_/g" "$INSTALL_SCRIPT_SQL"
     "${SED_INPLACE[@]}" -E -e "s/${TAG}_${TAG}_/${TAG}_/g" "$INSTALL_SCRIPT_SQL"
+elif [ "$CUSTOM_NAMES_USED" = true ]; then
+    echo "Applying custom object name replacements..."
+
+    # Replace custom names if provided
+    # Use patterns that work on both BSD sed (macOS) and GNU sed (Linux)
+    # Match word boundaries by looking for start/end of line or non-identifier characters
+
+    if [ -n "$CUSTOM_DB" ] && [ "$CUSTOM_DB" != "null" ] && [ "$CUSTOM_DB" != "" ]; then
+        "${SED_INPLACE[@]}" -E -e "s/(^|[^A-Za-z0-9_\$])DTAGENT_DB([^A-Za-z0-9_\$]|$)/\1$CUSTOM_DB\2/g" "$INSTALL_SCRIPT_SQL"
+    fi
+
+    if [ -n "$CUSTOM_WH" ] && [ "$CUSTOM_WH" != "null" ] && [ "$CUSTOM_WH" != "" ]; then
+        "${SED_INPLACE[@]}" -E -e "s/(^|[^A-Za-z0-9_\$])DTAGENT_WH([^A-Za-z0-9_\$]|$)/\1$CUSTOM_WH\2/g" "$INSTALL_SCRIPT_SQL"
+    fi
+
+    if [ -n "$CUSTOM_RS" ] && [ "$CUSTOM_RS" != "null" ] && [ "$CUSTOM_RS" != "" ] && [ "$CUSTOM_RS" != "-" ]; then
+        "${SED_INPLACE[@]}" -E -e "s/(^|[^A-Za-z0-9_\$])DTAGENT_RS([^A-Za-z0-9_\$]|$)/\1$CUSTOM_RS\2/g" "$INSTALL_SCRIPT_SQL"
+    fi
+
+    if [ -n "$CUSTOM_OWNER" ] && [ "$CUSTOM_OWNER" != "null" ] && [ "$CUSTOM_OWNER" != "" ]; then
+        "${SED_INPLACE[@]}" -E -e "s/(^|[^A-Za-z0-9_\$])DTAGENT_OWNER([^A-Za-z0-9_\$]|$)/\1$CUSTOM_OWNER\2/g" "$INSTALL_SCRIPT_SQL"
+    fi
+
+    if [ -n "$CUSTOM_ADMIN" ] && [ "$CUSTOM_ADMIN" != "null" ] && [ "$CUSTOM_ADMIN" != "" ] && [ "$CUSTOM_ADMIN" != "-" ]; then
+        "${SED_INPLACE[@]}" -E -e "s/(^|[^A-Za-z0-9_\$])DTAGENT_ADMIN([^A-Za-z0-9_\$]|$)/\1$CUSTOM_ADMIN\2/g" "$INSTALL_SCRIPT_SQL"
+    fi
+
+    if [ -n "$CUSTOM_VIEWER" ] && [ "$CUSTOM_VIEWER" != "null" ] && [ "$CUSTOM_VIEWER" != "" ]; then
+        "${SED_INPLACE[@]}" -E -e "s/(^|[^A-Za-z0-9_\$])DTAGENT_VIEWER([^A-Za-z0-9_\$]|$)/\1$CUSTOM_VIEWER\2/g" "$INSTALL_SCRIPT_SQL"
+    fi
 fi
 
 # Remove double newlines from the deployment script

@@ -331,6 +331,58 @@ The following table describes all available `core` configuration options:
 
 > **Note on Optional Objects**: When `snowflake.roles.admin` or `snowflake.resource_monitor.name` is set to `"-"`, the corresponding object will not be created during deployment. All SQL code related to these objects will be automatically excluded from the deployment script. If you set `snowflake.roles.admin` to `"-"`, you cannot use the `admin` deployment scope as it requires the admin role to exist.
 
+#### Custom Object Names
+
+By default, Dynatrace Snowflake Observability Agent creates Snowflake objects with standard names (e.g., `DTAGENT_DB`, `DTAGENT_WH`, `DTAGENT_OWNER`). You can customize these names using the configuration options described above. This feature is useful when:
+
+- You need to comply with organizational naming conventions
+- You want to avoid naming conflicts with existing objects
+- You prefer more descriptive or context-specific names
+
+**Example Configuration:**
+
+```yaml
+core:
+  deployment_environment: prod
+  snowflake:
+    account_name: myaccount
+    host_name: myaccount.snowflakecomputing.com
+    database:
+      name: DT_MONITORING_DB
+    warehouse:
+      name: DT_MONITORING_WH
+    resource_monitor:
+      name: DT_MONITORING_RS
+    roles:
+      owner: DT_MONITORING_OWNER
+      admin: DT_MONITORING_ADMIN
+      viewer: DT_MONITORING_VIEWER
+```
+
+**Validation Rules:**
+
+Custom names must follow Snowflake identifier rules:
+
+- Can contain only letters (A-Z, a-z), numbers (0-9), underscores (_), and dollar signs ($)
+- Must start with a letter or underscore (not a number)
+- Cannot contain spaces or special characters
+- Maximum length is 255 characters
+- Names are case-insensitive in Snowflake
+
+The deployment script will validate all custom names before proceeding. If validation fails, the deployment will stop with an error message.
+
+**Mutual Exclusivity with TAG:**
+
+Custom object names and the `tag` configuration option are mutually exclusive. You cannot use both features simultaneously because:
+
+- Custom names provide direct object naming control for isolation
+- The `tag` option enables multitenancy by appending suffixes to object names
+
+If you specify both custom object names and a `tag` value, the deployment will fail with an error. Choose one approach based on your needs:
+
+- Use **custom names** for simple deployments with specific naming requirements
+- Use **tag** for multitenancy scenarios where multiple agent instances share the same Snowflake account
+
 #### Plugin Configuration Options
 
 The `plugins` section allows you to configure plugin behavior globally and individually:

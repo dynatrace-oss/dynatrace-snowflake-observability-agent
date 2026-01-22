@@ -309,7 +309,11 @@ Dynatrace Snowflake Observability Agent has comprehensive test suites covering d
 1. **Core Tests** (`test/core/`): Test core functionality, configuration, utilities, and views structure
 2. **OTel Tests** (`test/otel/`): Test OpenTelemetry integration and telemetry sending
 3. **Plugin Tests** (`test/plugins/`): Test individual plugins with mocked or live APIs
-4. **Bash Tests** (`test/bash/`): Test bash scripts using the Bats framework
+4. **Bash Tests** (`test/bash/`): Test bash scripts using the Bats framework, including:
+   - Custom object name replacement (`test_custom_object_names.bats`)
+   - Optional object filtering (`test_optional_objects.bats`)
+   - Configuration conversion (`test_convert_config_to_yaml.bats`)
+   - Deployment script utilities (`test_list_options_to_exclude.bats`)
 
 All tests are implemented with the `pytest` framework except for bash tests which use Bats.
 

@@ -146,8 +146,8 @@ EOF
     [ -s "$TEST_SQL_FILE" ]
 
     # Should contain admin role references (with custom name)
-    grep -q "create role if not exists DTAGENT_ADMIN" "$TEST_SQL_FILE"
-    grep -q "grant manage grants on account to role DTAGENT_ADMIN" "$TEST_SQL_FILE"
+    grep -q "create role if not exists CUSTOM_ADMIN_ROLE" "$TEST_SQL_FILE"
+    grep -q "grant manage grants on account to role CUSTOM_ADMIN_ROLE" "$TEST_SQL_FILE"
 
     # Should NOT contain resource monitor references
     ! grep -q "create or replace resource monitor DTAGENT_RS" "$TEST_SQL_FILE"
@@ -190,8 +190,8 @@ EOF
     ! grep -q "grant manage grants on account to role DTAGENT_ADMIN" "$TEST_SQL_FILE"
     ! grep -q "grant operate on warehouse DTAGENT_WH to role DTAGENT_ADMIN" "$TEST_SQL_FILE"
 
-    # Should contain resource monitor references
-    grep -q "create or replace resource monitor DTAGENT_RS" "$TEST_SQL_FILE"
+    # Should contain resource monitor references (with custom name)
+    grep -q "create or replace resource monitor CUSTOM_RM" "$TEST_SQL_FILE"
     grep -q "alter warehouse DTAGENT_WH set resource_monitor" "$TEST_SQL_FILE"
     grep -q "P_UPDATE_RESOURCE_MONITOR" "$TEST_SQL_FILE"
 }
