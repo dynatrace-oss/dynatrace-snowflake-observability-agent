@@ -9,8 +9,9 @@ delivers:
     optional: true
     config_key: core.snowflake.roles.admin
     comment: >
-      (Optional - created only when core.snowflake.roles.admin is not set to "-") Role that handles elevated administrative operations (role
-      grants, ownership transfers, privilege management). When disabled, admin deployment scope cannot be used.
+      (Optional - created only when admin scope is installed and core.snowflake.roles.admin is not set to "-") Role that handles elevated
+      administrative operations (role grants, ownership transfers, privilege management). When disabled, admin deployment scope cannot be
+      used.
   - name: DTAGENT_VIEWER
     type: role
     comment: role that executes regular telemetry collection and processing operations
