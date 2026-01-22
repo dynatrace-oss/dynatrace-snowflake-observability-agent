@@ -35,6 +35,14 @@
           "language": {
             "type": "string",
             "description": "Programming language (for procedures/functions)"
+          },
+          "optional": {
+            "type": "boolean",
+            "description": "Whether this object is optional and can be excluded from deployment"
+          },
+          "config_key": {
+            "type": "string",
+            "description": "Configuration key that controls whether this object is deployed"
           }
         },
         "additionalProperties": false
@@ -86,6 +94,14 @@
           "granted to": {
             "type": "string",
             "description": "Role to which privileges are granted"
+          },
+          "optional": {
+            "type": "boolean",
+            "description": "Whether this reference is optional and can be excluded from deployment"
+          },
+          "config_key": {
+            "type": "string",
+            "description": "Configuration key that controls whether this reference is used"
           }
         },
         "additionalProperties": false
