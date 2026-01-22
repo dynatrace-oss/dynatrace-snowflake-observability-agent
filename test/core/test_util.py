@@ -152,3 +152,175 @@ class TestUtil:
         result_dict = _cleanup_dict(input_dict)
 
         assert output_dict == result_dict
+
+
+class TestGetSnowflakeAccountInfo:
+    """Test cases for _get_snowflake_account_info function"""
+
+    def test_both_account_and_host_provided(self):
+        """Test when both account_name and host_name are explicitly provided"""
+        from dtagent.util import _get_snowflake_account_info
+
+        config_dict = {
+            "core.snowflake.account_name": "myorg-myaccount",
+            "core.snowflake.host_name": "myorg-myaccount.snowflakecomputing.com",
+        }
+
+        account_name, host_name = _get_snowflake_account_info(config_dict)
+
+        assert account_name == "myorg-myaccount"
+        assert host_name == "myorg-myaccount.snowflakecomputing.com"
+
+    def test_only_account_provided_derives_host(self):
+        """Test when only account_name is provided - should derive host_name"""
+        from dtagent.util import _get_snowflake_account_info
+
+        config_dict = {"core.snowflake.account_name": "myorg-myaccount", "core.snowflake.host_name": "-"}
+
+        account_name, host_name = _get_snowflake_account_info(config_dict)
+
+        assert account_name == "myorg-myaccount"
+        assert host_name == "myorg-myaccount.snowflakecomputing.com"
+
+    def test_only_account_provided_legacy_format(self):
+        """Test legacy account.region format - should derive host_name"""
+        from dtagent.util import _get_snowflake_account_info
+
+        config_dict = {"core.snowflake.account_name": "abc12345.us-east-1", "core.snowflake.host_name": ""}
+
+        account_name, host_name = _get_snowflake_account_info(config_dict)
+
+        assert account_name == "abc12345.us-east-1"
+        assert host_name == "abc12345.us-east-1.snowflakecomputing.com"
+
+    def test_only_host_provided_extracts_account(self):
+        """Test when only host_name is provided - should extract account_name"""
+        from dtagent.util import _get_snowflake_account_info
+
+        config_dict = {"core.snowflake.account_name": "-", "core.snowflake.host_name": "myorg-myaccount.snowflakecomputing.com"}
+
+        account_name, host_name = _get_snowflake_account_info(config_dict)
+
+        assert account_name == "myorg-myaccount"
+        assert host_name == "myorg-myaccount.snowflakecomputing.com"
+
+    def test_only_host_provided_legacy_format(self):
+        """Test extracting account from legacy format host_name"""
+        from dtagent.util import _get_snowflake_account_info
+
+        config_dict = {"core.snowflake.account_name": "", "core.snowflake.host_name": "abc12345.us-east-1.snowflakecomputing.com"}
+
+        account_name, host_name = _get_snowflake_account_info(config_dict)
+
+        assert account_name == "abc12345.us-east-1"
+        assert host_name == "abc12345.us-east-1.snowflakecomputing.com"
+
+    def test_neither_provided_no_session(self):
+        """Test when neither is provided and no session - should return empty strings"""
+        from dtagent.util import _get_snowflake_account_info
+
+        config_dict = {"core.snowflake.account_name": "-", "core.snowflake.host_name": "-"}
+
+        account_name, host_name = _get_snowflake_account_info(config_dict, session=None)
+
+        assert account_name == ""
+        assert host_name == ""
+
+    def test_neither_provided_with_session_queries_snowflake(self):
+        """Test when neither is provided but session available - should query Snowflake"""
+        from dtagent.util import _get_snowflake_account_info
+        from unittest.mock import Mock
+
+        # Mock Snowflake session
+        mock_session = Mock()
+        mock_result = Mock()
+        mock_result.__getitem__ = lambda self, key: "testorg-testaccount"
+        mock_session.sql.return_value.collect.return_value = [mock_result]
+
+        config_dict = {"core.snowflake.account_name": "", "core.snowflake.host_name": ""}
+
+        account_name, host_name = _get_snowflake_account_info(config_dict, session=mock_session)
+
+        assert account_name == "testorg-testaccount"
+        assert host_name == "testorg-testaccount.snowflakecomputing.com"
+        # Verify SQL was called with correct query
+        mock_session.sql.assert_called_once_with(
+            "SELECT CURRENT_ORGANIZATION_NAME() || '-' || CURRENT_ACCOUNT_NAME() as account_identifier"
+        )
+
+    def test_session_query_fails_gracefully(self):
+        """Test when session query fails - should return empty strings"""
+        from dtagent.util import _get_snowflake_account_info
+        from unittest.mock import Mock
+
+        # Mock session that raises exception
+        mock_session = Mock()
+        mock_session.sql.side_effect = Exception("Connection error")
+
+        config_dict = {"core.snowflake.account_name": "-", "core.snowflake.host_name": "-"}
+
+        account_name, host_name = _get_snowflake_account_info(config_dict, session=mock_session)
+
+        assert account_name == ""
+        assert host_name == ""
+
+    def test_placeholder_values_normalized(self):
+        """Test that '-' placeholder values are normalized to empty strings"""
+        from dtagent.util import _get_snowflake_account_info
+
+        config_dict = {"core.snowflake.account_name": "-", "core.snowflake.host_name": "-"}
+
+        account_name, host_name = _get_snowflake_account_info(config_dict)
+
+        # Should return empty strings, not "-"
+        assert account_name == ""
+        assert host_name == ""
+
+    def test_account_already_has_domain_suffix(self):
+        """Test when account_name already has .snowflakecomputing.com suffix"""
+        from dtagent.util import _get_snowflake_account_info
+
+        config_dict = {"core.snowflake.account_name": "myorg-myaccount.snowflakecomputing.com", "core.snowflake.host_name": ""}
+
+        account_name, host_name = _get_snowflake_account_info(config_dict)
+
+        assert account_name == "myorg-myaccount.snowflakecomputing.com"
+        assert host_name == "myorg-myaccount.snowflakecomputing.com"
+
+    def test_non_standard_hostname(self):
+        """Test handling of non-standard hostname that doesn't match pattern"""
+        from dtagent.util import _get_snowflake_account_info
+
+        config_dict = {"core.snowflake.account_name": "", "core.snowflake.host_name": "custom-hostname.example.com"}
+
+        account_name, host_name = _get_snowflake_account_info(config_dict)
+
+        # Should use the whole hostname as account_name when pattern doesn't match
+        assert account_name == "custom-hostname.example.com"
+        assert host_name == "custom-hostname.example.com"
+
+    def test_empty_dict(self):
+        """Test with empty config dict"""
+        from dtagent.util import _get_snowflake_account_info
+
+        config_dict = {}
+
+        account_name, host_name = _get_snowflake_account_info(config_dict)
+
+        assert account_name == ""
+        assert host_name == ""
+
+    def test_session_returns_empty_result(self):
+        """Test when session query returns empty result set"""
+        from dtagent.util import _get_snowflake_account_info
+        from unittest.mock import Mock
+
+        mock_session = Mock()
+        mock_session.sql.return_value.collect.return_value = []
+
+        config_dict = {"core.snowflake.account_name": "-", "core.snowflake.host_name": "-"}
+
+        account_name, host_name = _get_snowflake_account_info(config_dict, session=mock_session)
+
+        assert account_name == ""
+        assert host_name == ""

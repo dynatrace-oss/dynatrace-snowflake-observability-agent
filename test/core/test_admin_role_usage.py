@@ -312,6 +312,10 @@ class TestDeploymentScopes:
                     if in_teardown_section and in_heredoc:
                         continue
 
+                    # Skip sed replacement commands (custom object names feature)
+                    if "sed" in line.lower() and re.search(r"s/.*DTAGENT_(ADMIN|OWNER|VIEWER|DB|WH|RS)", line):
+                        continue
+
                     # Check for hardcoded ACCOUNTADMIN (except in documentation/help text)
                     if re.search(r"\bACCOUNTADMIN\b", line, re.IGNORECASE):
                         # Allow in case statements, conditionals, or documentation
