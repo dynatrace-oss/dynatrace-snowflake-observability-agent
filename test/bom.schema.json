@@ -10,7 +10,11 @@
       "description": "List of objects delivered by the agent",
       "items": {
         "type": "object",
-        "required": ["name", "type", "plugins"],
+        "required": [
+          "name",
+          "type",
+          "plugins"
+        ],
         "properties": {
           "name": {
             "type": "string",
@@ -53,7 +57,12 @@
       "description": "List of external references/permissions required",
       "items": {
         "type": "object",
-        "required": ["name", "type", "privileges", "plugins"],
+        "required": [
+          "name",
+          "type",
+          "privileges",
+          "plugins"
+        ],
         "properties": {
           "name": {
             "type": "string",
@@ -108,6 +117,9 @@
       }
     }
   },
-  "required": ["delivers", "references"],
+  "required": [
+    "delivers",
+    "references"
+  ],
   "additionalProperties": false
 }
