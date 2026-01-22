@@ -10,6 +10,9 @@ core:
     # Example: myorg-myaccount
     # Legacy format (account locator) also supported: myaccount.region
     # See: https://docs.snowflake.com/en/user-guide/admin-account-identifier
+    #
+    # RECOMMENDED: Provide account_name for best performance (avoids SQL query at startup)
+    # OPTIONAL: Set to "-" to auto-detect via Snowflake query (adds ~100ms startup time)
     account_name: "-"
 
     # Snowflake host name (optional - can be derived from account_name)

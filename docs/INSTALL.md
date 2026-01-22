@@ -505,24 +505,24 @@ Optionally you can adjust plugin configurations.
 
 The following table describes all available `core` configuration options:
 
-| Configuration Key                                | Type    | Required | Default          | Description                                                                                                                                                                                                                              |
-| ------------------------------------------------ | ------- | -------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `dynatrace_tenant_address`                       | String  | Yes      | -                | The address of your Dynatrace tenant (e.g., `abc12345.live.dynatrace.com`)                                                                                                                                                               |
-| `deployment_environment`                         | String  | Yes      | -                | Unique identifier for the deployment environment                                                                                                                                                                                         |
-| `log_level`                                      | String  | Yes      | `WARN`           | Logging level. Valid values: `DEBUG`, `INFO`, `WARN`, `ERROR`                                                                                                                                                                            |
-| `tag`                                            | String  | No       | `""`             | Optional custom tag for Dynatrace Snowflake Observability Agent specific Snowflake objects. Used for multitenancy scenarios                                                                                                              |
-| `procedure_timeout`                              | Integer | No       | 3600             | Timeout in seconds for stored procedure execution. Default is 1 hour (3600 seconds)                                                                                                                                                      |
-| **Snowflake Configuration**                      |         |          |                  |                                                                                                                                                                                                                                          |
-| `snowflake.account_name`                         | String  | Yes      | -                | Your Snowflake account identifier in format `orgname-accountname` (e.g., `myorg-myaccount`). Legacy format `account.region` also supported. See [Account identifiers](https://docs.snowflake.com/en/user-guide/admin-account-identifier) |
-| `snowflake.host_name`                            | String  | No       | (derived)        | Your Snowflake host name (e.g., `myorg-myaccount.snowflakecomputing.com`). If not provided or set to "-", will be automatically derived from `account_name`                                                                              |
-| `snowflake.database.name`                        | String  | No       | `DTAGENT_DB`     | Custom name for the Dynatrace agent database. Empty or missing value uses default                                                                                                                                                        |
-| `snowflake.database.data_retention_time_in_days` | Integer | No       | 1                | Data retention time in days for permanent tables in the database. Does not affect transient tables which always have 0-day retention                                                                                                     |
-| `snowflake.warehouse.name`                       | String  | No       | `DTAGENT_WH`     | Custom name for the Dynatrace agent warehouse. Empty or missing value uses default                                                                                                                                                       |
-| `snowflake.resource_monitor.name`                | String  | No       | `DTAGENT_RS`     | Custom name for the resource monitor. Empty/missing uses default, `"-"` skips creation (**see note below**)                                                                                                                              |
-| `snowflake.resource_monitor.credit_quota`        | Integer | Yes      | 5                | Credit quota limit for Snowflake operations                                                                                                                                                                                              |
-| `snowflake.roles.owner`                          | String  | No       | `DTAGENT_OWNER`  | Custom name for the owner role. Empty or missing value uses default                                                                                                                                                                      |
-| `snowflake.roles.admin`                          | String  | No       | `DTAGENT_ADMIN`  | Custom name for the admin role. Empty/missing uses default, `"-"` skips creation (**see note below**)                                                                                                                                    |
-| `snowflake.roles.viewer`                         | String  | No       | `DTAGENT_VIEWER` | Custom name for the viewer role. Empty or missing value uses default                                                                                                                                                                     |
+| Configuration Key                                | Type    | Required    | Default          | Description                                                                                                                                                                                                                                                                                                                          |
+| ------------------------------------------------ | ------- | ----------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `dynatrace_tenant_address`                       | String  | Yes         | -                | The address of your Dynatrace tenant (e.g., `abc12345.live.dynatrace.com`)                                                                                                                                                                                                                                                           |
+| `deployment_environment`                         | String  | Yes         | -                | Unique identifier for the deployment environment                                                                                                                                                                                                                                                                                     |
+| `log_level`                                      | String  | Yes         | `WARN`           | Logging level. Valid values: `DEBUG`, `INFO`, `WARN`, `ERROR`                                                                                                                                                                                                                                                                        |
+| `tag`                                            | String  | No          | `""`             | Optional custom tag for Dynatrace Snowflake Observability Agent specific Snowflake objects. Used for multitenancy scenarios                                                                                                                                                                                                          |
+| `procedure_timeout`                              | Integer | No          | 3600             | Timeout in seconds for stored procedure execution. Default is 1 hour (3600 seconds)                                                                                                                                                                                                                                                  |
+| **Snowflake Configuration**                      |         |             |                  |                                                                                                                                                                                                                                                                                                                                      |
+| `snowflake.account_name`                         | String  | Recommended | (auto-detected)  | Your Snowflake account identifier in format `orgname-accountname` (e.g., `myorg-myaccount`). If not provided, will be auto-detected via SQL query at startup (adds ~100ms startup time). Legacy format `account.region` also supported. See [Account identifiers](https://docs.snowflake.com/en/user-guide/admin-account-identifier) |
+| `snowflake.host_name`                            | String  | No          | (derived)        | Your Snowflake host name (e.g., `myorg-myaccount.snowflakecomputing.com`). If not provided or set to "-", will be automatically derived from `account_name` or auto-detected                                                                                                                                                         |
+| `snowflake.database.name`                        | String  | No          | `DTAGENT_DB`     | Custom name for the Dynatrace agent database. Empty or missing value uses default                                                                                                                                                                                                                                                    |
+| `snowflake.database.data_retention_time_in_days` | Integer | No          | 1                | Data retention time in days for permanent tables in the database. Does not affect transient tables which always have 0-day retention                                                                                                                                                                                                 |
+| `snowflake.warehouse.name`                       | String  | No          | `DTAGENT_WH`     | Custom name for the Dynatrace agent warehouse. Empty or missing value uses default                                                                                                                                                                                                                                                   |
+| `snowflake.resource_monitor.name`                | String  | No          | `DTAGENT_RS`     | Custom name for the resource monitor. Empty/missing uses default, `"-"` skips creation (**see note below**)                                                                                                                                                                                                                          |
+| `snowflake.resource_monitor.credit_quota`        | Integer | Yes         | 5                | Credit quota limit for Snowflake operations                                                                                                                                                                                                                                                                                          |
+| `snowflake.roles.owner`                          | String  | No          | `DTAGENT_OWNER`  | Custom name for the owner role. Empty or missing value uses default                                                                                                                                                                                                                                                                  |
+| `snowflake.roles.admin`                          | String  | No          | `DTAGENT_ADMIN`  | Custom name for the admin role. Empty/missing uses default, `"-"` skips creation (**see note below**)                                                                                                                                                                                                                                |
+| `snowflake.roles.viewer`                         | String  | No          | `DTAGENT_VIEWER` | Custom name for the viewer role. Empty or missing value uses default                                                                                                                                                                                                                                                                 |
 
 > **Note on Optional Objects**: When `snowflake.roles.admin` or `snowflake.resource_monitor.name` is set to `"-"`, the corresponding object will not be created during deployment. All SQL code related to these objects will be automatically excluded from the deployment script. If you set `snowflake.roles.admin` to `"-"`, you cannot use the `admin` deployment scope as it requires the admin role to exist.
 
@@ -883,7 +883,7 @@ This is the **legacy** format that uses:
 
 #### Configuration Best Practices
 
-**Recommended configuration:**
+**Recommended configuration (provides best performance):**
 
 ```yaml
 core:
@@ -891,6 +891,27 @@ core:
     account_name: myorg-myaccount  # Clear, meaningful identifier
     host_name: "-"                 # Auto-derived: myorg-myaccount.snowflakecomputing.com
 ```
+
+**Minimal configuration (auto-detects at startup with ~100ms overhead):**
+
+```yaml
+core:
+  snowflake:
+    account_name: "-"  # Will query Snowflake: CURRENT_ORGANIZATION_NAME() || '-' || CURRENT_ACCOUNT_NAME()
+    host_name: "-"     # Will be derived from auto-detected account_name
+```
+
+**Why provide account_name?**
+
+- ✅ **Faster startup**: Avoids SQL query during agent initialization
+- ✅ **Explicit configuration**: Clear documentation of which account is being monitored
+- ✅ **Offline validation**: Can validate config without connecting to Snowflake
+
+**When to use auto-detection:**
+
+- Running in multiple environments with different accounts
+- Dynamic/automated deployments where account isn't known in advance
+- Simplified configuration (accepts ~100ms startup overhead)
 
 **Legacy configuration (still supported):**
 
