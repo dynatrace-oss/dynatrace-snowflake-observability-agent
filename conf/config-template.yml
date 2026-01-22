@@ -6,7 +6,16 @@ core:
   procedure_timeout: 3600
 
   snowflake:
+    # Snowflake account identifier in the format: orgname-accountname (preferred)
+    # Example: myorg-myaccount
+    # Legacy format (account locator) also supported: myaccount.region
+    # See: https://docs.snowflake.com/en/user-guide/admin-account-identifier
     account_name: "-"
+
+    # Snowflake host name (optional - can be derived from account_name)
+    # If not provided or set to "-", will be automatically derived
+    # Format: <account_identifier>.snowflakecomputing.com
+    # Example: myorg-myaccount.snowflakecomputing.com
     host_name: "-"
 
     database:

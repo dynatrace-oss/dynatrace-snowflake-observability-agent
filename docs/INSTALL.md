@@ -8,6 +8,7 @@ developer and want to build from source, please refer to the [CONTRIBUTING.md](C
 
 ## Table of Contents
 
+- [Table of Contents](#table-of-contents)
 - [Prerequisites](#prerequisites)
   - [Windows Users](#windows-users)
   - [All Users](#all-users)
@@ -24,11 +25,22 @@ developer and want to build from source, please refer to the [CONTRIBUTING.md](C
     - [Role Hierarchy](#role-hierarchy)
     - [Deployment Scope Privileges](#deployment-scope-privileges)
     - [Restricting Elevated Privileges](#restricting-elevated-privileges)
+      - [Option 1: Pre-Created Objects with Custom Names (Most Restrictive - No ACCOUNTADMIN Required)](#option-1-pre-created-objects-with-custom-names-most-restrictive---no-accountadmin-required)
+        - [Benefits](#benefits)
+      - [Option 2: Manual Initialization Without Init or Admin Scopes](#option-2-manual-initialization-without-init-or-admin-scopes)
+      - [Option 3: Deploy With Init But Without Admin Scope](#option-3-deploy-with-init-but-without-admin-scope)
+      - [Option 4: Split Deployment by Scope (With Admin)](#option-4-split-deployment-by-scope-with-admin)
+      - [Option 4: Separate Admin Operations (Alternative)](#option-4-separate-admin-operations-alternative)
   - [Dynatrace API Token Setup](#dynatrace-api-token-setup)
 - [Setting up a profile](#setting-up-a-profile)
   - [Creating profile configuration file for Snowflake-Dynatrace connection](#creating-profile-configuration-file-for-snowflake-dynatrace-connection)
     - [Core Configuration Options](#core-configuration-options)
     - [Custom Object Names](#custom-object-names)
+      - [Use Case: Deploying Without Admin Rights](#use-case-deploying-without-admin-rights)
+        - [Example Configuration](#example-configuration)
+        - [Deployment Command](#deployment-command)
+      - [Validation Rules](#validation-rules)
+      - [Mutual Exclusivity with TAG](#mutual-exclusivity-with-tag)
     - [Plugin Configuration Options](#plugin-configuration-options)
     - [OpenTelemetry Configuration Options](#opentelemetry-configuration-options)
     - [Plugin Scheduling](#plugin-scheduling)
@@ -38,12 +50,19 @@ developer and want to build from source, please refer to the [CONTRIBUTING.md](C
   - [Manual Connection Setup](#manual-connection-setup)
   - [Verifying Your Connections](#verifying-your-connections)
   - [Connection Configuration Example](#connection-configuration-example)
+  - [Understanding Snowflake Account Identifiers](#understanding-snowflake-account-identifiers)
+    - [Recommended Format: Organization-Account Name (`orgname-accountname`)](#recommended-format-organization-account-name-orgname-accountname)
+    - [Legacy Format: Account Locator (`account.region`)](#legacy-format-account-locator-accountregion)
+    - [Configuration Best Practices](#configuration-best-practices)
+    - [How to Find Your Account Identifier](#how-to-find-your-account-identifier)
+    - [Host Name Derivation](#host-name-derivation)
 - [Common Configuration Mistakes](#common-configuration-mistakes)
-  - [Mistake 1: Connection Profile Name Mismatch](#mistake-1-connection-profile-name-mismatch)
-  - [Mistake 2: Confusing ENV with deployment_environment](#mistake-2-confusing-env-with-deployment_environment)
-  - [Mistake 3: Reusing Tags or Deployment Environments](#mistake-3-reusing-tags-or-deployment-environments)
-  - [Mistake 4: Including Tag in deployment_environment](#mistake-4-including-tag-in-deployment_environment)
-  - [Mistake 5: Not Using Lowercase for Connection Names](#mistake-5-not-using-lowercase-for-connection-names)
+  - [Mistake 1: Using Account Locator Without Understanding](#mistake-1-using-account-locator-without-understanding)
+  - [Mistake 2: Connection Profile Name Mismatch](#mistake-2-connection-profile-name-mismatch)
+  - [Mistake 3: Confusing ENV with deployment\_environment](#mistake-3-confusing-env-with-deployment_environment)
+  - [Mistake 4: Reusing Tags or Deployment Environments](#mistake-4-reusing-tags-or-deployment-environments)
+  - [Mistake 5: Including Tag in deployment\_environment](#mistake-5-including-tag-in-deployment_environment)
+  - [Mistake 6: Not Using Lowercase for Connection Names](#mistake-6-not-using-lowercase-for-connection-names)
   - [Quick Diagnostic Commands](#quick-diagnostic-commands)
 
 ## Prerequisites
@@ -121,7 +140,9 @@ brew install jq yq gawk
      deployment_environment: PRODUCTION  # This identifies your instance in telemetry
      tag: ""                             # Optional: Use for multitenancy (suffixes Snowflake objects)
      snowflake:
-       account_name: "myaccount.region"
+       # Use organization-account format (recommended)
+       account_name: "myorg-myaccount"
+       host_name: "-"  # Will be auto-derived
        # ... other settings
    ```
 
@@ -484,24 +505,24 @@ Optionally you can adjust plugin configurations.
 
 The following table describes all available `core` configuration options:
 
-| Configuration Key                                | Type    | Required | Default          | Description                                                                                                                          |
-| ------------------------------------------------ | ------- | -------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `dynatrace_tenant_address`                       | String  | Yes      | -                | The address of your Dynatrace tenant (e.g., `abc12345.live.dynatrace.com`)                                                           |
-| `deployment_environment`                         | String  | Yes      | -                | Unique identifier for the deployment environment                                                                                     |
-| `log_level`                                      | String  | Yes      | `WARN`           | Logging level. Valid values: `DEBUG`, `INFO`, `WARN`, `ERROR`                                                                        |
-| `tag`                                            | String  | No       | `""`             | Optional custom tag for Dynatrace Snowflake Observability Agent specific Snowflake objects. Used for multitenancy scenarios          |
-| `procedure_timeout`                              | Integer | No       | 3600             | Timeout in seconds for stored procedure execution. Default is 1 hour (3600 seconds)                                                  |
-| **Snowflake Configuration**                      |         |          |                  |                                                                                                                                      |
-| `snowflake.account_name`                         | String  | Yes      | -                | Your Snowflake account name                                                                                                          |
-| `snowflake.host_name`                            | String  | Yes      | -                | Your Snowflake host name                                                                                                             |
-| `snowflake.database.name`                        | String  | No       | `DTAGENT_DB`     | Custom name for the Dynatrace agent database. Empty or missing value uses default                                                    |
-| `snowflake.database.data_retention_time_in_days` | Integer | No       | 1                | Data retention time in days for permanent tables in the database. Does not affect transient tables which always have 0-day retention |
-| `snowflake.warehouse.name`                       | String  | No       | `DTAGENT_WH`     | Custom name for the Dynatrace agent warehouse. Empty or missing value uses default                                                   |
-| `snowflake.resource_monitor.name`                | String  | No       | `DTAGENT_RS`     | Custom name for the resource monitor. Empty/missing uses default, `"-"` skips creation (**see note below**)                          |
-| `snowflake.resource_monitor.credit_quota`        | Integer | Yes      | 5                | Credit quota limit for Snowflake operations                                                                                          |
-| `snowflake.roles.owner`                          | String  | No       | `DTAGENT_OWNER`  | Custom name for the owner role. Empty or missing value uses default                                                                  |
-| `snowflake.roles.admin`                          | String  | No       | `DTAGENT_ADMIN`  | Custom name for the admin role. Empty/missing uses default, `"-"` skips creation (**see note below**)                                |
-| `snowflake.roles.viewer`                         | String  | No       | `DTAGENT_VIEWER` | Custom name for the viewer role. Empty or missing value uses default                                                                 |
+| Configuration Key                                | Type    | Required | Default          | Description                                                                                                                                                                                                                              |
+| ------------------------------------------------ | ------- | -------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dynatrace_tenant_address`                       | String  | Yes      | -                | The address of your Dynatrace tenant (e.g., `abc12345.live.dynatrace.com`)                                                                                                                                                               |
+| `deployment_environment`                         | String  | Yes      | -                | Unique identifier for the deployment environment                                                                                                                                                                                         |
+| `log_level`                                      | String  | Yes      | `WARN`           | Logging level. Valid values: `DEBUG`, `INFO`, `WARN`, `ERROR`                                                                                                                                                                            |
+| `tag`                                            | String  | No       | `""`             | Optional custom tag for Dynatrace Snowflake Observability Agent specific Snowflake objects. Used for multitenancy scenarios                                                                                                              |
+| `procedure_timeout`                              | Integer | No       | 3600             | Timeout in seconds for stored procedure execution. Default is 1 hour (3600 seconds)                                                                                                                                                      |
+| **Snowflake Configuration**                      |         |          |                  |                                                                                                                                                                                                                                          |
+| `snowflake.account_name`                         | String  | Yes      | -                | Your Snowflake account identifier in format `orgname-accountname` (e.g., `myorg-myaccount`). Legacy format `account.region` also supported. See [Account identifiers](https://docs.snowflake.com/en/user-guide/admin-account-identifier) |
+| `snowflake.host_name`                            | String  | No       | (derived)        | Your Snowflake host name (e.g., `myorg-myaccount.snowflakecomputing.com`). If not provided or set to "-", will be automatically derived from `account_name`                                                                              |
+| `snowflake.database.name`                        | String  | No       | `DTAGENT_DB`     | Custom name for the Dynatrace agent database. Empty or missing value uses default                                                                                                                                                        |
+| `snowflake.database.data_retention_time_in_days` | Integer | No       | 1                | Data retention time in days for permanent tables in the database. Does not affect transient tables which always have 0-day retention                                                                                                     |
+| `snowflake.warehouse.name`                       | String  | No       | `DTAGENT_WH`     | Custom name for the Dynatrace agent warehouse. Empty or missing value uses default                                                                                                                                                       |
+| `snowflake.resource_monitor.name`                | String  | No       | `DTAGENT_RS`     | Custom name for the resource monitor. Empty/missing uses default, `"-"` skips creation (**see note below**)                                                                                                                              |
+| `snowflake.resource_monitor.credit_quota`        | Integer | Yes      | 5                | Credit quota limit for Snowflake operations                                                                                                                                                                                              |
+| `snowflake.roles.owner`                          | String  | No       | `DTAGENT_OWNER`  | Custom name for the owner role. Empty or missing value uses default                                                                                                                                                                      |
+| `snowflake.roles.admin`                          | String  | No       | `DTAGENT_ADMIN`  | Custom name for the admin role. Empty/missing uses default, `"-"` skips creation (**see note below**)                                                                                                                                    |
+| `snowflake.roles.viewer`                         | String  | No       | `DTAGENT_VIEWER` | Custom name for the viewer role. Empty or missing value uses default                                                                                                                                                                     |
 
 > **Note on Optional Objects**: When `snowflake.roles.admin` or `snowflake.resource_monitor.name` is set to `"-"`, the corresponding object will not be created during deployment. All SQL code related to these objects will be automatically excluded from the deployment script. If you set `snowflake.roles.admin` to `"-"`, you cannot use the `admin` deployment scope as it requires the admin role to exist.
 
@@ -536,8 +557,13 @@ This approach is ideal for organizations with strict privilege separation polici
 core:
   deployment_environment: prod
   snowflake:
-    account_name: myaccount
-    host_name: myaccount.snowflakecomputing.com
+    # Recommended: Use organization-account format
+    account_name: myorg-myaccount
+    host_name: "-"  # Will be derived as myorg-myaccount.snowflakecomputing.com
+
+    # Alternative: Legacy locator format
+    # account_name: myaccount.us-east-1
+    # host_name: myaccount.us-east-1.snowflakecomputing.com
     database:
       name: DT_MONITORING_DB
     warehouse:
@@ -789,8 +815,11 @@ snow_agent_test_tenant_001
 
 When creating a connection, use external browser authentication for SSO (recommended):
 
+**Important:** The `Snowflake account name` prompt in the `snow connection add` command asks for your **account identifier**, which should match your `account_name` in the config file.
+
 ```bash
-Snowflake account name: myaccount.us-east-1
+# Recommended format (orgname-accountname):
+Snowflake account name: myorg-myaccount
 Snowflake username: john.doe@company.com
 Snowflake password [optional]:
 Role for the connection [optional]:
@@ -807,18 +836,137 @@ Path to private key file [optional]:
 
 ```bash
 # For config with deployment_environment: "PRODUCTION_US_EAST_1"
+# Using recommended orgname-accountname format
 snow connection add \
   --connection-name snow_agent_production_us_east_1 \
-  --account myaccount.us-east-1 \
+  --account myorg-myaccount \
   --user john.doe@company.com \
   --authenticator externalbrowser
 ```
 
 **Important:** The connection name must exactly match `snow_agent_` + your `deployment_environment` value in lowercase.
 
+### Understanding Snowflake Account Identifiers
+
+Snowflake supports two formats for account identifiers, which can cause confusion:
+
+#### Recommended Format: Organization-Account Name (`orgname-accountname`)
+
+**Example:** `myorg-myaccount`
+
+This is the **preferred** modern format that Snowflake recommends using. It consists of:
+
+- Your organization name (`myorg`)
+- Your account name (`myaccount`)
+- Connected with a hyphen
+
+**Advantages:**
+
+- Clear, human-readable account identification
+- Works consistently across all Snowflake regions
+- Provides a meaningful account name in telemetry (e.g., Dynatrace dimensions)
+
+#### Legacy Format: Account Locator (`account.region`)
+
+**Example:** `abc12345.us-east-1`
+
+This is the **legacy** format that uses:
+
+- A randomly-generated account locator (`abc12345`)
+- The region identifier (`us-east-1`)
+
+**Disadvantages:**
+
+- Account locator is a random string that's hard to remember
+- Less meaningful in monitoring and telemetry
+- Considered legacy by Snowflake (though still supported)
+
+#### Configuration Best Practices
+
+**Recommended configuration:**
+
+```yaml
+core:
+  snowflake:
+    account_name: myorg-myaccount  # Clear, meaningful identifier
+    host_name: "-"                 # Auto-derived: myorg-myaccount.snowflakecomputing.com
+```
+
+**Legacy configuration (still supported):**
+
+```yaml
+core:
+  snowflake:
+    account_name: abc12345.us-east-1                # Account locator format
+    host_name: abc12345.us-east-1.snowflakecomputing.com  # Must match
+```
+
+#### How to Find Your Account Identifier
+
+To find your Snowflake account identifier, run this query in Snowflake:
+
+```sql
+-- Returns organization and account names
+SELECT
+  CURRENT_ORGANIZATION_NAME() || '-' || CURRENT_ACCOUNT_NAME() as account_identifier,
+  CURRENT_ACCOUNT() as account_locator,
+  CURRENT_REGION() as region;
+```
+
+Example output:
+
+```text
+ACCOUNT_IDENTIFIER: myorg-myaccount
+ACCOUNT_LOCATOR: abc12345
+REGION: AWS_US_EAST_1
+```
+
+Use `ACCOUNT_IDENTIFIER` for your config (recommended) or construct the legacy format as `ACCOUNT_LOCATOR.REGION`.
+
+#### Host Name Derivation
+
+When `host_name` is not provided or set to `"-"`, it will be automatically derived:
+
+- For `orgname-accountname` format: `orgname-accountname.snowflakecomputing.com`
+- For `account.region` format: `account.region.snowflakecomputing.com`
+
+This eliminates the need to manually specify both values and reduces configuration errors.
+
 ## Common Configuration Mistakes
 
-### Mistake 1: Connection Profile Name Mismatch
+### Mistake 1: Using Account Locator Without Understanding
+
+**Symptom:** Random strings appear as account names in Dynatrace telemetry.
+
+**Cause:** Using legacy account locator format (`abc12345.us-east-1`) instead of the meaningful organization-account format (`myorg-myaccount`).
+
+**Wrong:**
+
+```yaml
+snowflake:
+  account_name: abc12345.us-east-1  # Random locator - hard to identify in Dynatrace
+```
+
+**In Dynatrace, you'll see:**
+
+```text
+service.name: abc12345.us-east-1  # What account is this?
+```
+
+**Correct:**
+
+```yaml
+snowflake:
+  account_name: myorg-myaccount  # Clear, meaningful identifier
+```
+
+**In Dynatrace, you'll see:**
+
+```text
+service.name: myorg-myaccount  # Clearly identifiable!
+```
+
+### Mistake 2: Connection Profile Name Mismatch
 
 **Symptom:** Deployment fails with "Connection 'snow_agent_xxx' not found" error.
 
@@ -854,7 +1002,7 @@ snow connection add --connection-name snow_agent_production_us_east
 ./setup.sh prod
 ```
 
-### Mistake 2: Confusing ENV with deployment_environment
+### Mistake 3: Confusing ENV with deployment_environment
 
 **Symptom:** Trying to create connections or objects based on the file name instead of config values.
 
@@ -884,7 +1032,7 @@ snow connection add --connection-name snow_agent_production_us_east_1  # ✓ Cor
 - File name (`ENV` parameter) = Your organizational choice
 - `deployment_environment` = What actually matters for connections and deployment
 
-### Mistake 3: Reusing Tags or Deployment Environments
+### Mistake 4: Reusing Tags or Deployment Environments
 
 **Symptom:** Deployment fails, or instances overwrite each other's data.
 
@@ -920,7 +1068,7 @@ core:
   tag: MT002                                      # ✓ Different!
 ```
 
-### Mistake 4: Including Tag in deployment_environment
+### Mistake 5: Including Tag in deployment_environment
 
 **Symptom:** Redundant or confusing naming that mixes concerns.
 
@@ -952,7 +1100,7 @@ core:
 - Additional dimension: `deployment.environment.tag: "MT001"`
 - Snowflake objects: `DTAGENT_MT001_DB`, `DTAGENT_MT001_WH`
 
-### Mistake 5: Not Using Lowercase for Connection Names
+### Mistake 6: Not Using Lowercase for Connection Names
 
 **Symptom:** Connection not found even though you created it.
 

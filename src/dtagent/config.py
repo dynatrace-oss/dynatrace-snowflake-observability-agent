@@ -120,11 +120,12 @@ class Configuration:
 
         import _snowflake
         import os
-        from dtagent.util import _get_service_name  # COMPILE_REMOVE
+        from dtagent.util import _get_snowflake_account_info  # COMPILE_REMOVE
 
         default_config = {
             "core.dynatrace_tenant_address": "",
             "core.deployment_environment": "TEST",
+            "core.snowflake.account_name": "",
             "core.snowflake.host_name": "",
             "core.log_level": "WARN",
         }
@@ -142,6 +143,9 @@ class Configuration:
             LOG.debug(f"Setting log level to {default_log_level} from config.LOG_LEVEL={config_dict['core.log_level']}")
             LOG.setLevel(default_log_level)
 
+        # Derive account_name and host_name if not provided
+        service_name, host_name = _get_snowflake_account_info(config_dict, session)
+
         self._config = {
             "dt.token": os.environ.get("DTAGENT_TOKEN", _snowflake.get_generic_secret_string("dtagent_token")),
             "logs.http": f"https://{config_dict['core.dynatrace_tenant_address']}{Logs.ENDPOINT_PATH}",
@@ -152,9 +156,9 @@ class Configuration:
             "biz_events.http": f"https://{config_dict['core.dynatrace_tenant_address']}{BizEvents.ENDPOINT_PATH}",
             "resource.attributes": Configuration.RESOURCE_ATTRIBUTES
             | {
-                "service.name": _get_service_name(config_dict),
+                "service.name": service_name,
                 "deployment.environment": config_dict["core.deployment_environment"],
-                "host.name": config_dict["core.snowflake.host_name"],
+                "host.name": host_name,
             },
             "otel": __unpack_prefixed_keys(config_dict, "otel."),
             "plugins": __unpack_prefixed_keys(config_dict, "plugins."),
