@@ -26,9 +26,9 @@ All notable changes to this project will be documented in this file.
 
   Missing or empty values use default names. Set admin role or resource monitor to `"-"` to skip their creation entirely.
 
-  **Validation**: Custom names are validated against Snowflake identifier rules (alphanumeric, underscore, dollar sign; must start with letter/underscore; max 255 chars). Deployment fails if validation errors occur.
+  **Use Case - Deployment Without Admin Rights**: This feature enables organizations to pre-create all Snowflake objects with custom names (performed by DBAs with ACCOUNTADMIN), then deploy the agent using only `DTAGENT_OWNER` privileges with `--scope=setup,plugins,config,agents,apikey`. This approach eliminates the need for elevated privileges during regular deployments, ideal for organizations with strict privilege separation policies.
 
-  **Mutual Exclusivity**: Custom object names and the `tag` configuration option cannot be used together. The `tag` option is designed for multitenancy scenarios where it appends suffixes to object names, while custom names provide direct naming control. Choose one approach based on your deployment needs.
+  **Validation**: Custom names are validated against Snowflake identifier rules (alphanumeric, underscore, dollar sign; must start with letter/underscore; max 255 chars). Deployment fails if validation errors occur.
 
 - **Optional Object Deployment**: When `snowflake.roles.admin` or `snowflake.resource_monitor.name` is set to `"-"`, the deployment process automatically excludes all related SQL code from the deployment script. This allows for lightweight deployments without admin role management or resource monitoring overhead. Attempting to deploy with `scope=admin` when the admin role is disabled will result in a deployment error with clear guidance.
 

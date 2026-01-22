@@ -175,9 +175,28 @@ Different deployment scopes require different privilege levels:
 
 If you want to minimize the use of elevated privileges in your organization, you have several deployment options:
 
-##### Option 1: Manual Initialization Without Init or Admin Scopes (Most Restrictive)
+##### Option 1: Pre-Created Objects with Custom Names (Most Restrictive - No ACCOUNTADMIN Required)
 
-Manually create the required roles and database structure, then skip both `init` and `admin` scopes entirely:
+Use [Custom Object Names](#custom-object-names) to reference objects that have been pre-created by your database administrators. This approach allows deployment without any elevated privileges:
+
+```bash
+# 1. DBA pre-creates objects as ACCOUNTADMIN (one-time setup)
+# 2. Configure custom names in conf/config-prod.yml to match pre-created objects
+# 3. Deploy without init or admin scopes (no ACCOUNTADMIN required)
+./deploy.sh prod --scope=setup,plugins,config,agents,apikey
+```
+
+###### Benefits
+
+- No `ACCOUNTADMIN` access required during deployment
+- Full control over object names and structure
+- Ideal for organizations with strict privilege separation
+
+See the [Custom Object Names](#custom-object-names) section for detailed configuration and use case examples.
+
+##### Option 2: Manual Initialization Without Init or Admin Scopes
+
+Manually create the required roles and database structure using default names, then skip both `init` and `admin` scopes:
 
 ```bash
 # Manually create roles and database as ACCOUNTADMIN:
@@ -188,12 +207,12 @@ Manually create the required roles and database structure, then skip both `init`
 # ...
 
 # Deploy without init or admin scopes
-./deploy.sh $ENV --scope=setup,plugins,config,agents
+./deploy.sh $ENV --scope=setup,plugins,config,agents,apikey
 ```
 
 **Important:** Without init and admin scopes, you must manually create all required objects and grant privileges.
 
-##### Option 2: Deploy With Init But Without Admin Scope
+##### Option 3: Deploy With Init But Without Admin Scope
 
 ```bash
 # Have an administrator run init scope once
@@ -210,7 +229,7 @@ Manually create the required roles and database structure, then skip both `init`
 - Grant `MONITOR` privilege on dynamic tables to `DTAGENT_VIEWER` for dynamic_tables plugin
 - Other plugin-specific privileges as documented in each plugin's configuration
 
-##### Option 3: Split Deployment by Scope (With Admin)
+##### Option 4: Split Deployment by Scope (With Admin)
 
 Have an administrator with `ACCOUNTADMIN` privileges run the `init` scope once to create the base roles and database:
 
@@ -229,10 +248,7 @@ Finally, have a user with `DTAGENT_OWNER` role run the remaining scopes:
 
 ```bash
 # As a user granted DTAGENT_OWNER role
-./deploy.sh $ENV --scope=setup
-./deploy.sh $ENV --scope=plugins
-./deploy.sh $ENV --scope=config
-./deploy.sh $ENV --scope=agents
+./deploy.sh $ENV --scope=setup,plugins,config,agents,apikey
 ```
 
 ##### Option 4: Separate Admin Operations (Alternative)
@@ -338,8 +354,25 @@ By default, Dynatrace Snowflake Observability Agent creates Snowflake objects wi
 - You need to comply with organizational naming conventions
 - You want to avoid naming conflicts with existing objects
 - You prefer more descriptive or context-specific names
+- **You want to pre-create objects and deploy without elevated privileges** (see use case below)
 
-**Example Configuration:**
+##### Use Case: Deploying Without Admin Rights
+
+Custom object names enable a deployment model where database administrators pre-create all necessary Snowflake objects, allowing the agent to be deployed without requiring `ACCOUNTADMIN` or elevated privileges:
+
+1. **Pre-creation Phase** (performed by DBA with ACCOUNTADMIN):
+   - Create custom-named database, warehouse, resource monitor, and roles
+   - Grant necessary privileges to the owner role
+   - Set up the required object structure
+
+2. **Deployment Phase** (can be performed by regular user with owner role):
+   - Configure custom names to match pre-created objects
+   - Deploy using restricted scopes: `--scope=setup,plugins,config,apikey`
+   - Skip `init` and `admin` scopes entirely
+
+This approach is ideal for organizations with strict privilege separation policies where regular users should not have `ACCOUNTADMIN` access.
+
+###### Example Configuration
 
 ```yaml
 core:
@@ -352,14 +385,21 @@ core:
     warehouse:
       name: DT_MONITORING_WH
     resource_monitor:
-      name: DT_MONITORING_RS
+      name: DT_MONITORING_RS  # or "-" if pre-created separately
     roles:
       owner: DT_MONITORING_OWNER
-      admin: DT_MONITORING_ADMIN
+      admin: "-"  # Skip admin role - privileges granted manually by DBA
       viewer: DT_MONITORING_VIEWER
 ```
 
-**Validation Rules:**
+###### Deployment Command
+
+```bash
+# Deploy without init/admin scopes (no ACCOUNTADMIN required)
+./deploy.sh prod --scope=setup,plugins,config,apikey
+```
+
+##### Validation Rules
 
 Custom names must follow Snowflake identifier rules:
 
@@ -371,7 +411,7 @@ Custom names must follow Snowflake identifier rules:
 
 The deployment script will validate all custom names before proceeding. If validation fails, the deployment will stop with an error message.
 
-**Mutual Exclusivity with TAG:**
+##### Mutual Exclusivity with TAG
 
 Custom object names and the `tag` configuration option are mutually exclusive. You cannot use both features simultaneously because:
 
