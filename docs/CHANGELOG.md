@@ -8,88 +8,36 @@ Released on January 30, 2026
 
 ### Breaking Changes in 0.9.3
 
-- **DTAGENT_OWNER Role Introduction**: Re-architected SnowAgent to introduce `DTAGENT_OWNER` role that owns all SnowAgent artifacts
-  (database, schemas, tables, procedures, tasks). The `DTAGENT_ADMIN` role is now reserved exclusively for elevated administrative
-  privileges (role grants, ownership transfers), while `DTAGENT_VIEWER` handles regular telemetry-related operations. This separation
-  improves security and enables deployment with reduced privileges.
-- **Deployment vs. Upgrade Permission Requirements**: Deployment and upgrade now have separate permission requirements with the new
-  owner-admin-viewer role separation model.
-- **Deployment configuration**: Deployment configuration files are now in YAML format. Multi-configuration deployment is no longer supported.
-  Each DSOA instance must be deployed separately with its own configuration. Use `convert_config_to_yaml.sh` script to convert configuration
-  files to YAML format and split existing multi-configuration files into separate YAML files.
-- **Configuration Structure Refactored**: Reorganized Snowflake-related configuration into a nested `snowflake` structure under `core`. This improves organization and enables object-specific settings:
-  - `core.snowflake_account_name` → `core.snowflake.account_name`
-  - `core.snowflake_host_name` → `core.snowflake.host_name`
-  - `core.snowflake_credit_quota` → `core.snowflake.resource_monitor.credit_quota`
-  - `core.snowflake_data_retention_time_in_days` → `core.snowflake.database.data_retention_time_in_days`
-
-  **Migration**: The `convert_config_to_yaml.sh` script automatically migrates old paths to the new structure. Existing JSON config files will be converted with updated paths.
+- **DTAGENT_OWNER Role Introduction**: Re-architected SnowAgent to introduce `DTAGENT_OWNER` role that owns all SnowAgent artifacts (database, schemas, tables, procedures, tasks). The `DTAGENT_ADMIN` role is now reserved exclusively for elevated administrative privileges, while `DTAGENT_VIEWER` handles regular telemetry-related operations.
+- **Deployment vs. Upgrade Permission Requirements**: Deployment and upgrade now have separate permission requirements with the new owner-admin-viewer role separation model.
+- **Deployment Configuration**: Configuration files are now in YAML format. Multi-configuration deployment is no longer supported. Each DSOA instance must be deployed separately with its own configuration. Use `convert_config_to_yaml.sh` script to convert existing JSON files.
+- **Configuration Structure**: Reorganized Snowflake-related configuration into nested `core.snowflake` structure. The `convert_config_to_yaml.sh` script automatically migrates old paths to the new structure.
 
 ### New in 0.9.3
 
-- **Admin Deployment Scope**: New `admin` deployment scope for administrative operations, enabling granular control over privilege-related
-  deployments via `--scope=admin` option.
-
-- **Custom Snowflake Object Names**: Added ability to customize names for all Snowflake objects created by the agent:
-  - `core.snowflake.database.name` - Custom database name (default: `DTAGENT_DB`)
-  - `core.snowflake.warehouse.name` - Custom warehouse name (default: `DTAGENT_WH`)
-  - `core.snowflake.resource_monitor.name` - Custom resource monitor name (default: `DTAGENT_RS`, use `"-"` to skip)
-  - `core.snowflake.roles.owner` - Custom owner role name (default: `DTAGENT_OWNER`)
-  - `core.snowflake.roles.admin` - Custom admin role name (default: `DTAGENT_ADMIN`, use `"-"` to skip)
-  - `core.snowflake.roles.viewer` - Custom viewer role name (default: `DTAGENT_VIEWER`)
-
-  Missing or empty values use default names. Set admin role or resource monitor to `"-"` to skip their creation entirely.
-
-  **Use Case - Deployment Without Admin Rights**: This feature enables organizations to pre-create all Snowflake objects with custom names (performed by DBAs with ACCOUNTADMIN), then deploy the agent using only `DTAGENT_OWNER` privileges with `--scope=setup,plugins,config,agents,apikey`. This approach eliminates the need for elevated privileges during regular deployments, ideal for organizations with strict privilege separation policies.
-
-  **Validation**: Custom names are validated against Snowflake identifier rules (alphanumeric, underscore, dollar sign; must start with letter/underscore; max 255 chars). Deployment fails if validation errors occur.
-
-- **Optional Object Deployment**: When `snowflake.roles.admin` or `snowflake.resource_monitor.name` is set to `"-"`, the deployment process automatically excludes all related SQL code from the deployment script. This allows for lightweight deployments without admin role management or resource monitoring overhead. Attempting to deploy with `scope=admin` when the admin role is disabled will result in a deployment error with clear guidance.
+- **Admin Deployment Scope**: New `admin` deployment scope for administrative operations, enabling granular control via `--scope=admin` option.
+- **Custom Snowflake Object Names**: Added ability to customize names for all Snowflake objects (database, warehouse, resource monitor, roles). Set admin role or resource monitor to `"-"` to skip their creation entirely.
+- **Optional Object Deployment**: When admin role or resource monitor is disabled via `"-"`, related SQL code is automatically excluded from deployment scripts.
 
 ### Fixed in 0.9.3
 
-- **Log Timestamp Handling**: Fixed an issue where timestamps in logs were sent as nanoseconds instead of milliseconds.
-- **Event Log Resource Attributes**: Fixed an issue where resource attribute fields were duplicated in event log entries.
+- **Log Timestamp Handling**: Fixed timestamps in logs being sent as nanoseconds instead of milliseconds.
+- **Event Log Resource Attributes**: Fixed duplicated resource attribute fields in event log entries.
 
 ### Improved in 0.9.3
 
-- **Flexible Role Model**: Implemented role hierarchy with `ACCOUNTADMIN` → `DTAGENT_OWNER` → `DTAGENT_VIEWER` as primary hierarchy and
-  `DTAGENT_OWNER` → `DTAGENT_ADMIN` as optional admin branch, enabling flexible deployment with reduced privileges.
-- **Security Model Enhancement**: Isolated administrative operations in dedicated admin scripts, ensuring administrative privileges are only
-  used in appropriate contexts. Added automated tests to enforce this separation.
-- **Selective Plugin Deployment**: Enabled deployment of SnowAgent with only selected plugins, allowing customization based on use case
-  requirements.
-- **Custom Warehouse Support**: Added ability to disable the built-in Resource Monitor or use a customer-provided warehouse instead of
-  `DTAGENT_WH`.
-- **Centralized Warehouse Monitoring**: Moved the procedure for regranting monitoring privileges on warehouses to the core module, enabling
-  reuse across plugins.
-- **Timestamp Analysis**: Investigated and documented the source of `overwritten1.timestamp` fields in query reports.
-- **Data Retention Configuration**: Added ability to configure data retention on `DTAGENT_DB` permanent tables via the
-  `snowflake_data_retention_time_in_days` configuration parameter (default: 1 day).
-- **Simplified Configuration Format**: Simplified configuration files for SnowAgent (YAML format with lowercase keys to match Snowflake
-  configuration table paths).
-- **Metric Semantics**: `V_INSTRUMENTS` has been refactored to separate metric semantics from attribute semantics, improving clarity
-  and performance.
-- **Enhanced Deployment Script**: Completely refactored `deploy.sh` with improved parameter handling using named parameters (`--scope`,
-  `--from-version`, `--output-file`, `--options`) instead of positional arguments.
-- **Structured Deployment Scopes**: Introduced well-defined deployment scopes (`init`, `admin`, `setup`, `plugins`, `config`, `agents`,
-  `apikey`, `all`, `teardown`, `upgrade`) that allow granular control over what gets deployed.
-- **Independent Manual Mode**: Manual deploy mode can now be invoked independently from other parameters via `--options=manual`, supporting
-  teardown and selective deployment with SQL review.
-- **Deployment Options**: Added `--options` parameter supporting comma-separated flags: `manual`, `service_user`, `skip_confirm`, and
-  `no_dep`.
-- **Multiple Deployment Patterns**: Enabled passing multiple deployment patterns at the same time.
-- **Upgrade Process**: Delivered SnowAgent upgrade process with `--scope=upgrade --from-version=VERSION` parameters, supporting custom
-  queries for version migrations.
-- **Apps URL Detection**: Deployment process now detects if `.apps.` URL is used for Dynatrace API and handles it appropriately.
-- **Budget for DSOA**: Using the Budgets plugin no longer creates a budget for agent itself by default.
-- **Self-Monitoring Dashboard**: Updated self-monitoring dashboard with latest telemetry improvements.
+- **Flexible Role Model**: Implemented role hierarchy with `ACCOUNTADMIN` → `DTAGENT_OWNER` → `DTAGENT_VIEWER` as primary hierarchy and `DTAGENT_OWNER` → `DTAGENT_ADMIN` as optional admin branch.
+- **Security Model**: Isolated administrative operations in dedicated admin scripts with automated tests to enforce separation.
+- **Selective Plugin Deployment**: Enabled deployment with only selected plugins based on use case requirements.
+- **Custom Warehouse Support**: Added ability to disable the built-in Resource Monitor or use a customer-provided warehouse.
+- **Data Retention Configuration**: Added ability to configure data retention on `DTAGENT_DB` permanent tables (default: 1 day).
+- **Simplified Configuration Format**: YAML format with lowercase keys to match Snowflake configuration table paths.
+- **Enhanced Deployment Script**: Refactored `deploy.sh` with improved parameter handling using named parameters (`--scope`, `--from-version`, `--output-file`, `--options`).
+- **Structured Deployment Scopes**: Introduced well-defined deployment scopes (`init`, `admin`, `setup`, `plugins`, `config`, `agents`, `apikey`, `all`, `teardown`, `upgrade`).
+- **Flexible Scope Combinations**: The `apikey` deployment scope can now be combined with other scopes (e.g., `setup,plugins,config,agents,apikey`).
+- **Upgrade Process**: Delivered upgrade process with `--scope=upgrade --from-version=VERSION` parameters, supporting custom queries for version migrations.
 - **Bill of Materials**: BOM files are now included as part of the documentation with structured tables.
 - **Extended Code Quality**: Extended code quality checks to include `build/*.py` files.
-- **Flexible Scope Combinations**: The `apikey` deployment scope can now be combined with other scopes (e.g., `setup,plugins,config,agents,apikey`),
-  enabling more flexible deployment workflows. Previously, `apikey` could only be used alone. The restrictions on `all` and `teardown`
-  remain unchanged (they cannot be combined with other scopes).
-- **Configuration Migration Tool Enhanced**: The `convert_config_to_yaml.sh` script now automatically migrates old configuration paths to the new nested structure.
 
 ## Dynatrace Snowflake Observability Agent 0.9.2
 
@@ -97,39 +45,27 @@ Released on November 24, 2025
 
 ### Breaking Changes in 0.9.2
 
-- **Self-monitoring Telemetry**: All self-monitoring telemetry will now have `dsoa.run.context` set to `self_monitoring` (underscore)
-  instead of `self-monitoring` (hyphen).
+- **Self-monitoring Telemetry**: All self-monitoring telemetry will now have `dsoa.run.context` set to `self_monitoring` (underscore) instead of `self-monitoring` (hyphen).
 
 ### New in 0.9.2
 
-- **Example Dashboards**: Added example dashboards to help users visualize and interpret telemetry data, including costs monitoring,
-  self-monitoring, and Snowflake security dashboards with descriptions and screenshots.
-- **Configurable Query Analysis**: Introduced options to configure minimum query runtime and the maximum number of top queries for deeper
-  analysis, providing greater flexibility in performance monitoring.
-- **Telemetry Configuration**: It is now possible to exclude certain telemetry types, e.g., events, spans, from being sent, either globally
-  or on a per-plugin basis.
+- **Example Dashboards**: Added example dashboards to help users visualize and interpret telemetry data, including costs monitoring, self-monitoring, and Snowflake security dashboards with descriptions and screenshots.
+- **Configurable Query Analysis**: Introduced options to configure minimum query runtime and the maximum number of top queries for deeper analysis, providing greater flexibility in performance monitoring.
+- **Telemetry Configuration**: It is now possible to exclude certain telemetry types, e.g., events, spans, from being sent, either globally or on a per-plugin basis.
 - **Event Log Metrics**: Extended support for `RECORD_ATTRIBUTES` in event log metrics for richer telemetry data.
 
 ### Improved in 0.9.2
 
 - **Data Schema Plugin**: Now reports on objects (tables, schemas, databases) modified by DDL queries as events.
-- **Query Robustness**: Improved query robustness in the Resource Monitors and Users plugins by using explicit column selection to prevent
-  errors from column order changes in `SHOW WAREHOUSES` and `SNOWFLAKE.ACCOUNT_USAGE.USERS`.
-- **Telemetry Sender**: Enabled labeling and classification of telemetry calls for better differentiation and analysis of query data. Added
-  `SEND_TELEMETRY` support for `SHOW` statements, enabling more flexible custom queries.
-- **Event Handling**: Expanded event-handling capabilities, including support for sending multiple events in a single call and improved
-  handling of Davis events.
+- **Query Robustness**: Improved query robustness in the Resource Monitors and Users plugins by using explicit column selection to prevent errors from column order changes in `SHOW WAREHOUSES` and `SNOWFLAKE.ACCOUNT_USAGE.USERS`.
+- **Telemetry Sender**: Enabled labeling and classification of telemetry calls for better differentiation and analysis of query data. Added `SEND_TELEMETRY` support for `SHOW` statements, enabling more flexible custom queries.
+- **Event Handling**: Expanded event-handling capabilities, including support for sending multiple events in a single call and improved handling of Davis events.
 - **Metric Dimensions**: Plugin and context names are now available as metric dimensions, improving traceability.
-- **Telemetry Query Performance**: Improved performance of reading and processing telemetry data by using simpler queries. Added safety
-  limits and ordering to event log queries to handle high-volume applications.
-- **Self-monitoring**: Agent execution now returns detailed status information, including the number of telemetry objects sent by type,
-  plugin, and run context. The deployment process also reports its start and finish as BizEvents, compatible with other telemetry.
-- **Configuration**: API post timeout and retry delay are now configurable for metrics and events, providing better control over telemetry
-  delivery.
-- **Code Quality & Testing**: Streamlined internal plugin implementations and extended tests for all plugins. Added a suite of code quality
-  checks to the automated build process.
-- **Documentation**: Updated documentation to reflect new features, improved the structure for easier navigation as online GitHub pages, and
-  added comprehensive troubleshooting guide for debugging data delivery issues.
+- **Telemetry Query Performance**: Improved performance of reading and processing telemetry data by using simpler queries. Added safety limits and ordering to event log queries to handle high-volume applications.
+- **Self-monitoring**: Agent execution now returns detailed status information, including the number of telemetry objects sent by type, plugin, and run context. The deployment process also reports its start and finish as BizEvents, compatible with other telemetry.
+- **Configuration**: API post timeout and retry delay are now configurable for metrics and events, providing better control over telemetry delivery.
+- **Code Quality & Testing**: Streamlined internal plugin implementations and extended tests for all plugins. Added a suite of code quality checks to the automated build process.
+- **Documentation**: Updated documentation to reflect new features, improved the structure for easier navigation as online GitHub pages, and added comprehensive troubleshooting guide for debugging data delivery issues.
 
 ## Dynatrace Snowflake Observability Agent 0.9.1
 
