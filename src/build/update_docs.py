@@ -431,6 +431,49 @@ def _extract_appendix_info(header_file_path: str) -> Tuple[str, str]:
     return title, anchor
 
 
+def _compact_markdown_tables(md_content: str) -> str:
+    """Remove padding spaces from markdown tables to ensure proper PDF rendering.
+
+    Converts visually aligned tables like:
+    | Column1 | Column2     |
+    | ------- | ----------- |
+    | value1  | value2      |
+
+    To compact tables like:
+    | Column1 | Column2 |
+    | - | - |
+    | value1 | value2 |
+
+    Args:
+        md_content: Markdown content with potentially aligned tables
+
+    Returns:
+        Markdown content with compact tables
+    """
+    lines = md_content.split("\n")
+    result = []
+
+    for line in lines:
+        # Check if line is a table row (starts and ends with |)
+        if line.strip().startswith("|") and line.strip().endswith("|"):
+            # Split by | and strip whitespace from each cell
+            cells = [cell.strip() for cell in line.split("|")]
+            # Remove empty first and last elements (before first | and after last |)
+            cells = [cell for cell in cells if cell or cells.index(cell) not in (0, len(cells) - 1)]
+
+            # Check if this is a separator line (contains only dashes and spaces)
+            if cells and all(set(cell).issubset({"-", " "}) and cell for cell in cells):
+                # Compact separator: just single dash per column
+                result.append("| " + " | ".join(["-"] * len(cells)) + " |")
+            else:
+                # Regular row: join cells without padding
+                result.append("| " + " | ".join(cells) + " |")
+        else:
+            result.append(line)
+
+    return "\n".join(result)
+
+
 def generate_readme_content(dtagent_conf_path: str, dtagent_plugins_path: str) -> Tuple[str, str, str, str, str]:
     """Generates readme from sources
 
@@ -449,7 +492,7 @@ def generate_readme_content(dtagent_conf_path: str, dtagent_plugins_path: str) -
     usecases_content = _read_file("docs/USECASES.md")
     architecture_content = _read_file("docs/ARCHITECTURE.md")
     install_content = _read_file("docs/INSTALL.md")
-    plugin_dev_content = _read_file("docs/PLUGIN_DEVELOPMENT.md")  # ADD THIS
+    plugin_dev_content = _read_file("docs/PLUGIN_DEVELOPMENT.md")
     changelog_content = _read_file("docs/CHANGELOG.md")
     contributing_content = _read_file("docs/CONTRIBUTING.md")
     copyright_content = _read_file("docs/COPYRIGHT.md")
@@ -476,15 +519,15 @@ def generate_readme_content(dtagent_conf_path: str, dtagent_plugins_path: str) -
     readme_full_content += _lower_headers_one_level(usecases_content) + "\n"
     readme_full_content += _lower_headers_one_level(architecture_content) + "\n"
 
-    # Generate plugins content with compact tables for PDF
-    plugins_content_full, plugins_toc = _generate_plugins_info(dtagent_plugins_path, dtagent_conf_path, compact=True)
+    # Generate plugins content (no need for compact flag anymore)
+    plugins_content_full, plugins_toc = _generate_plugins_info(dtagent_plugins_path, dtagent_conf_path, compact=False)
     readme_full_content += "## Plugins\n\n"
     readme_full_content += "\n".join(plugins_toc)
     readme_full_content += "\n\n"
     readme_full_content += _lower_headers_one_level(plugins_content_full)
 
-    # Generate semantics content with compact tables for PDF
-    semantics_content_full, semantics_toc = _generate_semantics_section(dtagent_conf_path, dtagent_plugins_path, compact=True)
+    # Generate semantics content (no need for compact flag anymore)
+    semantics_content_full, semantics_toc = _generate_semantics_section(dtagent_conf_path, dtagent_plugins_path, compact=False)
     readme_full_content += "## Semantic Dictionary\n\n"
     readme_full_content += "\n".join(semantics_toc)
     readme_full_content += "\n\n"
@@ -517,6 +560,9 @@ def generate_readme_content(dtagent_conf_path: str, dtagent_plugins_path: str) -
     readme_full_content = re.sub(r"(docs/)?README\.md", _turn_header_into_link(readme_full_content), readme_full_content)
 
     readme_full_content = re.sub(r"""(\]\(|src=")(assets[/].*\.jpg)""", r"\1docs/\2", readme_full_content)
+
+    # Compact all markdown tables in the full README for proper PDF rendering
+    readme_full_content = _compact_markdown_tables(readme_full_content)
 
     # Postprocess the short README.md content - generate with visual alignment for GitHub
     plugins_content, _ = _generate_plugins_info(dtagent_plugins_path, dtagent_conf_path, compact=False)
