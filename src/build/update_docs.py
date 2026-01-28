@@ -92,30 +92,16 @@ def _get_clean_description(details: dict) -> str:
     return description.replace("\n", " ").replace("-", "<br>-")
 
 
-def _generate_markdown_table(columns: List[str], rows_data: List[List], compact: bool = False) -> str:
+def _generate_markdown_table(columns: List[str], rows_data: List[List]) -> str:
     """Generates a Markdown table with left-aligned columns based on max content length.
 
     Args:
         columns: List of column header strings.
         rows_data: List of rows, each row is a list of cell values.
-        compact: If True, generates compact table without padding spaces.
 
     Returns:
         Markdown table string.
     """
-    if compact:
-        # Generate compact table without padding
-        header = "| " + " | ".join(columns) + " |\n"
-        separator = "| " + " | ".join("-" * len(h) for h in columns) + " |\n"
-
-        rows = ""
-        for row_data in rows_data:
-            row = "| " + " | ".join(str(cell) for cell in row_data) + " |\n"
-            rows += row
-
-        return header + separator + rows + "\n"
-
-    # Original implementation with visual alignment
     # Calculate column widths
     column_widths = []
     for i, header in enumerate(columns):
@@ -137,7 +123,7 @@ def _generate_markdown_table(columns: List[str], rows_data: List[List], compact:
     return header + separator + rows + "\n"
 
 
-def _generate_semantics_tables(json_data: Dict, plugin_name: str, no_global_context_name: bool, compact: bool = False) -> str:
+def _generate_semantics_tables(json_data: Dict, plugin_name: str, no_global_context_name: bool) -> str:
     """Generates tables with semantics."""
     __tables = ""
     for key in ["dimensions", "attributes", "metrics", "event_timestamps"]:
@@ -171,11 +157,11 @@ def _generate_semantics_tables(json_data: Dict, plugin_name: str, no_global_cont
                     row.append(context_names)
                 rows_data.append(row)
 
-            __tables += _generate_markdown_table(columns, rows_data, compact=compact)
+            __tables += _generate_markdown_table(columns, rows_data)
     return __tables
 
 
-def _generate_bom_tables(bom_data: Dict, plugin_name: str, scope: str, compact: bool = False) -> str:
+def _generate_bom_tables(bom_data: Dict, plugin_name: str, scope: str) -> str:
     """Generates tables with bom information."""
     if scope not in bom_data or not bom_data[scope]:
         return ""
@@ -213,10 +199,10 @@ def _generate_bom_tables(bom_data: Dict, plugin_name: str, scope: str, compact: 
             row.append(value)
         rows_data.append(row)
 
-    return _generate_markdown_table(column_headers, rows_data, compact=compact)
+    return _generate_markdown_table(column_headers, rows_data)
 
 
-def _generate_plugins_info(dtagent_plugins_path: str, dtagent_conf_path: str, compact: bool = False) -> Tuple[str, List]:
+def _generate_plugins_info(dtagent_plugins_path: str, dtagent_conf_path: str) -> Tuple[str, List]:
     """Gathers plugin info from readme.md files and their default config files."""
 
     __content = ""
@@ -234,10 +220,10 @@ def _generate_plugins_info(dtagent_plugins_path: str, dtagent_conf_path: str, co
         bom_data = yaml.safe_load(_read_file(core_bom_path))
 
         __content += "### Objects delivered by the agent\n\n"
-        __content += _generate_bom_tables(bom_data, "core", "delivers", compact=compact)
+        __content += _generate_bom_tables(bom_data, "core", "delivers")
 
         __content += "### Objects referenced by the agent\n\n"
-        __content += _generate_bom_tables(bom_data, "core", "references", compact=compact)
+        __content += _generate_bom_tables(bom_data, "core", "references")
 
     # Iterate over each plugin folder in src/dtagent/plugins
     for plugin_folder in sorted(os.listdir(dtagent_plugins_path)):
@@ -282,15 +268,15 @@ def _generate_plugins_info(dtagent_plugins_path: str, dtagent_conf_path: str, co
                     __content += "The following tables list the Snowflake objects that this plugin delivers data from or references.\n\n"
 
                     __content += f"#### Objects delivered by the `{plugin_title}` plugin\n\n"
-                    __content += _generate_bom_tables(bom_data, plugin_name, "delivers", compact=compact)
+                    __content += _generate_bom_tables(bom_data, plugin_name, "delivers")
 
                     __content += f"#### Objects referenced by the `{plugin_title}` plugin\n\n"
-                    __content += _generate_bom_tables(bom_data, plugin_name, "references", compact=compact)
+                    __content += _generate_bom_tables(bom_data, plugin_name, "references")
 
     return __content, __plugins_toc
 
 
-def _generate_semantics_section(dtagent_conf_path: str, dtagent_plugins_path: str, compact: bool = False) -> Tuple[str, List]:
+def _generate_semantics_section(dtagent_conf_path: str, dtagent_plugins_path: str) -> Tuple[str, List]:
     """Generates semantics sections for .md file."""
 
     from src.dtagent.context import RUN_CONTEXT_KEY
@@ -328,7 +314,7 @@ def _generate_semantics_section(dtagent_conf_path: str, dtagent_plugins_path: st
         __plugins_toc.append(f"- [Shared semantics](#{core_semantics_sec})")
 
         __content += f'<a name="{core_semantics_sec}"></a>\n\n## Dynatrace Snowflake Observability Agent `core` semantics\n\n'
-        __content += _generate_semantics_tables(core_semantics, "core", False, compact=compact)
+        __content += _generate_semantics_tables(core_semantics, "core", False)
 
     # Add the semantics for each plugin
     for plugin_folder in sorted(os.listdir(dtagent_plugins_path)):
@@ -343,7 +329,7 @@ def _generate_semantics_section(dtagent_conf_path: str, dtagent_plugins_path: st
 
                     no_global_context_name = __contains_key(plugin_input, "__context_names")
 
-                    plugin_semantics = _generate_semantics_tables(plugin_input, plugin_title, no_global_context_name, compact=compact)
+                    plugin_semantics = _generate_semantics_tables(plugin_input, plugin_title, no_global_context_name)
                     if plugin_semantics:
                         plugin_semantics_sec = f"{plugin_name}_semantics_sec"
                         __plugins_toc.append(f"- [{plugin_title}](#{plugin_semantics_sec})")
@@ -519,15 +505,13 @@ def generate_readme_content(dtagent_conf_path: str, dtagent_plugins_path: str) -
     readme_full_content += _lower_headers_one_level(usecases_content) + "\n"
     readme_full_content += _lower_headers_one_level(architecture_content) + "\n"
 
-    # Generate plugins content (no need for compact flag anymore)
-    plugins_content_full, plugins_toc = _generate_plugins_info(dtagent_plugins_path, dtagent_conf_path, compact=False)
+    plugins_content_full, plugins_toc = _generate_plugins_info(dtagent_plugins_path, dtagent_conf_path)
     readme_full_content += "## Plugins\n\n"
     readme_full_content += "\n".join(plugins_toc)
     readme_full_content += "\n\n"
     readme_full_content += _lower_headers_one_level(plugins_content_full)
 
-    # Generate semantics content (no need for compact flag anymore)
-    semantics_content_full, semantics_toc = _generate_semantics_section(dtagent_conf_path, dtagent_plugins_path, compact=False)
+    semantics_content_full, semantics_toc = _generate_semantics_section(dtagent_conf_path, dtagent_plugins_path)
     readme_full_content += "## Semantic Dictionary\n\n"
     readme_full_content += "\n".join(semantics_toc)
     readme_full_content += "\n\n"
@@ -565,7 +549,7 @@ def generate_readme_content(dtagent_conf_path: str, dtagent_plugins_path: str) -
     readme_full_content = _compact_markdown_tables(readme_full_content)
 
     # Postprocess the short README.md content - generate with visual alignment for GitHub
-    plugins_content, _ = _generate_plugins_info(dtagent_plugins_path, dtagent_conf_path, compact=False)
+    plugins_content, _ = _generate_plugins_info(dtagent_plugins_path, dtagent_conf_path)
     plugins_content = (
         "# Plugins\n\n"
         + "\n".join(plugins_toc)
@@ -573,7 +557,7 @@ def generate_readme_content(dtagent_conf_path: str, dtagent_plugins_path: str) -
         + "\n"
     )
 
-    semantics_content, _ = _generate_semantics_section(dtagent_conf_path, dtagent_plugins_path, compact=False)
+    semantics_content, _ = _generate_semantics_section(dtagent_conf_path, dtagent_plugins_path)
     semantics_content = (
         "# Semantic Dictionary\n\n"
         + "\n".join(semantics_toc)
