@@ -37,13 +37,17 @@ A Dynatrace Snowflake Observability Agent plugin:
 
 Plugins typically fall into two categories:
 
-1. **Simple Log/Metric Plugins**: Report data as logs and/or metrics using `_log_entries()` method
+1. **Simple Log/Metric/Event Plugins**: Report data as logs, metrics, and/or events using `_log_entries()` method:
+
    - Examples: `active_queries`, `warehouse_usage`, `budgets`
    - **Best Practice**: Use SQL Views for simple data collection
    - **Info**: You can also use Stored Procedures if needed, but Views are preferred for simplicity
+   - Can optionally report timestamp-based events (see [Custom Timestamp Events](#custom-timestamp-events))
 
-2. **Complex Span Plugins**: Report hierarchical trace data using `_process_span_rows()` method
+2. **Complex Span Plugins**: Report hierarchical trace data using `_process_span_rows()` method:
+
    - Examples: `query_history`, `login_history`
+   - Used for operations with parent-child relationships and distributed traces
 
 ---
 
@@ -330,7 +334,7 @@ grant operate, monitor on task DTAGENT_DB.APP.TASK_DTAGENT_EXAMPLE_PLUGIN to rol
 
 - Must be named `TASK_DTAGENT_{PLUGIN_NAME_UPPERCASE}`
 - Schedule is set here but will be overridden by configuration
-- Always grant ownership to `DTAGENT_VIEWER`
+- Always grant ownership to `DTAGENT_VIEWER` to make sure the task is executed as the correct role
 
 #### c) Create configuration update procedure
 
@@ -497,7 +501,7 @@ Follow the detailed [semantic conventions in CONTRIBUTING.md](CONTRIBUTING.md#fi
 
 Create `src/dtagent/plugins/example_plugin.config/readme.md`:
 
-```markdown
+~~~~markdown #INFO: we need it this way to embed example code blocks properly
 This plugin monitors Snowflake stages and reports their configuration and usage.
 
 It collects information about all non-deleted stages in the account, including:
@@ -516,23 +520,23 @@ The plugin reports one log entry and metric per stage, allowing you to:
 
 The plugin runs every 12 hours by default. You can adjust the schedule in your configuration file:
 
-\`\`\`yaml
+```yaml
 plugins:
   example_plugin:
     schedule: USING CRON 0 */6 * * * UTC  # Run every 6 hours
-\`\`\`
+```
 
 ## Querying in Dynatrace
 
 Example DQL query to list all stages:
 
-\`\`\`dql
+```dql
 fetch logs
 | filter db.system == "snowflake"
 | filter dsoa.run.context == "example_plugin"
 | summarize count(), by: {db.namespace, snowflake.schema.name, snowflake.stage.type}
-\`\`\`
 ```
+~~~~
 
 **Documentation Best Practices:**
 
