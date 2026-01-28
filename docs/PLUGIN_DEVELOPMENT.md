@@ -301,6 +301,105 @@ grant select on view DTAGENT_DB.APP.V_EXAMPLE_PLUGIN_INSTRUMENTED to role DTAGEN
 - Grant `SELECT` on views (or `USAGE` on procedures) to `DTAGENT_VIEWER`
 - Use uppercase for all Snowflake object names in SQL
 
+---
+
+**Instrumented View/Procedure Structure:**
+
+Every instrumented view or procedure must return specific columns that map to OpenTelemetry and Dynatrace concepts:
+
+**Required Columns for Log/Metric Plugins:**
+
+- `TIMESTAMP` (TIMESTAMP_LTZ): The timestamp when the data was collected or event occurred
+- `_MESSAGE` (VARCHAR): The log message content (automatically mapped to `content` field in Dynatrace logs)
+- `DIMENSIONS` (OBJECT): Low-cardinality fields used for grouping, filtering, and **recommended for metrics**
+
+  ```sql
+  OBJECT_CONSTRUCT(
+      'db.namespace', database_name,
+      'snowflake.warehouse.name', warehouse_name
+  )
+  ```
+
+- `ATTRIBUTES` (OBJECT): High-cardinality context fields providing additional details (**NOT used for metrics**)
+
+  ```sql
+  OBJECT_CONSTRUCT(
+      'snowflake.query.id', query_id,
+      'db.query.text', query_text
+  )
+  ```
+
+- `METRICS` (OBJECT): Numerical measurements to be reported as metrics
+
+  ```sql
+  OBJECT_CONSTRUCT(
+      'snowflake.time.execution', execution_time_ms,
+      'snowflake.data.size', bytes_scanned
+  )
+  ```
+
+**Optional Columns:**
+
+- Identifier columns (e.g., `QUERY_ID`, `STAGE_NAME`): Used for reference and logging
+- `EVENT_TIMESTAMPS` (OBJECT): Timestamp fields that should generate events
+
+  ```sql
+  OBJECT_CONSTRUCT(
+      'snowflake.stage.created_time', created_timestamp,
+      'snowflake.table.updated_time', last_altered_timestamp
+  )
+  ```
+
+**Additional Required Columns for Span Plugins:**
+
+- `QUERY_ID` (or custom ID column): Unique identifier for the span
+- `PARENT_QUERY_ID` (optional): Parent span ID for hierarchical traces
+- `START_TIME` (NUMBER): Start time in epoch nanoseconds
+- `END_TIME` (NUMBER): End time in epoch nanoseconds
+- `NAME` (VARCHAR): Span name describing the operation
+- `STATUS_CODE` (VARCHAR): Span status (`'OK'`, `'ERROR'`, `'UNSET'`)
+- `_SPAN_ID` (VARCHAR, optional): Custom span ID for distributed tracing
+- `_TRACE_ID` (VARCHAR, optional): Trace ID for distributed tracing
+- `SESSION_ID` (optional): Session identifier for grouping related spans
+
+**Example for Span Plugin:**
+
+```sql
+select
+    extract(epoch_nanosecond from start_time) as TIMESTAMP,
+    query_id as QUERY_ID,
+    parent_query_id as PARENT_QUERY_ID,
+    session_id as SESSION_ID,
+
+    concat('SQL query ', execution_status) as NAME,
+    concat('Query executed on ', database_name) as _MESSAGE,
+
+    extract(epoch_nanosecond from start_time) as START_TIME,
+    extract(epoch_nanosecond from end_time) as END_TIME,
+
+    case
+        when execution_status = 'SUCCESS' then 'OK'
+        when length(nvl(execution_status, '')) > 0 then 'ERROR'
+        else 'UNSET'
+    end as STATUS_CODE,
+
+    NULL as _SPAN_ID,  -- Optional: custom span ID
+    NULL as _TRACE_ID, -- Optional: custom trace ID
+
+    object_construct(...) as DIMENSIONS,
+    object_construct(...) as ATTRIBUTES,
+    object_construct(...) as METRICS
+from query_history;
+```
+
+**Column Naming Rules:**
+
+- All column names must be UPPERCASE
+- Field names inside OBJECT_CONSTRUCT must follow [semantic conventions](CONTRIBUTING.md#field-and-metric-naming-rules)
+- Metrics should have descriptive names with appropriate units (defined in instruments-def.yml)
+
+---
+
 #### b) Create the task definition
 
 Create `src/dtagent/plugins/example_plugin.sql/801_example_plugin_task.sql`:
@@ -747,7 +846,80 @@ After creating all the plugin files:
 
 ### SQL Best Practices
 
-1. **Use CTEs** for readability:
+1. **Choose between Views and Procedures appropriately:**
+
+   **Use Views when:**
+   - Data collection is straightforward (single SELECT statement)
+   - No complex error handling needed
+   - No temporary tables required
+   - No conditional logic or branching
+   - Result is a simple transformation of source data
+   - **This covers most simple log/metric plugins**
+
+   ```sql
+   -- Simple view example
+   create or replace view DTAGENT_DB.APP.V_PLUGIN_INSTRUMENTED as
+   select
+       current_timestamp() as TIMESTAMP,
+       name as ENTITY_NAME,
+       concat('Entity: ', name) as _MESSAGE,
+       object_construct(...) as DIMENSIONS,
+       object_construct(...) as ATTRIBUTES,
+       object_construct(...) as METRICS
+   from SNOWFLAKE.ACCOUNT_USAGE.SOME_VIEW;
+   ```
+
+   **Use Procedures (Functions) when:**
+   - Complex error handling is required
+   - Multiple temporary tables need to be created/managed
+   - Conditional execution based on configuration or data
+   - Multiple result sets need to be combined
+   - Need to call other procedures/functions
+   - Performance optimization requires staged processing
+
+   ```sql
+   -- Procedure example for complex cases
+   create or replace procedure DTAGENT_DB.APP.F_PLUGIN_INSTRUMENTED()
+   returns table (...)
+   language sql
+   execute as caller
+   AS
+   $$
+   DECLARE
+       c_result CURSOR FOR
+           with cte_data as (
+               -- complex multi-step processing
+           )
+           select ... from cte_data;
+   BEGIN
+       -- Optional: create temporary tables
+       -- Optional: conditional logic
+
+       OPEN c_result;
+       RETURN TABLE(RESULTSET_FROM_CURSOR(c_result));
+   EXCEPTION
+       WHEN statement_error THEN
+           SYSTEM$LOG_ERROR(SQLERRM);
+           RETURN TABLE(SELECT NULL as TIMESTAMP);
+   END;
+   $$;
+   ```
+
+   **How to query in Python:**
+
+   ```python
+   # For views (direct query)
+   query = "APP.V_PLUGIN_INSTRUMENTED"
+
+   # For procedures (use TABLE() function)
+   query = "SELECT * FROM TABLE(DTAGENT_DB.APP.F_PLUGIN_INSTRUMENTED())"
+   ```
+
+   **Real-world examples:**
+   - **View**: `query_history`, `shares`, `budgets` - straightforward data collection
+   - **Procedure**: `active_queries` - combines running and finished queries with error handling
+
+2. **Use CTEs** for readability:
 
    ```sql
    with cte_raw_data as (
@@ -759,7 +931,7 @@ After creating all the plugin files:
    select ... from cte_processed
    ```
 
-2. **Always include error handling:**
+3. **Always include error handling in procedures:**
 
    ```sql
    BEGIN
@@ -771,12 +943,12 @@ After creating all the plugin files:
    END;
    ```
 
-3. **Grant privileges appropriately:**
+4. **Grant privileges appropriately:**
    - Procedures/Functions: `grant usage on ... to role DTAGENT_VIEWER;`
    - Tables: `grant select on ... to role DTAGENT_VIEWER;`
    - Ownership: Grant to `DTAGENT_VIEWER` for runtime objects
 
-4. **Use configuration values:**
+5. **Use configuration values:**
 
    ```sql
    where column_value = DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE('plugins.your_plugin.some_setting', 'default_value')
