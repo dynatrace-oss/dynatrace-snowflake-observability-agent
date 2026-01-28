@@ -1,6 +1,6 @@
 # Plugin Development Guide
 
-This comprehensive guide explains how to create custom plugins for the Dynatrace Snowflake Observability Agent. A plugin extends the agent's functionality by collecting and reporting telemetry data from various Snowflake sources.
+This comprehensive guide explains how to create custom plugins for the Dynatrace Snowflake Observability Agent. A plugin extends the agent's functionality by collecting and reporting telemetry data from selected Snowflake sources.
 
 **Table of Contents:**
 
@@ -39,6 +39,8 @@ Plugins typically fall into two categories:
 
 1. **Simple Log/Metric Plugins**: Report data as logs and/or metrics using `_log_entries()` method
    - Examples: `active_queries`, `warehouse_usage`, `budgets`
+   - **Best Practice**: Use SQL Views for simple data collection
+   - **Info**: You can also use Stored Procedures if needed, but Views are preferred for simplicity
 
 2. **Complex Span Plugins**: Report hierarchical trace data using `_process_span_rows()` method
    - Examples: `query_history`, `login_history`
@@ -53,18 +55,22 @@ Each plugin consists of the following components:
 src/dtagent/plugins/
 ├── your_plugin.py                       # Python plugin class
 ├── your_plugin.sql/                     # SQL definitions
-│   ├── init/                           # Optional: initialization scripts
-│   │   └── 009_your_plugin_init.sql   # Runs as ACCOUNTADMIN
-│   ├── 0xx_*.sql                       # Views, procedures, functions (0-69)
-│   ├── 801_your_plugin_task.sql       # Task definition
-│   └── 901_update_your_plugin_conf.sql # Configuration update procedure
-└── your_plugin.config/                 # Configuration and documentation
-    ├── your_plugin-config.yml          # Default configuration
-    ├── bom.yml                         # Bill of Materials
-    ├── instruments-def.yml             # Semantic dictionary
-    ├── readme.md                       # Plugin description
-    └── config.md                       # Optional: additional config docs
+│   ├── init/                            # Optional: ACCOUNTADMIN initialization scripts
+│   │   └── 009_your_plugin_init.sql     # Runs during initial setup
+│   ├── admin/                           # Optional: admin-specific scripts
+│   │   └── 0xx_admin_*.sql              # Runs as or prepares for running as DTAGENT_ADMIN role
+│   ├── 0xx_*.sql                        # Views, procedures, functions (0-69)
+│   ├── 801_your_plugin_task.sql         # Task definition
+│   └── 901_update_your_plugin_conf.sql  # Configuration update procedure
+└── your_plugin.config/                  # Configuration and documentation
+    ├── your_plugin-config.yml           # Default configuration
+    ├── bom.yml                          # Bill of Materials
+    ├── instruments-def.yml              # Semantic dictionary
+    ├── readme.md                        # Plugin description
+    └── config.md                        # Optional: additional config docs
 ```
+
+**Note**: The `init/` and `admin/` directories are optional and should only be created when your plugin requires special privileges or account-level configuration.
 
 ---
 
@@ -77,10 +83,12 @@ Let's create a complete plugin called `example_plugin` that monitors Snowflake s
 Create the following directories and files:
 
 ```bash
-mkdir -p src/dtagent/plugins/example_plugin.sql/init
+mkdir -p src/dtagent/plugins/example_plugin.sql
 mkdir -p src/dtagent/plugins/example_plugin.config
 touch src/dtagent/plugins/example_plugin.py
 ```
+
+**Note**: We're skipping the `init/` and `admin/` directories for this simple example. Create them only if your plugin needs special privileges or account-level configuration.
 
 ### 2. Write the Python Plugin Class
 
@@ -151,7 +159,7 @@ class ExamplePluginPlugin(Plugin):
             }
         """
         # Query the instrumented view
-        t_example_data = "SELECT * FROM TABLE(DTAGENT_DB.APP.F_EXAMPLE_PLUGIN_INSTRUMENTED())"
+        t_example_data = "APP.V_EXAMPLE_PLUGIN_INSTRUMENTED"
 
         # Process entries and collect counts
         entries_cnt, logs_cnt, metrics_cnt, events_cnt = self._log_entries(
@@ -193,7 +201,7 @@ class ExamplePluginPlugin(Plugin):
 
 #### a) Create the main instrumented view
 
-Create `src/dtagent/plugins/example_plugin.sql/053_f_example_plugin_instrumented.sql`:
+Create `src/dtagent/plugins/example_plugin.sql/053_v_example_plugin_instrumented.sql`:
 
 ```sql
 --
@@ -218,87 +226,75 @@ Create `src/dtagent/plugins/example_plugin.sql/053_f_example_plugin_instrumented
 -- SOFTWARE.
 --
 --
--- F_EXAMPLE_PLUGIN_INSTRUMENTED() translates raw data from Snowflake
+-- V_EXAMPLE_PLUGIN_INSTRUMENTED translates raw data from Snowflake
 -- into semantics expected by our metrics, logs, etc.
 -- !!!
--- WARNING: ensure you keep instruments-def.yml and this function in sync !!!
+-- WARNING: ensure you keep instruments-def.yml and this view in sync !!!
 -- !!!
 --
 use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 
-create or replace procedure DTAGENT_DB.APP.F_EXAMPLE_PLUGIN_INSTRUMENTED()
-returns table (
-    TIMESTAMP TIMESTAMP_LTZ,
-    stage_name VARCHAR,
-    _message VARCHAR,
-    dimensions object,
-    attributes object,
-    metrics object
+create or replace view DTAGENT_DB.APP.V_EXAMPLE_PLUGIN_INSTRUMENTED as
+with cte_stages as (
+    -- Query Snowflake metadata
+    select
+        STAGE_NAME,
+        STAGE_TYPE,
+        DATABASE_NAME,
+        SCHEMA_NAME,
+        CREATED as CREATED_TIME,
+        COMMENT
+    from SNOWFLAKE.ACCOUNT_USAGE.STAGES
+    where DELETED is null
 )
-language sql
-execute as caller
-AS
-$$
-DECLARE
-    c_example_plugin_instrumented CURSOR FOR
-        with cte_stages as (
-            -- Query Snowflake metadata
-            select
-                STAGE_NAME,
-                STAGE_TYPE,
-                DATABASE_NAME,
-                SCHEMA_NAME,
-                CREATED as CREATED_TIME,
-                COMMENT
-            from SNOWFLAKE.ACCOUNT_USAGE.STAGES
-            where DELETED is null
-        )
-        select
-            current_timestamp() as TIMESTAMP,
+select
+    current_timestamp() as TIMESTAMP,
 
-            -- Identifiers
-            STAGE_NAME,
+    -- Identifiers
+    STAGE_NAME,
 
-            -- Message for logs
-            concat('Stage: ', STAGE_NAME, ' in ', DATABASE_NAME, '.', SCHEMA_NAME) as _MESSAGE,
+    -- Message for logs
+    concat('Stage: ', STAGE_NAME, ' in ', DATABASE_NAME, '.', SCHEMA_NAME) as _MESSAGE,
 
-            -- Dimensions (for grouping/filtering)
-            object_construct(
-                'db.namespace', DATABASE_NAME,
-                'snowflake.schema.name', SCHEMA_NAME,
-                'snowflake.stage.type', STAGE_TYPE
-            ) as DIMENSIONS,
+    -- Dimensions (for grouping/filtering)
+    object_construct(
+        'db.namespace', DATABASE_NAME,
+        'snowflake.schema.name', SCHEMA_NAME,
+        'snowflake.stage.type', STAGE_TYPE
+    ) as DIMENSIONS,
 
-            -- Attributes (additional context)
-            object_construct(
-                'snowflake.stage.name', STAGE_NAME,
-                'snowflake.stage.comment', COMMENT,
-                'snowflake.stage.created_time', CREATED_TIME
-            ) as ATTRIBUTES,
+    -- Attributes (additional context when sending logs/spans/events - NOT used for metrics)
+    object_construct(
+        'snowflake.stage.name', STAGE_NAME,
+        'snowflake.stage.comment', COMMENT,
+        'snowflake.stage.created_time', CREATED_TIME
+    ) as ATTRIBUTES,
 
-            -- Metrics (numerical values)
-            object_construct(
-                'snowflake.stage.count', 1
-            ) as METRICS
+    -- Metrics (numerical values)
+    object_construct(
+        'snowflake.stage.count', 1
+    ) as METRICS
 
-        from cte_stages;
-BEGIN
-    OPEN c_example_plugin_instrumented;
-    RETURN TABLE(c_example_plugin_instrumented);
-END;
-$$
-;
+from cte_stages;
 
-grant usage on procedure DTAGENT_DB.APP.F_EXAMPLE_PLUGIN_INSTRUMENTED() to role DTAGENT_VIEWER;
+grant select on view DTAGENT_DB.APP.V_EXAMPLE_PLUGIN_INSTRUMENTED to role DTAGENT_VIEWER;
 ```
+
+**Important**: For simple plugins, use SQL Views instead of Stored Procedures to reduce complexity and improve maintainability. Procedures should only be used when you need:
+
+- Complex error handling logic
+- Multiple result sets
+- Temporary table management
+- Conditional execution flows
 
 **Important SQL Conventions:**
 
+- **Use Views for simple plugins**: Views are preferred over procedures for straightforward data collection
 - Use `TIMESTAMP_LTZ` type for timestamp fields
-- Include `_MESSAGE` column for log content
+- Include `_MESSAGE` column for log content (automatically mapped to `content` field in logs)
 - Structure output as: `TIMESTAMP`, identifier columns, `_MESSAGE`, `dimensions`, `attributes`, `metrics`
 - Use `object_construct()` to create JSON objects
-- Always grant `USAGE` to `DTAGENT_VIEWER`
+- Grant `SELECT` on views (or `USAGE` on procedures) to `DTAGENT_VIEWER`
 - Use uppercase for all Snowflake object names in SQL
 
 #### b) Create the task definition
@@ -324,8 +320,9 @@ as
 
 grant ownership on task DTAGENT_DB.APP.TASK_DTAGENT_EXAMPLE_PLUGIN to role DTAGENT_VIEWER revoke current grants;
 grant operate, monitor on task DTAGENT_DB.APP.TASK_DTAGENT_EXAMPLE_PLUGIN to role DTAGENT_VIEWER;
-alter task if exists DTAGENT_DB.APP.TASK_DTAGENT_EXAMPLE_PLUGIN resume;
 
+-- convenience commands for enabling/disabling the task:
+-- alter task if exists DTAGENT_DB.APP.TASK_DTAGENT_EXAMPLE_PLUGIN resume;
 -- alter task if exists DTAGENT_DB.APP.TASK_DTAGENT_EXAMPLE_PLUGIN suspend;
 ```
 
@@ -375,6 +372,8 @@ $$
 
 #### d) Optional: Create initialization script
 
+**Note**: This step is only needed if your plugin requires ACCOUNTADMIN privileges or account-level configuration. Our simple example doesn't need this, so we'll skip it.
+
 If your plugin needs ACCOUNTADMIN privileges (e.g., to enable specific Snowflake features), create `src/dtagent/plugins/example_plugin.sql/init/009_example_plugin_init.sql`:
 
 ```sql
@@ -418,14 +417,6 @@ plugins:
   - `telemetry`: Array of telemetry types to report
 - Add custom configuration options as needed for your plugin
 
-**Standard telemetry types:**
-
-- `logs`: Log entries
-- `metrics`: Numerical measurements
-- `spans`: Distributed traces
-- `events`: Generic events
-- `biz_events`: Business events
-
 ### 5. Define Semantic Dictionary
 
 Create `src/dtagent/plugins/example_plugin.config/instruments-def.yml`:
@@ -437,17 +428,6 @@ Create `src/dtagent/plugins/example_plugin.config/instruments-def.yml`:
 # <license header>
 #
 # Catalog of instrumentation for example_plugin
-
-attributes:
-  snowflake.stage.name:
-    __example: my_stage
-    __description: The name of the Snowflake stage.
-  snowflake.stage.comment:
-    __example: "Production data stage"
-    __description: User-provided comment for the stage.
-  snowflake.stage.created_time:
-    __example: "2025-01-15T10:30:00Z"
-    __description: Timestamp when the stage was created.
 
 dimensions:
   db.namespace:
@@ -463,6 +443,17 @@ dimensions:
       - INTERNAL,
       - EXTERNAL.
 
+attributes:
+  snowflake.stage.name:
+    __example: my_stage
+    __description: The name of the Snowflake stage.
+  snowflake.stage.comment:
+    __example: "Production data stage"
+    __description: User-provided comment for the stage.
+  snowflake.stage.created_time:
+    __example: "2025-01-15T10:30:00Z"
+    __description: Timestamp when the stage was created.
+
 metrics:
   snowflake.stage.count:
     __example: "1"
@@ -473,15 +464,18 @@ metrics:
 
 **Semantic Dictionary Structure:**
 
-1. **Attributes** (context fields):
+1. **Dimensions** (grouping/filtering fields):
+   - Should be low-cardinality
+   - Used for aggregation and filtering in queries
+   - **Required for metrics**: Only dimensions are sent with metric data points
+   - Same naming rules as attributes
+
+2. **Attributes** (context fields):
    - Use existing OpenTelemetry or Dynatrace semantics when possible
    - Custom fields should start with `snowflake.`
    - Include `__example` and `__description` for each field
-
-2. **Dimensions** (grouping/filtering fields):
-   - Should be low-cardinality
-   - Used for aggregation and filtering in queries
-   - Same naming rules as attributes
+   - **Important**: Attributes are NOT used when sending metrics (only dimensions are used for metrics)
+   - Attributes provide additional context for logs, spans, and events
 
 3. **Metrics** (numerical measurements):
    - Must have `__description` and `unit`
@@ -489,6 +483,8 @@ metrics:
    - Common units: `ms`, `count`, `bytes`, `percent`
 
 **Naming Conventions (CRITICAL):**
+
+Follow the detailed [semantic conventions in CONTRIBUTING.md](CONTRIBUTING.md#field-and-metric-naming-rules):
 
 - Use lowercase `snake_case`
 - Start custom fields with `snowflake.`
@@ -555,8 +551,8 @@ Create `src/dtagent/plugins/example_plugin.config/bom.yml`:
 
 ```yaml
 delivers:
-  - name: DTAGENT_DB.APP.F_EXAMPLE_PLUGIN_INSTRUMENTED()
-    type: procedure
+  - name: DTAGENT_DB.APP.V_EXAMPLE_PLUGIN_INSTRUMENTED
+    type: view
   - name: DTAGENT_DB.APP.TASK_DTAGENT_EXAMPLE_PLUGIN
     type: task
   - name: DTAGENT_DB.CONFIG.UPDATE_EXAMPLE_PLUGIN_CONF()
@@ -594,7 +590,7 @@ class TestExamplePlugin:
 
     # Define pickle files for test data
     PICKLES = {
-        "SELECT * FROM TABLE(DTAGENT_DB.APP.F_EXAMPLE_PLUGIN_INSTRUMENTED())": "test/test_data/example_plugin.pkl"
+        "APP.V_EXAMPLE_PLUGIN_INSTRUMENTED": "test/test_data/example_plugin.pkl"
     }
 
     @pytest.mark.xdist_group(name="test_telemetry")
@@ -911,25 +907,92 @@ def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int
 
 ### Custom Timestamp Events
 
-To report specific timestamps as events:
+To report specific actions (that happen since the last update) as events, you need to:
 
-```python
-def prepare_timestamp_event(
-    self, key: str, ts: Any, row_dict: Dict
-) -> Tuple[str, Dict[str, Any], EventType]:
-    """Define custom timestamp events."""
+1. Include event timestamps in the `EVENT_TIMESTAMPS` object
+2. Enable timestamp event reporting with `report_timestamp_events=True`
+3. Include definition of your events in `instruments-def.yml`
 
-    if key == "STAGE_CREATED_TIME":
-        return (
-            f"Stage {row_dict['STAGE_NAME']} created",
-            {"stage.name": row_dict["STAGE_NAME"]},
-            EventType.INFO
-        )
+**SQL View Example:**
 
-    return super().prepare_timestamp_event(key, ts, row_dict)
+```sql
+create or replace view DTAGENT_DB.APP.V_YOUR_PLUGIN_INSTRUMENTED as
+select
+    current_timestamp() as TIMESTAMP,
+
+    -- Regular fields
+    STAGE_NAME,
+    concat('Stage: ', STAGE_NAME) as _MESSAGE,
+
+    -- Timestamp fields for events (must end with _TIME)
+    CREATED as STAGE_CREATED_TIME,
+    LAST_ALTERED as STAGE_MODIFIED_TIME,
+
+    -- Dimensions, attributes, metrics
+    object_construct(...) as DIMENSIONS,
+    object_construct(
+        'snowflake.stage.created_time', extract(epoch_nanosecond from CREATED::timestamp_ltz),
+        'snowflake.stage.modified_time', extract(epoch_nanosecond from LAST_ALTERED::timestamp_ltz)
+    ) as EVENT_TIMESTAMPS,
+    object_construct(...) as METRICS
+from SNOWFLAKE.ACCOUNT_USAGE.STAGES;
 ```
 
-Override this method in your plugin class to customize event generation.
+**Instrument Definition Example:**
+
+```yaml
+# ...
+event_timestamps:
+  snowflake.event.trigger:
+    __context_names:
+      - example_plugin
+    __example: "snowflake.stage.created_time"
+    __description:
+      Additionally to sending logs, each entry in `EVENT_TIMESTAMPS` is sent as event with key set to `snowflake.event.trigger`, value to
+      key from `EVENT_TIMESTAMPS` and `timestamp` set to the key value.
+  snowflake.stage.created_time:
+    __context_names:
+      - example_plugin
+    __example: 1639051180946000000
+    __description: The timestamp when the stage was created.
+  snowflake.stage.modified_time:
+    __context_names:
+      - example_plugin
+    __example: 1639051180946000000
+    __description: The timestamp when the stage was last modified.
+```
+
+**Python Plugin Implementation:**
+
+```python
+from dtagent.otel.event import EventType
+from typing import Dict, Any, Tuple
+
+class YourPluginPlugin(Plugin):
+    PLUGIN_NAME = "your_plugin"
+
+    def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
+        query = "SELECT * FROM DTAGENT_DB.APP.V_YOUR_PLUGIN_INSTRUMENTED"
+
+        entries, logs, metrics, events = self._log_entries(
+            lambda: self._get_table_rows(query),
+            "your_plugin",
+            run_uuid=run_id,
+            report_timestamp_events=True,  # Enable timestamp event reporting
+            report_metrics=True,
+            log_completion=run_proc,
+        )
+
+        return self._report_results(
+            {"your_plugin": {"entries": entries, "log_lines": logs, "metrics": metrics, "events": events}},
+            run_id,
+        )
+```
+
+**Key Points:**
+
+- Event timestamp values must be in nanoseconds since epoch
+- Set `report_timestamp_events=True` in `_log_entries()` call
 
 ### Configuration-Driven Behavior
 
@@ -1022,7 +1085,7 @@ Best for plugins that report static or snapshot data.
 
 ```python
 def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
-    query = "SELECT * FROM TABLE(DTAGENT_DB.APP.F_PLUGIN_INSTRUMENTED())"
+    query = "APP.V_PLUGIN_INSTRUMENTED"
 
     entries, logs, metrics, events = self._log_entries(
         lambda: self._get_table_rows(query),
@@ -1312,7 +1375,7 @@ def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int
 
 ### Helpful DQL Queries
 
-**Check plugin execution:**
+**Check plugin execution (logs):**
 
 ```dql
 fetch logs
@@ -1320,6 +1383,31 @@ fetch logs
 | filter dsoa.run.context == "your_plugin"
 | sort timestamp desc
 | limit 100
+```
+
+**Check plugin execution (business events):**
+
+```dql
+fetch bizevents
+| filter db.system == "snowflake"
+| filter deployment.environment == "DEV"  // Replace with your environment
+| filter dsoa.run.context == "self_monitoring"
+| fields timestamp, dsoa.run.plugin, dsoa.run.id, dsoa.run.results
+| sort timestamp desc
+```
+
+**Monitor plugin performance (self-monitoring):**
+
+```dql
+fetch logs
+| filter db.system == "snowflake"
+| filter deployment.environment == "DEV"  // Replace with your environment
+| filter dsoa.run.context == "self_monitoring"
+| filter dsoa.run.plugin == "your_plugin"  // Replace with your plugin name
+| fields timestamp, dsoa.run.plugin, dsoa.run.id,
+         your_plugin.entries, your_plugin.log_lines, your_plugin.metrics,
+         your_plugin.spans, your_plugin.span_events, your_plugin_events
+| sort timestamp desc
 ```
 
 **Count telemetry by plugin:**
@@ -1330,14 +1418,53 @@ fetch logs
 | summarize count(), by: {dsoa.run.context}
 ```
 
-**Monitor plugin performance:**
+**Query metrics for a specific plugin:**
+
+```dql
+timeseries avg(snowflake.stage.count), by: {db.namespace, snowflake.schema.name}
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "your_plugin"
+```
+
+**Query spans (for span-based plugins):**
+
+```dql
+fetch spans
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "your_plugin"
+| fields timestamp, span.name, duration, snowflake.query.id
+| sort timestamp desc
+```
+
+**Query events from plugins:**
+
+```dql
+fetch events
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "your_plugin"
+| fields timestamp, event.type, event.name
+| sort timestamp desc
+```
+
+**Filter by multi-context plugins:**
 
 ```dql
 fetch logs
 | filter db.system == "snowflake"
-| filter dsoa.run.context == "self_monitoring"
-| filter contains(content, "your_plugin")
-| fields timestamp, content, entries, log_lines, metrics
+| filter dsoa.run.plugin == "your_plugin"
+| filter dsoa.run.context in ["your_plugin_context1", "your_plugin_context2"]
+| summarize count(), by: {dsoa.run.context}
+```
+
+**Check for errors in plugin execution:**
+
+```dql
+fetch logs
+| filter db.system == "snowflake"
+| filter dsoa.run.context == "your_plugin"
+| filter loglevel == "ERROR"
+| fields timestamp, content, error.message
+| sort timestamp desc
 ```
 
 ### Example Plugins to Study
@@ -1354,12 +1481,14 @@ Start with these plugins as references:
 
 ## Summary Checklist
 
-When creating a new plugin, ensure you have:
+When creating a new plugin, ensure you have completed all these steps:
+
+<div style="line-height: 1.8;">
 
 - [ ] Created plugin directory structure
 - [ ] Written Python plugin class inheriting from `Plugin`
 - [ ] Implemented `process()` method
-- [ ] Created instrumented SQL view/procedure
+- [ ] Created instrumented SQL view (or procedure for complex cases)
 - [ ] Created task definition (801_*.sql)
 - [ ] Created configuration update procedure (901_*.sql)
 - [ ] Created plugin configuration YAML file
@@ -1373,5 +1502,7 @@ When creating a new plugin, ensure you have:
 - [ ] Deployed to test environment
 - [ ] Verified data appears in Dynatrace
 - [ ] Updated any relevant documentation
+
+</div>
 
 **Congratulations! You've created a complete Dynatrace Snowflake Observability Agent plugin!**
