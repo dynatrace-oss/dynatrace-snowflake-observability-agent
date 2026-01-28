@@ -435,6 +435,7 @@ def generate_readme_content(dtagent_conf_path: str, dtagent_plugins_path: str) -
     usecases_content = _read_file("docs/USECASES.md")
     architecture_content = _read_file("docs/ARCHITECTURE.md")
     install_content = _read_file("docs/INSTALL.md")
+    plugin_dev_content = _read_file("docs/PLUGIN_DEVELOPMENT.md")  # ADD THIS
     changelog_content = _read_file("docs/CHANGELOG.md")
     contributing_content = _read_file("docs/CONTRIBUTING.md")
     copyright_content = _read_file("docs/COPYRIGHT.md")
@@ -476,27 +477,30 @@ def generate_readme_content(dtagent_conf_path: str, dtagent_plugins_path: str) -
     readme_full_content += _lower_headers_one_level(install_content) + "\n"
     readme_full_content += _lower_headers_one_level(changelog_content) + "\n"
     readme_full_content += _lower_headers_one_level(contributing_content)
+    readme_full_content += _lower_headers_one_level(plugin_dev_content)
 
     readme_full_content += appendix_content
 
     readme_full_content += _lower_headers_one_level(copyright_content)
-    readme_full_content = re.sub(
-        r"\]\(docs\/", "](https://github.com/dynatrace-oss/dynatrace-snowflake-observability-agent/tree/main/docs/", readme_full_content
-    )  # replace internal links to docs with absolute links to GitHub
+    # readme_full_content = re.sub(
+    #     r"\]\(docs\/", "](https://github.com/dynatrace-oss/dynatrace-snowflake-observability-agent/tree/main/docs/", readme_full_content
+    # )  # replace internal links to docs with absolute links to GitHub
     readme_full_content = re.sub(
         r"\]\(test\/", "](https://github.com/dynatrace-oss/dynatrace-snowflake-observability-agent/tree/main/test/", readme_full_content
     )  # replace internal links to test directory with absolute links to GitHub
     readme_full_content = re.sub(r"\b[A-Z_]+\.md#", "#", readme_full_content)  # removing references between .md files
 
-    readme_full_content = (
-        readme_full_content.replace("DPO.md", _turn_header_into_link(dpo_content))
-        .replace("USECASES.md", _turn_header_into_link(usecases_content))
-        .replace("ARCHITECTURE.md", _turn_header_into_link(architecture_content))
-        .replace("INSTALL.md", _turn_header_into_link(install_content))
-        .replace("CHANGELOG.md", _turn_header_into_link(changelog_content))
-        .replace("CONTRIBUTING.md", _turn_header_into_link(contributing_content))
-        .replace("README.md", _turn_header_into_link(readme_full_content))
-    )
+    # Update links in PDF version to point to sections within the same document
+    readme_full_content = re.sub(r"(docs/)?DPO\.md", _turn_header_into_link(dpo_content), readme_full_content)
+    readme_full_content = re.sub(r"(docs/)?USECASES\.md", _turn_header_into_link(usecases_content), readme_full_content)
+    readme_full_content = re.sub(r"(docs/)?ARCHITECTURE\.md", _turn_header_into_link(architecture_content), readme_full_content)
+    readme_full_content = re.sub(r"(docs/)?INSTALL\.md", _turn_header_into_link(install_content), readme_full_content)
+    readme_full_content = re.sub(r"(docs/)?PLUGIN_DEVELOPMENT\.md", _turn_header_into_link(plugin_dev_content), readme_full_content)
+    readme_full_content = re.sub(r"(docs/)?CHANGELOG\.md", _turn_header_into_link(changelog_content), readme_full_content)
+    readme_full_content = re.sub(r"(docs/)?CONTRIBUTING\.md", _turn_header_into_link(contributing_content), readme_full_content)
+    readme_full_content = re.sub(r"(docs/)?README\.md", _turn_header_into_link(readme_full_content), readme_full_content)
+
+    readme_full_content = re.sub(r"""(\]\(|src=")(assets[/].*\.jpg)""", r"\1docs/\2", readme_full_content)
 
     # Postprocess the short README.md content
     plugins_content = (

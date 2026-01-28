@@ -1,6 +1,6 @@
 # Dynatrace Snowflake Observability Agent
 
-<img src="src/assets/dsoa_logo.svg" alt="Dynatrace Snowflake Observability Agent logo" width="200" class="dsoa-logo">
+<img src="docs/assets/dsoa_logo.svg" alt="Dynatrace Snowflake Observability Agent logo" width="200" class="dsoa-logo">
 
 **Dynatrace Snowflake Observability Agent** is a powerful tool designed to enhance [Data Platform Observability](DPO.md) within the
 Snowflake environment. It complements Dynatrace's capabilities by [extending observability](PLUGINS.md) into areas where traditional
@@ -21,3 +21,4 @@ Table of content:
 - [Example dashboards](docs/dashboards)
 - [Changelog](docs/CHANGELOG.md)
 - [Contributing](docs/CONTRIBUTING.md)
+- [Implementing new plugins](docs/PLUGIN_DEVELOPMENT.md)

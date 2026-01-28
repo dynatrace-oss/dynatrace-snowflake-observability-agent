@@ -70,7 +70,7 @@ brew install pango cairo gdk-pixbuf libffi pandoc prettier
 
 The source code is split into Python, SQL templates, and configuration files. You must **build** the agent to combine these into deployable artifacts.
 
-![Dynatrace Snowflake Observability Agent build process](../src/assets/dsoa-build-steps.jpg)
+![Dynatrace Snowflake Observability Agent build process](assets/dsoa-build-steps.jpg)
 
 ### Building the Agent
 

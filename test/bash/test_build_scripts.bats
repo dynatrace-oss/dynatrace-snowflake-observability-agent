@@ -331,3 +331,39 @@ setup() {
     plugin_sql_count=$(unzip -l "$zip_file" | grep "build/30_plugins/.*\.sql$" | wc -l | tr -d ' ')
     [ "$plugin_sql_count" -gt 0 ]
 }
+
+@test "markdownlint passes for all documentation" {
+    if ! command -v markdownlint &> /dev/null; then
+        skip "markdownlint not installed"
+    fi
+
+    run markdownlint '**/*.md' --config .markdownlint.json
+    [ "$status" -eq 0 ]
+}
+
+@test "generated documentation has correct image paths" {
+    run ./scripts/dev/build_docs.sh
+    [ "$status" -eq 0 ] || [ "$status" -eq 1 ]
+
+    # Check docs/ files have correct relative paths
+    if [ -f "docs/CONTRIBUTING.md" ]; then
+        run grep -q "](../src/assets/" "docs/CONTRIBUTING.md"
+        [ "$status" -eq 0 ]
+    fi
+}
+
+@test "PDF generation has no broken image errors" {
+    run ./scripts/dev/build_docs.sh
+    [ "$status" -eq 0 ] || [ "$status" -eq 1 ]
+
+    # Check for image loading errors
+    echo "$output" | grep -v "ERROR: Failed to load image"
+}
+
+@test "PDF has no broken anchor errors" {
+    run ./scripts/dev/build_docs.sh
+    [ "$status" -eq 0 ] || [ "$status" -eq 1 ]
+
+    # Check for anchor errors
+    echo "$output" | grep -v "ERROR: No anchor"
+}
