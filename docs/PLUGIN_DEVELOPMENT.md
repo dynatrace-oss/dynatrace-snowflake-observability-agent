@@ -1,25 +1,74 @@
 # Plugin Development Guide
 
-This comprehensive guide explains how to create custom plugins for the Dynatrace Snowflake Observability Agent. A plugin extends the agent's functionality by collecting and reporting telemetry data from selected Snowflake sources.
+This guide explains how to create custom plugins for the Dynatrace Snowflake Observability Agent. A plugin extends the agent's functionality by collecting and reporting telemetry data from Snowflake sources.
 
 **Table of Contents:**
 
+- [Quick Reference: Naming Conventions](#quick-reference-naming-conventions)
 - [Overview](#overview)
+  - [Plugin Types](#plugin-types)
 - [Plugin Structure](#plugin-structure)
 - [Step-by-Step: Creating a New Plugin](#step-by-step-creating-a-new-plugin)
   - [1. Create Plugin Directory Structure](#1-create-plugin-directory-structure)
   - [2. Write the Python Plugin Class](#2-write-the-python-plugin-class)
   - [3. Create SQL Views and Procedures](#3-create-sql-views-and-procedures)
+    - [a) Main Instrumented View](#a-main-instrumented-view)
+    - [b) Task Definition](#b-task-definition)
+    - [c) Configuration Update Procedure](#c-configuration-update-procedure)
+    - [d) Optional: Initialization Script](#d-optional-initialization-script)
   - [4. Define Configuration](#4-define-configuration)
-  - [5. Define Semantic Dictionary](#5-define-semantic-dictionary)
+  - [5. Define Semantic Dictionary in instruments-def.yml](#5-define-semantic-dictionary-in-instruments-defyml)
   - [6. Document Your Plugin](#6-document-your-plugin)
   - [7. Define Bill of Materials (BOM)](#7-define-bill-of-materials-bom)
   - [8. Create Plugin Tests](#8-create-plugin-tests)
   - [9. Build and Deploy](#9-build-and-deploy)
 - [Best Practices](#best-practices)
+  - [Naming Conventions](#naming-conventions)
+  - [SQL Best Practices](#sql-best-practices)
+  - [Python Best Practices](#python-best-practices)
+  - [Performance Considerations](#performance-considerations)
+  - [Testing Best Practices](#testing-best-practices)
 - [Advanced Topics](#advanced-topics)
+  - [Working with Spans](#working-with-spans)
+  - [Custom Timestamp Events](#custom-timestamp-events)
+  - [Configuration-Driven Behavior](#configuration-driven-behavior)
+  - [Conditional Code Blocks](#conditional-code-blocks)
+  - [Multiple Context Names](#multiple-context-names)
 - [Common Patterns](#common-patterns)
+  - [Pattern 1: Simple Log and Metric Plugin](#pattern-1-simple-log-and-metric-plugin)
+  - [Pattern 2: Incremental Data Processing](#pattern-2-incremental-data-processing)
+  - [Pattern 3: Hierarchical Span Plugin](#pattern-3-hierarchical-span-plugin)
+  - [Pattern 4: Multi-View Plugin](#pattern-4-multi-view-plugin)
 - [Troubleshooting](#troubleshooting)
+  - [Common Issues and Solutions](#common-issues-and-solutions)
+    - [Issue: Plugin not found/not loaded](#issue-plugin-not-foundnot-loaded)
+    - [Issue: SQL syntax errors during deployment](#issue-sql-syntax-errors-during-deployment)
+    - [Issue: No data appears in Dynatrace](#issue-no-data-appears-in-dynatrace)
+    - [Issue: Task not running on schedule](#issue-task-not-running-on-schedule)
+    - [Issue: Test failures](#issue-test-failures)
+    - [Issue: Configuration not applied](#issue-configuration-not-applied)
+    - [Issue: Semantic fields not recognized](#issue-semantic-fields-not-recognized)
+- [Additional Resources](#additional-resources)
+  - [Helpful DQL Queries](#helpful-dql-queries)
+  - [Example Plugins to Study](#example-plugins-to-study)
+- [Summary Checklist](#summary-checklist)
+
+---
+
+## Quick Reference: Naming Conventions
+
+Keep this cheat sheet handy to ensure your plugin integrates correctly.
+
+| Component         | Convention                 | Example (`my_plugin`)    |
+| :---------------- | :------------------------- | :----------------------- |
+| **Plugin Name**   | `snake_case`               | `my_plugin`              |
+| **Python File**   | `{plugin_name}.py`         | `my_plugin.py`           |
+| **Python Class**  | `{CamelCase}Plugin`        | `MyPluginPlugin`         |
+| **SQL Folder**    | `{plugin_name}.sql`        | `my_plugin.sql/`         |
+| **Config Folder** | `{plugin_name}.config`     | `my_plugin.config/`      |
+| **Config File**   | `{plugin_name}-config.yml` | `my_plugin-config.yml`   |
+| **Task Name**     | `TASK_DTAGENT_{UPPERCASE}` | `TASK_DTAGENT_MY_PLUGIN` |
+| **Update Proc**   | `UPDATE_{UPPERCASE}_CONF`  | `UPDATE_MY_PLUGIN_CONF`  |
 
 ---
 
@@ -53,46 +102,46 @@ Plugins typically fall into two categories:
 
 ## Plugin Structure
 
-Each plugin consists of the following components:
+Each plugin lives in `src/dtagent/plugins/` and consists of three main parts:
+
+1. **Python Logic**: `your_plugin.py`
+2. **SQL Definitions**: `your_plugin.sql/` (Views, Tasks, Procedures)
+3. **Configuration**: `your_plugin.config/` (YAML config, BOM, Semantics)
 
 ```text
 src/dtagent/plugins/
-├── your_plugin.py                       # Python plugin class
-├── your_plugin.sql/                     # SQL definitions
-│   ├── init/                            # Optional: ACCOUNTADMIN initialization scripts
-│   │   └── 009_your_plugin_init.sql     # Runs during initial setup
+├── your_plugin.py                       # The Logic
+├── your_plugin.sql/                     # The Data Source
+│   ├── init/                            # Optional: ACCOUNTADMIN initialization
+│   │   └── 009_your_plugin_init.sql
 │   ├── admin/                           # Optional: admin-specific scripts
-│   │   └── 0xx_admin_*.sql              # Runs as or prepares for running as DTAGENT_ADMIN role
-│   ├── 0xx_*.sql                        # Views, procedures, functions (0-69)
-│   ├── 801_your_plugin_task.sql         # Task definition
-│   └── 901_update_your_plugin_conf.sql  # Configuration update procedure
-└── your_plugin.config/                  # Configuration and documentation
-    ├── your_plugin-config.yml           # Default configuration
-    ├── bom.yml                          # Bill of Materials
-    ├── instruments-def.yml              # Semantic dictionary
-    ├── readme.md                        # Plugin description
-    └── config.md                        # Optional: additional config docs
+│   │   └── 0xx_admin_*.sql
+│   ├── 0xx_*.sql                        # Views, procedures (0-69)
+│   ├── 801_your_plugin_task.sql         # Scheduling
+│   └── 901_update_your_plugin_conf.sql  # Config Updates
+└── your_plugin.config/                  # The Metadata
+    ├── your_plugin-config.yml
+    ├── bom.yml
+    ├── instruments-def.yml
+    ├── readme.md
+    └── config.md                        # Optional
 ```
 
-**Note**: The `init/` and `admin/` directories are optional and should only be created when your plugin requires special privileges or account-level configuration.
+**Note**: The `init/` and `admin/` directories are optional. Create them only when your plugin requires special privileges or account-level configuration.
 
 ---
 
 ## Step-by-Step: Creating a New Plugin
 
-Let's create a complete plugin called `example_plugin` that monitors Snowflake stages.
+Let's create a plugin called `example_plugin` that monitors Snowflake stages.
 
 ### 1. Create Plugin Directory Structure
-
-Create the following directories and files:
 
 ```bash
 mkdir -p src/dtagent/plugins/example_plugin.sql
 mkdir -p src/dtagent/plugins/example_plugin.config
 touch src/dtagent/plugins/example_plugin.py
 ```
-
-**Note**: We're skipping the `init/` and `admin/` directories for this simple example. Create them only if your plugin needs special privileges or account-level configuration.
 
 ### 2. Write the Python Plugin Class
 
@@ -203,7 +252,7 @@ class ExamplePluginPlugin(Plugin):
 
 ### 3. Create SQL Views and Procedures
 
-#### a) Create the main instrumented view
+#### a) Main Instrumented View
 
 Create `src/dtagent/plugins/example_plugin.sql/053_v_example_plugin_instrumented.sql`:
 
@@ -400,7 +449,7 @@ from query_history;
 
 ---
 
-#### b) Create the task definition
+#### b) Task Definition
 
 Create `src/dtagent/plugins/example_plugin.sql/801_example_plugin_task.sql`:
 
@@ -435,7 +484,7 @@ grant operate, monitor on task DTAGENT_DB.APP.TASK_DTAGENT_EXAMPLE_PLUGIN to rol
 - Schedule is set here but will be overridden by configuration
 - Always grant ownership to `DTAGENT_VIEWER` to make sure the task is executed as the correct role
 
-#### c) Create configuration update procedure
+#### c) Configuration Update Procedure
 
 Create `src/dtagent/plugins/example_plugin.sql/901_update_example_plugin_conf.sql`:
 
@@ -473,11 +522,11 @@ $$
 - Calls the core `UPDATE_PLUGIN_SCHEDULE()` function
 - Located in `CONFIG` schema
 
-#### d) Optional: Create initialization script
+#### d) Optional: Initialization Script
 
 **Note**: This step is only needed if your plugin requires ACCOUNTADMIN privileges or account-level configuration. Our simple example doesn't need this, so we'll skip it.
 
-If your plugin needs ACCOUNTADMIN privileges (e.g., to enable specific Snowflake features), create `src/dtagent/plugins/example_plugin.sql/init/009_example_plugin_init.sql`:
+If your plugin needs special setup, create `src/dtagent/plugins/example_plugin.sql/init/009_example_plugin_init.sql`:
 
 ```sql
 --
@@ -520,7 +569,7 @@ plugins:
   - `telemetry`: Array of telemetry types to report
 - Add custom configuration options as needed for your plugin
 
-### 5. Define Semantic Dictionary
+### 5. Define Semantic Dictionary in instruments-def.yml
 
 Create `src/dtagent/plugins/example_plugin.config/instruments-def.yml`:
 
@@ -565,7 +614,7 @@ metrics:
     unit: count
 ```
 
-**Semantic Dictionary Structure:**
+**instruments-def.yml Structure:**
 
 1. **Dimensions** (grouping/filtering fields):
    - Should be low-cardinality
@@ -603,7 +652,7 @@ Create `src/dtagent/plugins/example_plugin.config/readme.md`:
 ~~~~markdown #INFO: we need it this way to embed example code blocks properly
 This plugin monitors Snowflake stages and reports their configuration and usage.
 
-It collects information about all non-deleted stages in the account, including:
+It collects information about all non-deleted stages, including:
 - Stage name, type, and location
 - Database and schema ownership
 - Creation timestamps
