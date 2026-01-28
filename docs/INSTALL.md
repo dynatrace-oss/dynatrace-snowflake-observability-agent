@@ -209,39 +209,39 @@ The deployment process uses your `$ENV` parameter only to locate the configurati
 ```text
 ┌─────────────────────────────────────────────────────────────┐
 │ Step 1: Load config-prod-useast.yml                         │
-│ (ENV parameter: "prod-useast" used only here)              │
+│ (ENV parameter: "prod-useast" used only here)               │
 └─────────────────────────────────────────────────────────────┘
                           ↓
 ┌─────────────────────────────────────────────────────────────┐
 │ Step 2: Extract values from config file:                    │
-│   deployment_environment: "PRODUCTION_US_EAST_1"           │
-│   tag: "USEAST"                                            │
+│   deployment_environment: "PRODUCTION_US_EAST_1"            │
+│   tag: "USEAST"                                             │
 └─────────────────────────────────────────────────────────────┘
                           ↓
 ┌─────────────────────────────────────────────────────────────┐
-│ Step 3: Use Snowflake connection:                          │
-│   snow_agent_production_us_east_1                          │
+│ Step 3: Use Snowflake connection:                           │
+│   snow_agent_production_us_east_1                           │
 │   (from deployment_environment, lowercase)                  │
 └─────────────────────────────────────────────────────────────┘
                           ↓
 ┌─────────────────────────────────────────────────────────────┐
-│ Step 4: Create Snowflake objects:                          │
-│   DTAGENT_USEAST_DB                                        │
-│   DTAGENT_USEAST_WH                                        │
-│   DTAGENT_USEAST_OWNER (role)                             │
-│   (from tag)                                               │
+│ Step 4: Create Snowflake objects:                           │
+│   DTAGENT_USEAST_DB                                         │
+│   DTAGENT_USEAST_WH                                         │
+│   DTAGENT_USEAST_OWNER (role)                               │
+│   (from tag)                                                │
 └─────────────────────────────────────────────────────────────┘
                           ↓
 ┌─────────────────────────────────────────────────────────────┐
-│ Step 5: Store in DTAGENT_USEAST_DB.APP.DTAGENT_CONFIG:    │
-│   deployment_environment: "PRODUCTION_US_EAST_1"           │
-│   deployment_environment_tag: "USEAST"                     │
+│ Step 5: Store in DTAGENT_USEAST_DB.APP.DTAGENT_CONFIG:      │
+│   deployment_environment: "PRODUCTION_US_EAST_1"            │
+│   deployment_environment_tag: "USEAST"                      │
 └─────────────────────────────────────────────────────────────┘
                           ↓
 ┌─────────────────────────────────────────────────────────────┐
-│ Step 6: Runtime - Send telemetry to Dynatrace:            │
-│   deployment.environment: "PRODUCTION_US_EAST_1"           │
-│   deployment.environment.tag: "USEAST"                     │
+│ Step 6: Runtime - Send telemetry to Dynatrace:              │
+│   deployment.environment: "PRODUCTION_US_EAST_1"            │
+│   deployment.environment.tag: "USEAST"                      │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -450,14 +450,14 @@ This approach allows organizations to maintain strict separation of duties while
 You should store the Access Token for your Dynatrace tenant (to which you want to send telemetry from your environment) as the environment
 variable `DTAGENT_TOKEN`. The token should have the following scopes enabled:
 
-| Scope ID                    | Scope Name                   | Comment |
-| --------------------------- | ---------------------------- | ------- |
-| `logs.ingest`               | Ingest Logs                  |         |
-| `metrics.ingest`            | Ingest Metrics               |         |
-| `bizevents.ingest`          | Ingest BizEvents             |         |
-| `openpipeline.events`       | OpenPipeline - Ingest Events |         |
-| `openTelemetryTrace.ingest` | Ingest OpenTelemetry Traces  |         |
-| `events.ingest`             | Ingest Events                | <0.9.1  |
+| Scope ID                    | Scope Name                   | API                          | Comment |
+| --------------------------- | ---------------------------- | ---------------------------- | ------- |
+| `logs.ingest`               | Ingest Logs                  | `/api/v2/otlp/v1/logs`       |         |
+| `metrics.ingest`            | Ingest Metrics               | `/api/v2/metrics/ingest`     |         |
+| `bizevents.ingest`          | Ingest BizEvents             | `/api/v2/bizevents/ingest`   |         |
+| `openpipeline.events`       | OpenPipeline - Ingest Events | `/platform/ingest/v1/events` |         |
+| `openTelemetryTrace.ingest` | Ingest OpenTelemetry Traces  | `/api/v2/otlp/v1/traces`     |         |
+| `events.ingest`             | Ingest Events                | `/api/v2/events/ingest`      | <0.9.1  |
 
 We **strongly** recommend to ensure your token is not recorded in shell script history; please find an example how to define `DTAGENT_TOKEN`
 environment variable on Linux or WSL below:
