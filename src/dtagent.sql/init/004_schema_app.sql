@@ -24,7 +24,8 @@
 --
 -- This creates the APP schema where all the actual Dynatrace Snowflake Observability Agent code is
 --
-use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
+use role ACCOUNTADMIN; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 
 create schema if not exists APP;
+grant ownership on schema APP to role DTAGENT_OWNER revoke current grants;
 grant usage on schema APP to role DTAGENT_VIEWER;

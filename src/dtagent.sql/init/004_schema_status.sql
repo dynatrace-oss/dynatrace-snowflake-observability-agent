@@ -25,9 +25,10 @@
 -- This schema is intended for keeping only state, logs, etc of DT Agent.
 -- Do not store configuration or any other data here.
 --
-use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
+use role ACCOUNTADMIN; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 
 create schema if not exists STATUS;
+grant ownership on schema STATUS to role DTAGENT_OWNER revoke current grants;
 grant usage on schema STATUS to role DTAGENT_VIEWER;
 
 -- Log of for keeping track of processing various types of measurements
