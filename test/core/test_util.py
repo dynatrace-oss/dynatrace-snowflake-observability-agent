@@ -234,7 +234,16 @@ class TestGetSnowflakeAccountInfo:
         # Mock Snowflake session - simulate a Row object with indexing support
         mock_session = Mock()
         mock_row = Mock()
-        mock_row.__getitem__ = Mock(side_effect=lambda idx: "testorg-testaccount" if idx == 0 else None)
+
+        def _mock_row_getitem(idx):
+            # Simulate Snowflake Row index behavior: integer indices only, with support for -1 as last element.
+            if not isinstance(idx, int):
+                raise TypeError("Row indices must be integers")
+            if idx in (0, -1):
+                return "testorg-testaccount"
+            raise IndexError("Row index out of range")
+
+        mock_row.__getitem__ = Mock(side_effect=_mock_row_getitem)
         mock_session.sql.return_value.collect.return_value = [mock_row]
 
         config_dict = {"core.snowflake.account_name": "", "core.snowflake.host_name": ""}
