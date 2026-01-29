@@ -32,4 +32,5 @@ as
 
 grant ownership on task DTAGENT_DB.APP.TASK_DTAGENT_WAREHOUSE_USAGE to role DTAGENT_VIEWER revoke current grants;
 grant operate, monitor on task DTAGENT_DB.APP.TASK_DTAGENT_WAREHOUSE_USAGE to role DTAGENT_VIEWER;
-alter task if exists DTAGENT_DB.APP.TASK_DTAGENT_WAREHOUSE_USAGE resume;
+
+-- alter task if exists DTAGENT_DB.APP.TASK_DTAGENT_WAREHOUSE_USAGE resume;

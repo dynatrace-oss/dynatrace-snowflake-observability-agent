@@ -68,7 +68,7 @@ only losing credibility (by delivering late or poor-quality data) but also incur
 
 ## The five core themes of DPO
 
-![Five themes of Data Platform Observability](src/assets/data-platform-observability-themes.jpg)
+![Five themes of Data Platform Observability](assets/data-platform-observability-themes.jpg)
 
 Building on the importance of Data Platform Observability (DPO) in ensuring the health and performance of your data ecosystem, we can
 analyze DPO through five core themes:
@@ -380,7 +380,7 @@ for ETL, dbt, PowerBI, and DataHub. Some common challenges include:
 - **Scalability**: Handling large-scale environments without impacting performance.
 - **Collaboration**: Facilitating collaboration between data engineers, analysts, and business stakeholders.
 
-<img src="src/assets/data-platform-observability-tiers.jpg" alt="observability across three tiers of data platform" width="60%">
+<img src="assets/data-platform-observability-tiers.jpg" alt="observability across three tiers of data platform" width="60%">
 
 <a id="t1-data-infrastructure-observability"></a>
 
@@ -464,7 +464,7 @@ operational efficiency, cost-effectiveness, performance, and quality of data pla
 Dynatrace provides a comprehensive solution to achieve this across three observability tiers: infrastructure, applications/pipelines, and
 quality/governance.
 
-<img src="src/assets/data-platform-observability-dt.jpg" alt="building Data Platform Observability with Dynatrace" width="60%">
+<img src="assets/data-platform-observability-dt.jpg" alt="building Data Platform Observability with Dynatrace" width="60%">
 
 Dynatrace integrates multiple data sources, including Snowflake, to offer a holistic view of the data platform. This integration enhances
 monitoring and proactive issue resolution, ensuring high data quality for both internal and external customers. By combining multiple

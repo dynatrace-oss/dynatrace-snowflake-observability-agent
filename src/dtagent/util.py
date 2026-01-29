@@ -327,12 +327,15 @@ def _get_snowflake_account_info(config_dict: dict, session=None) -> Tuple[str, s
 
     # If we have neither, try to query Snowflake
     if session:
+        from snowflake.snowpark.exceptions import SnowparkSQLException
+
         try:
             result = session.sql("SELECT CURRENT_ORGANIZATION_NAME() || '-' || CURRENT_ACCOUNT_NAME() as account_identifier").collect()
             if result and len(result) > 0:
-                account_identifier = result[0]["ACCOUNT_IDENTIFIER"]
-                return account_identifier, f"{account_identifier}.snowflakecomputing.com"
-        except Exception:  # pylint: disable=broad-except
+                account_identifier = result[0].get("ACCOUNT_IDENTIFIER", None)
+                if account_identifier:
+                    return account_identifier, f"{account_identifier}.snowflakecomputing.com"
+        except SnowparkSQLException:
             pass  # Fall back to empty strings if query fails
 
     return account_name, host_name

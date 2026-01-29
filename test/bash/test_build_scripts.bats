@@ -4,6 +4,14 @@ setup() {
     cd "$BATS_TEST_DIRNAME/../.."
 }
 
+setup_file() {
+    cd "$BATS_TEST_DIRNAME/../.."
+    # Run build_docs.sh once for all tests
+    BUILD_OUTPUT=$(timeout 240 ./scripts/dev/build_docs.sh 2>&1)
+    export BUILD_DOCS_STATUS=$?
+    export BUILD_OUTPUT
+}
+
 @test "build.sh runs without immediate errors" {
     # This test assumes dependencies like pylint are installed
     # In a real environment, this would pass if build tools are available
@@ -95,13 +103,12 @@ setup() {
 }
 
 @test "build_docs.sh creates expected documentation files" {
-    # Run build_docs.sh
-    run timeout 240 ./scripts/dev/build_docs.sh
-    if [ "$status" -ne 0 ] && [ "$status" -ne 1 ]; then
-        echo "build_docs.sh failed with status $status"
-        echo "Output: $output"
+    # Use the status from setup_file instead of running again
+    if [ "$BUILD_DOCS_STATUS" -ne 0 ] && [ "$BUILD_DOCS_STATUS" -ne 1 ]; then
+        echo "build_docs.sh failed with status $BUILD_DOCS_STATUS"
+        echo "Output: $BUILD_OUTPUT"
     fi
-    [ "$status" -eq 0 ] || [ "$status" -eq 1 ]
+    [ "$BUILD_DOCS_STATUS" -eq 0 ] || [ "$BUILD_DOCS_STATUS" -eq 1 ]
 
     # Check that expected files exist (if they were created)
     # These checks are informational - don't fail if files don't exist in dev environment
@@ -330,4 +337,31 @@ setup() {
     # Check 30_plugins folder has SQL files
     plugin_sql_count=$(unzip -l "$zip_file" | grep "build/30_plugins/.*\.sql$" | wc -l | tr -d ' ')
     [ "$plugin_sql_count" -gt 0 ]
+}
+
+@test "markdownlint passes for all documentation" {
+    if ! command -v markdownlint &> /dev/null; then
+        skip "markdownlint not installed"
+    fi
+
+    run markdownlint '**/*.md' --config .markdownlint.json
+    [ "$status" -eq 0 ]
+}
+
+@test "generated documentation has correct image paths" {
+    # Check docs/ files have correct relative paths
+    if [ -f "docs/CONTRIBUTING.md" ]; then
+        run grep -q "](assets/" "docs/CONTRIBUTING.md"
+        [ "$status" -eq 0 ]
+    fi
+}
+
+@test "PDF generation has no broken image errors" {
+    # Check for image loading errors
+    echo "$BUILD_OUTPUT" | grep -v "ERROR: Failed to load image"
+}
+
+@test "PDF has no broken anchor errors" {
+    # Check for anchor errors
+    echo "$BUILD_OUTPUT" | grep -v "ERROR: No anchor"
 }

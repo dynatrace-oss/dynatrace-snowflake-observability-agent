@@ -10,60 +10,11 @@ developer and want to build from source, please refer to the [CONTRIBUTING.md](C
 
 - [Table of Contents](#table-of-contents)
 - [Prerequisites](#prerequisites)
-  - [Windows Users](#windows-users)
-  - [All Users](#all-users)
-    - [Snowflake CLI](#snowflake-cli)
-    - [jq and gawk](#jq-and-gawk)
 - [Quick Start](#quick-start)
 - [Deploying Dynatrace Snowflake Observability Agent](#deploying-dynatrace-snowflake-observability-agent)
-  - [Understanding the Deployment Process](#understanding-the-deployment-process)
-  - [Deployment Commands](#deployment-commands)
-    - [Required Parameters](#required-parameters)
-    - [Optional Parameters](#optional-parameters)
-    - [Examples](#examples)
-  - [Understanding the Role Model and Deployment Flexibility](#understanding-the-role-model-and-deployment-flexibility)
-    - [Role Hierarchy](#role-hierarchy)
-    - [Deployment Scope Privileges](#deployment-scope-privileges)
-    - [Restricting Elevated Privileges](#restricting-elevated-privileges)
-      - [Option 1: Pre-Created Objects with Custom Names (Most Restrictive - No ACCOUNTADMIN Required)](#option-1-pre-created-objects-with-custom-names-most-restrictive---no-accountadmin-required)
-        - [Benefits](#benefits)
-      - [Option 2: Manual Initialization Without Init or Admin Scopes](#option-2-manual-initialization-without-init-or-admin-scopes)
-      - [Option 3: Deploy With Init But Without Admin Scope](#option-3-deploy-with-init-but-without-admin-scope)
-      - [Option 4: Split Deployment by Scope (With Admin)](#option-4-split-deployment-by-scope-with-admin)
-      - [Option 4: Separate Admin Operations (Alternative)](#option-4-separate-admin-operations-alternative)
-  - [Dynatrace API Token Setup](#dynatrace-api-token-setup)
 - [Setting up a profile](#setting-up-a-profile)
-  - [Creating profile configuration file for Snowflake-Dynatrace connection](#creating-profile-configuration-file-for-snowflake-dynatrace-connection)
-    - [Core Configuration Options](#core-configuration-options)
-    - [Custom Object Names](#custom-object-names)
-      - [Use Case: Deploying Without Admin Rights](#use-case-deploying-without-admin-rights)
-        - [Example Configuration](#example-configuration)
-        - [Deployment Command](#deployment-command)
-      - [Validation Rules](#validation-rules)
-      - [Mutual Exclusivity with TAG](#mutual-exclusivity-with-tag)
-    - [Plugin Configuration Options](#plugin-configuration-options)
-    - [OpenTelemetry Configuration Options](#opentelemetry-configuration-options)
-    - [Plugin Scheduling](#plugin-scheduling)
-    - [Multitenancy](#multitenancy)
 - [Setting up connection to Snowflake](#setting-up-connection-to-snowflake)
-  - [Automatic Connection Setup (Recommended)](#automatic-connection-setup-recommended)
-  - [Manual Connection Setup](#manual-connection-setup)
-  - [Verifying Your Connections](#verifying-your-connections)
-  - [Connection Configuration Example](#connection-configuration-example)
-  - [Understanding Snowflake Account Identifiers](#understanding-snowflake-account-identifiers)
-    - [Recommended Format: Organization-Account Name (`orgname-accountname`)](#recommended-format-organization-account-name-orgname-accountname)
-    - [Legacy Format: Account Locator (`account.region`)](#legacy-format-account-locator-accountregion)
-    - [Configuration Best Practices](#configuration-best-practices)
-    - [How to Find Your Account Identifier](#how-to-find-your-account-identifier)
-    - [Host Name Derivation](#host-name-derivation)
 - [Common Configuration Mistakes](#common-configuration-mistakes)
-  - [Mistake 1: Using Account Locator Without Understanding](#mistake-1-using-account-locator-without-understanding)
-  - [Mistake 2: Connection Profile Name Mismatch](#mistake-2-connection-profile-name-mismatch)
-  - [Mistake 3: Confusing ENV with deployment\_environment](#mistake-3-confusing-env-with-deployment_environment)
-  - [Mistake 4: Reusing Tags or Deployment Environments](#mistake-4-reusing-tags-or-deployment-environments)
-  - [Mistake 5: Including Tag in deployment\_environment](#mistake-5-including-tag-in-deployment_environment)
-  - [Mistake 6: Not Using Lowercase for Connection Names](#mistake-6-not-using-lowercase-for-connection-names)
-  - [Quick Diagnostic Commands](#quick-diagnostic-commands)
 
 ## Prerequisites
 
@@ -209,39 +160,39 @@ The deployment process uses your `$ENV` parameter only to locate the configurati
 ```text
 ┌─────────────────────────────────────────────────────────────┐
 │ Step 1: Load config-prod-useast.yml                         │
-│ (ENV parameter: "prod-useast" used only here)              │
+│ (ENV parameter: "prod-useast" used only here)               │
 └─────────────────────────────────────────────────────────────┘
                           ↓
 ┌─────────────────────────────────────────────────────────────┐
 │ Step 2: Extract values from config file:                    │
-│   deployment_environment: "PRODUCTION_US_EAST_1"           │
-│   tag: "USEAST"                                            │
+│   deployment_environment: "PRODUCTION_US_EAST_1"            │
+│   tag: "USEAST"                                             │
 └─────────────────────────────────────────────────────────────┘
                           ↓
 ┌─────────────────────────────────────────────────────────────┐
-│ Step 3: Use Snowflake connection:                          │
-│   snow_agent_production_us_east_1                          │
+│ Step 3: Use Snowflake connection:                           │
+│   snow_agent_production_us_east_1                           │
 │   (from deployment_environment, lowercase)                  │
 └─────────────────────────────────────────────────────────────┘
                           ↓
 ┌─────────────────────────────────────────────────────────────┐
-│ Step 4: Create Snowflake objects:                          │
-│   DTAGENT_USEAST_DB                                        │
-│   DTAGENT_USEAST_WH                                        │
-│   DTAGENT_USEAST_OWNER (role)                             │
-│   (from tag)                                               │
+│ Step 4: Create Snowflake objects:                           │
+│   DTAGENT_USEAST_DB                                         │
+│   DTAGENT_USEAST_WH                                         │
+│   DTAGENT_USEAST_OWNER (role)                               │
+│   (from tag)                                                │
 └─────────────────────────────────────────────────────────────┘
                           ↓
 ┌─────────────────────────────────────────────────────────────┐
-│ Step 5: Store in DTAGENT_USEAST_DB.APP.DTAGENT_CONFIG:    │
-│   deployment_environment: "PRODUCTION_US_EAST_1"           │
-│   deployment_environment_tag: "USEAST"                     │
+│ Step 5: Store in DTAGENT_USEAST_DB.APP.DTAGENT_CONFIG:      │
+│   deployment_environment: "PRODUCTION_US_EAST_1"            │
+│   deployment_environment_tag: "USEAST"                      │
 └─────────────────────────────────────────────────────────────┘
                           ↓
 ┌─────────────────────────────────────────────────────────────┐
-│ Step 6: Runtime - Send telemetry to Dynatrace:            │
-│   deployment.environment: "PRODUCTION_US_EAST_1"           │
-│   deployment.environment.tag: "USEAST"                     │
+│ Step 6: Runtime - Send telemetry to Dynatrace:              │
+│   deployment.environment: "PRODUCTION_US_EAST_1"            │
+│   deployment.environment.tag: "USEAST"                      │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -450,14 +401,14 @@ This approach allows organizations to maintain strict separation of duties while
 You should store the Access Token for your Dynatrace tenant (to which you want to send telemetry from your environment) as the environment
 variable `DTAGENT_TOKEN`. The token should have the following scopes enabled:
 
-| Scope ID                    | Scope Name                   | Comment |
-| --------------------------- | ---------------------------- | ------- |
-| `logs.ingest`               | Ingest Logs                  |         |
-| `metrics.ingest`            | Ingest Metrics               |         |
-| `bizevents.ingest`          | Ingest BizEvents             |         |
-| `openpipeline.events`       | OpenPipeline - Ingest Events |         |
-| `openTelemetryTrace.ingest` | Ingest OpenTelemetry Traces  |         |
-| `events.ingest`             | Ingest Events                | <0.9.1  |
+| Scope ID                    | Scope Name                   | API                          | Comment |
+| --------------------------- | ---------------------------- | ---------------------------- | ------- |
+| `logs.ingest`               | Ingest Logs                  | `/api/v2/otlp/v1/logs`       |         |
+| `metrics.ingest`            | Ingest Metrics               | `/api/v2/metrics/ingest`     |         |
+| `bizevents.ingest`          | Ingest BizEvents             | `/api/v2/bizevents/ingest`   |         |
+| `openpipeline.events`       | OpenPipeline - Ingest Events | `/platform/ingest/v1/events` |         |
+| `openTelemetryTrace.ingest` | Ingest OpenTelemetry Traces  | `/api/v2/otlp/v1/traces`     |         |
+| `events.ingest`             | Ingest Events                | `/api/v2/events/ingest`      | <0.9.1  |
 
 We **strongly** recommend to ensure your token is not recorded in shell script history; please find an example how to define `DTAGENT_TOKEN`
 environment variable on Linux or WSL below:

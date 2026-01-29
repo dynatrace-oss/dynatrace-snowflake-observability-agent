@@ -7,7 +7,7 @@ directly to Dynatrace as logs, traces, events, and metrics. Depending on what ty
 Observability Agent plugin one or more [Data Platform Observability themes](DPO.md#the-five-core-themes-of-dpo) can be supported over one or
 multiple [layers of Data Platform Observability](DPO.md#the-three-tiers-of-data-platform-observability).
 
-![High level Data Platform Observability architecture with Dynatrace Snowflake Observability Agent delivering telemetry to Dynatrace](src/assets/data-platform-observability-dsoa.jpg)
+![High level Data Platform Observability architecture with Dynatrace Snowflake Observability Agent delivering telemetry to Dynatrace](assets/data-platform-observability-dsoa.jpg)
 
 The main capabilities offered by Dynatrace Snowflake Observability Agent are:
 
@@ -55,7 +55,7 @@ Dynatrace, similar to OneAgent.
 
 The following figure illustrates, at high level, how telemetry data flows from Snowflake sources to Dynatrace for consumption.
 
-![Overview of flow of telemetry data through Dynatrace Snowflake Observability Agent to Dynatrace](src/assets/dsoa-overview.jpg)
+![Overview of flow of telemetry data through Dynatrace Snowflake Observability Agent to Dynatrace](assets/dsoa-overview.jpg)
 
 Dynatrace Snowflake Observability Agent is designed for easy extension with new plugins, each of which can utilize the core functions to
 deliver telemetry data via logs, spans/traces, events, bizevents, and metrics.
@@ -99,7 +99,7 @@ Since it is possible to run multiple Dynatrace Snowflake Observability Agent ins
 The figure below depicts objects which are created and maintained by Dynatrace Snowflake Observability Agent within dedicated database in
 Snowflake:
 
-![Dynatrace Snowflake Observability Agent objects in Snowflake](src/assets/dsoa-snowflake-objects.jpg)
+![Dynatrace Snowflake Observability Agent objects in Snowflake](assets/dsoa-snowflake-objects.jpg)
 
 ### The `APP` schema
 
@@ -150,7 +150,7 @@ Notebooks, Dashboards, Workflows, and Anomaly detection rules.
 The following figure depicts in details, each step of how the telemetry data flows from Snowflake telemetry sources through Dynatrace
 Snowflake Observability Agent to Dynatrace; in this case execution of `query_history` plugin is used as example.
 
-![Detailed flow of telemetry data on query history from Snowflake sources through Dynatrace Snowflake Observability Agent to Dynatrace Grail and further](src/assets/dsoa-dataflow.jpg)
+![Detailed flow of telemetry data on query history from Snowflake sources through Dynatrace Snowflake Observability Agent to Dynatrace Grail and further](assets/dsoa-dataflow.jpg)
 
 1. The process starts with Snowflake task `TASK_DTAGENT_QUERY_HISTORY` calling the `DTAGENT()` procedure with `query_history` as a
    parameter:

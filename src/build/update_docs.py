@@ -417,6 +417,49 @@ def _extract_appendix_info(header_file_path: str) -> Tuple[str, str]:
     return title, anchor
 
 
+def _compact_markdown_tables(md_content: str) -> str:
+    """Remove padding spaces from markdown tables to ensure proper PDF rendering.
+
+    Converts visually aligned tables like:
+    | Column1 | Column2     |
+    | ------- | ----------- |
+    | value1  | value2      |
+
+    To compact tables like:
+    | Column1 | Column2 |
+    | - | - |
+    | value1 | value2 |
+
+    Args:
+        md_content: Markdown content with potentially aligned tables
+
+    Returns:
+        Markdown content with compact tables
+    """
+    lines = md_content.split("\n")
+    result = []
+
+    for line in lines:
+        # Check if line is a table row (starts and ends with |)
+        if line.strip().startswith("|") and line.strip().endswith("|"):
+            # Split by | and strip whitespace from each cell
+            cells = [cell.strip() for cell in line.split("|")]
+            # Remove empty first and last elements (before first | and after last |)
+            cells = [cell for cell in cells if cell or cells.index(cell) not in (0, len(cells) - 1)]
+
+            # Check if this is a separator line (contains only dashes and spaces)
+            if cells and all(set(cell).issubset({"-", " "}) and cell for cell in cells):
+                # Compact separator: just single dash per column
+                result.append("| " + " | ".join(["-"] * len(cells)) + " |")
+            else:
+                # Regular row: join cells without padding
+                result.append("| " + " | ".join(cells) + " |")
+        else:
+            result.append(line)
+
+    return "\n".join(result)
+
+
 def generate_readme_content(dtagent_conf_path: str, dtagent_plugins_path: str) -> Tuple[str, str, str, str, str]:
     """Generates readme from sources
 
@@ -435,6 +478,7 @@ def generate_readme_content(dtagent_conf_path: str, dtagent_plugins_path: str) -
     usecases_content = _read_file("docs/USECASES.md")
     architecture_content = _read_file("docs/ARCHITECTURE.md")
     install_content = _read_file("docs/INSTALL.md")
+    plugin_dev_content = _read_file("docs/PLUGIN_DEVELOPMENT.md")
     changelog_content = _read_file("docs/CHANGELOG.md")
     contributing_content = _read_file("docs/CONTRIBUTING.md")
     copyright_content = _read_file("docs/COPYRIGHT.md")
@@ -461,50 +505,59 @@ def generate_readme_content(dtagent_conf_path: str, dtagent_plugins_path: str) -
     readme_full_content += _lower_headers_one_level(usecases_content) + "\n"
     readme_full_content += _lower_headers_one_level(architecture_content) + "\n"
 
-    plugins_content, plugins_toc = _generate_plugins_info(dtagent_plugins_path, dtagent_conf_path)
+    plugins_content_full, plugins_toc = _generate_plugins_info(dtagent_plugins_path, dtagent_conf_path)
     readme_full_content += "## Plugins\n\n"
     readme_full_content += "\n".join(plugins_toc)
     readme_full_content += "\n\n"
-    readme_full_content += _lower_headers_one_level(plugins_content)
+    readme_full_content += _lower_headers_one_level(plugins_content_full)
 
-    semantics_content, semantics_toc = _generate_semantics_section(dtagent_conf_path, dtagent_plugins_path)
+    semantics_content_full, semantics_toc = _generate_semantics_section(dtagent_conf_path, dtagent_plugins_path)
     readme_full_content += "## Semantic Dictionary\n\n"
     readme_full_content += "\n".join(semantics_toc)
     readme_full_content += "\n\n"
-    readme_full_content += _lower_headers_one_level(semantics_content)
+    readme_full_content += _lower_headers_one_level(semantics_content_full)
 
     readme_full_content += _lower_headers_one_level(install_content) + "\n"
     readme_full_content += _lower_headers_one_level(changelog_content) + "\n"
     readme_full_content += _lower_headers_one_level(contributing_content)
+    readme_full_content += _lower_headers_one_level(plugin_dev_content)
 
     readme_full_content += appendix_content
 
     readme_full_content += _lower_headers_one_level(copyright_content)
-    readme_full_content = re.sub(
-        r"\]\(docs\/", "](https://github.com/dynatrace-oss/dynatrace-snowflake-observability-agent/tree/main/docs/", readme_full_content
-    )  # replace internal links to docs with absolute links to GitHub
+    # readme_full_content = re.sub(
+    #     r"\]\(docs\/", "](https://github.com/dynatrace-oss/dynatrace-snowflake-observability-agent/tree/main/docs/", readme_full_content
+    # )  # replace internal links to docs with absolute links to GitHub
     readme_full_content = re.sub(
         r"\]\(test\/", "](https://github.com/dynatrace-oss/dynatrace-snowflake-observability-agent/tree/main/test/", readme_full_content
     )  # replace internal links to test directory with absolute links to GitHub
     readme_full_content = re.sub(r"\b[A-Z_]+\.md#", "#", readme_full_content)  # removing references between .md files
 
-    readme_full_content = (
-        readme_full_content.replace("DPO.md", _turn_header_into_link(dpo_content))
-        .replace("USECASES.md", _turn_header_into_link(usecases_content))
-        .replace("ARCHITECTURE.md", _turn_header_into_link(architecture_content))
-        .replace("INSTALL.md", _turn_header_into_link(install_content))
-        .replace("CHANGELOG.md", _turn_header_into_link(changelog_content))
-        .replace("CONTRIBUTING.md", _turn_header_into_link(contributing_content))
-        .replace("README.md", _turn_header_into_link(readme_full_content))
-    )
+    # Update links in PDF version to point to sections within the same document
+    readme_full_content = re.sub(r"(docs/)?DPO\.md", _turn_header_into_link(dpo_content), readme_full_content)
+    readme_full_content = re.sub(r"(docs/)?USECASES\.md", _turn_header_into_link(usecases_content), readme_full_content)
+    readme_full_content = re.sub(r"(docs/)?ARCHITECTURE\.md", _turn_header_into_link(architecture_content), readme_full_content)
+    readme_full_content = re.sub(r"(docs/)?INSTALL\.md", _turn_header_into_link(install_content), readme_full_content)
+    readme_full_content = re.sub(r"(docs/)?PLUGIN_DEVELOPMENT\.md", _turn_header_into_link(plugin_dev_content), readme_full_content)
+    readme_full_content = re.sub(r"(docs/)?CHANGELOG\.md", _turn_header_into_link(changelog_content), readme_full_content)
+    readme_full_content = re.sub(r"(docs/)?CONTRIBUTING\.md", _turn_header_into_link(contributing_content), readme_full_content)
+    readme_full_content = re.sub(r"(docs/)?README\.md", _turn_header_into_link(readme_full_content), readme_full_content)
 
-    # Postprocess the short README.md content
+    readme_full_content = re.sub(r"""(\]\(|src=")(assets[/].*\.jpg)""", r"\1docs/\2", readme_full_content)
+
+    # Compact all markdown tables in the full README for proper PDF rendering
+    readme_full_content = _compact_markdown_tables(readme_full_content)
+
+    # Postprocess the short README.md content - generate with visual alignment for GitHub
+    plugins_content, _ = _generate_plugins_info(dtagent_plugins_path, dtagent_conf_path)
     plugins_content = (
         "# Plugins\n\n"
         + "\n".join(plugins_toc)
         + plugins_content.replace("[Show semantics for this plugin](#", "[Show semantics for this plugin](SEMANTICS.md#").rstrip()
         + "\n"
     )
+
+    semantics_content, _ = _generate_semantics_section(dtagent_conf_path, dtagent_plugins_path)
     semantics_content = (
         "# Semantic Dictionary\n\n"
         + "\n".join(semantics_toc)

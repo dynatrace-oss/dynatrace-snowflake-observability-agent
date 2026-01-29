@@ -42,5 +42,6 @@ as
 
 grant ownership on task DTAGENT_DB.APP.TASK_DTAGENT_QUERY_HISTORY_GRANTS to role DTAGENT_ADMIN revoke current grants;
 grant monitor on task DTAGENT_DB.APP.TASK_DTAGENT_QUERY_HISTORY_GRANTS to role DTAGENT_VIEWER;
-alter task if exists DTAGENT_DB.APP.TASK_DTAGENT_QUERY_HISTORY_GRANTS resume;
+
+-- alter task if exists DTAGENT_DB.APP.TASK_DTAGENT_QUERY_HISTORY_GRANTS resume;
 --%:OPTION:dtagent_admin
