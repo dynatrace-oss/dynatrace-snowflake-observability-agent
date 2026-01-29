@@ -384,7 +384,3 @@ class TestGetSnowflakeAccountInfo:
             or expected_account_base in account_name_lower  # Base account name in retrieved account
             or expected_account_base in host_name_lower  # Base account name in host
         ), f"Expected account '{expected_account}' not found in retrieved account_name '{account_name}' or host_name '{host_name}'"
-
-        print(f"✓ Expected account: {expected_account}")
-        print(f"✓ Retrieved account_name: {account_name}")
-        print(f"✓ Retrieved host_name: {host_name}")
