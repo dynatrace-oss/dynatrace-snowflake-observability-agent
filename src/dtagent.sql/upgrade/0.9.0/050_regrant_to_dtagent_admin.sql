@@ -22,17 +22,43 @@
 --
 --
 use role ACCOUNTADMIN;
-grant ownership on table DTAGENT_DB.APP.TMP_USERS to role DTAGENT_OWNER copy current grants;
-grant ownership on table DTAGENT_DB.APP.TMP_USERS_HELPER to role DTAGENT_OWNER copy current grants;
-grant ownership on table DTAGENT_DB.APP.TMP_SHARES to role DTAGENT_OWNER copy current grants;
-grant ownership on table DTAGENT_DB.APP.TMP_OUTBOUND_SHARES to role DTAGENT_OWNER copy current grants;
-grant ownership on table DTAGENT_DB.APP.TMP_INBOUND_SHARES to role DTAGENT_OWNER copy current grants;
-grant ownership on table DTAGENT_DB.APP.TMP_RESOURCE_MONITORS to role DTAGENT_OWNER copy current grants;
-grant ownership on table DTAGENT_DB.APP.TMP_WAREHOUSES to role DTAGENT_OWNER copy current grants;
-grant ownership on table DTAGENT_DB.APP.TMP_QUERY_ACCELERATION_ESTIMATES to role DTAGENT_OWNER copy current grants;
-grant ownership on table DTAGENT_DB.APP.TMP_BUDGETS to role DTAGENT_OWNER copy current grants;
-grant ownership on table DTAGENT_DB.APP.TMP_BUDGETS_RESOURCES to role DTAGENT_OWNER copy current grants;
-grant ownership on table DTAGENT_DB.APP.TMP_BUDGETS_LIMITS to role DTAGENT_OWNER copy current grants;
-grant ownership on table DTAGENT_DB.APP.TMP_BUDGET_SPENDING to role DTAGENT_OWNER copy current grants;
-grant ownership on table DTAGENT_DB.APP.TMP_RECENT_QUERIES to role DTAGENT_OWNER copy current grants;
-grant ownership on table DTAGENT_DB.APP.TMP_QUERY_OPERATOR_STATS to role DTAGENT_OWNER copy current grants;
+
+-- Grant ownership only if tables exist
+DECLARE
+    table_list ARRAY := [
+        'TMP_USERS',
+        'TMP_USERS_HELPER',
+        'TMP_SHARES',
+        'TMP_OUTBOUND_SHARES',
+        'TMP_INBOUND_SHARES',
+        'TMP_RESOURCE_MONITORS',
+        'TMP_WAREHOUSES',
+        'TMP_QUERY_ACCELERATION_ESTIMATES',
+        'TMP_BUDGETS',
+        'TMP_BUDGETS_RESOURCES',
+        'TMP_BUDGETS_LIMITS',
+        'TMP_BUDGET_SPENDING',
+        'TMP_RECENT_QUERIES',
+        'TMP_QUERY_OPERATOR_STATS'
+    ];
+    table_name VARCHAR;
+    table_count INTEGER;
+    grant_sql VARCHAR;
+BEGIN
+    FOR i IN 0 TO ARRAY_SIZE(:table_list) - 1 DO
+        table_name := :table_list[i];
+
+        -- Check if table exists
+        SELECT COUNT(*)
+        INTO :table_count
+        FROM DTAGENT_DB.INFORMATION_SCHEMA.TABLES
+        WHERE TABLE_SCHEMA = 'APP'
+          AND TABLE_NAME = :table_name;
+
+        -- Grant ownership if table exists
+        IF (table_count > 0) THEN
+            grant_sql := 'grant ownership on table DTAGENT_DB.APP.' || :table_name || ' to role DTAGENT_OWNER copy current grants';
+            EXECUTE IMMEDIATE :grant_sql;
+        END IF;
+    END FOR;
+END;
