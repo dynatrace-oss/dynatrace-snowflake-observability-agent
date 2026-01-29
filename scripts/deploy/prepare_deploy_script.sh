@@ -181,6 +181,7 @@ map_scope_to_files() {
 
 # Parse comma-separated scopes and build SQL_FILES list
 INCLUDE_APIKEY=false
+HAS_UPGRADE_SCOPE=false
 if [[ "$SCOPE" == *,* ]]; then
     # Multiple scopes provided
     SQL_FILES=""
@@ -201,6 +202,11 @@ if [[ "$SCOPE" == *,* ]]; then
             continue
         fi
 
+        # Track upgrade scope
+        if [ "$single_scope" == "upgrade" ]; then
+            HAS_UPGRADE_SCOPE=true
+        fi
+
         files=$(map_scope_to_files "$single_scope")
         if [ -n "$files" ]; then
             SQL_FILES="$SQL_FILES $files"
@@ -208,12 +214,21 @@ if [[ "$SCOPE" == *,* ]]; then
     done
     # Remove leading/trailing spaces and deduplicate
     SQL_FILES=$(echo "$SQL_FILES" | xargs)
+
+    # Validate FROM_VERSION if upgrade scope is included
+    if [ "$HAS_UPGRADE_SCOPE" == "true" ] && [ -z "$FROM_VERSION" ]; then
+        echo "ERROR: --from-version required for upgrade scope"
+        exit 1
+    fi
 else
     # Single scope
     # Special validation for upgrade scope
-    if [ "$SCOPE" == "upgrade" ] && [ -z "$FROM_VERSION" ]; then
-        echo "ERROR: --from-version required for upgrade scope"
-        exit 1
+    if [ "$SCOPE" == "upgrade" ]; then
+        HAS_UPGRADE_SCOPE=true
+        if [ -z "$FROM_VERSION" ]; then
+            echo "ERROR: --from-version required for upgrade scope"
+            exit 1
+        fi
     fi
     # Track apikey scope
     if [ "$SCOPE" == "apikey" ]; then
@@ -242,24 +257,36 @@ if [ "$SCOPE" != 'apikey' ] && [ "$SCOPE" != 'teardown' ]; then
     #
     #   --- building one big script to be run
     #
-    if [ "$SCOPE" == "upgrade" ]; then
-        # For upgrade, filter by version
-        find build/$SQL_FILES -type f -print |
+    if [ "$HAS_UPGRADE_SCOPE" == "true" ]; then
+        # For upgrade scope, filter by version
+        # Process each SQL file pattern separately, applying version filter to upgrade files
+        (
+            for pattern in $SQL_FILES; do
+                # Use eval to let find handle glob patterns properly
+                eval "find build/$pattern -type f -print 2>/dev/null"
+            done
+        ) |
             awk -v from_ver="$FROM_VERSION" '
                 function version_to_num(v) {
                     split(v, parts, ".");
                     return parts[1] * 1000000 + parts[2] * 1000 + parts[3];
                 }
                 {
-                    # Extract version from filename (e.g., 09_upgrade/v1.2.3.sql or v1.2.3_something.sql)
-                    if (match($0, /v[0-9]+\.[0-9]+\.[0-9]+/)) {
-                        # Extract the matched version string
-                        file_ver = substr($0, RSTART + 1, RLENGTH - 1);
-                        if (version_to_num(file_ver) > version_to_num(from_ver)) {
+                    # Check if this is an upgrade file
+                    if (match($0, /09_upgrade/)) {
+                        # Extract version from filename (e.g., 09_upgrade/v1.2.3.sql or v1.2.3_something.sql)
+                        if (match($0, /v[0-9]+\.[0-9]+\.[0-9]+/)) {
+                            # Extract the matched version string
+                            file_ver = substr($0, RSTART + 1, RLENGTH - 1);
+                            if (version_to_num(file_ver) > version_to_num(from_ver)) {
+                                print $0;
+                            }
+                        } else {
+                            # Print upgrade files without version numbers
                             print $0;
                         }
                     } else {
-                        # Print files without version numbers
+                        # Not an upgrade file, include it
                         print $0;
                     }
                 }
@@ -269,9 +296,12 @@ if [ "$SCOPE" != 'apikey' ] && [ "$SCOPE" != 'teardown' ]; then
                 >"$INSTALL_SCRIPT_SQL"
     else
         # Process each SQL file pattern separately
-        for pattern in $SQL_FILES; do
-            find build/$pattern -type f -print 2>/dev/null
-        done | sort | xargs -I {} sh -c 'echo "-- SCRIPT: $1"; cat "$1"' _ {} \; \
+        (
+            for pattern in $SQL_FILES; do
+                # Use eval to let find handle glob patterns properly
+                eval "find build/$pattern -type f -print 2>/dev/null"
+            done
+        ) | sort | xargs -I {} sh -c 'echo "-- SCRIPT: $1"; cat "$1"' _ {} \; \
             >"$INSTALL_SCRIPT_SQL"
     fi
 
