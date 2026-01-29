@@ -24,7 +24,8 @@
 use role ACCOUNTADMIN;
 
 -- Grant ownership only if tables exist
-DECLARE
+EXECUTE IMMEDIATE $$
+declare
     table_list ARRAY := [
         'TMP_USERS',
         'TMP_USERS_HELPER',
@@ -44,21 +45,23 @@ DECLARE
     table_name VARCHAR;
     table_count INTEGER;
     grant_sql VARCHAR;
-BEGIN
-    FOR i IN 0 TO ARRAY_SIZE(:table_list) - 1 DO
+begin
+    for i in 0 to array_size(:table_list) - 1 do
         table_name := :table_list[i];
 
         -- Check if table exists
-        SELECT COUNT(*)
+        select COUNT(*)
         INTO :table_count
-        FROM DTAGENT_DB.INFORMATION_SCHEMA.TABLES
-        WHERE TABLE_SCHEMA = 'APP'
-          AND TABLE_NAME = :table_name;
+        from DTAGENT_DB.INFORMATION_SCHEMA.TABLES
+        where TABLE_SCHEMA = 'APP'
+          and TABLE_NAME = :table_name;
 
         -- Grant ownership if table exists
-        IF (table_count > 0) THEN
+        if (table_count > 0) then
             grant_sql := 'grant ownership on table DTAGENT_DB.APP.' || :table_name || ' to role DTAGENT_OWNER copy current grants';
             EXECUTE IMMEDIATE :grant_sql;
-        END IF;
-    END FOR;
-END;
+        end if;
+    end for;
+end;
+$$
+;
