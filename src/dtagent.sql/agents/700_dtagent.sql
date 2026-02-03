@@ -60,19 +60,21 @@ grant usage on procedure DTAGENT_DB.APP.DTAGENT(array) to role DTAGENT_VIEWER;
 /*
 use role DTAGENT_VIEWER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 
-call APP.DTAGENT(ARRAY_CONSTRUCT('active_queries'));
-call APP.DTAGENT(ARRAY_CONSTRUCT('budgets'));
-call APP.DTAGENT(ARRAY_CONSTRUCT('data_schemas'));
-call APP.DTAGENT(ARRAY_CONSTRUCT('data_volume'));
-call APP.DTAGENT(ARRAY_CONSTRUCT('dynamic_tables'));
-call APP.DTAGENT(ARRAY_CONSTRUCT('event_log'));
-call APP.DTAGENT(ARRAY_CONSTRUCT('event_usage'));
-call APP.DTAGENT(ARRAY_CONSTRUCT('login_history'));
-call APP.DTAGENT(ARRAY_CONSTRUCT('query_history'));
-call APP.DTAGENT(ARRAY_CONSTRUCT('resource_monitors'));
-call APP.DTAGENT(ARRAY_CONSTRUCT('tasks'));
-call APP.DTAGENT(ARRAY_CONSTRUCT('trust_center'));
-call APP.DTAGENT(ARRAY_CONSTRUCT('users'));
-call APP.DTAGENT(ARRAY_CONSTRUCT('warehouse_usage'));
-
+call APP.DTAGENT(ARRAY_CONSTRUCT(
+    'active_queries',
+    'budgets',
+    'data_schemas',
+    'data_volume',
+    'dynamic_tables',
+    'event_log',
+    'event_usage',
+    'login_history',
+    'query_history',
+    'resource_monitors',
+    'shares',
+    'tasks',
+    'trust_center',
+    'users',
+    'warehouse_usage'
+    ));
  */
