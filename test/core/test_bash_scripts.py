@@ -4,7 +4,6 @@ from pathlib import Path
 from tap.parser import Parser
 from tap.line import Result
 
-
 # Discover all bats test files
 BATS_DIR = Path(__file__).parent.parent / "bash"
 BATS_FILES = sorted(BATS_DIR.glob("*.bats"))
