@@ -86,7 +86,7 @@ jobs:
           sudo apt-get install -y bats jq gawk pandoc zip
 
       - name: Run bash tests
-        run: ./test/bash/run_tests.sh
+        run: pytest test/core/test_bash_scripts.py -v
 
   test-core:
     runs-on: ubuntu-latest
