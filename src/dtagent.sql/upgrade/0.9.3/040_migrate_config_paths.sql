@@ -48,13 +48,15 @@ where PATH = 'core.snowflake_data_retention_time_in_days';
 
 -- Log the migration
 insert into DTAGENT_DB.STATUS.PROCESSED_MEASUREMENTS_LOG (
-    TIMESTAMP_UTC,
-    PLUGIN,
-    SCOPE,
-    STATUS
+    PROCESS_TIME,
+    MEASUREMENTS_SOURCE,
+    LAST_TIMESTAMP,
+    LAST_ID,
+    ENTRIES_COUNT
 ) values (
     current_timestamp(),
     'upgrade',
-    'config_migration_0.9.3',
-    'Configuration paths migrated to nested snowflake structure'
+    null,
+    null,
+    4
 );

@@ -21,7 +21,7 @@
 --
 --
 --
-use role DTAGENT_OWNER; use schema DTAGENT_DB.CONFIG; use warehouse DTAGENT_WH;
+use role ACCOUNTADMIN; use schema DTAGENT_DB.CONFIG; use warehouse DTAGENT_WH;
 
 drop table if exists CONFIG.INSTRUMENTS;
 drop view if exists CONFIG.V_INSTRUMENTS;
