@@ -118,6 +118,10 @@ brew install jq yq gawk
 - The actual Snowflake connection used is `snow_agent_<deployment_environment>` (from inside the config file)
 - In this example, if `deployment_environment: PRODUCTION`, the connection name is `snow_agent_production` (lowercase)
 
+**Alternative: Deployment with Custom Object Names:**
+
+If you need to deploy with custom object names and without ACCOUNTADMIN privileges, see the [Step-by-Step: Using a Custom Initialization Script](#step-by-step-using-a-custom-initialization-script) guide in the "Restricting Elevated Privileges" section.
+
 ## Deploying Dynatrace Snowflake Observability Agent
 
 ### Understanding the Deployment Process
@@ -317,29 +321,112 @@ Use [Custom Object Names](#custom-object-names) to reference objects that have b
 
 ###### Benefits
 
-- No `ACCOUNTADMIN` access required during deployment
-- Full control over object names and structure
-- Ideal for organizations with strict privilege separation
+- **One-time ACCOUNTADMIN access**: Only needed during initial setup
+- **Clear documentation**: Header shows all custom names in one place
+- **Consistent naming**: All objects use your organization's naming conventions
+- **Privilege separation**: Regular deployments don't require elevated privileges
+- **Reproducible**: Custom init script can be version-controlled and reviewed
+- **Flexible**: Optionally include admin role setup to further reduce privilege requirements
 
 See the [Custom Object Names](#custom-object-names) section for detailed configuration and use case examples.
 
-##### Option 2: Manual Initialization Without Init or Admin Scopes
+###### Step-by-Step: Using a Custom Initialization Script
 
-Manually create the required roles and database structure using default names, then skip both `init` and `admin` scopes:
+This approach provides a structured way to have a Snowflake administrator initialize core objects with custom names, which are then used for deployment without ACCOUNTADMIN rights.
+
+1. Copy deployment scripts to a custom file
+    - Copy the content of the initialization script to create your custom file:
+
+      ```bash
+      # Copy the init script content
+      cp build/00_init.sql conf/custom-init.sql
+      ```
+
+    - If you want to include the admin role setup (to avoid using ACCOUNTADMIN during main deployment), also append the admin script:
+
+      ```bash
+      # Append admin script content
+      cat build/10_admin.sql >> conf/custom-init.sql
+      ```
+
+1. Add a header at the top of `conf/custom-init.sql` documenting the custom names you'll use. This header serves as a reference for the replacements you'll make throughout the file:
+
+    ```sql
+    --
+    -- CUSTOM OBJECT NAMES:
+    -- DB: DTAGENT_DB
+    -- WAREHOUSE: DTAGENT_WH
+    -- RESOURCE DTAGENT_RS
+    -- OWNER: DTAGENT_OWNER
+    -- ADMIN: DTAGENT_ADMIN
+    -- VIEWER: DTAGENT_VIEWER
+    --
+    ```
+
+1. Use your text editor's find-and-replace function to update all default names to your custom names throughout the entire file:
+
+    ```text
+    DTAGENT_DB → DTAGENT_MY_DB
+    DTAGENT_WH → DTAGENT_MY_WAREHOUSE
+    DTAGENT_RS → DTAGENT_MY_RESOURCE_MONITOR
+    DTAGENT_OWNER → DTAGENT_MY_OWNER
+    DTAGENT_ADMIN → DTAGENT_MY_ADMIN
+    DTAGENT_VIEWER → DTAGENT_MY_VIEWER
+    ```
+
+    > **Tip:** Perform replacements in order, starting with the most specific names first to avoid partial matches.
+
+1. Have your Snowflake administrator review and execute the custom initialization script
+1. Create a configuration file in `conf/config-custom-init.yml` that matches your custom object names:
+
+    ```yaml
+    core:
+      dynatrace_tenant_address: your-tenant.live.dynatrace.com
+      deployment_environment: CUSTOM-INIT
+
+      snowflake:
+        database:
+          name: "DTAGENT_MY_DB"
+        warehouse:
+          name: "DTAGENT_MY_WAREHOUSE"
+        resource_monitor:
+          name: "DTAGENT_MY_RESOURCE_MONITOR"
+        roles:
+          owner: "DTAGENT_MY_OWNER"
+          admin: "DTAGENT_MY_ADMIN"  # or "-" if not created
+          viewer: "DTAGENT_MY_VIEWER"
+    ```
+
+1. [Set up Snowflake CLI connection](#quick-start)
+1. Deploy without Init/Admin scopes
+
+    ```bash
+    export HISTCONTROL=ignorespace
+    export DTAGENT_TOKEN="your-dynatrace-token"
+
+    # If you included admin setup (or do not want to install use the admin role) in your custom init script:
+    ./deploy.sh custom-init --scope=setup,plugins,config,agents,apikey
+    ```
+
+##### Option 2: Using Generated Init Script with Manual Execution
+
+Generate the initialization script using the `manual` option, then have an administrator execute it:
 
 ```bash
-# Manually create roles and database as ACCOUNTADMIN:
-# CREATE ROLE DTAGENT_OWNER;
-# CREATE ROLE DTAGENT_VIEWER;
-# GRANT ROLE DTAGENT_VIEWER TO ROLE DTAGENT_OWNER;
-# CREATE DATABASE DTAGENT_DB;
-# ...
+# Generate init script without executing
+./deploy.sh $ENV --scope=init --options=manual --output-file=init-script.sql
 
-# Deploy without init or admin scopes
+# Have your Snowflake administrator review and execute
+snow sql -c admin_connection -f init-script.sql
+```
+
+Then deploy the remaining scopes without ACCOUNTADMIN:
+
+```bash
 ./deploy.sh $ENV --scope=setup,plugins,config,agents,apikey
 ```
 
-**Important:** Without init and admin scopes, you must manually create all required objects and grant privileges.
+This is simpler than creating a custom init script but uses default object names.
 
 ##### Option 3: Deploy With Init But Without Admin Scope
 
@@ -380,7 +467,7 @@ Finally, have a user with `DTAGENT_OWNER` role run the remaining scopes:
 ./deploy.sh $ENV --scope=setup,plugins,config,agents,apikey
 ```
 
-##### Option 4: Separate Admin Operations (Alternative)
+##### Option 5: Separate Admin Operations (Alternative)
 
 Similarly, you can separate the `admin` scope (which requires `DTAGENT_ADMIN` privileges for granting monitoring permissions) from other operations:
 

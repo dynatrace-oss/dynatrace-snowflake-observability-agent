@@ -6,6 +6,7 @@ config.json
 config-*.json
 config.yml
 config-*.yml
+conf/*.sql
 snowflake.local.yml
 output/**
 log.*
