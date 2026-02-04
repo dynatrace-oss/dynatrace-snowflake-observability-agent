@@ -7,7 +7,7 @@ DSOA fulfills the promise of Data Platform Observability by delivering telemetry
 directly to Dynatrace as logs, traces, events, and metrics. Depending on what type of telemetry a given DSOA plugin sends, it can support one or more [Data Platform Observability themes](DPO.md#the-five-core-themes-of-dpo) across one or
 multiple [layers of Data Platform Observability](DPO.md#the-three-tiers-of-data-platform-observability).
 
-![High level Data Platform Observability architecture with DSOA delivering telemetry to Dynatrace](assets/data-platform-observability-dsoa.jpg)
+![Architecture diagram: High level Data Platform Observability architecture with DSOA delivering telemetry to Dynatrace](assets/data-platform-observability-dsoa.jpg)
 
 The main capabilities offered by DSOA are:
 
@@ -20,10 +20,10 @@ The main capabilities offered by DSOA are:
 4. **Visualization**: DSOA delivers telemetry which facilitates building Dynatrace dashboards that ease
    the process of data analysis.
 
-Table of content:
+**Table of contents:**
 
 - [High-Level overview](#high-level-overview)
-- [Dynatrace Snowflake Observability Agent objects in Snowflake](#dynatrace-snowflake-observability-agent-objects-in-snowflake)
+- [DSOA objects in Snowflake](#dsoa-objects-in-snowflake)
   - [The `APP` schema](#the-app-schema)
   - [The `CONFIG` schema](#the-config-schema)
   - [The `STATUS` schema](#the-status-schema)
@@ -44,6 +44,9 @@ Table of content:
   - [Deployment Scopes](#deployment-scopes)
   - [Security Model](#security-model)
     - [Role Responsibilities](#role-responsibilities)
+      - [DTAGENT\_OWNER](#dtagent_owner)
+      - [DTAGENT\_ADMIN (Optional)](#dtagent_admin-optional)
+      - [DTAGENT\_VIEWER](#dtagent_viewer)
     - [Administrative Operation Isolation](#administrative-operation-isolation)
     - [Privilege Separation for Deployment](#privilege-separation-for-deployment)
 
@@ -55,17 +58,24 @@ Dynatrace, similar to OneAgent.
 
 The following figure illustrates, at high level, how telemetry data flows from Snowflake sources to Dynatrace for consumption.
 
-![Overview of flow of telemetry data through DSOA to Dynatrace](assets/dsoa-overview.jpg)
+![Architecture diagram: Overview of telemetry data flow from Snowflake through DSOA to Dynatrace](assets/dsoa-overview.jpg)
 
 DSOA enables easy extension with new plugins, each of which can utilize the core functions to
 deliver telemetry data via logs, spans/traces, events, bizevents, and metrics.
 
-By default, each plugin is executed with an independent Snowflake task, scheduled to run at its own interval. Additionally, it is possible
-to call multiple plugins from a single Snowflake task if needed, providing flexible scheduling options.
+By default, each plugin is executed with an independent Snowflake task, scheduled to run at its own interval. You can also
+call multiple plugins from a single Snowflake task if needed, providing flexible scheduling options.
 
-The telemetry data can come from various sources, not only from `snowflake.account_usage` views but also from functions/procedures and
-"show" command calls. DSOA encapsulates each telemetry data into views delivered by "plugins," with each
-plugin focusing on delivering telemetry from one or more sources related to a specific subject, for example, query history or dynamic tables.
+**Telemetry data sources:**
+
+The telemetry data can come from various sources:
+
+- `snowflake.account_usage` views
+- Functions and procedures
+- "SHOW" command calls
+
+DSOA encapsulates each telemetry data into views delivered by "plugins." Each
+plugin focuses on delivering telemetry from one or more sources related to a specific subject, for example, query history or dynamic tables.
 
 ## DSOA objects in Snowflake
 
@@ -99,7 +109,7 @@ You can run multiple DSOA instances within one Snowflake account. Additional ins
 The figure below depicts objects that DSOA creates and maintains within a dedicated database in
 Snowflake:
 
-![DSOA objects in Snowflake](assets/dsoa-snowflake-objects.jpg)
+![Architecture diagram: DSOA database objects, schemas, and roles in Snowflake](assets/dsoa-snowflake-objects.jpg)
 
 ### The `APP` schema
 
@@ -112,9 +122,14 @@ This is the main schema maintained by DSOA. It contains two main stored procedur
   using plugins to query, process, and send telemetry data, it enables to [send arbitrary data](#sending-custom-telemetry) from given
   tables/views/queries or array/objects to Dynatrace.
 
-Additionally, a set of helper functions to check the timestamp of the last telemetry piece of a given type processed so far
-(`STATUS.F_LAST_PROCESSED_TS()`) or get configuration parameters (`CONFIG.F_GET_CONFIG_VALUE()`), plus procedures helping to set up and maintain the event
-log table, if it is set up by and managed this DSOA instance.
+**Helper functions and procedures:**
+
+The schema also includes:
+
+- Helper functions to check the timestamp of the last telemetry piece of a given type processed so far
+  (`STATUS.F_LAST_PROCESSED_TS()`)
+- Functions to get configuration parameters (`CONFIG.F_GET_CONFIG_VALUE()`)
+- Procedures for setting up and maintaining the event log table, if managed by this DSOA instance
 
 Plugins can define their main and helper views, helper procedures, and tasks which invoke DSOA with the
 given plugin at a given schedule.
@@ -127,9 +142,13 @@ To communicate with the Dynatrace API, DSOA uses dedicated `SECRET`, `NETWORK RU
 Contains the `CONFIGURATIONS` table with all configurable options of DSOA, including internal API and plugins.
 DSOA main stored procedures initialize from this table.
 
-Additionally, a set of helper procedures changes DSOA behavior that does not
-initialize during runtime, for example, the number of credits allowed daily by the internal resource monitor, or the schedule of each plugin's
-execution.
+**Helper procedures:**
+
+The schema provides procedures to change DSOA behavior that does not
+initialize during runtime, for example:
+
+- The number of credits allowed daily by the internal resource monitor
+- The schedule of each plugin's execution
 
 ### The `STATUS` schema
 
@@ -151,7 +170,9 @@ Notebooks, Dashboards, Workflows, and Anomaly detection rules.
 
 The following figure depicts in detail each step of how telemetry data flows from Snowflake telemetry sources through DSOA to Dynatrace. This example shows the execution of the `query_history` plugin.
 
-![Detailed flow of telemetry data on query history from Snowflake sources through DSOA to Dynatrace Grail and further](assets/dsoa-dataflow.jpg)
+![Process flow diagram: Detailed telemetry data flow for query history from Snowflake through DSOA to Dynatrace Grail](assets/dsoa-dataflow.jpg)
+
+**Process steps:**
 
 1. The process starts with Snowflake task `TASK_DTAGENT_QUERY_HISTORY` calling the `DTAGENT()` procedure with `query_history` as a
    parameter:

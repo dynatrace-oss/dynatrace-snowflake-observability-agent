@@ -71,7 +71,7 @@ only losing credibility (by delivering late or poor-quality data) but also incur
 
 ## The five core themes of DPO
 
-![Five themes of Data Platform Observability](assets/data-platform-observability-themes.jpg)
+![Conceptual diagram: Five core themes of Data Platform Observability - Security, Operations, Costs, Performance, and Quality](assets/data-platform-observability-themes.jpg)
 
 Building on the importance of Data Platform Observability (DPO) in ensuring the health and performance of your data ecosystem, we can
 analyze DPO through five core themes:
@@ -83,16 +83,32 @@ analyze DPO through five core themes:
 - [quality](#quality-theme).
 
 These themes highlight the various aspects where observability plays a crucial role in maintaining and optimizing your data platform.
-[By thoroughly examining each theme](https://www.montecarlodata.com/blog-data-observability-use-cases/), we can better understand how DPO
-contributes to overall data quality, security, operational efficiency, cost management, and performance optimization.
 
-Let's dive deeper into each of these themes, starting with the Security theme.
+**Key benefits of comprehensive DPO:**
+
+By [thoroughly examining each theme](https://www.montecarlodata.com/blog-data-observability-use-cases/), you can:
+
+- Improve overall data quality
+- Strengthen security posture
+- Enhance operational efficiency
+- Optimize cost management
+- Boost performance
+
+The following sections explore each theme in detail, starting with the Security theme.
 
 ### Security theme
 
-Data Platform Observability (DPO) plays a crucial role in maintaining the security of your data ecosystem. By implementing robust security
-measures, organizations can prevent data breaches, protect sensitive information, and ensure compliance with regulatory standards. Here are
-some key aspects of the security theme.
+Data Platform Observability (DPO) plays a crucial role in maintaining the security of your data ecosystem.
+
+**Security benefits:**
+
+By implementing robust security measures, organizations can:
+
+- Prevent data breaches
+- Protect sensitive information
+- Ensure compliance with regulatory standards
+
+**Key security capabilities:**
 
 - **Centralized analysis** enables the Chief Information Security Officer (CISO) to conduct regular security audits and vulnerability
   assessments. These audits are essential for identifying weaknesses in the digital infrastructure and ensuring compliance with industry

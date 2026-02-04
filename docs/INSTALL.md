@@ -17,16 +17,16 @@ developer and want to build from source, please refer to the [CONTRIBUTING.md](C
 
 ## Prerequisites
 
-Before you can deploy the agent, you need to ensure the following tools are installed on your system.
+Before deploying the agent, ensure the following tools are installed on your system.
 
 ### Windows Users
 
-On Windows, it is necessary to install Windows Subsystem for Linux (WSL) version 2.0 or higher. The deployment scripts must be run through
-WSL. See [Install WSL guide](https://learn.microsoft.com/en-us/windows/wsl/install) for more details.
+**Important:** On Windows, you must install Windows Subsystem for Linux (WSL) version 2.0 or higher. The deployment scripts must run through
+WSL. See the [Install WSL guide](https://learn.microsoft.com/en-us/windows/wsl/install) for more details.
 
 ### All Users
 
-You will need the following command-line tools:
+**Required command-line tools:**
 
 - **bash**: The deployment scripts are written in bash.
 - **Snowflake CLI**: For connecting to and deploying objects in Snowflake.

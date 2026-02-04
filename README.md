@@ -10,7 +10,7 @@ monitoring, analyzing, and detecting anomalies in data processing. It delivers o
 [metrics](ARCHITECTURE.md#sending-metrics), [events](ARCHITECTURE.md#sending-events), and
 [business events (CloudEvents)](ARCHITECTURE.md#sending-bizevents), ensuring a seamless integration with Dynatrace's observability platform.
 
-Table of content:
+**Table of contents:**
 
 - [Understanding Data Platform Observability](docs/DPO.md)
 - [Common use cases](docs/USECASES.md)
