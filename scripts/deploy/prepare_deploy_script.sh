@@ -59,6 +59,7 @@ CUSTOM_RS=$($CWD/get_config_key.sh core.snowflake.resource_monitor.name)
 CUSTOM_OWNER=$($CWD/get_config_key.sh core.snowflake.roles.owner)
 CUSTOM_ADMIN=$($CWD/get_config_key.sh core.snowflake.roles.admin)
 CUSTOM_VIEWER=$($CWD/get_config_key.sh core.snowflake.roles.viewer)
+CUSTOM_API_INTEGRATION=$($CWD/get_config_key.sh core.snowflake.api_integration.name)
 
 # Function to validate Snowflake object name
 validate_snowflake_name() {
@@ -99,6 +100,7 @@ if [ -n "$CUSTOM_RS" ] && [ "$CUSTOM_RS" != "null" ] && [ "$CUSTOM_RS" != "" ] &
 if [ -n "$CUSTOM_OWNER" ] && [ "$CUSTOM_OWNER" != "null" ] && [ "$CUSTOM_OWNER" != "" ]; then CUSTOM_NAMES_USED=true; fi
 if [ -n "$CUSTOM_ADMIN" ] && [ "$CUSTOM_ADMIN" != "null" ] && [ "$CUSTOM_ADMIN" != "" ] && [ "$CUSTOM_ADMIN" != "-" ]; then CUSTOM_NAMES_USED=true; fi
 if [ -n "$CUSTOM_VIEWER" ] && [ "$CUSTOM_VIEWER" != "null" ] && [ "$CUSTOM_VIEWER" != "" ]; then CUSTOM_NAMES_USED=true; fi
+if [ -n "$CUSTOM_API_INTEGRATION" ] && [ "$CUSTOM_API_INTEGRATION" != "null" ] && [ "$CUSTOM_API_INTEGRATION" != "" ]; then CUSTOM_NAMES_USED=true; fi
 
 if [ -n "$TAG" ] && [ "$CUSTOM_NAMES_USED" = true ]; then
     echo "ERROR: Cannot use both multitenancy TAG ('$TAG') and custom Snowflake object names"
@@ -114,6 +116,7 @@ if [ "$CUSTOM_NAMES_USED" = true ]; then
     validate_snowflake_name "$CUSTOM_OWNER" "owner role" || exit 1
     validate_snowflake_name "$CUSTOM_ADMIN" "admin role" || exit 1
     validate_snowflake_name "$CUSTOM_VIEWER" "viewer role" || exit 1
+    validate_snowflake_name "$CUSTOM_API_INTEGRATION" "API integration" || exit 1
 
     echo "Using custom Snowflake object names:"
     if [ -n "$CUSTOM_DB" ] && [ "$CUSTOM_DB" != "null" ] && [ "$CUSTOM_DB" != "" ]; then
@@ -133,6 +136,9 @@ if [ "$CUSTOM_NAMES_USED" = true ]; then
     fi
     if [ -n "$CUSTOM_VIEWER" ] && [ "$CUSTOM_VIEWER" != "null" ] && [ "$CUSTOM_VIEWER" != "" ]; then
         echo "  Viewer Role: $CUSTOM_VIEWER"
+    fi
+    if [ -n "$CUSTOM_API_INTEGRATION" ] && [ "$CUSTOM_API_INTEGRATION" != "null" ] && [ "$CUSTOM_API_INTEGRATION" != "" ]; then
+        echo "  API Integration: $CUSTOM_API_INTEGRATION"
     fi
 fi
 
@@ -550,6 +556,10 @@ elif [ "$CUSTOM_NAMES_USED" = true ]; then
 
     if [ -n "$CUSTOM_VIEWER" ] && [ "$CUSTOM_VIEWER" != "null" ] && [ "$CUSTOM_VIEWER" != "" ]; then
         "${SED_INPLACE[@]}" -E -e "s/(^|[^A-Za-z0-9_\$])DTAGENT_VIEWER([^A-Za-z0-9_\$]|$)/\1$CUSTOM_VIEWER\2/g" "$INSTALL_SCRIPT_SQL"
+    fi
+
+    if [ -n "$CUSTOM_API_INTEGRATION" ] && [ "$CUSTOM_API_INTEGRATION" != "null" ] && [ "$CUSTOM_API_INTEGRATION" != "" ]; then
+        "${SED_INPLACE[@]}" -E -e "s/(^|[^A-Za-z0-9_\$])DTAGENT_API_INTEGRATION([^A-Za-z0-9_\$]|$)/\1$CUSTOM_API_INTEGRATION\2/g" "$INSTALL_SCRIPT_SQL"
     fi
 fi
 

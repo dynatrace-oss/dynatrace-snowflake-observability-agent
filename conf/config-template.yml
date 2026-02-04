@@ -36,6 +36,9 @@ core:
       owner: "" # Default: DTAGENT_OWNER
       admin: "" # Default: DTAGENT_ADMIN, use "-" to skip
       viewer: "" # Default: DTAGENT_VIEWER
+
+    api_integration:
+      name: "" # Default: DTAGENT_API_INTEGRATION
 otel: {}
 plugins:
   disabled_by_default: false
