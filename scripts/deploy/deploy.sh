@@ -86,6 +86,34 @@ has_option() {
     return 1
 }
 
+# Display warning when bizevent send fails
+show_bizevent_warning() {
+    local stage=$1  # "STARTED" or "FINISHED"
+    local status_msg="Deployment will continue, but telemetry will not be sent to Dynatrace."
+
+    if [ "$stage" == "FINISHED" ]; then
+        status_msg="Deployment completed, but telemetry was not sent to Dynatrace."
+    fi
+
+    echo ""
+    echo "╔══════════════════════════════════════════════════════════════════════════════════╗"
+    echo "║                                   ⚠️  WARNING  ⚠️                                 ║"
+    echo "╠══════════════════════════════════════════════════════════════════════════════════╣"
+    echo "║                                                                                  ║"
+    echo "║  Failed to send deployment bizevent to Dynatrace!                                ║"
+    echo "║                                                                                  ║"
+    echo "║  This may indicate issues with:                                                  ║"
+    echo "║    • Dynatrace API token (DTAGENT_TOKEN) - check if valid and not expired        ║"
+    echo "║    • Network connectivity to Dynatrace tenant                                    ║"
+    echo "║    • API token permissions (requires bizevents.ingest scope)                     ║"
+    echo "║                                                                                  ║"
+    echo "║  $status_msg          ║"
+    echo "║                                                                                  ║"
+    echo "╚══════════════════════════════════════════════════════════════════════════════════╝"
+    echo ""
+    sleep 3
+}
+
 CWD=$(dirname "$0")
 
 if has_option "manual"; then
@@ -221,7 +249,7 @@ if [ -s "$INSTALL_SCRIPT_SQL" ] && ! $IS_MANUAL; then
 
     if ! has_option "no_dep"; then
         if ! $CWD/send_bizevent.sh "${SCOPE}" "STARTED" "${DEPLOYMENT_ID}"; then
-            echo "Encountered issues when sending deployment bizevent, proceeding..."
+            show_bizevent_warning "STARTED"
         fi
     fi
     #%DEV:
@@ -256,6 +284,6 @@ fi
 
 if ! has_option "no_dep"; then
     if ! $CWD/send_bizevent.sh "${SCOPE}" "FINISHED" "${DEPLOYMENT_ID}"; then
-        echo "Encountered issues when sending deployment bizevent, proceeding..."
+        show_bizevent_warning "FINISHED"
     fi
 fi
