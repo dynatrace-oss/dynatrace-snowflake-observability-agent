@@ -28,6 +28,8 @@ The main capabilities offered by DSOA are:
   - [The `CONFIG` schema](#the-config-schema)
   - [The `STATUS` schema](#the-status-schema)
 - [Telemetry flow](#telemetry-flow)
+  - [Example flow: Query history plugin](#example-flow-query-history-plugin)
+  - [Process steps](#process-steps)
 - [Internal API for sending telemetry](#internal-api-for-sending-telemetry)
   - [Sending logs](#sending-logs)
   - [Sending traces/spans](#sending-tracesspans)
@@ -166,13 +168,13 @@ It is a good practice to accompany status tables with helper procedures, such as
 Telemetry delivered by DSOA to Dynatrace becomes available in Grail (Dynatrace's data lakehouse). You can access it with Dynatrace Query Language (DQL) in
 Notebooks, Dashboards, Workflows, and Anomaly detection rules.
 
-**Example flow: Query history plugin**
+### Example flow: Query history plugin
 
 The following figure depicts in detail each step of how telemetry data flows from Snowflake telemetry sources through DSOA to Dynatrace. This example shows the execution of the `query_history` plugin.
 
 ![Process flow diagram: Detailed telemetry data flow for query history from Snowflake through DSOA to Dynatrace Grail](assets/dsoa-dataflow.jpg)
 
-**Process steps:**
+### Process steps
 
 1. The process starts with Snowflake task `TASK_DTAGENT_QUERY_HISTORY` calling the `DTAGENT()` procedure with `query_history` as a
    parameter:
