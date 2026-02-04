@@ -160,6 +160,46 @@ teardown() {
     [[ "$output" =~ "ERROR: --from-version required for upgrade scope" ]]
 }
 
+@test "prepare_deploy_script.sh upgrade scope filters by from-version=0.9.2" {
+    export DTAGENT_TOKEN="dt0c01.TEST12345678901234567890.TEST123456789012345678901234567890123456789012345678901234567890"
+    run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "upgrade" "0.9.2" "manual"
+    [ "$status" -eq 0 ]
+    [ -s "$TEST_SQL_FILE" ]
+
+    # Should include v0.9.3 and v1.0.0 (versions > 0.9.2)
+    grep -q "upgrade 0.9.3" "$TEST_SQL_FILE"
+    grep -q "upgrade 1.0.0" "$TEST_SQL_FILE"
+
+    # Should NOT include v0.9.0 (version <= 0.9.2)
+    ! grep -q "upgrade 0.9.0" "$TEST_SQL_FILE"
+}
+
+@test "prepare_deploy_script.sh multiple scopes with upgrade filters by version" {
+    export DTAGENT_TOKEN="dt0c01.TEST12345678901234567890.TEST123456789012345678901234567890123456789012345678901234567890"
+    run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "init,admin,upgrade,setup" "0.9.2" "manual"
+    [ "$status" -eq 0 ]
+    [ -s "$TEST_SQL_FILE" ]
+
+    # Should include init, admin, setup code (with TAG replacements applied)
+    grep -q "MAIN_SCHEMA" "$TEST_SQL_FILE"
+    grep -q "DTAGENT_TEST_ADMIN" "$TEST_SQL_FILE"  # TAG "TEST" is applied
+    grep -q "main_proc" "$TEST_SQL_FILE"
+
+    # Should include v0.9.3 and v1.0.0 upgrade scripts (versions > 0.9.2)
+    grep -q "upgrade 0.9.3" "$TEST_SQL_FILE"
+    grep -q "upgrade 1.0.0" "$TEST_SQL_FILE"
+
+    # Should NOT include v0.9.0 upgrade script (version <= 0.9.2)
+    ! grep -q "upgrade 0.9.0" "$TEST_SQL_FILE"
+}
+
+@test "prepare_deploy_script.sh multiple scopes with upgrade requires from-version" {
+    export DTAGENT_TOKEN="dt0c01.TEST12345678901234567890.TEST123456789012345678901234567890123456789012345678901234567890"
+    run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "init,admin,upgrade,setup" "" "manual"
+    [ "$status" -ne 0 ]
+    [[ "$output" =~ "ERROR: --from-version required for upgrade scope" ]]
+}
+
 @test "prepare_deploy_script.sh removes inactive plugins from init scope" {
     # Create config with test_plugin disabled
     cat > "$TEST_CONFIG_FILE" << 'EOF'

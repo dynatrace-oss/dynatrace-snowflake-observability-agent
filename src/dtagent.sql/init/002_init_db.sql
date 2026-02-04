@@ -34,7 +34,7 @@ alter database DTAGENT_DB set LOG_LEVEL = WARN;
 -- This will be overridden by the configured value in the config table after deployment
 alter database DTAGENT_DB set DATA_RETENTION_TIME_IN_DAYS = 1;
 
-grant ownership on database DTAGENT_DB to role DTAGENT_OWNER;
+grant ownership on database DTAGENT_DB to role DTAGENT_OWNER revoke current grants;
 grant usage on database DTAGENT_DB to role DTAGENT_VIEWER;
 
 grant OPERATE on all tasks in database DTAGENT_DB to role DTAGENT_VIEWER;
@@ -42,6 +42,6 @@ grant OPERATE on future tasks in database DTAGENT_DB to role DTAGENT_VIEWER;
 
 
 create schema if not exists DTAGENT_DB.PUBLIC;
-grant ownership on schema DTAGENT_DB.PUBLIC to role DTAGENT_OWNER;
+grant ownership on schema DTAGENT_DB.PUBLIC to role DTAGENT_OWNER revoke current grants;
 grant usage on schema DTAGENT_DB.PUBLIC to role DTAGENT_VIEWER;
 

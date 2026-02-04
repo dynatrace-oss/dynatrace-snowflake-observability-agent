@@ -25,4 +25,4 @@
 --
 use role DTAGENT_OWNER; use schema DTAGENT_DB.CONFIG; use warehouse DTAGENT_WH;
 
-drop procedure if exists DTAGENT_DB.CONFIG.SET_RESOURCE_MONITOR(SNOWFLAKE_CREDIT_QUOTA int)
+drop procedure if exists DTAGENT_DB.CONFIG.SET_RESOURCE_MONITOR(int);

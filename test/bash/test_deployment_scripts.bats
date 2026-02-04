@@ -23,10 +23,12 @@ EOF
     # Create necessary build artifacts for deployment tests
     mkdir -p build/09_upgrade build/30_plugins conf
     echo "SELECT 'init';" > build/00_init.sql
-    echo "SELECT 'admin';" > build/10_admin.sql
-    echo "SELECT 'setup';" > build/20_setup.sql
+    echo "SELECT 'admin'; CREATE ROLE IF NOT EXISTS DTAGENT_ADMIN;" > build/10_admin.sql
+    echo "SELECT 'setup'; CREATE SCHEMA IF NOT EXISTS MAIN_SCHEMA;" > build/20_setup.sql
     echo "SELECT 'config';" > build/40_config.sql
     echo "SELECT 'agents';" > build/70_agents.sql
+    echo "SELECT 'upgrade 0.9.0';" > build/09_upgrade/v0.9.0.sql
+    echo "SELECT 'upgrade 0.9.3';" > build/09_upgrade/v0.9.3.sql
     echo "SELECT 'upgrade 1.0.0';" > build/09_upgrade/v1.0.0.sql
     echo "SELECT 'plugin';" > build/30_plugins/test_plugin.sql
 
@@ -189,4 +191,45 @@ teardown() {
     ! grep -q "init" "$DEPLOY_SCRIPT"
 
     rm -f "$DEPLOY_SCRIPT"
+}
+
+@test "deploy.sh upgrade scope with from-version=0.9.2 filters correctly" {
+    export DTAGENT_TOKEN="dt0c01.TEST12345678901234567890.TEST123456789012345678901234567890123456789012345678901234567890"
+
+    DEPLOY_SCRIPT="test-upgrade-092.sql"
+    run timeout 30 ./scripts/deploy/deploy.sh test --scope=upgrade --from-version=0.9.2 --output-file="$DEPLOY_SCRIPT" --options=manual,skip_confirm
+    [ "$status" -eq 0 ]
+
+    [ -f "$DEPLOY_SCRIPT" ]
+    grep -q "upgrade 0.9.3" "$DEPLOY_SCRIPT"
+    ! grep -q "upgrade 0.9.0" "$DEPLOY_SCRIPT"
+
+    rm -f "$DEPLOY_SCRIPT"
+}
+
+@test "deploy.sh multiple scopes with upgrade filters by version" {
+    export DTAGENT_TOKEN="dt0c01.TEST12345678901234567890.TEST123456789012345678901234567890123456789012345678901234567890"
+
+    DEPLOY_SCRIPT="test-multi-scope-upgrade.sql"
+    run timeout 30 ./scripts/deploy/deploy.sh test --scope=init,admin,upgrade,setup --from-version=0.9.2 --output-file="$DEPLOY_SCRIPT" --options=manual,skip_confirm
+    [ "$status" -eq 0 ]
+
+    [ -f "$DEPLOY_SCRIPT" ]
+
+    # Should include init, admin, setup (with TAG replacements applied)
+    grep -q "MAIN_SCHEMA" "$DEPLOY_SCRIPT"
+    grep -q "DTAGENT_TEST_ADMIN" "$DEPLOY_SCRIPT"  # TAG "TEST" is applied
+
+    # Should include v0.9.3 but NOT v0.9.0
+    grep -q "upgrade 0.9.3" "$DEPLOY_SCRIPT"
+    ! grep -q "upgrade 0.9.0" "$DEPLOY_SCRIPT"
+
+    rm -f "$DEPLOY_SCRIPT"
+}
+
+@test "deploy.sh multiple scopes with upgrade requires from-version" {    export DTAGENT_TOKEN="dt0c01.TEST12345678901234567890.TEST123456789012345678901234567890123456789012345678901234567890"
+
+    run timeout 30 ./scripts/deploy/deploy.sh test --scope=init,admin,upgrade,setup --options=manual,skip_confirm
+    [ "$status" -ne 0 ]
+    [[ "$output" =~ "--from-version" ]]
 }

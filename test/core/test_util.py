@@ -231,11 +231,20 @@ class TestGetSnowflakeAccountInfo:
         from dtagent.util import _get_snowflake_account_info
         from unittest.mock import Mock
 
-        # Mock Snowflake session
+        # Mock Snowflake session - simulate a Row object with indexing support
         mock_session = Mock()
-        mock_result = Mock()
-        mock_result.__getitem__ = lambda self, key: "testorg-testaccount"
-        mock_session.sql.return_value.collect.return_value = [mock_result]
+        mock_row = Mock()
+
+        def _mock_row_getitem(idx):
+            # Simulate Snowflake Row index behavior: integer indices only, with support for -1 as last element.
+            if not isinstance(idx, int):
+                raise TypeError("Row indices must be integers")
+            if idx in (0, -1):
+                return "testorg-testaccount"
+            raise IndexError("Row index out of range")
+
+        mock_row.__getitem__ = Mock(side_effect=_mock_row_getitem)
+        mock_session.sql.return_value.collect.return_value = [mock_row]
 
         config_dict = {"core.snowflake.account_name": "", "core.snowflake.host_name": ""}
 
@@ -252,10 +261,11 @@ class TestGetSnowflakeAccountInfo:
         """Test when session query fails - should return empty strings"""
         from dtagent.util import _get_snowflake_account_info
         from unittest.mock import Mock
+        from snowflake.snowpark.exceptions import SnowparkSQLException
 
         # Mock session that raises exception
         mock_session = Mock()
-        mock_session.sql.side_effect = Exception("Connection error")
+        mock_session.sql.side_effect = SnowparkSQLException("Connection error")
 
         config_dict = {"core.snowflake.account_name": "-", "core.snowflake.host_name": "-"}
 
@@ -324,3 +334,53 @@ class TestGetSnowflakeAccountInfo:
 
         assert account_name == ""
         assert host_name == ""
+
+    def test_real_snowflake_session_queries_account_info(self):
+        """Test with real Snowflake session to query account information
+
+        This test runs only when test/credentials.yml is present.
+        It verifies that _get_snowflake_account_info can successfully query
+        a real Snowflake instance for account details.
+        """
+        from test import is_local_testing, _get_session, _get_credentials
+        from dtagent.util import _get_snowflake_account_info
+
+        # Skip if no credentials available (local testing mode)
+        if is_local_testing():
+            import pytest
+
+            pytest.skip("Skipping real Snowflake test - no credentials available")
+
+        # Get credentials and session
+        credentials = _get_credentials()
+        session = _get_session()
+        expected_account = credentials.get("account", "")
+
+        # Test with empty config - should query Snowflake
+        config_dict = {"core.snowflake.account_name": "", "core.snowflake.host_name": ""}
+
+        account_name, host_name = _get_snowflake_account_info(config_dict, session=session)
+
+        # Verify we got actual values back
+        assert account_name != "", "account_name should not be empty"
+        assert host_name != "", "host_name should not be empty"
+        assert host_name.endswith(".snowflakecomputing.com"), f"host_name should end with .snowflakecomputing.com, got: {host_name}"
+
+        # Verify the account name matches the credentials (case-insensitive)
+        # The query returns "org-account" format (e.g., "ORGID-ACCOUNT_NAME")
+        # while credentials may have "account.region" format (e.g., "account_name.cloud_region").
+        # Check that either the account_name matches expected or the expected account appears in the returned values
+        account_name_lower = account_name.lower()
+        expected_account_lower = expected_account.lower()
+        host_name_lower = host_name.lower()
+
+        # Extract the account part from credentials if it has region format (e.g., "account.region" -> "account")
+        expected_account_base = expected_account_lower.split(".")[0] if "." in expected_account_lower else expected_account_lower
+
+        # Verify that the expected account is present in the retrieved values (case-insensitive)
+        assert (
+            account_name_lower == expected_account_lower  # Exact match
+            or expected_account_lower in host_name_lower  # Expected account in host
+            or expected_account_base in account_name_lower  # Base account name in retrieved account
+            or expected_account_base in host_name_lower  # Base account name in host
+        ), f"Expected account '{expected_account}' not found in retrieved account_name '{account_name}' or host_name '{host_name}'"

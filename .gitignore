@@ -22,6 +22,6 @@ metrics/*
 LICENSE.md
 *-deploy-script*
 *.pdf
-test/conf/*config-download.json
+test/conf/*config-download.yml
 dynatrace-snowflake-observability-agent
 *.pkg

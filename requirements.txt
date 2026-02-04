@@ -38,6 +38,7 @@ uuid
 jsonstrip
 numpy
 pytest
+pytest-tap
 inflect
 markdown2
 weasyprint
