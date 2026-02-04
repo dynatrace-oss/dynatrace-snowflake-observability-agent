@@ -11,27 +11,27 @@ example use cases which can be realized with observability data gathered and del
 
 ## Theme: Security
 
-| Use case                      | In Details                                                                                                                                                                                  | Data                                                      |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
-| Warehouse security monitoring | We can detect potential data security issues and breaches as quickly as possible. We gather information about these security issues as well as entities put at risk by the vulnerabilities. | [Trust Center plugin](PLUGINS.md#trust_center_info_sec)   |
-| Log in and session monitoring | We provide detailed information on logging history and sessions, which is essential for detecting security breaches.                                                                        | [Login History plugin](PLUGINS.md#login_history_info_sec) |
+| Use case                      | In Details                                                                                                                                                             | Data                                                      |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| Warehouse security monitoring | Detect potential data security issues and breaches as quickly as possible. Gather information about these security issues and entities put at risk by vulnerabilities. | [Trust Center plugin](PLUGINS.md#trust_center_info_sec)   |
+| Log in and session monitoring | Provide detailed information on logging history and sessions, essential for detecting security breaches.                                                               | [Login History plugin](PLUGINS.md#login_history_info_sec) |
 
 ## Theme: Operations
 
-| Use case                      | In Details                                                                                                                                                                                                                                                | Data                                                          |
-| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| Predicting credits exhaustion | We can be smarter than static threshold sending (or not) emails that a resource monitor's credits are going over the threshold. We could actually, by analyzing costs so far, predict whether they would suffice by the time the resource monitor resets. | [Warehouse Usage plugin](PLUGINS.md#warehouse_usage_info_sec) |
-| Snowflake Trail monitoring    | We gather information from Snowflake Trail which provides enhanced visibility into pipeline health.                                                                                                                                                       | [Event Log plugin](PLUGINS.md#event_log_info_sec)             |
+| Use case                      | In Details                                                                                                                                                       | Data                                                          |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| Predicting credits exhaustion | Move beyond static threshold emails for resource monitor credits. Analyze costs to predict whether credits will suffice by the time the resource monitor resets. | [Warehouse Usage plugin](PLUGINS.md#warehouse_usage_info_sec) |
+| Snowflake Trail monitoring    | Gather information from Snowflake Trail to provide enhanced visibility into pipeline health.                                                                     | [Event Log plugin](PLUGINS.md#event_log_info_sec)             |
 
 ## Theme: Costs
 
-| Use case                   | In Details                                                                                                                                                                                                               | Data                                                              |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------- |
-| Resource monitors analysis | It is not often so simple to determine if the credits limit set on a resource monitor is enough or too much, or might be too little in the near future. With more detailed data, we should be able to analyze it better. | [Resource Monitors plugin](PLUGINS.md#resource_monitors_info_sec) |
-| Budgets analysis           | Combines budget details like spending limits and linked resources, as well as their spending history to allow for complete and comfortable analysis of costs.                                                            | [Budgets plugin](PLUGINS.md#budgets_info_sec)                     |
-| Ingest cost analysis       | Allows for monitoring of data ingestion, credits used during the events, and bytes ingested.                                                                                                                             | [Event Usage plugin](PLUGINS.md#event_usage_info_sec)             |
-| Serverless tasks analysis  | We can monitor credits spent by serverless tasks which play a vital role in relying on compute resources managed by Snowflake.                                                                                           | [Tasks plugin](PLUGINS.md#tasks_info_sec)                         |
-| Warehouse metering history | We can monitor the spending of particular warehouses and possibly predict trends in their expenses.                                                                                                                      | [Warehouse Usage plugin](PLUGINS.md#warehouse_usage_info_sec)     |
+| Use case                   | In Details                                                                                                                                                    | Data                                                              |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Resource monitors analysis | Determine if the credits limit set on a resource monitor is enough, too much, or too little for future needs. Analyze detailed data to make better decisions. | [Resource Monitors plugin](PLUGINS.md#resource_monitors_info_sec) |
+| Budgets analysis           | Combine budget details like spending limits and linked resources with their spending history to enable complete cost analysis.                                | [Budgets plugin](PLUGINS.md#budgets_info_sec)                     |
+| Ingest cost analysis       | Monitor data ingestion, credits used during events, and bytes ingested.                                                                                       | [Event Usage plugin](PLUGINS.md#event_usage_info_sec)             |
+| Serverless tasks analysis  | Monitor credits spent by serverless tasks, which rely on compute resources managed by Snowflake.                                                              | [Tasks plugin](PLUGINS.md#tasks_info_sec)                         |
+| Warehouse metering history | Monitor spending of particular warehouses and predict trends in their expenses.                                                                               | [Warehouse Usage plugin](PLUGINS.md#warehouse_usage_info_sec)     |
 
 ## Theme: Performance
 
@@ -49,7 +49,7 @@ example use cases which can be realized with observability data gathered and del
 
 ## Theme: Quality
 
-| Use case                   | In Details                                                                                                                                                | Data                                                  |
-| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
-| Data volume monitoring     | We want to understand how data volume in monitored databases, schemas, and tables changes over time; especially if there are any anomalies in the change. | [Data Volume plugin](PLUGINS.md#data_volume_info_sec) |
-| Snowflake Trail monitoring | We gather information from Snowflake Trail which provides enhanced visibility into data quality.                                                          | [Event Log plugin](PLUGINS.md#event_log_info_sec)     |
+| Use case                   | In Details                                                                                                                           | Data                                                  |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------- |
+| Data volume monitoring     | Understand how data volume in monitored databases, schemas, and tables changes over time. Identify anomalies in data volume changes. | [Data Volume plugin](PLUGINS.md#data_volume_info_sec) |
+| Snowflake Trail monitoring | Gather information from Snowflake Trail to provide enhanced visibility into data quality.                                            | [Event Log plugin](PLUGINS.md#event_log_info_sec)     |

@@ -1,7 +1,6 @@
 # How to Install
 
-Dynatrace Snowflake Observability Agent (DSOA) comes in the form of a series of SQL scripts (accompanied with a few configuration files), which
-need to be deployed at Snowflake by executing them in the correct order.
+Dynatrace Snowflake Observability Agent (DSOA) comes in the form of a series of SQL scripts (accompanied with a few configuration files). You must deploy these scripts to Snowflake by executing them in the correct order.
 
 This document assumes you are installing from the distribution package (`dynatrace_snowflake_observability_agent-*.zip`). If you are a
 developer and want to build from source, please refer to the [CONTRIBUTING.md](CONTRIBUTING.md) guide.

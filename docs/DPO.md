@@ -41,8 +41,11 @@ Observability (DPO) comes into play.
 
 **Data Platform Observability (DPO)** refers to the ability to fully understand the health and performance of your entire data ecosystem. It
 encompasses monitoring, tracking, and analyzing the usage and processing of data across various stages to ensure they meet the required
-standards of quality, performance, and security. As data platforms grow in complexity and scale, the need for observability becomes
-increasingly critical.
+standards of quality, performance, and security.
+
+As data platforms grow in complexity and scale, the need for observability becomes increasingly critical.
+
+**The cost of poor observability:**
 
 When you do not adhere to the Data Platform Observability paradigm and lose track of the overall health of your data platform, you risk not
 only losing credibility (by delivering late or poor-quality data) but also incurring monetary losses:

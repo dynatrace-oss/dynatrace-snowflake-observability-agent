@@ -1,8 +1,10 @@
 # Architecture and Core Capabilities
 
-Dynatrace Snowflake Observability Agent (DSOA) was designed to augment [Data Platform Observability](DPO.md) capabilities already offered by
-Dynatrace with OneAgent and custom telemetry (including logs and bizevents) delivered by Extract, Transform, Load (ETL) and other applications. DSOA aims to fulfill the promise of Data Platform Observability by delivering telemetry data already present in Snowflake
-directly to Dynatrace as logs, traces, events, and metrics. Depending on what type of telemetry is sent by a given DSOA plugin, one or more [Data Platform Observability themes](DPO.md#the-five-core-themes-of-dpo) can be supported over one or
+Dynatrace Snowflake Observability Agent (DSOA) augments [Data Platform Observability](DPO.md) capabilities already offered by
+Dynatrace with OneAgent and custom telemetry (including logs and bizevents) delivered by Extract, Transform, Load (ETL) and other applications.
+
+DSOA fulfills the promise of Data Platform Observability by delivering telemetry data already present in Snowflake
+directly to Dynatrace as logs, traces, events, and metrics. Depending on what type of telemetry a given DSOA plugin sends, it can support one or more [Data Platform Observability themes](DPO.md#the-five-core-themes-of-dpo) across one or
 multiple [layers of Data Platform Observability](DPO.md#the-three-tiers-of-data-platform-observability).
 
 ![High level Data Platform Observability architecture with DSOA delivering telemetry to Dynatrace](assets/data-platform-observability-dsoa.jpg)
@@ -47,15 +49,15 @@ Table of content:
 
 ## High-Level overview
 
-DSOA is designed to take full advantage of Snowflake Snowpark capabilities (Snowflake's developer framework for building data pipelines), allowing active "code" to be
-scheduled and executed within Snowflake, close to where the telemetry data comes from. Such a design enables telemetry to be sent over to
+DSOA takes full advantage of Snowflake Snowpark capabilities (Snowflake's developer framework for building data pipelines), allowing active "code" to be
+scheduled and executed within Snowflake, close to where the telemetry data originates. This design enables telemetry to flow directly to
 Dynatrace, similar to OneAgent.
 
 The following figure illustrates, at high level, how telemetry data flows from Snowflake sources to Dynatrace for consumption.
 
 ![Overview of flow of telemetry data through DSOA to Dynatrace](assets/dsoa-overview.jpg)
 
-DSOA is designed for easy extension with new plugins, each of which can utilize the core functions to
+DSOA enables easy extension with new plugins, each of which can utilize the core functions to
 deliver telemetry data via logs, spans/traces, events, bizevents, and metrics.
 
 By default, each plugin is executed with an independent Snowflake task, scheduled to run at its own interval. Additionally, it is possible
@@ -67,11 +69,11 @@ plugin focusing on delivering telemetry from one or more sources related to a sp
 
 ## DSOA objects in Snowflake
 
-DSOA is fully contained within a single database (`DTAGENT_DB`) with a dedicated warehouse (`DTAGENT_WH`)
-and at minimum two roles per each DSOA instance deployed:
+DSOA operates within a single database (`DTAGENT_DB`) with a dedicated warehouse (`DTAGENT_WH`)
+and at minimum two roles per DSOA instance:
 
-- `DTAGENT_OWNER` that owns all DSOA objects (database, schemas, tables, procedures, tasks),
-- `DTAGENT_VIEWER` that is designed to query and send telemetry data.
+- `DTAGENT_OWNER` owns all DSOA objects (database, schemas, tables, procedures, tasks)
+- `DTAGENT_VIEWER` queries and sends telemetry data
 
 Optionally, when the `admin` scope is installed:
 
@@ -82,7 +84,7 @@ The role hierarchy is:
 - Primary hierarchy: `ACCOUNTADMIN` → `DTAGENT_OWNER` → `DTAGENT_VIEWER`
 - Admin branch (optional): `DTAGENT_OWNER` → `DTAGENT_ADMIN`
 
-When `DTAGENT_ADMIN` is present, both `DTAGENT_ADMIN` and `DTAGENT_VIEWER` are granted to `DTAGENT_OWNER`, allowing admin operations to be isolated while maintaining the main operational hierarchy through `DTAGENT_VIEWER`.
+When `DTAGENT_ADMIN` is present, `DTAGENT_OWNER` receives both `DTAGENT_ADMIN` and `DTAGENT_VIEWER` roles. This isolates admin operations while maintaining the main operational hierarchy through `DTAGENT_VIEWER`.
 
 This flexible role model enables deployment with reduced privileges:
 
@@ -90,11 +92,11 @@ This flexible role model enables deployment with reduced privileges:
 - **`DTAGENT_ADMIN`** (optional, only when admin scope is installed) has `MANAGE GRANTS` privilege to grant monitoring permissions on warehouses and dynamic tables, but does not own the objects
 - **`DTAGENT_VIEWER`** executes all regular telemetry collection tasks and queries, with no administrative privileges
 
-Since it is possible to run multiple DSOA instances within one Snowflake account, additional instances
-(deployed in a multitenancy mode), have the names of those objects include the tag name, that is, `DTAGENT_$TAG_DB`, `DTAGENT_$TAG_WH`,
+You can run multiple DSOA instances within one Snowflake account. Additional instances
+(deployed in multitenancy mode) include the tag name in their object names: `DTAGENT_$TAG_DB`, `DTAGENT_$TAG_WH`,
 `DTAGENT_$TAG_OWNER`, `DTAGENT_$TAG_VIEWER`, and optionally `DTAGENT_$TAG_ADMIN` (if admin scope is installed).
 
-The figure below depicts objects which are created and maintained by DSOA within a dedicated database in
+The figure below depicts objects that DSOA creates and maintains within a dedicated database in
 Snowflake:
 
 ![DSOA objects in Snowflake](assets/dsoa-snowflake-objects.jpg)
@@ -104,7 +106,7 @@ Snowflake:
 This is the main schema maintained by DSOA. It contains two main stored procedures:
 
 - `DTAGENT_DB.APP.DTAGENT(plugins)` is the main procedure of DSOA, which sends telemetry generated by
-  executing one or multiple [plugins](PLUGINS.md). Telemetry views queried by plugins use the internal telemetry API available in this
+  executing one or more [available plugins](PLUGINS.md). Telemetry views queried by plugins use the internal telemetry API available in this
   procedure to send telemetry data directly to Dynatrace.
 - `DTAGENT_DB.APP.SEND_TELEMETRY(sources, params)` is based on the same core and internal telemetry API code as `DTAGENT()` but instead of
   using plugins to query, process, and send telemetry data, it enables to [send arbitrary data](#sending-custom-telemetry) from given
@@ -117,22 +119,22 @@ log table, if it is set up by and managed this DSOA instance.
 Plugins can define their main and helper views, helper procedures, and tasks which invoke DSOA with the
 given plugin at a given schedule.
 
-In order for DSOA to communicate with Dynatrace API, dedicated `SECRET`, `NETWORK RULE`, and
-`EXTERNAL ACCESS INTEGRATION` are set.
+To communicate with the Dynatrace API, DSOA uses dedicated `SECRET`, `NETWORK RULE`, and
+`EXTERNAL ACCESS INTEGRATION` objects.
 
 ### The `CONFIG` schema
 
-Contains `CONFIGURATIONS` table with all configurable options of DSOA, including internal API and plugins.
-Information from this table is used to initialize DSOA main stored procedures.
+Contains the `CONFIGURATIONS` table with all configurable options of DSOA, including internal API and plugins.
+DSOA main stored procedures initialize from this table.
 
-Additionally, a set of helper procedures is delivered to change the behavior of DSOA that is not
-initialized during runtime, for example, the number of credits allowed daily by internal resource monitor, or the schedule of each plugin's
+Additionally, a set of helper procedures changes DSOA behavior that does not
+initialize during runtime, for example, the number of credits allowed daily by the internal resource monitor, or the schedule of each plugin's
 execution.
 
 ### The `STATUS` schema
 
-Provides a table (`PROCESSED_MEASUREMENTS_LOG`) with a log of all DSOA executions and either an
-`EVENT_LOG` table set by DSOA for this account or a view over the existing account-level event log table.
+Provides a table (`PROCESSED_MEASUREMENTS_LOG`) with a log of all DSOA executions. It also includes either an
+`EVENT_LOG` table that DSOA sets up for this account or a view over the existing account-level event log table.
 
 Plugins can maintain their own "status" tables in this schema. For example, the `query history` plugin maintains the list of recently
 processed query IDs in `PROCESSED_QUERIES_CACHE`.
@@ -142,10 +144,12 @@ It is a good practice to accompany status tables with helper procedures, such as
 
 ## Telemetry flow
 
-Telemetry delivered by DSOA to Dynatrace becomes available in Grail (Dynatrace's data lakehouse) and can be accessed with Dynatrace Query Language (DQL) at
+Telemetry delivered by DSOA to Dynatrace becomes available in Grail (Dynatrace's data lakehouse). You can access it with Dynatrace Query Language (DQL) in
 Notebooks, Dashboards, Workflows, and Anomaly detection rules.
 
-The following figure depicts in details, each step of how the telemetry data flows from Snowflake telemetry sources through DSOA to Dynatrace; in this case execution of `query_history` plugin is used as an example.
+**Example flow: Query history plugin**
+
+The following figure depicts in detail each step of how telemetry data flows from Snowflake telemetry sources through DSOA to Dynatrace. This example shows the execution of the `query_history` plugin.
 
 ![Detailed flow of telemetry data on query history from Snowflake sources through DSOA to Dynatrace Grail and further](assets/dsoa-dataflow.jpg)
 
@@ -154,24 +158,24 @@ The following figure depicts in details, each step of how the telemetry data flo
    - The procedure initializes by reading the configuration.
    - A query tag is set for the session to identify this particular execution of DSOA in Snowflake
      telemetry.
-   - Before starting the processing, a BizEvent is sent to Dynatrace to indicate the start of a single plugin execution; a single call to
-     `DTAGENT()` procedure can execute one or more plugins, one by one.
+   - Before starting the processing, the system sends a BizEvent to Dynatrace to indicate the start of a single plugin execution; a single call to
+     the `DTAGENT()` procedure can execute one or more plugins sequentially.
 
-2. The `query_history` plugin initializes telemetry data for sending by calling the `P_REFRESH_RECENT_QUERIES()` procedure, which
-   - data from `QUERY_HISTORY` and `ACCESS_HISTORY` tables, filtering out already processed queries, and
+2. The `query_history` plugin initializes telemetry data for sending by calling the `P_REFRESH_RECENT_QUERIES()` procedure, which:
+   - retrieves data from `QUERY_HISTORY` and `ACCESS_HISTORY` tables, filtering out already processed queries, and
    - prepares a standardized view with telemetry based on that information.
 
-3. For the slowest queries, the plugin enhances the telemetry with
-   - a query profile by calling `GET_QUERY_OPERATOR_STATS()`, and
+3. For the slowest queries, the plugin enhances the telemetry with:
+   - a query profile obtained by calling `GET_QUERY_OPERATOR_STATS()`, and
    - estimated query acceleration with estimates from `SYSTEM$ESTIMATE_QUERY_ACCELERATION()`.
 
 4. Telemetry for each query is then sent to Dynatrace as traces, logs, and metrics; no events are sent by the `query_history` plugin.
 
 5. The execution of DSOA finalizes with
-   - the list of processed queries is put into the `PROCESSED_QUERIES_CACHE` to avoid processing them again,
-   - execution stats being recorded in the `PROCESSED_MEASUREMENTS_LOG` table,
-   - a BizEvent sent to Dynatrace indicating the end of execution of the plugin is sent, and
-   - the query tag for the session is being reset.
+   - the plugin stores the list of processed queries in the `PROCESSED_QUERIES_CACHE` to avoid reprocessing them,
+   - the system records execution stats in the `PROCESSED_MEASUREMENTS_LOG` table,
+   - a BizEvent sent to Dynatrace indicates the end of plugin execution, and
+   - the query tag for the session resets.
 
 ## Internal API for sending telemetry
 
