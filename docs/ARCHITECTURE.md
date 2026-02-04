@@ -1,23 +1,21 @@
 # Architecture and Core Capabilities
 
-Dynatrace Snowflake Observability Agent was designed to augment [Data Platform Observability](DPO.md) capabilities already offered by
-Dynatrace with OneAgent and custom telemetry (including logs and bizevents) delivered by ETL and other applications. Dynatrace Snowflake
-Observability Agent aims to fullfil the promise of Data Platform Observability by delivering telemetry data already present in Snowflake
-directly to Dynatrace as logs, traces, events, and metrics. Depending on what type of telemetry is sent by given Dynatrace Snowflake
-Observability Agent plugin one or more [Data Platform Observability themes](DPO.md#the-five-core-themes-of-dpo) can be supported over one or
+Dynatrace Snowflake Observability Agent (DSOA) was designed to augment [Data Platform Observability](DPO.md) capabilities already offered by
+Dynatrace with OneAgent and custom telemetry (including logs and bizevents) delivered by Extract, Transform, Load (ETL) and other applications. DSOA aims to fulfill the promise of Data Platform Observability by delivering telemetry data already present in Snowflake
+directly to Dynatrace as logs, traces, events, and metrics. Depending on what type of telemetry is sent by a given DSOA plugin, one or more [Data Platform Observability themes](DPO.md#the-five-core-themes-of-dpo) can be supported over one or
 multiple [layers of Data Platform Observability](DPO.md#the-three-tiers-of-data-platform-observability).
 
-![High level Data Platform Observability architecture with Dynatrace Snowflake Observability Agent delivering telemetry to Dynatrace](assets/data-platform-observability-dsoa.jpg)
+![High level Data Platform Observability architecture with DSOA delivering telemetry to Dynatrace](assets/data-platform-observability-dsoa.jpg)
 
-The main capabilities offered by Dynatrace Snowflake Observability Agent are:
+The main capabilities offered by DSOA are:
 
-1. **Data Collection**: Dynatrace Snowflake Observability Agent collects and parses useful observability data from various Snowflake
+1. **Data Collection**: DSOA collects and parses useful observability data from various Snowflake
    sources.
-2. **Data Transmission**: After collecting and parsing the information, Dynatrace Snowflake Observability Agent sends it to Dynatrace
+2. **Data Transmission**: After collecting and parsing the information, DSOA sends it to Dynatrace
    tenants where it is easily accessible and ready for analysis.
-3. **Alerting**: Dynatrace Snowflake Observability Agent can send alerts regarding specific information, e.g., potential security breaches,
+3. **Alerting**: DSOA can send alerts regarding specific information, for example, potential security breaches,
    unmonitored warehouses, directly during data parsing, as well as using workflows and anomaly detections set up on the Dynatrace tenant.
-4. **Visualization**: Dynatrace Snowflake Observability Agent delivers telemetry which facilitates building Dynatrace dashboards that ease
+4. **Visualization**: DSOA delivers telemetry which facilitates building Dynatrace dashboards that ease
    the process of data analysis.
 
 Table of content:
@@ -49,30 +47,30 @@ Table of content:
 
 ## High-Level overview
 
-Dynatrace Snowflake Observability Agent is designed to take full advantage of Snowflake Snowpark capabilities, allowing active "code" to be
+DSOA is designed to take full advantage of Snowflake Snowpark capabilities (Snowflake's developer framework for building data pipelines), allowing active "code" to be
 scheduled and executed within Snowflake, close to where the telemetry data comes from. Such a design enables telemetry to be sent over to
 Dynatrace, similar to OneAgent.
 
 The following figure illustrates, at high level, how telemetry data flows from Snowflake sources to Dynatrace for consumption.
 
-![Overview of flow of telemetry data through Dynatrace Snowflake Observability Agent to Dynatrace](assets/dsoa-overview.jpg)
+![Overview of flow of telemetry data through DSOA to Dynatrace](assets/dsoa-overview.jpg)
 
-Dynatrace Snowflake Observability Agent is designed for easy extension with new plugins, each of which can utilize the core functions to
+DSOA is designed for easy extension with new plugins, each of which can utilize the core functions to
 deliver telemetry data via logs, spans/traces, events, bizevents, and metrics.
 
 By default, each plugin is executed with an independent Snowflake task, scheduled to run at its own interval. Additionally, it is possible
 to call multiple plugins from a single Snowflake task if needed, providing flexible scheduling options.
 
 The telemetry data can come from various sources, not only from `snowflake.account_usage` views but also from functions/procedures and
-"show" command calls. Dynatrace Snowflake Observability Agent encapsulates each telemetry data into views delivered by "plugins," with each
-plugin focusing on delivering telemetry from one or more sources related to a specific subject, e.g., query history or dynamic tables.
+"show" command calls. DSOA encapsulates each telemetry data into views delivered by "plugins," with each
+plugin focusing on delivering telemetry from one or more sources related to a specific subject, for example, query history or dynamic tables.
 
-## Dynatrace Snowflake Observability Agent objects in Snowflake
+## DSOA objects in Snowflake
 
-Dynatrace Snowflake Observability Agent is fully contained within a single database (`DTAGENT_DB`) with a dedicated warehouse (`DTAGENT_WH`)
-and at minimum two roles per each Dynatrace Snowflake Observability Agent instance deployed:
+DSOA is fully contained within a single database (`DTAGENT_DB`) with a dedicated warehouse (`DTAGENT_WH`)
+and at minimum two roles per each DSOA instance deployed:
 
-- `DTAGENT_OWNER` that owns all Dynatrace Snowflake Observability Agent objects (database, schemas, tables, procedures, tasks),
+- `DTAGENT_OWNER` that owns all DSOA objects (database, schemas, tables, procedures, tasks),
 - `DTAGENT_VIEWER` that is designed to query and send telemetry data.
 
 Optionally, when the `admin` scope is installed:
@@ -92,20 +90,20 @@ This flexible role model enables deployment with reduced privileges:
 - **`DTAGENT_ADMIN`** (optional, only when admin scope is installed) has `MANAGE GRANTS` privilege to grant monitoring permissions on warehouses and dynamic tables, but does not own the objects
 - **`DTAGENT_VIEWER`** executes all regular telemetry collection tasks and queries, with no administrative privileges
 
-Since it is possible to run multiple Dynatrace Snowflake Observability Agent instances within one Snowflake account, additional instances
-(deployed in a multitenancy mode), have the names of those objects include the tag name, i.e., `DTAGENT_$TAG_DB`, `DTAGENT_$TAG_WH`,
+Since it is possible to run multiple DSOA instances within one Snowflake account, additional instances
+(deployed in a multitenancy mode), have the names of those objects include the tag name, that is, `DTAGENT_$TAG_DB`, `DTAGENT_$TAG_WH`,
 `DTAGENT_$TAG_OWNER`, `DTAGENT_$TAG_VIEWER`, and optionally `DTAGENT_$TAG_ADMIN` (if admin scope is installed).
 
-The figure below depicts objects which are created and maintained by Dynatrace Snowflake Observability Agent within dedicated database in
+The figure below depicts objects which are created and maintained by DSOA within a dedicated database in
 Snowflake:
 
-![Dynatrace Snowflake Observability Agent objects in Snowflake](assets/dsoa-snowflake-objects.jpg)
+![DSOA objects in Snowflake](assets/dsoa-snowflake-objects.jpg)
 
 ### The `APP` schema
 
-This is the main schema maintained by Dynatrace Snowflake Observability Agent. It contains two main stored procedures:
+This is the main schema maintained by DSOA. It contains two main stored procedures:
 
-- `DTAGENT_DB.APP.DTAGENT(plugins)` is the main procedure of Dynatrace Snowflake Observability Agent, which sends telemetry generated by
+- `DTAGENT_DB.APP.DTAGENT(plugins)` is the main procedure of DSOA, which sends telemetry generated by
   executing one or multiple [plugins](PLUGINS.md). Telemetry views queried by plugins use the internal telemetry API available in this
   procedure to send telemetry data directly to Dynatrace.
 - `DTAGENT_DB.APP.SEND_TELEMETRY(sources, params)` is based on the same core and internal telemetry API code as `DTAGENT()` but instead of
@@ -114,27 +112,27 @@ This is the main schema maintained by Dynatrace Snowflake Observability Agent. I
 
 Additionally, a set of helper functions to check the timestamp of the last telemetry piece of a given type processed so far
 (`STATUS.F_LAST_PROCESSED_TS()`) or get configuration parameters (`CONFIG.F_GET_CONFIG_VALUE()`), plus procedures helping to set up and maintain the event
-log table, if it is set up by and managed this Dynatrace Snowflake Observability Agent instance.
+log table, if it is set up by and managed this DSOA instance.
 
-Plugins can define their main and helper views, helper procedures, and tasks which invoke Dynatrace Snowflake Observability Agent with the
+Plugins can define their main and helper views, helper procedures, and tasks which invoke DSOA with the
 given plugin at a given schedule.
 
-In order for Dynatrace Snowflake Observability Agent to communicate with Dynatrace API, dedicated `SECRET`, `NETWORK RULE`, and
+In order for DSOA to communicate with Dynatrace API, dedicated `SECRET`, `NETWORK RULE`, and
 `EXTERNAL ACCESS INTEGRATION` are set.
 
 ### The `CONFIG` schema
 
-Contains `CONFIGURATIONS` table with all configurable options of Dynatrace Snowflake Observability Agent, including internal API and plugins.
-Information from this table is used to initialize Dynatrace Snowflake Observability Agent main stored procedures.
+Contains `CONFIGURATIONS` table with all configurable options of DSOA, including internal API and plugins.
+Information from this table is used to initialize DSOA main stored procedures.
 
-Additionally, a set of helper procedures is delivered to change the behavior of Dynatrace Snowflake Observability Agent that is not
-initialized during runtime, e.g., the number of credits allowed daily by internal resource monitor, or the schedule of each plugin's
+Additionally, a set of helper procedures is delivered to change the behavior of DSOA that is not
+initialized during runtime, for example, the number of credits allowed daily by internal resource monitor, or the schedule of each plugin's
 execution.
 
 ### The `STATUS` schema
 
-Provides a table (`PROCESSED_MEASUREMENTS_LOG`) with a log of all Dynatrace Snowflake Observability Agent executions and either an
-`EVENT_LOG` table set by Dynatrace Snowflake Observability Agent for this account or a view over the existing account-level event log table.
+Provides a table (`PROCESSED_MEASUREMENTS_LOG`) with a log of all DSOA executions and either an
+`EVENT_LOG` table set by DSOA for this account or a view over the existing account-level event log table.
 
 Plugins can maintain their own "status" tables in this schema. For example, the `query history` plugin maintains the list of recently
 processed query IDs in `PROCESSED_QUERIES_CACHE`.
@@ -144,20 +142,19 @@ It is a good practice to accompany status tables with helper procedures, such as
 
 ## Telemetry flow
 
-Telemetry delivered by Dynatrace Snowflake Observability Agent to Dynatrace becomes available in Grail and can be accessed with DQL at
+Telemetry delivered by DSOA to Dynatrace becomes available in Grail (Dynatrace's data lakehouse) and can be accessed with Dynatrace Query Language (DQL) at
 Notebooks, Dashboards, Workflows, and Anomaly detection rules.
 
-The following figure depicts in details, each step of how the telemetry data flows from Snowflake telemetry sources through Dynatrace
-Snowflake Observability Agent to Dynatrace; in this case execution of `query_history` plugin is used as example.
+The following figure depicts in details, each step of how the telemetry data flows from Snowflake telemetry sources through DSOA to Dynatrace; in this case execution of `query_history` plugin is used as an example.
 
-![Detailed flow of telemetry data on query history from Snowflake sources through Dynatrace Snowflake Observability Agent to Dynatrace Grail and further](assets/dsoa-dataflow.jpg)
+![Detailed flow of telemetry data on query history from Snowflake sources through DSOA to Dynatrace Grail and further](assets/dsoa-dataflow.jpg)
 
 1. The process starts with Snowflake task `TASK_DTAGENT_QUERY_HISTORY` calling the `DTAGENT()` procedure with `query_history` as a
    parameter:
    - The procedure initializes by reading the configuration.
-   - A query tag is set for the session to identify this particular execution of Dynatrace Snowflake Observability Agent in Snowflake
+   - A query tag is set for the session to identify this particular execution of DSOA in Snowflake
      telemetry.
-   - Before starting the processing, a BizEvent is sent to Dynatrace to indicate the start of a single plugin execution; a single all to
+   - Before starting the processing, a BizEvent is sent to Dynatrace to indicate the start of a single plugin execution; a single call to
      `DTAGENT()` procedure can execute one or more plugins, one by one.
 
 2. The `query_history` plugin initializes telemetry data for sending by calling the `P_REFRESH_RECENT_QUERIES()` procedure, which
@@ -170,7 +167,7 @@ Snowflake Observability Agent to Dynatrace; in this case execution of `query_his
 
 4. Telemetry for each query is then sent to Dynatrace as traces, logs, and metrics; no events are sent by the `query_history` plugin.
 
-5. The execution of Dynatrace Snowflake Observability Agent finalizes with
+5. The execution of DSOA finalizes with
    - the list of processed queries is put into the `PROCESSED_QUERIES_CACHE` to avoid processing them again,
    - execution stats being recorded in the `PROCESSED_MEASUREMENTS_LOG` table,
    - a BizEvent sent to Dynatrace indicating the end of execution of the plugin is sent, and
@@ -178,7 +175,7 @@ Snowflake Observability Agent to Dynatrace; in this case execution of `query_his
 
 ## Internal API for sending telemetry
 
-Dynatrace Snowflake Observability Agent offers an internal API to send telemetry as
+DSOA offers an internal API to send telemetry as
 [OTEL logs](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-api/environment-api/opentelemetry/post-logs),
 [OTEL spans](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-api/environment-api/opentelemetry/post-traces),
 [metrics](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-api/environment-api/metric-v2),
@@ -187,13 +184,13 @@ Dynatrace Snowflake Observability Agent offers an internal API to send telemetry
 
 ### Sending logs
 
-Dynatrace Snowflake Observability Agent sends logs to Dynatrace using the
+DSOA sends logs to Dynatrace using the
 [Python OpenTelemetry SDK](https://opentelemetry.io/docs/languages/python/) with
 [Dynatrace OTEL collector for logs](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-api/environment-api/opentelemetry/post-logs).
 
 ### Sending traces/spans
 
-Dynatrace Snowflake Observability Agent can create traces/spans using
+DSOA can create traces/spans using
 [Python OpenTelemetry SDK](https://opentelemetry.io/docs/languages/python/) configured to deliver data to
 [Dynatrace OTEL collector for traces](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-api/environment-api/opentelemetry/post-traces).
 In case `trace_id` or `span_id`, or both, are available, e.g., in Snowflake Trail telemetry, their values are used when sending
