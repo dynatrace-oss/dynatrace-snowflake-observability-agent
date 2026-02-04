@@ -129,8 +129,7 @@ class Logs:
         observed_timestamp = get_timestamp_in_ms(o_extra, "timestamp")
         if observed_timestamp:
             # we validate the original timestamp and record value that is correct for ingest
-            timestamp = validate_timestamp_ms(observed_timestamp)
-            o_extra["timestamp"] = timestamp
+            o_extra["timestamp"] = validate_timestamp_ms(observed_timestamp)
 
         LOG.log(LL_TRACE, o_extra)
 
@@ -147,6 +146,9 @@ class Logs:
 
         if message is None:
             message = "-"
+
+        if payload.get("timestamp", None) is None:
+            payload.pop("timestamp", None)
 
         self._otel_logger.log(level=log_level, msg=message, extra=payload)
         LOG.log(
