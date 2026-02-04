@@ -129,7 +129,9 @@ class Logs:
         observed_timestamp = get_timestamp_in_ms(o_extra, "timestamp")
         if observed_timestamp:
             # we validate the original timestamp and record value that is correct for ingest
-            o_extra["timestamp"] = validate_timestamp_ms(observed_timestamp)
+            _timestamp = validate_timestamp_ms(observed_timestamp)
+            if _timestamp:
+                o_extra["timestamp"] = _timestamp
 
         LOG.log(LL_TRACE, o_extra)
 
