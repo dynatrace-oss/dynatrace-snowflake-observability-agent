@@ -63,7 +63,33 @@ def _cleanup_data(value: Any) -> Any:
     if isinstance(value, dict):
         return {k: _cleanup_data(v) for k, v in value.items()}
     if isinstance(value, list):
-        return [_cleanup_data(v) for v in value]
+        # Check for mixed types BEFORE cleaning to avoid _from_json normalizing types
+        # OpenTelemetry requires all elements in a sequence to be of the same type
+        if value and len(value) > 1:
+            # Determine if we have mixed types in the original list
+            types_in_list = {type(item) for item in value if item is not None}
+            if len(types_in_list) > 1:
+                # Mixed types detected - normalize to strings and process recursively
+                # but skip _from_json for simple types to preserve string conversion
+                def _cleanup_preserving_strings(item: Any) -> Any:
+                    """Clean up item without converting strings back to other types"""
+                    if item is None:
+                        return None
+                    if isinstance(item, dict):
+                        return {k: _cleanup_data(v) for k, v in item.items()}
+                    if isinstance(item, list):
+                        return [_cleanup_data(v) for v in item]
+                    if isinstance(item, datetime.datetime):
+                        return format_datetime(item)
+                    # Skip _from_json for simple types to preserve string conversion
+                    return item
+
+                normalized_list = [str(item) if item is not None else None for item in value]
+                return [_cleanup_preserving_strings(v) for v in normalized_list]
+
+        # No mixed types or single element - process normally
+        cleaned_list = [_cleanup_data(v) for v in value]
+        return cleaned_list
     if isinstance(value, datetime.datetime):
         return format_datetime(value)
 

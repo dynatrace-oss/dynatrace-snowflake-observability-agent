@@ -153,6 +153,49 @@ class TestUtil:
 
         assert output_dict == result_dict
 
+    def test_cleanup_data_mixed_types(self):
+        """Test that _cleanup_data normalizes mixed-type sequences to strings"""
+        from dtagent.util import _cleanup_data
+
+        # Test case 1: Mixed int and string in list - should normalize to all strings
+        input_dict = {"mixed_list": [1, "2", 3]}
+        result = _cleanup_data(input_dict)
+        assert result["mixed_list"] == ["1", "2", "3"], f"Expected all strings, got {result['mixed_list']}"
+
+        # Test case 2: Nested mixed types
+        input_dict = {
+            "value.list": [1, "2", 3],
+            "nested": {"inner_list": [True, "false", 1]},
+        }
+        result = _cleanup_data(input_dict)
+        assert result["value.list"] == ["1", "2", "3"]
+        assert result["nested"]["inner_list"] == ["True", "false", "1"]
+
+        # Test case 3: Homogeneous lists should remain unchanged
+        input_dict = {
+            "all_ints": [1, 2, 3],
+            "all_strings": ["a", "b", "c"],
+            "all_floats": [1.0, 2.0, 3.0],
+        }
+        result = _cleanup_data(input_dict)
+        assert result["all_ints"] == [1, 2, 3], "Homogeneous int list should not be converted"
+        assert result["all_strings"] == ["a", "b", "c"], "Homogeneous string list should not be converted"
+        assert result["all_floats"] == [1.0, 2.0, 3.0], "Homogeneous float list should not be converted"
+
+        # Test case 4: Single element or empty lists should not be affected
+        input_dict = {
+            "single_element": [1],
+            "empty_list": [],
+        }
+        result = _cleanup_data(input_dict)
+        assert result["single_element"] == [1]
+        assert result["empty_list"] == []
+
+        # Test case 5: Lists with None values mixed with other types
+        input_dict = {"with_none": [1, None, "2", None, 3]}
+        result = _cleanup_data(input_dict)
+        assert result["with_none"] == ["1", None, "2", None, "3"]
+
 
 class TestGetSnowflakeAccountInfo:
     """Test cases for _get_snowflake_account_info function"""
