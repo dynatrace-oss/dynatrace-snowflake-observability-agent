@@ -95,22 +95,24 @@ show_bizevent_warning() {
         status_msg="Deployment completed, but telemetry was not sent to Dynatrace."
     fi
 
-    echo ""
-    echo "╔══════════════════════════════════════════════════════════════════════════════════╗"
-    echo "║                                   ⚠️  WARNING  ⚠️                                 ║"
-    echo "╠══════════════════════════════════════════════════════════════════════════════════╣"
-    echo "║                                                                                  ║"
-    echo "║  Failed to send deployment bizevent to Dynatrace!                                ║"
-    echo "║                                                                                  ║"
-    echo "║  This may indicate issues with:                                                  ║"
-    echo "║    • Dynatrace API token (DTAGENT_TOKEN) - check if valid and not expired        ║"
-    echo "║    • Network connectivity to Dynatrace tenant                                    ║"
-    echo "║    • API token permissions (requires bizevents.ingest scope)                     ║"
-    echo "║                                                                                  ║"
-    echo "║  $status_msg          ║"
-    echo "║                                                                                  ║"
-    echo "╚══════════════════════════════════════════════════════════════════════════════════╝"
-    echo ""
+    cat <<-EOH
+
+	╔══════════════════════════════════════════════════════════════════════════════════╗
+	║                                   ⚠️  WARNING  ⚠️                                 ║
+	╠══════════════════════════════════════════════════════════════════════════════════╣
+	║                                                                                  ║
+	║  Failed to send deployment bizevent to Dynatrace!                                ║
+	║                                                                                  ║
+	║  This may indicate issues with:                                                  ║
+	║    • Dynatrace API token (DTAGENT_TOKEN) - check if valid and not expired        ║
+	║    • Network connectivity to Dynatrace tenant                                    ║
+	║    • API token permissions (requires bizevents.ingest scope)                     ║
+	║                                                                                  ║
+	║  $status_msg          ║
+	║                                                                                  ║
+	╚══════════════════════════════════════════════════════════════════════════════════╝
+
+	EOH
     sleep 3
 }
 
@@ -182,20 +184,22 @@ if [[ "$TENANT_ADDRESS" == *".apps.dynatrace.com"* ]]; then
         'map(if .PATH == "core.dynatrace_tenant_address" then .VALUE = $new_val else . end)' \
         "$BUILD_CONFIG_FILE" > "${BUILD_CONFIG_FILE}.tmp" && mv "${BUILD_CONFIG_FILE}.tmp" "$BUILD_CONFIG_FILE"
 
-    echo ""
-    echo "╔══════════════════════════════════════════════════════════════════════════════════╗"
-    echo "║                                   ⚠️  WARNING  ⚠️                                  ║"
-    echo "╠══════════════════════════════════════════════════════════════════════════════════╣"
-    echo "║                                                                                  ║"
-    echo "║  The dynatrace_tenant_address uses incorrect domain for API:                     ║"
-    echo "║  .apps.dynatrace.com                                                             ║"
-    echo "║                                                                                  ║"
-    echo "║  Current value: $TENANT_ADDRESS                                      ║"
-    echo "║                                                                                  ║"
-    echo "║  This will be automatically replaced with: $FIXED_TENANT_ADDRESS           ║"
-    echo "║                                                                                  ║"
-    echo "╚══════════════════════════════════════════════════════════════════════════════════╝"
-    echo ""
+    cat <<-EOH
+
+	╔══════════════════════════════════════════════════════════════════════════════════╗
+	║                                   ⚠️  WARNING  ⚠️                                  ║
+	╠══════════════════════════════════════════════════════════════════════════════════╣
+	║                                                                                  ║
+	║  The dynatrace_tenant_address uses incorrect domain for API:                     ║
+	║  .apps.dynatrace.com                                                             ║
+	║                                                                                  ║
+	║  Current value: $TENANT_ADDRESS                                      ║
+	║                                                                                  ║
+	║  This will be automatically replaced with: $FIXED_TENANT_ADDRESS           ║
+	║                                                                                  ║
+	╚══════════════════════════════════════════════════════════════════════════════════╝
+
+	EOH
     sleep 5
 fi
 
