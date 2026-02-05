@@ -154,24 +154,29 @@ class TestUtil:
         assert output_dict == result_dict
 
     def test_cleanup_data_mixed_types(self):
-        """Test that _cleanup_data normalizes mixed-type sequences to strings"""
+        """Test that _cleanup_data normalizes mixed-type sequences intelligently"""
         from dtagent.util import _cleanup_data
 
-        # Test case 1: Mixed int and string in list - should normalize to all strings
+        # Test case 1: Mixed int and numeric string - should normalize to int
         input_dict = {"mixed_list": [1, "2", 3]}
         result = _cleanup_data(input_dict)
-        assert result["mixed_list"] == ["1", "2", "3"], f"Expected all strings, got {result['mixed_list']}"
+        assert result["mixed_list"] == [1, 2, 3], f"Expected all ints, got {result['mixed_list']}"
 
-        # Test case 2: Nested mixed types
+        # Test case 2: Mixed with non-numeric string - should normalize to strings
+        input_dict = {"mixed_list": [1, "abc", 3]}
+        result = _cleanup_data(input_dict)
+        assert result["mixed_list"] == ["1", "abc", "3"], f"Expected all strings, got {result['mixed_list']}"
+
+        # Test case 3: Nested mixed types with numeric strings
         input_dict = {
             "value.list": [1, "2", 3],
-            "nested": {"inner_list": [True, "false", 1]},
+            "nested": {"inner_list": [1, "2.5", 3]},
         }
         result = _cleanup_data(input_dict)
-        assert result["value.list"] == ["1", "2", "3"]
-        assert result["nested"]["inner_list"] == ["True", "false", "1"]
+        assert result["value.list"] == [1, 2, 3], "Should normalize to int"
+        assert result["nested"]["inner_list"] == [1, 2.5, 3], "Should normalize to numeric (int/float mix becomes float)"
 
-        # Test case 3: Homogeneous lists should remain unchanged
+        # Test case 4: Homogeneous lists should remain unchanged
         input_dict = {
             "all_ints": [1, 2, 3],
             "all_strings": ["a", "b", "c"],
@@ -182,7 +187,7 @@ class TestUtil:
         assert result["all_strings"] == ["a", "b", "c"], "Homogeneous string list should not be converted"
         assert result["all_floats"] == [1.0, 2.0, 3.0], "Homogeneous float list should not be converted"
 
-        # Test case 4: Single element or empty lists should not be affected
+        # Test case 5: Single element or empty lists should not be affected
         input_dict = {
             "single_element": [1],
             "empty_list": [],
@@ -191,10 +196,16 @@ class TestUtil:
         assert result["single_element"] == [1]
         assert result["empty_list"] == []
 
-        # Test case 5: Lists with None values mixed with other types
+        # Test case 6: Lists with None values mixed with numeric types
         input_dict = {"with_none": [1, None, "2", None, 3]}
         result = _cleanup_data(input_dict)
-        assert result["with_none"] == ["1", None, "2", None, "3"]
+        assert result["with_none"] == [1, None, 2, None, 3], "Should normalize to int, preserving None"
+
+        # Test case 7: Boolean with numbers should convert to numbers
+        input_dict = {"bool_and_int": [True, 1, False, 0]}
+        result = _cleanup_data(input_dict)
+        # True=1, False=0 in Python, so this should remain as numbers
+        assert all(isinstance(x, (int, bool)) for x in result["bool_and_int"]), "Should keep as numeric types"
 
 
 class TestGetSnowflakeAccountInfo:

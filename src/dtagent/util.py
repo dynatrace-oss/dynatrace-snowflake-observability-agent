@@ -58,7 +58,7 @@ def _from_json(val: Any) -> Any:
         return val
 
 
-def _cleanup_data(value: Any) -> Any:
+def _cleanup_data(value: Any) -> Any:  # pylint: disable=too-many-return-statements
     """Recursively cleans up dict values"""
     if isinstance(value, dict):
         return {k: _cleanup_data(v) for k, v in value.items()}
@@ -69,23 +69,54 @@ def _cleanup_data(value: Any) -> Any:
             # Determine if we have mixed types in the original list
             types_in_list = {type(item) for item in value if item is not None}
             if len(types_in_list) > 1:
-                # Mixed types detected - normalize to strings and process recursively
-                # but skip _from_json for simple types to preserve string conversion
-                def _cleanup_preserving_strings(item: Any) -> Any:
-                    """Clean up item without converting strings back to other types"""
+                # Mixed types detected - try to normalize intelligently
+                # Priority: int > float > str (prefer numeric types when possible)
+
+                def _try_convert_to_numeric(item: Any) -> Any:
+                    """Try to convert item to numeric type, return original if not possible"""
                     if item is None:
                         return None
-                    if isinstance(item, dict):
-                        return {k: _cleanup_data(v) for k, v in item.items()}
-                    if isinstance(item, list):
-                        return [_cleanup_data(v) for v in item]
-                    if isinstance(item, datetime.datetime):
-                        return format_datetime(item)
-                    # Skip _from_json for simple types to preserve string conversion
+                    if isinstance(item, (int, float, bool)):
+                        return item
+                    if isinstance(item, str):
+                        # Try int first, then float
+                        try:
+                            # Check if it's a float string first
+                            if "." in item or "e" in item.lower():
+                                return float(item)
+                            return int(item)
+                        except (ValueError, TypeError):
+                            return item
                     return item
 
-                normalized_list = [str(item) if item is not None else None for item in value]
-                return [_cleanup_preserving_strings(v) for v in normalized_list]
+                # Try to convert all elements to numeric
+                numeric_converted = [_try_convert_to_numeric(item) for item in value]
+                converted_types = {type(item) for item in numeric_converted if item is not None}
+
+                # Check if all types are numeric (int, float, bool are compatible)
+                numeric_types = {int, float, bool}
+                all_numeric = converted_types.issubset(numeric_types)
+
+                # If we still have mixed types (non-numeric), fall back to string conversion
+                if not all_numeric and len(converted_types) > 1:
+                    # Can't normalize to numeric, convert to strings
+                    def _cleanup_preserving_strings(item: Any) -> Any:
+                        """Clean up item without converting strings back to other types"""
+                        if item is None:
+                            return None
+                        if isinstance(item, dict):
+                            return {k: _cleanup_data(v) for k, v in item.items()}
+                        if isinstance(item, list):
+                            return [_cleanup_data(v) for v in item]
+                        if isinstance(item, datetime.datetime):
+                            return format_datetime(item)
+                        return item
+
+                    normalized_list = [str(item) if item is not None else None for item in value]
+                    return [_cleanup_preserving_strings(v) for v in normalized_list]
+
+                # Successfully normalized to numeric type, process normally
+                return [_cleanup_data(v) for v in numeric_converted]
 
         # No mixed types or single element - process normally
         cleaned_list = [_cleanup_data(v) for v in value]
