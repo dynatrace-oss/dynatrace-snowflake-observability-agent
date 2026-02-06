@@ -139,6 +139,7 @@ class TestConfiguration(Configuration):
 
     def __init__(self, configuration: dict):  # pylint: disable=W0231
         self._config = configuration
+        self._multitenancy_tag = configuration.get("core.tag")
 
     def get_last_measurement_update(self, session: snowpark.Session, source: str):
         from dtagent.util import _get_timestamp_in_sec
