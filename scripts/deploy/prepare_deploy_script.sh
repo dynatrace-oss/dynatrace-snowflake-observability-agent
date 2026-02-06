@@ -435,8 +435,8 @@ filter_option_code() {
         awk -v option="$option_name" '
             BEGIN { active=1; }
             {
-                # Check for start marker: --%OPTION:option_name: or #%OPTION:option_name:
-                if ($0 ~ /^(--|#)%OPTION:/) {
+                # Check for start marker: --%OPTION:option_name: or #%OPTION:option_name: (with optional leading whitespace)
+                if ($0 ~ /^[ \t]*(--|#)%OPTION:/) {
                     start_pattern = "%OPTION:" option ":"
                     if (index($0, start_pattern) > 0) {
                         active=0;
@@ -446,8 +446,8 @@ filter_option_code() {
                 # Print line only if active
                 if (active==1) print $0;
 
-                # Check for end marker: --%:OPTION:option_name or #%:OPTION:option_name
-                if ($0 ~ /^(--|#)%:OPTION:/) {
+                # Check for end marker: --%:OPTION:option_name or #%:OPTION:option_name (with optional leading whitespace)
+                if ($0 ~ /^[ \t]*(--|#)%:OPTION:/) {
                     end_pattern = "%:OPTION:" option
                     # Make sure we match the exact option name, not a prefix
                     if (index($0, end_pattern) > 0) {
