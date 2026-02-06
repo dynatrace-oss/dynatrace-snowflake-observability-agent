@@ -79,7 +79,9 @@ select
     qh.start_time,
     qh.end_time,
 
+--%PLUGIN:event_log:
     l.trace,
+--%:PLUGIN:event_log
 
     qh.query_id,
     ah.parent_query_id,
@@ -215,10 +217,12 @@ left join
  on  s.session_id = qh.session_id
  and s.created_on >= timeadd(hour, -24, current_timestamp)
  and ah.parent_query_id is null
+--%PLUGIN:event_log:
 left join
     STATUS.EVENT_LOG l
  on l.RECORD_TYPE = 'SPAN'
  and l.RESOURCE_ATTRIBUTES:"snow.query.id"::varchar = qh.query_id
+--%:PLUGIN:event_log
 where
     qh.end_time >= timeadd(minute, -120, current_timestamp)
 -- this will ensure we do not report some strange Snowflake-internal queries
