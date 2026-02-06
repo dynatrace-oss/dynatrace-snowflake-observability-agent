@@ -26,6 +26,7 @@
 #
 
 import logging
+from math import log
 from typing import Dict, Optional, Any
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk._logs import LoggerProvider
@@ -52,6 +53,18 @@ class Logs:
 
         self._setup_logger(resource)
 
+    def __get_logger_name(self) -> str:
+        """We use a custom logger name to be able to distinguish logs coming from different agents in case of multitenancy,
+           and also to be able to filter them out if needed.
+
+        NOTE: this code is broken into pieces to avoid replacement in prepare_deploy_script in case of multitenancy_tag being set
+        """
+        logger_name = "DTAGENT"
+        if self._configuration.multitenancy_tag:
+            logger_name += f"_{self._configuration.multitenancy_tag}"
+        logger_name += "_OTLP"
+        return logger_name
+
     def _setup_logger(self, resource: Resource) -> None:
         """All necessary actions to initialize logging via OpenTelemetry"""
         from opentelemetry.exporter.otlp.proto.http._log_exporter import OTLPLogExporter
@@ -66,7 +79,7 @@ class Logs:
                 self._session.headers.update(OtelManager.get_dsoa_headers())
 
         class CustomOTelTimestampFilter(logging.Filter):
-            """Reads record.timestamp (int epoch millisec) and applies it to the Python LogRecord timing fields."""
+            """Reads record.timestamp (int epoch milliseconds) and applies it to the Python LogRecord timing fields."""
 
             def filter(self, record: logging.LogRecord) -> bool:
                 ts_ms = getattr(record, "timestamp", None)
@@ -95,7 +108,7 @@ class Logs:
         handler = LoggingHandler(level=logging.NOTSET, logger_provider=self._otel_logger_provider)
         handler.addFilter(CustomOTelTimestampFilter())
 
-        self._otel_logger = logging.getLogger("DTAGENT_OTLP")
+        self._otel_logger = logging.getLogger(self.__get_logger_name())
         self._otel_logger.setLevel(logging.NOTSET)
         self._otel_logger.addHandler(handler)
 

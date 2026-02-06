@@ -163,9 +163,15 @@ class Configuration:
             "otel": __unpack_prefixed_keys(config_dict, "otel."),
             "plugins": __unpack_prefixed_keys(config_dict, "plugins."),
         }
-        if config_dict.get("core.tag"):
-            self._config["resource.attributes"]["deployment.environment.tag"] = config_dict["core.tag"]
+        self._multitenancy_tag = config_dict.get("core.tag")
+        if self._multitenancy_tag:
+            self._config["resource.attributes"]["deployment.environment.tag"] = self._multitenancy_tag
         os.environ["OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE"] = "delta"
+
+    @property
+    def multitenancy_tag(self) -> Optional[str]:
+        """Returns the multitenancy TAG if configured, None otherwise"""
+        return self._multitenancy_tag
 
     def get(
         self,

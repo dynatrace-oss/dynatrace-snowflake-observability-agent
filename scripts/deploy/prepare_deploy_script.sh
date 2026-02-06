@@ -92,7 +92,7 @@ validate_snowflake_name() {
     return 0
 }
 
-# Check if both TAG and custom names are set (mutually exclusive)
+# Check if custom names are being used
 CUSTOM_NAMES_USED=false
 if [ -n "$CUSTOM_DB" ] && [ "$CUSTOM_DB" != "null" ] && [ "$CUSTOM_DB" != "" ]; then CUSTOM_NAMES_USED=true; fi
 if [ -n "$CUSTOM_WH" ] && [ "$CUSTOM_WH" != "null" ] && [ "$CUSTOM_WH" != "" ]; then CUSTOM_NAMES_USED=true; fi
@@ -102,10 +102,12 @@ if [ -n "$CUSTOM_ADMIN" ] && [ "$CUSTOM_ADMIN" != "null" ] && [ "$CUSTOM_ADMIN" 
 if [ -n "$CUSTOM_VIEWER" ] && [ "$CUSTOM_VIEWER" != "null" ] && [ "$CUSTOM_VIEWER" != "" ]; then CUSTOM_NAMES_USED=true; fi
 if [ -n "$CUSTOM_API_INTEGRATION" ] && [ "$CUSTOM_API_INTEGRATION" != "null" ] && [ "$CUSTOM_API_INTEGRATION" != "" ]; then CUSTOM_NAMES_USED=true; fi
 
+# When custom names are used, TAG only affects telemetry (deployment.environment.tag)
+# When custom names are NOT used, TAG affects both object naming AND telemetry
 if [ -n "$TAG" ] && [ "$CUSTOM_NAMES_USED" = true ]; then
-    echo "ERROR: Cannot use both multitenancy TAG ('$TAG') and custom Snowflake object names"
-    echo "       Please either use core.tag for multitenancy OR custom object names, not both"
-    exit 1
+    echo "INFO: Both TAG and custom names provided."
+    echo "      Custom names will be used for Snowflake objects."
+    echo "      TAG '$TAG' will only appear in telemetry as deployment.environment.tag."
 fi
 
 # Validate custom names if provided
@@ -522,12 +524,10 @@ fi
 # Remove Python inline comments
 "${SED_INPLACE[@]}" -E -e 's/[[:space:]]+#.*$//' "$INSTALL_SCRIPT_SQL"
 
-# Handle multitenancy TAG replacements OR custom object name replacements (mutually exclusive)
-if [ -n "$TAG" ]; then
-    echo "Applying multitenancy TAG replacements..."
-    "${SED_INPLACE[@]}" -E -e "s/DTAGENT_/DTAGENT_${TAG}_/g" "$INSTALL_SCRIPT_SQL"
-    "${SED_INPLACE[@]}" -E -e "s/${TAG}_${TAG}_/${TAG}_/g" "$INSTALL_SCRIPT_SQL"
-elif [ "$CUSTOM_NAMES_USED" = true ]; then
+# Handle object name replacements
+# Priority: Custom names > TAG > Default names
+# When custom names are provided, TAG does not affect object naming (only telemetry)
+if [ "$CUSTOM_NAMES_USED" = true ]; then
     echo "Applying custom object name replacements..."
 
     # Replace custom names if provided
@@ -561,6 +561,11 @@ elif [ "$CUSTOM_NAMES_USED" = true ]; then
     if [ -n "$CUSTOM_API_INTEGRATION" ] && [ "$CUSTOM_API_INTEGRATION" != "null" ] && [ "$CUSTOM_API_INTEGRATION" != "" ]; then
         "${SED_INPLACE[@]}" -E -e "s/(^|[^A-Za-z0-9_\$])DTAGENT_API_INTEGRATION([^A-Za-z0-9_\$]|$)/\1$CUSTOM_API_INTEGRATION\2/g" "$INSTALL_SCRIPT_SQL"
     fi
+elif [ -n "$TAG" ]; then
+    # Only apply TAG-based naming when custom names are NOT provided
+    echo "Applying multitenancy TAG replacements..."
+    "${SED_INPLACE[@]}" -E -e "s/DTAGENT_/DTAGENT_${TAG}_/g" "$INSTALL_SCRIPT_SQL"
+    "${SED_INPLACE[@]}" -E -e "s/${TAG}_${TAG}_/${TAG}_/g" "$INSTALL_SCRIPT_SQL"
 fi
 
 # Remove double newlines from the deployment script

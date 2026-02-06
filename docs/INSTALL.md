@@ -672,14 +672,17 @@ The deployment script will validate all custom names before proceeding. If valid
 
 The agent supports various installation paths depending on your organizational requirements and privilege constraints:
 
-| Scenario                          | Required Objects          | Optional Objects                    | Configuration                            | Deployment Scopes                                          |
-| --------------------------------- | ------------------------- | ----------------------------------- | ---------------------------------------- | ---------------------------------------------------------- |
-| **Standard Full Install**         | All defaults              | Admin role + Resource monitor       | Default or custom names                  | `all` or `init,admin,setup,plugins,config,agents,apikey`   |
-| **Standard Without Optional**     | Defaults                  | Admin: `-`<br>Resource monitor: `-` | Set to `"-"` in config                   | `init,setup,plugins,config,agents,apikey` (skip `admin`)   |
-| **Custom Names Full**             | Custom names for all      | Admin + Resource monitor            | Custom names in config                   | `init,admin,setup,plugins,config,agents,apikey`            |
-| **Custom Names Without Optional** | Custom names              | Admin: `-`<br>Resource monitor: `-` | Custom names + `"-"` for optional        | `init,setup,plugins,config,agents,apikey`                  |
-| **Pre-Created Objects (Full)**    | DBA creates all           | Admin + Resource monitor            | Match pre-created names                  | `setup,plugins,config,agents,apikey` (skip `init`,`admin`) |
-| **Pre-Created Objects (Minimal)** | DBA creates required only | Skip both                           | Match required names, `"-"` for optional | `setup,plugins,config,agents,apikey`                       |
+| Scenario                              | Required Objects          | Optional Objects                    | Configuration                               | Deployment Scopes                                          |
+| ------------------------------------- | ------------------------- | ----------------------------------- | ------------------------------------------- | ---------------------------------------------------------- |
+| **Standard Full Install**             | All defaults              | Admin role + Resource monitor       | Default names, no TAG                       | `all` or `init,admin,setup,plugins,config,agents,apikey`   |
+| **Standard Without Optional**         | Defaults                  | Admin: `-`<br>Resource monitor: `-` | Set to `"-"` in config                      | `init,setup,plugins,config,agents,apikey` (skip `admin`)   |
+| **TAG-based Multitenancy**            | Defaults with TAG suffix  | Admin + Resource monitor            | TAG only (e.g., `tag: TNA`)                 | `all` or `init,admin,setup,plugins,config,agents,apikey`   |
+| **Custom Names Full**                 | Custom names for all      | Admin + Resource monitor            | Custom names in config                      | `init,admin,setup,plugins,config,agents,apikey`            |
+| **Custom Names Without Optional**     | Custom names              | Admin: `-`<br>Resource monitor: `-` | Custom names + `"-"` for optional           | `init,setup,plugins,config,agents,apikey`                  |
+| **Custom Names + TAG (Multitenancy)** | Custom names              | Admin + Resource monitor            | Custom names + TAG (TAG for telemetry only) | `init,admin,setup,plugins,config,agents,apikey`            |
+| **Pre-Created Objects (Full)**        | DBA creates all           | Admin + Resource monitor            | Match pre-created names                     | `setup,plugins,config,agents,apikey` (skip `init`,`admin`) |
+| **Pre-Created Objects (Minimal)**     | DBA creates required only | Skip both                           | Match required names, `"-"` for optional    | `setup,plugins,config,agents,apikey`                       |
+| **Pre-Created + TAG**                 | DBA creates custom names  | Admin + Resource monitor            | Match pre-created names + TAG for telemetry | `setup,plugins,config,agents,apikey`                       |
 
 **Required Objects (Cannot be skipped):**
 
@@ -700,17 +703,66 @@ When admin role is skipped (`"-"`), you must manually grant required privileges:
 - `MONITOR` on dynamic tables (for `dynamic_tables` plugin)
 - Plugin-specific privileges as documented
 
-##### Mutual Exclusivity with TAG
+##### TAG and Custom Names Interaction
 
-Custom object names and the `tag` configuration option are mutually exclusive. You cannot use both features simultaneously because:
+The `tag` and custom object names can be used together or separately:
 
-- Custom names provide direct object naming control for isolation
-- The `tag` option enables multitenancy by appending suffixes to object names
+###### Scenario 1: TAG only (no custom names)
 
-If you specify both custom object names and a `tag` value, the deployment will fail with an error. Choose one approach based on your needs:
+- Object naming: `DTAGENT_DB` → `DTAGENT_<TAG>_DB`
+- Telemetry: Includes `deployment.environment.tag: "<TAG>"`
+- Use case: Simple multitenancy with automatic object name suffixing
 
-- Use **custom names** for simple deployments with specific naming requirements
-- Use **tag** for multitenancy scenarios where multiple agent instances share the same Snowflake account
+###### Scenario 2: Custom names only (no TAG)
+
+- Object naming: Uses your custom names exactly as specified
+- Telemetry: Only `deployment.environment` (no tag dimension)
+- Use case: Single instance with organizational naming conventions
+
+###### Scenario 3: Both TAG and custom names
+
+- Object naming: Uses custom names where provided, defaults for others (TAG does NOT affect object names at all)
+- Telemetry: Includes both `deployment.environment` and `deployment.environment.tag: "<TAG>"`
+- Logger name: `DTAGENT_<TAG>_OTLP` (e.g., `DTAGENT_TENANT_A_OTLP`)
+- Use case: Custom naming conventions + multitenancy tracking in telemetry
+
+**Key principle:** When ANY custom name is provided, TAG is disabled for ALL object naming. TAG only affects:
+
+1. Telemetry dimension: `deployment.environment.tag`
+2. Logger name: `DTAGENT_<TAG>_OTLP`
+
+**Example combining both:**
+
+```yaml
+core:
+  deployment_environment: PRODUCTION_US_EAST
+  tag: TENANT_A  # Only for telemetry tracking
+
+  snowflake:
+    database:
+      name: "ACME_MONITORING_DB"  # Custom name used (not DTAGENT_TENANT_A_DB)
+    warehouse:
+      name: "ACME_MONITORING_WH"
+    roles:
+      owner: "ACME_MONITORING_OWNER"
+      viewer: "ACME_MONITORING_VIEWER"
+    api_integration:
+      name: "ACME_MONITORING_API"
+```
+
+This creates:
+
+- Database: `ACME_MONITORING_DB` (custom name)
+- Warehouse: `ACME_MONITORING_WH` (custom name)
+- Owner role: `ACME_MONITORING_OWNER` (custom name)
+- Viewer role: `ACME_MONITORING_VIEWER` (custom name)
+- API Integration: `ACME_MONITORING_API` (custom name)
+- Admin role: `DTAGENT_ADMIN` (default - NOT `DTAGENT_TENANT_A_ADMIN`)
+- Resource Monitor: `DTAGENT_RS` (default - NOT `DTAGENT_TENANT_A_RS`)
+- Logger name: `DTAGENT_TENANT_A_OTLP`
+- Telemetry: `deployment.environment: "PRODUCTION_US_EAST"`, `deployment.environment.tag: "TENANT_A"`
+
+**Note:** Once any custom name is used, TAG no longer affects object naming for ANY object (even those without custom names).
 
 #### Plugin Configuration Options
 
@@ -785,24 +837,36 @@ for some plugins, you can deploy multiple Dynatrace Snowflake Observability Agen
 **Requirements for each instance:**
 
 1. **Unique `deployment_environment`** - Identifies the instance in Dynatrace telemetry
-2. **Unique `tag`** - Prevents Snowflake object naming conflicts
+2. **Unique Snowflake object names** - Either via `tag` OR custom names to prevent conflicts
 3. **Unique Snowflake CLI connection** - Named `snow_agent_<deployment_environment_lowercase>`
+
+**Two approaches for object naming:**
+
+Approach 1: Using TAG (simpler)
+
+- `tag` automatically suffixes all Snowflake object names
+- Example: `tag: TNA` creates `DTAGENT_TNA_DB`, `DTAGENT_TNA_WH`
+
+Approach 2: Using custom names (more control)
+
+- Specify custom names for each object
+- Optionally include `tag` for telemetry tracking (doesn't affect object names)
 
 **Important distinctions:**
 
 - `deployment_environment` → Used for telemetry dimensions in Dynatrace (e.g., `PRODUCTION_TENANT_A`)
-- `tag` → Used to suffix Snowflake object names (e.g., `TNA` creates `DTAGENT_TNA_DB`)
-- These serve **different purposes** and should NOT be combined
+- `tag` → When used alone: suffixes Snowflake object names (e.g., `TNA` creates `DTAGENT_TNA_DB`)
+- `tag` with custom names → Only appears in telemetry as `deployment.environment.tag`, does NOT modify object names
+- `deployment_environment` and `tag` serve **different purposes** and should NOT be combined in the value
 
-**Valid multitenancy configuration:**
+**Valid multitenancy configuration (TAG approach):**
 
 ```yaml
 # File: conf/config-prod-tenant-a.yml
 core:
   deployment_environment: PRODUCTION_TENANT_A  # Unique telemetry identifier
   tag: TNA                                      # Unique object suffix
-  dynatrace:
-    api_url: https://tenant-a.live.dynatrace.com/api/v2/otlp
+  dynatrace_tenant_address: tenant-a.live.dynatrace.com
   # ... other config
 ```
 
@@ -811,9 +875,48 @@ core:
 core:
   deployment_environment: PRODUCTION_TENANT_B  # Different from tenant A
   tag: TNB                                      # Different from tenant A
-  dynatrace:
-    api_url: https://tenant-b.live.dynatrace.com/api/v2/otlp
+  dynatrace_tenant_address: tenant-b.live.dynatrace.com
   # ... other config
+```
+
+**Valid multitenancy configuration (custom names approach):**
+
+```yaml
+# File: conf/config-prod-tenant-a.yml
+core:
+  deployment_environment: PRODUCTION_TENANT_A
+  tag: TNA  # Optional: for telemetry only
+  dynatrace_tenant_address: tenant-a.live.dynatrace.com
+
+  snowflake:
+    database:
+      name: ACME_TENANT_A_DB
+    warehouse:
+      name: ACME_TENANT_A_WH
+    roles:
+      owner: ACME_TENANT_A_OWNER
+      viewer: ACME_TENANT_A_VIEWER
+    api_integration:
+      name: ACME_TENANT_A_API
+```
+
+```yaml
+# File: conf/config-prod-tenant-b.yml
+core:
+  deployment_environment: PRODUCTION_TENANT_B
+  tag: TNB  # Optional: for telemetry only
+  dynatrace_tenant_address: tenant-b.live.dynatrace.com
+
+  snowflake:
+    database:
+      name: ACME_TENANT_B_DB
+    warehouse:
+      name: ACME_TENANT_B_WH
+    roles:
+      owner: ACME_TENANT_B_OWNER
+      viewer: ACME_TENANT_B_VIEWER
+    api_integration:
+      name: ACME_TENANT_B_API
 ```
 
 **Deploy both instances:**
@@ -1209,22 +1312,41 @@ core:
 **Why it's wrong:**
 
 - `deployment_environment` is for logical environment identification in telemetry
-- `tag` is for Snowflake object name disambiguation
-- Mixing them creates confusion and redundancy
+- `tag` is for telemetry tracking and (when used without custom names) Snowflake object name disambiguation
+- Mixing them in the environment name creates confusion and redundancy
 
-**Correct:**
+**Correct Option 1 (TAG-based naming):**
 
 ```yaml
 core:
   deployment_environment: PRODUCTION_US_EAST  # ✓ Logical environment
-  tag: MT001                                   # ✓ Separate object suffix
+  tag: MT001                                   # ✓ Separate - affects object names
 ```
 
-**This creates clear separation:**
+**This creates:**
 
 - Telemetry dimension: `deployment.environment: "PRODUCTION_US_EAST"`
 - Additional dimension: `deployment.environment.tag: "MT001"`
 - Snowflake objects: `DTAGENT_MT001_DB`, `DTAGENT_MT001_WH`
+
+**Correct Option 2 (Custom names + TAG for telemetry only):**
+
+```yaml
+core:
+  deployment_environment: PRODUCTION_US_EAST
+  tag: MT001  # Only for telemetry tracking
+
+  snowflake:
+    database:
+      name: ACME_MONITORING_DB  # Custom name used
+    # ... other custom names
+```
+
+**This creates:**
+
+- Telemetry dimension: `deployment.environment: "PRODUCTION_US_EAST"`
+- Additional dimension: `deployment.environment.tag: "MT001"`
+- Snowflake objects: `ACME_MONITORING_DB` (custom names, TAG doesn't affect them)
 
 ### Mistake 6: Not Using Lowercase for Connection Names
 
