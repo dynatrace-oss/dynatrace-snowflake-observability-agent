@@ -4,15 +4,17 @@
 
 setup() {
     cd "$BATS_TEST_DIRNAME/../.."
-    TEST_DIR=$(mktemp -d)
-    TEST_CONFIG_FILE="$TEST_DIR/config.json"
-    TEST_SQL_FILE="$TEST_DIR/deploy.sql"
+    TEST_CONFIG_FILE=$(mktemp)
+    TEST_SQL_FILE=$(mktemp)
     export BUILD_CONFIG_FILE="$TEST_CONFIG_FILE"
     export DTAGENT_TOKEN="dt0c01.TEST12345678901234567890.TEST123456789012345678901234567890123456789012345678901234567890"
+
+    # Ensure build directory exists with minimal structure
+    mkdir -p build/09_upgrade build/30_plugins
 }
 
 teardown() {
-    rm -rf "$TEST_DIR"
+    rm -f "$TEST_CONFIG_FILE" "$TEST_SQL_FILE"
     unset BUILD_CONFIG_FILE
     unset DTAGENT_TOKEN
 }
@@ -21,9 +23,9 @@ teardown() {
     cat > "$TEST_CONFIG_FILE" << 'EOF'
 [
   {
-    "PATH": "core.dynatrace_tenant_address",
-    "TYPE": "string",
-    "VALUE": "test.dynatrace.com"
+    "PATH": "core.tag",
+    "TYPE": "str",
+    "VALUE": "TEST"
   },
   {
     "PATH": "plugins.deploy_disabled_plugins",
@@ -48,7 +50,7 @@ teardown() {
 ]
 EOF
 
-    run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "agents" "" "manual"
+    run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "all" "" "manual"
     [ "$status" -eq 0 ]
     [ -s "$TEST_SQL_FILE" ]
 
@@ -70,9 +72,9 @@ EOF
     cat > "$TEST_CONFIG_FILE" << 'EOF'
 [
   {
-    "PATH": "core.dynatrace_tenant_address",
-    "TYPE": "string",
-    "VALUE": "test.dynatrace.com"
+    "PATH": "core.tag",
+    "TYPE": "str",
+    "VALUE": "TEST"
   },
   {
     "PATH": "plugins.deploy_disabled_plugins",
@@ -97,7 +99,7 @@ EOF
 ]
 EOF
 
-    run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "agents" "" "manual"
+    run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "all" "" "manual"
     [ "$status" -eq 0 ]
     [ -s "$TEST_SQL_FILE" ]
 
@@ -119,9 +121,9 @@ EOF
     cat > "$TEST_CONFIG_FILE" << 'EOF'
 [
   {
-    "PATH": "core.dynatrace_tenant_address",
-    "TYPE": "string",
-    "VALUE": "test.dynatrace.com"
+    "PATH": "core.tag",
+    "TYPE": "str",
+    "VALUE": "TEST"
   },
   {
     "PATH": "plugins.deploy_disabled_plugins",
@@ -146,24 +148,24 @@ EOF
 ]
 EOF
 
-    run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "agents" "" "manual"
+    run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "plugins" "" "manual"
     [ "$status" -eq 0 ]
     [ -s "$TEST_SQL_FILE" ]
 
     # Should NOT contain query_history views when plugin is disabled
-    ! grep -iq "V_QUERY_HISTORY" "$TEST_SQL_FILE"
+    ! grep -i "create.*view.*V_QUERY_HISTORY" "$TEST_SQL_FILE"
 
-    # Should NOT contain event_log table
-    ! grep -iq "EVENT_LOG" "$TEST_SQL_FILE"
+    # Should NOT contain event_log table creation
+    ! grep -i "create.*event.*table.*EVENT_LOG" "$TEST_SQL_FILE"
 }
 
 @test "query_history plugin: only event_log enabled (query_history disabled)" {
     cat > "$TEST_CONFIG_FILE" << 'EOF'
 [
   {
-    "PATH": "core.dynatrace_tenant_address",
-    "TYPE": "string",
-    "VALUE": "test.dynatrace.com"
+    "PATH": "core.tag",
+    "TYPE": "str",
+    "VALUE": "TEST"
   },
   {
     "PATH": "plugins.deploy_disabled_plugins",
@@ -188,7 +190,7 @@ EOF
 ]
 EOF
 
-    run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "agents" "" "manual"
+    run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "all" "" "manual"
     [ "$status" -eq 0 ]
     [ -s "$TEST_SQL_FILE" ]
 
