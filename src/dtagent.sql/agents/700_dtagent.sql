@@ -24,7 +24,11 @@
 --
 -- DTAGENT_DB.APP.DTAGENT() is the core procedure of Dynatrace Snowflake Observability Agent.
 -- It is responsible for sending data (prepared by other procedures in the app schema) as: metrics, spans, and logs
+-- DTAGENT_DB.APP.DTAGENT() is not deployed if all plugins are disabled, as it requires at least one plugin to be active.
+-- Note: The agents deployment scope can still be used even when all plugins are disabled, as other agents
+-- like SEND_TELEMETRY() can operate independently without plugins.
 --
+--%OPTION:agent:
 use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 
 create or replace procedure DTAGENT_DB.APP.DTAGENT(sources array)
@@ -53,6 +57,7 @@ $$
 
 ---------------------------------------------------------------------
 grant usage on procedure DTAGENT_DB.APP.DTAGENT(array) to role DTAGENT_VIEWER;
+--%:OPTION:agent
 
 
 

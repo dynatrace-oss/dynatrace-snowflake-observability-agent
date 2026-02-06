@@ -228,6 +228,8 @@ To deploy Dynatrace Snowflake Observability Agent, run the `./deploy.sh` command
 
   **Note:** The `admin` scope is **optional**. If not installed, the `DTAGENT_ADMIN` role will not be created, and administrative operations (such as granting MONITOR privileges on warehouses) must be performed manually.
 
+  **Plugin-dependent deployment:** When all plugins are disabled (`plugins.deploy_disabled_plugins=false` and all plugins have `is_disabled=true` or `plugins.disabled_by_default=true` with no plugins explicitly enabled), the main `DTAGENT()` procedure will not be deployed. However, the `agents` scope can still be deployed as other agent procedures (like `SEND_TELEMETRY()`) can operate independently.
+
   **Multiple scopes** can be specified as a comma-separated list (e.g., `setup,plugins,config,agents,apikey`). This allows you to deploy only specific components in a single operation. Note that `all` and `teardown` cannot be combined with other scopes.
 
 - **`--from-version=VERSION`** (required when `--scope=upgrade`): Specifies the version number you are upgrading from (e.g., `0.9.2`).
