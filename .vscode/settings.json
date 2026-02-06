@@ -32,6 +32,7 @@
     "cSpell.words": [
         "Acceldata",
         "ACCOUNTADMIN",
+        "accountname",
         "addopts",
         "apikey",
         "argjson",
@@ -89,6 +90,7 @@
         "Neev",
         "numpy",
         "openpipeline",
+        "orgname",
         "pandoc",
         "pango",
         "parseable",
@@ -131,6 +133,7 @@
         "UNDROP",
         "unforseen",
         "UNREDACTED",
+        "useast",
         "USECASES",
         "uuidgen",
         "venv",

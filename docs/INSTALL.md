@@ -357,13 +357,17 @@ This approach provides a structured way to have a Snowflake administrator initia
     -- CUSTOM OBJECT NAMES:
     -- DB: DTAGENT_DB
     -- WAREHOUSE: DTAGENT_WH
-    -- RESOURCE MONITOR: DTAGENT_RS
+    -- RESOURCE MONITOR: DTAGENT_RS (optional - omit if setting to "-" in config)
     -- OWNER: DTAGENT_OWNER
-    -- ADMIN: DTAGENT_ADMIN
+    -- ADMIN: DTAGENT_ADMIN (optional - omit if setting to "-" in config)
     -- VIEWER: DTAGENT_VIEWER
-    -- API_INTEGRATION: DTAGENT_API_INTEGRATION
+    -- API_INTEGRATION: DTAGENT_API_INTEGRATION (required)
     --
     ```
+
+    > **Note:** If you plan to skip optional objects (admin role or resource monitor), you can either:
+    > - Keep their default names in the script and set them to `"-"` in your config (the deployment will filter them out), OR
+    > - Manually remove their creation statements from your custom-init.sql file
 
 1. Use your text editor's find-and-replace function to update all default names to your custom names throughout the entire file:
 
@@ -393,10 +397,32 @@ This approach provides a structured way to have a Snowflake administrator initia
         warehouse:
           name: "DTAGENT_MY_WAREHOUSE"
         resource_monitor:
-          name: "DTAGENT_MY_RESOURCE_MONITOR"
+          name: "DTAGENT_MY_RESOURCE_MONITOR"  # or "-" to skip
         roles:
           owner: "DTAGENT_MY_OWNER"
-          admin: "DTAGENT_MY_ADMIN"  # or "-" if not created
+          admin: "DTAGENT_MY_ADMIN"  # or "-" to skip
+          viewer: "DTAGENT_MY_VIEWER"
+        api_integration:
+          name: "DTAGENT_MY_API_INTEGRATION"
+    ```
+
+    **Example with optional objects disabled:**
+
+    ```yaml
+    core:
+      dynatrace_tenant_address: your-tenant.live.dynatrace.com
+      deployment_environment: CUSTOM-INIT-MINIMAL
+
+      snowflake:
+        database:
+          name: "DTAGENT_MY_DB"
+        warehouse:
+          name: "DTAGENT_MY_WAREHOUSE"
+        resource_monitor:
+          name: "-"  # Skip resource monitor creation
+        roles:
+          owner: "DTAGENT_MY_OWNER"
+          admin: "-"  # Skip admin role creation
           viewer: "DTAGENT_MY_VIEWER"
         api_integration:
           name: "DTAGENT_MY_API_INTEGRATION"
@@ -565,9 +591,11 @@ The following table describes all available `core` configuration options:
 | `snowflake.roles.owner`                          | String  | No          | `DTAGENT_OWNER`           | Custom name for the owner role. Empty or missing value uses default                                                                                                                                                                                                                                                                  |
 | `snowflake.roles.admin`                          | String  | No          | `DTAGENT_ADMIN`           | Custom name for the admin role. Empty/missing uses default, `"-"` skips creation (**see note below**)                                                                                                                                                                                                                                |
 | `snowflake.roles.viewer`                         | String  | No          | `DTAGENT_VIEWER`          | Custom name for the viewer role. Empty or missing value uses default                                                                                                                                                                                                                                                                 |
-| `snowflake.api_integration.name`                 | String  | No          | `DTAGENT_API_INTEGRATION` | Custom name for the external access integration. Empty or missing value uses default                                                                                                                                                                                                                                                 |
+| `snowflake.api_integration.name`                 | String  | No          | `DTAGENT_API_INTEGRATION` | Custom name for the external access integration. Empty or missing value uses default. **Note:** Unlike admin role and resource monitor, the API integration is required for agent operation                                                                                                                                          |
 
 > **Note on Optional Objects**: When `snowflake.roles.admin` or `snowflake.resource_monitor.name` is set to `"-"`, the corresponding object will not be created during deployment. All SQL code related to these objects will be automatically excluded from the deployment script. If you set `snowflake.roles.admin` to `"-"`, you cannot use the `admin` deployment scope as it requires the admin role to exist.
+>
+> **Required Objects**: The following objects are always required and cannot be skipped: database, warehouse, owner role, viewer role, and API integration. These are essential for agent operation.
 
 #### Custom Object Names
 
@@ -639,6 +667,38 @@ Custom names must follow Snowflake identifier rules:
 - Names are case-insensitive in Snowflake
 
 The deployment script will validate all custom names before proceeding. If validation fails, the deployment will stop with an error message.
+
+##### Supported Installation Scenarios
+
+The agent supports various installation paths depending on your organizational requirements and privilege constraints:
+
+| Scenario                          | Required Objects          | Optional Objects                    | Configuration                            | Deployment Scopes                                          |
+| --------------------------------- | ------------------------- | ----------------------------------- | ---------------------------------------- | ---------------------------------------------------------- |
+| **Standard Full Install**         | All defaults              | Admin role + Resource monitor       | Default or custom names                  | `all` or `init,admin,setup,plugins,config,agents,apikey`   |
+| **Standard Without Optional**     | Defaults                  | Admin: `-`<br>Resource monitor: `-` | Set to `"-"` in config                   | `init,setup,plugins,config,agents,apikey` (skip `admin`)   |
+| **Custom Names Full**             | Custom names for all      | Admin + Resource monitor            | Custom names in config                   | `init,admin,setup,plugins,config,agents,apikey`            |
+| **Custom Names Without Optional** | Custom names              | Admin: `-`<br>Resource monitor: `-` | Custom names + `"-"` for optional        | `init,setup,plugins,config,agents,apikey`                  |
+| **Pre-Created Objects (Full)**    | DBA creates all           | Admin + Resource monitor            | Match pre-created names                  | `setup,plugins,config,agents,apikey` (skip `init`,`admin`) |
+| **Pre-Created Objects (Minimal)** | DBA creates required only | Skip both                           | Match required names, `"-"` for optional | `setup,plugins,config,agents,apikey`                       |
+
+**Required Objects (Cannot be skipped):**
+
+- Database (`DTAGENT_DB` or custom)
+- Warehouse (`DTAGENT_WH` or custom)
+- Owner Role (`DTAGENT_OWNER` or custom)
+- Viewer Role (`DTAGENT_VIEWER` or custom)
+- API Integration (`DTAGENT_API_INTEGRATION` or custom)
+
+**Optional Objects (Can be skipped with `"-"`):**
+
+- Admin Role (`DTAGENT_ADMIN` or custom or `"-"`)
+- Resource Monitor (`DTAGENT_RS` or custom or `"-"`)
+
+When admin role is skipped (`"-"`), you must manually grant required privileges:
+
+- `MONITOR` on warehouses (for `query_history` plugin)
+- `MONITOR` on dynamic tables (for `dynamic_tables` plugin)
+- Plugin-specific privileges as documented
 
 ##### Mutual Exclusivity with TAG
 
