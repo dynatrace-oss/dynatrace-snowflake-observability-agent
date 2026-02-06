@@ -42,6 +42,7 @@ packages = (
 handler = 'main'
 external_access_integrations = (DTAGENT_API_INTEGRATION)
 secrets = ('dtagent_token'=DTAGENT_DB.CONFIG.DTAGENT_API_KEY)
+LOG_LEVEL = INFO
 execute as caller
 as
 $$
