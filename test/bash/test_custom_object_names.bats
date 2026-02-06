@@ -332,3 +332,209 @@ EOF
     grep -q "DTAGENT_TEST_OWNER" "$TEST_SQL_FILE"
 }
 
+@test "OPTION filtering: resource_monitor disabled removes all references" {
+    cat > "$TEST_CONFIG_FILE" << 'EOF'
+[
+  {
+    "PATH": "core.snowflake.resource_monitor.name",
+    "TYPE": "string",
+    "VALUE": "-"
+  },
+  {
+    "PATH": "core.dynatrace_tenant_address",
+    "TYPE": "string",
+    "VALUE": "test.dynatrace.com"
+  }
+]
+EOF
+    export BUILD_CONFIG_FILE="$TEST_CONFIG_FILE"
+    export DTAGENT_TOKEN="dt0c01.TEST12345678901234567890.TEST123456789012345678901234567890123456789012345678901234567890"
+
+    run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "init,setup" "" "manual"
+    [ "$status" -eq 0 ]
+
+    # Verify resource monitor creation is NOT present (init scope)
+    ! grep -q "create resource monitor" "$TEST_SQL_FILE"
+
+    # Verify P_UPDATE_RESOURCE_MONITOR procedure definition is NOT present (setup scope)
+    ! grep -q "create or replace procedure.*P_UPDATE_RESOURCE_MONITOR" "$TEST_SQL_FILE"
+
+    # Verify calls to P_UPDATE_RESOURCE_MONITOR are NOT present (setup scope - indented blocks)
+    ! grep -q "call.*P_UPDATE_RESOURCE_MONITOR" "$TEST_SQL_FILE"
+}
+
+@test "OPTION filtering: indented markers work correctly" {
+    # Create a test SQL file with indented OPTION markers
+    TEST_INPUT_FILE=$(mktemp)
+    cat > "$TEST_INPUT_FILE" << 'EOF'
+-- Normal code
+SELECT 1;
+
+-- Indented block with OPTION markers (like in stored procedure)
+CREATE PROCEDURE TEST_PROC()
+AS
+$$
+BEGIN
+    --%OPTION:resource_monitor:
+    CALL P_UPDATE_RESOURCE_MONITOR();
+    --%:OPTION:resource_monitor
+
+    SELECT 'after block';
+END;
+$$;
+
+-- More normal code
+SELECT 2;
+EOF
+
+    cat > "$TEST_CONFIG_FILE" << 'EOF'
+[
+  {
+    "PATH": "core.snowflake.resource_monitor.name",
+    "TYPE": "string",
+    "VALUE": "-"
+  },
+  {
+    "PATH": "core.dynatrace_tenant_address",
+    "TYPE": "string",
+    "VALUE": "test.dynatrace.com"
+  }
+]
+EOF
+    export BUILD_CONFIG_FILE="$TEST_CONFIG_FILE"
+
+    # Get excluded options and apply filter directly
+    EXCLUDED_OPTIONS=$(./scripts/deploy/list_options_to_exclude.sh)
+
+    # Apply the filter using the same logic as prepare_deploy_script.sh
+    local temp_file=$(mktemp)
+    cp "$TEST_INPUT_FILE" "$temp_file"
+
+    for option_name in $EXCLUDED_OPTIONS; do
+        awk -v option="$option_name" '
+            BEGIN { active=1; }
+            {
+                # Check for start marker: --%OPTION:option_name: or #%OPTION:option_name: (with optional leading whitespace)
+                if ($0 ~ /^[ \t]*(--|#)%OPTION:/) {
+                    start_pattern = "%OPTION:" option ":"
+                    if (index($0, start_pattern) > 0) {
+                        active=0;
+                    }
+                }
+
+                # Print line only if active
+                if (active==1) print $0;
+
+                # Check for end marker: --%:OPTION:option_name or #%:OPTION:option_name (with optional leading whitespace)
+                if ($0 ~ /^[ \t]*(--|#)%:OPTION:/) {
+                    end_pattern = "%:OPTION:" option
+                    # Make sure we match the exact option name, not a prefix
+                    if (index($0, end_pattern) > 0) {
+                        # Check if followed by end of line or whitespace
+                        idx = index($0, end_pattern)
+                        len = length(end_pattern)
+                        rest = substr($0, idx + len)
+                        if (rest == "" || rest ~ /^[ \t]*$/) {
+                            active=1;
+                        }
+                    }
+                }
+            }
+        ' "$temp_file" > "$TEST_SQL_FILE"
+        cp "$TEST_SQL_FILE" "$temp_file"
+    done
+    rm -f "$temp_file"
+
+    # Verify the indented block was removed
+    ! grep -q "P_UPDATE_RESOURCE_MONITOR" "$TEST_SQL_FILE"
+
+    # Verify code before and after remains
+    grep -q "SELECT 1" "$TEST_SQL_FILE"
+    grep -q "SELECT 'after block'" "$TEST_SQL_FILE"
+    grep -q "SELECT 2" "$TEST_SQL_FILE"
+
+    rm -f "$TEST_INPUT_FILE"
+}
+
+@test "OPTION filtering: non-indented markers work correctly" {
+    # Create a test SQL file with non-indented OPTION markers
+    TEST_INPUT_FILE=$(mktemp)
+    cat > "$TEST_INPUT_FILE" << 'EOF'
+-- Normal code
+SELECT 1;
+
+--%OPTION:resource_monitor:
+CREATE RESOURCE MONITOR TEST_RS;
+--%:OPTION:resource_monitor
+
+-- More normal code
+SELECT 2;
+EOF
+
+    cat > "$TEST_CONFIG_FILE" << 'EOF'
+[
+  {
+    "PATH": "core.snowflake.resource_monitor.name",
+    "TYPE": "string",
+    "VALUE": "-"
+  },
+  {
+    "PATH": "core.dynatrace_tenant_address",
+    "TYPE": "string",
+    "VALUE": "test.dynatrace.com"
+  }
+]
+EOF
+    export BUILD_CONFIG_FILE="$TEST_CONFIG_FILE"
+
+    # Get excluded options and apply filter directly
+    EXCLUDED_OPTIONS=$(./scripts/deploy/list_options_to_exclude.sh)
+
+    # Apply the filter using the same logic as prepare_deploy_script.sh
+    local temp_file=$(mktemp)
+    cp "$TEST_INPUT_FILE" "$temp_file"
+
+    for option_name in $EXCLUDED_OPTIONS; do
+        awk -v option="$option_name" '
+            BEGIN { active=1; }
+            {
+                # Check for start marker: --%OPTION:option_name: or #%OPTION:option_name: (with optional leading whitespace)
+                if ($0 ~ /^[ \t]*(--|#)%OPTION:/) {
+                    start_pattern = "%OPTION:" option ":"
+                    if (index($0, start_pattern) > 0) {
+                        active=0;
+                    }
+                }
+
+                # Print line only if active
+                if (active==1) print $0;
+
+                # Check for end marker: --%:OPTION:option_name or #%:OPTION:option_name (with optional leading whitespace)
+                if ($0 ~ /^[ \t]*(--|#)%:OPTION:/) {
+                    end_pattern = "%:OPTION:" option
+                    # Make sure we match the exact option name, not a prefix
+                    if (index($0, end_pattern) > 0) {
+                        # Check if followed by end of line or whitespace
+                        idx = index($0, end_pattern)
+                        len = length(end_pattern)
+                        rest = substr($0, idx + len)
+                        if (rest == "" || rest ~ /^[ \t]*$/) {
+                            active=1;
+                        }
+                    }
+                }
+            }
+        ' "$temp_file" > "$TEST_SQL_FILE"
+        cp "$TEST_SQL_FILE" "$temp_file"
+    done
+    rm -f "$temp_file"
+    
+    # Verify the block was removed
+    ! grep -q "CREATE RESOURCE MONITOR" "$TEST_SQL_FILE"
+    
+    # Verify code before and after remains
+    grep -q "SELECT 1" "$TEST_SQL_FILE"
+    grep -q "SELECT 2" "$TEST_SQL_FILE"
+    
+    rm -f "$TEST_INPUT_FILE"
+}
