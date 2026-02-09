@@ -222,6 +222,10 @@ if [[ "$SCOPE" == *,* ]]; then
     done
     # Remove leading/trailing spaces and deduplicate
     SQL_FILES=$(echo "$SQL_FILES" | xargs)
+    #%DEV:
+    echo "DEBUG: Parsed scopes: ${SCOPE_ARRAY[@]}"
+    echo "DEBUG: Built SQL_FILES: [$SQL_FILES]"
+    #%:DEV
 
     # Validate FROM_VERSION if upgrade scope is included
     if [ "$HAS_UPGRADE_SCOPE" == "true" ] && [ -z "$FROM_VERSION" ]; then
@@ -249,7 +253,14 @@ fi
 
 # Check if required SQL files exist in build folder (skip for scopes with empty SQL_FILES)
 if [ -n "$SQL_FILES" ]; then
-    if ! find build/$SQL_FILES -type f 2>/dev/null | grep -q .; then
+    missing_files=false
+    for pattern in $SQL_FILES; do
+        if ! find build/$pattern -type f 2>/dev/null | grep -q .; then
+            echo "ERROR: Build file missing: build/$pattern"
+            missing_files=true
+        fi
+    done
+    if [ "$missing_files" = true ]; then
         echo "ERROR: Build files missing for scope $SCOPE"
         exit 1
     fi
@@ -268,9 +279,15 @@ if [ "$SCOPE" != 'apikey' ] && [ "$SCOPE" != 'teardown' ]; then
     if [ "$HAS_UPGRADE_SCOPE" == "true" ]; then
         # For upgrade scope, filter by version
         # Process each SQL file pattern separately, applying version filter to upgrade files
+        #%DEV:
+        echo "DEBUG: Processing with upgrade scope, FROM_VERSION=$FROM_VERSION"
+        #%:DEV
         (
             for pattern in $SQL_FILES; do
                 # Use eval to let find handle glob patterns properly
+                #%DEV:
+                echo "DEBUG: Finding files matching build/$pattern" >&2
+                #%:DEV
                 eval "find build/$pattern -type f -print 2>/dev/null"
             done
         ) |
@@ -304,9 +321,18 @@ if [ "$SCOPE" != 'apikey' ] && [ "$SCOPE" != 'teardown' ]; then
                 >"$INSTALL_SCRIPT_SQL"
     else
         # Process each SQL file pattern separately
+        #%DEV:
+        echo "DEBUG: Processing without upgrade scope"
+        #%:DEV
         (
             for pattern in $SQL_FILES; do
                 # Use eval to let find handle glob patterns properly
+                #%DEV:
+                echo "DEBUG: Finding files matching build/$pattern" >&2
+                found_files=$(eval "find build/$pattern -type f -print 2>/dev/null")
+                echo "DEBUG: Found files: $found_files" >&2
+                echo "$found_files"
+                #%:DEV
                 eval "find build/$pattern -type f -print 2>/dev/null"
             done
         ) | sort | xargs -I {} sh -c 'echo "-- SCRIPT: $1"; cat "$1"' _ {} \; \

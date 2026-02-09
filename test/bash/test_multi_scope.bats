@@ -194,6 +194,25 @@ teardown() {
     ! grep -q "agents" "$TEST_SQL_FILE"
 }
 
+# Test: Multi-scope 'agents,config' - regression test for file expansion issue
+@test "prepare_deploy_script.sh: multi-scope 'agents,config' includes both files" {
+    run bash scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "agents,config" "" "true"
+    [ "$status" -eq 0 ]
+    [ -f "$TEST_SQL_FILE" ]
+    # Verify both agents and config content are present
+    grep -q "agents" "$TEST_SQL_FILE"
+    grep -q "config" "$TEST_SQL_FILE"
+    # Verify excluded scopes are not present
+    ! grep -q "init" "$TEST_SQL_FILE"
+    ! grep -q "admin" "$TEST_SQL_FILE"
+    ! grep -q "setup" "$TEST_SQL_FILE"
+    ! grep -q "plugin" "$TEST_SQL_FILE"
+    # Verify both SQL files were processed (check for script markers or content)
+    # The script should include content from both 70_agents.sql and 40_config.sql
+    line_count=$(wc -l < "$TEST_SQL_FILE")
+    [ "$line_count" -ge 2 ]
+}
+
 # Test: apikey can be combined at the beginning
 @test "prepare_deploy_script.sh: multi-scope 'apikey,setup,config' works with apikey first" {
     run bash scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "apikey,setup,config" "" "true"
@@ -223,4 +242,19 @@ teardown() {
     grep -q "agents" "$TEST_SQL_FILE"
     grep -q "UPDATE_FROM_CONFIGURATIONS" "$TEST_SQL_FILE"
     ! grep -q "admin" "$TEST_SQL_FILE"
+}
+
+# Test: File validation works correctly with multiple scopes
+@test "prepare_deploy_script.sh: file validation handles multiple patterns correctly" {
+    # Remove one of the required files to trigger validation error
+    rm -f build/40_config.sql
+
+    run bash scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "agents,config" "" "true"
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"ERROR: Build file missing"* ]]
+    [[ "$output" == *"40_config.sql"* ]]
+
+    # Restore the file for other tests
+    echo "-- Test config" > build/40_config.sql
+    echo "SELECT 'config';" >> build/40_config.sql
 }
