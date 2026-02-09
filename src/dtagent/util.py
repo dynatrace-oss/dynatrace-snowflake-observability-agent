@@ -95,12 +95,16 @@ def _cleanup_data(value: Any) -> Any:
                 numeric_converted = [__try_convert_to_numeric(item) for item in value]
                 converted_types = {type(item) for item in numeric_converted if item is not None}
 
-                return (
-                    # Check if we managed to normalize to numeric (int, float, bool are compatible)
-                    [str(item) if item is not None else None for item in value]
-                    if len(converted_types) > 1 and not converted_types.issubset({int, float, bool})
-                    else numeric_converted
-                )
+                # If we can normalize to numeric (int, float, bool are compatible), return directly
+                if converted_types and converted_types.issubset({int, float, bool}):
+                    return numeric_converted
+
+                # Fallback: normalize to a sequence of strings, handling datetime explicitly
+                return [
+                    str(format_datetime(item) if isinstance(item, datetime.datetime) else item)
+                    for item in numeric_converted
+                    if item is not None
+                ]
 
         # No mixed types or single element - process normally
         cleaned_list = [_cleanup_data(v) for v in value]
@@ -284,15 +288,14 @@ def _adjust_timestamp(row_dict: Dict, start_time: str = "START_TIME", end_time: 
 
 
 def validate_timestamp_ms(timestamp_ms: int, allowed_past_minutes: int = 24 * 60 - 5, allowed_future_minutes: int = 10) -> Optional[int]:
-    """Checks given timestamp (in ms) whether it is in the range accepted by Dynatrace metrics API, i.e., between [-1h, +10min],
-    but to play safe we check [-55min, 0]
+    """Validates and normalizes timestamps with configurable time windows and automatic unit conversion.
 
     This function performs multiple validation steps:
     1. Rejects negative timestamps (e.g., sentinel values like -1000000)
     2. Auto-converts timestamps that are too large by detecting the likely time unit:
-       - Femtoseconds (> 4.1e18): divides by 1e12
-       - Picoseconds (> 4.1e15): divides by 1e9
-       - Nanoseconds (> 4.1e12): divides by 1e6
+       - Femtoseconds (> 4.1e21): divides by 1e12
+       - Picoseconds (> 4.1e18): divides by 1e9
+       - Nanoseconds (> 4.1e15): divides by 1e6
        - Microseconds (> 4.1e12): divides by 1e3
     3. Validates the timestamp is within the allowed time range from current time
 
@@ -331,26 +334,26 @@ def validate_timestamp_ms(timestamp_ms: int, allowed_past_minutes: int = 24 * 60
     #   - Femtoseconds:  4.1e12 * 1e12 = 4.1e24
     if timestamp_ms > 4_100_000_000_000:
 
-        # Try femtoseconds (divide by 1e12)
+        # Try femtoseconds (divide by 1e12 using integer arithmetic)
         if timestamp_ms > 4_100_000_000_000_000_000_000:
-            converted_ts = timestamp_ms / 1e12
+            converted_ts = timestamp_ms // 1_000_000_000_000
 
-        # Try picoseconds (divide by 1e9)
+        # Try picoseconds (divide by 1e9 using integer arithmetic)
         elif timestamp_ms > 4_100_000_000_000_000_000:
-            converted_ts = timestamp_ms / 1e9
+            converted_ts = timestamp_ms // 1_000_000_000
 
-        # Try nanoseconds (divide by 1e6)
+        # Try nanoseconds (divide by 1e6 using integer arithmetic)
         elif timestamp_ms > 4_100_000_000_000_000:
-            converted_ts = timestamp_ms / 1e6
+            converted_ts = timestamp_ms // 1_000_000
 
-        # Try microseconds (divide by 1e3)
+        # Try microseconds (divide by 1e3 using integer arithmetic)
         elif timestamp_ms > 4_100_000_000_000:
-            converted_ts = timestamp_ms / 1e3
+            converted_ts = timestamp_ms // 1_000
         else:
             converted_ts = -1  # Invalid value
 
         if 0 < converted_ts <= 4_100_000_000_000:
-            timestamp_ms = int(converted_ts)
+            timestamp_ms = converted_ts
         else:
             return None
 

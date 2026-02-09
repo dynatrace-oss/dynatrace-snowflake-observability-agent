@@ -215,20 +215,9 @@ class TestLoggerNaming:
 class TestCustomOTelTimestampFilter:
     """Tests for CustomOTelTimestampFilter timestamp validation"""
 
-    def test_filter_with_valid_timestamp(self):
-        """Test that valid timestamps are applied correctly"""
-        import logging
-        import time
-
-        # Create a mock LogRecord
-        record = logging.LogRecord(name="test", level=logging.INFO, pathname="", lineno=0, msg="test message", args=(), exc_info=None)
-
-        # Set a valid timestamp (current time in milliseconds)
-        valid_ts_ms = int(time.time() * 1000)
-        record.timestamp = valid_ts_ms
-
-        # Import and instantiate the filter (we need to get it from inside the Logs class)
-        # For testing, we'll recreate the filter logic
+    @pytest.fixture
+    def logs_instance(self):
+        """Create a Logs instance for testing"""
         from dtagent.otel.logs import Logs
 
         with patch("dtagent.otel.logs.LoggerProvider"):
@@ -236,7 +225,6 @@ class TestCustomOTelTimestampFilter:
                 mock_config = Mock()
                 mock_config.multitenancy_tag = None
 
-                # Mock the get method to return appropriate values based on key
                 def mock_get(key=None, otel_module=None, **kwargs):
                     if otel_module == "logs":
                         if kwargs.get("key") == "export_timeout_millis":
@@ -248,19 +236,51 @@ class TestCustomOTelTimestampFilter:
                 mock_config.get = Mock(side_effect=mock_get)
                 mock_resource = Mock()
 
-                Logs(mock_resource, mock_config)
+                logs = Logs(mock_resource, mock_config)
+                yield logs
 
-                # Get the filter from the logger handler
-                # Since we can't easily access the internal filter, we'll test the behavior indirectly
-                # by ensuring that valid timestamps don't cause issues
-                assert hasattr(record, "timestamp")
-                assert record.timestamp == valid_ts_ms
+    def get_filter(self, logs_instance):
+        """Extract the CustomOTelTimestampFilter from the logger"""
+        # The filter is added to the handler, which is added to the logger
+        if logs_instance._otel_logger and logs_instance._otel_logger.handlers:
+            handler = logs_instance._otel_logger.handlers[0]
+            if handler.filters:
+                return handler.filters[0]
+        return None
 
-    def test_filter_with_negative_timestamp(self):
+    def test_filter_with_valid_timestamp(self, logs_instance):
+        """Test that valid timestamps are applied correctly"""
+        import logging
+        import time
+
+        filter_instance = self.get_filter(logs_instance)
+        assert filter_instance is not None, "Could not retrieve filter from logger"
+
+        # Create a mock LogRecord
+        record = logging.LogRecord(name="test", level=logging.INFO, pathname="", lineno=0, msg="test message", args=(), exc_info=None)
+
+        # Set a valid timestamp (current time in milliseconds)
+        valid_ts_ms = int(time.time() * 1000)
+        record.timestamp = valid_ts_ms
+
+        # Apply the filter
+        result = filter_instance.filter(record)
+
+        # Verify filter returned True
+        assert result is True
+        # Verify timestamp attribute was removed
+        assert not hasattr(record, "timestamp")
+        # Verify created and msecs were set correctly
+        assert abs(record.created - (valid_ts_ms / 1000)) < 0.001  # Allow small float precision difference
+        assert record.msecs == valid_ts_ms % 1000
+
+    def test_filter_with_negative_timestamp(self, logs_instance):
         """Test that negative timestamps are rejected and default timestamp is used"""
         import logging
 
-        # Create a mock LogRecord
+        filter_instance = self.get_filter(logs_instance)
+        assert filter_instance is not None
+
         record = logging.LogRecord(name="test", level=logging.INFO, pathname="", lineno=0, msg="test message", args=(), exc_info=None)
 
         # Store original created time
@@ -269,57 +289,37 @@ class TestCustomOTelTimestampFilter:
         # Set an invalid negative timestamp
         record.timestamp = -1000000
 
-        # Manually apply the filter logic (since we can't easily access the internal class)
-        # This simulates what CustomOTelTimestampFilter.filter() does
-        ts_ms = getattr(record, "timestamp", None)
-        if ts_ms is not None:
-            delattr(record, "timestamp")
-            try:
-                ts_ms = int(ts_ms)
-                # Validate timestamp is positive and reasonable
-                if ts_ms <= 0 or ts_ms > 4102444800000:
-                    # Invalid timestamp, don't modify record
-                    pass
-                else:
-                    record.created = ts_ms / 1_000
-                    record.msecs = ts_ms % 1_000
-            except (ValueError, TypeError, OverflowError):
-                pass
+        # Apply the filter
+        filter_instance.filter(record)
 
         # Verify that timestamp attribute was removed
         assert not hasattr(record, "timestamp")
         # Verify that record.created wasn't set to the negative value
         assert record.created == original_created
 
-    def test_filter_with_zero_timestamp(self):
+    def test_filter_with_zero_timestamp(self, logs_instance):
         """Test that zero timestamp is rejected"""
         import logging
+
+        filter_instance = self.get_filter(logs_instance)
+        assert filter_instance is not None
 
         record = logging.LogRecord(name="test", level=logging.INFO, pathname="", lineno=0, msg="test message", args=(), exc_info=None)
 
         original_created = record.created
         record.timestamp = 0
 
-        # Apply filter logic
-        ts_ms = getattr(record, "timestamp", None)
-        if ts_ms is not None:
-            delattr(record, "timestamp")
-            try:
-                ts_ms = int(ts_ms)
-                if ts_ms <= 0 or ts_ms > 4102444800000:
-                    pass
-                else:
-                    record.created = ts_ms / 1_000
-                    record.msecs = ts_ms % 1_000
-            except (ValueError, TypeError, OverflowError):
-                pass
+        filter_instance.filter(record)
 
         assert not hasattr(record, "timestamp")
         assert record.created == original_created
 
-    def test_filter_with_far_future_timestamp(self):
+    def test_filter_with_far_future_timestamp(self, logs_instance):
         """Test that unreasonably far future timestamps are rejected"""
         import logging
+
+        filter_instance = self.get_filter(logs_instance)
+        assert filter_instance is not None
 
         record = logging.LogRecord(name="test", level=logging.INFO, pathname="", lineno=0, msg="test message", args=(), exc_info=None)
 
@@ -327,54 +327,35 @@ class TestCustomOTelTimestampFilter:
         # Set timestamp to year 2200 (way beyond reasonable range)
         record.timestamp = 5000000000000
 
-        # Apply filter logic
-        ts_ms = getattr(record, "timestamp", None)
-        if ts_ms is not None:
-            delattr(record, "timestamp")
-            try:
-                ts_ms = int(ts_ms)
-                if ts_ms <= 0 or ts_ms > 4102444800000:
-                    pass
-                else:
-                    record.created = ts_ms / 1_000
-                    record.msecs = ts_ms % 1_000
-            except (ValueError, TypeError, OverflowError):
-                pass
+        filter_instance.filter(record)
 
         assert not hasattr(record, "timestamp")
         assert record.created == original_created
 
-    def test_filter_with_none_timestamp(self):
+    def test_filter_with_none_timestamp(self, logs_instance):
         """Test that None timestamp doesn't cause issues"""
         import logging
+
+        filter_instance = self.get_filter(logs_instance)
+        assert filter_instance is not None
 
         record = logging.LogRecord(name="test", level=logging.INFO, pathname="", lineno=0, msg="test message", args=(), exc_info=None)
 
         original_created = record.created
         # Don't set timestamp attribute at all
 
-        # Apply filter logic
-        ts_ms = getattr(record, "timestamp", None)
-        if ts_ms is not None:
-            delattr(record, "timestamp")
-            try:
-                ts_ms = int(ts_ms)
-                if ts_ms <= 0 or ts_ms > 4102444800000:
-                    pass
-                else:
-                    record.created = ts_ms / 1_000
-                    record.msecs = ts_ms % 1_000
-            except (ValueError, TypeError, OverflowError):
-                pass
+        filter_instance.filter(record)
 
         # record.created should remain unchanged
         assert record.created == original_created
 
-    def test_filter_with_valid_observed_timestamp(self):
+    def test_filter_with_valid_observed_timestamp(self, logs_instance):
         """Test that valid observed_timestamp is converted to nanoseconds"""
         import logging
         import time
-        from dtagent.util import validate_timestamp_ms
+
+        filter_instance = self.get_filter(logs_instance)
+        assert filter_instance is not None
 
         record = logging.LogRecord(name="test", level=logging.INFO, pathname="", lineno=0, msg="test message", args=(), exc_info=None)
 
@@ -382,73 +363,149 @@ class TestCustomOTelTimestampFilter:
         valid_ts_ms = int(time.time() * 1000)
         record.observed_timestamp = valid_ts_ms
 
-        # Apply filter logic for observed_timestamp
-        observed_timestamp = getattr(record, "observed_timestamp", None)
-        if observed_timestamp:
-            validated_ts = validate_timestamp_ms(observed_timestamp)
-            if validated_ts:
-                # Convert milliseconds to nanoseconds for OTEL
-                record.observed_timestamp = int(validated_ts) * 1_000_000
-            else:
-                delattr(record, "observed_timestamp")
+        filter_instance.filter(record)
 
         # Verify timestamp was converted to nanoseconds
         assert hasattr(record, "observed_timestamp")
         assert record.observed_timestamp == valid_ts_ms * 1_000_000
 
-    def test_filter_with_negative_observed_timestamp(self):
+    def test_filter_with_negative_observed_timestamp(self, logs_instance):
         """Test that negative observed_timestamp (like -1000000) is removed"""
         import logging
-        from dtagent.util import validate_timestamp_ms
+
+        filter_instance = self.get_filter(logs_instance)
+        assert filter_instance is not None
 
         record = logging.LogRecord(name="test", level=logging.INFO, pathname="", lineno=0, msg="test message", args=(), exc_info=None)
 
         # Set an invalid negative observed_timestamp (-1000000 from the bug report)
         record.observed_timestamp = -1000000
 
-        # Apply filter logic for observed_timestamp
-        observed_timestamp = getattr(record, "observed_timestamp", None)
-        if observed_timestamp:
-            validated_ts = validate_timestamp_ms(observed_timestamp)
-            if validated_ts:
-                record.observed_timestamp = int(validated_ts) * 1_000_000
-            else:
-                delattr(record, "observed_timestamp")
+        filter_instance.filter(record)
 
         # Verify the invalid observed_timestamp was removed
         assert not hasattr(record, "observed_timestamp")
 
-    def test_filter_with_nanosecond_observed_timestamp(self):
-        """Test that nanosecond-scale observed_timestamp (10x too large) is removed"""
+    def test_filter_with_picosecond_observed_timestamp(self, logs_instance):
+        """Test that picosecond-scale observed_timestamp is auto-converted and then to nanoseconds"""
         import logging
-        from dtagent.util import validate_timestamp_ms
+        import time
+
+        filter_instance = self.get_filter(logs_instance)
+        assert filter_instance is not None
 
         record = logging.LogRecord(name="test", level=logging.INFO, pathname="", lineno=0, msg="test message", args=(), exc_info=None)
 
-        # Set an invalid nanosecond timestamp (from the bug report CSV)
+        # Set a picosecond timestamp (current time scaled to picoseconds)
+        # This ensures the timestamp is in valid range after conversion
+        current_ms = int(time.time() * 1000)
+        picosecond_ts = current_ms * 1_000_000_000  # Convert ms to picoseconds
+
+        record.observed_timestamp = picosecond_ts
+
+        filter_instance.filter(record)
+
+        # Verify the timestamp was auto-converted to milliseconds, validated, and converted to nanoseconds
+        # The picosecond value should be divided by 1e9 to get milliseconds
+        # Then multiplied by 1e6 to get nanoseconds
+        assert hasattr(record, "observed_timestamp")
+        expected_ns = current_ms * 1_000_000
+        assert record.observed_timestamp == expected_ns
+
+    def test_filter_with_out_of_range_picosecond_timestamp(self, logs_instance):
+        """Test that out-of-range picosecond timestamp (from bug report) is removed"""
+        import logging
+
+        filter_instance = self.get_filter(logs_instance)
+        assert filter_instance is not None
+
+        record = logging.LogRecord(name="test", level=logging.INFO, pathname="", lineno=0, msg="test message", args=(), exc_info=None)
+
+        # This specific value from the bug report is too far in the past/future after conversion
         record.observed_timestamp = 1770224954840999937441792
 
-        # Apply filter logic for observed_timestamp
-        observed_timestamp = getattr(record, "observed_timestamp", None)
-        if observed_timestamp:
-            validated_ts = validate_timestamp_ms(observed_timestamp)
-            if validated_ts:
-                record.observed_timestamp = int(validated_ts) * 1_000_000
-            else:
-                delattr(record, "observed_timestamp")
+        filter_instance.filter(record)
 
-        # Verify the invalid observed_timestamp was removed
+        # Verify the out-of-range observed_timestamp was removed
+        # After conversion to ms, this value may be outside the allowed range
+        # validate_timestamp_ms will return None, and the attribute should be deleted
         assert not hasattr(record, "observed_timestamp")
 
-    def test_filter_with_none_observed_timestamp(self):
+    def test_filter_with_none_observed_timestamp(self, logs_instance):
         """Test that None observed_timestamp doesn't cause issues"""
         import logging
+
+        filter_instance = self.get_filter(logs_instance)
+        assert filter_instance is not None
 
         record = logging.LogRecord(name="test", level=logging.INFO, pathname="", lineno=0, msg="test message", args=(), exc_info=None)
 
         # Don't set observed_timestamp attribute at all
-        observed_timestamp = getattr(record, "observed_timestamp", None)
-        assert observed_timestamp is None
+        filter_instance.filter(record)
 
         # This should not fail or cause issues
         assert not hasattr(record, "observed_timestamp")
+
+    def test_filter_with_both_timestamp_and_observed_timestamp(self, logs_instance):
+        """Test that both timestamp and observed_timestamp are handled correctly together"""
+        import logging
+        import time
+
+        filter_instance = self.get_filter(logs_instance)
+        assert filter_instance is not None
+
+        record = logging.LogRecord(name="test", level=logging.INFO, pathname="", lineno=0, msg="test message", args=(), exc_info=None)
+
+        # Set both valid timestamps
+        valid_ts_ms = int(time.time() * 1000)
+        record.timestamp = valid_ts_ms
+        record.observed_timestamp = valid_ts_ms + 1000  # 1 second later
+
+        filter_instance.filter(record)
+
+        # Verify timestamp was applied to record timing
+        assert not hasattr(record, "timestamp")
+        assert abs(record.created - (valid_ts_ms / 1000)) < 0.001
+
+        # Verify observed_timestamp was converted to nanoseconds
+        assert hasattr(record, "observed_timestamp")
+        assert record.observed_timestamp == (valid_ts_ms + 1000) * 1_000_000
+
+    def test_filter_with_string_timestamp(self, logs_instance):
+        """Test that string timestamps that can be converted work correctly"""
+        import logging
+        import time
+
+        filter_instance = self.get_filter(logs_instance)
+        assert filter_instance is not None
+
+        record = logging.LogRecord(name="test", level=logging.INFO, pathname="", lineno=0, msg="test message", args=(), exc_info=None)
+
+        # Set a valid timestamp as a string
+        valid_ts_ms = int(time.time() * 1000)
+        record.timestamp = str(valid_ts_ms)
+
+        filter_instance.filter(record)
+
+        # Verify timestamp was converted and applied
+        assert not hasattr(record, "timestamp")
+        assert abs(record.created - (valid_ts_ms / 1000)) < 0.001
+
+    def test_filter_with_invalid_string_timestamp(self, logs_instance):
+        """Test that invalid string timestamps are handled gracefully"""
+        import logging
+
+        filter_instance = self.get_filter(logs_instance)
+        assert filter_instance is not None
+
+        record = logging.LogRecord(name="test", level=logging.INFO, pathname="", lineno=0, msg="test message", args=(), exc_info=None)
+
+        original_created = record.created
+        # Set an invalid string timestamp
+        record.timestamp = "not_a_number"
+
+        filter_instance.filter(record)
+
+        # Verify timestamp was removed but record.created wasn't changed
+        assert not hasattr(record, "timestamp")
+        assert record.created == original_created

@@ -102,6 +102,24 @@ class Logs:
                         # If conversion fails, use default timestamp
                         pass
 
+                # Handle observed_timestamp field (for OTEL payload, expected in nanoseconds)
+                observed_ts = getattr(record, "observed_timestamp", None)
+                if observed_ts is not None:
+                    try:
+                        observed_ts_ms = int(observed_ts)
+                    except (ValueError, TypeError, OverflowError):
+                        # Invalid value; remove the attribute so we do not send bad data
+                        delattr(record, "observed_timestamp")
+                    else:
+                        # Use shared validation for millisecond timestamps
+                        validated_ts_ms = validate_timestamp_ms(observed_ts_ms)
+                        if validated_ts_ms:
+                            # Convert milliseconds to nanoseconds for OTEL
+                            setattr(record, "observed_timestamp", validated_ts_ms * 1_000_000)
+                        else:
+                            # If invalid, remove the attribute
+                            delattr(record, "observed_timestamp")
+
                 return True
 
         self._otel_logger_provider = LoggerProvider(resource=resource)
