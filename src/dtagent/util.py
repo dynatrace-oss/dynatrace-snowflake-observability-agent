@@ -95,16 +95,17 @@ def _cleanup_data(value: Any) -> Any:
                 numeric_converted = [__try_convert_to_numeric(item) for item in value]
                 converted_types = {type(item) for item in numeric_converted if item is not None}
 
-                # If we can normalize to numeric (int, float, bool are compatible), return directly
-                if converted_types and converted_types.issubset({int, float, bool}):
-                    return numeric_converted
-
-                # Fallback: normalize to a sequence of strings, handling datetime explicitly
-                return [
-                    str(format_datetime(item) if isinstance(item, datetime.datetime) else item)
-                    for item in numeric_converted
-                    if item is not None
-                ]
+                return (
+                    # If we can normalize to numeric (int, float, bool are compatible), return directly
+                    numeric_converted
+                    if converted_types and converted_types.issubset({int, float, bool})
+                    # Fallback: normalize to a sequence of strings, handling datetime explicitly
+                    else [
+                        str(format_datetime(item) if isinstance(item, datetime.datetime) else item)
+                        for item in numeric_converted
+                        if item is not None
+                    ]
+                )
 
         # No mixed types or single element - process normally
         cleaned_list = [_cleanup_data(v) for v in value]
