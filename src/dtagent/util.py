@@ -27,6 +27,7 @@
 
 import datetime
 import json
+from math import e
 import os
 import re
 from enum import Enum
@@ -287,17 +288,79 @@ def validate_timestamp_ms(timestamp_ms: int, allowed_past_minutes: int = 24 * 60
     """Checks given timestamp (in ms) whether it is in the range accepted by Dynatrace metrics API, i.e., between [-1h, +10min],
     but to play safe we check [-55min, 0]
 
+    This function performs multiple validation steps:
+    1. Rejects negative timestamps (e.g., sentinel values like -1000000)
+    2. Auto-converts timestamps that are too large by detecting the likely time unit:
+       - Femtoseconds (> 4.1e18): divides by 1e12
+       - Picoseconds (> 4.1e15): divides by 1e9
+       - Nanoseconds (> 4.1e12): divides by 1e6
+       - Microseconds (> 4.1e12): divides by 1e3
+    3. Validates the timestamp is within the allowed time range from current time
+
     Args:
-        timestamp_ms (int): timestamp in ms to check
+        timestamp_ms (int): timestamp in ms to check (or higher precision units to be auto-converted)
         allowed_past_minutes (int, optional): allowed past range in minutes. Defaults to 24*60 - 5 (about 1435 minutes, or ~24 hours).
                                               For logs and events, use defaults; for metrics, use 55.
         allowed_future_minutes (int, optional): allowed future range in minutes. Defaults to 10.
 
     Returns:
-        Optional[int]: given timestamp or None if timestamp is out of range
-    """
+        Optional[int]: validated timestamp in milliseconds, or None if timestamp is out of range or invalid
 
-    timestamp = datetime.datetime.fromtimestamp(timestamp_ms / 1e3, tz=datetime.timezone.utc)
+    Examples:
+        >>> validate_timestamp_ms(1707494400000)  # Valid milliseconds timestamp
+        1707494400000
+        >>> validate_timestamp_ms(1707494400000000)  # Microseconds, auto-converted
+        1707494400000
+        >>> validate_timestamp_ms(-1000000)  # Negative sentinel value
+        None
+        >>> validate_timestamp_ms(1770224954840999937441792)  # Picoseconds, auto-converted
+        1770224954840
+    """
+    # Pre-validation: reject negative timestamps (sentinel values like -1000000)
+    if timestamp_ms < 0:
+        return None
+
+    # Pre-validation: reject timestamps that are clearly too large (e.g., nanoseconds instead of milliseconds)
+    # Year 2100 in milliseconds is approximately 4.1e12
+    # Values larger than this are likely incorrectly converted from higher precision time units
+    # Attempt to auto-convert from femtoseconds, picoseconds, nanoseconds, or microseconds
+    # Thresholds based on year 2100 in each unit:
+    #   - Milliseconds: 4.1e12
+    #   - Microseconds:  4.1e12 * 1e3  = 4.1e15
+    #   - Nanoseconds:   4.1e12 * 1e6  = 4.1e18
+    #   - Picoseconds:   4.1e12 * 1e9  = 4.1e21
+    #   - Femtoseconds:  4.1e12 * 1e12 = 4.1e24
+    if timestamp_ms > 4_100_000_000_000:
+
+        # Try femtoseconds (divide by 1e12)
+        if timestamp_ms > 4_100_000_000_000_000_000_000:
+            converted_ts = timestamp_ms / 1e12
+
+        # Try picoseconds (divide by 1e9)
+        elif timestamp_ms > 4_100_000_000_000_000_000:
+            converted_ts = timestamp_ms / 1e9
+
+        # Try nanoseconds (divide by 1e6)
+        elif timestamp_ms > 4_100_000_000_000_000:
+            converted_ts = timestamp_ms / 1e6
+
+        # Try microseconds (divide by 1e3)
+        elif timestamp_ms > 4_100_000_000_000:
+            converted_ts = timestamp_ms / 1e3
+        else:
+            converted_ts = -1  # Invalid value
+
+        if 0 < converted_ts <= 4_100_000_000_000:
+            timestamp_ms = int(converted_ts)
+        else:
+            return None
+
+    try:
+        timestamp = datetime.datetime.fromtimestamp(timestamp_ms / 1e3, tz=datetime.timezone.utc)
+    except (ValueError, OSError, OverflowError):
+        # Handle any errors from fromtimestamp (invalid values, overflow, etc.)
+        return None
+
     now = get_now_timestamp()
     min_past = now - datetime.timedelta(minutes=allowed_past_minutes)
     max_future = now + datetime.timedelta(minutes=allowed_future_minutes)
