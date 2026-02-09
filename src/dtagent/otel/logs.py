@@ -26,7 +26,6 @@
 #
 
 import logging
-from math import log
 from typing import Dict, Optional, Any
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk._logs import LoggerProvider
