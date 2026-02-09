@@ -560,7 +560,7 @@ tiles:
     title: Query performance vs table size growth (over last 14 days)
     type: data
     query: |-
-      fetch logs, from:-7d
+      fetch logs, from:-14d
         | fieldsAdd
             snow_account = coalesce(deployment.environment, service.name),
             db_collection_name = coalesce(db.collection.name, db.sql.table),
