@@ -58,12 +58,59 @@ def _from_json(val: Any) -> Any:
         return val
 
 
+def __try_convert_to_numeric(item: Any) -> Any:
+    """Try to convert item to numeric type, return original if not possible.
+
+    bool > int > float > str (prefer numeric types when possible)
+    """
+    result = item
+    if item and isinstance(item, str):
+        # Check for boolean strings first
+        if item.lower() in ("true", "false"):
+            return item.lower() == "true"
+
+        try:
+            if "." in item or "e" in item.lower():
+                # Check if it's a float string first
+                result = float(item)
+            else:
+                result = int(item)
+        except (ValueError, TypeError):
+            pass  # Keep original item
+    return result
+
+
 def _cleanup_data(value: Any) -> Any:
     """Recursively cleans up dict values"""
     if isinstance(value, dict):
         return {k: _cleanup_data(v) for k, v in value.items()}
+
     if isinstance(value, list):
-        return [_cleanup_data(v) for v in value]
+        # Check for mixed types BEFORE cleaning to avoid _from_json normalizing types
+        # OpenTelemetry requires all elements in a sequence to be of the same type
+        if value and len(value) > 1:
+            # Determine if we have mixed types in the original list
+            types_in_list = {type(item) for item in value if item is not None}
+            if len(types_in_list) > 1:
+                numeric_converted = [__try_convert_to_numeric(item) for item in value]
+                converted_types = {type(item) for item in numeric_converted if item is not None}
+
+                return (
+                    # If we can normalize to numeric (int, float, bool are compatible), return directly
+                    numeric_converted
+                    if converted_types and converted_types.issubset({int, float, bool})
+                    # Fallback: normalize to a sequence of strings, handling datetime explicitly
+                    else [
+                        str(format_datetime(item) if isinstance(item, datetime.datetime) else item)
+                        for item in numeric_converted
+                        if item is not None
+                    ]
+                )
+
+        # No mixed types or single element - process normally
+        cleaned_list = [_cleanup_data(v) for v in value]
+        return cleaned_list
+
     if isinstance(value, datetime.datetime):
         return format_datetime(value)
 
@@ -195,8 +242,8 @@ def _adjust_timestamp(row_dict: Dict, start_time: str = "START_TIME", end_time: 
                 # Ensure the datetime is timezone-aware before calling .timestamp()
                 dt = ensure_timezone_aware(row_dict[time_key])
                 casted_ts = int(dt.timestamp() * NANOSECOND_CONVERSION_RATE)
-            except TypeError as e:
-                raise e
+            except TypeError as err:
+                raise err
             row_dict[time_key] = casted_ts
 
     now = now or time.time_ns()
@@ -242,20 +289,81 @@ def _adjust_timestamp(row_dict: Dict, start_time: str = "START_TIME", end_time: 
 
 
 def validate_timestamp_ms(timestamp_ms: int, allowed_past_minutes: int = 24 * 60 - 5, allowed_future_minutes: int = 10) -> Optional[int]:
-    """Checks given timestamp (in ms) whether it is in the range accepted by Dynatrace metrics API, i.e., between [-1h, +10min],
-    but to play safe we check [-55min, 0]
+    """Validates and normalizes timestamps with configurable time windows and automatic unit conversion.
+
+    This function performs multiple validation steps:
+    1. Rejects negative timestamps (e.g., sentinel values like -1000000)
+    2. Auto-converts timestamps that are too large by detecting the likely time unit:
+       - Femtoseconds (> 4.1e21): divides by 1e12
+       - Picoseconds (> 4.1e18): divides by 1e9
+       - Nanoseconds (> 4.1e15): divides by 1e6
+       - Microseconds (> 4.1e12): divides by 1e3
+    3. Validates the timestamp is within the allowed time range from current time
 
     Args:
-        timestamp_ms (int): timestamp in ms to check
+        timestamp_ms (int): timestamp in ms to check (or higher precision units to be auto-converted)
         allowed_past_minutes (int, optional): allowed past range in minutes. Defaults to 24*60 - 5 (about 1435 minutes, or ~24 hours).
                                               For logs and events, use defaults; for metrics, use 55.
         allowed_future_minutes (int, optional): allowed future range in minutes. Defaults to 10.
 
     Returns:
-        Optional[int]: given timestamp or None if timestamp is out of range
-    """
+        Optional[int]: validated timestamp in milliseconds, or None if timestamp is out of range or invalid
 
-    timestamp = datetime.datetime.fromtimestamp(timestamp_ms / 1e3, tz=datetime.timezone.utc)
+    Examples:
+        >>> validate_timestamp_ms(1707494400000)  # Valid milliseconds timestamp
+        1707494400000
+        >>> validate_timestamp_ms(1707494400000000)  # Microseconds, auto-converted
+        1707494400000
+        >>> validate_timestamp_ms(-1000000)  # Negative sentinel value
+        None
+        >>> validate_timestamp_ms(1770224954840999937441792)  # Picoseconds, auto-converted
+        1770224954840
+    """
+    # Pre-validation: reject negative timestamps (sentinel values like -1000000)
+    if timestamp_ms < 0:
+        return None
+
+    # Pre-validation: reject timestamps that are clearly too large (e.g., nanoseconds instead of milliseconds)
+    # Year 2100 in milliseconds is approximately 4.1e12
+    # Values larger than this are likely incorrectly converted from higher precision time units
+    # Attempt to auto-convert from femtoseconds, picoseconds, nanoseconds, or microseconds
+    # Thresholds based on year 2100 in each unit:
+    #   - Milliseconds: 4.1e12
+    #   - Microseconds:  4.1e12 * 1e3  = 4.1e15
+    #   - Nanoseconds:   4.1e12 * 1e6  = 4.1e18
+    #   - Picoseconds:   4.1e12 * 1e9  = 4.1e21
+    #   - Femtoseconds:  4.1e12 * 1e12 = 4.1e24
+    if timestamp_ms > 4_100_000_000_000:
+
+        # Try femtoseconds (divide by 1e12 using integer arithmetic)
+        if timestamp_ms > 4_100_000_000_000_000_000_000:
+            converted_ts = timestamp_ms // 1_000_000_000_000
+
+        # Try picoseconds (divide by 1e9 using integer arithmetic)
+        elif timestamp_ms > 4_100_000_000_000_000_000:
+            converted_ts = timestamp_ms // 1_000_000_000
+
+        # Try nanoseconds (divide by 1e6 using integer arithmetic)
+        elif timestamp_ms > 4_100_000_000_000_000:
+            converted_ts = timestamp_ms // 1_000_000
+
+        # Try microseconds (divide by 1e3 using integer arithmetic)
+        elif timestamp_ms > 4_100_000_000_000:
+            converted_ts = timestamp_ms // 1_000
+        else:
+            converted_ts = -1  # Invalid value
+
+        if 0 < converted_ts <= 4_100_000_000_000:
+            timestamp_ms = converted_ts
+        else:
+            return None
+
+    try:
+        timestamp = datetime.datetime.fromtimestamp(timestamp_ms / 1e3, tz=datetime.timezone.utc)
+    except (ValueError, OSError, OverflowError):
+        # Handle any errors from fromtimestamp (invalid values, overflow, etc.)
+        return None
+
     now = get_now_timestamp()
     min_past = now - datetime.timedelta(minutes=allowed_past_minutes)
     max_future = now + datetime.timedelta(minutes=allowed_future_minutes)

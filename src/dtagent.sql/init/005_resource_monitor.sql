@@ -22,7 +22,9 @@
 --
 --
 --
--- We need resource monitor setup for Dynatrace Snowflake Observability Agent to ensure we don't spent too much credits
+-- We need resource monitor setup for Dynatrace Snowflake Observability Agent to ensure we don't spend too much credits
+-- The resource monitor is created with ownership granted to DTAGENT_OWNER along with MODIFY privileges
+-- This allows DTAGENT_OWNER to update the credit_quota via P_UPDATE_RESOURCE_MONITOR() without ACCOUNTADMIN
 --
 --%OPTION:resource_monitor:
 use role ACCOUNTADMIN; use schema DTAGENT_DB.CONFIG; use warehouse DTAGENT_WH;
@@ -58,5 +60,6 @@ $$
 ;
 
 grant ownership on resource monitor DTAGENT_RS to role DTAGENT_OWNER revoke current grants;
+grant modify on resource monitor DTAGENT_RS to role DTAGENT_OWNER;
 alter warehouse if exists DTAGENT_WH set resource_monitor = DTAGENT_RS;
 --%:OPTION:resource_monitor

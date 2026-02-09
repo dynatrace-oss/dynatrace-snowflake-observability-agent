@@ -35,8 +35,10 @@ select
     rc.name                                     as NAME,
     rc.start_time                               as START_TIME,
     rc.end_time                                 as END_TIME,
+--%PLUGIN:event_log:
     rc._SPAN_ID                                 as _SPAN_ID,
     rc._TRACE_ID                                as _TRACE_ID,
+--%:PLUGIN:event_log
     rc.status_code                              as STATUS_CODE,
     rc.dimensions                               as DIMENSIONS,
     case when qae.attributes is not null then

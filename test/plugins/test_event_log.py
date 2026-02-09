@@ -81,7 +81,7 @@ class TestEventLog:
                 base_count={
                     "event_log": {"entries": 2, "log_lines": 2, "metrics": 0, "events": 0},
                     "event_log_metrics": {"entries": 2, "log_lines": 2, "metrics": 4, "events": 0},
-                    "event_log_spans": {"entries": 2, "log_lines": 0, "metrics": 0, "spans": 2, "span_events": 0, "errors": 3},
+                    "event_log_spans": {"entries": 2, "log_lines": 0, "metrics": 0, "spans": 2, "span_events": 0, "errors": 0},
                 },
             )
 

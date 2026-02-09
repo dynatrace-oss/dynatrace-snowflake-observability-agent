@@ -497,7 +497,7 @@ def generate_readme_content(dtagent_conf_path: str, dtagent_plugins_path: str) -
 
     if appendix_toc:
         readme_full_content += "\n".join(appendix_toc) + "\n"
-        readme_short_content += "- [Appendix](docs/APPENDIX.md)\n"
+        readme_short_content += "- [Appendix and reference](docs/APPENDIX.md)\n"
 
     # Combine all contents into full content README for PDF generation
     readme_full_content += "\n"

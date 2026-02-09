@@ -1,7 +1,6 @@
 # How to Install
 
-Dynatrace Snowflake Observability Agent comes in the form of a series of SQL scripts (accompanied with a few configuration files), which
-need to be deployed at Snowflake by executing them in the correct order.
+Dynatrace Snowflake Observability Agent (DSOA) comes in the form of a series of SQL scripts (accompanied with a few configuration files). You must deploy these scripts to Snowflake by executing them in the correct order.
 
 This document assumes you are installing from the distribution package (`dynatrace_snowflake_observability_agent-*.zip`). If you are a
 developer and want to build from source, please refer to the [CONTRIBUTING.md](CONTRIBUTING.md) guide.
@@ -11,23 +10,23 @@ developer and want to build from source, please refer to the [CONTRIBUTING.md](C
 - [Table of Contents](#table-of-contents)
 - [Prerequisites](#prerequisites)
 - [Quick Start](#quick-start)
-- [Deploying Dynatrace Snowflake Observability Agent](#deploying-dynatrace-snowflake-observability-agent)
+- [Deploying DSOA](#deploying-dynatrace-snowflake-observability-agent)
 - [Setting up a profile](#setting-up-a-profile)
 - [Setting up connection to Snowflake](#setting-up-connection-to-snowflake)
 - [Common Configuration Mistakes](#common-configuration-mistakes)
 
 ## Prerequisites
 
-Before you can deploy the agent, you need to ensure the following tools are installed on your system.
+Before deploying the agent, ensure the following tools are installed on your system.
 
 ### Windows Users
 
-On Windows, it is necessary to install Windows Subsystem for Linux (WSL) version 2.0 or higher. The deployment scripts must be run through
-WSL. See [Install WSL guide](https://learn.microsoft.com/en-us/windows/wsl/install) for more details.
+**Important:** On Windows, you must install Windows Subsystem for Linux (WSL) version 2.0 or higher. The deployment scripts must run through
+WSL. See the [Install WSL guide](https://learn.microsoft.com/en-us/windows/wsl/install) for more details.
 
 ### All Users
 
-You will need the following command-line tools:
+**Required command-line tools:**
 
 - **bash**: The deployment scripts are written in bash.
 - **Snowflake CLI**: For connecting to and deploying objects in Snowflake.
@@ -118,6 +117,10 @@ brew install jq yq gawk
 - `production` in the commands above is the `$ENV` parameter - it only locates the file `config-production.yml`
 - The actual Snowflake connection used is `snow_agent_<deployment_environment>` (from inside the config file)
 - In this example, if `deployment_environment: PRODUCTION`, the connection name is `snow_agent_production` (lowercase)
+
+**Alternative: Deployment with Custom Object Names:**
+
+If you need to deploy with custom object names and without ACCOUNTADMIN privileges, see the [Step-by-Step: Using a Custom Initialization Script](#step-by-step-using-a-custom-initialization-script) guide in the "Restricting Elevated Privileges" section.
 
 ## Deploying Dynatrace Snowflake Observability Agent
 
@@ -225,6 +228,8 @@ To deploy Dynatrace Snowflake Observability Agent, run the `./deploy.sh` command
 
   **Note:** The `admin` scope is **optional**. If not installed, the `DTAGENT_ADMIN` role will not be created, and administrative operations (such as granting MONITOR privileges on warehouses) must be performed manually.
 
+  **Plugin-dependent deployment:** When all plugins are disabled (`plugins.deploy_disabled_plugins=false` and all plugins have `is_disabled=true` or `plugins.disabled_by_default=true` with no plugins explicitly enabled), the main `DTAGENT()` procedure will not be deployed. However, the `agents` scope can still be deployed as other agent procedures (like `SEND_TELEMETRY()`) can operate independently.
+
   **Multiple scopes** can be specified as a comma-separated list (e.g., `setup,plugins,config,agents,apikey`). This allows you to deploy only specific components in a single operation. Note that `all` and `teardown` cannot be combined with other scopes.
 
 - **`--from-version=VERSION`** (required when `--scope=upgrade`): Specifies the version number you are upgrading from (e.g., `0.9.2`).
@@ -310,7 +315,8 @@ If you want to minimize the use of elevated privileges in your organization, you
 Use [Custom Object Names](#custom-object-names) to reference objects that have been pre-created by your database administrators. This approach allows deployment without any elevated privileges:
 
 ```bash
-# 1. DBA pre-creates objects as ACCOUNTADMIN (one-time setup)
+# 1. DBA pre-creates all core objects as ACCOUNTADMIN (one-time setup)
+#    - Database, warehouse, resource monitor, roles, API integration
 # 2. Configure custom names in conf/config-prod.yml to match pre-created objects
 # 3. Deploy without init or admin scopes (no ACCOUNTADMIN required)
 ./deploy.sh prod --scope=setup,plugins,config,agents,apikey
@@ -318,29 +324,142 @@ Use [Custom Object Names](#custom-object-names) to reference objects that have b
 
 ###### Benefits
 
-- No `ACCOUNTADMIN` access required during deployment
-- Full control over object names and structure
-- Ideal for organizations with strict privilege separation
+- **One-time ACCOUNTADMIN access**: Only needed during initial setup
+- **Clear documentation**: Header shows all custom names in one place
+- **Consistent naming**: All objects use your organization's naming conventions
+- **Privilege separation**: Regular deployments don't require elevated privileges
+- **Reproducible**: Custom init script can be version-controlled and reviewed
+- **Flexible**: Optionally include admin role setup to further reduce privilege requirements
 
 See the [Custom Object Names](#custom-object-names) section for detailed configuration and use case examples.
 
-##### Option 2: Manual Initialization Without Init or Admin Scopes
+###### Step-by-Step: Using a Custom Initialization Script
 
-Manually create the required roles and database structure using default names, then skip both `init` and `admin` scopes:
+This approach provides a structured way to have a Snowflake administrator initialize core objects with custom names, which are then used for deployment without ACCOUNTADMIN rights.
+
+1. Copy deployment scripts to a custom file
+    - Copy the content of the initialization script to create your custom file:
+
+      ```bash
+      # Copy the init script content
+      cp build/00_init.sql conf/custom-init.sql
+      ```
+
+    - If you want to include the admin role setup (to avoid using ACCOUNTADMIN during main deployment), also append the admin script:
+
+      ```bash
+      # Append admin script content
+      cat build/10_admin.sql >> conf/custom-init.sql
+      ```
+
+1. Add a header at the top of `conf/custom-init.sql` documenting the custom names you'll use. This header serves as a reference for the replacements you'll make throughout the file:
+
+    ```sql
+    --
+    -- CUSTOM OBJECT NAMES:
+    -- DB: DTAGENT_DB
+    -- WAREHOUSE: DTAGENT_WH
+    -- RESOURCE MONITOR: DTAGENT_RS (optional - omit if setting to "-" in config)
+    -- OWNER: DTAGENT_OWNER
+    -- ADMIN: DTAGENT_ADMIN (optional - omit if setting to "-" in config)
+    -- VIEWER: DTAGENT_VIEWER
+    -- API_INTEGRATION: DTAGENT_API_INTEGRATION (required)
+    --
+    ```
+
+    > **Note:** If you plan to skip optional objects (admin role or resource monitor), you can either:
+    > - Keep their default names in the script and set them to `"-"` in your config (the deployment will filter them out), OR
+    > - Manually remove their creation statements from your custom-init.sql file
+
+1. Use your text editor's find-and-replace function to update all default names to your custom names throughout the entire file:
+
+    ```text
+    DTAGENT_API_INTEGRATION → DTAGENT_MY_API_INTEGRATION
+    DTAGENT_DB → DTAGENT_MY_DB
+    DTAGENT_WH → DTAGENT_MY_WAREHOUSE
+    DTAGENT_RS → DTAGENT_MY_RESOURCE_MONITOR
+    DTAGENT_OWNER → DTAGENT_MY_OWNER
+    DTAGENT_ADMIN → DTAGENT_MY_ADMIN
+    DTAGENT_VIEWER → DTAGENT_MY_VIEWER
+    ```
+
+    > **Tip:** Perform replacements in order, starting with the most specific names first to avoid partial matches. Do DTAGENT_API_INTEGRATION before DTAGENT_DB to avoid accidentally replacing the DB part of the integration name.
+
+1. Have your Snowflake administrator review and execute the custom initialization script
+1. Create a configuration file in `conf/config-custom-init.yml` that matches your custom object names:
+
+    ```yaml
+    core:
+      dynatrace_tenant_address: your-tenant.live.dynatrace.com
+      deployment_environment: CUSTOM-INIT
+
+      snowflake:
+        database:
+          name: "DTAGENT_MY_DB"
+        warehouse:
+          name: "DTAGENT_MY_WAREHOUSE"
+        resource_monitor:
+          name: "DTAGENT_MY_RESOURCE_MONITOR"  # or "-" to skip
+        roles:
+          owner: "DTAGENT_MY_OWNER"
+          admin: "DTAGENT_MY_ADMIN"  # or "-" to skip
+          viewer: "DTAGENT_MY_VIEWER"
+        api_integration:
+          name: "DTAGENT_MY_API_INTEGRATION"
+    ```
+
+    **Example with optional objects disabled:**
+
+    ```yaml
+    core:
+      dynatrace_tenant_address: your-tenant.live.dynatrace.com
+      deployment_environment: CUSTOM-INIT-MINIMAL
+
+      snowflake:
+        database:
+          name: "DTAGENT_MY_DB"
+        warehouse:
+          name: "DTAGENT_MY_WAREHOUSE"
+        resource_monitor:
+          name: "-"  # Skip resource monitor creation
+        roles:
+          owner: "DTAGENT_MY_OWNER"
+          admin: "-"  # Skip admin role creation
+          viewer: "DTAGENT_MY_VIEWER"
+        api_integration:
+          name: "DTAGENT_MY_API_INTEGRATION"
+    ```
+
+1. [Set up Snowflake CLI connection](#quick-start)
+1. Deploy without Init/Admin scopes
+
+    ```bash
+    export HISTCONTROL=ignorespace
+    export DTAGENT_TOKEN="your-dynatrace-token"
+
+    # If you included admin setup (or do not want to install use the admin role) in your custom init script:
+    ./deploy.sh custom-init --scope=setup,plugins,config,agents,apikey
+    ```
+
+##### Option 2: Using Generated Init Script with Manual Execution
+
+Generate the initialization script using the `manual` option, then have an administrator execute it:
 
 ```bash
-# Manually create roles and database as ACCOUNTADMIN:
-# CREATE ROLE DTAGENT_OWNER;
-# CREATE ROLE DTAGENT_VIEWER;
-# GRANT ROLE DTAGENT_VIEWER TO ROLE DTAGENT_OWNER;
-# CREATE DATABASE DTAGENT_DB;
-# ...
+# Generate init script without executing
+./deploy.sh $ENV --scope=init --options=manual --output-file=init-script.sql
 
-# Deploy without init or admin scopes
+# Have your Snowflake administrator review and execute
+snow sql -c admin_connection -f init-script.sql
+```
+
+Then deploy the remaining scopes without ACCOUNTADMIN:
+
+```bash
 ./deploy.sh $ENV --scope=setup,plugins,config,agents,apikey
 ```
 
-**Important:** Without init and admin scopes, you must manually create all required objects and grant privileges.
+This is simpler than creating a custom init script but uses default object names.
 
 ##### Option 3: Deploy With Init But Without Admin Scope
 
@@ -381,7 +500,7 @@ Finally, have a user with `DTAGENT_OWNER` role run the remaining scopes:
 ./deploy.sh $ENV --scope=setup,plugins,config,agents,apikey
 ```
 
-##### Option 4: Separate Admin Operations (Alternative)
+##### Option 5: Separate Admin Operations (Alternative)
 
 Similarly, you can separate the `admin` scope (which requires `DTAGENT_ADMIN` privileges for granting monitoring permissions) from other operations:
 
@@ -456,30 +575,33 @@ Optionally you can adjust plugin configurations.
 
 The following table describes all available `core` configuration options:
 
-| Configuration Key                                | Type    | Required    | Default          | Description                                                                                                                                                                                                                                                                                                                          |
-| ------------------------------------------------ | ------- | ----------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `dynatrace_tenant_address`                       | String  | Yes         | -                | The address of your Dynatrace tenant (e.g., `abc12345.live.dynatrace.com`)                                                                                                                                                                                                                                                           |
-| `deployment_environment`                         | String  | Yes         | -                | Unique identifier for the deployment environment                                                                                                                                                                                                                                                                                     |
-| `log_level`                                      | String  | Yes         | `WARN`           | Logging level. Valid values: `DEBUG`, `INFO`, `WARN`, `ERROR`                                                                                                                                                                                                                                                                        |
-| `tag`                                            | String  | No          | `""`             | Optional custom tag for Dynatrace Snowflake Observability Agent specific Snowflake objects. Used for multitenancy scenarios. **INFO:** if tag is a number put it in quotes, e.g., `tag: "093"`, to ensure it is interpreted as text.                                                                                                 |
-| `procedure_timeout`                              | Integer | No          | 3600             | Timeout in seconds for stored procedure execution. Default is 1 hour (3600 seconds)                                                                                                                                                                                                                                                  |
-| **Snowflake Configuration**                      |         |             |                  |                                                                                                                                                                                                                                                                                                                                      |
-| `snowflake.account_name`                         | String  | Recommended | (auto-detected)  | Your Snowflake account identifier in format `orgname-accountname` (e.g., `myorg-myaccount`). If not provided, will be auto-detected via SQL query at startup (adds ~100ms startup time). Legacy format `account.region` also supported. See [Account identifiers](https://docs.snowflake.com/en/user-guide/admin-account-identifier) |
-| `snowflake.host_name`                            | String  | No          | (derived)        | Your Snowflake host name (e.g., `myorg-myaccount.snowflakecomputing.com`). If not provided or set to "-", will be automatically derived from `account_name` or auto-detected                                                                                                                                                         |
-| `snowflake.database.name`                        | String  | No          | `DTAGENT_DB`     | Custom name for the Dynatrace agent database. Empty or missing value uses default                                                                                                                                                                                                                                                    |
-| `snowflake.database.data_retention_time_in_days` | Integer | No          | 1                | Data retention time in days for permanent tables in the database. Does not affect transient tables which always have 0-day retention                                                                                                                                                                                                 |
-| `snowflake.warehouse.name`                       | String  | No          | `DTAGENT_WH`     | Custom name for the Dynatrace agent warehouse. Empty or missing value uses default                                                                                                                                                                                                                                                   |
-| `snowflake.resource_monitor.name`                | String  | No          | `DTAGENT_RS`     | Custom name for the resource monitor. Empty/missing uses default, `"-"` skips creation (**see note below**)                                                                                                                                                                                                                          |
-| `snowflake.resource_monitor.credit_quota`        | Integer | Yes         | 5                | Credit quota limit for Snowflake operations                                                                                                                                                                                                                                                                                          |
-| `snowflake.roles.owner`                          | String  | No          | `DTAGENT_OWNER`  | Custom name for the owner role. Empty or missing value uses default                                                                                                                                                                                                                                                                  |
-| `snowflake.roles.admin`                          | String  | No          | `DTAGENT_ADMIN`  | Custom name for the admin role. Empty/missing uses default, `"-"` skips creation (**see note below**)                                                                                                                                                                                                                                |
-| `snowflake.roles.viewer`                         | String  | No          | `DTAGENT_VIEWER` | Custom name for the viewer role. Empty or missing value uses default                                                                                                                                                                                                                                                                 |
+| Configuration Key                                | Type    | Required    | Default                   | Description                                                                                                                                                                                                                                                                                                                          |
+| ------------------------------------------------ | ------- | ----------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `dynatrace_tenant_address`                       | String  | Yes         | -                         | The address of your Dynatrace tenant (e.g., `abc12345.live.dynatrace.com`)                                                                                                                                                                                                                                                           |
+| `deployment_environment`                         | String  | Yes         | -                         | Unique identifier for the deployment environment                                                                                                                                                                                                                                                                                     |
+| `log_level`                                      | String  | Yes         | `WARN`                    | Internal Python logging level for troubleshooting agent execution. Controls verbosity of debug statements in Snowflake's query history. Valid values: `DEBUG`, `INFO`, `WARN`, `ERROR`. Use `DEBUG` for development/troubleshooting, `WARN` for production. Does not affect telemetry sent to Dynatrace.                             |
+| `tag`                                            | String  | No          | `""`                      | Optional custom tag for Dynatrace Snowflake Observability Agent specific Snowflake objects. Used for multitenancy scenarios. **INFO:** if tag is a number put it in quotes, e.g., `tag: "093"`, to ensure it is interpreted as text.                                                                                                 |
+| `procedure_timeout`                              | Integer | No          | 3600                      | Timeout in seconds for stored procedure execution. Default is 1 hour (3600 seconds)                                                                                                                                                                                                                                                  |
+| **Snowflake Configuration**                      |         |             |                           |                                                                                                                                                                                                                                                                                                                                      |
+| `snowflake.account_name`                         | String  | Recommended | (auto-detected)           | Your Snowflake account identifier in format `orgname-accountname` (e.g., `myorg-myaccount`). If not provided, will be auto-detected via SQL query at startup (adds ~100ms startup time). Legacy format `account.region` also supported. See [Account identifiers](https://docs.snowflake.com/en/user-guide/admin-account-identifier) |
+| `snowflake.host_name`                            | String  | No          | (derived)                 | Your Snowflake host name (e.g., `myorg-myaccount.snowflakecomputing.com`). If not provided or set to "-", will be automatically derived from `account_name` or auto-detected                                                                                                                                                         |
+| `snowflake.database.name`                        | String  | No          | `DTAGENT_DB`              | Custom name for the Dynatrace agent database. Empty or missing value uses default                                                                                                                                                                                                                                                    |
+| `snowflake.database.data_retention_time_in_days` | Integer | No          | 1                         | Data retention time in days for permanent tables in the database. Does not affect transient tables which always have 0-day retention                                                                                                                                                                                                 |
+| `snowflake.warehouse.name`                       | String  | No          | `DTAGENT_WH`              | Custom name for the Dynatrace agent warehouse. Empty or missing value uses default                                                                                                                                                                                                                                                   |
+| `snowflake.resource_monitor.name`                | String  | No          | `DTAGENT_RS`              | Custom name for the resource monitor. Empty/missing uses default, `"-"` skips creation (**see note below**)                                                                                                                                                                                                                          |
+| `snowflake.resource_monitor.credit_quota`        | Integer | Yes         | 5                         | Credit quota limit for Snowflake operations                                                                                                                                                                                                                                                                                          |
+| `snowflake.roles.owner`                          | String  | No          | `DTAGENT_OWNER`           | Custom name for the owner role. Empty or missing value uses default                                                                                                                                                                                                                                                                  |
+| `snowflake.roles.admin`                          | String  | No          | `DTAGENT_ADMIN`           | Custom name for the admin role. Empty/missing uses default, `"-"` skips creation (**see note below**)                                                                                                                                                                                                                                |
+| `snowflake.roles.viewer`                         | String  | No          | `DTAGENT_VIEWER`          | Custom name for the viewer role. Empty or missing value uses default                                                                                                                                                                                                                                                                 |
+| `snowflake.api_integration.name`                 | String  | No          | `DTAGENT_API_INTEGRATION` | Custom name for the external access integration. Empty or missing value uses default. **Note:** Unlike admin role and resource monitor, the API integration is required for agent operation                                                                                                                                          |
 
 > **Note on Optional Objects**: When `snowflake.roles.admin` or `snowflake.resource_monitor.name` is set to `"-"`, the corresponding object will not be created during deployment. All SQL code related to these objects will be automatically excluded from the deployment script. If you set `snowflake.roles.admin` to `"-"`, you cannot use the `admin` deployment scope as it requires the admin role to exist.
+>
+> **Required Objects**: The following objects are always required and cannot be skipped: database, warehouse, owner role, viewer role, and API integration. These are essential for agent operation.
 
 #### Custom Object Names
 
-By default, Dynatrace Snowflake Observability Agent creates Snowflake objects with standard names (e.g., `DTAGENT_DB`, `DTAGENT_WH`, `DTAGENT_OWNER`). You can customize these names using the configuration options described above. This feature is useful when:
+By default, Dynatrace Snowflake Observability Agent creates Snowflake objects with standard names (e.g., `DTAGENT_DB`, `DTAGENT_WH`, `DTAGENT_OWNER`, `DTAGENT_API_INTEGRATION`). You can customize these names using the configuration options described above. This feature is useful when:
 
 - You need to comply with organizational naming conventions
 - You want to avoid naming conflicts with existing objects
@@ -491,7 +613,7 @@ By default, Dynatrace Snowflake Observability Agent creates Snowflake objects wi
 Custom object names enable a deployment model where database administrators pre-create all necessary Snowflake objects, allowing the agent to be deployed without requiring `ACCOUNTADMIN` or elevated privileges:
 
 1. **Pre-creation Phase** (performed by DBA with ACCOUNTADMIN):
-   - Create custom-named database, warehouse, resource monitor, and roles
+   - Create custom-named database, warehouse, resource monitor, roles, and API integration
    - Grant necessary privileges to the owner role
    - Set up the required object structure
 
@@ -525,6 +647,8 @@ core:
       owner: DT_MONITORING_OWNER
       admin: "-"  # Skip admin role - privileges granted manually by DBA
       viewer: DT_MONITORING_VIEWER
+    api_integration:
+      name: DT_MONITORING_API_INTEGRATION
 ```
 
 ###### Deployment Command
@@ -546,17 +670,101 @@ Custom names must follow Snowflake identifier rules:
 
 The deployment script will validate all custom names before proceeding. If validation fails, the deployment will stop with an error message.
 
-##### Mutual Exclusivity with TAG
+##### Supported Installation Scenarios
 
-Custom object names and the `tag` configuration option are mutually exclusive. You cannot use both features simultaneously because:
+The agent supports various installation paths depending on your organizational requirements and privilege constraints:
 
-- Custom names provide direct object naming control for isolation
-- The `tag` option enables multitenancy by appending suffixes to object names
+| Scenario                              | Required Objects          | Optional Objects                    | Configuration                               | Deployment Scopes                                          |
+| ------------------------------------- | ------------------------- | ----------------------------------- | ------------------------------------------- | ---------------------------------------------------------- |
+| **Standard Full Install**             | All defaults              | Admin role + Resource monitor       | Default names, no TAG                       | `all` or `init,admin,setup,plugins,config,agents,apikey`   |
+| **Standard Without Optional**         | Defaults                  | Admin: `-`<br>Resource monitor: `-` | Set to `"-"` in config                      | `init,setup,plugins,config,agents,apikey` (skip `admin`)   |
+| **TAG-based Multitenancy**            | Defaults with TAG suffix  | Admin + Resource monitor            | TAG only (e.g., `tag: TNA`)                 | `all` or `init,admin,setup,plugins,config,agents,apikey`   |
+| **Custom Names Full**                 | Custom names for all      | Admin + Resource monitor            | Custom names in config                      | `init,admin,setup,plugins,config,agents,apikey`            |
+| **Custom Names Without Optional**     | Custom names              | Admin: `-`<br>Resource monitor: `-` | Custom names + `"-"` for optional           | `init,setup,plugins,config,agents,apikey`                  |
+| **Custom Names + TAG (Multitenancy)** | Custom names              | Admin + Resource monitor            | Custom names + TAG (TAG for telemetry only) | `init,admin,setup,plugins,config,agents,apikey`            |
+| **Pre-Created Objects (Full)**        | DBA creates all           | Admin + Resource monitor            | Match pre-created names                     | `setup,plugins,config,agents,apikey` (skip `init`,`admin`) |
+| **Pre-Created Objects (Minimal)**     | DBA creates required only | Skip both                           | Match required names, `"-"` for optional    | `setup,plugins,config,agents,apikey`                       |
+| **Pre-Created + TAG**                 | DBA creates custom names  | Admin + Resource monitor            | Match pre-created names + TAG for telemetry | `setup,plugins,config,agents,apikey`                       |
 
-If you specify both custom object names and a `tag` value, the deployment will fail with an error. Choose one approach based on your needs:
+**Required Objects (Cannot be skipped):**
 
-- Use **custom names** for simple deployments with specific naming requirements
-- Use **tag** for multitenancy scenarios where multiple agent instances share the same Snowflake account
+- Database (`DTAGENT_DB` or custom)
+- Warehouse (`DTAGENT_WH` or custom)
+- Owner Role (`DTAGENT_OWNER` or custom)
+- Viewer Role (`DTAGENT_VIEWER` or custom)
+- API Integration (`DTAGENT_API_INTEGRATION` or custom)
+
+**Optional Objects (Can be skipped with `"-"`):**
+
+- Admin Role (`DTAGENT_ADMIN` or custom or `"-"`)
+- Resource Monitor (`DTAGENT_RS` or custom or `"-"`)
+
+When admin role is skipped (`"-"`), you must manually grant required privileges:
+
+- `MONITOR` on warehouses (for `query_history` plugin)
+- `MONITOR` on dynamic tables (for `dynamic_tables` plugin)
+- Plugin-specific privileges as documented
+
+##### TAG and Custom Names Interaction
+
+The `tag` and custom object names can be used together or separately:
+
+###### Scenario 1: TAG only (no custom names)
+
+- Object naming: `DTAGENT_DB` → `DTAGENT_<TAG>_DB`
+- Telemetry: Includes `deployment.environment.tag: "<TAG>"`
+- Use case: Simple multitenancy with automatic object name suffixing
+
+###### Scenario 2: Custom names only (no TAG)
+
+- Object naming: Uses your custom names exactly as specified
+- Telemetry: Only `deployment.environment` (no tag dimension)
+- Use case: Single instance with organizational naming conventions
+
+###### Scenario 3: Both TAG and custom names
+
+- Object naming: Uses custom names where provided, defaults for others (TAG does NOT affect object names at all)
+- Telemetry: Includes both `deployment.environment` and `deployment.environment.tag: "<TAG>"`
+- Logger name: `DTAGENT_<TAG>_OTLP` (e.g., `DTAGENT_TENANT_A_OTLP`)
+- Use case: Custom naming conventions + multitenancy tracking in telemetry
+
+**Key principle:** When ANY custom name is provided, TAG is disabled for ALL object naming. TAG only affects:
+
+1. Telemetry dimension: `deployment.environment.tag`
+2. Logger name: `DTAGENT_<TAG>_OTLP`
+
+**Example combining both:**
+
+```yaml
+core:
+  deployment_environment: PRODUCTION_US_EAST
+  tag: TENANT_A  # Only for telemetry tracking
+
+  snowflake:
+    database:
+      name: "ACME_MONITORING_DB"  # Custom name used (not DTAGENT_TENANT_A_DB)
+    warehouse:
+      name: "ACME_MONITORING_WH"
+    roles:
+      owner: "ACME_MONITORING_OWNER"
+      viewer: "ACME_MONITORING_VIEWER"
+    api_integration:
+      name: "ACME_MONITORING_API"
+```
+
+This creates:
+
+- Database: `ACME_MONITORING_DB` (custom name)
+- Warehouse: `ACME_MONITORING_WH` (custom name)
+- Owner role: `ACME_MONITORING_OWNER` (custom name)
+- Viewer role: `ACME_MONITORING_VIEWER` (custom name)
+- API Integration: `ACME_MONITORING_API` (custom name)
+- Admin role: `DTAGENT_ADMIN` (default - NOT `DTAGENT_TENANT_A_ADMIN`)
+- Resource Monitor: `DTAGENT_RS` (default - NOT `DTAGENT_TENANT_A_RS`)
+- Logger name: `DTAGENT_TENANT_A_OTLP`
+- Telemetry: `deployment.environment: "PRODUCTION_US_EAST"`, `deployment.environment.tag: "TENANT_A"`
+
+**Note:** Once any custom name is used, TAG no longer affects object naming for ANY object (even those without custom names).
 
 #### Plugin Configuration Options
 
@@ -631,24 +839,36 @@ for some plugins, you can deploy multiple Dynatrace Snowflake Observability Agen
 **Requirements for each instance:**
 
 1. **Unique `deployment_environment`** - Identifies the instance in Dynatrace telemetry
-2. **Unique `tag`** - Prevents Snowflake object naming conflicts
+2. **Unique Snowflake object names** - Either via `tag` OR custom names to prevent conflicts
 3. **Unique Snowflake CLI connection** - Named `snow_agent_<deployment_environment_lowercase>`
+
+**Two approaches for object naming:**
+
+Approach 1: Using TAG (simpler)
+
+- `tag` automatically suffixes all Snowflake object names
+- Example: `tag: TNA` creates `DTAGENT_TNA_DB`, `DTAGENT_TNA_WH`
+
+Approach 2: Using custom names (more control)
+
+- Specify custom names for each object
+- Optionally include `tag` for telemetry tracking (doesn't affect object names)
 
 **Important distinctions:**
 
 - `deployment_environment` → Used for telemetry dimensions in Dynatrace (e.g., `PRODUCTION_TENANT_A`)
-- `tag` → Used to suffix Snowflake object names (e.g., `TNA` creates `DTAGENT_TNA_DB`)
-- These serve **different purposes** and should NOT be combined
+- `tag` → When used alone: suffixes Snowflake object names (e.g., `TNA` creates `DTAGENT_TNA_DB`)
+- `tag` with custom names → Only appears in telemetry as `deployment.environment.tag`, does NOT modify object names
+- `deployment_environment` and `tag` serve **different purposes** and should NOT be combined in the value
 
-**Valid multitenancy configuration:**
+**Valid multitenancy configuration (TAG approach):**
 
 ```yaml
 # File: conf/config-prod-tenant-a.yml
 core:
   deployment_environment: PRODUCTION_TENANT_A  # Unique telemetry identifier
   tag: TNA                                      # Unique object suffix
-  dynatrace:
-    api_url: https://tenant-a.live.dynatrace.com/api/v2/otlp
+  dynatrace_tenant_address: tenant-a.live.dynatrace.com
   # ... other config
 ```
 
@@ -657,9 +877,48 @@ core:
 core:
   deployment_environment: PRODUCTION_TENANT_B  # Different from tenant A
   tag: TNB                                      # Different from tenant A
-  dynatrace:
-    api_url: https://tenant-b.live.dynatrace.com/api/v2/otlp
+  dynatrace_tenant_address: tenant-b.live.dynatrace.com
   # ... other config
+```
+
+**Valid multitenancy configuration (custom names approach):**
+
+```yaml
+# File: conf/config-prod-tenant-a.yml
+core:
+  deployment_environment: PRODUCTION_TENANT_A
+  tag: TNA  # Optional: for telemetry only
+  dynatrace_tenant_address: tenant-a.live.dynatrace.com
+
+  snowflake:
+    database:
+      name: ACME_TENANT_A_DB
+    warehouse:
+      name: ACME_TENANT_A_WH
+    roles:
+      owner: ACME_TENANT_A_OWNER
+      viewer: ACME_TENANT_A_VIEWER
+    api_integration:
+      name: ACME_TENANT_A_API
+```
+
+```yaml
+# File: conf/config-prod-tenant-b.yml
+core:
+  deployment_environment: PRODUCTION_TENANT_B
+  tag: TNB  # Optional: for telemetry only
+  dynatrace_tenant_address: tenant-b.live.dynatrace.com
+
+  snowflake:
+    database:
+      name: ACME_TENANT_B_DB
+    warehouse:
+      name: ACME_TENANT_B_WH
+    roles:
+      owner: ACME_TENANT_B_OWNER
+      viewer: ACME_TENANT_B_VIEWER
+    api_integration:
+      name: ACME_TENANT_B_API
 ```
 
 **Deploy both instances:**
@@ -1055,22 +1314,41 @@ core:
 **Why it's wrong:**
 
 - `deployment_environment` is for logical environment identification in telemetry
-- `tag` is for Snowflake object name disambiguation
-- Mixing them creates confusion and redundancy
+- `tag` is for telemetry tracking and (when used without custom names) Snowflake object name disambiguation
+- Mixing them in the environment name creates confusion and redundancy
 
-**Correct:**
+**Correct Option 1 (TAG-based naming):**
 
 ```yaml
 core:
   deployment_environment: PRODUCTION_US_EAST  # ✓ Logical environment
-  tag: MT001                                   # ✓ Separate object suffix
+  tag: MT001                                   # ✓ Separate - affects object names
 ```
 
-**This creates clear separation:**
+**This creates:**
 
 - Telemetry dimension: `deployment.environment: "PRODUCTION_US_EAST"`
 - Additional dimension: `deployment.environment.tag: "MT001"`
 - Snowflake objects: `DTAGENT_MT001_DB`, `DTAGENT_MT001_WH`
+
+**Correct Option 2 (Custom names + TAG for telemetry only):**
+
+```yaml
+core:
+  deployment_environment: PRODUCTION_US_EAST
+  tag: MT001  # Only for telemetry tracking
+
+  snowflake:
+    database:
+      name: ACME_MONITORING_DB  # Custom name used
+    # ... other custom names
+```
+
+**This creates:**
+
+- Telemetry dimension: `deployment.environment: "PRODUCTION_US_EAST"`
+- Additional dimension: `deployment.environment.tag: "MT001"`
+- Snowflake objects: `ACME_MONITORING_DB` (custom names, TAG doesn't affect them)
 
 ### Mistake 6: Not Using Lowercase for Connection Names
 

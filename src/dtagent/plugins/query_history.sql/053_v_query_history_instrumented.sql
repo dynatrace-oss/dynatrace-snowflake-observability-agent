@@ -57,8 +57,10 @@ select
                                                       else 'UNSET'
     end                                                                                                                 as STATUS_CODE,
     -- trace and span ids
+--%PLUGIN:event_log:
     qh.trace:span_id::varchar                                                                                           as _SPAN_ID,
     qh.trace:trace_id::varchar                                                                                          as _TRACE_ID,
+--%:PLUGIN:event_log
     -- metric and span dimensions
     OBJECT_CONSTRUCT(
         'db.namespace',                                             qh.database_name,

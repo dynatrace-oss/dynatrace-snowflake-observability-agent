@@ -43,5 +43,21 @@ if [ "$RESOURCE_MONITOR" == "-" ]; then
   EXCLUDED_OPTIONS="$EXCLUDED_OPTIONS resource_monitor"
 fi
 
+# Check if agent should be excluded (when all plugins are disabled and we're not deploying disabled plugins)
+# The DTAGENT procedure is only needed when at least one plugin is deployed
+EXCLUDED_PLUGINS=$($CWD/list_plugins_to_exclude.sh)
+if [ -n "$EXCLUDED_PLUGINS" ]; then
+  # Count total plugins (all plugins that have is_disabled or is_enabled properties)
+  TOTAL_PLUGINS=$(jq -r '.[] | select(.PATH | startswith("plugins.") and (endswith(".is_disabled") or endswith(".is_enabled"))) | .PATH | sub("plugins\\."; "") | sub("\\.is_(disabled|enabled)"; "")' "$BUILD_CONFIG_FILE" | sort -u | wc -l | tr -d ' ')
+
+  # Count excluded plugins
+  EXCLUDED_COUNT=$(echo "$EXCLUDED_PLUGINS" | wc -w | tr -d ' ')
+
+  # If all plugins are excluded, exclude the agent option
+  if [ "$TOTAL_PLUGINS" -gt 0 ] && [ "$EXCLUDED_COUNT" -eq "$TOTAL_PLUGINS" ]; then
+    EXCLUDED_OPTIONS="$EXCLUDED_OPTIONS agent"
+  fi
+fi
+
 # Trim leading/trailing spaces and output
 echo "$EXCLUDED_OPTIONS" | xargs

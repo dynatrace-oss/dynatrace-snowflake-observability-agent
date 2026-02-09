@@ -213,6 +213,7 @@ class Plugin(ABC):
         spans_sent = 0
         logs_sent = 0
         metrics_sent = 0
+        metrics_present = False
 
         __context = get_context_name_and_run_id(plugin_name=self._plugin_name, context_name=context_name, run_id=run_uuid)
 
@@ -222,7 +223,7 @@ class Plugin(ABC):
                 LOG.warning("Problem with given row in %s: %r", context_name, row_dict)
             else:
                 LOG.log(LL_TRACE, "Processing %s for %r", context_name, query_id)
-                _span_events_added, _spans_sent, _logs_sent, _metrics_sent = self._process_row(
+                _span_events_added, _spans_sent, _logs_sent, _metrics_sent, _metrics_present = self._process_row(
                     row=row_dict,
                     processed_ids=processed_query_ids,
                     processing_errors=processing_errors,
@@ -237,10 +238,12 @@ class Plugin(ABC):
                 spans_sent += _spans_sent
                 logs_sent += _logs_sent
                 metrics_sent += _metrics_sent
+                metrics_present |= _metrics_present
 
-        metrics_sent += self._metrics.flush_metrics()
-        if metrics_sent == 0:
-            processing_errors.append("Problem flushing metrics cache")
+        if metrics_present:
+            metrics_sent += self._metrics.flush_metrics()
+            if metrics_sent == 0:
+                processing_errors.append("Problem sending metrics - metrics were discovered but none were sent")
 
         if not self._spans.flush_traces():
             processing_errors.append("Problem flushing traces")
@@ -291,7 +294,7 @@ class Plugin(ABC):
         f_span_events: Optional[Callable[[Dict[str, Any]], Tuple[List[Dict[str, Any]], int]]] = None,
         f_log_events: Optional[Callable[[Dict[str, Any]], None]] = None,
         context: Optional[Dict] = None,
-    ) -> Tuple[int, int]:
+    ) -> Tuple[int, int, int, int, bool]:
         """Processing single row with data, with optional recursion done within span generation
 
         Args:
@@ -310,17 +313,15 @@ class Plugin(ABC):
                 spans_cnt (int):                   number of spans sent when processing this row
                 logs_cnt (int):                    number of logs sent when processing this row
                 metrics_sent (int):                number of metrics sent when processing this row
+                metrics_present (bool):            indicator whether any metrics were present in this row (regardless of whether they were sent successfully)
         """
 
         row_id = row.get(row_id_col, None)
         LOG.log(LL_TRACE, "Processing row with id = %s", row_id)
 
-        metrics_sent, metrics_cnt = self._metrics.discover_report_metrics(
+        metrics_present, metrics_cnt = self._metrics.discover_report_metrics(
             row, "START_TIME", context_name=context.get(RUN_CONTEXT_KEY, None)
         )
-        if not metrics_sent:
-            # report when metrics failed to send
-            processing_errors.append(f"Problem sending row {row_id} as metric")
 
         span_events_added, spans_sent, logs_sent = 0, 0, 0
         if not getattr(self._spans, "NOT_ENABLED", False):
@@ -344,7 +345,7 @@ class Plugin(ABC):
             if row_id is not None and processed_ids is not None and logs_sent > 0:
                 processed_ids.append(row_id)
 
-        return span_events_added, spans_sent, logs_sent, metrics_cnt
+        return span_events_added, spans_sent, logs_sent, metrics_cnt, metrics_present
 
     def get_log_level(self, row_dict: Dict) -> int:
         """Generic method getting log level based on status.code key value. To be overwritten by plugins when required"""

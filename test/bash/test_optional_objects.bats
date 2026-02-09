@@ -64,11 +64,32 @@ begin
 end;
 --%:OPTION:resource_monitor
 EOSQL
+
+    cat > build/70_agents.sql << 'EOSQL'
+-- Agents setup
+use role DTAGENT_OWNER;
+
+--%OPTION:agent:
+-- DTAGENT procedure (only needed when plugins are deployed)
+create or replace procedure DTAGENT_DB.APP.DTAGENT(sources array)
+returns object
+language python
+runtime_version = '3.11'
+handler = 'main'
+as
+$$
+def main(session, sources):
+    return {"status": "ok"}
+$$;
+
+grant usage on procedure DTAGENT_DB.APP.DTAGENT(array) to role DTAGENT_VIEWER;
+--%:OPTION:agent
+EOSQL
 }
 
 teardown() {
     rm -f "$TEST_SQL_FILE" "$TEST_CONFIG_FILE"
-    rm -rf build/10_admin.sql build/20_setup.sql build/40_config.sql build/30_plugins
+    rm -rf build/10_admin.sql build/20_setup.sql build/40_config.sql build/70_agents.sql build/30_plugins
     unset BUILD_CONFIG_FILE
 }
 
@@ -283,4 +304,118 @@ EOF
 
     # Should contain setup code
     grep -q "create warehouse if not exists DTAGENT_WH" "$TEST_SQL_FILE"
+}
+
+@test "optional objects: agent procedure included when plugins are enabled" {
+    TEST_CONFIG_FILE=$(mktemp)
+    cat > "$TEST_CONFIG_FILE" << 'EOF'
+[
+  {
+    "PATH": "plugins.deploy_disabled_plugins",
+    "TYPE": "bool",
+    "VALUE": false
+  },
+  {
+    "PATH": "plugins.query_history.is_disabled",
+    "TYPE": "bool",
+    "VALUE": false
+  },
+  {
+    "PATH": "core.dynatrace_tenant_address",
+    "TYPE": "string",
+    "VALUE": "test.dynatrace.com"
+  }
+]
+EOF
+    export BUILD_CONFIG_FILE="$TEST_CONFIG_FILE"
+    export DTAGENT_TOKEN="dt0c01.TEST12345678901234567890.TEST123456789012345678901234567890123456789012345678901234567890"
+
+    run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "agents" "" "manual"
+    [ "$status" -eq 0 ]
+    [ -s "$TEST_SQL_FILE" ]
+
+    # Should contain DTAGENT procedure
+    grep -q "create or replace procedure DTAGENT_DB.APP.DTAGENT" "$TEST_SQL_FILE"
+    grep -q "grant usage on procedure DTAGENT_DB.APP.DTAGENT" "$TEST_SQL_FILE"
+}
+
+@test "optional objects: agent procedure excluded when all plugins disabled" {
+    TEST_CONFIG_FILE=$(mktemp)
+    cat > "$TEST_CONFIG_FILE" << 'EOF'
+[
+  {
+    "PATH": "plugins.deploy_disabled_plugins",
+    "TYPE": "bool",
+    "VALUE": false
+  },
+  {
+    "PATH": "plugins.query_history.is_disabled",
+    "TYPE": "bool",
+    "VALUE": true
+  },
+  {
+    "PATH": "plugins.login_history.is_disabled",
+    "TYPE": "bool",
+    "VALUE": true
+  },
+  {
+    "PATH": "core.dynatrace_tenant_address",
+    "TYPE": "string",
+    "VALUE": "test.dynatrace.com"
+  }
+]
+EOF
+    export BUILD_CONFIG_FILE="$TEST_CONFIG_FILE"
+    export DTAGENT_TOKEN="dt0c01.TEST12345678901234567890.TEST123456789012345678901234567890123456789012345678901234567890"
+
+    run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "agents" "" "manual"
+
+    [ -s "$TEST_SQL_FILE" ]
+
+    # Should NOT contain DTAGENT procedure when all plugins are disabled
+    ! grep -q "create or replace procedure DTAGENT_DB.APP.DTAGENT" "$TEST_SQL_FILE"
+
+    # But agents scope should still deploy (e.g., send_telemetry can work without plugins)
+}
+
+@test "optional objects: agent procedure excluded with disabled_by_default and no enabled plugins" {
+    TEST_CONFIG_FILE=$(mktemp)
+    cat > "$TEST_CONFIG_FILE" << 'EOF'
+[
+  {
+    "PATH": "plugins.deploy_disabled_plugins",
+    "TYPE": "bool",
+    "VALUE": false
+  },
+  {
+    "PATH": "plugins.disabled_by_default",
+    "TYPE": "bool",
+    "VALUE": true
+  },
+  {
+    "PATH": "plugins.query_history.is_disabled",
+    "TYPE": "bool",
+    "VALUE": false
+  },
+  {
+    "PATH": "plugins.login_history.is_disabled",
+    "TYPE": "bool",
+    "VALUE": false
+  },
+  {
+    "PATH": "core.dynatrace_tenant_address",
+    "TYPE": "string",
+    "VALUE": "test.dynatrace.com"
+  }
+]
+EOF
+    export BUILD_CONFIG_FILE="$TEST_CONFIG_FILE"
+    export DTAGENT_TOKEN="dt0c01.TEST12345678901234567890.TEST123456789012345678901234567890123456789012345678901234567890"
+
+    run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "agents" "" "manual"
+    [ "$status" -eq 0 ]
+    [ -s "$TEST_SQL_FILE" ]
+
+    # Should NOT contain DTAGENT procedure when no plugins are explicitly enabled with disabled_by_default=true
+    ! grep -q "create or replace procedure DTAGENT_DB.APP.DTAGENT" "$TEST_SQL_FILE"
 }

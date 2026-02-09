@@ -1,6 +1,6 @@
 # Contributing
 
-Welcome! This document is intended for developers wishing to contribute to the Dynatrace Snowflake Observability Agent.
+Welcome! This document is intended for developers wishing to contribute to the Dynatrace Snowflake Observability Agent (DSOA).
 
 **Table of Contents:**
 
@@ -16,9 +16,11 @@ Welcome! This document is intended for developers wishing to contribute to the D
 
 ## Setting up Development Environment
 
-This guide was created for developers who want to contribute to the agent. If you only want to install and use it, please refer to the [INSTALL.md](INSTALL.md) guide.
+This guide helps developers who want to contribute to DSOA. If you only want to install and use it, see the [installation guide](INSTALL.md).
 
 ### Prerequisites
+
+**Required tools:**
 
 - [Python](https://www.python.org/) (3.9 or newer)
 - [Git](https://git-scm.com/)

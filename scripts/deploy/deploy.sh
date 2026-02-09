@@ -86,6 +86,36 @@ has_option() {
     return 1
 }
 
+# Display warning when bizevent send fails
+show_bizevent_warning() {
+    local stage=$1  # "STARTED" or "FINISHED"
+    local status_msg="Deployment will continue, but telemetry will not be sent to Dynatrace."
+
+    if [ "$stage" == "FINISHED" ]; then
+        status_msg="Deployment completed, but telemetry was not sent to Dynatrace."
+    fi
+
+    cat <<-EOH
+
+	╔══════════════════════════════════════════════════════════════════════════════════╗
+	║                                   ⚠️  WARNING  ⚠️                                 ║
+	╠══════════════════════════════════════════════════════════════════════════════════╣
+	║                                                                                  ║
+	║  Failed to send deployment bizevent to Dynatrace!                                ║
+	║                                                                                  ║
+	║  This may indicate issues with:                                                  ║
+	║    • Dynatrace API token (DTAGENT_TOKEN) - check if valid and not expired        ║
+	║    • Network connectivity to Dynatrace tenant                                    ║
+	║    • API token permissions (requires bizevents.ingest scope)                     ║
+	║                                                                                  ║
+	║  $status_msg          ║
+	║                                                                                  ║
+	╚══════════════════════════════════════════════════════════════════════════════════╝
+
+	EOH
+    sleep 3
+}
+
 CWD=$(dirname "$0")
 
 if has_option "manual"; then
@@ -154,20 +184,22 @@ if [[ "$TENANT_ADDRESS" == *".apps.dynatrace.com"* ]]; then
         'map(if .PATH == "core.dynatrace_tenant_address" then .VALUE = $new_val else . end)' \
         "$BUILD_CONFIG_FILE" > "${BUILD_CONFIG_FILE}.tmp" && mv "${BUILD_CONFIG_FILE}.tmp" "$BUILD_CONFIG_FILE"
 
-    echo ""
-    echo "╔══════════════════════════════════════════════════════════════════════════════════╗"
-    echo "║                                   ⚠️  WARNING  ⚠️                                  ║"
-    echo "╠══════════════════════════════════════════════════════════════════════════════════╣"
-    echo "║                                                                                  ║"
-    echo "║  The dynatrace_tenant_address uses incorrect domain for API:                     ║"
-    echo "║  .apps.dynatrace.com                                                             ║"
-    echo "║                                                                                  ║"
-    echo "║  Current value: $TENANT_ADDRESS                                      ║"
-    echo "║                                                                                  ║"
-    echo "║  This will be automatically replaced with: $FIXED_TENANT_ADDRESS           ║"
-    echo "║                                                                                  ║"
-    echo "╚══════════════════════════════════════════════════════════════════════════════════╝"
-    echo ""
+    cat <<-EOH
+
+	╔══════════════════════════════════════════════════════════════════════════════════╗
+	║                                   ⚠️  WARNING  ⚠️                                  ║
+	╠══════════════════════════════════════════════════════════════════════════════════╣
+	║                                                                                  ║
+	║  The dynatrace_tenant_address uses incorrect domain for API:                     ║
+	║  .apps.dynatrace.com                                                             ║
+	║                                                                                  ║
+	║  Current value: $TENANT_ADDRESS                                      ║
+	║                                                                                  ║
+	║  This will be automatically replaced with: $FIXED_TENANT_ADDRESS           ║
+	║                                                                                  ║
+	╚══════════════════════════════════════════════════════════════════════════════════╝
+
+	EOH
     sleep 5
 fi
 
@@ -221,7 +253,7 @@ if [ -s "$INSTALL_SCRIPT_SQL" ] && ! $IS_MANUAL; then
 
     if ! has_option "no_dep"; then
         if ! $CWD/send_bizevent.sh "${SCOPE}" "STARTED" "${DEPLOYMENT_ID}"; then
-            echo "Encountered issues when sending deployment bizevent, proceeding..."
+            show_bizevent_warning "STARTED"
         fi
     fi
     #%DEV:
@@ -256,6 +288,6 @@ fi
 
 if ! has_option "no_dep"; then
     if ! $CWD/send_bizevent.sh "${SCOPE}" "FINISHED" "${DEPLOYMENT_ID}"; then
-        echo "Encountered issues when sending deployment bizevent, proceeding..."
+        show_bizevent_warning "FINISHED"
     fi
 fi

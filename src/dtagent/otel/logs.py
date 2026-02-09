@@ -52,6 +52,18 @@ class Logs:
 
         self._setup_logger(resource)
 
+    def __get_logger_name(self) -> str:
+        """We use a custom logger name to be able to distinguish logs coming from different agents in case of multitenancy,
+           and also to be able to filter them out if needed.
+
+        NOTE: this code is broken into pieces to avoid replacement in prepare_deploy_script in case of multitenancy_tag being set
+        """
+        logger_name = "DTAGENT"
+        if self._configuration.multitenancy_tag:
+            logger_name += f"_{self._configuration.multitenancy_tag}"
+        logger_name += "_OTLP"
+        return logger_name
+
     def _setup_logger(self, resource: Resource) -> None:
         """All necessary actions to initialize logging via OpenTelemetry"""
         from opentelemetry.exporter.otlp.proto.http._log_exporter import OTLPLogExporter
@@ -66,18 +78,47 @@ class Logs:
                 self._session.headers.update(OtelManager.get_dsoa_headers())
 
         class CustomOTelTimestampFilter(logging.Filter):
-            """Reads record.timestamp (int epoch millisec) and applies it to the Python LogRecord timing fields."""
+            """Reads record.timestamp (int epoch milliseconds) and applies it to the Python LogRecord timing fields.
+
+            Also validates record.observed_timestamp and converts it to nanoseconds for OTEL.
+            """
 
             def filter(self, record: logging.LogRecord) -> bool:
+                # Handle timestamp field (for log record timing)
                 ts_ms = getattr(record, "timestamp", None)
-                if ts_ms is None:
-                    return True
+                if ts_ms is not None:
+                    delattr(record, "timestamp")
 
-                delattr(record, "timestamp")
+                    # Validate timestamp is positive and reasonable (not before 1970 or far in the future)
+                    try:
+                        ts_ms = int(ts_ms)
+                        # Ensure timestamp is positive and within reasonable range
+                        # Min: 0 (epoch), Max: year 2100 (approx 4102444800000 ms)
+                        if 0 < ts_ms <= 4102444800000:
+                            record.created = ts_ms / 1_000
+                            record.msecs = ts_ms % 1_000
+                    except (ValueError, TypeError, OverflowError):
+                        # If conversion fails, use default timestamp
+                        pass
 
-                ts_ms = int(ts_ms)
-                record.created = ts_ms / 1_000
-                record.msecs = ts_ms % 1_000
+                # Handle observed_timestamp field (for OTEL payload, expected in nanoseconds)
+                observed_ts = getattr(record, "observed_timestamp", None)
+                if observed_ts is not None:
+                    try:
+                        observed_ts_ms = int(observed_ts)
+                    except (ValueError, TypeError, OverflowError):
+                        # Invalid value; remove the attribute so we do not send bad data
+                        delattr(record, "observed_timestamp")
+                    else:
+                        # Use shared validation for millisecond timestamps
+                        validated_ts_ms = validate_timestamp_ms(observed_ts_ms)
+                        if validated_ts_ms:
+                            # Convert milliseconds to nanoseconds for OTEL
+                            setattr(record, "observed_timestamp", validated_ts_ms * 1_000_000)
+                        else:
+                            # If invalid, remove the attribute
+                            delattr(record, "observed_timestamp")
+
                 return True
 
         self._otel_logger_provider = LoggerProvider(resource=resource)
@@ -95,7 +136,7 @@ class Logs:
         handler = LoggingHandler(level=logging.NOTSET, logger_provider=self._otel_logger_provider)
         handler.addFilter(CustomOTelTimestampFilter())
 
-        self._otel_logger = logging.getLogger("DTAGENT_OTLP")
+        self._otel_logger = logging.getLogger(self.__get_logger_name())
         self._otel_logger.setLevel(logging.NOTSET)
         self._otel_logger.addHandler(handler)
 
@@ -129,7 +170,10 @@ class Logs:
         observed_timestamp = get_timestamp_in_ms(o_extra, "timestamp")
         if observed_timestamp:
             # we validate the original timestamp and record value that is correct for ingest
-            o_extra["timestamp"] = validate_timestamp_ms(observed_timestamp)
+            _timestamp = validate_timestamp_ms(observed_timestamp)
+            if _timestamp:
+                o_extra["timestamp"] = _timestamp
+                timestamp = _timestamp
 
         LOG.log(LL_TRACE, o_extra)
 
@@ -139,8 +183,12 @@ class Logs:
         ):  # remove telemetry.sdk.language="python" which is added by OTEL by default as resource attribute
             del raw_payload["telemetry.sdk.language"]
 
+        # Only include observed_timestamp if it's valid and different from the validated timestamp
+        # The validate_timestamp_ms call in CustomOTelTimestampFilter will catch any that slip through
         if observed_timestamp and observed_timestamp != timestamp:
-            raw_payload["observed_timestamp"] = observed_timestamp
+            validated_observed = validate_timestamp_ms(observed_timestamp)
+            if validated_observed:
+                raw_payload["observed_timestamp"] = validated_observed
 
         payload = _cleanup_dict(raw_payload)
 

@@ -1218,6 +1218,40 @@ grant role SOME_ROLE to role DTAGENT_ADMIN;
 --%:OPTION:dtagent_admin
 ```
 
+#### Plugin Dependencies
+
+When your plugin depends on objects created by another plugin, use conditional blocks to ensure proper behavior when the dependent plugin is disabled:
+
+```sql
+-- In your plugin's SQL file
+create or replace view APP.V_MY_VIEW
+as
+select
+    qh.column1,
+    qh.column2,
+--%PLUGIN:event_log:
+    el.trace_data,  -- Only include when event_log plugin is enabled
+--%:PLUGIN:event_log
+    qh.column3
+from
+    APP.SOME_TABLE qh
+--%PLUGIN:event_log:
+left join
+    STATUS.EVENT_LOG el
+ on el.query_id = qh.query_id
+--%:PLUGIN:event_log
+;
+```
+
+**Important**: When using conditional blocks for plugin dependencies:
+
+- Always wrap both the column references AND the JOIN clauses
+- Test your plugin works correctly when the dependency is both enabled and disabled
+- Document the optional dependency in your plugin's readme.md
+- Consider adding a test case to verify the conditional behavior (see `test/bash/test_query_history_event_log_dependency.bats` as an example)
+
+**Example**: The `query_history` plugin conditionally includes Snowtrail trace correlation when `event_log` is enabled, but functions independently when it's disabled.
+
 ### Multiple Context Names
 
 If your plugin reports data in multiple contexts, you can override the context name:

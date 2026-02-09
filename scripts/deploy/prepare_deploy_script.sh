@@ -59,6 +59,7 @@ CUSTOM_RS=$($CWD/get_config_key.sh core.snowflake.resource_monitor.name)
 CUSTOM_OWNER=$($CWD/get_config_key.sh core.snowflake.roles.owner)
 CUSTOM_ADMIN=$($CWD/get_config_key.sh core.snowflake.roles.admin)
 CUSTOM_VIEWER=$($CWD/get_config_key.sh core.snowflake.roles.viewer)
+CUSTOM_API_INTEGRATION=$($CWD/get_config_key.sh core.snowflake.api_integration.name)
 
 # Function to validate Snowflake object name
 validate_snowflake_name() {
@@ -91,7 +92,7 @@ validate_snowflake_name() {
     return 0
 }
 
-# Check if both TAG and custom names are set (mutually exclusive)
+# Check if custom names are being used
 CUSTOM_NAMES_USED=false
 if [ -n "$CUSTOM_DB" ] && [ "$CUSTOM_DB" != "null" ] && [ "$CUSTOM_DB" != "" ]; then CUSTOM_NAMES_USED=true; fi
 if [ -n "$CUSTOM_WH" ] && [ "$CUSTOM_WH" != "null" ] && [ "$CUSTOM_WH" != "" ]; then CUSTOM_NAMES_USED=true; fi
@@ -99,11 +100,14 @@ if [ -n "$CUSTOM_RS" ] && [ "$CUSTOM_RS" != "null" ] && [ "$CUSTOM_RS" != "" ] &
 if [ -n "$CUSTOM_OWNER" ] && [ "$CUSTOM_OWNER" != "null" ] && [ "$CUSTOM_OWNER" != "" ]; then CUSTOM_NAMES_USED=true; fi
 if [ -n "$CUSTOM_ADMIN" ] && [ "$CUSTOM_ADMIN" != "null" ] && [ "$CUSTOM_ADMIN" != "" ] && [ "$CUSTOM_ADMIN" != "-" ]; then CUSTOM_NAMES_USED=true; fi
 if [ -n "$CUSTOM_VIEWER" ] && [ "$CUSTOM_VIEWER" != "null" ] && [ "$CUSTOM_VIEWER" != "" ]; then CUSTOM_NAMES_USED=true; fi
+if [ -n "$CUSTOM_API_INTEGRATION" ] && [ "$CUSTOM_API_INTEGRATION" != "null" ] && [ "$CUSTOM_API_INTEGRATION" != "" ]; then CUSTOM_NAMES_USED=true; fi
 
+# When custom names are used, TAG only affects telemetry (deployment.environment.tag)
+# When custom names are NOT used, TAG affects both object naming AND telemetry
 if [ -n "$TAG" ] && [ "$CUSTOM_NAMES_USED" = true ]; then
-    echo "ERROR: Cannot use both multitenancy TAG ('$TAG') and custom Snowflake object names"
-    echo "       Please either use core.tag for multitenancy OR custom object names, not both"
-    exit 1
+    echo "INFO: Both TAG and custom names provided."
+    echo "      Custom names will be used for Snowflake objects."
+    echo "      TAG '$TAG' will only appear in telemetry as deployment.environment.tag."
 fi
 
 # Validate custom names if provided
@@ -114,6 +118,7 @@ if [ "$CUSTOM_NAMES_USED" = true ]; then
     validate_snowflake_name "$CUSTOM_OWNER" "owner role" || exit 1
     validate_snowflake_name "$CUSTOM_ADMIN" "admin role" || exit 1
     validate_snowflake_name "$CUSTOM_VIEWER" "viewer role" || exit 1
+    validate_snowflake_name "$CUSTOM_API_INTEGRATION" "API integration" || exit 1
 
     echo "Using custom Snowflake object names:"
     if [ -n "$CUSTOM_DB" ] && [ "$CUSTOM_DB" != "null" ] && [ "$CUSTOM_DB" != "" ]; then
@@ -133,6 +138,9 @@ if [ "$CUSTOM_NAMES_USED" = true ]; then
     fi
     if [ -n "$CUSTOM_VIEWER" ] && [ "$CUSTOM_VIEWER" != "null" ] && [ "$CUSTOM_VIEWER" != "" ]; then
         echo "  Viewer Role: $CUSTOM_VIEWER"
+    fi
+    if [ -n "$CUSTOM_API_INTEGRATION" ] && [ "$CUSTOM_API_INTEGRATION" != "null" ] && [ "$CUSTOM_API_INTEGRATION" != "" ]; then
+        echo "  API Integration: $CUSTOM_API_INTEGRATION"
     fi
 fi
 
@@ -214,6 +222,10 @@ if [[ "$SCOPE" == *,* ]]; then
     done
     # Remove leading/trailing spaces and deduplicate
     SQL_FILES=$(echo "$SQL_FILES" | xargs)
+    #%DEV:
+    echo "DEBUG: Parsed scopes: ${SCOPE_ARRAY[@]}"
+    echo "DEBUG: Built SQL_FILES: [$SQL_FILES]"
+    #%:DEV
 
     # Validate FROM_VERSION if upgrade scope is included
     if [ "$HAS_UPGRADE_SCOPE" == "true" ] && [ -z "$FROM_VERSION" ]; then
@@ -241,7 +253,14 @@ fi
 
 # Check if required SQL files exist in build folder (skip for scopes with empty SQL_FILES)
 if [ -n "$SQL_FILES" ]; then
-    if ! find build/$SQL_FILES -type f 2>/dev/null | grep -q .; then
+    missing_files=false
+    for pattern in $SQL_FILES; do
+        if ! find build/$pattern -type f 2>/dev/null | grep -q .; then
+            echo "ERROR: Build file missing: build/$pattern"
+            missing_files=true
+        fi
+    done
+    if [ "$missing_files" = true ]; then
         echo "ERROR: Build files missing for scope $SCOPE"
         exit 1
     fi
@@ -260,9 +279,15 @@ if [ "$SCOPE" != 'apikey' ] && [ "$SCOPE" != 'teardown' ]; then
     if [ "$HAS_UPGRADE_SCOPE" == "true" ]; then
         # For upgrade scope, filter by version
         # Process each SQL file pattern separately, applying version filter to upgrade files
+        #%DEV:
+        echo "DEBUG: Processing with upgrade scope, FROM_VERSION=$FROM_VERSION"
+        #%:DEV
         (
             for pattern in $SQL_FILES; do
                 # Use eval to let find handle glob patterns properly
+                #%DEV:
+                echo "DEBUG: Finding files matching build/$pattern" >&2
+                #%:DEV
                 eval "find build/$pattern -type f -print 2>/dev/null"
             done
         ) |
@@ -296,9 +321,18 @@ if [ "$SCOPE" != 'apikey' ] && [ "$SCOPE" != 'teardown' ]; then
                 >"$INSTALL_SCRIPT_SQL"
     else
         # Process each SQL file pattern separately
+        #%DEV:
+        echo "DEBUG: Processing without upgrade scope"
+        #%:DEV
         (
             for pattern in $SQL_FILES; do
                 # Use eval to let find handle glob patterns properly
+                #%DEV:
+                echo "DEBUG: Finding files matching build/$pattern" >&2
+                found_files=$(eval "find build/$pattern -type f -print 2>/dev/null")
+                echo "DEBUG: Found files: $found_files" >&2
+                echo "$found_files"
+                #%:DEV
                 eval "find build/$pattern -type f -print 2>/dev/null"
             done
         ) | sort | xargs -I {} sh -c 'echo "-- SCRIPT: $1"; cat "$1"' _ {} \; \
@@ -427,8 +461,8 @@ filter_option_code() {
         awk -v option="$option_name" '
             BEGIN { active=1; }
             {
-                # Check for start marker: --%OPTION:option_name: or #%OPTION:option_name:
-                if ($0 ~ /^(--|#)%OPTION:/) {
+                # Check for start marker: --%OPTION:option_name: or #%OPTION:option_name: (with optional leading whitespace)
+                if ($0 ~ /^[ \t]*(--|#)%OPTION:/) {
                     start_pattern = "%OPTION:" option ":"
                     if (index($0, start_pattern) > 0) {
                         active=0;
@@ -438,8 +472,8 @@ filter_option_code() {
                 # Print line only if active
                 if (active==1) print $0;
 
-                # Check for end marker: --%:OPTION:option_name or #%:OPTION:option_name
-                if ($0 ~ /^(--|#)%:OPTION:/) {
+                # Check for end marker: --%:OPTION:option_name or #%:OPTION:option_name (with optional leading whitespace)
+                if ($0 ~ /^[ \t]*(--|#)%:OPTION:/) {
                     end_pattern = "%:OPTION:" option
                     # Make sure we match the exact option name, not a prefix
                     if (index($0, end_pattern) > 0) {
@@ -516,12 +550,10 @@ fi
 # Remove Python inline comments
 "${SED_INPLACE[@]}" -E -e 's/[[:space:]]+#.*$//' "$INSTALL_SCRIPT_SQL"
 
-# Handle multitenancy TAG replacements OR custom object name replacements (mutually exclusive)
-if [ -n "$TAG" ]; then
-    echo "Applying multitenancy TAG replacements..."
-    "${SED_INPLACE[@]}" -E -e "s/DTAGENT_/DTAGENT_${TAG}_/g" "$INSTALL_SCRIPT_SQL"
-    "${SED_INPLACE[@]}" -E -e "s/${TAG}_${TAG}_/${TAG}_/g" "$INSTALL_SCRIPT_SQL"
-elif [ "$CUSTOM_NAMES_USED" = true ]; then
+# Handle object name replacements
+# Priority: Custom names > TAG > Default names
+# When custom names are provided, TAG does not affect object naming (only telemetry)
+if [ "$CUSTOM_NAMES_USED" = true ]; then
     echo "Applying custom object name replacements..."
 
     # Replace custom names if provided
@@ -551,6 +583,15 @@ elif [ "$CUSTOM_NAMES_USED" = true ]; then
     if [ -n "$CUSTOM_VIEWER" ] && [ "$CUSTOM_VIEWER" != "null" ] && [ "$CUSTOM_VIEWER" != "" ]; then
         "${SED_INPLACE[@]}" -E -e "s/(^|[^A-Za-z0-9_\$])DTAGENT_VIEWER([^A-Za-z0-9_\$]|$)/\1$CUSTOM_VIEWER\2/g" "$INSTALL_SCRIPT_SQL"
     fi
+
+    if [ -n "$CUSTOM_API_INTEGRATION" ] && [ "$CUSTOM_API_INTEGRATION" != "null" ] && [ "$CUSTOM_API_INTEGRATION" != "" ]; then
+        "${SED_INPLACE[@]}" -E -e "s/(^|[^A-Za-z0-9_\$])DTAGENT_API_INTEGRATION([^A-Za-z0-9_\$]|$)/\1$CUSTOM_API_INTEGRATION\2/g" "$INSTALL_SCRIPT_SQL"
+    fi
+elif [ -n "$TAG" ]; then
+    # Only apply TAG-based naming when custom names are NOT provided
+    echo "Applying multitenancy TAG replacements..."
+    "${SED_INPLACE[@]}" -E -e "s/DTAGENT_/DTAGENT_${TAG}_/g" "$INSTALL_SCRIPT_SQL"
+    "${SED_INPLACE[@]}" -E -e "s/${TAG}_${TAG}_/${TAG}_/g" "$INSTALL_SCRIPT_SQL"
 fi
 
 # Remove double newlines from the deployment script

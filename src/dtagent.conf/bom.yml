@@ -26,6 +26,7 @@ delivers:
       consumption. When disabled, no resource monitoring will be applied to the warehouse.
   - name: DTAGENT_API_INTEGRATION
     type: external access integration
+    config_key: core.snowflake.api_integration.name
   - name: DTAGENT_DB.PUBLIC
     type: schema
   - name: DTAGENT_DB.CONFIG
