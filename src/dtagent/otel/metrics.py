@@ -226,6 +226,16 @@ class Metrics:
 
         return self._send_metrics(payload)
 
+    def metrics_section_exists(self, query_data: Dict) -> bool:
+        """Checks if METRICS section is defined in query data
+
+        Args:
+            query_data (Dict): query data containing METRICS section
+        Returns:
+            bool: boolean indicating if METRICS section was found
+        """
+        return "METRICS" in query_data
+
     def discover_report_metrics(
         self, query_data: Dict, start_time: str = "START_TIME", context_name: Optional[str] = None
     ) -> Tuple[bool, int]:
@@ -240,7 +250,7 @@ class Metrics:
             Tuple[bool, int]: boolean indicating if METRICS section was found, and
                               number of metric lines (without description lines) successfully sent
         """
-        if "METRICS" in query_data:
+        if self.metrics_section_exists(query_data):
             return True, self.report_via_metrics_api(query_data, start_time, context_name=context_name)
         return False, 0
 
