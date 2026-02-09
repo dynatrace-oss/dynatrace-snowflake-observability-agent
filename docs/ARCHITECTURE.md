@@ -522,6 +522,7 @@ Dynatrace Snowflake Observability Agent implements a flexible role-based securit
 ##### DTAGENT_OWNER
 
 - Owns all Dynatrace Snowflake Observability Agent objects: database, schemas, tables, procedures, tasks
+- Owns and has `MODIFY` privilege on resource monitor (when enabled via `core.snowflake.resource_monitor.name`)
 - Creates and manages all objects within `DTAGENT_DB`
 - Can be used for most deployment operations (`setup`, `plugins`, `config`, `agents` scopes)
 - Does not require `ACCOUNTADMIN` privileges for most operations

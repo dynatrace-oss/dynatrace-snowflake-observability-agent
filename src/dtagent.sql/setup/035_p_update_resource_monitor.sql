@@ -22,9 +22,12 @@
 --
 --
 --
--- We need resource monitor setup for Dynatrace Snowflake Observability Agent to ensure we don't spent too much credits
--- This is a procedure that allows to set correct values based on the value provided
--- It is called initially with just one credit, and later it is called by CONFIG.UPDATE_FROM_CONFIGURATIONS()
+-- We need resource monitor setup for Dynatrace Snowflake Observability Agent to ensure we don't spend too much credits
+-- This procedure allows updating the credit quota dynamically based on configuration values
+-- It is called by CONFIG.UPDATE_FROM_CONFIGURATIONS() to apply credit_quota changes from the config
+--
+-- Note: DTAGENT_OWNER has OWNERSHIP and MODIFY privileges on DTAGENT_RS resource monitor,
+-- which allows this procedure to execute as caller without requiring ACCOUNTADMIN privileges
 --
 --%OPTION:resource_monitor:
 use role DTAGENT_OWNER; use schema DTAGENT_DB.CONFIG; use warehouse DTAGENT_WH;
