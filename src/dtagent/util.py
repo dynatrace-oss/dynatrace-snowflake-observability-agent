@@ -27,7 +27,6 @@
 
 import datetime
 import json
-from math import e
 import os
 import re
 from enum import Enum
@@ -238,8 +237,8 @@ def _adjust_timestamp(row_dict: Dict, start_time: str = "START_TIME", end_time: 
                 # Ensure the datetime is timezone-aware before calling .timestamp()
                 dt = ensure_timezone_aware(row_dict[time_key])
                 casted_ts = int(dt.timestamp() * NANOSECOND_CONVERSION_RATE)
-            except TypeError as e:
-                raise e
+            except TypeError as err:
+                raise err
             row_dict[time_key] = casted_ts
 
     now = now or time.time_ns()

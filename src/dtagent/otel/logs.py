@@ -80,7 +80,9 @@ class Logs:
 
         class CustomOTelTimestampFilter(logging.Filter):
             """Reads record.timestamp (int epoch milliseconds) and applies it to the Python LogRecord timing fields.
-            Also validates record.observed_timestamp and converts it to nanoseconds for OTEL."""
+
+            Also validates record.observed_timestamp and converts it to nanoseconds for OTEL.
+            """
 
             def filter(self, record: logging.LogRecord) -> bool:
                 # Handle timestamp field (for log record timing)
@@ -93,7 +95,7 @@ class Logs:
                         ts_ms = int(ts_ms)
                         # Ensure timestamp is positive and within reasonable range
                         # Min: 0 (epoch), Max: year 2100 (approx 4102444800000 ms)
-                        if ts_ms > 0 and ts_ms <= 4102444800000:
+                        if 0 < ts_ms <= 4102444800000:
                             record.created = ts_ms / 1_000
                             record.msecs = ts_ms % 1_000
                     except (ValueError, TypeError, OverflowError):
