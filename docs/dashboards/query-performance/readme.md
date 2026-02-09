@@ -60,6 +60,7 @@ Three donut charts identify the highest consumers of query execution time, provi
 **Query performance vs table size growth (over last 14 days)** - An AI-powered Davis anomaly detection visualization that correlates average query execution time with table row count growth over a 14-day period.
 
 This advanced analysis:
+
 - Calculates execution time per row for each table to normalize performance metrics
 - Automatically detects anomalies where performance degrades disproportionately to data growth
 - Helps predict future performance issues before they become critical
