@@ -61,7 +61,8 @@ def _from_json(val: Any) -> Any:
 def __try_convert_to_numeric(item: Any) -> Any:
     """Try to convert item to numeric type, return original if not possible.
 
-    bool > int > float > str (prefer numeric types when possible)"""
+    bool > int > float > str (prefer numeric types when possible)
+    """
     result = item
     if item and isinstance(item, str):
         # Check for boolean strings first
