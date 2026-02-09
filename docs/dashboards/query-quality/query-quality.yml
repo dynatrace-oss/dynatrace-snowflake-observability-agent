@@ -1,0 +1,506 @@
+#
+# Copyright (c) 2025 Dynatrace Open Source
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the Software), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+#
+# DASHBOARD: Snowflake Query Quality
+# DESCRIPTION: This dashboard surfaces Snowflake queries with full cartesian joins, which are often a sign of a query quality issue.
+#              The dashboard includes a log of recent queries with full cartesian joins,
+#              as well as visualizations of the number of full cartesian join queries over time and by various dimensions
+#              (environment, operation, user).
+# OWNER: sebastian.kruk
+# PLUGINS: query_history
+# TAGS: query_quality, full_cartesian_joins
+#
+version: 21
+variables:
+  - key: Account
+    visible: true
+    type: query
+    version: 2
+    editable: true
+    input: |-
+      fetch spans
+        | filter db.system == "snowflake"
+        | fieldsAdd service_name = deployment.environment
+        | summarize env = collectDistinct(upper(service_name))
+        | fields env_and_all = array("*", env)
+    multiple: false
+    defaultValue: "*"
+  - key: DB_Operation
+    visible: true
+    type: query
+    version: 2
+    editable: true
+    input: |-
+      fetch spans
+        | filter db.system == "snowflake"
+        | filter isNotNull(span.events)
+        | filter $Account == "*" or $Account == deployment.environment
+        | summarize operation = collectDistinct(upper(coalesce(db.operation, db.operation.name)))
+        | fields operation_and_all = array("*", operation)
+    multiple: false
+    defaultValue: "*"
+  - key: User
+    visible: true
+    type: query
+    version: 2
+    editable: true
+    input: |-
+      fetch spans
+        | filter db.system == "snowflake"
+        | filter isNotNull(span.events)
+        | filter $Account == "*" or $Account == deployment.environment
+        | filter $DB_Operation == "*" or $DB_Operation == upper(coalesce(db.operation, db.operation.name))
+        | fieldsAdd operator_stats = iCollectArray(parse(span.events[][snowflake.query.operator.stats], """JSON:stats"""))
+        | filter iAny(operator_stats[][input_rows] < operator_stats[][output_rows] and
+            span.events[][snowflake.query.operator.type] == "Join")
+        | fields
+            start_time, end_time, snowflake.query.id, deployment.environment, db.operation, db.statement, db.user,
+            snowflake.execution_status, snowflake.time.total_elapsed, snowflake.time.execution, span.events, operator_stats
+        | fields db.user
+        | dedup db.user
+        | sort db.user
+    multiple: true
+    defaultValue:
+      - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
+tiles:
+  "0":
+    title: Full cartesian query log (most recent 100)
+    type: data
+    query: |-
+      fetch spans
+        | filter db.system == "snowflake"
+        | filter isNotNull(span.events)
+        | fieldsAdd service_name = deployment.environment
+        | fieldsAdd operation_name = coalesce(db.operation, db.operation.name)
+        | filter $Account == "*" or upper(deployment.environment) == $Account
+        | filter $DB_Operation == "*" or upper(operation_name) == $DB_Operation
+        | filter in(db.user, array($User))
+        | fieldsAdd operator_stats = iCollectArray(parse(span.events[][snowflake.query.operator.stats], """JSON:stats"""))
+        | filter iAny(operator_stats[][input_rows] < operator_stats[][output_rows] and
+            span.events[][snowflake.query.operator.type] == "Join")
+        | fields
+            start_time, end_time, snowflake.query.id, service_name, operation_name,
+            query_text = coalesce(db.statement, db.query.text), db.user, bietl.action = tags[action],
+            bietl.modeler_task = tags[modeler_task], bietl.module = tags[module], bietl.task = tags[task],
+            snowflake.execution_status, snowflake.time.total_elapsed, snowflake.time.execution, span.events,
+            deployment.environment, operator_stats
+    visualization: recordView
+    visualizationSettings:
+      thresholds: []
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "1":
+    title: Full cartesian queries over time (by env)
+    type: data
+    query: |
+      fetch spans
+        | filter db.system == "snowflake"
+        | filter isNotNull(span.events)
+        | fieldsAdd service_name = deployment.environment
+        | fieldsAdd operation_name = coalesce(db.operation, db.operation.name)
+        | filter $DB_Operation == "*" or upper(operation_name) == $DB_Operation
+        | filter $Account == "*" or upper(deployment.environment) == $Account
+        | filter in(db.user, array($User))
+        | fieldsAdd operator_stats = iCollectArray(parse(span.events[][snowflake.query.operator.stats], """JSON:stats"""))
+        | filter iAny(operator_stats[][input_rows] < operator_stats[][output_rows] and
+            span.events[][snowflake.query.operator.type] == "Join")
+        | fields
+            start_time, end_time, snowflake.query.id, service_name, operation_name, db.statement, db.user,
+            snowflake.execution_status, snowflake.time.total_elapsed, snowflake.time.execution, span.events,
+            deployment.environment, operator_stats
+        | makeTimeseries count(), by: {
+          upper(deployment.environment)
+        }, interval: 1d
+    visualization: barChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        legend:
+          position: bottom
+        xAxisScaling: analyzedTimeframe
+        seriesOverrides:
+          - seriesId:
+              - PROD
+            override:
+              color:
+                Default: "var(--dt-colors-charts-categorical-color-15-default, #9033a3)"
+          - seriesId:
+              - DEV
+            override:
+              color:
+                Default: "var(--dt-colors-charts-categorical-color-01-default, #134fc9)"
+        fieldMapping:
+          leftAxisValues:
+            - count()
+          timestamp: timeframe
+      thresholds: []
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "2":
+    title: Full cartesian queries over time (by operation)
+    type: data
+    query: |
+      fetch spans
+        | filter db.system == "snowflake"
+        | filter isNotNull(span.events)
+        | fieldsAdd service_name = deployment.environment
+        | fieldsAdd operation_name = coalesce(db.operation, db.operation.name)
+        | filter $Account == "*" or upper(deployment.environment) == $Account
+        | filter $DB_Operation == "*" or upper(operation_name) == $DB_Operation
+        | filter in(db.user, array($User))
+        | fieldsAdd operator_stats = iCollectArray(parse(span.events[][snowflake.query.operator.stats], """JSON:stats"""))
+        | filter iAny(operator_stats[][input_rows] < operator_stats[][output_rows] and
+            span.events[][snowflake.query.operator.type] == "Join")
+        | fields start_time, end_time, snowflake.query.id, service_name, operation_name, db.statement, db.user,
+            snowflake.execution_status, snowflake.time.total_elapsed, snowflake.time.execution, span.events,
+            deployment.environment, operator_stats
+        | makeTimeseries count(), by: {
+          upper(operation_name)
+        }
+        //, interval: 6h
+    visualization: lineChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        legend:
+          position: bottom
+        xAxisScaling: analyzedTimeframe
+        seriesOverrides:
+          - seriesId:
+              - UPDATE
+            override:
+              color:
+                Default: "var(--dt-colors-charts-categorical-color-15-default, #9033a3)"
+          - seriesId:
+              - SELECT
+            override:
+              color:
+                Default: "var(--dt-colors-charts-categorical-themed-swamps-color-01-default, #1c520a)"
+          - seriesId:
+              - INSERT
+            override:
+              color:
+                Default: "var(--dt-colors-charts-categorical-color-10-default, #904523)"
+        fieldMapping:
+          leftAxisValues:
+            - count()
+          timestamp: timeframe
+        gapPolicy: connect
+      thresholds: []
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "3":
+    title: Full cartesian queries over time (by user)
+    type: data
+    query: |
+      fetch spans
+        | filter db.system == "snowflake"
+        | filter isNotNull(span.events)
+        | fieldsAdd service_name = deployment.environment
+        | fieldsAdd operation_name = coalesce(db.operation, db.operation.name)
+        | filter $Account == "*" or upper(deployment.environment) == $Account
+        | filter $DB_Operation == "*" or upper(operation_name) == $DB_Operation
+        | filter in(db.user, array($User))
+        | fieldsAdd operator_stats = iCollectArray(parse(span.events[][snowflake.query.operator.stats], """JSON:stats"""))
+        | filter iAny(operator_stats[][input_rows] < operator_stats[][output_rows] and
+            span.events[][snowflake.query.operator.type] == "Join")
+        | fields start_time, end_time, snowflake.query.id, service_name, operation_name, db.statement, db.user,
+            snowflake.execution_status, snowflake.time.total_elapsed, snowflake.time.execution, span.events,
+            deployment.environment, operator_stats
+        | makeTimeseries count(), by: {
+          db.user
+        }, interval: 1d
+    visualization: barChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        legend:
+          position: bottom
+        xAxisScaling: analyzedTimeframe
+        fieldMapping:
+          leftAxisValues:
+            - count()
+          timestamp: timeframe
+      thresholds: []
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "4":
+    title: Full cartesian queries by env
+    type: data
+    query: |
+      fetch spans
+        | filter db.system == "snowflake"
+        | filter isNotNull(span.events)
+        | fieldsAdd service_name = deployment.environment
+        | fieldsAdd operation_name = coalesce(db.operation, db.operation.name)
+        | filter $Account == "*" or upper(deployment.environment) == $Account
+        | filter $DB_Operation == "*" or upper(operation_name) == $DB_Operation
+        | filter in(db.user, array($User))
+        | fieldsAdd operator_stats = iCollectArray(parse(span.events[][snowflake.query.operator.stats], """JSON:stats"""))
+        | filter iAny(operator_stats[][input_rows] < operator_stats[][output_rows] and
+            span.events[][snowflake.query.operator.type] == "Join")
+        | fields
+            start_time, end_time, snowflake.query.id, service_name, operation_name, db.statement, db.user,
+            snowflake.execution_status, snowflake.time.total_elapsed, snowflake.time.execution, span.events,
+            deployment.environment, operator_stats
+        | summarize count = count(), by: {
+          upper(deployment.environment)
+        }
+    visualization: pieChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        legend:
+          position: bottom
+        categoryOverrides:
+          DEV:
+            color:
+              Default: "var(--dt-colors-charts-categorical-color-01-default, #134fc9)"
+            added: 1718722335277
+          PROD:
+            color:
+              Default: "var(--dt-colors-charts-categorical-themed-fireplace-color-06-default, #9033a3)"
+            added: 1718722337006
+        categoricalBarChartSettings:
+          valueAxis:
+            - count
+          valueAxisLabel: count
+          categoryAxis:
+            - upper(deployment.environment)
+          categoryAxisLabel: upper(deployment.environment)
+        circleChartSettings:
+          valueType: relative
+          groupingThresholdType: relative
+      thresholds: []
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "5":
+    title: Full cartesian queries by operation
+    type: data
+    query: |
+      fetch spans
+        | filter db.system == "snowflake"
+        | filter isNotNull(span.events)
+        | fieldsAdd service_name = deployment.environment
+        | fieldsAdd operation_name = coalesce(db.operation, db.operation.name)
+        | filter $Account == "*" or upper(deployment.environment) == $Account
+        | filter $DB_Operation == "*" or upper(operation_name) == $DB_Operation
+        | filter in(db.user, array($User))
+        | fieldsAdd operator_stats = iCollectArray(parse(span.events[][snowflake.query.operator.stats], """JSON:stats"""))
+        | filter iAny(operator_stats[][input_rows] < operator_stats[][output_rows] and
+            span.events[][snowflake.query.operator.type] == "Join")
+        | fields
+            start_time, end_time, snowflake.query.id, service_name, operation_name, db.statement, db.user,
+            snowflake.execution_status, snowflake.time.total_elapsed, snowflake.time.execution, span.events,
+            deployment.environment, operator_stats
+        | summarize count = count(), by: {
+          upper(operation_name)
+        }
+    visualization: pieChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        legend:
+          position: bottom
+        categoryOverrides:
+          SELECT:
+            color:
+              Default: "var(--dt-colors-charts-categorical-themed-swamps-color-01-default, #1c520a)"
+            added: 1718722392559
+          INSERT:
+            color:
+              Default: "var(--dt-colors-charts-categorical-color-10-default, #904523)"
+            added: 1718722429904
+          UPDATE:
+            color:
+              Default: "var(--dt-colors-charts-categorical-color-15-default, #9033a3)"
+            added: 1718722431017
+        categoricalBarChartSettings:
+          valueAxis:
+            - count
+          valueAxisLabel: count
+          categoryAxis:
+            - upper(operation_name)
+          categoryAxisLabel: upper(operation_name)
+        circleChartSettings:
+          valueType: relative
+          groupingThresholdType: relative
+      thresholds: []
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "6":
+    title: Full cartesian queries by top 10 users
+    type: data
+    query: |-
+      fetch spans
+        | filter db.system == "snowflake"
+        | filter isNotNull(span.events)
+        | fieldsAdd service_name = deployment.environment
+        | fieldsAdd operation_name = coalesce(db.operation, db.operation.name)
+        | filter $Account == "*" or upper(deployment.environment) == $Account
+        | filter $DB_Operation == "*" or upper(operation_name) == $DB_Operation
+        | filter in(db.user, array($User))
+        | fieldsAdd operator_stats = iCollectArray(parse(span.events[][snowflake.query.operator.stats], """JSON:stats"""))
+        | filter iAny(operator_stats[][input_rows] < operator_stats[][output_rows] and
+            span.events[][snowflake.query.operator.type] == "Join")
+        | fields
+            start_time, end_time, snowflake.query.id, service_name, operation_name, db.statement, db.user,
+            snowflake.execution_status, snowflake.time.total_elapsed, snowflake.time.execution, span.events,
+            deployment.environment, operator_stats
+        | summarize count = count(), by: {
+          db.user
+        }
+        | sort count desc
+        | limit 10
+    visualization: pieChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        legend:
+          position: bottom
+        categoryOverrides: {}
+        categoricalBarChartSettings:
+          valueAxis:
+            - count
+          valueAxisLabel: count
+          categoryAxis:
+            - db.user
+          categoryAxisLabel: db.user
+        circleChartSettings:
+          valueType: relative
+          groupingThresholdType: relative
+      thresholds: []
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+layouts:
+  "0":
+    x: 0
+    "y": 18
+    w: 24
+    h: 9
+  "1":
+    x: 0
+    "y": 0
+    w: 18
+    h: 6
+  "2":
+    x: 0
+    "y": 6
+    w: 18
+    h: 6
+  "3":
+    x: 0
+    "y": 12
+    w: 18
+    h: 6
+  "4":
+    x: 18
+    "y": 0
+    w: 6
+    h: 6
+  "5":
+    x: 18
+    "y": 6
+    w: 6
+    h: 6
+  "6":
+    x: 18
+    "y": 12
+    w: 6
+    h: 6
+importedWithCode: false
+settings:
+  defaultTimeframe:
+    value:
+      from: now()-7d
+      to: now()
+    enabled: true
+annotations: []
