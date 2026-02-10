@@ -24,6 +24,11 @@ attributes:
       - inbound_shares
     __example: 800000
     __description: Number of bytes accessed by a scan of the table.
+  snowflake.error.message:
+    __context_names:
+      - inbound_shares
+    __example: Shared database is no longer available
+    __description: Provides additional context about the share status when unavailable or inaccessible.
   snowflake.grant.by:
     __context_names:
       - outbound_shares
@@ -140,6 +145,11 @@ attributes:
       - inbound_shares
     __example: false
     __description: Indicates whether or not details on this share should be reported.
+  snowflake.share.status:
+    __context_names:
+      - inbound_shares
+    __example: UNAVAILABLE
+    __description: Indicates the availability status of the share. Set to UNAVAILABLE when the shared database is no longer accessible.
   snowflake.table.last_ddl_by:
     __context_names:
       - inbound_shares

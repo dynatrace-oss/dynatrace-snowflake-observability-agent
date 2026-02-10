@@ -38,6 +38,8 @@ DECLARE
     rs        RESULTSET;
     rs_repeat RESULTSET;
     rs_empty  RESULTSET DEFAULT (SELECT NULL:text as SHARE_NAME, FALSE:boolean as IS_REPORTED, OBJECT_CONSTRUCT() as DETAILS WHERE 1=0);
+    rs_unavailable RESULTSET DEFAULT (SELECT :share_name as SHARE_NAME, TRUE:boolean as IS_REPORTED, OBJECT_CONSTRUCT('SHARE_STATUS', 'UNAVAILABLE', 'SHARE_NAME', :share_name, 'DATABASE_NAME', :db_name, 'ERROR_MESSAGE', 'Shared database is no longer available') as DETAILS);
+    error_msg TEXT;
 BEGIN
     IF (:with_grant) THEN
         call DTAGENT_DB.APP.P_GRANT_IMPORTED_PRIVILEGES(:db_name);
@@ -49,10 +51,20 @@ BEGIN
     RETURN TABLE(rs);
 EXCEPTION
   when statement_error then
-    SYSTEM$LOG_WARN(SQLERRM || :query);
+    error_msg := SQLERRM;
 
     IF (:with_grant) then
-        return TABLE(rs_empty);
+        -- Already tried with grant, determine how to handle the error
+        IF (CONTAINS(error_msg, 'Shared database is no longer available') OR
+            CONTAINS(error_msg, 'does not exist or not authorized')) THEN
+            -- This is an expected condition - share is unavailable or access was revoked
+            -- Return a result indicating unavailability without logging a warning
+            return TABLE(rs_unavailable);
+        ELSE
+            -- This is an unexpected error, log it as a warning
+            SYSTEM$LOG_WARN(error_msg || ' | Query: ' || :query);
+            return TABLE(rs_empty);
+        END IF;
     ELSE
         -- If the query fails and we are not granting privileges, we try to repeat the query asking for privileges to be granted first
         rs_repeat := (EXECUTE IMMEDIATE concat('call DTAGENT_DB.APP.P_LIST_INBOUND_TABLES(''', :share_name, ''', ''', :db_name, ''', TRUE)'));
