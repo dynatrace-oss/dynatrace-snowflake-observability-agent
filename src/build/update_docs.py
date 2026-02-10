@@ -460,11 +460,11 @@ def _compact_markdown_tables(md_content: str) -> str:
     return "\n".join(result)
 
 
-def generate_readme_content(dtagent_conf_path: str, dtagent_plugins_path: str) -> Tuple[str, str, str, str, str]:
+def generate_readme_content(dtagent_conf_path: str, dtagent_plugins_path: str) -> Tuple[str, str, str, str]:
     """Generates readme from sources
 
     Returns:
-        A tuple containing the content for: readme_full_content, readme_short_content, plugins_content, semantics_content, appendix_content
+        A tuple containing the content for: readme_full_content, plugins_content, semantics_content, appendix_content
     """
 
     # Reads content from README.md
@@ -575,7 +575,7 @@ def main():
     dtagent_conf_path = os.path.join(base_path, "dtagent.conf")
     dtagent_plugins_path = os.path.join(base_path, "dtagent", "plugins")
 
-    # Initialize the content of README.md
+    # Update content of documentation generated from sources and combined documentation for PDF version
     readme_full_content, plugins_content, semantics_content, appendix_content = generate_readme_content(
         dtagent_conf_path, dtagent_plugins_path
     )
