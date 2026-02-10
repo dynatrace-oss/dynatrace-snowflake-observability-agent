@@ -438,3 +438,29 @@ class TestGetSnowflakeAccountInfo:
             or expected_account_base in account_name_lower  # Base account name in retrieved account
             or expected_account_base in host_name_lower  # Base account name in host
         ), f"Expected account '{expected_account}' not found in retrieved account_name '{account_name}' or host_name '{host_name}'"
+
+    def test_esc(self):
+        from dtagent.util import _esc
+
+        # Test string escaping
+        assert _esc("simple") == "simple"
+        assert _esc('with"quote') == 'with\\"quote'
+        assert _esc("with\\backslash") == "with\\\\backslash"
+        assert _esc('with\\"both') == 'with\\\\\\"both'
+
+        # Test list to comma-separated string conversion
+        assert _esc(["DTAGENT_DB"]) == "DTAGENT_DB"
+        assert _esc(["DB1", "DB2", "DB3"]) == "DB1,DB2,DB3"
+        assert _esc(["SPRINT_DB"]) == "SPRINT_DB"
+
+        # Test list with special characters
+        assert _esc(['DB_WITH"QUOTE']) == 'DB_WITH\\"QUOTE'
+        assert _esc(['DB1"X', "DB2"]) == 'DB1\\"X,DB2'
+
+        # Test empty list
+        assert _esc([]) == ""
+
+        # Test non-string, non-list values
+        assert _esc(123) == 123
+        assert _esc(None) is None
+        assert _esc(True) is True
