@@ -139,7 +139,7 @@ Each dashboard folder in the source repository contains:
 **If you are working from the source repository**, dashboards are maintained as YAML files for better readability and version control. Convert them to JSON using:
 
 ```bash
-./tools/yaml-to-json.sh docs/dashboards/<dashboard-name>/<dashboard-name>.yml > 'Dashboard Name.json'
+./scripts/tools/yaml-to-json.sh docs/dashboards/<dashboard-name>/<dashboard-name>.yml > 'Dashboard Name.json'
 ```
 
 Then import the generated JSON file as described above.

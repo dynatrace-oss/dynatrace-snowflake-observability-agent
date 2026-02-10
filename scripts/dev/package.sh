@@ -123,7 +123,7 @@ for dashboard_file in docs/dashboards/*/*.yml; do
   echo "Converting $dashboard_file -> $json_file (Dashboard: $dashboard_name)"
 
   # Convert YAML to JSON using the yaml-to-json.sh tool
-  ./tools/yaml-to-json.sh "$dashboard_file" > "$json_file"
+  ./scripts/tools/yaml-to-json.sh "$dashboard_file" > "$json_file"
 
   if [ $? -eq 0 ]; then
     echo "  ✓ Successfully converted $dashboard_name"
