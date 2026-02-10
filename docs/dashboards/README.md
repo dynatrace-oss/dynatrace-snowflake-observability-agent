@@ -2,6 +2,20 @@
 
 This directory contains example Dynatrace dashboards designed to visualize and analyze telemetry data collected by the Dynatrace Snowflake Observability Agent (DSOA). These dashboards provide comprehensive insights across the five themes of [Data Platform Observability](../DPO.md): Security, Operations, Costs, Performance, and Quality.
 
+## Distribution Package
+
+When you download the DSOA distribution package (`dynatrace_snowflake_observability_agent-*.zip`), the `dashboards/` directory contains ready-to-import JSON files for all example dashboards. These JSON files are automatically generated from the YAML source definitions and can be imported directly into your Dynatrace environment using the Dynatrace UI or API.
+
+**To import dashboards:**
+
+1. Extract the distribution package
+2. Navigate to the `dashboards/` directory
+3. Import the desired JSON files into Dynatrace via:
+   - **UI**: Dashboards > Browse > Import dashboard
+   - **API**: Use the Dynatrace Dashboards API
+
+Each JSON file is named after its dashboard title (e.g., `Costs Monitoring.json`, `Snowflake Query Performance.json`) for easy identification.
+
 ## Available Dashboards
 
 ### [DSOA Self-Monitoring](self-monitoring/)
