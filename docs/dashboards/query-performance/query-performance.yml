@@ -180,10 +180,11 @@ tiles:
     type: data
     query: |
       fetch logs
+        | filter db.system == "snowflake"
         | fieldsAdd
             snow_account = coalesce(deployment.environment, service.name),
             db_collection_name = coalesce(db.collection.name, db.sql.table),
-            db_snowflake_tables = coalesce(db.snowflake.tables, db.snowflake.tables),
+            db_snowflake_tables = db.snowflake.tables,
             db_name = coalesce(db.name, db.namespace)
         | filter isNotNull(db.user)
             and isNotNull(snow_account)
@@ -244,10 +245,11 @@ tiles:
     type: data
     query: |-
       fetch logs
+        | filter db.system == "snowflake"
         | fieldsAdd
             snow_account = coalesce(deployment.environment, service.name),
             db_collection_name = coalesce(db.collection.name, db.sql.table),
-            db_snowflake_tables = coalesce(db.snowflake.tables, db.snowflake.tables),
+            db_snowflake_tables = db.snowflake.tables,
             db_name = coalesce(db.name, db.namespace), db_query = coalesce(db.statement, db.query.text)
         | filter isNotNull(db.user)
             and isNotNull(snow_account)
@@ -309,10 +311,11 @@ tiles:
     type: data
     query: |-
       fetch logs
+        | filter db.system == "snowflake"
         | fieldsAdd
             snow_account = coalesce(deployment.environment, service.name),
             db_collection_name = coalesce(db.collection.name, db.sql.table),
-            db_snowflake_tables = coalesce(db.snowflake.tables, db.snowflake.tables),
+            db_snowflake_tables = db.snowflake.tables,
             db_name = coalesce(db.name, db.namespace), db_query = coalesce(db.statement, db.query.text)
         | filter isNotNull(db.user)
             and isNotNull(snow_account)
@@ -372,10 +375,11 @@ tiles:
     type: data
     query: |-
       fetch logs
+        | filter db.system == "snowflake"
         | fieldsAdd
             snow_account = coalesce(deployment.environment, service.name),
             db_collection_name = coalesce(db.collection.name, db.sql.table),
-            db_snowflake_tables = coalesce(db.snowflake.tables, db.snowflake.tables),
+            db_snowflake_tables = db.snowflake.tables,
             db_name = coalesce(db.name, db.namespace), db_query = coalesce(db.statement, db.query.text)
         | filter isNotNull(db.user)
             and isNotNull(snow_account)
@@ -437,10 +441,11 @@ tiles:
     type: data
     query: |-
       fetch logs
+        | filter db.system == "snowflake"
         | fieldsAdd
             snow_account = coalesce(deployment.environment, service.name),
             db_collection_name = coalesce(db.collection.name, db.sql.table),
-            db_snowflake_tables = coalesce(db.snowflake.tables, db.snowflake.tables),
+            db_snowflake_tables = db.snowflake.tables,
             db_name = coalesce(db.name, db.namespace), db_query = coalesce(db.statement, db.query.text)
         | filter isNotNull(db.user)
             and isNotNull(snow_account)
@@ -498,10 +503,11 @@ tiles:
     type: data
     query: |-
       fetch logs
+        | filter db.system == "snowflake"
         | fieldsAdd
             snow_account = coalesce(deployment.environment, service.name),
             db_collection_name = coalesce(db.collection.name, db.sql.table),
-            db_snowflake_tables = coalesce(db.snowflake.tables, db.snowflake.tables),
+            db_snowflake_tables = db.snowflake.tables,
             db_name = coalesce(db.name, db.namespace)
         | filter isNotNull(db.user)
             and isNotNull(snow_account)
@@ -561,6 +567,7 @@ tiles:
     type: data
     query: |-
       fetch logs, from:-14d
+        | filter db.system == "snowflake"
         | fieldsAdd
             snow_account = coalesce(deployment.environment, service.name),
             db_collection_name = coalesce(db.collection.name, db.sql.table),

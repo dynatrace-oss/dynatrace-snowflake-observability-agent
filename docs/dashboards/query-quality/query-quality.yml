@@ -38,8 +38,7 @@ variables:
     input: |-
       fetch spans
         | filter db.system == "snowflake"
-        | fieldsAdd service_name = deployment.environment
-        | summarize env = collectDistinct(upper(service_name))
+        | summarize env = collectDistinct(upper(deployment.environment))
         | fields env_and_all = array("*", env)
     multiple: false
     defaultValue: "*"
@@ -52,7 +51,7 @@ variables:
       fetch spans
         | filter db.system == "snowflake"
         | filter isNotNull(span.events)
-        | filter $Account == "*" or $Account == deployment.environment
+        | filter $Account == "*" or $Account == upper(deployment.environment)
         | summarize operation = collectDistinct(upper(coalesce(db.operation, db.operation.name)))
         | fields operation_and_all = array("*", operation)
     multiple: false
@@ -66,7 +65,7 @@ variables:
       fetch spans
         | filter db.system == "snowflake"
         | filter isNotNull(span.events)
-        | filter $Account == "*" or $Account == deployment.environment
+        | filter $Account == "*" or $Account == upper(deployment.environment)
         | filter $DB_Operation == "*" or $DB_Operation == upper(coalesce(db.operation, db.operation.name))
         | fieldsAdd operator_stats = iCollectArray(parse(span.events[][snowflake.query.operator.stats], """JSON:stats"""))
         | filter iAny(operator_stats[][input_rows] < operator_stats[][output_rows] and
