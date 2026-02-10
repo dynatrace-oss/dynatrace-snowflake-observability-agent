@@ -107,9 +107,9 @@ Each JSON file is named after its dashboard title (e.g., `Costs Monitoring.json`
 
 ## Dashboard Structure
 
-Each dashboard folder contains:
+Each dashboard folder in the source repository contains:
 
-- **`*.yml`** - Dashboard definition file in YAML format (can be converted to JSON for import)
+- **`*.yml`** - Dashboard definition file in YAML format (converted to JSON in distribution packages)
 - **`readme.md`** - Comprehensive documentation with:
   - Dashboard purpose and use cases
   - Description of all visualizations and tiles
@@ -119,24 +119,30 @@ Each dashboard folder contains:
 
 ## Importing Dashboards
 
-### Using YAML Files
+### Using Pre-Generated JSON Files (Recommended)
 
-The dashboards are provided in YAML format for better readability and version control. To import into Dynatrace:
+**If you downloaded the distribution package** (`dynatrace_snowflake_observability_agent-*.zip`), ready-to-use JSON dashboard files are included in the `dashboards/` directory. Simply import them directly:
 
-1. Convert YAML to JSON using the provided conversion tool:
-
-   ```bash
-   ./tools/yaml-to-json.sh docs/dashboards/<dashboard-name>/<dashboard-name>.yml > 'Dashboard Name.json'
-   ```
-
-1. Import the JSON file into your Dynatrace environment via the UI or API
+1. Extract the distribution package
+2. Navigate to the `dashboards/` directory
+3. Import the desired JSON file into your Dynatrace environment
 
 ### Using Dynatrace UI
 
 1. Navigate to **Dashboards** in your Dynatrace environment
 2. Click **Import dashboard**
-3. Upload the converted JSON file
+3. Upload the JSON file from the `dashboards/` directory (or converted from YAML, see below)
 4. Adjust dashboard variables if needed
+
+### Converting from YAML Source (Advanced)
+
+**If you are working from the source repository**, dashboards are maintained as YAML files for better readability and version control. Convert them to JSON using:
+
+```bash
+./tools/yaml-to-json.sh docs/dashboards/<dashboard-name>/<dashboard-name>.yml > 'Dashboard Name.json'
+```
+
+Then import the generated JSON file as described above.
 
 ## Prerequisites
 
