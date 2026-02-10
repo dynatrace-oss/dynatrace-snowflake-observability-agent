@@ -342,7 +342,7 @@ tiles:
       | filter in(dsoa.run.plugin, array($Plugin_Names))
       | filter in(dsoa.run.context, array($Plugin_Contexts))
       | summarize by: {
-          plugin_name = dsoa.run.context
+          plugin_name = dsoa.run.plugin
       }, {
           count()
       }
@@ -464,15 +464,7 @@ tiles:
           '["plugin_name"]': 157.39
       autoSelectVisualization: false
       thresholds: []
-      unitsOverrides:
-        - identifier: sum(snowflake.total_elapsed_time)
-          unitCategory: time
-          baseUnit: millisecond
-          displayUnit: null
-          decimals: 2
-          suffix: ""
-          delimiter: false
-          added: 1727938388826
+      unitsOverrides: []
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -486,7 +478,7 @@ tiles:
       componentState:
         inputData: null
   "12":
-    title: ""
+    title: "Data volume by environment and type"
     type: data
     query: |-
       fetch bizevents
@@ -555,7 +547,7 @@ tiles:
       | filter in(dsoa.run.plugin, array($Plugin_Names))
       | filter in(dsoa.run.context, array($Plugin_Contexts))
       | summarize by: {
-          plugin_name = dsoa.run.context
+          plugin_name = dsoa.run.plugin
       }, {
           count()
       }
@@ -592,7 +584,7 @@ tiles:
       | filter in(dsoa.run.plugin, array($Plugin_Names))
       | filter in(dsoa.run.context, array($Plugin_Contexts))
       | summarize by: {
-          plugin_name = dsoa.run.context
+          plugin_name = dsoa.run.plugin
       }, {
           count()
       }
