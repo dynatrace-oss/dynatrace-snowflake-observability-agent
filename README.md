@@ -18,7 +18,7 @@ analyzing, and detecting anomalies in data processing. It delivers observability
 - [Available plugins](docs/PLUGINS.md)
 - [Telemetry semantic dictionary](docs/SEMANTICS.md)
 - [Installation guide](docs/INSTALL.md)
-- [Example dashboards](docs/dashboards) (JSON files included in distribution package)
+- [Example dashboards](docs/dashboards)
 - [Version changelog](docs/CHANGELOG.md)
 - [Contribution guidelines](docs/CONTRIBUTING.md)
 - [Plugin development guide](docs/PLUGIN_DEVELOPMENT.md)
