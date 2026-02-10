@@ -57,7 +57,6 @@ pandoc _readme_full.tmp.md \
 rm _readme_full.*
 
 if command -v prettier >/dev/null 2>&1; then
-    prettier --write README.md
     prettier --write docs/PLUGINS.md
     prettier --write docs/SEMANTICS.md
     prettier --write docs/APPENDIX.md

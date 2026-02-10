@@ -467,8 +467,8 @@ def generate_readme_content(dtagent_conf_path: str, dtagent_plugins_path: str) -
         A tuple containing the content for: readme_full_content, readme_short_content, plugins_content, semantics_content, appendix_content
     """
 
-    # Add the content of src/dtagent.conf/readme.md to README.md
-    readme_short_content = readme_full_content = _read_file(os.path.join(dtagent_conf_path, "readme.md"))
+    # Reads content from README.md
+    readme_full_content = _read_file("README.md")
     plugins_content = ""
     semantics_content = ""
     appendix_content = ""
@@ -494,10 +494,6 @@ def generate_readme_content(dtagent_conf_path: str, dtagent_plugins_path: str) -
                 title, anchor = _extract_appendix_info(os.path.join(assets_path, asset_file_path))
                 if title and anchor:
                     appendix_toc.append(f"- [{title}](README.md#{anchor})")
-
-    if appendix_toc:
-        readme_full_content += "\n".join(appendix_toc) + "\n"
-        readme_short_content += "- [Appendix and reference](docs/APPENDIX.md)\n"
 
     # Combine all contents into full content README for PDF generation
     readme_full_content += "\n"
@@ -568,7 +564,7 @@ def generate_readme_content(dtagent_conf_path: str, dtagent_plugins_path: str) -
         "README.md#appendix", "#appendix"
     )
 
-    return readme_full_content, readme_short_content, plugins_content, semantics_content, appendix_content
+    return readme_full_content, plugins_content, semantics_content, appendix_content
 
 
 def main():
@@ -580,16 +576,13 @@ def main():
     dtagent_plugins_path = os.path.join(base_path, "dtagent", "plugins")
 
     # Initialize the content of README.md
-    readme_full_content, readme_short_content, plugins_content, semantics_content, appendix_content = generate_readme_content(
+    readme_full_content, plugins_content, semantics_content, appendix_content = generate_readme_content(
         dtagent_conf_path, dtagent_plugins_path
     )
 
     # Update headers for INSTALL and CONTRIBUTING
 
     # Write the markdown files
-    with open("README.md", "w", encoding="utf-8") as file:
-        file.write(readme_short_content)
-
     with open("docs/PLUGINS.md", "w", encoding="utf-8") as file:
         file.write(plugins_content)
 
