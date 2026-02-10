@@ -23,6 +23,7 @@ Released on February 12, 2026
 
 - **Log Timestamp Handling**: Fixed timestamps in logs being sent as nanoseconds instead of milliseconds.
 - **Event Log Resource Attributes**: Fixed duplicated resource attribute fields in event log entries.
+- **Metric Dimension Array Formatting**: Fixed issue where array-type dimensions (e.g., `db.snowflake.dbs`, `db.snowflake.tables`) were being sent to Dynatrace as Python list representations (e.g., `['DATABASE']`) causing 400 Bad Request errors. Arrays are now properly converted to comma-separated strings (e.g., `DATABASE` or `DB1,DB2,DB3`).
 
 ### Improved in 0.9.3
 

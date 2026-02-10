@@ -46,8 +46,13 @@ P_SELECT_QUERY = re.compile(r"^\s*(SELECT|SHOW\s+[^>]*->>\s*SELECT)", re.IGNOREC
 
 
 def _esc(v: Any) -> Any:
-    r"""Helper function that escapes " with \" if given object is a string"""
-    return v.replace("\\", "\\\\").replace('"', '\\"') if isinstance(v, str) else v
+    r"""Helper function that escapes " with \" if given object is a string, or converts lists to comma-separated strings"""
+    if isinstance(v, str):
+        return v.replace("\\", "\\\\").replace('"', '\\"')
+    if isinstance(v, list):
+        # Convert list to comma-separated string, escaping each element
+        return ",".join(_esc(str(item)) for item in v)
+    return v
 
 
 def _from_json(val: Any) -> Any:
