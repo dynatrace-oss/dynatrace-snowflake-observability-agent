@@ -109,9 +109,3 @@ class TestMetricsFormatting:
         # Basic validation: metric line should have format: metric_name,dim1="val1",dim2="val2" value
         assert "snowflake.data.scanned," in metric_line, f"Invalid metric line format: {metric_line}"
         assert " 1024" in metric_line, f"Metric value not found in: {metric_line}"
-
-
-if __name__ == "__main__":
-    test = TestMetricsFormatting()
-    test.test_list_dimensions_in_metrics()
-    print("✓ All tests passed!")
