@@ -331,6 +331,7 @@ OpenTelemetry defines 3 metric types:
 - **`src/dtagent/otel`**: Telemetry API Python code
 - **`scripts/dev`**: Tools for building, compiling, and testing
 - **`scripts/deploy`**: Tools for deploying the agent to a Snowflake account
+- **`scripts/tools`**: Utility scripts for config and dashboard format conversion
 
 ### SQL File Prefixes
 

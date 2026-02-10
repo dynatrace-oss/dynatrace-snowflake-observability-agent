@@ -103,6 +103,39 @@ done
 # copying the Bill of Materials (BOM) files
 cp -v build/bom* package/docs
 
+# converting dashboard YAML files to JSON
+echo "Converting dashboard definitions to JSON..."
+mkdir -v -p package/dashboards
+for dashboard_file in docs/dashboards/*/*.yml; do
+  [ -f "$dashboard_file" ] || continue
+
+  # Extract dashboard name from the '# DASHBOARD:' comment
+  dashboard_name=$(grep '^# DASHBOARD:' "$dashboard_file" | head -1 | sed 's/^# DASHBOARD: *//')
+
+  if [ -z "$dashboard_name" ]; then
+    echo "Warning: No dashboard name found in $dashboard_file, skipping."
+    continue
+  fi
+
+  # Use the dashboard name as-is (preserving spaces and capitalization)
+  json_file="package/dashboards/${dashboard_name}.json"
+
+  echo "Converting $dashboard_file -> $json_file (Dashboard: $dashboard_name)"
+
+  # Convert YAML to JSON using the yaml-to-json.sh tool
+  # Use a temp file to avoid creating empty/partial files on failure
+  temp_file="${json_file}.tmp"
+  if ./scripts/tools/yaml-to-json.sh "$dashboard_file" > "$temp_file"; then
+    mv "$temp_file" "$json_file"
+    echo "  ✓ Successfully converted $dashboard_name"
+  else
+    rm -f "$temp_file"
+    echo "  ✗ Failed to convert $dashboard_name"
+    echo "ERROR: Dashboard conversion failed for $dashboard_name" >&2
+    exit 1
+  fi
+done
+
 # building a distribution zip
 BUILD=$(grep 'BUILD =' build/_version.py | awk '{print $3}')
 

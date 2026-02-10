@@ -10,7 +10,7 @@ fi
 CWD=$(dirname "$0")
 
 # Call the convert script
-"$CWD/../scripts/deploy/convert_config_to_yaml.sh" "$JSON_FILE"
+"$CWD/../deploy/convert_config_to_yaml.sh" "$JSON_FILE"
 
 # Compute output file (assuming single object; for arrays, this handles the first)
 BASE_NAME=$(basename "$JSON_FILE" .json)

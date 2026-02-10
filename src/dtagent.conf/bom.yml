@@ -102,3 +102,13 @@ references:
       - OPERATE on all TASKS
       - OPERATE on future TASKS
     granted to: DTAGENT_VIEWER
+  - name: RESOURCE MONITOR DTAGENT_RS
+    type: resource monitor
+    privileges:
+      - MODIFY
+      - OWNERSHIP
+    granted to: DTAGENT_OWNER
+    optional: true
+    config_key: core.snowflake.resource_monitor.name
+    comment: >
+      Only granted when resource monitor is enabled. Required for dynamic credit quota updates via P_UPDATE_RESOURCE_MONITOR() procedure.

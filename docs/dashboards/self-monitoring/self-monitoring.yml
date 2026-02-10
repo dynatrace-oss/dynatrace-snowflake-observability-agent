@@ -25,17 +25,36 @@
 # PLUGINS: query_history
 # TAGS: self-monitoring
 #
-version: 19
+version: 21
 variables:
   - key: Accounts
-    version: 2
-    type: query
     visible: true
+    type: query
+    version: 2
     editable: true
-    input: |-
+    input: |
       fetch logs
       | filter db.system == "snowflake"
       | fields deployment.environment
+      | dedup deployment.environment
+      | append [
+        fetch spans
+        | filter db.system == "snowflake"
+        | fields deployment.environment
+        | dedup deployment.environment
+      ]
+      | append [
+        fetch events
+        | filter db.system == "snowflake"
+        | fields deployment.environment
+        | dedup deployment.environment
+      ]
+      | append [
+        fetch bizevents
+        | filter db.system == "snowflake"
+        | fields deployment.environment
+        | dedup deployment.environment
+      ]
       | dedup deployment.environment
       | sort deployment.environment
     multiple: true
@@ -47,18 +66,13 @@ variables:
     version: 2
     editable: true
     input: |-
-      fetch logs
+      fetch bizevents
       | filter db.system == "snowflake"
-      | filter dsoa.run.context == "query_history"
+      | filter dsoa.run.context == "self_monitoring"
       | filter in(deployment.environment, array($Accounts))
-      | filter matchesPattern(db.query.text,
-          """'call DTAGENT' ('_' LD:tag)?  '_DB.APP.DTAGENT(ARRAY_CONSTRUCT(' ARRAY{SQS:plugin_name ', '?}{1,}:plugin_names '))'""")
-      | parse `db.query.text`,
-          """'call DTAGENT' ('_' LD:env_tag)?  '_DB.APP.DTAGENT(ARRAY_CONSTRUCT(' ARRAY{SQS:plugin_name ', '?}{1,}:plugin_names '))'"""
-      | expand plugin_name = plugin_names
-      | fields plugin_name
-      | dedup plugin_name
-      | sort plugin_name
+      | fields dsoa.run.plugin
+      | dedup dsoa.run.plugin
+      | sort dsoa.run.plugin
     multiple: true
     defaultValue:
       - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
@@ -70,75 +84,36 @@ variables:
     input: |-
       fetch logs
       | filter db.system == "snowflake"
-      | filter dsoa.run.context == "query_history"
       | filter in(deployment.environment, array($Accounts))
-      | filter matchesPattern(db.query.text,
-          """'call DTAGENT' ('_' LD:tag)?  '_DB.APP.DTAGENT(ARRAY_CONSTRUCT(' ARRAY{SQS:plugin_name ', '?}{1,}:plugin_names '))'""")
-      | parse `db.query.text`,
-          """'call DTAGENT' ('_' LD:env_tag)?  '_DB.APP.DTAGENT(ARRAY_CONSTRUCT(' ARRAY{SQS:plugin_name ', '?}{1,}:plugin_names '))'"""
-      | expand plugin_name = plugin_names
-      | fields plugin_name
-      | filter in(plugin_name, array($Plugin_Names))
-      | dedup plugin_name
-      | join [
-        data json:"""[
-          {
-              "plugin_name": "dynamic_tables",
-              "contexts": [
-                  "dynamic_tables",
-                  "dynamic_table_refresh_history",
-                  "dynamic_table_graph_history"
-              ]
-          },
-          {
-              "plugin_name": "event_log",
-              "contexts": [
-                  "event_log",
-                  "event_log_metrics",
-                  "event_log_spans"
-              ]
-          },
-          {
-              "plugin_name": "login_history",
-              "contexts": [
-                  "login_history",
-                  "sessions"
-              ]
-          },
-          {
-              "plugin_name": "shares",
-              "contexts": [
-                  "shares",
-                  "outbound_shares",
-                  "inbound_shares"
-              ]
-          },
-          {
-              "plugin_name": "tasks",
-              "contexts": [
-                  "serverless_tasks",
-                  "task_versions",
-                  "task_history"
-              ]
-          },
-          {
-              "plugin_name": "warehouse_usage",
-              "contexts": [
-                  "warehouse_usage",
-                  "warehouse_usage_load",
-                  "warehouse_usage_metering"
-              ]
-          }
-        ]"""
+      | filter in(dsoa.run.plugin, array($Plugin_Names))
+      | fields dsoa.run.context, dsoa.run.plugin
+      | dedup dsoa.run.context, dsoa.run.plugin
+      | append [
+        fetch spans
+        | filter db.system == "snowflake"
+        | filter in(deployment.environment, array($Accounts))
+        | filter in(dsoa.run.plugin, array($Plugin_Names))
+        | fields dsoa.run.context, dsoa.run.plugin
+        | dedup dsoa.run.context, dsoa.run.plugin
       ]
-      , on:{plugin_name}
-      , fields: {contexts}
-      , kind: leftOuter
-      | fields contexts = coalesce(contexts, array(plugin_name))
-      | expand context = contexts
-      | fields context
-      | dedup  context
-      | sort context
+      | append [
+        fetch events
+        | filter db.system == "snowflake"
+        | filter in(deployment.environment, array($Accounts))
+        | filter in(dsoa.run.plugin, array($Plugin_Names))
+        | fields dsoa.run.context, dsoa.run.plugin
+        | dedup dsoa.run.context, dsoa.run.plugin
+      ]
+      | append [
+        fetch bizevents
+        | filter db.system == "snowflake"
+        | filter in(deployment.environment, array($Accounts))
+        | filter in(dsoa.run.plugin, array($Plugin_Names))
+        | fields dsoa.run.context, dsoa.run.plugin
+        | dedup dsoa.run.context, dsoa.run.plugin
+      ]
+      | dedup dsoa.run.context
+      | sort dsoa.run.context
     multiple: true
     defaultValue:
       - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
@@ -149,9 +124,10 @@ tiles:
     query: |-
       fetch bizevents
       | filter db.system == "snowflake"
-      | filter dsoa.run.context == "self_monitoring"
+      | filter in(dsoa.run.context, {"self_monitoring", "self-monitoring"})
       | filter in(deployment.environment, array($Accounts))
-      | filter in(dsoa.task.name, array($Plugin_Names))
+      | filter in(dsoa.run.plugin, array($Plugin_Names))
+      | filter in(dsoa.run.context, array($Plugin_Contexts))
       | sort timestamp asc
       | summarize {
           timestamp = takeFirst(timestamp),
@@ -161,32 +137,41 @@ tiles:
           deployment.environment,
           deployment.environment.tag = env_tag,
           dsoa.task.exec.id,
-          dsoa.task.name
+          dsoa.run.plugin
       }
       | filter count > 1
       | makeTimeseries {
           dsoa.run.duration = sum(dsoa.run.duration)
       }, by: {
-          dsoa.run.context = dsoa.task.name
+          dsoa.run.plugin
       }
+      | filter dsoa.run.plugin != "deployment"
     visualization: lineChart
     visualizationSettings:
       chartSettings:
         truncationMode: middle
         xAxisLabel: timeframe
-        xAxisScaling: auto
+        xAxisScaling: analyzedTimeframe
         fieldMapping:
           leftAxisValues:
             - dsoa.run.duration
           timestamp: timeframe
         curve: smooth
         gapPolicy: connect
+        legend:
+          position: bottom
+        leftYAxisSettings:
+          min:
+            mode: auto
+          max:
+            mode: auto
+          scale: linear
       dataMapping:
         displayedFields:
-          - dsoa.run.context
+          - dsoa.run.plugin
       thresholds: []
       unitsOverrides:
-        - identifier: snowagent.run.duration
+        - identifier: dsoa.run.duration
           unitCategory: time
           baseUnit: nanosecond
           displayUnit: null
@@ -209,20 +194,16 @@ tiles:
   "2":
     title: Failed plugin executions
     type: data
-    query: |
+    query: |-
       fetch logs
       | filter db.system == "snowflake"
-      | filter dsoa.run.context == "query_history"
+      | filter in(dsoa.run.context, {"self_monitoring", "self-monitoring"})
       | filter in(deployment.environment, array($Accounts))
-      | filter snowflake.query.execution_status != "SUCCESS"
-      | filter matchesPattern(db.query.text,
-          """'call DTAGENT' ('_' LD:tag)?  '_DB.APP.DTAGENT(ARRAY_CONSTRUCT(' ARRAY{SQS:plugin_name ', '?}{1,}:plugin_names '))'""")
-      | parse `db.query.text`,
-          """'call DTAGENT' ('_' LD:env_tag)?  '_DB.APP.DTAGENT(ARRAY_CONSTRUCT(' ARRAY{SQS:plugin_name ', '?}{1,}:plugin_names '))'"""
-      | expand plugin_name = plugin_names
-      | fields plugin_name, timestamp, snowflake.query.execution_status
+      | filter in(dsoa.run.plugin, array($Plugin_Names))
+      | filter in(dsoa.run.context, array($Plugin_Contexts))
+      | filter dsoa.deployment.status == "FAILED"
       | makeTimeseries count(), by: {
-          plugin_name, snowflake.query.execution_status
+          dsoa.run.plugin, snowflake.query.execution_status
       }
     visualization: barChart
     visualizationSettings:
@@ -262,22 +243,23 @@ tiles:
     query: |-
       fetch bizevents
       | filter db.system == "snowflake"
-      | filter dsoa.run.context == "self_monitoring"
+      | filter in(dsoa.run.context, {"self_monitoring", "self-monitoring"})
       | filter in(deployment.environment, array($Accounts))
-      | filter in(dsoa.task.name, array($Plugin_Names))
+      | filter in(dsoa.run.plugin, array($Plugin_Names))
+      | filter in(dsoa.run.context, array($Plugin_Contexts))
       | sort timestamp asc
       | summarize {
           count = count()
       }, by: {
           deployment.environment,
           dsoa.task.exec.id,
-          dsoa.task.name
+          dsoa.run.plugin
       }
       | filter count > 1
       | summarize {
           dsoa.run.duration = count()
       }, by: {
-          dsoa.run.context = dsoa.task.name
+          dsoa.run.plugin
       }
     visualization: honeycomb
     visualizationSettings:
@@ -287,7 +269,7 @@ tiles:
         dataMappings:
           value: dsoa.run.duration
         displayedFields:
-          - dsoa.run.context
+          - dsoa.run.plugin
         legend:
           position: right
     querySettings:
@@ -308,9 +290,10 @@ tiles:
     query: |-
       fetch bizevents
       | filter db.system == "snowflake"
-      | filter dsoa.run.context == "self_monitoring"
+      | filter in(dsoa.run.context, {"self_monitoring", "self-monitoring"})
       | filter in(deployment.environment, array($Accounts))
-      | filter in(dsoa.task.name, array($Plugin_Names))
+      | filter in(dsoa.run.plugin, array($Plugin_Names))
+      | filter in(dsoa.run.context, array($Plugin_Contexts))
       | sort timestamp asc
       | summarize {
         dsoa.run.duration = takeLast(timestamp) - takeFirst(timestamp),
@@ -318,13 +301,13 @@ tiles:
       }, by: {
         deployment.environment,
         dsoa.task.exec.id,
-        dsoa.task.name
+        dsoa.run.plugin
       }
-      | filter count > 1
+      // | filter count > 1
       | summarize {
         dsoa.run.duration = sum(dsoa.run.duration)
       }, by: {
-        dsoa.run.context = dsoa.task.name
+        dsoa.run.plugin
       }
     visualization: honeycomb
     visualizationSettings:
@@ -334,7 +317,7 @@ tiles:
         dataMappings:
           value: dsoa.run.duration
         displayedFields:
-          - dsoa.run.context
+          - dsoa.run.plugin
         legend:
           position: right
     querySettings:
@@ -356,9 +339,10 @@ tiles:
       fetch logs
       | filter db.system == "snowflake"
       | filter in(deployment.environment, array($Accounts))
+      | filter in(dsoa.run.plugin, array($Plugin_Names))
       | filter in(dsoa.run.context, array($Plugin_Contexts))
       | summarize by: {
-          plugin_name = dsoa.run.context
+          plugin_name = dsoa.run.plugin
       }, {
           count()
       }
@@ -391,9 +375,10 @@ tiles:
     query: |-
       fetch bizevents
       | filter db.system == "snowflake"
-      | filter dsoa.run.context == "self_monitoring"
+      | filter in(dsoa.run.context, {"self_monitoring", "self-monitoring"})
       | filter in(deployment.environment, array($Accounts))
-      | filter in(dsoa.task.name, array($Plugin_Names))
+      | filter in(dsoa.run.plugin, array($Plugin_Names))
+      | filter in(dsoa.run.context, array($Plugin_Contexts))
       | sort timestamp desc
       | fields timestamp, dsoa.task.name, deployment.environment
       | limit 50
@@ -422,6 +407,8 @@ tiles:
       fetch logs
       | filter db.system == "snowflake"
       | filter in(deployment.environment, array($Accounts))
+      | filter in(dsoa.run.plugin, array($Plugin_Names))
+      | filter in(dsoa.run.context, array($Plugin_Contexts))
       | summarize by: {
           deployment.environment, host.name
       }, {
@@ -449,57 +436,169 @@ tiles:
         isAvailable: true
       componentState:
         inputData: null
-  "10":
-    title: Query execution time by plugin
+  "11":
+    title: Failed plugin executions
     type: data
     query: |-
       fetch logs
       | filter db.system == "snowflake"
       | filter dsoa.run.context == "query_history"
       | filter in(deployment.environment, array($Accounts))
+      | filter in(dsoa.run.plugin, array($Plugin_Names))
+      | filter in(dsoa.run.context, array($Plugin_Contexts))
+      | filter snowflake.query.execution_status != "SUCCESS"
       | filter matchesPattern(db.query.text,
           """'call DTAGENT' ('_' LD:tag)?  '_DB.APP.DTAGENT(ARRAY_CONSTRUCT(' ARRAY{SQS:plugin_name ', '?}{1,}:plugin_names '))'""")
-      | parse `db.query.text`,
-          """'call DTAGENT' ('_' LD:env_tag)?  '_DB.APP.DTAGENT(ARRAY_CONSTRUCT(' ARRAY{SQS:plugin_name ', '?}{1,}:plugin_names '))'"""
-      | fieldsAdd plugins_count = arraySize(plugin_names)
+      | parse `db.query.text`, """'call DTAGENT' ('_' LD:env_tag)?  '_DB.APP.DTAGENT(ARRAY_CONSTRUCT(' ARRAY{SQS:plugin_name ', '?}{1,}:plugin_names '))'"""
       | expand plugin_name = plugin_names
-      | filter in(plugin_name, array($Plugin_Names))
-      | fields plugin_name, timestamp, snowflake.query.execution_status,
-        snowflake.time.total_elapsed = toLong(snowflake.time.total_elapsed) / plugins_count,
-        snowflake.time.execution = toLong(snowflake.time.execution) / plugins_count,
-        snowflake.time.compilation = toLong(snowflake.time.compilation) / plugins_count
-      | makeTimeseries sum(snowflake.time.total_elapsed), by: {
-          plugin_name
-      }
-    visualization: lineChart
+      | fields timestamp, plugin_name, query_id=snowflake.query.id, db=db.namespace, exec_status=snowflake.query.execution_status, error_message=snowflake.error.message
+    visualization: table
+    visualizationSettings:
+      table:
+        columnTypeOverrides:
+          - fields:
+              - content
+            id: 1763710335706
+            value: log-content
+        columnWidths:
+          '["plugin_name"]': 157.39
+      autoSelectVisualization: false
+      thresholds: []
+      unitsOverrides: []
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "12":
+    title: "Data volume by environment and type"
+    type: data
+    query: |-
+      fetch bizevents
+      | filter db.system == "snowflake"
+      | filter in(deployment.environment, array($Accounts))
+      | filter in(dsoa.run.plugin, array($Plugin_Names))
+      | filter in(dsoa.run.context, array($Plugin_Contexts))
+      | fieldsAdd data.type = "bizevents"
+      | makeTimeseries count(), by: {deployment.environment, data.type}
+      | append [
+      fetch events
+      | filter db.system == "snowflake"
+      | filter in(deployment.environment, array($Accounts))
+      | filter in(dsoa.run.plugin, array($Plugin_Names))
+      | filter in(dsoa.run.context, array($Plugin_Contexts))
+      | fieldsAdd data.type = "events"
+      | makeTimeseries count(), by: {deployment.environment, data.type}
+      ]
+      | append [
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter in(deployment.environment, array($Accounts))
+      | filter in(dsoa.run.plugin, array($Plugin_Names))
+      | filter in(dsoa.run.context, array($Plugin_Contexts))
+      | fieldsAdd data.type = "logs"
+      | makeTimeseries count(), by: {deployment.environment, data.type}
+      ]
+      | append [
+      fetch spans
+      | filter db.system == "snowflake"
+      | filter in(deployment.environment, array($Accounts))
+      | filter in(dsoa.run.plugin, array($Plugin_Names))
+      | filter in(dsoa.run.context, array($Plugin_Contexts))
+      | fieldsAdd data.type = "spans"
+      | makeTimeseries count(), by: {deployment.environment, data.type}
+      ]
+    visualization: barChart
     visualizationSettings:
       chartSettings:
-        truncationMode: middle
-        xAxisLabel: timeframe
-        xAxisScaling: auto
-        fieldMapping:
-          leftAxisValues:
-            - sum(snowflake.time.total_elapsed)
-          timestamp: timeframe
-        curve: smooth
-        gapPolicy: connect
-      dataMapping:
+        legend:
+          position: bottom
+        leftYAxisSettings:
+          scale: log
+      legend:
+        ratio: 16
+      autoSelectVisualization: false
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "13":
+    title: Events produced per data type
+    type: data
+    query: |
+      fetch events
+      | filter db.system == "snowflake"
+      | filter in(deployment.environment, array($Accounts))
+      | filter in(dsoa.run.plugin, array($Plugin_Names))
+      | filter in(dsoa.run.context, array($Plugin_Contexts))
+      | summarize by: {
+          plugin_name = dsoa.run.plugin
+      }, {
+          count()
+      }
+    visualization: honeycomb
+    visualizationSettings:
+      honeycomb:
+        legend:
+          position: right
+        dataMappings:
+          value: count()
         displayedFields:
           - plugin_name
+        colorPalette: blue
       thresholds: []
-      unitsOverrides:
-        - identifier: sum(snowflake.time.total_elapsed)
-          unitCategory: time
-          baseUnit: millisecond
-          displayUnit: null
-          decimals: 2
-          suffix: ""
-          delimiter: false
-          added: 1727938388826
-      legend:
-        showLegend: false
-        position: auto
-        ratio: 10
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "14":
+    title: Spans produced per data type
+    type: data
+    query: |
+      fetch spans
+      | filter db.system == "snowflake"
+      | filter in(deployment.environment, array($Accounts))
+      | filter in(dsoa.run.plugin, array($Plugin_Names))
+      | filter in(dsoa.run.context, array($Plugin_Contexts))
+      | summarize by: {
+          plugin_name = dsoa.run.plugin
+      }, {
+          count()
+      }
+    visualization: honeycomb
+    visualizationSettings:
+      honeycomb:
+        legend:
+          position: right
+        dataMappings:
+          value: count()
+        displayedFields:
+          - plugin_name
+        colorPalette: blue
+      thresholds: []
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -515,44 +614,59 @@ tiles:
 layouts:
   "1":
     x: 0
-    "y": 7
+    "y": 8
     w: 24
     h: 6
   "2":
     x: 0
-    "y": 19
+    "y": 20
     w: 15
     h: 6
   "3":
     x: 18
     "y": 0
     w: 6
-    h: 7
+    h: 8
   "4":
-    x: 11
+    x: 12
     "y": 0
-    w: 7
-    h: 7
+    w: 6
+    h: 8
   "5":
     x: 3
     "y": 0
-    w: 8
-    h: 7
+    w: 5
+    h: 8
   "8":
     x: 15
-    "y": 19
+    "y": 20
     w: 9
     h: 6
   "9":
     x: 0
     "y": 0
     w: 3
-    h: 7
-  "10":
+    h: 8
+  "11":
     x: 0
-    "y": 13
+    "y": 26
+    w: 24
+    h: 5
+  "12":
+    x: 0
+    "y": 14
     w: 24
     h: 6
+  "13":
+    x: 8
+    "y": 0
+    w: 4
+    h: 4
+  "14":
+    x: 8
+    "y": 4
+    w: 4
+    h: 4
 importedWithCode: false
 settings:
   defaultTimeframe:
@@ -560,3 +674,4 @@ settings:
       from: now()-24h
       to: now()
     enabled: true
+annotations: []

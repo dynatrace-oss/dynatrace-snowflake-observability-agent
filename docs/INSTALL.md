@@ -112,6 +112,10 @@ brew install jq yq gawk
    ./deploy.sh production
    ```
 
+5. **Import Example Dashboards** (optional but recommended):
+
+   After deployment, import pre-built Dynatrace dashboards to visualize your telemetry data. The distribution package includes ready-to-use JSON dashboard files in the `dashboards/` directory. See [Example Dashboards](dashboards/README.md) for import instructions and available dashboards.
+
 **Important to understand:**
 
 - `production` in the commands above is the `$ENV` parameter - it only locates the file `config-production.yml`

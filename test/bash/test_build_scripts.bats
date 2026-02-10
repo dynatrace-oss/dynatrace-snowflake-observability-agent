@@ -263,6 +263,23 @@ setup_file() {
     echo "bom_delivers_csv: $bom_delivers_csv"
     [ -n "$bom_delivers_csv" ]
 
+    # Check that dashboards/ directory exists
+    dashboards_dir=$(unzip -l "$zip_file" | grep "^.*dashboards/$")
+    echo "dashboards_dir: $dashboards_dir"
+    [ -n "$dashboards_dir" ]
+
+    # Check that dashboard JSON files exist in dashboards/
+    dashboard_json_count=$(unzip -l "$zip_file" | grep "dashboards/.*\.json$" | wc -l | tr -d ' ')
+    echo "dashboard_json_count: $dashboard_json_count"
+    [ "$dashboard_json_count" -gt 0 ]
+
+    # Check that specific dashboard JSON files exist (based on dashboard names)
+    [ -n "$(unzip -l "$zip_file" | grep 'dashboards/Costs Monitoring.json')" ]
+    [ -n "$(unzip -l "$zip_file" | grep 'dashboards/Snowflake Query Performance.json')" ]
+    [ -n "$(unzip -l "$zip_file" | grep 'dashboards/Snowflake Query Quality.json')" ]
+    [ -n "$(unzip -l "$zip_file" | grep 'dashboards/DSOA Self Monitoring.json')" ]
+    [ -n "$(unzip -l "$zip_file" | grep 'dashboards/Snowflake Security.json')" ]
+
     # Check that deploy.sh is present
     deploy_script=$(unzip -l "$zip_file" | grep "deploy.sh")
     echo "deploy_script: $deploy_script"
