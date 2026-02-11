@@ -82,7 +82,7 @@ jobs:
             $0 == header { in_section=1; next }
             /^## / { if (in_section) exit }
             in_section { print }
-          ' CHANGELOG.md > release_notes.md
+          ' docs/CHANGELOG.md > release_notes.md
 
       - name: Create GitHub Release
         if: github.ref_type == 'tag' || inputs.create_release == true
