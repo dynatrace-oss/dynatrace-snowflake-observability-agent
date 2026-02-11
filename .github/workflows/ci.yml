@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: ["devel", "main", "dev/*", "release/*", "feature/*", "hotfix/*"]
 
+permissions:
+  contents: read
+
 jobs:
   lint:
     runs-on: ubuntu-latest
