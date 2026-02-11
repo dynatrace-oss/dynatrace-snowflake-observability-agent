@@ -57,8 +57,8 @@ jobs:
       - name: Run package script
         id: package
         run: |
-          chmod +x *.sh
-          ./package.sh full
+          chmod +x scripts/dev/package.sh
+          ./scripts/dev/package.sh full
           BUILD_NR=$(grep 'BUILD =' build/_version.py | awk '{print $3}')
           echo "ZIP_NAME=dynatrace_snowflake_observability_agent-${{ steps.get_version.outputs.VERSION }}.${BUILD_NR}.zip" >> $GITHUB_OUTPUT
           echo "PDF_NAME=Dynatrace-Snowflake-Observability-Agent-${{ steps.get_version.outputs.VERSION }}.pdf" >> $GITHUB_OUTPUT
