@@ -1,0 +1,118 @@
+core:
+  dynatrace_tenant_address: abc12345.live.dynatrace.com
+  deployment_environment: TEST
+  snowflake_account_name: "-"
+  snowflake_host_name: "-"
+  snowflake_credit_quota: 5
+  log_level: WARN
+  tag: ""
+  procedure_timeout: 3600
+otel:
+  max_consecutive_api_fails: 10
+  spans:
+    export_timeout_millis: 10000
+    max_export_batch_size: 50
+    max_event_count: 2000
+    max_attributes_per_event_count: 250
+    max_span_attributes: 250
+  metrics:
+    max_retries: 5
+    max_batch_size: 1000000
+  events:
+    max_retries: 5
+    retry_delay: 10000
+  biz_events:
+    max_retries: 5
+    max_payload_bytes: 5120000
+    max_event_count: 400
+    retry_delay_ms: 10000
+    retry_on_status:
+      - 429
+      - 502
+      - 503
+plugins:
+  disabled_by_default: false
+  deploy_disabled_plugins: true
+  self_monitoring:
+    send_bizevents_on_deploy: true
+    send_bizevents_on_run: true
+  event_log:
+    max_entries: 10000
+    retention_hours: 12
+    schedule: USING CRON */30 * * * * UTC
+    schedule_cleanup: USING CRON 0 * * * * UTC
+    is_disabled: false
+  data_schemas:
+    schedule: USING CRON 0 0,8,16 * * * UTC
+    is_disabled: false
+    exclude: []
+    include:
+      - "%"
+  budgets:
+    quota: 10
+    schedule: USING CRON 30 0 * * * UTC
+    is_disabled: false
+  users:
+    schedule: USING CRON 0 0 * * * UTC
+    is_disabled: false
+    is_hashed: true
+    retain_email_hash_map: false
+    roles_monitoring_mode:
+      - DIRECT_ROLES
+      - ALL_ROLES
+      - ALL_PRIVILEGES
+  login_history:
+    schedule: USING CRON */30 * * * * UTC
+    is_disabled: false
+  trust_center:
+    schedule: USING CRON 30 */12 * * * UTC
+    log_details: false
+    is_disabled: false
+  warehouse_usage:
+    schedule: USING CRON 0 * * * * UTC
+    is_disabled: false
+  resource_monitors:
+    schedule: USING CRON */30 * * * * UTC
+    is_disabled: false
+  dynamic_tables:
+    include:
+      - "%.%.%"
+    exclude:
+      - DTAGENT_DB.%.%
+    schedule: USING CRON */30 * * * * UTC
+    schedule_grants: USING CRON 30 */12 * * * UTC
+    is_disabled: false
+  tasks:
+    schedule: USING CRON 30 * * * * UTC
+    is_disabled: false
+  event_usage:
+    schedule: USING CRON 0 * * * * UTC
+    is_disabled: false
+  shares:
+    schedule: USING CRON */30 * * * * UTC
+    is_disabled: false
+    exclude_from_monitoring: []
+    exclude:
+      - ""
+    include:
+      - "%.%.%"
+  active_queries:
+    schedule: USING CRON */6 * * * * UTC
+    is_disabled: false
+    fast_mode: true
+    report_execution_status: []
+  query_history:
+    schedule_grants: USING CRON */30 * * * * UTC
+    schedule: USING CRON */30 * * * * UTC
+    is_disabled: false
+    slow_queries_threshold: 10000
+    slow_queries_to_analyze_limit: 50
+  data_volume:
+    include:
+      - DTAGENT_DB.%.%
+      - "%.PUBLIC.%"
+    exclude:
+      - "%.INFORMATION_SCHEMA.%"
+      - "%.%.TMP_%"
+    schedule: USING CRON 30 0,4,8,12,16,20 * * * UTC
+    is_disabled: false

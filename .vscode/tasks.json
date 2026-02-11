@@ -6,7 +6,7 @@
         {
             "label": "compile",
             "type": "shell",
-            "command": "if [ -f \"${workspaceFolder}/.venv/bin/activate\" ]; then source \"${workspaceFolder}/.venv/bin/activate\"; fi && ${workspaceFolder}/compile.sh",
+            "command": "if [ -f \"${workspaceFolder}/.venv/bin/activate\" ]; then source \"${workspaceFolder}/.venv/bin/activate\"; fi && ${workspaceFolder}/scripts/dev/compile.sh",
             "presentation": {
                 "echo": true,
                 "reveal": "always",
@@ -25,7 +25,7 @@
         {
             "label": "build",
             "type": "shell",
-            "command": "if [ -f \"${workspaceFolder}/.venv/bin/activate\" ]; then source \"${workspaceFolder}/.venv/bin/activate\"; fi && ${workspaceFolder}/build.sh",
+            "command": "if [ -f \"${workspaceFolder}/.venv/bin/activate\" ]; then source \"${workspaceFolder}/.venv/bin/activate\"; fi && ${workspaceFolder}/scripts/dev/build.sh",
             "presentation": {
                 "echo": true,
                 "reveal": "silent",
@@ -44,7 +44,7 @@
         {
             "label": "build docs",
             "type": "shell",
-            "command": "if [ -f \"${workspaceFolder}/.venv/bin/activate\" ]; then source \"${workspaceFolder}/.venv/bin/activate\"; fi && ${workspaceFolder}/build_docs.sh",
+            "command": "if [ -f \"${workspaceFolder}/.venv/bin/activate\" ]; then source \"${workspaceFolder}/.venv/bin/activate\"; fi && ${workspaceFolder}/scripts/dev/build_docs.sh",
             "options": {
                 "cwd": "${workspaceFolder}"
             },

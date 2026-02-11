@@ -1,17 +1,17 @@
 --
 --
 -- Copyright (c) 2025 Dynatrace Open Source
--- 
+--
 -- Permission is hereby granted, free of charge, to any person obtaining a copy
 -- of this software and associated documentation files (the "Software"), to deal
 -- in the Software without restriction, including without limitation the rights
 -- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 -- copies of the Software, and to permit persons to whom the Software is
 -- furnished to do so, subject to the following conditions:
--- 
+--
 -- The above copyright notice and this permission notice shall be included in all
 -- copies or substantial portions of the Software.
--- 
+--
 -- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 -- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 -- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -21,11 +21,13 @@
 -- SOFTWARE.
 --
 --
-use role DTAGENT_ADMIN; use database DTAGENT_DB; use warehouse DTAGENT_WH;
+use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 create or replace view DTAGENT_DB.APP.V_INBOUND_SHARE_TABLES
 as
 select
     case
+        when ins.DETAILS:"SHARE_STATUS" = 'UNAVAILABLE' then
+            concat('Inbound share "', s.name, '" is no longer available - access may have been revoked by the publisher')
         when LEN(NVL(s.comment, '')) > 0 then s.comment
         else concat('Inbound share details for ', s.name)
     end                                                         as _MESSAGE,
@@ -55,15 +57,17 @@ select
         'snowflake.table.is_dynamic',                   ins.DETAILS:"IS_DYNAMIC",
         'snowflake.table.is_hybrid',                    ins.DETAILS:"IS_HYBRID",
         'snowflake.share.has_db_deleted',               ins.DETAILS:"HAS_DB_DELETED",
+        'snowflake.share.status',                       ins.DETAILS:"SHARE_STATUS",
         'snowflake.share.has_details_reported',         ins.IS_REPORTED,
         'snowflake.share.kind',                         s.kind,
         'snowflake.share.shared_from',                  s.owner_account,
         'snowflake.share.shared_to',                    s.given_to,
         'snowflake.share.owner',                        s.owner,
         'snowflake.share.is_secure_objects_only',       s.secure_objects_only,
-        'snowflake.share.listing_global_name',          s.listing_global_name
+        'snowflake.share.listing_global_name',          s.listing_global_name,
+        'snowflake.error.message',                      ins.DETAILS:"ERROR_MESSAGE"
     )                                                       as ATTRIBUTES,
-    
+
     OBJECT_CONSTRUCT(
         'snowflake.table.created_on',                   extract(epoch_nanosecond from ins.DETAILS:"CREATED"::timestamp_ltz),
         'snowflake.table.update',                       extract(epoch_nanosecond from ins.DETAILS:"LAST_ALTERED"::timestamp_ltz),

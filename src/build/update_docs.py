@@ -92,23 +92,56 @@ def _get_clean_description(details: dict) -> str:
     return description.replace("\n", " ").replace("-", "<br>-")
 
 
+def _generate_markdown_table(columns: List[str], rows_data: List[List]) -> str:
+    """Generates a Markdown table with left-aligned columns based on max content length.
+
+    Args:
+        columns: List of column header strings.
+        rows_data: List of rows, each row is a list of cell values.
+
+    Returns:
+        Markdown table string.
+    """
+    # Calculate column widths
+    column_widths = []
+    for i, header in enumerate(columns):
+        max_len = len(header)
+        for row in rows_data:
+            max_len = max(max_len, len(str(row[i])))
+        column_widths.append(max_len)
+
+    # Generate header
+    header = "| " + " | ".join(f"{h:<{w}}" for h, w in zip(columns, column_widths)) + " |\n"
+    separator = "| " + " | ".join("-" * w for w in column_widths) + " |\n"
+
+    # Generate rows
+    rows = ""
+    for row_data in rows_data:
+        row = "| " + " | ".join(f"{str(cell):<{w}}" for cell, w in zip(row_data, column_widths)) + " |\n"
+        rows += row
+
+    return header + separator + rows + "\n"
+
+
 def _generate_semantics_tables(json_data: Dict, plugin_name: str, no_global_context_name: bool) -> str:
     """Generates tables with semantics."""
     __tables = ""
     for key in ["dimensions", "attributes", "metrics", "event_timestamps"]:
         if key in json_data and len(json_data[key]):
             __tables += f"### {key.replace('_', ' ').capitalize()} at the `{plugin_name}` plugin\n\n"
-            __tables += (
-                f"| Identifier {'| Name | Unit ' if key == 'metrics' else ''}| Description | Example "
-                f"{'| Context Name ' if no_global_context_name else ''}|\n"
-            )
-            __tables += (
-                f"|------------{'|------|------' if key == 'metrics' else ''}|-------------|---------"
-                f"{'|--------------' if no_global_context_name else ''}|\n"
-            )
 
+            # Define columns based on key
+            if key == "metrics":
+                columns = ["Identifier", "Name", "Unit", "Description", "Example"]
+            else:
+                columns = ["Identifier", "Description", "Example"]
+            if no_global_context_name:
+                columns.append("Context Name")
+
+            # Prepare rows data
+            rows_data = []
             for key_id, details in sorted(json_data[key].items()):
-                key_id = key_id.replace(".", ".&#8203;")
+                key_id = key_id.replace(".", ".&#8203;")  # Replace "." with ".&#8203;" to avoid breaking links
                 description = _get_clean_description(details)
                 example = details.get("__example", "")
                 if isinstance(example, str) and ("@" in example or "* *" in example):
@@ -116,22 +149,81 @@ def _generate_semantics_tables(json_data: Dict, plugin_name: str, no_global_cont
                 if key == "metrics":
                     name = details.get("displayName", "")
                     unit = details.get("unit", "")
-                    __tables += f"| {key_id} | {name} | {unit} | {description} | {example} |"
+                    row = [key_id, name, unit, description, example]
                 else:
-                    __tables += f"| {key_id} | {description} | {example} |"
+                    row = [key_id, description, example]
                 if no_global_context_name:
                     context_names = ", ".join(details.get("__context_names", []))
-                    __tables += f" {context_names} |"
-                __tables += "\n"
-            __tables += "\n"
+                    row.append(context_names)
+                rows_data.append(row)
+
+            __tables += _generate_markdown_table(columns, rows_data)
     return __tables
 
 
-def _generate_plugins_info(dtagent_plugins_path: str) -> Tuple[str, List]:
+def _generate_bom_tables(bom_data: Dict, plugin_name: str, scope: str) -> str:
+    """Generates tables with bom information."""
+    if scope not in bom_data or not bom_data[scope]:
+        return ""
+
+    items = bom_data[scope]
+
+    # Fixed column order
+    columns = ["name", "type", "privileges", "granted to", "language", "comment"]
+    # Filter to only include columns that have data in at least one item
+    present_columns = [col for col in columns if any(col in item for item in items)]
+    column_headers = [col.capitalize() for col in present_columns]
+
+    # Prepare rows data
+    rows_data = []
+    for item in items:
+        row = []
+        for key in present_columns:
+            value = item.get(key, "")
+
+            # Enhance comment field with optional/config_key information
+            if key == "comment":
+                comment = str(value) if value else ""
+                # Add optional indicator if not already mentioned in comment
+                if item.get("optional") and "optional" not in comment.lower():
+                    config_key = item.get("config_key", "")
+                    optional_info = "Optional"
+                    if config_key:
+                        optional_info += f" (controlled by {config_key})"
+                    comment = f"{optional_info}. {comment}" if comment else optional_info
+                value = comment
+
+            if isinstance(value, list):
+                value = ", ".join(str(v) for v in value)
+            value = str(value).replace("|", "/").replace("\n", " ")
+            row.append(value)
+        rows_data.append(row)
+
+    return _generate_markdown_table(column_headers, rows_data)
+
+
+def _generate_plugins_info(dtagent_plugins_path: str, dtagent_conf_path: str) -> Tuple[str, List]:
     """Gathers plugin info from readme.md files and their default config files."""
 
     __content = ""
     __plugins_toc = []
+
+    # Add the core BOM section first
+    core_bom_path = os.path.join(dtagent_conf_path, "bom.yml")
+    if os.path.isfile(core_bom_path):
+        core_bom_sec = "core_bom_sec"
+        __plugins_toc.append(f"- [Core Objects](#{core_bom_sec})")
+
+        __content += f'<a name="{core_bom_sec}"></a>\n\n## Core Snowflake Objects\n\n'
+        __content += "The Dynatrace Snowflake Observability Agent creates and uses the following Snowflake objects.\n\n"
+
+        bom_data = yaml.safe_load(_read_file(core_bom_path))
+
+        __content += "### Objects delivered by the agent\n\n"
+        __content += _generate_bom_tables(bom_data, "core", "delivers")
+
+        __content += "### Objects referenced by the agent\n\n"
+        __content += _generate_bom_tables(bom_data, "core", "references")
 
     # Iterate over each plugin folder in src/dtagent/plugins
     for plugin_folder in sorted(os.listdir(dtagent_plugins_path)):
@@ -140,14 +232,15 @@ def _generate_plugins_info(dtagent_plugins_path: str) -> Tuple[str, List]:
 
             f_info_md = os.path.join(plugin_path, "readme.md")
             f_config_md = os.path.join(plugin_path, "config.md")
-            config_file_name = f"{plugin_folder.split('.')[0]}-config.json"
+            f_bom_yml = os.path.join(plugin_path, "bom.yml")
+            config_file_name = f"{plugin_folder.split('.')[0]}-config.yml"
             config_file_path = os.path.join(plugin_path, config_file_name)
 
-            if os.path.isfile(f_info_md) or os.path.isfile(f_config_md) or os.path.isfile(config_file_path):
+            if os.path.isfile(f_info_md) or os.path.isfile(f_config_md) or os.path.isfile(config_file_path) or os.path.isfile(f_bom_yml):
                 plugin_name = _get_plugin_name(plugin_folder)
                 plugin_title = _get_plugin_title(plugin_name)
                 plugin_info_sec = f"{plugin_name}_info_sec"
-                __plugins_toc.append(f"* [{plugin_title}](#{plugin_info_sec})")
+                __plugins_toc.append(f"- [{plugin_title}](#{plugin_info_sec})")
 
                 __content += f'<a name="{plugin_info_sec}"></a>\n\n## The {plugin_title} plugin\n'
 
@@ -167,6 +260,18 @@ def _generate_plugins_info(dtagent_plugins_path: str) -> Tuple[str, List]:
                     __content += "```json\n" + _read_file(config_file_path) + "\n```\n\n"
                     if os.path.isfile(f_config_md):
                         __content += _read_file(f_config_md) + "\n"
+
+                if os.path.isfile(f_bom_yml):
+                    bom_data = yaml.safe_load(_read_file(f_bom_yml))
+
+                    __content += f"### {plugin_title} Bill of Materials\n\n"
+                    __content += "The following tables list the Snowflake objects that this plugin delivers data from or references.\n\n"
+
+                    __content += f"#### Objects delivered by the `{plugin_title}` plugin\n\n"
+                    __content += _generate_bom_tables(bom_data, plugin_name, "delivers")
+
+                    __content += f"#### Objects referenced by the `{plugin_title}` plugin\n\n"
+                    __content += _generate_bom_tables(bom_data, plugin_name, "references")
 
     return __content, __plugins_toc
 
@@ -206,7 +311,7 @@ def _generate_semantics_section(dtagent_conf_path: str, dtagent_plugins_path: st
     with open(core_semantics_path, "r", encoding="utf-8") as file:
         core_semantics = yaml.safe_load(file)
         core_semantics_sec = "core_semantics_sec"
-        __plugins_toc.append(f"* [Shared semantics](#{core_semantics_sec})")
+        __plugins_toc.append(f"- [Shared semantics](#{core_semantics_sec})")
 
         __content += f'<a name="{core_semantics_sec}"></a>\n\n## Dynatrace Snowflake Observability Agent `core` semantics\n\n'
         __content += _generate_semantics_tables(core_semantics, "core", False)
@@ -227,7 +332,7 @@ def _generate_semantics_section(dtagent_conf_path: str, dtagent_plugins_path: st
                     plugin_semantics = _generate_semantics_tables(plugin_input, plugin_title, no_global_context_name)
                     if plugin_semantics:
                         plugin_semantics_sec = f"{plugin_name}_semantics_sec"
-                        __plugins_toc.append(f"* [{plugin_title}](#{plugin_semantics_sec})")
+                        __plugins_toc.append(f"- [{plugin_title}](#{plugin_semantics_sec})")
 
                         __content += f'<a name="{plugin_semantics_sec}"></a>\n\n## The `{plugin_title}` plugin semantics\n\n'
                         __content += f"[Show plugin description](#{plugin_name}_info_sec)\n\n"
@@ -312,27 +417,71 @@ def _extract_appendix_info(header_file_path: str) -> Tuple[str, str]:
     return title, anchor
 
 
-def generate_readme_content(dtagent_conf_path: str, dtagent_plugins_path: str) -> Tuple[str, str, str, str, str]:
+def _compact_markdown_tables(md_content: str) -> str:
+    """Remove padding spaces from markdown tables to ensure proper PDF rendering.
+
+    Converts visually aligned tables like:
+    | Column1 | Column2     |
+    | ------- | ----------- |
+    | value1  | value2      |
+
+    To compact tables like:
+    | Column1 | Column2 |
+    | - | - |
+    | value1 | value2 |
+
+    Args:
+        md_content: Markdown content with potentially aligned tables
+
+    Returns:
+        Markdown content with compact tables
+    """
+    lines = md_content.split("\n")
+    result = []
+
+    for line in lines:
+        # Check if line is a table row (starts and ends with |)
+        if line.strip().startswith("|") and line.strip().endswith("|"):
+            # Split by | and strip whitespace from each cell
+            cells = [cell.strip() for cell in line.split("|")]
+            # Remove empty first and last elements (before first | and after last |)
+            cells = [cell for cell in cells if cell or cells.index(cell) not in (0, len(cells) - 1)]
+
+            # Check if this is a separator line (contains only dashes and spaces)
+            if cells and all(set(cell).issubset({"-", " "}) and cell for cell in cells):
+                # Compact separator: just single dash per column
+                result.append("| " + " | ".join(["-"] * len(cells)) + " |")
+            else:
+                # Regular row: join cells without padding
+                result.append("| " + " | ".join(cells) + " |")
+        else:
+            result.append(line)
+
+    return "\n".join(result)
+
+
+def generate_readme_content(dtagent_conf_path: str, dtagent_plugins_path: str) -> Tuple[str, str, str, str]:
     """Generates readme from sources
 
     Returns:
-        A tuple containing the content for: readme_full_content, readme_short_content, plugins_content, semantics_content, appendix_content
+        A tuple containing the content for: readme_full_content, plugins_content, semantics_content, appendix_content
     """
 
-    # Add the content of src/dtagent.conf/readme.md to README.md
-    readme_short_content = readme_full_content = _read_file(os.path.join(dtagent_conf_path, "readme.md"))
+    # Reads content from README.md
+    readme_full_content = _read_file("README.md")
     plugins_content = ""
     semantics_content = ""
     appendix_content = ""
 
     # Read other markdown files
-    dpo_content = _read_file("DPO.md")
-    usecases_content = _read_file("USECASES.md")
-    architecture_content = _read_file("ARCHITECTURE.md")
-    install_content = _read_file("INSTALL.md")
-    changelog_content = _read_file("CHANGELOG.md")
-    contributing_content = _read_file("CONTRIBUTING.md")
-    copyright_content = _read_file("COPYRIGHT.md")
+    dpo_content = _read_file("docs/DPO.md")
+    usecases_content = _read_file("docs/USECASES.md")
+    architecture_content = _read_file("docs/ARCHITECTURE.md")
+    install_content = _read_file("docs/INSTALL.md")
+    plugin_dev_content = _read_file("docs/PLUGIN_DEVELOPMENT.md")
+    changelog_content = _read_file("docs/CHANGELOG.md")
+    contributing_content = _read_file("docs/CONTRIBUTING.md")
+    copyright_content = _read_file("docs/COPYRIGHT.md")
 
     # Generate appendices for all CSV files in src/assets/
     assets_path = "src/assets"
@@ -344,11 +493,7 @@ def generate_readme_content(dtagent_conf_path: str, dtagent_plugins_path: str) -
                 appendix_content += _generate_appendix(os.path.join(assets_path, base_name))
                 title, anchor = _extract_appendix_info(os.path.join(assets_path, asset_file_path))
                 if title and anchor:
-                    appendix_toc.append(f"* [{title}](README.md#{anchor})")
-
-    if appendix_toc:
-        readme_full_content += "\n".join(appendix_toc) + "\n"
-        readme_short_content += "* [Appendix](APPENDIX.md)\n"
+                    appendix_toc.append(f"- [{title}](README.md#{anchor})")
 
     # Combine all contents into full content README for PDF generation
     readme_full_content += "\n"
@@ -356,47 +501,59 @@ def generate_readme_content(dtagent_conf_path: str, dtagent_plugins_path: str) -
     readme_full_content += _lower_headers_one_level(usecases_content) + "\n"
     readme_full_content += _lower_headers_one_level(architecture_content) + "\n"
 
-    plugins_content, plugins_toc = _generate_plugins_info(dtagent_plugins_path)
+    plugins_content_full, plugins_toc = _generate_plugins_info(dtagent_plugins_path, dtagent_conf_path)
     readme_full_content += "## Plugins\n\n"
     readme_full_content += "\n".join(plugins_toc)
     readme_full_content += "\n\n"
-    readme_full_content += _lower_headers_one_level(plugins_content)
+    readme_full_content += _lower_headers_one_level(plugins_content_full)
 
-    semantics_content, semantics_toc = _generate_semantics_section(dtagent_conf_path, dtagent_plugins_path)
+    semantics_content_full, semantics_toc = _generate_semantics_section(dtagent_conf_path, dtagent_plugins_path)
     readme_full_content += "## Semantic Dictionary\n\n"
     readme_full_content += "\n".join(semantics_toc)
     readme_full_content += "\n\n"
-    readme_full_content += _lower_headers_one_level(semantics_content)
+    readme_full_content += _lower_headers_one_level(semantics_content_full)
 
     readme_full_content += _lower_headers_one_level(install_content) + "\n"
     readme_full_content += _lower_headers_one_level(changelog_content) + "\n"
     readme_full_content += _lower_headers_one_level(contributing_content)
+    readme_full_content += _lower_headers_one_level(plugin_dev_content)
 
     readme_full_content += appendix_content
 
     readme_full_content += _lower_headers_one_level(copyright_content)
+    # readme_full_content = re.sub(
+    #     r"\]\(docs\/", "](https://github.com/dynatrace-oss/dynatrace-snowflake-observability-agent/tree/main/docs/", readme_full_content
+    # )  # replace internal links to docs with absolute links to GitHub
     readme_full_content = re.sub(
-        r"\]\(docs\/", "](https://github.com/dynatrace-oss/dynatrace-snowflake-observability-agent/tree/main/docs/", readme_full_content
-    )  # replace internal links to docs with absolute links to GitHub
+        r"\]\(test\/", "](https://github.com/dynatrace-oss/dynatrace-snowflake-observability-agent/tree/main/test/", readme_full_content
+    )  # replace internal links to test directory with absolute links to GitHub
     readme_full_content = re.sub(r"\b[A-Z_]+\.md#", "#", readme_full_content)  # removing references between .md files
 
-    readme_full_content = (
-        readme_full_content.replace("DPO.md", _turn_header_into_link(dpo_content))
-        .replace("USECASES.md", _turn_header_into_link(usecases_content))
-        .replace("ARCHITECTURE.md", _turn_header_into_link(architecture_content))
-        .replace("INSTALL.md", _turn_header_into_link(install_content))
-        .replace("CHANGELOG.md", _turn_header_into_link(changelog_content))
-        .replace("CONTRIBUTING.md", _turn_header_into_link(contributing_content))
-        .replace("README.md", _turn_header_into_link(readme_full_content))
-    )
+    # Update links in PDF version to point to sections within the same document
+    readme_full_content = re.sub(r"(docs/)?DPO\.md", _turn_header_into_link(dpo_content), readme_full_content)
+    readme_full_content = re.sub(r"(docs/)?USECASES\.md", _turn_header_into_link(usecases_content), readme_full_content)
+    readme_full_content = re.sub(r"(docs/)?ARCHITECTURE\.md", _turn_header_into_link(architecture_content), readme_full_content)
+    readme_full_content = re.sub(r"(docs/)?INSTALL\.md", _turn_header_into_link(install_content), readme_full_content)
+    readme_full_content = re.sub(r"(docs/)?PLUGIN_DEVELOPMENT\.md", _turn_header_into_link(plugin_dev_content), readme_full_content)
+    readme_full_content = re.sub(r"(docs/)?CHANGELOG\.md", _turn_header_into_link(changelog_content), readme_full_content)
+    readme_full_content = re.sub(r"(docs/)?CONTRIBUTING\.md", _turn_header_into_link(contributing_content), readme_full_content)
+    readme_full_content = re.sub(r"(docs/)?README\.md", _turn_header_into_link(readme_full_content), readme_full_content)
 
-    # Postprocess the short README.md content
+    readme_full_content = re.sub(r"""(\]\(|src=")(assets[/].*\.jpg)""", r"\1docs/\2", readme_full_content)
+
+    # Compact all markdown tables in the full README for proper PDF rendering
+    readme_full_content = _compact_markdown_tables(readme_full_content)
+
+    # Postprocess the short README.md content - generate with visual alignment for GitHub
+    plugins_content, _ = _generate_plugins_info(dtagent_plugins_path, dtagent_conf_path)
     plugins_content = (
         "# Plugins\n\n"
         + "\n".join(plugins_toc)
         + plugins_content.replace("[Show semantics for this plugin](#", "[Show semantics for this plugin](SEMANTICS.md#").rstrip()
         + "\n"
     )
+
+    semantics_content, _ = _generate_semantics_section(dtagent_conf_path, dtagent_plugins_path)
     semantics_content = (
         "# Semantic Dictionary\n\n"
         + "\n".join(semantics_toc)
@@ -407,7 +564,7 @@ def generate_readme_content(dtagent_conf_path: str, dtagent_plugins_path: str) -
         "README.md#appendix", "#appendix"
     )
 
-    return readme_full_content, readme_short_content, plugins_content, semantics_content, appendix_content
+    return readme_full_content, plugins_content, semantics_content, appendix_content
 
 
 def main():
@@ -418,24 +575,21 @@ def main():
     dtagent_conf_path = os.path.join(base_path, "dtagent.conf")
     dtagent_plugins_path = os.path.join(base_path, "dtagent", "plugins")
 
-    # Initialize the content of README.md
-    readme_full_content, readme_short_content, plugins_content, semantics_content, appendix_content = generate_readme_content(
+    # Update content of documentation generated from sources and combined documentation for PDF version
+    readme_full_content, plugins_content, semantics_content, appendix_content = generate_readme_content(
         dtagent_conf_path, dtagent_plugins_path
     )
 
     # Update headers for INSTALL and CONTRIBUTING
 
     # Write the markdown files
-    with open("README.md", "w", encoding="utf-8") as file:
-        file.write(readme_short_content)
-
-    with open("PLUGINS.md", "w", encoding="utf-8") as file:
+    with open("docs/PLUGINS.md", "w", encoding="utf-8") as file:
         file.write(plugins_content)
 
-    with open("SEMANTICS.md", "w", encoding="utf-8") as file:
+    with open("docs/SEMANTICS.md", "w", encoding="utf-8") as file:
         file.write(semantics_content)
 
-    with open("APPENDIX.md", "w", encoding="utf-8") as file:
+    with open("docs/APPENDIX.md", "w", encoding="utf-8") as file:
         file.write(appendix_content)
 
     with open("_readme_full.md", "w", encoding="utf-8") as file:

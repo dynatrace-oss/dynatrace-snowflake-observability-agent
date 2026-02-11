@@ -21,7 +21,7 @@
 # SOFTWARE.
 #
 #
-import json
+import yaml
 import os
 from contextlib import contextmanager
 import re
@@ -39,7 +39,7 @@ from dtagent.config import Configuration
 read_secret(
     secret_name="dtagent_token",
     from_field="_DTAGENT_API_KEY",
-    from_file="conf/config-test.json",
+    from_file="conf/config-test.yml",
     env_name="DTAGENT_TOKEN",
 )
 
@@ -57,10 +57,10 @@ def _get_credentials() -> Dict:
     }
     """
     credentials = {}
-    credentials_path = "test/credentials.json"
+    credentials_path = "test/credentials.yml"
     if os.path.isfile(credentials_path):
         with open(credentials_path, "r", encoding="utf-8") as f:
-            credentials = json.loads(f.read())
+            credentials = yaml.safe_load(f.read())
 
     return credentials or {"local_testing": True}
 
@@ -84,10 +84,14 @@ def _get_session() -> snowpark.Session:
 class TestDynatraceSnowAgent(DynatraceSnowAgent):
 
     def __init__(self, session: snowpark.Session, config: Configuration) -> None:
+        from build.utils import get_metric_semantics
+
         self._local_configuration = config
         self._local_configuration._config["otel"]["spans"]["max_export_batch_size"] = 1
         self._local_configuration._config["otel"]["logs"]["max_export_batch_size"] = 1
         super().__init__(session)
+
+        setattr(self._semantics, "_metric_semantics", get_metric_semantics(gen_metric_description_line=True))
 
     def _get_config(self, session: snowpark.Session) -> Configuration:
         return _overwrite_plugin_local_config_key(
@@ -135,6 +139,7 @@ class TestConfiguration(Configuration):
 
     def __init__(self, configuration: dict):  # pylint: disable=W0231
         self._config = configuration
+        self._multitenancy_tag = configuration.get("core.tag")
 
     def get_last_measurement_update(self, session: snowpark.Session, source: str):
         from dtagent.util import _get_timestamp_in_sec

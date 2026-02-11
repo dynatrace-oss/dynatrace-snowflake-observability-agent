@@ -29,7 +29,7 @@
 
 ##region --------------------------- VERSION INFO ------------------------------------
 
-VERSION = "0.9.2"
+VERSION = "0.9.3"
 BUILD = 0
 
 ##endregion

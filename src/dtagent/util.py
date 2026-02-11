@@ -30,7 +30,7 @@ import json
 import os
 import re
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union, Generator
+from typing import Any, Dict, List, Optional, Union, Generator, Tuple
 
 import pandas as pd
 
@@ -46,8 +46,13 @@ P_SELECT_QUERY = re.compile(r"^\s*(SELECT|SHOW\s+[^>]*->>\s*SELECT)", re.IGNOREC
 
 
 def _esc(v: Any) -> Any:
-    r"""Helper function that escapes " with \" if given object is a string"""
-    return v.replace("\\", "\\\\").replace('"', '\\"') if isinstance(v, str) else v
+    r"""Helper function that escapes " with \" if given object is a string, or converts lists to comma-separated strings"""
+    if isinstance(v, str):
+        return v.replace("\\", "\\\\").replace('"', '\\"')
+    if isinstance(v, list):
+        # Convert list to comma-separated string, escaping each element
+        return ",".join(_esc(str(item)) for item in v)
+    return v
 
 
 def _from_json(val: Any) -> Any:
@@ -58,12 +63,59 @@ def _from_json(val: Any) -> Any:
         return val
 
 
+def __try_convert_to_numeric(item: Any) -> Any:
+    """Try to convert item to numeric type, return original if not possible.
+
+    bool > int > float > str (prefer numeric types when possible)
+    """
+    result = item
+    if item and isinstance(item, str):
+        # Check for boolean strings first
+        if item.lower() in ("true", "false"):
+            return item.lower() == "true"
+
+        try:
+            if "." in item or "e" in item.lower():
+                # Check if it's a float string first
+                result = float(item)
+            else:
+                result = int(item)
+        except (ValueError, TypeError):
+            pass  # Keep original item
+    return result
+
+
 def _cleanup_data(value: Any) -> Any:
     """Recursively cleans up dict values"""
     if isinstance(value, dict):
         return {k: _cleanup_data(v) for k, v in value.items()}
+
     if isinstance(value, list):
-        return [_cleanup_data(v) for v in value]
+        # Check for mixed types BEFORE cleaning to avoid _from_json normalizing types
+        # OpenTelemetry requires all elements in a sequence to be of the same type
+        if value and len(value) > 1:
+            # Determine if we have mixed types in the original list
+            types_in_list = {type(item) for item in value if item is not None}
+            if len(types_in_list) > 1:
+                numeric_converted = [__try_convert_to_numeric(item) for item in value]
+                converted_types = {type(item) for item in numeric_converted if item is not None}
+
+                return (
+                    # If we can normalize to numeric (int, float, bool are compatible), return directly
+                    numeric_converted
+                    if converted_types and converted_types.issubset({int, float, bool})
+                    # Fallback: normalize to a sequence of strings, handling datetime explicitly
+                    else [
+                        str(format_datetime(item) if isinstance(item, datetime.datetime) else item)
+                        for item in numeric_converted
+                        if item is not None
+                    ]
+                )
+
+        # No mixed types or single element - process normally
+        cleaned_list = [_cleanup_data(v) for v in value]
+        return cleaned_list
+
     if isinstance(value, datetime.datetime):
         return format_datetime(value)
 
@@ -195,8 +247,8 @@ def _adjust_timestamp(row_dict: Dict, start_time: str = "START_TIME", end_time: 
                 # Ensure the datetime is timezone-aware before calling .timestamp()
                 dt = ensure_timezone_aware(row_dict[time_key])
                 casted_ts = int(dt.timestamp() * NANOSECOND_CONVERSION_RATE)
-            except TypeError as e:
-                raise e
+            except TypeError as err:
+                raise err
             row_dict[time_key] = casted_ts
 
     now = now or time.time_ns()
@@ -241,25 +293,90 @@ def _adjust_timestamp(row_dict: Dict, start_time: str = "START_TIME", end_time: 
     return row_dict
 
 
-def _check_timestamp_ms(timestamp_ns: int) -> Optional[int]:
-    """Checks given timestamp (in ms) whether it is in the range accepted by Dynatrace metrics API, i.e., between [-1h, +10min],
-    but to play safe we check [-55min, 0]
+def validate_timestamp_ms(timestamp_ms: int, allowed_past_minutes: int = 24 * 60 - 5, allowed_future_minutes: int = 10) -> Optional[int]:
+    """Validates and normalizes timestamps with configurable time windows and automatic unit conversion.
+
+    This function performs multiple validation steps:
+    1. Rejects negative timestamps (e.g., sentinel values like -1000000)
+    2. Auto-converts timestamps that are too large by detecting the likely time unit:
+       - Femtoseconds (> 4.1e21): divides by 1e12
+       - Picoseconds (> 4.1e18): divides by 1e9
+       - Nanoseconds (> 4.1e15): divides by 1e6
+       - Microseconds (> 4.1e12): divides by 1e3
+    3. Validates the timestamp is within the allowed time range from current time
 
     Args:
-        timestamp_ns (int): timestamp in ms to check
+        timestamp_ms (int): timestamp in ms to check (or higher precision units to be auto-converted)
+        allowed_past_minutes (int, optional): allowed past range in minutes. Defaults to 24*60 - 5 (about 1435 minutes, or ~24 hours).
+                                              For logs and events, use defaults; for metrics, use 55.
+        allowed_future_minutes (int, optional): allowed future range in minutes. Defaults to 10.
 
     Returns:
-        Optional[int]: given timestamp or None if timestamp is out of range
+        Optional[int]: validated timestamp in milliseconds, or None if timestamp is out of range or invalid
+
+    Examples:
+        >>> validate_timestamp_ms(1707494400000)  # Valid milliseconds timestamp
+        1707494400000
+        >>> validate_timestamp_ms(1707494400000000)  # Microseconds, auto-converted
+        1707494400000
+        >>> validate_timestamp_ms(-1000000)  # Negative sentinel value
+        None
+        >>> validate_timestamp_ms(1770224954840999937441792)  # Picoseconds, auto-converted
+        1770224954840
     """
-
-    timestamp = datetime.datetime.fromtimestamp(timestamp_ns / 1e3, tz=datetime.timezone.utc)
-    now = get_now_timestamp()
-    one_hour_ago = now - datetime.timedelta(minutes=55)
-
-    if timestamp < one_hour_ago or timestamp > now:
+    # Pre-validation: reject negative timestamps (sentinel values like -1000000)
+    if timestamp_ms < 0:
         return None
 
-    return timestamp_ns
+    # Pre-validation: reject timestamps that are clearly too large (e.g., nanoseconds instead of milliseconds)
+    # Year 2100 in milliseconds is approximately 4.1e12
+    # Values larger than this are likely incorrectly converted from higher precision time units
+    # Attempt to auto-convert from femtoseconds, picoseconds, nanoseconds, or microseconds
+    # Thresholds based on year 2100 in each unit:
+    #   - Milliseconds: 4.1e12
+    #   - Microseconds:  4.1e12 * 1e3  = 4.1e15
+    #   - Nanoseconds:   4.1e12 * 1e6  = 4.1e18
+    #   - Picoseconds:   4.1e12 * 1e9  = 4.1e21
+    #   - Femtoseconds:  4.1e12 * 1e12 = 4.1e24
+    if timestamp_ms > 4_100_000_000_000:
+
+        # Try femtoseconds (divide by 1e12 using integer arithmetic)
+        if timestamp_ms > 4_100_000_000_000_000_000_000:
+            converted_ts = timestamp_ms // 1_000_000_000_000
+
+        # Try picoseconds (divide by 1e9 using integer arithmetic)
+        elif timestamp_ms > 4_100_000_000_000_000_000:
+            converted_ts = timestamp_ms // 1_000_000_000
+
+        # Try nanoseconds (divide by 1e6 using integer arithmetic)
+        elif timestamp_ms > 4_100_000_000_000_000:
+            converted_ts = timestamp_ms // 1_000_000
+
+        # Try microseconds (divide by 1e3 using integer arithmetic)
+        elif timestamp_ms > 4_100_000_000_000:
+            converted_ts = timestamp_ms // 1_000
+        else:
+            converted_ts = -1  # Invalid value
+
+        if 0 < converted_ts <= 4_100_000_000_000:
+            timestamp_ms = converted_ts
+        else:
+            return None
+
+    try:
+        timestamp = datetime.datetime.fromtimestamp(timestamp_ms / 1e3, tz=datetime.timezone.utc)
+    except (ValueError, OSError, OverflowError):
+        # Handle any errors from fromtimestamp (invalid values, overflow, etc.)
+        return None
+
+    now = get_now_timestamp()
+    min_past = now - datetime.timedelta(minutes=allowed_past_minutes)
+    max_future = now + datetime.timedelta(minutes=allowed_future_minutes)
+
+    if timestamp < min_past or timestamp > max_future:
+        return None
+
+    return timestamp_ms
 
 
 def _get_timestamp_in_sec(ts: float = 0, conversion_unit: float = 1, timezone=datetime.timezone.utc) -> datetime.datetime:
@@ -277,15 +394,67 @@ def _get_timestamp_in_sec(ts: float = 0, conversion_unit: float = 1, timezone=da
     return datetime.datetime.fromtimestamp(ts / conversion_unit, tz=timezone)
 
 
-def _get_service_name(config_dict: str) -> str:
-    """Returns snowflake full account name either as account name from config
-    or matching given pattern on snowflake host name
-    """
-    if "core.snowflake_account_name" in config_dict:
-        return config_dict["core.snowflake_account_name"]
+def _get_snowflake_account_info(config_dict: dict, session=None) -> Tuple[str, str]:
+    """Returns Snowflake account identifier and host name, deriving them if not provided.
 
-    m = re.match(r"(.*?)\.snowflakecomputing\.com$", config_dict["core.snowflake_host_name"])
-    return m.group(1) if m else config_dict["core.snowflake_host_name"]
+    Resolution priority:
+    1. Use values from config if explicitly provided and not "-"
+    2. Derive missing values from provided values
+    3. Query Snowflake for account info (if session provided and values still missing)
+
+    Args:
+        config_dict: Configuration dictionary containing Snowflake connection details
+        session: Optional Snowflake session for querying account information
+
+    Returns:
+        Tuple[str, str]: (account_name, host_name)
+            - account_name: Snowflake account identifier (e.g., 'myorg-myaccount' or 'account.region')
+            - host_name: Snowflake host name (e.g., 'myorg-myaccount.snowflakecomputing.com')
+    """
+    account_name = config_dict.get("core.snowflake.account_name", "")
+    host_name = config_dict.get("core.snowflake.host_name", "")
+
+    # Normalize placeholder values to empty strings
+    if account_name == "-":
+        account_name = ""
+    if host_name == "-":
+        host_name = ""
+
+    # If we have both values, return them
+    if account_name and host_name:
+        return account_name, host_name
+
+    # If we have host_name but not account_name, extract account from host
+    if host_name and not account_name:
+        m = re.match(r"(.*?)\.snowflakecomputing\.com$", host_name)
+        account_name = m.group(1) if m else host_name
+        return account_name, host_name
+
+    # If we have account_name but not host_name, derive host from account
+    if account_name and not host_name:
+        if not account_name.endswith(".snowflakecomputing.com"):
+            host_name = f"{account_name}.snowflakecomputing.com"
+        else:
+            host_name = account_name
+        return account_name, host_name
+
+    # If we have neither, try to query Snowflake
+    if session:
+        from snowflake.snowpark.exceptions import SnowparkSQLException
+
+        try:
+            result = session.sql("SELECT CURRENT_ORGANIZATION_NAME() || '-' || CURRENT_ACCOUNT_NAME() as account_identifier").collect()
+            if result and len(result) > 0:
+                # Access the first column of the first row
+                row = result[0]
+                if row:
+                    account_identifier = row[0] if hasattr(row, "__getitem__") else None
+                    if account_identifier:
+                        return account_identifier, f"{account_identifier}.snowflakecomputing.com"
+        except SnowparkSQLException:
+            pass  # Fall back to empty strings if query fails
+
+    return account_name, host_name
 
 
 def _is_not_blank(value: Any) -> bool:
@@ -350,6 +519,14 @@ def get_timestamp_in_ms(query_data: Dict, ts_key: str, conversion_unit: int = 1e
             # Ensure timezone awareness before converting to timestamp
             ts = ensure_timezone_aware(ts)
             return int(ts.timestamp() * 1000)
+        if isinstance(ts, str):
+            try:
+                # Parse ISO format datetime string (replace Z with +00:00 for fromisoformat)
+                ts = datetime.datetime.fromisoformat(ts.replace("Z", "+00:00"))
+                ts = ensure_timezone_aware(ts)
+                return int(ts.timestamp() * 1000)
+            except ValueError:
+                pass  # Fall through to numeric conversion if parsing fails
         return int(int(ts) / conversion_unit)
     return default_ts
 

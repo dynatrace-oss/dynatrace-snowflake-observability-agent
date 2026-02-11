@@ -21,7 +21,7 @@
 -- SOFTWARE.
 --
 --
-use role DTAGENT_ADMIN; use database DTAGENT_DB; use warehouse DTAGENT_WH;
+use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 
 -- this view should only be reported to dt tenant if plugins.users.roles_monitoring_mode is set to direct_roles
 -- always roles deleted since last execution
@@ -29,7 +29,7 @@ create or replace view DTAGENT_DB.APP.V_USERS_REMOVED_DIRECT_ROLES_INSTRUMENTED
 as
 select
   current_timestamp                                     as TIMESTAMP,
-  'User direct roles removed since ' || DTAGENT_DB.APP.F_LAST_PROCESSED_TS('users') as _MESSAGE,
+  'User direct roles removed since ' || DTAGENT_DB.STATUS.F_LAST_PROCESSED_TS('users') as _MESSAGE,
   OBJECT_CONSTRUCT(
     'db.user',                                  grantee_name
   )                                                     as DIMENSIONS,
@@ -39,7 +39,7 @@ select
   OBJECT_CONSTRUCT(
     'snowflake.user.roles.direct.removed_on',   extract(epoch_nanosecond from date_trunc(hour, deleted_on))
   )                                                     as EVENT_TIMESTAMPS
-from snowflake.account_usage.grants_to_users where deleted_on > DTAGENT_DB.APP.F_LAST_PROCESSED_TS('users')
+from snowflake.account_usage.grants_to_users where deleted_on > DTAGENT_DB.STATUS.F_LAST_PROCESSED_TS('users')
 group by date_trunc(hour, deleted_on), grantee_name;
 
 grant select on table DTAGENT_DB.APP.V_USERS_REMOVED_DIRECT_ROLES_INSTRUMENTED to role DTAGENT_VIEWER;

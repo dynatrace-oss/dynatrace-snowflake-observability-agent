@@ -1,0 +1,34 @@
+#!/usr/bin/env bats
+
+setup() {
+    CWD="$(pwd)"
+    TEST_DIR="$(mktemp -d)"
+    cp test/bash/test_object.json "$TEST_DIR"
+    cd "$TEST_DIR"
+    git init
+    git config init.defaultBranch main
+    git config user.name "Test User"
+    git config user.email "test@example.com"
+    git add test_object.json
+    git commit -m "initial"
+}
+
+teardown() {
+    cd /
+    rm -rf "$TEST_DIR"
+}
+
+@test "convert and git mv object JSON" {
+    cd "$TEST_DIR"
+    run "$CWD/scripts/tools/config_to_yaml.sh" "$TEST_DIR/test_object.json"
+    if [ "$status" -ne 0 ]; then
+        echo "build.sh failed with status $status"
+        echo "Output: $output"
+    fi
+    [ "$status" -eq 0 ]
+    [ -f "$TEST_DIR/test_object.yml" ]
+    [ ! -f "$TEST_DIR/test_object.json" ]
+
+    run git status --porcelain
+    [[ "$output" == *"R"* ]]  # renamed
+}

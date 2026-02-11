@@ -21,7 +21,7 @@
 -- SOFTWARE.
 --
 --
-use role DTAGENT_ADMIN; use database DTAGENT_DB; use warehouse DTAGENT_WH;
+use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 
 -- this view should only be reported to dt tenant if plugins.users.roles_monitoring_mode is set to all_roles
 create or replace view DTAGENT_DB.APP.V_USERS_ALL_ROLES_INSTRUMENTED

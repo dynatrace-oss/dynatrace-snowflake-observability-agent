@@ -74,7 +74,7 @@ from opentelemetry import version as otel_version
 ##INSERT src/dtagent/config.py
 ##INSERT src/dtagent/otel/otel_manager.py
 ##INSERT src/dtagent/otel/__init__.py
-##INSERT src/dtagent/otel/instruments.py
+##INSERT build/_semantics.py
 ##INSERT src/dtagent/otel/spans.py
 ##INSERT src/dtagent/otel/metrics.py
 ##INSERT src/dtagent/otel/logs.py
@@ -137,26 +137,27 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
             c_source = _get_plugin_class(source)
             run_id = str(uuid.uuid4().hex)
 
-            if is_regular_mode(self._session):
-                self._session.query_tag = json.dumps(
-                    {RUN_VERSION_KEY: str(VERSION), RUN_PLUGIN_KEY: c_source.PLUGIN_NAME, RUN_ID_KEY: run_id}
-                )
-
-            self.report_execution_status(status="STARTED", task_name=source, exec_id=run_id)
-
-            plugin_telemetry_allowed = (
-                set(
-                    self._configuration.get(
-                        plugin_name=source, key="TELEMETRY", default_value=["logs", "spans", "metrics", "events", "biz_events"]
-                    )
-                )
-                & self.telemetry_allowed
-            )
-
             if inspect.isclass(c_source):
                 #
                 # running the plugin
                 #
+
+                if is_regular_mode(self._session):
+                    self._session.query_tag = json.dumps(
+                        {RUN_VERSION_KEY: str(VERSION), RUN_PLUGIN_KEY: c_source.PLUGIN_NAME, RUN_ID_KEY: run_id}
+                    )
+
+                self.report_execution_status(status="STARTED", task_name=source, exec_id=run_id)
+
+                plugin_telemetry_allowed = (
+                    set(
+                        self._configuration.get(
+                            plugin_name=source, key="TELEMETRY", default_value=["logs", "spans", "metrics", "events", "biz_events"]
+                        )
+                    )
+                    & self.telemetry_allowed
+                )
+
                 try:
                     results[source] = c_source(
                         plugin_name=source,

@@ -1,17 +1,17 @@
 --
 --
 -- Copyright (c) 2025 Dynatrace Open Source
--- 
+--
 -- Permission is hereby granted, free of charge, to any person obtaining a copy
 -- of this software and associated documentation files (the "Software"), to deal
 -- in the Software without restriction, including without limitation the rights
 -- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 -- copies of the Software, and to permit persons to whom the Software is
 -- furnished to do so, subject to the following conditions:
--- 
+--
 -- The above copyright notice and this permission notice shall be included in all
 -- copies or substantial portions of the Software.
--- 
+--
 -- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 -- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 -- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -24,7 +24,7 @@
 
 -- using cases for array objects is something we should practice in order not to send empty arrays to DT
 -- once an array is empty snowflake often puts and reads the row as '[]' so best to replace it with nulls
-use role DTAGENT_ADMIN; use database DTAGENT_DB; use warehouse DTAGENT_WH;
+use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 create or replace view DTAGENT_DB.APP.V_DATA_SCHEMAS
 as
 with cte_includes as (
@@ -42,7 +42,7 @@ with cte_includes as (
 , cte_all AS (
     select * from SNOWFLAKE.ACCOUNT_USAGE.ACCESS_HISTORY ah
     where object_modified_by_ddl:"objectDomain" in ('Table', 'Schema', 'Database')
-        and query_start_time > GREATEST(timeadd(hour, -4, current_timestamp), DTAGENT_DB.APP.F_LAST_PROCESSED_TS('data_schemas'))  -- max data delay is 180 min
+        and query_start_time > GREATEST(timeadd(hour, -4, current_timestamp), DTAGENT_DB.STATUS.F_LAST_PROCESSED_TS('data_schemas'))  -- max data delay is 180 min
         and object_modified_by_ddl:"objectName" LIKE ANY (select object_name from cte_includes)
         and not object_modified_by_ddl:"objectName" LIKE ANY (select object_name from cte_excludes)
 )
@@ -62,7 +62,7 @@ with cte_includes as (
             object_name, object_construct('objectDomain', object_domain, 'objectColumns', listagg(value:columnName::STRING, ', '))
         ) as object_modified,
         query_id
-    from 
+    from
         cte_flat,
         lateral flatten(input => columns)
     group by query_id, object_name, object_domain

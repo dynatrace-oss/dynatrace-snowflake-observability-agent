@@ -11,25 +11,33 @@ delivers:
     type: procedure
   - name: DTAGENT_DB.APP.TASK_DTAGENT_DYNAMIC_TABLES
     type: task
+  - name: DTAGENT_DB.APP.TASK_DTAGENT_DYNAMIC_TABLES_GRANTS
+    type: task
+    comment: (Admin scope only) Admin task owned by DTAGENT_ADMIN to grant MONITOR privileges on dynamic tables
 
 references:
   - name: SHOW DATABASES
     type: command
     privileges: USAGE
   - name: ALL DYNAMIC TABLES IN DATABASE $database
+    type: dynamic table
     privileges: MONITOR
     granted to: DTAGENT_VIEWER
     comment: We grant that on every database selected in configuration or all (default)
   - name: ALL FUTURE TABLES IN DATABASE $database
+    type: table
     privileges: MONITOR
     granted to: DTAGENT_VIEWER
     comment: We grant that on every database selected in configuration or all (default)
   - name: INFORMATION_SCHEMA.DYNAMIC_TABLE_REFRESH_HISTORY
+    type: view
     privileges: USAGE
     granted to: DTAGENT_VIEWER
   - name: INFORMATION_SCHEMA.DYNAMIC_TABLE_GRAPH_HISTORY
+    type: view
     privileges: USAGE
     granted to: DTAGENT_VIEWER
   - name: INFORMATION_SCHEMA.DYNAMIC_TABLES
+    type: view
     privileges: USAGE
     granted to: DTAGENT_VIEWER

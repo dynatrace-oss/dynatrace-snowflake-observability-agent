@@ -69,7 +69,7 @@ class EventLogPlugin(Plugin):
 
         self._logs.send_log(
             str(row_dict.get("_CONTENT") or row_dict.get("_MESSAGE", "event log entry")),
-            extra={**unpacked_dicts, **prefixed_dicts, **reserved_dicts, **event_dict, **self._configuration.get("resource.attributes")},
+            extra={**unpacked_dicts, **prefixed_dicts, **reserved_dicts, **event_dict},
             log_level=getattr(logging, s_log_level, logging.INFO),
             context=__context,
         )
@@ -99,7 +99,7 @@ class EventLogPlugin(Plugin):
         """Processes metric entries for event log"""
 
         t_event_log_metrics_instrumented = "APP.V_EVENT_LOG_METRICS_INSTRUMENTED"
-        (metric_entries_cnt, metric_logs_cnt, metric_metrics_cnt, metric_event_cnt) = self._log_entries(
+        metric_entries_cnt, metric_logs_cnt, metric_metrics_cnt, metric_event_cnt = self._log_entries(
             lambda: self._get_table_rows(t_event_log_metrics_instrumented),
             context_name="event_log_metrics",
             run_uuid=run_id,

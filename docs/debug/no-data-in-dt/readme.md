@@ -2,36 +2,36 @@
 
 This guide helps you diagnose and resolve issues when Dynatrace Snowflake Observability Agent tasks are running in Snowflake, but no telemetry data appears in your Dynatrace tenant.
 
-* [Prerequisites](#prerequisites)
-* [Common Symptoms](#common-symptoms)
-* [Troubleshooting Steps](#troubleshooting-steps)
-  * [Step 1: Check for Error Logs in Snowflake](#step-1-check-for-error-logs-in-snowflake)
-  * [Step 2: Identify Connection Issues](#step-2-identify-connection-issues)
-  * [Step 3: Validate Dynatrace Tenant URL Configuration](#step-3-validate-dynatrace-tenant-url-configuration)
-  * [Step 4: Reset Agent Configuration](#step-4-reset-agent-configuration)
-    * [Option A: Wait for scheduled execution](#option-a-wait-for-scheduled-execution)
-    * [Option B: Manually trigger a plugin (recommended for immediate testing)](#option-b-manually-trigger-a-plugin-recommended-for-immediate-testing)
-  * [Step 5: Verify Telemetry Configuration](#step-5-verify-telemetry-configuration)
-* [Prevention and Best Practices](#prevention-and-best-practices)
-* [Summary](#summary)
+- [Prerequisites](#prerequisites)
+- [Common Symptoms](#common-symptoms)
+- [Troubleshooting Steps](#troubleshooting-steps)
+  - [Step 1: Check for Error Logs in Snowflake](#step-1-check-for-error-logs-in-snowflake)
+  - [Step 2: Identify Connection Issues](#step-2-identify-connection-issues)
+  - [Step 3: Validate Dynatrace Tenant URL Configuration](#step-3-validate-dynatrace-tenant-url-configuration)
+  - [Step 4: Reset Agent Configuration](#step-4-reset-agent-configuration)
+    - [Option A: Wait for scheduled execution](#option-a-wait-for-scheduled-execution)
+    - [Option B: Manually trigger a plugin (recommended for immediate testing)](#option-b-manually-trigger-a-plugin-recommended-for-immediate-testing)
+  - [Step 5: Verify Telemetry Configuration](#step-5-verify-telemetry-configuration)
+- [Prevention and Best Practices](#prevention-and-best-practices)
+- [Summary](#summary)
 
 ## Prerequisites
 
 Before starting this troubleshooting guide, ensure you have:
 
-* Access to both Snowflake and Dynatrace environments
-* `DTAGENT_VIEWER` role permissions in Snowflake
-* Access to the agent's configuration file (`conf/config-$env.json`)
-* The deployment scripts (`deploy.sh`)
+- Access to both Snowflake and Dynatrace environments
+- `DTAGENT_VIEWER` role permissions in Snowflake
+- Access to the agent's configuration file (`conf/config-$env.yml`)
+- The deployment scripts (`deploy.sh`)
 
 ## Common Symptoms
 
 You may be experiencing this issue if:
 
-* Agent tasks are scheduled and running in Snowflake without errors
-* Tasks show successful execution in `TASK_HISTORY`
-* No telemetry data (logs, metrics, traces, events) appears in Dynatrace
-* Previously working agent suddenly stops sending data
+- Agent tasks are scheduled and running in Snowflake without errors
+- Tasks show successful execution in `TASK_HISTORY`
+- No telemetry data (logs, metrics, traces, events) appears in Dynatrace
+- Previously working agent suddenly stops sending data
 
 ## Troubleshooting Steps
 
@@ -61,10 +61,10 @@ LIMIT 100;
 
 **What to look for:**
 
-* Connection errors or timeout messages
-* Authentication failures
-* HTTP error codes (400, 401, 403, 500, etc.)
-* Any messages mentioning "failed to send" or "error occurred when sending"
+- Connection errors or timeout messages
+- Authentication failures
+- HTTP error codes (400, 401, 403, 500, etc.)
+- Any messages mentioning "failed to send" or "error occurred when sending"
 
 ![Example of error logs showing connection issues](dsoa-no-data-errors-in-logs.png)
 
@@ -84,10 +84,10 @@ Failed to establish a new connection: [Errno 16] Device or resource busy'))
 
 **Possible causes:**
 
-* **Network allowlist configuration**: The stored procedure doesn't have the Dynatrace endpoint in its external access integration
-* **Network connectivity issues**: Snowflake cannot reach your Dynatrace tenant
-* **DNS resolution problems**: Snowflake cannot resolve the Dynatrace tenant hostname
-* **Rate limiting**: Too many requests being sent to Dynatrace APIs
+- **Network allowlist configuration**: The stored procedure doesn't have the Dynatrace endpoint in its external access integration
+- **Network connectivity issues**: Snowflake cannot reach your Dynatrace tenant
+- **DNS resolution problems**: Snowflake cannot resolve the Dynatrace tenant hostname
+- **Rate limiting**: Too many requests being sent to Dynatrace APIs
 
 **Understanding Snowflake network configuration:**
 
@@ -106,7 +106,7 @@ Dynatrace Snowflake Observability Agent sets up network allowlists at the **stor
 
 Incorrect URL configuration is a frequent cause of connection failures. The agent requires the correct Dynatrace tenant address format.
 
-**Check your configuration file** (`conf/config-$env.json`):
+**Check your configuration file** (`conf/config-$env.yml`):
 
 ```json
 {
@@ -118,14 +118,14 @@ Incorrect URL configuration is a frequent cause of connection failures. The agen
 
 **✅ Correct format:**
 
-* `abc12345.live.dynatrace.com`
-* For managed environments: `managed.example.com/e/environment-id`
+- `abc12345.live.dynatrace.com`
+- For managed environments: `managed.example.com/e/environment-id`
 
 **❌ Incorrect formats:**
 
-* `abc12345.apps.dynatrace.com` ← **This is wrong!** (Apps URL, not API endpoint)
-* `https://abc12345.live.dynatrace.com` (Do not include protocol)
-* `abc12345.live.dynatrace.com/` (Do not include trailing slash)
+- `abc12345.apps.dynatrace.com` ← **This is wrong!** (Apps URL, not API endpoint)
+- `https://abc12345.live.dynatrace.com` (Do not include protocol)
+- `abc12345.live.dynatrace.com/` (Do not include trailing slash)
 
 > **IMPORTANT**: The `DYNATRACE_TENANT_ADDRESS` should be the **tenant URL** (for API access), NOT the apps URL. The apps URL (with `.apps.`) is used for accessing the Dynatrace web interface, but the agent needs the API endpoint.
 
@@ -227,11 +227,11 @@ The `DTAGENT()` procedure returns a JSON result showing telemetry counts for the
 
 The `dsoa.run.results` object contains the telemetry counts:
 
-* `entries` - Total number of entries processed by the plugin
-* `log_lines` - Number of log entries sent
-* `metrics` - Number of metric data points sent
-* `events` - Number of events sent
-* `spans` - Number of spans sent (when applicable)
+- `entries` - Total number of entries processed by the plugin
+- `log_lines` - Number of log entries sent
+- `metrics` - Number of metric data points sent
+- `events` - Number of events sent
+- `spans` - Number of spans sent (when applicable)
 
 > **⚠️ WARNING**: If the procedure returns **all zeros** in the results (e.g., `"entries": 0, "events": 0, "log_lines": 0, "metrics": 0`), this likely means the `TELEMETRY` configuration arrays in your `OTEL` or plugin-specific settings are limiting which types of telemetry can be sent. See [Step 5](#step-5-verify-telemetry-configuration) below.
 
@@ -283,17 +283,17 @@ Each plugin and the global OTEL configuration have `TELEMETRY` arrays that contr
 
 **Understanding TELEMETRY configuration:**
 
-* The **global** `OTEL.TELEMETRY` array controls what types of telemetry the agent can send overall
-* Each **plugin-specific** `TELEMETRY` array further controls what that plugin sends
-* Both must include the telemetry type for it to be sent
+- The **global** `OTEL.TELEMETRY` array controls what types of telemetry the agent can send overall
+- Each **plugin-specific** `TELEMETRY` array further controls what that plugin sends
+- Both must include the telemetry type for it to be sent
 
 **Valid telemetry types:**
 
-* `"logs"` - Log entries
-* `"metrics"` - Metrics data
-* `"spans"` - Distributed traces
-* `"events"` - Dynatrace events
-* `"biz_events"` - Business events
+- `"logs"` - Log entries
+- `"metrics"` - Metrics data
+- `"spans"` - Distributed traces
+- `"events"` - Dynatrace events
+- `"biz_events"` - Business events
 
 **Troubleshooting steps:**
 
@@ -319,29 +319,29 @@ Refer to the [Plugins documentation](../../../PLUGINS.md) for the default `TELEM
 
 **Configuration management:**
 
-* Always validate the `DYNATRACE_TENANT_ADDRESS` format before deployment
-* Use version control for your configuration files
-* Document any custom network configurations
+- Always validate the `DYNATRACE_TENANT_ADDRESS` format before deployment
+- Use version control for your configuration files
+- Document any custom network configurations
 
 **Monitoring:**
 
-* Set up alerts in Snowflake for task failures
-* Create Dynatrace alerts for missing data from specific environments
-* Regularly review agent error logs
+- Set up alerts in Snowflake for task failures
+- Create Dynatrace alerts for missing data from specific environments
+- Regularly review agent error logs
 
 **Token management:**
 
-* Use tokens with only the required scopes
-* Rotate tokens according to your security policy
-* Store tokens securely and never commit them to version control
-* Use the `HISTCONTROL=ignorespace` technique to prevent tokens from being saved in shell history
+- Use tokens with only the required scopes
+- Rotate tokens according to your security policy
+- Store tokens securely and never commit them to version control
+- Use the `HISTCONTROL=ignorespace` technique to prevent tokens from being saved in shell history
 
 **Network considerations:**
 
-* Work with your network team to configure external access integrations properly
-* For Private Connectivity or Managed deployments, ensure proper VPC/infrastructure connectivity
-* Document any required network policies or firewall rules
-* Test connectivity after any network infrastructure changes
+- Work with your network team to configure external access integrations properly
+- For Private Connectivity or Managed deployments, ensure proper VPC/infrastructure connectivity
+- Document any required network policies or firewall rules
+- Test connectivity after any network infrastructure changes
 
 ## Summary
 

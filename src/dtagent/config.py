@@ -48,8 +48,7 @@ class Configuration:
     }
 
     def __init__(self, session: snowpark.Session) -> Dict:
-        """Returns configuration based on data in config_data.configuration and (currently) hardcoded list of instruments
-
+        """Returns configuration based on data in config_data.configuration
         {
             'dt.token': YOUR_TOKEN,
             'logs.http':    'https://DYNATRACE_TENANT_ADDRESS/api/v2/otlp/v1/logs',
@@ -63,23 +62,6 @@ class Configuration:
                 'host.name': 'YOUR_SNOWFLAKE_ACCOUNT.YOUR_AWS_REGION.snowflakecomputing.com',
                 'telemetry.exporter.name': 'dynatrace.snowagent',
                 'deployment.environment.tag': 'SA080',
-            },
-            'instruments': {
-                'metrics': {
-                    'snowflake.data.scanned_from_cache': {
-                        'description': 'The percentage of data scanned from the local disk cache.
-                                        The value ranges from 0.0 to 1.0. Multiply by 100 to get a true percentage.',
-                        'unit': 'percent'
-                    },
-                    ....
-                    'snowflake.credits.cloud_services': {
-                        'description': 'Number of credits used for cloud services.'
-                    },
-                    ...
-                },
-                'dimension_sets': {
-                    'set1': [], ...
-                }
             }
         }
         """
@@ -138,12 +120,13 @@ class Configuration:
 
         import _snowflake
         import os
-        from dtagent.util import _get_service_name  # COMPILE_REMOVE
+        from dtagent.util import _get_snowflake_account_info  # COMPILE_REMOVE
 
         default_config = {
             "core.dynatrace_tenant_address": "",
             "core.deployment_environment": "TEST",
-            "core.snowflake_host_name": "",
+            "core.snowflake.account_name": "",
+            "core.snowflake.host_name": "",
             "core.log_level": "WARN",
         }
         config_table = "CONFIG.CONFIGURATIONS"
@@ -160,13 +143,8 @@ class Configuration:
             LOG.debug(f"Setting log level to {default_log_level} from config.LOG_LEVEL={config_dict['core.log_level']}")
             LOG.setLevel(default_log_level)
 
-        instruments_table = "CONFIG.V_INSTRUMENTS"
-        instruments_row = session.table(instruments_table).take(None)  # should take the first row or none
-        instruments_dict = (
-            json.loads(instruments_row[0])
-            if instruments_row
-            else {"dimensions": {}, "attributes": {}, "event_timestamps": {}, "metrics": {}}
-        )
+        # Derive account_name and host_name if not provided
+        service_name, host_name = _get_snowflake_account_info(config_dict, session)
 
         self._config = {
             "dt.token": os.environ.get("DTAGENT_TOKEN", _snowflake.get_generic_secret_string("dtagent_token")),
@@ -178,17 +156,22 @@ class Configuration:
             "biz_events.http": f"https://{config_dict['core.dynatrace_tenant_address']}{BizEvents.ENDPOINT_PATH}",
             "resource.attributes": Configuration.RESOURCE_ATTRIBUTES
             | {
-                "service.name": _get_service_name(config_dict),
+                "service.name": service_name,
                 "deployment.environment": config_dict["core.deployment_environment"],
-                "host.name": config_dict["core.snowflake_host_name"],
+                "host.name": host_name,
             },
             "otel": __unpack_prefixed_keys(config_dict, "otel."),
             "plugins": __unpack_prefixed_keys(config_dict, "plugins."),
-            "instruments": instruments_dict,
         }
-        if config_dict.get("core.tag"):
-            self._config["resource.attributes"]["deployment.environment.tag"] = config_dict["core.tag"]
+        self._multitenancy_tag = config_dict.get("core.tag")
+        if self._multitenancy_tag:
+            self._config["resource.attributes"]["deployment.environment.tag"] = self._multitenancy_tag
         os.environ["OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE"] = "delta"
+
+    @property
+    def multitenancy_tag(self) -> Optional[str]:
+        """Returns the multitenancy TAG if configured, None otherwise"""
+        return self._multitenancy_tag
 
     def get(
         self,
@@ -230,7 +213,7 @@ class Configuration:
         """Checks STATUS.PROCESSED_MEASUREMENTS_LOG to get last update for the given source"""
         from dtagent.util import _get_timestamp_in_sec  # COMPILE_REMOVE
 
-        last_ts = session.sql(f"select APP.F_LAST_PROCESSED_TS('{source}');").collect()[0][0]
+        last_ts = session.sql(f"select STATUS.F_LAST_PROCESSED_TS('{source}');").collect()[0][0]
 
         if last_ts:
             import pytz

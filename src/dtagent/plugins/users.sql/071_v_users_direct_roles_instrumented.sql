@@ -21,7 +21,7 @@
 -- SOFTWARE.
 --
 --
-use role DTAGENT_ADMIN; use database DTAGENT_DB; use warehouse DTAGENT_WH;
+use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 
 -- this view should only be reported to dt tenant if plugins.users.roles_monitoring_mode is set to direct_roles
 -- all current roles, only added since last execution if looking for changes
@@ -40,7 +40,7 @@ select
     'snowflake.user.roles.last_altered',          extract(epoch_nanosecond from max(created_on))
   )                                                     as EVENT_TIMESTAMPS
 from snowflake.account_usage.grants_to_users
-where deleted_on is null and ((DATE(DTAGENT_DB.APP.F_LAST_PROCESSED_TS('users')) != CURRENT_DATE()) or created_on > DTAGENT_DB.APP.F_LAST_PROCESSED_TS('users'))
+where deleted_on is null and ((DATE(DTAGENT_DB.STATUS.F_LAST_PROCESSED_TS('users')) != CURRENT_DATE()) or created_on > DTAGENT_DB.STATUS.F_LAST_PROCESSED_TS('users'))
 group by grantee_name;
 grant select on table DTAGENT_DB.APP.V_USERS_DIRECT_ROLES_INSTRUMENTED to role DTAGENT_VIEWER;
 

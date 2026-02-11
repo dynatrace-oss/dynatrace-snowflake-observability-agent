@@ -1,17 +1,17 @@
 --
 --
 -- Copyright (c) 2025 Dynatrace Open Source
--- 
+--
 -- Permission is hereby granted, free of charge, to any person obtaining a copy
 -- of this software and associated documentation files (the "Software"), to deal
 -- in the Software without restriction, including without limitation the rights
 -- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 -- copies of the Software, and to permit persons to whom the Software is
 -- furnished to do so, subject to the following conditions:
--- 
+--
 -- The above copyright notice and this permission notice shall be included in all
 -- copies or substantial portions of the Software.
--- 
+--
 -- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 -- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 -- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -24,13 +24,13 @@
 --
 -- APP.V_LOGIN_HISTORY() return events (less than 1000) from SNOWFLAKE.ACCOUNT_USAGE.LOGIN_HISTORY view since the last time we checked (but not further than 1 day)
 --
-use role DTAGENT_ADMIN; use database DTAGENT_DB; use warehouse DTAGENT_WH;
+use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 create or replace view DTAGENT_DB.APP.V_LOGIN_HISTORY
 as
-select 
+select
     lh.event_timestamp                 as TIMESTAMP,
-    concat(lh.event_type, 
-           ': ', 
+    concat(lh.event_type,
+           ': ',
            lh.user_name)               as _MESSAGE, -- _underscored attributes are not reported; _message is used as content/title for log
     OBJECT_CONSTRUCT(
         'event.name',                                   lh.EVENT_TYPE,
@@ -49,10 +49,10 @@ select
         'event.related_id',                             lh.RELATED_EVENT_ID,
         'db.snowflake.connection',                      lh.CONNECTION
     )                                  as ATTRIBUTES
-from 
+from
     SNOWFLAKE.ACCOUNT_USAGE.LOGIN_HISTORY lh
 where
-    lh.event_timestamp > GREATEST( timeadd(hour, -24, current_timestamp), DTAGENT_DB.APP.F_LAST_PROCESSED_TS('login_history') )
+    lh.event_timestamp > GREATEST( timeadd(hour, -24, current_timestamp), DTAGENT_DB.STATUS.F_LAST_PROCESSED_TS('login_history') )
 order by
     lh.event_timestamp asc
 limit 1000

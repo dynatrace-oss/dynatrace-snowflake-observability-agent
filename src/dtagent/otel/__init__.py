@@ -67,6 +67,7 @@ class NoOpTelemetry:
     """A no-operation telemetry class used when telemetry is disabled."""
 
     def __init__(self):
+        """Initialize the no-op telemetry instance."""
         self.NOT_ENABLED = True
 
     def __getattr__(self, name):
@@ -120,9 +121,6 @@ class NoOpTelemetry:
 
 
 NO_OP_TELEMETRY = NoOpTelemetry()
-
-
-IS_OTEL_BELOW_1_21 = otel_version.__version__ < "1.21.0"
 
 USER_AGENT = f"dsoa/{'.'.join(VERSION.split('.')[:3])}"
 ##endregion

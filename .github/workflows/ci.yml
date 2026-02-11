@@ -2,9 +2,9 @@ name: Quality Checks
 
 on:
   push:
-    branches: ["devel", "master", "dev/*", "release/*", "feature/*", "hotfix/*"]
+    branches: ["devel", "main", "dev/*", "release/*", "feature/*", "hotfix/*"]
   pull_request:
-    branches: ["devel", "master", "dev/*", "release/*", "feature/*", "hotfix/*"]
+    branches: ["devel", "main", "dev/*", "release/*", "feature/*", "hotfix/*"]
 
 jobs:
   lint:
@@ -20,11 +20,11 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install flake8 black sqlfluff yamllint pylint
+          pip install flake8 black sqlfluff yamllint pylint check-jsonschema
           npm install -g markdownlint-cli
 
       - name: Lint Python
-        run: flake8 src/ test/ || exit 1
+        run: flake8 --config=.flake8 src/ test/ || exit 1
 
       - name: Format Python
         run: black --check src/ test/ || exit 1
@@ -43,6 +43,9 @@ jobs:
       - name: Lint Markdown
         run: markdownlint '**/*.md' || exit 1
 
+      - name: Lint BOM files
+        run: find src -name "bom.yml" -exec sh -c 'printf "%-50s " "$$1"; check-jsonschema --schemafile test/src-bom.schema.json "$$1" || check-jsonschema --schemafile test/src-bom.schema.json "$$1"' _ {} \;
+
   test-documentation:
     runs-on: ubuntu-latest
     steps:
@@ -60,6 +63,30 @@ jobs:
 
       - name: Run TestDocumentation tests
         run: pytest test/core/test_documentation.py -k "TestDocumentation"
+
+  test-bash:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11.12"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pytest-mock
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bats jq gawk pandoc zip
+
+      - name: Run bash tests
+        run: pytest test/core/test_bash_scripts.py -v
 
   test-core:
     runs-on: ubuntu-latest
@@ -82,6 +109,11 @@ jobs:
         run: |
           pip install -r requirements.txt
           pip install pytest-mock
+
+      - name: Install JQ (for tests)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
 
       - name: Run core tests
         run: |
@@ -115,6 +147,11 @@ jobs:
         run: |
           pip install -r requirements.txt
           pip install pytest-mock
+
+      - name: Install JQ (for tests)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
 
       - name: Run plugin tests
         run: pytest test/plugins/

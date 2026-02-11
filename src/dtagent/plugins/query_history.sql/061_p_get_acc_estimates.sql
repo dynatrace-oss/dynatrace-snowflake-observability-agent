@@ -1,7 +1,29 @@
-use role DTAGENT_ADMIN; use database DTAGENT_DB; use warehouse DTAGENT_WH;
+--
+-- Copyright (c) 2025 Dynatrace Open Source
+--
+-- Permission is hereby granted, free of charge, to any person obtaining a copy
+-- of this software and associated documentation files (the "Software"), to deal
+-- in the Software without restriction, including without limitation the rights
+-- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+-- copies of the Software, and to permit persons to whom the Software is
+-- furnished to do so, subject to the following conditions:
+--
+-- The above copyright notice and this permission notice shall be included in all
+-- copies or substantial portions of the Software.
+--
+-- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+-- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+-- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+-- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+-- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+-- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+-- SOFTWARE.
+--
+--
+use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 
 -- creating table  DTAGENT_DB.APP.TMP_QUERY_ACCELERATION_ESTIMATES to ensure it exists when deploying fresh
-create transient table if not exists DTAGENT_DB.APP.TMP_QUERY_ACCELERATION_ESTIMATES (QUERY_ID varchar, ATTRIBUTES object) DATA_RETENTION_TIME_IN_DAYS = 0;
+create or replace transient table DTAGENT_DB.APP.TMP_QUERY_ACCELERATION_ESTIMATES (QUERY_ID varchar, ATTRIBUTES object) DATA_RETENTION_TIME_IN_DAYS = 0;
 grant select on table DTAGENT_DB.APP.TMP_QUERY_ACCELERATION_ESTIMATES to role DTAGENT_VIEWER;
 
 
@@ -18,11 +40,11 @@ DECLARE
     c_queries_to_analyze    CURSOR FOR select query_id,
                                               METRICS['snowflake.time.execution']::int as execution_time,
                                        from APP.TMP_RECENT_QUERIES
-                                       where execution_time > APP.F_GET_CONFIG_VALUE('plugins.query_history.slow_queries_threshold', 10000)::int
+                                       where execution_time > CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.slow_queries_threshold', 10000)::int
                                          and METRICS['snowflake.data.spilled.local'] = 0
                                          and METRICS['snowflake.data.spilled.remote'] = 0
                                          and METRICS['snowflake.partitions.scanned'] < 0.9*METRICS['snowflake.partitions.total']
-                                       qualify ROW_NUMBER() OVER (order by execution_time desc) < APP.F_GET_CONFIG_VALUE('plugins.query_history.slow_queries_to_analyze_limit', 100)::int 
+                                       qualify ROW_NUMBER() OVER (order by execution_time desc) < CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.slow_queries_to_analyze_limit', 100)::int
                                        order by execution_time desc;
 
     query_id                VARCHAR DEFAULT '';
@@ -49,15 +71,12 @@ BEGIN
 EXCEPTION
   when statement_error then
     SYSTEM$LOG_WARN(SQLERRM);
-    
+
     return SQLERRM;
 END;
 $$
 ;
 
 grant usage on procedure DTAGENT_DB.APP.P_GET_ACCELERATION_ESTIMATES() to role DTAGENT_VIEWER;
-
-use role ACCOUNTADMIN;
-grant ownership on table DTAGENT_DB.APP.TMP_QUERY_ACCELERATION_ESTIMATES to role DTAGENT_ADMIN copy current grants;
 
 -- call DTAGENT_DB.APP.P_GET_ACCELERATION_ESTIMATES(1000, 50);

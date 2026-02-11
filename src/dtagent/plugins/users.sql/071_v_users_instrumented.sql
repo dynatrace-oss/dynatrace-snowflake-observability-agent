@@ -21,12 +21,12 @@
 -- SOFTWARE.
 --
 --
-use role DTAGENT_ADMIN; use database DTAGENT_DB; use warehouse DTAGENT_WH;
+use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 
 create or replace view DTAGENT_DB.APP.V_USERS_INSTRUMENTED
 as
 with cte_hash as (
-    select DTAGENT_DB.APP.F_GET_CONFIG_VALUE('plugins.users.is_hashed', TRUE)::boolean as hash
+    select DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE('plugins.users.is_hashed', TRUE)::boolean as hash
 )
 select
     u.login_name                                                                            as LOGIN,

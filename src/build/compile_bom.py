@@ -40,7 +40,7 @@ def merge_bom_yaml_files(directory):
         for file in fnmatch.filter(files, "bom.yml"):
             plugin_name = "core" if "plugins" not in root else os.path.basename(root).split(".")[0]
 
-            with open(os.path.join(root, file), "r") as f:
+            with open(os.path.join(root, file), "r", encoding="utf-8") as f:
                 data = yaml.safe_load(f)
                 for _k in merged_data.keys():
                     for item in data.get(_k, []):
@@ -112,7 +112,7 @@ def write_csv(data, filename):
 
 merged_yaml = merge_bom_yaml_files("src")
 
-with open("build/bom.yml", "w") as f:
+with open("build/bom.yml", "w", encoding="utf-8") as f:
     ordered_dump(merged_yaml, f, default_flow_style=False, indent=2, width=200)
 
 print("Merged BOM YAML files have been saved to build/bom.yml.")

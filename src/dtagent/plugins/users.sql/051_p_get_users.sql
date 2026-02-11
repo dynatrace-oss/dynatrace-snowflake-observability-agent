@@ -22,7 +22,7 @@
 --
 --
 
-use role DTAGENT_ADMIN; use database DTAGENT_DB; use warehouse DTAGENT_WH;
+use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 
 create or replace transient table DTAGENT_DB.APP.TMP_USERS (
         email_hash text, email text, user_id number, name text,
@@ -56,7 +56,7 @@ create or replace transient table DTAGENT_DB.APP.TMP_USERS_HELPER (
     DATA_RETENTION_TIME_IN_DAYS = 0;
 grant select on table DTAGENT_DB.APP.TMP_USERS_HELPER to role DTAGENT_VIEWER;
 
-create transient table if not exists DTAGENT_DB.STATUS.EMAIL_HASH_MAP (email text, email_hash text) DATA_RETENTION_TIME_IN_DAYS = 0;
+create or replace transient table DTAGENT_DB.STATUS.EMAIL_HASH_MAP (email text, email_hash text) DATA_RETENTION_TIME_IN_DAYS = 0;
 grant select on table DTAGENT_DB.STATUS.EMAIL_HASH_MAP to role DTAGENT_VIEWER;
 
 create or replace procedure DTAGENT_DB.APP.P_GET_USERS()
@@ -83,7 +83,7 @@ DECLARE
                                                                       is_from_organization_user
                                                                  from SNOWFLAKE.ACCOUNT_USAGE.USERS
                                                                 where DELETED_ON is null
-                                                                   or DELETED_ON > DTAGENT_DB.APP.F_LAST_PROCESSED_TS(\'users\');';
+                                                                   or DELETED_ON > DTAGENT_DB.STATUS.F_LAST_PROCESSED_TS(\'users\');';
     del_snap          TEXT DEFAULT 'drop table DTAGENT_DB.APP.TMP_USERS_SNAPSHOT';
     tr_map            TEXT DEFAULT 'truncate table if exists DTAGENT_DB.STATUS.EMAIL_HASH_MAP;';
 BEGIN
@@ -94,7 +94,7 @@ BEGIN
     EXECUTE IMMEDIATE :create_snap;
 
     -- update email to hash map with new entries to dtagent_db.app.tmp_users_snapshot
-    if ((DTAGENT_DB.APP.F_GET_CONFIG_VALUE('plugins.users.retain_email_hash_map', FALSE)::boolean) = TRUE) then
+    if ((DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE('plugins.users.retain_email_hash_map', FALSE)::boolean) = TRUE) then
         merge into DTAGENT_DB.STATUS.EMAIL_HASH_MAP as trg using (select email, email_hash from DTAGENT_DB.APP.TMP_USERS_SNAPSHOT) as src
             on trg.email = src.email
             when not matched and src.email is not null then
@@ -105,7 +105,7 @@ BEGIN
     end if;
 
     -- if first run of the day, truncate helper to report everything from snapshot
-    if (DATE(DTAGENT_DB.APP.F_LAST_PROCESSED_TS('users')) = DATEADD(day, -1, (CURRENT_DATE()))) then
+    if (DATE(DTAGENT_DB.STATUS.F_LAST_PROCESSED_TS('users')) = DATEADD(day, -1, (CURRENT_DATE()))) then
         EXECUTE IMMEDIATE :tr_us_h_table;
     end if;
 
@@ -134,9 +134,5 @@ $$
 
 grant usage on procedure DTAGENT_DB.APP.P_GET_USERS() to role DTAGENT_VIEWER;
 
-use role ACCOUNTADMIN;
-grant ownership on table DTAGENT_DB.APP.TMP_USERS to role DTAGENT_ADMIN copy current grants;
-grant ownership on table DTAGENT_DB.APP.TMP_USERS_HELPER to role DTAGENT_ADMIN copy current grants;
-
--- use role DTAGENT_ADMIN;
+-- use role DTAGENT_OWNER;
 -- call DTAGENT_DB.APP.P_GET_USERS();

@@ -30,7 +30,7 @@ from dtagent import context
 from dtagent.util import get_now_timestamp, get_now_timestamp_formatted
 from dtagent.context import RUN_ID_KEY, RUN_RESULTS_KEY
 from test import _get_session, _utils
-from test._utils import LocalTelemetrySender, read_clean_json_from_file, telemetry_test_sender
+from test._utils import LocalTelemetrySender, read_clean_data_from_file, telemetry_test_sender
 from test._mocks.telemetry import MockTelemetryClient
 from snowflake import snowpark
 
@@ -149,8 +149,8 @@ class TestTelemetrySender:
     def test_automode(self):
         session = _get_session()
 
-        structured_test_data = read_clean_json_from_file("test/test_data/telemetry_structured.json")
-        unstructured_test_data = read_clean_json_from_file("test/test_data/telemetry_unstructured.json")
+        structured_test_data = read_clean_data_from_file("test/test_data/telemetry_structured.json")
+        unstructured_test_data = read_clean_data_from_file("test/test_data/telemetry_unstructured.json")
 
         # Results are (Count of objects, log lines, metrics, events, bizevents, and davis events sent)
 

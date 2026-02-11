@@ -1,17 +1,17 @@
 --
 --
 -- Copyright (c) 2025 Dynatrace Open Source
--- 
+--
 -- Permission is hereby granted, free of charge, to any person obtaining a copy
 -- of this software and associated documentation files (the "Software"), to deal
 -- in the Software without restriction, including without limitation the rights
 -- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 -- copies of the Software, and to permit persons to whom the Software is
 -- furnished to do so, subject to the following conditions:
--- 
+--
 -- The above copyright notice and this permission notice shall be included in all
 -- copies or substantial portions of the Software.
--- 
+--
 -- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 -- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 -- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -19,7 +19,9 @@
 -- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 -- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 -- SOFTWARE.
-use role DTAGENT_ADMIN; use database DTAGENT_DB; use warehouse DTAGENT_WH;
+--
+--
+use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 
 create or replace procedure DTAGENT_DB.APP.F_GET_FINISHED_QUERIES()
 returns table (
@@ -57,10 +59,10 @@ $$
 DECLARE
     cfg CURSOR  FOR SELECT not fast_mode,
                             greatest(
-                                  timeadd(minute, -1, DTAGENT_DB.APP.F_LAST_PROCESSED_TS('active_queries'))
+                                  timeadd(minute, -1, DTAGENT_DB.STATUS.F_LAST_PROCESSED_TS('active_queries'))
                                 , timeadd(hour, -1, current_timestamp()))                         AS end_time_start_range
                    FROM (SELECT
-                        DTAGENT_DB.APP.F_GET_CONFIG_VALUE('plugins.active_queries.fast_mode', true::variant)::boolean AS fast_mode);
+                        DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE('plugins.active_queries.fast_mode', true::variant)::boolean AS fast_mode);
     res         RESULTSET;
     run_query   BOOLEAN;
     ts_end_time TIMESTAMP_LTZ;
@@ -92,21 +94,21 @@ BEGIN
             error_code::number,
             error_message::varchar,
             compilation_time::number,
-            IFF(execution_status in ('RUNNING', 'QUEUED', 'RESUMING_WAREHOUSE') or 
-                coalesce(total_elapsed_time, -1) < 0, 
-                null, 
+            IFF(execution_status in ('RUNNING', 'QUEUED', 'RESUMING_WAREHOUSE') or
+                coalesce(total_elapsed_time, -1) < 0,
+                null,
                 total_elapsed_time)::number                                             as total_elapsed_time,
-            IFF(execution_status in ('RUNNING', 'QUEUED', 'RESUMING_WAREHOUSE') or 
-                coalesce(execution_time, -1) < 0, 
-                null, 
+            IFF(execution_status in ('RUNNING', 'QUEUED', 'RESUMING_WAREHOUSE') or
+                coalesce(execution_time, -1) < 0,
+                null,
                 execution_time)::number                                                 as execution_time,
             null::number as running_time,
             bytes_written_to_result::number,
             rows_written_to_result::number
         FROM TABLE (INFORMATION_SCHEMA.QUERY_HISTORY(
-                    END_TIME_RANGE_START => :ts_end_time, 
+                    END_TIME_RANGE_START => :ts_end_time,
                     INCLUDE_CLIENT_GENERATED_STATEMENT => true,
-                    RESULT_LIMIT => 10000)) 
+                    RESULT_LIMIT => 10000))
         WHERE :run_query
     );
 

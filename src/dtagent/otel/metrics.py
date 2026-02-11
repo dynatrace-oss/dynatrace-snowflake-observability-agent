@@ -30,9 +30,8 @@ import time
 
 from typing import Dict, Union, Optional, Tuple
 from dtagent.otel.otel_manager import OtelManager
-from dtagent.util import get_timestamp_in_ms, get_now_timestamp
+from dtagent.util import get_timestamp_in_ms, get_now_timestamp, validate_timestamp_ms
 from dtagent.otel import _log_warning
-
 
 ##endregion COMPILE_REMOVE
 
@@ -43,14 +42,15 @@ class Metrics:
     """Allows for parsing and sending metrics data."""
 
     from dtagent.config import Configuration  # COMPILE_REMOVE
-    from dtagent.otel.instruments import Instruments  # COMPILE_REMOVE
+    from dtagent.otel.semantics import Semantics  # COMPILE_REMOVE
 
     ENDPOINT_PATH = "/api/v2/metrics/ingest"
 
-    def __init__(self, instruments: Instruments, configuration: Configuration):
+    def __init__(self, semantics: Semantics, configuration: Configuration):
+        """Initialize the metrics exporter."""
         self.PAYLOAD_CACHE: str = ""
         self._configuration = configuration
-        self._instruments = instruments
+        self._semantics = semantics
         self._resattr_dims = {
             k: v for k, v in self._configuration.get("resource.attributes").items() if not k.startswith("telemetry.exporter.")
         }
@@ -160,7 +160,7 @@ class Metrics:
         """
         from dtagent import LOG, LL_TRACE  # COMPILE_REMOVE
         from dtagent.context import get_context_name  # COMPILE_REMOVE
-        from dtagent.util import _unpack_json_dict, _esc, _check_timestamp_ms, _is_not_blank  # COMPILE_REMOVE
+        from dtagent.util import _unpack_json_dict, _esc, _is_not_blank  # COMPILE_REMOVE
 
         local_metrics_def = _unpack_json_dict(query_data, ["_INSTRUMENTS_DEF"])
 
@@ -200,11 +200,11 @@ class Metrics:
                 f"{metric_name},{dimensions} {value}"
                 + ("" if not ts else f" {ts}")
                 + "\n"
-                + self._instruments.get_metric_definition(metric_name, local_metrics_def)
+                + self._semantics.get_metric_definition(metric_name, local_metrics_def)
             )
 
         timestamp = get_timestamp_in_ms(query_data, start_time, 1e6, int(get_now_timestamp().timestamp() * 1000))
-        timestamp = _check_timestamp_ms(timestamp)
+        timestamp = validate_timestamp_ms(timestamp, allowed_past_minutes=55, allowed_future_minutes=10)
 
         payload_lines = []
         # list all dimensions with their values from the provided data
@@ -226,6 +226,16 @@ class Metrics:
 
         return self._send_metrics(payload)
 
+    def metrics_section_exists(self, query_data: Dict) -> bool:
+        """Checks if METRICS section is defined in query data
+
+        Args:
+            query_data (Dict): query data containing METRICS section
+        Returns:
+            bool: boolean indicating if METRICS section was found
+        """
+        return "METRICS" in query_data
+
     def discover_report_metrics(
         self, query_data: Dict, start_time: str = "START_TIME", context_name: Optional[str] = None
     ) -> Tuple[bool, int]:
@@ -240,7 +250,7 @@ class Metrics:
             Tuple[bool, int]: boolean indicating if METRICS section was found, and
                               number of metric lines (without description lines) successfully sent
         """
-        if "METRICS" in query_data:
+        if self.metrics_section_exists(query_data):
             return True, self.report_via_metrics_api(query_data, start_time, context_name=context_name)
         return False, 0
 

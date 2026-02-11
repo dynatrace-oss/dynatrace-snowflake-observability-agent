@@ -43,7 +43,6 @@ from dtagent.otel.events.generic import GenericEvents
 from dtagent.util import StringEnum, get_timestamp_in_ms
 from dtagent.version import VERSION
 
-
 ##endregion COMPILE_REMOVE
 
 ##region ------------------------ Davis EVENTS ---------------------------------
@@ -59,7 +58,6 @@ class DavisEvents(GenericEvents):
     """
 
     from dtagent.config import Configuration  # COMPILE_REMOVE
-    from dtagent.otel.instruments import Instruments  # COMPILE_REMOVE
 
     ENDPOINT_PATH = "/api/v2/events/ingest"
 

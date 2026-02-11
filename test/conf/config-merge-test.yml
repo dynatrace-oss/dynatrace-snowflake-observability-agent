@@ -1,0 +1,21 @@
+core:
+  dynatrace_tenant_address: abc12345.live.dynatrace.com
+  deployment_environment: TEST
+  snowflake:
+    account_name: my_snowflake_account.us-east-1
+    host_name: my_snowflake_account.us-east-1.snowflakecomputing.com
+  snowflake_credit_quota: 5
+  log_level: DEBUG
+  tag: "090"
+otel:
+  spans:
+    export_timeout_millis: 5000
+    max_export_batch_size: 60
+plugins:
+  active_queries:
+    schedule: 20 MINUTE
+  data_volume:
+    schedule: USING CRON 30 */4 * * * UTC
+    exclude:
+      - "%.INFORMATION_SCHEMA.%"
+      - "%.%.TMP_%"

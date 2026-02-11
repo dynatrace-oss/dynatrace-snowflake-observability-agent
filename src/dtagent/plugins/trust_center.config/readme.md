@@ -3,6 +3,6 @@ For findings with `CRITICAL` severity, `CUSTOM_ALERT` event is sent to Dynatrace
 
 This plugin provides information on:
 
-* scanner name, description, and packages details,
-* number of entities at risk as a metric, plus
-* details on those entities as `snowflake.entity.details` log attribute.
+- scanner name, description, and packages details,
+- number of entities at risk as a metric, plus
+- details on those entities as `snowflake.entity.details` log attribute.

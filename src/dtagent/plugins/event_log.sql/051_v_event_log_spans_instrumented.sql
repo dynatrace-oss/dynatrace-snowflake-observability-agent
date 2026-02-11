@@ -25,7 +25,7 @@
 -- APP.V_EVENT_LOG_SPANS_INSTRUMENTED() is a shorthand to retrieve spans/traces from event log filtered by only new, non OTEL logs
 -- https://docs.snowflake.com/en/developer-guide/logging-tracing/tracing-accessing-events
 --
-use role DTAGENT_ADMIN; use database DTAGENT_DB; use warehouse DTAGENT_WH;
+use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 
 create or replace view DTAGENT_DB.APP.V_EVENT_LOG_SPANS_INSTRUMENTED
 as
@@ -39,7 +39,7 @@ with cte_event_log as (
       -- only report metrics for DBs that are related to this particular dtagent,
        or nvl(l.resource_attributes['snow.database.name']::varchar, '') = 'DTAGENT_DB' -- DTAGENT_DB will be replaced with DTAGENT_$TAG_DB during deploy
       )
-      and TIMESTAMP > GREATEST( timeadd(hour, -24, current_timestamp), DTAGENT_DB.APP.F_LAST_PROCESSED_TS('event_log_spans') )
+      and TIMESTAMP > GREATEST( timeadd(hour, -24, current_timestamp), DTAGENT_DB.STATUS.F_LAST_PROCESSED_TS('event_log_spans') )
       and (RESOURCE_ATTRIBUTES:"application"::varchar is null or RESOURCE_ATTRIBUTES:"application"::varchar not in ('openflow')) -- exclude known high volume applications
     order by TIMESTAMP asc
     limit 10000 -- safety limit to avoid long running queries

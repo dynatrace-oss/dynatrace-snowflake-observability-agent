@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dynatrace.com/snowflake-observability-agent/bom.schema.json",
+  "title": "Dynatrace Snowflake Observability Agent Bill of Materials",
+  "description": "Schema for validating the BOM (Bill of Materials) JSON file",
+  "type": "object",
+  "properties": {
+    "delivers": {
+      "type": "array",
+      "description": "List of objects delivered by the agent",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "type"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the delivered object"
+          },
+          "type": {
+            "type": "string",
+            "description": "Type of the delivered object"
+          },
+          "comment": {
+            "type": "string",
+            "description": "Optional comment describing the object"
+          },
+          "plugins": {
+            "type": "array",
+            "description": "List of plugins that deliver this object",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          },
+          "language": {
+            "type": "string",
+            "description": "Programming language (for procedures/functions)"
+          },
+          "optional": {
+            "type": "boolean",
+            "description": "Whether this object is optional and may not be created"
+          },
+          "config_key": {
+            "type": "string",
+            "description": "Configuration key that determines if this optional object is created"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "references": {
+      "type": "array",
+      "description": "List of external references/permissions required",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "type",
+          "privileges"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the referenced object"
+          },
+          "type": {
+            "type": "string",
+            "description": "Type of the referenced object"
+          },
+          "privileges": {
+            "oneOf": [
+              {
+                "type": "string",
+                "description": "Single privilege string"
+              },
+              {
+                "type": "array",
+                "description": "List of privileges",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 1
+              }
+            ]
+          },
+          "comment": {
+            "type": "string",
+            "description": "Optional comment describing the reference"
+          },
+          "plugins": {
+            "type": "array",
+            "description": "List of plugins that reference this object",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          },
+          "granted to": {
+            "type": "string",
+            "description": "Role to which privileges are granted"
+          },
+          "optional": {
+            "type": "boolean",
+            "description": "Whether this reference is optional and may not be needed"
+          },
+          "config_key": {
+            "type": "string",
+            "description": "Configuration key that determines if this optional reference is needed"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "delivers",
+    "references"
+  ],
+  "additionalProperties": false
+}
