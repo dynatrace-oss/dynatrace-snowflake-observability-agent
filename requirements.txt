@@ -21,34 +21,55 @@
 # SOFTWARE.
 #
 #
-snowflake>=1.11.0 # IMPORTANT: Requires Python >=3.9 and <3.12 (due to snowflake-legacy dependency)
-pandas
-toml
-tzlocal
-#%DEV:
+
+# === Snowflake SDK ===
+# IMPORTANT: Requires Python >=3.9 and <3.12 (due to snowflake-legacy dependency)
+snowflake>=1.11.0
 snowflake-core==1.11.0
+snowflake-snowpark-python>=1.45.0
+snowflake-connector-python[secure-local-storage]>=4.3.0
 streamlit
-snowflake-snowpark-python==1.40.0
-snowflake-connector-python[secure-local-storage]
+
+# === OpenTelemetry ===
 opentelemetry-api==1.38.0
 opentelemetry-sdk==1.38.0
 opentelemetry-exporter-otlp-proto-http==1.38.0
 opentelemetry-proto==1.38.0
+
+# === Data Processing & Utilities ===
+pandas
+numpy
+toml
+tzlocal
 uuid
 jsonstrip
-numpy
+pyyaml
+
+# === Testing ===
 pytest
 pytest-tap
-inflect
-markdown2
-weasyprint
-pyyaml
-# github tests
 check-jsonschema
+
+# === Linting & Formatting ===
 pylint
 flake8
+flake8-docstrings
 black==26.1.0
 sqlfluff
 yamllint
-flake8-docstrings
-#%:DEV
+
+# === Documentation ===
+inflect
+markdown2
+weasyprint
+
+# === Security: Pin vulnerable dependencies to fixed versions ===
+brotli>=1.2.0
+cryptography>=46.0.5
+filelock>=3.20.3
+fonttools>=4.60.2
+jaraco-context>=6.1.0
+pillow>=12.1.1
+protobuf>=5.29.6,<6.0.0
+urllib3>=2.6.3
+wheel>=0.46.2

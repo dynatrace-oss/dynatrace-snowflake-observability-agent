@@ -1,33 +1,45 @@
-connection.json
+# === macOS ===
 .DS_Store
-*.token
+
+# === Python ===
+*.pyc
+__pycache__/
+.venv*
+
+# === Configuration Files ===
+connection.json
 config.json
 config-*.json
 config.yml
 config-*.yml
 conf/*.sql
 snowflake.local.yml
-output/**
+test/conf/*config-download.yml
+!config-basic.json
+
+# === Credentials & Secrets ===
+*.token
+*credentials*.*
+
+# === Logs ===
 log.*
 *.log
-*credentials*.*
-*.pyc
+.logs/*
+
+# === Build Artifacts ===
 build/*
 package/*
-.logs/*
-instruments-def.*
+output/**
 metrics/*
-*.zip
-!config-basic.json
-LICENSE.md
+instruments-def.*
 *-deploy-script*
-*.pdf
-test/conf/*config-download.yml
 dynatrace-snowflake-observability-agent
+
+# === Distribution & Archives ===
+*.zip
+*.whl
 *.pkg
+*.pdf
 
-# Virtual Env
-.venv*
-
-# AI
+# === AI & Development Context ===
 .github/context/*
