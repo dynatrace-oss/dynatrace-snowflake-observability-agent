@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## Dynatrace Snowflake Observability Agent 0.9.4
+
+Released on TBD
+
+### New in 0.9.4
+
+- **Pipes Monitoring Plugin**: Added plugin to monitor Snowpipe status and validation using `SYSTEM$PIPE_STATUS` and `VALIDATE_PIPE_LOAD` functions.
+- **Streams Monitoring Plugin**: Added plugin to monitor Snowflake Streams for staleness and pending changes via `SHOW STREAMS`.
+- **Stage Monitoring Plugin**: Added plugin to monitor data staged in internal/external stages and COPY INTO activities from `QUERY_HISTORY` and `COPY_HISTORY` views.
+- **Data Lineage Plugin**: Added column-level data lineage tracking combining static lineage (OBJECT_DEPENDENCIES) and dynamic lineage (ACCESS_HISTORY).
+- **Configurable Lookback Time**: Added per-plugin configuration for historical data catchup window (previously hardcoded to 24 hours).
+
+### Fixed in 0.9.4
+
+- **Log ObservedTimestamp**: Fixed OTel log ObservedTimestamp to use nanoseconds per spec (convert from milliseconds when source provides milliseconds).
+- **Inbound Shares Reporting**: Fixed reporting of `HAS_DB_DELETED` flag in `TMP_SHARES` for deleted shared databases.
+- **Self-Monitoring Log Filtering**: Fixed database name filtering logic for self-monitoring logs to correctly handle DTAGENT_DB references.
+
+### Improved in 0.9.4
+
+- **Budgets Plugin**: Enhanced budget data collection using `SYSTEM$SHOW_BUDGETS_IN_ACCOUNT()`.
+- **Query Hierarchy Validation**: Improved span hierarchy validation using `parent_query_id` and `root_query_id` fields with OpenTelemetry propagation standards.
+- **Test Infrastructure**: Refactored tests to use synthetic JSON fixtures for input/output validation instead of live Dynatrace API calls.
+- **Event Tables Cost Optimization**: Added guidance for fine-tuning Event Table usage to manage Snowflake costs.
+
 ## Dynatrace Snowflake Observability Agent 0.9.3
 
 Released on February 12, 2026
