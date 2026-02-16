@@ -149,6 +149,15 @@ Every feature, bugfix, or refactor **must** include or update tests. Coverage re
    - Connects to a real Snowflake + Dynatrace instance.
    - Use `-p` flag to refresh pickled baseline data.
 
+### Writing smart tests
+
+- **High signal, low boilerplate** — Tests should validate behavior, not recite implementation details.
+- **Proportional complexity** — A 500-line test for a 20-line function is a smell. Keep tests concise.
+- **Actually run tests** — Never claim tests pass without running `.venv/bin/pytest` and seeing green output.
+- **Iterate on failures** — When tests fail, analyze the failure, fix the root cause, rerun, and repeat until green.
+- **Never fake results** — Don't update test fixtures with fabricated data. Capture real output from real executions.
+- **Test multiple scenarios** — For plugins, validate with different `disabled_telemetry` combinations.
+
 ### Plugin test pattern
 
 ```python
@@ -304,18 +313,77 @@ The plan should be stored alongside the proposal in `.github/context/proposals/`
 Implement by **iterating on tasks from the accepted plan**:
 
 1. **One task at a time** — Pick the next task, implement it, test it, lint it.
-2. **For each task:**
+2. **For each task (tight feedback loop):**
    - Write or update the code.
    - Write or update tests (run `.venv/bin/pytest` and confirm pass).
+   - **If tests fail:** Analyze the failure, fix the issue, rerun tests. Iterate until green.
    - Run `make lint` and fix all issues (`pylint` must be **10.00/10**).
    - Update documentation (docstrings, markdown docs, `instruments-def.yml`, `bom.yml`).
+   - **Commit the change** — Make small, frequent commits for each completed task. This creates safe rollback points.
    - Mark the task as completed.
 3. **After all tasks:**
    - Run the full test suite (`.venv/bin/pytest`).
    - Run `make lint` one final time.
    - Run `scripts/dev/build.sh` to confirm a clean build.
    - Update `docs/CHANGELOG.md`.
+   - **Review the full changeset** — Check which files changed, verify scope is reasonable, confirm tests are included.
    - Open a PR following the branch model.
+
+### Phase 4 — Validation & Verification
+
+**The human verifies.** This phase is the human reviewer's responsibility, but you should facilitate it:
+
+1. **Prepare verification artifacts:**
+   - List all modified files and their purpose.
+   - Highlight any architectural or interface changes.
+   - Document test coverage for new/changed code.
+   - Note any performance, security, or scalability implications.
+
+2. **What the human will verify:**
+   - **Correctness** — Does the implementation match requirements?
+   - **Architecture** — Are design decisions sound?
+   - **Tests** — Do tests validate the right behavior? Are they smart (high signal, not verbose)?
+   - **Performance** — Have benchmarks been run (not fabricated)?
+   - **Security** — Are there vulnerabilities or credential leaks?
+   - **Scope** — Did you stay focused, or did scope creep in?
+   - **Documentation** — Is it accurate and complete?
+
+3. **Manual testing is mandatory** — Automated tests alone are not sufficient. The human must test the functionality.
+
+## ⚠️ Anti-Patterns & Pitfalls
+
+Avoid these common failure modes when implementing changes:
+
+### Scope Creep & Runaway Refactoring
+
+- **Don't refactor the entire codebase for a simple change.** If you find yourself touching many unrelated files, stop and reassess.
+- **Stay focused on the task.** If you discover other issues, note them separately but don't fix them now.
+- **Resist over-engineering.** Don't create mega-abstractions, unnecessary layers, or complex patterns for simple problems.
+
+### Test Quality Issues
+
+- **Never "fix" a failing test by marking it as passing** without actually fixing the underlying issue.
+- **Don't write 500-line tests for 20-line functions.** Aim for smart, high-signal tests with minimal boilerplate.
+- **Never fabricate test data or benchmark results.** Always run real tests and capture actual output.
+- **Don't skip running tests.** If you claim tests pass, you must have actually run them and seen green output.
+
+### Documentation & Output Quality
+
+- **Don't produce mega-documents** filled with boilerplate and verbosity. Be concise and specific.
+- **Never share unreviewed AI-generated content** as if it were human-reviewed. If proposing draft content, mark it explicitly.
+- **Don't pollute the repo with dead code, unused abstractions, or redundant docs.** Clean up as you go.
+
+### Context & Specificity
+
+- **When stuck, ask for context** before making assumptions or guessing.
+- **Don't make vague changes hoping they'll work.** Understand the problem, then implement a targeted fix.
+- **If you lack information to complete a task correctly, request it explicitly.**
+
+### Commit & Change Management
+
+- **Don't create giant PRs with hundreds of changes.** Break work into small, reviewable commits.
+- **Never let large amounts of uncommitted changes pile up.** Commit frequently.
+- **Don't mix unrelated changes in a single commit.** One logical change per commit.
 
 ## 📜 Coding Principles
 
