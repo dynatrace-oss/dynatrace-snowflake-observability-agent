@@ -31,10 +31,10 @@ snowflake-connector-python[secure-local-storage]>=4.3.0
 streamlit
 
 # === OpenTelemetry ===
-opentelemetry-api==1.38.0
-opentelemetry-sdk==1.38.0
-opentelemetry-exporter-otlp-proto-http==1.38.0
-opentelemetry-proto==1.38.0
+opentelemetry-api==1.39.1
+opentelemetry-sdk==1.39.1
+opentelemetry-exporter-otlp-proto-http==1.39.1
+opentelemetry-proto==1.39.1
 
 # === Data Processing & Utilities ===
 pandas
@@ -64,12 +64,22 @@ markdown2
 weasyprint
 
 # === Security: Pin vulnerable dependencies to fixed versions ===
+# CVE-2025-6176: Brotli DoS vulnerability
 brotli>=1.2.0
+# CVE-2026-26007: Cryptography SECT curve validation issue
 cryptography>=46.0.5
+# CVE-2025-68146, CVE-2026-22701: Filelock race condition
 filelock>=3.20.3
+# CVE-2025-66034: Fonttools buffer overflow
 fonttools>=4.60.2
+# CVE-2026-23949: Jaraco.context privilege escalation
 jaraco-context>=6.1.0
+# CVE-2026-25990: Pillow buffer overflow
 pillow>=12.1.1
+# CVE-2026-0994: Protobuf DoS in json_format.ParseDict()
+# Using 5.x branch to maintain compatibility with snowflake-snowpark-python
 protobuf>=5.29.6,<6.0.0
+# CVE-2025-66418, CVE-2025-66471, CVE-2026-21441: urllib3 security issues
 urllib3>=2.6.3
+# CVE-2026-24049: Wheel path traversal vulnerability
 wheel>=0.46.2
