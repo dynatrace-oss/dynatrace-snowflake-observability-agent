@@ -265,7 +265,7 @@ scripts/dev/package.sh
 
 ## 📂 Context & Private References
 
-- **Private context:** `.github/context/` (gitignored) — place detailed release plans, roadmaps, spike notes, and other sensitive planning artifacts here.
+- **Private context:** `.github/context/` (gitignored) — place detailed [release plans](context/dev-notes/), roadmaps, spike notes, and other sensitive planning artifacts here.
 - **Configuration profiles:** `conf/` directory holds environment-specific JSON configs (gitignored).
 - **Credentials:** `test/credentials.yml` (gitignored) — for live testing against Snowflake/Dynatrace.
 - **Legacy & migration:** SQL upgrade scripts live in `src/dtagent.sql/upgrade/` and `build/09_upgrade/`.
