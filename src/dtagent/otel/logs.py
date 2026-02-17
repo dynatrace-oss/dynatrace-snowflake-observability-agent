@@ -94,27 +94,26 @@ class Logs:
 
             def filter(self, record: logging.LogRecord) -> bool:
                 # Handle timestamp field (for log record timing)
-                ts_ms = getattr(record, "timestamp", None)
-                if ts_ms is not None:
+                ts_attr = getattr(record, "timestamp", None)
+                if ts_attr is not None:
                     delattr(record, "timestamp")
 
-                    # Validate timestamp is positive and reasonable (not before 1970 or far in the future)
                     try:
-                        ts_ms = int(ts_ms)
-                        # Ensure timestamp is positive and within reasonable range
-                        # Min: 0 (epoch), Max: year 2100 (approx 4102444800000 ms)
-                        if 0 < ts_ms <= 4102444800000:
-                            record.created = ts_ms / 1_000
-                            record.msecs = ts_ms % 1_000
+                        ts_val = int(ts_attr)
+                        # Validate with auto-detection and convert to milliseconds using standard validation
+                        validated_ts_ms = validate_timestamp(ts_val, return_unit="ms")
+                        if validated_ts_ms:
+                            record.created = validated_ts_ms / 1_000
+                            record.msecs = validated_ts_ms % 1_000
                     except (ValueError, TypeError, OverflowError):
                         # If conversion fails, use default timestamp
                         pass
 
                 # Handle observed_timestamp field (must be in nanoseconds per OTLP standard)
-                observed_ts = getattr(record, "observed_timestamp", None)
-                if observed_ts is not None:
+                observed_ts_attr = getattr(record, "observed_timestamp", None)
+                if observed_ts_attr is not None:
                     try:
-                        observed_ts_val = int(observed_ts)
+                        observed_ts_val = int(observed_ts_attr)
                     except (ValueError, TypeError, OverflowError):
                         delattr(record, "observed_timestamp")
                     else:
