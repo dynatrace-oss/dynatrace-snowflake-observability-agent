@@ -103,6 +103,62 @@ Code style is **non-negotiable**. Every change must pass the full lint suite bef
 | `yamllint`     | `.yamllint`          |
 | `markdownlint` | `.markdownlint.json` |
 
+#### Markdown Style (enforced by markdownlint)
+
+Critical rules you **must** follow when writing markdown:
+
+- **MD029**: Ordered lists use `1.` for all items (not `1. 2. 3.`)
+- **MD031**: Fenced code blocks need blank lines before and after
+- **MD032**: Lists need blank lines before and after
+- **MD034**: No bare URLs - use `[text](url)`
+- **MD036**: Don't use bold/italic as headings — use `##` or `###`
+- **MD040**: All code fences must specify language (e.g., ` ```python`, ` ```bash`, ` ```text`)
+- **MD050**: Use `**bold**` not `__bold__` (asterisks, not underscores)
+- **MD060**: Table columns must align with headers - avoid unicode characters within table cells as they can cause alignment issues
+
+**Common patterns:**
+
+```markdown
+<!-- CORRECT: Blank lines around lists -->
+Some text.
+
+- List item 1
+- List item 2
+- List item 3
+
+More text.
+
+<!-- CORRECT: Code blocks with language and blank lines -->
+Here's an example:
+
+```python
+def example():
+    return True
+```
+
+And another:
+
+```bash
+make lint
+```
+
+Now we continue.
+
+<!-- CORRECT: All list items use 1. -->
+1. First step
+1. Second step
+1. Third step
+
+<!-- INCORRECT: No blank lines, no language, bare URL -->
+See the implementation:
+```
+code here
+```
+Visit http://example.com for more.
+- item 1
+More text continues...
+```
+
 ### Running linters
 
 ```bash
@@ -209,7 +265,7 @@ Documentation is a **first-class deliverable**, not an afterthought. Every chang
 | New plugin             | `docs/PLUGINS.md`, plugin's `readme.md` + `config.md`, `instruments-def.yml`, `docs/SEMANTICS.md` |
 | New metric / attribute | `instruments-def.yml`, `docs/SEMANTICS.md`                                                        |
 | Architecture change    | `docs/ARCHITECTURE.md`                                                                            |
-| New version / release  | `docs/CHANGELOG.md` (sections: Breaking Changes, New, Fixed, Improved)                            |
+| New version / release  | `docs/CHANGELOG.md` (user-facing highlights), `docs/DEVLOG.md` (technical details)                |
 | Config change          | `conf/config-template.yml`, plugin's `{name}-config.yml`                                          |
 | Installation change    | `docs/INSTALL.md`                                                                                 |
 | Contribution process   | `docs/CONTRIBUTING.md`                                                                            |
@@ -223,6 +279,59 @@ Documentation is a **first-class deliverable**, not an afterthought. Every chang
 ### New in X.Y.Z
 ### Fixed in X.Y.Z
 ### Improved in X.Y.Z
+```
+
+### CHANGELOG vs DEVLOG
+
+**Two-tier release documentation:**
+
+- **`docs/CHANGELOG.md`** — User-facing release notes. Keep it **concise**. Focus on:
+  - Major new features (new plugins, significant capabilities)
+  - Breaking changes that require user action
+  - Critical bug fixes that affect user experience
+  - High-level improvements (1-2 sentences max per item)
+  - Include reference: `> **Note**: Detailed technical changes and implementation notes are available in [DEVLOG.md](DEVLOG.md).`
+
+- **`docs/DEVLOG.md`** — Technical developer log. Be **comprehensive**. Include:
+  - Implementation details (how features are built)
+  - Root cause analysis for bugs (what went wrong and why)
+  - Refactoring rationale (architectural decisions)
+  - Internal API changes (function signatures, removed/added utilities)
+  - Performance optimizations (before/after, techniques used)
+  - Test infrastructure changes
+  - Build system updates
+
+**When to log where:**
+
+| Change Type                          | CHANGELOG           | DEVLOG                    |
+| ------------------------------------ | ------------------- | ------------------------- |
+| New plugin                           | ✅ Name + 1 sentence | ✅ Full implementation    |
+| Breaking change                      | ✅ Impact on users   | ✅ Migration path details |
+| Critical bug fix                     | ✅ User impact       | ✅ Root cause + fix       |
+| Internal refactoring                 | ❌                   | ✅ Full details           |
+| Timestamp handling change (user-visible) | ✅ Behavior change   | ✅ Implementation details |
+| Test infrastructure update           | ❌                   | ✅ Full details           |
+| Build script improvement             | Maybe (if user-facing) | ✅ Full details         |
+| Documentation update                 | ❌ (unless major)    | ✅ If technically relevant|
+
+**Example pair:**
+
+CHANGELOG.md:
+```markdown
+- **Timestamp Handling**: Unified timestamp handling with smart unit detection, eliminating wasteful conversions
+```
+
+DEVLOG.md:
+```markdown
+#### Timestamp Handling Refactoring
+- **Motivation**: Eliminate wasteful ns→ms→ns conversions and clarify API requirements
+- **Approach**: Unified timestamp handling with smart unit detection
+- **Implementation**:
+  - All SQL views produce nanoseconds via `extract(epoch_nanosecond ...)`
+  - Conversion to appropriate unit occurs only at API boundary
+  - `validate_timestamp()` works internally in nanoseconds to preserve precision
+  - Added `return_unit` parameter ("ms" or "ns") for explicit output control
+  ...
 ```
 
 ### Docstrings
