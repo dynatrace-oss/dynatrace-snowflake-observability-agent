@@ -341,7 +341,7 @@ def validate_timestamp(
         1707494400000
         >>> validate_timestamp(-1000000, return_unit="ms")  # Negative sentinel
         None
-        >>> validate_timestamp(old_timestamp, skip_range_validation=True)  # For observed_timestamp
+        >>> validate_timestamp(old_timestamp, skip_range_validation=True, return_unit="ns")  # For observed_timestamp
         1234567890000000000
     """
     # Validate return_unit parameter

@@ -1,6 +1,7 @@
 import datetime
 import time
-from dtagent.util import get_timestamp, validate_timestamp
+import pytest
+from dtagent.util import get_timestamp, validate_timestamp, process_timestamps_for_telemetry
 
 
 class TestGetTimestamp:
@@ -110,6 +111,65 @@ class TestValidateTimestamp:
         year_2100_ms = 4_102_444_800_000  # Jan 1, 2100 in ms
         result = validate_timestamp(year_2100_ms, return_unit="ms")
         assert result is None
+
+    def test_validate_invalid_return_unit(self):
+        """Test that invalid return_unit parameter raises ValueError"""
+        current_ms = int(time.time() * 1000)
+        with pytest.raises(ValueError, match="return_unit must be 'ms' or 'ns'"):
+            validate_timestamp(current_ms, return_unit="seconds")
+
+    def test_old_timestamp_rejected_by_default(self):
+        """Test that old timestamps are rejected when skip_range_validation is False (default)"""
+        now_ms = int(time.time() * 1000)
+        ten_years_ms = 10 * 365 * 24 * 60 * 60 * 1000
+        old_ms = now_ms - ten_years_ms
+
+        result = validate_timestamp(old_ms, return_unit="ms")
+        assert result is None
+
+    def test_old_timestamp_accepted_when_skipping_range_validation(self):
+        """Test that old timestamps are accepted when skip_range_validation is True"""
+        now_ms = int(time.time() * 1000)
+        ten_years_ms = 10 * 365 * 24 * 60 * 60 * 1000
+        old_ms = now_ms - ten_years_ms
+
+        result = validate_timestamp(old_ms, return_unit="ms", skip_range_validation=True)
+        assert result is not None
+        assert result == old_ms
+
+    def test_future_timestamp_rejected_by_default(self):
+        """Test that future timestamps are rejected when skip_range_validation is False (default)"""
+        now_ms = int(time.time() * 1000)
+        ten_years_ms = 10 * 365 * 24 * 60 * 60 * 1000
+        future_ms = now_ms + ten_years_ms
+
+        result = validate_timestamp(future_ms, return_unit="ms")
+        assert result is None
+
+    def test_future_timestamp_accepted_when_skipping_range_validation(self):
+        """Test that future timestamps are accepted when skip_range_validation is True"""
+        now_ms = int(time.time() * 1000)
+        ten_years_ms = 10 * 365 * 24 * 60 * 60 * 1000
+        future_ms = now_ms + ten_years_ms
+
+        result = validate_timestamp(future_ms, return_unit="ms", skip_range_validation=True)
+        assert result is not None
+        assert result == future_ms
+
+    def test_skip_range_validation_with_nanoseconds(self):
+        """Test that skip_range_validation works correctly with nanosecond return unit"""
+        now_ns = int(time.time() * 1_000_000_000)
+        ten_years_ns = 10 * 365 * 24 * 60 * 60 * 1_000_000_000
+        old_ns = now_ns - ten_years_ns
+
+        # Should be rejected without skip_range_validation
+        result_default = validate_timestamp(old_ns, return_unit="ns")
+        assert result_default is None
+
+        # Should be accepted with skip_range_validation
+        result_skip = validate_timestamp(old_ns, return_unit="ns", skip_range_validation=True)
+        assert result_skip is not None
+        assert result_skip == old_ns
 
 
 class TestValidateTimestampAutoConversion:
@@ -232,3 +292,163 @@ class TestValidateTimestampAutoConversion:
         assert result is not None
         expected_ms = current_ns // 1_000_000
         assert abs(result - expected_ms) <= 1  # Allow for rounding
+
+
+class TestProcessTimestampsForTelemetry:
+    """Tests for process_timestamps_for_telemetry utility function"""
+
+    def test_process_with_only_timestamp(self):
+        """Test processing with only timestamp field"""
+        current_ns = int(time.time() * 1_000_000_000)
+        data = {"timestamp": current_ns}
+
+        timestamp_ms, observed_timestamp_ns = process_timestamps_for_telemetry(data)
+
+        # Should return timestamp in milliseconds
+        assert timestamp_ms is not None
+        expected_ms = current_ns // 1_000_000
+        assert abs(timestamp_ms - expected_ms) <= 1
+
+        # Should fallback observed_timestamp to timestamp value (in nanoseconds)
+        assert observed_timestamp_ns is not None
+        assert observed_timestamp_ns == current_ns
+
+    def test_process_with_timestamp_and_observed_timestamp(self):
+        """Test processing with both timestamp and observed_timestamp fields"""
+        current_ns = int(time.time() * 1_000_000_000)
+        # observed_timestamp is 5 minutes earlier
+        observed_ns = current_ns - (5 * 60 * 1_000_000_000)
+
+        data = {"timestamp": current_ns, "observed_timestamp": observed_ns}
+
+        timestamp_ms, observed_timestamp_ns = process_timestamps_for_telemetry(data)
+
+        # Should return timestamp in milliseconds
+        assert timestamp_ms is not None
+        expected_ms = current_ns // 1_000_000
+        assert abs(timestamp_ms - expected_ms) <= 1
+
+        # Should use explicit observed_timestamp (in nanoseconds)
+        assert observed_timestamp_ns is not None
+        assert observed_timestamp_ns == observed_ns
+
+    def test_fallback_when_observed_timestamp_not_provided(self):
+        """Test that observed_timestamp falls back to timestamp value when not provided"""
+        current_ns = int(time.time() * 1_000_000_000)
+        data = {"timestamp": current_ns}
+
+        timestamp_ms, observed_timestamp_ns = process_timestamps_for_telemetry(data)
+
+        # Both should be based on the same timestamp value
+        assert timestamp_ms is not None
+        assert observed_timestamp_ns is not None
+        # observed_timestamp_ns should equal the original timestamp value
+        assert observed_timestamp_ns == current_ns
+        # timestamp_ms should be the converted value
+        assert timestamp_ms == current_ns // 1_000_000
+
+    def test_validation_with_range_checking_for_timestamp(self):
+        """Test that timestamp is validated with range checking"""
+        # Create a timestamp that's too old (10 years in the past)
+        now_ns = int(time.time() * 1_000_000_000)
+        ten_years_ns = 10 * 365 * 24 * 60 * 60 * 1_000_000_000
+        old_ns = now_ns - ten_years_ns
+
+        data = {"timestamp": old_ns}
+
+        timestamp_ms, observed_timestamp_ns = process_timestamps_for_telemetry(data)
+
+        # timestamp should be rejected (None) due to range validation
+        assert timestamp_ms is None
+        # observed_timestamp should still be accepted (skips range validation)
+        assert observed_timestamp_ns is not None
+        assert observed_timestamp_ns == old_ns
+
+    def test_validation_without_range_checking_for_observed_timestamp(self):
+        """Test that observed_timestamp is validated WITHOUT range checking"""
+        # Current time
+        current_ns = int(time.time() * 1_000_000_000)
+        # Very old observed_timestamp (10 years in the past)
+        ten_years_ns = 10 * 365 * 24 * 60 * 60 * 1_000_000_000
+        old_ns = current_ns - ten_years_ns
+
+        data = {"timestamp": current_ns, "observed_timestamp": old_ns}
+
+        timestamp_ms, observed_timestamp_ns = process_timestamps_for_telemetry(data)
+
+        # timestamp should be valid (current time)
+        assert timestamp_ms is not None
+        # observed_timestamp should be accepted despite being old (skip_range_validation=True)
+        assert observed_timestamp_ns is not None
+        assert observed_timestamp_ns == old_ns
+
+    def test_return_format(self):
+        """Test that return format is (timestamp_ms, observed_timestamp_ns)"""
+        current_ns = int(time.time() * 1_000_000_000)
+        data = {"timestamp": current_ns}
+
+        result = process_timestamps_for_telemetry(data)
+
+        # Should return a tuple
+        assert isinstance(result, tuple)
+        assert len(result) == 2
+
+        timestamp_ms, observed_timestamp_ns = result
+
+        # timestamp_ms should be in milliseconds (verify by converting back)
+        assert timestamp_ms is not None
+        assert timestamp_ms == current_ns // 1_000_000
+        # observed_timestamp_ns should be in nanoseconds (same as input)
+        assert observed_timestamp_ns is not None
+        assert observed_timestamp_ns == current_ns
+
+    def test_handling_invalid_timestamp(self):
+        """Test handling of invalid timestamps"""
+        data = {"timestamp": -1000}  # Invalid negative timestamp
+
+        timestamp_ms, observed_timestamp_ns = process_timestamps_for_telemetry(data)
+
+        # Both should be None for invalid input
+        assert timestamp_ms is None
+        assert observed_timestamp_ns is None
+
+    def test_handling_missing_timestamp(self):
+        """Test handling when timestamp field is missing"""
+        data = {}  # No timestamp field
+
+        timestamp_ms, observed_timestamp_ns = process_timestamps_for_telemetry(data)
+
+        # Both should be None when timestamp is missing
+        assert timestamp_ms is None
+        assert observed_timestamp_ns is None
+
+    def test_handling_datetime_objects(self):
+        """Test that datetime objects are properly converted"""
+        # Use a recent datetime within the valid range (e.g., 1 hour ago)
+        dt = datetime.datetime.now(tz=datetime.timezone.utc) - datetime.timedelta(hours=1)
+        data = {"timestamp": dt}
+
+        timestamp_ms, observed_timestamp_ns = process_timestamps_for_telemetry(data)
+
+        # Should convert datetime to proper units
+        assert timestamp_ms is not None
+        assert observed_timestamp_ns is not None
+        # Verify the conversion is approximately correct (allow for microsecond precision loss in milliseconds)
+        # When datetime has microseconds, the nanosecond value will have sub-millisecond precision
+        # that gets truncated when converting to milliseconds
+        assert abs(observed_timestamp_ns - (timestamp_ms * 1_000_000)) < 1_000_000  # Within 1ms difference
+
+    def test_observed_timestamp_preserves_precision(self):
+        """Test that observed_timestamp preserves nanosecond precision"""
+        # Use a timestamp with specific nanosecond precision
+        current_ns = int(time.time() * 1_000_000_000)
+        precise_ns = current_ns + 123456789  # Add specific nanoseconds
+
+        data = {"timestamp": current_ns, "observed_timestamp": precise_ns}
+
+        timestamp_ms, observed_timestamp_ns = process_timestamps_for_telemetry(data)
+
+        # timestamp should be valid
+        assert timestamp_ms is not None
+        # observed_timestamp should preserve exact nanosecond value
+        assert observed_timestamp_ns == precise_ns

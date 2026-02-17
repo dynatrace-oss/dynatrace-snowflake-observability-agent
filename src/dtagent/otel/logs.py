@@ -118,8 +118,12 @@ class Logs:
                     except (ValueError, TypeError, OverflowError):
                         delattr(record, "observed_timestamp")
                     else:
-                        # Validate with auto-detection and return nanoseconds
-                        validated_ts_ns = validate_timestamp(observed_ts_val, return_unit="ns")
+                        # Validate with auto-detection and return nanoseconds; skip range validation to preserve original observed_timestamp
+                        validated_ts_ns = validate_timestamp(
+                            observed_ts_val,
+                            return_unit="ns",
+                            skip_range_validation=True,
+                        )
                         if validated_ts_ns:
                             setattr(record, "observed_timestamp", validated_ts_ns)
                         else:
