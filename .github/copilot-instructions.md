@@ -49,237 +49,63 @@ Every plugin **must** consist of three co-located parts:
 
 ## 🐍 Python Environment
 
-**CRITICAL:** This project uses a Python virtual environment at `.venv/`.
-
-**Always use the virtual environment when:**
-
-- Running Python: `source .venv/bin/activate && python ...` or `.venv/bin/python ...`
-- Running tests: `.venv/bin/pytest` or activate first
-- Running linters: `source .venv/bin/activate && make lint`
-- Installing packages: `.venv/bin/pip install ...`
-
-**Never** use system Python or assume global package installation.
-
-Install all dependencies:
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
+**CRITICAL:** Always use `.venv/` virtual environment. Run `.venv/bin/python` or `source .venv/bin/activate` first. Never use system Python.
 
 ## 📏 Code Style (MANDATORY)
 
-Code style is **non-negotiable**. Every change must pass the full lint suite before it is considered complete.
+Every change must pass `make lint` before completion. No exceptions.
 
 ### Python
 
-| Tool     | Config file                    | Key rules                                                            |
-| -------- | ------------------------------ | -------------------------------------------------------------------- |
-| `black`  | `pyproject.toml`               | `line-length = 140`, auto-format                                     |
-| `flake8` | `.flake8` / `setup.cfg`        | Google docstring convention, `max-line-length = 140`                 |
-| `pylint` | `.pylintrc` / `test/.pylintrc` | Score **must be 10.00/10**. `max-line-length = 140`, `max-args = 10` |
-
-- Docstrings follow the **Google style** (enforced by `flake8-docstrings`).
-- Test files are exempt from missing-docstring rules (`C0114`, `C0115`, `C0116` in `test/.pylintrc`).
-- Use `##region` / `##endregion` markers for code section organisation.
-- All source files **must** include the MIT copyright header (see existing files for template).
+- **black** (`line-length = 140`), **flake8** (Google docstrings), **pylint** (must score **10.00/10**)
+- Use `##region` / `##endregion` for section organization
+- MIT copyright header required in all source files
 
 ### SQL
 
-| Tool       | Config file | Key rules                                                           |
-| ---------- | ----------- | ------------------------------------------------------------------- |
-| `sqlfluff` | `.sqlfluff` | `dialect = snowflake`, `max_line_length = 140`, ignore parse errors |
+- **sqlfluff** (`dialect = snowflake`, `max_line_length = 140`)
+- ALL UPPERCASE object names, 3-digit file prefixes
+- Start with `use role/database/warehouse;`, grant to `DTAGENT_VIEWER`
 
-- Object names: **ALL UPPERCASE** (e.g., `DTAGENT_DB.APP.V_ACTIVE_QUERIES_INSTRUMENTED`).
-- File prefix: 3-digit ordering (`000_`, `031_`, `700_`, `801_`, `901_`).
-- Each file starts with `use role …; use database …; use warehouse …;`.
-- Grant `SELECT` / `USAGE` to `DTAGENT_VIEWER` after creation; grant task ownership to `DTAGENT_VIEWER`.
+### Markdown (markdownlint rules)
 
-### YAML / Markdown
-
-| Tool           | Config file          |
-| -------------- | -------------------- |
-| `yamllint`     | `.yamllint`          |
-| `markdownlint` | `.markdownlint.json` |
-
-#### Markdown Style (enforced by markdownlint)
-
-Critical rules you **must** follow when writing markdown:
-
-- **MD029**: Ordered lists use `1.` for all items (not `1. 2. 3.`)
-- **MD031**: Fenced code blocks need blank lines before and after
-- **MD032**: Lists need blank lines before and after
-- **MD034**: No bare URLs - use `[text](url)`
-- **MD036**: Don't use bold/italic as headings — use `##` or `###`
-- **MD040**: All code fences must specify language (e.g., ` ```python`, ` ```bash`, ` ```text`)
-- **MD050**: Use `**bold**` not `__bold__` (asterisks, not underscores)
-- **MD060**: Table columns must align with headers - avoid unicode characters within table cells as they can cause alignment issues
-
-**Common patterns:**
-
-```markdown
-<!-- CORRECT: Blank lines around lists -->
-Some text.
-
-- List item 1
-- List item 2
-- List item 3
-
-More text.
-
-<!-- CORRECT: Code blocks with language and blank lines -->
-Here's an example:
-
-```python
-def example():
-    return True
-```
-
-And another:
-
-```bash
-make lint
-```
-
-Now we continue.
-
-<!-- CORRECT: All list items use 1. -->
-1. First step
-1. Second step
-1. Third step
-
-<!-- INCORRECT: No blank lines, no language, bare URL -->
-See the implementation:
-```
-code here
-```
-Visit http://example.com for more.
-- item 1
-More text continues...
-```
-
-### Running linters
-
-```bash
-# All linters (same as CI)
-make lint
-
-# Individual
-make lint-python      # flake8
-make lint-format      # black --check
-make lint-pylint      # pylint src/ test/
-make lint-sql         # sqlfluff
-make lint-yaml        # yamllint
-make lint-markdown    # markdownlint
-make lint-bom         # BOM schema validation
-```
-
-**Before opening a PR, always run `make lint` and fix every issue.** The CI pipeline will reject non-clean code.
+- `MD029`: Ordered lists use `1.` for all items
+- `MD031/MD032`: Blank lines around code blocks and lists
+- `MD034`: Use `[text](url)`, not bare URLs
+- `MD036`: Use `##`/`###` for headings, not bold/italic
+- `MD040`: All code fences specify language (` ```python`, ` ```bash`, ` ```markdown`)
+- `MD050`: Use `**bold**` not `__bold__`
 
 ## 🧪 Testing (MANDATORY)
 
-Every feature, bugfix, or refactor **must** include or update tests. Coverage regressions are not acceptable.
+Every change must include or update tests. Use `.venv/bin/pytest`.
 
-### Framework
+### Test Infrastructure
 
-- **pytest** (configured in `pytest.ini`, `pythonpath = src`).
-- **bats** for bash script tests.
+- **pytest** (`test/core/`, `test/otel/`, `test/plugins/`, test infrastructure in `test/_utils.py`, `test/_mocks/`)
+- **Two modes**: Mocked (default, uses `test/test_data/*.pkl`) vs Live (when `test/credentials.yml` exists)
+- **Plugin pattern**: Subclass plugin, monkey-patch, call `execute_telemetry_test()` with multiple `disabled_telemetry` combos
 
-### Test suites
+### Writing Tests
 
-| Suite   | Path            | Scope                                                                        |
-| ------- | --------------- | ---------------------------------------------------------------------------- |
-| Core    | `test/core/`    | Configuration, utilities, views, connectors, documentation, copyrights, bash |
-| OTel    | `test/otel/`    | Logs, events, OTel manager                                                   |
-| Plugins | `test/plugins/` | One file per plugin + `test_1_validate.py`                                   |
-| Bash    | `test/bash/`    | Deployment scripts, config conversion                                        |
-
-### Two test modes
-
-1. **Local / Mocked** (default — no `test/credentials.yml`):
-   - Uses pickled data from `test/test_data/*.pkl`.
-   - Validates against golden results in `test/test_results/`.
-   - Fast, deterministic, CI-friendly.
-2. **Live** (when `test/credentials.yml` exists):
-   - Connects to a real Snowflake + Dynatrace instance.
-   - Use `-p` flag to refresh pickled baseline data.
-
-### Writing smart tests
-
-- **High signal, low boilerplate** — Tests should validate behavior, not recite implementation details.
-- **Proportional complexity** — A 500-line test for a 20-line function is a smell. Keep tests concise.
-- **Actually run tests** — Never claim tests pass without running `.venv/bin/pytest` and seeing green output.
-- **Iterate on failures** — When tests fail, analyze the failure, fix the root cause, rerun, and repeat until green.
-- **Never fake results** — Don't update test fixtures with fabricated data. Capture real output from real executions.
-- **Test multiple scenarios** — For plugins, validate with different `disabled_telemetry` combinations.
-
-### Plugin test pattern
-
-```python
-class TestMyPlugin:
-    PICKLES = {"APP.V_MY_VIEW": "test/test_data/my_plugin.pkl", ...}
-
-    def test_my_plugin(self):
-        # 1. Subclass the plugin to return pickled data from _get_table_rows()
-        # 2. Monkey-patch _get_plugin_class to return the test subclass
-        # 3. Call execute_telemetry_test() with multiple disabled_telemetry combos
-        # 4. Assert entry/log/metric/event counts
-```
-
-Tests are validated with **multiple disabled-telemetry combinations** (e.g., `[]`, `["metrics"]`, `["logs", "spans", "metrics", "events"]`).
-
-### Running tests
-
-```bash
-# Full suite
-.venv/bin/pytest
-
-# Core only
-scripts/dev/test_core.sh
-
-# Plugins only
-scripts/dev/test.sh
-
-# Single test file
-.venv/bin/pytest test/plugins/test_budgets.py -v
-```
-
-### Key test infrastructure
-
-| File                       | Purpose                                                           |
-| -------------------------- | ----------------------------------------------------------------- |
-| `test/__init__.py`         | `TestDynatraceSnowAgent`, `TestConfiguration`, credential helpers |
-| `test/_utils.py`           | Pickle helpers, `execute_telemetry_test()`, logging findings      |
-| `test/_mocks/telemetry.py` | `MockTelemetryClient` — captures and validates telemetry output   |
-| `test/conftest.py`         | Autouse `configure_logging` fixture                               |
+- High signal, low boilerplate — test behavior, not implementation
+- Actually run tests — never claim pass without seeing green output
+- Iterate on failures — analyze, fix, rerun until green
+- Never fabricate fixtures — capture real output
 
 ## 📖 Documentation (MANDATORY)
 
-Documentation is a **first-class deliverable**, not an afterthought. Every change must update relevant docs.
+Documentation is a first-class deliverable. Update relevant docs with every change.
 
-### What to update
+### What to Update
 
-| Change type            | Update these                                                                                      |
+| Change Type            | Files                                                                                             |
 | ---------------------- | ------------------------------------------------------------------------------------------------- |
 | New plugin             | `docs/PLUGINS.md`, plugin's `readme.md` + `config.md`, `instruments-def.yml`, `docs/SEMANTICS.md` |
 | New metric / attribute | `instruments-def.yml`, `docs/SEMANTICS.md`                                                        |
 | Architecture change    | `docs/ARCHITECTURE.md`                                                                            |
 | New version / release  | `docs/CHANGELOG.md` (user-facing highlights), `docs/DEVLOG.md` (technical details)                |
 | Config change          | `conf/config-template.yml`, plugin's `{name}-config.yml`                                          |
-| Installation change    | `docs/INSTALL.md`                                                                                 |
-| Contribution process   | `docs/CONTRIBUTING.md`                                                                            |
-
-### Changelog format
-
-```markdown
-## Dynatrace Snowflake Observability Agent X.Y.Z
-
-### Breaking Changes in X.Y.Z
-### New in X.Y.Z
-### Fixed in X.Y.Z
-### Improved in X.Y.Z
-```
 
 ### CHANGELOG vs DEVLOG
 
@@ -303,27 +129,30 @@ Documentation is a **first-class deliverable**, not an afterthought. Every chang
 
 **When to log where:**
 
-| Change Type                          | CHANGELOG           | DEVLOG                    |
-| ------------------------------------ | ------------------- | ------------------------- |
-| New plugin                           | ✅ Name + 1 sentence | ✅ Full implementation    |
-| Breaking change                      | ✅ Impact on users   | ✅ Migration path details |
-| Critical bug fix                     | ✅ User impact       | ✅ Root cause + fix       |
-| Internal refactoring                 | ❌                   | ✅ Full details           |
+| Change Type                              | CHANGELOG           | DEVLOG                    |
+| ---------------------------------------- | ------------------- | ------------------------- |
+| New plugin                               | ✅ Name + 1 sentence | ✅ Full implementation    |
+| Breaking change                          | ✅ Impact on users   | ✅ Migration path details |
+| Critical bug fix                         | ✅ User impact       | ✅ Root cause + fix       |
+| Internal refactoring                     | ❌                   | ✅ Full details           |
 | Timestamp handling change (user-visible) | ✅ Behavior change   | ✅ Implementation details |
-| Test infrastructure update           | ❌                   | ✅ Full details           |
-| Build script improvement             | Maybe (if user-facing) | ✅ Full details         |
-| Documentation update                 | ❌ (unless major)    | ✅ If technically relevant|
+| Test infrastructure update               | ❌                   | ✅ Full details           |
+| Build script improvement                 | Maybe (if user-facing) | ✅ Full details         |
+| Documentation update                     | ❌ (unless major)    | ✅ If technically relevant |
 
 **Example pair:**
 
 CHANGELOG.md:
+
 ```markdown
 - **Timestamp Handling**: Unified timestamp handling with smart unit detection, eliminating wasteful conversions
 ```
 
 DEVLOG.md:
+
 ```markdown
 #### Timestamp Handling Refactoring
+
 - **Motivation**: Eliminate wasteful ns→ms→ns conversions and clarify API requirements
 - **Approach**: Unified timestamp handling with smart unit detection
 - **Implementation**:
@@ -334,94 +163,31 @@ DEVLOG.md:
   ...
 ```
 
-### Docstrings
+### Autogenerated Files
 
-- **Google style** (enforced by `flake8-docstrings` with `docstring-convention = google`).
-- Required for all public modules, classes, and functions in `src/`.
-- Test files are exempt.
+**Documentation** (via `scripts/dev/build_docs.sh`): `docs/PLUGINS.md`, `docs/SEMANTICS.md`, `docs/APPENDIX.md`, `_readme_full.md` (source for PDF)
+**Build artifacts** (via `scripts/dev/compile.sh`): `build/_dtagent.py`, `build/_send_telemetry.py`, `build/_semantics.py`, `build/_version.py`, `build/_metric_semantics.txt`
 
-### Bill of Materials (BOM)
+**Never edit autogenerated files manually.** Edit source files (plugin `readme.md`, `instruments-def.yml`, config templates) and regenerate.
 
-Each plugin and the core config ship a `bom.yml` listing all delivered and referenced Snowflake objects. BOMs are validated against `test/src-bom.schema.json` during CI.
+### Other Documentation Requirements
 
-### Autogenerated Documentation
+- **Docstrings**: Google style, required for all public modules/classes/functions in `src/`
+- **BOM**: Each plugin ships `bom.yml` listing delivered/referenced Snowflake objects (validated against `test/src-bom.schema.json`)
 
-Several documentation files and build artifacts are **automatically generated** from source code. **Never edit these files manually** — your changes will be overwritten.
+## 🔧 Build & CI/CD
 
-#### Documentation Files (generated by `scripts/dev/build_docs.sh`)
+**Build pipeline**: `scripts/dev/compile.sh` (assemble), `scripts/dev/build.sh` (lint + compile + SQL), `scripts/dev/package.sh` (distribute)
 
-| File               | Generated From                                                 | Purpose                                          |
-| ------------------ | -------------------------------------------------------------- | ------------------------------------------------ |
-| `docs/PLUGINS.md`  | `src/dtagent/plugins/*/readme.md`, `config.md`                 | Plugin descriptions, configuration, use cases    |
-| `docs/SEMANTICS.md`| `src/dtagent/plugins/*/instruments-def.yml`                    | Metric/attribute definitions for all plugins     |
-| `docs/APPENDIX.md` | `conf/config-template.yml`, plugin configs                     | Configuration reference, default values, schemas |
-| `_readme_full.md`  | Combination of all docs (INSTALL, PLUGINS, SEMANTICS, etc.)    | PDF generation source (not committed)            |
+**Branch model**: `main` (stable), `devel` (integration), `feature/*`, `release/*`, `hotfix/*`, `dev/*` (personal)
 
-**To update these docs:**
-1. Edit the source files (e.g., `readme.md`, `instruments-def.yml`, `config-template.yml`)
-2. Run `scripts/dev/build_docs.sh` to regenerate the docs
-3. Commit both source files and generated docs
+**CI workflows**: `.github/workflows/ci.yml` (lint, test), `.github/workflows/release.yml` (build, package, release)
 
-#### Build Artifacts (generated by `scripts/dev/compile.sh`)
+## 📂 Context & Gitignored Paths
 
-| File                         | Generated From                                | Purpose                                                      |
-| ---------------------------- | --------------------------------------------- | ------------------------------------------------------------ |
-| `build/_dtagent.py`          | `src/dtagent/agent.py` + all plugins          | Single-file stored procedure for main agent                  |
-| `build/_send_telemetry.py`   | `src/dtagent/connector.py`                    | Single-file stored procedure for ad-hoc telemetry            |
-| `build/_semantics.py`        | `src/dtagent/otel/semantics.py`               | Preprocessed semantic definitions                            |
-| `build/_version.py`          | `src/dtagent/version.py`                      | Version with updated BUILD timestamp                         |
-| `build/_metric_semantics.txt`| `src/dtagent/plugins/*/instruments-def.yml`   | Generated metric descriptions (consumed by `_semantics.py`)  |
-
-**Generation Process:**
-- `src/build/assemble_semantics.py` — Reads all `instruments-def.yml` files, generates `build/_metric_semantics.txt`
-- `src/build/remove_docstrings.py` — Strips docstrings from compiled Python for size optimization
-- `src/build/update_docs.py` — Generates PLUGINS.md, SEMANTICS.md, APPENDIX.md
-
-**Never commit build artifacts** — they are regenerated on every compile and listed in `.gitignore`.
-
-### Building documentation
-
-```bash
-scripts/dev/build_docs.sh
-```
-
-## 🔧 Build & Release
-
-### Build pipeline
-
-```bash
-# 1. Compile (assemble single-file Python procedures)
-scripts/dev/compile.sh
-
-# 2. Full build (lint + compile + assemble SQL + embed Python in SQL)
-scripts/dev/build.sh
-
-# 3. Package (create distributable ZIP)
-scripts/dev/package.sh
-```
-
-### CI / CD
-
-| Workflow                        | Trigger                                                                     | Jobs                                                                   |
-| ------------------------------- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| `.github/workflows/ci.yml`      | Push / PR to `devel`, `main`, `dev/*`, `release/*`, `feature/*`, `hotfix/*` | `lint`, `test-documentation`, `test-bash`, `test-core`, `test-plugins` |
-| `.github/workflows/release.yml` | Push to `main` + tags                                                       | Build, package, upload artifacts, create GitHub Release                |
-
-### Branch model
-
-- `main` — stable release branch
-- `devel` — integration branch
-- `feature/*` — feature branches
-- `release/*` — release candidates
-- `hotfix/*` — urgent fixes
-- `dev/*` — personal development branches
-
-## 📂 Context & Private References
-
-- **Private context:** `.github/context/` (gitignored) — place detailed [release plans](context/dev-notes/), roadmaps, spike notes, and other sensitive planning artifacts here.
-- **Configuration profiles:** `conf/` directory holds environment-specific JSON configs (gitignored).
-- **Credentials:** `test/credentials.yml` (gitignored) — for live testing against Snowflake/Dynatrace.
-- **Legacy & migration:** SQL upgrade scripts live in `src/dtagent.sql/upgrade/` and `build/09_upgrade/`.
+- `.github/context/` — private planning, proposals, roadmaps
+- `conf/` — environment-specific configs
+- `test/credentials.yml` — for live testing
 
 ## 🚀 Delivery Process
 
@@ -429,115 +195,93 @@ Delivering a new release or feature follows **three mandatory phases**. Do not s
 
 ### Phase 1 — Proposal
 
-Before writing any code, produce a **written proposal** that covers:
+Before writing code, produce a **written proposal** covering:
 
-1. **Problem statement** — What user pain, use case, or scenario motivates this work?
-2. **Scope** — Which plugins, modules, SQL objects, and config keys are affected?
-3. **Acceptance criteria** — Concrete, testable conditions that define "done".
-4. **Risks & trade-offs** — Breaking changes, performance impact, backward compatibility.
-5. **Out of scope** — Explicitly list what will _not_ be addressed.
+1. Problem statement, scope, acceptance criteria
+1. Risks, trade-offs, backward compatibility
+1. Explicitly list what's out of scope
 
-The proposal should be stored in `.github/context/proposals/` (gitignored). It must be **reviewed and accepted** before moving to Phase 2.
+Store in `.github/context/proposals/` (gitignored). Must be reviewed and accepted before Phase 2.
 
 ### Phase 2 — Implementation Plan
 
-Once the proposal is accepted, create a detailed **implementation plan**:
+Create **implementation plan** with:
 
-1. **Task breakdown** — Ordered list of discrete, individually testable tasks.
-2. **Affected files** — For each task, list the files to create or modify.
-3. **Test strategy** — Which test suites need new/updated tests? New pickle data? New golden results?
-4. **Documentation plan** — Which docs pages need updates?
-5. **Migration / upgrade path** — If applicable, specify SQL upgrade scripts and config migration.
-6. **Dependencies** — External library changes, Snowflake version requirements, Dynatrace API changes.
+1. Task breakdown (ordered, discrete, testable)
+1. Affected files for each task
+1. Test strategy (new/updated tests, pickle data)
+1. Documentation plan
+1. Migration/upgrade path if needed
 
-The plan should be stored alongside the proposal in `.github/context/proposals/`. It must be **reviewed and accepted** before moving to Phase 3.
+Store alongside proposal. Must be reviewed and accepted before Phase 3.
 
 ### Phase 3 — Implementation
 
-Implement by **iterating on tasks from the accepted plan**:
+**Iterate on tasks from the accepted plan:**
 
-1. **One task at a time** — Pick the next task, implement it, test it, lint it.
-2. **For each task (tight feedback loop):**
-   - Write or update the code.
-   - Write or update tests (run `.venv/bin/pytest` and confirm pass).
-   - **If tests fail:** Analyze the failure, fix the issue, rerun tests. Iterate until green.
-   - Run `make lint` and fix all issues (`pylint` must be **10.00/10**).
-   - Update documentation (docstrings, markdown docs, `instruments-def.yml`, `bom.yml`).
-   - **Commit the change** — Make small, frequent commits for each completed task. This creates safe rollback points.
-   - Mark the task as completed.
-3. **After all tasks:**
-   - Run the full test suite (`.venv/bin/pytest`).
-   - Run `make lint` one final time.
-   - Run `scripts/dev/build.sh` to confirm a clean build.
-   - Update `docs/CHANGELOG.md`.
-   - **Review the full changeset** — Check which files changed, verify scope is reasonable, confirm tests are included.
-   - Open a PR following the branch model.
+1. **One task at a time**: implement, test, lint
+1. **For each task**:
+   - Write/update code and tests
+   - Run `.venv/bin/pytest` — iterate until green
+   - Run `make lint` — fix all issues (pylint **10.00/10**)
+   - Update docs (docstrings, markdown, `instruments-def.yml`, `bom.yml`)
+   - **Commit** — small, frequent commits per task
+1. **After all tasks**:
+   - Run full test suite and `make lint`
+   - Run `scripts/dev/build.sh`
+   - Update `docs/CHANGELOG.md` (highlights) and `docs/DEVLOG.md` (technical details)
+   - Review changeset, open PR
 
 ### Phase 4 — Validation & Verification
 
-**The human verifies.** This phase is the human reviewer's responsibility, but you should facilitate it:
+**Human verifies** (you facilitate):
 
-1. **Prepare verification artifacts:**
-   - List all modified files and their purpose.
-   - Highlight any architectural or interface changes.
-   - Document test coverage for new/changed code.
-   - Note any performance, security, or scalability implications.
+- List modified files and purpose
+- Highlight architectural/interface changes
+- Document test coverage
+- Note performance/security implications
 
-2. **What the human will verify:**
-   - **Correctness** — Does the implementation match requirements?
-   - **Architecture** — Are design decisions sound?
-   - **Tests** — Do tests validate the right behavior? Are they smart (high signal, not verbose)?
-   - **Performance** — Have benchmarks been run (not fabricated)?
-   - **Security** — Are there vulnerabilities or credential leaks?
-   - **Scope** — Did you stay focused, or did scope creep in?
-   - **Documentation** — Is it accurate and complete?
-
-3. **Manual testing is mandatory** — Automated tests alone are not sufficient. The human must test the functionality.
+Human validates: correctness, architecture, tests, performance, security, scope, documentation.
 
 ## ⚠️ Anti-Patterns & Pitfalls
 
-Avoid these common failure modes when implementing changes:
+Avoid these common failure modes:
 
 ### Scope Creep & Runaway Refactoring
 
-- **Don't refactor the entire codebase for a simple change.** If you find yourself touching many unrelated files, stop and reassess.
-- **Stay focused on the task.** If you discover other issues, note them separately but don't fix them now.
-- **Resist over-engineering.** Don't create mega-abstractions, unnecessary layers, or complex patterns for simple problems.
+- **Don't refactor the entire codebase for a simple change.** Stop if touching many unrelated files.
+- **Stay focused.** Note other issues separately; don't fix them now.
+- **Resist over-engineering.** Don't create mega-abstractions for simple problems.
 
-### Test Quality Issues
+### Test Quality
 
-- **Never "fix" a failing test by marking it as passing** without actually fixing the underlying issue.
-- **Don't write 500-line tests for 20-line functions.** Aim for smart, high-signal tests with minimal boilerplate.
-- **Never fabricate test data or benchmark results.** Always run real tests and capture actual output.
-- **Don't skip running tests.** If you claim tests pass, you must have actually run them and seen green output.
+- Never "fix" a failing test without fixing the underlying issue.
+- Don't write 500-line tests for 20-line functions.
+- Never fabricate test data or benchmarks — always capture real output.
+- Don't skip running tests. Must see green output.
 
-### Documentation & Output Quality
+### Documentation & Output
 
-- **Don't produce mega-documents** filled with boilerplate and verbosity. Be concise and specific.
-- **Never share unreviewed AI-generated content** as if it were human-reviewed. If proposing draft content, mark it explicitly.
-- **Don't pollute the repo with dead code, unused abstractions, or redundant docs.** Clean up as you go.
+- Don't produce mega-documents with boilerplate. Be concise.
+- Never share unreviewed AI content as if human-reviewed.
+- Clean up dead code and redundant docs as you go.
 
-### Context & Specificity
+### Context & Commits
 
-- **When stuck, ask for context** before making assumptions or guessing.
-- **Don't make vague changes hoping they'll work.** Understand the problem, then implement a targeted fix.
-- **If you lack information to complete a task correctly, request it explicitly.**
-
-### Commit & Change Management
-
-- **Don't create giant PRs with hundreds of changes.** Break work into small, reviewable commits.
-- **Never let large amounts of uncommitted changes pile up.** Commit frequently.
-- **Don't mix unrelated changes in a single commit.** One logical change per commit.
+- When stuck, ask for context before guessing.
+- Don't make vague changes hoping they work.
+- Don't create giant PRs. Break into small commits.
+- Commit frequently. One logical change per commit.
 
 ## 📜 Coding Principles
 
-- **Plugin isolation** — Plugins must be self-contained. No cross-plugin imports. Shared logic goes in `src/dtagent/util.py` or `src/dtagent/otel/`.
-- **Code quality is mandatory** — `make lint` must pass. `pylint` must score **10.00/10**. No exceptions.
-- **Test everything** — Every change must have tests. Use the dual-mode (mock/live) test pattern.
-- **Document everything** — Docstrings (Google style), `instruments-def.yml` for metrics, `bom.yml` for objects, markdown docs for users.
-- **Copyright headers** — All new source files (Python, SQL, Bash) must include the MIT copyright header.
-- **Compile markers** — Use `##region` / `##endregion COMPILE_REMOVE` for dev-only imports that should be stripped at compile time. Use `##INSERT` directives for file assembly.
-- **Conditional SQL** — Use `--%PLUGIN:name:` / `--%:PLUGIN:name` and `--%OPTION:name:` / `--%:OPTION:name` for conditional inclusion.
-- **Configuration** — Never hard-code values that should be configurable. Add new config keys to the template and plugin config YAML.
-- **Security** — Never commit credentials, tokens, or connection strings. Use `.gitignore` patterns and `_snowflake.read_secret()`.
-- **Backward compatibility** — Provide upgrade SQL scripts when modifying existing objects. Document breaking changes.
+- **Plugin isolation** — No cross-plugin imports. Shared logic → `src/dtagent/util.py` or `src/dtagent/otel/`
+- **Code quality** — `make lint` must pass. Pylint **10.00/10**. No exceptions
+- **Test everything** — Every change needs tests. Use dual-mode (mock/live) pattern
+- **Document everything** — Docstrings (Google), `instruments-def.yml`, `bom.yml`, markdown
+- **Copyright** — MIT header in all new files
+- **Compile markers** — `##region COMPILE_REMOVE` for dev-only, `##INSERT` for assembly
+- **Conditional SQL** — `--%PLUGIN:name:` / `--%OPTION:name:` for conditionals
+- **Configuration** — Never hard-code. Add to templates and YAML
+- **Security** — Never commit credentials. Use `.gitignore` and `_snowflake.read_secret()`
+- **Backward compatibility** — Upgrade scripts for object changes. Document breaking changes
