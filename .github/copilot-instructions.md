@@ -98,10 +98,10 @@ Code style is **non-negotiable**. Every change must pass the full lint suite bef
 
 ### YAML / Markdown
 
-| Tool           | Config file          |
-| -------------- | -------------------- |
-| `yamllint`     | `.yamllint`          |
-| `markdownlint` | `.markdownlint.json` |
+| Tool           | Config file          | Key rules                                    |
+| -------------- | -------------------- | -------------------------------------------- |
+| `yamllint`     | `.yamllint`          |                                              |
+| `markdownlint` | `.markdownlint.json` | Blank lines required around lists (MD032)    |
 
 ### Running linters
 
