@@ -25,6 +25,7 @@ Released on TBD
 - **Budgets Plugin**: Enhanced budget data collection using `SYSTEM$SHOW_BUDGETS_IN_ACCOUNT()`.
 - **Query Hierarchy Validation**: Improved span hierarchy validation using `parent_query_id` and `root_query_id` fields with OpenTelemetry propagation standards.
 - **Test Infrastructure**: Refactored tests to use synthetic JSON fixtures for input/output validation instead of live Dynatrace API calls.
+- **Test Fixtures**: Migrated all plugin test input data from binary Python pickle files (`.pkl`) to human-readable NDJSON format (`.ndjson`), improving transparency and enabling direct manual inspection and version control of test data.
 - **Event Tables Cost Optimization**: Added guidance for fine-tuning Event Table usage to manage Snowflake costs.
 
 ## Dynatrace Snowflake Observability Agent 0.9.3

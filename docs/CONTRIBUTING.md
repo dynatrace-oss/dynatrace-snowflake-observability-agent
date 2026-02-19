@@ -203,8 +203,8 @@ pytest test/plugins/
 ./scripts/dev/test.sh test_budgets
 ```
 
-**Regenerate test data (Pickles):**
-If you modify a plugin's SQL logic, you may need to update the test data.
+**Regenerate NDJSON fixtures:**
+If you modify a plugin's SQL logic, you may need to regenerate its fixture data from a live Snowflake environment.
 
 ```bash
 ./scripts/dev/test.sh test_budgets -p

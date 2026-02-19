@@ -24,9 +24,9 @@
 #
 
 if [ "$1" == 'y' ]; then
-    PICKLE_CONF='--pickle_conf -y'
-else 
-    PICKLE_CONF=''
+    CONF_FLAG='--pickle_conf -y'
+else
+    CONF_FLAG=''
 fi
 
 iter_dir() {
@@ -39,5 +39,5 @@ iter_dir() {
     done
 }
 
-iter_dir core $PICKLE_CONF
+iter_dir core $CONF_FLAG
 iter_dir otel ''

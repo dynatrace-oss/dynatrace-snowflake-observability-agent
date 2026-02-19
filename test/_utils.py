@@ -102,8 +102,7 @@ def _dump_fixture_row(row_dict: dict) -> str:
 def _generate_fixture(session: snowpark.Session, t_data: str, fixture_path: str, operation: Optional[Callable] = None) -> None:
     """Generate an NDJSON fixture file from a live Snowflake table or SQL query.
 
-    Replaces the former ``_pickle_data_history`` function.  The output path
-    must follow the ``{plugin_name}[_{view_suffix}].ndjson`` convention.
+    The output path must follow the ``{plugin_name}[_{view_suffix}].ndjson`` convention.
 
     Args:
         session (snowpark.Session): Active Snowflake Snowpark session.
@@ -129,14 +128,8 @@ def _generate_fixture(session: snowpark.Session, t_data: str, fixture_path: str,
     print(f"Generated fixture {fixture_path} ({len(rows)} rows)")
 
 
-# Backward-compat alias — callers can migrate to _generate_fixture() at their own pace.
-_pickle_data_history = _generate_fixture
-
-
 def _generate_all_fixtures(session: snowpark.Session, fixtures: dict, force: bool = False) -> None:
     """Generate NDJSON fixture files for all tables in the fixtures dictionary.
-
-    Replaces the former ``_pickle_all`` function.
 
     Args:
         session (snowpark.Session): Active Snowflake Snowpark session.
@@ -146,10 +139,6 @@ def _generate_all_fixtures(session: snowpark.Session, fixtures: dict, force: boo
     if force or should_generate_fixtures(fixtures.values()):
         for table_name, fixture_path in fixtures.items():
             _generate_fixture(session, table_name, fixture_path)
-
-
-# Backward-compat alias
-_pickle_all = _generate_all_fixtures
 
 
 def _logging_findings(
@@ -245,10 +234,6 @@ def _safe_get_fixture_entries(fixtures: dict, table_name: str, *args, **kwargs) 
     return _get_fixture_entries(fixtures[table_name], *args, **kwargs)
 
 
-# Backward-compat alias
-_safe_get_unpickled_entries = _safe_get_fixture_entries
-
-
 def should_generate_fixtures(fixture_files) -> bool:
     """Return True when fixture files need to be (re-)generated from Snowflake.
 
@@ -262,10 +247,6 @@ def should_generate_fixtures(fixture_files) -> bool:
         True if fixture regeneration is needed.
     """
     return (len(sys.argv) > 1 and sys.argv[1] == "-p") or any(not os.path.exists(f) for f in fixture_files)
-
-
-# Backward-compat alias
-should_pickle = should_generate_fixtures
 
 
 def _merge_fixtures_from_tests() -> Dict[str, str]:
@@ -323,7 +304,7 @@ class LocalTelemetrySender(TelemetrySender):
 def telemetry_test_sender(
     session: snowpark.Session, sources: str, params: dict, limit_results: int = 2, config: TestConfiguration = None, test_source: str = None
 ) -> Tuple[int, int, int, int, int]:
-    """Invokes send_data function on a LocalTelemetrySender instance, which uses pickled data for testing purposes
+    """Invoke send_data on a LocalTelemetrySender instance using NDJSON fixture data for testing.
 
     Args:
         session (snowpark.Session): The Snowflake session used to access tables.

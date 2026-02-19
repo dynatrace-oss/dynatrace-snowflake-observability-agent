@@ -142,12 +142,12 @@ Every feature, bugfix, or refactor **must** include or update tests. Coverage re
 ### Two test modes
 
 1. **Local / Mocked** (default — no `test/credentials.yml`):
-   - Uses pickled data from `test/test_data/*.pkl`.
+   - Uses NDJSON fixture data from `test/test_data/*.ndjson`.
    - Validates against golden results in `test/test_results/`.
    - Fast, deterministic, CI-friendly.
 2. **Live** (when `test/credentials.yml` exists):
    - Connects to a real Snowflake + Dynatrace instance.
-   - Use `-p` flag to refresh pickled baseline data.
+   - Use `-p` flag to regenerate NDJSON fixtures from a live Snowflake environment.
 
 ### Writing smart tests
 
@@ -162,10 +162,10 @@ Every feature, bugfix, or refactor **must** include or update tests. Coverage re
 
 ```python
 class TestMyPlugin:
-    PICKLES = {"APP.V_MY_VIEW": "test/test_data/my_plugin.pkl", ...}
+    FIXTURES = {"APP.V_MY_VIEW": "test/test_data/my_plugin.ndjson", ...}
 
     def test_my_plugin(self):
-        # 1. Subclass the plugin to return pickled data from _get_table_rows()
+        # 1. Subclass the plugin to return NDJSON fixture data from _get_table_rows()
         # 2. Monkey-patch _get_plugin_class to return the test subclass
         # 3. Call execute_telemetry_test() with multiple disabled_telemetry combos
         # 4. Assert entry/log/metric/event counts
@@ -194,7 +194,7 @@ scripts/dev/test.sh
 | File                       | Purpose                                                           |
 | -------------------------- | ----------------------------------------------------------------- |
 | `test/__init__.py`         | `TestDynatraceSnowAgent`, `TestConfiguration`, credential helpers |
-| `test/_utils.py`           | Pickle helpers, `execute_telemetry_test()`, logging findings      |
+| `test/_utils.py`           | Fixture helpers, `execute_telemetry_test()`, logging findings      |
 | `test/_mocks/telemetry.py` | `MockTelemetryClient` — captures and validates telemetry output   |
 
 ## 📖 Documentation (MANDATORY)
@@ -300,7 +300,7 @@ Once the proposal is accepted, create a detailed **implementation plan**:
 
 1. **Task breakdown** — Ordered list of discrete, individually testable tasks.
 2. **Affected files** — For each task, list the files to create or modify.
-3. **Test strategy** — Which test suites need new/updated tests? New pickle data? New golden results? For new plugins, include a dedicated test environment setup task (see [`docs/PLUGIN_DEVELOPMENT.md`](../docs/PLUGIN_DEVELOPMENT.md)).
+3. **Test strategy** — Which test suites need new/updated tests? New NDJSON fixtures? New golden results? For new plugins, include a dedicated test environment setup task (see [`docs/PLUGIN_DEVELOPMENT.md`](../docs/PLUGIN_DEVELOPMENT.md)).
 4. **Documentation plan** — Which docs pages need updates? New plugins always require `docs/PLUGINS.md`, `docs/USECASES.md`, plugin `readme.md`, `instruments-def.yml`, and `docs/SEMANTICS.md`.
 5. **Migration / upgrade path** — If applicable, specify SQL upgrade scripts and config migration.
 6. **Dependencies** — External library changes, Snowflake version requirements, Dynatrace API changes.
