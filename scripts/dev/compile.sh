@@ -23,6 +23,11 @@
 #
 #
 
+# Activate virtual environment
+if [ -f ".venv/bin/activate" ]; then
+    source .venv/bin/activate
+fi
+
 # Updating build number
 
 TS=$(date +%s%3)

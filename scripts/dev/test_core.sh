@@ -23,9 +23,14 @@
 #
 #
 
+# Activate virtual environment
+if [ -f ".venv/bin/activate" ]; then
+    source .venv/bin/activate
+fi
+
 if [ "$1" == 'y' ]; then
     PICKLE_CONF='--pickle_conf -y'
-else 
+else
     PICKLE_CONF=''
 fi
 

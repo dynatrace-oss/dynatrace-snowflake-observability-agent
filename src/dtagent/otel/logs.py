@@ -29,7 +29,7 @@ import logging
 from typing import Dict, Optional, Any
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk._logs import LoggerProvider
-from dtagent.util import get_timestamp_in_ms, validate_timestamp_ms
+from dtagent.util import get_timestamp, validate_timestamp, process_timestamps_for_telemetry
 from dtagent.otel.otel_manager import CustomLoggingSession, OtelManager
 
 ##endregion COMPILE_REMOVE
@@ -38,7 +38,16 @@ from dtagent.otel.otel_manager import CustomLoggingSession, OtelManager
 
 
 class Logs:
-    """Main Logs class"""
+    """Main Logs class for sending logs via Dynatrace OTLP Logs API.
+
+    API Specifications:
+    - Dynatrace OTLP Logs: https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-logs
+    - OTLP Logs Standard: https://opentelemetry.io/docs/specs/otel/logs/data-model/
+
+    Note: Dynatrace requires timestamps in milliseconds (UTC milliseconds, RFC3339, or RFC3164),
+    which differs from the OTLP standard that specifies nanoseconds. However, `observed_timestamp`
+    must be in nanoseconds per OTLP standard to preserve original timestamp precision.
+    """
 
     from dtagent.config import Configuration  # COMPILE_REMOVE
 
@@ -85,38 +94,38 @@ class Logs:
 
             def filter(self, record: logging.LogRecord) -> bool:
                 # Handle timestamp field (for log record timing)
-                ts_ms = getattr(record, "timestamp", None)
-                if ts_ms is not None:
+                ts_attr = getattr(record, "timestamp", None)
+                if ts_attr is not None:
                     delattr(record, "timestamp")
 
-                    # Validate timestamp is positive and reasonable (not before 1970 or far in the future)
                     try:
-                        ts_ms = int(ts_ms)
-                        # Ensure timestamp is positive and within reasonable range
-                        # Min: 0 (epoch), Max: year 2100 (approx 4102444800000 ms)
-                        if 0 < ts_ms <= 4102444800000:
-                            record.created = ts_ms / 1_000
-                            record.msecs = ts_ms % 1_000
+                        ts_val = int(ts_attr)
+                        # Validate with auto-detection and convert to milliseconds using standard validation
+                        validated_ts_ms = validate_timestamp(ts_val, return_unit="ms")
+                        if validated_ts_ms:
+                            record.created = validated_ts_ms / 1_000
+                            record.msecs = validated_ts_ms % 1_000
                     except (ValueError, TypeError, OverflowError):
                         # If conversion fails, use default timestamp
                         pass
 
-                # Handle observed_timestamp field (for OTEL payload, expected in nanoseconds)
-                observed_ts = getattr(record, "observed_timestamp", None)
-                if observed_ts is not None:
+                # Handle observed_timestamp field (must be in nanoseconds per OTLP standard)
+                observed_ts_attr = getattr(record, "observed_timestamp", None)
+                if observed_ts_attr is not None:
                     try:
-                        observed_ts_ms = int(observed_ts)
+                        observed_ts_val = int(observed_ts_attr)
                     except (ValueError, TypeError, OverflowError):
-                        # Invalid value; remove the attribute so we do not send bad data
                         delattr(record, "observed_timestamp")
                     else:
-                        # Use shared validation for millisecond timestamps
-                        validated_ts_ms = validate_timestamp_ms(observed_ts_ms)
-                        if validated_ts_ms:
-                            # Convert milliseconds to nanoseconds for OTEL
-                            setattr(record, "observed_timestamp", validated_ts_ms * 1_000_000)
+                        # Validate with auto-detection and return nanoseconds; skip range validation to preserve original observed_timestamp
+                        validated_ts_ns = validate_timestamp(
+                            observed_ts_val,
+                            return_unit="ns",
+                            skip_range_validation=True,
+                        )
+                        if validated_ts_ns:
+                            setattr(record, "observed_timestamp", validated_ts_ns)
                         else:
-                            # If invalid, remove the attribute
                             delattr(record, "observed_timestamp")
 
                 return True
@@ -165,15 +174,13 @@ class Logs:
         # otherwise OTEL seems to be sending objects cannot be deserialized on the Dynatrace side
         o_extra = {k: __adjust_log_attribute(k, v) for k, v in _cleanup_data(extra).items() if v} if extra else {}
 
-        # first we record original timestamp in milliseconds as observed_timestamp attribute
-        timestamp = None
-        observed_timestamp = get_timestamp_in_ms(o_extra, "timestamp")
-        if observed_timestamp:
-            # we validate the original timestamp and record value that is correct for ingest
-            _timestamp = validate_timestamp_ms(observed_timestamp)
-            if _timestamp:
-                o_extra["timestamp"] = _timestamp
-                timestamp = _timestamp
+        # Process timestamps using standard pattern:
+        # - timestamp in milliseconds (Dynatrace OTLP Logs API deviation from spec)
+        # - observed_timestamp in nanoseconds (per OTLP standard)
+        validated_timestamp_ms, validated_observed_timestamp_ns = process_timestamps_for_telemetry(o_extra)
+
+        if validated_timestamp_ms:
+            o_extra["timestamp"] = validated_timestamp_ms
 
         LOG.log(LL_TRACE, o_extra)
 
@@ -183,12 +190,9 @@ class Logs:
         ):  # remove telemetry.sdk.language="python" which is added by OTEL by default as resource attribute
             del raw_payload["telemetry.sdk.language"]
 
-        # Only include observed_timestamp if it's valid and different from the validated timestamp
-        # The validate_timestamp_ms call in CustomOTelTimestampFilter will catch any that slip through
-        if observed_timestamp and observed_timestamp != timestamp:
-            validated_observed = validate_timestamp_ms(observed_timestamp)
-            if validated_observed:
-                raw_payload["observed_timestamp"] = validated_observed
+        # Add observed_timestamp if available (in nanoseconds per OTLP standard)
+        if validated_observed_timestamp_ns:
+            raw_payload["observed_timestamp"] = validated_observed_timestamp_ns
 
         payload = _cleanup_dict(raw_payload)
 

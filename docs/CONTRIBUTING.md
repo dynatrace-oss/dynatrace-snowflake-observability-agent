@@ -373,6 +373,8 @@ Before submitting a PR, please ensure:
 - [ ] You have added tests for any new functionality
 - [ ] All tests pass locally (`pytest` and `./test/bash/run_tests.sh`)
 - [ ] Documentation (`README.md`, `PLUGIN_DEVELOPMENT.md`, etc.) is updated if needed
+- [ ] User-facing changes are documented in `docs/CHANGELOG.md` (highlights only)
+- [ ] Technical implementation details are documented in `docs/DEVLOG.md`
 - [ ] If adding a plugin, `instruments-def.yml` is defined and valid
 - [ ] Code follows the [Semantic Conventions](#semantic-conventions)
 - [ ] If changing SQL objects, all names are UPPERCASE

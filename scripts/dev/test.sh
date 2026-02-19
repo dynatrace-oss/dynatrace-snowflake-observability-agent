@@ -23,6 +23,11 @@
 #
 #
 
+# Activate virtual environment
+if [ -f ".venv/bin/activate" ]; then
+    source .venv/bin/activate
+fi
+
 # to pickle new test data call as
 # ./test.sh $test_name -p
 # You can also pickle for all tests at once, by running
