@@ -40,7 +40,7 @@ from dtagent.otel import _log_warning
 from dtagent.otel.otel_manager import OtelManager
 from dtagent.otel.events import EventType, AbstractEvents
 from dtagent.otel.events.generic import GenericEvents
-from dtagent.util import StringEnum, get_timestamp_in_ms
+from dtagent.util import StringEnum, get_timestamp
 from dtagent.version import VERSION
 
 ##endregion COMPILE_REMOVE
@@ -49,8 +49,11 @@ from dtagent.version import VERSION
 
 
 class DavisEvents(GenericEvents):
-    """Allows for parsing and sending (Davis) Events payloads via Events v2 API
-    https://docs.dynatrace.com/docs/discover-dynatrace/platform/openpipeline/reference/api-ingestion-reference#davis-events
+    """Allows for parsing and sending (Davis) Events payloads via Events v2 API.
+
+    API Specifications:
+    - Dynatrace Events API v2:
+      https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-api/environment-api/events-v2/post-event
 
     Note: Events API does not support sending multiple events at the same time, as a bulk, like in BizEvents or OpenPipelineEvents.
 
