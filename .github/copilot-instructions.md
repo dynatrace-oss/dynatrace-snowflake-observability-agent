@@ -67,7 +67,10 @@ Every change must pass `make lint` before completion. No exceptions.
 - ALL UPPERCASE object names, 3-digit file prefixes
 - Start with `use role/database/warehouse;`, grant to `DTAGENT_VIEWER`
 
-### Markdown (markdownlint rules)
+| Tool           | Config file          | Key rules                                    |
+| -------------- | -------------------- | -------------------------------------------- |
+| `yamllint`     | `.yamllint`          |                                              |
+| `markdownlint` | `.markdownlint.json` | Blank lines required around lists (MD032)    |
 
 - `MD029`: Ordered lists use `1.` for all items
 - `MD031/MD032`: Blank lines around code blocks and lists
