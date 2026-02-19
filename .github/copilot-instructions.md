@@ -267,7 +267,7 @@ Create **implementation plan** with:
 
 1. Task breakdown (ordered, discrete, testable)
 1. Affected files for each task
-1. Test strategy (new/updated tests, pickle data)
+1. Test strategy (new/updated tests, prepare data fixtures, test environments)
 1. Documentation plan
 1. Migration/upgrade path if needed
 1. Dependencies: external libraries, Snowflake version requirements, Dynatrace API changes

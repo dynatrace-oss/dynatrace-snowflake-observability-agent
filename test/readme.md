@@ -152,7 +152,7 @@ Expected telemetry output (metrics, logs, spans, events) is stored as structured
 ### Test Environment Setup
 
 1. Copy `test/credentials.template.yaml` to `test/credentials.yml` (for live mode)
-2. Generate config: `pytest test/core/test_config.py::TestConfig::test_init --pickle_conf y`
+2. Generate config: `pytest test/core/test_config.py::TestConfig::test_init --save_conf y`
 3. Run tests in local mode (recommended for development)
 
 ### CI/CD Integration

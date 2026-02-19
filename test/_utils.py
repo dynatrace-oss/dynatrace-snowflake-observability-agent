@@ -391,9 +391,9 @@ def execute_telemetry_test(
         assert results[test_name][RUN_RESULTS_KEY][plugin_key].get("events", 0) == events_expected
 
 
-def get_config(pickle_conf: str = None) -> TestConfiguration:
+def get_config(save_conf: str = None) -> TestConfiguration:
     conf = {}
-    if pickle_conf == "y":  # recreate the config file
+    if save_conf == "y":  # recreate the config file
         from test import _get_session
 
         session = _get_session()

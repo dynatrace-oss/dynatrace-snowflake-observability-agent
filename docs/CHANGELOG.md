@@ -321,7 +321,7 @@ Released on Oct 8, 2024.
 
 ### Added in 0.7.2
 
-- Pickle for testing of the Users plugin.
+- Fixtures for testing of the Users plugin.
 - Copyright statements to the code.
 
 ### Fixed in 0.7.2

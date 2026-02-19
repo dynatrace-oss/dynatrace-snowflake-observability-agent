@@ -45,7 +45,7 @@ Plugin tests support two execution modes:
 ### 1. Local Mode (Mocked APIs)
 
 - Runs without live Snowflake/Dynatrace connections
-- Uses pickled test data from `test/test_data/`
+- Uses saved test data from `test/test_data/`
 - Validates against expected results in `test/test_results/`
 - **Default mode** when `test/credentials.yml` is not present
 
@@ -69,11 +69,11 @@ When adding new plugins or changing data collection logic:
 ./test.sh -a -p
 ```
 
-This creates new pickle files in `test/test_data/` and result files in `test/test_results/`.
+This creates new test fixture files in `test/test_data/` and result files in `test/test_results/`.
 
 ### Test Data Structure
 
-- **Input data**: Pickle files (`.pkl`) in `test/test_data/`
+- **Input data**: Test fixture files (`.ndjson`) in `test/test_data/`
 - **Expected results**: Text files in `test/test_results/`
 - **Reference data**: NDJSON files for human-readable inspection
 

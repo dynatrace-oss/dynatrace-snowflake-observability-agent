@@ -246,7 +246,7 @@ To run tests in live mode:
 3. **Generate `test/conf/config-download.yml`** by running:
 
    ```bash
-   PYTHONPATH="./src" pytest -s -v "test/core/test_config.py::TestConfig::test_init" --pickle_conf y
+   PYTHONPATH="./src" pytest -s -v "test/core/test_config.py::TestConfig::test_init" --save_conf y
    ```
 
 ### Running Tests in Local Mode

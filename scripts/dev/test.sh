@@ -37,7 +37,7 @@ if [ -f ".venv/bin/activate" ]; then
 fi
 
 TEST_NAME=$1
-TO_PICKLE=$2
+SAFE_TEST_FIXTURE=$2
 RUN_QUALITY_CHECK=$3
 
 TEST_FILE_PYTHON_PATH="test.plugins.$TEST_NAME"
@@ -87,7 +87,7 @@ code_quality_checks() {
     fi
 }
 
-if [ "$TO_PICKLE" == "-p" ]; then
+if [ "$SAFE_TEST_FIXTURE" == "-p" ]; then
 
     if [ "$TEST_NAME" == "-a" ]; then
         code_quality_checks src/dtagent/plugins test/plugins
@@ -99,7 +99,7 @@ if [ "$TO_PICKLE" == "-p" ]; then
             TEST_FILE_PYTHON_PATH="test.plugins.${TEST_NAME}"
 
             echo "Generating fixtures for ${TEST_NAME}"
-            PYTHONPATH="$PYTHONPATH:./src" python -m $TEST_FILE_PYTHON_PATH $TO_PICKLE
+            PYTHONPATH="$PYTHONPATH:./src" python -m $TEST_FILE_PYTHON_PATH $SAFE_TEST_FIXTURE
         done
 
         echo "Running all plugin tests"
@@ -109,7 +109,7 @@ if [ "$TO_PICKLE" == "-p" ]; then
         code_quality_checks $PLUGIN_FILE $TEST_FILE_PATH
 
         echo "Generating NDJSON fixtures for ${TEST_NAME}."
-        PYTHONPATH="$PYTHONPATH:./src" python -m $TEST_FILE_PYTHON_PATH $TO_PICKLE
+        PYTHONPATH="$PYTHONPATH:./src" python -m $TEST_FILE_PYTHON_PATH $SAFE_TEST_FIXTURE
 
         echo "Running tests for ${TEST_NAME}."
         pytest -s -v "$TEST_FILE_PATH"

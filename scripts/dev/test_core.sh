@@ -29,7 +29,7 @@ if [ -f ".venv/bin/activate" ]; then
 fi
 
 if [ "$1" == 'y' ]; then
-    CONF_FLAG='--pickle_conf -y'
+    CONF_FLAG='--save_conf -y'
 else
     CONF_FLAG=''
 fi
