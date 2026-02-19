@@ -6,19 +6,18 @@ All notable changes to this project will be documented in this file.
 
 Released on TBD
 
+> **Note**: Detailed technical changes and implementation notes are available in [DEVLOG.md](DEVLOG.md).
+
 ### New in 0.9.4
 
-- **Pipes Monitoring Plugin**: Added plugin to monitor Snowpipe status and validation using `SYSTEM$PIPE_STATUS` and `VALIDATE_PIPE_LOAD` functions.
-- **Streams Monitoring Plugin**: Added plugin to monitor Snowflake Streams for staleness and pending changes via `SHOW STREAMS`.
-- **Stage Monitoring Plugin**: Added plugin to monitor data staged in internal/external stages and COPY INTO activities from `QUERY_HISTORY` and `COPY_HISTORY` views.
-- **Data Lineage Plugin**: Added column-level data lineage tracking combining static lineage (OBJECT_DEPENDENCIES) and dynamic lineage (ACCESS_HISTORY).
-- **Configurable Lookback Time**: Added per-plugin configuration for historical data catchup window (previously hardcoded to 24 hours).
+- **New Plugins**: Added Pipes, Streams, Stage, and Data Lineage monitoring plugins
+- **Configurable Lookback Time**: Per-plugin configuration for historical data catchup window
 
 ### Fixed in 0.9.4
 
-- **Log ObservedTimestamp**: Fixed OTel log ObservedTimestamp to use nanoseconds per spec (convert from milliseconds when source provides milliseconds).
-- **Inbound Shares Reporting**: Fixed reporting of `HAS_DB_DELETED` flag in `TMP_SHARES` for deleted shared databases.
-- **Self-Monitoring Log Filtering**: Fixed database name filtering logic for self-monitoring logs to correctly handle DTAGENT_DB references.
+- **OTLP Compliance**: Fixed log `observed_timestamp` field to use nanoseconds per OTLP specification
+- **Shares Plugin**: Fixed reporting of deleted shared databases
+- **Self-Monitoring**: Fixed database name filtering for self-monitoring logs
 
 ### Improved in 0.9.4
 
@@ -27,6 +26,9 @@ Released on TBD
 - **Test Infrastructure**: Refactored tests to use synthetic JSON fixtures for input/output validation instead of live Dynatrace API calls.
 - **Test Fixtures**: Migrated all plugin test input data from binary Python pickle files (`.pkl`) to human-readable NDJSON format (`.ndjson`), improving transparency and enabling direct manual inspection and version control of test data.
 - **Event Tables Cost Optimization**: Added guidance for fine-tuning Event Table usage to manage Snowflake costs.
+- **Timestamp Handling**: Unified timestamp handling with smart unit detection, eliminating wasteful conversions
+- **Build System**: Development scripts now auto-activate virtual environment
+- **Test Infrastructure**: Refactored tests to use synthetic JSON fixtures instead of live API calls
 
 ## Dynatrace Snowflake Observability Agent 0.9.3
 

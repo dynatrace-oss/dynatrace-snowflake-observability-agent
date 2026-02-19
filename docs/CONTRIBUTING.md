@@ -373,6 +373,8 @@ Before submitting a PR, please ensure:
 - [ ] You have added tests for any new functionality
 - [ ] All tests pass locally (`pytest` and `./test/bash/run_tests.sh`)
 - [ ] Documentation (`README.md`, `PLUGIN_DEVELOPMENT.md`, etc.) is updated if needed
+- [ ] User-facing changes are documented in `docs/CHANGELOG.md` (highlights only)
+- [ ] Technical implementation details are documented in `docs/DEVLOG.md`
 - [ ] If adding a plugin, `instruments-def.yml` is defined and valid
 - [ ] New use cases are documented in `docs/USECASES.md` under the appropriate Data Platform Observability theme(s)
 - [ ] Code follows the [Semantic Conventions](#semantic-conventions)

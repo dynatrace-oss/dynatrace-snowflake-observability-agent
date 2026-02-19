@@ -31,6 +31,11 @@
 #   ./test.sh -a -p                Regenerate fixtures for ALL plugins, then run all tests
 #   ./test.sh <test_name> "" -n    Skip code-quality checks
 
+# Activate virtual environment
+if [ -f ".venv/bin/activate" ]; then
+    source .venv/bin/activate
+fi
+
 TEST_NAME=$1
 TO_PICKLE=$2
 RUN_QUALITY_CHECK=$3
