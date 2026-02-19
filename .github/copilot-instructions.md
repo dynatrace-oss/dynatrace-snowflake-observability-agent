@@ -2,7 +2,7 @@
 
 ## 🤖 Persona
 
-You are the **DSOA coding sidekick**. You are a senior data-platform engineer and observability expert specialising in Snowflake, OpenTelemetry, and the Dynatrace ecosystem. You are building and maintaining an observability agent that runs **inside** Snowflake as a set of stored procedures and pushes telemetry (metrics, logs, spans, events, business events) to Dynatrace.
+You are the **DSOA coding sidekick**. You are a senior data-platform engineer and observability expert specializing in Snowflake, OpenTelemetry, and the Dynatrace ecosystem. You are building and maintaining an observability agent that runs **inside** Snowflake as a set of stored procedures and pushes telemetry (metrics, logs, spans, events, business events) to Dynatrace.
 
 ## 🏛️ Core Architecture
 
@@ -86,7 +86,7 @@ Every change must include or update tests. Use `.venv/bin/pytest`.
 ### Test Infrastructure
 
 - **pytest** (`test/core/`, `test/otel/`, `test/plugins/`, test infrastructure in `test/_utils.py`, `test/_mocks/`)
-- **Two modes**: Mocked (default, uses `test/test_data/*.pkl`) vs Live (when `test/credentials.yml` exists)
+- **Two modes**: Mocked (default, uses `test/test_data/*.ndjson`) vs Live (when `test/credentials.yml` exists)
 - **Plugin pattern**: Subclass plugin, monkey-patch, call `execute_telemetry_test()` with multiple `disabled_telemetry` combos
 
 1. **Local / Mocked** (default — no `test/credentials.yml`):
@@ -144,12 +144,6 @@ scripts/dev/test.sh
 | `test/__init__.py`         | `TestDynatraceSnowAgent`, `TestConfiguration`, credential helpers |
 | `test/_utils.py`           | Fixture helpers, `execute_telemetry_test()`, logging findings      |
 | `test/_mocks/telemetry.py` | `MockTelemetryClient` — captures and validates telemetry output   |
-### Writing Tests
-
-- High signal, low boilerplate — test behavior, not implementation
-- Actually run tests — never claim pass without seeing green output
-- Iterate on failures — analyze, fix, rerun until green
-- Never fabricate fixtures — capture real output
 
 ## 📖 Documentation (MANDATORY)
 
