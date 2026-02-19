@@ -214,8 +214,7 @@ event_timestamps:
     __description: The timestamp when the grant was created.
   snowflake.share.created_on:
     __context_names:
-      - outbound_shares
-      - inbound_shares
+      - shares
     __example: 1639051180714000000
     __description: The timestamp when the share was created.
   snowflake.table.created_on:

@@ -23,24 +23,23 @@
 #
 #
 
+# Generate NDJSON fixtures from live Snowflake and run plugin tests.
+#
+# Usage:
+#   ./test.sh <test_name>          Run plugin tests (uses existing NDJSON fixtures)
+#   ./test.sh <test_name> -p       Regenerate NDJSON fixtures from Snowflake, then run tests
+#   ./test.sh -a -p                Regenerate fixtures for ALL plugins, then run all tests
+#   ./test.sh <test_name> "" -n    Skip code-quality checks
+
 # Activate virtual environment
 if [ -f ".venv/bin/activate" ]; then
     source .venv/bin/activate
 fi
 
-# to pickle new test data call as
-# ./test.sh $test_name -p
-# You can also pickle for all tests at once, by running
-# ./test.sh -a -p
-# If You wish to omit running code quality checks on plugin plugin test file and python plugin file set -n as the third param
-# ./test.sh $test_name "" -n
-# ./test.sh -a -p -n
-# this script is not written to handle test/core/test_config test. it is intented to perfrom and validate plugin tests from test/plugins/
 TEST_NAME=$1
-TO_PICKLE=$2
+SAFE_TEST_FIXTURE=$2
 RUN_QUALITY_CHECK=$3
 
-EXEMPLARY_RESULT_FILE="test/test_results/${TEST_NAME}_results.txt"
 TEST_FILE_PYTHON_PATH="test.plugins.$TEST_NAME"
 TEST_FILE_PATH="test/plugins/$TEST_NAME.py"
 
@@ -88,47 +87,37 @@ code_quality_checks() {
     fi
 }
 
-if [ "$TO_PICKLE" == "-p" ]; then
+if [ "$SAFE_TEST_FIXTURE" == "-p" ]; then
 
     if [ "$TEST_NAME" == "-a" ]; then
         code_quality_checks src/dtagent/plugins test/plugins
 
-        echo "Pickling for all plugin tests"
+        echo "Generating NDJSON fixtures for all plugin tests"
 
         for file in test/plugins/test_*; do
-            if [ $(basename "${file}") == "test_1_validate.py" ]; then
-                continue
-            fi
-
             TEST_NAME=$(basename "${file%.*}")
             TEST_FILE_PYTHON_PATH="test.plugins.${TEST_NAME}"
-            EXEMPLARY_RESULT_FILE="test/test_results/${TEST_NAME}_results.txt"
 
-            echo "Pickling for ${TEST_NAME}"
-
-            PYTHONPATH="$PYTHONPATH:./src" python -m $TEST_FILE_PYTHON_PATH $TO_PICKLE &> $EXEMPLARY_RESULT_FILE
-
-            pytest -s -v --result="$EXEMPLARY_RESULT_FILE" test/plugins/test_1_validate.py
+            echo "Generating fixtures for ${TEST_NAME}"
+            PYTHONPATH="$PYTHONPATH:./src" python -m $TEST_FILE_PYTHON_PATH $SAFE_TEST_FIXTURE
         done
+
+        echo "Running all plugin tests"
+        pytest -s -v test/plugins/
 
     else
         code_quality_checks $PLUGIN_FILE $TEST_FILE_PATH
 
-        echo "Pickling for ${TEST_NAME}."
+        echo "Generating NDJSON fixtures for ${TEST_NAME}."
+        PYTHONPATH="$PYTHONPATH:./src" python -m $TEST_FILE_PYTHON_PATH $SAFE_TEST_FIXTURE
 
-        PYTHONPATH="$PYTHONPATH:./src" python -m $TEST_FILE_PYTHON_PATH $TO_PICKLE &> $EXEMPLARY_RESULT_FILE
-        pytest -s -v --result="$EXEMPLARY_RESULT_FILE" test/plugins/test_1_validate.py
+        echo "Running tests for ${TEST_NAME}."
+        pytest -s -v "$TEST_FILE_PATH"
     fi
 else
     code_quality_checks $PLUGIN_FILE $TEST_FILE_PATH
 
-    echo "Executing test and verification for ${TEST_NAME}."
-    LOG_FILE_NAME=".logs/dtagent-${TEST_NAME}-$(date '+%Y%m%d-%H%M%S').log"
-    PYTHONPATH="$PYTHONPATH:./src" python -m $TEST_FILE_PYTHON_PATH $LOG_FILE_NAME &> $LOG_FILE_NAME
-    echo "Test result file - ${LOG_FILE_NAME}"
-
-    # it looks like calling pytest from python with parameters would quite a hassle, so I decided to make the call in this script, not at the end of test classes
-    # it also excludes calling pytest when pickling which would be pointless as both files (current result and exemplary) would point to the same file
-
-    pytest -s -v --result="$LOG_FILE_NAME" --exemplary_result="$EXEMPLARY_RESULT_FILE" test/plugins/test_1_validate.py
+    echo "Executing tests for ${TEST_NAME}."
+    pytest -s -v "$TEST_FILE_PATH"
 fi
+

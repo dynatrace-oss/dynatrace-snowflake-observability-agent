@@ -207,8 +207,8 @@ class TestEvents:
         with mock_client.mock_telemetry_sending():
             events = self._dtagent._get_events()
 
-            PICKLE_NAME = "test/test_data/data_volume.pkl"
-            for row_dict in _utils._get_unpickled_entries(PICKLE_NAME, limit=2):
+            FIXTURE_NAME = "test/test_data/data_volume.ndjson"
+            for row_dict in _utils._get_fixture_entries(FIXTURE_NAME, limit=2):
                 events_sent = events.report_via_api(
                     query_data=row_dict,
                     event_type=EventType.CUSTOM_INFO,
@@ -225,10 +225,10 @@ class TestEvents:
         with mock_client.mock_telemetry_sending():
             bizevents = self._dtagent._get_biz_events()
 
-            PICKLE_NAME = "test/test_data/data_volume.pkl"
+            FIXTURE_NAME = "test/test_data/data_volume.ndjson"
 
             events_sent = bizevents.report_via_api(
-                query_data=_utils._get_unpickled_entries(PICKLE_NAME, limit=2),
+                query_data=_utils._get_fixture_entries(FIXTURE_NAME, limit=2),
                 event_type=str(EventType.CUSTOM_INFO),
                 context=get_context_name_and_run_id(
                     plugin_name="test_send_results_as_bizevents", context_name="data_volume", run_id=str(uuid.uuid4().hex)

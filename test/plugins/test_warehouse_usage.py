@@ -24,10 +24,10 @@
 class TestWhUsage:
     import pytest
 
-    PICKLES = {
-        "APP.V_WAREHOUSE_EVENT_HISTORY": "test/test_data/wh_usage_events.pkl",
-        "APP.V_WAREHOUSE_LOAD_HISTORY": "test/test_data/wh_usage_loads.pkl",
-        "APP.V_WAREHOUSE_METERING_HISTORY": "test/test_data/wh_usage_metering.pkl",
+    FIXTURES = {
+        "APP.V_WAREHOUSE_EVENT_HISTORY": "test/test_data/warehouse_usage_events.ndjson",
+        "APP.V_WAREHOUSE_LOAD_HISTORY": "test/test_data/warehouse_usage_loads.ndjson",
+        "APP.V_WAREHOUSE_METERING_HISTORY": "test/test_data/warehouse_usage_metering.ndjson",
     }
 
     @pytest.mark.xdist_group(name="test_telemetry")
@@ -42,12 +42,12 @@ class TestWhUsage:
 
         # -----------------------------------------------------
 
-        utils._pickle_all(_get_session(), self.PICKLES)
+        utils._generate_all_fixtures(_get_session(), self.FIXTURES)
 
         class TestWarehouseUsagePlugin(WarehouseUsagePlugin):
 
             def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
-                return utils._safe_get_unpickled_entries(TestWhUsage.PICKLES, t_data, limit=2)
+                return utils._safe_get_fixture_entries(TestWhUsage.FIXTURES, t_data, limit=2)
 
         def __local_get_plugin_class(source: str):
             return TestWarehouseUsagePlugin

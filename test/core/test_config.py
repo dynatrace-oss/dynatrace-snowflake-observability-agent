@@ -141,10 +141,10 @@ class TestConfig:
                 for key in d_config_extra_keys.get(plugin_key, []):
                     assert key in d_conf["plugins"][plugin_key], f"{key} is missing from {plugin_key} config"
 
-    def test_init(self, pickle_conf: str):
+    def test_init(self, save_conf: str):
         from test._utils import get_config
 
-        c = get_config(pickle_conf)
+        c = get_config(save_conf)
 
         assert c.get("logs.http") is not None
         assert c.get("spans.http") is not None
