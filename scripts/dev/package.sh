@@ -23,6 +23,11 @@
 #
 #
 
+# Activate virtual environment
+if [ -f ".venv/bin/activate" ]; then
+    source .venv/bin/activate
+fi
+
 # this is an internal script for packaging Dynatrace Snowflake Observability Agent for distribution
 # Args:
 # * PARAM   [OPTIONAL] - can be either

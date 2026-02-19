@@ -29,6 +29,11 @@
 
 set -euo pipefail
 
+# Activate virtual environment
+if [ -f ".venv/bin/activate" ]; then
+    source .venv/bin/activate
+fi
+
 # Check for required commands
 if ! command -v gawk &> /dev/null; then
     echo "Error: Required command 'gawk' is not installed."
