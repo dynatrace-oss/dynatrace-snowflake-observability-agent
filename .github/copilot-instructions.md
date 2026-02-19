@@ -171,7 +171,7 @@ class TestMyPlugin:
         # 4. Assert entry/log/metric/event counts
 ```
 
-Tests are validated with **multiple disabled-telemetry combinations** (e.g., `[]`, `["metrics"]`, `["logs", "spans", "metrics", "events"]`).
+Tests are validated with **multiple disabled-telemetry combinations** (e.g., `[]`, `["metrics"]`, `["logs", "spans", "metrics", "events"]`). For new plugins, the implementation plan must include a dedicated test environment setup task — see the checklist in [`docs/PLUGIN_DEVELOPMENT.md`](../docs/PLUGIN_DEVELOPMENT.md).
 
 ### Running tests
 
@@ -196,7 +196,6 @@ scripts/dev/test.sh
 | `test/__init__.py`         | `TestDynatraceSnowAgent`, `TestConfiguration`, credential helpers |
 | `test/_utils.py`           | Pickle helpers, `execute_telemetry_test()`, logging findings      |
 | `test/_mocks/telemetry.py` | `MockTelemetryClient` — captures and validates telemetry output   |
-| `test/conftest.py`         | Autouse `configure_logging` fixture                               |
 
 ## 📖 Documentation (MANDATORY)
 
@@ -204,9 +203,9 @@ Documentation is a **first-class deliverable**, not an afterthought. Every chang
 
 ### What to update
 
-| Change type            | Update these                                                                                      |
-| ---------------------- | ------------------------------------------------------------------------------------------------- |
-| New plugin             | `docs/PLUGINS.md`, plugin's `readme.md` + `config.md`, `instruments-def.yml`, `docs/SEMANTICS.md` |
+| Change type            | Update these                                                                                                              |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| New plugin             | `docs/PLUGINS.md`, `docs/USECASES.md`, plugin's `readme.md` + `config.md`, `instruments-def.yml`, `docs/SEMANTICS.md` |
 | New metric / attribute | `instruments-def.yml`, `docs/SEMANTICS.md`                                                        |
 | Architecture change    | `docs/ARCHITECTURE.md`                                                                            |
 | New version / release  | `docs/CHANGELOG.md` (sections: Breaking Changes, New, Fixed, Improved)                            |
@@ -301,8 +300,8 @@ Once the proposal is accepted, create a detailed **implementation plan**:
 
 1. **Task breakdown** — Ordered list of discrete, individually testable tasks.
 2. **Affected files** — For each task, list the files to create or modify.
-3. **Test strategy** — Which test suites need new/updated tests? New pickle data? New golden results?
-4. **Documentation plan** — Which docs pages need updates?
+3. **Test strategy** — Which test suites need new/updated tests? New pickle data? New golden results? For new plugins, include a dedicated test environment setup task (see [`docs/PLUGIN_DEVELOPMENT.md`](../docs/PLUGIN_DEVELOPMENT.md)).
+4. **Documentation plan** — Which docs pages need updates? New plugins always require `docs/PLUGINS.md`, `docs/USECASES.md`, plugin `readme.md`, `instruments-def.yml`, and `docs/SEMANTICS.md`.
 5. **Migration / upgrade path** — If applicable, specify SQL upgrade scripts and config migration.
 6. **Dependencies** — External library changes, Snowflake version requirements, Dynatrace API changes.
 

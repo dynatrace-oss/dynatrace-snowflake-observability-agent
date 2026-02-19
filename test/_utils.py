@@ -44,28 +44,77 @@ from build.utils import find_files, get_metric_semantics
 TEST_CONFIG_FILE_NAME = "./test/conf/config-download.yml"
 
 
-def _pickle_all(session: snowpark.Session, pickles: dict, force: bool = False):
-    """Pickle all tables provided in the pickles dictionary if necessary or forced.
+def _fixture_json_default(obj):
+    """JSON encoder fallback for numpy/pandas types from Snowflake DataFrames.
 
     Args:
-        session (snowpark.Session): The Snowflake session used to access tables.
-        pickles (dict): A dictionary mapping table names to pickle file names.
-        force (bool, optional): If True, force pickling even if not necessary. Defaults to False.
+        obj: Object that is not natively JSON-serializable.
 
     Returns:
-        None
+        A JSON-serializable Python primitive.
+
+    Raises:
+        TypeError: When the type cannot be coerced.
     """
-    if force or should_pickle(pickles.values()):
-        for table_name, pickle_name in pickles.items():
-            _pickle_data_history(session, table_name, pickle_name)
+    import math
 
-
-def _pickle_data_history(
-    session: snowpark.Session, t_data: str, pickle_name: str, operation: Optional[Callable] = None
-) -> Generator[Dict, None, None]:
-    if is_select_for_table(t_data):
+    try:
+        import numpy as np
         import pandas as pd
+    except ImportError:
+        return str(obj)
 
+    if obj is pd.NaT:
+        return None
+    if isinstance(obj, np.integer):
+        return int(obj)
+    if isinstance(obj, np.floating):
+        v = float(obj)
+        return None if (math.isnan(v) or math.isinf(v)) else v
+    if isinstance(obj, np.bool_):
+        return bool(obj)
+    if isinstance(obj, pd.Timestamp):
+        return obj.isoformat()
+    if isinstance(obj, (datetime.datetime, datetime.date)):
+        return obj.isoformat()
+    if isinstance(obj, (bytes, bytearray)):
+        import base64
+
+        return base64.b64encode(obj).decode("ascii")
+    return str(obj)
+
+
+def _dump_fixture_row(row_dict: dict) -> str:
+    """Serialise a single row dict to a JSON string, replacing NaN/Inf with null.
+
+    Args:
+        row_dict: Row dictionary to serialise.
+
+    Returns:
+        JSON string representation of the row.
+    """
+    import math
+
+    cleaned = {k: (None if isinstance(v, float) and (math.isnan(v) or math.isinf(v)) else v) for k, v in row_dict.items()}
+    return json.dumps(cleaned, default=_fixture_json_default)
+
+
+def _generate_fixture(session: snowpark.Session, t_data: str, fixture_path: str, operation: Optional[Callable] = None) -> None:
+    """Generate an NDJSON fixture file from a live Snowflake table or SQL query.
+
+    Replaces the former ``_pickle_data_history`` function.  The output path
+    must follow the ``{plugin_name}[_{view_suffix}].ndjson`` convention.
+
+    Args:
+        session (snowpark.Session): Active Snowflake Snowpark session.
+        t_data (str): Table name or SELECT statement.
+        fixture_path (str): Destination ``.ndjson`` file path.
+        operation (Optional[Callable]): Optional DataFrame transform applied
+            before serialisation (e.g. sorting).
+    """
+    import pandas as pd  # noqa: PLC0415
+
+    if is_select_for_table(t_data):
         df_data = session.sql(t_data).collect()
         pd_data = pd.DataFrame(df_data)
     else:
@@ -74,8 +123,33 @@ def _pickle_data_history(
             df_data = operation(df_data)
         pd_data = df_data.to_pandas()
 
-    pd_data.to_pickle(pickle_name)
-    print("Pickled " + str(pickle_name))
+    rows = [_dump_fixture_row(row.to_dict()) for _, row in pd_data.iterrows()]
+    with open(fixture_path, "w", encoding="utf-8") as fh:
+        fh.write("\n".join(rows) + ("\n" if rows else ""))
+    print(f"Generated fixture {fixture_path} ({len(rows)} rows)")
+
+
+# Backward-compat alias — callers can migrate to _generate_fixture() at their own pace.
+_pickle_data_history = _generate_fixture
+
+
+def _generate_all_fixtures(session: snowpark.Session, fixtures: dict, force: bool = False) -> None:
+    """Generate NDJSON fixture files for all tables in the fixtures dictionary.
+
+    Replaces the former ``_pickle_all`` function.
+
+    Args:
+        session (snowpark.Session): Active Snowflake Snowpark session.
+        fixtures (dict): Mapping of table names to fixture file paths.
+        force (bool, optional): Re-generate even when files already exist. Defaults to False.
+    """
+    if force or should_generate_fixtures(fixtures.values()):
+        for table_name, fixture_path in fixtures.items():
+            _generate_fixture(session, table_name, fixture_path)
+
+
+# Backward-compat alias
+_pickle_all = _generate_all_fixtures
 
 
 def _logging_findings(
@@ -104,89 +178,106 @@ def _logging_findings(
     return results
 
 
-def _safe_get_unpickled_entries(pickles: dict, table_name: str, *args, **kwargs) -> Generator[Dict, None, None]:
-    """Safely get unpickled entries for the given table name from the pickles dictionary.
-
-    Args:
-        pickles (dict): Dictionary mapping table names to pickle file paths.
-        table_name (str): The name of the table to retrieve unpickled entries for.
-
-    Returns:
-        Generator[Dict, None, None]: A generator yielding dictionaries representing unpickled entries for the specified table.
-
-    Raises:
-        ValueError: If the table name is not found in the pickles dictionary.
-    """
-    if table_name not in pickles:
-        raise ValueError(f"Unknown table name: {table_name}")
-    return _get_unpickled_entries(pickles[table_name], *args, **kwargs)
-
-
-def _get_unpickled_entries(
-    pickle_name: str,
+def _get_fixture_entries(
+    fixture_path: str,
     limit: int = None,
     adjust_ts: bool = True,
     start_time: str = "START_TIME",
     end_time: str = "END_TIME",
 ) -> Generator[Dict, None, None]:
-    import pandas as pd
+    """Read fixture rows from an NDJSON file, optionally applying timestamp adjustment.
 
-    ndjson_name = os.path.splitext(pickle_name)[0] + ".ndjson"
-    # if os.path.exists(ndjson_name):
-    #     # Read from safer NDJSON format
-    #     pandas_df = pd.read_json(ndjson_name, lines=True)
-    #     print(f"Read from NDJSON {ndjson_name}")
-    # else:
-    # Fallback to pickle and generate NDJSON
-    pandas_df = pd.read_pickle(pickle_name)
-    print(f"Unpickled {pickle_name}")
+    Rows are repeated or truncated to satisfy *limit*.  Timestamps are adjusted
+    via ``_adjust_timestamp`` so they fall within OTel ingestion bounds.
 
-    collected_rows = []
+    No pandas dependency — uses stdlib ``json`` only.
+
+    Args:
+        fixture_path (str): Path to the ``.ndjson`` fixture file.
+        limit (int, optional): Maximum number of rows to yield; rows are
+            repeated when the fixture has fewer rows than *limit*.
+        adjust_ts (bool, optional): Whether to adjust timestamps. Defaults to True.
+        start_time (str, optional): Name of the start-time column. Defaults to ``START_TIME``.
+        end_time (str, optional): Name of the end-time column. Defaults to ``END_TIME``.
+
+    Yields:
+        Dict: Row dictionaries from the fixture file.
+    """
+    from dtagent.util import _adjust_timestamp
+
+    with open(fixture_path, "r", encoding="utf-8") as fh:
+        raw_rows = [json.loads(line) for line in fh if line.strip()]
+
+    if not raw_rows:
+        return
+
+    if limit is not None and 0 < len(raw_rows) < limit:
+        n_full = limit // len(raw_rows)
+        remainder = limit % len(raw_rows)
+        raw_rows = raw_rows * n_full + raw_rows[:remainder]
 
     if limit is not None:
-        if 0 < len(pandas_df) < limit:
-            n_repeats = limit // len(pandas_df)
-            is_remainder = limit % len(pandas_df) > 0
+        raw_rows = raw_rows[:limit]
 
-            dfs_to_concat = [pandas_df] * (n_repeats + (1 if is_remainder else 0))
+    print(f"Loaded fixture {fixture_path} ({len(raw_rows)} rows)")
 
-            # Concatenate them and reset the index
-            pandas_df = pd.concat(dfs_to_concat, ignore_index=True)
-
-        pandas_df = pandas_df.head(limit)
-
-    for _, row in pandas_df.iterrows():
-        from dtagent.util import _adjust_timestamp
-
-        row_dict = row.to_dict()
+    for row_dict in raw_rows:
         if adjust_ts:
             _adjust_timestamp(row_dict, start_time=start_time, end_time=end_time)
-
-        collected_rows.append(row_dict)
         yield row_dict
 
-    if not os.path.exists(ndjson_name):
-        with open(ndjson_name, "w", encoding="utf-8") as f:
-            for row in collected_rows:
-                f.write(json.dumps(row) + "\n")
 
+def _safe_get_fixture_entries(fixtures: dict, table_name: str, *args, **kwargs) -> Generator[Dict, None, None]:
+    """Safely read fixture entries for *table_name* from the fixtures dictionary.
 
-def should_pickle(pickle_files: list) -> bool:
-
-    return (len(sys.argv) > 1 and sys.argv[1] == "-p") or any(not os.path.exists(file_name) for file_name in pickle_files)
-
-
-def _merge_pickles_from_tests() -> Dict[str, str]:
-    """Merges all PICKLES dictionaries from test_*.py files in the plugins directory into a single dictionary.
+    Args:
+        fixtures (dict): Mapping of table names to ``.ndjson`` fixture file paths.
+        table_name (str): Table name key to look up.
 
     Returns:
-        Dict: A dictionary containing all merged PICKLES dictionaries,
-        mapping all table names to their corresponding pickle file paths.
+        Generator[Dict, None, None]: Fixture rows for the requested table.
+
+    Raises:
+        ValueError: If *table_name* is not present in *fixtures*.
+    """
+    if table_name not in fixtures:
+        raise ValueError(f"Unknown table name: {table_name}")
+    return _get_fixture_entries(fixtures[table_name], *args, **kwargs)
+
+
+# Backward-compat alias
+_safe_get_unpickled_entries = _safe_get_fixture_entries
+
+
+def should_generate_fixtures(fixture_files) -> bool:
+    """Return True when fixture files need to be (re-)generated from Snowflake.
+
+    Generation is requested when the ``-p`` CLI flag is present or when any of
+    the listed fixture files do not exist yet.
+
+    Args:
+        fixture_files: Iterable of fixture file paths to check.
+
+    Returns:
+        True if fixture regeneration is needed.
+    """
+    return (len(sys.argv) > 1 and sys.argv[1] == "-p") or any(not os.path.exists(f) for f in fixture_files)
+
+
+# Backward-compat alias
+should_pickle = should_generate_fixtures
+
+
+def _merge_fixtures_from_tests() -> Dict[str, str]:
+    """Merge all FIXTURES dictionaries from test_*.py files in the plugins directory.
+
+    Returns:
+        Dict mapping all table names to their corresponding ``.ndjson`` fixture paths.
     """
     import importlib
     import inspect
 
-    pickles = {}
+    fixtures: Dict[str, str] = {}
     plugins_dir = os.path.join(os.path.dirname(__file__), "plugins")
     for filename in os.listdir(plugins_dir):
         if filename.startswith("test_") and filename.endswith(".py"):
@@ -194,15 +285,15 @@ def _merge_pickles_from_tests() -> Dict[str, str]:
             try:
                 module = importlib.import_module(module_name)
                 for _, member in inspect.getmembers(module):
-                    if inspect.isclass(member) and hasattr(member, "PICKLES"):
-                        pickles.update(member.PICKLES)
-            except ImportError as e:
-                print(f"Could not import {module_name}: {e}")
-    return pickles
+                    if inspect.isclass(member) and hasattr(member, "FIXTURES"):
+                        fixtures.update(member.FIXTURES)
+            except ImportError as exc:
+                print(f"Could not import {module_name}: {exc}")
+    return fixtures
 
 
 class LocalTelemetrySender(TelemetrySender):
-    PICKLES = _merge_pickles_from_tests()
+    FIXTURES = _merge_fixtures_from_tests()
 
     def __init__(self, session: snowpark.Session, params: dict, exec_id: str, limit_results: int = 2, config: TestConfiguration = None):
 
@@ -220,8 +311,8 @@ class LocalTelemetrySender(TelemetrySender):
         return self._local_config if self._local_config else TelemetrySender._get_config(self, session)
 
     def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
-        if t_data in self.PICKLES:
-            return _get_unpickled_entries(self.PICKLES[t_data], limit=self.limit_results)
+        if t_data in self.FIXTURES:
+            return _get_fixture_entries(self.FIXTURES[t_data], limit=self.limit_results)
 
         return TelemetrySender._get_table_rows(self, t_data)
 

@@ -7,7 +7,7 @@
     "snowflake.query.object.modified_by_ddl.id": 1154,
     "snowflake.query.object.modified_by_ddl.name": "CHARGEBACK_HRC_TEST_DB.LI_TEST",
     "snowflake.query.object.modified_by_ddl.operation_type": "CREATE",
-    "snowflake.query.user": "STEFAN.SCHWEIGER",
+    "snowflake.query.user": "TEST.USER",
     "db.system": "snowflake",
     "service.name": "test.dsoa2025",
     "deployment.environment": "TEST",
@@ -16,7 +16,7 @@
     "dsoa.run.context": "data_schemas",
     "dsoa.run.plugin": "test_data_schemas",
     "eventType": "CUSTOM_INFO",
-    "title": "Objects accessed by query 01b165f1-0604-1812-0040-e0030291d142 run by STEFAN.SCHWEIGER"
+    "title": "Objects accessed by query 01b165f1-0604-1812-0040-e0030291d142 run by TEST.USER"
   },
   {
     "snowflake.object.event": "snowflake.object.ddl",
@@ -27,7 +27,7 @@
     "snowflake.query.object.modified_by_ddl.name": "CHARGEBACK_HRC_TEST_DB.LI_TEST.DAILY_COSTS",
     "snowflake.query.object.modified_by_ddl.operation_type": "CREATE",
     "snowflake.query.object.modified_by_ddl.properties": "{\"columns\": {\"BOOKING_DATE\": {\"objectId\": {\"value\": 1680388}, \"subOperationType\": \"ADD\"}, \"CAPABILITY_ID\": {\"objectId\": {\"value\": 1680391}, \"subOperationType\": \"ADD\"}, \"COSTS\": {\"objectId\": {\"value\": 1680392}, \"subOperationType\": \"ADD\"}, \"ENVIRONMENT_ID\": {\"objectId\": {\"value\": 1680390}, \"subOperationType\": \"ADD\"}, \"SUBSCRIPTION_UUID\": {\"objectId\": {\"value\": 1680386}, \"subOperationType\": \"ADD\"}, \"UPDATED_AT\": {\"objectId\": {\"value\": 1680389}, \"subOperationType\": \"ADD\"}, \"USAGE_DATE\": {\"objectId\": {\"value\": 1680387}, \"subOperationType\": \"ADD\"}}, \"creationMode\": {\"value\": \"CREATE\"}}",
-    "snowflake.query.user": "STEFAN.SCHWEIGER",
+    "snowflake.query.user": "TEST.USER",
     "db.system": "snowflake",
     "service.name": "test.dsoa2025",
     "deployment.environment": "TEST",
@@ -36,6 +36,6 @@
     "dsoa.run.context": "data_schemas",
     "dsoa.run.plugin": "test_data_schemas",
     "eventType": "CUSTOM_INFO",
-    "title": "Objects accessed by query 01b165fb-0604-1945-0040-e0030291c3be run by STEFAN.SCHWEIGER"
+    "title": "Objects accessed by query 01b165fb-0604-1945-0040-e0030291c3be run by TEST.USER"
   }
 ]

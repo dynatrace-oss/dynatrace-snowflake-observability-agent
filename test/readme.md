@@ -108,21 +108,30 @@ pytest test/plugins/
 
 ## Test Data Management
 
-### Regenerating Plugin Test Data
+### Fixture Files (NDJSON)
+
+Plugin test data is stored as NDJSON files (one JSON object per line) in `test/test_data/`. Each plugin has one or more fixture files following the naming convention `{plugin_name}[_{view_suffix}].ndjson`.
+
+Fixtures are version-controlled alongside the test code. To regenerate them from a live Snowflake environment:
 
 ```bash
-# Single plugin
-./test.sh test_plugin_name -p
+# Single plugin (requires test/credentials.yml)
+.venv/bin/pytest test/plugins/test_<plugin>.py -p
 
 # All plugins
-./test.sh -a -p
+.venv/bin/pytest test/plugins/ -p
 ```
+
+The `-p` flag triggers live mode — it connects to Snowflake, collects fresh data, and writes new NDJSON files to `test/test_data/`. After regenerating, review the diff and ensure no PII (names, tenant IDs, IP addresses) is present before committing.
+
+### Golden Result Files
+
+Expected telemetry output (metrics, logs, spans, events) is stored as structured JSON in `test/test_results/test_<plugin>/`. These are generated automatically on the first live test run and used for regression comparison in subsequent local runs.
 
 ### Test Data Locations
 
-- **Input data**: `test/test_data/` (pickle files)
-- **Expected results**: `test/test_results/` (text files)
-- **Reference data**: NDJSON files for inspection
+- **Input fixtures**: `test/test_data/*.ndjson`
+- **Expected outputs**: `test/test_results/test_<plugin>/`
 
 ## Dependencies
 

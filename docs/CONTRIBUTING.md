@@ -212,11 +212,11 @@ If you modify a plugin's SQL logic, you may need to update the test data.
 
 ### Test Data
 
-Tests use example test data from the `test/test_data` folder:
+Tests use NDJSON fixture files from the `test/test_data/` folder. Each fixture file contains one JSON object per line, named `{plugin_name}[_{view_suffix}].ndjson`.
 
-- Pickle (`*.pkl`) files are used for test execution
-- ndJSON files are provided for reference only
-- Test results are validated against expected data in `test_results`
+Fixtures are version-controlled. To regenerate them from a live Snowflake environment, run the relevant plugin test with the `-p` flag (requires `test/credentials.yml`).
+
+Expected telemetry output is stored in `test/test_results/test_<plugin>/` as JSON files and used for regression comparison.
 
 ### Setting Up Test Environment
 
@@ -374,6 +374,7 @@ Before submitting a PR, please ensure:
 - [ ] All tests pass locally (`pytest` and `./test/bash/run_tests.sh`)
 - [ ] Documentation (`README.md`, `PLUGIN_DEVELOPMENT.md`, etc.) is updated if needed
 - [ ] If adding a plugin, `instruments-def.yml` is defined and valid
+- [ ] New use cases are documented in `docs/USECASES.md` under the appropriate Data Platform Observability theme(s)
 - [ ] Code follows the [Semantic Conventions](#semantic-conventions)
 - [ ] If changing SQL objects, all names are UPPERCASE
 - [ ] If adding new semantic fields, they follow naming rules
