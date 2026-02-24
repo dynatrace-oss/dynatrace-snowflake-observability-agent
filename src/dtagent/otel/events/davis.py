@@ -50,7 +50,7 @@ from dtagent.version import VERSION
 
 class DavisEvents(GenericEvents):
     """Allows for parsing and sending (Davis) Events payloads via Events v2 API
-    https://docs.dynatrace.com/docs/discover-dynatrace/platform/openpipeline/reference/api-ingestion-reference#davis-events
+    https://docs.dynatrace.com/docs/dynatrace-api/environment-api/events-v2/post-event
 
     Note: Events API does not support sending multiple events at the same time, as a bulk, like in BizEvents or OpenPipelineEvents.
 

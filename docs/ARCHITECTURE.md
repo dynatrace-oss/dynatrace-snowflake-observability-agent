@@ -207,7 +207,8 @@ DSOA offers an internal API to send telemetry as
 [OTEL logs](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-api/environment-api/opentelemetry/post-logs),
 [OTEL spans](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-api/environment-api/opentelemetry/post-traces),
 [metrics](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-api/environment-api/metric-v2),
-[events](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-api/environment-api/events-v2), and
+[generic events](https://docs.dynatrace.com/docs/platform/openpipeline/reference/openpipeline-ingest-api/generic-events/events-generic-builtin), and
+[Davis events](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-api/environment-api/events-v2), and
 [BizEvents](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-api/environment-api/business-analytics-v2).
 
 ### Sending logs
@@ -254,7 +255,7 @@ otel:
 ### Sending events
 
 Dynatrace Snowflake Observability Agent enables to send events using the
-[Dynatrace OpenPipeline Events API](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-api/environment-api/events-v2) (`/platform/ingest/v1/events`).
+[Dynatrace OpenPipeline Events API](https://docs.dynatrace.com/docs/platform/openpipeline/reference/openpipeline-ingest-api/generic-events/events-generic-builtin) (`/platform/ingest/v1/events`).
 
 > **Note:** The OpenPipeline Events API requires a [Dynatrace Platform Subscription (DPS)](https://www.dynatrace.com/pricing/dynatrace-platform-subscription/). Tenants without DPS cannot receive events sent through this endpoint. See [Dynatrace Subscription Compatibility](#dynatrace-subscription-compatibility) for guidance on configuring DSOA for non-DPS tenants.
 
