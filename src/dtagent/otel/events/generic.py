@@ -51,7 +51,7 @@ import datetime
 
 class GenericEvents(AbstractEvents):
     """Enables for parsing and sending Events via OpenPipeline Events API
-    https://docs.dynatrace.com/docs/discover-dynatrace/platform/openpipeline/reference/api-ingestion-reference
+    https://docs.dynatrace.com/docs/platform/openpipeline/reference/openpipeline-ingest-api/generic-events/events-generic-builtin
 
     Note: OpenPipeline Events API does support sending multiple events at the same time, similar to BizEvents.
     """
