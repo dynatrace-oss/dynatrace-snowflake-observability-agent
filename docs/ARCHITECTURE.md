@@ -225,15 +225,11 @@ traces/spans.
 
 Traces/spans delivery can be adjusted in the configuration:
 
-```json
-{
-  "OTEL": {
-    "SPANS": {
-      "EXPORT_TIMEOUT_MILLIS": 10000,
-      "MAX_EXPORT_BATCH_SIZE": 50
-    }
-  }
-}
+```yaml
+otel:
+  spans:
+    export_timeout_millis: 10000
+    max_export_batch_size: 50
 ```
 
 ### Sending metrics
@@ -247,15 +243,11 @@ avoid creating redundant calls.
 The internal telemetry API enables for metrics cache to be manually flushed before reaching the maximum payload. The maximum size of payload
 and maximum number of retries to send data can be configured:
 
-```json
-{
-  "OTEL": {
-    "METRICS": {
-      "MAX_RETRIES": 5,
-      "MAX_BATCH_SIZE": 1000000
-    }
-  }
-}
+```yaml
+otel:
+  metrics:
+    max_retries: 5
+    max_batch_size: 1000000
 ```
 
 ### Sending events
@@ -267,15 +259,11 @@ Each event has columns specifying the event type and title accompanied by additi
 Events require each event to be send separately. Dynatrace Snowflake Observability Agent enables to configure maximum number of retries and
 delay (in milliseconds) between retries, in case event could not be delivered.
 
-```json
-{
-  "OTEL": {
-    "EVENTS": {
-      "MAX_RETRIES": 5,
-      "RETRY_DELAY": 10000
-    }
-  }
-}
+```yaml
+otel:
+  events:
+    max_retries: 5
+    retry_delay_ms: 10000
 ```
 
 ### Sending BizEvents
@@ -290,18 +278,14 @@ business events as batch of `CloudEvent` objects.
 
 There are multiple parameters of delivering BizEvents can be configured:
 
-```json
-{
-    "OTEL": {
-        "BIZ_EVENTS": {
-            "MAX_RETRIES": 5,
-            "MAX_PAYLOAD_BYTES": 1000 * 1024 * 5,
-            "MAX_EVENT_COUNT": 400,
-            "RETRY_DELAY_MS": 10000,
-            "RETRY_ON_STATUS": [429, 502, 503]
-        }
-    }
-}
+```yaml
+otel:
+  biz_events:
+    max_retries: 5
+    max_payload_bytes: 5120000  # 1000 * 1024 * 5
+    max_event_count: 400
+    retry_delay_ms: 10000
+    retry_on_status: [429, 502, 503]
 ```
 
 ## Sending custom telemetry
@@ -401,7 +385,7 @@ call APP.SEND_TELEMETRY(ARRAY_CONSTRUCT(
             'value.str', 'test',
             'value.bool', true,
             'value.list', ARRAY_CONSTRUCT(1, '2', 3),
-            'value.dict', OBJECT CONSTRUCT('k', 'v', 'k2', 2)
+            'value.dict', OBJECT_CONSTRUCT('k', 'v', 'k2', 2)
         ),
         OBJECT_CONSTRUCT(
             'timestamp', 1732103723000,
@@ -411,8 +395,8 @@ call APP.SEND_TELEMETRY(ARRAY_CONSTRUCT(
             'value.int', 10000000,
             'value.str', 'test 2',
             'value.bool', false,
-            'value.list', ARRAY CONSTRUCT('1', '2'),
-            'value.dict', OBJECT CONSTRUCT('k', 1, 'k2', 2)
+            'value.list', ARRAY_CONSTRUCT('1', '2'),
+            'value.dict', OBJECT_CONSTRUCT('k', 1, 'k2', 2)
         ),
         OBJECT_CONSTRUCT(
             'timestamp', 1732103723000,
@@ -432,15 +416,11 @@ call APP.SEND_TELEMETRY(ARRAY_CONSTRUCT(
 
 Dynatrace Snowflake Observability Agent has configurable self-monitoring capabilities.
 
-```json
-{
-  "PLUGINS": {
-    "SELF_MONITORING": {
-      "SEND_BIZEVENTS_ON_DEPLOY": true,
-      "SEND_BIZEVENTS_ON_RUN": true
-    }
-  }
-}
+```yaml
+plugins:
+  self_monitoring:
+    send_bizevents_on_deploy: true
+    send_bizevents_on_run: true
 ```
 
 With `SEND_BIZEVENTS_ON_RUN` set to `true` Dynatrace Snowflake Observability Agent will provide updates to DT on the statuses of executed

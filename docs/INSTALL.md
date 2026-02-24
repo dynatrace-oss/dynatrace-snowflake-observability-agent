@@ -439,7 +439,7 @@ This approach provides a structured way to have a Snowflake administrator initia
 
     ```bash
     export HISTCONTROL=ignorespace
-    export DTAGENT_TOKEN="your-dynatrace-token"
+     export DTAGENT_TOKEN="your-dynatrace-token"
 
     # If you included admin setup (or do not want to install use the admin role) in your custom init script:
     ./deploy.sh custom-init --scope=setup,plugins,config,agents,apikey
