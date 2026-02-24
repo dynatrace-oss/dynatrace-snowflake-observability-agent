@@ -24,10 +24,10 @@
 class TestDynamicTables:
     import pytest
 
-    PICKLES = {
-        "APP.V_DYNAMIC_TABLES_INSTRUMENTED": "test/test_data/dynamic_tables.pkl",
-        "APP.V_DYNAMIC_TABLE_REFRESH_HISTORY_INSTRUMENTED": "test/test_data/dynamic_table_refresh_history.pkl",
-        "APP.V_DYNAMIC_TABLE_GRAPH_HISTORY_INSTRUMENTED": "test/test_data/dynamic_table_graph_history.pkl",
+    FIXTURES = {
+        "APP.V_DYNAMIC_TABLES_INSTRUMENTED": "test/test_data/dynamic_tables.ndjson",
+        "APP.V_DYNAMIC_TABLE_REFRESH_HISTORY_INSTRUMENTED": "test/test_data/dynamic_table_refresh_history.ndjson",
+        "APP.V_DYNAMIC_TABLE_GRAPH_HISTORY_INSTRUMENTED": "test/test_data/dynamic_table_graph_history.ndjson",
     }
 
     @pytest.mark.xdist_group(name="test_telemetry")
@@ -42,12 +42,12 @@ class TestDynamicTables:
 
         # ======================================================================
 
-        utils._pickle_all(_get_session(), self.PICKLES)
+        utils._generate_all_fixtures(_get_session(), self.FIXTURES)
 
         class TestDynamicTablesPlugin(DynamicTablesPlugin):
 
             def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
-                return utils._safe_get_unpickled_entries(TestDynamicTables.PICKLES, t_data, limit=2)
+                return utils._safe_get_fixture_entries(TestDynamicTables.FIXTURES, t_data, limit=2)
 
         def __local_get_plugin_class(source: str):
             return TestDynamicTablesPlugin

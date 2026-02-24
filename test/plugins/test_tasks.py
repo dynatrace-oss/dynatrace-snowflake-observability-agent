@@ -24,10 +24,10 @@
 class TestTasks:
     import pytest
 
-    PICKLES = {
-        "APP.V_SERVERLESS_TASKS": "test/test_data/tasks_serverless.pkl",
-        "APP.V_TASK_HISTORY": "test/test_data/tasks_history.pkl",
-        "APP.V_TASK_VERSIONS": "test/test_data/tasks_versions.pkl",
+    FIXTURES = {
+        "APP.V_SERVERLESS_TASKS": "test/test_data/tasks_serverless.ndjson",
+        "APP.V_TASK_HISTORY": "test/test_data/tasks_history.ndjson",
+        "APP.V_TASK_VERSIONS": "test/test_data/tasks_versions.ndjson",
     }
 
     @pytest.mark.xdist_group(name="test_telemetry")
@@ -43,12 +43,12 @@ class TestTasks:
 
         # -----------------------------------------------------
 
-        utils._pickle_all(_get_session(), self.PICKLES)
+        utils._generate_all_fixtures(_get_session(), self.FIXTURES)
 
         class TestTasksPlugin(TasksPlugin):
 
             def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
-                return utils._safe_get_unpickled_entries(TestTasks.PICKLES, t_data, limit=2)
+                return utils._safe_get_fixture_entries(TestTasks.FIXTURES, t_data, limit=2)
 
         def __local_get_plugin_class(source: str):
             return TestTasksPlugin

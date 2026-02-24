@@ -24,9 +24,9 @@
 class TestTrustCenter:
     import pytest
 
-    PICKLES = {
-        "APP.V_TRUST_CENTER_METRICS": "test/test_data/trust_center_metrics.pkl",
-        "APP.V_TRUST_CENTER_INSTRUMENTED": "test/test_data/trust_center_instr.pkl",
+    FIXTURES = {
+        "APP.V_TRUST_CENTER_METRICS": "test/test_data/trust_center_metrics.ndjson",
+        "APP.V_TRUST_CENTER_INSTRUMENTED": "test/test_data/trust_center_instrumented.ndjson",
     }
 
     @pytest.mark.xdist_group(name="test_telemetry")
@@ -42,12 +42,12 @@ class TestTrustCenter:
 
         # -----------------------------------------------------
 
-        utils._pickle_all(_get_session(), self.PICKLES)
+        utils._generate_all_fixtures(_get_session(), self.FIXTURES)
 
         class TestTrustCenterPlugin(TrustCenterPlugin):
 
             def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
-                return utils._safe_get_unpickled_entries(TestTrustCenter.PICKLES, t_data, limit=2)
+                return utils._safe_get_fixture_entries(TestTrustCenter.FIXTURES, t_data, limit=2)
 
         def __local_get_plugin_class(source: str):
             return TestTrustCenterPlugin

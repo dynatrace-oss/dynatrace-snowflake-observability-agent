@@ -24,9 +24,9 @@
 class TestBudgets:
     import pytest
 
-    PICKLES = {
-        "APP.V_BUDGET_DETAILS": "test/test_data/budgets.pkl",
-        "APP.V_BUDGET_SPENDINGS": "test/test_data/budget_spendings.pkl",
+    FIXTURES = {
+        "APP.V_BUDGET_DETAILS": "test/test_data/budgets.ndjson",
+        "APP.V_BUDGET_SPENDINGS": "test/test_data/budgets_spendings.ndjson",
     }
 
     @pytest.mark.xdist_group(name="test_telemetry")
@@ -37,15 +37,15 @@ class TestBudgets:
         from test import _get_session, TestDynatraceSnowAgent
         import test._utils as utils
 
-        if utils.should_pickle(self.PICKLES.values()):
+        if utils.should_generate_fixtures(self.FIXTURES.values()):
             session = _get_session()
             session.call("APP.P_GET_BUDGETS", log_on_exception=True)
-            utils._pickle_all(session, self.PICKLES, force=True)
+            utils._generate_all_fixtures(session, self.FIXTURES, force=True)
 
         class TestBudgetsPlugin(BudgetsPlugin):
 
             def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
-                return utils._safe_get_unpickled_entries(TestBudgets.PICKLES, t_data)
+                return utils._safe_get_fixture_entries(TestBudgets.FIXTURES, t_data)
 
         def __local_get_plugin_class(source: str):
             return TestBudgetsPlugin

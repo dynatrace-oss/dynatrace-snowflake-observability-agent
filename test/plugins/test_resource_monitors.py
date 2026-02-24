@@ -26,7 +26,7 @@ class TestResMon:
 
     T_DATA_RESMON = "APP.V_RESOURCE_MONITORS"
     T_DATA_WHS = "APP.V_WAREHOUSES"
-    PICKLES = {T_DATA_RESMON: "test/test_data/resource_monitors.pkl", T_DATA_WHS: "test/test_data/warehouses.pkl"}
+    FIXTURES = {T_DATA_RESMON: "test/test_data/resource_monitors.ndjson", T_DATA_WHS: "test/test_data/resource_monitors_warehouses.ndjson"}
 
     @pytest.mark.xdist_group(name="test_telemetry")
     def test_res_mon(self):
@@ -41,18 +41,18 @@ class TestResMon:
 
         # ======================================================================
 
-        if utils.should_pickle(self.PICKLES.values()):
+        if utils.should_generate_fixtures(self.FIXTURES.values()):
             session = _get_session()
             session.call("APP.P_REFRESH_RESOURCE_MONITORS", log_on_exception=True)
-            utils._pickle_data_history(
-                session, self.T_DATA_RESMON, self.PICKLES[self.T_DATA_RESMON], lambda df: df.sort("IS_ACCOUNT_LEVEL", ascending=False)
+            utils._generate_fixture(
+                session, self.T_DATA_RESMON, self.FIXTURES[self.T_DATA_RESMON], lambda df: df.sort("IS_ACCOUNT_LEVEL", ascending=False)
             )
-            utils._pickle_data_history(session, self.T_DATA_WHS, self.PICKLES[self.T_DATA_WHS])
+            utils._generate_fixture(session, self.T_DATA_WHS, self.FIXTURES[self.T_DATA_WHS])
 
         class TestResourceMonitorsPlugin(ResourceMonitorsPlugin):
 
             def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
-                return utils._safe_get_unpickled_entries(TestResMon.PICKLES, t_data, limit=2)
+                return utils._safe_get_fixture_entries(TestResMon.FIXTURES, t_data, limit=2)
 
         def __local_get_plugin_class(source: str):
             return TestResourceMonitorsPlugin
