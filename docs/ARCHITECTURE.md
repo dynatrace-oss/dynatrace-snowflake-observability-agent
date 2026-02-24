@@ -36,6 +36,7 @@ The main capabilities offered by DSOA are:
   - [Sending metrics](#sending-metrics)
   - [Sending events](#sending-events)
   - [Sending BizEvents](#sending-bizevents)
+  - [Dynatrace Subscription Compatibility](#dynatrace-subscription-compatibility)
 - [Sending custom telemetry](#sending-custom-telemetry)
   - [Default data structure](#default-data-structure)
   - [Examples of sending custom telemetry](#examples-of-sending-custom-telemetry)
@@ -253,7 +254,9 @@ otel:
 ### Sending events
 
 Dynatrace Snowflake Observability Agent enables to send events using the
-[Dynatrace Events API v2](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-api/environment-api/events-v2).
+[Dynatrace OpenPipeline Events API](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-api/environment-api/events-v2) (`/platform/ingest/v1/events`).
+
+> **Note:** The OpenPipeline Events API requires a [Dynatrace Platform Subscription (DPS)](https://www.dynatrace.com/pricing/dynatrace-platform-subscription/). Tenants without DPS cannot receive events sent through this endpoint. See [Dynatrace Subscription Compatibility](#dynatrace-subscription-compatibility) for guidance on configuring DSOA for non-DPS tenants.
 
 Each event has columns specifying the event type and title accompanied by additional attributes describing its details. Dynatrace API for
 Events require each event to be send separately. Dynatrace Snowflake Observability Agent enables to configure maximum number of retries and
@@ -272,6 +275,8 @@ Dynatrace Snowflake Observability Agent is also capable of sending special type 
 using the
 [Dynatrace Business Events API v2](https://docs.dynatrace.com/docs/discover-dynatrace/references/dynatrace-api/environment-api/business-analytics-v2).
 
+> **Note:** BizEvents are stored in Grail (Dynatrace's data lakehouse) and therefore require a [Dynatrace Platform Subscription (DPS)](https://www.dynatrace.com/pricing/dynatrace-platform-subscription/). Tenants without DPS cannot receive BizEvents. See [Dynatrace Subscription Compatibility](#dynatrace-subscription-compatibility) for guidance on configuring DSOA for non-DPS tenants.
+
 Those events are usually used for tracking execution of actions within Dynatrace Snowflake Observability Agent flow. Each posted business
 event is required to have fields specifying its `id`, `source`, `specversion`, and `type`. Dynatrace Snowflake Observability Agent sends
 business events as batch of `CloudEvent` objects.
@@ -287,6 +292,24 @@ otel:
     retry_delay_ms: 10000
     retry_on_status: [429, 502, 503]
 ```
+
+### Dynatrace Subscription Compatibility
+
+Not all DSOA telemetry types are available on every Dynatrace deployment. Some signal types depend on
+[Dynatrace Platform Subscription (DPS)](https://www.dynatrace.com/pricing/dynatrace-platform-subscription/), which provides access to
+Grail (Dynatrace's data lakehouse) and the OpenPipeline ingestion APIs.
+
+| Signal Type        | Endpoint                     | DPS Required | Notes                                           |
+| ------------------ | ---------------------------- | ------------ | ----------------------------------------------- |
+| **Logs**           | `/api/v2/otlp/v1/logs`       | No           | Available on all tenants                        |
+| **Metrics**        | `/api/v2/metrics/ingest`     | No           | Available on all tenants                        |
+| **Spans**          | `/api/v2/otlp/v1/traces`     | No           | Available on all tenants                        |
+| **Davis Events**   | `/api/v2/events/ingest`      | No           | Classic Events API v2, available on all tenants |
+| **BizEvents**      | `/api/v2/bizevents/ingest`   | **Yes**      | Stored in Grail; requires DPS                   |
+| **Generic Events** | `/platform/ingest/v1/events` | **Yes**      | OpenPipeline-only; requires DPS                 |
+
+For guidance on configuring DSOA for a non-DPS Dynatrace tenant, see
+[Using DSOA Without a Dynatrace Platform Subscription](INSTALL.md#using-dsoa-without-a-dynatrace-platform-subscription) in INSTALL.md.
 
 ## Sending custom telemetry
 

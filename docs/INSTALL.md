@@ -821,6 +821,31 @@ The `otel` section allows you to configure OpenTelemetry behavior. By default, y
 | `biz_events.retry_on_status`           | Array[Integer] | -       | HTTP status codes that trigger retry                                       |
 | `biz_events.is_disabled`               | Boolean        | `false` | Disable business events telemetry export                                   |
 
+#### Using DSOA Without a Dynatrace Platform Subscription
+
+Some DSOA telemetry types require a [Dynatrace Platform Subscription (DPS)](https://www.dynatrace.com/pricing/dynatrace-platform-subscription/)
+because they rely on Grail or OpenPipeline ingestion APIs that are only available with DPS:
+
+- **Generic (OpenPipeline) Events** (`otel.events`) — require DPS
+- **BizEvents** (`otel.biz_events`) — require DPS (stored in Grail)
+
+**Logs, metrics, spans, and Davis Events work on all Dynatrace tenants**, regardless of subscription tier.
+
+If your Dynatrace tenant does not have a DPS subscription, add the following to your profile configuration to disable the
+non-compatible signal types:
+
+```yaml
+otel:
+  events:
+    is_disabled: true
+  biz_events:
+    is_disabled: true
+```
+
+With this configuration, DSOA delivers full observability coverage through logs, metrics, and spans. Self-monitoring BizEvents
+and plugin event alerts will be silently suppressed rather than causing errors. See [ARCHITECTURE.md](ARCHITECTURE.md#dynatrace-subscription-compatibility)
+for the full signal compatibility table.
+
 #### Plugin Scheduling
 
 One of the configuration options for each Dynatrace Snowflake Observability Agent plugin is the `schedule`, which determines when the
