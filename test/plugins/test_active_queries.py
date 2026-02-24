@@ -24,7 +24,7 @@
 class TestActiveQueries:
     import pytest
 
-    PICKLES = {"SELECT * FROM TABLE(DTAGENT_DB.APP.F_ACTIVE_QUERIES_INSTRUMENTED())": "test/test_data/active_queries.pkl"}
+    FIXTURES = {"SELECT * FROM TABLE(DTAGENT_DB.APP.F_ACTIVE_QUERIES_INSTRUMENTED())": "test/test_data/active_queries.ndjson"}
 
     @pytest.mark.xdist_group(name="test_telemetry")
     def test_active_queries(self):
@@ -38,12 +38,12 @@ class TestActiveQueries:
 
         # ======================================================================
 
-        utils._pickle_all(_get_session(), self.PICKLES)
+        utils._generate_all_fixtures(_get_session(), self.FIXTURES)
 
         class TestActiveQueriesPlugin(ActiveQueriesPlugin):
 
             def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
-                return utils._safe_get_unpickled_entries(TestActiveQueries.PICKLES, t_data, limit=2)
+                return utils._safe_get_fixture_entries(TestActiveQueries.FIXTURES, t_data, limit=2)
 
         def __local_get_plugin_class(source: str):
             return TestActiveQueriesPlugin

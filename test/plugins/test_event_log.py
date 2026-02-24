@@ -24,10 +24,10 @@
 class TestEventLog:
     import pytest
 
-    PICKLES = {
-        "APP.V_EVENT_LOG": "test/test_data/event_log.pkl",
-        "APP.V_EVENT_LOG_METRICS_INSTRUMENTED": "test/test_data/event_log_metrics.pkl",
-        "APP.V_EVENT_LOG_SPANS_INSTRUMENTED": "test/test_data/event_log_spans.pkl",
+    FIXTURES = {
+        "APP.V_EVENT_LOG": "test/test_data/event_log.ndjson",
+        "APP.V_EVENT_LOG_METRICS_INSTRUMENTED": "test/test_data/event_log_metrics.ndjson",
+        "APP.V_EVENT_LOG_SPANS_INSTRUMENTED": "test/test_data/event_log_spans.ndjson",
     }
 
     @pytest.mark.xdist_group(name="test_telemetry")
@@ -42,14 +42,14 @@ class TestEventLog:
 
         # ======================================================================
 
-        utils._pickle_all(_get_session(), self.PICKLES)
+        utils._generate_all_fixtures(_get_session(), self.FIXTURES)
 
         class TestEventLogPlugin(EventLogPlugin):
             def _get_events(self) -> Generator[Dict, None, None]:
                 return self._get_table_rows("APP.V_EVENT_LOG")
 
             def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
-                return utils._safe_get_unpickled_entries(TestEventLog.PICKLES, t_data, limit=2)
+                return utils._safe_get_fixture_entries(TestEventLog.FIXTURES, t_data, limit=2)
 
         def __local_get_plugin_class(source: str):
             return TestEventLogPlugin

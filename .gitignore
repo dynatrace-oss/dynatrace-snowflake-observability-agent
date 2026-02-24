@@ -1,29 +1,47 @@
-connection.json
+# === macOS ===
 .DS_Store
+
+# === Python ===
+*.pyc
+__pycache__/
 .venv*
-*.token
+
+# === Configuration Files ===
+connection.json
 config.json
 config-*.json
 config.yml
 config-*.yml
 conf/*.sql
 snowflake.local.yml
-output/**
+test/conf/*config-download.yml
+# Safety net: prevent accidental re-introduction of binary pickle fixture files
+test/test_data/*.pkl
+!config-basic.json
+
+# === Credentials & Secrets ===
+*.token
+*credentials*.*
+
+# === Logs ===
 log.*
 *.log
-*credentials*.*
-*.pyc
+.logs/*
+
+# === Build Artifacts ===
 build/*
 package/*
-.logs/*
-instruments-def.*
+output/**
 metrics/*
-*.zip
-!config-basic.json
-LICENSE.md
+instruments-def.*
 *-deploy-script*
-*.pdf
-test/conf/*config-download.yml
 dynatrace-snowflake-observability-agent
+
+# === Distribution & Archives ===
+*.zip
+*.whl
 *.pkg
+*.pdf
+
+# === AI & Development Context ===
 .github/context/*

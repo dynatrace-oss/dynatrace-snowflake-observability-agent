@@ -24,7 +24,7 @@
 class TestEventUsage:
     import pytest
 
-    PICKLES = {"APP.V_EVENT_USAGE_HISTORY": "test/test_data/event_usage.pkl"}
+    FIXTURES = {"APP.V_EVENT_USAGE_HISTORY": "test/test_data/event_usage.ndjson"}
 
     @pytest.mark.xdist_group(name="test_telemetry")
     def test_event_usage(self):
@@ -38,12 +38,12 @@ class TestEventUsage:
 
         # ======================================================================
 
-        utils._pickle_all(_get_session(), self.PICKLES)
+        utils._generate_all_fixtures(_get_session(), self.FIXTURES)
 
         class TestEventUsagePlugin(EventUsagePlugin):
 
             def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
-                return utils._safe_get_unpickled_entries(TestEventUsage.PICKLES, t_data, limit=2)
+                return utils._safe_get_fixture_entries(TestEventUsage.FIXTURES, t_data, limit=2)
 
         def __local_get_plugin_class(source: str):
             return TestEventUsagePlugin

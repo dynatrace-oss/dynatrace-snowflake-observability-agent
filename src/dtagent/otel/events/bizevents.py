@@ -45,10 +45,13 @@ from dtagent.version import VERSION
 
 
 class BizEvents(AbstractEvents):
-    """Class parsing and sending bizevents via BizEvents API
-    https://docs.dynatrace.com/docs/observe/business-observability/bo-api-ingest
+    """Class parsing and sending bizevents.
 
-    NOTE: BizEvents are delivered to Dynatrace using CloudEvents batch format.
+    API Specifications:
+    - Dynatrace BizEvents API: https://docs.dynatrace.com/docs/ingest-from/business-analytics/ba-api-ingest
+    - CloudEvents Spec: https://cloudevents.io/
+
+    Note: Timestamps are provided as ISO 8601 strings in the CloudEvents `time` field.
     """
 
     from dtagent.config import Configuration  # COMPILE_REMOVE

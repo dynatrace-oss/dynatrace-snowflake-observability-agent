@@ -216,5 +216,8 @@
     },
     "[yaml]": {
         "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "chat.promptFilesLocations": {
+        ".github/context/prompts": true
     }
 }

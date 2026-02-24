@@ -22,4 +22,5 @@ analyzing, and detecting anomalies in data processing. It delivers observability
 - [Version changelog](docs/CHANGELOG.md)
 - [Contribution guidelines](docs/CONTRIBUTING.md)
 - [Plugin development guide](docs/PLUGIN_DEVELOPMENT.md)
+- [Development log](docs/DEVLOG.md)
 - [Appendix and reference](docs/APPENDIX.md)

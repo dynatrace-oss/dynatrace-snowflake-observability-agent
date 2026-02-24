@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file.
 
+## Dynatrace Snowflake Observability Agent 0.9.4
+
+Released on TBD
+
+> **Note**: Detailed technical changes and implementation notes are available in [DEVLOG.md](DEVLOG.md).
+
+### New in 0.9.4
+
+- **New Plugins**: Added Pipes, Streams, Stage, and Data Lineage monitoring plugins
+- **Configurable Lookback Time**: Per-plugin configuration for historical data catchup window
+
+### Fixed in 0.9.4
+
+- **OTLP Compliance**: Fixed log `observed_timestamp` field to use nanoseconds per OTLP specification
+- **Shares Plugin**: Fixed reporting of deleted shared databases
+- **Self-Monitoring**: Fixed database name filtering for self-monitoring logs
+
+### Improved in 0.9.4
+
+- **Budgets Plugin**: Enhanced budget data collection using `SYSTEM$SHOW_BUDGETS_IN_ACCOUNT()`.
+- **Query Hierarchy Validation**: Improved span hierarchy validation using `parent_query_id` and `root_query_id` fields with OpenTelemetry propagation standards.
+- **Test Infrastructure**: Refactored tests to use synthetic JSON fixtures for input/output validation instead of live Dynatrace API calls.
+- **Test Fixtures**: Migrated all plugin test input data from binary Python pickle files (`.pkl`) to human-readable NDJSON format (`.ndjson`), improving transparency and enabling direct manual inspection and version control of test data.
+- **Event Tables Cost Optimization**: Added guidance for fine-tuning Event Table usage to manage Snowflake costs.
+- **Timestamp Handling**: Unified timestamp handling with smart unit detection, eliminating wasteful conversions
+- **Build System**: Development scripts now auto-activate virtual environment
+- **Test Infrastructure**: Refactored tests to use synthetic JSON fixtures instead of live API calls
+
 ## Dynatrace Snowflake Observability Agent 0.9.3
 
 Released on February 12, 2026
@@ -293,7 +321,7 @@ Released on Oct 8, 2024.
 
 ### Added in 0.7.2
 
-- Pickle for testing of the Users plugin.
+- Fixtures for testing of the Users plugin.
 - Copyright statements to the code.
 
 ### Fixed in 0.7.2

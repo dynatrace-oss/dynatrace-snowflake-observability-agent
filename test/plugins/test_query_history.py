@@ -24,7 +24,7 @@
 class TestQueryHist:
     import pytest
 
-    PICKLES = {"APP.V_RECENT_QUERIES": "test/test_data/recent_queries2.pkl"}
+    FIXTURES = {"APP.V_RECENT_QUERIES": "test/test_data/query_history.ndjson"}
 
     @pytest.mark.xdist_group(name="test_telemetry")
     def test_query_hist(self):
@@ -34,7 +34,7 @@ class TestQueryHist:
         from typing import Dict, Generator
 
         from snowflake import snowpark
-        import pandas as pd
+        import json as _json
         import test._utils as utils
 
         from test import TestDynatraceSnowAgent, _get_session
@@ -42,10 +42,10 @@ class TestQueryHist:
 
         # ======================================================================
 
-        if utils.should_pickle(self.PICKLES.values()):
+        if utils.should_generate_fixtures(self.FIXTURES.values()):
             session = _get_session()
             session.call("APP.P_REFRESH_RECENT_QUERIES", log_on_exception=True)
-            utils._pickle_all(_get_session(), self.PICKLES)
+            utils._generate_all_fixtures(_get_session(), self.FIXTURES)
 
         from dtagent.otel.spans import Spans
 
@@ -58,22 +58,22 @@ class TestQueryHist:
                 parent_row_id_col: str,
                 row_id: str,
             ) -> Generator[Dict, None, None]:
-                pandas_df = pd.read_pickle(TestQueryHist.PICKLES[view_name])
-                print(f"Unpickled for {view_name} at {parent_row_id_col} = {row_id}")
+                fixture_path = TestQueryHist.FIXTURES[view_name]
+                print(f"Loaded fixture for {view_name} at {parent_row_id_col} = {row_id}")
+                with open(fixture_path, "r", encoding="utf-8") as _fh:
+                    all_rows = [_json.loads(line) for line in _fh if line.strip()]
 
-                pandas_df = pandas_df[pandas_df[parent_row_id_col] == row_id]
+                from dtagent.util import _adjust_timestamp
 
-                for _, row in pandas_df.iterrows():
-                    from dtagent.util import _adjust_timestamp
-
-                    row_dict = row.to_dict()
-                    _adjust_timestamp(row_dict)
-                    yield row_dict
+                for row_dict in all_rows:
+                    if row_dict.get(parent_row_id_col) == row_id:
+                        _adjust_timestamp(row_dict)
+                        yield row_dict
 
         class TestQueryHistoryPlugin(QueryHistoryPlugin):
 
             def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
-                return utils._safe_get_unpickled_entries(TestQueryHist.PICKLES, t_data, limit=3)
+                return utils._safe_get_fixture_entries(TestQueryHist.FIXTURES, t_data, limit=3)
 
         class TestSpanDynatraceSnowAgent(TestDynatraceSnowAgent):
             from opentelemetry.sdk.resources import Resource

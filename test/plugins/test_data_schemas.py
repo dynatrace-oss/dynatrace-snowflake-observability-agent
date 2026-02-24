@@ -24,7 +24,7 @@
 class TestDataSchemas:
     import pytest
 
-    PICKLES = {"APP.V_DATA_SCHEMAS": "test/test_data/data_schemas.pkl"}
+    FIXTURES = {"APP.V_DATA_SCHEMAS": "test/test_data/data_schemas.ndjson"}
 
     @pytest.mark.xdist_group(name="test_telemetry")
     def test_data_schemas(self):
@@ -35,12 +35,12 @@ class TestDataSchemas:
 
         # ======================================================================
 
-        utils._pickle_all(_get_session(), self.PICKLES)
+        utils._generate_all_fixtures(_get_session(), self.FIXTURES)
 
         class TestDataSchemasPlugin(DataSchemasPlugin):
 
             def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
-                return utils._safe_get_unpickled_entries(TestDataSchemas.PICKLES, t_data, limit=2)
+                return utils._safe_get_fixture_entries(TestDataSchemas.FIXTURES, t_data, limit=2)
 
         def __local_get_plugin_class(source: str):
             return TestDataSchemasPlugin
