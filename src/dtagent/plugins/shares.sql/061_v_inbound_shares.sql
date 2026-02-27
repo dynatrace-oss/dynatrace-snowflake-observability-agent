@@ -26,6 +26,8 @@ create or replace view DTAGENT_DB.APP.V_INBOUND_SHARE_TABLES
 as
 select
     case
+        when ins.DETAILS:"HAS_DB_DELETED" = TRUE then
+            concat('Inbound share "', s.name, '" has a deleted database - data is no longer accessible')
         when ins.DETAILS:"SHARE_STATUS" = 'UNAVAILABLE' then
             concat('Inbound share "', s.name, '" is no longer available - access may have been revoked by the publisher')
         when LEN(NVL(s.comment, '')) > 0 then s.comment

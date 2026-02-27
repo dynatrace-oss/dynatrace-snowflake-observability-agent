@@ -16,7 +16,7 @@ Released on TBD
 ### Fixed in 0.9.4
 
 - **OTLP Compliance**: Fixed log `observed_timestamp` field to use nanoseconds per OTLP specification
-- **Shares Plugin**: Fixed reporting of deleted shared databases
+- **Shares Plugin**: Fixed inbound shares with deleted databases not being properly reported. The `snowflake.share.has_details_reported` attribute now correctly shows `TRUE` for deleted-DB shares, and the `_MESSAGE` field provides clear context about database deletion status
 - **Self-Monitoring**: Fixed database name filtering for self-monitoring logs
 
 ### Improved in 0.9.4

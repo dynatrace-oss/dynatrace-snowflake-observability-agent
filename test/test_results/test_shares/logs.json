@@ -56,5 +56,16 @@
     "snowflake.share.name": "BIET_MONITORING_SHARE",
     "dsoa.run.context": "inbound_shares",
     "dsoa.run.plugin": "test_shares"
+  },
+  {
+    "content": "Inbound share \"DELETED_DB_SHARE\" has a deleted database - data is no longer accessible",
+    "snowflake.share.has_db_deleted": true,
+    "snowflake.share.has_details_reported": true,
+    "snowflake.share.kind": "INBOUND",
+    "snowflake.share.shared_from": "ABC123.SOURCE_ACCOUNT",
+    "db.namespace": "DELETED_SHARED_DB",
+    "snowflake.share.name": "DELETED_DB_SHARE",
+    "dsoa.run.context": "inbound_shares",
+    "dsoa.run.plugin": "test_shares"
   }
 ]
