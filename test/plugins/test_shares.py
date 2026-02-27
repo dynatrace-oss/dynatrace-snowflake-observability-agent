@@ -51,12 +51,8 @@ class TestShares:
         class TestSharesPlugin(SharesPlugin):
 
             def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
-<<<<<<< dev/skruk/fix-inbound-shares-db
                 limit = 3 if t_data == "APP.V_INBOUND_SHARE_TABLES" else 2
                 return utils._safe_get_fixture_entries(TestShares.FIXTURES, t_data, limit=limit)
-=======
-                return utils._safe_get_fixture_entries(TestShares.FIXTURES, t_data, limit=2)
->>>>>>> release/0.9.4
 
         def __local_get_plugin_class(source: str):
             return TestSharesPlugin
