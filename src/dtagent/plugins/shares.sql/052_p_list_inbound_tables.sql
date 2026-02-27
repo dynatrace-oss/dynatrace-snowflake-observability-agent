@@ -38,7 +38,12 @@ DECLARE
     rs        RESULTSET;
     rs_repeat RESULTSET;
     rs_empty  RESULTSET DEFAULT (SELECT NULL:text as SHARE_NAME, FALSE:boolean as IS_REPORTED, OBJECT_CONSTRUCT() as DETAILS WHERE 1=0);
-    rs_unavailable RESULTSET DEFAULT (SELECT :share_name as SHARE_NAME, TRUE:boolean as IS_REPORTED, OBJECT_CONSTRUCT('SHARE_STATUS', 'UNAVAILABLE', 'SHARE_NAME', :share_name, 'DATABASE_NAME', :db_name, 'ERROR_MESSAGE', 'Shared database is no longer available') as DETAILS);
+    rs_unavailable RESULTSET DEFAULT (SELECT :share_name as SHARE_NAME,
+                                             TRUE:boolean as IS_REPORTED,
+                                             OBJECT_CONSTRUCT('SHARE_STATUS', 'UNAVAILABLE',
+                                                              'SHARE_NAME', :share_name,
+                                                              'DATABASE_NAME', :db_name,
+                                                              'ERROR_MESSAGE', 'Shared database is no longer available') as DETAILS);
     error_msg TEXT;
 BEGIN
     IF (:with_grant) THEN
