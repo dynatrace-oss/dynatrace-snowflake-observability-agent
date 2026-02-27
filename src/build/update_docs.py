@@ -233,7 +233,8 @@ def _generate_plugins_info(dtagent_plugins_path: str, dtagent_conf_path: str) ->
             f_info_md = os.path.join(plugin_path, "readme.md")
             f_config_md = os.path.join(plugin_path, "config.md")
             f_bom_yml = os.path.join(plugin_path, "bom.yml")
-            config_file_name = f"{plugin_folder.split('.')[0]}-config.yml"
+            plugin_name = plugin_folder.split('.')[0]
+            config_file_name = f"{plugin_name}-config.yml"
             config_file_path = os.path.join(plugin_path, config_file_name)
 
             if os.path.isfile(f_info_md) or os.path.isfile(f_config_md) or os.path.isfile(config_file_path) or os.path.isfile(f_bom_yml):
@@ -250,14 +251,22 @@ def _generate_plugins_info(dtagent_plugins_path: str, dtagent_conf_path: str) ->
                 __content += f"[Show semantics for this plugin](#{plugin_name}_semantics_sec)\n\n"
 
                 if os.path.isfile(config_file_path) or os.path.isfile(f_config_md):
+                    config_data = yaml.safe_load(_read_file(config_file_path))
                     __content += f"### {plugin_title} default configuration\n\n"
-                    __content += (
-                        "To disable this plugin, set `IS_DISABLED` to `true`.\n\n"
-                        "In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, "
-                        "you need to explicitly set `IS_ENABLED` to `true` to enable selected plugins; `IS_DISABLED` is not checked then."
-                        "\n\n"
-                    )
-                    __content += "```json\n" + _read_file(config_file_path) + "\n```\n\n"
+
+                    if config_data.get("plugins", {}).get(plugin_name, {}).get("is_disabled"):
+                        __content += (
+                            "This plugin is **disabled by default**;\n"
+                            "you need to explicitly set `IS_ENABLED` to `true` to enable it.\n\n"
+                        )
+                    else:
+                        __content += (
+                            "To disable this plugin, set `IS_DISABLED` to `true`.\n\n"
+                            "In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, "
+                            "you need to explicitly set `IS_ENABLED` to `true` to enable selected plugins; `IS_DISABLED` is not checked then."
+                            "\n\n"
+                        )
+                    __content += "```yaml\n" + _read_file(config_file_path) + "\n```\n\n"
                     if os.path.isfile(f_config_md):
                         __content += _read_file(f_config_md) + "\n"
 

@@ -119,7 +119,7 @@ To disable this plugin, set `IS_DISABLED` to `true`.
 In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you need to explicitly set `IS_ENABLED` to `true` to enable
 selected plugins; `IS_DISABLED` is not checked then.
 
-```json
+```yaml
 plugins:
   active_queries:
     schedule: USING CRON */6 * * * * UTC
@@ -131,7 +131,6 @@ plugins:
       - metrics
       - spans
       - biz_events
-
 ```
 
 > **IMPORTANT**: For the `query_history` and `active_queries` plugins to report telemetry for all queries, the `DTAGENT_VIEWER` role must be
@@ -170,18 +169,44 @@ Snowflake Observability Agent's own budget.
 All budgets the agent has been granted access to are reported as logs and metrics; this includes their details, spending limit, and recent
 expenditures. The plugin runs once a day and excludes already reported expenditures.
 
-> **Note**: This plugin is **disabled by default** because custom budget monitoring requires per-budget privilege grants.
-> The account budget (visible via `SNOWFLAKE.BUDGET_VIEWER`) is accessible automatically once enabled. For custom budgets,
-> use `P_GRANT_BUDGET_MONITORING()` (requires admin scope) or grant privileges manually — see below.
+> **Note**: This plugin is **disabled by default** because custom budget monitoring requires per-budget privilege grants. The account budget
+> (visible via `SNOWFLAKE.BUDGET_VIEWER`) is accessible automatically once enabled. For custom budgets, use `P_GRANT_BUDGET_MONITORING()`
+> (requires admin scope) or grant privileges manually — see below.
 
 [Show semantics for this plugin](SEMANTICS.md#budgets_semantics_sec)
+
+### Budgets default configuration
+
+This plugin is **disabled by default**; you need to explicitly set `IS_ENABLED` to `true` to enable it.
+
+```yaml
+plugins:
+  budgets:
+    is_disabled: true
+    quota: 10
+    schedule: USING CRON 30 0 * * * UTC
+    monitored_budgets: []
+    schedule_grants: USING CRON 30 */12 * * * UTC
+    telemetry:
+      - logs
+      - metrics
+      - events
+      - biz_events
+```
+
+| Parameter           | Type   | Default                        | Description                                                                           |
+| ------------------- | ------ | ------------------------------ | ------------------------------------------------------------------------------------- |
+| `quota`             | int    | `10`                           | Credit quota for the agent's own `DTAGENT_BUDGET`.                                    |
+| `schedule`          | string | `USING CRON 30 0 * * * UTC`    | Cron schedule for the budgets collection task.                                        |
+| `monitored_budgets` | list   | `[]`                           | Fully-qualified custom budget names to monitor, e.g. `["MY_DB.MY_SCHEMA.MY_BUDGET"]`. |
+| `schedule_grants`   | string | `USING CRON 30 */12 * * * UTC` | Cron schedule for `TASK_DTAGENT_BUDGETS_GRANTS` (admin scope only).                   |
 
 ### Enabling the Budgets plugin
 
 1. Set `IS_DISABLED` to `false` in the configuration.
 1. For **account budget only** (no custom budgets): no additional grants needed — `SNOWFLAKE.BUDGET_VIEWER` is already granted.
-1. For **custom budgets**: configure `monitored_budgets` and run `P_GRANT_BUDGET_MONITORING()` (admin scope required), or grant
-   privileges manually (see below).
+1. For **custom budgets**: configure `monitored_budgets` and run `P_GRANT_BUDGET_MONITORING()` (admin scope required), or grant privileges
+   manually (see below).
 
 ### Granting access to custom budgets manually
 
@@ -194,77 +219,46 @@ grant snowflake.core.budget role <DB>.<SCHEMA>.<BUDGET_NAME>!VIEWER to role DTAG
 grant database role SNOWFLAKE.USAGE_VIEWER to role DTAGENT_VIEWER;
 ```
 
-### Budgets default configuration
-
-To disable this plugin, set `IS_DISABLED` to `true`.
-
-In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you need to explicitly set `IS_ENABLED` to `true` to enable
-selected plugins; `IS_DISABLED` is not checked then.
-
-```yaml
-plugins:
-  budgets:
-    quota: 10
-    schedule: USING CRON 30 0 * * * UTC
-    is_disabled: true
-    monitored_budgets: []
-    schedule_grants: USING CRON 30 */12 * * * UTC
-    telemetry:
-      - logs
-      - metrics
-      - events
-      - biz_events
-
-```
-
-| Parameter          | Type   | Default                       | Description                                                                                      |
-| ------------------ | ------ | ----------------------------- | ------------------------------------------------------------------------------------------------ |
-| `quota`            | int    | `10`                          | Credit quota for the agent's own `DTAGENT_BUDGET`.                                              |
-| `schedule`         | string | `USING CRON 30 0 * * * UTC`   | Cron schedule for the budgets collection task.                                                  |
-| `is_disabled`      | bool   | `true`                        | Disables the plugin. Set to `false` to enable.                                                  |
-| `monitored_budgets`| list   | `[]`                          | Fully-qualified custom budget names to monitor, e.g. `["MY_DB.MY_SCHEMA.MY_BUDGET"]`.          |
-| `schedule_grants`  | string | `USING CRON 30 */12 * * * UTC` | Cron schedule for `TASK_DTAGENT_BUDGETS_GRANTS` (admin scope only).                           |
-
 ### Budgets Bill of Materials
 
 The following tables list the Snowflake objects that this plugin delivers data from or references.
 
 #### Objects delivered by the `Budgets` plugin
 
-| Name                                          | Type                  | Comment                                               |
-| --------------------------------------------- | --------------------- | ----------------------------------------------------- |
-| ACCOUNT_BUDGET_ADMIN                          | role                  |                                                       |
-| ACCOUNT_BUDGET_MONITOR                        | role                  |                                                       |
-| BUDGET_OWNER                                  | role                  |                                                       |
-| DTAGENT_DB.APP.DTAGENT_BUDGET                 | snowflake.core.budget |                                                       |
-| DTAGENT_DB.APP.TMP_BUDGETS                    | transient table       |                                                       |
-| DTAGENT_DB.APP.TMP_BUDGETS_LIMITS             | transient table       |                                                       |
-| DTAGENT_DB.APP.TMP_BUDGETS_RESOURCES          | transient table       |                                                       |
-| DTAGENT_DB.APP.TMP_BUDGET_SPENDING            | transient table       |                                                       |
-| DTAGENT_DB.APP.P_GET_BUDGETS()                | procedure             |                                                       |
-| DTAGENT_DB.APP.V_BUDGET_SPENDINGS             | view                  |                                                       |
-| DTAGENT_DB.APP.V_BUDGET_DETAILS               | view                  |                                                       |
-| DTAGENT_DB.CONFIG.UPDATE_BUDGETS_CONF()       | procedure             |                                                       |
-| DTAGENT_DB.APP.TASK_DTAGENT_BUDGETS           | task                  |                                                       |
-| DTAGENT_DB.APP.P_GRANT_BUDGET_MONITORING()    | procedure             | Optional (admin scope). Grants per-budget privileges. |
-| DTAGENT_DB.APP.TASK_DTAGENT_BUDGETS_GRANTS    | task                  | Optional (admin scope). Periodic grant refresh.       |
+| Name                                       | Type                  | Comment                                                                                   |
+| ------------------------------------------ | --------------------- | ----------------------------------------------------------------------------------------- |
+| ACCOUNT_BUDGET_ADMIN                       | role                  |                                                                                           |
+| ACCOUNT_BUDGET_MONITOR                     | role                  |                                                                                           |
+| BUDGET_OWNER                               | role                  |                                                                                           |
+| DTAGENT_DB.APP.DTAGENT_BUDGET              | snowflake.core.budget |                                                                                           |
+| DTAGENT_DB.APP.TMP_BUDGETS                 | transient table       |                                                                                           |
+| DTAGENT_DB.APP.TMP_BUDGETS_LIMITS          | transient table       |                                                                                           |
+| DTAGENT_DB.APP.TMP_BUDGETS_RESOURCES       | transient table       |                                                                                           |
+| DTAGENT_DB.APP.TMP_BUDGET_SPENDING         | transient table       |                                                                                           |
+| DTAGENT_DB.APP.P_GET_BUDGETS()             | procedure             |                                                                                           |
+| DTAGENT_DB.APP.V_BUDGET_SPENDINGS          | view                  |                                                                                           |
+| DTAGENT_DB.APP.V_BUDGET_DETAILS            | view                  |                                                                                           |
+| DTAGENT_DB.CONFIG.UPDATE_BUDGETS_CONF()    | procedure             |                                                                                           |
+| DTAGENT_DB.APP.TASK_DTAGENT_BUDGETS        | task                  |                                                                                           |
+| DTAGENT_DB.APP.P_GRANT_BUDGET_MONITORING() | procedure             | Optional (admin scope). Grants DTAGENT_VIEWER privileges on configured monitored_budgets. |
+| DTAGENT_DB.APP.TASK_DTAGENT_BUDGETS_GRANTS | task                  | Optional (admin scope). Periodically calls P_GRANT_BUDGET_MONITORING().                   |
 
 #### Objects referenced by the `Budgets` plugin
 
-| Name                         | Type        | Privileges                      | Granted to             | Comment                                                                                 |
-| ---------------------------- | ----------- | ------------------------------- | ---------------------- | --------------------------------------------------------------------------------------- |
-| SNOWFLAKE                    | application | IMPORTED PRIVILEGES ON DATABASE | ACCOUNT_BUDGET_ADMIN   |                                                                                         |
-| SNOWFLAKE.BUDGET_ADMIN       | role        | APPLICATION ROLE                | ACCOUNT_BUDGET_ADMIN   |                                                                                         |
-| SNOWFLAKE.BUDGET_VIEWER      | role        | APPLICATION ROLE                | ACCOUNT_BUDGET_MONITOR |                                                                                         |
-| SNOWFLAKE.BUDGET_CREATOR     | role        | DATABASE ROLE                   | BUDGET_OWNER           |                                                                                         |
-| ACCOUNT_BUDGET_ADMIN         | role        | ROLE                            | DTAGENT_ADMIN          |                                                                                         |
-| ACCOUNT_BUDGET_MONITOR       | role        | ROLE                            | DTAGENT_VIEWER         |                                                                                         |
-| BUDGET_OWNER                 | role        | ROLE                            | DTAGENT_ADMIN          |                                                                                         |
-| SNOWFLAKE.CORE.BUDGET        | command     | USAGE                           |                        |                                                                                         |
-| SNOWFLAKE.USAGE_VIEWER       | role        | DATABASE ROLE                   | DTAGENT_VIEWER         | Optional (admin scope). Required for custom budget monitoring.                          |
-| $budget!GET_LINKED_RESOURCES | procedure   | USAGE                           |                        | We call this procedure on each budget defined in Snowflake                              |
-| $budget!GET_SPENDING_LIMIT   | procedure   | USAGE                           |                        | We call this procedure on each budget defined in Snowflake                              |
-| $budget!GET_SPENDING_HISTORY | procedure   | USAGE                           |                        | We call this procedure on each budget defined in Snowflake                              |
+| Name                         | Type        | Privileges                      | Granted to             | Comment                                                                                        |
+| ---------------------------- | ----------- | ------------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------- |
+| SNOWFLAKE                    | application | IMPORTED PRIVILEGES ON DATABASE | ACCOUNT_BUDGET_ADMIN   |                                                                                                |
+| SNOWFLAKE.BUDGET_ADMIN       | role        | APPLICATION ROLE                | ACCOUNT_BUDGET_ADMIN   |                                                                                                |
+| SNOWFLAKE.BUDGET_VIEWER      | role        | APPLICATION ROLE                | ACCOUNT_BUDGET_MONITOR |                                                                                                |
+| SNOWFLAKE.BUDGET_CREATOR     | role        | DATABASE ROLE                   | BUDGET_OWNER           |                                                                                                |
+| ACCOUNT_BUDGET_ADMIN         | role        | ROLE                            | DTAGENT_ADMIN          |                                                                                                |
+| ACCOUNT_BUDGET_MONITOR       | role        | ROLE                            | DTAGENT_VIEWER         |                                                                                                |
+| BUDGET_OWNER                 | role        | ROLE                            | DTAGENT_ADMIN          |                                                                                                |
+| SNOWFLAKE.CORE.BUDGET        | command     | USAGE                           |                        |                                                                                                |
+| $budget!GET_LINKED_RESOURCES | procedure   | USAGE                           |                        | We call this procedure on each budget defined in Snowflake                                     |
+| $budget!GET_SPENDING_LIMIT   | procedure   | USAGE                           |                        | We call this procedure on each budget defined in Snowflake                                     |
+| $budget!GET_SPENDING_HISTORY | procedure   | USAGE                           |                        | We call this procedure on each budget defined in Snowflake                                     |
+| SNOWFLAKE.USAGE_VIEWER       | role        | DATABASE ROLE                   | DTAGENT_VIEWER         | Optional (admin scope). Required for custom budget monitoring via P_GRANT_BUDGET_MONITORING(). |
 
 <a name="data_schemas_info_sec"></a>
 
@@ -282,18 +276,17 @@ To disable this plugin, set `IS_DISABLED` to `true`.
 In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you need to explicitly set `IS_ENABLED` to `true` to enable
 selected plugins; `IS_DISABLED` is not checked then.
 
-```json
+```yaml
 plugins:
   data_schemas:
     schedule: USING CRON 0 0,8,16 * * * UTC
     is_disabled: false
     exclude: []
     include:
-      - '%'
+      - "%"
     telemetry:
       - events
       - biz_events
-
 ```
 
 ### Data Schemas Bill of Materials
@@ -338,21 +331,20 @@ To disable this plugin, set `IS_DISABLED` to `true`.
 In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you need to explicitly set `IS_ENABLED` to `true` to enable
 selected plugins; `IS_DISABLED` is not checked then.
 
-```json
+```yaml
 plugins:
   data_volume:
     include:
       - DTAGENT_DB.%.%
-      - '%.PUBLIC.%'
+      - "%.PUBLIC.%"
     exclude:
-      - '%.INFORMATION_SCHEMA.%'
-      - '%.%.TMP_%'
+      - "%.INFORMATION_SCHEMA.%"
+      - "%.%.TMP_%"
     schedule: USING CRON 30 0,4,8,12,16,20 * * * UTC
     is_disabled: false
     telemetry:
       - metrics
       - biz_events
-
 ```
 
 ### Data Volume Bill of Materials
@@ -395,11 +387,11 @@ To disable this plugin, set `IS_DISABLED` to `true`.
 In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you need to explicitly set `IS_ENABLED` to `true` to enable
 selected plugins; `IS_DISABLED` is not checked then.
 
-```json
+```yaml
 plugins:
   dynamic_tables:
     include:
-      - '%.%.%'
+      - "%.%.%"
     exclude:
       - DTAGENT_DB.%.%
     schedule: USING CRON */30 * * * * UTC
@@ -409,7 +401,6 @@ plugins:
       - metrics
       - logs
       - biz_events
-
 ```
 
 > **IMPORTANT**: For this plugin to function correctly, `MONITOR on DYNAMIC TABLES` must be granted to the `DTAGENT_VIEWER` role. By
@@ -488,7 +479,7 @@ To disable this plugin, set `IS_DISABLED` to `true`.
 In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you need to explicitly set `IS_ENABLED` to `true` to enable
 selected plugins; `IS_DISABLED` is not checked then.
 
-```json
+```yaml
 plugins:
   event_log:
     max_entries: 10000
@@ -501,11 +492,10 @@ plugins:
       - logs
       - biz_events
       - spans
-
 ```
 
 > **IMPORTANT**: A dedicated cleanup task, `APP.TASK_DTAGENT_EVENT_LOG_CLEANUP`, ensures that the `EVENT_LOG` table contains only data no
-> older than the duration you define with the `PLUGINS.EVENT_LOG.RETENTION_HOURS` configuration option.
+> older than the duration you define with the `PLUGINS.EVENT_LOG.RETENTION_HOURS` configuration option.  
 > You can schedule this task separately using the `PLUGINS.EVENT_LOG.SCHEDULE_CLEANUP` configuration option, run the cleanup procedure
 > `APP.P_CLEANUP_EVENT_LOG()` manually, or manage the retention of data in the `EVENT_LOG` table yourself.
 
@@ -560,7 +550,7 @@ To disable this plugin, set `IS_DISABLED` to `true`.
 In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you need to explicitly set `IS_ENABLED` to `true` to enable
 selected plugins; `IS_DISABLED` is not checked then.
 
-```json
+```yaml
 plugins:
   event_usage:
     schedule: USING CRON 0 * * * * UTC
@@ -569,7 +559,6 @@ plugins:
       - metrics
       - logs
       - biz_events
-
 ```
 
 ### Event Usage Bill of Materials
@@ -617,7 +606,7 @@ To disable this plugin, set `IS_DISABLED` to `true`.
 In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you need to explicitly set `IS_ENABLED` to `true` to enable
 selected plugins; `IS_DISABLED` is not checked then.
 
-```json
+```yaml
 plugins:
   login_history:
     schedule: USING CRON */30 * * * * UTC
@@ -625,7 +614,6 @@ plugins:
     telemetry:
       - logs
       - biz_events
-
 ```
 
 ### Login History Bill of Materials
@@ -685,7 +673,7 @@ To disable this plugin, set `IS_DISABLED` to `true`.
 In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you need to explicitly set `IS_ENABLED` to `true` to enable
 selected plugins; `IS_DISABLED` is not checked then.
 
-```json
+```yaml
 plugins:
   query_history:
     schedule_grants: USING CRON */30 * * * * UTC
@@ -698,7 +686,6 @@ plugins:
       - logs
       - biz_events
       - spans
-
 ```
 
 The plugin can be configured to retrieve query plan and acceleration estimates for the slowest queries. This analysis uses telemetry from
@@ -780,7 +767,7 @@ To disable this plugin, set `IS_DISABLED` to `true`.
 In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you need to explicitly set `IS_ENABLED` to `true` to enable
 selected plugins; `IS_DISABLED` is not checked then.
 
-```json
+```yaml
 plugins:
   resource_monitors:
     schedule: USING CRON */30 * * * * UTC
@@ -790,7 +777,6 @@ plugins:
       - metrics
       - events
       - biz_events
-
 ```
 
 ### Resource Monitors Bill of Materials
@@ -841,7 +827,7 @@ To disable this plugin, set `IS_DISABLED` to `true`.
 In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you need to explicitly set `IS_ENABLED` to `true` to enable
 selected plugins; `IS_DISABLED` is not checked then.
 
-```json
+```yaml
 plugins:
   shares:
     schedule: USING CRON */30 * * * * UTC
@@ -850,12 +836,11 @@ plugins:
     exclude:
       - ""
     include:
-      - '%.%.%'
+      - "%.%.%"
     telemetry:
       - logs
       - events
       - biz_events
-
 ```
 
 ### Shares Bill of Materials
@@ -920,7 +905,7 @@ To disable this plugin, set `IS_DISABLED` to `true`.
 In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you need to explicitly set `IS_ENABLED` to `true` to enable
 selected plugins; `IS_DISABLED` is not checked then.
 
-```json
+```yaml
 plugins:
   tasks:
     schedule: USING CRON 30 * * * * UTC
@@ -930,7 +915,6 @@ plugins:
       - metrics
       - events
       - biz_events
-
 ```
 
 ### Tasks Bill of Materials
@@ -977,7 +961,7 @@ To disable this plugin, set `IS_DISABLED` to `true`.
 In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you need to explicitly set `IS_ENABLED` to `true` to enable
 selected plugins; `IS_DISABLED` is not checked then.
 
-```json
+```yaml
 plugins:
   trust_center:
     schedule: USING CRON 30 */12 * * * UTC
@@ -988,7 +972,6 @@ plugins:
       - logs
       - events
       - biz_events
-
 ```
 
 ### Trust Center Bill of Materials
@@ -1046,7 +1029,7 @@ To disable this plugin, set `IS_DISABLED` to `true`.
 In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you need to explicitly set `IS_ENABLED` to `true` to enable
 selected plugins; `IS_DISABLED` is not checked then.
 
-```json
+```yaml
 plugins:
   users:
     schedule: USING CRON 0 0 * * * UTC
@@ -1058,7 +1041,6 @@ plugins:
       - logs
       - events
       - biz_events
-
 ```
 
 ### Users Bill of Materials
@@ -1113,7 +1095,7 @@ To disable this plugin, set `IS_DISABLED` to `true`.
 In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you need to explicitly set `IS_ENABLED` to `true` to enable
 selected plugins; `IS_DISABLED` is not checked then.
 
-```json
+```yaml
 plugins:
   warehouse_usage:
     schedule: USING CRON 0 * * * * UTC
@@ -1122,7 +1104,6 @@ plugins:
       - logs
       - metrics
       - biz_events
-
 ```
 
 ### Warehouse Usage Bill of Materials
