@@ -53,7 +53,7 @@ execute as owner
 as
 $$
 DECLARE
-    q_get_budgets               TEXT DEFAULT 'show SNOWFLAKE.CORE.BUDGET ->> insert into DTAGENT_DB.APP.TMP_BUDGETS select * from $1;';
+    v_budgets_json              VARIANT;
 
     tr_budgets                  TEXT DEFAULT 'truncate table DTAGENT_DB.APP.TMP_BUDGETS;';
     tr_linked_resources         TEXT DEFAULT 'truncate table DTAGENT_DB.APP.TMP_BUDGETS_RESOURCES;';
@@ -73,7 +73,18 @@ BEGIN
     EXECUTE IMMEDIATE :tr_limits;
     EXECUTE IMMEDIATE :tr_spendings;
 
-    EXECUTE IMMEDIATE :q_get_budgets;
+    v_budgets_json := (SELECT PARSE_JSON(SYSTEM$SHOW_BUDGETS_IN_ACCOUNT()));
+    INSERT INTO DTAGENT_DB.APP.TMP_BUDGETS (created_on, name, database_name, schema_name, current_version, comment, owner, owner_role_type)
+        SELECT
+            TO_TIMESTAMP_LTZ(b.value:created_on::TEXT)  AS created_on,
+            b.value:name::TEXT                          AS name,
+            b.value:database_name::TEXT                 AS database_name,
+            b.value:schema_name::TEXT                   AS schema_name,
+            b.value:current_version::TEXT               AS current_version,
+            b.value:comment::TEXT                       AS comment,
+            b.value:owner::TEXT                         AS owner,
+            b.value:owner_role_type::TEXT               AS owner_role_type
+        FROM TABLE(FLATTEN(input => :v_budgets_json)) b;
 
     FOR budget IN c_budgets DO
         budget_name := budget.name;

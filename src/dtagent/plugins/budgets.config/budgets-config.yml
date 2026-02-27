@@ -2,7 +2,9 @@ plugins:
   budgets:
     quota: 10
     schedule: USING CRON 30 0 * * * UTC
-    is_disabled: false
+    is_disabled: true
+    monitored_budgets: []
+    schedule_grants: USING CRON 30 */12 * * * UTC
     telemetry:
       - logs
       - metrics
