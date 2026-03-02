@@ -53,6 +53,12 @@ DECLARE
     q_grant_budget_viewer       TEXT DEFAULT '';
     q_grant_usage_viewer        TEXT DEFAULT '';
 
+    budget_db_q                 TEXT DEFAULT '';
+    budget_schema_q             TEXT DEFAULT '';
+    budget_fqn_q                TEXT DEFAULT '';
+
+    safe_identifier_re          TEXT DEFAULT '^[A-Za-z_][A-Za-z0-9_$]*$';
+
     grants_count                INT DEFAULT 0;
 BEGIN
     q_grant_usage_viewer := 'grant database role SNOWFLAKE.USAGE_VIEWER to role DTAGENT_VIEWER;';
@@ -60,13 +66,24 @@ BEGIN
 
     FOR r_budget IN c_budgets DO
         budget_fqn    := r_budget.budget_fqn;
-        budget_db     := SPLIT_PART(:budget_fqn, '.', 1);
-        budget_schema := SPLIT_PART(:budget_fqn, '.', 2);
-        budget_name   := SPLIT_PART(:budget_fqn, '.', 3);
+        budget_db     := UPPER(SPLIT_PART(:budget_fqn, '.', 1));
+        budget_schema := UPPER(SPLIT_PART(:budget_fqn, '.', 2));
+        budget_name   := UPPER(SPLIT_PART(:budget_fqn, '.', 3));
 
-        q_grant_usage_db     := 'grant usage on database ' || :budget_db || ' to role DTAGENT_VIEWER;';
-        q_grant_usage_schema := 'grant usage on schema ' || :budget_db || '.' || :budget_schema || ' to role DTAGENT_VIEWER;';
-        q_grant_budget_viewer := 'grant snowflake.core.budget role ' || :budget_fqn || '!VIEWER to role DTAGENT_VIEWER;';
+        IF (NOT REGEXP_LIKE(:budget_db,     :safe_identifier_re)
+         OR NOT REGEXP_LIKE(:budget_schema, :safe_identifier_re)
+         OR NOT REGEXP_LIKE(:budget_name,   :safe_identifier_re)) THEN
+            SYSTEM$LOG_WARN('P_GRANT_BUDGET_MONITORING: skipping invalid budget FQN (unsafe identifier): ' || :budget_fqn);
+            CONTINUE;
+        END IF;
+
+        budget_db_q     := '"' || :budget_db     || '"';
+        budget_schema_q := '"' || :budget_schema || '"';
+        budget_fqn_q    := :budget_db_q || '.' || :budget_schema_q || '."' || :budget_name || '"';
+
+        q_grant_usage_db     := 'grant usage on database '   || :budget_db_q || ' to role DTAGENT_VIEWER;';
+        q_grant_usage_schema := 'grant usage on schema '     || :budget_db_q || '.' || :budget_schema_q || ' to role DTAGENT_VIEWER;';
+        q_grant_budget_viewer := 'grant snowflake.core.budget role ' || :budget_fqn_q || '!VIEWER to role DTAGENT_VIEWER;';
 
         EXECUTE IMMEDIATE :q_grant_usage_db;
         EXECUTE IMMEDIATE :q_grant_usage_schema;

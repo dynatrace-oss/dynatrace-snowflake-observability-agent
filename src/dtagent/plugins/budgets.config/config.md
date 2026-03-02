@@ -2,7 +2,7 @@
 | ------------------ | ------ | ------------------------------ | ---------------------------------------------------------------------------------------------- |
 | `quota`            | int    | `10`                           | Credit quota for the agent's own `DTAGENT_BUDGET`.                                             |
 | `schedule`         | string | `USING CRON 30 0 * * * UTC`    | Cron schedule for the budgets collection task.                                                 |
-| `monitored_budgets`| list   | `[]`                           | Fully-qualified custom budget names to monitor, e.g. `["MY_DB.MY_SCHEMA.MY_BUDGET"]`.          |
+| `monitored_budgets`| list   | `[]`                           | Fully-qualified custom budget names to monitor, e.g. `["MY_DB.MY_SCHEMA.MY_BUDGET"]`. Names are automatically uppercased; only standard unquoted Snowflake identifiers are supported (`[A-Za-z_][A-Za-z0-9_$]*` per part). |
 | `schedule_grants`  | string | `USING CRON 30 */12 * * * UTC` | Cron schedule for `TASK_DTAGENT_BUDGETS_GRANTS` (admin scope only).                            |
 
 ### Enabling the Budgets plugin
