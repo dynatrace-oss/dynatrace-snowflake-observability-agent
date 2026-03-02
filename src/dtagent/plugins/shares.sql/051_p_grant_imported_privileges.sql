@@ -29,8 +29,17 @@ language sql
 execute as owner
 as
 $$
+DECLARE
+    safe_identifier_re  TEXT DEFAULT '^[A-Za-z_][A-Za-z0-9_$]*$';
+    db_name_q           TEXT DEFAULT '';
 BEGIN
-    EXECUTE IMMEDIATE concat('GRANT IMPORTED PRIVILEGES on DATABASE ', :db_name, ' TO ROLE DTAGENT_VIEWER');
+    IF (NOT REGEXP_LIKE(UPPER(:db_name), :safe_identifier_re)) THEN
+        SYSTEM$LOG_WARN('P_GRANT_IMPORTED_PRIVILEGES: skipping invalid database name (unsafe identifier): ' || :db_name);
+        RETURN 'skipped: unsafe database name ' || :db_name;
+    END IF;
+
+    db_name_q := '"' || UPPER(:db_name) || '"';
+    EXECUTE IMMEDIATE concat('GRANT IMPORTED PRIVILEGES on DATABASE ', :db_name_q, ' TO ROLE DTAGENT_VIEWER');
 
     RETURN 'imported privileges granted on ' || :db_name;
 EXCEPTION
