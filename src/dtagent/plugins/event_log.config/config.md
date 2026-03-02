@@ -26,4 +26,3 @@ plugins:
       - MYAPP_DB        # exact match
       - ANALYTICS_%     # all databases starting with ANALYTICS_
 ```
-

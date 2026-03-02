@@ -198,7 +198,7 @@ Released on May 20, 2025.
 
 - **Teardown Process**: Correctly tears down tagged instances.
 - **Span Event Reporting**: Removed the hard limit of 128 span events. The limit is now configurable via `OTEL.SPANS.MAX_EVENT_COUNT`.
-- **Spans for Queries**: Fixed the problem with a hierarchy of query calls not being represented by a hierarchy of spans (_0.8.2 Hotfix 1_).
+- **Spans for Queries**: Fixed the problem with a hierarchy of query calls not being represented by a hierarchy of spans (*0.8.2 Hotfix 1*).
 - **Self-Monitoring Configuration**: Plugin default configurations no longer overwrite self-monitoring settings.
 - **Self-Monitoring BizEvents**: BizEvents are now sent by default when Dynatrace Snowflake Observability Agent is deployed and executed.
 
