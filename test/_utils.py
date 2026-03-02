@@ -338,6 +338,7 @@ def execute_telemetry_test(
     base_count: Dict[str, Dict[str, int]],
     test_name: str,
     affecting_types_for_entries: List[str] = None,
+    config: TestConfiguration = None,
 ):
     """Generalized test function for telemetry plugins.
 
@@ -355,7 +356,7 @@ def execute_telemetry_test(
 
     affecting_types_for_entries = affecting_types_for_entries or ["logs", "metrics", "spans"]
 
-    config = get_config()
+    config = config if config is not None else get_config()
     session = _get_session()
 
     for telemetry_type in ("spans", "logs", "metrics", "events"):

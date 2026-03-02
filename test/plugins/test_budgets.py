@@ -108,6 +108,7 @@ class TestBudgets:
             test_name="test_budget",
             disabled_telemetry=[],
             affecting_types_for_entries=["logs", "metrics", "events"],
+            config=config,
             base_count={
                 "budgets": {"entries": 1, "log_lines": 1, "metrics": 1, "events": 1},
                 "spendings": {"entries": 0, "log_lines": 0, "metrics": 0, "events": 0},
