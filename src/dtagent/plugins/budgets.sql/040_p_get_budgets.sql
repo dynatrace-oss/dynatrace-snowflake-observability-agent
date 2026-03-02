@@ -76,14 +76,14 @@ BEGIN
     v_budgets_json := (SELECT PARSE_JSON(SYSTEM$SHOW_BUDGETS_IN_ACCOUNT()));
     INSERT INTO DTAGENT_DB.APP.TMP_BUDGETS (created_on, name, database_name, schema_name, current_version, comment, owner, owner_role_type)
         SELECT
-            TO_TIMESTAMP_LTZ(b.value:created_on::TEXT)  AS created_on,
-            b.value:name::TEXT                          AS name,
-            b.value:database_name::TEXT                 AS database_name,
-            b.value:schema_name::TEXT                   AS schema_name,
-            b.value:current_version::TEXT               AS current_version,
-            b.value:comment::TEXT                       AS comment,
-            b.value:owner::TEXT                         AS owner,
-            b.value:owner_role_type::TEXT               AS owner_role_type
+            TO_TIMESTAMP_LTZ(b.value:"CREATED_ON"::NUMBER / 1000) AS created_on,
+            b.value:"NAME"::TEXT                                   AS name,
+            b.value:"DATABASE"::TEXT                               AS database_name,
+            b.value:"SCHEMA"::TEXT                                 AS schema_name,
+            b.value:"CURRENT_VERSION"::TEXT                        AS current_version,
+            b.value:"COMMENT"::TEXT                                AS comment,
+            b.value:"OWNER"::TEXT                                  AS owner,
+            b.value:"OWNER_ROLE_TYPE"::TEXT                        AS owner_role_type
         FROM TABLE(FLATTEN(input => :v_budgets_json)) b;
 
     FOR budget IN c_budgets DO
