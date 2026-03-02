@@ -151,13 +151,15 @@ Documentation is a first-class deliverable. Update relevant docs with every chan
 
 ### What to Update
 
-| Change type            | Update these                                                                                                              |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| New plugin             | `docs/PLUGINS.md`, `docs/USECASES.md`, plugin's `readme.md` + `config.md`, `instruments-def.yml`, `docs/SEMANTICS.md` |
-| New metric / attribute | `instruments-def.yml`, `docs/SEMANTICS.md`                                                        |
-| Architecture change    | `docs/ARCHITECTURE.md`                                                                            |
-| New version / release  | `docs/CHANGELOG.md` (user-facing highlights), `docs/DEVLOG.md` (technical details)                |
-| Config change          | `conf/config-template.yml`, plugin's `{name}-config.yml`                                          |
+| Change type            | Update these                                                                                       |
+| ---------------------- | -------------------------------------------------------------------------------------------------- |
+| New plugin             | `docs/USECASES.md`, plugin's `readme.md` + `config.md`, `instruments-def.yml`, `docs/SEMANTICS.md` |
+| New metric / attribute | `instruments-def.yml`, `docs/SEMANTICS.md`                                                         |
+| Architecture change    | `docs/ARCHITECTURE.md`                                                                             |
+| New version / release  | `docs/CHANGELOG.md` (user-facing highlights), `docs/DEVLOG.md` (technical details)                 |
+| Config change          | `conf/config-template.yml`, plugin's `{name}-config.yml`                                           |
+
+**Note:** Do not update `docs/PLUGINS.md` or `docs/SEMANTICS.md` as those are generated automatically.
 
 ### CHANGELOG vs DEVLOG
 
