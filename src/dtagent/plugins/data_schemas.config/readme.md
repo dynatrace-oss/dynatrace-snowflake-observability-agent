@@ -1,1 +1,1 @@
-Enables monitoring of data schema changes. Reports events on recent modifications to objects (tables, schemas, databases) made by DDL queries, within the last 4 hours.
+Enables monitoring of data schema changes. Reports events on recent modifications to objects (tables, schemas, databases) made by DDL queries, within a configurable lookback window (default: 4 hours, see `PLUGINS.DATA_SCHEMAS.LOOKBACK_HOURS`).

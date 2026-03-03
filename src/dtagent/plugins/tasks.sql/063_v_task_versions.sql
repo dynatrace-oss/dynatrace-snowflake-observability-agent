@@ -59,7 +59,7 @@ select
 from
     SNOWFLAKE.ACCOUNT_USAGE.TASK_VERSIONS tv
 where
-    GREATEST_IGNORE_NULLS(tv.GRAPH_VERSION_CREATED_ON, tv.LAST_COMMITTED_ON, tv.LAST_SUSPENDED_ON) > GREATEST(timeadd(hour, -1*DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE('plugins.tasks.lookback_hours', 4), current_timestamp()), DTAGENT_DB.STATUS.F_LAST_PROCESSED_TS('task_versions'))
+    GREATEST_IGNORE_NULLS(tv.GRAPH_VERSION_CREATED_ON, tv.LAST_COMMITTED_ON, tv.LAST_SUSPENDED_ON) > GREATEST(timeadd(hour, -1*DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE('plugins.tasks.lookback_hours_versions', 720), current_timestamp()), DTAGENT_DB.STATUS.F_LAST_PROCESSED_TS('task_versions'))
 order by
     tv.GRAPH_VERSION_CREATED_ON asc;
 

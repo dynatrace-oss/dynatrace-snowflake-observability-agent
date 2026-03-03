@@ -941,6 +941,7 @@ selected plugins; `IS_DISABLED` is not checked then.
 plugins:
   tasks:
     lookback_hours: 4
+    lookback_hours_versions: 720
     schedule: USING CRON 30 * * * * UTC
     is_disabled: false
     telemetry:
