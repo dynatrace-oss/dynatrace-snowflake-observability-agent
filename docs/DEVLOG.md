@@ -52,14 +52,14 @@ This file documents detailed technical changes, internal refactorings, and devel
 - **Note**: The `F_LAST_PROCESSED_TS` guard in each view's `GREATEST(...)` clause ensures normal incremental runs are unaffected; `lookback_hours` only bounds the fallback window when no prior timestamp exists.
 - **Files changed** (SQL views + config YAMLs):
 
-| Plugin | SQL view(s) | Default |
-|--------|-------------|---------|
-| `event_log` | `051_v_event_log.sql`, `051_v_event_log_metrics_instrumented.sql`, `051_v_event_log_spans_instrumented.sql` | `24`h |
-| `login_history` | `061_v_login_history.sql`, `061_v_sessions.sql` | `24`h |
-| `warehouse_usage` | `070_v_warehouse_event_history.sql`, `071_v_warehouse_load_history.sql`, `072_v_warehouse_metering_history.sql` | `24`h |
-| `tasks` | `061_v_serverless_tasks.sql` → `lookback_hours` (`4`h); `063_v_task_versions.sql` → `lookback_hours_versions` (`720`h = 1 month) | separate keys, original defaults preserved |
-| `event_usage` | `051_v_event_usage.sql` | `6`h |
-| `data_schemas` | `051_v_data_schemas.sql` | `4`h |
+| Plugin            | SQL view(s)                                                                                                                      | Default                                    |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| `event_log`       | `051_v_event_log.sql`, `051_v_event_log_metrics_instrumented.sql`, `051_v_event_log_spans_instrumented.sql`                      | `24`h                                      |
+| `login_history`   | `061_v_login_history.sql`, `061_v_sessions.sql`                                                                                  | `24`h                                      |
+| `warehouse_usage` | `070_v_warehouse_event_history.sql`, `071_v_warehouse_load_history.sql`, `072_v_warehouse_metering_history.sql`                  | `24`h                                      |
+| `tasks`           | `061_v_serverless_tasks.sql` → `lookback_hours` (`4`h); `063_v_task_versions.sql` → `lookback_hours_versions` (`720`h = 1 month) | separate keys, original defaults preserved |
+| `event_usage`     | `051_v_event_usage.sql`                                                                                                          | `6`h                                       |
+| `data_schemas`    | `051_v_data_schemas.sql`                                                                                                         | `4`h                                       |
 
 ### Bug Fixes — Technical Details
 
