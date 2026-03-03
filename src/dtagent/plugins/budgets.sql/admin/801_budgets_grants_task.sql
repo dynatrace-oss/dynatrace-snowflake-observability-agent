@@ -21,36 +21,24 @@
 -- SOFTWARE.
 --
 --
-
+--
+--  This task periodically calls P_GRANT_BUDGET_MONITORING() to keep budget
+--  monitoring grants in sync with the configured monitored_budgets list.
+--
+--%OPTION:dtagent_admin:
 use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
-create or replace procedure DTAGENT_DB.APP.P_GRANT_IMPORTED_PRIVILEGES(db_name VARCHAR)
-returns text
-language sql
-execute as owner
+
+create or replace task DTAGENT_DB.APP.TASK_DTAGENT_BUDGETS_GRANTS
+    warehouse = DTAGENT_WH
+    schedule = 'USING CRON 30 */12 * * * UTC' -- every 12 hours at 00:30, 12:30 UTC
+    allow_overlapping_execution = FALSE
 as
-$$
-DECLARE
-    safe_identifier_re  TEXT DEFAULT '^[A-Za-z_][A-Za-z0-9_$]*$';
-    db_name_q           TEXT DEFAULT '';
-BEGIN
-    IF (NOT REGEXP_LIKE(UPPER(:db_name), :safe_identifier_re)) THEN
-        SYSTEM$LOG_WARN('P_GRANT_IMPORTED_PRIVILEGES: skipping invalid database name (unsafe identifier): ' || :db_name);
-        RETURN 'skipped: unsafe database name ' || :db_name;
-    END IF;
+    call DTAGENT_DB.APP.P_GRANT_BUDGET_MONITORING();
 
-    db_name_q := '"' || UPPER(:db_name) || '"';
-    EXECUTE IMMEDIATE concat('GRANT IMPORTED PRIVILEGES on DATABASE ', :db_name_q, ' TO ROLE DTAGENT_VIEWER');
+grant ownership on task DTAGENT_DB.APP.TASK_DTAGENT_BUDGETS_GRANTS to role DTAGENT_ADMIN revoke current grants;
+grant monitor on task DTAGENT_DB.APP.TASK_DTAGENT_BUDGETS_GRANTS to role DTAGENT_VIEWER;
 
-    RETURN 'imported privileges granted on ' || :db_name;
-EXCEPTION
-  when statement_error then
-    SYSTEM$LOG_WARN(SQLERRM);
+-- alter task if exists DTAGENT_DB.APP.TASK_DTAGENT_BUDGETS_GRANTS resume;
 
-    return SQLERRM;
-END;
-$$
-;
-grant usage on procedure DTAGENT_DB.APP.P_GRANT_IMPORTED_PRIVILEGES(VARCHAR) to role DTAGENT_VIEWER;
-
--- use role DTAGENT_OWNER;
--- call DTAGENT_DB.APP.P_GET_SHARES();
+-- alter task if exists DTAGENT_DB.APP.TASK_DTAGENT_BUDGETS_GRANTS suspend;
+--%:OPTION:dtagent_admin

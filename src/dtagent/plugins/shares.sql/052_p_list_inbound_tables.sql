@@ -34,23 +34,37 @@ execute as caller
 as
 $$
 DECLARE
-    query     TEXT;
-    rs        RESULTSET;
-    rs_repeat RESULTSET;
-    rs_empty  RESULTSET DEFAULT (SELECT NULL:text as SHARE_NAME, FALSE:boolean as IS_REPORTED, OBJECT_CONSTRUCT() as DETAILS WHERE 1=0);
-    rs_unavailable RESULTSET DEFAULT (SELECT :share_name as SHARE_NAME,
-                                             TRUE:boolean as IS_REPORTED,
+    query               TEXT;
+    rs                  RESULTSET;
+    rs_repeat           RESULTSET;
+    rs_empty            RESULTSET DEFAULT (SELECT NULL:text as SHARE_NAME, 
+                                              FALSE:boolean as IS_REPORTED, 
+                                         OBJECT_CONSTRUCT() as DETAILS 
+                                           WHERE 1=0);
+    rs_unavailable      RESULTSET DEFAULT (SELECT :share_name as SHARE_NAME,
+                                                 TRUE:boolean as IS_REPORTED,
                                              OBJECT_CONSTRUCT('SHARE_STATUS', 'UNAVAILABLE',
                                                               'SHARE_NAME', :share_name,
                                                               'DATABASE_NAME', :db_name,
                                                               'ERROR_MESSAGE', 'Shared database is no longer available') as DETAILS);
-    error_msg TEXT;
+    error_msg           TEXT;
+    safe_identifier_re  TEXT DEFAULT '^[A-Za-z_][A-Za-z0-9_$]*$';
+    db_name_q           TEXT DEFAULT '';
+    share_name_safe     TEXT DEFAULT '';
 BEGIN
+    IF (NOT REGEXP_LIKE(UPPER(:db_name), :safe_identifier_re)) THEN
+        SYSTEM$LOG_WARN('P_LIST_INBOUND_TABLES: skipping invalid database name (unsafe identifier): ' || :db_name);
+        RETURN TABLE(rs_empty);
+    END IF;
+
+    db_name_q       := '"' || UPPER(:db_name) || '"';
+    share_name_safe := REPLACE(:share_name, '''', '');
+
     IF (:with_grant) THEN
         call DTAGENT_DB.APP.P_GRANT_IMPORTED_PRIVILEGES(:db_name);
     END IF;
 
-    query := concat('select ''', :share_name, ''' as SHARE_NAME, TRUE as IS_REPORTED, OBJECT_CONSTRUCT(t.*) from ', :db_name, '.INFORMATION_SCHEMA.TABLES t where TABLE_SCHEMA != ''INFORMATION_SCHEMA''');
+    query := concat('select ''', :share_name_safe, ''' as SHARE_NAME, TRUE as IS_REPORTED, OBJECT_CONSTRUCT(t.*) from ', :db_name_q, '.INFORMATION_SCHEMA.TABLES t where TABLE_SCHEMA != ''INFORMATION_SCHEMA''');
 
     rs := (EXECUTE IMMEDIATE :query);
     RETURN TABLE(rs);
@@ -72,7 +86,7 @@ EXCEPTION
         END IF;
     ELSE
         -- If the query fails and we are not granting privileges, we try to repeat the query asking for privileges to be granted first
-        rs_repeat := (EXECUTE IMMEDIATE concat('call DTAGENT_DB.APP.P_LIST_INBOUND_TABLES(''', :share_name, ''', ''', :db_name, ''', TRUE)'));
+        rs_repeat := (EXECUTE IMMEDIATE concat('call DTAGENT_DB.APP.P_LIST_INBOUND_TABLES(''', :share_name_safe, ''', ''', UPPER(:db_name), ''', TRUE)'));
         RETURN TABLE(rs_repeat);
     END IF;
 END;
