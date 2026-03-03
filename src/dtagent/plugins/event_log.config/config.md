@@ -17,12 +17,12 @@ plugins:
 
 ## Database Filtering
 
-Use `plugins.event_log.databases` to restrict event log monitoring to specific databases. The list accepts SQL `LIKE` patterns (`%` matches any sequence of characters). When the list is absent or empty, **all databases** are included.
+Use `plugins.event_log.databases` to restrict event log monitoring to specific databases. The list accepts SQL `LIKE` patterns (`%` matches any sequence of characters, `_` matches any single character). When the list is absent or empty, **all databases** are included.
 
 ```yaml
 plugins:
   event_log:
     databases:
-      - MYAPP_DB        # exact match
-      - ANALYTICS_%     # all databases starting with ANALYTICS_
+      - MYAPP_DB       # exact match
+      - ANALYTICS%     # all databases starting with ANALYTICS_
 ```
