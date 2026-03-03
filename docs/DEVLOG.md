@@ -35,6 +35,15 @@ This file documents detailed technical changes, internal refactorings, and devel
 - Column-level lineage tracking with direct and indirect dependencies
 - Lineage graphs delivered as structured events
 
+#### SNOWFLAKE.TELEMETRY.EVENTS Support (BDX-1172)
+
+- **Issue**: When a customer account had `EVENT_TABLE = snowflake.telemetry.events` (the Snowflake-managed shared event table), `SETUP_EVENT_TABLE()` listed it in `a_no_custom_event_t` — the "not a real custom table" array — and took the `IF` branch, creating DSOA's own `DTAGENT_DB.STATUS.EVENT_LOG` table and **ignoring** the Snowflake-managed table entirely.
+- **Root cause**: `'snowflake.telemetry.events'` was excluded from the view-creation path because the original `ELSE` branch attempted `GRANT SELECT ON TABLE snowflake.telemetry.events TO ROLE DTAGENT_VIEWER`, which Snowflake rejects — privileges cannot be granted on Snowflake-managed objects.
+- **Fix**: Two-part change in `src/dtagent/plugins/event_log.sql/init/009_event_log_init.sql`:
+  1. Removed `'snowflake.telemetry.events'` from `a_no_custom_event_t` so it falls through to the `ELSE` branch
+  2. Wrapped the `GRANT SELECT` in a `BEGIN/EXCEPTION WHEN OTHER THEN NULL` block — attempts the grant and silently ignores failures for any read-only or Snowflake-managed table; more robust than a string comparison
+- **Behaviour after fix**: When `EVENT_TABLE = snowflake.telemetry.events`, DSOA creates `DTAGENT_DB.STATUS.EVENT_LOG` as a **view** over it, exactly as for any other pre-existing customer event table. All three `event_log` SQL views continue to query `DTAGENT_DB.STATUS.EVENT_LOG` unchanged — no Python changes needed.
+
 #### Configurable Lookback Time
 
 - **Motivation**: The lookback window was hardcoded to `timeadd(hour, -24, current_timestamp)` in all three `event_log` SQL views. This could not be tuned per deployment without modifying SQL files.

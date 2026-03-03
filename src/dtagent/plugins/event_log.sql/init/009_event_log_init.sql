@@ -35,7 +35,7 @@ as
 $$
 DECLARE
     s_event_table_name  TEXT    DEFAULT '';
-    a_no_custom_event_t ARRAY   DEFAULT ARRAY_CONSTRUCT('', 'snowflake.telemetry.events', 'DTAGENT_DB.STATUS.EVENT_LOG');
+    a_no_custom_event_t ARRAY   DEFAULT ARRAY_CONSTRUCT('', 'DTAGENT_DB.STATUS.EVENT_LOG');
     is_event_log_table  BOOLEAN DEFAULT FALSE;
 BEGIN
   show PARAMETERS like 'EVENT_TABLE' in ACCOUNT;
@@ -59,13 +59,20 @@ BEGIN
 
     RETURN 'Dynatrace Snowflake Observability Agent has setup own Event table';
   ELSE
-    -- there is a an event table defined already, not by this Dynatrace Snowflake Observability Agent
+    -- there is an event table defined already, not by this Dynatrace Snowflake Observability Agent
+    -- (including SNOWFLAKE.TELEMETRY.EVENTS — the Snowflake-managed shared event table)
     IF (:is_event_log_table) THEN
       drop table if exists DTAGENT_DB.STATUS.EVENT_LOG;
     END IF;
 
     EXECUTE IMMEDIATE concat('create view if not exists DTAGENT_DB.STATUS.EVENT_LOG as select * from ', :s_event_table_name);
-    EXECUTE IMMEDIATE concat('grant select on table ', :s_event_table_name, ' to role DTAGENT_VIEWER');
+
+    -- attempt to grant select on the source table; ignore failures for read-only or Snowflake-managed tables
+    BEGIN
+      EXECUTE IMMEDIATE concat('grant select on table ', :s_event_table_name, ' to role DTAGENT_VIEWER');
+    EXCEPTION
+      WHEN OTHER THEN NULL; -- grant not allowed on this table (e.g. snowflake.telemetry.events)
+    END;
 
     grant ownership on view DTAGENT_DB.STATUS.EVENT_LOG to role DTAGENT_OWNER revoke current grants;
     grant select on view DTAGENT_DB.STATUS.EVENT_LOG to role DTAGENT_VIEWER;

@@ -12,6 +12,7 @@ Released on TBD
 
 - **New Plugins**: Added Pipes, Streams, Stage, and Data Lineage monitoring plugins
 - **Configurable Lookback Time**: Per-plugin configuration for historical data catchup window
+- **SNOWFLAKE.TELEMETRY.EVENTS Support**: Agent now correctly reads from the Snowflake-managed shared event table when it is configured as the account-level event table
 
 ### Fixed in 0.9.4
 
