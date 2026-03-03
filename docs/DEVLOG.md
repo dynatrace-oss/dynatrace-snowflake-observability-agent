@@ -37,10 +37,15 @@ This file documents detailed technical changes, internal refactorings, and devel
 
 #### Configurable Lookback Time
 
-- Added per-plugin `lookback_hours` configuration parameter
-- Previously hardcoded to 24 hours for all plugins
-- Allows fine-tuning historical data catchup per use case
-- Default remains 24 hours for backward compatibility
+- **Motivation**: The lookback window was hardcoded to `timeadd(hour, -24, current_timestamp)` in all three `event_log` SQL views. This could not be tuned per deployment without modifying SQL files.
+- **Approach**: Replace the literal `-24` with a call to `CONFIG.F_GET_CONFIG_VALUE('plugins.event_log.lookback_hours', 24)` — consistent with how `retention_hours` is already handled in `P_CLEANUP_EVENT_LOG`.
+- **Files changed**:
+  - `src/dtagent/plugins/event_log.sql/051_v_event_log.sql` — lookback in log view
+  - `src/dtagent/plugins/event_log.sql/051_v_event_log_metrics_instrumented.sql` — lookback in metrics view
+  - `src/dtagent/plugins/event_log.sql/051_v_event_log_spans_instrumented.sql` — lookback in spans view
+  - `src/dtagent/plugins/event_log.config/event_log-config.yml` — added `lookback_hours: 24` config key
+- **Default**: `24` hours — backward compatible, no customer action required on upgrade
+- **Note**: The `F_LAST_PROCESSED_TS` guard in each view's `GREATEST(...)` clause ensures normal incremental runs are unaffected; `lookback_hours` only bounds the fallback window when no prior timestamp exists
 
 ### Bug Fixes — Technical Details
 
@@ -140,12 +145,25 @@ This file documents detailed technical changes, internal refactorings, and devel
 - **New**: Input/output validation against golden JSON files
 - **Impact**: Faster, more reliable, deterministic tests
 
-#### Event Tables Cost Optimization
+#### Event Tables Cost Optimization Documentation (BDX-688)
 
-- **Change**: Added guidance documentation for Event Table usage
-- **Content**: Fine-tuning strategies to manage Snowflake costs
-- **Location**: Plugin documentation and configuration examples
-- **Impact**: Users can optimize costs based on their use case
+- **Change**: Expanded `event_log.config/config.md` from a minimal 5-line note to a full configuration reference
+- **Content added**:
+  - Configuration options table covering all 7 plugin settings with types, defaults, and descriptions
+  - Cost optimization guidance section explaining the cost impact of `LOOKBACK_HOURS`, `MAX_ENTRIES`, `RETENTION_HOURS`, and `SCHEDULE`
+  - Key guidance: `retention_hours` should be `>= lookback_hours` to prevent cleanup from removing events before they are processed
+- **Files changed**:
+  - `src/dtagent/plugins/event_log.config/config.md` — full configuration reference + cost guidance
+  - `src/dtagent/plugins/event_log.config/readme.md` — updated to mention configurable lookback window
+
+#### Span Timestamp Handling Fix (BDX-706)
+
+- **Issue**: `_process_span_rows()` in `src/dtagent/plugins/__init__.py` called `_report_execution()` with `current_timestamp()` (a Snowflake lazy column expression) instead of the actual last-row timestamp.
+- **Root cause**: When `STATUS.LOG_PROCESSED_MEASUREMENTS` stored this value, it received the string `'Column[current_timestamp]'` rather than a real timestamp. On the next run, `F_LAST_PROCESSED_TS` would return a malformed value, causing the `GREATEST(...)` guard in each SQL view to use the fallback lookback window — potentially re-processing spans already sent.
+- **Fix**: Added `last_processed_timestamp` variable tracking `row_dict.get("TIMESTAMP", last_processed_timestamp)` within the row iteration loop, mirroring the identical pattern used by `_log_entries()`. Passed `str(last_processed_timestamp)` to `_report_execution()` instead of `current_timestamp()`.
+- **Side effect removed**: Dropped the now-unused `from snowflake.snowpark.functions import current_timestamp` import — pylint flagged this as unused after the fix.
+- **Impact**: Spans and traces will no longer be re-processed after an agent restart. The `F_LAST_PROCESSED_TS('event_log_spans')` guard now advances correctly after each run.
+- **Affects**: `event_log` plugin (`_process_span_entries`) and any future plugin using `_process_span_rows` with `log_completion=True`
 
 ## Version 0.9.3 — Detailed Changes
 

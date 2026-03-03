@@ -15,6 +15,7 @@ Released on TBD
 
 ### Fixed in 0.9.4
 
+- **Span Timestamp Handling**: Fixed spans being re-processed after agent restart due to incorrect timestamp being recorded as last-processed marker
 - **OTLP Compliance**: Fixed log `observed_timestamp` field to use nanoseconds per OTLP specification
 - **Shares Plugin**: Fixed inbound shares with deleted databases not being properly reported. The `snowflake.share.has_details_reported` attribute now correctly shows `TRUE` for deleted-DB shares, and the `_MESSAGE` field provides clear context about database deletion status
 - **Self-Monitoring**: Fixed database name filtering for self-monitoring logs
