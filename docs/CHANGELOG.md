@@ -16,17 +16,12 @@ Released on TBD
 ### Fixed in 0.9.4
 
 - **OTLP Compliance**: Fixed log `observed_timestamp` field to use nanoseconds per OTLP specification
-<<<<<<< dev/skruk/enh-self-monitoring-event-log
-- **Shares Plugin**: Fixed reporting of deleted shared databases
-- **Event Log Plugin**: Fixed cross-tenant blind spot — other DTAGENT instances were previously silently excluded from event log reporting, leaving their `WARN`/`ERROR` entries unmonitored
 
 ### Changed in 0.9.4
 
-- **Event Log Plugin — Cross-Tenant Monitoring** *(behaviour change)*: DSOA instances now report `WARN`/`ERROR` log entries, metrics, and spans from all other `DTAGENT_*_DB` instances by default. Use `plugins.event_log.cross_tenant_monitoring: false` to opt out. It is recommended to keep this enabled in only one primary DSOA tenant to avoid duplicate reporting across deployments.
-=======
+- **Event Log Plugin — Cross-Tenant Monitoring** *(behavior change)*: DSOA instances now report `WARN`/`ERROR` log entries, metrics, and spans from all other `DTAGENT_*_DB` instances by default. Use `plugins.event_log.cross_tenant_monitoring: false` to opt out. It is recommended to keep this enabled in only one primary DSOA tenant to avoid duplicate reporting across deployments.
 - **Shares Plugin**: Fixed inbound shares with deleted databases not being properly reported. The `snowflake.share.has_details_reported` attribute now correctly shows `TRUE` for deleted-DB shares, and the `_MESSAGE` field provides clear context about database deletion status
 - **Self-Monitoring**: Fixed database name filtering for self-monitoring logs
->>>>>>> release/0.9.4
 
 ### Improved in 0.9.4
 
