@@ -279,6 +279,7 @@ selected plugins; `IS_DISABLED` is not checked then.
 ```yaml
 plugins:
   data_schemas:
+    lookback_hours: 4
     schedule: USING CRON 0 0,8,16 * * * UTC
     is_disabled: false
     exclude: []
@@ -582,6 +583,7 @@ selected plugins; `IS_DISABLED` is not checked then.
 ```yaml
 plugins:
   event_usage:
+    lookback_hours: 6
     schedule: USING CRON 0 * * * * UTC
     is_disabled: false
     telemetry:
@@ -638,6 +640,7 @@ selected plugins; `IS_DISABLED` is not checked then.
 ```yaml
 plugins:
   login_history:
+    lookback_hours: 24
     schedule: USING CRON */30 * * * * UTC
     is_disabled: false
     telemetry:
@@ -937,6 +940,7 @@ selected plugins; `IS_DISABLED` is not checked then.
 ```yaml
 plugins:
   tasks:
+    lookback_hours: 4
     schedule: USING CRON 30 * * * * UTC
     is_disabled: false
     telemetry:
@@ -1127,6 +1131,7 @@ selected plugins; `IS_DISABLED` is not checked then.
 ```yaml
 plugins:
   warehouse_usage:
+    lookback_hours: 24
     schedule: USING CRON 0 * * * * UTC
     is_disabled: false
     telemetry:

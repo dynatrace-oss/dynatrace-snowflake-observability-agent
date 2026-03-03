@@ -1,5 +1,6 @@
 plugins:
   warehouse_usage:
+    lookback_hours: 24
     schedule: USING CRON 0 * * * * UTC
     is_disabled: false
     telemetry:

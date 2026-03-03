@@ -46,7 +46,7 @@ select
 from
     SNOWFLAKE.ACCOUNT_USAGE.SERVERLESS_TASK_HISTORY sth
 where
-    sth.end_time > GREATEST(timeadd(hour, -4, current_timestamp), DTAGENT_DB.STATUS.F_LAST_PROCESSED_TS('serverless_tasks'))  -- max data delay is 180 min
+    sth.end_time > GREATEST(timeadd(hour, -1*DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE('plugins.tasks.lookback_hours', 4), current_timestamp), DTAGENT_DB.STATUS.F_LAST_PROCESSED_TS('serverless_tasks'))  -- max data delay is 180 min
 order by
     sth.end_time asc;
 

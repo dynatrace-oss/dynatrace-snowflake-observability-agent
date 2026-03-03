@@ -46,15 +46,20 @@ This file documents detailed technical changes, internal refactorings, and devel
 
 #### Configurable Lookback Time
 
-- **Motivation**: The lookback window was hardcoded to `timeadd(hour, -24, current_timestamp)` in all three `event_log` SQL views. This could not be tuned per deployment without modifying SQL files.
-- **Approach**: Replace the literal `-24` with a call to `CONFIG.F_GET_CONFIG_VALUE('plugins.event_log.lookback_hours', 24)` — consistent with how `retention_hours` is already handled in `P_CLEANUP_EVENT_LOG`.
-- **Files changed**:
-  - `src/dtagent/plugins/event_log.sql/051_v_event_log.sql` — lookback in log view
-  - `src/dtagent/plugins/event_log.sql/051_v_event_log_metrics_instrumented.sql` — lookback in metrics view
-  - `src/dtagent/plugins/event_log.sql/051_v_event_log_spans_instrumented.sql` — lookback in spans view
-  - `src/dtagent/plugins/event_log.config/event_log-config.yml` — added `lookback_hours: 24` config key
-- **Default**: `24` hours — backward compatible, no customer action required on upgrade
-- **Note**: The `F_LAST_PROCESSED_TS` guard in each view's `GREATEST(...)` clause ensures normal incremental runs are unaffected; `lookback_hours` only bounds the fallback window when no prior timestamp exists
+- **Motivation**: Lookback windows were hardcoded across SQL views in every plugin that uses `F_LAST_PROCESSED_TS`. This could not be tuned per deployment without modifying SQL files.
+- **Approach**: Replace each literal with `CONFIG.F_GET_CONFIG_VALUE('plugins.<plugin>.lookback_hours', <default>)` and add `lookback_hours` to each plugin's config YAML — consistent with how `retention_hours` is already handled in `P_CLEANUP_EVENT_LOG`.
+- **Pattern**: `timeadd(hour, -1*F_GET_CONFIG_VALUE('plugins.<plugin>.lookback_hours', <N>), current_timestamp)` — the `-1*` multiplier converts the positive config value to a negative offset.
+- **Note**: The `F_LAST_PROCESSED_TS` guard in each view's `GREATEST(...)` clause ensures normal incremental runs are unaffected; `lookback_hours` only bounds the fallback window when no prior timestamp exists.
+- **Files changed** (SQL views + config YAMLs):
+
+| Plugin | SQL view(s) | Default |
+|--------|-------------|---------|
+| `event_log` | `051_v_event_log.sql`, `051_v_event_log_metrics_instrumented.sql`, `051_v_event_log_spans_instrumented.sql` | `24`h |
+| `login_history` | `061_v_login_history.sql`, `061_v_sessions.sql` | `24`h |
+| `warehouse_usage` | `070_v_warehouse_event_history.sql`, `071_v_warehouse_load_history.sql`, `072_v_warehouse_metering_history.sql` | `24`h |
+| `tasks` | `061_v_serverless_tasks.sql`, `063_v_task_versions.sql` | `4`h (was 4h / 1 month; unified to single key, `task_versions` now also uses hours) |
+| `event_usage` | `051_v_event_usage.sql` | `6`h |
+| `data_schemas` | `051_v_data_schemas.sql` | `4`h |
 
 ### Bug Fixes — Technical Details
 
