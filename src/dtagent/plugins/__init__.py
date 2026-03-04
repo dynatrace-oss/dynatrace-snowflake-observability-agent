@@ -245,7 +245,8 @@ class Plugin(ABC):
             if metrics_sent == 0:
                 processing_errors.append("Problem sending metrics - metrics were discovered but none were sent")
 
-        flush_succeeded = self._spans.flush_traces()
+        spans_disabled = getattr(self._spans, "NOT_ENABLED", False)
+        flush_succeeded = spans_disabled or self._spans.flush_traces()
         if not flush_succeeded:
             processing_errors.append("Problem flushing traces")
 
