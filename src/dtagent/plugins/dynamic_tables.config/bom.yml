@@ -23,12 +23,22 @@ references:
     type: dynamic table
     privileges: MONITOR
     granted to: DTAGENT_VIEWER
-    comment: We grant that on every database selected in configuration or all (default)
-  - name: ALL FUTURE TABLES IN DATABASE $database
-    type: table
+    comment: Granted when include pattern has wildcard schema (e.g. DB.%.%)
+  - name: ALL FUTURE DYNAMIC TABLES IN DATABASE $database
+    type: dynamic table
     privileges: MONITOR
     granted to: DTAGENT_VIEWER
-    comment: We grant that on every database selected in configuration or all (default)
+    comment: Granted when include pattern has wildcard schema (e.g. DB.%.%)
+  - name: ALL DYNAMIC TABLES IN SCHEMA $database.$schema
+    type: dynamic table
+    privileges: MONITOR
+    granted to: DTAGENT_VIEWER
+    comment: Granted when include pattern has specific schema (e.g. DB.ANALYTICS.%)
+  - name: ALL FUTURE DYNAMIC TABLES IN SCHEMA $database.$schema
+    type: dynamic table
+    privileges: MONITOR
+    granted to: DTAGENT_VIEWER
+    comment: Granted when include pattern has specific schema (e.g. DB.ANALYTICS.%)
   - name: INFORMATION_SCHEMA.DYNAMIC_TABLE_REFRESH_HISTORY
     type: view
     privileges: USAGE

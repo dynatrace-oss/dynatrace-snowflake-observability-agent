@@ -44,6 +44,25 @@ This file documents detailed technical changes, internal refactorings, and devel
 
 ### Bug Fixes — Technical Details
 
+#### Dynamic Tables Grant — Schema-Level Granularity (BDX-640)
+
+- **Issue**: `P_GRANT_MONITOR_DYNAMIC_TABLES()` always granted `MONITOR` at **database level**, even when the `include` pattern specified a particular schema (e.g. `PROD_DB.ANALYTICS.%`). This caused the procedure to over-grant: a user expecting grants only on `PROD_DB.ANALYTICS` received grants on all schemas in `PROD_DB`.
+- **Root cause**: The CTE extracted only `split_part(value, '.', 0)` (the database part) and the schema part was never inspected.
+- **Fix**: Two-pass approach in `032_p_grant_monitor_dynamic_tables.sql`:
+  1. **Database pass** — processes include patterns where `split_part(value, '.', 1) = '%'` (wildcard schema); issues `GRANT … IN DATABASE`.
+  2. **Schema pass** — processes include patterns where `split_part(value, '.', 1) != '%'` (specific schema); issues `GRANT … IN SCHEMA db.schema`.
+- **Grant matrix**:
+
+  | Include pattern | Grant level |
+  |---|---|
+  | `%.%.%` | All databases |
+  | `PROD_DB.%.%` | Database `PROD_DB` |
+  | `PROD_DB.ANALYTICS.%` | Schema `PROD_DB.ANALYTICS` |
+  | `PROD_DB.ANALYTICS.SALES_%` | Schema `PROD_DB.ANALYTICS` |
+
+- **Files changed**: `032_p_grant_monitor_dynamic_tables.sql`, `bom.yml`, `config.md`
+- **Tests added**: `test/bash/test_grant_monitor_dynamic_tables.bats` — structural content checks covering both grant paths
+
 #### Log ObservedTimestamp Unit Correction
 
 - **Issue**: OTel log `observed_timestamp` field was sent in milliseconds

@@ -22,7 +22,11 @@
 --
 --
 --
--- APP.P_GRANT_MONITOR_DYNAMIC_TABLES() returns metadata for all dynamic tables defined in Snowflake.
+-- APP.P_GRANT_MONITOR_DYNAMIC_TABLES() grants MONITOR privileges on dynamic tables to DTAGENT_VIEWER.
+--
+-- Grant granularity is derived from the include pattern:
+--   - DB.%.%  (wildcard schema)  → GRANT ... IN DATABASE db_name
+--   - DB.SCHEMA.%  (specific schema) → GRANT ... IN SCHEMA db_name.schema_name
 --
 -- !! Must be invoked after creation of CONFIG.CONFIGURATIONS table (031_configuration_table)
 --
@@ -37,15 +41,18 @@ as
 $$
 DECLARE
     rs_database_names       RESULTSET;
+    rs_schema_names         RESULTSET;
 
     q_grant_monitor_all     TEXT DEFAULT    '';
     q_grant_monitor_future  TEXT DEFAULT    '';
 BEGIN
+    -- Grant at DATABASE level for patterns where schema part is a wildcard (e.g. DB.%.%)
     rs_database_names := (SHOW DATABASES ->>
                             with cte_includes as (
                                 select distinct split_part(ci.VALUE, '.', 0) as db_pattern
                                 from CONFIG.CONFIGURATIONS c, table(flatten(c.VALUE)) ci
                                 where c.PATH = 'plugins.dynamic_tables.include'
+                                    and split_part(ci.VALUE, '.', 1) = '%'
                             )
                             , cte_excludes as (
                                 select distinct split_part(ce.VALUE, '.', 0) as db_pattern
@@ -60,10 +67,40 @@ BEGIN
                             ;
     LET c_database_names CURSOR FOR rs_database_names;
 
-    -- iterate over warehouses
     FOR r_db IN c_database_names DO
-        q_grant_monitor_all := 'grant monitor on all dynamic tables in database ' || r_db.name || '  to role DTAGENT_VIEWER;';
-        q_grant_monitor_future := 'grant monitor on future dynamic tables in database ' || r_db.name || '  to role DTAGENT_VIEWER;';
+        q_grant_monitor_all := 'grant monitor on all dynamic tables in database ' || r_db.name || ' to role DTAGENT_VIEWER;';
+        q_grant_monitor_future := 'grant monitor on future dynamic tables in database ' || r_db.name || ' to role DTAGENT_VIEWER;';
+
+        EXECUTE IMMEDIATE :q_grant_monitor_all;
+        EXECUTE IMMEDIATE :q_grant_monitor_future;
+    END FOR;
+
+    -- Grant at SCHEMA level for patterns where schema part is specific (e.g. DB.ANALYTICS.%)
+    rs_schema_names := (SHOW DATABASES ->>
+                            with cte_includes as (
+                                select distinct
+                                    split_part(ci.VALUE, '.', 0) as db_pattern,
+                                    split_part(ci.VALUE, '.', 1) as schema_name
+                                from CONFIG.CONFIGURATIONS c, table(flatten(c.VALUE)) ci
+                                where c.PATH = 'plugins.dynamic_tables.include'
+                                    and split_part(ci.VALUE, '.', 1) != '%'
+                            )
+                            , cte_excludes as (
+                                select distinct split_part(ce.VALUE, '.', 0) as db_pattern
+                                from CONFIG.CONFIGURATIONS c, table(flatten(c.VALUE)) ce
+                                where c.PATH = 'plugins.dynamic_tables.exclude'
+                            )
+                            select "name" as db_name, ci.schema_name
+                            from $1
+                            join cte_includes ci on "name" LIKE ci.db_pattern
+                            where "kind" = 'STANDARD'
+                                and not "name" LIKE ANY (select db_pattern from cte_excludes))
+                            ;
+    LET c_schema_names CURSOR FOR rs_schema_names;
+
+    FOR r_schema IN c_schema_names DO
+        q_grant_monitor_all := 'grant monitor on all dynamic tables in schema ' || r_schema.db_name || '.' || r_schema.schema_name || ' to role DTAGENT_VIEWER;';
+        q_grant_monitor_future := 'grant monitor on future dynamic tables in schema ' || r_schema.db_name || '.' || r_schema.schema_name || ' to role DTAGENT_VIEWER;';
 
         EXECUTE IMMEDIATE :q_grant_monitor_all;
         EXECUTE IMMEDIATE :q_grant_monitor_future;
