@@ -35,6 +35,7 @@ as
 $$
 DECLARE
     s_event_table_name  TEXT    DEFAULT '';
+    -- names of event log tables which would mean we deal with one created by this DSOA instance or there is no custom event table at all
     a_no_custom_event_t ARRAY   DEFAULT ARRAY_CONSTRUCT('', 'DTAGENT_DB.STATUS.EVENT_LOG');
     is_event_log_table  BOOLEAN DEFAULT FALSE;
 BEGIN
@@ -43,8 +44,9 @@ BEGIN
   select TABLE_TYPE like '%TABLE' into is_event_log_table from DTAGENT_DB.INFORMATION_SCHEMA.TABLES where TABLE_SCHEMA = 'STATUS' and TABLE_NAME = 'EVENT_LOG';
 
   IF (ARRAY_CONTAINS(:s_event_table_name::variant, :a_no_custom_event_t)) THEN
-    -- there is an event table defined or there is Dynatrace Snowflake Observability Agent one present
+    -- there is NO event table defined or there is Dynatrace Snowflake Observability Agent one present
     IF (NOT :is_event_log_table) THEN
+      -- in case there is a view we need to get rid of it before creating the event table
       drop view if exists DTAGENT_DB.STATUS.EVENT_LOG;
     END IF;
 
@@ -62,18 +64,14 @@ BEGIN
     -- there is an event table defined already, not by this Dynatrace Snowflake Observability Agent
     -- (including SNOWFLAKE.TELEMETRY.EVENTS — the Snowflake-managed shared event table)
     IF (:is_event_log_table) THEN
+      -- in case there is a table with this name we need to get rid of it before creating the view on top of the custom event table
       drop table if exists DTAGENT_DB.STATUS.EVENT_LOG;
     END IF;
 
-    EXECUTE IMMEDIATE concat('create view if not exists DTAGENT_DB.STATUS.EVENT_LOG as select * from ', :s_event_table_name);
-
     -- attempt to grant select on the source table; ignore failures for read-only or Snowflake-managed tables
-    BEGIN
-      EXECUTE IMMEDIATE concat('grant select on table ', :s_event_table_name, ' to role DTAGENT_VIEWER');
-    EXCEPTION
-      WHEN OTHER THEN NULL; -- grant not allowed on this table (e.g. snowflake.telemetry.events)
-    END;
-
+    EXECUTE IMMEDIATE concat('grant select on table ', :s_event_table_name, ' to role DTAGENT_VIEWER');
+    -- create a view on top of the existing event table, so we can use it in the event_log plugin
+    EXECUTE IMMEDIATE concat('create view if not exists DTAGENT_DB.STATUS.EVENT_LOG as select * from ', :s_event_table_name);
     grant ownership on view DTAGENT_DB.STATUS.EVENT_LOG to role DTAGENT_OWNER revoke current grants;
     grant select on view DTAGENT_DB.STATUS.EVENT_LOG to role DTAGENT_VIEWER;
 

@@ -1,8 +1,8 @@
 plugins:
   event_log:
     max_entries: 10000
-    lookback_hours: 24
-    retention_hours: 12
+    lookback_hours: 12
+    retention_hours: 24
     schedule: USING CRON */30 * * * * UTC
     schedule_cleanup: USING CRON 0 * * * * UTC
     is_disabled: false
