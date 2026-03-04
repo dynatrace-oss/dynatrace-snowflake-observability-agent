@@ -34,6 +34,7 @@ create or replace transient table DTAGENT_DB.APP.TMP_USERS (
         ext_authn_duo boolean, ext_authn_uid text, has_mfa boolean, bypass_mfa_until timestamp_ltz,
         last_success_login timestamp_ltz, expires_at timestamp_ltz, locked_until_time timestamp_ltz,
         has_rsa_public_key boolean, password_last_set_time timestamp_ltz,
+        has_pat boolean, has_workload_identity boolean,
         owner text, default_secondary_role text, type text,
         database_name text, database_id number, schema_name text, schema_id number,
         is_from_organization_user boolean)
@@ -50,6 +51,7 @@ create or replace transient table DTAGENT_DB.APP.TMP_USERS_HELPER (
         ext_authn_duo boolean, ext_authn_uid text, has_mfa boolean, bypass_mfa_until timestamp_ltz,
         last_success_login timestamp_ltz, expires_at timestamp_ltz, locked_until_time timestamp_ltz,
         has_rsa_public_key boolean, password_last_set_time timestamp_ltz,
+        has_pat boolean, has_workload_identity boolean,
         owner text, default_secondary_role text, type text,
         database_name text, database_id number, schema_name text, schema_id number,
         is_from_organization_user boolean)
@@ -78,6 +80,7 @@ DECLARE
                                                                       ext_authn_duo, ext_authn_uid, has_mfa, bypass_mfa_until,
                                                                       last_success_login, expires_at, locked_until_time,
                                                                       has_rsa_public_key, password_last_set_time,
+                                                                      has_pat, has_workload_identity,
                                                                       owner, default_secondary_role, type,
                                                                       database_name, database_id, schema_name, schema_id,
                                                                       is_from_organization_user
