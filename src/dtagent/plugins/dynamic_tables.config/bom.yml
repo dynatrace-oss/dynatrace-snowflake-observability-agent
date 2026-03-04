@@ -39,6 +39,11 @@ references:
     privileges: MONITOR
     granted to: DTAGENT_VIEWER
     comment: Granted when include pattern has specific schema (e.g. DB.ANALYTICS.%)
+  - name: DYNAMIC TABLE $database.$schema.$table
+    type: dynamic table
+    privileges: MONITOR
+    granted to: DTAGENT_VIEWER
+    comment: Granted when include pattern specifies an exact table name (e.g. DB.ANALYTICS.ORDERS_DT); no FUTURE grant at table level
   - name: INFORMATION_SCHEMA.DYNAMIC_TABLE_REFRESH_HISTORY
     type: view
     privileges: USAGE

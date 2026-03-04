@@ -283,7 +283,7 @@ Store alongside proposal. Must be reviewed and accepted before Phase 3.
    - **Commit** — small, frequent commits per task
 1. **After all tasks**:
    - Run full test suite and `make lint`
-   - Run `scripts/dev/build.sh`
+   - Run `scripts/dev/build_docs.sh` to test build and update documentation (PLUGINS.md, SEMANTICS.md)
    - Update `docs/CHANGELOG.md` (highlights) and `docs/DEVLOG.md` (technical details)
    - Review changeset, open PR
 

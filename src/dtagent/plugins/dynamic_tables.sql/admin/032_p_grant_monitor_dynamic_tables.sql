@@ -25,8 +25,9 @@
 -- APP.P_GRANT_MONITOR_DYNAMIC_TABLES() grants MONITOR privileges on dynamic tables to DTAGENT_VIEWER.
 --
 -- Grant granularity is derived from the include pattern:
---   - DB.%.%  (wildcard schema)  → GRANT ... IN DATABASE db_name
---   - DB.SCHEMA.%  (specific schema) → GRANT ... IN SCHEMA db_name.schema_name
+--   - DB.%.%            (wildcard schema, wildcard table) → GRANT ... IN DATABASE db_name
+--   - DB.SCHEMA.%       (specific schema, wildcard table) → GRANT ... IN SCHEMA db_name.schema_name
+--   - DB.SCHEMA.TABLE   (specific schema, specific table) → GRANT ... ON DYNAMIC TABLE db_name.schema_name.table_name
 --
 -- !! Must be invoked after creation of CONFIG.CONFIGURATIONS table (031_configuration_table)
 --
@@ -42,6 +43,7 @@ $$
 DECLARE
     rs_database_names       RESULTSET;
     rs_schema_names         RESULTSET;
+    rs_table_names          RESULTSET;
 
     q_grant_monitor_all     TEXT DEFAULT    '';
     q_grant_monitor_future  TEXT DEFAULT    '';
@@ -75,7 +77,7 @@ BEGIN
         EXECUTE IMMEDIATE :q_grant_monitor_future;
     END FOR;
 
-    -- Grant at SCHEMA level for patterns where schema part is specific (e.g. DB.ANALYTICS.%)
+    -- Grant at SCHEMA level for patterns where schema is specific and table is a wildcard (e.g. DB.ANALYTICS.%)
     rs_schema_names := (SHOW DATABASES ->>
                             with cte_includes as (
                                 select distinct
@@ -84,6 +86,7 @@ BEGIN
                                 from CONFIG.CONFIGURATIONS c, table(flatten(c.VALUE)) ci
                                 where c.PATH = 'plugins.dynamic_tables.include'
                                     and split_part(ci.VALUE, '.', 1) != '%'
+                                    and split_part(ci.VALUE, '.', 2) = '%'
                             )
                             , cte_excludes as (
                                 select distinct split_part(ce.VALUE, '.', 0) as db_pattern
@@ -104,6 +107,24 @@ BEGIN
 
         EXECUTE IMMEDIATE :q_grant_monitor_all;
         EXECUTE IMMEDIATE :q_grant_monitor_future;
+    END FOR;
+
+    -- Grant at TABLE level for patterns where both schema and table parts are specific (e.g. DB.ANALYTICS.ORDERS_DT)
+    -- Note: FUTURE grants are not applicable at the individual table level
+    rs_table_names := (select distinct
+                            split_part(ci.VALUE, '.', 0) as db_name,
+                            split_part(ci.VALUE, '.', 1) as schema_name,
+                            split_part(ci.VALUE, '.', 2) as table_name
+                        from CONFIG.CONFIGURATIONS c, table(flatten(c.VALUE)) ci
+                        where c.PATH = 'plugins.dynamic_tables.include'
+                            and split_part(ci.VALUE, '.', 1) != '%'
+                            and split_part(ci.VALUE, '.', 2) != '%');
+    LET c_table_names CURSOR FOR rs_table_names;
+
+    FOR r_table IN c_table_names DO
+        q_grant_monitor_all := 'grant monitor on dynamic table ' || r_table.db_name || '.' || r_table.schema_name || '.' || r_table.table_name || ' to role DTAGENT_VIEWER;';
+
+        EXECUTE IMMEDIATE :q_grant_monitor_all;
     END FOR;
 
     RETURN 'granted monitor for future and dynamic tables to DTAGENT_VIEWER';

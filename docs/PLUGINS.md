@@ -194,16 +194,16 @@ plugins:
       - biz_events
 ```
 
-| Parameter           | Type   | Default                        | Description                                                                           |
-| ------------------- | ------ | ------------------------------ | ------------------------------------------------------------------------------------- |
-| `quota`             | int    | `10`                           | Credit quota for the agent's own `DTAGENT_BUDGET`.                                    |
-| `schedule`          | string | `USING CRON 30 0 * * * UTC`    | Cron schedule for the budgets collection task.                                        |
-| `monitored_budgets` | list   | `[]`                           | Fully-qualified custom budget names to monitor, e.g. `["MY_DB.MY_SCHEMA.MY_BUDGET"]`. |
-| `schedule_grants`   | string | `USING CRON 30 */12 * * * UTC` | Cron schedule for `TASK_DTAGENT_BUDGETS_GRANTS` (admin scope only).                   |
+| Parameter           | Type   | Default                        | Description                                                                                                                                                                                                                |
+| ------------------- | ------ | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `quota`             | int    | `10`                           | Credit quota for the agent's own `DTAGENT_BUDGET`.                                                                                                                                                                         |
+| `schedule`          | string | `USING CRON 30 0 * * * UTC`    | Cron schedule for the budgets collection task.                                                                                                                                                                             |
+| `monitored_budgets` | list   | `[]`                           | Fully-qualified custom budget names to monitor, e.g. `["MY_DB.MY_SCHEMA.MY_BUDGET"]`. Names are automatically uppercased; only standard unquoted Snowflake identifiers are supported (`[A-Za-z_][A-Za-z0-9_$]*` per part). |
+| `schedule_grants`   | string | `USING CRON 30 */12 * * * UTC` | Cron schedule for `TASK_DTAGENT_BUDGETS_GRANTS` (admin scope only).                                                                                                                                                        |
 
 ### Enabling the Budgets plugin
 
-1. Set `IS_DISABLED` to `false` in the configuration.
+1. Set `IS_ENABLED` to `true` in your configuration file.
 1. For **account budget only** (no custom budgets): no additional grants needed — `SNOWFLAKE.BUDGET_VIEWER` is already granted.
 1. For **custom budgets**: configure `monitored_budgets` and run `P_GRANT_BUDGET_MONITORING()` (admin scope required), or grant privileges
    manually (see below).
@@ -407,7 +407,18 @@ plugins:
 > default, when the `admin` scope is installed, this is handled by the `P_GRANT_MONITOR_DYNAMIC_TABLES()` procedure, which is executed with
 > the elevated privileges of the `DTAGENT_ADMIN` role (created only when the `admin` scope is installed), via the
 > `APP.TASK_DTAGENT_DYNAMIC_TABLES_GRANTS` task. The schedule for this task can be configured separately using the
-> `PLUGINS.DYNAMIC_TABLES.SCHEDULE_GRANTS` configuration option. Alternatively, you may choose to:
+> `PLUGINS.DYNAMIC_TABLES.SCHEDULE_GRANTS` configuration option.
+
+The grant granularity is derived automatically from the `include` pattern:
+
+| Include pattern               | Grant level | SQL issued                                                 |
+| ----------------------------- | ----------- | ---------------------------------------------------------- |
+| `%.%.%` or `PROD_DB.%.%`      | Database    | `GRANT MONITOR ON ALL/FUTURE DYNAMIC TABLES IN DATABASE …` |
+| `PROD_DB.ANALYTICS.%`         | Schema      | `GRANT MONITOR ON ALL/FUTURE DYNAMIC TABLES IN SCHEMA …`   |
+| `PROD_DB.ANALYTICS.ORDERS_DT` | Table       | `GRANT MONITOR ON DYNAMIC TABLE …` (no FUTURE grant)       |
+
+Alternatively, you may choose to grant the required permissions manually, using the appropriate
+`GRANT MONITOR ON ALL/FUTURE DYNAMIC TABLES IN …` statement, depending on the desired granularity.
 
 ### Dynamic Tables Bill of Materials
 
@@ -427,14 +438,17 @@ The following tables list the Snowflake objects that this plugin delivers data f
 
 #### Objects referenced by the `Dynamic Tables` plugin
 
-| Name                                             | Type          | Privileges | Granted to     | Comment                                                                    |
-| ------------------------------------------------ | ------------- | ---------- | -------------- | -------------------------------------------------------------------------- |
-| SHOW DATABASES                                   | command       | USAGE      |                |                                                                            |
-| ALL DYNAMIC TABLES IN DATABASE $database         | dynamic table | MONITOR    | DTAGENT_VIEWER | We grant that on every database selected in configuration or all (default) |
-| ALL FUTURE TABLES IN DATABASE $database          | table         | MONITOR    | DTAGENT_VIEWER | We grant that on every database selected in configuration or all (default) |
-| INFORMATION_SCHEMA.DYNAMIC_TABLE_REFRESH_HISTORY | view          | USAGE      | DTAGENT_VIEWER |                                                                            |
-| INFORMATION_SCHEMA.DYNAMIC_TABLE_GRAPH_HISTORY   | view          | USAGE      | DTAGENT_VIEWER |                                                                            |
-| INFORMATION_SCHEMA.DYNAMIC_TABLES                | view          | USAGE      | DTAGENT_VIEWER |                                                                            |
+| Name                                                  | Type          | Privileges | Granted to     | Comment                                                                                                                  |
+| ----------------------------------------------------- | ------------- | ---------- | -------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| SHOW DATABASES                                        | command       | USAGE      |                |                                                                                                                          |
+| ALL DYNAMIC TABLES IN DATABASE $database              | dynamic table | MONITOR    | DTAGENT_VIEWER | Granted when include pattern has wildcard schema (e.g. DB.%.%)                                                           |
+| ALL FUTURE DYNAMIC TABLES IN DATABASE $database       | dynamic table | MONITOR    | DTAGENT_VIEWER | Granted when include pattern has wildcard schema (e.g. DB.%.%)                                                           |
+| ALL DYNAMIC TABLES IN SCHEMA $database.$schema        | dynamic table | MONITOR    | DTAGENT_VIEWER | Granted when include pattern has specific schema (e.g. DB.ANALYTICS.%)                                                   |
+| ALL FUTURE DYNAMIC TABLES IN SCHEMA $database.$schema | dynamic table | MONITOR    | DTAGENT_VIEWER | Granted when include pattern has specific schema (e.g. DB.ANALYTICS.%)                                                   |
+| DYNAMIC TABLE $database.$schema.$table                | dynamic table | MONITOR    | DTAGENT_VIEWER | Granted when include pattern specifies an exact table name (e.g. DB.ANALYTICS.ORDERS_DT); no FUTURE grant at table level |
+| INFORMATION_SCHEMA.DYNAMIC_TABLE_REFRESH_HISTORY      | view          | USAGE      | DTAGENT_VIEWER |                                                                                                                          |
+| INFORMATION_SCHEMA.DYNAMIC_TABLE_GRAPH_HISTORY        | view          | USAGE      | DTAGENT_VIEWER |                                                                                                                          |
+| INFORMATION_SCHEMA.DYNAMIC_TABLES                     | view          | USAGE      | DTAGENT_VIEWER |                                                                                                                          |
 
 <a name="event_log_info_sec"></a>
 
@@ -442,13 +456,12 @@ The following tables list the Snowflake objects that this plugin delivers data f
 
 This plugin delivers to Dynatrace data reported by Snowflake Trail in the `EVENT TABLE`.
 
-By default, it runs every 30 minutes and registers entries from the last 12 hours, omitting the ones, which:
+By default, it runs every 30 minutes and registers entries from the last 12 hours, omitting entries that:
 
-- where already delivered,
-- with scope set to `DTAGENT_OTLP` as they are internal log recording entries sent over the OpenTelemetry protocol
-- related to execution of other instances of Dynatrace Snowflake Observability Agent, or
-- with importance below the level set as `CORE.LOG_LEVEL`, i.e., only warnings or errors from the given Dynatrace Snowflake Observability
-  Agent instance are reported.
+- were already delivered,
+- have scope set to `DTAGENT_OTLP` (internal log recording entries sent over the OpenTelemetry protocol), or
+- have importance below `WARN` for any `DTAGENT_*_DB` instance, i.e., only warnings or errors from Dynatrace Snowflake Observability Agent
+  instances are reported.
 
 By default, it produces log entries containing the following information:
 
@@ -487,6 +500,8 @@ plugins:
     schedule: USING CRON */30 * * * * UTC
     schedule_cleanup: USING CRON 0 * * * * UTC
     is_disabled: false
+    cross_tenant_monitoring: true
+    databases: []
     telemetry:
       - metrics
       - logs
@@ -495,12 +510,40 @@ plugins:
 ```
 
 > **IMPORTANT**: A dedicated cleanup task, `APP.TASK_DTAGENT_EVENT_LOG_CLEANUP`, ensures that the `EVENT_LOG` table contains only data no
-> older than the duration you define with the `PLUGINS.EVENT_LOG.RETENTION_HOURS` configuration option.  
-> You can schedule this task separately using the `PLUGINS.EVENT_LOG.SCHEDULE_CLEANUP` configuration option, run the cleanup procedure
-> `APP.P_CLEANUP_EVENT_LOG()` manually, or manage the retention of data in the `EVENT_LOG` table yourself.
+> older than the duration you define with the `PLUGINS.EVENT_LOG.RETENTION_HOURS` configuration option. You can schedule this task
+> separately using the `PLUGINS.EVENT_LOG.SCHEDULE_CLEANUP` configuration option, run the cleanup procedure `APP.P_CLEANUP_EVENT_LOG()`
+> manually, or manage the retention of data in the `EVENT_LOG` table yourself.
 
 > **INFO**: The `EVENT_LOG` table cleanup process works only if this specific instance of Dynatrace Snowflake Observability Agent set up the
 > table.
+
+## Cross-Tenant Monitoring
+
+By default (`plugins.event_log.cross_tenant_monitoring: true`) the plugin also reports `WARN`/`ERROR` log entries, metrics, and spans
+originating from **other** `DTAGENT_*_DB` instances visible in the same event table. This allows one DSOA deployment to surface health
+issues from sibling deployments without logging into Snowflake directly.
+
+It is recommended to enable cross-tenant monitoring in **only one primary DSOA tenant** and set `cross_tenant_monitoring: false` in all
+others to avoid duplicate reporting across deployments.
+
+```yaml
+plugins:
+  event_log:
+    cross_tenant_monitoring: false # disable on secondary tenants
+```
+
+## Database Filtering
+
+Use `plugins.event_log.databases` to restrict event log monitoring to specific databases. The list accepts SQL `LIKE` patterns (`%` matches
+any sequence of characters, `_` matches any single character). When the list is absent or empty, **all databases** are included.
+
+```yaml
+plugins:
+  event_log:
+    databases:
+      - MYAPP_DB # exact match
+      - ANALYTICS% # all databases starting with ANALYTICS_
+```
 
 ### Event Log Bill of Materials
 
@@ -513,6 +556,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 | DTAGENT_DB.STATUS.EVENT_LOG                     | table/view | Dynatrace Snowflake Observability Agent can setup an event table if one does not exist. It creates a view over an existing event log table if that table was not setup by the actual Dynatrace Snowflake Observability Agent instance. |
 | DTAGENT_DB.APP.SETUP_EVENT_TABLE()              | procedure  |                                                                                                                                                                                                                                        |
 | DTAGENT_DB.APP.P_CLEANUP_EVENT_LOG()            | procedure  |                                                                                                                                                                                                                                        |
+| DTAGENT_DB.APP.F_EVENT_LOG_INCLUDE(VARCHAR)     | function   |                                                                                                                                                                                                                                        |
 | DTAGENT_DB.APP.V_EVENT_LOG                      | view       |                                                                                                                                                                                                                                        |
 | DTAGENT_DB.APP.V_EVENT_LOG_SPANS_INSTRUMENTED   | view       |                                                                                                                                                                                                                                        |
 | DTAGENT_DB.APP.V_EVENT_LOG_METRICS_INSTRUMENTED | view       |                                                                                                                                                                                                                                        |

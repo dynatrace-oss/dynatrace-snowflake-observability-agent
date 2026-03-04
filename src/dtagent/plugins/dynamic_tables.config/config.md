@@ -4,9 +4,10 @@
 
 The grant granularity is derived automatically from the `include` pattern:
 
-| Include pattern          | Grant level | SQL issued                                                 |
-| ------------------------ | ----------- | ---------------------------------------------------------- |
-| `%.%.%` or `PROD_DB.%.%` | Database    | `GRANT MONITOR ON ALL/FUTURE DYNAMIC TABLES IN DATABASE …` |
-| `PROD_DB.ANALYTICS.%`    | Schema      | `GRANT MONITOR ON ALL/FUTURE DYNAMIC TABLES IN SCHEMA …`   |
+| Include pattern               | Grant level | SQL issued                                                 |
+| ----------------------------- | ----------- | ---------------------------------------------------------- |
+| `%.%.%` or `PROD_DB.%.%`      | Database    | `GRANT MONITOR ON ALL/FUTURE DYNAMIC TABLES IN DATABASE …` |
+| `PROD_DB.ANALYTICS.%`         | Schema      | `GRANT MONITOR ON ALL/FUTURE DYNAMIC TABLES IN SCHEMA …`   |
+| `PROD_DB.ANALYTICS.ORDERS_DT` | Table       | `GRANT MONITOR ON DYNAMIC TABLE …` (no FUTURE grant)       |
 
 Alternatively, you may choose to grant the required permissions manually, using the appropriate `GRANT MONITOR ON ALL/FUTURE DYNAMIC TABLES IN …` statement, depending on the desired granularity.
