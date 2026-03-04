@@ -57,11 +57,12 @@ from DTAGENT_DB.STATUS.EVENT_LOG l
 where not regexp_like(SCOPE['name'], 'DTAGENT(_\\S*)?_OTLP')     -- we do not log what was sent via OTLP
   and VALUE not like 'Sent log%Sent log%'
   and RECORD_TYPE not in ('METRIC', 'SPAN')
+  and DTAGENT_DB.APP.F_EVENT_LOG_INCLUDE(nvl(_resource_attributes['snow.database.name']::varchar, ''))
   and (
-   -- we log everything for all non-DTAGENT DBs
+   -- for non-DTAGENT DBs report all severity levels
        nvl(_resource_attributes['snow.database.name']::varchar, '') not like 'DTAGENT%_DB'
-   -- only report status other than DEBUG/INFO for DBs that are related to this particular dtagent,
-   or (_RECORD['severity_text']::varchar not in ('DEBUG', 'INFO') and nvl(_resource_attributes['snow.database.name']::varchar, '') = 'DTAGENT_DB') -- DTAGENT_DB will be replaced with DTAGENT_$TAG_DB during deploy
+   -- for DTAGENT-family DBs (self and cross-tenant) only report WARN/ERROR
+   or _RECORD['severity_text']::varchar not in ('DEBUG', 'INFO')
   )
   and TIMESTAMP > GREATEST( timeadd(hour, -1*DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE('plugins.event_log.lookback_hours', 24), current_timestamp), DTAGENT_DB.STATUS.F_LAST_PROCESSED_TS('event_log') )
   and (RESOURCE_ATTRIBUTES:"application"::varchar is null or RESOURCE_ATTRIBUTES:"application"::varchar not in ('openflow')) -- exclude known high volume applications

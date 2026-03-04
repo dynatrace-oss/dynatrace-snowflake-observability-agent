@@ -18,6 +18,10 @@ Released on TBD
 
 - **Span Timestamp Handling**: Fixed spans being re-processed after agent restart due to incorrect timestamp being recorded as last-processed marker
 - **OTLP Compliance**: Fixed log `observed_timestamp` field to use nanoseconds per OTLP specification
+
+### Changed in 0.9.4
+
+- **Event Log Plugin — Cross-Tenant Monitoring** *(behavior change)*: DSOA instances now report `WARN`/`ERROR` log entries, metrics, and spans from all other `DTAGENT_*_DB` instances by default. Use `plugins.event_log.cross_tenant_monitoring: false` to opt out. It is recommended to keep this enabled in only one primary DSOA tenant to avoid duplicate reporting across deployments.
 - **Shares Plugin**: Fixed inbound shares with deleted databases not being properly reported. The `snowflake.share.has_details_reported` attribute now correctly shows `TRUE` for deleted-DB shares, and the `_MESSAGE` field provides clear context about database deletion status
 - **Self-Monitoring**: Fixed database name filtering for self-monitoring logs
 
@@ -196,7 +200,7 @@ Released on May 20, 2025.
 
 - **Teardown Process**: Correctly tears down tagged instances.
 - **Span Event Reporting**: Removed the hard limit of 128 span events. The limit is now configurable via `OTEL.SPANS.MAX_EVENT_COUNT`.
-- **Spans for Queries**: Fixed the problem with a hierarchy of query calls not being represented by a hierarchy of spans (_0.8.2 Hotfix 1_).
+- **Spans for Queries**: Fixed the problem with a hierarchy of query calls not being represented by a hierarchy of spans (*0.8.2 Hotfix 1*).
 - **Self-Monitoring Configuration**: Plugin default configurations no longer overwrite self-monitoring settings.
 - **Self-Monitoring BizEvents**: BizEvents are now sent by default when Dynatrace Snowflake Observability Agent is deployed and executed.
 
