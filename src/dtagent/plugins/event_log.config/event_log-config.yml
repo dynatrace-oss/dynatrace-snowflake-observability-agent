@@ -5,6 +5,8 @@ plugins:
     schedule: USING CRON */30 * * * * UTC
     schedule_cleanup: USING CRON 0 * * * * UTC
     is_disabled: false
+    cross_tenant_monitoring: true
+    databases: []
     telemetry:
       - metrics
       - logs
