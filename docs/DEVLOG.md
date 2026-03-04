@@ -54,11 +54,11 @@ This file documents detailed technical changes, internal refactorings, and devel
   3. **Table pass** — `split_part(value, '.', 1) != '%'` and `split_part(value, '.', 2) != '%'` → `GRANT … ON DYNAMIC TABLE db.schema.table` (no FUTURE grant — not supported by Snowflake at individual table level).
 - **Grant matrix**:
 
-  | Include pattern | Grant level |
-  |---|---|
-  | `%.%.%` | All databases |
-  | `PROD_DB.%.%` | Database `PROD_DB` |
-  | `PROD_DB.ANALYTICS.%` | Schema `PROD_DB.ANALYTICS` |
+  | Include pattern               | Grant level                         |
+  | ----------------------------- | ----------------------------------- |
+  | `%.%.%`                       | All databases                       |
+  | `PROD_DB.%.%`                 | Database `PROD_DB`                  |
+  | `PROD_DB.ANALYTICS.%`         | Schema `PROD_DB.ANALYTICS`          |
   | `PROD_DB.ANALYTICS.ORDERS_DT` | Table `PROD_DB.ANALYTICS.ORDERS_DT` |
 
 - **Files changed**: `032_p_grant_monitor_dynamic_tables.sql`, `bom.yml`, `config.md`
