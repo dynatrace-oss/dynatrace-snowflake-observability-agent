@@ -127,11 +127,34 @@ This file documents detailed technical changes, internal refactorings, and devel
 - **New**: Leverages Snowflake system function for comprehensive budget data
 - **Impact**: More accurate and complete budget information
 
-#### Query Hierarchy Validation
+#### Error Handling — Two-Phase Commit for Query Telemetry (BDX-694 / BDX-706)
 
-- **Change**: Improved span hierarchy validation using `parent_query_id` and `root_query_id`
-- **Implementation**: Follows OpenTelemetry propagation standards
-- **Impact**: Accurate query trace hierarchies in Dynatrace
+- **Issue**: `STATUS.UPDATE_PROCESSED_QUERIES` was called regardless of whether the OTLP trace flush succeeded, meaning queries could be silently lost on export failures without being retried on the next cycle.
+- **Root cause**: `_process_span_rows` in `src/dtagent/plugins/__init__.py` called `UPDATE_PROCESSED_QUERIES` unconditionally after `flush_traces()`.
+- **Fix**: Captured the boolean return value of `flush_traces()` into `flush_succeeded` and gated the `UPDATE_PROCESSED_QUERIES` call behind `if report_status and flush_succeeded`.
+- **Impact**: Queries whose spans fail to export are re-queued on the next agent run, ensuring at-least-once delivery semantics for span telemetry.
+
+#### Event Log Lookback — Configurable Window (BDX-706)
+
+- **Issue**: `V_EVENT_LOG` used a hardcoded `timeadd(hour, -24, current_timestamp)` lower bound, preventing operators from adjusting the lookback window without editing SQL.
+- **Fix**:
+  - `src/dtagent/plugins/event_log.sql/051_v_event_log.sql`: replaced literal with `CONFIG.F_GET_CONFIG_VALUE('plugins.event_log.lookback_hours', 24)::int`.
+  - `src/dtagent/plugins/event_log.config/event_log-config.yml`: added `lookback_hours: 24` (default preserves prior behaviour).
+- **Impact**: Operators can increase the window for initial deployments or decrease it for high-volume environments without any SQL change.
+
+#### Query Hierarchy Validation (BDX-620)
+
+- **Goal**: Confirm that nested stored procedure call chains are correctly represented as OTel parent-child spans.
+- **Validation approach**:
+  - `P_REFRESH_RECENT_QUERIES` sets `IS_ROOT=TRUE` for top-level calls (no `parent_query_id`) and `IS_PARENT=TRUE` for any query that has at least one child in the same batch. Leaf queries have `IS_ROOT=FALSE, IS_PARENT=FALSE`.
+  - `_process_span_rows` in `src/dtagent/plugins/__init__.py` iterates only `IS_ROOT=TRUE` rows as top-level spans; child spans are fetched recursively via `Spans._get_sub_rows` using `PARENT_QUERY_ID`.
+  - `ExistingIdGenerator` in `src/dtagent/otel/spans.py` propagates the root's `_TRACE_ID` and `_SPAN_ID` down the hierarchy so every sub-span shares the correct trace context.
+- **New test fixture**: `test/test_data/query_history_nested_sp.ndjson` — 3-row synthetic SP chain: outer SP (root) → inner SP (mid) → leaf SELECT.
+- **New test file**: `test/plugins/test_query_history_span_hierarchy.py`
+  - `test_span_hierarchy`: integration test verifying 3 entries processed, 3 spans, 3 logs, 27 metrics across all `disabled_telemetry` combinations.
+  - `test_is_root_only_processes_top_level`: unit test confirming only 1 root row and 2 non-root rows in the fixture.
+  - `test_is_parent_flags_intermediate_nodes`: unit test asserting correct `IS_ROOT`/`IS_PARENT`/`PARENT_QUERY_ID` values for each level of the hierarchy.
+- **Impact**: Span hierarchies for stored procedure chains are confirmed correct and regression-protected.
 
 #### Test Infrastructure Refactoring
 
