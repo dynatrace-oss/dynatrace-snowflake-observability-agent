@@ -497,6 +497,7 @@ plugins:
   event_log:
     max_entries: 10000
     retention_hours: 12
+    lookback_hours: 24
     schedule: USING CRON */30 * * * * UTC
     schedule_cleanup: USING CRON 0 * * * * UTC
     is_disabled: false
@@ -523,13 +524,13 @@ By default (`plugins.event_log.cross_tenant_monitoring: true`) the plugin also r
 originating from **other** `DTAGENT_*_DB` instances visible in the same event table. This allows one DSOA deployment to surface health
 issues from sibling deployments without logging into Snowflake directly.
 
-It is recommended to enable cross-tenant monitoring in **only one primary DSOA tenant** and set `cross_tenant_monitoring: false` in all
-others to avoid duplicate reporting across deployments.
+In case you would like to enable cross-tenant monitoring on **only one DSOA tenant**, e.g., to avoid duplicate reporting across deployments,
+you need to set `cross_tenant_monitoring: false` in all other tenants.
 
 ```yaml
 plugins:
   event_log:
-    cross_tenant_monitoring: false # disable on secondary tenants
+    cross_tenant_monitoring: false # disable on tenants that should report only their own WARN/ERROR self-monitoring entries
 ```
 
 ## Database Filtering
