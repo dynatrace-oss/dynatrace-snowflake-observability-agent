@@ -1,16 +1,14 @@
-## Configuration Options
-
 | Key                                  | Type   | Default                                      | Description                                                                                                                                                                                                                                                                                                                                                                                     |
 | ------------------------------------ | ------ | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `plugins.event_log.max_entries`      | int    | `10000`                                      | Maximum number of event log entries fetched per run. Acts as a safety cap to avoid long-running queries.                                                                                                                                                                                                                                                                                        |
 | `plugins.event_log.lookback_hours`   | int    | `24`                                         | How far back (in hours) the plugin looks for new events on each run. If no prior processed timestamp exists, the plugin starts from `now - lookback_hours`. If a prior timestamp exists, the plugin starts from the more recent of that timestamp and `now - lookback_hours`, so it never reads data older than the lookback window. Increase for initial setup; decrease to reduce query cost. |
-| `plugins.event_log.retention_hours`  | int    | `12`                                         | How long (in hours) the cleanup task retains entries in `STATUS.EVENT_LOG`. Only applies if this agent instance owns the event table.                                                                                                                                                                                                                                                           |
+| `plugins.event_log.retention_hours`  | int    | `24`                                         | How long (in hours) the cleanup task retains entries in `STATUS.EVENT_LOG`. Only applies if this agent instance owns the event table.                                                                                                                                                                                                                                                           |
 | `plugins.event_log.schedule`         | string | `USING CRON */30 * * * * UTC`                | Cron schedule for the main event log processing task.                                                                                                                                                                                                                                                                                                                                           |
 | `plugins.event_log.schedule_cleanup` | string | `USING CRON 0 * * * * UTC`                   | Cron schedule for the cleanup task that removes old entries from `STATUS.EVENT_LOG`.                                                                                                                                                                                                                                                                                                            |
 | `plugins.event_log.is_disabled`      | bool   | `false`                                      | Set to `true` to disable this plugin entirely.                                                                                                                                                                                                                                                                                                                                                  |
 | `plugins.event_log.telemetry`        | list   | `["metrics", "logs", "biz_events", "spans"]` | Telemetry types to emit. Remove items to suppress specific output types.                                                                                                                                                                                                                                                                                                                        |
 
-## Cost Optimization Guidance
+### Cost Optimization Guidance
 
 The event log plugin queries `STATUS.EVENT_LOG` on every run. The following settings directly affect compute cost:
 
@@ -24,7 +22,7 @@ The event log plugin queries `STATUS.EVENT_LOG` on every run. The following sett
 
 > **INFO**: The `EVENT_LOG` table cleanup process works only if this specific instance of Dynatrace Snowflake Observability Agent set up the table.
 
-## Cross-Tenant Monitoring
+### Cross-Tenant Monitoring
 
 By default (`plugins.event_log.cross_tenant_monitoring: true`) the plugin also reports `WARN`/`ERROR` log entries, metrics, and spans originating from **other** `DTAGENT_*_DB` instances visible in the same event table. This allows one DSOA deployment to surface health issues from sibling deployments without logging into Snowflake directly.
 
@@ -36,7 +34,7 @@ plugins:
     cross_tenant_monitoring: false  # disable on secondary tenants
 ```
 
-## Database Filtering
+### Database Filtering
 
 Use `plugins.event_log.databases` to restrict event log monitoring to specific databases. The list accepts SQL `LIKE` patterns (`%` matches any sequence of characters, `_` matches any single character). When the list is absent or empty, **all databases** are included.
 

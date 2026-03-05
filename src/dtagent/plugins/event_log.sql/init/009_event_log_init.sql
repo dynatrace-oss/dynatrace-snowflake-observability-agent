@@ -69,7 +69,15 @@ BEGIN
     END IF;
 
     -- attempt to grant select on the source table; ignore failures for read-only or Snowflake-managed tables
-    EXECUTE IMMEDIATE concat('grant select on table ', :s_event_table_name, ' to role DTAGENT_VIEWER');
+    BEGIN
+      EXECUTE IMMEDIATE concat('grant select on table ', :s_event_table_name, ' to role DTAGENT_VIEWER');
+    EXCEPTION
+      WHEN OTHER THEN
+        -- ignore failures for read-only or Snowflake-managed event tables
+        -- leaves warning in the logs
+        SYSTEM$LOG_WARN(concat('Could not grant select on table ', :s_event_table_name, ' to role DTAGENT_VIEWER: ', SQLERRM));
+    END;
+
     -- create a view on top of the existing event table, so we can use it in the event_log plugin
     EXECUTE IMMEDIATE concat('create view if not exists DTAGENT_DB.STATUS.EVENT_LOG as select * from ', :s_event_table_name);
     grant ownership on view DTAGENT_DB.STATUS.EVENT_LOG to role DTAGENT_OWNER revoke current grants;
