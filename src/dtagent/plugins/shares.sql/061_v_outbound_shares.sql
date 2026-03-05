@@ -48,7 +48,7 @@ select
         'snowflake.share.shared_from',              s.owner_account,
         'snowflake.share.shared_to',                s.given_to,
         'snowflake.share.owner',                    s.owner,
-        'snowflake.share.is_secure_objects_only',   s.secure_objects_only,
+        'snowflake.share.is_secure_objects_only',   TRY_TO_BOOLEAN(s.secure_objects_only),
         'snowflake.share.listing_global_name',      s.listing_global_name
     )                                                   as ATTRIBUTES,
     OBJECT_CONSTRUCT(
