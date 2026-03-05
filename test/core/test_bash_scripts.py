@@ -1,3 +1,4 @@
+import shutil
 import subprocess
 import pytest
 from pathlib import Path
@@ -8,6 +9,10 @@ from tap.line import Result
 BATS_DIR = Path(__file__).parent.parent / "bash"
 BATS_FILES = sorted(BATS_DIR.glob("*.bats"))
 
+# Resolve bats executable path once at import time (handles Homebrew on macOS where
+# /opt/homebrew/bin may not be in the subprocess PATH inherited by pytest)
+BATS_EXECUTABLE = shutil.which("bats")
+
 
 @pytest.mark.parametrize("bats_file", BATS_FILES, ids=[f.stem for f in BATS_FILES])
 def test_bash_script(bats_file):
@@ -15,7 +20,10 @@ def test_bash_script(bats_file):
 
     Uses pytest-tap to parse TAP output and report individual test cases.
     """
-    result = subprocess.run(["bats", str(bats_file)], capture_output=True, text=True, check=False)
+    if not BATS_EXECUTABLE:
+        pytest.skip("bats not found in PATH — install via 'brew install bats-core' or 'npm install -g bats'")
+
+    result = subprocess.run([BATS_EXECUTABLE, str(bats_file)], capture_output=True, text=True, check=False)
 
     # Parse TAP output using pytest-tap
     parser = Parser()

@@ -30,7 +30,7 @@ pytest test/core/ -v
 - Configuration file loading and parsing
 - Environment variable handling
 - Configuration validation
-- Pickle configuration for live testing
+- Safe configuration for live testing
 
 ### Utility Tests (`test_util.py`)
 

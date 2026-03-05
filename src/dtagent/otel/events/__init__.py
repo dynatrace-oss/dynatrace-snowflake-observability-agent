@@ -39,7 +39,7 @@ import requests
 from dtagent.context import RUN_CONTEXT_KEY
 from dtagent.otel import _log_warning
 from dtagent.otel.otel_manager import OtelManager
-from dtagent.util import StringEnum, get_timestamp_in_ms
+from dtagent.util import StringEnum, get_timestamp
 from dtagent.version import VERSION
 
 ##endregion COMPILE_REMOVE

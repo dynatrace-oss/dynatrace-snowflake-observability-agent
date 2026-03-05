@@ -25,6 +25,12 @@ delivers:
     type: procedure
   - name: DTAGENT_DB.APP.TASK_DTAGENT_BUDGETS
     type: task
+  - name: DTAGENT_DB.APP.P_GRANT_BUDGET_MONITORING()
+    type: procedure
+    comment: Optional (admin scope). Grants DTAGENT_VIEWER privileges on configured monitored_budgets.
+  - name: DTAGENT_DB.APP.TASK_DTAGENT_BUDGETS_GRANTS
+    type: task
+    comment: Optional (admin scope). Periodically calls P_GRANT_BUDGET_MONITORING().
 
 references:
   - name: SNOWFLAKE
@@ -70,3 +76,8 @@ references:
     type: procedure
     privileges: USAGE
     comment: We call this procedure on each budget defined in Snowflake
+  - name: SNOWFLAKE.USAGE_VIEWER
+    type: role
+    privileges: DATABASE ROLE
+    granted to: DTAGENT_VIEWER
+    comment: Optional (admin scope). Required for custom budget monitoring via P_GRANT_BUDGET_MONITORING().

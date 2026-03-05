@@ -39,7 +39,7 @@ from dtagent.context import RUN_CONTEXT_KEY
 from dtagent.otel import _log_warning
 from dtagent.otel.otel_manager import OtelManager
 from dtagent.otel.events import EventType, AbstractEvents
-from dtagent.util import StringEnum, get_timestamp_in_ms, validate_timestamp_ms
+from dtagent.util import StringEnum, get_timestamp, validate_timestamp, process_timestamps_for_telemetry
 from dtagent.version import VERSION
 import datetime
 
@@ -50,10 +50,14 @@ import datetime
 
 
 class GenericEvents(AbstractEvents):
-    """Enables for parsing and sending Events via OpenPipeline Events API
-    https://docs.dynatrace.com/docs/platform/openpipeline/reference/openpipeline-ingest-api/generic-events/events-generic-builtin
+    """Enables for parsing and sending Events via OpenPipeline Events API.
 
-    Note: OpenPipeline Events API does support sending multiple events at the same time, similar to BizEvents.
+    API Specifications:
+    - Dynatrace OpenPipeline Events:
+      https://docs.dynatrace.com/docs/platform/openpipeline/reference/openpipeline-ingest-api/generic-events/events-generic-builtin
+    - CloudEvents Spec: https://cloudevents.io/
+
+    Note: Timestamps are expected in milliseconds. OpenPipeline Events API supports sending multiple events at once.
     """
 
     from dtagent.config import Configuration  # COMPILE_REMOVE
@@ -104,11 +108,18 @@ class GenericEvents(AbstractEvents):
             k: v for k, v in event_data.items() if k not in ("_MESSAGE", "_message")
         }
 
-        start_ts = get_timestamp_in_ms(event_data, kwargs.get("start_time_key", "START_TIME"), 1e6, None)
-        end_ts = get_timestamp_in_ms(event_data, kwargs.get("end_time_key", "END_TIME"), 1e6, None)
+        # Get timestamps in nanoseconds from SQL, convert to milliseconds for Dynatrace Events API
+        start_ts_ns = get_timestamp(event_data, kwargs.get("start_time_key", "START_TIME"))
+        end_ts_ns = get_timestamp(event_data, kwargs.get("end_time_key", "END_TIME"))
 
-        observed_timestamp = get_timestamp_in_ms(event_data, "timestamp")
-        timestamp = validate_timestamp_ms(observed_timestamp) if observed_timestamp else None
+        # Validate and convert to milliseconds for Dynatrace Events API
+        start_ts = validate_timestamp(start_ts_ns, return_unit="ms") if start_ts_ns else None
+        end_ts = validate_timestamp(end_ts_ns, return_unit="ms") if end_ts_ns else None
+
+        # Process timestamp and observed_timestamp using standard pattern:
+        # - timestamp in milliseconds (Dynatrace Events API requirement)
+        # - observed_timestamp in nanoseconds (per OTLP standard)
+        timestamp, observed_timestamp_ns = process_timestamps_for_telemetry(event_data)
 
         # we have map non-simple types to string, as events are not capable of mapping lists
         # for key, value in event_data_extended.items():
@@ -140,8 +151,9 @@ class GenericEvents(AbstractEvents):
         if timestamp:
             event_payload["timestamp"] = timestamp
 
-        if observed_timestamp and observed_timestamp != timestamp:
-            event_payload["observed_timestamp"] = observed_timestamp
+        # Add observed_timestamp if available (in nanoseconds per OTLP standard)
+        if observed_timestamp_ns:
+            event_payload["observed_timestamp"] = observed_timestamp_ns
 
         return event_payload
 

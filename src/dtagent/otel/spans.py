@@ -90,7 +90,14 @@ class ExistingIdGenerator(RandomIdGenerator):
 
 
 class Spans:
-    """Main Spans class"""
+    """Main Spans class for sending traces via Dynatrace OTLP Traces API.
+
+    API Specifications:
+    - Dynatrace OTLP Traces: https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-traces
+    - OTLP Traces Standard: https://opentelemetry.io/docs/specs/otel/trace/api/
+
+    Note: Timestamps must be in nanoseconds per OTLP standard.
+    """
 
     from dtagent.config import Configuration  # COMPILE_REMOVE
 

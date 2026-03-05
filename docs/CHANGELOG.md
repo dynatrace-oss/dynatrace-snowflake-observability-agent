@@ -2,6 +2,40 @@
 
 All notable changes to this project will be documented in this file.
 
+## Dynatrace Snowflake Observability Agent 0.9.4
+
+Released on TBD
+
+> **Note**: Detailed technical changes and implementation notes are available in [DEVLOG.md](DEVLOG.md).
+
+### New in 0.9.4
+
+- **New Plugins**: Added Pipes, Streams, Stage, and Data Lineage monitoring plugins
+- **Configurable Lookback Time**: Per-plugin configuration for historical data catchup window
+
+### Fixed in 0.9.4
+
+- **OTLP Compliance**: Fixed log `observed_timestamp` field to use nanoseconds per OTLP specification
+
+### Changed in 0.9.4
+
+- **Event Log Plugin — Cross-Tenant Monitoring** *(behavior change)*: DSOA instances now report `WARN`/`ERROR` log entries, metrics, and spans from all other `DTAGENT_*_DB` instances by default. Use `plugins.event_log.cross_tenant_monitoring: false` to opt out. It is recommended to keep this enabled in only one primary DSOA tenant to avoid duplicate reporting across deployments.
+- **Shares Plugin**: Fixed inbound shares with deleted databases not being properly reported. The `snowflake.share.has_details_reported` attribute now correctly shows `TRUE` for deleted-DB shares, and the `_MESSAGE` field provides clear context about database deletion status
+- **Self-Monitoring**: Fixed database name filtering for self-monitoring logs
+
+### Improved in 0.9.4
+
+- **Budgets Plugin**: Enhanced budget data collection using `SYSTEM$SHOW_BUDGETS_IN_ACCOUNT()`.
+- **Query Hierarchy Validation**: Confirmed and validated span hierarchy for nested stored procedure call chains (`IS_ROOT`/`IS_PARENT` flags) with dedicated test coverage for OTel parent-child propagation.
+- **Error Handling — Two-Phase Commit**: Query telemetry is now marked as processed only after the OTLP flush succeeds, preventing silent data loss when trace export fails.
+- **Event Log Lookback — Configurable**: The event log lookback window (previously hardcoded to 24 h) is now driven by `plugins.event_log.lookback_hours` config key.
+- **Test Infrastructure**: Refactored tests to use synthetic JSON fixtures for input/output validation instead of live Dynatrace API calls.
+- **Test Fixtures**: Migrated all plugin test input data from binary Python pickle files (`.pkl`) to human-readable NDJSON format (`.ndjson`), improving transparency and enabling direct manual inspection and version control of test data.
+- **Event Tables Cost Optimization**: Added guidance for fine-tuning Event Table usage to manage Snowflake costs.
+- **Timestamp Handling**: Unified timestamp handling with smart unit detection, eliminating wasteful conversions
+- **Build System**: Development scripts now auto-activate virtual environment
+- **Test Infrastructure**: Refactored tests to use synthetic JSON fixtures instead of live API calls
+
 ## Dynatrace Snowflake Observability Agent 0.9.3
 
 Released on February 12, 2026
@@ -166,7 +200,7 @@ Released on May 20, 2025.
 
 - **Teardown Process**: Correctly tears down tagged instances.
 - **Span Event Reporting**: Removed the hard limit of 128 span events. The limit is now configurable via `OTEL.SPANS.MAX_EVENT_COUNT`.
-- **Spans for Queries**: Fixed the problem with a hierarchy of query calls not being represented by a hierarchy of spans (_0.8.2 Hotfix 1_).
+- **Spans for Queries**: Fixed the problem with a hierarchy of query calls not being represented by a hierarchy of spans (*0.8.2 Hotfix 1*).
 - **Self-Monitoring Configuration**: Plugin default configurations no longer overwrite self-monitoring settings.
 - **Self-Monitoring BizEvents**: BizEvents are now sent by default when Dynatrace Snowflake Observability Agent is deployed and executed.
 
@@ -293,7 +327,7 @@ Released on Oct 8, 2024.
 
 ### Added in 0.7.2
 
-- Pickle for testing of the Users plugin.
+- Fixtures for testing of the Users plugin.
 - Copyright statements to the code.
 
 ### Fixed in 0.7.2
