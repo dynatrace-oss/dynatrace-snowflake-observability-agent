@@ -26,7 +26,9 @@ Released on TBD
 ### Improved in 0.9.4
 
 - **Budgets Plugin**: Enhanced budget data collection using `SYSTEM$SHOW_BUDGETS_IN_ACCOUNT()`.
-- **Query Hierarchy Validation**: Improved span hierarchy validation using `parent_query_id` and `root_query_id` fields with OpenTelemetry propagation standards.
+- **Query Hierarchy Validation**: Confirmed and validated span hierarchy for nested stored procedure call chains (`IS_ROOT`/`IS_PARENT` flags) with dedicated test coverage for OTel parent-child propagation.
+- **Error Handling — Two-Phase Commit**: Query telemetry is now marked as processed only after the OTLP flush succeeds, preventing silent data loss when trace export fails.
+- **Event Log Lookback — Configurable**: The event log lookback window (previously hardcoded to 24 h) is now driven by `plugins.event_log.lookback_hours` config key.
 - **Test Infrastructure**: Refactored tests to use synthetic JSON fixtures for input/output validation instead of live Dynatrace API calls.
 - **Test Fixtures**: Migrated all plugin test input data from binary Python pickle files (`.pkl`) to human-readable NDJSON format (`.ndjson`), improving transparency and enabling direct manual inspection and version control of test data.
 - **Event Tables Cost Optimization**: Added guidance for fine-tuning Event Table usage to manage Snowflake costs.

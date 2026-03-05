@@ -64,7 +64,7 @@ where not regexp_like(SCOPE['name'], 'DTAGENT(_\\S*)?_OTLP')     -- we do not lo
    -- for DTAGENT-family DBs (self and cross-tenant) only report WARN/ERROR
    or _RECORD['severity_text']::varchar not in ('DEBUG', 'INFO')
   )
-  and TIMESTAMP > GREATEST( timeadd(hour, -24, current_timestamp), DTAGENT_DB.STATUS.F_LAST_PROCESSED_TS('event_log') )
+  and TIMESTAMP > GREATEST( timeadd(hour, -CONFIG.F_GET_CONFIG_VALUE('plugins.event_log.lookback_hours', 24)::int, current_timestamp), DTAGENT_DB.STATUS.F_LAST_PROCESSED_TS('event_log') )
   and (RESOURCE_ATTRIBUTES:"application"::varchar is null or RESOURCE_ATTRIBUTES:"application"::varchar not in ('openflow')) -- exclude known high volume applications
 order by TIMESTAMP asc
 limit 10000 -- safety limit to avoid long running queries
