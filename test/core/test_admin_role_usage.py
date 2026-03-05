@@ -182,10 +182,10 @@ class TestDeploymentScopes:
                 for line_num, line in enumerate(f, 1):
                     # Track deploy-time OPTION blocks (--%OPTION:name: ... --%:OPTION:name)
                     # These are stripped by prepare_deploy_script.sh and must not be flagged here
-                    if re.match(r"^--%OPTION:", line):
+                    if line.startswith("--%OPTION:"):
                         in_option_block = True
                         continue
-                    if re.match(r"^--%:OPTION:", line):
+                    if line.startswith("--%:OPTION:"):
                         in_option_block = False
                         continue
                     if in_option_block:

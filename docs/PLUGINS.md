@@ -203,7 +203,7 @@ plugins:
 
 ### Enabling the Budgets plugin
 
-1. Set `IS_ENABLED` to `true` in your configuration file.
+1. Set `is_enabled` to `true` in your configuration file.
 1. For **account budget only** (no custom budgets): no additional grants needed — `SNOWFLAKE.BUDGET_VIEWER` is already granted.
 1. For **custom budgets**: configure `monitored_budgets` and run `P_GRANT_BUDGET_MONITORING()` (admin scope required), or grant privileges
    manually (see below).
