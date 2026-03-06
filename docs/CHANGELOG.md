@@ -15,6 +15,7 @@ Released on TBD
 
 ### Fixed in 0.9.4
 
+- **Dynamic Tables — Grant Granularity**: `P_GRANT_MONITOR_DYNAMIC_TABLES()` now derives grant scope from the `include` pattern. `DB.%.%` grants at database level, `DB.SCHEMA.%` at schema level, and `DB.SCHEMA.TABLE` on a specific named table only — eliminating previous over-granting when a schema or table was explicitly specified.
 - **OTLP Compliance**: Fixed log `observed_timestamp` field to use nanoseconds per OTLP specification
 
 ### Changed in 0.9.4
