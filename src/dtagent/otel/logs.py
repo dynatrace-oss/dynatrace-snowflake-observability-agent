@@ -172,7 +172,7 @@ class Logs:
 
         # the following conversions through JSON are necessary to ensure certain objects like datetime are properly serialized,
         # otherwise OTEL seems to be sending objects cannot be deserialized on the Dynatrace side
-        o_extra = {k: __adjust_log_attribute(k, v) for k, v in _cleanup_data(extra).items() if v} if extra else {}
+        o_extra = {k: __adjust_log_attribute(k, v) for k, v in _cleanup_data(extra).items() if v is not None} if extra else {}
 
         # Process timestamps using standard pattern:
         # - timestamp in milliseconds (Dynatrace OTLP Logs API deviation from spec)
