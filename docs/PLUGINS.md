@@ -203,7 +203,7 @@ plugins:
 
 ### Enabling the Budgets plugin
 
-1. Set `IS_ENABLED` to `true` in your configuration file.
+1. Set `is_enabled` to `true` in your configuration file.
 1. For **account budget only** (no custom budgets): no additional grants needed — `SNOWFLAKE.BUDGET_VIEWER` is already granted.
 1. For **custom budgets**: configure `monitored_budgets` and run `P_GRANT_BUDGET_MONITORING()` (admin scope required), or grant privileges
    manually (see below).
@@ -417,7 +417,18 @@ plugins:
 > default, when the `admin` scope is installed, this is handled by the `P_GRANT_MONITOR_DYNAMIC_TABLES()` procedure, which is executed with
 > the elevated privileges of the `DTAGENT_ADMIN` role (created only when the `admin` scope is installed), via the
 > `APP.TASK_DTAGENT_DYNAMIC_TABLES_GRANTS` task. The schedule for this task can be configured separately using the
-> `PLUGINS.DYNAMIC_TABLES.SCHEDULE_GRANTS` configuration option. Alternatively, you may choose to:
+> `PLUGINS.DYNAMIC_TABLES.SCHEDULE_GRANTS` configuration option.
+
+The grant granularity is derived automatically from the `include` pattern:
+
+| Include pattern               | Grant level | SQL issued                                                 |
+| ----------------------------- | ----------- | ---------------------------------------------------------- |
+| `%.%.%` or `PROD_DB.%.%`      | Database    | `GRANT MONITOR ON ALL/FUTURE DYNAMIC TABLES IN DATABASE …` |
+| `PROD_DB.ANALYTICS.%`         | Schema      | `GRANT MONITOR ON ALL/FUTURE DYNAMIC TABLES IN SCHEMA …`   |
+| `PROD_DB.ANALYTICS.ORDERS_DT` | Table       | `GRANT MONITOR ON DYNAMIC TABLE …` (no FUTURE grant)       |
+
+Alternatively, you may choose to grant the required permissions manually, using the appropriate
+`GRANT MONITOR ON ALL/FUTURE DYNAMIC TABLES IN …` statement, depending on the desired granularity.
 
 ### Dynamic Tables Bill of Materials
 
@@ -437,14 +448,17 @@ The following tables list the Snowflake objects that this plugin delivers data f
 
 #### Objects referenced by the `Dynamic Tables` plugin
 
-| Name                                             | Type          | Privileges | Granted to     | Comment                                                                    |
-| ------------------------------------------------ | ------------- | ---------- | -------------- | -------------------------------------------------------------------------- |
-| SHOW DATABASES                                   | command       | USAGE      |                |                                                                            |
-| ALL DYNAMIC TABLES IN DATABASE $database         | dynamic table | MONITOR    | DTAGENT_VIEWER | We grant that on every database selected in configuration or all (default) |
-| ALL FUTURE TABLES IN DATABASE $database          | table         | MONITOR    | DTAGENT_VIEWER | We grant that on every database selected in configuration or all (default) |
-| INFORMATION_SCHEMA.DYNAMIC_TABLE_REFRESH_HISTORY | view          | USAGE      | DTAGENT_VIEWER |                                                                            |
-| INFORMATION_SCHEMA.DYNAMIC_TABLE_GRAPH_HISTORY   | view          | USAGE      | DTAGENT_VIEWER |                                                                            |
-| INFORMATION_SCHEMA.DYNAMIC_TABLES                | view          | USAGE      | DTAGENT_VIEWER |                                                                            |
+| Name                                                  | Type          | Privileges | Granted to     | Comment                                                                                                                  |
+| ----------------------------------------------------- | ------------- | ---------- | -------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| SHOW DATABASES                                        | command       | USAGE      |                |                                                                                                                          |
+| ALL DYNAMIC TABLES IN DATABASE $database              | dynamic table | MONITOR    | DTAGENT_VIEWER | Granted when include pattern has wildcard schema (e.g. DB.%.%)                                                           |
+| ALL FUTURE DYNAMIC TABLES IN DATABASE $database       | dynamic table | MONITOR    | DTAGENT_VIEWER | Granted when include pattern has wildcard schema (e.g. DB.%.%)                                                           |
+| ALL DYNAMIC TABLES IN SCHEMA $database.$schema        | dynamic table | MONITOR    | DTAGENT_VIEWER | Granted when include pattern has specific schema (e.g. DB.ANALYTICS.%)                                                   |
+| ALL FUTURE DYNAMIC TABLES IN SCHEMA $database.$schema | dynamic table | MONITOR    | DTAGENT_VIEWER | Granted when include pattern has specific schema (e.g. DB.ANALYTICS.%)                                                   |
+| DYNAMIC TABLE $database.$schema.$table                | dynamic table | MONITOR    | DTAGENT_VIEWER | Granted when include pattern specifies an exact table name (e.g. DB.ANALYTICS.ORDERS_DT); no FUTURE grant at table level |
+| INFORMATION_SCHEMA.DYNAMIC_TABLE_REFRESH_HISTORY      | view          | USAGE      | DTAGENT_VIEWER |                                                                                                                          |
+| INFORMATION_SCHEMA.DYNAMIC_TABLE_GRAPH_HISTORY        | view          | USAGE      | DTAGENT_VIEWER |                                                                                                                          |
+| INFORMATION_SCHEMA.DYNAMIC_TABLES                     | view          | USAGE      | DTAGENT_VIEWER |                                                                                                                          |
 
 <a name="event_log_info_sec"></a>
 

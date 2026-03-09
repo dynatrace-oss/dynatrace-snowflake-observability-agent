@@ -83,3 +83,6 @@ protobuf>=5.29.6,<6.0.0
 urllib3>=2.6.3
 # CVE-2026-24049: Wheel path traversal vulnerability
 wheel>=0.46.2
+
+# dependencies
+chardet>=3.0.2,<6.0.0
