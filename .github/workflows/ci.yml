@@ -81,7 +81,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-          pip install pytest-mock
+          pip install pytest-mock flake8 black pylint
 
       - name: Install system dependencies
         run: |
@@ -90,6 +90,32 @@ jobs:
 
       - name: Run bash tests
         run: pytest test/core/test_bash_scripts.py -v
+
+  test-bash-slow:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/devel' || startsWith(github.ref, 'refs/heads/release/')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11.12"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pytest-mock flake8 black pylint
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bats jq gawk pandoc zip
+          npm install -g markdownlint-cli2
+
+      - name: Run slow bash tests (build/package/compile)
+        run: pytest test/core/test_bash_scripts.py -v --run-slow
 
   test-core:
     runs-on: ubuntu-latest
