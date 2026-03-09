@@ -20,6 +20,7 @@
   {
     "content": "This is a test object 2",
     "status.code": "OK",
+    "value.bool": false,
     "event.type": "PERFORMANCE_EVENT",
     "value.int": 10000000,
     "value.str": "test 2",
