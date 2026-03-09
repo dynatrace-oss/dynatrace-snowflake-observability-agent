@@ -64,6 +64,8 @@ def test_bash_script(request, bats_file):
             failure_msg += f"\n  ✗ {test.description}\n"
             if test.directive:
                 failure_msg += f"    Directive: {test.directive.text}\n"
+        if result.stdout:
+            failure_msg += f"\nSTDOUT:\n{result.stdout}"
         if result.stderr:
             failure_msg += f"\nSTDERR:\n{result.stderr}"
         pytest.fail(failure_msg)

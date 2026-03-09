@@ -2,6 +2,8 @@
 
 setup_file() {
     cd "$BATS_TEST_DIRNAME/../.."
+    # Ensure build directory exists (not present in a fresh CI checkout)
+    mkdir -p build/30_plugins build/09_upgrade
     # Backup original files if exist
     [ -f build/_version.py ] && cp build/_version.py build/_version.py.bak
     [ -f build/_dtagent.py ] && cp build/_dtagent.py build/_dtagent.py.bak
