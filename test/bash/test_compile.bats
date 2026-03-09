@@ -6,9 +6,10 @@ setup_file() {
     [ -f build/_version.py ] && cp build/_version.py build/_version.py.bak
     [ -f build/_dtagent.py ] && cp build/_dtagent.py build/_dtagent.py.bak
     [ -f build/_send_telemetry.py ] && cp build/_send_telemetry.py build/_send_telemetry.py.bak
-    # Run compile.sh once for all tests
+    # Run compile.sh once for all tests; communicate result via BATS_FILE_TMPDIR
+    # (export from setup_file does not propagate into individual test subshells)
     ./scripts/dev/compile.sh
-    export COMPILE_STATUS=$?
+    echo $? > "${BATS_FILE_TMPDIR}/compile_status"
 }
 
 teardown_file() {
@@ -21,6 +22,7 @@ teardown_file() {
 
 setup() {
     cd "$BATS_TEST_DIRNAME/../.."
+    COMPILE_STATUS=$(cat "${BATS_FILE_TMPDIR}/compile_status" 2>/dev/null || echo 1)
 }
 
 @test "compile.sh creates compiled files" {
