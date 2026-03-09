@@ -13,6 +13,8 @@
   },
   {
     "content": "test_automode/000",
+    "snowflake.data.rows": 0,
+    "snowflake.data.size": 0,
     "snowflake.table.ddl": 1733122324468000000,
     "snowflake.table.update": 1741707972204000000,
     "snowflake.table.time_since.last_ddl": 144135,

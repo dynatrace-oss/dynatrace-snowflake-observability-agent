@@ -148,6 +148,8 @@ scripts/dev/test.sh
 ## 📖 Documentation (MANDATORY)
 
 Documentation is a first-class deliverable. Update relevant docs with every change.
+**Important:** Always update documentation with `./scripts/update_docs.sh` when making changes to the codebase.
+**Never** update `docs/PLUGINS.md` or `docs/SEMANTICS.md` directly; use plugin-specific files instead.
 
 ### What to Update
 
@@ -159,7 +161,8 @@ Documentation is a first-class deliverable. Update relevant docs with every chan
 | New version / release  | `docs/CHANGELOG.md` (user-facing highlights), `docs/DEVLOG.md` (technical details)                 |
 | Config change          | `conf/config-template.yml`, plugin's `{name}-config.yml`                                           |
 
-**Note:** Do not update `docs/PLUGINS.md` or `docs/SEMANTICS.md` as those are generated automatically.
+**Note:** Do not update `docs/PLUGINS.md` or `docs/SEMANTICS.md` as those are generated automatically;
+use `readme.md` and `config.md` files in plugin directories instead.
 
 ### CHANGELOG vs DEVLOG
 
@@ -226,7 +229,7 @@ DEVLOG.md:
 
 ### Other Documentation Requirements
 
-- **Docstrings**: Google style, required for all public modules/classes/functions in `src/`
+- **Docstrings**: Google style, required for all public modules/classes/functions in `src/`, table columns width aligned
 - **BOM**: Each plugin ships `bom.yml` listing delivered/referenced Snowflake objects (validated against `test/src-bom.schema.json`)
 
 ## 🔧 Build & CI/CD
@@ -283,7 +286,7 @@ Store alongside proposal. Must be reviewed and accepted before Phase 3.
    - **Commit** — small, frequent commits per task
 1. **After all tasks**:
    - Run full test suite and `make lint`
-   - Run `scripts/dev/build.sh`
+   - Run `scripts/dev/build_docs.sh` to test build and update documentation (PLUGINS.md, SEMANTICS.md)
    - Update `docs/CHANGELOG.md` (highlights) and `docs/DEVLOG.md` (technical details)
    - Review changeset, open PR
 

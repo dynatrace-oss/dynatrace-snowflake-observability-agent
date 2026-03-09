@@ -12,9 +12,12 @@ Released on TBD
 
 - **New Plugins**: Added Pipes, Streams, Stage, and Data Lineage monitoring plugins
 - **Configurable Lookback Time**: Per-plugin configuration for historical data catchup window
+- **SNOWFLAKE.TELEMETRY.EVENTS Support**: Agent now correctly reads from the Snowflake-managed shared event table when it is configured as the account-level event table
 
 ### Fixed in 0.9.4
 
+- **Dynamic Tables — Grant Granularity**: `P_GRANT_MONITOR_DYNAMIC_TABLES()` now derives grant scope from the `include` pattern. `DB.%.%` grants at database level, `DB.SCHEMA.%` at schema level, and `DB.SCHEMA.TABLE` on a specific named table only — eliminating previous over-granting when a schema or table was explicitly specified.
+- **Span Timestamp Handling**: Fixed spans being re-processed after agent restart due to incorrect timestamp being recorded as last-processed marker
 - **OTLP Compliance**: Fixed log `observed_timestamp` field to use nanoseconds per OTLP specification
 
 ### Changed in 0.9.4

@@ -1,6 +1,6 @@
 This plugin delivers to Dynatrace data reported by Snowflake Trail in the `EVENT TABLE`.
 
-By default, it runs every 30 minutes and registers entries from the last 12 hours, omitting entries that:
+By default, it runs every 30 minutes and processes only new entries since the last run (bounded by a configurable lookback window of 24 hours), omitting entries that:
 
 - were already delivered,
 - have scope set to `DTAGENT_OTLP` (internal log recording entries sent over the OpenTelemetry protocol), or

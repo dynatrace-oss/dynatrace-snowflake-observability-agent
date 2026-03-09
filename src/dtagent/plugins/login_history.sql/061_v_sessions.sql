@@ -49,7 +49,7 @@ select
 from
     SNOWFLAKE.ACCOUNT_USAGE.SESSIONS s
 where
-    s.created_on > GREATEST( timeadd(hour, -24, current_timestamp), DTAGENT_DB.STATUS.F_LAST_PROCESSED_TS('sessions') )
+    s.created_on > GREATEST( timeadd(hour, -1*DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE('plugins.login_history.lookback_hours', 24), current_timestamp), DTAGENT_DB.STATUS.F_LAST_PROCESSED_TS('sessions') )
 order by
     s.created_on asc
 limit 1000

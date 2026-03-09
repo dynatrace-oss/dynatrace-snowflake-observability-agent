@@ -5,25 +5,63 @@ setup() {
     TEST_SQL_FILE=$(mktemp)
     TEST_CONFIG_FILE=$(mktemp)
 
-    # Ensure build directory has necessary files
+    # Create self-contained build fixtures with real DTAGENT_* placeholder names
     mkdir -p build/30_plugins build/09_upgrade
 
-    # Copy files from package/build if they don't exist
-    for file in 00_init.sql 10_admin.sql 20_setup.sql 40_config.sql 70_agents.sql; do
-        if [ ! -f "build/$file" ] && [ -f "package/build/$file" ]; then
-            cp "package/build/$file" "build/$file"
-        fi
-    done
+    cat > build/00_init.sql << 'EOSQL'
+-- Init
+use role DTAGENT_OWNER;
+create database if not exists DTAGENT_DB;
+--%OPTION:resource_monitor:
+create resource monitor if not exists DTAGENT_RS;
+--%:OPTION:resource_monitor
+EOSQL
 
-    # Copy plugins if needed
-    if [ -d "package/build/30_plugins" ]; then
-        cp -r package/build/30_plugins/* build/30_plugins/ 2>/dev/null || true
-    fi
+    cat > build/10_admin.sql << 'EOSQL'
+-- Admin
+use role DTAGENT_OWNER;
+--%OPTION:dtagent_admin:
+create role if not exists DTAGENT_ADMIN;
+grant role DTAGENT_ADMIN to role DTAGENT_OWNER;
+grant manage grants on account to role DTAGENT_ADMIN;
+--%:OPTION:dtagent_admin
+EOSQL
+
+    cat > build/20_setup.sql << 'EOSQL'
+-- Setup
+use role DTAGENT_OWNER;
+create warehouse if not exists DTAGENT_WH;
+create role if not exists DTAGENT_VIEWER;
+use database DTAGENT_DB;
+--%OPTION:resource_monitor:
+create or replace procedure CONFIG.P_UPDATE_RESOURCE_MONITOR(credit_quota int)
+returns string as begin
+  alter resource monitor DTAGENT_RS set credit_quota = :credit_quota;
+  return 'ok';
+end;
+--%:OPTION:resource_monitor
+EOSQL
+
+    cat > build/40_config.sql << 'EOSQL'
+-- Config
+use role DTAGENT_OWNER;
+use database DTAGENT_DB;
+SELECT 'config';
+EOSQL
+
+    cat > build/70_agents.sql << 'EOSQL'
+-- Agents
+use role DTAGENT_OWNER;
+use database DTAGENT_DB;
+use warehouse DTAGENT_WH;
+SELECT 'agents';
+EOSQL
 }
 
 teardown() {
     rm -f "$TEST_SQL_FILE" "$TEST_CONFIG_FILE"
-    # Don't remove build files as they might be needed by other tests
+    rm -f build/00_init.sql build/10_admin.sql build/20_setup.sql build/40_config.sql build/70_agents.sql
+    rm -rf build/30_plugins build/09_upgrade
     unset BUILD_CONFIG_FILE DTAGENT_TOKEN
 }
 
@@ -528,13 +566,13 @@ EOF
         cp "$TEST_SQL_FILE" "$temp_file"
     done
     rm -f "$temp_file"
-    
+
     # Verify the block was removed
     ! grep -q "CREATE RESOURCE MONITOR" "$TEST_SQL_FILE"
-    
+
     # Verify code before and after remains
     grep -q "SELECT 1" "$TEST_SQL_FILE"
     grep -q "SELECT 2" "$TEST_SQL_FILE"
-    
+
     rm -f "$TEST_INPUT_FILE"
 }
