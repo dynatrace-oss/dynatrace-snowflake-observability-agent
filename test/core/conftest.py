@@ -30,6 +30,12 @@ def pytest_addoption(parser):
         action="store",
         help="Download and save config from Snowflake to local file (pass 'y' to enable).",
     )
+    parser.addoption(
+        "--run-slow",
+        action="store_true",
+        default=False,
+        help="Run slow build/package integration tests (skipped by default).",
+    )
 
 
 @fixture(scope="session")

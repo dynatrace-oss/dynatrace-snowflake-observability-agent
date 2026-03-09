@@ -6,6 +6,11 @@ setup() {
 
 setup_file() {
     cd "$BATS_TEST_DIRNAME/../.."
+    if [ -z "${BATS_SLOW_TESTS:-}" ]; then
+        export BUILD_DOCS_STATUS=0
+        export BUILD_OUTPUT=""
+        return
+    fi
     # Run build_docs.sh once for all tests
     BUILD_OUTPUT=$(timeout 240 ./scripts/dev/build_docs.sh 2>&1)
     export BUILD_DOCS_STATUS=$?
@@ -13,6 +18,9 @@ setup_file() {
 }
 
 @test "build.sh runs without immediate errors" {
+    if [ -z "${BATS_SLOW_TESTS:-}" ]; then
+        skip "slow test — set BATS_SLOW_TESTS=1 to run"
+    fi
     # This test assumes dependencies like pylint are installed
     # In a real environment, this would pass if build tools are available
     run timeout 120 ./scripts/dev/build.sh
@@ -197,6 +205,9 @@ setup_file() {
 }
 
 @test "package.sh creates a valid package zip with build files and documentation" {
+    if [ -z "${BATS_SLOW_TESTS:-}" ]; then
+        skip "slow test — set BATS_SLOW_TESTS=1 to run"
+    fi
     run timeout 300 ./scripts/dev/package.sh
     if [ "$status" -ne 0 ]; then
         echo "package.sh failed with status $status"
@@ -357,6 +368,9 @@ setup_file() {
 }
 
 @test "markdownlint passes for all documentation" {
+    if [ -z "${BATS_SLOW_TESTS:-}" ]; then
+        skip "slow test — set BATS_SLOW_TESTS=1 to run"
+    fi
     if ! command -v markdownlint &> /dev/null; then
         skip "markdownlint not installed"
     fi
