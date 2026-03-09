@@ -31,7 +31,6 @@ import inspect
 from typing import Tuple, Dict, List, Callable, Union, Generator, Optional, Any
 from abc import ABC, abstractmethod
 from snowflake import snowpark
-from snowflake.snowpark.functions import current_timestamp
 from dtagent import LOG, LL_TRACE
 from dtagent.config import Configuration
 from dtagent.util import (
@@ -214,6 +213,7 @@ class Plugin(ABC):
         logs_sent = 0
         metrics_sent = 0
         metrics_present = False
+        last_processed_timestamp = None
 
         __context = get_context_name_and_run_id(plugin_name=self._plugin_name, context_name=context_name, run_id=run_uuid)
 
@@ -222,6 +222,7 @@ class Plugin(ABC):
             if query_id is None:
                 LOG.warning("Problem with given row in %s: %r", context_name, row_dict)
             else:
+                last_processed_timestamp = row_dict.get("TIMESTAMP", last_processed_timestamp)
                 LOG.log(LL_TRACE, "Processing %s for %r", context_name, query_id)
                 _span_events_added, _spans_sent, _logs_sent, _metrics_sent, _metrics_present = self._process_row(
                     row=row_dict,
@@ -259,7 +260,7 @@ class Plugin(ABC):
         if log_completion:
             self._report_execution(
                 context_name,
-                current_timestamp(),
+                str(last_processed_timestamp),
                 None,
                 {
                     context_name: {

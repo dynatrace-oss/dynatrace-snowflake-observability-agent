@@ -52,7 +52,7 @@ select
 from
     SNOWFLAKE.ACCOUNT_USAGE.LOGIN_HISTORY lh
 where
-    lh.event_timestamp > GREATEST( timeadd(hour, -24, current_timestamp), DTAGENT_DB.STATUS.F_LAST_PROCESSED_TS('login_history') )
+    lh.event_timestamp > GREATEST( timeadd(hour, -1*DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE('plugins.login_history.lookback_hours', 24), current_timestamp), DTAGENT_DB.STATUS.F_LAST_PROCESSED_TS('login_history') )
 order by
     lh.event_timestamp asc
 limit 1000

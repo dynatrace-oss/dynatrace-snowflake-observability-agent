@@ -77,11 +77,31 @@ attributes:
     __context_names:
       - users
     __description: The external authentication UID for the user.
+  snowflake.user.has_mfa:
+    __example: "true"
+    __context_names:
+      - users
+    __description: Indicates if the user is enrolled for multi-factor authentication.
   snowflake.user.has_password:
     __example: "true"
     __context_names:
       - users
     __description: Indicates if the user has a password set.
+  snowflake.user.has_pat:
+    __example: "true"
+    __context_names:
+      - users
+    __description: Indicates if a programmatic access token has been generated for the user.
+  snowflake.user.has_rsa:
+    __example: "true"
+    __context_names:
+      - users
+    __description: Indicates if RSA public key authentication is configured for the user.
+  snowflake.user.has_workload_identity:
+    __example: "true"
+    __context_names:
+      - users
+    __description: Indicates if workload identity federation is configured for the user.
   snowflake.user.id:
     __example: "12345"
     __context_names:
