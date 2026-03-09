@@ -1,5 +1,6 @@
 plugins:
   login_history:
+    lookback_hours: 24
     schedule: USING CRON */30 * * * * UTC
     is_disabled: false
     telemetry:

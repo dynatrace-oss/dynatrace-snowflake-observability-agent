@@ -48,12 +48,19 @@ DECLARE
                                        order by execution_time desc;
 
     query_id                VARCHAR DEFAULT '';
+    safe_query_id_re        TEXT    DEFAULT '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$';
 BEGIN
     -- initializing TMP_QUERY_ACCELERATION_ESTIMATES
     EXECUTE IMMEDIATE :truncate_tmp;
 
     FOR query IN c_queries_to_analyze DO
         query_id := query.query_id;
+
+        IF (NOT REGEXP_LIKE(:query_id, :safe_query_id_re)) THEN
+            SYSTEM$LOG_WARN('P_GET_ACCELERATION_ESTIMATES: skipping query with unexpected query_id format: ' || :query_id);
+            CONTINUE;
+        END IF;
+
         EXECUTE IMMEDIATE 'select PARSE_JSON(SYSTEM$ESTIMATE_QUERY_ACCELERATION(''' || :query_id || ''')) as json;';
         INSERT INTO DTAGENT_DB.APP.TMP_QUERY_ACCELERATION_ESTIMATES(QUERY_ID, ATTRIBUTES)
             select

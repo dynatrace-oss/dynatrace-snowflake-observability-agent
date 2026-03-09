@@ -24,12 +24,12 @@
 class TestUsers:
     import pytest
 
-    PICKLES = {
-        "APP.V_USERS_INSTRUMENTED": "test/test_data/users_hist.pkl",
-        "APP.V_USERS_ALL_PRIVILEGES_INSTRUMENTED": "test/test_data/users_all_privileges.pkl",
-        "APP.V_USERS_ALL_ROLES_INSTRUMENTED": "test/test_data/users_all_roles.pkl",
-        "APP.V_USERS_DIRECT_ROLES_INSTRUMENTED": "test/test_data/users_roles_direct.pkl",
-        "APP.V_USERS_REMOVED_DIRECT_ROLES_INSTRUMENTED": "test/test_data/users_roles_direct_removed.pkl",
+    FIXTURES = {
+        "APP.V_USERS_INSTRUMENTED": "test/test_data/users_history.ndjson",
+        "APP.V_USERS_ALL_PRIVILEGES_INSTRUMENTED": "test/test_data/users_all_privileges.ndjson",
+        "APP.V_USERS_ALL_ROLES_INSTRUMENTED": "test/test_data/users_all_roles.ndjson",
+        "APP.V_USERS_DIRECT_ROLES_INSTRUMENTED": "test/test_data/users_roles_direct.ndjson",
+        "APP.V_USERS_REMOVED_DIRECT_ROLES_INSTRUMENTED": "test/test_data/users_roles_direct_removed.ndjson",
     }
 
     @pytest.mark.xdist_group(name="test_telemetry")
@@ -46,15 +46,15 @@ class TestUsers:
 
         # -----------------------------------------------------
 
-        if utils.should_pickle(self.PICKLES.values()):
+        if utils.should_generate_fixtures(self.FIXTURES.values()):
             session = _get_session()
             session.call("APP.P_GET_USERS", log_on_exception=True)
-            utils._pickle_all(session, self.PICKLES, force=True)
+            utils._generate_all_fixtures(session, self.FIXTURES, force=True)
 
         class TestUsersPlugin(UsersPlugin):
 
             def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
-                for r in utils._safe_get_unpickled_entries(TestUsers.PICKLES, t_data, limit=2):
+                for r in utils._safe_get_fixture_entries(TestUsers.FIXTURES, t_data, limit=2):
                     print(f"USER DATA at {t_data}: {r}")
                     yield r
 

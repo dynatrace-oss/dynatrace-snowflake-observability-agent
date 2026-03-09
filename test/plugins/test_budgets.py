@@ -24,35 +24,35 @@
 class TestBudgets:
     import pytest
 
-    PICKLES = {
-        "APP.V_BUDGET_DETAILS": "test/test_data/budgets.pkl",
-        "APP.V_BUDGET_SPENDINGS": "test/test_data/budget_spendings.pkl",
+    FIXTURES = {
+        "APP.V_BUDGET_DETAILS": "test/test_data/budgets.ndjson",
+        "APP.V_BUDGET_SPENDINGS": "test/test_data/budgets_spendings.ndjson",
     }
 
-    @pytest.mark.xdist_group(name="test_telemetry")
-    def test_budgets(self):
-        from unittest.mock import patch
+    def _make_plugin_class(self):
         from typing import Dict, Generator
         from dtagent.plugins.budgets import BudgetsPlugin
-        from test import _get_session, TestDynatraceSnowAgent
         import test._utils as utils
-
-        if utils.should_pickle(self.PICKLES.values()):
-            session = _get_session()
-            session.call("APP.P_GET_BUDGETS", log_on_exception=True)
-            utils._pickle_all(session, self.PICKLES, force=True)
 
         class TestBudgetsPlugin(BudgetsPlugin):
 
             def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
-                return utils._safe_get_unpickled_entries(TestBudgets.PICKLES, t_data)
+                return utils._safe_get_fixture_entries(TestBudgets.FIXTURES, t_data)
 
-        def __local_get_plugin_class(source: str):
-            return TestBudgetsPlugin
+        return TestBudgetsPlugin
 
+    @pytest.mark.xdist_group(name="test_telemetry")
+    def test_budgets(self):
+        from test import _get_session, TestDynatraceSnowAgent
         from dtagent import plugins
+        import test._utils as utils
 
-        plugins._get_plugin_class = __local_get_plugin_class
+        if utils.should_generate_fixtures(self.FIXTURES.values()):
+            session = _get_session()
+            session.call("APP.P_GET_BUDGETS", log_on_exception=True)
+            utils._generate_all_fixtures(session, self.FIXTURES, force=True)
+
+        plugins._get_plugin_class = lambda source: self._make_plugin_class()
 
         # ======================================================================
         disabled_combinations = [
@@ -75,6 +75,45 @@ class TestBudgets:
                     "spendings": {"entries": 0, "log_lines": 0, "metrics": 0, "events": 0},
                 },
             )
+
+    def test_budgets_disabled_by_default(self):
+        """Verify that the default config has is_disabled set to True."""
+        import test._utils as utils
+
+        config = utils.get_config()
+        assert config._config["plugins"]["budgets"]["is_disabled"] is True
+
+    def test_budgets_monitored_budgets_default_empty(self):
+        """Verify that the default monitored_budgets is an empty list."""
+        import test._utils as utils
+
+        config = utils.get_config()
+        assert config._config["plugins"]["budgets"]["monitored_budgets"] == []
+
+    @pytest.mark.xdist_group(name="test_telemetry")
+    def test_budgets_with_monitored_budgets_configured(self):
+        """Verify plugin runs correctly when monitored_budgets is populated (grants already applied)."""
+        from test import TestDynatraceSnowAgent
+        from dtagent import plugins
+        import test._utils as utils
+
+        plugins._get_plugin_class = lambda source: self._make_plugin_class()
+
+        config = utils.get_config()
+        config._config["plugins"]["budgets"]["monitored_budgets"] = ["MY_DB.MY_SCHEMA.MY_BUDGET"]
+        config._config["plugins"]["budgets"]["is_disabled"] = False
+
+        utils.execute_telemetry_test(
+            TestDynatraceSnowAgent,
+            test_name="test_budget",
+            disabled_telemetry=[],
+            affecting_types_for_entries=["logs", "metrics", "events"],
+            config=config,
+            base_count={
+                "budgets": {"entries": 1, "log_lines": 1, "metrics": 1, "events": 1},
+                "spendings": {"entries": 0, "log_lines": 0, "metrics": 0, "events": 0},
+            },
+        )
 
 
 if __name__ == "__main__":

@@ -32,13 +32,8 @@ with cte_event_log as (
     select *
     from DTAGENT_DB.STATUS.EVENT_LOG l
     where RECORD_TYPE = 'METRIC'
-      and (
-      -- we log everything for all non-DTAGENT DBs
-          nvl(l.resource_attributes['snow.database.name']::varchar, '') not like 'DTAGENT%_DB'
-      -- only report metrics for DBs that are related to this particular dtagent,
-       or nvl(l.resource_attributes['snow.database.name']::varchar, '') = 'DTAGENT_DB' -- DTAGENT_DB will be replaced with DTAGENT_$TAG_DB during deploy
-      )
-      and TIMESTAMP > GREATEST( timeadd(hour, -24, current_timestamp), DTAGENT_DB.STATUS.F_LAST_PROCESSED_TS('event_log_metrics') )
+      and DTAGENT_DB.APP.F_EVENT_LOG_INCLUDE(nvl(l.resource_attributes['snow.database.name']::varchar, ''))
+      and TIMESTAMP > GREATEST( timeadd(hour, -1*DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE('plugins.event_log.lookback_hours', 24), current_timestamp), DTAGENT_DB.STATUS.F_LAST_PROCESSED_TS('event_log_metrics') )
       and (RESOURCE_ATTRIBUTES:"application"::varchar is null or RESOURCE_ATTRIBUTES:"application"::varchar not in ('openflow')) -- exclude known high volume applications
     order by TIMESTAMP asc
     limit 10000 -- safety limit to avoid long running queries

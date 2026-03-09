@@ -119,7 +119,7 @@ To disable this plugin, set `IS_DISABLED` to `true`.
 In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you need to explicitly set `IS_ENABLED` to `true` to enable
 selected plugins; `IS_DISABLED` is not checked then.
 
-```json
+```yaml
 plugins:
   active_queries:
     schedule: USING CRON */6 * * * * UTC
@@ -131,7 +131,6 @@ plugins:
       - metrics
       - spans
       - biz_events
-
 ```
 
 > **IMPORTANT**: For the `query_history` and `active_queries` plugins to report telemetry for all queries, the `DTAGENT_VIEWER` role must be
@@ -167,30 +166,57 @@ The following tables list the Snowflake objects that this plugin delivers data f
 This plugin enables monitoring of Snowflake budgets, resources linked to them, and their expenditures. It sets up and manages the Dynatrace
 Snowflake Observability Agent's own budget.
 
-All budgets within the account are reported on as logs and metrics; this includes their details, spending limit, and recent expenditures.
-The plugin runs once a day and excludes already reported expenditures.
+All budgets the agent has been granted access to are reported as logs and metrics; this includes their details, spending limit, and recent
+expenditures. The plugin runs once a day and excludes already reported expenditures.
+
+> **Note**: This plugin is **disabled by default** because custom budget monitoring requires per-budget privilege grants. The account budget
+> (visible via `SNOWFLAKE.BUDGET_VIEWER`) is accessible automatically once enabled. For custom budgets, use `P_GRANT_BUDGET_MONITORING()`
+> (requires admin scope) or grant privileges manually — see below.
 
 [Show semantics for this plugin](SEMANTICS.md#budgets_semantics_sec)
 
 ### Budgets default configuration
 
-To disable this plugin, set `IS_DISABLED` to `true`.
+This plugin is **disabled by default**; you need to explicitly set `IS_ENABLED` to `true` to enable it.
 
-In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you need to explicitly set `IS_ENABLED` to `true` to enable
-selected plugins; `IS_DISABLED` is not checked then.
-
-```json
+```yaml
 plugins:
   budgets:
+    is_disabled: true
     quota: 10
     schedule: USING CRON 30 0 * * * UTC
-    is_disabled: false
+    monitored_budgets: []
+    schedule_grants: USING CRON 30 */12 * * * UTC
     telemetry:
       - logs
       - metrics
       - events
       - biz_events
+```
 
+| Parameter           | Type   | Default                        | Description                                                                                                                                                                                                                |
+| ------------------- | ------ | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `quota`             | int    | `10`                           | Credit quota for the agent's own `DTAGENT_BUDGET`.                                                                                                                                                                         |
+| `schedule`          | string | `USING CRON 30 0 * * * UTC`    | Cron schedule for the budgets collection task.                                                                                                                                                                             |
+| `monitored_budgets` | list   | `[]`                           | Fully-qualified custom budget names to monitor, e.g. `["MY_DB.MY_SCHEMA.MY_BUDGET"]`. Names are automatically uppercased; only standard unquoted Snowflake identifiers are supported (`[A-Za-z_][A-Za-z0-9_$]*` per part). |
+| `schedule_grants`   | string | `USING CRON 30 */12 * * * UTC` | Cron schedule for `TASK_DTAGENT_BUDGETS_GRANTS` (admin scope only).                                                                                                                                                        |
+
+### Enabling the Budgets plugin
+
+1. Set `is_enabled` to `true` in your configuration file.
+1. For **account budget only** (no custom budgets): no additional grants needed — `SNOWFLAKE.BUDGET_VIEWER` is already granted.
+1. For **custom budgets**: configure `monitored_budgets` and run `P_GRANT_BUDGET_MONITORING()` (admin scope required), or grant privileges
+   manually (see below).
+
+### Granting access to custom budgets manually
+
+For each custom budget `<DB>.<SCHEMA>.<BUDGET_NAME>`, grant the following to `DTAGENT_VIEWER`:
+
+```sql
+grant usage on database <DB> to role DTAGENT_VIEWER;
+grant usage on schema <DB>.<SCHEMA> to role DTAGENT_VIEWER;
+grant snowflake.core.budget role <DB>.<SCHEMA>.<BUDGET_NAME>!VIEWER to role DTAGENT_VIEWER;
+grant database role SNOWFLAKE.USAGE_VIEWER to role DTAGENT_VIEWER;
 ```
 
 ### Budgets Bill of Materials
@@ -199,44 +225,47 @@ The following tables list the Snowflake objects that this plugin delivers data f
 
 #### Objects delivered by the `Budgets` plugin
 
-| Name                                    | Type                  |
-| --------------------------------------- | --------------------- |
-| ACCOUNT_BUDGET_ADMIN                    | role                  |
-| ACCOUNT_BUDGET_MONITOR                  | role                  |
-| BUDGET_OWNER                            | role                  |
-| DTAGENT_DB.APP.DTAGENT_BUDGET           | snowflake.core.budget |
-| DTAGENT_DB.APP.TMP_BUDGETS              | transient table       |
-| DTAGENT_DB.APP.TMP_BUDGETS_LIMITS       | transient table       |
-| DTAGENT_DB.APP.TMP_BUDGETS_RESOURCES    | transient table       |
-| DTAGENT_DB.APP.TMP_BUDGET_SPENDING      | transient table       |
-| DTAGENT_DB.APP.P_GET_BUDGETS()          | procedure             |
-| DTAGENT_DB.APP.V_BUDGET_SPENDINGS       | view                  |
-| DTAGENT_DB.APP.V_BUDGET_DETAILS         | view                  |
-| DTAGENT_DB.CONFIG.UPDATE_BUDGETS_CONF() | procedure             |
-| DTAGENT_DB.APP.TASK_DTAGENT_BUDGETS     | task                  |
+| Name                                       | Type                  | Comment                                                                                   |
+| ------------------------------------------ | --------------------- | ----------------------------------------------------------------------------------------- |
+| ACCOUNT_BUDGET_ADMIN                       | role                  |                                                                                           |
+| ACCOUNT_BUDGET_MONITOR                     | role                  |                                                                                           |
+| BUDGET_OWNER                               | role                  |                                                                                           |
+| DTAGENT_DB.APP.DTAGENT_BUDGET              | snowflake.core.budget |                                                                                           |
+| DTAGENT_DB.APP.TMP_BUDGETS                 | transient table       |                                                                                           |
+| DTAGENT_DB.APP.TMP_BUDGETS_LIMITS          | transient table       |                                                                                           |
+| DTAGENT_DB.APP.TMP_BUDGETS_RESOURCES       | transient table       |                                                                                           |
+| DTAGENT_DB.APP.TMP_BUDGET_SPENDING         | transient table       |                                                                                           |
+| DTAGENT_DB.APP.P_GET_BUDGETS()             | procedure             |                                                                                           |
+| DTAGENT_DB.APP.V_BUDGET_SPENDINGS          | view                  |                                                                                           |
+| DTAGENT_DB.APP.V_BUDGET_DETAILS            | view                  |                                                                                           |
+| DTAGENT_DB.CONFIG.UPDATE_BUDGETS_CONF()    | procedure             |                                                                                           |
+| DTAGENT_DB.APP.TASK_DTAGENT_BUDGETS        | task                  |                                                                                           |
+| DTAGENT_DB.APP.P_GRANT_BUDGET_MONITORING() | procedure             | Optional (admin scope). Grants DTAGENT_VIEWER privileges on configured monitored_budgets. |
+| DTAGENT_DB.APP.TASK_DTAGENT_BUDGETS_GRANTS | task                  | Optional (admin scope). Periodically calls P_GRANT_BUDGET_MONITORING().                   |
 
 #### Objects referenced by the `Budgets` plugin
 
-| Name                         | Type        | Privileges                      | Granted to             | Comment                                                    |
-| ---------------------------- | ----------- | ------------------------------- | ---------------------- | ---------------------------------------------------------- |
-| SNOWFLAKE                    | application | IMPORTED PRIVILEGES ON DATABASE | ACCOUNT_BUDGET_ADMIN   |                                                            |
-| SNOWFLAKE.BUDGET_ADMIN       | role        | APPLICATION ROLE                | ACCOUNT_BUDGET_ADMIN   |                                                            |
-| SNOWFLAKE.BUDGET_VIEWER      | role        | APPLICATION ROLE                | ACCOUNT_BUDGET_MONITOR |                                                            |
-| SNOWFLAKE.BUDGET_CREATOR     | role        | DATABASE ROLE                   | BUDGET_OWNER           |                                                            |
-| ACCOUNT_BUDGET_ADMIN         | role        | ROLE                            | DTAGENT_ADMIN          |                                                            |
-| ACCOUNT_BUDGET_MONITOR       | role        | ROLE                            | DTAGENT_VIEWER         |                                                            |
-| BUDGET_OWNER                 | role        | ROLE                            | DTAGENT_ADMIN          |                                                            |
-| SNOWFLAKE.CORE.BUDGET        | command     | USAGE                           |                        |                                                            |
-| $budget!GET_LINKED_RESOURCES | procedure   | USAGE                           |                        | We call this procedure on each budget defined in Snowflake |
-| $budget!GET_SPENDING_LIMIT   | procedure   | USAGE                           |                        | We call this procedure on each budget defined in Snowflake |
-| $budget!GET_SPENDING_HISTORY | procedure   | USAGE                           |                        | We call this procedure on each budget defined in Snowflake |
+| Name                         | Type        | Privileges                      | Granted to             | Comment                                                                                        |
+| ---------------------------- | ----------- | ------------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------- |
+| SNOWFLAKE                    | application | IMPORTED PRIVILEGES ON DATABASE | ACCOUNT_BUDGET_ADMIN   |                                                                                                |
+| SNOWFLAKE.BUDGET_ADMIN       | role        | APPLICATION ROLE                | ACCOUNT_BUDGET_ADMIN   |                                                                                                |
+| SNOWFLAKE.BUDGET_VIEWER      | role        | APPLICATION ROLE                | ACCOUNT_BUDGET_MONITOR |                                                                                                |
+| SNOWFLAKE.BUDGET_CREATOR     | role        | DATABASE ROLE                   | BUDGET_OWNER           |                                                                                                |
+| ACCOUNT_BUDGET_ADMIN         | role        | ROLE                            | DTAGENT_ADMIN          |                                                                                                |
+| ACCOUNT_BUDGET_MONITOR       | role        | ROLE                            | DTAGENT_VIEWER         |                                                                                                |
+| BUDGET_OWNER                 | role        | ROLE                            | DTAGENT_ADMIN          |                                                                                                |
+| SNOWFLAKE.CORE.BUDGET        | command     | USAGE                           |                        |                                                                                                |
+| $budget!GET_LINKED_RESOURCES | procedure   | USAGE                           |                        | We call this procedure on each budget defined in Snowflake                                     |
+| $budget!GET_SPENDING_LIMIT   | procedure   | USAGE                           |                        | We call this procedure on each budget defined in Snowflake                                     |
+| $budget!GET_SPENDING_HISTORY | procedure   | USAGE                           |                        | We call this procedure on each budget defined in Snowflake                                     |
+| SNOWFLAKE.USAGE_VIEWER       | role        | DATABASE ROLE                   | DTAGENT_VIEWER         | Optional (admin scope). Required for custom budget monitoring via P_GRANT_BUDGET_MONITORING(). |
 
 <a name="data_schemas_info_sec"></a>
 
 ## The Data Schemas plugin
 
 Enables monitoring of data schema changes. Reports events on recent modifications to objects (tables, schemas, databases) made by DDL
-queries, within the last 4 hours.
+queries, within a configurable lookback window (default: 4 hours, see `plugins.data_schemas.lookback_hours`).
 
 [Show semantics for this plugin](SEMANTICS.md#data_schemas_semantics_sec)
 
@@ -247,19 +276,28 @@ To disable this plugin, set `IS_DISABLED` to `true`.
 In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you need to explicitly set `IS_ENABLED` to `true` to enable
 selected plugins; `IS_DISABLED` is not checked then.
 
-```json
+```yaml
 plugins:
   data_schemas:
+    lookback_hours: 4
     schedule: USING CRON 0 0,8,16 * * * UTC
     is_disabled: false
     exclude: []
     include:
-      - '%'
+      - "%"
     telemetry:
       - events
       - biz_events
-
 ```
+
+| Key                                   | Type   | Default                         | Description                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ------------------------------------- | ------ | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `plugins.data_schemas.lookback_hours` | int    | `4`                             | How far back (in hours) the plugin looks for DDL-based schema changes on each run. If no prior processed timestamp exists, the plugin starts from `now - lookback_hours`. If a prior timestamp exists, the plugin starts from the more recent of that timestamp and `now - lookback_hours`, so it never reads data older than the lookback window. Default is `4`h to account for the up-to-3-hour data ingestion delay in `ACCESS_HISTORY`. |
+| `plugins.data_schemas.schedule`       | string | `USING CRON 0 0,8,16 * * * UTC` | Cron schedule for the data schemas collection task.                                                                                                                                                                                                                                                                                                                                                                                          |
+| `plugins.data_schemas.is_disabled`    | bool   | `false`                         | Set to `true` to disable this plugin entirely.                                                                                                                                                                                                                                                                                                                                                                                               |
+| `plugins.data_schemas.include`        | list   | `["%"]`                         | List of object name patterns to include (SQL `LIKE` syntax). Default includes all objects.                                                                                                                                                                                                                                                                                                                                                   |
+| `plugins.data_schemas.exclude`        | list   | `[]`                            | List of object name patterns to exclude (SQL `LIKE` syntax). Takes precedence over `include`.                                                                                                                                                                                                                                                                                                                                                |
+| `plugins.data_schemas.telemetry`      | list   | `["events", "biz_events"]`      | Telemetry types to emit. Remove items to suppress specific output types.                                                                                                                                                                                                                                                                                                                                                                     |
 
 ### Data Schemas Bill of Materials
 
@@ -303,21 +341,20 @@ To disable this plugin, set `IS_DISABLED` to `true`.
 In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you need to explicitly set `IS_ENABLED` to `true` to enable
 selected plugins; `IS_DISABLED` is not checked then.
 
-```json
+```yaml
 plugins:
   data_volume:
     include:
       - DTAGENT_DB.%.%
-      - '%.PUBLIC.%'
+      - "%.PUBLIC.%"
     exclude:
-      - '%.INFORMATION_SCHEMA.%'
-      - '%.%.TMP_%'
+      - "%.INFORMATION_SCHEMA.%"
+      - "%.%.TMP_%"
     schedule: USING CRON 30 0,4,8,12,16,20 * * * UTC
     is_disabled: false
     telemetry:
       - metrics
       - biz_events
-
 ```
 
 ### Data Volume Bill of Materials
@@ -360,11 +397,11 @@ To disable this plugin, set `IS_DISABLED` to `true`.
 In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you need to explicitly set `IS_ENABLED` to `true` to enable
 selected plugins; `IS_DISABLED` is not checked then.
 
-```json
+```yaml
 plugins:
   dynamic_tables:
     include:
-      - '%.%.%'
+      - "%.%.%"
     exclude:
       - DTAGENT_DB.%.%
     schedule: USING CRON */30 * * * * UTC
@@ -374,14 +411,24 @@ plugins:
       - metrics
       - logs
       - biz_events
-
 ```
 
 > **IMPORTANT**: For this plugin to function correctly, `MONITOR on DYNAMIC TABLES` must be granted to the `DTAGENT_VIEWER` role. By
 > default, when the `admin` scope is installed, this is handled by the `P_GRANT_MONITOR_DYNAMIC_TABLES()` procedure, which is executed with
 > the elevated privileges of the `DTAGENT_ADMIN` role (created only when the `admin` scope is installed), via the
 > `APP.TASK_DTAGENT_DYNAMIC_TABLES_GRANTS` task. The schedule for this task can be configured separately using the
-> `PLUGINS.DYNAMIC_TABLES.SCHEDULE_GRANTS` configuration option. Alternatively, you may choose to:
+> `PLUGINS.DYNAMIC_TABLES.SCHEDULE_GRANTS` configuration option.
+
+The grant granularity is derived automatically from the `include` pattern:
+
+| Include pattern               | Grant level | SQL issued                                                 |
+| ----------------------------- | ----------- | ---------------------------------------------------------- |
+| `%.%.%` or `PROD_DB.%.%`      | Database    | `GRANT MONITOR ON ALL/FUTURE DYNAMIC TABLES IN DATABASE …` |
+| `PROD_DB.ANALYTICS.%`         | Schema      | `GRANT MONITOR ON ALL/FUTURE DYNAMIC TABLES IN SCHEMA …`   |
+| `PROD_DB.ANALYTICS.ORDERS_DT` | Table       | `GRANT MONITOR ON DYNAMIC TABLE …` (no FUTURE grant)       |
+
+Alternatively, you may choose to grant the required permissions manually, using the appropriate
+`GRANT MONITOR ON ALL/FUTURE DYNAMIC TABLES IN …` statement, depending on the desired granularity.
 
 ### Dynamic Tables Bill of Materials
 
@@ -401,14 +448,17 @@ The following tables list the Snowflake objects that this plugin delivers data f
 
 #### Objects referenced by the `Dynamic Tables` plugin
 
-| Name                                             | Type          | Privileges | Granted to     | Comment                                                                    |
-| ------------------------------------------------ | ------------- | ---------- | -------------- | -------------------------------------------------------------------------- |
-| SHOW DATABASES                                   | command       | USAGE      |                |                                                                            |
-| ALL DYNAMIC TABLES IN DATABASE $database         | dynamic table | MONITOR    | DTAGENT_VIEWER | We grant that on every database selected in configuration or all (default) |
-| ALL FUTURE TABLES IN DATABASE $database          | table         | MONITOR    | DTAGENT_VIEWER | We grant that on every database selected in configuration or all (default) |
-| INFORMATION_SCHEMA.DYNAMIC_TABLE_REFRESH_HISTORY | view          | USAGE      | DTAGENT_VIEWER |                                                                            |
-| INFORMATION_SCHEMA.DYNAMIC_TABLE_GRAPH_HISTORY   | view          | USAGE      | DTAGENT_VIEWER |                                                                            |
-| INFORMATION_SCHEMA.DYNAMIC_TABLES                | view          | USAGE      | DTAGENT_VIEWER |                                                                            |
+| Name                                                  | Type          | Privileges | Granted to     | Comment                                                                                                                  |
+| ----------------------------------------------------- | ------------- | ---------- | -------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| SHOW DATABASES                                        | command       | USAGE      |                |                                                                                                                          |
+| ALL DYNAMIC TABLES IN DATABASE $database              | dynamic table | MONITOR    | DTAGENT_VIEWER | Granted when include pattern has wildcard schema (e.g. DB.%.%)                                                           |
+| ALL FUTURE DYNAMIC TABLES IN DATABASE $database       | dynamic table | MONITOR    | DTAGENT_VIEWER | Granted when include pattern has wildcard schema (e.g. DB.%.%)                                                           |
+| ALL DYNAMIC TABLES IN SCHEMA $database.$schema        | dynamic table | MONITOR    | DTAGENT_VIEWER | Granted when include pattern has specific schema (e.g. DB.ANALYTICS.%)                                                   |
+| ALL FUTURE DYNAMIC TABLES IN SCHEMA $database.$schema | dynamic table | MONITOR    | DTAGENT_VIEWER | Granted when include pattern has specific schema (e.g. DB.ANALYTICS.%)                                                   |
+| DYNAMIC TABLE $database.$schema.$table                | dynamic table | MONITOR    | DTAGENT_VIEWER | Granted when include pattern specifies an exact table name (e.g. DB.ANALYTICS.ORDERS_DT); no FUTURE grant at table level |
+| INFORMATION_SCHEMA.DYNAMIC_TABLE_REFRESH_HISTORY      | view          | USAGE      | DTAGENT_VIEWER |                                                                                                                          |
+| INFORMATION_SCHEMA.DYNAMIC_TABLE_GRAPH_HISTORY        | view          | USAGE      | DTAGENT_VIEWER |                                                                                                                          |
+| INFORMATION_SCHEMA.DYNAMIC_TABLES                     | view          | USAGE      | DTAGENT_VIEWER |                                                                                                                          |
 
 <a name="event_log_info_sec"></a>
 
@@ -416,13 +466,13 @@ The following tables list the Snowflake objects that this plugin delivers data f
 
 This plugin delivers to Dynatrace data reported by Snowflake Trail in the `EVENT TABLE`.
 
-By default, it runs every 30 minutes and registers entries from the last 12 hours, omitting the ones, which:
+By default, it runs every 30 minutes and processes only new entries since the last run (bounded by a configurable lookback window of 24
+hours), omitting entries that:
 
-- where already delivered,
-- with scope set to `DTAGENT_OTLP` as they are internal log recording entries sent over the OpenTelemetry protocol
-- related to execution of other instances of Dynatrace Snowflake Observability Agent, or
-- with importance below the level set as `CORE.LOG_LEVEL`, i.e., only warnings or errors from the given Dynatrace Snowflake Observability
-  Agent instance are reported.
+- were already delivered,
+- have scope set to `DTAGENT_OTLP` (internal log recording entries sent over the OpenTelemetry protocol), or
+- have importance below `WARN` for any `DTAGENT_*_DB` instance, i.e., only warnings or errors from Dynatrace Snowflake Observability Agent
+  instances are reported.
 
 By default, it produces log entries containing the following information:
 
@@ -453,29 +503,85 @@ To disable this plugin, set `IS_DISABLED` to `true`.
 In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you need to explicitly set `IS_ENABLED` to `true` to enable
 selected plugins; `IS_DISABLED` is not checked then.
 
-```json
+```yaml
 plugins:
   event_log:
     max_entries: 10000
-    retention_hours: 12
+    lookback_hours: 24
+    retention_hours: 24
     schedule: USING CRON */30 * * * * UTC
     schedule_cleanup: USING CRON 0 * * * * UTC
     is_disabled: false
+    cross_tenant_monitoring: true
+    databases: []
     telemetry:
       - metrics
       - logs
       - biz_events
       - spans
-
 ```
 
+| Key                                  | Type   | Default                                      | Description                                                                                                                                                                                                                                                                                                                                                                                     |
+| ------------------------------------ | ------ | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `plugins.event_log.max_entries`      | int    | `10000`                                      | Maximum number of event log entries fetched per run. Acts as a safety cap to avoid long-running queries.                                                                                                                                                                                                                                                                                        |
+| `plugins.event_log.lookback_hours`   | int    | `24`                                         | How far back (in hours) the plugin looks for new events on each run. If no prior processed timestamp exists, the plugin starts from `now - lookback_hours`. If a prior timestamp exists, the plugin starts from the more recent of that timestamp and `now - lookback_hours`, so it never reads data older than the lookback window. Increase for initial setup; decrease to reduce query cost. |
+| `plugins.event_log.retention_hours`  | int    | `24`                                         | How long (in hours) the cleanup task retains entries in `STATUS.EVENT_LOG`. Only applies if this agent instance owns the event table.                                                                                                                                                                                                                                                           |
+| `plugins.event_log.schedule`         | string | `USING CRON */30 * * * * UTC`                | Cron schedule for the main event log processing task.                                                                                                                                                                                                                                                                                                                                           |
+| `plugins.event_log.schedule_cleanup` | string | `USING CRON 0 * * * * UTC`                   | Cron schedule for the cleanup task that removes old entries from `STATUS.EVENT_LOG`.                                                                                                                                                                                                                                                                                                            |
+| `plugins.event_log.is_disabled`      | bool   | `false`                                      | Set to `true` to disable this plugin entirely.                                                                                                                                                                                                                                                                                                                                                  |
+| `plugins.event_log.telemetry`        | list   | `["metrics", "logs", "biz_events", "spans"]` | Telemetry types to emit. Remove items to suppress specific output types.                                                                                                                                                                                                                                                                                                                        |
+
+### Cost Optimization Guidance
+
+The event log plugin queries `STATUS.EVENT_LOG` on every run. The following settings directly affect compute cost:
+
+- **`lookback_hours`**: This window defines how far back the plugin reads on each run. If no prior processed timestamp is available (first
+  run, or after a reset), the plugin starts from `now - lookback_hours`. During normal operation the plugin starts from the more recent of
+  the last processed timestamp and `now - lookback_hours`, capping catch-up after long gaps. A large lookback window can cause heavy queries
+  after a reset — consider starting with `12` or `24` and increasing only if needed.
+- **`max_entries`**: Hard cap on rows processed per run. The default (`10000`) protects against runaway queries. If your Snowflake account
+  generates very high event volumes, lower this value and rely on the schedule frequency to catch up incrementally.
+- **`retention_hours`**: Shorter retention reduces the size of `STATUS.EVENT_LOG`, which improves scan performance. Set this higher than
+  `lookback_hours` to avoid situations where the cleanup removes events before the plugin can process them. The recommended ratio is
+  `retention_hours >= lookback_hours`.
+- **`schedule`**: Running more frequently (e.g., every 5 minutes) increases credit usage. The default every-30-minutes cadence balances
+  freshness against cost. For high-volume accounts, consider running less frequently with higher `max_entries`.
+
 > **IMPORTANT**: A dedicated cleanup task, `APP.TASK_DTAGENT_EVENT_LOG_CLEANUP`, ensures that the `EVENT_LOG` table contains only data no
-> older than the duration you define with the `PLUGINS.EVENT_LOG.RETENTION_HOURS` configuration option.
-> You can schedule this task separately using the `PLUGINS.EVENT_LOG.SCHEDULE_CLEANUP` configuration option, run the cleanup procedure
-> `APP.P_CLEANUP_EVENT_LOG()` manually, or manage the retention of data in the `EVENT_LOG` table yourself.
+> older than the duration you define with the `plugins.event_log.retention_hours` configuration option. You can schedule this task
+> separately using the `plugins.event_log.schedule_cleanup` configuration option, run the cleanup procedure `APP.P_CLEANUP_EVENT_LOG()`
+> manually, or manage the retention of data in the `EVENT_LOG` table yourself.
 
 > **INFO**: The `EVENT_LOG` table cleanup process works only if this specific instance of Dynatrace Snowflake Observability Agent set up the
 > table.
+
+### Cross-Tenant Monitoring
+
+By default (`plugins.event_log.cross_tenant_monitoring: true`) the plugin also reports `WARN`/`ERROR` log entries, metrics, and spans
+originating from **other** `DTAGENT_*_DB` instances visible in the same event table. This allows one DSOA deployment to surface health
+issues from sibling deployments without logging into Snowflake directly.
+
+In case you would like to enable cross-tenant monitoring on **only one DSOA tenant**, e.g., to avoid duplicate reporting across deployments,
+you need to set `cross_tenant_monitoring: false` in all other tenants.
+
+```yaml
+plugins:
+  event_log:
+    cross_tenant_monitoring: false # disable on tenants that should report only their own WARN/ERROR self-monitoring entries
+```
+
+### Database Filtering
+
+Use `plugins.event_log.databases` to restrict event log monitoring to specific databases. The list accepts SQL `LIKE` patterns (`%` matches
+any sequence of characters, `_` matches any single character). When the list is absent or empty, **all databases** are included.
+
+```yaml
+plugins:
+  event_log:
+    databases:
+      - MYAPP_DB # exact match
+      - ANALYTICS% # all databases starting with ANALYTICS_
+```
 
 ### Event Log Bill of Materials
 
@@ -488,6 +594,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 | DTAGENT_DB.STATUS.EVENT_LOG                     | table/view | Dynatrace Snowflake Observability Agent can setup an event table if one does not exist. It creates a view over an existing event log table if that table was not setup by the actual Dynatrace Snowflake Observability Agent instance. |
 | DTAGENT_DB.APP.SETUP_EVENT_TABLE()              | procedure  |                                                                                                                                                                                                                                        |
 | DTAGENT_DB.APP.P_CLEANUP_EVENT_LOG()            | procedure  |                                                                                                                                                                                                                                        |
+| DTAGENT_DB.APP.F_EVENT_LOG_INCLUDE(VARCHAR)     | function   |                                                                                                                                                                                                                                        |
 | DTAGENT_DB.APP.V_EVENT_LOG                      | view       |                                                                                                                                                                                                                                        |
 | DTAGENT_DB.APP.V_EVENT_LOG_SPANS_INSTRUMENTED   | view       |                                                                                                                                                                                                                                        |
 | DTAGENT_DB.APP.V_EVENT_LOG_METRICS_INSTRUMENTED | view       |                                                                                                                                                                                                                                        |
@@ -525,17 +632,24 @@ To disable this plugin, set `IS_DISABLED` to `true`.
 In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you need to explicitly set `IS_ENABLED` to `true` to enable
 selected plugins; `IS_DISABLED` is not checked then.
 
-```json
+```yaml
 plugins:
   event_usage:
+    lookback_hours: 6
     schedule: USING CRON 0 * * * * UTC
     is_disabled: false
     telemetry:
       - metrics
       - logs
       - biz_events
-
 ```
+
+| Key                                  | Type   | Default                             | Description                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ------------------------------------ | ------ | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `plugins.event_usage.lookback_hours` | int    | `6`                                 | How far back (in hours) the plugin looks for event usage history on each run. If no prior processed timestamp exists, the plugin starts from `now - lookback_hours`. If a prior timestamp exists, the plugin starts from the more recent of that timestamp and `now - lookback_hours`, so it never reads data older than the lookback window. Default is `6`h to account for the up-to-3-hour data ingestion delay in `EVENT_USAGE_HISTORY`. |
+| `plugins.event_usage.schedule`       | string | `USING CRON 0 * * * * UTC`          | Cron schedule for the event usage collection task.                                                                                                                                                                                                                                                                                                                                                                                           |
+| `plugins.event_usage.is_disabled`    | bool   | `false`                             | Set to `true` to disable this plugin entirely.                                                                                                                                                                                                                                                                                                                                                                                               |
+| `plugins.event_usage.telemetry`      | list   | `["metrics", "logs", "biz_events"]` | Telemetry types to emit. Remove items to suppress specific output types.                                                                                                                                                                                                                                                                                                                                                                     |
 
 ### Event Usage Bill of Materials
 
@@ -582,16 +696,23 @@ To disable this plugin, set `IS_DISABLED` to `true`.
 In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you need to explicitly set `IS_ENABLED` to `true` to enable
 selected plugins; `IS_DISABLED` is not checked then.
 
-```json
+```yaml
 plugins:
   login_history:
+    lookback_hours: 24
     schedule: USING CRON */30 * * * * UTC
     is_disabled: false
     telemetry:
       - logs
       - biz_events
-
 ```
+
+| Key                                    | Type   | Default                       | Description                                                                                                                                                                                                                                                                                                                                        |
+| -------------------------------------- | ------ | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `plugins.login_history.lookback_hours` | int    | `24`                          | How far back (in hours) the plugin looks for login and session events on each run. If no prior processed timestamp exists, the plugin starts from `now - lookback_hours`. If a prior timestamp exists, the plugin starts from the more recent of that timestamp and `now - lookback_hours`, so it never reads data older than the lookback window. |
+| `plugins.login_history.schedule`       | string | `USING CRON */30 * * * * UTC` | Cron schedule for the login history collection task.                                                                                                                                                                                                                                                                                               |
+| `plugins.login_history.is_disabled`    | bool   | `false`                       | Set to `true` to disable this plugin entirely.                                                                                                                                                                                                                                                                                                     |
+| `plugins.login_history.telemetry`      | list   | `["logs", "biz_events"]`      | Telemetry types to emit. Remove items to suppress specific output types.                                                                                                                                                                                                                                                                           |
 
 ### Login History Bill of Materials
 
@@ -650,7 +771,7 @@ To disable this plugin, set `IS_DISABLED` to `true`.
 In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you need to explicitly set `IS_ENABLED` to `true` to enable
 selected plugins; `IS_DISABLED` is not checked then.
 
-```json
+```yaml
 plugins:
   query_history:
     schedule_grants: USING CRON */30 * * * * UTC
@@ -663,7 +784,6 @@ plugins:
       - logs
       - biz_events
       - spans
-
 ```
 
 The plugin can be configured to retrieve query plan and acceleration estimates for the slowest queries. This analysis uses telemetry from
@@ -745,7 +865,7 @@ To disable this plugin, set `IS_DISABLED` to `true`.
 In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you need to explicitly set `IS_ENABLED` to `true` to enable
 selected plugins; `IS_DISABLED` is not checked then.
 
-```json
+```yaml
 plugins:
   resource_monitors:
     schedule: USING CRON */30 * * * * UTC
@@ -755,7 +875,6 @@ plugins:
       - metrics
       - events
       - biz_events
-
 ```
 
 ### Resource Monitors Bill of Materials
@@ -806,7 +925,7 @@ To disable this plugin, set `IS_DISABLED` to `true`.
 In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you need to explicitly set `IS_ENABLED` to `true` to enable
 selected plugins; `IS_DISABLED` is not checked then.
 
-```json
+```yaml
 plugins:
   shares:
     schedule: USING CRON */30 * * * * UTC
@@ -815,12 +934,11 @@ plugins:
     exclude:
       - ""
     include:
-      - '%.%.%'
+      - "%.%.%"
     telemetry:
       - logs
       - events
       - biz_events
-
 ```
 
 ### Shares Bill of Materials
@@ -885,9 +1003,11 @@ To disable this plugin, set `IS_DISABLED` to `true`.
 In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you need to explicitly set `IS_ENABLED` to `true` to enable
 selected plugins; `IS_DISABLED` is not checked then.
 
-```json
+```yaml
 plugins:
   tasks:
+    lookback_hours: 4
+    lookback_hours_versions: 720
     schedule: USING CRON 30 * * * * UTC
     is_disabled: false
     telemetry:
@@ -895,8 +1015,19 @@ plugins:
       - metrics
       - events
       - biz_events
-
 ```
+
+| Key                                     | Type   | Default                                       | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| --------------------------------------- | ------ | --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `plugins.tasks.lookback_hours`          | int    | `4`                                           | How far back (in hours) the plugin looks for serverless task history on each run. If no prior processed timestamp exists, the plugin starts from `now - lookback_hours`. If a prior timestamp exists, the plugin starts from the more recent of that timestamp and `now - lookback_hours`, so it never reads data older than the lookback window. Default is `4`h to account for the up-to-3-hour data ingestion delay in `SERVERLESS_TASK_HISTORY`.                                                                 |
+| `plugins.tasks.lookback_hours_versions` | int    | `720`                                         | How far back (in hours) the plugin looks for task version history on each run. If no prior processed timestamp exists, the plugin starts from `now - lookback_hours_versions`. If a prior timestamp exists, the plugin starts from the more recent of that timestamp and `now - lookback_hours_versions`, so it never reads data older than the lookback window. Default is `720`h (30 days) — task graph versions change infrequently and a longer window ensures new deployments catch all recent version changes. |
+| `plugins.tasks.schedule`                | string | `USING CRON 30 * * * * UTC`                   | Cron schedule for the tasks collection task.                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `plugins.tasks.is_disabled`             | bool   | `false`                                       | Set to `true` to disable this plugin entirely.                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `plugins.tasks.telemetry`               | list   | `["logs", "metrics", "events", "biz_events"]` | Telemetry types to emit. Remove items to suppress specific output types.                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+
+> **Note**: `lookback_hours` and `lookback_hours_versions` serve different data sources with different update frequencies.
+> `SERVERLESS_TASK_HISTORY` is updated frequently (per task run), while `TASK_VERSIONS` only changes when a task graph is modified — hence
+> the much longer default for versions.
 
 ### Tasks Bill of Materials
 
@@ -942,7 +1073,7 @@ To disable this plugin, set `IS_DISABLED` to `true`.
 In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you need to explicitly set `IS_ENABLED` to `true` to enable
 selected plugins; `IS_DISABLED` is not checked then.
 
-```json
+```yaml
 plugins:
   trust_center:
     schedule: USING CRON 30 */12 * * * UTC
@@ -953,7 +1084,6 @@ plugins:
       - logs
       - events
       - biz_events
-
 ```
 
 ### Trust Center Bill of Materials
@@ -1011,7 +1141,7 @@ To disable this plugin, set `IS_DISABLED` to `true`.
 In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you need to explicitly set `IS_ENABLED` to `true` to enable
 selected plugins; `IS_DISABLED` is not checked then.
 
-```json
+```yaml
 plugins:
   users:
     schedule: USING CRON 0 0 * * * UTC
@@ -1023,7 +1153,6 @@ plugins:
       - logs
       - events
       - biz_events
-
 ```
 
 ### Users Bill of Materials
@@ -1078,17 +1207,24 @@ To disable this plugin, set `IS_DISABLED` to `true`.
 In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you need to explicitly set `IS_ENABLED` to `true` to enable
 selected plugins; `IS_DISABLED` is not checked then.
 
-```json
+```yaml
 plugins:
   warehouse_usage:
+    lookback_hours: 24
     schedule: USING CRON 0 * * * * UTC
     is_disabled: false
     telemetry:
       - logs
       - metrics
       - biz_events
-
 ```
+
+| Key                                      | Type   | Default                             | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ---------------------------------------- | ------ | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `plugins.warehouse_usage.lookback_hours` | int    | `24`                                | How far back (in hours) the plugin looks for warehouse events, load, and metering history on each run. If no prior processed timestamp exists, the plugin starts from `now - lookback_hours`. If a prior timestamp exists, the plugin starts from the more recent of that timestamp and `now - lookback_hours`, so it never reads data older than the lookback window. Applies to all three views (`WAREHOUSE_EVENTS_HISTORY`, `WAREHOUSE_LOAD_HISTORY`, `WAREHOUSE_METERING_HISTORY`). |
+| `plugins.warehouse_usage.schedule`       | string | `USING CRON 0 * * * * UTC`          | Cron schedule for the warehouse usage collection task.                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `plugins.warehouse_usage.is_disabled`    | bool   | `false`                             | Set to `true` to disable this plugin entirely.                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `plugins.warehouse_usage.telemetry`      | list   | `["logs", "metrics", "biz_events"]` | Telemetry types to emit. Remove items to suppress specific output types.                                                                                                                                                                                                                                                                                                                                                                                                                |
 
 ### Warehouse Usage Bill of Materials
 

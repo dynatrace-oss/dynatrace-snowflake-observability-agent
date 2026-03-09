@@ -26,12 +26,18 @@ from pytest import fixture
 
 def pytest_addoption(parser):
     parser.addoption(
-        "--pickle_conf",
+        "--save_conf",
         action="store",
-        help="Indicator if we want to download new config from Snowflake.",
+        help="Download and save config from Snowflake to local file (pass 'y' to enable).",
+    )
+    parser.addoption(
+        "--run-slow",
+        action="store_true",
+        default=False,
+        help="Run slow build/package integration tests (skipped by default).",
     )
 
 
 @fixture(scope="session")
-def pickle_conf(request):
-    return request.config.getoption("--pickle_conf")
+def save_conf(request):
+    return request.config.getoption("--save_conf")

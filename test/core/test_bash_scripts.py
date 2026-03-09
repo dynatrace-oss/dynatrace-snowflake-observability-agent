@@ -1,3 +1,5 @@
+import os
+import shutil
 import subprocess
 import pytest
 from pathlib import Path
@@ -8,14 +10,44 @@ from tap.line import Result
 BATS_DIR = Path(__file__).parent.parent / "bash"
 BATS_FILES = sorted(BATS_DIR.glob("*.bats"))
 
+# Bats files that contain slow build/package integration tests
+SLOW_BATS_FILES = {"test_build_scripts"}
+
+# Resolve bats executable path once at import time (handles Homebrew on macOS where
+# /opt/homebrew/bin may not be in the subprocess PATH inherited by pytest)
+BATS_EXECUTABLE = shutil.which("bats")
+
+
+def _is_slow(bats_file: Path) -> bool:
+    return bats_file.stem in SLOW_BATS_FILES
+
 
 @pytest.mark.parametrize("bats_file", BATS_FILES, ids=[f.stem for f in BATS_FILES])
-def test_bash_script(bats_file):
+def test_bash_script(request, bats_file):
     """Run individual bash script test file using Bats framework.
 
     Uses pytest-tap to parse TAP output and report individual test cases.
+    Slow build/package integration tests (test_build_scripts) are skipped by
+    default; pass --run-slow to include them.
     """
-    result = subprocess.run(["bats", str(bats_file)], capture_output=True, text=True, check=False)
+    if not BATS_EXECUTABLE:
+        pytest.skip("bats not found in PATH — install via 'brew install bats-core' or 'npm install -g bats'")
+
+    run_slow = request.config.getoption("--run-slow", default=False)
+    if _is_slow(bats_file) and not run_slow:
+        pytest.skip("slow build/package integration test — pass --run-slow to enable")
+
+    env = os.environ.copy()
+    if run_slow and _is_slow(bats_file):
+        env["BATS_SLOW_TESTS"] = "1"
+
+    result = subprocess.run(
+        [BATS_EXECUTABLE, str(bats_file)],
+        capture_output=True,
+        text=True,
+        check=False,
+        env=env,
+    )
 
     # Parse TAP output using pytest-tap
     parser = Parser()
@@ -32,6 +64,8 @@ def test_bash_script(bats_file):
             failure_msg += f"\n  ✗ {test.description}\n"
             if test.directive:
                 failure_msg += f"    Directive: {test.directive.text}\n"
+        if result.stdout:
+            failure_msg += f"\nSTDOUT:\n{result.stdout}"
         if result.stderr:
             failure_msg += f"\nSTDERR:\n{result.stderr}"
         pytest.fail(failure_msg)

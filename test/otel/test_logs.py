@@ -413,7 +413,7 @@ class TestCustomOTelTimestampFilter:
         assert record.observed_timestamp == expected_ns
 
     def test_filter_with_out_of_range_picosecond_timestamp(self, logs_instance):
-        """Test that out-of-range picosecond timestamp (from bug report) is removed"""
+        """Test that out-of-range femtosecond/picosecond timestamp is preserved (skip_range_validation for observed_timestamp)"""
         import logging
 
         filter_instance = self.get_filter(logs_instance)
@@ -421,15 +421,17 @@ class TestCustomOTelTimestampFilter:
 
         record = logging.LogRecord(name="test", level=logging.INFO, pathname="", lineno=0, msg="test message", args=(), exc_info=None)
 
-        # This specific value from the bug report is too far in the past/future after conversion
+        # This specific value from the bug report is detected as femtoseconds (> 4.1e21)
+        # With skip_range_validation=True, observed_timestamp preserves original timestamps
         record.observed_timestamp = 1770224954840999937441792
 
         filter_instance.filter(record)
 
-        # Verify the out-of-range observed_timestamp was removed
-        # After conversion to ms, this value may be outside the allowed range
-        # validate_timestamp_ms will return None, and the attribute should be deleted
-        assert not hasattr(record, "observed_timestamp")
+        # Verify the observed_timestamp was converted (from femtoseconds to nanoseconds) and preserved
+        # even though it may be out of typical range (skip_range_validation=True)
+        assert hasattr(record, "observed_timestamp")
+        # Should be converted from femtoseconds to nanoseconds (divided by 1_000_000)
+        assert record.observed_timestamp == 1770224954840999937441792 // 1_000_000
 
     def test_filter_with_none_observed_timestamp(self, logs_instance):
         """Test that None observed_timestamp doesn't cause issues"""

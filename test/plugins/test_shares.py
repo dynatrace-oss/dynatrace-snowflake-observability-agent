@@ -24,10 +24,10 @@
 class TestShares:
     import pytest
 
-    PICKLES = {
-        "APP.V_INBOUND_SHARE_TABLES": "test/test_data/inbound_shares.pkl",
-        "APP.V_OUTBOUND_SHARE_TABLES": "test/test_data/outbound_shares.pkl",
-        "APP.V_SHARE_EVENTS": "test/test_data/shares.pkl",
+    FIXTURES = {
+        "APP.V_INBOUND_SHARE_TABLES": "test/test_data/shares_inbound.ndjson",
+        "APP.V_OUTBOUND_SHARE_TABLES": "test/test_data/shares_outbound.ndjson",
+        "APP.V_SHARE_EVENTS": "test/test_data/shares_events.ndjson",
     }
 
     @pytest.mark.xdist_group(name="test_telemetry")
@@ -43,15 +43,16 @@ class TestShares:
 
         # ======================================================================
 
-        if utils.should_pickle(self.PICKLES.values()):
+        if utils.should_generate_fixtures(self.FIXTURES.values()):
             session = _get_session()
             session.call("APP.P_GET_SHARES", log_on_exception=True)
-            utils._pickle_all(session, self.PICKLES, force=True)
+            utils._generate_all_fixtures(session, self.FIXTURES, force=True)
 
         class TestSharesPlugin(SharesPlugin):
 
             def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
-                return utils._safe_get_unpickled_entries(TestShares.PICKLES, t_data, limit=2)
+                limit = 3 if t_data == "APP.V_INBOUND_SHARE_TABLES" else 2
+                return utils._safe_get_fixture_entries(TestShares.FIXTURES, t_data, limit=limit)
 
         def __local_get_plugin_class(source: str):
             return TestSharesPlugin
@@ -77,7 +78,7 @@ class TestShares:
                 affecting_types_for_entries=["logs", "events"],  # there is not test data for events
                 base_count={
                     "outbound_shares": {"entries": 2, "log_lines": 2, "metrics": 0, "events": 2},
-                    "inbound_shares": {"entries": 2, "log_lines": 2, "metrics": 0, "events": 0},
+                    "inbound_shares": {"entries": 3, "log_lines": 3, "metrics": 0, "events": 0},
                     "shares": {"entries": 2, "log_lines": 0, "metrics": 0, "events": 2},
                 },
             )

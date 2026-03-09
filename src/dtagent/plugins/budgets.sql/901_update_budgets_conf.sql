@@ -33,7 +33,7 @@ declare
     SPENDING_LIMIT int default 10;
     PLUGIN_NAME varchar default 'budgets';
 begin
-    call DTAGENT_DB.CONFIG.UPDATE_PLUGIN_SCHEDULE(:PLUGIN_NAME);
+    call DTAGENT_DB.CONFIG.UPDATE_PLUGIN_SCHEDULE(:PLUGIN_NAME, array_construct('grants'));
     SPENDING_LIMIT := (select VALUE from CONFIG.CONFIGURATIONS where PATH = 'plugins.budgets.quota');
 
     call DTAGENT_DB.APP.DTAGENT_BUDGET!SET_SPENDING_LIMIT(:SPENDING_LIMIT);

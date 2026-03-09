@@ -56,7 +56,7 @@ import logging
 import datetime
 
 from types import NoneType
-from typing import Tuple, Dict, List, Callable, Generator, Any, Union, Optional
+from typing import Tuple, Dict, List, Callable, Generator, Any, Union, Optional, Literal
 from enum import Enum
 from abc import ABC, abstractmethod
 import pandas as pd

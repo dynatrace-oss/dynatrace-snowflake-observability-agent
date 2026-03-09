@@ -126,7 +126,7 @@ begin
     IS_ENABLED := NVL((select VALUE::boolean from DTAGENT_DB.CONFIG.CONFIGURATIONS where PATH = 'plugins.' || :PLUGIN_NAME || '.is_enabled'), false);
 
     -- if the plugin is disabled, we suspend all tasks related to the plugin and return a message
-    if (IS_DISABLED or (IS_DISABLED_BY_DEFAULT and not IS_ENABLED)) then
+    if ((IS_DISABLED or IS_DISABLED_BY_DEFAULT) and not IS_ENABLED) then
         -- if the plugin is disabled, we suspend the task and return a message
         for i in 0 to array_size(:ALL_TASK_NAMES) - 1 do
             execute immediate concat('alter task if exists ', :ALL_TASK_NAMES[i], ' suspend;');

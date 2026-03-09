@@ -691,6 +691,16 @@ references:
 
 ### 8. Create Plugin Tests
 
+#### Test environment checklist
+
+Before writing the test file, plan and complete the following steps — they define the scope of your tests and drive `docs/USECASES.md`:
+
+- **Identify core use cases** — List the key observability scenarios your plugin enables (e.g., cost analysis, security monitoring). These become the basis for fixture data *and* entries in `docs/USECASES.md`.
+- **Capture representative fixture data** — Run the plugin against a live Snowflake instance (or craft fixtures manually) that cover each core use case. Store NDJSON fixtures in `test/test_data/{name}[_{view_suffix}].ndjson`.
+- **Define golden results** — Record expected telemetry counts (logs, metrics, spans, events) per scenario in `test/test_results/test_{name}/` so regressions are caught automatically.
+- **Validate all `disabled_telemetry` combinations** — At minimum: `[]`, `["metrics"]`, `["logs"]`, and `["logs", "spans", "metrics", "events"]`.
+- **Document use cases** — Add the new use cases to `docs/USECASES.md` under the appropriate [Data Platform Observability](DPO.md) theme(s).
+
 Create `test/plugins/test_example_plugin.py`:
 
 ```python
@@ -702,9 +712,9 @@ Create `test/plugins/test_example_plugin.py`:
 class TestExamplePlugin:
     import pytest
 
-    # Define pickle files for test data
-    PICKLES = {
-        "APP.V_EXAMPLE_PLUGIN_INSTRUMENTED": "test/test_data/example_plugin.pkl"
+    # Define NDJSON fixture files for test data
+    FIXTURES = {
+        "APP.V_EXAMPLE_PLUGIN_INSTRUMENTED": "test/test_data/example_plugin.ndjson"
     }
 
     @pytest.mark.xdist_group(name="test_telemetry")
@@ -718,13 +728,13 @@ class TestExamplePlugin:
 
         # ======================================================================
         # Generate/load test data
-        utils._pickle_all(_get_session(), self.PICKLES)
+        utils._generate_all_fixtures(_get_session(), self.FIXTURES)
 
-        # Mock the plugin to use pickled data instead of querying Snowflake
+        # Mock the plugin to use fixture data instead of querying Snowflake
         class TestExamplePluginPlugin(ExamplePluginPlugin):
             def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
-                return utils._safe_get_unpickled_entries(
-                    TestExamplePlugin.PICKLES, t_data, limit=2
+                return utils._safe_get_fixture_entries(
+                    TestExamplePlugin.FIXTURES, t_data, limit=2
                 )
 
         def __local_get_plugin_class(source: str):
@@ -769,29 +779,30 @@ if __name__ == "__main__":
 1. **Test Structure:**
    - Create one test class per plugin
    - Name it `Test{PluginName}`
-   - Define `PICKLES` dict mapping queries to pickle files
-   - Override `_get_table_rows()` to return mocked data
+   - Define `FIXTURES` dict mapping Snowflake view names to `test/test_data/<name>.ndjson` paths
+   - Override `_get_table_rows()` to return fixture data
 
 2. **Generating Test Data:**
-   - First run generates pickle files from actual Snowflake queries
+   - Fixture files are NDJSON (one JSON object per line), stored in `test/test_data/`
+   - First run with `-p` generates fixtures from actual Snowflake queries
    - Requires valid test credentials (see [CONTRIBUTING.md](CONTRIBUTING.md))
-   - Run: `./scripts/dev/test.sh test_example_plugin -p`
+   - Run: `pytest test/plugins/test_example_plugin.py -p`
 
 3. **Running Tests:**
 
    ```bash
    # Run single plugin test
-   ./scripts/dev/test.sh test_example_plugin
+   pytest test/plugins/test_example_plugin.py -v
 
-   # Run with pickling (regenerate test data)
-   ./scripts/dev/test.sh test_example_plugin -p
+   # Regenerate fixture data from live Snowflake
+   pytest test/plugins/test_example_plugin.py -p
 
    # Run all plugin tests
    pytest test/plugins/
    ```
 
 4. **Test Modes:**
-   - **Local mode** (no credentials): Uses mocked APIs, doesn't send data
+   - **Local mode** (no credentials): Uses NDJSON fixtures, doesn't send data
    - **Live mode** (with credentials): Connects to Snowflake and Dynatrace
 
 ### 9. Build and Deploy
@@ -1019,7 +1030,7 @@ After creating all the plugin files:
 ### Testing Best Practices
 
 1. **Test with realistic data:**
-   - Generate pickle files from actual Snowflake queries
+   - Generate NDJSON fixtures from actual Snowflake queries (use `-p` flag)
    - Include edge cases (nulls, special characters, etc.)
    - Test with varying data volumes
 
@@ -1030,7 +1041,7 @@ After creating all the plugin files:
 
 3. **Mock external dependencies:**
    - Override `_get_table_rows()` in tests
-   - Use `_safe_get_unpickled_entries()` for consistent test data
+   - Use `_safe_get_fixture_entries()` for consistent test data
    - Don't rely on live Snowflake connections in unit tests
 
 ---
@@ -1535,8 +1546,8 @@ def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int
 
 **Solutions:**
 
-1. Regenerate test data: `./scripts/dev/test.sh test_plugin -p`
-2. Check pickle file exists in `test/test_data/`
+1. Regenerate fixture data: `pytest test/plugins/test_plugin.py -p`
+2. Check NDJSON fixture exists in `test/test_data/`
 3. Verify base_count matches expected output
 4. Check that `affecting_types_for_entries` includes all relevant types
 5. Run with verbose output: `pytest -s -v test/plugins/test_plugin.py`
@@ -1717,7 +1728,11 @@ When creating a new plugin, ensure you have completed all these steps:
 - [ ] Documented plugin in readme.md
 - [ ] Created BOM file (bom.yml)
 - [ ] Written plugin tests
-- [ ] Generated test data (pickle files)
+- [ ] Identified core use cases and added them to `docs/USECASES.md` under the appropriate theme(s)
+- [ ] Captured representative NDJSON fixture data covering core use cases
+- [ ] Defined golden results in `test/test_results/test_{name}/`
+- [ ] Validated all `disabled_telemetry` combinations (at minimum: `[]`, `["metrics"]`, `["logs"]`, all-disabled)
+- [ ] Generated NDJSON fixture data (`pytest test/plugins/test_<plugin>.py -p`)
 - [ ] Verified tests pass
 - [ ] Built the agent (`./scripts/dev/build.sh`)
 - [ ] Deployed to test environment

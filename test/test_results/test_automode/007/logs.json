@@ -1,6 +1,8 @@
 [
   {
     "content": "test_automode/007",
+    "snowflake.data.rows": 0,
+    "snowflake.data.size": 0,
     "data_update": 1731675389099000000,
     "ddl": 1731436379508000000,
     "snowflake.table.time_since.last_ddl": 4030,
