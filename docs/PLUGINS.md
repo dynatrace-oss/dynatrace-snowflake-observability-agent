@@ -265,7 +265,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 ## The Data Schemas plugin
 
 Enables monitoring of data schema changes. Reports events on recent modifications to objects (tables, schemas, databases) made by DDL
-queries, within the last 4 hours.
+queries, within a configurable lookback window (default: 4 hours, see `plugins.data_schemas.lookback_hours`).
 
 [Show semantics for this plugin](SEMANTICS.md#data_schemas_semantics_sec)
 
@@ -279,6 +279,7 @@ selected plugins; `IS_DISABLED` is not checked then.
 ```yaml
 plugins:
   data_schemas:
+    lookback_hours: 4
     schedule: USING CRON 0 0,8,16 * * * UTC
     is_disabled: false
     exclude: []
@@ -288,6 +289,15 @@ plugins:
       - events
       - biz_events
 ```
+
+| Key                                   | Type   | Default                         | Description                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ------------------------------------- | ------ | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `plugins.data_schemas.lookback_hours` | int    | `4`                             | How far back (in hours) the plugin looks for DDL-based schema changes on each run. If no prior processed timestamp exists, the plugin starts from `now - lookback_hours`. If a prior timestamp exists, the plugin starts from the more recent of that timestamp and `now - lookback_hours`, so it never reads data older than the lookback window. Default is `4`h to account for the up-to-3-hour data ingestion delay in `ACCESS_HISTORY`. |
+| `plugins.data_schemas.schedule`       | string | `USING CRON 0 0,8,16 * * * UTC` | Cron schedule for the data schemas collection task.                                                                                                                                                                                                                                                                                                                                                                                          |
+| `plugins.data_schemas.is_disabled`    | bool   | `false`                         | Set to `true` to disable this plugin entirely.                                                                                                                                                                                                                                                                                                                                                                                               |
+| `plugins.data_schemas.include`        | list   | `["%"]`                         | List of object name patterns to include (SQL `LIKE` syntax). Default includes all objects.                                                                                                                                                                                                                                                                                                                                                   |
+| `plugins.data_schemas.exclude`        | list   | `[]`                            | List of object name patterns to exclude (SQL `LIKE` syntax). Takes precedence over `include`.                                                                                                                                                                                                                                                                                                                                                |
+| `plugins.data_schemas.telemetry`      | list   | `["events", "biz_events"]`      | Telemetry types to emit. Remove items to suppress specific output types.                                                                                                                                                                                                                                                                                                                                                                     |
 
 ### Data Schemas Bill of Materials
 
@@ -442,7 +452,8 @@ The following tables list the Snowflake objects that this plugin delivers data f
 
 This plugin delivers to Dynatrace data reported by Snowflake Trail in the `EVENT TABLE`.
 
-By default, it runs every 30 minutes and registers entries from the last 12 hours, omitting entries that:
+By default, it runs every 30 minutes and processes only new entries since the last run (bounded by a configurable lookback window of 24
+hours), omitting entries that:
 
 - were already delivered,
 - have scope set to `DTAGENT_OTLP` (internal log recording entries sent over the OpenTelemetry protocol), or
@@ -482,8 +493,8 @@ selected plugins; `IS_DISABLED` is not checked then.
 plugins:
   event_log:
     max_entries: 10000
-    retention_hours: 12
     lookback_hours: 24
+    retention_hours: 24
     schedule: USING CRON */30 * * * * UTC
     schedule_cleanup: USING CRON 0 * * * * UTC
     is_disabled: false
@@ -496,15 +507,41 @@ plugins:
       - spans
 ```
 
+| Key                                  | Type   | Default                                      | Description                                                                                                                                                                                                                                                                                                                                                                                     |
+| ------------------------------------ | ------ | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `plugins.event_log.max_entries`      | int    | `10000`                                      | Maximum number of event log entries fetched per run. Acts as a safety cap to avoid long-running queries.                                                                                                                                                                                                                                                                                        |
+| `plugins.event_log.lookback_hours`   | int    | `24`                                         | How far back (in hours) the plugin looks for new events on each run. If no prior processed timestamp exists, the plugin starts from `now - lookback_hours`. If a prior timestamp exists, the plugin starts from the more recent of that timestamp and `now - lookback_hours`, so it never reads data older than the lookback window. Increase for initial setup; decrease to reduce query cost. |
+| `plugins.event_log.retention_hours`  | int    | `24`                                         | How long (in hours) the cleanup task retains entries in `STATUS.EVENT_LOG`. Only applies if this agent instance owns the event table.                                                                                                                                                                                                                                                           |
+| `plugins.event_log.schedule`         | string | `USING CRON */30 * * * * UTC`                | Cron schedule for the main event log processing task.                                                                                                                                                                                                                                                                                                                                           |
+| `plugins.event_log.schedule_cleanup` | string | `USING CRON 0 * * * * UTC`                   | Cron schedule for the cleanup task that removes old entries from `STATUS.EVENT_LOG`.                                                                                                                                                                                                                                                                                                            |
+| `plugins.event_log.is_disabled`      | bool   | `false`                                      | Set to `true` to disable this plugin entirely.                                                                                                                                                                                                                                                                                                                                                  |
+| `plugins.event_log.telemetry`        | list   | `["metrics", "logs", "biz_events", "spans"]` | Telemetry types to emit. Remove items to suppress specific output types.                                                                                                                                                                                                                                                                                                                        |
+
+### Cost Optimization Guidance
+
+The event log plugin queries `STATUS.EVENT_LOG` on every run. The following settings directly affect compute cost:
+
+- **`lookback_hours`**: This window defines how far back the plugin reads on each run. If no prior processed timestamp is available (first
+  run, or after a reset), the plugin starts from `now - lookback_hours`. During normal operation the plugin starts from the more recent of
+  the last processed timestamp and `now - lookback_hours`, capping catch-up after long gaps. A large lookback window can cause heavy queries
+  after a reset — consider starting with `12` or `24` and increasing only if needed.
+- **`max_entries`**: Hard cap on rows processed per run. The default (`10000`) protects against runaway queries. If your Snowflake account
+  generates very high event volumes, lower this value and rely on the schedule frequency to catch up incrementally.
+- **`retention_hours`**: Shorter retention reduces the size of `STATUS.EVENT_LOG`, which improves scan performance. Set this higher than
+  `lookback_hours` to avoid situations where the cleanup removes events before the plugin can process them. The recommended ratio is
+  `retention_hours >= lookback_hours`.
+- **`schedule`**: Running more frequently (e.g., every 5 minutes) increases credit usage. The default every-30-minutes cadence balances
+  freshness against cost. For high-volume accounts, consider running less frequently with higher `max_entries`.
+
 > **IMPORTANT**: A dedicated cleanup task, `APP.TASK_DTAGENT_EVENT_LOG_CLEANUP`, ensures that the `EVENT_LOG` table contains only data no
-> older than the duration you define with the `PLUGINS.EVENT_LOG.RETENTION_HOURS` configuration option. You can schedule this task
-> separately using the `PLUGINS.EVENT_LOG.SCHEDULE_CLEANUP` configuration option, run the cleanup procedure `APP.P_CLEANUP_EVENT_LOG()`
+> older than the duration you define with the `plugins.event_log.retention_hours` configuration option. You can schedule this task
+> separately using the `plugins.event_log.schedule_cleanup` configuration option, run the cleanup procedure `APP.P_CLEANUP_EVENT_LOG()`
 > manually, or manage the retention of data in the `EVENT_LOG` table yourself.
 
 > **INFO**: The `EVENT_LOG` table cleanup process works only if this specific instance of Dynatrace Snowflake Observability Agent set up the
 > table.
 
-## Cross-Tenant Monitoring
+### Cross-Tenant Monitoring
 
 By default (`plugins.event_log.cross_tenant_monitoring: true`) the plugin also reports `WARN`/`ERROR` log entries, metrics, and spans
 originating from **other** `DTAGENT_*_DB` instances visible in the same event table. This allows one DSOA deployment to surface health
@@ -519,7 +556,7 @@ plugins:
     cross_tenant_monitoring: false # disable on tenants that should report only their own WARN/ERROR self-monitoring entries
 ```
 
-## Database Filtering
+### Database Filtering
 
 Use `plugins.event_log.databases` to restrict event log monitoring to specific databases. The list accepts SQL `LIKE` patterns (`%` matches
 any sequence of characters, `_` matches any single character). When the list is absent or empty, **all databases** are included.
@@ -584,6 +621,7 @@ selected plugins; `IS_DISABLED` is not checked then.
 ```yaml
 plugins:
   event_usage:
+    lookback_hours: 6
     schedule: USING CRON 0 * * * * UTC
     is_disabled: false
     telemetry:
@@ -591,6 +629,13 @@ plugins:
       - logs
       - biz_events
 ```
+
+| Key                                  | Type   | Default                             | Description                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ------------------------------------ | ------ | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `plugins.event_usage.lookback_hours` | int    | `6`                                 | How far back (in hours) the plugin looks for event usage history on each run. If no prior processed timestamp exists, the plugin starts from `now - lookback_hours`. If a prior timestamp exists, the plugin starts from the more recent of that timestamp and `now - lookback_hours`, so it never reads data older than the lookback window. Default is `6`h to account for the up-to-3-hour data ingestion delay in `EVENT_USAGE_HISTORY`. |
+| `plugins.event_usage.schedule`       | string | `USING CRON 0 * * * * UTC`          | Cron schedule for the event usage collection task.                                                                                                                                                                                                                                                                                                                                                                                           |
+| `plugins.event_usage.is_disabled`    | bool   | `false`                             | Set to `true` to disable this plugin entirely.                                                                                                                                                                                                                                                                                                                                                                                               |
+| `plugins.event_usage.telemetry`      | list   | `["metrics", "logs", "biz_events"]` | Telemetry types to emit. Remove items to suppress specific output types.                                                                                                                                                                                                                                                                                                                                                                     |
 
 ### Event Usage Bill of Materials
 
@@ -640,12 +685,20 @@ selected plugins; `IS_DISABLED` is not checked then.
 ```yaml
 plugins:
   login_history:
+    lookback_hours: 24
     schedule: USING CRON */30 * * * * UTC
     is_disabled: false
     telemetry:
       - logs
       - biz_events
 ```
+
+| Key                                    | Type   | Default                       | Description                                                                                                                                                                                                                                                                                                                                        |
+| -------------------------------------- | ------ | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `plugins.login_history.lookback_hours` | int    | `24`                          | How far back (in hours) the plugin looks for login and session events on each run. If no prior processed timestamp exists, the plugin starts from `now - lookback_hours`. If a prior timestamp exists, the plugin starts from the more recent of that timestamp and `now - lookback_hours`, so it never reads data older than the lookback window. |
+| `plugins.login_history.schedule`       | string | `USING CRON */30 * * * * UTC` | Cron schedule for the login history collection task.                                                                                                                                                                                                                                                                                               |
+| `plugins.login_history.is_disabled`    | bool   | `false`                       | Set to `true` to disable this plugin entirely.                                                                                                                                                                                                                                                                                                     |
+| `plugins.login_history.telemetry`      | list   | `["logs", "biz_events"]`      | Telemetry types to emit. Remove items to suppress specific output types.                                                                                                                                                                                                                                                                           |
 
 ### Login History Bill of Materials
 
@@ -939,6 +992,8 @@ selected plugins; `IS_DISABLED` is not checked then.
 ```yaml
 plugins:
   tasks:
+    lookback_hours: 4
+    lookback_hours_versions: 720
     schedule: USING CRON 30 * * * * UTC
     is_disabled: false
     telemetry:
@@ -947,6 +1002,18 @@ plugins:
       - events
       - biz_events
 ```
+
+| Key                                     | Type   | Default                                       | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| --------------------------------------- | ------ | --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `plugins.tasks.lookback_hours`          | int    | `4`                                           | How far back (in hours) the plugin looks for serverless task history on each run. If no prior processed timestamp exists, the plugin starts from `now - lookback_hours`. If a prior timestamp exists, the plugin starts from the more recent of that timestamp and `now - lookback_hours`, so it never reads data older than the lookback window. Default is `4`h to account for the up-to-3-hour data ingestion delay in `SERVERLESS_TASK_HISTORY`.                                                                 |
+| `plugins.tasks.lookback_hours_versions` | int    | `720`                                         | How far back (in hours) the plugin looks for task version history on each run. If no prior processed timestamp exists, the plugin starts from `now - lookback_hours_versions`. If a prior timestamp exists, the plugin starts from the more recent of that timestamp and `now - lookback_hours_versions`, so it never reads data older than the lookback window. Default is `720`h (30 days) — task graph versions change infrequently and a longer window ensures new deployments catch all recent version changes. |
+| `plugins.tasks.schedule`                | string | `USING CRON 30 * * * * UTC`                   | Cron schedule for the tasks collection task.                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `plugins.tasks.is_disabled`             | bool   | `false`                                       | Set to `true` to disable this plugin entirely.                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `plugins.tasks.telemetry`               | list   | `["logs", "metrics", "events", "biz_events"]` | Telemetry types to emit. Remove items to suppress specific output types.                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+
+> **Note**: `lookback_hours` and `lookback_hours_versions` serve different data sources with different update frequencies.
+> `SERVERLESS_TASK_HISTORY` is updated frequently (per task run), while `TASK_VERSIONS` only changes when a task graph is modified — hence
+> the much longer default for versions.
 
 ### Tasks Bill of Materials
 
@@ -1129,6 +1196,7 @@ selected plugins; `IS_DISABLED` is not checked then.
 ```yaml
 plugins:
   warehouse_usage:
+    lookback_hours: 24
     schedule: USING CRON 0 * * * * UTC
     is_disabled: false
     telemetry:
@@ -1136,6 +1204,13 @@ plugins:
       - metrics
       - biz_events
 ```
+
+| Key                                      | Type   | Default                             | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ---------------------------------------- | ------ | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `plugins.warehouse_usage.lookback_hours` | int    | `24`                                | How far back (in hours) the plugin looks for warehouse events, load, and metering history on each run. If no prior processed timestamp exists, the plugin starts from `now - lookback_hours`. If a prior timestamp exists, the plugin starts from the more recent of that timestamp and `now - lookback_hours`, so it never reads data older than the lookback window. Applies to all three views (`WAREHOUSE_EVENTS_HISTORY`, `WAREHOUSE_LOAD_HISTORY`, `WAREHOUSE_METERING_HISTORY`). |
+| `plugins.warehouse_usage.schedule`       | string | `USING CRON 0 * * * * UTC`          | Cron schedule for the warehouse usage collection task.                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `plugins.warehouse_usage.is_disabled`    | bool   | `false`                             | Set to `true` to disable this plugin entirely.                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `plugins.warehouse_usage.telemetry`      | list   | `["logs", "metrics", "biz_events"]` | Telemetry types to emit. Remove items to suppress specific output types.                                                                                                                                                                                                                                                                                                                                                                                                                |
 
 ### Warehouse Usage Bill of Materials
 

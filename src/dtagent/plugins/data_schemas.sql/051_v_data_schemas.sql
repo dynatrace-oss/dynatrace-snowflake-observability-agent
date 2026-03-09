@@ -42,7 +42,7 @@ with cte_includes as (
 , cte_all AS (
     select * from SNOWFLAKE.ACCOUNT_USAGE.ACCESS_HISTORY ah
     where object_modified_by_ddl:"objectDomain" in ('Table', 'Schema', 'Database')
-        and query_start_time > GREATEST(timeadd(hour, -4, current_timestamp), DTAGENT_DB.STATUS.F_LAST_PROCESSED_TS('data_schemas'))  -- max data delay is 180 min
+        and query_start_time > GREATEST(timeadd(hour, -1*DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE('plugins.data_schemas.lookback_hours', 4), current_timestamp), DTAGENT_DB.STATUS.F_LAST_PROCESSED_TS('data_schemas'))  -- max data delay is 180 min
         and object_modified_by_ddl:"objectName" LIKE ANY (select object_name from cte_includes)
         and not object_modified_by_ddl:"objectName" LIKE ANY (select object_name from cte_excludes)
 )
