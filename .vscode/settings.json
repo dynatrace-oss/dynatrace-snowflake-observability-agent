@@ -185,13 +185,17 @@
     "markdown.extension.toc.slugifyMode": "github",
     "markdown.extension.list.indentationSize": "inherit",
     "[markdown]": {
-        "editor.defaultFormatter": "yzhang.markdown-all-in-one",
+        "editor.defaultFormatter": "fcrespo82.markdown-table-formatter",
         "editor.formatOnSave": true,
-        "editor.detectIndentation": false,
+        "editor.codeActionsOnSave": {
+            "source.fixAll.markdownlint": "explicit"
+        },
+        "editor.detectIndentation": true,
         "editor.indentSize": "tabSize",
         "editor.tabSize": 2,
         "editor.wordWrap": "on"
     },
+    "markdown.extension.tableFormatter.normalizeIndentation": true,
     "[shellscript]": {
         "editor.defaultFormatter": "foxundermoon.shell-format"
     },
@@ -207,7 +211,6 @@
     "files.associations": {
         ".sqlfluff": "ini"
     },
-    "markdown.extension.tableFormatter.normalizeIndentation": true,
     "editor.indentSize": "tabSize",
     "[yml]": {
         "editor.defaultFormatter": "esbenp.prettier-vscode"
