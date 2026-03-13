@@ -605,12 +605,14 @@ class Plugin(ABC):
         }
 
     @abstractmethod
-    def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
+    def process(self, run_id: str, run_proc: bool = True, contexts: Optional[List[str]] = None) -> Dict[str, Dict[str, int]]:
         """Abstract method for plugin processing.
 
         Args:
             run_id (str): unique run identifier
             run_proc (bool): indicator whether processing should be logged as completed
+            contexts (Optional[List[str]]): optional list of context names to process;
+                                            None means all contexts are processed
 
         Returns:
             Dict[str,int]: dictionary with telemetry counts

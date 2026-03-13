@@ -134,7 +134,12 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
         for source in sources:
             from dtagent.plugins import _get_plugin_class  # COMPILE_REMOVE
 
-            c_source = _get_plugin_class(source)
+            plugin_name, contexts = source, None
+            if ":" in source:
+                plugin_name, ctx_str = source.split(":", 1)
+                contexts = [c.strip() for c in ctx_str.split(",")]
+
+            c_source = _get_plugin_class(plugin_name)
             run_id = str(uuid.uuid4().hex)
 
             if inspect.isclass(c_source):
@@ -147,20 +152,20 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
                         {RUN_VERSION_KEY: str(VERSION), RUN_PLUGIN_KEY: c_source.PLUGIN_NAME, RUN_ID_KEY: run_id}
                     )
 
-                self.report_execution_status(status="STARTED", task_name=source, exec_id=run_id)
+                self.report_execution_status(status="STARTED", task_name=plugin_name, exec_id=run_id)
 
                 plugin_telemetry_allowed = (
                     set(
                         self._configuration.get(
-                            plugin_name=source, key="TELEMETRY", default_value=["logs", "spans", "metrics", "events", "biz_events"]
+                            plugin_name=plugin_name, key="TELEMETRY", default_value=["logs", "spans", "metrics", "events", "biz_events"]
                         )
                     )
                     & self.telemetry_allowed
                 )
 
                 try:
-                    results[source] = c_source(
-                        plugin_name=source,
+                    results[plugin_name] = c_source(
+                        plugin_name=plugin_name,
                         session=self._session,
                         configuration=self._configuration,
                         logs=self._logs if "logs" in plugin_telemetry_allowed else NO_OP_TELEMETRY,
@@ -168,16 +173,18 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
                         metrics=self._metrics if "metrics" in plugin_telemetry_allowed else NO_OP_TELEMETRY,
                         events=self._events if "events" in plugin_telemetry_allowed else NO_OP_TELEMETRY,
                         bizevents=self._biz_events if "biz_events" in plugin_telemetry_allowed else NO_OP_TELEMETRY,
-                    ).process(run_id, run_proc)
+                    ).process(run_id, run_proc, **({'contexts': contexts} if contexts else {}))
                     #
 
-                    self.report_execution_status(status="FINISHED", task_name=source, exec_id=run_id, details_dict=results[source])
+                    self.report_execution_status(
+                        status="FINISHED", task_name=plugin_name, exec_id=run_id, details_dict=results[plugin_name]
+                    )
                 except RuntimeError as e:
-                    self.handle_interrupted_run(source, run_id, str(e))
+                    self.handle_interrupted_run(plugin_name, run_id, str(e))
             else:
-                self.report_execution_status(status="FAILED", task_name=source, exec_id=run_id)
-                results[source] = {"not_implemented": c_source}
-                LOG.warning(f"""Requested measuring source {source} that is not implemented: {results[source]}""")
+                self.report_execution_status(status="FAILED", task_name=plugin_name, exec_id=run_id)
+                results[plugin_name] = {"not_implemented": c_source}
+                LOG.warning(f"""Requested measuring source {plugin_name} that is not implemented: {results[plugin_name]}""")
 
         return results
 
