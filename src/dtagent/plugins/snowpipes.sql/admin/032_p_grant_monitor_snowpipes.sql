@@ -69,11 +69,12 @@ BEGIN
     LET c_database_names CURSOR FOR rs_database_names;
 
     FOR r_db IN c_database_names DO
+        LET v_db_name TEXT := r_db.name;
         q_grant_monitor_all := 'grant monitor on all pipes in database identifier(?) to role DTAGENT_VIEWER';
         q_grant_monitor_future := 'grant monitor on future pipes in database identifier(?) to role DTAGENT_VIEWER';
 
-        EXECUTE IMMEDIATE :q_grant_monitor_all USING (r_db.name);
-        EXECUTE IMMEDIATE :q_grant_monitor_future USING (r_db.name);
+        EXECUTE IMMEDIATE :q_grant_monitor_all USING (v_db_name);
+        EXECUTE IMMEDIATE :q_grant_monitor_future USING (v_db_name);
     END FOR;
 
     -- Grant at SCHEMA level for patterns where schema is specific and pipe is a wildcard (e.g. DB.ANALYTICS.%)
@@ -101,11 +102,12 @@ BEGIN
     LET c_schema_names CURSOR FOR rs_schema_names;
 
     FOR r_schema IN c_schema_names DO
+        LET v_schema_fqn TEXT := r_schema.db_name || '.' || r_schema.schema_name;
         q_grant_monitor_all := 'grant monitor on all pipes in schema IDENTIFIER(?) to role DTAGENT_VIEWER';
         q_grant_monitor_future := 'grant monitor on future pipes in schema IDENTIFIER(?) to role DTAGENT_VIEWER';
 
-        EXECUTE IMMEDIATE :q_grant_monitor_all USING (r_schema.db_name || '.' || r_schema.schema_name);
-        EXECUTE IMMEDIATE :q_grant_monitor_future USING (r_schema.db_name || '.' || r_schema.schema_name);
+        EXECUTE IMMEDIATE :q_grant_monitor_all USING (v_schema_fqn);
+        EXECUTE IMMEDIATE :q_grant_monitor_future USING (v_schema_fqn);
     END FOR;
 
     -- Grant at PIPE level for patterns where both schema and pipe parts are specific (e.g. DB.ANALYTICS.MY_PIPE)
@@ -121,9 +123,10 @@ BEGIN
     LET c_pipe_names CURSOR FOR rs_pipe_names;
 
     FOR r_pipe IN c_pipe_names DO
+        LET v_pipe_fqn TEXT := r_pipe.db_name || '.' || r_pipe.schema_name || '.' || r_pipe.pipe_name;
         q_grant_monitor_all := 'grant monitor on pipe IDENTIFIER(?) to role DTAGENT_VIEWER';
 
-        EXECUTE IMMEDIATE :q_grant_monitor_all USING (r_pipe.db_name || '.' || r_pipe.schema_name || '.' || r_pipe.pipe_name);
+        EXECUTE IMMEDIATE :q_grant_monitor_all USING (v_pipe_fqn);
     END FOR;
 
     RETURN 'granted monitor for future and pipes to DTAGENT_VIEWER';

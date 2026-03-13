@@ -169,5 +169,7 @@ Four mandatory phases — do not skip or merge.
 - **Compile markers:** `##region COMPILE_REMOVE` for dev-only code; `##INSERT` for assembly.
 - **Conditional SQL:** `--%PLUGIN:name:` / `--%OPTION:name:` for conditionals.
 - **Configuration:** Never hard-code. Add to templates and YAML.
+- **Plugin enablement:** With `disabled_by_default: true`, use `is_enabled: true` (not `is_disabled: false`) to activate a plugin. Add `deploy_disabled_plugins: false` to skip deploying SQL for disabled plugins and reduce deployment time.
+- **SQL `$$` blocks:** The `snow sql` CLI misparses cursor field access (e.g. `r_db.name`) inside `$$`-delimited procedure bodies. Always capture cursor fields into `LET` variables first (e.g. `LET v_name TEXT := r_db.name;`), then use the variable.
 - **Security:** Never commit credentials. Use `.gitignore` and `_snowflake.read_secret()`.
 - **Backward compatibility:** Provide upgrade scripts for object changes. Document breaking changes.
