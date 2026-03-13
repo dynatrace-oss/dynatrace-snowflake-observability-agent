@@ -165,8 +165,12 @@ The matrix below maps each DPO theme to the three observability tiers, showing t
 
 ### Upcoming Plugin Summary
 
-| Plugin        | Status         | Key Use Cases                                                                              | DPO Themes                              |
-|---------------|----------------|--------------------------------------------------------------------------------------------|-----------------------------------------|
-| **Snowpipes** | In development | Operational monitoring, FinOps attribution, ingestion validation, throughput analysis      | Operations, Costs, Performance, Quality |
-| **Stages**    | In development | Access auditing, storage cost visibility, data validation                                  | Security, Costs, Quality                |
-| **Streams**   | In development | Consumption lag detection, FinOps attribution, volume spike detection, CDC drift detection | Operations, Costs, Performance, Quality |
+| Plugin        | Status                        | Key Use Cases                                                                              | DPO Themes |
+|---------------|-------------------------------|--------------------------------------------------------------------------------------------|------------|
+| **Snowpipes** | Next release (validated)      | Operational monitoring, FinOps attribution, ingestion validation, throughput analysis      |            |
+| **Stages**    | Planned (deferred)            | Access auditing, storage cost visibility, data validation (non-pipe operations only)       |            |
+| **Streams**   | Planned (no immediate demand) | Consumption lag detection, FinOps attribution, volume spike detection, CDC drift detection |            |
+
+> **Note:** Pipe-associated stage monitoring (backlog, pending files) is covered by the Snowpipes plugin
+> via `SYSTEM$PIPE_STATUS`. The standalone Stages plugin targets non-pipe operations (`PIPE_NAME IS NULL`
+> in COPY_HISTORY): manual COPY INTO, stage storage sprawl, zombie file detection, and access auditing.
