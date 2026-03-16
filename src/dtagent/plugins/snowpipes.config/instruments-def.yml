@@ -101,16 +101,16 @@ attributes:
       - snowpipes_copy_history
     __example: "2025-03-12 08:55:00.000 Z"
     __description: When file was received by Snowpipe (view-only).
-  snowflake.copy.pipe.execution_id:
+  snowflake.copy.first_commit_time:
     __context_names:
       - snowpipes_copy_history
-    __example: "01b899f1-0712-45a6-0040-e00303977b8e"
-    __description: Pipe execution identifier (view-only).
-  snowflake.copy.ingest.client_name:
+    __example: "2025-03-12 08:56:00.000 Z"
+    __description: When the first chunk of the file was committed.
+  snowflake.pipe.usage.start_time:
     __context_names:
-      - snowpipes_copy_history
-    __example: SNOWPIPE
-    __description: Ingest client name (view-only).
+      - snowpipes_usage_history
+    __example: "2025-03-12 08:00:00.000 Z"
+    __description: Start of the usage aggregation window.
 dimensions:
   snowflake.pipe.name:
     __context_names:
@@ -119,20 +119,30 @@ dimensions:
       - snowpipes_usage_history
     __example: MY_DB.MY_SCHEMA.MY_PIPE
     __description: Fully qualified pipe name.
+  snowflake.pipe.catalog_name:
+    __context_names:
+      - snowpipes_copy_history
+    __example: MY_DB
+    __description: Database containing the pipe (from COPY_HISTORY).
+  snowflake.pipe.schema_name:
+    __context_names:
+      - snowpipes_copy_history
+    __example: MY_SCHEMA
+    __description: Schema containing the pipe (from COPY_HISTORY).
   db.namespace:
     __context_names:
       - snowpipes
       - snowpipes_copy_history
       - snowpipes_usage_history
     __example: MY_DB
-    __description: Database containing the pipe.
+    __description: Database containing the target table or pipe.
   snowflake.schema.name:
     __context_names:
       - snowpipes
       - snowpipes_copy_history
       - snowpipes_usage_history
     __example: MY_SCHEMA
-    __description: Schema containing the pipe.
+    __description: Schema containing the target table or pipe.
   db.collection.name:
     __context_names:
       - snowpipes
@@ -240,3 +250,24 @@ metrics:
     __description: Files inserted (from PIPE_USAGE_HISTORY).
     displayName: Files Inserted
     unit: count
+  snowflake.pipe.cost.bytes_billed:
+    __context_names:
+      - snowpipes_usage_history
+    __example: "524288"
+    __description: Bytes billed for Snowpipe usage.
+    displayName: Bytes Billed
+    unit: bytes
+  snowflake.copy.file_size:
+    __context_names:
+      - snowpipes_copy_history
+    __example: "102400"
+    __description: Observed size of the source file before loading.
+    displayName: File Size
+    unit: bytes
+  snowflake.copy.bytes_billed:
+    __context_names:
+      - snowpipes_copy_history
+    __example: "51200"
+    __description: Bytes billed for this copy operation.
+    displayName: Copy Bytes Billed
+    unit: bytes

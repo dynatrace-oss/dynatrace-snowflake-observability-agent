@@ -48,6 +48,8 @@ select
     CONCAT('Snowpipe load: ', FILE_NAME, ' -> ', TABLE_NAME, ' (', STATUS, ')')                     as _MESSAGE,
     OBJECT_CONSTRUCT(
         'snowflake.pipe.name',          PIPE_NAME,
+        'snowflake.pipe.catalog_name',  PIPE_CATALOG_NAME,
+        'snowflake.pipe.schema_name',   PIPE_SCHEMA_NAME,
         'db.namespace',                 TABLE_CATALOG_NAME,
         'snowflake.schema.name',        TABLE_SCHEMA_NAME,
         'db.collection.name',           TABLE_NAME
@@ -59,11 +61,10 @@ select
         'snowflake.copy.first_error.message',           FIRST_ERROR_MESSAGE,
         'snowflake.copy.first_error.line_number',       FIRST_ERROR_LINE_NUMBER,
         'snowflake.copy.first_error.column_name',       FIRST_ERROR_COLUMN_NAME,
-        'snowflake.copy.first_error.character_position', FIRST_ERROR_CHARACTER_POSITION,
+        'snowflake.copy.first_error.character_position', FIRST_ERROR_CHARACTER_POS,
         'snowflake.copy.errors.limit',                  ERROR_LIMIT,
         'snowflake.copy.pipe.received_time',            PIPE_RECEIVED_TIME,
-        'snowflake.copy.pipe.execution_id',             PIPE_EXECUTION_ID,
-        'snowflake.copy.ingest.client_name',            INGEST_CLIENT_NAME
+        'snowflake.copy.first_commit_time',             FIRST_COMMIT_TIME
     )                                                                                                as ATTRIBUTES,
     OBJECT_CONSTRUCT(
         'snowflake.pipe.files.ingested',    CASE WHEN STATUS = 'LOADED' THEN 1 ELSE 0 END,
@@ -73,7 +74,9 @@ select
         'snowflake.pipe.ingest.latency',
             CASE WHEN PIPE_RECEIVED_TIME IS NOT NULL AND LAST_LOAD_TIME IS NOT NULL
                  THEN DATEDIFF('millisecond', PIPE_RECEIVED_TIME, LAST_LOAD_TIME) ELSE NULL END,
-        'snowflake.copy.errors',            ERROR_COUNT
+        'snowflake.copy.errors',            ERROR_COUNT,
+        'snowflake.copy.file_size',         FILE_SIZE,
+        'snowflake.copy.bytes_billed',      BYTES_BILLED
     )                                                                                                as METRICS
 from cte_copy_history
 order by TIMESTAMP asc

@@ -49,11 +49,14 @@ select
         'db.namespace',                 SPLIT_PART(PIPE_NAME, '.', 1),
         'snowflake.schema.name',        SPLIT_PART(PIPE_NAME, '.', 2)
     )                                                                                                as DIMENSIONS,
-    OBJECT_CONSTRUCT()                                                                               as ATTRIBUTES,
+    OBJECT_CONSTRUCT(
+        'snowflake.pipe.usage.start_time',      START_TIME
+    )                                                                                                as ATTRIBUTES,
     OBJECT_CONSTRUCT(
         'snowflake.pipe.data.ingested',         BYTES_INSERTED,
         'snowflake.pipe.cost.credits_used',     CREDITS_USED,
-        'snowflake.pipe.files.inserted',        TO_NUMBER(FILES_INSERTED)
+        'snowflake.pipe.files.inserted',        TO_NUMBER(FILES_INSERTED),
+        'snowflake.pipe.cost.bytes_billed',     BYTES_BILLED
     )                                                                                                as METRICS
 from cte_usage_history
 order by TIMESTAMP asc
