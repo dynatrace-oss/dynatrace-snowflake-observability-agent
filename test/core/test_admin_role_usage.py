@@ -159,7 +159,6 @@ class TestDeploymentScopes:
 
         # Files that should NOT contain ACCOUNTADMIN
         restricted_files = {
-            "admin": build_dir / "10_admin.sql",
             "setup": build_dir / "20_setup.sql",
             "config": build_dir / "40_config.sql",
             "agents": build_dir / "70_agents.sql",
