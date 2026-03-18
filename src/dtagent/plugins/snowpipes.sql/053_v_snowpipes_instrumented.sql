@@ -34,7 +34,7 @@ create or replace transient table DTAGENT_DB.APP.TMP_SNOWPIPES_RESULT (
     ATTRIBUTES      variant,
     METRICS         variant,
     EVENT_TIMESTAMPS variant
-);
+) DATA_RETENTION_TIME_IN_DAYS = 0;
 
 grant select, insert, truncate on table DTAGENT_DB.APP.TMP_SNOWPIPES_RESULT to role DTAGENT_VIEWER;
 
