@@ -14,7 +14,7 @@
     "snowflake.schema.name": "INGEST",
     "dsoa.run.plugin": "test_snowpipes",
     "dsoa.run.context": "snowpipes",
-    "code.file.path": "/Users/sebastian.kruk/Development/sandbox/snowagent/src/dtagent/otel/logs.py",
+    "code.file.path": "./src/dtagent/otel/logs.py",
     "code.function.name": "send_log",
     "code.line.number": 205
   },
@@ -33,7 +33,7 @@
     "snowflake.schema.name": "INGEST",
     "dsoa.run.plugin": "test_snowpipes",
     "dsoa.run.context": "snowpipes",
-    "code.file.path": "/Users/sebastian.kruk/Development/sandbox/snowagent/src/dtagent/otel/logs.py",
+    "code.file.path": "./src/dtagent/otel/logs.py",
     "code.function.name": "send_log",
     "code.line.number": 205
   },
@@ -60,7 +60,7 @@
     "snowflake.schema.name": "INGEST",
     "dsoa.run.plugin": "test_snowpipes",
     "dsoa.run.context": "snowpipes_copy_history",
-    "code.file.path": "/Users/sebastian.kruk/Development/sandbox/snowagent/src/dtagent/otel/logs.py",
+    "code.file.path": "./src/dtagent/otel/logs.py",
     "code.function.name": "send_log",
     "code.line.number": 205
   },
@@ -91,7 +91,7 @@
     "snowflake.schema.name": "INGEST",
     "dsoa.run.plugin": "test_snowpipes",
     "dsoa.run.context": "snowpipes_copy_history",
-    "code.file.path": "/Users/sebastian.kruk/Development/sandbox/snowagent/src/dtagent/otel/logs.py",
+    "code.file.path": "./src/dtagent/otel/logs.py",
     "code.function.name": "send_log",
     "code.line.number": 205
   },
@@ -107,7 +107,7 @@
     "snowflake.schema.name": "",
     "dsoa.run.plugin": "test_snowpipes",
     "dsoa.run.context": "snowpipes_usage_history",
-    "code.file.path": "/Users/sebastian.kruk/Development/sandbox/snowagent/src/dtagent/otel/logs.py",
+    "code.file.path": "./src/dtagent/otel/logs.py",
     "code.function.name": "send_log",
     "code.line.number": 205
   },
@@ -123,7 +123,7 @@
     "snowflake.schema.name": "",
     "dsoa.run.plugin": "test_snowpipes",
     "dsoa.run.context": "snowpipes_usage_history",
-    "code.file.path": "/Users/sebastian.kruk/Development/sandbox/snowagent/src/dtagent/otel/logs.py",
+    "code.file.path": "./src/dtagent/otel/logs.py",
     "code.function.name": "send_log",
     "code.line.number": 205
   }
