@@ -98,7 +98,7 @@ class TasksPlugin(Plugin):
                 "events": serverless_tasks_events_cnt,
             }
 
-        if not contexts or "tasks_vesions" in contexts:
+        if not contexts or "task_versions" in contexts:
             t_task_versions = "APP.V_TASK_VERSIONS"
             (
                 task_versions_entries_cnt,

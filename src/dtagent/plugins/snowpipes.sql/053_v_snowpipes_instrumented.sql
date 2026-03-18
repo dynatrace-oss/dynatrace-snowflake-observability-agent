@@ -72,15 +72,15 @@ BEGIN
             where c.PATH = 'plugins.snowpipes.exclude'
         )
         select
-            "database_name"                                     as DATABASE_NAME,
-            "schema_name"                                       as SCHEMA_NAME,
-            "name"                                              as PIPE_NAME,
-            "database_name" || '.' || "schema_name" || '.' || "name" as QUALIFIED_NAME,
-            "definition"                                        as DEFINITION,
-            "owner"                                             as OWNER,
-            "notification_channel"                              as NOTIFICATION_CHANNEL,
-            "invalid_reason"                                    as INVALID_REASON,
-            "created_on"                                        as CREATED_ON
+            "database_name"                                             as DATABASE_NAME,
+            "schema_name"                                               as SCHEMA_NAME,
+            "name"                                                      as PIPE_NAME,
+            "database_name" || '.' || "schema_name" || '.' || "name"    as QUALIFIED_NAME,
+            "definition"                                                as DEFINITION,
+            "owner"                                                     as OWNER,
+            "notification_channel"                                      as NOTIFICATION_CHANNEL,
+            "invalid_reason"                                            as INVALID_REASON,
+            "created_on"                                                as CREATED_ON
         from $1
         where QUALIFIED_NAME LIKE ANY (select db_pattern from cte_includes)
         and not QUALIFIED_NAME LIKE ANY (select db_pattern from cte_excludes)

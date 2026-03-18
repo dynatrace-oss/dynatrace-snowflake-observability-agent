@@ -152,7 +152,7 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
                         {RUN_VERSION_KEY: str(VERSION), RUN_PLUGIN_KEY: c_source.PLUGIN_NAME, RUN_ID_KEY: run_id}
                     )
 
-                self.report_execution_status(status="STARTED", task_name=plugin_name, exec_id=run_id)
+                self.report_execution_status(status="STARTED", task_name=source, exec_id=run_id)
 
                 plugin_telemetry_allowed = (
                     set(
@@ -164,7 +164,7 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
                 )
 
                 try:
-                    results[plugin_name] = c_source(
+                    results[source] = c_source(
                         plugin_name=plugin_name,
                         session=self._session,
                         configuration=self._configuration,
@@ -176,15 +176,13 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
                     ).process(run_id, run_proc, **({"contexts": contexts} if contexts else {}))
                     #
 
-                    self.report_execution_status(
-                        status="FINISHED", task_name=plugin_name, exec_id=run_id, details_dict=results[plugin_name]
-                    )
+                    self.report_execution_status(status="FINISHED", task_name=source, exec_id=run_id, details_dict=results[source])
                 except RuntimeError as e:
                     self.handle_interrupted_run(plugin_name, run_id, str(e))
             else:
-                self.report_execution_status(status="FAILED", task_name=plugin_name, exec_id=run_id)
-                results[plugin_name] = {"not_implemented": c_source}
-                LOG.warning(f"""Requested measuring source {plugin_name} that is not implemented: {results[plugin_name]}""")
+                self.report_execution_status(status="FAILED", task_name=source, exec_id=run_id)
+                results[source] = {"not_implemented": c_source}
+                LOG.warning(f"""Requested measuring source {plugin_name} that is not implemented: {results[source]}""")
 
         return results
 
