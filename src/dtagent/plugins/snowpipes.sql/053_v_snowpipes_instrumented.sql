@@ -26,6 +26,18 @@
 --
 use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 
+create or replace transient table DTAGENT_DB.APP.TMP_SNOWPIPES_RESULT (
+    TIMESTAMP       number,
+    NAME            text,
+    _MESSAGE        text,
+    DIMENSIONS      variant,
+    ATTRIBUTES      variant,
+    METRICS         variant,
+    EVENT_TIMESTAMPS variant
+);
+
+grant select, insert, truncate on table DTAGENT_DB.APP.TMP_SNOWPIPES_RESULT to role DTAGENT_VIEWER;
+
 create or replace procedure DTAGENT_DB.APP.F_SNOWPIPES_INSTRUMENTED()
 returns table (
     TIMESTAMP       number,
@@ -41,9 +53,13 @@ execute as caller
 as
 $$
 DECLARE
+     tr_tmp_snowpipes_table     TEXT DEFAULT 'truncate table if exists DTAGENT_DB.APP.TMP_SNOWPIPES_RESULT;';
+
     rs_pipes RESULTSET;
     rs_result RESULTSET;
 BEGIN
+    EXECUTE IMMEDIATE :tr_tmp_snowpipes_table;
+
     rs_pipes := (SHOW PIPES IN ACCOUNT ->>
         with cte_includes as (
             select distinct ci.VALUE as db_pattern
@@ -72,25 +88,22 @@ BEGIN
 
     LET c_pipes CURSOR FOR rs_pipes;
 
-    create or replace temporary table DTAGENT_DB.APP._TMP_SNOWPIPES_RESULT (
-        TIMESTAMP       number,
-        NAME            text,
-        _MESSAGE        text,
-        DIMENSIONS      variant,
-        ATTRIBUTES      variant,
-        METRICS         variant,
-        EVENT_TIMESTAMPS variant
-    );
-
     FOR r_pipe IN c_pipes DO
-        LET pipe_fqn TEXT := r_pipe.QUALIFIED_NAME;
-        LET pipe_status TEXT := '';
-        LET execution_state TEXT := NULL;
-        LET pending_file_count NUMBER := 0;
-        LET oldest_file_timestamp TEXT := NULL;
+        LET pipe_fqn            TEXT    := r_pipe.QUALIFIED_NAME;
+        LET pipe_db_name        TEXT    := r_pipe.DATABASE_NAME;
+        LET pipe_schema_name    TEXT    := r_pipe.SCHEMA_NAME;
+        LET pipe_owner          TEXT    := r_pipe.OWNER;
+        LET pipe_definition     TEXT    := r_pipe.DEFINITION;
+        LET pipe_notif_channel  TEXT    := r_pipe.NOTIFICATION_CHANNEL;
+        LET pipe_invalid_reason TEXT    := r_pipe.INVALID_REASON;
+        LET pipe_created_on     TEXT    := r_pipe.CREATED_ON;
+        LET pipe_status         TEXT    := '';
+        LET execution_state     TEXT    := NULL;
+        LET pending_file_count  NUMBER  := 0;
+        LET oldest_file_timestamp TEXT  := NULL;
         LET oldest_file_latency_ms NUMBER := NULL;
-        LET last_ingested_ts TEXT := NULL;
-        LET last_received_msg_ts TEXT := NULL;
+        LET last_ingested_ts    TEXT    := NULL;
+        LET last_received_msg_ts TEXT   := NULL;
 
         BEGIN
             pipe_status := SYSTEM$PIPE_STATUS(:pipe_fqn);
@@ -116,30 +129,30 @@ BEGIN
 
         LET target_table TEXT := NULL;
         BEGIN
-            target_table := REGEXP_SUBSTR(r_pipe.DEFINITION, 'INTO\\s+(\\S+)', 1, 1, 'ie', 1);
+            target_table := REGEXP_SUBSTR(:pipe_definition, 'INTO\\s+(\\S+)', 1, 1, 'ie', 1);
         EXCEPTION
             WHEN statement_error THEN
                 target_table := NULL;
         END;
 
-        insert into DTAGENT_DB.APP._TMP_SNOWPIPES_RESULT
+        insert into DTAGENT_DB.APP.TMP_SNOWPIPES_RESULT
         select
             extract(epoch_nanosecond from current_timestamp())                                          as TIMESTAMP,
             :pipe_fqn                                                                                   as NAME,
             concat('Snowpipe (', :pipe_fqn, ') status: ', COALESCE(:execution_state, 'N/A'))           as _MESSAGE,
             OBJECT_CONSTRUCT(
                 'snowflake.pipe.name',          :pipe_fqn,
-                'db.namespace',                 r_pipe.DATABASE_NAME,
-                'snowflake.schema.name',        r_pipe.SCHEMA_NAME,
+                'db.namespace',                 :pipe_db_name,
+                'snowflake.schema.name',        :pipe_schema_name,
                 'db.collection.name',           :target_table,
-                'snowflake.pipe.owner',         r_pipe.OWNER,
+                'snowflake.pipe.owner',         :pipe_owner,
                 'snowflake.pipe.status',        :execution_state
             )                                                                                           as DIMENSIONS,
             OBJECT_CONSTRUCT(
-                'snowflake.pipe.definition',                    r_pipe.DEFINITION,
-                'snowflake.pipe.invalid_reason',                r_pipe.INVALID_REASON,
-                'snowflake.pipe.notification_channel',          r_pipe.NOTIFICATION_CHANNEL,
-                'snowflake.pipe.created_on',                    r_pipe.CREATED_ON,
+                'snowflake.pipe.definition',                    :pipe_definition,
+                'snowflake.pipe.invalid_reason',                :pipe_invalid_reason,
+                'snowflake.pipe.notification_channel',          :pipe_notif_channel,
+                'snowflake.pipe.created_on',                    :pipe_created_on,
                 'snowflake.pipe.execution_state',               :execution_state,
                 'snowflake.pipe.last_ingested_timestamp',       :last_ingested_ts,
                 'snowflake.pipe.last_received_message_timestamp', :last_received_msg_ts,
@@ -150,12 +163,12 @@ BEGIN
                 'snowflake.pipe.latency.oldest_file',           :oldest_file_latency_ms
             )                                                                                           as METRICS,
             OBJECT_CONSTRUCT(
-                'snowflake.pipe.created_on',                    extract(epoch_nanosecond from TRY_TO_TIMESTAMP_LTZ(r_pipe.CREATED_ON))
+                'snowflake.pipe.created_on',                    extract(epoch_nanosecond from TRY_TO_TIMESTAMP_LTZ(:pipe_created_on))
             )                                                                                           as EVENT_TIMESTAMPS
         ;
     END FOR;
 
-    rs_result := (select * from DTAGENT_DB.APP._TMP_SNOWPIPES_RESULT order by TIMESTAMP asc);
+    rs_result := (select * from DTAGENT_DB.APP.TMP_SNOWPIPES_RESULT order by TIMESTAMP asc);
     RETURN TABLE(rs_result);
 END;
 $$
