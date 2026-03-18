@@ -95,7 +95,7 @@ class BudgetsPlugin(Plugin):
                 "events": budgets_events_cnt,
             }
 
-        if not contexts or "spending" in contexts:
+        if not contexts or "spendings" in contexts:
             t_budget_spending = "APP.V_BUDGET_SPENDINGS"
             spendings_cnt, logs_spendings_cnt, spending_metrics_cnt, spending_events_cnt = self._log_entries(
                 lambda: self._get_table_rows(t_budget_spending),
