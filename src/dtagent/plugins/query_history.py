@@ -25,7 +25,7 @@
 #
 #
 import logging
-from typing import Any, Tuple, Dict, List
+from typing import Any, Tuple, Dict, List, Optional
 from dtagent import LOG, LL_TRACE
 from dtagent.otel import logs, spans
 from dtagent.util import (
@@ -47,7 +47,7 @@ class QueryHistoryPlugin(Plugin):
 
     PLUGIN_NAME = "query_history"
 
-    def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
+    def process(self, run_id: str, run_proc: bool = True, contexts: Optional[List[str]] = None) -> Dict[str, Dict[str, int]]:
         """The actual function to process query history:
 
         Args:

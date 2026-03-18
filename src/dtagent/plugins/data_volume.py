@@ -26,7 +26,7 @@
 #
 from snowflake.snowpark.functions import current_timestamp
 from dtagent.plugins import Plugin
-from typing import Dict
+from typing import Dict, Optional, List
 from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPILE_REMOVE
 
 ##endregion COMPILE_REMOVE
@@ -39,7 +39,7 @@ class DataVolumePlugin(Plugin):
 
     PLUGIN_NAME = "data_volume"
 
-    def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
+    def process(self, run_id: str, run_proc: bool = True, contexts: Optional[List[str]] = None) -> Dict[str, Dict[str, int]]:
         """Processes the measures on data volume
 
         Args:
