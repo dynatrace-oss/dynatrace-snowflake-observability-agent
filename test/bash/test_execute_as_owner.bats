@@ -30,7 +30,7 @@ setup() {
 # -----------------------------------------------------------------------
 @test "no procedures use explicit 'execute as owner'" {
     # Find all .sql source files (exclude .off.sql disabled files)
-    matches=$(grep -r -i -l "execute as owner" "$SRC_DIR" --include="*.sql" || true)
+    matches=$(grep -r -i -l "execute as owner" "$SRC_DIR" --include="*.sql" --exclude="*.off.sql" || true)
 
     if [ -n "$EXCLUSION_PATTERN" ]; then
         matches=$(echo "$matches" | grep -v -E "$EXCLUSION_PATTERN" || true)

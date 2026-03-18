@@ -59,7 +59,7 @@ create or replace transient table DTAGENT_DB.APP.TMP_USERS_HELPER (
 grant select, truncate, insert on table DTAGENT_DB.APP.TMP_USERS_HELPER to role DTAGENT_VIEWER;
 
 create or replace transient table DTAGENT_DB.STATUS.EMAIL_HASH_MAP (email text, email_hash text) DATA_RETENTION_TIME_IN_DAYS = 0;
-grant select, truncate, insert, update, delete on table DTAGENT_DB.STATUS.EMAIL_HASH_MAP to role DTAGENT_VIEWER;
+grant select, truncate, insert, update on table DTAGENT_DB.STATUS.EMAIL_HASH_MAP to role DTAGENT_VIEWER;
 
 create or replace transient table DTAGENT_DB.APP.TMP_USERS_SNAPSHOT (
         email_hash text, email text, user_id number, name text,
