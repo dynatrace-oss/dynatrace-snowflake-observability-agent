@@ -29,7 +29,9 @@ use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 create or replace view APP.V_SNOWPIPES_USAGE_HISTORY_INSTRUMENTED
 as
 with cte_usage_history as (
-    select *
+    select *,
+        SPLIT_PART(PIPE_NAME, '.', 1) as PIPE_DB_NAME,
+        SPLIT_PART(PIPE_NAME, '.', 2) as PIPE_SCHEMA_NAME
     from SNOWFLAKE.ACCOUNT_USAGE.PIPE_USAGE_HISTORY
     where END_TIME >= GREATEST(
         DTAGENT_DB.STATUS.F_LAST_PROCESSED_TS('snowpipes_usage_history'),
@@ -46,8 +48,8 @@ select
     CONCAT('Snowpipe usage: ', PIPE_NAME, ' (', CREDITS_USED, ' credits)')                          as _MESSAGE,
     OBJECT_CONSTRUCT(
         'snowflake.pipe.name',          PIPE_NAME,
-        'db.namespace',                 SPLIT_PART(PIPE_NAME, '.', 1),
-        'snowflake.schema.name',        SPLIT_PART(PIPE_NAME, '.', 2)
+        'db.namespace',                 PIPE_DB_NAME,
+        'snowflake.schema.name',        PIPE_SCHEMA_NAME
     )                                                                                                as DIMENSIONS,
     OBJECT_CONSTRUCT(
         'snowflake.pipe.usage.start_time',      START_TIME
