@@ -39,6 +39,14 @@ Released on TBD
 - **Build System**: Development scripts now auto-activate virtual environment
 - **Test Infrastructure**: Refactored tests to use synthetic JSON fixtures instead of live API calls
 
+## Dynatrace Snowflake Observability Agent 0.9.3.1
+
+Released on March 18, 2026
+
+### Fixed in 0.9.3.1
+
+- **DTAGENT_ADMIN Role Privileges**: Fixed critical bug where `DTAGENT_ADMIN` role was missing `DTAGENT_VIEWER` role privileges.
+
 ## Dynatrace Snowflake Observability Agent 0.9.3
 
 Released on February 12, 2026
