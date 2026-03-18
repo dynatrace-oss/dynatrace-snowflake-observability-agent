@@ -22,6 +22,8 @@ EOF
     echo "SELECT 'upgrade 0.9.0';" >> build/09_upgrade/v0.9.0.sql
     echo "-- v0.9.3 upgrade" > build/09_upgrade/v0.9.3.sql
     echo "SELECT 'upgrade 0.9.3';" >> build/09_upgrade/v0.9.3.sql
+    echo "-- v0.9.3.1 upgrade" > build/09_upgrade/v0.9.3.1.sql
+    echo "SELECT 'upgrade 0.9.3.1';" >> build/09_upgrade/v0.9.3.1.sql
     echo "-- v1.0.0 upgrade" > build/09_upgrade/v1.0.0.sql
     echo "SELECT 'upgrade 1.0.0';" >> build/09_upgrade/v1.0.0.sql
 
@@ -150,6 +152,36 @@ teardown() {
     grep -q "upgrade 1.0.0" "$TEST_SQL_FILE"
 
     # Should NOT include v0.9.0 (version <= 0.9.0)
+    ! grep -q "upgrade 0.9.0" "$TEST_SQL_FILE"
+}
+
+@test "prepare_deploy_script.sh upgrade scope includes 4-part hotfix when upgrading from base version" {
+    export DTAGENT_TOKEN="dt0c01.TEST12345678901234567890.TEST123456789012345678901234567890123456789012345678901234567890"
+    run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "upgrade" "0.9.3" "manual"
+    [ "$status" -eq 0 ]
+    [ -s "$TEST_SQL_FILE" ]
+
+    # Should include v0.9.3.1 and v1.0.0 (versions > 0.9.3)
+    grep -q "upgrade 0.9.3.1" "$TEST_SQL_FILE"
+    grep -q "upgrade 1.0.0" "$TEST_SQL_FILE"
+
+    # Should NOT include v0.9.0, v0.9.3 (versions <= 0.9.3)
+    ! grep -q "upgrade 0.9.0" "$TEST_SQL_FILE"
+    ! grep -q "upgrade 0.9.3'" "$TEST_SQL_FILE"
+}
+
+@test "prepare_deploy_script.sh upgrade scope excludes 4-part hotfix when already at that version" {
+    export DTAGENT_TOKEN="dt0c01.TEST12345678901234567890.TEST123456789012345678901234567890123456789012345678901234567890"
+    run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "upgrade" "0.9.3.1" "manual"
+    [ "$status" -eq 0 ]
+    [ -s "$TEST_SQL_FILE" ]
+
+    # Should include v1.0.0 (version > 0.9.3.1)
+    grep -q "upgrade 1.0.0" "$TEST_SQL_FILE"
+
+    # Should NOT include v0.9.3.1 or earlier
+    ! grep -q "upgrade 0.9.3.1" "$TEST_SQL_FILE"
+    ! grep -q "upgrade 0.9.3'" "$TEST_SQL_FILE"
     ! grep -q "upgrade 0.9.0" "$TEST_SQL_FILE"
 }
 

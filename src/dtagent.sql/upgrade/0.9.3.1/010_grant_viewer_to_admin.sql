@@ -1,6 +1,6 @@
 --
 --
--- Copyright (c) 2025 Dynatrace Open Source
+-- Copyright (c) 2026 Dynatrace Open Source
 --
 -- Permission is hereby granted, free of charge, to any person obtaining a copy
 -- of this software and associated documentation files (the "Software"), to deal
@@ -21,19 +21,11 @@
 -- SOFTWARE.
 --
 --
+-- v0.9.3.1 Service Pack
+-- Fix: ADMIN role requires VIEWER privileges for EXECUTE AS CALLER procedures
 --
--- Initializing Dynatrace Snowflake Observability Agent by creating: admin role
--- This role is used to grant necessary privileges to the DTAGENT_VIEWER role
---
+use role DTAGENT_OWNER;
+
 --%OPTION:dtagent_admin:
-use role ACCOUNTADMIN;
-create role if not exists DTAGENT_ADMIN;
-grant ownership on role DTAGENT_ADMIN to role DTAGENT_OWNER revoke current grants;
-
 grant role DTAGENT_VIEWER to role DTAGENT_ADMIN;
-grant role DTAGENT_ADMIN to role DTAGENT_OWNER;
-
--- this is required to grant monitoring privileges on warehouses and dynamic tables to the DTAGENT_VIEWER role
-grant MANAGE GRANTS on ACCOUNT to role DTAGENT_ADMIN;
-grant EXECUTE TASK on ACCOUNT to role DTAGENT_ADMIN;
 --%:OPTION:dtagent_admin
