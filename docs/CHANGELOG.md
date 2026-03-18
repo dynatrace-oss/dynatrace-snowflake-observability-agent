@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## Dynatrace Snowflake Observability Agent 0.9.3.1
+
+Released on March 18, 2026
+
+### Fixed in 0.9.3.1
+
+- **DTAGENT_ADMIN Role Privileges**: Fixed critical bug where `DTAGENT_ADMIN` role was missing `DTAGENT_VIEWER` role privileges.
+
 ## Dynatrace Snowflake Observability Agent 0.9.3
 
 Released on February 12, 2026
