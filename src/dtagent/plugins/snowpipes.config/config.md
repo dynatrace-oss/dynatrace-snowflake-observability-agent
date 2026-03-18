@@ -4,24 +4,24 @@
 
 The grant granularity is derived automatically from the `include` pattern:
 
-| Include pattern          | Grant level | SQL issued                                              |
-| ------------------------ | ----------- | ------------------------------------------------------- |
-| `%.%.%` or `PROD_DB.%.%` | Database    | `GRANT MONITOR ON ALL/FUTURE PIPES IN DATABASE …`       |
-| `PROD_DB.ANALYTICS.%`    | Schema      | `GRANT MONITOR ON ALL/FUTURE PIPES IN SCHEMA …`         |
-| `PROD_DB.ANALYTICS.MY_PIPE` | Pipe     | `GRANT MONITOR ON PIPE …` (no FUTURE grant)             |
+| Include pattern             | Grant level | SQL issued                                        |
+|-----------------------------|-------------|---------------------------------------------------|
+| `%.%.%` or `PROD_DB.%.%`    | Database    | `GRANT MONITOR ON ALL/FUTURE PIPES IN DATABASE …` |
+| `PROD_DB.ANALYTICS.%`       | Schema      | `GRANT MONITOR ON ALL/FUTURE PIPES IN SCHEMA …`   |
+| `PROD_DB.ANALYTICS.MY_PIPE` | Pipe        | `GRANT MONITOR ON PIPE …` (no FUTURE grant)       |
 
 Alternatively, you may choose to grant the required permissions manually, using the appropriate `GRANT MONITOR ON ALL/FUTURE PIPES IN …` statement, depending on the desired granularity.
 
 ### Configuration keys
 
-| Key                                      | Default                         | Description                                           |
-| ---------------------------------------- | ------------------------------- | ----------------------------------------------------- |
-| `plugins.snowpipes.include`              | `['%.%.%']`                     | Pipe name patterns to include (fully qualified)       |
-| `plugins.snowpipes.exclude`              | `[DTAGENT_DB.%.%]`             | Pipe name patterns to exclude                         |
-| `plugins.snowpipes.schedule`             | `USING CRON */5 * * * * UTC`   | Fast-mode schedule (SHOW PIPES + PIPE_STATUS)         |
-| `plugins.snowpipes.schedule_history`     | `USING CRON 0 * * * * UTC`     | Deep-mode schedule (COPY_HISTORY + USAGE_HISTORY)     |
-| `plugins.snowpipes.schedule_grants`      | `USING CRON 30 */12 * * * UTC` | Admin grant task schedule                             |
-| `plugins.snowpipes.lookback_hours`       | `4`                             | Lookback window for COPY_HISTORY (hours)              |
-| `plugins.snowpipes.lookback_hours_usage` | `6`                             | Lookback window for PIPE_USAGE_HISTORY (hours)        |
-| `plugins.snowpipes.is_disabled`          | `false`                         | Disable the plugin                                    |
-| `plugins.snowpipes.telemetry`            | `[metrics, logs, events, biz_events]` | Enabled telemetry types                        |
+| Key                                      | Default                               | Description                                       |
+|------------------------------------------|---------------------------------------|---------------------------------------------------|
+| `plugins.snowpipes.include`              | `['%.%.%']`                           | Pipe name patterns to include (fully qualified)   |
+| `plugins.snowpipes.exclude`              | `[DTAGENT_DB.%.%]`                    | Pipe name patterns to exclude                     |
+| `plugins.snowpipes.schedule`             | `USING CRON */5 * * * * UTC`          | Fast-mode schedule (SHOW PIPES + PIPE_STATUS)     |
+| `plugins.snowpipes.schedule_history`     | `USING CRON 0 * * * * UTC`            | Deep-mode schedule (COPY_HISTORY + USAGE_HISTORY) |
+| `plugins.snowpipes.schedule_grants`      | `USING CRON 30 */12 * * * UTC`        | Admin grant task schedule                         |
+| `plugins.snowpipes.lookback_hours`       | `4`                                   | Lookback window for COPY_HISTORY (hours)          |
+| `plugins.snowpipes.lookback_hours_usage` | `6`                                   | Lookback window for PIPE_USAGE_HISTORY (hours)    |
+| `plugins.snowpipes.is_disabled`          | `false`                               | Disable the plugin                                |
+| `plugins.snowpipes.telemetry`            | `[metrics, logs, events, biz_events]` | Enabled telemetry types                           |

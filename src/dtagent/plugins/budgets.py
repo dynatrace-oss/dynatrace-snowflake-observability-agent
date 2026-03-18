@@ -75,7 +75,6 @@ class BudgetsPlugin(Plugin):
         budgets_cnt = 0
         p_refresh_budgets = "APP.P_GET_BUDGETS"
 
-
         if run_proc:
             # this procedure ensures that the budgets and spendings tables are up to date
             self._session.call(p_refresh_budgets)

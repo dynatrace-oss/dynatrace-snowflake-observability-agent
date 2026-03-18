@@ -27,7 +27,7 @@
 #
 from dtagent import AbstractDynatraceSnowAgentConnector
 from dtagent.version import VERSION
-from dtagent.util import get_now_timestamp_formatted, is_regular_mode
+from dtagent.util import is_regular_mode
 
 ##endregion COMPILE_REMOVE
 
@@ -173,7 +173,7 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
                         metrics=self._metrics if "metrics" in plugin_telemetry_allowed else NO_OP_TELEMETRY,
                         events=self._events if "events" in plugin_telemetry_allowed else NO_OP_TELEMETRY,
                         bizevents=self._biz_events if "biz_events" in plugin_telemetry_allowed else NO_OP_TELEMETRY,
-                    ).process(run_id, run_proc, **({'contexts': contexts} if contexts else {}))
+                    ).process(run_id, run_proc, **({"contexts": contexts} if contexts else {}))
                     #
 
                     self.report_execution_status(

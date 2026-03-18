@@ -42,7 +42,7 @@ class ResourceMonitorsPlugin(Plugin):
     """Resource monitors plugin class."""
 
     PLUGIN_NAME = "resource_monitors"
-
+    unattached_rms: int = 0
     unmonitored_wh: int = 0
     has_account_rm: bool = False
 
@@ -182,7 +182,6 @@ class ResourceMonitorsPlugin(Plugin):
                 "metrics": warehouses_metrics_cnt,
                 "events": warehouses_events_cnt,
             }
-
 
         if run_proc:
             self._report_execution("resource_monitors", current_timestamp(), None, results_dict, run_id=run_id)

@@ -75,7 +75,6 @@ class TasksPlugin(Plugin):
             }
         """
 
-
         results = {}
 
         if not contexts or "serverless_tasks" in contexts:
