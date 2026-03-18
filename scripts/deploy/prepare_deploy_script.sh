@@ -294,13 +294,13 @@ if [ "$SCOPE" != 'apikey' ] && [ "$SCOPE" != 'teardown' ]; then
             awk -v from_ver="$FROM_VERSION" '
                 function version_to_num(v) {
                     split(v, parts, ".");
-                    return parts[1] * 1000000 + parts[2] * 1000 + parts[3];
+                    return parts[1] * 1000000000 + parts[2] * 1000000 + parts[3] * 1000 + parts[4];
                 }
                 {
                     # Check if this is an upgrade file
                     if (match($0, /09_upgrade/)) {
-                        # Extract version from filename (e.g., 09_upgrade/v1.2.3.sql or v1.2.3_something.sql)
-                        if (match($0, /v[0-9]+\.[0-9]+\.[0-9]+/)) {
+                        # Extract version from filename (e.g., 09_upgrade/v1.2.3.sql, v1.2.3.4.sql)
+                        if (match($0, /v[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?/)) {
                             # Extract the matched version string
                             file_ver = substr($0, RSTART + 1, RLENGTH - 1);
                             if (version_to_num(file_ver) > version_to_num(from_ver)) {
