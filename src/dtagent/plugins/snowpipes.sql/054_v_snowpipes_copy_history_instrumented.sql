@@ -67,10 +67,10 @@ select
         'snowflake.copy.first_commit_time',             FIRST_COMMIT_TIME
     )                                                                                                as ATTRIBUTES,
     OBJECT_CONSTRUCT(
-        'snowflake.pipe.files.ingested',    CASE WHEN STATUS = 'LOADED' THEN 1 ELSE 0 END,
+        'snowflake.pipe.files.ingested',    CASE WHEN UPPER(STATUS) = 'LOADED' THEN 1 ELSE 0 END,
         'snowflake.pipe.rows.loaded',       ROW_COUNT,
         'snowflake.pipe.rows.parsed',       ROW_PARSED,
-        'snowflake.pipe.errors',            CASE WHEN STATUS IN ('LOAD_FAILED', 'PARTIALLY_LOADED') THEN 1 ELSE 0 END,
+        'snowflake.pipe.errors',            CASE WHEN UPPER(STATUS) IN ('LOAD_FAILED', 'PARTIALLY_LOADED') THEN 1 ELSE 0 END,
         'snowflake.pipe.ingest.latency',
             CASE WHEN PIPE_RECEIVED_TIME IS NOT NULL AND LAST_LOAD_TIME IS NOT NULL
                  THEN DATEDIFF('millisecond', PIPE_RECEIVED_TIME, LAST_LOAD_TIME) ELSE NULL END,

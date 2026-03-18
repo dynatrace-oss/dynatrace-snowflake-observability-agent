@@ -73,9 +73,9 @@ class TestSnowpipes:
                 disabled_telemetry=disabled_telemetry,
                 affecting_types_for_entries=["logs", "metrics", "events"],
                 base_count={
-                    "snowpipes": {"entries": 2, "log_lines": 2, "metrics": 4, "events": 2},
-                    "snowpipes_copy_history": {"entries": 2, "log_lines": 2, "metrics": 12, "events": 0},
-                    "snowpipes_usage_history": {"entries": 2, "log_lines": 2, "metrics": 6, "events": 0},
+                    "snowpipes": {"entries": 2, "log_lines": 2, "metrics": 3, "events": 2},
+                    "snowpipes_copy_history": {"entries": 2, "log_lines": 2, "metrics": 16, "events": 0},
+                    "snowpipes_usage_history": {"entries": 2, "log_lines": 2, "metrics": 8, "events": 0},
                 },
             )
 
@@ -107,9 +107,9 @@ class TestSnowpipes:
             disabled_telemetry=[],
             affecting_types_for_entries=["logs", "metrics", "events"],
             base_count={
-                "snowpipes": {"entries": 2, "log_lines": 2, "metrics": 4, "events": 2},
-                "snowpipes_copy_history": {"entries": 2, "log_lines": 2, "metrics": 12, "events": 0},
-                "snowpipes_usage_history": {"entries": 2, "log_lines": 2, "metrics": 6, "events": 0},
+                "snowpipes": {"entries": 2, "log_lines": 2, "metrics": 3, "events": 2},
+                "snowpipes_copy_history": {"entries": 2, "log_lines": 2, "metrics": 16, "events": 0},
+                "snowpipes_usage_history": {"entries": 2, "log_lines": 2, "metrics": 8, "events": 0},
             },
         )
 
