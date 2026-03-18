@@ -32,17 +32,17 @@ use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 -- initializing TMP_RECENT_QUERIES so that we don't have to call this procedure during the deploy time
 
 create or replace transient table DTAGENT_DB.APP.TMP_RECENT_QUERIES DATA_RETENTION_TIME_IN_DAYS = 0 as select *, false as IS_PARENT, false as IS_ROOT from APP.V_QUERY_HISTORY_INSTRUMENTED limit 0;
-grant select on table DTAGENT_DB.APP.TMP_RECENT_QUERIES to role DTAGENT_VIEWER;
+grant select, truncate, insert, update on table DTAGENT_DB.APP.TMP_RECENT_QUERIES to role DTAGENT_VIEWER;
 
 -- initializing TMP_QUERY_OPERATOR_STATS so that we don't have to call this procedure during the deploy time
 create or replace transient table DTAGENT_DB.APP.TMP_QUERY_OPERATOR_STATS (QUERY_ID varchar, QUERY_OPERATOR_STATS array) DATA_RETENTION_TIME_IN_DAYS = 0;
-grant select on table DTAGENT_DB.APP.TMP_QUERY_OPERATOR_STATS to role DTAGENT_VIEWER;
+grant select, truncate, insert on table DTAGENT_DB.APP.TMP_QUERY_OPERATOR_STATS to role DTAGENT_VIEWER;
 
 
 create or replace procedure DTAGENT_DB.APP.P_REFRESH_RECENT_QUERIES()
 returns text
 language sql
-execute as owner
+execute as caller
 as
 $$
 DECLARE

@@ -24,13 +24,13 @@ use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 
 -- creating table  DTAGENT_DB.APP.TMP_QUERY_ACCELERATION_ESTIMATES to ensure it exists when deploying fresh
 create or replace transient table DTAGENT_DB.APP.TMP_QUERY_ACCELERATION_ESTIMATES (QUERY_ID varchar, ATTRIBUTES object) DATA_RETENTION_TIME_IN_DAYS = 0;
-grant select on table DTAGENT_DB.APP.TMP_QUERY_ACCELERATION_ESTIMATES to role DTAGENT_VIEWER;
+grant select, truncate, insert on table DTAGENT_DB.APP.TMP_QUERY_ACCELERATION_ESTIMATES to role DTAGENT_VIEWER;
 
 
 create or replace procedure DTAGENT_DB.APP.P_GET_ACCELERATION_ESTIMATES()
 returns text
 language sql
-execute as owner
+execute as caller
 as
 $$
 DECLARE

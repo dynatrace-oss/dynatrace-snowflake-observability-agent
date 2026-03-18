@@ -35,7 +35,7 @@ create or replace transient table APP.TMP_RESOURCE_MONITORS(
         created_on timestamp_ltz,
         owner text, comment text, notify_users text)
     DATA_RETENTION_TIME_IN_DAYS = 0;
-grant select on table APP.TMP_RESOURCE_MONITORS to role DTAGENT_VIEWER;
+grant select, truncate, insert on table APP.TMP_RESOURCE_MONITORS to role DTAGENT_VIEWER;
 
 create or replace transient table APP.TMP_WAREHOUSES(
             name text, state text, type text, size text,
@@ -50,11 +50,11 @@ create or replace transient table APP.TMP_WAREHOUSES(
             uuid text, scaling_policy text, budget text,
             owner_role_type text, resource_constraint text)
         DATA_RETENTION_TIME_IN_DAYS = 0;
-grant select on table APP.TMP_WAREHOUSES to role DTAGENT_VIEWER;
+grant select, truncate, insert on table APP.TMP_WAREHOUSES to role DTAGENT_VIEWER;
 create or replace procedure DTAGENT_DB.APP.P_REFRESH_RESOURCE_MONITORS()
 returns text
 language sql
-execute as owner
+execute as caller
 as
 $$
 DECLARE

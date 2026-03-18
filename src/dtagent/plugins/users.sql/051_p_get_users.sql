@@ -39,7 +39,7 @@ create or replace transient table DTAGENT_DB.APP.TMP_USERS (
         database_name text, database_id number, schema_name text, schema_id number,
         is_from_organization_user boolean)
     DATA_RETENTION_TIME_IN_DAYS = 0;
-grant select on table DTAGENT_DB.APP.TMP_USERS to role DTAGENT_VIEWER;
+grant select, truncate, insert on table DTAGENT_DB.APP.TMP_USERS to role DTAGENT_VIEWER;
 
 create or replace transient table DTAGENT_DB.APP.TMP_USERS_HELPER (
         email_hash text, email text, user_id number, name text,
@@ -56,22 +56,40 @@ create or replace transient table DTAGENT_DB.APP.TMP_USERS_HELPER (
         database_name text, database_id number, schema_name text, schema_id number,
         is_from_organization_user boolean)
     DATA_RETENTION_TIME_IN_DAYS = 0;
-grant select on table DTAGENT_DB.APP.TMP_USERS_HELPER to role DTAGENT_VIEWER;
+grant select, truncate, insert on table DTAGENT_DB.APP.TMP_USERS_HELPER to role DTAGENT_VIEWER;
 
 create or replace transient table DTAGENT_DB.STATUS.EMAIL_HASH_MAP (email text, email_hash text) DATA_RETENTION_TIME_IN_DAYS = 0;
-grant select on table DTAGENT_DB.STATUS.EMAIL_HASH_MAP to role DTAGENT_VIEWER;
+grant select, truncate, insert, update, delete on table DTAGENT_DB.STATUS.EMAIL_HASH_MAP to role DTAGENT_VIEWER;
+
+create or replace transient table DTAGENT_DB.APP.TMP_USERS_SNAPSHOT (
+        email_hash text, email text, user_id number, name text,
+        created_on timestamp_ltz, deleted_on timestamp_ltz,
+        login_name text, display_name text, first_name text, last_name text,
+        must_change_password boolean, has_password boolean,
+        comment text, disabled variant, snowflake_lock variant,
+        default_warehouse text, default_namespace text, default_role text,
+        ext_authn_duo boolean, ext_authn_uid text, has_mfa boolean, bypass_mfa_until timestamp_ltz,
+        last_success_login timestamp_ltz, expires_at timestamp_ltz, locked_until_time timestamp_ltz,
+        has_rsa_public_key boolean, password_last_set_time timestamp_ltz,
+        has_pat boolean, has_workload_identity boolean,
+        owner text, default_secondary_role text, type text,
+        database_name text, database_id number, schema_name text, schema_id number,
+        is_from_organization_user boolean)
+    DATA_RETENTION_TIME_IN_DAYS = 0;
+grant select, truncate, insert on table DTAGENT_DB.APP.TMP_USERS_SNAPSHOT to role DTAGENT_VIEWER;
 
 create or replace procedure DTAGENT_DB.APP.P_GET_USERS()
 returns text
 language sql
-execute as owner
+execute as caller
 as
 $$
 DECLARE
     tr_us_table       TEXT DEFAULT 'truncate table if exists DTAGENT_DB.APP.TMP_USERS;';
     tr_us_h_table     TEXT DEFAULT 'truncate table if exists DTAGENT_DB.APP.TMP_USERS_HELPER;';
-    create_snap       TEXT DEFAULT 'create or replace temporary table DTAGENT_DB.APP.TMP_USERS_SNAPSHOT
-                                                            as select sha2(email) as email_hash, email, user_id, name,
+    tr_snap           TEXT DEFAULT 'truncate table if exists DTAGENT_DB.APP.TMP_USERS_SNAPSHOT;';
+    in_snap           TEXT DEFAULT 'insert into DTAGENT_DB.APP.TMP_USERS_SNAPSHOT
+                                                            select sha2(email) as email_hash, email, user_id, name,
                                                                       created_on, deleted_on,
                                                                       login_name, display_name, first_name, last_name,
                                                                       must_change_password, has_password,
@@ -87,14 +105,14 @@ DECLARE
                                                                  from SNOWFLAKE.ACCOUNT_USAGE.USERS
                                                                 where DELETED_ON is null
                                                                    or DELETED_ON > DTAGENT_DB.STATUS.F_LAST_PROCESSED_TS(\'users\');';
-    del_snap          TEXT DEFAULT 'drop table DTAGENT_DB.APP.TMP_USERS_SNAPSHOT';
     tr_map            TEXT DEFAULT 'truncate table if exists DTAGENT_DB.STATUS.EMAIL_HASH_MAP;';
 BEGIN
     -- truncate TMP_USERS to not report old entries
     EXECUTE IMMEDIATE :tr_us_table;
 
     -- create current snapshot of snowflake.account_usage.users
-    EXECUTE IMMEDIATE :create_snap;
+    EXECUTE IMMEDIATE :tr_snap;
+    EXECUTE IMMEDIATE :in_snap;
 
     -- update email to hash map with new entries to dtagent_db.app.tmp_users_snapshot
     if ((DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE('plugins.users.retain_email_hash_map', FALSE)::boolean) = TRUE) then
@@ -121,8 +139,6 @@ BEGIN
     -- update helper to keep newly reported entries from snapshot
     insert into DTAGENT_DB.APP.TMP_USERS_HELPER
         select * from DTAGENT_DB.APP.TMP_USERS_SNAPSHOT;
-
-    EXECUTE IMMEDIATE :del_snap;
 
 RETURN 'tables APP.TMP_USERS, APP.TMP_USERS_HELPER updated';
 

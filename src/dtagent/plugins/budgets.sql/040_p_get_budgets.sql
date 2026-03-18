@@ -28,28 +28,28 @@ create or replace transient table DTAGENT_DB.APP.TMP_BUDGETS (
         database_name text, schema_name text,
         current_version text, comment text, owner text, owner_role_type text)
     DATA_RETENTION_TIME_IN_DAYS = 0;
-grant select on table DTAGENT_DB.APP.TMP_BUDGETS to role DTAGENT_VIEWER;
+grant select, truncate, insert on table DTAGENT_DB.APP.TMP_BUDGETS to role DTAGENT_VIEWER;
 
 create or replace transient table DTAGENT_DB.APP.TMP_BUDGETS_LIMITS (
         LIMIT int, BUDGET_NAME text)
     DATA_RETENTION_TIME_IN_DAYS = 0;
-grant select on table DTAGENT_DB.APP.TMP_BUDGETS_LIMITS to role DTAGENT_VIEWER;
+grant select, truncate, insert on table DTAGENT_DB.APP.TMP_BUDGETS_LIMITS to role DTAGENT_VIEWER;
 
 create or replace transient table DTAGENT_DB.APP.TMP_BUDGETS_RESOURCES (
         LINKED_RESOURCES array, BUDGET_NAME text)
     DATA_RETENTION_TIME_IN_DAYS = 0;
-grant select on table DTAGENT_DB.APP.TMP_BUDGETS_RESOURCES to role DTAGENT_VIEWER;
+grant select, truncate, insert on table DTAGENT_DB.APP.TMP_BUDGETS_RESOURCES to role DTAGENT_VIEWER;
 
 create or replace transient table DTAGENT_DB.APP.TMP_BUDGET_SPENDING (
         MEASUREMENT_DATE date, SERVICE_TYPE text,
         CREDITS_SPENT float, BUDGET_NAME text)
     DATA_RETENTION_TIME_IN_DAYS = 0;
-grant select on table DTAGENT_DB.APP.TMP_BUDGET_SPENDING to role DTAGENT_VIEWER;
+grant select, truncate, insert on table DTAGENT_DB.APP.TMP_BUDGET_SPENDING to role DTAGENT_VIEWER;
 
 create or replace procedure DTAGENT_DB.APP.P_GET_BUDGETS()
 returns text
 language sql
-execute as owner
+execute as caller
 as
 $$
 DECLARE

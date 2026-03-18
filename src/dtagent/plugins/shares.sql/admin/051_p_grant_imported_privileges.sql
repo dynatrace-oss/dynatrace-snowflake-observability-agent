@@ -22,37 +22,34 @@
 --
 --
 --
--- APP.P_CLEANUP_EVENT_LOG(INT) will remove old event_log entries, with number of hours to retain
+-- APP.P_GRANT_IMPORTED_PRIVILEGES(VARCHAR) grants imported privileges on a
+-- shared database to DTAGENT_VIEWER role.
+--
+-- !! Requires DTAGENT_ADMIN role (admin deployment scope) because
+-- !! GRANT IMPORTED PRIVILEGES needs MANAGE GRANTS on ACCOUNT.
 --
 --%OPTION:dtagent_admin:
 use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 
-drop procedure if exists DTAGENT_DB.APP.P_CLEANUP_EVENT_LOG(INT);
-
-create or replace procedure DTAGENT_DB.APP.P_CLEANUP_EVENT_LOG()
+create or replace procedure DTAGENT_DB.APP.P_GRANT_IMPORTED_PRIVILEGES(db_name VARCHAR)
 returns text
-language SQL
+language sql
 execute as caller
 as
 $$
 DECLARE
-  is_event_log_table  BOOLEAN  DEFAULT FALSE;
+    safe_identifier_re  TEXT DEFAULT '^[A-Za-z_][A-Za-z0-9_$]*$';
+    db_name_q           TEXT DEFAULT '';
 BEGIN
-  -- Check if the EVENT_LOG table exists in the STATUS schema in the DTAGENT_DB database, i.e., if it is owned by this particular Dynatrace Snowflake Observability Agent instance
-  select TABLE_TYPE like '%TABLE'
-    into is_event_log_table
-    from DTAGENT_DB.INFORMATION_SCHEMA.TABLES
-    where TABLE_SCHEMA = 'STATUS'
-      and TABLE_NAME = 'EVENT_LOG';
+    IF (NOT REGEXP_LIKE(UPPER(:db_name), :safe_identifier_re)) THEN
+        SYSTEM$LOG_WARN('P_GRANT_IMPORTED_PRIVILEGES: skipping invalid database name (unsafe identifier): ' || :db_name);
+        RETURN 'skipped: unsafe database name ' || :db_name;
+    END IF;
 
-  -- If this Dynatrace Snowflake Observability Agent instance owns this EVENT_LOG table, delete entries older than the configured retention period
-  IF (:is_event_log_table) THEN
-    delete from DTAGENT_DB.STATUS.EVENT_LOG
-    where TIMESTAMP < timeadd(HOUR, -1*DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE('plugins.event_log.retention_hours', 24), CURRENT_TIMESTAMP);
-    RETURN 'old event_log entries removed from STATUS.EVENT_LOG';
-  END IF;
+    db_name_q := '"' || UPPER(:db_name) || '"';
+    EXECUTE IMMEDIATE concat('GRANT IMPORTED PRIVILEGES on DATABASE ', :db_name_q, ' TO ROLE DTAGENT_VIEWER');
 
-  RETURN 'no event log table found';
+    RETURN 'imported privileges granted on ' || :db_name;
 EXCEPTION
   when statement_error then
     SYSTEM$LOG_WARN(SQLERRM);
@@ -61,10 +58,6 @@ EXCEPTION
 END;
 $$
 ;
-grant usage on procedure DTAGENT_DB.APP.P_CLEANUP_EVENT_LOG() to role DTAGENT_ADMIN;
 
-/*
-use role DTAGENT_VIEWER;
-call DTAGENT_DB.APP.P_CLEANUP_EVENT_LOG();
-*/
+grant usage on procedure DTAGENT_DB.APP.P_GRANT_IMPORTED_PRIVILEGES(VARCHAR) to role DTAGENT_ADMIN;
 --%:OPTION:dtagent_admin
