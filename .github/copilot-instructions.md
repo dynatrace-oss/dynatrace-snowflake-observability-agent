@@ -27,13 +27,13 @@ Every plugin **must** have three co-located parts:
 
 ### Key modules
 
-- `agent.py` — `DynatraceSnowAgent` entry point
-- `config.py` — reads `CONFIG.CONFIGURATIONS` table
-- `connector.py` — ad-hoc telemetry sender
-- `util.py` — shared helpers (escaping, JSON, timestamps)
-- `otel/` — exporters: `Logs`, `Spans`, `Metrics`, events
-- `otel/semantics.py` — metric semantic definitions (auto-generated)
-- `_snowflake.py` — secrets via `read_secret()`
+- `src/dtagent/agent.py` — `DynatraceSnowAgent` entry point
+- `src/dtagent/config.py` — reads `CONFIG.CONFIGURATIONS` table
+- `src/dtagent/connector.py` — ad-hoc telemetry sender
+- `src/dtagent/util.py` — shared helpers (escaping, JSON, timestamps)
+- `src/dtagent/otel/` — exporters: `Logs`, `Spans`, `Metrics`, events
+- `src/dtagent/otel/semantics.py` — metric semantic definitions (auto-generated)
+- `src/dtagent/_snowflake.py` — secrets via `read_secret()`
 
 ## 🛠️ Tech Stack & Implementation
 
