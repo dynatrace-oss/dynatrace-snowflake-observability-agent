@@ -87,6 +87,25 @@ Each JSON file is named after its dashboard title (e.g., `Costs Monitoring.json`
 
 ---
 
+### [Snowpipes Monitoring](snowpipes-monitoring/)
+
+**Purpose**: Monitor the health, performance, and cost of Snowflake Snowpipe continuous data ingestion pipelines.
+
+**Key Features**:
+
+- Executive overview with pipe health %, credits consumed, files processed, and p95 latency KPIs
+- Pipe status heatmap showing RUNNING, PAUSED, and STOPPED/STALLED pipes at a glance
+- Ingestion latency trends per pipe with configurable warning and critical thresholds
+- Stage backlog monitoring to detect accumulating pending files before they cause delays
+- Error analytics by target table and top-error pipe rankings
+- Credit consumption trends over time per pipe
+
+**Required Plugin**: `snowpipes`
+
+**DPO Theme**: Operations, Performance
+
+---
+
 ### [Snowflake Security](snowflake-security/)
 
 **Purpose**: Monitor security aspects and compliance of Snowflake accounts.

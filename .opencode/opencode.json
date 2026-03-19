@@ -5,6 +5,7 @@
     ".github/context/dev-notes/*.md",
     ".github/context/pm-notes/*.md",
     ".github/context/prompts/*.md",
+    ".github/context/ai-memory/*.md",
     ".github/context/windsurf_plans/*.md"
   ]
 }
