@@ -12,6 +12,7 @@
 - [Query History](#query_history_semantics_sec)
 - [Resource Monitors](#resource_monitors_semantics_sec)
 - [Shares](#shares_semantics_sec)
+- [Snowpipes](#snowpipes_semantics_sec)
 - [Tasks](#tasks_semantics_sec)
 - [Trust Center](#trust_center_semantics_sec)
 - [Users](#users_semantics_sec)
@@ -593,6 +594,78 @@ check the `Context Name` column below.
 | snowflake.&#8203;table.&#8203;created_on | The timestamp when the table was created.                                                                                                                                                             | 1649940827875000000        | inbound_shares                  |
 | snowflake.&#8203;table.&#8203;ddl        | The timestamp of the last DDL operation performed on the table or view.                                                                                                                               | 1639940327875000000        | inbound_shares                  |
 | snowflake.&#8203;table.&#8203;update     | The timestamp when the object was last altered by a DML, DDL, or background metadata operation.                                                                                                       | 1649962827875000000        | inbound_shares                  |
+
+<a name="snowpipes_semantics_sec"></a>
+
+## The `Snowpipes` plugin semantics
+
+[Show plugin description](PLUGINS.md#snowpipes_info_sec)
+
+This plugin delivers telemetry in multiple contexts. To filter by one of plugin's context names (reported as `dsoa.run.context`), please
+check the `Context Name` column below.
+
+### Dimensions at the `Snowpipes` plugin
+
+| Identifier                                | Description                                                                       | Example                 | Context Name                                               |
+| ----------------------------------------- | --------------------------------------------------------------------------------- | ----------------------- | ---------------------------------------------------------- |
+| db.&#8203;collection.&#8203;name          | Target table for ingested data.                                                   | TARGET_TABLE            | snowpipes, snowpipes_copy_history                          |
+| db.&#8203;namespace                       | Database containing the target table or pipe.                                     | MY_DB                   | snowpipes, snowpipes_copy_history, snowpipes_usage_history |
+| snowflake.&#8203;pipe.&#8203;catalog_name | Database containing the pipe (from COPY_HISTORY).                                 | MY_DB                   | snowpipes_copy_history                                     |
+| snowflake.&#8203;pipe.&#8203;name         | Fully qualified pipe name.                                                        | MY_DB.MY_SCHEMA.MY_PIPE | snowpipes, snowpipes_copy_history, snowpipes_usage_history |
+| snowflake.&#8203;pipe.&#8203;owner        | Role owning the pipe.                                                             | LOADER_ROLE             | snowpipes                                                  |
+| snowflake.&#8203;pipe.&#8203;schema_name  | Schema containing the pipe (from COPY_HISTORY).                                   | MY_SCHEMA               | snowpipes_copy_history                                     |
+| snowflake.&#8203;pipe.&#8203;status       | Pipe execution state as original string: RUNNING, PAUSED, STOPPED*\*, STALLED*\*. | RUNNING                 | snowpipes                                                  |
+| snowflake.&#8203;schema.&#8203;name       | Schema containing the target table or pipe.                                       | MY_SCHEMA               | snowpipes, snowpipes_copy_history, snowpipes_usage_history |
+
+### Attributes at the `Snowpipes` plugin
+
+| Identifier                                                         | Description                                         | Example                                                                          | Context Name            |
+| ------------------------------------------------------------------ | --------------------------------------------------- | -------------------------------------------------------------------------------- | ----------------------- |
+| snowflake.&#8203;copy.&#8203;errors.&#8203;limit                   | Error limit for the COPY.                           | 1                                                                                | snowpipes_copy_history  |
+| snowflake.&#8203;copy.&#8203;file_name                             | Source file name.                                   | data/file_20250312.csv.gz                                                        | snowpipes_copy_history  |
+| snowflake.&#8203;copy.&#8203;first_commit_time                     | When the first chunk of the file was committed.     | 2025-03-12 08:56:00.000 Z                                                        | snowpipes_copy_history  |
+| snowflake.&#8203;copy.&#8203;first_error.&#8203;character_position | Character position of first error.                  | 128                                                                              | snowpipes_copy_history  |
+| snowflake.&#8203;copy.&#8203;first_error.&#8203;column_name        | Column name causing the first error.                | AMOUNT                                                                           | snowpipes_copy_history  |
+| snowflake.&#8203;copy.&#8203;first_error.&#8203;line_number        | Line number of first error.                         | 42                                                                               | snowpipes_copy_history  |
+| snowflake.&#8203;copy.&#8203;first_error.&#8203;message            | First error message for failed loads.               | Number of columns in file (3) does not match that of the corresponding table (4) | snowpipes_copy_history  |
+| snowflake.&#8203;copy.&#8203;pipe.&#8203;received_time             | When file was received by Snowpipe (view<br>-only). | 2025-03-12 08:55:00.000 Z                                                        | snowpipes_copy_history  |
+| snowflake.&#8203;copy.&#8203;stage_location                        | Stage location (ACCOUNT_USAGE view<br>-only).       | s3://my-bucket/data/                                                             | snowpipes_copy_history  |
+| snowflake.&#8203;copy.&#8203;status                                | Load status.                                        | LOADED                                                                           | snowpipes_copy_history  |
+| snowflake.&#8203;pipe.&#8203;created_on                            | Pipe creation timestamp.                            | 2025-01-15 10:30:00.000 Z                                                        | snowpipes               |
+| snowflake.&#8203;pipe.&#8203;definition                            | The pipe's COPY statement.                          | `COPY INTO MY_DB.MY_SCHEMA.TARGET_TABLE FROM @MY_DB.MY_SCHEMA.MY_STAGE`          | snowpipes               |
+| snowflake.&#8203;pipe.&#8203;execution_state                       | Raw execution state from SYSTEM$PIPE_STATUS.        | RUNNING                                                                          | snowpipes               |
+| snowflake.&#8203;pipe.&#8203;invalid_reason                        | Reason the pipe is in an invalid state.             |                                                                                  | snowpipes               |
+| snowflake.&#8203;pipe.&#8203;last_ingested_timestamp               | Most recent file ingestion timestamp.               | 2025-03-12 08:58:41.695 Z                                                        | snowpipes               |
+| snowflake.&#8203;pipe.&#8203;last_received_message_timestamp       | Most recent event notification timestamp.           | 2025-03-12 08:57:30.000 Z                                                        | snowpipes               |
+| snowflake.&#8203;pipe.&#8203;notification_channel                  | Cloud notification channel URL.                     | arn:aws:sqs:us-east-1:123456789012:sf-snowpipe-AIDAEXAMPLE-pipeId                | snowpipes               |
+| snowflake.&#8203;pipe.&#8203;oldest_file_timestamp                 | Timestamp of oldest pending file.                   | 2025-03-12 08:50:00.000 Z                                                        | snowpipes               |
+| snowflake.&#8203;pipe.&#8203;usage.&#8203;start_time               | Start of the usage aggregation window.              | 2025-03-12 08:00:00.000 Z                                                        | snowpipes_usage_history |
+
+### Metrics at the `Snowpipes` plugin
+
+| Identifier                                              | Name                | Unit  | Description                                                                                     | Example | Context Name            |
+| ------------------------------------------------------- | ------------------- | ----- | ----------------------------------------------------------------------------------------------- | ------- | ----------------------- |
+| snowflake.&#8203;copy.&#8203;bytes_billed               | Copy Bytes Billed   | bytes | Bytes billed for this copy operation.                                                           | 51200   | snowpipes_copy_history  |
+| snowflake.&#8203;copy.&#8203;errors                     | Copy Errors         | count | Error count in this load.                                                                       | 2       | snowpipes_copy_history  |
+| snowflake.&#8203;copy.&#8203;file_size                  | File Size           | bytes | Observed size of the source file before loading.                                                | 102400  | snowpipes_copy_history  |
+| snowflake.&#8203;pipe.&#8203;cost.&#8203;bytes_billed   | Bytes Billed        | bytes | Bytes billed for Snowpipe usage.                                                                | 524288  | snowpipes_usage_history |
+| snowflake.&#8203;pipe.&#8203;cost.&#8203;credits_used   | Credits Used        | count | Serverless credits consumed.                                                                    | 0.5     | snowpipes_usage_history |
+| snowflake.&#8203;pipe.&#8203;data.&#8203;ingested       | Data Ingested       | bytes | Bytes inserted.                                                                                 | 1048576 | snowpipes_usage_history |
+| snowflake.&#8203;pipe.&#8203;errors                     | Load Errors         | count | Files with load errors.                                                                         | 0       | snowpipes_copy_history  |
+| snowflake.&#8203;pipe.&#8203;files.&#8203;ingested      | Files Ingested      | count | Files successfully loaded in this interval.                                                     | 1       | snowpipes_copy_history  |
+| snowflake.&#8203;pipe.&#8203;files.&#8203;inserted      | Files Inserted      | count | Files inserted (from PIPE_USAGE_HISTORY).                                                       | 10      | snowpipes_usage_history |
+| snowflake.&#8203;pipe.&#8203;files.&#8203;pending       | Pending Files       | count | Files queued awaiting ingestion.                                                                | 5       | snowpipes               |
+| snowflake.&#8203;pipe.&#8203;ingest.&#8203;latency      | Ingest Latency      | ms    | Per<br>-file latency from PIPE_RECEIVED_TIME to LAST_LOAD_TIME (enabled by ACCOUNT_USAGE view). | 5000    | snowpipes_copy_history  |
+| snowflake.&#8203;pipe.&#8203;latency.&#8203;oldest_file | Oldest File Latency | ms    | Milliseconds since oldest pending file timestamp.                                               | 12345   | snowpipes               |
+| snowflake.&#8203;pipe.&#8203;rows.&#8203;loaded         | Rows Loaded         | count | Rows inserted.                                                                                  | 1000    | snowpipes_copy_history  |
+| snowflake.&#8203;pipe.&#8203;rows.&#8203;parsed         | Rows Parsed         | count | Rows parsed.                                                                                    | 1050    | snowpipes_copy_history  |
+
+### Event timestamps at the `Snowpipes` plugin
+
+| Identifier                              | Description                 | Example                   | Context Name |
+| --------------------------------------- | --------------------------- | ------------------------- | ------------ |
+| snowflake.&#8203;event.&#8203;trigger   | Standard event trigger key. | snowflake.pipe.created_on | snowpipes    |
+| snowflake.&#8203;pipe.&#8203;created_on | Pipe creation event.        | 2025-01-15 10:30:00.000 Z | snowpipes    |
 
 <a name="tasks_semantics_sec"></a>
 
