@@ -25,7 +25,7 @@
 #
 #
 import logging
-from typing import Dict, Generator, Tuple
+from typing import Dict, Generator, Tuple, Optional, List
 import pandas as pd
 from dtagent.util import _unpack_json_dict
 from dtagent.plugins import Plugin
@@ -145,7 +145,7 @@ class EventLogPlugin(Plugin):
             metrics_sent,
         )
 
-    def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
+    def process(self, run_id: str, run_proc: bool = True, contexts: Optional[List[str]] = None) -> Dict[str, Dict[str, int]]:
         """Analyzes changes in the event log
 
         Args:
@@ -182,42 +182,45 @@ class EventLogPlugin(Plugin):
             "dsoa.run.id": "uuid_string"
             }
         """
-        (
-            s_entries_cnt,
-            s_errors_count,
-            s_span_events_added,
-            s_spans_sent,
-            s_logs_sent,
-            s_metrics_sent,
-        ) = self._process_span_entries(run_id, run_proc)
-        m_entries_cnt, m_logs_cnt, m_metrics_cnt, m_event_cnt = self._process_metric_entries(run_id, run_proc)
-        l_entries_cnt, l_logs_cnt, l_metrics_cnt, l_events_cnt = self._process_log_entries(run_id, run_proc)
+        results = {}
 
-        return self._report_results(
-            {
-                "event_log": {
-                    "entries": l_entries_cnt,
-                    "log_lines": l_logs_cnt,
-                    "metrics": l_metrics_cnt,
-                    "events": l_events_cnt,
-                },
-                "event_log_metrics": {
-                    "entries": m_entries_cnt,
-                    "log_lines": m_logs_cnt,
-                    "metrics": m_metrics_cnt,
-                    "events": m_event_cnt,
-                },
-                "event_log_spans": {
-                    "entries": s_entries_cnt,
-                    "log_lines": s_logs_sent,
-                    "metrics": s_metrics_sent,
-                    "spans": s_spans_sent,
-                    "span_events": s_span_events_added,
-                    "errors": s_errors_count,
-                },
-            },
-            run_id,
-        )
+        if not contexts or "event_log_spans" in contexts:
+            (
+                s_entries_cnt,
+                s_errors_count,
+                s_span_events_added,
+                s_spans_sent,
+                s_logs_sent,
+                s_metrics_sent,
+            ) = self._process_span_entries(run_id, run_proc)
+            results["event_log_spans"] = {
+                "entries": s_entries_cnt,
+                "log_lines": s_logs_sent,
+                "metrics": s_metrics_sent,
+                "spans": s_spans_sent,
+                "span_events": s_span_events_added,
+                "errors": s_errors_count,
+            }
+
+        if not contexts or "event_log_metrics" in contexts:
+            m_entries_cnt, m_logs_cnt, m_metrics_cnt, m_event_cnt = self._process_metric_entries(run_id, run_proc)
+            results["event_log_metrics"] = {
+                "entries": m_entries_cnt,
+                "log_lines": m_logs_cnt,
+                "metrics": m_metrics_cnt,
+                "events": m_event_cnt,
+            }
+
+        if not contexts or "event_log" in contexts:
+            l_entries_cnt, l_logs_cnt, l_metrics_cnt, l_events_cnt = self._process_log_entries(run_id, run_proc)
+            results["event_log"] = {
+                "entries": l_entries_cnt,
+                "log_lines": l_logs_cnt,
+                "metrics": l_metrics_cnt,
+                "events": l_events_cnt,
+            }
+
+        return self._report_results(results, run_id)
 
 
 ##endregion

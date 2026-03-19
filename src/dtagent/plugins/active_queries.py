@@ -24,7 +24,7 @@
 # SOFTWARE.
 #
 #
-from typing import Tuple, Dict
+from typing import Tuple, Dict, Optional, List
 from dtagent.plugins import Plugin
 from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPILE_REMOVE
 
@@ -38,7 +38,7 @@ class ActiveQueriesPlugin(Plugin):
 
     PLUGIN_NAME = "active_queries"
 
-    def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
+    def process(self, run_id: str, run_proc: bool = True, contexts: Optional[List[str]] = None) -> Dict[str, Dict[str, int]]:
         """Processes the measures on active queries
 
         Args:

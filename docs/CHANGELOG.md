@@ -28,6 +28,7 @@ Released on TBD
 
 ### Improved in 0.9.4
 
+- **Security Model — Execute as Caller**: Migrated all stored procedures from `execute as owner` to `execute as caller`, reducing privilege escalation surface. `P_GRANT_IMPORTED_PRIVILEGES` moved to admin deployment scope (requires `MANAGE GRANTS`). Removed disabled `P_EXPLAIN_PLAN` procedure. Added regression test to prevent future `execute as owner` usage.
 - **Budgets Plugin**: Enhanced budget data collection using `SYSTEM$SHOW_BUDGETS_IN_ACCOUNT()`.
 - **Query Hierarchy Validation**: Confirmed and validated span hierarchy for nested stored procedure call chains (`IS_ROOT`/`IS_PARENT` flags) with dedicated test coverage for OTel parent-child propagation.
 - **Error Handling — Two-Phase Commit**: Query telemetry is now marked as processed only after the OTLP flush succeeds, preventing silent data loss when trace export fails.

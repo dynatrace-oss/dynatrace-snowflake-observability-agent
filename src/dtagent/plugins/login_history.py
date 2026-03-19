@@ -25,7 +25,7 @@
 #
 #
 
-from typing import Tuple, Dict
+from typing import Tuple, Dict, Optional, List
 from dtagent.otel.events import EventType
 from dtagent.util import _unpack_payload
 from dtagent.plugins import Plugin
@@ -57,7 +57,7 @@ class LoginHistoryPlugin(Plugin):
         }
         return EventType.CUSTOM_ALERT, "Failed login attempt", payload
 
-    def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
+    def process(self, run_id: str, run_proc: bool = True, contexts: Optional[List[str]] = None) -> Dict[str, Dict[str, int]]:
         """Processes the measures on login history.
 
         Args:
@@ -86,41 +86,43 @@ class LoginHistoryPlugin(Plugin):
             "dsoa.run.id": "uuid_string"
             }
         """
-        t_sessions = "APP.V_SESSIONS"
-        t_login_history = "APP.V_LOGIN_HISTORY"
+        results = {}
 
-        login_history_entries_cnt, login_history_logs_cnt, login_history_metrics_cnt, login_history_events_cnt = self._log_entries(
-            f_entry_generator=lambda: self._get_table_rows(t_login_history),
-            context_name="login_history",
-            run_uuid=run_id,
-            log_completion=run_proc,
-            start_time="TIMESTAMP",
-            event_column_to_check="error.code",
-            event_payload_prepare=self._prepare_event_payload_failed_login,
-        )
+        if not contexts or "login_history" in contexts:
+            t_login_history = "APP.V_LOGIN_HISTORY"
+            login_history_entries_cnt, login_history_logs_cnt, login_history_metrics_cnt, login_history_events_cnt = self._log_entries(
+                f_entry_generator=lambda: self._get_table_rows(t_login_history),
+                context_name="login_history",
+                run_uuid=run_id,
+                log_completion=run_proc,
+                start_time="TIMESTAMP",
+                event_column_to_check="error.code",
+                event_payload_prepare=self._prepare_event_payload_failed_login,
+            )
+            results["login_history"] = {
+                "entries": login_history_entries_cnt,
+                "log_lines": login_history_logs_cnt,
+                "metrics": login_history_metrics_cnt,
+                "events": login_history_events_cnt,
+            }
 
-        sessions_entries_cnt, session_logs_cnt, session_metrics_cnt, session_events_cnt = self._log_entries(
-            f_entry_generator=lambda: self._get_table_rows(t_sessions),
-            context_name="sessions",
-            run_uuid=run_id,
-            log_completion=run_proc,
-        )
+        if not contexts or "sessions" in contexts:
+            t_sessions = "APP.V_SESSIONS"
+            sessions_entries_cnt, session_logs_cnt, session_metrics_cnt, session_events_cnt = self._log_entries(
+                f_entry_generator=lambda: self._get_table_rows(t_sessions),
+                context_name="sessions",
+                run_uuid=run_id,
+                log_completion=run_proc,
+            )
+            results["sessions"] = {
+                "entries": sessions_entries_cnt,
+                "log_lines": session_logs_cnt,
+                "metrics": session_metrics_cnt,
+                "events": session_events_cnt,
+            }
 
         return self._report_results(
-            {
-                "login_history": {
-                    "entries": login_history_entries_cnt,
-                    "log_lines": login_history_logs_cnt,
-                    "metrics": login_history_metrics_cnt,
-                    "events": login_history_events_cnt,
-                },
-                "sessions": {
-                    "entries": sessions_entries_cnt,
-                    "log_lines": session_logs_cnt,
-                    "metrics": session_metrics_cnt,
-                    "events": session_events_cnt,
-                },
-            },
+            results,
             run_id,
         )
 

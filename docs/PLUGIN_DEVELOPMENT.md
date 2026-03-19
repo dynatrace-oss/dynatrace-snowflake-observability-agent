@@ -22,7 +22,7 @@ This guide explains how to create custom plugins for the Dynatrace Snowflake Obs
 Keep this cheat sheet handy to ensure your plugin integrates correctly.
 
 | Component         | Convention                 | Example (`my_plugin`)    |
-| :---------------- | :------------------------- | :----------------------- |
+|:------------------|:---------------------------|:-------------------------|
 | **Plugin Name**   | `snake_case`               | `my_plugin`              |
 | **Python File**   | `{plugin_name}.py`         | `my_plugin.py`           |
 | **Python Class**  | `{CamelCase}Plugin`        | `MyPluginPlugin`         |
@@ -975,6 +975,70 @@ After creating all the plugin files:
    ```sql
    where column_value = DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE('plugins.your_plugin.some_setting', 'default_value')
    ```
+
+6. **Include/exclude filter algorithm (required consistency rule):**
+
+   Plugins that support `include` / `exclude` configuration lists use fully-qualified
+   three-part patterns (`DB.SCHEMA.OBJECT`). Both views and admin grant procedures **must**
+   honour these patterns at the correct granularity — never collapse an exclude to DB-level only.
+
+   **In views** (filtering data rows) — always compare the full `QUALIFIED_NAME` against the raw
+   pattern value:
+
+   ```sql
+   with cte_includes as (
+       select distinct ci.VALUE as include_pattern
+       from CONFIG.CONFIGURATIONS c, table(flatten(c.VALUE)) ci
+       where c.PATH = 'plugins.your_plugin.include'
+   )
+   , cte_excludes as (
+       select distinct ce.VALUE as exclude_pattern
+       from CONFIG.CONFIGURATIONS c, table(flatten(c.VALUE)) ce
+       where c.PATH = 'plugins.your_plugin.exclude'
+   )
+   select * from YOUR_SOURCE
+   where QUALIFIED_NAME LIKE ANY (select include_pattern from cte_includes)
+     and not QUALIFIED_NAME LIKE ANY (select exclude_pattern from cte_excludes)
+   ```
+
+   **In admin grant procedures** (three-tier: DB / schema / object) — match excludes at the
+   **same tier as the grant being issued**:
+
+   | Tier   | Grant scope               | Exclude condition                                                         |
+   |--------|---------------------------|---------------------------------------------------------------------------|
+   | DB     | `IN DATABASE db`          | Only when exclude covers the whole DB: `split_part(exclude,'.', 2) = '%'` |
+   | Schema | `IN SCHEMA db.schema`     | When `db.schema.%` LIKE any exclude pattern (raw VALUE)                   |
+   | Object | `ON OBJECT db.schema.obj` | When the include pattern LIKE any exclude pattern (raw VALUE)             |
+
+   ```sql
+   -- DB-level: only DB-wide excludes (part2 = '%') suppress a DB-level grant
+   , cte_excludes as (
+       select distinct split_part(ce.VALUE, '.', 1) as db_pattern
+       from CONFIG.CONFIGURATIONS c, table(flatten(c.VALUE)) ce
+       where c.PATH = 'plugins.your_plugin.exclude'
+           and split_part(ce.VALUE, '.', 2) = '%'
+   )
+
+   -- Schema-level: full schema FQN + '.%' is matched against raw exclude VALUE
+   , cte_excludes as (
+       select distinct ce.VALUE as exclude_pattern
+       from CONFIG.CONFIGURATIONS c, table(flatten(c.VALUE)) ce
+       where c.PATH = 'plugins.your_plugin.exclude'
+   )
+   -- ... in the WHERE clause:
+   and not (db_name || '.' || schema_name || '.%') LIKE ANY (select exclude_pattern from cte_excludes)
+
+   -- Object-level: include pattern itself matched against raw exclude VALUE
+   and not ci.VALUE LIKE ANY (
+       select ce.VALUE from CONFIG.CONFIGURATIONS c2, table(flatten(c2.VALUE)) ce
+       where c2.PATH = 'plugins.your_plugin.exclude'
+   )
+   ```
+
+   **Why this matters:** if a fine-grained exclude such as `PROD_DB.SECRET_SCHEMA.%` is collapsed
+   to just `PROD_DB` at DB-level, the entire database is excluded from grants instead of only the
+   intended schema. This diverges from the documented semantics and breaks the least-privilege
+   principle.
 
 ### Python Best Practices
 

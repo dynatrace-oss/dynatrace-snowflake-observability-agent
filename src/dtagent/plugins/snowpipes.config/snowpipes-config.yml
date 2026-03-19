@@ -1,0 +1,17 @@
+plugins:
+  snowpipes:
+    include:
+      - '%.%.%'
+    exclude:
+      - DTAGENT_DB.%.%
+    schedule: USING CRON */5 * * * * UTC
+    schedule_history: USING CRON 0 * * * * UTC
+    schedule_grants: USING CRON 30 */12 * * * UTC
+    lookback_hours: 4
+    lookback_hours_usage: 6
+    is_disabled: false
+    telemetry:
+      - metrics
+      - logs
+      - events
+      - biz_events
