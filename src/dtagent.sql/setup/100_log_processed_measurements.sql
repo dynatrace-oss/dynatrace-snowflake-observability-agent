@@ -34,6 +34,7 @@ create or replace procedure DTAGENT_DB.STATUS.LOG_PROCESSED_MEASUREMENTS(
 )
 returns text
 language sql
+execute as caller
 as
 $$
 declare

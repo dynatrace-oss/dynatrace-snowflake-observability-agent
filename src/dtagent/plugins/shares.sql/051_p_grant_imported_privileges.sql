@@ -22,31 +22,22 @@
 --
 --
 
+--
+-- This is a no-op stub for P_GRANT_IMPORTED_PRIVILEGES.
+-- The real implementation lives in shares.sql/admin/051_p_grant_imported_privileges.sql
+-- and requires the DTAGENT_ADMIN deployment scope (MANAGE GRANTS on ACCOUNT).
+-- When the admin scope is deployed, it overwrites this stub with the working procedure.
+--
 use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 create or replace procedure DTAGENT_DB.APP.P_GRANT_IMPORTED_PRIVILEGES(db_name VARCHAR)
 returns text
 language sql
-execute as owner
+execute as caller
 as
 $$
-DECLARE
-    safe_identifier_re  TEXT DEFAULT '^[A-Za-z_][A-Za-z0-9_$]*$';
-    db_name_q           TEXT DEFAULT '';
 BEGIN
-    IF (NOT REGEXP_LIKE(UPPER(:db_name), :safe_identifier_re)) THEN
-        SYSTEM$LOG_WARN('P_GRANT_IMPORTED_PRIVILEGES: skipping invalid database name (unsafe identifier): ' || :db_name);
-        RETURN 'skipped: unsafe database name ' || :db_name;
-    END IF;
-
-    db_name_q := '"' || UPPER(:db_name) || '"';
-    EXECUTE IMMEDIATE concat('GRANT IMPORTED PRIVILEGES on DATABASE ', :db_name_q, ' TO ROLE DTAGENT_VIEWER');
-
-    RETURN 'imported privileges granted on ' || :db_name;
-EXCEPTION
-  when statement_error then
-    SYSTEM$LOG_WARN(SQLERRM);
-
-    return SQLERRM;
+    SYSTEM$LOG_WARN('P_GRANT_IMPORTED_PRIVILEGES: requires DTAGENT_ADMIN deployment scope; skipping grant for ' || :db_name);
+    RETURN 'skipped: DTAGENT_ADMIN scope not deployed; cannot grant imported privileges on ' || :db_name;
 END;
 $$
 ;

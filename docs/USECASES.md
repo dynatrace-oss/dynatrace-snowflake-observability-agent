@@ -167,7 +167,7 @@ The matrix below maps each DPO theme to the three observability tiers, showing t
 
 | Plugin        | Status                        | Key Use Cases                                                                              | DPO Themes                              |
 |---------------|-------------------------------|--------------------------------------------------------------------------------------------|-----------------------------------------|
-| **Snowpipes** | Next release (validated)      | Operational monitoring, FinOps attribution, ingestion validation, throughput analysis      | Operations, Costs, Performance, Quality |
+| **Snowpipes** | 0.9.4                         | Operational monitoring, FinOps attribution, ingestion validation, throughput analysis      | Operations, Costs, Performance, Quality |
 | **Stages**    | Planned (deferred)            | Access auditing, storage cost visibility, data validation (non-pipe operations only)       | Security, Costs, Quality                |
 | **Streams**   | Planned (no immediate demand) | Consumption lag detection, FinOps attribution, volume spike detection, CDC drift detection | Operations, Costs, Performance, Quality |
 
