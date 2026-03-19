@@ -44,3 +44,4 @@ dynatrace-snowflake-observability-agent
 
 # === AI & Development Context ===
 .github/context/*
+*.heapsnapshot
