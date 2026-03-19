@@ -4,7 +4,7 @@ Dynatrace Snowflake Observability Agent (DSOA) delivers telemetry to implement a
 the three DPO tiers: **Data Infrastructure**, **Data Apps & Pipelines**, and **Data Quality & Governance**.
 
 Here are the use cases which can be realized with observability data gathered and delivered to Dynatrace by DSOA.
-Use cases marked with 🔜 are **upcoming** — they depend on plugins currently in development (Snowpipes, Stages, Streams).
+Use cases marked with 🔜 are **upcoming** — they depend on plugins currently in development (Stages, Streams).
 
 - [Theme: Security](#theme-security)
 - [Theme: Operations](#theme-operations)
@@ -59,8 +59,8 @@ Use cases marked with 🔜 are **upcoming** — they depend on plugins currently
 | Task orchestration monitoring       | Monitor task graph versions, predecessors, schedules, error integrations, and execution states. Detect failed tasks with error codes and messages.    | [Tasks plugin](PLUGINS.md#tasks_info_sec)                   |
 | Dynamic table refresh monitoring    | Track dynamic table refresh status, scheduling lag, and operational state changes to detect stale materializations.                                   | [Dynamic Tables plugin](PLUGINS.md#dynamic_tables_info_sec) |
 | Current query monitoring            | Monitor the status and runtime duration of currently executing queries across all warehouses, detecting long-running or stuck queries.                | [Active Queries plugin](PLUGINS.md#active_queries_info_sec) |
-| 🔜 Snowpipe operational monitoring  | Monitor pipe health and status: detect PAUSED_BY_SNOWFLAKE and STOPPED_BY_SNOWFLAKE states, track error-file percentages, and alert on pipe failures. | Snowpipes plugin (upcoming)                                 |
-| 🔜 Snowpipe stage backlog analysis  | Track pending file counts and stage scan depth to detect ingestion backlogs and stalled pipelines.                                                    | Snowpipes plugin (upcoming)                                 |
+| Snowpipe operational monitoring     | Monitor pipe health and status: detect PAUSED_BY_SNOWFLAKE and STOPPED_BY_SNOWFLAKE states, track error-file percentages, and alert on pipe failures. | Snowpipes plugin (upcoming)                                 |
+| Snowpipe stage backlog analysis     | Track pending file counts and stage scan depth to detect ingestion backlogs and stalled pipelines.                                                    | Snowpipes plugin (upcoming)                                 |
 | 🔜 Stream consumption lag detection | Monitor stream staleness, detect stalled consumers (no consumption within N intervals), and alert on streams approaching their max offset age.        | Streams plugin (upcoming)                                   |
 
 ### Operations — Tier 3 — Data Quality & Governance
@@ -90,7 +90,7 @@ Use cases marked with 🔜 are **upcoming** — they depend on plugins currently
 | Serverless task cost analysis    | Monitor credits spent by serverless tasks (which rely on Snowflake-managed compute) broken down by database, schema, and task name.       | [Tasks plugin](PLUGINS.md#tasks_info_sec)                 |
 | Query cost attribution           | Attribute cloud services credits and compute costs to specific users, roles, warehouses, and query types for chargeback and optimization. | [Query History plugin](PLUGINS.md#query_history_info_sec) |
 | Data transfer cost monitoring    | Track inbound and outbound data transfer volumes across regions and clouds to identify unexpected cross-region costs.                     | [Query History plugin](PLUGINS.md#query_history_info_sec) |
-| 🔜 Snowpipe FinOps attribution   | Track credits consumed by Snowpipe per pipe, per database, enabling cost allocation and chargeback for data ingestion pipelines.          | Snowpipes plugin (upcoming)                               |
+| Snowpipe FinOps attribution      | Track credits consumed by Snowpipe per pipe, per database, enabling cost allocation and chargeback for data ingestion pipelines.          | Snowpipes plugin (upcoming)                               |
 | 🔜 Stage storage cost visibility | Monitor stage file counts and sizes to identify stale files consuming storage credits, and track external stage cloud provider costs.     | Stages plugin (upcoming)                                  |
 | 🔜 Stream FinOps attribution     | Attribute CDC processing costs to specific streams and consuming tasks for accurate FinOps reporting.                                     | Streams plugin (upcoming)                                 |
 
@@ -118,7 +118,7 @@ Use cases marked with 🔜 are **upcoming** — they depend on plugins currently
 | Dynamic table refresh performance     | Track dynamic table scheduling lag and data freshness to detect materializations falling behind their target lag.                                                                   | [Dynamic Tables plugin](PLUGINS.md#dynamic_tables_info_sec) |
 | Query summary and active monitoring   | Provide a real-time summary of queries giving their count, fastest, slowest, and average running time. Detect long-running queries in progress.                                     | [Active Queries plugin](PLUGINS.md#active_queries_info_sec) |
 | External function performance         | Monitor external function invocations, data sent/received volumes, and row counts to detect performance bottlenecks in remote service calls.                                        | [Query History plugin](PLUGINS.md#query_history_info_sec)   |
-| 🔜 Snowpipe ingestion throughput      | Track files-per-interval and bytes-per-interval rates to detect throughput degradation and ingestion bottlenecks.                                                                   | Snowpipes plugin (upcoming)                                 |
+| Snowpipe ingestion throughput         | Track files-per-interval and bytes-per-interval rates to detect throughput degradation and ingestion bottlenecks.                                                                   | Snowpipes plugin (upcoming)                                 |
 | 🔜 Stream change-record volume spikes | Detect abnormal surges in CDC record volumes that could indicate upstream schema changes or bulk operations impacting downstream consumers.                                         | Streams plugin (upcoming)                                   |
 
 ---
@@ -138,7 +138,7 @@ Use cases marked with 🔜 are **upcoming** — they depend on plugins currently
 |-------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------|
 | Share data quality                  | Monitor inbound share availability status, detect UNAVAILABLE shares, and track table row counts and sizes within shared databases to identify data quality issues in shared datasets. | [Shares plugin](PLUGINS.md#shares_info_sec)                 |
 | Dynamic table data freshness        | Track dynamic table scheduling lag and data timestamp to detect stale materializations that could propagate outdated data downstream.                                                  | [Dynamic Tables plugin](PLUGINS.md#dynamic_tables_info_sec) |
-| 🔜 Snowpipe ingestion validation    | Track error-file ratios, detect PARTIALLY_LOADED states, and validate that ingested row counts match expected volumes.                                                                 | Snowpipes plugin (upcoming)                                 |
+| Snowpipe ingestion validation       | Track error-file ratios, detect PARTIALLY_LOADED states, and validate that ingested row counts match expected volumes.                                                                 | Snowpipes plugin (upcoming)                                 |
 | 🔜 Stage data validation            | Monitor file counts and modification timestamps in stages, detect orphaned files, and validate stage-to-table load completeness.                                                       | Stages plugin (upcoming)                                    |
 | 🔜 CDC data-quality drift detection | Detect structural changes in stream source tables that cause downstream type mismatches or schema evolution issues.                                                                    | Streams plugin (upcoming)                                   |
 
@@ -165,8 +165,12 @@ The matrix below maps each DPO theme to the three observability tiers, showing t
 
 ### Upcoming Plugin Summary
 
-| Plugin        | Status         | Key Use Cases                                                                              | DPO Themes                              |
-|---------------|----------------|--------------------------------------------------------------------------------------------|-----------------------------------------|
-| **Snowpipes** | In development | Operational monitoring, FinOps attribution, ingestion validation, throughput analysis      | Operations, Costs, Performance, Quality |
-| **Stages**    | In development | Access auditing, storage cost visibility, data validation                                  | Security, Costs, Quality                |
-| **Streams**   | In development | Consumption lag detection, FinOps attribution, volume spike detection, CDC drift detection | Operations, Costs, Performance, Quality |
+| Plugin        | Status                        | Key Use Cases                                                                              | DPO Themes                              |
+|---------------|-------------------------------|--------------------------------------------------------------------------------------------|-----------------------------------------|
+| **Snowpipes** | 0.9.4                         | Operational monitoring, FinOps attribution, ingestion validation, throughput analysis      | Operations, Costs, Performance, Quality |
+| **Stages**    | Planned (deferred)            | Access auditing, storage cost visibility, data validation (non-pipe operations only)       | Security, Costs, Quality                |
+| **Streams**   | Planned (no immediate demand) | Consumption lag detection, FinOps attribution, volume spike detection, CDC drift detection | Operations, Costs, Performance, Quality |
+
+> **Note:** Pipe-associated stage monitoring (backlog, pending files) is covered by the Snowpipes plugin
+> via `SYSTEM$PIPE_STATUS`. The standalone Stages plugin targets non-pipe operations (`PIPE_NAME IS NULL`
+> in COPY_HISTORY): manual COPY INTO, stage storage sprawl, zombie file detection, and access auditing.

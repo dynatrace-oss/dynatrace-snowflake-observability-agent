@@ -24,7 +24,7 @@
 # SOFTWARE.
 #
 #
-from typing import Any, Dict
+from typing import Any, Dict, Optional, List
 
 from dtagent.plugins import Plugin
 from dtagent.otel.events import EventType
@@ -99,7 +99,7 @@ class DataSchemasPlugin(Plugin):
             context=context,
         )
 
-    def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
+    def process(self, run_id: str, run_proc: bool = True, contexts: Optional[List[str]] = None) -> Dict[str, Dict[str, int]]:
         """Processes data for data schemas plugin.
 
         Args:

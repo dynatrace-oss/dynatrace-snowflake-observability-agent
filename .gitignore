@@ -33,7 +33,6 @@ build/*
 package/*
 output/**
 metrics/*
-instruments-def.*
 *-deploy-script*
 dynatrace-snowflake-observability-agent
 

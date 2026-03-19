@@ -25,7 +25,7 @@
 #
 #
 import logging
-from typing import Tuple, Dict
+from typing import Tuple, Dict, Optional, List
 from regex import R
 from snowflake.snowpark.functions import current_timestamp
 from dtagent.util import _unpack_json_dict, EVENT_TIMESTAMP_KEYS_PAYLOAD_NAME
@@ -42,7 +42,6 @@ class ResourceMonitorsPlugin(Plugin):
     """Resource monitors plugin class."""
 
     PLUGIN_NAME = "resource_monitors"
-
     unattached_rms: int = 0
     unmonitored_wh: int = 0
     has_account_rm: bool = False
@@ -98,7 +97,7 @@ class ResourceMonitorsPlugin(Plugin):
 
         return False
 
-    def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
+    def process(self, run_id: str, run_proc: bool = True, contexts: Optional[List[str]] = None) -> Dict[str, Dict[str, int]]:
         """Processes the measures on resource monitors.
 
         Args:
@@ -128,61 +127,61 @@ class ResourceMonitorsPlugin(Plugin):
             }
         """
         context_name = "resource_monitors"
+        results_dict = {}
 
         if run_proc:
             # we need to refresh the temporary tables with resource monitors and warehouse telemetry
             self._session.call("APP.P_REFRESH_RESOURCE_MONITORS")
 
-        (
-            resource_monitors_entries_cnt,
-            resource_monitors_logs_cnt,
-            resource_monitors_metrics_cnt,
-            resource_monitors_events_cnt,
-        ) = self._log_entries(
-            f_entry_generator=lambda: self._get_table_rows("APP.V_RESOURCE_MONITORS"),
-            context_name=context_name,
-            run_uuid=run_id,
-            f_event_timestamp_payload_prepare=self._prepare_event_timestamps_payload_rm,
-            f_report_log=self._process_log_rm,
-            log_completion=False,
-        )
-
-        if not self.has_account_rm:
-            # we do not seem to have a account level resource monitor setup - send a warning
-            self._logs.send_log(
-                "There is no ACCOUNT level resource monitor setup",
-                log_level=logging.ERROR,
-                context=get_context_name_and_run_id(plugin_name=self._plugin_name, context_name=context_name, run_id=run_id),
+        if not contexts or "resource_monitors" in contexts:
+            (
+                resource_monitors_entries_cnt,
+                resource_monitors_logs_cnt,
+                resource_monitors_metrics_cnt,
+                resource_monitors_events_cnt,
+            ) = self._log_entries(
+                f_entry_generator=lambda: self._get_table_rows("APP.V_RESOURCE_MONITORS"),
+                context_name=context_name,
+                run_uuid=run_id,
+                f_event_timestamp_payload_prepare=self._prepare_event_timestamps_payload_rm,
+                f_report_log=self._process_log_rm,
+                log_completion=False,
             )
-
-        (
-            warehouses_entries_cnt,
-            warehouses_logs_cnt,
-            warehouses_metrics_cnt,
-            warehouses_events_cnt,
-        ) = self._log_entries(
-            f_entry_generator=lambda: self._get_table_rows("APP.V_WAREHOUSES"),
-            context_name=context_name,
-            run_uuid=run_id,
-            f_event_timestamp_payload_prepare=self._prepare_event_timestamps_payload_wh,
-            f_report_log=self._process_log_wh,
-            log_completion=False,
-        )
-
-        results_dict = {
-            "resource_monitors": {
+            results_dict["resource_monitors"] = {
                 "entries": resource_monitors_entries_cnt,
                 "log_lines": resource_monitors_logs_cnt,
                 "metrics": resource_monitors_metrics_cnt,
                 "events": resource_monitors_events_cnt,
-            },
-            "warehouses": {
+            }
+
+            if not self.has_account_rm:
+                # we do not seem to have a account level resource monitor setup - send a warning
+                self._logs.send_log(
+                    "There is no ACCOUNT level resource monitor setup",
+                    log_level=logging.ERROR,
+                    context=get_context_name_and_run_id(plugin_name=self._plugin_name, context_name=context_name, run_id=run_id),
+                )
+
+        if not contexts or "warehouses" in contexts:
+            (
+                warehouses_entries_cnt,
+                warehouses_logs_cnt,
+                warehouses_metrics_cnt,
+                warehouses_events_cnt,
+            ) = self._log_entries(
+                f_entry_generator=lambda: self._get_table_rows("APP.V_WAREHOUSES"),
+                context_name=context_name,
+                run_uuid=run_id,
+                f_event_timestamp_payload_prepare=self._prepare_event_timestamps_payload_wh,
+                f_report_log=self._process_log_wh,
+                log_completion=False,
+            )
+            results_dict["warehouses"] = {
                 "entries": warehouses_entries_cnt,
                 "log_lines": warehouses_logs_cnt,
                 "metrics": warehouses_metrics_cnt,
                 "events": warehouses_events_cnt,
-            },
-        }
+            }
 
         if run_proc:
             self._report_execution("resource_monitors", current_timestamp(), None, results_dict, run_id=run_id)
