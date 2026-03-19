@@ -54,7 +54,7 @@ check-jsonschema
 pylint
 flake8
 flake8-docstrings
-black==26.1.0
+black==26.3.1
 sqlfluff
 yamllint
 
@@ -83,6 +83,10 @@ protobuf>=5.29.6,<6.0.0
 urllib3>=2.6.3
 # CVE-2026-24049: Wheel path traversal vulnerability
 wheel>=0.46.2
+# CVE-2026-27459 (GHSA-5pwr-322w-8jr4) HIGH: pyOpenSSL DTLS cookie callback buffer overflow
+# CVE-2026-27448 (GHSA-vp96-hxj8-p424) LOW: pyOpenSSL TLS connection bypass via unhandled callback
+# BLOCKED: snowflake-connector-python>=4.3.0 pins pyOpenSSL<26.0.0 — cannot upgrade until Snowflake lifts the bound
+# Track: https://github.com/snowflakedb/snowflake-connector-python for a release with pyOpenSSL>=26.0.0
 
 # dependencies
 chardet>=3.0.2,<6.0.0

@@ -27,13 +27,13 @@ Every plugin **must** have three co-located parts:
 
 ### Key modules
 
-- `agent.py` — `DynatraceSnowAgent` entry point
-- `config.py` — reads `CONFIG.CONFIGURATIONS` table
-- `connector.py` — ad-hoc telemetry sender
-- `util.py` — shared helpers (escaping, JSON, timestamps)
-- `otel/` — exporters: `Logs`, `Spans`, `Metrics`, events
-- `otel/semantics.py` — metric semantic definitions (auto-generated)
-- `_snowflake.py` — secrets via `read_secret()`
+- `src/dtagent/agent.py` — `DynatraceSnowAgent` entry point
+- `src/dtagent/config.py` — reads `CONFIG.CONFIGURATIONS` table
+- `src/dtagent/connector.py` — ad-hoc telemetry sender
+- `src/dtagent/util.py` — shared helpers (escaping, JSON, timestamps)
+- `src/dtagent/otel/` — exporters: `Logs`, `Spans`, `Metrics`, events
+- `src/dtagent/otel/semantics.py` — metric semantic definitions (auto-generated)
+- `src/dtagent/_snowflake.py` — secrets via `read_secret()`
 
 ## 🛠️ Tech Stack & Implementation
 
@@ -96,9 +96,9 @@ Subclass plugin → override `_get_table_rows()` with NDJSON fixture → monkey-
 Key files: `test/_utils.py` (`execute_telemetry_test()`), `test/_mocks/telemetry.py` (`MockTelemetryClient`). See [`docs/PLUGIN_DEVELOPMENT.md`](../docs/PLUGIN_DEVELOPMENT.md).
 
 ```bash
-.venv/bin/pytest                             # full suite
-scripts/dev/test_core.sh && test.sh          # core / plugins
-.venv/bin/pytest test/plugins/test_X.py -v  # single file
+.venv/bin/pytest                                    # full suite
+scripts/dev/test_core.sh && scripts/dev/test.sh     # core / plugins
+.venv/bin/pytest test/plugins/test_X.py -v          # single file
 ```
 
 ## 📖 Documentation (MANDATORY)
@@ -110,10 +110,10 @@ Docs are a first-class deliverable. Run `./scripts/update_docs.sh` after any cod
 
 | Change type           | Update these                                                                              |
 | --------------------- | ----------------------------------------------------------------------------------------- |
-| New plugin            | `docs/USECASES.md`, plugin `readme.md` + `config.md`, `instruments-def.yml`              |
+| New plugin            | `docs/USECASES.md`, plugin `readme.md` + `config.md`, `instruments-def.yml`               |
 | New metric/attribute  | `instruments-def.yml`, `docs/SEMANTICS.md`                                                |
 | Architecture change   | `docs/ARCHITECTURE.md`                                                                    |
-| New version / release | `docs/CHANGELOG.md` (user-facing), `docs/DEVLOG.md` (technical)                          |
+| New version / release | `docs/CHANGELOG.md` (user-facing), `docs/DEVLOG.md` (technical)                           |
 | Config change         | `conf/config-template.yml`, plugin's `{name}-config.yml`                                  |
 
 ### CHANGELOG vs DEVLOG
