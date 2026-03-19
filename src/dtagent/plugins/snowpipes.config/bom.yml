@@ -1,0 +1,59 @@
+delivers:
+  - name: DTAGENT_DB.APP.F_SNOWPIPES_INSTRUMENTED()
+    type: procedure
+  - name: DTAGENT_DB.APP.V_SNOWPIPES_COPY_HISTORY_INSTRUMENTED
+    type: view
+  - name: DTAGENT_DB.APP.V_SNOWPIPES_USAGE_HISTORY_INSTRUMENTED
+    type: view
+  - name: DTAGENT_DB.APP.P_GRANT_MONITOR_SNOWPIPES()
+    type: procedure
+  - name: DTAGENT_DB.CONFIG.UPDATE_SNOWPIPES_CONF()
+    type: procedure
+  - name: DTAGENT_DB.APP.TASK_DTAGENT_SNOWPIPES
+    type: task
+    comment: "Fast-mode (*/5)"
+  - name: DTAGENT_DB.APP.TASK_DTAGENT_SNOWPIPES_HISTORY
+    type: task
+    comment: "Deep-mode (hourly)"
+  - name: DTAGENT_DB.APP.TASK_DTAGENT_SNOWPIPES_GRANTS
+    type: task
+    comment: (Admin scope only) Admin task owned by DTAGENT_ADMIN to grant MONITOR privileges on pipes
+
+references:
+  - name: SHOW PIPES
+    type: command
+    privileges: USAGE
+  - name: SYSTEM$PIPE_STATUS
+    type: function
+    privileges: "MONITOR (per pipe)"
+  - name: SNOWFLAKE.ACCOUNT_USAGE.COPY_HISTORY
+    type: view
+    privileges: "SELECT (IMPORTED PRIVILEGES)"
+  - name: SNOWFLAKE.ACCOUNT_USAGE.PIPE_USAGE_HISTORY
+    type: view
+    privileges: "SELECT (IMPORTED PRIVILEGES)"
+  - name: ALL PIPES IN DATABASE $db
+    type: pipe
+    privileges: MONITOR
+    granted to: DTAGENT_VIEWER
+    comment: Granted when include pattern has wildcard schema (e.g. DB.%.%)
+  - name: ALL FUTURE PIPES IN DATABASE $db
+    type: pipe
+    privileges: MONITOR
+    granted to: DTAGENT_VIEWER
+    comment: Granted when include pattern has wildcard schema (e.g. DB.%.%)
+  - name: ALL PIPES IN SCHEMA $db.$schema
+    type: pipe
+    privileges: MONITOR
+    granted to: DTAGENT_VIEWER
+    comment: Granted when include pattern has specific schema (e.g. DB.ANALYTICS.%)
+  - name: ALL FUTURE PIPES IN SCHEMA $db.$schema
+    type: pipe
+    privileges: MONITOR
+    granted to: DTAGENT_VIEWER
+    comment: Granted when include pattern has specific schema (e.g. DB.ANALYTICS.%)
+  - name: PIPE $db.$schema.$pipe
+    type: pipe
+    privileges: MONITOR
+    granted to: DTAGENT_VIEWER
+    comment: Granted when include pattern specifies an exact pipe name (e.g. DB.ANALYTICS.MY_PIPE); no FUTURE grant at pipe level

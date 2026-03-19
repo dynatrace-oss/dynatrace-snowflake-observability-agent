@@ -25,7 +25,7 @@
 #
 #
 
-from typing import Tuple, Dict
+from typing import Tuple, Dict, Optional, List
 from snowflake.snowpark.functions import current_timestamp
 from dtagent.plugins import Plugin
 from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPILE_REMOVE
@@ -39,7 +39,7 @@ class BudgetsPlugin(Plugin):
 
     PLUGIN_NAME = "budgets"
 
-    def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
+    def process(self, run_id: str, run_proc: bool = True, contexts: Optional[List[str]] = None) -> Dict[str, Dict[str, int]]:
         """Processes data for budgets plugin.
 
         Args:
@@ -71,48 +71,47 @@ class BudgetsPlugin(Plugin):
                 }
         """
 
+        results = {}
         budgets_cnt = 0
         p_refresh_budgets = "APP.P_GET_BUDGETS"
-
-        t_get_budgets = "APP.V_BUDGET_DETAILS"
-        t_budget_spending = "APP.V_BUDGET_SPENDINGS"
 
         if run_proc:
             # this procedure ensures that the budgets and spendings tables are up to date
             self._session.call(p_refresh_budgets)
 
-        budgets_cnt, logs_budgets_cnt, budgets_metrics_cnt, budgets_events_cnt = self._log_entries(
-            lambda: self._get_table_rows(t_get_budgets),
-            "budgets",
-            run_uuid=run_id,
-            start_time="TIMESTAMP",
-            log_completion=False,
-        )
-
-        spendings_cnt, logs_spendings_cnt, spending_metrics_cnt, spending_events_cnt = self._log_entries(
-            lambda: self._get_table_rows(t_budget_spending),
-            "budgets",
-            run_uuid=run_id,
-            start_time="TIMESTAMP",
-            log_completion=False,
-        )
-
-        results_dict = {
-            "budgets": {
+        if not contexts or "budgets" in contexts:
+            t_get_budgets = "APP.V_BUDGET_DETAILS"
+            budgets_cnt, logs_budgets_cnt, budgets_metrics_cnt, budgets_events_cnt = self._log_entries(
+                lambda: self._get_table_rows(t_get_budgets),
+                "budgets",
+                run_uuid=run_id,
+                start_time="TIMESTAMP",
+                log_completion=False,
+            )
+            results["budgets"] = {
                 "entries": budgets_cnt,
                 "log_lines": logs_budgets_cnt,
                 "metrics": budgets_metrics_cnt,
                 "events": budgets_events_cnt,
-            },
-            "spendings": {
+            }
+
+        if not contexts or "spendings" in contexts:
+            t_budget_spending = "APP.V_BUDGET_SPENDINGS"
+            spendings_cnt, logs_spendings_cnt, spending_metrics_cnt, spending_events_cnt = self._log_entries(
+                lambda: self._get_table_rows(t_budget_spending),
+                "budgets",
+                run_uuid=run_id,
+                start_time="TIMESTAMP",
+                log_completion=False,
+            )
+            results["spendings"] = {
                 "entries": spendings_cnt,
                 "log_lines": logs_spendings_cnt,
                 "metrics": spending_metrics_cnt,
                 "events": spending_events_cnt,
-            },
-        }
+            }
 
         if run_proc:
-            self._report_execution("budgets", current_timestamp(), None, results_dict, run_id=run_id)
+            self._report_execution("budgets", current_timestamp(), None, results, run_id=run_id)
 
-        return self._report_results(results_dict, run_id)
+        return self._report_results(results, run_id)

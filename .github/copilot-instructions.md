@@ -169,5 +169,8 @@ Four mandatory phases — do not skip or merge.
 - **Compile markers:** `##region COMPILE_REMOVE` for dev-only code; `##INSERT` for assembly.
 - **Conditional SQL:** `--%PLUGIN:name:` / `--%OPTION:name:` for conditionals.
 - **Configuration:** Never hard-code. Add to templates and YAML.
+- **Plugin enablement:** With `disabled_by_default: true`, use `is_enabled: true` (not `is_disabled: false`) to activate a plugin. Add `deploy_disabled_plugins: false` to skip deploying SQL for disabled plugins and reduce deployment time.
+- **SQL `$$` blocks:** The `snow sql` CLI misparses cursor field access (e.g. `r_db.name`) inside `$$`-delimited procedure bodies. Always capture cursor fields into `LET` variables first (e.g. `LET v_name TEXT := r_db.name;`), then use the variable.
+- **Include/exclude filtering:** Plugins that use `include`/`exclude` pattern lists (`DB.SCHEMA.OBJECT`) must match excludes at the **same granularity** as includes — never collapse a fine-grained exclude to DB-level only. Views compare `QUALIFIED_NAME LIKE ANY (excludes)` using the full raw VALUE. Admin grant procedures match each tier separately: DB-level suppression only for excludes whose part2 is `%`, schema-level suppression via `(db.schema.%) LIKE ANY (raw excludes)`, object-level suppression by matching the include VALUE itself against excludes. See `PLUGIN_DEVELOPMENT.md` §SQL Best Practices item 6 for the canonical pattern.
 - **Security:** Never commit credentials. Use `.gitignore` and `_snowflake.read_secret()`.
 - **Backward compatibility:** Provide upgrade scripts for object changes. Document breaking changes.

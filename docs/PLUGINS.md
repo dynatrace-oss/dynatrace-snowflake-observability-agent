@@ -12,6 +12,7 @@
 - [Query History](#query_history_info_sec)
 - [Resource Monitors](#resource_monitors_info_sec)
 - [Shares](#shares_info_sec)
+- [Snowpipes](#snowpipes_info_sec)
 - [Tasks](#tasks_info_sec)
 - [Trust Center](#trust_center_info_sec)
 - [Users](#users_info_sec)
@@ -548,9 +549,9 @@ The event log plugin queries `STATUS.EVENT_LOG` on every run. The following sett
   freshness against cost. For high-volume accounts, consider running less frequently with higher `max_entries`.
 
 > **IMPORTANT**: A dedicated cleanup task, `APP.TASK_DTAGENT_EVENT_LOG_CLEANUP`, ensures that the `EVENT_LOG` table contains only data no
-> older than the duration you define with the `PLUGINS.EVENT_LOG.RETENTION_HOURS` configuration option.
-> You can schedule this task separately using the `PLUGINS.EVENT_LOG.SCHEDULE_CLEANUP` configuration option, run the cleanup procedure
-> `APP.P_CLEANUP_EVENT_LOG()` manually, or manage the retention of data in the `EVENT_LOG` table yourself.
+> older than the duration you define with the `plugins.event_log.retention_hours` configuration option. You can schedule this task
+> separately using the `plugins.event_log.schedule_cleanup` configuration option, run the cleanup procedure `APP.P_CLEANUP_EVENT_LOG()`
+> manually, or manage the retention of data in the `EVENT_LOG` table yourself.
 
 > **INFO**: The `EVENT_LOG` table cleanup process works only if this specific instance of Dynatrace Snowflake Observability Agent set up the
 > table.
@@ -971,6 +972,113 @@ The following tables list the Snowflake objects that this plugin delivers data f
 | SHOW SHARES                                | command | USAGE                           |                |                                                                                                                      |
 | SHOW GRANTS TO SHARE $share                | command | USAGE                           |                |                                                                                                                      |
 | SNOWFLAKE.ACCOUNT_USAGE.DATABASES          | view    | SELECT                          | DTAGENT_VIEWER |                                                                                                                      |
+
+<a name="snowpipes_info_sec"></a>
+
+## The Snowpipes plugin
+
+This plugin enables monitoring of Snowflake Snowpipes, tracking real-time pipe status, ingestion latency, throughput, costs, and load
+errors.
+
+The plugin uses a **dual-schedule architecture**:
+
+- **Fast mode** (every 5 minutes, no warehouse): `SHOW PIPES` + `SYSTEM$PIPE_STATUS()` for real-time status, backlog, and latency.
+- **Deep mode** (hourly, warehouse required): `ACCOUNT_USAGE.COPY_HISTORY` and `PIPE_USAGE_HISTORY` for volume, cost, errors, throughput,
+  and per-file latency.
+
+The `MONITOR` privilege on pipes is required for `SYSTEM$PIPE_STATUS()`. When the `admin` scope is installed, this is handled automatically
+by `P_GRANT_MONITOR_SNOWPIPES()`.
+
+[Show semantics for this plugin](SEMANTICS.md#snowpipes_semantics_sec)
+
+### Snowpipes default configuration
+
+To disable this plugin, set `IS_DISABLED` to `true`.
+
+In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you need to explicitly set `IS_ENABLED` to `true` to enable
+selected plugins; `IS_DISABLED` is not checked then.
+
+```yaml
+plugins:
+  snowpipes:
+    include:
+      - "%.%.%"
+    exclude:
+      - DTAGENT_DB.%.%
+    schedule: USING CRON */5 * * * * UTC
+    schedule_history: USING CRON 0 * * * * UTC
+    schedule_grants: USING CRON 30 */12 * * * UTC
+    lookback_hours: 4
+    lookback_hours_usage: 6
+    is_disabled: false
+    telemetry:
+      - metrics
+      - logs
+      - events
+      - biz_events
+```
+
+> **IMPORTANT**: For this plugin to function correctly, `MONITOR on PIPES` must be granted to the `DTAGENT_VIEWER` role (required for
+> `SYSTEM$PIPE_STATUS()`). By default, when the `admin` scope is installed, this is handled by the `P_GRANT_MONITOR_SNOWPIPES()` procedure,
+> which is executed with the elevated privileges of the `DTAGENT_ADMIN` role (created only when the `admin` scope is installed), via the
+> `APP.TASK_DTAGENT_SNOWPIPES_GRANTS` task. The schedule for this task can be configured separately using the
+> `PLUGINS.SNOWPIPES.SCHEDULE_GRANTS` configuration option.
+
+The grant granularity is derived automatically from the `include` pattern:
+
+| Include pattern             | Grant level | SQL issued                                        |
+| --------------------------- | ----------- | ------------------------------------------------- |
+| `%.%.%` or `PROD_DB.%.%`    | Database    | `GRANT MONITOR ON ALL/FUTURE PIPES IN DATABASE …` |
+| `PROD_DB.ANALYTICS.%`       | Schema      | `GRANT MONITOR ON ALL/FUTURE PIPES IN SCHEMA …`   |
+| `PROD_DB.ANALYTICS.MY_PIPE` | Pipe        | `GRANT MONITOR ON PIPE …` (no FUTURE grant)       |
+
+Alternatively, you may choose to grant the required permissions manually, using the appropriate `GRANT MONITOR ON ALL/FUTURE PIPES IN …`
+statement, depending on the desired granularity.
+
+### Configuration keys
+
+| Key                                      | Default                               | Description                                       |
+| ---------------------------------------- | ------------------------------------- | ------------------------------------------------- |
+| `plugins.snowpipes.include`              | `['%.%.%']`                           | Pipe name patterns to include (fully qualified)   |
+| `plugins.snowpipes.exclude`              | `[DTAGENT_DB.%.%]`                    | Pipe name patterns to exclude                     |
+| `plugins.snowpipes.schedule`             | `USING CRON */5 * * * * UTC`          | Fast-mode schedule (SHOW PIPES + PIPE_STATUS)     |
+| `plugins.snowpipes.schedule_history`     | `USING CRON 0 * * * * UTC`            | Deep-mode schedule (COPY_HISTORY + USAGE_HISTORY) |
+| `plugins.snowpipes.schedule_grants`      | `USING CRON 30 */12 * * * UTC`        | Admin grant task schedule                         |
+| `plugins.snowpipes.lookback_hours`       | `4`                                   | Lookback window for COPY_HISTORY (hours)          |
+| `plugins.snowpipes.lookback_hours_usage` | `6`                                   | Lookback window for PIPE_USAGE_HISTORY (hours)    |
+| `plugins.snowpipes.is_disabled`          | `false`                               | Disable the plugin                                |
+| `plugins.snowpipes.telemetry`            | `[metrics, logs, events, biz_events]` | Enabled telemetry types                           |
+
+### Snowpipes Bill of Materials
+
+The following tables list the Snowflake objects that this plugin delivers data from or references.
+
+#### Objects delivered by the `Snowpipes` plugin
+
+| Name                                                  | Type      | Comment                                                                                   |
+| ----------------------------------------------------- | --------- | ----------------------------------------------------------------------------------------- |
+| DTAGENT_DB.APP.F_SNOWPIPES_INSTRUMENTED()             | procedure |                                                                                           |
+| DTAGENT_DB.APP.V_SNOWPIPES_COPY_HISTORY_INSTRUMENTED  | view      |                                                                                           |
+| DTAGENT_DB.APP.V_SNOWPIPES_USAGE_HISTORY_INSTRUMENTED | view      |                                                                                           |
+| DTAGENT_DB.APP.P_GRANT_MONITOR_SNOWPIPES()            | procedure |                                                                                           |
+| DTAGENT_DB.CONFIG.UPDATE_SNOWPIPES_CONF()             | procedure |                                                                                           |
+| DTAGENT_DB.APP.TASK_DTAGENT_SNOWPIPES                 | task      | Fast-mode (\*/5)                                                                          |
+| DTAGENT_DB.APP.TASK_DTAGENT_SNOWPIPES_HISTORY         | task      | Deep-mode (hourly)                                                                        |
+| DTAGENT_DB.APP.TASK_DTAGENT_SNOWPIPES_GRANTS          | task      | (Admin scope only) Admin task owned by DTAGENT_ADMIN to grant MONITOR privileges on pipes |
+
+#### Objects referenced by the `Snowpipes` plugin
+
+| Name                                       | Type     | Privileges                   | Granted to     | Comment                                                                                                              |
+| ------------------------------------------ | -------- | ---------------------------- | -------------- | -------------------------------------------------------------------------------------------------------------------- |
+| SHOW PIPES                                 | command  | USAGE                        |                |                                                                                                                      |
+| SYSTEM$PIPE_STATUS                         | function | MONITOR (per pipe)           |                |                                                                                                                      |
+| SNOWFLAKE.ACCOUNT_USAGE.COPY_HISTORY       | view     | SELECT (IMPORTED PRIVILEGES) |                |                                                                                                                      |
+| SNOWFLAKE.ACCOUNT_USAGE.PIPE_USAGE_HISTORY | view     | SELECT (IMPORTED PRIVILEGES) |                |                                                                                                                      |
+| ALL PIPES IN DATABASE $db                  | pipe     | MONITOR                      | DTAGENT_VIEWER | Granted when include pattern has wildcard schema (e.g. DB.%.%)                                                       |
+| ALL FUTURE PIPES IN DATABASE $db           | pipe     | MONITOR                      | DTAGENT_VIEWER | Granted when include pattern has wildcard schema (e.g. DB.%.%)                                                       |
+| ALL PIPES IN SCHEMA $db.$schema            | pipe     | MONITOR                      | DTAGENT_VIEWER | Granted when include pattern has specific schema (e.g. DB.ANALYTICS.%)                                               |
+| ALL FUTURE PIPES IN SCHEMA $db.$schema     | pipe     | MONITOR                      | DTAGENT_VIEWER | Granted when include pattern has specific schema (e.g. DB.ANALYTICS.%)                                               |
+| PIPE $db.$schema.$pipe                     | pipe     | MONITOR                      | DTAGENT_VIEWER | Granted when include pattern specifies an exact pipe name (e.g. DB.ANALYTICS.MY_PIPE); no FUTURE grant at pipe level |
 
 <a name="tasks_info_sec"></a>
 

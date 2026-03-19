@@ -25,7 +25,7 @@
 #
 #
 
-from typing import Tuple, Dict
+from typing import Tuple, Dict, Optional, List
 from dtagent.plugins import Plugin
 from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPILE_REMOVE
 
@@ -39,7 +39,7 @@ class SharesPlugin(Plugin):
 
     PLUGIN_NAME = "shares"
 
-    def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
+    def process(self, run_id: str, run_proc: bool = True, contexts: Optional[List[str]] = None) -> Dict[str, Dict[str, int]]:
         """Processes data for shares plugin.
 
         Args:
@@ -75,73 +75,76 @@ class SharesPlugin(Plugin):
             }
         """
 
-        t_outbound_shares = "APP.V_OUTBOUND_SHARE_TABLES"
-        t_inbound_shares = "APP.V_INBOUND_SHARE_TABLES"
-        t_share_events = "APP.V_SHARE_EVENTS"
+        results = {}
 
         if run_proc:
             # call to list inbound and outbound shares to temporary tables
             self._session.call("APP.P_GET_SHARES", log_on_exception=True)
 
-        (
-            outbound_share_entries_cnt,
-            outbound_share_logs_cnt,
-            outbound_share_metrics_cnt,
-            outbound_share_events_cnt,
-        ) = self._log_entries(
-            f_entry_generator=lambda: self._get_table_rows(t_outbound_shares),
-            context_name="outbound_shares",
-            run_uuid=run_id,
-            log_completion=run_proc,
-        )
+        if not contexts or "outbound_shares" in contexts:
+            t_outbound_shares = "APP.V_OUTBOUND_SHARE_TABLES"
+            (
+                outbound_share_entries_cnt,
+                outbound_share_logs_cnt,
+                outbound_share_metrics_cnt,
+                outbound_share_events_cnt,
+            ) = self._log_entries(
+                f_entry_generator=lambda: self._get_table_rows(t_outbound_shares),
+                context_name="outbound_shares",
+                run_uuid=run_id,
+                log_completion=run_proc,
+            )
+            results["outbound_shares"] = {
+                "entries": outbound_share_entries_cnt,
+                "log_lines": outbound_share_logs_cnt,
+                "metrics": outbound_share_metrics_cnt,
+                "events": outbound_share_events_cnt,
+            }
 
-        (
-            inbound_share_entries_cnt,
-            inbound_share_logs_cnt,
-            inbound_share_metrics_cnt,
-            inbound_share_events_cnt,
-        ) = self._log_entries(
-            f_entry_generator=lambda: self._get_table_rows(t_inbound_shares),
-            context_name="inbound_shares",
-            run_uuid=run_id,
-            log_completion=run_proc,
-        )
+        if not contexts or "inbound_shares" in contexts:
+            t_inbound_shares = "APP.V_INBOUND_SHARE_TABLES"
+            (
+                inbound_share_entries_cnt,
+                inbound_share_logs_cnt,
+                inbound_share_metrics_cnt,
+                inbound_share_events_cnt,
+            ) = self._log_entries(
+                f_entry_generator=lambda: self._get_table_rows(t_inbound_shares),
+                context_name="inbound_shares",
+                run_uuid=run_id,
+                log_completion=run_proc,
+            )
+            results["inbound_shares"] = {
+                "entries": inbound_share_entries_cnt,
+                "log_lines": inbound_share_logs_cnt,
+                "metrics": inbound_share_metrics_cnt,
+                "events": inbound_share_events_cnt,
+            }
 
-        (
-            shares_entries_cnt,
-            shares_logs_cnt,
-            shares_metrics_cnt,
-            shares_events_cnt,
-        ) = self._log_entries(
-            f_entry_generator=lambda: self._get_table_rows(t_share_events),
-            context_name="shares",
-            run_uuid=run_id,
-            log_completion=run_proc,
-            report_logs=False,
-            report_metrics=False,
-            report_timestamp_events=True,
-        )
+        if not contexts or "shares" in contexts:
+            t_share_events = "APP.V_SHARE_EVENTS"
+            (
+                shares_entries_cnt,
+                shares_logs_cnt,
+                shares_metrics_cnt,
+                shares_events_cnt,
+            ) = self._log_entries(
+                f_entry_generator=lambda: self._get_table_rows(t_share_events),
+                context_name="shares",
+                run_uuid=run_id,
+                log_completion=run_proc,
+                report_logs=False,
+                report_metrics=False,
+                report_timestamp_events=True,
+            )
+            results["shares"] = {
+                "entries": shares_entries_cnt,
+                "log_lines": shares_logs_cnt,
+                "metrics": shares_metrics_cnt,
+                "events": shares_events_cnt,
+            }
 
         return self._report_results(
-            {
-                "outbound_shares": {
-                    "entries": outbound_share_entries_cnt,
-                    "log_lines": outbound_share_logs_cnt,
-                    "metrics": outbound_share_metrics_cnt,
-                    "events": outbound_share_events_cnt,
-                },
-                "inbound_shares": {
-                    "entries": inbound_share_entries_cnt,
-                    "log_lines": inbound_share_logs_cnt,
-                    "metrics": inbound_share_metrics_cnt,
-                    "events": inbound_share_events_cnt,
-                },
-                "shares": {
-                    "entries": shares_entries_cnt,
-                    "log_lines": shares_logs_cnt,
-                    "metrics": shares_metrics_cnt,
-                    "events": shares_events_cnt,
-                },
-            },
+            results,
             run_id,
         )

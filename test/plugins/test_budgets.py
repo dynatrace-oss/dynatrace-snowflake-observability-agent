@@ -115,6 +115,81 @@ class TestBudgets:
             },
         )
 
+    @pytest.mark.xdist_group(name="test_telemetry")
+    def test_budgets_context_budgets_only(self):
+        """contexts=['budgets'] → only budgets context processed, spendings absent."""
+        from typing import Dict, Generator
+        from dtagent.plugins.budgets import BudgetsPlugin
+        from dtagent.context import RUN_RESULTS_KEY
+        import test._utils as utils
+        from test import _get_session
+
+        utils._generate_all_fixtures(_get_session(), self.FIXTURES)
+
+        class TestBudgetsPlugin(BudgetsPlugin):  # pylint: disable=missing-class-docstring
+
+            def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
+                return utils._safe_get_fixture_entries(TestBudgets.FIXTURES, t_data)
+
+        config = utils.get_config()
+        session = _get_session()
+
+        plugin = TestBudgetsPlugin(
+            plugin_name="budgets",
+            session=session,
+            configuration=config,
+            logs=_build_noop_telemetry(),
+            spans=_build_noop_telemetry(),
+            metrics=_build_noop_telemetry(),
+            events=_build_noop_telemetry(),
+            bizevents=_build_noop_telemetry(),
+        )
+
+        result = plugin.process("test_run_id", run_proc=False, contexts=["budgets"])
+        assert "budgets" in result[RUN_RESULTS_KEY]
+        assert "spendings" not in result[RUN_RESULTS_KEY]
+
+    @pytest.mark.xdist_group(name="test_telemetry")
+    def test_budgets_context_spendings_only(self):
+        """contexts=['spendings'] → only spendings context processed, budgets absent."""
+        from typing import Dict, Generator
+        from dtagent.plugins.budgets import BudgetsPlugin
+        from dtagent.context import RUN_RESULTS_KEY
+        import test._utils as utils
+        from test import _get_session
+
+        utils._generate_all_fixtures(_get_session(), self.FIXTURES)
+
+        class TestBudgetsPlugin(BudgetsPlugin):  # pylint: disable=missing-class-docstring
+
+            def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
+                return utils._safe_get_fixture_entries(TestBudgets.FIXTURES, t_data)
+
+        config = utils.get_config()
+        session = _get_session()
+
+        plugin = TestBudgetsPlugin(
+            plugin_name="budgets",
+            session=session,
+            configuration=config,
+            logs=_build_noop_telemetry(),
+            spans=_build_noop_telemetry(),
+            metrics=_build_noop_telemetry(),
+            events=_build_noop_telemetry(),
+            bizevents=_build_noop_telemetry(),
+        )
+
+        result = plugin.process("test_run_id", run_proc=False, contexts=["spendings"])
+        assert "budgets" not in result[RUN_RESULTS_KEY]
+        assert "spendings" in result[RUN_RESULTS_KEY]
+
+
+def _build_noop_telemetry():
+    """Build a no-op telemetry stub for context-selective tests."""
+    from dtagent.otel import NO_OP_TELEMETRY
+
+    return NO_OP_TELEMETRY
+
 
 if __name__ == "__main__":
     test_class = TestBudgets()

@@ -92,6 +92,11 @@ class MockTelemetryClient:
                         assert entry.pop("code.file.path"), "Expected 'code.file.path' in log attributes"
                         assert entry.pop("code.function.name"), "Expected 'code.function.name' in log attributes"
                         assert entry.pop("code.line.number"), "Expected 'code.line.number' in log attributes"
+                    for entry in sorted_expected:
+                        # strip these dynamic fields from stored baseline too so comparison is stable
+                        entry.pop("code.file.path", None)
+                        entry.pop("code.function.name", None)
+                        entry.pop("code.line.number", None)
 
                 if sorted_actual != sorted_expected:
                     _, filepath = self._determine_file_name(telemetry_type)
