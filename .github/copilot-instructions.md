@@ -44,6 +44,7 @@ Every plugin **must** have three co-located parts:
 - **Configuration:** YAML → flattened `PATH / VALUE / TYPE` rows in Snowflake.
 - **Build:** `scripts/dev/compile.sh` / `build.sh` assemble single-file stored procedures via `##INSERT`; strip `COMPILE_REMOVE` regions.
 - **Linters:** `black` (line-length 140), `flake8`, `pylint` (**10.00/10**), `sqlfluff`, `yamllint`, `markdownlint`.
+- **Dynatrace CLI**: `dtctl` for [interacting with Dynatrace tenant](https://github.com/dynatrace-oss/dtctl).
 
 ## 🐍 Python Environment
 
