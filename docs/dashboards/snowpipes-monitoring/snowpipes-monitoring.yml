@@ -438,6 +438,7 @@ tiles:
     visualization: honeycomb
     visualizationSettings:
       honeycomb:
+        shape: circle
         dataMappings:
           value: status_code
         displayedFields:
@@ -445,14 +446,28 @@ tiles:
           - status
         legend:
           position: right
+        labels:
+          showLabels: true
       coloring:
         colorRules:
-          - colorMode: color-palette
-            colorPalette: apdex
+          - colorMode: single-color
+            comparator: "="
             field: status_code
+            value: 1
             type: long
-            comparator: ">="
-            value: null
+            color: "var(--dt-colors-charts-apdex-excellent-default, #2a7453)"
+          - colorMode: single-color
+            comparator: "="
+            field: status_code
+            value: 2
+            type: long
+            color: "var(--dt-colors-charts-apdex-fair-default, #a9780f)"
+          - colorMode: single-color
+            comparator: ">"
+            field: status_code
+            value: 2
+            type: long
+            color: "var(--dt-colors-charts-apdex-unacceptable-default, #cd3741)"
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
