@@ -7,11 +7,11 @@ This dashboard provides comprehensive monitoring of Snowflake Snowpipe continuou
 Six KPI tiles give an immediate, at-a-glance view of your Snowpipes estate:
 
 - **Pipe Health** — percentage of pipes currently in `RUNNING` state. Color-coded green (100%), orange (80–99%), or red (below 80%).
-- **Credits Consumed** — total Snowpipe credits used in the selected timeframe.
-- **Files Processed** — total number of files successfully ingested across all pipes.
-- **p95 Ingestion Latency** — 95th-percentile end-to-end ingestion latency. Color-coded against the configurable warning (default 5 min) and critical (default 30 min) thresholds.
-- **Load Errors** — total count of load errors. Turns red immediately if any errors are detected.
-- **Data Ingested** — total bytes ingested, displayed with automatic unit scaling.
+- **Credits Consumed** — total Snowpipe credits used in the selected timeframe. Sourced from `PIPE_USAGE_HISTORY` (~3 h latency); no lower-latency alternative exists for credit data.
+- **Files Processed** — total number of files successfully ingested across all pipes. Sourced from `COPY_HISTORY` (~90 min latency).
+- **p95 Ingestion Latency** — 95th-percentile end-to-end ingestion latency. Color-coded against the configurable warning (default 5 min) and critical (default 30 min) thresholds. Sourced from `COPY_HISTORY` (~90 min latency).
+- **Load Errors** — total count of load errors (file-level + row-level). Turns red immediately if any errors are detected. Sourced from `COPY_HISTORY` (~90 min latency).
+- **Data Ingested** — total staged file bytes ingested, displayed with automatic unit scaling. Sourced from `COPY_HISTORY.FILE_SIZE` (~90 min latency) rather than `PIPE_USAGE_HISTORY.BYTES_BILLED` (~3 h latency) for faster visibility; values reflect pre-ingestion staged file sizes, not billing units.
 
 ## Pipe Health Status
 
@@ -29,7 +29,7 @@ Three charts track the throughput and latency profile of your ingestion pipeline
 
 - **Ingestion Latency by Pipe** — time-series line chart of average end-to-end ingestion latency per pipe, with configurable warning and critical threshold bands.
 - **Stage Backlog (Pending Files)** — bar chart showing the number of files queued but not yet ingested per pipe. Use the `$Threshold_Backlog_Warning` and `$Threshold_Backlog_Critical` variables to define acceptable backlog sizes.
-- **Data Volume Ingested** — bar chart of ingested data volume grouped by database, showing which databases are receiving the most data.
+- **Data Volume Ingested** — bar chart of ingested data volume over time, grouped by database. Sourced from `COPY_HISTORY.FILE_SIZE` (~90 min latency) rather than `PIPE_USAGE_HISTORY.BYTES_BILLED` (~3 h latency) for faster visibility.
 
 ## Error Analytics
 
@@ -61,7 +61,9 @@ This dashboard requires the `snowpipes` plugin to be enabled in your DSOA config
 
 - **Fast context** (`snowpipes`, every 5 min) — pipe status, pending file count, and oldest-file latency.
 - **Deep context** (`snowpipes_copy_history`, hourly) — ingestion latency, file/row counts, and error details from `ACCOUNT_USAGE.COPY_HISTORY`.
-- **Usage context** (`snowpipes_usage_history`, hourly) — data volume and credit consumption from `ACCOUNT_USAGE.PIPE_USAGE_HISTORY`.
+- **Usage context** (`snowpipes_usage_history`, hourly) — credit consumption from `ACCOUNT_USAGE.PIPE_USAGE_HISTORY` (~3 h data latency).
+
+> **Data latency summary:** pipe status tiles update every 5 min; files, latency, errors, and data volume tiles update within ~90 min (copy history); credit tiles lag by up to 3 hours (usage history).
 
 Note that hourly context metrics (latency, data volume, credits) will not appear until the first hourly collection completes after the plugin is enabled.
 
