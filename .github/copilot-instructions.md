@@ -135,6 +135,20 @@ Docs are a first-class deliverable. Run `./scripts/update_docs.sh` after any cod
 - **Branches:** `main` (stable), `devel` (integration), `feature/*`, `release/*`, `hotfix/*`, `dev/*` (personal)
 - **CI:** `.github/workflows/ci.yml` (lint, test), `.github/workflows/release.yml` (build, package, release)
 
+### Deploying SQL changes to a live environment
+
+When only SQL objects (views, procedures, tasks) change — **no Python code changes** — you do not need a full release. Run:
+
+```bash
+./scripts/dev/build.sh && ./scripts/deploy/deploy.sh <env> --scope=plugins --options=skip_confirm
+```
+
+- `<env>` must match a `conf/config-<env>.yml` file (e.g. `dev-094`).
+- `--scope=plugins` redeploys only the plugin SQL layer (views, procs, tasks, grants). Other scopes: `init`, `admin`, `setup`, `config`, `agents`, `apikey`, `all`, `teardown`, `upgrade`.
+- `--options=skip_confirm` suppresses the interactive confirmation prompt.
+- The deploy script filters out disabled plugins automatically; no manual exclusion needed.
+- `DTAGENT_TOKEN` env-var is optional — if unset the script skips sending deployment bizevents but still completes successfully.
+
 ## 📂 Gitignored Paths
 
 - `.github/context/` — private planning, proposals, roadmaps
