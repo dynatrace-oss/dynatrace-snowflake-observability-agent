@@ -90,7 +90,6 @@ tiles:
       componentState:
         inputData: null
   "1":
-    title: Pipe Health
     type: data
     query: |-
       fetch events
@@ -164,20 +163,19 @@ tiles:
       componentState:
         inputData: null
   "2":
-    title: Credits Consumed
     description: >-
       Snowpipe compute credits from PIPE_USAGE_HISTORY (~3 h latency). No
       lower-latency alternative exists for credit data; expect values to lag
       real-time usage by up to 3 hours.
     type: data
     query: |-
-      fetch logs
-      | filter db.system == "snowflake"
-      | filter dsoa.run.plugin == "snowpipes"
-      | filter dsoa.run.context == "snowpipes_usage_history"
-      | filter in(deployment.environment, array($Accounts))
-      | summarize { total_credits = sum(toDouble(`snowflake.pipe.cost.credits_used`)) }
-      | fields total_credits
+      timeseries credits = sum(snowflake.pipe.cost.credits_used, default: 0)
+      , filter: {
+          db.system == "snowflake" and
+          dsoa.run.context == "snowpipes_usage_history" and
+          in(deployment.environment, array($Accounts))
+        }
+      | fieldsAdd total_credits = arraySum(credits)
     visualization: singleValue
     visualizationSettings:
       singleValue:
@@ -186,7 +184,8 @@ tiles:
         recordField: total_credits
         prefixIcon: ""
         trend:
-          isVisible: false
+          isVisible: true
+          field: credits
       autoSelectVisualization: false
       thresholds: []
     querySettings:
@@ -202,20 +201,19 @@ tiles:
       componentState:
         inputData: null
   "3":
-    title: Files Processed
     description: >-
       Count of successfully loaded files from copy history (~90 min latency).
       Uses ACCOUNT_USAGE.COPY_HISTORY (STATUS = 'Loaded'); excludes partially
       loaded and failed files.
     type: data
     query: |-
-      fetch logs
-      | filter db.system == "snowflake"
-      | filter dsoa.run.plugin == "snowpipes"
-      | filter dsoa.run.context == "snowpipes_copy_history"
-      | filter in(deployment.environment, array($Accounts))
-      | summarize { total_files = sum(toLong(`snowflake.pipe.files.ingested`)) }
-      | fields total_files
+      timeseries files = sum(snowflake.pipe.files.ingested, default: 0)
+      , filter: {
+          db.system == "snowflake" and
+          dsoa.run.context == "snowpipes_copy_history" and
+          in(deployment.environment, array($Accounts))
+        }
+      | fieldsAdd total_files = arraySum(files)
     visualization: singleValue
     visualizationSettings:
       singleValue:
@@ -224,7 +222,8 @@ tiles:
         recordField: total_files
         prefixIcon: ""
         trend:
-          isVisible: false
+          isVisible: true
+          field: files
       autoSelectVisualization: false
       thresholds: []
       unitsOverrides:
@@ -249,7 +248,6 @@ tiles:
       componentState:
         inputData: null
   "4":
-    title: p95 Ingestion Latency
     description: >-
       95th percentile of pipe-to-load latency from copy history (~90 min
       latency). Measured as DATEDIFF(ms, PIPE_RECEIVED_TIME, LAST_LOAD_TIME)
@@ -321,31 +319,35 @@ tiles:
       componentState:
         inputData: null
   "5":
-    title: Load Errors
     type: data
     query: |-
-      fetch logs
-      | filter db.system == "snowflake"
-      | filter dsoa.run.plugin == "snowpipes"
-      | filter dsoa.run.context == "snowpipes_copy_history"
-      | filter in(deployment.environment, array($Accounts))
-      | summarize {
-          total_errors = sum(toLong(`snowflake.pipe.errors`)) + sum(toLong(`snowflake.copy.errors`))
+      timeseries {
+          snowflake.copy.errors = sum(snowflake.copy.errors, default: 0),
+          snowflake.pipe.errors = sum(snowflake.pipe.errors, default: 0)
         }
-      | fields total_errors
+      , union: true
+      , filter: {
+          db.system == "snowflake" and
+          dsoa.run.context == "snowpipes_copy_history" and
+          in(deployment.environment, array($Accounts))
+        }
+      | fieldsAdd total_errors = `snowflake.copy.errors`[] + `snowflake.pipe.errors`[]
+      | fieldsRemove `snowflake.copy.errors`, `snowflake.pipe.errors`
+      | fieldsAdd total_errors_value = arraySum(total_errors)
     visualization: singleValue
     visualizationSettings:
       singleValue:
         labelMode: custom
         label: Load Errors
-        recordField: total_errors
+        recordField: total_errors_value
         prefixIcon: ""
         trend:
-          isVisible: false
+          isVisible: true
+          field: total_errors
       autoSelectVisualization: false
       thresholds:
         - id: 1
-          field: total_errors
+          field: total_errors_value
           title: ""
           isEnabled: true
           rules:
@@ -362,7 +364,7 @@ tiles:
               label: ""
               value: 0
       unitsOverrides:
-        - identifier: total_errors
+        - identifier: total_errors_value
           unitCategory: unspecified
           baseUnit: none
           displayUnit: null
@@ -383,7 +385,6 @@ tiles:
       componentState:
         inputData: null
   "6":
-    title: Data Ingested
     description: >-
       Staged file size summed from copy history (~90 min latency).
       Uses snowflake.copy.file_size (pre-ingestion staged bytes) rather than
@@ -391,13 +392,13 @@ tiles:
       Values reflect file sizes at staging time, not post-compression row bytes.
     type: data
     query: |-
-      fetch logs
-      | filter db.system == "snowflake"
-      | filter dsoa.run.plugin == "snowpipes"
-      | filter dsoa.run.context == "snowpipes_copy_history"
-      | filter in(deployment.environment, array($Accounts))
-      | summarize { total_bytes = sum(toDouble(`snowflake.copy.file_size`)) }
-      | fields total_bytes
+      timeseries bytes = sum(snowflake.copy.file_size, default: 0)
+      , filter: {
+          db.system == "snowflake" and
+          dsoa.run.context == "snowpipes_copy_history" and
+          in(deployment.environment, array($Accounts))
+        }
+      | fieldsAdd total_bytes = arraySum(bytes)
     visualization: singleValue
     visualizationSettings:
       singleValue:
@@ -406,7 +407,8 @@ tiles:
         recordField: total_bytes
         prefixIcon: ""
         trend:
-          isVisible: false
+          isVisible: true
+          field: bytes
       autoSelectVisualization: false
       thresholds: []
       unitsOverrides:
