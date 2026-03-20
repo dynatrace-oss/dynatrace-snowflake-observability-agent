@@ -438,8 +438,6 @@ tiles:
     visualization: honeycomb
     visualizationSettings:
       honeycomb:
-        colorMode: color-palette
-        colorPalette: blue
         dataMappings:
           value: status_code
         displayedFields:
@@ -447,30 +445,14 @@ tiles:
           - status
         legend:
           position: right
-      thresholds:
-        - id: 1
-          field: status_code
-          title: Status
-          isEnabled: true
-          rules:
-            - id: 0
-              color:
-                Default: "var(--dt-colors-charts-categorical-color-09-default, #649438)"
-              comparator: "="
-              label: RUNNING
-              value: 1
-            - id: 1
-              color:
-                Default: "var(--dt-colors-charts-categorical-color-14-default, #d56b1a)"
-              comparator: "="
-              label: PAUSED
-              value: 2
-            - id: 2
-              color:
-                Default: "var(--dt-colors-charts-categorical-color-12-default, #cd3741)"
-              comparator: ">"
-              label: STOPPED/STALLED
-              value: 2
+      coloring:
+        colorRules:
+          - colorMode: color-palette
+            colorPalette: apdex
+            field: status_code
+            type: long
+            comparator: ">="
+            value: null
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
