@@ -54,6 +54,7 @@ variables:
       | filter in(deployment.environment, array($Accounts))
       | fields snowflake.pipe.name
       | dedup snowflake.pipe.name
+      | filterOut isNull(snowflake.pipe.name)
       | sort snowflake.pipe.name asc
     multiple: true
     defaultValue:

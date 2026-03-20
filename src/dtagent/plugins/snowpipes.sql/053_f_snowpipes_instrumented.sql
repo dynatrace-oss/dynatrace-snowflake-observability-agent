@@ -141,7 +141,8 @@ BEGIN
             :pipe_fqn                                                                                   as NAME,
             concat('Snowpipe (', :pipe_fqn, ') status: ', COALESCE(:execution_state, 'N/A'))           as _MESSAGE,
             OBJECT_CONSTRUCT(
-                'snowflake.pipe.name',          :pipe_fqn,
+                'snowflake.pipe.name',          r_pipe.PIPE_NAME,
+                'snowflake.pipe.full_name',     :pipe_fqn,
                 'db.namespace',                 :pipe_db_name,
                 'snowflake.schema.name',        :pipe_schema_name,
                 'db.collection.name',           :target_table,
