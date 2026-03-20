@@ -161,6 +161,36 @@ Always build first, then deploy with the appropriate scope(s):
 
 **Always include `config`** alongside any other scope — omitting it leaves tasks suspended and the agent won't run.
 
+### Deploying dashboard changes to a live tenant
+
+Convert the YAML to JSON and pass it **flat** (no envelope wrapper) to `dtctl apply`:
+
+```bash
+# 1. Convert YAML to JSON
+./scripts/tools/yaml-to-json.sh docs/dashboards/<name>/<name>.yml > /tmp/dashboard.json
+
+# 2. Merge id/name/type into the dashboard JSON at the top level (NO nested 'content' key)
+python3 -c "
+import json
+with open('/tmp/dashboard.json') as f:
+    d = json.load(f)
+d['id']   = '<dashboard-uuid>'
+d['name'] = '<Dashboard Name>'
+d['type'] = 'dashboard'
+with open('/tmp/dashboard-apply.json', 'w') as f:
+    json.dump(d, f)
+"
+
+# 3. Apply
+dtctl apply -f /tmp/dashboard-apply.json
+```
+
+**Critical:** do NOT wrap the dashboard JSON in a `{"content": "<json string>"}` envelope.
+`dtctl apply` sends the entire file as the multipart `content` form field — if the file itself
+has a `content` key, the server receives a double-wrapped structure and stores an empty dashboard.
+The correct shape mirrors `dtctl get dashboard <id> -o json`: `id`/`name`/`type` alongside
+`version`/`tiles`/`variables`/`layouts` at the same top level.
+
 ## 📂 Gitignored Paths
 
 - `.github/context/` — private planning, proposals, roadmaps
