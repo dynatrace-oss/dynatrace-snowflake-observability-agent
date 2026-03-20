@@ -319,31 +319,31 @@ tiles:
     visualization: singleValue
     visualizationSettings:
       singleValue:
-        labelMode: custom
         label: Load Errors
         recordField: total_errors_value
         prefixIcon: ""
         trend:
           isVisible: true
+          upward:
+            Default: "var(--dt-colors-charts-categorical-themed-fireplace-color-01-default, #ae132d)"
+          downward:
+            Default: "var(--dt-colors-charts-vulnerability-status-resolved-default, #3e8e6a)"
+          isLabelVisible: false
+      coloring:
+        colorRules:
+          - value: 0
+            comparator: ">"
+            field: total_errors_value
+            colorMode: custom-color
+            customColor:
+              Default: "var(--dt-colors-charts-categorical-color-12-default, #cd3741)"
+          - value: 0
+            comparator: "="
+            field: total_errors_value
+            colorMode: custom-color
+            customColor:
+              Default: "var(--dt-colors-charts-categorical-color-09-default, #649438)"
       autoSelectVisualization: false
-      thresholds:
-        - id: 1
-          field: total_errors_value
-          title: ""
-          isEnabled: true
-          rules:
-            - id: 0
-              color:
-                Default: "var(--dt-colors-charts-categorical-color-09-default, #649438)"
-              comparator: "="
-              label: ""
-              value: 0
-            - id: 1
-              color:
-                Default: "var(--dt-colors-charts-categorical-color-12-default, #cd3741)"
-              comparator: ">"
-              label: ""
-              value: 0
       unitsOverrides:
         - identifier: total_errors_value
           unitCategory: unspecified
