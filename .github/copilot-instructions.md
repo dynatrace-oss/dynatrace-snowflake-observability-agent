@@ -135,19 +135,31 @@ Docs are a first-class deliverable. Run `./scripts/update_docs.sh` after any cod
 - **Branches:** `main` (stable), `devel` (integration), `feature/*`, `release/*`, `hotfix/*`, `dev/*` (personal)
 - **CI:** `.github/workflows/ci.yml` (lint, test), `.github/workflows/release.yml` (build, package, release)
 
-### Deploying SQL changes to a live environment
+### Deploying changes to a live environment
 
-When only SQL objects (views, procedures, tasks) change — **no Python code changes** — you do not need a full release. Run:
+Always build first, then deploy with the appropriate scope(s):
 
 ```bash
-./scripts/dev/build.sh && ./scripts/deploy/deploy.sh <env> --scope=plugins --options=skip_confirm
+./scripts/dev/build.sh && ./scripts/deploy/deploy.sh <env> --scope=<scopes> --options=skip_confirm
 ```
 
 - `<env>` must match a `conf/config-<env>.yml` file (e.g. `dev-094`).
-- `--scope=plugins` redeploys only the plugin SQL layer (views, procs, tasks, grants). Other scopes: `init`, `admin`, `setup`, `config`, `agents`, `apikey`, `all`, `teardown`, `upgrade`.
 - `--options=skip_confirm` suppresses the interactive confirmation prompt.
+- Multiple scopes are comma-separated: `--scope=plugins,config`.
 - The deploy script filters out disabled plugins automatically; no manual exclusion needed.
 - `DTAGENT_TOKEN` env-var is optional — if unset the script skips sending deployment bizevents but still completes successfully.
+
+#### Scope selection rules
+
+| What changed | Scopes to include |
+| --- | --- |
+| Plugin SQL only (views, procs) | `plugins,config` |
+| Python agent code | `plugins,agents,config` |
+| Init objects (DB, schema, warehouse) | `init,config` |
+| Admin objects (roles, grants) | `admin,config` |
+| Full redeploy | `all` |
+
+**Always include `config`** alongside any other scope — omitting it leaves tasks suspended and the agent won't run.
 
 ## 📂 Gitignored Paths
 
