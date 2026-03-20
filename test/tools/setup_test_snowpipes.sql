@@ -16,15 +16,15 @@
 --   ACCOUNTADMIN is used only for the two account-level grants that cannot
 --   be issued by a non-ACCOUNTADMIN role.
 --
--- Before running:
+-- **IMPORTANT** Before running:
 --   1. Set OWNER_ROLE to the role that should own all objects.
 --   2. Set TASK_WAREHOUSE to a warehouse that OWNER_ROLE can use.
 -- ============================================================================
 
 -- ---- CONFIGURATION ---------------------------------------------------------
 -- Edit these two values; leave everything else unchanged.
-SET owner_role     = 'SEBASTIAN_KRUK_ROLE';   -- role that will own all objects
-SET task_warehouse = 'SANDBOX_SKRUK_USERS_XS_WH';            -- warehouse used by the task
+SET owner_role     = 'OWNER_ROLE';       -- role that will own all objects
+SET task_warehouse = 'TASK_WAREHOUSE';  -- warehouse used by the task
 -- ----------------------------------------------------------------------------
 
 -- 1. Account-level grants that require ACCOUNTADMIN.
