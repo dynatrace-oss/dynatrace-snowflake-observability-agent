@@ -165,6 +165,10 @@ tiles:
         inputData: null
   "2":
     title: Credits Consumed
+    description: >-
+      Snowpipe compute credits from PIPE_USAGE_HISTORY (~3 h latency). No
+      lower-latency alternative exists for credit data; expect values to lag
+      real-time usage by up to 3 hours.
     type: data
     query: |-
       fetch logs
@@ -199,6 +203,10 @@ tiles:
         inputData: null
   "3":
     title: Files Processed
+    description: >-
+      Count of successfully loaded files from copy history (~90 min latency).
+      Uses ACCOUNT_USAGE.COPY_HISTORY (STATUS = 'Loaded'); excludes partially
+      loaded and failed files.
     type: data
     query: |-
       fetch logs
@@ -233,6 +241,11 @@ tiles:
         inputData: null
   "4":
     title: p95 Ingestion Latency
+    description: >-
+      95th percentile of pipe-to-load latency from copy history (~90 min
+      latency). Measured as DATEDIFF(ms, PIPE_RECEIVED_TIME, LAST_LOAD_TIME)
+      per file. Near-real-time pipe queue latency is separately visible in the
+      Latency & Throughput section via the live pipe status context.
     type: data
     query: |-
       fetch logs
@@ -353,14 +366,19 @@ tiles:
         inputData: null
   "6":
     title: Data Ingested
+    description: >-
+      Staged file size summed from copy history (~90 min latency).
+      Uses snowflake.copy.file_size (pre-ingestion staged bytes) rather than
+      PIPE_USAGE_HISTORY.BYTES_BILLED (~3 h latency) for faster visibility.
+      Values reflect file sizes at staging time, not post-compression row bytes.
     type: data
     query: |-
       fetch logs
       | filter db.system == "snowflake"
       | filter dsoa.run.plugin == "snowpipes"
-      | filter dsoa.run.context == "snowpipes_usage_history"
+      | filter dsoa.run.context == "snowpipes_copy_history"
       | filter in(deployment.environment, array($Accounts))
-      | summarize { total_bytes = sum(toDouble(`snowflake.pipe.data.ingested`)) }
+      | summarize { total_bytes = sum(toDouble(`snowflake.copy.file_size`)) }
       | fields total_bytes
     visualization: singleValue
     visualizationSettings:
@@ -625,15 +643,27 @@ tiles:
         inputData: null
   "12":
     title: Data Volume Ingested
+    description: >-
+      Staged file sizes over time from copy history (~90 min latency).
+      Uses snowflake.copy.file_size rather than PIPE_USAGE_HISTORY.BYTES_BILLED
+      (~3 h latency) for faster visibility. Values are pre-ingestion staged
+      bytes, not billing units.
     type: data
     query: |-
-      timeseries data = sum(snowflake.pipe.data.ingested), by: {
-          db.namespace,
-          snowflake.pipe.name,
-          deployment.environment
-        }
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "snowpipes"
+      | filter dsoa.run.context == "snowpipes_copy_history"
       | filter in(deployment.environment, array($Accounts))
       | filter in(snowflake.pipe.name, array($Pipe))
+      | summarize {
+          data = sum(toDouble(`snowflake.copy.file_size`))
+        }, by: {
+          db.namespace,
+          snowflake.pipe.name,
+          bin(timestamp, 1h)
+        }
+      | fields timeframe = `bin(timestamp, 1h)`, db.namespace, snowflake.pipe.name, data
     visualization: barChart
     visualizationSettings:
       chartSettings:
