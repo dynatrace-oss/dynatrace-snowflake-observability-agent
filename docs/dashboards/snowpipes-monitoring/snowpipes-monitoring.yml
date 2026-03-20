@@ -173,7 +173,7 @@ tiles:
       real-time usage by up to 3 hours.
     type: data
     query: |-
-      timeseries credits = sum(snowflake.pipe.cost.credits_used, default: 0)
+      timeseries credits = sum(snowflake.pipe.cost.credits_used)
       , filter: {
           db.system == "snowflake" and
           dsoa.run.context == "snowpipes_usage_history" and
@@ -189,9 +189,7 @@ tiles:
         prefixIcon: ""
         trend:
           isVisible: true
-          field: credits
       autoSelectVisualization: false
-      thresholds: []
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -211,7 +209,7 @@ tiles:
       loaded and failed files.
     type: data
     query: |-
-      timeseries files = sum(snowflake.pipe.files.ingested, default: 0)
+      timeseries files = sum(snowflake.pipe.files.ingested)
       , filter: {
           db.system == "snowflake" and
           dsoa.run.context == "snowpipes_copy_history" and
@@ -227,9 +225,7 @@ tiles:
         prefixIcon: ""
         trend:
           isVisible: true
-          field: files
       autoSelectVisualization: false
-      thresholds: []
       unitsOverrides:
         - identifier: total_files
           unitCategory: unspecified
@@ -265,44 +261,20 @@ tiles:
       | filter dsoa.run.context == "snowpipes_copy_history"
       | filter in(deployment.environment, array($Accounts))
       | filter isNotNull(`snowflake.pipe.ingest.latency`)
-      | summarize { p95_latency = percentile(toLong(`snowflake.pipe.ingest.latency`), 95) }
-      | fields p95_latency
+      | makeTimeseries { p95_latency = percentile(toLong(`snowflake.pipe.ingest.latency`), 95) }
+      | fieldsAdd p95_latency_value = arrayLast(p95_latency)
     visualization: singleValue
     visualizationSettings:
       singleValue:
         labelMode: custom
         label: p95 Ingestion Latency
-        recordField: p95_latency
+        recordField: p95_latency_value
         prefixIcon: ""
         trend:
           isVisible: false
       autoSelectVisualization: false
-      thresholds:
-        - id: 1
-          field: p95_latency
-          title: ""
-          isEnabled: true
-          rules:
-            - id: 0
-              color:
-                Default: "var(--dt-colors-charts-categorical-color-09-default, #649438)"
-              comparator: <
-              label: ""
-              value: 300000
-            - id: 1
-              color:
-                Default: "var(--dt-colors-charts-categorical-color-14-default, #d56b1a)"
-              comparator: <
-              label: ""
-              value: 1800000
-            - id: 2
-              color:
-                Default: "var(--dt-colors-charts-categorical-color-12-default, #cd3741)"
-              comparator: ">="
-              label: ""
-              value: 1800000
       unitsOverrides:
-        - identifier: p95_latency
+        - identifier: p95_latency_value
           unitCategory: time
           baseUnit: millisecond
           displayUnit: null
@@ -331,8 +303,8 @@ tiles:
     type: data
     query: |-
       timeseries {
-          snowflake.copy.errors = sum(snowflake.copy.errors, default: 0),
-          snowflake.pipe.errors = sum(snowflake.pipe.errors, default: 0)
+          snowflake.copy.errors = sum(snowflake.copy.errors),
+          snowflake.pipe.errors = sum(snowflake.pipe.errors)
         }
       , union: true
       , filter: {
@@ -352,7 +324,6 @@ tiles:
         prefixIcon: ""
         trend:
           isVisible: true
-          field: total_errors
       autoSelectVisualization: false
       thresholds:
         - id: 1
@@ -401,7 +372,7 @@ tiles:
       Values reflect file sizes at staging time, not post-compression row bytes.
     type: data
     query: |-
-      timeseries bytes = sum(snowflake.copy.file_size, default: 0)
+      timeseries bytes = sum(snowflake.copy.file_size)
       , filter: {
           db.system == "snowflake" and
           dsoa.run.context == "snowpipes_copy_history" and
@@ -417,12 +388,10 @@ tiles:
         prefixIcon: ""
         trend:
           isVisible: true
-          field: bytes
       autoSelectVisualization: false
-      thresholds: []
       unitsOverrides:
         - identifier: total_bytes
-          unitCategory: data size
+          unitCategory: data
           baseUnit: byte
           displayUnit: null
           decimals: 0
