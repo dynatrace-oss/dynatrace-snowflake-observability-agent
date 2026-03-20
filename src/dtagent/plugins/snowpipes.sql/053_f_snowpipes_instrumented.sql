@@ -90,6 +90,7 @@ BEGIN
 
     FOR r_pipe IN c_pipes DO
         LET pipe_fqn            TEXT    := r_pipe.QUALIFIED_NAME;
+        LET pipe_name           TEXT    := r_pipe.PIPE_NAME;
         LET pipe_db_name        TEXT    := r_pipe.DATABASE_NAME;
         LET pipe_schema_name    TEXT    := r_pipe.SCHEMA_NAME;
         LET pipe_owner          TEXT    := r_pipe.OWNER;
@@ -149,7 +150,7 @@ BEGIN
             :pipe_fqn                                                                                   as NAME,
             concat('Snowpipe (', :pipe_fqn, ') status: ', COALESCE(:execution_state, 'N/A'))           as _MESSAGE,
             OBJECT_CONSTRUCT(
-                'snowflake.pipe.name',          r_pipe.PIPE_NAME,
+                'snowflake.pipe.name',          :pipe_name,
                 'snowflake.pipe.full_name',     :pipe_fqn,
                 'snowflake.pipe.catalog',       :pipe_db_name,
                 'snowflake.pipe.schema',        :pipe_schema_name,
