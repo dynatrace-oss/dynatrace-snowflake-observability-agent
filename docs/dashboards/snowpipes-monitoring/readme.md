@@ -2,7 +2,11 @@
 
 This dashboard provides comprehensive monitoring of Snowflake Snowpipe continuous data ingestion pipelines. It tracks pipeline health, ingestion latency, stage backlog, error rates, data volumes, and credit consumption, enabling operators to quickly detect and diagnose issues with their automated data loading workflows.
 
+![Snowpipes Monitoring dashboard overview](img/overview.png)
+
 ## Executive Overview
+
+![Executive Overview KPI tiles](img/executive-overview.png)
 
 Six KPI tiles give an immediate, at-a-glance view of your Snowpipes estate:
 
@@ -15,7 +19,9 @@ Six KPI tiles give an immediate, at-a-glance view of your Snowpipes estate:
 
 ## Pipe Health Status
 
-The **Pipe Status** honeycomb shows every pipe in your estate as a colored tile:
+![Pipe Health Status honeycomb](img/pipe-health.png)
+
+The **Pipe Status** honeycomb shows every pipe in your estate as a colored tile, with color driven by the pipe's execution state:
 
 - **Green** — pipe is `RUNNING` and actively ingesting data.
 - **Orange** — pipe is `PAUSED`.
@@ -25,6 +31,8 @@ Hovering over a tile reveals the pipe name, account, and exact status string.
 
 ## Latency & Throughput
 
+![Latency and Throughput charts](img/latency-throughput.png)
+
 Three charts track the throughput and latency profile of your ingestion pipelines:
 
 - **Ingestion Latency by Pipe** — time-series line chart of average end-to-end ingestion latency per pipe, with configurable warning and critical threshold bands.
@@ -33,14 +41,20 @@ Three charts track the throughput and latency profile of your ingestion pipeline
 
 ## Error Analytics
 
+![Error Analytics — honeycomb and top pipes table](img/error-analytics.png)
+
 Two tiles focus on load errors:
 
-- **Errors by Target Table** — honeycomb colored by total error count per target table. Red cells indicate tables experiencing load failures.
+- **Errors by Target Table** — honeycomb colored by total error count per target table. Darker cells indicate tables with more load failures.
 - **Top Pipes by Error Count** — sortable table listing the top 50 pipes by error count, along with their database and target table. Rows with errors are highlighted red.
 
 ## Cost & Credits
 
+![Credits Consumed over Time](img/credits.png)
+
 - **Credits Consumed over Time** — line chart showing Snowpipe credit usage over time, broken down by individual pipe. Useful for identifying which pipes are driving the most cost.
+
+> **Note:** Snowpipe Streaming pipes are identified by an internal UUID in `PIPE_USAGE_HISTORY` rather than a human-readable name. This is a Snowflake platform limitation; the UUID maps to the pipe's `snowflake.pipe.name` dimension.
 
 ## Dashboard Variables
 
