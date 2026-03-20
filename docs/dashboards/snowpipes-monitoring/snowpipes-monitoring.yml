@@ -90,36 +90,40 @@ tiles:
       componentState:
         inputData: null
   "1":
+    description: >-
+      Percentage of pipes currently in RUNNING state, trended over time.
+      Derived from pipe execution state events; near-real-time (no copy/usage
+      history latency). A drop below 100 % indicates one or more pipes are
+      paused, stopped, or stalled.
     type: data
     query: |-
       fetch events
       | filter db.system == "snowflake"
       | filter dsoa.run.plugin == "snowpipes"
       | filter in(deployment.environment, array($Accounts))
-      | filter isNotNull(snowflake.pipe.status)
       | filter in(snowflake.pipe.name, array($Pipe))
-      | summarize {
-          status = takeLast(snowflake.pipe.status)
-        }, by: { snowflake.pipe.name }
-      | summarize {
+      | filter isNotNull(snowflake.pipe.status)
+      | makeTimeseries {
           total = count(),
-          running = countIf(status == "RUNNING")
+          running = countIf(snowflake.pipe.execution_state == "RUNNING")
         }
-      | fieldsAdd pipe_health_pct = running / total * 100
-      | fields pipe_health_pct
+      | fieldsAdd pipe_health_pct = 100 * running[] / total[]
+      | fieldsRemove total, running
+      | fieldsAdd pipe_health_pct_value = arrayLast(pipe_health_pct)
     visualization: singleValue
     visualizationSettings:
       singleValue:
         labelMode: custom
         label: Pipe Health
-        recordField: pipe_health_pct
+        recordField: pipe_health_pct_value
         prefixIcon: ""
         trend:
-          isVisible: false
+          isVisible: true
+          field: pipe_health_pct
       autoSelectVisualization: false
       thresholds:
         - id: 1
-          field: pipe_health_pct
+          field: pipe_health_pct_value
           title: ""
           isEnabled: true
           rules:
@@ -142,7 +146,7 @@ tiles:
               label: ""
               value: 100
       unitsOverrides:
-        - identifier: pipe_health_pct
+        - identifier: pipe_health_pct_value
           unitCategory: percentage
           baseUnit: percent
           displayUnit: null
@@ -319,6 +323,11 @@ tiles:
       componentState:
         inputData: null
   "5":
+    description: >-
+      Total load errors (pipe errors + copy errors) from copy history (~90 min
+      latency). Combines snowflake.pipe.errors (pipe-level failures) and
+      snowflake.copy.errors (per-file copy failures). Any value above zero
+      warrants investigation in the Error Analytics section below.
     type: data
     query: |-
       timeseries {
