@@ -227,6 +227,15 @@ tiles:
           isVisible: false
       autoSelectVisualization: false
       thresholds: []
+      unitsOverrides:
+        - identifier: total_files
+          unitCategory: unspecified
+          baseUnit: none
+          displayUnit: null
+          decimals: 0
+          suffix: ""
+          delimiter: true
+          added: 6
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -352,6 +361,15 @@ tiles:
               comparator: ">"
               label: ""
               value: 0
+      unitsOverrides:
+        - identifier: total_errors
+          unitCategory: unspecified
+          baseUnit: none
+          displayUnit: null
+          decimals: 0
+          suffix: ""
+          delimiter: true
+          added: 7
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -396,7 +414,7 @@ tiles:
           unitCategory: data size
           baseUnit: byte
           displayUnit: null
-          decimals: 1
+          decimals: 0
           suffix: ""
           delimiter: false
           added: 3
