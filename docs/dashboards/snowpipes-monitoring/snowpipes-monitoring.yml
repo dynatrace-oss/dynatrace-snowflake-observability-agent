@@ -307,7 +307,9 @@ tiles:
       | filter dsoa.run.plugin == "snowpipes"
       | filter dsoa.run.context == "snowpipes_copy_history"
       | filter in(deployment.environment, array($Accounts))
-      | summarize { total_errors = sum(toLong(`snowflake.pipe.errors`)) }
+      | summarize {
+          total_errors = sum(toLong(`snowflake.pipe.errors`)) + sum(toLong(`snowflake.copy.errors`))
+        }
       | fields total_errors
     visualization: singleValue
     visualizationSettings:
@@ -687,8 +689,9 @@ tiles:
       | filter dsoa.run.plugin == "snowpipes"
       | filter dsoa.run.context == "snowpipes_copy_history"
       | filter in(deployment.environment, array($Accounts))
-      | filter isNotNull(`snowflake.pipe.errors`)
-      | summarize { total_errors = sum(toLong(`snowflake.pipe.errors`)) }, by: { db.collection.name }
+      | summarize {
+          total_errors = sum(toLong(`snowflake.pipe.errors`)) + sum(toLong(`snowflake.copy.errors`))
+        }, by: { db.collection.name }
       | fields db.collection.name, total_errors
     visualization: honeycomb
     visualizationSettings:
@@ -723,8 +726,9 @@ tiles:
       | filter dsoa.run.plugin == "snowpipes"
       | filter dsoa.run.context == "snowpipes_copy_history"
       | filter in(deployment.environment, array($Accounts))
-      | filter isNotNull(`snowflake.pipe.errors`)
-      | summarize { total_errors = sum(toLong(`snowflake.pipe.errors`)) }, by: {
+      | summarize {
+          total_errors = sum(toLong(`snowflake.pipe.errors`)) + sum(toLong(`snowflake.copy.errors`))
+        }, by: {
           snowflake.pipe.name,
           db.collection.name,
           db.namespace

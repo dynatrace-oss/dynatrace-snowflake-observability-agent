@@ -55,7 +55,7 @@ select
         'snowflake.pipe.usage.start_time',      START_TIME
     )                                                                                                as ATTRIBUTES,
     OBJECT_CONSTRUCT(
-        'snowflake.pipe.data.ingested',         BYTES_INSERTED,
+        'snowflake.pipe.data.ingested',         BYTES_BILLED,
         'snowflake.pipe.cost.credits_used',     CREDITS_USED,
         'snowflake.pipe.files.inserted',        TO_NUMBER(FILES_INSERTED),
         'snowflake.pipe.cost.bytes_billed',     BYTES_BILLED
