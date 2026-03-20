@@ -2,14 +2,17 @@
   {
     "content": "New entry to STATUS.LOG_PROCESSED_MEASUREMENTS from test_automode/011",
     "test_automode/011": {
-      "biz_events": 3,
-      "davis_events": 0,
       "entries": 3,
-      "events": 0,
       "log_lines": 0,
-      "metrics": 0
+      "metrics": 0,
+      "events": 0,
+      "biz_events": 3,
+      "davis_events": 0
     },
+    "dsoa.run.plugin": "telemetry_sender",
     "dsoa.run.context": "self_monitoring",
-    "dsoa.run.plugin": "telemetry_sender"
+    "code.file.path": "/Users/sebastian.kruk/Development/dt/dt-snowagent/src/dtagent/otel/logs.py",
+    "code.function.name": "send_log",
+    "code.line.number": 205
   }
 ]
