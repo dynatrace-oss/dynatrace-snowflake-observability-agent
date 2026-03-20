@@ -722,7 +722,6 @@ tiles:
     visualization: honeycomb
     visualizationSettings:
       honeycomb:
-        colorMode: color-palette
         colorPalette: red
         dataMappings:
           value: total_errors
@@ -730,7 +729,14 @@ tiles:
           - db.collection.name
         legend:
           position: right
-      thresholds: []
+      coloring:
+        colorRules:
+          - colorMode: color-palette
+            colorPalette: red
+            field: total_errors
+            type: string
+            comparator: "= *value*"
+            value: ""
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -768,26 +774,20 @@ tiles:
           `Errors` = total_errors
     visualization: table
     visualizationSettings:
-      table:
-        columnWidths: {}
-      thresholds:
-        - id: 1
-          field: Errors
-          title: ""
-          isEnabled: true
-          rules:
-            - id: 0
-              color:
-                Default: "var(--dt-colors-charts-categorical-color-09-default, #649438)"
-              comparator: "="
-              label: ""
-              value: 0
-            - id: 1
-              color:
-                Default: "var(--dt-colors-charts-categorical-color-12-default, #cd3741)"
-              comparator: ">"
-              label: ""
-              value: 0
+      coloring:
+        colorRules:
+          - value: 0
+            comparator: ">"
+            field: Errors
+            colorMode: custom-color
+            customColor:
+              Default: "var(--dt-colors-charts-categorical-color-12-default, #cd3741)"
+          - value: 0
+            comparator: "="
+            field: Errors
+            colorMode: custom-color
+            customColor:
+              Default: "var(--dt-colors-charts-categorical-color-09-default, #649438)"
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
