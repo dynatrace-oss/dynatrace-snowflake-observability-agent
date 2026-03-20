@@ -48,8 +48,10 @@ select
     CONCAT('Snowpipe load: ', FILE_NAME, ' -> ', TABLE_NAME, ' (', STATUS, ')')                     as _MESSAGE,
     OBJECT_CONSTRUCT(
         'snowflake.pipe.name',          PIPE_NAME,
-        'db.namespace',                 PIPE_CATALOG_NAME,
-        'snowflake.schema.name',        PIPE_SCHEMA_NAME,
+        'snowflake.pipe.catalog',       PIPE_CATALOG_NAME,
+        'snowflake.pipe.schema',        PIPE_SCHEMA_NAME,
+        'db.namespace',                 TABLE_CATALOG_NAME,
+        'snowflake.schema.name',        TABLE_SCHEMA_NAME,
         'db.collection.name',           TABLE_NAME
     )                                                                                                as DIMENSIONS,
     OBJECT_CONSTRUCT(

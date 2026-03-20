@@ -128,11 +128,19 @@ BEGIN
         END;
 
         LET target_table TEXT := NULL;
+        LET target_table_bare TEXT := NULL;
         BEGIN
             target_table := REGEXP_SUBSTR(:pipe_definition, 'INTO\\s+(\\S+)', 1, 1, 'ie', 1);
+            -- Extract bare table name: last dot-separated component, or full value if no dots
+            target_table_bare := CASE
+                WHEN :target_table IS NOT NULL AND CONTAINS(:target_table, '.')
+                THEN SPLIT_PART(:target_table, '.', -1)
+                ELSE :target_table
+            END;
         EXCEPTION
             WHEN statement_error THEN
                 target_table := NULL;
+                target_table_bare := NULL;
         END;
 
         insert into DTAGENT_DB.APP.TMP_SNOWPIPES_RESULT
@@ -143,9 +151,11 @@ BEGIN
             OBJECT_CONSTRUCT(
                 'snowflake.pipe.name',          r_pipe.PIPE_NAME,
                 'snowflake.pipe.full_name',     :pipe_fqn,
+                'snowflake.pipe.catalog',       :pipe_db_name,
+                'snowflake.pipe.schema',        :pipe_schema_name,
                 'db.namespace',                 :pipe_db_name,
                 'snowflake.schema.name',        :pipe_schema_name,
-                'db.collection.name',           :target_table,
+                'db.collection.name',           :target_table_bare,
                 'snowflake.pipe.owner',         :pipe_owner,
                 'snowflake.pipe.status',        :execution_state
             )                                                                                           as DIMENSIONS,

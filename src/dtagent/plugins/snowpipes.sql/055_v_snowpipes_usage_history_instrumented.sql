@@ -48,8 +48,8 @@ select
     CONCAT('Snowpipe usage: ', PIPE_NAME, ' (', CREDITS_USED, ' credits)')                          as _MESSAGE,
     OBJECT_CONSTRUCT(
         'snowflake.pipe.name',          PIPE_NAME,
-        'db.namespace',                 PIPE_DB_NAME,
-        'snowflake.schema.name',        PIPE_SCHEMA_NAME
+        'snowflake.pipe.catalog',       PIPE_DB_NAME,
+        'snowflake.pipe.schema',        PIPE_SCHEMA_NAME
     )                                                                                                as DIMENSIONS,
     OBJECT_CONSTRUCT(
         'snowflake.pipe.usage.start_time',      START_TIME
