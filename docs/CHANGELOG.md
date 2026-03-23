@@ -8,6 +8,10 @@ Released on TBD
 
 > **Note**: Detailed technical changes and implementation notes are available in [DEVLOG.md](DEVLOG.md).
 
+### Breaking Changes in 0.9.4
+
+- **`db.collection.name` Semantics** *(field value change — affects `data_volume` plugin)*: The `db.collection.name` field now always carries the **bare table name** (e.g., `ORDERS`) instead of the fully-qualified name (e.g., `DEV_DB.PUBLIC.ORDERS`). The FQN is now available in the new `snowflake.table.full_name` field. Dashboards, metrics queries, or alert rules that previously matched on FQN values in `db.collection.name` for data volume metrics must be updated to use `snowflake.table.full_name` for the FQN, or `db.collection.name` + `db.namespace` + `snowflake.schema.name` for qualified lookups.
+
 ### New in 0.9.4
 
 - **New Plugins**: Added Pipes monitoring plugin

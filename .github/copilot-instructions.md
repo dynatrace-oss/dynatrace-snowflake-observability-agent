@@ -44,6 +44,7 @@ Every plugin **must** have three co-located parts:
 - **Configuration:** YAML → flattened `PATH / VALUE / TYPE` rows in Snowflake.
 - **Build:** `scripts/dev/compile.sh` / `build.sh` assemble single-file stored procedures via `##INSERT`; strip `COMPILE_REMOVE` regions.
 - **Linters:** `black` (line-length 140), `flake8`, `pylint` (**10.00/10**), `sqlfluff`, `yamllint`, `markdownlint`.
+- **Dynatrace CLI**: `dtctl` for [interacting with Dynatrace tenant](https://github.com/dynatrace-oss/dtctl).
 
 ## 🐍 Python Environment
 
@@ -133,6 +134,62 @@ Docs are a first-class deliverable. Run `./scripts/update_docs.sh` after any cod
 - **Pipeline:** `compile.sh` (assemble) → `build.sh` (lint + compile + SQL) → `package.sh` (distribute) — all under `scripts/dev/`
 - **Branches:** `main` (stable), `devel` (integration), `feature/*`, `release/*`, `hotfix/*`, `dev/*` (personal)
 - **CI:** `.github/workflows/ci.yml` (lint, test), `.github/workflows/release.yml` (build, package, release)
+
+### Deploying changes to a live environment
+
+Always build first, then deploy with the appropriate scope(s):
+
+```bash
+./scripts/dev/build.sh && ./scripts/deploy/deploy.sh <env> --scope=<scopes> --options=skip_confirm
+```
+
+- `<env>` must match a `conf/config-<env>.yml` file (e.g. `dev-094`).
+- `--options=skip_confirm` suppresses the interactive confirmation prompt.
+- Multiple scopes are comma-separated: `--scope=plugins,config`.
+- The deploy script filters out disabled plugins automatically; no manual exclusion needed.
+- `DTAGENT_TOKEN` env-var is optional — if unset the script skips sending deployment bizevents but still completes successfully.
+
+#### Scope selection rules
+
+| What changed | Scopes to include |
+| --- | --- |
+| Plugin SQL only (views, procs) | `plugins,config` |
+| Python agent code | `plugins,agents,config` |
+| Init objects (DB, schema, warehouse) | `init,config` |
+| Admin objects (roles, grants) | `admin,config` |
+| Full redeploy | `all` |
+
+**Always include `config`** alongside any other scope — omitting it leaves tasks suspended and the agent won't run.
+
+### Deploying dashboard changes to a live tenant
+
+Convert the YAML to JSON and pass it **flat** (no envelope wrapper) to `dtctl apply`:
+
+```bash
+# 1. Convert YAML to JSON
+./scripts/tools/yaml-to-json.sh docs/dashboards/<name>/<name>.yml > /tmp/dashboard.json
+
+# 2. Merge id/name/type into the dashboard JSON at the top level (NO nested 'content' key)
+python3 -c "
+import json
+with open('/tmp/dashboard.json') as f:
+    d = json.load(f)
+d['id']   = '<dashboard-uuid>'
+d['name'] = '<Dashboard Name>'
+d['type'] = 'dashboard'
+with open('/tmp/dashboard-apply.json', 'w') as f:
+    json.dump(d, f)
+"
+
+# 3. Apply
+dtctl apply -f /tmp/dashboard-apply.json
+```
+
+**Critical:** do NOT wrap the dashboard JSON in a `{"content": "<json string>"}` envelope.
+`dtctl apply` sends the entire file as the multipart `content` form field — if the file itself
+has a `content` key, the server receives a double-wrapped structure and stores an empty dashboard.
+The correct shape mirrors `dtctl get dashboard <id> -o json`: `id`/`name`/`type` alongside
+`version`/`tiles`/`variables`/`layouts` at the same top level.
 
 ## 📂 Gitignored Paths
 

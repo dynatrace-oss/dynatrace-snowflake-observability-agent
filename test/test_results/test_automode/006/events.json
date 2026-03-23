@@ -1,5 +1,7 @@
 [
   {
+    "eventType": "CUSTOM_INFO",
+    "title": "Table event data_update.",
     "snowflake.event.trigger": "data_update",
     "data_update": 1731675389099000000,
     "ddl": 1731436379508000000,
@@ -15,12 +17,12 @@
     "deployment.environment": "TEST",
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
-    "dsoa.run.context": "test_automode/006",
-    "eventType": "CUSTOM_INFO",
-    "title": "Table event data_update.",
-    "dsoa.run.plugin": "telemetry_sender"
+    "dsoa.run.plugin": "telemetry_sender",
+    "dsoa.run.context": "test_automode/006"
   },
   {
+    "eventType": "CUSTOM_INFO",
+    "title": "Table event ddl.",
     "snowflake.event.trigger": "ddl",
     "data_update": 1731675389099000000,
     "ddl": 1731436379508000000,
@@ -36,12 +38,12 @@
     "deployment.environment": "TEST",
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
-    "dsoa.run.context": "test_automode/006",
-    "eventType": "CUSTOM_INFO",
-    "title": "Table event ddl.",
-    "dsoa.run.plugin": "telemetry_sender"
+    "dsoa.run.plugin": "telemetry_sender",
+    "dsoa.run.context": "test_automode/006"
   },
   {
+    "eventType": "CUSTOM_INFO",
+    "title": "Table event data_update.",
     "snowflake.event.trigger": "data_update",
     "data_update": 1707344711267000000,
     "snowflake.data.rows": 2,
@@ -55,9 +57,7 @@
     "deployment.environment": "TEST",
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
-    "dsoa.run.context": "test_automode/006",
-    "eventType": "CUSTOM_INFO",
-    "title": "Table event data_update.",
-    "dsoa.run.plugin": "telemetry_sender"
+    "dsoa.run.plugin": "telemetry_sender",
+    "dsoa.run.context": "test_automode/006"
   }
 ]

@@ -117,18 +117,32 @@ dimensions:
       - snowpipes
       - snowpipes_copy_history
       - snowpipes_usage_history
+    __example: MY_PIPE
+    __description: Short pipe name.
+  snowflake.pipe.full_name:
+    __context_names:
+      - snowpipes
     __example: MY_DB.MY_SCHEMA.MY_PIPE
-    __description: Fully qualified pipe name.
-  snowflake.pipe.catalog_name:
+    __description: Fully qualified pipe name (database.schema.pipe).
+  snowflake.pipe.catalog:
     __context_names:
+      - snowpipes
       - snowpipes_copy_history
+      - snowpipes_usage_history
     __example: MY_DB
-    __description: Database containing the pipe (from COPY_HISTORY).
-  snowflake.pipe.schema_name:
+    __description: Database containing the pipe.
+  snowflake.pipe.schema:
     __context_names:
+      - snowpipes
       - snowpipes_copy_history
+      - snowpipes_usage_history
     __example: MY_SCHEMA
-    __description: Schema containing the pipe (from COPY_HISTORY).
+    __description: Schema containing the pipe.
+  snowflake.pipe.id:
+    __context_names:
+      - snowpipes_usage_history
+    __example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+    __description: Unique pipe UUID (from PIPE_USAGE_HISTORY).
   db.namespace:
     __context_names:
       - snowpipes

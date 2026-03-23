@@ -1,19 +1,19 @@
 [
   {
+    "eventType": "CUSTOM_INFO",
+    "title": "This is a test object 1",
+    "status.code": "OK",
+    "value.int": 10,
+    "value.str": "test",
+    "value.bool": true,
+    "value.list": "[1, \"2\", 3]",
+    "value.dict": "{\"k\": \"v\", \"k2\": 2}",
     "db.system": "snowflake",
     "service.name": "test.dsoa2025",
     "deployment.environment": "TEST",
     "host.name": "test.dsoa2025.snowflakecomputing.com",
-    "status.code": "OK",
     "telemetry.exporter.name": "dynatrace.snowagent",
-    "value.bool": true,
-    "value.dict": "{\"k\": \"v\", \"k2\": 2}",
-    "value.int": 10,
-    "value.list": "[1, \"2\", 3]",
-    "value.str": "test",
-    "dsoa.run.context": "test_automode/013",
-    "eventType": "CUSTOM_INFO",
-    "title": "This is a test object 1",
-    "dsoa.run.plugin": "telemetry_sender"
+    "dsoa.run.plugin": "telemetry_sender",
+    "dsoa.run.context": "test_automode/013"
   }
 ]

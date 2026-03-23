@@ -80,7 +80,7 @@ class SnowpipesPlugin(Plugin):
             "dsoa.run.id": "uuid_string"
             }
         """
-        t_snowpipes = "SELECT * FROM TABLE(DTAGENT_DB.APP.F_SNOWPIPES_INSTRUMENTED())"
+        t_snowpipes = "call DTAGENT_DB.APP.F_SNOWPIPES_INSTRUMENTED()"
         t_copy_history = "APP.V_SNOWPIPES_COPY_HISTORY_INSTRUMENTED"
         t_usage_history = "APP.V_SNOWPIPES_USAGE_HISTORY_INSTRUMENTED"
 

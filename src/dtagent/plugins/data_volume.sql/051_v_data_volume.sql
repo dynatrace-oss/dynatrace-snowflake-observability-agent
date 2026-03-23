@@ -66,7 +66,9 @@ select
     -- metric and span dimensions
     OBJECT_CONSTRUCT(
         'db.namespace',                                             dv.table_catalog,
-        'db.collection.name',                                       dv.table_full_name,
+        'snowflake.schema.name',                                    dv.table_schema,
+        'db.collection.name',                                       dv.table_name,
+        'snowflake.table.full_name',                                dv.table_full_name,
         'snowflake.table.type',                                     dv.table_type
     )                                                                                                                   as DIMENSIONS,
     OBJECT_CONSTRUCT(

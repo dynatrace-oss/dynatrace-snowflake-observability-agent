@@ -1,0 +1,954 @@
+#
+# Copyright (c) 2025 Dynatrace Open Source
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the Software), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+#
+# DASHBOARD: Snowpipes Monitoring
+# DESCRIPTION:  Snowpipes ingestion monitoring dashboard for DSOA
+# OWNER: sebastian.kruk
+# PLUGINS: snowpipes
+# TAGS: snowpipes, ingestion, operations, performance
+#
+version: 21
+variables:
+  - key: Accounts
+    visible: true
+    type: query
+    version: 2
+    editable: true
+    input: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "snowpipes"
+      | fields deployment.environment
+      | dedup deployment.environment
+      | sort deployment.environment asc
+    multiple: true
+    defaultValue:
+      - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
+  - key: Pipe
+    visible: true
+    type: query
+    version: 2
+    editable: true
+    input: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "snowpipes"
+      | filter in(deployment.environment, array($Accounts))
+      | fields snowflake.pipe.name
+      | dedup snowflake.pipe.name
+      | filterOut isNull(snowflake.pipe.name)
+      | sort snowflake.pipe.name asc
+    multiple: true
+    defaultValue:
+      - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
+  - key: Threshold_Latency_Warning
+    visible: true
+    type: text
+    version: 2
+    editable: true
+    defaultValue: "300000"
+  - key: Threshold_Latency_Critical
+    visible: true
+    type: text
+    version: 2
+    editable: true
+    defaultValue: "1800000"
+  - key: Threshold_Backlog_Warning
+    visible: true
+    type: text
+    version: 2
+    editable: true
+    defaultValue: "100"
+  - key: Threshold_Backlog_Critical
+    visible: true
+    type: text
+    version: 2
+    editable: true
+    defaultValue: "1000"
+tiles:
+  "0":
+    type: markdown
+    content: "# Executive Overview"
+    davis:
+      componentState:
+        inputData: null
+  "1":
+    description: >-
+      Percentage of pipes currently in RUNNING state, trended over time.
+      Derived from pipe execution state events; near-real-time (no copy/usage
+      history latency). A drop below 100 % indicates one or more pipes are
+      paused, stopped, or stalled.
+    type: data
+    query: |-
+      fetch events
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "snowpipes"
+      | filter in(deployment.environment, array($Accounts))
+      | filter in(snowflake.pipe.name, array($Pipe))
+      | filter isNotNull(snowflake.pipe.status)
+      | makeTimeseries {
+          total = count(),
+          running = countIf(snowflake.pipe.execution_state == "RUNNING")
+        }
+      | fieldsAdd pipe_health_pct = 100 * running[] / total[]
+      | fieldsRemove total, running
+      | fieldsAdd pipe_health_pct_value = arrayLast(pipe_health_pct)
+    visualization: singleValue
+    visualizationSettings:
+      singleValue:
+        labelMode: custom
+        label: Pipe Health
+        recordField: pipe_health_pct_value
+        prefixIcon: ""
+        trend:
+          isVisible: true
+          field: pipe_health_pct
+      autoSelectVisualization: false
+      thresholds:
+        - id: 1
+          field: pipe_health_pct_value
+          title: ""
+          isEnabled: true
+          rules:
+            - id: 0
+              color:
+                Default: "var(--dt-colors-charts-categorical-color-12-default, #cd3741)"
+              comparator: <
+              label: ""
+              value: 80
+            - id: 1
+              color:
+                Default: "var(--dt-colors-charts-categorical-color-14-default, #d56b1a)"
+              comparator: <
+              label: ""
+              value: 100
+            - id: 2
+              color:
+                Default: "var(--dt-colors-charts-categorical-color-09-default, #649438)"
+              comparator: ">="
+              label: ""
+              value: 100
+      unitsOverrides:
+        - identifier: pipe_health_pct_value
+          unitCategory: percentage
+          baseUnit: percent
+          displayUnit: null
+          decimals: 1
+          suffix: "%"
+          delimiter: false
+          added: 1
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "2":
+    description: >-
+      Snowpipe compute credits from PIPE_USAGE_HISTORY (~3 h latency). No
+      lower-latency alternative exists for credit data; expect values to lag
+      real-time usage by up to 3 hours.
+    type: data
+    query: |-
+      timeseries credits = sum(snowflake.pipe.cost.credits_used)
+      , filter: {
+          db.system == "snowflake" and
+          dsoa.run.context == "snowpipes_usage_history" and
+          in(deployment.environment, array($Accounts))
+        }
+      | fieldsAdd total_credits = arraySum(credits)
+    visualization: singleValue
+    visualizationSettings:
+      singleValue:
+        labelMode: custom
+        label: Credits Consumed
+        recordField: total_credits
+        prefixIcon: ""
+        trend:
+          isVisible: true
+      autoSelectVisualization: false
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "3":
+    description: >-
+      Count of successfully loaded files from copy history (~90 min latency).
+      Uses ACCOUNT_USAGE.COPY_HISTORY (STATUS = 'Loaded'); excludes partially
+      loaded and failed files.
+    type: data
+    query: |-
+      timeseries files = sum(snowflake.pipe.files.ingested)
+      , filter: {
+          db.system == "snowflake" and
+          dsoa.run.context == "snowpipes_copy_history" and
+          in(deployment.environment, array($Accounts))
+        }
+      | fieldsAdd total_files = arraySum(files)
+    visualization: singleValue
+    visualizationSettings:
+      singleValue:
+        labelMode: custom
+        label: Files Processed
+        recordField: total_files
+        prefixIcon: ""
+        trend:
+          isVisible: true
+      autoSelectVisualization: false
+      unitsOverrides:
+        - identifier: total_files
+          unitCategory: unspecified
+          baseUnit: none
+          displayUnit: null
+          decimals: 0
+          suffix: ""
+          delimiter: true
+          added: 6
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "4":
+    description: >-
+      95th percentile of pipe-to-load latency from copy history (~90 min
+      latency). Measured as DATEDIFF(ms, PIPE_RECEIVED_TIME, LAST_LOAD_TIME)
+      per file. Near-real-time pipe queue latency is separately visible in the
+      Latency & Throughput section via the live pipe status context.
+    type: data
+    query: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "snowpipes"
+      | filter dsoa.run.context == "snowpipes_copy_history"
+      | filter in(deployment.environment, array($Accounts))
+      | filter isNotNull(`snowflake.pipe.ingest.latency`)
+      | makeTimeseries { p95_latency = percentile(toLong(`snowflake.pipe.ingest.latency`), 95) }
+      | fieldsAdd p95_latency_value = arrayLast(p95_latency)
+    visualization: singleValue
+    visualizationSettings:
+      singleValue:
+        labelMode: custom
+        label: p95 Ingestion Latency
+        recordField: p95_latency_value
+        prefixIcon: ""
+        trend:
+          isVisible: false
+      autoSelectVisualization: false
+      unitsOverrides:
+        - identifier: p95_latency_value
+          unitCategory: time
+          baseUnit: millisecond
+          displayUnit: null
+          decimals: 1
+          suffix: ""
+          delimiter: false
+          added: 2
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "5":
+    description: >-
+      Total load errors (pipe errors + copy errors) from copy history (~90 min
+      latency). Combines snowflake.pipe.errors (pipe-level failures) and
+      snowflake.copy.errors (per-file copy failures). Any value above zero
+      warrants investigation in the Error Analytics section below.
+    type: data
+    query: |-
+      timeseries {
+          snowflake.copy.errors = sum(snowflake.copy.errors),
+          snowflake.pipe.errors = sum(snowflake.pipe.errors)
+        }
+      , union: true
+      , filter: {
+          db.system == "snowflake" and
+          dsoa.run.context == "snowpipes_copy_history" and
+          in(deployment.environment, array($Accounts))
+        }
+      | fieldsAdd total_errors = `snowflake.copy.errors`[] + `snowflake.pipe.errors`[]
+      | fieldsRemove `snowflake.copy.errors`, `snowflake.pipe.errors`
+      | fieldsAdd total_errors_value = arraySum(total_errors)
+    visualization: singleValue
+    visualizationSettings:
+      singleValue:
+        label: Load Errors
+        recordField: total_errors_value
+        prefixIcon: ""
+        trend:
+          isVisible: true
+          upward:
+            Default: "var(--dt-colors-charts-categorical-themed-fireplace-color-01-default, #ae132d)"
+          downward:
+            Default: "var(--dt-colors-charts-vulnerability-status-resolved-default, #3e8e6a)"
+          isLabelVisible: false
+      coloring:
+        colorRules:
+          - value: 0
+            comparator: ">"
+            field: total_errors_value
+            colorMode: custom-color
+            customColor:
+              Default: "var(--dt-colors-charts-categorical-color-12-default, #cd3741)"
+          - value: 0
+            comparator: "="
+            field: total_errors_value
+            colorMode: custom-color
+            customColor:
+              Default: "var(--dt-colors-charts-categorical-color-09-default, #649438)"
+      autoSelectVisualization: false
+      unitsOverrides:
+        - identifier: total_errors_value
+          unitCategory: unspecified
+          baseUnit: none
+          displayUnit: null
+          decimals: 0
+          suffix: ""
+          delimiter: true
+          added: 7
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "6":
+    description: >-
+      Staged file size summed from copy history (~90 min latency).
+      Uses snowflake.copy.file_size (pre-ingestion staged bytes) rather than
+      PIPE_USAGE_HISTORY.BYTES_BILLED (~3 h latency) for faster visibility.
+      Values reflect file sizes at staging time, not post-compression row bytes.
+    type: data
+    query: |-
+      timeseries bytes = sum(snowflake.copy.file_size)
+      , filter: {
+          db.system == "snowflake" and
+          dsoa.run.context == "snowpipes_copy_history" and
+          in(deployment.environment, array($Accounts))
+        }
+      | fieldsAdd total_bytes = arraySum(bytes)
+    visualization: singleValue
+    visualizationSettings:
+      singleValue:
+        labelMode: custom
+        label: Data Ingested
+        recordField: total_bytes
+        prefixIcon: ""
+        trend:
+          isVisible: true
+      autoSelectVisualization: false
+      unitsOverrides:
+        - identifier: total_bytes
+          unitCategory: data
+          baseUnit: byte
+          displayUnit: null
+          decimals: 0
+          suffix: ""
+          delimiter: false
+          added: 3
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "7":
+    type: markdown
+    content: "# Pipe Health Status"
+    davis:
+      componentState:
+        inputData: null
+  "8":
+    title: Pipe Status
+    type: data
+    query: |-
+      fetch events
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "snowpipes"
+      | filter in(deployment.environment, array($Accounts))
+      | filter isNotNull(snowflake.pipe.status)
+      | filter in(snowflake.pipe.name, array($Pipe))
+      | summarize {
+          status = takeLast(snowflake.pipe.status)
+        }, by: { snowflake.pipe.name, deployment.environment }
+      | fieldsAdd status_code = toLong(
+          if(status == "RUNNING", 1,
+          else: if(status == "PAUSED", 2, else: 3))
+        )
+      | fields snowflake.pipe.name, deployment.environment, status, status_code
+    visualization: honeycomb
+    visualizationSettings:
+      honeycomb:
+        shape: circle
+        dataMappings:
+          value: status_code
+        displayedFields:
+          - snowflake.pipe.name
+          - status
+        legend:
+          position: right
+        labels:
+          showLabels: true
+      coloring:
+        colorRules:
+          - colorMode: single-color
+            comparator: "="
+            field: status_code
+            value: 1
+            type: long
+            color: "var(--dt-colors-charts-apdex-excellent-default, #2a7453)"
+          - colorMode: single-color
+            comparator: "="
+            field: status_code
+            value: 2
+            type: long
+            color: "var(--dt-colors-charts-apdex-fair-default, #a9780f)"
+          - colorMode: single-color
+            comparator: ">"
+            field: status_code
+            value: 2
+            type: long
+            color: "var(--dt-colors-charts-apdex-unacceptable-default, #cd3741)"
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "9":
+    type: markdown
+    content: "# Latency & Throughput"
+    davis:
+      componentState:
+        inputData: null
+  "10":
+    title: Ingestion Latency by Pipe
+    type: data
+    query: |-
+      timeseries latency = avg(snowflake.pipe.ingest.latency), by: {
+          snowflake.pipe.name,
+          deployment.environment
+        }
+      | filter in(deployment.environment, array($Accounts))
+      | filter in(snowflake.pipe.name, array($Pipe))
+      | fieldsAdd threshold_warning = toDouble($Threshold_Latency_Warning)
+      | fieldsAdd threshold_critical = toDouble($Threshold_Latency_Critical)
+    visualization: lineChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        xAxisLabel: timeframe
+        xAxisScaling: analyzedTimeframe
+        fieldMapping:
+          leftAxisValues:
+            - latency
+            - threshold_warning
+            - threshold_critical
+          timestamp: timeframe
+        gapPolicy: connect
+        legend:
+          position: bottom
+        leftYAxisSettings:
+          label: Latency (ms)
+          isLabelVisible: true
+          min:
+            mode: auto
+          max:
+            mode: auto
+          scale: linear
+      dataMapping:
+        displayedFields:
+          - snowflake.pipe.name
+      thresholds:
+        - id: 1
+          field: ""
+          title: Latency threshold
+          isEnabled: true
+          rules:
+            - id: 0
+              color:
+                Default: "var(--dt-colors-charts-categorical-color-09-default, #649438)"
+              comparator: <
+              label: ""
+              value: 300000
+            - id: 1
+              color:
+                Default: "var(--dt-colors-charts-categorical-color-14-default, #d56b1a)"
+              comparator: <
+              label: ""
+              value: 1800000
+            - id: 2
+              color:
+                Default: "var(--dt-colors-charts-categorical-color-12-default, #cd3741)"
+              comparator: ">="
+              label: ""
+              value: 1800000
+      unitsOverrides:
+        - identifier: latency
+          unitCategory: time
+          baseUnit: millisecond
+          displayUnit: null
+          decimals: 1
+          suffix: ""
+          delimiter: false
+          added: 4
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "11":
+    title: Stage Backlog (Pending Files)
+    type: data
+    query: |-
+      timeseries pending = sum(snowflake.pipe.files.pending), by: {
+          snowflake.pipe.name,
+          deployment.environment
+        }
+      | filter in(deployment.environment, array($Accounts))
+      | filter in(snowflake.pipe.name, array($Pipe))
+      | fieldsAdd threshold_warning = toDouble($Threshold_Backlog_Warning)
+      | fieldsAdd threshold_critical = toDouble($Threshold_Backlog_Critical)
+    visualization: barChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        xAxisLabel: timeframe
+        xAxisScaling: analyzedTimeframe
+        fieldMapping:
+          leftAxisValues:
+            - pending
+            - threshold_warning
+            - threshold_critical
+          timestamp: timeframe
+        legend:
+          position: bottom
+        leftYAxisSettings:
+          label: Pending Files
+          isLabelVisible: true
+      dataMapping:
+        displayedFields:
+          - snowflake.pipe.name
+      thresholds:
+        - id: 1
+          field: ""
+          title: Backlog threshold
+          isEnabled: true
+          rules:
+            - id: 0
+              color:
+                Default: "var(--dt-colors-charts-categorical-color-09-default, #649438)"
+              comparator: <
+              label: ""
+              value: 100
+            - id: 1
+              color:
+                Default: "var(--dt-colors-charts-categorical-color-14-default, #d56b1a)"
+              comparator: <
+              label: ""
+              value: 1000
+            - id: 2
+              color:
+                Default: "var(--dt-colors-charts-categorical-color-12-default, #cd3741)"
+              comparator: ">="
+              label: ""
+              value: 1000
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "12":
+    title: Data Volume Ingested
+    description: >-
+      Staged file sizes over time from copy history (~90 min latency).
+      Uses snowflake.copy.file_size rather than PIPE_USAGE_HISTORY.BYTES_BILLED
+      (~3 h latency) for faster visibility. Values are pre-ingestion staged
+      bytes, not billing units.
+    type: data
+    query: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "snowpipes"
+      | filter dsoa.run.context == "snowpipes_copy_history"
+      | filter in(deployment.environment, array($Accounts))
+      | filter in(snowflake.pipe.name, array($Pipe))
+      | summarize {
+          data = sum(toDouble(`snowflake.copy.file_size`))
+        }, by: {
+          db.namespace,
+          snowflake.pipe.name,
+          bin(timestamp, 1h)
+        }
+      | fields timeframe = `bin(timestamp, 1h)`, db.namespace, snowflake.pipe.name, data
+    visualization: barChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        xAxisLabel: timeframe
+        xAxisScaling: analyzedTimeframe
+        fieldMapping:
+          leftAxisValues:
+            - data
+          timestamp: timeframe
+        legend:
+          position: bottom
+        leftYAxisSettings:
+          label: Data Ingested
+          isLabelVisible: true
+      dataMapping:
+        displayedFields:
+          - db.namespace
+      thresholds: []
+      unitsOverrides:
+        - identifier: data
+          unitCategory: data size
+          baseUnit: byte
+          displayUnit: null
+          decimals: 1
+          suffix: ""
+          delimiter: false
+          added: 5
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "13":
+    type: markdown
+    content: "# Error Analytics"
+    davis:
+      componentState:
+        inputData: null
+  "14":
+    title: Errors by Target Table
+    type: data
+    query: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "snowpipes"
+      | filter dsoa.run.context == "snowpipes_copy_history"
+      | filter in(deployment.environment, array($Accounts))
+      | summarize {
+          total_errors = sum(toLong(`snowflake.pipe.errors`)) + sum(toLong(`snowflake.copy.errors`))
+        }, by: { db.collection.name }
+      | fields db.collection.name, total_errors
+    visualization: honeycomb
+    visualizationSettings:
+      honeycomb:
+        colorPalette: red
+        dataMappings:
+          value: total_errors
+        displayedFields:
+          - db.collection.name
+        legend:
+          position: right
+      coloring:
+        colorRules:
+          - colorMode: color-palette
+            colorPalette: red
+            field: total_errors
+            type: string
+            comparator: "= *value*"
+            value: ""
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "15":
+    title: Top Pipes by Error Count
+    type: data
+    query: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "snowpipes"
+      | filter dsoa.run.context == "snowpipes_copy_history"
+      | filter in(deployment.environment, array($Accounts))
+      | summarize {
+          total_errors = sum(toLong(`snowflake.pipe.errors`)) + sum(toLong(`snowflake.copy.errors`))
+        }, by: {
+          snowflake.pipe.name,
+          db.collection.name,
+          db.namespace
+        }
+      | sort total_errors desc
+      | limit 50
+      | fields
+          `Pipe` = snowflake.pipe.name,
+          `Database` = db.namespace,
+          `Target Table` = db.collection.name,
+          `Errors` = total_errors
+    visualization: table
+    visualizationSettings:
+      coloring:
+        colorRules:
+          - value: 0
+            comparator: ">"
+            field: Errors
+            colorMode: custom-color
+            customColor:
+              Default: "var(--dt-colors-charts-categorical-color-12-default, #cd3741)"
+          - value: 0
+            comparator: "="
+            field: Errors
+            colorMode: custom-color
+            customColor:
+              Default: "var(--dt-colors-charts-categorical-color-09-default, #649438)"
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "16":
+    type: markdown
+    content: "# Cost & Credits"
+    davis:
+      componentState:
+        inputData: null
+  "17":
+    title: Credits Consumed over Time
+    type: data
+    query: |-
+      timeseries credits = sum(snowflake.pipe.cost.credits_used), by: {
+          snowflake.pipe.name,
+          deployment.environment
+        }
+      | filter in(deployment.environment, array($Accounts))
+      | filter in(snowflake.pipe.name, array($Pipe))
+    visualization: lineChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        xAxisLabel: timeframe
+        xAxisScaling: analyzedTimeframe
+        fieldMapping:
+          leftAxisValues:
+            - credits
+          timestamp: timeframe
+        gapPolicy: connect
+        legend:
+          position: bottom
+        leftYAxisSettings:
+          label: Credits
+          isLabelVisible: true
+          min:
+            mode: auto
+          max:
+            mode: auto
+          scale: linear
+      dataMapping:
+        displayedFields:
+          - snowflake.pipe.name
+      thresholds: []
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+layouts:
+  "0":
+    x: 0
+    "y": 0
+    w: 24
+    h: 1
+  "1":
+    x: 0
+    "y": 1
+    w: 4
+    h: 4
+  "2":
+    x: 4
+    "y": 1
+    w: 4
+    h: 4
+  "3":
+    x: 8
+    "y": 1
+    w: 4
+    h: 4
+  "4":
+    x: 12
+    "y": 1
+    w: 4
+    h: 4
+  "5":
+    x: 16
+    "y": 1
+    w: 4
+    h: 4
+  "6":
+    x: 20
+    "y": 1
+    w: 4
+    h: 4
+  "7":
+    x: 0
+    "y": 5
+    w: 24
+    h: 1
+  "8":
+    x: 0
+    "y": 6
+    w: 24
+    h: 5
+  "9":
+    x: 0
+    "y": 11
+    w: 24
+    h: 1
+  "10":
+    x: 0
+    "y": 12
+    w: 24
+    h: 5
+  "11":
+    x: 0
+    "y": 17
+    w: 12
+    h: 5
+  "12":
+    x: 12
+    "y": 17
+    w: 12
+    h: 5
+  "13":
+    x: 0
+    "y": 22
+    w: 24
+    h: 1
+  "14":
+    x: 0
+    "y": 23
+    w: 12
+    h: 5
+  "15":
+    x: 12
+    "y": 23
+    w: 12
+    h: 5
+  "16":
+    x: 0
+    "y": 28
+    w: 24
+    h: 1
+  "17":
+    x: 0
+    "y": 29
+    w: 24
+    h: 5
+settings:
+  defaultTimeframe:
+    value:
+      from: now()-24h
+      to: now()
+    enabled: true
+importedWithCode: false
+annotations: []

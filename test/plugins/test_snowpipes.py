@@ -25,7 +25,7 @@ class TestSnowpipes:
     import pytest
 
     FIXTURES = {
-        "SELECT * FROM TABLE(DTAGENT_DB.APP.F_SNOWPIPES_INSTRUMENTED())": "test/test_data/snowpipes.ndjson",
+        "call DTAGENT_DB.APP.F_SNOWPIPES_INSTRUMENTED()": "test/test_data/snowpipes.ndjson",
         "APP.V_SNOWPIPES_COPY_HISTORY_INSTRUMENTED": "test/test_data/snowpipes_copy_history.ndjson",
         "APP.V_SNOWPIPES_USAGE_HISTORY_INSTRUMENTED": "test/test_data/snowpipes_usage_history.ndjson",
     }

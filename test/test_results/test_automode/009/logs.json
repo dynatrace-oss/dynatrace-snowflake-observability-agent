@@ -14,16 +14,19 @@
       "k": "v",
       "k2": 2
     },
+    "dsoa.run.plugin": "telemetry_sender",
     "dsoa.run.context": "test_automode/009",
-    "dsoa.run.plugin": "telemetry_sender"
+    "code.file.path": "/Users/sebastian.kruk/Development/dt/dt-snowagent/src/dtagent/otel/logs.py",
+    "code.function.name": "send_log",
+    "code.line.number": 205
   },
   {
     "content": "This is a test object 2",
     "status.code": "OK",
-    "value.bool": false,
     "event.type": "PERFORMANCE_EVENT",
     "value.int": 10000000,
     "value.str": "test 2",
+    "value.bool": false,
     "value.list": [
       1,
       2
@@ -32,8 +35,11 @@
       "k": 1,
       "k2": 2
     },
+    "dsoa.run.plugin": "telemetry_sender",
     "dsoa.run.context": "test_automode/009",
-    "dsoa.run.plugin": "telemetry_sender"
+    "code.file.path": "/Users/sebastian.kruk/Development/dt/dt-snowagent/src/dtagent/otel/logs.py",
+    "code.function.name": "send_log",
+    "code.line.number": 205
   },
   {
     "content": "Log entry sent with test_automode/009",
@@ -50,20 +56,26 @@
       "k": false,
       "k2": true
     },
+    "dsoa.run.plugin": "telemetry_sender",
     "dsoa.run.context": "test_automode/009",
-    "dsoa.run.plugin": "telemetry_sender"
+    "code.file.path": "/Users/sebastian.kruk/Development/dt/dt-snowagent/src/dtagent/otel/logs.py",
+    "code.function.name": "send_log",
+    "code.line.number": 205
   },
   {
     "content": "New entry to STATUS.LOG_PROCESSED_MEASUREMENTS from test_automode/009",
     "test_automode/009": {
-      "biz_events": 0,
-      "davis_events": 0,
       "entries": 3,
-      "events": 0,
       "log_lines": 3,
-      "metrics": 0
+      "metrics": 0,
+      "events": 0,
+      "biz_events": 0,
+      "davis_events": 0
     },
+    "dsoa.run.plugin": "telemetry_sender",
     "dsoa.run.context": "self_monitoring",
-    "dsoa.run.plugin": "telemetry_sender"
+    "code.file.path": "/Users/sebastian.kruk/Development/dt/dt-snowagent/src/dtagent/otel/logs.py",
+    "code.function.name": "send_log",
+    "code.line.number": 205
   }
 ]

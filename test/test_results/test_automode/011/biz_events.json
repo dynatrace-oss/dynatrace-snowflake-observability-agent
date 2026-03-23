@@ -14,8 +14,8 @@
       "deployment.environment": "TEST",
       "host.name": "test.dsoa2025.snowflakecomputing.com",
       "telemetry.exporter.name": "dynatrace.snowagent",
-      "dsoa.run.context": "self_monitoring",
-      "dsoa.run.plugin": "telemetry_sender"
+      "dsoa.run.plugin": "telemetry_sender",
+      "dsoa.run.context": "self_monitoring"
     }
   },
   {
@@ -44,8 +44,8 @@
       "deployment.environment": "TEST",
       "host.name": "test.dsoa2025.snowflakecomputing.com",
       "telemetry.exporter.name": "dynatrace.snowagent",
-      "dsoa.run.context": "test_automode/011",
-      "dsoa.run.plugin": "telemetry_sender"
+      "dsoa.run.plugin": "telemetry_sender",
+      "dsoa.run.context": "test_automode/011"
     }
   },
   {
@@ -74,8 +74,8 @@
       "deployment.environment": "TEST",
       "host.name": "test.dsoa2025.snowflakecomputing.com",
       "telemetry.exporter.name": "dynatrace.snowagent",
-      "dsoa.run.context": "test_automode/011",
-      "dsoa.run.plugin": "telemetry_sender"
+      "dsoa.run.plugin": "telemetry_sender",
+      "dsoa.run.context": "test_automode/011"
     }
   },
   {
@@ -84,8 +84,8 @@
     "type": "ERROR_EVENT",
     "data": {
       "status.code": "ERROR",
-      "test.message": "This is a test object 3",
       "event.type": "ERROR_EVENT",
+      "test.message": "This is a test object 3",
       "value.int": -10,
       "value.str": "error test",
       "value.bool": null,
@@ -104,8 +104,8 @@
       "deployment.environment": "TEST",
       "host.name": "test.dsoa2025.snowflakecomputing.com",
       "telemetry.exporter.name": "dynatrace.snowagent",
-      "dsoa.run.context": "test_automode/011",
-      "dsoa.run.plugin": "telemetry_sender"
+      "dsoa.run.plugin": "telemetry_sender",
+      "dsoa.run.context": "test_automode/011"
     }
   },
   {
@@ -123,8 +123,8 @@
       "deployment.environment": "TEST",
       "host.name": "test.dsoa2025.snowflakecomputing.com",
       "telemetry.exporter.name": "dynatrace.snowagent",
-      "dsoa.run.context": "self_monitoring",
-      "dsoa.run.plugin": "telemetry_sender"
+      "dsoa.run.plugin": "telemetry_sender",
+      "dsoa.run.context": "self_monitoring"
     }
   }
 ]
