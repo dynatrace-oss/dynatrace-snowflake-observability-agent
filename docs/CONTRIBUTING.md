@@ -5,12 +5,13 @@ Welcome! This document is intended for developers wishing to contribute to the D
 **Table of Contents:**
 
 1. [Setting up Development Environment](#setting-up-development-environment)
-2. [Development Workflow](#development-workflow)
-3. [Testing](#testing)
-4. [Writing Plugins](#writing-plugins)
-5. [Semantic Conventions](#semantic-conventions)
-6. [Source Code Overview](#source-code-overview)
-7. [Pull Request Checklist](#pull-request-checklist)
+1. [Development Workflow](#development-workflow)
+1. [Testing](#testing)
+1. [Writing Plugins](#writing-plugins)
+1. [Semantic Conventions](#semantic-conventions)
+1. [Source Code Overview](#source-code-overview)
+1. [AI-Assisted Dashboard / Workflow Development](#ai-assisted-dashboard--workflow-development)
+1. [Pull Request Checklist](#pull-request-checklist)
 
 ---
 
@@ -360,6 +361,77 @@ Supported options:
 
 - `dtagent_admin` - Admin role code (excluded when `core.snowflake.roles.admin` is `"-"`)
 - `resource_monitor` - Resource monitor code (excluded when `core.snowflake.resource_monitor.name` is `"-"`)
+
+---
+
+## AI-Assisted Dashboard / Workflow Development
+
+DSOA ships a set of **AI-agent skills** in `.opencode/skills/` that guide
+VS Code Copilot (or compatible agents) through common dashboard and workflow
+tasks: creating synthetic test data, designing Dynatrace dashboards, and
+building workflows.
+
+### Prerequisites for AI-Assisted Development
+
+Before using the skills, ensure the QA environment is ready:
+
+1. **Snowflake CLI connection.** A connection named `snow_agent_test-qa` must
+   exist in Snowflake CLI configuration pointing at the shared QA Snowflake
+   account.
+
+1. **Agent configuration.** `conf/config-test-qa.yml` must exist with all
+   plugins disabled and not deployable by default:
+
+    ```yaml
+    plugins:
+      disabled_by_default: true
+      deploy_disabled_plugins: false
+    ```
+
+   This keeps the QA agent idle until you explicitly enable only the plugins
+   your dashboard or workflow actually requires.
+
+1. **Enable required plugins.** For each dashboard or workflow, add the
+   necessary plugins to `conf/config-test-qa.yml` with `is_enabled: true` and
+   an `include` filter scoped to the synthetic test objects:
+
+    ```yaml
+    plugins:
+      disabled_by_default: true
+      deploy_disabled_plugins: false
+      snowpipes:
+        is_enabled: true
+        include:
+          - "DSOA_TEST_DB.SNOWPIPES.%"
+      tasks:
+        is_enabled: true
+    ```
+
+    > **Tip:** Some plugins use the `DB.SCHEMA.OBJECT` format with `%` wildcards, other might not allow for scoping at all.
+    Always check the plugin's config documentation to determine the correct format and available options —
+   consult `src/dtagent/plugins/$PLUGIN.conf/$PLUGIN-config.yml` and `src/dtagent/plugins/$PLUGIN.conf/config.md` for details.
+
+1. **Rebuild and redeploy** after changing the config:
+
+    ```bash
+    ./scripts/dev/build.sh
+    ./scripts/deploy/deploy.sh test-qa --scope=plugins,config --options=skip_confirm
+    ```
+
+   > **Note:** You don't need to redeploy `agents` scope unless you are modifying the python agent code.
+
+### Available Skills
+
+| Skill file               | Purpose                                                                    |
+|--------------------------|----------------------------------------------------------------------------|
+| `snowflake-synthetic.md` | Create synthetic test data in Snowflake to exercise plugins and dashboards |
+| `dynatrace-dashboard.md` | Design and deploy Dynatrace dashboards backed by DSOA telemetry            |
+| `dynatrace-workflow.md`  | Build Dynatrace workflows that consume DSOA data                           |
+| `dashboard-docs.md`      | Generate documentation for DSOA dashboards                                 |
+
+Skills are consumed automatically by AI agents from `.opencode/skills/`. No
+manual activation is needed — the agent selects the relevant skill based on the
+task description.
 
 ---
 
