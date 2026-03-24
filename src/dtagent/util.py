@@ -230,6 +230,9 @@ def _cleanup_dict(d: Any, skip_first_level_hidden=False) -> Union[dict, list, st
         if jd is not None:
             return _cleanup_dict(jd)  # for the moment we are putting it back as JSON to avoid confusion at Grail side
 
+    if isinstance(d, datetime.datetime):
+        return format_datetime(d)
+
     return d
 
 

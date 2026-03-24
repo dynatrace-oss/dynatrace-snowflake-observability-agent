@@ -6,8 +6,15 @@
     "value.int": 10,
     "value.str": "test",
     "value.bool": true,
-    "value.list": "[1, \"2\", 3]",
-    "value.dict": "{\"k\": \"v\", \"k2\": 2}",
+    "value.list": [
+      1,
+      "2",
+      3
+    ],
+    "value.dict": {
+      "k": "v",
+      "k2": 2
+    },
     "db.system": "snowflake",
     "service.name": "test.dsoa2025",
     "deployment.environment": "TEST",

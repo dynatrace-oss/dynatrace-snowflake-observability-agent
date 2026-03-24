@@ -97,7 +97,7 @@ class GenericEvents(AbstractEvents):
         Returns:
             Dict[str, Any]: Event payload in form accepted by Dynatrace Events API
         """
-        from dtagent.util import _cleanup_dict, _pack_values_to_json_strings, _unpack_payload  # COMPILE_REMOVE
+        from dtagent.util import _cleanup_dict  # COMPILE_REMOVE
 
         title = (
             str(event_data.get("_MESSAGE", ""))
@@ -121,11 +121,6 @@ class GenericEvents(AbstractEvents):
         # - observed_timestamp in nanoseconds (per OTLP standard)
         timestamp, observed_timestamp_ns = process_timestamps_for_telemetry(event_data)
 
-        # we have map non-simple types to string, as events are not capable of mapping lists
-        # for key, value in event_data_extended.items():
-        #     if not isinstance(value, (int, float, str, bool, NoneType)):
-        #         event_data_extended[key] = str(value)
-
         if isinstance(event_type, EventType) and event_type not in EventType:
             raise ValueError(f"{event_type} is not a valid EventType value")
 
@@ -134,9 +129,7 @@ class GenericEvents(AbstractEvents):
                 "eventType": str(event_data.get("event.type", event_type)),
                 "title": title,
             },
-            _pack_values_to_json_strings(
-                _cleanup_dict(event_data_extended or {}) | (self._resource_attributes or {}) | (context or {}), max_list_level=1
-            ),
+            _cleanup_dict(event_data_extended or {}) | (self._resource_attributes or {}) | (context or {}),
         )
 
         if kwargs.get("timeout", None) is not None and kwargs.get("timeout", None) <= 360:  # max available timeout 6h

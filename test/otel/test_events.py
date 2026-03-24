@@ -265,3 +265,191 @@ class TestEvents:
 
             assert cnt == 1
         mock_client.store_or_test_results()
+
+
+class TestEventPayloadPacking:
+    """Unit tests for _pack_event_data / _add_data_to_payload serialisation contracts.
+
+    These tests do NOT require a Snowflake session or HTTP calls.
+    They verify that:
+      - GenericEvents preserves rich values (dict, list) as native Python types
+      - DavisEvents stringifies dict values (Davis API requires string-only properties)
+      - BizEvents preserves rich values inside the ``data`` envelope
+    """
+
+    @classmethod
+    def setup_class(cls):
+        from test import TestConfiguration
+        from dtagent.otel.events.generic import GenericEvents
+        from dtagent.otel.events.davis import DavisEvents
+        from dtagent.otel.events.bizevents import BizEvents
+        from dtagent.config import Configuration
+
+        dt_url = "dsoa-unit-test.live.dynatrace.com"
+        minimal_conf = {
+            "dt.token": "dt0c01.XXXXX.XXXXX",
+            "events.http": f"https://{dt_url}{GenericEvents.ENDPOINT_PATH}",
+            "davis_events.http": f"https://{dt_url}{DavisEvents.ENDPOINT_PATH}",
+            "biz_events.http": f"https://{dt_url}{BizEvents.ENDPOINT_PATH}",
+            "resource.attributes": Configuration.RESOURCE_ATTRIBUTES
+            | {
+                "host.name": "unit-test.snowflakecomputing.com",
+                "service.name": "unit-test",
+                "deployment.environment": "TEST",
+                "telemetry.exporter.version": "0.0.0",
+            },
+            "otel": {},
+            "plugins": {},
+        }
+        config = TestConfiguration(minimal_conf)
+        cls._generic = GenericEvents(config)
+        cls._davis = DavisEvents(config)
+        cls._biz = BizEvents(config)
+
+    # ------------------------------------------------------------------
+    # GenericEvents: rich types must be preserved (no stringification)
+    # ------------------------------------------------------------------
+
+    def test_generic_preserves_dict_value(self):
+        """Dict values must remain as dicts in GenericEvents payload."""
+        from dtagent.otel.events import EventType
+
+        payload = self._generic._pack_event_data(
+            event_type=EventType.CUSTOM_INFO,
+            event_data={"field.nested": {"key": "value", "count": 42}},
+        )
+        assert isinstance(payload["field.nested"], dict), (
+            f"Expected dict, got {type(payload['field.nested'])}: {payload['field.nested']!r}"
+        )
+        assert payload["field.nested"] == {"key": "value", "count": 42}
+
+    def test_generic_preserves_list_value(self):
+        """List values must remain as lists in GenericEvents payload."""
+        from dtagent.otel.events import EventType
+
+        payload = self._generic._pack_event_data(
+            event_type=EventType.CUSTOM_INFO,
+            event_data={"field.items": [1, 2, 3], "field.tags": ["a", "b"]},
+        )
+        assert isinstance(payload["field.items"], list), (
+            f"Expected list, got {type(payload['field.items'])}: {payload['field.items']!r}"
+        )
+        assert payload["field.items"] == [1, 2, 3]
+        assert payload["field.tags"] == ["a", "b"]
+
+    def test_generic_preserves_deeply_nested_object(self):
+        """Deeply nested objects must be preserved in GenericEvents payload."""
+        from dtagent.otel.events import EventType
+
+        nested = {"level1": {"level2": {"level3": "deep_value"}}, "items": [{"k": "v"}]}
+        payload = self._generic._pack_event_data(
+            event_type=EventType.CUSTOM_INFO,
+            event_data={"field.complex": nested},
+        )
+        assert isinstance(payload["field.complex"], dict)
+        assert payload["field.complex"]["level1"]["level2"]["level3"] == "deep_value"
+
+    def test_generic_converts_datetime_value(self):
+        """datetime values must be converted to ISO strings in GenericEvents payload (JSON-serialisable)."""
+        import datetime
+        import json
+        from dtagent.otel.events import EventType
+
+        dt = datetime.datetime(2026, 3, 24, 12, 0, 0, tzinfo=datetime.timezone.utc)
+        payload = self._generic._pack_event_data(
+            event_type=EventType.CUSTOM_INFO,
+            event_data={"field.ts": dt},
+        )
+        assert isinstance(payload["field.ts"], str), (
+            f"Expected str ISO timestamp, got {type(payload['field.ts'])}: {payload['field.ts']!r}"
+        )
+        assert json.dumps(payload), "Payload with datetime field must be JSON-serialisable"
+
+    def test_generic_unparses_json_string_to_dict(self):
+        """A field whose value is a JSON-serialised string should be un-parsed to a dict by _cleanup_dict."""
+        from dtagent.otel.events import EventType
+        import json
+
+        payload = self._generic._pack_event_data(
+            event_type=EventType.CUSTOM_INFO,
+            event_data={"field.json_str": json.dumps({"parsed_key": "parsed_value"})},
+        )
+        assert isinstance(payload["field.json_str"], dict), (
+            f"Expected dict after JSON un-parsing, got {type(payload['field.json_str'])}: {payload['field.json_str']!r}"
+        )
+        assert payload["field.json_str"]["parsed_key"] == "parsed_value"
+
+    # ------------------------------------------------------------------
+    # DavisEvents: dict values must be JSON strings in properties
+    # ------------------------------------------------------------------
+
+    def test_davis_stringifies_dict_value(self):
+        """Dict values must be JSON-stringified in DavisEvents properties."""
+        from dtagent.otel.events import EventType
+        import json
+
+        payload = self._davis._pack_event_data(
+            event_type=EventType.CUSTOM_INFO,
+            event_data={"field.nested": {"key": "value", "count": 42}},
+        )
+        properties = payload["properties"]
+        assert isinstance(properties["field.nested"], str), (
+            f"Expected str in Davis properties, got {type(properties['field.nested'])}: {properties['field.nested']!r}"
+        )
+        assert json.loads(properties["field.nested"]) == {"key": "value", "count": 42}
+
+    def test_davis_stringifies_list_of_dicts(self):
+        """A list containing dict elements must have each dict stringified in Davis properties."""
+        from dtagent.otel.events import EventType
+        import json
+
+        payload = self._davis._pack_event_data(
+            event_type=EventType.CUSTOM_INFO,
+            event_data={"field.rows": [{"col": "a"}, {"col": "b"}]},
+        )
+        properties = payload["properties"]
+        field_rows = properties["field.rows"]
+        assert isinstance(field_rows, list), f"Expected list, got {type(field_rows)}"
+        assert all(isinstance(item, str) for item in field_rows), (
+            f"Expected all list elements to be strings in Davis properties, got: {field_rows!r}"
+        )
+        assert [json.loads(item) for item in field_rows] == [{"col": "a"}, {"col": "b"}]
+
+    def test_davis_preserves_primitive_values(self):
+        """Primitive values (str, int, bool) must not be altered in DavisEvents properties."""
+        from dtagent.otel.events import EventType
+
+        payload = self._davis._pack_event_data(
+            event_type=EventType.CUSTOM_INFO,
+            event_data={"field.str": "hello", "field.int": 42, "field.bool": True},
+        )
+        properties = payload["properties"]
+        assert properties["field.str"] == "hello"
+        assert properties["field.int"] == 42
+        assert properties["field.bool"] is True
+
+    # ------------------------------------------------------------------
+    # BizEvents: rich types must be preserved inside the data envelope
+    # ------------------------------------------------------------------
+
+    def test_bizevents_preserves_dict_value(self):
+        """Dict values must remain dicts inside the BizEvents data envelope."""
+        payload = self._biz._pack_event_data(
+            event_type="dsoa.test",
+            event_data={"field.nested": {"key": "value", "count": 42}},
+        )
+        data = payload["data"]
+        assert isinstance(data["field.nested"], dict), (
+            f"Expected dict in BizEvents data, got {type(data['field.nested'])}: {data['field.nested']!r}"
+        )
+        assert data["field.nested"]["key"] == "value"
+
+    def test_bizevents_preserves_list_value(self):
+        """List values must remain lists inside the BizEvents data envelope."""
+        payload = self._biz._pack_event_data(
+            event_type="dsoa.test",
+            event_data={"field.items": [10, 20, 30]},
+        )
+        data = payload["data"]
+        assert isinstance(data["field.items"], list)
+        assert data["field.items"] == [10, 20, 30]
