@@ -274,12 +274,18 @@ SHOW TASKS          IN SCHEMA DSOA_TEST_DB.TASKS_TEST;
 SHOW DYNAMIC TABLES IN SCHEMA DSOA_TEST_DB.TASKS_TEST;
 
 -- ============================================================================
--- CLEANUP (run when done testing):
+-- TEARDOWN (run when done testing):
+-- Suspends all synthetic tasks before dropping objects. Tasks must be
+-- suspended before dropping the database — Snowflake will refuse to drop
+-- a database that contains running tasks.
+-- Note: DSOA_TEST_WH was granted ownership to DTAGENT_QA_OWNER; dropping it
+-- requires ACCOUNTADMIN (SYSADMIN alone is insufficient).
+-- ============================================================================
 -- USE ROLE DTAGENT_QA_OWNER;
 -- ALTER TASK DSOA_TEST_DB.TASKS_TEST.T_INSERT_EVENTS      SUSPEND;
 -- ALTER TASK DSOA_TEST_DB.TASKS_TEST.T_INSERT_ORDERS      SUSPEND;
 -- ALTER TASK DSOA_TEST_DB.TASKS_TEST.T_INSERT_ORDERS_FAIL SUSPEND;
 -- DROP DATABASE  IF EXISTS DSOA_TEST_DB;
--- USE ROLE SYSADMIN;
+-- USE ROLE ACCOUNTADMIN;
 -- DROP WAREHOUSE IF EXISTS DSOA_TEST_WH;
 -- ============================================================================

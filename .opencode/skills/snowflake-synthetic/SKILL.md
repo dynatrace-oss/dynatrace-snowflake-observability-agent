@@ -335,7 +335,29 @@ synthetic-scoped config leftover — so it is ready for the next development cyc
 
 ### Steps
 
-1. **Edit `conf/config-test-qa.yml`** — remove all plugin `is_enabled: true` entries
+1. **Tear down synthetic Snowflake objects** — suspend tasks before dropping the
+   database. Failing to suspend tasks first will cause `DROP DATABASE` to fail.
+   Also note that dropping the warehouse requires `ACCOUNTADMIN`, not `SYSADMIN`:
+
+   ```bash
+   snow sql -c snow_agent_test-qa -q "
+   USE ROLE DTAGENT_QA_OWNER;
+   ALTER TASK DSOA_TEST_DB.<SCHEMA>.T_<TASK_1> SUSPEND;
+   ALTER TASK DSOA_TEST_DB.<SCHEMA>.T_<TASK_2> SUSPEND;
+   DROP DATABASE IF EXISTS DSOA_TEST_DB;
+   USE ROLE ACCOUNTADMIN;
+   DROP WAREHOUSE IF EXISTS DSOA_TEST_WH;"
+   ```
+
+   > **Known issue:** Disabling plugins in `conf/config-test-qa.yml` and
+   > redeploying with `--scope=plugins,agents,config` does **not** automatically
+   > suspend Snowflake tasks created by those plugins. The DSOA agent tasks
+   > (`_MEASUREMENT_TASK`, `_FINALIZER_TASK`) for those plugins remain in
+   > `started` state in Snowflake even after the config is updated. You must
+   > manually suspend them (or drop the database) after the redeploy. This is a
+   > known DSOA limitation — see `TELEMETRY-ISSUES.md` / findings doc.
+
+2. **Edit `conf/config-test-qa.yml`** — remove all plugin `is_enabled: true` entries
    and any `include`/`exclude` blocks added for testing. The plugins block must return
    to the clean base:
 
@@ -348,7 +370,7 @@ synthetic-scoped config leftover — so it is ready for the next development cyc
    Do **not** leave any `plugin_name: { is_enabled: true }` stanzas — they will cause
    those plugins to be deployed and run on every agent tick, wasting credits.
 
-2. **Rebuild and redeploy** with `plugins`, `agents`, and `config` scopes:
+3. **Rebuild and redeploy** with `plugins`, `agents`, and `config` scopes:
 
    ```bash
    ./scripts/dev/build.sh
@@ -359,7 +381,7 @@ synthetic-scoped config leftover — so it is ready for the next development cyc
    `plugins` removes the SQL views/procedures for the now-disabled plugins.
    `config` pushes the cleaned-up configuration rows to Snowflake.
 
-3. **Verify** the agent runs clean with no plugins active:
+4. **Verify** the agent runs clean with no plugins active:
 
    ```bash
    snow sql -c snow_agent_test-qa -q \
