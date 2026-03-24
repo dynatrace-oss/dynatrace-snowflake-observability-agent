@@ -1,3 +1,12 @@
+---
+name: dashboard-docs
+description: Create and update dashboard and workflow documentation
+license: MIT
+compatibility: opencode
+metadata:
+  audience: developers
+---
+
 # Skill: Dashboard and Workflow Documentation
 
 Use this skill whenever you create or update a dashboard or workflow.

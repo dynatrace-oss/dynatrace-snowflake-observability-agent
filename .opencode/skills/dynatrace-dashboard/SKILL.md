@@ -1,3 +1,12 @@
+---
+name: dynatrace-dashboard
+description: Create and update Dynatrace dashboards for DSOA telemetry
+license: MIT
+compatibility: opencode
+metadata:
+  audience: developers
+---
+
 # Skill: Dynatrace Dashboard Creation and Deployment
 
 Use this skill to create, update, convert, and deploy Dynatrace dashboards

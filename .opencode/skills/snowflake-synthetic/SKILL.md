@@ -1,3 +1,12 @@
+---
+name: snowflake-synthetic
+description: Create and update Snowflake synthetic test setups for DSOA telemetry validation
+license: MIT
+compatibility: opencode
+metadata:
+  audience: developers
+---
+
 # Skill: Snowflake Synthetic Test Setup
 
 Use this skill whenever you need to create, update, or verify synthetic test data
