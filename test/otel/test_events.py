@@ -318,9 +318,7 @@ class TestEventPayloadPacking:
             event_type=EventType.CUSTOM_INFO,
             event_data={"field.nested": {"key": "value", "count": 42}},
         )
-        assert isinstance(payload["field.nested"], dict), (
-            f"Expected dict, got {type(payload['field.nested'])}: {payload['field.nested']!r}"
-        )
+        assert isinstance(payload["field.nested"], dict), f"Expected dict, got {type(payload['field.nested'])}: {payload['field.nested']!r}"
         assert payload["field.nested"] == {"key": "value", "count": 42}
 
     def test_generic_preserves_list_value(self):
@@ -331,9 +329,7 @@ class TestEventPayloadPacking:
             event_type=EventType.CUSTOM_INFO,
             event_data={"field.items": [1, 2, 3], "field.tags": ["a", "b"]},
         )
-        assert isinstance(payload["field.items"], list), (
-            f"Expected list, got {type(payload['field.items'])}: {payload['field.items']!r}"
-        )
+        assert isinstance(payload["field.items"], list), f"Expected list, got {type(payload['field.items'])}: {payload['field.items']!r}"
         assert payload["field.items"] == [1, 2, 3]
         assert payload["field.tags"] == ["a", "b"]
 
@@ -350,7 +346,7 @@ class TestEventPayloadPacking:
         assert payload["field.complex"]["level1"]["level2"]["level3"] == "deep_value"
 
     def test_generic_converts_datetime_value(self):
-        """datetime values must be converted to ISO strings in GenericEvents payload (JSON-serialisable)."""
+        """The datetime values must be converted to ISO strings in GenericEvents payload (JSON-serialisable)."""
         import datetime
         import json
         from dtagent.otel.events import EventType
@@ -360,9 +356,7 @@ class TestEventPayloadPacking:
             event_type=EventType.CUSTOM_INFO,
             event_data={"field.ts": dt},
         )
-        assert isinstance(payload["field.ts"], str), (
-            f"Expected str ISO timestamp, got {type(payload['field.ts'])}: {payload['field.ts']!r}"
-        )
+        assert isinstance(payload["field.ts"], str), f"Expected str ISO timestamp, got {type(payload['field.ts'])}: {payload['field.ts']!r}"
         assert json.dumps(payload), "Payload with datetime field must be JSON-serialisable"
 
     def test_generic_unparses_json_string_to_dict(self):
@@ -374,9 +368,9 @@ class TestEventPayloadPacking:
             event_type=EventType.CUSTOM_INFO,
             event_data={"field.json_str": json.dumps({"parsed_key": "parsed_value"})},
         )
-        assert isinstance(payload["field.json_str"], dict), (
-            f"Expected dict after JSON un-parsing, got {type(payload['field.json_str'])}: {payload['field.json_str']!r}"
-        )
+        assert isinstance(
+            payload["field.json_str"], dict
+        ), f"Expected dict after JSON un-parsing, got {type(payload['field.json_str'])}: {payload['field.json_str']!r}"
         assert payload["field.json_str"]["parsed_key"] == "parsed_value"
 
     # ------------------------------------------------------------------
@@ -393,9 +387,9 @@ class TestEventPayloadPacking:
             event_data={"field.nested": {"key": "value", "count": 42}},
         )
         properties = payload["properties"]
-        assert isinstance(properties["field.nested"], str), (
-            f"Expected str in Davis properties, got {type(properties['field.nested'])}: {properties['field.nested']!r}"
-        )
+        assert isinstance(
+            properties["field.nested"], str
+        ), f"Expected str in Davis properties, got {type(properties['field.nested'])}: {properties['field.nested']!r}"
         assert json.loads(properties["field.nested"]) == {"key": "value", "count": 42}
 
     def test_davis_stringifies_list_of_dicts(self):
@@ -410,9 +404,9 @@ class TestEventPayloadPacking:
         properties = payload["properties"]
         field_rows = properties["field.rows"]
         assert isinstance(field_rows, list), f"Expected list, got {type(field_rows)}"
-        assert all(isinstance(item, str) for item in field_rows), (
-            f"Expected all list elements to be strings in Davis properties, got: {field_rows!r}"
-        )
+        assert all(
+            isinstance(item, str) for item in field_rows
+        ), f"Expected all list elements to be strings in Davis properties, got: {field_rows!r}"
         assert [json.loads(item) for item in field_rows] == [{"col": "a"}, {"col": "b"}]
 
     def test_davis_preserves_primitive_values(self):
@@ -439,9 +433,9 @@ class TestEventPayloadPacking:
             event_data={"field.nested": {"key": "value", "count": 42}},
         )
         data = payload["data"]
-        assert isinstance(data["field.nested"], dict), (
-            f"Expected dict in BizEvents data, got {type(data['field.nested'])}: {data['field.nested']!r}"
-        )
+        assert isinstance(
+            data["field.nested"], dict
+        ), f"Expected dict in BizEvents data, got {type(data['field.nested'])}: {data['field.nested']!r}"
         assert data["field.nested"]["key"] == "value"
 
     def test_bizevents_preserves_list_value(self):
