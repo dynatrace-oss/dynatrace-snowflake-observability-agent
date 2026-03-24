@@ -202,11 +202,11 @@ def _cleanup_dict(d: Any, skip_first_level_hidden=False) -> Union[dict, list, st
         Union[dict, list]: _description_
     """
 
-    def __get_valid_json(json_string: str) -> Union[dict, None]:
+    def __get_valid_json(json_string: str) -> Union[dict, list, None]:
         """Deserialize s (a str, bytes or bytearray instance containing a JSON document) to a Python object."""
         try:
             data = json.loads(json_string)
-            if isinstance(data, dict):
+            if isinstance(data, (dict, list)):
                 return data
             return None
         except (ValueError, TypeError):

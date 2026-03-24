@@ -141,8 +141,8 @@ class DavisEvents(GenericEvents):
 
     def _add_data_to_payload(self, payload: Dict[str, Any], event_data: Dict[str, Any]) -> Dict[str, Any]:
         """Adds given properties to event payload under 'properties' key.
-        Davis Events API v2 requires all property values to be strings, so values are
-        serialized to JSON strings before the 4096-character truncation is applied.
+        Davis Events API v2 requires all property values to be strings or primitive values (int, float, bool, etc.),
+        so values are serialized to JSON strings before the 4096-character truncation is applied.
         Args:
             payload (Dict[str, Any]): Event payload in form of dict
             event_data (Dict[str, Any]): Properties to be added to event payload
