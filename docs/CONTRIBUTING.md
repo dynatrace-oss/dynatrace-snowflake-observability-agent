@@ -375,6 +375,29 @@ building workflows.
 
 Before using the skills, ensure the QA environment is ready:
 
+1. **Base DSOA installation.** The agent must already be fully installed in the
+   target Snowflake account before any scoped deployment (`plugins,config`) can
+   succeed. Verify this first:
+
+    ```bash
+    snow sql -c snow_agent_test-qa -q "SHOW DATABASES LIKE 'DTAGENT%'"
+    ```
+
+    If the result is empty, a **human** must run the full base installation
+    (AI agents must never run privileged scopes):
+
+    ```bash
+    ./scripts/deploy/deploy.sh test-qa --scope=all --options=skip_confirm
+    ```
+
+    > **Important:** `--scope=all`, `init`, `admin`, and `apikey` create or
+    > modify roles, databases, warehouses, and API integrations. These are
+    > **human-only** operations and must never be executed by an AI agent.
+
+    This creates `DTAGENT_QA_DB`, the `DTAGENT_QA_OWNER` / `DTAGENT_QA_VIEWER` /
+    `DTAGENT_QA_ADMIN` roles, the warehouse, status tables, and all core objects.
+    **You must complete this step before enabling plugins or running synthetic SQL.**
+
 1. **Snowflake CLI connection.** A connection named `snow_agent_test-qa` must
    exist in Snowflake CLI configuration pointing at the shared QA Snowflake
    account.
@@ -407,7 +430,7 @@ Before using the skills, ensure the QA environment is ready:
         is_enabled: true
     ```
 
-    > **Tip:** Some plugins use the `DB.SCHEMA.OBJECT` format with `%` wildcards, other might not allow for scoping at all.
+    > **Tip:** Some plugins use the `DB.SCHEMA.OBJECT` format with `%` wildcards, others may not support scoping at all.
     Always check the plugin's config documentation to determine the correct format and available options —
    consult `src/dtagent/plugins/$PLUGIN.conf/$PLUGIN-config.yml` and `src/dtagent/plugins/$PLUGIN.conf/config.md` for details.
 

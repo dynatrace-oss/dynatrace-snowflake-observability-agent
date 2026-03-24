@@ -12,16 +12,46 @@ metadata:
 Use this skill whenever you need to create, update, or verify synthetic test data
 pipelines in Snowflake for validating DSOA telemetry and dashboards.
 
+## Environment Reference (test-qa)
+
+Validated on: **test-qa** (`DYNATRACEDIGITALBUSINESSDW`, `AWS_US_EAST_1`)
+
+| Item                 | Value                        |
+|----------------------|------------------------------|
+| CLI connection       | `snow_agent_test-qa`         |
+| Snowflake account    | `DYNATRACEDIGITALBUSINESSDW` |
+| Region               | `AWS_US_EAST_1`              |
+| DSOA database        | `DTAGENT_QA_DB`              |
+| Owner role           | `DTAGENT_QA_OWNER`           |
+| Viewer role          | `DTAGENT_QA_VIEWER`          |
+| Default warehouse    | `DTAGENT_WH`                 |
+| Synthetic warehouse  | `DSOA_TEST_WH` (XSMALL, created by setup scripts) |
+| Synthetic database   | `DSOA_TEST_DB` (created by setup scripts)         |
+
+> **Note:** The connection's default role (`SEBASTIAN_KRUK_ROLE`) cannot see
+> DTAGENT databases. Always use `USE ROLE DTAGENT_QA_OWNER` explicitly when
+> checking for agent objects.
+
 ## Prerequisites
 
 This skill assumes the following are already in place:
 
-1. **Snowflake CLI connection** `snow_agent_test-qa` is configured in
-   Snowflake CLI configuration. The connection
-   must point at the shared QA Snowflake account used for dashboard and workflow
-   development.
+1. **DSOA is installed** on the target environment — `DTAGENT_QA_DB` exists
+   and `DTAGENT_QA_OWNER` / `DTAGENT_QA_VIEWER` roles are present. Verify with:
 
-2. **Agent configuration** `conf/config-test-qa.yml` exists with **all plugins
+   ```bash
+   snow sql -c snow_agent_test-qa -q "USE ROLE DTAGENT_QA_OWNER; SHOW DATABASES LIKE 'DTAGENT%'"
+   ```
+
+   If the result is empty, DSOA has never been deployed there. A **human** must
+   run `--scope=all` first (AI agents are never permitted to run privileged
+   scopes — see `dynatrace-dashboard` skill).
+
+2. **Snowflake CLI connection** `snow_agent_test-qa` is configured in
+   Snowflake CLI configuration. The connection must point at the shared QA
+   Snowflake account used for dashboard and workflow development.
+
+3. **Agent configuration** `conf/config-test-qa.yml` exists with **all plugins
    disabled and not deployable by default**:
 
     ```yaml
@@ -33,8 +63,8 @@ This skill assumes the following are already in place:
    This ensures the QA agent only collects telemetry for plugins you explicitly
    enable — keeping costs low and data clean.
 
-If either prerequisite is missing, set them up before proceeding (see
-[CONTRIBUTING.md](../../docs/CONTRIBUTING.md#ai-assisted-dashboard--workflow-development)).
+If any prerequisite is missing, set them up before proceeding (see
+[CONTRIBUTING.md](../../../docs/CONTRIBUTING.md#ai-assisted-dashboard--workflow-development)).
 
 ## Connection
 
@@ -49,6 +79,70 @@ For quick inline checks:
 ```bash
 snow sql --connection snow_agent_test-qa -q "<SQL statement>"
 ```
+
+## Known Pitfalls (Lessons Learned)
+
+These issues were discovered during real setup sessions — follow the patterns
+below to avoid them:
+
+### 1. `GRANT OWNERSHIP ... COPY CURRENT GRANTS` may fail
+
+Some connection roles lack the `WITH COPY CURRENT GRANTS` privilege for
+ownership transfers. Use `REVOKE CURRENT GRANTS` instead:
+
+```sql
+-- ✗ May fail with "Insufficient privileges to operate on grant ownership"
+GRANT OWNERSHIP ON WAREHOUSE DSOA_TEST_WH TO ROLE DTAGENT_QA_OWNER COPY CURRENT GRANTS;
+
+-- ✓ Use this instead
+GRANT OWNERSHIP ON WAREHOUSE DSOA_TEST_WH TO ROLE DTAGENT_QA_OWNER REVOKE CURRENT GRANTS;
+```
+
+### 2. `UNIFORM()` cannot be used inline in VALUES inside `$$` procedure bodies
+
+Snowflake does not allow `UNIFORM()` (or other non-deterministic functions)
+directly in a VALUES clause when they are mixed with string concatenation
+inside a `$$`-delimited stored procedure body. Capture them into `DECLARE`
+variables first:
+
+```sql
+-- ✗ Fails: "Invalid expression [...UNIFORM()...] in VALUES clause"
+INSERT INTO t (a, b) VALUES ('prefix ' || UNIFORM(1, 9, RANDOM()), 'x');
+
+-- ✓ Declare the variable, then reference it with :var
+DECLARE
+    rnd NUMBER DEFAULT UNIFORM(1, 9, RANDOM());
+BEGIN
+    INSERT INTO t (a, b) VALUES ('prefix ' || :rnd, 'x');
+END;
+```
+
+### 3. Tasks require `EXECUTE TASK` account-level privilege
+
+For the `tasks` plugin, the owner role needs `EXECUTE TASK ON ACCOUNT` before
+it can `ALTER TASK ... RESUME` tasks it owns. This must be granted by
+`ACCOUNTADMIN`:
+
+```sql
+USE ROLE ACCOUNTADMIN;
+GRANT EXECUTE TASK ON ACCOUNT TO ROLE DTAGENT_QA_OWNER;
+```
+
+Without this, `ALTER TASK ... RESUME` will fail with an access control error.
+
+### 4. Viewer role name varies by environment tag
+
+The viewer role follows the pattern `DTAGENT_<TAG>_VIEWER`. For the QA
+environment the tag is `QA`, so the role is `DTAGENT_QA_VIEWER`. Do **not**
+hardcode `DTAGENT_094_VIEWER` — that belongs to a different environment.
+
+### 5. `DT_DOWNSTREAM` (or any dynamic table using `CURRENT_TIMESTAMP()`) will use FULL refresh
+
+Snowflake automatically selects FULL refresh mode for dynamic tables whose
+query contains non-deterministic functions (`CURRENT_TIMESTAMP()`, `RANDOM()`,
+etc.) because change tracking is not supported on such queries. This is
+expected behaviour — the warning in the `CREATE` response can be ignored for
+synthetic test purposes.
 
 ## File Location
 
@@ -104,9 +198,10 @@ CREATE SCHEMA IF NOT EXISTS DSOA_TEST_DB.<PLUGIN>;
 -- ...
 
 -- 4. Grant access to the DSOA viewer role
---    Adjust role name if your deployment uses a tag (e.g. DTAGENT_094_VIEWER)
-GRANT USAGE ON DATABASE DSOA_TEST_DB TO ROLE DTAGENT_094_VIEWER;
-GRANT USAGE ON SCHEMA DSOA_TEST_DB.<PLUGIN> TO ROLE DTAGENT_094_VIEWER;
+--    Role name follows the pattern DTAGENT_<TAG>_VIEWER.
+--    For test-qa the tag is QA → DTAGENT_QA_VIEWER.
+GRANT USAGE ON DATABASE DSOA_TEST_DB TO ROLE DTAGENT_QA_VIEWER;
+GRANT USAGE ON SCHEMA DSOA_TEST_DB.<PLUGIN> TO ROLE DTAGENT_QA_VIEWER;
 -- <object-level grants>
 
 -- 5. Verify setup
@@ -159,14 +254,18 @@ plugins:
 > **Tip:** The `include` patterns should match the schema/objects created by
 > your `setup_test_<plugin>.sql` script inside `DSOA_TEST_DB`.
 
-After updating the config, rebuild and redeploy plugins and config.
+After updating the config, rebuild and redeploy plugins, agents, and config.
 
 ```bash
 ./scripts/dev/build.sh
-./scripts/deploy/deploy.sh test-qa --scope=plugins,config --options=skip_confirm
+./scripts/deploy/deploy.sh test-qa --scope=plugins,agents,config --options=skip_confirm
 ```
 
-> **Note:** You don't need to redeploy `agents` scope unless you are modifying the python agent code.
+> **Important:** Always include `agents` scope whenever you enable or disable plugins
+> in `deploy_disabled_plugins: false` mode. Parts of the agent Python code are
+> conditionally compiled based on which plugins are active, so the agent stored
+> procedure must be redeployed to match. Omitting `agents` leaves a stale procedure
+> in Snowflake that may reference objects that no longer exist (or vice versa).
 
 ## Execution Workflow
 
@@ -192,7 +291,7 @@ snow sql --connection snow_agent_test-qa -q "SHOW <OBJECTS> IN SCHEMA DSOA_TEST_
 
 ```bash
 snow sql --connection snow_agent_test-qa -q \
-  "SHOW GRANTS TO ROLE DTAGENT_094_VIEWER;" | grep DSOA_TEST_DB
+  "SHOW GRANTS TO ROLE DTAGENT_QA_VIEWER;" | grep DSOA_TEST_DB
 ```
 
 ### 5. Wait for DSOA collection
@@ -205,7 +304,7 @@ Check the DSOA task last run time if data is not appearing:
 
 ```bash
 snow sql --connection snow_agent_test-qa -q \
-  "SELECT * FROM DTAGENT_094_DB.STATUS.LAST_PROCESSED ORDER BY UPDATED_AT DESC LIMIT 20;"
+  "USE ROLE DTAGENT_QA_OWNER; SELECT * FROM DTAGENT_QA_DB.STATUS.LAST_PROCESSED ORDER BY UPDATED_AT DESC LIMIT 20;"
 ```
 
 ## Rebuilding and Redeploying DSOA
@@ -227,6 +326,51 @@ Scope guidance:
 - `config` — push updated configuration values
 - `agents` — redeploy agent Snowpark Python code (if you made changes to the plugin code)
 - `setup,plugins,config,agents` — full redeploy without reinitialising roles/DB
+
+## Post-Approval Cleanup
+
+Once the human has **fully approved** the dashboard or workflow (Phase 4 complete),
+the QA environment must be restored to a clean baseline — no plugins enabled, no
+synthetic-scoped config leftover — so it is ready for the next development cycle.
+
+### Steps
+
+1. **Edit `conf/config-test-qa.yml`** — remove all plugin `is_enabled: true` entries
+   and any `include`/`exclude` blocks added for testing. The plugins block must return
+   to the clean base:
+
+   ```yaml
+   plugins:
+     disabled_by_default: true
+     deploy_disabled_plugins: false
+   ```
+
+   Do **not** leave any `plugin_name: { is_enabled: true }` stanzas — they will cause
+   those plugins to be deployed and run on every agent tick, wasting credits.
+
+2. **Rebuild and redeploy** with `plugins`, `agents`, and `config` scopes:
+
+   ```bash
+   ./scripts/dev/build.sh
+   ./scripts/deploy/deploy.sh test-qa --scope=plugins,agents,config --options=skip_confirm
+   ```
+
+   `agents` is required because disabling plugins changes the compiled agent code.
+   `plugins` removes the SQL views/procedures for the now-disabled plugins.
+   `config` pushes the cleaned-up configuration rows to Snowflake.
+
+3. **Verify** the agent runs clean with no plugins active:
+
+   ```bash
+   snow sql -c snow_agent_test-qa -q \
+     "USE ROLE DTAGENT_QA_OWNER; USE DATABASE DTAGENT_QA_DB; USE WAREHOUSE DTAGENT_WH; CALL DTAGENT_QA_DB.APP.DTAGENT([]);"
+   ```
+
+   The call should succeed with zero entries processed.
+
+> **Never** leave plugins enabled in the QA config after the dashboard/workflow is
+> approved. Enabled plugins collect real data continuously, increase DSOA run time,
+> and make it harder to validate future dashboards against a clean dataset.
 
 ## Idempotency
 

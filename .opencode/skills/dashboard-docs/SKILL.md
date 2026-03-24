@@ -34,73 +34,69 @@ docs/workflows/README.md
 
 ## `readme.md` Structure
 
-Follow this exact structure. Look at existing dashboards
-(`docs/dashboards/costs-monitoring/readme.md`,
-`docs/dashboards/self-monitoring/readme.md`) for tone and level of detail.
+Use a **narrative-first, use-case-oriented** style. The canonical reference is
+`docs/dashboards/snowpipes-monitoring/readme.md` and
+`docs/dashboards/tasks-pipelines/readme.md` — read one of them before writing.
+
+**Rules:**
+
+- Open with one paragraph explaining what it monitors, who it is for, and why it matters.
+- Place the **overview screenshot immediately after the opening paragraph**, before any sections.
+- Organise the body by **dashboard section**, not by tile. Each section gets its own `##` heading.
+- **Embed the section screenshot at the top of each section**, before the prose.
+- Write **narrative prose** for each section: open with the question(s) the section answers,
+  then describe each tile in terms of what it reveals and what action it drives.
+  Avoid bare bullet lists of tile names — explain the "so what".
+- Use bullet points only for compact per-tile detail (e.g. what a colour means, a data latency caveat).
+- Inline a **close-up screenshot** for any tile whose visual requires explanation (e.g. honeycomb).
+- Tables are acceptable for **Dashboard Variables** and **Known Limitations** — but not as a
+  substitute for section prose.
+- End with **Required Plugins**, **Dashboard Variables** (table), and **Known Limitations**.
+- Do **not** include a "Use Cases Covered" table or a "Filtering to a Specific Use Case" section
+  as separate headings — weave filtering guidance naturally into the relevant section prose.
 
 ```markdown
-# <Dashboard / Workflow Title>
+# Dashboard: <Title>
 
-<One-paragraph description: what it monitors, who it is for, and why it matters.>
+<One paragraph: what it monitors, who it is for, and why it matters.>
 
-## Use Cases Covered
+![<Title> dashboard overview](img/overview.png)
 
-| # | Use Case               | Theme                                                 | Plugin(s)  |
-|---|------------------------|-------------------------------------------------------|------------|
-| 1 | <use case description> | Operations / Costs / Performance / Quality / Security | `<plugin>` |
-| 2 | ...                    | ...                                                   | ...        |
+## <Section 1 Name>
 
-## Prerequisites
+![<Section 1 Name>](img/section-<name>.png)
 
-- DSOA deployed with the following plugins enabled: `<plugin-a>`, `<plugin-b>`
-- Data must be flowing for at least one collection cycle before tiles populate:
-  - Fast-mode tiles (e.g. pipe status, active queries): ~5 minutes
-  - Deep-mode tiles (e.g. copy history, usage history): ~1–2 hours
+<Open with the question(s) this section answers. Then describe tiles in narrative form,
+explaining what each reveals and what action it drives. Use bullets only for compact
+per-tile detail.>
+
+## <Section 2 Name>
+
+![<Section 2 Name>](img/section-<name>.png)
+
+<Narrative prose ...>
+
+  <!-- Embed close-up for a tile that needs it: -->
+  ![<Tile name> close-up](img/<tile-name>.png)
 
 ## Dashboard Variables
 
-| Variable    | Purpose                                                | Default   |
-|-------------|--------------------------------------------------------|-----------|
-| `$Accounts` | Filter by Snowflake account (`deployment.environment`) | `*` (all) |
-| `$<Other>`  | <description>                                          | <default> |
+| Variable    | Type  | Default | Description |
+|-------------|-------|---------|-------------|
+| `$Accounts` | query | all     | Filter by Snowflake account (`deployment.environment`) |
+| `$<Other>`  | query | all     | <description> |
 
-## Sections and Tiles
+<One sentence on multi-select behaviour and typical filtering patterns.>
 
-### Section 1 — <Name>
+## Required Plugin(s)
 
-Brief description of what this section shows and the decision it supports.
-
-| Tile         | Visualisation                                                    | Metric / Source          | Notes         |
-|--------------|------------------------------------------------------------------|--------------------------|---------------|
-| <Tile title> | `singleValue` / `lineChart` / `barChart` / `honeycomb` / `table` | `snowflake.<metric.key>` | <any caveats> |
-
-### Section 2 — <Name>
-
-...
-
-## Filtering to a Specific Use Case
-
-Explain how to narrow the dashboard to answer a specific question.
-Example:
-
-> To monitor only pipes loading CSV files from S3, set `$Pipe` to a pattern
-> matching your pipe names (e.g. `%.S3_INGEST.%`) and narrow `$Accounts` to
-> the relevant Snowflake account.
+<Which plugins must be enabled, what contexts they produce, collection cadence,
+and data latency summary.>
 
 ## Known Limitations
 
-- List any deferred tiles, data gaps, or latency caveats.
-- Reference any follow-up tickets if applicable.
-
-## Screenshots
-
-<!-- Screenshots are added after manual validation in Dynatrace UI -->
-
-| File                     | What to capture                                      |
-|--------------------------|------------------------------------------------------|
-| `img/overview.png`       | Full dashboard at default zoom, all sections visible |
-| `img/section-<name>.png` | <section> with representative data                   |
-| `img/<tile-name>.png`    | Close-up of a specific tile if it needs explanation  |
+- <Data gap, latency caveat, or deferred tile — one bullet per issue.>
+- Reference telemetry issue IDs (e.g. TI-004) where applicable.
 ```
 
 ---
@@ -124,7 +120,7 @@ At the end of every dashboard/workflow delivery, output a **Screenshot Checklist
 in this exact format so the human reviewer knows exactly what to capture:
 
 ```text
-## 📸 Screenshot Checklist — <Dashboard Name>
+## Screenshot Checklist — <Dashboard Name>
 
 Please open the dashboard at:
   <Dynatrace URL>
@@ -147,6 +143,10 @@ Capture and save to docs/dashboards/<name>/img/:
 
 This checklist must be the **last output** of any dashboard implementation task,
 after the git commit.
+
+Once the human drops the image files into `img/`, update `readme.md` to embed them
+inline (replacing any placeholder table or comment) using `![alt](img/file.png)` at
+the top of each relevant section, as described in the `readme.md` Structure above.
 
 ---
 

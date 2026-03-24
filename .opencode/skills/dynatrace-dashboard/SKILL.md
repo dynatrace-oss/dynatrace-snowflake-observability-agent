@@ -50,15 +50,29 @@ All DSOA telemetry carries these standard dimensions on every record:
 
 These rules come from real debugging sessions — follow them strictly:
 
-1. **No `fetch metrics` for DSOA data.** DSOA emits logs, events, and bizevents.
-   Use `fetch logs`, `fetch events`, or `fetch bizevents` as appropriate.
-   Check `instruments-def.yml` for the correct telemetry type per metric.
+1. **Determine the actual telemetry type before writing any DQL.**
+   DSOA plugins can emit logs, events, metrics, or bizevents — and the plugin
+   source is the only authoritative answer. Before writing a tile query, check
+   the plugin's `_log_entries()` call in `src/dtagent/plugins/<plugin>.py`:
+   - No `report_timestamp_events=True` and no `event_payload_prepare` → **logs only** → use `fetch logs`
+   - `report_timestamp_events=True` → timestamp events **in addition to** logs → use `fetch events` for event tiles
+   - `report_all_as_events=True` → all rows as events → use `fetch events`
+   - Metrics in `instruments-def.yml` with a metric key → use `timeseries`
 
-2. **`timeseries` requires all filter dimensions in the `by:` clause.**
+   **Known emission types (verified):**
+   - `tasks` plugin (`task_history`, `task_versions`, `serverless_tasks` contexts): **logs + metrics**
+   - `dynamic_tables` plugin (`dynamic_tables`, `dynamic_table_refresh_history`, `dynamic_table_graph_history`): **logs + metrics**
+   - `snowpipes` plugin: logs + events (timestamp events via `report_timestamp_events=True`)
+
+2. **No `fetch metrics` for DSOA data.** DSOA does not use the standard
+   Dynatrace metric ingestion pipeline. Use `timeseries` with a metric key
+   from `instruments-def.yml`, or `fetch logs` for log-based aggregations.
+
+3. **`timeseries` requires all filter dimensions in the `by:` clause.**
    If you filter on `deployment.environment` after `timeseries`, it must
    also appear in `by: { ..., deployment.environment }`.
 
-3. **`percentile()` does not support iterative expressions from `timeseries`.**
+4. **`percentile()` does not support iterative expressions from `timeseries`.**
    Instead of:
 ```dql
    timeseries v = avg(metric), by: { dim }
@@ -67,24 +81,26 @@ These rules come from real debugging sessions — follow them strictly:
    Use `fetch logs` with `percentile()` directly, or use `summarize` with
    `avg()` / `max()` which do support array aggregation.
 
-4. **Honeycomb tiles need scalar values, not timeseries arrays.**
-   Use `fetch logs | summarize ... by: { dim }` or
-   `fetch events | summarize ... by: { dim }` — not `timeseries`.
+5. **Honeycomb tiles need scalar values, not timeseries arrays.**
+   Use `fetch logs | summarize ... by: { dim }` — not `timeseries`.
 
-5. **Variable filters after `timeseries` must use `array()` wrapper:**
+6. **Variable filters after `timeseries` must use `array()` wrapper:**
 ```dql
    timeseries v = sum(metric), by: { snowflake.pipe.name, deployment.environment }
    | filter in(deployment.environment, array($Accounts))
    | filter in(snowflake.pipe.name, array($Pipe))
 ```
 
-6. **`$Variable` in threshold expressions needs `toDouble()`:**
+7. **`$Variable` in threshold expressions needs `toDouble()`:**
 ```dql
    | filter value > toDouble($Threshold_Latency_Warning)
 ```
 
-7. **Pipe status is a string dimension, not a numeric metric.**
-   Query it from logs/events, not from a metric series.
+8. **Pipe/task/table status is a string dimension, not a numeric metric.**
+   Query it from logs via `fetch logs | summarize`, not from a metric series.
+
+9. **`dtctl auth login` can be run by the AI agent** — it opens a browser tab
+   for OAuth. Run it whenever `dtctl apply` returns a token/auth error.
 
 ## YAML Dashboard Format
 ```yaml
@@ -208,11 +224,42 @@ dtctl apply -A -f /tmp/<name>-workflow.json
 
 ## Full Deployment Sequence
 
-> **CRITICAL:** Steps 1–5 (synthetic data + DSOA redeploy) are mandatory gates.
-> Do NOT create or deploy a dashboard until live data is confirmed flowing in step 5.
+> **CRITICAL:** The pre-flight check and Phase A are mandatory blocking gates.
+> Do NOT proceed to Phase B until live data is confirmed flowing.
 > A dashboard deployed against an empty dataset cannot be validated and is not done.
 
 ```
+=== PRE-FLIGHT: Verify DSOA is Installed on test-qa ===
+
+0.  Before ANY other step, confirm DSOA is installed in the target environment.
+    The connection profile's default role may not have visibility into DTAGENT
+    databases, so always check using the owner role explicitly:
+
+      snow sql -c snow_agent_test-qa -q "USE ROLE DTAGENT_QA_OWNER; SHOW DATABASES LIKE 'DTAGENT%'"
+
+    Expected: at least one row (e.g. DTAGENT_QA_DB).
+
+    If the result is empty ("No data"), DSOA has never been installed there.
+    STOP immediately and tell the user:
+
+      "DSOA is not installed on test-qa. A human must run the base installation
+       first using the privileged scopes (init, admin, all). These scopes create
+       roles, databases, and warehouses and must NEVER be run by an AI agent.
+       Please run:
+         ./scripts/deploy/deploy.sh test-qa --scope=all --options=skip_confirm
+       Then come back and I will continue."
+
+    !! IMPORTANT: NEVER run --scope=all, init, admin, or apikey yourself.
+    These scopes create or modify roles, databases, warehouses, API integrations,
+    and other account-level objects. They are HUMAN-ONLY operations.
+    The AI agent is only permitted to run --scope=plugins,config (and agents
+    when python code changes). Always stop and ask the human to run privileged
+    scopes, then wait for confirmation before proceeding.
+
+    Do NOT attempt to deploy plugins,config or write synthetic SQL until the
+    base install is confirmed. The role DTAGENT_QA_OWNER and database
+    DTAGENT_QA_DB must exist before any scoped deployment can succeed.
+
 === PHASE A: Synthetic Data Setup (snowflake-synthetic skill) ===
 
 1.  Read instruments-def.yml for all relevant plugins — confirm exact field names
@@ -224,7 +271,7 @@ dtctl apply -A -f /tmp/<name>-workflow.json
 
 3.  Verify synthetic objects exist and grants are in place:
       snow sql --connection snow_agent_test-qa -q "SHOW <OBJECTS> IN SCHEMA DSOA_TEST_DB.<PLUGIN>;"
-      snow sql --connection snow_agent_test-qa -q "SHOW GRANTS TO ROLE DTAGENT_094_VIEWER;" | grep DSOA_TEST_DB
+      snow sql --connection snow_agent_test-qa -q "SHOW GRANTS TO ROLE DTAGENT_QA_VIEWER;" | grep DSOA_TEST_DB
 
 4.  Enable required plugins in conf/config-test-qa.yml (is_enabled: true, scoped
     to DSOA_TEST_DB). Rebuild and redeploy DSOA:
