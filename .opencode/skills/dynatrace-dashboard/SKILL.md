@@ -207,18 +207,49 @@ dtctl apply -A -f /tmp/<name>-workflow.json
 ```
 
 ## Full Deployment Sequence
+
+> **CRITICAL:** Steps 1–5 (synthetic data + DSOA redeploy) are mandatory gates.
+> Do NOT create or deploy a dashboard until live data is confirmed flowing in step 5.
+> A dashboard deployed against an empty dataset cannot be validated and is not done.
+
 ```
-1. Read instruments-def.yml for all relevant plugins
-2. Write dashboard YAML in docs/dashboards/<name>/<name>.yml
-3. Convert:  ./scripts/tools/yaml-to-json.sh ... > /tmp/<name>.json
-4. Validate: jq . /tmp/<name>.json
-5. Deploy:   dtctl apply -A -f /tmp/<name>.json
-6. Record the returned ID — add it to the YAML as `id: <uuid>`
-7. Re-convert and re-deploy with ID so subsequent runs update in place
-8. Verify visually in Dynatrace UI
-9. Write docs/dashboards/<name>/readme.md  (see dashboard-docs skill)
-10. Update docs/dashboards/README.md index
-11. Request screenshots (see dashboard-docs skill)
+=== PHASE A: Synthetic Data Setup (snowflake-synthetic skill) ===
+
+1.  Read instruments-def.yml for all relevant plugins — confirm exact field names
+    and which dsoa.run.context values each tile will query.
+
+2.  Write test/tools/setup_test_<plugin>.sql covering every dashboard tile's
+    data requirements. Apply it:
+      snow sql --connection snow_agent_test-qa -f test/tools/setup_test_<plugin>.sql
+
+3.  Verify synthetic objects exist and grants are in place:
+      snow sql --connection snow_agent_test-qa -q "SHOW <OBJECTS> IN SCHEMA DSOA_TEST_DB.<PLUGIN>;"
+      snow sql --connection snow_agent_test-qa -q "SHOW GRANTS TO ROLE DTAGENT_094_VIEWER;" | grep DSOA_TEST_DB
+
+4.  Enable required plugins in conf/config-test-qa.yml (is_enabled: true, scoped
+    to DSOA_TEST_DB). Rebuild and redeploy DSOA:
+      ./scripts/dev/build.sh
+      ./scripts/deploy/deploy.sh test-qa --scope=plugins,config --options=skip_confirm
+
+5.  Wait for at least one DSOA collection cycle, then confirm data is flowing
+    via a spot-check DQL query through the MCP server or dtctl query. Do NOT
+    proceed until records are returned. Fast plugins: ~5 min. Deep plugins: ~1-2 h.
+
+=== PHASE B: Dashboard Authoring and Deployment ===
+
+6.  Write dashboard YAML in docs/dashboards/<name>/<name>.yml
+7.  Convert:  ./scripts/tools/yaml-to-json.sh ... > /tmp/<name>.json
+8.  Validate: jq . /tmp/<name>.json
+9.  Deploy:   dtctl apply -A -f /tmp/<name>.json
+10. Record the returned ID — add it to the YAML as `id: <uuid>`
+11. Re-convert and re-deploy with ID so subsequent runs update in place
+12. Verify every tile renders real data in the Dynatrace UI
+
+=== PHASE C: Documentation ===
+
+13. Write docs/dashboards/<name>/readme.md  (see dashboard-docs skill)
+14. Update docs/dashboards/README.md index
+15. Request screenshots (see dashboard-docs skill)
 ```
 
 ## Dynatrace MCP Server
