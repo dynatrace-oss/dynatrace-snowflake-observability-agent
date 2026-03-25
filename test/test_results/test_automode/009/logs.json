@@ -16,7 +16,7 @@
     },
     "dsoa.run.plugin": "telemetry_sender",
     "dsoa.run.context": "test_automode/009",
-    "code.file.path": "/Users/sebastian.kruk/Development/dt/dt-snowagent/src/dtagent/otel/logs.py",
+    "code.file.path": "./src/dtagent/otel/logs.py",
     "code.function.name": "send_log",
     "code.line.number": 205
   },
@@ -37,7 +37,7 @@
     },
     "dsoa.run.plugin": "telemetry_sender",
     "dsoa.run.context": "test_automode/009",
-    "code.file.path": "/Users/sebastian.kruk/Development/dt/dt-snowagent/src/dtagent/otel/logs.py",
+    "code.file.path": "./src/dtagent/otel/logs.py",
     "code.function.name": "send_log",
     "code.line.number": 205
   },
@@ -58,15 +58,50 @@
     },
     "dsoa.run.plugin": "telemetry_sender",
     "dsoa.run.context": "test_automode/009",
-    "code.file.path": "/Users/sebastian.kruk/Development/dt/dt-snowagent/src/dtagent/otel/logs.py",
+    "code.file.path": "./src/dtagent/otel/logs.py",
+    "code.function.name": "send_log",
+    "code.line.number": 205
+  },
+  {
+    "content": "Log entry sent with test_automode/009",
+    "test_object": {
+      "key": "value",
+      "key2": 100
+    },
+    "test_object2": {
+      "key": "value",
+      "obj": {
+        "k": 1,
+        "k2": "v2"
+      },
+      "arr": [
+        "1",
+        "20",
+        "b",
+        "{\"k\": \"v\"}"
+      ]
+    },
+    "test_array": [
+      1.0,
+      100.0,
+      2.3
+    ],
+    "test_array2": [
+      "value",
+      "{\"key\": \"value\"}",
+      "102"
+    ],
+    "dsoa.run.plugin": "telemetry_sender",
+    "dsoa.run.context": "test_automode/009",
+    "code.file.path": "./src/dtagent/otel/logs.py",
     "code.function.name": "send_log",
     "code.line.number": 205
   },
   {
     "content": "New entry to STATUS.LOG_PROCESSED_MEASUREMENTS from test_automode/009",
     "test_automode/009": {
-      "entries": 3,
-      "log_lines": 3,
+      "entries": 4,
+      "log_lines": 4,
       "metrics": 0,
       "events": 0,
       "biz_events": 0,
@@ -74,7 +109,7 @@
     },
     "dsoa.run.plugin": "telemetry_sender",
     "dsoa.run.context": "self_monitoring",
-    "code.file.path": "/Users/sebastian.kruk/Development/dt/dt-snowagent/src/dtagent/otel/logs.py",
+    "code.file.path": "./src/dtagent/otel/logs.py",
     "code.function.name": "send_log",
     "code.line.number": 205
   }
