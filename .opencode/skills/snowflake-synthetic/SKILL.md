@@ -53,7 +53,7 @@ The DSOA viewer role gains access to `DSOA_TEST_DB` automatically when DSOA is
 deployed (its admin SQL grants `USAGE` on all databases the agent needs to read).
 No manual grants to `DTAGENT_*` roles are needed in the setup script.
 
-If plugin that was deployed requires access to telemetry to be granted to the agent there is _GRANTS_TASK.sql file in the $plugin.sql folder. You will need to trigger that task to ensure the viewer role has access to the synthetic test data.
+If a plugin that was deployed requires access to telemetry to be granted to the agent, there is a `_GRANTS_TASK.sql` file in the `$plugin.sql` folder. You will need to trigger that task to ensure the viewer role has access to the synthetic test data.
 
 ## Prerequisites
 
