@@ -32,6 +32,29 @@ Validated on: **test-qa** (`DYNATRACEDIGITALBUSINESSDW`, `AWS_US_EAST_1`)
 > DTAGENT databases. Always use `USE ROLE DTAGENT_QA_OWNER` explicitly when
 > checking for agent objects.
 
+## Design Principle: DSOA-Independence
+
+**Synthetic setup scripts must be fully independent of DSOA.** They create test
+data that DSOA *will eventually observe*, but they must not assume DSOA is
+already deployed — the whole point is that the environment can be set up *before*
+DSOA is deployed for the first time.
+
+Concretely:
+
+- **Never reference `DTAGENT_*` roles, databases, or objects** in a setup script.
+  Those objects may not exist yet.
+- **Do not grant to `DTAGENT_QA_VIEWER`** in the setup script. DSOA's own deploy
+  (`--scope=admin,config`) handles grants to its viewer role as part of installation.
+- Run everything as `SYSADMIN` (for object creation) and `ACCOUNTADMIN` (for
+  account-level grants only, e.g. `EXECUTE TASK`). All created objects are owned
+  by `SYSADMIN` or transferred to it — no DSOA-specific roles needed.
+
+The DSOA viewer role gains access to `DSOA_TEST_DB` automatically when DSOA is
+deployed (its admin SQL grants `USAGE` on all databases the agent needs to read).
+No manual grants to `DTAGENT_*` roles are needed in the setup script.
+
+If plugin that was deployed requires access to telemetry to be granted to the agent there is _GRANTS_TASK.sql file in the $plugin.sql folder. You will need to trigger that task to ensure the viewer role has access to the synthetic test data.
+
 ## Prerequisites
 
 This skill assumes the following are already in place:
@@ -144,6 +167,28 @@ etc.) because change tracking is not supported on such queries. This is
 expected behaviour — the warning in the `CREATE` response can be ignored for
 synthetic test purposes.
 
+### 6. Setup scripts must not reference DTAGENT_* roles
+
+Synthetic setup scripts run independently of DSOA — they may be applied to an
+environment where DSOA has never been deployed. **Never reference `DTAGENT_*`
+roles, databases, or schemas** in a setup script.
+
+- Run all DDL as `SYSADMIN`. Objects are owned by `SYSADMIN`.
+- Do **not** grant to `DTAGENT_QA_VIEWER` in the setup script. DSOA's own
+  `--scope=admin` deploy handles those grants as part of installation.
+- If a prior partial run transferred ownership away from `SYSADMIN` (e.g.
+  via `GRANT OWNERSHIP … TO ROLE DTAGENT_QA_OWNER`), recover with:
+
+  ```sql
+  USE ROLE ACCOUNTADMIN;
+  GRANT OWNERSHIP ON WAREHOUSE DSOA_TEST_WH TO ROLE SYSADMIN REVOKE CURRENT GRANTS;
+  GRANT OWNERSHIP ON DATABASE  DSOA_TEST_DB  TO ROLE SYSADMIN REVOKE CURRENT GRANTS;
+  GRANT OWNERSHIP ON SCHEMA    DSOA_TEST_DB.<PLUGIN> TO ROLE SYSADMIN REVOKE CURRENT GRANTS;
+  ```
+
+  Then drop and recreate the schema so `SYSADMIN`-owned objects can be
+  replaced cleanly by `CREATE OR REPLACE`.
+
 ## File Location
 
 All synthetic setup SQL scripts live in `test/tools/`. Naming convention:
@@ -183,26 +228,31 @@ Every `setup_test_<plugin>.sql` must follow this structure:
 -- <Plugin> test setup for DSOA telemetry validation
 -- Database: DSOA_TEST_DB   Schema: DSOA_TEST_DB.<PLUGIN>
 -- Cost: near-zero  (describe approach)
+--
+-- NOTE: This script is DSOA-independent. It creates test data that DSOA
+-- will observe once deployed. No DTAGENT_* roles or objects are referenced.
+-- DSOA's own deploy grants its viewer role access to DSOA_TEST_DB.
 -- ============================================================================
 
 USE ROLE SYSADMIN;
 
--- 1. Ensure shared test database and plugin schema exist
+-- 1. Ensure shared test warehouse exists
+CREATE WAREHOUSE IF NOT EXISTS DSOA_TEST_WH
+    WAREHOUSE_SIZE = XSMALL AUTO_SUSPEND = 60 AUTO_RESUME = TRUE;
+
+-- 2. Ensure shared test database and plugin schema exist
 CREATE DATABASE IF NOT EXISTS DSOA_TEST_DB;
 CREATE SCHEMA IF NOT EXISTS DSOA_TEST_DB.<PLUGIN>;
 
--- 2. Create test objects (tables, stages, pipes, tasks, etc.)
+USE WAREHOUSE DSOA_TEST_WH;
+USE DATABASE DSOA_TEST_DB;
+USE SCHEMA DSOA_TEST_DB.<PLUGIN>;
+
+-- 3. Create test objects (tables, stages, pipes, tasks, etc.)
 -- ...
 
--- 3. Load or generate sample data that exercises all dashboard use cases
+-- 4. Load or generate sample data that exercises all dashboard use cases
 -- ...
-
--- 4. Grant access to the DSOA viewer role
---    Role name follows the pattern DTAGENT_<TAG>_VIEWER.
---    For test-qa the tag is QA → DTAGENT_QA_VIEWER.
-GRANT USAGE ON DATABASE DSOA_TEST_DB TO ROLE DTAGENT_QA_VIEWER;
-GRANT USAGE ON SCHEMA DSOA_TEST_DB.<PLUGIN> TO ROLE DTAGENT_QA_VIEWER;
--- <object-level grants>
 
 -- 5. Verify setup
 -- <SHOW / SELECT verification queries>

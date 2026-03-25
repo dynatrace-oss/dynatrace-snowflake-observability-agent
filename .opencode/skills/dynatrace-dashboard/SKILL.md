@@ -226,9 +226,78 @@ For workflows, the same script applies:
 Use `dtctl apply` to create or update dashboards and workflows.
 Always use `-A` for structured agent-friendly output.
 
-### Create new dashboard (no ID in file):
+### CRITICAL: Correct JSON envelope format for dashboards
+
+`dtctl apply` expects the **same envelope structure that `dtctl get` returns** —
+not a flat JSON file. The correct shape is:
+
+```json
+{
+  "id":   "<uuid>",
+  "name": "<Dashboard Name>",
+  "type": "dashboard",
+  "content": { ...full dashboard JSON from YAML conversion... }
+}
+```
+
+To produce this correctly from the YAML source:
+
 ```bash
-dtctl apply -A -f /tmp/<name>.json
+./scripts/tools/yaml-to-json.sh docs/dashboards/<name>/<name>.yml > /tmp/inner.json
+
+python3 -c "
+import json
+inner = json.load(open('/tmp/inner.json'))
+# CRITICAL: pop id/name OUT of content — they belong only at envelope level.
+# Leaving them inside content causes 'We were unable to load this dashboard.'
+dashboard_id   = inner.pop('id')
+dashboard_name = inner.pop('name')
+envelope = {
+    'id':      dashboard_id,
+    'name':    dashboard_name,
+    'type':    'dashboard',
+    'content': inner
+}
+json.dump(envelope, open('/tmp/<name>-apply.json', 'w'), indent=2)
+"
+
+dtctl apply -A -f /tmp/<name>-apply.json
+```
+
+Verify after apply that `tiles count` is correct (not 0):
+
+```bash
+dtctl get dashboard <id> -o json | python3 -c "
+import sys, json; d=json.load(sys.stdin)
+print('tiles:', len(d.get('content',{}).get('tiles',{})))
+"
+```
+
+If tiles count is 0 after apply, the envelope was wrong (flat file was passed
+instead of the wrapped envelope). Rebuild the envelope and reapply.
+
+**Critical rules:**
+- `id` and `name` must be **popped** from `inner` before wrapping — they must appear at
+  envelope level **only**. Leaving them inside `content` causes the dashboard to fail to
+  load: "We were unable to load this dashboard."
+- **Do NOT** pass the flat converted JSON directly to `dtctl apply` — that causes
+  `dtctl` to wrap it a second time, producing an empty dashboard that fails to load.
+
+### Create new dashboard (no ID in file):
+
+For a brand-new dashboard, omit `id` from the envelope. `dtctl apply` assigns one:
+
+```bash
+python3 -c "
+import json
+inner = json.load(open('/tmp/inner.json'))
+# pop id if present (it may not exist for new dashboards)
+inner.pop('id', None)
+dashboard_name = inner.pop('name')
+envelope = {'name': dashboard_name, 'type': 'dashboard', 'content': inner}
+json.dump(envelope, open('/tmp/<name>-apply.json', 'w'), indent=2)
+"
+dtctl apply -A -f /tmp/<name>-apply.json
 ```
 
 The response will include the assigned dashboard ID. **Record this ID** and add
@@ -236,8 +305,11 @@ it to the YAML file as a top-level `id:` field so future runs update rather than
 create a duplicate.
 
 ### Update existing dashboard (ID already in file):
+
+Build the envelope as shown above (with `id` included) and apply:
+
 ```bash
-dtctl apply -A -f /tmp/<name>.json
+dtctl apply -A -f /tmp/<name>-apply.json
 ```
 
 `dtctl apply` is idempotent: if the ID exists it updates, otherwise it creates.
@@ -325,11 +397,20 @@ dtctl apply -A -f /tmp/<name>-workflow.json
 === PHASE B: Dashboard Authoring and Deployment ===
 
 6.  Write dashboard YAML in docs/dashboards/<name>/<name>.yml
-7.  Convert:  ./scripts/tools/yaml-to-json.sh ... > /tmp/<name>.json
-8.  Validate: jq . /tmp/<name>.json
-9.  Deploy:   dtctl apply -A -f /tmp/<name>.json
-10. Record the returned ID — add it to the YAML as `id: <uuid>`
-11. Re-convert and re-deploy with ID so subsequent runs update in place
+7.  Convert:  ./scripts/tools/yaml-to-json.sh ... > /tmp/inner.json
+8.  Validate: jq . /tmp/inner.json
+9.  Build envelope and deploy (see "Deploying with dtctl" section above for the
+    mandatory envelope-wrapping step — do NOT pass the flat JSON directly):
+      python3 -c "import json; inner=json.load(open('/tmp/inner.json')); \
+        json.dump({'name':inner['name'],'type':'dashboard','content':inner}, \
+        open('/tmp/<name>-apply.json','w'))"
+      dtctl apply -A -f /tmp/<name>-apply.json
+10. Record the returned ID — add it to the YAML as `id: <uuid>`. Re-convert,
+    rebuild envelope (this time with 'id' included), and re-deploy:
+      dtctl apply -A -f /tmp/<name>-apply.json
+11. Verify tiles: dtctl get dashboard <id> -o json | python3 -c \
+      "import sys,json; d=json.load(sys.stdin); print('tiles:',len(d.get('content',{}).get('tiles',{})))"
+    Expected: tiles == 14 (or however many your dashboard has). If 0, envelope was wrong.
 12. Verify every tile renders real data in the Dynatrace UI
 
 === PHASE C: Documentation ===
