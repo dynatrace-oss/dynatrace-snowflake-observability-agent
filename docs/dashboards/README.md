@@ -162,6 +162,25 @@ Each JSON file is named after its dashboard title (e.g., `Costs Monitoring.json`
 
 ---
 
+### [Shares & Governance](shares-governance/)
+
+**Purpose**: Monitor the health, security posture, and governance of Snowflake data sharing across inbound and outbound shares.
+
+**Key Features**:
+
+- Full share inventory — all outbound and inbound shares with owner, database, and direction
+- Inbound share health monitoring — detect UNAVAILABLE shares, deleted-database references, and data-volume anomalies
+- Shared table row count and size tracking to detect truncated or unexpectedly empty inbound shares
+- Secure-objects-only compliance pie chart for outbound shares
+- Grant audit trail — every privilege grant per outbound share with grantee and granted-by attribution
+- Outbound grantee ranking to identify over-provisioned external sharing
+
+**Required Plugin**: `shares`
+
+**DPO Theme**: Security, Operations
+
+---
+
 ## Dashboard Structure
 
 Each dashboard folder in the source repository contains:
