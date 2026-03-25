@@ -32,7 +32,7 @@ All tiles respond to the `$Accounts`, `$Database`, and `$TableType` variable fil
 
 ## Data Freshness & Lifecycle
 
-![Data Freshness & Lifecycle section](img/section-freshness.png)
+![Data Freshness & Lifecycle section](img/section-freshness-lifecycle.png)
 
 This section answers: *which tables have not been touched recently, and how are tables
 distributed by type?* A **table type distribution** pie chart provides an instant view of
@@ -54,7 +54,7 @@ estate has been dormant for over 90 days — a common governance metric.
 
 ## Schema & DDL Changes
 
-![Schema & DDL Changes section](img/section-ddl.png)
+![Schema & DDL Changes section](img/section-ddl-changes.png)
 
 This section answers: *what structural changes are happening and who is making them?*
 A **DDL operations over time** bar chart trends the volume of CREATE, ALTER, DROP, REPLACE,

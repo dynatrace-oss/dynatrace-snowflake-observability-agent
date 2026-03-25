@@ -94,11 +94,9 @@ tiles:
     visualizationSettings:
       singleValue:
         label: Total Storage
-        autoscale: true
-        alignment: center
       unitsOverrides:
         - identifier: total_bytes
-          unitCategory: data-information
+          unitCategory: data
           baseUnit: byte
           displayUnit: null
           decimals: 2
@@ -177,7 +175,7 @@ tiles:
           position: bottom
       unitsOverrides:
         - identifier: total_bytes
-          unitCategory: data-information
+          unitCategory: data
           baseUnit: byte
           displayUnit: null
           decimals: 2
@@ -275,13 +273,21 @@ tiles:
           position: bottom
       unitsOverrides:
         - identifier: size
-          unitCategory: data-information
-          baseUnit: byte
+          unitCategory: null
+          baseUnit: null
           displayUnit: null
           decimals: 2
           suffix: ""
           delimiter: false
           added: 3
+        - identifier: v
+          unitCategory: data
+          baseUnit: byte
+          displayUnit: null
+          decimals: null
+          suffix: ""
+          delimiter: false
+          added: 1774443898466
       dataMapping:
         displayedFields:
           - db.collection.name
@@ -583,12 +589,12 @@ layouts:
   "1":
     x: 0
     "y": 2
-    w: 6
+    w: 12
     h: 3
   "2":
-    x: 6
+    x: 12
     "y": 2
-    w: 6
+    w: 12
     h: 3
   # Storage growth line chart
   "3":

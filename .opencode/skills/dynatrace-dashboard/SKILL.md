@@ -142,6 +142,54 @@ These rules come from real debugging sessions — follow them strictly:
     Document any known empty-field cases in the tile description or readme rather than
     silently dropping the filter.
 
+11. **Always add `unitsOverrides` for every byte (data-size) metric field.**
+    Dynatrace does not auto-detect byte units from metric keys — if you omit a
+    `unitsOverrides` entry, values are rendered as raw numbers (e.g. `947121664`)
+    instead of human-readable storage (e.g. `903.0 MiB`). The correct `unitCategory`
+    for storage metrics is `"data"` (not `"data-information"`). Apply this to every
+    output field that carries bytes — including intermediate computed fields like `v`
+    that come from a `timeseries` step and are displayed in a bar chart or table:
+
+    ```yaml
+    unitsOverrides:
+      - identifier: total_bytes   # the DQL field name, not the metric key
+        unitCategory: data
+        baseUnit: byte
+        displayUnit: null
+        decimals: 2
+        suffix: ""
+        delimiter: false
+        added: 1                  # unique integer, use 1/2/3/... per tile
+    ```
+
+    For `timeseries` tiles that expose both a summarised field **and** the raw
+    series array (`v`), add an override for each:
+
+    ```yaml
+    unitsOverrides:
+      - identifier: size          # summarised / computed field
+        unitCategory: data
+        baseUnit: byte
+        displayUnit: null
+        decimals: 2
+        suffix: ""
+        delimiter: false
+        added: 1
+      - identifier: v             # raw timeseries array shown in chart hover
+        unitCategory: data
+        baseUnit: byte
+        displayUnit: null
+        decimals: null
+        suffix: ""
+        delimiter: false
+        added: 2
+    ```
+
+    **Tiles that MUST have byte `unitsOverrides` in a data-volume dashboard:**
+    - Any `singleValue` tile summing `snowflake.data.size`
+    - Any `lineChart` / `barChart` showing `snowflake.data.size` or its aliases
+    - Any `table` tile with a column derived from a byte metric
+
 ## YAML Dashboard Format
 ```yaml
 # DASHBOARD: <Human-readable title>
