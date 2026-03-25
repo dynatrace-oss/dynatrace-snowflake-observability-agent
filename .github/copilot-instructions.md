@@ -137,13 +137,15 @@ Docs are a first-class deliverable. Run `./scripts/update_docs.sh` after any cod
 
 ### Deploying changes to a live environment
 
+**CRITICAL: The only permitted connection profile / env for agent-assisted deployments, teardowns, and live testing is `test-qa`. Never use any other env without explicit human instruction.**
+
 Always build first, then deploy with the appropriate scope(s):
 
 ```bash
-./scripts/dev/build.sh && ./scripts/deploy/deploy.sh <env> --scope=<scopes> --options=skip_confirm
+./scripts/dev/build.sh && ./scripts/deploy/deploy.sh test-qa --scope=<scopes> --options=skip_confirm
 ```
 
-- `<env>` must match a `conf/config-<env>.yml` file (e.g. `dev-094`).
+- `<env>` must match a `conf/config-<env>.yml` file. Always use `test-qa` unless explicitly told otherwise.
 - `--options=skip_confirm` suppresses the interactive confirmation prompt.
 - Multiple scopes are comma-separated: `--scope=plugins,config`.
 - The deploy script filters out disabled plugins automatically; no manual exclusion needed.
