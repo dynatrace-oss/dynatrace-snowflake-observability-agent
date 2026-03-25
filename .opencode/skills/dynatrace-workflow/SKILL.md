@@ -1,3 +1,12 @@
+---
+name: dynatrace-workflow
+description: Create and update Dynatrace workflows for DSOA automation
+license: MIT
+compatibility: opencode
+metadata:
+  audience: developers
+---
+
 # Skill: Dynatrace Workflow Creation and Deployment
 
 Use this skill to create and deploy Dynatrace automation workflows

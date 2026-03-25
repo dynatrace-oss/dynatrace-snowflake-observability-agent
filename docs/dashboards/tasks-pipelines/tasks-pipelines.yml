@@ -1,0 +1,958 @@
+#
+# Copyright (c) 2025 Dynatrace Open Source
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the Software), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+#
+# DASHBOARD: Tasks & Pipelines Monitoring
+# DESCRIPTION: Monitor Snowflake task orchestration, serverless costs, and dynamic table freshness
+# OWNER: DSOA Team
+# PLUGINS: tasks, dynamic_tables
+# TAGS: snowflake, dsoa, tasks, dynamic_tables, pipelines, operations, performance, costs, quality
+#
+id: 5b3a0282-123e-416c-97bb-d8b6063e6323
+name: Tasks & Pipelines Monitoring
+version: 25
+variables:
+  - key: Accounts
+    visible: true
+    type: query
+    version: 2
+    editable: true
+    input: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.context == "task_history" or dsoa.run.context == "dynamic_tables"
+      | fields deployment.environment
+      | dedup deployment.environment
+      | filterOut isNull(deployment.environment)
+      | sort deployment.environment asc
+    multiple: true
+    defaultValue:
+      - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
+  - key: Database
+    visible: true
+    type: query
+    version: 2
+    editable: true
+    input: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.context == "task_history" or dsoa.run.context == "dynamic_tables"
+      | filter in(deployment.environment, array($Accounts))
+      | fields db.namespace
+      | dedup db.namespace
+      | filterOut isNull(db.namespace)
+      | sort db.namespace asc
+    multiple: true
+    defaultValue:
+      - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
+  - key: Schema
+    visible: true
+    type: query
+    version: 2
+    editable: true
+    input: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.context == "task_history" or dsoa.run.context == "dynamic_tables"
+      | filter in(deployment.environment, array($Accounts))
+      | filter in(db.namespace, array($Database))
+      | fields snowflake.schema.name
+      | dedup snowflake.schema.name
+      | filterOut isNull(snowflake.schema.name)
+      | sort snowflake.schema.name asc
+    multiple: true
+    defaultValue:
+      - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
+  - key: TaskOrTable
+    visible: true
+    type: query
+    version: 2
+    editable: true
+    input: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.context == "task_history"
+      | filter in(deployment.environment, array($Accounts))
+      | filter in(db.namespace, array($Database))
+      | filter in(snowflake.schema.name, array($Schema))
+      | fields name = snowflake.task.name
+      | filterOut isNull(name)
+      | append [
+        fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.context == "dynamic_tables"
+        | filter in(deployment.environment, array($Accounts))
+        | filter in(db.namespace, array($Database))
+        | filter in(snowflake.schema.name, array($Schema))
+        | fields name = db.collection.name
+        | filterOut isNull(name)
+      ]
+      | dedup name
+      | sort name asc
+    multiple: true
+    defaultValue:
+      - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
+tiles:
+  # ──────────────────────────────────────────────────────────────────────────
+  # Section 1: Tasks Overview
+  # ──────────────────────────────────────────────────────────────────────────
+  "0":
+    type: markdown
+    content: "# Tasks Overview"
+    davis:
+      componentState:
+        inputData: null
+  "1":
+    title: Task Execution States over Time
+    description: >-
+      Distribution of task run states (SUCCEEDED, FAILED, SKIPPED) over time from task_history.
+      A rising FAILED bar signals pipeline breakage; SKIPPED runs indicate unmet predecessor conditions.
+    type: data
+    query: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.context == "task_history"
+      | filter in(deployment.environment, array($Accounts))
+      | filter in(db.namespace, array($Database))
+      | filter in(snowflake.schema.name, array($Schema))
+      | filter in(snowflake.task.name, array($TaskOrTable))
+      | filter isNotNull(snowflake.task.run.state)
+      | makeTimeseries count = count(), by: { snowflake.task.run.state, deployment.environment }
+    visualization: barChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        xAxisLabel: timeframe
+        xAxisScaling: analyzedTimeframe
+        fieldMapping:
+          leftAxisValues:
+            - count
+          timestamp: timeframe
+        legend:
+          position: bottom
+        leftYAxisSettings:
+          label: Task Runs
+          isLabelVisible: true
+      dataMapping:
+        displayedFields:
+          - snowflake.task.run.state
+      thresholds: []
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "2":
+    title: Failed Tasks with Error Details
+    description: >-
+      Most recent failed task runs with error codes and messages from task_history.
+      Sort by timestamp desc to see the latest failures first.
+    type: data
+    query: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.context == "task_history"
+      | filter in(deployment.environment, array($Accounts))
+      | filter in(db.namespace, array($Database))
+      | filter in(snowflake.schema.name, array($Schema))
+      | filter in(snowflake.task.name, array($TaskOrTable))
+      | filter snowflake.task.run.state == "FAILED"
+      | sort timestamp desc
+      | limit 100
+      | fields
+          `Time` = timestamp,
+          `Account` = deployment.environment,
+          `Database` = db.namespace,
+          `Schema` = snowflake.schema.name,
+          `Task` = snowflake.task.name,
+          `Attempt` = snowflake.task.run.attempt,
+          `Error Code` = snowflake.error.code,
+          `Error Message` = snowflake.error.message
+    visualization: table
+    visualizationSettings:
+      table:
+        rowDensity: condensed
+        lineWrapIds:
+          - Error Message
+        columnWidths:
+          '["Error Message"]': 400
+      thresholds: []
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "3":
+    title: Task Run Duration Trend
+    description: >-
+      Average task execution duration (scheduled_time to completed_time) in seconds,
+      trended per task. Duration is computed as the difference between nanosecond epoch
+      timestamps stored in snowflake.task.run.completed_time and snowflake.task.run.scheduled_time.
+    type: data
+    query: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.context == "task_history"
+      | filter in(deployment.environment, array($Accounts))
+      | filter in(db.namespace, array($Database))
+      | filter in(snowflake.schema.name, array($Schema))
+      | filter in(snowflake.task.name, array($TaskOrTable))
+      | filter isNotNull(snowflake.task.run.completed_time)
+      | filter isNotNull(snowflake.task.run.scheduled_time)
+      | fieldsAdd duration_sec = (toTimestamp(snowflake.task.run.completed_time) - toTimestamp(snowflake.task.run.scheduled_time)) / 1000000000
+      | makeTimeseries avg_duration = avg(duration_sec), by: { snowflake.task.name, deployment.environment }
+    visualization: lineChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        xAxisLabel: timeframe
+        xAxisScaling: analyzedTimeframe
+        fieldMapping:
+          leftAxisValues:
+            - avg_duration
+          timestamp: timeframe
+        gapPolicy: connect
+        legend:
+          position: bottom
+        leftYAxisSettings:
+          label: Duration (seconds)
+          isLabelVisible: true
+          min:
+            mode: auto
+          max:
+            mode: auto
+          scale: linear
+      dataMapping:
+        displayedFields:
+          - snowflake.task.name
+      thresholds: []
+      unitsOverrides:
+        - identifier: avg_duration
+          unitCategory: time
+          baseUnit: second
+          displayUnit: null
+          decimals: 1
+          suffix: ""
+          delimiter: false
+          added: 1
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "4":
+    title: Task Retry Patterns
+    description: >-
+      Count of task runs with more than one attempt (retries) over time, per task.
+      Frequent retries signal instability or transient infrastructure issues.
+    type: data
+    query: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.context == "task_history"
+      | filter in(deployment.environment, array($Accounts))
+      | filter in(db.namespace, array($Database))
+      | filter in(snowflake.schema.name, array($Schema))
+      | filter in(snowflake.task.name, array($TaskOrTable))
+      | filter toLong(snowflake.task.run.attempt) > 1
+      | makeTimeseries retries = count(), by: { snowflake.task.name, deployment.environment }
+    visualization: barChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        xAxisLabel: timeframe
+        xAxisScaling: analyzedTimeframe
+        fieldMapping:
+          leftAxisValues:
+            - retries
+          timestamp: timeframe
+        legend:
+          position: bottom
+        leftYAxisSettings:
+          label: Retry Count
+          isLabelVisible: true
+      dataMapping:
+        displayedFields:
+          - snowflake.task.name
+      thresholds: []
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  # ──────────────────────────────────────────────────────────────────────────
+  # Section 2: Serverless Task Costs
+  # ──────────────────────────────────────────────────────────────────────────
+  "5":
+    type: markdown
+    content: "# Serverless Task Costs"
+    davis:
+      componentState:
+        inputData: null
+  "6":
+    title: Total Serverless Credits
+    description: >-
+      Total Snowflake credits billed for serverless task executions in the selected timeframe.
+      Sourced from serverless_tasks context (START_TIME / END_TIME billing windows).
+    type: data
+    query: |-
+      timeseries credits = sum(snowflake.credits.used, default: 0)
+      , filter: {
+          db.system == "snowflake" and
+          dsoa.run.context == "serverless_tasks" and
+          in(deployment.environment, array($Accounts)) and
+          (isNull(db.namespace) or in(db.namespace, array($Database))) and
+          (isNull(snowflake.schema.name) or in(snowflake.schema.name, array($Schema)))
+        }
+      | fieldsAdd total_credits = arraySum(credits)
+      | summarize total_credits = coalesce(sum(total_credits), 0)
+    visualization: singleValue
+    visualizationSettings:
+      singleValue:
+        labelMode: custom
+        label: Serverless Credits
+        recordField: total_credits
+        prefixIcon: ""
+        trend:
+          isVisible: true
+      autoSelectVisualization: false
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "7":
+    title: Serverless Credits by Task over Time
+    description: >-
+      Serverless task credit consumption trended per task name. Helps attribute
+      compute cost to specific pipeline tasks and detect unexpected credit spikes.
+    type: data
+    query: |-
+      timeseries credits = sum(snowflake.credits.used, default: 0), by: {
+          snowflake.task.name,
+          deployment.environment,
+          db.namespace,
+          snowflake.schema.name
+        }
+      , filter: {
+          db.system == "snowflake" and
+          dsoa.run.context == "serverless_tasks" and
+          in(deployment.environment, array($Accounts)) and
+          (isNull(db.namespace) or in(db.namespace, array($Database))) and
+          (isNull(snowflake.schema.name) or in(snowflake.schema.name, array($Schema)))
+        }
+    visualization: barChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        xAxisLabel: timeframe
+        xAxisScaling: analyzedTimeframe
+        fieldMapping:
+          leftAxisValues:
+            - credits
+          timestamp: timeframe
+        legend:
+          position: bottom
+        leftYAxisSettings:
+          label: Credits
+          isLabelVisible: true
+      dataMapping:
+        displayedFields:
+          - snowflake.task.name
+      thresholds: []
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "8":
+    title: Credits by Task
+    description: >-
+      Serverless task credits broken down by task name and account — helps identify
+      which tasks are driving the most serverless compute cost.
+    type: data
+    query: |-
+      timeseries credits = sum(snowflake.credits.used, default: 0), by: {
+          snowflake.task.name,
+          deployment.environment,
+          db.namespace,
+          snowflake.schema.name
+        }
+      , filter: {
+          db.system == "snowflake" and
+          dsoa.run.context == "serverless_tasks" and
+          in(deployment.environment, array($Accounts)) and
+          (isNull(db.namespace) or in(db.namespace, array($Database))) and
+          (isNull(snowflake.schema.name) or in(snowflake.schema.name, array($Schema)))
+        }
+      | fieldsAdd total = arraySum(credits)
+      | sort total desc
+      | fields
+          `Task` = snowflake.task.name,
+          `Account` = deployment.environment,
+          `Credits` = total
+    visualization: pieChart
+    visualizationSettings:
+      autoSelectVisualization: false
+      table: {}
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  # ──────────────────────────────────────────────────────────────────────────
+  # Section 3: Dynamic Tables
+  # ──────────────────────────────────────────────────────────────────────────
+  "9":
+    type: markdown
+    content: "# Dynamic Tables"
+    davis:
+      componentState:
+        inputData: null
+  "10":
+    title: Scheduling State Heatmap
+    description: >-
+      Current scheduling state per dynamic table (ACTIVE, SUSPENDED, FAILING, etc.).
+      Each cell represents a dynamic table; colour indicates state health.
+      Non-ACTIVE states require investigation.
+    type: data
+    query: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.context == "dynamic_tables"
+      | filter in(deployment.environment, array($Accounts))
+      | filter in(db.namespace, array($Database))
+      | filter in(snowflake.schema.name, array($Schema))
+      | filter in(db.collection.name, array($TaskOrTable))
+      | filter isNotNull(snowflake.table.dynamic.scheduling.state)
+      | filter snowflake.table.dynamic.scheduling.state != ""
+      | sort timestamp desc
+      | summarize {
+          state = takeFirst(snowflake.table.dynamic.scheduling.state)
+        }, by: { db.collection.name, deployment.environment }
+      | fieldsAdd state_code = toLong(
+          if(state == "ACTIVE", 1,
+          else: if(state == "SUSPENDED", 2, else: 3))
+        )
+      | fields db.collection.name, deployment.environment, state, state_code
+    visualization: honeycomb
+    visualizationSettings:
+      honeycomb:
+        shape: hexagon
+        dataMappings:
+          value: state_code
+        displayedFields:
+          - db.collection.name
+          - state
+        legend:
+          position: right
+        labels:
+          showLabels: true
+      coloring:
+        colorRules:
+          - colorMode: single-color
+            comparator: "="
+            field: state_code
+            value: 1
+            type: long
+            color: "var(--dt-colors-charts-apdex-excellent-default, #2a7453)"
+          - colorMode: single-color
+            comparator: "="
+            field: state_code
+            value: 2
+            type: long
+            color: "var(--dt-colors-charts-apdex-fair-default, #a9780f)"
+          - colorMode: single-color
+            comparator: ">"
+            field: state_code
+            value: 2
+            type: long
+            color: "var(--dt-colors-charts-apdex-unacceptable-default, #cd3741)"
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "11":
+    title: Mean Lag vs Target Lag
+    description: >-
+      Mean scheduling lag (actual) compared against target lag (configured) per dynamic table.
+      When the mean lag line consistently exceeds the target lag, the table is falling behind its SLA.
+    type: data
+    query: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.context == "dynamic_tables"
+      | filter in(deployment.environment, array($Accounts))
+      | filter in(db.namespace, array($Database))
+      | filter in(snowflake.schema.name, array($Schema))
+      | filter in(db.collection.name, array($TaskOrTable))
+      | filter isNotNull(snowflake.table.dynamic.lag.mean)
+      | makeTimeseries {
+          mean_lag = avg(toDouble(snowflake.table.dynamic.lag.mean)),
+          max_lag = max(toDouble(snowflake.table.dynamic.lag.max))
+        }, by: { db.collection.name, deployment.environment }
+    visualization: lineChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        xAxisLabel: timeframe
+        xAxisScaling: analyzedTimeframe
+        fieldMapping:
+          leftAxisValues:
+            - mean_lag
+            - max_lag
+          timestamp: timeframe
+        gapPolicy: connect
+        legend:
+          position: bottom
+        leftYAxisSettings:
+          label: Lag (seconds)
+          isLabelVisible: true
+          min:
+            mode: auto
+          max:
+            mode: auto
+          scale: linear
+      dataMapping:
+        displayedFields:
+          - db.collection.name
+      thresholds: []
+      unitsOverrides:
+        - identifier: mean_lag
+          unitCategory: time
+          baseUnit: second
+          displayUnit: null
+          decimals: 1
+          suffix: ""
+          delimiter: false
+          added: 2
+        - identifier: max_lag
+          unitCategory: time
+          baseUnit: second
+          displayUnit: null
+          decimals: 1
+          suffix: ""
+          delimiter: false
+          added: 3
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "12":
+    title: Time Above Target Lag
+    description: >-
+      Seconds spent above the configured target lag per dynamic table.
+      Any non-zero value indicates the table missed its freshness SLA during the selected period.
+    type: data
+    query: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.context == "dynamic_tables"
+      | filter in(deployment.environment, array($Accounts))
+      | filter in(db.namespace, array($Database))
+      | filter in(snowflake.schema.name, array($Schema))
+      | filter in(db.collection.name, array($TaskOrTable))
+      | filter isNotNull(snowflake.table.dynamic.lag.target.time_above)
+      | makeTimeseries above = max(toDouble(snowflake.table.dynamic.lag.target.time_above)), by: { db.collection.name, deployment.environment }
+    visualization: barChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        xAxisLabel: timeframe
+        xAxisScaling: analyzedTimeframe
+        fieldMapping:
+          leftAxisValues:
+            - above
+          timestamp: timeframe
+        legend:
+          position: bottom
+        leftYAxisSettings:
+          label: Time Above Target (seconds)
+          isLabelVisible: true
+      dataMapping:
+        displayedFields:
+          - db.collection.name
+      thresholds: []
+      unitsOverrides:
+        - identifier: above
+          unitCategory: time
+          baseUnit: second
+          displayUnit: null
+          decimals: 0
+          suffix: ""
+          delimiter: false
+          added: 4
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "13":
+    title: Within-Target-Lag Ratio
+    description: >-
+      Ratio of time each dynamic table spent within its configured target lag (0–1, where 1 = always fresh).
+      Tables sorted ascending so the worst offenders appear at the top.
+    type: data
+    query: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.context == "dynamic_tables"
+      | filter in(deployment.environment, array($Accounts))
+      | filter in(db.namespace, array($Database))
+      | filter in(snowflake.schema.name, array($Schema))
+      | filter in(db.collection.name, array($TaskOrTable))
+      | filter isNotNull(snowflake.table.dynamic.lag.target.within_ratio)
+      | summarize ratio = avg(toDouble(snowflake.table.dynamic.lag.target.within_ratio)), by: { snowflake.table.full_name, deployment.environment }
+      | sort ratio asc
+      | fields
+          `Table` = snowflake.table.full_name,
+          `Account` = deployment.environment,
+          `Within-Target Ratio` = ratio
+    visualization: table
+    visualizationSettings:
+      table:
+        rowDensity: condensed
+      thresholds:
+        - id: 1
+          field: Within-Target Ratio
+          title: ""
+          isEnabled: true
+          rules:
+            - id: 0
+              color:
+                Default: "var(--dt-colors-charts-categorical-color-12-default, #cd3741)"
+              comparator: <
+              label: ""
+              value: 0.9
+            - id: 1
+              color:
+                Default: "var(--dt-colors-charts-categorical-color-14-default, #d56b1a)"
+              comparator: <
+              label: ""
+              value: 0.99
+            - id: 2
+              color:
+                Default: "var(--dt-colors-charts-categorical-color-09-default, #649438)"
+              comparator: ">="
+              label: ""
+              value: 0.99
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "14":
+    title: Recent Refresh History
+    description: >-
+      Recent dynamic table refresh events from dynamic_table_refresh_history context.
+      Shows refresh state, action type (INCREMENTAL, FULL, REINITIALIZE, NO_DATA), and any error codes.
+    type: data
+    query: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.context == "dynamic_table_refresh_history"
+      | filter in(deployment.environment, array($Accounts))
+      | filter in(db.namespace, array($Database))
+      | filter in(snowflake.schema.name, array($Schema))
+      | filter in(db.collection.name, array($TaskOrTable))
+      | filter isNotNull(snowflake.table.dynamic.refresh.state)
+      | sort timestamp desc
+      | limit 100
+      | fields
+          `Time` = timestamp,
+          `Account` = deployment.environment,
+          `Table` = snowflake.table.full_name,
+          `State` = snowflake.table.dynamic.refresh.state,
+          `Action` = snowflake.table.dynamic.refresh.action,
+          `Trigger` = snowflake.table.dynamic.refresh.trigger,
+          `Code` = snowflake.table.dynamic.refresh.code,
+          `Message` = snowflake.table.dynamic.refresh.message
+    visualization: table
+    visualizationSettings:
+      table:
+        rowDensity: condensed
+        lineWrapIds:
+          - Message
+      thresholds:
+        - id: 1
+          field: State
+          title: ""
+          isEnabled: true
+          rules:
+            - id: 0
+              color:
+                Default: "var(--dt-colors-charts-categorical-color-09-default, #649438)"
+              comparator: =
+              label: ""
+              value: SUCCEEDED
+            - id: 1
+              color:
+                Default: "var(--dt-colors-charts-categorical-color-14-default, #d56b1a)"
+              comparator: =
+              label: ""
+              value: UPSTREAM_FAILED
+            - id: 2
+              color:
+                Default: "var(--dt-colors-charts-categorical-color-12-default, #cd3741)"
+              comparator: =
+              label: ""
+              value: FAILED
+            - id: 3
+              color:
+                Default: "var(--dt-colors-charts-categorical-color-14-default, #d56b1a)"
+              comparator: =
+              label: ""
+              value: CANCELLED
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "15":
+    title: Refresh Action Distribution
+    description: >-
+      Breakdown of dynamic table refresh action types (INCREMENTAL, FULL, REINITIALIZE, NO_DATA).
+      A high proportion of FULL or REINITIALIZE refreshes may indicate schema changes or
+      non-incremental query patterns, increasing compute cost.
+    type: data
+    query: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.context == "dynamic_table_refresh_history"
+      | filter in(deployment.environment, array($Accounts))
+      | filter in(db.namespace, array($Database))
+      | filter in(snowflake.schema.name, array($Schema))
+      | filter in(db.collection.name, array($TaskOrTable))
+      | filter isNotNull(snowflake.table.dynamic.refresh.action)
+      | summarize count = count(), by: { snowflake.table.dynamic.refresh.action }
+      | sort count desc
+      | fields
+          `Refresh Action` = snowflake.table.dynamic.refresh.action,
+          `Count` = count
+    visualization: donutChart
+    visualizationSettings:
+      autoSelectVisualization: false
+      legend:
+        showLegend: false
+        position: auto
+        ratio: 35
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+layouts:
+  # Section header: Tasks Overview  (row 0, full width, h=1)
+  "0":
+    x: 0
+    "y": 0
+    w: 24
+    h: 1
+  # Task Execution States (row 1-5, left half)
+  "1":
+    x: 0
+    "y": 1
+    w: 24
+    h: 5
+  # Failed Tasks table (row 6-10, full width)
+  "2":
+    x: 0
+    "y": 6
+    w: 24
+    h: 5
+  # Task Run Duration (row 11-15, left)
+  "3":
+    x: 0
+    "y": 11
+    w: 12
+    h: 5
+  # Task Retry Patterns (row 11-15, right)
+  "4":
+    x: 12
+    "y": 11
+    w: 12
+    h: 5
+  # Section header: Serverless Task Costs  (row 16)
+  "5":
+    x: 0
+    "y": 16
+    w: 24
+    h: 1
+  # Total Serverless Credits KPI (row 17-21, narrow left)
+  "6":
+    x: 0
+    "y": 17
+    w: 4
+    h: 5
+  # Credits by Task over Time (row 17-21, main area)
+  "7":
+    x: 4
+    "y": 17
+    w: 15
+    h: 5
+  # Credits by Task table (row 17-21, narrow right)
+  "8":
+    x: 19
+    "y": 17
+    w: 5
+    h: 5
+  # Section header: Dynamic Tables  (row 22)
+  "9":
+    x: 0
+    "y": 22
+    w: 24
+    h: 1
+  # Scheduling State Heatmap (row 23-27, left half)
+  "10":
+    x: 0
+    "y": 23
+    w: 12
+    h: 5
+  # Mean Lag vs Target Lag (row 23-27, right half)
+  "11":
+    x: 12
+    "y": 23
+    w: 12
+    h: 5
+  # Time Above Target Lag (row 28-32, left half)
+  "12":
+    x: 0
+    "y": 28
+    w: 12
+    h: 5
+  # Within-Target-Lag Ratio (row 28-32, right half)
+  "13":
+    x: 12
+    "y": 28
+    w: 12
+    h: 5
+  # Recent Refresh History (row 33-37, left 16 cols)
+  "14":
+    x: 0
+    "y": 33
+    w: 16
+    h: 5
+  # Refresh Action Distribution (row 33-37, right 8 cols)
+  "15":
+    x: 16
+    "y": 33
+    w: 8
+    h: 5
+settings:
+  defaultTimeframe:
+    value:
+      from: now()-24h
+      to: now()
+    enabled: true
+importedWithCode: false
+annotations: []
