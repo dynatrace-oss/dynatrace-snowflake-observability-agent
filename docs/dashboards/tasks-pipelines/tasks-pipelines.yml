@@ -27,7 +27,7 @@
 #
 id: 5b3a0282-123e-416c-97bb-d8b6063e6323
 name: Tasks & Pipelines Monitoring
-version: 22
+version: 23
 variables:
   - key: Accounts
     visible: true
@@ -439,11 +439,10 @@ tiles:
           `Task` = snowflake.task.name,
           `Account` = deployment.environment,
           `Credits` = total
-    visualization: table
+    visualization: pieChart
     visualizationSettings:
-      table:
-        rowDensity: condensed
-      thresholds: []
+      autoSelectVisualization: false
+      table: {}
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -822,11 +821,13 @@ tiles:
       | fields
           `Refresh Action` = snowflake.table.dynamic.refresh.action,
           `Count` = count
-    visualization: table
+    visualization: donutChart
     visualizationSettings:
-      table:
-        rowDensity: condensed
-      thresholds: []
+      autoSelectVisualization: false
+      legend:
+        showLegend: false
+        position: auto
+        ratio: 35
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
