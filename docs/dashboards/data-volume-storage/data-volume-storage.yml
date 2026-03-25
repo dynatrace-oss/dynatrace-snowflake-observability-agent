@@ -1,0 +1,670 @@
+#
+# Copyright (c) 2025 Dynatrace Open Source
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE OF ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+#
+# DASHBOARD: Data Volume & Storage
+# DESCRIPTION: Snowflake data volume trends, storage growth, table lifecycle, and DDL change tracking
+# OWNER: DSOA Team
+# PLUGINS: data_volume, data_schemas
+# TAGS: snowflake, dsoa, data-volume, storage, quality, costs, governance
+#
+id: fdd7c1db-ffc0-4c75-adea-f60cadc120ad
+name: Data Volume & Storage
+version: 15
+
+variables:
+  - version: 2
+    key: Accounts
+    type: query
+    visible: true
+    input: |-
+      fetch events
+      | filter db.system == "snowflake"
+      | filter dsoa.run.context == "data_volume"
+      | filter isNotNull(deployment.environment)
+      | summarize envs = collectDistinct(deployment.environment)
+      | fields envs_and_all = array("*", envs)
+    multiple: false
+    defaultValue: "*"
+  - version: 2
+    key: Database
+    type: query
+    visible: true
+    input: |-
+      fetch events
+      | filter db.system == "snowflake"
+      | filter dsoa.run.context == "data_volume"
+      | filter isNotNull(db.namespace)
+      | summarize dbs = collectDistinct(db.namespace)
+      | fields dbs_and_all = array("*", dbs)
+    multiple: false
+    defaultValue: "*"
+  - version: 2
+    key: TableType
+    type: query
+    visible: true
+    input: |-
+      fetch events
+      | filter db.system == "snowflake"
+      | filter dsoa.run.context == "data_volume"
+      | filter isNotNull(snowflake.table.type)
+      | summarize types = collectDistinct(snowflake.table.type)
+      | fields types_and_all = array("*", types)
+    multiple: false
+    defaultValue: "*"
+
+tiles:
+  # ── Section 1: Storage Growth Trends ──────────────────────────────────────
+  "0":
+    type: markdown
+    content: |
+      ## Storage Growth Trends
+      Track how storage consumption grows over time across databases and tables.
+      Use these tiles to identify the largest consumers and plan capacity.
+
+  "1":
+    title: Total storage KPI (bytes)
+    type: data
+    query: |-
+      timeseries total_bytes = sum(snowflake.data.size), by: { deployment.environment }
+      , filter: {
+          db.system == "snowflake" and
+          ($Accounts == "*" or deployment.environment == $Accounts)
+        }
+      | fieldsAdd latest = arrayMax(arrayRemoveNulls(total_bytes))
+      | summarize total_bytes = sum(latest)
+    visualization: singleValue
+    visualizationSettings:
+      singleValue:
+        label: Total Storage
+        autoscale: true
+        alignment: center
+      unitsOverrides:
+        - identifier: total_bytes
+          unitCategory: data-information
+          baseUnit: byte
+          displayUnit: null
+          decimals: 2
+          suffix: ""
+          delimiter: false
+          added: 1
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+
+  "2":
+    title: Total row count KPI
+    type: data
+    query: |-
+      timeseries total_rows = sum(snowflake.data.rows), by: { deployment.environment }
+      , filter: {
+          db.system == "snowflake" and
+          ($Accounts == "*" or deployment.environment == $Accounts)
+        }
+      | fieldsAdd latest = arrayMax(arrayRemoveNulls(total_rows))
+      | summarize total_rows = sum(latest)
+    visualization: singleValue
+    visualizationSettings:
+      singleValue:
+        label: Total Row Count
+        autoscale: true
+        alignment: center
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+
+  "3":
+    title: Storage growth over time by database
+    type: data
+    query: |-
+      timeseries total_bytes = sum(snowflake.data.size), by: { db.namespace, deployment.environment }
+      , filter: {
+          db.system == "snowflake" and
+          ($Accounts == "*" or deployment.environment == $Accounts) and
+          ($Database == "*" or isNull(db.namespace) or db.namespace == $Database)
+        }
+      | filter $Accounts == "*" or deployment.environment == $Accounts
+      | filter $Database == "*" or isNull(db.namespace) or db.namespace == $Database
+    visualization: lineChart
+    visualizationSettings:
+      chartSettings:
+        leftYAxisSettings:
+          label: Storage (bytes)
+          isLabelVisible: true
+        xAxisLabel: timeframe
+        xAxisScaling: analyzedTimeframe
+        fieldMapping:
+          leftAxisValues:
+            - total_bytes
+          timestamp: timeframe
+        gapPolicy: connect
+        legend:
+          position: bottom
+      unitsOverrides:
+        - identifier: total_bytes
+          unitCategory: data-information
+          baseUnit: byte
+          displayUnit: null
+          decimals: 2
+          suffix: ""
+          delimiter: false
+          added: 2
+      dataMapping:
+        displayedFields:
+          - db.namespace
+          - deployment.environment
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+
+  "4":
+    title: Row count trends over time by database
+    type: data
+    query: |-
+      timeseries total_rows = sum(snowflake.data.rows), by: { db.namespace, deployment.environment }
+      , filter: {
+          db.system == "snowflake" and
+          ($Accounts == "*" or deployment.environment == $Accounts) and
+          ($Database == "*" or isNull(db.namespace) or db.namespace == $Database)
+        }
+      | filter $Accounts == "*" or deployment.environment == $Accounts
+      | filter $Database == "*" or isNull(db.namespace) or db.namespace == $Database
+    visualization: lineChart
+    visualizationSettings:
+      chartSettings:
+        leftYAxisSettings:
+          label: Row Count
+          isLabelVisible: true
+        xAxisLabel: timeframe
+        xAxisScaling: analyzedTimeframe
+        fieldMapping:
+          leftAxisValues:
+            - total_rows
+          timestamp: timeframe
+        gapPolicy: connect
+        legend:
+          position: bottom
+      dataMapping:
+        displayedFields:
+          - db.namespace
+          - deployment.environment
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+
+  "5":
+    title: Top 20 tables by size
+    type: data
+    query: |-
+      timeseries v = max(snowflake.data.size), by: { db.collection.name, db.namespace, deployment.environment }
+      , filter: {
+          db.system == "snowflake" and
+          ($Accounts == "*" or deployment.environment == $Accounts) and
+          ($Database == "*" or isNull(db.namespace) or db.namespace == $Database)
+        }
+      | filter $Accounts == "*" or deployment.environment == $Accounts
+      | filter $Database == "*" or isNull(db.namespace) or db.namespace == $Database
+      | fieldsAdd size = arrayMax(arrayRemoveNulls(v))
+      | sort size desc
+      | limit 20
+    visualization: barChart
+    visualizationSettings:
+      chartSettings:
+        leftYAxisSettings:
+          label: Size (bytes)
+          isLabelVisible: true
+        categoricalBarChartSettings:
+          categoryAxis: db.collection.name
+          categoryAxisLabel: Table
+          valueAxis: size
+          valueAxisLabel: Size
+        legend:
+          position: bottom
+      unitsOverrides:
+        - identifier: size
+          unitCategory: data-information
+          baseUnit: byte
+          displayUnit: null
+          decimals: 2
+          suffix: ""
+          delimiter: false
+          added: 3
+      dataMapping:
+        displayedFields:
+          - db.collection.name
+          - db.namespace
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+
+  # ── Section 2: Data Freshness & Lifecycle ─────────────────────────────────
+  "6":
+    type: markdown
+    content: |
+      ## Data Freshness & Lifecycle
+      Identify stale tables, understand days since last DDL or DML, and review the distribution
+      of table types across your Snowflake estate.
+
+  "7":
+    title: Table type distribution
+    type: data
+    query: |-
+      timeseries v = max(snowflake.data.size), by: { snowflake.table.type, deployment.environment }
+      , filter: {
+          db.system == "snowflake" and
+          ($Accounts == "*" or deployment.environment == $Accounts) and
+          ($TableType == "*" or isNull(snowflake.table.type) or snowflake.table.type == $TableType)
+        }
+      | filter $Accounts == "*" or deployment.environment == $Accounts
+      | filter $TableType == "*" or isNull(snowflake.table.type) or snowflake.table.type == $TableType
+      | fieldsAdd latest = arrayMax(arrayRemoveNulls(v))
+      | summarize count = count(), by: { snowflake.table.type }
+      | sort count desc
+    visualization: pieChart
+    visualizationSettings:
+      chartSettings:
+        circleChartSettings:
+          groupingThresholdType: relative
+          groupingThresholdValue: 0
+          valueType: relative
+        legend:
+          position: bottom
+      dataMapping:
+        displayedFields:
+          - snowflake.table.type
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+
+  "8":
+    title: Stale tables — days since last DML update (top 50)
+    type: data
+    query: |-
+      timeseries v = max(snowflake.table.time_since.last_update), by: { db.collection.name, db.namespace, deployment.environment, snowflake.table.type }
+      , filter: {
+          db.system == "snowflake" and
+          ($Accounts == "*" or deployment.environment == $Accounts) and
+          ($Database == "*" or isNull(db.namespace) or db.namespace == $Database) and
+          ($TableType == "*" or isNull(snowflake.table.type) or snowflake.table.type == $TableType)
+        }
+      | filter $Accounts == "*" or deployment.environment == $Accounts
+      | filter $Database == "*" or isNull(db.namespace) or db.namespace == $Database
+      | filter $TableType == "*" or isNull(snowflake.table.type) or snowflake.table.type == $TableType
+      | fieldsAdd last_update_min = arrayMax(arrayRemoveNulls(v))
+      | fieldsAdd days_since_update = last_update_min / 1440.0
+      | sort days_since_update desc
+      | limit 50
+      | fields
+          `Table` = db.collection.name,
+          `Database` = db.namespace,
+          `Account` = deployment.environment,
+          `Table Type` = snowflake.table.type,
+          `Days Since Update` = days_since_update
+    visualization: table
+    visualizationSettings:
+      table:
+        rowDensity: condensed
+        enableSparklines: false
+        hiddenColumns: []
+        lineWrapIds: []
+        columnWidths: {}
+      unitsOverrides:
+        - identifier: days_since_update
+          unitCategory: time
+          baseUnit: day
+          displayUnit: null
+          decimals: 1
+          suffix: ""
+          delimiter: false
+          added: 4
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+
+  "9":
+    title: Days since last DDL — distribution by bucket
+    type: data
+    query: |-
+      timeseries v = max(snowflake.table.time_since.last_ddl), by: { db.collection.name, db.namespace, deployment.environment }
+      , filter: {
+          db.system == "snowflake" and
+          ($Accounts == "*" or deployment.environment == $Accounts) and
+          ($Database == "*" or isNull(db.namespace) or db.namespace == $Database)
+        }
+      | filter $Accounts == "*" or deployment.environment == $Accounts
+      | filter $Database == "*" or isNull(db.namespace) or db.namespace == $Database
+      | fieldsAdd last_ddl_min = arrayMax(arrayRemoveNulls(v))
+      | fieldsAdd days = last_ddl_min / 1440.0
+      | fieldsAdd bucket = if(days < 7, "< 1 week",
+                           else: if(days < 30, "1 week – 1 month",
+                           else: if(days < 90, "1 – 3 months",
+                           else: if(days < 180, "3 – 6 months",
+                           else: "> 6 months"))))
+      | summarize count = count(), by: { bucket }
+      | sort count desc
+    visualization: pieChart
+    visualizationSettings:
+      chartSettings:
+        circleChartSettings:
+          groupingThresholdType: relative
+          groupingThresholdValue: 0
+          valueType: absolute
+        legend:
+          position: bottom
+      dataMapping:
+        displayedFields:
+          - bucket
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+
+  # ── Section 3: Schema & DDL Changes ───────────────────────────────────────
+  "10":
+    type: markdown
+    content: |
+      ## Schema & DDL Changes
+      Audit recent DDL operations, track schema change frequency over time, and review
+      the distribution of object types affected. Requires the `data_schemas` plugin.
+
+  "11":
+    title: DDL operations over time
+    type: data
+    query: |-
+      fetch events
+      | filter db.system == "snowflake"
+      | filter dsoa.run.context == "data_schemas"
+      | filter isNotNull(snowflake.object.ddl.operation)
+      | filter $Accounts == "*" or deployment.environment == $Accounts
+      | makeTimeseries count = count(), by: { snowflake.object.ddl.operation }
+    visualization: barChart
+    visualizationSettings:
+      chartSettings:
+        leftYAxisSettings:
+          label: Operation Count
+          isLabelVisible: true
+        xAxisLabel: timeframe
+        xAxisScaling: analyzedTimeframe
+        fieldMapping:
+          leftAxisValues:
+            - count
+          timestamp: timeframe
+        legend:
+          position: bottom
+      dataMapping:
+        displayedFields:
+          - snowflake.object.ddl.operation
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+
+  "12":
+    title: Object type breakdown
+    type: data
+    query: |-
+      fetch events
+      | filter db.system == "snowflake"
+      | filter dsoa.run.context == "data_schemas"
+      | filter isNotNull(snowflake.object.type)
+      | filter $Accounts == "*" or deployment.environment == $Accounts
+      | summarize count = count(), by: { snowflake.object.type }
+      | sort count desc
+    visualization: pieChart
+    visualizationSettings:
+      chartSettings:
+        circleChartSettings:
+          groupingThresholdType: relative
+          groupingThresholdValue: 0
+          valueType: relative
+        legend:
+          position: bottom
+      dataMapping:
+        displayedFields:
+          - snowflake.object.type
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+
+  "13":
+    title: Recent DDL operations
+    type: data
+    query: |-
+      fetch events
+      | filter db.system == "snowflake"
+      | filter dsoa.run.context == "data_schemas"
+      | filter isNotNull(snowflake.object.ddl.operation)
+      | filter $Accounts == "*" or deployment.environment == $Accounts
+      | filter $Database == "*" or isNull(db.namespace) or db.namespace == $Database
+      | sort timestamp desc
+      | limit 200
+      | fields
+          `Time`           = timestamp,
+          `Account`        = deployment.environment,
+          `Object`         = snowflake.object.name,
+          `Operation`      = snowflake.object.ddl.operation,
+          `Object Type`    = snowflake.object.type,
+          `User`           = db.user,
+          `Properties`     = snowflake.object.ddl.properties
+    visualization: table
+    visualizationSettings:
+      table:
+        rowDensity: condensed
+        enableSparklines: false
+        hiddenColumns: []
+        lineWrapIds: []
+        columnWidths: {}
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+
+layouts:
+  # ── Section 1 header ──────────────────────────────────────────────────────
+  "0":
+    x: 0
+    "y": 0
+    w: 24
+    h: 2
+  # KPI row
+  "1":
+    x: 0
+    "y": 2
+    w: 6
+    h: 3
+  "2":
+    x: 6
+    "y": 2
+    w: 6
+    h: 3
+  # Storage growth line chart
+  "3":
+    x: 0
+    "y": 5
+    w: 24
+    h: 5
+  # Row count line chart
+  "4":
+    x: 0
+    "y": 10
+    w: 24
+    h: 5
+  # Top 20 tables bar chart
+  "5":
+    x: 0
+    "y": 15
+    w: 24
+    h: 5
+  # ── Section 2 header ──────────────────────────────────────────────────────
+  "6":
+    x: 0
+    "y": 20
+    w: 24
+    h: 2
+  # Table type pie chart
+  "7":
+    x: 0
+    "y": 22
+    w: 8
+    h: 5
+  # Days since DDL bar chart
+  "9":
+    x: 8
+    "y": 22
+    w: 16
+    h: 5
+  # Stale tables table
+  "8":
+    x: 0
+    "y": 27
+    w: 24
+    h: 6
+  # ── Section 3 header ──────────────────────────────────────────────────────
+  "10":
+    x: 0
+    "y": 33
+    w: 24
+    h: 2
+  # DDL operations over time bar chart
+  "11":
+    x: 0
+    "y": 35
+    w: 16
+    h: 5
+  # Object type pie chart
+  "12":
+    x: 16
+    "y": 35
+    w: 8
+    h: 5
+  # Recent DDL operations table
+  "13":
+    x: 0
+    "y": 40
+    w: 24
+    h: 6
+
+settings:
+  defaultTimeframe:
+    value:
+      from: now()-14d
+      to: now()
+    enabled: true
+  autoRefresh:
+    enabled: true
+    interval: 300
+
+annotations: []

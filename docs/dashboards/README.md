@@ -125,6 +125,25 @@ Each JSON file is named after its dashboard title (e.g., `Costs Monitoring.json`
 
 ---
 
+### [Data Volume & Storage](data-volume-storage/)
+
+**Purpose**: Monitor data growth, storage consumption, table freshness, and schema change history across Snowflake databases.
+
+**Key Features**:
+
+- Track storage byte and row count trends over time per database with headline KPI tiles
+- Identify the top 20 largest tables for capacity planning and archival prioritisation
+- Surface stale tables by days since last DML or DDL operation for lifecycle governance
+- Visualise table type distribution (BASE TABLE, TEMPORARY TABLE, EXTERNAL TABLE)
+- Audit recent DDL operations (CREATE, ALTER, DROP, REPLACE, UNDROP) with user attribution
+- Analyse DDL operation frequency over time and object type breakdown
+
+**Required Plugins**: `data_volume`, `data_schemas`
+
+**DPO Theme**: Quality, Costs, Security
+
+---
+
 ### [Snowflake Security](snowflake-security/)
 
 **Purpose**: Monitor security aspects and compliance of Snowflake accounts.
