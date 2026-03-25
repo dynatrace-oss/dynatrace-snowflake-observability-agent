@@ -44,6 +44,19 @@ def get_context_name_and_run_id(plugin_name: str, context_name: str, run_id: str
     return {RUN_PLUGIN_KEY: plugin_name, RUN_CONTEXT_KEY: context_name, RUN_ID_KEY: run_id}
 
 
-def get_context_name(context_name: Optional[str] = None) -> Dict[str, str]:
-    """Generates the context dictionary based on the given context name if provided, otherwise returns empty dict"""
-    return {RUN_CONTEXT_KEY: context_name} if context_name else {}
+def get_context_name(context_name: Optional[str] = None, plugin_name: Optional[str] = None) -> Dict[str, str]:
+    """Generates the context dictionary based on the given context name and optional plugin name.
+
+    Args:
+        context_name (Optional[str]): name of the context to include as ``dsoa.run.context``
+        plugin_name  (Optional[str]): name of the plugin to include as ``dsoa.run.plugin``
+
+    Returns:
+        Dict[str, str]: dictionary with the relevant ``dsoa.run.*`` keys set; empty if neither is provided
+    """
+    result: Dict[str, str] = {}
+    if context_name:
+        result[RUN_CONTEXT_KEY] = context_name
+    if plugin_name:
+        result[RUN_PLUGIN_KEY] = plugin_name
+    return result
