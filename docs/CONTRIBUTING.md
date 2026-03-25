@@ -441,16 +441,17 @@ Before using the skills, ensure the QA environment is ready:
     ./scripts/deploy/deploy.sh test-qa --scope=plugins,config --options=skip_confirm
     ```
 
-   > **Note:** You don't need to redeploy `agents` scope unless you are modifying the python agent code.
+   > **Note:** You don't need to redeploy `agents` scope unless you are modifying the python agent code
+   or toggle (enable/disable) plugins when `deploy_disabled_plugins: false`, in which case plugins code is added/removed from the python agent code.
 
 ### Available Skills
 
-| Skill file               | Purpose                                                                    |
-|--------------------------|----------------------------------------------------------------------------|
-| `snowflake-synthetic.md` | Create synthetic test data in Snowflake to exercise plugins and dashboards |
-| `dynatrace-dashboard.md` | Design and deploy Dynatrace dashboards backed by DSOA telemetry            |
-| `dynatrace-workflow.md`  | Build Dynatrace workflows that consume DSOA data                           |
-| `dashboard-docs.md`      | Generate documentation for DSOA dashboards                                 |
+| Skill file                                      | Purpose                                                                    |
+|-------------------------------------------------|----------------------------------------------------------------------------|
+| `.opencode/skills/snowflake-synthetic/SKILL.md` | Create synthetic test data in Snowflake to exercise plugins and dashboards |
+| `.opencode/skills/dynatrace-dashboard/SKILL.md` | Design and deploy Dynatrace dashboards backed by DSOA telemetry            |
+| `.opencode/skills/dynatrace-workflow/SKILL.md`  | Build Dynatrace workflows that consume DSOA data                           |
+| `.opencode/skills/dashboard-docs/SKILL.md`      | Generate documentation for DSOA dashboards                                 |
 
 Skills are consumed automatically by AI agents from `.opencode/skills/`. No
 manual activation is needed — the agent selects the relevant skill based on the

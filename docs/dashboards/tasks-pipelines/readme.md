@@ -56,8 +56,8 @@ All variables support multi-select. To investigate a specific failing task, set 
 
 This dashboard requires the `tasks` and `dynamic_tables` plugins to be enabled in your DSOA configuration.
 
-- **`tasks`** — collects from three contexts: `task_history` (task run states, durations, retries, errors), `serverless_tasks` (credit consumption), and `dynamic_table_refresh_history` (refresh events). Fast context updates every 5 minutes; billing data from `serverless_tasks` follows Snowflake's `SERVERLESS_TASK_HISTORY` latency.
-- **`dynamic_tables`** — collects scheduling state and lag metrics from `ACCOUNT_USAGE.DYNAMIC_TABLES`. Updates on the plugin's configured collection interval.
+- **`tasks`** — collects from two contexts: `task_history` (task run states, durations, retries, errors) and `serverless_tasks` (credit consumption). Billing data from `serverless_tasks` follows Snowflake's `SERVERLESS_TASK_HISTORY` latency.
+- **`dynamic_tables`** — collects refresh events from `dynamic_table_refresh_history` and scheduling state and lag metrics from `ACCOUNT_USAGE.DYNAMIC_TABLES`. Updates on the plugin's configured collection interval.
 
 Data must be flowing for at least one collection cycle before tiles populate. The serverless cost tiles and refresh history tiles may take longer to show data depending on Snowflake's `ACCOUNT_USAGE` view latency (~45–90 minutes for new data).
 

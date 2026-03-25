@@ -143,7 +143,7 @@ attributes:
   snowflake.task.run.completed_time:
     __context_names:
       - task_history
-    __example: "1633046700000000000"
+    __example: "2026-03-24 14:03:27.586 Z"
     __description: The completed time of the task run.
   snowflake.task.run.group_id:
     __context_names:
@@ -163,7 +163,7 @@ attributes:
   snowflake.task.run.scheduled_time:
     __context_names:
       - task_history
-    __example: "1633046400000000000"
+    __example: "2026-03-24 13:30:28.016 Z"
     __description: The scheduled time of the task run.
   snowflake.task.run.scheduled_from:
     __context_names:
