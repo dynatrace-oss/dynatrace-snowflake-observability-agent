@@ -21,7 +21,7 @@ Inbound shares can silently break — a provider may revoke access, delete their
 - **UNAVAILABLE Inbound Shares** — lists every inbound share whose `snowflake.share.status` is `UNAVAILABLE`, together with the last-observed error message and timestamp. Any row here means data from that share is no longer accessible. The most common cause is access revocation by the provider.
 - **Share Availability Status** — a honeycomb tile mapping every inbound share to green (AVAILABLE) or red (UNAVAILABLE). Colour at a glance tells you whether a share is healthy. When you see a red cell, cross-reference the table above for the specific error.
 - **Shared Table Row Counts & Size** — breaks down the data volume per table within each inbound share. Use this to detect truncated or unexpectedly empty shares: a table that normally contains millions of rows appearing with zero rows is a data-quality signal even when the share itself shows as AVAILABLE.
-- **Shares with Deleted Database** — flags any share (inbound or outbound) whose provider-side database has been deleted. If rows appear here, the share is a dead reference that should be cleaned up.
+- **Inbound Shares No Longer Observed** — surfaces inbound shares seen in the last 7 days of logs but absent from the last 2 hours. This catches revoked or dropped shares that have disappeared from `SHOW SHARES` without any explicit error signal.
 
 ## Outbound Share Security
 
@@ -49,17 +49,17 @@ All three variables are multi-select. The `$ShareName` variable is populated dyn
 
 This dashboard requires the **`shares`** plugin to be enabled. The plugin queries `SHOW SHARES` inside Snowflake and emits telemetry for three contexts:
 
-| Context           | Telemetry type | Content                                                           |
-|-------------------|----------------|-------------------------------------------------------------------|
-| `outbound_shares` | logs           | One log line per outbound share, with grants and security flags   |
+| Context           | Telemetry type | Content                                                             |
+|-------------------|----------------|---------------------------------------------------------------------|
+| `outbound_shares` | logs           | One log line per outbound share, with grants and security flags     |
 | `inbound_shares`  | logs           | One log line per inbound share, with status, tables, and row counts |
-| `shares`          | events         | Summary-level share list (share name, kind, comment)              |
+| `shares`          | events         | Summary-level share list (share name, kind, comment)                |
 
 Collection cadence follows the agent's task schedule — typically every 5 minutes. The `outbound_shares` and `inbound_shares` contexts emit logs; the `shares` context emits timestamp events. All dashboard tiles use `fetch logs` queries except those backed by the `shares` context. Data latency is approximately one collection interval after the agent run.
 
 ## Known Limitations
 
-- The `snowflake.share.has_db_deleted` and `snowflake.share.status` attributes are populated only for **inbound** shares. The "Shares with Deleted Database" tile queries both contexts but will only return rows for inbound shares in practice.
+- The `snowflake.share.status` attribute is populated only for **inbound** shares whose access has been revoked by the provider. It is absent from logs for healthy shares.
 - The `inbound_shares` context does not populate `db.namespace` consistently — shared table data comes from the provider's account. The `$Accounts` filter therefore reflects the *consumer* account, not the provider.
 - `snowflake.data.rows` and `snowflake.data.size` on the `inbound_shares` context are string attributes. The "Shared Table Row Counts & Size" tile converts them with `toLong()`. If a provider sets non-numeric row/size values, those rows will be dropped by the conversion.
 - The `$ShareDirection` variable filters `INBOUND`/`OUTBOUND` as reported by Snowflake's `SHOW SHARES`. The `shares` summary context (used only for the top-level KPI variables query) does not emit grant details — grant information comes exclusively from `outbound_shares`.
