@@ -101,22 +101,27 @@ def _cleanup_data(value: Any) -> Any:
                 converted_types = {type(item) for item in numeric_converted if item is not None}
 
                 # OTel requires homogeneous sequences: promote int/float mix to all-float
-                if converted_types and converted_types.issubset({int, float, bool}) and not converted_types.issubset({bool}) and (int in converted_types and float in converted_types):
+                if (
+                    converted_types
+                    and converted_types.issubset({int, float, bool})
+                    and not converted_types.issubset({bool})
+                    and (int in converted_types and float in converted_types)
+                ):
                     numeric_converted = [float(item) if isinstance(item, (int, float)) else item for item in numeric_converted]
                     converted_types = {type(item) for item in numeric_converted if item is not None}
 
                 return (
                     # If we can normalize to numeric (int, float, bool are compatible) and no dicts/lists remain
                     numeric_converted
-                    if converted_types and converted_types.issubset({int, float, bool}) and not any(isinstance(i, (dict, list)) for i in numeric_converted)
+                    if converted_types
+                    and converted_types.issubset({int, float, bool})
+                    and not any(isinstance(i, (dict, list)) for i in numeric_converted)
                     # Fallback: normalize to a sequence of strings, handling datetime/dict/list explicitly
                     else [
                         (
                             format_datetime(item)
                             if isinstance(item, datetime.datetime)
-                            else json.dumps(item, default=str)
-                            if isinstance(item, (dict, list))
-                            else str(item)
+                            else json.dumps(item, default=str) if isinstance(item, (dict, list)) else str(item)
                         )
                         for item in numeric_converted
                         if item is not None
