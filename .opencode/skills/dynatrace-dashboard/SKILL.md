@@ -63,6 +63,8 @@ These rules come from real debugging sessions — follow them strictly:
    - `tasks` plugin (`task_history`, `task_versions`, `serverless_tasks` contexts): **logs + metrics**
    - `dynamic_tables` plugin (`dynamic_tables`, `dynamic_table_refresh_history`, `dynamic_table_graph_history`): **logs + metrics**
    - `snowpipes` plugin: logs + events (timestamp events via `report_timestamp_events=True`)
+   - `shares` plugin (`inbound_shares`, `outbound_shares` contexts): **logs only** — use `fetch logs`; the `shares` context uses `report_timestamp_events=True` so those summary events go to `fetch events`, but per-share/per-grant detail rows are logs
+   - Default assumption for any new plugin context: **logs only**, unless `instruments-def.yml` or `_log_entries()` call explicitly shows `report_timestamp_events=True` or `report_all_as_events=True`
 
 2. **No `fetch metrics` for DSOA data.** DSOA does not use the standard
    Dynatrace metric ingestion pipeline. Use `timeseries` with a metric key

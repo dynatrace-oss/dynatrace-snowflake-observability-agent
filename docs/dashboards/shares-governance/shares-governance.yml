@@ -27,7 +27,7 @@
 #
 id: 579f882f-b7b7-4f78-a51f-64517849dbde
 name: Shares & Governance
-version: 16
+version: 17
 
 variables:
   - version: 2
@@ -36,7 +36,7 @@ variables:
     visible: true
     editable: true
     input: |
-      fetch events
+      fetch logs
       | filter db.system == "snowflake"
       | filter in(dsoa.run.context, array("outbound_shares", "inbound_shares", "shares"))
       | fields deployment.environment
@@ -51,7 +51,7 @@ variables:
     visible: true
     editable: true
     input: |
-      fetch events
+      fetch logs
       | filter db.system == "snowflake"
       | filter in(dsoa.run.context, array("outbound_shares", "inbound_shares"))
       | filter in(deployment.environment, array($Accounts))
@@ -68,7 +68,7 @@ variables:
     visible: true
     editable: true
     input: |
-      fetch events
+      fetch logs
       | filter db.system == "snowflake"
       | filter in(dsoa.run.context, array("outbound_shares", "inbound_shares"))
       | filter in(deployment.environment, array($Accounts))
@@ -96,7 +96,7 @@ tiles:
     title: Outbound Shares
     type: data
     query: |
-      fetch events
+      fetch logs
       | filter db.system == "snowflake"
       | filter dsoa.run.context == "outbound_shares"
       | filter in(deployment.environment, array($Accounts))
@@ -129,7 +129,7 @@ tiles:
     title: Inbound Shares
     type: data
     query: |
-      fetch events
+      fetch logs
       | filter db.system == "snowflake"
       | filter dsoa.run.context == "inbound_shares"
       | filter in(deployment.environment, array($Accounts))
@@ -162,7 +162,7 @@ tiles:
     title: All Shares Inventory
     type: data
     query: |
-      fetch events
+      fetch logs
       | filter db.system == "snowflake"
       | filter in(dsoa.run.context, array("outbound_shares", "inbound_shares"))
       | filter in(deployment.environment, array($Accounts))
@@ -216,7 +216,7 @@ tiles:
     description: Inbound shares that are no longer accessible — access may have been revoked
     type: data
     query: |
-      fetch events
+      fetch logs
       | filter db.system == "snowflake"
       | filter dsoa.run.context == "inbound_shares"
       | filter in(deployment.environment, array($Accounts))
@@ -257,7 +257,7 @@ tiles:
     description: Inbound share availability at a glance
     type: data
     query: |
-      fetch events
+      fetch logs
       | filter db.system == "snowflake"
       | filter dsoa.run.context == "inbound_shares"
       | filter in(deployment.environment, array($Accounts))
@@ -310,7 +310,7 @@ tiles:
     description: Data volume per shared table — helps detect truncated or empty shares
     type: data
     query: |
-      fetch events
+      fetch logs
       | filter db.system == "snowflake"
       | filter dsoa.run.context == "inbound_shares"
       | filter in(deployment.environment, array($Accounts))
@@ -358,7 +358,7 @@ tiles:
     description: Outbound or inbound shares whose underlying database was deleted — data is no longer accessible
     type: data
     query: |
-      fetch events
+      fetch logs
       | filter db.system == "snowflake"
       | filter in(dsoa.run.context, array("inbound_shares", "outbound_shares"))
       | filter in(deployment.environment, array($Accounts))
@@ -409,7 +409,7 @@ tiles:
     description: Outbound shares should share only secure views/functions to prevent data leakage
     type: data
     query: |
-      fetch events
+      fetch logs
       | filter db.system == "snowflake"
       | filter dsoa.run.context == "outbound_shares"
       | filter in(deployment.environment, array($Accounts))
@@ -445,7 +445,7 @@ tiles:
     description: All privilege grants associated with outbound shares
     type: data
     query: |
-      fetch events
+      fetch logs
       | filter db.system == "snowflake"
       | filter dsoa.run.context == "outbound_shares"
       | filter in(deployment.environment, array($Accounts))
@@ -490,7 +490,7 @@ tiles:
     description: Number of grants per grantee account — identify over-provisioned external sharing
     type: data
     query: |
-      fetch events
+      fetch logs
       | filter db.system == "snowflake"
       | filter dsoa.run.context == "outbound_shares"
       | filter in(deployment.environment, array($Accounts))
