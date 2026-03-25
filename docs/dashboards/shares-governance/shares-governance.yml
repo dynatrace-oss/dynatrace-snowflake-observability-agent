@@ -26,7 +26,8 @@
 # TAGS: snowflake, dsoa, security, governance, sharing
 #
 id: 579f882f-b7b7-4f78-a51f-64517849dbde
-version: 15
+name: Shares & Governance
+version: 16
 
 variables:
   - version: 2
@@ -417,7 +418,7 @@ tiles:
       | summarize count = countDistinct(snowflake.share.name), by: {
           snowflake.share.is_secure_objects_only
         }
-      | fieldsAdd compliance = if(snowflake.share.is_secure_objects_only == true, "Compliant (Secure Only)", "Non-Compliant (Insecure Objects)")
+      | fieldsAdd compliance = if(snowflake.share.is_secure_objects_only == true, "Compliant (Secure Only)", else: "Non-Compliant (Insecure Objects)")
       | fields compliance, count
     visualization: pieChart
     visualizationSettings:
@@ -607,4 +608,5 @@ settings:
     enabled: true
     interval: 300
 
-annotations: {}
+importedWithCode: false
+annotations: []

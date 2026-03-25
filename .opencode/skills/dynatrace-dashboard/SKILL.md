@@ -292,6 +292,8 @@ These rules come from real debugging sessions — follow them strictly:
 # PLUGINS: <comma-separated plugin names>
 # TAGS: snowflake, dsoa, <domain>
 
+id: <uuid>                  # assigned after first deploy; omit on initial creation
+name: <Human-readable title> # REQUIRED — must match dashboard display name
 version: 15
 
 variables:
