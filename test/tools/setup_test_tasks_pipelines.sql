@@ -34,9 +34,12 @@
 --   tile 2  Failed Tasks with Error Details  → T_INSERT_ORDERS_FAIL error code + message
 --   tile 3  Task Run Duration Trend          → scheduled_time / completed_time from all tasks
 --   tile 4  Task Retry Patterns              → T_INSERT_ORDERS_FAIL retries (ATTEMPT_NUMBER > 1)
---   tile 6  Total Serverless Credits         → N/A (warehouse tasks, not serverless)
---   tile 7  Serverless Credits by Task       → N/A (warehouse tasks, not serverless)
---   tile 8  Credits by Database and Schema   → N/A (warehouse tasks, not serverless)
+--   tile 6  Total Serverless Credits         → N/A: sourced from SNOWFLAKE.ACCOUNT_USAGE.SERVERLESS_TASK_HISTORY,
+--                                                    an account-level system view that cannot be populated via
+--                                                    synthetic inserts. Tiles will show real account serverless
+--                                                    task costs (if any) or remain empty in test environments.
+--   tile 7  Serverless Credits by Task       → N/A: same reason as tile 6
+--   tile 8  Credits by Task (pie)            → N/A: same reason as tile 6
 --   tile 10 Scheduling State Heatmap         → DT_EVENT_SUMMARY, DT_ORDER_TOTALS, DT_DOWNSTREAM
 --   tile 11 Mean Lag vs Target Lag           → lag metrics from dynamic_tables context
 --   tile 12 Time Above Target Lag            → TIME_ABOVE_TARGET_LAG_SEC

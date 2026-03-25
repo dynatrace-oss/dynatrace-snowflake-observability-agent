@@ -68,9 +68,37 @@ These rules come from real debugging sessions — follow them strictly:
    Dynatrace metric ingestion pipeline. Use `timeseries` with a metric key
    from `instruments-def.yml`, or `fetch logs` for log-based aggregations.
 
-3. **`timeseries` requires all filter dimensions in the `by:` clause.**
-   If you filter on `deployment.environment` after `timeseries`, it must
-   also appear in `by: { ..., deployment.environment }`.
+3. **Prefer `filter: {}` over post-pipe `| filter` for `timeseries` dimension filtering.**
+   Inline filters inside `filter: {}` are applied before data is split by `by:`, so you
+   avoid creating unnecessary series for dimensions you then immediately discard. Only
+   dimensions used for *display grouping* should appear in `by:`.
+   Post-pipe `| filter` is still required for dimensions that are in `by:` but not
+   filterable inline (e.g. computed fields), but avoid it for raw dimension variables.
+
+   For variable-driven dimension filters inside `filter: {}`, use `in()` with
+   `array($Var)` — this works inside the `filter:` block as of DQL 1.38:
+
+```dql
+   timeseries v = sum(metric), by: { snowflake.task.name, deployment.environment }
+   , filter: {
+       db.system == "snowflake" and
+       in(deployment.environment, array($Accounts)) and
+       in(db.namespace, array($Database))
+     }
+```
+
+   **Null-or-match pattern for optional dimensions:** Some records legitimately have
+   `NULL` for a dimension (e.g. Snowflake-internal serverless tasks have no
+   `db.namespace`). If you filter strictly with `in()`, those records are silently
+   dropped and cannot be seen even with the wildcard default. Use:
+
+```dql
+   (isNull(db.namespace) or in(db.namespace, array($Database))) and
+   (isNull(snowflake.schema.name) or in(snowflake.schema.name, array($Schema)))
+```
+
+   This preserves unattributed records when the variable is set to wildcard (`*`),
+   while still allowing the user to filter to a specific database/schema.
 
 4. **`percentile()` does not support iterative expressions from `timeseries`.**
    Instead of:
@@ -101,6 +129,18 @@ These rules come from real debugging sessions — follow them strictly:
 
 9. **`dtctl auth login` can be run by the AI agent** — it opens a browser tab
    for OAuth. Run it whenever `dtctl apply` returns a token/auth error.
+
+10. **All dashboard tiles must apply the same global variable filters consistently.**
+    If a dashboard has `$Accounts`, `$Database`, `$Schema` (or similar) variables,
+    every data tile must filter by all of them — not just the ones that are "obviously
+    relevant". Inconsistent filtering makes the dashboard feel broken (user selects a
+    database and some tiles ignore it). If a telemetry context does not populate a
+    dimension (e.g. `db.namespace` is empty for some records), still apply the filter —
+    real user data will be populated and the wildcard default (`*`) will pass all records
+    through anyway. For `timeseries` tiles, add the dimension to `by:` and then apply
+    `| filter in(dim, array($Var))` after the `timeseries` step (rule 3 above).
+    Document any known empty-field cases in the tile description or readme rather than
+    silently dropping the filter.
 
 ## YAML Dashboard Format
 ```yaml

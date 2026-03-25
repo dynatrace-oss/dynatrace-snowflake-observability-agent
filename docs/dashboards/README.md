@@ -95,7 +95,7 @@ Each JSON file is named after its dashboard title (e.g., `Costs Monitoring.json`
 
 - Task execution state trends (SUCCEEDED, FAILED, SKIPPED) with detailed failed-task error drill-down
 - Task run duration trending and retry pattern analysis to detect unstable or slow pipelines
-- Serverless task credit attribution by task name and account
+- Serverless task credit attribution by task name, database, and schema
 - Dynamic table scheduling state heatmap for at-a-glance freshness health
 - Lag monitoring — mean lag vs max lag trended per table, time above target lag, and within-target-lag ratio
 - Recent dynamic table refresh history with state colour coding and action distribution breakdown

@@ -27,7 +27,7 @@
 #
 id: 5b3a0282-123e-416c-97bb-d8b6063e6323
 name: Tasks & Pipelines Monitoring
-version: 23
+version: 25
 variables:
   - key: Accounts
     visible: true
@@ -341,13 +341,16 @@ tiles:
       Sourced from serverless_tasks context (START_TIME / END_TIME billing windows).
     type: data
     query: |-
-      timeseries credits = sum(snowflake.credits.used)
+      timeseries credits = sum(snowflake.credits.used, default: 0)
       , filter: {
           db.system == "snowflake" and
           dsoa.run.context == "serverless_tasks" and
-          in(deployment.environment, array($Accounts))
+          in(deployment.environment, array($Accounts)) and
+          (isNull(db.namespace) or in(db.namespace, array($Database))) and
+          (isNull(snowflake.schema.name) or in(snowflake.schema.name, array($Schema)))
         }
       | fieldsAdd total_credits = arraySum(credits)
+      | summarize total_credits = coalesce(sum(total_credits), 0)
     visualization: singleValue
     visualizationSettings:
       singleValue:
@@ -377,14 +380,18 @@ tiles:
       compute cost to specific pipeline tasks and detect unexpected credit spikes.
     type: data
     query: |-
-      timeseries credits = sum(snowflake.credits.used), by: {
+      timeseries credits = sum(snowflake.credits.used, default: 0), by: {
           snowflake.task.name,
-          deployment.environment
+          deployment.environment,
+          db.namespace,
+          snowflake.schema.name
         }
       , filter: {
           db.system == "snowflake" and
           dsoa.run.context == "serverless_tasks" and
-          in(deployment.environment, array($Accounts))
+          in(deployment.environment, array($Accounts)) and
+          (isNull(db.namespace) or in(db.namespace, array($Database))) and
+          (isNull(snowflake.schema.name) or in(snowflake.schema.name, array($Schema)))
         }
     visualization: barChart
     visualizationSettings:
@@ -424,14 +431,18 @@ tiles:
       which tasks are driving the most serverless compute cost.
     type: data
     query: |-
-      timeseries credits = sum(snowflake.credits.used), by: {
+      timeseries credits = sum(snowflake.credits.used, default: 0), by: {
           snowflake.task.name,
-          deployment.environment
+          deployment.environment,
+          db.namespace,
+          snowflake.schema.name
         }
       , filter: {
           db.system == "snowflake" and
           dsoa.run.context == "serverless_tasks" and
-          in(deployment.environment, array($Accounts))
+          in(deployment.environment, array($Accounts)) and
+          (isNull(db.namespace) or in(db.namespace, array($Database))) and
+          (isNull(snowflake.schema.name) or in(snowflake.schema.name, array($Schema)))
         }
       | fieldsAdd total = arraySum(credits)
       | sort total desc
