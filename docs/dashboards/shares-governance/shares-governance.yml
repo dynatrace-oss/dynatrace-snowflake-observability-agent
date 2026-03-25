@@ -27,7 +27,7 @@
 #
 id: 579f882f-b7b7-4f78-a51f-64517849dbde
 name: Shares & Governance
-version: 17
+version: 18
 
 variables:
   - version: 2
@@ -113,7 +113,6 @@ tiles:
         trend:
           isVisible: false
       autoSelectVisualization: false
-      thresholds: []
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -146,7 +145,6 @@ tiles:
         trend:
           isVisible: false
       autoSelectVisualization: false
-      thresholds: []
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -183,13 +181,13 @@ tiles:
           `Share Name` = snowflake.share.name,
           `Kind` = snowflake.share.kind,
           `Owner` = owner,
-          `Secure Objects Only` = secure_only,
+          `Secure Objects Only` = coalesce(toString(secure_only), ""),
           `Database` = database,
           `Account` = account
     visualization: table
     visualizationSettings:
       autoSelectVisualization: false
-      thresholds: []
+      table: {}
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -240,7 +238,6 @@ tiles:
     visualization: table
     visualizationSettings:
       autoSelectVisualization: false
-      thresholds: []
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -254,7 +251,9 @@ tiles:
 
   "12":
     title: Share Availability Status
-    description: Inbound share availability at a glance
+    description: >-
+      Each cell is one inbound share, colored red if UNAVAILABLE, green otherwise.
+      The number shows how many tables are accessible in that share.
     type: data
     query: |
       fetch logs
@@ -262,38 +261,38 @@ tiles:
       | filter dsoa.run.context == "inbound_shares"
       | filter in(deployment.environment, array($Accounts))
       | filter in(snowflake.share.name, array($ShareName))
-      | summarize count = count(), by: {
+      | summarize count = countDistinct(db.collection.name), by: {
           snowflake.share.name,
           share_status = coalesce(snowflake.share.status, "AVAILABLE")
         }
     visualization: honeycomb
     visualizationSettings:
+      autoSelectVisualization: false
       honeycomb:
         shape: square
-        legend:
-          position: right
         dataMappings:
           value: count
         displayedFields:
           - snowflake.share.name
           - share_status
+        legend:
+          position: right
         labels:
           showLabels: true
       coloring:
         colorRules:
-          - color: "var(--dt-colors-charts-apdex-excellent-default, #2a7453)"
-            colorMode: single-color
-            comparator: "="
-            field: share_status
-            type: string
-            value: AVAILABLE
           - color: "var(--dt-colors-charts-apdex-unacceptable-default, #cd3741)"
             colorMode: single-color
             comparator: "="
             field: share_status
             type: string
             value: UNAVAILABLE
-      autoSelectVisualization: false
+          - colorMode: color-palette
+            comparator: ">"
+            field: count
+            type: long
+            value: 0
+            colorPalette: pear
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -332,7 +331,6 @@ tiles:
     visualization: table
     visualizationSettings:
       autoSelectVisualization: false
-      thresholds: []
       unitsOverrides:
         - identifier: "Size (bytes)"
           unitCategory: data
@@ -342,6 +340,7 @@ tiles:
           suffix: ""
           delimiter: false
           added: 1
+      table: {}
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -382,7 +381,6 @@ tiles:
     visualization: table
     visualizationSettings:
       autoSelectVisualization: false
-      thresholds: []
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -422,13 +420,27 @@ tiles:
       | fields compliance, count
     visualization: pieChart
     visualizationSettings:
+      autoSelectVisualization: false
       chartSettings:
+        circleChartSettings:
+          groupingThresholdType: relative
+          valueType: relative
         legend:
           position: right
-        circleChartSettings:
-          valueType: relative
-          groupingThresholdType: relative
-      autoSelectVisualization: false
+      coloring:
+        colorRules:
+          - colorMode: single-color
+            comparator: "= *value*"
+            field: compliance
+            type: string
+            value: "Non-Compliant (Insecure Objects)"
+            color: "var(--dt-colors-charts-apdex-unacceptable-default, #cd3741)"
+          - colorMode: single-color
+            comparator: "= *value*"
+            field: compliance
+            type: string
+            value: "Compliant (Secure Only)"
+            color: "var(--dt-colors-charts-apdex-good-default, #1c520a)"
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -473,7 +485,7 @@ tiles:
     visualization: table
     visualizationSettings:
       autoSelectVisualization: false
-      thresholds: []
+      table: {}
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -514,7 +526,14 @@ tiles:
           categoryAxis: snowflake.grant.grantee
           valueAxis: grants
           valueAxisLabel: Grants
-      thresholds: []
+      coloring:
+        colorRules:
+          - field: DT.name
+            comparator: "= *value*"
+            value: ""
+            type: string
+            colorMode: color-palette
+            colorPalette: categorical
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
