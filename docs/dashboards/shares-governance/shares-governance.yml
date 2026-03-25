@@ -123,8 +123,6 @@ tiles:
       enabled: false
       davisVisualization:
         isAvailable: true
-      componentState:
-        inputData: null
 
   "2":
     title: Inbound Shares
@@ -158,8 +156,6 @@ tiles:
       enabled: false
       davisVisualization:
         isAvailable: true
-      componentState:
-        inputData: null
 
   "3":
     title: All Shares Inventory
@@ -203,8 +199,6 @@ tiles:
       enabled: false
       davisVisualization:
         isAvailable: true
-      componentState:
-        inputData: null
 
   # ── Section 2: Inbound Share Health ──────────────────────────────────────────
   "10":
@@ -256,8 +250,6 @@ tiles:
       enabled: false
       davisVisualization:
         isAvailable: true
-      componentState:
-        inputData: null
 
   "12":
     title: Share Availability Status
@@ -278,20 +270,28 @@ tiles:
       honeycomb:
         shape: square
         legend:
-          hidden: false
-        colorMode: color-palette
-        colorPalette: categorical-1
+          position: right
         dataMappings:
-          - valueField: count
-            labelField: snowflake.share.name
-            colorField: share_status
-      thresholds:
-        - field: share_status
-          rules:
-            - color: "#4fd05e"
-              value: AVAILABLE
-            - color: "#e2131a"
-              value: UNAVAILABLE
+          value: count
+        displayedFields:
+          - snowflake.share.name
+          - share_status
+        labels:
+          showLabels: true
+      coloring:
+        colorRules:
+          - color: "var(--dt-colors-charts-apdex-excellent-default, #2a7453)"
+            colorMode: single-color
+            comparator: "="
+            field: share_status
+            type: string
+            value: AVAILABLE
+          - color: "var(--dt-colors-charts-apdex-unacceptable-default, #cd3741)"
+            colorMode: single-color
+            comparator: "="
+            field: share_status
+            type: string
+            value: UNAVAILABLE
       autoSelectVisualization: false
     querySettings:
       maxResultRecords: 1000
@@ -303,8 +303,6 @@ tiles:
       enabled: false
       davisVisualization:
         isAvailable: true
-      componentState:
-        inputData: null
 
   "13":
     title: Shared Table Row Counts & Size
@@ -353,8 +351,6 @@ tiles:
       enabled: false
       davisVisualization:
         isAvailable: true
-      componentState:
-        inputData: null
 
   "14":
     title: Shares with Deleted Database
@@ -396,8 +392,6 @@ tiles:
       enabled: false
       davisVisualization:
         isAvailable: true
-      componentState:
-        inputData: null
 
   # ── Section 3: Outbound Share Security ───────────────────────────────────────
   "20":
@@ -428,23 +422,12 @@ tiles:
     visualization: pieChart
     visualizationSettings:
       chartSettings:
-        truncationMode: middle
         legend:
           position: right
         circleChartSettings:
           valueType: relative
           groupingThresholdType: relative
-        categoricalBarChartSettings:
-          valueAxis:
-            - count
-          valueAxisLabel: count
-          categoryAxis:
-            - compliance
-          categoryAxisLabel: compliance
-      legend:
-        ratio: 40
       autoSelectVisualization: false
-      thresholds: []
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -455,8 +438,6 @@ tiles:
       enabled: false
       davisVisualization:
         isAvailable: true
-      componentState:
-        inputData: null
 
   "22":
     title: Grant Details
@@ -502,8 +483,6 @@ tiles:
       enabled: false
       davisVisualization:
         isAvailable: true
-      componentState:
-        inputData: null
 
   "23":
     title: Outbound Share Grantees
@@ -528,15 +507,12 @@ tiles:
         truncationMode: middle
         legend:
           hidden: true
+        categoryOverrides: {}
         categoricalBarChartSettings:
           categoryAxisLabel: Grantee
-          categoryAxis:
-            - snowflake.grant.grantee
-          valueAxis:
-            - grants
+          categoryAxis: snowflake.grant.grantee
+          valueAxis: grants
           valueAxisLabel: Grants
-        colorPalette: blue-turquoise
-      autoSelectVisualization: false
       thresholds: []
     querySettings:
       maxResultRecords: 1000
@@ -548,8 +524,6 @@ tiles:
       enabled: false
       davisVisualization:
         isAvailable: true
-      componentState:
-        inputData: null
 
 layouts:
   # Section 1: Share Inventory (y=0..12)
