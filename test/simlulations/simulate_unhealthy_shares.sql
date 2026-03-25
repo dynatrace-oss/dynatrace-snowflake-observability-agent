@@ -25,8 +25,8 @@
 -- SIMULATE UNHEALTHY INBOUND SHARES
 -- Purpose : Exercise the two dashboard tiles that are empty under normal
 --           conditions:
---             • "UNAVAILABLE Inbound Shares"    (tile 11)
---             • "Shares with Deleted Database"  (tile 14)
+--             • "UNAVAILABLE Inbound Shares"  (tile 11)
+--             • "Shares No Longer Observed"   (tile 14)
 --
 -- Accounts : PUBLISHER  = WMBJBCQ.DEVDYNATRACEDIGITALBUSINESSDW  (creates shares)
 --            CONSUMER   = WMBJBCQ.DYNATRACEDIGITALBUSINESSDW     (mounts shares, runs DSOA)
@@ -41,31 +41,36 @@
 --   V_INBOUND_SHARE_TABLES surfaces as snowflake.share.status = 'UNAVAILABLE'.
 --   Effect is IMMEDIATE — no latency after the revoke.
 --
--- Scenario B — Deleted database (tile 14)
---   P_GET_SHARES checks SNOWFLAKE.ACCOUNT_USAGE.DATABASES on the CONSUMER side
---   for each mounted inbound DB:
---     SELECT count(*) > 0 ... WHERE DATABASE_NAME = :db_name AND DELETED IS NULL
---   If the count is 0 (i.e. the consumer-side DB is deleted or never existed),
---   it writes DETAILS:"HAS_DB_DELETED" = TRUE.
+-- Scenario B — Share no longer observed (tile 14)
+--   Tile 14 uses a DQL log-history approach on the Dynatrace side:
+--     • Query all distinct (account, share_name, context) tuples seen in the
+--       last 7 days of logs.
+--     • Filter to those NOT seen in the past 2 hours.
+--     • These are shares that "disappeared" from SHOW SHARES between runs.
 --
---   IMPORTANT CONSTRAINT: Snowflake will NOT let you drop a database that is
---   still backing an active share.  You MUST drop the share first, then the
---   database.  Once the share is dropped the consumer-side mounted database is
---   automatically removed, and ACCOUNT_USAGE.DATABASES will eventually reflect
---   DELETED IS NOT NULL — but with up to 3 HOURS of latency.
+--   This naturally catches revoked inbound shares, dropped outbound shares,
+--   and accounts where the agent went offline — all without relying on
+--   SNOWFLAKE.ACCOUNT_USAGE.DATABASES latency or SHOW SHARES edge cases.
 --
---   Because of this latency window, the real end-to-end path is hard to observe
---   interactively.  Use the DIRECT INJECTION shortcut in Step 4B instead to
---   test the dashboard tile immediately without waiting for ACCOUNT_USAGE.
+--   To trigger Scenario B: let DSOA collect a share for at least one run,
+--   then drop the share from the publisher side.  The share disappears from
+--   SHOW SHARES on the consumer immediately; after 2+ hours without a new log
+--   for that share, tile 14 will show it.
+--
+--   For faster testing, use the WAIT shortcut in Step 4B: inject a fake share
+--   log record with a timestamp older than 2 hours (use TO_TIMESTAMP with a
+--   historic time), then run a fresh agent cycle.  The share will appear in
+--   the 7d window but not in the last 2h.
 --
 -- Run order
 -- ---------
 --   Step 1  (PUBLISHER)  : Create the simulation objects.
 --   Step 2  (CONSUMER)   : Mount the shares / grant privileges.
 --   Step 3A (PUBLISHER)  : Trigger Scenario A — revoke access.
---   Step 3B (PUBLISHER)  : Trigger Scenario B — drop share then database.
+--   Step 3B (PUBLISHER)  : Trigger Scenario B — drop share then wait.
 --   Step 4A (CONSUMER)   : Verify Scenario A via P_GET_SHARES + full agent run.
---   Step 4B (CONSUMER)   : Verify Scenario B via direct injection shortcut.
+--   Step 4B              : Verify Scenario B — tile 14 shows the dropped share
+--                          after 2+ hours of inactivity (or use DQL fast-track).
 --   CLEANUP (both)       : Tear down all simulation objects.
 -- =============================================================================
 
@@ -157,91 +162,102 @@ alter share DSOA_SIM_UNAVAILABLE_SHARE
 
 
 -- =============================================================================
--- STEP 3B  ·  PUBLISHER account — Scenario B: DROP share then database
+-- STEP 3B  ·  PUBLISHER account — Scenario B: DROP share
 --
---             NOTE: Snowflake does NOT allow dropping a database that is still
---             backing an active share — you will get:
---               "Database '...' cannot be dropped. It is still shared by N shares"
---             You MUST drop the share first, THEN the database.
+--             Drop the share so the consumer can no longer observe it.
+--             Tile 14 will show this share once it has been absent from DSOA
+--             logs for more than 2 hours (the recency window).
+--
+--             NOTE: If the consumer mounted the share as a database, Snowflake
+--             may prevent dropping the database while the share still has
+--             account grants.  Drop the share first, then the database.
 -- =============================================================================
 
 use role ACCOUNTADMIN;
 
--- 1. Remove the share (frees the database from the sharing constraint)
+-- 1. Remove the share (consumer-side mounted DB is automatically removed)
 drop share if exists DSOA_SIM_DELETED_DB_SHARE;
 
--- 2. Now the database can be dropped
+-- 2. Now the publisher database can optionally be dropped too
 drop database if exists DSOA_SIM_DELETED_DB_DB;
 
 -- After this:
---   • The consumer-side DSOA_SIM_DELETED_DB_CONSUMER_DB is automatically removed.
---   • SNOWFLAKE.ACCOUNT_USAGE.DATABASES on the CONSUMER will eventually show
---     DELETED IS NOT NULL for that database — but with up to 3 HOURS of latency.
---   • P_GET_SHARES checks that view, so HAS_DB_DELETED fires only after the
---     latency window AND while the share still appears in SHOW SHARES on the
---     consumer (which it won't, since you just dropped the share).
+--   • The share disappears from SHOW SHARES on the consumer immediately.
+--   • DSOA will stop emitting log rows for DSOA_SIM_DELETED_DB_SHARE.
+--   • After 2+ hours without a new log, tile 14 will surface this share.
 --
---   In practice this makes end-to-end testing of tile 14 via real Snowflake
---   mechanics unreliable.  Use the DIRECT INJECTION shortcut in Step 4B instead.
+-- For faster validation, see Step 4B below.
 
 
 -- =============================================================================
--- STEP 4A  ·  CONSUMER account — verify Scenario A (UNAVAILABLE)
+-- STEP 4A  ·  CONSUMER account — verify Scenario A (UNAVAILABLE, tile 11)
 --             Run AFTER Step 3A.
 -- =============================================================================
 
 use role DTAGENT_QA_OWNER; use database DTAGENT_QA_DB; use warehouse DTAGENT_QA_WH;
 
--- Refresh the temp tables — P_GET_SHARES will call P_LIST_INBOUND_TABLES for
--- DSOA_SIM_UNAVAILABLE_CONSUMER_DB, which will fail and write SHARE_STATUS=UNAVAILABLE
+-- Refresh: P_GET_SHARES calls P_LIST_INBOUND_TABLES for each inbound share.
+-- For DSOA_SIM_UNAVAILABLE_CONSUMER_DB the query now raises
+-- "Shared database is no longer available" → SHARE_STATUS = 'UNAVAILABLE' written.
 call DTAGENT_QA_DB.APP.P_GET_SHARES();
 
--- Should show: SHARE_STATUS = 'UNAVAILABLE' for DSOA_SIM_UNAVAILABLE_SHARE
+-- Verify the UNAVAILABLE row is present
 select SHARE_NAME, IS_REPORTED,
        DETAILS:"SHARE_STATUS"   as SHARE_STATUS,
-       DETAILS:"HAS_DB_DELETED" as HAS_DB_DELETED,
        DETAILS:"ERROR_MESSAGE"  as ERROR_MESSAGE
 from DTAGENT_QA_DB.APP.TMP_INBOUND_SHARES
 where SHARE_NAME like 'DSOA_SIM_%'
 order by SHARE_NAME;
 
--- Emit telemetry to Dynatrace and check tile 11 in the dashboard
-call DTAGENT_QA_DB.APP.DTAGENT_RUN();
+-- Emit telemetry and check tile 11 in the dashboard
+call DTAGENT_QA_DB.APP.DTAGENT(['shares']);
+
+-- ── Direct injection shortcut (no publisher account required) ─────────────────
+-- NOTE: Use INSERT ... SELECT, NOT INSERT ... VALUES, because DETAILS is OBJECT
+-- type and Snowflake rejects OBJECT_CONSTRUCT() inside a VALUES clause.
+--
+-- truncate table if exists DTAGENT_QA_DB.APP.TMP_SHARES;
+-- insert into DTAGENT_QA_DB.APP.TMP_SHARES
+--     (created_on, kind, owner_account, name, database_name, given_to, owner, comment, listing_global_name, secure_objects_only)
+-- values (current_timestamp(), 'INBOUND', 'WMBJBCQ.DEVDYNATRACEDIGITALBUSINESSDW',
+--         'DSOA_SIM_UNAVAILABLE_SHARE', 'DSOA_SIM_UNAVAILABLE_CONSUMER_DB',
+--         null, null, 'Simulation: revoked share', null, null);
+--
+-- truncate table if exists DTAGENT_QA_DB.APP.TMP_INBOUND_SHARES;
+-- insert into DTAGENT_QA_DB.APP.TMP_INBOUND_SHARES (SHARE_NAME, IS_REPORTED, DETAILS)
+-- select 'DSOA_SIM_UNAVAILABLE_SHARE', TRUE,
+--        OBJECT_CONSTRUCT('SHARE_STATUS', 'UNAVAILABLE',
+--                         'ERROR_MESSAGE', 'Shared database is no longer available');
+-- call DTAGENT_QA_DB.APP.DTAGENT(['shares']);
 
 
 -- =============================================================================
--- STEP 4B  ·  CONSUMER account — verify Scenario B (Deleted Database)
---             DIRECT INJECTION shortcut — bypasses the 3-hour ACCOUNT_USAGE
---             latency and the SHOW SHARES window problem entirely.
---             Run AFTER Step 3B (or independently at any time for UI testing).
+-- STEP 4B  ·  Verify Scenario B — "Shares No Longer Observed" (tile 14)
+--
+--             Tile 14 uses a DQL-only approach: shares seen in the 7-day log
+--             history but absent from the last-2-hour window are surfaced.
+--             No Snowflake-side procedure calls are needed.
+--
+--             FAST-TRACK (no 2-hour wait):
+--             After Step 3B + one DSOA run, validate using this scratch DQL
+--             in the Dynatrace console — narrow the recency window to confirm:
+--
+--               fetch logs, from: now()-7d
+--               | filter db.system == "snowflake"
+--               | filter dsoa.run.context == "inbound_shares"
+--               | summarize
+--                   firstSeen    = min(timestamp),
+--                   lastSeen     = max(timestamp),
+--                   seenRecently = countIf(timestamp >= now()-2h) > 0,
+--                   by: {deployment.environment, dsoa.run.context, snowflake.share.name, db.namespace}
+--               | filter seenRecently == false
+--               | sort lastSeen desc
+--
+--             Adjust now()-2h to now()-30m (or shorter) to see the share before
+--             the full 2-hour gap has elapsed.
+--             Expected: DSOA_SIM_DELETED_DB_SHARE appears with lastSeen from
+--             the run just before the share was dropped.
 -- =============================================================================
-
-use role DTAGENT_QA_OWNER; use database DTAGENT_QA_DB; use warehouse DTAGENT_QA_WH;
-
--- Inject a fake share row into TMP_SHARES so V_INBOUND_SHARE_TABLES picks it up
-truncate table if exists DTAGENT_QA_DB.APP.TMP_SHARES;
-insert into DTAGENT_QA_DB.APP.TMP_SHARES
-    (created_on, kind, owner_account, name, database_name, given_to, owner, comment, listing_global_name, secure_objects_only)
-values
-    (current_timestamp(), 'INBOUND', 'WMBJBCQ.DEVDYNATRACEDIGITALBUSINESSDW',
-     'DSOA_SIM_DELETED_DB_SHARE', 'DSOA_SIM_DELETED_DB_CONSUMER_DB',
-     null, null, 'Simulation: share whose backing database was deleted', null, null);
-
--- Inject the matching TMP_INBOUND_SHARES row with HAS_DB_DELETED = TRUE
-truncate table if exists DTAGENT_QA_DB.APP.TMP_INBOUND_SHARES;
-insert into DTAGENT_QA_DB.APP.TMP_INBOUND_SHARES (SHARE_NAME, IS_REPORTED, DETAILS)
-values ('DSOA_SIM_DELETED_DB_SHARE', TRUE,
-        OBJECT_CONSTRUCT('HAS_DB_DELETED', TRUE,
-                         'DATABASE_NAME', 'DSOA_SIM_DELETED_DB_CONSUMER_DB'));
-
--- Verify V_INBOUND_SHARE_TABLES surfaces it correctly
--- (should show snowflake.share.has_db_deleted = true in ATTRIBUTES)
-select _MESSAGE, DIMENSIONS, ATTRIBUTES
-from DTAGENT_QA_DB.APP.V_INBOUND_SHARE_TABLES
-where DIMENSIONS:"snowflake.share.name" = 'DSOA_SIM_DELETED_DB_SHARE';
-
--- Emit telemetry to Dynatrace and check tile 14 in the dashboard
-call DTAGENT_QA_DB.APP.DTAGENT_RUN();
 
 
 -- =============================================================================
@@ -260,4 +276,5 @@ drop database if exists DSOA_SIM_DELETED_DB_DB;    -- already gone after Step 3B
 use role ACCOUNTADMIN;
 
 drop database if exists DSOA_SIM_UNAVAILABLE_CONSUMER_DB;
-drop database if exists DSOA_SIM_DELETED_DB_CONSUMER_DB;  -- likely already gone
+-- DSOA_SIM_DELETED_DB_CONSUMER_DB was auto-dropped by Snowflake when the share
+-- was removed in Step 3B, so no explicit drop is needed here.

@@ -51,11 +51,11 @@ This dashboard requires the **`shares`** plugin to be enabled. The plugin querie
 
 | Context           | Telemetry type | Content                                                           |
 |-------------------|----------------|-------------------------------------------------------------------|
-| `outbound_shares` | events         | One event per outbound share, with grants and security flags      |
-| `inbound_shares`  | events         | One event per inbound share, with status, tables, and row counts  |
+| `outbound_shares` | logs           | One log line per outbound share, with grants and security flags   |
+| `inbound_shares`  | logs           | One log line per inbound share, with status, tables, and row counts |
 | `shares`          | events         | Summary-level share list (share name, kind, comment)              |
 
-Collection cadence follows the agent's task schedule — typically every 5 minutes. Because the plugin emits timestamp events (not logs), all dashboard tiles use `fetch events` queries. Data latency is approximately one collection interval after the agent run.
+Collection cadence follows the agent's task schedule — typically every 5 minutes. The `outbound_shares` and `inbound_shares` contexts emit logs; the `shares` context emits timestamp events. All dashboard tiles use `fetch logs` queries except those backed by the `shares` context. Data latency is approximately one collection interval after the agent run.
 
 ## Known Limitations
 
