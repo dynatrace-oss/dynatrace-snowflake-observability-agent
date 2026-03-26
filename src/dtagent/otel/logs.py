@@ -25,6 +25,7 @@
 #
 #
 
+import json
 import logging
 from typing import Dict, Optional, Any
 from opentelemetry.sdk.resources import Resource
@@ -163,7 +164,6 @@ class Logs:
         def __adjust_log_attribute(key: str, value: Any) -> Any:
             """Ensures following things:
             - numeric timestamps are converted to strings
-            - non-primitive type values are sent as JSON strings (only for otel < 1.21.0)
             """
             if key == "timestamp" and str(value).isnumeric():
                 value = str(int(value))
