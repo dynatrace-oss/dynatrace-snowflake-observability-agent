@@ -28,8 +28,10 @@
 --             • "UNAVAILABLE Inbound Shares"  (tile 11)
 --             • "Shares No Longer Observed"   (tile 14)
 --
--- Accounts : PUBLISHER  = WMBJBCQ.DEVDYNATRACEDIGITALBUSINESSDW  (creates shares)
---            CONSUMER   = WMBJBCQ.DYNATRACEDIGITALBUSINESSDW     (mounts shares, runs DSOA)
+-- Accounts : PUBLISHER  = <org>.<publisher-account>   (creates shares)
+--            CONSUMER   = <org>.<consumer-account>    (mounts shares, runs DSOA)
+--
+-- Before running, set the two variables at the top of each step block:
 --
 -- How each condition is detected by DSOA
 -- ---------------------------------------
@@ -76,9 +78,13 @@
 
 
 -- =============================================================================
--- STEP 1  ·  PUBLISHER account: WMBJBCQ.DEVDYNATRACEDIGITALBUSINESSDW
+-- STEP 1  ·  PUBLISHER account
 --            Run this block on the PUBLISHER account first.
+--            Set CONSUMER_ACCOUNT to the full account locator of the consumer.
 -- =============================================================================
+
+-- !! Replace with your consumer account locator (e.g., ORG.MY_ACCOUNT) !!
+set consumer_account = '<org>.<consumer-account>';
 
 use role ACCOUNTADMIN;
 
@@ -96,7 +102,7 @@ create share if not exists DSOA_SIM_UNAVAILABLE_SHARE;
 grant usage on database DSOA_SIM_UNAVAILABLE_DB to share DSOA_SIM_UNAVAILABLE_SHARE;
 grant usage on schema DSOA_SIM_UNAVAILABLE_DB.SIM to share DSOA_SIM_UNAVAILABLE_SHARE;
 grant select on view DSOA_SIM_UNAVAILABLE_DB.SIM.V_SAMPLE_DATA to share DSOA_SIM_UNAVAILABLE_SHARE;
-alter share DSOA_SIM_UNAVAILABLE_SHARE add accounts = WMBJBCQ.DYNATRACEDIGITALBUSINESSDW;
+alter share DSOA_SIM_UNAVAILABLE_SHARE add accounts = ($consumer_account);
 
 -- Verify: consumer account should appear
 show grants to share DSOA_SIM_UNAVAILABLE_SHARE;
@@ -115,25 +121,29 @@ create share if not exists DSOA_SIM_DELETED_DB_SHARE;
 grant usage on database DSOA_SIM_DELETED_DB_DB to share DSOA_SIM_DELETED_DB_SHARE;
 grant usage on schema DSOA_SIM_DELETED_DB_DB.SIM to share DSOA_SIM_DELETED_DB_SHARE;
 grant select on view DSOA_SIM_DELETED_DB_DB.SIM.V_EVENTS to share DSOA_SIM_DELETED_DB_SHARE;
-alter share DSOA_SIM_DELETED_DB_SHARE add accounts = WMBJBCQ.DYNATRACEDIGITALBUSINESSDW;
+alter share DSOA_SIM_DELETED_DB_SHARE add accounts = ($consumer_account);
 
 -- Verify: consumer account should appear
 show grants to share DSOA_SIM_DELETED_DB_SHARE;
 
 
 -- =============================================================================
--- STEP 2  ·  CONSUMER account: WMBJBCQ.DYNATRACEDIGITALBUSINESSDW
+-- STEP 2  ·  CONSUMER account
 --            Run AFTER Step 1.
+--            Set PUBLISHER_ACCOUNT to the full account locator of the publisher.
 -- =============================================================================
+
+-- !! Replace with your publisher account locator (e.g., ORG.MY_PUBLISHER) !!
+set publisher_account = '<org>.<publisher-account>';
 
 use role ACCOUNTADMIN;
 
 -- Mount both inbound shares as local databases
 create database if not exists DSOA_SIM_UNAVAILABLE_CONSUMER_DB
-    from share WMBJBCQ.DEVDYNATRACEDIGITALBUSINESSDW.DSOA_SIM_UNAVAILABLE_SHARE;
+    from share identifier($publisher_account || '.DSOA_SIM_UNAVAILABLE_SHARE');
 
 create database if not exists DSOA_SIM_DELETED_DB_CONSUMER_DB
-    from share WMBJBCQ.DEVDYNATRACEDIGITALBUSINESSDW.DSOA_SIM_DELETED_DB_SHARE;
+    from share identifier($publisher_account || '.DSOA_SIM_DELETED_DB_SHARE');
 
 -- Grant imported privileges so DTAGENT_QA_OWNER can query the shared schemas.
 -- (P_LIST_INBOUND_TABLES calls P_GRANT_IMPORTED_PRIVILEGES automatically on first
@@ -150,10 +160,12 @@ show shares;
 --             Immediate effect; no latency.
 -- =============================================================================
 
+-- !! Re-set the consumer account variable if running this in a fresh session !!
+-- set consumer_account = '<org>.<consumer-account>';
 use role ACCOUNTADMIN;
 
 alter share DSOA_SIM_UNAVAILABLE_SHARE
-    remove accounts = WMBJBCQ.DYNATRACEDIGITALBUSINESSDW;
+    remove accounts = ($consumer_account);
 
 -- The consumer DB (DSOA_SIM_UNAVAILABLE_CONSUMER_DB) still appears in SHOW SHARES
 -- on the consumer side, but querying it now raises:
@@ -219,7 +231,7 @@ call DTAGENT_QA_DB.APP.DTAGENT(['shares']);
 -- truncate table if exists DTAGENT_QA_DB.APP.TMP_SHARES;
 -- insert into DTAGENT_QA_DB.APP.TMP_SHARES
 --     (created_on, kind, owner_account, name, database_name, given_to, owner, comment, listing_global_name, secure_objects_only)
--- values (current_timestamp(), 'INBOUND', 'WMBJBCQ.DEVDYNATRACEDIGITALBUSINESSDW',
+-- values (current_timestamp(), 'INBOUND', '<org>.<publisher-account>',
 --         'DSOA_SIM_UNAVAILABLE_SHARE', 'DSOA_SIM_UNAVAILABLE_CONSUMER_DB',
 --         null, null, 'Simulation: revoked share', null, null);
 --
@@ -264,7 +276,7 @@ call DTAGENT_QA_DB.APP.DTAGENT(['shares']);
 -- CLEANUP  ·  Run on BOTH accounts when simulation is done
 -- =============================================================================
 
--- ── On PUBLISHER account (WMBJBCQ.DEVDYNATRACEDIGITALBUSINESSDW) ──────────────
+-- ── On PUBLISHER account ──────────────────────────────────────────────────────
 use role ACCOUNTADMIN;
 
 drop share if exists DSOA_SIM_UNAVAILABLE_SHARE;
@@ -272,7 +284,7 @@ drop share if exists DSOA_SIM_DELETED_DB_SHARE;    -- already gone after Step 3B
 drop database if exists DSOA_SIM_UNAVAILABLE_DB;
 drop database if exists DSOA_SIM_DELETED_DB_DB;    -- already gone after Step 3B
 
--- ── On CONSUMER account (WMBJBCQ.DYNATRACEDIGITALBUSINESSDW) ──────────────────
+-- ── On CONSUMER account ───────────────────────────────────────────────────────
 use role ACCOUNTADMIN;
 
 drop database if exists DSOA_SIM_UNAVAILABLE_CONSUMER_DB;

@@ -50,8 +50,8 @@ DECLARE
     share_name_safe     TEXT DEFAULT '';
     v_db                TEXT DEFAULT '';
 BEGIN
-    v_db            := UPPER(:db_name);
-    share_name_safe := REPLACE(:share_name, '''', '');
+    v_db            := REGEXP_REPLACE(UPPER(:db_name),         '[^A-Z0-9_$]', '');
+    share_name_safe := REGEXP_REPLACE(UPPER(:share_name),      '[^A-Z0-9_$.%]', '');
 
     query := concat('select ''', :share_name_safe, ''' as SHARE_NAME, TRUE as IS_REPORTED, OBJECT_CONSTRUCT(t.*)',
                     ' from IDENTIFIER(''', :v_db, '.INFORMATION_SCHEMA.TABLES'') t',
