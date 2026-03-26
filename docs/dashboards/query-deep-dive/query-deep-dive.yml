@@ -27,7 +27,7 @@
 
 id: 9dbac33a-25ba-4192-b748-c8b6fe561c3b
 
-version: 25
+version: 28
 
 variables:
   - key: Accounts
@@ -95,22 +95,12 @@ variables:
         | summarize collectDistinct(db.operation.name)
 
   - key: TopN
-    type: static
+    type: csv
     visible: true
     editable: true
     version: 2
-    multiple: false
     defaultValue: "10"
-    input: "5\n10\n25\n50"
-
-  - key: TenantURL
-    type: static
-    visible: true
-    editable: true
-    version: 2
-    multiple: false
-    defaultValue: "https://aym57094.sprint.apps.dynatracelabs.com"
-    input: "https://aym57094.sprint.apps.dynatracelabs.com"
+    input: "5,10,20,50,100"
 
 tiles:
   # ── Section 1: Costly Repeated Queries ─────────────────────────────────────
@@ -146,7 +136,7 @@ tiles:
               warehouse  = snowflake.warehouse.name,
               operation  = db.operation.name }
         | sort total_scanned_bytes desc
-        | limit 20
+        | limit toLong($TopN)
     visualization: table
     visualizationSettings:
       unitsOverrides:
@@ -219,7 +209,7 @@ tiles:
               database   = db.namespace,
               warehouse  = snowflake.warehouse.name }
         | sort total_spill_bytes desc
-        | limit 20
+        | limit toLong($TopN)
     visualization: table
     visualizationSettings:
       unitsOverrides:
@@ -495,7 +485,7 @@ tiles:
       Find queries eligible for Snowflake's query acceleration service and track bytes being offloaded to the service.
 
   "9":
-    title: Acceleration-eligible queries
+    title: Acceleration-eligible queries (top $TopN)
     type: data
     query: |
       fetch logs
@@ -519,6 +509,7 @@ tiles:
             `Elapsed Time (ms)`          = toDouble(snowflake.time.total_elapsed),
             `Query Text`                 = db.query.text
         | sort `Elapsed Time (ms)` desc
+        | limit toLong($TopN)
     visualization: table
     visualizationSettings:
       unitsOverrides:
@@ -547,7 +538,7 @@ tiles:
       enabled: false
 
   "10":
-    title: Acceleration bytes scanned over time by warehouse
+    title: Acceleration bytes scanned over time by warehouse (top $TopN)
     type: data
     query: |
       fetch logs
@@ -560,6 +551,10 @@ tiles:
         | filter (isNull(db.user)                  or in(db.user, array($User)))
         | filter (isNull(db.operation.name)        or in(db.operation.name, array($Operation)))
         | makeTimeseries accel_bytes = sum(toDouble(snowflake.acceleration.data.scanned)), by: { snowflake.warehouse.name }
+        | fieldsAdd sum_accel_bytes = arraySum(accel_bytes)
+        | sort sum_accel_bytes desc
+        | limit toLong($TopN)
+        | fieldsRemove sum_accel_bytes
     visualization: lineChart
     visualizationSettings:
       chartSettings:
@@ -602,7 +597,7 @@ tiles:
       Each row is a root span; click the **Trace** link to open the full parent-child call tree in Distributed Tracing.
 
   "12":
-    title: Root queries with child queries
+    title: Root queries with child queries (top $TopN)
     type: data
     query: |
       fetch spans
@@ -632,9 +627,10 @@ tiles:
             Database        = db.namespace,
             Operation       = db.operation.name,
             `Query ID`      = snowflake.query.id,
-            `Trace`         = concat($TenantURL, "/ui/apps/dynatrace.distributed-traces/ui/trace/", `trace.id`),
+            trace.id        = `trace.id`,
             start_time
         | sort `Elapsed (ms)` desc
+        | limit toLong($TopN)
     visualization: table
     visualizationSettings:
       unitsOverrides:
@@ -663,7 +659,7 @@ tiles:
       enabled: false
 
   "13":
-    title: Operator-level stats (slow queries)
+    title: Operator-level stats (top $TopN slow queries)
     type: data
     query: |
       fetch spans
@@ -687,6 +683,7 @@ tiles:
             `Span Events`    = span.events,
             start_time
         | sort `Elapsed (ms)` desc
+        | limit toLong($TopN)
     visualization: table
     visualizationSettings:
       unitsOverrides:
@@ -720,8 +717,8 @@ tiles:
     query: |
       fetch spans
         | filter db.system == "snowflake"
-        | filter dsoa.run.plugin == "query_history"
         | filter isNotNull(span.events)
+        | fieldsAdd spanErrors = span.events[][`exception.type`]
         | filter iAny(isNotNull(`span.events`[][`exception.type`]))
         | filter in(deployment.environment, array($Accounts))
         | filter (isNull(db.namespace) or in(db.namespace, array($Database)))
@@ -751,10 +748,6 @@ tiles:
           suffix: ""
           delimiter: false
           added: 1700000000060
-      thresholds:
-        - field: "Exception Type"
-          rules:
-            - color: RED
       table:
         rowDensity: condensed
         enableSparklines: false
@@ -762,6 +755,9 @@ tiles:
           - Span Events
         lineWrapIds: []
         columnWidths: {}
+        sortBy:
+          - columnId: '["telemetry.sdk.language"]'
+            direction: ascending
     querySettings:
       maxResultRecords: 200
       defaultScanLimitGbytes: 500
@@ -780,7 +776,7 @@ tiles:
       Monitor invocation counts and data volumes for queries that call external (remote) functions.
 
   "15":
-    title: External function invocations over time by warehouse
+    title: External function invocations over time by warehouse (top $TopN)
     type: data
     query: |
       fetch logs
@@ -793,6 +789,10 @@ tiles:
         | filter (isNull(db.user)                  or in(db.user, array($User)))
         | filter (isNull(db.operation.name)        or in(db.operation.name, array($Operation)))
         | makeTimeseries invocations = sum(toDouble(snowflake.external_functions.invocations)), by: { snowflake.warehouse.name }
+        | fieldsAdd sum_invocations = arraySum(invocations)
+        | sort sum_invocations
+        | limit toLong($TopN)
+        | fieldsRemove sum_invocations
     visualization: lineChart
     visualizationSettings:
       chartSettings:
@@ -817,7 +817,7 @@ tiles:
       enabled: false
 
   "16":
-    title: External function data volumes by warehouse
+    title: External function data volumes by warehouse (top $TopN)
     type: data
     query: |
       fetch logs
@@ -837,6 +837,7 @@ tiles:
             invocations    = sum(toDouble(snowflake.external_functions.invocations)),
             by: { warehouse = snowflake.warehouse.name, database = db.namespace }
         | sort invocations desc
+        | limit toLong($TopN)
     visualization: table
     visualizationSettings:
       unitsOverrides:
@@ -1030,32 +1031,68 @@ tiles:
       enabled: false
 
   "23":
-    title: Cross-region data transfer by region and cloud
+    title: Cross-region data outbound transfer by region and cloud
     type: data
     query: |
       fetch logs
         | filter db.system == "snowflake"
         | filter dsoa.run.plugin == "query_history"
-        | filter toDouble(snowflake.data.transferred.inbound) > 0
-            or toDouble(snowflake.data.transferred.outbound) > 0
+        | filter toDouble(snowflake.data.transferred.outbound) > 0
         | filter in(deployment.environment, array($Accounts))
         | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
         | filter (isNull(db.namespace)             or in(db.namespace, array($Database)))
         | filter (isNull(db.user)                  or in(db.user, array($User)))
         | filter (isNull(db.operation.name)        or in(db.operation.name, array($Operation)))
         | summarize
-            inbound_bytes  = sum(toDouble(snowflake.data.transferred.inbound)),
             outbound_bytes = sum(toDouble(snowflake.data.transferred.outbound)),
             by: {
               snowflake.query.data_transfer.outbound.region,
-              snowflake.query.data_transfer.outbound.cloud,
-              snowflake.query.data_transfer.inbound.region,
-              snowflake.query.data_transfer.inbound.cloud
+              snowflake.query.data_transfer.outbound.cloud
             }
         | sort outbound_bytes desc
     visualization: treemap
     visualizationSettings:
       autoSelectVisualization: false
+      dataMapping:
+        clusters: snowflake.query.data_transfer.outbound.cloud
+        nodes: snowflake.query.data_transfer.outbound.region
+        value: outbound_bytes
+    querySettings:
+      maxResultRecords: 100
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 50
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+
+  "25":
+    title: Cross-region data inbound transfer by region and cloud
+    type: data
+    query: |
+      fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "query_history"
+        | filter toDouble(snowflake.data.transferred.inbound) > 0
+        | filter in(deployment.environment, array($Accounts))
+        | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
+        | filter (isNull(db.namespace)             or in(db.namespace, array($Database)))
+        | filter (isNull(db.user)                  or in(db.user, array($User)))
+        | filter (isNull(db.operation.name)        or in(db.operation.name, array($Operation)))
+        | summarize
+            inbound_bytes = sum(toDouble(snowflake.data.transferred.inbound)),
+            by: {
+              snowflake.query.data_transfer.inbound.region,
+              snowflake.query.data_transfer.inbound.cloud
+            }
+        | sort inbound_bytes desc
+    visualization: treemap
+    visualizationSettings:
+      autoSelectVisualization: false
+      dataMapping:
+        clusters: snowflake.query.data_transfer.inbound.cloud
+        nodes: snowflake.query.data_transfer.inbound.region
+        value: inbound_bytes
     querySettings:
       maxResultRecords: 100
       defaultScanLimitGbytes: 500
@@ -1224,21 +1261,28 @@ layouts:
   "21":
     x: 0
     "y": 62
-    w: 8
+    w: 12
     h: 6
 
   # Tile 22: Credits by warehouse
   "22":
-    x: 8
+    x: 12
     "y": 62
-    w: 8
+    w: 12
     h: 6
 
-  # Tile 23: Cross-region data transfer
+  # Tile 23: Cross-region outbound transfer treemap
   "23":
-    x: 16
-    "y": 62
-    w: 8
+    x: 0
+    "y": 68
+    w: 12
+    h: 6
+
+  # Tile 25: Cross-region inbound transfer treemap
+  "25":
+    x: 12
+    "y": 68
+    w: 12
     h: 6
 
 settings:
