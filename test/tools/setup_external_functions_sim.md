@@ -176,7 +176,8 @@ Snowflake principal and external ID.
 
 1. Go to [https://console.aws.amazon.com/iam](https://console.aws.amazon.com/iam).
 2. Click **Roles** → **Create role**.
-3. Choose **Custom trust policy** and paste the following placeholder (you will replace it in Step 4.3):
+3. Choose **Custom trust policy** and paste the following placeholder (you will replace it in Step 4.3).
+   Replace `<YOUR_ACCOUNT_ID>` with your own 12-digit AWS account ID (visible in the top-right corner of the console):
 
 ```json
 {
@@ -184,7 +185,7 @@ Snowflake principal and external ID.
   "Statement": [
     {
       "Effect": "Allow",
-      "Principal": { "AWS": "arn:aws:iam::000000000000:root" },
+      "Principal": { "AWS": "arn:aws:iam::<YOUR_ACCOUNT_ID>:root" },
       "Action": "sts:AssumeRole"
     }
   ]
