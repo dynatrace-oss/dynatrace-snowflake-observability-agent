@@ -27,7 +27,7 @@
 
 id: 9dbac33a-25ba-4192-b748-c8b6fe561c3b
 
-version: 24
+version: 25
 
 variables:
   - key: Accounts
@@ -556,8 +556,9 @@ tiles:
     query: |
       fetch spans
         | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "query_history"
         | filter isNull(snowflake.query.parent_id)
-        | filter isNotNull(trace_id)
+        | filter isNotNull(`trace.id`)
         | filter in(deployment.environment, array($Accounts))
         | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
         | filter (isNull(db.namespace)             or in(db.namespace, array($Database)))
@@ -566,6 +567,7 @@ tiles:
         | lookup [
             fetch spans
               | filter db.system == "snowflake"
+              | filter dsoa.run.plugin == "query_history"
               | filter isNotNull(snowflake.query.parent_id)
               | summarize child_count = count(), by: { parent_id = snowflake.query.parent_id }
           ], sourceField: snowflake.query.id, lookupField: parent_id
@@ -579,7 +581,7 @@ tiles:
             Database        = db.namespace,
             Operation       = db.operation.name,
             `Query ID`      = snowflake.query.id,
-            `Trace`         = concat($TenantURL, "/ui/apps/dynatrace.distributed-traces/ui/trace/", trace_id),
+            `Trace`         = concat($TenantURL, "/ui/apps/dynatrace.distributed-traces/ui/trace/", `trace.id`),
             start_time
         | sort `Elapsed (ms)` desc
     visualization: table
@@ -606,7 +608,9 @@ tiles:
     query: |
       fetch spans
         | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "query_history"
         | filter isNotNull(span.events)
+        | filter not iAny(isNotNull(`span.events`[][`exception.type`]))
         | filter in(deployment.environment, array($Accounts))
         | filter (isNull(db.namespace) or in(db.namespace, array($Database)))
         | filter (isNull(db.user)      or in(db.user, array($User)))
@@ -615,7 +619,7 @@ tiles:
         | filter isNotNull(operator_stats)
         | fields
             `Query ID`       = snowflake.query.id,
-            `Query Text`     = db.statement,
+            `Query Text`     = db.query.text,
             `Elapsed (ms)`   = toDouble(snowflake.time.total_elapsed),
             User             = db.user,
             Database         = db.namespace,
@@ -630,6 +634,54 @@ tiles:
         rowDensity: condensed
         enableSparklines: false
         hiddenColumns: []
+        lineWrapIds: []
+        columnWidths: {}
+    querySettings:
+      maxResultRecords: 200
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 50
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+
+  "24":
+    title: Span errors (exception events)
+    type: data
+    query: |
+      fetch spans
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "query_history"
+        | filter isNotNull(span.events)
+        | filter iAny(isNotNull(`span.events`[][`exception.type`]))
+        | filter in(deployment.environment, array($Accounts))
+        | filter (isNull(db.namespace) or in(db.namespace, array($Database)))
+        | filter (isNull(db.user)      or in(db.user, array($User)))
+        | fieldsAdd
+            exception_type    = iCollectArray(`span.events`[][`exception.type`]),
+            exception_message = iCollectArray(`span.events`[][`exception.message`])
+        | fields
+            `Query ID`          = snowflake.query.id,
+            `Query Text`        = db.query.text,
+            `Elapsed (ms)`      = toDouble(snowflake.time.total_elapsed),
+            User                = db.user,
+            Database            = db.namespace,
+            `Exception Type`    = exception_type,
+            `Exception Message` = exception_message,
+            `Span Events`       = span.events,
+            start_time
+        | sort start_time desc
+    visualization: table
+    visualizationSettings:
+      thresholds:
+        - field: "Exception Type"
+          rules:
+            - color: RED
+      table:
+        rowDensity: condensed
+        enableSparklines: false
+        hiddenColumns:
+          - Span Events
         lineWrapIds: []
         columnWidths: {}
     querySettings:
@@ -1017,73 +1069,80 @@ layouts:
     w: 12
     h: 7
 
+  # Tile 24: Span errors
+  "24":
+    x: 0
+    "y": 40
+    w: 24
+    h: 5
+
   # Section 5 header
   "14":
     x: 0
-    "y": 40
+    "y": 45
     w: 24
     h: 2
 
   # Tile 15: External function invocations
   "15":
     x: 0
-    "y": 42
+    "y": 47
     w: 14
     h: 5
 
   # Tile 16: External function data volumes
   "16":
     x: 14
-    "y": 42
+    "y": 47
     w: 10
     h: 5
 
   # Section 6 header
   "17":
     x: 0
-    "y": 47
+    "y": 52
     w: 24
     h: 2
 
   # Tile 18: Queries by client app
   "18":
     x: 0
-    "y": 49
+    "y": 54
     w: 12
     h: 6
 
   # Tile 19: Queries by auth type
   "19":
     x: 12
-    "y": 49
+    "y": 54
     w: 12
     h: 6
 
   # Section 7 header
   "20":
     x: 0
-    "y": 55
+    "y": 60
     w: 24
     h: 2
 
   # Tile 21: Credits by user/role
   "21":
     x: 0
-    "y": 57
+    "y": 62
     w: 8
     h: 6
 
   # Tile 22: Credits by warehouse
   "22":
     x: 8
-    "y": 57
+    "y": 62
     w: 8
     h: 6
 
   # Tile 23: Cross-region data transfer
   "23":
     x: 16
-    "y": 57
+    "y": 62
     w: 8
     h: 6
 

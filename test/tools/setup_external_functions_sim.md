@@ -3,8 +3,8 @@
 Adds an AWS Lambda-backed Snowflake External Function to the Query Deep Dive simulation so that
 dashboard tiles 15 and 16 (External Functions section) display real telemetry.
 
-**Estimated time:** 20–30 minutes  
-**Estimated cost:** near-zero (Lambda free tier; XSMALL Snowflake warehouse)  
+**Estimated time:** 20–30 minutes
+**Estimated cost:** near-zero (Lambda free tier; XSMALL Snowflake warehouse)
 **Prerequisites:** AWS account with permission to create Lambda functions, IAM roles, and API Gateway;
 Snowflake `ACCOUNTADMIN` access on the test account.
 
@@ -36,13 +36,13 @@ The DSOA `query_history` plugin picks these up and emits them as telemetry, popu
 
 ### 1.2 Configure the function
 
-| Field | Value |
-|-------|-------|
-| Author from scratch | selected |
-| Function name | `dsoa-ef-echo` |
-| Runtime | Python 3.12 |
-| Architecture | x86\_64 |
-| Execution role | **Create a new role with basic Lambda permissions** |
+| Field               | Value                                               |
+|---------------------|-----------------------------------------------------|
+| Author from scratch | selected                                            |
+| Function name       | `dsoa-ef-echo`                                      |
+| Runtime             | Python 3.12                                         |
+| Architecture        | x86\_64                                             |
+| Execution role      | **Create a new role with basic Lambda permissions** |
 
 Click **Create function**.
 
@@ -113,20 +113,20 @@ If it passes, move on.
 
 **Step 1 — Integrations:**
 
-| Field | Value |
-|-------|-------|
-| Integration type | Lambda |
-| AWS Region | us-east-1 |
-| Lambda function | `dsoa-ef-echo` |
+| Field            | Value          |
+|------------------|----------------|
+| Integration type | Lambda         |
+| AWS Region       | us-east-1      |
+| Lambda function  | `dsoa-ef-echo` |
 
 Click **Add integration**, then **Next**.
 
 **Step 2 — Routes:**
 
-| Field | Value |
-|-------|-------|
-| Method | POST |
-| Resource path | `/echo` |
+| Field              | Value          |
+|--------------------|----------------|
+| Method             | POST           |
+| Resource path      | `/echo`        |
 | Integration target | `dsoa-ef-echo` |
 
 Click **Next**.
@@ -200,13 +200,13 @@ endpoint open (protected only by obscurity of the URL) is acceptable.
 If you want a simple header-based check, update `lambda_function.py` to validate a secret header:
 
 ```python
-SECRET_HEADER = "X-Dsoa-Secret"
+SECRET_HEADER = "X-DSOA-Secret"
 SECRET_VALUE  = "change-me-to-a-random-string"  # set the same value in the SF external function
 
 
 def lambda_handler(event, context):
     headers = event.get("headers") or {}
-    if headers.get(SECRET_HEADER) != SECRET_VALUE:
+    if headers.get(SECRET_HEADER.lower()) != SECRET_VALUE:
         return {"statusCode": 403, "body": "Forbidden"}
 
     body = event.get("body")
@@ -247,6 +247,11 @@ CREATE OR REPLACE API INTEGRATION dsoa_test_api_integration
     API_ALLOWED_PREFIXES = ('https://<INVOKE_URL>/')
     ENABLED            = TRUE
     COMMENT            = 'DSOA test — echo external function';
+
+-- Grant USAGE on the integration to the role that will create/use the external function.
+-- Without this, CREATE EXTERNAL FUNCTION will fail with "Insufficient privileges to operate
+-- on integration" even if the role owns the schema.
+GRANT USAGE ON INTEGRATION dsoa_test_api_integration TO ROLE DTAGENT_QA_OWNER;
 ```
 
 > **Note on `API_AWS_ROLE_ARN`:** For HTTP APIs (as opposed to REST APIs), Snowflake does not
@@ -443,10 +448,11 @@ aws lambda delete-function --function-name dsoa-ef-echo --region us-east-1
 
 ## Troubleshooting
 
-| Symptom | Likely cause | Fix |
-|---------|-------------|-----|
-| `Error calling remote service` on `SELECT ef_echo(...)` | API Gateway URL wrong or Lambda not deployed | Re-run `curl` test from Step 3.1; check `API_ALLOWED_PREFIXES` |
-| `Integration not found` | API integration not created with ACCOUNTADMIN | Run Step 4.1 as ACCOUNTADMIN |
-| Tiles 15–16 still empty after 1 hour | ACCOUNT_USAGE lag or DTAGENT not run | Check `INFORMATION_SCHEMA.QUERY_HISTORY_BY_USER` for `external_function_total_invocations > 0`; trigger DTAGENT manually |
-| Lambda returns 403 | Secret header mismatch | Remove the header check from `lambda_function.py` for testing |
-| `external_bytes_sent` is very small | Only 20 rows sent per run | Increase `LIMIT 20` in `SP_WORKLOAD_ROOT` Query 5 to 200 |
+| Symptom                                                 | Likely cause                                  | Fix                                                                                                                      |
+|---------------------------------------------------------|-----------------------------------------------|--------------------------------------------------------------------------------------------------------------------------|
+| `Insufficient privileges to operate on integration`     | `GRANT USAGE ON INTEGRATION` missing          | Run `GRANT USAGE ON INTEGRATION dsoa_test_api_integration TO ROLE DTAGENT_QA_OWNER;` as ACCOUNTADMIN (Step 4.1)          |
+| `Error calling remote service` on `SELECT ef_echo(...)` | API Gateway URL wrong or Lambda not deployed  | Re-run `curl` test from Step 3.1; check `API_ALLOWED_PREFIXES`                                                           |
+| `Integration not found`                                 | API integration not created with ACCOUNTADMIN | Run Step 4.1 as ACCOUNTADMIN                                                                                             |
+| Tiles 15–16 still empty after 1 hour                    | ACCOUNT_USAGE lag or DTAGENT not run          | Check `INFORMATION_SCHEMA.QUERY_HISTORY_BY_USER` for `external_function_total_invocations > 0`; trigger DTAGENT manually |
+| Lambda returns 403                                      | Secret header mismatch                        | Remove the header check from `lambda_function.py` for testing                                                            |
+| `external_bytes_sent` is very small                     | Only 20 rows sent per run                     | Increase `LIMIT 20` in `SP_WORKLOAD_ROOT` Query 5 to 200                                                                 |
