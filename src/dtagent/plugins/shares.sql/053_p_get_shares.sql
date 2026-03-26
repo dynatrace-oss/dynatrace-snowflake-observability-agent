@@ -92,16 +92,11 @@ BEGIN
                     select :share_name, FALSE;
 
             else
-                if ((SELECT count(*) > 0 from SNOWFLAKE.ACCOUNT_USAGE.DATABASES where DATABASE_NAME = :db_name and DELETED is null)) then
-                    call DTAGENT_DB.APP.P_LIST_INBOUND_TABLES(:share_name, :db_name);
+                call DTAGENT_DB.APP.P_LIST_INBOUND_TABLES(:share_name, :db_name);
 
-                    insert into DTAGENT_DB.APP.TMP_INBOUND_SHARES
-                        select SHARE_NAME, IS_REPORTED, DETAILS
-                        from TABLE(result_scan(last_query_id()));
-                else
-                    insert into DTAGENT_DB.APP.TMP_INBOUND_SHARES(SHARE_NAME, IS_REPORTED, DETAILS)
-                        select :share_name, TRUE, OBJECT_CONSTRUCT('HAS_DB_DELETED', TRUE);
-                end if;
+                insert into DTAGENT_DB.APP.TMP_INBOUND_SHARES
+                    select SHARE_NAME, IS_REPORTED, DETAILS
+                    from TABLE(result_scan(last_query_id()));
             end if;
 
         end if;

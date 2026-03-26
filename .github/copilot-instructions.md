@@ -137,13 +137,15 @@ Docs are a first-class deliverable. Run `./scripts/update_docs.sh` after any cod
 
 ### Deploying changes to a live environment
 
+**CRITICAL: The only permitted connection profile / env for agent-assisted deployments, teardowns, and live testing is `test-qa`. Never use any other env without explicit human instruction.**
+
 Always build first, then deploy with the appropriate scope(s):
 
 ```bash
-./scripts/dev/build.sh && ./scripts/deploy/deploy.sh <env> --scope=<scopes> --options=skip_confirm
+./scripts/dev/build.sh && ./scripts/deploy/deploy.sh test-qa --scope=<scopes> --options=skip_confirm
 ```
 
-- `<env>` must match a `conf/config-<env>.yml` file (e.g. `dev-094`).
+- `<env>` must match a `conf/config-<env>.yml` file. Always use `test-qa` unless explicitly told otherwise.
 - `--options=skip_confirm` suppresses the interactive confirmation prompt.
 - Multiple scopes are comma-separated: `--scope=plugins,config`.
 - The deploy script filters out disabled plugins automatically; no manual exclusion needed.
@@ -241,3 +243,4 @@ Four mandatory phases — do not skip or merge.
 - **Include/exclude filtering:** Plugins that use `include`/`exclude` pattern lists (`DB.SCHEMA.OBJECT`) must match excludes at the **same granularity** as includes — never collapse a fine-grained exclude to DB-level only. Views compare `QUALIFIED_NAME LIKE ANY (excludes)` using the full raw VALUE. Admin grant procedures match each tier separately: DB-level suppression only for excludes whose part2 is `%`, schema-level suppression via `(db.schema.%) LIKE ANY (raw excludes)`, object-level suppression by matching the include VALUE itself against excludes. See `PLUGIN_DEVELOPMENT.md` §SQL Best Practices item 6 for the canonical pattern.
 - **Security:** Never commit credentials. Use `.gitignore` and `_snowflake.read_secret()`.
 - **Backward compatibility:** Provide upgrade scripts for object changes. Document breaking changes.
+- **Procedure signature changes:** Snowflake does not replace a procedure if the new signature would create an ambiguous overload with an existing one — it raises `"Cannot overload PROCEDURE ... as it would cause ambiguous PROCEDURE overloading"`. Whenever a stored procedure's parameter list changes (add, remove, or rename a parameter), **always** create an upgrade script in `src/dtagent.sql/upgrade/<new-version>/` that drops the old signature **before** the new one is deployed. Use `DROP PROCEDURE IF EXISTS DTAGENT_DB.APP.<NAME>(<old-types>)` wrapped in `--%PLUGIN:<name>:` / `--%:PLUGIN:<name>` guards. The upgrade script is assembled by `build.sh` into `build/09_upgrade/v<version>.sql` and applied via `./scripts/deploy/deploy.sh <env> --scope=upgrade --from-version=<prev-version> --options=skip_confirm` **before** the main `--scope=plugins,admin,config` deploy step.

@@ -1,0 +1,632 @@
+#
+# Copyright (c) 2025 Dynatrace Open Source
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the Software), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+#
+# DASHBOARD: Shares & Governance
+# DESCRIPTION: Monitor inbound and outbound Snowflake data shares - security, quality, and operational health
+# OWNER: DSOA Team
+# PLUGINS: shares
+# TAGS: snowflake, dsoa, security, governance, sharing
+#
+id: 579f882f-b7b7-4f78-a51f-64517849dbde
+name: Shares & Governance
+version: 20
+
+variables:
+  - version: 2
+    key: Accounts
+    type: query
+    visible: true
+    editable: true
+    input: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter in(dsoa.run.context, array("outbound_shares", "inbound_shares", "shares"))
+      | fields deployment.environment
+      | dedup deployment.environment
+      | sort deployment.environment asc
+    multiple: true
+    defaultValue:
+      - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
+  - version: 2
+    key: ShareDirection
+    type: query
+    visible: true
+    editable: true
+    input: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter in(dsoa.run.context, array("outbound_shares", "inbound_shares"))
+      | filter in(deployment.environment, array($Accounts))
+      | filter isNotNull(snowflake.share.kind)
+      | fields snowflake.share.kind
+      | dedup snowflake.share.kind
+      | sort snowflake.share.kind asc
+    multiple: true
+    defaultValue:
+      - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
+  - version: 2
+    key: ShareName
+    type: query
+    visible: true
+    editable: true
+    input: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter in(dsoa.run.context, array("outbound_shares", "inbound_shares"))
+      | filter in(deployment.environment, array($Accounts))
+      | filter in(snowflake.share.kind, array($ShareDirection))
+      | filter isNotNull(snowflake.share.name)
+      | fields snowflake.share.name
+      | dedup snowflake.share.name
+      | sort snowflake.share.name asc
+    multiple: true
+    defaultValue:
+      - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
+
+tiles:
+  # ── Section 1: Share Inventory ───────────────────────────────────────────────
+  "0":
+    type: markdown
+    content: |
+      ## Share Inventory
+      Overview of all inbound and outbound data shares across monitored Snowflake accounts.
+    davis:
+      componentState:
+        inputData: null
+
+  "1":
+    title: Outbound Shares
+    type: data
+    query: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.context == "outbound_shares"
+      | filter in(deployment.environment, array($Accounts))
+      | filter in(snowflake.share.kind, array($ShareDirection))
+      | filter in(snowflake.share.name, array($ShareName))
+      | filter snowflake.share.kind == "OUTBOUND"
+      | summarize count = countDistinct(snowflake.share.name)
+    visualization: singleValue
+    visualizationSettings:
+      singleValue:
+        label: Outbound Shares
+        recordField: count
+        prefixIcon: ""
+        trend:
+          isVisible: false
+      autoSelectVisualization: false
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+
+  "2":
+    title: Inbound Shares
+    type: data
+    query: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.context == "inbound_shares"
+      | filter in(deployment.environment, array($Accounts))
+      | filter in(snowflake.share.kind, array($ShareDirection))
+      | filter in(snowflake.share.name, array($ShareName))
+      | filter snowflake.share.kind == "INBOUND"
+      | summarize count = countDistinct(snowflake.share.name)
+    visualization: singleValue
+    visualizationSettings:
+      singleValue:
+        label: Inbound Shares
+        recordField: count
+        prefixIcon: ""
+        trend:
+          isVisible: false
+      autoSelectVisualization: false
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+
+  "3":
+    title: All Shares Inventory
+    type: data
+    query: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter in(dsoa.run.context, array("outbound_shares", "inbound_shares"))
+      | filter in(deployment.environment, array($Accounts))
+      | filter in(snowflake.share.kind, array($ShareDirection))
+      | filter in(snowflake.share.name, array($ShareName))
+      | filter isNotNull(snowflake.share.name)
+      | summarize {
+          owner = takeFirst(snowflake.share.owner),
+          secure_only = takeFirst(snowflake.share.is_secure_objects_only),
+          database = takeFirst(db.namespace),
+          account = takeFirst(deployment.environment),
+          lastSeen = max(timestamp)
+        }, by: {
+          snowflake.share.name,
+          snowflake.share.kind
+        }
+      | sort snowflake.share.kind asc, snowflake.share.name asc
+      | fields
+          `Share Name` = snowflake.share.name,
+          `Kind` = snowflake.share.kind,
+          `Owner` = owner,
+          `Secure Objects Only` = coalesce(toString(secure_only), ""),
+          `Database` = database,
+          `Account` = account,
+          `Last Seen` = lastSeen
+    visualization: table
+    visualizationSettings:
+      autoSelectVisualization: false
+      table: {}
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+
+  # ── Section 2: Inbound Share Health ──────────────────────────────────────────
+  "10":
+    type: markdown
+    content: |
+      ## Inbound Share Health
+      Availability status and data quality of inbound (received) data shares.
+    davis:
+      componentState:
+        inputData: null
+
+  "11":
+    title: UNAVAILABLE Inbound Shares
+    description: Inbound shares that are no longer accessible — access may have been revoked
+    type: data
+    query: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.context == "inbound_shares"
+      | filter in(deployment.environment, array($Accounts))
+      | filter in(snowflake.share.name, array($ShareName))
+      | filter snowflake.share.status == "UNAVAILABLE"
+      | summarize {
+          error = takeFirst(snowflake.error.message),
+          database = takeFirst(db.namespace),
+          last_seen = takeLast(timestamp)
+        }, by: {
+          snowflake.share.name,
+          deployment.environment
+        }
+      | fields
+          `Share Name` = snowflake.share.name,
+          `Account` = deployment.environment,
+          `Database` = database,
+          `Error Message` = error,
+          `Last Observed` = last_seen
+      | sort `Last Observed` desc
+    visualization: table
+    visualizationSettings:
+      autoSelectVisualization: false
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+
+  "12":
+    title: Share Availability Status
+    description: >-
+      Each cell is one inbound share, colored red if UNAVAILABLE, green otherwise.
+      The number shows how many tables are accessible in that share.
+    type: data
+    query: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.context == "inbound_shares"
+      | filter in(deployment.environment, array($Accounts))
+      | filter in(snowflake.share.name, array($ShareName))
+      | summarize count = countDistinct(db.collection.name), by: {
+          snowflake.share.name,
+          share_status = coalesce(snowflake.share.status, "AVAILABLE")
+        }
+    visualization: honeycomb
+    visualizationSettings:
+      autoSelectVisualization: false
+      honeycomb:
+        shape: square
+        dataMappings:
+          value: count
+        displayedFields:
+          - snowflake.share.name
+          - share_status
+        legend:
+          position: right
+        labels:
+          showLabels: true
+      coloring:
+        colorRules:
+          - color: "var(--dt-colors-charts-apdex-unacceptable-default, #cd3741)"
+            colorMode: single-color
+            comparator: "="
+            field: share_status
+            type: string
+            value: UNAVAILABLE
+          - colorMode: color-palette
+            comparator: ">"
+            field: count
+            type: long
+            value: 0
+            colorPalette: pear
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+
+  "13":
+    title: Shared Table Row Counts & Size
+    description: Data volume per shared table — helps detect truncated or empty shares
+    type: data
+    query: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.context == "inbound_shares"
+      | filter in(deployment.environment, array($Accounts))
+      | filter in(snowflake.share.name, array($ShareName))
+      | filter isNotNull(snowflake.data.rows)
+      | summarize {
+          rows = max(toLong(snowflake.data.rows)),
+          size_bytes = max(toLong(snowflake.data.size))
+        }, by: {
+          snowflake.share.name,
+          db.collection.name
+        }
+      | sort rows desc
+      | fields
+          `Share Name` = snowflake.share.name,
+          `Table` = db.collection.name,
+          `Row Count` = rows,
+          `Size (bytes)` = size_bytes
+    visualization: table
+    visualizationSettings:
+      autoSelectVisualization: false
+      unitsOverrides:
+        - identifier: "Size (bytes)"
+          unitCategory: data
+          baseUnit: byte
+          displayUnit: null
+          decimals: 2
+          suffix: ""
+          delimiter: false
+          added: 1
+      table: {}
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+
+  "14":
+    title: Inbound Shares No Longer Observed
+    description: |
+      Inbound shares seen in the last 7 days that have not appeared in any agent run in the past 2 hours.
+      These shares may have been revoked by the publisher or the agent may be offline for the account.
+    type: data
+    query: |
+      fetch logs, from: now()-7d
+      | filter db.system == "snowflake"
+      | filter dsoa.run.context == "inbound_shares"
+      | filter in(deployment.environment, array($Accounts))
+      | filter in(snowflake.share.name, array($ShareName))
+      | summarize
+          firstSeen    = min(timestamp),
+          lastSeen     = max(timestamp),
+          seenRecently = countIf(timestamp >= now()-2h) > 0,
+          by: {deployment.environment, snowflake.share.name, db.namespace}
+      | filter seenRecently == false
+      | fields
+          `Account`    = deployment.environment,
+          `Share`      = snowflake.share.name,
+          `Database`   = db.namespace,
+          `First Seen` = firstSeen,
+          `Last Seen`  = lastSeen
+      | sort `Last Seen` desc
+    visualization: table
+    visualizationSettings:
+      autoSelectVisualization: false
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+
+  # ── Section 3: Outbound Share Security ───────────────────────────────────────
+  "20":
+    type: markdown
+    content: |
+      ## Outbound Share Security
+      Security posture of outbound (published) data shares — privilege grants and compliance review.
+    davis:
+      componentState:
+        inputData: null
+
+  "21":
+    title: Secure-Objects-Only Compliance
+    description: Outbound shares should share only secure views/functions to prevent data leakage
+    type: data
+    query: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.context == "outbound_shares"
+      | filter in(deployment.environment, array($Accounts))
+      | filter in(snowflake.share.name, array($ShareName))
+      | filter snowflake.share.kind == "OUTBOUND"
+      | summarize count = countDistinct(snowflake.share.name), by: {
+          snowflake.share.is_secure_objects_only
+        }
+      | fieldsAdd compliance = if(snowflake.share.is_secure_objects_only == true, "Compliant (Secure Only)", else: "Non-Compliant (Insecure Objects)")
+      | fields compliance, count
+    visualization: pieChart
+    visualizationSettings:
+      autoSelectVisualization: false
+      chartSettings:
+        circleChartSettings:
+          groupingThresholdType: relative
+          valueType: relative
+        legend:
+          position: right
+      coloring:
+        colorRules:
+          - colorMode: single-color
+            comparator: "= *value*"
+            field: compliance
+            type: string
+            value: "Non-Compliant (Insecure Objects)"
+            color: "var(--dt-colors-charts-apdex-unacceptable-default, #cd3741)"
+          - colorMode: single-color
+            comparator: "= *value*"
+            field: compliance
+            type: string
+            value: "Compliant (Secure Only)"
+            color: "var(--dt-colors-charts-apdex-good-default, #1c520a)"
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+
+  "22":
+    title: Grant Details
+    description: All privilege grants associated with outbound shares
+    type: data
+    query: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.context == "outbound_shares"
+      | filter in(deployment.environment, array($Accounts))
+      | filter in(snowflake.share.name, array($ShareName))
+      | filter isNotNull(snowflake.grant.privilege)
+      | summarize {
+          granted_on = takeFirst(snowflake.grant.on),
+          granted_by = takeFirst(snowflake.grant.by),
+          database = takeFirst(db.namespace)
+        }, by: {
+          snowflake.share.name,
+          snowflake.grant.grantee,
+          snowflake.grant.privilege,
+          snowflake.grant.name
+        }
+      | fields
+          `Share Name` = snowflake.share.name,
+          `Grantee` = snowflake.grant.grantee,
+          `Privilege` = snowflake.grant.privilege,
+          `Granted On` = granted_on,
+          `Grant Name` = snowflake.grant.name,
+          `Granted By` = granted_by,
+          `Database` = database
+      | sort `Share Name` asc, `Privilege` asc
+    visualization: table
+    visualizationSettings:
+      autoSelectVisualization: false
+      table: {}
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+
+  "23":
+    title: Outbound Share Grantees
+    description: Number of grants per grantee account — identify over-provisioned external sharing
+    type: data
+    query: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.context == "outbound_shares"
+      | filter in(deployment.environment, array($Accounts))
+      | filter in(snowflake.share.name, array($ShareName))
+      | filter snowflake.share.kind == "OUTBOUND"
+      | filter isNotNull(snowflake.grant.grantee)
+      | summarize grants = count(), by: {
+          snowflake.grant.grantee
+        }
+      | sort grants desc
+      | limit 20
+    visualization: categoricalBarChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        legend:
+          hidden: true
+        categoryOverrides: {}
+        categoricalBarChartSettings:
+          categoryAxisLabel: Grantee
+          categoryAxis: snowflake.grant.grantee
+          valueAxis: grants
+          valueAxisLabel: Grants
+      coloring:
+        colorRules:
+          - field: DT.name
+            comparator: "= *value*"
+            value: ""
+            type: string
+            colorMode: color-palette
+            colorPalette: categorical
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+
+layouts:
+  # Section 1: Share Inventory (y=0..12)
+  "0":
+    x: 0
+    "y": 0
+    w: 24
+    h: 2
+  "1":
+    x: 0
+    "y": 2
+    w: 6
+    h: 4
+  "2":
+    x: 6
+    "y": 2
+    w: 6
+    h: 4
+  "3":
+    x: 0
+    "y": 6
+    w: 24
+    h: 6
+
+  # Section 2: Inbound Share Health (y=12..30)
+  "10":
+    x: 0
+    "y": 12
+    w: 24
+    h: 2
+  "11":
+    x: 0
+    "y": 14
+    w: 12
+    h: 6
+  "12":
+    x: 12
+    "y": 14
+    w: 12
+    h: 6
+  "13":
+    x: 0
+    "y": 20
+    w: 14
+    h: 6
+  "14":
+    x: 14
+    "y": 20
+    w: 10
+    h: 6
+
+  # Section 3: Outbound Share Security (y=26..44)
+  "20":
+    x: 0
+    "y": 26
+    w: 24
+    h: 2
+  "21":
+    x: 0
+    "y": 28
+    w: 8
+    h: 7
+  "22":
+    x: 8
+    "y": 28
+    w: 16
+    h: 7
+  "23":
+    x: 0
+    "y": 35
+    w: 24
+    h: 6
+
+settings:
+  defaultTimeframe:
+    value:
+      from: now()-7d
+      to: now()
+    enabled: true
+  autoRefresh:
+    enabled: true
+    interval: 300
+
+importedWithCode: false
+annotations: []

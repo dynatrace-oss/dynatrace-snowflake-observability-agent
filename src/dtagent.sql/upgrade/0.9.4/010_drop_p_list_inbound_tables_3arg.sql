@@ -1,0 +1,34 @@
+--
+--
+-- Copyright (c) 2026 Dynatrace Open Source
+--
+-- Permission is hereby granted, free of charge, to any person obtaining a copy
+-- of this software and associated documentation files (the "Software"), to deal
+-- in the Software without restriction, including without limitation the rights
+-- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+-- copies of the Software, and to permit persons to whom the Software is
+-- furnished to do so, subject to the following conditions:
+--
+-- The above copyright notice and this permission notice shall be included in all
+-- copies or substantial portions of the Software.
+--
+-- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+-- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+-- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+-- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+-- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+-- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+-- SOFTWARE.
+--
+--
+-- v0.9.4 Upgrade
+-- Fix: Drop old 3-arg P_LIST_INBOUND_TABLES overload that conflicts with the new 2-arg signature.
+-- The signature was changed from (VARCHAR, VARCHAR, BOOLEAN) to (VARCHAR, VARCHAR) to eliminate
+-- a broken recursive EXECUTE IMMEDIATE retry pattern. The old overload must be dropped before
+-- deploying the new procedure to avoid "ambiguous overloading" errors.
+--
+use role DTAGENT_OWNER;
+
+--%PLUGIN:shares:
+drop procedure if exists DTAGENT_DB.APP.P_LIST_INBOUND_TABLES(VARCHAR, VARCHAR, BOOLEAN);
+--%:PLUGIN:shares

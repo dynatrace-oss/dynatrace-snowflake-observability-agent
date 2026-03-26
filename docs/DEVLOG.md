@@ -98,6 +98,35 @@ This file documents detailed technical changes, internal refactorings, and devel
 - **Fix**: Corrected SQL logic in `shares.sql/` view definition
 - **Impact**: Accurate reporting of deleted shared database status
 
+#### Shares & Governance Dashboard — Tile 14 Redesign (BDX-1817)
+
+- **Issue**: Tile 14 ("Shares with Deleted Database") was filtering on `snowflake.share.has_db_deleted == true`,
+  which relied on `P_GET_SHARES` checking `SNOWFLAKE.ACCOUNT_USAGE.DATABASES` for each inbound share's mounted
+  database. This condition could almost never fire in practice:
+  1. Snowflake prevents dropping a database that still backs an active share — the publisher must revoke the
+     share first, which removes it from `SHOW SHARES` on the consumer immediately.
+  2. Once the share disappears from `SHOW SHARES`, `P_GET_SHARES` no longer iterates over it, so `HAS_DB_DELETED`
+     is never written.
+  3. Even if the consumer-side DB were somehow deleted independently, `ACCOUNT_USAGE.DATABASES` has up to 3 hours
+     of latency before reflecting the deletion.
+- **Root cause**: The detection mechanism was architecturally backwards — it tried to observe a Snowflake-side
+  state change that is structurally blocked by Snowflake's own referential integrity constraints.
+- **Fix**: Replaced the `HAS_DB_DELETED` filter approach with a **Dynatrace log-history comparison**:
+  - Query all distinct `(account, context, share_name, db.namespace)` tuples seen in the last 7 days.
+  - Filter to those NOT observed in the past 2 hours (the recency window covers ~4 agent run cycles at 30 min cadence).
+  - Result: shares that "disappeared" from `SHOW SHARES` between agent runs, regardless of why (revocation,
+    deletion, or agent going offline).
+- **Why this is better**:
+  - Naturally observable: the share simply stops appearing in DSOA logs when it is gone.
+  - No Snowflake-side API/view latency.
+  - Works for all disappearance causes simultaneously.
+  - Agent offline detection is a free bonus — entire account goes dark → all its shares appear in tile 14.
+- **Tile renamed**: "Shares with Deleted Database" → "Shares No Longer Observed".
+- **Simulation script updated**: `test/simlulations/simulate_unhealthy_shares.sql` — Scenario B now documents
+  the log-history approach; the old TMP table direct-injection shortcut has been replaced with a DQL scratch
+  query for fast-track validation.
+- **Dashboard version**: v18 → v19 (deployed to `579f882f-b7b7-4f78-a51f-64517849dbde`).
+
 #### Self-Monitoring Log Filtering
 
 - **Issue**: Database name filtering logic failed to correctly identify DTAGENT_DB references

@@ -135,11 +135,6 @@ attributes:
       - inbound_shares
     __example: false
     __description: Indicates whether this is a hybrid table.
-  snowflake.share.has_db_deleted:
-    __context_names:
-      - inbound_shares
-    __example: false
-    __description: Indicates whether DB related to that INBOUND share has been deleted.
   snowflake.share.has_details_reported:
     __context_names:
       - inbound_shares

@@ -63,6 +63,8 @@ These rules come from real debugging sessions — follow them strictly:
    - `tasks` plugin (`task_history`, `task_versions`, `serverless_tasks` contexts): **logs + metrics**
    - `dynamic_tables` plugin (`dynamic_tables`, `dynamic_table_refresh_history`, `dynamic_table_graph_history`): **logs + metrics**
    - `snowpipes` plugin: logs + events (timestamp events via `report_timestamp_events=True`)
+   - `shares` plugin (`inbound_shares`, `outbound_shares` contexts): **logs only** — use `fetch logs`; the `shares` context uses `report_timestamp_events=True` so those summary events go to `fetch events`, but per-share/per-grant detail rows are logs
+   - Default assumption for any new plugin context: **logs only**, unless `instruments-def.yml` or `_log_entries()` call explicitly shows `report_timestamp_events=True` or `report_all_as_events=True`
 
 2. **No `fetch metrics` for DSOA data.** DSOA does not use the standard
    Dynatrace metric ingestion pipeline. Use `timeseries` with a metric key
@@ -190,6 +192,100 @@ These rules come from real debugging sessions — follow them strictly:
     - Any `lineChart` / `barChart` showing `snowflake.data.size` or its aliases
     - Any `table` tile with a column derived from a byte metric
 
+12. **`davis.componentState` must NOT appear on data tiles — only on markdown tiles.**
+    The `davis` block shape differs by tile type:
+
+    ```yaml
+    # ✅ CORRECT — markdown tile
+    type: markdown
+    davis:
+      componentState:
+        inputData: null
+
+    # ✅ CORRECT — data tile
+    type: data
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+
+    # ❌ WRONG — data tile with componentState causes "unable to load" crash
+    type: data
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:        # ← DELETE THIS from all data tiles
+        inputData: null
+    ```
+
+    A dashboard with `componentState` on any data tile shows "Something went wrong /
+    We were unable to load this dashboard" — even if the JSON structure and queries
+    are otherwise valid. Always verify after writing tiles: data tiles have exactly
+    `enabled` + `davisVisualization`; markdown tiles have exactly `componentState`.
+
+13. **`honeycomb` `dataMappings` is an object, not an array. Colouring goes in `coloring.colorRules`.**
+
+    ```yaml
+    # ✅ CORRECT
+    visualizationSettings:
+      honeycomb:
+        shape: square
+        legend:
+          position: right
+        dataMappings:
+          value: state_code          # object with single key "value"
+        displayedFields:
+          - snowflake.task.name
+          - state
+        labels:
+          showLabels: true
+      coloring:
+        colorRules:
+          - color: "var(--dt-colors-charts-apdex-excellent-default, #2a7453)"
+            colorMode: single-color
+            comparator: "="
+            field: state_code
+            type: long               # "long" for numeric, "string" for text
+            value: 1
+
+    # ❌ WRONG — array dataMappings, thresholds at wrong level
+    visualizationSettings:
+      honeycomb:
+        dataMappings:
+          - valueField: state_code   # ← wrong: array with valueField/labelField/colorField
+            labelField: name
+            colorField: status
+      thresholds:                    # ← wrong level: thresholds here crashes the dashboard
+        - field: status
+          rules: [...]
+    ```
+
+14. **`categoricalBarChart` axis fields are strings, not arrays.**
+
+    ```yaml
+    # ✅ CORRECT
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        legend:
+          hidden: true
+        categoryOverrides: {}
+        categoricalBarChartSettings:
+          categoryAxis: snowflake.pipe.name    # string
+          categoryAxisLabel: Pipe
+          valueAxis: count                     # string
+          valueAxisLabel: Count
+      thresholds: []
+
+    # ❌ WRONG — arrays crash the dashboard
+    categoricalBarChartSettings:
+      categoryAxis:
+        - snowflake.pipe.name                  # ← must be a plain string
+      valueAxis:
+        - count
+    ```
+
 ## YAML Dashboard Format
 ```yaml
 # DASHBOARD: <Human-readable title>
@@ -198,6 +294,8 @@ These rules come from real debugging sessions — follow them strictly:
 # PLUGINS: <comma-separated plugin names>
 # TAGS: snowflake, dsoa, <domain>
 
+id: <uuid>                  # assigned after first deploy; omit on initial creation
+name: <Human-readable title> # REQUIRED — must match dashboard display name
 version: 15
 
 variables:
