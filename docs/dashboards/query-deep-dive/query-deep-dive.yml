@@ -27,7 +27,7 @@
 
 id: 9dbac33a-25ba-4192-b748-c8b6fe561c3b
 
-version: 23
+version: 24
 
 variables:
   - key: Accounts
@@ -306,7 +306,7 @@ tiles:
         | makeTimeseries avg_ratio = avg(scan_ratio), by: { db.collection.name }
         | fieldsAdd sum_avg_ratio = arraySum(avg_ratio)
         | sort sum_avg_ratio desc
-        | limit $TopN
+        | limit toLong($TopN)
         | fieldsRemove sum_avg_ratio
     visualization: lineChart
     visualizationSettings:
@@ -350,7 +350,7 @@ tiles:
             by: { db.collection.name }
         | fieldsAdd sum_spill = arraySum(local_spill) + 100*arraySum(remote_spill)
         | sort sum_spill desc
-        | limit $TopN
+        | limit toLong($TopN)
         | fieldsRemove sum_spill
     visualization: lineChart
     visualizationSettings:
@@ -410,7 +410,7 @@ tiles:
         | makeTimeseries cache_pct = avg(toDouble(snowflake.data.scanned_from_cache) * 100), by: { db.collection.name }
         | fieldsAdd sum_cache_pct = arraySum(cache_pct)
         | sort sum_cache_pct desc
-        | limit $TopN
+        | limit toLong($TopN)
         | fieldsRemove sum_cache_pct
     visualization: lineChart
     visualizationSettings:
