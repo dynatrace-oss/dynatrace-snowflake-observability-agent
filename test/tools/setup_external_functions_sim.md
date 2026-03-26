@@ -167,13 +167,62 @@ arn:aws:lambda:us-east-1:123456789012:function:dsoa-ef-echo
 
 ## Part 3 — AWS: Create the IAM role for Snowflake
 
-Snowflake needs an IAM role to invoke the API Gateway. This is done via a **resource-based
-policy** on API Gateway (the simpler approach — no cross-account role needed for HTTP APIs).
+Snowflake authenticates to API Gateway using SigV4 — it assumes an IAM role you create and
+grant it. This is a two-step bootstrap: create the role first with a placeholder trust policy,
+then after the Snowflake API integration is created you update the trust policy with the real
+Snowflake principal and external ID.
 
-### 3.1 Verify API Gateway invokes Lambda
+### 3.1 Create the IAM role (placeholder trust policy)
 
-By default, API Gateway has permission to invoke the Lambda you attached. Confirm by testing the
-API directly:
+1. Go to [https://console.aws.amazon.com/iam](https://console.aws.amazon.com/iam).
+2. Click **Roles** → **Create role**.
+3. Choose **Custom trust policy** and paste the following placeholder (you will replace it in Step 4.3):
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": { "AWS": "arn:aws:iam::000000000000:root" },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+```
+
+4. Click **Next**. On the **Add permissions** page, click **Next** (no permissions needed —
+   Snowflake only needs `sts:AssumeRole`, not resource access).
+5. Name the role `dsoa-ef-snowflake-role`. Click **Create role**.
+6. Open the new role and copy its **ARN**, e.g.:
+
+```
+arn:aws:iam::123456789012:role/dsoa-ef-snowflake-role
+```
+
+### 3.2 Grant the role permission to invoke API Gateway
+
+The role needs permission to execute the API Gateway stage. In the role's **Permissions** tab,
+click **Add permissions** → **Create inline policy** → JSON tab, and paste:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "execute-api:Invoke",
+      "Resource": "arn:aws:execute-api:us-east-1:*:*/*"
+    }
+  ]
+}
+```
+
+Click **Next** → name it `dsoa-ef-api-invoke` → **Create policy**.
+
+### 3.3 Verify API Gateway invokes Lambda
+
+Before wiring up Snowflake, confirm the Lambda side works end-to-end:
 
 ```bash
 curl -s -X POST \
@@ -188,65 +237,33 @@ Expected response:
 {"data": [[0, "test-row"]]}
 ```
 
-If this works, the AWS side is complete. HTTP API Gateway does not require a separate IAM role
-for Snowflake — authentication is handled by an API key you will create in Step 4.
-
-### 3.2 Add an API key for basic security (optional but recommended)
-
-HTTP APIs do not natively support API keys, but you can restrict access by using a Lambda
-authorizer or by adding a simple shared-secret header check. For a test environment, leaving the
-endpoint open (protected only by obscurity of the URL) is acceptable.
-
-If you want a simple header-based check, update `lambda_function.py` to validate a secret header:
-
-```python
-SECRET_HEADER = "X-DSOA-Secret"
-SECRET_VALUE  = "change-me-to-a-random-string"  # set the same value in the SF external function
-
-
-def lambda_handler(event, context):
-    headers = event.get("headers") or {}
-    if headers.get(SECRET_HEADER.lower()) != SECRET_VALUE:
-        return {"statusCode": 403, "body": "Forbidden"}
-
-    body = event.get("body")
-    if body:
-        payload = json.loads(body)
-    else:
-        payload = event
-
-    rows = payload.get("data", [])
-    response_rows = [[row[0], row[1]] for row in rows]
-
-    return {
-        "statusCode": 200,
-        "headers": {"Content-Type": "application/json"},
-        "body": json.dumps({"data": response_rows}),
-    }
-```
-
-Click **Deploy** again after updating.
+> **Security note:** Snowflake external functions do not support sending custom request headers
+> from the `CREATE EXTERNAL FUNCTION` statement. Access control for this test endpoint is
+> provided entirely by IAM (SigV4 signing via the assumed role). The endpoint cannot be invoked
+> without valid AWS credentials for the role. No application-level secret headers are needed or
+> possible.
 
 ---
 
 ## Part 4 — Snowflake: Create the API integration and external function
 
-Run the following SQL in Snowsight or via `snow sql`. Replace `<INVOKE_URL>` with the value
-from Part 2 Step 2.3.
+This is a **two-pass** process. You create the integration first, then read the Snowflake-generated
+IAM principal and external ID from it, update the AWS trust policy, and only then create the
+external function.
 
 ### 4.1 Create the API integration (requires ACCOUNTADMIN)
+
+Replace `<ROLE_ARN>` with the ARN from Step 3.1 and `<INVOKE_URL>` with the value from Step 2.3.
 
 ```sql
 USE ROLE ACCOUNTADMIN;
 
 CREATE OR REPLACE API INTEGRATION dsoa_test_api_integration
-    API_PROVIDER       = aws_api_gateway
-    API_AWS_ROLE_ARN   = 'arn:aws:iam::000000000000:role/dummy'
-    -- HTTP API Gateway does not use role-based auth; ARN is required but unused.
-    -- Use any valid-format ARN — the actual auth is URL-based for HTTP APIs.
+    API_PROVIDER         = aws_api_gateway
+    API_AWS_ROLE_ARN     = '<ROLE_ARN>'
     API_ALLOWED_PREFIXES = ('https://<INVOKE_URL>/')
-    ENABLED            = TRUE
-    COMMENT            = 'DSOA test — echo external function';
+    ENABLED              = TRUE
+    COMMENT              = 'DSOA test — echo external function';
 
 -- Grant USAGE on the integration to the role that will create/use the external function.
 -- Without this, CREATE EXTERNAL FUNCTION will fail with "Insufficient privileges to operate
@@ -254,13 +271,55 @@ CREATE OR REPLACE API INTEGRATION dsoa_test_api_integration
 GRANT USAGE ON INTEGRATION dsoa_test_api_integration TO ROLE DTAGENT_QA_OWNER;
 ```
 
-> **Note on `API_AWS_ROLE_ARN`:** For HTTP APIs (as opposed to REST APIs), Snowflake does not
-> actually use SigV4 signing — the ARN field is syntactically required but functionally ignored.
-> Use any dummy ARN in the format `arn:aws:iam::<12-digit-account-id>:role/<name>`.
-> If you want proper SigV4 auth (REST API path), see the
-> [Snowflake external functions security docs](https://docs.snowflake.com/en/sql-reference/external-functions-security).
+### 4.2 Read the Snowflake IAM principal and external ID
 
-### 4.2 Create the external function
+Snowflake generates a dedicated IAM user and external ID for this integration. You must
+configure the AWS trust policy to allow exactly this principal.
+
+```sql
+DESC INTEGRATION dsoa_test_api_integration;
+```
+
+Look for these two rows in the result:
+
+| property                  | value                                                          |
+|---------------------------|----------------------------------------------------------------|
+| `API_AWS_IAM_USER_ARN`    | `arn:aws:iam::<snowflake-account-id>:user/xxxx`               |
+| `API_AWS_EXTERNAL_ID`     | `<some-string>_SFCRole=...`                                    |
+
+Copy both values — you need them in the next step.
+
+### 4.3 Update the IAM role trust policy
+
+Go back to IAM → Roles → `dsoa-ef-snowflake-role` → **Trust relationships** tab →
+**Edit trust policy**. Replace the entire policy with:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "<API_AWS_IAM_USER_ARN>"
+      },
+      "Action": "sts:AssumeRole",
+      "Condition": {
+        "StringEquals": {
+          "sts:ExternalId": "<API_AWS_EXTERNAL_ID>"
+        }
+      }
+    }
+  ]
+}
+```
+
+Replace `<API_AWS_IAM_USER_ARN>` and `<API_AWS_EXTERNAL_ID>` with the exact values from Step 4.2.
+Click **Update policy**.
+
+### 4.4 Create the external function
+
+Replace `<INVOKE_URL>` with the value from Step 2.3.
 
 ```sql
 USE ROLE DTAGENT_QA_OWNER;
@@ -276,7 +335,7 @@ CREATE OR REPLACE EXTERNAL FUNCTION ef_echo(val VARCHAR)
 GRANT USAGE ON FUNCTION ef_echo(VARCHAR) TO ROLE DTAGENT_QA_VIEWER;
 ```
 
-### 4.3 Smoke test
+### 4.5 Smoke test
 
 ```sql
 USE ROLE DTAGENT_QA_OWNER;
@@ -289,11 +348,11 @@ SELECT ef_echo('hello-from-snowflake');
 
 Expected result: a single row with value `"hello-from-snowflake"`.
 
-If you see an error like `Error calling remote service`, double-check:
+If you see `Error assuming AWS_ROLE`, the trust policy has not been updated yet or the
+`API_AWS_IAM_USER_ARN` / `API_AWS_EXTERNAL_ID` values were not copied exactly — re-check Step 4.3.
 
-- The `API_ALLOWED_PREFIXES` URL matches your invoke URL exactly (no trailing slash mismatch).
-- The Lambda test from Step 1.4 still passes.
-- The `curl` test from Step 3.1 still returns the correct JSON.
+If you see `Error calling remote service`, the Lambda or API Gateway is not reachable —
+re-run the `curl` test from Step 3.3.
 
 ---
 
@@ -454,5 +513,5 @@ aws lambda delete-function --function-name dsoa-ef-echo --region us-east-1
 | `Error calling remote service` on `SELECT ef_echo(...)` | API Gateway URL wrong or Lambda not deployed  | Re-run `curl` test from Step 3.1; check `API_ALLOWED_PREFIXES`                                                           |
 | `Integration not found`                                 | API integration not created with ACCOUNTADMIN | Run Step 4.1 as ACCOUNTADMIN                                                                                             |
 | Tiles 15–16 still empty after 1 hour                    | ACCOUNT_USAGE lag or DTAGENT not run          | Check `INFORMATION_SCHEMA.QUERY_HISTORY_BY_USER` for `external_function_total_invocations > 0`; trigger DTAGENT manually |
-| Lambda returns 403                                      | Secret header mismatch                        | Remove the header check from `lambda_function.py` for testing                                                            |
+| `Error assuming AWS_ROLE` on `SELECT ef_echo(...)`      | Trust policy not updated with Snowflake principal | Re-check Step 4.3: `API_AWS_IAM_USER_ARN` and `API_AWS_EXTERNAL_ID` must be copied exactly from `DESC INTEGRATION`  |
 | `external_bytes_sent` is very small                     | Only 20 rows sent per run                     | Increase `LIMIT 20` in `SP_WORKLOAD_ROOT` Query 5 to 200                                                                 |
