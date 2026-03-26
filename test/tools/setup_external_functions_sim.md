@@ -398,7 +398,6 @@ $$
 DECLARE
     run_ts  VARCHAR DEFAULT TO_VARCHAR(CURRENT_TIMESTAMP(), 'YYYY-MM-DD HH24:MI:SS');
     v_dummy NUMBER;
-    v_ef_result VARIANT;
 BEGIN
 
     -- ── Query 1: Full-table GROUP BY + JOIN (bytes_scanned, partition_scan_ratio)
@@ -439,9 +438,12 @@ BEGIN
     -- ── Query 5: External function call (tiles 15-16)
     --   Sends 20 order_id values to the AWS Lambda echo endpoint.
     --   Generates external_function_total_invocations = 1, non-zero bytes_sent/received.
-    SELECT ef_echo(order_id::VARCHAR) INTO :v_ef_result
-    FROM DSOA_TEST_DB.QUERY_HISTORY_TEST.FACT_ORDERS
-    LIMIT 20;
+    --   Wrapped in COUNT(*) so INTO :v_dummy receives exactly 1 row.
+    SELECT COUNT(*) INTO :v_dummy FROM (
+        SELECT ef_echo(order_id::VARCHAR)
+        FROM DSOA_TEST_DB.QUERY_HISTORY_TEST.FACT_ORDERS
+        LIMIT 20
+    );
 
     -- ── Child proc call → parent_query_id relationship (tile 12)
     CALL DSOA_TEST_DB.QUERY_HISTORY_TEST.SP_WORKLOAD_CHILD(:run_ts);
