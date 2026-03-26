@@ -1,0 +1,1100 @@
+#
+# Copyright (c) 2025 Dynatrace Open Source
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the Software), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+#
+# DASHBOARD: Snowflake Query Deep Dive
+# DESCRIPTION: Advanced query analytics covering costly repeated queries, table performance degradation, query acceleration, multi-level analysis, external functions, query origins, and cost attribution.
+# OWNER: DSOA Team
+# PLUGINS: query_history
+# TAGS: snowflake, dsoa, query, performance, cost, security
+
+id: 9dbac33a-25ba-4192-b748-c8b6fe561c3b
+
+version: 23
+
+variables:
+  - key: Accounts
+    type: query
+    visible: true
+    editable: true
+    version: 2
+    multiple: true
+    input: |
+      fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "query_history"
+        | summarize collectDistinct(deployment.environment)
+
+  - key: Warehouse
+    type: query
+    visible: true
+    editable: true
+    version: 2
+    multiple: true
+    input: |
+      fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "query_history"
+        | filter isNotNull(snowflake.warehouse.name)
+        | summarize collectDistinct(snowflake.warehouse.name)
+
+  - key: Database
+    type: query
+    visible: true
+    editable: true
+    version: 2
+    multiple: true
+    input: |
+      fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "query_history"
+        | filter isNotNull(db.namespace)
+        | summarize collectDistinct(db.namespace)
+
+  - key: User
+    type: query
+    visible: true
+    editable: true
+    version: 2
+    multiple: true
+    input: |
+      fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "query_history"
+        | filter isNotNull(db.user)
+        | summarize collectDistinct(db.user)
+
+  - key: Operation
+    type: query
+    visible: true
+    editable: true
+    version: 2
+    multiple: true
+    input: |
+      fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "query_history"
+        | filter isNotNull(db.operation.name)
+        | summarize collectDistinct(db.operation.name)
+
+  - key: TopN
+    type: static
+    visible: true
+    editable: true
+    version: 2
+    multiple: false
+    defaultValue: "10"
+    input: "5\n10\n25\n50"
+
+  - key: TenantURL
+    type: static
+    visible: true
+    editable: true
+    version: 2
+    multiple: false
+    defaultValue: "https://aym57094.sprint.apps.dynatracelabs.com"
+    input: "https://aym57094.sprint.apps.dynatracelabs.com"
+
+tiles:
+  # ── Section 1: Costly Repeated Queries ─────────────────────────────────────
+  "0":
+    title: ""
+    type: markdown
+    content: |
+      ## Costly Repeated Queries
+      Identify query patterns (grouped by query hash) that accumulate the most bytes scanned, spill, or elapsed time across executions.
+      Use these tables to target re-write or caching opportunities.
+
+  "1":
+    title: Top 20 queries by total bytes scanned
+    type: data
+    query: |
+      fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "query_history"
+        | filter isNotNull(snowflake.query.hash)
+        | filter in(deployment.environment, array($Accounts))
+        | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
+        | filter (isNull(db.namespace)             or in(db.namespace, array($Database)))
+        | filter (isNull(db.user)                  or in(db.user, array($User)))
+        | filter (isNull(db.operation.name)        or in(db.operation.name, array($Operation)))
+        | summarize
+            total_scanned_bytes = sum(toDouble(snowflake.data.scanned)),
+            exec_count          = count(),
+            avg_elapsed_ms      = avg(toDouble(snowflake.time.total_elapsed)),
+            query_text          = takeFirst(db.query.text),
+            by: {
+              query_hash = snowflake.query.hash,
+              database   = db.namespace,
+              warehouse  = snowflake.warehouse.name,
+              operation  = db.operation.name }
+        | sort total_scanned_bytes desc
+        | limit 20
+    visualization: table
+    visualizationSettings:
+      thresholds: []
+      table:
+        rowDensity: condensed
+        enableSparklines: false
+        hiddenColumns:
+          - query_text
+        lineWrapIds: []
+        columnWidths: {}
+        columnOrder:
+          - "[\"total_scanned_bytes\"]"
+          - "[\"exec_count\"]"
+          - "[\"avg_elapsed_ms\"]"
+          - "[\"database\"]"
+          - "[\"warehouse\"]"
+          - "[\"operation\"]"
+          - "[\"query_hash\"]"
+          - "[\"query_text\"]"
+    querySettings:
+      maxResultRecords: 100
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 50
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+
+  "2":
+    title: Top 20 queries by spill volume
+    type: data
+    query: |
+      fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "query_history"
+        | filter isNotNull(snowflake.query.hash)
+        | filter in(deployment.environment, array($Accounts))
+        | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
+        | filter (isNull(db.namespace)             or in(db.namespace, array($Database)))
+        | filter (isNull(db.user)                  or in(db.user, array($User)))
+        | filter (isNull(db.operation.name)        or in(db.operation.name, array($Operation)))
+        | fieldsAdd
+            local_spill  = toDouble(snowflake.data.spilled.local),
+            remote_spill = toDouble(snowflake.data.spilled.remote)
+        | summarize
+            total_spill_bytes  = sum(local_spill + remote_spill),
+            local_spill_bytes  = sum(local_spill),
+            remote_spill_bytes = sum(remote_spill),
+            exec_count         = count(),
+            query_text         = takeFirst(db.query.text),
+            by: {
+              query_hash = snowflake.query.hash,
+              database   = db.namespace,
+              warehouse  = snowflake.warehouse.name }
+        | sort total_spill_bytes desc
+        | limit 20
+    visualization: table
+    visualizationSettings:
+      thresholds: []
+      table:
+        rowDensity: condensed
+        enableSparklines: false
+        hiddenColumns:
+          - query_text
+        lineWrapIds: []
+        columnWidths: {}
+        columnOrder:
+          - "[\"total_spill_bytes\"]"
+          - "[\"local_spill_bytes\"]"
+          - "[\"remote_spill_bytes\"]"
+          - "[\"exec_count\"]"
+          - "[\"database\"]"
+          - "[\"warehouse\"]"
+          - "[\"query_hash\"]"
+          - "[\"query_text\"]"
+    querySettings:
+      maxResultRecords: 100
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 50
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+
+  "3":
+    title: Bytes scanned over time by database
+    type: data
+    query: |
+      fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "query_history"
+        | filter isNotNull(snowflake.data.scanned)
+        | filter in(deployment.environment, array($Accounts))
+        | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
+        | filter (isNull(db.namespace)             or in(db.namespace, array($Database)))
+        | filter (isNull(db.user)                  or in(db.user, array($User)))
+        | filter (isNull(db.operation.name)        or in(db.operation.name, array($Operation)))
+        | fieldsAdd scanned = toDouble(snowflake.data.scanned)
+        | makeTimeseries scanned = sum(scanned), by: { db.namespace }
+    visualizationSettings:
+      autoSelectVisualization: false
+      chartSettings:
+        truncationMode: middle
+        xAxisScaling: analyzedTimeframe
+        fieldMapping:
+          leftAxisValues:
+            - scanned
+          timestamp: timeframe
+        pointsDisplay: never
+        gapPolicy: connect
+      unitsOverrides:
+        - identifier: scanned
+          unitCategory: data
+          baseUnit: byte
+          displayUnit: null
+          decimals: 2
+          suffix: ""
+          delimiter: false
+          added: 1700000000001
+      thresholds: []
+      dataMapping:
+        displayedFields:
+          - db.namespace
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 50
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+
+  # ── Section 2: Table Performance Degradation ───────────────────────────────
+  "4":
+    title: ""
+    type: markdown
+    content: |
+      ## Table Performance Degradation
+      Monitor partition scan efficiency, spill volumes, and cache hit rates per table to identify candidates for re-clustering or optimization.
+
+  "5":
+    title: Partition scan ratio by table (avg)
+    type: data
+    query: |
+      fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "query_history"
+        | filter isNotNull(db.collection.name)
+        | filter isNotNull(snowflake.partitions.total)
+        | filter toDouble(snowflake.partitions.total) > 0
+        | filter in(deployment.environment, array($Accounts))
+        | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
+        | filter (isNull(db.namespace)             or in(db.namespace, array($Database)))
+        | filter (isNull(db.user)                  or in(db.user, array($User)))
+        | filter (isNull(db.operation.name)        or in(db.operation.name, array($Operation)))
+        | fieldsAdd scan_ratio = toDouble(snowflake.partitions.scanned) / toDouble(snowflake.partitions.total)
+        | makeTimeseries avg_ratio = avg(scan_ratio), by: { db.collection.name }
+        | fieldsAdd sum_avg_ratio = arraySum(avg_ratio)
+        | sort sum_avg_ratio desc
+        | limit $TopN
+        | fieldsRemove sum_avg_ratio
+    visualization: lineChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        xAxisScaling: analyzedTimeframe
+        gapPolicy: connect
+        fieldMapping:
+          leftAxisValues:
+            - avg_ratio
+          timestamp: timeframe
+      thresholds: []
+      dataMapping:
+        displayedFields:
+          - db.collection.name
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 50
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+
+  "6":
+    title: Spill volumes by table
+    type: data
+    query: |
+      fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "query_history"
+        | filter isNotNull(db.collection.name)
+        | filter in(deployment.environment, array($Accounts))
+        | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
+        | filter (isNull(db.namespace)             or in(db.namespace, array($Database)))
+        | filter (isNull(db.user)                  or in(db.user, array($User)))
+        | filter (isNull(db.operation.name)        or in(db.operation.name, array($Operation)))
+        | makeTimeseries
+            local_spill  = sum(toDouble(snowflake.data.spilled.local)),
+            remote_spill = sum(toDouble(snowflake.data.spilled.remote)),
+            by: { db.collection.name }
+        | fieldsAdd sum_spill = arraySum(local_spill) + 100*arraySum(remote_spill)
+        | sort sum_spill desc
+        | limit $TopN
+        | fieldsRemove sum_spill
+    visualization: lineChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        xAxisScaling: analyzedTimeframe
+        gapPolicy: connect
+        fieldMapping:
+          leftAxisValues:
+            - local_spill
+            - remote_spill
+          timestamp: timeframe
+      unitsOverrides:
+        - identifier: local_spill
+          unitCategory: data
+          baseUnit: byte
+          displayUnit: null
+          decimals: 2
+          suffix: ""
+          delimiter: false
+          added: 1700000000002
+        - identifier: remote_spill
+          unitCategory: data
+          baseUnit: byte
+          displayUnit: null
+          decimals: 2
+          suffix: ""
+          delimiter: false
+          added: 1700000000003
+      thresholds: []
+      dataMapping:
+        displayedFields:
+          - db.collection.name
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 50
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+
+  "7":
+    title: Cache hit rate by table (avg %)
+    type: data
+    query: |
+      fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "query_history"
+        | filter isNotNull(db.collection.name)
+        | filter isNotNull(snowflake.data.scanned_from_cache)
+        | filter in(deployment.environment, array($Accounts))
+        | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
+        | filter (isNull(db.namespace)             or in(db.namespace, array($Database)))
+        | filter (isNull(db.user)                  or in(db.user, array($User)))
+        | filter (isNull(db.operation.name)        or in(db.operation.name, array($Operation)))
+        | makeTimeseries cache_pct = avg(toDouble(snowflake.data.scanned_from_cache) * 100), by: { db.collection.name }
+        | fieldsAdd sum_cache_pct = arraySum(cache_pct)
+        | sort sum_cache_pct desc
+        | limit $TopN
+        | fieldsRemove sum_cache_pct
+    visualization: lineChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        xAxisScaling: analyzedTimeframe
+        gapPolicy: connect
+        fieldMapping:
+          leftAxisValues:
+            - cache_pct
+          timestamp: timeframe
+      unitsOverrides:
+        - identifier: cache_pct
+          unitCategory: percentage
+          baseUnit: percent
+          displayUnit: null
+          decimals: null
+          suffix: ""
+          delimiter: false
+          added: 1774519603792
+      thresholds: []
+      dataMapping:
+        displayedFields:
+          - db.collection.name
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 50
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+
+  # ── Section 3: Query Acceleration ─────────────────────────────────────────
+  "8":
+    title: ""
+    type: markdown
+    content: |
+      ## Query Acceleration
+      Find queries eligible for Snowflake's query acceleration service and track bytes being offloaded to the service.
+
+  "9":
+    title: Acceleration-eligible queries
+    type: data
+    query: |
+      fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "query_history"
+        | filter snowflake.query.accel_est.status == "eligible"
+        | filter in(deployment.environment, array($Accounts))
+        | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
+        | filter (isNull(db.namespace)             or in(db.namespace, array($Database)))
+        | filter (isNull(db.user)                  or in(db.user, array($User)))
+        | filter (isNull(db.operation.name)        or in(db.operation.name, array($Operation)))
+        | fields
+            `Query ID`                   = snowflake.query.id,
+            User                         = db.user,
+            Warehouse                    = snowflake.warehouse.name,
+            Database                     = db.namespace,
+            Operation                    = db.operation.name,
+            Status                       = snowflake.query.accel_est.status,
+            `Upper Limit Scale Factor`   = snowflake.query.accel_est.upper_limit_scale_factor,
+            `Est. Query Times`           = snowflake.query.accel_est.estimated_query_times,
+            `Elapsed Time (ms)`          = toDouble(snowflake.time.total_elapsed),
+            `Query Text`                 = db.query.text
+        | sort `Elapsed Time (ms)` desc
+    visualization: table
+    visualizationSettings:
+      thresholds: []
+      table:
+        rowDensity: condensed
+        enableSparklines: false
+        hiddenColumns: []
+        lineWrapIds: []
+        columnWidths: {}
+    querySettings:
+      maxResultRecords: 100
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 50
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+
+  "10":
+    title: Acceleration bytes scanned over time by warehouse
+    type: data
+    query: |
+      fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "query_history"
+        | filter toDouble(snowflake.acceleration.data.scanned) > 0
+        | filter in(deployment.environment, array($Accounts))
+        | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
+        | filter (isNull(db.namespace)             or in(db.namespace, array($Database)))
+        | filter (isNull(db.user)                  or in(db.user, array($User)))
+        | filter (isNull(db.operation.name)        or in(db.operation.name, array($Operation)))
+        | makeTimeseries accel_bytes = sum(toDouble(snowflake.acceleration.data.scanned)), by: { snowflake.warehouse.name }
+    visualization: lineChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        xAxisScaling: analyzedTimeframe
+        gapPolicy: connect
+        fieldMapping:
+          leftAxisValues:
+            - accel_bytes
+          timestamp: timeframe
+      unitsOverrides:
+        - identifier: accel_bytes
+          unitCategory: data
+          baseUnit: byte
+          displayUnit: null
+          decimals: 2
+          suffix: ""
+          delimiter: false
+          added: 1700000000004
+      thresholds: []
+      dataMapping:
+        displayedFields:
+          - snowflake.warehouse.name
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 50
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+
+  # ── Section 4: Multi-level Query Analysis ─────────────────────────────────
+  "11":
+    title: ""
+    type: markdown
+    content: |
+      ## Multi-level Query Analysis
+      Root queries (stored procedures, scripts) that spawned child queries.
+      Each row is a root span; click the **Trace** link to open the full parent-child call tree in Distributed Tracing.
+
+  "12":
+    title: Root queries with child queries
+    type: data
+    query: |
+      fetch spans
+        | filter db.system == "snowflake"
+        | filter isNull(snowflake.query.parent_id)
+        | filter isNotNull(trace_id)
+        | filter in(deployment.environment, array($Accounts))
+        | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
+        | filter (isNull(db.namespace)             or in(db.namespace, array($Database)))
+        | filter (isNull(db.user)                  or in(db.user, array($User)))
+        | filter (isNull(db.operation.name)        or in(db.operation.name, array($Operation)))
+        | lookup [
+            fetch spans
+              | filter db.system == "snowflake"
+              | filter isNotNull(snowflake.query.parent_id)
+              | summarize child_count = count(), by: { parent_id = snowflake.query.parent_id }
+          ], sourceField: snowflake.query.id, lookupField: parent_id
+        | filter isNotNull(child_count)
+        | fields
+            `Query Text`    = db.query.text,
+            `Children`      = child_count,
+            `Elapsed (ms)`  = toDouble(snowflake.time.total_elapsed),
+            User            = db.user,
+            Warehouse       = snowflake.warehouse.name,
+            Database        = db.namespace,
+            Operation       = db.operation.name,
+            `Query ID`      = snowflake.query.id,
+            `Trace`         = concat($TenantURL, "/ui/apps/dynatrace.distributed-traces/ui/trace/", trace_id),
+            start_time
+        | sort `Elapsed (ms)` desc
+    visualization: table
+    visualizationSettings:
+      thresholds: []
+      table:
+        rowDensity: condensed
+        enableSparklines: false
+        hiddenColumns: []
+        lineWrapIds: []
+        columnWidths: {}
+    querySettings:
+      maxResultRecords: 200
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 50
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+
+  "13":
+    title: Operator-level stats (slow queries)
+    type: data
+    query: |
+      fetch spans
+        | filter db.system == "snowflake"
+        | filter isNotNull(span.events)
+        | filter in(deployment.environment, array($Accounts))
+        | filter (isNull(db.namespace) or in(db.namespace, array($Database)))
+        | filter (isNull(db.user)      or in(db.user, array($User)))
+        | fieldsAdd operator_stats = iCollectArray(
+            parse(span.events[][snowflake.query.operator.stats], """JSON:stats"""))
+        | filter isNotNull(operator_stats)
+        | fields
+            `Query ID`       = snowflake.query.id,
+            `Query Text`     = db.statement,
+            `Elapsed (ms)`   = toDouble(snowflake.time.total_elapsed),
+            User             = db.user,
+            Database         = db.namespace,
+            `Operator Stats` = operator_stats,
+            `Span Events`    = span.events,
+            start_time
+        | sort `Elapsed (ms)` desc
+    visualization: table
+    visualizationSettings:
+      thresholds: []
+      table:
+        rowDensity: condensed
+        enableSparklines: false
+        hiddenColumns: []
+        lineWrapIds: []
+        columnWidths: {}
+    querySettings:
+      maxResultRecords: 200
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 50
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+
+  # ── Section 5: External Functions ──────────────────────────────────────────
+  "14":
+    title: ""
+    type: markdown
+    content: |
+      ## External Functions
+      Monitor invocation counts and data volumes for queries that call external (remote) functions.
+
+  "15":
+    title: External function invocations over time by warehouse
+    type: data
+    query: |
+      fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "query_history"
+        | filter toDouble(snowflake.external_functions.invocations) > 0
+        | filter in(deployment.environment, array($Accounts))
+        | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
+        | filter (isNull(db.namespace)             or in(db.namespace, array($Database)))
+        | filter (isNull(db.user)                  or in(db.user, array($User)))
+        | filter (isNull(db.operation.name)        or in(db.operation.name, array($Operation)))
+        | makeTimeseries invocations = sum(toDouble(snowflake.external_functions.invocations)), by: { snowflake.warehouse.name }
+    visualization: lineChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        xAxisScaling: analyzedTimeframe
+        gapPolicy: connect
+        fieldMapping:
+          leftAxisValues:
+            - invocations
+          timestamp: timeframe
+      thresholds: []
+      dataMapping:
+        displayedFields:
+          - snowflake.warehouse.name
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 50
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+
+  "16":
+    title: External function data volumes by warehouse
+    type: data
+    query: |
+      fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "query_history"
+        | filter toDouble(snowflake.external_functions.invocations) > 0
+        | filter in(deployment.environment, array($Accounts))
+        | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
+        | filter (isNull(db.namespace)             or in(db.namespace, array($Database)))
+        | filter (isNull(db.user)                  or in(db.user, array($User)))
+        | filter (isNull(db.operation.name)        or in(db.operation.name, array($Operation)))
+        | summarize
+            bytes_sent     = sum(toDouble(snowflake.external_functions.data.sent)),
+            bytes_received = sum(toDouble(snowflake.external_functions.data.received)),
+            rows_sent      = sum(toDouble(snowflake.external_functions.rows.sent)),
+            rows_received  = sum(toDouble(snowflake.external_functions.rows.received)),
+            invocations    = sum(toDouble(snowflake.external_functions.invocations)),
+            by: { warehouse = snowflake.warehouse.name, database = db.namespace }
+        | sort invocations desc
+    visualization: table
+    visualizationSettings:
+      thresholds: []
+      table:
+        rowDensity: condensed
+        enableSparklines: false
+        hiddenColumns: []
+        lineWrapIds: []
+        columnWidths: {}
+        columnOrder:
+          - "[\"bytes_sent\"]"
+          - "[\"bytes_received\"]"
+          - "[\"rows_sent\"]"
+          - "[\"rows_received\"]"
+          - "[\"invocations\"]"
+          - "[\"warehouse\"]"
+          - "[\"database\"]"
+    querySettings:
+      maxResultRecords: 100
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 50
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+
+  # ── Section 6: Query Origin & Security ─────────────────────────────────────
+  "17":
+    title: ""
+    type: markdown
+    content: |
+      ## Query Origin & Security
+      Analyze who is running queries, how they authenticated, and which client applications are issuing requests.
+      Supports anomalous-access investigation and security forensics.
+
+  "18":
+    title: Queries by client application
+    type: data
+    query: |
+      fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "query_history"
+        | filter isNotNull(client.application.id)
+        | filter in(deployment.environment, array($Accounts))
+        | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
+        | filter (isNull(db.namespace)             or in(db.namespace, array($Database)))
+        | filter (isNull(db.user)                  or in(db.user, array($User)))
+        | filter (isNull(db.operation.name)        or in(db.operation.name, array($Operation)))
+        | summarize count = count(), by: { client.application.id }
+        | sort count desc
+    visualization: pieChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        legend:
+          position: bottom
+        circleChartSettings:
+          valueType: relative
+          groupingThresholdType: relative
+      thresholds: []
+    querySettings:
+      maxResultRecords: 100
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 50
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+
+  "19":
+    title: Queries by authentication type
+    type: data
+    query: |
+      fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "query_history"
+        | filter isNotNull(authentication.type)
+        | filter in(deployment.environment, array($Accounts))
+        | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
+        | filter (isNull(db.namespace)             or in(db.namespace, array($Database)))
+        | filter (isNull(db.user)                  or in(db.user, array($User)))
+        | filter (isNull(db.operation.name)        or in(db.operation.name, array($Operation)))
+        | summarize count = count(), by: { authentication.type }
+        | sort count desc
+    visualization: pieChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        legend:
+          position: bottom
+        circleChartSettings:
+          valueType: relative
+          groupingThresholdType: relative
+      thresholds: []
+    querySettings:
+      maxResultRecords: 100
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 50
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+
+  # ── Section 7: Cost Attribution & Data Transfer ────────────────────────────
+  "20":
+    title: ""
+    type: markdown
+    content: |
+      ## Cost Attribution & Data Transfer
+      Attribute cloud services credits to specific users, roles, and warehouses.
+      Track inbound and outbound cross-region data transfer volumes to monitor egress costs.
+
+  "21":
+    title: Cloud services credits by user and role (top 10)
+    type: data
+    query: |
+      fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "query_history"
+        | filter isNotNull(snowflake.credits.cloud_services)
+        | filter in(deployment.environment, array($Accounts))
+        | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
+        | filter (isNull(db.namespace)             or in(db.namespace, array($Database)))
+        | filter (isNull(db.user)                  or in(db.user, array($User)))
+        | filter (isNull(db.operation.name)        or in(db.operation.name, array($Operation)))
+        | summarize
+            credits = sum(toDouble(snowflake.credits.cloud_services)),
+            by: { db.user, snowflake.role.name }
+        | sort credits desc
+        | limit 10
+    visualization: treemap
+    visualizationSettings:
+      autoSelectVisualization: false
+    querySettings:
+      maxResultRecords: 100
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 50
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+
+  "22":
+    title: Cloud services credits by warehouse
+    type: data
+    query: |
+      fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "query_history"
+        | filter isNotNull(snowflake.credits.cloud_services)
+        | filter in(deployment.environment, array($Accounts))
+        | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
+        | filter (isNull(db.namespace)             or in(db.namespace, array($Database)))
+        | filter (isNull(db.user)                  or in(db.user, array($User)))
+        | filter (isNull(db.operation.name)        or in(db.operation.name, array($Operation)))
+        | summarize
+            credits = sum(toDouble(snowflake.credits.cloud_services)),
+            by: { snowflake.warehouse.name }
+        | sort credits desc
+    visualization: donutChart
+    visualizationSettings:
+      autoSelectVisualization: false
+      chartSettings:
+        circleChartSettings:
+          groupingThresholdType: number-of-slices
+          groupingThresholdValue: 10
+    querySettings:
+      maxResultRecords: 100
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 50
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+
+  "23":
+    title: Cross-region data transfer by region and cloud
+    type: data
+    query: |
+      fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "query_history"
+        | filter toDouble(snowflake.data.transferred.inbound) > 0
+            or toDouble(snowflake.data.transferred.outbound) > 0
+        | filter in(deployment.environment, array($Accounts))
+        | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
+        | filter (isNull(db.namespace)             or in(db.namespace, array($Database)))
+        | filter (isNull(db.user)                  or in(db.user, array($User)))
+        | filter (isNull(db.operation.name)        or in(db.operation.name, array($Operation)))
+        | summarize
+            inbound_bytes  = sum(toDouble(snowflake.data.transferred.inbound)),
+            outbound_bytes = sum(toDouble(snowflake.data.transferred.outbound)),
+            by: {
+              snowflake.query.data_transfer.outbound.region,
+              snowflake.query.data_transfer.outbound.cloud,
+              snowflake.query.data_transfer.inbound.region,
+              snowflake.query.data_transfer.inbound.cloud
+            }
+        | sort outbound_bytes desc
+    visualization: treemap
+    visualizationSettings:
+      autoSelectVisualization: false
+    querySettings:
+      maxResultRecords: 100
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 50
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+
+layouts:
+  # Section 1 header
+  "0":
+    x: 0
+    "y": 0
+    w: 24
+    h: 2
+
+  # Tile 3: Bytes scanned chart — full-width top of section 1
+  "3":
+    x: 0
+    "y": 2
+    w: 24
+    h: 4
+
+  # Tile 1: Top queries by bytes scanned — full-width table
+  "1":
+    x: 0
+    "y": 6
+    w: 24
+    h: 5
+
+  # Tile 2: Top queries by spill — full-width table
+  "2":
+    x: 0
+    "y": 11
+    w: 24
+    h: 5
+
+  # Section 2 header
+  "4":
+    x: 0
+    "y": 16
+    w: 24
+    h: 2
+
+  # Tile 5: Partition scan ratio
+  "5":
+    x: 0
+    "y": 18
+    w: 8
+    h: 5
+
+  # Tile 6: Spill volumes
+  "6":
+    x: 8
+    "y": 18
+    w: 8
+    h: 5
+
+  # Tile 7: Cache hit rate
+  "7":
+    x: 16
+    "y": 18
+    w: 8
+    h: 5
+
+  # Section 3 header
+  "8":
+    x: 0
+    "y": 23
+    w: 24
+    h: 2
+
+  # Tile 9: Acceleration-eligible queries table
+  "9":
+    x: 0
+    "y": 25
+    w: 14
+    h: 6
+
+  # Tile 10: Acceleration bytes scanned
+  "10":
+    x: 14
+    "y": 25
+    w: 10
+    h: 6
+
+  # Section 4 header
+  "11":
+    x: 0
+    "y": 31
+    w: 24
+    h: 2
+
+  # Tile 12: Parent-child breakdown
+  "12":
+    x: 0
+    "y": 33
+    w: 12
+    h: 7
+
+  # Tile 13: Operator-level stats
+  "13":
+    x: 12
+    "y": 33
+    w: 12
+    h: 7
+
+  # Section 5 header
+  "14":
+    x: 0
+    "y": 40
+    w: 24
+    h: 2
+
+  # Tile 15: External function invocations
+  "15":
+    x: 0
+    "y": 42
+    w: 14
+    h: 5
+
+  # Tile 16: External function data volumes
+  "16":
+    x: 14
+    "y": 42
+    w: 10
+    h: 5
+
+  # Section 6 header
+  "17":
+    x: 0
+    "y": 47
+    w: 24
+    h: 2
+
+  # Tile 18: Queries by client app
+  "18":
+    x: 0
+    "y": 49
+    w: 12
+    h: 6
+
+  # Tile 19: Queries by auth type
+  "19":
+    x: 12
+    "y": 49
+    w: 12
+    h: 6
+
+  # Section 7 header
+  "20":
+    x: 0
+    "y": 55
+    w: 24
+    h: 2
+
+  # Tile 21: Credits by user/role
+  "21":
+    x: 0
+    "y": 57
+    w: 8
+    h: 6
+
+  # Tile 22: Credits by warehouse
+  "22":
+    x: 8
+    "y": 57
+    w: 8
+    h: 6
+
+  # Tile 23: Cross-region data transfer
+  "23":
+    x: 16
+    "y": 57
+    w: 8
+    h: 6
+
+settings:
+  defaultTimeframe:
+    value:
+      from: now()-24h
+      to: now()
+    enabled: true
+  autoRefresh:
+    enabled: true
+    interval: 300
+
+annotations: []

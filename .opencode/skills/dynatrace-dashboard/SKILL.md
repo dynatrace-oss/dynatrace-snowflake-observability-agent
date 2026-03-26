@@ -155,15 +155,17 @@ version: 15
 variables:
   - key: Accounts
     type: query
-    input:
-      query: |
-        fetch logs
-        | filter db.system == "snowflake"
-        | filter dsoa.run.plugin == "<plugin>"
-        | fields deployment.environment
-        | dedup deployment.environment
-        | sort deployment.environment asc
-    defaultValue: "*"
+    multiple: true
+    # DO NOT set defaultValue: "*" — Dynatrace automatically adds "*" (select all)
+    # as the first option for multi-select variables. Explicitly setting it creates
+    # a duplicate and causes the literal string "*" to appear as a selected value,
+    # which is NOT translated as "all" in DQL filters.
+    # DO NOT add array("*", <var>) in the query for the same reason — DT handles it.
+    input: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "<plugin>"
+      | summarize collectDistinct(deployment.environment)
   # ... additional variables
 
 tiles:
@@ -264,63 +266,93 @@ dtctl apply -A -f /tmp/<name>-workflow.json
 
 ## Full Deployment Sequence
 
-> **CRITICAL:** The pre-flight check and Phase A are mandatory blocking gates.
-> Do NOT proceed to Phase B until live data is confirmed flowing.
-> A dashboard deployed against an empty dataset cannot be validated and is not done.
+> **CRITICAL — MANDATORY GATES:** Steps 0 and A are hard blocking gates.
+> You MUST complete them before writing a single line of YAML.
+> Skipping them produces a dashboard that cannot be validated and is not done.
+> These gates have been violated before — do not repeat the mistake.
 
 ```
-=== PRE-FLIGHT: Verify DSOA is Installed on test-qa ===
+=== GATE 0: Ask the user whether DSOA is deployed ===
 
-0.  Before ANY other step, confirm DSOA is installed in the target environment.
-    The connection profile's default role may not have visibility into DTAGENT
-    databases, so always check using the owner role explicitly:
+!! THIS IS THE VERY FIRST THING TO DO — before reading any files, before writing
+   any YAML, before doing anything else.
 
-      snow sql -c snow_agent_test-qa -q "USE ROLE DTAGENT_QA_OWNER; SHOW DATABASES LIKE 'DTAGENT%'"
+Ask the user this question (use the question tool):
+  "Is DSOA already deployed and running on the target environment (e.g. test-qa)?
+   If yes, is the <plugin> plugin already enabled?"
 
-    Expected: at least one row (e.g. DTAGENT_QA_DB).
+Possible outcomes:
+  A) "Yes, deployed and plugin enabled" → skip to GATE A step 2
+  B) "Yes, deployed but plugin not enabled" → proceed to GATE A step 4
+  C) "No, not deployed" → STOP. Tell the user:
+       "DSOA base installation must be done by a human first (privileged scopes).
+        Please run:
+          ./scripts/deploy/deploy.sh <env> --scope=all --options=skip_confirm
+        Then come back and I will continue."
+     Do NOT proceed until the user confirms deployment is done.
 
-    If the result is empty ("No data"), DSOA has never been installed there.
-    STOP immediately and tell the user:
+!! IMPORTANT: NEVER run --scope=all, init, admin, or apikey yourself.
+   These scopes are HUMAN-ONLY. The AI agent may only run --scope=plugins,config
+   (and agents when Python code changes).
 
-      "DSOA is not installed on test-qa. A human must run the base installation
-       first using the privileged scopes (init, admin, all). These scopes create
-       roles, databases, and warehouses and must NEVER be run by an AI agent.
-       Please run:
-         ./scripts/deploy/deploy.sh test-qa --scope=all --options=skip_confirm
-       Then come back and I will continue."
+=== GATE A: Synthetic Data Setup ===
 
-    !! IMPORTANT: NEVER run --scope=all, init, admin, or apikey yourself.
-    These scopes create or modify roles, databases, warehouses, API integrations,
-    and other account-level objects. They are HUMAN-ONLY operations.
-    The AI agent is only permitted to run --scope=plugins,config (and agents
-    when python code changes). Always stop and ask the human to run privileged
-    scopes, then wait for confirmation before proceeding.
+!! THIS GATE IS MANDATORY. Do NOT write dashboard YAML until it is complete.
+   A dashboard built against an empty dataset cannot be validated. It is not done.
 
-    Do NOT attempt to deploy plugins,config or write synthetic SQL until the
-    base install is confirmed. The role DTAGENT_QA_OWNER and database
-    DTAGENT_QA_DB must exist before any scoped deployment can succeed.
+1.  Read instruments-def.yml for all required plugins.
+    Identify every metric, dimension, and attribute used by dashboard tiles.
+    Identify which dsoa.run.context values correspond to each data area.
 
-=== PHASE A: Synthetic Data Setup (snowflake-synthetic skill) ===
+2.  Write test/tools/setup_test_<plugin>.sql (using the snowflake-synthetic skill).
+    The script must cover EVERY tile's data requirements — every attribute,
+    every metric, every edge case referenced in the dashboard YAML.
+    Apply it:
+      snow sql --connection snow_agent_<env> -f test/tools/setup_test_<plugin>.sql
 
-1.  Read instruments-def.yml for all relevant plugins — confirm exact field names
-    and which dsoa.run.context values each tile will query.
+3.  Verify synthetic objects exist and grants are correct:
+      snow sql --connection snow_agent_<env> -q "SHOW <OBJECTS> IN SCHEMA DSOA_TEST_DB.<PLUGIN>;"
+      snow sql --connection snow_agent_<env> -q "SHOW GRANTS TO ROLE DTAGENT_QA_VIEWER;" | grep DSOA_TEST_DB
 
-2.  Write test/tools/setup_test_<plugin>.sql covering every dashboard tile's
-    data requirements. Apply it:
-      snow sql --connection snow_agent_test-qa -f test/tools/setup_test_<plugin>.sql
-
-3.  Verify synthetic objects exist and grants are in place:
-      snow sql --connection snow_agent_test-qa -q "SHOW <OBJECTS> IN SCHEMA DSOA_TEST_DB.<PLUGIN>;"
-      snow sql --connection snow_agent_test-qa -q "SHOW GRANTS TO ROLE DTAGENT_QA_VIEWER;" | grep DSOA_TEST_DB
-
-4.  Enable required plugins in conf/config-test-qa.yml (is_enabled: true, scoped
-    to DSOA_TEST_DB). Rebuild and redeploy DSOA:
+4.  If plugin is not yet enabled: update conf/config-<env>.yml (is_enabled: true).
+    Build and redeploy:
       ./scripts/dev/build.sh
-      ./scripts/deploy/deploy.sh test-qa --scope=plugins,config --options=skip_confirm
+      ./scripts/deploy/deploy.sh <env> --scope=plugins,config --options=skip_confirm
 
-5.  Wait for at least one DSOA collection cycle, then confirm data is flowing
-    via a spot-check DQL query through the MCP server or dtctl query. Do NOT
-    proceed until records are returned. Fast plugins: ~5 min. Deep plugins: ~1-2 h.
+5.  Trigger a manual DSOA run to get telemetry immediately (bypasses the task
+    scheduler — no need to wait for the next scheduled cycle):
+
+    IMPORTANT: DSOA connection profiles intentionally leave role/database/warehouse
+    blank (they may not exist yet at deploy time). You MUST pass them explicitly:
+
+      snow sql --connection snow_agent_<env> \
+        --role     DTAGENT_<TAG>_VIEWER \
+        --database DTAGENT_<TAG>_DB \
+        --warehouse DTAGENT_<TAG>_WH \
+        -q "CALL APP.DTAGENT(ARRAY_CONSTRUCT('<plugin_name>'))"
+
+    Where <TAG> matches the environment tag (e.g. QA for test-qa, DEV for dev-094).
+    You can pass multiple plugins: ARRAY_CONSTRUCT('plugin_a', 'plugin_b')
+    or omit the argument entirely to run ALL enabled plugins.
+
+    IMPORTANT — plugin-specific latency caveats:
+    - Most plugins: telemetry arrives in Dynatrace within ~1-2 min after the
+      CALL returns.
+    - query_history: ACCOUNT_USAGE.QUERY_HISTORY has a ~45 min ingestion lag
+      in Snowflake. Even after CALL DTAGENT returns successfully, the log/span
+      records for queries run by the simulation script will NOT be visible in
+      Dynatrace until that lag clears. Plan ~45-60 min of wait time before
+      verifying Section 4 (operator stats) tiles.
+      Metrics and biz_events derived from ACCOUNT_USAGE share the same lag.
+    - active_queries: reads INFORMATION_SCHEMA (real-time) — no lag.
+
+    After the CALL returns, run a spot-check DQL to confirm records are flowing:
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "<plugin>"
+      | filter deployment.environment == "<ENV>"
+      | limit 10
+    Do NOT proceed until records are returned.
 
 === PHASE B: Dashboard Authoring and Deployment ===
 
@@ -328,9 +360,20 @@ dtctl apply -A -f /tmp/<name>-workflow.json
 7.  Convert:  ./scripts/tools/yaml-to-json.sh ... > /tmp/<name>.json
 8.  Validate: jq . /tmp/<name>.json
 9.  Deploy:   dtctl apply -A -f /tmp/<name>.json
-10. Record the returned ID — add it to the YAML as `id: <uuid>`
-11. Re-convert and re-deploy with ID so subsequent runs update in place
-12. Verify every tile renders real data in the Dynatrace UI
+10. Record the returned ID — embed it in the YAML as `id: <uuid>`
+11. Re-convert, inject id/name/type with python3, re-deploy to update in place:
+      python3 -c "
+      import json
+      with open('/tmp/<name>.json') as f:
+          d = json.load(f)
+      d['id']   = '<uuid>'
+      d['name'] = '<Human-readable title>'
+      d['type'] = 'dashboard'
+      with open('/tmp/<name>-apply.json', 'w') as f:
+          json.dump(d, f)
+      "
+      dtctl apply -A -f /tmp/<name>-apply.json
+12. Verify every tile renders real data in the Dynatrace UI.
 
 === PHASE C: Documentation ===
 

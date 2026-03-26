@@ -125,6 +125,27 @@ Each JSON file is named after its dashboard title (e.g., `Costs Monitoring.json`
 
 ---
 
+### [Snowflake Query Deep Dive](query-deep-dive/)
+
+**Purpose**: Advanced query analytics for DBAs and FinOps teams — covering costly repeated queries, table performance degradation, query acceleration, multi-level analysis, external functions, query origins, and cost attribution.
+
+**Key Features**:
+
+- Rank query hashes by total bytes scanned and spill volumes to surface the costliest repeated query patterns
+- Partition scan ratio and cache hit rate trends per table to identify re-clustering candidates
+- Query acceleration eligibility list with estimated time savings at multiple scale factors
+- Parent-child query breakdown and operator-level plan statistics from span data
+- External function invocation and data volume monitoring
+- Query origin analysis by client application and authentication type for security forensics
+- Cloud services credit attribution by user, role, and warehouse
+- Cross-region data transfer volumes for egress cost monitoring
+
+**Required Plugin**: `query_history`
+
+**DPO Theme**: Performance, Security, Costs
+
+---
+
 ### [Snowflake Security](snowflake-security/)
 
 **Purpose**: Monitor security aspects and compliance of Snowflake accounts.
