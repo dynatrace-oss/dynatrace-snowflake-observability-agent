@@ -86,6 +86,7 @@ tiles:
       timeseries total_bytes = sum(snowflake.data.size), by: { deployment.environment }
       , filter: {
           db.system == "snowflake" and
+          dsoa.run.context == "data_volume" and
           ($Accounts == "*" or deployment.environment == $Accounts)
         }
       | fieldsAdd latest = arrayMax(arrayRemoveNulls(total_bytes))
@@ -123,6 +124,7 @@ tiles:
       timeseries total_rows = sum(snowflake.data.rows), by: { deployment.environment }
       , filter: {
           db.system == "snowflake" and
+          dsoa.run.context == "data_volume" and
           ($Accounts == "*" or deployment.environment == $Accounts)
         }
       | fieldsAdd latest = arrayMax(arrayRemoveNulls(total_rows))
@@ -153,6 +155,7 @@ tiles:
       timeseries total_bytes = sum(snowflake.data.size), by: { db.namespace, deployment.environment }
       , filter: {
           db.system == "snowflake" and
+          dsoa.run.context == "data_volume" and
           ($Accounts == "*" or deployment.environment == $Accounts) and
           ($Database == "*" or isNull(db.namespace) or db.namespace == $Database)
         }
@@ -206,6 +209,7 @@ tiles:
       timeseries total_rows = sum(snowflake.data.rows), by: { db.namespace, deployment.environment }
       , filter: {
           db.system == "snowflake" and
+          dsoa.run.context == "data_volume" and
           ($Accounts == "*" or deployment.environment == $Accounts) and
           ($Database == "*" or isNull(db.namespace) or db.namespace == $Database)
         }
@@ -250,6 +254,7 @@ tiles:
       timeseries v = max(snowflake.data.size), by: { db.collection.name, db.namespace, deployment.environment }
       , filter: {
           db.system == "snowflake" and
+          dsoa.run.context == "data_volume" and
           ($Accounts == "*" or deployment.environment == $Accounts) and
           ($Database == "*" or isNull(db.namespace) or db.namespace == $Database)
         }
@@ -273,8 +278,8 @@ tiles:
           position: bottom
       unitsOverrides:
         - identifier: size
-          unitCategory: null
-          baseUnit: null
+          unitCategory: data
+          baseUnit: byte
           displayUnit: null
           decimals: 2
           suffix: ""
@@ -317,16 +322,18 @@ tiles:
     title: Table type distribution
     type: data
     query: |-
-      timeseries v = max(snowflake.data.size), by: { snowflake.table.type, deployment.environment }
+      timeseries v = max(snowflake.data.size), by: { db.collection.name, snowflake.table.type, deployment.environment }
       , filter: {
           db.system == "snowflake" and
+          dsoa.run.context == "data_volume" and
           ($Accounts == "*" or deployment.environment == $Accounts) and
           ($TableType == "*" or isNull(snowflake.table.type) or snowflake.table.type == $TableType)
         }
       | filter $Accounts == "*" or deployment.environment == $Accounts
       | filter $TableType == "*" or isNull(snowflake.table.type) or snowflake.table.type == $TableType
       | fieldsAdd latest = arrayMax(arrayRemoveNulls(v))
-      | summarize count = count(), by: { snowflake.table.type }
+      | filter isNotNull(latest)
+      | summarize count = countDistinct(db.collection.name), by: { snowflake.table.type }
       | sort count desc
     visualization: pieChart
     visualizationSettings:
@@ -360,6 +367,7 @@ tiles:
       timeseries v = max(snowflake.table.time_since.last_update), by: { db.collection.name, db.namespace, deployment.environment, snowflake.table.type }
       , filter: {
           db.system == "snowflake" and
+          dsoa.run.context == "data_volume" and
           ($Accounts == "*" or deployment.environment == $Accounts) and
           ($Database == "*" or isNull(db.namespace) or db.namespace == $Database) and
           ($TableType == "*" or isNull(snowflake.table.type) or snowflake.table.type == $TableType)
@@ -414,6 +422,7 @@ tiles:
       timeseries v = max(snowflake.table.time_since.last_ddl), by: { db.collection.name, db.namespace, deployment.environment }
       , filter: {
           db.system == "snowflake" and
+          dsoa.run.context == "data_volume" and
           ($Accounts == "*" or deployment.environment == $Accounts) and
           ($Database == "*" or isNull(db.namespace) or db.namespace == $Database)
         }

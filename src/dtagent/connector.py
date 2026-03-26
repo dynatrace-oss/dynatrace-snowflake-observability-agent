@@ -139,7 +139,7 @@ class TelemetrySender(AbstractDynatraceSnowAgentConnector, Plugin):
         self.__context_name = self._params.get("context", self._plugin_name)
         self.__context = get_context_name_and_run_id(plugin_name=self._plugin_name, context_name=self.__context_name, run_id=exec_id)
 
-    def process(self, run_id: str, run_proc: bool = True) -> Dict[str, int]:
+    def process(self, run_id: str, run_proc: bool = True, contexts: Optional[List[str]] = None) -> Dict[str, Dict[str, int]]:
         """We don't use it but Plugin marks it as abstract"""
 
         return {}

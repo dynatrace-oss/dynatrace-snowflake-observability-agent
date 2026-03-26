@@ -82,18 +82,20 @@ dropped).
 | `$Database`   | query | all     | Database names (`db.namespace`) filtered to the selected accounts.                  |
 | `$TableType`  | query | all     | Table types (`snowflake.table.type`): BASE TABLE, TEMPORARY TABLE, EXTERNAL TABLE.  |
 
-All three variables are multi-select. The DDL tiles filter by `$Accounts` and `$Database`;
+All three variables are single-select. The DDL tiles filter by `$Accounts` and `$Database`;
 freshness and storage tiles additionally respect `$TableType`. Setting `$Database` to a
 single value is the recommended starting point for a per-team governance review.
 
 ## Required Plugin(s)
 
-**`data_volume`** — Collects storage bytes and row counts per table by querying
-`INFORMATION_SCHEMA.TABLE_STORAGE_METRICS`. Emits metrics (`snowflake.data.size`,
-`snowflake.data.rows`, `snowflake.table.time_since.last_ddl`,
-`snowflake.table.time_since.last_update`) and timestamp events. Typical collection
-cadence: every DSOA run (configurable, default ~5 min). Data reflects the state at query
-time; time-travel and fail-safe bytes are not included in `snowflake.data.size`.
+**`data_volume`** — Collects storage bytes and row counts per table via a helper view backed
+by `SNOWFLAKE.ACCOUNT_USAGE.TABLES` (not `INFORMATION_SCHEMA.TABLE_STORAGE_METRICS`). This
+means data is subject to Snowflake ACCOUNT_USAGE latency (up to 90 minutes) and requires
+privileges to query ACCOUNT_USAGE (e.g. `MONITOR USAGE` or `ACCOUNTADMIN`). It emits metrics
+(`snowflake.data.size`, `snowflake.data.rows`, `snowflake.table.time_since.last_ddl`,
+`snowflake.table.time_since.last_update`) and timestamp events. Typical collection cadence:
+every DSOA run (configurable, default ~5 min). Values reflect what ACCOUNT_USAGE exposes at
+collection time; time-travel and fail-safe bytes are not included in `snowflake.data.size`.
 
 **`data_schemas`** — Tracks DDL operations by querying `SNOWFLAKE.ACCOUNT_USAGE.ACCESS_HISTORY`
 or equivalent. Emits events for each DDL change with operation, object type, user, and

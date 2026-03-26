@@ -17,7 +17,11 @@
       "test.event.dtagent.number": 10,
       "test.event.dtagent.text": "some text",
       "test.event.dtagent.bool": true,
-      "test.event.dtagent.list": "[1, 2, 3]",
+      "test.event.dtagent.list": [
+        1,
+        2,
+        3
+      ],
       "test.event.dtagent.dict": "{\"k1\": \"v1\", \"k2\": 2}",
       "db.system": "snowflake",
       "service.name": "test.dsoa2025",

@@ -100,13 +100,29 @@ def _cleanup_data(value: Any) -> Any:
                 numeric_converted = [__try_convert_to_numeric(item) for item in value]
                 converted_types = {type(item) for item in numeric_converted if item is not None}
 
+                # OTel requires homogeneous sequences: promote int/float mix to all-float
+                if (
+                    converted_types
+                    and converted_types.issubset({int, float, bool})
+                    and not converted_types.issubset({bool})
+                    and (int in converted_types and float in converted_types)
+                ):
+                    numeric_converted = [float(item) if isinstance(item, (int, float)) else item for item in numeric_converted]
+                    converted_types = {type(item) for item in numeric_converted if item is not None}
+
                 return (
-                    # If we can normalize to numeric (int, float, bool are compatible), return directly
+                    # If we can normalize to numeric (int, float, bool are compatible) and no dicts/lists remain
                     numeric_converted
-                    if converted_types and converted_types.issubset({int, float, bool})
-                    # Fallback: normalize to a sequence of strings, handling datetime explicitly
+                    if converted_types
+                    and converted_types.issubset({int, float, bool})
+                    and not any(isinstance(i, (dict, list)) for i in numeric_converted)
+                    # Fallback: normalize to a sequence of strings, handling datetime/dict/list explicitly
                     else [
-                        str(format_datetime(item) if isinstance(item, datetime.datetime) else item)
+                        (
+                            format_datetime(item)
+                            if isinstance(item, datetime.datetime)
+                            else json.dumps(item, default=str) if isinstance(item, (dict, list)) else str(item)
+                        )
                         for item in numeric_converted
                         if item is not None
                     ]
@@ -190,7 +206,7 @@ def _clean_key(key: str) -> str:
     return cs.lower()
 
 
-def _cleanup_dict(d: Any, skip_first_level_hidden=False) -> Union[dict, list, str, None]:
+def _cleanup_dict(d: Any, skip_first_level_hidden=False, _in_list=False) -> Union[dict, list, str, None]:
     """Cleans up given dictionary from any None or NaN values, and first level keys starting with _ if requested
 
     Args:
@@ -202,11 +218,11 @@ def _cleanup_dict(d: Any, skip_first_level_hidden=False) -> Union[dict, list, st
         Union[dict, list]: _description_
     """
 
-    def __get_valid_json(json_string: str) -> Union[dict, None]:
+    def __get_valid_json(json_string: str) -> Union[dict, list, None]:
         """Deserialize s (a str, bytes or bytearray instance containing a JSON document) to a Python object."""
         try:
             data = json.loads(json_string)
-            if isinstance(data, dict):
+            if isinstance(data, (dict, list)):
                 return data
             return None
         except (ValueError, TypeError):
@@ -224,11 +240,14 @@ def _cleanup_dict(d: Any, skip_first_level_hidden=False) -> Union[dict, list, st
             if v is not None and v != {}
         }
     if isinstance(d, list):
-        return [_cleanup_dict(i) for i in d if not pd.isna(pd.Series(i)).all()]
-    if isinstance(d, str):
+        return [_cleanup_dict(i, _in_list=True) for i in d if not pd.isna(pd.Series(i)).all()]
+    if isinstance(d, str) and not _in_list:
         jd = __get_valid_json(d)
         if jd is not None:
             return _cleanup_dict(jd)  # for the moment we are putting it back as JSON to avoid confusion at Grail side
+
+    if isinstance(d, datetime.datetime):
+        return format_datetime(d)
 
     return d
 

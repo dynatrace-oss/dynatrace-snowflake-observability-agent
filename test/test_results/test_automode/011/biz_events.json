@@ -111,6 +111,49 @@
   {
     "specversion": "1.0",
     "source": "test.dsoa2025.snowflakecomputing.com",
+    "type": "CUSTOM_INFO",
+    "data": {
+      "test_object": {
+        "key": "value",
+        "key2": 100
+      },
+      "test_object2": {
+        "key": "value",
+        "obj": {
+          "k": 1,
+          "k2": "v2"
+        },
+        "arr": [
+          "1",
+          "20",
+          "b",
+          "{\"k\": \"v\"}"
+        ]
+      },
+      "test_array": [
+        1.0,
+        100.0,
+        2.3
+      ],
+      "test_array2": [
+        "value",
+        "{\"key\": \"value\"}",
+        "102"
+      ],
+      "app.bundle": "test_automode/011",
+      "app.id": "dynatrace.snowagent",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "dsoa.run.plugin": "telemetry_sender",
+      "dsoa.run.context": "test_automode/011"
+    }
+  },
+  {
+    "specversion": "1.0",
+    "source": "test.dsoa2025.snowflakecomputing.com",
     "type": "dsoa.task",
     "data": {
       "event.provider": "test.dsoa2025.snowflakecomputing.com",
