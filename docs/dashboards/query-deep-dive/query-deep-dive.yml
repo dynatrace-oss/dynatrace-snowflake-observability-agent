@@ -149,6 +149,23 @@ tiles:
         | limit 20
     visualization: table
     visualizationSettings:
+      unitsOverrides:
+        - identifier: total_scanned_bytes
+          unitCategory: data
+          baseUnit: byte
+          displayUnit: null
+          decimals: 2
+          suffix: ""
+          delimiter: false
+          added: 1700000000010
+        - identifier: avg_elapsed_ms
+          unitCategory: time
+          baseUnit: millisecond
+          displayUnit: null
+          decimals: 0
+          suffix: ""
+          delimiter: false
+          added: 1700000000011
       thresholds: []
       table:
         rowDensity: condensed
@@ -205,6 +222,31 @@ tiles:
         | limit 20
     visualization: table
     visualizationSettings:
+      unitsOverrides:
+        - identifier: total_spill_bytes
+          unitCategory: data
+          baseUnit: byte
+          displayUnit: null
+          decimals: 2
+          suffix: ""
+          delimiter: false
+          added: 1700000000020
+        - identifier: local_spill_bytes
+          unitCategory: data
+          baseUnit: byte
+          displayUnit: null
+          decimals: 2
+          suffix: ""
+          delimiter: false
+          added: 1700000000021
+        - identifier: remote_spill_bytes
+          unitCategory: data
+          baseUnit: byte
+          displayUnit: null
+          decimals: 2
+          suffix: ""
+          delimiter: false
+          added: 1700000000022
       thresholds: []
       table:
         rowDensity: condensed
@@ -479,6 +521,15 @@ tiles:
         | sort `Elapsed Time (ms)` desc
     visualization: table
     visualizationSettings:
+      unitsOverrides:
+        - identifier: "Elapsed Time (ms)"
+          unitCategory: time
+          baseUnit: millisecond
+          displayUnit: null
+          decimals: 0
+          suffix: ""
+          delimiter: false
+          added: 1700000000030
       thresholds: []
       table:
         rowDensity: condensed
@@ -564,13 +615,13 @@ tiles:
         | filter (isNull(db.namespace)             or in(db.namespace, array($Database)))
         | filter (isNull(db.user)                  or in(db.user, array($User)))
         | filter (isNull(db.operation.name)        or in(db.operation.name, array($Operation)))
-        | lookup [
+        | join [
             fetch spans
               | filter db.system == "snowflake"
               | filter dsoa.run.plugin == "query_history"
               | filter isNotNull(snowflake.query.parent_id)
               | summarize child_count = count(), by: { parent_id = snowflake.query.parent_id }
-          ], sourceField: snowflake.query.id, lookupField: parent_id
+          ], on: { left[snowflake.query.id] == right[parent_id] }, fields: {child_count}
         | filter isNotNull(child_count)
         | fields
             `Query Text`    = db.query.text,
@@ -586,6 +637,15 @@ tiles:
         | sort `Elapsed (ms)` desc
     visualization: table
     visualizationSettings:
+      unitsOverrides:
+        - identifier: "Elapsed (ms)"
+          unitCategory: time
+          baseUnit: millisecond
+          displayUnit: null
+          decimals: 0
+          suffix: ""
+          delimiter: false
+          added: 1700000000040
       thresholds: []
       table:
         rowDensity: condensed
@@ -629,6 +689,15 @@ tiles:
         | sort `Elapsed (ms)` desc
     visualization: table
     visualizationSettings:
+      unitsOverrides:
+        - identifier: "Elapsed (ms)"
+          unitCategory: time
+          baseUnit: millisecond
+          displayUnit: null
+          decimals: 0
+          suffix: ""
+          delimiter: false
+          added: 1700000000050
       thresholds: []
       table:
         rowDensity: condensed
@@ -673,6 +742,15 @@ tiles:
         | sort start_time desc
     visualization: table
     visualizationSettings:
+      unitsOverrides:
+        - identifier: "Elapsed (ms)"
+          unitCategory: time
+          baseUnit: millisecond
+          displayUnit: null
+          decimals: 0
+          suffix: ""
+          delimiter: false
+          added: 1700000000060
       thresholds:
         - field: "Exception Type"
           rules:
@@ -761,6 +839,23 @@ tiles:
         | sort invocations desc
     visualization: table
     visualizationSettings:
+      unitsOverrides:
+        - identifier: bytes_sent
+          unitCategory: data
+          baseUnit: byte
+          displayUnit: null
+          decimals: 2
+          suffix: ""
+          delimiter: false
+          added: 1700000000070
+        - identifier: bytes_received
+          unitCategory: data
+          baseUnit: byte
+          displayUnit: null
+          decimals: 2
+          suffix: ""
+          delimiter: false
+          added: 1700000000071
       thresholds: []
       table:
         rowDensity: condensed
