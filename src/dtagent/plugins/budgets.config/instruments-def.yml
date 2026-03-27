@@ -16,25 +16,48 @@
 # Catalog of instrumentation known to Dynatrace Snowflake Observability Agent - budgets plugin
 attributes:
   snowflake.budget.owner:
+    __context_names:
+      - budgets
     __example: budget_admin
     __description: The owner of the budget, typically the user or role responsible for managing the budget.
   snowflake.budget.owner.role_type:
+    __context_names:
+      - budgets
     __example: ACCOUNTADMIN
     __description: The type of role assigned to the budget owner, indicating their level of access and responsibilities.
   snowflake.budget.resource:
+    __context_names:
+      - budgets
     __example: '[ "database1", "warehouse1" ]'
     __description: The resources linked to the budget, such as databases, warehouses, or other Snowflake objects that the budget monitors.
 dimensions:
   db.namespace:
+    __context_names:
+      - budgets
+      - spendings
     __example: analytics_db
     __description: The name of the database that was specified in the context of the query at compilation.
   snowflake.budget.name:
+    __context_names:
+      - budgets
+      - spendings
     __example: monthly_budget
     __description: Name of the budget.
+  snowflake.budget.full_name:
+    __context_names:
+      - budgets
+      - spendings
+    __example: ANALYTICS_DB.BUDGETS.MONTHLY_BUDGET
+    __description: Fully-qualified name of the budget (DATABASE.SCHEMA.NAME).
   snowflake.schema.name:
+    __context_names:
+      - budgets
+      - spendings
     __example: public
     __description: Schema that was specified in the context of the query at compilation.
   snowflake.service.type:
+    __context_names:
+      - spendings
     __example: WAREHOUSE_METERING
     __description: |
       Type of service that is consuming credits, which can be one
@@ -52,20 +75,28 @@ dimensions:
       - WAREHOUSE_METERING_READER
 event_timestamps:
   snowflake.event.trigger:
+    __context_names:
+      - budgets
     __example: "snowflake.budget.created_on"
     __description:
       Additionally to sending logs, each entry in `EVENT_TIMESTAMPS` is sent as event with key set to `snowflake.event.trigger`, value to
       key from `EVENT_TIMESTAMPS` and `timestamp` set to the key value.
   snowflake.budget.created_on:
+    __context_names:
+      - budgets
     __example: "2024-11-30 23:59:59.999"
     __description: The timestamp when the budget was created.
 metrics:
   snowflake.credits.limit:
+    __context_names:
+      - budgets
     __example: "100"
     __description: The number of credits set as the spending limit for the budget.
     displayName: Budget Spending Limit
     unit: credits
   snowflake.credits.spent:
+    __context_names:
+      - spendings
     __example: "75"
     __description: Number of credits used.
     displayName: Credits Spent
