@@ -24,3 +24,5 @@
 use role ACCOUNTADMIN; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 
 grant application role SNOWFLAKE.BUDGET_VIEWER to role DTAGENT_VIEWER;
+
+grant database role SNOWFLAKE.USAGE_VIEWER to role DTAGENT_VIEWER;

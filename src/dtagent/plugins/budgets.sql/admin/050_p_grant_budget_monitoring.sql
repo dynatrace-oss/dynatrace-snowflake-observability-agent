@@ -61,9 +61,6 @@ DECLARE
 
     grants_count                INT DEFAULT 0;
 BEGIN
-    q_grant_usage_viewer := 'grant database role SNOWFLAKE.USAGE_VIEWER to role DTAGENT_VIEWER;';
-    EXECUTE IMMEDIATE :q_grant_usage_viewer;
-
     FOR r_budget IN c_budgets DO
         budget_fqn    := r_budget.budget_fqn;
         budget_db     := UPPER(SPLIT_PART(:budget_fqn, '.', 1));
@@ -78,19 +75,46 @@ BEGIN
         END IF;
 
         budget_db_q     := '"' || :budget_db     || '"';
-        budget_schema_q := '"' || :budget_schema || '"';
-        budget_fqn_q    := :budget_db_q || '.' || :budget_schema_q || '."' || :budget_name || '"';
+        budget_schema_q := :budget_db_q || '.' || '"' || :budget_schema || '"';
+        budget_fqn_q    := :budget_schema_q || '."' || :budget_name || '"';
 
-        q_grant_usage_db     := 'grant usage on database '   || :budget_db_q || ' to role DTAGENT_VIEWER;';
-        q_grant_usage_schema := 'grant usage on schema '     || :budget_db_q || '.' || :budget_schema_q || ' to role DTAGENT_VIEWER;';
-        q_grant_budget_viewer := 'grant snowflake.core.budget role ' || :budget_fqn_q || '!VIEWER to role DTAGENT_VIEWER;';
+        q_grant_usage_db      := 'grant usage on database identifier(?) to role DTAGENT_VIEWER;';
+        q_grant_usage_schema  := 'grant usage on schema identifier(?) to role DTAGENT_VIEWER;';
+        q_grant_budget_viewer := 'grant snowflake.core.budget role identifier(?)!VIEWER to role DTAGENT_VIEWER;';
 
-        EXECUTE IMMEDIATE :q_grant_usage_db;
-        EXECUTE IMMEDIATE :q_grant_usage_schema;
-        EXECUTE IMMEDIATE :q_grant_budget_viewer;
+        -- For imported/shared databases (e.g. SNOWFLAKE) GRANT USAGE is not allowed;
+        -- GRANT IMPORTED PRIVILEGES must be used instead.  Attempt the standard grant
+        -- first and fall back to the imported-privileges form on error.
+        BEGIN
+            EXECUTE IMMEDIATE :q_grant_usage_db USING (budget_db_q);
+        EXCEPTION
+            WHEN STATEMENT_ERROR THEN
+                EXECUTE IMMEDIATE 'grant imported privileges on database ' || :budget_db_q || ' to role DTAGENT_VIEWER;';
+        END;
+
+        -- Schema-level GRANT USAGE is not applicable for imported databases (the
+        -- imported-privileges grant already covers all schemas).  Skip on error.
+        BEGIN
+            EXECUTE IMMEDIATE :q_grant_usage_schema USING (budget_schema_q);
+        EXCEPTION
+            WHEN STATEMENT_ERROR THEN
+                SYSTEM$LOG_INFO('P_GRANT_BUDGET_MONITORING: skipping schema grant for imported database ' || :budget_db_q);
+        END;
+
+        -- For the SNOWFLAKE application (e.g. ACCOUNT_ROOT_BUDGET) the instance-role
+        -- grant is not permitted; access is controlled via the SNOWFLAKE.BUDGET_VIEWER
+        -- application role which is already granted unconditionally above.  Skip on error.
+        BEGIN
+            EXECUTE IMMEDIATE :q_grant_budget_viewer USING (budget_fqn_q);
+        EXCEPTION
+            WHEN STATEMENT_ERROR THEN
+                SYSTEM$LOG_INFO('P_GRANT_BUDGET_MONITORING: skipping budget instance-role grant for ' || :budget_fqn_q || ' (application-owned budget — SNOWFLAKE.BUDGET_VIEWER app role covers access)');
+        END;
 
         grants_count := :grants_count + 1;
     END FOR;
+
+    grant database role SNOWFLAKE.USAGE_VIEWER to role DTAGENT_VIEWER;
 
     RETURN 'granted budget monitoring privileges for ' || :grants_count || ' budget(s) to DTAGENT_VIEWER';
 

@@ -1,0 +1,868 @@
+#
+# Copyright (c) 2025 Dynatrace Open Source
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the Software), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+#
+# DASHBOARD: Budgets & FinOps
+# DESCRIPTION: Snowflake budget tracking, event-table ingest costs, warehouse sizing and load analysis
+# OWNER: DSOA Team
+# PLUGINS: budgets, event_usage, warehouse_usage, resource_monitors
+# TAGS: snowflake, dsoa, finops, budgets, costs
+
+id: 64b09f3f-1faa-49c8-98ba-7aa496af8cdf
+version: 16
+
+variables:
+  - version: 2
+    key: Accounts
+    type: query
+    visible: true
+    editable: true
+    multiple: true
+    input: |-
+      fetch logs, from: now()-7d
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "budgets"
+      | fields deployment.environment
+      | dedup deployment.environment
+      | sort deployment.environment asc
+
+  - version: 2
+    key: Budget
+    type: query
+    visible: true
+    editable: true
+    multiple: true
+    input: |-
+      fetch logs, from: now()-7d
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "budgets"
+      | filter in(deployment.environment, array($Accounts))
+      | filter isNotNull(`snowflake.budget.name`)
+      | fields `snowflake.budget.name`
+      | dedup `snowflake.budget.name`
+      | sort `snowflake.budget.name` asc
+
+  - version: 2
+    key: Warehouse
+    type: query
+    visible: true
+    editable: true
+    multiple: true
+    input: |-
+      fetch logs, from: now()-7d
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "resource_monitors"
+      | filter in(deployment.environment, array($Accounts))
+      | filter isNotNull(`snowflake.warehouse.name`)
+      | fields `snowflake.warehouse.name`
+      | dedup `snowflake.warehouse.name`
+      | sort `snowflake.warehouse.name` asc
+
+tiles:
+  # ----------------------------------------------------------------
+  # Section 1: Budget Analysis
+  # ----------------------------------------------------------------
+  "0":
+    type: markdown
+    content: |
+      ## Budget Analysis
+      Track budget credit spending versus limits across all Snowflake budgets.
+      Data source: `budgets` plugin (contexts: `budgets`, `spendings`).
+
+  "1":
+    title: Budget spending vs limit
+    type: data
+    query: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "budgets"
+      | filter dsoa.run.context == "spendings"
+      | filter in(deployment.environment, array($Accounts))
+      | filter in(`snowflake.budget.name`, array($Budget))
+      | filter isNotNull(`snowflake.budget.name`)
+      | summarize {
+          spent = sum(toDouble(`snowflake.credits.spent`))
+        }, by: { `snowflake.budget.name`, deployment.environment }
+      | join [
+          fetch logs
+          | filter db.system == "snowflake"
+          | filter dsoa.run.plugin == "budgets"
+          | filter dsoa.run.context == "budgets"
+          | filter in(deployment.environment, array($Accounts))
+          | filter in(`snowflake.budget.name`, array($Budget))
+          | filter isNotNull(`snowflake.budget.name`)
+          | summarize {
+              limit_val = max(toDouble(`snowflake.credits.limit`))
+            }, by: { `snowflake.budget.name` }
+        ], on: { left[`snowflake.budget.name`] == right[`snowflake.budget.name`] }
+        , fields: { limit_val }
+      | fields
+          `Budget`   = `snowflake.budget.name`,
+          `Account`  = deployment.environment,
+          `Spent`    = spent,
+          `Limit`    = limit_val,
+          `% Used`   = if(limit_val > 0, spent / limit_val * 100, else: 0)
+      | sort `Budget` asc
+    visualization: table
+    visualizationSettings:
+      table:
+        rowDensity: condensed
+        enableSparklines: false
+        hiddenColumns: []
+        lineWrapIds: []
+        columnWidths: {}
+      thresholds:
+        - id: 1
+          field: "% Used"
+          title: Budget usage
+          isEnabled: true
+          rules:
+            - id: 0
+              color:
+                Default: "var(--dt-colors-charts-categorical-color-09-default, #649438)"
+              comparator: <
+              label: ""
+              value: 75
+            - id: 1
+              color:
+                Default: "var(--dt-colors-charts-categorical-color-14-default, #d56b1a)"
+              comparator: <
+              label: ""
+              value: 100
+            - id: 2
+              color:
+                Default: "var(--dt-colors-charts-categorical-color-12-default, #cd3741)"
+              comparator: "≥"
+              label: ""
+              value: 100
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+
+  "2":
+    title: Budget spending trend
+    type: data
+    query: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "budgets"
+      | filter `dsoa.run.context` == "spendings"
+      | filter in(deployment.environment, array($Accounts))
+      | filter in(`snowflake.budget.name`, array($Budget))
+      | filter isNotNull(`snowflake.credits.spent`)
+      | fieldsAdd spent_n = toDouble(`snowflake.credits.spent`)
+      | makeTimeseries spent = avg(spent_n),
+          by: { `snowflake.budget.name`, deployment.environment },
+          time: timestamp
+    visualization: lineChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        leftYAxisSettings:
+          label: Credits Spent
+          isLabelVisible: true
+        xAxisLabel: timeframe
+        xAxisScaling: analyzedTimeframe
+        fieldMapping:
+          leftAxisValues:
+            - spent
+          timestamp: timeframe
+        gapPolicy: connect
+        legend:
+          position: bottom
+      thresholds: []
+      dataMapping:
+        displayedFields:
+          - snowflake.budget.name
+          - deployment.environment
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+
+  "3":
+    title: Budget spending by service type
+    type: data
+    query: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "budgets"
+      | filter dsoa.run.context == "spendings"
+      | filter in(deployment.environment, array($Accounts))
+      | filter in(`snowflake.budget.name`, array($Budget))
+      | filter isNotNull(`snowflake.service.type`)
+      | summarize {
+          spent = sum(toDouble(`snowflake.credits.spent`))
+        }, by: { `snowflake.service.type` }
+      | sort spent desc
+    visualization: pieChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        legend:
+          position: bottom
+        categoryOverrides: {}
+      thresholds: []
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+
+  "4":
+    title: Budget details
+    type: data
+    query: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "budgets"
+      | filter dsoa.run.context == "budgets"
+      | filter in(deployment.environment, array($Accounts))
+      | filter in(`snowflake.budget.name`, array($Budget))
+      | filter isNotNull(`snowflake.budget.name`)
+      | sort timestamp desc
+      | summarize {
+          limit_val  = max(toDouble(`snowflake.credits.limit`)),
+          owner      = takeLast(`snowflake.budget.owner`),
+          resource   = takeLast(`snowflake.budget.resource`)
+        }, by: { `snowflake.budget.name`, deployment.environment }
+      | sort `snowflake.budget.name` asc
+      | fields
+          `Budget`         = `snowflake.budget.name`,
+          `Account`        = deployment.environment,
+          `Limit (Credits)` = limit_val,
+          `Owner`          = owner,
+          `Resources`      = resource
+    visualization: table
+    visualizationSettings:
+      table:
+        rowDensity: condensed
+        enableSparklines: false
+        hiddenColumns: []
+        lineWrapIds: []
+        columnWidths: {}
+      thresholds: []
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+
+  # ----------------------------------------------------------------
+  # Section 2: Event Table Ingest Costs
+  # ----------------------------------------------------------------
+  "5":
+    type: markdown
+    content: |
+      ## Event Table Ingest Costs
+      Monitor credit consumption and data volume for Snowflake event table ingestion.
+      Data source: `event_usage` plugin (context: `event_usage`).
+      Note: `ACCOUNT_USAGE.EVENT_USAGE_HISTORY` has a ~45-180 min ingestion lag.
+
+  "6":
+    title: Event table credits used (total)
+    type: data
+    query: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "event_usage"
+      | filter in(deployment.environment, array($Accounts))
+      | filter isNotNull(`snowflake.credits.used`)
+      | summarize total_credits = sum(toDouble(`snowflake.credits.used`))
+    visualization: singleValue
+    visualizationSettings:
+      singleValue:
+        label: Total Credits Used
+        recordField: total_credits
+        autoscale: true
+        alignment: center
+      thresholds: []
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+
+  "7":
+    title: Event table bytes ingested (total)
+    type: data
+    query: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "event_usage"
+      | filter in(deployment.environment, array($Accounts))
+      | filter isNotNull(`snowflake.data.ingested`)
+      | summarize total_bytes = sum(toDouble(`snowflake.data.ingested`))
+    visualization: singleValue
+    visualizationSettings:
+      singleValue:
+        label: Total Bytes Ingested
+        recordField: total_bytes
+        autoscale: true
+        alignment: center
+      thresholds: []
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+
+  "8":
+    title: Event table credits over time
+    type: data
+    query: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "event_usage"
+      | filter in(deployment.environment, array($Accounts))
+      | filter isNotNull(`snowflake.credits.used`)
+      | fieldsAdd credits_n = toDouble(`snowflake.credits.used`)
+      | makeTimeseries credits = avg(credits_n),
+          by: { deployment.environment },
+          time: timestamp
+    visualization: lineChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        leftYAxisSettings:
+          label: Credits Used
+          isLabelVisible: true
+        xAxisLabel: timeframe
+        xAxisScaling: analyzedTimeframe
+        fieldMapping:
+          leftAxisValues:
+            - credits
+          timestamp: timeframe
+        gapPolicy: connect
+        legend:
+          position: bottom
+      thresholds: []
+      dataMapping:
+        displayedFields:
+          - deployment.environment
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+
+  "9":
+    title: Event table bytes ingested over time
+    type: data
+    query: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "event_usage"
+      | filter in(deployment.environment, array($Accounts))
+      | filter isNotNull(`snowflake.data.ingested`)
+      | fieldsAdd bytes_n = toDouble(`snowflake.data.ingested`)
+      | makeTimeseries bytes = avg(bytes_n),
+          by: { deployment.environment },
+          time: timestamp
+    visualization: lineChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        leftYAxisSettings:
+          label: Bytes Ingested
+          isLabelVisible: true
+        xAxisLabel: timeframe
+        xAxisScaling: analyzedTimeframe
+        fieldMapping:
+          leftAxisValues:
+            - bytes
+          timestamp: timeframe
+        gapPolicy: connect
+        legend:
+          position: bottom
+      thresholds: []
+      dataMapping:
+        displayedFields:
+          - deployment.environment
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+
+  # ----------------------------------------------------------------
+  # Section 3: Warehouse Optimization
+  # ----------------------------------------------------------------
+  "10":
+    type: markdown
+    content: |
+      ## Warehouse Optimization
+      Review warehouse sizing, scaling policies, cluster configuration, and resource monitor quota consumption.
+      Data source: `resource_monitors` plugin (context: `resource_monitors`).
+
+  "11":
+    title: Warehouse sizing overview
+    type: data
+    query: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "resource_monitors"
+      | filter dsoa.run.context == "resource_monitors"
+      | filter in(deployment.environment, array($Accounts))
+      | filter in(`snowflake.warehouse.name`, array($Warehouse))
+      | filter isNotNull(`snowflake.warehouse.name`)
+      | sort timestamp desc
+      | summarize {
+          size             = takeLast(`snowflake.warehouse.size`),
+          scaling_policy   = takeLast(`snowflake.warehouse.scaling_policy`),
+          min_clusters     = takeLast(toLong(`snowflake.warehouse.clusters.min`)),
+          max_clusters     = takeLast(toLong(`snowflake.warehouse.clusters.max`)),
+          execution_state  = takeLast(`snowflake.warehouse.execution_state`),
+          auto_resume      = takeLast(`snowflake.warehouse.is_auto_resume`),
+          is_unmonitored   = takeLast(`snowflake.warehouse.is_unmonitored`)
+        }, by: { `snowflake.warehouse.name`, deployment.environment }
+      | sort `snowflake.warehouse.name` asc
+      | fields
+          `Warehouse`       = `snowflake.warehouse.name`,
+          `Account`         = deployment.environment,
+          `Size`            = size,
+          `Scaling Policy`  = scaling_policy,
+          `Min Clusters`    = min_clusters,
+          `Max Clusters`    = max_clusters,
+          `State`           = execution_state,
+          `Auto Resume`     = auto_resume,
+          `Unmonitored`     = is_unmonitored
+    visualization: table
+    visualizationSettings:
+      table:
+        rowDensity: condensed
+        enableSparklines: false
+        hiddenColumns: []
+        lineWrapIds: []
+        columnWidths: {}
+      thresholds:
+        - id: 1
+          field: Unmonitored
+          title: Resource Monitor
+          isEnabled: true
+          rules:
+            - id: 0
+              color:
+                Default: "var(--dt-colors-charts-categorical-color-09-default, #649438)"
+              comparator: =
+              label: ""
+              value: "false"
+            - id: 1
+              color:
+                Default: "var(--dt-colors-charts-categorical-color-12-default, #cd3741)"
+              comparator: =
+              label: ""
+              value: "true"
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+
+  "12":
+    title: Cluster utilization over time
+    type: data
+    query: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "resource_monitors"
+      | filter `dsoa.run.context` == "resource_monitors"
+      | filter in(deployment.environment, array($Accounts))
+      | filter in(`snowflake.warehouse.name`, array($Warehouse))
+      | filter isNotNull(`snowflake.warehouse.name`)
+      | fieldsAdd started_n = toDouble(`snowflake.warehouse.clusters.started`),
+                  max_n = toDouble(`snowflake.warehouse.clusters.max`)
+      | makeTimeseries {
+            started = avg(started_n),
+            max_clusters = avg(max_n)
+          },
+          by: { `snowflake.warehouse.name`, deployment.environment },
+          time: timestamp
+    visualization: lineChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        leftYAxisSettings:
+          label: Clusters
+          isLabelVisible: true
+        xAxisLabel: timeframe
+        xAxisScaling: analyzedTimeframe
+        fieldMapping:
+          leftAxisValues:
+            - started
+            - max_clusters
+          timestamp: timeframe
+        gapPolicy: connect
+        legend:
+          position: bottom
+      thresholds: []
+      dataMapping:
+        displayedFields:
+          - snowflake.warehouse.name
+          - deployment.environment
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+
+  "13":
+    title: Resource monitor quota usage over time
+    type: data
+    query: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "resource_monitors"
+      | filter `dsoa.run.context` == "resource_monitors"
+      | filter in(deployment.environment, array($Accounts))
+      | filter isNotNull(`snowflake.resource_monitor.name`)
+      | fieldsAdd quota_used_n = toDouble(`snowflake.credits.quota.used`),
+                  quota_n = toDouble(`snowflake.credits.quota`)
+      | makeTimeseries {
+            quota_used = avg(quota_used_n),
+            quota_total = avg(quota_n)
+          },
+          by: { `snowflake.resource_monitor.name`, deployment.environment },
+          time: timestamp
+    visualization: lineChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        leftYAxisSettings:
+          label: Credits
+          isLabelVisible: true
+        xAxisLabel: timeframe
+        xAxisScaling: analyzedTimeframe
+        fieldMapping:
+          leftAxisValues:
+            - quota_used
+            - quota_total
+          timestamp: timeframe
+        gapPolicy: connect
+        legend:
+          position: bottom
+      thresholds:
+        - id: 1
+          field: ""
+          title: Quota usage
+          isEnabled: true
+          rules:
+            - id: 0
+              color:
+                Default: "var(--dt-colors-charts-categorical-color-09-default, #649438)"
+              comparator: ≥
+              label: ""
+              value: 70
+            - id: 1
+              color:
+                Default: "var(--dt-colors-charts-categorical-color-14-default, #d56b1a)"
+              comparator: ≥
+              label: ""
+              value: 30
+            - id: 2
+              color:
+                Default: "var(--dt-colors-charts-categorical-color-12-default, #cd3741)"
+              comparator: <
+              label: ""
+              value: 30
+      dataMapping:
+        displayedFields:
+          - snowflake.resource_monitor.name
+          - deployment.environment
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+
+  # ----------------------------------------------------------------
+  # Section 4: Warehouse Load
+  # ----------------------------------------------------------------
+  "14":
+    type: markdown
+    content: |
+      ## Warehouse Load
+      Monitor query concurrency, queue depth, and blocked queries per warehouse.
+      Data source: `warehouse_usage` plugin (context: `warehouse_usage_load`).
+      Note: `ACCOUNT_USAGE.WAREHOUSE_LOAD_HISTORY` has a ~45-180 min ingestion lag.
+
+  "15":
+    title: Running vs queued queries over time
+    type: data
+    query: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "warehouse_usage"
+      | filter `dsoa.run.context` == "warehouse_usage_load"
+      | filter in(deployment.environment, array($Accounts))
+      | filter in(`snowflake.warehouse.name`, array($Warehouse))
+      | filter isNotNull(`snowflake.warehouse.name`)
+      | fieldsAdd running_n = toDouble(`snowflake.load.running`),
+                  queued_n = toDouble(`snowflake.load.queued.overloaded`)
+      | makeTimeseries {
+            running = avg(running_n),
+            queued  = avg(queued_n)
+          },
+          by: { `snowflake.warehouse.name`, deployment.environment },
+          time: timestamp
+    visualization: lineChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        leftYAxisSettings:
+          label: Query Count
+          isLabelVisible: true
+        xAxisLabel: timeframe
+        xAxisScaling: analyzedTimeframe
+        fieldMapping:
+          leftAxisValues:
+            - running
+            - queued
+          timestamp: timeframe
+        gapPolicy: connect
+        legend:
+          position: bottom
+      thresholds: []
+      dataMapping:
+        displayedFields:
+          - snowflake.warehouse.name
+          - deployment.environment
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+
+  "16":
+    title: Average running queries by warehouse
+    type: data
+    query: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "warehouse_usage"
+      | filter dsoa.run.context == "warehouse_usage_load"
+      | filter in(deployment.environment, array($Accounts))
+      | filter in(`snowflake.warehouse.name`, array($Warehouse))
+      | filter isNotNull(`snowflake.load.running`)
+      | summarize avg_running = avg(toDouble(`snowflake.load.running`)),
+          by: { `snowflake.warehouse.name` }
+      | sort avg_running desc
+    visualization: honeycomb
+    visualizationSettings:
+      honeycomb:
+        shape: hexagon
+        legend: auto
+        dataMappings:
+          value: avg_running
+        displayedFields:
+          - snowflake.warehouse.name
+        colorMode: color-palette
+        colorPalette: blue
+      thresholds: []
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+
+  "17":
+    title: Blocked queries over time
+    type: data
+    query: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "warehouse_usage"
+      | filter `dsoa.run.context` == "warehouse_usage_load"
+      | filter in(deployment.environment, array($Accounts))
+      | filter in(`snowflake.warehouse.name`, array($Warehouse))
+      | filter isNotNull(`snowflake.warehouse.name`)
+      | fieldsAdd blocked_n = toDouble(`snowflake.load.blocked`)
+      | makeTimeseries blocked = avg(blocked_n),
+          by: { `snowflake.warehouse.name`, deployment.environment },
+          time: timestamp
+    visualization: lineChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        leftYAxisSettings:
+          label: Blocked Queries
+          isLabelVisible: true
+        xAxisLabel: timeframe
+        xAxisScaling: analyzedTimeframe
+        fieldMapping:
+          leftAxisValues:
+            - blocked
+          timestamp: timeframe
+        gapPolicy: connect
+        legend:
+          position: bottom
+      thresholds:
+        - id: 1
+          field: ""
+          title: Blocked queries
+          isEnabled: true
+          rules:
+            - id: 0
+              color:
+                Default: "var(--dt-colors-charts-categorical-color-09-default, #649438)"
+              comparator: <
+              label: ""
+              value: 1
+            - id: 1
+              color:
+                Default: "var(--dt-colors-charts-categorical-color-14-default, #d56b1a)"
+              comparator: ≥
+              label: ""
+              value: 1
+      dataMapping:
+        displayedFields:
+          - snowflake.warehouse.name
+          - deployment.environment
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+
+layouts:
+  # ── Section 1 header ──────────────────────── y=0
+  "0":  {x: 0,  "y": 0,  w: 24, h: 1}
+  # ── Budget spending vs limit (bar)  y=1
+  "1":  {x: 0,  "y": 1,  w: 12, h: 5}
+  # ── Budget spending trend (line)  y=1
+  "2":  {x: 12, "y": 1,  w: 12, h: 5}
+  # ── Budget spending by service type (bar)  y=6
+  "3":  {x: 0,  "y": 6,  w: 12, h: 5}
+  # ── Budget details (table)  y=6
+  "4":  {x: 12, "y": 6,  w: 12, h: 5}
+
+  # ── Section 2 header ──────────────────────── y=11
+  "5":  {x: 0,  "y": 11, w: 24, h: 1}
+  # ── Total credits KPI  y=12
+  "6":  {x: 0,  "y": 12, w: 6,  h: 3}
+  # ── Total bytes KPI  y=12
+  "7":  {x: 6,  "y": 12, w: 6,  h: 3}
+  # ── Credits over time (line)  y=12
+  "8":  {x: 12, "y": 12, w: 12, h: 5}
+  # ── Bytes ingested over time (line)  y=15
+  "9":  {x: 0,  "y": 15, w: 12, h: 5}
+
+  # ── Section 3 header ──────────────────────── y=20
+  "10": {x: 0,  "y": 20, w: 24, h: 1}
+  # ── Warehouse sizing overview (table)  y=21
+  "11": {x: 0,  "y": 21, w: 24, h: 5}
+  # ── Cluster utilization (line)  y=26
+  "12": {x: 0,  "y": 26, w: 12, h: 5}
+  # ── Resource monitor quota usage (line)  y=26
+  "13": {x: 12, "y": 26, w: 12, h: 5}
+
+  # ── Section 4 header ──────────────────────── y=31
+  "14": {x: 0,  "y": 31, w: 24, h: 1}
+  # ── Running vs queued (line)  y=32
+  "15": {x: 0,  "y": 32, w: 12, h: 5}
+  # ── Average running queries heatmap  y=32
+  "16": {x: 12, "y": 32, w: 12, h: 5}
+  # ── Blocked queries (line)  y=37
+  "17": {x: 0,  "y": 37, w: 24, h: 5}
+
+settings:
+  autoRefresh:
+    enabled: true
+    interval: 300
+  defaultTimeframe:
+    value:
+      from: now()-7d
+      to: now()
+    enabled: true
+
+annotations: []
