@@ -113,7 +113,7 @@ tiles:
       Use these tables to target re-write or caching opportunities.
 
   "1":
-    title: Top 20 queries by total bytes scanned
+    title: Top $TopN queries by total bytes scanned
     type: data
     query: |
       fetch logs
@@ -668,8 +668,10 @@ tiles:
         | filter isNotNull(span.events)
         | filter not iAny(isNotNull(`span.events`[][`exception.type`]))
         | filter in(deployment.environment, array($Accounts))
-        | filter (isNull(db.namespace) or in(db.namespace, array($Database)))
-        | filter (isNull(db.user)      or in(db.user, array($User)))
+        | filter (isNull(db.namespace)             or in(db.namespace, array($Database)))
+        | filter (isNull(db.user)                  or in(db.user, array($User)))
+        | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
+        | filter (isNull(db.operation.name)        or in(db.operation.name, array($Operation)))
         | fieldsAdd operator_stats = iCollectArray(
             parse(span.events[][snowflake.query.operator.stats], """JSON:stats"""))
         | filter isNotNull(operator_stats)
@@ -717,12 +719,15 @@ tiles:
     query: |
       fetch spans
         | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "query_history"
         | filter isNotNull(span.events)
         | fieldsAdd spanErrors = span.events[][`exception.type`]
         | filter iAny(isNotNull(`span.events`[][`exception.type`]))
         | filter in(deployment.environment, array($Accounts))
-        | filter (isNull(db.namespace) or in(db.namespace, array($Database)))
-        | filter (isNull(db.user)      or in(db.user, array($User)))
+        | filter (isNull(db.namespace)             or in(db.namespace, array($Database)))
+        | filter (isNull(db.user)                  or in(db.user, array($User)))
+        | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
+        | filter (isNull(db.operation.name)        or in(db.operation.name, array($Operation)))
         | fieldsAdd
             exception_type    = iCollectArray(`span.events`[][`exception.type`]),
             exception_message = iCollectArray(`span.events`[][`exception.message`])
@@ -790,7 +795,7 @@ tiles:
         | filter (isNull(db.operation.name)        or in(db.operation.name, array($Operation)))
         | makeTimeseries invocations = sum(toDouble(snowflake.external_functions.invocations)), by: { snowflake.warehouse.name }
         | fieldsAdd sum_invocations = arraySum(invocations)
-        | sort sum_invocations
+        | sort sum_invocations desc
         | limit toLong($TopN)
         | fieldsRemove sum_invocations
     visualization: lineChart

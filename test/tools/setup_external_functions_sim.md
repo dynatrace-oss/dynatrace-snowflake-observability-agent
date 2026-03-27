@@ -174,6 +174,10 @@ The full endpoint for the external function will be:
 https://abc12345.execute-api.us-east-1.amazonaws.com/echo
 ```
 
+> **Note:** When using `<INVOKE_URL>` as a placeholder in the SQL snippets below, substitute
+> only the **hostname** portion (without the `https://` scheme), e.g.
+> `abc12345.execute-api.us-east-1.amazonaws.com`.
+
 Keep this URL — you will need it in Part 4.
 
 ### 2.4 Note the Lambda ARN
@@ -239,6 +243,11 @@ click **Add permissions** → **Create inline policy** → JSON tab, and paste:
   ]
 }
 ```
+
+> **Least-privilege note:** The wildcard `Resource` above is intentional for this simulation guide
+> because you may not yet know your API ID. For production use, replace it with the specific ARN
+> of your API stage and route, e.g.:
+> `arn:aws:execute-api:us-east-1:123456789012:<api-id>/$default/POST/echo`
 
 Click **Next** → name it `dsoa-ef-api-invoke` → **Create policy**.
 

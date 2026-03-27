@@ -12,7 +12,6 @@
 --
 --   Tables (source data for query patterns):
 --     FACT_ORDERS          (~12 000 rows across 3+ micro-partitions)
---     FACT_EVENTS          (~8 000 rows — wide rows to stress bytes-scanned)
 --     DIM_CUSTOMERS        (~1 000 rows)
 --     STAGING_ORDERS       (transient, populated + truncated each run)
 --
@@ -406,5 +405,8 @@ LIMIT 20;
 -- USE ROLE IDENTIFIER($owner_role);
 -- ALTER TASK DSOA_TEST_DB.QUERY_HISTORY_TEST.T_QUERY_WORKLOAD SUSPEND;
 -- DROP DATABASE IF EXISTS DSOA_TEST_DB;
+-- NOTE: DSOA_TEST_WH is owned by the role that created it (e.g. SYSADMIN),
+--       not by $owner_role. Use the creating role to drop it:
+-- USE ROLE SYSADMIN;
 -- DROP WAREHOUSE IF EXISTS DSOA_TEST_WH;
 -- ============================================================================
