@@ -2,6 +2,28 @@
 
 This directory contains example Dynatrace dashboards designed to visualize and analyze telemetry data collected by the Dynatrace Snowflake Observability Agent (DSOA). These dashboards provide comprehensive insights across the five themes of [Data Platform Observability](../DPO.md): Security, Operations, Costs, Performance, and Quality.
 
+- [Distribution Package](#distribution-package)
+- [Available Dashboards](#available-dashboards)
+  - [DSOA Self-Monitoring](#dsoa-self-monitoring)
+  - [Snowflake Query Performance](#snowflake-query-performance)
+  - [Snowflake Query Quality](#snowflake-query-quality)
+  - [Costs Monitoring](#costs-monitoring)
+  - [Tasks \& Pipelines Monitoring](#tasks--pipelines-monitoring)
+  - [Snowpipes Monitoring](#snowpipes-monitoring)
+  - [Snowflake Query Deep Dive](#snowflake-query-deep-dive)
+  - [Data Volume \& Storage](#data-volume--storage)
+  - [Snowflake Security](#snowflake-security)
+  - [Shares \& Governance](#shares--governance)
+- [Dashboard Structure](#dashboard-structure)
+- [Importing Dashboards](#importing-dashboards)
+  - [Using Pre-Generated JSON Files (Recommended)](#using-pre-generated-json-files-recommended)
+  - [Using Dynatrace UI](#using-dynatrace-ui)
+  - [Converting from YAML Source (Advanced)](#converting-from-yaml-source-advanced)
+- [Prerequisites](#prerequisites)
+- [Customization](#customization)
+- [Related Documentation](#related-documentation)
+- [Support and Contribution](#support-and-contribution)
+
 ## Distribution Package
 
 When you download the DSOA distribution package (`dynatrace_snowflake_observability_agent-*.zip`), the `dashboards/` directory contains ready-to-import JSON files for all example dashboards. These JSON files are automatically generated from the YAML source definitions and can be imported directly into your Dynatrace environment using the Dynatrace UI or API.
@@ -146,6 +168,25 @@ Each JSON file is named after its dashboard title (e.g., `Costs Monitoring.json`
 
 ---
 
+### [Data Volume & Storage](data-volume-storage/)
+
+**Purpose**: Monitor data growth, storage consumption, table freshness, and schema change history across Snowflake databases.
+
+**Key Features**:
+
+- Track storage byte and row count trends over time per database with headline KPI tiles
+- Identify the top 20 largest tables for capacity planning and archival prioritisation
+- Surface stale tables by days since last DML or DDL operation for lifecycle governance
+- Visualise table type distribution (BASE TABLE, TEMPORARY TABLE, EXTERNAL TABLE)
+- Audit recent DDL operations (CREATE, ALTER, DROP, REPLACE, UNDROP) with user attribution
+- Analyse DDL operation frequency over time and object type breakdown
+
+**Required Plugins**: `data_volume`, `data_schemas`
+
+**DPO Theme**: Quality, Costs, Security
+
+---
+
 ### [Snowflake Security](snowflake-security/)
 
 **Purpose**: Monitor security aspects and compliance of Snowflake accounts.
@@ -161,6 +202,25 @@ Each JSON file is named after its dashboard title (e.g., `Costs Monitoring.json`
 **Required Plugins**: `trust_center`, `login_history`, `query_history`
 
 **DPO Theme**: Security
+
+---
+
+### [Shares & Governance](shares-governance/)
+
+**Purpose**: Monitor the health, security posture, and governance of Snowflake data sharing across inbound and outbound shares.
+
+**Key Features**:
+
+- Full share inventory — all outbound and inbound shares with owner, database, and direction
+- Inbound share health monitoring — detect UNAVAILABLE shares, deleted-database references, and data-volume anomalies
+- Shared table row count and size tracking to detect truncated or unexpectedly empty inbound shares
+- Secure-objects-only compliance pie chart for outbound shares
+- Grant audit trail — every privilege grant per outbound share with grantee and granted-by attribution
+- Outbound grantee ranking to identify over-provisioned external sharing
+
+**Required Plugin**: `shares`
+
+**DPO Theme**: Security, Operations
 
 ---
 

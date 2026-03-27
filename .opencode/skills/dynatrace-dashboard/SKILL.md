@@ -63,6 +63,8 @@ These rules come from real debugging sessions — follow them strictly:
    - `tasks` plugin (`task_history`, `task_versions`, `serverless_tasks` contexts): **logs + metrics**
    - `dynamic_tables` plugin (`dynamic_tables`, `dynamic_table_refresh_history`, `dynamic_table_graph_history`): **logs + metrics**
    - `snowpipes` plugin: logs + events (timestamp events via `report_timestamp_events=True`)
+   - `shares` plugin (`inbound_shares`, `outbound_shares` contexts): **logs only** — use `fetch logs`; the `shares` context uses `report_timestamp_events=True` so those summary events go to `fetch events`, but per-share/per-grant detail rows are logs
+   - Default assumption for any new plugin context: **logs only**, unless `instruments-def.yml` or `_log_entries()` call explicitly shows `report_timestamp_events=True` or `report_all_as_events=True`
 
 2. **No `fetch metrics` for DSOA data.** DSOA does not use the standard
    Dynatrace metric ingestion pipeline. Use `timeseries` with a metric key
@@ -142,6 +144,148 @@ These rules come from real debugging sessions — follow them strictly:
     Document any known empty-field cases in the tile description or readme rather than
     silently dropping the filter.
 
+11. **Always add `unitsOverrides` for every byte (data-size) metric field.**
+    Dynatrace does not auto-detect byte units from metric keys — if you omit a
+    `unitsOverrides` entry, values are rendered as raw numbers (e.g. `947121664`)
+    instead of human-readable storage (e.g. `903.0 MiB`). The correct `unitCategory`
+    for storage metrics is `"data"` (not `"data-information"`). Apply this to every
+    output field that carries bytes — including intermediate computed fields like `v`
+    that come from a `timeseries` step and are displayed in a bar chart or table:
+
+    ```yaml
+    unitsOverrides:
+      - identifier: total_bytes   # the DQL field name, not the metric key
+        unitCategory: data
+        baseUnit: byte
+        displayUnit: null
+        decimals: 2
+        suffix: ""
+        delimiter: false
+        added: 1                  # unique integer, use 1/2/3/... per tile
+    ```
+
+    For `timeseries` tiles that expose both a summarised field **and** the raw
+    series array (`v`), add an override for each:
+
+    ```yaml
+    unitsOverrides:
+      - identifier: size          # summarised / computed field
+        unitCategory: data
+        baseUnit: byte
+        displayUnit: null
+        decimals: 2
+        suffix: ""
+        delimiter: false
+        added: 1
+      - identifier: v             # raw timeseries array shown in chart hover
+        unitCategory: data
+        baseUnit: byte
+        displayUnit: null
+        decimals: null
+        suffix: ""
+        delimiter: false
+        added: 2
+    ```
+
+    **Tiles that MUST have byte `unitsOverrides` in a data-volume dashboard:**
+    - Any `singleValue` tile summing `snowflake.data.size`
+    - Any `lineChart` / `barChart` showing `snowflake.data.size` or its aliases
+    - Any `table` tile with a column derived from a byte metric
+
+12. **`davis.componentState` must NOT appear on data tiles — only on markdown tiles.**
+    The `davis` block shape differs by tile type:
+
+    ```yaml
+    # ✅ CORRECT — markdown tile
+    type: markdown
+    davis:
+      componentState:
+        inputData: null
+
+    # ✅ CORRECT — data tile
+    type: data
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+
+    # ❌ WRONG — data tile with componentState causes "unable to load" crash
+    type: data
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:        # ← DELETE THIS from all data tiles
+        inputData: null
+    ```
+
+    A dashboard with `componentState` on any data tile shows "Something went wrong /
+    We were unable to load this dashboard" — even if the JSON structure and queries
+    are otherwise valid. Always verify after writing tiles: data tiles have exactly
+    `enabled` + `davisVisualization`; markdown tiles have exactly `componentState`.
+
+13. **`honeycomb` `dataMappings` is an object, not an array. Colouring goes in `coloring.colorRules`.**
+
+    ```yaml
+    # ✅ CORRECT
+    visualizationSettings:
+      honeycomb:
+        shape: square
+        legend:
+          position: right
+        dataMappings:
+          value: state_code          # object with single key "value"
+        displayedFields:
+          - snowflake.task.name
+          - state
+        labels:
+          showLabels: true
+      coloring:
+        colorRules:
+          - color: "var(--dt-colors-charts-apdex-excellent-default, #2a7453)"
+            colorMode: single-color
+            comparator: "="
+            field: state_code
+            type: long               # "long" for numeric, "string" for text
+            value: 1
+
+    # ❌ WRONG — array dataMappings, thresholds at wrong level
+    visualizationSettings:
+      honeycomb:
+        dataMappings:
+          - valueField: state_code   # ← wrong: array with valueField/labelField/colorField
+            labelField: name
+            colorField: status
+      thresholds:                    # ← wrong level: thresholds here crashes the dashboard
+        - field: status
+          rules: [...]
+    ```
+
+14. **`categoricalBarChart` axis fields are strings, not arrays.**
+
+    ```yaml
+    # ✅ CORRECT
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        legend:
+          hidden: true
+        categoryOverrides: {}
+        categoricalBarChartSettings:
+          categoryAxis: snowflake.pipe.name    # string
+          categoryAxisLabel: Pipe
+          valueAxis: count                     # string
+          valueAxisLabel: Count
+      thresholds: []
+
+    # ❌ WRONG — arrays crash the dashboard
+    categoricalBarChartSettings:
+      categoryAxis:
+        - snowflake.pipe.name                  # ← must be a plain string
+      valueAxis:
+        - count
+    ```
+
 ## YAML Dashboard Format
 ```yaml
 # DASHBOARD: <Human-readable title>
@@ -150,6 +294,8 @@ These rules come from real debugging sessions — follow them strictly:
 # PLUGINS: <comma-separated plugin names>
 # TAGS: snowflake, dsoa, <domain>
 
+id: <uuid>                  # assigned after first deploy; omit on initial creation
+name: <Human-readable title> # REQUIRED — must match dashboard display name
 version: 15
 
 variables:
@@ -228,9 +374,78 @@ For workflows, the same script applies:
 Use `dtctl apply` to create or update dashboards and workflows.
 Always use `-A` for structured agent-friendly output.
 
-### Create new dashboard (no ID in file):
+### CRITICAL: Correct JSON envelope format for dashboards
+
+`dtctl apply` expects the **same envelope structure that `dtctl get` returns** —
+not a flat JSON file. The correct shape is:
+
+```json
+{
+  "id":   "<uuid>",
+  "name": "<Dashboard Name>",
+  "type": "dashboard",
+  "content": { ...full dashboard JSON from YAML conversion... }
+}
+```
+
+To produce this correctly from the YAML source:
+
 ```bash
-dtctl apply -A -f /tmp/<name>.json
+./scripts/tools/yaml-to-json.sh docs/dashboards/<name>/<name>.yml > /tmp/inner.json
+
+python3 -c "
+import json
+inner = json.load(open('/tmp/inner.json'))
+# CRITICAL: pop id/name OUT of content — they belong only at envelope level.
+# Leaving them inside content causes 'We were unable to load this dashboard.'
+dashboard_id   = inner.pop('id')
+dashboard_name = inner.pop('name')
+envelope = {
+    'id':      dashboard_id,
+    'name':    dashboard_name,
+    'type':    'dashboard',
+    'content': inner
+}
+json.dump(envelope, open('/tmp/<name>-apply.json', 'w'), indent=2)
+"
+
+dtctl apply -A -f /tmp/<name>-apply.json
+```
+
+Verify after apply that `tiles count` is correct (not 0):
+
+```bash
+dtctl get dashboard <id> -o json | python3 -c "
+import sys, json; d=json.load(sys.stdin)
+print('tiles:', len(d.get('content',{}).get('tiles',{})))
+"
+```
+
+If tiles count is 0 after apply, the envelope was wrong (flat file was passed
+instead of the wrapped envelope). Rebuild the envelope and reapply.
+
+**Critical rules:**
+- `id` and `name` must be **popped** from `inner` before wrapping — they must appear at
+  envelope level **only**. Leaving them inside `content` causes the dashboard to fail to
+  load: "We were unable to load this dashboard."
+- **Do NOT** pass the flat converted JSON directly to `dtctl apply` — that causes
+  `dtctl` to wrap it a second time, producing an empty dashboard that fails to load.
+
+### Create new dashboard (no ID in file):
+
+For a brand-new dashboard, omit `id` from the envelope. `dtctl apply` assigns one:
+
+```bash
+python3 -c "
+import json
+inner = json.load(open('/tmp/inner.json'))
+# pop id if present (it may not exist for new dashboards)
+inner.pop('id', None)
+dashboard_name = inner.pop('name')
+envelope = {'name': dashboard_name, 'type': 'dashboard', 'content': inner}
+json.dump(envelope, open('/tmp/<name>-apply.json', 'w'), indent=2)
+"
+dtctl apply -A -f /tmp/<name>-apply.json
 ```
 
 The response will include the assigned dashboard ID. **Record this ID** and add
@@ -238,8 +453,11 @@ it to the YAML file as a top-level `id:` field so future runs update rather than
 create a duplicate.
 
 ### Update existing dashboard (ID already in file):
+
+Build the envelope as shown above (with `id` included) and apply:
+
 ```bash
-dtctl apply -A -f /tmp/<name>.json
+dtctl apply -A -f /tmp/<name>-apply.json
 ```
 
 `dtctl apply` is idempotent: if the ID exists it updates, otherwise it creates.
@@ -357,23 +575,21 @@ Possible outcomes:
 === PHASE B: Dashboard Authoring and Deployment ===
 
 6.  Write dashboard YAML in docs/dashboards/<name>/<name>.yml
-7.  Convert:  ./scripts/tools/yaml-to-json.sh ... > /tmp/<name>.json
-8.  Validate: jq . /tmp/<name>.json
-9.  Deploy:   dtctl apply -A -f /tmp/<name>.json
-10. Record the returned ID — embed it in the YAML as `id: <uuid>`
-11. Re-convert, inject id/name/type with python3, re-deploy to update in place:
-      python3 -c "
-      import json
-      with open('/tmp/<name>.json') as f:
-          d = json.load(f)
-      d['id']   = '<uuid>'
-      d['name'] = '<Human-readable title>'
-      d['type'] = 'dashboard'
-      with open('/tmp/<name>-apply.json', 'w') as f:
-          json.dump(d, f)
-      "
+7.  Convert:  ./scripts/tools/yaml-to-json.sh ... > /tmp/inner.json
+8.  Validate: jq . /tmp/inner.json
+9.  Build envelope and deploy (see "Deploying with dtctl" section above for the
+    mandatory envelope-wrapping step — do NOT pass the flat JSON directly):
+      python3 -c "import json; inner=json.load(open('/tmp/inner.json')); \
+        json.dump({'name':inner['name'],'type':'dashboard','content':inner}, \
+        open('/tmp/<name>-apply.json','w'))"
       dtctl apply -A -f /tmp/<name>-apply.json
-12. Verify every tile renders real data in the Dynatrace UI.
+10. Record the returned ID — add it to the YAML as `id: <uuid>`. Re-convert,
+    rebuild envelope (this time with 'id' included), and re-deploy:
+      dtctl apply -A -f /tmp/<name>-apply.json
+11. Verify tiles: dtctl get dashboard <id> -o json | python3 -c \
+      "import sys,json; d=json.load(sys.stdin); print('tiles:',len(d.get('content',{}).get('tiles',{})))"
+    Expected: tiles == 14 (or however many your dashboard has). If 0, envelope was wrong.
+12. Verify every tile renders real data in the Dynatrace UI
 
 === PHASE C: Documentation ===
 

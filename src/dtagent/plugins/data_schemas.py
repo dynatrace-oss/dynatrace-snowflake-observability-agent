@@ -42,18 +42,24 @@ class DataSchemasPlugin(Plugin):
     PLUGIN_NAME = "data_schemas"
 
     def _compress_properties(self, properties_value: Dict) -> Dict:
-        """Ensures that snowflake.object.ddl.properties is compressed in the 'columns' object"""
+        """Ensures that snowflake.object.ddl.properties is compressed in the 'columns' object.
+
+        The ``columns`` field from ACCOUNT_USAGE.ACCESS_HISTORY is a list of dicts, each with
+        ``objectName`` and ``subOperationType``.  We group column names by sub-operation type
+        so the resulting attribute is compact and DT-event-friendly.
+
+        The ``creationMode`` field is a plain string (e.g. ``"CREATE"``); no further processing.
+        """
         from collections import defaultdict
 
         def __process(k: str, v: Any) -> Any:
-            if k == "columns":
-                result = defaultdict(list)
-                for column, details in v.items():
-                    sub_op_type = details.get("subOperationType", "unknown")
-                    result[str(sub_op_type)].append(column)
+            if k == "columns" and isinstance(v, list):
+                result: Dict[str, List] = defaultdict(list)
+                for col in v:
+                    if isinstance(col, dict):
+                        sub_op = str(col.get("subOperationType", "unknown"))
+                        result[sub_op].append(col.get("objectName", ""))
                 return dict(result)
-            if k == "creationMode":
-                return v.get("value", v)
             return v
 
         return {k: __process(k, v) for k, v in properties_value.items()}
