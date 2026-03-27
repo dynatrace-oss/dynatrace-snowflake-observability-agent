@@ -10,12 +10,12 @@ understand where costs originate, and right-size compute resources.
 
 The dashboard covers four observable dimensions:
 
-| Section | Observable Dimension | DSOA Plugins |
-|---|---|---|
-| 1 — Budget Analysis | Budget credit spend vs. limit | `budgets` |
-| 2 — Event Table Ingest | Event-table ingestion credits and bytes | `event_usage` |
+| Section                    | Observable Dimension                        | DSOA Plugins        |
+|----------------------------|---------------------------------------------|---------------------|
+| 1 — Budget Analysis        | Budget credit spend vs. limit               | `budgets`           |
+| 2 — Event Table Ingest     | Event-table ingestion credits and bytes     | `event_usage`       |
 | 3 — Warehouse Optimization | Warehouse sizing, compute %, cluster config | `resource_monitors` |
-| 4 — Warehouse Load | Running / queued / blocked query counts | `warehouse_usage` |
+| 4 — Warehouse Load         | Running / queued / blocked query counts     | `warehouse_usage`   |
 
 ## Prerequisites
 
@@ -23,12 +23,12 @@ The dashboard covers four observable dimensions:
 
 All four plugins must be enabled and collecting telemetry:
 
-| Plugin | Telemetry | Default Schedule | Notes |
-|---|---|---|---|
-| `budgets` | logs, metrics, events | `USING CRON 30 0 * * * UTC` | Disabled by default — requires `is_enabled: true` and `is_disabled: false` |
-| `event_usage` | logs | `USING CRON 0 * * * * UTC` | ACCOUNT_USAGE lag: 45–180 min |
-| `warehouse_usage` | logs, metrics | `USING CRON */30 * * * * UTC` | ACCOUNT_USAGE lag: 45–180 min |
-| `resource_monitors` | logs, metrics, events | `USING CRON */30 * * * * UTC` | Reads live `SHOW WAREHOUSES` |
+| Plugin              | Telemetry             | Default Schedule              | Notes                                                                      |
+|---------------------|-----------------------|-------------------------------|----------------------------------------------------------------------------|
+| `budgets`           | logs, metrics, events | `USING CRON 30 0 * * * UTC`   | Disabled by default — requires `is_enabled: true` and `is_disabled: false` |
+| `event_usage`       | logs                  | `USING CRON 0 * * * * UTC`    | ACCOUNT_USAGE lag: 45–180 min                                              |
+| `warehouse_usage`   | logs, metrics         | `USING CRON */30 * * * * UTC` | ACCOUNT_USAGE lag: 45–180 min                                              |
+| `resource_monitors` | logs, metrics, events | `USING CRON */30 * * * * UTC` | Reads live `SHOW WAREHOUSES`                                               |
 
 To enable all four plugins, add the following to your DSOA configuration file
 (`conf/config-<env>.yml`):
@@ -65,11 +65,11 @@ Then rebuild and redeploy:
 
 ## Dashboard Variables
 
-| Variable | Type | Description |
-|---|---|---|
-| `$Accounts` | Multi-select query | Filters all tiles to specific `deployment.environment` values (Snowflake accounts monitored by DSOA). |
-| `$Budget` | Multi-select query | Filters Budget Analysis tiles to specific budget names. |
-| `$Warehouse` | Multi-select query | Filters Warehouse Optimization and Load tiles to specific warehouses. |
+| Variable     | Type               | Description                                                                                           |
+|--------------|--------------------|-------------------------------------------------------------------------------------------------------|
+| `$Accounts`  | Multi-select query | Filters all tiles to specific `deployment.environment` values (Snowflake accounts monitored by DSOA). |
+| `$Budget`    | Multi-select query | Filters Budget Analysis tiles to specific budget names.                                               |
+| `$Warehouse` | Multi-select query | Filters Warehouse Optimization and Load tiles to specific warehouses.                                 |
 
 All three variables support multi-select. Leave blank to show all values.
 
@@ -79,12 +79,12 @@ All three variables support multi-select. Leave blank to show all values.
 
 Tracks credit spend against configured budget limits.
 
-| Tile | Type | Description |
-|---|---|---|
+| Tile                   | Type         | Description                                                                 |
+|------------------------|--------------|-----------------------------------------------------------------------------|
 | Budget Spend (Credits) | Single Value | Total credits spent across all monitored budgets in the selected timeframe. |
-| Budget Utilisation (%) | Single Value | Average credit spend as a percentage of the configured spending limit. |
-| Credit Spend by Budget | Bar Chart | Side-by-side comparison of credits spent per budget. |
-| Credit Spend Trend | Line Chart | Credit spend over time per budget — useful for spotting sudden cost spikes. |
+| Budget Utilisation (%) | Single Value | Average credit spend as a percentage of the configured spending limit.      |
+| Credit Spend by Budget | Bar Chart    | Side-by-side comparison of credits spent per budget.                        |
+| Credit Spend Trend     | Line Chart   | Credit spend over time per budget — useful for spotting sudden cost spikes. |
 
 **Data source**: `fetch logs` on `dsoa.run.context == "spendings"` and
 `dsoa.run.context == "budgets"`.
@@ -94,12 +94,12 @@ Tracks credit spend against configured budget limits.
 Monitors ingestion credit consumption and data volume flowing through Snowflake
 event tables.
 
-| Tile | Type | Description |
-|---|---|---|
+| Tile                 | Type         | Description                                                             |
+|----------------------|--------------|-------------------------------------------------------------------------|
 | Event Ingest Credits | Single Value | Total credits used for event-table ingestion in the selected timeframe. |
-| Event Ingest Bytes | Single Value | Total bytes ingested into event tables. |
-| Ingest Credits Trend | Line Chart | Credit consumption for event-table ingestion over time. |
-| Ingest Bytes Trend | Line Chart | Byte ingestion volume over time — correlated with credits. |
+| Event Ingest Bytes   | Single Value | Total bytes ingested into event tables.                                 |
+| Ingest Credits Trend | Line Chart   | Credit consumption for event-table ingestion over time.                 |
+| Ingest Bytes Trend   | Line Chart   | Byte ingestion volume over time — correlated with credits.              |
 
 **Data source**: `fetch logs` on `dsoa.run.context == "event_usage"`.
 
@@ -112,12 +112,12 @@ run — allow up to 3 hours for initial population.
 Provides per-warehouse sizing and compute utilisation metrics to support
 right-sizing decisions.
 
-| Tile | Type | Description |
-|---|---|---|
-| Unmonitored Warehouses | Single Value | Count of warehouses with no resource monitor assigned — a FinOps risk indicator. |
-| Compute Available (%) | Line Chart | Percentage of warehouse compute actively available vs. provisioning or quiescing. |
-| Cluster Count Trend | Line Chart | Started cluster count over time for multi-cluster warehouses. |
-| Warehouse Sizing Table | Data Table | Last-seen per-warehouse details: size, type, auto-suspend, min/max clusters, resource monitor, budget. |
+| Tile                   | Type         | Description                                                                                            |
+|------------------------|--------------|--------------------------------------------------------------------------------------------------------|
+| Unmonitored Warehouses | Single Value | Count of warehouses with no resource monitor assigned — a FinOps risk indicator.                       |
+| Compute Available (%)  | Line Chart   | Percentage of warehouse compute actively available vs. provisioning or quiescing.                      |
+| Cluster Count Trend    | Line Chart   | Started cluster count over time for multi-cluster warehouses.                                          |
+| Warehouse Sizing Table | Data Table   | Last-seen per-warehouse details: size, type, auto-suspend, min/max clusters, resource monitor, budget. |
 
 **Data source**: `fetch logs` on `dsoa.run.context == "warehouses"` and
 `timeseries` on `snowflake.compute.available`, `snowflake.warehouse.clusters.started`.
@@ -127,12 +127,12 @@ right-sizing decisions.
 Shows query execution load on each warehouse — running, queued, and blocked
 query counts.
 
-| Tile | Type | Description |
-|---|---|---|
-| Running Queries | Line Chart | Concurrent running queries per warehouse over time. |
-| Queued Queries | Line Chart | Queued query count per warehouse — elevated values indicate warehouse saturation. |
-| Blocked Queries | Line Chart | Blocked query count — may indicate transaction contention. |
-| Load Heatmap | Honeycomb | Per-warehouse colour-coded load summary (running + queued + blocked) for at-a-glance fleet health. |
+| Tile            | Type       | Description                                                                                        |
+|-----------------|------------|----------------------------------------------------------------------------------------------------|
+| Running Queries | Line Chart | Concurrent running queries per warehouse over time.                                                |
+| Queued Queries  | Line Chart | Queued query count per warehouse — elevated values indicate warehouse saturation.                  |
+| Blocked Queries | Line Chart | Blocked query count — may indicate transaction contention.                                         |
+| Load Heatmap    | Honeycomb  | Per-warehouse colour-coded load summary (running + queued + blocked) for at-a-glance fleet health. |
 
 **Data source**: `timeseries` on `snowflake.queries.running`,
 `snowflake.queries.queued`, `snowflake.queries.blocked`.
@@ -142,11 +142,11 @@ ingestion lag. The load tiles reflect a delayed view of warehouse activity.
 
 ## Default Settings
 
-| Setting | Value |
-|---|---|
-| Default time range | 7 days |
-| Auto-refresh interval | 5 minutes |
-| Default variables | All accounts / all budgets / all warehouses |
+| Setting               | Value                                       |
+|-----------------------|---------------------------------------------|
+| Default time range    | 7 days                                      |
+| Auto-refresh interval | 5 minutes                                   |
+| Default variables     | All accounts / all budgets / all warehouses |
 
 ## Related Dashboards
 

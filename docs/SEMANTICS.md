@@ -94,38 +94,40 @@ All telemetry delivered by this plugin is reported as `dsoa.run.context == "acti
 
 [Show plugin description](PLUGINS.md#budgets_info_sec)
 
-All telemetry delivered by this plugin is reported as `dsoa.run.context == "budgets"`.
+This plugin delivers telemetry in multiple contexts. To filter by one of plugin's context names (reported as `dsoa.run.context`), please
+check the `Context Name` column below.
 
 ### Dimensions at the `Budgets` plugin
 
-| Identifier                           | Description                                                                                                                                                                                                                                                                                                                                                     | Example            |
-| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
-| db.&#8203;namespace                  | The name of the database that was specified in the context of the query at compilation.                                                                                                                                                                                                                                                                         | analytics_db       |
-| snowflake.&#8203;budget.&#8203;name  | Name of the budget.                                                                                                                                                                                                                                                                                                                                             | monthly_budget     |
-| snowflake.&#8203;schema.&#8203;name  | Schema that was specified in the context of the query at compilation.                                                                                                                                                                                                                                                                                           | public             |
-| snowflake.&#8203;service.&#8203;type | Type of service that is consuming credits, which can be one of the following: <br>- AUTO_CLUSTERING, <br>- HYBRID_TABLE_REQUESTS, <br>- MATERIALIZED_VIEW, <br>- PIPE, <br>- QUERY_ACCELERATION, <br>- SEARCH_OPTIMIZATION, <br>- SERVERLESS_ALERTS, <br>- SERVERLESS_TASK, <br>- SNOWPIPE_STREAMING, <br>- WAREHOUSE_METERING, <br>- WAREHOUSE_METERING_READER | WAREHOUSE_METERING |
+| Identifier                               | Description                                                                                                                                                                                                                                                                                                                                                     | Example                             | Context Name       |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- | ------------------ |
+| db.&#8203;namespace                      | The name of the database that was specified in the context of the query at compilation.                                                                                                                                                                                                                                                                         | analytics_db                        | budgets, spendings |
+| snowflake.&#8203;budget.&#8203;full_name | Fully<br>-qualified name of the budget (DATABASE.SCHEMA.NAME).                                                                                                                                                                                                                                                                                                  | ANALYTICS_DB.BUDGETS.MONTHLY_BUDGET | budgets, spendings |
+| snowflake.&#8203;budget.&#8203;name      | Name of the budget.                                                                                                                                                                                                                                                                                                                                             | monthly_budget                      | budgets, spendings |
+| snowflake.&#8203;schema.&#8203;name      | Schema that was specified in the context of the query at compilation.                                                                                                                                                                                                                                                                                           | public                              | budgets, spendings |
+| snowflake.&#8203;service.&#8203;type     | Type of service that is consuming credits, which can be one of the following: <br>- AUTO_CLUSTERING, <br>- HYBRID_TABLE_REQUESTS, <br>- MATERIALIZED_VIEW, <br>- PIPE, <br>- QUERY_ACCELERATION, <br>- SEARCH_OPTIMIZATION, <br>- SERVERLESS_ALERTS, <br>- SERVERLESS_TASK, <br>- SNOWPIPE_STREAMING, <br>- WAREHOUSE_METERING, <br>- WAREHOUSE_METERING_READER | WAREHOUSE_METERING                  | spendings          |
 
 ### Attributes at the `Budgets` plugin
 
-| Identifier                                            | Description                                                                                                             | Example                       |
-| ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
-| snowflake.&#8203;budget.&#8203;owner                  | The owner of the budget, typically the user or role responsible for managing the budget.                                | budget_admin                  |
-| snowflake.&#8203;budget.&#8203;owner.&#8203;role_type | The type of role assigned to the budget owner, indicating their level of access and responsibilities.                   | ACCOUNTADMIN                  |
-| snowflake.&#8203;budget.&#8203;resource               | The resources linked to the budget, such as databases, warehouses, or other Snowflake objects that the budget monitors. | [ "database1", "warehouse1" ] |
+| Identifier                                            | Description                                                                                                             | Example                       | Context Name |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ----------------------------- | ------------ |
+| snowflake.&#8203;budget.&#8203;owner                  | The owner of the budget, typically the user or role responsible for managing the budget.                                | budget_admin                  | budgets      |
+| snowflake.&#8203;budget.&#8203;owner.&#8203;role_type | The type of role assigned to the budget owner, indicating their level of access and responsibilities.                   | ACCOUNTADMIN                  | budgets      |
+| snowflake.&#8203;budget.&#8203;resource               | The resources linked to the budget, such as databases, warehouses, or other Snowflake objects that the budget monitors. | [ "database1", "warehouse1" ] | budgets      |
 
 ### Metrics at the `Budgets` plugin
 
-| Identifier                            | Name                  | Unit    | Description                                                     | Example |
-| ------------------------------------- | --------------------- | ------- | --------------------------------------------------------------- | ------- |
-| snowflake.&#8203;credits.&#8203;limit | Budget Spending Limit | credits | The number of credits set as the spending limit for the budget. | 100     |
-| snowflake.&#8203;credits.&#8203;spent | Credits Spent         | credits | Number of credits used.                                         | 75      |
+| Identifier                            | Name                  | Unit    | Description                                                     | Example | Context Name |
+| ------------------------------------- | --------------------- | ------- | --------------------------------------------------------------- | ------- | ------------ |
+| snowflake.&#8203;credits.&#8203;limit | Budget Spending Limit | credits | The number of credits set as the spending limit for the budget. | 100     | budgets      |
+| snowflake.&#8203;credits.&#8203;spent | Credits Spent         | credits | Number of credits used.                                         | 75      | spendings    |
 
 ### Event timestamps at the `Budgets` plugin
 
-| Identifier                                | Description                                                                                                                                                                                           | Example                     |
-| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
-| snowflake.&#8203;budget.&#8203;created_on | The timestamp when the budget was created.                                                                                                                                                            | 2024-11-30 23:59:59.999     |
-| snowflake.&#8203;event.&#8203;trigger     | Additionally to sending logs, each entry in `EVENT_TIMESTAMPS` is sent as event with key set to `snowflake.event.trigger`, value to key from `EVENT_TIMESTAMPS` and `timestamp` set to the key value. | snowflake.budget.created_on |
+| Identifier                                | Description                                                                                                                                                                                           | Example                     | Context Name |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- | ------------ |
+| snowflake.&#8203;budget.&#8203;created_on | The timestamp when the budget was created.                                                                                                                                                            | 2024-11-30 23:59:59.999     | budgets      |
+| snowflake.&#8203;event.&#8203;trigger     | Additionally to sending logs, each entry in `EVENT_TIMESTAMPS` is sent as event with key set to `snowflake.event.trigger`, value to key from `EVENT_TIMESTAMPS` and `timestamp` set to the key value. | snowflake.budget.created_on | budgets      |
 
 <a name="data_schemas_semantics_sec"></a>
 
@@ -606,16 +608,18 @@ check the `Context Name` column below.
 
 ### Dimensions at the `Snowpipes` plugin
 
-| Identifier                                | Description                                                                       | Example                 | Context Name                                               |
-| ----------------------------------------- | --------------------------------------------------------------------------------- | ----------------------- | ---------------------------------------------------------- |
-| db.&#8203;collection.&#8203;name          | Target table for ingested data.                                                   | TARGET_TABLE            | snowpipes, snowpipes_copy_history                          |
-| db.&#8203;namespace                       | Database containing the target table or pipe.                                     | MY_DB                   | snowpipes, snowpipes_copy_history, snowpipes_usage_history |
-| snowflake.&#8203;pipe.&#8203;catalog_name | Database containing the pipe (from COPY_HISTORY).                                 | MY_DB                   | snowpipes_copy_history                                     |
-| snowflake.&#8203;pipe.&#8203;name         | Fully qualified pipe name.                                                        | MY_DB.MY_SCHEMA.MY_PIPE | snowpipes, snowpipes_copy_history, snowpipes_usage_history |
-| snowflake.&#8203;pipe.&#8203;owner        | Role owning the pipe.                                                             | LOADER_ROLE             | snowpipes                                                  |
-| snowflake.&#8203;pipe.&#8203;schema_name  | Schema containing the pipe (from COPY_HISTORY).                                   | MY_SCHEMA               | snowpipes_copy_history                                     |
-| snowflake.&#8203;pipe.&#8203;status       | Pipe execution state as original string: RUNNING, PAUSED, STOPPED*\*, STALLED*\*. | RUNNING                 | snowpipes                                                  |
-| snowflake.&#8203;schema.&#8203;name       | Schema containing the target table or pipe.                                       | MY_SCHEMA               | snowpipes, snowpipes_copy_history, snowpipes_usage_history |
+| Identifier                             | Description                                                                       | Example                              | Context Name                                               |
+| -------------------------------------- | --------------------------------------------------------------------------------- | ------------------------------------ | ---------------------------------------------------------- |
+| db.&#8203;collection.&#8203;name       | Target table for ingested data.                                                   | TARGET_TABLE                         | snowpipes, snowpipes_copy_history                          |
+| db.&#8203;namespace                    | Database containing the target table or pipe.                                     | MY_DB                                | snowpipes, snowpipes_copy_history, snowpipes_usage_history |
+| snowflake.&#8203;pipe.&#8203;catalog   | Database containing the pipe.                                                     | MY_DB                                | snowpipes, snowpipes_copy_history, snowpipes_usage_history |
+| snowflake.&#8203;pipe.&#8203;full_name | Fully qualified pipe name (database.schema.pipe).                                 | MY_DB.MY_SCHEMA.MY_PIPE              | snowpipes                                                  |
+| snowflake.&#8203;pipe.&#8203;id        | Unique pipe UUID (from PIPE_USAGE_HISTORY).                                       | a1b2c3d4-e5f6-7890-abcd-ef1234567890 | snowpipes_usage_history                                    |
+| snowflake.&#8203;pipe.&#8203;name      | Short pipe name.                                                                  | MY_PIPE                              | snowpipes, snowpipes_copy_history, snowpipes_usage_history |
+| snowflake.&#8203;pipe.&#8203;owner     | Role owning the pipe.                                                             | LOADER_ROLE                          | snowpipes                                                  |
+| snowflake.&#8203;pipe.&#8203;schema    | Schema containing the pipe.                                                       | MY_SCHEMA                            | snowpipes, snowpipes_copy_history, snowpipes_usage_history |
+| snowflake.&#8203;pipe.&#8203;status    | Pipe execution state as original string: RUNNING, PAUSED, STOPPED*\*, STALLED*\*. | RUNNING                              | snowpipes                                                  |
+| snowflake.&#8203;schema.&#8203;name    | Schema containing the target table or pipe.                                       | MY_SCHEMA                            | snowpipes, snowpipes_copy_history, snowpipes_usage_history |
 
 ### Attributes at the `Snowpipes` plugin
 
@@ -687,41 +691,41 @@ check the `Context Name` column below.
 
 ### Attributes at the `Tasks` plugin
 
-| Identifier                                               | Description                                    | Example               | Context Name                    |
-| -------------------------------------------------------- | ---------------------------------------------- | --------------------- | ------------------------------- |
-| db.&#8203;query.&#8203;text                              | The text of the query.                         | SELECT \* FROM users; | task_versions                   |
-| snowflake.&#8203;database.&#8203;id                      | The unique identifier for the database.        | db123                 | serverless_tasks, task_versions |
-| snowflake.&#8203;error.&#8203;code                       | The error code returned by the task.           | ERR123                | task_history                    |
-| snowflake.&#8203;error.&#8203;message                    | The error message returned by the task.        | Syntax error          | task_history                    |
-| snowflake.&#8203;query.&#8203;hash                       | The hash of the query.                         | hash123               | task_history                    |
-| snowflake.&#8203;query.&#8203;hash_version               | The version of the query hash.                 | v1                    | task_history                    |
-| snowflake.&#8203;query.&#8203;id                         | The unique identifier for the query.           | query123              | task_history                    |
-| snowflake.&#8203;query.&#8203;parametrized_hash          | The parameterized hash of the query.           | param_hash123         | task_history                    |
-| snowflake.&#8203;query.&#8203;parametrized_hash_version  | The version of the parameterized query hash.   | v1                    | task_history                    |
-| snowflake.&#8203;schema.&#8203;id                        | The unique identifier for the schema.          | schema123             | serverless_tasks, task_versions |
-| snowflake.&#8203;task.&#8203;condition                   | The condition text of the task.                | status = 'SUCCESS'    | task_versions, task_history     |
-| snowflake.&#8203;task.&#8203;config                      | The configuration of the task.                 | config123             | task_history                    |
-| snowflake.&#8203;task.&#8203;config.&#8203;allow_overlap | Indicates if overlapping execution is allowed. | true                  | task_versions                   |
-| snowflake.&#8203;task.&#8203;end_time                    | The end time of the task.                      | 1633046700000000000   | serverless_tasks                |
-| snowflake.&#8203;task.&#8203;error_integration           | The error integration for the task.            | error_integration123  | task_versions                   |
-| snowflake.&#8203;task.&#8203;graph.&#8203;root_id        | The root ID of the task graph.                 | root123               | task_versions, task_history     |
-| snowflake.&#8203;task.&#8203;graph.&#8203;version        | The version of the task graph.                 | v1                    | task_versions, task_history     |
-| snowflake.&#8203;task.&#8203;id                          | The unique identifier for the task.            | task123               | serverless_tasks, task_versions |
-| snowflake.&#8203;task.&#8203;instance_id                 | The unique identifier for the task instance.   | instance123           | serverless_tasks                |
-| snowflake.&#8203;task.&#8203;last_committed_on           | The last committed time of the task.           | 1633046400000000000   | task_versions                   |
-| snowflake.&#8203;task.&#8203;last_suspended_on           | The last suspended time of the task.           | 1633046700000000000   | task_versions                   |
-| snowflake.&#8203;task.&#8203;owner                       | The owner of the task.                         | admin                 | task_versions                   |
-| snowflake.&#8203;task.&#8203;predecessors                | The predecessors of the task.                  | taskA, taskB          | task_versions                   |
-| snowflake.&#8203;task.&#8203;run.&#8203;attempt          | The attempt number of the task run.            | 1                     | task_history                    |
-| snowflake.&#8203;task.&#8203;run.&#8203;completed_time   | The completed time of the task run.            | 1633046700000000000   | task_history                    |
-| snowflake.&#8203;task.&#8203;run.&#8203;group_id         | The group ID of the task run.                  | group123              | task_history                    |
-| snowflake.&#8203;task.&#8203;run.&#8203;id               | The unique identifier for the task run.        | run123                | task_history                    |
-| snowflake.&#8203;task.&#8203;run.&#8203;return_value     | The return value of the task run.              | 0                     | task_history                    |
-| snowflake.&#8203;task.&#8203;run.&#8203;scheduled_from   | The source from which the task was scheduled.  | CRON                  | task_history                    |
-| snowflake.&#8203;task.&#8203;run.&#8203;scheduled_time   | The scheduled time of the task run.            | 1633046400000000000   | task_history                    |
-| snowflake.&#8203;task.&#8203;run.&#8203;state            | The state of the task run.                     | RUNNING               | task_history                    |
-| snowflake.&#8203;task.&#8203;schedule                    | The schedule of the task.                      | `0 0 * * *`           | task_versions                   |
-| snowflake.&#8203;task.&#8203;start_time                  | The start time of the task.                    | 1633046400000000000   | serverless_tasks                |
+| Identifier                                               | Description                                    | Example                   | Context Name                    |
+| -------------------------------------------------------- | ---------------------------------------------- | ------------------------- | ------------------------------- |
+| db.&#8203;query.&#8203;text                              | The text of the query.                         | SELECT \* FROM users;     | task_versions                   |
+| snowflake.&#8203;database.&#8203;id                      | The unique identifier for the database.        | db123                     | serverless_tasks, task_versions |
+| snowflake.&#8203;error.&#8203;code                       | The error code returned by the task.           | ERR123                    | task_history                    |
+| snowflake.&#8203;error.&#8203;message                    | The error message returned by the task.        | Syntax error              | task_history                    |
+| snowflake.&#8203;query.&#8203;hash                       | The hash of the query.                         | hash123                   | task_history                    |
+| snowflake.&#8203;query.&#8203;hash_version               | The version of the query hash.                 | v1                        | task_history                    |
+| snowflake.&#8203;query.&#8203;id                         | The unique identifier for the query.           | query123                  | task_history                    |
+| snowflake.&#8203;query.&#8203;parametrized_hash          | The parameterized hash of the query.           | param_hash123             | task_history                    |
+| snowflake.&#8203;query.&#8203;parametrized_hash_version  | The version of the parameterized query hash.   | v1                        | task_history                    |
+| snowflake.&#8203;schema.&#8203;id                        | The unique identifier for the schema.          | schema123                 | serverless_tasks, task_versions |
+| snowflake.&#8203;task.&#8203;condition                   | The condition text of the task.                | status = 'SUCCESS'        | task_versions, task_history     |
+| snowflake.&#8203;task.&#8203;config                      | The configuration of the task.                 | config123                 | task_history                    |
+| snowflake.&#8203;task.&#8203;config.&#8203;allow_overlap | Indicates if overlapping execution is allowed. | true                      | task_versions                   |
+| snowflake.&#8203;task.&#8203;end_time                    | The end time of the task.                      | 1633046700000000000       | serverless_tasks                |
+| snowflake.&#8203;task.&#8203;error_integration           | The error integration for the task.            | error_integration123      | task_versions                   |
+| snowflake.&#8203;task.&#8203;graph.&#8203;root_id        | The root ID of the task graph.                 | root123                   | task_versions, task_history     |
+| snowflake.&#8203;task.&#8203;graph.&#8203;version        | The version of the task graph.                 | v1                        | task_versions, task_history     |
+| snowflake.&#8203;task.&#8203;id                          | The unique identifier for the task.            | task123                   | serverless_tasks, task_versions |
+| snowflake.&#8203;task.&#8203;instance_id                 | The unique identifier for the task instance.   | instance123               | serverless_tasks                |
+| snowflake.&#8203;task.&#8203;last_committed_on           | The last committed time of the task.           | 1633046400000000000       | task_versions                   |
+| snowflake.&#8203;task.&#8203;last_suspended_on           | The last suspended time of the task.           | 1633046700000000000       | task_versions                   |
+| snowflake.&#8203;task.&#8203;owner                       | The owner of the task.                         | admin                     | task_versions                   |
+| snowflake.&#8203;task.&#8203;predecessors                | The predecessors of the task.                  | taskA, taskB              | task_versions                   |
+| snowflake.&#8203;task.&#8203;run.&#8203;attempt          | The attempt number of the task run.            | 1                         | task_history                    |
+| snowflake.&#8203;task.&#8203;run.&#8203;completed_time   | The completed time of the task run.            | 2026-03-24 14:03:27.586 Z | task_history                    |
+| snowflake.&#8203;task.&#8203;run.&#8203;group_id         | The group ID of the task run.                  | group123                  | task_history                    |
+| snowflake.&#8203;task.&#8203;run.&#8203;id               | The unique identifier for the task run.        | run123                    | task_history                    |
+| snowflake.&#8203;task.&#8203;run.&#8203;return_value     | The return value of the task run.              | 0                         | task_history                    |
+| snowflake.&#8203;task.&#8203;run.&#8203;scheduled_from   | The source from which the task was scheduled.  | CRON                      | task_history                    |
+| snowflake.&#8203;task.&#8203;run.&#8203;scheduled_time   | The scheduled time of the task run.            | 2026-03-24 13:30:28.016 Z | task_history                    |
+| snowflake.&#8203;task.&#8203;run.&#8203;state            | The state of the task run.                     | RUNNING                   | task_history                    |
+| snowflake.&#8203;task.&#8203;schedule                    | The schedule of the task.                      | `0 0 * * *`               | task_versions                   |
+| snowflake.&#8203;task.&#8203;start_time                  | The start time of the task.                    | 1633046400000000000       | serverless_tasks                |
 
 ### Metrics at the `Tasks` plugin
 

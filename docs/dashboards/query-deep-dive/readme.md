@@ -20,14 +20,14 @@ The dashboard empowers teams to:
 
 ## Dashboard Variables
 
-| Variable | Dimension | Default | Description |
-|---|---|---|---|
-| `$Accounts` | `deployment.environment` | `*` (all) | Filter to one or more Snowflake accounts |
-| `$Warehouse` | `snowflake.warehouse.name` | `*` (all) | Filter by warehouse |
-| `$Database` | `db.namespace` | `*` (all) | Filter by database context |
-| `$User` | `db.user` | `*` (all) | Filter by Snowflake user |
-| `$Operation` | `db.operation.name` | `*` (all) | Filter by SQL operation type (SELECT, INSERT, etc.) |
-| `$TopN` | n/a | `10` | Controls how many series the Section 2 charts display (5 / 10 / 25 / 50) |
+| Variable     | Dimension                  | Default   | Description                                                              |
+|--------------|----------------------------|-----------|--------------------------------------------------------------------------|
+| `$Accounts`  | `deployment.environment`   | `*` (all) | Filter to one or more Snowflake accounts                                 |
+| `$Warehouse` | `snowflake.warehouse.name` | `*` (all) | Filter by warehouse                                                      |
+| `$Database`  | `db.namespace`             | `*` (all) | Filter by database context                                               |
+| `$User`      | `db.user`                  | `*` (all) | Filter by Snowflake user                                                 |
+| `$Operation` | `db.operation.name`        | `*` (all) | Filter by SQL operation type (SELECT, INSERT, etc.)                      |
+| `$TopN`      | n/a                        | `10`      | Controls how many series the Section 2 charts display (5 / 10 / 25 / 50) |
 
 The first five variables support multi-select and apply consistently across all data tiles.
 `$TopN` is a single-select static variable.

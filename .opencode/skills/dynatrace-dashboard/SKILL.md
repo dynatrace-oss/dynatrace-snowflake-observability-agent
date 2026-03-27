@@ -30,7 +30,7 @@ since dashboards may span multiple plugins (e.g. `snowpipes-monitoring`,
 ## Metric / Attribute Reference
 
 Before writing any DQL query, consult the plugin's semantic dictionary:
-```
+```text
 src/dtagent/plugins/<plugin-name>.config/instruments-def.yml
 ```
 

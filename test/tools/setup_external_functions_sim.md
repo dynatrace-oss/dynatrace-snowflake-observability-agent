@@ -12,7 +12,7 @@ Snowflake `ACCOUNTADMIN` access on the test account.
 
 ## Overview
 
-```
+```text
 SP_WORKLOAD_ROOT()
   └─ SELECT EF_ECHO(...)     ← Snowflake External Function
        └─ API Gateway (POST /echo)
@@ -164,13 +164,13 @@ Click **Create**.
 
 After creation, go to your API → **Stages** → `$default`. Copy the **Invoke URL**, e.g.:
 
-```
+```text
 https://abc12345.execute-api.us-east-1.amazonaws.com
 ```
 
 The full endpoint for the external function will be:
 
-```
+```text
 https://abc12345.execute-api.us-east-1.amazonaws.com/echo
 ```
 
@@ -180,7 +180,7 @@ Keep this URL — you will need it in Part 4.
 
 Go back to Lambda → `dsoa-ef-echo` → copy the **Function ARN** shown at the top, e.g.:
 
-```
+```text
 arn:aws:lambda:us-east-1:123456789012:function:dsoa-ef-echo
 ```
 
@@ -213,12 +213,12 @@ Snowflake principal and external ID.
 }
 ```
 
-4. Click **Next**. On the **Add permissions** page, click **Next** (no permissions needed —
+1. Click **Next**. On the **Add permissions** page, click **Next** (no permissions needed —
    Snowflake only needs `sts:AssumeRole`, not resource access).
-5. Name the role `dsoa-ef-snowflake-role`. Click **Create role**.
-6. Open the new role and copy its **ARN**, e.g.:
+2. Name the role `dsoa-ef-snowflake-role`. Click **Create role**.
+3. Open the new role and copy its **ARN**, e.g.:
 
-```
+```text
 arn:aws:iam::123456789012:role/dsoa-ef-snowflake-role
 ```
 
@@ -304,10 +304,10 @@ DESC INTEGRATION dsoa_test_api_integration;
 
 Look for these two rows in the result:
 
-| property                  | value                                                          |
-|---------------------------|----------------------------------------------------------------|
-| `API_AWS_IAM_USER_ARN`    | `arn:aws:iam::<snowflake-account-id>:user/xxxx`               |
-| `API_AWS_EXTERNAL_ID`     | `<some-string>_SFCRole=...`                                    |
+| property               | value                                           |
+|------------------------|-------------------------------------------------|
+| `API_AWS_IAM_USER_ARN` | `arn:aws:iam::<snowflake-account-id>:user/xxxx` |
+| `API_AWS_EXTERNAL_ID`  | `<some-string>_SFCRole=...`                     |
 
 Copy both values — you need them in the next step.
 
@@ -531,12 +531,12 @@ aws lambda delete-function --function-name dsoa-ef-echo --region us-east-1
 
 ## Troubleshooting
 
-| Symptom                                                 | Likely cause                                  | Fix                                                                                                                      |
-|---------------------------------------------------------|-----------------------------------------------|--------------------------------------------------------------------------------------------------------------------------|
-| `Insufficient privileges to operate on integration`     | `GRANT USAGE ON INTEGRATION` missing          | Run `GRANT USAGE ON INTEGRATION dsoa_test_api_integration TO ROLE DTAGENT_QA_OWNER;` as ACCOUNTADMIN (Step 4.1)          |
-| `Error calling remote service` on `SELECT ef_echo(...)` | API Gateway URL wrong or Lambda not deployed  | Re-run `curl` test from Step 3.1; check `API_ALLOWED_PREFIXES`                                                           |
-| `Integration not found`                                 | API integration not created with ACCOUNTADMIN | Run Step 4.1 as ACCOUNTADMIN                                                                                             |
-| Tiles 15–16 still empty after 1 hour                    | ACCOUNT_USAGE lag or DTAGENT not run          | Check `INFORMATION_SCHEMA.QUERY_HISTORY_BY_USER` for `external_function_total_invocations > 0`; trigger DTAGENT manually |
-| `500 Internal Server Error` / `JSONDecodeError` or `UnicodeDecodeError` in Lambda logs | Snowflake gzip-compresses and base64-encodes the body when using SigV4; old code without gzip handling crashes | Redeploy Lambda with the updated `lambda_function.py` from Step 1.3 |
-| `Error assuming AWS_ROLE` on `SELECT ef_echo(...)`      | Trust policy not updated with Snowflake principal | Re-check Step 4.3: `API_AWS_IAM_USER_ARN` and `API_AWS_EXTERNAL_ID` must be copied exactly from `DESC INTEGRATION`  |
-| `external_bytes_sent` is very small                     | Only 20 rows sent per run                     | Increase `LIMIT 20` in `SP_WORKLOAD_ROOT` Query 5 to 200                                                                 |
+| Symptom                                                                                | Likely cause                                                                                                   | Fix                                                                                                                      |
+|----------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------|
+| `Insufficient privileges to operate on integration`                                    | `GRANT USAGE ON INTEGRATION` missing                                                                           | Run `GRANT USAGE ON INTEGRATION dsoa_test_api_integration TO ROLE DTAGENT_QA_OWNER;` as ACCOUNTADMIN (Step 4.1)          |
+| `Error calling remote service` on `SELECT ef_echo(...)`                                | API Gateway URL wrong or Lambda not deployed                                                                   | Re-run `curl` test from Step 3.1; check `API_ALLOWED_PREFIXES`                                                           |
+| `Integration not found`                                                                | API integration not created with ACCOUNTADMIN                                                                  | Run Step 4.1 as ACCOUNTADMIN                                                                                             |
+| Tiles 15–16 still empty after 1 hour                                                   | ACCOUNT_USAGE lag or DTAGENT not run                                                                           | Check `INFORMATION_SCHEMA.QUERY_HISTORY_BY_USER` for `external_function_total_invocations > 0`; trigger DTAGENT manually |
+| `500 Internal Server Error` / `JSONDecodeError` or `UnicodeDecodeError` in Lambda logs | Snowflake gzip-compresses and base64-encodes the body when using SigV4; old code without gzip handling crashes | Redeploy Lambda with the updated `lambda_function.py` from Step 1.3                                                      |
+| `Error assuming AWS_ROLE` on `SELECT ef_echo(...)`                                     | Trust policy not updated with Snowflake principal                                                              | Re-check Step 4.3: `API_AWS_IAM_USER_ARN` and `API_AWS_EXTERNAL_ID` must be copied exactly from `DESC INTEGRATION`       |
+| `external_bytes_sent` is very small                                                    | Only 20 rows sent per run                                                                                      | Increase `LIMIT 20` in `SP_WORKLOAD_ROOT` Query 5 to 200                                                                 |
