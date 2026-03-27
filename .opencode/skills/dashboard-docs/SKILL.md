@@ -174,11 +174,18 @@ Dashboard ID: <uuid from dtctl>
 Synthetic setup: test/tools/setup_test_<plugin>.sql
 ```
 
+**Commit message rules:**
+
+- Do **not** include ticket or issue numbers (e.g. `BDX-1234`, `JIRA-567`) in
+  commit messages unless they are GitHub issue/PR numbers (e.g. `#83`).
+- Do **not** open a pull request. After committing, push the branch and inform
+  the human — PR creation is the human's responsibility.
+
 ---
 
 ## Implemented Use Cases — Final Summary
 
-After the git commit, output a **Use Cases Summary** so the human can
+After the git commit and push, output a **Use Cases Summary** so the human can
 verify scope coverage:
 
 ```markdown
