@@ -95,12 +95,20 @@ CREATE TABLE IF NOT EXISTS DSOA_TEST_DB.BUDGETS_FINOPS.DT_EVENTS (
 -- to populate.
 --
 -- Snowflake Budget DDL uses instance-method syntax (OBJECT!METHOD).
--- There is no CREATE IF NOT EXISTS for budgets; use a TRY/CATCH pattern in
--- a stored procedure (or just re-run manually — duplicate CREATE silently fails
--- with a warning in some runtimes, raises in others).
+-- CREATE BUDGET does NOT support IF NOT EXISTS — omit it; re-running this step
+-- when the budget already exists will raise an error that can be safely ignored.
 --
 -- We create DSOA_TEST_DB.BUDGETS_FINOPS.DSOA_TEST_BUDGET with a 50-credit limit
 -- and link DSOA_TEST_FINOPS_WH as a monitored resource.
+--
+-- TAG-SUBSTITUTION NOTE (tagged environments such as test-qa):
+--   prepare_deploy_script.sh rewrites DTAGENT_ SQL identifiers (DTAGENT_DB,
+--   DTAGENT_WH, DTAGENT_VIEWER, etc.) when a core.tag is configured.
+--   With tag=QA the deployed config table will contain the budget FQN exactly
+--   as written in conf/config-<env>.yml — string literals are NOT rewritten.
+--   Therefore write the FQN in the config file using the actual Snowflake object
+--   names that will exist at runtime (e.g. DSOA_TEST_DB.BUDGETS_FINOPS.DSOA_TEST_BUDGET),
+--   not DTAGENT_* placeholder names.
 --
 -- Grant the BUDGET_VIEWER app role to DTAGENT_QA_VIEWER so P_GET_BUDGETS can
 -- call the instance methods on both the root budget and the custom budget.
@@ -108,9 +116,9 @@ USE ROLE ACCOUNTADMIN;
 GRANT APPLICATION ROLE SNOWFLAKE.BUDGET_VIEWER TO ROLE DTAGENT_QA_VIEWER;
 
 -- Create the custom budget (requires ACCOUNTADMIN or BUDGET privilege).
--- Safe to re-run: if already exists, Snowflake raises an error we can ignore.
+-- If the budget already exists this statement will raise an error — ignore it.
 USE ROLE ACCOUNTADMIN;
-CREATE BUDGET IF NOT EXISTS DSOA_TEST_DB.BUDGETS_FINOPS.DSOA_TEST_BUDGET;
+CREATE BUDGET DSOA_TEST_DB.BUDGETS_FINOPS.DSOA_TEST_BUDGET;
 
 -- Set a 50-credit monthly spending limit on the budget.
 CALL DSOA_TEST_DB.BUDGETS_FINOPS.DSOA_TEST_BUDGET!SET_SPENDING_LIMIT(50);
@@ -124,7 +132,9 @@ CALL DSOA_TEST_DB.BUDGETS_FINOPS.DSOA_TEST_BUDGET!ADD_RESOURCE(
 GRANT USAGE ON DATABASE DSOA_TEST_DB TO ROLE DTAGENT_QA_VIEWER;
 GRANT USAGE ON SCHEMA   DSOA_TEST_DB.BUDGETS_FINOPS TO ROLE DTAGENT_QA_VIEWER;
 
--- Add the custom budget FQN to conf/config-test-qa.yml:
+-- Add the custom budget FQN to conf/config-test-qa.yml using the actual
+-- Snowflake object names (NOT DTAGENT_* placeholders — those are only for
+-- agent infrastructure objects, not user-created budgets):
 --   plugins:
 --     budgets:
 --       monitored_budgets:

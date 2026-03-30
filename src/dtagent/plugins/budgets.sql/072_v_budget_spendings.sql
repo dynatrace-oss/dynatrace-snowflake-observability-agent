@@ -40,7 +40,7 @@ select
 from DTAGENT_DB.APP.TMP_BUDGET_SPENDING bs
     join DTAGENT_DB.APP.TMP_BUDGETS b on bs.budget_name = b.name
 where
-    to_timestamp(bs.MEASUREMENT_DATE) > GREATEST(timeadd(hour, -24, current_timestamp), DTAGENT_DB.STATUS.F_LAST_PROCESSED_TS('budgets'))
+    to_date(bs.MEASUREMENT_DATE) >= to_date(GREATEST(timeadd(hour, -24, current_timestamp), DTAGENT_DB.STATUS.F_LAST_PROCESSED_TS('budgets')))
 order by
     bs.MEASUREMENT_DATE asc;
 

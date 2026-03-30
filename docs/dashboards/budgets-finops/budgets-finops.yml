@@ -22,11 +22,11 @@
 # DASHBOARD: Budgets & FinOps
 # DESCRIPTION: Snowflake budget tracking, event-table ingest costs, warehouse sizing and load analysis
 # OWNER: DSOA Team
-# PLUGINS: budgets, event_usage, warehouse_usage, resource_monitors
+# PLUGINS: budgets, warehouse_usage, resource_monitors
 # TAGS: snowflake, dsoa, finops, budgets, costs
 
 id: 64b09f3f-1faa-49c8-98ba-7aa496af8cdf
-version: 16
+version: 17
 
 variables:
   - version: 2
@@ -289,173 +289,16 @@ tiles:
         isAvailable: true
 
   # ----------------------------------------------------------------
-  # Section 2: Event Table Ingest Costs
+  # Section 2: Warehouse Optimization
   # ----------------------------------------------------------------
   "5":
-    type: markdown
-    content: |
-      ## Event Table Ingest Costs
-      Monitor credit consumption and data volume for Snowflake event table ingestion.
-      Data source: `event_usage` plugin (context: `event_usage`).
-      Note: `ACCOUNT_USAGE.EVENT_USAGE_HISTORY` has a ~45-180 min ingestion lag.
-
-  "6":
-    title: Event table credits used (total)
-    type: data
-    query: |-
-      fetch logs
-      | filter db.system == "snowflake"
-      | filter dsoa.run.plugin == "event_usage"
-      | filter in(deployment.environment, array($Accounts))
-      | filter isNotNull(`snowflake.credits.used`)
-      | summarize total_credits = sum(toDouble(`snowflake.credits.used`))
-    visualization: singleValue
-    visualizationSettings:
-      singleValue:
-        label: Total Credits Used
-        recordField: total_credits
-        autoscale: true
-        alignment: center
-      thresholds: []
-    querySettings:
-      maxResultRecords: 1000
-      defaultScanLimitGbytes: 500
-      maxResultMegaBytes: 100
-      defaultSamplingRatio: 10
-      enableSampling: false
-    davis:
-      enabled: false
-      davisVisualization:
-        isAvailable: true
-
-  "7":
-    title: Event table bytes ingested (total)
-    type: data
-    query: |-
-      fetch logs
-      | filter db.system == "snowflake"
-      | filter dsoa.run.plugin == "event_usage"
-      | filter in(deployment.environment, array($Accounts))
-      | filter isNotNull(`snowflake.data.ingested`)
-      | summarize total_bytes = sum(toDouble(`snowflake.data.ingested`))
-    visualization: singleValue
-    visualizationSettings:
-      singleValue:
-        label: Total Bytes Ingested
-        recordField: total_bytes
-        autoscale: true
-        alignment: center
-      thresholds: []
-    querySettings:
-      maxResultRecords: 1000
-      defaultScanLimitGbytes: 500
-      maxResultMegaBytes: 100
-      defaultSamplingRatio: 10
-      enableSampling: false
-    davis:
-      enabled: false
-      davisVisualization:
-        isAvailable: true
-
-  "8":
-    title: Event table credits over time
-    type: data
-    query: |-
-      fetch logs
-      | filter db.system == "snowflake"
-      | filter dsoa.run.plugin == "event_usage"
-      | filter in(deployment.environment, array($Accounts))
-      | filter isNotNull(`snowflake.credits.used`)
-      | fieldsAdd credits_n = toDouble(`snowflake.credits.used`)
-      | makeTimeseries credits = avg(credits_n),
-          by: { deployment.environment },
-          time: timestamp
-    visualization: lineChart
-    visualizationSettings:
-      chartSettings:
-        truncationMode: middle
-        leftYAxisSettings:
-          label: Credits Used
-          isLabelVisible: true
-        xAxisLabel: timeframe
-        xAxisScaling: analyzedTimeframe
-        fieldMapping:
-          leftAxisValues:
-            - credits
-          timestamp: timeframe
-        gapPolicy: connect
-        legend:
-          position: bottom
-      thresholds: []
-      dataMapping:
-        displayedFields:
-          - deployment.environment
-    querySettings:
-      maxResultRecords: 1000
-      defaultScanLimitGbytes: 500
-      maxResultMegaBytes: 100
-      defaultSamplingRatio: 10
-      enableSampling: false
-    davis:
-      enabled: false
-      davisVisualization:
-        isAvailable: true
-
-  "9":
-    title: Event table bytes ingested over time
-    type: data
-    query: |-
-      fetch logs
-      | filter db.system == "snowflake"
-      | filter dsoa.run.plugin == "event_usage"
-      | filter in(deployment.environment, array($Accounts))
-      | filter isNotNull(`snowflake.data.ingested`)
-      | fieldsAdd bytes_n = toDouble(`snowflake.data.ingested`)
-      | makeTimeseries bytes = avg(bytes_n),
-          by: { deployment.environment },
-          time: timestamp
-    visualization: lineChart
-    visualizationSettings:
-      chartSettings:
-        truncationMode: middle
-        leftYAxisSettings:
-          label: Bytes Ingested
-          isLabelVisible: true
-        xAxisLabel: timeframe
-        xAxisScaling: analyzedTimeframe
-        fieldMapping:
-          leftAxisValues:
-            - bytes
-          timestamp: timeframe
-        gapPolicy: connect
-        legend:
-          position: bottom
-      thresholds: []
-      dataMapping:
-        displayedFields:
-          - deployment.environment
-    querySettings:
-      maxResultRecords: 1000
-      defaultScanLimitGbytes: 500
-      maxResultMegaBytes: 100
-      defaultSamplingRatio: 10
-      enableSampling: false
-    davis:
-      enabled: false
-      davisVisualization:
-        isAvailable: true
-
-  # ----------------------------------------------------------------
-  # Section 3: Warehouse Optimization
-  # ----------------------------------------------------------------
-  "10":
     type: markdown
     content: |
       ## Warehouse Optimization
       Review warehouse sizing, scaling policies, cluster configuration, and resource monitor quota consumption.
       Data source: `resource_monitors` plugin (context: `resource_monitors`).
 
-  "11":
+  "6":
     title: Warehouse sizing overview
     type: data
     query: |-
@@ -524,7 +367,7 @@ tiles:
       davisVisualization:
         isAvailable: true
 
-  "12":
+  "7":
     title: Cluster utilization over time
     type: data
     query: |-
@@ -576,7 +419,7 @@ tiles:
       davisVisualization:
         isAvailable: true
 
-  "13":
+  "8":
     title: Resource monitor quota usage over time
     type: data
     query: |-
@@ -651,9 +494,9 @@ tiles:
         isAvailable: true
 
   # ----------------------------------------------------------------
-  # Section 4: Warehouse Load
+  # Section 3: Warehouse Load
   # ----------------------------------------------------------------
-  "14":
+  "9":
     type: markdown
     content: |
       ## Warehouse Load
@@ -661,7 +504,7 @@ tiles:
       Data source: `warehouse_usage` plugin (context: `warehouse_usage_load`).
       Note: `ACCOUNT_USAGE.WAREHOUSE_LOAD_HISTORY` has a ~45-180 min ingestion lag.
 
-  "15":
+  "10":
     title: Running vs queued queries over time
     type: data
     query: |-
@@ -713,7 +556,7 @@ tiles:
       davisVisualization:
         isAvailable: true
 
-  "16":
+  "11":
     title: Average running queries by warehouse
     type: data
     query: |-
@@ -750,7 +593,7 @@ tiles:
       davisVisualization:
         isAvailable: true
 
-  "17":
+  "12":
     title: Blocked queries over time
     type: data
     query: |-
@@ -817,43 +660,32 @@ tiles:
 layouts:
   # ── Section 1 header ──────────────────────── y=0
   "0":  {x: 0,  "y": 0,  w: 24, h: 1}
-  # ── Budget spending vs limit (bar)  y=1
+  # ── Budget spending vs limit (table)  y=1
   "1":  {x: 0,  "y": 1,  w: 12, h: 5}
   # ── Budget spending trend (line)  y=1
   "2":  {x: 12, "y": 1,  w: 12, h: 5}
-  # ── Budget spending by service type (bar)  y=6
+  # ── Budget spending by service type (pie)  y=6
   "3":  {x: 0,  "y": 6,  w: 12, h: 5}
   # ── Budget details (table)  y=6
   "4":  {x: 12, "y": 6,  w: 12, h: 5}
 
   # ── Section 2 header ──────────────────────── y=11
   "5":  {x: 0,  "y": 11, w: 24, h: 1}
-  # ── Total credits KPI  y=12
-  "6":  {x: 0,  "y": 12, w: 6,  h: 3}
-  # ── Total bytes KPI  y=12
-  "7":  {x: 6,  "y": 12, w: 6,  h: 3}
-  # ── Credits over time (line)  y=12
-  "8":  {x: 12, "y": 12, w: 12, h: 5}
-  # ── Bytes ingested over time (line)  y=15
-  "9":  {x: 0,  "y": 15, w: 12, h: 5}
+  # ── Warehouse sizing overview (table)  y=12
+  "6":  {x: 0,  "y": 12, w: 24, h: 5}
+  # ── Cluster utilization (line)  y=17
+  "7":  {x: 0,  "y": 17, w: 12, h: 5}
+  # ── Resource monitor quota usage (line)  y=17
+  "8":  {x: 12, "y": 17, w: 12, h: 5}
 
-  # ── Section 3 header ──────────────────────── y=20
-  "10": {x: 0,  "y": 20, w: 24, h: 1}
-  # ── Warehouse sizing overview (table)  y=21
-  "11": {x: 0,  "y": 21, w: 24, h: 5}
-  # ── Cluster utilization (line)  y=26
-  "12": {x: 0,  "y": 26, w: 12, h: 5}
-  # ── Resource monitor quota usage (line)  y=26
-  "13": {x: 12, "y": 26, w: 12, h: 5}
-
-  # ── Section 4 header ──────────────────────── y=31
-  "14": {x: 0,  "y": 31, w: 24, h: 1}
-  # ── Running vs queued (line)  y=32
-  "15": {x: 0,  "y": 32, w: 12, h: 5}
-  # ── Average running queries heatmap  y=32
-  "16": {x: 12, "y": 32, w: 12, h: 5}
-  # ── Blocked queries (line)  y=37
-  "17": {x: 0,  "y": 37, w: 24, h: 5}
+  # ── Section 3 header ──────────────────────── y=22
+  "9":  {x: 0,  "y": 22, w: 24, h: 1}
+  # ── Running vs queued (line)  y=23
+  "10": {x: 0,  "y": 23, w: 12, h: 5}
+  # ── Average running queries heatmap  y=23
+  "11": {x: 12, "y": 23, w: 12, h: 5}
+  # ── Blocked queries (line)  y=28
+  "12": {x: 0,  "y": 28, w: 24, h: 5}
 
 settings:
   autoRefresh:
