@@ -29,3 +29,18 @@ This dashboard provides insights into the security aspects of your Snowflake acc
 - For service accounts, it helps ensure they are configured with secure, non-password methods such as Key-Pair Authentication, Programmatic Access Tokens (PAT), External OAuth, or Workload Identity Federation (WIF).
 - Tracks authentication methods used by both human and service users to monitor the transition to more secure practices.
 ![Login Analysis](./img/04-logins-by-auth-type.png)
+
+## Privilege Escalation Detection
+
+- Identifies users with broad role grants (`ALL_ROLES` context) showing the complete list of roles and who granted them.
+- Surfaces users with extensive privilege grants (`ALL_PRIVILEGES` context) including the privilege type, target objects, and granting roles.
+- Detects role revocations (`users_removed_direct_roles` context) to track when roles are removed from users, which may indicate security policy changes or incident response.
+- Enables security teams to detect privilege escalation patterns and enforce least-privilege principles.
+
+## User Identity & Access
+
+- Provides an at-a-glance view of account health: active vs disabled vs locked accounts as a bar chart.
+- Shows MFA enrollment status as a pie chart to identify users without multi-factor authentication.
+- Displays RSA key usage distribution to track adoption of key-pair authentication.
+- Breaks down user type distribution (e.g., `PERSON`, `SERVICE`, `LEGACY_SERVICE`) to understand the account landscape.
+- Lists password-only accounts (no MFA, no RSA, no PAT) that represent the highest authentication risk.

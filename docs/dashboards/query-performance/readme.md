@@ -68,11 +68,29 @@ This advanced analysis:
 
 This proactive monitoring enables database teams to address performance issues before they impact users.
 
+## Execution Phase Breakdown
+
+**Compilation vs execution vs queued time** - A line chart showing average compilation, execution, and queued overload time per warehouse over time. This reveals whether query slowdowns are caused by compilation overhead, actual execution time, or warehouse queuing, enabling targeted remediation.
+
+**Time phase distribution by warehouse** - A table summarizing total compilation, execution, queued overload, and queued provisioning time per warehouse. This identifies which warehouses spend the most time in each phase, informing decisions about warehouse sizing and scaling policies.
+
+## Query Tag Analysis
+
+**Execution time by query tag** - A line chart tracking average execution time over time for each query tag. Query tags allow teams to attribute workloads to specific applications, teams, or pipelines, making this visualization essential for workload-level performance monitoring.
+
+**Top 10 query tags by total execution time** - A bar chart showing the 10 query tags consuming the most total elapsed time. This identifies the highest-cost workloads for optimization prioritization.
+
+## Real-Time Query Summary
+
+**Active query summary per warehouse** - A table showing count, fastest, slowest, and average elapsed time for currently active queries grouped by warehouse. Data comes from the `active_queries` plugin (INFORMATION_SCHEMA, no ingestion lag), providing a real-time view of warehouse utilization.
+
+**Long-running queries in progress (> 5 min)** - A table listing queries that have been running longer than 5 minutes, including start time, duration, user, warehouse, execution status, and a truncated query text. This enables immediate identification of runaway queries that may need intervention.
+
 ## Technical Details
 
 **Default Timeframe**: Last 24 hours
 
-**Required Plugin**: `query_history`
+**Required Plugins**: `query_history`, `active_queries`
 
 **Data Source**: Snowflake logs captured by the DSOA query history plugin, providing comprehensive query execution metadata including execution times, user information, database context, and table access patterns.
 
