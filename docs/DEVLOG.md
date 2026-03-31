@@ -30,6 +30,7 @@ This file documents detailed technical changes, internal refactorings, and devel
 - **New directory**: `docs/workflows/` created with `README.md` as placeholder for upcoming workflow YAMLs (BDX-1820–1827).
 - **Docs updated**: `docs/INSTALL.md` — new `## Deploying Dashboards and Workflows` section; `docs/dashboards/README.md` —
   added deployment script as the recommended import method.
+
 #### Budgets & FinOps Dashboard (BDX-1819)
 
 - Added `docs/dashboards/budgets-finops/budgets-finops.yml` — 13-tile dashboard (v17) across 3 sections:
