@@ -2,6 +2,28 @@
 
 This directory contains example Dynatrace dashboards designed to visualize and analyze telemetry data collected by the Dynatrace Snowflake Observability Agent (DSOA). These dashboards provide comprehensive insights across the five themes of [Data Platform Observability](../DPO.md): Security, Operations, Costs, Performance, and Quality.
 
+- [Distribution Package](#distribution-package)
+- [Available Dashboards](#available-dashboards)
+  - [DSOA Self-Monitoring](#dsoa-self-monitoring)
+  - [Snowflake Query Performance](#snowflake-query-performance)
+  - [Snowflake Query Quality](#snowflake-query-quality)
+  - [Costs Monitoring](#costs-monitoring)
+  - [Tasks \& Pipelines Monitoring](#tasks--pipelines-monitoring)
+  - [Snowpipes Monitoring](#snowpipes-monitoring)
+  - [Snowflake Query Deep Dive](#snowflake-query-deep-dive)
+  - [Data Volume \& Storage](#data-volume--storage)
+  - [Snowflake Security](#snowflake-security)
+  - [Shares \& Governance](#shares--governance)
+- [Dashboard Structure](#dashboard-structure)
+- [Importing Dashboards](#importing-dashboards)
+  - [Using Pre-Generated JSON Files (Recommended)](#using-pre-generated-json-files-recommended)
+  - [Using Dynatrace UI](#using-dynatrace-ui)
+  - [Converting from YAML Source (Advanced)](#converting-from-yaml-source-advanced)
+- [Prerequisites](#prerequisites)
+- [Customization](#customization)
+- [Related Documentation](#related-documentation)
+- [Support and Contribution](#support-and-contribution)
+
 ## Distribution Package
 
 When you download the DSOA distribution package (`dynatrace_snowflake_observability_agent-*.zip`), the `dashboards/` directory contains ready-to-import JSON files for all example dashboards. These JSON files are automatically generated from the YAML source definitions and can be imported directly into your Dynatrace environment using the Dynatrace UI or API.
@@ -122,6 +144,27 @@ Each JSON file is named after its dashboard title (e.g., `Costs Monitoring.json`
 **Required Plugin**: `snowpipes`
 
 **DPO Theme**: Operations, Performance
+
+---
+
+### [Snowflake Query Deep Dive](query-deep-dive/)
+
+**Purpose**: Advanced query analytics for DBAs and FinOps teams — covering costly repeated queries, table performance degradation, query acceleration, multi-level analysis, external functions, query origins, and cost attribution.
+
+**Key Features**:
+
+- Rank query hashes by total bytes scanned and spill volumes to surface the costliest repeated query patterns
+- Partition scan ratio and cache hit rate trends per table to identify re-clustering candidates
+- Query acceleration eligibility list with estimated time savings at multiple scale factors
+- Parent-child query breakdown and operator-level plan statistics from span data
+- External function invocation and data volume monitoring
+- Query origin analysis by client application and authentication type for security forensics
+- Cloud services credit attribution by user, role, and warehouse
+- Cross-region data transfer volumes for egress cost monitoring
+
+**Required Plugin**: `query_history`
+
+**DPO Theme**: Performance, Security, Costs
 
 ---
 
