@@ -6,10 +6,6 @@
     ".github/context/pm-notes/*.md",
     ".github/context/prompts/*.md",
     ".github/context/ai-memory/*.md",
-    ".github/context/windsurf_plans/*.md",
-    ".opencode/skills/snowflake-synthetic.md",
-    ".opencode/skills/dynatrace-dashboard.md",
-    ".opencode/skills/dynatrace-workflow.md",
-    ".opencode/skills/dashboard-docs.md"
+    ".github/context/windsurf_plans/*.md"
   ]
 }
