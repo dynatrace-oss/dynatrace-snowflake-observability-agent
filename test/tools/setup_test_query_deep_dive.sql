@@ -6,7 +6,7 @@
 -- Required plugin: query_history
 --
 -- Objects created
---   Warehouse: DSOA_TEST_WH           (XSMALL, auto-suspend 60 s)
+--   Warehouse: DSOA_TEST_WH           (XSMALL, auto-suspend 60 s) — configurable via $task_warehouse
 --   Database : DSOA_TEST_DB
 --   Schema   : DSOA_TEST_DB.QUERY_HISTORY_TEST
 --
@@ -21,7 +21,7 @@
 --     SP_WORKLOAD_ROOT()   issues the full workload; called by task
 --
 --   Task:
---     T_QUERY_WORKLOAD     every 5 minutes via DSOA_TEST_WH
+--     T_QUERY_WORKLOAD     every 5 minutes via $task_warehouse (default: DSOA_TEST_WH)
 --
 -- Dashboard tile coverage
 --   Section 1 — Costly Repeated Queries
@@ -133,7 +133,7 @@ GRANT EXECUTE TASK ON ACCOUNT TO ROLE IDENTIFIER($owner_role);
 
 -- 2. Create warehouse (XSMALL, auto-suspend) if it doesn't exist.
 USE ROLE SYSADMIN;
-CREATE WAREHOUSE IF NOT EXISTS DSOA_TEST_WH
+CREATE WAREHOUSE IF NOT EXISTS IDENTIFIER($task_warehouse)
     WAREHOUSE_SIZE   = XSMALL
     AUTO_SUSPEND     = 60
     AUTO_RESUME      = TRUE
@@ -141,8 +141,8 @@ CREATE WAREHOUSE IF NOT EXISTS DSOA_TEST_WH
     COMMENT = 'DSOA simulation warehouse — XSMALL, auto-suspend 60 s';
 
 USE ROLE ACCOUNTADMIN;
-GRANT USAGE ON WAREHOUSE DSOA_TEST_WH TO ROLE IDENTIFIER($owner_role);
-GRANT OPERATE ON WAREHOUSE DSOA_TEST_WH TO ROLE IDENTIFIER($owner_role);
+GRANT USAGE   ON WAREHOUSE IDENTIFIER($task_warehouse) TO ROLE IDENTIFIER($owner_role);
+GRANT OPERATE ON WAREHOUSE IDENTIFIER($task_warehouse) TO ROLE IDENTIFIER($owner_role);
 
 -- 3. Create database owned by owner_role.
 USE ROLE SYSADMIN;
@@ -266,6 +266,7 @@ CREATE OR REPLACE TRANSIENT TABLE DSOA_TEST_DB.QUERY_HISTORY_TEST.STAGING_ORDERS
 CREATE OR REPLACE PROCEDURE DSOA_TEST_DB.QUERY_HISTORY_TEST.SP_WORKLOAD_CHILD(run_ts VARCHAR)
 RETURNS VARCHAR
 LANGUAGE SQL
+EXECUTE AS CALLER
 AS
 $$
 DECLARE
@@ -304,6 +305,7 @@ $$;
 CREATE OR REPLACE PROCEDURE DSOA_TEST_DB.QUERY_HISTORY_TEST.SP_WORKLOAD_ROOT()
 RETURNS VARCHAR
 LANGUAGE SQL
+EXECUTE AS CALLER
 AS
 $$
 DECLARE
@@ -359,7 +361,7 @@ $$;
 
 -- ── Task ──────────────────────────────────────────────────────────────────
 CREATE OR REPLACE TASK DSOA_TEST_DB.QUERY_HISTORY_TEST.T_QUERY_WORKLOAD
-    WAREHOUSE = DSOA_TEST_WH
+    WAREHOUSE = IDENTIFIER($task_warehouse)
     SCHEDULE  = '5 MINUTE'
     COMMENT   = 'DSOA Query Deep Dive dashboard simulation — runs every 5 minutes'
 AS
@@ -406,5 +408,5 @@ LIMIT 20;
 -- USE ROLE IDENTIFIER($owner_role);
 -- ALTER TASK DSOA_TEST_DB.QUERY_HISTORY_TEST.T_QUERY_WORKLOAD SUSPEND;
 -- DROP DATABASE IF EXISTS DSOA_TEST_DB;
--- DROP WAREHOUSE IF EXISTS DSOA_TEST_WH;
+-- DROP WAREHOUSE IF EXISTS IDENTIFIER($task_warehouse);
 -- ============================================================================

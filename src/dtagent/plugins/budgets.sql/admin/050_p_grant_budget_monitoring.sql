@@ -105,7 +105,10 @@ BEGIN
         grants_count := :grants_count + 1;
     END FOR;
 
-    grant database role SNOWFLAKE.USAGE_VIEWER to role DTAGENT_VIEWER;
+    -- NOTE: SNOWFLAKE.USAGE_VIEWER is granted during init (009_budget_init.sql) by ACCOUNTADMIN.
+    -- Attempting that grant here (EXECUTE AS CALLER) would fail for callers that lack the
+    -- MANAGE GRANTS privilege.  The init step is the correct place for account-level database
+    -- role grants; no action needed here.
 
     RETURN 'granted budget monitoring privileges for ' || :grants_count || ' budget(s) to DTAGENT_VIEWER';
 

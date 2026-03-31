@@ -127,17 +127,17 @@ Each JSON file is named after its dashboard title (e.g., `Costs Monitoring.json`
 
 ### [Budgets & FinOps](budgets-finops/)
 
-**Purpose**: Track Snowflake budget spending, event-table ingest costs, warehouse sizing decisions, and warehouse load patterns.
+**Purpose**: Track Snowflake budget spending, warehouse sizing decisions, and warehouse load patterns.
 
 **Key Features**:
 
-- Budget spend vs. limit KPIs with credit burn rate and days-remaining forecast
-- Per-warehouse credit consumption and sizing efficiency analysis
-- Event table ingest volume and row-count cost attribution
-- Warehouse load and queue-depth heatmaps for workload concurrency analysis
+- Budget spend vs. limit KPIs with historical trends and per-service-type credit breakdown
+- Per-warehouse sizing overview: cluster configuration, resource monitor assignment, and unmonitored warehouse detection
+- Cluster utilization and resource monitor quota usage trends over time
+- Warehouse load analysis: running, queued, and blocked query counts from `WAREHOUSE_LOAD_HISTORY`
 - Resource monitor quota utilization and alert threshold visibility
 
-**Required Plugins**: `budgets`, `event_usage`, `warehouse_usage`, `resource_monitors`
+**Required Plugins**: `budgets`, `warehouse_usage`, `resource_monitors`
 
 **DPO Theme**: Costs, Operations
 
