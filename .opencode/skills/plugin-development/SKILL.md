@@ -356,8 +356,8 @@ Key `_log_entries()` flags:
 
 | Flag | Default | Effect |
 |------|---------|--------|
-| `report_metrics` | `False` | Emit metrics from METRICS column |
-| `report_timestamp_events` | `False` | Emit events from EVENT_TIMESTAMPS |
+| `report_metrics` | `True` | Emit metrics from METRICS column |
+| `report_timestamp_events` | `True` | Emit events from EVENT_TIMESTAMPS |
 | `report_all_as_events` | `False` | Emit every row as an event |
 | `log_completion` | `True` | Auto-log run completion |
 
