@@ -33,6 +33,7 @@ select
 
     OBJECT_CONSTRUCT(
         'snowflake.budget.name',                    b.name,
+        'snowflake.budget.full_name',               concat(b.database_name, '.', b.schema_name, '.', b.name),
         'db.namespace',                             b.database_name,
         'snowflake.schema.name',                    b.schema_name
     )                                                                                               as DIMENSIONS,

@@ -30,7 +30,7 @@ since dashboards may span multiple plugins (e.g. `snowpipes-monitoring`,
 ## Metric / Attribute Reference
 
 Before writing any DQL query, consult the plugin's semantic dictionary:
-```
+```text
 src/dtagent/plugins/<plugin-name>.config/instruments-def.yml
 ```
 
@@ -575,27 +575,32 @@ Possible outcomes:
 === PHASE B: Dashboard Authoring and Deployment ===
 
 6.  Write dashboard YAML in docs/dashboards/<name>/<name>.yml
-7.  Convert:  ./scripts/tools/yaml-to-json.sh ... > /tmp/inner.json
-8.  Validate: jq . /tmp/inner.json
-9.  Build envelope and deploy (see "Deploying with dtctl" section above for the
-    mandatory envelope-wrapping step — do NOT pass the flat JSON directly):
-      python3 -c "import json; inner=json.load(open('/tmp/inner.json')); \
-        json.dump({'name':inner['name'],'type':'dashboard','content':inner}, \
-        open('/tmp/<name>-apply.json','w'))"
+7.  Convert:  ./scripts/tools/yaml-to-json.sh ... > /tmp/<name>.json
+8.  Validate: jq . /tmp/<name>.json
+9.  Deploy:   dtctl apply -A -f /tmp/<name>.json
+10. Record the returned ID — embed it in the YAML as `id: <uuid>`
+11. Re-convert, inject id/name/type with python3, re-deploy to update in place:
+      python3 -c "
+      import json
+      with open('/tmp/<name>.json') as f:
+          d = json.load(f)
+      d['id']   = '<uuid>'
+      d['name'] = '<Human-readable title>'
+      d['type'] = 'dashboard'
+      with open('/tmp/<name>-apply.json', 'w') as f:
+          json.dump(d, f)
+      "
       dtctl apply -A -f /tmp/<name>-apply.json
-10. Record the returned ID — add it to the YAML as `id: <uuid>`. Re-convert,
-    rebuild envelope (this time with 'id' included), and re-deploy:
-      dtctl apply -A -f /tmp/<name>-apply.json
-11. Verify tiles: dtctl get dashboard <id> -o json | python3 -c \
+12. Verify tiles: dtctl get dashboard <id> -o json | python3 -c \
       "import sys,json; d=json.load(sys.stdin); print('tiles:',len(d.get('content',{}).get('tiles',{})))"
     Expected: tiles == 14 (or however many your dashboard has). If 0, envelope was wrong.
-12. Verify every tile renders real data in the Dynatrace UI
+13. Verify every tile renders real data in the Dynatrace UI
 
 === PHASE C: Documentation ===
 
-13. Write docs/dashboards/<name>/readme.md  (see dashboard-docs skill)
-14. Update docs/dashboards/README.md index
-15. Request screenshots (see dashboard-docs skill)
+14. Write docs/dashboards/<name>/readme.md  (see dashboard-docs skill)
+15. Update docs/dashboards/README.md index
+16. Request screenshots (see dashboard-docs skill)
 ```
 
 ## Dynatrace MCP Server

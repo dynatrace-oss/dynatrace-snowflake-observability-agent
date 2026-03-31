@@ -64,6 +64,7 @@ DECLARE
     budget_name                 TEXT DEFAULT '';
     schema_name                 TEXT DEFAULT '';
     db_name                     TEXT DEFAULT '';
+    fqn_budget                  TEXT DEFAULT '';
 
     linked_resources            ARRAY;
     budget_limit                INT;
@@ -73,42 +74,54 @@ BEGIN
     EXECUTE IMMEDIATE :tr_limits;
     EXECUTE IMMEDIATE :tr_spendings;
 
-    v_budgets_json := (SELECT PARSE_JSON(SYSTEM$SHOW_BUDGETS_IN_ACCOUNT()));
-    INSERT INTO DTAGENT_DB.APP.TMP_BUDGETS (created_on, name, database_name, schema_name, current_version, comment, owner, owner_role_type)
-        SELECT
-            TO_TIMESTAMP_LTZ(b.value:"CREATED_ON"::NUMBER / 1000) AS created_on,
-            b.value:"NAME"::TEXT                                   AS name,
-            b.value:"DATABASE"::TEXT                               AS database_name,
-            b.value:"SCHEMA"::TEXT                                 AS schema_name,
-            b.value:"CURRENT_VERSION"::TEXT                        AS current_version,
-            b.value:"COMMENT"::TEXT                                AS comment,
-            b.value:"OWNER"::TEXT                                  AS owner,
-            b.value:"OWNER_ROLE_TYPE"::TEXT                        AS owner_role_type
-        FROM TABLE(FLATTEN(input => :v_budgets_json)) b;
+    INSERT INTO DTAGENT_DB.APP.TMP_BUDGETS
+        (created_on, name, database_name, schema_name, current_version, comment, owner, owner_role_type)
+    SELECT
+        TO_TIMESTAMP_LTZ(b.value:"CREATED_ON"::NUMBER / 1000) AS created_on,
+        b.value:"NAME"::TEXT                                   AS name,
+        b.value:"DATABASE"::TEXT                               AS database_name,
+        b.value:"SCHEMA"::TEXT                                 AS schema_name,
+        b.value:"CURRENT_VERSION"::TEXT                        AS current_version,
+        b.value:"COMMENT"::TEXT                                AS comment,
+        b.value:"OWNER"::TEXT                                  AS owner,
+        b.value:"OWNER_ROLE_TYPE"::TEXT                        AS owner_role_type
+    from TABLE(FLATTEN(input => PARSE_JSON(SYSTEM$SHOW_BUDGETS_IN_ACCOUNT()) )) b;
+
 
     FOR budget IN c_budgets DO
         budget_name := budget.name;
         schema_name := budget.schema_name;
         db_name := budget.database_name;
-        execute immediate 'call ' || :db_name || '.' || :schema_name || '.' || :budget_name || '!GET_LINKED_RESOURCES();';
-        select
-            name as "snowflake.budget.resource.name",
-            domain as "snowflake.budget.resource.domain",
-            database_name as "db.namespace",
-            schema_name as "snowflake.schema.name"
-        from table(result_scan(last_query_id()));
+        fqn_budget := concat(:db_name, '.', :schema_name, '.', :budget_name);
 
-        linked_resources := (select top 1 array_agg(object_construct(*)) from table(result_scan(last_query_id(-1))));
-        INSERT INTO DTAGENT_DB.APP.TMP_BUDGETS_RESOURCES(LINKED_RESOURCES, BUDGET_NAME) SELECT :linked_resources, :budget_name;
+        BEGIN
+            execute immediate concat('call ', :fqn_budget, '!GET_LINKED_RESOURCES() ',
+                                 '->> INSERT INTO DTAGENT_DB.APP.TMP_BUDGETS_RESOURCES(LINKED_RESOURCES, BUDGET_NAME) ',
+                                 'select top 1 array_agg(object_construct(*)) as linked_resources, \'', :budget_name, '\' as budget_name from $1');
+        EXCEPTION
+            WHEN STATEMENT_ERROR THEN
+                SYSTEM$LOG_DEBUG('GET_LINKED_RESOURCES: FUNCTION_NOT_SUPPORTED_FOR_ACCOUNT_ROOT_BUDGET');
+        END;
 
-        execute immediate 'call ' || :db_name || '.' || :schema_name || '.' || :budget_name || '!GET_SPENDING_LIMIT();';
-        budget_limit := (select top 1 "GET_SPENDING_LIMIT" from table(result_scan(last_query_id(-1))));
-        INSERT INTO DTAGENT_DB.APP.TMP_BUDGETS_LIMITS(LIMIT, BUDGET_NAME) SELECT :budget_limit, :budget_name;
+        BEGIN
+            execute immediate concat('call ', :fqn_budget, '!GET_SPENDING_LIMIT() ',
+                                 '->> INSERT INTO DTAGENT_DB.APP.TMP_BUDGETS_LIMITS(LIMIT, BUDGET_NAME) ',
+                                 'select top 1 "GET_SPENDING_LIMIT" as budget_limit, \'', :budget_name, '\' as budget_name from $1');
+        EXCEPTION
+            WHEN STATEMENT_ERROR THEN
+                SYSTEM$LOG_DEBUG('GET_SPENDING_LIMIT: ' || :budget_name);
+        END;
 
-        execute immediate 'call ' || :db_name || '.' || :schema_name || '.' || :budget_name || '!GET_SPENDING_HISTORY(TIME_LOWER_BOUND => DATEADD(days, -1, CURRENT_TIMESTAMP()), TIME_UPPER_BOUND => CURRENT_TIMESTAMP());';
+        BEGIN
+            execute immediate concat('call ', :fqn_budget, '!GET_SPENDING_HISTORY(TIME_LOWER_BOUND => DATEADD(days, -1, CURRENT_TIMESTAMP()), TIME_UPPER_BOUND => CURRENT_TIMESTAMP()) ',
+                                 '->> INSERT INTO DTAGENT_DB.APP.TMP_BUDGET_SPENDING(MEASUREMENT_DATE, SERVICE_TYPE, CREDITS_SPENT, BUDGET_NAME) ',
+                                 'select "MEASUREMENT_DATE", "SERVICE_TYPE", "CREDITS_SPENT", \'', :budget_name, '\' as budget_name from $1');
+        EXCEPTION
+            WHEN STATEMENT_ERROR THEN
+                SYSTEM$LOG_DEBUG('GET_SPENDING_HISTORY: ' || :budget_name);
+        END;
 
-        insert into DTAGENT_DB.APP.TMP_BUDGET_SPENDING(MEASUREMENT_DATE, SERVICE_TYPE, CREDITS_SPENT, BUDGET_NAME)
-            select "MEASUREMENT_DATE", "SERVICE_TYPE", "CREDITS_SPENT", :budget_name from table(result_scan(last_query_id(-1)));
+
 
     END FOR;
 
