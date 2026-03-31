@@ -14,6 +14,7 @@ Released on TBD
 
 ### New in 0.9.4
 
+- **Dashboard and Workflow Deployment Script**: New `scripts/deploy/deploy_dt_assets.sh` automates deploying Dynatrace dashboards and workflows via `dtctl`. Supports `--scope=dashboards|workflows|all`, `--dry-run`, and `--env` flags. Also available as `deploy.sh --scope=dt_assets` (opt-in; never part of the default `all` scope). See [Deploying Dashboards and Workflows](INSTALL.md#deploying-dashboards-and-workflows).
 - **New Plugins**: Added Pipes monitoring plugin
 - **Configurable Lookback Time**: Per-plugin configuration for historical data catchup window
 - **SNOWFLAKE.TELEMETRY.EVENTS Support**: Agent now correctly reads from the Snowflake-managed shared event table when it is configured as the account-level event table

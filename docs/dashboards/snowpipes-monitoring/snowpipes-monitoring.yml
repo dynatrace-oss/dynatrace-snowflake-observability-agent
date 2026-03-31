@@ -25,6 +25,7 @@
 # PLUGINS: snowpipes
 # TAGS: snowpipes, ingestion, operations, performance
 #
+id: f3eda451-afe7-4035-bca8-7b09620de132
 version: 21
 variables:
   - key: Accounts

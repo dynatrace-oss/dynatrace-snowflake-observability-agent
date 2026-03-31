@@ -28,6 +28,7 @@
 # PLUGINS: query_history
 # TAGS: query_quality, full_cartesian_joins
 #
+id: 4a90d08b-5c20-4e67-be3d-c78b57c16441
 version: 21
 variables:
   - key: Account

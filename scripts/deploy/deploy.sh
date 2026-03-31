@@ -291,3 +291,17 @@ if ! has_option "no_dep"; then
         show_bizevent_warning "FINISHED"
     fi
 fi
+
+# Dynatrace asset deployment (dashboards + workflows) via dtctl.
+# Triggered only when scope explicitly includes "dt_assets" — never part of "all"
+# since dtctl is an optional dependency.
+if [[ "$SCOPE" == *"dt_assets"* ]]; then
+    echo ""
+    echo "Deploying Dynatrace assets (dashboards and workflows) via dtctl..."
+    DRY_RUN_FLAG=""
+    if has_option "dry_run"; then
+        DRY_RUN_FLAG="--dry-run"
+    fi
+    # shellcheck disable=SC2086
+    "$CWD/deploy_dt_assets.sh" --scope=all --env="${DEPLOYMENT_ENV}" $DRY_RUN_FLAG
+fi
