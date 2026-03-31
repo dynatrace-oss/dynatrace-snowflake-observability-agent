@@ -14,14 +14,23 @@ The dashboard empowers teams to:
 
 ## Dashboard Variables
 
-Four cascading variables enable hierarchical filtering from account down to individual users:
+Eight variables enable flexible filtering across multiple dimensions. The first five are multi-select query variables that cascade from account down to individual users. The remaining three control display behavior.
 
-- **Account**: Filter by Snowflake deployment environment or service name (single selection, default: all accounts)
-- **DB_Name**: Filter by database name or namespace (single selection, default: all databases)
-- **DB_Table**: Filter by specific table name (single selection, default: all tables)
-- **User**: Filter by database user (single selection, default: all users)
+### Filter Variables (multi-select)
 
-Each variable dynamically updates based on the selections made in previous filters, ensuring only valid combinations are available.
+- **Account**: Filter by Snowflake deployment environment. Multi-select; cascades to all downstream variables.
+- **DB_Name**: Filter by database name or namespace. Multi-select; scoped to the selected Account(s).
+- **DB_Table**: Filter by specific table name. Multi-select; scoped to the selected Account(s) and DB_Name(s). Expands `db.snowflake.tables` JSON arrays to list individual tables.
+- **Warehouse**: Filter by Snowflake warehouse name. Multi-select; scoped to the selected Account(s).
+- **User**: Filter by database user. Multi-select; scoped to the selected Account(s) and DB_Name(s).
+
+### Display Variables
+
+- **TopN** (hidden, CSV): Controls the number of items shown in ranked tiles (execution time by query tag, top query tags, time phase distribution by warehouse). Options: 5, 10, 20, 50, 100. Default: 10.
+- **SlowQueryMin** (hidden, text): Minimum elapsed time in minutes for a query to appear in the long-running queries table. Default: 5.
+- **TAG_FILTER** (hidden, text): Internal parse pattern for extracting query tags from statement text. Not intended for manual editing.
+
+All multi-select variables use `in(field, array($Variable))` filtering. Each variable dynamically updates based on the selections made in upstream filters, ensuring only valid combinations are available.
 
 ![Query Performance Dashboard Overview](./img/query-performance-overview.png)
 
@@ -70,21 +79,21 @@ This proactive monitoring enables database teams to address performance issues b
 
 ## Execution Phase Breakdown
 
-**Compilation vs execution vs queued time** - A line chart showing average compilation, execution, and queued overload time per warehouse over time. This reveals whether query slowdowns are caused by compilation overhead, actual execution time, or warehouse queuing, enabling targeted remediation.
+**Compilation vs execution vs queued time** - An area chart showing average compilation, execution, queued overload, and queued provisioning time per warehouse over time. All four phases are displayed as stacked areas (`union: true`) with automatic millisecond-to-time-unit conversion via `unitsOverrides`. This reveals whether query slowdowns are caused by compilation overhead, actual execution time, or warehouse queuing, enabling targeted remediation. Filtered by Account and Warehouse variables.
 
-**Time phase distribution by warehouse** - A table summarizing total compilation, execution, queued overload, and queued provisioning time per warehouse. This identifies which warehouses spend the most time in each phase, informing decisions about warehouse sizing and scaling policies.
+**Time phase distribution by top $TopN warehouse** - A categorical bar chart showing total compilation, execution, queued overload, and queued provisioning time per warehouse, limited to the top N warehouses ranked by total time. Uses log scale on the value axis to handle wide magnitude differences across warehouses. Field names use clean labels (Compilation, Execution, Queued Overload, Queued Provisioning) with `unitsOverrides` for millisecond display.
 
 ## Query Tag Analysis
 
-**Execution time by query tag** - A line chart tracking average execution time over time for each query tag. Query tags allow teams to attribute workloads to specific applications, teams, or pipelines, making this visualization essential for workload-level performance monitoring.
+**Execution time by query tag (top $TopN)** - A line chart tracking average execution time over time for the top N query tags ranked by total execution time sum. Query tags allow teams to attribute workloads to specific applications, teams, or pipelines, making this visualization essential for workload-level performance monitoring.
 
-**Top 10 query tags by total execution time** - A bar chart showing the 10 query tags consuming the most total elapsed time. This identifies the highest-cost workloads for optimization prioritization.
+**Top $TopN query tags by total execution time** - A categorical bar chart showing the N query tags consuming the most total elapsed time. Uses `$TopN` variable to control the number of displayed tags.
 
 ## Real-Time Query Summary
 
-**Active query summary per warehouse** - A table showing count, fastest, slowest, and average elapsed time for currently active queries grouped by warehouse. Data comes from the `active_queries` plugin (INFORMATION_SCHEMA, no ingestion lag), providing a real-time view of warehouse utilization.
+**Active query summary per warehouse** - A table showing count, fastest, slowest, and average elapsed time for currently active queries grouped by warehouse. Time fields use clean names (Fastest, Slowest, Avg) with `unitsOverrides` for automatic millisecond-to-time-unit conversion. Data comes from the `active_queries` plugin (INFORMATION_SCHEMA, no ingestion lag), providing a real-time view of warehouse utilization.
 
-**Long-running queries in progress (> 5 min)** - A table listing queries that have been running longer than 5 minutes, including start time, duration, user, warehouse, execution status, and a truncated query text. This enables immediate identification of runaway queries that may need intervention.
+**Long-running queries in progress (> $SlowQueryMin min)** - A table listing queries that have been running longer than the threshold set by the `$SlowQueryMin` variable (default: 5 minutes), including start time, duration, user, warehouse, execution status, and a truncated query text. This enables immediate identification of runaway queries that may need intervention.
 
 ## Technical Details
 

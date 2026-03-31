@@ -379,6 +379,85 @@ These rules come from real debugging sessions — follow them strictly:
 
     The same principle applies to `$Account` and any other global filter variable.
 
+20. **Always use `unitsOverrides` for time fields — drop `(ms)` postfixes from field names.**
+    When a DQL field represents a time duration in milliseconds, do **not** append `(ms)` to
+    the field alias. Instead, use a clean name (e.g. `Compilation`, `Execution`, `Fastest`,
+    `Slowest`, `Avg`) and add a `unitsOverrides` entry for each field:
+
+    ```yaml
+    unitsOverrides:
+      - identifier: Compilation
+        unitCategory: time
+        baseUnit: millisecond
+        displayUnit: null
+        decimals: null
+        suffix: ""
+        delimiter: false
+        added: 1
+    ```
+
+    Dynatrace renders the appropriate unit automatically in tables, charts, and tooltips.
+    Keeping `(ms)` in the field name leads to redundant display like `30 s (ms)`.
+
+21. **Multi-select variables: use `multiple: true`, no `defaultValue`, and `in()` in queries.**
+    For query-type variables that should allow selecting multiple values:
+
+    - Set `multiple: true` on the variable definition.
+    - Do **not** set `defaultValue: "*"` — Dynatrace automatically adds a "select all" option.
+    - Use `dedup` + `sort` instead of `collectDistinct` + `array("*", ...)`.
+    - In tile queries, use `in(field, array($Variable))` instead of
+      `$Var == "*" or $Var == field`.
+
+    ```yaml
+    # ✅ CORRECT — multi-select variable definition
+    - key: Account
+      type: query
+      visible: true
+      editable: true
+      multiple: true
+      input: |-
+        fetch logs
+          | filter db.system == "snowflake"
+          | fieldsAdd snow_account = deployment.environment
+          | filter isNotNull(snow_account)
+          | fields snow_account
+          | dedup snow_account
+          | sort snow_account
+
+    # ✅ CORRECT — tile query using in()
+    | filter in(deployment.environment, array($Account))
+
+    # ❌ WRONG — old single-select pattern
+    | filter $Account == "*" or deployment.environment == $Account
+    ```
+
+    When a downstream variable depends on an upstream multi-select variable, use `in()` in
+    its query as well:
+
+    ```yaml
+    # Warehouse depends on Account
+    - key: Warehouse
+      type: query
+      multiple: true
+      input: |-
+        fetch logs
+          | filter db.system == "snowflake"
+          | filter in(deployment.environment, array($Account))
+          | fields snowflake.warehouse.name
+          | dedup snowflake.warehouse.name
+          | sort snowflake.warehouse.name
+    ```
+
+22. **Drop legacy coalesce backwards-compatibility fallbacks for standard attributes.**
+    Stop using `coalesce(deployment.environment, service.name)` — use `deployment.environment`
+    directly. The `service.name` fallback was needed during early DSOA versions before
+    `deployment.environment` was standardised. The same applies to:
+    - `coalesce(db.name, db.namespace)` — keep only where both genuinely appear
+    - `coalesce(db.collection.name, db.sql.table)` — keep only where both genuinely appear
+    - `coalesce(db.statement, db.query.text)` — keep only where both genuinely appear
+
+    For `deployment.environment` specifically, always use it directly — never wrap in coalesce.
+
 ## YAML Dashboard Format
 ```yaml
 # DASHBOARD: <Human-readable title>

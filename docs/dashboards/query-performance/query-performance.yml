@@ -26,7 +26,7 @@
 # TAGS: query performance
 
 id: f245f73a-35f5-4298-8158-2a8aa4611a23
-version: 22
+version: 24
 variables:
   - version: 2
     key: Account
@@ -36,16 +36,16 @@ variables:
     input: |-
       fetch logs
         | filter db.system == "snowflake"
-        | fieldsAdd snow_account = coalesce(deployment.environment, service.name)
+        | fieldsAdd snow_account = deployment.environment
         | filter isNotNull(db.user)
             and isNotNull(snow_account)
             and isNotNull(coalesce(db.name, db.namespace))
             and isNotNull(coalesce(db.statement, db.query.text))
             and isNotNull(snowflake.time.execution)
-        | summarize snow_account = collectDistinct(coalesce(deployment.environment, service.name))
-        | fields snow_account_and_all = array("*", snow_account)
-    multiple: false
-    defaultValue: "*"
+        | fields snow_account
+        | dedup snow_account
+        | sort snow_account
+    multiple: true
   - version: 2
     key: DB_Name
     type: query
@@ -54,19 +54,16 @@ variables:
     input: |-
       fetch logs
         | filter db.system == "snowflake"
-        | fieldsAdd snow_account = coalesce(deployment.environment, service.name)
-        | filter $Account== "*" or $Account== snow_account
+        | filter in(deployment.environment, array($Account))
         | filter isNotNull(db.user)
-            and isNotNull(snow_account)
+            and isNotNull(deployment.environment)
             and isNotNull(coalesce(db.name, db.namespace))
             and isNotNull(coalesce(db.statement, db.query.text))
             and isNotNull(snowflake.time.execution)
         | fields db_name = coalesce(db.name, db.namespace)
+        | dedup db_name
         | sort db_name asc
-        | summarize db_name = collectDistinct(db_name)
-        | fields db_name_and_all = array("*", db_name)
-    multiple: false
-    defaultValue: "*"
+    multiple: true
   - version: 2
     key: DB_Table
     type: query
@@ -77,24 +74,39 @@ variables:
         | filter db.system == "snowflake"
         | filter dsoa.run.plugin == "query_history"
         | fieldsAdd
-            snow_account = coalesce(deployment.environment, service.name),
             db_name = coalesce(db.name, db.namespace),
             db_collection_name = coalesce(db.collection.name, db.sql.table)
-        | filter $Account== "*" or $Account== snow_account
-        | filter $DB_Name== "*" or $DB_Name== db_name
+        | filter in(deployment.environment, array($Account))
+        | filter in(db_name, array($DB_Name))
         | filter isNotNull(db.user)
-            and isNotNull(snow_account)
+            and isNotNull(deployment.environment)
             and isNotNull(db_name)
             and isNotNull(coalesce(db.statement, db.query.text))
             and (isNotNull(db_collection_name) or isNotNull(db.snowflake.tables))
         | parse `db.snowflake.tables`, """'"' JSON_ARRAY(strict=false, typed=true):table_names '"'"""
         | fieldsAdd db.snowflake.tables = if(isNotNull(db_snowflake_tables) and isNotNull(table_names), table_names, else: array(db_collection_name))
         | expand db.collection.name = db.snowflake.tables
+        | fields db.collection.name
+        | dedup db.collection.name
         | sort db.collection.name asc
-        | summarize db_table = collectDistinct(db.collection.name)
-        | fields db_table_and_all = array("*", db_table)
-    multiple: false
-    defaultValue: "*"
+    multiple: true
+  - version: 2
+    key: Warehouse
+    type: query
+    visible: true
+    editable: true
+    input: |-
+      fetch logs
+        | filter db.system == "snowflake"
+        | filter isNotNull(db.user)
+            and in(deployment.environment, array($Account))
+            and isNotNull(coalesce(db.name, db.namespace))
+            and isNotNull(coalesce(db.statement, db.query.text))
+            and isNotNull(snowflake.time.execution)
+        | fields snowflake.warehouse.name
+        | dedup snowflake.warehouse.name
+        | sort snowflake.warehouse.name
+    multiple: true
   - version: 2
     key: User
     type: query
@@ -103,19 +115,37 @@ variables:
     input: |-
       fetch logs
         | filter db.system == "snowflake"
-        | fieldsAdd snow_account = coalesce(deployment.environment, service.name),
-                    db_name = coalesce(db.name, db.namespace)
-        | filter $Account== "*" or $Account== snow_account
-        | filter $DB_Name== "*" or $DB_Name== db_name
+        | fieldsAdd db_name = coalesce(db.name, db.namespace)
+        | filter in(deployment.environment, array($Account))
+        | filter in(db_name, array($DB_Name))
         | filter isNotNull(db.user)
-            and isNotNull(snow_account)
+            and isNotNull(deployment.environment)
             and isNotNull(coalesce(db.name, db.namespace))
             and isNotNull(coalesce(db.statement, db.query.text))
+        | fields db.user
+        | dedup db.user
         | sort db.user asc
-        | summarize db_user = collectDistinct(db.user)
-        | fields db_user_and_all = array("*", db_user)
+    multiple: true
+  - version: 2
+    key: TAG_FILTER
+    type: text
+    visible: false
+    editable: true
+    defaultValue: '":" SPACE* DIGIT{13,19};'
+  - version: 2
+    key: TopN
+    type: csv
+    visible: false
+    editable: true
+    input: "5,10,20,50,100"
     multiple: false
-    defaultValue: "*"
+    defaultValue: "10"
+  - version: 2
+    key: SlowQueryMin
+    type: text
+    visible: false
+    editable: true
+    defaultValue: "5"
 tiles:
   "0":
     title: Query execution time (whole account summary)
@@ -125,7 +155,8 @@ tiles:
         service.name,
         deployment.environment
       }, filter: {
-        ($Account== "*" or contains(coalesce(deployment.environment, service.name), $Account))
+        in(deployment.environment, array($Account))
+        and in(snowflake.warehouse.name, array($Warehouse))
       }
         | fieldsAdd service_name = coalesce(deployment.environment, service.name)
         | fieldsRemove service.name, deployment.environment
@@ -160,10 +191,30 @@ tiles:
           timestamp: timeframe
         curve: smooth
         gapPolicy: connect
-      thresholds: []
       dataMapping:
         displayedFields:
           - service_name
+      coloring:
+        colorRules:
+          - field: DT.name
+            comparator: "= *value*"
+            value: ""
+            type: string
+            colorMode: color-palette
+            colorPalette: categorical
+          - field: DT.name
+            comparator: "="
+            value: prod
+            type: string
+            colorMode: custom-color
+            customColor: "#b3007d"
+          - field: DT.name
+            comparator: "="
+            value: dev
+            type: string
+            colorMode: custom-color
+            customColor:
+              Default: "var(--dt-colors-charts-categorical-themed-swamps-color-01-default, #006650)"
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -174,8 +225,6 @@ tiles:
       enabled: false
       davisVisualization:
         isAvailable: true
-      componentState:
-        inputData: null
   "1":
     title: Query execution time per DB
     type: data
@@ -183,23 +232,16 @@ tiles:
       fetch logs
         | filter db.system == "snowflake"
         | fieldsAdd
-            snow_account = coalesce(deployment.environment, service.name),
-            db_collection_name = coalesce(db.collection.name, db.sql.table),
-            db_snowflake_tables = db.snowflake.tables,
+            snow_account = deployment.environment,
             db_name = coalesce(db.name, db.namespace)
         | filter isNotNull(db.user)
             and isNotNull(snow_account)
             and isNotNull(db_name)
-          //     and isNotNull(db_collection_name)
             and isNotNull(snowflake.time.execution)
         | filter
-            ($Account== "*" or contains(snow_account, $Account))
-                and ($DB_Name== "*" or contains(db_name, $DB_Name))
-                and ($User== "*" or contains(db.user, $User))
-        | parse `db_snowflake_tables`, """'"' JSON_ARRAY(strict=false, typed=true):table_names '"'"""
-        | fieldsAdd db.snowflake.tables = if(isNotNull(db_snowflake_tables), table_names, else: array(db_collection_name))
-        | filter
-            ($DB_Table== "*" or arraySize(db.snowflake.tables) == 0 or arrayIndexOf(db.snowflake.tables, $DB_Table) >= 0)
+            in(snow_account, array($Account))
+                and in(db_name, array($DB_Name))
+                and in(db.user, array($User))
         | fieldsAdd snowflake.time.execution = toLong(snowflake.time.execution)
         | makeTimeseries {
           sum_exec_time = sum(snowflake.time.execution)
@@ -216,7 +258,6 @@ tiles:
           leftAxisValues:
             - sum_exec_time
           timestamp: timeframe
-      thresholds: []
       unitsOverrides:
         - identifier: sum_exec_time
           unitCategory: time
@@ -239,8 +280,6 @@ tiles:
       enabled: false
       davisVisualization:
         isAvailable: true
-      componentState:
-        inputData: null
   "2":
     title: Query execution time per table
     type: data
@@ -248,7 +287,7 @@ tiles:
       fetch logs
         | filter db.system == "snowflake"
         | fieldsAdd
-            snow_account = coalesce(deployment.environment, service.name),
+            snow_account = deployment.environment,
             db_collection_name = coalesce(db.collection.name, db.sql.table),
             db_snowflake_tables = db.snowflake.tables,
             db_name = coalesce(db.name, db.namespace), db_query = coalesce(db.statement, db.query.text)
@@ -259,13 +298,13 @@ tiles:
             and isNotNull(db_query)
             and isNotNull(snowflake.time.execution)
         | filter
-            ($Account== "*" or contains(snow_account, $Account))
-                and ($DB_Name== "*" or contains(db_name, $DB_Name))
-                and ($User== "*" or contains(db.user, $User))
+            in(snow_account, array($Account))
+                and in(db_name, array($DB_Name))
+                and in(db.user, array($User))
         | parse `db_snowflake_tables`, """'"' JSON_ARRAY(strict=false, typed=true):table_names '"'"""
         | fieldsAdd db.snowflake.tables = if(isNotNull(db_snowflake_tables), table_names, else: array(db_collection_name))
         | expand db.collection.name = db.snowflake.tables
-        | filter ($DB_Table== "*" or $DB_Table== db.collection.name)
+        | filter in(db.collection.name, array($DB_Table))
         | fieldsAdd snowflake.time.execution = toLong(snowflake.time.execution)
         | makeTimeseries {
           sum_exec_time = sum(snowflake.time.execution)
@@ -282,7 +321,6 @@ tiles:
           leftAxisValues:
             - sum_exec_time
           timestamp: timeframe
-      thresholds: []
       unitsOverrides:
         - identifier: sum_exec_time
           unitCategory: time
@@ -305,8 +343,6 @@ tiles:
       enabled: false
       davisVisualization:
         isAvailable: true
-      componentState:
-        inputData: null
   "3":
     title: Query execution time per user (seconds)
     type: data
@@ -314,22 +350,16 @@ tiles:
       fetch logs
         | filter db.system == "snowflake"
         | fieldsAdd
-            snow_account = coalesce(deployment.environment, service.name),
-            db_collection_name = coalesce(db.collection.name, db.sql.table),
-            db_snowflake_tables = db.snowflake.tables,
-            db_name = coalesce(db.name, db.namespace), db_query = coalesce(db.statement, db.query.text)
+            snow_account = deployment.environment,
+            db_name = coalesce(db.name, db.namespace)
         | filter isNotNull(db.user)
             and isNotNull(snow_account)
           // and (isNotNull(db_collection_name) or isNotNull(db_snowflake_tables))
             and isNotNull(snowflake.time.execution)
         | filter
-            ($Account== "*" or contains(deployment.environment, $Account))
-                and ($DB_Name== "*" or isNull(db_name) or contains(db.name, $DB_Name))
-                and ($User== "*" or db.user == $User)
-        | parse `db_snowflake_tables`, """'"' JSON_ARRAY(strict=false, typed=true):table_names '"'"""
-        | fieldsAdd db.snowflake.tables = if(isNotNull(db_snowflake_tables), table_names, else: array(db_collection_name))
-        | filter
-            ($DB_Table== "*" or arraySize(db.snowflake.tables) == 0 or arrayIndexOf(db.snowflake.tables, $DB_Table) >= 0)
+            in(snow_account, array($Account))
+                and in(db_name, array($DB_Name))
+                and in(db.user, array($User))
         | fieldsAdd snowflake.time.execution = toLong(snowflake.time.execution)
         | makeTimeseries {
           sum_exec_time = sum(snowflake.time.execution)
@@ -346,7 +376,6 @@ tiles:
           leftAxisValues:
             - sum_exec_time
           timestamp: timeframe
-      thresholds: []
       unitsOverrides:
         - identifier: sum_exec_time
           unitCategory: time
@@ -369,8 +398,6 @@ tiles:
       enabled: false
       davisVisualization:
         isAvailable: true
-      componentState:
-        inputData: null
   "4":
     title: Top 20 tables
     type: data
@@ -378,7 +405,7 @@ tiles:
       fetch logs
         | filter db.system == "snowflake"
         | fieldsAdd
-            snow_account = coalesce(deployment.environment, service.name),
+            snow_account = deployment.environment,
             db_collection_name = coalesce(db.collection.name, db.sql.table),
             db_snowflake_tables = db.snowflake.tables,
             db_name = coalesce(db.name, db.namespace), db_query = coalesce(db.statement, db.query.text)
@@ -389,14 +416,13 @@ tiles:
             and isNotNull(db_query)
             and isNotNull(snowflake.time.execution)
         | filter
-            ($Account== "*" or contains(snow_account, $Account))
-                and ($DB_Name== "*" or contains(db_name, $DB_Name))
-                and ($User== "*" or contains(db.user, $User))
+            in(snow_account, array($Account))
+                and in(db_name, array($DB_Name))
+                and in(db.user, array($User))
         | parse `db_snowflake_tables`, """'"' JSON_ARRAY(strict=false, typed=true):table_names '"'"""
         | fieldsAdd db.snowflake.tables = if(isNotNull(db_snowflake_tables), table_names, else: array(db_collection_name))
-        | filter
-            ($DB_Table== "*" or arrayIndexOf(db.snowflake.tables, $DB_Table) >= 0)
         | expand db.collection.name = db.snowflake.tables
+        | filter in(db.collection.name, array($DB_Table))
         | fieldsAdd snowflake.time.execution = toLong(snowflake.time.execution)
         | summarize {
           sum_exec_time = sum(snowflake.time.execution)
@@ -424,7 +450,6 @@ tiles:
         circleChartSettings:
           valueType: relative
           groupingThresholdType: relative
-      thresholds: []
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -435,8 +460,6 @@ tiles:
       enabled: false
       davisVisualization:
         isAvailable: true
-      componentState:
-        inputData: null
   "5":
     title: Top 20 users
     type: data
@@ -444,22 +467,15 @@ tiles:
       fetch logs
         | filter db.system == "snowflake"
         | fieldsAdd
-            snow_account = coalesce(deployment.environment, service.name),
-            db_collection_name = coalesce(db.collection.name, db.sql.table),
-            db_snowflake_tables = db.snowflake.tables,
-            db_name = coalesce(db.name, db.namespace), db_query = coalesce(db.statement, db.query.text)
+            snow_account = deployment.environment,
+            db_name = coalesce(db.name, db.namespace)
         | filter isNotNull(db.user)
             and isNotNull(snow_account)
-          // and (isNotNull(db_collection_name) or isNotNull(db_snowflake_tables))
             and isNotNull(snowflake.time.execution)
         | filter
-            ($Account== "*" or contains(deployment.environment, $Account))
-                and ($DB_Name== "*" or isNull(db_name) or contains(db.name, $DB_Name))
-                and ($User== "*" or db.user == $User)
-        | parse `db_snowflake_tables`, """'"' JSON_ARRAY(strict=false, typed=true):table_names '"'"""
-        | fieldsAdd db.snowflake.tables = if(isNotNull(db_snowflake_tables), table_names, else: array(db_collection_name))
-        | filter
-            ($DB_Table== "*" or arraySize(db.snowflake.tables) == 0 or arrayIndexOf(db.snowflake.tables, $DB_Table) >= 0)
+            in(snow_account, array($Account))
+                and in(db_name, array($DB_Name))
+                and in(db.user, array($User))
         | fieldsAdd snowflake.time.execution = toLong(snowflake.time.execution)
         | summarize {
           sum_exec_time = sum(snowflake.time.execution)
@@ -486,7 +502,6 @@ tiles:
         circleChartSettings:
           valueType: relative
           groupingThresholdType: relative
-      thresholds: []
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -497,8 +512,6 @@ tiles:
       enabled: false
       davisVisualization:
         isAvailable: true
-      componentState:
-        inputData: null
   "6":
     title: Top 20 DBs
     type: data
@@ -506,23 +519,16 @@ tiles:
       fetch logs
         | filter db.system == "snowflake"
         | fieldsAdd
-            snow_account = coalesce(deployment.environment, service.name),
-            db_collection_name = coalesce(db.collection.name, db.sql.table),
-            db_snowflake_tables = db.snowflake.tables,
+            snow_account = deployment.environment,
             db_name = coalesce(db.name, db.namespace)
         | filter isNotNull(db.user)
             and isNotNull(snow_account)
             and isNotNull(db_name)
-          // and isNotNull(db_collection_name)
             and isNotNull(snowflake.time.execution)
         | filter
-            ($Account== "*" or contains(snow_account, $Account))
-                and ($DB_Name== "*" or contains(db_name, $DB_Name))
-                and ($User== "*" or contains(db.user, $User))
-        | parse `db_snowflake_tables`, """'"' JSON_ARRAY(strict=false, typed=true):table_names '"'"""
-        | fieldsAdd db.snowflake.tables = if(isNotNull(db_snowflake_tables), table_names, else: array(db_collection_name))
-        | filter
-            ($DB_Table== "*" or arraySize(db.snowflake.tables) == 0 or arrayIndexOf(db.snowflake.tables, $DB_Table) >= 0)
+            in(snow_account, array($Account))
+                and in(db_name, array($DB_Name))
+                and in(db.user, array($User))
         | fieldsAdd snowflake.time.execution = toLong(snowflake.time.execution)
         | summarize {
           sum_exec_time = sum(snowflake.time.execution)
@@ -550,7 +556,6 @@ tiles:
         circleChartSettings:
           valueType: relative
           groupingThresholdType: relative
-      thresholds: []
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -561,8 +566,6 @@ tiles:
       enabled: false
       davisVisualization:
         isAvailable: true
-      componentState:
-        inputData: null
   "7":
     title: Query performance vs table size growth (over last 14 days)
     type: data
@@ -570,18 +573,18 @@ tiles:
       fetch logs, from:-14d
         | filter db.system == "snowflake"
         | fieldsAdd
-            snow_account = coalesce(deployment.environment, service.name),
+            snow_account = deployment.environment,
             db_collection_name = coalesce(db.collection.name, db.sql.table),
             db_name = coalesce(db.name, db.namespace), db_query = coalesce(db.statement, db.query.text)
         | filter isNotNull(snow_account)
             and (isNotNull(db_collection_name) or isNotNull(db.snowflake.tables))
             and isNotNull(snowflake.time.execution)
-        | filter $Account== "*" or snow_account == $Account
-        | filter $DB_Name== "*" or db_name == $DB_Name
+        | filter in(snow_account, array($Account))
+        | filter in(db_name, array($DB_Name))
         | parse `db.snowflake.tables`, """'"' JSON_ARRAY(strict=false, typed=true):table_names '"'"""
         | fieldsAdd db.snowflake.tables = if(isNotNull(db_snowflake_tables) and isNotNull(table_names), table_names, else: array(db_collection_name))
         | expand db.collection.name = db.snowflake.tables
-        | filter $DB_Table== "*" or $DB_Table== db.collection.name
+        | filter in(db.collection.name, array($DB_Table))
         | fieldsAdd snowflake.time.execution = toLong(snowflake.time.execution)
         | makeTimeseries {
           avg_exec_time = avg(snowflake.time.execution)
@@ -594,7 +597,7 @@ tiles:
             }, by: {
               db.collection.name
             }, interval: 24h
-            | filter $DB_Table== "*" or $DB_Table== db.collection.name
+            | filter in(db.collection.name, array($DB_Table))
         ], sourceField: db.collection.name, lookupField: db.collection.name, fields: {
           max_row_count
         }
@@ -604,7 +607,6 @@ tiles:
     visualization: davis
     visualizationSettings:
       autoSelectVisualization: false
-      thresholds: []
       chartSettings:
         gapPolicy: connect
         circleChartSettings:
@@ -703,21 +705,26 @@ tiles:
     type: data
     query: |-
       timeseries
+          {
           compilation = avg(snowflake.time.compilation),
           execution = avg(snowflake.time.execution),
-          queued = avg(snowflake.time.queued.overload),
-        by: {
-          snowflake.warehouse.name,
-          deployment.environment
-        }, filter: {
-          db.system == "snowflake"
+          `queued overload` = avg(snowflake.time.queued.overload),
+          `queued provisioning` = avg(snowflake.time.queued.provisioning)
+          }
+        , filter: {
+          db.system == "snowflake" and
+          in(deployment.environment, array($Account)) and
+          in(snowflake.warehouse.name, array($Warehouse))
         }
-      | fieldsAdd snow_account = coalesce(deployment.environment)
-      | filter $Account == "*" or contains(snow_account, $Account)
-    visualization: lineChart
+        , union:true
+    visualization: areaChart
     visualizationSettings:
+      autoSelectVisualization: false
       chartSettings:
         truncationMode: middle
+        legend:
+          hidden: true
+          position: bottom
         leftYAxisSettings:
           label: Time (ms)
           isLabelVisible: true
@@ -727,12 +734,16 @@ tiles:
           leftAxisValues:
             - compilation
             - execution
-            - queued
+            - queued overload
+            - queued provisioning
           timestamp: timeframe
         gapPolicy: connect
-        legend:
-          position: bottom
-      thresholds: []
+      dataMapping:
+        displayedFields:
+          - compilation
+          - execution
+          - queued overload
+          - queued provisioning
       unitsOverrides:
         - identifier: compilation
           unitCategory: time
@@ -750,7 +761,7 @@ tiles:
           suffix: ""
           delimiter: false
           added: 2
-        - identifier: queued
+        - identifier: queued overload
           unitCategory: time
           baseUnit: millisecond
           displayUnit: null
@@ -758,9 +769,18 @@ tiles:
           suffix: ""
           delimiter: false
           added: 3
-      dataMapping:
-        displayedFields:
-          - snowflake.warehouse.name
+        - identifier: queued provisioning
+          unitCategory: time
+          baseUnit: millisecond
+          displayUnit: null
+          decimals: 2
+          suffix: ""
+          delimiter: false
+          added: 4
+      legend:
+        showLegend: false
+        position: auto
+        ratio: 25
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -772,36 +792,82 @@ tiles:
       davisVisualization:
         isAvailable: true
   "10":
-    title: Time phase distribution by warehouse
+    title: Time phase distribution by top $TopN warehouse
     type: data
     query: |-
       fetch logs
       | filter db.system == "snowflake"
       | filter dsoa.run.plugin == "query_history"
-      | fieldsAdd snow_account = coalesce(deployment.environment, service.name)
-      | filter $Account == "*" or contains(snow_account, $Account)
-      | filter $DB_Name == "*" or contains(coalesce(db.name, db.namespace), $DB_Name)
-      | filter $User == "*" or db.user == $User
+      | fieldsAdd snow_account = deployment.environment
+      | filter in(snow_account, array($Account))
+      | filter in(coalesce(db.name, db.namespace), array($DB_Name))
+      | filter in(db.user, array($User))
       | filter isNotNull(snowflake.warehouse.name)
       | summarize
-          `Compilation (ms)` = sum(toLong(snowflake.time.compilation)),
-          `Execution (ms)` = sum(toLong(snowflake.time.execution)),
-          `Queued Overload (ms)` = sum(toLong(snowflake.time.queued.overload)),
-          `Queued Provisioning (ms)` = sum(toLong(snowflake.time.queued.provisioning)),
+          `Compilation` = sum(toLong(snowflake.time.compilation)),
+          `Execution` = sum(toLong(snowflake.time.execution)),
+          `Queued Overload` = sum(toLong(snowflake.time.queued.overload)),
+          `Queued Provisioning` = sum(toLong(snowflake.time.queued.provisioning)),
         by: {
           snowflake.warehouse.name
         }
-      | sort `Execution (ms)` desc
+      | sort `Execution` desc
       | fields
           `Warehouse` = snowflake.warehouse.name,
-          `Compilation (ms)`,
-          `Execution (ms)`,
-          `Queued Overload (ms)`,
-          `Queued Provisioning (ms)`
-    visualization: table
+          `Compilation`,
+          `Execution`,
+          `Queued Overload`,
+          `Queued Provisioning`
+      | limit toLong($TopN)
+    visualization: categoricalBarChart
     visualizationSettings:
       autoSelectVisualization: false
-      thresholds: []
+      chartSettings:
+        categoricalBarChartSettings:
+          valueAxisScale: log
+      unitsOverrides:
+        - identifier: Compilation
+          unitCategory: time
+          baseUnit: millisecond
+          displayUnit: null
+          decimals: null
+          suffix: ""
+          delimiter: false
+          added: 1774984616007
+        - identifier: Execution
+          unitCategory: time
+          baseUnit: millisecond
+          displayUnit: null
+          decimals: null
+          suffix: ""
+          delimiter: false
+          added: 1774984626445
+        - identifier: Queued Overload
+          unitCategory: time
+          baseUnit: millisecond
+          displayUnit: null
+          decimals: null
+          suffix: ""
+          delimiter: false
+          added: 1774984624594
+        - identifier: Queued Provisioning
+          unitCategory: time
+          baseUnit: millisecond
+          displayUnit: null
+          decimals: null
+          suffix: ""
+          delimiter: false
+          added: 1774984626922
+      table:
+        sortBy:
+          - columnId: '["Compilation (ms)"]'
+            direction: ascending
+        columnWidths:
+          '["Queued Provisioning"]': 141.08
+      legend:
+        showLegend: false
+        position: auto
+        ratio: 26
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -821,27 +887,34 @@ tiles:
       componentState:
         inputData: null
   "12":
-    title: Execution time by query tag
+    title: Execution time by query tag (top $TopN)
     type: data
     query: |-
       fetch logs
       | filter db.system == "snowflake"
       | filter dsoa.run.plugin == "query_history"
-      | fieldsAdd snow_account = coalesce(deployment.environment, service.name)
-      | filter $Account == "*" or contains(snow_account, $Account)
-      | filter $DB_Name == "*" or contains(coalesce(db.name, db.namespace), $DB_Name)
-      | filter $User == "*" or db.user == $User
+      | fieldsAdd snow_account = deployment.environment
+      | filter in(snow_account, array($Account))
+      | filter in(coalesce(db.name, db.namespace), array($DB_Name))
+      | filter in(db.user, array($User))
       | filter isNotNull(snowflake.query.tag) and snowflake.query.tag != ""
+      | fieldsAdd snowflake.query.tag = replacePattern(snowflake.query.tag, $TAG_FILTER, "#")
       | fieldsAdd snowflake.time.execution = toLong(snowflake.time.execution)
       | makeTimeseries {
           avg_exec_time = avg(snowflake.time.execution)
         }, by: {
           snowflake.query.tag
         }
+      | fieldsAdd sum_avg_exec_time = arraySum(avg_exec_time[])
+      | sort sum_avg_exec_time desc
+      | limit toLong($TopN)
+      | fieldsRemove sum_avg_exec_time
     visualization: lineChart
     visualizationSettings:
       chartSettings:
         truncationMode: middle
+        legend:
+          position: bottom
         leftYAxisSettings:
           label: Avg Execution Time (ms)
           isLabelVisible: true
@@ -852,9 +925,9 @@ tiles:
             - avg_exec_time
           timestamp: timeframe
         gapPolicy: connect
-        legend:
-          position: bottom
-      thresholds: []
+      dataMapping:
+        displayedFields:
+          - snowflake.query.tag
       unitsOverrides:
         - identifier: avg_exec_time
           unitCategory: time
@@ -864,9 +937,6 @@ tiles:
           suffix: ""
           delimiter: false
           added: 1
-      dataMapping:
-        displayedFields:
-          - snowflake.query.tag
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -878,21 +948,22 @@ tiles:
       davisVisualization:
         isAvailable: true
   "13":
-    title: Top 10 query tags by total execution time
+    title: Top $TopN query tags by total execution time
     type: data
     query: |-
       fetch logs
       | filter db.system == "snowflake"
       | filter dsoa.run.plugin == "query_history"
-      | fieldsAdd snow_account = coalesce(deployment.environment, service.name)
-      | filter $Account == "*" or contains(snow_account, $Account)
-      | filter $DB_Name == "*" or contains(coalesce(db.name, db.namespace), $DB_Name)
-      | filter $User == "*" or db.user == $User
+      | fieldsAdd snow_account = deployment.environment
+      | filter in(snow_account, array($Account))
+      | filter in(coalesce(db.name, db.namespace), array($DB_Name))
+      | filter in(db.user, array($User))
       | filter isNotNull(snowflake.query.tag) and snowflake.query.tag != ""
+      | fieldsAdd snowflake.query.tag = replacePattern(snowflake.query.tag, $TAG_FILTER, "#")
       | summarize total = sum(toLong(snowflake.time.total_elapsed)),
         by: { snowflake.query.tag }
       | sort total desc
-      | limit 10
+      | limit toLong($TopN)
     visualization: categoricalBarChart
     visualizationSettings:
       chartSettings:
@@ -904,7 +975,6 @@ tiles:
           categoryAxisLabel: Query Tag
           valueAxis: total
           valueAxisLabel: Total Elapsed Time (ms)
-      thresholds: []
       unitsOverrides:
         - identifier: total
           unitCategory: time
@@ -939,14 +1009,14 @@ tiles:
       fetch logs
       | filter db.system == "snowflake"
       | filter dsoa.run.plugin == "active_queries"
-      | fieldsAdd snow_account = coalesce(deployment.environment, service.name)
-      | filter $Account == "*" or contains(snow_account, $Account)
+      | fieldsAdd snow_account = deployment.environment
+      | filter in(snow_account, array($Account))
       | filter isNotNull(snowflake.warehouse.name)
       | summarize
           `Count` = count(),
-          `Fastest (ms)` = min(toLong(snowflake.time.total_elapsed)),
-          `Slowest (ms)` = max(toLong(snowflake.time.total_elapsed)),
-          `Avg (ms)` = avg(toLong(snowflake.time.total_elapsed)),
+          `Fastest` = min(toLong(snowflake.time.total_elapsed)),
+          `Slowest` = max(toLong(snowflake.time.total_elapsed)),
+          `Avg` = avg(toLong(snowflake.time.total_elapsed)),
         by: {
           snowflake.warehouse.name,
           deployment.environment
@@ -955,14 +1025,44 @@ tiles:
           `Warehouse` = snowflake.warehouse.name,
           `Environment` = deployment.environment,
           `Count`,
-          `Fastest (ms)`,
-          `Slowest (ms)`,
-          `Avg (ms)`
+          `Fastest`,
+          `Slowest`,
+          `Avg`
       | sort `Count` desc
     visualization: table
     visualizationSettings:
       autoSelectVisualization: false
-      thresholds: []
+      table:
+        columnWidths:
+          '["Warehouse"]': 165.5
+          '["Avg"]': 101.19
+          '["Slowest"]': 73.59
+          '["Fastest"]': 71.5
+      unitsOverrides:
+        - identifier: Fastest
+          unitCategory: time
+          baseUnit: millisecond
+          displayUnit: null
+          decimals: null
+          suffix: ""
+          delimiter: false
+          added: 1774985672201
+        - identifier: Avg
+          unitCategory: time
+          baseUnit: millisecond
+          displayUnit: null
+          decimals: null
+          suffix: ""
+          delimiter: false
+          added: 1774985673312
+        - identifier: Slowest
+          unitCategory: time
+          baseUnit: millisecond
+          displayUnit: null
+          decimals: null
+          suffix: ""
+          delimiter: false
+          added: 1774985674650
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -980,9 +1080,9 @@ tiles:
       fetch logs
       | filter db.system == "snowflake"
       | filter dsoa.run.plugin == "active_queries"
-      | fieldsAdd snow_account = coalesce(deployment.environment, service.name)
-      | filter $Account == "*" or contains(snow_account, $Account)
-      | filter toLong(snowflake.time.total_elapsed) > 300000
+      | fieldsAdd snow_account = deployment.environment
+      | filter in(snow_account, array($Account))
+      | filter toLong(snowflake.time.total_elapsed) > 60*1000*toLong($SlowQueryMin)
       | fields
           `Start Time` = timestamp - duration(toLong(snowflake.time.total_elapsed), "ms"),
           `Duration (ms)` = toLong(snowflake.time.total_elapsed),
@@ -996,7 +1096,20 @@ tiles:
     visualization: table
     visualizationSettings:
       autoSelectVisualization: false
-      thresholds: []
+      unitsOverrides:
+        - identifier: "Duration (ms)"
+          unitCategory: time
+          baseUnit: millisecond
+          displayUnit: null
+          decimals: null
+          suffix: ""
+          delimiter: false
+          added: 1
+      table:
+        columnWidths:
+          '["Query"]': 342.69
+          '["Duration (ms)"]': 67.89
+          '["User"]': 140.89
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -1052,46 +1165,46 @@ layouts:
     x: 0
     "y": 27
     w: 24
-    h: 1
+    h: 2
   "9":
     x: 0
-    "y": 28
-    w: 24
+    "y": 29
+    w: 16
     h: 6
   "10":
-    x: 0
-    "y": 34
-    w: 24
+    x: 16
+    "y": 29
+    w: 8
     h: 6
   "11":
     x: 0
-    "y": 40
+    "y": 35
     w: 24
     h: 1
   "12":
     x: 0
-    "y": 41
-    w: 12
+    "y": 36
+    w: 16
     h: 6
   "13":
-    x: 12
-    "y": 41
-    w: 12
+    x: 16
+    "y": 36
+    w: 8
     h: 6
   "14":
     x: 0
-    "y": 47
+    "y": 42
     w: 24
-    h: 1
+    h: 2
   "15":
     x: 0
-    "y": 48
-    w: 24
+    "y": 44
+    w: 9
     h: 6
   "16":
-    x: 0
-    "y": 54
-    w: 24
+    x: 9
+    "y": 44
+    w: 15
     h: 6
 importedWithCode: false
 settings:
