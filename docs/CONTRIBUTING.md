@@ -86,12 +86,12 @@ We use `pytest` for Python tests and `bats` for Bash script tests.
 
 ### Test Suites
 
-| Suite | Location | Purpose |
-|-------|----------|---------|
-| Core | `test/core/` | Configuration, utilities, view structure |
-| OTel | `test/otel/` | OpenTelemetry integration |
-| Plugin | `test/plugins/` | Individual plugin logic |
-| Bash | `test/bash/` | Deployment/build scripts, custom object names, config conversion |
+| Suite  | Location        | Purpose                                                          |
+|--------|-----------------|------------------------------------------------------------------|
+| Core   | `test/core/`    | Configuration, utilities, view structure                         |
+| OTel   | `test/otel/`    | OpenTelemetry integration                                        |
+| Plugin | `test/plugins/` | Individual plugin logic                                          |
+| Bash   | `test/bash/`    | Deployment/build scripts, custom object names, config conversion |
 
 For detailed docs see: [test/readme.md](../test/readme.md), [test/core/readme.md](../test/core/readme.md), [test/otel/readme.md](../test/otel/readme.md), [test/plugins/readme.md](../test/plugins/readme.md).
 
@@ -189,25 +189,25 @@ OpenTelemetry defines counters, gauges, and histograms. Since the Dynatrace API 
 
 ## Source Code Overview
 
-| Directory | Purpose |
-|-----------|---------|
-| `src/dtagent` | Python source code |
-| `src/dtagent.sql` | Core SQL init scripts (roles, DBs, warehouses) |
-| `src/dtagent.conf` | Default configuration and core semantics |
-| `src/dtagent/plugins` | Plugin source (Python + SQL + config) |
-| `src/dtagent/otel` | Telemetry API code |
-| `scripts/dev` | Build, compile, test tools |
-| `scripts/deploy` | Deployment tools |
-| `scripts/tools` | Utility scripts (config/dashboard conversion) |
+| Directory             | Purpose                                        |
+|-----------------------|------------------------------------------------|
+| `src/dtagent`         | Python source code                             |
+| `src/dtagent.sql`     | Core SQL init scripts (roles, DBs, warehouses) |
+| `src/dtagent.conf`    | Default configuration and core semantics       |
+| `src/dtagent/plugins` | Plugin source (Python + SQL + config)          |
+| `src/dtagent/otel`    | Telemetry API code                             |
+| `scripts/dev`         | Build, compile, test tools                     |
+| `scripts/deploy`      | Deployment tools                               |
+| `scripts/tools`       | Utility scripts (config/dashboard conversion)  |
 
 ### SQL File Prefixes
 
-| Range | Purpose |
-|-------|---------|
+| Range | Purpose                             |
+|-------|-------------------------------------|
 | `0xx` | Core init + plugin views/procedures |
-| `70x` | Core procedures |
-| `80x` | Task definitions |
-| `90x` | Plugin config update procedures |
+| `70x` | Core procedures                     |
+| `80x` | Task definitions                    |
+| `90x` | Plugin config update procedures     |
 
 ### Conditional Code Blocks
 
@@ -260,13 +260,13 @@ DSOA ships AI-agent skills in `.opencode/skills/` for dashboard, workflow, and p
 
 ### Available Skills
 
-| Skill | Purpose |
-|-------|---------|
+| Skill                 | Purpose                                 |
+|-----------------------|-----------------------------------------|
 | `snowflake-synthetic` | Create synthetic test data in Snowflake |
-| `dynatrace-dashboard` | Design and deploy Dynatrace dashboards |
-| `dynatrace-workflow` | Build Dynatrace workflows |
-| `dashboard-docs` | Generate dashboard documentation |
-| `plugin-development` | Full plugin development lifecycle |
+| `dynatrace-dashboard` | Design and deploy Dynatrace dashboards  |
+| `dynatrace-workflow`  | Build Dynatrace workflows               |
+| `dashboard-docs`      | Generate dashboard documentation        |
+| `plugin-development`  | Full plugin development lifecycle       |
 
 Skills are consumed automatically by AI agents — no manual activation needed.
 
