@@ -49,7 +49,7 @@ from dtagent.otel.events.bizevents import BizEvents
 from dtagent.otel.logs import Logs
 from dtagent.otel.spans import Spans
 from dtagent.otel.metrics import Metrics
-from dtagent.context import RUN_CONTEXT_KEY, get_context_name_and_run_id
+from dtagent.context import RUN_CONTEXT_KEY, RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY, get_context_name_and_run_id
 
 ##endregion COMPILE_REMOVE
 
@@ -323,7 +323,7 @@ class Plugin(ABC):
         LOG.log(LL_TRACE, "Processing row with id = %s", row_id)
 
         metrics_present, metrics_cnt = self._metrics.discover_report_metrics(
-            row, "START_TIME", context_name=context.get(RUN_CONTEXT_KEY, None)
+            row, "START_TIME", context_name=context.get(RUN_CONTEXT_KEY, None), plugin_name=context.get(RUN_PLUGIN_KEY, None)
         )
 
         span_events_added, spans_sent, logs_sent = 0, 0, 0
@@ -510,7 +510,7 @@ class Plugin(ABC):
             was_processed = False
 
             if report_metrics and not getattr(self._metrics, "NOT_ENABLED", False):
-                _metrics_sent, _metrics_cnt = self._metrics.discover_report_metrics(row_dict, start_time, context_name)
+                _metrics_sent, _metrics_cnt = self._metrics.discover_report_metrics(row_dict, start_time, context_name, self._plugin_name)
                 processed_metrics_cnt += _metrics_cnt
                 was_processed |= _metrics_sent
 
@@ -596,7 +596,6 @@ class Plugin(ABC):
 
     def _report_results(self, results: Dict[str, Any], run_id: str) -> Dict[str, Any]:
         """Generic method reporting results after processing is done. To be overwritten by plugins when required"""
-        from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPILE_REMOVE
 
         return {
             RUN_PLUGIN_KEY: self.PLUGIN_NAME,

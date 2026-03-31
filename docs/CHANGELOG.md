@@ -33,6 +33,7 @@ Released on TBD
 - **Event Log Plugin — Cross-Tenant Monitoring** *(behavior change)*: DSOA instances now report `WARN`/`ERROR` log entries, metrics, and spans from all other `DTAGENT_*_DB` instances by default. Use `plugins.event_log.cross_tenant_monitoring: false` to opt out. It is recommended to keep this enabled in only one primary DSOA tenant to avoid duplicate reporting across deployments.
 - **Shares Plugin**: Fixed inbound shares with deleted databases not being properly reported. The `snowflake.share.has_details_reported` attribute now correctly shows `TRUE` for deleted-DB shares, and the `_MESSAGE` field provides clear context about database deletion status
 - **Self-Monitoring**: Fixed database name filtering for self-monitoring logs
+- **Shares & Governance Dashboard — Tile 14**: Renamed from "Shares with Deleted Database" to "Shares No Longer Observed". The tile now uses a Dynatrace log-history approach (7-day window vs. last-2-hour recency check) to detect shares that have disappeared from agent runs, rather than querying `SNOWFLAKE.ACCOUNT_USAGE.DATABASES` — which was subject to 3-hour latency and could never reliably fire in practice. See [DEVLOG.md](DEVLOG.md) for root cause analysis.
 
 ### Improved in 0.9.4
 

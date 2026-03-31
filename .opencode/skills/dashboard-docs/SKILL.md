@@ -40,6 +40,8 @@ Use a **narrative-first, use-case-oriented** style. The canonical reference is
 
 **Rules:**
 
+- All fenced code blocks must specify a language — use `text` for plain text, paths,
+  or commit messages when no more specific language applies. Never leave a bare ` ``` `.
 - Open with one paragraph explaining what it monitors, who it is for, and why it matters.
 - Place the **overview screenshot immediately after the opening paragraph**, before any sections.
 - Organise the body by **dashboard section**, not by tile. Each section gets its own `##` heading.
@@ -174,11 +176,18 @@ Dashboard ID: <uuid from dtctl>
 Synthetic setup: test/tools/setup_test_<plugin>.sql
 ```
 
+**Commit message rules:**
+
+- Do **not** include ticket or issue numbers (e.g. `BDX-1234`, `JIRA-567`) in
+  commit messages unless they are GitHub issue/PR numbers (e.g. `#83`).
+- Do **not** open a pull request. After committing, push the branch and inform
+  the human — PR creation is the human's responsibility.
+
 ---
 
 ## Implemented Use Cases — Final Summary
 
-After the git commit, output a **Use Cases Summary** so the human can
+After the git commit and push, output a **Use Cases Summary** so the human can
 verify scope coverage:
 
 ```markdown

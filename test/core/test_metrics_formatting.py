@@ -109,3 +109,75 @@ class TestMetricsFormatting:
         # Basic validation: metric line should have format: metric_name,dim1="val1",dim2="val2" value
         assert "snowflake.data.scanned," in metric_line, f"Invalid metric line format: {metric_line}"
         assert " 1024" in metric_line, f"Metric value not found in: {metric_line}"
+
+    def test_context_dimensions_in_metrics(self):
+        """Test that dsoa.run.context and dsoa.run.plugin are both added as metric dimensions."""
+        from unittest.mock import Mock, patch
+        from dtagent.otel.metrics import Metrics
+        from dtagent.otel.semantics import Semantics
+        from dtagent.config import Configuration
+
+        config = Mock(spec=Configuration)
+
+        def mock_get(*args, **kwargs):
+            if len(args) > 0 and args[0] == "resource.attributes":
+                return {"service.name": "test"}
+            if "otel_module" in kwargs:
+                if kwargs.get("key") == "max_retries":
+                    return 5
+                if kwargs.get("key") == "max_batch_size":
+                    return 1000000
+                if kwargs.get("key") == "retry_delay_ms":
+                    return 10000
+                if kwargs.get("key") == "api_post_timeout":
+                    return 30
+            return {}
+
+        config.get.side_effect = mock_get
+
+        semantics = Mock(spec=Semantics)
+        semantics.get_metric_definition = Mock(return_value="")
+
+        metrics = Metrics(semantics, config)
+
+        query_data = {
+            "START_TIME": 1738786435157000000,
+            "DIMENSIONS": {"db.namespace": "MY_DB"},
+            "METRICS": {"snowflake.data.size": 512},
+        }
+
+        captured_payload = []
+
+        def capture_send_metrics(payload=None):
+            if payload:
+                captured_payload.append(payload)
+            return 1
+
+        # --- both context_name and plugin_name provided ---
+        with patch.object(metrics, "_send_metrics", side_effect=capture_send_metrics):
+            metrics.report_via_metrics_api(query_data, context_name="data_volume", plugin_name="data_volume")
+
+        assert len(captured_payload) > 0, "No payload was generated"
+        payload = captured_payload[0]
+        assert 'dsoa.run.context="data_volume"' in payload, f"dsoa.run.context missing from: {payload}"
+        assert 'dsoa.run.plugin="data_volume"' in payload, f"dsoa.run.plugin missing from: {payload}"
+
+        # --- only context_name provided (backward-compat: plugin absent) ---
+        captured_payload.clear()
+        with patch.object(metrics, "_send_metrics", side_effect=capture_send_metrics):
+            metrics.report_via_metrics_api(query_data, context_name="data_volume")
+
+        assert len(captured_payload) > 0, "No payload was generated"
+        payload = captured_payload[0]
+        assert 'dsoa.run.context="data_volume"' in payload, f"dsoa.run.context missing from: {payload}"
+        assert "dsoa.run.plugin" not in payload, f"dsoa.run.plugin should be absent when not provided: {payload}"
+
+        # --- neither provided ---
+        captured_payload.clear()
+        with patch.object(metrics, "_send_metrics", side_effect=capture_send_metrics):
+            metrics.report_via_metrics_api(query_data)
+
+        assert len(captured_payload) > 0, "No payload was generated"
+        payload = captured_payload[0]
+        assert "dsoa.run.context" not in payload, f"dsoa.run.context should be absent when not provided: {payload}"
+        assert "dsoa.run.plugin" not in payload, f"dsoa.run.plugin should be absent when not provided: {payload}"

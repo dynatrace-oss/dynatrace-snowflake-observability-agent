@@ -154,13 +154,16 @@ class Metrics:
         """Flush metrics cache"""
         return self._send_metrics()
 
-    def report_via_metrics_api(self, query_data: Dict, start_time: str = "START_TIME", context_name: Optional[str] = None) -> int:
+    def report_via_metrics_api(
+        self, query_data: Dict, start_time: str = "START_TIME", context_name: Optional[str] = None, plugin_name: Optional[str] = None
+    ) -> int:
         """Generates payload with Metrics v2 API
 
         Args:
-            query_data (Dict): query data containing METRICS section
-            start_time (str): key in query_data containing start time
-            context_name (Optional[str]): optional context name to add to dimensions
+            query_data (Dict):              query data containing METRICS section
+            start_time (str):               key in query_data containing start time
+            context_name (Optional[str]):   optional context name added as ``dsoa.run.context`` dimension
+            plugin_name  (Optional[str]):   optional plugin name added as ``dsoa.run.plugin`` dimension
 
         Returns:
             int: number of metric lines (without description lines) successfully sent
@@ -215,7 +218,11 @@ class Metrics:
 
         payload_lines = []
         # list all dimensions with their values from the provided data
-        all_dimensions = {**self._resattr_dims, **get_context_name(context_name), **_unpack_json_dict(query_data, ["DIMENSIONS"])}
+        all_dimensions = {
+            **self._resattr_dims,
+            **get_context_name(context_name, plugin_name),
+            **_unpack_json_dict(query_data, ["DIMENSIONS"]),
+        }
         LOG.log(LL_TRACE, "all_dimensions = %r", all_dimensions)
 
         # prepare dimensions for metrics
@@ -244,7 +251,7 @@ class Metrics:
         return "METRICS" in query_data
 
     def discover_report_metrics(
-        self, query_data: Dict, start_time: str = "START_TIME", context_name: Optional[str] = None
+        self, query_data: Dict, start_time: str = "START_TIME", context_name: Optional[str] = None, plugin_name: Optional[str] = None
     ) -> Tuple[bool, int]:
         """Checks if METRICS section is defined in query data, returns false if not
         otherwise reports metrics and returns result of report_via_metrics_api.
@@ -252,13 +259,15 @@ class Metrics:
         Args:
             query_data (Dict):              query data containing METRICS section
             start_time (str):               key in query_data containing start time
-            context_name (Optional[str]):   optional context name to add to dimensions
+            context_name (Optional[str]):   optional context name added as ``dsoa.run.context`` dimension
+            plugin_name  (Optional[str]):   optional plugin name added as ``dsoa.run.plugin`` dimension
+
         Returns:
             Tuple[bool, int]: boolean indicating if METRICS section was found, and
                               number of metric lines (without description lines) successfully sent
         """
         if self.metrics_section_exists(query_data):
-            return True, self.report_via_metrics_api(query_data, start_time, context_name=context_name)
+            return True, self.report_via_metrics_api(query_data, start_time, context_name=context_name, plugin_name=plugin_name)
         return False, 0
 
 

@@ -34,22 +34,16 @@ use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 create or replace procedure DTAGENT_DB.APP.P_GRANT_IMPORTED_PRIVILEGES(db_name VARCHAR)
 returns text
 language sql
-execute as caller
+execute as owner  -- requires DTAGENT_ADMIN ownership; MANAGE GRANTS is held by DTAGENT_ADMIN, not the caller
 as
 $$
 DECLARE
-    safe_identifier_re  TEXT DEFAULT '^[A-Za-z_][A-Za-z0-9_$]*$';
-    db_name_q           TEXT DEFAULT '';
+    v_db    TEXT DEFAULT '';
 BEGIN
-    IF (NOT REGEXP_LIKE(UPPER(:db_name), :safe_identifier_re)) THEN
-        SYSTEM$LOG_WARN('P_GRANT_IMPORTED_PRIVILEGES: skipping invalid database name (unsafe identifier): ' || :db_name);
-        RETURN 'skipped: unsafe database name ' || :db_name;
-    END IF;
+    v_db := UPPER(:db_name);
+    GRANT IMPORTED PRIVILEGES ON DATABASE IDENTIFIER(:v_db) TO ROLE DTAGENT_VIEWER;
 
-    db_name_q := '"' || UPPER(:db_name) || '"';
-    EXECUTE IMMEDIATE concat('GRANT IMPORTED PRIVILEGES on DATABASE ', :db_name_q, ' TO ROLE DTAGENT_VIEWER');
-
-    RETURN 'imported privileges granted on ' || :db_name;
+    RETURN 'imported privileges granted on ' || :v_db;
 EXCEPTION
   when statement_error then
     SYSTEM$LOG_WARN(SQLERRM);
@@ -60,4 +54,6 @@ $$
 ;
 
 grant usage on procedure DTAGENT_DB.APP.P_GRANT_IMPORTED_PRIVILEGES(VARCHAR) to role DTAGENT_VIEWER;
+
+grant ownership on procedure DTAGENT_DB.APP.P_GRANT_IMPORTED_PRIVILEGES(VARCHAR) to role DTAGENT_ADMIN copy current grants;
 --%:OPTION:dtagent_admin

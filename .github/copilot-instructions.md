@@ -137,13 +137,15 @@ Docs are a first-class deliverable. Run `./scripts/update_docs.sh` after any cod
 
 ### Deploying changes to a live environment
 
+**CRITICAL: The only permitted connection profile / env for agent-assisted deployments, teardowns, and live testing is `test-qa`. Never use any other env without explicit human instruction.**
+
 Always build first, then deploy with the appropriate scope(s):
 
 ```bash
-./scripts/dev/build.sh && ./scripts/deploy/deploy.sh <env> --scope=<scopes> --options=skip_confirm
+./scripts/dev/build.sh && ./scripts/deploy/deploy.sh test-qa --scope=<scopes> --options=skip_confirm
 ```
 
-- `<env>` must match a `conf/config-<env>.yml` file (e.g. `dev-094`).
+- `<env>` must match a `conf/config-<env>.yml` file. Always use `test-qa` unless explicitly told otherwise.
 - `--options=skip_confirm` suppresses the interactive confirmation prompt.
 - Multiple scopes are comma-separated: `--scope=plugins,config`.
 - The deploy script filters out disabled plugins automatically; no manual exclusion needed.
@@ -163,33 +165,41 @@ Always build first, then deploy with the appropriate scope(s):
 
 ### Deploying dashboard changes to a live tenant
 
-Convert the YAML to JSON and pass it **flat** (no envelope wrapper) to `dtctl apply`:
+`dtctl apply` expects the **same envelope structure that `dtctl get` returns** —
+the dashboard content must be nested inside a `content` key, with `id`/`name`/`type` at the top level.
 
 ```bash
-# 1. Convert YAML to JSON
-./scripts/tools/yaml-to-json.sh docs/dashboards/<name>/<name>.yml > /tmp/dashboard.json
+# 1. Convert YAML to JSON (produces the inner content)
+./scripts/tools/yaml-to-json.sh docs/dashboards/<name>/<name>.yml > /tmp/inner.json
 
-# 2. Merge id/name/type into the dashboard JSON at the top level (NO nested 'content' key)
+# 2. Wrap in the correct dtctl envelope
+#    CRITICAL: pop id/name OUT of content — they belong only at envelope level.
+#    Leaving them inside content causes the dashboard to fail to load in the UI.
 python3 -c "
 import json
-with open('/tmp/dashboard.json') as f:
-    d = json.load(f)
-d['id']   = '<dashboard-uuid>'
-d['name'] = '<Dashboard Name>'
-d['type'] = 'dashboard'
-with open('/tmp/dashboard-apply.json', 'w') as f:
-    json.dump(d, f)
+inner = json.load(open('/tmp/inner.json'))
+dashboard_id   = inner.pop('id')
+dashboard_name = inner.pop('name')
+envelope = {
+    'id':      dashboard_id,
+    'name':    dashboard_name,
+    'type':    'dashboard',
+    'content': inner
+}
+json.dump(envelope, open('/tmp/dashboard-apply.json', 'w'), indent=2)
 "
 
 # 3. Apply
-dtctl apply -f /tmp/dashboard-apply.json
+dtctl apply -A -f /tmp/dashboard-apply.json
+
+# 4. Verify tiles are present (should match tile count in YAML, not 0)
+dtctl get dashboard <id> -o json | python3 -c \
+  "import sys,json; d=json.load(sys.stdin); print('tiles:',len(d.get('content',{}).get('tiles',{})))"
 ```
 
-**Critical:** do NOT wrap the dashboard JSON in a `{"content": "<json string>"}` envelope.
-`dtctl apply` sends the entire file as the multipart `content` form field — if the file itself
-has a `content` key, the server receives a double-wrapped structure and stores an empty dashboard.
-The correct shape mirrors `dtctl get dashboard <id> -o json`: `id`/`name`/`type` alongside
-`version`/`tiles`/`variables`/`layouts` at the same top level.
+**Critical:** always `pop` `id` and `name` out of the inner content before wrapping — they must appear **only** at the envelope level. Leaving `id`/`name` inside `content` causes the dashboard to fail to load in the UI ("We were unable to load this dashboard").
+Passing the flat converted JSON directly to `dtctl apply` (without the envelope) causes it to double-wrap the content,
+resulting in a dashboard that returns `tiles: 0`.
 
 ## 📂 Gitignored Paths
 
@@ -208,6 +218,8 @@ Four mandatory phases — do not skip or merge.
 **Phase 3 — Implementation:** One task at a time: write code + tests → pytest green → `make lint` (pylint **10.00/10**) → update docs → commit. After all tasks: full suite + `make lint`, `build_docs.sh`, update `CHANGELOG.md` + `DEVLOG.md`, open PR.
 
 **Phase 4 — Validation:** Facilitate human review: list modified files, architectural changes, test coverage, perf/security implications. Human validates correctness, architecture, tests, security, scope, docs.
+
+**Continuous learning from review feedback:** After every human review, treat the feedback as a signal to improve agent instructions. If a correction reveals a gap or misunderstanding that could affect future work, update or create the appropriate skill (`.opencode/skills/<name>/SKILL.md`) or add a rule to this file. Proactively propose the update even if not explicitly asked — do not let the same mistake recur. New skills should be created when a topic is domain-specific and reusable (e.g. dashboard patterns, workflow patterns); general agent behavior belongs in this file.
 
 ## ⚠️ Anti-Patterns & Pitfalls
 
@@ -231,3 +243,4 @@ Four mandatory phases — do not skip or merge.
 - **Include/exclude filtering:** Plugins that use `include`/`exclude` pattern lists (`DB.SCHEMA.OBJECT`) must match excludes at the **same granularity** as includes — never collapse a fine-grained exclude to DB-level only. Views compare `QUALIFIED_NAME LIKE ANY (excludes)` using the full raw VALUE. Admin grant procedures match each tier separately: DB-level suppression only for excludes whose part2 is `%`, schema-level suppression via `(db.schema.%) LIKE ANY (raw excludes)`, object-level suppression by matching the include VALUE itself against excludes. See `PLUGIN_DEVELOPMENT.md` §SQL Best Practices item 6 for the canonical pattern.
 - **Security:** Never commit credentials. Use `.gitignore` and `_snowflake.read_secret()`.
 - **Backward compatibility:** Provide upgrade scripts for object changes. Document breaking changes.
+- **Procedure signature changes:** Snowflake does not replace a procedure if the new signature would create an ambiguous overload with an existing one — it raises `"Cannot overload PROCEDURE ... as it would cause ambiguous PROCEDURE overloading"`. Whenever a stored procedure's parameter list changes (add, remove, or rename a parameter), **always** create an upgrade script in `src/dtagent.sql/upgrade/<new-version>/` that drops the old signature **before** the new one is deployed. Use `DROP PROCEDURE IF EXISTS DTAGENT_DB.APP.<NAME>(<old-types>)` wrapped in `--%PLUGIN:<name>:` / `--%:PLUGIN:<name>` guards. The upgrade script is assembled by `build.sh` into `build/09_upgrade/v<version>.sql` and applied via `./scripts/deploy/deploy.sh <env> --scope=upgrade --from-version=<prev-version> --options=skip_confirm` **before** the main `--scope=plugins,admin,config` deploy step.

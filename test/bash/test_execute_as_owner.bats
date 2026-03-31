@@ -20,9 +20,11 @@ setup() {
     # EXCLUSION LIST — procedures that are allowed to use execute as owner
     # Add entries as "|"-separated patterns (grep -E), e.g.:
     #   "P_SOME_SPECIAL_PROC|P_ANOTHER_ONE"
-    # Currently empty: no procedures should use execute as owner.
     # -------------------------------------------------------------------
-    EXCLUSION_PATTERN=""
+    # shares/admin/051_p_grant_imported_privileges.sql — must run as owner
+    # (DTAGENT_ADMIN) because GRANT IMPORTED PRIVILEGES requires MANAGE GRANTS
+    # on ACCOUNT, which is granted to DTAGENT_ADMIN, not to the calling role.
+    EXCLUSION_PATTERN="shares.sql/admin/051_p_grant_imported_privileges"
 }
 
 # -----------------------------------------------------------------------
