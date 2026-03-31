@@ -123,7 +123,7 @@ def _extract_attributes_from_view_def(sql_query: str, _plugin_name: str) -> List
                     attr_name=attr_key,
                     attr_type=category,
                     dimension_values=(
-                        ", ".join([dim_key for dim_key in d_matches.get("DIMENSIONS", []) if "." in dim_key])
+                        ", ".join([dim_key for dim_key in d_matches.get("DIMENSIONS", []) if re.search(r"\w\.\w", dim_key)])
                         if m_key == "METRICS"
                         else None
                     ),
@@ -132,7 +132,7 @@ def _extract_attributes_from_view_def(sql_query: str, _plugin_name: str) -> List
                     source="sql",
                 )
                 for attr_key in m_values
-                if "." in attr_key
+                if re.search(r"\w\.\w", attr_key)
             ]
 
     LOG.debug(results)
