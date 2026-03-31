@@ -26,7 +26,7 @@
 # TAGS: security
 #
 id: 0f2f0c6b-5250-4f88-bc78-fe58d80fd59a
-version: 23
+version: 25
 variables:
   - version: 2
     key: Environment
@@ -35,7 +35,8 @@ variables:
     editable: true
     input: |-
       fetch logs
-      | filter dsoa.run.context == "login_history"
+      | filter db.system == "snowflake"
+      | filter isNotNull(deployment.environment)
       | fields deployment.environment
       | dedup deployment.environment
       | sort deployment.environment asc
@@ -1006,8 +1007,8 @@ tiles:
       | filter dsoa.run.context == "users"
       | filter in(deployment.environment, array($Environment))
       | filter isNotNull(snowflake.user.is_disabled)
-      | fieldsAdd status = if(snowflake.user.is_disabled == true, "Disabled",
-          else: if(snowflake.user.is_locked == true, "Locked",
+      | fieldsAdd status = if(toBoolean(snowflake.user.is_disabled), "Disabled",
+          else: if(toBoolean(snowflake.user.is_locked), "Locked",
           else: "Active"))
       | summarize count = count(), by: { status }
     visualization: categoricalBarChart
@@ -1042,7 +1043,7 @@ tiles:
       | filter dsoa.run.context == "users"
       | filter in(deployment.environment, array($Environment))
       | filter isNotNull(snowflake.user.has_mfa)
-      | fieldsAdd mfa_status = if(snowflake.user.has_mfa == true, "MFA Enrolled", else: "No MFA")
+      | fieldsAdd mfa_status = if(toBoolean(snowflake.user.has_mfa), "MFA Enrolled", else: "No MFA")
       | summarize count = count(), by: { mfa_status }
     visualization: pieChart
     visualizationSettings:
@@ -1070,7 +1071,7 @@ tiles:
       | filter dsoa.run.context == "users"
       | filter in(deployment.environment, array($Environment))
       | filter isNotNull(snowflake.user.has_rsa)
-      | fieldsAdd rsa_status = if(snowflake.user.has_rsa == true, "RSA Configured", else: "No RSA")
+      | fieldsAdd rsa_status = if(toBoolean(snowflake.user.has_rsa), "RSA Configured", else: "No RSA")
       | summarize count = count(), by: { rsa_status }
     visualization: pieChart
     visualizationSettings:
@@ -1097,10 +1098,10 @@ tiles:
       | filter db.system == "snowflake"
       | filter dsoa.run.context == "users"
       | filter in(deployment.environment, array($Environment))
-      | filter snowflake.user.has_password == true
-      | filter snowflake.user.has_mfa != true
-      | filter snowflake.user.has_rsa != true
-      | filter snowflake.user.has_pat != true
+      | filter toBoolean(snowflake.user.has_password)
+      | filter NOT toBoolean(snowflake.user.has_mfa)
+      | filter NOT toBoolean(snowflake.user.has_rsa)
+      | filter NOT toBoolean(snowflake.user.has_pat)
       | fields
           `User` = db.user,
           `Type` = snowflake.user.type,

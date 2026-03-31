@@ -290,26 +290,24 @@ These rules come from real debugging sessions — follow them strictly:
         - count
     ```
 
-15. **Boolean attributes may be native booleans — never compare with string `"true"`/`"false"`.**
+15. **Use `toBoolean()` for boolean attribute comparisons — it handles both native booleans and strings.**
     DSOA attributes like `snowflake.user.is_disabled`, `snowflake.user.has_mfa`,
-    `snowflake.user.has_rsa`, `snowflake.user.has_pat` arrive as **native boolean** values
-    (`true`/`false`), not strings. Comparing with `== "true"` silently fails (always false
-    for real booleans) and produces empty tiles.
+    `snowflake.user.has_rsa`, `snowflake.user.has_pat` may arrive as native booleans
+    or as strings depending on the plugin and OpenPipeline processing. Using `toBoolean()`
+    is the universal pattern that works for both types.
 
     ```dql
-    # ✅ CORRECT — compare with boolean literal
-    | fieldsAdd status = if(snowflake.user.is_disabled == true, "Disabled", else: "Active")
-    | filter snowflake.user.has_mfa == true
+    # ✅ CORRECT — toBoolean() works for both native booleans and string "true"/"false"
+    | fieldsAdd status = if(toBoolean(snowflake.user.is_disabled), "Disabled", else: "Active")
+    | filter toBoolean(snowflake.user.has_mfa)
+    | filter NOT toBoolean(snowflake.user.has_rsa)
 
-    # ❌ WRONG — string comparison against boolean attribute (always false)
+    # ❌ WRONG — == "true" fails silently for native boolean attributes
     | fieldsAdd status = if(snowflake.user.is_disabled == "true", "Disabled", else: "Active")
-    | filter snowflake.user.has_mfa == "true"
-    ```
 
-    Some attributes (e.g. `snowflake.resource_monitor.is_active`) may still arrive as
-    strings depending on the plugin implementation. When in doubt, query a sample record
-    first to check the actual type. Use `toBoolean()` only when the attribute is confirmed
-    to be string-typed.
+    # ⚠️ FRAGILE — == true fails for string-typed boolean attributes
+    | filter snowflake.user.has_mfa == true
+    ```
 
 16. **Users plugin: all contexts share `dsoa.run.context == "users"` — distinguish by attribute presence.**
     The users plugin passes a single `context_name="users"` for ALL its views
@@ -352,6 +350,34 @@ These rules come from real debugging sessions — follow them strictly:
     names before standardising on `dsoa.run.context`. The coalesce pattern was a migration
     shim. All current agents emit `dsoa.run.context` exclusively. New dashboards and
     dashboard updates must use `dsoa.run.context` directly — no coalesce, no `or` fallback.
+
+19. **Dashboard variables must not depend on a single plugin context.**
+    Variables like `$Environment` and `$Account` populate dropdown filters used by every
+    tile on the dashboard. If the variable query is restricted to one context
+    (e.g. `dsoa.run.context == "login_history"`), and that context has no data in the
+    selected timeframe, the variable returns empty. An empty variable causes
+    `in(deployment.environment, array($Environment))` to evaluate to `NULL` / `false`,
+    blanking **all** tiles — even those whose contexts do have data.
+
+    Always use a broad filter that matches any DSOA data:
+
+    ```dql
+    # ✅ CORRECT — works as long as ANY Snowflake data exists in the timeframe
+    fetch logs
+    | filter db.system == "snowflake"
+    | filter isNotNull(deployment.environment)
+    | fields deployment.environment
+    | dedup deployment.environment
+    | sort deployment.environment asc
+
+    # ❌ WRONG — fails when login_history has no data, blanking entire dashboard
+    fetch logs
+    | filter dsoa.run.context == "login_history"
+    | fields deployment.environment
+    | dedup deployment.environment
+    ```
+
+    The same principle applies to `$Account` and any other global filter variable.
 
 ## YAML Dashboard Format
 ```yaml
