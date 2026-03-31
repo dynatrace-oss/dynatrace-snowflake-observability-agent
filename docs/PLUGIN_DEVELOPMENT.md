@@ -46,19 +46,19 @@ src/dtagent/plugins/
 
 ### Naming Conventions
 
-| Component | Convention | Example (`my_plugin`) |
-|-----------|-----------|----------------------|
-| Plugin name | `snake_case` | `my_plugin` |
-| Python file | `{name}.py` | `my_plugin.py` |
-| Python class | `{CamelCase}Plugin` | `MyPluginPlugin` |
-| `PLUGIN_NAME` | lowercase, underscores | `"my_plugin"` |
-| SQL directory | `{name}.sql/` | `my_plugin.sql/` |
-| Config directory | `{name}.config/` | `my_plugin.config/` |
-| Config YAML | `{name}-config.yml` | `my_plugin-config.yml` |
-| SQL objects | ALL UPPERCASE | `V_MY_PLUGIN_INSTRUMENTED` |
-| Task | `TASK_DTAGENT_{UPPER}` | `TASK_DTAGENT_MY_PLUGIN` |
-| Config procedure | `UPDATE_{UPPER}_CONF()` | `UPDATE_MY_PLUGIN_CONF()` |
-| Semantic fields | `snowflake.{domain}.{field}` | `snowflake.pipe.name` |
+| Component        | Convention                   | Example (`my_plugin`)      |
+|------------------|------------------------------|----------------------------|
+| Plugin name      | `snake_case`                 | `my_plugin`                |
+| Python file      | `{name}.py`                  | `my_plugin.py`             |
+| Python class     | `{CamelCase}Plugin`          | `MyPluginPlugin`           |
+| `PLUGIN_NAME`    | lowercase, underscores       | `"my_plugin"`              |
+| SQL directory    | `{name}.sql/`                | `my_plugin.sql/`           |
+| Config directory | `{name}.config/`             | `my_plugin.config/`        |
+| Config YAML      | `{name}-config.yml`          | `my_plugin-config.yml`     |
+| SQL objects      | ALL UPPERCASE                | `V_MY_PLUGIN_INSTRUMENTED` |
+| Task             | `TASK_DTAGENT_{UPPER}`       | `TASK_DTAGENT_MY_PLUGIN`   |
+| Config procedure | `UPDATE_{UPPER}_CONF()`      | `UPDATE_MY_PLUGIN_CONF()`  |
+| Semantic fields  | `snowflake.{domain}.{field}` | `snowflake.pipe.name`      |
 
 ### Plugin Types
 
@@ -149,37 +149,37 @@ with cte_source as (
     where DELETED is null
 )
 select
-    current_timestamp() as TIMESTAMP,
-    ENTITY_NAME,
-    concat('Entity: ', ENTITY_NAME, ' in ', DATABASE_NAME) as _MESSAGE,
+    extract(epoch_nanosecond from START_TIME)               as TIMESTAMP,
+    s.entity_name                                           as ENTITY_NAME,
+    concat('Entity: ', s.entity_name, ' in ', s.database_name)  as _MESSAGE,
 
     object_construct(
-        'db.namespace', DATABASE_NAME,
-        'snowflake.schema.name', SCHEMA_NAME
-    ) as DIMENSIONS,
+        'db.namespace',                 s.database_name,
+        'snowflake.schema.name',        s.schema_name
+    )                                                       as DIMENSIONS,
 
     object_construct(
-        'snowflake.entity.name', ENTITY_NAME,
-        'snowflake.entity.comment', COMMENT
-    ) as ATTRIBUTES,
+        'snowflake.entity.name',        s.entity_name,
+        'snowflake.entity.comment',     s.comment
+    )                                                       as ATTRIBUTES,
 
     object_construct(
-        'snowflake.entity.count', 1
-    ) as METRICS
-from cte_source;
+        'snowflake.entity.count',       1
+    )                                                       as METRICS
+from cte_source s;
 
 grant select on view DTAGENT_DB.APP.V_{UPPER}_INSTRUMENTED to role DTAGENT_VIEWER;
 ```
 
 **Required columns for log/metric plugins:**
 
-| Column | Type | Purpose |
-|--------|------|---------|
-| `TIMESTAMP` | `TIMESTAMP_LTZ` | When data was collected or event occurred |
-| `_MESSAGE` | `VARCHAR` | Log content (auto-mapped to `content` in Dynatrace) |
-| `DIMENSIONS` | `OBJECT` | Low-cardinality grouping fields; **sent with metrics** |
-| `ATTRIBUTES` | `OBJECT` | High-cardinality context; **NOT sent with metrics** |
-| `METRICS` | `OBJECT` | Numerical measurements |
+| Column       | Type            | Purpose                                                |
+|--------------|-----------------|--------------------------------------------------------|
+| `TIMESTAMP`  | `TIMESTAMP_LTZ` | When data was collected or event occurred              |
+| `_MESSAGE`   | `VARCHAR`       | Log content (auto-mapped to `content` in Dynatrace)    |
+| `DIMENSIONS` | `OBJECT`        | Low-cardinality grouping fields; **sent with metrics** |
+| `ATTRIBUTES` | `OBJECT`        | High-cardinality context; **NOT sent with metrics**    |
+| `METRICS`    | `OBJECT`        | Numerical measurements                                 |
 
 **Optional columns:** identifier columns (e.g., `ENTITY_NAME`), `EVENT_TIMESTAMPS` (for timestamp events).
 
@@ -518,11 +518,11 @@ where QUALIFIED_NAME LIKE ANY (select include_pattern from cte_includes)
 
 **In admin grant procedures** — match excludes at the **same tier** as the grant:
 
-| Tier | Grant scope | Exclude condition |
-|------|-------------|-------------------|
-| DB | `IN DATABASE db` | Only DB-wide excludes: `split_part(VALUE, '.', 2) = '%'` |
-| Schema | `IN SCHEMA db.schema` | `(db.schema.%) LIKE ANY (raw excludes)` |
-| Object | `ON OBJECT db.schema.obj` | Include VALUE itself `LIKE ANY (raw excludes)` |
+| Tier   | Grant scope               | Exclude condition                                        |
+|--------|---------------------------|----------------------------------------------------------|
+| DB     | `IN DATABASE db`          | Only DB-wide excludes: `split_part(VALUE, '.', 2) = '%'` |
+| Schema | `IN SCHEMA db.schema`     | `(db.schema.%) LIKE ANY (raw excludes)`                  |
+| Object | `ON OBJECT db.schema.obj` | Include VALUE itself `LIKE ANY (raw excludes)`           |
 
 Never collapse a fine-grained exclude to DB-level only — this breaks the least-privilege principle.
 
@@ -558,56 +558,29 @@ self._configuration.get_config_value(self._session, 'plugins.{name}.some_setting
 
 ## Common Patterns
 
-### Pattern 1: Simple Log + Metric
-
-Single view, single task, `_log_entries()` with `report_metrics=True`. Most common pattern.
-
-**Examples:** `budgets`, `data_schemas`, `dynamic_tables`, `resource_monitors`
-
-### Pattern 2: Multi-Context, Single Schedule
-
-Multiple views in one `process()` call with context guards. Single task runs all contexts.
-
-**Examples:** `budgets` (budgets + spendings), `warehouse_usage`
-
-### Pattern 3: Multi-Context, Dual Schedule
-
-Fast and deep tasks on different cadences. Context-selective task syntax: `ARRAY_CONSTRUCT('{plugin}:{ctx1},{ctx2}')`.
-
-**Example:** `snowpipes` (fast: pipe status every 5 min; deep: copy/usage history hourly)
-
-### Pattern 4: Span/Trace
-
-Uses `_process_span_rows()` for parent-child relationships and distributed traces.
-
-**Examples:** `query_history`, `login_history`
-
-### Pattern 5: Pre-Processing Step
-
-Calls a stored procedure before processing contexts (e.g., refresh materialized data).
-
-**Example:** `budgets` calls `P_GET_BUDGETS` before reading views
-
-### Pattern 6: Incremental Processing
-
-Uses `F_LAST_PROCESSED_TS('{name}')` to only process new data since last run.
-
-**Examples:** `warehouse_usage`, `event_log`
+| Name                           | Description                                                                                                            | Examples                                                                     |
+|--------------------------------|------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------|
+| Simple Log + Metric            | Single view, single task, `_log_entries()` with `report_metrics=True`. Most common pattern.                            | `budgets`, `data_schemas`, `dynamic_tables`, `resource_monitors`             |
+| Multi-Context, Single Schedule | Multiple views in one `process()` call with context guards. Single task runs all contexts.                             | `budgets` (budgets + spendings), `warehouse_usage`                           |
+| Multi-Context, Dual Schedule   | Fast and deep tasks on different cadences. Context-selective task syntax: `ARRAY_CONSTRUCT('{plugin}:{ctx1},{ctx2}')`. | `snowpipes` (fast: pipe status every 5 min; deep: copy/usage history hourly) |
+| Span/Trace                     | Uses `_process_span_rows()` for parent-child relationships and distributed traces.                                     | `query_history`, `login_history`                                             |
+| Pre-Processing Step            | Calls a stored procedure before processing contexts (e.g., refresh materialized data).                                 | `budgets` calls `P_GET_BUDGETS` before reading views                         |
+| Incremental Processing         | Uses `F_LAST_PROCESSED_TS('{name}')` to only process new data since last run.                                          | `warehouse_usage`, `event_log`                                               |
 
 ---
 
 ## Troubleshooting
 
-| Symptom | Likely cause | Fix |
-|---------|-------------|-----|
-| Plugin not found / not loaded | Wrong class naming or missing `PLUGIN_NAME` | Verify `{CamelCase}Plugin`, rebuild |
-| SQL deployment errors | Lowercase names, missing `USE` statements | Ensure UPPERCASE, add `use role/database/warehouse` |
-| No data in Dynatrace | Plugin disabled or telemetry type missing | Check `is_disabled`, `telemetry` list in config |
-| Task not running | Suspended, config not deployed | Deploy `--scope=config`, call `UPDATE_{UPPER}_CONF()` |
-| Mismatched test counts | Stale fixtures, wrong `base_count` | Regenerate with `-p`, verify expected values |
-| Semantic fields missing | Mismatch between SQL and instruments-def | Align field names, rebuild docs |
-| Procedure overload error | Signature changed without upgrade script | Create upgrade script to drop old signature first |
-| Config not applied | Config scope not deployed | `deploy.sh --scope=config` |
+| Symptom                       | Likely cause                                | Fix                                                   |
+|-------------------------------|---------------------------------------------|-------------------------------------------------------|
+| Plugin not found / not loaded | Wrong class naming or missing `PLUGIN_NAME` | Verify `{CamelCase}Plugin`, rebuild                   |
+| SQL deployment errors         | Lowercase names, missing `USE` statements   | Ensure UPPERCASE, add `use role/database/warehouse`   |
+| No data in Dynatrace          | Plugin disabled or telemetry type missing   | Check `is_disabled`, `telemetry` list in config       |
+| Task not running              | Suspended, config not deployed              | Deploy `--scope=config`, call `UPDATE_{UPPER}_CONF()` |
+| Mismatched test counts        | Stale fixtures, wrong `base_count`          | Regenerate with `-p`, verify expected values          |
+| Semantic fields missing       | Mismatch between SQL and instruments-def    | Align field names, rebuild docs                       |
+| Procedure overload error      | Signature changed without upgrade script    | Create upgrade script to drop old signature first     |
+| Config not applied            | Config scope not deployed                   | `deploy.sh --scope=config`                            |
 
 ### Useful DQL Queries
 
@@ -636,11 +609,11 @@ fetch logs
 
 ### Reference Plugins
 
-| Complexity | Plugin | Pattern |
-|-----------|--------|---------|
-| Simple | `budgets` | Log + metric, multi-context |
-| Medium | `snowpipes` | Dual-schedule, timestamp events, include/exclude |
-| Complex | `query_history` | Span/trace, cross-plugin dependency |
+| Complexity | Plugin          | Pattern                                          |
+|------------|-----------------|--------------------------------------------------|
+| Simple     | `budgets`       | Log + metric, multi-context                      |
+| Medium     | `snowpipes`     | Dual-schedule, timestamp events, include/exclude |
+| Complex    | `query_history` | Span/trace, cross-plugin dependency              |
 
 ---
 
