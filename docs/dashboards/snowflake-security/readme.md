@@ -32,10 +32,14 @@ This dashboard provides insights into the security aspects of your Snowflake acc
 
 ## Privilege Escalation Detection
 
-- Identifies users with broad role grants (`ALL_ROLES` context) showing the complete list of roles and who granted them.
-- Surfaces users with extensive privilege grants (`ALL_PRIVILEGES` context) including the privilege type, target objects, and granting roles.
-- Detects role revocations (`users_removed_direct_roles` context) to track when roles are removed from users, which may indicate security policy changes or incident response.
+- Identifies users with broad role grants showing the complete list of roles and who granted them.
+- Surfaces users with extensive privilege grants including the privilege type, target objects, and granting roles.
+- Detects role revocations to track when roles are removed from users, which may indicate security policy changes or incident response.
 - Enables security teams to detect privilege escalation patterns and enforce least-privilege principles.
+
+All data is sourced from the `users` plugin (`dsoa.run.context == "users"`) via `fetch logs`, with each subset distinguished by attribute presence (e.g., `isNotNull(snowflake.user.roles.all)` for all-roles data).
+
+![Privilege escalation detection](./img/05-privilege-escalation.png)
 
 ## User Identity & Access
 
@@ -44,3 +48,5 @@ This dashboard provides insights into the security aspects of your Snowflake acc
 - Displays RSA key usage distribution to track adoption of key-pair authentication.
 - Breaks down user type distribution (e.g., `PERSON`, `SERVICE`, `LEGACY_SERVICE`) to understand the account landscape.
 - Lists password-only accounts (no MFA, no RSA, no PAT) that represent the highest authentication risk.
+
+![User identity and access](./img/06-user-identity-access.png)

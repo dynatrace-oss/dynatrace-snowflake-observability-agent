@@ -64,6 +64,10 @@ These rules come from real debugging sessions — follow them strictly:
    - `dynamic_tables` plugin (`dynamic_tables`, `dynamic_table_refresh_history`, `dynamic_table_graph_history`): **logs + metrics**
    - `snowpipes` plugin: logs + events (timestamp events via `report_timestamp_events=True`)
    - `shares` plugin (`inbound_shares`, `outbound_shares` contexts): **logs only** — use `fetch logs`; the `shares` context uses `report_timestamp_events=True` so those summary events go to `fetch events`, but per-share/per-grant detail rows are logs
+   - `users` plugin (`users`, `users_all_roles`, `users_all_privileges`, `users_direct_roles`, `users_removed_direct_roles` contexts): **logs only in practice** — although `instruments-def.yml` has `event_timestamps`, the EVENT_TIMESTAMPS contain stale dates (e.g. `last_altered` from 2021), causing Dynatrace to silently drop events. Always use `fetch logs`. See rules 15-17.
+   - `resource_monitors` plugin: **logs + events + metrics** (`timeseries` for credits metrics)
+   - `query_history` plugin: **logs + metrics** (`fetch logs` for detail rows, `timeseries` for execution time metrics)
+   - `active_queries` plugin: **logs only** — reads INFORMATION_SCHEMA in real-time
    - Default assumption for any new plugin context: **logs only**, unless `instruments-def.yml` or `_log_entries()` call explicitly shows `report_timestamp_events=True` or `report_all_as_events=True`
 
 2. **No `fetch metrics` for DSOA data.** DSOA does not use the standard
@@ -285,6 +289,65 @@ These rules come from real debugging sessions — follow them strictly:
       valueAxis:
         - count
     ```
+
+15. **`toBoolean()` is required for string boolean attributes in DQL conditions.**
+    DSOA attributes like `snowflake.resource_monitor.is_active`, `snowflake.user.is_disabled`,
+    `snowflake.user.has_mfa`, `snowflake.user.has_rsa` are string-typed (`"true"`/`"false"`).
+    In DQL `if()` conditions, the string `"true"` does **not** evaluate as boolean true —
+    you must use `toBoolean()`:
+
+    ```dql
+    # ✅ CORRECT
+    | fieldsAdd status = if(toBoolean(snowflake.user.is_disabled), "Disabled", else: "Active")
+
+    # ❌ WRONG — string "true" is truthy but "false" is ALSO truthy (non-empty string)
+    | fieldsAdd status = if(snowflake.user.is_disabled == "true", "Disabled", else: "Active")
+    ```
+
+    The `== "true"` string comparison works but is fragile and inconsistent with DQL
+    best practices. Always prefer `toBoolean()` for boolean attribute checks.
+
+16. **Users plugin: all contexts share `dsoa.run.context == "users"` — distinguish by attribute presence.**
+    The users plugin passes a single `context_name="users"` for ALL its views
+    (`V_USERS_INSTRUMENTED`, `V_USERS_ALL_ROLES_INSTRUMENTED`, `V_USERS_ALL_PRIVILEGES_INSTRUMENTED`,
+    `V_USERS_DIRECT_ROLES_INSTRUMENTED`, `V_USERS_REMOVED_DIRECT_ROLES_INSTRUMENTED`).
+    The context names `users_all_roles`, `users_all_privileges`, `users_removed_direct_roles`
+    from `instruments-def.yml` do **not** appear as `dsoa.run.context` values in Dynatrace.
+
+    To filter for specific user data subsets, use attribute presence:
+
+    ```dql
+    # All roles data
+    | filter dsoa.run.context == "users" and isNotNull(snowflake.user.roles.all)
+
+    # All privileges data
+    | filter dsoa.run.context == "users" and isNotNull(snowflake.user.privilege)
+
+    # Removed direct roles
+    | filter dsoa.run.context == "users" and isNotNull(snowflake.user.roles.direct.removed)
+
+    # Base user info (login status, MFA, RSA, type)
+    | filter dsoa.run.context == "users" and isNotNull(snowflake.user.is_disabled)
+    ```
+
+17. **Events with stale timestamps are silently dropped by Dynatrace — prefer `fetch logs`.**
+    Dynatrace's OpenPipeline Events API silently rejects events whose timestamps fall
+    outside the ingestion window (typically ±24h). Plugins that use `event_timestamps`
+    referencing historical dates (e.g. `last_altered`, `created_on`) will show non-zero
+    send counts in the agent logs, but the events will **not** appear in `fetch events`.
+    The same data is always available via `fetch logs` (which uses the current timestamp).
+
+    **Diagnostic pattern:** If a tile using `fetch events` returns 0 rows but the agent
+    reports sending events successfully, switch to `fetch logs` — the data is there.
+
+    **Known affected plugins:** `users` (all contexts — EVENT_TIMESTAMPS contain
+    `last_altered` dates from months/years ago).
+
+18. **Never use legacy `coalesce(dsoa.run.context, snowagent.run.context, service.namespace)` fallbacks.**
+    Early DSOA versions used `snowagent.run.context` and `service.namespace` as attribute
+    names before standardising on `dsoa.run.context`. The coalesce pattern was a migration
+    shim. All current agents emit `dsoa.run.context` exclusively. New dashboards and
+    dashboard updates must use `dsoa.run.context` directly — no coalesce, no `or` fallback.
 
 ## YAML Dashboard Format
 ```yaml
