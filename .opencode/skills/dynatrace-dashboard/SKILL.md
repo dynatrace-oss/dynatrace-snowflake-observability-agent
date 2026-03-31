@@ -369,12 +369,54 @@ For workflows, the same script applies:
 ./scripts/tools/yaml-to-json.sh docs/workflows/<name>/<name>.yml > /tmp/<name>.json
 ```
 
-## Deploying with dtctl
+## Deploying with deploy_dt_assets.sh (Recommended)
 
-Use `dtctl apply` to create or update dashboards and workflows.
-Always use `-A` for structured agent-friendly output.
+**Always use `scripts/deploy/deploy_dt_assets.sh` to deploy dashboards and workflows.**
+This script handles YAML → JSON conversion, envelope building, `dtctl apply`, URL printing,
+and automatic ID write-back — all in one step.
 
-### CRITICAL: Correct JSON envelope format for dashboards
+```bash
+# Deploy all dashboards and workflows
+./scripts/deploy/deploy_dt_assets.sh
+
+# Deploy only dashboards
+./scripts/deploy/deploy_dt_assets.sh --scope=dashboards
+
+# Deploy only workflows
+./scripts/deploy/deploy_dt_assets.sh --scope=workflows
+
+# Preview without applying
+./scripts/deploy/deploy_dt_assets.sh --dry-run
+
+# Add environment label to log output
+./scripts/deploy/deploy_dt_assets.sh --env=test-qa
+```
+
+On success the script prints a clickable `[URL]` line for each deployed asset:
+```
+[OK]    Updated: Data Volume & Storage
+[URL]   https://aym57094.sprint.apps.dynatracelabs.com/ui/apps/dynatrace.dashboards/dashboard/fdd7c1db-ffc0-4c75-adea-f60cadc120ad
+```
+
+**ID write-back:** For new dashboards (no `id:` in YAML), the script automatically
+inserts the assigned ID into the YAML file after deployment. This ensures future
+runs update the same dashboard rather than creating a duplicate.
+
+**YAML requirements for the script to work correctly:**
+- `# DASHBOARD: <Human-readable name>` comment at the top → used as display name
+- `id: <uuid>` top-level field → present after first deploy (written back automatically)
+- `name: <Human-readable name>` top-level field → required for `dtctl` round-trips
+  (also written back by `dtctl get` exports). If absent, the script uses the comment.
+
+Via `deploy.sh` (opt-in, never part of default `all`):
+```bash
+./scripts/deploy/deploy.sh <env> --scope=dt_assets
+```
+
+## Deploying with dtctl Directly (Manual / Fallback)
+
+Use this approach only when `deploy_dt_assets.sh` is unavailable or you need
+fine-grained control (e.g. deploying a single dashboard by hand).
 
 `dtctl apply` expects the **same envelope structure that `dtctl get` returns** —
 not a flat JSON file. The correct shape is:
@@ -388,7 +430,15 @@ not a flat JSON file. The correct shape is:
 }
 ```
 
-To produce this correctly from the YAML source:
+### CRITICAL envelope rules
+
+- `id` and `name` must be **popped** from the inner content before wrapping — they must
+  appear at envelope level **only**. Leaving them inside `content` causes the dashboard
+  to fail to load: "We were unable to load this dashboard."
+- **Do NOT** pass the flat converted JSON directly to `dtctl apply` — that causes
+  `dtctl` to double-wrap the content, producing `tiles: 0`.
+
+To produce the envelope correctly:
 
 ```bash
 ./scripts/tools/yaml-to-json.sh docs/dashboards/<name>/<name>.yml > /tmp/inner.json
@@ -397,19 +447,15 @@ python3 -c "
 import json
 inner = json.load(open('/tmp/inner.json'))
 # CRITICAL: pop id/name OUT of content — they belong only at envelope level.
-# Leaving them inside content causes 'We were unable to load this dashboard.'
-dashboard_id   = inner.pop('id')
+dashboard_id   = inner.pop('id', None)
 dashboard_name = inner.pop('name')
-envelope = {
-    'id':      dashboard_id,
-    'name':    dashboard_name,
-    'type':    'dashboard',
-    'content': inner
-}
+envelope = {'name': dashboard_name, 'type': 'dashboard', 'content': inner}
+if dashboard_id:
+    envelope['id'] = dashboard_id
 json.dump(envelope, open('/tmp/<name>-apply.json', 'w'), indent=2)
 "
 
-dtctl apply -A -f /tmp/<name>-apply.json
+dtctl apply -f /tmp/<name>-apply.json
 ```
 
 Verify after apply that `tiles count` is correct (not 0):
@@ -421,65 +467,19 @@ print('tiles:', len(d.get('content',{}).get('tiles',{})))
 "
 ```
 
-If tiles count is 0 after apply, the envelope was wrong (flat file was passed
-instead of the wrapped envelope). Rebuild the envelope and reapply.
+If tiles count is 0 after apply, the envelope was wrong. Rebuild and reapply.
 
-**Critical rules:**
-- `id` and `name` must be **popped** from `inner` before wrapping — they must appear at
-  envelope level **only**. Leaving them inside `content` causes the dashboard to fail to
-  load: "We were unable to load this dashboard."
-- **Do NOT** pass the flat converted JSON directly to `dtctl apply` — that causes
-  `dtctl` to wrap it a second time, producing an empty dashboard that fails to load.
+### For new dashboards (no ID yet):
 
-### Create new dashboard (no ID in file):
+Omit `id` from the envelope. `dtctl apply` assigns one. Record it and add it to
+the YAML as `id: <uuid>` so future runs update rather than create a duplicate.
+(`deploy_dt_assets.sh` does this automatically.)
 
-For a brand-new dashboard, omit `id` from the envelope. `dtctl apply` assigns one:
-
+### Preview / diff / round-trip:
 ```bash
-python3 -c "
-import json
-inner = json.load(open('/tmp/inner.json'))
-# pop id if present (it may not exist for new dashboards)
-inner.pop('id', None)
-dashboard_name = inner.pop('name')
-envelope = {'name': dashboard_name, 'type': 'dashboard', 'content': inner}
-json.dump(envelope, open('/tmp/<name>-apply.json', 'w'), indent=2)
-"
-dtctl apply -A -f /tmp/<name>-apply.json
-```
-
-The response will include the assigned dashboard ID. **Record this ID** and add
-it to the YAML file as a top-level `id:` field so future runs update rather than
-create a duplicate.
-
-### Update existing dashboard (ID already in file):
-
-Build the envelope as shown above (with `id` included) and apply:
-
-```bash
-dtctl apply -A -f /tmp/<name>-apply.json
-```
-
-`dtctl apply` is idempotent: if the ID exists it updates, otherwise it creates.
-
-### Preview changes before applying:
-```bash
-dtctl apply -A --dry-run -f /tmp/<name>.json
-```
-
-### Show what changed:
-```bash
-dtctl apply -A --show-diff -f /tmp/<name>.json
-```
-
-### Get current dashboard for round-trip edit:
-```bash
+dtctl apply --dry-run -f /tmp/<name>-apply.json
+dtctl apply --show-diff -f /tmp/<name>-apply.json
 dtctl get dashboard <id> -o yaml > /tmp/<name>-current.yaml
-```
-
-### Workflows follow the same pattern:
-```bash
-dtctl apply -A -f /tmp/<name>-workflow.json
 ```
 
 ## Full Deployment Sequence

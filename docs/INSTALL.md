@@ -11,6 +11,7 @@ developer and want to build from source, please refer to the [CONTRIBUTING.md](C
 - [Prerequisites](#prerequisites)
 - [Quick Start](#quick-start)
 - [Deploying DSOA](#deploying-dynatrace-snowflake-observability-agent)
+- [Deploying Dashboards and Workflows](#deploying-dashboards-and-workflows)
 - [Setting up a profile](#setting-up-a-profile)
 - [Setting up connection to Snowflake](#setting-up-connection-to-snowflake)
 - [Common Configuration Mistakes](#common-configuration-mistakes)
@@ -561,6 +562,113 @@ The complete log of deployment and the script executed during deployment is avai
 
 > **Troubleshooting:** If tasks are running in Snowflake but no data appears in Dynatrace, please refer to
 > [Troubleshooting: No Data in Dynatrace](docs/debug/no-data-in-dt/readme.md) for a comprehensive debugging guide.
+
+## Deploying Dashboards and Workflows
+
+After the agent is deployed and sending telemetry, you can deploy pre-built Dynatrace dashboards and workflows to visualize
+and act on the data.  Deployment is automated via `deploy_dt_assets.sh`, which uses the
+[`dtctl`](https://github.com/dynatrace-oss/dtctl) CLI to apply assets directly to your Dynatrace tenant.
+
+> **Note:** Dashboards and workflows use a separate authentication mechanism from the agent's `DTAGENT_TOKEN`.
+> They require a Dynatrace **Platform Token** with the appropriate scopes (see [Prerequisites for Dashboard and Workflow Deployment](#prerequisites-for-dashboard-and-workflow-deployment) below).
+
+### Prerequisites for Dashboard and Workflow Deployment
+
+- **`dtctl`** installed and authenticated.
+
+  Install with Homebrew (macOS):
+
+  ```bash
+  brew install dynatrace-oss/tap/dtctl
+  ```
+
+  Authenticate with your Dynatrace tenant:
+
+  ```bash
+  dtctl auth login
+  ```
+
+  Or set the `DTCTL_TOKEN` environment variable with a valid platform token:
+
+  ```bash
+  export HISTCONTROL=ignorespace
+   export DTCTL_TOKEN="dt0s01.SAMPLE..."
+  ```
+
+- **Platform Token scopes** required:
+
+  | Asset type  | Required scope                        |
+  | ----------- | ------------------------------------- |
+  | Dashboards  | `document:documents:write`            |
+  | Workflows   | `automation:workflows:write`          |
+
+### Deploying with the Script
+
+The `deploy_dt_assets.sh` script in the `scripts/deploy/` directory handles conversion from YAML source files
+(stored in `docs/dashboards/` and `docs/workflows/`) to `dtctl`-compatible JSON and applies them to the tenant.
+
+**Deploy all dashboards and workflows:**
+
+```bash
+./scripts/deploy/deploy_dt_assets.sh
+```
+
+**Deploy only dashboards:**
+
+```bash
+./scripts/deploy/deploy_dt_assets.sh --scope=dashboards
+```
+
+**Deploy only workflows:**
+
+```bash
+./scripts/deploy/deploy_dt_assets.sh --scope=workflows
+```
+
+**Preview changes without applying (dry-run):**
+
+```bash
+./scripts/deploy/deploy_dt_assets.sh --dry-run
+```
+
+**Include an environment label in log output:**
+
+```bash
+./scripts/deploy/deploy_dt_assets.sh --env=production
+```
+
+### Deploying via deploy.sh
+
+You can also trigger dashboard and workflow deployment as part of a broader `deploy.sh` run using the `dt_assets` scope.
+This scope is **opt-in** and is never included in the default `all` scope, because `dtctl` is an optional dependency.
+
+```bash
+./deploy.sh $ENV --scope=dt_assets
+```
+
+The `dt_assets` scope calls `deploy_dt_assets.sh --scope=all` internally and passes through the `dry_run` option if set.
+
+### Idempotency
+
+On the first deployment, `dtctl` creates each asset with a new auto-generated ID.  The `deploy_dt_assets.sh` script
+automatically writes the assigned ID back into the YAML file after a successful deploy, inserting an `id:` field at the
+top of the file.  Subsequent runs will read this ID and update the existing asset rather than creating a duplicate.
+
+If you need to retrieve the ID manually (e.g. for troubleshooting or after a manual `dtctl apply`), use:
+
+```bash
+dtctl get dashboard --output=json | jq '.[] | select(.name=="My Dashboard") | .id'
+```
+
+Add the returned `id` as a top-level field in the corresponding YAML to make future automated runs idempotent.
+
+### Available Dashboards
+
+See [`docs/dashboards/README.md`](dashboards/README.md) for the full list of available dashboards and their descriptions.
+
+### Available Workflows
+
+See [`docs/workflows/README.md`](workflows/README.md) for the full list of available workflows and their descriptions.
 
 ## Setting up a profile
 

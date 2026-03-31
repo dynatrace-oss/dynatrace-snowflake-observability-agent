@@ -25,6 +25,7 @@
 # PLUGINS: query_history, resource_monitors, warehouse_usage
 # TAGS: costs
 #
+id: e446e588-b917-4a63-867c-643ca783c79e
 version: 19
 variables:
   - version: 2

@@ -165,8 +165,26 @@ Always build first, then deploy with the appropriate scope(s):
 
 ### Deploying dashboard changes to a live tenant
 
-`dtctl apply` expects the **same envelope structure that `dtctl get` returns** —
-the dashboard content must be nested inside a `content` key, with `id`/`name`/`type` at the top level.
+Use `deploy_dt_assets.sh` — it handles YAML-to-JSON conversion, envelope construction, `id`/`name` extraction, applying via `dtctl`, printing clickable URLs, and writing newly assigned IDs back into the YAML file automatically.
+
+```bash
+# Deploy all dashboards
+./scripts/deploy/deploy_dt_assets.sh --scope=dashboards --env=test-qa
+
+# Dry-run (no changes applied)
+./scripts/deploy/deploy_dt_assets.sh --scope=dashboards --env=test-qa --dry-run
+```
+
+After deploy, verify tiles are present (count should match the tile count in the YAML, not 0):
+
+```bash
+dtctl get dashboard <id> -o json | python3 -c \
+  "import sys,json; d=json.load(sys.stdin); print('tiles:',len(d.get('content',{}).get('tiles',{})))"
+```
+
+#### Manual / Fallback
+
+If `deploy_dt_assets.sh` is unavailable, build the envelope manually:
 
 ```bash
 # 1. Convert YAML to JSON (produces the inner content)
@@ -190,11 +208,7 @@ json.dump(envelope, open('/tmp/dashboard-apply.json', 'w'), indent=2)
 "
 
 # 3. Apply
-dtctl apply -A -f /tmp/dashboard-apply.json
-
-# 4. Verify tiles are present (should match tile count in YAML, not 0)
-dtctl get dashboard <id> -o json | python3 -c \
-  "import sys,json; d=json.load(sys.stdin); print('tiles:',len(d.get('content',{}).get('tiles',{})))"
+dtctl apply -f /tmp/dashboard-apply.json
 ```
 
 **Critical:** always `pop` `id` and `name` out of the inner content before wrapping — they must appear **only** at the envelope level. Leaving `id`/`name` inside `content` causes the dashboard to fail to load in the UI ("We were unable to load this dashboard").

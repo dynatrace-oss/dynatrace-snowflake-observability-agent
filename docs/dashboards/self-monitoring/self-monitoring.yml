@@ -25,6 +25,7 @@
 # PLUGINS: query_history
 # TAGS: self-monitoring
 #
+id: 0363ea51-aafe-4d5c-b76b-70342d5f70ed
 version: 21
 variables:
   - key: Accounts

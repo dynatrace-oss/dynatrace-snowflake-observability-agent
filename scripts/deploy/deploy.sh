@@ -291,3 +291,27 @@ if ! has_option "no_dep"; then
         show_bizevent_warning "FINISHED"
     fi
 fi
+
+# Dynatrace asset deployment (dashboards + workflows) via dtctl.
+# Triggered only when scope explicitly includes "dt_assets" — never part of "all"
+# since dtctl is an optional dependency.
+# Use exact token matching (split on commas) to avoid false positives like "foo_dt_assets_bar".
+_has_dt_assets_scope=false
+IFS=',' read -ra _scope_tokens <<< "$SCOPE"
+for _token in "${_scope_tokens[@]}"; do
+    _token=$(echo "$_token" | xargs)
+    if [[ "$_token" == "dt_assets" ]]; then
+        _has_dt_assets_scope=true
+        break
+    fi
+done
+if $_has_dt_assets_scope; then
+    echo ""
+    echo "Deploying Dynatrace assets (dashboards and workflows) via dtctl..."
+    DRY_RUN_FLAG=""
+    if has_option "dry_run"; then
+        DRY_RUN_FLAG="--dry-run"
+    fi
+    # shellcheck disable=SC2086
+    "$CWD/deploy_dt_assets.sh" --scope=all --env="${DEPLOYMENT_ENV}" $DRY_RUN_FLAG
+fi
