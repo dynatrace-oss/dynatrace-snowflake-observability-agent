@@ -30,23 +30,20 @@ This dashboard provides insights into the security aspects of your Snowflake acc
 - Tracks authentication methods used by both human and service users to monitor the transition to more secure practices.
 ![Login Analysis](./img/04-logins-by-auth-type.png)
 
-## Privilege Escalation Detection
+## Role Change Tracking
 
-- Identifies users with broad role grants showing the complete list of roles and who granted them.
-- Surfaces users with extensive privilege grants including the privilege type, target objects, and granting roles.
-- Detects role revocations to track when roles are removed from users, which may indicate security policy changes or incident response.
-- Enables security teams to detect privilege escalation patterns and enforce least-privilege principles.
+- Detects role revocations to track when roles are removed from users, which may indicate security policy changes or incident response actions.
+- Enables security teams to audit role changes and enforce least-privilege principles.
 
-All data is sourced from the `users` plugin (`dsoa.run.context == "users"`) via `fetch logs`, with each subset distinguished by attribute presence (e.g., `isNotNull(snowflake.user.roles.all)` for all-roles data).
+Data is sourced from the `users` plugin (`dsoa.run.context == "users"`) via `fetch logs`, filtered by `isNotNull(snowflake.user.roles.direct.removed)`.
 
-![Privilege escalation detection](./img/05-privilege-escalation.png)
+![Role change tracking](./img/05-role-change-tracking.png)
 
 ## User Identity & Access
 
 - Provides an at-a-glance view of account health: active vs disabled vs locked accounts as a bar chart.
 - Shows MFA enrollment status as a pie chart to identify users without multi-factor authentication.
 - Displays RSA key usage distribution to track adoption of key-pair authentication.
-- Breaks down user type distribution (e.g., `PERSON`, `SERVICE`, `LEGACY_SERVICE`) to understand the account landscape.
 - Lists password-only accounts (no MFA, no RSA, no PAT) that represent the highest authentication risk.
 
 ![User identity and access](./img/06-user-identity-access.png)

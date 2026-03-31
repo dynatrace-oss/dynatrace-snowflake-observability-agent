@@ -290,22 +290,26 @@ These rules come from real debugging sessions — follow them strictly:
         - count
     ```
 
-15. **`toBoolean()` is required for string boolean attributes in DQL conditions.**
-    DSOA attributes like `snowflake.resource_monitor.is_active`, `snowflake.user.is_disabled`,
-    `snowflake.user.has_mfa`, `snowflake.user.has_rsa` are string-typed (`"true"`/`"false"`).
-    In DQL `if()` conditions, the string `"true"` does **not** evaluate as boolean true —
-    you must use `toBoolean()`:
+15. **Boolean attributes may be native booleans — never compare with string `"true"`/`"false"`.**
+    DSOA attributes like `snowflake.user.is_disabled`, `snowflake.user.has_mfa`,
+    `snowflake.user.has_rsa`, `snowflake.user.has_pat` arrive as **native boolean** values
+    (`true`/`false`), not strings. Comparing with `== "true"` silently fails (always false
+    for real booleans) and produces empty tiles.
 
     ```dql
-    # ✅ CORRECT
-    | fieldsAdd status = if(toBoolean(snowflake.user.is_disabled), "Disabled", else: "Active")
+    # ✅ CORRECT — compare with boolean literal
+    | fieldsAdd status = if(snowflake.user.is_disabled == true, "Disabled", else: "Active")
+    | filter snowflake.user.has_mfa == true
 
-    # ❌ WRONG — string "true" is truthy but "false" is ALSO truthy (non-empty string)
+    # ❌ WRONG — string comparison against boolean attribute (always false)
     | fieldsAdd status = if(snowflake.user.is_disabled == "true", "Disabled", else: "Active")
+    | filter snowflake.user.has_mfa == "true"
     ```
 
-    The `== "true"` string comparison works but is fragile and inconsistent with DQL
-    best practices. Always prefer `toBoolean()` for boolean attribute checks.
+    Some attributes (e.g. `snowflake.resource_monitor.is_active`) may still arrive as
+    strings depending on the plugin implementation. When in doubt, query a sample record
+    first to check the actual type. Use `toBoolean()` only when the attribute is confirmed
+    to be string-typed.
 
 16. **Users plugin: all contexts share `dsoa.run.context == "users"` — distinguish by attribute presence.**
     The users plugin passes a single `context_name="users"` for ALL its views

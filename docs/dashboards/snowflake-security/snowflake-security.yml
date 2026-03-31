@@ -26,7 +26,7 @@
 # TAGS: security
 #
 id: 0f2f0c6b-5250-4f88-bc78-fe58d80fd59a
-version: 22
+version: 23
 variables:
   - version: 2
     key: Environment
@@ -955,70 +955,11 @@ tiles:
   "34":
     type: markdown
     content: |
-      ### Privilege Escalation Detection
-      Detects users with broad role/privilege grants and recent role revocations.
+      ### Role Change Tracking
+      Tracks role revocations to detect security policy changes or incident response actions.
     davis:
       componentState:
         inputData: null
-  "35":
-    title: Users with ALL_ROLES grants
-    type: data
-    query: |-
-      fetch logs
-      | filter db.system == "snowflake"
-      | filter dsoa.run.context == "users"
-      | filter in(deployment.environment, array($Environment))
-      | filter isNotNull(snowflake.user.roles.all)
-      | fields
-          `User` = db.user,
-          `All Roles` = snowflake.user.roles.all,
-          `Granted By` = snowflake.user.roles.granted_by,
-          `Environment` = deployment.environment
-      | sort `User` asc
-    visualization: table
-    visualizationSettings:
-      autoSelectVisualization: false
-      thresholds: []
-    querySettings:
-      maxResultRecords: 1000
-      defaultScanLimitGbytes: 500
-      maxResultMegaBytes: 100
-      defaultSamplingRatio: 10
-      enableSampling: false
-    davis:
-      enabled: false
-      davisVisualization:
-        isAvailable: true
-  "36":
-    title: Users with ALL_PRIVILEGES grants
-    type: data
-    query: |-
-      fetch logs
-      | filter db.system == "snowflake"
-      | filter dsoa.run.context == "users"
-      | filter in(deployment.environment, array($Environment))
-      | filter isNotNull(snowflake.user.privilege)
-      | fields
-          `User` = db.user,
-          `Privilege` = snowflake.user.privilege,
-          `Grants On` = snowflake.user.privilege.grants_on,
-          `Granted By` = snowflake.user.privilege.granted_by,
-          `Environment` = deployment.environment
-      | sort `User` asc
-    visualization: table
-    visualizationSettings:
-      autoSelectVisualization: false
-      thresholds: []
-    querySettings:
-      maxResultRecords: 1000
-      defaultScanLimitGbytes: 500
-      maxResultMegaBytes: 100
-      defaultSamplingRatio: 10
-      enableSampling: false
-    davis:
-      enabled: false
-      davisVisualization:
-        isAvailable: true
   "37":
     title: Role changes detected (revocations)
     type: data
@@ -1065,8 +1006,8 @@ tiles:
       | filter dsoa.run.context == "users"
       | filter in(deployment.environment, array($Environment))
       | filter isNotNull(snowflake.user.is_disabled)
-      | fieldsAdd status = if(snowflake.user.is_disabled == "true", "Disabled",
-          else: if(snowflake.user.is_locked == "true", "Locked",
+      | fieldsAdd status = if(snowflake.user.is_disabled == true, "Disabled",
+          else: if(snowflake.user.is_locked == true, "Locked",
           else: "Active"))
       | summarize count = count(), by: { status }
     visualization: categoricalBarChart
@@ -1101,7 +1042,7 @@ tiles:
       | filter dsoa.run.context == "users"
       | filter in(deployment.environment, array($Environment))
       | filter isNotNull(snowflake.user.has_mfa)
-      | fieldsAdd mfa_status = if(snowflake.user.has_mfa == "true", "MFA Enrolled", else: "No MFA")
+      | fieldsAdd mfa_status = if(snowflake.user.has_mfa == true, "MFA Enrolled", else: "No MFA")
       | summarize count = count(), by: { mfa_status }
     visualization: pieChart
     visualizationSettings:
@@ -1129,35 +1070,8 @@ tiles:
       | filter dsoa.run.context == "users"
       | filter in(deployment.environment, array($Environment))
       | filter isNotNull(snowflake.user.has_rsa)
-      | fieldsAdd rsa_status = if(snowflake.user.has_rsa == "true", "RSA Configured", else: "No RSA")
+      | fieldsAdd rsa_status = if(snowflake.user.has_rsa == true, "RSA Configured", else: "No RSA")
       | summarize count = count(), by: { rsa_status }
-    visualization: pieChart
-    visualizationSettings:
-      chartSettings:
-        circleChartSettings:
-          valueType: relative
-          groupingThresholdType: relative
-      thresholds: []
-    querySettings:
-      maxResultRecords: 1000
-      defaultScanLimitGbytes: 500
-      maxResultMegaBytes: 100
-      defaultSamplingRatio: 10
-      enableSampling: false
-    davis:
-      enabled: false
-      davisVisualization:
-        isAvailable: true
-  "42":
-    title: User type distribution
-    type: data
-    query: |-
-      fetch logs
-      | filter db.system == "snowflake"
-      | filter dsoa.run.context == "users"
-      | filter in(deployment.environment, array($Environment))
-      | filter isNotNull(snowflake.user.type)
-      | summarize count = count(), by: { snowflake.user.type }
     visualization: pieChart
     visualizationSettings:
       chartSettings:
@@ -1183,10 +1097,10 @@ tiles:
       | filter db.system == "snowflake"
       | filter dsoa.run.context == "users"
       | filter in(deployment.environment, array($Environment))
-      | filter snowflake.user.has_password == "true"
-      | filter snowflake.user.has_mfa != "true"
-      | filter snowflake.user.has_rsa != "true"
-      | filter snowflake.user.has_pat != "true"
+      | filter snowflake.user.has_password == true
+      | filter snowflake.user.has_mfa != true
+      | filter snowflake.user.has_rsa != true
+      | filter snowflake.user.has_pat != true
       | fields
           `User` = db.user,
           `Type` = snowflake.user.type,
@@ -1308,20 +1222,10 @@ layouts:
     "y": 60
     w: 24
     h: 1
-  "35":
+  "37":
     x: 0
     "y": 61
-    w: 8
-    h: 6
-  "36":
-    x: 8
-    "y": 61
-    w: 8
-    h: 6
-  "37":
-    x: 16
-    "y": 61
-    w: 8
+    w: 24
     h: 6
   "38":
     x: 0
@@ -1336,17 +1240,12 @@ layouts:
   "40":
     x: 8
     "y": 68
-    w: 5
+    w: 8
     h: 6
   "41":
-    x: 13
+    x: 16
     "y": 68
-    w: 5
-    h: 6
-  "42":
-    x: 18
-    "y": 68
-    w: 6
+    w: 8
     h: 6
   "43":
     x: 0
