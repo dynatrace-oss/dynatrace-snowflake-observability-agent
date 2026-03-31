@@ -29,54 +29,89 @@ Examples:
 
 ## Database Convention
 
-**All synthetic test objects must be created in the same shared test database:**
+Each plugin uses its **own dedicated test database** with a descriptive name:
+
 ```sql
-DSOA_TEST_DB
+DSOA_<PLUGIN>_TEST_DB   -- e.g., DSOA_PIPE_TEST_DB for the snowpipes plugin
 ```
 
-Use a dedicated schema per plugin to keep objects isolated:
+Use a single schema inside that database to keep objects organised:
+
 ```sql
-DSOA_TEST_DB.<PLUGIN_NAME>   -- e.g., DSOA_TEST_DB.SNOWPIPES
+DSOA_<PLUGIN>_TEST_DB.<SCHEMA>   -- e.g., DSOA_PIPE_TEST_DB.INGEST
 ```
 
-This avoids proliferating test databases and keeps grants centralised.
+This mirrors the real `test/tools/setup_test_snowpipes.sql` pattern and keeps
+ownership grants simple (one DB per plugin, owned end-to-end by `OWNER_ROLE`).
 
 ## Script Structure
 
-Every `setup_test_<plugin>.sql` must follow this structure:
+Every `setup_test_<plugin>.sql` must follow this structure, which mirrors
+`test/tools/setup_test_snowpipes.sql`:
+
 ```sql
 -- ============================================================================
 -- <Plugin> test setup for DSOA telemetry validation
--- Database: DSOA_TEST_DB   Schema: DSOA_TEST_DB.<PLUGIN>
+-- Database: DSOA_<PLUGIN>_TEST_DB   Schema: DSOA_<PLUGIN>_TEST_DB.<SCHEMA>
 -- Cost: near-zero  (describe approach)
+--
+-- Ownership model:
+--   All objects are created directly by OWNER_ROLE so no post-hoc ownership
+--   transfers are needed. ACCOUNTADMIN is used only for the two account-level
+--   grants that cannot be issued by a lower-privileged role.
+--
+-- Before running:
+--   1. Set OWNER_ROLE to the role that should own all objects.
+--   2. Set TASK_WAREHOUSE to a warehouse that OWNER_ROLE can use.
 -- ============================================================================
 
+-- ---- CONFIGURATION ---------------------------------------------------------
+SET owner_role     = 'OWNER_ROLE';      -- role that will own all objects
+SET task_warehouse = 'TASK_WAREHOUSE';  -- warehouse used by tasks (if any)
+-- ----------------------------------------------------------------------------
+
+-- 1. Account-level grants that require ACCOUNTADMIN (only what is necessary).
+USE ROLE ACCOUNTADMIN;
+GRANT EXECUTE TASK  ON ACCOUNT                               TO ROLE IDENTIFIER($owner_role);
+GRANT USAGE         ON WAREHOUSE IDENTIFIER($task_warehouse) TO ROLE IDENTIFIER($owner_role);
+
+-- 2. Create the database as SYSADMIN, then grant ownership to OWNER_ROLE
+--    before any objects exist (safe because no running pipes/tasks yet).
 USE ROLE SYSADMIN;
+CREATE DATABASE IF NOT EXISTS DSOA_<PLUGIN>_TEST_DB;
+USE ROLE ACCOUNTADMIN;
+GRANT OWNERSHIP ON DATABASE DSOA_<PLUGIN>_TEST_DB
+    TO ROLE IDENTIFIER($owner_role) COPY CURRENT GRANTS;
 
--- 1. Ensure shared test database and plugin schema exist
-CREATE DATABASE IF NOT EXISTS DSOA_TEST_DB;
-CREATE SCHEMA IF NOT EXISTS DSOA_TEST_DB.<PLUGIN>;
+-- 3. Switch to OWNER_ROLE for everything else. All objects are owned from birth.
+USE ROLE IDENTIFIER($owner_role);
+USE DATABASE DSOA_<PLUGIN>_TEST_DB;
 
--- 2. Create test objects (tables, stages, pipes, tasks, etc.)
+CREATE SCHEMA IF NOT EXISTS DSOA_<PLUGIN>_TEST_DB.<SCHEMA>;
+
+-- 4. Create test objects (tables, stages, pipes, tasks, etc.)
 -- ...
 
--- 3. Load or generate sample data that exercises all dashboard use cases
+-- 5. Load or generate sample data that exercises all dashboard use cases
 -- ...
 
--- 4. Grant access to the DSOA viewer role
---    Adjust role name if your deployment uses a tag (e.g. DTAGENT_094_VIEWER)
-GRANT USAGE ON DATABASE DSOA_TEST_DB TO ROLE DTAGENT_094_VIEWER;
-GRANT USAGE ON SCHEMA DSOA_TEST_DB.<PLUGIN> TO ROLE DTAGENT_094_VIEWER;
+-- 6. Grant access to the DSOA viewer role
+--    Adjust role name to match your deployment tag (e.g. DTAGENT_094_VIEWER)
+GRANT USAGE ON DATABASE DSOA_<PLUGIN>_TEST_DB TO ROLE DTAGENT_094_VIEWER;
+GRANT USAGE ON SCHEMA   DSOA_<PLUGIN>_TEST_DB.<SCHEMA> TO ROLE DTAGENT_094_VIEWER;
 -- <object-level grants>
 
--- 5. Verify setup
+-- 7. Verify setup
 -- <SHOW / SELECT verification queries>
 
 -- ============================================================================
 -- CLEANUP (run when done testing):
--- DROP SCHEMA IF EXISTS DSOA_TEST_DB.<PLUGIN>;
+-- DROP DATABASE IF EXISTS DSOA_<PLUGIN>_TEST_DB;
 -- ============================================================================
 ```
+
+Omit the `EXECUTE TASK` / `TASK_WAREHOUSE` grants if the plugin does not use
+Snowflake Tasks in its synthetic setup.
 
 ## Execution Workflow
 
@@ -93,13 +128,13 @@ snow sql --connection snow_agent_test-qa -f test/tools/setup_test_<plugin>.sql
 
 ### 3. Verify objects exist
 ```bash
-snow sql --connection snow_agent_test-qa -q "SHOW <OBJECTS> IN SCHEMA DSOA_TEST_DB.<PLUGIN>;"
+snow sql --connection snow_agent_test-qa -q "SHOW <OBJECTS> IN SCHEMA DSOA_<PLUGIN>_TEST_DB.<SCHEMA>;"
 ```
 
 ### 4. Verify grants
 ```bash
 snow sql --connection snow_agent_test-qa -q \
-  "SHOW GRANTS TO ROLE DTAGENT_094_VIEWER;" | grep DSOA_TEST_DB
+  "SHOW GRANTS TO ROLE DTAGENT_094_VIEWER;" | grep DSOA_
 ```
 
 ### 5. Wait for DSOA collection

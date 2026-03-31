@@ -41,9 +41,10 @@ All DSOA telemetry carries these standard dimensions on every record:
 
 These rules come from real debugging sessions — follow them strictly:
 
-1. **No `fetch metrics` for DSOA data.** DSOA emits logs, events, and bizevents.
-   Use `fetch logs`, `fetch events`, or `fetch bizevents` as appropriate.
-   Check `instruments-def.yml` for the correct telemetry type per metric.
+1. **No `fetch metrics` in Grail DQL.** Metric series are queried with
+   `timeseries avg(metric.name), by: { dim }` — there is no `fetch metrics` command.
+   For structured log/event data use `fetch logs`, `fetch events`, or `fetch bizevents`.
+   Check `instruments-def.yml` for the correct telemetry type per signal.
 
 2. **`timeseries` requires all filter dimensions in the `by:` clause.**
    If you filter on `deployment.environment` after `timeseries`, it must
@@ -98,7 +99,7 @@ variables:
         | fields deployment.environment
         | dedup deployment.environment
         | sort deployment.environment asc
-    defaultValue: "*"
+    defaultValue: "<your-environment>"  # e.g. "PROD", "DEV" — must match a value the query returns
   # ... additional variables
 
 tiles:
@@ -161,30 +162,57 @@ For workflows, the same script applies:
 Use `dtctl apply` to create or update dashboards and workflows.
 Always use `-A` for structured agent-friendly output.
 
-### Create new dashboard (no ID in file):
+**Critical:** `dtctl apply` expects a specific envelope structure. The YAML-to-JSON
+conversion produces the inner dashboard content; you must wrap it before applying.
+`id` and `name` must appear **only at the envelope level** — never inside `content`.
+Leaving them inside `content` causes the dashboard to fail to load ("We were unable
+to load this dashboard") or returns `tiles: 0`.
+
+### Step-by-step: deploy a dashboard
+
 ```bash
-dtctl apply -A -f /tmp/<name>.json
+# 1. Convert YAML to JSON (produces the inner content)
+./scripts/tools/yaml-to-json.sh docs/dashboards/<name>/<name>.yml > /tmp/inner.json
+
+# 2. Wrap in the dtctl envelope
+#    Pop id/name OUT of content — they belong only at envelope level.
+python3 -c "
+import json
+inner = json.load(open('/tmp/inner.json'))
+dashboard_id   = inner.pop('id')
+dashboard_name = inner.pop('name')
+envelope = {
+    'id':      dashboard_id,
+    'name':    dashboard_name,
+    'type':    'dashboard',
+    'content': inner
+}
+json.dump(envelope, open('/tmp/<name>-apply.json', 'w'), indent=2)
+"
+
+# 3. Validate
+jq . /tmp/<name>-apply.json > /dev/null && echo "JSON valid"
+
+# 4. Apply
+dtctl apply -A -f /tmp/<name>-apply.json
+
+# 5. Verify tiles were stored (should match tile count in YAML, not 0)
+dtctl get dashboard <id> -o json | python3 -c \
+  "import sys,json; d=json.load(sys.stdin); print('tiles:',len(d.get('content',{}).get('tiles',{})))"
 ```
 
-The response will include the assigned dashboard ID. **Record this ID** and add
-it to the YAML file as a top-level `id:` field so future runs update rather than
-create a duplicate.
+The response includes the assigned dashboard ID. **Record it** and add it to the
+YAML as a top-level `id:` field so subsequent runs update rather than create duplicates.
 
-### Update existing dashboard (ID already in file):
+### On first create (no ID yet)
+
+Omit `id` from the YAML. After the first deploy, `dtctl apply` returns the new ID —
+add it to the YAML, re-convert, and re-deploy once to make future runs idempotent.
+
+### Preview / diff before applying:
 ```bash
-dtctl apply -A -f /tmp/<name>.json
-```
-
-`dtctl apply` is idempotent: if the ID exists it updates, otherwise it creates.
-
-### Preview changes before applying:
-```bash
-dtctl apply -A --dry-run -f /tmp/<name>.json
-```
-
-### Show what changed:
-```bash
-dtctl apply -A --show-diff -f /tmp/<name>.json
+dtctl apply -A --dry-run   -f /tmp/<name>-apply.json
+dtctl apply -A --show-diff -f /tmp/<name>-apply.json
 ```
 
 ### Get current dashboard for round-trip edit:
@@ -194,22 +222,27 @@ dtctl get dashboard <id> -o yaml > /tmp/<name>-current.yaml
 
 ### Workflows follow the same pattern:
 ```bash
-dtctl apply -A -f /tmp/<name>-workflow.json
+./scripts/tools/yaml-to-json.sh docs/workflows/<name>/<name>.yml > /tmp/inner.json
+# wrap with type: "workflow" instead of "dashboard", then:
+dtctl apply -A -f /tmp/<name>-workflow-apply.json
 ```
 
 ## Full Deployment Sequence
-```
-1. Read instruments-def.yml for all relevant plugins
-2. Write dashboard YAML in docs/dashboards/<name>/<name>.yml
-3. Convert:  ./scripts/tools/yaml-to-json.sh ... > /tmp/<name>.json
-4. Validate: jq . /tmp/<name>.json
-5. Deploy:   dtctl apply -A -f /tmp/<name>.json
-6. Record the returned ID — add it to the YAML as `id: <uuid>`
-7. Re-convert and re-deploy with ID so subsequent runs update in place
-8. Verify visually in Dynatrace UI
-9. Write docs/dashboards/<name>/readme.md  (see dashboard-docs skill)
-10. Update docs/dashboards/README.md index
-11. Request screenshots (see dashboard-docs skill)
+
+```text
+1.  Read instruments-def.yml for all relevant plugins
+2.  Write dashboard YAML in docs/dashboards/<name>/<name>.yml
+3.  Convert:  ./scripts/tools/yaml-to-json.sh ... > /tmp/inner.json
+4.  Wrap:     python3 envelope script above  → /tmp/<name>-apply.json
+5.  Validate: jq . /tmp/<name>-apply.json
+6.  Deploy:   dtctl apply -A -f /tmp/<name>-apply.json
+7.  Record the returned ID — add it to the YAML as `id: <uuid>`
+8.  Re-convert, re-wrap, re-deploy with ID so subsequent runs update in place
+9.  Verify:   dtctl get dashboard <id> ... | check tile count > 0
+10. Verify visually in Dynatrace UI
+11. Write docs/dashboards/<name>/readme.md  (see dashboard-docs skill)
+12. Update docs/dashboards/README.md index
+13. Request screenshots (see dashboard-docs skill)
 ```
 
 ## Dynatrace MCP Server

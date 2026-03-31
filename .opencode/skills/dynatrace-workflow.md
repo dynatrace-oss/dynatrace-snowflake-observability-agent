@@ -87,10 +87,12 @@ tasks:
 
 Apply the same DQL rules as for dashboards (see `dynatrace-dashboard.md`):
 
-- Use `fetch logs`, `fetch events`, or `fetch bizevents` — not `fetch metrics`
+- **No `fetch metrics` in DQL.** In Grail, metric series are queried with
+  `timeseries avg(metric.name), by: { dim }` — there is no `fetch metrics` command.
+  Use `fetch logs`, `fetch events`, or `fetch bizevents` for structured records.
 - Consult `src/dtagent/plugins/<plugin>.config/instruments-def.yml` for correct
-  metric keys, dimensions, and telemetry types
-- All DSOA telemetry carries `db.system == "snowflake"` and `deployment.environment`
+  metric keys, dimensions, and telemetry types.
+- All DSOA telemetry carries `db.system == "snowflake"` and `deployment.environment`.
 
 ## YAML to JSON Conversion
 
