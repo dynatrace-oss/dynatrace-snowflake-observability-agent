@@ -24,8 +24,8 @@ This file documents detailed technical changes, internal refactorings, and devel
   The scope passes `--dry-run` through via `$DRY_RUN_FLAG`.
 - **Error handling**: Per-asset failures are logged but do not abort the run; remaining assets continue. Exit code reflects
   overall success/failure.
-- **Tests**: 14 bats tests in `test/bash/test_deploy_dt_assets.bats` covering argument validation, dtctl availability,
-  auth failure, scope filtering, dry-run passthrough, YAML→JSON conversion, missing directories, summary output, and
+- **Tests**: 16 bats tests in `test/bash/test_deploy_dt_assets.bats` covering argument validation, dtctl availability,
+  scope filtering, dry-run passthrough, YAML→JSON conversion, missing directories, summary output, and
   name extraction from comments.
 - **New directory**: `docs/workflows/` created with `README.md` as placeholder for upcoming workflow YAMLs (BDX-1820–1827).
 - **Docs updated**: `docs/INSTALL.md` — new `## Deploying Dashboards and Workflows` section; `docs/dashboards/README.md` —

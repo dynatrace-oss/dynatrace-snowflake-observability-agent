@@ -650,15 +650,17 @@ The `dt_assets` scope calls `deploy_dt_assets.sh --scope=all` internally and pas
 
 ### Idempotency
 
-On the first deployment, `dtctl` creates each asset with a new auto-generated ID.  To make subsequent deployments
-idempotent (update rather than create), store the assigned ID back into the YAML file.  You can retrieve it after
-the first run with:
+On the first deployment, `dtctl` creates each asset with a new auto-generated ID.  The `deploy_dt_assets.sh` script
+automatically writes the assigned ID back into the YAML file after a successful deploy, inserting an `id:` field at the
+top of the file.  Subsequent runs will read this ID and update the existing asset rather than creating a duplicate.
+
+If you need to retrieve the ID manually (e.g. for troubleshooting or after a manual `dtctl apply`), use:
 
 ```bash
 dtctl get dashboard --output=json | jq '.[] | select(.name=="My Dashboard") | .id'
 ```
 
-Add the returned `id` as a top-level field in the corresponding YAML, and future runs will update in place.
+Add the returned `id` as a top-level field in the corresponding YAML to make future automated runs idempotent.
 
 ### Available Dashboards
 
