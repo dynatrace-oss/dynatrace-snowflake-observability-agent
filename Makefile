@@ -24,5 +24,11 @@ lint-bom:
 # Run all linting checks (stops on first failure, like CI)
 lint: lint-python lint-format lint-pylint lint-sql lint-yaml lint-markdown lint-bom
 
+build:
+	./scripts/dev/build.sh
+
 docs:
 	./scripts/dev/build_docs.sh
+
+package:
+	./scripts/dev/package.sh

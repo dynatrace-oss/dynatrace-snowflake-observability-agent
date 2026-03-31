@@ -147,6 +147,24 @@ Each JSON file is named after its dashboard title (e.g., `Costs Monitoring.json`
 
 ---
 
+### [Budgets & FinOps](budgets-finops/)
+
+**Purpose**: Track Snowflake budget spending, warehouse sizing decisions, and warehouse load patterns.
+
+**Key Features**:
+
+- Budget spend vs. limit KPIs with historical trends and per-service-type credit breakdown
+- Per-warehouse sizing overview: cluster configuration, resource monitor assignment, and unmonitored warehouse detection
+- Cluster utilization and resource monitor quota usage trends over time
+- Warehouse load analysis: running, queued, and blocked query counts from `WAREHOUSE_LOAD_HISTORY`
+- Resource monitor quota utilization and alert threshold visibility
+
+**Required Plugins**: `budgets`, `warehouse_usage`, `resource_monitors`
+
+**DPO Theme**: Costs, Operations
+
+---
+
 ### [Snowflake Query Deep Dive](query-deep-dive/)
 
 **Purpose**: Advanced query analytics for DBAs and FinOps teams — covering costly repeated queries, table performance degradation, query acceleration, multi-level analysis, external functions, query origins, and cost attribution.
