@@ -11,7 +11,7 @@ Use cases marked with 🔜 are **upcoming** — they depend on plugins currently
 - [Theme: Costs](#theme-costs)
 - [Theme: Performance](#theme-performance)
 - [Theme: Quality](#theme-quality)
-- [Use Case × Tier Matrix](#use-case--tier-matrix)
+- [Use Case vs Tier Matrix](#use-case-vs-tier-matrix)
 
 ---
 
@@ -150,7 +150,7 @@ Use cases marked with 🔜 are **upcoming** — they depend on plugins currently
 
 ---
 
-## Use Case × Tier Matrix
+## Use Case vs Tier Matrix
 
 The matrix below maps each DPO theme to the three observability tiers, showing the number of current and upcoming use cases.
 

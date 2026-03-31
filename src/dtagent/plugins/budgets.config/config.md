@@ -1,5 +1,5 @@
 | Parameter           | Type   | Default                        | Description                                                                                                                                                                                                                |
-| ------------------- | ------ | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|---------------------|--------|--------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `quota`             | int    | `10`                           | Credit quota for the agent's own `DTAGENT_BUDGET`.                                                                                                                                                                         |
 | `schedule`          | string | `USING CRON 30 0 * * * UTC`    | Cron schedule for the budgets collection task.                                                                                                                                                                             |
 | `monitored_budgets` | list   | `[]`                           | Fully-qualified custom budget names to monitor, e.g. `["MY_DB.MY_SCHEMA.MY_BUDGET"]`. Names are automatically uppercased; only standard unquoted Snowflake identifiers are supported (`[A-Za-z_][A-Za-z0-9_$]*` per part). |
@@ -20,5 +20,4 @@ For each custom budget `<DB>.<SCHEMA>.<BUDGET_NAME>`, grant the following to `DT
 grant usage on database <DB> to role DTAGENT_VIEWER;
 grant usage on schema <DB>.<SCHEMA> to role DTAGENT_VIEWER;
 grant snowflake.core.budget role <DB>.<SCHEMA>.<BUDGET_NAME>!VIEWER to role DTAGENT_VIEWER;
-grant database role SNOWFLAKE.USAGE_VIEWER to role DTAGENT_VIEWER;
 ```

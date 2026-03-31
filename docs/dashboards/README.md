@@ -16,7 +16,8 @@ This directory contains example Dynatrace dashboards designed to visualize and a
   - [Shares \& Governance](#shares--governance)
 - [Dashboard Structure](#dashboard-structure)
 - [Importing Dashboards](#importing-dashboards)
-  - [Using Pre-Generated JSON Files (Recommended)](#using-pre-generated-json-files-recommended)
+  - [Using Deployment Script (Recommended for Automation)](#using-deployment-script-recommended-for-automation)
+  - [Using Pre-Generated JSON Files](#using-pre-generated-json-files)
   - [Using Dynatrace UI](#using-dynatrace-ui)
   - [Converting from YAML Source (Advanced)](#converting-from-yaml-source-advanced)
 - [Prerequisites](#prerequisites)
@@ -147,6 +148,24 @@ Each JSON file is named after its dashboard title (e.g., `Costs Monitoring.json`
 
 ---
 
+### [Budgets & FinOps](budgets-finops/)
+
+**Purpose**: Track Snowflake budget spending, warehouse sizing decisions, and warehouse load patterns.
+
+**Key Features**:
+
+- Budget spend vs. limit KPIs with historical trends and per-service-type credit breakdown
+- Per-warehouse sizing overview: cluster configuration, resource monitor assignment, and unmonitored warehouse detection
+- Cluster utilization and resource monitor quota usage trends over time
+- Warehouse load analysis: running, queued, and blocked query counts from `WAREHOUSE_LOAD_HISTORY`
+- Resource monitor quota utilization and alert threshold visibility
+
+**Required Plugins**: `budgets`, `warehouse_usage`, `resource_monitors`
+
+**DPO Theme**: Costs, Operations
+
+---
+
 ### [Snowflake Query Deep Dive](query-deep-dive/)
 
 **Purpose**: Advanced query analytics for DBAs and FinOps teams — covering costly repeated queries, table performance degradation, query acceleration, multi-level analysis, external functions, query origins, and cost attribution.
@@ -238,7 +257,39 @@ Each dashboard folder in the source repository contains:
 
 ## Importing Dashboards
 
-### Using Pre-Generated JSON Files (Recommended)
+### Using Deployment Script (Recommended for Automation)
+
+The `deploy_dt_assets.sh` script automates dashboard deployment using [dtctl](https://github.com/dynatrace-oss/dtctl).
+It converts YAML sources to JSON, wraps them in the correct dtctl envelope, and applies them idempotently.
+
+**Deploy all dashboards:**
+
+```bash
+./scripts/deploy/deploy_dt_assets.sh --scope=dashboards
+```
+
+**Dry-run (preview without applying):**
+
+```bash
+./scripts/deploy/deploy_dt_assets.sh --scope=dashboards --dry-run
+```
+
+**Deploy dashboards and workflows together:**
+
+```bash
+./scripts/deploy/deploy_dt_assets.sh --scope=all
+```
+
+**Via the main deploy script:**
+
+```bash
+./scripts/deploy/deploy.sh <env> --scope=dt_assets
+```
+
+> **Prerequisites:** [dtctl](https://github.com/dynatrace-oss/dtctl) must be installed and authenticated.
+> See the [Installation Guide](../INSTALL.md#deploying-dashboards-and-workflows) for setup instructions.
+
+### Using Pre-Generated JSON Files
 
 **If you downloaded the distribution package** (`dynatrace_snowflake_observability_agent-*.zip`), ready-to-use JSON dashboard files are included in the `dashboards/` directory. Simply import them directly:
 

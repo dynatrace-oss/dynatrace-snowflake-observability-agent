@@ -217,7 +217,6 @@ For each custom budget `<DB>.<SCHEMA>.<BUDGET_NAME>`, grant the following to `DT
 grant usage on database <DB> to role DTAGENT_VIEWER;
 grant usage on schema <DB>.<SCHEMA> to role DTAGENT_VIEWER;
 grant snowflake.core.budget role <DB>.<SCHEMA>.<BUDGET_NAME>!VIEWER to role DTAGENT_VIEWER;
-grant database role SNOWFLAKE.USAGE_VIEWER to role DTAGENT_VIEWER;
 ```
 
 ### Budgets Bill of Materials

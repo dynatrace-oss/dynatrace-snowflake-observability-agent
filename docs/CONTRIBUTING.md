@@ -10,7 +10,7 @@ Welcome! This document is intended for developers wishing to contribute to the D
 1. [Writing Plugins](#writing-plugins)
 1. [Semantic Conventions](#semantic-conventions)
 1. [Source Code Overview](#source-code-overview)
-1. [AI-Assisted Dashboard / Workflow Development](#ai-assisted-dashboard--workflow-development)
+1. [AI-Assisted Dashboard and Workflow Development](#ai-assisted-dashboard-and-workflow-development)
 1. [Pull Request Checklist](#pull-request-checklist)
 
 ---
@@ -225,7 +225,7 @@ Supported options: `dtagent_admin` (admin role), `resource_monitor` (resource mo
 
 ---
 
-## AI-Assisted Dashboard / Workflow Development
+## AI-Assisted Dashboard and Workflow Development
 
 DSOA ships AI-agent skills in `.opencode/skills/` for dashboard, workflow, and plugin development tasks.
 

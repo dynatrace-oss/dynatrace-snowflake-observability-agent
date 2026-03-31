@@ -94,38 +94,40 @@ All telemetry delivered by this plugin is reported as `dsoa.run.context == "acti
 
 [Show plugin description](PLUGINS.md#budgets_info_sec)
 
-All telemetry delivered by this plugin is reported as `dsoa.run.context == "budgets"`.
+This plugin delivers telemetry in multiple contexts. To filter by one of plugin's context names (reported as `dsoa.run.context`), please
+check the `Context Name` column below.
 
 ### Dimensions at the `Budgets` plugin
 
-| Identifier                           | Description                                                                                                                                                                                                                                                                                                                                                     | Example            |
-|--------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------|
-| db.&#8203;namespace                  | The name of the database that was specified in the context of the query at compilation.                                                                                                                                                                                                                                                                         | analytics_db       |
-| snowflake.&#8203;budget.&#8203;name  | Name of the budget.                                                                                                                                                                                                                                                                                                                                             | monthly_budget     |
-| snowflake.&#8203;schema.&#8203;name  | Schema that was specified in the context of the query at compilation.                                                                                                                                                                                                                                                                                           | public             |
-| snowflake.&#8203;service.&#8203;type | Type of service that is consuming credits, which can be one of the following: <br>- AUTO_CLUSTERING, <br>- HYBRID_TABLE_REQUESTS, <br>- MATERIALIZED_VIEW, <br>- PIPE, <br>- QUERY_ACCELERATION, <br>- SEARCH_OPTIMIZATION, <br>- SERVERLESS_ALERTS, <br>- SERVERLESS_TASK, <br>- SNOWPIPE_STREAMING, <br>- WAREHOUSE_METERING, <br>- WAREHOUSE_METERING_READER | WAREHOUSE_METERING |
+| Identifier                               | Description                                                                                                                                                                                                                                                                                                                                                     | Example                             | Context Name       |
+|------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------|--------------------|
+| db.&#8203;namespace                      | The name of the database that was specified in the context of the query at compilation.                                                                                                                                                                                                                                                                         | analytics_db                        | budgets, spendings |
+| snowflake.&#8203;budget.&#8203;full_name | Fully<br>-qualified name of the budget (DATABASE.SCHEMA.NAME).                                                                                                                                                                                                                                                                                                  | ANALYTICS_DB.BUDGETS.MONTHLY_BUDGET | budgets, spendings |
+| snowflake.&#8203;budget.&#8203;name      | Name of the budget.                                                                                                                                                                                                                                                                                                                                             | monthly_budget                      | budgets, spendings |
+| snowflake.&#8203;schema.&#8203;name      | Schema that was specified in the context of the query at compilation.                                                                                                                                                                                                                                                                                           | public                              | budgets, spendings |
+| snowflake.&#8203;service.&#8203;type     | Type of service that is consuming credits, which can be one of the following: <br>- AUTO_CLUSTERING, <br>- HYBRID_TABLE_REQUESTS, <br>- MATERIALIZED_VIEW, <br>- PIPE, <br>- QUERY_ACCELERATION, <br>- SEARCH_OPTIMIZATION, <br>- SERVERLESS_ALERTS, <br>- SERVERLESS_TASK, <br>- SNOWPIPE_STREAMING, <br>- WAREHOUSE_METERING, <br>- WAREHOUSE_METERING_READER | WAREHOUSE_METERING                  | spendings          |
 
 ### Attributes at the `Budgets` plugin
 
-| Identifier                                            | Description                                                                                                             | Example                       |
-|-------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------|-------------------------------|
-| snowflake.&#8203;budget.&#8203;owner                  | The owner of the budget, typically the user or role responsible for managing the budget.                                | budget_admin                  |
-| snowflake.&#8203;budget.&#8203;owner.&#8203;role_type | The type of role assigned to the budget owner, indicating their level of access and responsibilities.                   | ACCOUNTADMIN                  |
-| snowflake.&#8203;budget.&#8203;resource               | The resources linked to the budget, such as databases, warehouses, or other Snowflake objects that the budget monitors. | [ "database1", "warehouse1" ] |
+| Identifier                                            | Description                                                                                                             | Example                       | Context Name |
+|-------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------|-------------------------------|--------------|
+| snowflake.&#8203;budget.&#8203;owner                  | The owner of the budget, typically the user or role responsible for managing the budget.                                | budget_admin                  | budgets      |
+| snowflake.&#8203;budget.&#8203;owner.&#8203;role_type | The type of role assigned to the budget owner, indicating their level of access and responsibilities.                   | ACCOUNTADMIN                  | budgets      |
+| snowflake.&#8203;budget.&#8203;resource               | The resources linked to the budget, such as databases, warehouses, or other Snowflake objects that the budget monitors. | [ "database1", "warehouse1" ] | budgets      |
 
 ### Metrics at the `Budgets` plugin
 
-| Identifier                            | Name                  | Unit    | Description                                                     | Example |
-|---------------------------------------|-----------------------|---------|-----------------------------------------------------------------|---------|
-| snowflake.&#8203;credits.&#8203;limit | Budget Spending Limit | credits | The number of credits set as the spending limit for the budget. | 100     |
-| snowflake.&#8203;credits.&#8203;spent | Credits Spent         | credits | Number of credits used.                                         | 75      |
+| Identifier                            | Name                  | Unit    | Description                                                     | Example | Context Name |
+|---------------------------------------|-----------------------|---------|-----------------------------------------------------------------|---------|--------------|
+| snowflake.&#8203;credits.&#8203;limit | Budget Spending Limit | credits | The number of credits set as the spending limit for the budget. | 100     | budgets      |
+| snowflake.&#8203;credits.&#8203;spent | Credits Spent         | credits | Number of credits used.                                         | 75      | spendings    |
 
 ### Event timestamps at the `Budgets` plugin
 
-| Identifier                                | Description                                                                                                                                                                                           | Example                     |
-|-------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------|
-| snowflake.&#8203;budget.&#8203;created_on | The timestamp when the budget was created.                                                                                                                                                            | 2024-11-30 23:59:59.999     |
-| snowflake.&#8203;event.&#8203;trigger     | Additionally to sending logs, each entry in `EVENT_TIMESTAMPS` is sent as event with key set to `snowflake.event.trigger`, value to key from `EVENT_TIMESTAMPS` and `timestamp` set to the key value. | snowflake.budget.created_on |
+| Identifier                                | Description                                                                                                                                                                                           | Example                     | Context Name |
+|-------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------|--------------|
+| snowflake.&#8203;budget.&#8203;created_on | The timestamp when the budget was created.                                                                                                                                                            | 2024-11-30 23:59:59.999     | budgets      |
+| snowflake.&#8203;event.&#8203;trigger     | Additionally to sending logs, each entry in `EVENT_TIMESTAMPS` is sent as event with key set to `snowflake.event.trigger`, value to key from `EVENT_TIMESTAMPS` and `timestamp` set to the key value. | snowflake.budget.created_on | budgets      |
 
 <a name="data_schemas_semantics_sec"></a>
 

@@ -25,6 +25,7 @@
 # PLUGINS: query_history
 # TAGS: query performance
 
+id: f245f73a-35f5-4298-8158-2a8aa4611a23
 version: 21
 variables:
   - version: 2

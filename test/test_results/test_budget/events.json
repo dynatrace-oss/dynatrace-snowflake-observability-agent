@@ -18,6 +18,7 @@
       }
     ],
     "db.namespace": "DTAGENT_DB",
+    "snowflake.budget.full_name": "DTAGENT_DB.APP.DTAGENT_BUDGET",
     "snowflake.budget.name": "DTAGENT_BUDGET",
     "snowflake.schema.name": "APP",
     "db.system": "snowflake",

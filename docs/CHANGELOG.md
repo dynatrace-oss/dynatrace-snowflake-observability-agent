@@ -14,15 +14,20 @@ Released on TBD
 
 ### New in 0.9.4
 
+- **Dashboard and Workflow Deployment Script**: New `scripts/deploy/deploy_dt_assets.sh` automates deploying Dynatrace dashboards and workflows via `dtctl`. Supports `--scope=dashboards|workflows|all`, `--dry-run`, and `--env` flags. Also available as `deploy.sh --scope=dt_assets` (opt-in; never part of the default `all` scope). See [Deploying Dashboards and Workflows](INSTALL.md#deploying-dashboards-and-workflows).
 - **New Plugins**: Added Pipes monitoring plugin
 - **Configurable Lookback Time**: Per-plugin configuration for historical data catchup window
 - **SNOWFLAKE.TELEMETRY.EVENTS Support**: Agent now correctly reads from the Snowflake-managed shared event table when it is configured as the account-level event table
+- **Budgets & FinOps Dashboard**: New dashboard (`budgets-finops`) visualising budget credit spending vs limits, warehouse sizing and scaling, resource monitor quota consumption, and warehouse load metrics. Backed by `budgets`, `warehouse_usage`, and `resource_monitors` plugins. See [docs/dashboards/budgets-finops/readme.md](dashboards/budgets-finops/readme.md).
 
 ### Fixed in 0.9.4
 
 - **Dynamic Tables — Grant Granularity**: `P_GRANT_MONITOR_DYNAMIC_TABLES()` now derives grant scope from the `include` pattern. `DB.%.%` grants at database level, `DB.SCHEMA.%` at schema level, and `DB.SCHEMA.TABLE` on a specific named table only — eliminating previous over-granting when a schema or table was explicitly specified.
 - **Span Timestamp Handling**: Fixed spans being re-processed after agent restart due to incorrect timestamp being recorded as last-processed marker
 - **OTLP Compliance**: Fixed log `observed_timestamp` field to use nanoseconds per OTLP specification
+- **Budget Spending View**: Fixed `V_BUDGET_SPENDINGS` date filter to use day granularity (`to_date`) instead of sub-second timestamp comparison — today's spending rows (which carry midnight-anchored dates) were previously excluded on every intra-day run after the first.
+- **Deploy TAG Substitution**: Fixed `prepare_deploy_script.sh` blanket `s/DTAGENT_/DTAGENT_${TAG}_/g` replacing `DTAGENT_*` substrings inside config string-literal values (e.g. budget FQNs). Replaced with explicit per-identifier word-boundary patterns matching only the known SQL object identifiers (`DTAGENT_DB`, `DTAGENT_WH`, `DTAGENT_RS`, `DTAGENT_OWNER`, `DTAGENT_ADMIN`, `DTAGENT_VIEWER`, `DTAGENT_API_INTEGRATION`, `DTAGENT_API_KEY`).
+- **Budget Grant Procedure**: Fixed `P_GRANT_BUDGET_MONITORING` to handle three Snowflake-specific failure modes: `GRANT USAGE ON DATABASE` for imported/shared databases (falls back to `GRANT IMPORTED PRIVILEGES`), `GRANT USAGE ON SCHEMA` for application schemas (skipped on error), and `GRANT SNOWFLAKE.CORE.BUDGET ROLE !VIEWER` for application-owned budgets such as `ACCOUNT_ROOT_BUDGET` (skipped; `SNOWFLAKE.BUDGET_VIEWER` app role covers access instead).
 
 ### Changed in 0.9.4
 

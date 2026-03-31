@@ -25,6 +25,7 @@
 # PLUGINS: login_history, query_history, trust_center
 # TAGS: security
 #
+id: 0f2f0c6b-5250-4f88-bc78-fe58d80fd59a
 version: 19
 variables:
   - version: 2
