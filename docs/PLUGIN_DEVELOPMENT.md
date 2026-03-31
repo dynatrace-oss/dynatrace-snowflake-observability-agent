@@ -149,7 +149,7 @@ with cte_source as (
     where DELETED is null
 )
 select
-    extract(epoch_nanosecond from START_TIME)               as TIMESTAMP,
+    current_timestamp()                                     as TIMESTAMP,
     s.entity_name                                           as ENTITY_NAME,
     concat('Entity: ', s.entity_name, ' in ', s.database_name)  as _MESSAGE,
 
@@ -164,7 +164,7 @@ select
     )                                                       as ATTRIBUTES,
 
     object_construct(
-        'snowflake.entity.count',       1
+        'snowflake.entity.total',       1
     )                                                       as METRICS
 from cte_source s;
 
@@ -279,11 +279,11 @@ attributes:
     __description: The entity name.
 
 metrics:
-  snowflake.entity.count:
+  snowflake.entity.total:
     __context_names: ["{name}"]
     __example: "1"
-    __description: Count of entities per row.
-    displayName: Entity Count
+    __description: Total number of entities per row.
+    displayName: Entity Total
     unit: count
 ```
 
