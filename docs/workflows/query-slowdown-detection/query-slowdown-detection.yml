@@ -1,0 +1,222 @@
+# WORKFLOW: DSOA — Query Slowdown Detection
+# DESCRIPTION: Detects abnormal increases in query execution time per warehouse and database using Davis AI
+# OWNER: DSOA Team
+# PLUGINS: query_history
+# TAGS: snowflake, dsoa, performance, query-history
+
+id: a88fe5d9-931a-425d-a8f4-58761be366bd
+title: "DSOA — Query Slowdown Detection"
+description: |
+  Monitors average query execution time per warehouse and database combination using Davis AI
+  anomaly detection. Alerts when execution time significantly exceeds the learned baseline —
+  detecting warehouse-level degradation, resource contention, or poorly optimized queries.
+  Only successful queries are analyzed to avoid noise from failed executions.
+  Requires the query_history plugin.
+isPrivate: false
+schemaVersion: 4
+trigger:
+  schedule:
+    isActive: true
+    trigger:
+      type: interval
+      intervalMinutes: 360
+    rule: null
+    filterParameters: {}
+    timezone: UTC
+    inputs: {}
+tasks:
+  detect_slowdown:
+    name: detect_slowdown
+    description: Detect abnormal query execution time per warehouse/database using Davis AI
+    action: dynatrace.davis.workflow.actions:davis-analyze
+    active: true
+    position:
+      x: 0
+      y: 1
+    conditions:
+      states: {}
+    predecessors: []
+    input:
+      analyzerName: dt.statistics.anomaly_detection.AutoAdaptiveAnomalyDetectionAnalyzer
+      body:
+        timeSeriesData: |
+          timeseries avg_exec = avg(snowflake.time.execution)
+          , by: {
+            snowflake.warehouse.name,
+            db.namespace,
+            deployment.environment
+          }
+          , filter: {
+            snowflake.query.execution_status == "SUCCESS"
+          }
+          | fieldsAdd
+              metric_name = "snowflake.query.execution_time.avg",
+              _event_name_template = "Query slowdown detected in warehouse {dims:snowflake.warehouse.name} / database {dims:db.namespace}",
+              _event_description_template = "Average query execution time in warehouse {dims:snowflake.warehouse.name}, database {dims:db.namespace} ({dims:deployment.environment}) has significantly increased compared to the learned baseline."
+        alertCondition: ABOVE
+        trainingTimeframe:
+          startTime: now-14d
+          endTime: now-1d
+        generalParameters:
+          timeframe:
+            startTime: now()-30d
+            endTime: now
+          logVerbosity: WARNING
+          resolveDimensionalQueryData: false
+        slidingWindow: 3
+        violatingSamples: 2
+        dealertingSamples: 3
+        numberOfSignalFluctuations: 2
+        alertOnMissingData: false
+        useModelCache: true
+        extendedOutput: false
+
+  extract_anomaly_events:
+    name: extract_anomaly_events
+    description: Process Davis results and build Dynatrace event objects
+    action: dynatrace.automations:run-javascript
+    active: true
+    position:
+      x: 0
+      y: 2
+    conditions:
+      states:
+        detect_slowdown: SUCCESS
+    predecessors:
+      - detect_slowdown
+    input:
+      script: |
+        import { execution } from '@dynatrace-sdk/automation-utils';
+        import { EventIngestEventType } from '@dynatrace-sdk/client-classic-environment-v2';
+
+        // === CONFIGURATION ===
+        // Change eventType to EventIngestEventType.CustomAlert to enable Davis problem correlation.
+        // CustomInfo (default) creates informational events without triggering Davis problems.
+        const CONFIG = {
+          eventType: EventIngestEventType.CustomInfo,
+          eventTimeout: 360,
+          adSource: 'dsoa.query_slowdown'
+        };
+        // === END CONFIGURATION ===
+
+        function replacePlaceholders(contentString, data) {
+          const pattern = /\{dims:(\S*?)}/gm;
+          let matches = [];
+          while ((matches = pattern.exec(contentString))) {
+            contentString = contentString.replace(matches[0], data[matches[1]]);
+          }
+          return contentString;
+        }
+
+        function unpackMap(amap) {
+          const mappedResult = {};
+          amap.forEach(item => {
+            mappedResult[item.key] = item.value;
+          });
+          return mappedResult;
+        }
+
+        function createEventObject(alert, result, events) {
+          const startTime = alert.timeframe.startTime;
+          const endTime = alert.timeframe.endTime;
+          const eventTitle = result.dimensions.find(x => x.key === '_event_name_template')?.value;
+          const eventDesc = result.dimensions.find(x => x.key === '_event_description_template')?.value;
+          const sourceMetric = result.dimensions.find(x => x.key === 'metric_name')?.value;
+          const resultDimensions = unpackMap(result.dimensions);
+
+          const newEvent = {
+            body: {
+              eventType: CONFIG.eventType,
+              title: replacePlaceholders(eventTitle, resultDimensions),
+              properties: {
+                'event.description': replacePlaceholders(eventDesc, resultDimensions)
+              },
+              timeout: CONFIG.eventTimeout
+            }
+          };
+
+          newEvent.body.properties['event.start'] = startTime;
+          newEvent.body.properties['event.end'] = endTime;
+          newEvent.body.properties['ad.source'] = CONFIG.adSource;
+          newEvent.body.properties['ad.source_metric'] = sourceMetric;
+
+          if (result.dimensions.length > 0) {
+            result.dimensions.forEach(dim => {
+              if (!dim.key.startsWith('_')) {
+                newEvent.body.properties[dim.key] = dim.value;
+              }
+            });
+          }
+          events.push(newEvent);
+        }
+
+        export default async function ({ execution_id }) {
+          const ex = await execution(execution_id);
+          const analyzerResult = await ex.result('detect_slowdown');
+
+          const events = [];
+          if (analyzerResult && analyzerResult.output && analyzerResult.output.length > 0) {
+            analyzerResult.output.forEach(result => {
+              if (result.raisedAlerts && result.raisedAlerts.length > 0) {
+                result.raisedAlerts.forEach(alert => {
+                  createEventObject(alert, result, events);
+                });
+              }
+            });
+          }
+
+          console.log(`Extracted ${events.length} anomaly event(s)`);
+          return events;
+        }
+
+  ingest_anomaly_events:
+    name: ingest_anomaly_events
+    description: Ingest anomaly events via Dynatrace Environment V2 API
+    action: dynatrace.automations:run-javascript
+    active: true
+    position:
+      x: 0
+      y: 3
+    conditions:
+      states:
+        extract_anomaly_events: OK
+    predecessors:
+      - extract_anomaly_events
+    input:
+      script: |
+        import { execution } from '@dynatrace-sdk/automation-utils';
+        import { eventsClient } from '@dynatrace-sdk/client-classic-environment-v2';
+
+        async function ingestEvents(events) {
+          let successCount = 0;
+          const failed = [];
+          for (let i = 0; i < events.length; ++i) {
+            const res = await eventsClient.createEvent(events[i]);
+            if (res.reportCount !== 1) {
+              failed.push({ reason: 'Invalid number of ingested events' });
+            } else {
+              const status = res.eventIngestResults[0];
+              if (status.status === 'OK') {
+                successCount += 1;
+              } else {
+                failed.push(JSON.stringify(status));
+              }
+            }
+          }
+          if (successCount === 0 && failed.length === 0) {
+            console.log('No events to ingest');
+          }
+          if (successCount > 0) {
+            console.log(`Successfully ingested ${successCount} event(s)`);
+          }
+          if (failed.length > 0) {
+            console.log(`Failed to ingest ${failed.length} event(s):`, JSON.stringify(failed));
+          }
+        }
+
+        export default async function ({ execution_id }) {
+          const ex = await execution(execution_id);
+          const events = await ex.result('extract_anomaly_events');
+          await ingestEvents(events);
+          return events;
+        }
