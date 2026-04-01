@@ -88,6 +88,7 @@ brew install jq yq gawk
 
    ```yaml
    core:
+     dynatrace_tenant_address: YOUR_TENANT.live.dynatrace.com
      deployment_environment: PRODUCTION  # This identifies your instance in telemetry
      tag: ""                             # Optional: Use for multitenancy (suffixes Snowflake objects)
      snowflake:
@@ -297,7 +298,7 @@ The role hierarchy is:
 Different deployment scopes require different privilege levels:
 
 | Scope      | Required Role   | Description                                                                         |
-| ---------- | --------------- | ----------------------------------------------------------------------------------- |
+|------------|-----------------|-------------------------------------------------------------------------------------|
 | `init`     | `ACCOUNTADMIN`  | Creates roles, database, warehouse, and initial structure                           |
 | `admin`    | `DTAGENT_ADMIN` | **Optional.** Performs administrative operations (role grants, ownership transfers) |
 | `setup`    | `DTAGENT_OWNER` | Creates schemas, tables, procedures, and core objects                               |
@@ -526,7 +527,7 @@ You should store the Access Token for your Dynatrace tenant (to which you want t
 variable `DTAGENT_TOKEN`. The token should have the following scopes enabled:
 
 | Scope ID                    | Scope Name                   | API                          | Comment |
-| --------------------------- | ---------------------------- | ---------------------------- | ------- |
+|-----------------------------|------------------------------|------------------------------|---------|
 | `logs.ingest`               | Ingest Logs                  | `/api/v2/otlp/v1/logs`       |         |
 | `metrics.ingest`            | Ingest Metrics               | `/api/v2/metrics/ingest`     |         |
 | `bizevents.ingest`          | Ingest BizEvents             | `/api/v2/bizevents/ingest`   |         |
@@ -650,15 +651,17 @@ The `dt_assets` scope calls `deploy_dt_assets.sh --scope=all` internally and pas
 
 ### Idempotency
 
-On the first deployment, `dtctl` creates each asset with a new auto-generated ID.  To make subsequent deployments
-idempotent (update rather than create), store the assigned ID back into the YAML file.  You can retrieve it after
-the first run with:
+On the first deployment, `dtctl` creates each asset with a new auto-generated ID.  The `deploy_dt_assets.sh` script
+automatically writes the assigned ID back into the YAML file after a successful deploy, inserting an `id:` field at the
+top of the file.  Subsequent runs will read this ID and update the existing asset rather than creating a duplicate.
+
+If you need to retrieve the ID manually (e.g. for troubleshooting or after a manual `dtctl apply`), use:
 
 ```bash
 dtctl get dashboard --output=json | jq '.[] | select(.name=="My Dashboard") | .id'
 ```
 
-Add the returned `id` as a top-level field in the corresponding YAML, and future runs will update in place.
+Add the returned `id` as a top-level field in the corresponding YAML to make future automated runs idempotent.
 
 ### Available Dashboards
 
@@ -686,7 +689,7 @@ Optionally you can adjust plugin configurations.
 The following table describes all available `core` configuration options:
 
 | Configuration Key                                | Type    | Required    | Default                   | Description                                                                                                                                                                                                                                                                                                                          |
-| ------------------------------------------------ | ------- | ----------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+|--------------------------------------------------|---------|-------------|---------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `dynatrace_tenant_address`                       | String  | Yes         | -                         | The address of your Dynatrace tenant (e.g., `abc12345.live.dynatrace.com`)                                                                                                                                                                                                                                                           |
 | `deployment_environment`                         | String  | Yes         | -                         | Unique identifier for the deployment environment                                                                                                                                                                                                                                                                                     |
 | `log_level`                                      | String  | Yes         | `WARN`                    | Internal Python logging level for troubleshooting agent execution. Controls verbosity of debug statements in Snowflake's query history. Valid values: `DEBUG`, `INFO`, `WARN`, `ERROR`. Use `DEBUG` for development/troubleshooting, `WARN` for production. Does not affect telemetry sent to Dynatrace.                             |
@@ -785,7 +788,7 @@ The deployment script will validate all custom names before proceeding. If valid
 The agent supports various installation paths depending on your organizational requirements and privilege constraints:
 
 | Scenario                              | Required Objects          | Optional Objects                    | Configuration                               | Deployment Scopes                                          |
-| ------------------------------------- | ------------------------- | ----------------------------------- | ------------------------------------------- | ---------------------------------------------------------- |
+|---------------------------------------|---------------------------|-------------------------------------|---------------------------------------------|------------------------------------------------------------|
 | **Standard Full Install**             | All defaults              | Admin role + Resource monitor       | Default names, no TAG                       | `all` or `init,admin,setup,plugins,config,agents,apikey`   |
 | **Standard Without Optional**         | Defaults                  | Admin: `-`<br>Resource monitor: `-` | Set to `"-"` in config                      | `init,setup,plugins,config,agents,apikey` (skip `admin`)   |
 | **TAG-based Multitenancy**            | Defaults with TAG suffix  | Admin + Resource monitor            | TAG only (e.g., `tag: TNA`)                 | `all` or `init,admin,setup,plugins,config,agents,apikey`   |
@@ -881,14 +884,14 @@ This creates:
 The `plugins` section allows you to configure plugin behavior globally and individually:
 
 | Configuration Key                 | Type    | Default | Description                                                                                                                                        |
-| --------------------------------- | ------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+|-----------------------------------|---------|---------|----------------------------------------------------------------------------------------------------------------------------------------------------|
 | `plugins.disabled_by_default`     | Boolean | `false` | When set to `true`, all plugins are disabled by default unless explicitly enabled                                                                  |
 | `plugins.deploy_disabled_plugins` | Boolean | `true`  | Deploy plugin code even if the plugin is disabled. When `true`, disabled plugins' SQL objects and procedures are deployed but not scheduled to run |
 
 Each individual plugin supports the following common configuration keys (set under `plugins.<plugin_name>`):
 
 | Configuration Key | Type    | Default | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| ----------------- | ------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|-------------------|---------|---------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `lookback_hours`  | Integer | varies  | Maximum lookback window (in hours) the plugin uses when scanning for new data on each run. The effective start time is the later of `current time - lookback_hours` and the stored last-processed timestamp, so this caps how far back the agent will scan when the marker is missing or older than the lookback window (for example, on first run, after a reset, or following a long outage). During normal operation the plugin advances from the last processed timestamp automatically. See each plugin's `config.md` for the default value and any additional per-context lookback keys (e.g., `lookback_hours_versions` for the `tasks` plugin). |
 
 | `schedule`        | String  | varies  | Cron or interval schedule for the plugin's Snowflake task. See [Plugin Scheduling](#plugin-scheduling) for supported formats.                                                                                                                                                                                                                                                                                       |
@@ -902,7 +905,7 @@ For plugin-specific options (e.g., `max_entries`, `retention_hours`, `include`/`
 The `otel` section allows you to configure OpenTelemetry behavior. By default, you can leave this section empty (`otel: {}`) to use default values. Advanced users can configure the following options:
 
 | Configuration Key                      | Type           | Default | Description                                                                |
-| -------------------------------------- | -------------- | ------- | -------------------------------------------------------------------------- |
+|----------------------------------------|----------------|---------|----------------------------------------------------------------------------|
 | `max_consecutive_api_fails`            | Integer        | -       | Maximum number of consecutive API failures before circuit breaker triggers |
 | `logs.export_timeout_millis`           | Integer        | -       | Export timeout for logs in milliseconds                                    |
 | `logs.max_export_batch_size`           | Integer        | -       | Maximum batch size for log exports                                         |

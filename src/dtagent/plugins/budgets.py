@@ -99,7 +99,7 @@ class BudgetsPlugin(Plugin):
             t_budget_spending = "APP.V_BUDGET_SPENDINGS"
             spendings_cnt, logs_spendings_cnt, spending_metrics_cnt, spending_events_cnt = self._log_entries(
                 lambda: self._get_table_rows(t_budget_spending),
-                "budgets",
+                "spendings",
                 run_uuid=run_id,
                 start_time="TIMESTAMP",
                 log_completion=False,

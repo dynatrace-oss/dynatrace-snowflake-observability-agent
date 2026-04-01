@@ -91,7 +91,7 @@ dtctl_authenticated() {
     dtctl doctor &>/dev/null 2>&1
 }
 
-# Convert a dashboard YAML to a dtctl-compatible JSON envelope and write to
+# Convert an asset YAML to a dtctl-compatible JSON envelope and write to
 # a temp file.  Prints the path of the temp file on success, exits non-zero
 # on failure.
 #
@@ -125,27 +125,27 @@ convert_yaml_to_dtctl_json() {
     # For dashboards the raw YAML is the *content* (tiles/variables etc.) and
     # id/name are embedded as first-class keys only when the file was previously
     # exported with dtctl (i.e. after first deployment).
-    local dashboard_id dashboard_name
+    local asset_id asset_display_name
 
     # Try to get id / name from the JSON itself (post-deployment round-trip)
-    dashboard_id=$(echo "$raw_json" | jq -r '.id // empty' 2>/dev/null || true)
-    dashboard_name=$(echo "$raw_json" | jq -r '.name // empty' 2>/dev/null || true)
+    asset_id=$(echo "$raw_json" | jq -r '.id // empty' 2>/dev/null || true)
+    asset_display_name=$(echo "$raw_json" | jq -r '.name // empty' 2>/dev/null || true)
 
     # Fall back to the human-readable name passed in
-    if [[ -z "$dashboard_name" ]]; then
-        dashboard_name="$asset_name"
+    if [[ -z "$asset_display_name" ]]; then
+        asset_display_name="$asset_name"
     fi
 
     # Build the dtctl envelope.
     # Pop id/name out of content so they appear only at the envelope level.
-    if [[ -n "$dashboard_id" ]]; then
-        jq --arg id   "$dashboard_id" \
-           --arg name "$dashboard_name" \
+    if [[ -n "$asset_id" ]]; then
+        jq --arg id   "$asset_id" \
+           --arg name "$asset_display_name" \
            --arg type "$asset_type" \
            '{id: $id, name: $name, type: $type, content: (. | del(.id) | del(.name))}' \
            <<< "$raw_json" > "$tmp_file"
     else
-        jq --arg name "$dashboard_name" \
+        jq --arg name "$asset_display_name" \
            --arg type "$asset_type" \
            '{name: $name, type: $type, content: (. | del(.id) | del(.name))}' \
            <<< "$raw_json" > "$tmp_file"
@@ -225,7 +225,6 @@ deploy_assets_of_type() {
 
     local success_count=0
     local failure_count=0
-    local skipped_count=0
 
     if [[ ! -d "$source_dir" ]]; then
         log_warn "Directory not found, skipping ${asset_type}s: $source_dir"
@@ -300,7 +299,7 @@ deploy_assets_of_type() {
     done
 
     echo ""
-    log_info "${asset_type^} deployment summary: ${success_count} succeeded, ${failure_count} failed, ${skipped_count} skipped"
+    log_info "${asset_type^} deployment summary: ${success_count} succeeded, ${failure_count} failed"
 
     if [[ $failure_count -gt 0 ]]; then
         return 1
@@ -319,6 +318,35 @@ if $DRY_RUN; then
 fi
 
 log_info "Scope: ${SCOPE}"
+
+# Check required tools
+if ! command -v jq &>/dev/null; then
+    cat <<-'EOF'
+
+	jq is not installed or not on PATH.
+	jq is required to build the dtctl JSON envelope.
+	To install jq, run:
+
+	  brew install jq       # macOS
+	  apt-get install jq    # Debian / Ubuntu
+	  yum install jq        # RHEL / CentOS
+
+	EOF
+    exit 1
+fi
+
+YAML_TO_JSON_SCRIPT="$REPO_ROOT/scripts/tools/yaml-to-json.sh"
+if [[ ! -x "$YAML_TO_JSON_SCRIPT" ]]; then
+    cat <<-EOF
+
+	Required script not found or not executable: $YAML_TO_JSON_SCRIPT
+	This script is needed to convert YAML dashboard/workflow sources to JSON.
+	Please ensure you are running from the repository root and the script exists.
+
+	EOF
+    exit 1
+fi
+
 
 # Check dtctl availability
 if ! dtctl_available; then

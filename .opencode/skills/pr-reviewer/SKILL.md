@@ -279,13 +279,22 @@ When processing comments left by other reviewers (human or bot):
    do not trust the resolved flag blindly.
 3. For bot comments (e.g. `copilot-pull-request-reviewer`): evaluate on merit,
    not authority. Bots can be wrong.
-4. Reply to each thread you act on:
+4. **Always reply to every thread you act on** — whether you fixed, deferred, or disagreed.
+   Use the first comment's `databaseId` from the GraphQL result:
 
 ```bash
 # Reply to a specific review thread (requires the thread's first comment databaseId)
 gh api repos/<OWNER>/<REPO>/pulls/<PR#>/comments/<comment-id>/replies \
   -f body="<your reply>"
 ```
+
+   Reply template:
+   - **Fixed**: `"Fixed in commit <sha>. <one sentence describing what changed and why.>"`
+   - **Deferred**: `"Acknowledged. Deferred to a follow-up — <brief rationale>."`
+   - **Disagreed**: `"Disagree: <technical reasoning>. Leaving as-is."`
+   - **Already done**: `"This is already handled in <file>:<line> — <brief explanation>."`
+
+   Run all replies in parallel (one `gh api` call per thread) — do not wait between replies.
 
 ---
 

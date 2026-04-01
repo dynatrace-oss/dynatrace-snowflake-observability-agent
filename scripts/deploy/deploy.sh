@@ -295,7 +295,17 @@ fi
 # Dynatrace asset deployment (dashboards + workflows) via dtctl.
 # Triggered only when scope explicitly includes "dt_assets" — never part of "all"
 # since dtctl is an optional dependency.
-if [[ "$SCOPE" == *"dt_assets"* ]]; then
+# Use exact token matching (split on commas) to avoid false positives like "foo_dt_assets_bar".
+_has_dt_assets_scope=false
+IFS=',' read -ra _scope_tokens <<< "$SCOPE"
+for _token in "${_scope_tokens[@]}"; do
+    _token=$(echo "$_token" | xargs)
+    if [[ "$_token" == "dt_assets" ]]; then
+        _has_dt_assets_scope=true
+        break
+    fi
+done
+if $_has_dt_assets_scope; then
     echo ""
     echo "Deploying Dynatrace assets (dashboards and workflows) via dtctl..."
     DRY_RUN_FLAG=""
