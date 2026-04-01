@@ -64,6 +64,10 @@ These rules come from real debugging sessions — follow them strictly:
    - `dynamic_tables` plugin (`dynamic_tables`, `dynamic_table_refresh_history`, `dynamic_table_graph_history`): **logs + metrics**
    - `snowpipes` plugin: logs + events (timestamp events via `report_timestamp_events=True`)
    - `shares` plugin (`inbound_shares`, `outbound_shares` contexts): **logs only** — use `fetch logs`; the `shares` context uses `report_timestamp_events=True` so those summary events go to `fetch events`, but per-share/per-grant detail rows are logs
+   - `users` plugin (`users`, `users_all_roles`, `users_all_privileges`, `users_direct_roles`, `users_removed_direct_roles` contexts): **logs only in practice** — although `instruments-def.yml` has `event_timestamps`, the EVENT_TIMESTAMPS contain stale dates (e.g. `last_altered` from 2021), causing Dynatrace to silently drop events. Always use `fetch logs`. See rules 15-17.
+   - `resource_monitors` plugin: **logs + events + metrics** (`timeseries` for credits metrics)
+   - `query_history` plugin: **logs + metrics** (`fetch logs` for detail rows, `timeseries` for execution time metrics)
+   - `active_queries` plugin: **logs only** — reads INFORMATION_SCHEMA in real-time
    - Default assumption for any new plugin context: **logs only**, unless `instruments-def.yml` or `_log_entries()` call explicitly shows `report_timestamp_events=True` or `report_all_as_events=True`
 
 2. **No `fetch metrics` for DSOA data.** DSOA does not use the standard
@@ -285,6 +289,174 @@ These rules come from real debugging sessions — follow them strictly:
       valueAxis:
         - count
     ```
+
+15. **Use `toBoolean()` for boolean attribute comparisons — it handles both native booleans and strings.**
+    DSOA attributes like `snowflake.user.is_disabled`, `snowflake.user.has_mfa`,
+    `snowflake.user.has_rsa`, `snowflake.user.has_pat` may arrive as native booleans
+    or as strings depending on the plugin and OpenPipeline processing. Using `toBoolean()`
+    is the universal pattern that works for both types.
+
+    ```dql
+    # ✅ CORRECT — toBoolean() works for both native booleans and string "true"/"false"
+    | fieldsAdd status = if(toBoolean(snowflake.user.is_disabled), "Disabled", else: "Active")
+    | filter toBoolean(snowflake.user.has_mfa)
+    | filter NOT toBoolean(snowflake.user.has_rsa)
+
+    # ❌ WRONG — == "true" fails silently for native boolean attributes
+    | fieldsAdd status = if(snowflake.user.is_disabled == "true", "Disabled", else: "Active")
+
+    # ⚠️ FRAGILE — == true fails for string-typed boolean attributes
+    | filter snowflake.user.has_mfa == true
+    ```
+
+16. **Users plugin: all contexts share `dsoa.run.context == "users"` — distinguish by attribute presence.**
+    The users plugin passes a single `context_name="users"` for ALL its views
+    (`V_USERS_INSTRUMENTED`, `V_USERS_ALL_ROLES_INSTRUMENTED`, `V_USERS_ALL_PRIVILEGES_INSTRUMENTED`,
+    `V_USERS_DIRECT_ROLES_INSTRUMENTED`, `V_USERS_REMOVED_DIRECT_ROLES_INSTRUMENTED`).
+    The context names `users_all_roles`, `users_all_privileges`, `users_removed_direct_roles`
+    from `instruments-def.yml` do **not** appear as `dsoa.run.context` values in Dynatrace.
+
+    To filter for specific user data subsets, use attribute presence:
+
+    ```dql
+    # All roles data
+    | filter dsoa.run.context == "users" and isNotNull(snowflake.user.roles.all)
+
+    # All privileges data
+    | filter dsoa.run.context == "users" and isNotNull(snowflake.user.privilege)
+
+    # Removed direct roles
+    | filter dsoa.run.context == "users" and isNotNull(snowflake.user.roles.direct.removed)
+
+    # Base user info (login status, MFA, RSA, type)
+    | filter dsoa.run.context == "users" and isNotNull(snowflake.user.is_disabled)
+    ```
+
+17. **Events with stale timestamps are silently dropped by Dynatrace — prefer `fetch logs`.**
+    Dynatrace's OpenPipeline Events API silently rejects events whose timestamps fall
+    outside the ingestion window (typically ±24h). Plugins that use `event_timestamps`
+    referencing historical dates (e.g. `last_altered`, `created_on`) will show non-zero
+    send counts in the agent logs, but the events will **not** appear in `fetch events`.
+    The same data is always available via `fetch logs` (which uses the current timestamp).
+
+    **Diagnostic pattern:** If a tile using `fetch events` returns 0 rows but the agent
+    reports sending events successfully, switch to `fetch logs` — the data is there.
+
+    **Known affected plugins:** `users` (all contexts — EVENT_TIMESTAMPS contain
+    `last_altered` dates from months/years ago).
+
+18. **Never use legacy `coalesce(dsoa.run.context, snowagent.run.context, service.namespace)` fallbacks.**
+    Early DSOA versions used `snowagent.run.context` and `service.namespace` as attribute
+    names before standardising on `dsoa.run.context`. The coalesce pattern was a migration
+    shim. All current agents emit `dsoa.run.context` exclusively. New dashboards and
+    dashboard updates must use `dsoa.run.context` directly — no coalesce, no `or` fallback.
+
+19. **Dashboard variables must not depend on a single plugin context.**
+    Variables like `$Environment` and `$Account` populate dropdown filters used by every
+    tile on the dashboard. If the variable query is restricted to one context
+    (e.g. `dsoa.run.context == "login_history"`), and that context has no data in the
+    selected timeframe, the variable returns empty. An empty variable causes
+    `in(deployment.environment, array($Environment))` to evaluate to `NULL` / `false`,
+    blanking **all** tiles — even those whose contexts do have data.
+
+    Always use a broad filter that matches any DSOA data:
+
+    ```dql
+    # ✅ CORRECT — works as long as ANY Snowflake data exists in the timeframe
+    fetch logs
+    | filter db.system == "snowflake"
+    | filter isNotNull(deployment.environment)
+    | fields deployment.environment
+    | dedup deployment.environment
+    | sort deployment.environment asc
+
+    # ❌ WRONG — fails when login_history has no data, blanking entire dashboard
+    fetch logs
+    | filter dsoa.run.context == "login_history"
+    | fields deployment.environment
+    | dedup deployment.environment
+    ```
+
+    The same principle applies to `$Account` and any other global filter variable.
+
+20. **Always use `unitsOverrides` for time fields — drop `(ms)` postfixes from field names.**
+    When a DQL field represents a time duration in milliseconds, do **not** append `(ms)` to
+    the field alias. Instead, use a clean name (e.g. `Compilation`, `Execution`, `Fastest`,
+    `Slowest`, `Avg`) and add a `unitsOverrides` entry for each field:
+
+    ```yaml
+    unitsOverrides:
+      - identifier: Compilation
+        unitCategory: time
+        baseUnit: millisecond
+        displayUnit: null
+        decimals: null
+        suffix: ""
+        delimiter: false
+        added: 1
+    ```
+
+    Dynatrace renders the appropriate unit automatically in tables, charts, and tooltips.
+    Keeping `(ms)` in the field name leads to redundant display like `30 s (ms)`.
+
+21. **Multi-select variables: use `multiple: true`, no `defaultValue`, and `in()` in queries.**
+    For query-type variables that should allow selecting multiple values:
+
+    - Set `multiple: true` on the variable definition.
+    - Do **not** set `defaultValue: "*"` — Dynatrace automatically adds a "select all" option.
+    - Use `dedup` + `sort` instead of `collectDistinct` + `array("*", ...)`.
+    - In tile queries, use `in(field, array($Variable))` instead of
+      `$Var == "*" or $Var == field`.
+
+    ```yaml
+    # ✅ CORRECT — multi-select variable definition
+    - key: Account
+      type: query
+      visible: true
+      editable: true
+      multiple: true
+      input: |-
+        fetch logs
+          | filter db.system == "snowflake"
+          | fieldsAdd snow_account = deployment.environment
+          | filter isNotNull(snow_account)
+          | fields snow_account
+          | dedup snow_account
+          | sort snow_account
+
+    # ✅ CORRECT — tile query using in()
+    | filter in(deployment.environment, array($Account))
+
+    # ❌ WRONG — old single-select pattern
+    | filter $Account == "*" or deployment.environment == $Account
+    ```
+
+    When a downstream variable depends on an upstream multi-select variable, use `in()` in
+    its query as well:
+
+    ```yaml
+    # Warehouse depends on Account
+    - key: Warehouse
+      type: query
+      multiple: true
+      input: |-
+        fetch logs
+          | filter db.system == "snowflake"
+          | filter in(deployment.environment, array($Account))
+          | fields snowflake.warehouse.name
+          | dedup snowflake.warehouse.name
+          | sort snowflake.warehouse.name
+    ```
+
+22. **Drop legacy coalesce backwards-compatibility fallbacks for standard attributes.**
+    Stop using `coalesce(deployment.environment, service.name)` — use `deployment.environment`
+    directly. The `service.name` fallback was needed during early DSOA versions before
+    `deployment.environment` was standardised. The same applies to:
+    - `coalesce(db.name, db.namespace)` — keep only where both genuinely appear
+    - `coalesce(db.collection.name, db.sql.table)` — keep only where both genuinely appear
+    - `coalesce(db.statement, db.query.text)` — keep only where both genuinely appear
+
+    For `deployment.environment` specifically, always use it directly — never wrap in coalesce.
 
 ## YAML Dashboard Format
 ```yaml

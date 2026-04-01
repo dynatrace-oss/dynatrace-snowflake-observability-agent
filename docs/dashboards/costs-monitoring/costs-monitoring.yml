@@ -26,7 +26,7 @@
 # TAGS: costs
 #
 id: e446e588-b917-4a63-867c-643ca783c79e
-version: 19
+version: 20
 variables:
   - version: 2
     key: Accounts
@@ -1221,6 +1221,210 @@ tiles:
         isAvailable: true
       componentState:
         inputData: null
+  "16":
+    type: markdown
+    content: |
+      # Credits Exhaustion Forecast
+      Credits consumption trends and resource monitors approaching quota limits.
+    davis:
+      componentState:
+        inputData: null
+  "17":
+    title: Credits consumption trend (daily)
+    type: data
+    query: |-
+      timeseries credits_used = max(snowflake.credits.quota.used),
+          credits_quota = max(snowflake.credits.quota),
+        by: {
+          snowflake.resource_monitor.name,
+          deployment.environment
+        }, interval: 24h
+      | filter in(deployment.environment, array($Accounts))
+           and iAny(startsWith(snowflake.resource_monitor.name, concat(array($Prefix)[], "_")))
+           and in(snowflake.resource_monitor.name, array($Resource_Monitors))
+    visualization: lineChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        leftYAxisSettings:
+          label: Credits
+          isLabelVisible: true
+        xAxisLabel: timeframe
+        xAxisScaling: analyzedTimeframe
+        fieldMapping:
+          leftAxisValues:
+            - credits_used
+            - credits_quota
+          timestamp: timeframe
+        gapPolicy: connect
+        legend:
+          position: bottom
+      thresholds: []
+      dataMapping:
+        displayedFields:
+          - snowflake.resource_monitor.name
+          - deployment.environment
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+  "18":
+    title: Resource monitors approaching exhaustion
+    type: data
+    query: |-
+      fetch events
+      | filter db.system == "snowflake"
+      | filter dsoa.run.context == "resource_monitors"
+      | filter in(deployment.environment, array($Accounts))
+           and iAny(startsWith(snowflake.resource_monitor.name, concat(array($Prefix)[], "_")))
+           and in(snowflake.resource_monitor.name, array($Resource_Monitors))
+      | filter isNotNull(snowflake.credits.quota.used_pct)
+      | summarize
+          `Used %` = max(toDouble(snowflake.credits.quota.used_pct)),
+          `Remaining` = min(toDouble(snowflake.credits.quota.remaining)),
+          `Quota` = max(toDouble(snowflake.credits.quota)),
+        by: {
+          snowflake.resource_monitor.name,
+          snowflake.resource_monitor.frequency,
+          deployment.environment
+        }
+      | sort `Used %` desc
+      | fields
+          `Resource Monitor` = snowflake.resource_monitor.name,
+          `Environment` = deployment.environment,
+          `Frequency` = snowflake.resource_monitor.frequency,
+          `Quota`,
+          `Remaining`,
+          `Used %`
+    visualization: table
+    visualizationSettings:
+      autoSelectVisualization: false
+      thresholds: []
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+  "19":
+    type: markdown
+    content: |
+      # Resource Monitor Health
+      Active/inactive states and configuration overview of resource monitors.
+    davis:
+      componentState:
+        inputData: null
+  "20":
+    title: Resource monitor states
+    type: data
+    query: |-
+      fetch events
+      | filter db.system == "snowflake"
+      | filter dsoa.run.context == "resource_monitors"
+      | filter in(deployment.environment, array($Accounts))
+           and iAny(startsWith(snowflake.resource_monitor.name, concat(array($Prefix)[], "_")))
+           and in(snowflake.resource_monitor.name, array($Resource_Monitors))
+      | filter isNotNull(snowflake.resource_monitor.is_active)
+      | summarize count = count(),
+        by: {
+          snowflake.resource_monitor.name,
+          snowflake.resource_monitor.is_active,
+          deployment.environment
+        }
+      | fieldsAdd state_code = if(toBoolean(snowflake.resource_monitor.is_active), 1, else: 0)
+    visualization: honeycomb
+    visualizationSettings:
+      honeycomb:
+        shape: square
+        legend:
+          position: right
+        dataMappings:
+          value: state_code
+        displayedFields:
+          - snowflake.resource_monitor.name
+          - deployment.environment
+          - snowflake.resource_monitor.is_active
+        labels:
+          showLabels: true
+      coloring:
+        colorRules:
+          - color: "var(--dt-colors-charts-apdex-excellent-default, #2a7453)"
+            colorMode: single-color
+            comparator: "="
+            field: state_code
+            type: long
+            value: 1
+          - color: "var(--dt-colors-charts-apdex-unacceptable-default, #d94040)"
+            colorMode: single-color
+            comparator: "="
+            field: state_code
+            type: long
+            value: 0
+      thresholds: []
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+  "21":
+    title: Resource monitor frequency overview
+    type: data
+    query: |-
+      fetch events
+      | filter db.system == "snowflake"
+      | filter dsoa.run.context == "resource_monitors"
+      | filter in(deployment.environment, array($Accounts))
+           and iAny(startsWith(snowflake.resource_monitor.name, concat(array($Prefix)[], "_")))
+           and in(snowflake.resource_monitor.name, array($Resource_Monitors))
+      | filter isNotNull(snowflake.resource_monitor.frequency)
+      | summarize
+          `Quota` = max(toDouble(snowflake.credits.quota)),
+          `Used` = max(toDouble(snowflake.credits.quota.used)),
+          `Remaining` = min(toDouble(snowflake.credits.quota.remaining)),
+        by: {
+          snowflake.resource_monitor.name,
+          snowflake.resource_monitor.frequency,
+          snowflake.resource_monitor.is_active,
+          deployment.environment
+        }
+      | fields
+          `Resource Monitor` = snowflake.resource_monitor.name,
+          `Environment` = deployment.environment,
+          `Frequency` = snowflake.resource_monitor.frequency,
+          `Active` = snowflake.resource_monitor.is_active,
+          `Quota`,
+          `Used`,
+          `Remaining`
+      | sort `Resource Monitor` asc
+    visualization: table
+    visualizationSettings:
+      autoSelectVisualization: false
+      thresholds: []
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
 layouts:
   "0":
     x: 0
@@ -1301,6 +1505,36 @@ layouts:
     x: 0
     "y": 24
     w: 24
+    h: 6
+  "16":
+    x: 0
+    "y": 58
+    w: 24
+    h: 1
+  "17":
+    x: 0
+    "y": 59
+    w: 24
+    h: 6
+  "18":
+    x: 0
+    "y": 65
+    w: 24
+    h: 6
+  "19":
+    x: 0
+    "y": 71
+    w: 24
+    h: 1
+  "20":
+    x: 0
+    "y": 72
+    w: 12
+    h: 6
+  "21":
+    x: 12
+    "y": 72
+    w: 12
     h: 6
 settings:
   defaultTimeframe:

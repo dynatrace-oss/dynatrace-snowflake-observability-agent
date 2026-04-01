@@ -347,6 +347,7 @@ if [[ ! -x "$YAML_TO_JSON_SCRIPT" ]]; then
     exit 1
 fi
 
+
 # Check dtctl availability
 if ! dtctl_available; then
     cat <<-'EOF'

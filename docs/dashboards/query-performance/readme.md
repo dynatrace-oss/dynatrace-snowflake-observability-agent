@@ -14,22 +14,41 @@ The dashboard empowers teams to:
 
 ## Dashboard Variables
 
-Four cascading variables enable hierarchical filtering from account down to individual users:
+Eight variables enable flexible filtering across multiple dimensions. The first five are multi-select query variables that cascade from account down to individual users. The remaining three control display behavior.
 
-- **Account**: Filter by Snowflake deployment environment or service name (single selection, default: all accounts)
-- **DB_Name**: Filter by database name or namespace (single selection, default: all databases)
-- **DB_Table**: Filter by specific table name (single selection, default: all tables)
-- **User**: Filter by database user (single selection, default: all users)
+### Filter Variables (multi-select)
 
-Each variable dynamically updates based on the selections made in previous filters, ensuring only valid combinations are available.
+- **Account**: Filter by Snowflake deployment environment. Multi-select; cascades to all downstream variables.
+- **DB_Name**: Filter by database name or namespace. Multi-select; scoped to the selected Account(s).
+- **DB_Table**: Filter by specific table name. Multi-select; scoped to the selected Account(s) and DB_Name(s). Expands `db.snowflake.tables` JSON arrays to list individual tables.
+- **Warehouse**: Filter by Snowflake warehouse name. Multi-select; scoped to the selected Account(s).
+- **User**: Filter by database user. Multi-select; scoped to the selected Account(s) and DB_Name(s).
+
+### Display Variables
+
+- **TopN** (hidden, CSV): Controls the number of items shown in ranked tiles (execution time by query tag, top query tags, time phase distribution by warehouse). Options: 5, 10, 20, 50, 100. Default: 10.
+- **SlowQueryMin** (hidden, text): Minimum elapsed time in minutes for a query to appear in the long-running queries table. Default: 60.
+- **TAG_FILTER** (hidden, text): A DQL parse pattern used to strip parameter noise from query statement text before extracting the tag. The default pattern removes common embedded values — numeric IDs, timestamps, UUIDs, and hex strings — that would otherwise produce thousands of unique "tag" values from parameterized queries:
+
+  ```text
+  (":" SPACE* DIGIT{13,19})? TIME? TIMESTAMP('yyyy-MM-dd')? TIMESTAMP('HH:mm:ss.S')? ([0-9a-fA-F-]{32})? UUIDSTRING?
+  ```
+
+  Each clause is optional (`?`) so the pattern degrades gracefully when a statement contains only some of these patterns. Modify this value if your workloads embed other high-cardinality patterns that should be normalized away.
+
+All multi-select variables use `in(field, array($Variable))` filtering. Each variable dynamically updates based on the selections made in upstream filters, ensuring only valid combinations are available.
 
 ![Query Performance Dashboard Overview](./img/query-performance-overview.png)
 
 ## Executive Summary
 
+![Executive Summary](./img/01-executive-summary.png)
+
 **Query execution time (whole account summary)** - A line chart providing a high-level overview of total query execution time across all selected accounts. This visualization uses smooth curves and gap connection to show continuous performance trends, making it easy to spot overall system performance patterns at a glance.
 
 ## Execution Time Analysis
+
+![Execution Time Analysis](./img/02-execution-time-analysis.png)
 
 Three complementary area charts break down query execution time across different dimensions:
 
@@ -44,6 +63,8 @@ Three complementary area charts break down query execution time across different
 
 ## Top Resource Consumers
 
+![Top Resource Consumers](./img/03-top-resource-consumers.png)
+
 Three donut charts identify the highest consumers of query execution time, providing a proportional view of resource distribution:
 
 ### Top 20 Tables
@@ -57,6 +78,8 @@ Three donut charts identify the highest consumers of query execution time, provi
 
 ## Advanced Analytics
 
+![Advanced Analytics](./img/04-advanced-analytics.png)
+
 **Query performance vs table size growth (over last 14 days)** - An AI-powered Davis anomaly detection visualization that correlates average query execution time with table row count growth over a 14-day period.
 
 This advanced analysis:
@@ -68,11 +91,35 @@ This advanced analysis:
 
 This proactive monitoring enables database teams to address performance issues before they impact users.
 
+## Execution Phase Breakdown
+
+![Execution Phase Breakdown](./img/05-execution-phase-breakdown.png)
+
+**Compilation vs execution vs queued time** - An area chart showing average compilation, execution, queued overload, and queued provisioning time per warehouse over time. All four phases are displayed as stacked areas (`union: true`) with automatic millisecond-to-time-unit conversion via `unitsOverrides`. This reveals whether query slowdowns are caused by compilation overhead, actual execution time, or warehouse queuing, enabling targeted remediation. Filtered by Account and Warehouse variables.
+
+**Time phase distribution by top $TopN warehouse** - A categorical bar chart showing total compilation, execution, queued overload, and queued provisioning time per warehouse, limited to the top N warehouses ranked by total time. Uses log scale on the value axis to handle wide magnitude differences across warehouses. Field names use clean labels (Compilation, Execution, Queued Overload, Queued Provisioning) with `unitsOverrides` for millisecond display.
+
+## Query Tag Analysis
+
+![Query Tag Analysis](./img/06-query-tag-analysis.png)
+
+**Execution time by query tag (top $TopN)** - A line chart tracking average execution time over time for the top N query tags ranked by total execution time sum. Query tags allow teams to attribute workloads to specific applications, teams, or pipelines, making this visualization essential for workload-level performance monitoring.
+
+**Top $TopN query tags by total execution time** - A categorical bar chart showing the N query tags consuming the most total elapsed time. Uses `$TopN` variable to control the number of displayed tags.
+
+## Real-Time Query Summary
+
+![Real-Time Query Summary](./img/07-realtime-query-summar.png)
+
+**Active query summary per warehouse** - A table showing count, fastest, slowest, and average elapsed time for currently active queries grouped by warehouse. Time fields use clean names (Fastest, Slowest, Avg) with `unitsOverrides` for automatic millisecond-to-time-unit conversion. Data comes from the `active_queries` plugin (INFORMATION_SCHEMA, no ingestion lag), providing a real-time view of warehouse utilization.
+
+**Long-running queries in progress (> $SlowQueryMin min)** - A table listing queries that have been running longer than the threshold set by the `$SlowQueryMin` variable (default: 60 minutes), including start time, duration, user, warehouse, execution status, and a truncated query text. This enables immediate identification of runaway queries that may need intervention.
+
 ## Technical Details
 
 **Default Timeframe**: Last 24 hours
 
-**Required Plugin**: `query_history`
+**Required Plugins**: `query_history`, `active_queries`
 
 **Data Source**: Snowflake logs captured by the DSOA query history plugin, providing comprehensive query execution metadata including execution times, user information, database context, and table access patterns.
 

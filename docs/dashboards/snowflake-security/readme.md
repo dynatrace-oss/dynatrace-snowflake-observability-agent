@@ -29,3 +29,21 @@ This dashboard provides insights into the security aspects of your Snowflake acc
 - For service accounts, it helps ensure they are configured with secure, non-password methods such as Key-Pair Authentication, Programmatic Access Tokens (PAT), External OAuth, or Workload Identity Federation (WIF).
 - Tracks authentication methods used by both human and service users to monitor the transition to more secure practices.
 ![Login Analysis](./img/04-logins-by-auth-type.png)
+
+## Role Change Tracking
+
+- Detects role revocations to track when roles are removed from users, which may indicate security policy changes or incident response actions.
+- Enables security teams to audit role changes and enforce least-privilege principles.
+
+Data is sourced from the `users` plugin (`dsoa.run.context == "users"`) via `fetch logs`, filtered by `isNotNull(snowflake.user.roles.direct.removed)`.
+
+![Role change tracking](./img/05-role-change-tracking.png)
+
+## User Identity & Access
+
+- Provides an at-a-glance view of account health: active vs disabled vs locked accounts as a bar chart.
+- Shows MFA enrollment status as a pie chart to identify users without multi-factor authentication.
+- Displays RSA key usage distribution to track adoption of key-pair authentication.
+- Lists password-only accounts (no MFA, no RSA, no PAT) that represent the highest authentication risk.
+
+![User identity and access](./img/06-user-identity-access.png)
