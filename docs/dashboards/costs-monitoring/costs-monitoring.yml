@@ -1338,7 +1338,8 @@ tiles:
       | summarize count = count(),
         by: {
           snowflake.resource_monitor.name,
-          snowflake.resource_monitor.is_active
+          snowflake.resource_monitor.is_active,
+          deployment.environment
         }
       | fieldsAdd state_code = if(toBoolean(snowflake.resource_monitor.is_active), 1, else: 0)
     visualization: honeycomb
@@ -1351,6 +1352,7 @@ tiles:
           value: state_code
         displayedFields:
           - snowflake.resource_monitor.name
+          - deployment.environment
           - snowflake.resource_monitor.is_active
         labels:
           showLabels: true
