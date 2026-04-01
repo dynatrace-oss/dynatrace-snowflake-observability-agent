@@ -66,7 +66,6 @@ Three Snowflake-specific failure modes handled via per-grant `BEGIN/EXCEPTION` b
 - `CREATE BUDGET IF NOT EXISTS` is unsupported DDL syntax; `CREATE BUDGET` only (re-running raises if exists, which is safe to ignore).
 - `SNOWFLAKE.ACCOUNT_USAGE.EVENT_USAGE_HISTORY` is deprecated per Snowflake documentation (March 2026). Removed `event_usage` plugin from test-qa config; dashboard Event Table Ingest section deferred to a future `metering` plugin.
 
-
 #### Pipes Monitoring Plugin
 
 - Implemented `PipesPlugin` to monitor Snowpipe status and validation
