@@ -79,13 +79,13 @@ dtctl apply -f /tmp/workflow-apply.json
 
 ## Available Workflows
 
-| Workflow | DPO Theme | Description | Required Plugin(s) |
-|----------|-----------|-------------|--------------------|
-| [Credits Exhaustion Prediction](./credits-exhaustion-prediction/readme.md) | Costs | Detects abnormal credit consumption velocity per resource monitor and alerts before exhaustion | `resource_monitors` |
-| [Data Volume Anomaly Detection](./data-volume-anomaly/readme.md) | Quality | Detects unexpected drops in table row counts indicating failed pipelines or accidental deletes | `data_volume` |
-| [Dynamic Table Refresh Drift Detection](./dynamic-table-drift/readme.md) | Quality / Performance | Detects when dynamic table scheduling lag consistently exceeds target lag | `dynamic_tables` |
-| [Query Slowdown Detection](./query-slowdown-detection/readme.md) | Performance | Detects abnormal increases in query execution time per warehouse and database | `query_history` |
-| [Table Performance Degradation Detection](./table-perf-degradation/readme.md) | Performance | Detects tables with rising partition scan ratios indicating need for re-clustering | `query_history` |
+| Workflow                                                                      | DPO Theme             | Description                                                                                    | Required Plugin(s)  |
+|-------------------------------------------------------------------------------|-----------------------|------------------------------------------------------------------------------------------------|---------------------|
+| [Credits Exhaustion Prediction](./credits-exhaustion-prediction/readme.md)    | Costs                 | Detects abnormal credit consumption velocity per resource monitor and alerts before exhaustion | `resource_monitors` |
+| [Data Volume Anomaly Detection](./data-volume-anomaly/readme.md)              | Quality               | Detects unexpected drops in table row counts indicating failed pipelines or accidental deletes | `data_volume`       |
+| [Dynamic Table Refresh Drift Detection](./dynamic-table-drift/readme.md)      | Quality / Performance | Detects when dynamic table scheduling lag consistently exceeds target lag                      | `dynamic_tables`    |
+| [Query Slowdown Detection](./query-slowdown-detection/readme.md)              | Performance           | Detects abnormal increases in query execution time per warehouse and database                  | `query_history`     |
+| [Table Performance Degradation Detection](./table-perf-degradation/readme.md) | Performance           | Detects tables with rising partition scan ratios indicating need for re-clustering             | `query_history`     |
 
 ## Workflow Structure
 

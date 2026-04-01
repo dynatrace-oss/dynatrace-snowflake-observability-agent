@@ -7,16 +7,16 @@ data duplication events.
 
 ## Overview
 
-| Property        | Value                                           |
-|-----------------|-------------------------------------------------|
-| DPO Theme       | Quality                                         |
-| Required Plugin | `data_volume`                                   |
-| Trigger         | Every 12 hours (interval)                       |
-| Analyzer        | `SeasonalBaselineAnomalyDetectionAnalyzer`      |
-| Alert condition | ABOVE baseline (unexpected row count increase)  |
-| Training window | 30 days                                         |
+| Property        | Value                                             |
+|-----------------|---------------------------------------------------|
+| DPO Theme       | Quality                                           |
+| Required Plugin | `data_volume`                                     |
+| Trigger         | Every 12 hours (interval)                         |
+| Analyzer        | `SeasonalBaselineAnomalyDetectionAnalyzer`        |
+| Alert condition | ABOVE baseline (unexpected row count increase)    |
+| Training window | 30 days                                           |
 | Scope           | Top 10 tables by largest positive row-count delta |
-| Event source    | `dsoa.data_volume_anomaly`                      |
+| Event source    | `dsoa.data_volume_anomaly`                        |
 
 ## How It Works
 
@@ -36,24 +36,24 @@ data duplication events.
 
 Queries the `snowflake.data.rows` metric from the `data_volume` plugin:
 
-| Field                    | Role                            |
-|--------------------------|---------------------------------|
-| `snowflake.data.rows`    | Metric (row count snapshot)     |
-| `db.collection.name`     | Dimension (per-table series)    |
-| `deployment.environment` | Dimension (environment scope)   |
+| Field                    | Role                          |
+|--------------------------|-------------------------------|
+| `snowflake.data.rows`    | Metric (row count snapshot)   |
+| `db.collection.name`     | Dimension (per-table series)  |
+| `deployment.environment` | Dimension (environment scope) |
 
 ## Event Properties
 
 Each ingested event carries:
 
-| Property                 | Value                                   |
-|--------------------------|-----------------------------------------|
-| `event.type`             | `CustomInfo` (default)                  |
-| `ad.source`              | `dsoa.data_volume_anomaly`              |
-| `ad.source_metric`       | `snowflake.data.rows`                   |
-| `event.start/end`        | Anomaly timeframe from Davis            |
-| `db.collection.name`     | Affected table                          |
-| `deployment.environment` | Snowflake environment                   |
+| Property                 | Value                        |
+|--------------------------|------------------------------|
+| `event.type`             | `CustomInfo` (default)       |
+| `ad.source`              | `dsoa.data_volume_anomaly`   |
+| `ad.source_metric`       | `snowflake.data.rows`        |
+| `event.start/end`        | Anomaly timeframe from Davis |
+| `db.collection.name`     | Affected table               |
+| `deployment.environment` | Snowflake environment        |
 
 ## Customization
 

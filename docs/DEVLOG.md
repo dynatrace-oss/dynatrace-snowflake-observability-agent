@@ -35,13 +35,13 @@ This file documents detailed technical changes, internal refactorings, and devel
 
 Five Davis AI anomaly detection workflows covering core Snowflake observability themes:
 
-| Workflow | Ticket | Plugin | Analyzer | Interval | Alert Condition |
-|----------|--------|--------|----------|----------|-----------------|
-| Credits Exhaustion Prediction | BDX-1820 | `resource_monitors` | `GenericForecastAnalyzer` | 4 h | upper-bound forecast > 100% |
-| Query Slowdown Detection | BDX-1821 | `query_history` | `AutoAdaptiveAnomalyDetectionAnalyzer` | 6 h | ABOVE (avg exec time) |
-| Data Volume Anomaly Detection | BDX-1822 | `data_volume` | `SeasonalBaselineAnomalyDetectionAnalyzer` | 12 h | ABOVE (row count spike, top 10 tables) |
-| Table Performance Degradation Detection | BDX-1826 | `query_history` | `AutoAdaptiveAnomalyDetectionAnalyzer` | 12 h | ABOVE (partition scan ratio) |
-| Dynamic Table Refresh Drift Detection | BDX-1827 | `dynamic_tables` | `AutoAdaptiveAnomalyDetectionAnalyzer` | 6 h | ABOVE (excess lag) |
+| Workflow                                | Ticket   | Plugin              | Analyzer                                   | Interval | Alert Condition                        |
+|-----------------------------------------|----------|---------------------|--------------------------------------------|----------|----------------------------------------|
+| Credits Exhaustion Prediction           | BDX-1820 | `resource_monitors` | `GenericForecastAnalyzer`                  | 4 h      | upper-bound forecast > 100%            |
+| Query Slowdown Detection                | BDX-1821 | `query_history`     | `AutoAdaptiveAnomalyDetectionAnalyzer`     | 6 h      | ABOVE (avg exec time)                  |
+| Data Volume Anomaly Detection           | BDX-1822 | `data_volume`       | `SeasonalBaselineAnomalyDetectionAnalyzer` | 12 h     | ABOVE (row count spike, top 10 tables) |
+| Table Performance Degradation Detection | BDX-1826 | `query_history`     | `AutoAdaptiveAnomalyDetectionAnalyzer`     | 12 h     | ABOVE (partition scan ratio)           |
+| Dynamic Table Refresh Drift Detection   | BDX-1827 | `dynamic_tables`    | `AutoAdaptiveAnomalyDetectionAnalyzer`     | 6 h      | ABOVE (excess lag)                     |
 
 **All workflows use native `timeseries` DQL** — not `fetch logs/events | makeTimeseries`. This
 is required because Davis analyzers expect metric dimensions in `by:` clauses; attributes
@@ -133,7 +133,6 @@ Three Snowflake-specific failure modes handled via per-grant `BEGIN/EXCEPTION` b
 - `ACCOUNT_ROOT_BUDGET` does **not** support `!GET_SPENDING_LIMIT()`, `!GET_LINKED_RESOURCES()`, or `!GET_SPENDING_HISTORY()` — these instance methods only work on custom (database-scoped) budgets.
 - `CREATE BUDGET IF NOT EXISTS` is unsupported DDL syntax; `CREATE BUDGET` only (re-running raises if exists, which is safe to ignore).
 - `SNOWFLAKE.ACCOUNT_USAGE.EVENT_USAGE_HISTORY` is deprecated per Snowflake documentation (March 2026). Removed `event_usage` plugin from test-qa config; dashboard Event Table Ingest section deferred to a future `metering` plugin.
-
 
 #### Pipes Monitoring Plugin
 

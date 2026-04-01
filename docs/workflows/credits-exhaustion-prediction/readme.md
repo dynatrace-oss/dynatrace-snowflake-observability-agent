@@ -6,15 +6,15 @@ before the period resets.
 
 ## Overview
 
-| Property        | Value                                                          |
-|-----------------|----------------------------------------------------------------|
-| DPO Theme       | Costs                                                          |
-| Required Plugin | `resource_monitors`                                            |
-| Trigger         | Every 4 hours (interval)                                       |
-| Analyzer        | `dt.statistics.GenericForecastAnalyzer`                        |
-| Forecast horizon | 14 days                                                       |
-| Threshold       | 100% credit quota usage                                        |
-| Event source    | `dsoa.credits_exhaustion`                                      |
+| Property         | Value                                   |
+|------------------|-----------------------------------------|
+| DPO Theme        | Costs                                   |
+| Required Plugin  | `resource_monitors`                     |
+| Trigger          | Every 4 hours (interval)                |
+| Analyzer         | `dt.statistics.GenericForecastAnalyzer` |
+| Forecast horizon | 14 days                                 |
+| Threshold        | 100% credit quota usage                 |
+| Event source     | `dsoa.credits_exhaustion`               |
 
 ## How It Works
 
@@ -39,11 +39,11 @@ before the period resets.
 
 Queries `timeseries` metrics from the `resource_monitors` plugin:
 
-| Metric / Field                         | Role                             |
-|----------------------------------------|----------------------------------|
-| `snowflake.credits.quota.used_pct`     | Metric (% of quota consumed)     |
-| `snowflake.resource_monitor.name`      | Dimension (per-monitor series)   |
-| `deployment.environment`               | Dimension (environment scope)    |
+| Metric / Field                     | Role                           |
+|------------------------------------|--------------------------------|
+| `snowflake.credits.quota.used_pct` | Metric (% of quota consumed)   |
+| `snowflake.resource_monitor.name`  | Dimension (per-monitor series) |
+| `deployment.environment`           | Dimension (environment scope)  |
 
 > **Note:** `snowflake.resource_monitor.is_active` is an attribute (not a dimension) and cannot
 > be used as a `timeseries` filter. All monitors with data are included; inactive monitors will
@@ -53,17 +53,17 @@ Queries `timeseries` metrics from the `resource_monitors` plugin:
 
 Each ingested event carries:
 
-| Property                              | Value                                      |
-|---------------------------------------|--------------------------------------------|
-| `event.type`                          | `CUSTOM_INFO` (default)                    |
-| `ad.source`                           | `dsoa.credits_exhaustion`                  |
-| `ad.source_metric`                    | `snowflake.credits.quota.used_pct`         |
-| `snowflake.resource_monitor.name`     | Affected monitor                           |
-| `deployment.environment`              | Snowflake environment                      |
-| `forecast.max_upper_pct`             | 90th-percentile peak forecast (%)          |
-| `forecast.max_point_pct`             | Median (point) peak forecast (%)           |
-| `forecast.day_of_crossing`           | First day (1-indexed) upper bound > 100%   |
-| `forecast.quality`                   | Forecast quality (`VALID` / `LOW_QUALITY`) |
+| Property                          | Value                                      |
+|-----------------------------------|--------------------------------------------|
+| `event.type`                      | `CUSTOM_INFO` (default)                    |
+| `ad.source`                       | `dsoa.credits_exhaustion`                  |
+| `ad.source_metric`                | `snowflake.credits.quota.used_pct`         |
+| `snowflake.resource_monitor.name` | Affected monitor                           |
+| `deployment.environment`          | Snowflake environment                      |
+| `forecast.max_upper_pct`          | 90th-percentile peak forecast (%)          |
+| `forecast.max_point_pct`          | Median (point) peak forecast (%)           |
+| `forecast.day_of_crossing`        | First day (1-indexed) upper bound > 100%   |
+| `forecast.quality`                | Forecast quality (`VALID` / `LOW_QUALITY`) |
 
 ## Customization
 

@@ -7,14 +7,14 @@ queries. Only successful queries are analyzed to avoid noise from failed executi
 
 ## Overview
 
-| Property        | Value                                                  |
-|-----------------|--------------------------------------------------------|
-| DPO Theme       | Performance                                            |
-| Required Plugin | `query_history`                                        |
-| Trigger         | Every 6 hours (interval)                               |
-| Alert condition | ABOVE baseline (rising execution time)                 |
-| Training window | 14 days                                                |
-| Event source    | `dsoa.query_slowdown`                                  |
+| Property        | Value                                  |
+|-----------------|----------------------------------------|
+| DPO Theme       | Performance                            |
+| Required Plugin | `query_history`                        |
+| Trigger         | Every 6 hours (interval)               |
+| Alert condition | ABOVE baseline (rising execution time) |
+| Training window | 14 days                                |
+| Event source    | `dsoa.query_slowdown`                  |
 
 ## How It Works
 
@@ -34,27 +34,27 @@ queries. Only successful queries are analyzed to avoid noise from failed executi
 
 Queries the `snowflake.time.execution` metric from the `query_history` plugin via native `timeseries`:
 
-| Field                            | Role                                       |
-|----------------------------------|--------------------------------------------|
-| `snowflake.warehouse.name`       | Dimension (per-warehouse series)           |
-| `db.namespace`                   | Dimension (per-database series)            |
-| `snowflake.time.execution`       | Metric (query execution time in ms)        |
-| `snowflake.query.execution_status` | Filter (`SUCCESS` queries only)          |
-| `deployment.environment`         | Dimension (environment scope)              |
+| Field                              | Role                                |
+|------------------------------------|-------------------------------------|
+| `snowflake.warehouse.name`         | Dimension (per-warehouse series)    |
+| `db.namespace`                     | Dimension (per-database series)     |
+| `snowflake.time.execution`         | Metric (query execution time in ms) |
+| `snowflake.query.execution_status` | Filter (`SUCCESS` queries only)     |
+| `deployment.environment`           | Dimension (environment scope)       |
 
 ## Event Properties
 
 Each ingested event carries:
 
-| Property                       | Value                                         |
-|--------------------------------|-----------------------------------------------|
-| `event.type`                   | `CustomInfo` (default)                        |
-| `ad.source`                    | `dsoa.query_slowdown`                         |
-| `ad.source_metric`             | `snowflake.query.execution_time.avg`          |
-| `event.start/end`              | Anomaly timeframe from Davis                  |
-| `snowflake.warehouse.name`     | Affected warehouse                            |
-| `db.namespace`                 | Affected database                             |
-| `deployment.environment`       | Snowflake environment                         |
+| Property                   | Value                                |
+|----------------------------|--------------------------------------|
+| `event.type`               | `CustomInfo` (default)               |
+| `ad.source`                | `dsoa.query_slowdown`                |
+| `ad.source_metric`         | `snowflake.query.execution_time.avg` |
+| `event.start/end`          | Anomaly timeframe from Davis         |
+| `snowflake.warehouse.name` | Affected warehouse                   |
+| `db.namespace`             | Affected database                    |
+| `deployment.environment`   | Snowflake environment                |
 
 ## Customization
 
