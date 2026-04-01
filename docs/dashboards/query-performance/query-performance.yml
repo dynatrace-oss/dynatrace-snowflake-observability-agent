@@ -26,7 +26,7 @@
 # TAGS: query performance
 
 id: f245f73a-35f5-4298-8158-2a8aa4611a23
-version: 24
+version: 25
 variables:
   - version: 2
     key: Account
@@ -83,8 +83,10 @@ variables:
             and isNotNull(db_name)
             and isNotNull(coalesce(db.statement, db.query.text))
             and (isNotNull(db_collection_name) or isNotNull(db.snowflake.tables))
-        | parse `db.snowflake.tables`, """'"' JSON_ARRAY(strict=false, typed=true):table_names '"'"""
-        | fieldsAdd db.snowflake.tables = if(isNotNull(db_snowflake_tables) and isNotNull(table_names), table_names, else: array(db_collection_name))
+        | fieldsAdd db_snowflake_tables = db.snowflake.tables
+        | fieldsAdd db.snowflake.tables = if(isNotNull(asArray(db_snowflake_tables)), db_snowflake_tables,
+                                     else: if(isNotNull(db_snowflake_tables), parse(db_snowflake_tables, """'"' JSON_ARRAY(strict=false, typed=true):table_names '"'"""),
+                                     else: array(db_collection_name)))
         | expand db.collection.name = db.snowflake.tables
         | fields db.collection.name
         | dedup db.collection.name
@@ -131,7 +133,7 @@ variables:
     type: text
     visible: false
     editable: true
-    defaultValue: '":" SPACE* DIGIT{13,19};'
+    defaultValue: '(":" SPACE* DIGIT{13,19})? TIME? TIMESTAMP(''yyyy-MM-dd'')? TIMESTAMP(''HH:mm:ss.S'')? ([0-9a-fA-F-]{32})? UUIDSTRING?'
   - version: 2
     key: TopN
     type: csv
@@ -145,7 +147,7 @@ variables:
     type: text
     visible: false
     editable: true
-    defaultValue: "5"
+    defaultValue: "60"
 tiles:
   "0":
     title: Query execution time (whole account summary)
@@ -301,8 +303,9 @@ tiles:
             in(snow_account, array($Account))
                 and in(db_name, array($DB_Name))
                 and in(db.user, array($User))
-        | parse `db_snowflake_tables`, """'"' JSON_ARRAY(strict=false, typed=true):table_names '"'"""
-        | fieldsAdd db.snowflake.tables = if(isNotNull(db_snowflake_tables), table_names, else: array(db_collection_name))
+        | fieldsAdd db.snowflake.tables = if(isNotNull(asArray(db_snowflake_tables)), db_snowflake_tables,
+                                     else: if(isNotNull(db_snowflake_tables), parse(db_snowflake_tables, """'"' JSON_ARRAY(strict=false, typed=true):table_names '"'"""),
+                                     else: array(db_collection_name)))
         | expand db.collection.name = db.snowflake.tables
         | filter in(db.collection.name, array($DB_Table))
         | fieldsAdd snowflake.time.execution = toLong(snowflake.time.execution)
@@ -419,8 +422,9 @@ tiles:
             in(snow_account, array($Account))
                 and in(db_name, array($DB_Name))
                 and in(db.user, array($User))
-        | parse `db_snowflake_tables`, """'"' JSON_ARRAY(strict=false, typed=true):table_names '"'"""
-        | fieldsAdd db.snowflake.tables = if(isNotNull(db_snowflake_tables), table_names, else: array(db_collection_name))
+        | fieldsAdd db.snowflake.tables = if(isNotNull(asArray(db_snowflake_tables)), db_snowflake_tables,
+                                     else: if(isNotNull(db_snowflake_tables), parse(db_snowflake_tables, """'"' JSON_ARRAY(strict=false, typed=true):table_names '"'"""),
+                                     else: array(db_collection_name)))
         | expand db.collection.name = db.snowflake.tables
         | filter in(db.collection.name, array($DB_Table))
         | fieldsAdd snowflake.time.execution = toLong(snowflake.time.execution)
@@ -581,8 +585,10 @@ tiles:
             and isNotNull(snowflake.time.execution)
         | filter in(snow_account, array($Account))
         | filter in(db_name, array($DB_Name))
-        | parse `db.snowflake.tables`, """'"' JSON_ARRAY(strict=false, typed=true):table_names '"'"""
-        | fieldsAdd db.snowflake.tables = if(isNotNull(db_snowflake_tables) and isNotNull(table_names), table_names, else: array(db_collection_name))
+        | fieldsAdd db_snowflake_tables = db.snowflake.tables
+        | fieldsAdd db.snowflake.tables = if(isNotNull(asArray(db_snowflake_tables)), db_snowflake_tables,
+                                     else: if(isNotNull(db_snowflake_tables), parse(db_snowflake_tables, """'"' JSON_ARRAY(strict=false, typed=true):table_names '"'"""),
+                                     else: array(db_collection_name)))
         | expand db.collection.name = db.snowflake.tables
         | filter in(db.collection.name, array($DB_Table))
         | fieldsAdd snowflake.time.execution = toLong(snowflake.time.execution)
@@ -1074,7 +1080,7 @@ tiles:
       davisVisualization:
         isAvailable: true
   "16":
-    title: Long-running queries in progress (> 5 min)
+    title: Long-running queries in progress (> $SlowQueryMin min)
     type: data
     query: |-
       fetch logs
