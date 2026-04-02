@@ -78,9 +78,10 @@ jaraco-context>=6.1.0
 # CVE-2026-25990: Pillow buffer overflow
 pillow>=12.1.1
 # CVE-2026-0994: Protobuf DoS in json_format.ParseDict()
-# snowflake-snowpark-python>=1.48.1 allows protobuf<6.34; opentelemetry-proto==1.39.1 allows protobuf<7.0
-# Upper bound <6.34 matches snowpark's constraint; lower bound covers both patched 5.x (5.29.6) and 6.x (6.33.5+)
-protobuf>=5.29.6,<6.34
+# Advisory range: >=6.30.0rc1,<=6.33.4. Fixed in 6.33.5+.
+# snowflake-snowpark-python>=1.48.1 caps at <6.34; opentelemetry-proto==1.39.1 allows <7.0; streamlit allows <7.
+# Pin to >=6.33.5,<6.34 to land on the patched 6.x release within the tightest transitive constraint.
+protobuf>=6.33.5,<6.34
 # CVE-2025-21613: Requests insecure temp file reuse in extract_zipped_paths()
 requests>=2.33.0
 # CVE-2026-27459 (GHSA-5pwr-322w-8jr4) HIGH: pyOpenSSL DTLS cookie callback buffer overflow
