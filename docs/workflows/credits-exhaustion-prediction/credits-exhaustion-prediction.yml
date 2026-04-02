@@ -1,0 +1,219 @@
+# WORKFLOW: DSOA — Credits Exhaustion Prediction
+# DESCRIPTION: Forecasts credit consumption over 14 days and alerts if any resource monitor is predicted to exceed 100% quota
+# OWNER: DSOA Team
+# PLUGINS: resource_monitors
+# TAGS: snowflake, dsoa, operations, costs, credits
+
+id: 1bfe4055-c21c-47aa-9b44-6d583e662deb
+title: "DSOA — Credits Exhaustion Prediction"
+description: |
+  Forecasts credit consumption per Snowflake resource monitor over the next 14 days using Davis AI
+  Generic Forecast Analyzer. Alerts when the forecast predicts credits used percentage will exceed
+  100% before the monitor period resets. Requires the resource_monitors plugin.
+isPrivate: false
+schemaVersion: 4
+trigger:
+  schedule:
+    isActive: true
+    trigger:
+      type: interval
+      intervalMinutes: 240
+    rule: null
+    filterParameters: {}
+    timezone: UTC
+    inputs: {}
+tasks:
+  detect_exhaustion:
+    name: detect_exhaustion
+    description: Forecast credit consumption percentage per resource monitor over 14 days using Davis AI
+    action: dynatrace.davis.workflow.actions:davis-analyze
+    active: true
+    position:
+      x: 0
+      y: 1
+    conditions:
+      states: {}
+    predecessors: []
+    input:
+      analyzerName: dt.statistics.GenericForecastAnalyzer
+      body:
+        timeSeriesData: |
+          timeseries {
+            credits_used_pct = max(snowflake.credits.quota.used_pct, default:0)
+          }
+          , by: {
+            snowflake.resource_monitor.name,
+            deployment.environment
+          }
+          , filter: {
+            db.system == "snowflake"
+          }
+          , interval: 24h
+        forecastHorizon: 14
+        forecastOffset: 0
+        nPaths: 200
+        coverageProbability: 0.9
+        applyZeroLowerBoundHeuristic: true
+        generalParameters:
+          timeframe:
+            startTime: now-30d
+            endTime: now
+          logVerbosity: WARNING
+          resolveDimensionalQueryData: false
+
+  check_prediction:
+    name: check_prediction
+    description: Check if any forecast path crosses 100% credit quota within 14 days
+    action: dynatrace.automations:run-javascript
+    active: true
+    position:
+      x: 0
+      y: 2
+    conditions:
+      states:
+        detect_exhaustion: SUCCESS
+    predecessors:
+      - detect_exhaustion
+    input:
+      script: |
+        import { execution } from '@dynatrace-sdk/automation-utils';
+
+        // === CONFIGURATION ===
+        const CONFIG = {
+          thresholdPct: 100,        // alert when upper-bound forecast exceeds this credit usage %
+          eventType: 'CUSTOM_INFO', // use 'CUSTOM_ALERT' to trigger Davis problems
+          eventTimeout: 360,
+          adSource: 'dsoa.credits_exhaustion'
+        };
+        // === END CONFIGURATION ===
+
+        // The GenericForecastAnalyzer result is accessed via analyzerResult.result.output[].
+        // Each element represents one monitor×environment series and has:
+        //   .timeSeriesDataWithPredictions.records[0] — the forecast record with:
+        //     - 'dt.davis.forecast:upper'  — 90th-percentile upper bound (14 values, one per day)
+        //     - 'dt.davis.forecast:point'  — point (median) forecast (14 values)
+        //     - 'dt.davis.forecast:lower'  — 10th-percentile lower bound (14 values)
+        //     - 'snowflake.resource_monitor.name' and 'deployment.environment' — flat on the record
+        //   .forecastQualityAssessment — 'VALID' | 'LOW_QUALITY' | 'NO_DATA'
+
+        export default async function ({ execution_id }) {
+          const ex = await execution(execution_id);
+          const analyzerResult = await ex.result('detect_exhaustion');
+
+          const violations = [];
+          const results = analyzerResult?.result?.output ?? [];
+
+          for (const entry of results) {
+            if (entry.forecastQualityAssessment === 'NO_DATA') continue;
+
+            const record = entry.timeSeriesDataWithPredictions?.records?.[0];
+            if (!record) continue;
+
+            const monitorName = record['snowflake.resource_monitor.name'] || 'unknown';
+            const environment = record['deployment.environment'] || 'unknown';
+
+            // Use upper bound: with coverageProbability=0.9, this is the 90th-percentile path.
+            // If even the upper bound stays below threshold we consider it safe.
+            const upperBound = record['dt.davis.forecast:upper'] || [];
+            const maxUpper = upperBound.reduce((max, v) => (v != null && v > max ? v : max), -Infinity);
+            const pointForecast = record['dt.davis.forecast:point'] || [];
+            const maxPoint = pointForecast.reduce((max, v) => (v != null && v > max ? v : max), -Infinity);
+
+            if (maxUpper > CONFIG.thresholdPct) {
+              // Find the first day (1-indexed) where the upper bound crosses the threshold
+              const dayOfCrossing = upperBound.findIndex(v => v != null && v > CONFIG.thresholdPct) + 1;
+              violations.push({
+                monitorName,
+                environment,
+                maxUpperPct: maxUpper,
+                maxPointPct: maxPoint,
+                dayOfCrossing,
+                forecastQuality: entry.forecastQualityAssessment,
+                eventType: CONFIG.eventType,
+                eventTimeout: CONFIG.eventTimeout,
+                adSource: CONFIG.adSource,
+                title: `Credit exhaustion predicted for resource monitor ${monitorName}`,
+                description:
+                  `Resource monitor ${monitorName} in ${environment} is forecast to exceed ` +
+                  `${CONFIG.thresholdPct}% credit quota within ${dayOfCrossing} day(s). ` +
+                  `Upper-bound peak: ${maxUpper.toFixed(1)}%, point forecast peak: ${maxPoint.toFixed(1)}%.`
+              });
+            }
+          }
+
+          console.log(`Forecast checked ${results.length} monitor(s). ` +
+            `${violations.length} predicted to exceed ${CONFIG.thresholdPct}%.`);
+
+          return { violation: violations.length > 0, violations };
+        }
+
+  ingest_prediction_events:
+    name: ingest_prediction_events
+    description: Ingest a Dynatrace event for each resource monitor forecast to exceed 100% credits
+    action: dynatrace.automations:run-javascript
+    active: true
+    position:
+      x: 0
+      y: 3
+    conditions:
+      states:
+        check_prediction: OK
+      custom: "{{ result('check_prediction').violation == true }}"
+    predecessors:
+      - check_prediction
+    input:
+      script: |
+        import { execution } from '@dynatrace-sdk/automation-utils';
+        import { eventsClient } from '@dynatrace-sdk/client-classic-environment-v2';
+
+        async function ingestEvents(violations) {
+          let successCount = 0;
+          const failed = [];
+          for (const v of violations) {
+            const eventBody = {
+              body: {
+                eventType: v.eventType,
+                title: v.title,
+                timeout: v.eventTimeout,
+                properties: {
+                  'event.description': v.description,
+                  'ad.source': v.adSource,
+                  'ad.source_metric': 'snowflake.credits.quota.used_pct',
+                  'snowflake.resource_monitor.name': v.monitorName,
+                  'deployment.environment': v.environment,
+                  'forecast.max_upper_pct': String(v.maxUpperPct?.toFixed(2)),
+                  'forecast.max_point_pct': String(v.maxPointPct?.toFixed(2)),
+                  'forecast.day_of_crossing': String(v.dayOfCrossing),
+                  'forecast.quality': v.forecastQuality
+                }
+              }
+            };
+            const res = await eventsClient.createEvent(eventBody);
+            if (res.reportCount !== 1) {
+              failed.push({ reason: 'Invalid number of ingested events', monitor: v.monitorName });
+            } else {
+              const status = res.eventIngestResults[0];
+              if (status.status === 'OK') {
+                successCount += 1;
+              } else {
+                failed.push({ status: JSON.stringify(status), monitor: v.monitorName });
+              }
+            }
+          }
+          if (successCount === 0 && failed.length === 0) {
+            console.log('No events to ingest');
+          }
+          if (successCount > 0) {
+            console.log(`Successfully ingested ${successCount} event(s)`);
+          }
+          if (failed.length > 0) {
+            console.log(`Failed to ingest ${failed.length} event(s):`, JSON.stringify(failed));
+          }
+        }
+
+        export default async function ({ execution_id }) {
+          const ex = await execution(execution_id);
+          const { violations } = await ex.result('check_prediction');
+          await ingestEvents(violations);
+          return violations;
+        }

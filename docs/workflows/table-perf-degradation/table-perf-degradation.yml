@@ -1,0 +1,220 @@
+# WORKFLOW: DSOA — Table Performance Degradation Detection
+# DESCRIPTION: Detects tables with increasing partition scan ratios indicating need for re-clustering
+# OWNER: DSOA Team
+# PLUGINS: query_history
+# TAGS: snowflake, dsoa, performance, query-history, clustering
+
+id: 5f1750c4-a6b9-416f-939e-7bc4e8f8fa31
+title: "DSOA — Table Performance Degradation Detection"
+description: |
+  Monitors partition scan ratios per table using Davis AI anomaly detection. A rising scan ratio
+  (partitions scanned / total partitions) indicates a table may need re-clustering, leading to
+  increasingly expensive full or near-full table scans. Only successful queries are analyzed.
+  Requires the query_history plugin.
+isPrivate: false
+schemaVersion: 4
+trigger:
+  schedule:
+    isActive: true
+    trigger:
+      type: interval
+      intervalMinutes: 720
+    rule: null
+    filterParameters: {}
+    timezone: UTC
+    inputs: {}
+tasks:
+  detect_degradation:
+    name: detect_degradation
+    description: Detect increasing partition scan ratio per table using Davis AI
+    action: dynatrace.davis.workflow.actions:davis-analyze
+    active: true
+    position:
+      x: 0
+      y: 1
+    conditions:
+      states: {}
+    predecessors: []
+    input:
+      analyzerName: dt.statistics.anomaly_detection.AutoAdaptiveAnomalyDetectionAnalyzer
+      body:
+        timeSeriesData: |
+          timeseries {
+            scanned_max = max(snowflake.partitions.scanned),
+            total_max = max(snowflake.partitions.total)
+          }
+          , by: {db.collection.name, deployment.environment}
+          , filter: {snowflake.query.execution_status == "SUCCESS"}
+          | fieldsAdd scan_ratio = scanned_max[] / total_max[]
+          | fieldsRemove scanned_max, total_max
+          | fieldsAdd
+              metric_name = "snowflake.table.partition_scan_ratio",
+              _event_name_template = "Table performance degradation detected for {dims:db.collection.name}",
+              _event_description_template = "Table {dims:db.collection.name} in {dims:deployment.environment} shows an increasing partition scan ratio, indicating it may need re-clustering to prevent full table scans."
+        alertCondition: ABOVE
+        trainingTimeframe:
+          startTime: now-14d
+          endTime: now-1d
+        generalParameters:
+          timeframe:
+            startTime: now-14d
+            endTime: now
+          logVerbosity: WARNING
+          resolveDimensionalQueryData: false
+        slidingWindow: 3
+        violatingSamples: 2
+        dealertingSamples: 3
+        numberOfSignalFluctuations: 1.5
+        alertOnMissingData: false
+        useModelCache: true
+        extendedOutput: false
+
+  extract_anomaly_events:
+    name: extract_anomaly_events
+    description: Process Davis results and build Dynatrace event objects
+    action: dynatrace.automations:run-javascript
+    active: true
+    position:
+      x: 0
+      y: 2
+    conditions:
+      states:
+        detect_degradation: SUCCESS
+    predecessors:
+      - detect_degradation
+    input:
+      script: |
+        import { execution } from '@dynatrace-sdk/automation-utils';
+        import { EventIngestEventType } from '@dynatrace-sdk/client-classic-environment-v2';
+
+        // === CONFIGURATION ===
+        // Change eventType to EventIngestEventType.CustomAlert to enable Davis problem correlation.
+        // CustomInfo (default) creates informational events without triggering Davis problems.
+        const CONFIG = {
+          eventType: EventIngestEventType.CustomInfo,
+          eventTimeout: 360,
+          adSource: 'dsoa.table_perf_degradation'
+        };
+        // === END CONFIGURATION ===
+
+        function replacePlaceholders(contentString, data) {
+          const pattern = /\{dims:(\S*?)}/gm;
+          let matches = [];
+          while ((matches = pattern.exec(contentString))) {
+            contentString = contentString.replace(matches[0], data[matches[1]]);
+          }
+          return contentString;
+        }
+
+        function unpackMap(amap) {
+          const mappedResult = {};
+          amap.forEach(item => {
+            mappedResult[item.key] = item.value;
+          });
+          return mappedResult;
+        }
+
+        function createEventObject(alert, result, events) {
+          const startTime = alert.timeframe.startTime;
+          const endTime = alert.timeframe.endTime;
+          const eventTitle = result.dimensions.find(x => x.key === '_event_name_template')?.value;
+          const eventDesc = result.dimensions.find(x => x.key === '_event_description_template')?.value;
+          const sourceMetric = result.dimensions.find(x => x.key === 'metric_name')?.value;
+          const resultDimensions = unpackMap(result.dimensions);
+
+          const newEvent = {
+            body: {
+              eventType: CONFIG.eventType,
+              title: replacePlaceholders(eventTitle, resultDimensions),
+              properties: {
+                'event.description': replacePlaceholders(eventDesc, resultDimensions)
+              },
+              timeout: CONFIG.eventTimeout
+            }
+          };
+
+          newEvent.body.properties['event.start'] = startTime;
+          newEvent.body.properties['event.end'] = endTime;
+          newEvent.body.properties['ad.source'] = CONFIG.adSource;
+          newEvent.body.properties['ad.source_metric'] = sourceMetric;
+
+          if (result.dimensions.length > 0) {
+            result.dimensions.forEach(dim => {
+              if (!dim.key.startsWith('_')) {
+                newEvent.body.properties[dim.key] = dim.value;
+              }
+            });
+          }
+          events.push(newEvent);
+        }
+
+        export default async function ({ execution_id }) {
+          const ex = await execution(execution_id);
+          const analyzerResult = await ex.result('detect_degradation');
+
+          const events = [];
+          if (analyzerResult && analyzerResult.output && analyzerResult.output.length > 0) {
+            analyzerResult.output.forEach(result => {
+              if (result.raisedAlerts && result.raisedAlerts.length > 0) {
+                result.raisedAlerts.forEach(alert => {
+                  createEventObject(alert, result, events);
+                });
+              }
+            });
+          }
+
+          console.log(`Extracted ${events.length} anomaly event(s)`);
+          return events;
+        }
+
+  ingest_anomaly_events:
+    name: ingest_anomaly_events
+    description: Ingest anomaly events via Dynatrace Environment V2 API
+    action: dynatrace.automations:run-javascript
+    active: true
+    position:
+      x: 0
+      y: 3
+    conditions:
+      states:
+        extract_anomaly_events: OK
+    predecessors:
+      - extract_anomaly_events
+    input:
+      script: |
+        import { execution } from '@dynatrace-sdk/automation-utils';
+        import { eventsClient } from '@dynatrace-sdk/client-classic-environment-v2';
+
+        async function ingestEvents(events) {
+          let successCount = 0;
+          const failed = [];
+          for (let i = 0; i < events.length; ++i) {
+            const res = await eventsClient.createEvent(events[i]);
+            if (res.reportCount !== 1) {
+              failed.push({ reason: 'Invalid number of ingested events' });
+            } else {
+              const status = res.eventIngestResults[0];
+              if (status.status === 'OK') {
+                successCount += 1;
+              } else {
+                failed.push(JSON.stringify(status));
+              }
+            }
+          }
+          if (successCount === 0 && failed.length === 0) {
+            console.log('No events to ingest');
+          }
+          if (successCount > 0) {
+            console.log(`Successfully ingested ${successCount} event(s)`);
+          }
+          if (failed.length > 0) {
+            console.log(`Failed to ingest ${failed.length} event(s):`, JSON.stringify(failed));
+          }
+        }
+
+        export default async function ({ execution_id }) {
+          const ex = await execution(execution_id);
+          const events = await ex.result('extract_anomaly_events');
+          await ingestEvents(events);
+          return events;
+        }

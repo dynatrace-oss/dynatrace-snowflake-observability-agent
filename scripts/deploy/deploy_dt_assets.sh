@@ -121,34 +121,35 @@ convert_yaml_to_dtctl_json() {
         return 1
     fi
 
-    # Extract id and name from the content if present; then build envelope.
-    # For dashboards the raw YAML is the *content* (tiles/variables etc.) and
-    # id/name are embedded as first-class keys only when the file was previously
-    # exported with dtctl (i.e. after first deployment).
-    local asset_id asset_display_name
-
-    # Try to get id / name from the JSON itself (post-deployment round-trip)
-    asset_id=$(echo "$raw_json" | jq -r '.id // empty' 2>/dev/null || true)
-    asset_display_name=$(echo "$raw_json" | jq -r '.name // empty' 2>/dev/null || true)
-
-    # Fall back to the human-readable name passed in
-    if [[ -z "$asset_display_name" ]]; then
-        asset_display_name="$asset_name"
-    fi
-
-    # Build the dtctl envelope.
-    # Pop id/name out of content so they appear only at the envelope level.
-    if [[ -n "$asset_id" ]]; then
-        jq --arg id   "$asset_id" \
-           --arg name "$asset_display_name" \
-           --arg type "$asset_type" \
-           '{id: $id, name: $name, type: $type, content: (. | del(.id) | del(.name))}' \
-           <<< "$raw_json" > "$tmp_file"
+    if [[ "$asset_type" == "workflow" ]]; then
+        # Workflows: dtctl apply accepts the raw workflow JSON directly.
+        # The workflow JSON uses "title" (not "name") as its display name.
+        # No content-envelope wrapper is needed or accepted.
+        echo "$raw_json" | jq . > "$tmp_file"
     else
-        jq --arg name "$asset_display_name" \
-           --arg type "$asset_type" \
-           '{name: $name, type: $type, content: (. | del(.id) | del(.name))}' \
-           <<< "$raw_json" > "$tmp_file"
+        # Dashboards: dtctl apply requires a {id, name, type, content} envelope.
+        # id/name are popped out of content so they appear only at the top level.
+        local asset_id asset_display_name
+
+        asset_id=$(echo "$raw_json" | jq -r '.id // empty' 2>/dev/null || true)
+        asset_display_name=$(echo "$raw_json" | jq -r '.name // empty' 2>/dev/null || true)
+
+        if [[ -z "$asset_display_name" ]]; then
+            asset_display_name="$asset_name"
+        fi
+
+        if [[ -n "$asset_id" ]]; then
+            jq --arg id   "$asset_id" \
+               --arg name "$asset_display_name" \
+               --arg type "$asset_type" \
+               '{id: $id, name: $name, type: $type, content: (. | del(.id) | del(.name))}' \
+               <<< "$raw_json" > "$tmp_file"
+        else
+            jq --arg name "$asset_display_name" \
+               --arg type "$asset_type" \
+               '{name: $name, type: $type, content: (. | del(.id) | del(.name))}' \
+               <<< "$raw_json" > "$tmp_file"
+        fi
     fi
 
     echo "$tmp_file"
