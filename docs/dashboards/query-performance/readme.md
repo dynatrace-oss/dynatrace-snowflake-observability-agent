@@ -113,7 +113,7 @@ This proactive monitoring enables database teams to address performance issues b
 
 **Active query summary per warehouse** - A table showing count, fastest, slowest, and average elapsed time for currently active queries grouped by warehouse. Time fields use clean names (Fastest, Slowest, Avg) with `unitsOverrides` for automatic millisecond-to-time-unit conversion. Data comes from the `active_queries` plugin (INFORMATION_SCHEMA, no ingestion lag), providing a real-time view of warehouse utilization.
 
-**Long-running queries in progress (> $SlowQueryMin min)** - A table listing queries that have been running longer than the threshold set by the `$SlowQueryMin` variable (default: 5 minutes), including start time, duration, user, warehouse, execution status, and a truncated query text. This enables immediate identification of runaway queries that may need intervention.
+**Long-running queries in progress (> $SlowQueryMin min)** - A table listing queries that have been running longer than the threshold set by the `$SlowQueryMin` variable (default: 60 minutes), including start time, duration, user, warehouse, execution status, and a truncated query text. This enables immediate identification of runaway queries that may need intervention.
 
 ## Technical Details
 

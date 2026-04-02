@@ -37,11 +37,7 @@ variables:
       fetch logs
         | filter db.system == "snowflake"
         | fieldsAdd snow_account = deployment.environment
-        | filter isNotNull(db.user)
-            and isNotNull(snow_account)
-            and isNotNull(coalesce(db.name, db.namespace))
-            and isNotNull(coalesce(db.statement, db.query.text))
-            and isNotNull(snowflake.time.execution)
+        | filter isNotNull(snow_account)
         | fields snow_account
         | dedup snow_account
         | sort snow_account
