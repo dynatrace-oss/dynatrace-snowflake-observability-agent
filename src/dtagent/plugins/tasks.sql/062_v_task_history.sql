@@ -58,8 +58,8 @@ SELECT
         'snowflake.task.config',                        th.CONFIG,
         'snowflake.error.code',                         th.ERROR_CODE,
         'snowflake.error.message',                      th.ERROR_MESSAGE,
-        'snowflake.task.run.scheduled_time',            th.SCHEDULED_TIME,
-        'snowflake.task.run.completed_time',            th.COMPLETED_TIME
+        'snowflake.task.run.scheduled_time',            case when th.SCHEDULED_TIME is not null then extract(epoch_nanosecond from th.SCHEDULED_TIME) else -1 end,
+        'snowflake.task.run.completed_time',            case when th.COMPLETED_TIME is not null then extract(epoch_nanosecond from th.COMPLETED_TIME) else -1 end
     )                                                       as ATTRIBUTES
 
 FROM

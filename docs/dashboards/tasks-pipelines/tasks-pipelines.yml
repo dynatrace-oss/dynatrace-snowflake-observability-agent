@@ -27,7 +27,7 @@
 #
 id: 5b3a0282-123e-416c-97bb-d8b6063e6323
 name: Tasks & Pipelines Monitoring
-version: 25
+version: 26
 variables:
   - key: Accounts
     visible: true
@@ -217,8 +217,8 @@ tiles:
     title: Task Run Duration Trend
     description: >-
       Average task execution duration (scheduled_time to completed_time) in seconds,
-      trended per task. Duration is computed as the difference between nanosecond epoch
-      timestamps stored in snowflake.task.run.completed_time and snowflake.task.run.scheduled_time.
+      trended per task. Both fields are stored as nanosecond epoch integers; duration
+      is computed via direct integer subtraction.
     type: data
     query: |-
       fetch logs
@@ -229,8 +229,10 @@ tiles:
       | filter in(snowflake.schema.name, array($Schema))
       | filter in(snowflake.task.name, array($TaskOrTable))
       | filter isNotNull(snowflake.task.run.completed_time)
+      | filter toLong(snowflake.task.run.completed_time) > 0
       | filter isNotNull(snowflake.task.run.scheduled_time)
-      | fieldsAdd duration_sec = (toTimestamp(snowflake.task.run.completed_time) - toTimestamp(snowflake.task.run.scheduled_time)) / 1000000000
+      | filter toLong(snowflake.task.run.scheduled_time) > 0
+      | fieldsAdd duration_sec = (toLong(snowflake.task.run.completed_time) - toLong(snowflake.task.run.scheduled_time)) / 1000000000
       | makeTimeseries avg_duration = avg(duration_sec), by: { snowflake.task.name, deployment.environment }
     visualization: lineChart
     visualizationSettings:
@@ -491,7 +493,6 @@ tiles:
       | filter in(snowflake.schema.name, array($Schema))
       | filter in(db.collection.name, array($TaskOrTable))
       | filter isNotNull(snowflake.table.dynamic.scheduling.state)
-      | filter snowflake.table.dynamic.scheduling.state != ""
       | sort timestamp desc
       | summarize {
           state = takeFirst(snowflake.table.dynamic.scheduling.state)
