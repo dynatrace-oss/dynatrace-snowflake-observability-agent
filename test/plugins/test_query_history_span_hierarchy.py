@@ -21,7 +21,7 @@
 # SOFTWARE.
 #
 #
-"""Tests for span hierarchy validation in query_history plugin (BDX-620).
+"""Tests for span hierarchy validation in query_history plugin.
 
 Verifies that nested stored procedure call chains (outer SP → inner SP → leaf SELECT)
 are correctly represented using IS_PARENT / IS_ROOT flags and produce the expected
@@ -41,7 +41,7 @@ class TestQueryHistSpanHierarchy:
 
     @pytest.mark.xdist_group(name="test_telemetry")
     def test_span_hierarchy(self):
-        """Validates nested stored procedure span hierarchy (BDX-620).
+        """Validates nested stored procedure span hierarchy.
 
         Checks that:
         - Only the IS_ROOT=True row is processed as a top-level span entry.
