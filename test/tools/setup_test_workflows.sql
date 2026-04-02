@@ -4,11 +4,11 @@
 -- Cost: near-zero (XSMALL, auto-suspend 60 s)
 --
 -- Covers all 4 plugins required by the 5 anomaly detection workflows:
---   resource_monitors  → BDX-1820 Credits Exhaustion Prediction
---   data_volume        → BDX-1822 Data Volume Anomaly Detection
---   dynamic_tables     → BDX-1827 Dynamic Table Refresh Drift Detection
---   query_history      → BDX-1821 Query Slowdown Detection
---                      → BDX-1826 Table Performance Degradation Detection
+--   resource_monitors  → Credits Exhaustion Prediction
+--   data_volume        → Data Volume Anomaly Detection
+--   dynamic_tables     → Dynamic Table Refresh Drift Detection
+--   query_history      → Query Slowdown Detection
+--                      → Table Performance Degradation Detection
 --
 -- NOTE: This script is DSOA-independent. No DTAGENT_* roles or objects are
 -- referenced. DSOA's own deploy grants its viewer role access to DSOA_TEST_DB.

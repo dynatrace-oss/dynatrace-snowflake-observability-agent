@@ -83,10 +83,10 @@ per-tile detail.>
 
 ## Dashboard Variables
 
-| Variable    | Type  | Default | Description |
-|-------------|-------|---------|-------------|
+| Variable    | Type  | Default | Description                                            |
+|-------------|-------|---------|--------------------------------------------------------|
 | `$Accounts` | query | all     | Filter by Snowflake account (`deployment.environment`) |
-| `$<Other>`  | query | all     | <description> |
+| `$<Other>`  | query | all     | <description>                                          |
 
 <One sentence on multi-select behaviour and typical filtering patterns.>
 
@@ -178,7 +178,7 @@ Synthetic setup: test/tools/setup_test_<plugin>.sql
 
 **Commit message rules:**
 
-- Do **not** include ticket or issue numbers (e.g. `BDX-1234`, `JIRA-567`) in
+- Do **not** include ticket or issue numbers in
   commit messages unless they are GitHub issue/PR numbers (e.g. `#83`).
 - Do **not** open a pull request. After committing, push the branch and inform
   the human — PR creation is the human's responsibility.

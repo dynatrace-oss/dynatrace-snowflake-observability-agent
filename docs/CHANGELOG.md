@@ -23,6 +23,7 @@ Released on TBD
 
 ### Fixed in 0.9.4
 
+- **Dynamic Tables — Scheduling State Empty String**: `snowflake.table.dynamic.scheduling.state`, `reason_code`, and `reason_message` now emit `NULL` instead of `""` when absent. DQL `isNotNull()` checks now work correctly; explicit `!= ""` filters are no longer needed.
 - **Dynamic Tables — Grant Granularity**: `P_GRANT_MONITOR_DYNAMIC_TABLES()` now derives grant scope from the `include` pattern. `DB.%.%` grants at database level, `DB.SCHEMA.%` at schema level, and `DB.SCHEMA.TABLE` on a specific named table only — eliminating previous over-granting when a schema or table was explicitly specified.
 - **Span Timestamp Handling**: Fixed spans being re-processed after agent restart due to incorrect timestamp being recorded as last-processed marker
 - **OTLP Compliance**: Fixed log `observed_timestamp` field to use nanoseconds per OTLP specification
@@ -32,6 +33,7 @@ Released on TBD
 
 ### Changed in 0.9.4
 
+- **Tasks — Timestamp Fields as Epoch Nanoseconds** *(behavior change — `tasks` plugin)*: `snowflake.task.run.scheduled_time`, `snowflake.task.run.completed_time`, `snowflake.task.last_committed_on`, and `snowflake.task.last_suspended_on` are now epoch nanosecond integers, consistent with all other timestamp attributes. Previously they were ISO 8601 datetime strings. `COMPLETED_TIME` uses `-1` as a sentinel when the task has not yet completed. DQL queries computing durations from these fields should use `toLong()` arithmetic.
 - **Event Log Plugin — Cross-Tenant Monitoring** *(behavior change)*: DSOA instances now report `WARN`/`ERROR` log entries, metrics, and spans from all other `DTAGENT_*_DB` instances by default. Use `plugins.event_log.cross_tenant_monitoring: false` to opt out. It is recommended to keep this enabled in only one primary DSOA tenant to avoid duplicate reporting across deployments.
 - **Shares Plugin**: Fixed inbound shares with deleted databases not being properly reported. The `snowflake.share.has_details_reported` attribute now correctly shows `TRUE` for deleted-DB shares, and the `_MESSAGE` field provides clear context about database deletion status
 - **Self-Monitoring**: Fixed database name filtering for self-monitoring logs

@@ -48,8 +48,8 @@ select
         'snowflake.task.condition',                 tv.CONDITION_TEXT,
         'snowflake.task.config.allow_overlap',      tv.ALLOW_OVERLAPPING_EXECUTION,
         'snowflake.task.error_integration',         tv.ERROR_INTEGRATION,
-        'snowflake.task.last_committed_on',         tv.LAST_COMMITTED_ON,
-        'snowflake.task.last_suspended_on',         tv.LAST_SUSPENDED_ON
+        'snowflake.task.last_committed_on',         extract(epoch_nanosecond from tv.LAST_COMMITTED_ON),
+        'snowflake.task.last_suspended_on',         extract(epoch_nanosecond from tv.LAST_SUSPENDED_ON)
     )                                                   as ATTRIBUTES,
 
     OBJECT_CONSTRUCT(

@@ -4,9 +4,50 @@ This file documents detailed technical changes, internal refactorings, and devel
 
 ## Version 0.9.4 — Detailed Changes
 
+### Bug Fixes — Technical Details
+
+#### Tasks Plugin — Timestamp Fields Converted to Epoch Nanoseconds (TI-001)
+
+- **Root cause**: `V_TASK_HISTORY` passed `th.SCHEDULED_TIME` and `th.COMPLETED_TIME` directly into the `ATTRIBUTES` OBJECT_CONSTRUCT without any conversion. Snowflake serialises `TIMESTAMP_LTZ` values as ISO 8601 datetime strings (e.g. `"2025-04-29 00:00:00.000 Z"`) inside a VARIANT/OBJECT. Every other timestamp attribute across all plugins uses `extract(epoch_nanosecond from ...)` — these two fields were the only exceptions. The `instruments-def.yml` `__example` values had been written to match the broken output rather than the intended contract.
+- **Additional scope**: `V_TASK_VERSIONS` had the same bug for `LAST_COMMITTED_ON` and `LAST_SUSPENDED_ON` — passed raw into ATTRIBUTES despite the `instruments-def.yml` already documenting them with epoch-nanos examples (`"1633046400000000000"`).
+- **Fix**:
+  - `062_v_task_history.sql`: `th.SCHEDULED_TIME` → `CASE WHEN th.SCHEDULED_TIME IS NOT NULL THEN extract(epoch_nanosecond from th.SCHEDULED_TIME) ELSE -1 END`; same for `COMPLETED_TIME`. Sentinel `-1` is consistent with the `QUERY_START_TIME` NULL-guard already in this view.
+  - `063_v_task_versions.sql`: `tv.LAST_COMMITTED_ON` / `tv.LAST_SUSPENDED_ON` → `extract(epoch_nanosecond from ...)`. No sentinel needed — these are nullable attributes, `extract()` of NULL produces NULL which is dropped from the OBJECT_CONSTRUCT.
+  - `tasks.config/instruments-def.yml`: updated `__example` for `snowflake.task.run.scheduled_time` and `snowflake.task.run.completed_time` to epoch nanos strings.
+- **Test fixtures updated**:
+  - `test/test_data/tasks_history.ndjson`: converted `scheduled_time` values to epoch nanos integers; added `completed_time: -1` (fixtures represent SCHEDULED-state tasks with no completion yet).
+  - `test/test_results/test_tasks/logs.json`: golden output updated to match.
+- **Dashboard impact** (`tasks-pipelines.yml`, bumped to v26):
+  - Tile 3 (Task Run Duration Trend): removed `toTimestamp()` workaround; now uses direct `toLong()` integer subtraction. Added `> 0` guards to exclude `-1` sentinel values from duration calculation.
+
+#### Dynamic Tables — Scheduling State Empty String (TI-004)
+
+- **Root cause**: Extracting a path from a Snowflake VARIANT column via `:path` notation returns an empty string `""` (not `NULL`) when the key exists in the JSON object but its value is an empty string or absent. `SCHEDULING_STATE` is a VARIANT column; when a dynamic table has no active reason code or message, Snowflake populates those keys with empty strings. The extracted values flowed into the `ATTRIBUTES` object and then into Dynatrace logs as `""` — causing DQL `isNull()` checks to miss them and forcing callers to add `!= ""` workaround filters.
+- **Fix**: `053_v_dynamic_tables_instrumented.sql` CTE `cte_dynamic_tables` — wrapped all three VARIANT path extractions with `NULLIF(...::VARCHAR, '')`:
+
+  ```sql
+  NULLIF(SCHEDULING_STATE:state::VARCHAR, '')          as SCHEDULING_STATE_STATE,
+  NULLIF(SCHEDULING_STATE:reason_code::VARCHAR, '')    as SCHEDULING_STATE_REASON_CODE,
+  NULLIF(SCHEDULING_STATE:reason_message::VARCHAR, '') as SCHEDULING_STATE_REASON_MESSAGE,
+  ```
+
+  The explicit `::VARCHAR` cast is required before `NULLIF` to ensure consistent comparison — without it the VARIANT type would be compared against a VARCHAR literal which behaves inconsistently across Snowflake versions.
+- **Dashboard impact** (`tasks-pipelines.yml`):
+  - Tile 10 (Scheduling State Heatmap): removed `| filter snowflake.table.dynamic.scheduling.state != ""` — now redundant since `NULL` is the canonical absence value.
+
+**Files changed:**
+
+- `src/dtagent/plugins/tasks.sql/062_v_task_history.sql`
+- `src/dtagent/plugins/tasks.sql/063_v_task_versions.sql`
+- `src/dtagent/plugins/tasks.config/instruments-def.yml`
+- `src/dtagent/plugins/dynamic_tables.sql/053_v_dynamic_tables_instrumented.sql`
+- `test/test_data/tasks_history.ndjson`
+- `test/test_results/test_tasks/logs.json`
+- `docs/dashboards/tasks-pipelines/tasks-pipelines.yml`
+
 ### New Features — Technical Details
 
-#### Dashboard and Workflow Deployment Script (BDX-1828)
+#### Dashboard and Workflow Deployment Script
 
 - **Motivation**: Dynatrace dashboards and workflows were previously imported manually through the UI. This was error-prone,
   not reproducible, and blocked CI/CD automation of the full observability stack.
@@ -27,21 +68,21 @@ This file documents detailed technical changes, internal refactorings, and devel
 - **Tests**: 16 bats tests in `test/bash/test_deploy_dt_assets.bats` covering argument validation, dtctl availability,
   scope filtering, dry-run passthrough, YAML→JSON conversion, missing directories, summary output, and
   name extraction from comments.
-- **New directory**: `docs/workflows/` created with `README.md` as placeholder for upcoming workflow YAMLs (BDX-1820–1827).
+- **New directory**: `docs/workflows/` created with `README.md` as placeholder for upcoming workflow YAMLs.
 - **Docs updated**: `docs/INSTALL.md` — new `## Deploying Dashboards and Workflows` section; `docs/dashboards/README.md` —
   added deployment script as the recommended import method.
 
-#### Five Anomaly Detection Workflows (BDX-1820, BDX-1821, BDX-1822, BDX-1826, BDX-1827)
+#### Five Anomaly Detection Workflows
 
 Five Davis AI anomaly detection workflows covering core Snowflake observability themes:
 
-| Workflow                                | Ticket   | Plugin              | Analyzer                                   | Interval | Alert Condition                        |
-|-----------------------------------------|----------|---------------------|--------------------------------------------|----------|----------------------------------------|
-| Credits Exhaustion Prediction           | BDX-1820 | `resource_monitors` | `GenericForecastAnalyzer`                  | 4 h      | upper-bound forecast > 100%            |
-| Query Slowdown Detection                | BDX-1821 | `query_history`     | `AutoAdaptiveAnomalyDetectionAnalyzer`     | 6 h      | ABOVE (avg exec time)                  |
-| Data Volume Anomaly Detection           | BDX-1822 | `data_volume`       | `SeasonalBaselineAnomalyDetectionAnalyzer` | 12 h     | ABOVE (row count spike, top 10 tables) |
-| Table Performance Degradation Detection | BDX-1826 | `query_history`     | `AutoAdaptiveAnomalyDetectionAnalyzer`     | 12 h     | ABOVE (partition scan ratio)           |
-| Dynamic Table Refresh Drift Detection   | BDX-1827 | `dynamic_tables`    | `AutoAdaptiveAnomalyDetectionAnalyzer`     | 6 h      | ABOVE (excess lag)                     |
+| Workflow                                | Plugin              | Analyzer                                   | Interval | Alert Condition                        |
+|-----------------------------------------|---------------------|--------------------------------------------|----------|----------------------------------------|
+| Credits Exhaustion Prediction           | `resource_monitors` | `GenericForecastAnalyzer`                  | 4 h      | upper-bound forecast > 100%            |
+| Query Slowdown Detection                | `query_history`     | `AutoAdaptiveAnomalyDetectionAnalyzer`     | 6 h      | ABOVE (avg exec time)                  |
+| Data Volume Anomaly Detection           | `data_volume`       | `SeasonalBaselineAnomalyDetectionAnalyzer` | 12 h     | ABOVE (row count spike, top 10 tables) |
+| Table Performance Degradation Detection | `query_history`     | `AutoAdaptiveAnomalyDetectionAnalyzer`     | 12 h     | ABOVE (partition scan ratio)           |
+| Dynamic Table Refresh Drift Detection   | `dynamic_tables`    | `AutoAdaptiveAnomalyDetectionAnalyzer`     | 6 h      | ABOVE (excess lag)                     |
 
 **All workflows use native `timeseries` DQL** — not `fetch logs/events | makeTimeseries`. This
 is required because Davis analyzers expect metric dimensions in `by:` clauses; attributes
@@ -99,7 +140,7 @@ fluctuate faster); dynamic table drift uses the default window.
 - `docs/workflows/README.md` — Available Workflows table updated with all 5 entries
 - `test/tools/setup_test_workflows.sql` — synthetic Snowflake objects for end-to-end validation
 
-#### Budgets & FinOps Dashboard (BDX-1819)
+#### Budgets & FinOps Dashboard
 
 - Added `docs/dashboards/budgets-finops/budgets-finops.yml` — 13-tile dashboard (v17) across 3 sections:
   - **Section 1 — Budget Analysis**: budget spending vs limit (join query), spending trend (lineChart), spending by service type (pieChart), budget details (table with owner/resources).
@@ -163,7 +204,7 @@ Three Snowflake-specific failure modes handled via per-grant `BEGIN/EXCEPTION` b
 - Column-level lineage tracking with direct and indirect dependencies
 - Lineage graphs delivered as structured events
 
-#### SNOWFLAKE.TELEMETRY.EVENTS Support (BDX-1172)
+#### SNOWFLAKE.TELEMETRY.EVENTS Support
 
 - **Issue**: When a customer account had `EVENT_TABLE = snowflake.telemetry.events` (the Snowflake-managed shared event table), `SETUP_EVENT_TABLE()` listed it in `a_no_custom_event_t` — the "not a real custom table" array — and took the `IF` branch, creating DSOA's own `DTAGENT_DB.STATUS.EVENT_LOG` table and **ignoring** the Snowflake-managed table entirely.
 - **Root cause**: `'snowflake.telemetry.events'` was excluded from the view-creation path because the original `ELSE` branch attempted `GRANT SELECT ON TABLE snowflake.telemetry.events TO ROLE DTAGENT_VIEWER`, which Snowflake rejects — privileges cannot be granted on Snowflake-managed objects.
@@ -189,9 +230,9 @@ Three Snowflake-specific failure modes handled via per-grant `BEGIN/EXCEPTION` b
 | `event_usage`     | `051_v_event_usage.sql`                                                                                                          | `6`h                                       |
 | `data_schemas`    | `051_v_data_schemas.sql`                                                                                                         | `4`h                                       |
 
-### Bug Fixes — Technical Details
+### Bug Fixes — Technical Details (Telemetry Events)
 
-#### Dynamic Tables Grant — Schema-Level Granularity (BDX-640)
+#### Dynamic Tables Grant — Schema-Level Granularity
 
 - **Issue**: `P_GRANT_MONITOR_DYNAMIC_TABLES()` always granted `MONITOR` at **database level**, even when the `include` pattern specified a particular schema (e.g. `PROD_DB.ANALYTICS.%`). This caused the procedure to over-grant: a user expecting grants only on `PROD_DB.ANALYTICS` received grants on all schemas in `PROD_DB`.
 - **Root cause**: The CTE extracted only `split_part(value, '.', 0)` (the database part) and the schema part was never inspected.
@@ -226,7 +267,7 @@ Three Snowflake-specific failure modes handled via per-grant `BEGIN/EXCEPTION` b
 - **Fix**: Corrected SQL logic in `shares.sql/` view definition
 - **Impact**: Accurate reporting of deleted shared database status
 
-#### Shares & Governance Dashboard — Tile 14 Redesign (BDX-1817)
+#### Shares & Governance Dashboard — Tile 14 Redesign
 
 - **Issue**: Tile 14 ("Shares with Deleted Database") was filtering on `snowflake.share.has_db_deleted == true`,
   which relied on `P_GET_SHARES` checking `SNOWFLAKE.ACCOUNT_USAGE.DATABASES` for each inbound share's mounted
@@ -347,14 +388,14 @@ Three Snowflake-specific failure modes handled via per-grant `BEGIN/EXCEPTION` b
 - **New**: Leverages Snowflake system function for comprehensive budget data
 - **Impact**: More accurate and complete budget information
 
-#### Error Handling — Two-Phase Commit for Query Telemetry (BDX-694 / BDX-706)
+#### Error Handling — Two-Phase Commit for Query Telemetry
 
 - **Issue**: `STATUS.UPDATE_PROCESSED_QUERIES` was called regardless of whether the OTLP trace flush succeeded, meaning queries could be silently lost on export failures without being retried on the next cycle.
 - **Root cause**: `_process_span_rows` in `src/dtagent/plugins/__init__.py` called `UPDATE_PROCESSED_QUERIES` unconditionally after `flush_traces()`.
 - **Fix**: Captured the boolean return value of `flush_traces()` into `flush_succeeded` and gated the `UPDATE_PROCESSED_QUERIES` call behind `if report_status and flush_succeeded`.
 - **Impact**: Queries whose spans fail to export are re-queued on the next agent run, ensuring at-least-once delivery semantics for span telemetry.
 
-#### Event Log Lookback — Configurable Window (BDX-706)
+#### Event Log Lookback — Configurable Window
 
 - **Issue**: `V_EVENT_LOG` used a hardcoded `timeadd(hour, -24, current_timestamp)` lower bound, preventing operators from adjusting the lookback window without editing SQL.
 - **Fix**:
@@ -362,7 +403,7 @@ Three Snowflake-specific failure modes handled via per-grant `BEGIN/EXCEPTION` b
   - `src/dtagent/plugins/event_log.config/event_log-config.yml`: added `lookback_hours: 24` (default preserves prior behaviour).
 - **Impact**: Operators can increase the window for initial deployments or decrease it for high-volume environments without any SQL change.
 
-#### Query Hierarchy Validation (BDX-620)
+#### Query Hierarchy Validation
 
 - **Goal**: Confirm that nested stored procedure call chains are correctly represented as OTel parent-child spans.
 - **Validation approach**:
@@ -383,7 +424,7 @@ Three Snowflake-specific failure modes handled via per-grant `BEGIN/EXCEPTION` b
 - **New**: Input/output validation against golden JSON files
 - **Impact**: Faster, more reliable, deterministic tests
 
-#### Event Tables Cost Optimization Documentation (BDX-688)
+#### Event Tables Cost Optimization Documentation
 
 - **Change**: Expanded `event_log.config/config.md` from a minimal 5-line note to a full configuration reference
 - **Content added**:
@@ -394,7 +435,7 @@ Three Snowflake-specific failure modes handled via per-grant `BEGIN/EXCEPTION` b
   - `src/dtagent/plugins/event_log.config/config.md` — full configuration reference + cost guidance
   - `src/dtagent/plugins/event_log.config/readme.md` — updated to mention configurable lookback window
 
-#### Span Timestamp Handling Fix (BDX-706)
+#### Span Timestamp Handling Fix
 
 - **Issue**: `_process_span_rows()` in `src/dtagent/plugins/__init__.py` called `_report_execution()` with `current_timestamp()` (a Snowflake lazy column expression) instead of the actual last-row timestamp.
 - **Root cause**: When `STATUS.LOG_PROCESSED_MEASUREMENTS` stored this value, it received the string `'Column[current_timestamp]'` rather than a real timestamp. On the next run, `F_LAST_PROCESSED_TS` would return a malformed value, causing the `GREATEST(...)` guard in each SQL view to use the fallback lookback window — potentially re-processing spans already sent.
