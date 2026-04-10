@@ -599,6 +599,71 @@ version_to_tag() {
 
 Examples: `0.9.4` → `094` | `0.9.3.1` → `093` | `0.9.10` → `100`
 
+### DQL semantics — `dsoa.run.plugin` vs `dsoa.run.context`
+
+These two attributes have **distinct meanings** and must never be used
+interchangeably in DQL queries:
+
+| Attribute         | Meaning                                                   | Example values                         |
+|-------------------|-----------------------------------------------------------|----------------------------------------|
+| `dsoa.run.plugin` | The **plugin** that emitted the telemetry                 | `"shares"`, `"query_history"`          |
+| `dsoa.run.context`| The specific **context** (sub-task) within a plugin run   | `"inbound_shares"`, `"outbound_shares"`, `"shares"` |
+
+**Rule:** Use `dsoa.run.plugin` when filtering for all telemetry produced by a
+plugin regardless of which context within that plugin emitted it.
+Use `dsoa.run.context` only when you need to target a specific named context.
+
+Some plugins have a single context whose name matches the plugin name — in that
+case both filters return the same data. However, you **must still use
+`dsoa.run.plugin`** when the intent is to select by plugin, to keep semantics
+correct and future-proof against the plugin gaining additional contexts.
+
+**Example — correct (shares events from any context):**
+
+```dql
+fetch events
+| filter dsoa.run.plugin == "shares"
+```
+
+**Example — correct (shares logs from specific inbound/outbound contexts):**
+
+```dql
+fetch logs
+| filter in(dsoa.run.context, {"inbound_shares", "outbound_shares"})
+```
+
+**Example — wrong (uses context instead of plugin for a plugin-level query):**
+
+```dql
+fetch events
+| filter dsoa.run.context == "shares"   // WRONG — should be dsoa.run.plugin
+```
+
+### B2 — Manual agent invocation
+
+For B2 (manual execution test), use the DQL execute tool with the Snowflake
+`CALL APP.DTAGENT_094_(...)` procedure. The procedure name after deployment is
+`DTAGENT_<TAG>_` where TAG is the 3-digit version tag. The commented call
+template in `src/dtagent.sql/agents/700_dtagent.sql` shows the current full
+plugin list to pass as the `ARRAY_CONSTRUCT` argument.
+
+The procedure can be invoked by calling it via the Dynatrace MCP `execute_dql`
+tool — or by instructing the human to run it in Snowflake if MCP doesn't have
+direct Snowflake procedure access.
+
+After invocation, verify telemetry arrives by running:
+
+```dql
+fetch logs
+| filter db.system == "snowflake"
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| filter dsoa.run.context == "self_monitoring"
+| sort timestamp desc
+| limit 20
+```
+
+New entries appearing within the last few minutes confirm successful execution.
+
 ### Notebook tile format notes
 
 **Markdown tiles** — use the `markdown:` key (NOT `text:`). The `text:` key is

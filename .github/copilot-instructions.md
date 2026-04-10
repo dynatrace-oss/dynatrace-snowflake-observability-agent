@@ -43,6 +43,17 @@ For plugin anatomy, naming conventions, implementation patterns, and testing —
 
 **CRITICAL:** Always use `.venv/`. Run `.venv/bin/python` or `source .venv/bin/activate`. Never use system Python.
 
+## Snowflake Connection Profile Rules (MANDATORY — NEVER VIOLATE)
+
+**CRITICAL: Never execute SQL that uses Snowflake system-level roles (`ACCOUNTADMIN`, `SYSADMIN`, `USERADMIN`, `SECURITYADMIN`) on any connection profile — not even test profiles — unless explicitly instructed by the human.**
+
+- **Permitted anywhere:** `DTAGENT_*_VIEWER`, `DTAGENT_*_OWNER`, `DTAGENT_*_ADMIN` application roles, and running `deploy.sh`.
+- **Forbidden everywhere:** `USE ROLE ACCOUNTADMIN`, `USE ROLE SYSADMIN`, `USE ROLE USERADMIN`, `USE ROLE SECURITYADMIN` — no exceptions, no matter the reason.
+- **`test-qa` profile — full DTAGENT access:** May use any `DTAGENT_*` role (including `_OWNER`), alter resource monitors, run teardown/redeploy, and write custom test scenarios. **However, must never change `core.snowflake.account_name`/`host_name` or `core.dynatrace_tenant_address` in `conf/config-test-qa.yml`** — these point to the designated safe test infrastructure and must only be changed by a human.
+- **All other profiles (`dev-*`, `test-094`, `test-093`, etc.) — restricted:** Only `DTAGENT_*_VIEWER` (read-only) may be used. No DDL, no resource monitor changes, no config edits. Never deploy to these profiles unless explicitly instructed by the human.
+- **When quota or resource limits are hit on non-`test-qa` profiles:** Do NOT attempt to ALTER RESOURCE MONITOR or escalate privileges. Report the issue to the human instead.
+- **Deploying code changes:** Always target `test-qa` (`./scripts/deploy/deploy.sh test-qa ...`). Never deploy to `dev-*` profiles unless explicitly instructed.
+
 ## Code Style (MANDATORY)
 
 Every change must pass `make lint`. No exceptions.
@@ -246,6 +257,8 @@ Four mandatory phases — do not skip or merge.
 - **Plugin enablement:** With `disabled_by_default: true`, use `is_enabled: true` (not `is_disabled: false`) to activate a plugin. Add `deploy_disabled_plugins: false` to skip deploying SQL for disabled plugins and reduce deployment time.
 - **SQL `$$` blocks:** The `snow sql` CLI misparses cursor field access (e.g. `r_db.name`) inside `$$`-delimited procedure bodies. Always capture cursor fields into `LET` variables first (e.g. `LET v_name TEXT := r_db.name;`), then use the variable.
 - **Include/exclude filtering:** Plugins that use `include`/`exclude` pattern lists (`DB.SCHEMA.OBJECT`) must match excludes at the **same granularity** as includes — never collapse a fine-grained exclude to DB-level only. See `plugin-development` skill and `PLUGIN_DEVELOPMENT.md` for the canonical patterns.
+- **DQL semantics — `dsoa.run.plugin` vs `dsoa.run.context`:** Use `dsoa.run.plugin` to filter all telemetry produced by a plugin (regardless of which context emitted it). Use `dsoa.run.context` only when targeting a specific named context within a plugin. Never use `dsoa.run.context == "<plugin_name>"` when the intent is to select by plugin — some plugins have multiple contexts and the filter will silently miss data. Example: shares events must use `dsoa.run.plugin == "shares"`, while logs from the inbound/outbound shares contexts use `in(dsoa.run.context, {"inbound_shares", "outbound_shares"})`.
+- **Agent SQL call template sync:** Whenever a new plugin is added, its name must also be added to the `ARRAY_CONSTRUCT` block in the commented manual-call template in `src/dtagent.sql/agents/700_dtagent.sql`. The test `test/core/test_agent_registration.py` enforces this automatically.
 - **Security:** Never commit credentials. Use `.gitignore` and `_snowflake.read_secret()`.
 - **Backward compatibility:** Provide upgrade scripts for object changes. Document breaking changes.
 - **Procedure signature changes:** Snowflake does not replace a procedure if the new signature would create an ambiguous overload with an existing one — it raises `"Cannot overload PROCEDURE ... as it would cause ambiguous PROCEDURE overloading"`. Whenever a stored procedure's parameter list changes (add, remove, or rename a parameter), **always** create an upgrade script in `src/dtagent.sql/upgrade/<new-version>/` that drops the old signature **before** the new one is deployed. Use `DROP PROCEDURE IF EXISTS DTAGENT_DB.APP.<NAME>(<old-types>)` wrapped in `--%PLUGIN:<name>:` / `--%:PLUGIN:<name>` guards. The upgrade script is assembled by `build.sh` into `build/09_upgrade/v<version>.sql` and applied via `./scripts/deploy/deploy.sh <env> --scope=upgrade --from-version=<prev-version> --options=skip_confirm` **before** the main `--scope=plugins,admin,config` deploy step.
