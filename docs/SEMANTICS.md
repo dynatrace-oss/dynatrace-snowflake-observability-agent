@@ -690,41 +690,41 @@ check the `Context Name` column below.
 
 ### Attributes at the `Tasks` plugin
 
-| Identifier                                               | Description                                    | Example                   | Context Name                    |
-|----------------------------------------------------------|------------------------------------------------|---------------------------|---------------------------------|
-| db.&#8203;query.&#8203;text                              | The text of the query.                         | SELECT \* FROM users;     | task_versions                   |
-| snowflake.&#8203;database.&#8203;id                      | The unique identifier for the database.        | db123                     | serverless_tasks, task_versions |
-| snowflake.&#8203;error.&#8203;code                       | The error code returned by the task.           | ERR123                    | task_history                    |
-| snowflake.&#8203;error.&#8203;message                    | The error message returned by the task.        | Syntax error              | task_history                    |
-| snowflake.&#8203;query.&#8203;hash                       | The hash of the query.                         | hash123                   | task_history                    |
-| snowflake.&#8203;query.&#8203;hash_version               | The version of the query hash.                 | v1                        | task_history                    |
-| snowflake.&#8203;query.&#8203;id                         | The unique identifier for the query.           | query123                  | task_history                    |
-| snowflake.&#8203;query.&#8203;parametrized_hash          | The parameterized hash of the query.           | param_hash123             | task_history                    |
-| snowflake.&#8203;query.&#8203;parametrized_hash_version  | The version of the parameterized query hash.   | v1                        | task_history                    |
-| snowflake.&#8203;schema.&#8203;id                        | The unique identifier for the schema.          | schema123                 | serverless_tasks, task_versions |
-| snowflake.&#8203;task.&#8203;condition                   | The condition text of the task.                | status = 'SUCCESS'        | task_versions, task_history     |
-| snowflake.&#8203;task.&#8203;config                      | The configuration of the task.                 | config123                 | task_history                    |
-| snowflake.&#8203;task.&#8203;config.&#8203;allow_overlap | Indicates if overlapping execution is allowed. | true                      | task_versions                   |
-| snowflake.&#8203;task.&#8203;end_time                    | The end time of the task.                      | 1633046700000000000       | serverless_tasks                |
-| snowflake.&#8203;task.&#8203;error_integration           | The error integration for the task.            | error_integration123      | task_versions                   |
-| snowflake.&#8203;task.&#8203;graph.&#8203;root_id        | The root ID of the task graph.                 | root123                   | task_versions, task_history     |
-| snowflake.&#8203;task.&#8203;graph.&#8203;version        | The version of the task graph.                 | v1                        | task_versions, task_history     |
-| snowflake.&#8203;task.&#8203;id                          | The unique identifier for the task.            | task123                   | serverless_tasks, task_versions |
-| snowflake.&#8203;task.&#8203;instance_id                 | The unique identifier for the task instance.   | instance123               | serverless_tasks                |
-| snowflake.&#8203;task.&#8203;last_committed_on           | The last committed time of the task.           | 1633046400000000000       | task_versions                   |
-| snowflake.&#8203;task.&#8203;last_suspended_on           | The last suspended time of the task.           | 1633046700000000000       | task_versions                   |
-| snowflake.&#8203;task.&#8203;owner                       | The owner of the task.                         | admin                     | task_versions                   |
-| snowflake.&#8203;task.&#8203;predecessors                | The predecessors of the task.                  | taskA, taskB              | task_versions                   |
-| snowflake.&#8203;task.&#8203;run.&#8203;attempt          | The attempt number of the task run.            | 1                         | task_history                    |
-| snowflake.&#8203;task.&#8203;run.&#8203;completed_time   | The completed time of the task run.            | 2026-03-24 14:03:27.586 Z | task_history                    |
-| snowflake.&#8203;task.&#8203;run.&#8203;group_id         | The group ID of the task run.                  | group123                  | task_history                    |
-| snowflake.&#8203;task.&#8203;run.&#8203;id               | The unique identifier for the task run.        | run123                    | task_history                    |
-| snowflake.&#8203;task.&#8203;run.&#8203;return_value     | The return value of the task run.              | 0                         | task_history                    |
-| snowflake.&#8203;task.&#8203;run.&#8203;scheduled_from   | The source from which the task was scheduled.  | CRON                      | task_history                    |
-| snowflake.&#8203;task.&#8203;run.&#8203;scheduled_time   | The scheduled time of the task run.            | 2026-03-24 13:30:28.016 Z | task_history                    |
-| snowflake.&#8203;task.&#8203;run.&#8203;state            | The state of the task run.                     | RUNNING                   | task_history                    |
-| snowflake.&#8203;task.&#8203;schedule                    | The schedule of the task.                      | `0 0 * * *`               | task_versions                   |
-| snowflake.&#8203;task.&#8203;start_time                  | The start time of the task.                    | 1633046400000000000       | serverless_tasks                |
+| Identifier                                               | Description                                    | Example               | Context Name                    |
+|----------------------------------------------------------|------------------------------------------------|-----------------------|---------------------------------|
+| db.&#8203;query.&#8203;text                              | The text of the query.                         | SELECT \* FROM users; | task_versions                   |
+| snowflake.&#8203;database.&#8203;id                      | The unique identifier for the database.        | db123                 | serverless_tasks, task_versions |
+| snowflake.&#8203;error.&#8203;code                       | The error code returned by the task.           | ERR123                | task_history                    |
+| snowflake.&#8203;error.&#8203;message                    | The error message returned by the task.        | Syntax error          | task_history                    |
+| snowflake.&#8203;query.&#8203;hash                       | The hash of the query.                         | hash123               | task_history                    |
+| snowflake.&#8203;query.&#8203;hash_version               | The version of the query hash.                 | v1                    | task_history                    |
+| snowflake.&#8203;query.&#8203;id                         | The unique identifier for the query.           | query123              | task_history                    |
+| snowflake.&#8203;query.&#8203;parametrized_hash          | The parameterized hash of the query.           | param_hash123         | task_history                    |
+| snowflake.&#8203;query.&#8203;parametrized_hash_version  | The version of the parameterized query hash.   | v1                    | task_history                    |
+| snowflake.&#8203;schema.&#8203;id                        | The unique identifier for the schema.          | schema123             | serverless_tasks, task_versions |
+| snowflake.&#8203;task.&#8203;condition                   | The condition text of the task.                | status = 'SUCCESS'    | task_versions, task_history     |
+| snowflake.&#8203;task.&#8203;config                      | The configuration of the task.                 | config123             | task_history                    |
+| snowflake.&#8203;task.&#8203;config.&#8203;allow_overlap | Indicates if overlapping execution is allowed. | true                  | task_versions                   |
+| snowflake.&#8203;task.&#8203;end_time                    | The end time of the task.                      | 1633046700000000000   | serverless_tasks                |
+| snowflake.&#8203;task.&#8203;error_integration           | The error integration for the task.            | error_integration123  | task_versions                   |
+| snowflake.&#8203;task.&#8203;graph.&#8203;root_id        | The root ID of the task graph.                 | root123               | task_versions, task_history     |
+| snowflake.&#8203;task.&#8203;graph.&#8203;version        | The version of the task graph.                 | v1                    | task_versions, task_history     |
+| snowflake.&#8203;task.&#8203;id                          | The unique identifier for the task.            | task123               | serverless_tasks, task_versions |
+| snowflake.&#8203;task.&#8203;instance_id                 | The unique identifier for the task instance.   | instance123           | serverless_tasks                |
+| snowflake.&#8203;task.&#8203;last_committed_on           | The last committed time of the task.           | 1633046400000000000   | task_versions                   |
+| snowflake.&#8203;task.&#8203;last_suspended_on           | The last suspended time of the task.           | 1633046700000000000   | task_versions                   |
+| snowflake.&#8203;task.&#8203;owner                       | The owner of the task.                         | admin                 | task_versions                   |
+| snowflake.&#8203;task.&#8203;predecessors                | The predecessors of the task.                  | taskA, taskB          | task_versions                   |
+| snowflake.&#8203;task.&#8203;run.&#8203;attempt          | The attempt number of the task run.            | 1                     | task_history                    |
+| snowflake.&#8203;task.&#8203;run.&#8203;completed_time   | The completed time of the task run.            | 1742824007586000000   | task_history                    |
+| snowflake.&#8203;task.&#8203;run.&#8203;group_id         | The group ID of the task run.                  | group123              | task_history                    |
+| snowflake.&#8203;task.&#8203;run.&#8203;id               | The unique identifier for the task run.        | run123                | task_history                    |
+| snowflake.&#8203;task.&#8203;run.&#8203;return_value     | The return value of the task run.              | 0                     | task_history                    |
+| snowflake.&#8203;task.&#8203;run.&#8203;scheduled_from   | The source from which the task was scheduled.  | CRON                  | task_history                    |
+| snowflake.&#8203;task.&#8203;run.&#8203;scheduled_time   | The scheduled time of the task run.            | 1742821828016000000   | task_history                    |
+| snowflake.&#8203;task.&#8203;run.&#8203;state            | The state of the task run.                     | RUNNING               | task_history                    |
+| snowflake.&#8203;task.&#8203;schedule                    | The schedule of the task.                      | `0 0 * * *`           | task_versions                   |
+| snowflake.&#8203;task.&#8203;start_time                  | The start time of the task.                    | 1633046400000000000   | serverless_tasks                |
 
 ### Metrics at the `Tasks` plugin
 

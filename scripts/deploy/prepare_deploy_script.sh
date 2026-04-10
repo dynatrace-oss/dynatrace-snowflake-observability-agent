@@ -331,7 +331,7 @@ if [ "$SCOPE" != 'apikey' ] && [ "$SCOPE" != 'teardown' ]; then
                 echo "DEBUG: Finding files matching build/$pattern" >&2
                 found_files=$(eval "find build/$pattern -type f -print 2>/dev/null")
                 echo "DEBUG: Found files: $found_files" >&2
-                echo "$found_files"
+                echo "$found_files" >&2
                 #%:DEV
                 eval "find build/$pattern -type f -print 2>/dev/null"
             done
