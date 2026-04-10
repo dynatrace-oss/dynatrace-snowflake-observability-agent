@@ -81,6 +81,7 @@ call APP.DTAGENT(ARRAY_CONSTRUCT(
     'tasks',
     'trust_center',
     'users',
-    'warehouse_usage'
+    'warehouse_usage',
+    'snowpipes'
     ));
  */

@@ -47,7 +47,6 @@ defaultTimeframe:
   to: now()
 defaultSegments: []
 sections:
-
   # ---------------------------------------------------------------------------
   # C1 — Data Volume and Ingestion Health
   # ---------------------------------------------------------------------------
@@ -769,10 +768,13 @@ sections:
           from: now()-24h
           to: now()
         value: |
+          // The shares plugin emits events from V_SHARE_EVENTS via the "shares" context
+          // (report_timestamp_events=True). The "inbound_shares"/"outbound_shares" contexts
+          // emit logs only. Expect rows here if share events have occurred recently.
           fetch events
           | filter db.system == "snowflake"
           | filter deployment.environment == "DEV-094"
-          | filter in(dsoa.run.context, {"inbound_shares", "outbound_shares"})
+          | filter dsoa.run.plugin == "shares"
           | makeTimeseries count(), by: {
             snowflake.share.name,
             snowflake.share.kind,
@@ -843,7 +845,7 @@ sections:
   - id: s-07
     type: dql
     showInput: false
-    title: "[C3.1] Check if all queries are recorded in active_queries, logs, and spans [SHOULD BE EMPTY]"
+    title: "[C3.1] Queries with mismatched log/span coverage (exclude nulls; expect empty 2h+ after deploy) [SHOULD BE EMPTY]"
     height: 237
     state:
       visualization: lineChart
