@@ -299,19 +299,19 @@ and sending data to the same Dynatrace tenant.
 
 Fill in after completing all sections.
 
-| Section | Passed | Failed | Skipped | Total |
-|---|---|---|---|---|
-| A — Offline | | | | 5 |
-| B — Deployment | | | | 10 |
-| C1 — Data Volume | | | | 8 |
-| C2 — Metrics | | | | 8 |
-| C3 — Logs | | | | 6 |
-| C4 — Spans | | | | 9 |
-| C5 — Events | | | | 7 |
-| C6 — Active Queries | | | | 4 |
-| C7 — Shares | | | | 4 |
-| C8 — Plugin Lifecycle | | | | 2 |
-| **Total** | | | | **63** |
+| Section               | Passed | Failed | Skipped | Total  |
+|-----------------------|--------|--------|---------|--------|
+| A — Offline           |        |        |         | 5      |
+| B — Deployment        |        |        |         | 10     |
+| C1 — Data Volume      |        |        |         | 8      |
+| C2 — Metrics          |        |        |         | 8      |
+| C3 — Logs             |        |        |         | 6      |
+| C4 — Spans            |        |        |         | 9      |
+| C5 — Events           |        |        |         | 7      |
+| C6 — Active Queries   |        |        |         | 4      |
+| C7 — Shares           |        |        |         | 4      |
+| C8 — Plugin Lifecycle |        |        |         | 2      |
+| **Total**             |        |        |         | **63** |
 
 **QA Signoff:**
 
