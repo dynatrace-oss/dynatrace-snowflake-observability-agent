@@ -324,6 +324,11 @@ trap 'rm -f "$TMP_JSON"' EXIT
 
 log_info "Converting notebook YAML to JSON..."
 
+# Extract the existing notebook ID from the YAML comment, if present.
+# The ID is stored as "# id: <uuid>" so that dtctl apply updates the existing
+# notebook rather than creating a new one on every deploy.
+EXISTING_ID=$(grep -E '^# id: [0-9a-f]{8}-' "$NOTEBOOK_YAML" | awk '{print $3}' | head -1 || true)
+
 # Convert YAML to JSON, then inject the notebook name.
 # The 'name' field is not stored in the YAML template (it's set at deploy time).
 # The notebook content fields (version, defaultTimeframe, sections...) go directly
@@ -335,6 +340,14 @@ yq -o json "$NOTEBOOK_YAML" \
 # Strip comment-only keys that yq may have emitted (lines starting with '#' in YAML
 # become null keys in some yq versions — clean them up just in case).
 jq 'del(.["#"])' "$TMP_JSON" > "${TMP_JSON}.clean" && mv "${TMP_JSON}.clean" "$TMP_JSON"
+
+# Inject the existing ID so dtctl apply performs an update, not a create.
+if [[ -n "$EXISTING_ID" ]]; then
+    jq --arg id "$EXISTING_ID" '. + {id: $id}' "$TMP_JSON" > "${TMP_JSON}.id" && mv "${TMP_JSON}.id" "$TMP_JSON"
+    log_info "Updating existing notebook: ${EXISTING_ID}"
+else
+    log_info "No existing notebook ID found — a new notebook will be created."
+fi
 
 log_info "Notebook name:   ${NOTEBOOK_NAME}"
 

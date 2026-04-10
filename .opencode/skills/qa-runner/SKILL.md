@@ -31,8 +31,9 @@ before moving to the next. Do not skip phases.
 | 1     | Version discovery   | AI (automated)               | Verified version tags + config files |
 | 2     | Deployment guidance | Human (AI provides commands) | Both environments running            |
 | 3     | Notebook deployment | AI (runs script)             | Notebook URL                         |
+| 3.5   | Auto-evaluation     | AI (runs DQL via MCP)        | Pass/fail for auto-evaluable tests   |
 | 4     | Test walkthrough    | Interactive                  | Pass/fail per checklist item         |
-| 5     | QA signoff          | AI                           | Summary report                       |
+| 5     | QA signoff          | AI                           | Markdown report file                 |
 
 ---
 
@@ -143,7 +144,14 @@ fresh, complete deployment of the agent into each environment.
 - Both deployments must target the same Dynatrace tenant.
 - Wait for each deployment to complete and the Snowflake task scheduler to run at
   least one execution cycle before proceeding.
-- Typical first-run latency: 2–5 minutes after deploy before telemetry appears.
+- **Timing expectations:**
+  - Most plugins start emitting telemetry within **30 minutes** of the first task run.
+  - Some plugins (e.g. those querying heavy Snowflake views) may take **several hours**
+    before their first successful execution.
+  - Budget-related plugins run **at most once per day** — their data will not appear
+    until the daily schedule fires.
+  - **Recommendation: deploy today, then come back the next day to perform the
+    full test walkthrough once all plugin data is available.**
 
 After both deploys, ask:
 
@@ -167,6 +175,25 @@ Run the deploy script:
     --prev-version={PREV_VERSION}
 ```
 
+**Before running the script**, verify that every `type: dql` tile in
+`test/qa/test-suite/test-suite.yml` has `showInput: false` set — this hides
+the DQL code in the rendered notebook ("Hide Input" option in the UI). The
+expected count of `showInput: false` lines must equal the count of `type: dql`
+lines:
+
+```bash
+grep -c "type: dql"      test/qa/test-suite/test-suite.yml
+grep -c "showInput: false" test/qa/test-suite/test-suite.yml
+```
+
+If any tile is missing it, add `showInput: false` on the line immediately after
+`type: dql`:
+
+```bash
+sed -i '' 's/^    type: dql$/    type: dql\n    showInput: false/' \
+    test/qa/test-suite/test-suite.yml
+```
+
 The script:
 1. Reads `conf/config-dev-{CURR_TAG}.yml` to get the tenant address
 2. Finds the matching dtctl context
@@ -185,6 +212,242 @@ Then retry the script.
 After a successful deploy, share the notebook URL with the human and ask them to
 confirm it opens in Dynatrace. If the notebook ID needs to be committed to the
 YAML, remind the human to do so after the QA session.
+
+---
+
+## Phase 3.5 — Auto-Evaluation (AI runs DQL via MCP)
+
+Run **all** auto-evaluable tests using the `execute_dql` MCP tool **without
+waiting for the human**. Do not cap at 10 — run every test in this section.
+
+Due to the MCP rate limit (5 calls per 20 seconds), send tests in batches of 5
+with a brief pause between batches if needed.
+
+**Substitutions:**
+- `DEV-{CURR_TAG}` → current deployment environment (e.g. `DEV-094`)
+- `DEV-{PREV_TAG}` → previous deployment environment (e.g. `DEV-093`)
+- Default timeframe: `now()-24h` unless noted per test.
+
+Each test specifies a **DQL** and a **Pass condition**. Record each result as
+`PASS`, `FAIL`, or `SKIP` (with reason). Reference the matching checklist ID
+(e.g. C4.9) in the report.
+
+---
+
+### Should-be-empty checks (0 rows = PASS)
+
+#### AE-C4.9 — No supportability.non_persisted_attribute_keys
+
+```dql
+fetch spans
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| filter isNotNull(supportability.non_persisted_attribute_keys)
+| summarize count = count()
+```
+
+**Pass:** count == 0.
+
+#### AE-C5.4 — Timestamps in BizEvents are current
+
+```dql
+fetch bizevents
+| filter telemetry.exporter.name == "dynatrace.snowagent"
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| filter dsoa.run.context == "self_monitoring"
+| filter dsoa.task.exec.status == "STARTED"
+| fields timestamp, dsoa.run.id
+| join [
+  fetch logs
+  | filter db.system == "snowflake"
+  | filter deployment.environment == "DEV-{CURR_TAG}"
+  | filter dsoa.run.context == "self_monitoring"
+  | filter isNotNull(dsoa.run.id)
+  | summarize {min_timestamp = min(timestamp)}, by: {dsoa.run.id}
+]
+, kind:leftOuter
+, on: {left[dsoa.run.id] == right[dsoa.run.id]}
+, fields: {min_timestamp}
+| filter isNotNull(min_timestamp)
+| fieldsAdd timeShift = abs(timestamp - min_timestamp)
+| filterOut timeShift < 10min
+| summarize count = count()
+```
+
+**Pass:** count == 0.
+
+#### AE-C4.4 — Completeness span.events
+
+```dql
+fetch spans, from: now()-7d
+| filter dsoa.run.context == "query_history"
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| fields events_count = arraySize(span.events),
+         events_added = snowagent.debug.span.events.added,
+         events_failed = snowagent.debug.span.events.failed,
+         supportability.dropped_events_count
+| filter events_count + coalesce(supportability.dropped_events_count, 0) != events_added
+| summarize count = count()
+```
+
+**Pass:** count == 0.
+
+#### AE-C4.7 — No missing span.parent_id for child queries in same DSOA run
+
+```dql
+fetch spans, from: now()-24h
+| filter db.system == "snowflake"
+| filter isNotNull(dsoa.run.context)
+| filter isNotNull(snowflake.query.parent_id)
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| joinNested parent_spans = [
+  fetch spans
+  | filter db.system == "snowflake"
+  | filter isNotNull(dsoa.run.context)
+  | filter isNotNull(snowflake.query.parent_id)
+  | filter deployment.environment == "DEV-{CURR_TAG}"
+  | fields span.id, snowflake.query.id, dsoa.run.id
+], on: {left[snowflake.query.parent_id] == right[snowflake.query.id]}
+, executionOrder:leftFirst
+| filterOut isNull(parent_spans)
+| expand parent_spans
+| fieldsFlatten parent_spans, prefix: "parent."
+| filter dsoa.run.id == parent.dsoa.run.id
+| filter isNull(span.parent_id)
+| summarize count = count()
+```
+
+**Pass:** count == 0.
+
+#### AE-C1.2 — No ERROR-level agent logs
+
+```dql
+fetch logs
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| filter loglevel == "ERROR"
+| filter db.system == "snowflake"
+| summarize count = count(), by: {content}
+| sort count desc
+```
+
+**Pass:** 0 rows. If rows appear, list the `content` values as FAIL notes.
+
+---
+
+### Data-presence checks (data returned = PASS)
+
+#### AE-C2.3 — Query history metrics are reported
+
+```dql
+timeseries avg(snowflake.time.execution), by: {deployment.environment}
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| summarize count = count()
+```
+
+**Pass:** count > 0.
+
+#### AE-C5.5 — Process metrics are reported
+
+```dql
+timeseries avg(process.cpu.utilization), by: {deployment.environment}
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| summarize count = count()
+```
+
+**Pass:** count > 0.
+
+#### AE-C5.7 — Self-monitoring BizEvents delivered for all plugins
+
+```dql
+fetch bizevents
+| filter db.system == "snowflake"
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| filter dsoa.run.context == "self_monitoring"
+| filter in(dsoa.task.exec.status, {"STARTED", "FINISHED"})
+| summarize count = count(), by: {dsoa.task.name, dsoa.task.exec.status}
+| filter count == 0
+```
+
+**Pass:** 0 rows (every plugin has count > 0 for both STARTED and FINISHED).
+
+#### AE-C4.6 — span.parent_id present for child queries
+
+```dql
+fetch spans
+| filter db.system == "snowflake"
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| filter isNotNull(dsoa.run.context)
+| filter isNotNull(snowflake.query.parent_id)
+| filter isNotNull(span.parent_id)
+| summarize count = count()
+```
+
+**Pass:** count > 0.
+
+#### AE-C2.1 — Budget metrics are reported
+
+```dql
+timeseries avg(snowflake.credits.limit), by: {deployment.environment}
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| summarize count = count()
+```
+
+**Pass:** count > 0.
+**Skip condition:** budget plugin runs at most once per day — skip with note
+`SKIP (deploy < 24h old)` if the environment was deployed less than 24 hours ago.
+
+---
+
+### Cross-version comparison checks
+
+#### AE-C1.3 — No increase in dt.ingest.warnings (5% tolerance)
+
+Run two queries — one per environment — then compare:
+
+```dql
+fetch logs
+| filter telemetry.exporter.name == "dynatrace.snowagent"
+| filter in(deployment.environment, {"DEV-{PREV_TAG}", "DEV-{CURR_TAG}"})
+| filter isNotNull(dt.ingest.warnings)
+| expand warning = dt.ingest.warnings
+| summarize count = count(), by: {deployment.environment, warning}
+| sort deployment.environment, warning
+```
+
+**Pass condition:** For each `warning` type, the count in `DEV-{CURR_TAG}` must
+not exceed the count in `DEV-{PREV_TAG}` by more than **5%**, OR the absolute
+count in `DEV-{CURR_TAG}` must be lower than in `DEV-{PREV_TAG}`.
+
+Formally: `curr_count <= prev_count * 1.05` for each warning type. If
+`DEV-{PREV_TAG}` has 0 of a given warning and `DEV-{CURR_TAG}` has any, that
+is a FAIL. Record which warning types failed and their counts.
+
+---
+
+### Auto-evaluation output
+
+After running all tests, present the results in a table using the checklist IDs:
+
+```text
+## Auto-Evaluation Results — DEV-{CURR_TAG}
+
+| Test      | Description                                            | Result     | Notes |
+|-----------|--------------------------------------------------------|------------|-------|
+| AE-C4.9   | No non_persisted_attribute_keys                        | PASS/FAIL  |       |
+| AE-C5.4   | BizEvent timestamps are current                        | PASS/FAIL  |       |
+| AE-C4.4   | Completeness span.events                               | PASS/FAIL  |       |
+| AE-C4.7   | No missing span.parent_id for child queries            | PASS/FAIL  |       |
+| AE-C1.2   | No ERROR-level agent logs                              | PASS/FAIL  |       |
+| AE-C2.3   | Query history metrics reported                         | PASS/FAIL  |       |
+| AE-C5.5   | Process metrics reported                               | PASS/FAIL  |       |
+| AE-C5.7   | Self-monitoring BizEvents all delivered                | PASS/FAIL  |       |
+| AE-C4.6   | span.parent_id present for child queries               | PASS/FAIL  |       |
+| AE-C2.1   | Budget metrics reported                                | PASS/FAIL/SKIP |   |
+| AE-C1.3   | No increase in dt.ingest.warnings (5% tolerance)       | PASS/FAIL  |       |
+
+Auto-evaluated: {N}/11 — {n} passed, {f} failed, {s} skipped
+```
+
+Include the full table in the Phase 5 markdown report.
 
 ---
 
@@ -255,15 +518,68 @@ Tester: {human name or "QA"}
 Notebook: {NOTEBOOK_URL}
 ```
 
-Offer to write the full results to a file:
+### Write the markdown report
+
+Always write the full results to a file (do not just offer — write it):
 
 ```bash
 mkdir -p test/qa/results
-# write to test/qa/results/qa-{CURR_VERSION}-{YYYYMMDD}.md
+# file: test/qa/results/qa-{CURR_VERSION}-{YYYYMMDD}.md
 ```
 
-The results file should contain the signoff line, the summary table, the full
-list of failed/skipped items with notes, and the notebook URL.
+The report file must have the following structure:
+
+```markdown
+# DSOA {CURR_VERSION} QA Report — {DATE}
+
+**Tester:** {NAME}
+**Notebook:** [{NOTEBOOK_URL}]({NOTEBOOK_URL})
+**Environment:** DEV-{CURR_TAG} vs DEV-{PREV_TAG}
+**Tenant:** {TENANT_ADDR}
+
+## Signoff
+
+> DSOA {CURR_VERSION} QA — {DATE} — {PASS}/{TOTAL} items passed
+
+## Auto-Evaluation (AI)
+
+| Test | Description                                          | Result |
+|------|------------------------------------------------------|--------|
+| AE-1 | No non_persisted_attribute_keys                      | ...    |
+...
+
+Auto-evaluated: {N}/10 — {n} passed, {f} failed, {s} skipped
+
+## Section Results
+
+| Section              | Pass | Fail | Skip | Total |
+|----------------------|------|------|------|-------|
+| A — Offline          |      |      |      |   5   |
+| B — Deployment       |      |      |      |  10   |
+| C1 — Data Volume     |      |      |      |   8   |
+| C2 — Metrics         |      |      |      |   8   |
+| C3 — Logs            |      |      |      |   6   |
+| C4 — Spans           |      |      |      |   9   |
+| C5 — Events          |      |      |      |   7   |
+| C6 — Active Queries  |      |      |      |   4   |
+| C7 — Shares          |      |      |      |   4   |
+| C8 — Plugin Lifecycle|      |      |      |   2   |
+| **Total**            |      |      |      | **63**|
+
+## Failures and Skips
+
+### Failed items
+
+- **{ID}** — {title}: {human's note}
+
+### Skipped items
+
+- **{ID}** — {title}: {reason}
+
+## Notes
+
+{any additional observations from the QA session}
+```
 
 ---
 
@@ -283,7 +599,21 @@ version_to_tag() {
 
 Examples: `0.9.4` → `094` | `0.9.3.1` → `093` | `0.9.10` → `100`
 
-### Key file paths
+### Notebook tile format notes
+
+**Markdown tiles** — use the `markdown:` key (NOT `text:`). The `text:` key is
+silently ignored by Dynatrace; the rendered content comes from `markdown:`.
+
+```yaml
+- id: my-markdown-tile
+  type: markdown
+  markdown: |
+    ## Section heading
+
+    Some **bold** description.
+```
+
+**DQL tiles** — always include `showInput: false` to hide the code by default.
 
 | Path | Purpose |
 |---|---|
