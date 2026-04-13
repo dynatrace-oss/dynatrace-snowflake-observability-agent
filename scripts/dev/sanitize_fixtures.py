@@ -48,7 +48,6 @@ import os
 import re
 import sys
 
-
 DENY_PATTERNS_PATH = "test/test_data/_deny_patterns.json"
 
 # Directories / glob patterns to sanitize
@@ -204,9 +203,6 @@ def main():
         total_replacements = sum(results.values())
         mode = "would be made" if (args.dry_run or args.report) else "applied"
         print(f"\n{total_files} file(s) with {total_replacements} total replacement(s) {mode}.")
-
-    if args.dry_run or args.report:
-        sys.exit(0 if not results else 0)
 
     sys.exit(0)
 

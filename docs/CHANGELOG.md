@@ -2,55 +2,40 @@
 
 All notable changes to this project will be documented in this file.
 
-## Dynatrace Snowflake Observability Agent 0.9.4
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-Released on April 14, 2026
+## [0.9.4] - 2026-04-14
 
 > **Note**: Detailed technical changes and implementation notes are available in [DEVLOG.md](DEVLOG.md).
 
-### Breaking Changes in 0.9.4
+### Added
 
-- **`db.collection.name` Semantics** *(field value change — affects `data_volume` plugin)*: The `db.collection.name` field now always carries the **bare table name** (e.g., `ORDERS`) instead of the fully-qualified name (e.g., `DEV_DB.PUBLIC.ORDERS`). The FQN is now available in the new `snowflake.table.full_name` field. Dashboards, metrics queries, or alert rules that previously matched on FQN values in `db.collection.name` for data volume metrics must be updated to use `snowflake.table.full_name` for the FQN, or `db.collection.name` + `db.namespace` + `snowflake.schema.name` for qualified lookups.
+- Dashboard and workflow deployment automation via `scripts/deploy/deploy_dt_assets.sh` with `dtctl` integration.
+- Five Davis AI-powered anomaly detection workflows: credits exhaustion, data volume anomaly, dynamic table drift, query slowdown, and table performance degradation.
+- Pipes monitoring plugin.
+- Budgets & FinOps dashboard visualizing budget spending, warehouse sizing, and resource monitor quotas.
+- Per-plugin configurable lookback time for historical data catchup.
+- Support for `SNOWFLAKE.TELEMETRY.EVENTS` as account-level event table.
 
-### New in 0.9.4
+### Changed
 
-- **Dashboard and Workflow Deployment Script**: New `scripts/deploy/deploy_dt_assets.sh` automates deploying Dynatrace dashboards and workflows via `dtctl`. Supports `--scope=dashboards|workflows|all`, `--dry-run`, and `--env` flags. Also available as `deploy.sh --scope=dt_assets` (opt-in; never part of the default `all` scope). See [Deploying Dashboards and Workflows](INSTALL.md#deploying-dashboards-and-workflows).
-- **Five New Anomaly Detection Workflows**: Added Davis AI-powered workflows for proactive Snowflake alerting — [Credits Exhaustion Prediction](workflows/credits-exhaustion-prediction/readme.md), [Data Volume Anomaly Detection](workflows/data-volume-anomaly/readme.md), [Dynamic Table Refresh Drift Detection](workflows/dynamic-table-drift/readme.md), [Query Slowdown Detection](workflows/query-slowdown-detection/readme.md), and [Table Performance Degradation Detection](workflows/table-perf-degradation/readme.md). All use the 3-task pattern (Davis Analyzer → extract events → ingest events) and default to `CustomInfo` events — switch to `CustomAlert` in the `CONFIG` block to enable Davis problem correlation. See [docs/workflows/README.md](workflows/README.md).
-- **New Plugins**: Added Pipes monitoring plugin
-- **Configurable Lookback Time**: Per-plugin configuration for historical data catchup window
-- **SNOWFLAKE.TELEMETRY.EVENTS Support**: Agent now correctly reads from the Snowflake-managed shared event table when it is configured as the account-level event table
-- **Budgets & FinOps Dashboard**: New dashboard (`budgets-finops`) visualising budget credit spending vs limits, warehouse sizing and scaling, resource monitor quota consumption, and warehouse load metrics. Backed by `budgets`, `warehouse_usage`, and `resource_monitors` plugins. See [docs/dashboards/budgets-finops/readme.md](dashboards/budgets-finops/readme.md).
+- **BREAKING**: `db.collection.name` now contains bare table name (e.g., `ORDERS`) instead of FQN. Use new `snowflake.table.full_name` attribute for fully-qualified names.
+- **BREAKING**: Task timestamp fields (`snowflake.task.run.scheduled_time`, etc.) now use epoch nanoseconds instead of ISO 8601 strings.
+- Event log plugin now reports `WARN`/`ERROR` entries from all `DTAGENT_*_DB` instances by default (set `cross_tenant_monitoring: false` to opt out).
+- Shares & Governance dashboard tile 14 renamed to "Shares No Longer Observed" with improved 7-day log-history detection.
+- Event log lookback window now configurable via `plugins.event_log.lookback_hours`.
+- Migrated all stored procedures from `execute as owner` to `execute as caller` for improved security.
+- Test fixtures migrated from binary `.pkl` to human-readable `.ndjson` format.
 
-### Fixed in 0.9.4
+### Fixed
 
-- **Dynamic Tables — Scheduling State Empty String**: `snowflake.table.dynamic.scheduling.state`, `reason_code`, and `reason_message` now emit `NULL` instead of `""` when absent. DQL `isNotNull()` checks now work correctly; explicit `!= ""` filters are no longer needed.
-- **Dynamic Tables — Grant Granularity**: `P_GRANT_MONITOR_DYNAMIC_TABLES()` now derives grant scope from the `include` pattern. `DB.%.%` grants at database level, `DB.SCHEMA.%` at schema level, and `DB.SCHEMA.TABLE` on a specific named table only — eliminating previous over-granting when a schema or table was explicitly specified.
-- **Span Timestamp Handling**: Fixed spans being re-processed after agent restart due to incorrect timestamp being recorded as last-processed marker
-- **OTLP Compliance**: Fixed log `observed_timestamp` field to use nanoseconds per OTLP specification
-- **Budget Spending View**: Fixed `V_BUDGET_SPENDINGS` date filter to use day granularity (`to_date`) instead of sub-second timestamp comparison — today's spending rows (which carry midnight-anchored dates) were previously excluded on every intra-day run after the first.
-- **Deploy TAG Substitution**: Fixed `prepare_deploy_script.sh` blanket `s/DTAGENT_/DTAGENT_${TAG}_/g` replacing `DTAGENT_*` substrings inside config string-literal values (e.g. budget FQNs). Replaced with explicit per-identifier word-boundary patterns matching only the known SQL object identifiers (`DTAGENT_DB`, `DTAGENT_WH`, `DTAGENT_RS`, `DTAGENT_OWNER`, `DTAGENT_ADMIN`, `DTAGENT_VIEWER`, `DTAGENT_API_INTEGRATION`, `DTAGENT_API_KEY`).
-- **Budget Grant Procedure**: Fixed `P_GRANT_BUDGET_MONITORING` to handle three Snowflake-specific failure modes: `GRANT USAGE ON DATABASE` for imported/shared databases (falls back to `GRANT IMPORTED PRIVILEGES`), `GRANT USAGE ON SCHEMA` for application schemas (skipped on error), and `GRANT SNOWFLAKE.CORE.BUDGET ROLE !VIEWER` for application-owned budgets such as `ACCOUNT_ROOT_BUDGET` (skipped; `SNOWFLAKE.BUDGET_VIEWER` app role covers access instead).
-
-### Changed in 0.9.4
-
-- **Tasks — Timestamp Fields as Epoch Nanoseconds** *(behavior change — `tasks` plugin)*: `snowflake.task.run.scheduled_time`, `snowflake.task.run.completed_time`, `snowflake.task.last_committed_on`, and `snowflake.task.last_suspended_on` are now epoch nanosecond integers, consistent with all other timestamp attributes. Previously they were ISO 8601 datetime strings. `COMPLETED_TIME` uses `-1` as a sentinel when the task has not yet completed. DQL queries computing durations from these fields should use `toLong()` arithmetic.
-- **Event Log Plugin — Cross-Tenant Monitoring** *(behavior change)*: DSOA instances now report `WARN`/`ERROR` log entries, metrics, and spans from all other `DTAGENT_*_DB` instances by default. Use `plugins.event_log.cross_tenant_monitoring: false` to opt out. It is recommended to keep this enabled in only one primary DSOA tenant to avoid duplicate reporting across deployments.
-- **Shares Plugin**: Fixed inbound shares with deleted databases not being properly reported. The `snowflake.share.has_details_reported` attribute now correctly shows `TRUE` for deleted-DB shares, and the `_MESSAGE` field provides clear context about database deletion status
-- **Self-Monitoring**: Fixed database name filtering for self-monitoring logs
-- **Shares & Governance Dashboard — Tile 14**: Renamed from "Shares with Deleted Database" to "Shares No Longer Observed". The tile now uses a Dynatrace log-history approach (7-day window vs. last-2-hour recency check) to detect shares that have disappeared from agent runs, rather than querying `SNOWFLAKE.ACCOUNT_USAGE.DATABASES` — which was subject to 3-hour latency and could never reliably fire in practice. See [DEVLOG.md](DEVLOG.md) for root cause analysis.
-
-### Improved in 0.9.4
-
-- **Security Model — Execute as Caller**: Migrated all stored procedures from `execute as owner` to `execute as caller`, reducing privilege escalation surface. `P_GRANT_IMPORTED_PRIVILEGES` moved to admin deployment scope (requires `MANAGE GRANTS`). Removed disabled `P_EXPLAIN_PLAN` procedure. Added regression test to prevent future `execute as owner` usage.
-- **Budgets Plugin**: Enhanced budget data collection using `SYSTEM$SHOW_BUDGETS_IN_ACCOUNT()`.
-- **Query Hierarchy Validation**: Confirmed and validated span hierarchy for nested stored procedure call chains (`IS_ROOT`/`IS_PARENT` flags) with dedicated test coverage for OTel parent-child propagation.
-- **Error Handling — Two-Phase Commit**: Query telemetry is now marked as processed only after the OTLP flush succeeds, preventing silent data loss when trace export fails.
-- **Event Log Lookback — Configurable**: The event log lookback window (previously hardcoded to 24 h) is now driven by `plugins.event_log.lookback_hours` config key.
-- **Test Infrastructure**: Refactored tests to use synthetic JSON fixtures for input/output validation instead of live Dynatrace API calls.
-- **Test Fixtures**: Migrated all plugin test input data from binary Python pickle files (`.pkl`) to human-readable NDJSON format (`.ndjson`), improving transparency and enabling direct manual inspection and version control of test data.
-- **Event Tables Cost Optimization**: Added guidance for fine-tuning Event Table usage to manage Snowflake costs.
-- **Timestamp Handling**: Unified timestamp handling with smart unit detection, eliminating wasteful conversions.
-- **Build System**: Development scripts now auto-activate virtual environment.
+- Dynamic table scheduling state fields now emit `NULL` instead of empty strings when absent.
+- Dynamic table grant granularity now matches `include` pattern scope (database/schema/table level).
+- Span timestamps corrected to prevent re-processing after agent restart.
+- Log `observed_timestamp` field now uses nanoseconds per OTLP specification.
+- Budget spending view date filtering now uses day granularity to include today's data.
+- Deploy script TAG substitution no longer replaces identifiers inside config string values.
+- Budget grant procedure handles imported/shared databases and application-owned budgets.
 
 ## Dynatrace Snowflake Observability Agent 0.9.3.1
 
