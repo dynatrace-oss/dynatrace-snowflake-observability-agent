@@ -76,10 +76,12 @@ jobs:
         id: extract_release_notes
         if: github.ref_type == 'tag' || inputs.create_release == true
         run: |
-          VERSION_HEADER="## Dynatrace Snowflake Observability Agent ${{ steps.get_version.outputs.VERSION }}"
+          # Keep a Changelog format: ## [VERSION] - YYYY-MM-DD
+          # Escape square brackets for regex matching
+          VERSION_PATTERN="^\#\# \[${{ steps.get_version.outputs.VERSION }}\] -"
           # Use awk to find the section for the current version and print until the next ## heading
-          awk -v header="$VERSION_HEADER" '
-            $0 == header { in_section=1; next }
+          awk -v pattern="$VERSION_PATTERN" '
+            $0 ~ pattern { in_section=1; next }
             /^## / { if (in_section) exit }
             in_section { print }
           ' docs/CHANGELOG.md > release_notes.md
