@@ -251,7 +251,7 @@ def _generate_plugins_info(dtagent_plugins_path: str, dtagent_conf_path: str) ->
                 __content += f"[Show semantics for this plugin](#{plugin_name}_semantics_sec)\n\n"
 
                 if os.path.isfile(config_file_path) or os.path.isfile(f_config_md):
-                    config_data = yaml.safe_load(_read_file(config_file_path))
+                    config_data = (yaml.safe_load(_read_file(config_file_path)) if os.path.isfile(config_file_path) else None) or {}
                     __content += f"### {plugin_title} default configuration\n\n"
 
                     if config_data.get("plugins", {}).get(plugin_name, {}).get("is_disabled"):
@@ -266,7 +266,8 @@ def _generate_plugins_info(dtagent_plugins_path: str, dtagent_conf_path: str) ->
                             "you need to explicitly set `IS_ENABLED` to `true` to enable selected plugins; `IS_DISABLED` is not checked then."
                             "\n\n"
                         )
-                    __content += "```yaml\n" + _read_file(config_file_path) + "\n```\n\n"
+                    if os.path.isfile(config_file_path):
+                        __content += "```yaml\n" + _read_file(config_file_path) + "\n```\n\n"
                     if os.path.isfile(f_config_md):
                         __content += _read_file(f_config_md) + "\n"
 

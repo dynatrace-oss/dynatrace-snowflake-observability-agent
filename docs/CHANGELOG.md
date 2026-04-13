@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Dynatrace Snowflake Observability Agent 0.9.4
 
-Released on TBD
+Released on April 14, 2026
 
 > **Note**: Detailed technical changes and implementation notes are available in [DEVLOG.md](DEVLOG.md).
 
@@ -49,9 +49,8 @@ Released on TBD
 - **Test Infrastructure**: Refactored tests to use synthetic JSON fixtures for input/output validation instead of live Dynatrace API calls.
 - **Test Fixtures**: Migrated all plugin test input data from binary Python pickle files (`.pkl`) to human-readable NDJSON format (`.ndjson`), improving transparency and enabling direct manual inspection and version control of test data.
 - **Event Tables Cost Optimization**: Added guidance for fine-tuning Event Table usage to manage Snowflake costs.
-- **Timestamp Handling**: Unified timestamp handling with smart unit detection, eliminating wasteful conversions
-- **Build System**: Development scripts now auto-activate virtual environment
-- **Test Infrastructure**: Refactored tests to use synthetic JSON fixtures instead of live API calls
+- **Timestamp Handling**: Unified timestamp handling with smart unit detection, eliminating wasteful conversions.
+- **Build System**: Development scripts now auto-activate virtual environment.
 
 ## Dynatrace Snowflake Observability Agent 0.9.3.1
 

@@ -103,7 +103,7 @@ class Logs:
                         ts_val = int(ts_attr)
                         # Validate with auto-detection and convert to milliseconds using standard validation
                         validated_ts_ms = validate_timestamp(ts_val, return_unit="ms")
-                        if validated_ts_ms:
+                        if validated_ts_ms is not None:
                             record.created = validated_ts_ms / 1_000
                             record.msecs = validated_ts_ms % 1_000
                     except (ValueError, TypeError, OverflowError):
@@ -124,7 +124,7 @@ class Logs:
                             return_unit="ns",
                             skip_range_validation=True,
                         )
-                        if validated_ts_ns:
+                        if validated_ts_ns is not None:
                             setattr(record, "observed_timestamp", validated_ts_ns)
                         else:
                             delattr(record, "observed_timestamp")

@@ -98,6 +98,12 @@ if [ "$SAFE_TEST_FIXTURE" == "-p" ]; then
             TEST_NAME=$(basename "${file%.*}")
             TEST_FILE_PYTHON_PATH="test.plugins.${TEST_NAME}"
 
+            # Skip validator/helper tests that are not plugin fixture generators
+            if [ "$TEST_NAME" = "test_1_validate" ]; then
+                echo "Skipping fixture generation for helper test ${TEST_NAME}"
+                continue
+            fi
+
             echo "Generating fixtures for ${TEST_NAME}"
             PYTHONPATH="$PYTHONPATH:./src" python -m $TEST_FILE_PYTHON_PATH $SAFE_TEST_FIXTURE
         done
