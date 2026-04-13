@@ -28,39 +28,45 @@
 import re
 import glob
 
-
 AGENT_SQL_PATH = "src/dtagent.sql/agents/700_dtagent.sql"
 PLUGINS_CONFIG_GLOB = "src/dtagent/plugins/*.config"
 
-# Regex to extract the ARRAY_CONSTRUCT block inside the commented call template.
-# Matches quoted string tokens inside ARRAY_CONSTRUCT(...) in the /* ... */ comment block.
-_ARRAY_CONSTRUCT_RE = re.compile(
-    r"/\*.*?ARRAY_CONSTRUCT\s*\((.*?)\)\s*\)\s*;",
-    re.DOTALL,
-)
-_PLUGIN_TOKEN_RE = re.compile(r"'([^']+)'")
+# Regex to locate the commented-out manual-call block /* ... */ at the end of the file.
+_COMMENT_BLOCK_RE = re.compile(r"/\*.*?\*/", re.DOTALL)
+
+# Regex to extract the plugin name from each individual per-plugin call, e.g.:
+#   call APP.DTAGENT(ARRAY_CONSTRUCT('shares'));
+_SINGLE_CALL_RE = re.compile(r"call\s+APP\.DTAGENT\s*\(\s*ARRAY_CONSTRUCT\s*\(\s*'([^']+)'\s*\)\s*\)", re.IGNORECASE)
 
 
 def _get_registered_plugins_from_sql() -> set:
-    """Parse the commented-out ARRAY_CONSTRUCT call in 700_dtagent.sql and return the set of plugin names.
+    """Parse the commented-out per-plugin CALL statements in 700_dtagent.sql and return the set of plugin names.
+
+    The manual-call comment block contains one ``call APP.DTAGENT(ARRAY_CONSTRUCT('<plugin>'))``
+    statement per plugin. This function extracts the plugin name from each such statement.
 
     Returns:
-        set: Plugin names listed inside ARRAY_CONSTRUCT in the manual-call comment block.
+        set: Plugin names listed in the per-plugin call statements inside the manual-call comment block.
 
     Raises:
-        AssertionError: If the ARRAY_CONSTRUCT block cannot be found in the file.
+        AssertionError: If the comment block or no plugin calls can be found in the file.
     """
     with open(AGENT_SQL_PATH, encoding="utf-8") as fh:
         content = fh.read()
 
-    match = _ARRAY_CONSTRUCT_RE.search(content)
-    assert match, (
-        f"Could not find ARRAY_CONSTRUCT block in {AGENT_SQL_PATH}. "
-        "Ensure the manual-call comment block is present."
+    comment_match = _COMMENT_BLOCK_RE.search(content)
+    assert comment_match, (
+        f"Could not find a /* ... */ comment block in {AGENT_SQL_PATH}. " "Ensure the manual-call comment block is present."
     )
 
-    tokens = _PLUGIN_TOKEN_RE.findall(match.group(1))
-    return set(tokens)
+    comment_block = comment_match.group(0)
+    plugins = _SINGLE_CALL_RE.findall(comment_block)
+    assert plugins, (
+        f"Could not find any per-plugin CALL statements in the comment block of {AGENT_SQL_PATH}. "
+        "Expected lines like: call APP.DTAGENT(ARRAY_CONSTRUCT('<plugin>'));"
+    )
+
+    return set(plugins)
 
 
 def _get_known_plugins_from_config() -> set:
@@ -77,12 +83,11 @@ class TestAgentRegistration:
     """Verify that the agent SQL call template stays in sync with the deployed plugin set."""
 
     def test_all_plugins_listed_in_agent_sql(self):
-        """Every plugin with a .config directory must appear in the ARRAY_CONSTRUCT block
-        of the manual-call comment in 700_dtagent.sql.
+        """Every plugin with a .config directory must appear as a separate per-plugin CALL in 700_dtagent.sql.
 
-        This guards against the common mistake of adding a new plugin but forgetting to
-        register it in the agent call template — the pattern that caused `snowpipes` to
-        be missed on first deploy.
+        The manual-call comment block must have one ``call APP.DTAGENT(ARRAY_CONSTRUCT('<plugin>'))``
+        line per plugin. This guards against the common mistake of adding a new plugin but forgetting
+        to register it in the agent call template.
         """
         known_plugins = _get_known_plugins_from_config()
         registered_plugins = _get_registered_plugins_from_sql()
@@ -93,7 +98,7 @@ class TestAgentRegistration:
         assert not missing_from_sql, (
             f"The following plugins have a .config directory but are NOT listed in {AGENT_SQL_PATH}:\n"
             f"  {sorted(missing_from_sql)}\n"
-            f"Add them to the ARRAY_CONSTRUCT block in the commented call template."
+            f"Add a call APP.DTAGENT(ARRAY_CONSTRUCT('<plugin>')) line to the manual-call comment block."
         )
 
         assert not extra_in_sql, (

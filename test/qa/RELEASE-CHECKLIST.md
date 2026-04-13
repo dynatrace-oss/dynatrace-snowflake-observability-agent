@@ -40,8 +40,23 @@ and restore to a clean `--scope=all` state before the next scenario.
   All tasks start successfully; no operational errors or warnings in logs.
 
 - [ ] **B2** — Manual execution runs correctly from `700_dtagent.sql`.
-  Execute the stored procedure directly in Snowflake; verify telemetry arrives
-  in Dynatrace.
+  Execute the stored procedure **once per plugin** using the separate
+  `call APP.DTAGENT(ARRAY_CONSTRUCT('<plugin>'))` statements from the comment
+  block at the bottom of `src/dtagent.sql/agents/700_dtagent.sql`.
+  Do **not** call with all plugins in a single `ARRAY_CONSTRUCT` — the `snow sql`
+  CLI will time out on a full 16-plugin run.
+
+  **Pre-requisite:** ensure `~/.snowflake/config.toml` has the following set on
+  the connection profile for this environment (5-minute timeout to handle cold
+  starts on data-heavy plugins):
+
+  ```toml
+  login_timeout = 300
+  network_timeout = 300
+  ```
+
+  After running all per-plugin calls, verify that all 16 plugins appear as
+  `FINISHED` in biz events within the last 30 minutes.
 
 - [ ] **B3** — Deployment with pre-created init and admin objects and custom
   object names. Create the database, warehouse, and roles manually with

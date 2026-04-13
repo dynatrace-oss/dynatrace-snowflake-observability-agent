@@ -392,8 +392,9 @@ timeseries avg(snowflake.credits.limit), by: {deployment.environment}
 ```
 
 **Pass:** count > 0.
-**Skip condition:** budget plugin runs at most once per day — skip with note
-`SKIP (deploy < 24h old)` if the environment was deployed less than 24 hours ago.
+**Timing rule:** The budget plugin runs at most once per day. Do **not** skip this
+check — instead, wait until at least 24 hours after deployment before evaluating.
+If the environment is < 24h old, defer the check and come back later.
 
 ---
 
@@ -441,10 +442,10 @@ After running all tests, present the results in a table using the checklist IDs:
 | AE-C5.5   | Process metrics reported                               | PASS/FAIL  |       |
 | AE-C5.7   | Self-monitoring BizEvents all delivered                | PASS/FAIL  |       |
 | AE-C4.6   | span.parent_id present for child queries               | PASS/FAIL  |       |
-| AE-C2.1   | Budget metrics reported                                | PASS/FAIL/SKIP |   |
+| AE-C2.1   | Budget metrics reported                                | PASS/FAIL  |       |
 | AE-C1.3   | No increase in dt.ingest.warnings (5% tolerance)       | PASS/FAIL  |       |
 
-Auto-evaluated: {N}/11 — {n} passed, {f} failed, {s} skipped
+Auto-evaluated: {N}/11 — {n} passed, {f} failed
 ```
 
 Include the full table in the Phase 5 markdown report.
@@ -641,28 +642,66 @@ fetch events
 
 ### B2 — Manual agent invocation
 
-For B2 (manual execution test), use the DQL execute tool with the Snowflake
-`CALL APP.DTAGENT_094_(...)` procedure. The procedure name after deployment is
-`DTAGENT_<TAG>_` where TAG is the 3-digit version tag. The commented call
-template in `src/dtagent.sql/agents/700_dtagent.sql` shows the current full
-plugin list to pass as the `ARRAY_CONSTRUCT` argument.
+For B2 (manual execution test), call `DTAGENT` **once per plugin** using separate
+`CALL APP.DTAGENT(ARRAY_CONSTRUCT('<plugin>'))` statements — one for each plugin.
+**Never** call with all plugins in a single `ARRAY_CONSTRUCT` — the `snow sql`
+CLI has a hard 2-minute timeout and a full 16-plugin run will always exceed it.
 
-The procedure can be invoked by calling it via the Dynatrace MCP `execute_dql`
-tool — or by instructing the human to run it in Snowflake if MCP doesn't have
-direct Snowflake procedure access.
+The commented call template in `src/dtagent.sql/agents/700_dtagent.sql` already
+contains the correct separate-call form. Run each line individually:
 
-After invocation, verify telemetry arrives by running:
-
-```dql
-fetch logs
-| filter db.system == "snowflake"
-| filter deployment.environment == "DEV-{CURR_TAG}"
-| filter dsoa.run.context == "self_monitoring"
-| sort timestamp desc
-| limit 20
+```sql
+use role DTAGENT_VIEWER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
+call APP.DTAGENT(ARRAY_CONSTRUCT('active_queries'));
+call APP.DTAGENT(ARRAY_CONSTRUCT('budgets'));
+-- ... one per plugin ...
+call APP.DTAGENT(ARRAY_CONSTRUCT('warehouse_usage'));
 ```
 
-New entries appearing within the last few minutes confirm successful execution.
+**Pre-requisite — `snow sql` timeout configuration (MANDATORY):**
+Before running B2, ensure the connection profile in `~/.snowflake/config.toml`
+has both timeout values set to at least 300 seconds (5 minutes) to handle cold
+starts on data-heavy plugins:
+
+```toml
+[connections.snow_agent_dev-{CURR_TAG}]
+# ... existing settings ...
+login_timeout = 300
+network_timeout = 300
+```
+
+`login_timeout` covers the initial connection handshake; `network_timeout` covers
+query execution. Both are needed. Without these, the CLI silently cuts off at
+~120 seconds and returns no output or error.
+
+Run each plugin call via:
+
+```bash
+snow sql -c snow_agent_dev-{CURR_TAG} \
+    --role DTAGENT_{TAG}_OWNER \
+    --warehouse DTAGENT_{TAG}_WH \
+    --database DTAGENT_{TAG}_DB \
+    --schema APP \
+    -q "call APP.DTAGENT(ARRAY_CONSTRUCT('<plugin>'));"
+```
+
+After all calls, verify telemetry arrives by checking for recent FINISHED
+biz events per plugin:
+
+```dql
+fetch bizevents, from: now()-30m
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| filter dsoa.task.exec.status == "FINISHED"
+| summarize count = count(), by: {dsoa.task.name}
+| sort dsoa.task.name asc
+```
+
+All 16 plugins should appear with count >= 1. Any missing plugin is a FAIL.
+
+**Note on `dsoa.task.name` format:** Some plugins (e.g. `snowpipes`) are invoked
+with individual contexts using the `$plugin:$context` format, e.g.
+`"snowpipes:snowpipes"` or `"snowpipes:snowpipes_copy_history,snowpipes_usage_history"`.
+This is correct and expected — do not flag these as malformed.
 
 ### Notebook tile format notes
 
@@ -692,9 +731,18 @@ silently ignored by Dynatrace; the rendered content comes from `markdown:`.
 ### Deploy commands quick reference
 
 ```bash
-# Deploy both environments (fresh)
+# Deploy both environments (fresh) — human only on dev-* profiles (requires DTAGENT_TOKEN)
 ./scripts/deploy/deploy.sh dev-{CURR_TAG} --scope=all --options=skip_confirm
 ./scripts/deploy/deploy.sh dev-{PREV_TAG} --scope=all --options=skip_confirm
+
+# test-qa: AI can and must use --scope=all
+./scripts/deploy/deploy.sh test-qa --scope=all --options=skip_confirm
+
+# AI-safe re-deploy on dev-* profiles (no token needed) — plugins + agents + config only
+./scripts/deploy/deploy.sh dev-{CURR_TAG} --scope=plugins,agents,config --options=skip_confirm
+
+# Config-only update (no SQL changes)
+./scripts/deploy/deploy.sh dev-{CURR_TAG} --scope=config --options=skip_confirm
 
 # Deploy the test notebook
 ./scripts/test/deploy_test_notebook.sh \
@@ -704,3 +752,108 @@ silently ignored by Dynatrace; the rendered content comes from `markdown:`.
 # Preview notebook deploy without applying
 ./scripts/test/deploy_test_notebook.sh --dry-run
 ```
+
+**CRITICAL — scope rules for AI-assisted deploys:**
+- On **`test-qa`**: the AI has full DTAGENT access and must use `--scope=all` for
+  fresh deployments — this is required and correct.
+- On **`dev-*` profiles**: `--scope=all` requires `DTAGENT_TOKEN` env-var (sends
+  deployment biz events). The AI does not have this token on dev profiles. Use
+  `--scope=plugins,agents,config` instead for AI-run deploys on dev environments.
+- Always `build.sh` first if build artifacts are missing — deploy will error with
+  `Build file missing: build/...`.
+
+### Deploy log monitoring
+
+Never let deploy output stream directly to the tool — the log is very large and will
+cause tool aborts. Always background the process and tail the log:
+
+```bash
+./scripts/deploy/deploy.sh dev-{CURR_TAG} --scope=all --options=skip_confirm \
+    > /tmp/deploy-{CURR_TAG}.log 2>&1 &
+# then poll:
+sleep 30 && ps -p $PID && tail -10 /tmp/deploy-{CURR_TAG}.log
+```
+
+**Key strings to grep for in deploy logs:**
+
+| String | Meaning |
+|---|---|
+| `Filtering out disabled plugins: ...` | Which plugins were excluded |
+| `UPDATE_FROM_CONFIGURATIONS \| OK` | Config applied successfully |
+| `successfully created` / `successfully resumed` | Tasks are live |
+| `^ERROR:` | Fatal deploy error |
+
+**Note:** `snow sql` garbles wide-table output (`SHOW TASKS`, `TASK_HISTORY`).
+Never use these to verify task state — use deploy log evidence instead.
+
+### B-section deployment scenarios (B8–B10)
+
+These tests use `conf/config-dev-{CURR_TAG}.yml` changes + redeploy on the current
+environment. The AI updates the config file; the human runs the deploy (or the AI
+runs `--scope=plugins,agents,config` if no token is needed).
+
+**Always restore the config to a clean state after each B8–B10 scenario** before
+the next one. A fresh `--scope=all` (by the human) is the safest restore path.
+
+#### B8 — Selected plugins only
+
+Config pattern:
+
+```yaml
+plugins:
+  disabled_by_default: true
+  deploy_disabled_plugins: false
+  query_history:
+    is_enabled: true
+  data_volume:
+    is_enabled: true
+  shares:
+    is_enabled: true
+```
+
+Deploy: `--scope=all` (human). Verify:
+- Deploy log shows `Filtering out disabled plugins: <13 plugins>`
+- Trigger enabled tasks manually: `EXECUTE TASK DTAGENT_{TAG}_DB.APP.TASK_DTAGENT_QUERY_HISTORY;` etc.
+- DQL: zero telemetry from any non-enabled plugin over last 15 min.
+
+#### B9 — Config-only update
+
+Make a non-structural config change (e.g. `log_level: DEBUG` → `INFO`).
+Deploy: `--scope=config` only (AI can run this). Verify:
+- No `CREATE PROCEDURE` / `CREATE VIEW` / `CREATE TASK` in deploy log.
+- `UPDATE_FROM_CONFIGURATIONS` → `OK`.
+- New value confirmed in Snowflake: `SELECT PATH, VALUE FROM CONFIG.CONFIGURATIONS WHERE PATH = 'core.log_level';`
+- Trigger tasks and confirm FINISHED biz events still appear.
+
+#### B10 — Disabled plugin not callable
+
+Remove a previously-enabled plugin from config (e.g. remove `shares: is_enabled: true`).
+Deploy: `--scope=all` (human) or `--scope=plugins,agents,config` (AI).
+
+**Correct verification method:** Call the agent directly for the disabled plugin:
+
+```bash
+snow sql -c snow_agent_dev-{CURR_TAG} \
+    --role DTAGENT_{TAG}_OWNER \
+    --warehouse DTAGENT_{TAG}_WH \
+    --database DTAGENT_{TAG}_DB \
+    --schema APP \
+    -q "CALL APP.DTAGENT(ARRAY_CONSTRUCT('shares'));"
+```
+
+Expected result: `"not_implemented"` — the plugin code is excluded from the DTAGENT
+procedure at compile time. **Do not check for absent SQL objects** — the deploy does
+not DROP pre-existing views or tasks; enforcement is at the Python code level inside
+the stored procedure.
+
+Confirm no telemetry from the plugin in the 5 minutes after deploy:
+
+```dql
+fetch logs, from: now()-5m
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| filter dsoa.run.plugin == "shares"
+| filter dsoa.run.context != "self_monitoring"
+| summarize count = count()
+```
+
+Pass: count == 0.
