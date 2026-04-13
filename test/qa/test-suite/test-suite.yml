@@ -1,0 +1,1098 @@
+#
+#
+# Copyright (c) 2025 Dynatrace Open Source
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+#
+# NOTEBOOK: DSOA Test Suite
+# DESCRIPTION: Manual QA test suite for Dynatrace Snowflake Observability Agent releases.
+#              Covers live-telemetry checks from the RELEASE-CHECKLIST.md (Section C).
+# OWNER: sebastian.kruk
+# DEPLOYED AS: "DSOA Test Suite ({DEPLOY_ENV}_DEV)"  — name is injected at deploy time
+#
+# USAGE:
+#   Deploy for a release test run:
+#     ./scripts/test/deploy_test_notebook.sh --curr-version=<version> [--prev-version=<prev>]
+#
+#   The script substitutes the notebook name with the actual deployment environment
+#   (e.g. "DSOA Test Suite (DEV-094_DEV)") and writes the assigned ID back below.
+#
+# DEPLOYMENT ID (written back by deploy_test_notebook.sh after first deploy):
+# id: 5bf9b0d9-6ebe-473f-8847-fe2d787a6c61
+#
+# FILTER CONVENTION:
+#   - Single-env tiles: filter deployment.environment == "DEV-094"
+#   - Cross-version comparison tiles [COMPARE]: filter in(deployment.environment, {"DEV-093", "DEV-094"})
+#   When running a test against a different version pair, search-replace these two values.
+#
+version: 7
+defaultTimeframe:
+  from: now()-7d
+  to: now()
+defaultSegments: []
+sections:
+  # ---------------------------------------------------------------------------
+  # C1 — Data Volume and Ingestion Health
+  # ---------------------------------------------------------------------------
+
+  - id: s-00
+    type: dql
+    showInput: false
+    title: "[C1.6] Tracking data volume by plugin"
+    height: 266
+    state:
+      visualization: barChart
+      visualizationSettings:
+        chartSettings:
+          groupMode: stacked
+          colorPalette: categorical
+      input:
+        timeframe:
+          from: now()-7d
+          to: now()
+        value: |
+          fetch bizevents
+          | filter db.system == "snowflake"
+          | fieldsAdd data.type = "bizevents"
+          | filter in(deployment.environment, {"DEV-093", "DEV-094"})
+          | makeTimeseries cnt=count(), by: {deployment.environment, dsoa.run.plugin}
+          | append [
+          fetch events
+          | filter db.system == "snowflake"
+          | fieldsAdd data.type = "events"
+          | filter in(deployment.environment, {"DEV-093", "DEV-094"})
+          | makeTimeseries cnt=count(), by: {deployment.environment, dsoa.run.plugin}
+          ]
+          | append [
+          fetch logs
+          | filter db.system == "snowflake"
+          | fieldsAdd data.type = "logs"
+          | filter in(deployment.environment, {"DEV-093", "DEV-094"})
+          | makeTimeseries cnt=count(), by: {deployment.environment, dsoa.run.plugin}
+          ]
+          | append [
+          fetch spans
+          | filter db.system == "snowflake"
+          | fieldsAdd data.type = "spans"
+          | filter in(deployment.environment, {"DEV-093", "DEV-094"})
+          | makeTimeseries cnt=count(), by: {deployment.environment, dsoa.run.plugin}
+          ]
+          | summarize cnt = sum(cnt[]), by: {dsoa.run.plugin, interval, timeframe}
+
+  - id: s-01
+    type: dql
+    showInput: false
+    title: "[C1.7] Tracking data volume by context"
+    height: 266
+    state:
+      visualization: barChart
+      visualizationSettings:
+        chartSettings:
+          groupMode: stacked
+          colorPalette: categorical
+      input:
+        timeframe:
+          from: now()-7d
+          to: now()
+        value: |
+          fetch bizevents
+          | filter db.system == "snowflake"
+          | fieldsAdd data.type = "bizevents"
+          | filter in(deployment.environment, {"DEV-093", "DEV-094"})
+          | makeTimeseries cnt=count(), by: {deployment.environment, dsoa.run.context}
+          | append [
+          fetch events
+          | filter db.system == "snowflake"
+          | fieldsAdd data.type = "events"
+          | filter in(deployment.environment, {"DEV-093", "DEV-094"})
+          | makeTimeseries cnt=count(), by: {deployment.environment, dsoa.run.context}
+          ]
+          | append [
+          fetch logs
+          | filter db.system == "snowflake"
+          | fieldsAdd data.type = "logs"
+          | filter in(deployment.environment, {"DEV-093", "DEV-094"})
+          | makeTimeseries cnt=count(), by: {deployment.environment, dsoa.run.context}
+          ]
+          | append [
+          fetch spans
+          | filter db.system == "snowflake"
+          | fieldsAdd data.type = "spans"
+          | filter in(deployment.environment, {"DEV-093", "DEV-094"})
+          | makeTimeseries cnt=count(), by: {deployment.environment, dsoa.run.context}
+          ]
+          | summarize cnt = sum(cnt[]), by: {dsoa.run.context, interval, timeframe}
+
+  - id: s-02
+    type: dql
+    showInput: false
+    title: "[C1.8] Tracking data volume by type"
+    height: 266
+    state:
+      visualization: barChart
+      visualizationSettings:
+        chartSettings:
+          groupMode: stacked
+          colorPalette: categorical
+      input:
+        timeframe:
+          from: now()-7d
+          to: now()
+        value: |
+          fetch bizevents
+          | filter db.system == "snowflake"
+          | fieldsAdd data.type = "bizevents"
+          | makeTimeseries count(), by: {deployment.environment, data.type}
+          | append [
+          fetch events
+          | filter db.system == "snowflake"
+          | fieldsAdd data.type = "events"
+          | makeTimeseries count(), by: {deployment.environment, data.type}
+          ]
+          | append [
+          fetch logs
+          | filter db.system == "snowflake"
+          | fieldsAdd data.type = "logs"
+          | makeTimeseries count(), by: {deployment.environment, data.type}
+          ]
+          | append [
+          fetch spans
+          | filter db.system == "snowflake"
+          | fieldsAdd data.type = "spans"
+          | makeTimeseries count(), by: {deployment.environment, data.type}
+          ]
+          | filter in(deployment.environment, {"DEV-093", "DEV-094"})
+
+  - id: s-03
+    type: dql
+    showInput: false
+    title: "[C1.3] No increase in dt.ingest.warning"
+    height: 260
+    state:
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          fetch logs
+          | filter telemetry.exporter.name == "dynatrace.snowagent"
+          | filter in(deployment.environment, {"DEV-093", "DEV-094"})
+          | filter isNotNull(dt.ingest.warnings)
+          | expand warning = dt.ingest.warnings
+          | makeTimeseries count(), by: {warning, deployment.environment}
+
+  - id: s-10
+    type: dql
+    showInput: false
+    title: "[C1.4] Volume of logs per module does not change a lot"
+    height: 310
+    state:
+      input:
+        timeframe:
+          from: "@d"
+          to: now()
+        value: |
+          fetch logs
+          | filter in(deployment.environment, {"DEV-093", "DEV-094"})
+          | fieldsAdd plugin_name = coalesce(dsoa.run.context, snowagent.run.context, telemetry.exporter.module)
+          | makeTimeseries count(), by: {plugin_name, deployment.environment}, interval:1h
+          | sort plugin_name
+
+  - id: s-11
+    type: dql
+    showInput: false
+    title: "[C1.5 / C4.1] Volume of spans per module does not change"
+    height: 226
+    state:
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          fetch spans
+          | filter db.system == "snowflake"
+          | filter in(deployment.environment, {"DEV-093", "DEV-094"})
+          | makeTimeseries count(), by: {dsoa.run.context, snowagent.run.context, deployment.environment}
+
+  # ---------------------------------------------------------------------------
+  # C2 — Metrics Reporting
+  # ---------------------------------------------------------------------------
+
+  - id: s-04
+    type: dql
+    showInput: false
+    title: "[C2.1] Budget metrics are reported"
+    height: 147
+    state:
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          timeseries {
+                avg(snowflake.credits.limit)
+              , avg(snowflake.credits.spent)
+              }, by: {deployment.environment}, union:true
+          | filter deployment.environment == "DEV-094"
+
+  - id: s-20
+    type: dql
+    showInput: false
+    title: "[C2.2] Metrics are reported with deployment.environment"
+    height: 125
+    state:
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          timeseries avg(snowflake.credits.quota), by: {deployment.environment}
+          | filter deployment.environment == "DEV-094"
+
+  - id: s-21
+    type: dql
+    showInput: false
+    title: "[C2.3] Query history metrics are reported"
+    height: 139
+    state:
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          timeseries avg(snowflake.time.execution), by: {deployment.environment}
+          | filter deployment.environment == "DEV-094"
+
+  - id: s-12
+    type: dql
+    showInput: false
+    title: "[C2.4] Query time per table is available — metrics"
+    height: 228
+    state:
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          timeseries avg(snowflake.time.total_elapsed),
+               by: { db.namespace,
+                     db.collection.name,
+                     deployment.environment}
+          | filter deployment.environment == "DEV-094"
+          | limit 10
+
+  - id: s-15
+    type: dql
+    showInput: false
+    title: "[C2.5] Table volume is tracked (rows)"
+    height: 267
+    state:
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          timeseries { max_row_count = max(snowflake.data.rows) }
+                , by: { db.collection.name, deployment.environment }
+          | filter deployment.environment == "DEV-094"
+          | fieldsAdd db.collection.name, max_row_count
+
+  - id: s-16
+    type: dql
+    showInput: false
+    title: "[C2.6] Table volume is tracked (size)"
+    height: 282
+    state:
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          timeseries {avg(snowflake.data.rows), avg(snowflake.data.size)},
+                  union: true,
+                  by: { db.namespace, db.collection.name, deployment.environment }
+          | filter deployment.environment == "DEV-094"
+          | limit 10
+
+  - id: s-19
+    type: dql
+    showInput: false
+    title: "[C2.7] Trust center metrics are reported"
+    height: 178
+    state:
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          timeseries max(snowflake.trust_center.findings), by: {deployment.environment}
+          | filter deployment.environment == "DEV-094"
+
+  - id: s-26
+    type: dql
+    showInput: false
+    title: "[C2.8] Metrics for dynamic tables are reported"
+    height: 262
+    state:
+      input:
+        timeframe:
+          from: now()-7d
+          to: now()
+        value: |
+          timeseries {
+             avg(snowflake.table.dynamic.lag.mean)
+           , avg(snowflake.table.dynamic.lag.target.value)
+          }, union:true
+           , by: {deployment.environment}
+          | filter deployment.environment == "DEV-094"
+
+  - id: s-29
+    type: dql
+    showInput: false
+    title: "[C5.5] Event log entries are reported (process metrics)"
+    height: 148
+    state:
+      input:
+        timeframe:
+          from: now()-7d
+          to: now()
+        value: |
+          timeseries {avg(process.cpu.utilization), avg(process.memory.usage)}
+            , union: true
+            , by: {deployment.environment}
+          | filter deployment.environment == "DEV-094"
+
+  # ---------------------------------------------------------------------------
+  # C3 — Logs Reporting
+  # ---------------------------------------------------------------------------
+
+  - id: s-05
+    type: dql
+    showInput: false
+    title: "[C3.6] Check if warnings on missing warehouse and global resource monitors are correct"
+    height: 278
+    state:
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          fetch logs
+          | filter in(deployment.environment, {"DEV-093", "DEV-094"})
+          | filter dsoa.run.context == "resource_monitors"
+          | filter snowflake.warehouse.is_unmonitored
+          | filter loglevel == "WARN"
+          | summarize {count()}, by: {content, deployment.environment}
+
+  - id: s-13
+    type: dql
+    showInput: false
+    title: "[C3.2] Query time per table — logs"
+    height: 252
+    state:
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          fetch logs
+          | filter db.system == "snowflake"
+          | filter deployment.environment == "DEV-094"
+          | fieldsAdd snow_account = coalesce(db.instance.id, service.name)
+          | filter isNotNull(db.user)
+               and isNotNull(snow_account)
+               and isNotNull(db.collection.name)
+               and isNotNull(snowflake.time.execution)
+          | fields snow_account, db.collection.name, snowflake.time.execution
+
+  - id: s-22
+    type: dql
+    showInput: false
+    title: "[C3.5] Validating that status.message is correctly set for trust_center"
+    height: 249
+    state:
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          fetch logs
+          | filter db.system == "snowflake"
+          | filter dsoa.run.context == "trust_center"
+          | filter in(deployment.environment, {"DEV-093", "DEV-094"})
+          | summarize count = count(), by: {status.message, deployment.environment}
+          | sort count desc
+          | limit 10
+
+  - id: s-25
+    type: dql
+    showInput: false
+    title: "[C3.3] Logs for dynamic tables are reported"
+    height: 290
+    state:
+      input:
+        timeframe:
+          from: now()-7d
+          to: now()
+        value: |
+          fetch logs
+          | filter db.system == "snowflake"
+          | filter dsoa.run.plugin == "dynamic_tables"
+          | filter deployment.environment == "DEV-094"
+          | filter isNotNull(snowflake.table.dynamic.lag.target.value)
+          | sort timestamp desc
+          | limit 10
+
+  - id: s-27
+    type: dql
+    showInput: false
+    title: "[C3.4] Event log entries are reported (logs)"
+    height: 148
+    state:
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          fetch logs
+          | filter db.system == "snowflake"
+          | filter contains(dsoa.run.context, "event_log")
+          | makeTimeseries count(), by: {deployment.environment, dsoa.run.context}
+          | filter deployment.environment == "DEV-094"
+
+  # ---------------------------------------------------------------------------
+  # C4 — Spans and Distributed Traces
+  # ---------------------------------------------------------------------------
+
+  - id: s-14
+    type: dql
+    showInput: false
+    title: "[C4.2] Query time per table — spans"
+    height: 205
+    state:
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          fetch spans
+          | filter db.system == "snowflake"
+          | filter deployment.environment == "DEV-094"
+          | fieldsAdd snow_account = coalesce(db.instance.id, service.name)
+          | filter isNotNull(db.user)
+               and isNotNull(snow_account)
+               and isNotNull(db.collection.name)
+               and isNotNull(snowflake.time.execution)
+          | fields snow_account, db.collection.name, snowflake.time.execution
+
+  - id: s-28
+    type: dql
+    showInput: false
+    title: "[C4.5] Event log entries are reported (spans)"
+    height: 148
+    state:
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          fetch spans
+          | filter db.system == "snowflake"
+          | filter dsoa.run.context == "event_log_spans"
+          | makeTimeseries count(), by: {deployment.environment}
+          | filter deployment.environment == "DEV-094"
+
+  - id: s-37
+    type: dql
+    showInput: false
+    title: "[C4.6] Checking if there are span.parent_id reported"
+    height: 180
+    state:
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          fetch spans
+          | filter db.system == "snowflake"
+          | filter deployment.environment == "DEV-094"
+          | filter isNotNull(dsoa.run.context)
+          | filter isNotNull(snowflake.query.parent_id)
+          | filter isNotNull(span.parent_id)
+
+  - id: s-39
+    type: dql
+    showInput: false
+    title: "[C4.8] Checking that spans are correctly rendered in Distributed Traces"
+    height: 300
+    state:
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          fetch spans
+          | filter db.system == "snowflake"
+          | filter deployment.environment == "DEV-094"
+          | filter isNotNull(dsoa.run.context)
+          | filter isNotNull(snowflake.query.parent_id)
+          | filter isNotNull(span.parent_id)
+          | fields start_time, trace.id, span.id, span.parent_id
+          | limit 10
+
+  # ---------------------------------------------------------------------------
+  # C5 — Events and BizEvents
+  # ---------------------------------------------------------------------------
+
+  - id: s-31
+    type: dql
+    showInput: false
+    title: "[C5.1] Events are sent by plugins"
+    height: 149
+    state:
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          fetch events
+          | filter db.system == "snowflake"
+          | filter in(deployment.environment, {"DEV-093", "DEV-094"})
+          | makeTimeseries count(), by: {dsoa.run.context, deployment.environment}
+
+  - id: s-30
+    type: dql
+    showInput: false
+    title: "[C5.2] BizEvents are sent by plugins"
+    height: 201
+    state:
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          fetch bizevents
+          | filter db.system == "snowflake"
+          | filter deployment.environment == "DEV-094"
+          | filter dsoa.run.context == "self_monitoring"
+          | makeTimeseries count(), by: {dsoa.task.name}
+
+  - id: s-32
+    type: dql
+    showInput: false
+    title: "[C5.3] Self-monitoring BizEvents correlation"
+    height: 244
+    state:
+      input:
+        timeframe:
+          from: now()-6h
+          to: now()
+        value: |
+          fetch bizevents
+          | filter db.system == "snowflake"
+          | filter dsoa.run.context == "self_monitoring"
+          | filter deployment.environment == "DEV-094"
+          | sort timestamp asc
+          | summarize {
+            timestamp = takeFirst(timestamp),
+            snowagent.run.duration = max(timestamp) - min(timestamp),
+            count = count()
+          }, by: {
+            deployment.environment,
+            dsoa.task.exec.id,
+            dsoa.task.name
+          }
+          | filter count == 2
+          | makeTimeseries {
+            snowagent.run.duration = sum(snowagent.run.duration)
+          }, by: {
+            dsoa.run.context = dsoa.task.name
+          }
+
+  - id: s-36
+    type: dql
+    showInput: false
+    title: "[C5.6] Data schemas plugin report events"
+    height: 222
+    state:
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          fetch events
+          | filter dsoa.run.context == "data_schemas"
+          | filter deployment.environment == "DEV-094"
+          | makeTimeseries count(), by: {snowflake.object.type}
+
+  # ---------------------------------------------------------------------------
+  # C6 — Active Queries
+  # ---------------------------------------------------------------------------
+
+  - id: s-06
+    type: dql
+    showInput: false
+    title: "[C6.4] Active queries raw sample"
+    height: 278
+    state:
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          fetch logs, scanLimitGBytes: -1
+          | filter deployment.environment == "DEV-094"
+          | filter dsoa.run.context == "active_queries"
+          | limit 10
+
+  - id: s-08
+    type: dql
+    showInput: false
+    title: "[C6.1] Check if long running queries are reported more than once in active_queries"
+    height: 177
+    state:
+      visualization: lineChart
+      input:
+        timeframe:
+          from: now()-7d
+          to: now()
+        value: |
+          fetch logs
+          | filter dsoa.run.context == "active_queries"
+          | filter deployment.environment == "DEV-094"
+          | filter isNotNull(snowflake.query.id)
+          | sort timestamp asc
+          | summarize {count = count(), timestamp = takeFirst(timestamp)}, by: {snowflake.query.id}
+          | makeTimeseries {count=max(count), min(count)}, interval:1h
+
+  - id: s-09
+    type: dql
+    showInput: false
+    title: "[C6.2] Check the visibility of the statuses RUNNING and SUCCESS for execution_status in active_queries"
+    height: 260
+    state:
+      visualization: lineChart
+      input:
+        timeframe:
+          from: now()-7d
+          to: now()
+        value: |
+          fetch logs
+          | filter dsoa.run.context == "active_queries"
+          | filter deployment.environment == "DEV-094"
+          | filter isNotNull(snowflake.query.id)
+          | makeTimeseries count(), by:{snowflake.query.execution_status}
+
+  - id: s-35
+    type: dql
+    showInput: false
+    title: "[C6.3] All statuses of active queries are reported"
+    height: 210
+    state:
+      input:
+        timeframe:
+          from: now()-7d
+          to: now()
+        value: |
+          fetch logs
+          | filter dsoa.run.context == "active_queries"
+          | filter deployment.environment == "DEV-094"
+          | makeTimeseries count(), by: {snowflake.query.execution_status}
+
+  # ---------------------------------------------------------------------------
+  # C7 — Shares and Governance
+  # ---------------------------------------------------------------------------
+
+  - id: s-17
+    type: dql
+    showInput: false
+    title: "[C7.4] Query count per user is tracked"
+    height: 261
+    state:
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          fetch spans
+          | filter db.system == "snowflake"
+          | filter deployment.environment == "DEV-094"
+          | fields db.user
+          | summarize {query_count = count()}, by: {user = db.user}
+          | sort user
+
+  - id: s-33
+    type: dql
+    showInput: false
+    title: "[C7.1] All inbound and outbound shares are reported (logs)"
+    height: 246
+    state:
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          fetch logs
+          | filter db.system == "snowflake"
+          | filter deployment.environment == "DEV-094"
+          | filter in(dsoa.run.context, {"inbound_shares", "outbound_shares"})
+          | makeTimeseries count(), by: {
+            snowflake.share.name,
+            snowflake.share.kind
+          }
+
+  - id: s-34
+    type: dql
+    showInput: false
+    title: "[C7.2] All inbound and outbound shares are reported (events)"
+    height: 178
+    state:
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          // The shares plugin emits events from V_SHARE_EVENTS via the "shares" context
+          // (report_timestamp_events=True). The "inbound_shares"/"outbound_shares" contexts
+          // emit logs only. Expect rows here if share events have occurred recently.
+          fetch events
+          | filter db.system == "snowflake"
+          | filter deployment.environment == "DEV-094"
+          | filter dsoa.run.plugin == "shares"
+          | makeTimeseries count(), by: {
+            snowflake.share.name,
+            snowflake.share.kind,
+            snowflake.table.event
+          }
+
+  - id: s-42
+    type: dql
+    showInput: false
+    title: "[C7.3] Inbound shares with missing DB are reported"
+    height: 200
+    state:
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          fetch logs
+          | filter db.system == "snowflake"
+          | filter deployment.environment == "DEV-094"
+          | filter dsoa.run.context == "inbound_shares"
+          | filter isNull(db.namespace)
+          | summarize count = count(), by: {snowflake.share.name, snowflake.share.kind, db.namespace}
+          | sort count desc
+
+  # ---------------------------------------------------------------------------
+  # C8 — Plugin Lifecycle and Isolation
+  # ---------------------------------------------------------------------------
+
+  - id: s-44
+    type: dql
+    showInput: false
+    title: "[C5.7] Check if the usage self-monitoring telemetry is delivered"
+    height: 200
+    state:
+      visualization: barChart
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          // Self-monitoring reports one STARTED and one FINISHED BizEvent per plugin run.
+          // Expect rows for every enabled plugin with count == 2 per execution cycle.
+          fetch bizevents
+          | filter db.system == "snowflake"
+          | filter deployment.environment == "DEV-094"
+          | filter dsoa.run.context == "self_monitoring"
+          | filter in(dsoa.task.exec.status, {"STARTED", "FINISHED"})
+          | summarize {
+              count = count(),
+              last_seen = max(timestamp)
+            }, by: {dsoa.task.name, dsoa.task.exec.status}
+          | sort last_seen desc
+
+  # ---------------------------------------------------------------------------
+  # Anomaly Checks — All tiles below should return no rows (empty = PASS)
+  # ---------------------------------------------------------------------------
+
+  - id: md-should-be-empty
+    type: markdown
+    markdown: |
+      ## Anomaly Checks — All should be empty
+
+      The tiles in this section run queries that detect anomalies or data-quality
+      problems. **A passing test returns no rows.** Any data visible in these tiles
+      is a failure that requires investigation before releasing.
+
+  - id: s-07
+    type: dql
+    showInput: false
+    title: "[C3.1] Queries with mismatched log/span coverage (exclude nulls; expect empty 2h+ after deploy) [SHOULD BE EMPTY]"
+    height: 237
+    state:
+      visualization: lineChart
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          fetch logs, scanLimitGBytes: -1
+          | filter deployment.environment == "DEV-094"
+          | filter dsoa.run.context == "query_history"
+          | summarize {qh_count = count(), timestamp = takeAny(timestamp)}, by: {snowflake.query.id}
+          | append [
+            fetch logs, scanLimitGBytes: -1
+            | filter deployment.environment == "DEV-094"
+            | filter dsoa.run.context == "active_queries"
+            | sort timestamp asc
+            | summarize {aq_count = count(), timestamp = takeLast(timestamp)}, by: {snowflake.query.id}
+          ]
+          | append [
+            fetch spans, scanLimitGBytes: -1
+            | filter deployment.environment == "DEV-094"
+            | filter dsoa.run.context == "query_history"
+            | summarize {
+              sp_count = count(),
+              sp_events = max(arraySize(span.events)),
+              sp_events_added = max(snowagent.debug.span.events.added),
+              timestamp = takeAny(start_time)
+            }, by: {snowflake.query.id}
+          ]
+          | summarize {
+            qh_count = max(qh_count),
+            aq_count = max(aq_count),
+            sp_count = max(sp_count),
+            sp_events = max(sp_events),
+            sp_events_added = max(sp_events_added),
+            timestamp = takeAny(timestamp)
+          }, by: {snowflake.query.id}
+          | fieldsAdd missing_data = isNull(aq_count) or (isNull(sp_count) xor isNull(qh_count))
+                or (qh_count != sp_count+sp_events and qh_count != sp_count+sp_events_added)
+          | filterOut isNull(aq_count)
+          | filter isNotNull(missing_data)
+          | makeTimeseries count(), by: {missing_data}
+
+  - id: s-23
+    type: dql
+    showInput: false
+    title: "[C4.3] Coverage of spans for query_history logs [SHOULD BE EMPTY]"
+    height: 270
+    state:
+      input:
+        timeframe:
+          from: now()-7d
+          to: now()
+        value: |
+          fetch logs
+          | filter db.system == "snowflake"
+          | filter dsoa.run.context == "query_history"
+          | filter deployment.environment == "DEV-094"
+          | summarize {
+            logs_per_query = count(),
+            timestamp = takeMin(timestamp)
+          }, by: {snowflake.query.id}
+          | append [
+              fetch spans
+              | filter db.system == "snowflake"
+              | filter dsoa.run.context == "query_history"
+              | filter deployment.environment == "DEV-094"
+              | fieldsAdd span_events_count = coalesce(arraySize(span.events), 0) +1
+          ]
+          | summarize {
+            timestamp = takeMin(timestamp),
+            count_logs = sum(logs_per_query),
+            count_events = sum(span_events_count)
+          }, by: {snowflake.query.id}
+          | filter count_events == 0 or count_events != count_logs
+          | filter count_events < 2001
+
+  - id: s-24
+    type: dql
+    showInput: false
+    title: "[C4.4] Completeness span.events + supportability.dropped_events_count reported [SHOULD BE EMPTY]"
+    height: 250
+    state:
+      input:
+        timeframe:
+          from: now()-7d
+          to: now()
+        value: |
+          fetch spans
+          | filter dsoa.run.context == "query_history"
+          | filter deployment.environment == "DEV-094"
+          | fields events_count = arraySize(span.events),
+                   events_added = snowagent.debug.span.events.added,
+                   events_failed = snowagent.debug.span.events.failed,
+                   supportability.dropped_events_count
+          | filter events_count + coalesce(supportability.dropped_events_count, 0) != events_added
+
+  - id: s-18
+    type: dql
+    showInput: false
+    title: "[C4.9] There are no supportability.non_persisted_attribute_keys reported [SHOULD BE EMPTY]"
+    height: 200
+    state:
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          fetch spans
+          | filter deployment.environment == "DEV-094"
+          | filter isNotNull(supportability.non_persisted_attribute_keys)
+          | expand supportability.non_persisted_attribute_key = supportability.non_persisted_attribute_keys
+          | summarize supportability.non_persisted_attribute_keys = collectDistinct(supportability.non_persisted_attribute_key, maxLength: 100)
+
+  - id: s-38
+    type: dql
+    showInput: false
+    title: "[C4.7] Checking if for all queries in the same DSOA run span.parent_id is not missing [SHOULD BE EMPTY]"
+    height: 264
+    state:
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          fetch spans, from: -24h
+          | filter db.system == "snowflake"
+          | filter isNotNull(dsoa.run.context)
+          | filter isNotNull(snowflake.query.parent_id)
+          | filter deployment.environment == "DEV-094"
+          | fields start_time,
+                   span.id,
+                   trace.id,
+                   span.parent_id,
+                   db.query.text,
+                   snowflake.query.id, snowflake.query.parent_id,
+                   deployment.environment,
+                   dsoa.run.context, dsoa.run.id
+          | joinNested parent_spans = [
+            fetch spans
+            | filter db.system == "snowflake"
+            | filter isNotNull(dsoa.run.context)
+            | filter isNotNull(snowflake.query.parent_id)
+            | filter deployment.environment == "DEV-094"
+            | fields start_time,
+                     span.id,
+                     trace.id,
+                     span.parent_id,
+                     db.query.text,
+                     snowflake.query.id, snowflake.query.parent_id,
+                     deployment.environment,
+                     dsoa.run.context, dsoa.run.id
+          ], on: {left[snowflake.query.parent_id] == right[snowflake.query.id]}
+          , executionOrder:leftFirst
+          | filterOut isNull(parent_spans)
+          | expand parent_spans
+          | fieldsFlatten parent_spans, prefix: "parent."
+          | filter dsoa.run.id == parent.dsoa.run.id
+          | filter isNull(span.parent_id)
+
+  - id: s-40
+    type: dql
+    showInput: false
+    title: "[C5.4] Timestamps in BizEvents are correct and current [SHOULD BE EMPTY]"
+    height: 268
+    state:
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          fetch bizevents
+          | filter telemetry.exporter.name == "dynatrace.snowagent"
+          | filter deployment.environment == "DEV-094"
+          | filter dsoa.run.context == "self_monitoring"
+          | filter dsoa.task.exec.status == "STARTED"
+          | fields timestamp, dsoa.run.id
+          | join [
+            fetch logs
+            | filter db.system == "snowflake"
+            | filter deployment.environment == "DEV-094"
+            | filter dsoa.run.context == "self_monitoring"
+            | filter isNotNull(dsoa.run.id)
+            | summarize {min_timestamp = min(timestamp)}, by: {dsoa.run.id}
+          ]
+          , kind:leftOuter
+          , on: {left[dsoa.run.id] == right[dsoa.run.id]}
+          , fields: {min_timestamp}
+          | filter isNotNull(min_timestamp)
+          | fieldsAdd timeShift = abs(timestamp - min_timestamp)
+          | filterOut timeShift < 10min
+
+  - id: s-41
+    type: dql
+    showInput: false
+    title: "[C8.1] Checking if disabled plugins do not produce data [SHOULD BE EMPTY] (run in disabled-plugins scenario)"
+    height: 268
+    state:
+      input:
+        timeframe:
+          from: now()-7d
+          to: now()
+        value: |
+          fetch bizevents
+          | filter db.system == "snowflake"
+          | fieldsAdd data.type = "bizevents"
+          | makeTimeseries count(), by: {deployment.environment, data.type, dsoa.run.plugin}
+          | append [
+          fetch events
+          | filter db.system == "snowflake"
+          | fieldsAdd data.type = "events"
+          | makeTimeseries count(), by: {deployment.environment, data.type, dsoa.run.plugin}
+          ]
+          | append [
+          fetch logs
+          | filter db.system == "snowflake"
+          | fieldsAdd data.type = "logs"
+          | makeTimeseries count(), by: {deployment.environment, data.type, dsoa.run.plugin}
+          ]
+          | append [
+          fetch spans
+          | filter db.system == "snowflake"
+          | fieldsAdd data.type = "spans"
+          | makeTimeseries count(), by: {deployment.environment, data.type, dsoa.run.plugin}
+          ]
+          | filter deployment.environment == "DEV-094"
+          | filter in(dsoa.run.plugin, {"tasks"})
+
+  - id: s-43
+    type: dql
+    showInput: false
+    title: "[C8.2] Checking if disabled plugins are not deployed when requested [SHOULD BE EMPTY] (run in disabled-plugins scenario)"
+    height: 200
+    state:
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          // Verify that plugins disabled with deploy_disabled_plugins: false
+          // do not appear in the self_monitoring deployment BizEvents.
+          // Expected: no rows for the plugin you disabled (e.g. "tasks").
+          fetch bizevents
+          | filter db.system == "snowflake"
+          | filter deployment.environment == "DEV-094"
+          | filter dsoa.run.context == "self_monitoring"
+          | filter isNotNull(dsoa.run.plugin)
+          | summarize count = count(), by: {dsoa.run.plugin}
+          | sort count desc
