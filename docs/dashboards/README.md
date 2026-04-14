@@ -329,6 +329,11 @@ These dashboards serve as starting points and can be customized to meet your spe
 - Adjust visualizations and layouts
 - Create dashboard presets for different teams or use cases
 
+> **Note:** The YAML source files ship with pre-populated `id:` fields. If you customize a dashboard in the
+> Dynatrace UI and later redeploy from an updated upstream YAML, the matching ID will overwrite your changes.
+> See the [Idempotency and Dashboard IDs](../INSTALL.md#idempotency-and-dashboard-ids) section in the
+> Installation Guide for strategies to avoid this.
+
 ## Related Documentation
 
 - [Data Platform Observability (DPO)](../DPO.md) - Understanding the five themes of data observability

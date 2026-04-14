@@ -649,13 +649,34 @@ This scope is **opt-in** and is never included in the default `all` scope, becau
 
 The `dt_assets` scope calls `deploy_dt_assets.sh --scope=all` internally and passes through the `dry_run` option if set.
 
-### Idempotency
+### Idempotency and Dashboard IDs
 
-On the first deployment, `dtctl` creates each asset with a new auto-generated ID.  The `deploy_dt_assets.sh` script
-automatically writes the assigned ID back into the YAML file after a successful deploy, inserting an `id:` field at the
-top of the file.  Subsequent runs will read this ID and update the existing asset rather than creating a duplicate.
+The dashboard and workflow YAML files in this repository ship with pre-populated `id:` fields. When you deploy
+them, `dtctl` creates each asset on your tenant using that exact ID. Subsequent deploys update the same asset
+rather than creating a duplicate.
 
-If you need to retrieve the ID manually (e.g. for troubleshooting or after a manual `dtctl apply`), use:
+**This works well for most users.** However, be aware of two implications:
+
+1. **Customization and upstream updates.** If you customize a deployed dashboard in the Dynatrace UI and later
+   re-run `deploy_dt_assets.sh` with an updated YAML from an upstream pull, the matching ID will cause your
+   customizations to be overwritten. To preserve your changes, either keep a separate copy of the YAML with your
+   edits, or remove the `id:` line from the upstream YAML before deploying so it creates a new dashboard alongside
+   your customized one.
+
+1. **Fresh tenant-unique IDs.** If you prefer each tenant to have its own unique dashboard IDs, remove the `id:`
+   line from each YAML file before the first deployment:
+
+   ```bash
+   # Strip id: lines from all dashboard YAMLs
+   for f in docs/dashboards/*/*.yml; do sed -i '' '/^id:/d' "$f"; done
+   # Strip id: lines from all workflow YAMLs
+   for f in docs/workflows/*/*.yml; do sed -i '' '/^id:/d' "$f"; done
+   ```
+
+   On the first deploy, `dtctl` will assign new auto-generated IDs. The `deploy_dt_assets.sh` script automatically
+   writes the assigned ID back into each YAML file so that subsequent runs are idempotent.
+
+If you need to retrieve an ID manually (e.g. for troubleshooting or after a manual `dtctl apply`), use:
 
 ```bash
 dtctl get dashboard --output=json | jq '.[] | select(.name=="My Dashboard") | .id'
