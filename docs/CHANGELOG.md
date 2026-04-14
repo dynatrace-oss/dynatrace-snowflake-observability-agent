@@ -4,18 +4,19 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+> [!NOTE] Note:
+> The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+>
+> Detailed technical changes and implementation notes are available in [DEVLOG.md](DEVLOG.md).
 
 ## [0.9.4] - 2026-04-14
 
-> **Note**: Detailed technical changes and implementation notes are available in [DEVLOG.md](DEVLOG.md).
-
 ### Added
 
-- Dashboard and workflow deployment automation via `scripts/deploy/deploy_dt_assets.sh` with `dtctl` integration.
-- Five Davis AI-powered anomaly detection workflows: credits exhaustion, data volume anomaly, dynamic table drift, query slowdown, and table performance degradation.
 - Pipes monitoring plugin.
-- Budgets & FinOps dashboard visualizing budget spending, warehouse sizing, and resource monitor quotas.
+- Six new dashboards: Budgets & FinOps, Data Volume & Storage, Query Deep Dive, Shares & Governance, Snowpipes Monitoring, and Tasks & Pipelines.
+- Five Davis AI-powered anomaly detection workflows: credits exhaustion, data volume anomaly, dynamic table drift, query slowdown, and table performance degradation.
+- Dashboard and workflow deployment automation via `scripts/deploy/deploy_dt_assets.sh` with `dtctl` integration.
 - Per-plugin configurable lookback time for historical data catchup.
 - Support for `SNOWFLAKE.TELEMETRY.EVENTS` as account-level event table.
 
@@ -25,8 +26,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - **BREAKING**: Task timestamp fields (`snowflake.task.run.scheduled_time`, etc.) now use epoch nanoseconds instead of ISO 8601 strings.
 - Event log plugin now reports `WARN`/`ERROR` entries from all `DTAGENT_*_DB` instances by default (set `cross_tenant_monitoring: false` to opt out).
 - Shares & Governance dashboard tile 14 renamed to "Shares No Longer Observed" with improved 7-day log-history detection.
-- Event log lookback window now configurable via `plugins.event_log.lookback_hours`.
-- Migrated all stored procedures from `execute as owner` to `execute as caller` for improved security.
+- Updated Costs Monitoring, Query Performance, Query Quality, Self-Monitoring, and Snowflake Security dashboards with improved tiles and semantics alignment.
+- Migrated all stored procedures to `execute as caller` for improved security (`P_GRANT_IMPORTED_PRIVILEGES` remains `execute as owner` due to privilege requirements).
 - Test fixtures migrated from binary `.pkl` to human-readable `.ndjson` format.
 
 ### Fixed
