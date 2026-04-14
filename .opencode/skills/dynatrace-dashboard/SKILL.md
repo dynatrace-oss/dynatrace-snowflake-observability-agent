@@ -567,7 +567,7 @@ and automatic ID write-back — all in one step.
 On success the script prints a clickable `[URL]` line for each deployed asset:
 ```
 [OK]    Updated: Data Volume & Storage
-[URL]   https://aym57094.sprint.apps.dynatracelabs.com/ui/apps/dynatrace.dashboards/dashboard/fdd7c1db-ffc0-4c75-adea-f60cadc120ad
+[URL]   https://mytenant.apps.dynatracelabs.com/ui/apps/dynatrace.dashboards/dashboard/fdd7c1db-ffc0-4c75-adea-f60cadc120ad
 ```
 
 **ID write-back:** For new dashboards (no `id:` in YAML), the script automatically

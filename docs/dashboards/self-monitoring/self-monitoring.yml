@@ -21,7 +21,7 @@
 #
 # DASHBOARD: DSOA Self Monitoring
 # DESCRIPTION:  Self-monitoring dashboard for Dynatrace Snowflake Open Source Agent (DSOA).
-# OWNER: sebastian.kruk
+# OWNER: DSOA Team
 # PLUGINS: query_history
 # TAGS: self-monitoring
 #

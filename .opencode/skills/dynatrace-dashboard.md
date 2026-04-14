@@ -21,17 +21,20 @@ since dashboards may span multiple plugins (e.g. `snowpipes-monitoring`,
 ## Metric / Attribute Reference
 
 Before writing any DQL query, consult the plugin's semantic dictionary:
-```
+
+```text
 src/dtagent/plugins/<plugin-name>.config/instruments-def.yml
 ```
 
 This is the authoritative source for:
+
 - Metric keys (e.g. `snowflake.pipe.files.pending`)
 - Dimensions (e.g. `snowflake.pipe.name`, `db.namespace`)
 - Log/event attributes
 - Telemetry types (metrics, logs, events, bizevents, spans)
 
 All DSOA telemetry carries these standard dimensions on every record:
+
 - `db.system == "snowflake"`
 - `deployment.environment` — Snowflake account identifier
 - `dsoa.run.plugin` — plugin name (e.g. `"snowpipes"`)
@@ -52,33 +55,38 @@ These rules come from real debugging sessions — follow them strictly:
 
 3. **`percentile()` does not support iterative expressions from `timeseries`.**
    Instead of:
+
 ```dql
    timeseries v = avg(metric), by: { dim }
    | summarize { p95 = percentile(v[], 95) }
 ```
+
    Use `fetch logs` with `percentile()` directly, or use `summarize` with
    `avg()` / `max()` which do support array aggregation.
 
-4. **Honeycomb tiles need scalar values, not timeseries arrays.**
+1. **Honeycomb tiles need scalar values, not timeseries arrays.**
    Use `fetch logs | summarize ... by: { dim }` or
    `fetch events | summarize ... by: { dim }` — not `timeseries`.
 
-5. **Variable filters after `timeseries` must use `array()` wrapper:**
+2. **Variable filters after `timeseries` must use `array()` wrapper:**
+
 ```dql
    timeseries v = sum(metric), by: { snowflake.pipe.name, deployment.environment }
    | filter in(deployment.environment, array($Accounts))
    | filter in(snowflake.pipe.name, array($Pipe))
 ```
 
-6. **`$Variable` in threshold expressions needs `toDouble()`:**
+1. **`$Variable` in threshold expressions needs `toDouble()`:**
+
 ```dql
    | filter value > toDouble($Threshold_Latency_Warning)
 ```
 
-7. **Pipe status is a string dimension, not a numeric metric.**
+1. **Pipe status is a string dimension, not a numeric metric.**
    Query it from logs/events, not from a metric series.
 
 ## YAML Dashboard Format
+
 ```yaml
 # DASHBOARD: <Human-readable title>
 # DESCRIPTION: <One-line description>
@@ -143,16 +151,19 @@ annotations: {}
 ## YAML → JSON Conversion
 
 **Always convert before uploading.** The project provides a conversion script:
+
 ```bash
 ./scripts/tools/yaml-to-json.sh docs/dashboards/<name>/<name>.yml > /tmp/<name>.json
 ```
 
 Validate the JSON before uploading:
+
 ```bash
 jq . /tmp/<name>.json > /dev/null && echo "JSON valid" || echo "JSON INVALID"
 ```
 
 For workflows, the same script applies:
+
 ```bash
 ./scripts/tools/yaml-to-json.sh docs/workflows/<name>/<name>.yml > /tmp/<name>.json
 ```
@@ -209,18 +220,21 @@ YAML as a top-level `id:` field so subsequent runs update rather than create dup
 Omit `id` from the YAML. After the first deploy, `dtctl apply` returns the new ID —
 add it to the YAML, re-convert, and re-deploy once to make future runs idempotent.
 
-### Preview / diff before applying:
+### Preview / diff before applying
+
 ```bash
 dtctl apply -A --dry-run   -f /tmp/<name>-apply.json
 dtctl apply -A --show-diff -f /tmp/<name>-apply.json
 ```
 
-### Get current dashboard for round-trip edit:
+### Get current dashboard for round-trip edit
+
 ```bash
 dtctl get dashboard <id> -o yaml > /tmp/<name>-current.yaml
 ```
 
-### Workflows follow the same pattern:
+### Workflows follow the same pattern
+
 ```bash
 ./scripts/tools/yaml-to-json.sh docs/workflows/<name>/<name>.yml > /tmp/inner.json
 # wrap with type: "workflow" instead of "dashboard", then:
@@ -248,6 +262,7 @@ dtctl apply -A -f /tmp/<name>-workflow-apply.json
 ## Dynatrace MCP Server
 
 The `dt-oss-aym-mcp` MCP server can be used as a reference to:
+
 - Inspect existing dashboards and workflows
 - Run DQL queries to validate metric availability before writing tiles
 - Check what data is actually present for a given `deployment.environment`

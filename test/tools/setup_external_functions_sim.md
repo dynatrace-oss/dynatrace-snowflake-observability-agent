@@ -31,7 +31,7 @@ The DSOA `query_history` plugin picks these up and emits them as telemetry, popu
 
 1. Go to [https://console.aws.amazon.com/lambda](https://console.aws.amazon.com/lambda).
 2. Make sure you are in the **us-east-1** region (top-right region selector) — this matches the
-   Snowflake account `dynatracedigitalbusinessdw.us-east-1`.
+   Snowflake account `your_snowflake_test_account.us-east-1`.
 3. Click **Create function**.
 
 ### 1.2 Configure the function

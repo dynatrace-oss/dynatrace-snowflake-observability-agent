@@ -49,7 +49,7 @@
 --
 -- Cost: near-zero — XSMALL warehouse, auto-suspends in 60 s, tiny row counts.
 --
--- Deployed and validated on: test-qa (DYNATRACEDIGITALBUSINESSDW, AWS_US_EAST_1)
+-- Deployed and validated on: test-qa (YOUR_SNOWFLAKE_TEST_ACCOUNT, AWS_US_EAST_1)
 -- Viewer role granted:        DTAGENT_QA_VIEWER
 -- ============================================================================
 

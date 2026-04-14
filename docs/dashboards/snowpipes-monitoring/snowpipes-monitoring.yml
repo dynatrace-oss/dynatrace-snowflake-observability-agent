@@ -21,7 +21,7 @@
 #
 # DASHBOARD: Snowpipes Monitoring
 # DESCRIPTION:  Snowpipes ingestion monitoring dashboard for DSOA
-# OWNER: sebastian.kruk
+# OWNER: DSOA Team
 # PLUGINS: snowpipes
 # TAGS: snowpipes, ingestion, operations, performance
 #
@@ -93,10 +93,8 @@ tiles:
         inputData: null
   "1":
     description: >-
-      Percentage of pipes currently in RUNNING state, trended over time.
-      Derived from pipe execution state events; near-real-time (no copy/usage
-      history latency). A drop below 100 % indicates one or more pipes are
-      paused, stopped, or stalled.
+      Percentage of pipes currently in RUNNING state, trended over time. Derived from pipe execution state events; near-real-time (no
+      copy/usage history latency). A drop below 100 % indicates one or more pipes are paused, stopped, or stalled.
     type: data
     query: |-
       fetch events
@@ -170,9 +168,8 @@ tiles:
         inputData: null
   "2":
     description: >-
-      Snowpipe compute credits from PIPE_USAGE_HISTORY (~3 h latency). No
-      lower-latency alternative exists for credit data; expect values to lag
-      real-time usage by up to 3 hours.
+      Snowpipe compute credits from PIPE_USAGE_HISTORY (~3 h latency). No lower-latency alternative exists for credit data; expect values to
+      lag real-time usage by up to 3 hours.
     type: data
     query: |-
       timeseries credits = sum(snowflake.pipe.cost.credits_used)
@@ -206,9 +203,8 @@ tiles:
         inputData: null
   "3":
     description: >-
-      Count of successfully loaded files from copy history (~90 min latency).
-      Uses ACCOUNT_USAGE.COPY_HISTORY (STATUS = 'Loaded'); excludes partially
-      loaded and failed files.
+      Count of successfully loaded files from copy history (~90 min latency). Uses ACCOUNT_USAGE.COPY_HISTORY (STATUS = 'Loaded'); excludes
+      partially loaded and failed files.
     type: data
     query: |-
       timeseries files = sum(snowflake.pipe.files.ingested)
@@ -251,10 +247,9 @@ tiles:
         inputData: null
   "4":
     description: >-
-      95th percentile of pipe-to-load latency from copy history (~90 min
-      latency). Measured as DATEDIFF(ms, PIPE_RECEIVED_TIME, LAST_LOAD_TIME)
-      per file. Near-real-time pipe queue latency is separately visible in the
-      Latency & Throughput section via the live pipe status context.
+      95th percentile of pipe-to-load latency from copy history (~90 min latency). Measured as DATEDIFF(ms, PIPE_RECEIVED_TIME,
+      LAST_LOAD_TIME) per file. Near-real-time pipe queue latency is separately visible in the Latency & Throughput section via the live
+      pipe status context.
     type: data
     query: |-
       fetch logs
@@ -298,10 +293,9 @@ tiles:
         inputData: null
   "5":
     description: >-
-      Total load errors (pipe errors + copy errors) from copy history (~90 min
-      latency). Combines snowflake.pipe.errors (pipe-level failures) and
-      snowflake.copy.errors (per-file copy failures). Any value above zero
-      warrants investigation in the Error Analytics section below.
+      Total load errors (pipe errors + copy errors) from copy history (~90 min latency). Combines snowflake.pipe.errors (pipe-level
+      failures) and snowflake.copy.errors (per-file copy failures). Any value above zero warrants investigation in the Error Analytics
+      section below.
     type: data
     query: |-
       timeseries {
@@ -368,10 +362,9 @@ tiles:
         inputData: null
   "6":
     description: >-
-      Staged file size summed from copy history (~90 min latency).
-      Uses snowflake.copy.file_size (pre-ingestion staged bytes) rather than
-      PIPE_USAGE_HISTORY.BYTES_BILLED (~3 h latency) for faster visibility.
-      Values reflect file sizes at staging time, not post-compression row bytes.
+      Staged file size summed from copy history (~90 min latency). Uses snowflake.copy.file_size (pre-ingestion staged bytes) rather than
+      PIPE_USAGE_HISTORY.BYTES_BILLED (~3 h latency) for faster visibility. Values reflect file sizes at staging time, not post-compression
+      row bytes.
     type: data
     query: |-
       timeseries bytes = sum(snowflake.copy.file_size)
@@ -641,10 +634,8 @@ tiles:
   "12":
     title: Data Volume Ingested
     description: >-
-      Staged file sizes over time from copy history (~90 min latency).
-      Uses snowflake.copy.file_size rather than PIPE_USAGE_HISTORY.BYTES_BILLED
-      (~3 h latency) for faster visibility. Values are pre-ingestion staged
-      bytes, not billing units.
+      Staged file sizes over time from copy history (~90 min latency). Uses snowflake.copy.file_size rather than
+      PIPE_USAGE_HISTORY.BYTES_BILLED (~3 h latency) for faster visibility. Values are pre-ingestion staged bytes, not billing units.
     type: data
     query: |-
       fetch logs

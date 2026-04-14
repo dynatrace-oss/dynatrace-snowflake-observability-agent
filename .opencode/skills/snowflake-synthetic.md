@@ -6,11 +6,13 @@ pipelines in Snowflake for validating DSOA telemetry and dashboards.
 ## Connection
 
 Always use the Snowflake CLI with the dev test connection:
+
 ```bash
 snow sql --connection snow_agent_test-qa -f <file>
 ```
 
 For quick inline checks:
+
 ```bash
 snow sql --connection snow_agent_test-qa -q "<SQL statement>"
 ```
@@ -18,11 +20,13 @@ snow sql --connection snow_agent_test-qa -q "<SQL statement>"
 ## File Location
 
 All synthetic setup SQL scripts live in `test/tools/`. Naming convention:
+
 ```
 test/tools/setup_test_<plugin-name>.sql
 ```
 
 Examples:
+
 - `test/tools/setup_test_snowpipes.sql`
 - `test/tools/setup_test_tasks.sql`
 - `test/tools/setup_test_dynamic_tables.sql`
@@ -122,16 +126,19 @@ plan or implementation spec. Each tile on the target dashboard should have
 corresponding synthetic data that will produce a visible, non-trivial result.
 
 ### 2. Apply to Snowflake
+
 ```bash
 snow sql --connection snow_agent_test-qa -f test/tools/setup_test_<plugin>.sql
 ```
 
 ### 3. Verify objects exist
+
 ```bash
 snow sql --connection snow_agent_test-qa -q "SHOW <OBJECTS> IN SCHEMA DSOA_<PLUGIN>_TEST_DB.<SCHEMA>;"
 ```
 
 ### 4. Verify grants
+
 ```bash
 snow sql --connection snow_agent_test-qa -q \
   "SHOW GRANTS TO ROLE DTAGENT_094_VIEWER;" | grep DSOA_
@@ -144,6 +151,7 @@ snow sql --connection snow_agent_test-qa -q \
   (ACCOUNT_USAGE propagation delay)
 
 Check the DSOA task last run time if data is not appearing:
+
 ```bash
 snow sql --connection snow_agent_test-qa -q \
   "SELECT * FROM DTAGENT_094_DB.STATUS.LAST_PROCESSED ORDER BY UPDATED_AT DESC LIMIT 20;"
@@ -153,6 +161,7 @@ snow sql --connection snow_agent_test-qa -q \
 
 If the synthetic setup requires changes to the DSOA plugin code itself
 (SQL views, Python plugin, config), rebuild and redeploy before re-testing:
+
 ```bash
 # 1. Rebuild the agent (lint + compile + SQL assembly)
 ./scripts/dev/build.sh
@@ -162,6 +171,7 @@ If the synthetic setup requires changes to the DSOA plugin code itself
 ```
 
 Scope guidance:
+
 - `plugins` — redeploy SQL views and procedures
 - `config` — push updated configuration values
 - `agents` — redeploy task schedules

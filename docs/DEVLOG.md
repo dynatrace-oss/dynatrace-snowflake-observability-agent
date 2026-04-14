@@ -169,7 +169,6 @@ fluctuate faster); dynamic table drift uses the default window.
   - **Section 3 — Warehouse Load**: running vs queued queries (lineChart), average running queries by warehouse (honeycomb), blocked queries over time (lineChart with threshold).
 - Event Table Ingest Costs section removed: `ACCOUNT_USAGE.EVENT_USAGE_HISTORY` is deprecated per Snowflake docs; will be replaced by a future `metering` plugin.
 - DQL variables use `fields | dedup | sort` pattern (not `summarize by:`); all variable queries include `from: now()-7d` to ensure data within the default window.
-- Dashboard deployed at ID `64b09f3f-1faa-49c8-98ba-7aa496af8cdf` on `aym57094.sprint`.
 
 #### V_BUDGET_SPENDINGS Date Filter Fix
 

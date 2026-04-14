@@ -21,7 +21,7 @@
 #
 # DASHBOARD: Snowflake Query Performance
 # DESCRIPTION: This dashboard provides insights into the performance of Snowflake queries, helping identify slow or resource-intensive queries.
-# OWNER: sebastian.kruk
+# OWNER: DSOA Team
 # PLUGINS: query_history, active_queries
 # TAGS: query performance
 

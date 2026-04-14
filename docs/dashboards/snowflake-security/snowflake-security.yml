@@ -21,7 +21,7 @@
 #
 # DASHBOARD: Snowflake Security
 # DESCRIPTION: Snowflake Security monitoring - login issues, admin activity, trust center issues
-# OWNER: sebastian.kruk
+# OWNER: DSOA Team
 # PLUGINS: login_history, query_history, trust_center, users
 # TAGS: security
 #
@@ -279,7 +279,7 @@ tiles:
         inputData: null
   "6":
     type: markdown
-    content: '### Problems with login to Snowflake'
+    content: "### Problems with login to Snowflake"
     davis:
       componentState:
         inputData: null
@@ -579,7 +579,7 @@ tiles:
       tileTimeframeEnabled: false
   "24":
     type: markdown
-    content: '### Trust Center monitoring'
+    content: "### Trust Center monitoring"
     davis:
       componentState:
         inputData: null
@@ -622,12 +622,12 @@ tiles:
               - LOW
             override:
               color:
-                Default: 'var(--dt-colors-charts-logstatus-none-default, #2c2f3f)'
+                Default: "var(--dt-colors-charts-logstatus-none-default, #2c2f3f)"
           - seriesId:
               - MEDIUM
             override:
               color:
-                Default: 'var(--dt-colors-charts-categorical-color-01-default, #134fc9)'
+                Default: "var(--dt-colors-charts-categorical-color-01-default, #134fc9)"
         fieldMapping:
           leftAxisValues:
             - countDistinct(snowflake.trust_center.scanner.id)

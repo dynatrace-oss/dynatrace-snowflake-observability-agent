@@ -21,7 +21,7 @@
 #
 # DASHBOARD: Costs Monitoring
 # DESCRIPTION:  Snowflake Cost Monitoring dashboard
-# OWNER: sebastian.kruk
+# OWNER: DSOA Team
 # PLUGINS: query_history, resource_monitors, warehouse_usage
 # TAGS: costs
 #

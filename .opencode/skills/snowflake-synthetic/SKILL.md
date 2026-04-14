@@ -14,12 +14,12 @@ pipelines in Snowflake for validating DSOA telemetry and dashboards.
 
 ## Environment Reference (test-qa)
 
-Validated on: **test-qa** (`DYNATRACEDIGITALBUSINESSDW`, `AWS_US_EAST_1`)
+Validated on: **test-qa** (`YOUR_SNOWFLAKE_TEST_ACCOUNT`, `AWS_US_EAST_1`)
 
 | Item                 | Value                        |
 |----------------------|------------------------------|
 | CLI connection       | `snow_agent_test-qa`         |
-| Snowflake account    | `DYNATRACEDIGITALBUSINESSDW` |
+| Snowflake account    | `YOUR_SNOWFLAKE_TEST_ACCOUNT` |
 | Region               | `AWS_US_EAST_1`              |
 | DSOA database        | `DTAGENT_QA_DB`              |
 | Owner role           | `DTAGENT_QA_OWNER`           |
@@ -28,7 +28,7 @@ Validated on: **test-qa** (`DYNATRACEDIGITALBUSINESSDW`, `AWS_US_EAST_1`)
 | Synthetic warehouse  | `DSOA_TEST_WH` (XSMALL, created by setup scripts) |
 | Synthetic database   | `DSOA_TEST_DB` (created by setup scripts)         |
 
-> **Note:** The connection's default role (`SEBASTIAN_KRUK_ROLE`) cannot see
+> **Note:** The connection's default role (`YOUR_SNOWFLAKE_TEST_ROLE`) cannot see
 > DTAGENT databases. Always use `USE ROLE DTAGENT_QA_OWNER` explicitly when
 > checking for agent objects.
 
