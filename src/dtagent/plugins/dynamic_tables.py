@@ -25,7 +25,7 @@
 #
 #
 
-from typing import Tuple, Dict
+from typing import Tuple, Dict, Optional, List
 from dtagent.plugins import Plugin
 from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPILE_REMOVE
 
@@ -39,7 +39,7 @@ class DynamicTablesPlugin(Plugin):
 
     PLUGIN_NAME = "dynamic_tables"
 
-    def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
+    def process(self, run_id: str, run_proc: bool = True, contexts: Optional[List[str]] = None) -> Dict[str, Dict[str, int]]:
         """Processes the measures on dynamic tables
 
         Args:
@@ -74,57 +74,57 @@ class DynamicTablesPlugin(Plugin):
             "dsoa.run.id": "uuid_string"
             }
         """
-        t_dynamic_tables = "APP.V_DYNAMIC_TABLES_INSTRUMENTED"
-        t_dynamic_table_refresh_history = "APP.V_DYNAMIC_TABLE_REFRESH_HISTORY_INSTRUMENTED"
-        t_dynamic_table_graph_history = "APP.V_DYNAMIC_TABLE_GRAPH_HISTORY_INSTRUMENTED"
+        results = {}
 
-        entries_cnt, logs_cnt, metrics_cnt, event_cnt = self._log_entries(
-            lambda: self._get_table_rows(t_dynamic_tables),
-            "dynamic_tables",
-            run_uuid=run_id,
-            start_time="TIMESTAMP",
-            log_completion=run_proc,
-        )
+        if not contexts or "dynamic_tables" in contexts:
+            t_dynamic_tables = "APP.V_DYNAMIC_TABLES_INSTRUMENTED"
+            entries_cnt, logs_cnt, metrics_cnt, event_cnt = self._log_entries(
+                lambda: self._get_table_rows(t_dynamic_tables),
+                "dynamic_tables",
+                run_uuid=run_id,
+                start_time="TIMESTAMP",
+                log_completion=run_proc,
+            )
+            results["dynamic_tables"] = {
+                "entries": entries_cnt,
+                "log_lines": logs_cnt,
+                "metrics": metrics_cnt,
+                "events": event_cnt,
+            }
 
-        entries_refresh_cnt, logs_refresh_cnt, metrics_refresh_cnt, event_refresh_cnt = self._log_entries(
-            lambda: self._get_table_rows(t_dynamic_table_refresh_history),
-            "dynamic_table_refresh_history",
-            run_uuid=run_id,
-            start_time="TIMESTAMP",
-            log_completion=run_proc,
-        )
+        if not contexts or "dynamic_table_refresh_history" in contexts:
+            t_dynamic_table_refresh_history = "APP.V_DYNAMIC_TABLE_REFRESH_HISTORY_INSTRUMENTED"
+            entries_refresh_cnt, logs_refresh_cnt, metrics_refresh_cnt, event_refresh_cnt = self._log_entries(
+                lambda: self._get_table_rows(t_dynamic_table_refresh_history),
+                "dynamic_table_refresh_history",
+                run_uuid=run_id,
+                start_time="TIMESTAMP",
+                log_completion=run_proc,
+            )
+            results["dynamic_table_refresh_history"] = {
+                "entries": entries_refresh_cnt,
+                "log_lines": logs_refresh_cnt,
+                "metrics": metrics_refresh_cnt,
+                "events": event_refresh_cnt,
+            }
 
-        entries_graph_cnt, logs_graph_cnt, metrics_graph_cnt, event_graph_cnt = self._log_entries(
-            lambda: self._get_table_rows(t_dynamic_table_graph_history),
-            "dynamic_table_graph_history",
-            run_uuid=run_id,
-            start_time="TIMESTAMP",
-            log_completion=run_proc,
-        )
+        if not contexts or "dynamic_table_graph_history" in contexts:
+            t_dynamic_table_graph_history = "APP.V_DYNAMIC_TABLE_GRAPH_HISTORY_INSTRUMENTED"
+            entries_graph_cnt, logs_graph_cnt, metrics_graph_cnt, event_graph_cnt = self._log_entries(
+                lambda: self._get_table_rows(t_dynamic_table_graph_history),
+                "dynamic_table_graph_history",
+                run_uuid=run_id,
+                start_time="TIMESTAMP",
+                log_completion=run_proc,
+            )
+            results["dynamic_table_graph_history"] = {
+                "entries": entries_graph_cnt,
+                "log_lines": logs_graph_cnt,
+                "metrics": metrics_graph_cnt,
+                "events": event_graph_cnt,
+            }
 
-        return self._report_results(
-            {
-                "dynamic_tables": {
-                    "entries": entries_cnt,
-                    "log_lines": logs_cnt,
-                    "metrics": metrics_cnt,
-                    "events": event_cnt,
-                },
-                "dynamic_table_refresh_history": {
-                    "entries": entries_refresh_cnt,
-                    "log_lines": logs_refresh_cnt,
-                    "metrics": metrics_refresh_cnt,
-                    "events": event_refresh_cnt,
-                },
-                "dynamic_table_graph_history": {
-                    "entries": entries_graph_cnt,
-                    "log_lines": logs_graph_cnt,
-                    "metrics": metrics_graph_cnt,
-                    "events": event_graph_cnt,
-                },
-            },
-            run_id,
-        )
+        return self._report_results(results, run_id)
 
 
 ##endregion

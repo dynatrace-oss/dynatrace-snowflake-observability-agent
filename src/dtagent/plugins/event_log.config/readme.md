@@ -1,11 +1,10 @@
 This plugin delivers to Dynatrace data reported by Snowflake Trail in the `EVENT TABLE`.
 
-By default, it runs every 30 minutes and registers entries from the last 12 hours, omitting the ones, which:
+By default, it runs every 30 minutes and processes only new entries since the last run (bounded by a configurable lookback window of 24 hours), omitting entries that:
 
-- where already delivered,
-- with scope set to `DTAGENT_OTLP` as they are internal log recording entries sent over the OpenTelemetry protocol
-- related to execution of other instances of Dynatrace Snowflake Observability Agent, or
-- with importance below the level set as `CORE.LOG_LEVEL`, i.e., only warnings or errors from the given Dynatrace Snowflake Observability Agent instance are reported.
+- were already delivered,
+- have scope set to `DTAGENT_OTLP` (internal log recording entries sent over the OpenTelemetry protocol), or
+- have importance below `WARN` for any `DTAGENT_*_DB` instance, i.e., only warnings or errors from Dynatrace Snowflake Observability Agent instances are reported.
 
 By default, it produces log entries containing the following information:
 

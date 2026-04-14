@@ -24,13 +24,13 @@ use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 
 -- creating table  DTAGENT_DB.APP.TMP_QUERY_ACCELERATION_ESTIMATES to ensure it exists when deploying fresh
 create or replace transient table DTAGENT_DB.APP.TMP_QUERY_ACCELERATION_ESTIMATES (QUERY_ID varchar, ATTRIBUTES object) DATA_RETENTION_TIME_IN_DAYS = 0;
-grant select on table DTAGENT_DB.APP.TMP_QUERY_ACCELERATION_ESTIMATES to role DTAGENT_VIEWER;
+grant select, truncate, insert on table DTAGENT_DB.APP.TMP_QUERY_ACCELERATION_ESTIMATES to role DTAGENT_VIEWER;
 
 
 create or replace procedure DTAGENT_DB.APP.P_GET_ACCELERATION_ESTIMATES()
 returns text
 language sql
-execute as owner
+execute as caller
 as
 $$
 DECLARE
@@ -48,12 +48,19 @@ DECLARE
                                        order by execution_time desc;
 
     query_id                VARCHAR DEFAULT '';
+    safe_query_id_re        TEXT    DEFAULT '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$';
 BEGIN
     -- initializing TMP_QUERY_ACCELERATION_ESTIMATES
     EXECUTE IMMEDIATE :truncate_tmp;
 
     FOR query IN c_queries_to_analyze DO
         query_id := query.query_id;
+
+        IF (NOT REGEXP_LIKE(:query_id, :safe_query_id_re)) THEN
+            SYSTEM$LOG_WARN('P_GET_ACCELERATION_ESTIMATES: skipping query with unexpected query_id format: ' || :query_id);
+            CONTINUE;
+        END IF;
+
         EXECUTE IMMEDIATE 'select PARSE_JSON(SYSTEM$ESTIMATE_QUERY_ACCELERATION(''' || :query_id || ''')) as json;';
         INSERT INTO DTAGENT_DB.APP.TMP_QUERY_ACCELERATION_ESTIMATES(QUERY_ID, ATTRIBUTES)
             select

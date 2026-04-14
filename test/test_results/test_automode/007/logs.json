@@ -3,13 +3,18 @@
     "content": "test_automode/007",
     "data_update": 1731675389099000000,
     "ddl": 1731436379508000000,
+    "snowflake.data.rows": 0,
+    "snowflake.data.size": 0,
     "snowflake.table.time_since.last_ddl": 4030,
     "snowflake.table.time_since.last_update": 46,
     "snowflake.table_type": "BASE TABLE",
     "db.collection.name": "DTAGENT_DB.STATUS.PROCESSED_QUERIES_CACHE",
     "db.namespace": "DTAGENT_DB",
+    "dsoa.run.plugin": "telemetry_sender",
     "dsoa.run.context": "test_automode/007",
-    "dsoa.run.plugin": "telemetry_sender"
+    "code.file.path": "./src/dtagent/otel/logs.py",
+    "code.function.name": "send_log",
+    "code.line.number": 205
   },
   {
     "content": "test_automode/007",
@@ -20,20 +25,26 @@
     "snowflake.table_type": "BASE TABLE",
     "db.collection.name": "DEV_DB.PUBLIC.SALES",
     "db.namespace": "DEV_DB",
+    "dsoa.run.plugin": "telemetry_sender",
     "dsoa.run.context": "test_automode/007",
-    "dsoa.run.plugin": "telemetry_sender"
+    "code.file.path": "./src/dtagent/otel/logs.py",
+    "code.function.name": "send_log",
+    "code.line.number": 205
   },
   {
     "content": "New entry to STATUS.LOG_PROCESSED_MEASUREMENTS from test_automode/007",
     "test_automode/007": {
-      "biz_events": 0,
-      "davis_events": 0,
       "entries": 2,
-      "events": 0,
       "log_lines": 2,
-      "metrics": 7
+      "metrics": 7,
+      "events": 0,
+      "biz_events": 0,
+      "davis_events": 0
     },
+    "dsoa.run.plugin": "telemetry_sender",
     "dsoa.run.context": "self_monitoring",
-    "dsoa.run.plugin": "telemetry_sender"
+    "code.file.path": "./src/dtagent/otel/logs.py",
+    "code.function.name": "send_log",
+    "code.line.number": 205
   }
 ]

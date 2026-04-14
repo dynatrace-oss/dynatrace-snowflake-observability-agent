@@ -25,6 +25,11 @@
 #
 # This script is used to build target documentation into README.md file
 
+# Activate virtual environment
+if [ -f ".venv/bin/activate" ]; then
+    source .venv/bin/activate
+fi
+
 ./scripts/dev/build.sh
 
 VERSION=$(grep 'VERSION =' build/_version.py | awk -F'"' '{print $2}')

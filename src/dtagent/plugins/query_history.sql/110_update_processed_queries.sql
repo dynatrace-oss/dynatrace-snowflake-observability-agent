@@ -29,6 +29,7 @@ use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 create or replace procedure DTAGENT_DB.STATUS.UPDATE_PROCESSED_QUERIES(query_ids text, processing_errors_count int, span_events_added int)
 returns int
 language sql
+execute as caller
 as
 $$
 declare

@@ -27,7 +27,7 @@
 #
 from dtagent import AbstractDynatraceSnowAgentConnector
 from dtagent.version import VERSION
-from dtagent.util import get_now_timestamp_formatted, is_regular_mode
+from dtagent.util import is_regular_mode
 
 ##endregion COMPILE_REMOVE
 
@@ -46,7 +46,7 @@ import logging
 import datetime
 
 from types import NoneType
-from typing import Tuple, Dict, List, Callable, Generator, Any, Union, Optional
+from typing import Tuple, Dict, List, Callable, Generator, Any, Union, Optional, Literal
 from enum import Enum
 from abc import ABC, abstractmethod
 import pandas as pd
@@ -134,7 +134,12 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
         for source in sources:
             from dtagent.plugins import _get_plugin_class  # COMPILE_REMOVE
 
-            c_source = _get_plugin_class(source)
+            plugin_name, contexts = source, None
+            if ":" in source:
+                plugin_name, ctx_str = source.split(":", 1)
+                contexts = [c.strip() for c in ctx_str.split(",")]
+
+            c_source = _get_plugin_class(plugin_name)
             run_id = str(uuid.uuid4().hex)
 
             if inspect.isclass(c_source):
@@ -152,7 +157,7 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
                 plugin_telemetry_allowed = (
                     set(
                         self._configuration.get(
-                            plugin_name=source, key="TELEMETRY", default_value=["logs", "spans", "metrics", "events", "biz_events"]
+                            plugin_name=plugin_name, key="TELEMETRY", default_value=["logs", "spans", "metrics", "events", "biz_events"]
                         )
                     )
                     & self.telemetry_allowed
@@ -160,7 +165,7 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
 
                 try:
                     results[source] = c_source(
-                        plugin_name=source,
+                        plugin_name=plugin_name,
                         session=self._session,
                         configuration=self._configuration,
                         logs=self._logs if "logs" in plugin_telemetry_allowed else NO_OP_TELEMETRY,
@@ -168,16 +173,16 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
                         metrics=self._metrics if "metrics" in plugin_telemetry_allowed else NO_OP_TELEMETRY,
                         events=self._events if "events" in plugin_telemetry_allowed else NO_OP_TELEMETRY,
                         bizevents=self._biz_events if "biz_events" in plugin_telemetry_allowed else NO_OP_TELEMETRY,
-                    ).process(run_id, run_proc)
+                    ).process(run_id, run_proc, **({"contexts": contexts} if contexts else {}))
                     #
 
                     self.report_execution_status(status="FINISHED", task_name=source, exec_id=run_id, details_dict=results[source])
                 except RuntimeError as e:
-                    self.handle_interrupted_run(source, run_id, str(e))
+                    self.handle_interrupted_run(plugin_name, run_id, str(e))
             else:
                 self.report_execution_status(status="FAILED", task_name=source, exec_id=run_id)
                 results[source] = {"not_implemented": c_source}
-                LOG.warning(f"""Requested measuring source {source} that is not implemented: {results[source]}""")
+                LOG.warning(f"""Requested measuring source {plugin_name} that is not implemented: {results[source]}""")
 
         return results
 

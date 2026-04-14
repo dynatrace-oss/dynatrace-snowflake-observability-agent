@@ -21,11 +21,12 @@
 #
 # DASHBOARD: Snowflake Security
 # DESCRIPTION: Snowflake Security monitoring - login issues, admin activity, trust center issues
-# OWNER: sebastian.kruk
-# PLUGINS: login_history, query_history, trust_center
+# OWNER: DSOA Team
+# PLUGINS: login_history, query_history, trust_center, users
 # TAGS: security
 #
-version: 19
+id: 0f2f0c6b-5250-4f88-bc78-fe58d80fd59a
+version: 25
 variables:
   - version: 2
     key: Environment
@@ -34,7 +35,8 @@ variables:
     editable: true
     input: |-
       fetch logs
-      | filter coalesce(dsoa.run.context, snowagent.run.context, service.namespace) == "login_history"
+      | filter db.system == "snowflake"
+      | filter isNotNull(deployment.environment)
       | fields deployment.environment
       | dedup deployment.environment
       | sort deployment.environment asc
@@ -49,7 +51,7 @@ variables:
     input: |-
       fetch logs
       | filter db.system == "snowflake"
-      | filter coalesce(dsoa.run.context, snowagent.run.context, service.namespace) == "query_history"
+      | filter dsoa.run.context == "query_history"
       | filter in(deployment.environment, array($Environment))
       | filter in(snowflake.role.name,
             array(splitString($Additional_ADMIN_Roles, "|"),
@@ -70,7 +72,7 @@ variables:
     input: |-
       fetch logs
       | filter db.system == "snowflake"
-      | filter coalesce(dsoa.run.context, snowagent.run.context, service.namespace) == "query_history"
+      | filter dsoa.run.context == "query_history"
       | filter in(deployment.environment, array($Environment))
       | filter in(snowflake.role.name, array($Snowflake_Role_Name))
       | fields snowflake.query.execution_status
@@ -87,7 +89,7 @@ variables:
     input: |-
       fetch logs
       | filter db.system == "snowflake"
-      | filter coalesce(dsoa.run.context, snowagent.run.context, service.namespace) == "query_history"
+      | filter dsoa.run.context == "query_history"
       | filter in(deployment.environment, array($Environment))
       | filter in(snowflake.role.name, array($Snowflake_Role_Name))
       | fields db.operation.name
@@ -104,7 +106,7 @@ variables:
     input: |-
       fetch logs
       | filter db.system == "snowflake"
-          and (dsoa.run.context == "trust_center" or snowagent.run.context == "trust_center")
+          and dsoa.run.context == "trust_center"
           and in(deployment.environment, array($Environment))
       | summarize risk_level = collectDistinct(record(level=vulnerability.risk.level, id=coalesce(
         if(vulnerability.risk.level == "CRITICAL", 0),
@@ -127,7 +129,7 @@ variables:
     input: |-
       fetch logs
       | filter db.system == "snowflake"
-      | filter coalesce(dsoa.run.context, snowagent.run.context, service.namespace) == "login_history"
+      | filter dsoa.run.context == "login_history"
       | filter isNotNull(error.code)
       | filter in(deployment.environment, array($Environment))
       | filter if(in("Human user", array($Logins_User_Types)), matchesValue(db.user, "*.*"))
@@ -181,7 +183,7 @@ tiles:
     query: |
       fetch logs
       | filter db.system == "snowflake"
-      | filter coalesce(dsoa.run.context, snowagent.run.context, service.namespace) == "login_history"
+      | filter dsoa.run.context == "login_history"
       | filter isNotNull(error.code)
         // -- BEGIN: env filters
       | filter in(deployment.environment, array($Environment))
@@ -228,7 +230,7 @@ tiles:
     query: |
       fetch logs
       | filter db.system == "snowflake"
-      | filter coalesce(dsoa.run.context, snowagent.run.context, service.namespace) == "login_history"
+      | filter dsoa.run.context == "login_history"
       | filter isNotNull(error.code)
         // -- BEGIN: env filters
       | filter in(deployment.environment, array($Environment))
@@ -277,7 +279,7 @@ tiles:
         inputData: null
   "6":
     type: markdown
-    content: '### Problems with login to Snowflake'
+    content: "### Problems with login to Snowflake"
     davis:
       componentState:
         inputData: null
@@ -295,7 +297,7 @@ tiles:
     query: |
       fetch logs
         | filter db.system == "snowflake"
-        | filter coalesce(dsoa.run.context, snowagent.run.context, service.namespace) == "query_history"
+        | filter dsoa.run.context == "query_history"
             and in(snowflake.role.name, array($Snowflake_Role_Name))
             and in(deployment.environment, array($Environment))
             and in(snowflake.query.execution_status, $Query_Execution_Status)
@@ -362,7 +364,7 @@ tiles:
     query: |-
       fetch logs
         | filter db.system == "snowflake"
-        | filter coalesce(dsoa.run.context, snowagent.run.context, service.namespace) == "query_history"
+        | filter dsoa.run.context == "query_history"
             and in(deployment.environment, array($Environment))
             and in(snowflake.role.name, array($Snowflake_Role_Name))
             and in(snowflake.query.execution_status, array($Query_Execution_Status))
@@ -411,7 +413,7 @@ tiles:
     query: |
       fetch logs
       | filter db.system == "snowflake"
-      | filter coalesce(dsoa.run.context, snowagent.run.context, service.namespace) == "trust_center"
+      | filter dsoa.run.context == "trust_center"
           and in(deployment.environment, array($Environment))
           and in(vulnerability.risk.level, array($TrustCenter_Risk_Level))
       | fields timestamp, status.message, event.category, vulnerability.risk.level, snowflake.trust_center.scanner.type,
@@ -419,7 +421,7 @@ tiles:
       | append [
           fetch events
           | filter db.system == "snowflake"
-          | filter coalesce(dsoa.run.context, snowagent.run.context, service.namespace) == "trust_center"
+          | filter dsoa.run.context == "trust_center"
               and in(deployment.environment, array($Environment))
               and in(vulnerability.risk.level, array($TrustCenter_Risk_Level))
           | fields timestamp, vulnerability.risk.level, snowflake.trust_center.scanner.id, deployment.environment
@@ -484,7 +486,7 @@ tiles:
     query: |
       fetch logs
         | filter db.system == "snowflake"
-        | filter coalesce(dsoa.run.context, snowagent.run.context, service.namespace) == "query_history"
+        | filter dsoa.run.context == "query_history"
             and in(deployment.environment, array($Environment))
             and in(snowflake.role.name, array($Snowflake_Role_Name))
             and isNotNull(db.query.text)
@@ -532,7 +534,7 @@ tiles:
     query: |-
       fetch logs
         | filter db.system == "snowflake"
-        | filter coalesce(dsoa.run.context, snowagent.run.context, service.namespace) == "query_history"
+        | filter dsoa.run.context == "query_history"
             and in(deployment.environment, array($Environment))
             and in(snowflake.role.name, array($Snowflake_Role_Name))
             and in(snowflake.query.execution_status, array($Query_Execution_Status))
@@ -577,7 +579,7 @@ tiles:
       tileTimeframeEnabled: false
   "24":
     type: markdown
-    content: '### Trust Center monitoring'
+    content: "### Trust Center monitoring"
     davis:
       componentState:
         inputData: null
@@ -587,7 +589,7 @@ tiles:
     query: |
       fetch logs
       | filter db.system == "snowflake"
-      | filter coalesce(dsoa.run.context, snowagent.run.context, service.namespace) == "trust_center"
+      | filter dsoa.run.context == "trust_center"
           and in(deployment.environment, array($Environment))
           and in(vulnerability.risk.level, array($TrustCenter_Risk_Level))
       | fields timestamp, vulnerability.risk.level, snowflake.trust_center.scanner.id, deployment.environment
@@ -595,7 +597,7 @@ tiles:
       | append [
           fetch events
           | filter db.system == "snowflake"
-          | filter coalesce(dsoa.run.context, snowagent.run.context, service.namespace) == "trust_center"
+          | filter dsoa.run.context == "trust_center"
               and in(deployment.environment, array($Environment))
               and in(vulnerability.risk.level, array($TrustCenter_Risk_Level))
           | fields timestamp, vulnerability.risk.level, snowflake.trust_center.scanner.id, deployment.environment
@@ -620,12 +622,12 @@ tiles:
               - LOW
             override:
               color:
-                Default: 'var(--dt-colors-charts-logstatus-none-default, #2c2f3f)'
+                Default: "var(--dt-colors-charts-logstatus-none-default, #2c2f3f)"
           - seriesId:
               - MEDIUM
             override:
               color:
-                Default: 'var(--dt-colors-charts-categorical-color-01-default, #134fc9)'
+                Default: "var(--dt-colors-charts-categorical-color-01-default, #134fc9)"
         fieldMapping:
           leftAxisValues:
             - countDistinct(snowflake.trust_center.scanner.id)
@@ -652,7 +654,7 @@ tiles:
     query: |
       fetch logs
       | filter db.system == "snowflake"
-      | filter coalesce(dsoa.run.context, snowagent.run.context, service.namespace) == "login_history"
+      | filter dsoa.run.context == "login_history"
         // -- BEGIN: env filters
       | filter in(deployment.environment, array($Environment))
       | filter if(in("Human user", array($Logins_User_Types)), matchesValue(db.user, "*.*"))
@@ -700,7 +702,7 @@ tiles:
     query: |
       fetch logs
       | filter db.system == "snowflake"
-      | filter coalesce(dsoa.run.context, snowagent.run.context, service.namespace) == "login_history"
+      | filter dsoa.run.context == "login_history"
         // -- BEGIN: env filters
       | filter in(deployment.environment, array($Environment))
       | filter if(in("Human user", array($Logins_User_Types)), matchesValue(db.user, "*.*"))
@@ -738,7 +740,7 @@ tiles:
     query: |-
       fetch logs
       | filter db.system == "snowflake"
-      | filter coalesce(dsoa.run.context, snowagent.run.context, service.namespace) == "login_history"
+      | filter dsoa.run.context == "login_history"
         // -- BEGIN: env filters
       | filter in(deployment.environment, array($Environment))
       | filter if(in("Human user", array($Logins_User_Types)), matchesValue(db.user, "*.*"))
@@ -788,7 +790,7 @@ tiles:
     query: |-
       fetch logs
         | filter db.system == "snowflake"
-        | filter coalesce(dsoa.run.context, snowagent.run.context, service.namespace) == "query_history"
+        | filter dsoa.run.context == "query_history"
             and in(deployment.environment, array($Environment))
             and in(snowflake.role.name, array($Snowflake_Role_Name))
             and in(snowflake.query.execution_status, array($Query_Execution_Status))
@@ -832,7 +834,7 @@ tiles:
     query: |
       fetch logs
       | filter db.system == "snowflake"
-      | filter coalesce(dsoa.run.context, snowagent.run.context, service.namespace) == "login_history"
+      | filter dsoa.run.context == "login_history"
       | filter isNotNull(error.code)
         // -- BEGIN: env filters
       | filter in(deployment.environment, array($Environment))
@@ -877,7 +879,7 @@ tiles:
     query: |
       fetch logs
       | filter db.system == "snowflake"
-      | filter coalesce(dsoa.run.context, snowagent.run.context, service.namespace) == "login_history"
+      | filter dsoa.run.context == "login_history"
       | filter isNotNull(error.code)
         // -- BEGIN: env filters
       | filter in(deployment.environment, array($Environment))
@@ -923,7 +925,7 @@ tiles:
     query: |-
       fetch logs
       | filter db.system == "snowflake"
-      | filter coalesce(dsoa.run.context, snowagent.run.context, service.namespace) == "login_history"
+      | filter dsoa.run.context == "login_history"
       | filter isNotNull(error.code)
         // -- BEGIN: env filters
       | filter in(deployment.environment, array($Environment))
@@ -951,6 +953,175 @@ tiles:
         isAvailable: true
       componentState:
         inputData: null
+  "34":
+    type: markdown
+    content: |
+      ### Role Change Tracking
+      Tracks role revocations to detect security policy changes or incident response actions.
+    davis:
+      componentState:
+        inputData: null
+  "37":
+    title: Role changes detected (revocations)
+    type: data
+    query: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.context == "users"
+      | filter in(deployment.environment, array($Environment))
+      | filter isNotNull(snowflake.user.roles.direct.removed)
+      | fields
+          `Timestamp` = timestamp,
+          `User` = db.user,
+          `Revoked Role` = snowflake.user.roles.direct.removed,
+          `Environment` = deployment.environment
+      | sort `Timestamp` desc
+    visualization: table
+    visualizationSettings:
+      autoSelectVisualization: false
+      thresholds: []
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+  "38":
+    type: markdown
+    content: |
+      ### User Identity & Access
+      Overview of user account states, authentication methods, and type distribution.
+    davis:
+      componentState:
+        inputData: null
+  "39":
+    title: Active vs disabled/locked accounts
+    type: data
+    query: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.context == "users"
+      | filter in(deployment.environment, array($Environment))
+      | filter isNotNull(snowflake.user.is_disabled)
+      | fieldsAdd status = if(toBoolean(snowflake.user.is_disabled), "Disabled",
+          else: if(toBoolean(snowflake.user.is_locked), "Locked",
+          else: "Active"))
+      | summarize count = count(), by: { status }
+    visualization: categoricalBarChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        legend:
+          hidden: true
+        categoricalBarChartSettings:
+          categoryAxis: status
+          categoryAxisLabel: Account Status
+          valueAxis: count
+          valueAxisLabel: Count
+        colorPalette: balanced
+      thresholds: []
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+  "40":
+    title: MFA enrollment status
+    type: data
+    query: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.context == "users"
+      | filter in(deployment.environment, array($Environment))
+      | filter isNotNull(snowflake.user.has_mfa)
+      | fieldsAdd mfa_status = if(toBoolean(snowflake.user.has_mfa), "MFA Enrolled", else: "No MFA")
+      | summarize count = count(), by: { mfa_status }
+    visualization: pieChart
+    visualizationSettings:
+      chartSettings:
+        circleChartSettings:
+          valueType: relative
+          groupingThresholdType: relative
+      thresholds: []
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+  "41":
+    title: RSA key usage
+    type: data
+    query: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.context == "users"
+      | filter in(deployment.environment, array($Environment))
+      | filter isNotNull(snowflake.user.has_rsa)
+      | fieldsAdd rsa_status = if(toBoolean(snowflake.user.has_rsa), "RSA Configured", else: "No RSA")
+      | summarize count = count(), by: { rsa_status }
+    visualization: pieChart
+    visualizationSettings:
+      chartSettings:
+        circleChartSettings:
+          valueType: relative
+          groupingThresholdType: relative
+      thresholds: []
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+  "43":
+    title: Password-only accounts (no MFA, no RSA, no PAT)
+    type: data
+    query: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.context == "users"
+      | filter in(deployment.environment, array($Environment))
+      | filter toBoolean(snowflake.user.has_password)
+      | filter NOT toBoolean(snowflake.user.has_mfa)
+      | filter NOT toBoolean(snowflake.user.has_rsa)
+      | filter NOT toBoolean(snowflake.user.has_pat)
+      | fields
+          `User` = db.user,
+          `Type` = snowflake.user.type,
+          `Owner` = snowflake.user.owner,
+          `Environment` = deployment.environment
+      | sort `User` asc
+    visualization: table
+    visualizationSettings:
+      autoSelectVisualization: false
+      thresholds: []
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
 layouts:
   "2":
     x: 11
@@ -1046,6 +1217,41 @@ layouts:
     x: 0
     "y": 46
     w: 11
+    h: 6
+  "34":
+    x: 0
+    "y": 60
+    w: 24
+    h: 1
+  "37":
+    x: 0
+    "y": 61
+    w: 24
+    h: 6
+  "38":
+    x: 0
+    "y": 67
+    w: 24
+    h: 1
+  "39":
+    x: 0
+    "y": 68
+    w: 8
+    h: 6
+  "40":
+    x: 8
+    "y": 68
+    w: 8
+    h: 6
+  "41":
+    x: 16
+    "y": 68
+    w: 8
+    h: 6
+  "43":
+    x: 0
+    "y": 74
+    w: 24
     h: 6
 importedWithCode: false
 settings:

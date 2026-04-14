@@ -7,8 +7,18 @@
     "snowflake.credits.limit": 10,
     "snowflake.budget.owner": "ACCOUNTADMIN",
     "snowflake.budget.owner.role_type": "ROLE",
-    "snowflake.budget.resource": "[{\"snowflake.budget.resource.domain\": \"DATABASE\", \"snowflake.budget.resource.name\": \"DTAGENT_DB\"}, {\"snowflake.budget.resource.domain\": \"WAREHOUSE\", \"snowflake.budget.resource.name\": \"DTAGENT_WH\"}]",
+    "snowflake.budget.resource": [
+      {
+        "snowflake.budget.resource.domain": "DATABASE",
+        "snowflake.budget.resource.name": "DTAGENT_DB"
+      },
+      {
+        "snowflake.budget.resource.domain": "WAREHOUSE",
+        "snowflake.budget.resource.name": "DTAGENT_WH"
+      }
+    ],
     "db.namespace": "DTAGENT_DB",
+    "snowflake.budget.full_name": "DTAGENT_DB.APP.DTAGENT_BUDGET",
     "snowflake.budget.name": "DTAGENT_BUDGET",
     "snowflake.schema.name": "APP",
     "db.system": "snowflake",

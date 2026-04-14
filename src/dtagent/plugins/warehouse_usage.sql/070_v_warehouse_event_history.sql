@@ -46,7 +46,7 @@ select
     )                                                           as ATTRIBUTES
 from SNOWFLAKE.ACCOUNT_USAGE.WAREHOUSE_EVENTS_HISTORY weh
 where
-    weh.timestamp > GREATEST(timeadd(hour, -24, current_timestamp), DTAGENT_DB.STATUS.F_LAST_PROCESSED_TS('warehouse_usage'))
+    weh.timestamp > GREATEST(timeadd(hour, -1*DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE('plugins.warehouse_usage.lookback_hours', 24), current_timestamp), DTAGENT_DB.STATUS.F_LAST_PROCESSED_TS('warehouse_usage'))
 order by TIMESTAMP asc;
 
 grant select on view DTAGENT_DB.APP.V_WAREHOUSE_EVENT_HISTORY to role DTAGENT_VIEWER;

@@ -331,7 +331,7 @@ if [ "$SCOPE" != 'apikey' ] && [ "$SCOPE" != 'teardown' ]; then
                 echo "DEBUG: Finding files matching build/$pattern" >&2
                 found_files=$(eval "find build/$pattern -type f -print 2>/dev/null")
                 echo "DEBUG: Found files: $found_files" >&2
-                echo "$found_files"
+                echo "$found_files" >&2
                 #%:DEV
                 eval "find build/$pattern -type f -print 2>/dev/null"
             done
@@ -588,10 +588,20 @@ if [ "$CUSTOM_NAMES_USED" = true ]; then
         "${SED_INPLACE[@]}" -E -e "s/(^|[^A-Za-z0-9_\$])DTAGENT_API_INTEGRATION([^A-Za-z0-9_\$]|$)/\1$CUSTOM_API_INTEGRATION\2/g" "$INSTALL_SCRIPT_SQL"
     fi
 elif [ -n "$TAG" ]; then
-    # Only apply TAG-based naming when custom names are NOT provided
+    # Only apply TAG-based naming when custom names are NOT provided.
+    # Replace each known DTAGENT_ SQL identifier individually using word-boundary patterns
+    # (longest/most-specific identifiers first) so that config string-literal values —
+    # which may contain DTAGENT_* substrings (e.g. budget FQNs like DTAGENT_DB.APP.DTAGENT_BUDGET)
+    # embedded in INSERT statements by prepare_configuration_ingest.sh — are NOT corrupted.
     echo "Applying multitenancy TAG replacements..."
-    "${SED_INPLACE[@]}" -E -e "s/DTAGENT_/DTAGENT_${TAG}_/g" "$INSTALL_SCRIPT_SQL"
-    "${SED_INPLACE[@]}" -E -e "s/${TAG}_${TAG}_/${TAG}_/g" "$INSTALL_SCRIPT_SQL"
+    "${SED_INPLACE[@]}" -E -e "s/(^|[^A-Za-z0-9_\$])DTAGENT_API_INTEGRATION([^A-Za-z0-9_\$]|$)/\1DTAGENT_${TAG}_API_INTEGRATION\2/g" "$INSTALL_SCRIPT_SQL"
+    "${SED_INPLACE[@]}" -E -e "s/(^|[^A-Za-z0-9_\$])DTAGENT_API_KEY([^A-Za-z0-9_\$]|$)/\1DTAGENT_${TAG}_API_KEY\2/g" "$INSTALL_SCRIPT_SQL"
+    "${SED_INPLACE[@]}" -E -e "s/(^|[^A-Za-z0-9_\$])DTAGENT_OWNER([^A-Za-z0-9_\$]|$)/\1DTAGENT_${TAG}_OWNER\2/g" "$INSTALL_SCRIPT_SQL"
+    "${SED_INPLACE[@]}" -E -e "s/(^|[^A-Za-z0-9_\$])DTAGENT_ADMIN([^A-Za-z0-9_\$]|$)/\1DTAGENT_${TAG}_ADMIN\2/g" "$INSTALL_SCRIPT_SQL"
+    "${SED_INPLACE[@]}" -E -e "s/(^|[^A-Za-z0-9_\$])DTAGENT_VIEWER([^A-Za-z0-9_\$]|$)/\1DTAGENT_${TAG}_VIEWER\2/g" "$INSTALL_SCRIPT_SQL"
+    "${SED_INPLACE[@]}" -E -e "s/(^|[^A-Za-z0-9_\$])DTAGENT_DB([^A-Za-z0-9_\$]|$)/\1DTAGENT_${TAG}_DB\2/g" "$INSTALL_SCRIPT_SQL"
+    "${SED_INPLACE[@]}" -E -e "s/(^|[^A-Za-z0-9_\$])DTAGENT_WH([^A-Za-z0-9_\$]|$)/\1DTAGENT_${TAG}_WH\2/g" "$INSTALL_SCRIPT_SQL"
+    "${SED_INPLACE[@]}" -E -e "s/(^|[^A-Za-z0-9_\$])DTAGENT_RS([^A-Za-z0-9_\$]|$)/\1DTAGENT_${TAG}_RS\2/g" "$INSTALL_SCRIPT_SQL"
 fi
 
 # Remove double newlines from the deployment script

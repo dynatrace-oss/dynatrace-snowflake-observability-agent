@@ -14,20 +14,26 @@
       "k": "v",
       "k2": 2
     },
+    "dsoa.run.plugin": "telemetry_sender",
     "dsoa.run.context": "test_automode/013",
-    "dsoa.run.plugin": "telemetry_sender"
+    "code.file.path": "./src/dtagent/otel/logs.py",
+    "code.function.name": "send_log",
+    "code.line.number": 205
   },
   {
     "content": "New entry to STATUS.LOG_PROCESSED_MEASUREMENTS from test_automode/013",
     "test_automode/013": {
-      "biz_events": 1,
-      "davis_events": 0,
       "entries": 1,
-      "events": 1,
       "log_lines": 1,
-      "metrics": 0
+      "metrics": 0,
+      "events": 1,
+      "biz_events": 1,
+      "davis_events": 0
     },
+    "dsoa.run.plugin": "telemetry_sender",
     "dsoa.run.context": "self_monitoring",
-    "dsoa.run.plugin": "telemetry_sender"
+    "code.file.path": "./src/dtagent/otel/logs.py",
+    "code.function.name": "send_log",
+    "code.line.number": 205
   }
 ]

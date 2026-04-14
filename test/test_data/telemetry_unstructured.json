@@ -49,5 +49,38 @@
             "k": false,
             "k2": true
         }
+    },
+    {
+        "test_object": {
+            "key": "value",
+            "key2": 100
+        },
+        "test_object2": {
+            "key": "value",
+            "obj": {
+                "k": 1,
+                "k2": "v2"
+            },
+            "arr": [
+                1,
+                "20",
+                "b",
+                {
+                    "k": "v"
+                }
+            ]
+        },
+        "test_array": [
+            1,
+            "100",
+            2.3
+        ],
+        "test_array2": [
+            "value",
+            {
+                "key": "value"
+            },
+            102
+        ]
     }
 ]

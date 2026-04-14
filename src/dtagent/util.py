@@ -30,7 +30,7 @@ import json
 import os
 import re
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union, Generator, Tuple
+from typing import Any, Dict, List, Literal, Optional, Union, Generator, Tuple
 
 import pandas as pd
 
@@ -42,7 +42,7 @@ NANOSECOND_CONVERSION_RATE = 1000 * 1000 * 1000
 _59_MINUTES_IN_SEC = 59 * 60
 _9_MINUTES_IN_SEC = 9 * 60
 EVENT_TIMESTAMP_KEYS_PAYLOAD_NAME = "snowflake.event.trigger"
-P_SELECT_QUERY = re.compile(r"^\s*(SELECT|SHOW\s+[^>]*->>\s*SELECT)", re.IGNORECASE | re.DOTALL)
+P_SELECT_QUERY = re.compile(r"^\s*(SELECT|SHOW\s+[^>]*->>\s*SELECT|CALL)", re.IGNORECASE | re.DOTALL)
 
 
 def _esc(v: Any) -> Any:
@@ -100,13 +100,29 @@ def _cleanup_data(value: Any) -> Any:
                 numeric_converted = [__try_convert_to_numeric(item) for item in value]
                 converted_types = {type(item) for item in numeric_converted if item is not None}
 
+                # OTel requires homogeneous sequences: promote int/float mix to all-float
+                if (
+                    converted_types
+                    and converted_types.issubset({int, float, bool})
+                    and not converted_types.issubset({bool})
+                    and (int in converted_types and float in converted_types)
+                ):
+                    numeric_converted = [float(item) if isinstance(item, (int, float)) else item for item in numeric_converted]
+                    converted_types = {type(item) for item in numeric_converted if item is not None}
+
                 return (
-                    # If we can normalize to numeric (int, float, bool are compatible), return directly
+                    # If we can normalize to numeric (int, float, bool are compatible) and no dicts/lists remain
                     numeric_converted
-                    if converted_types and converted_types.issubset({int, float, bool})
-                    # Fallback: normalize to a sequence of strings, handling datetime explicitly
+                    if converted_types
+                    and converted_types.issubset({int, float, bool})
+                    and not any(isinstance(i, (dict, list)) for i in numeric_converted)
+                    # Fallback: normalize to a sequence of strings, handling datetime/dict/list explicitly
                     else [
-                        str(format_datetime(item) if isinstance(item, datetime.datetime) else item)
+                        (
+                            format_datetime(item)
+                            if isinstance(item, datetime.datetime)
+                            else json.dumps(item, default=str) if isinstance(item, (dict, list)) else str(item)
+                        )
                         for item in numeric_converted
                         if item is not None
                     ]
@@ -190,7 +206,7 @@ def _clean_key(key: str) -> str:
     return cs.lower()
 
 
-def _cleanup_dict(d: Any, skip_first_level_hidden=False) -> Union[dict, list, str, None]:
+def _cleanup_dict(d: Any, skip_first_level_hidden=False, _in_list=False) -> Union[dict, list, str, None]:
     """Cleans up given dictionary from any None or NaN values, and first level keys starting with _ if requested
 
     Args:
@@ -202,11 +218,11 @@ def _cleanup_dict(d: Any, skip_first_level_hidden=False) -> Union[dict, list, st
         Union[dict, list]: _description_
     """
 
-    def __get_valid_json(json_string: str) -> Union[dict, None]:
+    def __get_valid_json(json_string: str) -> Union[dict, list, None]:
         """Deserialize s (a str, bytes or bytearray instance containing a JSON document) to a Python object."""
         try:
             data = json.loads(json_string)
-            if isinstance(data, dict):
+            if isinstance(data, (dict, list)):
                 return data
             return None
         except (ValueError, TypeError):
@@ -224,11 +240,14 @@ def _cleanup_dict(d: Any, skip_first_level_hidden=False) -> Union[dict, list, st
             if v is not None and v != {}
         }
     if isinstance(d, list):
-        return [_cleanup_dict(i) for i in d if not pd.isna(pd.Series(i)).all()]
-    if isinstance(d, str):
+        return [_cleanup_dict(i, _in_list=True) for i in d if not pd.isna(pd.Series(i)).all()]
+    if isinstance(d, str) and not _in_list:
         jd = __get_valid_json(d)
         if jd is not None:
             return _cleanup_dict(jd)  # for the moment we are putting it back as JSON to avoid confusion at Grail side
+
+    if isinstance(d, datetime.datetime):
+        return format_datetime(d)
 
     return d
 
@@ -293,90 +312,115 @@ def _adjust_timestamp(row_dict: Dict, start_time: str = "START_TIME", end_time: 
     return row_dict
 
 
-def validate_timestamp_ms(timestamp_ms: int, allowed_past_minutes: int = 24 * 60 - 5, allowed_future_minutes: int = 10) -> Optional[int]:
+def validate_timestamp(
+    timestamp: int,
+    allowed_past_minutes: int = 24 * 60 - 5,
+    allowed_future_minutes: int = 10,
+    return_unit: Literal["ms", "ns"] = "ms",
+    skip_range_validation: bool = False,
+) -> Optional[int]:
     """Validates and normalizes timestamps with configurable time windows and automatic unit conversion.
 
     This function performs multiple validation steps:
     1. Rejects negative timestamps (e.g., sentinel values like -1000000)
-    2. Auto-converts timestamps that are too large by detecting the likely time unit:
-       - Femtoseconds (> 4.1e21): divides by 1e12
-       - Picoseconds (> 4.1e18): divides by 1e9
-       - Nanoseconds (> 4.1e15): divides by 1e6
-       - Microseconds (> 4.1e12): divides by 1e3
-    3. Validates the timestamp is within the allowed time range from current time
+    2. Auto-detects input unit and converts to nanoseconds (preserving full precision):
+       - Uses threshold of 4.1e15 (year 2100 in milliseconds * 1000)
+       - Values > 4.1e15: assumed to be nanoseconds or higher precision
+       - Values <= 4.1e15: assumed to be milliseconds or microseconds
+       - Automatically converts from femtoseconds/picoseconds/nanoseconds/microseconds → nanoseconds
+    3. Optionally validates the timestamp is within the allowed time range from current time
+    4. Returns in requested unit (milliseconds or nanoseconds)
+
+    Detection thresholds (based on year 2100):
+    - Femtoseconds: > 4.1e21 → divide by 1e6 to get nanoseconds
+    - Picoseconds:  > 4.1e18 → divide by 1e3 to get nanoseconds
+    - Nanoseconds:  > 4.1e15 → use as-is
+    - Microseconds: > 4.1e12 → multiply by 1e3 to get nanoseconds
+    - Milliseconds: <= 4.1e12 → multiply by 1e6 to get nanoseconds
 
     Args:
-        timestamp_ms (int): timestamp in ms to check (or higher precision units to be auto-converted)
-        allowed_past_minutes (int, optional): allowed past range in minutes. Defaults to 24*60 - 5 (about 1435 minutes, or ~24 hours).
-                                              For logs and events, use defaults; for metrics, use 55.
-        allowed_future_minutes (int, optional): allowed future range in minutes. Defaults to 10.
+        timestamp: timestamp to validate (in any supported precision unit)
+        allowed_past_minutes: allowed past range in minutes (default: ~24 hours)
+        allowed_future_minutes: allowed future range in minutes (default: 10)
+        return_unit: unit to return validated timestamp in - "ms" or "ns" (default: "ms")
+        skip_range_validation: if True, skip time range validation (useful for observed_timestamp)
 
     Returns:
-        Optional[int]: validated timestamp in milliseconds, or None if timestamp is out of range or invalid
+        Optional[int]: validated timestamp in requested unit, or None if invalid
+
+    Raises:
+        ValueError: if return_unit is neither "ms" nor "ns"
 
     Examples:
-        >>> validate_timestamp_ms(1707494400000)  # Valid milliseconds timestamp
+        >>> validate_timestamp(1707494400000, return_unit="ms")  # Milliseconds
         1707494400000
-        >>> validate_timestamp_ms(1707494400000000)  # Microseconds, auto-converted
+        >>> validate_timestamp(1707494400000000000, return_unit="ns")  # Nanoseconds
+        1707494400000000000
+        >>> validate_timestamp(1707494400000000000, return_unit="ms")  # ns input, ms output
         1707494400000
-        >>> validate_timestamp_ms(-1000000)  # Negative sentinel value
+        >>> validate_timestamp(-1000000, return_unit="ms")  # Negative sentinel
         None
-        >>> validate_timestamp_ms(1770224954840999937441792)  # Picoseconds, auto-converted
-        1770224954840
+        >>> validate_timestamp(old_timestamp, skip_range_validation=True, return_unit="ns")  # For observed_timestamp
+        1234567890000000000
     """
+    # Validate return_unit parameter
+    if return_unit not in ("ms", "ns"):
+        raise ValueError(f"return_unit must be 'ms' or 'ns', got '{return_unit}'")
+
     # Pre-validation: reject negative timestamps (sentinel values like -1000000)
-    if timestamp_ms < 0:
+    if timestamp < 0:
         return None
 
-    # Pre-validation: reject timestamps that are clearly too large (e.g., nanoseconds instead of milliseconds)
+    # Auto-detect and convert to nanoseconds (preserves precision)
     # Year 2100 in milliseconds is approximately 4.1e12
-    # Values larger than this are likely incorrectly converted from higher precision time units
-    # Attempt to auto-convert from femtoseconds, picoseconds, nanoseconds, or microseconds
-    # Thresholds based on year 2100 in each unit:
-    #   - Milliseconds: 4.1e12
-    #   - Microseconds:  4.1e12 * 1e3  = 4.1e15
-    #   - Nanoseconds:   4.1e12 * 1e6  = 4.1e18
-    #   - Picoseconds:   4.1e12 * 1e9  = 4.1e21
-    #   - Femtoseconds:  4.1e12 * 1e12 = 4.1e24
-    if timestamp_ms > 4_100_000_000_000:
+    # Values larger than this are likely higher precision time units
+    timestamp_ns = timestamp
 
-        # Try femtoseconds (divide by 1e12 using integer arithmetic)
-        if timestamp_ms > 4_100_000_000_000_000_000_000:
-            converted_ts = timestamp_ms // 1_000_000_000_000
-
-        # Try picoseconds (divide by 1e9 using integer arithmetic)
-        elif timestamp_ms > 4_100_000_000_000_000_000:
-            converted_ts = timestamp_ms // 1_000_000_000
-
-        # Try nanoseconds (divide by 1e6 using integer arithmetic)
-        elif timestamp_ms > 4_100_000_000_000_000:
-            converted_ts = timestamp_ms // 1_000_000
-
-        # Try microseconds (divide by 1e3 using integer arithmetic)
-        elif timestamp_ms > 4_100_000_000_000:
-            converted_ts = timestamp_ms // 1_000
+    if timestamp > 4_100_000_000_000:
+        # Try femtoseconds (divide by 1e6 to get nanoseconds)
+        if timestamp > 4_100_000_000_000_000_000_000:
+            converted_ts = timestamp // 1_000_000
+        # Try picoseconds (divide by 1e3 to get nanoseconds)
+        elif timestamp > 4_100_000_000_000_000_000:
+            converted_ts = timestamp // 1_000
+        # Try nanoseconds (use as-is)
+        elif timestamp > 4_100_000_000_000_000:
+            converted_ts = timestamp
+        # Try microseconds (multiply by 1e3 to get nanoseconds)
+        elif timestamp > 4_100_000_000_000:
+            converted_ts = timestamp * 1_000
         else:
             converted_ts = -1  # Invalid value
 
-        if 0 < converted_ts <= 4_100_000_000_000:
-            timestamp_ms = converted_ts
+        # Validate the converted timestamp is reasonable (within year 2100 range in nanoseconds)
+        if 0 < converted_ts <= 4_100_000_000_000_000_000:
+            timestamp_ns = converted_ts
         else:
             return None
+    else:
+        # Input is in milliseconds, convert to nanoseconds
+        timestamp_ns = timestamp * 1_000_000
 
-    try:
-        timestamp = datetime.datetime.fromtimestamp(timestamp_ms / 1e3, tz=datetime.timezone.utc)
-    except (ValueError, OSError, OverflowError):
-        # Handle any errors from fromtimestamp (invalid values, overflow, etc.)
-        return None
+    # Optionally validate timestamp is within allowed time range
+    if not skip_range_validation:
+        try:
+            timestamp_dt = datetime.datetime.fromtimestamp(timestamp_ns / 1e9, tz=datetime.timezone.utc)
+        except (ValueError, OSError, OverflowError):
+            return None
 
-    now = get_now_timestamp()
-    min_past = now - datetime.timedelta(minutes=allowed_past_minutes)
-    max_future = now + datetime.timedelta(minutes=allowed_future_minutes)
+        now = get_now_timestamp()
+        min_past = now - datetime.timedelta(minutes=allowed_past_minutes)
+        max_future = now + datetime.timedelta(minutes=allowed_future_minutes)
 
-    if timestamp < min_past or timestamp > max_future:
-        return None
+        if timestamp_dt < min_past or timestamp_dt > max_future:
+            return None
 
-    return timestamp_ms
+    # Return in requested unit
+    if return_unit == "ns":
+        return timestamp_ns
+
+    # return_unit == "ms" - convert from nanoseconds to milliseconds
+    return timestamp_ns // 1_000_000
 
 
 def _get_timestamp_in_sec(ts: float = 0, conversion_unit: float = 1, timezone=datetime.timezone.utc) -> datetime.datetime:
@@ -511,24 +555,88 @@ def _chunked_iterable(iterable, size: int) -> Generator[List, None, None]:
         yield chunk
 
 
-def get_timestamp_in_ms(query_data: Dict, ts_key: str, conversion_unit: int = 1e6, default_ts=None):
-    """Returns timestamp in milliseconds by converting value retrieved from query_data under given ts_key"""
+def get_timestamp(query_data: Dict, ts_key: str, default_ts=None) -> Optional[int]:
+    """Returns timestamp in nanoseconds from query_data.
+
+    Handles multiple input formats:
+    - datetime objects → converted to nanoseconds
+    - ISO 8601 strings → parsed and converted to nanoseconds
+    - Numeric values → assumed to be nanoseconds (from SQL extract(epoch_nanosecond ...))
+
+    Args:
+        query_data: Dictionary containing the timestamp data
+        ts_key: Key to retrieve the timestamp from query_data
+        default_ts: Default value to return if timestamp not found or invalid
+
+    Returns:
+        Optional[int]: timestamp in nanoseconds, or None if not found
+
+    Examples:
+        >>> get_timestamp({"ts": 1707494400000000000}, "ts")  # Nanoseconds
+        1707494400000000000
+        >>> get_timestamp({"ts": datetime(2024, 2, 9)}, "ts")  # datetime object
+        1707436800000000000
+    """
     ts = query_data.get(ts_key, None)
     if ts is not None and not pd.isna(ts):
         if isinstance(ts, datetime.datetime):
-            # Ensure timezone awareness before converting to timestamp
             ts = ensure_timezone_aware(ts)
-            return int(ts.timestamp() * 1000)
+            return int(ts.timestamp() * 1_000_000_000)  # Convert to nanoseconds
         if isinstance(ts, str):
             try:
-                # Parse ISO format datetime string (replace Z with +00:00 for fromisoformat)
                 ts = datetime.datetime.fromisoformat(ts.replace("Z", "+00:00"))
                 ts = ensure_timezone_aware(ts)
-                return int(ts.timestamp() * 1000)
+                return int(ts.timestamp() * 1_000_000_000)
             except ValueError:
-                pass  # Fall through to numeric conversion if parsing fails
-        return int(int(ts) / conversion_unit)
+                pass
+        return int(ts)  # Already in nanoseconds from SQL
     return default_ts
+
+
+def process_timestamps_for_telemetry(data: Dict) -> Tuple[Optional[int], Optional[int]]:
+    """Processes timestamp and observed_timestamp for telemetry APIs with proper validation.
+
+    This utility function implements the standard pattern for handling timestamps in telemetry:
+    1. Gets timestamp from "timestamp" key in nanoseconds
+    2. Gets observed_timestamp from "observed_timestamp" key, falls back to timestamp if not present
+    3. Validates timestamp with range checking (for API acceptance) and returns in milliseconds
+    4. Validates observed_timestamp WITHOUT range checking (preserves original) and returns in nanoseconds
+
+    Args:
+        data: Dictionary containing timestamp data (typically from SQL query results)
+
+    Returns:
+        Tuple[Optional[int], Optional[int]]: (timestamp_ms, observed_timestamp_ns)
+        - timestamp_ms: validated timestamp in milliseconds (for Dynatrace APIs)
+        - observed_timestamp_ns: validated observed_timestamp in nanoseconds (per OTLP standard)
+        Either can be None if validation fails or data not present
+
+    Examples:
+        >>> process_timestamps_for_telemetry({"timestamp": 1707494400000000000})
+        (1707494400000, 1707494400000000000)  # timestamp in ms, observed_timestamp in ns
+
+        >>> process_timestamps_for_telemetry(
+        ...     {"timestamp": 1707494400000000000, "observed_timestamp": 1707494300000000000}
+        ... )
+        (1707494400000, 1707494300000000000)  # Uses explicit observed_timestamp
+    """
+    # Get timestamp in nanoseconds from SQL
+    timestamp_ns = get_timestamp(data, "timestamp")
+
+    # Get observed_timestamp if provided, otherwise fallback to timestamp value
+    observed_timestamp_ns = get_timestamp(data, "observed_timestamp", default_ts=timestamp_ns)
+
+    # Validate main timestamp with range checking (for API acceptance) - return in milliseconds
+    validated_timestamp_ms = None
+    if timestamp_ns:
+        validated_timestamp_ms = validate_timestamp(timestamp_ns, return_unit="ms")
+
+    # Validate observed_timestamp WITHOUT range checking (preserve original) - return in nanoseconds
+    validated_observed_timestamp_ns = None
+    if observed_timestamp_ns:
+        validated_observed_timestamp_ns = validate_timestamp(observed_timestamp_ns, return_unit="ns", skip_range_validation=True)
+
+    return validated_timestamp_ms, validated_observed_timestamp_ns
 
 
 def ensure_timezone_aware(dt: datetime.datetime) -> datetime.datetime:

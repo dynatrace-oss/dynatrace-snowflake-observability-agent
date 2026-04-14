@@ -30,7 +30,7 @@ import time
 
 from typing import Dict, Union, Optional, Tuple
 from dtagent.otel.otel_manager import OtelManager
-from dtagent.util import get_timestamp_in_ms, get_now_timestamp, validate_timestamp_ms
+from dtagent.util import get_timestamp, get_now_timestamp, validate_timestamp
 from dtagent.otel import _log_warning
 
 ##endregion COMPILE_REMOVE
@@ -39,7 +39,14 @@ from dtagent.otel import _log_warning
 
 
 class Metrics:
-    """Allows for parsing and sending metrics data."""
+    """Allows for parsing and sending metrics data.
+
+    API Specifications:
+    - Dynatrace Metrics API v2:
+      https://docs.dynatrace.com/docs/ingest-from/extend-dynatrace/extend-metrics/reference/metric-ingestion-protocol
+
+    Note: Timestamps must be in UTC milliseconds.
+    """
 
     from dtagent.config import Configuration  # COMPILE_REMOVE
     from dtagent.otel.semantics import Semantics  # COMPILE_REMOVE
@@ -147,13 +154,16 @@ class Metrics:
         """Flush metrics cache"""
         return self._send_metrics()
 
-    def report_via_metrics_api(self, query_data: Dict, start_time: str = "START_TIME", context_name: Optional[str] = None) -> int:
+    def report_via_metrics_api(
+        self, query_data: Dict, start_time: str = "START_TIME", context_name: Optional[str] = None, plugin_name: Optional[str] = None
+    ) -> int:
         """Generates payload with Metrics v2 API
 
         Args:
-            query_data (Dict): query data containing METRICS section
-            start_time (str): key in query_data containing start time
-            context_name (Optional[str]): optional context name to add to dimensions
+            query_data (Dict):              query data containing METRICS section
+            start_time (str):               key in query_data containing start time
+            context_name (Optional[str]):   optional context name added as ``dsoa.run.context`` dimension
+            plugin_name  (Optional[str]):   optional plugin name added as ``dsoa.run.plugin`` dimension
 
         Returns:
             int: number of metric lines (without description lines) successfully sent
@@ -203,12 +213,16 @@ class Metrics:
                 + self._semantics.get_metric_definition(metric_name, local_metrics_def)
             )
 
-        timestamp = get_timestamp_in_ms(query_data, start_time, 1e6, int(get_now_timestamp().timestamp() * 1000))
-        timestamp = validate_timestamp_ms(timestamp, allowed_past_minutes=55, allowed_future_minutes=10)
+        timestamp_ns = get_timestamp(query_data, start_time, int(get_now_timestamp().timestamp() * 1_000_000_000))
+        timestamp = validate_timestamp(timestamp_ns, allowed_past_minutes=55, allowed_future_minutes=10, return_unit="ms")
 
         payload_lines = []
         # list all dimensions with their values from the provided data
-        all_dimensions = {**self._resattr_dims, **get_context_name(context_name), **_unpack_json_dict(query_data, ["DIMENSIONS"])}
+        all_dimensions = {
+            **self._resattr_dims,
+            **get_context_name(context_name, plugin_name),
+            **_unpack_json_dict(query_data, ["DIMENSIONS"]),
+        }
         LOG.log(LL_TRACE, "all_dimensions = %r", all_dimensions)
 
         # prepare dimensions for metrics
@@ -237,7 +251,7 @@ class Metrics:
         return "METRICS" in query_data
 
     def discover_report_metrics(
-        self, query_data: Dict, start_time: str = "START_TIME", context_name: Optional[str] = None
+        self, query_data: Dict, start_time: str = "START_TIME", context_name: Optional[str] = None, plugin_name: Optional[str] = None
     ) -> Tuple[bool, int]:
         """Checks if METRICS section is defined in query data, returns false if not
         otherwise reports metrics and returns result of report_via_metrics_api.
@@ -245,13 +259,15 @@ class Metrics:
         Args:
             query_data (Dict):              query data containing METRICS section
             start_time (str):               key in query_data containing start time
-            context_name (Optional[str]):   optional context name to add to dimensions
+            context_name (Optional[str]):   optional context name added as ``dsoa.run.context`` dimension
+            plugin_name  (Optional[str]):   optional plugin name added as ``dsoa.run.plugin`` dimension
+
         Returns:
             Tuple[bool, int]: boolean indicating if METRICS section was found, and
                               number of metric lines (without description lines) successfully sent
         """
         if self.metrics_section_exists(query_data):
-            return True, self.report_via_metrics_api(query_data, start_time, context_name=context_name)
+            return True, self.report_via_metrics_api(query_data, start_time, context_name=context_name, plugin_name=plugin_name)
         return False, 0
 
 

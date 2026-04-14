@@ -16,10 +16,19 @@ lint-yaml:
 	yamllint src
 
 lint-markdown:
-	markdownlint '**/*.md' --config .markdownlint.json
+	markdownlint-cli2 '[^.]*/**/*.md' '*.md' --config .markdownlint.json
 
 lint-bom:
 	find src -name "bom.yml" -exec sh -c 'printf "%-50s " "$$1"; .venv/bin/check-jsonschema --schemafile test/src-bom.schema.json "$$1" || check-jsonschema --schemafile test/src-bom.schema.json "$$1"' _ {} \;
 
 # Run all linting checks (stops on first failure, like CI)
 lint: lint-python lint-format lint-pylint lint-sql lint-yaml lint-markdown lint-bom
+
+build:
+	./scripts/dev/build.sh
+
+docs:
+	./scripts/dev/build_docs.sh
+
+package:
+	./scripts/dev/package.sh

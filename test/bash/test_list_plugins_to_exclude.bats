@@ -37,7 +37,7 @@ teardown() {
 ]
 EOF
 
-    run ./package/list_plugins_to_exclude.sh
+    run ./scripts/deploy/list_plugins_to_exclude.sh
     [ "$status" -eq 0 ]
     [[ "$output" =~ "test_plugin" ]]
     ! [[ "$output" =~ "active_plugin" ]]
@@ -69,7 +69,7 @@ EOF
 ]
 EOF
 
-    run ./package/list_plugins_to_exclude.sh
+    run ./scripts/deploy/list_plugins_to_exclude.sh
     [ "$status" -eq 0 ]
 
     # not_enabled_plugin should be excluded (not explicitly enabled when disabled_by_default=true)
@@ -94,7 +94,7 @@ EOF
 ]
 EOF
 
-    run ./package/list_plugins_to_exclude.sh
+    run ./scripts/deploy/list_plugins_to_exclude.sh
     [ "$status" -eq 0 ]
     # Should not exclude any plugins when deploy_disabled_plugins=true
     [ -z "$output" ]
@@ -131,7 +131,7 @@ EOF
 ]
 EOF
 
-    run ./package/list_plugins_to_exclude.sh
+    run ./scripts/deploy/list_plugins_to_exclude.sh
     [ "$status" -eq 0 ]
     [[ "$output" =~ "plugin_one" ]]
     [[ "$output" =~ "plugin_two" ]]
@@ -174,7 +174,7 @@ EOF
 ]
 EOF
 
-    run ./package/list_plugins_to_exclude.sh
+    run ./scripts/deploy/list_plugins_to_exclude.sh
     [ "$status" -eq 0 ]
     # explicitly_disabled should be excluded (explicitly disabled)
     [[ "$output" =~ (^|[[:space:]])explicitly_disabled([[:space:]]|$) ]]

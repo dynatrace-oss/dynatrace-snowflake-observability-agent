@@ -9,6 +9,8 @@ delivers:
     type: procedure
   - name: DTAGENT_DB.APP.P_CLEANUP_EVENT_LOG()
     type: procedure
+  - name: DTAGENT_DB.APP.F_EVENT_LOG_INCLUDE(VARCHAR)
+    type: function
   - name: DTAGENT_DB.APP.V_EVENT_LOG
     type: view
   - name: DTAGENT_DB.APP.V_EVENT_LOG_SPANS_INSTRUMENTED

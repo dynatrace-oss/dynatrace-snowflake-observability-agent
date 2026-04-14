@@ -32,7 +32,7 @@ drop procedure if exists DTAGENT_DB.APP.P_CLEANUP_EVENT_LOG(INT);
 create or replace procedure DTAGENT_DB.APP.P_CLEANUP_EVENT_LOG()
 returns text
 language SQL
-execute as owner
+execute as caller
 as
 $$
 DECLARE

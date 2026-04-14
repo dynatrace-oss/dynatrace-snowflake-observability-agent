@@ -44,7 +44,7 @@ select
     )                                                                           as METRICS
 from SNOWFLAKE.ACCOUNT_USAGE.WAREHOUSE_LOAD_HISTORY wlh
 where
-    wlh.start_time > GREATEST(timeadd(hour, -24, current_timestamp), DTAGENT_DB.STATUS.F_LAST_PROCESSED_TS('warehouse_usage_load'))
+    wlh.start_time > GREATEST(timeadd(hour, -1*DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE('plugins.warehouse_usage.lookback_hours', 24), current_timestamp), DTAGENT_DB.STATUS.F_LAST_PROCESSED_TS('warehouse_usage_load'))
 order by TIMESTAMP asc;
 
 grant select on view DTAGENT_DB.APP.V_WAREHOUSE_LOAD_HISTORY to role DTAGENT_VIEWER;

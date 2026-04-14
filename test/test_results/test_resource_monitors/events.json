@@ -13,7 +13,10 @@
     "snowflake.resource_monitor.frequency": "DAILY",
     "snowflake.resource_monitor.is_active": true,
     "snowflake.resource_monitor.level": "ACCOUNT",
-    "snowflake.warehouses.names": "[\"SYSTEM$STREAMLIT_NOTEBOOK_WH\", \"UNMONITORED_WH\"]",
+    "snowflake.warehouses.names": [
+      "SYSTEM$STREAMLIT_NOTEBOOK_WH",
+      "UNMONITORED_WH"
+    ],
     "snowflake.resource_monitor.name": "ACCOUNT_GLOBAL_MONITOR",
     "db.system": "snowflake",
     "service.name": "test.dsoa2025",
@@ -37,7 +40,10 @@
     "snowflake.resource_monitor.frequency": "DAILY",
     "snowflake.resource_monitor.is_active": true,
     "snowflake.resource_monitor.level": "ACCOUNT",
-    "snowflake.warehouses.names": "[\"SYSTEM$STREAMLIT_NOTEBOOK_WH\", \"UNMONITORED_WH\"]",
+    "snowflake.warehouses.names": [
+      "SYSTEM$STREAMLIT_NOTEBOOK_WH",
+      "UNMONITORED_WH"
+    ],
     "snowflake.resource_monitor.name": "ACCOUNT_GLOBAL_MONITOR",
     "db.system": "snowflake",
     "service.name": "test.dsoa2025",
@@ -61,7 +67,9 @@
     "snowflake.resource_monitor.frequency": "DAILY",
     "snowflake.resource_monitor.is_active": true,
     "snowflake.resource_monitor.level": "WAREHOUSE",
-    "snowflake.warehouses.names": "[\"NATIVE_APP_QUICKSTART_WH\"]",
+    "snowflake.warehouses.names": [
+      "NATIVE_APP_QUICKSTART_WH"
+    ],
     "snowflake.resource_monitor.name": "NATIVE_APP_QUICKSTART_RS",
     "db.system": "snowflake",
     "service.name": "test.dsoa2025",
@@ -85,7 +93,9 @@
     "snowflake.resource_monitor.frequency": "DAILY",
     "snowflake.resource_monitor.is_active": true,
     "snowflake.resource_monitor.level": "WAREHOUSE",
-    "snowflake.warehouses.names": "[\"NATIVE_APP_QUICKSTART_WH\"]",
+    "snowflake.warehouses.names": [
+      "NATIVE_APP_QUICKSTART_WH"
+    ],
     "snowflake.resource_monitor.name": "NATIVE_APP_QUICKSTART_RS",
     "db.system": "snowflake",
     "service.name": "test.dsoa2025",

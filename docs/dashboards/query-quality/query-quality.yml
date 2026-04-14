@@ -24,10 +24,11 @@
 #              The dashboard includes a log of recent queries with full cartesian joins,
 #              as well as visualizations of the number of full cartesian join queries over time and by various dimensions
 #              (environment, operation, user).
-# OWNER: sebastian.kruk
+# OWNER: DSOA Team
 # PLUGINS: query_history
 # TAGS: query_quality, full_cartesian_joins
 #
+id: 4a90d08b-5c20-4e67-be3d-c78b57c16441
 version: 21
 variables:
   - key: Account

@@ -31,7 +31,6 @@ import inspect
 from typing import Tuple, Dict, List, Callable, Union, Generator, Optional, Any
 from abc import ABC, abstractmethod
 from snowflake import snowpark
-from snowflake.snowpark.functions import current_timestamp
 from dtagent import LOG, LL_TRACE
 from dtagent.config import Configuration
 from dtagent.util import (
@@ -50,7 +49,7 @@ from dtagent.otel.events.bizevents import BizEvents
 from dtagent.otel.logs import Logs
 from dtagent.otel.spans import Spans
 from dtagent.otel.metrics import Metrics
-from dtagent.context import RUN_CONTEXT_KEY, get_context_name_and_run_id
+from dtagent.context import RUN_CONTEXT_KEY, RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY, get_context_name_and_run_id
 
 ##endregion COMPILE_REMOVE
 
@@ -214,6 +213,7 @@ class Plugin(ABC):
         logs_sent = 0
         metrics_sent = 0
         metrics_present = False
+        last_processed_timestamp = None
 
         __context = get_context_name_and_run_id(plugin_name=self._plugin_name, context_name=context_name, run_id=run_uuid)
 
@@ -222,6 +222,7 @@ class Plugin(ABC):
             if query_id is None:
                 LOG.warning("Problem with given row in %s: %r", context_name, row_dict)
             else:
+                last_processed_timestamp = row_dict.get("TIMESTAMP", last_processed_timestamp)
                 LOG.log(LL_TRACE, "Processing %s for %r", context_name, query_id)
                 _span_events_added, _spans_sent, _logs_sent, _metrics_sent, _metrics_present = self._process_row(
                     row=row_dict,
@@ -245,7 +246,9 @@ class Plugin(ABC):
             if metrics_sent == 0:
                 processing_errors.append("Problem sending metrics - metrics were discovered but none were sent")
 
-        if not self._spans.flush_traces():
+        spans_disabled = getattr(self._spans, "NOT_ENABLED", False)
+        flush_succeeded = spans_disabled or self._spans.flush_traces()
+        if not flush_succeeded:
             processing_errors.append("Problem flushing traces")
 
         processing_errors_count = len(processing_errors)
@@ -257,7 +260,7 @@ class Plugin(ABC):
         if log_completion:
             self._report_execution(
                 context_name,
-                current_timestamp(),
+                str(last_processed_timestamp),
                 None,
                 {
                     context_name: {
@@ -272,7 +275,7 @@ class Plugin(ABC):
                 run_id=run_uuid,
             )
 
-        if report_status:
+        if report_status and flush_succeeded:
             self._session.call(
                 "STATUS.UPDATE_PROCESSED_QUERIES",
                 joint_processed_query_ids,
@@ -320,7 +323,7 @@ class Plugin(ABC):
         LOG.log(LL_TRACE, "Processing row with id = %s", row_id)
 
         metrics_present, metrics_cnt = self._metrics.discover_report_metrics(
-            row, "START_TIME", context_name=context.get(RUN_CONTEXT_KEY, None)
+            row, "START_TIME", context_name=context.get(RUN_CONTEXT_KEY, None), plugin_name=context.get(RUN_PLUGIN_KEY, None)
         )
 
         span_events_added, spans_sent, logs_sent = 0, 0, 0
@@ -507,7 +510,7 @@ class Plugin(ABC):
             was_processed = False
 
             if report_metrics and not getattr(self._metrics, "NOT_ENABLED", False):
-                _metrics_sent, _metrics_cnt = self._metrics.discover_report_metrics(row_dict, start_time, context_name)
+                _metrics_sent, _metrics_cnt = self._metrics.discover_report_metrics(row_dict, start_time, context_name, self._plugin_name)
                 processed_metrics_cnt += _metrics_cnt
                 was_processed |= _metrics_sent
 
@@ -593,7 +596,6 @@ class Plugin(ABC):
 
     def _report_results(self, results: Dict[str, Any], run_id: str) -> Dict[str, Any]:
         """Generic method reporting results after processing is done. To be overwritten by plugins when required"""
-        from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPILE_REMOVE
 
         return {
             RUN_PLUGIN_KEY: self.PLUGIN_NAME,
@@ -602,12 +604,14 @@ class Plugin(ABC):
         }
 
     @abstractmethod
-    def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
+    def process(self, run_id: str, run_proc: bool = True, contexts: Optional[List[str]] = None) -> Dict[str, Dict[str, int]]:
         """Abstract method for plugin processing.
 
         Args:
             run_id (str): unique run identifier
             run_proc (bool): indicator whether processing should be logged as completed
+            contexts (Optional[List[str]]): optional list of context names to process;
+                                            None means all contexts are processed
 
         Returns:
             Dict[str,int]: dictionary with telemetry counts

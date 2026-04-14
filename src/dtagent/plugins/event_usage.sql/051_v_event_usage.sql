@@ -37,7 +37,7 @@ select
 from
     SNOWFLAKE.ACCOUNT_USAGE.EVENT_USAGE_HISTORY euh
 where
-    euh.end_time > GREATEST( timeadd(hour, -6, current_timestamp),  DTAGENT_DB.STATUS.F_LAST_PROCESSED_TS('event_usage'))        -- there can be 180 minutes latency
+    euh.end_time > GREATEST( timeadd(hour, -1*DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE('plugins.event_usage.lookback_hours', 6), current_timestamp),  DTAGENT_DB.STATUS.F_LAST_PROCESSED_TS('event_usage'))        -- there can be 180 minutes latency
 order by
     euh.end_time asc;
 

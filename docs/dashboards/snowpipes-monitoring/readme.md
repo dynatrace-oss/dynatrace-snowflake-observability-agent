@@ -1,0 +1,86 @@
+# Dashboard: Snowpipes Monitoring
+
+This dashboard provides comprehensive monitoring of Snowflake Snowpipe continuous data ingestion pipelines. It tracks pipeline health, ingestion latency, stage backlog, error rates, data volumes, and credit consumption, enabling operators to quickly detect and diagnose issues with their automated data loading workflows.
+
+![Snowpipes Monitoring dashboard overview](img/overview.png)
+
+## Executive Overview
+
+![Executive Overview KPI tiles](img/executive-overview.png)
+
+Six KPI tiles give an immediate, at-a-glance view of your Snowpipes estate:
+
+- **Pipe Health** — percentage of pipes currently in `RUNNING` state. Color-coded green (100%), orange (80–99%), or red (below 80%).
+- **Credits Consumed** — total Snowpipe credits used in the selected timeframe. Sourced from `PIPE_USAGE_HISTORY` (~3 h latency); no lower-latency alternative exists for credit data.
+- **Files Processed** — total number of files successfully ingested across all pipes. Sourced from `COPY_HISTORY` (~90 min latency).
+- **p95 Ingestion Latency** — 95th-percentile end-to-end ingestion latency. Color-coded against the configurable warning (default 5 min) and critical (default 30 min) thresholds. Sourced from `COPY_HISTORY` (~90 min latency).
+- **Load Errors** — total count of load errors (file-level + row-level). Turns red immediately if any errors are detected. Sourced from `COPY_HISTORY` (~90 min latency).
+- **Data Ingested** — total staged file bytes ingested, displayed with automatic unit scaling. Sourced from `COPY_HISTORY.FILE_SIZE` (~90 min latency) rather than `PIPE_USAGE_HISTORY.BYTES_BILLED` (~3 h latency) for faster visibility; values reflect pre-ingestion staged file sizes, not billing units.
+
+## Pipe Health Status
+
+![Pipe Health Status honeycomb](img/pipe-health.png)
+
+The **Pipe Status** honeycomb shows every pipe in your estate as a colored tile, with color driven by the pipe's execution state:
+
+- **Green** — pipe is `RUNNING` and actively ingesting data.
+- **Orange** — pipe is `PAUSED`.
+- **Red** — pipe is in a `STOPPED` or `STALLED` state and requires attention.
+
+Hovering over a tile reveals the pipe name, account, and exact status string.
+
+## Latency & Throughput
+
+![Latency and Throughput charts](img/latency-throughput.png)
+
+Three charts track the throughput and latency profile of your ingestion pipelines:
+
+- **Ingestion Latency by Pipe** — time-series line chart of average end-to-end ingestion latency per pipe, with configurable warning and critical threshold bands.
+- **Stage Backlog (Pending Files)** — bar chart showing the number of files queued but not yet ingested per pipe. Use the `$Threshold_Backlog_Warning` and `$Threshold_Backlog_Critical` variables to define acceptable backlog sizes.
+- **Data Volume Ingested** — bar chart of ingested data volume over time, grouped by database. Sourced from `COPY_HISTORY.FILE_SIZE` (~90 min latency) rather than `PIPE_USAGE_HISTORY.BYTES_BILLED` (~3 h latency) for faster visibility.
+
+## Error Analytics
+
+![Error Analytics — honeycomb and top pipes table](img/error-analytics.png)
+
+Two tiles focus on load errors:
+
+- **Errors by Target Table** — honeycomb colored by total error count per target table. Darker cells indicate tables with more load failures.
+- **Top Pipes by Error Count** — sortable table listing the top 50 pipes by error count, along with their database and target table. Rows with errors are highlighted red.
+
+## Cost & Credits
+
+![Credits Consumed over Time](img/credits.png)
+
+- **Credits Consumed over Time** — line chart showing Snowpipe credit usage over time, broken down by individual pipe. Useful for identifying which pipes are driving the most cost.
+
+> **Note:** Snowpipe Streaming pipes are identified by an internal UUID in `PIPE_USAGE_HISTORY` rather than a human-readable name. This is a Snowflake platform limitation; the UUID maps to the pipe's `snowflake.pipe.name` dimension.
+
+## Dashboard Variables
+
+| Variable | Type | Default | Description |
+| --- | --- | --- | --- |
+| `Accounts` | query | all | Filter by Snowflake account (`deployment.environment`) |
+| `Pipe` | query | all | Filter by pipe name (`snowflake.pipe.name`) |
+| `Threshold_Latency_Warning` | text | `300000` ms | Latency warning threshold (5 min) |
+| `Threshold_Latency_Critical` | text | `1800000` ms | Latency critical threshold (30 min) |
+| `Threshold_Backlog_Warning` | text | `100` files | Stage backlog warning threshold |
+| `Threshold_Backlog_Critical` | text | `1000` files | Stage backlog critical threshold |
+
+The `$Accounts` and `$Pipe` variables support multi-select, allowing you to narrow the dashboard to a specific account or set of pipes (e.g., only pipes loading CSV files from S3 into a particular schema).
+
+## Required Plugin
+
+This dashboard requires the `snowpipes` plugin to be enabled in your DSOA configuration. The plugin uses a dual-schedule architecture:
+
+- **Fast context** (`snowpipes`, every 5 min) — pipe status, pending file count, and oldest-file latency.
+- **Deep context** (`snowpipes_copy_history`, hourly) — ingestion latency, file/row counts, and error details from `ACCOUNT_USAGE.COPY_HISTORY`.
+- **Usage context** (`snowpipes_usage_history`, hourly) — credit consumption from `ACCOUNT_USAGE.PIPE_USAGE_HISTORY` (~3 h data latency).
+
+> **Data latency summary:** pipe status tiles update every 5 min; files, latency, errors, and data volume tiles update within ~90 min (copy history); credit tiles lag by up to 3 hours (usage history).
+
+Note that hourly context metrics (latency, data volume, credits) will not appear until the first hourly collection completes after the plugin is enabled.
+
+## Default Timeframe
+
+The dashboard defaults to the last 24 hours. For cost and credit analysis, extend the timeframe to 7 or 14 days to see meaningful trends.

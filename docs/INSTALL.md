@@ -11,6 +11,7 @@ developer and want to build from source, please refer to the [CONTRIBUTING.md](C
 - [Prerequisites](#prerequisites)
 - [Quick Start](#quick-start)
 - [Deploying DSOA](#deploying-dynatrace-snowflake-observability-agent)
+- [Deploying Dashboards and Workflows](#deploying-dashboards-and-workflows)
 - [Setting up a profile](#setting-up-a-profile)
 - [Setting up connection to Snowflake](#setting-up-connection-to-snowflake)
 - [Common Configuration Mistakes](#common-configuration-mistakes)
@@ -87,6 +88,7 @@ brew install jq yq gawk
 
    ```yaml
    core:
+     dynatrace_tenant_address: YOUR_TENANT.live.dynatrace.com
      deployment_environment: PRODUCTION  # This identifies your instance in telemetry
      tag: ""                             # Optional: Use for multitenancy (suffixes Snowflake objects)
      snowflake:
@@ -296,7 +298,7 @@ The role hierarchy is:
 Different deployment scopes require different privilege levels:
 
 | Scope      | Required Role   | Description                                                                         |
-| ---------- | --------------- | ----------------------------------------------------------------------------------- |
+|------------|-----------------|-------------------------------------------------------------------------------------|
 | `init`     | `ACCOUNTADMIN`  | Creates roles, database, warehouse, and initial structure                           |
 | `admin`    | `DTAGENT_ADMIN` | **Optional.** Performs administrative operations (role grants, ownership transfers) |
 | `setup`    | `DTAGENT_OWNER` | Creates schemas, tables, procedures, and core objects                               |
@@ -525,7 +527,7 @@ You should store the Access Token for your Dynatrace tenant (to which you want t
 variable `DTAGENT_TOKEN`. The token should have the following scopes enabled:
 
 | Scope ID                    | Scope Name                   | API                          | Comment |
-| --------------------------- | ---------------------------- | ---------------------------- | ------- |
+|-----------------------------|------------------------------|------------------------------|---------|
 | `logs.ingest`               | Ingest Logs                  | `/api/v2/otlp/v1/logs`       |         |
 | `metrics.ingest`            | Ingest Metrics               | `/api/v2/metrics/ingest`     |         |
 | `bizevents.ingest`          | Ingest BizEvents             | `/api/v2/bizevents/ingest`   |         |
@@ -562,6 +564,134 @@ The complete log of deployment and the script executed during deployment is avai
 > **Troubleshooting:** If tasks are running in Snowflake but no data appears in Dynatrace, please refer to
 > [Troubleshooting: No Data in Dynatrace](docs/debug/no-data-in-dt/readme.md) for a comprehensive debugging guide.
 
+## Deploying Dashboards and Workflows
+
+After the agent is deployed and sending telemetry, you can deploy pre-built Dynatrace dashboards and workflows to visualize
+and act on the data.  Deployment is automated via `deploy_dt_assets.sh`, which uses the
+[`dtctl`](https://github.com/dynatrace-oss/dtctl) CLI to apply assets directly to your Dynatrace tenant.
+
+> **Note:** Dashboards and workflows use a separate authentication mechanism from the agent's `DTAGENT_TOKEN`.
+> They require a Dynatrace **Platform Token** with the appropriate scopes (see [Prerequisites for Dashboard and Workflow Deployment](#prerequisites-for-dashboard-and-workflow-deployment) below).
+
+### Prerequisites for Dashboard and Workflow Deployment
+
+- **`dtctl`** installed and authenticated.
+
+  Install with Homebrew (macOS):
+
+  ```bash
+  brew install dynatrace-oss/tap/dtctl
+  ```
+
+  Authenticate with your Dynatrace tenant:
+
+  ```bash
+  dtctl auth login
+  ```
+
+  Or set the `DTCTL_TOKEN` environment variable with a valid platform token:
+
+  ```bash
+  export HISTCONTROL=ignorespace
+   export DTCTL_TOKEN="dt0s01.SAMPLE..."
+  ```
+
+- **Platform Token scopes** required:
+
+  | Asset type  | Required scope                        |
+  | ----------- | ------------------------------------- |
+  | Dashboards  | `document:documents:write`            |
+  | Workflows   | `automation:workflows:write`          |
+
+### Deploying with the Script
+
+The `deploy_dt_assets.sh` script in the `scripts/deploy/` directory handles conversion from YAML source files
+(stored in `docs/dashboards/` and `docs/workflows/`) to `dtctl`-compatible JSON and applies them to the tenant.
+
+**Deploy all dashboards and workflows:**
+
+```bash
+./scripts/deploy/deploy_dt_assets.sh
+```
+
+**Deploy only dashboards:**
+
+```bash
+./scripts/deploy/deploy_dt_assets.sh --scope=dashboards
+```
+
+**Deploy only workflows:**
+
+```bash
+./scripts/deploy/deploy_dt_assets.sh --scope=workflows
+```
+
+**Preview changes without applying (dry-run):**
+
+```bash
+./scripts/deploy/deploy_dt_assets.sh --dry-run
+```
+
+**Include an environment label in log output:**
+
+```bash
+./scripts/deploy/deploy_dt_assets.sh --env=production
+```
+
+### Deploying via deploy.sh
+
+You can also trigger dashboard and workflow deployment as part of a broader `deploy.sh` run using the `dt_assets` scope.
+This scope is **opt-in** and is never included in the default `all` scope, because `dtctl` is an optional dependency.
+
+```bash
+./deploy.sh $ENV --scope=dt_assets
+```
+
+The `dt_assets` scope calls `deploy_dt_assets.sh --scope=all` internally and passes through the `dry_run` option if set.
+
+### Idempotency and Dashboard IDs
+
+The dashboard and workflow YAML files in this repository ship with pre-populated `id:` fields. When you deploy
+them, `dtctl` creates each asset on your tenant using that exact ID. Subsequent deploys update the same asset
+rather than creating a duplicate.
+
+**This works well for most users.** However, be aware of two implications:
+
+1. **Customization and upstream updates.** If you customize a deployed dashboard in the Dynatrace UI and later
+   re-run `deploy_dt_assets.sh` with an updated YAML from an upstream pull, the matching ID will cause your
+   customizations to be overwritten. To preserve your changes, either keep a separate copy of the YAML with your
+   edits, or remove the `id:` line from the upstream YAML before deploying so it creates a new dashboard alongside
+   your customized one.
+
+1. **Fresh tenant-unique IDs.** If you prefer each tenant to have its own unique dashboard IDs, remove the `id:`
+   line from each YAML file before the first deployment:
+
+   ```bash
+   # Strip id: lines from all dashboard YAMLs
+   for f in docs/dashboards/*/*.yml; do sed -i '' '/^id:/d' "$f"; done
+   # Strip id: lines from all workflow YAMLs
+   for f in docs/workflows/*/*.yml; do sed -i '' '/^id:/d' "$f"; done
+   ```
+
+   On the first deploy, `dtctl` will assign new auto-generated IDs. The `deploy_dt_assets.sh` script automatically
+   writes the assigned ID back into each YAML file so that subsequent runs are idempotent.
+
+If you need to retrieve an ID manually (e.g. for troubleshooting or after a manual `dtctl apply`), use:
+
+```bash
+dtctl get dashboard --output=json | jq '.[] | select(.name=="My Dashboard") | .id'
+```
+
+Add the returned `id` as a top-level field in the corresponding YAML to make future automated runs idempotent.
+
+### Available Dashboards
+
+See [`docs/dashboards/README.md`](dashboards/README.md) for the full list of available dashboards and their descriptions.
+
+### Available Workflows
+
+See [`docs/workflows/README.md`](workflows/README.md) for the full list of available workflows and their descriptions.
+
 ## Setting up a profile
 
 Before you deploy Dynatrace Snowflake Observability Agent to Snowflake, you need to configure a profile with necessary information to
@@ -580,7 +710,7 @@ Optionally you can adjust plugin configurations.
 The following table describes all available `core` configuration options:
 
 | Configuration Key                                | Type    | Required    | Default                   | Description                                                                                                                                                                                                                                                                                                                          |
-| ------------------------------------------------ | ------- | ----------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+|--------------------------------------------------|---------|-------------|---------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `dynatrace_tenant_address`                       | String  | Yes         | -                         | The address of your Dynatrace tenant (e.g., `abc12345.live.dynatrace.com`)                                                                                                                                                                                                                                                           |
 | `deployment_environment`                         | String  | Yes         | -                         | Unique identifier for the deployment environment                                                                                                                                                                                                                                                                                     |
 | `log_level`                                      | String  | Yes         | `WARN`                    | Internal Python logging level for troubleshooting agent execution. Controls verbosity of debug statements in Snowflake's query history. Valid values: `DEBUG`, `INFO`, `WARN`, `ERROR`. Use `DEBUG` for development/troubleshooting, `WARN` for production. Does not affect telemetry sent to Dynatrace.                             |
@@ -679,7 +809,7 @@ The deployment script will validate all custom names before proceeding. If valid
 The agent supports various installation paths depending on your organizational requirements and privilege constraints:
 
 | Scenario                              | Required Objects          | Optional Objects                    | Configuration                               | Deployment Scopes                                          |
-| ------------------------------------- | ------------------------- | ----------------------------------- | ------------------------------------------- | ---------------------------------------------------------- |
+|---------------------------------------|---------------------------|-------------------------------------|---------------------------------------------|------------------------------------------------------------|
 | **Standard Full Install**             | All defaults              | Admin role + Resource monitor       | Default names, no TAG                       | `all` or `init,admin,setup,plugins,config,agents,apikey`   |
 | **Standard Without Optional**         | Defaults                  | Admin: `-`<br>Resource monitor: `-` | Set to `"-"` in config                      | `init,setup,plugins,config,agents,apikey` (skip `admin`)   |
 | **TAG-based Multitenancy**            | Defaults with TAG suffix  | Admin + Resource monitor            | TAG only (e.g., `tag: TNA`)                 | `all` or `init,admin,setup,plugins,config,agents,apikey`   |
@@ -775,18 +905,28 @@ This creates:
 The `plugins` section allows you to configure plugin behavior globally and individually:
 
 | Configuration Key                 | Type    | Default | Description                                                                                                                                        |
-| --------------------------------- | ------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+|-----------------------------------|---------|---------|----------------------------------------------------------------------------------------------------------------------------------------------------|
 | `plugins.disabled_by_default`     | Boolean | `false` | When set to `true`, all plugins are disabled by default unless explicitly enabled                                                                  |
 | `plugins.deploy_disabled_plugins` | Boolean | `true`  | Deploy plugin code even if the plugin is disabled. When `true`, disabled plugins' SQL objects and procedures are deployed but not scheduled to run |
 
-Each individual plugin can be configured with plugin-specific options. See the plugin documentation for available configuration options per plugin.
+Each individual plugin supports the following common configuration keys (set under `plugins.<plugin_name>`):
+
+| Configuration Key | Type    | Default | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+|-------------------|---------|---------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `lookback_hours`  | Integer | varies  | Maximum lookback window (in hours) the plugin uses when scanning for new data on each run. The effective start time is the later of `current time - lookback_hours` and the stored last-processed timestamp, so this caps how far back the agent will scan when the marker is missing or older than the lookback window (for example, on first run, after a reset, or following a long outage). During normal operation the plugin advances from the last processed timestamp automatically. See each plugin's `config.md` for the default value and any additional per-context lookback keys (e.g., `lookback_hours_versions` for the `tasks` plugin). |
+
+| `schedule`        | String  | varies  | Cron or interval schedule for the plugin's Snowflake task. See [Plugin Scheduling](#plugin-scheduling) for supported formats.                                                                                                                                                                                                                                                                                       |
+| `is_disabled`     | Boolean | `false` | Set to `true` to disable this plugin.                                                                                                                                                                                                                                                                                                                                                                               |
+| `telemetry`       | List    | varies  | List of telemetry types to emit (`logs`, `metrics`, `spans`, `events`, `biz_events`). Remove items to suppress specific signal types.                                                                                                                                                                                                                                                                               |
+
+For plugin-specific options (e.g., `max_entries`, `retention_hours`, `include`/`exclude` filters), see the `config.md` file in each plugin's configuration directory.
 
 #### OpenTelemetry Configuration Options
 
 The `otel` section allows you to configure OpenTelemetry behavior. By default, you can leave this section empty (`otel: {}`) to use default values. Advanced users can configure the following options:
 
 | Configuration Key                      | Type           | Default | Description                                                                |
-| -------------------------------------- | -------------- | ------- | -------------------------------------------------------------------------- |
+|----------------------------------------|----------------|---------|----------------------------------------------------------------------------|
 | `max_consecutive_api_fails`            | Integer        | -       | Maximum number of consecutive API failures before circuit breaker triggers |
 | `logs.export_timeout_millis`           | Integer        | -       | Export timeout for logs in milliseconds                                    |
 | `logs.max_export_batch_size`           | Integer        | -       | Maximum batch size for log exports                                         |

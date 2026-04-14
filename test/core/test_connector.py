@@ -299,8 +299,8 @@ class TestTelemetrySender:
             config=_utils.get_config(),
             test_source="test_automode/009",
         )[RUN_RESULTS_KEY]["test_automode/009"] == {
-            "entries": 3,
-            "log_lines": 3,
+            "entries": 4,
+            "log_lines": 4,
             "metrics": 0,
             "events": 0,
             "biz_events": 0,
@@ -314,12 +314,12 @@ class TestTelemetrySender:
             config=_utils.get_config(),
             test_source="test_automode/010",
         )[RUN_RESULTS_KEY]["test_automode/010"] == {
-            "entries": 3,
+            "entries": 4,
             "log_lines": 0,
             "metrics": 0,
-            "events": 3,
+            "events": 4,
             "biz_events": 0,
-            "davis_events": 3,
+            "davis_events": 4,
         }
         # sending all data from a given (custom structure) view as bizevents
         assert telemetry_test_sender(
@@ -329,11 +329,11 @@ class TestTelemetrySender:
             config=_utils.get_config(),
             test_source="test_automode/011",
         )[RUN_RESULTS_KEY]["test_automode/011"] == {
-            "entries": 3,
+            "entries": 4,
             "log_lines": 0,
             "metrics": 0,
             "events": 0,
-            "biz_events": 3,
+            "biz_events": 4,
             "davis_events": 0,
         }
         # sending all data from a given (custom structure) view as logs, events, and bizevents
@@ -344,11 +344,11 @@ class TestTelemetrySender:
             config=_utils.get_config(),
             test_source="test_automode/012",
         )[RUN_RESULTS_KEY]["test_automode/012"] == {
-            "entries": 3,
-            "log_lines": 3,
+            "entries": 4,
+            "log_lines": 4,
             "metrics": 0,
-            "events": 3,
-            "biz_events": 3,
+            "events": 4,
+            "biz_events": 4,
             "davis_events": 0,
         }
         # sending single data point from a given (custom structure) view as logs, events, and bizevents

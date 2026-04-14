@@ -1,0 +1,219 @@
+# WORKFLOW: DSOA — Data Volume Anomaly Detection
+# DESCRIPTION: Detects abnormal drops or changes in table row counts using Davis AI anomaly detection
+# OWNER: DSOA Team
+# PLUGINS: data_volume
+# TAGS: snowflake, dsoa, quality, data-volume
+
+id: bbce8c69-4a7b-4fc5-a0dc-386908a51d40
+title: "DSOA — Data Volume Anomaly Detection"
+description: |
+  Monitors row count changes per Snowflake table using Davis AI anomaly detection.
+  Alerts when a table's row count drops unexpectedly below its learned baseline — indicating
+  failed pipelines, accidental deletes, or dropped tables. Missing data (no report from a
+  table) is also treated as an anomaly. Requires the data_volume plugin.
+isPrivate: false
+schemaVersion: 4
+trigger:
+  schedule:
+    isActive: true
+    trigger:
+      type: interval
+      intervalMinutes: 720
+    rule: null
+    filterParameters: {}
+    timezone: UTC
+    inputs: {}
+tasks:
+  detect_volume_anomaly:
+    name: detect_volume_anomaly
+    description: Detect abnormal row count changes per table using Davis AI
+    action: dynatrace.davis.workflow.actions:davis-analyze
+    active: true
+    position:
+      x: 0
+      y: 1
+    conditions:
+      states: {}
+    predecessors: []
+    input:
+      analyzerName: dt.statistics.anomaly_detection.SeasonalBaselineAnomalyDetectionAnalyzer
+      body:
+        timeSeriesData: |
+          timeseries row_count = max(snowflake.data.rows)
+          , by: {
+            db.collection.name,
+            deployment.environment
+          }
+          , interval: 24h
+          | fieldsAdd row_count_avg = arrayAvg(row_count)
+          | fieldsAdd row_count_diff = row_count[] - row_count_avg
+          | filter arrayMax(row_count_diff) > 0
+          | sort row_count_diff desc
+          | limit 10
+          | fieldsRemove row_count_avg, row_count_diff
+          | fieldsAdd
+              metric_name = "snowflake.data.rows",
+              _event_name_template = "Abnormal data volume change for table {dims:db.collection.name}",
+              _event_description_template = "Table {dims:db.collection.name} in {dims:deployment.environment} has experienced an abnormal change in row count compared to the learned baseline."
+        alertCondition: ABOVE
+        tolerance: 4
+        generalParameters:
+          timeframe:
+            startTime: now()-30d
+            endTime: now
+          logVerbosity: WARNING
+          resolveDimensionalQueryData: false
+        slidingWindow: 5
+        violatingSamples: 3
+        dealertingSamples: 5
+        alertOnMissingData: false
+
+  extract_anomaly_events:
+    name: extract_anomaly_events
+    description: Process Davis results and build Dynatrace event objects
+    action: dynatrace.automations:run-javascript
+    active: true
+    position:
+      x: 0
+      y: 2
+    conditions:
+      states:
+        detect_volume_anomaly: SUCCESS
+    predecessors:
+      - detect_volume_anomaly
+    input:
+      script: |
+        import { execution } from '@dynatrace-sdk/automation-utils';
+        import { EventIngestEventType } from '@dynatrace-sdk/client-classic-environment-v2';
+
+        // === CONFIGURATION ===
+        // Change eventType to EventIngestEventType.CustomAlert to enable Davis problem correlation.
+        // CustomInfo (default) creates informational events without triggering Davis problems.
+        const CONFIG = {
+          eventType: EventIngestEventType.CustomInfo,
+          eventTimeout: 360,
+          adSource: 'dsoa.data_volume_anomaly'
+        };
+        // === END CONFIGURATION ===
+
+        function replacePlaceholders(contentString, data) {
+          const pattern = /\{dims:(\S*?)}/gm;
+          let matches = [];
+          while ((matches = pattern.exec(contentString))) {
+            contentString = contentString.replace(matches[0], data[matches[1]]);
+          }
+          return contentString;
+        }
+
+        function unpackMap(amap) {
+          const mappedResult = {};
+          amap.forEach(item => {
+            mappedResult[item.key] = item.value;
+          });
+          return mappedResult;
+        }
+
+        function createEventObject(alert, result, events) {
+          const startTime = alert.timeframe.startTime;
+          const endTime = alert.timeframe.endTime;
+          const eventTitle = result.dimensions.find(x => x.key === '_event_name_template')?.value;
+          const eventDesc = result.dimensions.find(x => x.key === '_event_description_template')?.value;
+          const sourceMetric = result.dimensions.find(x => x.key === 'metric_name')?.value;
+          const resultDimensions = unpackMap(result.dimensions);
+
+          const newEvent = {
+            body: {
+              eventType: CONFIG.eventType,
+              title: replacePlaceholders(eventTitle, resultDimensions),
+              properties: {
+                'event.description': replacePlaceholders(eventDesc, resultDimensions)
+              },
+              timeout: CONFIG.eventTimeout
+            }
+          };
+
+          newEvent.body.properties['event.start'] = startTime;
+          newEvent.body.properties['event.end'] = endTime;
+          newEvent.body.properties['ad.source'] = CONFIG.adSource;
+          newEvent.body.properties['ad.source_metric'] = sourceMetric;
+
+          if (result.dimensions.length > 0) {
+            result.dimensions.forEach(dim => {
+              if (!dim.key.startsWith('_')) {
+                newEvent.body.properties[dim.key] = dim.value;
+              }
+            });
+          }
+          events.push(newEvent);
+        }
+
+        export default async function ({ execution_id }) {
+          const ex = await execution(execution_id);
+          const analyzerResult = await ex.result('detect_volume_anomaly');
+
+          const events = [];
+          if (analyzerResult && analyzerResult.output && analyzerResult.output.length > 0) {
+            analyzerResult.output.forEach(result => {
+              if (result.raisedAlerts && result.raisedAlerts.length > 0) {
+                result.raisedAlerts.forEach(alert => {
+                  createEventObject(alert, result, events);
+                });
+              }
+            });
+          }
+
+          console.log(`Extracted ${events.length} anomaly event(s)`);
+          return events;
+        }
+
+  ingest_anomaly_events:
+    name: ingest_anomaly_events
+    description: Ingest anomaly events via Dynatrace Environment V2 API
+    action: dynatrace.automations:run-javascript
+    active: true
+    position:
+      x: 0
+      y: 3
+    conditions:
+      states:
+        extract_anomaly_events: OK
+    predecessors:
+      - extract_anomaly_events
+    input:
+      script: |
+        import { execution } from '@dynatrace-sdk/automation-utils';
+        import { eventsClient } from '@dynatrace-sdk/client-classic-environment-v2';
+
+        async function ingestEvents(events) {
+          let successCount = 0;
+          const failed = [];
+          for (let i = 0; i < events.length; ++i) {
+            const res = await eventsClient.createEvent(events[i]);
+            if (res.reportCount !== 1) {
+              failed.push({ reason: 'Invalid number of ingested events' });
+            } else {
+              const status = res.eventIngestResults[0];
+              if (status.status === 'OK') {
+                successCount += 1;
+              } else {
+                failed.push(JSON.stringify(status));
+              }
+            }
+          }
+          if (successCount === 0 && failed.length === 0) {
+            console.log('No events to ingest');
+          }
+          if (successCount > 0) {
+            console.log(`Successfully ingested ${successCount} event(s)`);
+          }
+          if (failed.length > 0) {
+            console.log(`Failed to ingest ${failed.length} event(s):`, JSON.stringify(failed));
+          }
+        }
+
+        export default async function ({ execution_id }) {
+          const ex = await execution(execution_id);
+          const events = await ex.result('extract_anomaly_events');
+          await ingestEvents(events);
+          return events;
+        }

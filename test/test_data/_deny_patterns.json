@@ -1,0 +1,23 @@
+{
+  "_comment": "PII deny-list for fixture and golden-result files. Patterns are Python regexes. Add new patterns here when real data is discovered. Run scripts/dev/sanitize_fixtures.py to apply replacements after updating this file.",
+  "patterns": [
+    {
+      "id": "public_ipv4",
+      "pattern": "\\b(?!(?:10|127)\\.)(?!192\\.168\\.)(?!172\\.(?:1[6-9]|2[0-9]|3[01])\\.)(?!0\\.0\\.0\\.0\\b)(?:[1-9]\\d?|1\\d{2}|2(?:[0-4]\\d|5[0-5]))\\.(?:\\d{1,3}\\.){2}\\d{1,3}\\b",
+      "description": "Public IPv4 address. Excludes RFC-1918 private ranges (10.x, 192.168.x, 172.16-31.x), loopback (127.x), and 0.0.0.0.",
+      "replacement": "10.0.0.1"
+    },
+    {
+      "id": "real_tenant_id_prefix",
+      "pattern": "\\w{3}\\d{4}(\\w|\\d)",
+      "description": "Real Dynatrace environment/tenant ID — example of a specific ID that must not appear in fixtures.",
+      "replacement": "test-tenant"
+    },
+    {
+      "id": "dynatracelabs_domain",
+      "pattern": "dynatracelabs\\.com",
+      "description": "Internal Dynatrace Labs domain name.",
+      "replacement": "example.com"
+    }
+  ]
+}

@@ -177,7 +177,19 @@ class TestDeploymentScopes:
                 continue
 
             with open(file_path, "r", encoding="utf-8") as f:
+                in_option_block = False
                 for line_num, line in enumerate(f, 1):
+                    # Track deploy-time OPTION blocks (--%OPTION:name: ... --%:OPTION:name)
+                    # These are stripped by prepare_deploy_script.sh and must not be flagged here
+                    if line.startswith("--%OPTION:"):
+                        in_option_block = True
+                        continue
+                    if line.startswith("--%:OPTION:"):
+                        in_option_block = False
+                        continue
+                    if in_option_block:
+                        continue
+
                     # Skip comments
                     if line.strip().startswith("--"):
                         continue

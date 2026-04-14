@@ -1,5 +1,6 @@
 plugins:
   data_schemas:
+    lookback_hours: 4
     schedule: USING CRON 0 0,8,16 * * * UTC
     is_disabled: false
     exclude: []

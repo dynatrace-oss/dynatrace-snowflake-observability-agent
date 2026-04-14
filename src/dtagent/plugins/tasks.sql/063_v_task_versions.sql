@@ -48,8 +48,8 @@ select
         'snowflake.task.condition',                 tv.CONDITION_TEXT,
         'snowflake.task.config.allow_overlap',      tv.ALLOW_OVERLAPPING_EXECUTION,
         'snowflake.task.error_integration',         tv.ERROR_INTEGRATION,
-        'snowflake.task.last_committed_on',         tv.LAST_COMMITTED_ON,
-        'snowflake.task.last_suspended_on',         tv.LAST_SUSPENDED_ON
+        'snowflake.task.last_committed_on',         extract(epoch_nanosecond from tv.LAST_COMMITTED_ON),
+        'snowflake.task.last_suspended_on',         extract(epoch_nanosecond from tv.LAST_SUSPENDED_ON)
     )                                                   as ATTRIBUTES,
 
     OBJECT_CONSTRUCT(
@@ -59,7 +59,7 @@ select
 from
     SNOWFLAKE.ACCOUNT_USAGE.TASK_VERSIONS tv
 where
-    GREATEST_IGNORE_NULLS(tv.GRAPH_VERSION_CREATED_ON, tv.LAST_COMMITTED_ON, tv.LAST_SUSPENDED_ON) > GREATEST(timeadd(month, -1, current_timestamp()), DTAGENT_DB.STATUS.F_LAST_PROCESSED_TS('task_versions'))
+    GREATEST_IGNORE_NULLS(tv.GRAPH_VERSION_CREATED_ON, tv.LAST_COMMITTED_ON, tv.LAST_SUSPENDED_ON) > GREATEST(timeadd(hour, -1*DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE('plugins.tasks.lookback_hours_versions', 720), current_timestamp()), DTAGENT_DB.STATUS.F_LAST_PROCESSED_TS('task_versions'))
 order by
     tv.GRAPH_VERSION_CREATED_ON asc;
 

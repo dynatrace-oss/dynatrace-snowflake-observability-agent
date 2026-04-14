@@ -28,7 +28,7 @@ import logging
 from dtagent.otel.events import EventType
 from dtagent.plugins import Plugin
 from dtagent.util import _unpack_json_dict
-from typing import Tuple, Dict
+from typing import Tuple, Dict, Optional, List
 from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPILE_REMOVE
 
 ##endregion COMPILE_REMOVE
@@ -75,7 +75,7 @@ class TrustCenterPlugin(Plugin):
 
         return EventType.CUSTOM_ALERT, "Trust Center Critical problem", {}
 
-    def process(self, run_id: str, run_proc: bool = True) -> Dict[str, Dict[str, int]]:
+    def process(self, run_id: str, run_proc: bool = True, contexts: Optional[List[str]] = None) -> Dict[str, Dict[str, int]]:
         """Processes data for trust center plugin.
 
         Args:

@@ -23,7 +23,7 @@
 --
 use role DTAGENT_OWNER; use database DTAGENT_DB; use schema APP; use warehouse DTAGENT_WH; -- fixed DP-11334
 
-create or replace procedure DTAGENT_DB.APP.P_LIST_INBOUND_TABLES(share_name VARCHAR, db_name VARCHAR, with_grant BOOLEAN default FALSE)
+create or replace procedure DTAGENT_DB.APP.P_LIST_INBOUND_TABLES(share_name VARCHAR, db_name VARCHAR)
 returns table (
     SHARE_NAME text,
     IS_REPORTED boolean,
@@ -34,18 +34,28 @@ execute as caller
 as
 $$
 DECLARE
-    query     TEXT;
-    rs        RESULTSET;
-    rs_repeat RESULTSET;
-    rs_empty  RESULTSET DEFAULT (SELECT NULL:text as SHARE_NAME, FALSE:boolean as IS_REPORTED, OBJECT_CONSTRUCT() as DETAILS WHERE 1=0);
-    rs_unavailable RESULTSET DEFAULT (SELECT :share_name as SHARE_NAME, TRUE:boolean as IS_REPORTED, OBJECT_CONSTRUCT('SHARE_STATUS', 'UNAVAILABLE', 'SHARE_NAME', :share_name, 'DATABASE_NAME', :db_name, 'ERROR_MESSAGE', 'Shared database is no longer available') as DETAILS);
-    error_msg TEXT;
+    query               TEXT;
+    rs                  RESULTSET;
+    rs_empty            RESULTSET DEFAULT (SELECT NULL:text as SHARE_NAME,
+                                              FALSE:boolean as IS_REPORTED,
+                                         OBJECT_CONSTRUCT() as DETAILS
+                                           WHERE 1=0);
+    rs_unavailable      RESULTSET DEFAULT (SELECT :share_name as SHARE_NAME,
+                                                 TRUE:boolean as IS_REPORTED,
+                                             OBJECT_CONSTRUCT('SHARE_STATUS', 'UNAVAILABLE',
+                                                              'SHARE_NAME', :share_name,
+                                                              'DATABASE_NAME', :db_name,
+                                                              'ERROR_MESSAGE', 'Shared database is no longer available') as DETAILS);
+    error_msg           TEXT;
+    share_name_safe     TEXT DEFAULT '';
+    v_db                TEXT DEFAULT '';
 BEGIN
-    IF (:with_grant) THEN
-        call DTAGENT_DB.APP.P_GRANT_IMPORTED_PRIVILEGES(:db_name);
-    END IF;
+    v_db            := REGEXP_REPLACE(UPPER(:db_name),         '[^A-Z0-9_$]', '');
+    share_name_safe := REGEXP_REPLACE(UPPER(:share_name),      '[^A-Z0-9_$.%]', '');
 
-    query := concat('select ''', :share_name, ''' as SHARE_NAME, TRUE as IS_REPORTED, OBJECT_CONSTRUCT(t.*) from ', :db_name, '.INFORMATION_SCHEMA.TABLES t where TABLE_SCHEMA != ''INFORMATION_SCHEMA''');
+    query := concat('select ''', :share_name_safe, ''' as SHARE_NAME, TRUE as IS_REPORTED, OBJECT_CONSTRUCT(t.*)',
+                    ' from IDENTIFIER(''', :v_db, '.INFORMATION_SCHEMA.TABLES'') t',
+                    ' where TABLE_SCHEMA != ''INFORMATION_SCHEMA''');
 
     rs := (EXECUTE IMMEDIATE :query);
     RETURN TABLE(rs);
@@ -53,26 +63,28 @@ EXCEPTION
   when statement_error then
     error_msg := SQLERRM;
 
-    IF (:with_grant) then
-        -- Already tried with grant, determine how to handle the error
-        IF (CONTAINS(error_msg, 'Shared database is no longer available') OR
-            CONTAINS(error_msg, 'does not exist or not authorized')) THEN
-            -- This is an expected condition - share is unavailable or access was revoked
-            -- Return a result indicating unavailability without logging a warning
-            return TABLE(rs_unavailable);
+    -- First attempt failed — grant imported privileges inline and retry once
+    call DTAGENT_DB.APP.P_GRANT_IMPORTED_PRIVILEGES(:db_name);
+
+    BEGIN
+        rs := (EXECUTE IMMEDIATE :query);
+        RETURN TABLE(rs);
+    EXCEPTION
+      when statement_error then
+        error_msg := SQLERRM;
+        IF (CONTAINS(:error_msg, 'Shared database is no longer available') OR
+            CONTAINS(:error_msg, 'does not exist or not authorized')) THEN
+            -- Expected condition: share is unavailable or access was revoked
+            RETURN TABLE(rs_unavailable);
         ELSE
-            -- This is an unexpected error, log it as a warning
-            SYSTEM$LOG_WARN(error_msg || ' | Query: ' || :query);
-            return TABLE(rs_empty);
+            -- Unexpected error after grant attempt
+            SYSTEM$LOG_WARN(:error_msg || ' | Query: ' || :query);
+            RETURN TABLE(rs_empty);
         END IF;
-    ELSE
-        -- If the query fails and we are not granting privileges, we try to repeat the query asking for privileges to be granted first
-        rs_repeat := (EXECUTE IMMEDIATE concat('call DTAGENT_DB.APP.P_LIST_INBOUND_TABLES(''', :share_name, ''', ''', :db_name, ''', TRUE)'));
-        RETURN TABLE(rs_repeat);
-    END IF;
+    END;
 END;
 $$
 ;
 
-grant usage on procedure DTAGENT_DB.APP.P_LIST_INBOUND_TABLES(VARCHAR, VARCHAR, BOOLEAN) to role DTAGENT_VIEWER;
+grant usage on procedure DTAGENT_DB.APP.P_LIST_INBOUND_TABLES(VARCHAR, VARCHAR) to role DTAGENT_VIEWER;
 
