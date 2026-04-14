@@ -179,15 +179,12 @@ div.header {
     align-items: center;
     justify-content: center;
     width: 100%;
-    margin-top: 2em;
-    margin-bottom: 2em;
     display: table;
     width: auto;
     margin: 2em auto;
     text-align: center;
 }
-div.header img,
-div.header svg {
+div.header img {
     display: table-cell !important;
     vertical-align: middle;
     width: auto !important;
