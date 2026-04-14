@@ -1,5 +1,9 @@
 @import url('index.css');
 
+div.header {
+    color: black;
+}
+
 h2 {
     page-break-before: always;
 }

@@ -1,6 +1,10 @@
 # Dynatrace Snowflake Observability Agent
 
-<img src="docs/assets/dsoa_logo.svg" alt="Dynatrace Snowflake Observability Agent logo" width="200" class="dsoa-logo">
+<div class="header" style="margin-top: 2em; margin-bottom: 2em;">
+<img src="docs/assets/dynatrace-logo.svg" alt="Dynatrace logo" height="100" class="dynatrace-logo">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="100" height="100" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+<img src="docs/assets/snowflake-logo.svg" alt="Snowflake logo" height="100" class="snowflake-logo">
+</div>
 
 **Dynatrace Snowflake Observability Agent (DSOA)** is a powerful tool designed to enhance [Data Platform Observability](DPO.md) within the
 Snowflake environment. It complements Dynatrace's capabilities by [extending observability with plugins](PLUGINS.md) into areas where
