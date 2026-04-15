@@ -19,6 +19,7 @@ All notable changes to this project will be documented in this file.
 - Dashboard and workflow deployment automation via `scripts/deploy/deploy_dt_assets.sh` with `dtctl` integration.
 - Per-plugin configurable lookback time for historical data catchup.
 - Support for `SNOWFLAKE.TELEMETRY.EVENTS` as account-level event table.
+- AI-assisted development infrastructure: GitHub Copilot instructions with architecture context and safety guardrails; OpenCode agent configuration with seven domain-specific skills (`plugin-development`, `dynatrace-dashboard`, `dynatrace-workflow`, `qa-runner`, `snowflake-synthetic`, `pr-reviewer`, `dashboard-docs`); semantic telemetry definitions as AI context; scaffolded `.github/context/` for private developer planning.
 
 ### Changed
 

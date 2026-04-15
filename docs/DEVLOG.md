@@ -423,6 +423,51 @@ Three Snowflake-specific failure modes handled via per-grant `BEGIN/EXCEPTION` b
   - `src/dtagent/plugins/event_log.config/event_log-config.yml`: added `lookback_hours: 24` (default preserves prior behaviour).
 - **Impact**: Operators can increase the window for initial deployments or decrease it for high-volume environments without any SQL change.
 
+#### AI-Assisted Development Infrastructure (Vibe Coding)
+
+- **Motivation**: Enable AI coding assistants (GitHub Copilot, OpenCode, Windsurf) to work effectively with the DSOA codebase by providing structured project context, domain knowledge, and safety guardrails — reducing onboarding time and preventing common mistakes.
+- **Central instructions file** (`.github/copilot-instructions.md`, 264 lines):
+  - "DSOA coding sidekick" persona definition
+  - Core architecture overview and key module map (agent lifecycle, plugin system, core modules)
+  - Mandatory Snowflake connection safety rules (system roles forbidden, deployment limited to `test-qa`)
+  - Code style enforcement expectations (black, flake8, pylint 10.00/10, sqlfluff, markdownlint)
+  - 4-phase delivery workflow (Proposal → Plan → Implement → Validate) with artifact storage in `.github/context/proposals/`
+  - Continuous learning loop: AI updates instructions/skills after every human review to prevent recurring mistakes
+  - Git tracking rules, auth patterns, plugin isolation principles, SQL/Python syntax conventions
+- **OpenCode integration**:
+  - `.opencode/opencode.json` (tracked) links OpenCode agent to `.github/copilot-instructions.md`
+  - `.opencode/package-lock.json` (tracked) pins `@opencode-ai/plugin` v1.4.3 dependency
+  - `.opencode/.gitignore` excludes local runtime artifacts (`node_modules`, `package.json`, `bun.lock`)
+- **Seven domain skills** (`.opencode/skills/`, ~3,500 lines total, all tracked):
+  1. **`plugin-development`** (737 lines): full plugin lifecycle — scaffolding, SQL/Python/config triad patterns, `instruments-def.yml` authoring (with `__description`/`__example`), testing patterns (mock/live modes, `disabled_telemetry` combinations, include/exclude filtering), BOM authoring
+  2. **`dynatrace-dashboard`** (786 lines): dashboard creation — DQL best practices (lessons learned from debugging), tile patterns, metric/attribute reference via `instruments-def.yml`, `dtctl` deploy workflow, YAML format conventions, variable filtering patterns
+  3. **`dynatrace-workflow`** (192 lines): workflow YAML authoring — trigger types (cron/event), task patterns, `dtctl` deployment, manual trigger testing
+  4. **`qa-runner`** (859 lines): AI-guided QA walkthrough — version discovery automation, deployment guidance, notebook deployment, DQL auto-evaluation via MCP Dynatrace query tools, interactive test checklist, QA signoff report generation
+  5. **`snowflake-synthetic`** (450 lines): synthetic test data setup — Snowflake object creation for telemetry validation, DSOA-independence principle, environment reference for `test-qa`
+  6. **`pr-reviewer`** (357 lines): PR review automation — structured review phases, GraphQL thread fetching, triage methodology, review quality criteria
+  7. **`dashboard-docs`** (203 lines): dashboard documentation standards — narrative-first style, section structure, screenshot placement rules, mandatory sections
+- **Semantic telemetry as AI context**:
+  - `src/dtagent.conf/instruments-def.yml` (global definitions) and 16 per-plugin `instruments-def.yml` files serve dual purpose:
+    1. Auto-generate `docs/SEMANTICS.md` and `build/_semantics.py` (primary purpose)
+    2. Provide AI agents with structured semantic understanding (`__description`, `__example`, `__context_names`) for every metric/attribute/dimension to enable correct DQL query authoring without trial-and-error
+  - Enables AI agents to write semantically correct queries without consulting external docs
+- **Private context scaffold**:
+  - `.github/context/` directory (gitignored per root `.gitignore`) provides entry points for developer-local planning artifacts:
+    - `.github/context/.gitkeep` (tracked): preserves directory structure
+    - `.github/context/ai-memory/` (gitignored): for AI session memories across tool invocations
+    - `.github/context/dev-notes/` (gitignored): for developer planning and analysis
+    - `.github/context/pm-notes/` (gitignored): for PM/product analysis
+    - `.github/context/prompts/` (gitignored): for reusable prompt engineering templates
+    - `.github/context/windsurf_plans/` (gitignored): for Windsurf-specific implementation plans
+  - Content is intentionally never committed — only directory structure ships, allowing each developer to connect their own knowledge base without exposing sensitive information
+  - Skills reference `proposals/` subdirectory as working directory for Phase 1 delivery artifacts
+- **Multi-tool strategy**:
+  - Same `.github/copilot-instructions.md` is consumed natively by GitHub Copilot and referenced by OpenCode via `opencode.json` config
+  - Windsurf agents can optionally use `.github/context/windsurf_plans/` for local planning
+  - Avoids tool-specific lock-in while maintaining a single source of truth for project context and conventions
+- **Files shipped in repository** (git-tracked): `.github/copilot-instructions.md`, `.opencode/opencode.json`, `.opencode/package-lock.json`, 7× `.opencode/skills/*/SKILL.md`, `.github/context/.gitkeep`
+- **Security model**: Credentials/sensitive context stay local (`.github/context/` gitignored). Instructions document safe patterns (`read_secret()`, `_snowflake.py` module). AI guardrails prevent accidental role escalation or credential commits.
+
 #### Query Hierarchy Validation
 
 - **Goal**: Confirm that nested stored procedure call chains are correctly represented as OTel parent-child spans.
