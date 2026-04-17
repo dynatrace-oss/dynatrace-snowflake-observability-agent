@@ -31,14 +31,14 @@
 #     ./scripts/test/deploy_test_notebook.sh --curr-version=<version> [--prev-version=<prev>]
 #
 #   The script substitutes the notebook name with the actual deployment environment
-#   (e.g. "DSOA Test Suite (DEV-094_DEV)") and writes the assigned ID back below.
+#   (e.g. "DSOA Test Suite (TEST_100_DEV)") and writes the assigned ID back below.
 #
 # DEPLOYMENT ID (written back by deploy_test_notebook.sh after first deploy):
-# id: 5bf9b0d9-6ebe-473f-8847-fe2d787a6c61
+# id: edf72e52-1e04-43b1-bf20-301e71ec86a7
 #
 # FILTER CONVENTION:
-#   - Single-env tiles: filter deployment.environment == "DEV-094"
-#   - Cross-version comparison tiles [COMPARE]: filter in(deployment.environment, {"DEV-093", "DEV-094"})
+#   - Single-env tiles: filter deployment.environment == "TEST_100"
+#   - Cross-version comparison tiles [COMPARE]: filter in(deployment.environment, {"TEST_095", "TEST_100"})
 #   When running a test against a different version pair, search-replace these two values.
 #
 version: 7
@@ -70,27 +70,27 @@ sections:
           fetch bizevents
           | filter db.system == "snowflake"
           | fieldsAdd data.type = "bizevents"
-          | filter in(deployment.environment, {"DEV-093", "DEV-094"})
+          | filter in(deployment.environment, {"TEST_095", "TEST_100"})
           | makeTimeseries cnt=count(), by: {deployment.environment, dsoa.run.plugin}
           | append [
           fetch events
           | filter db.system == "snowflake"
           | fieldsAdd data.type = "events"
-          | filter in(deployment.environment, {"DEV-093", "DEV-094"})
+          | filter in(deployment.environment, {"TEST_095", "TEST_100"})
           | makeTimeseries cnt=count(), by: {deployment.environment, dsoa.run.plugin}
           ]
           | append [
           fetch logs
           | filter db.system == "snowflake"
           | fieldsAdd data.type = "logs"
-          | filter in(deployment.environment, {"DEV-093", "DEV-094"})
+          | filter in(deployment.environment, {"TEST_095", "TEST_100"})
           | makeTimeseries cnt=count(), by: {deployment.environment, dsoa.run.plugin}
           ]
           | append [
           fetch spans
           | filter db.system == "snowflake"
           | fieldsAdd data.type = "spans"
-          | filter in(deployment.environment, {"DEV-093", "DEV-094"})
+          | filter in(deployment.environment, {"TEST_095", "TEST_100"})
           | makeTimeseries cnt=count(), by: {deployment.environment, dsoa.run.plugin}
           ]
           | summarize cnt = sum(cnt[]), by: {dsoa.run.plugin, interval, timeframe}
@@ -114,27 +114,27 @@ sections:
           fetch bizevents
           | filter db.system == "snowflake"
           | fieldsAdd data.type = "bizevents"
-          | filter in(deployment.environment, {"DEV-093", "DEV-094"})
+          | filter in(deployment.environment, {"TEST_095", "TEST_100"})
           | makeTimeseries cnt=count(), by: {deployment.environment, dsoa.run.context}
           | append [
           fetch events
           | filter db.system == "snowflake"
           | fieldsAdd data.type = "events"
-          | filter in(deployment.environment, {"DEV-093", "DEV-094"})
+          | filter in(deployment.environment, {"TEST_095", "TEST_100"})
           | makeTimeseries cnt=count(), by: {deployment.environment, dsoa.run.context}
           ]
           | append [
           fetch logs
           | filter db.system == "snowflake"
           | fieldsAdd data.type = "logs"
-          | filter in(deployment.environment, {"DEV-093", "DEV-094"})
+          | filter in(deployment.environment, {"TEST_095", "TEST_100"})
           | makeTimeseries cnt=count(), by: {deployment.environment, dsoa.run.context}
           ]
           | append [
           fetch spans
           | filter db.system == "snowflake"
           | fieldsAdd data.type = "spans"
-          | filter in(deployment.environment, {"DEV-093", "DEV-094"})
+          | filter in(deployment.environment, {"TEST_095", "TEST_100"})
           | makeTimeseries cnt=count(), by: {deployment.environment, dsoa.run.context}
           ]
           | summarize cnt = sum(cnt[]), by: {dsoa.run.context, interval, timeframe}
@@ -177,7 +177,7 @@ sections:
           | fieldsAdd data.type = "spans"
           | makeTimeseries count(), by: {deployment.environment, data.type}
           ]
-          | filter in(deployment.environment, {"DEV-093", "DEV-094"})
+          | filter in(deployment.environment, {"TEST_095", "TEST_100"})
 
   - id: s-03
     type: dql
@@ -192,7 +192,7 @@ sections:
         value: |
           fetch logs
           | filter telemetry.exporter.name == "dynatrace.snowagent"
-          | filter in(deployment.environment, {"DEV-093", "DEV-094"})
+          | filter in(deployment.environment, {"TEST_095", "TEST_100"})
           | filter isNotNull(dt.ingest.warnings)
           | expand warning = dt.ingest.warnings
           | makeTimeseries count(), by: {warning, deployment.environment}
@@ -209,7 +209,7 @@ sections:
           to: now()
         value: |
           fetch logs
-          | filter in(deployment.environment, {"DEV-093", "DEV-094"})
+          | filter in(deployment.environment, {"TEST_095", "TEST_100"})
           | fieldsAdd plugin_name = coalesce(dsoa.run.context, snowagent.run.context, telemetry.exporter.module)
           | makeTimeseries count(), by: {plugin_name, deployment.environment}, interval:1h
           | sort plugin_name
@@ -227,7 +227,7 @@ sections:
         value: |
           fetch spans
           | filter db.system == "snowflake"
-          | filter in(deployment.environment, {"DEV-093", "DEV-094"})
+          | filter in(deployment.environment, {"TEST_095", "TEST_100"})
           | makeTimeseries count(), by: {dsoa.run.context, snowagent.run.context, deployment.environment}
 
   # ---------------------------------------------------------------------------
@@ -249,7 +249,7 @@ sections:
                 avg(snowflake.credits.limit)
               , avg(snowflake.credits.spent)
               }, by: {deployment.environment}, union:true
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
 
   - id: s-20
     type: dql
@@ -262,8 +262,8 @@ sections:
           from: now()-24h
           to: now()
         value: |
-          timeseries avg(snowflake.credits.quota), by: {deployment.environment}
-          | filter deployment.environment == "DEV-094"
+          timeseries avg(snowflake.credits.quota.value), by: {deployment.environment}
+          | filter deployment.environment == "TEST_100"
 
   - id: s-21
     type: dql
@@ -277,7 +277,7 @@ sections:
           to: now()
         value: |
           timeseries avg(snowflake.time.execution), by: {deployment.environment}
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
 
   - id: s-12
     type: dql
@@ -294,7 +294,7 @@ sections:
                by: { db.namespace,
                      db.collection.name,
                      deployment.environment}
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
           | limit 10
 
   - id: s-15
@@ -310,7 +310,7 @@ sections:
         value: |
           timeseries { max_row_count = max(snowflake.data.rows) }
                 , by: { db.collection.name, deployment.environment }
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
           | fieldsAdd db.collection.name, max_row_count
 
   - id: s-16
@@ -327,7 +327,7 @@ sections:
           timeseries {avg(snowflake.data.rows), avg(snowflake.data.size)},
                   union: true,
                   by: { db.namespace, db.collection.name, deployment.environment }
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
           | limit 10
 
   - id: s-19
@@ -342,7 +342,7 @@ sections:
           to: now()
         value: |
           timeseries max(snowflake.trust_center.findings), by: {deployment.environment}
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
 
   - id: s-26
     type: dql
@@ -360,7 +360,7 @@ sections:
            , avg(snowflake.table.dynamic.lag.target.value)
           }, union:true
            , by: {deployment.environment}
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
 
   - id: s-29
     type: dql
@@ -376,7 +376,7 @@ sections:
           timeseries {avg(process.cpu.utilization), avg(process.memory.usage)}
             , union: true
             , by: {deployment.environment}
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
 
   # ---------------------------------------------------------------------------
   # C3 — Logs Reporting
@@ -394,7 +394,7 @@ sections:
           to: now()
         value: |
           fetch logs
-          | filter in(deployment.environment, {"DEV-093", "DEV-094"})
+          | filter in(deployment.environment, {"TEST_095", "TEST_100"})
           | filter dsoa.run.context == "resource_monitors"
           | filter snowflake.warehouse.is_unmonitored
           | filter loglevel == "WARN"
@@ -413,7 +413,7 @@ sections:
         value: |
           fetch logs
           | filter db.system == "snowflake"
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
           | fieldsAdd snow_account = coalesce(db.instance.id, service.name)
           | filter isNotNull(db.user)
                and isNotNull(snow_account)
@@ -435,7 +435,7 @@ sections:
           fetch logs
           | filter db.system == "snowflake"
           | filter dsoa.run.context == "trust_center"
-          | filter in(deployment.environment, {"DEV-093", "DEV-094"})
+          | filter in(deployment.environment, {"TEST_095", "TEST_100"})
           | summarize count = count(), by: {status.message, deployment.environment}
           | sort count desc
           | limit 10
@@ -454,7 +454,7 @@ sections:
           fetch logs
           | filter db.system == "snowflake"
           | filter dsoa.run.plugin == "dynamic_tables"
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
           | filter isNotNull(snowflake.table.dynamic.lag.target.value)
           | sort timestamp desc
           | limit 10
@@ -474,7 +474,7 @@ sections:
           | filter db.system == "snowflake"
           | filter contains(dsoa.run.context, "event_log")
           | makeTimeseries count(), by: {deployment.environment, dsoa.run.context}
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
 
   # ---------------------------------------------------------------------------
   # C4 — Spans and Distributed Traces
@@ -493,7 +493,7 @@ sections:
         value: |
           fetch spans
           | filter db.system == "snowflake"
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
           | fieldsAdd snow_account = coalesce(db.instance.id, service.name)
           | filter isNotNull(db.user)
                and isNotNull(snow_account)
@@ -516,7 +516,7 @@ sections:
           | filter db.system == "snowflake"
           | filter dsoa.run.context == "event_log_spans"
           | makeTimeseries count(), by: {deployment.environment}
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
 
   - id: s-37
     type: dql
@@ -531,7 +531,7 @@ sections:
         value: |
           fetch spans
           | filter db.system == "snowflake"
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
           | filter isNotNull(dsoa.run.context)
           | filter isNotNull(snowflake.query.parent_id)
           | filter isNotNull(span.parent_id)
@@ -549,7 +549,7 @@ sections:
         value: |
           fetch spans
           | filter db.system == "snowflake"
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
           | filter isNotNull(dsoa.run.context)
           | filter isNotNull(snowflake.query.parent_id)
           | filter isNotNull(span.parent_id)
@@ -573,7 +573,7 @@ sections:
         value: |
           fetch events
           | filter db.system == "snowflake"
-          | filter in(deployment.environment, {"DEV-093", "DEV-094"})
+          | filter in(deployment.environment, {"TEST_095", "TEST_100"})
           | makeTimeseries count(), by: {dsoa.run.context, deployment.environment}
 
   - id: s-30
@@ -589,7 +589,7 @@ sections:
         value: |
           fetch bizevents
           | filter db.system == "snowflake"
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
           | filter dsoa.run.context == "self_monitoring"
           | makeTimeseries count(), by: {dsoa.task.name}
 
@@ -607,7 +607,7 @@ sections:
           fetch bizevents
           | filter db.system == "snowflake"
           | filter dsoa.run.context == "self_monitoring"
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
           | sort timestamp asc
           | summarize {
             timestamp = takeFirst(timestamp),
@@ -638,7 +638,7 @@ sections:
         value: |
           fetch events
           | filter dsoa.run.context == "data_schemas"
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
           | makeTimeseries count(), by: {snowflake.object.type}
 
   # ---------------------------------------------------------------------------
@@ -657,7 +657,7 @@ sections:
           to: now()
         value: |
           fetch logs, scanLimitGBytes: -1
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
           | filter dsoa.run.context == "active_queries"
           | limit 10
 
@@ -675,7 +675,7 @@ sections:
         value: |
           fetch logs
           | filter dsoa.run.context == "active_queries"
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
           | filter isNotNull(snowflake.query.id)
           | sort timestamp asc
           | summarize {count = count(), timestamp = takeFirst(timestamp)}, by: {snowflake.query.id}
@@ -695,7 +695,7 @@ sections:
         value: |
           fetch logs
           | filter dsoa.run.context == "active_queries"
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
           | filter isNotNull(snowflake.query.id)
           | makeTimeseries count(), by:{snowflake.query.execution_status}
 
@@ -712,7 +712,7 @@ sections:
         value: |
           fetch logs
           | filter dsoa.run.context == "active_queries"
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
           | makeTimeseries count(), by: {snowflake.query.execution_status}
 
   # ---------------------------------------------------------------------------
@@ -732,7 +732,7 @@ sections:
         value: |
           fetch spans
           | filter db.system == "snowflake"
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
           | fields db.user
           | summarize {query_count = count()}, by: {user = db.user}
           | sort user
@@ -750,7 +750,7 @@ sections:
         value: |
           fetch logs
           | filter db.system == "snowflake"
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
           | filter in(dsoa.run.context, {"inbound_shares", "outbound_shares"})
           | makeTimeseries count(), by: {
             snowflake.share.name,
@@ -773,7 +773,7 @@ sections:
           // emit logs only. Expect rows here if share events have occurred recently.
           fetch events
           | filter db.system == "snowflake"
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
           | filter dsoa.run.plugin == "shares"
           | makeTimeseries count(), by: {
             snowflake.share.name,
@@ -794,7 +794,7 @@ sections:
         value: |
           fetch logs
           | filter db.system == "snowflake"
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
           | filter dsoa.run.context == "inbound_shares"
           | filter isTrueOrNull(db.namespace == "")
           | summarize count = count(), by: {snowflake.share.name, snowflake.share.kind, db.namespace}
@@ -820,7 +820,7 @@ sections:
           // Expect rows for every enabled plugin with count == 2 per execution cycle.
           fetch bizevents
           | filter db.system == "snowflake"
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
           | filter dsoa.run.context == "self_monitoring"
           | filter in(dsoa.task.exec.status, {"STARTED", "FINISHED"})
           | summarize {
@@ -855,19 +855,19 @@ sections:
           to: now()
         value: |
           fetch logs, scanLimitGBytes: -1
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
           | filter dsoa.run.context == "query_history"
           | summarize {qh_count = count(), timestamp = takeAny(timestamp)}, by: {snowflake.query.id}
           | append [
             fetch logs, scanLimitGBytes: -1
-            | filter deployment.environment == "DEV-094"
+            | filter deployment.environment == "TEST_100"
             | filter dsoa.run.context == "active_queries"
             | sort timestamp asc
             | summarize {aq_count = count(), timestamp = takeLast(timestamp)}, by: {snowflake.query.id}
           ]
           | append [
             fetch spans, scanLimitGBytes: -1
-            | filter deployment.environment == "DEV-094"
+            | filter deployment.environment == "TEST_100"
             | filter dsoa.run.context == "query_history"
             | summarize {
               sp_count = count(),
@@ -904,7 +904,7 @@ sections:
           fetch logs
           | filter db.system == "snowflake"
           | filter dsoa.run.context == "query_history"
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
           | summarize {
             logs_per_query = count(),
             timestamp = takeMin(timestamp)
@@ -913,7 +913,7 @@ sections:
               fetch spans
               | filter db.system == "snowflake"
               | filter dsoa.run.context == "query_history"
-              | filter deployment.environment == "DEV-094"
+              | filter deployment.environment == "TEST_100"
               | fieldsAdd span_events_count = coalesce(arraySize(span.events), 0) +1
           ]
           | summarize {
@@ -937,7 +937,7 @@ sections:
         value: |
           fetch spans
           | filter dsoa.run.context == "query_history"
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
           | fields events_count = arraySize(span.events),
                    events_added = snowagent.debug.span.events.added,
                    events_failed = snowagent.debug.span.events.failed,
@@ -956,7 +956,7 @@ sections:
           to: now()
         value: |
           fetch spans
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
           | filter isNotNull(supportability.non_persisted_attribute_keys)
           | expand supportability.non_persisted_attribute_key = supportability.non_persisted_attribute_keys
           | summarize supportability.non_persisted_attribute_keys = collectDistinct(supportability.non_persisted_attribute_key, maxLength: 100)
@@ -976,7 +976,7 @@ sections:
           | filter db.system == "snowflake"
           | filter isNotNull(dsoa.run.context)
           | filter isNotNull(snowflake.query.parent_id)
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
           | fields start_time,
                    span.id,
                    trace.id,
@@ -990,7 +990,7 @@ sections:
             | filter db.system == "snowflake"
             | filter isNotNull(dsoa.run.context)
             | filter isNotNull(snowflake.query.parent_id)
-            | filter deployment.environment == "DEV-094"
+            | filter deployment.environment == "TEST_100"
             | fields start_time,
                      span.id,
                      trace.id,
@@ -1020,14 +1020,14 @@ sections:
         value: |
           fetch bizevents
           | filter telemetry.exporter.name == "dynatrace.snowagent"
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
           | filter dsoa.run.context == "self_monitoring"
           | filter dsoa.task.exec.status == "STARTED"
           | fields timestamp, dsoa.run.id
           | join [
             fetch logs
             | filter db.system == "snowflake"
-            | filter deployment.environment == "DEV-094"
+            | filter deployment.environment == "TEST_100"
             | filter dsoa.run.context == "self_monitoring"
             | filter isNotNull(dsoa.run.id)
             | summarize {min_timestamp = min(timestamp)}, by: {dsoa.run.id}
@@ -1072,7 +1072,7 @@ sections:
           | fieldsAdd data.type = "spans"
           | makeTimeseries count(), by: {deployment.environment, data.type, dsoa.run.plugin}
           ]
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
           | filter in(dsoa.run.plugin, {"tasks"})
 
   - id: s-43
@@ -1091,7 +1091,7 @@ sections:
           // Expected: no rows for the plugin you disabled (e.g. "tasks").
           fetch bizevents
           | filter db.system == "snowflake"
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
           | filter dsoa.run.context == "self_monitoring"
           | filter isNotNull(dsoa.run.plugin)
           | summarize count = count(), by: {dsoa.run.plugin}
@@ -1113,7 +1113,7 @@ sections:
           to: now()
         value: |
           timeseries avg(snowflake.table.active_bytes), by:{deployment.environment}
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
 
   - id: s-51
     type: dql
@@ -1127,7 +1127,7 @@ sections:
           to: now()
         value: |
           timeseries avg(snowflake.table.clustering.depth), by:{deployment.environment}
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
 
   - id: s-52
     type: dql
@@ -1156,7 +1156,7 @@ sections:
           to: now()
         value: |
           timeseries avg(snowflake.org.credits.used), by:{deployment.environment}
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
 
   - id: s-54
     type: dql
@@ -1170,7 +1170,7 @@ sections:
           to: now()
         value: |
           timeseries avg(snowflake.org.data.stored), by:{deployment.environment}
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
 
   - id: s-55
     type: dql
@@ -1184,7 +1184,7 @@ sections:
           to: now()
         value: |
           timeseries avg(snowflake.org.billing.capacity_balance)
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
 
   - id: s-56
     type: dql
@@ -1198,7 +1198,7 @@ sections:
           to: now()
         value: |
           timeseries avg(snowflake.table.days_since_last_access)
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
 
   - id: s-57
     type: dql
@@ -1212,7 +1212,7 @@ sections:
           to: now()
         value: |
           timeseries avg(snowflake.credits.attributed_compute), by:{deployment.environment}
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
 
   # ---------------------------------------------------------------------------
   # C3 — Additional Logs (0.9.5 features)
@@ -1231,7 +1231,7 @@ sections:
         value: |
           fetch logs
           | filter dsoa.run.plugin == "metering"
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
           | filter isNotNull(snowflake.service.type)
           | summarize count = count(), by: {snowflake.service.type}
           | sort count desc
@@ -1249,7 +1249,7 @@ sections:
         value: |
           fetch logs
           | filter dsoa.run.plugin == "event_log"
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
           | filter isNotNull(_dsoa_source_table)
           | summarize count = count(), by: {_dsoa_source_table}
           | sort count desc
@@ -1272,14 +1272,14 @@ sections:
           // Find child spans whose parent is in a DIFFERENT agent run
           fetch spans
           | filter db.system == "snowflake"
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
           | filter isNotNull(span.parent_id)
           | filter isNotNull(dsoa.run.id)
           | fields trace.id, span.id, span.parent_id, dsoa.run.id, db.query.text
           | joinNested parent = [
             fetch spans
             | filter db.system == "snowflake"
-            | filter deployment.environment == "DEV-094"
+            | filter deployment.environment == "TEST_100"
             | fields span.id, dsoa.run.id
           ], on: {left[span.parent_id] == right[span.id]}
           | expand parent
@@ -1300,7 +1300,7 @@ sections:
         value: |
           fetch spans
           | filter dsoa.run.plugin == "tasks"
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
           | filter isNotNull(snowflake.task.run.attempt)
           | fields snowflake.task.run.attempt
           | limit 10
@@ -1318,7 +1318,7 @@ sections:
         value: |
           fetch logs
           | filter dsoa.run.context == "serverless_tasks"
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
           | filter db.namespace == ""
           | summarize count()
 
@@ -1334,7 +1334,7 @@ sections:
           to: now()
         value: |
           fetch spans
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
           | filter isNotNull(snowflake.object.ddl.operation)
           | fields snowflake.object.name, snowflake.object.type,
                   snowflake.object.ddl.operation, snowflake.object.ddl.properties,
@@ -1358,7 +1358,7 @@ sections:
         value: |
           fetch bizevents
           | filter event.type == "dsoa.acquisition.warning"
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
           | summarize count = count(), by: {dsoa.run.plugin}
           | sort count desc
 
@@ -1375,7 +1375,7 @@ sections:
         value: |
           fetch bizevents
           | filter event.type == "dsoa.acquisition.problem"
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
           | summarize count()
 
   - id: s-66
@@ -1392,7 +1392,7 @@ sections:
           fetch events
           | filter dsoa.run.plugin == "resource_monitors"
           | filter eventType == "CUSTOM_INFO"
-          | filter deployment.environment == "DEV-095"
+          | filter deployment.environment == "TEST_100"
           | summarize count = count(), by: {event.name, dt.davis.event.status}
           | sort count desc
 
@@ -1414,7 +1414,7 @@ sections:
           // After disabling a plugin, no FINISHED bizevents should appear for it
           fetch bizevents
           | filter db.system == "snowflake"
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
           | filter dsoa.run.context == "self_monitoring"
           | filter dsoa.task.exec.status == "FINISHED"
           | summarize count = count(), last = max(timestamp), by: {dsoa.run.plugin}
@@ -1433,7 +1433,7 @@ sections:
         value: |
           fetch logs
           | filter dsoa.run.plugin == "event_usage"
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
           | summarize count()
 
   # ---------------------------------------------------------------------------
@@ -1463,7 +1463,7 @@ sections:
           to: now()
         value: |
           timeseries count(snowflake.login.attempts.failed), by:{deployment.environment}
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
 
   - id: s-70
     type: dql
@@ -1477,7 +1477,7 @@ sections:
           to: now()
         value: |
           timeseries count(snowflake.login.attempts.successful), by:{deployment.environment}
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
 
   - id: s-71
     type: dql
@@ -1491,7 +1491,7 @@ sections:
           to: now()
         value: |
           timeseries count(snowflake.login.attempts.total), by:{deployment.environment}
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
 
   - id: s-72
     type: dql
@@ -1505,7 +1505,7 @@ sections:
           to: now()
         value: |
           timeseries count(snowflake.task.run.failed), by:{deployment.environment}
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
 
   - id: s-73
     type: dql
@@ -1519,7 +1519,7 @@ sections:
           to: now()
         value: |
           timeseries count(snowflake.task.run.cancelled), by:{deployment.environment}
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
 
   - id: s-74
     type: dql
@@ -1533,7 +1533,7 @@ sections:
           to: now()
         value: |
           timeseries count(snowflake.task.run.successful), by:{deployment.environment}
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
 
   # ---------------------------------------------------------------------------
   # C10 — Query Text Obfuscation (BDX-1916)
@@ -1561,7 +1561,7 @@ sections:
         value: |
           fetch spans
           | filter dsoa.run.context == "query_history"
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
           | filter contains(db.query.text, "'DSOA_OBFUSCATION_TEST'")
           | summarize count()
 
@@ -1581,7 +1581,7 @@ sections:
           // Tip: narrow timeframe to now()-30m in the UI to exclude pre-switch spans
           fetch spans
           | filter dsoa.run.context == "query_history"
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
           | filter contains(db.query.text, "'DSOA_OBFUSCATION_TEST'")
           | summarize count()
 
@@ -1601,7 +1601,7 @@ sections:
           // Tip: narrow timeframe to now()-30m in the UI to exclude pre-switch spans
           fetch spans
           | filter dsoa.run.context == "query_history"
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
           | filter matchesPhrase(db.query.text, "SELECT")
           | summarize count()
 
@@ -1645,7 +1645,7 @@ sections:
         value: |
           fetch logs
           | filter dsoa.run.context == "self_monitoring"
-          | filter deployment.environment == "DEV-094"
+          | filter deployment.environment == "TEST_100"
           | filter loglevel == "WARN"
           | filter contains(content, "max_entries")
           | summarize count()

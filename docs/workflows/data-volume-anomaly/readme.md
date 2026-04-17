@@ -34,7 +34,7 @@ The workflow runs two analyzer tasks in parallel, then merges results into a sin
    an alert immediately.
 
 1. **`extract_anomaly_events`** — Waits for both analyzers to complete, then merges their results
-   into a single list of Dynatrace event payloads. Each event carries an `ad.direction` property
+   into a single list of Dynatrace event payloads. Each event carries an `anomaly.direction` property
    (`above` or `below`) to distinguish spike from drop anomalies.
 
 1. **`ingest_anomaly_events`** — Sends each event to Dynatrace via the Environment V2 Events API.
@@ -53,15 +53,15 @@ Queries the `snowflake.data.rows` metric from the `data_volume` plugin:
 
 Each ingested event carries:
 
-| Property                 | Value                             |
-|--------------------------|-----------------------------------|
-| `event.type`             | `CustomInfo` (default)            |
-| `ad.source`              | `dsoa.data_volume_anomaly`        |
-| `ad.source_metric`       | `snowflake.data.rows`             |
-| `ad.direction`           | `above` (spike) or `below` (drop) |
-| `event.start/end`        | Anomaly timeframe from Davis      |
-| `db.collection.name`     | Affected table                    |
-| `deployment.environment` | Snowflake environment             |
+| Property                  | Value                             |
+|---------------------------|-----------------------------------|
+| `event.type`              | `CustomInfo` (default)            |
+| `anomaly.detector`        | `dsoa.data_volume_anomaly`        |
+| `metric.key`              | `snowflake.data.rows`             |
+| `anomaly.direction`       | `above` (spike) or `below` (drop) |
+| `event.start/end`         | Anomaly timeframe from Davis      |
+| `db.collection.name`      | Affected table                    |
+| `deployment.environment`  | Snowflake environment             |
 
 ## Customization
 

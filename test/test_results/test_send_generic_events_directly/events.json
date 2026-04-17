@@ -6,7 +6,8 @@
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
     "eventType": "CUSTOM_INFO",
-    "title": "Dynatrace Snowflake Observability Agent test event 1"
+    "title": "Dynatrace Snowflake Observability Agent test event 1",
+    "deployment.environment.name": "TEST"
   },
   {
     "test.event.dtagent.number": 10,
@@ -28,7 +29,8 @@
     "telemetry.exporter.name": "dynatrace.snowagent",
     "eventType": "AVAILABILITY_EVENT",
     "title": "Dynatrace Snowflake Observability Agent test event 2",
-    "timeout": 30
+    "timeout": 30,
+    "deployment.environment.name": "TEST"
   },
   {
     "test.event.dtagent.info": "timeout",
@@ -39,7 +41,8 @@
     "telemetry.exporter.name": "dynatrace.snowagent",
     "eventType": "CUSTOM_ANNOTATION",
     "title": "Dynatrace Snowflake Observability Agent test event 3",
-    "timeout": 30
+    "timeout": 30,
+    "deployment.environment.name": "TEST"
   },
   {
     "test.event.dtagent.info": "10 min in the past",
@@ -50,7 +53,8 @@
     "telemetry.exporter.name": "dynatrace.snowagent",
     "eventType": "CUSTOM_ALERT",
     "title": "Dynatrace Snowflake Observability Agent test event 4",
-    "timeout": 15
+    "timeout": 15,
+    "deployment.environment.name": "TEST"
   },
   {
     "test.event.dtagent.info": "15 min in the future",
@@ -60,7 +64,8 @@
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
     "eventType": "CUSTOM_DEPLOYMENT",
-    "title": "Dynatrace Snowflake Observability Agent test event 5"
+    "title": "Dynatrace Snowflake Observability Agent test event 5",
+    "deployment.environment.name": "TEST"
   },
   {
     "test.event.dtagent.info": "15 min in the future",
@@ -72,6 +77,7 @@
     "dsoa.run.context": "data_volume",
     "dsoa.run.plugin": "test_send_events_directly",
     "eventType": "CUSTOM_DEPLOYMENT",
-    "title": "Dynatrace Snowflake Observability Agent test event 6"
+    "title": "Dynatrace Snowflake Observability Agent test event 6",
+    "deployment.environment.name": "TEST"
   }
 ]

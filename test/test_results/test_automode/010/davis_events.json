@@ -3,7 +3,7 @@
     "eventType": "CUSTOM_INFO",
     "title": "This is a test object 1",
     "properties": {
-      "status.code": "OK",
+      "snowflake.status.code": "OK",
       "value.int": 10,
       "value.str": "test",
       "value.bool": true,
@@ -19,14 +19,15 @@
       "host.name": "test.dsoa2025.snowflakecomputing.com",
       "telemetry.exporter.name": "dynatrace.snowagent",
       "dsoa.run.plugin": "telemetry_sender",
-      "dsoa.run.context": "test_automode/010"
+      "dsoa.run.context": "test_automode/010",
+      "deployment.environment.name": "TEST"
     }
   },
   {
     "eventType": "PERFORMANCE_EVENT",
     "title": "This is a test object 2",
     "properties": {
-      "status.code": "OK",
+      "snowflake.status.code": "OK",
       "event.type": "PERFORMANCE_EVENT",
       "value.int": 10000000,
       "value.str": "test 2",
@@ -42,14 +43,15 @@
       "host.name": "test.dsoa2025.snowflakecomputing.com",
       "telemetry.exporter.name": "dynatrace.snowagent",
       "dsoa.run.plugin": "telemetry_sender",
-      "dsoa.run.context": "test_automode/010"
+      "dsoa.run.context": "test_automode/010",
+      "deployment.environment.name": "TEST"
     }
   },
   {
     "eventType": "ERROR_EVENT",
     "title": "Event sent with test_automode/010",
     "properties": {
-      "status.code": "ERROR",
+      "snowflake.status.code": "ERROR",
       "event.type": "ERROR_EVENT",
       "test.message": "This is a test object 3",
       "value.int": -10,
@@ -65,7 +67,8 @@
       "host.name": "test.dsoa2025.snowflakecomputing.com",
       "telemetry.exporter.name": "dynatrace.snowagent",
       "dsoa.run.plugin": "telemetry_sender",
-      "dsoa.run.context": "test_automode/010"
+      "dsoa.run.context": "test_automode/010",
+      "deployment.environment.name": "TEST"
     }
   },
   {
@@ -90,7 +93,8 @@
       "host.name": "test.dsoa2025.snowflakecomputing.com",
       "telemetry.exporter.name": "dynatrace.snowagent",
       "dsoa.run.plugin": "telemetry_sender",
-      "dsoa.run.context": "test_automode/010"
+      "dsoa.run.context": "test_automode/010",
+      "deployment.environment.name": "TEST"
     }
   }
 ]

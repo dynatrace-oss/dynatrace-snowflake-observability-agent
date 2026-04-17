@@ -44,7 +44,7 @@ tasks:
           , by: {
             snowflake.warehouse.name,
             db.namespace,
-            deployment.environment
+            deployment.environment.name
           }
           , filter: {
             snowflake.query.execution_status == "SUCCESS"
@@ -52,7 +52,7 @@ tasks:
           | fieldsAdd
               metric_name = "snowflake.query.execution_time.avg",
               _event_name_template = "Query slowdown detected in warehouse {dims:snowflake.warehouse.name} / database {dims:db.namespace}",
-              _event_description_template = "Average query execution time in warehouse {dims:snowflake.warehouse.name}, database {dims:db.namespace} ({dims:deployment.environment}) has significantly increased compared to the learned baseline."
+              _event_description_template = "Average query execution time in warehouse {dims:snowflake.warehouse.name}, database {dims:db.namespace} ({dims:deployment.environment.name}) has significantly increased compared to the learned baseline."
         alertCondition: ABOVE
         trainingTimeframe:
           startTime: now-14d
@@ -137,8 +137,8 @@ tasks:
 
           newEvent.body.properties['event.start'] = startTime;
           newEvent.body.properties['event.end'] = endTime;
-          newEvent.body.properties['ad.source'] = CONFIG.adSource;
-          newEvent.body.properties['ad.source_metric'] = sourceMetric;
+          newEvent.body.properties['anomaly.detector'] = CONFIG.adSource;
+          newEvent.body.properties['metric.key'] = sourceMetric;
 
           if (result.dimensions.length > 0) {
             result.dimensions.forEach(dim => {

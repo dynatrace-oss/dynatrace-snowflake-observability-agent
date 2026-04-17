@@ -1,7 +1,7 @@
 [
     {
         "timestamp": 1732103723000,
-        "status.code": "OK",
+        "snowflake.status.code": "OK",
         "_message": "This is a test object 1",
         "value.int": 10,
         "value.str": "test",
@@ -18,7 +18,7 @@
     },
     {
         "timestamp": 1732103723000,
-        "status.code": "OK",
+        "snowflake.status.code": "OK",
         "_message": "This is a test object 2",
         "event.type": "PERFORMANCE_EVENT",
         "value.int": 10000000,
@@ -35,7 +35,7 @@
     },
     {
         "timestamp": 1732103723000,
-        "status.code": "ERROR",
+        "snowflake.status.code": "ERROR",
         "event.type": "ERROR_EVENT",
         "test.message": "This is a test object 3",
         "value.int": -10,

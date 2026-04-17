@@ -31,7 +31,8 @@
 # * INSTALL_SCRIPT_SQL [REQUIRED] - path to the file where installation script must be written to
 # * ENV                [REQUIRED] - environment identifier (config-$ENV.yml must exist)
 # * SCOPE              [REQUIRED] - deployment scope:
-#                       init, admin, setup, plugins, config, agents, apikey, all, teardown, upgrade, or file_part
+#                       init, admin-init, admin-objects, admin (alias for both), setup, plugins, config,
+#                       agents, apikey, all, teardown, upgrade, or file_part
 # * FROM_VERSION       [OPTIONAL] - version number for upgrade scope
 # * IS_MANUAL          [OPTIONAL] - "true" to generate a human-readable script; "false" or empty for automated deploy
 # * OPTIONS_STR        [OPTIONAL] - comma-separated deploy options (e.g. cleanup_disabled,skip_confirm)
@@ -69,6 +70,12 @@ TAG=$($CWD/get_config_key.sh core.tag)
 TAG=${TAG:-""}
 
 echo "Deploying with tag ${TAG}"
+
+#
+# Whether to append the post-install bizevent (build/90_finalize.sql) for scope=all/upgrade,
+# confirming from inside Snowflake that APP.SEND_TELEMETRY() can reach the configured Dynatrace tenant
+#
+SEND_INSTALL_BIZEVENT=$($CWD/get_config_key.sh plugins.self_monitoring.send_bizevents_on_deploy)
 
 #
 # Get custom object names from config
@@ -197,8 +204,14 @@ map_scope_to_files() {
         init)
             echo "00_init.sql"
             ;;
-        admin)
+        admin-init)
+            echo "05_admin_init.sql"
+            ;;
+        admin-objects)
             echo "80_admin.sql"
+            ;;
+        admin)
+            echo "05_admin_init.sql 80_admin.sql"
             ;;
         setup)
             echo "20_setup.sql"
@@ -213,7 +226,7 @@ map_scope_to_files() {
             echo "70_agents.sql"
             ;;
         all)
-            echo "00_init.sql 20_setup.sql 30_plugins/*.sql 40_config.sql 70_agents.sql 80_admin.sql"
+            echo "00_init.sql 05_admin_init.sql 20_setup.sql 30_plugins/*.sql 40_config.sql 70_agents.sql 80_admin.sql"
             ;;
         upgrade)
             if [ -z "$FROM_VERSION" ]; then
@@ -296,6 +309,26 @@ else
     fi
     SQL_FILES=$(map_scope_to_files "$SCOPE")
 fi
+
+# Warn if admin-objects is being deployed without admin-init (fresh install risk)
+_adm_has_objects=false
+_adm_has_init=false
+IFS=',' read -ra _adm_scope_arr <<< "$SCOPE"
+for _adm_tok in "${_adm_scope_arr[@]}"; do
+    _adm_tok=$(echo "$_adm_tok" | xargs)
+    case "$_adm_tok" in
+        admin-objects) _adm_has_objects=true ;;
+        admin-init)    _adm_has_init=true ;;
+        admin)         _adm_has_objects=true; _adm_has_init=true ;;
+        all)           _adm_has_objects=true; _adm_has_init=true ;;
+    esac
+done
+if [ "$_adm_has_objects" = true ] && [ "$_adm_has_init" = false ]; then
+    echo "WARNING: Scope 'admin-objects' selected without 'admin-init'."
+    echo "         On a fresh Snowflake account the DTAGENT_ADMIN role must already exist."
+    echo "         Use '--scope=admin' to deploy both phases, or run '--scope=admin-init' first."
+fi
+unset _adm_has_objects _adm_has_init _adm_scope_arr _adm_tok
 
 # Check if required SQL files exist in build folder (skip for scopes with empty SQL_FILES)
 if [ -n "$SQL_FILES" ]; then
@@ -781,6 +814,26 @@ if [[ "$SCOPE" == *"admin"* ]] && [[ "$EXCLUDED_OPTIONS" == *"dtagent_admin"* ]]
     exit 1
 fi
 
+# Append the post-install bizevent (build/90_finalize.sql) after everything above — including
+# the apikey/config-refresh block and any disabled-plugin task suspend/cleanup statements — so
+# it is genuinely the last statement executed for scope=all/apikey/upgrade. INCLUDE_APIKEY is
+# true for scope=all, scope=apikey standalone, and any comma-separated scope combo that includes
+# apikey — verifying the token right after it's (re)deployed is exactly when it's most useful.
+# Appended here (not via SQL_FILES) so it still runs through the TAG/identifier substitution
+# pass just below.
+if [ "$SEND_INSTALL_BIZEVENT" == "true" ] && { [ "$INCLUDE_APIKEY" == "true" ] || [ "$HAS_UPGRADE_SCOPE" == "true" ]; }; then
+    if [ ! -f "build/90_finalize.sql" ]; then
+        echo ""
+        echo "ERROR: Build artifacts are missing. Run the following command first:"
+        echo "       ./scripts/dev/build.sh"
+        echo ""
+        echo "Missing files: build/90_finalize.sql"
+        echo ""
+        exit 1
+    fi
+    cat "build/90_finalize.sql" >>"$INSTALL_SCRIPT_SQL"
+fi
+
 #
 #   Cleaning up the final script
 #
@@ -791,6 +844,8 @@ else
     SED_INPLACE=("sed" "-i")
 fi
 
+# Strip comments before dedup so commented-out USE statements cannot
+# poison the dedup state and cause real USE statements to be suppressed.
 # Remove SQL line comments
 "${SED_INPLACE[@]}" -E -e 's/--.*$//' "$INSTALL_SCRIPT_SQL"
 # Remove SQL block comments
@@ -799,6 +854,83 @@ fi
 "${SED_INPLACE[@]}" -E -e '/^[[:space:]]*#/d' "$INSTALL_SCRIPT_SQL"
 # Remove Python inline comments
 "${SED_INPLACE[@]}" -E -e 's/[[:space:]]+#.*$//' "$INSTALL_SCRIPT_SQL"
+
+# Deduplicate consecutive USE ROLE/DATABASE/WAREHOUSE statements.
+# Lines that contain only USE ROLE/DATABASE/WAREHOUSE tokens (possibly multiple
+# on one semicolon-separated line) are deduplicated: a USE is only emitted when
+# its value differs from the last-emitted value.  Lines that contain any other
+# token (e.g. USE SCHEMA, CREATE, …) pass through unchanged; state is still
+# updated from any USE ROLE/DATABASE/WAREHOUSE tokens found on those lines.
+DEDUP_SQL=$(mktemp)
+awk '
+    BEGIN { cur_role = ""; cur_db = ""; cur_wh = "" }
+    {
+        line = $0
+        n = split(line, toks, ";")
+
+        has_content = 0
+        pure_use = 1
+        for (i = 1; i <= n; i++) {
+            t = toks[i]
+            sub(/^[[:space:]]+/, "", t)
+            sub(/[[:space:]]+$/, "", t)
+            if (t == "") continue
+            has_content = 1
+            if (toupper(t) !~ /^USE[[:space:]]+(ROLE|DATABASE|WAREHOUSE)[[:space:]]/) {
+                pure_use = 0
+            }
+        }
+
+        if (!has_content) { print line; next }
+
+        if (pure_use) {
+            out = ""
+            for (i = 1; i <= n; i++) {
+                t = toks[i]
+                sub(/^[[:space:]]+/, "", t)
+                sub(/[[:space:]]+$/, "", t)
+                if (t == "") continue
+                ut = toupper(t)
+                if (match(ut, /^USE[[:space:]]+ROLE[[:space:]]+/)) {
+                    val = toupper(substr(t, RSTART + RLENGTH))
+                    if (val != cur_role) {
+                        out = (out == "") ? t ";" : out " " t ";"
+                        cur_role = val
+                    }
+                } else if (match(ut, /^USE[[:space:]]+DATABASE[[:space:]]+/)) {
+                    val = substr(t, RSTART + RLENGTH)
+                    if (val != cur_db) {
+                        out = (out == "") ? t ";" : out " " t ";"
+                        cur_db = val
+                    }
+                } else if (match(ut, /^USE[[:space:]]+WAREHOUSE[[:space:]]+/)) {
+                    val = substr(t, RSTART + RLENGTH)
+                    if (val != cur_wh) {
+                        out = (out == "") ? t ";" : out " " t ";"
+                        cur_wh = val
+                    }
+                }
+            }
+            if (out != "") print out
+        } else {
+            for (i = 1; i <= n; i++) {
+                t = toks[i]
+                sub(/^[[:space:]]+/, "", t)
+                sub(/[[:space:]]+$/, "", t)
+                if (t == "") continue
+                ut = toupper(t)
+                if (match(ut, /^USE[[:space:]]+ROLE[[:space:]]+/)) {
+                    cur_role = substr(t, RSTART + RLENGTH)
+                } else if (match(ut, /^USE[[:space:]]+DATABASE[[:space:]]+/)) {
+                    cur_db = substr(t, RSTART + RLENGTH)
+                } else if (match(ut, /^USE[[:space:]]+WAREHOUSE[[:space:]]+/)) {
+                    cur_wh = substr(t, RSTART + RLENGTH)
+                }
+            }
+            print line
+        }
+    }
+' "$INSTALL_SCRIPT_SQL" > "$DEDUP_SQL" && mv "$DEDUP_SQL" "$INSTALL_SCRIPT_SQL"
 
 # Handle object name replacements
 # Priority: Custom names > TAG > Default names
@@ -853,6 +985,9 @@ elif [ -n "$TAG" ]; then
     "${SED_INPLACE[@]}" -E -e "s/(^|[^A-Za-z0-9_\$])DTAGENT_WH([^A-Za-z0-9_\$]|$)/\1DTAGENT_${TAG}_WH\2/g" "$INSTALL_SCRIPT_SQL"
     "${SED_INPLACE[@]}" -E -e "s/(^|[^A-Za-z0-9_\$])DTAGENT_RS([^A-Za-z0-9_\$]|$)/\1DTAGENT_${TAG}_RS\2/g" "$INSTALL_SCRIPT_SQL"
 fi
+
+# Fill in the deploy scope for the post-install bizevent (build/90_finalize.sql), if present
+"${SED_INPLACE[@]}" -E -e "s/__DSOA_DEPLOY_SCOPE__/${SCOPE}/g" "$INSTALL_SCRIPT_SQL"
 
 # Remove double newlines from the deployment script
 "${SED_INPLACE[@]}" '/^$/N;/^\n$/d' "$INSTALL_SCRIPT_SQL"

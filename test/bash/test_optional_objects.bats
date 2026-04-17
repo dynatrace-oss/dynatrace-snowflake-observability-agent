@@ -9,8 +9,8 @@ setup() {
     mkdir -p build/30_plugins
 
     # Create test SQL files with OPTION blocks
-    cat > build/80_admin.sql << 'EOSQL'
--- Admin setup
+    cat > build/05_admin_init.sql << 'EOSQL'
+-- Admin init (ACCOUNTADMIN)
 use role DTAGENT_OWNER;
 
 --%OPTION:dtagent_admin:
@@ -25,6 +25,8 @@ grant manage grants on account to role DTAGENT_ADMIN;
 -- Continue with other setup
 select 'admin setup complete';
 EOSQL
+    echo "-- Admin objects (DTAGENT_ADMIN)" > build/80_admin.sql
+    echo "select 'admin objects';" >> build/80_admin.sql
 
     cat > build/20_setup.sql << 'EOSQL'
 -- Setup
@@ -90,7 +92,7 @@ EOSQL
 
 teardown() {
     rm -f "$TEST_SQL_FILE" "$TEST_CONFIG_FILE"
-    rm -rf build/80_admin.sql build/20_setup.sql build/40_config.sql build/70_agents.sql build/30_plugins
+    rm -rf build/05_admin_init.sql build/80_admin.sql build/20_setup.sql build/40_config.sql build/70_agents.sql build/30_plugins
     unset BUILD_CONFIG_FILE
 }
 

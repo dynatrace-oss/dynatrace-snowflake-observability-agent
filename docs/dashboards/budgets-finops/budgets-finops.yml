@@ -38,10 +38,9 @@ variables:
     input: |-
       fetch logs, from: now()-7d
       | filter db.system == "snowflake"
-      | fields deployment.environment
-      | dedup deployment.environment
-      | sort deployment.environment asc
-
+      | fields env_name = coalesce(deployment.environment.name, deployment.environment)
+      | dedup env_name
+      | sort env_name asc
   - version: 2
     key: Budget
     type: query
@@ -52,7 +51,7 @@ variables:
       fetch logs, from: now()-7d
       | filter db.system == "snowflake"
       | filter dsoa.run.plugin == "budgets"
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | filter isNotNull(`snowflake.budget.name`)
       | fields `snowflake.budget.name`
       | dedup `snowflake.budget.name`
@@ -67,13 +66,13 @@ variables:
     input: |-
       fetch events, from: now()-7d
       | filter db.system == "snowflake"
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | filter isNotNull(snowflake.warehouse.name)
       | fields snowflake.warehouse.name
       | append [
         fetch logs, from: now()-7d
         | filter db.system == "snowflake"
-        | filter in(deployment.environment, array($Accounts))
+        | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
         | filter isNotNull(snowflake.warehouse.name)
         | fields snowflake.warehouse.name
       ]
@@ -97,18 +96,18 @@ tiles:
       | filter db.system == "snowflake"
       | filter dsoa.run.plugin == "budgets"
       | filter dsoa.run.context == "spendings"
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | filter in(`snowflake.budget.name`, array($Budget))
       | filter isNotNull(`snowflake.budget.name`)
       | summarize {
           spent = sum(toDouble(`snowflake.credits.spent`))
-        }, by: { `snowflake.budget.name`, deployment.environment }
+        }, by: { `snowflake.budget.name`, env_name = coalesce(deployment.environment.name, deployment.environment) }
       | join [
           fetch logs
           | filter db.system == "snowflake"
           | filter dsoa.run.plugin == "budgets"
           | filter dsoa.run.context == "budgets"
-          | filter in(deployment.environment, array($Accounts))
+          | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
           | filter in(`snowflake.budget.name`, array($Budget))
           | filter isNotNull(`snowflake.budget.name`)
           | summarize {
@@ -118,7 +117,7 @@ tiles:
         , fields: { limit_val }
       | fields
           `Budget`   = `snowflake.budget.name`,
-          `Account`  = deployment.environment,
+          `Account`  = env_name,
           `Spent`    = spent,
           `Limit`    = limit_val,
           `% Used`   = if(limit_val > 0, spent / limit_val * 100, else: 0)
@@ -164,12 +163,12 @@ tiles:
       | filter db.system == "snowflake"
       | filter dsoa.run.plugin == "budgets"
       | filter `dsoa.run.context` == "spendings"
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | filter in(`snowflake.budget.name`, array($Budget))
       | filter isNotNull(`snowflake.credits.spent`)
       | fieldsAdd spent_n = toDouble(`snowflake.credits.spent`)
       | makeTimeseries spent = avg(spent_n),
-          by: { `snowflake.budget.name`, deployment.environment },
+          by: { `snowflake.budget.name`, coalesce(deployment.environment.name, deployment.environment) },
           time: timestamp
     visualization: lineChart
     visualizationSettings:
@@ -190,7 +189,7 @@ tiles:
       dataMapping:
         displayedFields:
           - snowflake.budget.name
-          - deployment.environment
+          - coalesce(deployment.environment.name, deployment.environment)
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -210,7 +209,7 @@ tiles:
       | filter db.system == "snowflake"
       | filter dsoa.run.plugin == "budgets"
       | filter dsoa.run.context == "spendings"
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | filter in(`snowflake.budget.name`, array($Budget))
       | filter isNotNull(`snowflake.service.type`)
       | summarize {
@@ -245,7 +244,7 @@ tiles:
       | filter db.system == "snowflake"
       | filter dsoa.run.plugin == "budgets"
       | filter dsoa.run.context == "budgets"
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | filter in(`snowflake.budget.name`, array($Budget))
       | filter isNotNull(`snowflake.budget.name`)
       | sort timestamp desc
@@ -253,11 +252,11 @@ tiles:
           limit_val  = max(toDouble(`snowflake.credits.limit`)),
           owner      = takeLast(`snowflake.budget.owner`),
           resource   = takeLast(`snowflake.budget.resource`)
-        }, by: { `snowflake.budget.name`, deployment.environment }
+        }, by: { `snowflake.budget.name`, env_name = coalesce(deployment.environment.name, deployment.environment) }
       | sort `snowflake.budget.name` asc
       | fields
           `Budget`         = `snowflake.budget.name`,
-          `Account`        = deployment.environment,
+          `Account`        = env_name,
           `Limit (Credits)` = limit_val,
           `Owner`          = owner,
           `Resources`      = resource
@@ -290,7 +289,7 @@ tiles:
       | filter db.system == "snowflake"
       | filter dsoa.run.plugin == "resource_monitors"
       | filter dsoa.run.context == "resource_monitors"
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | filter in(`snowflake.warehouse.name`, array($Warehouse))
       | filter isNotNull(`snowflake.warehouse.name`)
       | sort timestamp desc
@@ -302,11 +301,11 @@ tiles:
           execution_state  = takeLast(`snowflake.warehouse.execution_state`),
           auto_resume      = takeLast(`snowflake.warehouse.is_auto_resume`),
           is_unmonitored   = takeLast(`snowflake.warehouse.is_unmonitored`)
-        }, by: { `snowflake.warehouse.name`, deployment.environment }
+        }, by: { `snowflake.warehouse.name`, env_name = coalesce(deployment.environment.name, deployment.environment) }
       | sort `snowflake.warehouse.name` asc
       | fields
           `Warehouse`       = `snowflake.warehouse.name`,
-          `Account`         = deployment.environment,
+          `Account`         = env_name,
           `Size`            = size,
           `Scaling Policy`  = scaling_policy,
           `Min Clusters`    = min_clusters,
@@ -349,7 +348,7 @@ tiles:
       | filter db.system == "snowflake"
       | filter dsoa.run.plugin == "resource_monitors"
       | filter `dsoa.run.context` == "resource_monitors"
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | filter in(`snowflake.warehouse.name`, array($Warehouse))
       | filter isNotNull(`snowflake.warehouse.name`)
       | fieldsAdd started_n = toDouble(`snowflake.warehouse.clusters.started`),
@@ -358,7 +357,7 @@ tiles:
             started = avg(started_n),
             max_clusters = avg(max_n)
           },
-          by: { `snowflake.warehouse.name`, deployment.environment },
+          by: { `snowflake.warehouse.name`, coalesce(deployment.environment.name, deployment.environment) },
           time: timestamp
     visualization: lineChart
     visualizationSettings:
@@ -380,7 +379,7 @@ tiles:
       dataMapping:
         displayedFields:
           - snowflake.warehouse.name
-          - deployment.environment
+          - coalesce(deployment.environment.name, deployment.environment)
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -400,7 +399,7 @@ tiles:
       | filter db.system == "snowflake"
       | filter dsoa.run.plugin == "resource_monitors"
       | filter `dsoa.run.context` == "resource_monitors"
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | filter isNotNull(`snowflake.resource_monitor.name`)
       | fieldsAdd quota_used_n = toDouble(`snowflake.credits.quota.used`),
                   quota_n = toDouble(`snowflake.credits.quota`)
@@ -408,7 +407,7 @@ tiles:
             quota_used = avg(quota_used_n),
             quota_total = avg(quota_n)
           },
-          by: { `snowflake.resource_monitor.name`, deployment.environment },
+          by: { `snowflake.resource_monitor.name`, coalesce(deployment.environment.name, deployment.environment) },
           time: timestamp
     visualization: lineChart
     visualizationSettings:
@@ -456,7 +455,7 @@ tiles:
       dataMapping:
         displayedFields:
           - snowflake.resource_monitor.name
-          - deployment.environment
+          - coalesce(deployment.environment.name, deployment.environment)
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -485,7 +484,7 @@ tiles:
       | filter db.system == "snowflake"
       | filter dsoa.run.plugin == "warehouse_usage"
       | filter `dsoa.run.context` == "warehouse_usage_load"
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | filter in(`snowflake.warehouse.name`, array($Warehouse))
       | filter isNotNull(`snowflake.warehouse.name`)
       | fieldsAdd running_n = toDouble(`snowflake.load.running`),
@@ -494,7 +493,7 @@ tiles:
             running = avg(running_n),
             queued  = avg(queued_n)
           },
-          by: { `snowflake.warehouse.name`, deployment.environment },
+          by: { `snowflake.warehouse.name`, coalesce(deployment.environment.name, deployment.environment) },
           time: timestamp
     visualization: lineChart
     visualizationSettings:
@@ -516,7 +515,7 @@ tiles:
       dataMapping:
         displayedFields:
           - snowflake.warehouse.name
-          - deployment.environment
+          - coalesce(deployment.environment.name, deployment.environment)
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -536,7 +535,7 @@ tiles:
       | filter db.system == "snowflake"
       | filter dsoa.run.plugin == "warehouse_usage"
       | filter dsoa.run.context == "warehouse_usage_load"
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | filter in(`snowflake.warehouse.name`, array($Warehouse))
       | filter isNotNull(`snowflake.load.running`)
       | summarize avg_running = avg(toDouble(`snowflake.load.running`)),
@@ -575,12 +574,12 @@ tiles:
       | filter db.system == "snowflake"
       | filter dsoa.run.plugin == "warehouse_usage"
       | filter `dsoa.run.context` == "warehouse_usage_load"
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | filter in(`snowflake.warehouse.name`, array($Warehouse))
       | filter isNotNull(`snowflake.warehouse.name`)
       | fieldsAdd blocked_n = toDouble(`snowflake.load.blocked`)
       | makeTimeseries blocked = avg(blocked_n),
-          by: { `snowflake.warehouse.name`, deployment.environment },
+          by: { `snowflake.warehouse.name`, coalesce(deployment.environment.name, deployment.environment) },
           time: timestamp
     visualization: lineChart
     visualizationSettings:
@@ -619,7 +618,7 @@ tiles:
       dataMapping:
         displayedFields:
           - snowflake.warehouse.name
-          - deployment.environment
+          - coalesce(deployment.environment.name, deployment.environment)
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500

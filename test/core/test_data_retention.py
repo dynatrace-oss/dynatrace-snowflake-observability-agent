@@ -93,7 +93,7 @@ class TestDataRetention:
 
     def test_database_has_default_retention_configured(self):
         """Test that the DTAGENT_DB database initialization sets a default DATA_RETENTION_TIME_IN_DAYS value."""
-        init_db_file = "src/dtagent.sql/init/002_init_db.sql"
+        init_db_file = "src/dtagent.sql/init/003_init_db.sql"
 
         with open(init_db_file, "r", encoding="utf-8") as f:
             content = f.read()

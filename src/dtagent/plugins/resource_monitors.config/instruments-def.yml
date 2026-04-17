@@ -19,7 +19,7 @@ attributes:
   snowflake.budget.name:
     __example: BUDGET_2024
     __description: The name of the budget associated with the warehouse.
-  snowflake.credits.quota:
+  snowflake.credits.quota.value:
     __example: "1000"
     __description: The credit quota of the resource monitor.
   snowflake.credits.quota.remaining:
@@ -45,18 +45,29 @@ attributes:
     __is_defined_at_runtime: true
     __example: up
     __description: >-
-      Direction of the threshold crossing: ``up`` when quota is increasing into or remaining within
-      a band; ``down`` when the consumption drops back below a previously active band.
+      Direction of the threshold crossing: ``up`` when quota is increasing into or remaining within a band; ``down`` when the consumption
+      drops back below a previously active band.
   snowflake.resource_monitor.threshold.level:
     __is_defined_at_runtime: true
     __example: warn
     __description: >-
-      Alert band for the threshold event: ``info`` (below 80%), ``warn`` ([80–90%)),
-      ``critical`` ([90–100%)), or ``exhausted`` (>=100%).
-  snowflake.resource_monitor.threshold.pct:
+      Alert band the resource monitor's credit usage fell into when the event was emitted:
+      one of ``info``, ``warn``, ``critical``, or ``exhausted`` (increasing severity). The
+      percentage boundaries for each band are configurable via
+      ``plugins.resource_monitors.credits_quota_thresholds`` (default ``[50, 80, 90, 100]``);
+      the specific crossed percentage is reported in ``snowflake.resource_monitor.threshold.value``.
+  snowflake.resource_monitor.threshold.value:
     __is_defined_at_runtime: true
+    __type: double
+    __unit: percent
     __example: "80"
-    __description: The specific threshold percentage value that was crossed to trigger the event.
+    __description: >-
+      The configured threshold percentage at which this crossing event was triggered (e.g., 80 means the 80% threshold was crossed).
+      Distinct from snowflake.credits.quota.used_pct, which captures live consumption at emit time.
+  snowflake.warehouse.event.trigger:
+    __is_defined_at_runtime: true
+    __example: "snowflake.warehouse.created_on"
+    __description: The event that triggered the "warehouse is not monitored" notification.
   snowflake.warehouse.execution_state:
     __example: RUNNING
     __description: The execution state of the warehouse.
@@ -66,9 +77,7 @@ attributes:
   snowflake.warehouse.is_auto_resume:
     __example: "true"
     __description: Indicates if the warehouse is set to auto-resume.
-  snowflake.warehouse.is_auto_suspend:
-    __example: "true"
-    __description: Indicates if the warehouse is set to auto-suspend.
+
   snowflake.warehouse.is_current:
     __example: "true"
     __description: Indicates if the warehouse is the current warehouse.
@@ -78,12 +87,13 @@ attributes:
   snowflake.warehouse.is_unmonitored:
     __example: "true"
     __description: Indicates if the warehouse is NOT monitored by a resource monitor.
-  snowflake.warehouse.owner:
+  snowflake.warehouse.owner.name:
     __example: admin
     __description: The owner of the warehouse.
   snowflake.warehouse.owner.role_type:
-    __example: SYSADMIN
-    __description: The role type of the warehouse owner.
+    __example: ROLE
+    __description: >
+      The principal type of the warehouse owner: ROLE or APPLICATION.
   snowflake.warehouse.scaling_policy:
     __example: STANDARD
     __description: The scaling policy of the warehouse.
@@ -93,8 +103,8 @@ attributes:
   snowflake.warehouse.type:
     __example: STANDARD
     __description: The type of the warehouse.
-  snowflake.warehouses.names:
-    __example: COMPUTE_WH
+  snowflake.resource_monitor.warehouses:
+    __example: '["COMPUTE_WH"]'
     __description: The names of the warehouses monitored.
 dimensions:
   snowflake.resource_monitor.name:
@@ -154,7 +164,7 @@ metrics:
     __description: Percentage of quiescing resources in given warehouse.
     displayName: Percentage Quiescing
     unit: percent
-  snowflake.credits.quota:
+  snowflake.credits.quota.value:
     __example: "1000"
     __description: Total number of credits allowed for the given resource monitor
     displayName: Credits Quota
@@ -184,7 +194,7 @@ metrics:
     __description: Current number of running queries in the given warehouse
     displayName: Running Queries
     unit: queries
-  snowflake.resource_monitor.warehouses:
+  snowflake.resource_monitor.warehouses.count:
     __example: "5"
     __description: Number of warehouses monitored by the given resource monitor
     displayName: Warehouses Count
@@ -199,6 +209,13 @@ metrics:
     __description: Minimal number of clusters in the given warehouse
     displayName: Minimum Cluster Count
     unit: clusters
+  snowflake.warehouse.auto_suspend:
+    __example: "600"
+    __description: >-
+      The number of seconds after which an idle warehouse is automatically suspended. A value of null or 0 indicates auto-suspend is
+      disabled.
+    displayName: Warehouse Auto-Suspend Timeout
+    unit: seconds
   snowflake.warehouse.clusters.started:
     __example: "3"
     __description: Current number of started clusters in the given warehouse

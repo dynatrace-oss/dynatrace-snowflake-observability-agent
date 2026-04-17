@@ -62,7 +62,7 @@ value:
         description: Count of failed attempts to login to Snowflake
         enabled: true
         id: processor_snowflake.login.attempts.failed_4856
-        matcher: event.name == "LOGIN" and dsoa.run.context == "login_history" and status.code == "ERROR"
+        matcher: event.name == "LOGIN" and dsoa.run.context == "login_history" and snowflake.status.code == "ERROR"
         type: counterMetric
       - counterMetric:
           dimensions:
@@ -83,7 +83,7 @@ value:
         description: Count of successful attempts to login to Snowflake
         enabled: true
         id: processor_snowflake.login.attempts.successful_3900
-        matcher: event.name == "LOGIN" and dsoa.run.context == "login_history" and status.code == "OK"
+        matcher: event.name == "LOGIN" and dsoa.run.context == "login_history" and snowflake.status.code == "OK"
         type: counterMetric
       - counterMetric:
           dimensions:

@@ -21,7 +21,7 @@
     "snowflake.user.is_from_organization": false,
     "snowflake.user.is_locked": false,
     "snowflake.user.must_change_password": false,
-    "snowflake.user.name": "TEST_USER_1",
+    "snowflake.user.name.login": "TEST_USER_1",
     "snowflake.user.name.first": "Test",
     "snowflake.user.name.last": "User",
     "snowflake.user.owner": "AAD_PROVISIONER",
@@ -32,7 +32,8 @@
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.plugin": "test_users",
-    "dsoa.run.context": "users"
+    "dsoa.run.context": "users",
+    "deployment.environment.name": "TEST"
   },
   {
     "eventType": "CUSTOM_INFO",
@@ -56,7 +57,7 @@
     "snowflake.user.is_from_organization": false,
     "snowflake.user.is_locked": false,
     "snowflake.user.must_change_password": false,
-    "snowflake.user.name": "TEST_USER_1",
+    "snowflake.user.name.login": "TEST_USER_1",
     "snowflake.user.name.first": "Test",
     "snowflake.user.name.last": "User",
     "snowflake.user.owner": "AAD_PROVISIONER",
@@ -67,7 +68,8 @@
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.plugin": "test_users",
-    "dsoa.run.context": "users"
+    "dsoa.run.context": "users",
+    "deployment.environment.name": "TEST"
   },
   {
     "eventType": "CUSTOM_INFO",
@@ -91,7 +93,7 @@
     "snowflake.user.is_from_organization": false,
     "snowflake.user.is_locked": false,
     "snowflake.user.must_change_password": false,
-    "snowflake.user.name": "TEST_DATAMODEL_UPGRADER",
+    "snowflake.user.name.login": "TEST_DATAMODEL_UPGRADER",
     "snowflake.user.owner": "SECURITYADMIN",
     "db.user": "TEST_DATAMODEL_UPGRADER",
     "db.system": "snowflake",
@@ -100,7 +102,8 @@
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.plugin": "test_users",
-    "dsoa.run.context": "users"
+    "dsoa.run.context": "users",
+    "deployment.environment.name": "TEST"
   },
   {
     "eventType": "CUSTOM_INFO",
@@ -124,7 +127,7 @@
     "snowflake.user.is_from_organization": false,
     "snowflake.user.is_locked": false,
     "snowflake.user.must_change_password": false,
-    "snowflake.user.name": "TEST_DATAMODEL_UPGRADER",
+    "snowflake.user.name.login": "TEST_DATAMODEL_UPGRADER",
     "snowflake.user.owner": "SECURITYADMIN",
     "db.user": "TEST_DATAMODEL_UPGRADER",
     "db.system": "snowflake",
@@ -133,7 +136,8 @@
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.plugin": "test_users",
-    "dsoa.run.context": "users"
+    "dsoa.run.context": "users",
+    "deployment.environment.name": "TEST"
   },
   {
     "eventType": "CUSTOM_INFO",
@@ -157,7 +161,7 @@
     "snowflake.user.is_from_organization": false,
     "snowflake.user.is_locked": false,
     "snowflake.user.must_change_password": false,
-    "snowflake.user.name": "TEST_DATAMODEL_UPGRADER",
+    "snowflake.user.name.login": "TEST_DATAMODEL_UPGRADER",
     "snowflake.user.owner": "SECURITYADMIN",
     "db.user": "TEST_DATAMODEL_UPGRADER",
     "db.system": "snowflake",
@@ -166,14 +170,15 @@
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.plugin": "test_users",
-    "dsoa.run.context": "users"
+    "dsoa.run.context": "users",
+    "deployment.environment.name": "TEST"
   },
   {
     "eventType": "CUSTOM_INFO",
     "title": "Table event snowflake.user.roles.last_altered.",
     "snowflake.event.trigger": "snowflake.user.roles.last_altered",
     "snowflake.user.roles.last_altered": 1661498740003000000,
-    "snowflake.user.roles.direct": [
+    "snowflake.user.roles.direct.list": [
       "TEST_USER_ROLE"
     ],
     "snowflake.user.roles.granted_by": [
@@ -186,14 +191,15 @@
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.plugin": "test_users",
-    "dsoa.run.context": "users"
+    "dsoa.run.context": "users",
+    "deployment.environment.name": "TEST"
   },
   {
     "eventType": "CUSTOM_INFO",
     "title": "Table event snowflake.user.roles.last_altered.",
     "snowflake.event.trigger": "snowflake.user.roles.last_altered",
     "snowflake.user.roles.last_altered": 1615219848339000000,
-    "snowflake.user.roles.direct": [
+    "snowflake.user.roles.direct.list": [
       "SCRATCHPAD_ROLE"
     ],
     "snowflake.user.roles.granted_by": [
@@ -206,7 +212,8 @@
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.plugin": "test_users",
-    "dsoa.run.context": "users"
+    "dsoa.run.context": "users",
+    "deployment.environment.name": "TEST"
   },
   {
     "eventType": "CUSTOM_INFO",
@@ -221,7 +228,8 @@
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.plugin": "test_users",
-    "dsoa.run.context": "users"
+    "dsoa.run.context": "users",
+    "deployment.environment.name": "TEST"
   },
   {
     "eventType": "CUSTOM_INFO",
@@ -236,7 +244,8 @@
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.plugin": "test_users",
-    "dsoa.run.context": "users"
+    "dsoa.run.context": "users",
+    "deployment.environment.name": "TEST"
   },
   {
     "eventType": "CUSTOM_INFO",
@@ -254,7 +263,8 @@
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.plugin": "test_users",
-    "dsoa.run.context": "users"
+    "dsoa.run.context": "users",
+    "deployment.environment.name": "TEST"
   },
   {
     "eventType": "CUSTOM_INFO",
@@ -273,14 +283,15 @@
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.plugin": "test_users",
-    "dsoa.run.context": "users"
+    "dsoa.run.context": "users",
+    "deployment.environment.name": "TEST"
   },
   {
     "eventType": "CUSTOM_INFO",
     "title": "Table event snowflake.user.privilege.last_altered.",
     "snowflake.event.trigger": "snowflake.user.privilege.last_altered",
     "snowflake.user.privilege.last_altered": 1615219847793000000,
-    "snowflake.user.privilege": "UPDATE:VIEW",
+    "snowflake.user.privilege.name": "UPDATE:VIEW",
     "snowflake.user.privilege.granted_by": [
       "SECURITYADMIN"
     ],
@@ -292,14 +303,15 @@
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.plugin": "test_users",
-    "dsoa.run.context": "users"
+    "dsoa.run.context": "users",
+    "deployment.environment.name": "TEST"
   },
   {
     "eventType": "CUSTOM_INFO",
     "title": "Table event snowflake.user.privilege.last_altered.",
     "snowflake.event.trigger": "snowflake.user.privilege.last_altered",
     "snowflake.user.privilege.last_altered": 1720426973204000000,
-    "snowflake.user.privilege": "APPLYBUDGET:TABLE",
+    "snowflake.user.privilege.name": "APPLYBUDGET:TABLE",
     "snowflake.user.privilege.granted_by": [
       "SECURITYADMIN"
     ],
@@ -311,6 +323,7 @@
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.plugin": "test_users",
-    "dsoa.run.context": "users"
+    "dsoa.run.context": "users",
+    "deployment.environment.name": "TEST"
   }
 ]

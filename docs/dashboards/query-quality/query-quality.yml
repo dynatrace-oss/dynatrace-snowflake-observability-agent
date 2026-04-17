@@ -39,7 +39,7 @@ variables:
     input: |-
       fetch spans
         | filter db.system == "snowflake"
-        | summarize env = collectDistinct(upper(deployment.environment))
+        | summarize env = collectDistinct(upper(coalesce(deployment.environment.name, deployment.environment)))
         | fields env_and_all = array("*", env)
     multiple: false
     defaultValue: "*"
@@ -52,7 +52,7 @@ variables:
       fetch spans
         | filter db.system == "snowflake"
         | filter isNotNull(span.events)
-        | filter $Account == "*" or $Account == upper(deployment.environment)
+        | filter $Account == "*" or $Account == upper(coalesce(deployment.environment.name, deployment.environment))
         | summarize operation = collectDistinct(upper(coalesce(db.operation, db.operation.name)))
         | fields operation_and_all = array("*", operation)
     multiple: false
@@ -66,13 +66,13 @@ variables:
       fetch spans
         | filter db.system == "snowflake"
         | filter isNotNull(span.events)
-        | filter $Account == "*" or $Account == upper(deployment.environment)
+        | filter $Account == "*" or $Account == upper(coalesce(deployment.environment.name, deployment.environment))
         | filter $DB_Operation == "*" or $DB_Operation == upper(coalesce(db.operation, db.operation.name))
-        | fieldsAdd operator_stats = iCollectArray(parse(span.events[][snowflake.query.operator.stats], """JSON:stats"""))
+        | fieldsAdd operator_stats = iCollectArray(parse(span.events[][snowflake.query.step.operator.stats], """JSON:stats"""))
         | filter iAny(operator_stats[][input_rows] < operator_stats[][output_rows] and
-            span.events[][snowflake.query.operator.type] == "Join")
+            span.events[][snowflake.query.step.operator.type] == "Join")
         | fields
-            start_time, end_time, snowflake.query.id, deployment.environment, db.operation, db.statement, db.user,
+            start_time, end_time, snowflake.query.id, `deployment.environment` = coalesce(deployment.environment.name, deployment.environment), db.operation, db.statement, db.user,
             snowflake.execution_status, snowflake.time.total_elapsed, snowflake.time.execution, span.events, operator_stats
         | fields db.user
         | dedup db.user
@@ -88,20 +88,20 @@ tiles:
       fetch spans
         | filter db.system == "snowflake"
         | filter isNotNull(span.events)
-        | fieldsAdd service_name = deployment.environment
+        | fieldsAdd service_name = coalesce(deployment.environment.name, deployment.environment)
         | fieldsAdd operation_name = coalesce(db.operation, db.operation.name)
-        | filter $Account == "*" or upper(deployment.environment) == $Account
+        | filter $Account == "*" or upper(coalesce(deployment.environment.name, deployment.environment)) == $Account
         | filter $DB_Operation == "*" or upper(operation_name) == $DB_Operation
         | filter in(db.user, array($User))
-        | fieldsAdd operator_stats = iCollectArray(parse(span.events[][snowflake.query.operator.stats], """JSON:stats"""))
+        | fieldsAdd operator_stats = iCollectArray(parse(span.events[][snowflake.query.step.operator.stats], """JSON:stats"""))
         | filter iAny(operator_stats[][input_rows] < operator_stats[][output_rows] and
-            span.events[][snowflake.query.operator.type] == "Join")
+            span.events[][snowflake.query.step.operator.type] == "Join")
         | fields
             start_time, end_time, snowflake.query.id, service_name, operation_name,
             query_text = coalesce(db.statement, db.query.text), db.user, bietl.action = tags[action],
             bietl.modeler_task = tags[modeler_task], bietl.module = tags[module], bietl.task = tags[task],
             snowflake.execution_status, snowflake.time.total_elapsed, snowflake.time.execution, span.events,
-            deployment.environment, operator_stats
+            `deployment.environment` = coalesce(deployment.environment.name, deployment.environment), operator_stats
     visualization: recordView
     visualizationSettings:
       thresholds: []
@@ -124,18 +124,18 @@ tiles:
       fetch spans
         | filter db.system == "snowflake"
         | filter isNotNull(span.events)
-        | fieldsAdd service_name = deployment.environment
+        | fieldsAdd service_name = coalesce(deployment.environment.name, deployment.environment)
         | fieldsAdd operation_name = coalesce(db.operation, db.operation.name)
         | filter $DB_Operation == "*" or upper(operation_name) == $DB_Operation
-        | filter $Account == "*" or upper(deployment.environment) == $Account
+        | filter $Account == "*" or upper(coalesce(deployment.environment.name, deployment.environment)) == $Account
         | filter in(db.user, array($User))
-        | fieldsAdd operator_stats = iCollectArray(parse(span.events[][snowflake.query.operator.stats], """JSON:stats"""))
+        | fieldsAdd operator_stats = iCollectArray(parse(span.events[][snowflake.query.step.operator.stats], """JSON:stats"""))
         | filter iAny(operator_stats[][input_rows] < operator_stats[][output_rows] and
-            span.events[][snowflake.query.operator.type] == "Join")
+            span.events[][snowflake.query.step.operator.type] == "Join")
         | fields
             start_time, end_time, snowflake.query.id, service_name, operation_name, db.statement, db.user,
             snowflake.execution_status, snowflake.time.total_elapsed, snowflake.time.execution, span.events,
-            deployment.environment, operator_stats
+            `deployment.environment` = coalesce(deployment.environment.name, deployment.environment), operator_stats
         | makeTimeseries count(), by: {
           upper(deployment.environment)
         }, interval: 1d
@@ -181,17 +181,17 @@ tiles:
       fetch spans
         | filter db.system == "snowflake"
         | filter isNotNull(span.events)
-        | fieldsAdd service_name = deployment.environment
+        | fieldsAdd service_name = coalesce(deployment.environment.name, deployment.environment)
         | fieldsAdd operation_name = coalesce(db.operation, db.operation.name)
-        | filter $Account == "*" or upper(deployment.environment) == $Account
+        | filter $Account == "*" or upper(coalesce(deployment.environment.name, deployment.environment)) == $Account
         | filter $DB_Operation == "*" or upper(operation_name) == $DB_Operation
         | filter in(db.user, array($User))
-        | fieldsAdd operator_stats = iCollectArray(parse(span.events[][snowflake.query.operator.stats], """JSON:stats"""))
+        | fieldsAdd operator_stats = iCollectArray(parse(span.events[][snowflake.query.step.operator.stats], """JSON:stats"""))
         | filter iAny(operator_stats[][input_rows] < operator_stats[][output_rows] and
-            span.events[][snowflake.query.operator.type] == "Join")
+            span.events[][snowflake.query.step.operator.type] == "Join")
         | fields start_time, end_time, snowflake.query.id, service_name, operation_name, db.statement, db.user,
             snowflake.execution_status, snowflake.time.total_elapsed, snowflake.time.execution, span.events,
-            deployment.environment, operator_stats
+            `deployment.environment` = coalesce(deployment.environment.name, deployment.environment), operator_stats
         | makeTimeseries count(), by: {
           upper(operation_name)
         }
@@ -244,17 +244,17 @@ tiles:
       fetch spans
         | filter db.system == "snowflake"
         | filter isNotNull(span.events)
-        | fieldsAdd service_name = deployment.environment
+        | fieldsAdd service_name = coalesce(deployment.environment.name, deployment.environment)
         | fieldsAdd operation_name = coalesce(db.operation, db.operation.name)
-        | filter $Account == "*" or upper(deployment.environment) == $Account
+        | filter $Account == "*" or upper(coalesce(deployment.environment.name, deployment.environment)) == $Account
         | filter $DB_Operation == "*" or upper(operation_name) == $DB_Operation
         | filter in(db.user, array($User))
-        | fieldsAdd operator_stats = iCollectArray(parse(span.events[][snowflake.query.operator.stats], """JSON:stats"""))
+        | fieldsAdd operator_stats = iCollectArray(parse(span.events[][snowflake.query.step.operator.stats], """JSON:stats"""))
         | filter iAny(operator_stats[][input_rows] < operator_stats[][output_rows] and
-            span.events[][snowflake.query.operator.type] == "Join")
+            span.events[][snowflake.query.step.operator.type] == "Join")
         | fields start_time, end_time, snowflake.query.id, service_name, operation_name, db.statement, db.user,
             snowflake.execution_status, snowflake.time.total_elapsed, snowflake.time.execution, span.events,
-            deployment.environment, operator_stats
+            `deployment.environment` = coalesce(deployment.environment.name, deployment.environment), operator_stats
         | makeTimeseries count(), by: {
           db.user
         }, interval: 1d
@@ -289,18 +289,18 @@ tiles:
       fetch spans
         | filter db.system == "snowflake"
         | filter isNotNull(span.events)
-        | fieldsAdd service_name = deployment.environment
+        | fieldsAdd service_name = coalesce(deployment.environment.name, deployment.environment)
         | fieldsAdd operation_name = coalesce(db.operation, db.operation.name)
-        | filter $Account == "*" or upper(deployment.environment) == $Account
+        | filter $Account == "*" or upper(coalesce(deployment.environment.name, deployment.environment)) == $Account
         | filter $DB_Operation == "*" or upper(operation_name) == $DB_Operation
         | filter in(db.user, array($User))
-        | fieldsAdd operator_stats = iCollectArray(parse(span.events[][snowflake.query.operator.stats], """JSON:stats"""))
+        | fieldsAdd operator_stats = iCollectArray(parse(span.events[][snowflake.query.step.operator.stats], """JSON:stats"""))
         | filter iAny(operator_stats[][input_rows] < operator_stats[][output_rows] and
-            span.events[][snowflake.query.operator.type] == "Join")
+            span.events[][snowflake.query.step.operator.type] == "Join")
         | fields
             start_time, end_time, snowflake.query.id, service_name, operation_name, db.statement, db.user,
             snowflake.execution_status, snowflake.time.total_elapsed, snowflake.time.execution, span.events,
-            deployment.environment, operator_stats
+            `deployment.environment` = coalesce(deployment.environment.name, deployment.environment), operator_stats
         | summarize count = count(), by: {
           upper(deployment.environment)
         }
@@ -349,18 +349,18 @@ tiles:
       fetch spans
         | filter db.system == "snowflake"
         | filter isNotNull(span.events)
-        | fieldsAdd service_name = deployment.environment
+        | fieldsAdd service_name = coalesce(deployment.environment.name, deployment.environment)
         | fieldsAdd operation_name = coalesce(db.operation, db.operation.name)
-        | filter $Account == "*" or upper(deployment.environment) == $Account
+        | filter $Account == "*" or upper(coalesce(deployment.environment.name, deployment.environment)) == $Account
         | filter $DB_Operation == "*" or upper(operation_name) == $DB_Operation
         | filter in(db.user, array($User))
-        | fieldsAdd operator_stats = iCollectArray(parse(span.events[][snowflake.query.operator.stats], """JSON:stats"""))
+        | fieldsAdd operator_stats = iCollectArray(parse(span.events[][snowflake.query.step.operator.stats], """JSON:stats"""))
         | filter iAny(operator_stats[][input_rows] < operator_stats[][output_rows] and
-            span.events[][snowflake.query.operator.type] == "Join")
+            span.events[][snowflake.query.step.operator.type] == "Join")
         | fields
             start_time, end_time, snowflake.query.id, service_name, operation_name, db.statement, db.user,
             snowflake.execution_status, snowflake.time.total_elapsed, snowflake.time.execution, span.events,
-            deployment.environment, operator_stats
+            `deployment.environment` = coalesce(deployment.environment.name, deployment.environment), operator_stats
         | summarize count = count(), by: {
           upper(operation_name)
         }
@@ -413,18 +413,18 @@ tiles:
       fetch spans
         | filter db.system == "snowflake"
         | filter isNotNull(span.events)
-        | fieldsAdd service_name = deployment.environment
+        | fieldsAdd service_name = coalesce(deployment.environment.name, deployment.environment)
         | fieldsAdd operation_name = coalesce(db.operation, db.operation.name)
-        | filter $Account == "*" or upper(deployment.environment) == $Account
+        | filter $Account == "*" or upper(coalesce(deployment.environment.name, deployment.environment)) == $Account
         | filter $DB_Operation == "*" or upper(operation_name) == $DB_Operation
         | filter in(db.user, array($User))
-        | fieldsAdd operator_stats = iCollectArray(parse(span.events[][snowflake.query.operator.stats], """JSON:stats"""))
+        | fieldsAdd operator_stats = iCollectArray(parse(span.events[][snowflake.query.step.operator.stats], """JSON:stats"""))
         | filter iAny(operator_stats[][input_rows] < operator_stats[][output_rows] and
-            span.events[][snowflake.query.operator.type] == "Join")
+            span.events[][snowflake.query.step.operator.type] == "Join")
         | fields
             start_time, end_time, snowflake.query.id, service_name, operation_name, db.statement, db.user,
             snowflake.execution_status, snowflake.time.total_elapsed, snowflake.time.execution, span.events,
-            deployment.environment, operator_stats
+            `deployment.environment` = coalesce(deployment.environment.name, deployment.environment), operator_stats
         | summarize count = count(), by: {
           db.user
         }

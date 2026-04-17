@@ -55,7 +55,7 @@ SELECT
         'snowflake.task.run.group_id',                  th.GRAPH_RUN_GROUP_ID,
         'snowflake.task.run.scheduled_from',             th.SCHEDULED_FROM,
         'snowflake.task.run.attempt',                   th.ATTEMPT_NUMBER::INTEGER,
-        'snowflake.task.config',                        th.CONFIG,
+        'snowflake.task.config.id',                     th.CONFIG,
         'snowflake.error.code',                         th.ERROR_CODE,
         'snowflake.error.message',                      th.ERROR_MESSAGE,
         'snowflake.task.run.scheduled_time',            case when th.SCHEDULED_TIME is not null then extract(epoch_nanosecond from th.SCHEDULED_TIME) else -1 end,

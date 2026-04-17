@@ -35,11 +35,11 @@ variables:
     type: query
     visible: true
     input: |-
-      timeseries avg(snowflake.data.rows), by: { deployment.environment }
+      timeseries avg(snowflake.data.rows), by: { deployment.environment.name }
       , filter: { db.system == "snowflake" and dsoa.run.context == "data_volume" }
-      | fields deployment.environment
-      | dedup deployment.environment
-      | sort deployment.environment asc
+      | fields deployment.environment.name
+      | dedup deployment.environment.name
+      | sort deployment.environment.name asc
     multiple: true
   - version: 2
     key: Database
@@ -77,11 +77,11 @@ tiles:
     title: Total storage KPI (bytes)
     type: data
     query: |-
-      timeseries total_bytes = sum(snowflake.data.size), by: { deployment.environment }
+      timeseries total_bytes = sum(snowflake.data.size), by: { deployment.environment.name }
       , filter: {
           db.system == "snowflake" and
           dsoa.run.context == "data_volume" and
-          in(deployment.environment, array($Accounts))
+          in(deployment.environment.name, array($Accounts))
         }
       | fieldsAdd latest = arrayMax(arrayRemoveNulls(total_bytes))
       | summarize total_bytes = sum(latest)
@@ -115,11 +115,11 @@ tiles:
     title: Total row count KPI
     type: data
     query: |-
-      timeseries total_rows = sum(snowflake.data.rows), by: { deployment.environment }
+      timeseries total_rows = sum(snowflake.data.rows), by: { deployment.environment.name }
       , filter: {
           db.system == "snowflake" and
           dsoa.run.context == "data_volume" and
-          in(deployment.environment, array($Accounts))
+          in(deployment.environment.name, array($Accounts))
         }
       | fieldsAdd latest = arrayMax(arrayRemoveNulls(total_rows))
       | summarize total_rows = sum(latest)
@@ -146,11 +146,11 @@ tiles:
     title: Storage growth over time by database
     type: data
     query: |-
-      timeseries total_bytes = sum(snowflake.data.size), by: { db.namespace, deployment.environment }
+      timeseries total_bytes = sum(snowflake.data.size), by: { db.namespace, deployment.environment.name }
       , filter: {
           db.system == "snowflake" and
           dsoa.run.context == "data_volume" and
-          in(deployment.environment, array($Accounts)) and
+          in(deployment.environment.name, array($Accounts)) and
           (isNull(db.namespace) or in(db.namespace, array($Database)))
         }
     visualization: lineChart
@@ -180,7 +180,7 @@ tiles:
       dataMapping:
         displayedFields:
           - db.namespace
-          - deployment.environment
+          - deployment.environment.name
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -198,11 +198,11 @@ tiles:
     title: Row count trends over time by database
     type: data
     query: |-
-      timeseries total_rows = sum(snowflake.data.rows), by: { db.namespace, deployment.environment }
+      timeseries total_rows = sum(snowflake.data.rows), by: { db.namespace, deployment.environment.name }
       , filter: {
           db.system == "snowflake" and
           dsoa.run.context == "data_volume" and
-          in(deployment.environment, array($Accounts)) and
+          in(deployment.environment.name, array($Accounts)) and
           (isNull(db.namespace) or in(db.namespace, array($Database)))
         }
     visualization: lineChart
@@ -223,7 +223,7 @@ tiles:
       dataMapping:
         displayedFields:
           - db.namespace
-          - deployment.environment
+          - deployment.environment.name
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -241,11 +241,11 @@ tiles:
     title: Top 20 tables by size
     type: data
     query: |-
-      timeseries v = max(snowflake.data.size), by: { db.collection.name, db.namespace, deployment.environment }
+      timeseries v = max(snowflake.data.size), by: { db.collection.name, db.namespace, deployment.environment.name }
       , filter: {
           db.system == "snowflake" and
           dsoa.run.context == "data_volume" and
-          in(deployment.environment, array($Accounts)) and
+          in(deployment.environment.name, array($Accounts)) and
           (isNull(db.namespace) or in(db.namespace, array($Database)))
         }
       | fieldsAdd size = arrayMax(arrayRemoveNulls(v))
@@ -310,11 +310,11 @@ tiles:
     title: Table type distribution
     type: data
     query: |-
-      timeseries v = max(snowflake.data.size), by: { db.collection.name, snowflake.table.type, deployment.environment }
+      timeseries v = max(snowflake.data.size), by: { db.collection.name, snowflake.table.type, deployment.environment.name }
       , filter: {
           db.system == "snowflake" and
           dsoa.run.context == "data_volume" and
-          in(deployment.environment, array($Accounts)) and
+          in(deployment.environment.name, array($Accounts)) and
           (isNull(snowflake.table.type) or in(snowflake.table.type, array($TableType)))
         }
       | fieldsAdd latest = arrayMax(arrayRemoveNulls(v))
@@ -350,11 +350,11 @@ tiles:
     title: Stale tables — days since last DML update (top 50)
     type: data
     query: |-
-      timeseries v = max(snowflake.table.time_since.last_update), by: { db.collection.name, db.namespace, deployment.environment, snowflake.table.type }
+      timeseries v = max(snowflake.table.time_since.last_update), by: { db.collection.name, db.namespace, deployment.environment.name, snowflake.table.type }
       , filter: {
           db.system == "snowflake" and
           dsoa.run.context == "data_volume" and
-          in(deployment.environment, array($Accounts)) and
+          in(deployment.environment.name, array($Accounts)) and
           (isNull(db.namespace) or in(db.namespace, array($Database))) and
           (isNull(snowflake.table.type) or in(snowflake.table.type, array($TableType)))
         }
@@ -365,7 +365,7 @@ tiles:
       | fields
           `Table` = db.collection.name,
           `Database` = db.namespace,
-          `Account` = deployment.environment,
+          `Account` = deployment.environment.name,
           `Table Type` = snowflake.table.type,
           `Days Since Update` = days_since_update
     visualization: table
@@ -402,11 +402,11 @@ tiles:
     title: Days since last DDL — distribution by bucket
     type: data
     query: |-
-      timeseries v = max(snowflake.table.time_since.last_ddl), by: { db.collection.name, db.namespace, deployment.environment }
+      timeseries v = max(snowflake.table.time_since.last_ddl), by: { db.collection.name, db.namespace, deployment.environment.name }
       , filter: {
           db.system == "snowflake" and
           dsoa.run.context == "data_volume" and
-          in(deployment.environment, array($Accounts)) and
+          in(deployment.environment.name, array($Accounts)) and
           (isNull(db.namespace) or in(db.namespace, array($Database)))
         }
       | fieldsAdd last_ddl_min = arrayMax(arrayRemoveNulls(v))
@@ -459,7 +459,7 @@ tiles:
       | filter db.system == "snowflake"
       | filter dsoa.run.context == "data_schemas"
       | filter isNotNull(snowflake.object.ddl.operation)
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | makeTimeseries count = count(), by: { snowflake.object.ddl.operation }
     visualization: barChart
     visualizationSettings:
@@ -499,7 +499,7 @@ tiles:
       | filter db.system == "snowflake"
       | filter dsoa.run.context == "data_schemas"
       | filter isNotNull(snowflake.object.type)
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | summarize count = count(), by: { snowflake.object.type }
       | sort count desc
     visualization: pieChart
@@ -535,13 +535,13 @@ tiles:
       | filter db.system == "snowflake"
       | filter dsoa.run.context == "data_schemas"
       | filter isNotNull(snowflake.object.ddl.operation)
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | filter isNull(db.namespace) or in(db.namespace, array($Database))
       | sort timestamp desc
       | limit 200
       | fields
           `Time`           = timestamp,
-          `Account`        = deployment.environment,
+          `Account`        = coalesce(deployment.environment.name, deployment.environment),
           `Object`         = snowflake.object.name,
           `Operation`      = snowflake.object.ddl.operation,
           `Object Type`    = snowflake.object.type,
