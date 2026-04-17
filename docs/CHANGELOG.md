@@ -9,6 +9,8 @@ All notable changes to this project will be documented in this file.
 >
 > Detailed technical changes and implementation notes are available in [DEVLOG.md](DEVLOG.md).
 
+## [Unreleased]
+
 ## [0.9.4] - 2026-04-14
 
 ### Added
