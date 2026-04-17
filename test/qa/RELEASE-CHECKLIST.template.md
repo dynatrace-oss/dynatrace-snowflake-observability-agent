@@ -833,8 +833,8 @@ Require synthetic data from `setup_test_workflow_anomalies.sql`.
 
   ```dql
   fetch events, from: now()-1h
-  | filter isNotNull(`ad.source`)
-  | filter `ad.source` == "dsoa.data_volume_anomaly"
+  | filter isNotNull(`anomaly.detector`)
+  | filter `anomaly.detector` == "dsoa.data_volume_anomaly"
   | summarize count = count()
   ```
 

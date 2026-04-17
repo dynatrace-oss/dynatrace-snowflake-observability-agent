@@ -41,6 +41,7 @@ tasks:
         fetch logs
         | filter dsoa.run.context == "inbound_shares"
         | filter snowflake.share.status == "UNAVAILABLE"
+        | fieldsAdd deployment.environment = coalesce(deployment.environment.name, deployment.environment)
         | summarize
             last_seen = max(timestamp),
             error_msg = takeFirst(snowflake.error.message),
@@ -73,6 +74,7 @@ tasks:
       query: |
         fetch logs, from: now()-7d
         | filter dsoa.run.context == "inbound_shares"
+        | fieldsAdd deployment.environment = coalesce(deployment.environment.name, deployment.environment)
         | summarize
             last_seen = max(timestamp),
             by: {
@@ -108,6 +110,7 @@ tasks:
           fetch logs
           | filter dsoa.run.context == "inbound_shares"
           | filter isNotNull(snowflake.data.rows)
+          | fieldsAdd deployment.environment = coalesce(deployment.environment.name, deployment.environment)
           | makeTimeseries row_count = max(toLong(snowflake.data.rows))
             , by: {
               snowflake.share.name,
@@ -212,9 +215,9 @@ tasks:
 
           newEvent.body.properties['event.start'] = startTime;
           newEvent.body.properties['event.end'] = endTime;
-          newEvent.body.properties['ad.source'] = CONFIG.adSource;
-          newEvent.body.properties['ad.category'] = eventCategory || 'volume_drop';
-          newEvent.body.properties['ad.source_metric'] = sourceMetric;
+          newEvent.body.properties['anomaly.detector'] = CONFIG.adSource;
+          newEvent.body.properties['anomaly.subject'] = eventCategory || 'volume_drop';
+          newEvent.body.properties['metric.key'] = sourceMetric;
 
           result.dimensions.forEach(dim => {
             if (!dim.key.startsWith('_') && dim.key !== 'metric_name') {
@@ -232,10 +235,10 @@ tasks:
               title: record['_event_name'],
               properties: {
                 'event.description': record['_event_description'],
-                'ad.source': CONFIG.adSource,
-                'ad.category': record['_event_category'],
+                'anomaly.detector': CONFIG.adSource,
+                'anomaly.subject': record['_event_category'],
                 'snowflake.share.name': record['snowflake.share.name'] || '',
-                'deployment.environment': record['deployment.environment'] || ''
+                'deployment.environment': record['deployment.environment.name'] ?? record['deployment.environment'] ?? ''
               },
               timeout: CONFIG.eventTimeout
             }

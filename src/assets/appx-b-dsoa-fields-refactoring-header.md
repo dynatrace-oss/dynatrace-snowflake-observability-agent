@@ -14,4 +14,4 @@ The table below lists the changes, showing the mapping from the old names to the
 <!-- do not correct any typos in first column; they were in the previous release and are fixed now -->
 
 | < 0.8.3 Name | >= 0.8.3 Name |
-|--------------|---------------|
+| - | - |

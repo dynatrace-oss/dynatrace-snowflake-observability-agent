@@ -70,4 +70,4 @@ Edit the JavaScript `CONFIG` block in `build_events` to:
 
 - switch the event type (`CustomInfo` → `CustomAlert`)
 - change the event timeout (default 60 min)
-- change the `ad.source` tag used by Dynatrace for grouping
+- change the `anomaly.detector` tag used by Dynatrace for grouping

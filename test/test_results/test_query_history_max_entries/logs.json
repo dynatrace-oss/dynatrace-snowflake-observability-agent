@@ -39,7 +39,7 @@
     "snowflake.time.total_elapsed": 7012,
     "snowflake.time.transaction_blocked": 0,
     "db.query.text": "CALL DTAGENT_DB.APP.F_ACTIVE_QUERIES_INSTRUMENTED();\n",
-    "session.id": 20234875336090534,
+    "snowflake.session.id": 20234875336090534,
     "snowflake.cluster_number": 1,
     "snowflake.database.id": 1868,
     "snowflake.query.hash": "e86eb140052655351696b76a32722b70",
@@ -74,7 +74,8 @@
       "service.name": "test.dsoa2025",
       "deployment.environment": "TEST",
       "host.name": "test.dsoa2025.snowflakecomputing.com",
-      "telemetry.exporter.name": "dynatrace.snowagent"
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "deployment.environment.name": "TEST"
     }
   },
   {
@@ -121,7 +122,7 @@
       "DTAGENT_DB.STATUS.PROCESSED_MEASUREMENTS_LOG",
       "DTAGENT_DB.CONFIG.CONFIGURATIONS"
     ],
-    "session.id": 20234875336090534,
+    "snowflake.session.id": 20234875336090534,
     "snowflake.cluster_number": 1,
     "snowflake.database.id": 1868,
     "snowflake.query.hash": "0d8c82d99d518393458b4a68bc8c2930",
@@ -162,7 +163,8 @@
       "service.name": "test.dsoa2025",
       "deployment.environment": "TEST",
       "host.name": "test.dsoa2025.snowflakecomputing.com",
-      "telemetry.exporter.name": "dynatrace.snowagent"
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "deployment.environment.name": "TEST"
     }
   },
   {
@@ -209,7 +211,7 @@
       "DTAGENT_DB.STATUS.PROCESSED_MEASUREMENTS_LOG",
       "DTAGENT_DB.CONFIG.CONFIGURATIONS"
     ],
-    "session.id": 20234875336090534,
+    "snowflake.session.id": 20234875336090534,
     "snowflake.cluster_number": 1,
     "snowflake.database.id": 1868,
     "snowflake.query.hash": "dbf5cf366b64603513aa8097d5d3174c",
@@ -250,7 +252,8 @@
       "service.name": "test.dsoa2025",
       "deployment.environment": "TEST",
       "host.name": "test.dsoa2025.snowflakecomputing.com",
-      "telemetry.exporter.name": "dynatrace.snowagent"
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "deployment.environment.name": "TEST"
     }
   }
 ]

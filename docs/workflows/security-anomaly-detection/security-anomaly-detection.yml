@@ -46,7 +46,8 @@ tasks:
           // Optional: scope to specific users
           // | filter db.user IN ("SVC_ETL", "SVC_ANALYTICS")
           // Optional: scope to specific environments
-          // | filter deployment.environment == "PROD"
+          // | filter coalesce(deployment.environment.name, deployment.environment) == "PROD"
+          | fieldsAdd deployment.environment = coalesce(deployment.environment.name, deployment.environment)
           | makeTimeseries count(), by: {
             db.user,
             deployment.environment
@@ -97,7 +98,8 @@ tasks:
           // Optional: scope to specific users
           // | filter db.user IN ("SVC_ETL", "SVC_ANALYTICS")
           // Optional: scope to specific environments
-          // | filter deployment.environment == "PROD"
+          // | filter coalesce(deployment.environment.name, deployment.environment) == "PROD"
+          | fieldsAdd deployment.environment = coalesce(deployment.environment.name, deployment.environment)
           | makeTimeseries count(), by: {
             db.user,
             deployment.environment
@@ -147,7 +149,8 @@ tasks:
           // Optional: scope to specific users
           // | filter db.user IN ("SVC_ETL", "SVC_ANALYTICS")
           // Optional: scope to specific environments
-          // | filter deployment.environment == "PROD"
+          // | filter coalesce(deployment.environment.name, deployment.environment) == "PROD"
+          | fieldsAdd deployment.environment = coalesce(deployment.environment.name, deployment.environment)
           | makeTimeseries count(), by: {
             db.user,
             deployment.environment
@@ -202,6 +205,7 @@ tasks:
           // Optional: scope to specific databases or schemas
           // | filter startsWith(db.collection.name, "PROD_DB.")
           // | filter contains(db.collection.name, ".ETL.")
+          | fieldsAdd deployment.environment = coalesce(deployment.environment.name, deployment.environment)
           | makeTimeseries count(), by: {
             db.collection.name,
             deployment.environment
@@ -253,7 +257,8 @@ tasks:
           // Optional: scope to specific users
           // | filter db.user IN ("SVC_ETL", "SVC_ANALYTICS")
           // Optional: scope to specific environments
-          // | filter deployment.environment == "PROD"
+          // | filter coalesce(deployment.environment.name, deployment.environment) == "PROD"
+          | fieldsAdd deployment.environment = coalesce(deployment.environment.name, deployment.environment)
           | makeTimeseries sum(toLong(snowflake.data.scanned) / 1000), by: {
             db.user,
             deployment.environment
@@ -309,6 +314,7 @@ tasks:
           // Optional: scope to specific databases or schemas
           // | filter startsWith(db.collection.name, "PROD_DB.")
           // | filter contains(db.collection.name, ".ETL.")
+          | fieldsAdd deployment.environment = coalesce(deployment.environment.name, deployment.environment)
           | makeTimeseries sum(toLong(snowflake.data.scanned) / 1000), by: {
             db.collection.name,
             deployment.environment
@@ -416,10 +422,10 @@ tasks:
 
           newEvent.body.properties['event.start'] = startTime;
           newEvent.body.properties['event.end'] = endTime;
-          newEvent.body.properties['ad.source'] = CONFIG.adSource;
-          newEvent.body.properties['ad.source_metric'] = sourceMetric;
-          if (adDirection) newEvent.body.properties['ad.direction'] = adDirection;
-          if (adCategory) newEvent.body.properties['ad.category'] = adCategory;
+          newEvent.body.properties['anomaly.detector'] = CONFIG.adSource;
+          newEvent.body.properties['metric.key'] = sourceMetric;
+          if (adDirection) newEvent.body.properties['anomaly.direction'] = adDirection;
+          if (adCategory) newEvent.body.properties['anomaly.subject'] = adCategory;
 
           if (result.dimensions.length > 0) {
             result.dimensions.forEach(dim => {

@@ -15,7 +15,8 @@
       "host.name": "test.dsoa2025.snowflakecomputing.com",
       "telemetry.exporter.name": "dynatrace.snowagent",
       "dsoa.run.plugin": "telemetry_sender",
-      "dsoa.run.context": "self_monitoring"
+      "dsoa.run.context": "self_monitoring",
+      "deployment.environment.name": "TEST"
     }
   },
   {
@@ -34,7 +35,8 @@
       "host.name": "test.dsoa2025.snowflakecomputing.com",
       "telemetry.exporter.name": "dynatrace.snowagent",
       "dsoa.run.plugin": "telemetry_sender",
-      "dsoa.run.context": "telemetry_sender"
+      "dsoa.run.context": "telemetry_sender",
+      "deployment.environment.name": "TEST"
     }
   },
   {
@@ -53,7 +55,8 @@
       "host.name": "test.dsoa2025.snowflakecomputing.com",
       "telemetry.exporter.name": "dynatrace.snowagent",
       "dsoa.run.plugin": "telemetry_sender",
-      "dsoa.run.context": "self_monitoring"
+      "dsoa.run.context": "self_monitoring",
+      "deployment.environment.name": "TEST"
     }
   }
 ]

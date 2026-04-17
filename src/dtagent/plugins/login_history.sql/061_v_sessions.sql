@@ -36,7 +36,7 @@ select
     )                                   as DIMENSIONS,
     OBJECT_CONSTRUCT(
         'snowflake.session.start',                      s.CREATED_ON,
-        'session.id',                                   s.SESSION_ID,
+        'snowflake.session.id',                         s.SESSION_ID,
         'authentication.type',                          s.AUTHENTICATION_METHOD,
         'event.id',                                     s.LOGIN_EVENT_ID,
         'client.application.id',                        s.CLIENT_APPLICATION_ID,

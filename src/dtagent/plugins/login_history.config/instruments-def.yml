@@ -64,7 +64,7 @@ attributes:
     __example: connection_1
     __description: The name of the connection used by the client, or NULL if the
       client is not using a connection URL.
-  error.code:
+  snowflake.error.code:
     __context_names:
       - login_history
     __example: ERR001
@@ -83,7 +83,7 @@ attributes:
       - login_history
     __example: "987654321"
     __description: An identifier for a related event, if applicable.
-  session.id:
+  snowflake.session.id:
     __context_names:
       - sessions
     __example: session123
@@ -98,14 +98,14 @@ attributes:
       - sessions
     __example: "1633046400000000000"
     __description: The start time of the session.
-  status.code:
+  snowflake.status.code:
     __context_names:
       - login_history
     __example: OK
     __description:
       The status of the login attempt, indicating success (OK) or failure
       (ERROR).
-  status.message:
+  snowflake.status.message:
     __context_names:
       - login_history
     __example: Login successful

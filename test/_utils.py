@@ -430,6 +430,7 @@ def get_config(save_conf: str = None) -> TestConfiguration:
             | {
                 "service.name": sf_name,
                 "deployment.environment": "TEST",
+                "deployment.environment.name": "TEST",
                 "host.name": f"{sf_name}.snowflakecomputing.com",
             },
             "otel": {},

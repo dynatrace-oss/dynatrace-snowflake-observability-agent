@@ -24,7 +24,8 @@
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.plugin": "test_snowpipes",
-    "dsoa.run.context": "snowpipes"
+    "dsoa.run.context": "snowpipes",
+    "deployment.environment.name": "TEST"
   },
   {
     "eventType": "CUSTOM_INFO",
@@ -51,6 +52,7 @@
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.plugin": "test_snowpipes",
-    "dsoa.run.context": "snowpipes"
+    "dsoa.run.context": "snowpipes",
+    "deployment.environment.name": "TEST"
   }
 ]

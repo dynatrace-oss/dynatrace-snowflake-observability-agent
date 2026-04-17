@@ -43,14 +43,14 @@ tasks:
             scanned_max = max(snowflake.partitions.scanned),
             total_max = max(snowflake.partitions.total)
           }
-          , by: {db.collection.name, deployment.environment}
+          , by: {db.collection.name, deployment.environment.name}
           , filter: {snowflake.query.execution_status == "SUCCESS"}
           | fieldsAdd scan_ratio = scanned_max[] / total_max[]
           | fieldsRemove scanned_max, total_max
           | fieldsAdd
               metric_name = "snowflake.table.partition_scan_ratio",
               _event_name_template = "Table performance degradation detected for {dims:db.collection.name}",
-              _event_description_template = "Table {dims:db.collection.name} in {dims:deployment.environment} shows an increasing partition scan ratio, indicating it may need re-clustering to prevent full table scans."
+              _event_description_template = "Table {dims:db.collection.name} in {dims:deployment.environment.name} shows an increasing partition scan ratio, indicating it may need re-clustering to prevent full table scans."
         alertCondition: ABOVE
         trainingTimeframe:
           startTime: now-14d
@@ -135,8 +135,8 @@ tasks:
 
           newEvent.body.properties['event.start'] = startTime;
           newEvent.body.properties['event.end'] = endTime;
-          newEvent.body.properties['ad.source'] = CONFIG.adSource;
-          newEvent.body.properties['ad.source_metric'] = sourceMetric;
+          newEvent.body.properties['anomaly.detector'] = CONFIG.adSource;
+          newEvent.body.properties['metric.key'] = sourceMetric;
 
           if (result.dimensions.length > 0) {
             result.dimensions.forEach(dim => {

@@ -36,28 +36,28 @@ variables:
     input: |
       fetch logs
       | filter db.system == "snowflake"
-      | fields deployment.environment
-      | dedup deployment.environment
+      | fields env_name = coalesce(deployment.environment.name, deployment.environment)
+      | dedup env_name
       | append [
         fetch spans
         | filter db.system == "snowflake"
-        | fields deployment.environment
-        | dedup deployment.environment
+        | fields env_name = coalesce(deployment.environment.name, deployment.environment)
+        | dedup env_name
       ]
       | append [
         fetch events
         | filter db.system == "snowflake"
-        | fields deployment.environment
-        | dedup deployment.environment
+        | fields env_name = coalesce(deployment.environment.name, deployment.environment)
+        | dedup env_name
       ]
       | append [
         fetch bizevents
         | filter db.system == "snowflake"
-        | fields deployment.environment
-        | dedup deployment.environment
+        | fields env_name = coalesce(deployment.environment.name, deployment.environment)
+        | dedup env_name
       ]
-      | dedup deployment.environment
-      | sort deployment.environment
+      | dedup env_name
+      | sort env_name
     multiple: true
     defaultValue:
       - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
@@ -70,7 +70,7 @@ variables:
       fetch bizevents
       | filter db.system == "snowflake"
       | filter dsoa.run.context == "self_monitoring"
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | fields dsoa.run.plugin
       | dedup dsoa.run.plugin
       | sort dsoa.run.plugin
@@ -86,7 +86,7 @@ variables:
       fetch bizevents
       | filter db.system == "snowflake"
       | filter in(dsoa.run.context, {"self_monitoring", "self-monitoring"})
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | filter in(dsoa.run.plugin, array($Plugin_Names))
       | sort timestamp desc
       | summarize {
@@ -109,7 +109,7 @@ tiles:
       fetch bizevents
       | filter db.system == "snowflake"
       | filter in(dsoa.run.context, {"self_monitoring", "self-monitoring"})
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | filter in(dsoa.run.plugin, array($Plugin_Names))
       | sort timestamp asc
       | summarize {
@@ -118,7 +118,7 @@ tiles:
           dsoa.run.duration = max(timestamp) - min(timestamp),
           count = count()
       }, by: {
-          deployment.environment,
+          `deployment.environment` = coalesce(deployment.environment.name, deployment.environment),
           deployment.environment.tag = env_tag,
           dsoa.task.exec.id,
           dsoa.run.plugin
@@ -179,7 +179,7 @@ tiles:
       fetch logs
       | filter db.system == "snowflake"
       | filter in(dsoa.run.context, {"self_monitoring", "self-monitoring"})
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | filter in(dsoa.run.plugin, array($Plugin_Names))
       | filter dsoa.deployment.status == "FAILED"
       | makeTimeseries count(), by: {
@@ -222,14 +222,14 @@ tiles:
       fetch bizevents
       | filter db.system == "snowflake"
       | filter in(dsoa.run.context, {"self_monitoring", "self-monitoring"})
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | filter in(dsoa.run.plugin, array($Plugin_Names))
       | sort timestamp asc
       | summarize {
           dsoa.run.results = takeFirst(dsoa.run.results),
           count = count()
       }, by: {
-          deployment.environment,
+          `deployment.environment` = coalesce(deployment.environment.name, deployment.environment),
           dsoa.task.exec.id,
           dsoa.run.plugin
       }
@@ -277,7 +277,7 @@ tiles:
       fetch bizevents
       | filter db.system == "snowflake"
       | filter in(dsoa.run.context, {"self_monitoring", "self-monitoring"})
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | filter in(dsoa.run.plugin, array($Plugin_Names))
       | sort timestamp asc
       | summarize {
@@ -285,7 +285,7 @@ tiles:
         dsoa.run.results = takeFirst(dsoa.run.results),
         count = count()
       }, by: {
-        deployment.environment,
+        `deployment.environment` = coalesce(deployment.environment.name, deployment.environment),
         dsoa.task.exec.id,
         dsoa.run.plugin
       }
@@ -331,7 +331,7 @@ tiles:
     query: |
       fetch logs
       | filter db.system == "snowflake"
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | filter in(dsoa.run.plugin, array($Plugin_Names))
       | filter in(dsoa.run.context, array($Plugin_Contexts))
       | summarize by: {
@@ -373,7 +373,7 @@ tiles:
       fetch bizevents
       | filter db.system == "snowflake"
       | filter in(dsoa.run.context, {"self_monitoring", "self-monitoring"})
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | filter in(dsoa.run.plugin, array($Plugin_Names))
       | sort timestamp desc
       | summarize {
@@ -384,7 +384,7 @@ tiles:
           dsoa.run.id,
           dsoa.task.name,
           dsoa.run.plugin,
-          deployment.environment
+          `deployment.environment` = coalesce(deployment.environment.name, deployment.environment)
       }
       | parse toString(dsoa.run.results), "'{' ARRAY{STRUCTURE{DQS:key ':' JSON:value}:i (',' SPACE?)?}{0,10}:results '}'"
       | expand results
@@ -449,9 +449,10 @@ tiles:
     query: |-
       fetch logs
       | filter db.system == "snowflake"
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | filter in(dsoa.run.plugin, array($Plugin_Names))
       | filter in(dsoa.run.context, array($Plugin_Contexts))
+      | fieldsAdd `deployment.environment` = coalesce(deployment.environment.name, deployment.environment)
       | summarize by: {
           deployment.environment, host.name
       }, {
@@ -490,7 +491,7 @@ tiles:
       fetch logs
       | filter db.system == "snowflake"
       | filter dsoa.run.context == "query_history"
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | filter snowflake.query.execution_status != "SUCCESS"
       | filter matchesPattern(db.query.text,
           """'call DTAGENT' ('_' LD:tag)?  '_DB.APP.DTAGENT(ARRAY_CONSTRUCT(' ARRAY{SQS:plugin_name ', '?}{1,}:plugin_names '))'""")
@@ -530,43 +531,43 @@ tiles:
     query: |-
       fetch bizevents
         | filter db.system == "snowflake"
-        | filter in(deployment.environment, array($Accounts))
+        | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
         | filter in(dsoa.run.plugin, array($Plugin_Names))
         | filter in(dsoa.run.context, array($Plugin_Contexts))
         | fieldsAdd data.type = "bizevents"
-        | makeTimeseries count = count(), by: {deployment.environment, data.type}
+        | makeTimeseries count = count(), by: {`deployment.environment` = coalesce(deployment.environment.name, deployment.environment), data.type}
       | append [
         fetch events
         | filter db.system == "snowflake"
-        | filter in(deployment.environment, array($Accounts))
+        | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
         | filter in(dsoa.run.plugin, array($Plugin_Names))
         | filter in(dsoa.run.context, array($Plugin_Contexts))
         | fieldsAdd data.type = "events"
-        | makeTimeseries count = count(), by: {deployment.environment, data.type}
+        | makeTimeseries count = count(), by: {`deployment.environment` = coalesce(deployment.environment.name, deployment.environment), data.type}
       ]
       | append [
         fetch logs
         | filter db.system == "snowflake"
-        | filter in(deployment.environment, array($Accounts))
+        | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
         | filter in(dsoa.run.plugin, array($Plugin_Names))
         | filter in(dsoa.run.context, array($Plugin_Contexts))
         | fieldsAdd data.type = "logs"
-        | makeTimeseries count = count(), by: {deployment.environment, data.type}
+        | makeTimeseries count = count(), by: {`deployment.environment` = coalesce(deployment.environment.name, deployment.environment), data.type}
       ]
       | append [
         fetch spans
         | filter db.system == "snowflake"
-        | filter in(deployment.environment, array($Accounts))
+        | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
         | filter in(dsoa.run.plugin, array($Plugin_Names))
         | filter in(dsoa.run.context, array($Plugin_Contexts))
         | fieldsAdd data.type = "spans"
-        | makeTimeseries count = count(), by: {deployment.environment, data.type}
+        | makeTimeseries count = count(), by: {`deployment.environment` = coalesce(deployment.environment.name, deployment.environment), data.type}
       ]
       | append [
         fetch bizevents
         | filter db.system == "snowflake"
         | filter in(dsoa.run.context, {"self_monitoring", "self-monitoring"})
-        | filter in(deployment.environment, array($Accounts))
+        | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
         | filter in(dsoa.run.plugin, array($Plugin_Names))
         | sort timestamp desc
         | summarize {
@@ -577,7 +578,7 @@ tiles:
             dsoa.run.id,
             dsoa.task.name,
             dsoa.run.plugin,
-            deployment.environment
+            `deployment.environment` = coalesce(deployment.environment.name, deployment.environment)
         }
         | parse toString(dsoa.run.results), "'{' ARRAY{STRUCTURE{DQS:key ':' JSON:value}:i (',' SPACE?)?}{0,10}:results '}'"
         | expand results
@@ -613,7 +614,7 @@ tiles:
     query: |
       fetch events
       | filter db.system == "snowflake"
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | filter in(dsoa.run.plugin, array($Plugin_Names))
       | filter in(dsoa.run.context, array($Plugin_Contexts))
       | summarize by: {
@@ -654,7 +655,7 @@ tiles:
     query: |
       fetch spans
       | filter db.system == "snowflake"
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | filter in(dsoa.run.plugin, array($Plugin_Names))
       | filter in(dsoa.run.context, array($Plugin_Contexts))
       | summarize by: {
@@ -696,7 +697,7 @@ tiles:
       fetch bizevents, from: now()-7d
       | filter db.system == "snowflake"
       | filter event.type == "dsoa.ingest.warning"
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | makeTimeseries count(), by: { `dsoa.ingest.warning.exporter` }
     visualization: lineChart
     visualizationSettings:
@@ -729,7 +730,7 @@ tiles:
       fetch bizevents, from: now()-7d
       | filter db.system == "snowflake"
       | filter event.type == "dsoa.ingest.warning"
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | fields timestamp, dsoa.run.plugin, `dsoa.ingest.warning.type`, `dsoa.ingest.warning.exporter`, `dsoa.ingest.warning.detail`, `dsoa.ingest.warning.count`
       | sort timestamp desc
     visualization: table
@@ -751,7 +752,7 @@ tiles:
       fetch bizevents, from: now()-7d
       | filter db.system == "snowflake"
       | filter event.type == "dsoa.acquisition.problem"
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | makeTimeseries count(), by: { `dsoa.acquisition.problem.type` }
     visualization: lineChart
     visualizationSettings:
@@ -784,7 +785,7 @@ tiles:
       fetch bizevents, from: now()-7d
       | filter db.system == "snowflake"
       | filter event.type == "dsoa.acquisition.problem"
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | fields timestamp, dsoa.run.plugin, `dsoa.acquisition.problem.type`, `dsoa.acquisition.problem.source`, `dsoa.acquisition.problem.detail`
       | sort timestamp desc
     visualization: table
@@ -807,7 +808,7 @@ tiles:
       fetch bizevents
       | filter db.system == "snowflake"
       | filter in(dsoa.run.context, {"self_monitoring", "self-monitoring"})
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | filter in(dsoa.run.plugin, array($Plugin_Names))
       | sort timestamp desc
       | summarize {
@@ -818,7 +819,7 @@ tiles:
           dsoa.run.id,
           dsoa.task.name,
           dsoa.run.plugin,
-          deployment.environment
+          `deployment.environment` = coalesce(deployment.environment.name, deployment.environment)
       }
       | parse toString(dsoa.run.results), "'{' ARRAY{STRUCTURE{DQS:key ':' JSON:value}:i (',' SPACE?)?}{0,10}:results '}'"
       | expand results

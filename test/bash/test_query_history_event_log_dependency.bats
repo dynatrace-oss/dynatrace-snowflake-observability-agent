@@ -17,6 +17,8 @@ setup() {
     echo "-- Init code" > build/00_init.sql
     echo "SELECT 'init';" >> build/00_init.sql
 
+    echo "SELECT 'admin_init';" > build/05_admin_init.sql
+
     echo "-- Admin code" > build/80_admin.sql
     echo "SELECT 'admin';" >> build/80_admin.sql
 

@@ -82,7 +82,7 @@ class QueryHistoryPlugin(Plugin):
         def __get_query_operator_event_name(operator: Dict) -> str:
             """Returns string with query operator event."""
 
-            return f"{operator['snowflake.query.operator.type']} {operator['snowflake.query.id']}:{operator['snowflake.query.operator.id']}"
+            return f"{operator['snowflake.query.step.operator.type']} {operator['snowflake.query.id']}:{operator['snowflake.query.step.operator.id']}"
 
         def __f_span_events(d_span: Dict[str, any]) -> Tuple[List[Dict[str, any]], int]:
             """Extracts span events, returns list of them and list of failed attempts."""

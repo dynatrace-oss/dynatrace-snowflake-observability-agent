@@ -39,9 +39,9 @@ variables:
       fetch logs
       | filter db.system == "snowflake"
       | filter in(dsoa.run.context, array("outbound_shares", "inbound_shares", "shares"))
-      | fields deployment.environment
-      | dedup deployment.environment
-      | sort deployment.environment asc
+      | fields env_name = coalesce(deployment.environment.name, deployment.environment)
+      | dedup env_name
+      | sort env_name asc
     multiple: true
     defaultValue:
       - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
@@ -54,7 +54,7 @@ variables:
       fetch logs
       | filter db.system == "snowflake"
       | filter in(dsoa.run.context, array("outbound_shares", "inbound_shares"))
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | filter isNotNull(snowflake.share.kind)
       | fields snowflake.share.kind
       | dedup snowflake.share.kind
@@ -71,7 +71,7 @@ variables:
       fetch logs
       | filter db.system == "snowflake"
       | filter in(dsoa.run.context, array("outbound_shares", "inbound_shares"))
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | filter in(snowflake.share.kind, array($ShareDirection))
       | filter isNotNull(snowflake.share.name)
       | fields snowflake.share.name
@@ -99,7 +99,7 @@ tiles:
       fetch logs
       | filter db.system == "snowflake"
       | filter dsoa.run.context == "outbound_shares"
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | filter in(snowflake.share.kind, array($ShareDirection))
       | filter in(snowflake.share.name, array($ShareName))
       | filter snowflake.share.kind == "OUTBOUND"
@@ -131,7 +131,7 @@ tiles:
       fetch logs
       | filter db.system == "snowflake"
       | filter dsoa.run.context == "inbound_shares"
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | filter in(snowflake.share.kind, array($ShareDirection))
       | filter in(snowflake.share.name, array($ShareName))
       | filter snowflake.share.kind == "INBOUND"
@@ -163,7 +163,7 @@ tiles:
       fetch logs
       | filter db.system == "snowflake"
       | filter in(dsoa.run.context, array("outbound_shares", "inbound_shares"))
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | filter in(snowflake.share.kind, array($ShareDirection))
       | filter in(snowflake.share.name, array($ShareName))
       | filter isNotNull(snowflake.share.name)
@@ -171,7 +171,7 @@ tiles:
           owner = takeFirst(snowflake.share.owner),
           secure_only = takeFirst(snowflake.share.is_secure_objects_only),
           database = takeFirst(db.namespace),
-          account = takeFirst(deployment.environment),
+          account = takeFirst(coalesce(deployment.environment.name, deployment.environment)),
           lastSeen = max(timestamp)
         }, by: {
           snowflake.share.name,
@@ -219,7 +219,7 @@ tiles:
       fetch logs
       | filter db.system == "snowflake"
       | filter dsoa.run.context == "inbound_shares"
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | filter in(snowflake.share.name, array($ShareName))
       | filter snowflake.share.status == "UNAVAILABLE"
       | summarize {
@@ -228,11 +228,11 @@ tiles:
           last_seen = takeLast(timestamp)
         }, by: {
           snowflake.share.name,
-          deployment.environment
+          env_name = coalesce(deployment.environment.name, deployment.environment)
         }
       | fields
           `Share Name` = snowflake.share.name,
-          `Account` = deployment.environment,
+          `Account` = env_name,
           `Database` = database,
           `Error Message` = error,
           `Last Observed` = last_seen
@@ -261,7 +261,7 @@ tiles:
       fetch logs
       | filter db.system == "snowflake"
       | filter dsoa.run.context == "inbound_shares"
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | filter in(snowflake.share.name, array($ShareName))
       | summarize count = countDistinct(db.collection.name), by: {
           snowflake.share.name,
@@ -314,7 +314,7 @@ tiles:
       fetch logs
       | filter db.system == "snowflake"
       | filter dsoa.run.context == "inbound_shares"
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | filter in(snowflake.share.name, array($ShareName))
       | filter isNotNull(snowflake.data.rows)
       | summarize {
@@ -364,16 +364,16 @@ tiles:
       fetch logs, from: now()-7d
       | filter db.system == "snowflake"
       | filter dsoa.run.context == "inbound_shares"
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | filter in(snowflake.share.name, array($ShareName))
       | summarize
           firstSeen    = min(timestamp),
           lastSeen     = max(timestamp),
           seenRecently = countIf(timestamp >= now()-2h) > 0,
-          by: {deployment.environment, snowflake.share.name, db.namespace}
+          by: {env_name = coalesce(deployment.environment.name, deployment.environment), snowflake.share.name, db.namespace}
       | filter seenRecently == false
       | fields
-          `Account`    = deployment.environment,
+          `Account`    = env_name,
           `Share`      = snowflake.share.name,
           `Database`   = db.namespace,
           `First Seen` = firstSeen,
@@ -411,7 +411,7 @@ tiles:
       fetch logs
       | filter db.system == "snowflake"
       | filter dsoa.run.context == "outbound_shares"
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | filter in(snowflake.share.name, array($ShareName))
       | filter snowflake.share.kind == "OUTBOUND"
       | summarize count = countDistinct(snowflake.share.name), by: {
@@ -461,7 +461,7 @@ tiles:
       fetch logs
       | filter db.system == "snowflake"
       | filter dsoa.run.context == "outbound_shares"
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | filter in(snowflake.share.name, array($ShareName))
       | filter isNotNull(snowflake.grant.privilege)
       | summarize {
@@ -506,7 +506,7 @@ tiles:
       fetch logs
       | filter db.system == "snowflake"
       | filter dsoa.run.context == "outbound_shares"
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | filter in(snowflake.share.name, array($ShareName))
       | filter snowflake.share.kind == "OUTBOUND"
       | filter isNotNull(snowflake.grant.grantee)

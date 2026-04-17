@@ -11,7 +11,6 @@ db.operation.name;db.operation.name
 db.query.text;db.query.text
 db.snowflake.connection;db.snowflake.connection
 db.user;db.user
-error.code;error.code
 event.id;event.id
 event.kind;event.kind
 event.related_id;event.related_id
@@ -133,7 +132,6 @@ db.namespace;db.namespace
 db.operation.name;db.operation.name
 db.system;db.system
 db.user;db.user
-deployment.environment;deployment.environment
 event.category;event.category
 event.name;event.name
 host.name;host.name

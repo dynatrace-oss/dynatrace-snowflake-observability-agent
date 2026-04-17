@@ -24,7 +24,8 @@
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.plugin": "test_shares",
-    "dsoa.run.context": "outbound_shares"
+    "dsoa.run.context": "outbound_shares",
+    "deployment.environment.name": "TEST"
   },
   {
     "eventType": "CUSTOM_INFO",
@@ -51,7 +52,8 @@
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.plugin": "test_shares",
-    "dsoa.run.context": "outbound_shares"
+    "dsoa.run.context": "outbound_shares",
+    "deployment.environment.name": "TEST"
   },
   {
     "eventType": "CUSTOM_INFO",
@@ -67,7 +69,8 @@
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.plugin": "test_shares",
-    "dsoa.run.context": "shares"
+    "dsoa.run.context": "shares",
+    "deployment.environment.name": "TEST"
   },
   {
     "eventType": "CUSTOM_INFO",
@@ -84,6 +87,7 @@
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.plugin": "test_shares",
-    "dsoa.run.context": "shares"
+    "dsoa.run.context": "shares",
+    "deployment.environment.name": "TEST"
   }
 ]
