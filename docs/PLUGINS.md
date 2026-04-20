@@ -245,20 +245,21 @@ The following tables list the Snowflake objects that this plugin delivers data f
 
 #### Objects referenced by the `Budgets` plugin
 
-| Name                         | Type        | Privileges                      | Granted to             | Comment                                                                                        |
-| ---------------------------- | ----------- | ------------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------- |
-| SNOWFLAKE                    | application | IMPORTED PRIVILEGES ON DATABASE | ACCOUNT_BUDGET_ADMIN   |                                                                                                |
-| SNOWFLAKE.BUDGET_ADMIN       | role        | APPLICATION ROLE                | ACCOUNT_BUDGET_ADMIN   |                                                                                                |
-| SNOWFLAKE.BUDGET_VIEWER      | role        | APPLICATION ROLE                | ACCOUNT_BUDGET_MONITOR |                                                                                                |
-| SNOWFLAKE.BUDGET_CREATOR     | role        | DATABASE ROLE                   | BUDGET_OWNER           |                                                                                                |
-| ACCOUNT_BUDGET_ADMIN         | role        | ROLE                            | DTAGENT_ADMIN          |                                                                                                |
-| ACCOUNT_BUDGET_MONITOR       | role        | ROLE                            | DTAGENT_VIEWER         |                                                                                                |
-| BUDGET_OWNER                 | role        | ROLE                            | DTAGENT_ADMIN          |                                                                                                |
-| SNOWFLAKE.CORE.BUDGET        | command     | USAGE                           |                        |                                                                                                |
-| $budget!GET_LINKED_RESOURCES | procedure   | USAGE                           |                        | We call this procedure on each budget defined in Snowflake                                     |
-| $budget!GET_SPENDING_LIMIT   | procedure   | USAGE                           |                        | We call this procedure on each budget defined in Snowflake                                     |
-| $budget!GET_SPENDING_HISTORY | procedure   | USAGE                           |                        | We call this procedure on each budget defined in Snowflake                                     |
-| SNOWFLAKE.USAGE_VIEWER       | role        | DATABASE ROLE                   | DTAGENT_VIEWER         | Optional (admin scope). Required for custom budget monitoring via P_GRANT_BUDGET_MONITORING(). |
+| Name                           | Type        | Privileges                      | Granted to             | Comment                                                                                                |
+| ------------------------------ | ----------- | ------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------ |
+| SNOWFLAKE                      | application | IMPORTED PRIVILEGES ON DATABASE | ACCOUNT_BUDGET_ADMIN   |                                                                                                        |
+| SNOWFLAKE.BUDGET_ADMIN         | role        | APPLICATION ROLE                | ACCOUNT_BUDGET_ADMIN   |                                                                                                        |
+| SNOWFLAKE.BUDGET_VIEWER        | role        | APPLICATION ROLE                | ACCOUNT_BUDGET_MONITOR |                                                                                                        |
+| SNOWFLAKE.BUDGET_CREATOR       | role        | DATABASE ROLE                   | BUDGET_OWNER           |                                                                                                        |
+| ACCOUNT_BUDGET_ADMIN           | role        | ROLE                            | DTAGENT_ADMIN          |                                                                                                        |
+| ACCOUNT_BUDGET_MONITOR         | role        | ROLE                            | DTAGENT_VIEWER         |                                                                                                        |
+| BUDGET_OWNER                   | role        | ROLE                            | DTAGENT_ADMIN          |                                                                                                        |
+| SYSTEM$SHOW_BUDGETS_IN_ACCOUNT | function    | USAGE                           |                        | Called in P_GET_BUDGETS() via PARSE_JSON(SYSTEM$SHOW_BUDGETS_IN_ACCOUNT()); requires BUDGET_ADMIN role |
+| SNOWFLAKE.CORE.BUDGET          | command     | USAGE                           |                        |                                                                                                        |
+| $budget!GET_LINKED_RESOURCES   | procedure   | USAGE                           |                        | We call this procedure on each budget defined in Snowflake                                             |
+| $budget!GET_SPENDING_LIMIT     | procedure   | USAGE                           |                        | We call this procedure on each budget defined in Snowflake                                             |
+| $budget!GET_SPENDING_HISTORY   | procedure   | USAGE                           |                        | We call this procedure on each budget defined in Snowflake                                             |
+| SNOWFLAKE.USAGE_VIEWER         | role        | DATABASE ROLE                   | DTAGENT_VIEWER         | Optional (admin scope). Required for custom budget monitoring via P_GRANT_BUDGET_MONITORING().         |
 
 <a name="data_schemas_info_sec"></a>
 
@@ -456,9 +457,9 @@ The following tables list the Snowflake objects that this plugin delivers data f
 | ALL DYNAMIC TABLES IN SCHEMA $database.$schema        | dynamic table | MONITOR    | DTAGENT_VIEWER | Granted when include pattern has specific schema (e.g. DB.ANALYTICS.%)                                                   |
 | ALL FUTURE DYNAMIC TABLES IN SCHEMA $database.$schema | dynamic table | MONITOR    | DTAGENT_VIEWER | Granted when include pattern has specific schema (e.g. DB.ANALYTICS.%)                                                   |
 | DYNAMIC TABLE $database.$schema.$table                | dynamic table | MONITOR    | DTAGENT_VIEWER | Granted when include pattern specifies an exact table name (e.g. DB.ANALYTICS.ORDERS_DT); no FUTURE grant at table level |
-| INFORMATION_SCHEMA.DYNAMIC_TABLE_REFRESH_HISTORY      | view          | USAGE      | DTAGENT_VIEWER |                                                                                                                          |
-| INFORMATION_SCHEMA.DYNAMIC_TABLE_GRAPH_HISTORY        | view          | USAGE      | DTAGENT_VIEWER |                                                                                                                          |
-| INFORMATION_SCHEMA.DYNAMIC_TABLES                     | view          | USAGE      | DTAGENT_VIEWER |                                                                                                                          |
+| INFORMATION_SCHEMA.DYNAMIC_TABLE_REFRESH_HISTORY      | function      | USAGE      | DTAGENT_VIEWER |                                                                                                                          |
+| INFORMATION_SCHEMA.DYNAMIC_TABLE_GRAPH_HISTORY        | function      | USAGE      | DTAGENT_VIEWER |                                                                                                                          |
+| INFORMATION_SCHEMA.DYNAMIC_TABLES                     | function      | USAGE      | DTAGENT_VIEWER |                                                                                                                          |
 
 <a name="event_log_info_sec"></a>
 
@@ -820,7 +821,8 @@ The following tables list the Snowflake objects that this plugin delivers data f
 | DTAGENT_DB.APP.V_QUERY_HISTORY                           | view            |                                                                                                |
 | DTAGENT_DB.APP.V_QUERY_HISTORY_INSTRUMENTED              | view            |                                                                                                |
 | DTAGENT_DB.APP.V_RECENT_QUERIES                          | view            |                                                                                                |
-| DTAGENT_DB.CONFIG.P_GET_ACCELERATION_ESTIMATES()         | procedure       |                                                                                                |
+| DTAGENT_DB.APP.P_GET_ACCELERATION_ESTIMATES()            | procedure       |                                                                                                |
+| DTAGENT_DB.APP.P_REFRESH_RECENT_QUERIES()                | procedure       |                                                                                                |
 | DTAGENT_DB.CONFIG.UPDATE_QUERY_HISTORY_CONF()            | procedure       |                                                                                                |
 | DTAGENT_DB.APP.P_MONITOR_WAREHOUSES()                    | procedure       | (Admin scope only) Procedure owned by DTAGENT_ADMIN to grant MONITOR privilege on warehouses   |
 | DTAGENT_DB.APP.TASK_DTAGENT_QUERY_HISTORY                | task            |                                                                                                |
@@ -889,7 +891,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 | DTAGENT_DB.APP.TMP_WAREHOUSES                     | transient table |
 | DTAGENT_DB.APP.V_RESOURCE_MONITORS                | view            |
 | DTAGENT_DB.APP.V_WAREHOUSES                       | view            |
-| DTAGENT_DB.CONFIG.P_REFRESH_RESOURCE_MONITORS()   | procedure       |
+| DTAGENT_DB.APP.P_REFRESH_RESOURCE_MONITORS()      | procedure       |
 | DTAGENT_DB.CONFIG.UPDATE_RESOURCE_MONITORS_CONF() | procedure       |
 | DTAGENT_DB.APP.TASK_DTAGENT_RESOURCE_MONITORS     | task            |
 
@@ -947,19 +949,19 @@ The following tables list the Snowflake objects that this plugin delivers data f
 
 #### Objects delivered by the `Shares` plugin
 
-| Name                                                             | Type            |
-| ---------------------------------------------------------------- | --------------- |
-| DTAGENT_DB.APP.TMP_SHARES                                        | transient table |
-| DTAGENT_DB.APP.TMP_OUTBOUND_SHARES                               | transient table |
-| DTAGENT_DB.APP.TMP_INBOUND_SHARES                                | transient table |
-| DTAGENT_DB.APP.V_SHARE_EVENTS                                    | view            |
-| DTAGENT_DB.APP.V_INBOUND_SHARE_TABLES                            | view            |
-| DTAGENT_DB.APP.V_OUTBOUND_SHARE_TABLES                           | view            |
-| DTAGENT_DB.CONFIG.P_GET_SHARES()                                 | procedure       |
-| DTAGENT_DB.CONFIG.P_GRANT_IMPORTED_PRIVILEGES(varchar)           | procedure       |
-| DTAGENT_DB.CONFIG.P_LIST_INBOUND_TABLES(varchar,varchar,boolean) | procedure       |
-| DTAGENT_DB.CONFIG.UPDATE_SHARES_CONF()                           | procedure       |
-| DTAGENT_DB.APP.TASK_DTAGENT_SHARES                               | task            |
+| Name                                                   | Type            |
+| ------------------------------------------------------ | --------------- |
+| DTAGENT_DB.APP.TMP_SHARES                              | transient table |
+| DTAGENT_DB.APP.TMP_OUTBOUND_SHARES                     | transient table |
+| DTAGENT_DB.APP.TMP_INBOUND_SHARES                      | transient table |
+| DTAGENT_DB.APP.V_SHARE_EVENTS                          | view            |
+| DTAGENT_DB.APP.V_INBOUND_SHARE_TABLES                  | view            |
+| DTAGENT_DB.APP.V_OUTBOUND_SHARE_TABLES                 | view            |
+| DTAGENT_DB.APP.P_GET_SHARES()                          | procedure       |
+| DTAGENT_DB.APP.P_GRANT_IMPORTED_PRIVILEGES(VARCHAR)    | procedure       |
+| DTAGENT_DB.APP.P_LIST_INBOUND_TABLES(VARCHAR, VARCHAR) | procedure       |
+| DTAGENT_DB.CONFIG.UPDATE_SHARES_CONF()                 | procedure       |
+| DTAGENT_DB.APP.TASK_DTAGENT_SHARES                     | task            |
 
 #### Objects referenced by the `Shares` plugin
 
@@ -970,7 +972,6 @@ The following tables list the Snowflake objects that this plugin delivers data f
 | ACCOUNT                                    | account | IMPORT SHARE                    | DTAGENT_VIEWER | We just need to read the metadata about the shares and objects being shared wish there was a way with less privilege |
 | SHOW SHARES                                | command | USAGE                           |                |                                                                                                                      |
 | SHOW GRANTS TO SHARE $share                | command | USAGE                           |                |                                                                                                                      |
-| SNOWFLAKE.ACCOUNT_USAGE.DATABASES          | view    | SELECT                          | DTAGENT_VIEWER |                                                                                                                      |
 
 <a name="snowpipes_info_sec"></a>
 
@@ -1054,16 +1055,17 @@ The following tables list the Snowflake objects that this plugin delivers data f
 
 #### Objects delivered by the `Snowpipes` plugin
 
-| Name                                                  | Type      | Comment                                                                                   |
-| ----------------------------------------------------- | --------- | ----------------------------------------------------------------------------------------- |
-| DTAGENT_DB.APP.F_SNOWPIPES_INSTRUMENTED()             | procedure |                                                                                           |
-| DTAGENT_DB.APP.V_SNOWPIPES_COPY_HISTORY_INSTRUMENTED  | view      |                                                                                           |
-| DTAGENT_DB.APP.V_SNOWPIPES_USAGE_HISTORY_INSTRUMENTED | view      |                                                                                           |
-| DTAGENT_DB.APP.P_GRANT_MONITOR_SNOWPIPES()            | procedure |                                                                                           |
-| DTAGENT_DB.CONFIG.UPDATE_SNOWPIPES_CONF()             | procedure |                                                                                           |
-| DTAGENT_DB.APP.TASK_DTAGENT_SNOWPIPES                 | task      | Fast-mode (\*/5)                                                                          |
-| DTAGENT_DB.APP.TASK_DTAGENT_SNOWPIPES_HISTORY         | task      | Deep-mode (hourly)                                                                        |
-| DTAGENT_DB.APP.TASK_DTAGENT_SNOWPIPES_GRANTS          | task      | (Admin scope only) Admin task owned by DTAGENT_ADMIN to grant MONITOR privileges on pipes |
+| Name                                                  | Type            | Comment                                                                                   |
+| ----------------------------------------------------- | --------------- | ----------------------------------------------------------------------------------------- |
+| DTAGENT_DB.APP.TMP_SNOWPIPES_RESULT                   | transient table |                                                                                           |
+| DTAGENT_DB.APP.F_SNOWPIPES_INSTRUMENTED()             | procedure       |                                                                                           |
+| DTAGENT_DB.APP.V_SNOWPIPES_COPY_HISTORY_INSTRUMENTED  | view            |                                                                                           |
+| DTAGENT_DB.APP.V_SNOWPIPES_USAGE_HISTORY_INSTRUMENTED | view            |                                                                                           |
+| DTAGENT_DB.APP.P_GRANT_MONITOR_SNOWPIPES()            | procedure       |                                                                                           |
+| DTAGENT_DB.CONFIG.UPDATE_SNOWPIPES_CONF()             | procedure       |                                                                                           |
+| DTAGENT_DB.APP.TASK_DTAGENT_SNOWPIPES                 | task            | Fast-mode (\*/5)                                                                          |
+| DTAGENT_DB.APP.TASK_DTAGENT_SNOWPIPES_HISTORY         | task            | Deep-mode (hourly)                                                                        |
+| DTAGENT_DB.APP.TASK_DTAGENT_SNOWPIPES_GRANTS          | task            | (Admin scope only) Admin task owned by DTAGENT_ADMIN to grant MONITOR privileges on pipes |
 
 #### Objects referenced by the `Snowpipes` plugin
 
@@ -1073,6 +1075,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 | SYSTEM$PIPE_STATUS                         | function | MONITOR (per pipe)           |                |                                                                                                                      |
 | SNOWFLAKE.ACCOUNT_USAGE.COPY_HISTORY       | view     | SELECT (IMPORTED PRIVILEGES) |                |                                                                                                                      |
 | SNOWFLAKE.ACCOUNT_USAGE.PIPE_USAGE_HISTORY | view     | SELECT (IMPORTED PRIVILEGES) |                |                                                                                                                      |
+| SNOWFLAKE.ACCOUNT_USAGE.PIPES              | view     | SELECT (IMPORTED PRIVILEGES) |                | Joined in V_SNOWPIPES_USAGE_HISTORY_INSTRUMENTED to resolve UUID PIPE_NAME to human-readable FQN                     |
 | ALL PIPES IN DATABASE $db                  | pipe     | MONITOR                      | DTAGENT_VIEWER | Granted when include pattern has wildcard schema (e.g. DB.%.%)                                                       |
 | ALL FUTURE PIPES IN DATABASE $db           | pipe     | MONITOR                      | DTAGENT_VIEWER | Granted when include pattern has wildcard schema (e.g. DB.%.%)                                                       |
 | ALL PIPES IN SCHEMA $db.$schema            | pipe     | MONITOR                      | DTAGENT_VIEWER | Granted when include pattern has specific schema (e.g. DB.ANALYTICS.%)                                               |
@@ -1203,6 +1206,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 | -------------------------------------------- | --------- |
 | DTAGENT_DB.APP.V_TRUST_CENTER_FINDINGS       | view      |
 | DTAGENT_DB.APP.V_TRUST_CENTER_METRICS        | view      |
+| DTAGENT_DB.APP.V_TRUST_CENTER_INSTRUMENTED   | view      |
 | DTAGENT_DB.CONFIG.UPDATE_TRUST_CENTER_CONF() | procedure |
 | DTAGENT_DB.APP.TASK_DTAGENT_TRUST_CENTER     | task      |
 
@@ -1268,18 +1272,20 @@ The following tables list the Snowflake objects that this plugin delivers data f
 
 #### Objects delivered by the `Users` plugin
 
-| Name                                                     | Type            |
-| -------------------------------------------------------- | --------------- |
-| DTAGENT_DB.APP.TMP_USERS                                 | transient table |
-| DTAGENT_DB.APP.TMP_USERS_HELPER                          | transient table |
-| DTAGENT_DB.APP.V_USERS_INSTRUMENTED                      | view            |
-| DTAGENT_DB.APP.V_USERS_ALL_PRIVILEGES_INSTRUMENTED       | view            |
-| DTAGENT_DB.APP.V_USERS_ALL_ROLES_INSTRUMENTED            | view            |
-| DTAGENT_DB.APP.V_USERS_DIRECT_ROLES_INSTRUMENTED         | view            |
-| DTAGENT_DB.APP.V_USERS_REMOVED_DIRECT_ROLES_INSTRUMENTED | view            |
-| DTAGENT_DB.CONFIG.P_GET_USERS()                          | procedure       |
-| DTAGENT_DB.CONFIG.UPDATE_USERS_CONF()                    | procedure       |
-| DTAGENT_DB.APP.TASK_DTAGENT_USERS                        | task            |
+| Name                                                     | Type            | Comment                                                                                                                                                            |
+| -------------------------------------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| DTAGENT_DB.APP.TMP_USERS                                 | transient table |                                                                                                                                                                    |
+| DTAGENT_DB.APP.TMP_USERS_HELPER                          | transient table |                                                                                                                                                                    |
+| DTAGENT_DB.APP.V_USERS_INSTRUMENTED                      | view            |                                                                                                                                                                    |
+| DTAGENT_DB.APP.V_USERS_ALL_PRIVILEGES_INSTRUMENTED       | view            |                                                                                                                                                                    |
+| DTAGENT_DB.APP.V_USERS_ALL_ROLES_INSTRUMENTED            | view            |                                                                                                                                                                    |
+| DTAGENT_DB.APP.V_USERS_DIRECT_ROLES_INSTRUMENTED         | view            |                                                                                                                                                                    |
+| DTAGENT_DB.APP.V_USERS_REMOVED_DIRECT_ROLES_INSTRUMENTED | view            |                                                                                                                                                                    |
+| DTAGENT_DB.APP.TMP_USERS_SNAPSHOT                        | transient table |                                                                                                                                                                    |
+| DTAGENT_DB.STATUS.EMAIL_HASH_MAP                         | transient table | Optional (controlled by plugins.users.retain_email_hash_map). Created only when retain_email_hash_map is enabled; persists email→SHA-256 hash mappings across runs |
+| DTAGENT_DB.APP.P_GET_USERS()                             | procedure       |                                                                                                                                                                    |
+| DTAGENT_DB.CONFIG.UPDATE_USERS_CONF()                    | procedure       |                                                                                                                                                                    |
+| DTAGENT_DB.APP.TASK_DTAGENT_USERS                        | task            |                                                                                                                                                                    |
 
 #### Objects referenced by the `Users` plugin
 
