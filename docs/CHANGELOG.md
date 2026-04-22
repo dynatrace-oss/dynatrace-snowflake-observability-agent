@@ -16,6 +16,13 @@ All notable changes to this project will be documented in this file.
 - Updated `snowflake-snowpark-python` minimum version to `>=1.49.0` (was `>=1.48.1`). Python version constraint
   remains `<3.14` — bottleneck is `snowflake==1.12.0`, not snowpark. See [DEVLOG.md](DEVLOG.md) for full audit details.
 
+### Fixed
+
+- Config changes on redeploy now take full effect: the config upload procedure uses DELETE + INSERT (full replace) instead of an additive MERGE, so entries removed from the YAML (e.g. a plugin's `is_enabled: true`) are also removed from Snowflake. Previously, stale config entries could override a new `disabled_by_default: true` setting.
+- Disabled plugins now have their Snowflake tasks suspended automatically on every redeploy, regardless of deploy scope. The deploy script injects `ALTER TASK IF EXISTS … SUSPEND` for every excluded plugin (including multi-task and admin-task plugins) before executing the deploy SQL. Previously, stale tasks continued running and consuming compute credits after a plugin was disabled.
+
+See [DEVLOG.md](DEVLOG.md) for implementation details.
+
 ## [0.9.4] - 2026-04-14
 
 ### Added
