@@ -1,4 +1,4 @@
-"""Plugin file for processing event usage plugin data."""
+"""Plugin file for processing metering plugin data."""
 
 ##region ------------------------------ IMPORTS  -----------------------------------------
 #
@@ -24,82 +24,72 @@
 # SOFTWARE.
 #
 #
-import logging
-from typing import Tuple, Dict, Optional, List
+from typing import Dict, Optional, List
 from dtagent.util import _unpack_json_dict
 from dtagent.plugins import Plugin
 from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPILE_REMOVE
 
 ##endregion COMPILE_REMOVE
 
-##region ------------------ MEASUREMENT SOURCE: EVENT USAGE HISTORY --------------------------------
+##region ------------------ MEASUREMENT SOURCE: METERING HISTORY --------------------------------
 
 
-class EventUsagePlugin(Plugin):
-    """Event usage plugin class."""
+class MeteringPlugin(Plugin):
+    """Metering plugin class.
 
-    PLUGIN_NAME = "event_usage"
+    Reports credit consumption across all Snowflake service types (except warehouses,
+    which are covered by the warehouse_usage plugin) using METERING_HISTORY.
+    """
 
-    def _report_event_usage_log(self, row_dict: Dict, __context: Dict, log_level: int) -> bool:
-        """Sends single log line for event usage plugin"""
+    PLUGIN_NAME = "metering"
+
+    def _report_metering_log(self, row_dict: Dict, __context: Dict, log_level: int) -> bool:
+        """Sends single log line for a metering history entry.
+
+        Unpacks DIMENSIONS (service_type, name) and METRICS (credits, bytes, rows, files)
+        from the row and attaches start/end timestamps for the metering window.
+        """
         unpacked_dict = _unpack_json_dict(row_dict, ["DIMENSIONS", "METRICS"])
-        start_ts = row_dict.get("START_TIME")
-        processed_timestamp = row_dict.get("END_TIME")
+        metering_start = row_dict.get("START_TIME")
+        metering_end = row_dict.get("END_TIME")
         self._logs.send_log(
-            "Event Usage",
-            extra={
-                "timestamp": start_ts,
-                "event.start": start_ts,
-                "event.end": processed_timestamp,
-                **unpacked_dict,
-            },
+            "Metering",
+            extra={"timestamp": metering_start, "event.start": metering_start, "event.end": metering_end, **unpacked_dict},
             context=__context,
             log_level=log_level,
         )
         return True
 
     def process(self, run_id: str, run_proc: bool = True, contexts: Optional[List[str]] = None) -> Dict[str, Dict[str, int]]:
-        """Processes data for event usage plugin.
+        """Processes metering history data across all Snowflake service types.
+
+        Reads ``V_METERING_HISTORY`` (which excludes ``WAREHOUSE_METERING`` to avoid
+        duplication with the warehouse_usage plugin) and emits credit/data metrics
+        with ``service_type`` and ``name`` dimensions.
 
         Args:
-            run_id (str): unique run identifier
-            run_proc (bool): indicator whether processing should be logged as completed
+            run_id:   Unique run identifier.
+            run_proc: Whether to log processing completion.
+            contexts: Optional list of contexts to process (unused — single context plugin).
 
         Returns:
-            Dict[str,int]: A dictionary with counts of processed telemetry data.
-
-            Example:
-            {
-            "dsoa.run.results": {
-                "event_usage": {
-                    "entries": entries_cnt,
-                    "log_lines": logs_cnt,
-                    "metrics": metrics_cnt,
-                    "events": events_cnt
-                },
-            },
-            "dsoa.run.id": "uuid_string"
-            }
+            Telemetry result counts keyed by context name.
         """
-        logging.warning(
-            "event_usage plugin is deprecated and will be removed in 0.9.6. "
-            "Use the 'metering' plugin instead, which covers all Snowflake service types."
-        )
-        processed_entries_cnt, processed_logs_cnt, processed_event_metrics_cnt, processed_events_cnt = self._log_entries(
-            f_entry_generator=lambda: self._get_table_rows("APP.V_EVENT_USAGE_HISTORY"),
-            context_name="event_usage",
+        processed_entries_cnt, processed_logs_cnt, processed_metrics_cnt, processed_events_cnt = self._log_entries(
+            f_entry_generator=lambda: self._get_table_rows("APP.V_METERING_HISTORY"),
+            context_name="metering",
             run_uuid=run_id,
             report_timestamp_events=False,
             log_completion=run_proc,
-            f_report_log=self._report_event_usage_log,
+            f_report_log=self._report_metering_log,
         )
 
         return self._report_results(
             {
-                "event_usage": {
+                "metering": {
                     "entries": processed_entries_cnt,
                     "log_lines": processed_logs_cnt,
-                    "metrics": processed_event_metrics_cnt,
+                    "metrics": processed_metrics_cnt,
                     "events": processed_events_cnt,
                 },
             },

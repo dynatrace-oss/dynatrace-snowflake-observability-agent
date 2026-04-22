@@ -1,0 +1,84 @@
+#
+# Copyright (c) 2025 Dynatrace Open Source
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+#
+
+dimensions:
+  snowflake.service.type:
+    __context_names: ["metering"]
+    __example: AUTO_CLUSTERING
+    __description: >-
+      Snowflake service type that consumed credits (e.g. AUTO_CLUSTERING, PIPE, SERVERLESS_TASK, TELEMETRY_DATA_INGEST).
+  snowflake.service.name:
+    __context_names: ["metering"]
+    __example: MY_PIPE
+    __description: >-
+      Name of the Snowflake service entity that consumed credits.
+
+attributes:
+  snowflake.service.entity_id:
+    __context_names: ["metering"]
+    __example: "12345"
+    __description: >-
+      Unique Snowflake identifier of the service entity.
+
+metrics:
+  snowflake.credits.used:
+    __context_names: ["metering"]
+    __example: "15.5"
+    __description: >-
+      Total credits consumed by the service in the metering window.
+    displayName: Snowflake Credits Used
+    unit: credits
+  snowflake.credits.used.compute:
+    __context_names: ["metering"]
+    __example: "12.3"
+    __description: >-
+      Compute credits consumed by the service in the metering window.
+    displayName: Snowflake Compute Credits Used
+    unit: credits
+  snowflake.credits.used.cloud_services:
+    __context_names: ["metering"]
+    __example: "3.2"
+    __description: >-
+      Cloud services credits consumed by the service in the metering window.
+    displayName: Snowflake Cloud Services Credits Used
+    unit: credits
+  snowflake.data.size:
+    __context_names: ["metering"]
+    __example: "10485760"
+    __description: >-
+      Number of bytes processed by the service in the metering window.
+    displayName: Bytes Processed
+    unit: bytes
+  snowflake.data.rows:
+    __context_names: ["metering"]
+    __example: "50000"
+    __description: >-
+      Number of rows processed by the service in the metering window.
+    displayName: Rows Processed
+    unit: rows
+  snowflake.data.files:
+    __context_names: ["metering"]
+    __example: "120"
+    __description: >-
+      Number of files processed by the service in the metering window.
+    displayName: Files Processed
+    unit: files

@@ -11,10 +11,18 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- New `metering` plugin reporting credit consumption across all Snowflake service types via `METERING_HISTORY`. Covers auto-clustering, pipes, serverless tasks, AI services, replication, and more with `service_type` dimension for FinOps cost attribution.
+
 ### Changed
 
 - Updated `snowflake-snowpark-python` minimum version to `>=1.49.0` (was `>=1.48.1`). Python version constraint
   remains `<3.14` — bottleneck is `snowflake==1.12.0`, not snowpark. See [DEVLOG.md](DEVLOG.md) for full audit details.
+
+### Deprecated
+
+- `event_usage` plugin is deprecated and disabled by default. Use `metering` instead. Will be removed in 0.9.6. To reproduce the same data, filter by `snowflake.service.type == "TELEMETRY_DATA_INGEST"`.
 
 ### Fixed
 
