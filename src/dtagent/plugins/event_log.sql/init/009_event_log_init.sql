@@ -34,13 +34,26 @@ execute as CALLER
 as
 $$
 DECLARE
-    s_event_table_name  TEXT    DEFAULT '';
+    s_event_table_name    TEXT    DEFAULT '';
     -- names of event log tables which would mean we deal with one created by this DSOA instance or there is no custom event table at all
-    a_no_custom_event_t ARRAY   DEFAULT ARRAY_CONSTRUCT('', 'DTAGENT_DB.STATUS.EVENT_LOG');
-    is_event_log_table  BOOLEAN DEFAULT FALSE;
+    a_no_custom_event_t   ARRAY   DEFAULT ARRAY_CONSTRUCT('', 'DTAGENT_DB.STATUS.EVENT_LOG');
+    is_event_log_table    BOOLEAN DEFAULT FALSE;
+    b_has_log_event_level BOOLEAN DEFAULT FALSE;
+    n_param_rows          INTEGER DEFAULT 0;
 BEGIN
   show PARAMETERS like 'EVENT_TABLE' in ACCOUNT;
   select "value" into s_event_table_name from TABLE(result_scan(last_query_id()));
+
+  -- Detect whether LOG_EVENT_LEVEL parameter is supported (Snowflake BCR Bundle 2026_02+).
+  -- This parameter decouples event table ingestion control from LOG_LEVEL.
+  BEGIN
+    show PARAMETERS like 'LOG_EVENT_LEVEL' in ACCOUNT;
+    select count(*) into n_param_rows from TABLE(result_scan(last_query_id()));
+    b_has_log_event_level := (n_param_rows > 0);
+  EXCEPTION
+    WHEN OTHER THEN
+      b_has_log_event_level := FALSE;
+  END;
   select TABLE_TYPE like '%TABLE' into is_event_log_table from DTAGENT_DB.INFORMATION_SCHEMA.TABLES where TABLE_SCHEMA = 'STATUS' and TABLE_NAME = 'EVENT_LOG';
 
   IF (ARRAY_CONTAINS(:s_event_table_name::variant, :a_no_custom_event_t)) THEN
@@ -58,6 +71,14 @@ BEGIN
 
     grant modify session LOG LEVEL on account to role DTAGENT_VIEWER;
     alter account set log_level = WARN;
+
+    -- Set LOG_EVENT_LEVEL = INFO on accounts that support BCR Bundle 2026_02+.
+    -- This ensures events emitted at INFO+ severity are ingested into the event table.
+    -- On pre-BCR accounts the parameter does not exist so we skip it gracefully.
+    IF (:b_has_log_event_level) THEN
+      alter account set LOG_EVENT_LEVEL = INFO;
+      grant modify LOG EVENT LEVEL on account to role DTAGENT_VIEWER;
+    END IF;
 
     RETURN 'Dynatrace Snowflake Observability Agent has setup own Event table';
   ELSE

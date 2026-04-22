@@ -857,3 +857,86 @@ fetch logs, from: now()-5m
 ```
 
 Pass: count == 0.
+
+#### B11 — LOG_EVENT_LEVEL BCR adaptation (Snowflake BCR 2026_02)
+
+This test verifies that the `LOG_EVENT_LEVEL` BCR adaptation runs correctly
+on accounts that support the parameter, and falls back gracefully on those
+that do not.
+
+1. **Full redeploy** to `test-qa` to exercise both `002_init_db.sql` and
+   `009_event_log_init.sql`:
+
+   ```bash
+   ./scripts/dev/build.sh && \
+   ./scripts/deploy/deploy.sh test-qa \
+       --scope=init,plugins,config \
+       --options=skip_confirm
+   ```
+
+1. **Verify `LOG_EVENT_LEVEL` set at account level** — only applicable when
+   DSOA provisions and owns the event table (i.e. `EVENT_TABLE` points to
+   `DTAGENT_DB.STATUS.EVENT_LOG`). First confirm ownership:
+
+   ```sql
+   SHOW PARAMETERS LIKE 'EVENT_TABLE' IN ACCOUNT;
+   ```
+
+   If `value = DTAGENT_DB.STATUS.EVENT_LOG`, DSOA owns the event table —
+   proceed with the account-level check below. If it points elsewhere (custom
+   or Snowflake-managed table), skip this step and step 4; the account-level
+   parameter is intentionally left to the operator in that scenario.
+
+   ```sql
+   SHOW PARAMETERS LIKE 'LOG_EVENT_LEVEL' IN ACCOUNT;
+   ```
+
+   **Expected (DSOA-owned event table):** one row with `name = LOG_EVENT_LEVEL`
+   and `value = INFO`.
+   If the parameter does not exist, the account predates BCR 2026_02 — the
+   fallback path is active; skip steps 3 and 4 and record as SKIP (pre-BCR).
+
+1. **Verify `LOG_EVENT_LEVEL` set at database level**:
+
+   ```sql
+   SHOW PARAMETERS LIKE 'LOG_EVENT_LEVEL' IN DATABASE DTAGENT_DB;
+   ```
+
+   **Expected:** `value = INFO`.
+
+1. **Verify privilege was granted to DTAGENT_VIEWER**:
+
+   ```sql
+   SHOW GRANTS TO ROLE DTAGENT_VIEWER;
+   ```
+
+   **Expected:** a row with `privilege = MODIFY LOG EVENT LEVEL` and
+   `granted_on = ACCOUNT`.
+
+1. **Verify event_log plugin collects telemetry** — wait ~2 minutes after
+   deploy, then check Dynatrace:
+
+   ```dql
+   fetch logs, from: now()-10m
+   | filter deployment.environment == "test-qa"
+   | filter dsoa.run.plugin == "event_log"
+   | summarize count = count()
+   ```
+
+   **Expected:** count > 0. If count == 0, trigger the plugin manually:
+
+   ```bash
+   snow sql -c snow_agent_test-qa \
+       --role DTAGENT_OWNER \
+       --warehouse DTAGENT_WH \
+       --database DTAGENT_DB \
+       --schema APP \
+       -q "CALL APP.DTAGENT(ARRAY_CONSTRUCT('event_log'));"
+   ```
+
+   Then re-run the DQL check.
+
+**Pass criteria:**
+
+- BCR-capable account: all four SQL checks pass + telemetry count > 0.
+- Pre-BCR account: steps 2–4 skipped (parameter absent), telemetry count > 0.
