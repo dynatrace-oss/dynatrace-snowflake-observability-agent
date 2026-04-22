@@ -11,6 +11,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.9.5] - 2026-04-22
+
+### Fixed
+
+- Config changes on redeploy now take full effect: the config upload procedure uses DELETE + INSERT (full replace) instead of an additive MERGE, so entries removed from the YAML (e.g. a plugin's `is_enabled: true`) are also removed from Snowflake. Previously, stale config entries could override a new `disabled_by_default: true` setting.
+- Disabled plugins now have their Snowflake tasks suspended automatically on every redeploy, regardless of deploy scope. The deploy script injects `ALTER TASK IF EXISTS … SUSPEND` for every excluded plugin (including multi-task and admin-task plugins) before executing the deploy SQL. Previously, stale tasks continued running and consuming compute credits after a plugin was disabled.
+
+See [DEVLOG.md](DEVLOG.md) for implementation details.
+
 ## [0.9.4] - 2026-04-14
 
 ### Added
