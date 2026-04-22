@@ -18,7 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-.PHONY: lint lint-python lint-format lint-pylint lint-sql lint-yaml lint-markdown lint-bom build docs package
+.PHONY: lint lint-python lint-format lint-pylint lint-sql lint-yaml lint-markdown lint-bom build docs package test test-documentation test-bash test-bash-slow test-core test-plugins
 
 # Linting targets
 lint-python:
@@ -54,3 +54,27 @@ docs:
 
 package:
 	./scripts/dev/package.sh
+
+# Testing targets
+test-documentation:
+	.venv/bin/pytest test/core/test_documentation.py -k "TestDocumentation"
+
+test-bash:
+	.venv/bin/pytest test/core/test_bash_scripts.py -v
+
+test-bash-slow:
+	.venv/bin/pytest test/core/test_bash_scripts.py -v --run-slow
+
+test-core:
+	.venv/bin/pytest test/core/test_config.py -k "TestConfig"
+	.venv/bin/pytest test/core/test_util.py -k "TestUtil"
+	.venv/bin/pytest test/core/test_views_structure.py -k "TestViews"
+	.venv/bin/pytest test/core/test_connector.py -k "TestTelemetrySender"
+	.venv/bin/pytest test/otel/test_events.py -k "TestEvents"
+	.venv/bin/pytest test/otel/test_otel_manager.py -k "TestOtelManager"
+
+test-plugins:
+	.venv/bin/pytest test/plugins/
+
+# Run all tests (mirrors CI test jobs, excludes slow bash tests)
+test: test-documentation test-bash test-core test-plugins
