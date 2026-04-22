@@ -4,6 +4,23 @@ This file documents detailed technical changes, internal refactorings, and devel
 
 ## Version 0.9.5 — Detailed Changes
 
+### Dependency Maintenance — Snowflake SDK Audit and Version Update
+
+- **Scope**: Full audit of all four Snowflake SDK packages in `requirements.txt` against latest stable PyPI releases.
+- **Findings**:
+  - `snowflake==1.12.0` — already at latest stable; no change.
+  - `snowflake-core==1.12.0` — already at latest stable; no change.
+  - `snowflake-connector-python>=4.4.0` — already at latest stable; no change.
+  - `snowflake-snowpark-python>=1.48.1` — **updated to `>=1.49.0`** (released 2026-04-13). No breaking API changes
+    affecting DSOA usage patterns (`Session`, `DataFrame`, `write_pandas`, cursor operations).
+- **Python version constraint**: Updated comment from `<3.14` to `<3.15`. `snowflake-snowpark-python==1.49.0`
+  declares `requires_python: "<3.15,>=3.9"`, extending support to Python 3.14. DSOA currently runs on Python 3.13.
+- **Protobuf constraint unchanged**: `snowflake-snowpark-python==1.49.0` still caps at `protobuf<6.34`, consistent
+  with the existing `>=6.33.5,<6.34` security pin (CVE-2026-0994). Updated inline comment to reference `>=1.49.0`.
+- **Compatibility verified**: `pip install -r requirements.txt` clean; `pip check` no broken deps; SDK import smoke
+  test passed; 99 core tests passed (3 skipped); pylint 10.00/10.
+- **Files changed**: `requirements.txt`
+
 ### Hardening — BCR-2275: Explicit Column Lists for ACCOUNT_USAGE Views
 
 Snowflake BCR-2275 changed their policy so new columns in `ACCOUNT_USAGE` views are no longer announced as breaking changes. DSOA SQL views that used `SELECT *` from these system views would silently ingest unexpected columns, risking memory bloat, telemetry corruption, and test fixture drift.

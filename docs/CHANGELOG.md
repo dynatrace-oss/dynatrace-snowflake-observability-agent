@@ -11,6 +11,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- Updated `snowflake-snowpark-python` minimum version to `>=1.49.0` (was `>=1.48.1`). Python version constraint
+  updated to `<3.15` (was `<3.14`) to reflect extended support in the new SDK release. See [DEVLOG.md](DEVLOG.md)
+  for full audit details.
+
 ## [0.9.4] - 2026-04-14
 
 ### Added
