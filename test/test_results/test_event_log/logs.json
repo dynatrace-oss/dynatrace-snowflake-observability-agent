@@ -31,7 +31,17 @@
     "snowflake.schema.name": "APP",
     "snowflake.warehouse.name": "DTAGENT_TEST_WH",
     "dsoa.run.context": "event_log_metrics",
-    "dsoa.run.plugin": "test_event_log"
+    "dsoa.run.plugin": "test_event_log",
+    "resource_attributes": {
+      "db.system": "snowflake",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "service.name": "test.dsoa2025",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1"
+    }
   },
   {
     "content": "event_log_metrics",
@@ -65,7 +75,17 @@
     "snowflake.schema.name": "APP",
     "snowflake.warehouse.name": "DTAGENT_TEST_WH",
     "dsoa.run.context": "event_log_metrics",
-    "dsoa.run.plugin": "test_event_log"
+    "dsoa.run.plugin": "test_event_log",
+    "resource_attributes": {
+      "db.system": "snowflake",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "service.name": "test.dsoa2025",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1"
+    }
   },
   {
     "content": "Invalid type dict for attribute 'snowflake.query.operator.stats' value. Expected one of ['bool', 'str', 'bytes', 'int', 'float'] or a sequence of those types",
@@ -94,7 +114,17 @@
     "snowflake.event.scope.name": "opentelemetry.attributes",
     "record_type": "LOG",
     "dsoa.run.context": "event_log",
-    "dsoa.run.plugin": "test_event_log"
+    "dsoa.run.plugin": "test_event_log",
+    "resource_attributes": {
+      "db.system": "snowflake",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "service.name": "test.dsoa2025",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1"
+    }
   },
   {
     "content": "UPDATE state.datasources SET last_transform = '2025-02-07 12:26:07.0', last_extract = '2025-02-07 12:26:07.0', last_extract_id = 1738922400000 WHERE datasource = 'Spine.UnassignedConsumption'",
@@ -113,7 +143,7 @@
     "snowagent.run.context": "query_history",
     "snowagent.run.id": "5c0188ef23e84fb99fd31ffddd8d0dcd",
     "snowflake.cluster_number": 1,
-    "snowflake.credits.cloud_services": 0.000047,
+    "snowflake.credits.cloud_services": 4.7e-05,
     "snowflake.data.scanned": 44032,
     "snowflake.data.scanned_from_cache": 1,
     "snowflake.data.written": 22016,
@@ -173,6 +203,16 @@
     "snowflake.event.scope.name": "DTAGENT_OTLP",
     "record_type": "LOG",
     "dsoa.run.context": "event_log",
-    "dsoa.run.plugin": "test_event_log"
+    "dsoa.run.plugin": "test_event_log",
+    "resource_attributes": {
+      "db.system": "snowflake",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "service.name": "test.dsoa2025",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1"
+    }
   }
 ]
