@@ -168,27 +168,31 @@ _run_derive() {
 
 ##endregion
 
-##region Manual Mode Auto-sets skip_confirm
+##region Manual Mode Auto-sets skip_confirm and no_dep
 
 # Helper: simulate phase2 option prompts in a subshell.
-# Args: manual_answer skip_confirm_answer
-# Outputs: "MANUAL=<0|1> SKIP=<0|1>"
+# Args: manual_answer skip_confirm_answer no_dep_answer
+# Outputs: "MANUAL=<0|1> SKIP=<0|1> NODEP=<0|1>"
 _run_phase2_options() {
     local manual_ans="$1"
-    local skip_ans="${2:-n}"   # only used when manual=n
+    local skip_ans="${2:-n}"    # only used when manual=n
+    local nodep_ans="${3:-n}"   # only used when manual=n
 
     bash -c "
         MANUAL_MODE=0
         SKIP_CONFIRM=0
+        NO_DEP=0
 
         prompt_yesno() {
             local question=\"\$1\"
-            local default=\"\$2\"
             if [[ \"\$question\" == *'manual mode'* ]]; then
                 [[ '$manual_ans' == 'y' ]] && return 0 || return 1
             fi
             if [[ \"\$question\" == *'confirmation'* ]]; then
                 [[ '$skip_ans' == 'y' ]] && return 0 || return 1
+            fi
+            if [[ \"\$question\" == *'bizevents'* ]]; then
+                [[ '$nodep_ans' == 'y' ]] && return 0 || return 1
             fi
             return 1
         }
@@ -197,14 +201,18 @@ _run_phase2_options() {
         if prompt_yesno 'Generate SQL only (manual mode)?' 'n'; then
             MANUAL_MODE=1
             SKIP_CONFIRM=1
-            log_info 'Manual mode enabled — skipping deployment confirmation prompt (not applicable)'
+            NO_DEP=1
+            log_info 'Manual mode enabled — skipping confirmation and bizevents prompts (not applicable)'
         else
             if prompt_yesno 'Skip deployment confirmation?' 'n'; then
                 SKIP_CONFIRM=1
             fi
+            if prompt_yesno 'Skip deployment bizevents?' 'n'; then
+                NO_DEP=1
+            fi
         fi
 
-        echo \"MANUAL=\$MANUAL_MODE SKIP=\$SKIP_CONFIRM\"
+        echo \"MANUAL=\$MANUAL_MODE SKIP=\$SKIP_CONFIRM NODEP=\$NO_DEP\"
     "
 }
 
@@ -214,10 +222,22 @@ _run_phase2_options() {
     [[ "$result" == *"SKIP=1"* ]]
 }
 
+@test "manual mode auto-sets no_dep=1" {
+    result=$(_run_phase2_options "y")
+    [[ "$result" == *"MANUAL=1"* ]]
+    [[ "$result" == *"NODEP=1"* ]]
+}
+
 @test "manual mode does not prompt for skip_confirm separately" {
     # When manual=y, skip_confirm answer is irrelevant — result must still be SKIP=1
     result=$(_run_phase2_options "y" "n")
     [[ "$result" == *"SKIP=1"* ]]
+}
+
+@test "manual mode does not prompt for no_dep separately" {
+    # When manual=y, no_dep answer is irrelevant — result must still be NODEP=1
+    result=$(_run_phase2_options "y" "n" "n")
+    [[ "$result" == *"NODEP=1"* ]]
 }
 
 @test "non-manual mode: skip_confirm=n leaves SKIP=0" {
@@ -230,6 +250,18 @@ _run_phase2_options() {
     result=$(_run_phase2_options "n" "y")
     [[ "$result" == *"MANUAL=0"* ]]
     [[ "$result" == *"SKIP=1"* ]]
+}
+
+@test "non-manual mode: no_dep=n leaves NODEP=0" {
+    result=$(_run_phase2_options "n" "n" "n")
+    [[ "$result" == *"MANUAL=0"* ]]
+    [[ "$result" == *"NODEP=0"* ]]
+}
+
+@test "non-manual mode: no_dep=y sets NODEP=1" {
+    result=$(_run_phase2_options "n" "n" "y")
+    [[ "$result" == *"MANUAL=0"* ]]
+    [[ "$result" == *"NODEP=1"* ]]
 }
 
 ##endregion

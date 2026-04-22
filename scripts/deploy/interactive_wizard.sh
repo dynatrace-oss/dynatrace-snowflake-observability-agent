@@ -307,15 +307,16 @@ phase2_deployment_scope() {
     if prompt_yesno "Generate SQL only (manual mode)?" "n"; then
         MANUAL_MODE=1
         SKIP_CONFIRM=1
-        log_info "Manual mode enabled — skipping deployment confirmation prompt (not applicable)"
+        NO_DEP=1
+        log_info "Manual mode enabled — skipping confirmation and bizevents prompts (not applicable)"
     else
         if prompt_yesno "Skip deployment confirmation?" "n"; then
             SKIP_CONFIRM=1
         fi
-    fi
 
-    if prompt_yesno "Skip deployment bizevents?" "n"; then
-        NO_DEP=1
+        if prompt_yesno "Skip deployment bizevents?" "n"; then
+            NO_DEP=1
+        fi
     fi
 
     echo "" >&2
