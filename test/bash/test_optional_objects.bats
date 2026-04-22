@@ -74,7 +74,7 @@ use role DTAGENT_OWNER;
 create or replace procedure DTAGENT_DB.APP.DTAGENT(sources array)
 returns object
 language python
-runtime_version = '3.11'
+runtime_version = '3.13'
 handler = 'main'
 as
 $$

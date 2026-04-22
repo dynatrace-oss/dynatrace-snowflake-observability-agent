@@ -30,7 +30,7 @@ For plugin anatomy, naming conventions, implementation patterns, and testing —
 
 ## Tech Stack
 
-- **Runtime:** Python 3.9+ (CI: 3.11), Snowflake Snowpark.
+- **Runtime:** Python 3.10+ (CI: 3.13), Snowflake Snowpark.
 - **Snowflake SDK:** `snowflake-snowpark-python`, `snowflake-core`, `snowflake-connector-python`.
 - **Telemetry:** OpenTelemetry SDK (`opentelemetry-api/sdk/exporter-otlp 1.38.0`) + Dynatrace Metrics/Events APIs.
 - **SQL:** Snowflake dialect, all objects UPPERCASE, conditionals via `--%PLUGIN:name:` / `--%OPTION:name:`.

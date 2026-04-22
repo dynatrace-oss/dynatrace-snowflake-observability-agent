@@ -1,3 +1,25 @@
+# Copyright (c) 2025 Dynatrace Open Source
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+.PHONY: lint lint-python lint-format lint-pylint lint-sql lint-yaml lint-markdown lint-bom build docs package test test-documentation test-bash test-bash-slow test-core test-plugins
+
 # Linting targets
 lint-python:
 	flake8 --config=.flake8 src/ test/
@@ -32,3 +54,27 @@ docs:
 
 package:
 	./scripts/dev/package.sh
+
+# Testing targets
+test-documentation:
+	.venv/bin/pytest test/core/test_documentation.py -k "TestDocumentation"
+
+test-bash:
+	.venv/bin/pytest test/core/test_bash_scripts.py -v
+
+test-bash-slow:
+	.venv/bin/pytest test/core/test_bash_scripts.py -v --run-slow
+
+test-core:
+	.venv/bin/pytest test/core/test_config.py -k "TestConfig"
+	.venv/bin/pytest test/core/test_util.py -k "TestUtil"
+	.venv/bin/pytest test/core/test_views_structure.py -k "TestViews"
+	.venv/bin/pytest test/core/test_connector.py -k "TestTelemetrySender"
+	.venv/bin/pytest test/otel/test_events.py -k "TestEvents"
+	.venv/bin/pytest test/otel/test_otel_manager.py -k "TestOtelManager"
+
+test-plugins:
+	.venv/bin/pytest test/plugins/
+
+# Run all tests (mirrors CI test jobs, excludes slow bash tests)
+test: test-documentation test-bash test-core test-plugins

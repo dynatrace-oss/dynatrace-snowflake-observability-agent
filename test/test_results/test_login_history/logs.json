@@ -26,5 +26,34 @@
     "event.related_id": 0,
     "dsoa.run.context": "login_history",
     "dsoa.run.plugin": "test_login_history"
+  },
+  {
+    "authentication.type": "PASSWORD",
+    "client.application.id": "PythonConnector",
+    "client.application.version": "3.12.0",
+    "client.build_id": "3.12.0",
+    "client.version": "3.12.0",
+    "content": "New Sessions entry for SNOWAGENT_ADMIN",
+    "db.user": "SNOWAGENT_ADMIN",
+    "dsoa.run.context": "sessions",
+    "dsoa.run.plugin": "test_login_history",
+    "event.id": 18260702004600004,
+    "session.id": 18260702004600003,
+    "snowflake.session.start": 1760681131400000000
+  },
+  {
+    "authentication.type": "SAML2_ASSERTION",
+    "client.application.id": "Go",
+    "client.application.version": "1.22.1",
+    "client.build_id": "1.22.1",
+    "client.version": "1.22.1",
+    "content": "New Sessions entry for TEST.USER",
+    "db.user": "TEST.USER",
+    "dsoa.run.context": "sessions",
+    "dsoa.run.plugin": "test_login_history",
+    "event.id": 18260702004600002,
+    "session.id": 18260702004600001,
+    "snowflake.session.closed_reason": "LOGOUT",
+    "snowflake.session.start": 1760681131300000000
   }
 ]

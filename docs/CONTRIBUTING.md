@@ -4,14 +4,31 @@ Welcome! This document is intended for developers wishing to contribute to the D
 
 **Table of Contents:**
 
-1. [Setting up Development Environment](#setting-up-development-environment)
-1. [Development Workflow](#development-workflow)
-1. [Testing](#testing)
-1. [Writing Plugins](#writing-plugins)
-1. [Semantic Conventions](#semantic-conventions)
-1. [Source Code Overview](#source-code-overview)
-1. [AI-Assisted Dashboard and Workflow Development](#ai-assisted-dashboard-and-workflow-development)
-1. [Pull Request Checklist](#pull-request-checklist)
+- [Setting up Development Environment](#setting-up-development-environment)
+  - [Prerequisites](#prerequisites)
+  - [Environment Setup](#environment-setup)
+- [Development Workflow](#development-workflow)
+  - [Building the Agent](#building-the-agent)
+  - [Updating Documentation](#updating-documentation)
+  - [Packaging for Distribution](#packaging-for-distribution)
+- [Testing](#testing)
+  - [Test Suites](#test-suites)
+  - [Test Modes](#test-modes)
+  - [Running Tests](#running-tests)
+  - [Test Data](#test-data)
+  - [Setting Up Live Testing](#setting-up-live-testing)
+- [Writing Plugins](#writing-plugins)
+- [Semantic Conventions](#semantic-conventions)
+  - [Field and Metric Naming Rules](#field-and-metric-naming-rules)
+  - [SQL Object Rules](#sql-object-rules)
+  - [Metric Types](#metric-types)
+- [Source Code Overview](#source-code-overview)
+  - [SQL File Prefixes](#sql-file-prefixes)
+  - [Conditional Code Blocks](#conditional-code-blocks)
+- [AI-Assisted Dashboard and Workflow Development](#ai-assisted-dashboard-and-workflow-development)
+  - [Prerequisites for AI-Assisted Development](#prerequisites-for-ai-assisted-development)
+  - [Available Skills](#available-skills)
+- [Pull Request Checklist](#pull-request-checklist)
 
 ---
 
@@ -21,7 +38,7 @@ If you only want to install and use DSOA, see the [installation guide](INSTALL.m
 
 ### Prerequisites
 
-- [Python](https://www.python.org/) 3.9+ (CI uses 3.11)
+- [Python](https://www.python.org/) 3.10+ (CI uses 3.13)
 - [Git](https://git-scm.com/)
 - **Windows:** [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install) required
 - **Recommended IDE:** [VS Code](https://code.visualstudio.com/) with the [Snowflake extension](https://marketplace.visualstudio.com/items?itemName=snowflake.snowflake-vsc)
