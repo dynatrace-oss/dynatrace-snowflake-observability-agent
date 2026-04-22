@@ -33,7 +33,7 @@
 # * SCOPE              [REQUIRED] - deployment scope:
 #                       init, admin, setup, plugins, config, agents, apikey, all, teardown, upgrade, or file_part
 # * FROM_VERSION       [OPTIONAL] - version number for upgrade scope
-# * IS_MANUAL          [OPTIONAL] - "manual" to generate a human-readable script; otherwise automated deploy
+# * IS_MANUAL          [OPTIONAL] - "true" to generate a human-readable script; "false" or empty for automated deploy
 # * OPTIONS_STR        [OPTIONAL] - comma-separated deploy options (e.g. cleanup_disabled,skip_confirm)
 #
 
@@ -589,13 +589,30 @@ inject_cleanup_for_excluded_plugins() {
         done < <(grep -i 'create or replace task' "$plugin_build_file" | awk '{print $5}' | sort -u)
 
         # DROP PROCEDURE IF EXISTS for all procedures defined in the plugin build file
+        # Normalize signatures to types-only (Snowflake DROP PROCEDURE requires types, not arg names)
         while IFS= read -r proc_sig; do
             if [ -n "$proc_sig" ]; then
                 cleanup_sql+="drop procedure if exists ${proc_sig};"$'\n'
                 echo "[deploy]   Drop procedure: ${proc_sig}"
             fi
         done < <(grep -oi 'PROCEDURE[[:space:]]\+[^[:space:]]\+([^)]*)' "$plugin_build_file" | \
-                 sed 's/^PROCEDURE[[:space:]]*//' | sort -u)
+                 sed 's/^PROCEDURE[[:space:]]*//' | sort -u | \
+                 python3 -c "
+import sys, re
+for line in sys.stdin:
+    line = line.strip()
+    m = re.match(r'([^(]+)\(([^)]*)\)', line)
+    if m:
+        name = m.group(1)
+        params = m.group(2)
+        if params.strip():
+            type_only = ', '.join(p.strip().split()[-1] for p in params.split(','))
+            print(f'{name}({type_only})')
+        else:
+            print(f'{name}()')
+    else:
+        print(line)
+")
 
         # DROP VIEW IF EXISTS for all views defined in the plugin build file
         while IFS= read -r view_name; do
@@ -648,7 +665,10 @@ inject_cleanup_for_excluded_plugins() {
             awk '{printf "'"'"'%s'"'"',", $0}' | sed 's/,$//')
     fi
 
-    cleanup_sql+=$(cat <<EOSQL
+    if [ -z "$known_tasks_sql_list" ]; then
+        echo "[deploy] WARNING: No known tasks found in build/30_plugins/*.sql — skipping orphan task detection to avoid dropping all tasks"
+    else
+        cleanup_sql+=$(cat <<EOSQL
 -- Suspend and drop orphaned TASK_DTAGENT_% tasks not belonging to any active plugin
 declare
   c cursor for
@@ -657,21 +677,20 @@ declare
     where task_name ilike 'TASK_DTAGENT_%'
 EOSQL
 )
-    if [ -n "$known_tasks_sql_list" ]; then
         cleanup_sql+=$'\n'"      and task_name not in (${known_tasks_sql_list})"
-    fi
-    cleanup_sql+=$(cat <<'EOSQL'
+        cleanup_sql+=$(cat <<'EOSQL'
 ;
 begin
   for r in c do
-    system$log('info', '[deploy] Dropping orphaned task: ' || r.full_name);
+    call system$log_info('[deploy] Dropping orphaned task: ' || r.full_name);
     execute immediate 'alter task if exists ' || r.full_name || ' suspend';
     execute immediate 'drop task if exists ' || r.full_name;
   end for;
 end;
 EOSQL
 )
-    cleanup_sql+=$'\n'
+        cleanup_sql+=$'\n'
+    fi
 
     if [ -n "$cleanup_sql" ]; then
         echo "[deploy] Injecting cleanup SQL for disabled/removed plugins"
