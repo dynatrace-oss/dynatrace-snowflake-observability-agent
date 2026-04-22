@@ -21,5 +21,27 @@
     "snowflake.schema.name": "APP",
     "dsoa.run.plugin": "test_budget",
     "dsoa.run.context": "budgets"
+  },
+  {
+    "content": "Budget spending for DTAGENT_BUDGET",
+    "db.namespace": "DTAGENT_DB",
+    "dsoa.run.context": "spendings",
+    "dsoa.run.plugin": "test_budget",
+    "snowflake.budget.full_name": "DTAGENT_DB.APP.DTAGENT_BUDGET",
+    "snowflake.budget.name": "DTAGENT_BUDGET",
+    "snowflake.credits.spent": 1.5,
+    "snowflake.schema.name": "APP",
+    "snowflake.service.type": "WAREHOUSE"
+  },
+  {
+    "content": "Budget spending for DTAGENT_BUDGET_2",
+    "db.namespace": "DTAGENT_DB",
+    "dsoa.run.context": "spendings",
+    "dsoa.run.plugin": "test_budget",
+    "snowflake.budget.full_name": "DTAGENT_DB.APP.DTAGENT_BUDGET_2",
+    "snowflake.budget.name": "DTAGENT_BUDGET_2",
+    "snowflake.credits.spent": 0.0,
+    "snowflake.schema.name": "APP",
+    "snowflake.service.type": "AUTO_CLUSTERING"
   }
 ]
