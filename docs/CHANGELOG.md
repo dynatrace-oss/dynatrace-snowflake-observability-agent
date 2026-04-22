@@ -18,6 +18,11 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- The `event_log` plugin setup procedure now adapts to Snowflake BCR Bundle 2026\_02 (`LOG_EVENT_LEVEL` parameter).
+  On accounts where the BCR is active, `LOG_EVENT_LEVEL = INFO` is set at both account and database level so that
+  events emitted by DSOA procedures continue to reach the event table. On pre-BCR accounts the new parameter is
+  detected as absent and the change is skipped gracefully. See [DEVLOG.md](DEVLOG.md) for details.
+
 - Config changes on redeploy now take full effect: the config upload procedure uses DELETE + INSERT (full replace) instead of an additive MERGE, so entries removed from the YAML (e.g. a plugin's `is_enabled: true`) are also removed from Snowflake. Previously, stale config entries could override a new `disabled_by_default: true` setting.
 - Disabled plugins now have their Snowflake tasks suspended automatically on every redeploy, regardless of deploy scope. The deploy script injects `ALTER TASK IF EXISTS … SUSPEND` for every excluded plugin (including multi-task and admin-task plugins) before executing the deploy SQL. Previously, stale tasks continued running and consuming compute credits after a plugin was disabled.
 

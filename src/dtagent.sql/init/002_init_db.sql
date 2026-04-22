@@ -31,6 +31,21 @@ create database if not exists DTAGENT_DB;
 --  which is the default level for the agent
 alter database DTAGENT_DB set LOG_LEVEL = INFO;
 
+-- Set LOG_EVENT_LEVEL = INFO on accounts that support BCR Bundle 2026_02+.
+-- LOG_EVENT_LEVEL decouples event table ingestion control from LOG_LEVEL.
+-- On pre-BCR accounts the parameter does not exist so we skip it gracefully.
+BEGIN
+  LET n_rows INTEGER DEFAULT 0;
+  show PARAMETERS like 'LOG_EVENT_LEVEL' in DATABASE DTAGENT_DB;
+  select count(*) into n_rows from TABLE(result_scan(last_query_id()));
+  IF (:n_rows > 0) THEN
+    alter database DTAGENT_DB set LOG_EVENT_LEVEL = INFO;
+  END IF;
+EXCEPTION
+  WHEN OTHER THEN
+    NULL; -- pre-BCR account: LOG_EVENT_LEVEL parameter not available, skip gracefully
+END;
+
 -- Set default DATA_RETENTION_TIME_IN_DAYS for all non-transient tables in this database
 -- This will be overridden by the configured value in the config table after deployment
 alter database DTAGENT_DB set DATA_RETENTION_TIME_IN_DAYS = 1;

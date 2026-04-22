@@ -25,6 +25,38 @@ This file documents detailed technical changes, internal refactorings, and devel
 
 ### Bug Fixes
 
+#### BCR Bundle 2026\_02: Adapt to New `LOG_EVENT_LEVEL` Parameter (BDX-1936)
+
+- **Background**: Snowflake BCR Bundle 2026\_02 (enabled week of April 6 2026) introduces a new `LOG_EVENT_LEVEL`
+  parameter that decouples event table ingestion control from the existing `LOG_LEVEL` parameter. Previously,
+  `LOG_LEVEL` controlled both diagnostic output and what severity of events was ingested into the event table.
+  After the BCR, `LOG_EVENT_LEVEL` must also be set to ensure events reach the event table. Without this change,
+  DSOA deployments on BCR-active accounts would silently lose event log telemetry for everything below the
+  account-default `LOG_EVENT_LEVEL` value.
+- **Detection pattern**: Both `SETUP_EVENT_TABLE()` and `002_init_db.sql` probe for the parameter using
+  `SHOW PARAMETERS LIKE 'LOG_EVENT_LEVEL'` before attempting to set it. A `count(*) > 0` on `result_scan()`
+  determines whether the parameter exists. The probe itself is wrapped in `EXCEPTION WHEN OTHER` so that any
+  unexpected error on pre-BCR accounts is also handled gracefully.
+- **`009_event_log_init.sql`** (`SETUP_EVENT_TABLE()`): When DSOA creates its own event table (the DSOA-owned
+  branch), after setting `LOG_LEVEL = WARN` the procedure now also: (1) sets `ALTER ACCOUNT SET LOG_EVENT_LEVEL = INFO`
+  and (2) grants `MODIFY LOG EVENT LEVEL ON ACCOUNT TO ROLE DTAGENT_VIEWER`. Both operations are guarded by the
+  BCR detection flag `b_has_log_event_level`. The custom-event-table branch is intentionally left unchanged —
+  when DSOA uses a pre-existing event table, the account operator controls ingestion levels.
+- **`002_init_db.sql`**: A top-level `BEGIN … END` scripting block probes `SHOW PARAMETERS LIKE 'LOG_EVENT_LEVEL'
+  IN DATABASE DTAGENT_DB` and, if the parameter exists, sets `ALTER DATABASE DTAGENT_DB SET LOG_EVENT_LEVEL = INFO`.
+  This mirrors the existing `ALTER DATABASE DTAGENT_DB SET LOG_LEVEL = INFO` and ensures that procedures inside
+  `DTAGENT_DB` emit events at INFO+ into the event table.
+- **Why `INFO`, not `DEBUG`**: `LOG_LEVEL = INFO` (set in `002_init_db.sql`) controls what DSOA procedures emit.
+  `LOG_EVENT_LEVEL = INFO` ensures those INFO+ emissions land in the event table. Setting `DEBUG` would flood the
+  event table with internal Snowflake framework noise. The `V_EVENT_LOG` view already applies an additional filter
+  (`severity_text not in ('DEBUG', 'INFO')` for DTAGENT-family DBs) to suppress DSOA self-noise from the telemetry
+  pipeline, so there is no telemetry loss with `INFO`.
+- **`bom.yml`**: Added `MODIFY LOG EVENT LEVEL` privilege reference with a comment noting it is only granted on
+  BCR-active accounts.
+- **No upgrade script needed**: `SETUP_EVENT_TABLE()` signature is unchanged; no Snowflake overload conflict.
+- **Files changed**: `src/dtagent/plugins/event_log.sql/init/009_event_log_init.sql`,
+  `src/dtagent.sql/init/002_init_db.sql`, `src/dtagent/plugins/event_log.config/bom.yml`
+
 #### Deploy Pipeline: Cleanup Option for Disabled and Removed Plugins (`--options=cleanup_disabled`)
 
 - **Background**: `inject_suspend_for_excluded_plugins()` already suspends tasks for disabled plugins. This extends the deploy pipeline with a full object cleanup option for operators who want to actively drop stale views, procedures, and tasks — not just suspend them.
