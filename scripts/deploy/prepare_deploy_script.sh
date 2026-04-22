@@ -511,7 +511,8 @@ fi
 # Function to inject ALTER TASK ... SUSPEND statements for excluded (disabled) plugins.
 # This ensures stale Snowflake tasks are suspended even when plugin SQL is stripped from the
 # deploy script (e.g. --scope=plugins,agents without config scope).
-# Task names are extracted from *_task.sql source files so multi-task plugins are handled correctly.
+# Task names are extracted from the flat build artifact (build/30_plugins/<plugin>.sql) so the
+# function works in packaged deployments where src/dtagent/plugins/ is not present.
 inject_suspend_for_excluded_plugins() {
     local install_script="$1"
 
@@ -521,22 +522,19 @@ inject_suspend_for_excluded_plugins() {
 
     local suspend_sql=""
     for plugin_name in $EXCLUDED_PLUGINS; do
-        local plugin_sql_dir="src/dtagent/plugins/${plugin_name}.sql"
-        if [ ! -d "$plugin_sql_dir" ]; then
-            echo "[deploy] WARNING: plugin SQL directory not found for disabled plugin: ${plugin_name} (${plugin_sql_dir})"
+        local plugin_build_file="build/30_plugins/${plugin_name}.sql"
+        if [ ! -f "$plugin_build_file" ]; then
+            echo "[deploy] WARNING: built plugin SQL not found for disabled plugin: ${plugin_name} (${plugin_build_file})"
             continue
         fi
 
-        # Find all *_task.sql files recursively (covers admin/ subdirectories too)
-        while IFS= read -r task_sql; do
-            # Extract the fully-qualified task name from CREATE OR REPLACE TASK statement
-            local task_name
-            task_name=$(grep -i 'create or replace task' "$task_sql" | awk '{print $NF}' | head -1)
+        # Extract all fully-qualified task names from CREATE OR REPLACE TASK statements in the flat build file
+        while IFS= read -r task_name; do
             if [ -n "$task_name" ]; then
                 suspend_sql+="alter task if exists ${task_name} suspend;"$'\n'
                 echo "[deploy] Will suspend task for disabled plugin: ${plugin_name} (${task_name})"
             fi
-        done < <(find "$plugin_sql_dir" -name '*_task.sql' -type f | sort)
+        done < <(grep -i 'create or replace task' "$plugin_build_file" | awk '{print $5}' | sort -u)
     done
 
     if [ -n "$suspend_sql" ]; then

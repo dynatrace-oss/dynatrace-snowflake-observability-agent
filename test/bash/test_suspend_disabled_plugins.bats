@@ -44,18 +44,23 @@ EOSQL
     cat > build/30_plugins/tasks.sql << 'EOSQL'
 --%PLUGIN:tasks:
 CREATE OR REPLACE PROCEDURE tasks_handler() RETURNS TABLE() LANGUAGE PYTHON AS $$ def h(): return [] $$;
+CREATE OR REPLACE TASK DTAGENT_DB.APP.TASK_DTAGENT_TASKS WAREHOUSE = DTAGENT_WH SCHEDULE = '5 MINUTES' AS CALL tasks_handler();
 --%:PLUGIN:tasks
 EOSQL
 
     cat > build/30_plugins/event_log.sql << 'EOSQL'
 --%PLUGIN:event_log:
 CREATE OR REPLACE PROCEDURE event_log_handler() RETURNS TABLE() LANGUAGE PYTHON AS $$ def h(): return [] $$;
+CREATE OR REPLACE TASK DTAGENT_DB.APP.TASK_DTAGENT_EVENT_LOG WAREHOUSE = DTAGENT_WH SCHEDULE = '5 MINUTES' AS CALL event_log_handler();
+CREATE OR REPLACE TASK DTAGENT_DB.APP.TASK_DTAGENT_EVENT_LOG_CLEANUP WAREHOUSE = DTAGENT_WH SCHEDULE = '60 MINUTES' AS CALL event_log_cleanup();
 --%:PLUGIN:event_log
 EOSQL
 
     cat > build/30_plugins/snowpipes.sql << 'EOSQL'
 --%PLUGIN:snowpipes:
 CREATE OR REPLACE PROCEDURE snowpipes_handler() RETURNS TABLE() LANGUAGE PYTHON AS $$ def h(): return [] $$;
+CREATE OR REPLACE TASK DTAGENT_DB.APP.TASK_DTAGENT_SNOWPIPES WAREHOUSE = DTAGENT_WH SCHEDULE = '5 MINUTES' AS CALL snowpipes_handler();
+CREATE OR REPLACE TASK DTAGENT_DB.APP.TASK_DTAGENT_SNOWPIPES_HISTORY WAREHOUSE = DTAGENT_WH SCHEDULE = '60 MINUTES' AS CALL snowpipes_history();
 --%:PLUGIN:snowpipes
 EOSQL
 
@@ -183,4 +188,18 @@ EOF
     [ "$status" -eq 0 ]
 
     ! grep -qi 'alter task if exists.*suspend' "$TEST_SQL_FILE"
+}
+
+@test "no suspend SQL when build plugin file missing — warning emitted" {
+    _config_with_disabled "tasks"
+    rm -f build/30_plugins/tasks.sql
+
+    run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "all" "" "manual"
+    [ "$status" -eq 0 ]
+
+    # No ALTER TASK SUSPEND should appear
+    ! grep -qi 'alter task if exists.*suspend' "$TEST_SQL_FILE"
+
+    # Warning must be emitted
+    [[ "$output" =~ "[deploy] WARNING: built plugin SQL not found for disabled plugin: tasks" ]]
 }
