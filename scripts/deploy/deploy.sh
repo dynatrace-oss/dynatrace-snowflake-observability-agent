@@ -25,10 +25,11 @@
 
 #
 # This is a script for deploying / updating the whole or part of Dynatrace Snowflake Observability Agent
-# Call as ./deploy.sh "$ENV" --scope=$SCOPE [--from-version=$VERSION] [--options=$OPTIONS]
+# Call as ./deploy.sh --env=$ENV [--scope=$SCOPE] [--from-version=$VERSION] [--options=$OPTIONS] [--interactive] [--defaults]
 #
 # Args:
-# * ENV            [REQUIRED] - environment identifier (config-$ENV.yml must exist)
+# * --env          [REQUIRED] - environment identifier (config-$ENV.yml must exist or will be created)
+# * $ENV           [DEPRECATED] - positional environment (backward compat, use --env= instead)
 # * --scope        [OPTIONAL] - deployment scope (default: all):
 #                               init, admin, setup, plugins, config, agents, apikey, all, teardown, upgrade, or file_part
 #                               Multiple scopes can be specified as comma-separated list (e.g., setup,plugins,config,agents,apikey)
@@ -36,20 +37,34 @@
 # * --from-version [OPTIONAL] - version number for upgrade scope (required if scope=upgrade)
 # * --output-file  [OPTIONAL] - output file path for manual mode (default: dsoa-deploy-script-{ENV}-{TIMESTAMP}.sql)
 # * --options      [OPTIONAL] - comma-separated: manual, service_user, skip_confirm, no_dep
+# * --interactive  [OPTIONAL] - launch interactive wizard (auto-triggered if config missing)
+# * --defaults     [OPTIONAL] - generate minimal config non-interactively
 
 #
 
-ENV=$1
-shift
-
-# Parse arguments
+ENV=""
+INTERACTIVE=0
+DEFAULTS=0
 SCOPE="all"
 FROM_VERSION=""
 OUTPUT_FILE=""
 OPTIONS_STR=""
 
+# Parse arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
+        --env=*)
+            ENV="${1#*=}"
+            shift
+            ;;
+        --interactive)
+            INTERACTIVE=1
+            shift
+            ;;
+        --defaults)
+            DEFAULTS=1
+            shift
+            ;;
         --scope=*)
             SCOPE="${1#*=}"
             shift
@@ -67,15 +82,21 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         *)
-            echo "Unknown parameter: $1"
-            exit 1
+            # Check if it's a positional ENV argument (backward compat)
+            if [[ -z "$ENV" && ! "$1" =~ ^-- ]]; then
+                ENV="$1"
+                echo "⚠ WARNING: Positional environment argument is deprecated. Use --env=$ENV instead." >&2
+                shift
+            else
+                echo "Unknown parameter: $1"
+                exit 1
+            fi
             ;;
     esac
 done
 
 # Parse options into array
 IFS=',' read -ra OPTIONS <<< "$OPTIONS_STR"
-
 
 # Check if option is present
 has_option() {
@@ -85,6 +106,84 @@ has_option() {
     done
     return 1
 }
+
+# Handle interactive wizard
+CWD=$(dirname "$0")
+CONFIG_FILE="conf/config-$ENV.yml"
+
+if [[ -z "$ENV" ]]; then
+    # No environment specified - check if we should launch wizard
+    if [[ $INTERACTIVE -eq 1 || $DEFAULTS -eq 1 ]]; then
+        echo "ERROR: --env is required" >&2
+        exit 1
+    else
+        echo "ERROR: Environment name is required. Use --env=<ENV> or provide as positional argument." >&2
+        exit 1
+    fi
+fi
+
+# Auto-trigger wizard if config missing and not using --defaults
+if [[ ! -f "$CONFIG_FILE" && $DEFAULTS -eq 0 ]]; then
+    INTERACTIVE=1
+fi
+
+# Run interactive wizard if requested
+if [[ $INTERACTIVE -eq 1 ]]; then
+    if [[ $DEFAULTS -eq 1 ]]; then
+        echo "ERROR: --interactive and --defaults are mutually exclusive" >&2
+        exit 1
+    fi
+
+    # Check if config exists for edit mode
+    EXISTING_CONFIG=""
+    if [[ -f "$CONFIG_FILE" ]]; then
+        EXISTING_CONFIG="$CONFIG_FILE"
+    fi
+
+    # Run wizard
+    if [[ -n "$EXISTING_CONFIG" ]]; then
+        "$CWD/interactive_wizard.sh" --env="$ENV" --existing-config="$EXISTING_CONFIG"
+    else
+        "$CWD/interactive_wizard.sh" --env="$ENV"
+    fi
+
+    if [[ $? -ne 0 ]]; then
+        echo "Wizard cancelled or failed" >&2
+        exit 1
+    fi
+fi
+
+# Generate minimal config if --defaults specified
+if [[ $DEFAULTS -eq 1 ]]; then
+    if [[ -f "$CONFIG_FILE" ]]; then
+        echo "Config file already exists: $CONFIG_FILE" >&2
+        exit 1
+    fi
+
+    # Create minimal config with defaults
+    mkdir -p conf
+    cat > "$CONFIG_FILE" << 'EOF'
+# Minimal DSOA configuration - generated with --defaults flag
+# Please update with your actual values before deployment
+
+core:
+  dynatrace_tenant_address: "CHANGE_ME.live.dynatrace.com"
+  snowflake:
+    account_name: "CHANGE_ME"
+  deployment_environment: "CHANGE_ME"
+  log_level: "WARN"
+  procedure_timeout: 3600
+
+plugins:
+  deploy_disabled_plugins: true
+
+# Set DTAGENT_TOKEN environment variable before deployment:
+# export DTAGENT_TOKEN="your-api-token-here"
+EOF
+
+    echo "Minimal config generated at: $CONFIG_FILE" >&2
+    echo "Please update the CHANGE_ME values and set DTAGENT_TOKEN environment variable" >&2
+fi
 
 # Display warning when bizevent send fails
 show_bizevent_warning() {
@@ -115,8 +214,6 @@ show_bizevent_warning() {
 	EOH
     sleep 3
 }
-
-CWD=$(dirname "$0")
 
 if has_option "manual"; then
     IS_MANUAL="true"
