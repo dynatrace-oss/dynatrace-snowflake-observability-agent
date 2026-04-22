@@ -524,24 +524,24 @@ phase3_plugin_selection() {
             log_info "Select which plugins to enable:"
             echo "" >&2
 
-            # All 16 plugins with short descriptions
+            # All 16 plugins with short descriptions (alphabetical order)
             local all_plugins=(
-                "event_log — Snowflake event log entries"
-                "data_schemas — Schema change tracking"
-                "budgets — Budget monitoring (disabled by default)"
-                "users — User and role monitoring"
-                "login_history — Login history tracking"
-                "trust_center — Trust Center findings"
-                "warehouse_usage — Warehouse credit usage"
-                "resource_monitors — Resource monitor alerts"
-                "dynamic_tables — Dynamic table health"
-                "tasks — Task execution monitoring"
-                "event_usage — Event usage metrics"
-                "snowpipes — Snowpipe ingestion monitoring"
-                "shares — Data sharing monitoring"
                 "active_queries — Running query tracking"
-                "query_history — Query performance analysis"
+                "budgets — Budget monitoring (disabled by default)"
+                "data_schemas — Schema change tracking"
                 "data_volume — Table storage monitoring"
+                "dynamic_tables — Dynamic table health"
+                "event_log — Snowflake event log entries"
+                "event_usage — Event usage metrics"
+                "login_history — Login history tracking"
+                "query_history — Query performance analysis"
+                "resource_monitors — Resource monitor alerts"
+                "shares — Data sharing monitoring"
+                "snowpipes — Snowpipe ingestion monitoring"
+                "tasks — Task execution monitoring"
+                "trust_center — Trust Center findings"
+                "users — User and role monitoring"
+                "warehouse_usage — Warehouse credit usage"
             )
 
             local selected_lines
@@ -762,9 +762,9 @@ EOF
     # When "selected" mode, explicitly enable/disable plugins
     if [[ "$PLUGINS_MODE" == "selected" ]]; then
         local all_known_plugins=(
-            event_log data_schemas budgets users login_history trust_center
-            warehouse_usage resource_monitors dynamic_tables tasks event_usage
-            snowpipes shares active_queries query_history data_volume
+            active_queries budgets data_schemas data_volume dynamic_tables
+            event_log event_usage login_history query_history resource_monitors
+            shares snowpipes tasks trust_center users warehouse_usage
         )
         local p is_selected
         for p in "${all_known_plugins[@]}"; do
@@ -797,9 +797,9 @@ EOF
     elif [[ "$PLUGINS_MODE" == "none" ]]; then
         # Disable all plugins
         local all_known_plugins=(
-            event_log data_schemas budgets users login_history trust_center
-            warehouse_usage resource_monitors dynamic_tables tasks event_usage
-            snowpipes shares active_queries query_history data_volume
+            active_queries budgets data_schemas data_volume dynamic_tables
+            event_log event_usage login_history query_history resource_monitors
+            shares snowpipes tasks trust_center users warehouse_usage
         )
         local p
         for p in "${all_known_plugins[@]}"; do
@@ -917,7 +917,10 @@ EOF
             cat "$temp_file"
             rm -f "$temp_file"
             echo "" >&2
-            log_info "Config printed to stdout. Re-run deploy.sh with --env=$WIZARD_ENV after saving the config."
+            if prompt_yesno "Config printed above. Continue to deployment?" "n"; then
+                return 0
+            fi
+            log_info "Exiting without deployment."
             return 1
             ;;
         "Discard")

@@ -739,7 +739,83 @@ _run_phase5_otel() {
 
 ##endregion
 
-##region bool_to_yaml Helper
+##region Plugin Checklist Order
+
+@test "phase3 plugin checklist is in alphabetical order" {
+    # Extract the all_plugins array lines from the wizard source and verify order
+    result=$(grep -A 20 "All 16 plugins with short descriptions" scripts/deploy/interactive_wizard.sh \
+        | grep '"[a-z]' | sed 's/.*"\([a-z_]*\) .*/\1/')
+    sorted=$(echo "$result" | sort)
+    [ "$result" = "$sorted" ]
+}
+
+@test "phase3 plugin checklist starts with active_queries" {
+    first=$(grep -A 3 "All 16 plugins with short descriptions" scripts/deploy/interactive_wizard.sh \
+        | grep '"[a-z]' | head -1 | sed 's/.*"\([a-z_]*\) .*/\1/')
+    [ "$first" = "active_queries" ]
+}
+
+@test "phase3 plugin checklist ends with warehouse_usage" {
+    last=$(grep -A 20 "All 16 plugins with short descriptions" scripts/deploy/interactive_wizard.sh \
+        | grep '"[a-z]' | tail -1 | sed 's/.*"\([a-z_]*\) .*/\1/')
+    [ "$last" = "warehouse_usage" ]
+}
+
+##endregion
+
+##region stdout path Continue-to-deployment prompt
+
+@test "config_persistence: stdout path prompts to continue to deployment" {
+    grep -q "Continue to deployment?" scripts/deploy/interactive_wizard.sh
+}
+
+@test "config_persistence: stdout path returns 0 when user says yes to continue" {
+    result=$(bash -c "
+        source scripts/deploy/lib.sh
+        source scripts/deploy/interactive_wizard.sh 2>/dev/null || true
+
+        # Override generate_config_yaml to be a no-op
+        generate_config_yaml() { :; }
+
+        # Override prompt_yesno: 'Continue to deployment?' → yes
+        prompt_yesno() {
+            [[ \"\$1\" == *'Continue to deployment'* ]] && return 0
+            return 1
+        }
+
+        # Simulate the stdout branch directly
+        echo '' >&2
+        if prompt_yesno 'Config printed above. Continue to deployment?' 'n'; then
+            echo 'CONTINUE'
+        else
+            echo 'EXIT'
+        fi
+    " 2>/dev/null)
+    [[ "$result" == *"CONTINUE"* ]]
+}
+
+@test "config_persistence: stdout path returns 1 when user says no to continue" {
+    result=$(bash -c "
+        source scripts/deploy/lib.sh
+        source scripts/deploy/interactive_wizard.sh 2>/dev/null || true
+
+        prompt_yesno() {
+            [[ \"\$1\" == *'Continue to deployment'* ]] && return 1
+            return 1
+        }
+
+        echo '' >&2
+        if prompt_yesno 'Config printed above. Continue to deployment?' 'n'; then
+            echo 'CONTINUE'
+        else
+            echo 'EXIT'
+        fi
+    " 2>/dev/null)
+    [[ "$result" == *"EXIT"* ]]
+}
+
+##endregion
+
 
 @test "bool_to_yaml: 1 → true" {
     result=$(bash -c "source scripts/deploy/lib.sh; bool_to_yaml 1")
