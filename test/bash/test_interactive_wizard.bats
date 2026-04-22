@@ -28,7 +28,66 @@ setup() {
 
 ##region Config Generation Tests
 
-@test "wizard generates valid YAML structure" {
+@test "wizard generates valid YAML structure via real generate_config_yaml" {
+    # Exercise the real generate_config_yaml from interactive_wizard.sh by
+    # sourcing the wizard and calling the function directly with known variables.
+    local test_dir
+    test_dir=$(mktemp -d)
+    cd "$test_dir"
+    mkdir -p conf
+
+    # Source the wizard (which also sources lib.sh)
+    # shellcheck disable=SC1090
+    source "$BATS_TEST_DIRNAME/../../scripts/deploy/interactive_wizard.sh" 2>/dev/null || true
+
+    # Set up test variables
+    DT_TENANT="test.live.dynatrace.com"
+    DT_TOKEN="token123"
+    SF_ACCOUNT="org-account"
+    DEPLOYMENT_ENV="test-env"
+    TAG="test-tag"
+    LOG_LEVEL="WARN"
+    PROCEDURE_TIMEOUT="3600"
+    DEPLOY_DISABLED_PLUGINS=1
+    WIZARD_ENV="testenv"
+    PLUGINS_MODE="all"
+    SELECTED_PLUGINS=()
+    declare -A PLUGIN_OVERRIDES
+    RESOURCE_MONITOR_QUOTA=""
+    OTEL_LOGS_DISABLED=""
+    OTEL_SPANS_DISABLED=""
+    OTEL_METRICS_DISABLED=""
+    OTEL_EVENTS_DISABLED=""
+    OTEL_BIZ_EVENTS_DISABLED=""
+    OTEL_MAX_CONSECUTIVE_API_FAILS=""
+
+    # Test config generation using the real function
+    local config_file="$test_dir/test-config.yml"
+    generate_config_yaml "$config_file"
+
+    # Verify file was created
+    [ -f "$config_file" ]
+
+    # Verify it contains expected keys
+    grep -q "dynatrace_tenant_address" "$config_file"
+    grep -q "snowflake" "$config_file"
+    grep -q "deployment_environment" "$config_file"
+    grep -q "test.live.dynatrace.com" "$config_file"
+
+    # Verify token is NOT written as a real value (only placeholder comment)
+    run ! grep -q "token123" "$config_file"
+    grep -q "DTAGENT_TOKEN" "$config_file"
+
+    # Verify no duplicate core.snowflake: keys
+    local snowflake_count
+    snowflake_count=$(grep -c "^  snowflake:" "$config_file" || true)
+    [ "$snowflake_count" -le 1 ]
+
+    cd - > /dev/null
+    rm -rf "$test_dir"
+}
+
+@test "wizard generates valid YAML structure (legacy test)" {
     # Create a temporary directory for test
     local test_dir
     test_dir=$(mktemp -d)

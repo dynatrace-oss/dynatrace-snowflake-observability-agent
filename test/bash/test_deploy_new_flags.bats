@@ -264,5 +264,21 @@ EOF
     [[ "$output" != *"Build artifacts are missing"* ]]
 }
 
+@test "deploy.sh --interactive: invokes wizard (EOF cancels gracefully)" {
+    # Pipe EOF into deploy.sh --interactive to verify the wizard is invoked and
+    # exits cleanly (non-zero due to cancellation, but no crash or unexpected error).
+    local test_dir deploy_script
+    test_dir=$(mktemp -d)
+    deploy_script="$(cd "$BATS_TEST_DIRNAME/../.." && pwd)/scripts/deploy/deploy.sh"
+    mkdir -p "$test_dir/build" "$test_dir/conf"
+    echo "SELECT 1;" > "$test_dir/build/00_init.sql"
+
+    run bash -c "cd '$test_dir' && echo '' | bash '$deploy_script' --env=testenv --interactive 2>&1"
+    # Wizard must have been invoked — look for wizard banner or cancellation message
+    [[ "$output" == *"Wizard"* || "$output" == *"wizard"* || "$output" == *"Phase"* || "$output" == *"cancelled"* || "$output" == *"Cancelled"* ]]
+
+    rm -rf "$test_dir"
+}
+
 ##endregion
 

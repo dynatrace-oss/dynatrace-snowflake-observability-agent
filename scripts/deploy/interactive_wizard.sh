@@ -257,9 +257,11 @@ phase1_core_config() {
         break
     done
 
-    # Dynatrace API token
+    # Dynatrace API token — read silently so it is not echoed to the terminal
     while true; do
-        DT_TOKEN=$(prompt_input "Dynatrace API token" "") || return 1
+        printf "  Dynatrace API token: " >&2
+        read -rs DT_TOKEN </dev/tty 2>/dev/null || DT_TOKEN=$(prompt_input "Dynatrace API token" "") || return 1
+        echo "" >&2
         if ! validate_nonempty "$DT_TOKEN"; then
             log_error "API token cannot be empty"
             continue
@@ -718,7 +720,6 @@ EOF
     fi
 
     if [[ -n "$RESOURCE_MONITOR_QUOTA" ]]; then
-        echo "  snowflake:" >> "$output_file"
         echo "    resource_monitor:" >> "$output_file"
         echo "      credit_quota: $RESOURCE_MONITOR_QUOTA" >> "$output_file"
     fi
@@ -829,11 +830,11 @@ EOF
         done
     done
 
-    # Add environment variable for token
-    cat >> "$output_file" << EOF
+    # Add environment variable hint for token (placeholder only — never write the actual token)
+    cat >> "$output_file" << 'EOF'
 
 # Set DTAGENT_TOKEN environment variable before deployment:
-# export DTAGENT_TOKEN="$DT_TOKEN"
+# export DTAGENT_TOKEN="<your-dynatrace-api-token>"
 EOF
 
     return 0
@@ -862,6 +863,20 @@ Deploy Disabled Code: $( [[ "$DEPLOY_DISABLED_PLUGINS" -eq 1 ]] && echo "YES" ||
 EOF
 
     echo "" >&2
+
+    # --dry-run: print generated config to stdout, do not write any file
+    if [[ $DRY_RUN -eq 1 ]]; then
+        log_info "Dry-run mode: printing config to stdout (no file written)"
+        generate_config_yaml /dev/stdout
+        return 1
+    fi
+
+    # --output=<file>: write directly to the specified path, skip menu
+    if [[ -n "$OUTPUT_FILE" ]]; then
+        generate_config_yaml "$OUTPUT_FILE"
+        log_ok "Configuration written to $OUTPUT_FILE"
+        return 0
+    fi
 
     local action
     if [[ -n "$EXISTING_CONFIG" ]]; then
@@ -902,11 +917,8 @@ EOF
             cat "$temp_file"
             rm -f "$temp_file"
             echo "" >&2
-            if prompt_yesno "Continue to deployment?" "n"; then
-                return 0
-            else
-                return 1
-            fi
+            log_info "Config printed to stdout. Re-run deploy.sh with --env=$WIZARD_ENV after saving the config."
+            return 1
             ;;
         "Discard")
             log_info "Configuration discarded. Exiting."
@@ -983,6 +995,8 @@ main() {
 
 ##endregion
 
-# Execute main function
-main "$@"
-exit $?
+# Execute main function only when run directly (not sourced)
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "$@"
+    exit $?
+fi

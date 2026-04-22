@@ -424,7 +424,11 @@ validate_alphanumeric() {
 ##
 probe_dt_tenant() {
     local tenant="$1"
-    if curl -s -m 5 -o /dev/null -w "%{http_code}" "https://$tenant/api/v2/environments" 2>/dev/null | grep -q "^[23]"; then
+    # Treat 2xx, 3xx, 401, and 403 as reachable — Dynatrace returns 401/403
+    # for unauthenticated requests even when the tenant is up.
+    local http_code
+    http_code=$(curl -s -m 5 -o /dev/null -w "%{http_code}" "https://$tenant/api/v2/environments" 2>/dev/null)
+    if [[ "$http_code" =~ ^[23] ]] || [[ "$http_code" == "401" ]] || [[ "$http_code" == "403" ]]; then
         return 0
     fi
     return 1
@@ -441,13 +445,19 @@ probe_dt_tenant() {
 ##
 probe_sf_account() {
     local account="$1"
-    # Extract account locator from org-account format
-    local locator="${account%-*}"
+    # Use the full account identifier as the hostname component.
+    # For org-account format (e.g. myorg-myaccount) the host is
+    # myorg-myaccount.snowflakecomputing.com — do NOT strip the org prefix.
+    # For legacy locator.region format (e.g. abc12345.us-east-1) replace the
+    # dot with a hyphen to form the hostname.
+    local host
     if [[ "$account" == *"."* ]]; then
-        locator="${account%%.*}"
+        host="${account//./-}"
+    else
+        host="$account"
     fi
 
-    if curl -s -m 5 -o /dev/null -w "%{http_code}" "https://$locator.snowflakecomputing.com/" 2>/dev/null | grep -q "^[23]"; then
+    if curl -s -m 5 -o /dev/null -w "%{http_code}" "https://$host.snowflakecomputing.com/" 2>/dev/null | grep -q "^[23]"; then
         return 0
     fi
     return 1
@@ -525,8 +535,14 @@ write_config_key() {
         formatted_value="$value"
     fi
 
-    # Use yq to write the value
-    yq eval "$yq_path = \"$formatted_value\"" -i "$config_file" 2>/dev/null || return 1
+    # Use yq to write the value — use native typing for bool/int
+    if [[ "$value_type" == "bool" ]]; then
+        yq eval "$yq_path = (\"$formatted_value\" | . == \"true\")" -i "$config_file" 2>/dev/null || return 1
+    elif [[ "$value_type" == "int" ]]; then
+        yq eval "$yq_path = ($formatted_value)" -i "$config_file" 2>/dev/null || return 1
+    else
+        yq eval "$yq_path = \"$formatted_value\"" -i "$config_file" 2>/dev/null || return 1
+    fi
     return 0
 }
 

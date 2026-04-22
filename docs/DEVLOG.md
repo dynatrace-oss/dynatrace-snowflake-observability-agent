@@ -18,12 +18,13 @@ This file documents detailed technical changes, internal refactorings, and devel
   - **Config helpers**: `read_config_key()` / `write_config_key()` (wraps `yq`).
   - All functions include Google-style docstrings for maintainability.
 
-- **`scripts/deploy/interactive_wizard.sh`** (568 lines): Standalone wizard script. Four phases:
-  1. **Phase 1 — Core Config**: Prompts for DT tenant, API token, SF account, deployment env name, optional multitenancy tag. Auto-corrects `.apps.` to `.live.`. Pre-populates from existing config if in edit mode (`--existing-config=`).
+- **`scripts/deploy/interactive_wizard.sh`** (988 lines): Standalone wizard script. Five phases:
+  1. **Phase 1 — Core Config**: Prompts for DT tenant, API token (silent `read -rs`), SF account, deployment env name, optional multitenancy tag. Auto-corrects `.apps.` to `.live.`. Pre-populates from existing config if in edit mode (`--existing-config=`).
   2. **Phase 2 — Deployment Scope**: `prompt_select_one()` menu with 9 options (full/init/init+admin/post-init/config-only/apikey/upgrade/teardown/dt_assets). If upgrade selected, prompts for `--from-version`.
-  3. **Phase 3 — Plugin Selection**: Q1: All/None/Selected (shown as numbered list, user selects via bash `select` y/n per plugin). Q2: Deploy disabled plugin code? Sets `plugins.deploy_disabled_plugins`. Q3: Customize plugin settings? Walks through per-plugin knobs (thresholds, include/exclude patterns) for each enabled plugin.
-  4. **Phase 4 — Advanced Settings**: Optional (behind `prompt_yesno` gate). Log level, procedure timeout, resource monitor quota, custom Snowflake object names, OTEL tuning, self-monitoring bizevents.
-  - **Config persistence**: Generates YAML via `yq`. Offers: ① save new `conf/config-$ENV.yml`, ② merge into existing (preserves comments), ③ print to stdout, ④ discard.
+  3. **Phase 3 — Plugin Selection**: Q1: All/None/Selected (shown as numbered list, user selects via bash `select` y/n per plugin). Q2: Deploy disabled plugin code? Sets `plugins.deploy_disabled_plugins`. Q3: Customize plugin settings? Walks through per-plugin knobs (schedule, thresholds) for each enabled plugin.
+  4. **Phase 4 — Advanced Settings**: Optional (behind `prompt_yesno` gate). Log level, procedure timeout, resource monitor quota.
+  5. **Phase 5 — Telemetry Settings**: Optional. OTel enable/disable per signal type, max consecutive API fails.
+  - **Config persistence**: Generates YAML via heredoc + append. Offers: ① save new `conf/config-$ENV.yml`, ② overwrite existing config, ③ print to stdout, ④ discard. `--output=<file>` skips menu and writes directly. `--dry-run` prints to stdout without writing any file.
   - **Flags**: `--env=`, `--existing-config=`, `--dry-run`, `--output=`. Works with piped stdin for testing.
 
 - **Modified `scripts/deploy/deploy.sh`**:
@@ -35,9 +36,8 @@ This file documents detailed technical changes, internal refactorings, and devel
 **Testing**:
 
 - **`test/bash/test_lib.bats`** (156 lines, 19 tests): Unit tests for lib.sh validators, prompt helpers, config key accessors. Source lib.sh directly, test functions in isolation.
-- **`test/bash/test_interactive_wizard.bats`** (101 lines, 5 tests): Integration tests. Pipe stdin answers into wizard; validate generated YAML with `yq`. Covers all phases, config persistence options.
-- **`test/bash/test_deploy_new_flags.bats`** (160 lines, 8 tests): Test deploy.sh flag behavior (`--env=`, `--interactive`, `--defaults`, positional deprecation). Verify config generation, scope filtering.
-- **Total**: 32 tests, 100% pass rate.
+- **`test/bash/test_interactive_wizard.bats`**: Integration tests. Pipe stdin answers into wizard; validate generated YAML. Covers all phases, config persistence options, `--output=` and `--dry-run` flags.
+- **`test/bash/test_deploy_new_flags.bats`**: Test deploy.sh flag behavior (`--env=`, `--interactive`, `--defaults`, positional deprecation). Includes integration test for `deploy.sh --interactive` with piped stdin (EOF) to verify wizard invocation path.
 
 **Design decisions**:
 
@@ -45,7 +45,7 @@ This file documents detailed technical changes, internal refactorings, and devel
 2. **HTTPS probes warn, don't block** — per story spec; users can proceed even if network unreachable.
 3. **Auto-correct `.apps.` to `.live.`** — common user mistake; silently fixed improves UX.
 4. **Bash `select` for multi-select** — simplest pure-bash solution; each item is y/n via separate `select` invocation (follows user's design choice).
-5. **Config persistence via `yq eval-all` merge** — preserves comments + unrelated fields when updating existing config.
+5. **Config persistence via heredoc + append** — generates YAML with a heredoc for the core block, then appends optional sections. Overwrites the target file on save; does not merge/preserve comments from existing configs.
 6. **Piped stdin testing** — wizard accepts EOF gracefully; tests pipe answers + validate output, no interactive mocking needed.
 
 **Files changed**:
