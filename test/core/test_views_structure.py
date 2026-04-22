@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Structural tests for DSOA SQL view definitions."""
+
 #
 #
 # Copyright (c) 2025 Dynatrace Open Source
