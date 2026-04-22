@@ -92,6 +92,63 @@ OTEL_MAX_CONSECUTIVE_API_FAILS=""
 ##region Helper Functions
 
 ##
+# Discover all plugin names from the source tree.
+#
+# Scans src/dtagent/plugins/*.config/ directories relative to the repo root
+# (two levels up from this script). Returns plugin names sorted alphabetically,
+# one per line.
+#
+# Returns:
+#   0 always
+#
+# Outputs:
+#   Sorted plugin names, one per line
+##
+discover_plugin_names() {
+    local plugins_dir="${SCRIPT_DIR}/../../src/dtagent/plugins"
+    if [[ ! -d "$plugins_dir" ]]; then
+        return 0
+    fi
+    local d name
+    for d in "$plugins_dir"/*.config/; do
+        [[ -d "$d" ]] || continue
+        name=$(basename "$d" .config)
+        echo "$name"
+    done | sort
+}
+
+##
+# Get a one-line description for a plugin.
+#
+# Reads the first non-empty, non-heading line from the plugin's readme.md.
+# Falls back to the plugin name if readme is absent or empty.
+#
+# Args:
+#   $1: Plugin name
+#
+# Returns:
+#   0 always
+#
+# Outputs:
+#   Short description string (max 70 chars)
+##
+plugin_description() {
+    local name="$1"
+    local readme="${SCRIPT_DIR}/../../src/dtagent/plugins/${name}.config/readme.md"
+    if [[ -f "$readme" ]]; then
+        local line
+        while IFS= read -r line; do
+            # Skip blank lines and markdown headings
+            [[ -z "$line" || "$line" == \#* ]] && continue
+            # Truncate to 70 chars
+            echo "${line:0:70}"
+            return 0
+        done < "$readme"
+    fi
+    echo "$name"
+}
+
+##
 # Read a default value from build/config-default.yml.
 #
 # Args:
@@ -409,11 +466,9 @@ customize_plugins_interactive() {
     if [[ "$PLUGINS_MODE" == "selected" && ${#SELECTED_PLUGINS[@]} -gt 0 ]]; then
         plugins_to_customize=("${SELECTED_PLUGINS[@]}")
     else
-        plugins_to_customize=(
-            event_log data_schemas budgets users login_history trust_center
-            warehouse_usage resource_monitors dynamic_tables tasks event_usage
-            snowpipes shares active_queries query_history data_volume
-        )
+        while IFS= read -r p; do
+            plugins_to_customize+=("$p")
+        done < <(discover_plugin_names)
     fi
 
     # Per-plugin knob definitions (beyond schedule which is always shown)
@@ -524,25 +579,13 @@ phase3_plugin_selection() {
             log_info "Select which plugins to enable:"
             echo "" >&2
 
-            # All 16 plugins with short descriptions (alphabetical order)
-            local all_plugins=(
-                "active_queries — Running query tracking"
-                "budgets — Budget monitoring (disabled by default)"
-                "data_schemas — Schema change tracking"
-                "data_volume — Table storage monitoring"
-                "dynamic_tables — Dynamic table health"
-                "event_log — Snowflake event log entries"
-                "event_usage — Event usage metrics"
-                "login_history — Login history tracking"
-                "query_history — Query performance analysis"
-                "resource_monitors — Resource monitor alerts"
-                "shares — Data sharing monitoring"
-                "snowpipes — Snowpipe ingestion monitoring"
-                "tasks — Task execution monitoring"
-                "trust_center — Trust Center findings"
-                "users — User and role monitoring"
-                "warehouse_usage — Warehouse credit usage"
-            )
+            # Build plugin list dynamically from source tree
+            local all_plugins=()
+            local pname pdesc
+            while IFS= read -r pname; do
+                pdesc=$(plugin_description "$pname")
+                all_plugins+=("${pname} — ${pdesc}")
+            done < <(discover_plugin_names)
 
             local selected_lines
             selected_lines=$(prompt_select_multi "Enable plugins:" "${all_plugins[@]}") || return 1
@@ -761,11 +804,10 @@ EOF
 
     # When "selected" mode, explicitly enable/disable plugins
     if [[ "$PLUGINS_MODE" == "selected" ]]; then
-        local all_known_plugins=(
-            active_queries budgets data_schemas data_volume dynamic_tables
-            event_log event_usage login_history query_history resource_monitors
-            shares snowpipes tasks trust_center users warehouse_usage
-        )
+        local all_known_plugins=()
+        while IFS= read -r p; do
+            all_known_plugins+=("$p")
+        done < <(discover_plugin_names)
         local p is_selected
         for p in "${all_known_plugins[@]}"; do
             is_selected=0
@@ -796,11 +838,10 @@ EOF
         done
     elif [[ "$PLUGINS_MODE" == "none" ]]; then
         # Disable all plugins
-        local all_known_plugins=(
-            active_queries budgets data_schemas data_volume dynamic_tables
-            event_log event_usage login_history query_history resource_monitors
-            shares snowpipes tasks trust_center users warehouse_usage
-        )
+        local all_known_plugins=()
+        while IFS= read -r p; do
+            all_known_plugins+=("$p")
+        done < <(discover_plugin_names)
         local p
         for p in "${all_known_plugins[@]}"; do
             local def_disabled

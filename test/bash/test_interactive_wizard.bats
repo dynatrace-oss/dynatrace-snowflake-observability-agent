@@ -741,24 +741,44 @@ _run_phase5_otel() {
 
 ##region Plugin Checklist Order
 
-@test "phase3 plugin checklist is in alphabetical order" {
-    # Extract the all_plugins array lines from the wizard source and verify order
-    result=$(grep -A 20 "All 16 plugins with short descriptions" scripts/deploy/interactive_wizard.sh \
-        | grep '"[a-z]' | sed 's/.*"\([a-z_]*\) .*/\1/')
+@test "phase3 plugin checklist is in alphabetical order (dynamic discovery)" {
+    # discover_plugin_names must return sorted output
+    result=$(bash -c "
+        source scripts/deploy/lib.sh
+        source scripts/deploy/interactive_wizard.sh 2>/dev/null || true
+        discover_plugin_names
+    ")
     sorted=$(echo "$result" | sort)
     [ "$result" = "$sorted" ]
 }
 
-@test "phase3 plugin checklist starts with active_queries" {
-    first=$(grep -A 3 "All 16 plugins with short descriptions" scripts/deploy/interactive_wizard.sh \
-        | grep '"[a-z]' | head -1 | sed 's/.*"\([a-z_]*\) .*/\1/')
+@test "phase3 plugin checklist starts with active_queries (dynamic discovery)" {
+    first=$(bash -c "
+        source scripts/deploy/lib.sh
+        source scripts/deploy/interactive_wizard.sh 2>/dev/null || true
+        discover_plugin_names | head -1
+    ")
     [ "$first" = "active_queries" ]
 }
 
-@test "phase3 plugin checklist ends with warehouse_usage" {
-    last=$(grep -A 20 "All 16 plugins with short descriptions" scripts/deploy/interactive_wizard.sh \
-        | grep '"[a-z]' | tail -1 | sed 's/.*"\([a-z_]*\) .*/\1/')
+@test "phase3 plugin checklist ends with warehouse_usage (dynamic discovery)" {
+    last=$(bash -c "
+        source scripts/deploy/lib.sh
+        source scripts/deploy/interactive_wizard.sh 2>/dev/null || true
+        discover_plugin_names | tail -1
+    ")
     [ "$last" = "warehouse_usage" ]
+}
+
+@test "discover_plugins matches filesystem plugin dirs" {
+    # Wizard's discover_plugin_names must return exactly the same set as the filesystem
+    wizard_list=$(bash -c "
+        source scripts/deploy/lib.sh
+        source scripts/deploy/interactive_wizard.sh 2>/dev/null || true
+        discover_plugin_names
+    ")
+    fs_list=$(ls -d src/dtagent/plugins/*.config/ | sed 's|src/dtagent/plugins/||;s|\.config/||' | sort)
+    [ "$wizard_list" = "$fs_list" ]
 }
 
 ##endregion
