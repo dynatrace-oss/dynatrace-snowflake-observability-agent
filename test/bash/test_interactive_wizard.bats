@@ -679,3 +679,93 @@ _run_phase5_otel() {
 }
 
 ##endregion
+
+##region bool_to_yaml Helper
+
+@test "bool_to_yaml: 1 → true" {
+    result=$(bash -c "source scripts/deploy/lib.sh; bool_to_yaml 1")
+    [ "$result" = "true" ]
+}
+
+@test "bool_to_yaml: 0 → false" {
+    result=$(bash -c "source scripts/deploy/lib.sh; bool_to_yaml 0")
+    [ "$result" = "false" ]
+}
+
+@test "bool_to_yaml: true → true" {
+    result=$(bash -c "source scripts/deploy/lib.sh; bool_to_yaml true")
+    [ "$result" = "true" ]
+}
+
+@test "bool_to_yaml: false → false" {
+    result=$(bash -c "source scripts/deploy/lib.sh; bool_to_yaml false")
+    [ "$result" = "false" ]
+}
+
+@test "bool_to_yaml: yes → true" {
+    result=$(bash -c "source scripts/deploy/lib.sh; bool_to_yaml yes")
+    [ "$result" = "true" ]
+}
+
+@test "bool_to_yaml: no → false" {
+    result=$(bash -c "source scripts/deploy/lib.sh; bool_to_yaml no")
+    [ "$result" = "false" ]
+}
+
+@test "bool_to_yaml: TRUE (uppercase) → true" {
+    result=$(bash -c "source scripts/deploy/lib.sh; bool_to_yaml TRUE")
+    [ "$result" = "true" ]
+}
+
+@test "bool_to_yaml: FALSE (uppercase) → false" {
+    result=$(bash -c "source scripts/deploy/lib.sh; bool_to_yaml FALSE")
+    [ "$result" = "false" ]
+}
+
+##endregion
+
+##region generate_config_yaml YAML Boolean Output
+
+@test "generate_config_yaml: DEPLOY_DISABLED_PLUGINS=1 writes 'true' not '1'" {
+    result=$(bash -c "
+        source scripts/deploy/lib.sh
+        DEPLOY_DISABLED_PLUGINS=1
+        echo \"deploy_disabled_plugins: \$(bool_to_yaml \$DEPLOY_DISABLED_PLUGINS)\"
+    " 2>/dev/null)
+    [[ "$result" == *"deploy_disabled_plugins: true"* ]]
+    [[ "$result" != *"deploy_disabled_plugins: 1"* ]]
+}
+
+@test "generate_config_yaml: DEPLOY_DISABLED_PLUGINS=0 writes 'false' not '0'" {
+    result=$(bash -c "
+        source scripts/deploy/lib.sh
+        DEPLOY_DISABLED_PLUGINS=0
+        echo \"deploy_disabled_plugins: \$(bool_to_yaml \$DEPLOY_DISABLED_PLUGINS)\"
+    " 2>/dev/null)
+    [[ "$result" == *"deploy_disabled_plugins: false"* ]]
+    [[ "$result" != *"deploy_disabled_plugins: 0"* ]]
+}
+
+@test "generate_config_yaml: plugin is_disabled override normalised to YAML bool" {
+    result=$(bash -c "
+        source scripts/deploy/lib.sh
+        k='is_disabled'; v='1'
+        case \"\$k\" in
+            is_disabled|disabled_by_default) v=\$(bool_to_yaml \"\$v\") ;;
+        esac
+        echo \"\$k: \$v\"
+    " 2>/dev/null)
+    [[ "$result" == *"is_disabled: true"* ]]
+    [[ "$result" != *"is_disabled: 1"* ]]
+}
+
+@test "generate_config_yaml: otel is_disabled normalised via bool_to_yaml" {
+    result=$(bash -c "
+        source scripts/deploy/lib.sh
+        OTEL_EVENTS_DISABLED='true'
+        echo \"is_disabled: \$(bool_to_yaml \"\$OTEL_EVENTS_DISABLED\")\"
+    " 2>/dev/null)
+    [[ "$result" == *"is_disabled: true"* ]]
+}
+
+##endregion

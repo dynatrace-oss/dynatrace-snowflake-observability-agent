@@ -208,7 +208,9 @@ run_test "--scope=plugins,config,agents is accepted" \
     "Unknown parameter"
 
 UPGRADE_DIR=$(mktemp -d)
-mkdir -p "$UPGRADE_DIR/conf"
+mkdir -p "$UPGRADE_DIR/conf" "$UPGRADE_DIR/build"
+# Minimal build artifact so the early build-check passes
+touch "$UPGRADE_DIR/build/config-default.yml"
 cat > "$UPGRADE_DIR/conf/config-anything.yml" <<'EOF'
 core:
   dynatrace_tenant_address: "test.live.dynatrace.com"

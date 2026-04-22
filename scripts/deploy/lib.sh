@@ -87,6 +87,35 @@ log_error() {
 
 ##endregion
 
+##region YAML Helper Functions
+
+##
+# Convert a boolean-ish value to a YAML boolean string.
+#
+# Accepts: 1, true, yes, on  → "true"
+#          0, false, no, off → "false"
+# Any other value is returned unchanged (caller's responsibility).
+#
+# Args:
+#   $1: Value to convert
+#
+# Returns:
+#   0 always
+#
+# Outputs:
+#   "true" or "false" (or the original value if unrecognised)
+##
+bool_to_yaml() {
+    local val="${1,,}"   # lowercase
+    case "$val" in
+        1|true|yes|on)   echo "true"  ;;
+        0|false|no|off)  echo "false" ;;
+        *)               echo "$1"    ;;
+    esac
+}
+
+##endregion
+
 ##region Prompt Functions
 
 ##

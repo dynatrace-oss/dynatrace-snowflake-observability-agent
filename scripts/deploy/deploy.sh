@@ -152,6 +152,19 @@ if [[ -z "$ENV" ]]; then
     exit 1
 fi
 
+# Early build artifact check — must happen before wizard and before setup.sh.
+# Skipped for:
+#   dt_assets  — no build files needed for dashboard/workflow deploys
+#   --defaults — only generates a config file, no build artifacts required
+#   --interactive (wizard) — wizard collects config, actual deploy runs later
+if [[ "$SCOPE" != "dt_assets" && $DEFAULTS -eq 0 && $INTERACTIVE -eq 0 ]]; then
+    if [[ ! -d "build" ]] || [[ -z "$(ls -A build 2>/dev/null)" ]]; then
+        echo "ERROR: Build artifacts are missing. Run the following command first:" >&2
+        echo "       ./scripts/dev/build.sh" >&2
+        exit 1
+    fi
+fi
+
 # Auto-trigger wizard if config missing and not using --defaults
 if [[ ! -f "$CONFIG_FILE" && $DEFAULTS -eq 0 ]]; then
     INTERACTIVE=1

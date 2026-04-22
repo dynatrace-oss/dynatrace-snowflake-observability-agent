@@ -29,7 +29,7 @@
 # 2. Deployment scope selection
 # 3. Plugin selection and customization
 # 4. Advanced settings (optional)
-# 5. OpenTelemetry settings (optional)
+# 5. Telemetry settings (optional)
 #
 # Usage:
 #   ./interactive_wizard.sh --env=<ENV> [--existing-config=<FILE>] [--dry-run] [--output=<FILE>]
@@ -394,89 +394,85 @@ phase2_deployment_scope() {
 #   0 on success, 1 on EOF
 ##
 customize_plugins_interactive() {
-    # Ordered list of plugins that have meaningful per-plugin settings.
-    # Matches keys under plugins: in config-default.yml (excludes self_monitoring).
-    local plugins=(
-        event_log
-        data_schemas
-        budgets
-        users
-        login_history
-        trust_center
-        warehouse_usage
-        resource_monitors
-        dynamic_tables
-        tasks
-        event_usage
-        snowpipes
-        shares
-        active_queries
-        query_history
-        data_volume
-    )
-
-    if [[ ${#plugins[@]} -eq 0 ]]; then
-        log_info "No customizable plugins found."
-        return 0
-    fi
+    # Per-plugin customization knobs. Each plugin defines which settings are
+    # user-facing. Keys match config-default.yml paths under plugins.<name>.
+    # Format: "key1 key2 ..." — schedule is always offered when present.
 
     log_info "--- Plugin Customization ---"
     log_info "Press Enter to accept the default value shown in [brackets]."
     echo "" >&2
 
-    local plugin
-    for plugin in "${plugins[@]}"; do
-        local def_disabled def_schedule def_lookback
-        def_disabled=$(read_default "plugins.${plugin}.is_disabled" "false")
-        def_schedule=$(read_default "plugins.${plugin}.schedule" "")
-        def_lookback=$(read_default "plugins.${plugin}.lookback_hours" "")
+    # Determine which plugins to customize
+    local plugins_to_customize=()
+    if [[ "$PLUGINS_MODE" == "selected" && ${#SELECTED_PLUGINS[@]} -gt 0 ]]; then
+        plugins_to_customize=("${SELECTED_PLUGINS[@]}")
+    else
+        plugins_to_customize=(
+            event_log data_schemas budgets users login_history trust_center
+            warehouse_usage resource_monitors dynamic_tables tasks event_usage
+            snowpipes shares active_queries query_history data_volume
+        )
+    fi
 
+    # Per-plugin knob definitions (beyond schedule which is always shown)
+    # Format: plugin_name:knob1,knob2,...
+    declare -A PLUGIN_KNOBS
+    PLUGIN_KNOBS[event_log]="lookback_hours,max_entries,cross_tenant_monitoring"
+    PLUGIN_KNOBS[data_schemas]="lookback_hours"
+    PLUGIN_KNOBS[budgets]="quota,monitored_budgets"
+    PLUGIN_KNOBS[users]="is_hashed,retain_email_hash_map"
+    PLUGIN_KNOBS[login_history]="lookback_hours"
+    PLUGIN_KNOBS[trust_center]="log_details"
+    PLUGIN_KNOBS[warehouse_usage]="lookback_hours"
+    PLUGIN_KNOBS[resource_monitors]=""
+    PLUGIN_KNOBS[dynamic_tables]=""
+    PLUGIN_KNOBS[tasks]="lookback_hours"
+    PLUGIN_KNOBS[event_usage]="lookback_hours"
+    PLUGIN_KNOBS[snowpipes]="lookback_hours"
+    PLUGIN_KNOBS[shares]=""
+    PLUGIN_KNOBS[active_queries]="fast_mode"
+    PLUGIN_KNOBS[query_history]="slow_queries_threshold,slow_queries_to_analyze_limit"
+    PLUGIN_KNOBS[data_volume]=""
+
+    local plugin
+    for plugin in "${plugins_to_customize[@]}"; do
         echo "  Plugin: $plugin" >&2
 
-        # is_disabled
-        local cur_disabled="$def_disabled"
-        local disabled_input
-        disabled_input=$(prompt_input "    is_disabled (true/false)" "$cur_disabled") || return 1
-        if [[ -z "$disabled_input" ]]; then
-            disabled_input="$cur_disabled"
-        fi
-
-        # schedule (only if the plugin has one)
-        local cur_schedule=""
+        # Schedule (always offered if plugin has one)
+        local def_schedule
+        def_schedule=$(read_default "plugins.${plugin}.schedule" "")
         if [[ -n "$def_schedule" ]]; then
             local schedule_input
             schedule_input=$(prompt_input "    schedule" "$def_schedule") || return 1
-            if [[ -z "$schedule_input" ]]; then
-                schedule_input="$def_schedule"
+            [[ -z "$schedule_input" ]] && schedule_input="$def_schedule"
+            if [[ "$schedule_input" != "$def_schedule" ]]; then
+                PLUGIN_OVERRIDES["$plugin"]="${PLUGIN_OVERRIDES[$plugin]:-} schedule=${schedule_input}"
             fi
-            cur_schedule="$schedule_input"
         fi
 
-        # lookback_hours (only if the plugin has one)
-        local cur_lookback=""
-        if [[ -n "$def_lookback" ]]; then
-            local lookback_input
-            lookback_input=$(prompt_input "    lookback_hours" "$def_lookback") || return 1
-            if [[ -z "$lookback_input" ]]; then
-                lookback_input="$def_lookback"
-            fi
-            cur_lookback="$lookback_input"
+        # Plugin-specific knobs
+        local knobs_str="${PLUGIN_KNOBS[$plugin]:-}"
+        if [[ -n "$knobs_str" ]]; then
+            IFS=',' read -ra knobs <<< "$knobs_str"
+            local knob
+            for knob in "${knobs[@]}"; do
+                local def_val
+                def_val=$(read_default "plugins.${plugin}.${knob}" "")
+                if [[ -z "$def_val" || "$def_val" == "null" ]]; then
+                    continue
+                fi
+                local knob_input
+                knob_input=$(prompt_input "    ${knob}" "$def_val") || return 1
+                [[ -z "$knob_input" ]] && knob_input="$def_val"
+                if [[ "$knob_input" != "$def_val" ]]; then
+                    PLUGIN_OVERRIDES["$plugin"]="${PLUGIN_OVERRIDES[$plugin]:-} ${knob}=${knob_input}"
+                fi
+            done
         fi
 
-        # Collect non-default overrides
-        local overrides=""
-        if [[ "$disabled_input" != "$def_disabled" ]]; then
-            overrides+="is_disabled=${disabled_input} "
-        fi
-        if [[ -n "$cur_schedule" && "$cur_schedule" != "$def_schedule" ]]; then
-            overrides+="schedule=${cur_schedule} "
-        fi
-        if [[ -n "$cur_lookback" && "$cur_lookback" != "$def_lookback" ]]; then
-            overrides+="lookback_hours=${cur_lookback} "
-        fi
-
-        if [[ -n "$overrides" ]]; then
-            PLUGIN_OVERRIDES["$plugin"]="${overrides% }"
+        # Trim leading space from overrides
+        if [[ -n "${PLUGIN_OVERRIDES[$plugin]:-}" ]]; then
+            PLUGIN_OVERRIDES["$plugin"]="${PLUGIN_OVERRIDES[$plugin]# }"
             log_ok "  $plugin: overrides saved"
         else
             log_info "  $plugin: using defaults"
@@ -509,11 +505,11 @@ phase3_plugin_selection() {
     echo "" >&2
 
     # Q1: Which plugins to enable?
-    local q1_options=("All (default)" "None" "Selected")
-    PLUGINS_MODE=$(prompt_select_one "Which plugins to enable?" "All (default)" "${q1_options[@]}") || return 1
+    local q1_options=("All" "None" "Selected")
+    PLUGINS_MODE=$(prompt_select_one "Which plugins to enable?" "All" "${q1_options[@]}") || return 1
 
     case "$PLUGINS_MODE" in
-        "All (default)")
+        "All")
             PLUGINS_MODE="all"
             log_ok "All plugins enabled"
             ;;
@@ -523,7 +519,46 @@ phase3_plugin_selection() {
             ;;
         "Selected")
             PLUGINS_MODE="selected"
-            log_ok "Selected plugins mode"
+            log_info "Select which plugins to enable:"
+            echo "" >&2
+
+            # All 16 plugins with short descriptions
+            local all_plugins=(
+                "event_log — Snowflake event log entries"
+                "data_schemas — Schema change tracking"
+                "budgets — Budget monitoring (disabled by default)"
+                "users — User and role monitoring"
+                "login_history — Login history tracking"
+                "trust_center — Trust Center findings"
+                "warehouse_usage — Warehouse credit usage"
+                "resource_monitors — Resource monitor alerts"
+                "dynamic_tables — Dynamic table health"
+                "tasks — Task execution monitoring"
+                "event_usage — Event usage metrics"
+                "snowpipes — Snowpipe ingestion monitoring"
+                "shares — Data sharing monitoring"
+                "active_queries — Running query tracking"
+                "query_history — Query performance analysis"
+                "data_volume — Table storage monitoring"
+            )
+
+            local selected_lines
+            selected_lines=$(prompt_select_multi "Enable plugins:" "${all_plugins[@]}") || return 1
+
+            # Extract plugin names (before " — ")
+            SELECTED_PLUGINS=()
+            while IFS= read -r line; do
+                [[ -z "$line" ]] && continue
+                local pname="${line%% —*}"
+                SELECTED_PLUGINS+=("$pname")
+            done <<< "$selected_lines"
+
+            if [[ ${#SELECTED_PLUGINS[@]} -eq 0 ]]; then
+                log_warn "No plugins selected — switching to 'none' mode"
+                PLUGINS_MODE="none"
+            else
+                log_ok "Selected ${#SELECTED_PLUGINS[@]} plugin(s): ${SELECTED_PLUGINS[*]}"
+            fi
             ;;
     esac
 
@@ -600,12 +635,12 @@ phase4_advanced_config() {
 ##
 phase5_otel_config() {
     echo "" >&2
-    if ! prompt_yesno "Configure OpenTelemetry settings?" "n"; then
-        log_info "Skipping OpenTelemetry configuration"
+    if ! prompt_yesno "Configure telemetry settings?" "n"; then
+        log_info "Skipping telemetry configuration"
         return 0
     fi
 
-    log_info "=== Phase 5: OpenTelemetry Configuration ==="
+    log_info "=== Phase 5: Telemetry Configuration ==="
     echo "" >&2
     log_info "Tip: Disable events and biz_events if your tenant does not have a DPS subscription."
     echo "" >&2
@@ -645,7 +680,7 @@ phase5_otel_config() {
     [[ "$val" != "$def_max_fails" ]] && OTEL_MAX_CONSECUTIVE_API_FAILS="$val"
 
     echo "" >&2
-    log_ok "OTel configuration collected"
+    log_ok "Telemetry configuration collected"
     return 0
 }
 
@@ -710,18 +745,71 @@ EOF
         echo "  max_consecutive_api_fails: $OTEL_MAX_CONSECUTIVE_API_FAILS" >> "$output_file"
         otel_written=1
     fi
-    [[ -n "$OTEL_LOGS_DISABLED" ]]    && _otel_line "logs"       "is_disabled" "$OTEL_LOGS_DISABLED"
-    [[ -n "$OTEL_SPANS_DISABLED" ]]   && _otel_line "spans"      "is_disabled" "$OTEL_SPANS_DISABLED"
-    [[ -n "$OTEL_METRICS_DISABLED" ]] && _otel_line "metrics"    "is_disabled" "$OTEL_METRICS_DISABLED"
-    [[ -n "$OTEL_EVENTS_DISABLED" ]]  && _otel_line "events"     "is_disabled" "$OTEL_EVENTS_DISABLED"
-    [[ -n "$OTEL_BIZ_EVENTS_DISABLED" ]] && _otel_line "biz_events" "is_disabled" "$OTEL_BIZ_EVENTS_DISABLED"
+    [[ -n "$OTEL_LOGS_DISABLED" ]]    && _otel_line "logs"       "is_disabled" "$(bool_to_yaml "$OTEL_LOGS_DISABLED")"
+    [[ -n "$OTEL_SPANS_DISABLED" ]]   && _otel_line "spans"      "is_disabled" "$(bool_to_yaml "$OTEL_SPANS_DISABLED")"
+    [[ -n "$OTEL_METRICS_DISABLED" ]] && _otel_line "metrics"    "is_disabled" "$(bool_to_yaml "$OTEL_METRICS_DISABLED")"
+    [[ -n "$OTEL_EVENTS_DISABLED" ]]  && _otel_line "events"     "is_disabled" "$(bool_to_yaml "$OTEL_EVENTS_DISABLED")"
+    [[ -n "$OTEL_BIZ_EVENTS_DISABLED" ]] && _otel_line "biz_events" "is_disabled" "$(bool_to_yaml "$OTEL_BIZ_EVENTS_DISABLED")"
 
     # Plugins section
     cat >> "$output_file" << EOF
 
 plugins:
-  deploy_disabled_plugins: $DEPLOY_DISABLED_PLUGINS
+  deploy_disabled_plugins: $(bool_to_yaml "$DEPLOY_DISABLED_PLUGINS")
 EOF
+
+    # When "selected" mode, explicitly enable/disable plugins
+    if [[ "$PLUGINS_MODE" == "selected" ]]; then
+        local all_known_plugins=(
+            event_log data_schemas budgets users login_history trust_center
+            warehouse_usage resource_monitors dynamic_tables tasks event_usage
+            snowpipes shares active_queries query_history data_volume
+        )
+        local p is_selected
+        for p in "${all_known_plugins[@]}"; do
+            is_selected=0
+            for sp in "${SELECTED_PLUGINS[@]}"; do
+                [[ "$sp" == "$p" ]] && { is_selected=1; break; }
+            done
+            local def_disabled
+            def_disabled=$(read_default "plugins.${p}.is_disabled" "false")
+            if [[ $is_selected -eq 1 && "$def_disabled" == "true" ]]; then
+                # Plugin is disabled by default but user selected it — enable
+                # Ensure plugin section exists (may already exist from overrides)
+                if [[ -z "${PLUGIN_OVERRIDES[$p]:-}" ]]; then
+                    echo "  ${p}:" >> "$output_file"
+                    echo "    is_disabled: false" >> "$output_file"
+                else
+                    # Will be written below with overrides; prepend is_disabled
+                    PLUGIN_OVERRIDES["$p"]="is_disabled=false ${PLUGIN_OVERRIDES[$p]}"
+                fi
+            elif [[ $is_selected -eq 0 && "$def_disabled" != "true" ]]; then
+                # Plugin is enabled by default but user did NOT select it — disable
+                if [[ -z "${PLUGIN_OVERRIDES[$p]:-}" ]]; then
+                    echo "  ${p}:" >> "$output_file"
+                    echo "    is_disabled: true" >> "$output_file"
+                else
+                    PLUGIN_OVERRIDES["$p"]="is_disabled=true ${PLUGIN_OVERRIDES[$p]}"
+                fi
+            fi
+        done
+    elif [[ "$PLUGINS_MODE" == "none" ]]; then
+        # Disable all plugins
+        local all_known_plugins=(
+            event_log data_schemas budgets users login_history trust_center
+            warehouse_usage resource_monitors dynamic_tables tasks event_usage
+            snowpipes shares active_queries query_history data_volume
+        )
+        local p
+        for p in "${all_known_plugins[@]}"; do
+            local def_disabled
+            def_disabled=$(read_default "plugins.${p}.is_disabled" "false")
+            if [[ "$def_disabled" != "true" ]]; then
+                echo "  ${p}:" >> "$output_file"
+                echo "    is_disabled: true" >> "$output_file"
+            fi
+        done
+    fi
 
     # Per-plugin overrides
     local plugin
@@ -732,6 +820,11 @@ EOF
         for pair in $overrides; do
             local k="${pair%%=*}"
             local v="${pair#*=}"
+            # Normalise boolean fields to YAML true/false
+            case "$k" in
+                is_disabled|disabled_by_default)
+                    v=$(bool_to_yaml "$v") ;;
+            esac
             echo "    ${k}: ${v}" >> "$output_file"
         done
     done
