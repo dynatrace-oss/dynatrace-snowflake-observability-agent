@@ -11,6 +11,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- **Interactive deployment wizard** (`--interactive` flag): Guides users through 4-phase configuration (core config, deployment scope, plugin selection, advanced settings). Auto-triggered when config file is missing. Generates `conf/config-$ENV.yml` with validation (DT tenant/account reachability, token validation).
+- **New `deploy.sh` flags**: `--env=<ENV>` (replaces positional arg), `--interactive` (launch wizard), `--defaults` (generate minimal config non-interactively). Positional `$ENV` still supported with deprecation warning for backward compatibility.
+- **Shared bash library** (`scripts/deploy/lib.sh`): Logging, prompt helpers, validators (DT tenant, Snowflake account, tokens) for reuse across deployment scripts.
+
 ## [0.9.4] - 2026-04-14
 
 ### Added
