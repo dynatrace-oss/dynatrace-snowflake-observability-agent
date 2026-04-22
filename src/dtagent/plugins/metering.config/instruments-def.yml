@@ -61,14 +61,14 @@ metrics:
       Cloud services credits consumed by the service in the metering window.
     displayName: Snowflake Cloud Services Credits Used
     unit: credits
-  snowflake.data.size:
+  snowflake.metering.data.size:
     __context_names: ["metering"]
     __example: "10485760"
     __description: >-
       Number of bytes processed by the service in the metering window.
     displayName: Bytes Processed
     unit: bytes
-  snowflake.data.rows:
+  snowflake.metering.data.rows:
     __context_names: ["metering"]
     __example: "50000"
     __description: >-

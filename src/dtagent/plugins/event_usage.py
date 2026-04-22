@@ -24,8 +24,8 @@
 # SOFTWARE.
 #
 #
-import logging
 from typing import Tuple, Dict, Optional, List
+from dtagent import LOG
 from dtagent.util import _unpack_json_dict
 from dtagent.plugins import Plugin
 from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPILE_REMOVE
@@ -81,7 +81,7 @@ class EventUsagePlugin(Plugin):
             "dsoa.run.id": "uuid_string"
             }
         """
-        logging.warning(
+        LOG.warning(
             "event_usage plugin is deprecated and will be removed in 0.9.6. "
             "Use the 'metering' plugin instead, which covers all Snowflake service types."
         )

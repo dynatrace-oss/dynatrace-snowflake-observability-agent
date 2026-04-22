@@ -46,10 +46,11 @@ class MeteringPlugin(Plugin):
     def _report_metering_log(self, row_dict: Dict, __context: Dict, log_level: int) -> bool:
         """Sends single log line for a metering history entry.
 
-        Unpacks DIMENSIONS (service_type, name) and METRICS (credits, bytes, rows, files)
-        from the row and attaches start/end timestamps for the metering window.
+        Unpacks DIMENSIONS (service_type, name), ATTRIBUTES (entity_id) and METRICS
+        (credits, bytes, rows, files) from the row and attaches start/end timestamps
+        for the metering window.
         """
-        unpacked_dict = _unpack_json_dict(row_dict, ["DIMENSIONS", "METRICS"])
+        unpacked_dict = _unpack_json_dict(row_dict, ["DIMENSIONS", "ATTRIBUTES", "METRICS"])
         metering_start = row_dict.get("START_TIME")
         metering_end = row_dict.get("END_TIME")
         self._logs.send_log(
