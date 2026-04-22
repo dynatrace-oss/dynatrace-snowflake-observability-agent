@@ -6,6 +6,24 @@ This file documents detailed technical changes, internal refactorings, and devel
 
 ### Bug Fixes
 
+#### Deploy Pipeline: Cleanup Option for Disabled and Removed Plugins (`--options=cleanup_disabled`)
+
+- **Background**: `inject_suspend_for_excluded_plugins()` already suspends tasks for disabled plugins. This extends the deploy pipeline with a full object cleanup option for operators who want to actively drop stale views, procedures, and tasks — not just suspend them.
+- **New option**: `--options=cleanup_disabled` passed to `deploy.sh` is forwarded to `prepare_deploy_script.sh` (via a new 6th positional argument `OPTIONS_STR`). `prepare_deploy_script.sh` exposes a `has_option()` helper (mirrors the one in `deploy.sh`) to parse the options string.
+- **`inject_cleanup_for_excluded_plugins()`** (new function in `prepare_deploy_script.sh`):
+  - **Part 1 — disabled plugins**: For each plugin in `EXCLUDED_PLUGINS`, parses `build/30_plugins/<plugin>.sql` and emits `DROP TASK/PROCEDURE/VIEW IF EXISTS` for all objects defined there. Tasks are suspended before being dropped.
+  - **Part 2 — removed plugins**: Reads `conf/removed_plugins.yml`. For each entry, emits `ALTER TASK ... SUSPEND` + `DROP TASK IF EXISTS` for every listed task name. This covers plugins fully deleted from the codebase that no longer appear in `EXCLUDED_PLUGINS`.
+  - **Part 3 — orphan detection**: Injects a Snowflake `EXECUTE IMMEDIATE` block that queries `INFORMATION_SCHEMA.TASKS WHERE task_name ILIKE 'TASK_DTAGENT_%'`, filters out known active plugin tasks (enumerated from all current build artifacts), and suspends + drops any unrecognised tasks. Runs only when `cleanup_disabled` is set — avoids adding Snowflake round-trips to normal deploys where config scope speed matters.
+- **`conf/removed_plugins.yml`** (new file): Tracks plugins permanently removed from the codebase. Committed in git (not gitignored — it's universal, not env-specific). Format: `removed_plugins: [{name, removed_in_version, tasks: [...]}]`. Initially empty. Agents and the plugin-development skill are updated to reference this file as a mandatory step during plugin removal.
+- **Procedure extraction**: Uses `grep -oi 'PROCEDURE[[:space:]]\+...' | sed` rather than `awk` capture groups — macOS `awk` does not support `match()` with capture arrays.
+- **Files changed**: `scripts/deploy/deploy.sh`, `scripts/deploy/prepare_deploy_script.sh`, `conf/removed_plugins.yml` (new), `.github/copilot-instructions.md`, `.opencode/skills/plugin-development/SKILL.md`
+
+#### Deploy Pipeline: Expanded Tests for Task Suspension and Cleanup
+
+- Added 3 new test cases to `test/bash/test_suspend_disabled_plugins.bats`: `disabled_by_default` mode, `--scope=config` only, and multiple plugins disabled simultaneously.
+- Added new `test/bash/test_cleanup_disabled_plugins.bats` (16 test cases) covering: no-op without flag, single/multi-task drop, view/procedure drop, `removed_plugins.yml` parsing, orphan detection block, TAG support, teardown exclusion, combined options.
+- **Files changed**: `test/bash/test_suspend_disabled_plugins.bats`, `test/bash/test_cleanup_disabled_plugins.bats` (new)
+
 #### Config Upload: MERGE → DELETE + INSERT (Full Replace)
 
 - **Root cause**: `040_update_config.sql` used `MERGE INTO CONFIG.CONFIGURATIONS` which is additive — rows present in a previous deploy but absent from the new YAML were never deleted. This meant that a plugin's `is_enabled: true` entry persisted even after the user removed it from their config YAML or switched to `disabled_by_default: true`. The stale entry overrode the new global setting, leaving the plugin enabled.

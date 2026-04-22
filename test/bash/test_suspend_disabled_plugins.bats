@@ -259,3 +259,49 @@ EOF
 
     grep -qi 'alter task if exists.*TASK_DTAGENT_TASKS.*suspend;' "$TEST_SQL_FILE"
 }
+
+@test "suspend SQL injected in disabled_by_default mode (non-enabled plugins excluded)" {
+    # disabled_by_default=true, only tasks is explicitly enabled — event_log and snowpipes must be suspended
+    _config_disabled_by_default_except "tasks"
+
+    run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "all" "" "manual"
+    [ "$status" -eq 0 ]
+
+    # event_log and snowpipes are not explicitly enabled — must be suspended
+    grep -qi 'alter task if exists.*TASK_DTAGENT_EVENT_LOG[^_].*suspend' "$TEST_SQL_FILE"
+    grep -qi 'alter task if exists.*TASK_DTAGENT_SNOWPIPES[^_].*suspend' "$TEST_SQL_FILE"
+
+    # tasks is explicitly enabled — must NOT be suspended
+    ! grep -qi 'alter task if exists.*TASK_DTAGENT_TASKS.*suspend' "$TEST_SQL_FILE"
+}
+
+@test "suspend SQL injected with scope=config only" {
+    _config_with_disabled "tasks"
+
+    run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "config" "" "manual"
+    [ "$status" -eq 0 ]
+
+    grep -qi 'alter task if exists.*TASK_DTAGENT_TASKS.*suspend' "$TEST_SQL_FILE"
+}
+
+@test "suspend SQL injected for multiple disabled plugins simultaneously" {
+    # Disable both tasks and snowpipes — all 3 tasks should be suspended
+    cat > "$TEST_CONFIG_FILE" << 'EOF'
+[
+  {"PATH": "plugins.deploy_disabled_plugins", "TYPE": "bool", "VALUE": false},
+  {"PATH": "plugins.disabled_by_default",     "TYPE": "bool", "VALUE": false},
+  {"PATH": "plugins.tasks.is_disabled",        "TYPE": "bool", "VALUE": true},
+  {"PATH": "plugins.snowpipes.is_disabled",    "TYPE": "bool", "VALUE": true}
+]
+EOF
+
+    run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "all" "" "manual"
+    [ "$status" -eq 0 ]
+
+    grep -qi 'alter task if exists.*TASK_DTAGENT_TASKS.*suspend' "$TEST_SQL_FILE"
+    grep -qi 'alter task if exists.*TASK_DTAGENT_SNOWPIPES[^_].*suspend' "$TEST_SQL_FILE"
+    grep -qi 'alter task if exists.*TASK_DTAGENT_SNOWPIPES_HISTORY.*suspend' "$TEST_SQL_FILE"
+
+    # event_log is enabled — must NOT be suspended
+    ! grep -qi 'alter task if exists.*TASK_DTAGENT_EVENT_LOG.*suspend' "$TEST_SQL_FILE"
+}

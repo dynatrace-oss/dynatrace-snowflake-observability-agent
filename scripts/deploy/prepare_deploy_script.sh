@@ -25,7 +25,7 @@
 #
 # This is a script for preparing single SQL deploy script
 # which could be installed automatically (by deploy.sh) or manually on Snowflake
-# Call as ./prepare_deploy_script.sh "$INSTALL_SCRIPT_SQL" "$ENV" "$SCOPE" "$FROM_VERSION"
+# Call as ./prepare_deploy_script.sh "$INSTALL_SCRIPT_SQL" "$ENV" "$SCOPE" "$FROM_VERSION" "$IS_MANUAL" "$OPTIONS_STR"
 #
 # Args:
 # * INSTALL_SCRIPT_SQL [REQUIRED] - path to the file where installation script must be written to
@@ -33,6 +33,8 @@
 # * SCOPE              [REQUIRED] - deployment scope:
 #                       init, admin, setup, plugins, config, agents, apikey, all, teardown, upgrade, or file_part
 # * FROM_VERSION       [OPTIONAL] - version number for upgrade scope
+# * IS_MANUAL          [OPTIONAL] - "manual" to generate a human-readable script; otherwise automated deploy
+# * OPTIONS_STR        [OPTIONAL] - comma-separated deploy options (e.g. cleanup_disabled,skip_confirm)
 #
 
 INSTALL_SCRIPT_SQL="$1"
@@ -40,7 +42,18 @@ ENV="$2"
 SCOPE="$3"
 FROM_VERSION="$4"
 IS_MANUAL="$5"
+OPTIONS_STR="${6:-}"
 CWD=$(dirname "$0")
+
+# Parse comma-separated options string into an array and expose a has_option() helper.
+IFS=',' read -ra _OPTIONS <<< "$OPTIONS_STR"
+has_option() {
+    local opt=$1
+    for item in "${_OPTIONS[@]}"; do
+        [[ "$item" == "$opt" ]] && return 0
+    done
+    return 1
+}
 
 #
 # checking multitenancy TAG
@@ -545,9 +558,136 @@ EOF
     fi
 }
 
+# Function to drop views, procedures, and tasks for excluded (disabled) plugins when
+# --options=cleanup_disabled is set. Also handles fully-removed plugins listed in
+# conf/removed_plugins.yml and detects orphaned TASK_DTAGENT_% tasks via INFORMATION_SCHEMA.TASKS.
+# Only runs when the cleanup_disabled option is present — avoids extra Snowflake queries during
+# normal deploys where speed of config scope matters.
+inject_cleanup_for_excluded_plugins() {
+    local install_script="$1"
+    local removed_plugins_file="${CWD}/../../conf/removed_plugins.yml"
+
+    local cleanup_sql=""
+
+    # --- Part 1: drop objects for explicitly excluded (disabled) plugins ---
+    for plugin_name in $EXCLUDED_PLUGINS; do
+        local plugin_build_file="build/30_plugins/${plugin_name}.sql"
+        if [ ! -f "$plugin_build_file" ]; then
+            echo "[deploy] WARNING: built plugin SQL not found for cleanup of disabled plugin: ${plugin_name} (${plugin_build_file})"
+            continue
+        fi
+
+        echo "[deploy] Cleaning up objects for disabled plugin: ${plugin_name}"
+
+        # DROP TASK IF EXISTS for all tasks defined in the plugin build file
+        while IFS= read -r task_name; do
+            if [ -n "$task_name" ]; then
+                cleanup_sql+="alter task if exists ${task_name} suspend;"$'\n'
+                cleanup_sql+="drop task if exists ${task_name};"$'\n'
+                echo "[deploy]   Drop task: ${task_name}"
+            fi
+        done < <(grep -i 'create or replace task' "$plugin_build_file" | awk '{print $5}' | sort -u)
+
+        # DROP PROCEDURE IF EXISTS for all procedures defined in the plugin build file
+        while IFS= read -r proc_sig; do
+            if [ -n "$proc_sig" ]; then
+                cleanup_sql+="drop procedure if exists ${proc_sig};"$'\n'
+                echo "[deploy]   Drop procedure: ${proc_sig}"
+            fi
+        done < <(grep -oi 'PROCEDURE[[:space:]]\+[^[:space:]]\+([^)]*)' "$plugin_build_file" | \
+                 sed 's/^PROCEDURE[[:space:]]*//' | sort -u)
+
+        # DROP VIEW IF EXISTS for all views defined in the plugin build file
+        while IFS= read -r view_name; do
+            if [ -n "$view_name" ]; then
+                cleanup_sql+="drop view if exists ${view_name};"$'\n'
+                echo "[deploy]   Drop view: ${view_name}"
+            fi
+        done < <(grep -i 'create or replace view\|create view' "$plugin_build_file" | awk '{print $5}' | sort -u)
+    done
+
+    # --- Part 2: drop tasks for fully-removed plugins (listed in conf/removed_plugins.yml) ---
+    if [ -f "$removed_plugins_file" ]; then
+        local in_removed=false
+        local current_plugin=""
+        while IFS= read -r line; do
+            # Match "- name: <plugin>" entries
+            if [[ "$line" =~ ^[[:space:]]*-[[:space:]]+name:[[:space:]]+(.+)$ ]]; then
+                current_plugin="${BASH_REMATCH[1]}"
+                in_removed=true
+                echo "[deploy] Cleaning up removed plugin: ${current_plugin}"
+            # Match "    - DTAGENT_DB.APP.TASK_..." task entries under a plugin
+            elif $in_removed && [[ "$line" =~ ^[[:space:]]+-[[:space:]]+(DTAGENT[^[:space:]]+TASK_DTAGENT_[^[:space:]]+)$ ]]; then
+                local task_name="${BASH_REMATCH[1]}"
+                cleanup_sql+="alter task if exists ${task_name} suspend;"$'\n'
+                cleanup_sql+="drop task if exists ${task_name};"$'\n'
+                echo "[deploy]   Drop removed task: ${task_name}"
+            elif [[ "$line" =~ ^[^[:space:]] ]] && ! [[ "$line" =~ ^[[:space:]]*-[[:space:]]+name: ]]; then
+                in_removed=false
+            fi
+        done < "$removed_plugins_file"
+    fi
+
+    # --- Part 3: detect orphaned TASK_DTAGENT_% tasks via INFORMATION_SCHEMA.TASKS ---
+    # Collect all known task names from current plugin build files to identify orphans
+    local known_tasks_pattern=""
+    for plugin_sql in build/30_plugins/*.sql; do
+        while IFS= read -r task_name; do
+            [ -n "$task_name" ] && known_tasks_pattern+="${task_name}|"
+        done < <(grep -i 'create or replace task' "$plugin_sql" 2>/dev/null | awk '{print $5}' | sort -u)
+    done
+    known_tasks_pattern="${known_tasks_pattern%|}"  # strip trailing pipe
+
+    # Emit a Snowflake EXECUTE IMMEDIATE block that suspends and drops orphaned tasks
+    # (tasks matching TASK_DTAGENT_% that are not in the known set)
+    local known_tasks_sql_list=""
+    if [ -n "$known_tasks_pattern" ]; then
+        # Convert pipe-separated list to SQL IN (...) values
+        known_tasks_sql_list=$(echo "$known_tasks_pattern" | tr '|' '\n' | \
+            awk -F'.' '{print toupper($NF)}' | \
+            awk '{printf "'"'"'%s'"'"',", $0}' | sed 's/,$//')
+    fi
+
+    cleanup_sql+=$(cat <<EOSQL
+-- Suspend and drop orphaned TASK_DTAGENT_% tasks not belonging to any active plugin
+declare
+  c cursor for
+    select task_schema || '.' || task_name as full_name
+    from information_schema.tasks
+    where task_name ilike 'TASK_DTAGENT_%'
+EOSQL
+)
+    if [ -n "$known_tasks_sql_list" ]; then
+        cleanup_sql+=$'\n'"      and task_name not in (${known_tasks_sql_list})"
+    fi
+    cleanup_sql+=$(cat <<'EOSQL'
+;
+begin
+  for r in c do
+    system$log('info', '[deploy] Dropping orphaned task: ' || r.full_name);
+    execute immediate 'alter task if exists ' || r.full_name || ' suspend';
+    execute immediate 'drop task if exists ' || r.full_name;
+  end for;
+end;
+EOSQL
+)
+    cleanup_sql+=$'\n'
+
+    if [ -n "$cleanup_sql" ]; then
+        echo "[deploy] Injecting cleanup SQL for disabled/removed plugins"
+        cat >> "$install_script" <<EOF
+use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
+${cleanup_sql}
+EOF
+    fi
+}
+
 # Apply plugin filtering for non-special scopes and inject task suspension for excluded plugins
 if [ "$SCOPE" != "apikey" ] && [ "$SCOPE" != "teardown" ]; then
     inject_suspend_for_excluded_plugins "${INSTALL_SCRIPT_SQL}"
+    if has_option "cleanup_disabled"; then
+        inject_cleanup_for_excluded_plugins "${INSTALL_SCRIPT_SQL}"
+    fi
 fi
 
 # Get list of optional components to exclude
