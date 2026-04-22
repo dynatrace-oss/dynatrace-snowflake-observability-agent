@@ -252,7 +252,7 @@ teardown() {
 
     run bash scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "agents,config" "" "true"
     [ "$status" -ne 0 ]
-    [[ "$output" == *"ERROR: Build file missing"* ]]
+    [[ "$output" == *"ERROR: Build artifacts are missing"* ]]
     [[ "$output" == *"40_config.sql"* ]]
 
     # Restore the file for other tests

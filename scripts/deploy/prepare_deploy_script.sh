@@ -254,14 +254,20 @@ fi
 # Check if required SQL files exist in build folder (skip for scopes with empty SQL_FILES)
 if [ -n "$SQL_FILES" ]; then
     missing_files=false
+    missing_list=""
     for pattern in $SQL_FILES; do
         if ! find build/$pattern -type f 2>/dev/null | grep -q .; then
-            echo "ERROR: Build file missing: build/$pattern"
             missing_files=true
+            missing_list="$missing_list build/$pattern"
         fi
     done
     if [ "$missing_files" = true ]; then
-        echo "ERROR: Build files missing for scope $SCOPE"
+        echo ""
+        echo "ERROR: Build artifacts are missing. Run the following command first:"
+        echo "       ./scripts/dev/build.sh"
+        echo ""
+        echo "Missing files:$missing_list"
+        echo ""
         exit 1
     fi
 fi

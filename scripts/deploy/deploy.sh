@@ -348,6 +348,17 @@ else
     trap " rm -f ${INSTALL_SCRIPT_SQL} " EXIT
 fi
 
+# Early check: build directory must exist for SQL-based scopes
+if [[ "$SCOPE" != "dt_assets" && "$SCOPE" != "apikey" ]]; then
+    if [[ ! -d "build" ]]; then
+        echo "" >&2
+        echo "ERROR: Build artifacts are missing. Run the following command first:" >&2
+        echo "       ./scripts/dev/build.sh" >&2
+        echo "" >&2
+        exit 1
+    fi
+fi
+
 # preparing one big deployment script
 $CWD/prepare_deploy_script.sh "${INSTALL_SCRIPT_SQL}" "${ENV}" "${SCOPE}" "${FROM_VERSION}" "${IS_MANUAL}"
 if [ $? -ne 0 ]; then

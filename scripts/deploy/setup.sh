@@ -90,6 +90,15 @@ else
         if ! echo "$EXISTING_CONNECTIONS" | grep -E -q "snow_agent_$CONNECTION_ENV\s"; then
             echo "WARNING: No Dynatrace Snowflake Observability Agent connection is defined for the $DEPLOYMENT_ENV environment. Creating it now..."
 
+            _conn_label="  Creating Snowflake CLI connection: snow_agent_${CONNECTION_ENV}"
+            printf '\n╔══════════════════════════════════════════════════════════════════════════════════╗\n'
+            printf '║%-82s║\n' "$_conn_label"
+            printf '║%-82s║\n' ""
+            printf '║  %-80s║\n' "Enter your Snowflake credentials below."
+            printf '║  %-80s║\n' "Tip: Use 'browser' as authenticator for SSO."
+            printf '║  %-80s║\n' "Leave optional fields blank to skip them."
+            printf '╚══════════════════════════════════════════════════════════════════════════════════╝\n\n'
+
             snow connection add --connection-name snow_agent_$CONNECTION_ENV
         fi
     done

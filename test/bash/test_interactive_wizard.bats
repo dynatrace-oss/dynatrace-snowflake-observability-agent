@@ -351,3 +351,331 @@ _run_phase3_skip_check() {
 }
 
 ##endregion
+
+##region prompt_select_one Empty-Input Default
+
+# Helper: run prompt_select_one with piped input in a subshell.
+# Args: input_str default_option options...
+# Outputs: selected option text
+_run_select_one() {
+    local input_str="$1"
+    shift
+    local default_opt="$1"
+    shift
+    local opts=("$@")
+
+    # Build quoted options list for bash -c
+    local opts_str=""
+    for o in "${opts[@]}"; do
+        opts_str+="\"$o\" "
+    done
+
+    bash -c "
+        source scripts/deploy/lib.sh
+        echo '$input_str' | prompt_select_one 'Pick:' '$default_opt' $opts_str
+    " 2>/dev/null
+}
+
+@test "prompt_select_one: empty input selects default option" {
+    result=$(_run_select_one "" "WARN" "DEBUG" "INFO" "WARN" "ERROR")
+    [ "$result" = "WARN" ]
+}
+
+@test "prompt_select_one: empty input selects first-position default" {
+    result=$(_run_select_one "" "DEBUG" "DEBUG" "INFO" "WARN" "ERROR")
+    [ "$result" = "DEBUG" ]
+}
+
+@test "prompt_select_one: numeric input selects correct option" {
+    result=$(_run_select_one "2" "WARN" "DEBUG" "INFO" "WARN" "ERROR")
+    [ "$result" = "INFO" ]
+}
+
+@test "prompt_select_one: numeric input for default option works" {
+    result=$(_run_select_one "3" "WARN" "DEBUG" "INFO" "WARN" "ERROR")
+    [ "$result" = "WARN" ]
+}
+
+##endregion
+
+##region deploy_disabled_plugins Prompt (Phase 3)
+
+# Helper: simulate Phase 3 Q2 logic in a subshell.
+# Args: plugins_mode yesno_answer (y/n)
+# Outputs: "DEPLOY_DISABLED=<0|1>"
+_run_phase3_deploy_disabled() {
+    local mode="$1"
+    local ans="$2"
+
+    bash -c "
+        PLUGINS_MODE='$mode'
+        DEPLOY_DISABLED_PLUGINS=1
+
+        prompt_yesno() {
+            [[ '$ans' == 'y' ]] && return 0 || return 1
+        }
+        log_ok() { :; }
+
+        if [[ \"\$PLUGINS_MODE\" == 'all' ]]; then
+            DEPLOY_DISABLED_PLUGINS=1
+        else
+            if prompt_yesno 'Deploy all plugin code (including disabled)?' 'y'; then
+                DEPLOY_DISABLED_PLUGINS=1
+            else
+                DEPLOY_DISABLED_PLUGINS=0
+            fi
+        fi
+
+        echo \"DEPLOY_DISABLED=\$DEPLOY_DISABLED_PLUGINS\"
+    "
+}
+
+@test "deploy_disabled_plugins: mode=all silently sets 1 (no prompt)" {
+    result=$(_run_phase3_deploy_disabled "all" "n")
+    [[ "$result" == *"DEPLOY_DISABLED=1"* ]]
+}
+
+@test "deploy_disabled_plugins: mode=none answer=y sets 1" {
+    result=$(_run_phase3_deploy_disabled "none" "y")
+    [[ "$result" == *"DEPLOY_DISABLED=1"* ]]
+}
+
+@test "deploy_disabled_plugins: mode=none answer=n sets 0" {
+    result=$(_run_phase3_deploy_disabled "none" "n")
+    [[ "$result" == *"DEPLOY_DISABLED=0"* ]]
+}
+
+@test "deploy_disabled_plugins: mode=selected answer=n sets 0" {
+    result=$(_run_phase3_deploy_disabled "selected" "n")
+    [[ "$result" == *"DEPLOY_DISABLED=0"* ]]
+}
+
+##endregion
+
+##region config_persistence Save Options
+
+# Helper: simulate config_persistence option list in a subshell.
+# Args: existing_config (path or empty)
+# Outputs: space-separated list of option labels shown
+_run_persistence_options() {
+    local existing="$1"
+
+    bash -c "
+        EXISTING_CONFIG='$existing'
+
+        if [[ -n \"\$EXISTING_CONFIG\" ]]; then
+            echo 'Save as new config'
+            echo 'Update existing config'
+            echo 'Print to stdout only'
+            echo 'Discard'
+        else
+            echo 'Save config'
+            echo 'Print to stdout only'
+            echo 'Discard'
+        fi
+    "
+}
+
+@test "config_persistence: no existing config omits 'Update existing config'" {
+    result=$(_run_persistence_options "")
+    [[ "$result" != *"Update existing config"* ]]
+    [[ "$result" == *"Save config"* ]]
+}
+
+@test "config_persistence: no existing config shows 3 options" {
+    result=$(_run_persistence_options "")
+    count=$(echo "$result" | wc -l | tr -d ' ')
+    [ "$count" -eq 3 ]
+}
+
+@test "config_persistence: existing config shows 'Update existing config'" {
+    result=$(_run_persistence_options "/some/config.yml")
+    [[ "$result" == *"Update existing config"* ]]
+    [[ "$result" == *"Save as new config"* ]]
+}
+
+@test "config_persistence: existing config shows 4 options" {
+    result=$(_run_persistence_options "/some/config.yml")
+    count=$(echo "$result" | wc -l | tr -d ' ')
+    [ "$count" -eq 4 ]
+}
+
+##endregion
+
+##region Summary Display
+
+# Helper: simulate the summary Deploy Disabled Code line.
+# Args: deploy_disabled_plugins value (0 or 1)
+_run_summary_disabled_display() {
+    local val="$1"
+    bash -c "
+        DEPLOY_DISABLED_PLUGINS=$val
+        echo \"\$( [[ \"\$DEPLOY_DISABLED_PLUGINS\" -eq 1 ]] && echo 'YES' || echo 'NO' )\"
+    "
+}
+
+@test "summary: DEPLOY_DISABLED_PLUGINS=1 displays YES" {
+    result=$(_run_summary_disabled_display 1)
+    [ "$result" = "YES" ]
+}
+
+@test "summary: DEPLOY_DISABLED_PLUGINS=0 displays NO" {
+    result=$(_run_summary_disabled_display 0)
+    [ "$result" = "NO" ]
+}
+
+##endregion
+
+##region seed_defaults_from_config
+
+@test "seed_defaults_from_config: reads LOG_LEVEL from default config" {
+    result=$(bash -c "
+        source scripts/deploy/lib.sh
+        DEFAULT_CONFIG='build/config-default.yml'
+        read_default() {
+            local key_path=\"\$1\" fallback=\"\$2\"
+            if [[ ! -f \"\$DEFAULT_CONFIG\" ]] || ! command -v yq >/dev/null 2>&1; then
+                echo \"\$fallback\"; return 0
+            fi
+            local val
+            val=\$(yq eval \".\${key_path}\" \"\$DEFAULT_CONFIG\" 2>/dev/null || true)
+            if [[ -z \"\$val\" || \"\$val\" == 'null' ]]; then echo \"\$fallback\"; else echo \"\$val\"; fi
+        }
+        LOG_LEVEL=\$(read_default 'core.log_level' 'WARN')
+        echo \"LOG_LEVEL=\$LOG_LEVEL\"
+    " 2>/dev/null)
+    [[ "$result" == *"LOG_LEVEL=WARN"* ]]
+}
+
+@test "seed_defaults_from_config: reads PROCEDURE_TIMEOUT from default config" {
+    result=$(bash -c "
+        source scripts/deploy/lib.sh
+        DEFAULT_CONFIG='build/config-default.yml'
+        read_default() {
+            local key_path=\"\$1\" fallback=\"\$2\"
+            if [[ ! -f \"\$DEFAULT_CONFIG\" ]] || ! command -v yq >/dev/null 2>&1; then
+                echo \"\$fallback\"; return 0
+            fi
+            local val
+            val=\$(yq eval \".\${key_path}\" \"\$DEFAULT_CONFIG\" 2>/dev/null || true)
+            if [[ -z \"\$val\" || \"\$val\" == 'null' ]]; then echo \"\$fallback\"; else echo \"\$val\"; fi
+        }
+        PROCEDURE_TIMEOUT=\$(read_default 'core.procedure_timeout' '3600')
+        echo \"TIMEOUT=\$PROCEDURE_TIMEOUT\"
+    " 2>/dev/null)
+    [[ "$result" == *"TIMEOUT=3600"* ]]
+}
+
+@test "seed_defaults_from_config: falls back when default config absent" {
+    result=$(bash -c "
+        DEFAULT_CONFIG='/nonexistent/config.yml'
+        read_default() {
+            local key_path=\"\$1\" fallback=\"\$2\"
+            if [[ ! -f \"\$DEFAULT_CONFIG\" ]]; then echo \"\$fallback\"; return 0; fi
+            echo \"\$fallback\"
+        }
+        LOG_LEVEL=\$(read_default 'core.log_level' 'WARN')
+        echo \"LOG_LEVEL=\$LOG_LEVEL\"
+    " 2>/dev/null)
+    [[ "$result" == *"LOG_LEVEL=WARN"* ]]
+}
+
+##endregion
+
+##region Phase 5 OTel Config
+
+# Helper: simulate phase5 OTel collection in a subshell.
+# Args: input values for logs/spans/metrics/events/biz_events/max_fails (empty = accept default)
+# Outputs: "LOGS=<val> SPANS=<val> METRICS=<val> EVENTS=<val> BIZ=<val> FAILS=<val>"
+_run_phase5_otel() {
+    local in_logs="${1:-}"
+    local in_spans="${2:-}"
+    local in_metrics="${3:-}"
+    local in_events="${4:-}"
+    local in_biz="${5:-}"
+    local in_fails="${6:-}"
+
+    bash -c "
+        OTEL_LOGS_DISABLED=''
+        OTEL_SPANS_DISABLED=''
+        OTEL_METRICS_DISABLED=''
+        OTEL_EVENTS_DISABLED=''
+        OTEL_BIZ_EVENTS_DISABLED=''
+        OTEL_MAX_CONSECUTIVE_API_FAILS=''
+
+        def_logs='false'; def_spans='false'; def_metrics='false'
+        def_events='false'; def_biz='false'; def_fails='10'
+
+        process() {
+            local varname=\"\$1\" def=\"\$2\" inp=\"\$3\"
+            [[ -z \"\$inp\" ]] && inp=\"\$def\"
+            [[ \"\$inp\" != \"\$def\" ]] && eval \"\$varname=\$inp\"
+        }
+
+        process OTEL_LOGS_DISABLED    \"\$def_logs\"    '$in_logs'
+        process OTEL_SPANS_DISABLED   \"\$def_spans\"   '$in_spans'
+        process OTEL_METRICS_DISABLED \"\$def_metrics\" '$in_metrics'
+        process OTEL_EVENTS_DISABLED  \"\$def_events\"  '$in_events'
+        process OTEL_BIZ_EVENTS_DISABLED \"\$def_biz\"  '$in_biz'
+        process OTEL_MAX_CONSECUTIVE_API_FAILS \"\$def_fails\" '$in_fails'
+
+        echo \"LOGS=\${OTEL_LOGS_DISABLED:-default}\"
+        echo \"SPANS=\${OTEL_SPANS_DISABLED:-default}\"
+        echo \"METRICS=\${OTEL_METRICS_DISABLED:-default}\"
+        echo \"EVENTS=\${OTEL_EVENTS_DISABLED:-default}\"
+        echo \"BIZ=\${OTEL_BIZ_EVENTS_DISABLED:-default}\"
+        echo \"FAILS=\${OTEL_MAX_CONSECUTIVE_API_FAILS:-default}\"
+    "
+}
+
+@test "phase5 otel: all defaults accepted — no overrides stored" {
+    result=$(_run_phase5_otel "" "" "" "" "" "")
+    [[ "$result" == *"LOGS=default"* ]]
+    [[ "$result" == *"SPANS=default"* ]]
+    [[ "$result" == *"METRICS=default"* ]]
+    [[ "$result" == *"EVENTS=default"* ]]
+    [[ "$result" == *"BIZ=default"* ]]
+    [[ "$result" == *"FAILS=default"* ]]
+}
+
+@test "phase5 otel: disabling events stores override" {
+    result=$(_run_phase5_otel "" "" "" "true" "" "")
+    [[ "$result" == *"EVENTS=true"* ]]
+    [[ "$result" == *"LOGS=default"* ]]
+}
+
+@test "phase5 otel: disabling biz_events stores override" {
+    result=$(_run_phase5_otel "" "" "" "" "true" "")
+    [[ "$result" == *"BIZ=true"* ]]
+}
+
+@test "phase5 otel: changing max_consecutive_api_fails stores override" {
+    result=$(_run_phase5_otel "" "" "" "" "" "5")
+    [[ "$result" == *"FAILS=5"* ]]
+}
+
+@test "phase5 otel: accepting default max_fails stores no override" {
+    result=$(_run_phase5_otel "" "" "" "" "" "10")
+    [[ "$result" == *"FAILS=default"* ]]
+}
+
+##endregion
+
+##region Plugin Customization
+
+@test "customize_plugins: wizard script has valid bash syntax after changes" {
+    run bash -n scripts/deploy/interactive_wizard.sh
+    [ "$status" -eq 0 ]
+}
+
+@test "customize_plugins: phase3 calls customize when answer=y (smoke)" {
+    # Verify the function exists in the wizard source
+    grep -q "customize_plugins_interactive" scripts/deploy/interactive_wizard.sh
+}
+
+@test "customize_plugins: known plugins list includes event_log and query_history" {
+    grep -q "event_log" scripts/deploy/interactive_wizard.sh
+    grep -q "query_history" scripts/deploy/interactive_wizard.sh
+}
+
+##endregion

@@ -24,11 +24,12 @@
 ##
 # Interactive deployment wizard for DSOA.
 #
-# Guides users through 4 phases of configuration:
+# Guides users through 5 phases of configuration:
 # 1. Core configuration (DT tenant, token, SF account, env name, tag)
 # 2. Deployment scope selection
 # 3. Plugin selection and customization
 # 4. Advanced settings (optional)
+# 5. OpenTelemetry settings (optional)
 #
 # Usage:
 #   ./interactive_wizard.sh --env=<ENV> [--existing-config=<FILE>] [--dry-run] [--output=<FILE>]
@@ -47,6 +48,9 @@ WIZARD_ENV=""
 EXISTING_CONFIG=""
 DRY_RUN=0
 OUTPUT_FILE=""
+
+# Path to default config — used to seed defaults dynamically
+DEFAULT_CONFIG="${SCRIPT_DIR}/../../build/config-default.yml"
 
 # Configuration values collected by wizard
 DT_TENANT=""
@@ -67,15 +71,56 @@ PLUGINS_MODE="all"  # all, none, selected
 SELECTED_PLUGINS=()
 DEPLOY_DISABLED_PLUGINS=1
 CUSTOMIZE_PLUGINS=0
+# Associative array: plugin_name -> "key=value key=value ..." overrides (space-separated)
+declare -A PLUGIN_OVERRIDES
 
-# Phase 4 values
+# Phase 4 values — seeded from default config, overridden by user
 LOG_LEVEL="WARN"
 PROCEDURE_TIMEOUT="3600"
 RESOURCE_MONITOR_QUOTA=""
 
+# Phase 5 OTel values — empty means "use default" (not written to config)
+OTEL_LOGS_DISABLED=""
+OTEL_SPANS_DISABLED=""
+OTEL_METRICS_DISABLED=""
+OTEL_EVENTS_DISABLED=""
+OTEL_BIZ_EVENTS_DISABLED=""
+OTEL_MAX_CONSECUTIVE_API_FAILS=""
+
 ##endregion
 
 ##region Helper Functions
+
+##
+# Read a default value from build/config-default.yml.
+#
+# Args:
+#   $1: yq key path (e.g. "core.log_level")
+#   $2: Fallback value if file absent or key missing
+#
+# Returns:
+#   0 always
+#
+# Outputs:
+#   Value from default config, or fallback
+##
+read_default() {
+    local key_path="$1"
+    local fallback="$2"
+
+    if [[ ! -f "$DEFAULT_CONFIG" ]] || ! command -v yq >/dev/null 2>&1; then
+        echo "$fallback"
+        return 0
+    fi
+
+    local val
+    val=$(yq eval ".${key_path}" "$DEFAULT_CONFIG" 2>/dev/null || true)
+    if [[ -z "$val" || "$val" == "null" ]]; then
+        echo "$fallback"
+    else
+        echo "$val"
+    fi
+}
 
 ##
 # Parse command-line arguments.
@@ -144,6 +189,21 @@ derive_env_defaults() {
         TAG="${TAG^^}"
     fi
 
+    return 0
+}
+
+##
+# Seed phase defaults from build/config-default.yml (if present).
+#
+# Populates LOG_LEVEL and PROCEDURE_TIMEOUT from the default config so the
+# wizard shows accurate defaults rather than hardcoded values.
+#
+# Returns:
+#   0 always
+##
+seed_defaults_from_config() {
+    LOG_LEVEL=$(read_default "core.log_level" "WARN")
+    PROCEDURE_TIMEOUT=$(read_default "core.procedure_timeout" "3600")
     return 0
 }
 
@@ -324,6 +384,111 @@ phase2_deployment_scope() {
 }
 
 ##
+# Interactively customise per-plugin settings.
+#
+# For each enabled plugin, prompts for schedule, lookback_hours (if applicable),
+# and is_disabled. Defaults are read from build/config-default.yml. Only
+# non-default values are stored in PLUGIN_OVERRIDES.
+#
+# Returns:
+#   0 on success, 1 on EOF
+##
+customize_plugins_interactive() {
+    # Ordered list of plugins that have meaningful per-plugin settings.
+    # Matches keys under plugins: in config-default.yml (excludes self_monitoring).
+    local plugins=(
+        event_log
+        data_schemas
+        budgets
+        users
+        login_history
+        trust_center
+        warehouse_usage
+        resource_monitors
+        dynamic_tables
+        tasks
+        event_usage
+        snowpipes
+        shares
+        active_queries
+        query_history
+        data_volume
+    )
+
+    if [[ ${#plugins[@]} -eq 0 ]]; then
+        log_info "No customizable plugins found."
+        return 0
+    fi
+
+    log_info "--- Plugin Customization ---"
+    log_info "Press Enter to accept the default value shown in [brackets]."
+    echo "" >&2
+
+    local plugin
+    for plugin in "${plugins[@]}"; do
+        local def_disabled def_schedule def_lookback
+        def_disabled=$(read_default "plugins.${plugin}.is_disabled" "false")
+        def_schedule=$(read_default "plugins.${plugin}.schedule" "")
+        def_lookback=$(read_default "plugins.${plugin}.lookback_hours" "")
+
+        echo "  Plugin: $plugin" >&2
+
+        # is_disabled
+        local cur_disabled="$def_disabled"
+        local disabled_input
+        disabled_input=$(prompt_input "    is_disabled (true/false)" "$cur_disabled") || return 1
+        if [[ -z "$disabled_input" ]]; then
+            disabled_input="$cur_disabled"
+        fi
+
+        # schedule (only if the plugin has one)
+        local cur_schedule=""
+        if [[ -n "$def_schedule" ]]; then
+            local schedule_input
+            schedule_input=$(prompt_input "    schedule" "$def_schedule") || return 1
+            if [[ -z "$schedule_input" ]]; then
+                schedule_input="$def_schedule"
+            fi
+            cur_schedule="$schedule_input"
+        fi
+
+        # lookback_hours (only if the plugin has one)
+        local cur_lookback=""
+        if [[ -n "$def_lookback" ]]; then
+            local lookback_input
+            lookback_input=$(prompt_input "    lookback_hours" "$def_lookback") || return 1
+            if [[ -z "$lookback_input" ]]; then
+                lookback_input="$def_lookback"
+            fi
+            cur_lookback="$lookback_input"
+        fi
+
+        # Collect non-default overrides
+        local overrides=""
+        if [[ "$disabled_input" != "$def_disabled" ]]; then
+            overrides+="is_disabled=${disabled_input} "
+        fi
+        if [[ -n "$cur_schedule" && "$cur_schedule" != "$def_schedule" ]]; then
+            overrides+="schedule=${cur_schedule} "
+        fi
+        if [[ -n "$cur_lookback" && "$cur_lookback" != "$def_lookback" ]]; then
+            overrides+="lookback_hours=${cur_lookback} "
+        fi
+
+        if [[ -n "$overrides" ]]; then
+            PLUGIN_OVERRIDES["$plugin"]="${overrides% }"
+            log_ok "  $plugin: overrides saved"
+        else
+            log_info "  $plugin: using defaults"
+        fi
+
+        echo "" >&2
+    done
+
+    return 0
+}
+
+##
 # Run Phase 3: Plugin Selection and Configuration.
 #
 # Triggered for scopes that involve plugin deployment or configuration:
@@ -364,8 +529,12 @@ phase3_plugin_selection() {
 
     echo "" >&2
 
-    # Q2: Deploy plugin code? (if not all)
-    if [[ "$PLUGINS_MODE" != "all" ]]; then
+    # Q2: Deploy plugin code for disabled plugins?
+    # Only meaningful when not all plugins are enabled — if all are enabled there
+    # are no disabled plugins to deploy.
+    if [[ "$PLUGINS_MODE" == "all" ]]; then
+        DEPLOY_DISABLED_PLUGINS=1
+    else
         if prompt_yesno "Deploy all plugin code (including disabled)?" "y"; then
             DEPLOY_DISABLED_PLUGINS=1
             log_ok "Will deploy all plugin code"
@@ -380,7 +549,7 @@ phase3_plugin_selection() {
     if [[ "$PLUGINS_MODE" != "none" ]]; then
         if prompt_yesno "Customize enabled plugin settings?" "n"; then
             CUSTOMIZE_PLUGINS=1
-            log_info "Plugin customization selected (not implemented in this version)"
+            customize_plugins_interactive || return 1
         fi
         echo "" >&2
     fi
@@ -392,6 +561,7 @@ phase3_plugin_selection() {
 # Run Phase 4: Advanced Configuration.
 #
 # Optional phase, only if user opts in.
+# Defaults are read from build/config-default.yml where available.
 #
 # Returns:
 #   0 on success, 1 on EOF
@@ -406,13 +576,13 @@ phase4_advanced_config() {
     log_info "=== Phase 4: Advanced Configuration ==="
     echo "" >&2
 
-    # Log level
+    # Log level — default from config-default.yml
     local log_levels=("DEBUG" "INFO" "WARN" "ERROR")
-    LOG_LEVEL=$(prompt_select_one "Log level:" "WARN" "${log_levels[@]}") || return 1
+    LOG_LEVEL=$(prompt_select_one "Log level:" "$LOG_LEVEL" "${log_levels[@]}") || return 1
     log_ok "Log level: $LOG_LEVEL"
 
-    # Procedure timeout
-    PROCEDURE_TIMEOUT=$(prompt_input "Procedure timeout (seconds)" "3600") || return 1
+    # Procedure timeout — default from config-default.yml
+    PROCEDURE_TIMEOUT=$(prompt_input "Procedure timeout (seconds)" "$PROCEDURE_TIMEOUT") || return 1
     log_ok "Procedure timeout: $PROCEDURE_TIMEOUT"
 
     echo "" >&2
@@ -420,7 +590,70 @@ phase4_advanced_config() {
 }
 
 ##
+# Run Phase 5: OpenTelemetry Configuration.
+#
+# Optional phase, only if user opts in. Defaults are read from
+# build/config-default.yml. Only non-default values are written to config.
+#
+# Returns:
+#   0 on success, 1 on EOF
+##
+phase5_otel_config() {
+    echo "" >&2
+    if ! prompt_yesno "Configure OpenTelemetry settings?" "n"; then
+        log_info "Skipping OpenTelemetry configuration"
+        return 0
+    fi
+
+    log_info "=== Phase 5: OpenTelemetry Configuration ==="
+    echo "" >&2
+    log_info "Tip: Disable events and biz_events if your tenant does not have a DPS subscription."
+    echo "" >&2
+
+    local def_logs_dis def_spans_dis def_metrics_dis def_events_dis def_biz_dis def_max_fails
+    def_logs_dis=$(read_default "otel.logs.is_disabled" "false")
+    def_spans_dis=$(read_default "otel.spans.is_disabled" "false")
+    def_metrics_dis=$(read_default "otel.metrics.is_disabled" "false")
+    def_events_dis=$(read_default "otel.events.is_disabled" "false")
+    def_biz_dis=$(read_default "otel.biz_events.is_disabled" "false")
+    def_max_fails=$(read_default "otel.max_consecutive_api_fails" "10")
+
+    local val
+
+    val=$(prompt_input "otel.logs.is_disabled (true/false)" "$def_logs_dis") || return 1
+    [[ -z "$val" ]] && val="$def_logs_dis"
+    [[ "$val" != "$def_logs_dis" ]] && OTEL_LOGS_DISABLED="$val"
+
+    val=$(prompt_input "otel.spans.is_disabled (true/false)" "$def_spans_dis") || return 1
+    [[ -z "$val" ]] && val="$def_spans_dis"
+    [[ "$val" != "$def_spans_dis" ]] && OTEL_SPANS_DISABLED="$val"
+
+    val=$(prompt_input "otel.metrics.is_disabled (true/false)" "$def_metrics_dis") || return 1
+    [[ -z "$val" ]] && val="$def_metrics_dis"
+    [[ "$val" != "$def_metrics_dis" ]] && OTEL_METRICS_DISABLED="$val"
+
+    val=$(prompt_input "otel.events.is_disabled (true/false)" "$def_events_dis") || return 1
+    [[ -z "$val" ]] && val="$def_events_dis"
+    [[ "$val" != "$def_events_dis" ]] && OTEL_EVENTS_DISABLED="$val"
+
+    val=$(prompt_input "otel.biz_events.is_disabled (true/false)" "$def_biz_dis") || return 1
+    [[ -z "$val" ]] && val="$def_biz_dis"
+    [[ "$val" != "$def_biz_dis" ]] && OTEL_BIZ_EVENTS_DISABLED="$val"
+
+    val=$(prompt_input "otel.max_consecutive_api_fails" "$def_max_fails") || return 1
+    [[ -z "$val" ]] && val="$def_max_fails"
+    [[ "$val" != "$def_max_fails" ]] && OTEL_MAX_CONSECUTIVE_API_FAILS="$val"
+
+    echo "" >&2
+    log_ok "OTel configuration collected"
+    return 0
+}
+
+##
 # Generate YAML configuration from collected values.
+#
+# Writes core, plugins, otel (non-default overrides only), and plugin
+# customization overrides to the output file.
 #
 # Args:
 #   $1: Output file path
@@ -455,12 +688,53 @@ EOF
         echo "      credit_quota: $RESOURCE_MONITOR_QUOTA" >> "$output_file"
     fi
 
-    # Add plugins section
+    # OTel section — only write keys that differ from defaults
+    local otel_written=0
+    _otel_line() {
+        local section="$1" key="$2" val="$3"
+        if [[ $otel_written -eq 0 ]]; then
+            echo "" >> "$output_file"
+            echo "otel:" >> "$output_file"
+            otel_written=1
+        fi
+        # Ensure sub-section header exists (idempotent for repeated calls to same section)
+        if ! grep -q "^  ${section}:" "$output_file" 2>/dev/null; then
+            echo "  ${section}:" >> "$output_file"
+        fi
+        echo "    ${key}: ${val}" >> "$output_file"
+    }
+
+    if [[ -n "$OTEL_MAX_CONSECUTIVE_API_FAILS" ]]; then
+        echo "" >> "$output_file"
+        echo "otel:" >> "$output_file"
+        echo "  max_consecutive_api_fails: $OTEL_MAX_CONSECUTIVE_API_FAILS" >> "$output_file"
+        otel_written=1
+    fi
+    [[ -n "$OTEL_LOGS_DISABLED" ]]    && _otel_line "logs"       "is_disabled" "$OTEL_LOGS_DISABLED"
+    [[ -n "$OTEL_SPANS_DISABLED" ]]   && _otel_line "spans"      "is_disabled" "$OTEL_SPANS_DISABLED"
+    [[ -n "$OTEL_METRICS_DISABLED" ]] && _otel_line "metrics"    "is_disabled" "$OTEL_METRICS_DISABLED"
+    [[ -n "$OTEL_EVENTS_DISABLED" ]]  && _otel_line "events"     "is_disabled" "$OTEL_EVENTS_DISABLED"
+    [[ -n "$OTEL_BIZ_EVENTS_DISABLED" ]] && _otel_line "biz_events" "is_disabled" "$OTEL_BIZ_EVENTS_DISABLED"
+
+    # Plugins section
     cat >> "$output_file" << EOF
 
 plugins:
   deploy_disabled_plugins: $DEPLOY_DISABLED_PLUGINS
 EOF
+
+    # Per-plugin overrides
+    local plugin
+    for plugin in "${!PLUGIN_OVERRIDES[@]}"; do
+        local overrides="${PLUGIN_OVERRIDES[$plugin]}"
+        echo "  ${plugin}:" >> "$output_file"
+        local pair
+        for pair in $overrides; do
+            local k="${pair%%=*}"
+            local v="${pair#*=}"
+            echo "    ${k}: ${v}" >> "$output_file"
+        done
+    done
 
     # Add environment variable for token
     cat >> "$output_file" << EOF
@@ -491,33 +765,39 @@ Multitenancy Tag:     ${TAG:-(none)}
 Deployment Scope:     $DEPLOYMENT_SCOPE
 Log Level:            $LOG_LEVEL
 Procedure Timeout:    $PROCEDURE_TIMEOUT
-Deploy Disabled Code: $DEPLOY_DISABLED_PLUGINS
+Deploy Disabled Code: $( [[ "$DEPLOY_DISABLED_PLUGINS" -eq 1 ]] && echo "YES" || echo "NO" )
 EOF
 
     echo "" >&2
 
-    local persistence_options=(
-        "Save as new config"
-        "Update existing config"
-        "Print to stdout only"
-        "Discard"
-    )
-
     local action
-    action=$(prompt_select_one "What would you like to do?" "Save as new config" "${persistence_options[@]}") || return 1
+    if [[ -n "$EXISTING_CONFIG" ]]; then
+        # Editing an existing config — offer update-in-place as an option
+        local persistence_options=(
+            "Save as new config"
+            "Update existing config"
+            "Print to stdout only"
+            "Discard"
+        )
+        action=$(prompt_select_one "What would you like to do?" "Save as new config" "${persistence_options[@]}") || return 1
+    else
+        # New config — no existing file to update
+        local persistence_options=(
+            "Save config"
+            "Print to stdout only"
+            "Discard"
+        )
+        action=$(prompt_select_one "What would you like to do?" "Save config" "${persistence_options[@]}") || return 1
+    fi
 
     case "$action" in
-        "Save as new config")
+        "Save as new config"|"Save config")
             local config_file="conf/config-${WIZARD_ENV}.yml"
             generate_config_yaml "$config_file"
             log_ok "Configuration saved to $config_file"
             return 0
             ;;
         "Update existing config")
-            if [[ -z "$EXISTING_CONFIG" ]]; then
-                log_error "No existing config to update"
-                return 1
-            fi
             generate_config_yaml "$EXISTING_CONFIG"
             log_ok "Configuration updated in $EXISTING_CONFIG"
             return 0
@@ -563,6 +843,9 @@ main() {
         return 1
     fi
 
+    # Seed phase defaults from build/config-default.yml (before any prompts)
+    seed_defaults_from_config
+
     # Derive defaults from --env before loading existing config
     # (existing config values will override these defaults)
     derive_env_defaults
@@ -591,6 +874,11 @@ main() {
         return 1
     fi
 
+    if ! phase5_otel_config; then
+        log_error "Phase 5 cancelled"
+        return 1
+    fi
+
     # Config persistence
     if ! config_persistence; then
         return 1
@@ -604,3 +892,4 @@ main() {
 
 # Execute main function
 main "$@"
+exit $?

@@ -206,6 +206,17 @@ prompt_select_one() {
         return 1
     fi
 
+    # Empty input: select the default option
+    if [[ -z "$input" ]]; then
+        if [[ -n "$default" ]]; then
+            echo "$default"
+            return 0
+        fi
+        log_warn "No default available. Please enter a number between 1 and ${#options[@]}"
+        prompt_select_one "$prompt" "$default" "${options[@]}"
+        return
+    fi
+
     # Validate input is a number in range
     if ! [[ "$input" =~ ^[0-9]+$ ]] || ((input < 1 || input > ${#options[@]})); then
         log_warn "Invalid selection. Please enter a number between 1 and ${#options[@]}"
