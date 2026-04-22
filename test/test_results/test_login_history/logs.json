@@ -11,7 +11,17 @@
     "event.name": "LOGIN",
     "event.related_id": 0,
     "dsoa.run.context": "login_history",
-    "dsoa.run.plugin": "test_login_history"
+    "dsoa.run.plugin": "test_login_history",
+    "resource_attributes": {
+      "db.system": "snowflake",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "service.name": "test.dsoa2025",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1"
+    }
   },
   {
     "content": "login_history",
@@ -25,7 +35,17 @@
     "event.name": "LOGIN",
     "event.related_id": 0,
     "dsoa.run.context": "login_history",
-    "dsoa.run.plugin": "test_login_history"
+    "dsoa.run.plugin": "test_login_history",
+    "resource_attributes": {
+      "db.system": "snowflake",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "service.name": "test.dsoa2025",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1"
+    }
   },
   {
     "authentication.type": "PASSWORD",
@@ -39,7 +59,17 @@
     "dsoa.run.plugin": "test_login_history",
     "event.id": 18260702004600004,
     "session.id": 18260702004600003,
-    "snowflake.session.start": 1760681131400000000
+    "snowflake.session.start": 1760681131400000000,
+    "resource_attributes": {
+      "db.system": "snowflake",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "service.name": "test.dsoa2025",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1"
+    }
   },
   {
     "authentication.type": "SAML2_ASSERTION",
@@ -54,6 +84,16 @@
     "event.id": 18260702004600002,
     "session.id": 18260702004600001,
     "snowflake.session.closed_reason": "LOGOUT",
-    "snowflake.session.start": 1760681131300000000
+    "snowflake.session.start": 1760681131300000000,
+    "resource_attributes": {
+      "db.system": "snowflake",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "service.name": "test.dsoa2025",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1"
+    }
   }
 ]

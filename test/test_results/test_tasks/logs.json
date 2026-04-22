@@ -12,7 +12,17 @@
     "snowflake.task.id": "01bb391a-b277-4d00-0000-000000000002",
     "snowflake.task.instance_id": 2,
     "snowflake.task.name": "TASK_DTAGENT_DATA_SCHEMAS",
-    "snowflake.task.start_time": 1760681132850000000
+    "snowflake.task.start_time": 1760681132850000000,
+    "resource_attributes": {
+      "db.system": "snowflake",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "service.name": "test.dsoa2025",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1"
+    }
   },
   {
     "content": "New Serverless Tasks entry for DTAGENT_DB",
@@ -27,7 +37,17 @@
     "snowflake.task.id": "01bb391a-b277-4d00-0000-000000000001",
     "snowflake.task.instance_id": 1,
     "snowflake.task.name": "TASK_DTAGENT_USERS",
-    "snowflake.task.start_time": 1760681132700000000
+    "snowflake.task.start_time": 1760681132700000000,
+    "resource_attributes": {
+      "db.system": "snowflake",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "service.name": "test.dsoa2025",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1"
+    }
   },
   {
     "content": "New Tasks History entry for DTAGENT_DB",
@@ -44,7 +64,17 @@
     "snowflake.task.run.id": 1745869628961,
     "snowflake.task.run.scheduled_from": "SCHEDULE",
     "snowflake.task.run.scheduled_time": 1745869628961000000,
-    "snowflake.task.run.state": "SCHEDULED"
+    "snowflake.task.run.state": "SCHEDULED",
+    "resource_attributes": {
+      "db.system": "snowflake",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "service.name": "test.dsoa2025",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1"
+    }
   },
   {
     "content": "New Tasks History entry for DTAGENT_DB",
@@ -61,7 +91,17 @@
     "snowflake.task.run.id": 1745884800000,
     "snowflake.task.run.scheduled_from": "SCHEDULE",
     "snowflake.task.run.scheduled_time": 1745884800000000000,
-    "snowflake.task.run.state": "SCHEDULED"
+    "snowflake.task.run.state": "SCHEDULED",
+    "resource_attributes": {
+      "db.system": "snowflake",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "service.name": "test.dsoa2025",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1"
+    }
   },
   {
     "content": "New Tasks Versions entry for DTAGENT_DB",
@@ -86,7 +126,17 @@
       "TASK_DTAGENT_USERS"
     ],
     "snowflake.task.schedule": "10 MINUTES",
-    "snowflake.warehouse.name": "DTAGENT_WH_XS"
+    "snowflake.warehouse.name": "DTAGENT_WH_XS",
+    "resource_attributes": {
+      "db.system": "snowflake",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "service.name": "test.dsoa2025",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1"
+    }
   },
   {
     "content": "New Tasks Versions entry for DTAGENT_DB",
@@ -106,6 +156,16 @@
     "snowflake.task.name": "TASK_DTAGENT_USERS",
     "snowflake.task.owner": "DTAGENT_OWNER",
     "snowflake.task.schedule": "5 MINUTES",
-    "snowflake.warehouse.name": "DTAGENT_WH"
+    "snowflake.warehouse.name": "DTAGENT_WH",
+    "resource_attributes": {
+      "db.system": "snowflake",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "service.name": "test.dsoa2025",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1"
+    }
   }
 ]

@@ -16,7 +16,17 @@
     "snowflake.schema.name": "DYNAMIC_TABLE_SCH",
     "snowflake.table.full_name": "DYNAMIC_TABLE_DB.DYNAMIC_TABLE_SCH.EMPLOYEE_DET",
     "dsoa.run.plugin": "test_dynamic_tables",
-    "dsoa.run.context": "dynamic_tables"
+    "dsoa.run.context": "dynamic_tables",
+    "resource_attributes": {
+      "db.system": "snowflake",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "service.name": "test.dsoa2025",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1"
+    }
   },
   {
     "content": "dynamic_table_refresh_history",
@@ -40,7 +50,17 @@
     "snowflake.schema.name": "DYNAMIC_TABLE_SCH",
     "snowflake.table.full_name": "DYNAMIC_TABLE_DB.DYNAMIC_TABLE_SCH.EMPLOYEE_DET",
     "dsoa.run.plugin": "test_dynamic_tables",
-    "dsoa.run.context": "dynamic_table_refresh_history"
+    "dsoa.run.context": "dynamic_table_refresh_history",
+    "resource_attributes": {
+      "db.system": "snowflake",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "service.name": "test.dsoa2025",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1"
+    }
   },
   {
     "content": "dynamic_table_refresh_history",
@@ -64,7 +84,17 @@
     "snowflake.schema.name": "DYNAMIC_TABLE_SCH",
     "snowflake.table.full_name": "DYNAMIC_TABLE_DB.DYNAMIC_TABLE_SCH.EMPLOYEE_DET",
     "dsoa.run.plugin": "test_dynamic_tables",
-    "dsoa.run.context": "dynamic_table_refresh_history"
+    "dsoa.run.context": "dynamic_table_refresh_history",
+    "resource_attributes": {
+      "db.system": "snowflake",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "service.name": "test.dsoa2025",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1"
+    }
   },
   {
     "content": "dynamic_table_graph_history",
@@ -91,6 +121,16 @@
     "snowflake.schema.name": "DYNAMIC_TABLE_SCH",
     "snowflake.table.full_name": "DYNAMIC_TABLE_DB.DYNAMIC_TABLE_SCH.EMPLOYEE_DET",
     "dsoa.run.plugin": "test_dynamic_tables",
-    "dsoa.run.context": "dynamic_table_graph_history"
+    "dsoa.run.context": "dynamic_table_graph_history",
+    "resource_attributes": {
+      "db.system": "snowflake",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "service.name": "test.dsoa2025",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1"
+    }
   }
 ]
