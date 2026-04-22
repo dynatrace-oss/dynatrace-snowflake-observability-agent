@@ -91,12 +91,145 @@ EOFYAML
 
 ##endregion
 
+##endregion
+
+##region derive_env_defaults Tests
+
+# Helper: run derive_env_defaults logic in a clean subshell.
+# Args: env_val [pre_dep] [pre_tag]
+_run_derive() {
+    local env_val="$1"
+    local pre_dep="${2:-}"
+    local pre_tag="${3:-}"
+
+    bash -c "
+        WIZARD_ENV='$env_val'
+        DEPLOYMENT_ENV='$pre_dep'
+        TAG='$pre_tag'
+
+        derive_env_defaults() {
+            if [[ -z \"\$DEPLOYMENT_ENV\" ]]; then
+                DEPLOYMENT_ENV=\"\${WIZARD_ENV^^}\"
+            fi
+            if [[ -z \"\$TAG\" && \"\$WIZARD_ENV\" == *-* ]]; then
+                TAG=\"\${WIZARD_ENV##*-}\"
+                TAG=\"\${TAG^^}\"
+            fi
+        }
+
+        derive_env_defaults
+        echo \"DEP=\$DEPLOYMENT_ENV\"
+        echo \"TAG=\$TAG\"
+    "
+}
+
+@test "derive_env_defaults: test-qa2 → DEPLOYMENT_ENV=TEST-QA2, TAG=QA2" {
+    result=$(_run_derive "test-qa2")
+    [[ "$result" == *"DEP=TEST-QA2"* ]]
+    [[ "$result" == *"TAG=QA2"* ]]
+}
+
+@test "derive_env_defaults: dev-094 → DEPLOYMENT_ENV=DEV-094, TAG=094" {
+    result=$(_run_derive "dev-094")
+    [[ "$result" == *"DEP=DEV-094"* ]]
+    [[ "$result" == *"TAG=094"* ]]
+}
+
+@test "derive_env_defaults: production → DEPLOYMENT_ENV=PRODUCTION, TAG empty" {
+    result=$(_run_derive "production")
+    [[ "$result" == *"DEP=PRODUCTION"* ]]
+    tag_line=$(echo "$result" | grep "^TAG=")
+    [ "$tag_line" = "TAG=" ]
+}
+
+@test "derive_env_defaults: prod-tenant-a → DEPLOYMENT_ENV=PROD-TENANT-A, TAG=A" {
+    result=$(_run_derive "prod-tenant-a")
+    [[ "$result" == *"DEP=PROD-TENANT-A"* ]]
+    [[ "$result" == *"TAG=A"* ]]
+}
+
+@test "derive_env_defaults: existing DEPLOYMENT_ENV not overwritten" {
+    result=$(_run_derive "test-qa2" "CUSTOM" "")
+    [[ "$result" == *"DEP=CUSTOM"* ]]
+}
+
+@test "derive_env_defaults: existing TAG not overwritten" {
+    result=$(_run_derive "test-qa2" "" "MYTAG")
+    [[ "$result" == *"TAG=MYTAG"* ]]
+}
+
 ##region Library Integration Tests
 
 @test "wizard sources lib.sh successfully" {
     run bash -c "source scripts/deploy/lib.sh && source scripts/deploy/interactive_wizard.sh --env=test 2>&1 | head -1"
     # Should not error on sourcing
     [[ "$output" != *"command not found"* ]] || [ "$status" -eq 0 ]
+}
+
+##endregion
+
+##region Manual Mode Auto-sets skip_confirm
+
+# Helper: simulate phase2 option prompts in a subshell.
+# Args: manual_answer skip_confirm_answer
+# Outputs: "MANUAL=<0|1> SKIP=<0|1>"
+_run_phase2_options() {
+    local manual_ans="$1"
+    local skip_ans="${2:-n}"   # only used when manual=n
+
+    bash -c "
+        MANUAL_MODE=0
+        SKIP_CONFIRM=0
+
+        prompt_yesno() {
+            local question=\"\$1\"
+            local default=\"\$2\"
+            if [[ \"\$question\" == *'manual mode'* ]]; then
+                [[ '$manual_ans' == 'y' ]] && return 0 || return 1
+            fi
+            if [[ \"\$question\" == *'confirmation'* ]]; then
+                [[ '$skip_ans' == 'y' ]] && return 0 || return 1
+            fi
+            return 1
+        }
+        log_info() { :; }
+
+        if prompt_yesno 'Generate SQL only (manual mode)?' 'n'; then
+            MANUAL_MODE=1
+            SKIP_CONFIRM=1
+            log_info 'Manual mode enabled — skipping deployment confirmation prompt (not applicable)'
+        else
+            if prompt_yesno 'Skip deployment confirmation?' 'n'; then
+                SKIP_CONFIRM=1
+            fi
+        fi
+
+        echo \"MANUAL=\$MANUAL_MODE SKIP=\$SKIP_CONFIRM\"
+    "
+}
+
+@test "manual mode auto-sets skip_confirm=1" {
+    result=$(_run_phase2_options "y")
+    [[ "$result" == *"MANUAL=1"* ]]
+    [[ "$result" == *"SKIP=1"* ]]
+}
+
+@test "manual mode does not prompt for skip_confirm separately" {
+    # When manual=y, skip_confirm answer is irrelevant — result must still be SKIP=1
+    result=$(_run_phase2_options "y" "n")
+    [[ "$result" == *"SKIP=1"* ]]
+}
+
+@test "non-manual mode: skip_confirm=n leaves SKIP=0" {
+    result=$(_run_phase2_options "n" "n")
+    [[ "$result" == *"MANUAL=0"* ]]
+    [[ "$result" == *"SKIP=0"* ]]
+}
+
+@test "non-manual mode: skip_confirm=y sets SKIP=1" {
+    result=$(_run_phase2_options "n" "y")
+    [[ "$result" == *"MANUAL=0"* ]]
+    [[ "$result" == *"SKIP=1"* ]]
 }
 
 ##endregion

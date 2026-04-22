@@ -121,6 +121,33 @@ parse_arguments() {
 }
 
 ##
+# Derive default DEPLOYMENT_ENV and TAG from the --env value.
+#
+# Rules:
+#   DEPLOYMENT_ENV = uppercase of WIZARD_ENV (e.g. test-qa2 → TEST-QA2)
+#   TAG            = uppercase of last dash-segment when WIZARD_ENV contains a dash
+#                    (e.g. test-qa2 → QA2, prod-tenant-a → A, production → "")
+#
+# Only sets the variables when they are currently empty (existing-config values
+# loaded later will override these defaults).
+#
+# Returns:
+#   0 always
+##
+derive_env_defaults() {
+    if [[ -z "$DEPLOYMENT_ENV" ]]; then
+        DEPLOYMENT_ENV="${WIZARD_ENV^^}"
+    fi
+
+    if [[ -z "$TAG" && "$WIZARD_ENV" == *-* ]]; then
+        TAG="${WIZARD_ENV##*-}"
+        TAG="${TAG^^}"
+    fi
+
+    return 0
+}
+
+##
 # Load existing configuration file if provided.
 #
 # Returns:
@@ -279,10 +306,12 @@ phase2_deployment_scope() {
     echo "" >&2
     if prompt_yesno "Generate SQL only (manual mode)?" "n"; then
         MANUAL_MODE=1
-    fi
-
-    if prompt_yesno "Skip deployment confirmation?" "n"; then
         SKIP_CONFIRM=1
+        log_info "Manual mode enabled — skipping deployment confirmation prompt (not applicable)"
+    else
+        if prompt_yesno "Skip deployment confirmation?" "n"; then
+            SKIP_CONFIRM=1
+        fi
     fi
 
     if prompt_yesno "Skip deployment bizevents?" "n"; then
@@ -530,6 +559,10 @@ main() {
     if ! parse_arguments "$@"; then
         return 1
     fi
+
+    # Derive defaults from --env before loading existing config
+    # (existing config values will override these defaults)
+    derive_env_defaults
 
     # Load existing config if provided
     load_existing_config
