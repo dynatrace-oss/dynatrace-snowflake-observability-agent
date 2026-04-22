@@ -81,6 +81,40 @@ while [[ $# -gt 0 ]]; do
             OPTIONS_STR="${1#*=}"
             shift
             ;;
+        --help|-h)
+            cat >&2 <<'HELP'
+Usage: deploy.sh --env=<ENV> [--scope=<SCOPE>] [--from-version=<VERSION>] [--output-file=<FILE>] [--options=<OPTIONS>]
+
+Required:
+  --env=<ENV>              Environment name — must match conf/config-<ENV>.yml
+
+Optional:
+  --scope=<SCOPE>          Deployment scope (default: all)
+                           Values: init, admin, setup, plugins, config, agents, apikey,
+                                   all, teardown, upgrade, dt_assets, or a file pattern
+                           Multiple: comma-separated (e.g. setup,plugins,config,agents)
+  --from-version=<VER>     Required when --scope=upgrade (e.g. 0.9.2)
+  --output-file=<FILE>     Output file path for --options=manual mode
+  --options=<OPTIONS>      Comma-separated flags:
+                             manual        Generate SQL script without executing
+                             service_user  Use service user auth (CI/CD)
+                             skip_confirm  Skip confirmation prompt
+                             no_dep        Skip deployment BizEvents
+                             dry_run       Dry-run for dt_assets scope
+  --interactive            Launch interactive configuration wizard
+  --defaults               Generate minimal config file non-interactively
+  -h, --help               Show this help message
+
+Examples:
+  deploy.sh --env=prod                                     # Full deploy
+  deploy.sh --env=prod --scope=plugins,config,agents       # Partial deploy
+  deploy.sh --env=prod --scope=upgrade --from-version=0.9.2
+  deploy.sh --env=prod --options=manual --output-file=my.sql
+  deploy.sh --env=prod --options=skip_confirm              # No confirmation prompt
+  deploy.sh --env=prod --defaults                          # Generate config skeleton
+HELP
+            exit 0
+            ;;
         *)
             # Check if it's a positional ENV argument (backward compat)
             if [[ -z "$ENV" && ! "$1" =~ ^-- ]]; then
@@ -112,14 +146,10 @@ CWD=$(dirname "$0")
 CONFIG_FILE="conf/config-$ENV.yml"
 
 if [[ -z "$ENV" ]]; then
-    # No environment specified - check if we should launch wizard
-    if [[ $INTERACTIVE -eq 1 || $DEFAULTS -eq 1 ]]; then
-        echo "ERROR: --env is required" >&2
-        exit 1
-    else
-        echo "ERROR: Environment name is required. Use --env=<ENV> or provide as positional argument." >&2
-        exit 1
-    fi
+    echo "ERROR: --env=<ENV> is required." >&2
+    echo "       Example: deploy.sh --env=production" >&2
+    echo "       Run deploy.sh --help for full usage." >&2
+    exit 1
 fi
 
 # Auto-trigger wizard if config missing and not using --defaults
