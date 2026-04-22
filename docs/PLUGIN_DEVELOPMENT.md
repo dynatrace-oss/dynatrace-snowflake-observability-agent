@@ -145,7 +145,12 @@ use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 
 create or replace view DTAGENT_DB.APP.V_{UPPER}_INSTRUMENTED as
 with cte_source as (
-    select * from SNOWFLAKE.ACCOUNT_USAGE.SOME_VIEW
+    select                                              -- explicit columns (BCR-2275)
+        ENTITY_NAME,
+        DATABASE_NAME,
+        SCHEMA_NAME,
+        COMMENT
+    from SNOWFLAKE.ACCOUNT_USAGE.SOME_VIEW
     where DELETED is null
 )
 select
@@ -189,6 +194,7 @@ grant select on view DTAGENT_DB.APP.V_{UPPER}_INSTRUMENTED to role DTAGENT_VIEWE
 
 - ALL object names UPPERCASE (lowercase breaks custom-tag deployment)
 - Start with `use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;`
+- **Never use `SELECT *` when querying Snowflake system views** (`SNOWFLAKE.ACCOUNT_USAGE.*`, `SNOWFLAKE.INFORMATION_SCHEMA.*`) — always use explicit column lists. This protects against BCR-2275: Snowflake may add columns without notice, causing memory bloat, telemetry corruption, or view creation failures. `SELECT *` from DSOA's own views/tables is acceptable since we control those schemas.
 - Use `TIMESTAMP_LTZ` for timestamps
 - Use `object_construct()` for JSON columns
 - Grant `SELECT` on views / `USAGE` on procedures to `DTAGENT_VIEWER`
