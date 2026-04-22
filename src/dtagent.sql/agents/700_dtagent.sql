@@ -35,7 +35,7 @@ use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 create or replace procedure DTAGENT_DB.APP.DTAGENT(sources array)
 returns object
 language python
-runtime_version = '3.11'
+runtime_version = '3.13'
 packages = (
     'requests',
     'pandas',

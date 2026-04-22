@@ -88,7 +88,7 @@ EOSQL
 CREATE PROCEDURE main_agent()
 returns object
 language python
-runtime_version = '3.11'
+runtime_version = '3.13'
 packages = (
     'requests',
     'pandas',
