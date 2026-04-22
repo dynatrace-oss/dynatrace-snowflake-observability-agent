@@ -19,7 +19,17 @@
     "dsoa.run.context": "snowpipes",
     "code.file.path": "./src/dtagent/otel/logs.py",
     "code.function.name": "send_log",
-    "code.line.number": 205
+    "code.line.number": 205,
+    "resource_attributes": {
+      "db.system": "snowflake",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "service.name": "test.dsoa2025",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1"
+    }
   },
   {
     "content": "Snowpipe (DSOA_PIPE_TEST_DB.INGEST.ORDERS_PIPE) status: RUNNING",
@@ -41,7 +51,17 @@
     "dsoa.run.context": "snowpipes",
     "code.file.path": "./src/dtagent/otel/logs.py",
     "code.function.name": "send_log",
-    "code.line.number": 205
+    "code.line.number": 205,
+    "resource_attributes": {
+      "db.system": "snowflake",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "service.name": "test.dsoa2025",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1"
+    }
   },
   {
     "content": "Snowpipe load: data -> EVENTS (Loaded)",
@@ -68,7 +88,17 @@
     "dsoa.run.context": "snowpipes_copy_history",
     "code.file.path": "./src/dtagent/otel/logs.py",
     "code.function.name": "send_log",
-    "code.line.number": 205
+    "code.line.number": 205,
+    "resource_attributes": {
+      "db.system": "snowflake",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "service.name": "test.dsoa2025",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1"
+    }
   },
   {
     "content": "Snowpipe load: data -> ORDERS (Load failed)",
@@ -99,7 +129,17 @@
     "dsoa.run.context": "snowpipes_copy_history",
     "code.file.path": "./src/dtagent/otel/logs.py",
     "code.function.name": "send_log",
-    "code.line.number": 205
+    "code.line.number": 205,
+    "resource_attributes": {
+      "db.system": "snowflake",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "service.name": "test.dsoa2025",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1"
+    }
   },
   {
     "content": "Snowpipe usage: EVENTS_PIPE (0.000000000 credits)",
@@ -117,7 +157,17 @@
     "dsoa.run.context": "snowpipes_usage_history",
     "code.file.path": "./src/dtagent/otel/logs.py",
     "code.function.name": "send_log",
-    "code.line.number": 205
+    "code.line.number": 205,
+    "resource_attributes": {
+      "db.system": "snowflake",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "service.name": "test.dsoa2025",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1"
+    }
   },
   {
     "content": "Snowpipe usage: EVENTS_PIPE (0.000000000 credits)",
@@ -135,6 +185,16 @@
     "dsoa.run.context": "snowpipes_usage_history",
     "code.file.path": "./src/dtagent/otel/logs.py",
     "code.function.name": "send_log",
-    "code.line.number": 205
+    "code.line.number": 205,
+    "resource_attributes": {
+      "db.system": "snowflake",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "service.name": "test.dsoa2025",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1"
+    }
   }
 ]

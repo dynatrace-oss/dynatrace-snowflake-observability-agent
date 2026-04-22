@@ -75,7 +75,17 @@
     "dsoa.run.context": "query_history",
     "dsoa.run.plugin": "test_query_history",
     "dsoa.debug.span.events.added": 0,
-    "dsoa.debug.span.events.failed": 0
+    "dsoa.debug.span.events.failed": 0,
+    "resource_attributes": {
+      "db.system": "snowflake",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "service.name": "test.dsoa2025",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1"
+    }
   },
   {
     "snowflake.acceleration.data.scanned": 0,
@@ -153,7 +163,17 @@
     "dsoa.run.context": "query_history",
     "dsoa.run.plugin": "test_query_history",
     "dsoa.debug.span.events.added": 0,
-    "dsoa.debug.span.events.failed": 0
+    "dsoa.debug.span.events.failed": 0,
+    "resource_attributes": {
+      "db.system": "snowflake",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "service.name": "test.dsoa2025",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1"
+    }
   },
   {
     "snowflake.acceleration.data.scanned": 0,
@@ -222,6 +242,16 @@
     "dsoa.run.context": "query_history",
     "dsoa.run.plugin": "test_query_history",
     "dsoa.debug.span.events.added": 0,
-    "dsoa.debug.span.events.failed": 0
+    "dsoa.debug.span.events.failed": 0,
+    "resource_attributes": {
+      "db.system": "snowflake",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "service.name": "test.dsoa2025",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1"
+    }
   }
 ]
