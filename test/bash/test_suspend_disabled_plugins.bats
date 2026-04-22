@@ -203,3 +203,59 @@ EOF
     # Warning must be emitted
     [[ "$output" =~ "[deploy] WARNING: built plugin SQL not found for disabled plugin: tasks" ]]
 }
+
+# Helper: build a config JSON with one disabled plugin and a core.tag value
+_config_with_disabled_and_tag() {
+    local plugin="$1"
+    local tag="$2"
+    cat > "$TEST_CONFIG_FILE" << EOF
+[
+  {"PATH": "plugins.deploy_disabled_plugins", "TYPE": "bool", "VALUE": false},
+  {"PATH": "plugins.disabled_by_default",     "TYPE": "bool", "VALUE": false},
+  {"PATH": "plugins.${plugin}.is_disabled",   "TYPE": "bool", "VALUE": true},
+  {"PATH": "core.tag",                         "TYPE": "str",  "VALUE": "${tag}"}
+]
+EOF
+}
+
+@test "suspend SQL uses TAG-renamed identifiers for single-task plugin (tasks)" {
+    _config_with_disabled_and_tag "tasks" "TEST"
+
+    run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "all" "" "manual"
+    [ "$status" -eq 0 ]
+
+    # After TAG replacement: DTAGENT_DB -> DTAGENT_TEST_DB (task name itself is unchanged)
+    grep -qi 'alter task if exists.*DTAGENT_TEST_DB.*TASK_DTAGENT_TASKS.*suspend' "$TEST_SQL_FILE"
+
+    # No bare DTAGENT_DB should remain in an ALTER TASK statement
+    ! grep -qi 'alter task if exists DTAGENT_DB' "$TEST_SQL_FILE"
+}
+
+@test "suspend SQL uses TAG-renamed identifiers for multi-task plugin (snowpipes)" {
+    _config_with_disabled_and_tag "snowpipes" "TEST"
+
+    run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "all" "" "manual"
+    [ "$status" -eq 0 ]
+
+    grep -qi 'alter task if exists.*DTAGENT_TEST_DB.*TASK_DTAGENT_SNOWPIPES[^_].*suspend' "$TEST_SQL_FILE"
+    grep -qi 'alter task if exists.*DTAGENT_TEST_DB.*TASK_DTAGENT_SNOWPIPES_HISTORY.*suspend' "$TEST_SQL_FILE"
+}
+
+@test "suspend SQL role context uses TAG-renamed role (DTAGENT_TAG_OWNER)" {
+    _config_with_disabled_and_tag "tasks" "TEST"
+
+    run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "all" "" "manual"
+    [ "$status" -eq 0 ]
+
+    grep -qi 'use role DTAGENT_TEST_OWNER' "$TEST_SQL_FILE"
+    ! grep -qi 'use role DTAGENT_OWNER[^;]' "$TEST_SQL_FILE"
+}
+
+@test "suspend SQL statement is syntactically complete (ends with semicolon)" {
+    _config_with_disabled "tasks"
+
+    run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "all" "" "manual"
+    [ "$status" -eq 0 ]
+
+    grep -qi 'alter task if exists.*TASK_DTAGENT_TASKS.*suspend;' "$TEST_SQL_FILE"
+}
