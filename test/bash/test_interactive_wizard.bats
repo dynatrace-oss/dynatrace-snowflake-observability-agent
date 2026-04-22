@@ -266,3 +266,88 @@ _run_phase2_options() {
 
 ##endregion
 
+##region Phase 3 Skip Condition
+
+# Helper: run the phase3 skip-check logic in a subshell.
+# Args: scope manual_mode
+# Outputs: "SKIPPED" or "RAN"
+_run_phase3_skip_check() {
+    local scope="$1"
+    local manual="$2"
+
+    bash -c "
+        DEPLOYMENT_SCOPE='$scope'
+        MANUAL_MODE='$manual'
+
+        log_info() { :; }
+
+        if ! [[ \"\$DEPLOYMENT_SCOPE\" =~ (all|setup|plugins|agents|config) ]]; then
+            log_info 'Skipping Phase 3 (plugin selection not applicable for this scope)'
+            echo 'SKIPPED'
+        else
+            echo 'RAN'
+        fi
+    "
+}
+
+@test "phase3: scope=all runs (manual=0)" {
+    result=$(_run_phase3_skip_check "all" "0")
+    [ "$result" = "RAN" ]
+}
+
+@test "phase3: scope=all runs (manual=1 — manual mode must not skip)" {
+    result=$(_run_phase3_skip_check "all" "1")
+    [ "$result" = "RAN" ]
+}
+
+@test "phase3: scope=setup runs" {
+    result=$(_run_phase3_skip_check "setup" "0")
+    [ "$result" = "RAN" ]
+}
+
+@test "phase3: scope=plugins runs" {
+    result=$(_run_phase3_skip_check "plugins" "0")
+    [ "$result" = "RAN" ]
+}
+
+@test "phase3: scope=agents runs" {
+    result=$(_run_phase3_skip_check "agents" "0")
+    [ "$result" = "RAN" ]
+}
+
+@test "phase3: scope=config runs" {
+    result=$(_run_phase3_skip_check "config" "0")
+    [ "$result" = "RAN" ]
+}
+
+@test "phase3: scope=init skipped" {
+    result=$(_run_phase3_skip_check "init" "0")
+    [ "$result" = "SKIPPED" ]
+}
+
+@test "phase3: scope=admin skipped" {
+    result=$(_run_phase3_skip_check "admin" "0")
+    [ "$result" = "SKIPPED" ]
+}
+
+@test "phase3: scope=upgrade skipped" {
+    result=$(_run_phase3_skip_check "upgrade" "0")
+    [ "$result" = "SKIPPED" ]
+}
+
+@test "phase3: scope=teardown skipped" {
+    result=$(_run_phase3_skip_check "teardown" "0")
+    [ "$result" = "SKIPPED" ]
+}
+
+@test "phase3: scope=dt_assets skipped" {
+    result=$(_run_phase3_skip_check "dt_assets" "0")
+    [ "$result" = "SKIPPED" ]
+}
+
+@test "phase3: scope=apikey skipped" {
+    result=$(_run_phase3_skip_check "apikey" "0")
+    [ "$result" = "SKIPPED" ]
+}
+
+##endregion

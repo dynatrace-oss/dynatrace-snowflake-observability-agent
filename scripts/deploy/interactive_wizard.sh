@@ -326,14 +326,16 @@ phase2_deployment_scope() {
 ##
 # Run Phase 3: Plugin Selection and Configuration.
 #
-# Only triggered if scope includes plugins, agents, or config.
+# Triggered for scopes that involve plugin deployment or configuration:
+# all, setup, plugins, agents, config. Manual mode does not skip this phase.
 #
 # Returns:
 #   0 on success, 1 on EOF
 ##
 phase3_plugin_selection() {
-    # Check if scope includes plugins, agents, or config
-    if ! [[ "$DEPLOYMENT_SCOPE" =~ (plugins|agents|config) ]]; then
+    # Run Phase 3 only for scopes that involve plugin deployment or configuration.
+    # Manual mode does NOT skip this phase — SQL generation still needs plugin selection.
+    if ! [[ "$DEPLOYMENT_SCOPE" =~ (all|setup|plugins|agents|config) ]]; then
         log_info "Skipping Phase 3 (plugin selection not applicable for this scope)"
         return 0
     fi
