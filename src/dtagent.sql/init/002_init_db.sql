@@ -35,7 +35,7 @@ alter database DTAGENT_DB set LOG_LEVEL = INFO;
 -- LOG_EVENT_LEVEL decouples event table ingestion control from LOG_LEVEL.
 -- On pre-BCR accounts the parameter does not exist so we skip it gracefully.
 BEGIN
-  LET n_rows INTEGER DEFAULT 0;
+  LET n_rows INTEGER := 0;
   show PARAMETERS like 'LOG_EVENT_LEVEL' in DATABASE DTAGENT_DB;
   select count(*) into n_rows from TABLE(result_scan(last_query_id()));
   IF (:n_rows > 0) THEN

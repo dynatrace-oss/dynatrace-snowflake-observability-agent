@@ -874,13 +874,25 @@ that do not.
        --options=skip_confirm
    ```
 
-1. **Verify `LOG_EVENT_LEVEL` set at account level** — run via `snow sql`:
+1. **Verify `LOG_EVENT_LEVEL` set at account level** — only applicable when
+   DSOA provisions and owns the event table (i.e. `EVENT_TABLE` points to
+   `DTAGENT_DB.STATUS.EVENT_LOG`). First confirm ownership:
+
+   ```sql
+   SHOW PARAMETERS LIKE 'EVENT_TABLE' IN ACCOUNT;
+   ```
+
+   If `value = DTAGENT_DB.STATUS.EVENT_LOG`, DSOA owns the event table —
+   proceed with the account-level check below. If it points elsewhere (custom
+   or Snowflake-managed table), skip this step and step 4; the account-level
+   parameter is intentionally left to the operator in that scenario.
 
    ```sql
    SHOW PARAMETERS LIKE 'LOG_EVENT_LEVEL' IN ACCOUNT;
    ```
 
-   **Expected:** one row with `name = LOG_EVENT_LEVEL` and `value = INFO`.
+   **Expected (DSOA-owned event table):** one row with `name = LOG_EVENT_LEVEL`
+   and `value = INFO`.
    If the parameter does not exist, the account predates BCR 2026_02 — the
    fallback path is active; skip steps 3 and 4 and record as SKIP (pre-BCR).
 
