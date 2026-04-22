@@ -155,15 +155,15 @@ This gives DBAs full control over object naming before DSOA touches anything.
 
 By default, DSOA creates Snowflake objects with these names:
 
-| Object | Default Name |
-|---|---|
-| Database | `DTAGENT_DB` |
-| Warehouse | `DTAGENT_WH` |
-| Resource Monitor | `DTAGENT_RS` |
-| Owner Role | `DTAGENT_OWNER` |
-| Admin Role | `DTAGENT_ADMIN` |
-| Viewer Role | `DTAGENT_VIEWER` |
-| API Integration | `DTAGENT_API_INTEGRATION` |
+| Object           | Default Name              |
+|------------------|---------------------------|
+| Database         | `DTAGENT_DB`              |
+| Warehouse        | `DTAGENT_WH`              |
+| Resource Monitor | `DTAGENT_RS`              |
+| Owner Role       | `DTAGENT_OWNER`           |
+| Admin Role       | `DTAGENT_ADMIN`           |
+| Viewer Role      | `DTAGENT_VIEWER`          |
+| API Integration  | `DTAGENT_API_INTEGRATION` |
 
 Configure custom names under `core.snowflake.*` in your config file. Set any optional object to `"-"` to skip creation.
 
@@ -207,14 +207,14 @@ Snowflake identifier constraints apply:
 
 ### Supported Installation Scenarios
 
-| Scenario | Config | Scopes |
-|---|---|---|
-| Standard full install | Default names | `all` |
-| Skip optional objects | `admin: "-"`, `resource_monitor: "-"` | `init,setup,plugins,config,agents,apikey` |
-| TAG-based multitenancy | `tag: TNA` | `all` |
-| Custom names full | Custom names for all objects | `init,admin,setup,plugins,config,agents,apikey` |
-| Pre-created objects | Custom names matching pre-created | `setup,plugins,config,agents,apikey` |
-| Custom names + TAG | Custom names + `tag` for telemetry only | `init,admin,setup,plugins,config,agents,apikey` |
+| Scenario               | Config                                  | Scopes                                          |
+|------------------------|-----------------------------------------|-------------------------------------------------|
+| Standard full install  | Default names                           | `all`                                           |
+| Skip optional objects  | `admin: "-"`, `resource_monitor: "-"`   | `init,setup,plugins,config,agents,apikey`       |
+| TAG-based multitenancy | `tag: TNA`                              | `all`                                           |
+| Custom names full      | Custom names for all objects            | `init,admin,setup,plugins,config,agents,apikey` |
+| Pre-created objects    | Custom names matching pre-created       | `setup,plugins,config,agents,apikey`            |
+| Custom names + TAG     | Custom names + `tag` for telemetry only | `init,admin,setup,plugins,config,agents,apikey` |
 
 ---
 
@@ -329,11 +329,11 @@ core:
 
 ### TAG and Custom Names Interaction
 
-| Scenario | Object naming | Telemetry |
-|---|---|---|
-| TAG only | `DTAGENT_<TAG>_DB` etc. | `deployment.environment.tag: "<TAG>"` |
-| Custom names only | Your custom names | `deployment.environment` only |
-| Both TAG + custom names | Custom names (TAG doesn't affect objects) | Both dimensions |
+| Scenario                | Object naming                             | Telemetry                             |
+|-------------------------|-------------------------------------------|---------------------------------------|
+| TAG only                | `DTAGENT_<TAG>_DB` etc.                   | `deployment.environment.tag: "<TAG>"` |
+| Custom names only       | Your custom names                         | `deployment.environment` only         |
+| Both TAG + custom names | Custom names (TAG doesn't affect objects) | Both dimensions                       |
 
 **Key principle:** When ANY custom name is provided, TAG is disabled for ALL object naming.
 
@@ -349,20 +349,20 @@ core:
 
 ### Global Plugin Options
 
-| Key | Type | Default | Description |
-|---|---|---|---|
-| `plugins.disabled_by_default` | Boolean | `false` | Disable all plugins unless explicitly enabled |
-| `plugins.deploy_disabled_plugins` | Boolean | `true` | Deploy SQL for disabled plugins (but don't schedule them) |
+| Key                               | Type    | Default | Description                                               |
+|-----------------------------------|---------|---------|-----------------------------------------------------------|
+| `plugins.disabled_by_default`     | Boolean | `false` | Disable all plugins unless explicitly enabled             |
+| `plugins.deploy_disabled_plugins` | Boolean | `true`  | Deploy SQL for disabled plugins (but don't schedule them) |
 
 ### Per-Plugin Options
 
-| Key | Type | Default | Description |
-|---|---|---|---|
-| `is_disabled` | Boolean | `false` | Disable this plugin |
-| `is_enabled` | Boolean | `false` | Enable this plugin (when `disabled_by_default: true`) |
-| `lookback_hours` | Integer | varies | Max lookback window for first run / after reset |
-| `schedule` | String | varies | Cron (`USING CRON */30 * * * * UTC`), interval (`30 MINUTES`), or task graph (`after TASK_NAME`) |
-| `telemetry` | List | varies | Signal types to emit: `logs`, `metrics`, `spans`, `events`, `biz_events` |
+| Key              | Type    | Default | Description                                                                                      |
+|------------------|---------|---------|--------------------------------------------------------------------------------------------------|
+| `is_disabled`    | Boolean | `false` | Disable this plugin                                                                              |
+| `is_enabled`     | Boolean | `false` | Enable this plugin (when `disabled_by_default: true`)                                            |
+| `lookback_hours` | Integer | varies  | Max lookback window for first run / after reset                                                  |
+| `schedule`       | String  | varies  | Cron (`USING CRON */30 * * * * UTC`), interval (`30 MINUTES`), or task graph (`after TASK_NAME`) |
+| `telemetry`      | List    | varies  | Signal types to emit: `logs`, `metrics`, `spans`, `events`, `biz_events`                         |
 
 See each plugin's `config.md` for plugin-specific options (filters, retention, limits, etc.).
 
@@ -384,26 +384,26 @@ plugins:
 
 Leave `otel: {}` for defaults. Advanced tuning:
 
-| Key | Type | Description |
-|---|---|---|
-| `max_consecutive_api_fails` | Integer | Circuit breaker threshold |
-| `logs.export_timeout_millis` | Integer | Export timeout (ms) |
-| `logs.max_export_batch_size` | Integer | Batch size cap |
-| `logs.is_disabled` | Boolean | Disable log export |
-| `spans.export_timeout_millis` | Integer | Export timeout (ms) |
-| `spans.max_export_batch_size` | Integer | Batch size cap |
-| `spans.max_event_count` | Integer | Max events per span |
-| `spans.max_attributes_per_event_count` | Integer | Max attributes per event |
-| `spans.max_span_attributes` | Integer | Max attributes per span |
-| `spans.is_disabled` | Boolean | Disable span export |
-| `metrics.api_post_timeout` | Integer | POST timeout (s) |
-| `metrics.max_retries` | Integer | Max retry attempts |
-| `metrics.max_batch_size` | Integer | Batch size cap |
-| `metrics.retry_delay_ms` | Integer | Retry delay (ms) |
-| `metrics.is_disabled` | Boolean | Disable metrics export |
-| `events.*` | various | Same pattern as `metrics.*` |
-| `biz_events.*` | various | Same pattern as `metrics.*` |
-| `davis_events.*` | various | Same pattern as `metrics.*` |
+| Key                                    | Type    | Description                 |
+|----------------------------------------|---------|-----------------------------|
+| `max_consecutive_api_fails`            | Integer | Circuit breaker threshold   |
+| `logs.export_timeout_millis`           | Integer | Export timeout (ms)         |
+| `logs.max_export_batch_size`           | Integer | Batch size cap              |
+| `logs.is_disabled`                     | Boolean | Disable log export          |
+| `spans.export_timeout_millis`          | Integer | Export timeout (ms)         |
+| `spans.max_export_batch_size`          | Integer | Batch size cap              |
+| `spans.max_event_count`                | Integer | Max events per span         |
+| `spans.max_attributes_per_event_count` | Integer | Max attributes per event    |
+| `spans.max_span_attributes`            | Integer | Max attributes per span     |
+| `spans.is_disabled`                    | Boolean | Disable span export         |
+| `metrics.api_post_timeout`             | Integer | POST timeout (s)            |
+| `metrics.max_retries`                  | Integer | Max retry attempts          |
+| `metrics.max_batch_size`               | Integer | Batch size cap              |
+| `metrics.retry_delay_ms`               | Integer | Retry delay (ms)            |
+| `metrics.is_disabled`                  | Boolean | Disable metrics export      |
+| `events.*`                             | various | Same pattern as `metrics.*` |
+| `biz_events.*`                         | various | Same pattern as `metrics.*` |
+| `davis_events.*`                       | various | Same pattern as `metrics.*` |
 
 ### Without a Dynatrace Platform Subscription (DPS)
 
@@ -471,6 +471,11 @@ snow connection add --connection-name snow_agent_production
 
 ### Dynatrace API token API URL (`.apps` vs `.live`)
 
-The `dynatrace_tenant_address` must use `.live.dynatrace.com` for the API endpoint.
+The `dynatrace_tenant_address` must use one of the following formats for the API endpoint:
+
+- `*.live.dynatrace.com` — production tenants
+- `*.sprint.dynatracelabs.com` — sprint/internal tenants
+- `*.dev.dynatracelabs.com` — dev/internal tenants
+
 If you accidentally use `.apps.dynatrace.com`, the deploy script will auto-correct it
 with a warning.

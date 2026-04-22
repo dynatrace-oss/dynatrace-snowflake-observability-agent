@@ -46,10 +46,27 @@ setup() {
     [ "$output" = "abc123.live.dynatrace.com" ]
 }
 
-@test "validate_dt_tenant auto-corrects .apps. to .live." {
+@test "validate_dt_tenant accepts valid .sprint.dynatracelabs.com" {
+    run validate_dt_tenant "abc123.sprint.dynatracelabs.com"
+    [ "$status" -eq 0 ]
+    [ "$output" = "abc123.sprint.dynatracelabs.com" ]
+}
+
+@test "validate_dt_tenant accepts valid .dev.dynatracelabs.com" {
+    run validate_dt_tenant "abc123.dev.dynatracelabs.com"
+    [ "$status" -eq 0 ]
+    [ "$output" = "abc123.dev.dynatracelabs.com" ]
+}
+
+@test "validate_dt_tenant auto-corrects .apps.dynatrace.com to .live.dynatrace.com" {
     run validate_dt_tenant "abc123.apps.dynatrace.com"
     [ "$status" -eq 0 ]
     [ "$output" = "abc123.live.dynatrace.com" ]
+}
+
+@test "validate_dt_tenant does NOT rewrite .apps.dynatracelabs.com" {
+    run validate_dt_tenant "abc123.apps.dynatracelabs.com"
+    [ "$status" -eq 1 ]
 }
 
 @test "validate_dt_tenant rejects invalid format" {

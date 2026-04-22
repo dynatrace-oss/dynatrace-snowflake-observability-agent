@@ -13,7 +13,7 @@ This file documents detailed technical changes, internal refactorings, and devel
 - **`scripts/deploy/lib.sh`** (487 lines): Shared bash library sourced by wizard and deploy.sh. Includes:
   - **Logging helpers**: `log_info`, `log_ok`, `log_warn`, `log_error` (consolidates duplicated code from `deploy_dt_assets.sh` + `deploy_test_notebook.sh` for future refactoring).
   - **Prompt helpers**: `prompt_input()` (collects input with optional default + validation fn), `prompt_yesno()` (y/n), `prompt_select_one()` (bash `select` menu), `prompt_select_multi()` (y/n per item).
-  - **Validators**: `validate_dt_tenant()` (regex `*.live.dynatrace.com`, auto-corrects `.apps.` → `.live.`), `validate_sf_account()` (format + optional HTTPS probe to `<account>.snowflakecomputing.com`), `validate_nonempty()`, `validate_alphanumeric()`.
+  - **Validators**: `validate_dt_tenant()` (accepts `*.live.dynatrace.com`, `*.sprint.dynatracelabs.com`, `*.dev.dynatracelabs.com`; auto-corrects `.apps.dynatrace.com` → `.live.dynatrace.com`), `validate_sf_account()` (format + optional HTTPS probe to `<account>.snowflakecomputing.com`), `validate_nonempty()`, `validate_alphanumeric()`.
   - **Probes**: `probe_dt_tenant()` + `probe_sf_account()` (HTTPS reachability checks; warn-don't-block on failure per story).
   - **Config helpers**: `read_config_key()` / `write_config_key()` (wraps `yq`).
   - All functions include Google-style docstrings for maintainability.

@@ -298,15 +298,21 @@ prompt_select_multi() {
 validate_dt_tenant() {
     local tenant="$1"
 
-    # Auto-correct .apps. to .live.
+    # Auto-correct .apps.dynatrace.com to .live.dynatrace.com
     if [[ "$tenant" == *".apps.dynatrace.com"* ]]; then
-        tenant="${tenant//.apps./.live.}"
+        tenant="${tenant//.apps.dynatrace.com/.live.dynatrace.com}"
         echo "$tenant"
         return 0
     fi
 
-    # Check if it matches *.live.dynatrace.com
+    # Accept *.live.dynatrace.com (production tenants)
     if [[ "$tenant" =~ ^[a-zA-Z0-9-]+\.live\.dynatrace\.com$ ]]; then
+        echo "$tenant"
+        return 0
+    fi
+
+    # Accept *.sprint.dynatracelabs.com and *.dev.dynatracelabs.com (internal tenants)
+    if [[ "$tenant" =~ ^[a-zA-Z0-9-]+\.(sprint|dev)\.dynatracelabs\.com$ ]]; then
         echo "$tenant"
         return 0
     fi

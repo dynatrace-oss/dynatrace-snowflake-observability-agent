@@ -163,7 +163,7 @@ phase1_core_config() {
     while true; do
         DT_TENANT=$(prompt_input "Dynatrace tenant address" "$DT_TENANT") || return 1
         DT_TENANT=$(validate_dt_tenant "$DT_TENANT") || {
-            log_error "Invalid tenant address. Must match *.live.dynatrace.com"
+            log_error "Invalid tenant address. Must match *.live.dynatrace.com, *.sprint.dynatracelabs.com, or *.dev.dynatracelabs.com"
             continue
         }
         log_ok "Tenant: $DT_TENANT"

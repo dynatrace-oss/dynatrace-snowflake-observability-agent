@@ -25,13 +25,13 @@ Install [WSL 2](https://learn.microsoft.com/en-us/windows/wsl/install) and run e
 
 ### Required tools
 
-| Tool | Install |
-|---|---|
-| **bash** | Included on macOS/Linux |
-| **Snowflake CLI** (`snow`) | See below |
-| **jq** | `brew install jq` / `apt install jq` |
-| **yq** | `brew install yq` / `apt install yq` |
-| **gawk** | `brew install gawk` / `apt install gawk` |
+| Tool                       | Install                                  |
+|----------------------------|------------------------------------------|
+| **bash**                   | Included on macOS/Linux                  |
+| **Snowflake CLI** (`snow`) | See below                                |
+| **jq**                     | `brew install jq` / `apt install jq`     |
+| **yq**                     | `brew install yq` / `apt install yq`     |
+| **gawk**                   | `brew install gawk` / `apt install gawk` |
 
 **Quick install (runs `setup.sh` which installs all tools):**
 
@@ -122,15 +122,15 @@ Budget-related metrics take up to 24 hours (they fire once per day).
 
 ### Core options
 
-| Key | Required | Default | Description |
-|---|---|---|---|
-| `dynatrace_tenant_address` | Yes | — | e.g. `abc123.live.dynatrace.com` |
-| `deployment_environment` | Yes | — | Unique identifier sent with all telemetry |
-| `log_level` | No | `WARN` | `DEBUG` / `INFO` / `WARN` / `ERROR` |
-| `tag` | No | `""` | Multitenancy suffix for Snowflake object names |
-| `procedure_timeout` | No | `3600` | Stored procedure timeout in seconds |
-| `snowflake.account_name` | Recommended | auto-detected | `myorg-myaccount` format (avoids ~100ms startup query) |
-| `snowflake.host_name` | No | derived | Leave as `"-"` to auto-derive from `account_name` |
+| Key                        | Required    | Default       | Description                                                                                             |
+|----------------------------|-------------|---------------|---------------------------------------------------------------------------------------------------------|
+| `dynatrace_tenant_address` | Yes         | —             | e.g. `abc123.live.dynatrace.com` (also accepts `*.sprint.dynatracelabs.com`, `*.dev.dynatracelabs.com`) |
+| `deployment_environment`   | Yes         | —             | Unique identifier sent with all telemetry                                                               |
+| `log_level`                | No          | `WARN`        | `DEBUG` / `INFO` / `WARN` / `ERROR`                                                                     |
+| `tag`                      | No          | `""`          | Multitenancy suffix for Snowflake object names                                                          |
+| `procedure_timeout`        | No          | `3600`        | Stored procedure timeout in seconds                                                                     |
+| `snowflake.account_name`   | Recommended | auto-detected | `myorg-myaccount` format (avoids ~100ms startup query)                                                  |
+| `snowflake.host_name`      | No          | derived       | Leave as `"-"` to auto-derive from `account_name`                                                       |
 
 For custom object names (database, warehouse, roles), subscription-only signals, plugin scheduling,
 and multitenancy — see [INSTALL-ADVANCED.md](INSTALL-ADVANCED.md).
@@ -168,19 +168,19 @@ Use the result as `snowflake.account_name` in your config.
 
 ### Scope reference
 
-| Scope | When to use | Requires |
-|---|---|---|
-| `all` | Fresh install or major update | `ACCOUNTADMIN` |
-| `init` | First-time only: creates DB, WH, roles | `ACCOUNTADMIN` |
-| `admin` | Creates `DTAGENT_ADMIN` role (optional) | `DTAGENT_ADMIN` or `ACCOUNTADMIN` |
-| `setup` | Core schema/procedure changes | `DTAGENT_OWNER` |
-| `plugins` | Plugin code changes | `DTAGENT_OWNER` |
-| `config` | Config values only — no SQL | `DTAGENT_OWNER` |
-| `agents` | Task scheduler changes | `DTAGENT_OWNER` |
-| `apikey` | Update Dynatrace token only | `DTAGENT_OWNER` |
-| `upgrade` | Schema migrations between versions | `DTAGENT_OWNER` |
-| `teardown` | Full uninstall | `ACCOUNTADMIN` |
-| `dt_assets` | Deploy Dynatrace dashboards + workflows | `dtctl` auth |
+| Scope       | When to use                             | Requires                          |
+|-------------|-----------------------------------------|-----------------------------------|
+| `all`       | Fresh install or major update           | `ACCOUNTADMIN`                    |
+| `init`      | First-time only: creates DB, WH, roles  | `ACCOUNTADMIN`                    |
+| `admin`     | Creates `DTAGENT_ADMIN` role (optional) | `DTAGENT_ADMIN` or `ACCOUNTADMIN` |
+| `setup`     | Core schema/procedure changes           | `DTAGENT_OWNER`                   |
+| `plugins`   | Plugin code changes                     | `DTAGENT_OWNER`                   |
+| `config`    | Config values only — no SQL             | `DTAGENT_OWNER`                   |
+| `agents`    | Task scheduler changes                  | `DTAGENT_OWNER`                   |
+| `apikey`    | Update Dynatrace token only             | `DTAGENT_OWNER`                   |
+| `upgrade`   | Schema migrations between versions      | `DTAGENT_OWNER`                   |
+| `teardown`  | Full uninstall                          | `ACCOUNTADMIN`                    |
+| `dt_assets` | Deploy Dynatrace dashboards + workflows | `dtctl` auth                      |
 
 **Always include `config`** alongside other scopes — omitting it leaves tasks suspended.
 
@@ -200,7 +200,7 @@ Run: deploy.sh --help   for full reference
 
 After the agent is running, deploy pre-built Dynatrace dashboards and workflows.
 
-### Prerequisites
+### Dynatrace Deployment Prerequisites
 
 Install and authenticate `dtctl`:
 

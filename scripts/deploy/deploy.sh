@@ -303,7 +303,7 @@ $CWD/prepare_config.sh "${DEFAULT_CONFIG_FILE}" "${CONFIG_FILE}"
 
 # Validate and fix dynatrace_tenant_address if it uses deprecated .apps.dynatrace.com domain
 TENANT_ADDRESS="$($CWD/get_config_key.sh core.dynatrace_tenant_address)"
-if [[ "$TENANT_ADDRESS" == *".apps.dynatrace"*".com"* ]]; then
+if [[ "$TENANT_ADDRESS" == *".apps.dynatrace.com"* ]]; then
     # Replace .apps.dynatrace.com with .live.dynatrace.com in the config file
     FIXED_TENANT_ADDRESS="${TENANT_ADDRESS//.apps.dynatrace.com/.live.dynatrace.com}"
 
