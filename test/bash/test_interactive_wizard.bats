@@ -3,7 +3,8 @@
 # Tests for scripts/deploy/interactive_wizard.sh
 
 setup() {
-    cd "$BATS_TEST_DIRNAME/../.."
+    # shellcheck disable=SC2154
+    cd "$BATS_TEST_DIRNAME/../.." || exit 1
 }
 
 ##region Argument Parsing Tests
@@ -29,7 +30,8 @@ setup() {
 
 @test "wizard generates valid YAML structure" {
     # Create a temporary directory for test
-    local test_dir=$(mktemp -d)
+    local test_dir
+    test_dir=$(mktemp -d)
     cd "$test_dir"
     mkdir -p conf
 

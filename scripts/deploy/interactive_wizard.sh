@@ -471,7 +471,8 @@ EOF
         "Discard"
     )
 
-    local action=$(prompt_select_one "What would you like to do?" "Save as new config" "${persistence_options[@]}") || return 1
+    local action
+    action=$(prompt_select_one "What would you like to do?" "Save as new config" "${persistence_options[@]}") || return 1
 
     case "$action" in
         "Save as new config")
@@ -490,7 +491,8 @@ EOF
             return 0
             ;;
         "Print to stdout only")
-            local temp_file=$(mktemp)
+            local temp_file
+            temp_file=$(mktemp)
             generate_config_yaml "$temp_file"
             cat "$temp_file"
             rm -f "$temp_file"

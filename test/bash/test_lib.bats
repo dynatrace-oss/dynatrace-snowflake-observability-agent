@@ -3,7 +3,8 @@
 # Tests for scripts/deploy/lib.sh shared library
 
 setup() {
-    cd "$BATS_TEST_DIRNAME/../.."
+    # shellcheck disable=SC2154
+    cd "$BATS_TEST_DIRNAME/../.." || exit 1
     # Source the library
     # shellcheck source=scripts/deploy/lib.sh
     source scripts/deploy/lib.sh
@@ -101,7 +102,8 @@ setup() {
 ##region Config Helper Tests
 
 @test "read_config_key returns value from YAML" {
-    local temp_file=$(mktemp)
+    local temp_file
+    temp_file=$(mktemp)
     cat > "$temp_file" << 'EOF'
 core:
   dynatrace_tenant_address: "test.live.dynatrace.com"
@@ -121,7 +123,8 @@ EOF
 }
 
 @test "write_config_key creates new YAML file" {
-    local temp_file=$(mktemp)
+    local temp_file
+    temp_file=$(mktemp)
     rm -f "$temp_file"
 
     write_config_key "$temp_file" "core.test_key" "test_value"
@@ -135,7 +138,8 @@ EOF
 }
 
 @test "write_config_key updates existing YAML" {
-    local temp_file=$(mktemp)
+    local temp_file
+    temp_file=$(mktemp)
     cat > "$temp_file" << 'EOF'
 core:
   existing_key: "old_value"

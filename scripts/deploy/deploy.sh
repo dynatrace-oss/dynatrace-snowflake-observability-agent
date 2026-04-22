@@ -183,6 +183,7 @@ EOF
 
     echo "Minimal config generated at: $CONFIG_FILE" >&2
     echo "Please update the CHANGE_ME values and set DTAGENT_TOKEN environment variable" >&2
+    exit 0
 fi
 
 # Display warning when bizevent send fails
@@ -313,6 +314,7 @@ if $IS_MANUAL; then
 else
     INSTALL_SCRIPT_SQL=$(mktemp -p build)
     # clean up this way, because rm did not always work
+    # shellcheck disable=SC2064
     trap " rm -f ${INSTALL_SCRIPT_SQL} " EXIT
 fi
 
@@ -328,6 +330,7 @@ if [ -s "$INSTALL_SCRIPT_SQL" ] && ! $IS_MANUAL; then
     if has_option "service_user"; then
         # added for Jenkins to be able to skip this step, as it will never find the config file
         # this is taken care of in the update_config.py, and config_file doesn't exist necessary data is taken from environment variables
+        # shellcheck disable=SC2154
         SNOWFLAKE_ACCOUNT_NAME=${SNOWFLAKE_ACC_NAME}
     else
         SNOWFLAKE_ACCOUNT_NAME="$($CWD/get_config_key.sh core.snowflake.account_name)"
@@ -344,7 +347,7 @@ if [ -s "$INSTALL_SCRIPT_SQL" ] && ! $IS_MANUAL; then
 
     echo -e "Deploying to Snowflake with the snow_agent_$CONNECTION_ENV connection profile and as the $DEPLOYMENT_ENV deployment environment\n"
 
-    if ! $IS_MANUAL && ! has_option "skip_confirm"; then
+    if ! $IS_MANUAL && ! has_option "skip_confirm" && [ -t 0 ]; then
         read -p "Press Enter if you wish to continue deployment with script above or Ctrl+C to exit" </dev/tty
     fi
 
@@ -357,18 +360,19 @@ if [ -s "$INSTALL_SCRIPT_SQL" ] && ! $IS_MANUAL; then
 
     if ! has_option "no_dep" && ! has_option "service_user"; then
         #%:DEV
-        pushd build
+        pushd build || exit 1
         snow sql --connection "snow_agent_$CONNECTION_ENV" \
             --filename "$(basename ${INSTALL_SCRIPT_SQL})"
-        popd
+        popd || exit 1
         #%DEV:
     elif has_option "service_user"; then
-        pushd build
+        pushd build || exit 1
+        # shellcheck disable=SC2154
         snow sql --temporary-connection \
             --account ${SNOWFLAKE_ACCOUNT_NAME} \
             --user ${SNOWFLAKE_USER_NAME} \
             --filename "$(basename ${INSTALL_SCRIPT_SQL})"
-        popd
+        popd || exit 1
     fi
     #%:DEV
 

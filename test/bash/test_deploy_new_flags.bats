@@ -3,7 +3,8 @@
 # Tests for scripts/deploy/deploy.sh new flags (--env=, --interactive, --defaults)
 
 setup() {
-    cd "$BATS_TEST_DIRNAME/../.."
+    # shellcheck disable=SC2154
+    cd "$BATS_TEST_DIRNAME/../.." || exit 1
     # Create minimal test config and build artifacts
     TEST_CONFIG_FILE=$(mktemp)
     TEST_ENV_DIR=$(mktemp -d)
@@ -97,7 +98,8 @@ teardown() {
 ##region --defaults Flag Tests
 
 @test "deploy.sh --defaults creates minimal config" {
-    local test_dir=$(mktemp -d)
+    local test_dir
+    test_dir=$(mktemp -d)
     cd "$test_dir"
 
     mkdir -p conf build/09_upgrade build/30_plugins

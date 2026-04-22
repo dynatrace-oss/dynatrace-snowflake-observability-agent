@@ -38,8 +38,9 @@ for cmd in "jq" "yq"; do
     fi
 done
 
-if [ $(uname -s) = 'Darwin' ]; then
+if [ "$(uname -s)" = 'Darwin' ]; then
     if [ "$TO_INSTALL" != "" ]; then
+        # shellcheck disable=SC2086
         brew install $TO_INSTALL
     fi
 
@@ -63,6 +64,7 @@ else
         sudo apt install pipx
         pipx install snowflake-cli-labs
         pipx ensurepath
+        # shellcheck source=/dev/null
         source ~/.bashrc
     fi
 fi
@@ -75,7 +77,7 @@ fi
 echo "Checking for Snowflake connection profiles"
 
 if [ "$ENV" == '' ]; then
-    if ! echo $(snow connection list) | grep -q "snow_agent_"; then
+    if ! echo "$(snow connection list)" | grep -q "snow_agent_"; then
         echo "WARNING: No Dynatrace Snowflake Observability Agent connections are defined for the Snowflake CLI."
         echo "         Run ./setup.sh with an environment name to create one for your environment."
     fi

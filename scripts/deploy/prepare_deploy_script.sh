@@ -48,7 +48,7 @@ CWD=$(dirname "$0")
 TAG=$($CWD/get_config_key.sh core.tag)
 TAG=${TAG:-""}
 
-echo "Deploying with tag "${TAG}""
+echo "Deploying with tag ${TAG}"
 
 #
 # Get custom object names from config
@@ -223,7 +223,7 @@ if [[ "$SCOPE" == *,* ]]; then
     # Remove leading/trailing spaces and deduplicate
     SQL_FILES=$(echo "$SQL_FILES" | xargs)
     #%DEV:
-    echo "DEBUG: Parsed scopes: ${SCOPE_ARRAY[@]}"
+    echo "DEBUG: Parsed scopes: ${SCOPE_ARRAY[*]}"
     echo "DEBUG: Built SQL_FILES: [$SQL_FILES]"
     #%:DEV
 
@@ -404,7 +404,8 @@ filter_plugin_code() {
         return
     fi
 
-    local temp_file=$(mktemp)
+    local temp_file
+    temp_file=$(mktemp)
     cp "$input_file" "$temp_file"
 
     for plugin_name in $EXCLUDED_PLUGINS; do
@@ -454,7 +455,8 @@ filter_option_code() {
         return
     fi
 
-    local temp_file=$(mktemp)
+    local temp_file
+    temp_file=$(mktemp)
     cp "$input_file" "$temp_file"
 
     for option_name in $EXCLUDED_OPTIONS; do
@@ -535,7 +537,7 @@ fi
 #   Cleaning up the final script
 #
 # Set sed in-place flag based on OS
-if [ $(uname -s) = 'Darwin' ]; then
+if [ "$(uname -s)" = 'Darwin' ]; then
     SED_INPLACE=("sed" "-i" "")
 else
     SED_INPLACE=("sed" "-i")

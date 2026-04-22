@@ -3,7 +3,8 @@
 # Test that query_history plugin works correctly with and without event_log plugin
 
 setup() {
-    cd "$BATS_TEST_DIRNAME/../.."
+    # shellcheck disable=SC2154
+    cd "$BATS_TEST_DIRNAME/../.." || exit 1
     TEST_CONFIG_FILE=$(mktemp)
     TEST_SQL_FILE=$(mktemp)
     export BUILD_CONFIG_FILE="$TEST_CONFIG_FILE"
@@ -112,14 +113,14 @@ EOF
     [ -s "$TEST_SQL_FILE" ]
 
     # Should NOT contain EVENT_LOG join when event_log is disabled
-    ! grep -iq "STATUS\.EVENT_LOG" "$TEST_SQL_FILE"
+    run ! grep -iq "STATUS\.EVENT_LOG" "$TEST_SQL_FILE"
 
     # Should NOT contain trace column references in select
-    ! grep -q "l\.trace" "$TEST_SQL_FILE"
+    run ! grep -q "l\.trace" "$TEST_SQL_FILE"
 
     # Should NOT contain _SPAN_ID and _TRACE_ID extractions from trace
-    ! grep -q "trace:span_id" "$TEST_SQL_FILE"
-    ! grep -q "trace:trace_id" "$TEST_SQL_FILE"
+    run ! grep -q "trace:span_id" "$TEST_SQL_FILE"
+    run ! grep -q "trace:trace_id" "$TEST_SQL_FILE"
 
     # Should still contain query_history views
     grep -iq "V_QUERY_HISTORY" "$TEST_SQL_FILE"
@@ -220,10 +221,10 @@ EOF
     [ -s "$TEST_SQL_FILE" ]
 
     # Should NOT contain query_history views when plugin is disabled
-    ! grep -i "create.*view.*V_QUERY_HISTORY" "$TEST_SQL_FILE"
+    run ! grep -i "create.*view.*V_QUERY_HISTORY" "$TEST_SQL_FILE"
 
     # Should NOT contain event_log table creation
-    ! grep -i "create.*event.*table.*EVENT_LOG" "$TEST_SQL_FILE"
+    run ! grep -i "create.*event.*table.*EVENT_LOG" "$TEST_SQL_FILE"
 }
 
 @test "query_history plugin: only event_log enabled (query_history disabled)" {
@@ -267,7 +268,7 @@ EOF
     [ -s "$TEST_SQL_FILE" ]
 
     # Should NOT contain query_history views
-    ! grep -iq "V_QUERY_HISTORY" "$TEST_SQL_FILE"
+    run ! grep -iq "V_QUERY_HISTORY" "$TEST_SQL_FILE"
 
     # Should contain EVENT_LOG table (from event_log plugin)
     grep -iq "event.*table.*EVENT_LOG" "$TEST_SQL_FILE"
