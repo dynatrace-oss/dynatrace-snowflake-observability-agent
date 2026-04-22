@@ -11,7 +11,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-## [0.9.5] - 2026-04-22
+### Changed
+
+- Updated `snowflake-snowpark-python` minimum version to `>=1.49.0` (was `>=1.48.1`). Python version constraint
+  remains `<3.14` — bottleneck is `snowflake==1.12.0`, not snowpark. See [DEVLOG.md](DEVLOG.md) for full audit details.
 
 ### Fixed
 
