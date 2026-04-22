@@ -9,6 +9,7 @@ This file documents detailed technical changes, internal refactorings, and devel
 **Scope**: Story BDX-1969 — eliminate manual config creation friction for first-time DSOA users. Deliverables: shared bash library, 4-phase interactive wizard, `deploy.sh` flag enhancements, full BATS test suite.
 
 **Architecture**:
+
 - **`scripts/deploy/lib.sh`** (487 lines): Shared bash library sourced by wizard and deploy.sh. Includes:
   - **Logging helpers**: `log_info`, `log_ok`, `log_warn`, `log_error` (consolidates duplicated code from `deploy_dt_assets.sh` + `deploy_test_notebook.sh` for future refactoring).
   - **Prompt helpers**: `prompt_input()` (collects input with optional default + validation fn), `prompt_yesno()` (y/n), `prompt_select_one()` (bash `select` menu), `prompt_select_multi()` (y/n per item).
@@ -25,19 +26,21 @@ This file documents detailed technical changes, internal refactorings, and devel
   - **Config persistence**: Generates YAML via `yq`. Offers: ① save new `conf/config-$ENV.yml`, ② merge into existing (preserves comments), ③ print to stdout, ④ discard.
   - **Flags**: `--env=`, `--existing-config=`, `--dry-run`, `--output=`. Works with piped stdin for testing.
 
-- **Modified `scripts/deploy/deploy.sh`**: 
+- **Modified `scripts/deploy/deploy.sh`**:
   - **New args**: `--env=<ENV>` (flag-based, replaces positional), `--interactive` (launch wizard), `--defaults` (generate minimal config non-interactively from `config-template.yml`).
   - **Backward compat**: Positional `$ENV` still works; emits deprecation warning suggesting `--env=`.
   - **Auto-trigger wizard**: When `conf/config-$ENV.yml` missing and `--defaults` not set, automatically invokes wizard.
   - **Validation**: Wizard's probes check DT tenant and SF account reachability; optional API token validation via metadata endpoint (all warnings, no hard blocks).
 
 **Testing**:
+
 - **`test/bash/test_lib.bats`** (156 lines, 19 tests): Unit tests for lib.sh validators, prompt helpers, config key accessors. Source lib.sh directly, test functions in isolation.
 - **`test/bash/test_interactive_wizard.bats`** (101 lines, 5 tests): Integration tests. Pipe stdin answers into wizard; validate generated YAML with `yq`. Covers all phases, config persistence options.
 - **`test/bash/test_deploy_new_flags.bats`** (160 lines, 8 tests): Test deploy.sh flag behavior (`--env=`, `--interactive`, `--defaults`, positional deprecation). Verify config generation, scope filtering.
 - **Total**: 32 tests, 100% pass rate.
 
 **Design decisions**:
+
 1. **No external TUI frameworks** (no fzf/gum/whiptail/dialog) — bash `select` is sufficient for plugin checklist.
 2. **HTTPS probes warn, don't block** — per story spec; users can proceed even if network unreachable.
 3. **Auto-correct `.apps.` to `.live.`** — common user mistake; silently fixed improves UX.
@@ -46,6 +49,7 @@ This file documents detailed technical changes, internal refactorings, and devel
 6. **Piped stdin testing** — wizard accepts EOF gracefully; tests pipe answers + validate output, no interactive mocking needed.
 
 **Files changed**:
+
 - `scripts/deploy/lib.sh` (new, 487 lines)
 - `scripts/deploy/interactive_wizard.sh` (new, 568 lines)
 - `scripts/deploy/deploy.sh` (modified, +119 lines)
@@ -56,6 +60,7 @@ This file documents detailed technical changes, internal refactorings, and devel
 - `docs/DEVLOG.md` (this file, technical details)
 
 **Acceptance criteria met**:
+
 - ✓ `./deploy.sh --env=test-qa --interactive` launches wizard
 - ✓ `./deploy.sh --env=test-qa --defaults` generates config non-interactively
 - ✓ `./deploy.sh test-qa --scope=...` (positional) works with deprecation warning
@@ -66,6 +71,7 @@ This file documents detailed technical changes, internal refactorings, and devel
 - ✓ Full backward compatibility (existing deploy.sh flows unchanged)
 
 **Future work**:
+
 - Extract log helpers from `deploy_dt_assets.sh` and `deploy_test_notebook.sh` to source lib.sh (scope creep, separate PR).
 - GitHub Actions workflow generation as optional wizard output (BDX-1968, follow-up).
 - SQL `USE` statement deduplication in `prepare_deploy_script.sh` (post-MVP optimization, noted in story).
