@@ -20,6 +20,58 @@
     "snowflake.budget.name": "DTAGENT_BUDGET",
     "snowflake.schema.name": "APP",
     "dsoa.run.plugin": "test_budget",
-    "dsoa.run.context": "budgets"
+    "dsoa.run.context": "budgets",
+    "resource_attributes": {
+      "db.system": "snowflake",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "service.name": "test.dsoa2025",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1"
+    }
+  },
+  {
+    "content": "Budget spending for DTAGENT_BUDGET",
+    "db.namespace": "DTAGENT_DB",
+    "dsoa.run.context": "spendings",
+    "dsoa.run.plugin": "test_budget",
+    "snowflake.budget.full_name": "DTAGENT_DB.APP.DTAGENT_BUDGET",
+    "snowflake.budget.name": "DTAGENT_BUDGET",
+    "snowflake.credits.spent": 1.5,
+    "snowflake.schema.name": "APP",
+    "snowflake.service.type": "WAREHOUSE",
+    "resource_attributes": {
+      "db.system": "snowflake",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "service.name": "test.dsoa2025",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1"
+    }
+  },
+  {
+    "content": "Budget spending for DTAGENT_BUDGET_2",
+    "db.namespace": "DTAGENT_DB",
+    "dsoa.run.context": "spendings",
+    "dsoa.run.plugin": "test_budget",
+    "snowflake.budget.full_name": "DTAGENT_DB.APP.DTAGENT_BUDGET_2",
+    "snowflake.budget.name": "DTAGENT_BUDGET_2",
+    "snowflake.credits.spent": 0.0,
+    "snowflake.schema.name": "APP",
+    "snowflake.service.type": "AUTO_CLUSTERING",
+    "resource_attributes": {
+      "db.system": "snowflake",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "service.name": "test.dsoa2025",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1"
+    }
   }
 ]

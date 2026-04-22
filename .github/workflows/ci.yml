@@ -49,14 +49,14 @@ jobs:
 
       - name: Lint BOM files
         run: find src -name "bom.yml" -exec sh -c 'printf "%-50s " "$$1";
-          check-jsonschema --schemafile test/src-bom.schema.json "$$1" ||
           check-jsonschema --schemafile test/src-bom.schema.json "$$1"' _ {} \;
 
       - name: Install ShellCheck
         run: sudo apt-get install -y shellcheck
 
       - name: Lint Shell
-        run: shellcheck --severity=warning scripts/deploy/*.sh scripts/dev/*.sh scripts/test/*.sh test/bash/*.bats
+        run: shellcheck --severity=warning scripts/deploy/*.sh scripts/dev/*.sh
+          scripts/test/*.sh test/bash/*.bats
 
   test-documentation:
     runs-on: ubuntu-latest

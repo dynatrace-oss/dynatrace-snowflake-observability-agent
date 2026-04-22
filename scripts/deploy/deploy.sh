@@ -373,7 +373,7 @@ if [[ "$SCOPE" != "dt_assets" && "$SCOPE" != "apikey" ]]; then
 fi
 
 # preparing one big deployment script
-$CWD/prepare_deploy_script.sh "${INSTALL_SCRIPT_SQL}" "${ENV}" "${SCOPE}" "${FROM_VERSION}" "${IS_MANUAL}"
+$CWD/prepare_deploy_script.sh "${INSTALL_SCRIPT_SQL}" "${ENV}" "${SCOPE}" "${FROM_VERSION}" "${IS_MANUAL}" "${OPTIONS_STR}"
 if [ $? -ne 0 ]; then
     echo "ERROR: Deploy preparation failed"
     exit 1

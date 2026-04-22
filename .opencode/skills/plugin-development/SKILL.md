@@ -735,3 +735,36 @@ Deploy upgrade before main deploy:
 ./scripts/deploy/deploy.sh test-qa --scope=upgrade --from-version=<prev> --options=skip_confirm
 ./scripts/deploy/deploy.sh test-qa --scope=plugins,admin,config --options=skip_confirm
 ```
+
+## Plugin Removal Checklist
+
+When a plugin is **permanently removed** from the codebase (deleted from `src/dtagent/plugins/`),
+you MUST register it in `conf/removed_plugins.yml` so that `--options=cleanup_disabled` can
+suspend and drop its orphaned Snowflake objects on the next deployment.
+
+### Steps
+
+1. **Delete** the plugin directory: `src/dtagent/plugins/<name>.sql/` and `src/dtagent/plugins/<name>.py`
+2. **Remove** the plugin from `src/dtagent.sql/agents/700_dtagent.sql` `ARRAY_CONSTRUCT` block
+3. **Add** an entry to `conf/removed_plugins.yml`:
+
+```yaml
+removed_plugins:
+  - name: <plugin_name>
+    removed_in_version: <x.y.z>
+    tasks:
+      - DTAGENT_DB.APP.TASK_DTAGENT_<PLUGIN_NAME_UPPER>
+      # add more tasks if the plugin had multiple (e.g. TASK_DTAGENT_<NAME>_HISTORY)
+```
+
+4. **Update** `docs/CHANGELOG.md` and `docs/DEVLOG.md`
+5. **Deploy cleanup** to remove orphaned objects from live environments:
+
+```bash
+./scripts/deploy/deploy.sh test-qa --scope=plugins,config --options=cleanup_disabled,skip_confirm
+```
+
+> `--options=cleanup_disabled` triggers `inject_cleanup_for_excluded_plugins()` in
+> `prepare_deploy_script.sh`, which reads `conf/removed_plugins.yml`, drops listed tasks,
+> and also scans `INFORMATION_SCHEMA.TASKS` for any orphaned `TASK_DTAGENT_%` tasks not
+> belonging to active plugins.

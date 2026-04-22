@@ -17,6 +17,25 @@ All notable changes to this project will be documented in this file.
 - **New `deploy.sh` flags**: `--env=<ENV>` (replaces positional arg), `--interactive` (launch wizard), `--defaults` (generate minimal config non-interactively). Positional `$ENV` still supported with deprecation warning for backward compatibility.
 - **Shared bash library** (`scripts/deploy/lib.sh`): Logging, prompt helpers, validators (DT tenant, Snowflake account, tokens) for reuse across deployment scripts.
 
+### Changed
+
+- Updated `snowflake-snowpark-python` minimum version to `>=1.49.0` (was `>=1.48.1`). Python version constraint
+  remains `<3.14` — bottleneck is `snowflake==1.12.0`, not snowpark. See [DEVLOG.md](DEVLOG.md) for full audit details.
+
+### Fixed
+
+- The `event_log` plugin setup procedure now adapts to Snowflake BCR Bundle 2026\_02 (`LOG_EVENT_LEVEL` parameter).
+  On accounts where the BCR is active, `LOG_EVENT_LEVEL = INFO` is set at database level, and also at account
+  level when DSOA provisions and owns the event table, so events emitted by DSOA procedures continue to reach the
+  event table. When a pre-existing/custom event table is used, the account-level parameter is left unchanged. On
+  pre-BCR accounts the new parameter is detected as absent and the change is skipped gracefully. See
+  [DEVLOG.md](DEVLOG.md) for details.
+
+- Config changes on redeploy now take full effect: the config upload procedure uses DELETE + INSERT (full replace) instead of an additive MERGE, so entries removed from the YAML (e.g. a plugin's `is_enabled: true`) are also removed from Snowflake. Previously, stale config entries could override a new `disabled_by_default: true` setting.
+- Disabled plugins now have their Snowflake tasks suspended automatically on every redeploy, regardless of deploy scope. The deploy script injects `ALTER TASK IF EXISTS … SUSPEND` for every excluded plugin (including multi-task and admin-task plugins) before executing the deploy SQL. Previously, stale tasks continued running and consuming compute credits after a plugin was disabled.
+
+See [DEVLOG.md](DEVLOG.md) for implementation details.
+
 ## [0.9.4] - 2026-04-14
 
 ### Added

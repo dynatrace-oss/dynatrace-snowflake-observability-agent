@@ -265,6 +265,14 @@ class MockTelemetryClient:
 
         kv_data = []
         for resource in getattr(request, f"resource_{telemetry_type}"):
+            # Extract resource-level attributes
+            resource_attributes = {}
+            if resource.resource and resource.resource.attributes:
+                for kv_pair in resource.resource.attributes:
+                    key = kv_pair.key
+                    value = __extract_value(kv_pair)
+                    resource_attributes[key] = value
+
             for scope in getattr(resource, f"scope_{telemetry_type}"):
                 for record in scope.log_records if telemetry_type == "logs" else scope.spans:
                     kv_datum = {}
@@ -290,6 +298,10 @@ class MockTelemetryClient:
                             key = kv_pair.key
                             value = __extract_value(kv_pair)
                             kv_datum[key] = value
+
+                    # Add resource attributes as a separate key
+                    if resource_attributes:
+                        kv_datum["resource_attributes"] = resource_attributes
 
                     if kv_datum:
                         kv_data.append(kv_datum)
