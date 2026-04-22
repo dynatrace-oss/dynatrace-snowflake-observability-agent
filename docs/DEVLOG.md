@@ -2,6 +2,38 @@
 
 This file documents detailed technical changes, internal refactorings, and development notes. For user-facing highlights, see [CHANGELOG.md](CHANGELOG.md).
 
+## Version 0.9.5 — Detailed Changes
+
+### Bug Fixes
+
+#### Config Upload: MERGE → DELETE + INSERT (Full Replace)
+
+- **Root cause**: `040_update_config.sql` used `MERGE INTO CONFIG.CONFIGURATIONS` which is additive — rows present in a previous deploy but absent from the new YAML were never deleted. This meant that a plugin's `is_enabled: true` entry persisted even after the user removed it from their config YAML or switched to `disabled_by_default: true`. The stale entry overrode the new global setting, leaving the plugin enabled.
+- **Fix**: Replaced the `MERGE` with a `BEGIN … DELETE FROM … INSERT INTO … END` block. The full YAML is always flattened and uploaded by `prepare_config.sh` (default + env merge), so a full table replace is safe. The `BEGIN/END` wrapper ensures atomicity — no window where the config table is empty.
+- **Files changed**: `src/dtagent.sql/config/040_update_config.sql`
+- **Backward compatibility**: First deploy with new code performs a full replace. If the user's YAML is complete (guaranteed by `prepare_config.sh`), no data loss. Manual edits to `CONFIG.CONFIGURATIONS` outside the deploy pipeline are not supported and will be lost on next deploy.
+
+#### Deploy Pipeline: Automatic Task Suspension for Disabled Plugins
+
+- **Root cause**: When a plugin is disabled, `prepare_deploy_script.sh` strips its SQL via `filter_plugin_code()`. This means the `CREATE OR REPLACE TASK` statement (which would reset the task to Snowflake's default `suspended` state) is never executed. The existing task from a prior deploy remains in `started` state, consuming warehouse credits and potentially logging errors if underlying views were dropped.
+- **Fix**: Added `inject_suspend_for_excluded_plugins()` to `prepare_deploy_script.sh`. After `filter_plugin_code()` runs, this function iterates `EXCLUDED_PLUGINS`, finds each plugin's `*_task.sql` files under `src/dtagent/plugins/<name>.sql/` (recursively, to cover `admin/` subdirectories), extracts the fully-qualified task name from the `CREATE OR REPLACE TASK` statement, and appends `ALTER TASK IF EXISTS <name> SUSPEND;` to the deploy script. The function is called for all scopes except `apikey` and `teardown`.
+- **Design decisions**:
+  - Task names are extracted from source SQL files rather than hardcoded, so multi-task plugins (e.g. `snowpipes` with `TASK_DTAGENT_SNOWPIPES` + `TASK_DTAGENT_SNOWPIPES_HISTORY`) and admin tasks (e.g. `event_log` with `TASK_DTAGENT_EVENT_LOG_CLEANUP`) are handled automatically.
+  - `ALTER TASK IF EXISTS` is used for fresh-deploy safety (task doesn't exist yet → no-op).
+  - The injected SQL uses `use role DTAGENT_OWNER` context, consistent with the rest of the deploy script. Custom name / TAG substitution (applied later in the script via `sed`) correctly replaces `DTAGENT_OWNER`, `DTAGENT_DB`, and `DTAGENT_WH` in the injected block.
+  - Suspension runs regardless of deploy scope — even `--scope=plugins,agents` (no config scope) will suspend disabled plugin tasks.
+- **Files changed**: `scripts/deploy/prepare_deploy_script.sh`
+
+#### Documentation: UPDATE_ALL_PLUGINS_SCHEDULE Scope Clarification
+
+- Added a comment to `037_update_all_plugins_schedule.sql` explaining that the procedure only iterates plugins with a schedule entry in config, and that plugins absent from config are handled by `inject_suspend_for_excluded_plugins()` at deploy time.
+- **Files changed**: `src/dtagent.sql/setup/037_update_all_plugins_schedule.sql`
+
+### Tests Added
+
+- `test/bash/test_config_full_replace.bats` — 5 tests verifying DELETE+INSERT pattern in `040_update_config.sql`.
+- `test/bash/test_suspend_disabled_plugins.bats` — 8 tests covering: no exclusions → no suspend SQL; single-task plugin; multi-task plugin (snowpipes); admin-task plugin (event_log); role context; scope independence (`plugins,agents`); deploy log output; teardown scope exclusion.
+
 ## Version 0.9.4 — Detailed Changes
 
 ### Bug Fixes — Technical Details

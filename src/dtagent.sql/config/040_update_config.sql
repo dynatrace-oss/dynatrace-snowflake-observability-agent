@@ -32,23 +32,15 @@ list @%TEMP_CONFIG;
 copy into TEMP_CONFIG from '@%TEMP_CONFIG/config.json' file_format = (type=JSON);
 --%:UPLOAD:CONFIG
 
-merge into DTAGENT_DB.CONFIG.CONFIGURATIONS c using (
-    select
-        PARSE_JSON(data):PATH::string    as PATH,
-        PARSE_JSON(data):VALUE::variant  as VALUE,
-        PARSE_JSON(data):TYPE::string    as TYPE,
-    from TEMP_CONFIG
-    ) t
-    on t.PATH = c.PATH
-        when matched then
-            update set VALUE = t.VALUE::variant,
-                        TYPE = t.TYPE::string
-        when not matched then
-            insert (PATH, VALUE, TYPE) VALUES (
-                    t.PATH::string,
-                    t.VALUE::variant,
-                    t.TYPE::string
-                );
+begin
+    delete from DTAGENT_DB.CONFIG.CONFIGURATIONS;
+    insert into DTAGENT_DB.CONFIG.CONFIGURATIONS (PATH, VALUE, TYPE)
+        select
+            PARSE_JSON(data):PATH::string    as PATH,
+            PARSE_JSON(data):VALUE::variant  as VALUE,
+            PARSE_JSON(data):TYPE::string    as TYPE
+        from TEMP_CONFIG;
+end;
 
 --%UPLOAD:SKIP:
 remove @%TEMP_CONFIG pattern='.*.json.gz';

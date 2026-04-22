@@ -508,6 +508,50 @@ if [ "$SCOPE" != "apikey" ] && [ "$SCOPE" != "teardown" ]; then
     fi
 fi
 
+# Function to inject ALTER TASK ... SUSPEND statements for excluded (disabled) plugins.
+# This ensures stale Snowflake tasks are suspended even when plugin SQL is stripped from the
+# deploy script (e.g. --scope=plugins,agents without config scope).
+# Task names are extracted from *_task.sql source files so multi-task plugins are handled correctly.
+inject_suspend_for_excluded_plugins() {
+    local install_script="$1"
+
+    if [ -z "$EXCLUDED_PLUGINS" ]; then
+        return
+    fi
+
+    local suspend_sql=""
+    for plugin_name in $EXCLUDED_PLUGINS; do
+        local plugin_sql_dir="src/dtagent/plugins/${plugin_name}.sql"
+        if [ ! -d "$plugin_sql_dir" ]; then
+            echo "[deploy] WARNING: plugin SQL directory not found for disabled plugin: ${plugin_name} (${plugin_sql_dir})"
+            continue
+        fi
+
+        # Find all *_task.sql files recursively (covers admin/ subdirectories too)
+        while IFS= read -r task_sql; do
+            # Extract the fully-qualified task name from CREATE OR REPLACE TASK statement
+            local task_name
+            task_name=$(grep -i 'create or replace task' "$task_sql" | awk '{print $NF}' | head -1)
+            if [ -n "$task_name" ]; then
+                suspend_sql+="alter task if exists ${task_name} suspend;"$'\n'
+                echo "[deploy] Will suspend task for disabled plugin: ${plugin_name} (${task_name})"
+            fi
+        done < <(find "$plugin_sql_dir" -name '*_task.sql' -type f | sort)
+    done
+
+    if [ -n "$suspend_sql" ]; then
+        cat >> "$install_script" <<EOF
+use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
+${suspend_sql}
+EOF
+    fi
+}
+
+# Apply plugin filtering for non-special scopes and inject task suspension for excluded plugins
+if [ "$SCOPE" != "apikey" ] && [ "$SCOPE" != "teardown" ]; then
+    inject_suspend_for_excluded_plugins "${INSTALL_SCRIPT_SQL}"
+fi
+
 # Get list of optional components to exclude
 EXCLUDED_OPTIONS=$($CWD/list_options_to_exclude.sh)
 
