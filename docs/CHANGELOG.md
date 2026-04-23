@@ -16,6 +16,16 @@ All notable changes to this project will be documented in this file.
 - **Interactive deployment wizard** (`--interactive` flag): Guides users through 5-phase configuration (core config, deployment scope, plugin selection, advanced settings, telemetry settings). Auto-triggered when config file is missing. Generates `conf/config-$ENV.yml`. Includes HTTPS reachability probes for DT tenant and Snowflake account (warn-only, non-blocking). Supports `--dry-run` (print config to stdout) and `--output=<file>` (write to custom path).
 - **New `deploy.sh` flags**: `--env=<ENV>` (replaces positional arg), `--interactive` (launch wizard), `--defaults` (generate minimal config non-interactively). Positional `$ENV` still supported with deprecation warning for backward compatibility.
 - **Shared bash library** (`scripts/deploy/lib.sh`): Logging, prompt helpers, validators (DT tenant, Snowflake account, tokens) for reuse across deployment scripts.
+- **Docker deployment option**: A `ghcr.io/dynatrace-oss/dsoa-deploy` image bundles all deployment tools and build artifacts. Single `docker run` command replaces local toolchain installation. Published to GHCR on every release tag. See [docs/deployment/docker.md](deployment/docker.md).
+- **GitHub Actions workflow template**: `dsoa-deploy-template.yml` ships with each release. Use `--ci-export=github` in the interactive wizard to generate a customized workflow and `GITHUB_SECRETS_SETUP.md` for your environment. See [docs/deployment/github-actions.md](deployment/github-actions.md).
+- **`--defaults` non-interactive config generation**: When `DSOA_DT_TENANT`, `DSOA_SF_ACCOUNT`, and `DSOA_DEPLOYMENT_ENV` env vars are set, `--defaults` generates `conf/config-$ENV.yml` without any prompts. When config already exists, uses it as-is. Always implies `skip_confirm`.
+- **`--ci-export=github`** flag on `interactive_wizard.sh`: After saving config, generates `.github/workflows/dsoa-deploy.yml` and `GITHUB_SECRETS_SETUP.md` from templates in `src/assets/ci-templates/github/`.
+- **Deployment guides**: New `docs/deployment/` directory with dedicated guides for [local deploy.sh](deployment/deploy.md), [Docker](deployment/docker.md), and [GitHub Actions](deployment/github-actions.md).
+
+### Changed
+
+- **`service_user` option removed** from `deploy.sh --options`. Replaced by automatic `--temporary-connection` detection: when `SNOWFLAKE_ACCOUNT` and `SNOWFLAKE_USER` env vars are both set, `deploy.sh` uses `snow sql --temporary-connection` automatically. `setup.sh` skips connection profile creation in the same scenario.
+- `docs/INSTALL.md` restructured: Docker is now the primary quick-start path; detailed content moved to `docs/deployment/` guides.
 
 ### Changed
 

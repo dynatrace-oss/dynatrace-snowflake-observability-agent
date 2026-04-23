@@ -2,6 +2,12 @@
 
 This document covers advanced installation scenarios. For the standard quick-start path, see [INSTALL.md](INSTALL.md).
 
+**Deployment method guides:**
+
+- [Local deploy.sh](deployment/deploy.md) — macOS/Linux with Snowflake CLI
+- [Docker](deployment/docker.md) — any OS, no toolchain required
+- [GitHub Actions](deployment/github-actions.md) — CI/CD with audit trail
+
 ## Table of Contents
 
 - [Restricting Elevated Privileges](#restricting-elevated-privileges)
