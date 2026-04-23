@@ -61,7 +61,7 @@ has_option() {
 TAG=$($CWD/get_config_key.sh core.tag)
 TAG=${TAG:-""}
 
-echo "Deploying with tag "${TAG}""
+echo "Deploying with tag ${TAG}"
 
 #
 # Get custom object names from config
@@ -236,7 +236,7 @@ if [[ "$SCOPE" == *,* ]]; then
     # Remove leading/trailing spaces and deduplicate
     SQL_FILES=$(echo "$SQL_FILES" | xargs)
     #%DEV:
-    echo "DEBUG: Parsed scopes: ${SCOPE_ARRAY[@]}"
+    echo "DEBUG: Parsed scopes: ${SCOPE_ARRAY[*]}"
     echo "DEBUG: Built SQL_FILES: [$SQL_FILES]"
     #%:DEV
 
@@ -267,14 +267,20 @@ fi
 # Check if required SQL files exist in build folder (skip for scopes with empty SQL_FILES)
 if [ -n "$SQL_FILES" ]; then
     missing_files=false
+    missing_list=""
     for pattern in $SQL_FILES; do
         if ! find build/$pattern -type f 2>/dev/null | grep -q .; then
-            echo "ERROR: Build file missing: build/$pattern"
             missing_files=true
+            missing_list="$missing_list build/$pattern"
         fi
     done
     if [ "$missing_files" = true ]; then
-        echo "ERROR: Build files missing for scope $SCOPE"
+        echo ""
+        echo "ERROR: Build artifacts are missing. Run the following command first:"
+        echo "       ./scripts/dev/build.sh"
+        echo ""
+        echo "Missing files:$missing_list"
+        echo ""
         exit 1
     fi
 fi
@@ -417,7 +423,8 @@ filter_plugin_code() {
         return
     fi
 
-    local temp_file=$(mktemp)
+    local temp_file
+    temp_file=$(mktemp)
     cp "$input_file" "$temp_file"
 
     for plugin_name in $EXCLUDED_PLUGINS; do
@@ -467,7 +474,8 @@ filter_option_code() {
         return
     fi
 
-    local temp_file=$(mktemp)
+    local temp_file
+    temp_file=$(mktemp)
     cp "$input_file" "$temp_file"
 
     for option_name in $EXCLUDED_OPTIONS; do
@@ -736,7 +744,7 @@ fi
 #   Cleaning up the final script
 #
 # Set sed in-place flag based on OS
-if [ $(uname -s) = 'Darwin' ]; then
+if [ "$(uname -s)" = 'Darwin' ]; then
     SED_INPLACE=("sed" "-i" "")
 else
     SED_INPLACE=("sed" "-i")

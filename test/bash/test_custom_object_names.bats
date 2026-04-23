@@ -1,7 +1,8 @@
 #!/usr/bin/env bats
 
 setup() {
-    cd "$BATS_TEST_DIRNAME/../.."
+    # shellcheck disable=SC2154
+    cd "$BATS_TEST_DIRNAME/../.." || exit 1
     TEST_SQL_FILE=$(mktemp)
     TEST_CONFIG_FILE=$(mktemp)
 
@@ -124,10 +125,10 @@ EOF
     grep -q "MY_CUSTOM_RS" "$TEST_SQL_FILE"
 
     # Verify default names are NOT present (except in partial matches)
-    ! grep -E "(^|[^A-Za-z0-9_$])DTAGENT_OWNER([^A-Za-z0-9_$]|$)" "$TEST_SQL_FILE"
-    ! grep -E "use role DTAGENT_ADMIN" "$TEST_SQL_FILE"
-    ! grep -E "create role if not exists DTAGENT_VIEWER" "$TEST_SQL_FILE"
-    ! grep -E "create resource monitor if not exists DTAGENT_RS" "$TEST_SQL_FILE"
+    run ! grep -E "(^|[^A-Za-z0-9_$])DTAGENT_OWNER([^A-Za-z0-9_$]|$)" "$TEST_SQL_FILE"
+    run ! grep -E "use role DTAGENT_ADMIN" "$TEST_SQL_FILE"
+    run ! grep -E "create role if not exists DTAGENT_VIEWER" "$TEST_SQL_FILE"
+    run ! grep -E "create resource monitor if not exists DTAGENT_RS" "$TEST_SQL_FILE"
 }
 
 @test "custom names: partial replacement (only database and warehouse)" {
@@ -328,8 +329,8 @@ EOF
     grep -q "MY_CUSTOM_WH" "$TEST_SQL_FILE"
 
     # Verify TAG-based names are NOT used for these customized objects
-    ! grep -E "(^|[^A-Za-z0-9_$])DTAGENT_ENV01_DB([^A-Za-z0-9_$]|$)" "$TEST_SQL_FILE"
-    ! grep -E "(^|[^A-Za-z0-9_$])DTAGENT_ENV01_WH([^A-Za-z0-9_$]|$)" "$TEST_SQL_FILE"
+    run ! grep -E "(^|[^A-Za-z0-9_$])DTAGENT_ENV01_DB([^A-Za-z0-9_$]|$)" "$TEST_SQL_FILE"
+    run ! grep -E "(^|[^A-Za-z0-9_$])DTAGENT_ENV01_WH([^A-Za-z0-9_$]|$)" "$TEST_SQL_FILE"
 
     # When any custom name is used, TAG does NOT affect object naming at all
     # Objects without custom names use DEFAULT names (not TAG-based names)
@@ -338,9 +339,9 @@ EOF
     grep -q "DTAGENT_VIEWER" "$TEST_SQL_FILE"
 
     # Verify TAG-based names are NOT used for any objects
-    ! grep -E "(^|[^A-Za-z0-9_$])DTAGENT_ENV01_OWNER([^A-Za-z0-9_$]|$)" "$TEST_SQL_FILE"
-    ! grep -E "(^|[^A-Za-z0-9_$])DTAGENT_ENV01_ADMIN([^A-Za-z0-9_$]|$)" "$TEST_SQL_FILE"
-    ! grep -E "(^|[^A-Za-z0-9_$])DTAGENT_ENV01_VIEWER([^A-Za-z0-9_$]|$)" "$TEST_SQL_FILE"
+    run ! grep -E "(^|[^A-Za-z0-9_$])DTAGENT_ENV01_OWNER([^A-Za-z0-9_$]|$)" "$TEST_SQL_FILE"
+    run ! grep -E "(^|[^A-Za-z0-9_$])DTAGENT_ENV01_ADMIN([^A-Za-z0-9_$]|$)" "$TEST_SQL_FILE"
+    run ! grep -E "(^|[^A-Za-z0-9_$])DTAGENT_ENV01_VIEWER([^A-Za-z0-9_$]|$)" "$TEST_SQL_FILE"
 }
 
 @test "custom names: TAG works when no custom names set" {
@@ -392,13 +393,13 @@ EOF
     [ "$status" -eq 0 ]
 
     # Verify resource monitor creation is NOT present (init scope)
-    ! grep -q "create resource monitor" "$TEST_SQL_FILE"
+    run ! grep -q "create resource monitor" "$TEST_SQL_FILE"
 
     # Verify P_UPDATE_RESOURCE_MONITOR procedure definition is NOT present (setup scope)
-    ! grep -q "create or replace procedure.*P_UPDATE_RESOURCE_MONITOR" "$TEST_SQL_FILE"
+    run ! grep -q "create or replace procedure.*P_UPDATE_RESOURCE_MONITOR" "$TEST_SQL_FILE"
 
     # Verify calls to P_UPDATE_RESOURCE_MONITOR are NOT present (setup scope - indented blocks)
-    ! grep -q "call.*P_UPDATE_RESOURCE_MONITOR" "$TEST_SQL_FILE"
+    run ! grep -q "call.*P_UPDATE_RESOURCE_MONITOR" "$TEST_SQL_FILE"
 }
 
 @test "OPTION filtering: indented markers work correctly" {
@@ -445,7 +446,8 @@ EOF
     EXCLUDED_OPTIONS=$(./scripts/deploy/list_options_to_exclude.sh)
 
     # Apply the filter using the same logic as prepare_deploy_script.sh
-    local temp_file=$(mktemp)
+    local temp_file
+    temp_file=$(mktemp)
     cp "$TEST_INPUT_FILE" "$temp_file"
 
     for option_name in $EXCLUDED_OPTIONS; do
@@ -484,7 +486,7 @@ EOF
     rm -f "$temp_file"
 
     # Verify the indented block was removed
-    ! grep -q "P_UPDATE_RESOURCE_MONITOR" "$TEST_SQL_FILE"
+    run ! grep -q "P_UPDATE_RESOURCE_MONITOR" "$TEST_SQL_FILE"
 
     # Verify code before and after remains
     grep -q "SELECT 1" "$TEST_SQL_FILE"
@@ -529,7 +531,8 @@ EOF
     EXCLUDED_OPTIONS=$(./scripts/deploy/list_options_to_exclude.sh)
 
     # Apply the filter using the same logic as prepare_deploy_script.sh
-    local temp_file=$(mktemp)
+    local temp_file
+    temp_file=$(mktemp)
     cp "$TEST_INPUT_FILE" "$temp_file"
 
     for option_name in $EXCLUDED_OPTIONS; do
@@ -568,7 +571,7 @@ EOF
     rm -f "$temp_file"
 
     # Verify the block was removed
-    ! grep -q "CREATE RESOURCE MONITOR" "$TEST_SQL_FILE"
+    run ! grep -q "CREATE RESOURCE MONITOR" "$TEST_SQL_FILE"
 
     # Verify code before and after remains
     grep -q "SELECT 1" "$TEST_SQL_FILE"
