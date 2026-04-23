@@ -367,7 +367,8 @@ if $IS_MANUAL; then
     if [ -n "$OUTPUT_FILE" ]; then
         INSTALL_SCRIPT_SQL="$OUTPUT_FILE"
     else
-        INSTALL_SCRIPT_SQL="dsoa-deploy-script-${DEPLOYMENT_ENV}-${NOW_TS}.sql"
+        mkdir -p .logs 2>/dev/null
+        INSTALL_SCRIPT_SQL=".logs/dsoa-deploy-script-${DEPLOYMENT_ENV}-${NOW_TS}.sql"
     fi
 else
     INSTALL_SCRIPT_SQL=$(mktemp -p build)
