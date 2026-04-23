@@ -192,7 +192,7 @@ class QueryHistoryPlugin(Plugin):
                     if isinstance(result, dict):
                         return result
             return {"status": "success", "total_processed": 0, "total_available": 0, "max_entries_applied": False}
-        except Exception as e:
+        except (ValueError, KeyError, TypeError) as e:
             LOG.warning("Failed to parse P_REFRESH_RECENT_QUERIES result: %s", str(e))
             return {"status": "error", "total_processed": 0, "total_available": 0, "max_entries_applied": False}
 

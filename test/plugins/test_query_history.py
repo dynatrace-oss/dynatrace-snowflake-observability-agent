@@ -139,6 +139,7 @@ class TestQueryHist:
                 with open(fixture_path, "r", encoding="utf-8") as _fh:
                     all_rows = [_json.loads(line) for line in _fh if line.strip()]
                 from dtagent.util import _adjust_timestamp
+
                 for row_dict in all_rows:
                     if row_dict.get(parent_row_id_col) == row_id:
                         _adjust_timestamp(row_dict)
@@ -168,6 +169,7 @@ class TestQueryHist:
             return TestQueryHistoryPlugin
 
         from dtagent import plugins
+
         plugins._get_plugin_class = __local_get_plugin_class
 
         # Test with max_entries limiting - should still process 3 rows from fixture
@@ -209,6 +211,7 @@ class TestQueryHist:
                 with open(fixture_path, "r", encoding="utf-8") as _fh:
                     all_rows = [_json.loads(line) for line in _fh if line.strip()]
                 from dtagent.util import _adjust_timestamp
+
                 for row_dict in all_rows:
                     if row_dict.get(parent_row_id_col) == row_id:
                         _adjust_timestamp(row_dict)
@@ -238,6 +241,7 @@ class TestQueryHist:
             return TestQueryHistoryPlugin
 
         from dtagent import plugins
+
         plugins._get_plugin_class = __local_get_plugin_class
 
         # Test backward compatibility: no max_entries limiting
