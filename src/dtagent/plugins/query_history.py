@@ -186,14 +186,22 @@ class QueryHistoryPlugin(Plugin):
             df = self._session.sql("call APP.P_REFRESH_RECENT_QUERIES()")
             rows = df.collect()
             if rows:
-                result_str = rows[0][0]
-                if isinstance(result_str, str):
-                    result = _from_json(result_str)
+                result_value = rows[0][0]
+                if isinstance(result_value, dict):
+                    return result_value
+                if isinstance(result_value, str):
+                    result = _from_json(result_value)
                     if isinstance(result, dict):
                         return result
+                try:
+                    result = dict(result_value)
+                    if isinstance(result, dict):
+                        return result
+                except (TypeError, ValueError):
+                    pass
             return {"status": "success", "total_processed": 0, "total_available": 0, "max_entries_applied": False}
-        except (ValueError, KeyError, TypeError) as e:
-            LOG.warning("Failed to parse P_REFRESH_RECENT_QUERIES result: %s", str(e))
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            LOG.warning("Failed to execute or parse P_REFRESH_RECENT_QUERIES result: %s", str(e))
             return {"status": "error", "total_processed": 0, "total_available": 0, "max_entries_applied": False}
 
     def _emit_overload_protection_event(self, refresh_result: Dict[str, Any], context: str) -> None:

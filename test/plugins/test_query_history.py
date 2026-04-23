@@ -253,6 +253,68 @@ class TestQueryHist:
         )
 
 
+class TestCallRefreshRecentQueries:
+    """Unit tests for _call_refresh_recent_queries() parsing logic."""
+
+    import pytest
+
+    def _make_plugin(self):
+        """Create a minimal QueryHistoryPlugin instance with a mock session."""
+        from unittest.mock import MagicMock
+        from dtagent.plugins.query_history import QueryHistoryPlugin
+
+        plugin = QueryHistoryPlugin.__new__(QueryHistoryPlugin)
+        plugin._session = MagicMock()
+        plugin._logs = MagicMock()
+        plugin._events = MagicMock()
+        return plugin
+
+    def test_returns_dict_when_snowpark_returns_dict(self):
+        """Snowpark VARIANT → dict path: result returned directly."""
+        from unittest.mock import MagicMock
+
+        plugin = self._make_plugin()
+        expected = {"status": "success", "total_processed": 5, "total_available": 10, "max_entries_applied": True, "max_entries_value": 5}
+        mock_row = MagicMock()
+        mock_row.__getitem__ = lambda self, i: expected
+        plugin._session.sql.return_value.collect.return_value = [mock_row]
+
+        result = plugin._call_refresh_recent_queries()
+        assert result == expected
+
+    def test_returns_dict_when_snowpark_returns_json_string(self):
+        """Legacy JSON string path: result parsed from string."""
+        import json
+        from unittest.mock import MagicMock
+
+        plugin = self._make_plugin()
+        expected = {"status": "success", "total_processed": 3, "total_available": 3, "max_entries_applied": False}
+        mock_row = MagicMock()
+        mock_row.__getitem__ = lambda self, i: json.dumps(expected)
+        plugin._session.sql.return_value.collect.return_value = [mock_row]
+
+        result = plugin._call_refresh_recent_queries()
+        assert result == expected
+
+    def test_returns_default_on_exception(self):
+        """Broad-except path: returns error default when procedure call raises."""
+        plugin = self._make_plugin()
+        plugin._session.sql.side_effect = RuntimeError("Snowpark connection error")
+
+        result = plugin._call_refresh_recent_queries()
+        assert result["status"] == "error"
+        assert result["max_entries_applied"] is False
+
+    def test_returns_default_when_no_rows(self):
+        """Empty result set: returns success default."""
+        plugin = self._make_plugin()
+        plugin._session.sql.return_value.collect.return_value = []
+
+        result = plugin._call_refresh_recent_queries()
+        assert result["status"] == "success"
+        assert result["max_entries_applied"] is False
+
+
 if __name__ == "__main__":
     test_class = TestQueryHist()
     test_class.test_query_hist()
