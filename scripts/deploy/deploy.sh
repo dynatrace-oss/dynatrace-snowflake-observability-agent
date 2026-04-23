@@ -201,16 +201,34 @@ if [[ $INTERACTIVE -eq 1 ]]; then
         EXISTING_CONFIG="$CONFIG_FILE"
     fi
 
-    # Run wizard
+    # Run wizard — use a temp file to receive options set inside the wizard (e.g. manual mode)
+    WIZARD_OPTIONS_FILE=$(mktemp)
+    WIZARD_TOKEN_FILE=$(mktemp)
+    # shellcheck disable=SC2064
+    trap "rm -f ${WIZARD_OPTIONS_FILE} ${WIZARD_TOKEN_FILE}" EXIT
+
     if [[ -n "$EXISTING_CONFIG" ]]; then
-        "$CWD/interactive_wizard.sh" --env="$ENV" --existing-config="$EXISTING_CONFIG"
+        "$CWD/interactive_wizard.sh" --env="$ENV" --existing-config="$EXISTING_CONFIG" --options-out="$WIZARD_OPTIONS_FILE" --token-out="$WIZARD_TOKEN_FILE"
     else
-        "$CWD/interactive_wizard.sh" --env="$ENV"
+        "$CWD/interactive_wizard.sh" --env="$ENV" --options-out="$WIZARD_OPTIONS_FILE" --token-out="$WIZARD_TOKEN_FILE"
     fi
 
     if [[ $? -ne 0 ]]; then
         echo "Wizard cancelled or failed" >&2
         exit 1
+    fi
+
+    # Merge options emitted by the wizard into OPTIONS_STR
+    if [[ -s "$WIZARD_OPTIONS_FILE" ]]; then
+        WIZARD_OPTIONS=$(cat "$WIZARD_OPTIONS_FILE")
+        OPTIONS_STR="${OPTIONS_STR:+${OPTIONS_STR},}${WIZARD_OPTIONS}"
+        IFS=',' read -ra OPTIONS <<< "$OPTIONS_STR"
+    fi
+
+    # Import token collected by the wizard into the environment (if not already set)
+    if [[ -s "$WIZARD_TOKEN_FILE" && -z "${DTAGENT_TOKEN:-}" ]]; then
+        DTAGENT_TOKEN=$(cat "$WIZARD_TOKEN_FILE")
+        export DTAGENT_TOKEN
     fi
 fi
 
@@ -325,7 +343,10 @@ fi
 
 export BUILD_CONFIG_FILE="build/config.json"
 
-DEPLOYMENT_ID=$(uuidgen)
+DEPLOYMENT_ID=$(uuidgen 2>/dev/null \
+    || cat /proc/sys/kernel/random/uuid 2>/dev/null \
+    || python3 -c "import uuid; print(uuid.uuid4())" 2>/dev/null \
+    || echo "00000000-0000-0000-0000-$(date +%s%N | tail -c 12)")
 
 $CWD/prepare_config.sh "${DEFAULT_CONFIG_FILE}" "${CONFIG_FILE}"
 

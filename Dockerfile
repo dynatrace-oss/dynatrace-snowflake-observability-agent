@@ -40,6 +40,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         curl \
         jq \
         gawk \
+        uuid-runtime \
     && rm -rf /var/lib/apt/lists/*
 
 # Install yq (mikefarah/yq v4 binary) and Snowflake CLI

@@ -49,6 +49,8 @@ EXISTING_CONFIG=""
 DRY_RUN=0
 OUTPUT_FILE=""
 CI_EXPORT=""
+OPTIONS_OUT=""  # path to file where wizard writes back options (e.g. manual) for deploy.sh
+TOKEN_OUT=""    # path to file where wizard writes the collected DT token for deploy.sh
 
 # Path to default config — used to seed defaults dynamically
 DEFAULT_CONFIG="${SCRIPT_DIR}/../../build/config-default.yml"
@@ -242,6 +244,14 @@ parse_arguments() {
                 ;;
             --ci-export=*)
                 CI_EXPORT="${1#*=}"
+                shift
+                ;;
+            --options-out=*)
+                OPTIONS_OUT="${1#*=}"
+                shift
+                ;;
+            --token-out=*)
+                TOKEN_OUT="${1#*=}"
                 shift
                 ;;
             *)
@@ -1168,6 +1178,24 @@ main() {
     fi
 
     log_ok "Wizard completed successfully"
+
+    # Write options back to deploy.sh via --options-out file
+    if [[ -n "$OPTIONS_OUT" ]]; then
+        local opts=()
+        [[ $MANUAL_MODE  -eq 1 ]] && opts+=("manual")
+        [[ $SKIP_CONFIRM -eq 1 ]] && opts+=("skip_confirm")
+        [[ $NO_DEP       -eq 1 ]] && opts+=("no_dep")
+        if [[ ${#opts[@]} -gt 0 ]]; then
+            local IFS=','
+            echo "${opts[*]}" > "$OPTIONS_OUT"
+        fi
+    fi
+
+    # Write collected DT token back to deploy.sh via --token-out file
+    if [[ -n "$TOKEN_OUT" && -n "$DT_TOKEN" ]]; then
+        echo "$DT_TOKEN" > "$TOKEN_OUT"
+    fi
+
     return 0
 }
 
