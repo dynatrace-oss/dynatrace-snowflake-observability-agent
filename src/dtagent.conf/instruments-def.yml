@@ -67,4 +67,6 @@ attributes:
 metrics:
   dsoa.agent.memory.peak_rss:
     __description: "Peak resident set size (RSS) of the agent process in megabytes, sampled after each plugin context run."
-    __unit: "MB"
+    __example: "42.5"
+    unit: MB
+    displayName: Agent Peak Memory (RSS)
