@@ -153,10 +153,16 @@ fi
 
 # Early build artifact check — must happen before wizard and before setup.sh.
 # Skipped for:
-#   dt_assets  — no build files needed for dashboard/workflow deploys
-#   --defaults — only generates a config file, no build artifacts required
-#   --interactive (wizard) — wizard collects config, actual deploy runs later
-if [[ "$SCOPE" != "dt_assets" && $DEFAULTS -eq 0 && $INTERACTIVE -eq 0 ]]; then
+#   dt_assets    — no build files needed for dashboard/workflow deploys
+#   --interactive — wizard collects config, actual deploy runs later
+#   --defaults without existing config — only generates config, no build artifacts required
+_skip_build_check=0
+if [[ "$SCOPE" == "dt_assets" || $INTERACTIVE -eq 1 ]]; then
+    _skip_build_check=1
+elif [[ $DEFAULTS -eq 1 && ! -f "$CONFIG_FILE" ]]; then
+    _skip_build_check=1
+fi
+if [[ $_skip_build_check -eq 0 ]]; then
     if [[ ! -d "build" ]] || [[ -z "$(ls -A build 2>/dev/null)" ]]; then
         echo "ERROR: Build artifacts are missing. Run the following command first:" >&2
         echo "       ./scripts/dev/build.sh" >&2
@@ -197,35 +203,36 @@ fi
 
 # Generate minimal config if --defaults specified
 if [[ $DEFAULTS -eq 1 ]]; then
-    if [[ -f "$CONFIG_FILE" ]]; then
-        echo "Config file already exists: $CONFIG_FILE" >&2
-        exit 1
+    if [[ ! -f "$CONFIG_FILE" ]]; then
+        # Generate config from environment variables
+        if [[ -z "${DSOA_DT_TENANT:-}" ]]; then
+            echo "ERROR: --defaults requires DSOA_DT_TENANT env var (Dynatrace tenant address)" >&2
+            exit 1
+        fi
+
+        _deploy_env="${DSOA_DEPLOYMENT_ENV:-${ENV^^}}"
+        _sf_account="${DSOA_SF_ACCOUNT:-CHANGE_ME}"
+
+        mkdir -p conf
+        yq -n \
+            ".core.dynatrace_tenant_address = \"${DSOA_DT_TENANT}\" |
+             .core.deployment_environment = \"${_deploy_env}\" |
+             .core.snowflake.account_name = \"${_sf_account}\" |
+             .core.log_level = \"WARN\" |
+             .core.procedure_timeout = 3600 |
+             .plugins.deploy_disabled_plugins = true" \
+            > "$CONFIG_FILE"
+
+        echo "Config generated at: $CONFIG_FILE" >&2
+    else
+        echo "Config file already exists: $CONFIG_FILE — using as-is" >&2
     fi
 
-    # Create minimal config with defaults
-    mkdir -p conf
-    cat > "$CONFIG_FILE" << 'EOF'
-# Minimal DSOA configuration - generated with --defaults flag
-# Please update with your actual values before deployment
-
-core:
-  dynatrace_tenant_address: "CHANGE_ME.live.dynatrace.com"
-  snowflake:
-    account_name: "CHANGE_ME"
-  deployment_environment: "CHANGE_ME"
-  log_level: "WARN"
-  procedure_timeout: 3600
-
-plugins:
-  deploy_disabled_plugins: true
-
-# Set DTAGENT_TOKEN environment variable before deployment:
-# export DTAGENT_TOKEN="your-api-token-here"
-EOF
-
-    echo "Minimal config generated at: $CONFIG_FILE" >&2
-    echo "Please update the CHANGE_ME values and set DTAGENT_TOKEN environment variable" >&2
-    exit 0
+    # --defaults implies skip_confirm
+    if ! has_option "skip_confirm"; then
+        OPTIONS_STR="${OPTIONS_STR:+${OPTIONS_STR},}skip_confirm"
+        IFS=',' read -ra OPTIONS <<< "$OPTIONS_STR"
+    fi
 fi
 
 # Display warning when bizevent send fails
