@@ -93,11 +93,14 @@ OTEL_MAX_CONSECUTIVE_API_FAILS=""
 ##region Helper Functions
 
 ##
-# Discover all plugin names from the source tree.
+# Discover all plugin names from the source tree or build artifacts.
 #
-# Scans src/dtagent/plugins/*.config/ directories relative to the repo root
-# (two levels up from this script). Returns plugin names sorted alphabetically,
-# one per line.
+# Primary:  Scans src/dtagent/plugins/*.config/ directories relative to the
+#           repo root (two levels up from this script).
+# Fallback: When the source tree is absent (e.g. inside the Docker image),
+#           derives plugin names from build/30_plugins/*.sql basenames.
+#
+# Returns plugin names sorted alphabetically, one per line.
 #
 # Returns:
 #   0 always
@@ -107,15 +110,27 @@ OTEL_MAX_CONSECUTIVE_API_FAILS=""
 ##
 discover_plugin_names() {
     local plugins_dir="${SCRIPT_DIR}/../../src/dtagent/plugins"
-    if [[ ! -d "$plugins_dir" ]]; then
+    if [[ -d "$plugins_dir" ]]; then
+        local d name
+        for d in "$plugins_dir"/*.config/; do
+            [[ -d "$d" ]] || continue
+            name=$(basename "$d" .config)
+            echo "$name"
+        done | sort
         return 0
     fi
-    local d name
-    for d in "$plugins_dir"/*.config/; do
-        [[ -d "$d" ]] || continue
-        name=$(basename "$d" .config)
-        echo "$name"
-    done | sort
+
+    # Fallback: derive plugin names from compiled SQL artifacts in build/30_plugins/
+    local build_plugins_dir="${SCRIPT_DIR}/../../build/30_plugins"
+    if [[ -d "$build_plugins_dir" ]]; then
+        local f name
+        for f in "$build_plugins_dir"/*.sql; do
+            [[ -f "$f" ]] || continue
+            name=$(basename "$f" .sql)
+            echo "$name"
+        done | sort
+        return 0
+    fi
 }
 
 ##

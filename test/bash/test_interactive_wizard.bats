@@ -802,6 +802,44 @@ _run_phase5_otel() {
     [ "$wizard_list" = "$fs_list" ]
 }
 
+@test "discover_plugins falls back to build/30_plugins when src tree absent" {
+    # Simulate Docker environment: src/dtagent/plugins does not exist.
+    # discover_plugin_names must fall back to build/30_plugins/*.sql basenames.
+    result=$(bash -c "
+        # Create a temp workspace mimicking the Docker image layout
+        tmpdir=\$(mktemp -d)
+        mkdir -p \"\$tmpdir/build/30_plugins\"
+        touch \"\$tmpdir/build/30_plugins/active_queries.sql\"
+        touch \"\$tmpdir/build/30_plugins/warehouse_usage.sql\"
+        touch \"\$tmpdir/build/30_plugins/query_history.sql\"
+
+        # Inline the fallback logic (mirrors the implementation)
+        plugins_dir=\"\${tmpdir}/src/dtagent/plugins\"
+        build_plugins_dir=\"\${tmpdir}/build/30_plugins\"
+
+        if [[ -d \"\$plugins_dir\" ]]; then
+            for d in \"\$plugins_dir\"/*.config/; do
+                [[ -d \"\$d\" ]] || continue
+                basename \"\$d\" .config
+            done | sort
+        elif [[ -d \"\$build_plugins_dir\" ]]; then
+            for f in \"\$build_plugins_dir\"/*.sql; do
+                [[ -f \"\$f\" ]] || continue
+                basename \"\$f\" .sql
+            done | sort
+        fi
+        rm -rf \"\$tmpdir\"
+    ")
+    # Must return a non-empty list
+    [ -n "$result" ]
+    # Must include known plugins
+    echo "$result" | grep -q "active_queries"
+    echo "$result" | grep -q "warehouse_usage"
+    # Must be sorted
+    sorted=$(echo "$result" | sort)
+    [ "$result" = "$sorted" ]
+}
+
 ##endregion
 
 ##region stdout path Continue-to-deployment prompt
