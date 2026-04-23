@@ -135,6 +135,65 @@ teardown() {
 
 ##endregion
 
+##region Non-TTY / Docker Guard Tests
+
+@test "deploy.sh: missing config + non-TTY stdin prints actionable error" {
+    local test_dir
+    test_dir=$(mktemp -d)
+    cd "$test_dir"
+    mkdir -p build/09_upgrade build/30_plugins
+    echo "SELECT 'init';" > build/00_init.sql
+
+    # No conf/config-no-tty.yml exists — wizard would auto-trigger, but stdin is not a TTY
+    run bash -c "bash '$BATS_TEST_DIRNAME/../../scripts/deploy/deploy.sh' --env=no-tty </dev/null 2>&1"
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"stdin is not a TTY"* ]]
+    [[ "$output" == *"docker run -it"* ]]
+
+    cd - > /dev/null
+    rm -rf "$test_dir"
+}
+
+@test "deploy.sh: missing config + non-TTY error does not say Wizard cancelled" {
+    local test_dir
+    test_dir=$(mktemp -d)
+    cd "$test_dir"
+    mkdir -p build/09_upgrade build/30_plugins
+    echo "SELECT 'init';" > build/00_init.sql
+
+    run bash -c "bash '$BATS_TEST_DIRNAME/../../scripts/deploy/deploy.sh' --env=no-tty </dev/null 2>&1"
+    [ "$status" -ne 0 ]
+    [[ "$output" != *"Wizard cancelled"* ]]
+
+    cd - > /dev/null
+    rm -rf "$test_dir"
+}
+
+@test "deploy.sh: --interactive flag + non-TTY stdin prints actionable error" {
+    local test_dir
+    test_dir=$(mktemp -d)
+    cd "$test_dir"
+    mkdir -p conf build/09_upgrade build/30_plugins
+    echo "SELECT 'init';" > build/00_init.sql
+    # Config exists so auto-trigger won't fire — but --interactive is explicit
+    cat > conf/config-no-tty.yml << 'EOF'
+core:
+  dynatrace_tenant_address: "test.live.dynatrace.com"
+  snowflake:
+    account_name: "test-account"
+  deployment_environment: "TEST"
+EOF
+
+    run bash -c "bash '$BATS_TEST_DIRNAME/../../scripts/deploy/deploy.sh' --env=no-tty --interactive </dev/null 2>&1"
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"Interactive mode requires a TTY"* ]]
+
+    cd - > /dev/null
+    rm -rf "$test_dir"
+}
+
+##endregion
+
 ##region Flag Syntax Tests
 
 @test "deploy.sh script has valid bash syntax" {
@@ -264,18 +323,21 @@ EOF
     [[ "$output" != *"Build artifacts are missing"* ]]
 }
 
-@test "deploy.sh --interactive: invokes wizard (EOF cancels gracefully)" {
-    # Pipe EOF into deploy.sh --interactive to verify the wizard is invoked and
-    # exits cleanly (non-zero due to cancellation, but no crash or unexpected error).
+@test "deploy.sh --interactive: non-TTY stdin prints actionable error (no crash)" {
+    # Pipe EOF into deploy.sh --interactive — stdin is not a TTY so the wizard
+    # guard should fire with a clear, actionable message (not a cryptic crash).
     local test_dir deploy_script
     test_dir=$(mktemp -d)
     deploy_script="$(cd "$BATS_TEST_DIRNAME/../.." && pwd)/scripts/deploy/deploy.sh"
     mkdir -p "$test_dir/build" "$test_dir/conf"
     echo "SELECT 1;" > "$test_dir/build/00_init.sql"
 
-    run bash -c "cd '$test_dir' && echo '' | bash '$deploy_script' --env=testenv --interactive 2>&1"
-    # Wizard must have been invoked — look for wizard banner or cancellation message
-    [[ "$output" == *"Wizard"* || "$output" == *"wizard"* || "$output" == *"Phase"* || "$output" == *"cancelled"* || "$output" == *"Cancelled"* ]]
+    run bash -c "cd '$test_dir' && bash '$deploy_script' --env=testenv --interactive </dev/null 2>&1"
+    # Must exit non-zero
+    [ "$status" -ne 0 ]
+    # Must show the TTY guard message, not a cryptic "Phase N cancelled"
+    [[ "$output" == *"Interactive mode requires a TTY"* ]]
+    [[ "$output" != *"Phase 1 cancelled"* ]]
 
     rm -rf "$test_dir"
 }

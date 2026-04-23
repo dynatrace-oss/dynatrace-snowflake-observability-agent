@@ -24,6 +24,26 @@ setup() {
     [ "$status" -eq 0 ]
 }
 
+@test "wizard fails with clear error when stdin is not a TTY" {
+    # Simulate non-TTY stdin (as in Docker without -it) by redirecting from /dev/null
+    run bash -c "scripts/deploy/interactive_wizard.sh --env=test-qa3 </dev/null 2>&1"
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"Interactive mode requires a TTY"* ]]
+    [[ "$output" == *"docker run -it"* ]]
+}
+
+@test "wizard non-TTY error message includes --defaults hint" {
+    run bash -c "scripts/deploy/interactive_wizard.sh --env=test-qa3 </dev/null 2>&1"
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"--defaults"* ]]
+}
+
+@test "wizard non-TTY error does not say Phase 1 cancelled" {
+    run bash -c "scripts/deploy/interactive_wizard.sh --env=test-qa3 </dev/null 2>&1"
+    [ "$status" -ne 0 ]
+    [[ "$output" != *"Phase 1 cancelled"* ]]
+}
+
 ##endregion
 
 ##region Config Generation Tests

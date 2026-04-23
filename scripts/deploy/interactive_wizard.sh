@@ -1064,6 +1064,21 @@ main() {
         return 1
     fi
 
+    # Guard: interactive wizard requires a TTY on stdin.
+    # Without a TTY (e.g. Docker without -it, CI pipelines) every read call
+    # returns EOF immediately, causing cryptic "Phase N cancelled" errors.
+    if [[ ! -t 0 ]]; then
+        log_error "Interactive mode requires a TTY — stdin is not a terminal."
+        echo "" >&2
+        echo "  If you are running inside Docker, add the -it flags:" >&2
+        echo "    docker run -it dsoa-deploy:local --env=${WIZARD_ENV}" >&2
+        echo "" >&2
+        echo "  For non-interactive deployments use one of:" >&2
+        echo "    --defaults   (generate config from env vars, then deploy)" >&2
+        echo "    --scope=...  (deploy with an existing conf/config-${WIZARD_ENV}.yml)" >&2
+        return 1
+    fi
+
     # Seed phase defaults from build/config-default.yml (before any prompts)
     seed_defaults_from_config
 

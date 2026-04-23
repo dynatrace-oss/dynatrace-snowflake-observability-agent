@@ -172,6 +172,19 @@ fi
 
 # Auto-trigger wizard if config missing and not using --defaults
 if [[ ! -f "$CONFIG_FILE" && $DEFAULTS -eq 0 ]]; then
+    # Guard: wizard requires a TTY. Without one (e.g. Docker without -it),
+    # every read call returns EOF immediately, producing cryptic errors.
+    if [[ ! -t 0 ]]; then
+        echo "ERROR: No config file found (conf/config-${ENV}.yml) and stdin is not a TTY." >&2
+        echo "" >&2
+        echo "  Interactive mode requires a TTY. If running inside Docker, add -it flags:" >&2
+        echo "    docker run -it dsoa-deploy:local --env=${ENV}" >&2
+        echo "" >&2
+        echo "  For non-interactive deployments, use one of:" >&2
+        echo "    --defaults   (generate config from env vars, then deploy)" >&2
+        echo "    --scope=...  (deploy with an existing conf/config-${ENV}.yml)" >&2
+        exit 1
+    fi
     INTERACTIVE=1
 fi
 
