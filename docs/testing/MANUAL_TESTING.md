@@ -65,6 +65,7 @@ docker run --rm \
 ```
 
 **Expected behavior:**
+
 - Exit code: **0** (success)
 - Output: `Config generated at: /app/conf/config-test.yml`
 - File created: `/tmp/dsoa-test-conf/config-test.yml`
@@ -104,6 +105,7 @@ docker run --rm \
 ```
 
 **Expected behavior:**
+
 - Exit code: **non-zero** (failure)
 - Output contains: `ERROR: --defaults requires DSOA_DT_TENANT env var`
 
@@ -134,6 +136,7 @@ docker run --rm \
 ```
 
 **Expected behavior:**
+
 - Exit code: **0** (success)
 - Output: `Config file already exists: conf/config-test3.yml — using as-is`
 - File content: **unchanged** (still has `existing.live.dynatrace.com`)
@@ -141,6 +144,7 @@ docker run --rm \
 ### 1.4 Test Full Deployment (with Snowflake + Dynatrace)
 
 **Prerequisites:**
+
 - Valid Snowflake account and credentials
 - Valid Dynatrace API token
 - Existing config file or env vars for `--defaults`
@@ -182,6 +186,7 @@ docker run --rm \
 ```
 
 **Expected behavior:**
+
 - Exit code: **0** (success)
 - Output shows deployment progress
 - Config file created (if using `--defaults`)
@@ -211,9 +216,9 @@ docker rmi dsoa-deploy:local
 
 ## Part 2: GitHub Workflow Testing
 
-### Prerequisites
+### GitHub Workflow Testing Prerequisites
 
-- `act` installed: https://github.com/nektos/act
+- `act` installed: <https://github.com/nektos/act>
 - GitHub CLI (`gh`) installed (optional, for PR creation)
 - Local git repository with remote configured
 
@@ -249,6 +254,7 @@ act
 ```
 
 **Expected output:**
+
 - All linting checks pass (black, flake8, pylint, sqlfluff, yamllint, markdownlint, shellcheck)
 - All bash tests pass
 - No errors or warnings
@@ -276,6 +282,7 @@ act workflow_dispatch \
 ```
 
 **Expected behavior:**
+
 - Docker image builds successfully
 - Config is generated (if using `--defaults`)
 - Deployment proceeds without errors
@@ -304,11 +311,12 @@ git push -u origin test/docker-workflow-validation
 ```
 
 **On GitHub:**
+
 1. Go to **Actions** tab
 2. Select the **Quality Checks** workflow
 3. Verify all jobs pass (lint, test-bash, test-documentation)
 
-**Optional: Trigger deployment workflow manually**
+#### Optional: Trigger deployment workflow manually
 
 1. Go to **Actions** → **Deploy DSOA to Snowflake**
 2. Click **Run workflow**
@@ -317,6 +325,7 @@ git push -u origin test/docker-workflow-validation
 5. Click **Run workflow**
 
 **Expected behavior:**
+
 - Workflow runs on the feature branch
 - All steps complete successfully
 - No changes to `main` or `devel`
@@ -406,6 +415,7 @@ bats test/bash/test_deploy_new_flags.bats
 **Problem:** `ERROR: Build artifacts are missing`
 
 **Solution:**
+
 ```bash
 make build
 make docker-build
@@ -416,6 +426,7 @@ make docker-build
 **Problem:** Config generation fails
 
 **Check:**
+
 ```bash
 # Verify DSOA_DT_TENANT is set
 echo $DSOA_DT_TENANT
@@ -429,6 +440,7 @@ echo $DSOA_DT_TENANT
 **Problem:** Container runs but exits without output
 
 **Debug:**
+
 ```bash
 # Run with verbose output
 docker run --rm dsoa-deploy:local --help 2>&1 | head -50
@@ -441,6 +453,7 @@ docker run --rm dsoa-deploy:local ls -la /app/build/
 ### Workflow fails on GitHub
 
 **Check:**
+
 1. **Secrets are set:** Go to **Settings** → **Secrets and variables** → **Actions**
 2. **Workflow syntax:** Run `yamllint .github/workflows/*.yml`
 3. **Logs:** Click the failed workflow run and expand each step
@@ -450,6 +463,7 @@ docker run --rm dsoa-deploy:local ls -la /app/build/
 **Problem:** `--defaults` runs but no config file appears
 
 **Check:**
+
 ```bash
 # Verify volume mount
 docker run --rm \

@@ -67,25 +67,25 @@ git push -u origin test/docker-validation
 
 ## Key Behaviors to Verify
 
-| Scenario | Command | Expected |
-|---|---|---|
-| **Config generation** | `--defaults` with `DSOA_DT_TENANT` | Exit 0, config file created |
-| **Missing env var** | `--defaults` without `DSOA_DT_TENANT` | Exit non-zero, error message |
-| **Existing config** | `--defaults` with pre-existing config | Exit 0, config unchanged |
-| **Help text** | `docker run dsoa-deploy:local --help` | Full help output |
-| **CI lint** | `act -j lint` | All linters pass |
-| **CI tests** | `act -j test-bash` | All bash tests pass |
+| Scenario              | Command                               | Expected                     |
+|-----------------------|---------------------------------------|------------------------------|
+| **Config generation** | `--defaults` with `DSOA_DT_TENANT`    | Exit 0, config file created  |
+| **Missing env var**   | `--defaults` without `DSOA_DT_TENANT` | Exit non-zero, error message |
+| **Existing config**   | `--defaults` with pre-existing config | Exit 0, config unchanged     |
+| **Help text**         | `docker run dsoa-deploy:local --help` | Full help output             |
+| **CI lint**           | `act -j lint`                         | All linters pass             |
+| **CI tests**          | `act -j test-bash`                    | All bash tests pass          |
 
 ---
 
 ## Troubleshooting
 
-| Problem | Check |
-|---|---|
-| Build fails | `make build` first |
-| `--defaults` fails | `echo $DSOA_DT_TENANT` (must be set) |
+| Problem                  | Check                                             |
+|--------------------------|---------------------------------------------------|
+| Build fails              | `make build` first                                |
+| `--defaults` fails       | `echo $DSOA_DT_TENANT` (must be set)              |
 | Docker exits immediately | `docker run dsoa-deploy:local ls -la /app/build/` |
-| Workflow fails on GitHub | Check **Settings** → **Secrets** are set |
+| Workflow fails on GitHub | Check **Settings** → **Secrets** are set          |
 
 ---
 

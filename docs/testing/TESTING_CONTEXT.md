@@ -3,6 +3,7 @@
 ## What Changed
 
 Recent fixes to `deploy.sh --defaults`:
+
 - **Exit code:** Now exits **0** after config generation (previously may have failed)
 - **Build check:** Skipped when `--defaults` is used without existing config
 - **Env vars:** Reads `DSOA_DT_TENANT`, `DSOA_SF_ACCOUNT`, `DSOA_DEPLOYMENT_ENV` to generate minimal config
@@ -27,6 +28,7 @@ The Docker image and GitHub workflows rely on `--defaults` for **non-interactive
 ### Part 1: Docker Image Testing
 
 **What to test:**
+
 - Image builds successfully
 - `--help` works (smoke test)
 - `--defaults` generates config from env vars
@@ -35,6 +37,7 @@ The Docker image and GitHub workflows rely on `--defaults` for **non-interactive
 - Full deployment works with Snowflake + Dynatrace credentials
 
 **Why:**
+
 - Ensures the image is deployable
 - Validates the core fix (exit 0 after config generation)
 - Confirms env var handling is correct
@@ -43,12 +46,14 @@ The Docker image and GitHub workflows rely on `--defaults` for **non-interactive
 ### Part 2: GitHub Workflow Testing
 
 **What to test:**
+
 - CI workflow passes all lint and test jobs
 - Deployment workflow can be triggered manually
 - Workflow syntax is valid
 - Secrets are properly injected
 
 **Why:**
+
 - Ensures the workflow is syntactically correct
 - Validates that the Docker image is used correctly
 - Confirms the workflow can be safely tested on feature branches
@@ -57,11 +62,13 @@ The Docker image and GitHub workflows rely on `--defaults` for **non-interactive
 ### Part 3: Integration Testing
 
 **What to test:**
+
 - Bats tests for `--defaults` mode pass
 - Bats tests for new deploy flags pass
 - Full test suite passes
 
 **Why:**
+
 - Validates the underlying shell script behavior
 - Ensures the fix doesn't break existing functionality
 - Confirms all edge cases are handled
@@ -84,6 +91,7 @@ docker run --rm \
 ```
 
 **Expected:**
+
 - Exit code: **0**
 - Output: `Config generated at: /app/conf/config-test.yml`
 - File created with correct values
@@ -104,6 +112,7 @@ docker run --rm \
 ```
 
 **Expected:**
+
 - Exit code: **non-zero**
 - Output: `ERROR: --defaults requires DSOA_DT_TENANT env var`
 
@@ -132,6 +141,7 @@ docker run --rm \
 ```
 
 **Expected:**
+
 - Exit code: **0**
 - Output: `Config file already exists: conf/config-test.yml — using as-is`
 - File content: **unchanged** (still has `existing.live.dynatrace.com`)
@@ -162,6 +172,7 @@ docker run --rm \
 ```
 
 **Expected:**
+
 - Exit code: **0**
 - Config generated
 - Deployment proceeds without user interaction
@@ -172,15 +183,18 @@ docker run --rm \
 ## Files Modified / Created
 
 ### Source Code
+
 - `scripts/deploy/deploy.sh` — `--defaults` mode implementation
 - `Dockerfile` — Docker image definition
 - `.github/workflows/dsoa-deploy-template.yml` — GitHub Actions workflow
 
 ### Tests
+
 - `test/bash/test_defaults_mode.bats` — Comprehensive `--defaults` tests
 - `test/bash/test_deploy_new_flags.bats` — New flag tests
 
 ### Documentation (New)
+
 - `docs/testing/MANUAL_TESTING.md` — Step-by-step testing guide
 - `docs/testing/QUICK_REFERENCE.md` — Quick reference card
 - `docs/testing/TESTING_CONTEXT.md` — This file
