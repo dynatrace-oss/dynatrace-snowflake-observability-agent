@@ -19,7 +19,7 @@ All notable changes to this project will be documented in this file.
   (`_cleanup_dict` → `_pack_values_to_json_strings`) now uses native Python NaN detection instead of pandas,
   reducing per-row overhead by eliminating unnecessary `pd.Series` allocations. Events and metrics exporters
   now flush mid-batch to bound peak memory usage. GC interval and batch flush sizes are configurable via
-  `otel.performance.*` config keys. A new `dsoa.agent.memory.peak_rss_mb` metric is emitted after each plugin
+  `otel.performance.*` config keys. A new `dsoa.agent.memory.peak_rss` metric is emitted after each plugin
   run for memory self-monitoring. See [DEVLOG.md](DEVLOG.md) for full technical details.
 
 ### Fixed
