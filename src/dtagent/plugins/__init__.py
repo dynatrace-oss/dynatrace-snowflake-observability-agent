@@ -293,7 +293,11 @@ class Plugin(ABC):
                 metrics_present |= _metrics_present
 
                 # Periodic mid-batch flush to bound memory usage for high-volume accounts
-                if len(processed_query_ids) % self._span_batch_flush_size == 0 and len(processed_query_ids) > 0:
+                if (
+                    self._span_batch_flush_size > 0
+                    and len(processed_query_ids) > 0
+                    and len(processed_query_ids) % self._span_batch_flush_size == 0
+                ):
                     metrics_sent += self._metrics.flush_metrics()
                     spans_disabled = getattr(self._spans, "NOT_ENABLED", False)
                     if not spans_disabled:
@@ -633,11 +637,11 @@ class Plugin(ABC):
             if was_processed:
                 processed_entries_cnt += 1
 
-            if processed_entries_cnt % self._gc_interval == 0:  # invoking garbage collection every N entries.
+            if self._gc_interval > 0 and processed_entries_cnt % self._gc_interval == 0:  # invoking garbage collection every N entries.
                 gc.collect()
 
             # Periodic mid-batch flush to bound memory usage for high-volume accounts
-            if processed_entries_cnt % self._log_batch_flush_size == 0 and processed_entries_cnt > 0:
+            if self._log_batch_flush_size > 0 and processed_entries_cnt > 0 and processed_entries_cnt % self._log_batch_flush_size == 0:
                 processed_events_cnt += self._events.flush_events()
                 processed_metrics_cnt += self._metrics.flush_metrics()
                 if not getattr(self._logs, "NOT_ENABLED", False):

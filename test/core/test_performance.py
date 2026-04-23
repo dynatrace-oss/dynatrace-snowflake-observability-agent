@@ -166,7 +166,7 @@ class TestCleanupDictPerformance:
             _cleanup_dict(row)
         elapsed = time.perf_counter() - start
 
-        per_row_ms = (elapsed / 1000) * 1000
+        per_row_ms = (elapsed / len(rows)) * 1000
         assert per_row_ms < 1.0, f"_cleanup_dict too slow: {per_row_ms:.3f}ms per row (limit: 1ms)"
 
     @pytest.mark.slow
@@ -181,7 +181,7 @@ class TestCleanupDictPerformance:
             _pack_values_to_json_strings(_cleanup_dict(row))
         elapsed = time.perf_counter() - start
 
-        per_row_ms = (elapsed / 1000) * 1000
+        per_row_ms = (elapsed / len(rows)) * 1000
         assert per_row_ms < 1.0, f"hot-path too slow: {per_row_ms:.3f}ms per row (limit: 1ms)"
 
 
@@ -192,6 +192,8 @@ class TestHotPathMemory:
     def test_5000_rows_memory_delta_under_100mb(self):
         """Full hot-path on 5000 rows must not allocate more than 100MB above baseline.
 
+        Uses tracemalloc peak to catch large temporary allocations that are freed
+        before the end of the loop — not just net retained memory.
         Exercises _cleanup_dict → _pack_values_to_json_strings end-to-end.
         """
         from dtagent.util import _cleanup_dict, _pack_values_to_json_strings
@@ -199,16 +201,16 @@ class TestHotPathMemory:
         rows = [dict(SAMPLE_ROW) for _ in range(5000)]
 
         tracemalloc.start()
-        snapshot_before = tracemalloc.take_snapshot()
+        baseline_bytes, _ = tracemalloc.get_traced_memory()
+        tracemalloc.reset_peak()
 
         for row in rows:
             _pack_values_to_json_strings(_cleanup_dict(row))
 
-        snapshot_after = tracemalloc.take_snapshot()
+        _, peak_bytes = tracemalloc.get_traced_memory()
         tracemalloc.stop()
 
-        stats = snapshot_after.compare_to(snapshot_before, "lineno")
-        total_delta_bytes = sum(s.size_diff for s in stats if s.size_diff > 0)
-        total_delta_mb = total_delta_bytes / (1024 * 1024)
+        peak_delta_bytes = max(0, peak_bytes - baseline_bytes)
+        peak_delta_mb = peak_delta_bytes / (1024 * 1024)
 
-        assert total_delta_mb < 100, f"Memory delta too high: {total_delta_mb:.1f}MB (limit: 100MB)"
+        assert peak_delta_mb < 100, f"Peak memory delta too high: {peak_delta_mb:.1f}MB (limit: 100MB)"
