@@ -4,7 +4,7 @@
 
 ```bash
 # Build
-./scripts/dev/build.sh && make docker-build
+make build && make docker-build
 
 # Smoke test
 docker run --rm dsoa-deploy:local --help
@@ -82,7 +82,7 @@ git push -u origin test/docker-validation
 
 | Problem | Check |
 |---|---|
-| Build fails | `./scripts/dev/build.sh` first |
+| Build fails | `make build` first |
 | `--defaults` fails | `echo $DSOA_DT_TENANT` (must be set) |
 | Docker exits immediately | `docker run dsoa-deploy:local ls -la /app/build/` |
 | Workflow fails on GitHub | Check **Settings** → **Secrets** are set |

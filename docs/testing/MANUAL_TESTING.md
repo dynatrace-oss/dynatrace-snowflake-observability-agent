@@ -7,14 +7,14 @@ Step-by-step instructions for testing the Docker image and GitHub workflows loca
 ### Prerequisites
 
 - Docker installed and running
-- Build artifacts generated: `./scripts/dev/build.sh`
+- Build artifacts generated: `make build`
 - Valid Dynatrace API token (for full deployment testing)
 
 ### 1.1 Build the Docker Image Locally
 
 ```bash
 # Build DSOA artifacts first
-./scripts/dev/build.sh
+make build
 
 # Build the Docker image
 make docker-build
@@ -407,7 +407,7 @@ bats test/bash/test_deploy_new_flags.bats
 
 **Solution:**
 ```bash
-./scripts/dev/build.sh
+make build
 make docker-build
 ```
 
