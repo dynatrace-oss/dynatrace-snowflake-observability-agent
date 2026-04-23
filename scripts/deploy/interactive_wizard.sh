@@ -48,6 +48,7 @@ WIZARD_ENV=""
 EXISTING_CONFIG=""
 DRY_RUN=0
 OUTPUT_FILE=""
+CI_EXPORT=""
 
 # Path to default config — used to seed defaults dynamically
 DEFAULT_CONFIG="${SCRIPT_DIR}/../../build/config-default.yml"
@@ -205,6 +206,10 @@ parse_arguments() {
                 ;;
             --output=*)
                 OUTPUT_FILE="${1#*=}"
+                shift
+                ;;
+            --ci-export=*)
+                CI_EXPORT="${1#*=}"
                 shift
                 ;;
             *)
@@ -975,6 +980,73 @@ EOF
 
 ##endregion
 
+##region CI Export
+
+##
+# Export a GitHub Actions deployment workflow and secrets setup guide.
+#
+# Reads version from build/config-default.yml (falls back to "latest").
+# Substitutes __ENV__, __VERSION__, and __SF_USER__ in templates.
+# Writes .github/workflows/dsoa-deploy.yml and GITHUB_SECRETS_SETUP.md.
+#
+# Returns:
+#   0 on success, 1 on error
+##
+export_github_ci() {
+    local env="$1"
+    local sf_user="${SF_ACCOUNT:-CHANGE_ME}"
+
+    # Determine version from build/config-default.yml
+    local version="latest"
+    local default_cfg="${SCRIPT_DIR}/../../build/config-default.yml"
+    if [[ -f "$default_cfg" ]]; then
+        local v
+        v=$(yq -r '.version // ""' "$default_cfg" 2>/dev/null || true)
+        [[ -n "$v" ]] && version="$v"
+    fi
+
+    local template_dir="${SCRIPT_DIR}/../../src/assets/ci-templates/github"
+    local workflow_template="${template_dir}/dsoa-deploy.yml.template"
+    local secrets_template="${template_dir}/GITHUB_SECRETS_SETUP.md.template"
+
+    if [[ ! -f "$workflow_template" ]]; then
+        log_error "CI template not found: $workflow_template"
+        return 1
+    fi
+    if [[ ! -f "$secrets_template" ]]; then
+        log_error "CI template not found: $secrets_template"
+        return 1
+    fi
+
+    # Write workflow file
+    local workflow_dir=".github/workflows"
+    mkdir -p "$workflow_dir"
+    local workflow_out="${workflow_dir}/dsoa-deploy.yml"
+    sed -e "s/__ENV__/${env}/g" \
+        -e "s/__VERSION__/${version}/g" \
+        -e "s/__SF_USER__/${sf_user}/g" \
+        "$workflow_template" > "$workflow_out"
+
+    # Write secrets setup guide
+    local secrets_out="GITHUB_SECRETS_SETUP.md"
+    sed -e "s/__ENV__/${env}/g" \
+        -e "s/__VERSION__/${version}/g" \
+        -e "s/__SF_USER__/${sf_user}/g" \
+        "$secrets_template" > "$secrets_out"
+
+    log_ok "GitHub Actions workflow written to: $workflow_out"
+    log_ok "Secrets setup guide written to: $secrets_out"
+    echo "" >&2
+    log_info "Next steps:"
+    echo "  1. Commit $workflow_out to your deployment repository" >&2
+    echo "  2. Follow $secrets_out to configure GitHub secrets" >&2
+    echo "  3. Trigger the workflow via GitHub Actions UI" >&2
+
+    return 0
+}
+
+##endregion
+
 ##region Main Execution
 
 ##
@@ -1031,6 +1103,21 @@ main() {
     # Config persistence
     if ! config_persistence; then
         return 1
+    fi
+
+    # CI export (if requested)
+    if [[ -n "$CI_EXPORT" ]]; then
+        case "$CI_EXPORT" in
+            github)
+                if ! export_github_ci "$WIZARD_ENV"; then
+                    return 1
+                fi
+                ;;
+            *)
+                log_error "Unknown --ci-export value: '$CI_EXPORT'. Supported: github"
+                return 1
+                ;;
+        esac
     fi
 
     log_ok "Wizard completed successfully"
