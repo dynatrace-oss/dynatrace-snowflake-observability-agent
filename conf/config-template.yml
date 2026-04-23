@@ -39,6 +39,9 @@ core:
 
     api_integration:
       name: "" # Default: DTAGENT_API_INTEGRATION
+agent:
+  gc_collect_interval: 100  # GC interval in number of processed entries; overrides otel.performance.gc_interval (default: 100)
+  memory_tracking_enabled: false  # Emit dsoa.agent.memory.peak_rss metric after each plugin run (default: false)
 otel:
   performance:
     gc_interval: 100  # Garbage collection interval in number of processed entries (default: 100)

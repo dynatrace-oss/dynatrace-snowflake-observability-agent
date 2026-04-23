@@ -64,4 +64,7 @@ attributes:
 #  * VALUE[description]   - description of the metrics -
 #                           in the future we should rather update semantic dictionary instead of pushing it constantly
 #  * VALUE[unit]          - the unit of the metric
-metrics: {}
+metrics:
+  dsoa.agent.memory.peak_rss:
+    __description: "Peak resident set size (RSS) of the agent process in megabytes, sampled after each plugin context run."
+    __unit: "MB"

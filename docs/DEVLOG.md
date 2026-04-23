@@ -37,12 +37,18 @@ This file documents detailed technical changes, internal refactorings, and devel
     - `gc_interval: 100`
     - `spans_batch_flush_size: 50`
     - `logs_batch_flush_size: 100`
+  - New `agent` top-level config section added:
+    - `agent.gc_collect_interval: 100` — canonical AC key; takes precedence over `otel.performance.gc_interval`
+    - `agent.memory_tracking_enabled: false` — opt-in gate for peak RSS metric emission
 
-- **Phase C — Memory self-monitoring** (`src/dtagent/plugins/__init__.py`, `test/core/test_performance.py`):
+- **Phase C — Memory self-monitoring** (`src/dtagent/plugins/__init__.py`, `test/core/test_performance.py`,
+  `src/dtagent.conf/instruments-def.yml`):
   - Added `_get_peak_memory_mb()` module-level helper using `resource.getrusage(RUSAGE_SELF).ru_maxrss`.
     Handles platform difference: macOS returns bytes, Linux returns kilobytes.
-  - `_report_execution` now emits `dsoa.agent.memory.peak_rss_mb` gauge metric after each plugin context
-    completes, guarded by `is_regular_mode()` (skipped in local tests) and `NOT_ENABLED` check.
+  - `_report_execution` now emits `dsoa.agent.memory.peak_rss` gauge metric after each plugin context
+    completes, guarded by `is_regular_mode()`, `NOT_ENABLED` check, **and** `agent.memory_tracking_enabled`
+    config flag (default `false` — opt-in to avoid overhead on accounts that don't need it).
+  - `dsoa.agent.memory.peak_rss` registered in `src/dtagent.conf/instruments-def.yml` with description and unit.
   - Added `test/core/test_performance.py` with:
     - 14 unit tests for `_is_nan_or_none` covering all value types.
     - Benchmark: `_cleanup_dict` on 1000 rows must complete in <1ms/row.

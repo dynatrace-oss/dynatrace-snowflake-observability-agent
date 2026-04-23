@@ -110,7 +110,15 @@ class Plugin(ABC):
 
         # Performance tuning: read configurable GC and batch-flush intervals
         _cfg = getattr(self, "_configuration", None)
-        self._gc_interval: int = _cfg.get(otel_module="performance", key="gc_interval", default_value=100) if _cfg else 100
+        self._gc_interval: int = (
+            _cfg.get("gc_collect_interval", context="agent", default_value=None)
+            or _cfg.get(otel_module="performance", key="gc_interval", default_value=100)
+            if _cfg
+            else 100
+        )
+        self._memory_tracking_enabled: bool = bool(
+            _cfg.get("memory_tracking_enabled", context="agent", default_value=False) if _cfg else False
+        )
         self._span_batch_flush_size: int = (
             _cfg.get(otel_module="performance", key="spans_batch_flush_size", default_value=50) if _cfg else 50
         )
@@ -166,12 +174,12 @@ class Plugin(ABC):
             context=__context,
         )
 
-        # Emit peak memory usage as a self-monitoring metric (Snowflake runtime only)
-        if not getattr(self._metrics, "NOT_ENABLED", False) and is_regular_mode(self._session):
+        # Emit peak memory usage as a self-monitoring metric (Snowflake runtime only, opt-in via config)
+        if self._memory_tracking_enabled and not getattr(self._metrics, "NOT_ENABLED", False) and is_regular_mode(self._session):
             peak_mb = _get_peak_memory_mb()
             self._metrics.report_via_metrics_api(
                 {
-                    "METRICS": {"dsoa.agent.memory.peak_rss_mb": peak_mb},
+                    "METRICS": {"dsoa.agent.memory.peak_rss": peak_mb},
                     "DIMENSIONS": {
                         "dsoa.run.plugin": self._plugin_name,
                         "dsoa.run.context": measurements_source,
