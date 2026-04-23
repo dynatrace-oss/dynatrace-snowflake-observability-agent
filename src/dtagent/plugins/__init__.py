@@ -25,6 +25,8 @@
 #
 #
 import gc
+import resource
+import sys
 import uuid
 import logging
 import inspect
@@ -54,6 +56,21 @@ from dtagent.context import RUN_CONTEXT_KEY, RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RU
 ##endregion COMPILE_REMOVE
 
 ##region ------------------------ PROCESSING MEASUREMENTS ---------------------------------
+
+
+def _get_peak_memory_mb() -> float:
+    """Returns peak resident set size (RSS) in megabytes using stdlib resource module.
+
+    On Linux (Snowflake runtime), ``ru_maxrss`` is in kilobytes.
+    On macOS (developer machines), ``ru_maxrss`` is in bytes.
+
+    Returns:
+        float: Peak RSS in megabytes.
+    """
+    rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    if sys.platform == "darwin":
+        return rss / (1024 * 1024)  # macOS: bytes → MB
+    return rss / 1024  # Linux: kilobytes → MB
 
 
 class Plugin(ABC):
@@ -90,6 +107,16 @@ class Plugin(ABC):
             self._events = events
         if bizevents is not None:
             self._bizevents = bizevents
+
+        # Performance tuning: read configurable GC and batch-flush intervals
+        _cfg = getattr(self, "_configuration", None)
+        self._gc_interval: int = _cfg.get(otel_module="performance", key="gc_interval", default_value=100) if _cfg else 100
+        self._span_batch_flush_size: int = (
+            _cfg.get(otel_module="performance", key="spans_batch_flush_size", default_value=50) if _cfg else 50
+        )
+        self._log_batch_flush_size: int = (
+            _cfg.get(otel_module="performance", key="logs_batch_flush_size", default_value=100) if _cfg else 100
+        )
 
         self.processed_last_timestamp = None
 
@@ -138,6 +165,22 @@ class Plugin(ABC):
             log_level=logging.INFO,
             context=__context,
         )
+
+        # Emit peak memory usage as a self-monitoring metric (Snowflake runtime only)
+        if not getattr(self._metrics, "NOT_ENABLED", False) and is_regular_mode(self._session):
+            peak_mb = _get_peak_memory_mb()
+            self._metrics.report_via_metrics_api(
+                {
+                    "METRICS": {"dsoa.agent.memory.peak_rss_mb": peak_mb},
+                    "DIMENSIONS": {
+                        "dsoa.run.plugin": self._plugin_name,
+                        "dsoa.run.context": measurements_source,
+                    },
+                },
+                context_name="self_monitoring",
+                plugin_name=self._plugin_name,
+            )
+            self._metrics.flush_metrics()
 
         # if no valid timestamp given, default to last run timestamp
         if last_timestamp is None or str(last_timestamp) == "None":
@@ -240,6 +283,14 @@ class Plugin(ABC):
                 logs_sent += _logs_sent
                 metrics_sent += _metrics_sent
                 metrics_present |= _metrics_present
+
+                # Periodic mid-batch flush to bound memory usage for high-volume accounts
+                if len(processed_query_ids) % self._span_batch_flush_size == 0 and len(processed_query_ids) > 0:
+                    metrics_sent += self._metrics.flush_metrics()
+                    spans_disabled = getattr(self._spans, "NOT_ENABLED", False)
+                    if not spans_disabled:
+                        self._spans.flush_traces()
+                    gc.collect()
 
         if metrics_present:
             metrics_sent += self._metrics.flush_metrics()
@@ -574,7 +625,15 @@ class Plugin(ABC):
             if was_processed:
                 processed_entries_cnt += 1
 
-            if processed_entries_cnt % 100 == 0:  # invoking garbage collection every 100 entries.
+            if processed_entries_cnt % self._gc_interval == 0:  # invoking garbage collection every N entries.
+                gc.collect()
+
+            # Periodic mid-batch flush to bound memory usage for high-volume accounts
+            if processed_entries_cnt % self._log_batch_flush_size == 0 and processed_entries_cnt > 0:
+                processed_events_cnt += self._events.flush_events()
+                processed_metrics_cnt += self._metrics.flush_metrics()
+                if not getattr(self._logs, "NOT_ENABLED", False):
+                    self._logs.flush_logs()
                 gc.collect()
 
         processed_events_cnt += self._events.flush_events()

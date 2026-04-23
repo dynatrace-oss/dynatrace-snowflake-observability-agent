@@ -15,6 +15,12 @@ All notable changes to this project will be documented in this file.
 
 - Updated `snowflake-snowpark-python` minimum version to `>=1.49.0` (was `>=1.48.1`). Python version constraint
   remains `<3.14` — bottleneck is `snowflake==1.12.0`, not snowpark. See [DEVLOG.md](DEVLOG.md) for full audit details.
+- Improved memory handling and processing performance for high-volume Snowflake accounts. The hot-path
+  (`_cleanup_dict` → `_pack_values_to_json_strings`) now uses native Python NaN detection instead of pandas,
+  reducing per-row overhead by eliminating unnecessary `pd.Series` allocations. Events and metrics exporters
+  now flush mid-batch to bound peak memory usage. GC interval and batch flush sizes are configurable via
+  `otel.performance.*` config keys. A new `dsoa.agent.memory.peak_rss_mb` metric is emitted after each plugin
+  run for memory self-monitoring. See [DEVLOG.md](DEVLOG.md) for full technical details.
 
 ### Fixed
 

@@ -609,6 +609,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 | --------------- | ------- | ------------------------ | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | SHOW PARAMETERS | command | USAGE                    |                | We call `show PARAMETERS like 'EVENT_TABLE' in ACCOUNT` to determine if event table is already setup, and whether this is a table setup by this Dynatrace Snowflake Observability Agent instance |
 | ACCOUNT         | account | MODIFY SESSION LOG LEVEL | DTAGENT_VIEWER |                                                                                                                                                                                                  |
+| ACCOUNT         | account | MODIFY LOG EVENT LEVEL   | DTAGENT_VIEWER | Granted only on accounts that support Snowflake BCR Bundle 2026_02+ (LOG_EVENT_LEVEL parameter). On pre-BCR accounts this privilege is not available and the grant is skipped gracefully.        |
 | $event_table    | table   | SELECT, DELETE           | DTAGENT_VIEWER | This is in case an event log table was not setup by this Dynatrace Snowflake Observability Agent instance                                                                                        |
 
 <a name="event_usage_info_sec"></a>
