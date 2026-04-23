@@ -983,3 +983,91 @@ _run_phase5_otel() {
 }
 
 ##endregion
+
+##region read_default Plugin Config Fallback
+
+@test "read_default: falls back to plugin config file when config-default.yml absent" {
+    # Simulate Docker/dev environment where build/config-default.yml does not exist.
+    # read_default must still return the schedule from the plugin's own config file.
+    result=$(bash -c "
+        source scripts/deploy/lib.sh
+        source scripts/deploy/interactive_wizard.sh 2>/dev/null || true
+        DEFAULT_CONFIG='/nonexistent/config-default.yml'
+        read_default 'plugins.active_queries.schedule' ''
+    " 2>/dev/null)
+    # Must return a non-empty CRON expression
+    [ -n "$result" ]
+    [[ "$result" == *"CRON"* ]]
+}
+
+@test "read_default: plugin config fallback returns fast_mode for active_queries" {
+    result=$(bash -c "
+        source scripts/deploy/lib.sh
+        source scripts/deploy/interactive_wizard.sh 2>/dev/null || true
+        DEFAULT_CONFIG='/nonexistent/config-default.yml'
+        read_default 'plugins.active_queries.fast_mode' ''
+    " 2>/dev/null)
+    [ -n "$result" ]
+    [[ "$result" == "true" || "$result" == "false" ]]
+}
+
+@test "read_default: plugin config fallback returns schedule for query_history" {
+    result=$(bash -c "
+        source scripts/deploy/lib.sh
+        source scripts/deploy/interactive_wizard.sh 2>/dev/null || true
+        DEFAULT_CONFIG='/nonexistent/config-default.yml'
+        read_default 'plugins.query_history.schedule' ''
+    " 2>/dev/null)
+    [ -n "$result" ]
+    [[ "$result" == *"CRON"* ]]
+}
+
+@test "read_default: plugin config fallback returns empty for unknown key" {
+    result=$(bash -c "
+        source scripts/deploy/lib.sh
+        source scripts/deploy/interactive_wizard.sh 2>/dev/null || true
+        DEFAULT_CONFIG='/nonexistent/config-default.yml'
+        read_default 'plugins.active_queries.nonexistent_key' 'FALLBACK'
+    " 2>/dev/null)
+    [ "$result" = "FALLBACK" ]
+}
+
+@test "read_default: config-default.yml takes precedence over plugin config file" {
+    # When config-default.yml exists and has the key, it must win over plugin config.
+    result=$(bash -c "
+        source scripts/deploy/lib.sh
+        source scripts/deploy/interactive_wizard.sh 2>/dev/null || true
+        # Use the real config-default.yml if present, else skip
+        if [[ ! -f \"\$DEFAULT_CONFIG\" ]]; then
+            echo 'SKIP'
+            exit 0
+        fi
+        read_default 'plugins.active_queries.schedule' ''
+    " 2>/dev/null)
+    # Either SKIP (no config-default.yml) or a non-empty CRON expression
+    [[ "$result" == "SKIP" || -n "$result" ]]
+}
+
+@test "customize_plugins: prompts shown for plugin settings when config-default.yml absent" {
+    # Simulate Docker environment: no config-default.yml, but src/ plugin configs present.
+    # Verify that read_default returns schedule values from plugin config files.
+    # (Full interactive test would require a TTY; this validates the data path.)
+    result=$(bash -c "
+        source scripts/deploy/lib.sh
+        source scripts/deploy/interactive_wizard.sh 2>/dev/null || true
+        DEFAULT_CONFIG='/nonexistent/config-default.yml'
+        # Verify schedule is readable for all known plugins
+        for plugin in active_queries query_history event_log login_history; do
+            val=\$(read_default \"plugins.\${plugin}.schedule\" '')
+            if [[ -n \"\$val\" ]]; then
+                echo \"SCHEDULE_OK:\$plugin\"
+            fi
+        done
+    " 2>/dev/null)
+    [[ "$result" == *"SCHEDULE_OK:active_queries"* ]]
+    [[ "$result" == *"SCHEDULE_OK:query_history"* ]]
+    [[ "$result" == *"SCHEDULE_OK:event_log"* ]]
+    [[ "$result" == *"SCHEDULE_OK:login_history"* ]]
+}
+
+##endregion

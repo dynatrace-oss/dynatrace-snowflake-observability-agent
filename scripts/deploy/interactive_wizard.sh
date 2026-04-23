@@ -167,32 +167,61 @@ plugin_description() {
 ##
 # Read a default value from build/config-default.yml.
 #
+# When config-default.yml is absent (e.g. Docker image built without running
+# build.sh first, or local dev environment), falls back to reading the value
+# directly from the individual plugin config file for paths under plugins.<name>.
+#
 # Args:
-#   $1: yq key path (e.g. "core.log_level")
+#   $1: yq key path (e.g. "core.log_level" or "plugins.active_queries.schedule")
 #   $2: Fallback value if file absent or key missing
 #
 # Returns:
 #   0 always
 #
 # Outputs:
-#   Value from default config, or fallback
+#   Value from default config, plugin config, or fallback
 ##
 read_default() {
     local key_path="$1"
     local fallback="$2"
 
-    if [[ ! -f "$DEFAULT_CONFIG" ]] || ! command -v yq >/dev/null 2>&1; then
+    if ! command -v yq >/dev/null 2>&1; then
         echo "$fallback"
         return 0
     fi
 
-    local val
-    val=$(yq eval ".${key_path}" "$DEFAULT_CONFIG" 2>/dev/null || true)
-    if [[ -z "$val" || "$val" == "null" ]]; then
-        echo "$fallback"
-    else
-        echo "$val"
+    # Primary: read from build/config-default.yml
+    if [[ -f "$DEFAULT_CONFIG" ]]; then
+        local val
+        val=$(yq eval ".${key_path}" "$DEFAULT_CONFIG" 2>/dev/null || true)
+        if [[ -n "$val" && "$val" != "null" ]]; then
+            echo "$val"
+            return 0
+        fi
     fi
+
+    # Fallback: for plugins.<name>.<key> paths, read from the plugin's own config file.
+    # This handles environments where config-default.yml has not been generated yet
+    # (e.g. Docker images built without running build.sh, or local dev trees).
+    if [[ "$key_path" == plugins.* ]]; then
+        local plugin_name key_name
+        # Strip leading "plugins." prefix, then split on first "."
+        local rest="${key_path#plugins.}"
+        plugin_name="${rest%%.*}"
+        key_name="${rest#*.}"
+        local plugin_cfg="${SCRIPT_DIR}/../../src/dtagent/plugins/${plugin_name}.config/${plugin_name}-config.yml"
+        if [[ -f "$plugin_cfg" ]]; then
+            local val
+            val=$(yq eval ".${key_path}" "$plugin_cfg" 2>/dev/null || true)
+            if [[ -n "$val" && "$val" != "null" ]]; then
+                echo "$val"
+                return 0
+            fi
+        fi
+    fi
+
+    echo "$fallback"
+    return 0
 }
 
 ##
