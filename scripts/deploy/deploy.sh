@@ -224,6 +224,8 @@ if [[ $DEFAULTS -eq 1 ]]; then
             > "$CONFIG_FILE"
 
         echo "Config generated at: $CONFIG_FILE" >&2
+        echo "Run deploy.sh --env=$ENV to deploy." >&2
+        exit 0
     else
         echo "Config file already exists: $CONFIG_FILE — using as-is" >&2
     fi

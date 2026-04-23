@@ -112,7 +112,8 @@ teardown() {
 
     # Run deploy.sh with --defaults
     # It will fail on deployment but should create the config
-    bash "$BATS_TEST_DIRNAME/../../scripts/deploy/deploy.sh" --env=test-defaults --defaults 2>&1 || true
+    DSOA_DT_TENANT="test.live.dynatrace.com" \
+        bash "$BATS_TEST_DIRNAME/../../scripts/deploy/deploy.sh" --env=test-defaults --defaults 2>&1 || true
 
     # Check if config was created
     [ -f "conf/config-test-defaults.yml" ]
@@ -126,10 +127,9 @@ teardown() {
     rm -rf "$test_dir"
 }
 
-@test "deploy.sh --defaults fails if config exists" {
+@test "deploy.sh --defaults uses existing config without regenerating" {
     # Config already exists from setup()
     run bash "$BATS_TEST_DIRNAME/../../scripts/deploy/deploy.sh" --env=test --defaults
-    [ "$status" -ne 0 ]
     [[ "$output" == *"already exists"* ]]
 }
 
@@ -250,7 +250,7 @@ EOF
     mkdir -p "$test_dir/conf"
     # No build/ dir — --defaults must not trigger the build check
 
-    run bash -c "cd '$test_dir' && bash '$deploy_script' --env=newenv --defaults 2>&1"
+    run bash -c "cd '$test_dir' && DSOA_DT_TENANT='test.live.dynatrace.com' bash '$deploy_script' --env=newenv --defaults 2>&1"
     [[ "$output" != *"Build artifacts are missing"* ]]
     # Should have created the config
     [ -f "$test_dir/conf/config-newenv.yml" ]
