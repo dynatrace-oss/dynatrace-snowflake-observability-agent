@@ -274,14 +274,8 @@ def _cleanup_dict(d: Any, skip_first_level_hidden=False, _in_list=False) -> Unio
         return result
 
     if isinstance(d, list):
-        result = []
-        for i in d:
-            if _is_nan_or_none(i) or i == {} or i == []:
-                continue
-            cleaned = _cleanup_dict(i, _in_list=True)
-            if cleaned is not None and cleaned != {} and cleaned != []:
-                result.append(cleaned)
-        return result
+        result = [_cleanup_dict(i, _in_list=True) for i in d if not _is_nan_or_none(i) and i != {} and i != []]
+        return result if result else None
 
     if isinstance(d, str) and not _in_list:
         jd = __get_valid_json(d)

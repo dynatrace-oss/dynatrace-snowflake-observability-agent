@@ -192,8 +192,6 @@ class TestHotPathMemory:
     def test_5000_rows_memory_delta_under_100mb(self):
         """Full hot-path on 5000 rows must not allocate more than 100MB above baseline.
 
-        Uses tracemalloc peak to catch large temporary allocations that are freed
-        before the end of the loop — not just net retained memory.
         Exercises _cleanup_dict → _pack_values_to_json_strings end-to-end.
         """
         from dtagent.util import _cleanup_dict, _pack_values_to_json_strings
@@ -201,16 +199,14 @@ class TestHotPathMemory:
         rows = [dict(SAMPLE_ROW) for _ in range(5000)]
 
         tracemalloc.start()
-        baseline_bytes, _ = tracemalloc.get_traced_memory()
         tracemalloc.reset_peak()
 
         for row in rows:
             _pack_values_to_json_strings(_cleanup_dict(row))
 
-        _, peak_bytes = tracemalloc.get_traced_memory()
+        _current, peak_bytes = tracemalloc.get_traced_memory()
         tracemalloc.stop()
 
-        peak_delta_bytes = max(0, peak_bytes - baseline_bytes)
-        peak_delta_mb = peak_delta_bytes / (1024 * 1024)
+        peak_mb = peak_bytes / (1024 * 1024)
 
-        assert peak_delta_mb < 100, f"Peak memory delta too high: {peak_delta_mb:.1f}MB (limit: 100MB)"
+        assert peak_mb < 100, f"Memory peak too high: {peak_mb:.1f}MB (limit: 100MB)"
