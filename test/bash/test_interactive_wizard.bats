@@ -774,6 +774,8 @@ _run_phase5_otel() {
 }
 
 @test "phase3 plugin checklist starts with active_queries (dynamic discovery)" {
+    # Requires build artifacts — skip if build/ not populated
+    [[ -f "build/config-default.yml" || -d "build/30_plugins" ]] || skip "build artifacts not present"
     first=$(bash -c "
         source scripts/deploy/lib.sh
         source scripts/deploy/interactive_wizard.sh 2>/dev/null || true
@@ -783,6 +785,8 @@ _run_phase5_otel() {
 }
 
 @test "phase3 plugin checklist ends with warehouse_usage (dynamic discovery)" {
+    # Requires build artifacts — skip if build/ not populated
+    [[ -f "build/config-default.yml" || -d "build/30_plugins" ]] || skip "build artifacts not present"
     last=$(bash -c "
         source scripts/deploy/lib.sh
         source scripts/deploy/interactive_wizard.sh 2>/dev/null || true
@@ -791,22 +795,24 @@ _run_phase5_otel() {
     [ "$last" = "warehouse_usage" ]
 }
 
-@test "discover_plugins matches filesystem plugin dirs" {
-    # Wizard's discover_plugin_names must return exactly the same set as the filesystem
+@test "discover_plugins matches build artifacts" {
+    # Requires build artifacts — skip if build/ not populated
+    [[ -f "build/config-default.yml" || -d "build/30_plugins" ]] || skip "build artifacts not present"
+    # Wizard's discover_plugin_names must return exactly the same set as build/30_plugins/
     wizard_list=$(bash -c "
         source scripts/deploy/lib.sh
         source scripts/deploy/interactive_wizard.sh 2>/dev/null || true
         discover_plugin_names
     ")
-    fs_list=$(ls -d src/dtagent/plugins/*.config/ | sed 's|src/dtagent/plugins/||;s|\.config/||' | sort)
-    [ "$wizard_list" = "$fs_list" ]
+    build_list=$(find build/30_plugins -maxdepth 1 -name '*.sql' -print0 2>/dev/null | xargs -0 -n1 basename | sed 's/\.sql$//' | sort)
+    [ "$wizard_list" = "$build_list" ]
 }
 
-@test "discover_plugins falls back to build/30_plugins when src tree absent" {
-    # Simulate Docker environment: src/dtagent/plugins does not exist.
+@test "discover_plugins falls back to build/30_plugins when config-default.yml absent" {
+    # Simulate environment where config-default.yml does not exist.
     # discover_plugin_names must fall back to build/30_plugins/*.sql basenames.
     result=$(bash -c "
-        # Create a temp workspace mimicking the Docker image layout
+        # Create a temp workspace mimicking a build without config-default.yml
         tmpdir=\$(mktemp -d)
         mkdir -p \"\$tmpdir/build/30_plugins\"
         touch \"\$tmpdir/build/30_plugins/active_queries.sql\"
@@ -814,15 +820,11 @@ _run_phase5_otel() {
         touch \"\$tmpdir/build/30_plugins/query_history.sql\"
 
         # Inline the fallback logic (mirrors the implementation)
-        plugins_dir=\"\${tmpdir}/src/dtagent/plugins\"
-        build_plugins_dir=\"\${tmpdir}/build/30_plugins\"
+        root=\"\$tmpdir\"
+        build_plugins_dir=\"\${root}/build/30_plugins\"
 
-        if [[ -d \"\$plugins_dir\" ]]; then
-            for d in \"\$plugins_dir\"/*.config/; do
-                [[ -d \"\$d\" ]] || continue
-                basename \"\$d\" .config
-            done | sort
-        elif [[ -d \"\$build_plugins_dir\" ]]; then
+        # No config-default.yml → skip primary, use fallback
+        if [[ -d \"\$build_plugins_dir\" ]]; then
             for f in \"\$build_plugins_dir\"/*.sql; do
                 [[ -f \"\$f\" ]] || continue
                 basename \"\$f\" .sql
@@ -984,90 +986,54 @@ _run_phase5_otel() {
 
 ##endregion
 
-##region read_default Plugin Config Fallback
+##region read_default Uses build/config-default.yml Only
 
-@test "read_default: falls back to plugin config file when config-default.yml absent" {
-    # Simulate Docker/dev environment where build/config-default.yml does not exist.
-    # read_default must still return the schedule from the plugin's own config file.
+@test "read_default: returns value from build/config-default.yml" {
+    # When config-default.yml exists, read_default must return the value from it.
     result=$(bash -c "
         source scripts/deploy/lib.sh
         source scripts/deploy/interactive_wizard.sh 2>/dev/null || true
-        DEFAULT_CONFIG='/nonexistent/config-default.yml'
-        read_default 'plugins.active_queries.schedule' ''
-    " 2>/dev/null)
-    # Must return a non-empty CRON expression
-    [ -n "$result" ]
-    [[ "$result" == *"CRON"* ]]
-}
-
-@test "read_default: plugin config fallback returns fast_mode for active_queries" {
-    result=$(bash -c "
-        source scripts/deploy/lib.sh
-        source scripts/deploy/interactive_wizard.sh 2>/dev/null || true
-        DEFAULT_CONFIG='/nonexistent/config-default.yml'
-        read_default 'plugins.active_queries.fast_mode' ''
-    " 2>/dev/null)
-    [ -n "$result" ]
-    [[ "$result" == "true" || "$result" == "false" ]]
-}
-
-@test "read_default: plugin config fallback returns schedule for query_history" {
-    result=$(bash -c "
-        source scripts/deploy/lib.sh
-        source scripts/deploy/interactive_wizard.sh 2>/dev/null || true
-        DEFAULT_CONFIG='/nonexistent/config-default.yml'
-        read_default 'plugins.query_history.schedule' ''
-    " 2>/dev/null)
-    [ -n "$result" ]
-    [[ "$result" == *"CRON"* ]]
-}
-
-@test "read_default: plugin config fallback returns empty for unknown key" {
-    result=$(bash -c "
-        source scripts/deploy/lib.sh
-        source scripts/deploy/interactive_wizard.sh 2>/dev/null || true
-        DEFAULT_CONFIG='/nonexistent/config-default.yml'
-        read_default 'plugins.active_queries.nonexistent_key' 'FALLBACK'
-    " 2>/dev/null)
-    [ "$result" = "FALLBACK" ]
-}
-
-@test "read_default: config-default.yml takes precedence over plugin config file" {
-    # When config-default.yml exists and has the key, it must win over plugin config.
-    result=$(bash -c "
-        source scripts/deploy/lib.sh
-        source scripts/deploy/interactive_wizard.sh 2>/dev/null || true
-        # Use the real config-default.yml if present, else skip
         if [[ ! -f \"\$DEFAULT_CONFIG\" ]]; then
             echo 'SKIP'
             exit 0
         fi
         read_default 'plugins.active_queries.schedule' ''
     " 2>/dev/null)
-    # Either SKIP (no config-default.yml) or a non-empty CRON expression
-    [[ "$result" == "SKIP" || -n "$result" ]]
+    # Either SKIP (no build yet) or a non-empty CRON expression
+    [[ "$result" == "SKIP" || "$result" == *"CRON"* ]]
 }
 
-@test "customize_plugins: prompts shown for plugin settings when config-default.yml absent" {
-    # Simulate Docker environment: no config-default.yml, but src/ plugin configs present.
-    # Verify that read_default returns schedule values from plugin config files.
-    # (Full interactive test would require a TTY; this validates the data path.)
+@test "read_default: returns fallback when config-default.yml absent" {
+    # When config-default.yml does not exist, read_default must return the fallback.
+    # It must NOT fall back to src/ plugin config files.
     result=$(bash -c "
         source scripts/deploy/lib.sh
         source scripts/deploy/interactive_wizard.sh 2>/dev/null || true
         DEFAULT_CONFIG='/nonexistent/config-default.yml'
-        # Verify schedule is readable for all known plugins
-        for plugin in active_queries query_history event_log login_history; do
-            val=\$(read_default \"plugins.\${plugin}.schedule\" '')
-            if [[ -n \"\$val\" ]]; then
-                echo \"SCHEDULE_OK:\$plugin\"
-            fi
-        done
+        read_default 'plugins.active_queries.schedule' 'MY_FALLBACK'
     " 2>/dev/null)
-    [[ "$result" == *"SCHEDULE_OK:active_queries"* ]]
-    [[ "$result" == *"SCHEDULE_OK:query_history"* ]]
-    [[ "$result" == *"SCHEDULE_OK:event_log"* ]]
-    [[ "$result" == *"SCHEDULE_OK:login_history"* ]]
+    [ "$result" = "MY_FALLBACK" ]
+}
+
+@test "read_default: returns fallback for unknown key" {
+    result=$(bash -c "
+        source scripts/deploy/lib.sh
+        source scripts/deploy/interactive_wizard.sh 2>/dev/null || true
+        read_default 'plugins.active_queries.nonexistent_key' 'FALLBACK'
+    " 2>/dev/null)
+    [ "$result" = "FALLBACK" ]
+}
+
+@test "read_default: config-default.yml is single source of truth" {
+    # Verify read_default does NOT read from src/dtagent/plugins/ config files
+    result=$(bash -c "
+        source scripts/deploy/lib.sh
+        source scripts/deploy/interactive_wizard.sh 2>/dev/null || true
+        DEFAULT_CONFIG='/nonexistent/config-default.yml'
+        # Even though src/ plugin configs exist, fallback must be returned
+        read_default 'plugins.active_queries.fast_mode' 'NOPE'
+    " 2>/dev/null)
+    [ "$result" = "NOPE" ]
 }
 
 ##endregion

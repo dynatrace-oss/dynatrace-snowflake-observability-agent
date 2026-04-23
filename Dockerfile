@@ -56,8 +56,6 @@ WORKDIR /app
 COPY build/ ./build/
 COPY scripts/deploy/ ./scripts/deploy/
 COPY conf/config-template.yml ./conf/config-template.yml
-COPY src/assets/ ./src/assets/
-COPY src/dtagent/plugins/ ./src/dtagent/plugins/
 
 # Make scripts executable
 RUN chmod +x scripts/deploy/*.sh

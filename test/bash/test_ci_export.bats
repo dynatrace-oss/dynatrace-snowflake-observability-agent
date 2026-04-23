@@ -16,6 +16,11 @@ core:
   procedure_timeout: 3600
 EOF
 
+    # Copy CI templates into build/assets/ (mirrors what build.sh does)
+    if [[ -d "src/assets" && ! -d "build/assets" ]]; then
+        cp -r src/assets build/assets
+    fi
+
     # Clean up any leftover files
     rm -f GITHUB_SECRETS_SETUP.md
     rm -f .github/workflows/dsoa-deploy.yml
@@ -25,6 +30,7 @@ teardown() {
     rm -f GITHUB_SECRETS_SETUP.md
     rm -f .github/workflows/dsoa-deploy.yml
     rm -f build/config-default.yml
+    rm -rf build/assets
     rm -f conf/config-ci-test.yml
 }
 
