@@ -1218,6 +1218,24 @@ Clustering information is collected by the `P_COLLECT_CLUSTERING_INFO()` stored 
 table and stores results in the `TABLE_CLUSTERING_RESULTS` staging table. The clustering task runs every 6 hours, offset by 1 hour from the
 storage task to avoid warehouse contention.
 
+## Table Health Derived Context
+
+The `table_health_derived` context reports period-over-period growth and clustering degradation signals derived from historical snapshots
+stored in `TABLE_HEALTH_HISTORY`.
+
+This context is **disabled by default** (`history_retention_days: 0`). Set `history_retention_days` to a positive integer (e.g. `30`) to
+enable snapshot collection and derived metrics.
+
+The following metrics are reported per table (requires at least two snapshots):
+
+- byte growth since the previous snapshot (`snowflake.table.growth_bytes`),
+- percentage growth since the previous snapshot (`snowflake.table.growth_pct`),
+- change in average clustering depth (`snowflake.table.clustering.depth_change`), and
+- clustering degradation flag — 1 when depth increased beyond `clustering_degradation_threshold` (`snowflake.table.clustering.degraded`).
+
+Snapshots are written by `P_SNAPSHOT_TABLE_HEALTH()` and the snapshot task runs every 6 hours, offset by 2 hours from the storage task
+(after clustering collection has completed).
+
 [Show semantics for this plugin](SEMANTICS.md#table_health_semantics_sec)
 
 ### Table Health default configuration

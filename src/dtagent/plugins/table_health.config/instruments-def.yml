@@ -19,16 +19,37 @@
 
 dimensions:
   db.collection.name:
+    __context_names:
+      - table_storage
+      - table_clustering
+      - table_health_derived
     __example: sales_data
     __description: The name of the table.
   db.namespace:
+    __context_names:
+      - table_storage
+      - table_clustering
+      - table_health_derived
     __example: analytics_db
     __description: The name of the database that contains the table.
+  snowflake.schema.name:
+    __context_names:
+      - table_storage
+      - table_clustering
+      - table_health_derived
+    __example: public
+    __description: The name of the schema that contains the table.
   snowflake.table.clustering_key:
+    __context_names:
+      - table_clustering
     __example: "REGION, YEAR"
     __description: |
       The clustering key defined on the table, or NONE if no clustering key is defined.
   snowflake.table.full_name:
+    __context_names:
+      - table_storage
+      - table_clustering
+      - table_health_derived
     __example: analytics_db.public.sales_data
     __description: The full name of the table, including the catalog, schema, and table name.
 
@@ -40,31 +61,43 @@ dimensions:
 
 metrics:
   snowflake.table.active_bytes:
+    __context_names:
+      - table_storage
     __example: "1073741824"
     __description: Number of bytes of active data in the table.
     displayName: Active Bytes
     unit: bytes
   snowflake.table.time_travel_bytes:
+    __context_names:
+      - table_storage
     __example: "536870912"
     __description: Number of bytes of data in the table that is maintained for Time Travel.
     displayName: Time Travel Bytes
     unit: bytes
   snowflake.table.failsafe_bytes:
+    __context_names:
+      - table_storage
     __example: "268435456"
     __description: Number of bytes of data in the table that is maintained for Failsafe.
     displayName: Failsafe Bytes
     unit: bytes
   snowflake.table.retained_for_clone_bytes:
+    __context_names:
+      - table_storage
     __example: "134217728"
     __description: Number of bytes of data in the table that is retained for cloning.
     displayName: Retained for Clone Bytes
     unit: bytes
   snowflake.data.rows:
+    __context_names:
+      - table_storage
     __example: "1000000"
     __description: Number of rows in the table.
     displayName: Row Count
     unit: rows
   snowflake.table.clustering.depth:
+    __context_names:
+      - table_clustering
     __example: "2.5"
     __description: |
       Average clustering depth of the table. Lower values indicate better clustering.
@@ -72,6 +105,8 @@ metrics:
     displayName: Clustering Depth
     unit: "{depth}"
   snowflake.table.clustering.overlap:
+    __context_names:
+      - table_clustering
     __example: "1.2"
     __description: |
       Average overlap depth of the table. Lower values indicate less overlap between
@@ -79,6 +114,8 @@ metrics:
     displayName: Clustering Overlap
     unit: "{overlap}"
   snowflake.table.clustering.constant_partition_ratio:
+    __context_names:
+      - table_clustering
     __example: "0.85"
     __description: |
       Fraction of micro-partitions that are constant (fully within a single clustering
@@ -86,11 +123,15 @@ metrics:
     displayName: Constant Partition Ratio
     unit: ratio
   snowflake.table.clustering.total_partitions:
+    __context_names:
+      - table_clustering
     __example: "1200"
     __description: Total number of micro-partitions in the table.
     displayName: Total Partitions
     unit: "{partition}"
   snowflake.table.growth_bytes:
+    __context_names:
+      - table_health_derived
     __example: "104857600"
     __description: |
       Change in active bytes between the two most recent snapshots.
@@ -98,6 +139,8 @@ metrics:
     displayName: Table Growth (Bytes)
     unit: bytes
   snowflake.table.growth_pct:
+    __context_names:
+      - table_health_derived
     __example: "9.77"
     __description: |
       Percentage change in active bytes between the two most recent snapshots.
@@ -105,6 +148,8 @@ metrics:
     displayName: Table Growth (%)
     unit: percent
   snowflake.table.clustering.depth_change:
+    __context_names:
+      - table_health_derived
     __example: "0.3"
     __description: |
       Change in average clustering depth between the two most recent snapshots.
@@ -112,6 +157,8 @@ metrics:
     displayName: Clustering Depth Change
     unit: "{depth}"
   snowflake.table.clustering.degraded:
+    __context_names:
+      - table_health_derived
     __example: "1"
     __description: |
       Flag indicating whether clustering has degraded beyond the configured threshold

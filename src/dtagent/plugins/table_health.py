@@ -50,7 +50,8 @@ class TableHealthPlugin(Plugin):
       ``plugins.table_health.clustering_enabled`` is ``true`` (default).
 
     - ``table_health_derived``: period-over-period growth and clustering degradation signals
-      computed from ``APP.V_TABLE_HEALTH_DERIVED`` (LAG over ``APP.TABLE_HEALTH_HISTORY``).
+      computed from ``APP.V_TABLE_HEALTH_DERIVED``, which compares the two latest snapshots
+      from ``APP.TABLE_HEALTH_HISTORY`` using a ``ROW_NUMBER``-based selection.
       Only processed when ``plugins.table_health.history_retention_days`` is greater than 0
       (default 0 = disabled).
     """
