@@ -4,7 +4,31 @@ This file documents detailed technical changes, internal refactorings, and devel
 
 ## Version 0.9.5 — Detailed Changes
 
-### Feature: Signal Protection Framework for query_history Plugin (BDX-1965)
+### Feature: Cross-Batch Span Parent Linking for query_history Plugin
+
+- **Problem**: When a Snowflake stored procedure call chain spans multiple agent run cycles (e.g., a parent SP is processed in batch N and its child queries appear in batch N+1), the child spans had no parent context. Each batch started a fresh trace, breaking trace continuity across batches.
+- **Solution**: Persist OTEL span context in `PROCESSED_QUERIES_CACHE` after each batch and inject it as parent context for child queries in subsequent batches.
+- **Precedence Rule**: `event_log _SPAN_ID/_TRACE_ID` (Snowflake-native tracing) > cached parent OTEL context > fresh random IDs. This ensures Snowflake-native trace propagation always wins.
+- **Schema Changes**:
+  - `011_processed_queries_cache.sql`: Added `OTEL_SPAN_ID TEXT` and `OTEL_TRACE_ID TEXT` nullable columns to `PROCESSED_QUERIES_CACHE`.
+  - `110_update_processed_queries.sql`: Added 4th parameter `span_context_json TEXT DEFAULT '{}'`. After inserting processed queries, updates `OTEL_SPAN_ID`/`OTEL_TRACE_ID` using `FLATTEN(PARSE_JSON(:span_context_json))`. Cache TTL now driven by `plugins.query_history.cache_ttl_hours` config (default: 4h, was hardcoded).
+- **SQL Changes**:
+  - `061_p_refresh_recent_queries.sql`: Added `_PARENT_OTEL_SPAN_ID` and `_PARENT_OTEL_TRACE_ID` columns to `TMP_RECENT_QUERIES`. Replaced single IS_ROOT update with 3-step logic: (1) IS_ROOT=TRUE where PARENT_QUERY_ID IS NULL, (2) IS_ROOT=TRUE where parent not in current batch AND not in cache with OTEL context, (3) UPDATE `_PARENT_OTEL_SPAN_ID`/`_PARENT_OTEL_TRACE_ID` from cache where parent IS in cache.
+  - `062_v_recent_queries.sql`: Added `_PARENT_OTEL_SPAN_ID` and `_PARENT_OTEL_TRACE_ID` to SELECT.
+- **Python Changes**:
+  - `otel/spans.py`: Added `span_context_map: Optional[Dict[str, Tuple[str, str]]] = None` parameter to `generate_span()`. After span creation, captures `(span_id_hex, trace_id_hex)` into the map. Before span creation, injects cached parent context via `context_api.attach()` when `_PARENT_OTEL_SPAN_ID`/`_PARENT_OTEL_TRACE_ID` are present and no event_log IDs exist. Token is detached after span ends.
+  - `plugins/__init__.py`: Creates `span_context_map` dict in `_process_span_rows()`, threads it through `_process_row()` → `generate_span()`. After processing, serializes as JSON `{qid: {"trace_id": t, "span_id": s}}` and passes as 4th arg to `STATUS.UPDATE_PROCESSED_QUERIES`.
+- **Upgrade Scripts**:
+  - `0.9.5/020_add_span_context_to_cache.sql`: ALTER TABLE to ADD COLUMN IF NOT EXISTS for both OTEL columns.
+  - `0.9.5/021_drop_update_processed_queries_3arg.sql`: DROP PROCEDURE IF EXISTS for old 3-arg signature before deploying new 4-arg version (avoids Snowflake ambiguous overload error).
+- **Config**:
+  - Added `query_history.cache_ttl_hours` (default: 4) to `config-template.yml` and `query_history-config.yml`.
+- **Testing**:
+  - `test/plugins/test_query_history_cross_batch.py`: New test file with 3 tests: integration test for cross-batch span injection (all disabled_telemetry combos), unit test for precedence rule validation, unit test for `span_context_map` population.
+  - `test/test_data/query_history_cross_batch.ndjson`: New fixture with 3 rows covering: child with cached parent context, child without context (fresh IDs), child with both event_log IDs and cached parent (event_log wins).
+- **Files Changed**: `src/dtagent/plugins/query_history.sql/011_processed_queries_cache.sql`, `src/dtagent/plugins/query_history.sql/061_p_refresh_recent_queries.sql`, `src/dtagent/plugins/query_history.sql/062_v_recent_queries.sql`, `src/dtagent/plugins/query_history.sql/110_update_processed_queries.sql`, `src/dtagent/otel/spans.py`, `src/dtagent/plugins/__init__.py`, `src/dtagent.sql/upgrade/0.9.5/020_add_span_context_to_cache.sql`, `src/dtagent.sql/upgrade/0.9.5/021_drop_update_processed_queries_3arg.sql`, `src/dtagent/plugins/query_history.config/query_history-config.yml`, `conf/config-template.yml`, `test/plugins/test_query_history_cross_batch.py`, `test/test_data/query_history_cross_batch.ndjson`
+
+
 
 - **Problem**: On high-volume Snowflake accounts (e.g., LPL Financial), the `query_history` plugin processes every query completed in the last 120 minutes, causing timeouts and memory exhaustion when tens of thousands of queries execute per 30-minute window. No mechanism existed to cap signals, filter by warehouse/database/user, or prioritize interesting queries.
 - **Solution**: Three complementary mechanisms:

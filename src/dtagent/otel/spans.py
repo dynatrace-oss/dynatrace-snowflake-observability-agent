@@ -201,6 +201,7 @@ class Spans:
         context: Optional[Dict] = None,
         is_top_level: bool = False,
         processed_ids: Optional[List[str]] = None,
+        span_context_map: Optional[Dict[str, Tuple[str, str]]] = None,
     ) -> Tuple[int, int, int]:
         """Sends aggregated query history row as a OTLP span.
 
@@ -216,6 +217,8 @@ class Spans:
             context (Dict, optional):               context information reported as additional attributes in log/span payload
             is_top_level (bool):                    indicator whether the span is a top level one (without parent)
             processed_ids (List[str], optional):    list where processed row ids will be appended to avoid duplicate processing
+            span_context_map (Dict, optional):      map populated with {row_id: (span_id_hex, trace_id_hex)} after span creation;
+                                                    also used to inject cached parent OTEL context for cross-batch linking
 
         Return:
             int     Number of span events generated
@@ -225,6 +228,8 @@ class Spans:
         from dtagent import LOG, LL_TRACE  # COMPILE_REMOVE
         from dtagent.util import _adjust_timestamp, _unpack_json_dict  # COMPILE_REMOVE
         from dtagent.util import _cleanup_dict, _pack_values_to_json_strings  # COMPILE_REMOVE
+        from opentelemetry import context as context_api
+        from opentelemetry.trace import NonRecordingSpan, SpanContext, TraceFlags
         from opentelemetry.sdk.trace import StatusCode
 
         def __process_subrows(row_id: str):
@@ -254,6 +259,7 @@ class Spans:
                     f_log_events=f_log_events,
                     context=context,
                     processed_ids=processed_ids,
+                    span_context_map=span_context_map,
                 )
                 span_events_added += _span_events_added
                 spans_cnt += _spans_cnt
@@ -282,6 +288,29 @@ class Spans:
 
         self._otel_id_generator.set_span_row(d_span)
 
+        # Inject cached parent OTEL context for cross-batch parent linking.
+        # Precedence: event_log _SPAN_ID/_TRACE_ID (Snowflake-native) > cached parent > fresh random IDs.
+        parent_token = None
+        has_event_log_ids = bool(d_span.get("_SPAN_ID")) or bool(d_span.get("_TRACE_ID"))
+        parent_otel_span_id = d_span.get("_PARENT_OTEL_SPAN_ID")
+        parent_otel_trace_id = d_span.get("_PARENT_OTEL_TRACE_ID")
+        if not has_event_log_ids and parent_otel_span_id and parent_otel_trace_id:
+            try:
+                parent_span_ctx = SpanContext(
+                    trace_id=int(parent_otel_trace_id, 16),
+                    span_id=int(parent_otel_span_id, 16),
+                    is_remote=False,
+                    trace_flags=TraceFlags(TraceFlags.SAMPLED),
+                )
+                parent_ctx = context_api.set_value(
+                    "current-span",
+                    NonRecordingSpan(parent_span_ctx),
+                )
+                parent_token = context_api.attach(parent_ctx)
+                LOG.log(LL_TRACE, "Injected cached parent context span_id=%s trace_id=%s", parent_otel_span_id, parent_otel_trace_id)
+            except (TypeError, ValueError) as exc:
+                LOG.debug("Failed to inject parent OTEL context: %s", exc)
+
         with self._otel_tracer.start_as_current_span(
             name=d_span["NAME"],
             start_time=int(d_span["START_TIME"]),
@@ -293,6 +322,15 @@ class Spans:
 
             row_id = d_span.get(row_id_col, None)
             LOG.log(LL_TRACE, "Processing span for row_id = %r at start_time=%r", row_id, d_span["START_TIME"])
+
+            # Capture span context for cross-batch parent linking
+            if row_id is not None and span_context_map is not None:
+                span_ctx = current_span.get_span_context()
+                if span_ctx and span_ctx.span_id != INVALID_SPAN_ID and span_ctx.trace_id != INVALID_TRACE_ID:
+                    span_context_map[row_id] = (
+                        format(span_ctx.span_id, "016x"),
+                        format(span_ctx.trace_id, "032x"),
+                    )
 
             if row_id and f_span_events:
                 span_events, events_failed = f_span_events(d_span)
@@ -327,6 +365,9 @@ class Spans:
 
             if row_id is not None and processed_ids is not None:
                 processed_ids.append(row_id)
+
+        if parent_token is not None:
+            context_api.detach(parent_token)
 
         LOG.log(LL_TRACE, "Leaving span reporting for %r", row_id)
         OtelManager.verify_communication()

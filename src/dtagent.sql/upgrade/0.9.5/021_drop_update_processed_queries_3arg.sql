@@ -22,22 +22,11 @@
 --
 --
 --
--- This table keeps a log of queries that were already processed within last 4 hours (configurable).
--- When a query is processed it will have PROCESSED_TIME not NULL.
--- OTEL_SPAN_ID and OTEL_TRACE_ID store the OpenTelemetry span context for cross-batch parent linking.
+-- Upgrade: drop old 3-arg UPDATE_PROCESSED_QUERIES procedure before deploying new 4-arg version
+-- to avoid ambiguous overload error in Snowflake.
 --
 use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 
-create or replace table DTAGENT_DB.STATUS.PROCESSED_QUERIES_CACHE (
-    START_TIME     timestamp_ltz not null,
-    QUERY_ID       text not null,
-    SESSION_ID     text not null,
-    PROCESSED_TIME timestamp_ltz,
-    OTEL_SPAN_ID   text,
-    OTEL_TRACE_ID  text
-);
-
--- grants to the DTAGENT_VIEWER
-
-grant select, insert, update, delete on table STATUS.PROCESSED_QUERIES_CACHE to role DTAGENT_VIEWER;
-
+--%PLUGIN:query_history:
+drop procedure if exists DTAGENT_DB.STATUS.UPDATE_PROCESSED_QUERIES(text, int, int);
+--%:PLUGIN:query_history

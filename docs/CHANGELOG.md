@@ -14,6 +14,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 - Signal protection framework for `query_history` plugin: configurable top-N limiting (`max_entries`), include/exclude filters for warehouses/databases/users, and watermark-based lookback window (`max_lookback_minutes`). Prevents overload on high-volume Snowflake accounts. Self-monitoring logs and bizevents emitted when signal protection is active. All defaults preserve backward compatibility.
+- Cross-batch span parent linking for `query_history` plugin: OTEL span context (`OTEL_SPAN_ID`, `OTEL_TRACE_ID`) is now persisted in `PROCESSED_QUERIES_CACHE` and used to inject parent context for child queries whose parent was processed in a previous batch. Enables continuous trace chains across agent run cycles. Cache TTL is configurable via `query_history.cache_ttl_hours` (default: 4h). See [DEVLOG.md](DEVLOG.md) for implementation details.
 
 ### Changed
 

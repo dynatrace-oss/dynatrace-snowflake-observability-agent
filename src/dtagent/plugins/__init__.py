@@ -25,6 +25,7 @@
 #
 #
 import gc
+import json
 import uuid
 import logging
 import inspect
@@ -208,6 +209,7 @@ class Plugin(ABC):
 
         processed_query_ids: list[str] = []
         processing_errors: list[str] = []
+        span_context_map: Dict[str, Tuple[str, str]] = {}
         span_events_added = 0
         spans_sent = 0
         logs_sent = 0
@@ -234,6 +236,7 @@ class Plugin(ABC):
                     f_span_events=f_span_events,
                     f_log_events=f_log_events,
                     context=__context,
+                    span_context_map=span_context_map,
                 )
                 span_events_added += _span_events_added
                 spans_sent += _spans_sent
@@ -276,16 +279,18 @@ class Plugin(ABC):
             )
 
         if report_status and flush_succeeded:
+            span_context_json = json.dumps({qid: {"trace_id": t, "span_id": s} for qid, (s, t) in span_context_map.items()})
             self._session.call(
                 "STATUS.UPDATE_PROCESSED_QUERIES",
                 joint_processed_query_ids,
                 processing_errors_count,
                 span_events_added,
+                span_context_json,
             )
 
         return (processed_query_ids, processing_errors_count, span_events_added, spans_sent, logs_sent, metrics_sent)
 
-    def _process_row(
+    def _process_row(  # pylint: disable=R0913
         self,
         row: dict,
         *,
@@ -297,6 +302,7 @@ class Plugin(ABC):
         f_span_events: Optional[Callable[[Dict[str, Any]], Tuple[List[Dict[str, Any]], int]]] = None,
         f_log_events: Optional[Callable[[Dict[str, Any]], None]] = None,
         context: Optional[Dict] = None,
+        span_context_map: Optional[Dict[str, Tuple[str, str]]] = None,
     ) -> Tuple[int, int, int, int, bool]:
         """Processing single row with data, with optional recursion done within span generation
 
@@ -310,6 +316,8 @@ class Plugin(ABC):
             f_span_events:             function that will produce a list of span events to be sent
             f_log_events:              function that will log current span and its events; will return number of logs sent
             context:                   context information reported as additional attributes in log/span payload
+            span_context_map (Dict):   map populated with {row_id: (span_id_hex, trace_id_hex)} after span creation;
+                                       also used to inject cached parent OTEL context for cross-batch linking
         Return:
             Tuple containing:
                 span_events_added (int):           number of span events added when processing this row
@@ -340,6 +348,7 @@ class Plugin(ABC):
                     processed_ids=processed_ids,
                     f_span_events=f_span_events,
                     f_log_events=f_log_events,
+                    span_context_map=span_context_map,
                 )
 
         elif f_log_events is not None and not getattr(self._logs, "NOT_ENABLED", False):

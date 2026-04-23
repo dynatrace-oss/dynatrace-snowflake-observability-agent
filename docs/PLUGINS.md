@@ -609,6 +609,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 | --------------- | ------- | ------------------------ | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | SHOW PARAMETERS | command | USAGE                    |                | We call `show PARAMETERS like 'EVENT_TABLE' in ACCOUNT` to determine if event table is already setup, and whether this is a table setup by this Dynatrace Snowflake Observability Agent instance |
 | ACCOUNT         | account | MODIFY SESSION LOG LEVEL | DTAGENT_VIEWER |                                                                                                                                                                                                  |
+| ACCOUNT         | account | MODIFY LOG EVENT LEVEL   | DTAGENT_VIEWER | Granted only on accounts that support Snowflake BCR Bundle 2026_02+ (LOG_EVENT_LEVEL parameter). On pre-BCR accounts this privilege is not available and the grant is skipped gracefully.        |
 | $event_table    | table   | SELECT, DELETE           | DTAGENT_VIEWER | This is in case an event log table was not setup by this Dynatrace Snowflake Observability Agent instance                                                                                        |
 
 <a name="event_usage_info_sec"></a>
@@ -759,6 +760,26 @@ Each query execution is reported as a log line and span, with a hierarchy of spa
 profile was retrieved with `QUERY_OPERATOR_STATS`, it is delivered as span events and additional log lines. This plugin also delivers many
 metrics based on telemetry information provided by Snowflake.
 
+## Signal Protection Framework
+
+On high-volume Snowflake accounts, the plugin supports signal protection to prevent overload and timeout issues. Three complementary
+mechanisms are available:
+
+1. **Top-N Limiting** — Set `max_entries` to cap the number of queries processed per run. Queries are prioritized by `max_entries_sort`
+   (default: execution time, descending) so the most expensive queries are always captured. When the cap is hit, a self-monitoring warning
+   log and bizevent are emitted with the count of dropped rows.
+
+2. **Include/Exclude Filters** — Use `include_warehouses`, `exclude_warehouses`, `include_databases`, `exclude_databases`, `include_users`,
+   and `exclude_users` to filter queries at the SQL view level, reducing Snowflake compute cost. Exclude filters always take precedence over
+   include filters.
+
+3. **Watermark-Based Lookback** — The plugin uses the last-processed timestamp from `STATUS.LOG_PROCESSED_MEASUREMENTS` to avoid
+   reprocessing queries. The `max_lookback_minutes` parameter caps the maximum catch-up window (default: 120 minutes), ensuring the plugin
+   catches up incrementally if the agent was down for an extended period.
+
+All defaults preserve backward compatibility: `max_entries=0` (unlimited), `max_lookback_minutes=120`, and `exclude_warehouses=DTAGENT_WH`
+(exclude the agent's own warehouse only).
+
 **Note:** To correlate query spans with Snowflake's Snowtrail trace_id and span_id, the `event_log` plugin must be enabled. When enabled,
 this plugin will automatically extract trace context from the `STATUS.EVENT_LOG` table and include it in the span telemetry, allowing for
 distributed tracing correlation between your application and Snowflake queries.
@@ -780,6 +801,16 @@ plugins:
     is_disabled: false
     slow_queries_threshold: 10000
     slow_queries_to_analyze_limit: 50
+    max_entries: 0
+    max_entries_sort: execution_time
+    max_lookback_minutes: 120
+    cache_ttl_hours: 4
+    include_warehouses: ""
+    exclude_warehouses: DTAGENT_WH
+    include_databases: ""
+    exclude_databases: ""
+    include_users: ""
+    exclude_users: ""
     telemetry:
       - metrics
       - logs
@@ -795,6 +826,28 @@ The following options control this behavior:
 - `PLUGINS.QUERY_HISTORY.SLOW_QUERIES_THRESHOLD`: The execution time threshold in milliseconds. Queries running longer than this are
   considered slow and eligible for analysis. Default: `10000` (10 seconds).
 - `PLUGINS.QUERY_HISTORY.MAX_SLOWEST_QUERIES`: The maximum number of slowest queries to analyze. Default: `50`.
+
+## Signal Protection Framework
+
+The plugin supports signal protection to prevent overload on high-volume Snowflake accounts. The following options control this behavior:
+
+- `PLUGINS.QUERY_HISTORY.MAX_ENTRIES`: Maximum number of query entries to process per run. Set to `0` for unlimited (default). When set and
+  more rows are available, the plugin processes the top-N by sort order and emits a self-monitoring warning log.
+- `PLUGINS.QUERY_HISTORY.MAX_ENTRIES_SORT`: Sort order for top-N selection when `max_entries` is set. Supported values: `execution_time`
+  (default, descending), `total_elapsed_time` (descending), `start_time` (descending). Determines which queries are prioritized when capping
+  the result set.
+- `PLUGINS.QUERY_HISTORY.MAX_LOOKBACK_MINUTES`: Maximum lookback window in minutes for catching up on unprocessed queries. Default: `120`.
+  The plugin uses the last-processed watermark from `STATUS.LOG_PROCESSED_MEASUREMENTS` but never looks back further than this value.
+- `PLUGINS.QUERY_HISTORY.INCLUDE_WAREHOUSES`: Comma-separated list of warehouse names to include. Empty string (default) means all
+  warehouses are included. Filters are applied at the SQL view level for cost efficiency.
+- `PLUGINS.QUERY_HISTORY.EXCLUDE_WAREHOUSES`: Comma-separated list of warehouse names to exclude. Default: `DTAGENT_WH` (the agent's own
+  warehouse). Exclude filters always take precedence over include filters.
+- `PLUGINS.QUERY_HISTORY.INCLUDE_DATABASES`: Comma-separated list of database names to include. Empty string (default) means all databases
+  are included.
+- `PLUGINS.QUERY_HISTORY.EXCLUDE_DATABASES`: Comma-separated list of database names to exclude. Empty string (default) means no databases
+  are excluded.
+- `PLUGINS.QUERY_HISTORY.INCLUDE_USERS`: Comma-separated list of user names to include. Empty string (default) means all users are included.
+- `PLUGINS.QUERY_HISTORY.EXCLUDE_USERS`: Comma-separated list of user names to exclude. Empty string (default) means no users are excluded.
 
 > **IMPORTANT**: For the `query_history` and `active_queries` plugins to report telemetry for all queries, the `DTAGENT_VIEWER` role must be
 > granted `MONITOR` privileges on all warehouses. By default, when the `admin` scope is installed, this is ensured through the periodic
