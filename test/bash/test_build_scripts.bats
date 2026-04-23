@@ -1,11 +1,13 @@
 #!/usr/bin/env bats
 
 setup() {
-    cd "$BATS_TEST_DIRNAME/../.."
+    # shellcheck disable=SC2154
+    cd "$BATS_TEST_DIRNAME/../.." || exit 1
 }
 
 setup_file() {
-    cd "$BATS_TEST_DIRNAME/../.."
+    # shellcheck disable=SC2154
+    cd "$BATS_TEST_DIRNAME/../.." || exit 1
     if [ -z "${BATS_SLOW_TESTS:-}" ]; then
         export BUILD_DOCS_STATUS=0
         export BUILD_OUTPUT=""

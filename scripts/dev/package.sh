@@ -144,7 +144,7 @@ done
 # building a distribution zip
 BUILD=$(grep 'BUILD =' build/_version.py | awk '{print $3}')
 
-cd package
+cd package || exit 1
 zip -r -1 "../dynatrace_snowflake_observability_agent-$VERSION.$BUILD.zip" * -x .gitkeep
 cd ..
 
