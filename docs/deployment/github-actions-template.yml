@@ -1,10 +1,12 @@
 # DSOA GitHub Actions deployment workflow template
 #
 # This is a reference template for deploying DSOA from a GitHub Actions workflow.
-# Copy this file to .github/workflows/ in your deployment repository.
+# Copy this file to .github/workflows/dsoa-deploy.yml in your deployment repository
+# and replace <YOUR_ENV> with your environment name (must match conf/config-<YOUR_ENV>.yml).
 #
 # For automated generation with your environment settings, run:
-#   ./scripts/deploy/deploy.sh --env=<ENV> --interactive --ci-export=github
+#   docker run -it -v ./conf:/app/conf ghcr.io/dynatrace-oss/dsoa-deploy:latest \
+#     --env=<ENV> --interactive --ci-export=github
 #
 # Setup instructions: see docs/deployment/github-actions.md
 

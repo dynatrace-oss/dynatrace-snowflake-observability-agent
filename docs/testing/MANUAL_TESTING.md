@@ -261,7 +261,7 @@ act
 
 #### 2.1c Run the deployment workflow locally
 
-The deployment workflow (`dsoa-deploy-template.yml`) requires secrets. Simulate them locally:
+The deployment workflow (`docs/deployment/github-actions-template.yml`) requires secrets. Simulate them locally:
 
 ```bash
 # Create a .secrets file for act

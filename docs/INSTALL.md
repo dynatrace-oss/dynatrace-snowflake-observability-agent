@@ -2,32 +2,56 @@
 
 Three ways to deploy DSOA — choose the one that fits your environment:
 
-| Method | Best for |
-| --- | --- |
-| **Docker** (simplest) | Any OS, no toolchain required |
-| **deploy.sh** (local) | macOS/Linux with Snowflake CLI installed |
+| Method                     | Best for                                                   |
+|----------------------------|------------------------------------------------------------|
+| **Docker** (recommended)   | Any OS — no toolchain, just Docker                         |
+| **deploy.sh** (local)      | macOS/Linux with Snowflake CLI installed                   |
 | **GitHub Actions** (CI/CD) | Regulated environments, audit trail, automated deployments |
 
-> **Note:** These instructions assume you are installing from the distribution package
-> (`dynatrace_snowflake_observability_agent-*.zip`). Developers building from source: see [CONTRIBUTING.md](CONTRIBUTING.md).
+> **Note:** These instructions use the published Docker image
+> (`ghcr.io/dynatrace-oss/dsoa-deploy:latest`). Developers building from source: see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ---
 
-## Docker Quick Start
+## Docker (Recommended)
 
-The fastest path to a running agent.
+No toolchain required — just Docker. Works on any OS.
 
-### Step 1 — Pull and run the interactive wizard
+### First install — interactive wizard
 
 ```bash
 docker run -it \
-  -v ./conf:/app/conf \
-  -e DTAGENT_TOKEN="dt0c01.YOUR_TOKEN" \
+  -v "$(pwd)/conf:/app/conf" \
   ghcr.io/dynatrace-oss/dsoa-deploy:latest \
   --env=production --interactive
 ```
 
-The wizard creates `conf/config-production.yml` and deploys the agent.
+The wizard prompts for your Dynatrace tenant, Snowflake account, and API token,
+creates `conf/config-production.yml`, then deploys the agent.
+
+> [!NOTE]
+> The `-v "$(pwd)/conf:/app/conf"` mount is required — the container cannot access
+> your local files without it. The wizard saves the generated config there so you
+> can reuse it for future deployments.
+
+### Subsequent deployments (config already exists)
+
+```bash
+export DTAGENT_TOKEN="dt0c01.YOUR_TOKEN"
+
+docker run --rm \
+  -v "$(pwd)/conf:/app/conf" \
+  -e DTAGENT_TOKEN \
+  ghcr.io/dynatrace-oss/dsoa-deploy:latest \
+  --env=production --options=skip_confirm
+```
+
+### Available image tags
+
+| Tag | Use |
+| --- | --- |
+| `ghcr.io/dynatrace-oss/dsoa-deploy:latest` | Latest stable release |
+| `ghcr.io/dynatrace-oss/dsoa-deploy:v0.9.5` | Pin to a specific version |
 
 ### Step 2 — Wait for first run
 
@@ -37,7 +61,7 @@ Wait ~30 minutes for the first Snowflake task run. Budget-related metrics take u
 
 Check Dynatrace for incoming telemetry. No data? See [Troubleshooting: No Data in Dynatrace](debug/no-data-in-dt/readme.md).
 
-For full Docker documentation (non-interactive CI usage, env vars, building locally):
+For full Docker documentation (non-interactive CI usage, env vars):
 see [docs/deployment/docker.md](deployment/docker.md).
 
 ---
@@ -65,10 +89,18 @@ Full guide: [docs/deployment/deploy.md](deployment/deploy.md)
 Generate a ready-to-use workflow with:
 
 ```bash
-./scripts/deploy/deploy.sh --env=production --interactive --ci-export=github
+docker run -it \
+  -v "$(pwd)/conf:/app/conf" \
+  ghcr.io/dynatrace-oss/dsoa-deploy:latest \
+  --env=production --interactive --ci-export=github
 ```
 
-This creates `.github/workflows/dsoa-deploy.yml` and `GITHUB_SECRETS_SETUP.md`.
+This creates `.github/workflows/dsoa-deploy.yml` and `GITHUB_SECRETS_SETUP.md`
+in your deployment repository.
+
+Alternatively, copy the reference template from
+[`docs/deployment/github-actions-template.yml`](deployment/github-actions-template.yml)
+and replace `<YOUR_ENV>` with your environment name.
 
 Full guide: [docs/deployment/github-actions.md](deployment/github-actions.md)
 

@@ -34,8 +34,9 @@ This runs the interactive wizard, saves your config, and generates:
 
 ### Option 2 — Copy the reference template
 
-Copy `dsoa-deploy-template.yml` from the release ZIP to `.github/workflows/dsoa-deploy.yml`
-in your deployment repository, then configure secrets manually.
+Copy [`docs/deployment/github-actions-template.yml`](github-actions-template.yml) to
+`.github/workflows/dsoa-deploy.yml` in your deployment repository, then replace
+`<YOUR_ENV>` with your environment name and configure secrets manually.
 
 ## Required Secrets
 

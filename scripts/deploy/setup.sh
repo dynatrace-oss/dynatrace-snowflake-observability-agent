@@ -103,7 +103,7 @@ else
             printf '║%-82s║\n' "$_conn_label"
             printf '║%-82s║\n' ""
             printf '║  %-80s║\n' "Enter your Snowflake credentials below."
-            printf '║  %-80s║\n' "Tip: Use 'browser' as authenticator for SSO."
+            printf '║  %-80s║\n' "Tip: Use 'externalbrowser' as authenticator for SSO."
             printf '║  %-80s║\n' "Leave optional fields blank to skip them."
             printf '╚══════════════════════════════════════════════════════════════════════════════════╝\n\n'
 
