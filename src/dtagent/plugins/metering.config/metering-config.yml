@@ -1,8 +1,8 @@
 plugins:
-  event_usage:
+  metering:
     lookback_hours: 6
     schedule: USING CRON 0 * * * * UTC
-    is_disabled: true
+    is_disabled: false
     telemetry:
       - metrics
       - logs
