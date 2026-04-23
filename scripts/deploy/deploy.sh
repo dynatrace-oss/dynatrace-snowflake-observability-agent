@@ -97,7 +97,6 @@ Optional:
   --output-file=<FILE>     Output file path for --options=manual mode
   --options=<OPTIONS>      Comma-separated flags:
                              manual        Generate SQL script without executing
-                             service_user  Use service user auth (CI/CD)
                              skip_confirm  Skip confirmation prompt
                              no_dep        Skip deployment BizEvents
                              dry_run       Dry-run for dt_assets scope
@@ -284,13 +283,7 @@ if [ "$SCOPE" == "upgrade" ] && [ "$FROM_VERSION" == '' ]; then
     exit 1
 fi
 
-#%DEV:
-# we only need to check DTAGENT_TOKEN if we are deploying through Jenkins
-if has_option "service_user" && [ -z "$DTAGENT_TOKEN" ]; then
-    echo "Environment variable DTAGENT_TOKEN is not defined"
-    exit 1
-fi
-#%:DEV
+
 
 DEFAULT_CONFIG_FILE="build/config-default.yml"
 CONFIG_FILE="conf/config-$ENV.yml"
@@ -300,7 +293,7 @@ if [ ! -f "$CONFIG_FILE" ]; then
     #%DEV:
     # we could just exit if config file doesn't exist and we either do not want to deploy at all or want to deploy through jenkins
 
-    if ! has_option "no_dep" && ! has_option "service_user"; then
+    if ! has_option "no_dep"; then
         #%:DEV
         exit 1
         #%DEV:
@@ -381,14 +374,7 @@ fi
 
 if [ -s "$INSTALL_SCRIPT_SQL" ] && ! $IS_MANUAL; then
 
-    if has_option "service_user"; then
-        # added for Jenkins to be able to skip this step, as it will never find the config file
-        # this is taken care of in the update_config.py, and config_file doesn't exist necessary data is taken from environment variables
-        # shellcheck disable=SC2154
-        SNOWFLAKE_ACCOUNT_NAME=${SNOWFLAKE_ACC_NAME}
-    else
-        SNOWFLAKE_ACCOUNT_NAME="$($CWD/get_config_key.sh core.snowflake.account_name)"
-    fi
+    SNOWFLAKE_ACCOUNT_NAME="$($CWD/get_config_key.sh core.snowflake.account_name)"
 
     INSTALL_SCRIPT_LOG="dsoa-deploy-log-$DEPLOYMENT_ENV-${NOW_TS}.sql"
     #%DEV:
@@ -410,25 +396,24 @@ if [ -s "$INSTALL_SCRIPT_SQL" ] && ! $IS_MANUAL; then
             show_bizevent_warning "STARTED"
         fi
     fi
-    #%DEV:
 
-    if ! has_option "no_dep" && ! has_option "service_user"; then
-        #%:DEV
+    # When SNOWFLAKE_ACCOUNT and SNOWFLAKE_USER env vars are both set, use temporary-connection
+    # (e.g. CI/CD environments with key-pair auth). Otherwise use named connection profile.
+    if [[ -n "${SNOWFLAKE_ACCOUNT:-}" && -n "${SNOWFLAKE_USER:-}" ]]; then
+        pushd build || exit 1
+        snow sql --temporary-connection \
+            --account "${SNOWFLAKE_ACCOUNT}" \
+            --user "${SNOWFLAKE_USER}" \
+            --filename "$(basename "${INSTALL_SCRIPT_SQL}")"
+        popd || exit 1
+    else
+        #%DEV:
         pushd build || exit 1
         snow sql --connection "snow_agent_$CONNECTION_ENV" \
-            --filename "$(basename ${INSTALL_SCRIPT_SQL})"
+            --filename "$(basename "${INSTALL_SCRIPT_SQL}")"
         popd || exit 1
-        #%DEV:
-    elif has_option "service_user"; then
-        pushd build || exit 1
-        # shellcheck disable=SC2154
-        snow sql --temporary-connection \
-            --account ${SNOWFLAKE_ACCOUNT_NAME} \
-            --user ${SNOWFLAKE_USER_NAME} \
-            --filename "$(basename ${INSTALL_SCRIPT_SQL})"
-        popd || exit 1
+        #%:DEV
     fi
-    #%:DEV
 
     cat "$INSTALL_SCRIPT_SQL" >>"$INSTALL_SCRIPT_LOG"
 
