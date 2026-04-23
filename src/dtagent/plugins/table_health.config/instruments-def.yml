@@ -64,3 +64,29 @@ metrics:
     __description: Number of rows in the table.
     displayName: Row Count
     unit: rows
+  snowflake.table.clustering.depth:
+    __example: "2.5"
+    __description: |
+      Average clustering depth of the table. Lower values indicate better clustering.
+      A value of 1.0 means all micro-partitions are perfectly clustered.
+    displayName: Clustering Depth
+    unit: "{depth}"
+  snowflake.table.clustering.overlap:
+    __example: "1.2"
+    __description: |
+      Average overlap depth of the table. Lower values indicate less overlap between
+      micro-partitions and better clustering efficiency.
+    displayName: Clustering Overlap
+    unit: "{overlap}"
+  snowflake.table.clustering.constant_partition_ratio:
+    __example: "0.85"
+    __description: |
+      Fraction of micro-partitions that are constant (fully within a single clustering
+      key range). Higher values indicate better clustering quality.
+    displayName: Constant Partition Ratio
+    unit: ratio
+  snowflake.table.clustering.total_partitions:
+    __example: "1200"
+    __description: Total number of micro-partitions in the table.
+    displayName: Total Partitions
+    unit: "{partition}"

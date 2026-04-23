@@ -14,6 +14,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 - Table Health plugin: monitors table storage metrics (active bytes, time-travel bytes, failsafe bytes, retained-for-clone bytes, row count) with include/exclude filtering and configurable size/count constraints. Runs every 6 hours by default (disabled by default, opt-in).
+- Table Health plugin — clustering depth context: collects `SYSTEM$CLUSTERING_INFORMATION()` for clustered tables via a staging procedure and reports average depth, average overlaps, constant partition ratio, and total partition count. Runs every 6 hours offset by 1 hour from the storage task. Enabled by default when the plugin is active; disable with `clustering_enabled: false`.
 
 ### Changed
 

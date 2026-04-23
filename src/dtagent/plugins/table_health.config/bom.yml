@@ -1,9 +1,17 @@
 delivers:
   - name: DTAGENT_DB.APP.V_TABLE_STORAGE
     type: view
+  - name: DTAGENT_DB.APP.TABLE_CLUSTERING_RESULTS
+    type: table
+  - name: DTAGENT_DB.APP.P_COLLECT_CLUSTERING_INFO()
+    type: procedure
+  - name: DTAGENT_DB.APP.V_TABLE_CLUSTERING
+    type: view
   - name: DTAGENT_DB.CONFIG.UPDATE_TABLE_HEALTH_CONF()
     type: procedure
   - name: DTAGENT_DB.APP.TASK_DTAGENT_TABLE_HEALTH
+    type: task
+  - name: DTAGENT_DB.APP.TASK_DTAGENT_TABLE_HEALTH_CLUSTERING
     type: task
 
 references:
@@ -13,3 +21,6 @@ references:
   - name: SNOWFLAKE.ACCOUNT_USAGE.TABLES
     type: view
     privileges: SELECT
+  - name: SYSTEM$CLUSTERING_INFORMATION
+    type: function
+    privileges: USAGE

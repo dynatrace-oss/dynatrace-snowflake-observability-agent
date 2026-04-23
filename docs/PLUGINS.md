@@ -1088,9 +1088,11 @@ The following tables list the Snowflake objects that this plugin delivers data f
 
 ## The Table Health plugin
 
-This plugin enables tracking table storage metrics in Snowflake through reported metrics.
+This plugin enables tracking table storage metrics and clustering depth in Snowflake through reported metrics.
 
-The following information is reported:
+## Table Storage Context
+
+The `table_storage` context reports the following information for each table:
 
 - active bytes (data currently stored in the table),
 - time travel bytes (data maintained for Time Travel),
@@ -1101,6 +1103,22 @@ The following information is reported:
 
 The plugin supports include/exclude filtering to target specific tables and can be configured with minimum table size and maximum table
 count constraints.
+
+## Table Clustering Context
+
+The `table_clustering` context reports clustering depth metrics for tables that have a clustering key defined. It is enabled by default and
+can be disabled via `clustering_enabled: false`.
+
+The following information is reported:
+
+- average clustering depth (lower is better — 1.0 means perfectly clustered),
+- average partition overlap (lower is better),
+- constant partition ratio (fraction of partitions fully within one clustering key range — higher is better), and
+- total partition count.
+
+Clustering information is collected by the `P_COLLECT_CLUSTERING_INFO()` stored procedure, which calls `SYSTEM$CLUSTERING_INFORMATION()` per
+table and stores results in the `TABLE_CLUSTERING_RESULTS` staging table. The clustering task runs every 6 hours, offset by 1 hour from the
+storage task to avoid warehouse contention.
 
 [Show semantics for this plugin](SEMANTICS.md#table_health_semantics_sec)
 
@@ -1119,7 +1137,10 @@ plugins:
       - "%.%.TMP_%"
     min_table_bytes: 1073741824
     max_tables: 500
+    max_clustered_tables: 100
+    clustering_enabled: true
     schedule: USING CRON 0 0,6,12,18 * * * UTC
+    schedule_clustering: USING CRON 0 1,7,13,19 * * * UTC
     is_disabled: true
     telemetry:
       - metrics
@@ -1132,18 +1153,23 @@ The following tables list the Snowflake objects that this plugin delivers data f
 
 #### Objects delivered by the `Table Health` plugin
 
-| Name                                         | Type      |
-| -------------------------------------------- | --------- |
-| DTAGENT_DB.APP.V_TABLE_STORAGE               | view      |
-| DTAGENT_DB.CONFIG.UPDATE_TABLE_HEALTH_CONF() | procedure |
-| DTAGENT_DB.APP.TASK_DTAGENT_TABLE_HEALTH     | task      |
+| Name                                                | Type      |
+| --------------------------------------------------- | --------- |
+| DTAGENT_DB.APP.V_TABLE_STORAGE                      | view      |
+| DTAGENT_DB.APP.TABLE_CLUSTERING_RESULTS             | table     |
+| DTAGENT_DB.APP.P_COLLECT_CLUSTERING_INFO()          | procedure |
+| DTAGENT_DB.APP.V_TABLE_CLUSTERING                   | view      |
+| DTAGENT_DB.CONFIG.UPDATE_TABLE_HEALTH_CONF()        | procedure |
+| DTAGENT_DB.APP.TASK_DTAGENT_TABLE_HEALTH            | task      |
+| DTAGENT_DB.APP.TASK_DTAGENT_TABLE_HEALTH_CLUSTERING | task      |
 
 #### Objects referenced by the `Table Health` plugin
 
-| Name                                          | Type | Privileges |
-| --------------------------------------------- | ---- | ---------- |
-| SNOWFLAKE.ACCOUNT_USAGE.TABLE_STORAGE_METRICS | view | SELECT     |
-| SNOWFLAKE.ACCOUNT_USAGE.TABLES                | view | SELECT     |
+| Name                                          | Type     | Privileges |
+| --------------------------------------------- | -------- | ---------- |
+| SNOWFLAKE.ACCOUNT_USAGE.TABLE_STORAGE_METRICS | view     | SELECT     |
+| SNOWFLAKE.ACCOUNT_USAGE.TABLES                | view     | SELECT     |
+| SYSTEM$CLUSTERING_INFORMATION                 | function | USAGE      |
 
 <a name="tasks_info_sec"></a>
 

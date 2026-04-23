@@ -55,7 +55,10 @@ plugins:
       - '%.%.TMP_%'
     min_table_bytes: 1073741824
     max_tables: 500
+    max_clustered_tables: 100
+    clustering_enabled: true
     schedule: USING CRON 0 0,6,12,18 * * * UTC
+    schedule_clustering: USING CRON 0 1,7,13,19 * * * UTC
     is_disabled: true
     telemetry:
       - metrics
