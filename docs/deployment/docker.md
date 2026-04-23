@@ -52,18 +52,33 @@ When `SNOWFLAKE_ACCOUNT` and `SNOWFLAKE_USER` are set, `deploy.sh` automatically
 
 ## Mounting the Config Volume
 
-The container expects your config at `/app/conf/config-<ENV>.yml`.
-Mount your local `conf/` directory:
+The container has its own isolated filesystem — it **cannot access your local files** unless
+you mount them explicitly. Always mount your local `conf/` directory into `/app/conf`:
 
 ```bash
 -v /absolute/path/to/conf:/app/conf
+# or (relative, Docker Compose / newer Docker):
+-v ./conf:/app/conf
+# or (current directory):
+-v "$(pwd)/conf:/app/conf"
 ```
 
-Or use a relative path (Docker Compose / newer Docker):
+### Using an existing config file
+
+If you already have a `conf/config-<ENV>.yml`, mount the directory and reference it by env name:
 
 ```bash
--v ./conf:/app/conf
+docker run -it --rm \
+  -v "$(pwd)/conf:/app/conf" \
+  -e DTAGENT_TOKEN="$DTAGENT_TOKEN" \
+  ghcr.io/dynatrace-oss/dsoa-deploy:latest \
+  --env=<ENV>
 ```
+
+The container will find `conf/config-<ENV>.yml` from the mounted volume.
+
+**Without the `-v` mount the container starts fresh with no config and the wizard
+will prompt you to create one from scratch, ignoring any local files.**
 
 ## Environment Variables
 
@@ -103,7 +118,7 @@ The Docker image requires build artifacts. Run `build.sh` first:
 
 ```bash
 # 1. Build DSOA artifacts
-./scripts/dev/build.sh
+make build
 
 # 2. Build Docker image
 make docker-build

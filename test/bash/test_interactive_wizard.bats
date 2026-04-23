@@ -758,6 +758,39 @@ _run_phase5_otel() {
     grep -q "query_history" scripts/deploy/interactive_wizard.sh
 }
 
+@test "customize_plugins: Dockerfile uses arch-aware yq download (not hardcoded amd64)" {
+    # Hardcoded yq_linux_amd64 breaks plugin customization on ARM hosts (Apple Silicon,
+    # ARM CI runners) — yq fails with 'Exec format error', read_default returns empty,
+    # and every plugin falls through to 'using defaults' with no prompts shown.
+    # The fix: detect arch at build time via uname -m and select the correct binary.
+    run grep "yq_linux_amd64" Dockerfile
+    [ "$status" -ne 0 ]
+}
+
+@test "customize_plugins: Dockerfile yq install uses uname -m for arch detection" {
+    grep -q "uname -m" Dockerfile
+}
+
+@test "customize_plugins: read_default returns schedule for active_queries when build config present" {
+    [[ -f "build/config-default.yml" ]] || skip "build/config-default.yml not present"
+    result=$(bash -c "
+        source scripts/deploy/lib.sh
+        source scripts/deploy/interactive_wizard.sh 2>/dev/null || true
+        read_default 'plugins.active_queries.schedule' ''
+    ")
+    [[ -n "$result" ]]
+}
+
+@test "customize_plugins: read_default returns schedule for query_history when build config present" {
+    [[ -f "build/config-default.yml" ]] || skip "build/config-default.yml not present"
+    result=$(bash -c "
+        source scripts/deploy/lib.sh
+        source scripts/deploy/interactive_wizard.sh 2>/dev/null || true
+        read_default 'plugins.query_history.schedule' ''
+    ")
+    [[ -n "$result" ]]
+}
+
 ##endregion
 
 ##region Plugin Checklist Order

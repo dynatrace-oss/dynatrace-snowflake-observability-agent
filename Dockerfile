@@ -43,10 +43,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install yq (mikefarah/yq v4 binary) and Snowflake CLI
+# Detect CPU architecture to download the correct yq binary (amd64 or arm64).
 RUN apt-get update && apt-get install -y --no-install-recommends \
         wget \
     && rm -rf /var/lib/apt/lists/* \
-    && wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 \
+    && ARCH="$(uname -m)" \
+    && case "$ARCH" in \
+        x86_64)  YQ_ARCH="amd64" ;; \
+        aarch64) YQ_ARCH="arm64" ;; \
+        armv7l)  YQ_ARCH="arm"   ;; \
+        *)       echo "Unsupported arch: $ARCH" >&2; exit 1 ;; \
+       esac \
+    && wget -qO /usr/local/bin/yq "https://github.com/mikefarah/yq/releases/latest/download/yq_linux_${YQ_ARCH}" \
     && chmod +x /usr/local/bin/yq \
     && pip install --no-cache-dir snowflake-cli-labs
 
