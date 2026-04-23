@@ -5,19 +5,20 @@
 #
 
 setup() {
-    cd "$BATS_TEST_DIRNAME/../.."
+    # shellcheck disable=SC2154
+    cd "$BATS_TEST_DIRNAME/../.." || exit
 }
 
 @test "040_update_config.sql uses DELETE FROM instead of MERGE INTO" {
     run grep -i 'delete from.*CONFIGURATIONS' src/dtagent.sql/config/040_update_config.sql
     [ "$status" -eq 0 ]
-    [[ "$output" =~ "CONFIGURATIONS" ]]
+    [[ "$output" =~ CONFIGURATIONS ]]
 }
 
 @test "040_update_config.sql uses INSERT INTO instead of MERGE INTO" {
     run grep -i 'insert into.*CONFIGURATIONS' src/dtagent.sql/config/040_update_config.sql
     [ "$status" -eq 0 ]
-    [[ "$output" =~ "CONFIGURATIONS" ]]
+    [[ "$output" =~ CONFIGURATIONS ]]
 }
 
 @test "040_update_config.sql does NOT contain MERGE INTO CONFIGURATIONS" {

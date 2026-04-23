@@ -6,7 +6,8 @@
 #
 
 setup() {
-    cd "$BATS_TEST_DIRNAME/../.."
+    # shellcheck disable=SC2154
+    cd "$BATS_TEST_DIRNAME/../.." || exit
 
     # Minimal config: no tag, deploy_disabled_plugins=false
     TEST_CONFIG_FILE=$(mktemp)
@@ -117,7 +118,7 @@ EOF
     [ "$status" -eq 0 ]
 
     # No ALTER TASK SUSPEND should appear
-    ! grep -qi 'alter task if exists.*suspend' "$TEST_SQL_FILE"
+    run ! grep -qi 'alter task if exists.*suspend' "$TEST_SQL_FILE"
 }
 
 @test "suspend SQL injected for single-task disabled plugin (tasks)" {
@@ -178,7 +179,7 @@ EOF
     [ "$status" -eq 0 ]
 
     # Output should contain the [deploy] prefix log line
-    [[ "$output" =~ "[deploy] Will suspend task for disabled plugin: tasks" ]]
+    [[ "$output" =~ \[deploy\]\ Will\ suspend\ task\ for\ disabled\ plugin:\ tasks ]]
 }
 
 @test "no suspend SQL for teardown scope" {
@@ -187,7 +188,7 @@ EOF
     run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "teardown" "" "manual"
     [ "$status" -eq 0 ]
 
-    ! grep -qi 'alter task if exists.*suspend' "$TEST_SQL_FILE"
+    run ! grep -qi 'alter task if exists.*suspend' "$TEST_SQL_FILE"
 }
 
 @test "no suspend SQL when build plugin file missing — warning emitted" {
@@ -198,10 +199,10 @@ EOF
     [ "$status" -eq 0 ]
 
     # No ALTER TASK SUSPEND should appear
-    ! grep -qi 'alter task if exists.*suspend' "$TEST_SQL_FILE"
+    run ! grep -qi 'alter task if exists.*suspend' "$TEST_SQL_FILE"
 
     # Warning must be emitted
-    [[ "$output" =~ "[deploy] WARNING: built plugin SQL not found for disabled plugin: tasks" ]]
+    [[ "$output" =~ \[deploy\]\ WARNING:\ built\ plugin\ SQL\ not\ found\ for\ disabled\ plugin:\ tasks ]]
 }
 
 # Helper: build a config JSON with one disabled plugin and a core.tag value
@@ -228,7 +229,7 @@ EOF
     grep -qi 'alter task if exists.*DTAGENT_TEST_DB.*TASK_DTAGENT_TASKS.*suspend' "$TEST_SQL_FILE"
 
     # No bare DTAGENT_DB should remain in an ALTER TASK statement
-    ! grep -qi 'alter task if exists DTAGENT_DB' "$TEST_SQL_FILE"
+    run ! grep -qi 'alter task if exists DTAGENT_DB' "$TEST_SQL_FILE"
 }
 
 @test "suspend SQL uses TAG-renamed identifiers for multi-task plugin (snowpipes)" {
@@ -248,7 +249,7 @@ EOF
     [ "$status" -eq 0 ]
 
     grep -qi 'use role DTAGENT_TEST_OWNER' "$TEST_SQL_FILE"
-    ! grep -qi 'use role DTAGENT_OWNER[^;]' "$TEST_SQL_FILE"
+    run ! grep -qi 'use role DTAGENT_OWNER[^;]' "$TEST_SQL_FILE"
 }
 
 @test "suspend SQL statement is syntactically complete (ends with semicolon)" {
@@ -272,7 +273,7 @@ EOF
     grep -qi 'alter task if exists.*TASK_DTAGENT_SNOWPIPES[^_].*suspend' "$TEST_SQL_FILE"
 
     # tasks is explicitly enabled — must NOT be suspended
-    ! grep -qi 'alter task if exists.*TASK_DTAGENT_TASKS.*suspend' "$TEST_SQL_FILE"
+    run ! grep -qi 'alter task if exists.*TASK_DTAGENT_TASKS.*suspend' "$TEST_SQL_FILE"
 }
 
 @test "suspend SQL injected with scope=config only" {
@@ -303,5 +304,5 @@ EOF
     grep -qi 'alter task if exists.*TASK_DTAGENT_SNOWPIPES_HISTORY.*suspend' "$TEST_SQL_FILE"
 
     # event_log is enabled — must NOT be suspended
-    ! grep -qi 'alter task if exists.*TASK_DTAGENT_EVENT_LOG.*suspend' "$TEST_SQL_FILE"
+    run ! grep -qi 'alter task if exists.*TASK_DTAGENT_EVENT_LOG.*suspend' "$TEST_SQL_FILE"
 }
