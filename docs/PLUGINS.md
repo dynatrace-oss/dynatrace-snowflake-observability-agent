@@ -312,7 +312,7 @@ plugins:
 
 ```dql
 fetch logs
-| filter db.system == "snowflake" and dsoa.run.context == "cold_tables"
+| filter db.system == "snowflake" and dsoa.run.plugin == "cold_tables"
 | filter snowflake.table.cold_status == "cold"
 | sort timestamp desc
 | limit 50

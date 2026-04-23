@@ -40,11 +40,10 @@ with cte_table_access as (
         ah.QUERY_START_TIME
     from SNOWFLAKE.ACCOUNT_USAGE.ACCESS_HISTORY ah,
         LATERAL FLATTEN(INPUT => ah.BASE_OBJECTS_ACCESSED) f
-    where ah.QUERY_START_TIME >= GREATEST(
-            DATEADD(DAY,
-                -1 * DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE('plugins.cold_tables.lookback_days', 365),
-                CURRENT_TIMESTAMP()),
-            DTAGENT_DB.STATUS.F_LAST_PROCESSED_TS('cold_tables')
+    where ah.QUERY_START_TIME >= DATEADD(
+            DAY,
+            -1 * DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE('plugins.cold_tables.lookback_days', 365),
+            CURRENT_TIMESTAMP()
         )
       and f.VALUE:"objectDomain"::STRING = 'Table'
 )
@@ -81,7 +80,7 @@ select
     )                                                                                                                   as DIMENSIONS,
 
     OBJECT_CONSTRUCT(
-        'snowflake.table.last_accessed_at',                         TO_VARCHAR(LAST_ACCESSED_AT, 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+        'snowflake.table.last_accessed_at',                         TO_VARCHAR(CONVERT_TIMEZONE('UTC', LAST_ACCESSED_AT), 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
     )                                                                                                                   as ATTRIBUTES,
 
     OBJECT_CONSTRUCT(
