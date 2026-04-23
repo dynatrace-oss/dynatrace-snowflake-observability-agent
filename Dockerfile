@@ -42,8 +42,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         gawk \
     && rm -rf /var/lib/apt/lists/*
 
-# Install yq and Snowflake CLI
-RUN pip install --no-cache-dir yq snowflake-cli-labs
+# Install yq (mikefarah/yq v4 binary) and Snowflake CLI
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        wget \
+    && rm -rf /var/lib/apt/lists/* \
+    && wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 \
+    && chmod +x /usr/local/bin/yq \
+    && pip install --no-cache-dir snowflake-cli-labs
 
 WORKDIR /app
 

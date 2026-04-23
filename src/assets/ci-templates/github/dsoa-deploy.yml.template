@@ -7,6 +7,18 @@
 #   1. Copy this file to .github/workflows/ in your deployment repository
 #   2. Configure secrets listed in GITHUB_SECRETS_SETUP.md
 #   3. Trigger via GitHub Actions UI → "Deploy DSOA to Snowflake"
+#
+# Supported scopes:
+#   - all: Full installation (init, admin, setup, plugins, config, agents, apikey)
+#   - init: Initialize database, schema, warehouse
+#   - admin: Create roles and grants
+#   - setup: Create helper objects
+#   - plugins: Deploy plugin code
+#   - config: Deploy configuration
+#   - agents: Deploy agent procedures
+#   - apikey: Update API key
+#   - upgrade: Upgrade from previous version (requires from_version)
+#   - teardown: Remove all DSOA objects
 
 name: Deploy DSOA to Snowflake
 on:

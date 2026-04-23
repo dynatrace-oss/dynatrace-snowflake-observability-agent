@@ -914,7 +914,7 @@ EOF
     if [[ $DRY_RUN -eq 1 ]]; then
         log_info "Dry-run mode: printing config to stdout (no file written)"
         generate_config_yaml /dev/stdout
-        return 1
+        return 0
     fi
 
     # --output=<file>: write directly to the specified path, skip menu
@@ -994,15 +994,15 @@ EOF
 ##
 export_github_ci() {
     local env="$1"
-    local sf_user="${SF_ACCOUNT:-CHANGE_ME}"
+    local sf_user="CHANGE_ME"
 
     # Determine version from build/config-default.yml
     local version="latest"
     local default_cfg="${SCRIPT_DIR}/../../build/config-default.yml"
     if [[ -f "$default_cfg" ]]; then
         local v
-        v=$(yq -r '.version // ""' "$default_cfg" 2>/dev/null || true)
-        [[ -n "$v" ]] && version="$v"
+        v=$(yq eval '.version // ""' "$default_cfg" 2>/dev/null || true)
+        [[ -n "$v" ]] && version="v${v}"
     fi
 
     local template_dir="${SCRIPT_DIR}/../../src/assets/ci-templates/github"

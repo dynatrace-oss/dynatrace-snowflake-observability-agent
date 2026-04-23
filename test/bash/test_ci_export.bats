@@ -150,7 +150,8 @@ EOF
     SF_ACCOUNT="myorg-myaccount"
 
     export_github_ci "ci-test"
-    run ! grep -q "__[A-Z_]*__" .github/workflows/dsoa-deploy.yml
+    run grep -q "__[A-Z_]*__" .github/workflows/dsoa-deploy.yml
+    [ "$status" -ne 0 ]
 
     cd "$BATS_TEST_DIRNAME/../.."
     rm -rf "$test_dir"

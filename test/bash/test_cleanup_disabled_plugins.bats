@@ -131,9 +131,12 @@ EOF
     run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "all" "" "manual" ""
     [ "$status" -eq 0 ]
 
-    run ! grep -qi 'drop task if exists' "$TEST_SQL_FILE"
-    run ! grep -qi 'drop procedure if exists' "$TEST_SQL_FILE"
-    run ! grep -qi 'drop view if exists' "$TEST_SQL_FILE"
+    run grep -qi 'drop task if exists' "$TEST_SQL_FILE"
+    [ "$status" -ne 0 ]
+    run grep -qi 'drop procedure if exists' "$TEST_SQL_FILE"
+    [ "$status" -ne 0 ]
+    run grep -qi 'drop view if exists' "$TEST_SQL_FILE"
+    [ "$status" -ne 0 ]
 }
 
 @test "no cleanup SQL when all plugins are enabled (even with cleanup_disabled)" {
@@ -142,7 +145,8 @@ EOF
     run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "all" "" "manual" "cleanup_disabled"
     [ "$status" -eq 0 ]
 
-    run ! grep -qi 'drop task if exists.*TASK_DTAGENT' "$TEST_SQL_FILE"
+    run grep -qi 'drop task if exists.*TASK_DTAGENT' "$TEST_SQL_FILE"
+    [ "$status" -ne 0 ]
 }
 
 @test "cleanup drops task for single-task disabled plugin (tasks)" {
@@ -199,8 +203,10 @@ EOF
     [ "$status" -eq 0 ]
 
     # event_log is enabled — must NOT appear in drop statements
-    run ! grep -qi 'drop task if exists.*TASK_DTAGENT_EVENT_LOG' "$TEST_SQL_FILE"
-    run ! grep -qi 'drop view if exists.*V_EVENT_LOG' "$TEST_SQL_FILE"
+    run grep -qi 'drop task if exists.*TASK_DTAGENT_EVENT_LOG' "$TEST_SQL_FILE"
+    [ "$status" -ne 0 ]
+    run grep -qi 'drop view if exists.*V_EVENT_LOG' "$TEST_SQL_FILE"
+    [ "$status" -ne 0 ]
 }
 
 @test "cleanup uses correct role context (DTAGENT_OWNER)" {
@@ -258,7 +264,8 @@ EOF
     run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "teardown" "" "manual" "cleanup_disabled"
     [ "$status" -eq 0 ]
 
-    run ! grep -qi 'drop task if exists.*TASK_DTAGENT_TASKS' "$TEST_SQL_FILE"
+    run grep -qi 'drop task if exists.*TASK_DTAGENT_TASKS' "$TEST_SQL_FILE"
+    [ "$status" -ne 0 ]
 }
 
 @test "cleanup works with combined options (cleanup_disabled,skip_confirm)" {

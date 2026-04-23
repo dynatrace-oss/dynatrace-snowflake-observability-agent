@@ -92,7 +92,7 @@ chmod u+x package/*.sh
 VERSION=$(grep 'VERSION =' build/_version.py | awk -F'"' '{print $2}')
 
 # copying documentation
-cp -v INSTALL.md "Dynatrace-Snowflake-Observability-Agent-$VERSION.pdf" CHANGELOG.md Dynatrace-Snowflake-Observability-Agent-install.pdf package/
+cp -v INSTALL.md "Dynatrace-Snowflake-Observability-Agent-$VERSION.pdf" CHANGELOG.md Dynatrace-Snowflake-Observability-Agent-install.pdf LICENSE package/
 
 # copying the documentation
 mkdir -v -p package/docs

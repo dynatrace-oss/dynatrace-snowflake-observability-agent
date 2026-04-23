@@ -182,7 +182,8 @@ run_script() {
 @test "newly assigned ID is written back to YAML file" {
     # Confirm fixture YAML has no id before deploy
     [[ ! -f "$TEST_TEMP_DIR/docs/dashboards/test-dashboard/test-dashboard.yml" ]] && skip "fixture missing"
-    run ! grep -q "^id:" "$TEST_TEMP_DIR/docs/dashboards/test-dashboard/test-dashboard.yml"
+    run grep -q "^id:" "$TEST_TEMP_DIR/docs/dashboards/test-dashboard/test-dashboard.yml"
+    [ "$status" -ne 0 ]
 
     run_script --scope=dashboards
     [ "$status" -eq 0 ]

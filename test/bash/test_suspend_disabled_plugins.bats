@@ -118,7 +118,8 @@ EOF
     [ "$status" -eq 0 ]
 
     # No ALTER TASK SUSPEND should appear
-    run ! grep -qi 'alter task if exists.*suspend' "$TEST_SQL_FILE"
+    run grep -qi 'alter task if exists.*suspend' "$TEST_SQL_FILE"
+    [ "$status" -ne 0 ]
 }
 
 @test "suspend SQL injected for single-task disabled plugin (tasks)" {
@@ -188,7 +189,8 @@ EOF
     run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "teardown" "" "manual"
     [ "$status" -eq 0 ]
 
-    run ! grep -qi 'alter task if exists.*suspend' "$TEST_SQL_FILE"
+    run grep -qi 'alter task if exists.*suspend' "$TEST_SQL_FILE"
+    [ "$status" -ne 0 ]
 }
 
 @test "no suspend SQL when build plugin file missing — warning emitted" {
@@ -200,7 +202,8 @@ EOF
     deploy_output="$output"
 
     # No ALTER TASK SUSPEND should appear
-    run ! grep -qi 'alter task if exists.*suspend' "$TEST_SQL_FILE"
+    run grep -qi 'alter task if exists.*suspend' "$TEST_SQL_FILE"
+    [ "$status" -ne 0 ]
 
     # Warning must be emitted
     [[ "$deploy_output" =~ \[deploy\]\ WARNING:\ built\ plugin\ SQL\ not\ found\ for\ disabled\ plugin:\ tasks ]]
@@ -230,7 +233,8 @@ EOF
     grep -qi 'alter task if exists.*DTAGENT_TEST_DB.*TASK_DTAGENT_TASKS.*suspend' "$TEST_SQL_FILE"
 
     # No bare DTAGENT_DB should remain in an ALTER TASK statement
-    run ! grep -qi 'alter task if exists DTAGENT_DB' "$TEST_SQL_FILE"
+    run grep -qi 'alter task if exists DTAGENT_DB' "$TEST_SQL_FILE"
+    [ "$status" -ne 0 ]
 }
 
 @test "suspend SQL uses TAG-renamed identifiers for multi-task plugin (snowpipes)" {
@@ -250,7 +254,8 @@ EOF
     [ "$status" -eq 0 ]
 
     grep -qi 'use role DTAGENT_TEST_OWNER' "$TEST_SQL_FILE"
-    run ! grep -qi 'use role DTAGENT_OWNER[^;]' "$TEST_SQL_FILE"
+    run grep -qi 'use role DTAGENT_OWNER[^;]' "$TEST_SQL_FILE"
+    [ "$status" -ne 0 ]
 }
 
 @test "suspend SQL statement is syntactically complete (ends with semicolon)" {
@@ -274,7 +279,8 @@ EOF
     grep -qi 'alter task if exists.*TASK_DTAGENT_SNOWPIPES[^_].*suspend' "$TEST_SQL_FILE"
 
     # tasks is explicitly enabled — must NOT be suspended
-    run ! grep -qi 'alter task if exists.*TASK_DTAGENT_TASKS.*suspend' "$TEST_SQL_FILE"
+    run grep -qi 'alter task if exists.*TASK_DTAGENT_TASKS.*suspend' "$TEST_SQL_FILE"
+    [ "$status" -ne 0 ]
 }
 
 @test "suspend SQL injected with scope=config only" {
@@ -305,5 +311,6 @@ EOF
     grep -qi 'alter task if exists.*TASK_DTAGENT_SNOWPIPES_HISTORY.*suspend' "$TEST_SQL_FILE"
 
     # event_log is enabled — must NOT be suspended
-    run ! grep -qi 'alter task if exists.*TASK_DTAGENT_EVENT_LOG.*suspend' "$TEST_SQL_FILE"
+    run grep -qi 'alter task if exists.*TASK_DTAGENT_EVENT_LOG.*suspend' "$TEST_SQL_FILE"
+    [ "$status" -ne 0 ]
 }

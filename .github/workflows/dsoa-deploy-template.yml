@@ -40,17 +40,17 @@ jobs:
       - name: Checkout deployment config
         uses: actions/checkout@v4
 
-      - name: Deploy DSOA
-        run: |
-          docker run --rm \
-            -v "${{ github.workspace }}/conf:/app/conf" \
-            -e DTAGENT_TOKEN="${{ secrets.DTAGENT_TOKEN }}" \
-            -e SNOWFLAKE_ACCOUNT="${{ secrets.SNOWFLAKE_ACCOUNT }}" \
-            -e SNOWFLAKE_USER="${{ secrets.SNOWFLAKE_USER }}" \
-            -e SNOWFLAKE_PRIVATE_KEY_RAW="${{ secrets.SNOWFLAKE_PRIVATE_KEY_RAW }}" \
-            ghcr.io/dynatrace-oss/dsoa-deploy:production \
-            --env=production \
-            --scope=${{ inputs.scope }} \
-            ${{ inputs.from_version != '' && format('--from-version={0}', inputs.from_version) || '' }} \
-            --defaults \
-            --options=skip_confirm
+       - name: Deploy DSOA
+         run: |
+           docker run --rm \
+             -v "${{ github.workspace }}/conf:/app/conf" \
+             -e DTAGENT_TOKEN="${{ secrets.DTAGENT_TOKEN }}" \
+             -e SNOWFLAKE_ACCOUNT="${{ secrets.SNOWFLAKE_ACCOUNT }}" \
+             -e SNOWFLAKE_USER="${{ secrets.SNOWFLAKE_USER }}" \
+             -e SNOWFLAKE_PRIVATE_KEY_RAW="${{ secrets.SNOWFLAKE_PRIVATE_KEY_RAW }}" \
+             ghcr.io/dynatrace-oss/dsoa-deploy:latest \
+             --env=production \
+             --scope=${{ inputs.scope }} \
+             ${{ inputs.from_version != '' && format('--from-version={0}', inputs.from_version) || '' }} \
+             --defaults \
+             --options=skip_confirm

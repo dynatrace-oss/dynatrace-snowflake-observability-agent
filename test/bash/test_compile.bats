@@ -50,8 +50,12 @@ setup() {
 
     # Check that docstrings are removed (no triple quotes followed by text)
     # We're checking that there are no typical docstring patterns
-    run ! grep -E '^\s*"""[^"]*"""' build/_dtagent.py
-    run ! grep -E "^\s*'''[^']*'''" build/_dtagent.py
-    run ! grep -E '^\s*"""[^"]*"""' build/_send_telemetry.py
-    run ! grep -E "^\s*'''[^']*'''" build/_send_telemetry.py
+    run grep -E '^\s*"""[^"]*"""' build/_dtagent.py
+    [ "$status" -ne 0 ]
+    run grep -E "^\s*'''[^']*'''" build/_dtagent.py
+    [ "$status" -ne 0 ]
+    run grep -E '^\s*"""[^"]*"""' build/_send_telemetry.py
+    [ "$status" -ne 0 ]
+    run grep -E "^\s*'''[^']*'''" build/_send_telemetry.py
+    [ "$status" -ne 0 ]
 }
