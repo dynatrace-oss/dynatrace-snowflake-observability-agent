@@ -29,6 +29,18 @@ This file documents detailed technical changes, internal refactorings, and devel
 - **New SQL objects**: `052_t_table_clustering_results.sql`, `053_p_collect_clustering_info.sql`, `054_v_table_clustering.sql`, `802_table_health_clustering_task.sql`.
 - **Test coverage**: 4 tests — both contexts, storage-only, clustering-only, clustering disabled via config.
 
+#### Phase 3: Derived Metrics Context
+
+- **Purpose**: Compute period-over-period growth and clustering degradation signals from historical snapshots, enabling alerting on tables that are growing rapidly or whose clustering is degrading.
+- **Architecture**: Three new objects — `TABLE_HEALTH_HISTORY` (append-only snapshot table), `P_SNAPSHOT_TABLE_HEALTH()` (inserts one row per table per run by joining `V_TABLE_STORAGE` with `TABLE_CLUSTERING_RESULTS`, then prunes rows older than `history_retention_days`), and `V_TABLE_HEALTH_DERIVED` (CTE-based view using `ROW_NUMBER()` to select the two most recent snapshots per table and compute deltas).
+- **Opt-in design**: `history_retention_days: 0` (default) disables both snapshot collection and the `table_health_derived` context. Set to a positive integer (e.g. `30`) to enable. The Python plugin gates the context on `history_retention_days > 0`.
+- **Metrics**: Four gauges — `snowflake.table.growth_bytes` (byte delta), `snowflake.table.growth_pct` (percentage delta, null-safe), `snowflake.table.clustering.depth_change` (depth delta), `snowflake.table.clustering.degraded` (0/1 flag when depth increase exceeds `clustering_degradation_threshold`).
+- **Degradation threshold**: `clustering_degradation_threshold: 2` (default). Configurable per deployment.
+- **Schedule**: `TASK_DTAGENT_TABLE_HEALTH_SNAPSHOT` runs every 6 hours at 02:00, 08:00, 14:00, 20:00 UTC — offset by 2 hours from the storage task (after clustering collection at +1h has completed).
+- **New SQL objects**: `055_t_table_health_history.sql`, `056_p_snapshot_table_health.sql`, `057_v_table_health_derived.sql`, `803_table_health_snapshot_task.sql`.
+- **New config keys**: `history_retention_days: 0`, `clustering_degradation_threshold: 2`, `schedule_snapshot`.
+- **Test coverage**: 6 tests total — both contexts, derived context enabled, derived context disabled by default, storage-only, clustering-only, clustering disabled via config.
+
 ### Dependency Maintenance — Snowflake SDK Audit and Version Update
 
 - **Scope**: Full audit of all four Snowflake SDK packages in `requirements.txt` against latest stable PyPI releases.

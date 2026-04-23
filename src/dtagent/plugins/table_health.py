@@ -37,7 +37,7 @@ from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPI
 class TableHealthPlugin(Plugin):
     """Table health plugin class.
 
-    Provides two contexts:
+    Provides three contexts:
 
     - ``table_storage``: storage metrics (active bytes, time-travel bytes, failsafe bytes,
       retained-for-clone bytes, row count) sourced from
@@ -48,12 +48,17 @@ class TableHealthPlugin(Plugin):
       ``APP.TABLE_CLUSTERING_RESULTS`` staging table populated by
       ``APP.P_COLLECT_CLUSTERING_INFO()``.  Only processed when
       ``plugins.table_health.clustering_enabled`` is ``true`` (default).
+
+    - ``table_health_derived``: period-over-period growth and clustering degradation signals
+      computed from ``APP.V_TABLE_HEALTH_DERIVED`` (LAG over ``APP.TABLE_HEALTH_HISTORY``).
+      Only processed when ``plugins.table_health.history_retention_days`` is greater than 0
+      (default 0 = disabled).
     """
 
     PLUGIN_NAME = "table_health"
 
     def process(self, run_id: str, run_proc: bool = True, contexts: Optional[List[str]] = None) -> Dict[str, Dict[str, int]]:
-        """Processes the measures on table storage health and clustering depth.
+        """Processes the measures on table storage health, clustering depth, and derived growth metrics.
 
         Args:
             run_id (str):                    unique run identifier
@@ -79,6 +84,12 @@ class TableHealthPlugin(Plugin):
                         "log_lines": clust_logs_cnt,
                         "metrics": clust_metrics_cnt,
                         "events": clust_events_cnt,
+                    },
+                    "table_health_derived": {
+                        "entries": derived_entries_cnt,
+                        "log_lines": derived_logs_cnt,
+                        "metrics": derived_metrics_cnt,
+                        "events": derived_events_cnt,
                     },
                 }
             },
@@ -116,6 +127,22 @@ class TableHealthPlugin(Plugin):
                 "log_lines": clust_logs,
                 "metrics": clust_metrics,
                 "events": clust_events,
+            }
+
+        history_retention_days = self._configuration.get(plugin_name="table_health", key="history_retention_days", default_value=0)
+        if history_retention_days and history_retention_days > 0 and (not contexts or "table_health_derived" in contexts):
+            derived_entries, derived_logs, derived_metrics, derived_events = self._log_entries(
+                f_entry_generator=lambda: self._get_table_rows("APP.V_TABLE_HEALTH_DERIVED"),
+                context_name="table_health_derived",
+                run_uuid=run_id,
+                report_logs=False,
+                log_completion=False,
+            )
+            results["table_health_derived"] = {
+                "entries": derived_entries,
+                "log_lines": derived_logs,
+                "metrics": derived_metrics,
+                "events": derived_events,
             }
 
         if run_proc:

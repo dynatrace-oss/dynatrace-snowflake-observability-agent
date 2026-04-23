@@ -10,8 +10,11 @@ plugins:
     max_tables: 500
     max_clustered_tables: 100
     clustering_enabled: true
+    history_retention_days: 0
+    clustering_degradation_threshold: 2
     schedule: USING CRON 0 0,6,12,18 * * * UTC
     schedule_clustering: USING CRON 0 1,7,13,19 * * * UTC
+    schedule_snapshot: USING CRON 0 2,8,14,20 * * * UTC
     is_disabled: true
     telemetry:
       - metrics

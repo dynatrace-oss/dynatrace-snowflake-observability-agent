@@ -7,11 +7,19 @@ delivers:
     type: procedure
   - name: DTAGENT_DB.APP.V_TABLE_CLUSTERING
     type: view
+  - name: DTAGENT_DB.APP.TABLE_HEALTH_HISTORY
+    type: table
+  - name: DTAGENT_DB.APP.P_SNAPSHOT_TABLE_HEALTH()
+    type: procedure
+  - name: DTAGENT_DB.APP.V_TABLE_HEALTH_DERIVED
+    type: view
   - name: DTAGENT_DB.CONFIG.UPDATE_TABLE_HEALTH_CONF()
     type: procedure
   - name: DTAGENT_DB.APP.TASK_DTAGENT_TABLE_HEALTH
     type: task
   - name: DTAGENT_DB.APP.TASK_DTAGENT_TABLE_HEALTH_CLUSTERING
+    type: task
+  - name: DTAGENT_DB.APP.TASK_DTAGENT_TABLE_HEALTH_SNAPSHOT
     type: task
 
 references:

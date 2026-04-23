@@ -90,3 +90,32 @@ metrics:
     __description: Total number of micro-partitions in the table.
     displayName: Total Partitions
     unit: "{partition}"
+  snowflake.table.growth_bytes:
+    __example: "104857600"
+    __description: |
+      Change in active bytes between the two most recent snapshots.
+      Positive values indicate growth; negative values indicate shrinkage.
+    displayName: Table Growth (Bytes)
+    unit: bytes
+  snowflake.table.growth_pct:
+    __example: "9.77"
+    __description: |
+      Percentage change in active bytes between the two most recent snapshots.
+      Null when the previous snapshot had zero bytes.
+    displayName: Table Growth (%)
+    unit: percent
+  snowflake.table.clustering.depth_change:
+    __example: "0.3"
+    __description: |
+      Change in average clustering depth between the two most recent snapshots.
+      Positive values indicate degradation; negative values indicate improvement.
+    displayName: Clustering Depth Change
+    unit: "{depth}"
+  snowflake.table.clustering.degraded:
+    __example: "1"
+    __description: |
+      Flag indicating whether clustering has degraded beyond the configured threshold
+      (plugins.table_health.clustering_degradation_threshold).
+      1 = degraded, 0 = healthy or no clustering data available.
+    displayName: Clustering Degraded
+    unit: "{status}"

@@ -1139,8 +1139,11 @@ plugins:
     max_tables: 500
     max_clustered_tables: 100
     clustering_enabled: true
+    history_retention_days: 0
+    clustering_degradation_threshold: 2
     schedule: USING CRON 0 0,6,12,18 * * * UTC
     schedule_clustering: USING CRON 0 1,7,13,19 * * * UTC
+    schedule_snapshot: USING CRON 0 2,8,14,20 * * * UTC
     is_disabled: true
     telemetry:
       - metrics
@@ -1159,9 +1162,13 @@ The following tables list the Snowflake objects that this plugin delivers data f
 | DTAGENT_DB.APP.TABLE_CLUSTERING_RESULTS             | table     |
 | DTAGENT_DB.APP.P_COLLECT_CLUSTERING_INFO()          | procedure |
 | DTAGENT_DB.APP.V_TABLE_CLUSTERING                   | view      |
+| DTAGENT_DB.APP.TABLE_HEALTH_HISTORY                 | table     |
+| DTAGENT_DB.APP.P_SNAPSHOT_TABLE_HEALTH()            | procedure |
+| DTAGENT_DB.APP.V_TABLE_HEALTH_DERIVED               | view      |
 | DTAGENT_DB.CONFIG.UPDATE_TABLE_HEALTH_CONF()        | procedure |
 | DTAGENT_DB.APP.TASK_DTAGENT_TABLE_HEALTH            | task      |
 | DTAGENT_DB.APP.TASK_DTAGENT_TABLE_HEALTH_CLUSTERING | task      |
+| DTAGENT_DB.APP.TASK_DTAGENT_TABLE_HEALTH_SNAPSHOT   | task      |
 
 #### Objects referenced by the `Table Health` plugin
 
