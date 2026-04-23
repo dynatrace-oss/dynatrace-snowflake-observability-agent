@@ -1,7 +1,8 @@
 #!/usr/bin/env bats
 
 setup() {
-    cd "$BATS_TEST_DIRNAME/../.."
+    # shellcheck disable=SC2154
+    cd "$BATS_TEST_DIRNAME/../.." || exit 1
 
     # Create a temp working tree for fixtures
     TEST_TEMP_DIR=$(mktemp -d)
@@ -144,12 +145,14 @@ run_script() {
     run_script --scope=dashboards
     [[ "$output" =~ "dashboard" ]]
     # workflow processing should not appear in output
+    # shellcheck disable=SC2076
     [[ ! "$output" =~ "Deploying.*workflow" ]]
 }
 
 @test "scope=workflows output mentions workflow but not dashboard processing" {
     run_script --scope=workflows
     [[ "$output" =~ "workflow" ]]
+    # shellcheck disable=SC2076
     [[ ! "$output" =~ "Deploying.*dashboard" ]]
 }
 
@@ -171,14 +174,15 @@ run_script() {
 @test "deployment prints clickable Dynatrace URL on success" {
     run_script --scope=dashboards
     [ "$status" -eq 0 ]
-    [[ "$output" =~ "[URL]" ]]
+    local url_marker='\[URL\]'
+    [[ "$output" =~ $url_marker ]]
     [[ "$output" =~ "https://" ]]
 }
 
 @test "newly assigned ID is written back to YAML file" {
     # Confirm fixture YAML has no id before deploy
     [[ ! -f "$TEST_TEMP_DIR/docs/dashboards/test-dashboard/test-dashboard.yml" ]] && skip "fixture missing"
-    ! grep -q "^id:" "$TEST_TEMP_DIR/docs/dashboards/test-dashboard/test-dashboard.yml"
+    run ! grep -q "^id:" "$TEST_TEMP_DIR/docs/dashboards/test-dashboard/test-dashboard.yml"
 
     run_script --scope=dashboards
     [ "$status" -eq 0 ]

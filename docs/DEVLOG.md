@@ -2,6 +2,80 @@
 
 This file documents detailed technical changes, internal refactorings, and development notes. For user-facing highlights, see [CHANGELOG.md](CHANGELOG.md).
 
+## [Unreleased] — BDX-1969: Interactive Deployment Wizard
+
+### Interactive Deployment Wizard — Full Implementation
+
+**Scope**: Story BDX-1969 — eliminate manual config creation friction for first-time DSOA users. Deliverables: shared bash library, 4-phase interactive wizard, `deploy.sh` flag enhancements, full BATS test suite.
+
+**Architecture**:
+
+- **`scripts/deploy/lib.sh`** (487 lines): Shared bash library sourced by wizard and deploy.sh. Includes:
+  - **Logging helpers**: `log_info`, `log_ok`, `log_warn`, `log_error` (consolidates duplicated code from `deploy_dt_assets.sh` + `deploy_test_notebook.sh` for future refactoring).
+  - **Prompt helpers**: `prompt_input()` (collects input with optional default + validation fn), `prompt_yesno()` (y/n), `prompt_select_one()` (bash `select` menu), `prompt_select_multi()` (y/n per item).
+  - **Validators**: `validate_dt_tenant()` (accepts `*.live.dynatrace.com`, `*.sprint.dynatracelabs.com`, `*.dev.dynatracelabs.com`; auto-corrects `.apps.dynatrace.com` → `.live.dynatrace.com`), `validate_sf_account()` (format + optional HTTPS probe to `<account>.snowflakecomputing.com`), `validate_nonempty()`, `validate_alphanumeric()`.
+  - **Probes**: `probe_dt_tenant()` + `probe_sf_account()` (HTTPS reachability checks; warn-don't-block on failure per story).
+  - **Config helpers**: `read_config_key()` / `write_config_key()` (wraps `yq`).
+  - All functions include Google-style docstrings for maintainability.
+
+- **`scripts/deploy/interactive_wizard.sh`** (988 lines): Standalone wizard script. Five phases:
+  1. **Phase 1 — Core Config**: Prompts for DT tenant, API token (silent `read -rs`), SF account, deployment env name, optional multitenancy tag. Auto-corrects `.apps.` to `.live.`. Pre-populates from existing config if in edit mode (`--existing-config=`).
+  2. **Phase 2 — Deployment Scope**: `prompt_select_one()` menu with 9 options (full/init/init+admin/post-init/config-only/apikey/upgrade/teardown/dt_assets). If upgrade selected, prompts for `--from-version`.
+  3. **Phase 3 — Plugin Selection**: Q1: All/None/Selected (shown as numbered list, user selects via bash `select` y/n per plugin). Q2: Deploy disabled plugin code? Sets `plugins.deploy_disabled_plugins`. Q3: Customize plugin settings? Walks through per-plugin knobs (schedule, thresholds) for each enabled plugin.
+  4. **Phase 4 — Advanced Settings**: Optional (behind `prompt_yesno` gate). Log level, procedure timeout, resource monitor quota.
+  5. **Phase 5 — Telemetry Settings**: Optional. OTel enable/disable per signal type, max consecutive API fails.
+  - **Config persistence**: Generates YAML via heredoc + append. Offers: ① save new `conf/config-$ENV.yml`, ② overwrite existing config, ③ print to stdout, ④ discard. `--output=<file>` skips menu and writes directly. `--dry-run` prints to stdout without writing any file.
+  - **Flags**: `--env=`, `--existing-config=`, `--dry-run`, `--output=`. Works with piped stdin for testing.
+
+- **Modified `scripts/deploy/deploy.sh`**:
+  - **New args**: `--env=<ENV>` (flag-based, replaces positional), `--interactive` (launch wizard), `--defaults` (generate minimal config non-interactively from `config-template.yml`).
+  - **Backward compat**: Positional `$ENV` still works; emits deprecation warning suggesting `--env=`.
+  - **Auto-trigger wizard**: When `conf/config-$ENV.yml` missing and `--defaults` not set, automatically invokes wizard.
+  - **Validation**: Wizard's probes check DT tenant and SF account reachability; optional API token validation via metadata endpoint (all warnings, no hard blocks).
+
+**Testing**:
+
+- **`test/bash/test_lib.bats`** (156 lines, 19 tests): Unit tests for lib.sh validators, prompt helpers, config key accessors. Source lib.sh directly, test functions in isolation.
+- **`test/bash/test_interactive_wizard.bats`**: Integration tests. Pipe stdin answers into wizard; validate generated YAML. Covers all phases, config persistence options, `--output=` and `--dry-run` flags.
+- **`test/bash/test_deploy_new_flags.bats`**: Test deploy.sh flag behavior (`--env=`, `--interactive`, `--defaults`, positional deprecation). Includes integration test for `deploy.sh --interactive` with piped stdin (EOF) to verify wizard invocation path.
+
+**Design decisions**:
+
+1. **No external TUI frameworks** (no fzf/gum/whiptail/dialog) — bash `select` is sufficient for plugin checklist.
+2. **HTTPS probes warn, don't block** — per story spec; users can proceed even if network unreachable.
+3. **Auto-correct `.apps.` to `.live.`** — common user mistake; silently fixed improves UX.
+4. **Bash `select` for multi-select** — simplest pure-bash solution; each item is y/n via separate `select` invocation (follows user's design choice).
+5. **Config persistence via heredoc + append** — generates YAML with a heredoc for the core block, then appends optional sections. Overwrites the target file on save; does not merge/preserve comments from existing configs.
+6. **Piped stdin testing** — wizard accepts EOF gracefully; tests pipe answers + validate output, no interactive mocking needed.
+
+**Files changed**:
+
+- `scripts/deploy/lib.sh` (new, 487 lines)
+- `scripts/deploy/interactive_wizard.sh` (new, 568 lines)
+- `scripts/deploy/deploy.sh` (modified, +119 lines)
+- `test/bash/test_lib.bats` (new, 156 lines)
+- `test/bash/test_interactive_wizard.bats` (new, 101 lines)
+- `test/bash/test_deploy_new_flags.bats` (new, 160 lines)
+- `docs/CHANGELOG.md` (updated, user-facing summary)
+- `docs/DEVLOG.md` (this file, technical details)
+
+**Acceptance criteria met**:
+
+- ✓ `./deploy.sh --env=test-qa --interactive` launches wizard
+- ✓ `./deploy.sh --env=test-qa --defaults` generates config non-interactively
+- ✓ `./deploy.sh test-qa --scope=...` (positional) works with deprecation warning
+- ✓ Wizard generates valid YAML passing `prepare_config.sh` validation
+- ✓ All BATS tests pass (32/32)
+- ✓ `make lint` passes (pylint 10.00/10, shellcheck, markdownlint)
+- ✓ No new runtime dependencies (bash builtins + jq/yq/curl/snow CLI only)
+- ✓ Full backward compatibility (existing deploy.sh flows unchanged)
+
+**Future work**:
+
+- Extract log helpers from `deploy_dt_assets.sh` and `deploy_test_notebook.sh` to source lib.sh (scope creep, separate PR).
+- GitHub Actions workflow generation as optional wizard output (BDX-1968, follow-up).
+- SQL `USE` statement deduplication in `prepare_deploy_script.sh` (post-MVP optimization, noted in story).
+
 ## Version 0.9.5 — Detailed Changes
 
 ### Feature: Cross-Batch Span Parent Linking for query_history Plugin
@@ -28,8 +102,6 @@ This file documents detailed technical changes, internal refactorings, and devel
   - `test/test_data/query_history_cross_batch.ndjson`: New fixture with 3 rows covering: child with cached parent context, child without context (fresh IDs), child with both event_log IDs and cached parent (event_log wins).
 - **Files Changed**: `src/dtagent/plugins/query_history.sql/011_processed_queries_cache.sql`, `src/dtagent/plugins/query_history.sql/061_p_refresh_recent_queries.sql`, `src/dtagent/plugins/query_history.sql/062_v_recent_queries.sql`, `src/dtagent/plugins/query_history.sql/110_update_processed_queries.sql`, `src/dtagent/otel/spans.py`, `src/dtagent/plugins/__init__.py`, `src/dtagent.sql/upgrade/0.9.5/020_add_span_context_to_cache.sql`, `src/dtagent.sql/upgrade/0.9.5/021_drop_update_processed_queries_3arg.sql`, `src/dtagent/plugins/query_history.config/query_history-config.yml`, `conf/config-template.yml`, `test/plugins/test_query_history_cross_batch.py`, `test/test_data/query_history_cross_batch.ndjson`
 
-
-
 - **Problem**: On high-volume Snowflake accounts (e.g., LPL Financial), the `query_history` plugin processes every query completed in the last 120 minutes, causing timeouts and memory exhaustion when tens of thousands of queries execute per 30-minute window. No mechanism existed to cap signals, filter by warehouse/database/user, or prioritize interesting queries.
 - **Solution**: Three complementary mechanisms:
   1. **Top-N Limiting** — `max_entries` config parameter caps rows processed per run. Rows are sorted by `max_entries_sort` (default: `execution_time DESC`) so expensive queries are always captured. When the cap is hit, a self-monitoring WARNING log and bizevent are emitted with dropped count.
@@ -50,6 +122,15 @@ This file documents detailed technical changes, internal refactorings, and devel
   - `test_query_history.py`: Added `test_query_history_max_entries_limiting()` to verify self-monitoring event emission when cap is applied. Added `test_query_history_backward_compatibility()` to ensure default config (max_entries=0) processes all rows unchanged. Both tests pass with mock fixtures.
 - **No Procedure Signature Changes**: `P_REFRESH_RECENT_QUERIES()` has no parameters, so no upgrade script needed. Return type change (TEXT → OBJECT) is transparent to callers.
 - **Files Changed**: `src/dtagent/plugins/query_history.sql/051_v_query_history.sql`, `src/dtagent/plugins/query_history.sql/061_p_refresh_recent_queries.sql`, `src/dtagent/plugins/query_history.py`, `src/dtagent/plugins/query_history.config/query_history-config.yml`, `src/dtagent/plugins/query_history.config/config.md`, `src/dtagent/plugins/query_history.config/readme.md`, `conf/config-template.yml`, `test/plugins/test_query_history.py`
+
+### New Plugin: Metering (BDX-1865)
+
+- **Problem**: `event_usage` plugin reads only `EVENT_USAGE_HISTORY`, covering a single service type (`TELEMETRY_DATA_INGEST`). `METERING_HISTORY` covers all service types, enabling full FinOps visibility.
+- **Solution**: New `metering` plugin reading `SNOWFLAKE.ACCOUNT_USAGE.METERING_HISTORY` with `WHERE SERVICE_TYPE != 'WAREHOUSE_METERING'` to avoid duplication with `warehouse_usage`.
+- **Metrics**: `snowflake.credits.used`, `snowflake.credits.used.compute`, `snowflake.credits.used.cloud_services`, `snowflake.data.size`, `snowflake.data.rows`, `snowflake.data.files` — all with `snowflake.service.type` and `snowflake.service.name` dimensions.
+- **Migration**: `event_usage` disabled by default, logs deprecation warning. `snowflake.credits.used` metric name preserved for backward compatibility. Filter `snowflake.service.type == "TELEMETRY_DATA_INGEST"` reproduces old data.
+- **Files**: `src/dtagent/plugins/metering.py`, `metering.sql/` (view, task, config proc), `metering.config/` (config, instruments-def, bom, readme), test fixtures and test file.
+- **Removal plan**: `event_usage` will be fully removed in 0.9.6.
 
 ### Dependency Maintenance — Snowflake SDK Audit and Version Update
 

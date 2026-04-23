@@ -1,7 +1,8 @@
 #!/usr/bin/env bats
 
 setup() {
-    cd "$BATS_TEST_DIRNAME/../.."
+    # shellcheck disable=SC2154
+    cd "$BATS_TEST_DIRNAME/../.." || exit 1
     TEST_CONFIG_FILE=$(mktemp)
     export BUILD_CONFIG_FILE="$TEST_CONFIG_FILE"
 }
@@ -181,6 +182,6 @@ EOF
     # not_configured should be excluded (not explicitly enabled when disabled_by_default=true)
     [[ "$output" =~ (^|[[:space:]])not_configured([[:space:]]|$) ]]
     # enabled_one and enabled_two should NOT be excluded (explicitly enabled)
-    ! [[ "$output" =~ (^|[[:space:]])enabled_one([[:space:]]|$) ]]
-    ! [[ "$output" =~ (^|[[:space:]])enabled_two([[:space:]]|$) ]]
+    [[ ! "$output" =~ (^|[[:space:]])enabled_one([[:space:]]|$) ]]
+    [[ ! "$output" =~ (^|[[:space:]])enabled_two([[:space:]]|$) ]]
 }

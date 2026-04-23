@@ -25,6 +25,7 @@
 #
 #
 from typing import Tuple, Dict, Optional, List
+from dtagent import LOG
 from dtagent.util import _unpack_json_dict
 from dtagent.plugins import Plugin
 from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPILE_REMOVE
@@ -80,6 +81,10 @@ class EventUsagePlugin(Plugin):
             "dsoa.run.id": "uuid_string"
             }
         """
+        LOG.warning(
+            "event_usage plugin is deprecated and will be removed in 0.9.6. "
+            "Use the 'metering' plugin instead, which covers all Snowflake service types."
+        )
         processed_entries_cnt, processed_logs_cnt, processed_event_metrics_cnt, processed_events_cnt = self._log_entries(
             f_entry_generator=lambda: self._get_table_rows("APP.V_EVENT_USAGE_HISTORY"),
             context_name="event_usage",

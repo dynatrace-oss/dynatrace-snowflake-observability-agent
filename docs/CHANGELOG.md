@@ -15,11 +15,19 @@ All notable changes to this project will be documented in this file.
 
 - Signal protection framework for `query_history` plugin: configurable top-N limiting (`max_entries`), include/exclude filters for warehouses/databases/users, and watermark-based lookback window (`max_lookback_minutes`). Prevents overload on high-volume Snowflake accounts. Self-monitoring logs and bizevents emitted when signal protection is active. All defaults preserve backward compatibility.
 - Cross-batch span parent linking for `query_history` plugin: OTEL span context (`OTEL_SPAN_ID`, `OTEL_TRACE_ID`) is now persisted in `PROCESSED_QUERIES_CACHE` and used to inject parent context for child queries whose parent was processed in a previous batch. Enables continuous trace chains across agent run cycles. Cache TTL is configurable via `query_history.cache_ttl_hours` (default: 4h). See [DEVLOG.md](DEVLOG.md) for implementation details.
+- New `metering` plugin reporting credit consumption across all Snowflake service types via `METERING_HISTORY`. Covers auto-clustering, pipes, serverless tasks, AI services, replication, and more with `service_type` dimension for FinOps cost attribution.
+- **Interactive deployment wizard** (`--interactive` flag): Guides users through 5-phase configuration (core config, deployment scope, plugin selection, advanced settings, telemetry settings). Auto-triggered when config file is missing. Generates `conf/config-$ENV.yml`. Includes HTTPS reachability probes for DT tenant and Snowflake account (warn-only, non-blocking). Supports `--dry-run` (print config to stdout) and `--output=<file>` (write to custom path).
+- **New `deploy.sh` flags**: `--env=<ENV>` (replaces positional arg), `--interactive` (launch wizard), `--defaults` (generate minimal config non-interactively). Positional `$ENV` still supported with deprecation warning for backward compatibility.
+- **Shared bash library** (`scripts/deploy/lib.sh`): Logging, prompt helpers, validators (DT tenant, Snowflake account, tokens) for reuse across deployment scripts.
 
 ### Changed
 
 - Updated `snowflake-snowpark-python` minimum version to `>=1.49.0` (was `>=1.48.1`). Python version constraint
   remains `<3.14` — bottleneck is `snowflake==1.12.0`, not snowpark. See [DEVLOG.md](DEVLOG.md) for full audit details.
+
+### Deprecated
+
+- `event_usage` plugin is deprecated and disabled by default. Use `metering` instead. Will be removed in 0.9.6. To reproduce the same data, filter by `snowflake.service.type == "TELEMETRY_DATA_INGEST"`.
 
 ### Fixed
 
