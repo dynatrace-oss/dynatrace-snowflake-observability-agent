@@ -9,6 +9,7 @@
 - [Event Log](#event_log_semantics_sec)
 - [Event Usage](#event_usage_semantics_sec)
 - [Login History](#login_history_semantics_sec)
+- [Metering](#metering_semantics_sec)
 - [Query History](#query_history_semantics_sec)
 - [Resource Monitors](#resource_monitors_semantics_sec)
 - [Shares](#shares_semantics_sec)
@@ -337,6 +338,39 @@ check the `Context Name` column below.
 | snowflake.&#8203;session.&#8203;start         | The start time of the session.                                                                      | 1633046400000000000 | sessions                |
 | status.&#8203;code                            | The status of the login attempt, indicating success (OK) or failure (ERROR).                        | OK                  | login_history           |
 | status.&#8203;message                         | A message providing additional details about the status of the login attempt.                       | Login successful    | login_history           |
+
+<a name="metering_semantics_sec"></a>
+
+## The `Metering` plugin semantics
+
+[Show plugin description](PLUGINS.md#metering_info_sec)
+
+This plugin delivers telemetry in multiple contexts. To filter by one of plugin's context names (reported as `dsoa.run.context`), please
+check the `Context Name` column below.
+
+### Dimensions at the `Metering` plugin
+
+| Identifier                           | Description                                                                                                        | Example         | Context Name |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------ | --------------- | ------------ |
+| snowflake.&#8203;service.&#8203;name | Name of the Snowflake service entity that consumed credits.                                                        | MY_PIPE         | metering     |
+| snowflake.&#8203;service.&#8203;type | Snowflake service type that consumed credits (e.g. AUTO_CLUSTERING, PIPE, SERVERLESS_TASK, TELEMETRY_DATA_INGEST). | AUTO_CLUSTERING | metering     |
+
+### Attributes at the `Metering` plugin
+
+| Identifier                                | Description                                        | Example | Context Name |
+| ----------------------------------------- | -------------------------------------------------- | ------- | ------------ |
+| snowflake.&#8203;service.&#8203;entity_id | Unique Snowflake identifier of the service entity. | 12345   | metering     |
+
+### Metrics at the `Metering` plugin
+
+| Identifier                                                 | Name                                  | Unit    | Description                                                            | Example  | Context Name |
+| ---------------------------------------------------------- | ------------------------------------- | ------- | ---------------------------------------------------------------------- | -------- | ------------ |
+| snowflake.&#8203;credits.&#8203;used                       | Snowflake Credits Used                | credits | Total credits consumed by the service in the metering window.          | 15.5     | metering     |
+| snowflake.&#8203;credits.&#8203;used.&#8203;cloud_services | Snowflake Cloud Services Credits Used | credits | Cloud services credits consumed by the service in the metering window. | 3.2      | metering     |
+| snowflake.&#8203;credits.&#8203;used.&#8203;compute        | Snowflake Compute Credits Used        | credits | Compute credits consumed by the service in the metering window.        | 12.3     | metering     |
+| snowflake.&#8203;data.&#8203;files                         | Files Processed                       | files   | Number of files processed by the service in the metering window.       | 120      | metering     |
+| snowflake.&#8203;metering.&#8203;data.&#8203;rows          | Rows Processed                        | rows    | Number of rows processed by the service in the metering window.        | 50000    | metering     |
+| snowflake.&#8203;metering.&#8203;data.&#8203;size          | Bytes Processed                       | bytes   | Number of bytes processed by the service in the metering window.       | 10485760 | metering     |
 
 <a name="query_history_semantics_sec"></a>
 

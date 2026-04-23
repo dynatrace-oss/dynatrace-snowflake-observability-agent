@@ -1,7 +1,8 @@
 #!/usr/bin/env bats
 
 setup() {
-    cd "$BATS_TEST_DIRNAME/../.."
+    # shellcheck disable=SC2154
+    cd "$BATS_TEST_DIRNAME/../.." || exit 1
     TEST_SQL_FILE=$(mktemp)
 
     # Create build directory structure
@@ -124,14 +125,14 @@ EOF
     [ -s "$TEST_SQL_FILE" ]
 
     # Should NOT contain admin role references
-    ! grep -q "create role if not exists DTAGENT_ADMIN" "$TEST_SQL_FILE"
-    ! grep -q "grant manage grants on account to role DTAGENT_ADMIN" "$TEST_SQL_FILE"
-    ! grep -q "grant operate on warehouse DTAGENT_WH to role DTAGENT_ADMIN" "$TEST_SQL_FILE"
+    run ! grep -q "create role if not exists DTAGENT_ADMIN" "$TEST_SQL_FILE"
+    run ! grep -q "grant manage grants on account to role DTAGENT_ADMIN" "$TEST_SQL_FILE"
+    run ! grep -q "grant operate on warehouse DTAGENT_WH to role DTAGENT_ADMIN" "$TEST_SQL_FILE"
 
     # Should NOT contain resource monitor references
-    ! grep -q "create or replace resource monitor DTAGENT_RS" "$TEST_SQL_FILE"
-    ! grep -q "alter warehouse DTAGENT_WH set resource_monitor" "$TEST_SQL_FILE"
-    ! grep -q "P_UPDATE_RESOURCE_MONITOR" "$TEST_SQL_FILE"
+    run ! grep -q "create or replace resource monitor DTAGENT_RS" "$TEST_SQL_FILE"
+    run ! grep -q "alter warehouse DTAGENT_WH set resource_monitor" "$TEST_SQL_FILE"
+    run ! grep -q "P_UPDATE_RESOURCE_MONITOR" "$TEST_SQL_FILE"
 
     # Should still contain regular code (from setup and config scopes)
     grep -q "create warehouse if not exists DTAGENT_WH" "$TEST_SQL_FILE"
@@ -171,8 +172,8 @@ EOF
     grep -q "grant manage grants on account to role CUSTOM_ADMIN_ROLE" "$TEST_SQL_FILE"
 
     # Should NOT contain resource monitor references
-    ! grep -q "create or replace resource monitor DTAGENT_RS" "$TEST_SQL_FILE"
-    ! grep -q "P_UPDATE_RESOURCE_MONITOR" "$TEST_SQL_FILE"
+    run ! grep -q "create or replace resource monitor DTAGENT_RS" "$TEST_SQL_FILE"
+    run ! grep -q "P_UPDATE_RESOURCE_MONITOR" "$TEST_SQL_FILE"
 
     # Should contain regular code
     grep -q "create warehouse if not exists DTAGENT_WH" "$TEST_SQL_FILE"
@@ -208,8 +209,8 @@ EOF
     [ -s "$TEST_SQL_FILE" ]
 
     # Should NOT contain admin role references
-    ! grep -q "grant manage grants on account to role DTAGENT_ADMIN" "$TEST_SQL_FILE"
-    ! grep -q "grant operate on warehouse DTAGENT_WH to role DTAGENT_ADMIN" "$TEST_SQL_FILE"
+    run ! grep -q "grant manage grants on account to role DTAGENT_ADMIN" "$TEST_SQL_FILE"
+    run ! grep -q "grant operate on warehouse DTAGENT_WH to role DTAGENT_ADMIN" "$TEST_SQL_FILE"
 
     # Should contain resource monitor references (with custom name)
     grep -q "create or replace resource monitor CUSTOM_RM" "$TEST_SQL_FILE"
@@ -276,6 +277,7 @@ EOF
     run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "admin" "" "manual"
     [ "$status" -ne 0 ]
     [[ "$output" =~ "ERROR: Deployment scope 'admin' was requested" ]]
+    # shellcheck disable=SC2076
     [[ "$output" =~ "core.snowflake.roles.admin is set to '-' (disabled)" ]]
 }
 
@@ -373,7 +375,7 @@ EOF
     [ -s "$TEST_SQL_FILE" ]
 
     # Should NOT contain DTAGENT procedure when all plugins are disabled
-    ! grep -q "create or replace procedure DTAGENT_DB.APP.DTAGENT" "$TEST_SQL_FILE"
+    run ! grep -q "create or replace procedure DTAGENT_DB.APP.DTAGENT" "$TEST_SQL_FILE"
 
     # But agents scope should still deploy (e.g., send_telemetry can work without plugins)
 }
@@ -417,5 +419,5 @@ EOF
     [ -s "$TEST_SQL_FILE" ]
 
     # Should NOT contain DTAGENT procedure when no plugins are explicitly enabled with disabled_by_default=true
-    ! grep -q "create or replace procedure DTAGENT_DB.APP.DTAGENT" "$TEST_SQL_FILE"
+    run ! grep -q "create or replace procedure DTAGENT_DB.APP.DTAGENT" "$TEST_SQL_FILE"
 }

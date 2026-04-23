@@ -75,13 +75,14 @@ Use cases marked with 🔜 are **upcoming** — they depend on plugins currently
 
 ### Costs — Tier 1 — Data Infrastructure
 
-| Use case                   | In Details                                                                                                                                                              | Data                                                              |
-|----------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|
-| Resource monitors analysis | Determine if the credits limit set on a resource monitor is enough, too much, or too little for future needs. Analyze quota used vs remaining to make better decisions. | [Resource Monitors plugin](PLUGINS.md#resource_monitors_info_sec) |
-| Budgets analysis           | Combine budget details like spending limits and linked resources with their spending history to enable complete cost analysis.                                          | [Budgets plugin](PLUGINS.md#budgets_info_sec)                     |
-| Warehouse metering history | Monitor credit consumption of particular warehouses, compare cloud services credits vs compute credits, and predict trends in expenses.                                 | [Warehouse Usage plugin](PLUGINS.md#warehouse_usage_info_sec)     |
-| Event table ingest costs   | Monitor credits billed and bytes ingested for loading data into the Snowflake event table over time.                                                                    | [Event Usage plugin](PLUGINS.md#event_usage_info_sec)             |
-| Storage growth analysis    | Track database and table storage growth trends (total size, row counts) and time since last DDL/update for capacity planning.                                           | [Data Volume plugin](PLUGINS.md#data_volume_info_sec)             |
+| Use case                       | In Details                                                                                                                                                              | Data                                                                                 |
+|--------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------|
+| Resource monitors analysis     | Determine if the credits limit set on a resource monitor is enough, too much, or too little for future needs. Analyze quota used vs remaining to make better decisions. | [Resource Monitors plugin](PLUGINS.md#resource_monitors_info_sec)                    |
+| Budgets analysis               | Combine budget details like spending limits and linked resources with their spending history to enable complete cost analysis.                                          | [Budgets plugin](PLUGINS.md#budgets_info_sec)                                        |
+| Warehouse metering history     | Monitor credit consumption of particular warehouses, compare cloud services credits vs compute credits, and predict trends in expenses.                                 | [Warehouse Usage plugin](PLUGINS.md#warehouse_usage_info_sec)                        |
+| Event table ingest costs       | Monitor credits billed and bytes ingested for loading data into the Snowflake event table over time.                                                                    | [Metering plugin](PLUGINS.md#metering_info_sec) (was: Event Usage, deprecated 0.9.5) |
+| Service-level cost attribution | Monitor credit consumption across all Snowflake service types (auto-clustering, pipes, serverless tasks, AI services, replication) for FinOps cost allocation.          | [Metering plugin](PLUGINS.md#metering_info_sec)                                      |
+| Storage growth analysis        | Track database and table storage growth trends (total size, row counts) and time since last DDL/update for capacity planning.                                           | [Data Volume plugin](PLUGINS.md#data_volume_info_sec)                                |
 
 ### Costs — Tier 2 — Data Apps & Pipelines
 
@@ -159,16 +160,17 @@ The matrix below maps each DPO theme to the three observability tiers, showing t
 |-----------------|-----------------------------|-------------------------------|-----------------------------------|
 | **Security**    | 2 current                   | 4 current + 1 upcoming        | 1 current                         |
 | **Operations**  | 3 current                   | 3 current + 3 upcoming        | 1 current                         |
-| **Costs**       | 5 current                   | 3 current + 3 upcoming        | —                                 |
+| **Costs**       | 6 current                   | 3 current + 3 upcoming        | —                                 |
 | **Performance** | 2 current                   | 9 current + 2 upcoming        | —                                 |
 | **Quality**     | 2 current                   | 2 current + 3 upcoming        | 1 current                         |
-| **Total**       | **14 current**              | **21 current + 12 upcoming**  | **3 current**                     |
+| **Total**       | **15 current**              | **21 current + 12 upcoming**  | **3 current**                     |
 
 ### Upcoming Plugin Summary
 
 | Plugin        | Status                        | Key Use Cases                                                                              | DPO Themes                              |
 |---------------|-------------------------------|--------------------------------------------------------------------------------------------|-----------------------------------------|
 | **Snowpipes** | 0.9.4                         | Operational monitoring, FinOps attribution, ingestion validation, throughput analysis      | Operations, Costs, Performance, Quality |
+| **Metering**  | 0.9.5                         | Service-level cost attribution, event table ingest costs (replaces event\_usage)           | Costs                                   |
 | **Stages**    | Planned (deferred)            | Access auditing, storage cost visibility, data validation (non-pipe operations only)       | Security, Costs, Quality                |
 | **Streams**   | Planned (no immediate demand) | Consumption lag detection, FinOps attribution, volume spike detection, CDC drift detection | Operations, Costs, Performance, Quality |
 

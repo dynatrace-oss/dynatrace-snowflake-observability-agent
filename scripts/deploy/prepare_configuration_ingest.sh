@@ -26,6 +26,7 @@
 # This is a script for prepares SQL code that will insert configuration into temporary table
 SELECT_STATEMENTS=""
 
+# shellcheck disable=SC2154
 while IFS= read -r config; do
   ESCAPED_CONFIG=$(echo "$config" | sed "s/'/''/g")
   SELECT_STATEMENTS+="SELECT PARSE_JSON('$ESCAPED_CONFIG') as data UNION ALL "

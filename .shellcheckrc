@@ -1,0 +1,4 @@
+shell=bash
+severity=warning
+enable=all
+disable=SC2034,SC2250,SC2292,SC2030,SC2031,SC2250,SC2292

@@ -76,6 +76,7 @@ call APP.DTAGENT(ARRAY_CONSTRUCT('dynamic_tables'));
 call APP.DTAGENT(ARRAY_CONSTRUCT('event_log'));
 call APP.DTAGENT(ARRAY_CONSTRUCT('event_usage'));
 call APP.DTAGENT(ARRAY_CONSTRUCT('login_history'));
+call APP.DTAGENT(ARRAY_CONSTRUCT('metering'));
 call APP.DTAGENT(ARRAY_CONSTRUCT('query_history'));
 call APP.DTAGENT(ARRAY_CONSTRUCT('resource_monitors'));
 call APP.DTAGENT(ARRAY_CONSTRUCT('shares'));
