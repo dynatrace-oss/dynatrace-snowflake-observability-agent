@@ -3,6 +3,7 @@
 - [Core Objects](#core_bom_sec)
 - [Active Queries](#active_queries_info_sec)
 - [Budgets](#budgets_info_sec)
+- [Cold Tables](#cold_tables_info_sec)
 - [Data Schemas](#data_schemas_info_sec)
 - [Data Volume](#data_volume_info_sec)
 - [Dynamic Tables](#dynamic_tables_info_sec)
@@ -260,6 +261,136 @@ The following tables list the Snowflake objects that this plugin delivers data f
 | $budget!GET_SPENDING_LIMIT     | procedure   | USAGE                           |                        | We call this procedure on each budget defined in Snowflake                                             |
 | $budget!GET_SPENDING_HISTORY   | procedure   | USAGE                           |                        | We call this procedure on each budget defined in Snowflake                                             |
 | SNOWFLAKE.USAGE_VIEWER         | role        | DATABASE ROLE                   | DTAGENT_VIEWER         | Optional (admin scope). Required for custom budget monitoring via P_GRANT_BUDGET_MONITORING().         |
+
+<a name="cold_tables_info_sec"></a>
+
+## The Cold Tables plugin
+
+This plugin enables identification of "cold" tables — tables that have not been accessed by queries for a configurable period (default: 90
+days). It helps FinOps teams and Snowflake administrators identify candidates for archiving, dropping, or tiering to lower-cost storage.
+
+The following information is reported:
+
+- table access frequency (total count within lookback window),
+- timestamp of the most recent query that accessed the table,
+- number of days since last access,
+- cold/warm classification based on access recency.
+
+## Configuration
+
+Default schedule: daily at 6 AM UTC (access patterns don't change hourly).
+
+Configurable parameters:
+
+- `lookback_days` (default: 365) — number of days to look back in ACCESS_HISTORY
+- `cold_threshold_days` (default: 90) — tables with no access in this many days are flagged as "cold"
+
+Example configuration:
+
+```yaml
+plugins:
+  cold_tables:
+    schedule: USING CRON 0 6 * * * UTC
+    lookback_days: 365
+    cold_threshold_days: 90
+    is_disabled: false
+    telemetry:
+      - metrics
+      - logs
+```
+
+## Known Limitations
+
+- **Never-accessed tables not included:** ACCESS_HISTORY only contains tables that have been accessed. Tables that have never been accessed
+  will not appear in the results. To identify truly never-accessed tables, a follow-up enhancement would join with
+  `INFORMATION_SCHEMA.TABLES` or `ACCOUNT_USAGE.TABLES`.
+- **ACCESS_HISTORY latency:** Up to 2 hours. Daily schedule is appropriate for this latency.
+
+## Querying in Dynatrace
+
+### Logs — per-table detail
+
+```dql
+fetch logs
+| filter db.system == "snowflake" and dsoa.run.context == "cold_tables"
+| filter snowflake.table.cold_status == "cold"
+| sort timestamp desc
+| limit 50
+```
+
+### Metrics — access count by table
+
+```dql
+timeseries avg(snowflake.table.access.count),
+  by: {db.namespace, db.collection.name, snowflake.table.cold_status}
+| filter db.system == "snowflake"
+```
+
+### Metrics — days since last access
+
+```dql
+timeseries avg(snowflake.table.days_since_last_access),
+  by: {db.namespace, db.collection.name}
+| filter db.system == "snowflake"
+| filter snowflake.table.days_since_last_access > 90
+```
+
+### Self-monitoring — plugin performance
+
+```dql
+fetch logs
+| filter db.system == "snowflake" and dsoa.run.context == "self_monitoring"
+| filter dsoa.run.plugin == "cold_tables"
+| fields timestamp, dsoa.run.id, cold_tables.entries, cold_tables.log_lines, cold_tables.metrics
+| sort timestamp desc
+```
+
+[Show semantics for this plugin](SEMANTICS.md#cold_tables_semantics_sec)
+
+### Cold Tables default configuration
+
+To disable this plugin, set `IS_DISABLED` to `true`.
+
+In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you need to explicitly set `IS_ENABLED` to `true` to enable
+selected plugins; `IS_DISABLED` is not checked then.
+
+```yaml
+plugins:
+  cold_tables:
+    schedule: USING CRON 0 6 * * * UTC
+    lookback_days: 365
+    cold_threshold_days: 90
+    is_disabled: false
+    telemetry:
+      - metrics
+      - logs
+```
+
+| Key                                       | Type   | Default                    | Description                                                                       |
+| ----------------------------------------- | ------ | -------------------------- | --------------------------------------------------------------------------------- |
+| `plugins.cold_tables.lookback_days`       | int    | `365`                      | How far back (in days) the plugin scans `ACCESS_HISTORY` to count table accesses. |
+| `plugins.cold_tables.cold_threshold_days` | int    | `90`                       | Tables not accessed within this many days are classified as `cold`.               |
+| `plugins.cold_tables.schedule`            | string | `USING CRON 0 6 * * * UTC` | Cron schedule for the cold tables collection task.                                |
+| `plugins.cold_tables.is_disabled`         | bool   | `false`                    | Set to `true` to disable this plugin entirely.                                    |
+| `plugins.cold_tables.telemetry`           | list   | `["metrics", "logs"]`      | Telemetry types to emit. Remove items to suppress specific output types.          |
+
+### Cold Tables Bill of Materials
+
+The following tables list the Snowflake objects that this plugin delivers data from or references.
+
+#### Objects delivered by the `Cold Tables` plugin
+
+| Name                                        | Type      |
+| ------------------------------------------- | --------- |
+| DTAGENT_DB.APP.V_COLD_TABLES                | view      |
+| DTAGENT_DB.CONFIG.UPDATE_COLD_TABLES_CONF() | procedure |
+| DTAGENT_DB.APP.TASK_DTAGENT_COLD_TABLES     | task      |
+
+#### Objects referenced by the `Cold Tables` plugin
+
+| Name                                   | Type | Privileges |
+| -------------------------------------- | ---- | ---------- |
+| SNOWFLAKE.ACCOUNT_USAGE.ACCESS_HISTORY | view | SELECT     |
 
 <a name="data_schemas_info_sec"></a>
 
@@ -609,6 +740,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 | --------------- | ------- | ------------------------ | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | SHOW PARAMETERS | command | USAGE                    |                | We call `show PARAMETERS like 'EVENT_TABLE' in ACCOUNT` to determine if event table is already setup, and whether this is a table setup by this Dynatrace Snowflake Observability Agent instance |
 | ACCOUNT         | account | MODIFY SESSION LOG LEVEL | DTAGENT_VIEWER |                                                                                                                                                                                                  |
+| ACCOUNT         | account | MODIFY LOG EVENT LEVEL   | DTAGENT_VIEWER | Granted only on accounts that support Snowflake BCR Bundle 2026_02+ (LOG_EVENT_LEVEL parameter). On pre-BCR accounts this privilege is not available and the grant is skipped gracefully.        |
 | $event_table    | table   | SELECT, DELETE           | DTAGENT_VIEWER | This is in case an event log table was not setup by this Dynatrace Snowflake Observability Agent instance                                                                                        |
 
 <a name="event_usage_info_sec"></a>

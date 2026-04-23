@@ -75,13 +75,14 @@ Use cases marked with 🔜 are **upcoming** — they depend on plugins currently
 
 ### Costs — Tier 1 — Data Infrastructure
 
-| Use case                   | In Details                                                                                                                                                              | Data                                                              |
-|----------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|
-| Resource monitors analysis | Determine if the credits limit set on a resource monitor is enough, too much, or too little for future needs. Analyze quota used vs remaining to make better decisions. | [Resource Monitors plugin](PLUGINS.md#resource_monitors_info_sec) |
-| Budgets analysis           | Combine budget details like spending limits and linked resources with their spending history to enable complete cost analysis.                                          | [Budgets plugin](PLUGINS.md#budgets_info_sec)                     |
-| Warehouse metering history | Monitor credit consumption of particular warehouses, compare cloud services credits vs compute credits, and predict trends in expenses.                                 | [Warehouse Usage plugin](PLUGINS.md#warehouse_usage_info_sec)     |
-| Event table ingest costs   | Monitor credits billed and bytes ingested for loading data into the Snowflake event table over time.                                                                    | [Event Usage plugin](PLUGINS.md#event_usage_info_sec)             |
-| Storage growth analysis    | Track database and table storage growth trends (total size, row counts) and time since last DDL/update for capacity planning.                                           | [Data Volume plugin](PLUGINS.md#data_volume_info_sec)             |
+| Use case                   | In Details                                                                                                                                                                  | Data                                                              |
+|----------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|
+| Resource monitors analysis | Determine if the credits limit set on a resource monitor is enough, too much, or too little for future needs. Analyze quota used vs remaining to make better decisions.     | [Resource Monitors plugin](PLUGINS.md#resource_monitors_info_sec) |
+| Budgets analysis           | Combine budget details like spending limits and linked resources with their spending history to enable complete cost analysis.                                              | [Budgets plugin](PLUGINS.md#budgets_info_sec)                     |
+| Warehouse metering history | Monitor credit consumption of particular warehouses, compare cloud services credits vs compute credits, and predict trends in expenses.                                     | [Warehouse Usage plugin](PLUGINS.md#warehouse_usage_info_sec)     |
+| Event table ingest costs   | Monitor credits billed and bytes ingested for loading data into the Snowflake event table over time.                                                                        | [Event Usage plugin](PLUGINS.md#event_usage_info_sec)             |
+| Storage growth analysis    | Track database and table storage growth trends (total size, row counts) and time since last DDL/update for capacity planning.                                               | [Data Volume plugin](PLUGINS.md#data_volume_info_sec)             |
+| Cold table identification  | Identify tables with no recent query access to find candidates for archiving, dropping, or tiering to lower-cost storage. Reduce storage costs by sunsetting unused tables. | [Cold Tables plugin](PLUGINS.md#cold_tables_info_sec)             |
 
 ### Costs — Tier 2 — Data Apps & Pipelines
 

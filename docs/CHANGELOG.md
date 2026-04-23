@@ -11,6 +11,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Cold tables identification plugin: identifies tables with no recent query access (default: >90 days) to enable FinOps teams to find candidates for archiving, dropping, or tiering to lower-cost storage. Reduces storage costs by sunsetting unused tables. See [Cold Tables plugin](PLUGINS.md#cold_tables_info_sec).
+
 ### Changed
 
 - Updated `snowflake-snowpark-python` minimum version to `>=1.49.0` (was `>=1.48.1`). Python version constraint
