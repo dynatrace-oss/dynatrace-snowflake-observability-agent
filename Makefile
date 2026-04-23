@@ -90,6 +90,7 @@ docker-build: ## Build DSOA deployment Docker image (run build.sh first)
 	fi
 	docker build -t $(DOCKER_TAG) .
 
-docker-clean: ## Remove DSOA Docker image and dangling layers
+docker-clean: ## Remove DSOA Docker image, stopped containers using it, and dangling layers
+	docker ps -a --filter ancestor=$(DOCKER_TAG) -q | xargs -r docker rm -f
 	docker rmi $(DOCKER_TAG) 2>/dev/null || true
 	docker image prune -f
