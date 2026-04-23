@@ -80,6 +80,7 @@ call APP.DTAGENT(ARRAY_CONSTRUCT('query_history'));
 call APP.DTAGENT(ARRAY_CONSTRUCT('resource_monitors'));
 call APP.DTAGENT(ARRAY_CONSTRUCT('shares'));
 call APP.DTAGENT(ARRAY_CONSTRUCT('snowpipes'));
+call APP.DTAGENT(ARRAY_CONSTRUCT('table_health'));
 call APP.DTAGENT(ARRAY_CONSTRUCT('tasks'));
 call APP.DTAGENT(ARRAY_CONSTRUCT('trust_center'));
 call APP.DTAGENT(ARRAY_CONSTRUCT('users'));

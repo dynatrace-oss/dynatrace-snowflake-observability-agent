@@ -4,6 +4,17 @@ This file documents detailed technical changes, internal refactorings, and devel
 
 ## Version 0.9.5 — Detailed Changes
 
+### New Plugin: Table Health
+
+- **Purpose**: Monitor table storage metrics (active bytes, time-travel bytes, failsafe bytes, retained-for-clone bytes, row count) to identify tables with excessive storage overhead and optimize retention policies.
+- **Data source**: `SNOWFLAKE.ACCOUNT_USAGE.TABLE_STORAGE_METRICS` joined with `SNOWFLAKE.ACCOUNT_USAGE.TABLES` for row count and clustering key.
+- **Metrics**: Five gauges (`snowflake.table.active_bytes`, `snowflake.table.time_travel_bytes`, `snowflake.table.failsafe_bytes`, `snowflake.table.retained_for_clone_bytes`, `snowflake.data.rows`).
+- **Configuration**: Include/exclude filtering (default: `DTAGENT_DB.%.%` and `%.PUBLIC.%`), `min_table_bytes` (default 1GB), `max_tables` (default 500).
+- **Schedule**: Every 6 hours (00:00, 06:00, 12:00, 18:00 UTC).
+- **Status**: Disabled by default (opt-in plugin).
+- **Files**: `src/dtagent/plugins/table_health.py`, `src/dtagent/plugins/table_health.sql/`, `src/dtagent/plugins/table_health.config/`, `test/plugins/test_table_health.py`.
+- **Test coverage**: Mock fixture with 2 entries, validates metric counts across disabled_telemetry combinations.
+
 ### Dependency Maintenance — Snowflake SDK Audit and Version Update
 
 - **Scope**: Full audit of all four Snowflake SDK packages in `requirements.txt` against latest stable PyPI releases.

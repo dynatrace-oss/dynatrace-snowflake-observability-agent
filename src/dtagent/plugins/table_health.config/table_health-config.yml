@@ -1,0 +1,15 @@
+plugins:
+  table_health:
+    include:
+      - DTAGENT_DB.%.%
+      - '%.PUBLIC.%'
+    exclude:
+      - '%.INFORMATION_SCHEMA.%'
+      - '%.%.TMP_%'
+    min_table_bytes: 1073741824
+    max_tables: 500
+    schedule: USING CRON 0 0,6,12,18 * * * UTC
+    is_disabled: true
+    telemetry:
+      - metrics
+      - biz_events

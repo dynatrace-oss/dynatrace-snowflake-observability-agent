@@ -11,6 +11,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Table Health plugin: monitors table storage metrics (active bytes, time-travel bytes, failsafe bytes, retained-for-clone bytes, row count) with include/exclude filtering and configurable size/count constraints. Runs every 6 hours by default (disabled by default, opt-in).
+
 ### Changed
 
 - Updated `snowflake-snowpark-python` minimum version to `>=1.49.0` (was `>=1.48.1`). Python version constraint

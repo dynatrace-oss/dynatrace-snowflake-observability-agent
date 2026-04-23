@@ -13,6 +13,7 @@
 - [Resource Monitors](#resource_monitors_info_sec)
 - [Shares](#shares_info_sec)
 - [Snowpipes](#snowpipes_info_sec)
+- [Table Health](#table_health_info_sec)
 - [Tasks](#tasks_info_sec)
 - [Trust Center](#trust_center_info_sec)
 - [Users](#users_info_sec)
@@ -609,6 +610,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 | --------------- | ------- | ------------------------ | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | SHOW PARAMETERS | command | USAGE                    |                | We call `show PARAMETERS like 'EVENT_TABLE' in ACCOUNT` to determine if event table is already setup, and whether this is a table setup by this Dynatrace Snowflake Observability Agent instance |
 | ACCOUNT         | account | MODIFY SESSION LOG LEVEL | DTAGENT_VIEWER |                                                                                                                                                                                                  |
+| ACCOUNT         | account | MODIFY LOG EVENT LEVEL   | DTAGENT_VIEWER | Granted only on accounts that support Snowflake BCR Bundle 2026_02+ (LOG_EVENT_LEVEL parameter). On pre-BCR accounts this privilege is not available and the grant is skipped gracefully.        |
 | $event_table    | table   | SELECT, DELETE           | DTAGENT_VIEWER | This is in case an event log table was not setup by this Dynatrace Snowflake Observability Agent instance                                                                                        |
 
 <a name="event_usage_info_sec"></a>
@@ -1081,6 +1083,67 @@ The following tables list the Snowflake objects that this plugin delivers data f
 | ALL PIPES IN SCHEMA $db.$schema            | pipe     | MONITOR                      | DTAGENT_VIEWER | Granted when include pattern has specific schema (e.g. DB.ANALYTICS.%)                                               |
 | ALL FUTURE PIPES IN SCHEMA $db.$schema     | pipe     | MONITOR                      | DTAGENT_VIEWER | Granted when include pattern has specific schema (e.g. DB.ANALYTICS.%)                                               |
 | PIPE $db.$schema.$pipe                     | pipe     | MONITOR                      | DTAGENT_VIEWER | Granted when include pattern specifies an exact pipe name (e.g. DB.ANALYTICS.MY_PIPE); no FUTURE grant at pipe level |
+
+<a name="table_health_info_sec"></a>
+
+## The Table Health plugin
+
+This plugin enables tracking table storage metrics in Snowflake through reported metrics.
+
+The following information is reported:
+
+- active bytes (data currently stored in the table),
+- time travel bytes (data maintained for Time Travel),
+- failsafe bytes (data maintained for Failsafe),
+- retained for clone bytes (data retained for cloning),
+- number of rows in the table, and
+- clustering key definition (if any).
+
+The plugin supports include/exclude filtering to target specific tables and can be configured with minimum table size and maximum table
+count constraints.
+
+[Show semantics for this plugin](SEMANTICS.md#table_health_semantics_sec)
+
+### Table Health default configuration
+
+This plugin is **disabled by default**; you need to explicitly set `IS_ENABLED` to `true` to enable it.
+
+```yaml
+plugins:
+  table_health:
+    include:
+      - DTAGENT_DB.%.%
+      - "%.PUBLIC.%"
+    exclude:
+      - "%.INFORMATION_SCHEMA.%"
+      - "%.%.TMP_%"
+    min_table_bytes: 1073741824
+    max_tables: 500
+    schedule: USING CRON 0 0,6,12,18 * * * UTC
+    is_disabled: true
+    telemetry:
+      - metrics
+      - biz_events
+```
+
+### Table Health Bill of Materials
+
+The following tables list the Snowflake objects that this plugin delivers data from or references.
+
+#### Objects delivered by the `Table Health` plugin
+
+| Name                                         | Type      |
+| -------------------------------------------- | --------- |
+| DTAGENT_DB.APP.V_TABLE_STORAGE               | view      |
+| DTAGENT_DB.CONFIG.UPDATE_TABLE_HEALTH_CONF() | procedure |
+| DTAGENT_DB.APP.TASK_DTAGENT_TABLE_HEALTH     | task      |
+
+#### Objects referenced by the `Table Health` plugin
+
+| Name                                          | Type | Privileges |
+| --------------------------------------------- | ---- | ---------- |
+| SNOWFLAKE.ACCOUNT_USAGE.TABLE_STORAGE_METRICS | view | SELECT     |
+| SNOWFLAKE.ACCOUNT_USAGE.TABLES                | view | SELECT     |
 
 <a name="tasks_info_sec"></a>
 

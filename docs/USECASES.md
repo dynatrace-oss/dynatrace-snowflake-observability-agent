@@ -130,6 +130,7 @@ Use cases marked with 🔜 are **upcoming** — they depend on plugins currently
 | Use case               | In Details                                                                                                                                                                             | Data                                                    |
 |------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------|
 | Data volume monitoring | Understand how data volume in monitored databases, schemas, and tables changes over time. Identify anomalies in data volume changes (active bytes, time-travel bytes, failsafe bytes). | [Data Volume plugin](PLUGINS.md#data_volume_info_sec)   |
+| Table health monitoring | Track table storage metrics including active bytes, time-travel bytes, failsafe bytes, retained-for-clone bytes, and row counts. Identify tables with excessive storage overhead and optimize retention policies. | [Table Health plugin](PLUGINS.md#table_health_info_sec) |
 | Data schema monitoring | Track database and table metadata — table types (dynamic, hybrid, iceberg, transient, temporary), clustering keys, auto-clustering status, and retention policies.                     | [Data Schemas plugin](PLUGINS.md#data_schemas_info_sec) |
 
 ### Quality — Tier 2 — Data Apps & Pipelines

@@ -13,6 +13,7 @@
 - [Resource Monitors](#resource_monitors_semantics_sec)
 - [Shares](#shares_semantics_sec)
 - [Snowpipes](#snowpipes_semantics_sec)
+- [Table Health](#table_health_semantics_sec)
 - [Tasks](#tasks_semantics_sec)
 - [Trust Center](#trust_center_semantics_sec)
 - [Users](#users_semantics_sec)
@@ -669,6 +670,33 @@ check the `Context Name` column below.
 | --------------------------------------- | --------------------------- | ------------------------- | ------------ |
 | snowflake.&#8203;event.&#8203;trigger   | Standard event trigger key. | snowflake.pipe.created_on | snowpipes    |
 | snowflake.&#8203;pipe.&#8203;created_on | Pipe creation event.        | 2025-01-15 10:30:00.000 Z | snowpipes    |
+
+<a name="table_health_semantics_sec"></a>
+
+## The `Table Health` plugin semantics
+
+[Show plugin description](PLUGINS.md#table_health_info_sec)
+
+All telemetry delivered by this plugin is reported as `dsoa.run.context == "table_health"`.
+
+### Dimensions at the `Table Health` plugin
+
+| Identifier                                   | Description                                                                       | Example                        |
+| -------------------------------------------- | --------------------------------------------------------------------------------- | ------------------------------ |
+| db.&#8203;collection.&#8203;name             | The name of the table.                                                            | sales_data                     |
+| db.&#8203;namespace                          | The name of the database that contains the table.                                 | analytics_db                   |
+| snowflake.&#8203;table.&#8203;clustering_key | The clustering key defined on the table, or NONE if no clustering key is defined. | REGION, YEAR                   |
+| snowflake.&#8203;table.&#8203;full_name      | The full name of the table, including the catalog, schema, and table name.        | analytics_db.public.sales_data |
+
+### Metrics at the `Table Health` plugin
+
+| Identifier                                             | Name                     | Unit  | Description                                                              | Example    |
+| ------------------------------------------------------ | ------------------------ | ----- | ------------------------------------------------------------------------ | ---------- |
+| snowflake.&#8203;data.&#8203;rows                      | Row Count                | rows  | Number of rows in the table.                                             | 1000000    |
+| snowflake.&#8203;table.&#8203;active_bytes             | Active Bytes             | bytes | Number of bytes of active data in the table.                             | 1073741824 |
+| snowflake.&#8203;table.&#8203;failsafe_bytes           | Failsafe Bytes           | bytes | Number of bytes of data in the table that is maintained for Failsafe.    | 268435456  |
+| snowflake.&#8203;table.&#8203;retained_for_clone_bytes | Retained for Clone Bytes | bytes | Number of bytes of data in the table that is retained for cloning.       | 134217728  |
+| snowflake.&#8203;table.&#8203;time_travel_bytes        | Time Travel Bytes        | bytes | Number of bytes of data in the table that is maintained for Time Travel. | 536870912  |
 
 <a name="tasks_semantics_sec"></a>
 

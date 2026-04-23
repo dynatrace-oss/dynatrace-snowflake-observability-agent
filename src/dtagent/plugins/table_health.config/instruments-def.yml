@@ -1,0 +1,66 @@
+#  *
+#  * These materials contain confidential information and
+#  * trade secrets of Dynatrace LLC.  You shall
+#  * maintain the materials as confidential and shall not
+#  * disclose its contents to any third party except as may
+#  * be required by law or regulation.  Use disclosure
+#  * or reproduction is prohibited without the prior express
+#  * written permission of Dynatrace LLC.
+#  *
+#  * All Compuware products listed within the materials are
+#  * trademarks of Dynatrace LLC.  All other company
+#  * or product names are trademarks of their respective owners.
+#  *
+#  * Copyright (c) 2024 Dynatrace LLC.  All rights reserved.
+#  *
+#  *
+#  * Catalog of instrumentation known to Dynatrace Snowflake Observability Agent - table_health plugin
+#  *
+
+dimensions:
+  db.collection.name:
+    __example: sales_data
+    __description: The name of the table.
+  db.namespace:
+    __example: analytics_db
+    __description: The name of the database that contains the table.
+  snowflake.table.clustering_key:
+    __example: "REGION, YEAR"
+    __description: |
+      The clustering key defined on the table, or NONE if no clustering key is defined.
+  snowflake.table.full_name:
+    __example: analytics_db.public.sales_data
+    __description: The full name of the table, including the catalog, schema, and table name.
+
+#  * Metric definitions
+#  * KEY                    - will be matched against METRICS object with measurements prepared for sending
+#  * VALUE[__description]   - __description of the metrics -
+#                             in the future we should rather update semantic dictionary instead of pushing it constantly
+#  * VALUE[unit]            - the unit of the metric
+
+metrics:
+  snowflake.table.active_bytes:
+    __example: "1073741824"
+    __description: Number of bytes of active data in the table.
+    displayName: Active Bytes
+    unit: bytes
+  snowflake.table.time_travel_bytes:
+    __example: "536870912"
+    __description: Number of bytes of data in the table that is maintained for Time Travel.
+    displayName: Time Travel Bytes
+    unit: bytes
+  snowflake.table.failsafe_bytes:
+    __example: "268435456"
+    __description: Number of bytes of data in the table that is maintained for Failsafe.
+    displayName: Failsafe Bytes
+    unit: bytes
+  snowflake.table.retained_for_clone_bytes:
+    __example: "134217728"
+    __description: Number of bytes of data in the table that is retained for cloning.
+    displayName: Retained for Clone Bytes
+    unit: bytes
+  snowflake.data.rows:
+    __example: "1000000"
+    __description: Number of rows in the table.
+    displayName: Row Count
+    unit: rows
