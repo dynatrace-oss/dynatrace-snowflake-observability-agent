@@ -197,12 +197,13 @@ EOF
 
     run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "all" "" "manual"
     [ "$status" -eq 0 ]
+    deploy_output="$output"
 
     # No ALTER TASK SUSPEND should appear
     run ! grep -qi 'alter task if exists.*suspend' "$TEST_SQL_FILE"
 
     # Warning must be emitted
-    [[ "$output" =~ \[deploy\]\ WARNING:\ built\ plugin\ SQL\ not\ found\ for\ disabled\ plugin:\ tasks ]]
+    [[ "$deploy_output" =~ \[deploy\]\ WARNING:\ built\ plugin\ SQL\ not\ found\ for\ disabled\ plugin:\ tasks ]]
 }
 
 # Helper: build a config JSON with one disabled plugin and a core.tag value
