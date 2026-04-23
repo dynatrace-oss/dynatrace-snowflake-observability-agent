@@ -41,7 +41,13 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Deploy DSOA
+        env:
+          FROM_VERSION: ${{ inputs.from_version }}
         run: |
+          EXTRA_ARGS=""
+          if [ -n "$FROM_VERSION" ]; then
+            EXTRA_ARGS="--from-version=${FROM_VERSION}"
+          fi
           docker run --rm \
             -v "${{ github.workspace }}/conf:/app/conf" \
             -e DTAGENT_TOKEN="${{ secrets.DTAGENT_TOKEN }}" \
@@ -49,8 +55,7 @@ jobs:
             -e SNOWFLAKE_USER="${{ secrets.SNOWFLAKE_USER }}" \
             -e SNOWFLAKE_PRIVATE_KEY_RAW="${{ secrets.SNOWFLAKE_PRIVATE_KEY_RAW }}" \
             ghcr.io/dynatrace-oss/dsoa-deploy:latest \
-            --env=production \
+            --env=<YOUR_ENV> \
             --scope=${{ inputs.scope }} \
-            ${{ inputs.from_version != '' && format('--from-version={0}', inputs.from_version) || '' }} \
-            --defaults \
+            ${EXTRA_ARGS} \
             --options=skip_confirm
