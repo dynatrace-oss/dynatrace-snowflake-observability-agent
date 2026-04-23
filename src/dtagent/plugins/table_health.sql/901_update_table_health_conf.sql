@@ -30,7 +30,7 @@ execute as caller
 as
 $$
 begin
-    call DTAGENT_DB.CONFIG.UPDATE_PLUGIN_SCHEDULE('table_health');
+    call DTAGENT_DB.CONFIG.UPDATE_PLUGIN_SCHEDULE('table_health', ARRAY_CONSTRUCT('clustering', 'snapshot'));
 
     return 'table_health plugin config updated';
 exception

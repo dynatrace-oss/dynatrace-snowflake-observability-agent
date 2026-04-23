@@ -40,13 +40,14 @@ declare
     v_pruned            integer default 0;
 begin
     -- read retention from config (default 30 days)
-    let c_cfg cursor for
-        select VALUE::integer
-        from DTAGENT_DB.CONFIG.CONFIGURATIONS
-        where PATH = 'plugins.table_health.history_retention_days';
-    open c_cfg;
-    fetch c_cfg into v_retention_days;
-    close c_cfg;
+    v_retention_days := coalesce(
+        (
+            select max(VALUE::integer)
+            from DTAGENT_DB.CONFIG.CONFIGURATIONS
+            where PATH = 'plugins.table_health.history_retention_days'
+        ),
+        v_retention_days
+    );
 
     -- insert snapshot: join storage view with latest clustering results
     insert into DTAGENT_DB.APP.TABLE_HEALTH_HISTORY (

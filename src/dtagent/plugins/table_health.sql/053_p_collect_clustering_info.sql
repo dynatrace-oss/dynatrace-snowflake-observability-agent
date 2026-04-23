@@ -74,10 +74,14 @@ declare
         )
         order by t.TABLE_CATALOG, t.TABLE_SCHEMA, t.TABLE_NAME;
 begin
-    select coalesce(c.VALUE::number, 100)
-    into :v_max_tables
-    from DTAGENT_DB.CONFIG.CONFIGURATIONS c
-    where c.PATH = 'plugins.table_health.max_clustered_tables';
+    v_max_tables := coalesce(
+        (
+            select max(c.VALUE::number)
+            from DTAGENT_DB.CONFIG.CONFIGURATIONS c
+            where c.PATH = 'plugins.table_health.max_clustered_tables'
+        ),
+        100
+    );
 
     open c_clustered_tables;
 
