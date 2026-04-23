@@ -1,0 +1,1031 @@
+#
+# Copyright (c) 2025 Dynatrace Open Source
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the Software), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+#
+# DASHBOARD: Snowflake Performance Explorer
+# DESCRIPTION: Consolidated performance investigation flow from fleet-level KPIs through warehouse breakdown,
+#              grouped query pattern analysis, to individual long-running query drill-down.
+# OWNER: DSOA Team
+# PLUGINS: query_history, active_queries
+# TAGS: snowflake, dsoa, performance
+
+id: ebce348b-6b05-4b2b-9562-d30cdf14dcc3
+name: Snowflake Performance Explorer
+version: 1
+
+variables:
+  - version: 2
+    key: Account
+    type: query
+    visible: true
+    editable: true
+    multiple: true
+    input: |-
+      fetch logs
+        | filter db.system == "snowflake"
+        | fieldsAdd snow_account = deployment.environment
+        | filter isNotNull(snow_account)
+        | fields snow_account
+        | dedup snow_account
+        | sort snow_account
+
+  - version: 2
+    key: Warehouse
+    type: query
+    visible: true
+    editable: true
+    multiple: true
+    input: |-
+      fetch logs
+        | filter db.system == "snowflake"
+        | filter in(deployment.environment, array($Account))
+        | filter isNotNull(snowflake.warehouse.name)
+        | fields snowflake.warehouse.name
+        | dedup snowflake.warehouse.name
+        | sort snowflake.warehouse.name
+
+  - version: 2
+    key: Database
+    type: query
+    visible: true
+    editable: true
+    multiple: true
+    input: |-
+      fetch logs
+        | filter db.system == "snowflake"
+        | filter in(deployment.environment, array($Account))
+        | filter isNotNull(db.namespace)
+        | fields db.namespace
+        | dedup db.namespace
+        | sort db.namespace
+
+  - version: 2
+    key: User
+    type: query
+    visible: true
+    editable: true
+    multiple: true
+    input: |-
+      fetch logs
+        | filter db.system == "snowflake"
+        | filter in(deployment.environment, array($Account))
+        | filter isNotNull(db.user)
+        | fields db.user
+        | dedup db.user
+        | sort db.user asc
+
+  - version: 2
+    key: TopN
+    type: csv
+    visible: false
+    editable: true
+    multiple: false
+    defaultValue: "10"
+    input: "5,10,20,50,100"
+
+  - version: 2
+    key: SlowQueryMin
+    type: text
+    visible: false
+    editable: true
+    defaultValue: "60"
+
+tiles:
+  # ── Section 1: Fleet Overview ──────────────────────────────────────────────
+  "0":
+    title: ""
+    type: markdown
+    content: |
+      ## Fleet Overview
+      High-level KPIs across all warehouses and accounts for the selected timeframe.
+    davis:
+      componentState:
+        inputData: null
+
+  "1":
+    title: Total Queries
+    type: data
+    query: |-
+      fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "query_history"
+        | filter in(deployment.environment, array($Account))
+        | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
+        | filter (isNull(db.namespace) or in(db.namespace, array($Database)))
+        | filter (isNull(db.user) or in(db.user, array($User)))
+        | summarize total_queries = count()
+    visualization: singleValue
+    visualizationSettings:
+      singleValue:
+        label: Total Queries
+        autoscale: true
+        alignment: center
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+
+  "2":
+    title: Total Elapsed Time
+    type: data
+    query: |-
+      fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "query_history"
+        | filter in(deployment.environment, array($Account))
+        | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
+        | filter (isNull(db.namespace) or in(db.namespace, array($Database)))
+        | filter (isNull(db.user) or in(db.user, array($User)))
+        | summarize total_elapsed = sum(toLong(snowflake.time.total_elapsed))
+    visualization: singleValue
+    visualizationSettings:
+      singleValue:
+        label: Total Elapsed Time
+        autoscale: true
+        alignment: center
+      unitsOverrides:
+        - identifier: total_elapsed
+          unitCategory: time
+          baseUnit: millisecond
+          displayUnit: null
+          decimals: 2
+          suffix: ""
+          delimiter: false
+          added: 1
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+
+  "3":
+    title: Error Rate
+    type: data
+    query: |-
+      fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "query_history"
+        | filter in(deployment.environment, array($Account))
+        | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
+        | filter (isNull(db.namespace) or in(db.namespace, array($Database)))
+        | filter (isNull(db.user) or in(db.user, array($User)))
+        | summarize
+            total = count(),
+            errors = countIf(snowflake.query.execution_status != "SUCCESS")
+        | fieldsAdd error_rate = 100.0 * toDouble(errors) / toDouble(total)
+        | fields error_rate
+    visualization: singleValue
+    visualizationSettings:
+      singleValue:
+        label: Error Rate
+        autoscale: true
+        alignment: center
+      unitsOverrides:
+        - identifier: error_rate
+          unitCategory: percentage
+          baseUnit: percent
+          displayUnit: null
+          decimals: 2
+          suffix: ""
+          delimiter: false
+          added: 1
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+
+  "4":
+    title: Avg Execution Time
+    type: data
+    query: |-
+      fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "query_history"
+        | filter in(deployment.environment, array($Account))
+        | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
+        | filter (isNull(db.namespace) or in(db.namespace, array($Database)))
+        | filter (isNull(db.user) or in(db.user, array($User)))
+        | summarize avg_exec = avg(toLong(snowflake.time.execution))
+    visualization: singleValue
+    visualizationSettings:
+      singleValue:
+        label: Avg Execution Time
+        autoscale: true
+        alignment: center
+      unitsOverrides:
+        - identifier: avg_exec
+          unitCategory: time
+          baseUnit: millisecond
+          displayUnit: null
+          decimals: 2
+          suffix: ""
+          delimiter: false
+          added: 1
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+
+  # ── Section 2: Warehouse Performance ──────────────────────────────────────
+  "5":
+    title: ""
+    type: markdown
+    content: |
+      ## Warehouse Performance
+      Compilation, execution, and queued time breakdown by warehouse over the selected timeframe.
+    davis:
+      componentState:
+        inputData: null
+
+  "6":
+    title: Compilation vs execution vs queued time
+    type: data
+    query: |-
+      timeseries
+          {
+          compilation = avg(snowflake.time.compilation),
+          execution = avg(snowflake.time.execution),
+          `queued overload` = avg(snowflake.time.queued.overload),
+          `queued provisioning` = avg(snowflake.time.queued.provisioning)
+          }
+        , filter: {
+          db.system == "snowflake" and
+          in(deployment.environment, array($Account)) and
+          in(snowflake.warehouse.name, array($Warehouse))
+        }
+        , union: true
+    visualization: areaChart
+    visualizationSettings:
+      autoSelectVisualization: false
+      chartSettings:
+        truncationMode: middle
+        legend:
+          hidden: false
+          position: bottom
+        leftYAxisSettings:
+          label: Time
+          isLabelVisible: true
+        xAxisLabel: timeframe
+        xAxisScaling: analyzedTimeframe
+        fieldMapping:
+          leftAxisValues:
+            - compilation
+            - execution
+            - queued overload
+            - queued provisioning
+          timestamp: timeframe
+        gapPolicy: connect
+      dataMapping:
+        displayedFields:
+          - compilation
+          - execution
+          - queued overload
+          - queued provisioning
+      unitsOverrides:
+        - identifier: compilation
+          unitCategory: time
+          baseUnit: millisecond
+          displayUnit: null
+          decimals: 2
+          suffix: ""
+          delimiter: false
+          added: 1
+        - identifier: execution
+          unitCategory: time
+          baseUnit: millisecond
+          displayUnit: null
+          decimals: 2
+          suffix: ""
+          delimiter: false
+          added: 2
+        - identifier: queued overload
+          unitCategory: time
+          baseUnit: millisecond
+          displayUnit: null
+          decimals: 2
+          suffix: ""
+          delimiter: false
+          added: 3
+        - identifier: queued provisioning
+          unitCategory: time
+          baseUnit: millisecond
+          displayUnit: null
+          decimals: 2
+          suffix: ""
+          delimiter: false
+          added: 4
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+
+  "7":
+    title: Time phase distribution by top $TopN warehouses
+    type: data
+    query: |-
+      fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "query_history"
+        | filter in(deployment.environment, array($Account))
+        | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
+        | filter (isNull(db.namespace) or in(db.namespace, array($Database)))
+        | filter (isNull(db.user) or in(db.user, array($User)))
+        | filter isNotNull(snowflake.warehouse.name)
+        | summarize
+            Compilation = sum(toLong(snowflake.time.compilation)),
+            Execution = sum(toLong(snowflake.time.execution)),
+            `Queued Overload` = sum(toLong(snowflake.time.queued.overload)),
+            `Queued Provisioning` = sum(toLong(snowflake.time.queued.provisioning)),
+          by: { snowflake.warehouse.name }
+        | sort Execution desc
+        | fields
+            Warehouse = snowflake.warehouse.name,
+            Compilation,
+            Execution,
+            `Queued Overload`,
+            `Queued Provisioning`
+        | limit toLong($TopN)
+    visualization: categoricalBarChart
+    visualizationSettings:
+      autoSelectVisualization: false
+      chartSettings:
+        categoricalBarChartSettings:
+          valueAxisScale: log
+      unitsOverrides:
+        - identifier: Compilation
+          unitCategory: time
+          baseUnit: millisecond
+          displayUnit: null
+          decimals: null
+          suffix: ""
+          delimiter: false
+          added: 1
+        - identifier: Execution
+          unitCategory: time
+          baseUnit: millisecond
+          displayUnit: null
+          decimals: null
+          suffix: ""
+          delimiter: false
+          added: 2
+        - identifier: Queued Overload
+          unitCategory: time
+          baseUnit: millisecond
+          displayUnit: null
+          decimals: null
+          suffix: ""
+          delimiter: false
+          added: 3
+        - identifier: Queued Provisioning
+          unitCategory: time
+          baseUnit: millisecond
+          displayUnit: null
+          decimals: null
+          suffix: ""
+          delimiter: false
+          added: 4
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+
+  # ── Section 3: Grouped Query Analysis ─────────────────────────────────────
+  "8":
+    title: ""
+    type: markdown
+    content: |
+      ## Grouped Query Analysis
+      Query patterns grouped by hash with percentile latency analysis.
+      Use these to identify repeated expensive patterns and target rewrite or caching opportunities.
+    davis:
+      componentState:
+        inputData: null
+
+  "9":
+    title: Top $TopN query hashes by total elapsed time (p50 / p90 / p99)
+    type: data
+    query: |-
+      fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "query_history"
+        | filter isNotNull(snowflake.query.hash)
+        | filter in(deployment.environment, array($Account))
+        | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
+        | filter (isNull(db.namespace) or in(db.namespace, array($Database)))
+        | filter (isNull(db.user) or in(db.user, array($User)))
+        | summarize
+            exec_count = count(),
+            p50 = percentile(toDouble(snowflake.time.total_elapsed), 50),
+            p90 = percentile(toDouble(snowflake.time.total_elapsed), 90),
+            p99 = percentile(toDouble(snowflake.time.total_elapsed), 99),
+            avg_elapsed = avg(toDouble(snowflake.time.total_elapsed)),
+            total_elapsed = sum(toDouble(snowflake.time.total_elapsed)),
+            query_text = takeFirst(db.query.text),
+          by: {
+            query_hash = snowflake.query.hash,
+            warehouse = snowflake.warehouse.name,
+            database = db.namespace
+          }
+        | sort total_elapsed desc
+        | limit toLong($TopN)
+    visualization: table
+    visualizationSettings:
+      autoSelectVisualization: false
+      table:
+        rowDensity: condensed
+        enableSparklines: false
+        hiddenColumns:
+          - query_text
+        lineWrapIds: []
+        columnWidths: {}
+        columnOrder:
+          - "[\"exec_count\"]"
+          - "[\"p50\"]"
+          - "[\"p90\"]"
+          - "[\"p99\"]"
+          - "[\"avg_elapsed\"]"
+          - "[\"total_elapsed\"]"
+          - "[\"warehouse\"]"
+          - "[\"database\"]"
+          - "[\"query_hash\"]"
+          - "[\"query_text\"]"
+      unitsOverrides:
+        - identifier: p50
+          unitCategory: time
+          baseUnit: millisecond
+          displayUnit: null
+          decimals: 0
+          suffix: ""
+          delimiter: false
+          added: 1
+        - identifier: p90
+          unitCategory: time
+          baseUnit: millisecond
+          displayUnit: null
+          decimals: 0
+          suffix: ""
+          delimiter: false
+          added: 2
+        - identifier: p99
+          unitCategory: time
+          baseUnit: millisecond
+          displayUnit: null
+          decimals: 0
+          suffix: ""
+          delimiter: false
+          added: 3
+        - identifier: avg_elapsed
+          unitCategory: time
+          baseUnit: millisecond
+          displayUnit: null
+          decimals: 0
+          suffix: ""
+          delimiter: false
+          added: 4
+        - identifier: total_elapsed
+          unitCategory: time
+          baseUnit: millisecond
+          displayUnit: null
+          decimals: 0
+          suffix: ""
+          delimiter: false
+          added: 5
+    querySettings:
+      maxResultRecords: 100
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 50
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+
+  "10":
+    title: Top $TopN query hashes — avg elapsed time over time
+    type: data
+    query: |-
+      fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "query_history"
+        | filter isNotNull(snowflake.query.hash)
+        | filter in(deployment.environment, array($Account))
+        | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
+        | filter (isNull(db.namespace) or in(db.namespace, array($Database)))
+        | filter (isNull(db.user) or in(db.user, array($User)))
+        | makeTimeseries avg_elapsed = avg(toDouble(snowflake.time.total_elapsed)),
+            by: { snowflake.query.hash }
+        | fieldsAdd sum_avg = arraySum(avg_elapsed[])
+        | sort sum_avg desc
+        | limit toLong($TopN)
+        | fieldsRemove sum_avg
+    visualization: lineChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        legend:
+          position: bottom
+        leftYAxisSettings:
+          label: Avg Elapsed Time
+          isLabelVisible: true
+        xAxisLabel: timeframe
+        xAxisScaling: analyzedTimeframe
+        fieldMapping:
+          leftAxisValues:
+            - avg_elapsed
+          timestamp: timeframe
+        gapPolicy: connect
+      dataMapping:
+        displayedFields:
+          - snowflake.query.hash
+      unitsOverrides:
+        - identifier: avg_elapsed
+          unitCategory: time
+          baseUnit: millisecond
+          displayUnit: null
+          decimals: 2
+          suffix: ""
+          delimiter: false
+          added: 1
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+
+  # ── Section 4: Query Health ────────────────────────────────────────────────
+  "11":
+    title: ""
+    type: markdown
+    content: |
+      ## Query Health
+      Success and failure trends over time, and per-warehouse error rate distribution.
+    davis:
+      componentState:
+        inputData: null
+
+  "12":
+    title: Query success vs failure over time
+    type: data
+    query: |-
+      fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "query_history"
+        | filter in(deployment.environment, array($Account))
+        | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
+        | filter (isNull(db.namespace) or in(db.namespace, array($Database)))
+        | filter (isNull(db.user) or in(db.user, array($User)))
+        | fieldsAdd status_group = if(snowflake.query.execution_status == "SUCCESS", "success", else: "failed")
+        | makeTimeseries count = count(), by: { status_group }
+    visualization: areaChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        xAxisLabel: timeframe
+        xAxisScaling: analyzedTimeframe
+        fieldMapping:
+          leftAxisValues:
+            - count
+          timestamp: timeframe
+        gapPolicy: connect
+      dataMapping:
+        displayedFields:
+          - status_group
+      coloring:
+        colorRules:
+          - field: status_group
+            comparator: "="
+            value: success
+            type: string
+            colorMode: custom-color
+            customColor: "var(--dt-colors-charts-apdex-excellent-default, #2a7453)"
+          - field: status_group
+            comparator: "="
+            value: failed
+            type: string
+            colorMode: custom-color
+            customColor: "var(--dt-colors-charts-apdex-unacceptable-default, #c41425)"
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+
+  "13":
+    title: Error rate by warehouse (top $TopN)
+    type: data
+    query: |-
+      fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "query_history"
+        | filter in(deployment.environment, array($Account))
+        | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
+        | filter (isNull(db.namespace) or in(db.namespace, array($Database)))
+        | filter (isNull(db.user) or in(db.user, array($User)))
+        | filter isNotNull(snowflake.warehouse.name)
+        | summarize
+            total = count(),
+            errors = countIf(snowflake.query.execution_status != "SUCCESS"),
+          by: { snowflake.warehouse.name }
+        | fieldsAdd error_rate = 100.0 * toDouble(errors) / toDouble(total)
+        | sort error_rate desc
+        | fields Warehouse = snowflake.warehouse.name, error_rate
+        | limit toLong($TopN)
+    visualization: categoricalBarChart
+    visualizationSettings:
+      autoSelectVisualization: false
+      chartSettings:
+        truncationMode: middle
+        legend:
+          hidden: true
+        categoricalBarChartSettings:
+          categoryAxis: Warehouse
+          categoryAxisLabel: Warehouse
+          valueAxis: error_rate
+          valueAxisLabel: Error Rate
+      unitsOverrides:
+        - identifier: error_rate
+          unitCategory: percentage
+          baseUnit: percent
+          displayUnit: null
+          decimals: 2
+          suffix: ""
+          delimiter: false
+          added: 1
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+
+  # ── Section 5: Long-Running Queries ───────────────────────────────────────
+  "14":
+    title: ""
+    type: markdown
+    content: |
+      ## Long-Running Queries
+      Active query monitoring from `active_queries` plugin (INFORMATION_SCHEMA, real-time — no ACCOUNT_USAGE lag).
+    davis:
+      componentState:
+        inputData: null
+
+  "15":
+    title: Active query summary per warehouse
+    type: data
+    query: |-
+      fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "active_queries"
+        | filter in(deployment.environment, array($Account))
+        | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
+        | filter isNotNull(snowflake.warehouse.name)
+        | summarize
+            Count = count(),
+            Fastest = min(toLong(snowflake.time.total_elapsed)),
+            Slowest = max(toLong(snowflake.time.total_elapsed)),
+            Avg = avg(toLong(snowflake.time.total_elapsed)),
+          by: {
+            snowflake.warehouse.name,
+            deployment.environment
+          }
+        | fields
+            Warehouse = snowflake.warehouse.name,
+            Environment = deployment.environment,
+            Count,
+            Fastest,
+            Slowest,
+            Avg
+        | sort Count desc
+    visualization: table
+    visualizationSettings:
+      autoSelectVisualization: false
+      table:
+        columnWidths:
+          '["Warehouse"]': 165.5
+          '["Avg"]': 101.19
+          '["Slowest"]': 73.59
+          '["Fastest"]': 71.5
+      unitsOverrides:
+        - identifier: Fastest
+          unitCategory: time
+          baseUnit: millisecond
+          displayUnit: null
+          decimals: null
+          suffix: ""
+          delimiter: false
+          added: 1
+        - identifier: Avg
+          unitCategory: time
+          baseUnit: millisecond
+          displayUnit: null
+          decimals: null
+          suffix: ""
+          delimiter: false
+          added: 2
+        - identifier: Slowest
+          unitCategory: time
+          baseUnit: millisecond
+          displayUnit: null
+          decimals: null
+          suffix: ""
+          delimiter: false
+          added: 3
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+
+  "16":
+    title: Long-running queries in progress (> $SlowQueryMin min)
+    type: data
+    query: |-
+      fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "active_queries"
+        | filter in(deployment.environment, array($Account))
+        | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
+        | filter toLong(snowflake.time.total_elapsed) > 60 * 1000 * toLong($SlowQueryMin)
+        | fields
+            `Start Time` = timestamp - duration(toLong(snowflake.time.total_elapsed), "ms"),
+            Duration = toLong(snowflake.time.total_elapsed),
+            User = db.user,
+            Warehouse = snowflake.warehouse.name,
+            Status = snowflake.query.execution_status,
+            Query = substring(coalesce(db.statement, db.query.text), to: 80),
+            Environment = deployment.environment
+        | sort Duration desc
+        | limit 20
+    visualization: table
+    visualizationSettings:
+      autoSelectVisualization: false
+      unitsOverrides:
+        - identifier: Duration
+          unitCategory: time
+          baseUnit: millisecond
+          displayUnit: null
+          decimals: null
+          suffix: ""
+          delimiter: false
+          added: 1
+      table:
+        columnWidths:
+          '["Query"]': 342.69
+          '["Duration"]': 67.89
+          '["User"]': 140.89
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+
+  # ── Section 6: Navigation ──────────────────────────────────────────────────
+  "17":
+    title: ""
+    type: markdown
+    content: |
+      ## Related Dashboards
+      Navigate to complementary dashboards for deeper analysis.
+    davis:
+      componentState:
+        inputData: null
+
+  "18":
+    title: ""
+    type: markdown
+    content: |
+      ### [Query Performance →](/ui/apps/dynatrace.dashboards/dashboard/f245f73a-35f5-4298-8158-2a8aa4611a23)
+
+      Execution time trends by database, table, and user. Top-N resource consumer analysis. AI-powered anomaly detection.
+    davis:
+      componentState:
+        inputData: null
+
+  "19":
+    title: ""
+    type: markdown
+    content: |
+      ### [Query Deep Dive →](/ui/apps/dynatrace.dashboards/dashboard/9dbac33a-25ba-4192-b748-c8b6fe561c3b)
+
+      Costly repeated queries, table performance degradation, query acceleration, external functions, and cost attribution.
+    davis:
+      componentState:
+        inputData: null
+
+  "20":
+    title: ""
+    type: markdown
+    content: |
+      ### [Costs Monitoring →](/ui/apps/dynatrace.dashboards/dashboard/e446e588-b917-4a63-867c-643ca783c79e)
+
+      Credit usage, resource monitor quota utilization, warehouse costs, and slow query credit drain.
+    davis:
+      componentState:
+        inputData: null
+
+layouts:
+  # Section 1: Fleet Overview
+  "0":
+    x: 0
+    "y": 0
+    w: 24
+    h: 2
+  "1":
+    x: 0
+    "y": 2
+    w: 6
+    h: 3
+  "2":
+    x: 6
+    "y": 2
+    w: 6
+    h: 3
+  "3":
+    x: 12
+    "y": 2
+    w: 6
+    h: 3
+  "4":
+    x: 18
+    "y": 2
+    w: 6
+    h: 3
+
+  # Section 2: Warehouse Performance
+  "5":
+    x: 0
+    "y": 5
+    w: 24
+    h: 2
+  "6":
+    x: 0
+    "y": 7
+    w: 16
+    h: 6
+  "7":
+    x: 16
+    "y": 7
+    w: 8
+    h: 6
+
+  # Section 3: Grouped Query Analysis
+  "8":
+    x: 0
+    "y": 13
+    w: 24
+    h: 2
+  "9":
+    x: 0
+    "y": 15
+    w: 24
+    h: 7
+  "10":
+    x: 0
+    "y": 22
+    w: 24
+    h: 6
+
+  # Section 4: Query Health
+  "11":
+    x: 0
+    "y": 28
+    w: 24
+    h: 2
+  "12":
+    x: 0
+    "y": 30
+    w: 16
+    h: 6
+  "13":
+    x: 16
+    "y": 30
+    w: 8
+    h: 6
+
+  # Section 5: Long-Running Queries
+  "14":
+    x: 0
+    "y": 36
+    w: 24
+    h: 2
+  "15":
+    x: 0
+    "y": 38
+    w: 9
+    h: 6
+  "16":
+    x: 9
+    "y": 38
+    w: 15
+    h: 6
+
+  # Section 6: Navigation
+  "17":
+    x: 0
+    "y": 44
+    w: 24
+    h: 2
+  "18":
+    x: 0
+    "y": 46
+    w: 8
+    h: 3
+  "19":
+    x: 8
+    "y": 46
+    w: 8
+    h: 3
+  "20":
+    x: 16
+    "y": 46
+    w: 8
+    h: 3
+
+settings:
+  defaultTimeframe:
+    value:
+      from: now()-24h
+      to: now()
+    enabled: true
+  autoRefresh:
+    enabled: true
+    interval: 300
+
+annotations: []
