@@ -34,17 +34,38 @@ with cte_queries_to_check as (
         qh.query_id,
         qh.start_time,
         qh.end_time,
-        qh.session_id
+        qh.session_id,
+        qh.warehouse_name,
+        qh.database_name,
+        qh.user_name
     from
         SNOWFLAKE.ACCOUNT_USAGE.QUERY_HISTORY qh
     where
-        qh.end_time >= timeadd(minute, -120, current_timestamp)
+        qh.end_time >= greatest(
+            coalesce(
+                (select max(LAST_TIMESTAMP) from STATUS.PROCESSED_MEASUREMENTS_LOG where MEASUREMENTS_SOURCE = 'query_history'),
+                timeadd(minute, -CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.max_lookback_minutes', 120)::int, current_timestamp)
+            ),
+            timeadd(minute, -CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.max_lookback_minutes', 120)::int, current_timestamp)
+        )
     and qh.query_text is not null
     and qh.query_id not in (
             select query_id
             from STATUS.PROCESSED_QUERIES_CACHE
             where processed_time is not null
         )
+    and (CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.include_warehouses', '') = ''
+         or qh.warehouse_name in (select trim(t.value) from table(split_to_table(CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.include_warehouses', ''), ',')) t where t.value != ''))
+    and (CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.exclude_warehouses', '') = ''
+         or qh.warehouse_name not in (select trim(t.value) from table(split_to_table(CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.exclude_warehouses', ''), ',')) t where t.value != ''))
+    and (CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.include_databases', '') = ''
+         or qh.database_name in (select trim(t.value) from table(split_to_table(CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.include_databases', ''), ',')) t where t.value != ''))
+    and (CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.exclude_databases', '') = ''
+         or qh.database_name not in (select trim(t.value) from table(split_to_table(CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.exclude_databases', ''), ',')) t where t.value != ''))
+    and (CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.include_users', '') = ''
+         or qh.user_name in (select trim(t.value) from table(split_to_table(CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.include_users', ''), ',')) t where t.value != ''))
+    and (CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.exclude_users', '') = ''
+         or qh.user_name not in (select trim(t.value) from table(split_to_table(CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.exclude_users', ''), ',')) t where t.value != ''))
 )
 , cte_access_history as (
     select
@@ -224,7 +245,13 @@ left join
  and l.RESOURCE_ATTRIBUTES:"snow.query.id"::varchar = qh.query_id
 --%:PLUGIN:event_log
 where
-    qh.end_time >= timeadd(minute, -120, current_timestamp)
+    qh.end_time >= greatest(
+        coalesce(
+            (select max(LAST_TIMESTAMP) from STATUS.PROCESSED_MEASUREMENTS_LOG where MEASUREMENTS_SOURCE = 'query_history'),
+            timeadd(minute, -CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.max_lookback_minutes', 120)::int, current_timestamp)
+        ),
+        timeadd(minute, -CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.max_lookback_minutes', 120)::int, current_timestamp)
+    )
 -- this will ensure we do not report some strange Snowflake-internal queries
 and not (qh.QUERY_TEXT = '' and
          qh.USER_NAME = 'SYSTEM' and
