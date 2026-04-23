@@ -95,9 +95,10 @@ OTEL_MAX_CONSECUTIVE_API_FAILS=""
 ##
 # Discover all plugin names from build artifacts.
 #
-# Primary:  Extracts plugin names from build/config-default.yml (the .plugins
-#           top-level keys, excluding deploy_disabled_plugins).
-# Fallback: Derives plugin names from build/30_plugins/*.sql basenames.
+# Primary:  Derives plugin names from build/30_plugins/*.sql basenames.
+#           These compiled SQL files are the authoritative list of plugins.
+# Fallback: Extracts plugin names from build/config-default.yml (the .plugins
+#           top-level keys, excluding non-plugin config keys).
 #
 # Returns plugin names sorted alphabetically, one per line.
 #
@@ -110,17 +111,8 @@ OTEL_MAX_CONSECUTIVE_API_FAILS=""
 discover_plugin_names() {
     local root="${SCRIPT_DIR}/../.."
 
-    # Primary: extract plugin names from build/config-default.yml
-    if [[ -f "${root}/build/config-default.yml" ]] && command -v yq >/dev/null 2>&1; then
-        local names
-        names=$(yq eval '.plugins | keys | .[]' "${root}/build/config-default.yml" 2>/dev/null | grep -v '^deploy_disabled_plugins$' | sort)
-        if [[ -n "$names" ]]; then
-            echo "$names"
-            return 0
-        fi
-    fi
-
-    # Fallback: derive plugin names from compiled SQL artifacts in build/30_plugins/
+    # Primary: derive plugin names from compiled SQL artifacts in build/30_plugins/
+    # These files are the authoritative list — one SQL file per plugin.
     local build_plugins_dir="${root}/build/30_plugins"
     if [[ -d "$build_plugins_dir" ]]; then
         local f name
@@ -130,6 +122,22 @@ discover_plugin_names() {
             echo "$name"
         done | sort
         return 0
+    fi
+
+    # Fallback: extract plugin names from build/config-default.yml.
+    # Cross-reference against build/30_plugins/ is not possible here (dir absent),
+    # so filter known non-plugin config keys.
+    if [[ -f "${root}/build/config-default.yml" ]] && command -v yq >/dev/null 2>&1; then
+        local names
+        names=$(yq eval '.plugins | keys | .[]' "${root}/build/config-default.yml" 2>/dev/null \
+            | grep -v '^deploy_disabled_plugins$' \
+            | grep -v '^disabled_by_default$' \
+            | grep -v '^self_monitoring$' \
+            | sort)
+        if [[ -n "$names" ]]; then
+            echo "$names"
+            return 0
+        fi
     fi
 }
 
