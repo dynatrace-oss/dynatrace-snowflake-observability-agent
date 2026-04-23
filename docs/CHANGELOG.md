@@ -11,6 +11,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Signal protection framework for `query_history` plugin: configurable top-N limiting (`max_entries`), include/exclude filters for warehouses/databases/users, and watermark-based lookback window (`max_lookback_minutes`). Prevents overload on high-volume Snowflake accounts. Self-monitoring logs and bizevents emitted when signal protection is active. All defaults preserve backward compatibility.
+
 ### Changed
 
 - Updated `snowflake-snowpark-python` minimum version to `>=1.49.0` (was `>=1.48.1`). Python version constraint
