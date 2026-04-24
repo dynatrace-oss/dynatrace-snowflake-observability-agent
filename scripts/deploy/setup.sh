@@ -76,6 +76,14 @@ fi
 
 echo "Checking for Snowflake connection profiles"
 
+# When SNOWFLAKE_ACCOUNT and SNOWFLAKE_USER are set, --temporary-connection will be used
+# automatically by deploy.sh — no named connection profile is needed.
+if [[ -n "${SNOWFLAKE_ACCOUNT:-}" && -n "${SNOWFLAKE_USER:-}" ]]; then
+    echo "SNOWFLAKE_ACCOUNT and SNOWFLAKE_USER are set — deploy.sh will use --temporary-connection automatically."
+    echo "Skipping Snowflake connection profile setup."
+    exit 0
+fi
+
 if [ "$ENV" == '' ]; then
     if ! echo "$(snow connection list)" | grep -q "snow_agent_"; then
         echo "WARNING: No Dynatrace Snowflake Observability Agent connections are defined for the Snowflake CLI."
@@ -95,7 +103,7 @@ else
             printf '║%-82s║\n' "$_conn_label"
             printf '║%-82s║\n' ""
             printf '║  %-80s║\n' "Enter your Snowflake credentials below."
-            printf '║  %-80s║\n' "Tip: Use 'browser' as authenticator for SSO."
+            printf '║  %-80s║\n' "Tip: Use 'externalbrowser' as authenticator for SSO."
             printf '║  %-80s║\n' "Leave optional fields blank to skip them."
             printf '╚══════════════════════════════════════════════════════════════════════════════════╝\n\n'
 
