@@ -9,6 +9,8 @@ delivers:
     type: transient table
   - name: DTAGENT_DB.APP.TMP_QUERY_ACCELERATION_ESTIMATES
     type: transient table
+  - name: DTAGENT_DB.APP.F_OBFUSCATE_QUERY_TEXT(VARCHAR, VARCHAR)
+    type: function
   - name: DTAGENT_DB.APP.V_QUERY_HISTORY
     type: view
   - name: DTAGENT_DB.APP.V_QUERY_HISTORY_INSTRUMENTED

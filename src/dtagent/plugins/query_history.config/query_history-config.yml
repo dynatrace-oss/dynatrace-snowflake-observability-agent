@@ -15,6 +15,7 @@ plugins:
     exclude_databases: ""
     include_users: ""
     exclude_users: ""
+    obfuscation_mode: "off"
     telemetry:
       - metrics
       - logs

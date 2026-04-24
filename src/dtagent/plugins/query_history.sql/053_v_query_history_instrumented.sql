@@ -74,7 +74,10 @@ select
     )                                                                                                                   as DIMENSIONS,
     -- other attributes
     OBJECT_CONSTRUCT(
-        'db.query.text',                                            qh.query_text,
+        'db.query.text',                                            APP.F_OBFUSCATE_QUERY_TEXT(
+                                                                        qh.query_text,
+                                                                        CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.obfuscation_mode', 'off')
+                                                                    ),
         'db.snowflake.tables',                                      qh.query_tables,
         'db.snowflake.views',                                       qh.query_views,
         'session.id',                                               qh.session_id,
@@ -94,7 +97,10 @@ select
         'snowflake.query.parametrized_hash',                        qh.query_parameterized_hash,
         'snowflake.query.parametrized_hash_version',                qh.query_parameterized_hash_version,
         'snowflake.error.code',                                     qh.error_code,
-        'snowflake.error.message',                                  qh.error_message,
+        'snowflake.error.message',                                  APP.F_OBFUSCATE_QUERY_TEXT(
+                                                                        qh.error_message,
+                                                                        CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.obfuscation_mode', 'off')
+                                                                    ),
         'snowflake.session.start',                                  qh.created_on,
         'snowflake.session.closed_reason',                          qh.closed_reason,
         'snowflake.query.retry_cause',                              qh.query_retry_cause,
