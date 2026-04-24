@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- New `metering` plugin reporting credit consumption across all Snowflake service types via `METERING_HISTORY`. Covers auto-clustering, pipes, serverless tasks, AI services, replication, and more with `service_type` dimension for FinOps cost attribution.
 - **Interactive deployment wizard** (`--interactive` flag): Guides users through 5-phase configuration (core config, deployment scope, plugin selection, advanced settings, telemetry settings). Auto-triggered when config file is missing. Generates `conf/config-$ENV.yml`. Includes HTTPS reachability probes for DT tenant and Snowflake account (warn-only, non-blocking). Supports `--dry-run` (print config to stdout) and `--output=<file>` (write to custom path).
 - **New `deploy.sh` flags**: `--env=<ENV>` (replaces positional arg), `--interactive` (launch wizard), `--defaults` (generate minimal config non-interactively). Positional `$ENV` still supported with deprecation warning for backward compatibility.
 - **Shared bash library** (`scripts/deploy/lib.sh`): Logging, prompt helpers, validators (DT tenant, Snowflake account, tokens) for reuse across deployment scripts.
@@ -26,11 +27,12 @@ All notable changes to this project will be documented in this file.
 
 - **`service_user` option removed** from `deploy.sh --options`. Replaced by automatic `--temporary-connection` detection: when `SNOWFLAKE_ACCOUNT` and `SNOWFLAKE_USER` env vars are both set, `deploy.sh` uses `snow sql --temporary-connection` automatically. `setup.sh` skips connection profile creation in the same scenario.
 - `docs/INSTALL.md` restructured: Docker is now the primary quick-start path; detailed content moved to `docs/deployment/` guides.
-
-### Changed
-
 - Updated `snowflake-snowpark-python` minimum version to `>=1.49.0` (was `>=1.48.1`). Python version constraint
   remains `<3.14` — bottleneck is `snowflake==1.12.0`, not snowpark. See [DEVLOG.md](DEVLOG.md) for full audit details.
+
+### Deprecated
+
+- `event_usage` plugin is deprecated and disabled by default. Use `metering` instead. Will be removed in 0.9.6. To reproduce the same data, filter by `snowflake.service.type == "TELEMETRY_DATA_INGEST"`.
 
 ### Fixed
 

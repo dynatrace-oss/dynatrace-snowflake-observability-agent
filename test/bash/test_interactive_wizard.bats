@@ -95,8 +95,7 @@ setup() {
     grep -q "test.live.dynatrace.com" "$config_file"
 
     # Verify token is NOT written as a real value (only placeholder comment)
-    run grep -q "token123" "$config_file"
-    [ "$status" -ne 0 ]
+    run ! grep -q "token123" "$config_file"
     grep -q "DTAGENT_TOKEN" "$config_file"
 
     # Verify no duplicate core.snowflake: keys

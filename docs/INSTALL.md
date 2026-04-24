@@ -118,6 +118,46 @@ The `DTAGENT_TOKEN` needs these scopes:
 
 ---
 
+## Deploying Dashboards and Workflows
+
+After the agent is running, deploy pre-built Dynatrace dashboards and workflows.
+
+### Dynatrace Deployment Prerequisites
+
+Install and authenticate `dtctl`:
+
+```bash
+brew install dynatrace-oss/tap/dtctl
+dtctl auth login
+# or: export DTCTL_TOKEN="dt0s01.YOUR_PLATFORM_TOKEN"
+```
+
+Required platform token scopes: `document:documents:write`, `automation:workflows:write`.
+
+### Deploy
+
+```bash
+# All dashboards and workflows:
+./scripts/deploy/deploy_dt_assets.sh
+
+# Dashboards only:
+./scripts/deploy/deploy_dt_assets.sh --scope=dashboards
+
+# Dry-run (preview only):
+./scripts/deploy/deploy_dt_assets.sh --dry-run
+```
+
+Or as part of a `deploy.sh` run:
+
+```bash
+./scripts/deploy/deploy.sh --env=production --scope=dt_assets
+```
+
+See [docs/dashboards/README.md](dashboards/README.md) and [docs/workflows/README.md](workflows/README.md)
+for available assets.
+
+---
+
 ## Troubleshooting
 
 ### `ERROR: --env=<ENV> is required`

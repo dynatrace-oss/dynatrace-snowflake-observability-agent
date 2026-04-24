@@ -96,8 +96,8 @@ Optional:
   --from-version=<VER>     Required when --scope=upgrade (e.g. 0.9.2)
   --output-file=<FILE>     Output file path for --options=manual mode
   --options=<OPTIONS>      Comma-separated flags:
-                             manual        Generate SQL script without executing
-                             skip_confirm  Skip confirmation prompt
+                              manual        Generate SQL script without executing
+                              skip_confirm  Skip confirmation prompt
                              no_dep        Skip deployment BizEvents
                              dry_run       Dry-run for dt_assets scope
   --interactive            Launch interactive configuration wizard

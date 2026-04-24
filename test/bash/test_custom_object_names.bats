@@ -125,14 +125,10 @@ EOF
     grep -q "MY_CUSTOM_RS" "$TEST_SQL_FILE"
 
     # Verify default names are NOT present (except in partial matches)
-    run grep -E "(^|[^A-Za-z0-9_$])DTAGENT_OWNER([^A-Za-z0-9_$]|$)" "$TEST_SQL_FILE"
-    [ "$status" -ne 0 ]
-    run grep -E "use role DTAGENT_ADMIN" "$TEST_SQL_FILE"
-    [ "$status" -ne 0 ]
-    run grep -E "create role if not exists DTAGENT_VIEWER" "$TEST_SQL_FILE"
-    [ "$status" -ne 0 ]
-    run grep -E "create resource monitor if not exists DTAGENT_RS" "$TEST_SQL_FILE"
-    [ "$status" -ne 0 ]
+    run ! grep -E "(^|[^A-Za-z0-9_$])DTAGENT_OWNER([^A-Za-z0-9_$]|$)" "$TEST_SQL_FILE"
+    run ! grep -E "use role DTAGENT_ADMIN" "$TEST_SQL_FILE"
+    run ! grep -E "create role if not exists DTAGENT_VIEWER" "$TEST_SQL_FILE"
+    run ! grep -E "create resource monitor if not exists DTAGENT_RS" "$TEST_SQL_FILE"
 }
 
 @test "custom names: partial replacement (only database and warehouse)" {
@@ -333,10 +329,8 @@ EOF
     grep -q "MY_CUSTOM_WH" "$TEST_SQL_FILE"
 
     # Verify TAG-based names are NOT used for these customized objects
-    run grep -E "(^|[^A-Za-z0-9_$])DTAGENT_ENV01_DB([^A-Za-z0-9_$]|$)" "$TEST_SQL_FILE"
-    [ "$status" -ne 0 ]
-    run grep -E "(^|[^A-Za-z0-9_$])DTAGENT_ENV01_WH([^A-Za-z0-9_$]|$)" "$TEST_SQL_FILE"
-    [ "$status" -ne 0 ]
+    run ! grep -E "(^|[^A-Za-z0-9_$])DTAGENT_ENV01_DB([^A-Za-z0-9_$]|$)" "$TEST_SQL_FILE"
+    run ! grep -E "(^|[^A-Za-z0-9_$])DTAGENT_ENV01_WH([^A-Za-z0-9_$]|$)" "$TEST_SQL_FILE"
 
     # When any custom name is used, TAG does NOT affect object naming at all
     # Objects without custom names use DEFAULT names (not TAG-based names)
@@ -345,12 +339,9 @@ EOF
     grep -q "DTAGENT_VIEWER" "$TEST_SQL_FILE"
 
     # Verify TAG-based names are NOT used for any objects
-    run grep -E "(^|[^A-Za-z0-9_$])DTAGENT_ENV01_OWNER([^A-Za-z0-9_$]|$)" "$TEST_SQL_FILE"
-    [ "$status" -ne 0 ]
-    run grep -E "(^|[^A-Za-z0-9_$])DTAGENT_ENV01_ADMIN([^A-Za-z0-9_$]|$)" "$TEST_SQL_FILE"
-    [ "$status" -ne 0 ]
-    run grep -E "(^|[^A-Za-z0-9_$])DTAGENT_ENV01_VIEWER([^A-Za-z0-9_$]|$)" "$TEST_SQL_FILE"
-    [ "$status" -ne 0 ]
+    run ! grep -E "(^|[^A-Za-z0-9_$])DTAGENT_ENV01_OWNER([^A-Za-z0-9_$]|$)" "$TEST_SQL_FILE"
+    run ! grep -E "(^|[^A-Za-z0-9_$])DTAGENT_ENV01_ADMIN([^A-Za-z0-9_$]|$)" "$TEST_SQL_FILE"
+    run ! grep -E "(^|[^A-Za-z0-9_$])DTAGENT_ENV01_VIEWER([^A-Za-z0-9_$]|$)" "$TEST_SQL_FILE"
 }
 
 @test "custom names: TAG works when no custom names set" {
@@ -402,16 +393,13 @@ EOF
     [ "$status" -eq 0 ]
 
     # Verify resource monitor creation is NOT present (init scope)
-    run grep -q "create resource monitor" "$TEST_SQL_FILE"
-    [ "$status" -ne 0 ]
+    run ! grep -q "create resource monitor" "$TEST_SQL_FILE"
 
     # Verify P_UPDATE_RESOURCE_MONITOR procedure definition is NOT present (setup scope)
-    run grep -q "create or replace procedure.*P_UPDATE_RESOURCE_MONITOR" "$TEST_SQL_FILE"
-    [ "$status" -ne 0 ]
+    run ! grep -q "create or replace procedure.*P_UPDATE_RESOURCE_MONITOR" "$TEST_SQL_FILE"
 
     # Verify calls to P_UPDATE_RESOURCE_MONITOR are NOT present (setup scope - indented blocks)
-    run grep -q "call.*P_UPDATE_RESOURCE_MONITOR" "$TEST_SQL_FILE"
-    [ "$status" -ne 0 ]
+    run ! grep -q "call.*P_UPDATE_RESOURCE_MONITOR" "$TEST_SQL_FILE"
 }
 
 @test "OPTION filtering: indented markers work correctly" {
@@ -498,8 +486,7 @@ EOF
     rm -f "$temp_file"
 
     # Verify the indented block was removed
-    run grep -q "P_UPDATE_RESOURCE_MONITOR" "$TEST_SQL_FILE"
-    [ "$status" -ne 0 ]
+    run ! grep -q "P_UPDATE_RESOURCE_MONITOR" "$TEST_SQL_FILE"
 
     # Verify code before and after remains
     grep -q "SELECT 1" "$TEST_SQL_FILE"
@@ -584,8 +571,7 @@ EOF
     rm -f "$temp_file"
 
     # Verify the block was removed
-    run grep -q "CREATE RESOURCE MONITOR" "$TEST_SQL_FILE"
-    [ "$status" -ne 0 ]
+    run ! grep -q "CREATE RESOURCE MONITOR" "$TEST_SQL_FILE"
 
     # Verify code before and after remains
     grep -q "SELECT 1" "$TEST_SQL_FILE"

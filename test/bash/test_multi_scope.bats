@@ -60,8 +60,7 @@ teardown() {
     [ "$status" -eq 0 ]
     [ -f "$TEST_SQL_FILE" ]
     grep -q "setup" "$TEST_SQL_FILE"
-    run grep -q "admin" "$TEST_SQL_FILE"
-    [ "$status" -ne 0 ]
+    run ! grep -q "admin" "$TEST_SQL_FILE"
 }
 
 # Test: Multi-scope with two scopes
@@ -71,8 +70,7 @@ teardown() {
     [ -f "$TEST_SQL_FILE" ]
     grep -q "setup" "$TEST_SQL_FILE"
     grep -q "config" "$TEST_SQL_FILE"
-    run grep -q "admin" "$TEST_SQL_FILE"
-    [ "$status" -ne 0 ]
+    run ! grep -q "admin" "$TEST_SQL_FILE"
 }
 
 # Test: Multi-scope with three scopes
@@ -94,8 +92,7 @@ teardown() {
     grep -q "plugin" "$TEST_SQL_FILE"
     grep -q "config" "$TEST_SQL_FILE"
     grep -q "agents" "$TEST_SQL_FILE"
-    run grep -q "admin" "$TEST_SQL_FILE"
-    [ "$status" -ne 0 ]
+    run ! grep -q "admin" "$TEST_SQL_FILE"
 }
 
 # Test: Multi-scope with spaces around commas
@@ -193,12 +190,9 @@ teardown() {
     [ -f "$TEST_SQL_FILE" ]
     grep -q "setup" "$TEST_SQL_FILE"
     grep -q "config" "$TEST_SQL_FILE"
-    run grep -q "init" "$TEST_SQL_FILE"
-    [ "$status" -ne 0 ]
-    run grep -q "admin" "$TEST_SQL_FILE"
-    [ "$status" -ne 0 ]
-    run grep -q "agents" "$TEST_SQL_FILE"
-    [ "$status" -ne 0 ]
+    run ! grep -q "init" "$TEST_SQL_FILE"
+    run ! grep -q "admin" "$TEST_SQL_FILE"
+    run ! grep -q "agents" "$TEST_SQL_FILE"
 }
 
 # Test: Multi-scope 'agents,config' - regression test for file expansion issue
@@ -210,14 +204,10 @@ teardown() {
     grep -q "agents" "$TEST_SQL_FILE"
     grep -q "config" "$TEST_SQL_FILE"
     # Verify excluded scopes are not present
-    run grep -q "init" "$TEST_SQL_FILE"
-    [ "$status" -ne 0 ]
-    run grep -q "admin" "$TEST_SQL_FILE"
-    [ "$status" -ne 0 ]
-    run grep -q "setup" "$TEST_SQL_FILE"
-    [ "$status" -ne 0 ]
-    run grep -q "plugin" "$TEST_SQL_FILE"
-    [ "$status" -ne 0 ]
+    run ! grep -q "init" "$TEST_SQL_FILE"
+    run ! grep -q "admin" "$TEST_SQL_FILE"
+    run ! grep -q "setup" "$TEST_SQL_FILE"
+    run ! grep -q "plugin" "$TEST_SQL_FILE"
     # Verify both SQL files were processed (check for script markers or content)
     # The script should include content from both 70_agents.sql and 40_config.sql
     line_count=$(wc -l < "$TEST_SQL_FILE")
@@ -252,8 +242,7 @@ teardown() {
     grep -q "config" "$TEST_SQL_FILE"
     grep -q "agents" "$TEST_SQL_FILE"
     grep -q "UPDATE_FROM_CONFIGURATIONS" "$TEST_SQL_FILE"
-    run grep -q "admin" "$TEST_SQL_FILE"
-    [ "$status" -ne 0 ]
+    run ! grep -q "admin" "$TEST_SQL_FILE"
 }
 
 # Test: File validation works correctly with multiple scopes
