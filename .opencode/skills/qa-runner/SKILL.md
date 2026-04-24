@@ -128,13 +128,13 @@ fresh, complete deployment of the agent into each environment.
 ### Deploy the current version
 
 ```bash
-./scripts/deploy/deploy.sh dev-{CURR_TAG} --scope=all --options=skip_confirm
+./scripts/deploy/deploy.sh --env=dev-{CURR_TAG} --scope=all --options=skip_confirm
 ```
 
 ### Deploy the previous version
 
 ```bash
-./scripts/deploy/deploy.sh dev-{PREV_TAG} --scope=all --options=skip_confirm
+./scripts/deploy/deploy.sh --env=dev-{PREV_TAG} --scope=all --options=skip_confirm
 ```
 
 **Important notes to share:**
@@ -726,23 +726,24 @@ silently ignored by Dynatrace; the rendered content comes from `markdown:`.
 | `test/qa/RELEASE-CHECKLIST.md` | Full checklist with all items |
 | `test/qa/test-suite/test-suite.yml` | Notebook YAML template |
 | `scripts/test/deploy_test_notebook.sh` | Notebook deploy script |
+| `scripts/test/test_deploy_flags_manual.sh` | Manual test script for deploy.sh flag parsing (no Snowflake required) |
 | `test/qa/results/` | QA result files (create as needed) |
 
 ### Deploy commands quick reference
 
 ```bash
 # Deploy both environments (fresh) — human only on dev-* profiles (requires DTAGENT_TOKEN)
-./scripts/deploy/deploy.sh dev-{CURR_TAG} --scope=all --options=skip_confirm
-./scripts/deploy/deploy.sh dev-{PREV_TAG} --scope=all --options=skip_confirm
+./scripts/deploy/deploy.sh --env=dev-{CURR_TAG} --scope=all --options=skip_confirm
+./scripts/deploy/deploy.sh --env=dev-{PREV_TAG} --scope=all --options=skip_confirm
 
 # test-qa: AI can and must use --scope=all
-./scripts/deploy/deploy.sh test-qa --scope=all --options=skip_confirm
+./scripts/deploy/deploy.sh --env=test-qa --scope=all --options=skip_confirm
 
 # AI-safe re-deploy on dev-* profiles (no token needed) — plugins + agents + config only
-./scripts/deploy/deploy.sh dev-{CURR_TAG} --scope=plugins,agents,config --options=skip_confirm
+./scripts/deploy/deploy.sh --env=dev-{CURR_TAG} --scope=plugins,agents,config --options=skip_confirm
 
 # Config-only update (no SQL changes)
-./scripts/deploy/deploy.sh dev-{CURR_TAG} --scope=config --options=skip_confirm
+./scripts/deploy/deploy.sh --env=dev-{CURR_TAG} --scope=config --options=skip_confirm
 
 # Deploy the test notebook
 ./scripts/test/deploy_test_notebook.sh \
@@ -751,6 +752,9 @@ silently ignored by Dynatrace; the rendered content comes from `markdown:`.
 
 # Preview notebook deploy without applying
 ./scripts/test/deploy_test_notebook.sh --dry-run
+
+# Run manual deploy flag tests (no Snowflake connection required)
+bash scripts/test/test_deploy_flags_manual.sh
 ```
 
 **CRITICAL — scope rules for AI-assisted deploys:**
@@ -768,7 +772,7 @@ Never let deploy output stream directly to the tool — the log is very large an
 cause tool aborts. Always background the process and tail the log:
 
 ```bash
-./scripts/deploy/deploy.sh dev-{CURR_TAG} --scope=all --options=skip_confirm \
+./scripts/deploy/deploy.sh --env=dev-{CURR_TAG} --scope=all --options=skip_confirm \
     > /tmp/deploy-{CURR_TAG}.log 2>&1 &
 # then poll:
 sleep 30 && ps -p $PID && tail -10 /tmp/deploy-{CURR_TAG}.log

@@ -38,8 +38,9 @@ for cmd in "jq" "yq"; do
     fi
 done
 
-if [ $(uname -s) = 'Darwin' ]; then
+if [ "$(uname -s)" = 'Darwin' ]; then
     if [ "$TO_INSTALL" != "" ]; then
+        # shellcheck disable=SC2086
         brew install $TO_INSTALL
     fi
 
@@ -63,6 +64,7 @@ else
         sudo apt install pipx
         pipx install snowflake-cli-labs
         pipx ensurepath
+        # shellcheck source=/dev/null
         source ~/.bashrc
     fi
 fi
@@ -75,7 +77,7 @@ fi
 echo "Checking for Snowflake connection profiles"
 
 if [ "$ENV" == '' ]; then
-    if ! echo $(snow connection list) | grep -q "snow_agent_"; then
+    if ! echo "$(snow connection list)" | grep -q "snow_agent_"; then
         echo "WARNING: No Dynatrace Snowflake Observability Agent connections are defined for the Snowflake CLI."
         echo "         Run ./setup.sh with an environment name to create one for your environment."
     fi
@@ -87,6 +89,15 @@ else
         CONNECTION_ENV="${DEPLOYMENT_ENV,,}" # convert to lower case
         if ! echo "$EXISTING_CONNECTIONS" | grep -E -q "snow_agent_$CONNECTION_ENV\s"; then
             echo "WARNING: No Dynatrace Snowflake Observability Agent connection is defined for the $DEPLOYMENT_ENV environment. Creating it now..."
+
+            _conn_label="  Creating Snowflake CLI connection: snow_agent_${CONNECTION_ENV}"
+            printf '\n╔══════════════════════════════════════════════════════════════════════════════════╗\n'
+            printf '║%-82s║\n' "$_conn_label"
+            printf '║%-82s║\n' ""
+            printf '║  %-80s║\n' "Enter your Snowflake credentials below."
+            printf '║  %-80s║\n' "Tip: Use 'browser' as authenticator for SSO."
+            printf '║  %-80s║\n' "Leave optional fields blank to skip them."
+            printf '╚══════════════════════════════════════════════════════════════════════════════════╝\n\n'
 
             snow connection add --connection-name snow_agent_$CONNECTION_ENV
         fi
