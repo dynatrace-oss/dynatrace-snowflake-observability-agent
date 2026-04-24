@@ -33,7 +33,8 @@ All filter variables support multi-select. `$Warehouse`, `$Database`, and `$User
 `$Account` — only values present in the selected account(s) are offered. `$TopN` and
 `$SlowQueryMin` are hidden display-control variables.
 
-![Snowflake Performance Explorer Overview](./img/performance-explorer-overview.png)
+> **Note:** Screenshots will be added after dashboard validation. See the section descriptions below for
+> details on each tile.
 
 ## Section 1 — Fleet Overview
 
@@ -109,7 +110,7 @@ rates may have misconfigured resource limits, permission issues, or problematic 
 ## Section 5 — Long-Running Queries
 
 Data in this section comes from the `active_queries` plugin, which reads
-`INFORMATION_SCHEMA.QUERY_HISTORY` in real time — there is no ACCOUNT_USAGE ingestion lag.
+`INFORMATION_SCHEMA.QUERY_HISTORY()` in real time — there is no ACCOUNT_USAGE ingestion lag.
 
 **Active query summary per warehouse** (table)
 Aggregates currently active queries by warehouse, showing count, fastest, slowest, and average

@@ -200,7 +200,7 @@ tiles:
         | summarize
             total = count(),
             errors = countIf(snowflake.query.execution_status != "SUCCESS")
-        | fieldsAdd error_rate = 100.0 * toDouble(errors) / toDouble(total)
+        | fieldsAdd error_rate = if(total == 0, 0.0, 100.0 * toDouble(errors) / toDouble(total))
         | fields error_rate
     visualization: singleValue
     visualizationSettings:
@@ -294,6 +294,9 @@ tiles:
           in(snowflake.warehouse.name, array($Warehouse))
         }
         , union: true
+        | filter dsoa.run.plugin == "query_history"
+        | filter (isNull(db.namespace) or in(db.namespace, array($Database)))
+        | filter (isNull(db.user) or in(db.user, array($User)))
     visualization: areaChart
     visualizationSettings:
       autoSelectVisualization: false
@@ -689,7 +692,7 @@ tiles:
             total = count(),
             errors = countIf(snowflake.query.execution_status != "SUCCESS"),
           by: { snowflake.warehouse.name }
-        | fieldsAdd error_rate = 100.0 * toDouble(errors) / toDouble(total)
+        | fieldsAdd error_rate = if(total == 0, 0.0, 100.0 * toDouble(errors) / toDouble(total))
         | sort error_rate desc
         | fields Warehouse = snowflake.warehouse.name, error_rate
         | limit toLong($TopN)
