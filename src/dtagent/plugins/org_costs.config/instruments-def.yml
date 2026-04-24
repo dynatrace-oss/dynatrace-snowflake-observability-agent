@@ -4,23 +4,86 @@ attributes:
       - org_costs_metering
     __example: ABC12345
     __description: The account locator identifier for the Snowflake account.
+  snowflake.org.billing.contract_number:
+    __context_names:
+      - org_billing_remaining_balance
+    __example: CONTRACT-001
+    __description: The contract number associated with the Snowflake billing balance.
   snowflake.organization.name:
     __context_names:
       - org_costs_metering
+      - org_billing_usage_in_currency
+      - org_billing_remaining_balance
     __example: MYORG
     __description: The name of the Snowflake organization.
 dimensions:
   snowflake.account.name:
     __context_names:
       - org_costs_metering
+      - org_billing_usage_in_currency
+      - org_billing_remaining_balance
     __example: MYORG-ACCOUNT1
     __description: The name of the Snowflake account within the organization.
+  snowflake.account.locator:
+    __context_names:
+      - org_billing_usage_in_currency
+      - org_billing_remaining_balance
+    __example: ABC12345
+    __description: The account locator identifier for the Snowflake account.
+  snowflake.org.billing.currency:
+    __context_names:
+      - org_billing_usage_in_currency
+    __example: USD
+    __description: The currency in which billing usage amounts are denominated.
   snowflake.service.type:
     __context_names:
       - org_costs_metering
+      - org_billing_usage_in_currency
     __example: WAREHOUSE_METERING
     __description: The Snowflake service type that consumed the credits.
 metrics:
+  snowflake.org.billing.amount:
+    __context_names:
+      - org_billing_usage_in_currency
+    __example: "150.50"
+    __description: The billing amount in currency for the account on the given day.
+    displayName: Org Billing Amount in Currency
+    unit: currency
+  snowflake.org.billing.capacity_balance:
+    __context_names:
+      - org_billing_remaining_balance
+    __example: "10000.0"
+    __description: Remaining capacity balance for the organization contract.
+    displayName: Org Billing Capacity Balance
+    unit: currency
+  snowflake.org.billing.free_usage_balance:
+    __context_names:
+      - org_billing_remaining_balance
+    __example: "200.0"
+    __description: Remaining free usage balance for the organization contract.
+    displayName: Org Billing Free Usage Balance
+    unit: currency
+  snowflake.org.billing.on_demand_consumption:
+    __context_names:
+      - org_billing_remaining_balance
+    __example: "100.0"
+    __description: On-demand consumption amount charged against the organization contract.
+    displayName: Org Billing On-Demand Consumption
+    unit: currency
+  snowflake.org.billing.overage:
+    __context_names:
+      - org_billing_remaining_balance
+    __example: "0.0"
+    __description: Overage amount charged beyond contracted capacity.
+    displayName: Org Billing Overage
+    unit: currency
+  snowflake.org.billing.rollover_balance:
+    __context_names:
+      - org_billing_remaining_balance
+    __example: "500.0"
+    __description: Remaining rollover balance for the organization contract.
+    displayName: Org Billing Rollover Balance
+    unit: currency
   snowflake.org.credits.adjustment_cloud_services:
     __context_names:
       - org_costs_metering

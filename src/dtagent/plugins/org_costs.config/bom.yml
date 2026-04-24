@@ -1,6 +1,10 @@
 delivers:
   - name: DTAGENT_DB.APP.V_ORG_METERING_DAILY
     type: view
+  - name: DTAGENT_DB.APP.V_ORG_BILLING_USAGE_IN_CURRENCY
+    type: view
+  - name: DTAGENT_DB.APP.V_ORG_BILLING_REMAINING_BALANCE
+    type: view
   - name: DTAGENT_DB.CONFIG.UPDATE_ORG_COSTS_CONF()
     type: procedure
   - name: DTAGENT_DB.APP.TASK_DTAGENT_ORG_COSTS
@@ -8,5 +12,18 @@ delivers:
 
 references:
   - name: SNOWFLAKE.ORGANIZATION_USAGE.METERING_DAILY_HISTORY
+    type: view
+    privileges: SELECT
+  - name: SNOWFLAKE.ORGANIZATION_USAGE.USAGE_IN_CURRENCY_DAILY
+    type: view
+    privileges: SELECT
+  - name: SNOWFLAKE.ORGANIZATION_USAGE.REMAINING_BALANCE_DAILY
+    type: view
+    privileges: SELECT
+  - name: SNOWFLAKE.ORGANIZATION_USAGE.DATA_TRANSFER_DAILY_HISTORY
+    type: view
+    privileges: SELECT
+
+  - name: SNOWFLAKE.ORGANIZATION_USAGE.STORAGE_DAILY_HISTORY
     type: view
     privileges: SELECT

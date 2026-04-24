@@ -7,3 +7,8 @@ plugins:
       - logs
       - metrics
       - biz_events
+    contexts:
+      org_costs_metering:
+        is_disabled: true
+      org_costs_storage:
+        is_disabled: true

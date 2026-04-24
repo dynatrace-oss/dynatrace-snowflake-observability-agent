@@ -59,6 +59,12 @@ class OrgCostsPlugin(Plugin):
                     "metrics": metrics_metering_cnt,
                     "events": events_metering_cnt,
                 },
+                "org_costs_storage": {
+                    "entries": entries_storage_cnt,
+                    "log_lines": logs_storage_cnt,
+                    "metrics": metrics_storage_cnt,
+                    "events": events_storage_cnt,
+                },
             },
             "dsoa.run.id": "uuid_string"
             }
@@ -79,6 +85,21 @@ class OrgCostsPlugin(Plugin):
                 "log_lines": logs_metering_cnt,
                 "metrics": metrics_metering_cnt,
                 "events": events_metering_cnt,
+            }
+
+        if not contexts or "org_costs_storage" in contexts:
+            t_org_storage = "APP.V_ORG_STORAGE_DAILY"
+            entries_storage_cnt, logs_storage_cnt, metrics_storage_cnt, events_storage_cnt = self._log_entries(
+                lambda: self._get_table_rows(t_org_storage),
+                "org_costs_storage",
+                run_uuid=run_id,
+                log_completion=run_proc,
+            )
+            results["org_costs_storage"] = {
+                "entries": entries_storage_cnt,
+                "log_lines": logs_storage_cnt,
+                "metrics": metrics_storage_cnt,
+                "events": events_storage_cnt,
             }
 
         return self._report_results(results, run_id)

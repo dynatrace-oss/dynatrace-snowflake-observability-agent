@@ -50,5 +50,51 @@
       "host.name": "test.dsoa2025.snowflakecomputing.com",
       "telemetry.exporter.name": "dynatrace.snowagent"
     }
+  },
+  {
+    "content": "New Org Storage Daily entry for MYORG-ACCOUNT_A",
+    "snowflake.org.storage.bytes": 5368709120,
+    "snowflake.organization.name": "MYORG",
+    "snowflake.account.name": "MYORG-ACCOUNT_A",
+    "snowflake.account.locator": "ABC12345",
+    "snowflake.storage.type": "STAGE",
+    "dsoa.run.plugin": "test_org_costs",
+    "dsoa.run.context": "org_costs_storage",
+    "code.file.path": "/Users/sebastian.kruk/Development/hex/ant-3/snowagent/src/dtagent/otel/logs.py",
+    "code.function.name": "send_log",
+    "code.line.number": 205,
+    "resource_attributes": {
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent"
+    }
+  },
+  {
+    "content": "New Org Storage Daily entry for MYORG-ACCOUNT_A",
+    "snowflake.org.storage.bytes": 1073741824,
+    "snowflake.organization.name": "MYORG",
+    "snowflake.account.name": "MYORG-ACCOUNT_A",
+    "snowflake.account.locator": "ABC12345",
+    "snowflake.storage.type": "FAILSAFE",
+    "dsoa.run.plugin": "test_org_costs",
+    "dsoa.run.context": "org_costs_storage",
+    "code.file.path": "/Users/sebastian.kruk/Development/hex/ant-3/snowagent/src/dtagent/otel/logs.py",
+    "code.function.name": "send_log",
+    "code.line.number": 205,
+    "resource_attributes": {
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent"
+    }
   }
 ]

@@ -26,10 +26,94 @@ class TestOrgCosts:
 
     FIXTURES = {
         "APP.V_ORG_METERING_DAILY": "test/test_data/org_costs_metering.ndjson",
+        "APP.V_ORG_STORAGE_DAILY": "test/test_data/org_costs_storage.ndjson",
+        "APP.V_ORG_DATA_TRANSFER_DAILY": "test/test_data/org_costs_data_transfer.ndjson",
     }
 
     @pytest.mark.xdist_group(name="test_telemetry")
     def test_org_costs_metering(self):
+        from dtagent.plugins.org_costs import OrgCostsPlugin
+        from dtagent import plugins
+        import test._utils as utils
+        from test import TestDynatraceSnowAgent, _get_session
+        from typing import Generator, Dict
+        from unittest.mock import patch  # noqa: F401
+
+        utils._generate_all_fixtures(_get_session(), self.FIXTURES)
+
+        class TestOrgCostsPlugin(OrgCostsPlugin):
+
+            def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
+                return utils._safe_get_fixture_entries(TestOrgCosts.FIXTURES, t_data, limit=2)
+
+        def __local_get_plugin_class(source: str):
+            return TestOrgCostsPlugin
+
+        plugins._get_plugin_class = __local_get_plugin_class
+
+        disabled_combinations = [
+            [],
+            ["logs"],
+            ["metrics"],
+            ["logs", "metrics"],
+            ["logs", "metrics", "events"],
+        ]
+
+        for disabled_telemetry in disabled_combinations:
+            utils.execute_telemetry_test(
+                TestDynatraceSnowAgent,
+                test_name="test_org_costs",
+                disabled_telemetry=disabled_telemetry,
+                affecting_types_for_entries=["logs", "metrics"],
+                base_count={
+                    "org_costs_metering": {"entries": 2, "log_lines": 2, "metrics": 8, "events": 0},
+                    "org_costs_storage": {"entries": 2, "log_lines": 2, "metrics": 2, "events": 0},
+                },
+            )
+
+    @pytest.mark.xdist_group(name="test_telemetry")
+    def test_org_costs_storage(self):
+        from dtagent.plugins.org_costs import OrgCostsPlugin
+        from dtagent import plugins
+        import test._utils as utils
+        from test import TestDynatraceSnowAgent, _get_session
+        from typing import Generator, Dict
+        from unittest.mock import patch  # noqa: F401
+
+        utils._generate_all_fixtures(_get_session(), self.FIXTURES)
+
+        class TestOrgCostsPlugin(OrgCostsPlugin):
+
+            def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
+                return utils._safe_get_fixture_entries(TestOrgCosts.FIXTURES, t_data, limit=2)
+
+        def __local_get_plugin_class(source: str):
+            return TestOrgCostsPlugin
+
+        plugins._get_plugin_class = __local_get_plugin_class
+
+        disabled_combinations = [
+            [],
+            ["logs"],
+            ["metrics"],
+            ["logs", "metrics"],
+            ["logs", "metrics", "events"],
+        ]
+
+        for disabled_telemetry in disabled_combinations:
+            utils.execute_telemetry_test(
+                TestDynatraceSnowAgent,
+                test_name="test_org_costs",
+                disabled_telemetry=disabled_telemetry,
+                affecting_types_for_entries=["logs", "metrics"],
+                base_count={
+                    "org_costs_metering": {"entries": 2, "log_lines": 2, "metrics": 8, "events": 0},
+                    "org_costs_storage": {"entries": 2, "log_lines": 2, "metrics": 2, "events": 0},
+                },
+            )
+
+    @pytest.mark.xdist_group(name="test_telemetry")
+    def test_org_costs_data_transfer(self):
         from dtagent.plugins.org_costs import OrgCostsPlugin
         from dtagent import plugins
         import test._utils as utils
@@ -68,7 +152,7 @@ class TestOrgCosts:
                 disabled_telemetry=disabled_telemetry,
                 affecting_types_for_entries=["logs", "metrics"],
                 base_count={
-                    "org_costs_metering": {"entries": 2, "log_lines": 2, "metrics": 8, "events": 0},
+                    "org_costs_data_transfer": {"entries": 2, "log_lines": 2, "metrics": 2, "events": 0},
                 },
             )
 
@@ -76,3 +160,5 @@ class TestOrgCosts:
 if __name__ == "__main__":
     test_class = TestOrgCosts()
     test_class.test_org_costs_metering()
+    test_class.test_org_costs_storage()
+    test_class.test_org_costs_data_transfer()
