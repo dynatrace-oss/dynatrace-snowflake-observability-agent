@@ -2,6 +2,90 @@
 
 This file documents detailed technical changes, internal refactorings, and development notes. For user-facing highlights, see [CHANGELOG.md](CHANGELOG.md).
 
+## [Unreleased] — Snowflake Consumption Dashboard Phase B
+
+### Dashboard Phase B: §1 Contract Capacity KPIs + §3 USD Consumption + Workflow Fix
+
+**Scope**: Phase B of the org-level consumption dashboard. Appends tiles `"14"`–`"24"` to the
+existing dashboard (UUID `6881ff48-0945-4e94-94af-2e4bb338724e`). Bumps version to 3.
+
+**§1 Contract Capacity KPIs** (tiles 14–20, inserted at top via layout y=0..12):
+
+- **Capacity Used (USD)** (tile 15, singleValue): `sum(snowflake.org.billing.amount)` over the
+  selected timeframe. Uses `arraySum` to correctly total daily billing rows.
+- **Remaining Capacity (USD)** (tile 16, singleValue): `last(capacity_balance) + last(rollover_balance)`.
+  Uses `avg()` on both metrics (one row per org per day) then takes the last array value.
+- **30-Day Run Rate (USD)** (tile 17, singleValue): `sum(billing.amount)` with explicit `from: now()-30d`
+  to pin the window regardless of the dashboard timeframe selector.
+- **YoY Burn Rate** (tile 18, table): Two `timeseries` pipes (current 30d and previous 30d) combined
+  via `append` + `summarize` to produce `current_usd`, `previous_usd`, annualized run rates, and
+  `pct_change`. DQL `join` across time windows is not supported, so `append` + aggregate is used.
+- **Estimated Days to Overage** (tile 19, singleValue): Derived from 30-day balance burn:
+  `balance_end / monthly_burn * 30`. Returns `-1` when burn rate is zero or negative (balance growing).
+- **Projected Overage Date** (tile 20, table): Computes `days_to_overage` then formats as a timestamp
+  string using `formatTimestamp(now() + toTimespan(...))`. Returns "No overage projected" when
+  days_to_overage ≤ 0.
+
+**§3 USD Consumption** (tiles 21–24, inserted after §2 at y=26..39):
+
+- Markdown header tile (21) includes the credit-rate fallback note inline.
+- Line chart (22): `billing.amount` by account over time.
+- Bar chart (23): `billing.amount` summarized by service type.
+- Table (24): total USD per account using `arraySum` (not `arrayAvg`) because billing rows are
+  daily totals that should be summed, not averaged.
+
+**Workflow fix** (`docs/workflows/org-contract-balance-warning/org-contract-balance-warning.yml`):
+Replaced five non-existent `snowflake.org.balance.*.remaining` metric IDs with the real keys:
+`snowflake.org.billing.free_usage_balance`, `capacity_balance`, `on_demand_consumption`,
+`rollover_balance`, `overage`. Updated `metricsClient.query` selector from `:last` to `:avg:last`
+to match the `avg()` aggregation used in the dashboard (one row per org per day).
+
+**Layout strategy**: New §1 tiles use keys `"14"`–`"20"` at y=0..12. Existing §2 tiles (`"0"`–`"3"`)
+shift to y=13..25. New §3 tiles use keys `"21"`–`"24"` at y=26..39. Existing §4–§6 tiles shift
+accordingly. No tile keys were renumbered — only layout `y` coordinates changed.
+
+---
+
+## [Unreleased] — Snowflake Consumption Dashboard Phase C
+
+### Dashboard: §7 Department / BU View
+
+**Scope**: Phase C of the org-level consumption dashboard. Appends §7 Department / BU View
+(tiles "25"–"29") to `docs/dashboards/org-costs-observability/org-costs-observability.yml`.
+Coordinates with Phase B (tiles "14"–"24") which landed concurrently.
+
+**Changes**:
+
+- **§7 Department / BU View** (5 tiles):
+  - Markdown header with inline usage note for `$bu_mapping` variable.
+  - Bar chart: credits by account (`snowflake.org.credits.used`, summarized, `bu = "Unassigned"`).
+  - Bar chart: USD billing by account (`snowflake.org.billing.amount`, `arraySum`, `bu = "Unassigned"`).
+  - Bar chart: storage by account (`snowflake.org.storage.bytes`, avg, bytes `unitsOverrides`, `bu = "Unassigned"`).
+  - Table: account-to-BU mapping view (account + bu columns, sorted by account).
+- **Layout**: tiles placed at y=67–81 (after §6 Billing at y=60–67). Three bar charts side-by-side
+  (8 cols each), table full-width below.
+- **`readme.md`** updated: §7 tile inventory table added; BU Mapping Configuration section added
+  with JSON format, example, and v1 limitation note.
+
+**v1 BU mapping design decision**:
+
+DQL does not support dynamic JSON key-indexing against a variable string at query time. The
+`$bu_mapping` variable holds a JSON object `{"ACCOUNT": "BU"}`, but there is no native DQL
+operator to look up a field value as a key in that JSON at runtime. Options considered:
+
+1. **Hardcoded `if/matchesRegex` chain** — requires dashboard edits per customer; not scalable.
+2. **Grail lookup tables** — not yet available in DSOA's target tenant tier; planned for a
+   future release.
+3. **`fieldsAdd bu = "Unassigned"` (chosen for v1)** — all accounts show as "Unassigned" by
+   default. Customers who need BU grouping can use the `$bu_mapping` variable as documentation
+   of intent and wait for the lookup-table enhancement, or apply OpenPipeline enrichment rules
+   externally to add a `bu` attribute to the metric data.
+
+The `$bu_mapping` variable is retained in the dashboard as a placeholder and configuration
+anchor. Pattern-based mapping (SQL LIKE / regex) is tracked as a future enhancement.
+
+---
+
 ## [Unreleased] — Snowflake Consumption Dashboard Phase A
 
 ### Dashboard Overhaul: Snowflake Consumption (Organization Level)
