@@ -14,7 +14,7 @@ Key use cases:
 - trend analysis and anomaly detection on credit consumption,
 - capacity planning based on historical metering data.
 
-## Configuration
+### Configuration
 
 | Key                               | Type   | Default                             | Description                                                                                                                                                |
 |-----------------------------------|--------|-------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -23,7 +23,7 @@ Key use cases:
 | `plugins.metering.is_disabled`    | bool   | `false`                             | Set to `true` to disable this plugin entirely.                                                                                                             |
 | `plugins.metering.telemetry`      | list   | `["metrics", "logs", "biz_events"]` | Telemetry types to emit. Remove items to suppress specific output types.                                                                                   |
 
-## Querying in Dynatrace
+### Querying in Dynatrace
 
 ```dql
 // All metering logs
@@ -41,7 +41,7 @@ timeseries sum(snowflake.credits.used)
 | filter snowflake.service.type == "TELEMETRY_DATA_INGEST"
 ```
 
-## Migration from event_usage
+### Migration from event_usage
 
 The `event_usage` plugin is deprecated as of 0.9.5. To migrate:
 

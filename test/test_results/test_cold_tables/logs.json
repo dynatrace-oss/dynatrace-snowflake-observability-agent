@@ -11,7 +11,7 @@
     "snowflake.table.cold_status": "warm",
     "dsoa.run.plugin": "test_cold_tables",
     "dsoa.run.context": "cold_tables",
-    "code.file.path": "/Users/sebastian.kruk/Development/hex/ant-3/snowagent/src/dtagent/otel/logs.py",
+    "code.file.path": "./src/dtagent/otel/logs.py",
     "code.function.name": "send_log",
     "code.line.number": 205,
     "resource_attributes": {
@@ -37,7 +37,7 @@
     "snowflake.table.cold_status": "cold",
     "dsoa.run.plugin": "test_cold_tables",
     "dsoa.run.context": "cold_tables",
-    "code.file.path": "/Users/sebastian.kruk/Development/hex/ant-3/snowagent/src/dtagent/otel/logs.py",
+    "code.file.path": "./src/dtagent/otel/logs.py",
     "code.function.name": "send_log",
     "code.line.number": 205,
     "resource_attributes": {
