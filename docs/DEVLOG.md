@@ -48,7 +48,7 @@ This file documents detailed technical changes, internal refactorings, and devel
 
 - New `docs/deployment/` directory: `deploy.md` (local), `docker.md` (Docker), `github-actions.md` (GitHub Actions).
 - `docs/INSTALL.md` slimmed to ~100 lines: Docker as primary quick-start, brief sections for deploy.sh and GitHub Actions, links to deployment guides.
-- `docs/INSTALL-ADVANCED.md`: added cross-links to deployment guides at top.
+- `docs/INSTALL_ADVANCED.md`: added cross-links to deployment guides at top.
 
 **Test coverage**:
 

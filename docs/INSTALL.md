@@ -48,9 +48,9 @@ docker run --rm \
 
 ### Available image tags
 
-| Tag | Use |
-| --- | --- |
-| `ghcr.io/dynatrace-oss/dsoa-deploy:latest` | Latest stable release |
+| Tag                                        | Use                       |
+|--------------------------------------------|---------------------------|
+| `ghcr.io/dynatrace-oss/dsoa-deploy:latest` | Latest stable release     |
 | `ghcr.io/dynatrace-oss/dsoa-deploy:v0.9.5` | Pin to a specific version |
 
 ### Step 2 — Wait for first run
@@ -129,4 +129,4 @@ Pass `--env`. Example: `deploy.sh --env=production`. Run `deploy.sh --help` for 
 The connection name is derived from `deployment_environment` inside the config, not from the `$ENV` filename.
 Run `./setup.sh $ENV` to create the correct connection.
 
-For more troubleshooting, see [docs/debug/](debug/) and [INSTALL-ADVANCED.md](INSTALL-ADVANCED.md).
+For more troubleshooting, see [docs/debug/](debug/) and [INSTALL_ADVANCED.md](INSTALL_ADVANCED.md).
