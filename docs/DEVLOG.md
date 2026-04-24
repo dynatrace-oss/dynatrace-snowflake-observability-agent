@@ -56,7 +56,6 @@ This file documents detailed technical changes, internal refactorings, and devel
 - `test/bash/test_defaults_mode.bats`: 6 new tests covering all `--defaults` scenarios.
 - `test/bash/test_ci_export.bats`: 7 new tests covering `export_github_ci()` function and unknown platform error.
 
-
 ## [Unreleased] — BDX-1969: Interactive Deployment Wizard
 
 ### Interactive Deployment Wizard — Full Implementation
