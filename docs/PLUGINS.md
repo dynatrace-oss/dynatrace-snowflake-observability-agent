@@ -993,7 +993,7 @@ The plugin supports signal protection to prevent overload on high-volume Snowfla
 > - Skip the `admin` scope entirely and manually grant `MONITOR` privileges on warehouses to `DTAGENT_VIEWER`
 > - Install the `admin` scope and disable the automated grant task, then manually manage `MONITOR` privileges
 
-## Query Text Obfuscation
+## Query Text Obfuscation Configuration
 
 - `PLUGINS.QUERY_HISTORY.OBFUSCATION_MODE`: Controls query text obfuscation before data is sent to Dynatrace. Applies to `db.query.text` on
   spans and `snowflake.error.message` on failed queries. Valid values:
