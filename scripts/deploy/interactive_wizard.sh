@@ -370,6 +370,10 @@ phase1_core_config() {
             log_error "API token cannot be empty"
             continue
         fi
+        if [[ ! "$DT_TOKEN" =~ ^dt[0-9]c[0-9]{2}\.[A-Za-z0-9]{24}\.[A-Za-z0-9]{64}$ ]]; then
+            log_error "Token format invalid. Expected: dt0c01.XXXXXXXX.YYYYYYYY (Dynatrace API token)"
+            continue
+        fi
         log_ok "Token: (hidden)"
         break
     done
@@ -1179,16 +1183,20 @@ main() {
 
     log_ok "Wizard completed successfully"
 
-    # Write options back to deploy.sh via --options-out file
+    # Write options, scope, and from_version back to deploy.sh via --options-out file
     if [[ -n "$OPTIONS_OUT" ]]; then
         local opts=()
         [[ $MANUAL_MODE  -eq 1 ]] && opts+=("manual")
         [[ $SKIP_CONFIRM -eq 1 ]] && opts+=("skip_confirm")
         [[ $NO_DEP       -eq 1 ]] && opts+=("no_dep")
-        if [[ ${#opts[@]} -gt 0 ]]; then
-            local IFS=','
-            echo "${opts[*]}" > "$OPTIONS_OUT"
-        fi
+        {
+            if [[ ${#opts[@]} -gt 0 ]]; then
+                local IFS=','
+                echo "OPTIONS=${opts[*]}"
+            fi
+            echo "SCOPE=${DEPLOYMENT_SCOPE}"
+            [[ -n "$FROM_VERSION" ]] && echo "FROM_VERSION=${FROM_VERSION}"
+        } > "$OPTIONS_OUT"
     fi
 
     # Write collected DT token back to deploy.sh via --token-out file

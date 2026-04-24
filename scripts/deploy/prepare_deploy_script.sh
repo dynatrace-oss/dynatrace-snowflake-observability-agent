@@ -519,8 +519,8 @@ filter_option_code() {
 # Get list of plugins to exclude
 EXCLUDED_PLUGINS=$($CWD/list_plugins_to_exclude.sh)
 
-# Apply plugin filtering for non-special scopes
-if [ "$SCOPE" != "apikey" ] && [ "$SCOPE" != "teardown" ]; then
+# Apply plugin filtering only when scope includes plugin-related SQL files
+if [[ "$SQL_FILES" == *"30_plugins"* ]]; then
     if [ -n "$EXCLUDED_PLUGINS" ]; then
         EXCLUDED_PLUGINS_FORMATTED=$(echo "$EXCLUDED_PLUGINS" | tr '\n' ',' | sed 's/,$//')
         echo "Filtering out disabled plugins: $EXCLUDED_PLUGINS_FORMATTED"
@@ -710,8 +710,8 @@ EOF
     fi
 }
 
-# Apply plugin filtering for non-special scopes and inject task suspension for excluded plugins
-if [ "$SCOPE" != "apikey" ] && [ "$SCOPE" != "teardown" ]; then
+# Inject task suspension/cleanup only when scope includes plugin-related SQL files
+if [[ "$SQL_FILES" == *"30_plugins"* ]]; then
     inject_suspend_for_excluded_plugins "${INSTALL_SCRIPT_SQL}"
     if has_option "cleanup_disabled"; then
         inject_cleanup_for_excluded_plugins "${INSTALL_SCRIPT_SQL}"

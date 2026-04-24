@@ -218,11 +218,22 @@ if [[ $INTERACTIVE -eq 1 ]]; then
         exit 1
     fi
 
-    # Merge options emitted by the wizard into OPTIONS_STR
+    # Merge options, scope, and from_version emitted by the wizard
     if [[ -s "$WIZARD_OPTIONS_FILE" ]]; then
-        WIZARD_OPTIONS=$(cat "$WIZARD_OPTIONS_FILE")
-        OPTIONS_STR="${OPTIONS_STR:+${OPTIONS_STR},}${WIZARD_OPTIONS}"
-        IFS=',' read -ra OPTIONS <<< "$OPTIONS_STR"
+        while IFS='=' read -r key val; do
+            case "$key" in
+                OPTIONS)
+                    OPTIONS_STR="${OPTIONS_STR:+${OPTIONS_STR},}${val}"
+                    IFS=',' read -ra OPTIONS <<< "$OPTIONS_STR"
+                    ;;
+                SCOPE)
+                    SCOPE="$val"
+                    ;;
+                FROM_VERSION)
+                    FROM_VERSION="$val"
+                    ;;
+            esac
+        done < "$WIZARD_OPTIONS_FILE"
     fi
 
     # Import token collected by the wizard into the environment (if not already set)
@@ -300,7 +311,7 @@ show_bizevent_warning() {
 
 if has_option "manual"; then
     IS_MANUAL="true"
-    "$CWD/setup.sh"
+    # Manual mode generates SQL only — no Snowflake connection needed
 else
     IS_MANUAL="false"
     "$CWD/setup.sh" $ENV
@@ -388,8 +399,8 @@ if $IS_MANUAL; then
     if [ -n "$OUTPUT_FILE" ]; then
         INSTALL_SCRIPT_SQL="$OUTPUT_FILE"
     else
-        mkdir -p .logs 2>/dev/null
-        INSTALL_SCRIPT_SQL=".logs/dsoa-deploy-script-${DEPLOYMENT_ENV}-${NOW_TS}.sql"
+        mkdir -p output 2>/dev/null
+        INSTALL_SCRIPT_SQL="output/dsoa-deploy-script-${DEPLOYMENT_ENV}-${NOW_TS}.sql"
     fi
 else
     INSTALL_SCRIPT_SQL=$(mktemp -p build)
