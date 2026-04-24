@@ -32,6 +32,7 @@ from opentelemetry.sdk.trace import TracerProvider, Tracer
 from opentelemetry.sdk.trace.id_generator import RandomIdGenerator
 from dtagent.otel import logs
 from dtagent.otel.otel_manager import CustomLoggingSession, OtelManager
+from dtagent.otel.ingest_warnings import AcquisitionProblemCollector
 
 ##endregion COMPILE_REMOVE
 
@@ -179,14 +180,21 @@ class Spans:
     ) -> Generator[Dict, None, None]:
         """Returns sub_rows for specified row_id searching for it in parent_row_id_col within a specified view."""
 
-        from snowflake.snowpark.functions import col
+        from snowflake.snowpark.functions import col  # COMPILE_REMOVE
+        from snowflake.snowpark.exceptions import SnowparkSQLException  # COMPILE_REMOVE
+        from dtagent import LOG  # COMPILE_REMOVE
 
-        df_sub_rows = session.table(view_name).filter(col(parent_row_id_col) == row_id)
+        try:
+            df_sub_rows = session.table(view_name).filter(col(parent_row_id_col) == row_id)
 
-        for row in df_sub_rows.to_local_iterator():
-            row_dict = row.as_dict(recursive=True)
+            for row in df_sub_rows.to_local_iterator():
+                row_dict = row.as_dict(recursive=True)
 
-            yield row_dict
+                yield row_dict
+        except SnowparkSQLException as e:
+            short_detail = str(e)[:200]
+            LOG.error("SQL sub-row acquisition failure for '%s' (parent=%s): %s", view_name, row_id, short_detail)
+            AcquisitionProblemCollector.add_problem("sub_row_error", view_name, short_detail)
 
     def generate_span(  # pylint: disable=R0913
         self,

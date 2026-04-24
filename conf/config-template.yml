@@ -47,3 +47,4 @@ plugins:
     send_bizevents_on_deploy: true
     send_bizevents_on_run: true
     detect_ingest_warnings: true
+    detect_acquisition_problems: true

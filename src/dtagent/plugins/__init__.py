@@ -49,6 +49,7 @@ from dtagent.otel.events.bizevents import BizEvents
 from dtagent.otel.logs import Logs
 from dtagent.otel.spans import Spans
 from dtagent.otel.metrics import Metrics
+from dtagent.otel.ingest_warnings import AcquisitionProblemCollector
 from dtagent.context import RUN_CONTEXT_KEY, RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY, get_context_name_and_run_id
 
 ##endregion COMPILE_REMOVE
@@ -119,12 +120,19 @@ class Plugin(ABC):
         Yields:
             Generator[Dict, None, None]: Generator over result set
         """
-        df = self._session.sql(t_data) if is_select_for_table(t_data) else self._session.table(t_data)
+        from snowflake.snowpark.exceptions import SnowparkSQLException  # COMPILE_REMOVE
 
-        for row in df.to_local_iterator():
-            row_dict = row.as_dict(recursive=True)
+        try:
+            df = self._session.sql(t_data) if is_select_for_table(t_data) else self._session.table(t_data)
 
-            yield row_dict
+            for row in df.to_local_iterator():
+                row_dict = row.as_dict(recursive=True)
+
+                yield row_dict
+        except SnowparkSQLException as e:
+            short_detail = str(e)[:200]
+            LOG.error("SQL acquisition failure for '%s': %s", t_data, short_detail)
+            AcquisitionProblemCollector.add_problem("sql_error", t_data, short_detail)
 
     def _report_execution(self, measurements_source: str, last_timestamp, last_id, entries_count: dict, run_id: str):
         __context = get_context_name_and_run_id(plugin_name=self._plugin_name, context_name="self_monitoring", run_id=run_id)

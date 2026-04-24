@@ -36,7 +36,7 @@ from dtagent.otel.metrics import Metrics
 from dtagent.otel.events.generic import GenericEvents
 from dtagent.otel.events.davis import DavisEvents
 from dtagent.otel.events.bizevents import BizEvents
-from dtagent.otel.ingest_warnings import IngestWarningCollector
+from dtagent.otel.ingest_warnings import IngestWarningCollector, AcquisitionProblemCollector
 from dtagent.version import VERSION
 from dtagent.context import get_context_name_and_run_id, RUN_VERSION_KEY  # COMPILE_REMOVE
 from dtagent.util import get_now_timestamp_formatted, is_regular_mode
@@ -211,6 +211,46 @@ class AbstractDynatraceSnowAgentConnector:
                 self._biz_events.flush_events()
         finally:
             IngestWarningCollector.reset()
+
+    def _emit_acquisition_problems(self, plugin_name: str, run_id: str) -> None:
+        """Emits data-acquisition problem bizevents collected during a plugin run, then resets the collector.
+
+        Reads all problems accumulated by
+        :class:`~dtagent.otel.ingest_warnings.AcquisitionProblemCollector` since the last reset,
+        emits one ``dsoa.acquisition.problem`` bizevent per problem entry (when
+        ``self_monitoring.detect_acquisition_problems`` is enabled and biz_events telemetry is
+        allowed), and always clears the collector afterward so problems do not leak across plugin
+        runs.
+
+        Args:
+            plugin_name (str): Name of the plugin that just finished, used as ``dsoa.run.plugin``.
+            run_id (str):      Run UUID for correlation, used as ``dsoa.run.id``.
+        """
+        try:
+            if (
+                AcquisitionProblemCollector.has_problems()
+                and "biz_events" in self.telemetry_allowed
+                and self._configuration.get(plugin_name="self_monitoring", key="detect_acquisition_problems", default_value=True)
+            ):
+                for problem in AcquisitionProblemCollector.get_problems():
+                    data_dict = {
+                        "event.provider": str(self._configuration.get(context="resource.attributes", key="host.name")),
+                        "dsoa.run.plugin": plugin_name,
+                        "dsoa.run.id": run_id,
+                        "dsoa.acquisition.problem.type": problem.get("problem_type", ""),
+                        "dsoa.acquisition.problem.source": problem.get("source", ""),
+                        "dsoa.acquisition.problem.detail": problem.get("detail", ""),
+                        "dsoa.acquisition.problem.count": problem.get("count", 0),
+                    }
+                    self._biz_events.report_via_api(
+                        query_data=[data_dict],
+                        event_type="dsoa.acquisition.problem",
+                        context=get_context_name_and_run_id(plugin_name=plugin_name, context_name="self_monitoring", run_id=run_id),
+                        is_data_structured=False,
+                    )
+                self._biz_events.flush_events()
+        finally:
+            AcquisitionProblemCollector.reset()
 
     def handle_interrupted_run(self, source, exec_id, original_error):
         """Logs, original error, attempts to report failed run bizevent"""
