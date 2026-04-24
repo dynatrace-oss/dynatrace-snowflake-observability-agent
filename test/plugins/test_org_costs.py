@@ -28,6 +28,8 @@ class TestOrgCosts:
         "APP.V_ORG_METERING_DAILY": "test/test_data/org_costs_metering.ndjson",
         "APP.V_ORG_STORAGE_DAILY": "test/test_data/org_costs_storage.ndjson",
         "APP.V_ORG_DATA_TRANSFER_DAILY": "test/test_data/org_costs_data_transfer.ndjson",
+        "APP.V_ORG_BILLING_USAGE_IN_CURRENCY": "test/test_data/org_billing_usage_in_currency.ndjson",
+        "APP.V_ORG_BILLING_REMAINING_BALANCE": "test/test_data/org_billing_remaining_balance.ndjson",
     }
 
     @pytest.mark.xdist_group(name="test_telemetry")
@@ -156,9 +158,97 @@ class TestOrgCosts:
                 },
             )
 
+    @pytest.mark.xdist_group(name="test_telemetry")
+    def test_org_billing_usage_in_currency(self):
+        from dtagent.plugins.org_costs import OrgCostsPlugin
+        from dtagent import plugins
+        import test._utils as utils
+        from test import TestDynatraceSnowAgent, _get_session
+        from typing import Generator, Dict
+
+        # -----------------------------------------------------
+
+        utils._generate_all_fixtures(_get_session(), self.FIXTURES)
+
+        class TestOrgCostsPlugin(OrgCostsPlugin):
+
+            def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
+                return utils._safe_get_fixture_entries(TestOrgCosts.FIXTURES, t_data, limit=2)
+
+        def __local_get_plugin_class(source: str):
+            return TestOrgCostsPlugin
+
+        plugins._get_plugin_class = __local_get_plugin_class
+
+        # ======================================================================
+
+        disabled_combinations = [
+            [],
+            ["logs"],
+            ["metrics"],
+            ["logs", "metrics"],
+            ["logs", "metrics", "events"],
+        ]
+
+        for disabled_telemetry in disabled_combinations:
+            utils.execute_telemetry_test(
+                TestDynatraceSnowAgent,
+                test_name="test_org_billing_usage_in_currency",
+                disabled_telemetry=disabled_telemetry,
+                affecting_types_for_entries=["logs", "metrics"],
+                base_count={
+                    "org_billing_usage_in_currency": {"entries": 2, "log_lines": 2, "metrics": 2, "events": 0},
+                },
+            )
+
+    @pytest.mark.xdist_group(name="test_telemetry")
+    def test_org_billing_remaining_balance(self):
+        from dtagent.plugins.org_costs import OrgCostsPlugin
+        from dtagent import plugins
+        import test._utils as utils
+        from test import TestDynatraceSnowAgent, _get_session
+        from typing import Generator, Dict
+
+        # -----------------------------------------------------
+
+        utils._generate_all_fixtures(_get_session(), self.FIXTURES)
+
+        class TestOrgCostsPlugin(OrgCostsPlugin):
+
+            def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
+                return utils._safe_get_fixture_entries(TestOrgCosts.FIXTURES, t_data, limit=2)
+
+        def __local_get_plugin_class(source: str):
+            return TestOrgCostsPlugin
+
+        plugins._get_plugin_class = __local_get_plugin_class
+
+        # ======================================================================
+
+        disabled_combinations = [
+            [],
+            ["logs"],
+            ["metrics"],
+            ["logs", "metrics"],
+            ["logs", "metrics", "events"],
+        ]
+
+        for disabled_telemetry in disabled_combinations:
+            utils.execute_telemetry_test(
+                TestDynatraceSnowAgent,
+                test_name="test_org_billing_remaining_balance",
+                disabled_telemetry=disabled_telemetry,
+                affecting_types_for_entries=["logs", "metrics"],
+                base_count={
+                    "org_billing_remaining_balance": {"entries": 2, "log_lines": 2, "metrics": 10, "events": 0},
+                },
+            )
+
 
 if __name__ == "__main__":
     test_class = TestOrgCosts()
     test_class.test_org_costs_metering()
     test_class.test_org_costs_storage()
     test_class.test_org_costs_data_transfer()
+    test_class.test_org_billing_usage_in_currency()
+    test_class.test_org_billing_remaining_balance()

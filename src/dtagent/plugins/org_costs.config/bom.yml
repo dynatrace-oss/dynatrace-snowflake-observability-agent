@@ -1,6 +1,10 @@
 delivers:
   - name: DTAGENT_DB.APP.V_ORG_METERING_DAILY
     type: view
+  - name: DTAGENT_DB.APP.V_ORG_STORAGE_DAILY
+    type: view
+  - name: DTAGENT_DB.APP.V_ORG_DATA_TRANSFER_DAILY
+    type: view
   - name: DTAGENT_DB.APP.V_ORG_BILLING_USAGE_IN_CURRENCY
     type: view
   - name: DTAGENT_DB.APP.V_ORG_BILLING_REMAINING_BALANCE

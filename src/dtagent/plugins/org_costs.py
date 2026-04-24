@@ -65,6 +65,24 @@ class OrgCostsPlugin(Plugin):
                     "metrics": metrics_storage_cnt,
                     "events": events_storage_cnt,
                 },
+                "org_costs_data_transfer": {
+                    "entries": entries_transfer_cnt,
+                    "log_lines": logs_transfer_cnt,
+                    "metrics": metrics_transfer_cnt,
+                    "events": events_transfer_cnt,
+                },
+                "org_billing_usage_in_currency": {
+                    "entries": entries_billing_cnt,
+                    "log_lines": logs_billing_cnt,
+                    "metrics": metrics_billing_cnt,
+                    "events": events_billing_cnt,
+                },
+                "org_billing_remaining_balance": {
+                    "entries": entries_balance_cnt,
+                    "log_lines": logs_balance_cnt,
+                    "metrics": metrics_balance_cnt,
+                    "events": events_balance_cnt,
+                },
             },
             "dsoa.run.id": "uuid_string"
             }
@@ -100,6 +118,51 @@ class OrgCostsPlugin(Plugin):
                 "log_lines": logs_storage_cnt,
                 "metrics": metrics_storage_cnt,
                 "events": events_storage_cnt,
+            }
+
+        if not contexts or "org_costs_data_transfer" in contexts:
+            t_org_transfer = "APP.V_ORG_DATA_TRANSFER_DAILY"
+            entries_transfer_cnt, logs_transfer_cnt, metrics_transfer_cnt, events_transfer_cnt = self._log_entries(
+                lambda: self._get_table_rows(t_org_transfer),
+                "org_costs_data_transfer",
+                run_uuid=run_id,
+                log_completion=run_proc,
+            )
+            results["org_costs_data_transfer"] = {
+                "entries": entries_transfer_cnt,
+                "log_lines": logs_transfer_cnt,
+                "metrics": metrics_transfer_cnt,
+                "events": events_transfer_cnt,
+            }
+
+        if not contexts or "org_billing_usage_in_currency" in contexts:
+            t_org_billing = "APP.V_ORG_BILLING_USAGE_IN_CURRENCY"
+            entries_billing_cnt, logs_billing_cnt, metrics_billing_cnt, events_billing_cnt = self._log_entries(
+                lambda: self._get_table_rows(t_org_billing),
+                "org_billing_usage_in_currency",
+                run_uuid=run_id,
+                log_completion=run_proc,
+            )
+            results["org_billing_usage_in_currency"] = {
+                "entries": entries_billing_cnt,
+                "log_lines": logs_billing_cnt,
+                "metrics": metrics_billing_cnt,
+                "events": events_billing_cnt,
+            }
+
+        if not contexts or "org_billing_remaining_balance" in contexts:
+            t_org_balance = "APP.V_ORG_BILLING_REMAINING_BALANCE"
+            entries_balance_cnt, logs_balance_cnt, metrics_balance_cnt, events_balance_cnt = self._log_entries(
+                lambda: self._get_table_rows(t_org_balance),
+                "org_billing_remaining_balance",
+                run_uuid=run_id,
+                log_completion=run_proc,
+            )
+            results["org_billing_remaining_balance"] = {
+                "entries": entries_balance_cnt,
+                "log_lines": logs_balance_cnt,
+                "metrics": metrics_balance_cnt,
+                "events": events_balance_cnt,
             }
 
         return self._report_results(results, run_id)

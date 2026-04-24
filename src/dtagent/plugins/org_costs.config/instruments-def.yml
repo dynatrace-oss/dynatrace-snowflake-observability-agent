@@ -5,6 +5,7 @@ attributes:
     __example: ABC12345
     __description: The account locator identifier for the Snowflake account.
   snowflake.org.billing.contract_number:
+
     __context_names:
       - org_billing_remaining_balance
     __example: CONTRACT-001
@@ -12,6 +13,7 @@ attributes:
   snowflake.organization.name:
     __context_names:
       - org_costs_metering
+      - org_costs_data_transfer
       - org_billing_usage_in_currency
       - org_billing_remaining_balance
     __example: MYORG
@@ -20,12 +22,14 @@ dimensions:
   snowflake.account.name:
     __context_names:
       - org_costs_metering
+      - org_costs_data_transfer
       - org_billing_usage_in_currency
       - org_billing_remaining_balance
     __example: MYORG-ACCOUNT1
     __description: The name of the Snowflake account within the organization.
   snowflake.account.locator:
     __context_names:
+      - org_costs_data_transfer
       - org_billing_usage_in_currency
       - org_billing_remaining_balance
     __example: ABC12345
@@ -41,6 +45,31 @@ dimensions:
       - org_billing_usage_in_currency
     __example: WAREHOUSE_METERING
     __description: The Snowflake service type that consumed the credits.
+  snowflake.transfer.source.cloud:
+    __context_names:
+      - org_costs_data_transfer
+    __example: AWS
+    __description: The cloud provider of the data transfer source.
+  snowflake.transfer.source.region:
+    __context_names:
+      - org_costs_data_transfer
+    __example: US_EAST_1
+    __description: The region of the data transfer source.
+  snowflake.transfer.target.cloud:
+    __context_names:
+      - org_costs_data_transfer
+    __example: AZURE
+    __description: The cloud provider of the data transfer target.
+  snowflake.transfer.target.region:
+    __context_names:
+      - org_costs_data_transfer
+    __example: EAST_US_2
+    __description: The region of the data transfer target.
+  snowflake.transfer.type:
+    __context_names:
+      - org_costs_data_transfer
+    __example: EXTERNAL
+    __description: The type of data transfer (e.g. EXTERNAL).
 metrics:
   snowflake.org.billing.amount:
     __context_names:
@@ -112,3 +141,10 @@ metrics:
     __description: Total credits used by the account on the given day across all service types.
     displayName: Org Total Credits Used
     unit: credits
+  snowflake.org.transfer.bytes:
+    __context_names:
+      - org_costs_data_transfer
+    __example: "2147483648"
+    __description: Bytes transferred between clouds or regions on the given day.
+    displayName: Org Data Transfer Bytes
+    unit: Byte
