@@ -1,7 +1,8 @@
 #!/usr/bin/env bats
 
 setup() {
-    cd "$BATS_TEST_DIRNAME/../.."
+    # shellcheck disable=SC2154
+    cd "$BATS_TEST_DIRNAME/../.." || exit 1
 
     # Set test DTAGENT_TOKEN for tests that need it
     export DTAGENT_TOKEN="dt0c01.TEST12345678901234567890.TEST123456789012345678901234567890123456789012345678901234567890"
@@ -59,7 +60,7 @@ teardown() {
     [ "$status" -eq 0 ]
     [ -f "$TEST_SQL_FILE" ]
     grep -q "setup" "$TEST_SQL_FILE"
-    ! grep -q "admin" "$TEST_SQL_FILE"
+    run ! grep -q "admin" "$TEST_SQL_FILE"
 }
 
 # Test: Multi-scope with two scopes
@@ -69,7 +70,7 @@ teardown() {
     [ -f "$TEST_SQL_FILE" ]
     grep -q "setup" "$TEST_SQL_FILE"
     grep -q "config" "$TEST_SQL_FILE"
-    ! grep -q "admin" "$TEST_SQL_FILE"
+    run ! grep -q "admin" "$TEST_SQL_FILE"
 }
 
 # Test: Multi-scope with three scopes
@@ -91,7 +92,7 @@ teardown() {
     grep -q "plugin" "$TEST_SQL_FILE"
     grep -q "config" "$TEST_SQL_FILE"
     grep -q "agents" "$TEST_SQL_FILE"
-    ! grep -q "admin" "$TEST_SQL_FILE"
+    run ! grep -q "admin" "$TEST_SQL_FILE"
 }
 
 # Test: Multi-scope with spaces around commas
@@ -189,9 +190,9 @@ teardown() {
     [ -f "$TEST_SQL_FILE" ]
     grep -q "setup" "$TEST_SQL_FILE"
     grep -q "config" "$TEST_SQL_FILE"
-    ! grep -q "init" "$TEST_SQL_FILE"
-    ! grep -q "admin" "$TEST_SQL_FILE"
-    ! grep -q "agents" "$TEST_SQL_FILE"
+    run ! grep -q "init" "$TEST_SQL_FILE"
+    run ! grep -q "admin" "$TEST_SQL_FILE"
+    run ! grep -q "agents" "$TEST_SQL_FILE"
 }
 
 # Test: Multi-scope 'agents,config' - regression test for file expansion issue
@@ -203,10 +204,10 @@ teardown() {
     grep -q "agents" "$TEST_SQL_FILE"
     grep -q "config" "$TEST_SQL_FILE"
     # Verify excluded scopes are not present
-    ! grep -q "init" "$TEST_SQL_FILE"
-    ! grep -q "admin" "$TEST_SQL_FILE"
-    ! grep -q "setup" "$TEST_SQL_FILE"
-    ! grep -q "plugin" "$TEST_SQL_FILE"
+    run ! grep -q "init" "$TEST_SQL_FILE"
+    run ! grep -q "admin" "$TEST_SQL_FILE"
+    run ! grep -q "setup" "$TEST_SQL_FILE"
+    run ! grep -q "plugin" "$TEST_SQL_FILE"
     # Verify both SQL files were processed (check for script markers or content)
     # The script should include content from both 70_agents.sql and 40_config.sql
     line_count=$(wc -l < "$TEST_SQL_FILE")
@@ -241,7 +242,7 @@ teardown() {
     grep -q "config" "$TEST_SQL_FILE"
     grep -q "agents" "$TEST_SQL_FILE"
     grep -q "UPDATE_FROM_CONFIGURATIONS" "$TEST_SQL_FILE"
-    ! grep -q "admin" "$TEST_SQL_FILE"
+    run ! grep -q "admin" "$TEST_SQL_FILE"
 }
 
 # Test: File validation works correctly with multiple scopes
@@ -251,7 +252,7 @@ teardown() {
 
     run bash scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "agents,config" "" "true"
     [ "$status" -ne 0 ]
-    [[ "$output" == *"ERROR: Build file missing"* ]]
+    [[ "$output" == *"ERROR: Build artifacts are missing"* ]]
     [[ "$output" == *"40_config.sql"* ]]
 
     # Restore the file for other tests
