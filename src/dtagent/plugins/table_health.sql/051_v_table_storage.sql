@@ -81,19 +81,19 @@ select
 
     concat('Table storage metrics for ', coalesce(table_full_name, ''))                                                 as _MESSAGE,
     -- metric and span dimensions
-    object_construct(
+    OBJECT_CONSTRUCT(
         'db.namespace',                                             table_catalog,
         'snowflake.schema.name',                                    table_schema,
         'db.collection.name',                                       table_name,
         'snowflake.table.full_name',                                table_full_name,
         'snowflake.table.clustering_key',                           clustering_key
     )                                                                                                                   as DIMENSIONS,
-    object_construct(
+    OBJECT_CONSTRUCT(
     )                                                                                                                   as ATTRIBUTES,
-    object_construct(
+    OBJECT_CONSTRUCT(
     )                                                                                                                   as EVENT_TIMESTAMPS,
     -- metrics
-    object_construct(
+    OBJECT_CONSTRUCT(
         'snowflake.table.active_bytes',                             active_bytes,
         'snowflake.table.time_travel_bytes',                        time_travel_bytes,
         'snowflake.table.failsafe_bytes',                           failsafe_bytes,

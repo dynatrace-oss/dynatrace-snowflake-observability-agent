@@ -92,15 +92,15 @@ DERIVED AS (
 select
     extract(epoch_nanosecond from SNAPSHOTTED_AT)                                               as START_TIME,
     concat('Table health derived metrics for ', TABLE_FULL_NAME)                                as _MESSAGE,
-    object_construct(
+    OBJECT_CONSTRUCT(
         'db.namespace',                     TABLE_CATALOG,
         'snowflake.schema.name',            TABLE_SCHEMA,
         'db.collection.name',               TABLE_NAME,
         'snowflake.table.full_name',        TABLE_FULL_NAME
     )                                                                                           as DIMENSIONS,
-    object_construct()                                                                          as ATTRIBUTES,
-    object_construct()                                                                          as EVENT_TIMESTAMPS,
-    object_construct(
+    OBJECT_CONSTRUCT()                                                                          as ATTRIBUTES,
+    OBJECT_CONSTRUCT()                                                                          as EVENT_TIMESTAMPS,
+    OBJECT_CONSTRUCT(
         'snowflake.table.growth_bytes',                 GROWTH_BYTES,
         'snowflake.table.growth_pct',                   GROWTH_PCT,
         'snowflake.table.clustering.depth_change',      DEPTH_CHANGE,

@@ -35,19 +35,19 @@ select
 
     concat('Table clustering metrics for ', coalesce(TABLE_FULL_NAME, ''))                                              as _MESSAGE,
     -- metric and span dimensions
-    object_construct(
+    OBJECT_CONSTRUCT(
         'db.namespace',                                             TABLE_CATALOG,
         'snowflake.schema.name',                                    TABLE_SCHEMA,
         'db.collection.name',                                       TABLE_NAME,
         'snowflake.table.full_name',                                TABLE_FULL_NAME,
         'snowflake.table.clustering_key',                           CLUSTERING_KEY
     )                                                                                                                   as DIMENSIONS,
-    object_construct(
+    OBJECT_CONSTRUCT(
     )                                                                                                                   as ATTRIBUTES,
-    object_construct(
+    OBJECT_CONSTRUCT(
     )                                                                                                                   as EVENT_TIMESTAMPS,
     -- metrics
-    object_construct(
+    OBJECT_CONSTRUCT(
         'snowflake.table.clustering.depth',                         AVERAGE_DEPTH,
         'snowflake.table.clustering.overlap',                       AVERAGE_OVERLAPS,
         'snowflake.table.clustering.total_partitions',              TOTAL_PARTITION_COUNT,
