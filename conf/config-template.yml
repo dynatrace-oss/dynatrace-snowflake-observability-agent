@@ -46,3 +46,4 @@ plugins:
   self_monitoring:
     send_bizevents_on_deploy: true
     send_bizevents_on_run: true
+    detect_ingest_warnings: true

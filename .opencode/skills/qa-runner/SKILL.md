@@ -369,6 +369,22 @@ fetch bizevents
 
 **Pass:** 0 rows (every plugin has count > 0 for both STARTED and FINISHED).
 
+#### AE-C5.8 — No unexpected ingest-quality warnings (BDX-695)
+
+```dql
+fetch bizevents
+| filter db.system == "snowflake"
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| filter event.type == "dsoa.ingest.warning"
+| summarize count = count(), by: { `dsoa.ingest.warning.type`, `dsoa.ingest.warning.exporter`, dsoa.run.plugin }
+| sort count desc
+```
+
+**Pass:** 0 rows — no ingest-quality warnings were detected during the test run.
+If rows are present, inspect `dsoa.ingest.warning.detail` for each row to determine whether
+the warning is a known/expected condition (e.g. a known attribute cardinality issue) or a
+regression. Fail the check if any new warning type appears that was not present in `DEV-{PREV_TAG}`.
+
 #### AE-C4.6 — span.parent_id present for child queries
 
 ```dql
@@ -441,11 +457,12 @@ After running all tests, present the results in a table using the checklist IDs:
 | AE-C2.3   | Query history metrics reported                         | PASS/FAIL  |       |
 | AE-C5.5   | Process metrics reported                               | PASS/FAIL  |       |
 | AE-C5.7   | Self-monitoring BizEvents all delivered                | PASS/FAIL  |       |
+| AE-C5.8   | No unexpected ingest-quality warnings (BDX-695)        | PASS/FAIL  |       |
 | AE-C4.6   | span.parent_id present for child queries               | PASS/FAIL  |       |
 | AE-C2.1   | Budget metrics reported                                | PASS/FAIL  |       |
 | AE-C1.3   | No increase in dt.ingest.warnings (5% tolerance)       | PASS/FAIL  |       |
 
-Auto-evaluated: {N}/11 — {n} passed, {f} failed
+Auto-evaluated: {N}/12 — {n} passed, {f} failed
 ```
 
 Include the full table in the Phase 5 markdown report.
