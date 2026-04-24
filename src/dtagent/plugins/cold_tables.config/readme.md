@@ -37,7 +37,7 @@ plugins:
 
 ### Querying in Dynatrace
 
-### Logs — per-table detail
+#### Logs — per-table detail
 
 ```dql
 fetch logs
@@ -47,7 +47,7 @@ fetch logs
 | limit 50
 ```
 
-### Metrics — access count by table
+#### Metrics — access count by table
 
 ```dql
 timeseries avg(snowflake.table.access.count),
@@ -55,7 +55,7 @@ timeseries avg(snowflake.table.access.count),
 | filter db.system == "snowflake"
 ```
 
-### Metrics — days since last access
+#### Metrics — days since last access
 
 ```dql
 timeseries avg(snowflake.table.days_since_last_access),
@@ -64,7 +64,7 @@ timeseries avg(snowflake.table.days_since_last_access),
 | filter snowflake.table.days_since_last_access > 90
 ```
 
-### Self-monitoring — plugin performance
+#### Self-monitoring — plugin performance
 
 ```dql
 fetch logs
