@@ -416,17 +416,18 @@ check the `Context Name` column below.
 
 ### Dimensions at the `Org Costs` plugin
 
-| Identifier                                            | Description                                                  | Example            | Context Name                                                                                              |
-| ----------------------------------------------------- | ------------------------------------------------------------ | ------------------ | --------------------------------------------------------------------------------------------------------- |
-| snowflake.&#8203;account.&#8203;locator               | The account locator identifier for the Snowflake account.    | ABC12345           | org_costs_data_transfer, org_billing_usage_in_currency, org_billing_remaining_balance                     |
-| snowflake.&#8203;account.&#8203;name                  | The name of the Snowflake account within the organization.   | MYORG-ACCOUNT1     | org_costs_metering, org_costs_data_transfer, org_billing_usage_in_currency, org_billing_remaining_balance |
-| snowflake.&#8203;org.&#8203;billing.&#8203;currency   | The currency in which billing usage amounts are denominated. | USD                | org_billing_usage_in_currency                                                                             |
-| snowflake.&#8203;service.&#8203;type                  | The Snowflake service type that consumed the credits.        | WAREHOUSE_METERING | org_costs_metering, org_billing_usage_in_currency                                                         |
-| snowflake.&#8203;transfer.&#8203;source.&#8203;cloud  | The cloud provider of the data transfer source.              | AWS                | org_costs_data_transfer                                                                                   |
-| snowflake.&#8203;transfer.&#8203;source.&#8203;region | The region of the data transfer source.                      | US_EAST_1          | org_costs_data_transfer                                                                                   |
-| snowflake.&#8203;transfer.&#8203;target.&#8203;cloud  | The cloud provider of the data transfer target.              | AZURE              | org_costs_data_transfer                                                                                   |
-| snowflake.&#8203;transfer.&#8203;target.&#8203;region | The region of the data transfer target.                      | EAST_US_2          | org_costs_data_transfer                                                                                   |
-| snowflake.&#8203;transfer.&#8203;type                 | The type of data transfer (e.g. EXTERNAL).                   | EXTERNAL           | org_costs_data_transfer                                                                                   |
+| Identifier                                            | Description                                                       | Example            | Context Name                                                                                              |
+| ----------------------------------------------------- | ----------------------------------------------------------------- | ------------------ | --------------------------------------------------------------------------------------------------------- |
+| snowflake.&#8203;account.&#8203;locator               | The account locator identifier for the Snowflake account.         | ABC12345           | org_costs_data_transfer, org_billing_usage_in_currency, org_billing_remaining_balance                     |
+| snowflake.&#8203;account.&#8203;name                  | The name of the Snowflake account within the organization.        | MYORG-ACCOUNT1     | org_costs_metering, org_costs_data_transfer, org_billing_usage_in_currency, org_billing_remaining_balance |
+| snowflake.&#8203;org.&#8203;billing.&#8203;currency   | The currency in which billing usage amounts are denominated.      | USD                | org_billing_usage_in_currency                                                                             |
+| snowflake.&#8203;service.&#8203;type                  | The Snowflake service type that consumed the credits.             | WAREHOUSE_METERING | org_costs_metering, org_billing_usage_in_currency                                                         |
+| snowflake.&#8203;storage.&#8203;type                  | The type of storage (e.g. STAGE, FAILSAFE, HYBRID_TABLE_STORAGE). | STAGE              | org_costs_storage                                                                                         |
+| snowflake.&#8203;transfer.&#8203;source.&#8203;cloud  | The cloud provider of the data transfer source.                   | AWS                | org_costs_data_transfer                                                                                   |
+| snowflake.&#8203;transfer.&#8203;source.&#8203;region | The region of the data transfer source.                           | US_EAST_1          | org_costs_data_transfer                                                                                   |
+| snowflake.&#8203;transfer.&#8203;target.&#8203;cloud  | The cloud provider of the data transfer target.                   | AZURE              | org_costs_data_transfer                                                                                   |
+| snowflake.&#8203;transfer.&#8203;target.&#8203;region | The region of the data transfer target.                           | EAST_US_2          | org_costs_data_transfer                                                                                   |
+| snowflake.&#8203;transfer.&#8203;type                 | The type of data transfer (e.g. EXTERNAL).                        | EXTERNAL           | org_costs_data_transfer                                                                                   |
 
 ### Attributes at the `Org Costs` plugin
 

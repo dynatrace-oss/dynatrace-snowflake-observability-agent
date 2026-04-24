@@ -65,6 +65,11 @@ dimensions:
       - org_costs_data_transfer
     __example: EAST_US_2
     __description: The region of the data transfer target.
+  snowflake.storage.type:
+    __context_names:
+      - org_costs_storage
+    __example: STAGE
+    __description: The type of storage (e.g. STAGE, FAILSAFE, HYBRID_TABLE_STORAGE).
   snowflake.transfer.type:
     __context_names:
       - org_costs_data_transfer

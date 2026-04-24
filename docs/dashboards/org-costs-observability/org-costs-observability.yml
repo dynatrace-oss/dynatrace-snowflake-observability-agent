@@ -19,47 +19,55 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 #
-# DASHBOARD: Org-Level Costs Observability
-# DESCRIPTION: Organization-wide Snowflake cost and usage monitoring — credits, storage, data
-#              transfer, billing amounts, and remaining contract balance.
+# DASHBOARD: Snowflake Consumption (Organization Level)
+# DESCRIPTION: Organization-wide Snowflake consumption monitoring — credits, storage, data
+#              transfer, billing amounts, and remaining contract balance across all accounts.
 # OWNER: DSOA Team
 # PLUGINS: org_costs
 # TAGS: costs, org, billing, finops
 #
 id: 6881ff48-0945-4e94-94af-2e4bb338724e
-version: 1
+version: 2
+name: Snowflake Consumption (Organization Level)
 variables:
   - version: 2
     key: Accounts
     type: query
     visible: true
     editable: true
-    input: |-
-      fetch metrics
-      | metricSelector: snowflake.org.credits.used:names
-      | filter isNotNull(deployment.environment)
-      | fields deployment.environment
-      | dedup deployment.environment
-      | sort deployment.environment asc
     multiple: true
-    defaultValue:
-      - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
+    input: |-
+      fetch logs
+      | filter db.system == "snowflake" and dsoa.run.plugin == "org_costs"
+      | summarize by: {deployment.environment}
+      | fields account = deployment.environment
+  - version: 2
+    key: credit_rate
+    type: text
+    visible: false
+    editable: true
+    defaultValue: "3.00"
+  - version: 2
+    key: bu_mapping
+    type: text
+    visible: false
+    editable: true
+    defaultValue: "{}"
 tiles:
+  # ── Section 2: Credit Consumption ──────────────────────────────────────────
   "0":
     type: markdown
-    content: "# Organization Credits"
+    content: "## Credit Consumption"
+    davis:
+      componentState:
+        inputData: null
   "1":
-    title: Credits Used by Service Type
+    title: Credits Used Over Time by Account
     type: data
     query: |-
-      timeseries val = sum(snowflake.org.credits.used), by: {
-          snowflake.service.type,
-          snowflake.service.name,
-          deployment.environment
-      }
-      | filter in(deployment.environment, array($Accounts))
-      | fieldsAdd snow_account = coalesce(deployment.environment, "unknown")
-      | fieldsRemove deployment.environment
+      timeseries credits = sum(snowflake.org.credits.used),
+        by: {deployment.environment},
+        filter: in(deployment.environment, array($Accounts))
     visualization: lineChart
     visualizationSettings:
       chartSettings:
@@ -69,7 +77,7 @@ tiles:
         xAxisScaling: analyzedTimeframe
         fieldMapping:
           leftAxisValues:
-            - val
+            - credits
           timestamp: timeframe
         gapPolicy: connect
         legend:
@@ -77,139 +85,278 @@ tiles:
       thresholds: []
       dataMapping:
         displayedFields:
-          - snowflake.service.type
-          - snowflake.service.name
-          - snow_account
+          - deployment.environment
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
       maxResultMegaBytes: 100
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
   "2":
-    title: Cloud Services Credits Adjustment
+    title: Credits by Service Type
     type: data
     query: |-
-      timeseries val = sum(snowflake.org.credits.cloud_services), by: {
-          snowflake.service.type,
-          deployment.environment
-      }
-      | filter in(deployment.environment, array($Accounts))
-      | fieldsAdd snow_account = coalesce(deployment.environment, "unknown")
-      | fieldsRemove deployment.environment
-    visualization: lineChart
+      timeseries credits = sum(snowflake.org.credits.used),
+        by: {snowflake.service.type},
+        filter: in(deployment.environment, array($Accounts))
+      | summarize total = sum(arrayAvg(credits)), by: {snowflake.service.type}
+      | sort total desc
+    visualization: barChart
     visualizationSettings:
       chartSettings:
+        truncationMode: middle
         leftYAxisSettings:
-          label: Cloud Services Credits
+          label: Credits
           isLabelVisible: true
-        xAxisScaling: analyzedTimeframe
-        fieldMapping:
-          leftAxisValues:
-            - val
-          timestamp: timeframe
-        gapPolicy: connect
-        legend:
-          position: bottom
+        categoricalBarChartSettings:
+          categoryAxis: snowflake.service.type
+          categoryAxisLabel: Service Type
+          valueAxis: total
+          valueAxisLabel: Credits
       thresholds: []
-      dataMapping:
-        displayedFields:
-          - snowflake.service.type
-          - snow_account
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
       maxResultMegaBytes: 100
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
   "3":
-    type: markdown
-    content: "# Storage & Data Transfer"
+    title: Total Credits by Account
+    type: data
+    query: |-
+      timeseries compute = sum(snowflake.org.credits.compute),
+        cloud = sum(snowflake.org.credits.cloud_services),
+        total = sum(snowflake.org.credits.used),
+        by: {deployment.environment},
+        filter: in(deployment.environment, array($Accounts))
+      | summarize compute = sum(arrayAvg(compute)), cloud = sum(arrayAvg(cloud)), total = sum(arrayAvg(total)), by: {deployment.environment}
+      | sort total desc
+    visualization: table
+    visualizationSettings:
+      thresholds: []
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+  # ── Section 4: Storage ─────────────────────────────────────────────────────
   "4":
-    title: Storage by Type and Account
-    type: data
-    query: |-
-      timeseries val = avg(snowflake.org.storage.bytes), by: {
-          snowflake.storage.type,
-          snowflake.account.locator,
-          deployment.environment
-      }
-      | filter in(deployment.environment, array($Accounts))
-      | fieldsAdd snow_account = coalesce(deployment.environment, "unknown")
-      | fieldsRemove deployment.environment
-    visualization: lineChart
-    visualizationSettings:
-      chartSettings:
-        leftYAxisSettings:
-          label: Storage (bytes)
-          isLabelVisible: true
-        xAxisScaling: analyzedTimeframe
-        fieldMapping:
-          leftAxisValues:
-            - val
-          timestamp: timeframe
-        gapPolicy: connect
-        legend:
-          position: bottom
-      thresholds: []
-      dataMapping:
-        displayedFields:
-          - snowflake.storage.type
-          - snowflake.account.locator
-          - snow_account
-    querySettings:
-      maxResultRecords: 1000
-      defaultScanLimitGbytes: 500
-      maxResultMegaBytes: 100
-  "5":
-    title: Data Transfer Volume
-    type: data
-    query: |-
-      timeseries val = sum(snowflake.org.transfer.bytes), by: {
-          snowflake.transfer.type,
-          snowflake.source.cloud,
-          snowflake.target.cloud,
-          deployment.environment
-      }
-      | filter in(deployment.environment, array($Accounts))
-      | fieldsAdd snow_account = coalesce(deployment.environment, "unknown")
-      | fieldsRemove deployment.environment
-    visualization: lineChart
-    visualizationSettings:
-      chartSettings:
-        leftYAxisSettings:
-          label: Transfer (bytes)
-          isLabelVisible: true
-        xAxisScaling: analyzedTimeframe
-        fieldMapping:
-          leftAxisValues:
-            - val
-          timestamp: timeframe
-        gapPolicy: connect
-        legend:
-          position: bottom
-      thresholds: []
-      dataMapping:
-        displayedFields:
-          - snowflake.transfer.type
-          - snowflake.source.cloud
-          - snowflake.target.cloud
-          - snow_account
-    querySettings:
-      maxResultRecords: 1000
-      defaultScanLimitGbytes: 500
-      maxResultMegaBytes: 100
-  "6":
     type: markdown
-    content: "# Billing & Contract Balance"
+    content: "## Storage"
+    davis:
+      componentState:
+        inputData: null
+  "5":
+    title: Storage Over Time by Account
+    type: data
+    query: |-
+      timeseries bytes = avg(snowflake.org.storage.bytes),
+        by: {deployment.environment},
+        filter: in(deployment.environment, array($Accounts))
+    visualization: lineChart
+    visualizationSettings:
+      chartSettings:
+        leftYAxisSettings:
+          label: Storage
+          isLabelVisible: true
+        xAxisScaling: analyzedTimeframe
+        fieldMapping:
+          leftAxisValues:
+            - bytes
+          timestamp: timeframe
+        gapPolicy: connect
+        legend:
+          position: bottom
+      thresholds: []
+      dataMapping:
+        displayedFields:
+          - deployment.environment
+      unitsOverrides:
+        - identifier: bytes
+          unitCategory: data
+          baseUnit: byte
+          displayUnit: null
+          decimals: 2
+          suffix: ""
+          delimiter: false
+          added: 1
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+  "6":
+    title: Storage by Type
+    type: data
+    query: |-
+      timeseries bytes = avg(snowflake.org.storage.bytes),
+        by: {snowflake.storage.type},
+        filter: in(deployment.environment, array($Accounts))
+      | summarize total = sum(arrayAvg(bytes)), by: {snowflake.storage.type}
+    visualization: barChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        leftYAxisSettings:
+          label: Storage
+          isLabelVisible: true
+        categoricalBarChartSettings:
+          categoryAxis: snowflake.storage.type
+          categoryAxisLabel: Storage Type
+          valueAxis: total
+          valueAxisLabel: Storage
+      thresholds: []
+      unitsOverrides:
+        - identifier: total
+          unitCategory: data
+          baseUnit: byte
+          displayUnit: null
+          decimals: 2
+          suffix: ""
+          delimiter: false
+          added: 1
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
   "7":
+    title: Total Storage by Account
+    type: data
+    query: |-
+      timeseries bytes = avg(snowflake.org.storage.bytes),
+        by: {deployment.environment},
+        filter: in(deployment.environment, array($Accounts))
+      | summarize total_bytes = sum(arrayAvg(bytes)), by: {deployment.environment}
+      | sort total_bytes desc
+    visualization: table
+    visualizationSettings:
+      thresholds: []
+      unitsOverrides:
+        - identifier: total_bytes
+          unitCategory: data
+          baseUnit: byte
+          displayUnit: null
+          decimals: 2
+          suffix: ""
+          delimiter: false
+          added: 1
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+  # ── Section 5: Data Transfer ───────────────────────────────────────────────
+  "8":
+    type: markdown
+    content: "## Data Transfer"
+    davis:
+      componentState:
+        inputData: null
+  "9":
+    title: Transfer Over Time by Account
+    type: data
+    query: |-
+      timeseries bytes = sum(snowflake.org.transfer.bytes),
+        by: {deployment.environment},
+        filter: in(deployment.environment, array($Accounts))
+    visualization: lineChart
+    visualizationSettings:
+      chartSettings:
+        leftYAxisSettings:
+          label: Transfer
+          isLabelVisible: true
+        xAxisScaling: analyzedTimeframe
+        fieldMapping:
+          leftAxisValues:
+            - bytes
+          timestamp: timeframe
+        gapPolicy: connect
+        legend:
+          position: bottom
+      thresholds: []
+      dataMapping:
+        displayedFields:
+          - deployment.environment
+      unitsOverrides:
+        - identifier: bytes
+          unitCategory: data
+          baseUnit: byte
+          displayUnit: null
+          decimals: 2
+          suffix: ""
+          delimiter: false
+          added: 1
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+  "10":
+    title: Transfer by Region
+    type: data
+    query: |-
+      timeseries bytes = sum(snowflake.org.transfer.bytes),
+        by: {snowflake.transfer.source.cloud, snowflake.transfer.source.region, snowflake.transfer.target.cloud, snowflake.transfer.target.region},
+        filter: in(deployment.environment, array($Accounts))
+      | summarize total = sum(arrayAvg(bytes)), by: {snowflake.transfer.source.cloud, snowflake.transfer.source.region, snowflake.transfer.target.cloud, snowflake.transfer.target.region}
+      | sort total desc
+    visualization: table
+    visualizationSettings:
+      thresholds: []
+      unitsOverrides:
+        - identifier: total
+          unitCategory: data
+          baseUnit: byte
+          displayUnit: null
+          decimals: 2
+          suffix: ""
+          delimiter: false
+          added: 1
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+  # ── Section 6: Billing & Contract Balance ──────────────────────────────────
+  "11":
+    type: markdown
+    content: "## Billing & Contract Balance"
+    davis:
+      componentState:
+        inputData: null
+  "12":
     title: Billing Amount by Service
     type: data
     query: |-
       timeseries val = sum(snowflake.org.billing.amount), by: {
-          snowflake.service.type.name,
+          snowflake.service.type,
           snowflake.account.name,
           deployment.environment
       }
       | filter in(deployment.environment, array($Accounts))
-      | fieldsAdd snow_account = coalesce(deployment.environment, "unknown")
-      | fieldsRemove deployment.environment
     visualization: lineChart
     visualizationSettings:
       chartSettings:
@@ -227,29 +374,31 @@ tiles:
       thresholds: []
       dataMapping:
         displayedFields:
-          - snowflake.service.type.name
+          - snowflake.service.type
           - snowflake.account.name
-          - snow_account
+          - deployment.environment
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
       maxResultMegaBytes: 100
-  "8":
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+  "13":
     title: Remaining Contract Balance
     type: data
     query: |-
       timeseries {
-          free_usage   = avg(snowflake.org.balance.free_usage.remaining),
-          capacity     = avg(snowflake.org.balance.capacity.remaining),
-          on_demand    = avg(snowflake.org.balance.on_demand.remaining),
-          rollover     = avg(snowflake.org.balance.rollover.remaining),
-          total        = avg(snowflake.org.balance.total.remaining)
+          free_usage   = avg(snowflake.org.billing.free_usage_balance),
+          capacity     = avg(snowflake.org.billing.capacity_balance),
+          on_demand    = avg(snowflake.org.billing.on_demand_consumption),
+          rollover     = avg(snowflake.org.billing.rollover_balance),
+          overage      = avg(snowflake.org.billing.overage)
       }, by: {
           deployment.environment
       }
       | filter in(deployment.environment, array($Accounts))
-      | fieldsAdd snow_account = coalesce(deployment.environment, "unknown")
-      | fieldsRemove deployment.environment
     visualization: lineChart
     visualizationSettings:
       chartSettings:
@@ -263,7 +412,7 @@ tiles:
             - capacity
             - on_demand
             - rollover
-            - total
+            - overage
           timestamp: timeframe
         gapPolicy: connect
         legend:
@@ -271,12 +420,17 @@ tiles:
       thresholds: []
       dataMapping:
         displayedFields:
-          - snow_account
+          - deployment.environment
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
       maxResultMegaBytes: 100
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
 layouts:
+  # Section 2: Credit Consumption
   "0":
     x: 0
     "y": 0
@@ -296,37 +450,61 @@ layouts:
     x: 0
     "y": 7
     w: 24
-    h: 1
+    h: 6
+  # Section 4: Storage
   "4":
     x: 0
-    "y": 8
-    w: 12
-    h: 6
+    "y": 13
+    w: 24
+    h: 1
   "5":
-    x: 12
-    "y": 8
+    x: 0
+    "y": 14
     w: 12
     h: 6
   "6":
-    x: 0
+    x: 12
     "y": 14
-    w: 24
-    h: 1
-  "7":
-    x: 0
-    "y": 15
     w: 12
     h: 6
+  "7":
+    x: 0
+    "y": 20
+    w: 24
+    h: 6
+  # Section 5: Data Transfer
   "8":
+    x: 0
+    "y": 26
+    w: 24
+    h: 1
+  "9":
+    x: 0
+    "y": 27
+    w: 12
+    h: 6
+  "10":
     x: 12
-    "y": 15
+    "y": 27
+    w: 12
+    h: 6
+  # Section 6: Billing & Contract Balance
+  "11":
+    x: 0
+    "y": 33
+    w: 24
+    h: 1
+  "12":
+    x: 0
+    "y": 34
+    w: 12
+    h: 6
+  "13":
+    x: 12
+    "y": 34
     w: 12
     h: 6
 settings:
-  defaultTimeframe:
-    value:
-      from: now()-14d
-      to: now()
-    enabled: true
+  defaultTimeframe: "now()-30d"
+  autoRefresh: "off"
 importedWithCode: false
-name: Org-Level Costs Observability
