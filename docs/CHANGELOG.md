@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- **Resource Monitors**: Credit usage threshold alerting via Davis events. Configurable info/warn/critical/exhausted bands (default thresholds: 50 / 80 / 90 / 100 %). Opens a Davis event when usage crosses into an alert band and resolves it automatically when usage recovers. Per-monitor threshold overrides supported via `credits_quota_thresholds`. See [Resource Monitors plugin](PLUGINS.md#resource_monitors_info_sec).
 - Cold tables identification plugin: identifies tables with no recent query access (default: >90 days) to enable FinOps teams to find candidates for archiving, dropping, or tiering to lower-cost storage. Reduces storage costs by sunsetting unused tables. See [Cold Tables plugin](PLUGINS.md#cold_tables_info_sec).
 - New `metering` plugin reporting credit consumption across all Snowflake service types via `METERING_HISTORY`. Covers auto-clustering, pipes, serverless tasks, AI services, replication, and more with `service_type` dimension for FinOps cost attribution.
 - **Interactive deployment wizard** (`--interactive` flag): Guides users through 5-phase configuration (core config, deployment scope, plugin selection, advanced settings, telemetry settings). Auto-triggered when config file is missing. Generates `conf/config-$ENV.yml`. Includes HTTPS reachability probes for DT tenant and Snowflake account (warn-only, non-blocking). Supports `--dry-run` (print config to stdout) and `--output=<file>` (write to custom path).
