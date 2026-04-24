@@ -1,0 +1,9 @@
+plugins:
+  org_costs:
+    lookback_hours: 48
+    schedule: USING CRON 0 */6 * * * UTC
+    is_disabled: true
+    telemetry:
+      - logs
+      - metrics
+      - biz_events

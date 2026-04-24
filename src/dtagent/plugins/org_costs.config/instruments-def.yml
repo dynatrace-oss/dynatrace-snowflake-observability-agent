@@ -1,0 +1,51 @@
+attributes:
+  snowflake.account.locator:
+    __context_names:
+      - org_costs_metering
+    __example: ABC12345
+    __description: The account locator identifier for the Snowflake account.
+  snowflake.organization.name:
+    __context_names:
+      - org_costs_metering
+    __example: MYORG
+    __description: The name of the Snowflake organization.
+dimensions:
+  snowflake.account.name:
+    __context_names:
+      - org_costs_metering
+    __example: MYORG-ACCOUNT1
+    __description: The name of the Snowflake account within the organization.
+  snowflake.service.type:
+    __context_names:
+      - org_costs_metering
+    __example: WAREHOUSE_METERING
+    __description: The Snowflake service type that consumed the credits.
+metrics:
+  snowflake.org.credits.adjustment_cloud_services:
+    __context_names:
+      - org_costs_metering
+    __example: "-0.5"
+    __description: Credit adjustment for cloud services (10% rule offset).
+    displayName: Org Cloud Services Credit Adjustment
+    unit: credits
+  snowflake.org.credits.cloud_services:
+    __context_names:
+      - org_costs_metering
+    __example: "1.2"
+    __description: Credits used for cloud services by the account on the given day.
+    displayName: Org Cloud Services Credits Used
+    unit: credits
+  snowflake.org.credits.compute:
+    __context_names:
+      - org_costs_metering
+    __example: "8.0"
+    __description: Credits used for compute by the account on the given day.
+    displayName: Org Compute Credits Used
+    unit: credits
+  snowflake.org.credits.used:
+    __context_names:
+      - org_costs_metering
+    __example: "9.2"
+    __description: Total credits used by the account on the given day across all service types.
+    displayName: Org Total Credits Used
+    unit: credits

@@ -1,0 +1,12 @@
+delivers:
+  - name: DTAGENT_DB.APP.V_ORG_METERING_DAILY
+    type: view
+  - name: DTAGENT_DB.CONFIG.UPDATE_ORG_COSTS_CONF()
+    type: procedure
+  - name: DTAGENT_DB.APP.TASK_DTAGENT_ORG_COSTS
+    type: task
+
+references:
+  - name: SNOWFLAKE.ORGANIZATION_USAGE.METERING_DAILY_HISTORY
+    type: view
+    privileges: SELECT
