@@ -85,6 +85,14 @@ Use cases marked with 🔜 are **upcoming** — they depend on plugins currently
 | Storage growth analysis        | Track database and table storage growth trends (total size, row counts) and time since last DDL/update for capacity planning.                                               | [Data Volume plugin](PLUGINS.md#data_volume_info_sec)                                |
 | Cold table identification      | Identify tables with no recent query access to find candidates for archiving, dropping, or tiering to lower-cost storage. Reduce storage costs by sunsetting unused tables. | [Cold Tables plugin](PLUGINS.md#cold_tables_info_sec)                                |
 
+### Costs — Tier 0 — Organization-Level FinOps
+
+| Use case                             | In Details                                                                                                                                                                                         | Data                                                        |
+|--------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------|
+| Org-wide credit consumption analysis | Monitor credit consumption across all accounts in your Snowflake organization, broken down by service type and service name, to identify the biggest cost drivers at the organizational level.     | [Org Costs plugin](PLUGINS.md#org_costs_info_sec)           |
+| Contract balance monitoring          | Track remaining Snowflake contract balances (free usage, capacity, on-demand, rollover) in real time and alert when any balance approaches exhaustion before the contract period ends.             | [Org Costs plugin](PLUGINS.md#org_costs_info_sec)           |
+| Cross-account billing analysis       | Analyze billed amounts in contract currency per service type and per account across the organization to support FinOps chargebacks, forecasting, and budget governance.                            | [Org Costs plugin](PLUGINS.md#org_costs_info_sec)           |
+
 ### Costs — Tier 2 — Data Apps & Pipelines
 
 | Use case                         | In Details                                                                                                                                | Data                                                      |

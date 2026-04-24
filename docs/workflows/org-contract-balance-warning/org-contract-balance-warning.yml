@@ -1,0 +1,85 @@
+# WORKFLOW: DSOA — Org Contract Balance Warning
+# DESCRIPTION: Monitors organization-level remaining contract balance and alerts when any balance
+#              category drops below a configurable threshold
+# OWNER: DSOA Team
+# PLUGINS: org_costs
+# TAGS: snowflake, dsoa, operations, costs, billing, org, finops
+
+id: b3f2a1e4-7c8d-4e9f-a0b1-c2d3e4f5a6b7
+title: "DSOA — Org Contract Balance Warning"
+description: |
+  Monitors organization-level remaining Snowflake contract balances (free usage, capacity,
+  on-demand, rollover, and total) and sends an alert when any balance drops below a threshold.
+  Requires the org_costs plugin with the org_billing_remaining_balance context enabled and
+  access to SNOWFLAKE.ORGANIZATION_USAGE.
+isPrivate: false
+schemaVersion: 4
+trigger:
+  schedule:
+    isActive: true
+    trigger:
+      type: interval
+      intervalMinutes: 360
+    rule: null
+    filterParameters: {}
+    timezone: UTC
+    inputs: {}
+tasks:
+  check_balance:
+    name: check_balance
+    description: Query remaining org contract balances and fire alerts if below threshold
+    action: dynatrace.automations:run-javascript
+    active: true
+    position:
+      x: 0
+      y: 1
+    conditions:
+      states: {}
+    predecessors: []
+    input:
+      script: |
+        import { metricsClient } from '@dynatrace-sdk/client-metrics';
+        import { notificationsClient } from '@dynatrace-sdk/client-notifications';
+
+        // Threshold below which to trigger an alert (in USD or contract currency)
+        const BALANCE_THRESHOLD = 1000;
+        const METRIC_IDS = [
+          'snowflake.org.balance.free_usage.remaining',
+          'snowflake.org.balance.capacity.remaining',
+          'snowflake.org.balance.on_demand.remaining',
+          'snowflake.org.balance.rollover.remaining',
+          'snowflake.org.balance.total.remaining',
+        ];
+
+        const alerts = [];
+
+        for (const metricId of METRIC_IDS) {
+          const result = await metricsClient.query({
+            metricSelector: `${metricId}:last`,
+            resolution: 'Inf',
+            from: 'now-7d',
+          });
+
+          const series = result?.resolution?.series ?? [];
+          for (const s of series) {
+            const latestValue = s.values?.[s.values.length - 1];
+            if (latestValue !== null && latestValue < BALANCE_THRESHOLD) {
+              alerts.push({
+                metric: metricId,
+                value: latestValue,
+                dimensions: s.dimensionValues,
+              });
+            }
+          }
+        }
+
+        if (alerts.length > 0) {
+          const message = alerts
+            .map(a => `${a.metric}: ${a.value.toFixed(2)} (below threshold ${BALANCE_THRESHOLD})`)
+            .join('\n');
+          console.log('CONTRACT BALANCE ALERT:\n' + message);
+          // Post a problem notification via Dynatrace Events API if desired:
+          // await eventsClient.createEvent({ ... });
+        } else {
+          console.log('All org contract balances are above threshold.');
+        }

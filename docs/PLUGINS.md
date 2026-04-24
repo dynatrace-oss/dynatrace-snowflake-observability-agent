@@ -1105,15 +1105,16 @@ The following tables list the Snowflake objects that this plugin delivers data f
 
 #### Objects delivered by the `Org Costs` plugin
 
-| Name                                           | Type      |
-| ---------------------------------------------- | --------- |
-| DTAGENT_DB.APP.V_ORG_METERING_DAILY            | view      |
-| DTAGENT_DB.APP.V_ORG_STORAGE_DAILY             | view      |
-| DTAGENT_DB.APP.V_ORG_DATA_TRANSFER_DAILY       | view      |
-| DTAGENT_DB.APP.V_ORG_BILLING_USAGE_IN_CURRENCY | view      |
-| DTAGENT_DB.APP.V_ORG_BILLING_REMAINING_BALANCE | view      |
-| DTAGENT_DB.CONFIG.UPDATE_ORG_COSTS_CONF()      | procedure |
-| DTAGENT_DB.APP.TASK_DTAGENT_ORG_COSTS          | task      |
+| Name                                               | Type      |
+| -------------------------------------------------- | --------- |
+| DTAGENT_DB.APP.V_ORG_METERING_DAILY                | view      |
+| DTAGENT_DB.APP.V_ORG_STORAGE_DAILY                 | view      |
+| DTAGENT_DB.APP.V_ORG_DATA_TRANSFER_DAILY           | view      |
+| DTAGENT_DB.APP.V_ORG_BILLING_USAGE_IN_CURRENCY     | view      |
+| DTAGENT_DB.APP.V_ORG_BILLING_REMAINING_BALANCE     | view      |
+| DTAGENT_DB.APP.P_CHECK_ORGANIZATION_USAGE_ACCESS() | procedure |
+| DTAGENT_DB.CONFIG.UPDATE_ORG_COSTS_CONF()          | procedure |
+| DTAGENT_DB.APP.TASK_DTAGENT_ORG_COSTS              | task      |
 
 #### Objects referenced by the `Org Costs` plugin
 
