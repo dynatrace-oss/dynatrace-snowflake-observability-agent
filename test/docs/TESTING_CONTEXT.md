@@ -195,9 +195,9 @@ docker run --rm \
 
 ### Documentation (New)
 
-- `docs/testing/MANUAL_TESTING.md` — Step-by-step testing guide
-- `docs/testing/QUICK_REFERENCE.md` — Quick reference card
-- `docs/testing/TESTING_CONTEXT.md` — This file
+- `test/docs/MANUAL_TESTING.md` — Step-by-step testing guide
+- `test/docs/QUICK_REFERENCE.md` — Quick reference card
+- `test/docs/TESTING_CONTEXT.md` — This file
 
 ## How to Use These Guides
 
