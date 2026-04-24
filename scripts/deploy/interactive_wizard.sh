@@ -341,7 +341,8 @@ load_existing_config() {
 ##
 # Run Phase 1: Core Configuration.
 #
-# Prompts for DT tenant, token, SF account, environment name, and tag.
+# Prompts for DT tenant, SF account, environment name, and tag.
+# Token is collected in Phase 2 after scope is known.
 #
 # Returns:
 #   0 on success, 1 on EOF
@@ -358,23 +359,6 @@ phase1_core_config() {
             continue
         }
         log_ok "Tenant: $DT_TENANT"
-        break
-    done
-
-    # Dynatrace API token — read silently so it is not echoed to the terminal
-    while true; do
-        printf "  Dynatrace API token: " >&2
-        read -rs DT_TOKEN </dev/tty 2>/dev/null || DT_TOKEN=$(prompt_input "Dynatrace API token" "") || return 1
-        echo "" >&2
-        if ! validate_nonempty "$DT_TOKEN"; then
-            log_error "API token cannot be empty"
-            continue
-        fi
-        if [[ ! "$DT_TOKEN" =~ ^dt[0-9]c[0-9]{2}\.[A-Za-z0-9]{24}\.[A-Za-z0-9]{64}$ ]]; then
-            log_error "Token format invalid. Expected: dt0c01.XXXXXXXX.YYYYYYYY (Dynatrace API token)"
-            continue
-        fi
-        log_ok "Token: (hidden)"
         break
     done
 
@@ -471,6 +455,47 @@ phase2_deployment_scope() {
     esac
 
     log_ok "Scope: $DEPLOYMENT_SCOPE"
+
+    # Dynatrace API token — required for scopes that deploy the API key secret,
+    # optional otherwise (only used for self-monitoring bizevents).
+    local _token_required=0
+    case "$DEPLOYMENT_SCOPE" in
+        all|apikey) _token_required=1 ;;
+        *apikey*)   _token_required=1 ;;  # comma-separated scopes containing apikey
+    esac
+
+    echo "" >&2
+    if [[ $_token_required -eq 1 ]]; then
+        while true; do
+            printf "  Dynatrace API token: " >&2
+            read -rs DT_TOKEN </dev/tty 2>/dev/null || DT_TOKEN=$(prompt_input "Dynatrace API token" "") || return 1
+            echo "" >&2
+            if ! validate_nonempty "$DT_TOKEN"; then
+                log_error "API token is required for scope '$DEPLOYMENT_SCOPE'"
+                continue
+            fi
+            if [[ ! "$DT_TOKEN" =~ ^dt[0-9]c[0-9]{2}\.[A-Za-z0-9]{24}\.[A-Za-z0-9]{64}$ ]]; then
+                log_error "Token format invalid. Expected: dt0c01.XXXXXXXX.YYYYYYYY"
+                continue
+            fi
+            log_ok "Token: (hidden)"
+            break
+        done
+    else
+        printf "  Dynatrace API token (optional, for deployment bizevents): " >&2
+        read -rs DT_TOKEN </dev/tty 2>/dev/null || DT_TOKEN=""
+        echo "" >&2
+        if [[ -n "$DT_TOKEN" ]]; then
+            if [[ ! "$DT_TOKEN" =~ ^dt[0-9]c[0-9]{2}\.[A-Za-z0-9]{24}\.[A-Za-z0-9]{64}$ ]]; then
+                log_error "Token format invalid — ignoring. Self-monitoring bizevents will not be sent."
+                DT_TOKEN=""
+            else
+                log_ok "Token: (hidden)"
+            fi
+        else
+            echo "  [INFO] No token provided — self-monitoring bizevents will not be sent." >&2
+        fi
+    fi
 
     # Options
     echo "" >&2
