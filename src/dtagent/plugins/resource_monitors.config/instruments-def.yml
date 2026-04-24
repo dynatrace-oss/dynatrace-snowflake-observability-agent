@@ -28,6 +28,9 @@ attributes:
   snowflake.credits.quota.used:
     __example: "500"
     __description: The credits used by the resource monitor.
+  snowflake.credits.quota.used_pct:
+    __example: "85.0"
+    __description: Live percentage of quota consumed at the time of threshold event emission.
   snowflake.resource_monitor.frequency:
     __example: DAILY
     __description: The frequency of the resource monitor.
@@ -37,6 +40,19 @@ attributes:
   snowflake.resource_monitor.level:
     __example: ACCOUNT
     __description: The level of the resource monitor.
+  snowflake.resource_monitor.threshold.direction:
+    __example: up
+    __description: >-
+      Direction of the threshold crossing: ``up`` when quota is increasing into or remaining within
+      a band; ``down`` when the consumption drops back below a previously active band.
+  snowflake.resource_monitor.threshold.level:
+    __example: warn
+    __description: >-
+      Alert band for the threshold event: ``info`` (below 80%), ``warn`` ([80–90%)),
+      ``critical`` ([90–100%)), or ``exhausted`` (>=100%).
+  snowflake.resource_monitor.threshold.pct:
+    __example: "80"
+    __description: The specific threshold percentage value that was crossed to trigger the event.
   snowflake.warehouse.execution_state:
     __example: RUNNING
     __description: The execution state of the warehouse.
