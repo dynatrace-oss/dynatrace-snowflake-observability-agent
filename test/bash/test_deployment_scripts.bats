@@ -1,7 +1,8 @@
 #!/usr/bin/env bats
 
 setup() {
-    cd "$BATS_TEST_DIRNAME/../.."
+    # shellcheck disable=SC2154
+    cd "$BATS_TEST_DIRNAME/../.." || exit 1
     # Create minimal test config and build artifacts
     TEST_CONFIG_FILE=$(mktemp)
     cat > "$TEST_CONFIG_FILE" << 'EOF'
@@ -85,8 +86,8 @@ teardown() {
 
     [ -f "$DEPLOY_SCRIPT" ]
     grep -q "init" "$DEPLOY_SCRIPT"
-    ! grep -q "setup" "$DEPLOY_SCRIPT"
-    ! grep -q "agents" "$DEPLOY_SCRIPT"
+    run ! grep -q "setup" "$DEPLOY_SCRIPT"
+    run ! grep -q "agents" "$DEPLOY_SCRIPT"
 
     rm -f "$DEPLOY_SCRIPT"
 }
@@ -100,8 +101,8 @@ teardown() {
 
     [ -f "$DEPLOY_SCRIPT" ]
     grep -q "setup" "$DEPLOY_SCRIPT"
-    ! grep -q "init" "$DEPLOY_SCRIPT"
-    ! grep -q "agents" "$DEPLOY_SCRIPT"
+    run ! grep -q "init" "$DEPLOY_SCRIPT"
+    run ! grep -q "agents" "$DEPLOY_SCRIPT"
 
     rm -f "$DEPLOY_SCRIPT"
 }
@@ -115,8 +116,8 @@ teardown() {
 
     [ -f "$DEPLOY_SCRIPT" ]
     grep -q "plugin" "$DEPLOY_SCRIPT"
-    ! grep -q "init" "$DEPLOY_SCRIPT"
-    ! grep -q "setup" "$DEPLOY_SCRIPT"
+    run ! grep -q "init" "$DEPLOY_SCRIPT"
+    run ! grep -q "setup" "$DEPLOY_SCRIPT"
 
     rm -f "$DEPLOY_SCRIPT"
 }
@@ -130,8 +131,8 @@ teardown() {
 
     [ -f "$DEPLOY_SCRIPT" ]
     grep -q "config" "$DEPLOY_SCRIPT"
-    ! grep -q "init" "$DEPLOY_SCRIPT"
-    ! grep -q "agents" "$DEPLOY_SCRIPT"
+    run ! grep -q "init" "$DEPLOY_SCRIPT"
+    run ! grep -q "agents" "$DEPLOY_SCRIPT"
 
     rm -f "$DEPLOY_SCRIPT"
 }
@@ -145,8 +146,8 @@ teardown() {
 
     [ -f "$DEPLOY_SCRIPT" ]
     grep -q "agents" "$DEPLOY_SCRIPT"
-    ! grep -q "init" "$DEPLOY_SCRIPT"
-    ! grep -q "setup" "$DEPLOY_SCRIPT"
+    run ! grep -q "init" "$DEPLOY_SCRIPT"
+    run ! grep -q "setup" "$DEPLOY_SCRIPT"
 
     rm -f "$DEPLOY_SCRIPT"
 }
@@ -188,7 +189,7 @@ teardown() {
 
     [ -f "$DEPLOY_SCRIPT" ]
     grep -q "upgrade" "$DEPLOY_SCRIPT"
-    ! grep -q "init" "$DEPLOY_SCRIPT"
+    run ! grep -q "init" "$DEPLOY_SCRIPT"
 
     rm -f "$DEPLOY_SCRIPT"
 }
@@ -202,7 +203,7 @@ teardown() {
 
     [ -f "$DEPLOY_SCRIPT" ]
     grep -q "upgrade 0.9.3" "$DEPLOY_SCRIPT"
-    ! grep -q "upgrade 0.9.0" "$DEPLOY_SCRIPT"
+    run ! grep -q "upgrade 0.9.0" "$DEPLOY_SCRIPT"
 
     rm -f "$DEPLOY_SCRIPT"
 }
@@ -222,7 +223,7 @@ teardown() {
 
     # Should include v0.9.3 but NOT v0.9.0
     grep -q "upgrade 0.9.3" "$DEPLOY_SCRIPT"
-    ! grep -q "upgrade 0.9.0" "$DEPLOY_SCRIPT"
+    run ! grep -q "upgrade 0.9.0" "$DEPLOY_SCRIPT"
 
     rm -f "$DEPLOY_SCRIPT"
 }

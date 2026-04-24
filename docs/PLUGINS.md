@@ -10,6 +10,7 @@
 - [Event Log](#event_log_info_sec)
 - [Event Usage](#event_usage_info_sec)
 - [Login History](#login_history_info_sec)
+- [Metering](#metering_info_sec)
 - [Query History](#query_history_info_sec)
 - [Resource Monitors](#resource_monitors_info_sec)
 - [Shares](#shares_info_sec)
@@ -747,10 +748,14 @@ The following tables list the Snowflake objects that this plugin delivers data f
 
 ## The Event Usage plugin
 
+> **Deprecated:** This plugin is deprecated as of 0.9.5 and will be removed in 0.9.6. Use the [metering](../metering.config/readme.md)
+> plugin instead, which covers all Snowflake service types via `METERING_HISTORY`. To reproduce the same data, filter by
+> `service_type == "TELEMETRY_DATA_INGEST"`.
+
 This plugin delivers information regarding the history of data loaded into Snowflake event tables. It reports telemetry from the
 `EVENT_USAGE_HISTORY` view.
 
-Log entries include include:
+Log entries include:
 
 - timestamps: start and end time of the event,
 - bytes ingested during the event (also reported as `snowflake.data.ingested` metric),
@@ -760,17 +765,14 @@ Log entries include include:
 
 ### Event Usage default configuration
 
-To disable this plugin, set `IS_DISABLED` to `true`.
-
-In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you need to explicitly set `IS_ENABLED` to `true` to enable
-selected plugins; `IS_DISABLED` is not checked then.
+This plugin is **disabled by default**; you need to explicitly set `IS_ENABLED` to `true` to enable it.
 
 ```yaml
 plugins:
   event_usage:
     lookback_hours: 6
     schedule: USING CRON 0 * * * * UTC
-    is_disabled: false
+    is_disabled: true
     telemetry:
       - metrics
       - logs
@@ -866,6 +868,102 @@ The following tables list the Snowflake objects that this plugin delivers data f
 | ------------------------------------- | ---- | ---------- |
 | SNOWFLAKE.ACCOUNT_USAGE.LOGIN_HISTORY | view | SELECT     |
 | SNOWFLAKE.ACCOUNT_USAGE.SESSIONS      | view | SELECT     |
+
+<a name="metering_info_sec"></a>
+
+## The Metering plugin
+
+This plugin reports credit consumption across all Snowflake service types using the `METERING_HISTORY` view. It replaces the narrower
+`event_usage` plugin which only covered `EVENT_USAGE_HISTORY` (telemetry data ingest).
+
+What data is collected:
+
+- credits consumed (total, compute, and cloud services) per service type and entity,
+- bytes, rows, and files processed per service type,
+- start and end timestamps for each metering window.
+
+`WAREHOUSE_METERING` rows are excluded to avoid duplication with the `warehouse_usage` plugin.
+
+Key use cases:
+
+- FinOps cost attribution across all Snowflake service types (auto-clustering, pipes, serverless tasks, AI services, replication, etc.),
+- trend analysis and anomaly detection on credit consumption,
+- capacity planning based on historical metering data.
+
+## Configuration
+
+| Key                               | Type   | Default                             | Description                                                                                                                                                |
+| --------------------------------- | ------ | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `plugins.metering.lookback_hours` | int    | `6`                                 | How far back (in hours) the plugin looks for metering history on each run. Default is `6`h to account for up-to-3-hour data latency in `METERING_HISTORY`. |
+| `plugins.metering.schedule`       | string | `USING CRON 0 * * * * UTC`          | Cron schedule for the metering collection task.                                                                                                            |
+| `plugins.metering.is_disabled`    | bool   | `false`                             | Set to `true` to disable this plugin entirely.                                                                                                             |
+| `plugins.metering.telemetry`      | list   | `["metrics", "logs", "biz_events"]` | Telemetry types to emit. Remove items to suppress specific output types.                                                                                   |
+
+## Querying in Dynatrace
+
+```dql
+// All metering logs
+fetch logs
+| filter db.system == "snowflake" and dsoa.run.context == "metering"
+| sort timestamp desc | limit 50
+
+// Credits by service type
+timeseries sum(snowflake.credits.used), by: {snowflake.service.type}
+| filter db.system == "snowflake" and dsoa.run.context == "metering"
+
+// Event table ingest only (backward compat with event_usage)
+timeseries sum(snowflake.credits.used)
+| filter db.system == "snowflake" and dsoa.run.context == "metering"
+| filter snowflake.service.type == "TELEMETRY_DATA_INGEST"
+```
+
+## Migration from event_usage
+
+The `event_usage` plugin is deprecated as of 0.9.5. To migrate:
+
+1. Enable `metering` plugin (enabled by default).
+1. Disable `event_usage` plugin (disabled by default as of 0.9.5).
+1. Update any DQL queries that filter by `dsoa.run.plugin == "event_usage"` to use `dsoa.run.plugin == "metering"`.
+1. To reproduce the exact same data as `event_usage`, add `snowflake.service.type == "TELEMETRY_DATA_INGEST"` filter.
+
+[Show semantics for this plugin](SEMANTICS.md#metering_semantics_sec)
+
+### Metering default configuration
+
+To disable this plugin, set `IS_DISABLED` to `true`.
+
+In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you need to explicitly set `IS_ENABLED` to `true` to enable
+selected plugins; `IS_DISABLED` is not checked then.
+
+```yaml
+plugins:
+  metering:
+    lookback_hours: 6
+    schedule: USING CRON 0 * * * * UTC
+    is_disabled: false
+    telemetry:
+      - metrics
+      - logs
+      - biz_events
+```
+
+### Metering Bill of Materials
+
+The following tables list the Snowflake objects that this plugin delivers data from or references.
+
+#### Objects delivered by the `Metering` plugin
+
+| Name                                     | Type      |
+| ---------------------------------------- | --------- |
+| DTAGENT_DB.APP.V_METERING_HISTORY        | view      |
+| DTAGENT_DB.CONFIG.UPDATE_METERING_CONF() | procedure |
+| DTAGENT_DB.APP.TASK_DTAGENT_METERING     | task      |
+
+#### Objects referenced by the `Metering` plugin
+
+| Name                                     | Type | Privileges |
+| ---------------------------------------- | ---- | ---------- |
+| SNOWFLAKE.ACCOUNT_USAGE.METERING_HISTORY | view | SELECT     |
 
 <a name="query_history_info_sec"></a>
 

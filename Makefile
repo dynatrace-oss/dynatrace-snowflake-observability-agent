@@ -18,7 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-.PHONY: lint lint-python lint-format lint-pylint lint-sql lint-yaml lint-markdown lint-bom build docs package test test-documentation test-bash test-bash-slow test-core test-plugins
+.PHONY: lint lint-python lint-format lint-pylint lint-sql lint-yaml lint-markdown lint-bom lint-shell build docs package test test-documentation test-bash test-bash-slow test-core test-plugins
 
 # Linting targets
 lint-python:
@@ -43,8 +43,11 @@ lint-markdown:
 lint-bom:
 	find src -name "bom.yml" -exec sh -c 'printf "%-50s " "$$1"; .venv/bin/check-jsonschema --schemafile test/src-bom.schema.json "$$1" || check-jsonschema --schemafile test/src-bom.schema.json "$$1"' _ {} \;
 
+lint-shell:
+	shellcheck --severity=warning scripts/deploy/*.sh scripts/dev/*.sh scripts/test/*.sh test/bash/*.bats
+
 # Run all linting checks (stops on first failure, like CI)
-lint: lint-python lint-format lint-pylint lint-sql lint-yaml lint-markdown lint-bom
+lint: lint-python lint-format lint-pylint lint-sql lint-yaml lint-markdown lint-bom lint-shell
 
 build:
 	./scripts/dev/build.sh
