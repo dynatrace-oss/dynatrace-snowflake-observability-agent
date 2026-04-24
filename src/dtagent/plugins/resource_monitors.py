@@ -414,7 +414,8 @@ class ResourceMonitorsPlugin(Plugin):
             thresholds (List[int]): Resolved threshold list for this monitor.
 
         Returns:
-            Dict: Event payload properties dict.
+            Tuple[str, Dict, str]: Event title, properties dict, and status string
+                (``"ACTIVE"``, ``"CLOSED"``, or ``""`` for info band).
         """
         threshold_pct = next((t for t in sorted(thresholds, reverse=True) if used_pct >= t), thresholds[0])
         title_prefix = "[ACCOUNT] " if rm_level == "ACCOUNT" else ""
@@ -429,10 +430,8 @@ class ResourceMonitorsPlugin(Plugin):
             "snowflake.resource_monitor.level": rm_level,
             "snowflake.resource_monitor.name": monitor_name,
         }
-        if status:
-            properties["event.status"] = status
 
-        return title, properties
+        return title, properties, status
 
     def _report_threshold_davis_event(
         self,
@@ -468,7 +467,9 @@ class ResourceMonitorsPlugin(Plugin):
         if not hasattr(self, "_davis_events") or self._davis_events is None:
             self._davis_events = DavisEvents(self._configuration)
 
-        title, properties = self._prepare_event_payload_threshold(monitor_name, band, direction, status, used_pct, rm_level, thresholds)
+        title, properties, event_status = self._prepare_event_payload_threshold(
+            monitor_name, band, direction, status, used_pct, rm_level, thresholds
+        )
 
         event_type = _BAND_EVENT_TYPE.get(band, EventType.CUSTOM_ALERT)
 
@@ -479,6 +480,7 @@ class ResourceMonitorsPlugin(Plugin):
             context=context,
             title=title,
             additional_payload=properties,
+            status=event_status if event_status else None,
         )
 
     def _process_threshold_for_rm(
