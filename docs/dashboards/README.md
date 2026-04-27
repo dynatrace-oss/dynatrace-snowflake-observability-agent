@@ -10,6 +10,7 @@ This directory contains example Dynatrace dashboards designed to visualize and a
   - [Costs Monitoring](#costs-monitoring)
   - [Tasks \& Pipelines Monitoring](#tasks--pipelines-monitoring)
   - [Snowpipes Monitoring](#snowpipes-monitoring)
+  - [Budgets \& FinOps](#budgets--finops)
   - [Snowflake Query Deep Dive](#snowflake-query-deep-dive)
   - [Data Volume \& Storage](#data-volume--storage)
   - [Snowflake Security](#snowflake-security)
