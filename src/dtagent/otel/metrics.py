@@ -24,7 +24,6 @@
 # SOFTWARE.
 #
 #
-import sys
 import requests
 import time
 
@@ -163,7 +162,7 @@ class Metrics:
         if (
             payload is not None
             and payload.strip() != ""
-            and (sys.getsizeof(self.PAYLOAD_CACHE.encode("utf-8")) + sys.getsizeof(payload.encode("utf-8"))) < self._max_batch_size
+            and (len(self.PAYLOAD_CACHE.encode("utf-8")) + len(payload.encode("utf-8"))) < self._max_batch_size
         ):
             self.PAYLOAD_CACHE += f"\n{payload}" if self.PAYLOAD_CACHE != "" else payload
         else:

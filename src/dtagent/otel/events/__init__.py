@@ -83,6 +83,7 @@ class AbstractEvents(ABC):
         _default_params = default_params or {}
 
         self.PAYLOAD_CACHE: List[Dict[str, Any]] = []
+        self._cache_byte_estimate: int = 0
         self._configuration = configuration
         self._resource_attributes = self._configuration.get("resource.attributes")
         self._max_payload_bytes = self._configuration.get(
@@ -271,15 +272,18 @@ class AbstractEvents(ABC):
         events_count = 0
 
         if payload is not None:
-            self.PAYLOAD_CACHE += payload
+            for event in payload:
+                self.PAYLOAD_CACHE.append(event)
+                self._cache_byte_estimate += len(json.dumps(event, default=str))
 
-        if payload is None or len(self.PAYLOAD_CACHE) >= self._max_event_count:
+        if payload is None or len(self.PAYLOAD_CACHE) >= self._max_event_count or self._cache_byte_estimate >= self._max_payload_bytes:
             collected_events_failed_to_send = []
             for events_chunk in self._split_payload(self.PAYLOAD_CACHE):
                 events_sent, events_failed_to_send = self._send(events_chunk)
                 events_count += events_sent
                 collected_events_failed_to_send += events_failed_to_send
             self.PAYLOAD_CACHE = collected_events_failed_to_send
+            self._cache_byte_estimate = sum(len(json.dumps(e, default=str)) for e in self.PAYLOAD_CACHE)
 
         return events_count
 

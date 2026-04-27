@@ -26,7 +26,12 @@
 -- and will log number of successfully analyzed and problematic ones in STATUS.PROCESSED_MEASUREMENTS_LOG
 --
 use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
-create or replace procedure DTAGENT_DB.STATUS.UPDATE_PROCESSED_QUERIES(query_ids text, processing_errors_count int, span_events_added int)
+create or replace procedure DTAGENT_DB.STATUS.UPDATE_PROCESSED_QUERIES(
+    query_ids text,
+    processing_errors_count int,
+    span_events_added int,
+    span_context_json text DEFAULT '{}'
+)
 returns int
 language sql
 execute as caller
@@ -35,6 +40,7 @@ $$
 declare
     inserted_queries    int;
     last_timestamp      timestamp_ltz;
+    v_cache_ttl_hours   int DEFAULT CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.cache_ttl_hours', 4)::int;
     c_last_timestamp    CURSOR FOR select max(start_time) as last_timestamp from STATUS.PROCESSED_QUERIES_CACHE;
 begin
     insert into STATUS.PROCESSED_QUERIES_CACHE (
@@ -64,6 +70,17 @@ begin
 
     inserted_queries := SQLROWCOUNT;
 
+    -- Update OTEL span context for cross-batch parent linking
+    update STATUS.PROCESSED_QUERIES_CACHE c
+    set
+        OTEL_SPAN_ID  = f.value:span_id::text,
+        OTEL_TRACE_ID = f.value:trace_id::text
+    from
+        lateral flatten(input => parse_json(:span_context_json)) f
+    where
+        c.QUERY_ID = f.key
+    ;
+
     open c_last_timestamp;
     fetch c_last_timestamp into last_timestamp;
     close c_last_timestamp;
@@ -81,10 +98,10 @@ begin
 
     delete
     from STATUS.PROCESSED_QUERIES_CACHE
-    where start_time < timeadd(hour, -4, current_timestamp);
+    where start_time < timeadd(hour, -1 * :v_cache_ttl_hours, current_timestamp);
 
     return inserted_queries;
 end;
 $$
 ;
-grant usage on procedure DTAGENT_DB.STATUS.UPDATE_PROCESSED_QUERIES(text, int, int) to role DTAGENT_VIEWER;
+grant usage on procedure DTAGENT_DB.STATUS.UPDATE_PROCESSED_QUERIES(text, int, int, text) to role DTAGENT_VIEWER;
