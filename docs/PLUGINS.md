@@ -1183,8 +1183,10 @@ This plugin:
 
 - logs the current state of each resource monitor and warehouse,
 - logs an error if an account-level monitor setup is missing,
-- logs a warning if a warehouse is not monitored at all, and
-- sends events on all new activities of monitors and warehouses.
+- logs a warning if a warehouse is not monitored at all,
+- sends events on all new activities of monitors and warehouses, and
+- fires Davis events when a resource monitor's credit usage crosses configurable thresholds (info / warn / critical / exhausted bands) and
+  resolves them automatically when usage drops back below the threshold.
 
 [Show semantics for this plugin](SEMANTICS.md#resource_monitors_semantics_sec)
 
@@ -1205,6 +1207,15 @@ plugins:
       - metrics
       - events
       - biz_events
+    credits_quota_thresholds:
+      # Default alert bands (% of quota used). Must be monotonically increasing, all values in (0, 100].
+      # Four bands are value-driven: <80 = info, [80,90) = warn, [90,100) = critical, >=100 = exhausted.
+      defaults: [50, 80, 90, 100]
+      # Per-monitor overrides — key is the resource monitor name (uppercase).
+      # Invalid overrides fall back to defaults with an ERROR log.
+      overrides: {}
+      # How often (minutes) ACTIVE keep-alive events are re-sent while quota remains in an alert band.
+      active_keepalive_timeout_minutes: 60
 ```
 
 ### Resource Monitors Bill of Materials
@@ -1213,15 +1224,16 @@ The following tables list the Snowflake objects that this plugin delivers data f
 
 #### Objects delivered by the `Resource Monitors` plugin
 
-| Name                                              | Type            |
-| ------------------------------------------------- | --------------- |
-| DTAGENT_DB.APP.TMP_RESOURCE_MONITORS              | transient table |
-| DTAGENT_DB.APP.TMP_WAREHOUSES                     | transient table |
-| DTAGENT_DB.APP.V_RESOURCE_MONITORS                | view            |
-| DTAGENT_DB.APP.V_WAREHOUSES                       | view            |
-| DTAGENT_DB.APP.P_REFRESH_RESOURCE_MONITORS()      | procedure       |
-| DTAGENT_DB.CONFIG.UPDATE_RESOURCE_MONITORS_CONF() | procedure       |
-| DTAGENT_DB.APP.TASK_DTAGENT_RESOURCE_MONITORS     | task            |
+| Name                                               | Type            |
+|----------------------------------------------------|-----------------|
+| DTAGENT_DB.APP.TMP_RESOURCE_MONITORS               | transient table |
+| DTAGENT_DB.APP.TMP_WAREHOUSES                      | transient table |
+| DTAGENT_DB.APP.V_RESOURCE_MONITORS                 | view            |
+| DTAGENT_DB.APP.V_WAREHOUSES                        | view            |
+| DTAGENT_DB.APP.P_REFRESH_RESOURCE_MONITORS()       | procedure       |
+| DTAGENT_DB.CONFIG.UPDATE_RESOURCE_MONITORS_CONF()  | procedure       |
+| DTAGENT_DB.STATUS.RESOURCE_MONITOR_THRESHOLD_STATE | table           |
+| DTAGENT_DB.APP.TASK_DTAGENT_RESOURCE_MONITORS      | task            |
 
 #### Objects referenced by the `Resource Monitors` plugin
 
@@ -1501,7 +1513,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 #### Objects delivered by the `Table Health` plugin
 
 | Name                                                | Type      |
-| --------------------------------------------------- | --------- |
+|-----------------------------------------------------|-----------|
 | DTAGENT_DB.APP.V_TABLE_STORAGE                      | view      |
 | DTAGENT_DB.APP.TABLE_CLUSTERING_RESULTS             | table     |
 | DTAGENT_DB.APP.P_COLLECT_CLUSTERING_INFO()          | procedure |
@@ -1517,7 +1529,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 #### Objects referenced by the `Table Health` plugin
 
 | Name                                          | Type     | Privileges |
-| --------------------------------------------- | -------- | ---------- |
+|-----------------------------------------------|----------|------------|
 | SNOWFLAKE.ACCOUNT_USAGE.TABLE_STORAGE_METRICS | view     | SELECT     |
 | SNOWFLAKE.ACCOUNT_USAGE.TABLES                | view     | SELECT     |
 | SYSTEM$CLUSTERING_INFORMATION                 | function | USAGE      |
