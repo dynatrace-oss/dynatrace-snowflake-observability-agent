@@ -6,6 +6,7 @@ This directory contains example Dynatrace dashboards designed to visualize and a
 - [Available Dashboards](#available-dashboards)
   - [DSOA Self-Monitoring](#dsoa-self-monitoring)
   - [Snowflake Query Performance](#snowflake-query-performance)
+  - [Org-Level Costs Observability](#org-level-costs-observability)
   - [Tasks \& Pipelines Monitoring](#tasks--pipelines-monitoring)
   - [Snowpipes Monitoring](#snowpipes-monitoring)
   - [Budgets \& FinOps](#budgets--finops)
@@ -96,6 +97,25 @@ Each JSON file is named after its dashboard title (e.g., `Costs Monitoring.json`
 **Required Plugins**: `warehouse_usage`, `resource_monitors`, `query_history`, `active_queries`
 
 **DPO Theme**: Costs, Operations
+
+---
+
+### [Org-Level Costs Observability](org-costs-observability/)
+
+**Purpose**: Monitor organization-wide Snowflake costs across all accounts in a single dashboard.
+
+**Key Features**:
+
+- Credit consumption by service type and service name across the organization
+- Cloud services credit adjustment trends
+- Organization-wide storage bytes by storage type and account locator
+- Cross-cloud and cross-region data transfer volumes
+- Billing amounts in contract currency per service type and account
+- Remaining contract balances (free usage, capacity, on-demand, rollover, total)
+
+**Required Plugin**: `org_costs` (disabled by default — requires ORGADMIN or organization-linked account)
+
+**DPO Theme**: Costs
 
 ---
 

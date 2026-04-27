@@ -1,0 +1,20 @@
+plugins:
+  org_costs:
+    lookback_hours: 48
+    schedule: USING CRON 0 */6 * * * UTC
+    is_disabled: true
+    telemetry:
+      - logs
+      - metrics
+      - biz_events
+    contexts:
+      org_costs_metering:
+        is_disabled: true
+      org_costs_storage:
+        is_disabled: true
+      org_costs_data_transfer:
+        is_disabled: true
+      org_billing_usage_in_currency:
+        is_disabled: true
+      org_billing_remaining_balance:
+        is_disabled: true

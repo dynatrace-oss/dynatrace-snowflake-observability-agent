@@ -463,6 +463,24 @@ probe_sf_account() {
     return 1
 }
 
+##
+# Emit a deployment advisory for the org_costs plugin, reminding operators that the
+# SNOWFLAKE.ORGANIZATION_USAGE schema requires the account to belong to a Snowflake
+# organization.  Non-blocking — deployment continues regardless.
+#
+# Returns:
+#   0 always (warn-only)
+##
+check_org_costs_access() {
+    log_warn "org_costs plugin is enabled."
+    log_warn "  It reads from SNOWFLAKE.ORGANIZATION_USAGE which requires your account to be"
+    log_warn "  part of a Snowflake organization (ORGADMIN role or organization-linked account)."
+    log_warn "  If the schema is inaccessible, the plugin will deploy successfully but produce"
+    log_warn "  no telemetry until ORGANIZATION_USAGE access is granted."
+    log_warn "  Verify access with: SELECT * FROM SNOWFLAKE.ORGANIZATION_USAGE.METERING_DAILY_HISTORY LIMIT 1;"
+    return 0
+}
+
 ##endregion
 
 ##region Config Helper Functions
