@@ -136,6 +136,7 @@ This file documents detailed technical changes, internal refactorings, and devel
     Flushes events, metrics, and logs, then calls `gc.collect()`.
   - Both flush sizes are configurable via `otel.performance.spans_batch_flush_size` and
     `otel.performance.logs_batch_flush_size` config keys.
+
 ### New Plugin: Cold Tables Identification (BDX-676)
 
 - **Purpose**: Identify tables with no recent query access (default: >90 days) to enable FinOps teams to find candidates for archiving, dropping, or tiering to lower-cost storage.
