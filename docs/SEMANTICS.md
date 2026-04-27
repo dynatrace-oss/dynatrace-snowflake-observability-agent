@@ -16,6 +16,7 @@
 - [Resource Monitors](#resource_monitors_semantics_sec)
 - [Shares](#shares_semantics_sec)
 - [Snowpipes](#snowpipes_semantics_sec)
+- [Table Health](#table_health_semantics_sec)
 - [Tasks](#tasks_semantics_sec)
 - [Trust Center](#trust_center_semantics_sec)
 - [Users](#users_semantics_sec)
@@ -786,6 +787,43 @@ check the `Context Name` column below.
 | --------------------------------------- | --------------------------- | ------------------------- | ------------ |
 | snowflake.&#8203;event.&#8203;trigger   | Standard event trigger key. | snowflake.pipe.created_on | snowpipes    |
 | snowflake.&#8203;pipe.&#8203;created_on | Pipe creation event.        | 2025-01-15 10:30:00.000 Z | snowpipes    |
+
+<a name="table_health_semantics_sec"></a>
+
+## The `Table Health` plugin semantics
+
+[Show plugin description](PLUGINS.md#table_health_info_sec)
+
+This plugin delivers telemetry in multiple contexts. To filter by one of plugin's context names (reported as `dsoa.run.context`), please
+check the `Context Name` column below.
+
+### Dimensions at the `Table Health` plugin
+
+| Identifier                                   | Description                                                                       | Example                        | Context Name                                          |
+| -------------------------------------------- | --------------------------------------------------------------------------------- | ------------------------------ | ----------------------------------------------------- |
+| db.&#8203;collection.&#8203;name             | The name of the table.                                                            | sales_data                     | table_storage, table_clustering, table_health_derived |
+| db.&#8203;namespace                          | The name of the database that contains the table.                                 | analytics_db                   | table_storage, table_clustering, table_health_derived |
+| snowflake.&#8203;schema.&#8203;name          | The name of the schema that contains the table.                                   | public                         | table_storage, table_clustering, table_health_derived |
+| snowflake.&#8203;table.&#8203;clustering_key | The clustering key defined on the table, or NONE if no clustering key is defined. | REGION, YEAR                   | table_clustering                                      |
+| snowflake.&#8203;table.&#8203;full_name      | The full name of the table, including the catalog, schema, and table name.        | analytics_db.public.sales_data | table_storage, table_clustering, table_health_derived |
+
+### Metrics at the `Table Health` plugin
+
+| Identifier                                                               | Name                     | Unit        | Description                                                                                                                                                                                         | Example    | Context Name         |
+| ------------------------------------------------------------------------ | ------------------------ | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | -------------------- |
+| snowflake.&#8203;data.&#8203;rows                                        | Row Count                | rows        | Number of rows in the table.                                                                                                                                                                        | 1000000    | table_storage        |
+| snowflake.&#8203;table.&#8203;active_bytes                               | Active Bytes             | bytes       | Number of bytes of active data in the table.                                                                                                                                                        | 1073741824 | table_storage        |
+| snowflake.&#8203;table.&#8203;clustering.&#8203;constant_partition_ratio | Constant Partition Ratio | ratio       | Fraction of micro<br>-partitions that are constant (fully within a single clustering key range). Higher values indicate better clustering quality.                                                  | 0.85       | table_clustering     |
+| snowflake.&#8203;table.&#8203;clustering.&#8203;degraded                 | Clustering Degraded      | {status}    | Flag indicating whether clustering has degraded beyond the configured threshold (plugins.table_health.clustering_degradation_threshold). 1 = degraded, 0 = healthy or no clustering data available. | 1          | table_health_derived |
+| snowflake.&#8203;table.&#8203;clustering.&#8203;depth                    | Clustering Depth         | {depth}     | Average clustering depth of the table. Lower values indicate better clustering. A value of 1.0 means all micro<br>-partitions are perfectly clustered.                                              | 2.5        | table_clustering     |
+| snowflake.&#8203;table.&#8203;clustering.&#8203;depth_change             | Clustering Depth Change  | {depth}     | Change in average clustering depth between the two most recent snapshots. Positive values indicate degradation; negative values indicate improvement.                                               | 0.3        | table_health_derived |
+| snowflake.&#8203;table.&#8203;clustering.&#8203;overlap                  | Clustering Overlap       | {overlap}   | Average overlap depth of the table. Lower values indicate less overlap between micro<br>-partitions and better clustering efficiency.                                                               | 1.2        | table_clustering     |
+| snowflake.&#8203;table.&#8203;clustering.&#8203;total_partitions         | Total Partitions         | {partition} | Total number of micro<br>-partitions in the table.                                                                                                                                                  | 1200       | table_clustering     |
+| snowflake.&#8203;table.&#8203;failsafe_bytes                             | Failsafe Bytes           | bytes       | Number of bytes of data in the table that is maintained for Failsafe.                                                                                                                               | 268435456  | table_storage        |
+| snowflake.&#8203;table.&#8203;growth_bytes                               | Table Growth (Bytes)     | bytes       | Change in active bytes between the two most recent snapshots. Positive values indicate growth; negative values indicate shrinkage.                                                                  | 104857600  | table_health_derived |
+| snowflake.&#8203;table.&#8203;growth_pct                                 | Table Growth (%)         | percent     | Percentage change in active bytes between the two most recent snapshots. Null when the previous snapshot had zero bytes.                                                                            | 9.77       | table_health_derived |
+| snowflake.&#8203;table.&#8203;retained_for_clone_bytes                   | Retained for Clone Bytes | bytes       | Number of bytes of data in the table that is retained for cloning.                                                                                                                                  | 134217728  | table_storage        |
+| snowflake.&#8203;table.&#8203;time_travel_bytes                          | Time Travel Bytes        | bytes       | Number of bytes of data in the table that is maintained for Time Travel.                                                                                                                            | 536870912  | table_storage        |
 
 <a name="tasks_semantics_sec"></a>
 

@@ -237,6 +237,15 @@ Four mandatory phases — do not skip or merge.
 
 **Continuous learning from review feedback:** After every human review, treat the feedback as a signal to improve agent instructions. If a correction reveals a gap or misunderstanding that could affect future work, update or create the appropriate skill (`.opencode/skills/<name>/SKILL.md`) or add a rule to this file. Proactively propose the update even if not explicitly asked — do not let the same mistake recur. New skills should be created when a topic is domain-specific and reusable (e.g. dashboard patterns, workflow patterns); general agent behavior belongs in this file.
 
+## Branch Safety Rules (CRITICAL — NEVER VIOLATE)
+
+- **NEVER commit directly to `main`, `devel`, `release/*`, or `hotfix/*` branches.**
+- ALL new work must go on a `feat/*`, `dev/*`, or `fix/*` branch — follow the naming convention `(feat|fix|chore)/{version}/{short-name}`.
+- **Before starting any implementation**, ALWAYS run `git branch --show-current` and create a feature branch if on a protected branch.
+- If you accidentally commit to a protected branch: (1) create a feature branch from HEAD, (2) hard-reset the protected branch to `origin/<branch>`.
+- Protected branches: `main`, `devel`, `release/*`, `hotfix/*`
+- Safe branches for commits: `feat/*`, `dev/*`, `fix/*`, `chore/*`
+
 ## Anti-Patterns & Pitfalls
 
 - **Scope creep:** Don't refactor unrelated files for a simple change. Note issues separately; fix them later. Resist over-engineering.
