@@ -39,7 +39,6 @@ tasks:
     input:
       script: |
         import { metricsClient } from '@dynatrace-sdk/client-metrics';
-        import { notificationsClient } from '@dynatrace-sdk/client-notifications';
 
         // Threshold below which to trigger an alert (in USD or contract currency)
         const BALANCE_THRESHOLD = 1000;
@@ -51,35 +50,102 @@ tasks:
           'snowflake.org.balance.total.remaining',
         ];
 
-        const alerts = [];
+        export default async function () {
+          const alerts = [];
 
-        for (const metricId of METRIC_IDS) {
-          const result = await metricsClient.query({
-            metricSelector: `${metricId}:last`,
-            resolution: 'Inf',
-            from: 'now-7d',
-          });
+          for (const metricId of METRIC_IDS) {
+            const result = await metricsClient.query({
+              metricSelector: `${metricId}:last`,
+              resolution: 'Inf',
+              from: 'now-7d',
+            });
 
-          const series = result?.resolution?.series ?? [];
-          for (const s of series) {
-            const latestValue = s.values?.at(-1);
-            if (latestValue !== null && latestValue < BALANCE_THRESHOLD) {
-              alerts.push({
-                metric: metricId,
-                value: latestValue,
-                dimensions: s.dimensionValues,
-              });
+            const dimDefs = result?.resolution?.dimensionDefinitions ?? [];
+            const series = result?.resolution?.series ?? [];
+            for (const s of series) {
+              const latestValue = s.values?.at(-1);
+              if (latestValue !== null && latestValue < BALANCE_THRESHOLD) {
+                const dimensions = Object.fromEntries(
+                  dimDefs.map((d, i) => [d.name, s.dimensionValues?.[i] ?? ''])
+                );
+                alerts.push({
+                  metric: metricId,
+                  value: latestValue,
+                  threshold: BALANCE_THRESHOLD,
+                  dimensions,
+                });
+              }
             }
           }
+
+          if (alerts.length > 0) {
+            console.log(`CONTRACT BALANCE ALERT: ${alerts.length} metric(s) below threshold ${BALANCE_THRESHOLD}`);
+          } else {
+            console.log('All org contract balances are above threshold.');
+          }
+
+          return { hasAlerts: alerts.length > 0, alerts };
         }
 
-        if (alerts.length > 0) {
-          const message = alerts
-            .map(a => `${a.metric}: ${a.value.toFixed(2)} (below threshold ${BALANCE_THRESHOLD})`)
-            .join('\n');
-          console.log('CONTRACT BALANCE ALERT:\n' + message);
-          // Post a problem notification via Dynatrace Events API if desired:
-          // await eventsClient.createEvent({ ... });
-        } else {
-          console.log('All org contract balances are above threshold.');
+  ingest_balance_events:
+    name: ingest_balance_events
+    description: Ingest a Dynatrace event for each org contract balance that dropped below threshold
+    action: dynatrace.automations:run-javascript
+    active: true
+    position:
+      x: 0
+      y: 2
+    conditions:
+      states:
+        check_balance: OK
+      custom: "{{ result('check_balance').hasAlerts == true }}"
+    predecessors:
+      - check_balance
+    input:
+      script: |
+        import { execution } from '@dynatrace-sdk/automation-utils';
+        import { eventsClient } from '@dynatrace-sdk/client-classic-environment-v2';
+
+        export default async function ({ execution_id }) {
+          const ex = await execution(execution_id);
+          const { alerts } = await ex.result('check_balance');
+
+          let successCount = 0;
+          const failed = [];
+          for (const a of alerts) {
+            const dimProps = Object.fromEntries(
+              Object.entries(a.dimensions).map(([k, v]) => [k, String(v)])
+            );
+            const eventBody = {
+              body: {
+                eventType: 'CUSTOM_ALERT',
+                title: `Org contract balance below threshold: ${a.metric}`,
+                timeout: 360,
+                properties: {
+                  'event.description':
+                    `Balance for ${a.metric} is ${a.value.toFixed(2)}, ` +
+                    `below threshold ${a.threshold}.`,
+                  'ad.source': 'dsoa.org_contract_balance_warning',
+                  'ad.source_metric': a.metric,
+                  'balance.value': String(a.value.toFixed(2)),
+                  'balance.threshold': String(a.threshold),
+                  ...dimProps,
+                },
+              },
+            };
+            const res = await eventsClient.createEvent(eventBody);
+            if (res.reportCount !== 1) {
+              failed.push({ reason: 'Invalid number of ingested events', metric: a.metric });
+            } else {
+              const status = res.eventIngestResults[0];
+              if (status.status === 'OK') {
+                successCount += 1;
+              } else {
+                failed.push({ status: JSON.stringify(status), metric: a.metric });
+              }
+            }
+          }
+          if (successCount > 0) console.log(`Successfully ingested ${successCount} event(s)`);
+          if (failed.length > 0) console.log(`Failed to ingest ${failed.length} event(s):`, JSON.stringify(failed));
+          return alerts;
         }
