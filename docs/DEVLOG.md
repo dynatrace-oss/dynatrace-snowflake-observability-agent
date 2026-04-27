@@ -168,7 +168,8 @@ golden files in `test/test_results/`.
   version bumped to 21).
 
 **Workflow**: New **`Org Contract Balance Warning`** (`docs/workflows/org-contract-balance-warning/`):
-6-hour schedule, queries five `snowflake.org.balance.*.remaining` metrics and logs alert if any
+6-hour schedule, queries five `snowflake.org.billing.*` metrics (`capacity_balance`,
+`rollover_balance`, `free_usage_balance`, `on_demand_consumption`, `overage`) and logs alert if any
 drops below configurable threshold.
 
 **Doc updates**: `docs/USECASES.md` extended with "Costs — Tier 0 — Organization-Level FinOps"

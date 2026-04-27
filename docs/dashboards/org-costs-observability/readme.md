@@ -5,11 +5,11 @@ plugin to be enabled and the Snowflake account to have `SNOWFLAKE.ORGANIZATION_U
 
 ## Prerequisites
 
-- `org_costs` plugin enabled (`plugins.org_costs.is_enabled: true`)
+- `org_costs` plugin enabled (`plugins.org_costs.is_disabled: false`)
 - Snowflake account linked to an organization (ORGADMIN access or organization-linked account)
 - `SNOWFLAKE.ORGANIZATION_USAGE_VIEWER` role granted to `DTAGENT_VIEWER` (handled during init)
-- For §1 and §3 tiles: `org_billing_usage_in_currency` and `org_billing_remaining_balance` contexts
-  must be collecting data (both are enabled by default when `org_costs` is enabled)
+- For §1 and §3 tiles: `org_billing_usage_in_currency`, `org_billing_remaining_balance`, and run
+  `biz_events` telemetry must be collecting data (enabled by default when `org_costs` is enabled)
 
 ## Variables
 
@@ -87,8 +87,8 @@ plugin to be enabled and the Snowflake account to have `SNOWFLAKE.ORGANIZATION_U
 
 ## Metric Sources
 
-All tiles use `timeseries` DQL against DSOA metric keys. No `fetch events` is used — the
-`org_costs` plugin emits logs and metrics only.
+All tiles use `timeseries` DQL against DSOA metric keys. No `fetch events` is used for dashboard
+tiles — the `org_costs` plugin emits logs, metrics, and run business events.
 
 | Context                         | Metrics                                                                                                                   |
 |---------------------------------|---------------------------------------------------------------------------------------------------------------------------|
