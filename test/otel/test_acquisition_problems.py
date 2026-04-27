@@ -24,7 +24,8 @@
 """Tests for AcquisitionProblemCollector and SQL error handling in _get_table_rows/_get_sub_rows."""
 
 import threading
-from unittest.mock import MagicMock, patch
+from typing import List, Optional
+from unittest.mock import MagicMock
 
 from dtagent.otel.ingest_warnings import AcquisitionProblemCollector
 
@@ -125,7 +126,7 @@ class TestGetTableRowsSqlErrors:
         class _TestPlugin(Plugin):
             PLUGIN_NAME = "test_plugin"
 
-            def process(self, run_id, run_proc=True, **kwargs):
+            def process(self, run_id, run_proc=True, contexts: Optional[List[str]] = None):
                 return {}
 
         plugin = _TestPlugin.__new__(_TestPlugin)
