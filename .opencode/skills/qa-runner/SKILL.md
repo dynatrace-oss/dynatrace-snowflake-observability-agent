@@ -385,6 +385,24 @@ If rows are present, inspect `dsoa.ingest.warning.detail` for each row to determ
 the warning is a known/expected condition (e.g. a known attribute cardinality issue) or a
 regression. Fail the check if any new warning type appears that was not present in `DEV-{PREV_TAG}`.
 
+#### AE-C5.9 — No unexpected acquisition problems (BDX-1647)
+
+```dql
+fetch bizevents
+| filter db.system == "snowflake"
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| filter event.type == "dsoa.acquisition.problem"
+| summarize count = count(), by: { `dsoa.acquisition.problem.type`, `dsoa.acquisition.problem.source`, dsoa.run.plugin }
+| sort count desc
+```
+
+**Pass:** 0 rows — no acquisition problems (SQL errors during Snowflake data acquisition) were detected.
+If rows are present, inspect `dsoa.acquisition.problem.detail` to determine whether the error is transient
+(e.g. a view that temporarily had no data) or a regression (missing view, permission error). Fail the check
+if any `sql_error` or `sub_row_error` appears on a view that was working in `DEV-{PREV_TAG}`.
+
+---
+
 #### AE-C4.6 — span.parent_id present for child queries
 
 ```dql
@@ -447,22 +465,23 @@ After running all tests, present the results in a table using the checklist IDs:
 ```text
 ## Auto-Evaluation Results — DEV-{CURR_TAG}
 
-| Test      | Description                                            | Result     | Notes |
-|-----------|--------------------------------------------------------|------------|-------|
-| AE-C4.9   | No non_persisted_attribute_keys                        | PASS/FAIL  |       |
-| AE-C5.4   | BizEvent timestamps are current                        | PASS/FAIL  |       |
-| AE-C4.4   | Completeness span.events                               | PASS/FAIL  |       |
-| AE-C4.7   | No missing span.parent_id for child queries            | PASS/FAIL  |       |
-| AE-C1.2   | No ERROR-level agent logs                              | PASS/FAIL  |       |
-| AE-C2.3   | Query history metrics reported                         | PASS/FAIL  |       |
-| AE-C5.5   | Process metrics reported                               | PASS/FAIL  |       |
-| AE-C5.7   | Self-monitoring BizEvents all delivered                | PASS/FAIL  |       |
-| AE-C5.8   | No unexpected ingest-quality warnings (BDX-695)        | PASS/FAIL  |       |
-| AE-C4.6   | span.parent_id present for child queries               | PASS/FAIL  |       |
-| AE-C2.1   | Budget metrics reported                                | PASS/FAIL  |       |
-| AE-C1.3   | No increase in dt.ingest.warnings (5% tolerance)       | PASS/FAIL  |       |
+| Test    | Description                                      | Result    | Notes |
+|---------|--------------------------------------------------|-----------|-------|
+| AE-C4.9 | No non_persisted_attribute_keys                  | PASS/FAIL |       |
+| AE-C5.4 | BizEvent timestamps are current                  | PASS/FAIL |       |
+| AE-C4.4 | Completeness span.events                         | PASS/FAIL |       |
+| AE-C4.7 | No missing span.parent_id for child queries      | PASS/FAIL |       |
+| AE-C1.2 | No ERROR-level agent logs                        | PASS/FAIL |       |
+| AE-C2.3 | Query history metrics reported                   | PASS/FAIL |       |
+| AE-C5.5 | Process metrics reported                         | PASS/FAIL |       |
+| AE-C5.7 | Self-monitoring BizEvents all delivered          | PASS/FAIL |       |
+| AE-C5.8 | No unexpected ingest-quality warnings            | PASS/FAIL |       |
+| AE-C5.9 | No unexpected acquisition problems               | PASS/FAIL |       |
+| AE-C4.6 | span.parent_id present for child queries         | PASS/FAIL |       |
+| AE-C2.1 | Budget metrics reported                          | PASS/FAIL |       |
+| AE-C1.3 | No increase in dt.ingest.warnings (5% tolerance) | PASS/FAIL |       |
 
-Auto-evaluated: {N}/12 — {n} passed, {f} failed
+Auto-evaluated: {N}/13 — {n} passed, {f} failed
 ```
 
 Include the full table in the Phase 5 markdown report.
@@ -566,7 +585,7 @@ The report file must have the following structure:
 | AE-1 | No non_persisted_attribute_keys                      | ...    |
 ...
 
-Auto-evaluated: {N}/10 — {n} passed, {f} failed, {s} skipped
+Auto-evaluated: {N}/13 — {n} passed, {f} failed, {s} skipped
 
 ## Section Results
 

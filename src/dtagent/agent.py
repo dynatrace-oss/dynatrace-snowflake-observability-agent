@@ -53,6 +53,8 @@ from abc import ABC, abstractmethod
 import pandas as pd
 
 from snowflake import snowpark
+from snowflake.snowpark.functions import col
+from snowflake.snowpark.exceptions import SnowparkSQLException
 
 from opentelemetry.trace import SpanKind, INVALID_SPAN_ID, INVALID_TRACE_ID
 from opentelemetry.sdk.resources import Resource
@@ -180,8 +182,10 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
 
                     self.report_execution_status(status="FINISHED", task_name=source, exec_id=run_id, details_dict=results[source])
                     self._emit_ingest_warnings(plugin_name=plugin_name, run_id=run_id)
+                    self._emit_acquisition_problems(plugin_name=plugin_name, run_id=run_id)
                 except RuntimeError as e:
                     self._emit_ingest_warnings(plugin_name=plugin_name, run_id=run_id)
+                    self._emit_acquisition_problems(plugin_name=plugin_name, run_id=run_id)
                     self.handle_interrupted_run(plugin_name, run_id, str(e))
             else:
                 self.report_execution_status(status="FAILED", task_name=source, exec_id=run_id)
