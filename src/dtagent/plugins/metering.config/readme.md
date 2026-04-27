@@ -39,7 +39,7 @@ timeseries sum(snowflake.credits.used), by: {snowflake.service.type}
 | filter snowflake.service.type == "TELEMETRY_DATA_INGEST"
 ```
 
-## Migration from event_usage
+### Migration from event_usage
 
 The `event_usage` plugin is deprecated as of 0.9.5. To migrate:
 

@@ -5,7 +5,7 @@ The following options control this behavior:
 - `PLUGINS.QUERY_HISTORY.SLOW_QUERIES_THRESHOLD`: The execution time threshold in milliseconds. Queries running longer than this are considered slow and eligible for analysis. Default: `10000` (10 seconds).
 - `PLUGINS.QUERY_HISTORY.MAX_SLOWEST_QUERIES`: The maximum number of slowest queries to analyze. Default: `50`.
 
-## Signal Protection Framework
+## Signal Protection Framework Configuration
 
 The plugin supports signal protection to prevent overload on high-volume Snowflake accounts. The following options control this behavior:
 

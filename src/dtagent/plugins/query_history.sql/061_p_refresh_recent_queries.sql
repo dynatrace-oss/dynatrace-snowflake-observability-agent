@@ -31,7 +31,14 @@ use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 
 -- initializing TMP_RECENT_QUERIES so that we don't have to call this procedure during the deploy time
 
-create or replace transient table DTAGENT_DB.APP.TMP_RECENT_QUERIES DATA_RETENTION_TIME_IN_DAYS = 0 as select *, false as IS_PARENT, false as IS_ROOT from APP.V_QUERY_HISTORY_INSTRUMENTED limit 0;
+create or replace transient table DTAGENT_DB.APP.TMP_RECENT_QUERIES DATA_RETENTION_TIME_IN_DAYS = 0 as
+    select
+        *,
+        false as IS_PARENT,
+        false as IS_ROOT,
+        null::text as _PARENT_OTEL_SPAN_ID,
+        null::text as _PARENT_OTEL_TRACE_ID
+    from APP.V_QUERY_HISTORY_INSTRUMENTED limit 0;
 grant select, truncate, insert, update on table DTAGENT_DB.APP.TMP_RECENT_QUERIES to role DTAGENT_VIEWER;
 
 -- initializing TMP_QUERY_OPERATOR_STATS so that we don't have to call this procedure during the deploy time
@@ -49,7 +56,9 @@ DECLARE
     v_max_entries           INT DEFAULT CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.max_entries', 0)::int;
     in_tmp_table_reset      TEXT DEFAULT 'insert into DTAGENT_DB.APP.TMP_RECENT_QUERIES select *, false as IS_PARENT, false as IS_ROOT from DTAGENT_DB.APP.V_QUERY_HISTORY_INSTRUMENTED;';
     up_tmp_table_is_parent  TEXT DEFAULT 'update DTAGENT_DB.APP.TMP_RECENT_QUERIES set IS_PARENT = TRUE where QUERY_ID in (select distinct PARENT_QUERY_ID from DTAGENT_DB.APP.TMP_RECENT_QUERIES);';
-    up_tmp_table_is_root    TEXT DEFAULT 'update DTAGENT_DB.APP.TMP_RECENT_QUERIES set IS_ROOT = TRUE where PARENT_QUERY_ID is null or PARENT_QUERY_ID not in (select distinct QUERY_ID from DTAGENT_DB.APP.TMP_RECENT_QUERIES);';
+    up_tmp_table_is_root_null TEXT DEFAULT 'update DTAGENT_DB.APP.TMP_RECENT_QUERIES set IS_ROOT = TRUE where PARENT_QUERY_ID is null;';
+    up_tmp_table_is_root_miss TEXT DEFAULT 'update DTAGENT_DB.APP.TMP_RECENT_QUERIES set IS_ROOT = TRUE where PARENT_QUERY_ID is not null and PARENT_QUERY_ID not in (select distinct QUERY_ID from DTAGENT_DB.APP.TMP_RECENT_QUERIES);';
+    up_tmp_table_parent_otel TEXT DEFAULT 'update DTAGENT_DB.APP.TMP_RECENT_QUERIES t set _PARENT_OTEL_SPAN_ID = c.OTEL_SPAN_ID, _PARENT_OTEL_TRACE_ID = c.OTEL_TRACE_ID from DTAGENT_DB.STATUS.PROCESSED_QUERIES_CACHE c where t.PARENT_QUERY_ID = c.QUERY_ID and c.OTEL_SPAN_ID is not null;';
 
     tr_tmp_op_stats         TEXT DEFAULT 'truncate table if exists DTAGENT_DB.APP.TMP_QUERY_OPERATOR_STATS;';
     tr_tmp_table_recent     TEXT DEFAULT 'truncate table if exists DTAGENT_DB.APP.TMP_RECENT_QUERIES;';
@@ -139,7 +148,9 @@ BEGIN
     -- initializing and populating TMP_RECENT_QUERIES
     EXECUTE IMMEDIATE :in_tmp_table_reset;
     EXECUTE IMMEDIATE :up_tmp_table_is_parent;
-    EXECUTE IMMEDIATE :up_tmp_table_is_root;
+    EXECUTE IMMEDIATE :up_tmp_table_is_root_null;
+    EXECUTE IMMEDIATE :up_tmp_table_is_root_miss;
+    EXECUTE IMMEDIATE :up_tmp_table_parent_otel;
 
     -- populating TMP_QUERY_OPERATOR_STATS
     FOR query IN c_queries_to_analyze DO

@@ -178,6 +178,37 @@ section (3 new use cases). `docs/dashboards/README.md` and `docs/workflows/READM
 ---
 
 ## [Unreleased] — BDX-1969: Interactive Deployment Wizard
+## [Unreleased] — Resource Monitor Credit Threshold Alerting
+
+### Resource Monitor Credit Threshold Alerting — Full Implementation
+
+**Scope**: Added proactive credit-usage threshold monitoring to the existing `resource_monitors` plugin. Fires Davis events when a resource monitor's used-percentage crosses configurable bands, and resolves them automatically on recovery.
+
+**Architecture**:
+
+- **Band model**: Four severity levels — `info`, `warn`, `critical`, `exhausted` — mapped to configurable percentage thresholds. Default thresholds: `[50, 80, 90, 100]`. `info` band is persisted to state table to enforce one-shot emission (fires once on first crossing, not every run). No ACTIVE/CLOSED Davis event is opened for `info`; no resolution is sent. Bands below `info` produce no events and no state.
+- **State persistence** (`DTAGENT_DB.STATUS.RESOURCE_MONITOR_THRESHOLD_STATE`): Stores `(MONITOR_NAME, LAST_BAND, LAST_USED_PCT, LAST_UPDATED)` per monitor between runs. MERGE for upsert, DELETE when band drops to `None`. Created by upgrade script `src/dtagent.sql/upgrade/0.9.5/010_create_rm_threshold_state.sql` (idempotent).
+- **Transition logic** (`_plan_transition`): Pure function — given previous and current band, returns zero, one, or two `(status, level)` event actions (`ACTIVE` / `CLOSED`). Alert bands only participate in open/close transitions; `info` is informational only (logged, no Davis event). `None` (below info) never opens events.
+- **Davis events**: Uses `DavisEvents` exporter (instantiated lazily on first threshold crossing). Event title: `"[ACCOUNT] Resource monitor {name} credits exceeded/dropped below {threshold_pct}% threshold"` (prefix omitted for warehouse-level monitors). Properties: `event.status=ACTIVE|CLOSED`, `snowflake.resource_monitor.threshold.direction`, `.level`, `.pct`, `snowflake.credits.quota.used_pct`, `snowflake.resource_monitor.level`, `.name`.
+- **Write-after-emit ordering**: State is persisted only after the Davis event is successfully flushed, preventing ghost-open events on transient errors.
+- **Configuration** (`credits_quota_thresholds`): Optional per-monitor override dict keyed by monitor name. Falls back to global defaults when monitor is absent or override is invalid. Validation: must be a list of 1–4 ascending integers in (0, 100]; values ≥100 trigger the `exhausted` band.
+
+**New files**:
+
+- `src/dtagent/plugins/resource_monitors.sql/011_resource_monitors_threshold_state.sql` — state table DDL + grants
+- `src/dtagent.sql/upgrade/0.9.5/010_create_rm_threshold_state.sql` — idempotent upgrade script
+- `test/plugins/test_resource_monitors_multirun.py` — pure-function unit tests (41 cases): full `_plan_transition` matrix, `_compute_band` edge cases, threshold resolution, `_process_threshold_for_rm` with stubbed I/O
+
+**Modified files**:
+
+- `src/dtagent/plugins/resource_monitors.py` — threshold logic methods + wired into `process()`
+- `src/dtagent/plugins/resource_monitors.config/resource_monitors-config.yml` — `credits_quota_thresholds` config block
+- `src/dtagent/plugins/resource_monitors.config/instruments-def.yml` — 4 new semantic attributes
+- `src/dtagent/plugins/resource_monitors.config/bom.yml` — new state table entry
+- `src/dtagent/plugins/resource_monitors.config/readme.md` — updated feature list
+- `conf/config-template.yml` — documented threshold config
+
+**Deployment**: Requires upgrade scope before main deploy: `./scripts/deploy/deploy.sh test-qa --scope=upgrade --from-version=0.9.4 --options=skip_confirm` then `--scope=plugins,config`
 
 ### Interactive Deployment Wizard — Full Implementation
 
@@ -252,6 +283,99 @@ section (3 new use cases). `docs/dashboards/README.md` and `docs/workflows/READM
 - SQL `USE` statement deduplication in `prepare_deploy_script.sh` (post-MVP optimization, noted in story).
 
 ## Version 0.9.5 — Detailed Changes
+
+### Feature: Cross-Batch Span Parent Linking for query_history Plugin
+
+- **Problem**: When a Snowflake stored procedure call chain spans multiple agent run cycles (e.g., a parent SP is processed in batch N and its child queries appear in batch N+1), the child spans had no parent context. Each batch started a fresh trace, breaking trace continuity across batches.
+- **Solution**: Persist OTEL span context in `PROCESSED_QUERIES_CACHE` after each batch and inject it as parent context for child queries in subsequent batches.
+- **Precedence Rule**: `event_log _SPAN_ID/_TRACE_ID` (Snowflake-native tracing) > cached parent OTEL context > fresh random IDs. This ensures Snowflake-native trace propagation always wins.
+- **Schema Changes**:
+  - `011_processed_queries_cache.sql`: Added `OTEL_SPAN_ID TEXT` and `OTEL_TRACE_ID TEXT` nullable columns to `PROCESSED_QUERIES_CACHE`.
+  - `110_update_processed_queries.sql`: Added 4th parameter `span_context_json TEXT DEFAULT '{}'`. After inserting processed queries, updates `OTEL_SPAN_ID`/`OTEL_TRACE_ID` using `FLATTEN(PARSE_JSON(:span_context_json))`. Cache TTL now driven by `plugins.query_history.cache_ttl_hours` config (default: 4h, was hardcoded).
+- **SQL Changes**:
+  - `061_p_refresh_recent_queries.sql`: Added `_PARENT_OTEL_SPAN_ID` and `_PARENT_OTEL_TRACE_ID` columns to `TMP_RECENT_QUERIES`. Replaced single IS_ROOT update with 3-step logic: (1) IS_ROOT=TRUE where PARENT_QUERY_ID IS NULL, (2) IS_ROOT=TRUE where parent not in current batch AND not in cache with OTEL context, (3) UPDATE `_PARENT_OTEL_SPAN_ID`/`_PARENT_OTEL_TRACE_ID` from cache where parent IS in cache.
+  - `062_v_recent_queries.sql`: Added `_PARENT_OTEL_SPAN_ID` and `_PARENT_OTEL_TRACE_ID` to SELECT.
+- **Python Changes**:
+  - `otel/spans.py`: Added `span_context_map: Optional[Dict[str, Tuple[str, str]]] = None` parameter to `generate_span()`. After span creation, captures `(span_id_hex, trace_id_hex)` into the map. Before span creation, injects cached parent context via `context_api.attach()` when `_PARENT_OTEL_SPAN_ID`/`_PARENT_OTEL_TRACE_ID` are present and no event_log IDs exist. Token is detached after span ends.
+  - `plugins/__init__.py`: Creates `span_context_map` dict in `_process_span_rows()`, threads it through `_process_row()` → `generate_span()`. After processing, serializes as JSON `{qid: {"trace_id": t, "span_id": s}}` and passes as 4th arg to `STATUS.UPDATE_PROCESSED_QUERIES`.
+- **Upgrade Scripts**:
+  - `0.9.5/020_add_span_context_to_cache.sql`: ALTER TABLE to ADD COLUMN IF NOT EXISTS for both OTEL columns.
+  - `0.9.5/021_drop_update_processed_queries_3arg.sql`: DROP PROCEDURE IF EXISTS for old 3-arg signature before deploying new 4-arg version (avoids Snowflake ambiguous overload error).
+- **Config**:
+  - Added `query_history.cache_ttl_hours` (default: 4) to `config-template.yml` and `query_history-config.yml`.
+- **Testing**:
+  - `test/plugins/test_query_history_cross_batch.py`: New test file with 3 tests: integration test for cross-batch span injection (all disabled_telemetry combos), unit test for precedence rule validation, unit test for `span_context_map` population.
+  - `test/test_data/query_history_cross_batch.ndjson`: New fixture with 3 rows covering: child with cached parent context, child without context (fresh IDs), child with both event_log IDs and cached parent (event_log wins).
+- **Files Changed**: `src/dtagent/plugins/query_history.sql/011_processed_queries_cache.sql`, `src/dtagent/plugins/query_history.sql/061_p_refresh_recent_queries.sql`, `src/dtagent/plugins/query_history.sql/062_v_recent_queries.sql`, `src/dtagent/plugins/query_history.sql/110_update_processed_queries.sql`, `src/dtagent/otel/spans.py`, `src/dtagent/plugins/__init__.py`, `src/dtagent.sql/upgrade/0.9.5/020_add_span_context_to_cache.sql`, `src/dtagent.sql/upgrade/0.9.5/021_drop_update_processed_queries_3arg.sql`, `src/dtagent/plugins/query_history.config/query_history-config.yml`, `conf/config-template.yml`, `test/plugins/test_query_history_cross_batch.py`, `test/test_data/query_history_cross_batch.ndjson`
+
+### New Plugin: Table Health
+
+- **Purpose**: Monitor table storage metrics (active bytes, time-travel bytes, failsafe bytes, retained-for-clone bytes, row count) to identify tables with excessive storage overhead and optimize retention policies.
+- **Data source**: `SNOWFLAKE.ACCOUNT_USAGE.TABLE_STORAGE_METRICS` joined with `SNOWFLAKE.ACCOUNT_USAGE.TABLES` for row count and clustering key.
+- **Metrics**: Five gauges (`snowflake.table.active_bytes`, `snowflake.table.time_travel_bytes`, `snowflake.table.failsafe_bytes`, `snowflake.table.retained_for_clone_bytes`, `snowflake.data.rows`).
+- **Configuration**: Include/exclude filtering (default: `DTAGENT_DB.%.%` and `%.PUBLIC.%`), `min_table_bytes` (default 1GB), `max_tables` (default 500).
+- **Schedule**: Every 6 hours (00:00, 06:00, 12:00, 18:00 UTC).
+- **Status**: Disabled by default (opt-in plugin).
+- **Files**: `src/dtagent/plugins/table_health.py`, `src/dtagent/plugins/table_health.sql/`, `src/dtagent/plugins/table_health.config/`, `test/plugins/test_table_health.py`.
+- **Test coverage**: Mock fixture with 2 entries, validates metric counts across disabled_telemetry combinations.
+
+#### Phase 2: Clustering Depth Context
+
+- **Purpose**: Report clustering quality metrics for tables with a clustering key, enabling detection of degraded clustering that increases query scan costs.
+- **Architecture**: Staging-table pattern — `P_COLLECT_CLUSTERING_INFO()` iterates clustered tables from `SNOWFLAKE.ACCOUNT_USAGE.TABLES`, calls `SYSTEM$CLUSTERING_INFORMATION(table_name)` per table, and upserts results into `APP.TABLE_CLUSTERING_RESULTS`. The view `APP.V_TABLE_CLUSTERING` reads from the staging table with a 7-hour freshness gate. The agent then reads from the view in the `table_clustering` context.
+- **Why staging table**: `SYSTEM$CLUSTERING_INFORMATION()` is a per-table function, not a view — it cannot be called in a set-based query. The procedure loop + staging table pattern decouples collection from telemetry emission.
+- **Error handling**: Each per-table call is wrapped in `BEGIN … EXCEPTION WHEN statement_error` so that tables dropped since the last `ACCOUNT_USAGE` refresh are skipped with a `SYSTEM$LOG_WARN` entry rather than aborting the whole collection run.
+- **Freshness gate**: `V_TABLE_CLUSTERING` only returns rows where `COLLECTED_AT >= DATEADD(hour, -7, current_timestamp)`. This prevents stale data from being re-emitted if the clustering task is delayed or skipped.
+- **Metrics**: Four gauges — `snowflake.table.clustering.depth`, `snowflake.table.clustering.overlap`, `snowflake.table.clustering.constant_partition_ratio` (computed as `TOTAL_CONSTANT_PARTITION_COUNT / NULLIF(TOTAL_PARTITION_COUNT, 0)`), `snowflake.table.clustering.total_partitions`.
+- **Schedule**: `TASK_DTAGENT_TABLE_HEALTH_CLUSTERING` runs every 6 hours at 01:00, 07:00, 13:00, 19:00 UTC — offset by 1 hour from the storage task to avoid warehouse contention.
+- **Config gate**: `clustering_enabled: true` (default). Set to `false` to skip the `table_clustering` context entirely without disabling the plugin.
+- **New config key**: `max_clustered_tables: 100` — limits the number of tables processed per collection run.
+- **New SQL objects**: `052_t_table_clustering_results.sql`, `053_p_collect_clustering_info.sql`, `054_v_table_clustering.sql`, `802_table_health_clustering_task.sql`.
+- **Test coverage**: 4 tests — both contexts, storage-only, clustering-only, clustering disabled via config.
+
+#### Phase 3: Derived Metrics Context
+
+- **Purpose**: Compute period-over-period growth and clustering degradation signals from historical snapshots, enabling alerting on tables that are growing rapidly or whose clustering is degrading.
+- **Architecture**: Three new objects — `TABLE_HEALTH_HISTORY` (append-only snapshot table), `P_SNAPSHOT_TABLE_HEALTH()` (inserts one row per table per run by joining `V_TABLE_STORAGE` with `TABLE_CLUSTERING_RESULTS`, then prunes rows older than `history_retention_days`), and `V_TABLE_HEALTH_DERIVED` (CTE-based view using `ROW_NUMBER()` to select the two most recent snapshots per table and compute deltas).
+- **Opt-in design**: `history_retention_days: 0` (default) disables both snapshot collection and the `table_health_derived` context. Set to a positive integer (e.g. `30`) to enable. The Python plugin gates the context on `history_retention_days > 0`.
+- **Metrics**: Four gauges — `snowflake.table.growth_bytes` (byte delta), `snowflake.table.growth_pct` (percentage delta, null-safe), `snowflake.table.clustering.depth_change` (depth delta), `snowflake.table.clustering.degraded` (0/1 flag when depth increase exceeds `clustering_degradation_threshold`).
+- **Degradation threshold**: `clustering_degradation_threshold: 2` (default). Configurable per deployment.
+- **Schedule**: `TASK_DTAGENT_TABLE_HEALTH_SNAPSHOT` runs every 6 hours at 02:00, 08:00, 14:00, 20:00 UTC — offset by 2 hours from the storage task (after clustering collection at +1h has completed).
+- **New SQL objects**: `055_t_table_health_history.sql`, `056_p_snapshot_table_health.sql`, `057_v_table_health_derived.sql`, `803_table_health_snapshot_task.sql`.
+- **New config keys**: `history_retention_days: 0`, `clustering_degradation_threshold: 2`, `schedule_snapshot`.
+- **Test coverage**: 6 tests total — both contexts, derived context enabled, derived context disabled by default, storage-only, clustering-only, clustering disabled via config.
+
+### Dashboard: Warehouse Efficiency Section in Costs Monitoring
+
+- **Purpose**: Surface idle-time waste and auto-suspend misconfiguration in the existing Costs Monitoring dashboard.
+  Customers waste 20–40% of warehouse spend on idle time and suboptimal auto-suspend timeouts; these tiles make
+  that waste visible and actionable without requiring any agent code changes.
+- **Approach**: Dashboard-only change. Eight new tiles (keys `"22"`–`"29"`) appended after the existing Resource
+  Monitor Health section. One new variable `$Idle_Threshold_Pct` (text, default `"50"`) added for threshold coloring.
+  Dashboard version bumped from 20 to 21.
+- **Data sources** (all pre-existing telemetry):
+  - `snowflake.load.running` metric (warehouse\_usage plugin, `warehouse_usage_load` context) — 5-minute load
+    history intervals. `avg ≤ 0` used as idle indicator.
+  - `snowflake.warehouse.clusters.started/max/min` metrics (resource\_monitors plugin) — multi-cluster utilization.
+  - `snowflake.warehouse.is_auto_suspend`, `snowflake.warehouse.size`, `snowflake.warehouse.type`,
+    `snowflake.warehouse.scaling_policy` attributes (resource\_monitors plugin) — configuration audit.
+  - `snowflake.warehouse.event.name` / `snowflake.warehouse.event.state` dimensions (warehouse\_usage plugin) —
+    RESUME\_WAREHOUSE / SUSPEND\_WAREHOUSE events for thrashing detection.
+- **DQL patterns**:
+  - Idle ratio (tiles 23, 26): `timeseries` over `snowflake.load.running` at 5m interval → `arrayFilter(running[], {it <= 0.0})` to count idle intervals → `idle_pct = 100 * idle_intervals / total_intervals`.
+  - Credit waste (tile 26): `idle_hours = idle_intervals * 5 / 60` joined with inline `lookup` table for credits/hour by warehouse size (XS=1, S=2, M=4, L=8, XL=16, 2XL=32, 3XL=64, 4XL=128). Same lookup pattern as tile `"14"`.
+  - Suggested timeout heuristic: `idle_pct > 50% → "60s"`, `> 20% → "300s"`, else `"Keep current"`. 60 s is the Snowflake minimum billing floor.
+  - Multi-cluster (tiles 27, 28): `fetch events` from resource\_monitors plugin filtered to `clusters.max > 1`; `makeTimeseries` for trend, `summarize` for table.
+  - Thrashing (tile 29): `fetch logs` from warehouse\_usage plugin, filter `event.state == "STARTED"` to count only initiating events (not completions), `makeTimeseries count()` by event name + warehouse.
+  - All tiles use `dsoa.run.plugin` (not `dsoa.run.context`) for plugin-level filtering, consistent with multi-context plugins.
+  - Serverless warehouses excluded via `filterOut snowflake.warehouse.type == "SNOWPARK-OPTIMIZED"` in tiles 25 and 26.
+- **Variable filters**: All new tiles apply the standard three-filter pattern: `in(deployment.environment, array($Accounts))` + `iAny(startsWith(..., concat(array($Prefix)[], "_")))` + `in(snowflake.warehouse.name, array($Warehouses))`.
+- **Layout**: New section occupies y=78–107 (rows 78–107). Tiles 23/24 share a row (idle table + trend chart). Tiles 27/28 share a row (multi-cluster trend + idle clusters table).
+- **Known limitations**:
+  - `snowflake.load.running = 0` means no active queries but the warehouse may still be in a provisioning or quiescing state; idle estimate is conservative (may slightly overcount).
+  - Credit waste estimates assume uniform 5-minute billing intervals; actual billing uses 60-second minimum floor.
+  - `$Idle_Threshold_Pct` threshold in tile 23 uses a string variable in a numeric comparator — verify rendering on tenant (DQL may require `toDouble($Idle_Threshold_Pct)`).
+- **Files changed**: `docs/dashboards/costs-monitoring/costs-monitoring.yml`, `docs/dashboards/costs-monitoring/readme.md`, `docs/CHANGELOG.md`, `docs/DEVLOG.md`.
 
 ### Performance and Memory Handling Improvements
 

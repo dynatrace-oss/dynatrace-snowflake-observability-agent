@@ -40,22 +40,53 @@ core:
     api_integration:
       name: "" # Default: DTAGENT_API_INTEGRATION
 agent:
-  gc_collect_interval: 100  # GC interval in number of processed entries; overrides otel.performance.gc_interval (default: 100)
-  memory_tracking_enabled: false  # Emit dsoa.agent.memory.peak_rss metric after each plugin run (default: false)
+  gc_collect_interval: 100 # GC interval in number of processed entries; overrides otel.performance.gc_interval (default: 100)
+  memory_tracking_enabled: false # Emit dsoa.agent.memory.peak_rss metric after each plugin run (default: false)
 otel:
   performance:
-    gc_interval: 100  # Garbage collection interval in number of processed entries (default: 100)
-    spans_batch_flush_size: 50  # Flush spans/metrics every N rows in _process_span_rows (default: 50)
-    logs_batch_flush_size: 100  # Flush events/metrics/logs every N entries in _log_entries (default: 100)
+    gc_interval: 100 # Garbage collection interval in number of processed entries (default: 100)
+    spans_batch_flush_size: 50 # Flush spans/metrics every N rows in _process_span_rows (default: 50)
+    logs_batch_flush_size: 100 # Flush events/metrics/logs every N entries in _log_entries (default: 100)
 plugins:
   disabled_by_default: false
   deploy_disabled_plugins: true
+  resource_monitors:
+    credits_quota_thresholds:
+      # Default alert bands (% of quota used). Monotonically increasing, all values in (0, 100].
+      defaults: [50, 80, 90, 100]
+      # Per-monitor overrides — key is UPPERCASE resource monitor name.
+      # Example:
+      #   PROD_ANALYTICS_MONITOR: [70, 85, 95, 100]
+      overrides: {}
+      # Minutes between ACTIVE keep-alive events while quota remains in an alert band.
+      active_keepalive_timeout_minutes: 60
   self_monitoring:
     send_bizevents_on_deploy: true
     send_bizevents_on_run: true
+  table_health:
+    include:
+      - DTAGENT_DB.%.%
+      - '%.PUBLIC.%'
+    exclude:
+      - '%.INFORMATION_SCHEMA.%'
+      - '%.%.TMP_%'
+    min_table_bytes: 1073741824
+    max_tables: 500
+    max_clustered_tables: 100
+    clustering_enabled: true
+    history_retention_days: 0
+    clustering_degradation_threshold: 2
+    schedule: USING CRON 0 0,6,12,18 * * * UTC
+    schedule_clustering: USING CRON 0 1,7,13,19 * * * UTC
+    schedule_snapshot: USING CRON 0 2,8,14,20 * * * UTC
+    is_disabled: true
+    telemetry:
+      - metrics
+      - biz_events
   query_history:
     max_entries: 0
     max_lookback_minutes: 120
+    cache_ttl_hours: 4
     include_warehouses: []
     exclude_warehouses:
       - DTAGENT_WH

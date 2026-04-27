@@ -6,8 +6,6 @@ This directory contains example Dynatrace dashboards designed to visualize and a
 - [Available Dashboards](#available-dashboards)
   - [DSOA Self-Monitoring](#dsoa-self-monitoring)
   - [Snowflake Query Performance](#snowflake-query-performance)
-  - [Snowflake Query Quality](#snowflake-query-quality)
-  - [Costs Monitoring](#costs-monitoring)
   - [Snowflake Consumption (Organization Level)](#snowflake-consumption-organization-level)
   - [Tasks \& Pipelines Monitoring](#tasks--pipelines-monitoring)
   - [Snowpipes Monitoring](#snowpipes-monitoring)
@@ -76,31 +74,21 @@ Each JSON file is named after its dashboard title (e.g., `Costs Monitoring.json`
 **DPO Theme**: Performance
 
 ---
-
-### [Snowflake Query Quality](query-quality/)
-
 **Purpose**: Detect queries with full cartesian joins that indicate potential quality issues.
 
 **Key Features**:
 
 - Identify queries producing cartesian products (unintended cross joins)
 - Track cartesian join trends over time by environment, operation, and user
-- Analyze distribution of cartesian joins across different dimensions
 - Detailed query logs with execution metadata for investigation
-
 **Required Plugin**: `query_history`
-
 **DPO Theme**: Quality
 
 ---
 
-### [Costs Monitoring](costs-monitoring/)
-
 **Purpose**: Monitor and optimize Snowflake resource costs and credit consumption.
-
 **Key Features**:
 
-- Track credit usage over time with forecasting capabilities
 - Monitor credit quota utilization for resource monitors
 - Identify warehouses missing resource monitor assignments
 - Analyze warehouse performance metrics (execution time, queuing, delays)
