@@ -40,12 +40,13 @@ grant select, truncate, insert on table DTAGENT_DB.APP.TMP_QUERY_OPERATOR_STATS 
 
 
 create or replace procedure DTAGENT_DB.APP.P_REFRESH_RECENT_QUERIES()
-returns text
+returns object
 language sql
 execute as caller
 as
 $$
 DECLARE
+    v_max_entries           INT DEFAULT CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.max_entries', 0)::int;
     in_tmp_table_reset      TEXT DEFAULT 'insert into DTAGENT_DB.APP.TMP_RECENT_QUERIES select *, false as IS_PARENT, false as IS_ROOT from DTAGENT_DB.APP.V_QUERY_HISTORY_INSTRUMENTED;';
     up_tmp_table_is_parent  TEXT DEFAULT 'update DTAGENT_DB.APP.TMP_RECENT_QUERIES set IS_PARENT = TRUE where QUERY_ID in (select distinct PARENT_QUERY_ID from DTAGENT_DB.APP.TMP_RECENT_QUERIES);';
     up_tmp_table_is_root    TEXT DEFAULT 'update DTAGENT_DB.APP.TMP_RECENT_QUERIES set IS_ROOT = TRUE where PARENT_QUERY_ID is null or PARENT_QUERY_ID not in (select distinct QUERY_ID from DTAGENT_DB.APP.TMP_RECENT_QUERIES);';
@@ -128,6 +129,8 @@ DECLARE
                                         ;
     query_id                VARCHAR DEFAULT '';
     query_operator_stats    ARRAY;
+    v_total_available       INT DEFAULT 0;
+    v_total_processed       INT DEFAULT 0;
 
 BEGIN
     EXECUTE IMMEDIATE :tr_tmp_table_recent;
@@ -152,7 +155,17 @@ BEGIN
         CLOSE c_query_operator_stats;
     END FOR;
 
-    RETURN 'tables APP.TMP_RECENT_QUERIES, APP.TMP_QUERY_OPERATOR_STATS updated';
+    -- Get counts for self-monitoring
+    select count(*) into v_total_processed from APP.TMP_RECENT_QUERIES;
+    select coalesce(max(_TOTAL_AVAILABLE), 0) into v_total_available from APP.TMP_RECENT_QUERIES;
+
+    RETURN object_construct(
+        'status', 'success',
+        'total_processed', v_total_processed,
+        'total_available', v_total_available,
+        'max_entries_applied', v_max_entries > 0,
+        'max_entries_value', v_max_entries
+    );
 
 EXCEPTION
   when statement_error then
