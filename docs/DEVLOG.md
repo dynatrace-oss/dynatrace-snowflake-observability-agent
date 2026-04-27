@@ -2,6 +2,183 @@
 
 This file documents detailed technical changes, internal refactorings, and development notes. For user-facing highlights, see [CHANGELOG.md](CHANGELOG.md).
 
+## [Unreleased] — Snowflake Consumption Dashboard Phase B
+
+### Dashboard Phase B: §1 Contract Capacity KPIs + §3 USD Consumption + Workflow Fix
+
+**Scope**: Phase B of the org-level consumption dashboard. Appends tiles `"14"`–`"24"` to the
+existing dashboard (UUID `6881ff48-0945-4e94-94af-2e4bb338724e`). Bumps version to 3.
+
+**§1 Contract Capacity KPIs** (tiles 14–20, inserted at top via layout y=0..12):
+
+- **Capacity Used (USD)** (tile 15, singleValue): `sum(snowflake.org.billing.amount)` over the
+  selected timeframe. Uses `arraySum` to correctly total daily billing rows.
+- **Remaining Capacity (USD)** (tile 16, singleValue): `last(capacity_balance) + last(rollover_balance)`.
+  Uses `avg()` on both metrics (one row per org per day) then takes the last array value.
+- **30-Day Run Rate (USD)** (tile 17, singleValue): `sum(billing.amount)` with explicit `from: now()-30d`
+  to pin the window regardless of the dashboard timeframe selector.
+- **YoY Burn Rate** (tile 18, table): Two `timeseries` pipes (current 30d and previous 30d) combined
+  via `append` + `summarize` to produce `current_usd`, `previous_usd`, annualized run rates, and
+  `pct_change`. DQL `join` across time windows is not supported, so `append` + aggregate is used.
+- **Estimated Days to Overage** (tile 19, singleValue): Derived from 30-day balance burn:
+  `balance_end / monthly_burn * 30`. Returns `-1` when burn rate is zero or negative (balance growing).
+- **Projected Overage Date** (tile 20, table): Computes `days_to_overage` then formats as a timestamp
+  string using `formatTimestamp(now() + toTimespan(...))`. Returns "No overage projected" when
+  days_to_overage ≤ 0.
+
+**§3 USD Consumption** (tiles 21–24, inserted after §2 at y=26..39):
+
+- Markdown header tile (21) includes the credit-rate fallback note inline.
+- Line chart (22): `billing.amount` by account over time.
+- Bar chart (23): `billing.amount` summarized by service type.
+- Table (24): total USD per account using `arraySum` (not `arrayAvg`) because billing rows are
+  daily totals that should be summed, not averaged.
+
+**Workflow fix** (`docs/workflows/org-contract-balance-warning/org-contract-balance-warning.yml`):
+Replaced five non-existent `snowflake.org.balance.*.remaining` metric IDs with the real keys:
+`snowflake.org.billing.free_usage_balance`, `capacity_balance`, `on_demand_consumption`,
+`rollover_balance`, `overage`. Updated `metricsClient.query` selector from `:last` to `:avg:last`
+to match the `avg()` aggregation used in the dashboard (one row per org per day).
+
+**Layout strategy**: New §1 tiles use keys `"14"`–`"20"` at y=0..12. Existing §2 tiles (`"0"`–`"3"`)
+shift to y=13..25. New §3 tiles use keys `"21"`–`"24"` at y=26..39. Existing §4–§6 tiles shift
+accordingly. No tile keys were renumbered — only layout `y` coordinates changed.
+
+---
+
+## [Unreleased] — Snowflake Consumption Dashboard Phase C
+
+### Dashboard: §7 Department / BU View
+
+**Scope**: Phase C of the org-level consumption dashboard. Appends §7 Department / BU View
+(tiles "25"–"29") to `docs/dashboards/org-costs-observability/org-costs-observability.yml`.
+Coordinates with Phase B (tiles "14"–"24") which landed concurrently.
+
+**Changes**:
+
+- **§7 Department / BU View** (5 tiles):
+  - Markdown header with inline usage note for `$bu_mapping` variable.
+  - Bar chart: credits by account (`snowflake.org.credits.used`, summarized, `bu = "Unassigned"`).
+  - Bar chart: USD billing by account (`snowflake.org.billing.amount`, `arraySum`, `bu = "Unassigned"`).
+  - Bar chart: storage by account (`snowflake.org.storage.bytes`, avg, bytes `unitsOverrides`, `bu = "Unassigned"`).
+  - Table: account-to-BU mapping view (account + bu columns, sorted by account).
+- **Layout**: tiles placed at y=67–81 (after §6 Billing at y=60–67). Three bar charts side-by-side
+  (8 cols each), table full-width below.
+- **`readme.md`** updated: §7 tile inventory table added; BU Mapping Configuration section added
+  with JSON format, example, and v1 limitation note.
+
+**v1 BU mapping design decision**:
+
+DQL does not support dynamic JSON key-indexing against a variable string at query time. The
+`$bu_mapping` variable holds a JSON object `{"ACCOUNT": "BU"}`, but there is no native DQL
+operator to look up a field value as a key in that JSON at runtime. Options considered:
+
+1. **Hardcoded `if/matchesRegex` chain** — requires dashboard edits per customer; not scalable.
+2. **Grail lookup tables** — not yet available in DSOA's target tenant tier; planned for a
+   future release.
+3. **`fieldsAdd bu = "Unassigned"` (chosen for v1)** — all accounts show as "Unassigned" by
+   default. Customers who need BU grouping can use the `$bu_mapping` variable as documentation
+   of intent and wait for the lookup-table enhancement, or apply OpenPipeline enrichment rules
+   externally to add a `bu` attribute to the metric data.
+
+The `$bu_mapping` variable is retained in the dashboard as a placeholder and configuration
+anchor. Pattern-based mapping (SQL LIKE / regex) is tracked as a future enhancement.
+
+---
+
+## [Unreleased] — Snowflake Consumption Dashboard Phase A
+
+### Dashboard Overhaul: Snowflake Consumption (Organization Level)
+
+**Scope**: Phase A of the org-level consumption dashboard. Extends `docs/dashboards/org-costs-observability/`
+in place (preserves deployed UUID `6881ff48-0945-4e94-94af-2e4bb338724e`). Bumps version to 2.
+
+**Changes**:
+
+- **Title** updated from `Org-Level Costs Observability` to `Snowflake Consumption (Organization Level)`.
+- **Variables** replaced: `$Accounts` (query, multi-select, uses `fetch logs` with `dsoa.run.plugin == "org_costs"`
+  to avoid empty-variable risk); `$credit_rate` (hidden text, default `"3.00"`, reserved for Phase B);
+  `$bu_mapping` (hidden text, default `"{}"`, reserved for Phase C BU grouping).
+- **§2 Credit Consumption** (3 tiles): line chart of credits over time by account; bar chart of credits
+  by service type; table of compute + cloud_services + total credits by account.
+- **§4 Storage** (3 tiles): line chart of storage bytes over time by account; bar chart by storage type;
+  table of total bytes by account. All byte fields have `unitsOverrides` with `unitCategory: data`.
+- **§5 Data Transfer** (2 tiles): line chart of transfer bytes over time; table by source/target cloud
+  and region. Byte fields have `unitsOverrides`.
+- **§6 Billing & Contract Balance** (2 tiles): billing amount line chart; Remaining Contract Balance
+  tile **fixed** — old query used non-existent `snowflake.org.balance.*.remaining` metric keys.
+  New query uses real keys: `snowflake.org.billing.capacity_balance`, `rollover_balance`,
+  `free_usage_balance`, `on_demand_consumption`, `overage`. Uses `avg()` (not `sum()`) because
+  `REMAINING_BALANCE_DAILY` emits one row per org per day.
+- **`instruments-def.yml`** updated: added `snowflake.storage.type` as a declared dimension for
+  `org_costs_storage` context (was emitted by the SQL view but not declared in the semantic dictionary).
+- **`readme.md`** updated: new title, 3-variable table, full Phase-A tile inventory, Phase B/C roadmap notes.
+- **`docs/dashboards/README.md`** updated: entry renamed and description expanded.
+
+**Metric-name bug root cause**: The original dashboard was authored before the `org_billing_remaining_balance`
+context was finalized. The metric keys `snowflake.org.balance.*.remaining` were placeholder names that
+never matched the emitted keys. The correct keys are in `instruments-def.yml` under `org_billing_remaining_balance`.
+
+**Phase plan**:
+
+- Phase A (this change): §2 Credits, §4 Storage, §5 Data Transfer, §6 Billing/Balance fix.
+- Phase B (future): §1 Contract Capacity KPIs (single-value tiles for capacity used, remaining, burn rate,
+  days to overage, overage date) and §3 USD Consumption. Requires billing context data.
+- Phase C (future): §6 Department/BU View using `$bu_mapping` JSON variable for account-to-BU grouping.
+
+---
+
+## [Unreleased] — org_costs Plugin: Organization-Level Costs and Usage
+
+### org_costs Plugin — Full Implementation
+
+**Scope**: New `org_costs` plugin collecting organization-level cost and usage metrics from
+`SNOWFLAKE.ORGANIZATION_USAGE`. Five contexts, disabled by default, 6-hour cron schedule.
+
+**Architecture**:
+
+- **`src/dtagent/plugins/org_costs.py`**: Multi-context plugin following the `warehouse_usage`
+  pattern. Registers five contexts via `process()` dispatching to private per-context methods.
+- **Five views** (`051`–`055`):
+  - `V_ORG_METERING_DAILY` — credit consumption by service type and service name
+  - `V_ORG_STORAGE_DAILY` — storage bytes by storage type and account locator
+  - `V_ORG_DATA_TRANSFER_DAILY` — data transfer bytes by cloud, region, and transfer type
+  - `V_ORG_BILLING_USAGE_IN_CURRENCY` — billed amounts in contract currency by account and service
+  - `V_ORG_BILLING_REMAINING_BALANCE` — five balance categories (free usage, capacity, on-demand,
+    rollover, total)
+- **Metrics** (10 total): `snowflake.org.credits.used`, `snowflake.org.credits.cloud_services`,
+  `snowflake.org.storage.bytes`, `snowflake.org.transfer.bytes`, `snowflake.org.billing.amount`,
+  and five `snowflake.org.balance.*.remaining` metrics.
+- **Admin proc** (`admin/050_p_check_organization_usage_access.sql`): Diagnostic stored procedure
+  `DTAGENT_DB.APP.P_CHECK_ORGANIZATION_USAGE_ACCESS()` that can be called manually after
+  deployment to verify ORGANIZATION_USAGE access. Returns a success or failure message.
+- **Deploy advisory** (`scripts/deploy/lib.sh::check_org_costs_access()`): Non-blocking warning
+  emitted during `prepare_deploy_script.sh` when `org_costs` is in scope and not excluded. Reminds
+  operators to verify ORGADMIN access before enabling the plugin.
+
+**Test coverage**: Five tests in `test/plugins/test_org_costs.py` using mock NDJSON fixtures.
+Each test exercises multiple `disabled_telemetry` combos and validates metric counts against
+golden files in `test/test_results/`.
+
+**Dashboards**:
+
+- New **`Org-Level Costs Observability`** dashboard (`docs/dashboards/org-costs-observability/`):
+  9 tiles covering all five metric groups. UUID `6881ff48-0945-4e94-94af-2e4bb338724e`.
+- Extended **`Costs Monitoring`** dashboard with org-level credits overview section (tiles 22/23,
+  version bumped to 21).
+
+**Workflow**: New **`Org Contract Balance Warning`** (`docs/workflows/org-contract-balance-warning/`):
+6-hour schedule, queries five `snowflake.org.billing.*` metrics (`capacity_balance`,
+`rollover_balance`, `free_usage_balance`, `on_demand_consumption`, `overage`) and logs alert if any
+drops below configurable threshold.
+
+**Doc updates**: `docs/USECASES.md` extended with "Costs — Tier 0 — Organization-Level FinOps"
+section (3 new use cases). `docs/dashboards/README.md` and `docs/workflows/README.md` updated.
+
+---
+
+## [Unreleased] — BDX-1969: Interactive Deployment Wizard
+
 ## [Unreleased]: Acquisition Problem Detection
 
 ### Motivation

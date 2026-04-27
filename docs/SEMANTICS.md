@@ -45,6 +45,12 @@
 | observed_timestamp                 | The timestamp (in epoch nanoseconds) when the event was observed.                                                                                                                                                  | 1741768500000000000                  |
 | snowflake.&#8203;event.&#8203;type | Type of (timestamp based) event                                                                                                                                                                                    | snowflake.table.update               |
 
+### Metrics at the `core` plugin
+
+| Identifier                                      | Name                    | Unit | Description                                                                                            | Example |
+| ----------------------------------------------- | ----------------------- | ---- | ------------------------------------------------------------------------------------------------------ | ------- |
+| dsoa.&#8203;agent.&#8203;memory.&#8203;peak_rss | Agent Peak Memory (RSS) | MB   | Peak resident set size (RSS) of the agent process in megabytes, sampled after each plugin context run. | 42.5    |
+
 <a name="active_queries_semantics_sec"></a>
 
 ## The `Active Queries` plugin semantics
@@ -423,7 +429,7 @@ check the `Context Name` column below.
 | snowflake.&#8203;account.&#8203;name                  | The name of the Snowflake account within the organization.        | MYORG-ACCOUNT1     | org_costs_metering, org_costs_storage, org_costs_data_transfer, org_billing_usage_in_currency, org_billing_remaining_balance |
 | snowflake.&#8203;org.&#8203;billing.&#8203;currency   | The currency in which billing usage amounts are denominated.      | USD                | org_billing_usage_in_currency                                                                                                |
 | snowflake.&#8203;service.&#8203;type                  | The Snowflake service type that consumed the credits.             | WAREHOUSE_METERING | org_costs_metering, org_billing_usage_in_currency                                                                            |
-| snowflake.&#8203;storage.&#8203;type                  | The type of storage being measured (e.g. TABLE, STAGE, FAILSAFE). | TABLE              | org_costs_storage                                                                                                            |
+| snowflake.&#8203;storage.&#8203;type                  | The type of storage (e.g. STAGE, FAILSAFE, HYBRID_TABLE_STORAGE). | STAGE              | org_costs_storage                                                                                                            |
 | snowflake.&#8203;transfer.&#8203;source.&#8203;cloud  | The cloud provider of the data transfer source.                   | AWS                | org_costs_data_transfer                                                                                                      |
 | snowflake.&#8203;transfer.&#8203;source.&#8203;region | The region of the data transfer source.                           | US_EAST_1          | org_costs_data_transfer                                                                                                      |
 | snowflake.&#8203;transfer.&#8203;target.&#8203;cloud  | The cloud provider of the data transfer target.                   | AZURE              | org_costs_data_transfer                                                                                                      |
@@ -440,20 +446,20 @@ check the `Context Name` column below.
 
 ### Metrics at the `Org Costs` plugin
 
-| Identifier                                                           | Name                                 | Unit     | Description                                                                  | Example      | Context Name                  |
-| -------------------------------------------------------------------- | ------------------------------------ | -------- | ---------------------------------------------------------------------------- | ------------ | ----------------------------- |
-| snowflake.&#8203;org.&#8203;billing.&#8203;amount                    | Org Billing Amount in Currency       | currency | The billing amount in currency for the account on the given day.             | 150.50       | org_billing_usage_in_currency |
-| snowflake.&#8203;org.&#8203;billing.&#8203;capacity_balance          | Org Billing Capacity Balance         | currency | Remaining capacity balance for the organization contract.                    | 10000.0      | org_billing_remaining_balance |
-| snowflake.&#8203;org.&#8203;billing.&#8203;free_usage_balance        | Org Billing Free Usage Balance       | currency | Remaining free usage balance for the organization contract.                  | 200.0        | org_billing_remaining_balance |
-| snowflake.&#8203;org.&#8203;billing.&#8203;on_demand_consumption     | Org Billing On-Demand Consumption    | currency | On<br>-demand consumption amount charged against the organization contract.  | 100.0        | org_billing_remaining_balance |
-| snowflake.&#8203;org.&#8203;billing.&#8203;overage                   | Org Billing Overage                  | currency | Overage amount charged beyond contracted capacity.                           | 0.0          | org_billing_remaining_balance |
-| snowflake.&#8203;org.&#8203;billing.&#8203;rollover_balance          | Org Billing Rollover Balance         | currency | Remaining rollover balance for the organization contract.                    | 500.0        | org_billing_remaining_balance |
-| snowflake.&#8203;org.&#8203;credits.&#8203;adjustment_cloud_services | Org Cloud Services Credit Adjustment | credits  | Credit adjustment for cloud services (10% rule offset).                      | -0.5         | org_costs_metering            |
-| snowflake.&#8203;org.&#8203;credits.&#8203;cloud_services            | Org Cloud Services Credits Used      | credits  | Credits used for cloud services by the account on the given day.             | 1.2          | org_costs_metering            |
-| snowflake.&#8203;org.&#8203;credits.&#8203;compute                   | Org Compute Credits Used             | credits  | Credits used for compute by the account on the given day.                    | 8.0          | org_costs_metering            |
-| snowflake.&#8203;org.&#8203;credits.&#8203;used                      | Org Total Credits Used               | credits  | Total credits used by the account on the given day across all service types. | 9.2          | org_costs_metering            |
-| snowflake.&#8203;org.&#8203;storage.&#8203;bytes                     | Org Storage Bytes                    | Byte     | Average daily storage bytes used by the account for the given storage type.  | 107374182400 | org_costs_storage             |
-| snowflake.&#8203;org.&#8203;transfer.&#8203;bytes                    | Org Data Transfer Bytes              | Byte     | Bytes transferred between clouds or regions on the given day.                | 2147483648   | org_costs_data_transfer       |
+| Identifier                                                           | Name                                 | Unit     | Description                                                                        | Example       | Context Name                  |
+| -------------------------------------------------------------------- | ------------------------------------ | -------- | ---------------------------------------------------------------------------------- | ------------- | ----------------------------- |
+| snowflake.&#8203;org.&#8203;billing.&#8203;amount                    | Org Billing Amount in Currency       | currency | The billing amount in currency for the account on the given day.                   | 150.50        | org_billing_usage_in_currency |
+| snowflake.&#8203;org.&#8203;billing.&#8203;capacity_balance          | Org Billing Capacity Balance         | currency | Remaining capacity balance for the organization contract.                          | 10000.0       | org_billing_remaining_balance |
+| snowflake.&#8203;org.&#8203;billing.&#8203;free_usage_balance        | Org Billing Free Usage Balance       | currency | Remaining free usage balance for the organization contract.                        | 200.0         | org_billing_remaining_balance |
+| snowflake.&#8203;org.&#8203;billing.&#8203;on_demand_consumption     | Org Billing On-Demand Consumption    | currency | On<br>-demand consumption amount charged against the organization contract.        | 100.0         | org_billing_remaining_balance |
+| snowflake.&#8203;org.&#8203;billing.&#8203;overage                   | Org Billing Overage                  | currency | Overage amount charged beyond contracted capacity.                                 | 0.0           | org_billing_remaining_balance |
+| snowflake.&#8203;org.&#8203;billing.&#8203;rollover_balance          | Org Billing Rollover Balance         | currency | Remaining rollover balance for the organization contract.                          | 500.0         | org_billing_remaining_balance |
+| snowflake.&#8203;org.&#8203;credits.&#8203;adjustment_cloud_services | Org Cloud Services Credit Adjustment | credits  | Credit adjustment for cloud services (10% rule offset).                            | -0.5          | org_costs_metering            |
+| snowflake.&#8203;org.&#8203;credits.&#8203;cloud_services            | Org Cloud Services Credits Used      | credits  | Credits used for cloud services by the account on the given day.                   | 1.2           | org_costs_metering            |
+| snowflake.&#8203;org.&#8203;credits.&#8203;compute                   | Org Compute Credits Used             | credits  | Credits used for compute by the account on the given day.                          | 8.0           | org_costs_metering            |
+| snowflake.&#8203;org.&#8203;credits.&#8203;used                      | Org Total Credits Used               | credits  | Total credits used by the account on the given day across all service types.       | 9.2           | org_costs_metering            |
+| snowflake.&#8203;org.&#8203;data.&#8203;stored                       | Org Data Stored                      | Byte     | Total storage bytes used by the account on the given day across all storage types. | 1099511627776 | org_costs_storage             |
+| snowflake.&#8203;org.&#8203;data.&#8203;transferred                  | Org Data Transfer Bytes              | Byte     | Bytes transferred between clouds or regions on the given day.                      | 2147483648    | org_costs_data_transfer       |
 
 <a name="query_history_semantics_sec"></a>
 

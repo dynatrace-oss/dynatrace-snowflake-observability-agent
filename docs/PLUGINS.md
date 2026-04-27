@@ -995,7 +995,7 @@ GRANT ROLE ORGADMIN TO ROLE DTAGENT_OWNER;
 ## Contexts
 
 | Context                         | Source view                                      | Telemetry     |
-| ------------------------------- | ------------------------------------------------ | ------------- |
+|---------------------------------|--------------------------------------------------|---------------|
 | `org_costs_metering`            | `ORGANIZATION_USAGE.METERING_DAILY_HISTORY`      | metrics, logs |
 | `org_costs_storage`             | `ORGANIZATION_USAGE.STORAGE_DAILY_HISTORY`       | metrics, logs |
 | `org_costs_data_transfer`       | `ORGANIZATION_USAGE.DATA_TRANSFER_DAILY_HISTORY` | metrics, logs |
@@ -1012,7 +1012,7 @@ day.
 ### org_costs_metering
 
 | Metric                                            | Unit    | Description                                 |
-| ------------------------------------------------- | ------- | ------------------------------------------- |
+|---------------------------------------------------|---------|---------------------------------------------|
 | `snowflake.org.credits.used`                      | credits | Total credits used by account per day       |
 | `snowflake.org.credits.compute`                   | credits | Compute credits used per day                |
 | `snowflake.org.credits.cloud_services`            | credits | Cloud services credits used per day         |
@@ -1021,25 +1021,25 @@ day.
 ### org_costs_storage
 
 | Metric                        | Unit | Description                                 |
-| ----------------------------- | ---- | ------------------------------------------- |
+|-------------------------------|------|---------------------------------------------|
 | `snowflake.org.storage.bytes` | Byte | Storage bytes used per storage type per day |
 
 ### org_costs_data_transfer
 
 | Metric                         | Unit | Description                                      |
-| ------------------------------ | ---- | ------------------------------------------------ |
+|--------------------------------|------|--------------------------------------------------|
 | `snowflake.org.transfer.bytes` | Byte | Bytes transferred between clouds/regions per day |
 
 ### org_billing_usage_in_currency
 
 | Metric                         | Unit     | Description                                         |
-| ------------------------------ | -------- | --------------------------------------------------- |
+|--------------------------------|----------|-----------------------------------------------------|
 | `snowflake.org.billing.amount` | currency | Billing amount in currency per service type per day |
 
 ### org_billing_remaining_balance
 
 | Metric                                        | Unit     | Description                                    |
-| --------------------------------------------- | -------- | ---------------------------------------------- |
+|-----------------------------------------------|----------|------------------------------------------------|
 | `snowflake.org.billing.capacity_balance`      | currency | Remaining contracted capacity balance          |
 | `snowflake.org.billing.rollover_balance`      | currency | Remaining rollover balance                     |
 | `snowflake.org.billing.free_usage_balance`    | currency | Remaining free usage balance                   |
@@ -1089,7 +1089,7 @@ plugins:
 ```
 
 | Key                                                                    | Type   | Default                             | Description                                                                                                                                                                                                        |
-| ---------------------------------------------------------------------- | ------ | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+|------------------------------------------------------------------------|--------|-------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `plugins.org_costs.lookback_hours`                                     | int    | `48`                                | How far back (in hours) the plugin looks for organization usage data on each run. A 48-hour window accommodates Snowflake's ~2-hour view latency and ensures no daily records are missed across collection cycles. |
 | `plugins.org_costs.schedule`                                           | string | `USING CRON 0 */6 * * * UTC`        | Cron schedule for the org costs collection task (every 6 hours).                                                                                                                                                   |
 | `plugins.org_costs.is_disabled`                                        | bool   | `true`                              | Set to `false` to enable this plugin. Requires `SNOWFLAKE.ORGANIZATION_USAGE_VIEWER` database role granted to `DTAGENT_VIEWER` (see readme).                                                                       |
@@ -1107,7 +1107,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 #### Objects delivered by the `Org Costs` plugin
 
 | Name                                               | Type      |
-| -------------------------------------------------- | --------- |
+|----------------------------------------------------|-----------|
 | DTAGENT_DB.APP.V_ORG_METERING_DAILY                | view      |
 | DTAGENT_DB.APP.V_ORG_STORAGE_DAILY                 | view      |
 | DTAGENT_DB.APP.V_ORG_DATA_TRANSFER_DAILY           | view      |
@@ -1120,7 +1120,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 #### Objects referenced by the `Org Costs` plugin
 
 | Name                                                     | Type | Privileges |
-| -------------------------------------------------------- | ---- | ---------- |
+|----------------------------------------------------------|------|------------|
 | SNOWFLAKE.ORGANIZATION_USAGE.METERING_DAILY_HISTORY      | view | SELECT     |
 | SNOWFLAKE.ORGANIZATION_USAGE.USAGE_IN_CURRENCY_DAILY     | view | SELECT     |
 | SNOWFLAKE.ORGANIZATION_USAGE.REMAINING_BALANCE_DAILY     | view | SELECT     |
