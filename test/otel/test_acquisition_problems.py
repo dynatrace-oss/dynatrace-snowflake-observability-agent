@@ -136,7 +136,6 @@ class TestGetTableRowsSqlErrors:
 
     def test_clean_query_no_problem(self):
         """A successful query produces no acquisition problem."""
-        from dtagent.plugins import is_select_for_table
 
         plugin = self._make_plugin_instance()
         mock_df = MagicMock()
