@@ -15,7 +15,9 @@ delivers:
     type: view
   - name: DTAGENT_DB.APP.V_RECENT_QUERIES
     type: view
-  - name: DTAGENT_DB.CONFIG.P_GET_ACCELERATION_ESTIMATES()
+  - name: DTAGENT_DB.APP.P_GET_ACCELERATION_ESTIMATES()
+    type: procedure
+  - name: DTAGENT_DB.APP.P_REFRESH_RECENT_QUERIES()
     type: procedure
   - name: DTAGENT_DB.CONFIG.UPDATE_QUERY_HISTORY_CONF()
     type: procedure

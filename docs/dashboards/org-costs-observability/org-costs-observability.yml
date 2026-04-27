@@ -1,0 +1,332 @@
+#
+# Copyright (c) 2025 Dynatrace Open Source
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the Software), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+#
+# DASHBOARD: Org-Level Costs Observability
+# DESCRIPTION: Organization-wide Snowflake cost and usage monitoring — credits, storage, data
+#              transfer, billing amounts, and remaining contract balance.
+# OWNER: DSOA Team
+# PLUGINS: org_costs
+# TAGS: costs, org, billing, finops
+#
+id: 6881ff48-0945-4e94-94af-2e4bb338724e
+version: 1
+variables:
+  - version: 2
+    key: Accounts
+    type: query
+    visible: true
+    editable: true
+    input: |-
+      fetch metrics
+      | metricSelector: snowflake.org.credits.used:names
+      | filter isNotNull(deployment.environment)
+      | fields deployment.environment
+      | dedup deployment.environment
+      | sort deployment.environment asc
+    multiple: true
+    defaultValue:
+      - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
+tiles:
+  "0":
+    type: markdown
+    content: "# Organization Credits"
+  "1":
+    title: Credits Used by Service Type
+    type: data
+    query: |-
+      timeseries val = sum(snowflake.org.credits.used), by: {
+          snowflake.service.type,
+          snowflake.service.name,
+          deployment.environment
+      }
+      | filter in(deployment.environment, array($Accounts))
+      | fieldsAdd snow_account = coalesce(deployment.environment, "unknown")
+      | fieldsRemove deployment.environment
+    visualization: lineChart
+    visualizationSettings:
+      chartSettings:
+        leftYAxisSettings:
+          label: Credits
+          isLabelVisible: true
+        xAxisScaling: analyzedTimeframe
+        fieldMapping:
+          leftAxisValues:
+            - val
+          timestamp: timeframe
+        gapPolicy: connect
+        legend:
+          position: bottom
+      thresholds: []
+      dataMapping:
+        displayedFields:
+          - snowflake.service.type
+          - snowflake.service.name
+          - snow_account
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+  "2":
+    title: Cloud Services Credits Adjustment
+    type: data
+    query: |-
+      timeseries val = sum(snowflake.org.credits.cloud_services), by: {
+          snowflake.service.type,
+          deployment.environment
+      }
+      | filter in(deployment.environment, array($Accounts))
+      | fieldsAdd snow_account = coalesce(deployment.environment, "unknown")
+      | fieldsRemove deployment.environment
+    visualization: lineChart
+    visualizationSettings:
+      chartSettings:
+        leftYAxisSettings:
+          label: Cloud Services Credits
+          isLabelVisible: true
+        xAxisScaling: analyzedTimeframe
+        fieldMapping:
+          leftAxisValues:
+            - val
+          timestamp: timeframe
+        gapPolicy: connect
+        legend:
+          position: bottom
+      thresholds: []
+      dataMapping:
+        displayedFields:
+          - snowflake.service.type
+          - snow_account
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+  "3":
+    type: markdown
+    content: "# Storage & Data Transfer"
+  "4":
+    title: Storage by Type and Account
+    type: data
+    query: |-
+      timeseries val = avg(snowflake.org.storage.bytes), by: {
+          snowflake.storage.type,
+          snowflake.account.locator,
+          deployment.environment
+      }
+      | filter in(deployment.environment, array($Accounts))
+      | fieldsAdd snow_account = coalesce(deployment.environment, "unknown")
+      | fieldsRemove deployment.environment
+    visualization: lineChart
+    visualizationSettings:
+      chartSettings:
+        leftYAxisSettings:
+          label: Storage (bytes)
+          isLabelVisible: true
+        xAxisScaling: analyzedTimeframe
+        fieldMapping:
+          leftAxisValues:
+            - val
+          timestamp: timeframe
+        gapPolicy: connect
+        legend:
+          position: bottom
+      thresholds: []
+      dataMapping:
+        displayedFields:
+          - snowflake.storage.type
+          - snowflake.account.locator
+          - snow_account
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+  "5":
+    title: Data Transfer Volume
+    type: data
+    query: |-
+      timeseries val = sum(snowflake.org.transfer.bytes), by: {
+          snowflake.transfer.type,
+          snowflake.source.cloud,
+          snowflake.target.cloud,
+          deployment.environment
+      }
+      | filter in(deployment.environment, array($Accounts))
+      | fieldsAdd snow_account = coalesce(deployment.environment, "unknown")
+      | fieldsRemove deployment.environment
+    visualization: lineChart
+    visualizationSettings:
+      chartSettings:
+        leftYAxisSettings:
+          label: Transfer (bytes)
+          isLabelVisible: true
+        xAxisScaling: analyzedTimeframe
+        fieldMapping:
+          leftAxisValues:
+            - val
+          timestamp: timeframe
+        gapPolicy: connect
+        legend:
+          position: bottom
+      thresholds: []
+      dataMapping:
+        displayedFields:
+          - snowflake.transfer.type
+          - snowflake.source.cloud
+          - snowflake.target.cloud
+          - snow_account
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+  "6":
+    type: markdown
+    content: "# Billing & Contract Balance"
+  "7":
+    title: Billing Amount by Service
+    type: data
+    query: |-
+      timeseries val = sum(snowflake.org.billing.amount), by: {
+          snowflake.service.type.name,
+          snowflake.account.name,
+          deployment.environment
+      }
+      | filter in(deployment.environment, array($Accounts))
+      | fieldsAdd snow_account = coalesce(deployment.environment, "unknown")
+      | fieldsRemove deployment.environment
+    visualization: lineChart
+    visualizationSettings:
+      chartSettings:
+        leftYAxisSettings:
+          label: Billing Amount
+          isLabelVisible: true
+        xAxisScaling: analyzedTimeframe
+        fieldMapping:
+          leftAxisValues:
+            - val
+          timestamp: timeframe
+        gapPolicy: connect
+        legend:
+          position: bottom
+      thresholds: []
+      dataMapping:
+        displayedFields:
+          - snowflake.service.type.name
+          - snowflake.account.name
+          - snow_account
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+  "8":
+    title: Remaining Contract Balance
+    type: data
+    query: |-
+      timeseries {
+          free_usage   = avg(snowflake.org.balance.free_usage.remaining),
+          capacity     = avg(snowflake.org.balance.capacity.remaining),
+          on_demand    = avg(snowflake.org.balance.on_demand.remaining),
+          rollover     = avg(snowflake.org.balance.rollover.remaining),
+          total        = avg(snowflake.org.balance.total.remaining)
+      }, by: {
+          deployment.environment
+      }
+      | filter in(deployment.environment, array($Accounts))
+      | fieldsAdd snow_account = coalesce(deployment.environment, "unknown")
+      | fieldsRemove deployment.environment
+    visualization: lineChart
+    visualizationSettings:
+      chartSettings:
+        leftYAxisSettings:
+          label: Remaining Balance ($)
+          isLabelVisible: true
+        xAxisScaling: analyzedTimeframe
+        fieldMapping:
+          leftAxisValues:
+            - free_usage
+            - capacity
+            - on_demand
+            - rollover
+            - total
+          timestamp: timeframe
+        gapPolicy: connect
+        legend:
+          position: bottom
+      thresholds: []
+      dataMapping:
+        displayedFields:
+          - snow_account
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+layouts:
+  "0":
+    x: 0
+    "y": 0
+    w: 24
+    h: 1
+  "1":
+    x: 0
+    "y": 1
+    w: 12
+    h: 6
+  "2":
+    x: 12
+    "y": 1
+    w: 12
+    h: 6
+  "3":
+    x: 0
+    "y": 7
+    w: 24
+    h: 1
+  "4":
+    x: 0
+    "y": 8
+    w: 12
+    h: 6
+  "5":
+    x: 12
+    "y": 8
+    w: 12
+    h: 6
+  "6":
+    x: 0
+    "y": 14
+    w: 24
+    h: 1
+  "7":
+    x: 0
+    "y": 15
+    w: 12
+    h: 6
+  "8":
+    x: 12
+    "y": 15
+    w: 12
+    h: 6
+settings:
+  defaultTimeframe:
+    value:
+      from: now()-14d
+      to: now()
+    enabled: true
+importedWithCode: false
+name: Org-Level Costs Observability

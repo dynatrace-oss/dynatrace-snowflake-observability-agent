@@ -6,10 +6,10 @@ This directory contains example Dynatrace dashboards designed to visualize and a
 - [Available Dashboards](#available-dashboards)
   - [DSOA Self-Monitoring](#dsoa-self-monitoring)
   - [Snowflake Query Performance](#snowflake-query-performance)
-  - [Snowflake Query Quality](#snowflake-query-quality)
-  - [Costs Monitoring](#costs-monitoring)
+  - [Org-Level Costs Observability](#org-level-costs-observability)
   - [Tasks \& Pipelines Monitoring](#tasks--pipelines-monitoring)
   - [Snowpipes Monitoring](#snowpipes-monitoring)
+  - [Budgets \& FinOps](#budgets--finops)
   - [Snowflake Query Deep Dive](#snowflake-query-deep-dive)
   - [Data Volume \& Storage](#data-volume--storage)
   - [Snowflake Security](#snowflake-security)
@@ -74,31 +74,21 @@ Each JSON file is named after its dashboard title (e.g., `Costs Monitoring.json`
 **DPO Theme**: Performance
 
 ---
-
-### [Snowflake Query Quality](query-quality/)
-
 **Purpose**: Detect queries with full cartesian joins that indicate potential quality issues.
 
 **Key Features**:
 
 - Identify queries producing cartesian products (unintended cross joins)
 - Track cartesian join trends over time by environment, operation, and user
-- Analyze distribution of cartesian joins across different dimensions
 - Detailed query logs with execution metadata for investigation
-
 **Required Plugin**: `query_history`
-
 **DPO Theme**: Quality
 
 ---
 
-### [Costs Monitoring](costs-monitoring/)
-
 **Purpose**: Monitor and optimize Snowflake resource costs and credit consumption.
-
 **Key Features**:
 
-- Track credit usage over time with forecasting capabilities
 - Monitor credit quota utilization for resource monitors
 - Identify warehouses missing resource monitor assignments
 - Analyze warehouse performance metrics (execution time, queuing, delays)
@@ -107,6 +97,25 @@ Each JSON file is named after its dashboard title (e.g., `Costs Monitoring.json`
 **Required Plugins**: `warehouse_usage`, `resource_monitors`, `query_history`, `active_queries`
 
 **DPO Theme**: Costs, Operations
+
+---
+
+### [Org-Level Costs Observability](org-costs-observability/)
+
+**Purpose**: Monitor organization-wide Snowflake costs across all accounts in a single dashboard.
+
+**Key Features**:
+
+- Credit consumption by service type and service name across the organization
+- Cloud services credit adjustment trends
+- Organization-wide storage bytes by storage type and account locator
+- Cross-cloud and cross-region data transfer volumes
+- Billing amounts in contract currency per service type and account
+- Remaining contract balances (free usage, capacity, on-demand, rollover, total)
+
+**Required Plugin**: `org_costs` (disabled by default — requires ORGADMIN or organization-linked account)
+
+**DPO Theme**: Costs
 
 ---
 

@@ -172,7 +172,8 @@ select
         'snowflake.rows.updated',                                   qh.rows_updated,
         'snowflake.rows.deleted',                                   qh.rows_deleted,
         'snowflake.rows.unloaded',                                  qh.rows_unloaded
-    )                                                                                                                   as METRICS
+    )                                                                                                                   as METRICS,
+    qh._TOTAL_AVAILABLE                                                                                                  as _TOTAL_AVAILABLE
 from
     APP.V_QUERY_HISTORY qh
 ;

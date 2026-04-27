@@ -36,6 +36,7 @@ from dtagent.otel.metrics import Metrics
 from dtagent.otel.events.generic import GenericEvents
 from dtagent.otel.events.davis import DavisEvents
 from dtagent.otel.events.bizevents import BizEvents
+from dtagent.otel.ingest_warnings import IngestWarningCollector, AcquisitionProblemCollector
 from dtagent.version import VERSION
 from dtagent.context import get_context_name_and_run_id, RUN_VERSION_KEY  # COMPILE_REMOVE
 from dtagent.util import get_now_timestamp_formatted, is_regular_mode
@@ -172,6 +173,90 @@ class AbstractDynatraceSnowAgentConnector:
 
     def _set_max_consecutive_fails(self):
         OtelManager.set_max_fail_count(self._configuration.get("max_consecutive_api_fails", context="otel", default_value=10))
+
+    def _emit_ingest_warnings(self, plugin_name: str, run_id: str) -> None:
+        """Emits ingest-quality warning bizevents collected during a plugin run, then resets the collector.
+
+        Snapshots and clears :class:`~dtagent.otel.ingest_warnings.IngestWarningCollector` before
+        emitting so new warnings captured during emission are not silently dropped.  Emits one
+        ``dsoa.ingest.warning`` bizevent per warning entry when ``self_monitoring.detect_ingest_warnings``
+        is enabled and biz_events telemetry is allowed.
+
+        Args:
+            plugin_name (str): Name of the plugin that just finished, used as ``dsoa.run.plugin``.
+            run_id (str):      Run UUID for correlation, used as ``dsoa.run.id``.
+        """
+        warnings = IngestWarningCollector.get_warnings()
+        IngestWarningCollector.reset()
+        if (
+            warnings
+            and "biz_events" in self.telemetry_allowed
+            and self._configuration.get(plugin_name="self_monitoring", key="detect_ingest_warnings", default_value=True)
+        ):
+            for warning in warnings:
+                LOG.warning(
+                    "Ingest quality warning [%s/%s]: %s (count=%d)",
+                    warning.get("exporter", ""),
+                    warning.get("warning_type", ""),
+                    warning.get("detail", ""),
+                    warning.get("count", 0),
+                )
+                data_dict = {
+                    "event.provider": str(self._configuration.get(context="resource.attributes", key="host.name")),
+                    "dsoa.run.plugin": plugin_name,
+                    "dsoa.run.id": run_id,
+                    "dsoa.ingest.warning.type": warning.get("warning_type", ""),
+                    "dsoa.ingest.warning.exporter": warning.get("exporter", ""),
+                    "dsoa.ingest.warning.detail": warning.get("detail", ""),
+                    "dsoa.ingest.warning.count": warning.get("count", 0),
+                }
+                self._biz_events.report_via_api(
+                    query_data=[data_dict],
+                    event_type="dsoa.ingest.warning",
+                    context=get_context_name_and_run_id(plugin_name=plugin_name, context_name="self_monitoring", run_id=run_id),
+                    is_data_structured=False,
+                )
+            self._biz_events.flush_events()
+
+    def _emit_acquisition_problems(self, plugin_name: str, run_id: str) -> None:
+        """Emits data-acquisition problem bizevents collected during a plugin run, then resets the collector.
+
+        Reads all problems accumulated by
+        :class:`~dtagent.otel.ingest_warnings.AcquisitionProblemCollector` since the last reset,
+        emits one ``dsoa.acquisition.problem`` bizevent per problem entry (when
+        ``self_monitoring.detect_acquisition_problems`` is enabled and biz_events telemetry is
+        allowed), and always clears the collector afterward so problems do not leak across plugin
+        runs.
+
+        Args:
+            plugin_name (str): Name of the plugin that just finished, used as ``dsoa.run.plugin``.
+            run_id (str):      Run UUID for correlation, used as ``dsoa.run.id``.
+        """
+        try:
+            if (
+                AcquisitionProblemCollector.has_problems()
+                and "biz_events" in self.telemetry_allowed
+                and self._configuration.get(plugin_name="self_monitoring", key="detect_acquisition_problems", default_value=True)
+            ):
+                for problem in AcquisitionProblemCollector.get_problems():
+                    data_dict = {
+                        "event.provider": str(self._configuration.get(context="resource.attributes", key="host.name")),
+                        "dsoa.run.plugin": plugin_name,
+                        "dsoa.run.id": run_id,
+                        "dsoa.acquisition.problem.type": problem.get("problem_type", ""),
+                        "dsoa.acquisition.problem.source": problem.get("source", ""),
+                        "dsoa.acquisition.problem.detail": problem.get("detail", ""),
+                        "dsoa.acquisition.problem.count": problem.get("count", 0),
+                    }
+                    self._biz_events.report_via_api(
+                        query_data=[data_dict],
+                        event_type="dsoa.acquisition.problem",
+                        context=get_context_name_and_run_id(plugin_name=plugin_name, context_name="self_monitoring", run_id=run_id),
+                        is_data_structured=False,
+                    )
+                self._biz_events.flush_events()
+        finally:
+            AcquisitionProblemCollector.reset()
 
     def handle_interrupted_run(self, source, exec_id, original_error):
         """Logs, original error, attempts to report failed run bizevent"""

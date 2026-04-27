@@ -18,7 +18,17 @@
     "snowflake.grant.name": "DATA_SCIENTIST_DEV_DB",
     "snowflake.share.name": "DATA_SCIENTIST_DEVEL_DS_SHARE",
     "dsoa.run.context": "outbound_shares",
-    "dsoa.run.plugin": "test_shares"
+    "dsoa.run.plugin": "test_shares",
+    "resource_attributes": {
+      "db.system": "snowflake",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "service.name": "test.dsoa2025",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1"
+    }
   },
   {
     "content": "Outbound share details for DATA_SCIENTIST_DEVEL_DS_SHARE",
@@ -39,7 +49,17 @@
     "snowflake.grant.name": "DATA_SCIENTIST_DEV_DB.ACCOUNT_EXPERIENCE",
     "snowflake.share.name": "DATA_SCIENTIST_DEVEL_DS_SHARE",
     "dsoa.run.context": "outbound_shares",
-    "dsoa.run.plugin": "test_shares"
+    "dsoa.run.plugin": "test_shares",
+    "resource_attributes": {
+      "db.system": "snowflake",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "service.name": "test.dsoa2025",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1"
+    }
   },
   {
     "content": "Inbound share details for BIET_MONITORING_SHARE",
@@ -52,7 +72,17 @@
     "snowflake.share.owner": "",
     "snowflake.share.shared_to": "",
     "dsoa.run.context": "inbound_shares",
-    "dsoa.run.plugin": "test_shares"
+    "dsoa.run.plugin": "test_shares",
+    "resource_attributes": {
+      "db.system": "snowflake",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "service.name": "test.dsoa2025",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1"
+    }
   },
   {
     "content": "Inbound share details for BIET_MONITORING_SHARE",
@@ -65,7 +95,17 @@
     "snowflake.share.owner": "",
     "snowflake.share.shared_to": "",
     "dsoa.run.context": "inbound_shares",
-    "dsoa.run.plugin": "test_shares"
+    "dsoa.run.plugin": "test_shares",
+    "resource_attributes": {
+      "db.system": "snowflake",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "service.name": "test.dsoa2025",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1"
+    }
   },
   {
     "content": "Inbound share \"DELETED_DB_SHARE\" has a deleted database - data is no longer accessible",
@@ -76,6 +116,16 @@
     "db.namespace": "DELETED_SHARED_DB",
     "snowflake.share.name": "DELETED_DB_SHARE",
     "dsoa.run.context": "inbound_shares",
-    "dsoa.run.plugin": "test_shares"
+    "dsoa.run.plugin": "test_shares",
+    "resource_attributes": {
+      "db.system": "snowflake",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "service.name": "test.dsoa2025",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1"
+    }
   }
 ]
