@@ -5,6 +5,7 @@ This directory contains example Dynatrace dashboards designed to visualize and a
 - [Distribution Package](#distribution-package)
 - [Available Dashboards](#available-dashboards)
   - [DSOA Self-Monitoring](#dsoa-self-monitoring)
+  - [Snowflake Performance Explorer](#snowflake-performance-explorer)
   - [Snowflake Query Performance](#snowflake-query-performance)
   - [Tasks \& Pipelines Monitoring](#tasks--pipelines-monitoring)
   - [Snowpipes Monitoring](#snowpipes-monitoring)
@@ -54,6 +55,26 @@ Each JSON file is named after its dashboard title (e.g., `Costs Monitoring.json`
 **Required Plugin**: `query_history`
 
 **DPO Theme**: Operations
+
+---
+
+### [Snowflake Performance Explorer](performance-explorer/)
+
+**Purpose**: Consolidated performance investigation flow from fleet-level KPIs through warehouse
+breakdown, grouped query pattern analysis, to individual long-running query drill-down.
+
+**Key Features**:
+
+- Fleet overview KPIs: total queries, total elapsed time, error rate, and average execution time
+- Warehouse performance breakdown with compilation/execution/queued time stacking
+- Grouped query analysis by query hash with p50/p90/p99 percentile latencies
+- Query health monitoring with success/failure trends and per-warehouse error rates
+- Long-running active query detection from real-time INFORMATION_SCHEMA data
+- Cross-links to Query Performance, Query Deep Dive, and Costs Monitoring dashboards
+
+**Required Plugins**: `query_history`, `active_queries`
+
+**DPO Theme**: Performance
 
 ---
 
