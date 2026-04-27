@@ -146,17 +146,17 @@ metrics:
     __description: Total credits used by the account on the given day across all service types.
     displayName: Org Total Credits Used
     unit: credits
-  snowflake.org.storage.bytes:
+  snowflake.org.data.stored:
     __context_names:
       - org_costs_storage
     __example: "1099511627776"
     __description: Total storage bytes used by the account on the given day across all storage types.
-    displayName: Org Storage Bytes
+    displayName: Org Data Stored
     unit: Byte
-  snowflake.org.transfer.bytes:
+  snowflake.org.data.transferred:
     __context_names:
       - org_costs_data_transfer
     __example: "2147483648"
     __description: Bytes transferred between clouds or regions on the given day.
-    displayName: Org Data Transfer Bytes
+    displayName: Org Data Transferred
     unit: Byte

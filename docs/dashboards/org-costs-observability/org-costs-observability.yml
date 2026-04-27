@@ -412,7 +412,7 @@ tiles:
     title: Storage Over Time by Account
     type: data
     query: |-
-      timeseries bytes = avg(snowflake.org.storage.bytes),
+      timeseries bytes = avg(snowflake.org.data.stored),
         by: {deployment.environment},
         filter: in(deployment.environment, array($Accounts))
     visualization: lineChart
@@ -454,7 +454,7 @@ tiles:
     title: Storage by Type
     type: data
     query: |-
-      timeseries bytes = avg(snowflake.org.storage.bytes),
+      timeseries bytes = avg(snowflake.org.data.stored),
         by: {snowflake.storage.type},
         filter: in(deployment.environment, array($Accounts))
       | summarize total = sum(arrayAvg(bytes)), by: {snowflake.storage.type}
@@ -492,7 +492,7 @@ tiles:
     title: Total Storage by Account
     type: data
     query: |-
-      timeseries bytes = avg(snowflake.org.storage.bytes),
+      timeseries bytes = avg(snowflake.org.data.stored),
         by: {deployment.environment},
         filter: in(deployment.environment, array($Accounts))
       | summarize total_bytes = sum(arrayAvg(bytes)), by: {deployment.environment}
@@ -528,7 +528,7 @@ tiles:
     title: Transfer Over Time by Account
     type: data
     query: |-
-      timeseries bytes = sum(snowflake.org.transfer.bytes),
+      timeseries bytes = sum(snowflake.org.data.transferred),
         by: {deployment.environment},
         filter: in(deployment.environment, array($Accounts))
     visualization: lineChart
@@ -570,7 +570,7 @@ tiles:
     title: Transfer by Region
     type: data
     query: |-
-      timeseries bytes = sum(snowflake.org.transfer.bytes),
+      timeseries bytes = sum(snowflake.org.data.transferred),
         by: {snowflake.transfer.source.cloud, snowflake.transfer.source.region, snowflake.transfer.target.cloud, snowflake.transfer.target.region},
         filter: in(deployment.environment, array($Accounts))
       | summarize total = sum(arrayAvg(bytes)), by: {snowflake.transfer.source.cloud, snowflake.transfer.source.region, snowflake.transfer.target.cloud, snowflake.transfer.target.region}
@@ -762,7 +762,7 @@ tiles:
     title: Storage by Account
     type: data
     query: |-
-      timeseries bytes = avg(snowflake.org.storage.bytes),
+      timeseries bytes = avg(snowflake.org.data.stored),
         by: {deployment.environment},
         filter: in(deployment.environment, array($Accounts))
       | summarize total = sum(arrayAvg(bytes)), by: {deployment.environment}

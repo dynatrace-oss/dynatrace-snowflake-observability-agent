@@ -53,18 +53,18 @@ plugin to be enabled and the Snowflake account to have `SNOWFLAKE.ORGANIZATION_U
 
 ### §4 Storage
 
-| Tile                         | Visualization | Metric / Query                                                       |
-|------------------------------|---------------|----------------------------------------------------------------------|
-| Storage Over Time by Account | lineChart     | `snowflake.org.storage.bytes` (avg) by `deployment.environment`      |
-| Storage by Type              | barChart      | `snowflake.org.storage.bytes` summarized by `snowflake.storage.type` |
-| Total Storage by Account     | table         | `snowflake.org.storage.bytes` summarized by account (bytes unit)     |
+| Tile                         | Visualization | Metric / Query                                                      |
+|------------------------------|---------------|---------------------------------------------------------------------|
+| Storage Over Time by Account | lineChart     | `snowflake.org.data.stored` by `deployment.environment` (avg)       |
+| Storage by Type              | barChart      | `snowflake.org.data.stored` by `snowflake.storage.type` (sum)       |
+| Total Storage by Account     | table         | `snowflake.org.data.stored` by account (bytes unit)                 |
 
 ### §5 Data Transfer
 
-| Tile                          | Visualization | Metric / Query                                                   |
-|-------------------------------|---------------|------------------------------------------------------------------|
-| Transfer Over Time by Account | lineChart     | `snowflake.org.transfer.bytes` by `deployment.environment`       |
-| Transfer by Region            | table         | `snowflake.org.transfer.bytes` by source/target cloud and region |
+| Tile                          | Visualization | Metric / Query                                                      |
+|-------------------------------|---------------|---------------------------------------------------------------------|
+| Transfer Over Time by Account | lineChart     | `snowflake.org.data.transferred` by `deployment.environment`        |
+| Transfer by Region            | table         | `snowflake.org.data.transferred` by cloud/region                    |
 
 ### §6 Billing & Contract Balance
 
@@ -90,10 +90,10 @@ plugin to be enabled and the Snowflake account to have `SNOWFLAKE.ORGANIZATION_U
 All tiles use `timeseries` DQL against DSOA metric keys. No `fetch events` is used for dashboard
 tiles — the `org_costs` plugin emits logs, metrics, and run business events.
 
-| Context                         | Metrics                                                                                                                   |
-|---------------------------------|---------------------------------------------------------------------------------------------------------------------------|
-| `org_costs_metering`            | `snowflake.org.credits.used`, `.compute`, `.cloud_services`, `.adjustment_cloud_services`                                 |
-| `org_costs_storage`             | `snowflake.org.storage.bytes`                                                                                             |
-| `org_costs_data_transfer`       | `snowflake.org.transfer.bytes`                                                                                            |
-| `org_billing_usage_in_currency` | `snowflake.org.billing.amount`                                                                                            |
-| `org_billing_remaining_balance` | `.capacity_balance`, `.rollover_balance`, `.free_usage_balance`, `.on_demand_consumption`, `.overage`                     |
+| Context                         | Metrics                                                                                                               |
+|---------------------------------|-----------------------------------------------------------------------------------------------------------------------|
+| `org_costs_metering`            | `snowflake.org.credits.used`, `.compute`, `.cloud_services`, `.adjustment_cloud_services`                             |
+| `org_costs_storage`             | `snowflake.org.data.stored`                                                                                           |
+| `org_costs_data_transfer`       | `snowflake.org.data.transferred`                                                                                      |
+| `org_billing_usage_in_currency` | `snowflake.org.billing.amount`                                                                                        |
+| `org_billing_remaining_balance` | `.capacity_balance`, `.rollover_balance`, `.free_usage_balance`, `.on_demand_consumption`, `.overage`                 |
