@@ -6,15 +6,15 @@ plugins:
     slow_queries_threshold: 10000
     slow_queries_to_analyze_limit: 50
     max_entries: 0
-    max_entries_sort: execution_time
     max_lookback_minutes: 120
     cache_ttl_hours: 4
-    include_warehouses: ""
-    exclude_warehouses: DTAGENT_WH
-    include_databases: ""
-    exclude_databases: ""
-    include_users: ""
-    exclude_users: ""
+    include_warehouses: []
+    exclude_warehouses:
+      - DTAGENT_WH
+    include_databases: []
+    exclude_databases: []
+    include_users: []
+    exclude_users: []
     telemetry:
       - metrics
       - logs

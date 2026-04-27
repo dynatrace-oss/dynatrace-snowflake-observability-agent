@@ -2,11 +2,11 @@
 
 This file documents detailed technical changes, internal refactorings, and development notes. For user-facing highlights, see [CHANGELOG.md](CHANGELOG.md).
 
-## [Unreleased] — BDX-1969: Interactive Deployment Wizard
+## [Unreleased] — Deployment Wizard
 
 ### Interactive Deployment Wizard — Full Implementation
 
-**Scope**: Story BDX-1969 — eliminate manual config creation friction for first-time DSOA users. Deliverables: shared bash library, 4-phase interactive wizard, `deploy.sh` flag enhancements, full BATS test suite.
+**Scope**: Story to eliminate manual config creation friction for first-time DSOA users. Deliverables: shared bash library, 4-phase interactive wizard, `deploy.sh` flag enhancements, full BATS test suite.
 
 **Architecture**:
 
@@ -73,7 +73,7 @@ This file documents detailed technical changes, internal refactorings, and devel
 **Future work**:
 
 - Extract log helpers from `deploy_dt_assets.sh` and `deploy_test_notebook.sh` to source lib.sh (scope creep, separate PR).
-- GitHub Actions workflow generation as optional wizard output (BDX-1968, follow-up).
+- GitHub Actions workflow generation as optional wizard output.
 - SQL `USE` statement deduplication in `prepare_deploy_script.sh` (post-MVP optimization, noted in story).
 
 ## Version 0.9.5 — Detailed Changes
@@ -102,6 +102,8 @@ This file documents detailed technical changes, internal refactorings, and devel
   - `test/test_data/query_history_cross_batch.ndjson`: New fixture with 3 rows covering: child with cached parent context, child without context (fresh IDs), child with both event_log IDs and cached parent (event_log wins).
 - **Files Changed**: `src/dtagent/plugins/query_history.sql/011_processed_queries_cache.sql`, `src/dtagent/plugins/query_history.sql/061_p_refresh_recent_queries.sql`, `src/dtagent/plugins/query_history.sql/062_v_recent_queries.sql`, `src/dtagent/plugins/query_history.sql/110_update_processed_queries.sql`, `src/dtagent/otel/spans.py`, `src/dtagent/plugins/__init__.py`, `src/dtagent.sql/upgrade/0.9.5/020_add_span_context_to_cache.sql`, `src/dtagent.sql/upgrade/0.9.5/021_drop_update_processed_queries_3arg.sql`, `src/dtagent/plugins/query_history.config/query_history-config.yml`, `conf/config-template.yml`, `test/plugins/test_query_history_cross_batch.py`, `test/test_data/query_history_cross_batch.ndjson`
 
+### Feature: Signal Protection Framework for query_history Plugin
+
 - **Problem**: On high-volume Snowflake accounts (e.g., LPL Financial), the `query_history` plugin processes every query completed in the last 120 minutes, causing timeouts and memory exhaustion when tens of thousands of queries execute per 30-minute window. No mechanism existed to cap signals, filter by warehouse/database/user, or prioritize interesting queries.
 - **Solution**: Three complementary mechanisms:
   1. **Top-N Limiting** — `max_entries` config parameter caps rows processed per run. Rows are sorted by `max_entries_sort` (default: `execution_time DESC`) so expensive queries are always captured. When the cap is hit, a self-monitoring WARNING log and bizevent are emitted with dropped count.
@@ -123,7 +125,7 @@ This file documents detailed technical changes, internal refactorings, and devel
 - **No Procedure Signature Changes**: `P_REFRESH_RECENT_QUERIES()` has no parameters, so no upgrade script needed. Return type change (TEXT → OBJECT) is transparent to callers.
 - **Files Changed**: `src/dtagent/plugins/query_history.sql/051_v_query_history.sql`, `src/dtagent/plugins/query_history.sql/061_p_refresh_recent_queries.sql`, `src/dtagent/plugins/query_history.py`, `src/dtagent/plugins/query_history.config/query_history-config.yml`, `src/dtagent/plugins/query_history.config/config.md`, `src/dtagent/plugins/query_history.config/readme.md`, `conf/config-template.yml`, `test/plugins/test_query_history.py`
 
-### New Plugin: Cold Tables Identification (BDX-676)
+### New Plugin: Cold Tables Identification
 
 - **Purpose**: Identify tables with no recent query access (default: >90 days) to enable FinOps teams to find candidates for archiving, dropping, or tiering to lower-cost storage.
 - **Data source**: `SNOWFLAKE.ACCOUNT_USAGE.ACCESS_HISTORY` aggregated per table over configurable lookback window (default: 365 days).
@@ -140,7 +142,7 @@ This file documents detailed technical changes, internal refactorings, and devel
 - **Known limitation**: Tables never accessed won't appear (ACCESS_HISTORY only has accessed tables). Follow-up: JOIN with TABLES view.
 - **Files**: 11 new (Python, SQL views/tasks/procedures, config, instruments-def, BOM, readme, tests, fixtures), 3 modified (700_dtagent.sql, USECASES.md, CHANGELOG.md).
 
-### New Plugin: Metering (BDX-1865)
+### New Plugin: Metering
 
 - **Problem**: `event_usage` plugin reads only `EVENT_USAGE_HISTORY`, covering a single service type (`TELEMETRY_DATA_INGEST`). `METERING_HISTORY` covers all service types, enabling full FinOps visibility.
 - **Solution**: New `metering` plugin reading `SNOWFLAKE.ACCOUNT_USAGE.METERING_HISTORY` with `WHERE SERVICE_TYPE != 'WAREHOUSE_METERING'` to avoid duplication with `warehouse_usage`.
@@ -170,7 +172,7 @@ This file documents detailed technical changes, internal refactorings, and devel
 
 ### Bug Fixes
 
-#### BCR Bundle 2026\_02: Adapt to New `LOG_EVENT_LEVEL` Parameter (BDX-1936)
+#### BCR Bundle 2026\_02: Adapt to New `LOG_EVENT_LEVEL` Parameter
 
 - **Background**: Snowflake BCR Bundle 2026\_02 (enabled week of April 6 2026) introduces a new `LOG_EVENT_LEVEL`
   parameter that decouples event table ingestion control from the existing `LOG_LEVEL` parameter. Previously,
@@ -266,7 +268,7 @@ Snowflake BCR-2275 changed their policy so new columns in `ACCOUNT_USAGE` views 
 
 ### Test Infrastructure — Technical Details
 
-#### BDX-1388 — resource.attributes Included in Protobuf Baseline Comparison
+#### Resource.attributes Included in Protobuf Baseline Comparison
 
 - **Root cause**: `_decode_object_from_protobuf` in `test/_mocks/telemetry.py` iterated
   `resource_logs`/`resource_spans` entries and extracted only record-level and scope-level attributes.
