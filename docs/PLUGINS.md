@@ -11,6 +11,7 @@
 - [Event Usage](#event_usage_info_sec)
 - [Login History](#login_history_info_sec)
 - [Metering](#metering_info_sec)
+- [Org Costs](#org_costs_info_sec)
 - [Query History](#query_history_info_sec)
 - [Resource Monitors](#resource_monitors_info_sec)
 - [Shares](#shares_info_sec)
@@ -963,6 +964,168 @@ The following tables list the Snowflake objects that this plugin delivers data f
 | Name                                     | Type | Privileges |
 |------------------------------------------|------|------------|
 | SNOWFLAKE.ACCOUNT_USAGE.METERING_HISTORY | view | SELECT     |
+
+<a name="org_costs_info_sec"></a>
+
+## The Org Costs plugin
+
+The `org_costs` plugin delivers cross-account FinOps telemetry from `SNOWFLAKE.ORGANIZATION_USAGE` views. It provides organization-wide
+credit consumption, storage usage, data transfer costs, USD billing, and contract balance data — enabling multi-account cost visibility in
+Dynatrace.
+
+## Prerequisites
+
+Access to `SNOWFLAKE.ORGANIZATION_USAGE` views requires one of the following grants. This plugin is **disabled by default**
+(`is_disabled: true`) and must be explicitly enabled after completing the prerequisite step.
+
+### Option A — Database role (recommended)
+
+```sql
+USE ROLE ACCOUNTADMIN;
+GRANT DATABASE ROLE SNOWFLAKE.ORGANIZATION_USAGE_VIEWER TO ROLE DTAGENT_VIEWER;
+```
+
+### Option B — ORGADMIN role (legacy fallback for older tenants)
+
+```sql
+USE ROLE ACCOUNTADMIN;
+GRANT ROLE ORGADMIN TO ROLE DTAGENT_OWNER;
+```
+
+## Contexts
+
+| Context                         | Source view                                      | Telemetry     |
+| ------------------------------- | ------------------------------------------------ | ------------- |
+| `org_costs_metering`            | `ORGANIZATION_USAGE.METERING_DAILY_HISTORY`      | metrics, logs |
+| `org_costs_storage`             | `ORGANIZATION_USAGE.STORAGE_DAILY_HISTORY`       | metrics, logs |
+| `org_costs_data_transfer`       | `ORGANIZATION_USAGE.DATA_TRANSFER_DAILY_HISTORY` | metrics, logs |
+| `org_billing_usage_in_currency` | `ORGANIZATION_USAGE.USAGE_IN_CURRENCY_DAILY`     | metrics, logs |
+| `org_billing_remaining_balance` | `ORGANIZATION_USAGE.REMAINING_BALANCE_DAILY`     | metrics, logs |
+
+## Schedule
+
+Runs every 6 hours (`USING CRON 0 */6 * * * UTC`). Source data has approximately 2 hours of latency; daily-granularity views update once per
+day.
+
+## Metrics emitted
+
+### org_costs_metering
+
+| Metric                                            | Unit    | Description                                 |
+| ------------------------------------------------- | ------- | ------------------------------------------- |
+| `snowflake.org.credits.used`                      | credits | Total credits used by account per day       |
+| `snowflake.org.credits.compute`                   | credits | Compute credits used per day                |
+| `snowflake.org.credits.cloud_services`            | credits | Cloud services credits used per day         |
+| `snowflake.org.credits.adjustment_cloud_services` | credits | Cloud services credit adjustment (10% rule) |
+
+### org_costs_storage
+
+| Metric                        | Unit | Description                                 |
+| ----------------------------- | ---- | ------------------------------------------- |
+| `snowflake.org.storage.bytes` | Byte | Storage bytes used per storage type per day |
+
+### org_costs_data_transfer
+
+| Metric                         | Unit | Description                                      |
+| ------------------------------ | ---- | ------------------------------------------------ |
+| `snowflake.org.transfer.bytes` | Byte | Bytes transferred between clouds/regions per day |
+
+### org_billing_usage_in_currency
+
+| Metric                         | Unit     | Description                                         |
+| ------------------------------ | -------- | --------------------------------------------------- |
+| `snowflake.org.billing.amount` | currency | Billing amount in currency per service type per day |
+
+### org_billing_remaining_balance
+
+| Metric                                        | Unit     | Description                                    |
+| --------------------------------------------- | -------- | ---------------------------------------------- |
+| `snowflake.org.billing.capacity_balance`      | currency | Remaining contracted capacity balance          |
+| `snowflake.org.billing.rollover_balance`      | currency | Remaining rollover balance                     |
+| `snowflake.org.billing.free_usage_balance`    | currency | Remaining free usage balance                   |
+| `snowflake.org.billing.on_demand_consumption` | currency | On-demand consumption charged against contract |
+| `snowflake.org.billing.overage`               | currency | Overage charged beyond contracted capacity     |
+
+## Enablement
+
+1. Complete the prerequisite grant (Option A or B above).
+1. Set `plugins.org_costs.is_disabled: false` in your configuration.
+1. Deploy: `./scripts/deploy/deploy.sh <env> --scope=plugins,config --options=skip_confirm`
+
+## Troubleshooting
+
+- **No data for a new account:** Organization-level views may not reflect new accounts for up to 24 hours after creation.
+- **Empty results:** Verify the prerequisite grant was applied and the plugin is enabled.
+- **Stale data:** Daily-granularity views update once per day; data may appear up to 26 hours old (2h Snowflake latency + 6h collection
+  cadence + daily boundary).
+
+[Show semantics for this plugin](SEMANTICS.md#org_costs_semantics_sec)
+
+### Org Costs default configuration
+
+This plugin is **disabled by default**; you need to explicitly set `IS_ENABLED` to `true` to enable it.
+
+```yaml
+plugins:
+  org_costs:
+    lookback_hours: 48
+    schedule: USING CRON 0 */6 * * * UTC
+    is_disabled: true
+    telemetry:
+      - logs
+      - metrics
+      - biz_events
+    contexts:
+      org_costs_metering:
+        is_disabled: true
+      org_costs_storage:
+        is_disabled: true
+      org_costs_data_transfer:
+        is_disabled: true
+      org_billing_usage_in_currency:
+        is_disabled: true
+      org_billing_remaining_balance:
+        is_disabled: true
+```
+
+| Key                                                                    | Type   | Default                             | Description                                                                                                                                                                                                        |
+| ---------------------------------------------------------------------- | ------ | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `plugins.org_costs.lookback_hours`                                     | int    | `48`                                | How far back (in hours) the plugin looks for organization usage data on each run. A 48-hour window accommodates Snowflake's ~2-hour view latency and ensures no daily records are missed across collection cycles. |
+| `plugins.org_costs.schedule`                                           | string | `USING CRON 0 */6 * * * UTC`        | Cron schedule for the org costs collection task (every 6 hours).                                                                                                                                                   |
+| `plugins.org_costs.is_disabled`                                        | bool   | `true`                              | Set to `false` to enable this plugin. Requires `SNOWFLAKE.ORGANIZATION_USAGE_VIEWER` database role granted to `DTAGENT_VIEWER` (see readme).                                                                       |
+| `plugins.org_costs.telemetry`                                          | list   | `["logs", "metrics", "biz_events"]` | Telemetry types to emit. Remove items to suppress specific output types.                                                                                                                                           |
+| `plugins.org_costs.contexts.org_costs_metering.is_disabled`            | bool   | `true`                              | Set to `false` to enable metering context (daily credit consumption).                                                                                                                                              |
+| `plugins.org_costs.contexts.org_costs_storage.is_disabled`             | bool   | `true`                              | Set to `false` to enable storage context (daily storage bytes by type).                                                                                                                                            |
+| `plugins.org_costs.contexts.org_costs_data_transfer.is_disabled`       | bool   | `true`                              | Set to `false` to enable data transfer context (bytes transferred between clouds/regions).                                                                                                                         |
+| `plugins.org_costs.contexts.org_billing_usage_in_currency.is_disabled` | bool   | `true`                              | Set to `false` to enable billing usage context (daily billing amount in currency).                                                                                                                                 |
+| `plugins.org_costs.contexts.org_billing_remaining_balance.is_disabled` | bool   | `true`                              | Set to `false` to enable remaining balance context (contract balance metrics).                                                                                                                                     |
+
+### Org Costs Bill of Materials
+
+The following tables list the Snowflake objects that this plugin delivers data from or references.
+
+#### Objects delivered by the `Org Costs` plugin
+
+| Name                                               | Type      |
+| -------------------------------------------------- | --------- |
+| DTAGENT_DB.APP.V_ORG_METERING_DAILY                | view      |
+| DTAGENT_DB.APP.V_ORG_STORAGE_DAILY                 | view      |
+| DTAGENT_DB.APP.V_ORG_DATA_TRANSFER_DAILY           | view      |
+| DTAGENT_DB.APP.V_ORG_BILLING_USAGE_IN_CURRENCY     | view      |
+| DTAGENT_DB.APP.V_ORG_BILLING_REMAINING_BALANCE     | view      |
+| DTAGENT_DB.APP.P_CHECK_ORGANIZATION_USAGE_ACCESS() | procedure |
+| DTAGENT_DB.CONFIG.UPDATE_ORG_COSTS_CONF()          | procedure |
+| DTAGENT_DB.APP.TASK_DTAGENT_ORG_COSTS              | task      |
+
+#### Objects referenced by the `Org Costs` plugin
+
+| Name                                                     | Type | Privileges |
+| -------------------------------------------------------- | ---- | ---------- |
+| SNOWFLAKE.ORGANIZATION_USAGE.METERING_DAILY_HISTORY      | view | SELECT     |
+| SNOWFLAKE.ORGANIZATION_USAGE.USAGE_IN_CURRENCY_DAILY     | view | SELECT     |
+| SNOWFLAKE.ORGANIZATION_USAGE.REMAINING_BALANCE_DAILY     | view | SELECT     |
+| SNOWFLAKE.ORGANIZATION_USAGE.DATA_TRANSFER_DAILY_HISTORY | view | SELECT     |
+| SNOWFLAKE.ORGANIZATION_USAGE.STORAGE_DAILY_HISTORY       | view | SELECT     |
 
 <a name="query_history_info_sec"></a>
 
