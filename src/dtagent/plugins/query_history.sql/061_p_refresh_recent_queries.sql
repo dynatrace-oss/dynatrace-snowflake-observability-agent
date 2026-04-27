@@ -47,10 +47,7 @@ as
 $$
 DECLARE
     v_max_entries           INT DEFAULT CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.max_entries', 0)::int;
-    v_sort_order            VARCHAR DEFAULT CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.max_entries_sort', 'execution_time');
-    v_order_by_clause       VARCHAR DEFAULT '';
-    v_limit_clause          VARCHAR DEFAULT '';
-    in_tmp_table_reset      TEXT;
+    in_tmp_table_reset      TEXT DEFAULT 'insert into DTAGENT_DB.APP.TMP_RECENT_QUERIES select *, false as IS_PARENT, false as IS_ROOT from DTAGENT_DB.APP.V_QUERY_HISTORY_INSTRUMENTED;';
     up_tmp_table_is_parent  TEXT DEFAULT 'update DTAGENT_DB.APP.TMP_RECENT_QUERIES set IS_PARENT = TRUE where QUERY_ID in (select distinct PARENT_QUERY_ID from DTAGENT_DB.APP.TMP_RECENT_QUERIES);';
     up_tmp_table_is_root    TEXT DEFAULT 'update DTAGENT_DB.APP.TMP_RECENT_QUERIES set IS_ROOT = TRUE where PARENT_QUERY_ID is null or PARENT_QUERY_ID not in (select distinct QUERY_ID from DTAGENT_DB.APP.TMP_RECENT_QUERIES);';
 
@@ -136,23 +133,6 @@ DECLARE
     v_total_processed       INT DEFAULT 0;
 
 BEGIN
-    -- Build ORDER BY clause based on sort order config
-    v_order_by_clause := case
-        when v_sort_order = 'execution_time' then 'order by METRICS[''snowflake.time.execution''] desc nulls last'
-        when v_sort_order = 'total_elapsed_time' then 'order by METRICS[''snowflake.time.total_elapsed''] desc nulls last'
-        when v_sort_order = 'start_time' then 'order by START_TIME desc'
-        else 'order by METRICS[''snowflake.time.execution''] desc nulls last'
-    end;
-
-    -- Build LIMIT clause if max_entries > 0
-    v_limit_clause := case
-        when v_max_entries > 0 then 'limit ' || v_max_entries
-        else ''
-    end;
-
-    -- Build the full INSERT statement with ORDER BY and LIMIT
-    in_tmp_table_reset := 'insert into DTAGENT_DB.APP.TMP_RECENT_QUERIES select *, false as IS_PARENT, false as IS_ROOT from DTAGENT_DB.APP.V_QUERY_HISTORY_INSTRUMENTED ' || v_order_by_clause || ' ' || v_limit_clause || ';';
-
     EXECUTE IMMEDIATE :tr_tmp_table_recent;
     EXECUTE IMMEDIATE :tr_tmp_op_stats;
 
@@ -177,7 +157,7 @@ BEGIN
 
     -- Get counts for self-monitoring
     select count(*) into v_total_processed from APP.TMP_RECENT_QUERIES;
-    select count(*) into v_total_available from APP.V_QUERY_HISTORY_INSTRUMENTED;
+    select coalesce(max(_TOTAL_AVAILABLE), 0) into v_total_available from APP.TMP_RECENT_QUERIES;
 
     RETURN object_construct(
         'status', 'success',
