@@ -50,6 +50,16 @@ otel:
 plugins:
   disabled_by_default: false
   deploy_disabled_plugins: true
+  resource_monitors:
+    credits_quota_thresholds:
+      # Default alert bands (% of quota used). Monotonically increasing, all values in (0, 100].
+      defaults: [50, 80, 90, 100]
+      # Per-monitor overrides — key is UPPERCASE resource monitor name.
+      # Example:
+      #   PROD_ANALYTICS_MONITOR: [70, 85, 95, 100]
+      overrides: {}
+      # Minutes between ACTIVE keep-alive events while quota remains in an alert band.
+      active_keepalive_timeout_minutes: 60
   self_monitoring:
     send_bizevents_on_deploy: true
     send_bizevents_on_run: true
