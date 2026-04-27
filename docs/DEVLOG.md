@@ -178,6 +178,126 @@ section (3 new use cases). `docs/dashboards/README.md` and `docs/workflows/READM
 ---
 
 ## [Unreleased] — BDX-1969: Interactive Deployment Wizard
+
+## [Unreleased]: Acquisition Problem Detection
+
+### Motivation
+
+`_get_table_rows()` in `plugins/__init__.py` and `_get_sub_rows()` in `otel/spans.py` called `session.sql()` / `session.table()` with no exception handling. A `SnowparkSQLException` (e.g. view missing, permission error, network timeout) would propagate up to `agent.py` where only `RuntimeError` was caught — `SnowparkSQLException` is not a `RuntimeError`, so it would crash the entire agent run, silencing all subsequent plugins for that execution.
+
+### Implementation
+
+**New class — `AcquisitionProblemCollector` in `src/dtagent/otel/ingest_warnings.py`**
+
+Added alongside `IngestWarningCollector` in the same module. Thread-safe static-method collector, same pattern. Problem dict schema: `problem_type`, `source`, `detail`, `count`.
+
+**`_get_table_rows` — `src/dtagent/plugins/__init__.py`**
+
+Wrapped entire SQL execution + row iteration in `try/except SnowparkSQLException`. On exception: logs `ERROR`, calls `AcquisitionProblemCollector.add_problem("sql_error", ...)`, yields nothing (graceful degradation — plugin reports 0 entries).
+
+**`_get_sub_rows` — `src/dtagent/otel/spans.py`**
+
+Same pattern for sub-row queries. On `SnowparkSQLException`: logs `ERROR`, calls `AcquisitionProblemCollector.add_problem("sub_row_error", ...)`, yields nothing. Uses inline `from dtagent import LOG  # COMPILE_REMOVE` (consistent with `metrics.py` pattern).
+
+**Bizevent emission — `src/dtagent/__init__.py` + `src/dtagent/agent.py`**
+
+`AbstractDynatraceSnowAgentConnector._emit_acquisition_problems()` follows the same structure as `_emit_ingest_warnings()`. Called on both success and error paths in the agent loop (before `handle_interrupted_run`). Always calls `AcquisitionProblemCollector.reset()` in `finally`.
+
+**Compile assembly — `src/dtagent/agent.py` + `src/dtagent/connector.py`**
+
+Added `from snowflake.snowpark.functions import col` and `from snowflake.snowpark.exceptions import SnowparkSQLException` to `GENERAL_IMPORTS` in both entry-point files (these were previously inline `# COMPILE_REMOVE` imports that didn't survive compilation).
+
+**Config — `conf/config-template.yml`**
+
+Added `plugins.self_monitoring.detect_acquisition_problems: true` (default on).
+
+**Dashboard — `docs/dashboards/self-monitoring/self-monitoring.yml`**
+
+Added tiles 17 and 18 (row at `y=37`):
+
+- Tile 17: `Acquisition problems over time` — `makeTimeseries` line chart by problem type (7-day window).
+- Tile 18: `Acquisition problem details` — table of recent problems sorted by timestamp desc.
+
+**Tests — `test/otel/test_acquisition_problems.py`** (12 tests, new file)
+
+- `TestAcquisitionProblemCollector`: 7 unit tests mirroring the ingest warning collector suite.
+- `TestGetTableRowsSqlErrors`: 3 tests — clean query, exception at setup, exception during iteration.
+- `TestGetSubRowsSqlErrors`: 2 tests — clean sub-row fetch, exception during fetch.
+
+### Behavioral Change
+
+Before: `SnowparkSQLException` propagated uncaught → crashed entire agent run → all subsequent plugins silenced.
+After: Exception caught at the view-access level → plugin produces 0 entries + bizevent → agent continues to next plugin.
+
+### Performance
+
+No measurable overhead on the happy path — exception handling is zero-cost when no exception occurs.
+
+## [Unreleased] — BDX-695: Ingest-Quality Warning Detection
+
+### Motivation
+
+DSOA sends telemetry to Dynatrace over OTLP and REST APIs, but all three export paths (OTLP logs/spans, Metrics API v2, Events/BizEvents API) previously discarded HTTP response bodies on success. This meant partial rejections (`partialSuccess.rejectedLogRecords`, `linesInvalid`, `non_persisted_attribute_keys`, `rejectedEventIngestInputCount`) were silently swallowed — operators had no visibility until they noticed missing data in dashboards, often days later.
+
+### Implementation
+
+**New module — `src/dtagent/otel/ingest_warnings.py`**
+
+Introduced `IngestWarningCollector`, a thread-safe static-method collector (same pattern as `OtelManager`). Accumulates structured warning dicts during a plugin run; reset after each plugin via `_emit_ingest_warnings()`. Warning schema: `warning_type`, `exporter`, `detail`, `count`.
+
+**OTLP export path — `src/dtagent/otel/otel_manager.py`**
+
+`CustomLoggingSession.send()` is the single intercept point for both logs and spans. Added defensive JSON parsing on HTTP 2xx to detect `partialSuccess.rejectedLogRecords` and `rejectedSpans`. Wrapped in `except Exception` with pylint suppress — malformed responses must never crash the agent.
+
+**Metrics API v2 — `src/dtagent/otel/metrics.py`**
+
+`__send` inner function now parses response body on 202 for `linesInvalid > 0` and `warnings[].non_persisted_attribute_keys`. The Dynatrace Metrics API v2 is the richest source of ingest-quality feedback — attribute trimming shows up here first.
+
+**Events/BizEvents — `src/dtagent/otel/events/__init__.py`**
+
+`AbstractEvents._send` now checks for `rejectedEventIngestInputCount` in the 202 response body. BizEvents inherits this check automatically.
+
+**Bizevent emission — `src/dtagent/__init__.py` + `src/dtagent/agent.py`**
+
+`AbstractDynatraceSnowAgentConnector._emit_ingest_warnings()` reads the collector, emits one `dsoa.ingest.warning` bizevent per warning entry (guarded by `self_monitoring.detect_ingest_warnings` config and `biz_events` telemetry being allowed), then calls `IngestWarningCollector.reset()` in a `finally` block. Called on both success and error paths in the agent loop.
+
+**Compile assembly — `src/dtagent/agent.py` + `src/dtagent/connector.py`**
+
+Added `##INSERT src/dtagent/otel/ingest_warnings.py` after `otel_manager.py` in both entry-point files. Added `import threading` to `GENERAL_IMPORTS` in both files (required by `IngestWarningCollector._lock`).
+
+**Config — `conf/config-template.yml`**
+
+Added `plugins.self_monitoring.detect_ingest_warnings: true` (default on).
+
+**Dashboard — `docs/dashboards/self-monitoring/self-monitoring.yml`**
+
+Added tiles 15 and 16:
+
+- Tile 15: `Ingest warnings over time` — `makeTimeseries` line chart by exporter (7-day window).
+- Tile 16: `Ingest warning detail` — table of recent warnings sorted by timestamp desc.
+
+Layout: both tiles in a new row at `y=31`, split 12+12 columns.
+
+**Tests — `test/otel/test_ingest_warnings.py`** (17 tests, new file)
+
+- `TestIngestWarningCollector`: 7 unit tests covering add/get/has/reset/snapshot/default/thread-safety.
+- `TestCustomLoggingSessionPartialSuccess`: 4 tests for OTLP partial success parsing (clean, logs rejected, spans rejected, malformed JSON).
+- `TestMetricsIngestWarnings`: 4 tests for Metrics API v2 response parsing (clean, linesInvalid, attr_trimmed, malformed).
+- `TestEventsIngestWarnings`: 2 tests for Events API response parsing (clean, rejectedEventIngestInputCount).
+
+All tests use mock HTTP responses — no live Snowflake or DT connections required.
+
+### Performance
+
+Response body parsing runs only on successful responses (2xx). `json.loads()` on a typical <1 KB response body adds <0.1 ms. Warning bizevent emission happens at most once per plugin run when warnings are present — negligible overhead.
+
+### Backward Compatibility
+
+- Config default is `true` — existing deployments get detection automatically.
+- No schema changes to existing telemetry.
+- No SQL changes — no upgrade scripts needed.
+- No procedure signature changes.
+
 ## [Unreleased] — Resource Monitor Credit Threshold Alerting
 
 ### Resource Monitor Credit Threshold Alerting — Full Implementation

@@ -2,10 +2,10 @@ attributes:
   snowflake.account.locator:
     __context_names:
       - org_costs_metering
+      - org_costs_storage
     __example: ABC12345
     __description: The account locator identifier for the Snowflake account.
   snowflake.org.billing.contract_number:
-
     __context_names:
       - org_billing_remaining_balance
     __example: CONTRACT-001
@@ -13,6 +13,7 @@ attributes:
   snowflake.organization.name:
     __context_names:
       - org_costs_metering
+      - org_costs_storage
       - org_costs_data_transfer
       - org_billing_usage_in_currency
       - org_billing_remaining_balance
@@ -22,6 +23,7 @@ dimensions:
   snowflake.account.name:
     __context_names:
       - org_costs_metering
+      - org_costs_storage
       - org_costs_data_transfer
       - org_billing_usage_in_currency
       - org_billing_remaining_balance
@@ -29,6 +31,7 @@ dimensions:
     __description: The name of the Snowflake account within the organization.
   snowflake.account.locator:
     __context_names:
+      - org_costs_storage
       - org_costs_data_transfer
       - org_billing_usage_in_currency
       - org_billing_remaining_balance
@@ -158,5 +161,5 @@ metrics:
       - org_costs_data_transfer
     __example: "2147483648"
     __description: Bytes transferred between clouds or regions on the given day.
-    displayName: Org Data Transferred
+    displayName: Org Data Transfer Bytes
     unit: Byte
