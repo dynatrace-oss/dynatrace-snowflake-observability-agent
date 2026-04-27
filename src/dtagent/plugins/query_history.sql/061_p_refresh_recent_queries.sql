@@ -60,7 +60,7 @@ DECLARE
     in_tmp_table_reset      TEXT;
     up_tmp_table_is_parent  TEXT DEFAULT 'update DTAGENT_DB.APP.TMP_RECENT_QUERIES set IS_PARENT = TRUE where QUERY_ID in (select distinct PARENT_QUERY_ID from DTAGENT_DB.APP.TMP_RECENT_QUERIES);';
     up_tmp_table_is_root_null TEXT DEFAULT 'update DTAGENT_DB.APP.TMP_RECENT_QUERIES set IS_ROOT = TRUE where PARENT_QUERY_ID is null;';
-    up_tmp_table_is_root_miss TEXT DEFAULT 'update DTAGENT_DB.APP.TMP_RECENT_QUERIES set IS_ROOT = TRUE where PARENT_QUERY_ID is not null and PARENT_QUERY_ID not in (select distinct QUERY_ID from DTAGENT_DB.APP.TMP_RECENT_QUERIES) and PARENT_QUERY_ID not in (select QUERY_ID from DTAGENT_DB.STATUS.PROCESSED_QUERIES_CACHE where OTEL_SPAN_ID is not null);';
+    up_tmp_table_is_root_miss TEXT DEFAULT 'update DTAGENT_DB.APP.TMP_RECENT_QUERIES set IS_ROOT = TRUE where PARENT_QUERY_ID is not null and PARENT_QUERY_ID not in (select distinct QUERY_ID from DTAGENT_DB.APP.TMP_RECENT_QUERIES);';
     up_tmp_table_parent_otel TEXT DEFAULT 'update DTAGENT_DB.APP.TMP_RECENT_QUERIES t set _PARENT_OTEL_SPAN_ID = c.OTEL_SPAN_ID, _PARENT_OTEL_TRACE_ID = c.OTEL_TRACE_ID from DTAGENT_DB.STATUS.PROCESSED_QUERIES_CACHE c where t.PARENT_QUERY_ID = c.QUERY_ID and c.OTEL_SPAN_ID is not null;';
 
     tr_tmp_op_stats         TEXT DEFAULT 'truncate table if exists DTAGENT_DB.APP.TMP_QUERY_OPERATOR_STATS;';
@@ -146,11 +146,11 @@ DECLARE
 
 BEGIN
     -- Build ORDER BY clause based on sort order config
-    v_order_by_clause := case
-        when v_sort_order = 'execution_time' then 'order by METRICS[''snowflake.time.execution''] desc nulls last'
-        when v_sort_order = 'total_elapsed_time' then 'order by METRICS[''snowflake.time.total_elapsed''] desc nulls last'
-        when v_sort_order = 'start_time' then 'order by START_TIME desc'
-        else 'order by METRICS[''snowflake.time.execution''] desc nulls last'
+    v_order_by_clause := case cast(v_sort_order as varchar)
+        when 'execution_time'     then 'order by METRICS[''snowflake.time.execution'']::NUMBER desc nulls last'
+        when 'total_elapsed_time' then 'order by METRICS[''snowflake.time.total_elapsed'']::NUMBER desc nulls last'
+        when 'start_time'         then 'order by START_TIME desc'
+        else                           'order by METRICS[''snowflake.time.execution'']::NUMBER desc nulls last'
     end;
 
     -- Build LIMIT clause if max_entries > 0

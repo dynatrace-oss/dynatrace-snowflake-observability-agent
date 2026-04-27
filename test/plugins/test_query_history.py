@@ -112,8 +112,6 @@ class TestQueryHist:
     @pytest.mark.xdist_group(name="test_telemetry")
     def test_query_history_max_entries_limiting(self):
         """Test that max_entries config limits the number of processed queries."""
-        import logging
-        from unittest.mock import patch, MagicMock
         from typing import Dict, Generator
         from snowflake import snowpark
         import json as _json
@@ -174,6 +172,7 @@ class TestQueryHist:
 
         # Test with max_entries limiting - should still process 3 rows from fixture
         # but self-monitoring event should indicate 1 row was dropped
+        # TODO(BDX-644): test validates fixture replay only; _call_refresh_recent_queries override is not exercised with run_proc=False
         utils.execute_telemetry_test(
             TestSpanDynatraceSnowAgent,
             test_name="test_query_history_max_entries",
@@ -184,8 +183,6 @@ class TestQueryHist:
     @pytest.mark.xdist_group(name="test_telemetry")
     def test_query_history_backward_compatibility(self):
         """Test that default config (max_entries=0) processes all rows unchanged."""
-        import logging
-        from unittest.mock import patch
         from typing import Dict, Generator
         from snowflake import snowpark
         import json as _json
@@ -245,6 +242,7 @@ class TestQueryHist:
         plugins._get_plugin_class = __local_get_plugin_class
 
         # Test backward compatibility: no max_entries limiting
+        # TODO(BDX-644): test validates fixture replay only; _call_refresh_recent_queries override is not exercised with run_proc=False
         utils.execute_telemetry_test(
             TestSpanDynatraceSnowAgent,
             test_name="test_query_history_backward_compat",
