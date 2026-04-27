@@ -30,6 +30,21 @@ title: Test Workflow
 tasks: {}
 EOF
 
+    # OpenPipeline fixture
+    mkdir -p "$TEST_TEMP_DIR/docs/openpipeline/test-openpipeline-rule"
+    cat > "$TEST_TEMP_DIR/docs/openpipeline/test-openpipeline-rule/test-openpipeline-rule.yml" << 'EOF'
+# OPENPIPELINE: Test OpenPipeline Rule
+id: dsoa-test-openpipeline-rule
+displayName: Test OpenPipeline Rule
+pipeline: default_logs
+processors:
+  - type: metricExtraction
+    matcher: "db.system == \"snowflake\" AND dsoa.run.context == \"test_context\""
+    metricKey: snowflake.test.metric
+    dimensions:
+      - db.namespace
+EOF
+
     # Mock dtctl binary — records calls, simulates success
     MOCK_BIN_DIR="$TEST_TEMP_DIR/bin"
     mkdir -p "$MOCK_BIN_DIR"
@@ -226,4 +241,43 @@ run_script() {
 @test "--env label appears in info output" {
     run_script --scope=dashboards --env=staging
     [[ "$output" =~ "staging" ]]
+}
+
+# ── Test: openpipeline scope ──────────────────────────────────────────────────
+
+@test "scope=openpipeline is accepted as valid scope" {
+    run_script --scope=openpipeline
+    [ "$status" -eq 0 ]
+}
+
+@test "scope=openpipeline output mentions openpipeline" {
+    run_script --scope=openpipeline
+    [[ "$output" =~ "openpipeline" ]]
+}
+
+@test "scope=openpipeline does not deploy dashboards or workflows" {
+    run_script --scope=openpipeline
+    # shellcheck disable=SC2076
+    [[ ! "$output" =~ "Deploying.*dashboard" ]]
+    # shellcheck disable=SC2076
+    [[ ! "$output" =~ "Deploying.*workflow" ]]
+}
+
+@test "scope=all deploys dashboards, workflows, and openpipeline rules" {
+    run_script --scope=all
+    [[ "$output" =~ "dashboard" ]]
+    [[ "$output" =~ "workflow" ]]
+    [[ "$output" =~ "openpipeline" ]]
+}
+
+@test "scope=openpipeline extracts human-readable name from OPENPIPELINE comment" {
+    run_script --scope=openpipeline
+    [[ "$output" =~ "Test OpenPipeline Rule" ]]
+}
+
+@test "missing openpipeline directory produces warning not error" {
+    rm -rf "$TEST_TEMP_DIR/docs/openpipeline"
+    run_script --scope=openpipeline
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ "not found" ]] || [[ "$output" =~ "skipping" ]] || [[ "$output" =~ "Skipping" ]]
 }

@@ -12,3 +12,14 @@ The log entries include information on:
 - version used by the client.
 
 Additionally, when login error is reported, a `CUSTOM_ALERT` event is sent.
+
+## OpenPipeline Metric-Extraction Rules
+
+A companion OpenPipeline rule (`docs/openpipeline/snowflake-login-attempts-failed/`) derives the
+`snowflake.login.attempts.failed` counter metric from these logs at ingest time.
+Dimensions: `db.user`, `client.type`, `error.code`.
+
+Deploy with:
+```bash
+./scripts/deploy/deploy_dt_assets.sh --scope=openpipeline
+```
