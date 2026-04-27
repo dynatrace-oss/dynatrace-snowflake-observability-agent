@@ -28,7 +28,6 @@
 from dtagent import AbstractDynatraceSnowAgentConnector
 from dtagent.version import VERSION
 from dtagent.util import is_regular_mode
-from dtagent.otel.ingest_warnings import IngestWarningCollector  # noqa: F401  # imported for compiled build
 
 ##endregion COMPILE_REMOVE
 

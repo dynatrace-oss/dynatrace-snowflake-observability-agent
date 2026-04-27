@@ -84,7 +84,7 @@ class IngestWarningCollector:
             List[Dict[str, Any]]: Copy of the current warnings list.
         """
         with IngestWarningCollector._lock:
-            return list(IngestWarningCollector._warnings)
+            return [dict(w) for w in IngestWarningCollector._warnings]
 
     @staticmethod
     def has_warnings() -> bool:

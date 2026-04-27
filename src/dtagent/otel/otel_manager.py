@@ -113,6 +113,8 @@ class CustomLoggingSession(requests.Session):
         else:
             OtelManager.set_current_fail_count(0)
             try:
+                # Dynatrace's OTLP endpoint returns JSON (not protobuf) in the response body,
+                # so JSON parsing is correct here. Non-JSON responses are handled by the except.
                 body = response.json()
                 partial = body.get("partialSuccess", {}) if isinstance(body, dict) else {}
                 rejected_logs = partial.get("rejectedLogRecords", 0)
