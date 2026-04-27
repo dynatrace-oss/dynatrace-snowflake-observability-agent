@@ -39,6 +39,7 @@ import requests
 from dtagent.context import RUN_CONTEXT_KEY
 from dtagent.otel import _log_warning
 from dtagent.otel.otel_manager import OtelManager
+from dtagent.otel.ingest_warnings import IngestWarningCollector
 from dtagent.util import StringEnum, get_timestamp
 from dtagent.version import VERSION
 
@@ -164,6 +165,19 @@ class AbstractEvents(ABC):
             if response.status_code == 202:
                 events_count = payload_cnt
                 OtelManager.set_current_fail_count(0)
+                try:
+                    body = response.json()
+                    if isinstance(body, dict):
+                        rejected = body.get("rejectedEventIngestInputCount", 0)
+                        if rejected:
+                            IngestWarningCollector.add_warning(
+                                "partial_success",
+                                self._api_event_type,
+                                f"Events ingest: {rejected} event(s) rejected",
+                                rejected,
+                            )
+                except Exception:  # pylint: disable=broad-except
+                    pass
             else:
                 _log_warning(response, _payload_list, self._api_event_type)
 
