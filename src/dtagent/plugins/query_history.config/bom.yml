@@ -1,7 +1,7 @@
 delivers:
   - name: DTAGENT_DB.STATUS.PROCESSED_QUERIES_CACHE
     type: table
-  - name: DTAGENT_DB.STATUS.UPDATE_PROCESSED_QUERIES(text,int,int)
+  - name: DTAGENT_DB.STATUS.UPDATE_PROCESSED_QUERIES(text,int,int,text)
     type: procedure
   - name: DTAGENT_DB.APP.TMP_RECENT_QUERIES
     type: transient table
