@@ -14,6 +14,11 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 - **Query text obfuscation** for `query_history` plugin: new `obfuscation_mode` config key (`off` / `literals` / `full`) controls whether query text and error messages are redacted before reaching Dynatrace. Mode `literals` replaces string/numeric literals with `?` while preserving SQL structure; mode `full` replaces the entire text with `[OBFUSCATED]`. Applies to both `db.query.text` and `snowflake.error.message`. Default `off` preserves backward compatibility. See [DEVLOG.md](DEVLOG.md) for implementation details.
+- Table Health plugin: monitors table storage metrics (active bytes, time-travel bytes, failsafe bytes, retained-for-clone bytes, row count) with include/exclude filtering and configurable size/count constraints. Runs every 6 hours by default (disabled by default, opt-in).
+- Table Health plugin — clustering depth context: collects `SYSTEM$CLUSTERING_INFORMATION()` for clustered tables via a staging procedure and reports average depth, average overlaps, constant partition ratio, and total partition count. Runs every 6 hours offset by 1 hour from the storage task. Enabled by default when the plugin is active; disable with `clustering_enabled: false`.
+- Table Health plugin — derived metrics context: computes period-over-period growth (bytes and %) and clustering degradation signals from historical snapshots. Disabled by default; enable by setting `history_retention_days` to a positive integer. Runs every 6 hours offset by 2 hours from the storage task.
+- Cold tables identification plugin: identifies tables with no recent query access (default: >90 days) to enable FinOps teams to find candidates for archiving, dropping, or tiering to lower-cost storage. Reduces storage costs by sunsetting unused tables. See [Cold Tables plugin](PLUGINS.md#cold_tables_info_sec).
+- **Warehouse Efficiency section** added to the Costs Monitoring dashboard: eight new tiles covering idle time ratio per warehouse, idle time trend, auto-suspend configuration audit, estimated credit waste with suggested timeout optimizations, multi-cluster utilization, idle cluster identification, and resume/suspend frequency (thrashing detection). No agent changes required — uses existing `warehouse_usage` and `resource_monitors` telemetry. See [DEVLOG.md](DEVLOG.md) for DQL implementation details.
 - Signal protection framework for `query_history` plugin: configurable top-N limiting (`max_entries`), include/exclude filters for warehouses/databases/users, and watermark-based lookback window (`max_lookback_minutes`). Prevents overload on high-volume Snowflake accounts. Self-monitoring logs and bizevents emitted when signal protection is active. All defaults preserve backward compatibility.
 - Cross-batch span parent linking for `query_history` plugin: OTEL span context (`OTEL_SPAN_ID`, `OTEL_TRACE_ID`) is now persisted in `PROCESSED_QUERIES_CACHE` and used to inject parent context for child queries whose parent was processed in a previous batch. Enables continuous trace chains across agent run cycles. Cache TTL is configurable via `query_history.cache_ttl_hours` (default: 4h). See [DEVLOG.md](DEVLOG.md) for implementation details.
 - Cold tables identification plugin: identifies tables with no recent query access (default: >90 days) to enable FinOps teams to find candidates for archiving, dropping, or tiering to lower-cost storage. Reduces storage costs by sunsetting unused tables. See [Cold Tables plugin](PLUGINS.md#cold_tables_info_sec).
@@ -26,6 +31,12 @@ All notable changes to this project will be documented in this file.
 
 - Updated `snowflake-snowpark-python` minimum version to `>=1.49.0` (was `>=1.48.1`). Python version constraint
   remains `<3.14` — bottleneck is `snowflake==1.12.0`, not snowpark. See [DEVLOG.md](DEVLOG.md) for full audit details.
+- Improved memory handling and processing performance for high-volume Snowflake accounts. The hot-path
+  (`_cleanup_dict` → `_pack_values_to_json_strings`) now uses native Python NaN detection instead of pandas,
+  reducing per-row overhead by eliminating unnecessary `pd.Series` allocations. Events and metrics exporters
+  now flush mid-batch to bound peak memory usage. GC interval and batch flush sizes are configurable via
+  `otel.performance.*` config keys. A new `dsoa.agent.memory.peak_rss` metric is emitted after each plugin
+  run for memory self-monitoring. See [DEVLOG.md](DEVLOG.md) for full technical details.
 
 ### Deprecated
 

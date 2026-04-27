@@ -15,6 +15,7 @@
 - [Resource Monitors](#resource_monitors_info_sec)
 - [Shares](#shares_info_sec)
 - [Snowpipes](#snowpipes_info_sec)
+- [Table Health](#table_health_info_sec)
 - [Tasks](#tasks_info_sec)
 - [Trust Center](#trust_center_info_sec)
 - [Users](#users_info_sec)
@@ -277,7 +278,7 @@ The following information is reported:
 - number of days since last access,
 - cold/warm classification based on access recency.
 
-## Configuration
+### Configuration
 
 Default schedule: daily at 6 AM UTC (access patterns don't change hourly).
 
@@ -300,16 +301,16 @@ plugins:
       - logs
 ```
 
-## Known Limitations
+### Known Limitations
 
 - **Never-accessed tables not included:** ACCESS_HISTORY only contains tables that have been accessed. Tables that have never been accessed
   will not appear in the results. To identify truly never-accessed tables, a follow-up enhancement would join with
   `INFORMATION_SCHEMA.TABLES` or `ACCOUNT_USAGE.TABLES`.
 - **ACCESS_HISTORY latency:** Up to 2 hours. Daily schedule is appropriate for this latency.
 
-## Querying in Dynatrace
+### Querying in Dynatrace
 
-### Logs — per-table detail
+#### Logs — per-table detail
 
 ```dql
 fetch logs
@@ -319,7 +320,7 @@ fetch logs
 | limit 50
 ```
 
-### Metrics — access count by table
+#### Metrics — access count by table
 
 ```dql
 timeseries avg(snowflake.table.access.count),
@@ -327,7 +328,7 @@ timeseries avg(snowflake.table.access.count),
 | filter db.system == "snowflake"
 ```
 
-### Metrics — days since last access
+#### Metrics — days since last access
 
 ```dql
 timeseries avg(snowflake.table.days_since_last_access),
@@ -336,7 +337,7 @@ timeseries avg(snowflake.table.days_since_last_access),
 | filter snowflake.table.days_since_last_access > 90
 ```
 
-### Self-monitoring — plugin performance
+#### Self-monitoring — plugin performance
 
 ```dql
 fetch logs
@@ -915,7 +916,7 @@ timeseries sum(snowflake.credits.used), by: {snowflake.service.type}
 | filter snowflake.service.type == "TELEMETRY_DATA_INGEST"
 ```
 
-## Migration from event_usage
+### Migration from event_usage
 
 The `event_usage` plugin is deprecated as of 0.9.5. To migrate:
 
@@ -1408,6 +1409,118 @@ The following tables list the Snowflake objects that this plugin delivers data f
 | ALL PIPES IN SCHEMA $db.$schema            | pipe     | MONITOR                      | DTAGENT_VIEWER | Granted when include pattern has specific schema (e.g. DB.ANALYTICS.%)                                               |
 | ALL FUTURE PIPES IN SCHEMA $db.$schema     | pipe     | MONITOR                      | DTAGENT_VIEWER | Granted when include pattern has specific schema (e.g. DB.ANALYTICS.%)                                               |
 | PIPE $db.$schema.$pipe                     | pipe     | MONITOR                      | DTAGENT_VIEWER | Granted when include pattern specifies an exact pipe name (e.g. DB.ANALYTICS.MY_PIPE); no FUTURE grant at pipe level |
+
+<a name="table_health_info_sec"></a>
+
+## The Table Health plugin
+
+This plugin enables tracking table storage metrics and clustering depth in Snowflake through reported metrics.
+
+## Table Storage Context
+
+The `table_storage` context reports the following information for each table:
+
+- active bytes (data currently stored in the table),
+- time travel bytes (data maintained for Time Travel),
+- failsafe bytes (data maintained for Failsafe),
+- retained for clone bytes (data retained for cloning),
+- number of rows in the table, and
+- clustering key definition (if any).
+
+The plugin supports include/exclude filtering to target specific tables and can be configured with minimum table size and maximum table
+count constraints.
+
+## Table Clustering Context
+
+The `table_clustering` context reports clustering depth metrics for tables that have a clustering key defined. It is enabled by default and
+can be disabled via `clustering_enabled: false`.
+
+The following information is reported:
+
+- average clustering depth (lower is better — 1.0 means perfectly clustered),
+- average partition overlap (lower is better),
+- constant partition ratio (fraction of partitions fully within one clustering key range — higher is better), and
+- total partition count.
+
+Clustering information is collected by the `P_COLLECT_CLUSTERING_INFO()` stored procedure, which calls `SYSTEM$CLUSTERING_INFORMATION()` per
+table and stores results in the `TABLE_CLUSTERING_RESULTS` staging table. The clustering task runs every 6 hours, offset by 1 hour from the
+storage task to avoid warehouse contention.
+
+## Table Health Derived Context
+
+The `table_health_derived` context reports period-over-period growth and clustering degradation signals derived from historical snapshots
+stored in `TABLE_HEALTH_HISTORY`.
+
+This context is **disabled by default** (`history_retention_days: 0`). Set `history_retention_days` to a positive integer (e.g. `30`) to
+enable snapshot collection and derived metrics.
+
+The following metrics are reported per table (requires at least two snapshots):
+
+- byte growth since the previous snapshot (`snowflake.table.growth_bytes`),
+- percentage growth since the previous snapshot (`snowflake.table.growth_pct`),
+- change in average clustering depth (`snowflake.table.clustering.depth_change`), and
+- clustering degradation flag — 1 when depth increased beyond `clustering_degradation_threshold` (`snowflake.table.clustering.degraded`).
+
+Snapshots are written by `P_SNAPSHOT_TABLE_HEALTH()` and the snapshot task runs every 6 hours, offset by 2 hours from the storage task
+(after clustering collection has completed).
+
+[Show semantics for this plugin](SEMANTICS.md#table_health_semantics_sec)
+
+### Table Health default configuration
+
+This plugin is **disabled by default**; you need to explicitly set `IS_ENABLED` to `true` to enable it.
+
+```yaml
+plugins:
+  table_health:
+    include:
+      - DTAGENT_DB.%.%
+      - "%.PUBLIC.%"
+    exclude:
+      - "%.INFORMATION_SCHEMA.%"
+      - "%.%.TMP_%"
+    min_table_bytes: 1073741824
+    max_tables: 500
+    max_clustered_tables: 100
+    clustering_enabled: true
+    history_retention_days: 0
+    clustering_degradation_threshold: 2
+    schedule: USING CRON 0 0,6,12,18 * * * UTC
+    schedule_clustering: USING CRON 0 1,7,13,19 * * * UTC
+    schedule_snapshot: USING CRON 0 2,8,14,20 * * * UTC
+    is_disabled: true
+    telemetry:
+      - metrics
+      - biz_events
+```
+
+### Table Health Bill of Materials
+
+The following tables list the Snowflake objects that this plugin delivers data from or references.
+
+#### Objects delivered by the `Table Health` plugin
+
+| Name                                                | Type      |
+| --------------------------------------------------- | --------- |
+| DTAGENT_DB.APP.V_TABLE_STORAGE                      | view      |
+| DTAGENT_DB.APP.TABLE_CLUSTERING_RESULTS             | table     |
+| DTAGENT_DB.APP.P_COLLECT_CLUSTERING_INFO()          | procedure |
+| DTAGENT_DB.APP.V_TABLE_CLUSTERING                   | view      |
+| DTAGENT_DB.APP.TABLE_HEALTH_HISTORY                 | table     |
+| DTAGENT_DB.APP.P_SNAPSHOT_TABLE_HEALTH()            | procedure |
+| DTAGENT_DB.APP.V_TABLE_HEALTH_DERIVED               | view      |
+| DTAGENT_DB.CONFIG.UPDATE_TABLE_HEALTH_CONF()        | procedure |
+| DTAGENT_DB.APP.TASK_DTAGENT_TABLE_HEALTH            | task      |
+| DTAGENT_DB.APP.TASK_DTAGENT_TABLE_HEALTH_CLUSTERING | task      |
+| DTAGENT_DB.APP.TASK_DTAGENT_TABLE_HEALTH_SNAPSHOT   | task      |
+
+#### Objects referenced by the `Table Health` plugin
+
+| Name                                          | Type     | Privileges |
+| --------------------------------------------- | -------- | ---------- |
+| SNOWFLAKE.ACCOUNT_USAGE.TABLE_STORAGE_METRICS | view     | SELECT     |
+| SNOWFLAKE.ACCOUNT_USAGE.TABLES                | view     | SELECT     |
+| SYSTEM$CLUSTERING_INFORMATION                 | function | USAGE      |
 
 <a name="tasks_info_sec"></a>
 

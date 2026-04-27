@@ -133,6 +133,134 @@ This file documents detailed technical changes, internal refactorings, and devel
   - `test/test_data/query_history_cross_batch.ndjson`: New fixture with 3 rows covering: child with cached parent context, child without context (fresh IDs), child with both event_log IDs and cached parent (event_log wins).
 - **Files Changed**: `src/dtagent/plugins/query_history.sql/011_processed_queries_cache.sql`, `src/dtagent/plugins/query_history.sql/061_p_refresh_recent_queries.sql`, `src/dtagent/plugins/query_history.sql/062_v_recent_queries.sql`, `src/dtagent/plugins/query_history.sql/110_update_processed_queries.sql`, `src/dtagent/otel/spans.py`, `src/dtagent/plugins/__init__.py`, `src/dtagent.sql/upgrade/0.9.5/020_add_span_context_to_cache.sql`, `src/dtagent.sql/upgrade/0.9.5/021_drop_update_processed_queries_3arg.sql`, `src/dtagent/plugins/query_history.config/query_history-config.yml`, `conf/config-template.yml`, `test/plugins/test_query_history_cross_batch.py`, `test/test_data/query_history_cross_batch.ndjson`
 
+### New Plugin: Table Health
+
+- **Purpose**: Monitor table storage metrics (active bytes, time-travel bytes, failsafe bytes, retained-for-clone bytes, row count) to identify tables with excessive storage overhead and optimize retention policies.
+- **Data source**: `SNOWFLAKE.ACCOUNT_USAGE.TABLE_STORAGE_METRICS` joined with `SNOWFLAKE.ACCOUNT_USAGE.TABLES` for row count and clustering key.
+- **Metrics**: Five gauges (`snowflake.table.active_bytes`, `snowflake.table.time_travel_bytes`, `snowflake.table.failsafe_bytes`, `snowflake.table.retained_for_clone_bytes`, `snowflake.data.rows`).
+- **Configuration**: Include/exclude filtering (default: `DTAGENT_DB.%.%` and `%.PUBLIC.%`), `min_table_bytes` (default 1GB), `max_tables` (default 500).
+- **Schedule**: Every 6 hours (00:00, 06:00, 12:00, 18:00 UTC).
+- **Status**: Disabled by default (opt-in plugin).
+- **Files**: `src/dtagent/plugins/table_health.py`, `src/dtagent/plugins/table_health.sql/`, `src/dtagent/plugins/table_health.config/`, `test/plugins/test_table_health.py`.
+- **Test coverage**: Mock fixture with 2 entries, validates metric counts across disabled_telemetry combinations.
+
+#### Phase 2: Clustering Depth Context
+
+- **Purpose**: Report clustering quality metrics for tables with a clustering key, enabling detection of degraded clustering that increases query scan costs.
+- **Architecture**: Staging-table pattern — `P_COLLECT_CLUSTERING_INFO()` iterates clustered tables from `SNOWFLAKE.ACCOUNT_USAGE.TABLES`, calls `SYSTEM$CLUSTERING_INFORMATION(table_name)` per table, and upserts results into `APP.TABLE_CLUSTERING_RESULTS`. The view `APP.V_TABLE_CLUSTERING` reads from the staging table with a 7-hour freshness gate. The agent then reads from the view in the `table_clustering` context.
+- **Why staging table**: `SYSTEM$CLUSTERING_INFORMATION()` is a per-table function, not a view — it cannot be called in a set-based query. The procedure loop + staging table pattern decouples collection from telemetry emission.
+- **Error handling**: Each per-table call is wrapped in `BEGIN … EXCEPTION WHEN statement_error` so that tables dropped since the last `ACCOUNT_USAGE` refresh are skipped with a `SYSTEM$LOG_WARN` entry rather than aborting the whole collection run.
+- **Freshness gate**: `V_TABLE_CLUSTERING` only returns rows where `COLLECTED_AT >= DATEADD(hour, -7, current_timestamp)`. This prevents stale data from being re-emitted if the clustering task is delayed or skipped.
+- **Metrics**: Four gauges — `snowflake.table.clustering.depth`, `snowflake.table.clustering.overlap`, `snowflake.table.clustering.constant_partition_ratio` (computed as `TOTAL_CONSTANT_PARTITION_COUNT / NULLIF(TOTAL_PARTITION_COUNT, 0)`), `snowflake.table.clustering.total_partitions`.
+- **Schedule**: `TASK_DTAGENT_TABLE_HEALTH_CLUSTERING` runs every 6 hours at 01:00, 07:00, 13:00, 19:00 UTC — offset by 1 hour from the storage task to avoid warehouse contention.
+- **Config gate**: `clustering_enabled: true` (default). Set to `false` to skip the `table_clustering` context entirely without disabling the plugin.
+- **New config key**: `max_clustered_tables: 100` — limits the number of tables processed per collection run.
+- **New SQL objects**: `052_t_table_clustering_results.sql`, `053_p_collect_clustering_info.sql`, `054_v_table_clustering.sql`, `802_table_health_clustering_task.sql`.
+- **Test coverage**: 4 tests — both contexts, storage-only, clustering-only, clustering disabled via config.
+
+#### Phase 3: Derived Metrics Context
+
+- **Purpose**: Compute period-over-period growth and clustering degradation signals from historical snapshots, enabling alerting on tables that are growing rapidly or whose clustering is degrading.
+- **Architecture**: Three new objects — `TABLE_HEALTH_HISTORY` (append-only snapshot table), `P_SNAPSHOT_TABLE_HEALTH()` (inserts one row per table per run by joining `V_TABLE_STORAGE` with `TABLE_CLUSTERING_RESULTS`, then prunes rows older than `history_retention_days`), and `V_TABLE_HEALTH_DERIVED` (CTE-based view using `ROW_NUMBER()` to select the two most recent snapshots per table and compute deltas).
+- **Opt-in design**: `history_retention_days: 0` (default) disables both snapshot collection and the `table_health_derived` context. Set to a positive integer (e.g. `30`) to enable. The Python plugin gates the context on `history_retention_days > 0`.
+- **Metrics**: Four gauges — `snowflake.table.growth_bytes` (byte delta), `snowflake.table.growth_pct` (percentage delta, null-safe), `snowflake.table.clustering.depth_change` (depth delta), `snowflake.table.clustering.degraded` (0/1 flag when depth increase exceeds `clustering_degradation_threshold`).
+- **Degradation threshold**: `clustering_degradation_threshold: 2` (default). Configurable per deployment.
+- **Schedule**: `TASK_DTAGENT_TABLE_HEALTH_SNAPSHOT` runs every 6 hours at 02:00, 08:00, 14:00, 20:00 UTC — offset by 2 hours from the storage task (after clustering collection at +1h has completed).
+- **New SQL objects**: `055_t_table_health_history.sql`, `056_p_snapshot_table_health.sql`, `057_v_table_health_derived.sql`, `803_table_health_snapshot_task.sql`.
+- **New config keys**: `history_retention_days: 0`, `clustering_degradation_threshold: 2`, `schedule_snapshot`.
+- **Test coverage**: 6 tests total — both contexts, derived context enabled, derived context disabled by default, storage-only, clustering-only, clustering disabled via config.
+
+### Dashboard: Warehouse Efficiency Section in Costs Monitoring
+
+- **Purpose**: Surface idle-time waste and auto-suspend misconfiguration in the existing Costs Monitoring dashboard.
+  Customers waste 20–40% of warehouse spend on idle time and suboptimal auto-suspend timeouts; these tiles make
+  that waste visible and actionable without requiring any agent code changes.
+- **Approach**: Dashboard-only change. Eight new tiles (keys `"22"`–`"29"`) appended after the existing Resource
+  Monitor Health section. One new variable `$Idle_Threshold_Pct` (text, default `"50"`) added for threshold coloring.
+  Dashboard version bumped from 20 to 21.
+- **Data sources** (all pre-existing telemetry):
+  - `snowflake.load.running` metric (warehouse\_usage plugin, `warehouse_usage_load` context) — 5-minute load
+    history intervals. `avg ≤ 0` used as idle indicator.
+  - `snowflake.warehouse.clusters.started/max/min` metrics (resource\_monitors plugin) — multi-cluster utilization.
+  - `snowflake.warehouse.is_auto_suspend`, `snowflake.warehouse.size`, `snowflake.warehouse.type`,
+    `snowflake.warehouse.scaling_policy` attributes (resource\_monitors plugin) — configuration audit.
+  - `snowflake.warehouse.event.name` / `snowflake.warehouse.event.state` dimensions (warehouse\_usage plugin) —
+    RESUME\_WAREHOUSE / SUSPEND\_WAREHOUSE events for thrashing detection.
+- **DQL patterns**:
+  - Idle ratio (tiles 23, 26): `timeseries` over `snowflake.load.running` at 5m interval → `arrayFilter(running[], {it <= 0.0})` to count idle intervals → `idle_pct = 100 * idle_intervals / total_intervals`.
+  - Credit waste (tile 26): `idle_hours = idle_intervals * 5 / 60` joined with inline `lookup` table for credits/hour by warehouse size (XS=1, S=2, M=4, L=8, XL=16, 2XL=32, 3XL=64, 4XL=128). Same lookup pattern as tile `"14"`.
+  - Suggested timeout heuristic: `idle_pct > 50% → "60s"`, `> 20% → "300s"`, else `"Keep current"`. 60 s is the Snowflake minimum billing floor.
+  - Multi-cluster (tiles 27, 28): `fetch events` from resource\_monitors plugin filtered to `clusters.max > 1`; `makeTimeseries` for trend, `summarize` for table.
+  - Thrashing (tile 29): `fetch logs` from warehouse\_usage plugin, filter `event.state == "STARTED"` to count only initiating events (not completions), `makeTimeseries count()` by event name + warehouse.
+  - All tiles use `dsoa.run.plugin` (not `dsoa.run.context`) for plugin-level filtering, consistent with multi-context plugins.
+  - Serverless warehouses excluded via `filterOut snowflake.warehouse.type == "SNOWPARK-OPTIMIZED"` in tiles 25 and 26.
+- **Variable filters**: All new tiles apply the standard three-filter pattern: `in(deployment.environment, array($Accounts))` + `iAny(startsWith(..., concat(array($Prefix)[], "_")))` + `in(snowflake.warehouse.name, array($Warehouses))`.
+- **Layout**: New section occupies y=78–107 (rows 78–107). Tiles 23/24 share a row (idle table + trend chart). Tiles 27/28 share a row (multi-cluster trend + idle clusters table).
+- **Known limitations**:
+  - `snowflake.load.running = 0` means no active queries but the warehouse may still be in a provisioning or quiescing state; idle estimate is conservative (may slightly overcount).
+  - Credit waste estimates assume uniform 5-minute billing intervals; actual billing uses 60-second minimum floor.
+  - `$Idle_Threshold_Pct` threshold in tile 23 uses a string variable in a numeric comparator — verify rendering on tenant (DQL may require `toDouble($Idle_Threshold_Pct)`).
+- **Files changed**: `docs/dashboards/costs-monitoring/costs-monitoring.yml`, `docs/dashboards/costs-monitoring/readme.md`, `docs/CHANGELOG.md`, `docs/DEVLOG.md`.
+
+### Performance and Memory Handling Improvements
+
+- **Root cause**: On high-volume Snowflake accounts, the hot-path `_cleanup_dict` → `_pack_values_to_json_strings`
+  was creating excessive intermediate allocations. `_cleanup_dict` called `pd.isna(pd.Series(v))` on every dict
+  value at every recursion level — creating a pandas Series object per value (~10–50μs each). For 5000 rows × 20
+  attributes × 3 recursion levels this amounted to ~300K Series allocations. Additionally, `PAYLOAD_CACHE` in the
+  events exporter accumulated all events until `_max_event_count` (default 400) with no byte-size guard.
+
+- **Phase A — Hot-path optimization** (`src/dtagent/util.py`, `src/dtagent/plugins/event_log.py`):
+  - Added `_is_nan_or_none(v)` helper using IEEE 754 identity (`v != v` for float NaN) and a try/except fallback
+    for NaT-like types. No pandas dependency.
+  - Refactored `_cleanup_dict` from double dict-comprehension (build inner dict, then filter) to single-pass loop
+    that filters NaN/None/empty-dict/empty-list and cleans values in one pass.
+  - Refactored `_pack_values_to_json_strings` level-0 branch to merge the filter step into the packing loop using
+    walrus operator, eliminating the second dict pass.
+  - Replaced `pd.isna(ts)` in `get_timestamp` with `_is_nan_or_none(ts)`.
+  - Replaced `pd.isna(v)` in `event_log.py` with `_is_nan_or_none(v)`; removed `import pandas as pd` from that file.
+  - **Note**: `import pandas as pd` in `agent.py` and `connector.py` is intentional — these files contain a
+    `##region GENERAL_IMPORTS` block (marked "DO NOT OPTIMIZE") that is assembled into the compiled stored procedure.
+
+- **Phase B — Export-side memory controls** (`src/dtagent/otel/events/__init__.py`, `src/dtagent/otel/metrics.py`,
+  `src/dtagent/plugins/__init__.py`, `conf/config-template.yml`):
+  - Events `PAYLOAD_CACHE`: replaced `PAYLOAD_CACHE += payload` (list concatenation) with per-event `append` plus
+    incremental byte estimate tracking (`_cache_byte_estimate`). Flush now triggers on either count OR byte threshold.
+    After flush, byte estimate is recalculated from remaining (failed) events only.
+  - Metrics: replaced `sys.getsizeof(str.encode())` with `len(str.encode())` for accurate byte counting (removed
+    Python object overhead inflation). Removed now-unused `import sys` from `metrics.py`.
+  - GC interval: replaced hardcoded `100` in `_log_entries` with `self._gc_interval` read from
+    `otel.performance.gc_interval` config key (default 100). Stored in `Plugin.__init__`.
+  - New config keys added to `conf/config-template.yml` under `otel.performance`:
+    - `gc_interval: 100`
+    - `spans_batch_flush_size: 50`
+    - `logs_batch_flush_size: 100`
+  - New `agent` top-level config section added:
+    - `agent.gc_collect_interval: 100` — canonical AC key; takes precedence over `otel.performance.gc_interval`
+    - `agent.memory_tracking_enabled: false` — opt-in gate for peak RSS metric emission
+
+- **Phase C — Memory self-monitoring** (`src/dtagent/plugins/__init__.py`, `test/core/test_performance.py`,
+  `src/dtagent.conf/instruments-def.yml`):
+  - Added `_get_peak_memory_mb()` module-level helper using `resource.getrusage(RUSAGE_SELF).ru_maxrss`.
+    Handles platform difference: macOS returns bytes, Linux returns kilobytes.
+  - `_report_execution` now emits `dsoa.agent.memory.peak_rss` gauge metric after each plugin context
+    completes, guarded by `is_regular_mode()`, `NOT_ENABLED` check, **and** `agent.memory_tracking_enabled`
+    config flag (default `false` — opt-in to avoid overhead on accounts that don't need it).
+  - `dsoa.agent.memory.peak_rss` registered in `src/dtagent.conf/instruments-def.yml` with description and unit.
+  - Added `test/core/test_performance.py` with:
+    - 14 unit tests for `_is_nan_or_none` covering all value types.
+    - Benchmark: `_cleanup_dict` on 1000 rows must complete in <1ms/row.
+    - Benchmark: full hot-path on 1000 rows must complete in <1ms/row.
+    - Memory regression: full hot-path on 5000 rows must not allocate >100MB above baseline (via `tracemalloc`).
+
+- **Phase D — Streaming row processing** (`src/dtagent/plugins/__init__.py`):
+  - `_process_span_rows`: added mid-batch flush every `self._span_batch_flush_size` (default 50) processed rows.
+    Flushes metrics and force-flushes tracer provider, then calls `gc.collect()`.
+  - `_log_entries`: added mid-batch flush every `self._log_batch_flush_size` (default 100) processed entries.
+    Flushes events, metrics, and logs, then calls `gc.collect()`.
+  - Both flush sizes are configurable via `otel.performance.spans_batch_flush_size` and
+    `otel.performance.logs_batch_flush_size` config keys.
+
 ### Feature: Signal Protection Framework for query_history Plugin
 
 - **Problem**: On high-volume Snowflake accounts (e.g., LPL Financial), the `query_history` plugin processes every query completed in the last 120 minutes, causing timeouts and memory exhaustion when tens of thousands of queries execute per 30-minute window. No mechanism existed to cap signals, filter by warehouse/database/user, or prioritize interesting queries.

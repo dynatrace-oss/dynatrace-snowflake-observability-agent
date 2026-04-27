@@ -7,7 +7,7 @@ The following information is reported:
 - number of days since last access,
 - cold/warm classification based on access recency.
 
-## Configuration
+### Configuration
 
 Default schedule: daily at 6 AM UTC (access patterns don't change hourly).
 
@@ -30,14 +30,14 @@ plugins:
       - logs
 ```
 
-## Known Limitations
+### Known Limitations
 
 - **Never-accessed tables not included:** ACCESS_HISTORY only contains tables that have been accessed. Tables that have never been accessed will not appear in the results. To identify truly never-accessed tables, a follow-up enhancement would join with `INFORMATION_SCHEMA.TABLES` or `ACCOUNT_USAGE.TABLES`.
 - **ACCESS_HISTORY latency:** Up to 2 hours. Daily schedule is appropriate for this latency.
 
-## Querying in Dynatrace
+### Querying in Dynatrace
 
-### Logs — per-table detail
+#### Logs — per-table detail
 
 ```dql
 fetch logs
@@ -47,7 +47,7 @@ fetch logs
 | limit 50
 ```
 
-### Metrics — access count by table
+#### Metrics — access count by table
 
 ```dql
 timeseries avg(snowflake.table.access.count),
@@ -55,7 +55,7 @@ timeseries avg(snowflake.table.access.count),
 | filter db.system == "snowflake"
 ```
 
-### Metrics — days since last access
+#### Metrics — days since last access
 
 ```dql
 timeseries avg(snowflake.table.days_since_last_access),
@@ -64,7 +64,7 @@ timeseries avg(snowflake.table.days_since_last_access),
 | filter snowflake.table.days_since_last_access > 90
 ```
 
-### Self-monitoring — plugin performance
+#### Self-monitoring — plugin performance
 
 ```dql
 fetch logs
