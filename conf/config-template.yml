@@ -66,3 +66,13 @@ plugins:
     telemetry:
       - metrics
       - biz_events
+  query_history:
+    max_entries: 0
+    max_lookback_minutes: 120
+    include_warehouses: []
+    exclude_warehouses:
+      - DTAGENT_WH
+    include_databases: []
+    exclude_databases: []
+    include_users: []
+    exclude_users: []

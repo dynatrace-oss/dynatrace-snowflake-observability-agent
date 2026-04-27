@@ -3,6 +3,7 @@
 - [Shared semantics](#core_semantics_sec)
 - [Active Queries](#active_queries_semantics_sec)
 - [Budgets](#budgets_semantics_sec)
+- [Cold Tables](#cold_tables_semantics_sec)
 - [Data Schemas](#data_schemas_semantics_sec)
 - [Data Volume](#data_volume_semantics_sec)
 - [Dynamic Tables](#dynamic_tables_semantics_sec)
@@ -130,6 +131,38 @@ check the `Context Name` column below.
 | ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- | ------------ |
 | snowflake.&#8203;budget.&#8203;created_on | The timestamp when the budget was created.                                                                                                                                                            | 2024-11-30 23:59:59.999     | budgets      |
 | snowflake.&#8203;event.&#8203;trigger     | Additionally to sending logs, each entry in `EVENT_TIMESTAMPS` is sent as event with key set to `snowflake.event.trigger`, value to key from `EVENT_TIMESTAMPS` and `timestamp` set to the key value. | snowflake.budget.created_on | budgets      |
+
+<a name="cold_tables_semantics_sec"></a>
+
+## The `Cold Tables` plugin semantics
+
+[Show plugin description](PLUGINS.md#cold_tables_info_sec)
+
+This plugin delivers telemetry in multiple contexts. To filter by one of plugin's context names (reported as `dsoa.run.context`), please
+check the `Context Name` column below.
+
+### Dimensions at the `Cold Tables` plugin
+
+| Identifier                                | Description                                                                                                                                                             | Example                    | Context Name |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- | ------------ |
+| db.&#8203;collection.&#8203;name          | The table name.                                                                                                                                                         | orders                     | cold_tables  |
+| db.&#8203;namespace                       | The name of the database containing the table.                                                                                                                          | analytics_db               | cold_tables  |
+| snowflake.&#8203;schema.&#8203;name       | The schema containing the table.                                                                                                                                        | public                     | cold_tables  |
+| snowflake.&#8203;table.&#8203;cold_status | Table temperature classification based on access recency: <br>- cold: no access within cold_threshold_days (default 90) <br>- warm: accessed within cold_threshold_days | cold                       | cold_tables  |
+| snowflake.&#8203;table.&#8203;full_name   | Fully qualified table name (catalog.schema.table).                                                                                                                      | ANALYTICS_DB.PUBLIC.ORDERS | cold_tables  |
+
+### Attributes at the `Cold Tables` plugin
+
+| Identifier                                     | Description                                                           | Example              | Context Name |
+| ---------------------------------------------- | --------------------------------------------------------------------- | -------------------- | ------------ |
+| snowflake.&#8203;table.&#8203;last_accessed_at | ISO 8601 timestamp of the most recent query that accessed this table. | 2026-01-15T10:30:00Z | cold_tables  |
+
+### Metrics at the `Cold Tables` plugin
+
+| Identifier                                           | Name                   | Unit  | Description                                                              | Example | Context Name |
+| ---------------------------------------------------- | ---------------------- | ----- | ------------------------------------------------------------------------ | ------- | ------------ |
+| snowflake.&#8203;table.&#8203;access.&#8203;count    | Table Access Count     | count | Total number of query accesses to this table within the lookback window. | 42      | cold_tables  |
+| snowflake.&#8203;table.&#8203;days_since_last_access | Days Since Last Access | days  | Number of days since the table was last accessed by any query.           | 95      | cold_tables  |
 
 <a name="data_schemas_semantics_sec"></a>
 

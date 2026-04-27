@@ -70,6 +70,7 @@ use role DTAGENT_VIEWER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 -- Execute the statements below one at a time (or in parallel sessions) for manual B2 testing.
 call APP.DTAGENT(ARRAY_CONSTRUCT('active_queries'));
 call APP.DTAGENT(ARRAY_CONSTRUCT('budgets'));
+call APP.DTAGENT(ARRAY_CONSTRUCT('cold_tables'));
 call APP.DTAGENT(ARRAY_CONSTRUCT('data_schemas'));
 call APP.DTAGENT(ARRAY_CONSTRUCT('data_volume'));
 call APP.DTAGENT(ARRAY_CONSTRUCT('dynamic_tables'));

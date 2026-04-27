@@ -109,6 +109,211 @@ class TestQueryHist:
                 base_count={"query_history": {"entries": 3, "log_lines": 3, "metrics": 111, "spans": 3}},
             )
 
+    @pytest.mark.xdist_group(name="test_telemetry")
+    def test_query_history_max_entries_limiting(self):
+        """Test that max_entries config limits the number of processed queries."""
+        import logging
+        from unittest.mock import patch, MagicMock
+        from typing import Dict, Generator
+        from snowflake import snowpark
+        import json as _json
+        import test._utils as utils
+        from test import TestDynatraceSnowAgent, _get_session
+        from dtagent.plugins.query_history import QueryHistoryPlugin
+        from dtagent.otel.spans import Spans
+
+        if utils.should_generate_fixtures(self.FIXTURES.values()):
+            session = _get_session()
+            session.call("APP.P_REFRESH_RECENT_QUERIES", log_on_exception=True)
+            utils._generate_all_fixtures(_get_session(), self.FIXTURES)
+
+        class TestSpans(Spans):
+            def _get_sub_rows(
+                self,
+                session: snowpark.Session,
+                view_name: str,
+                parent_row_id_col: str,
+                row_id: str,
+            ) -> Generator[Dict, None, None]:
+                fixture_path = TestQueryHist.FIXTURES[view_name]
+                with open(fixture_path, "r", encoding="utf-8") as _fh:
+                    all_rows = [_json.loads(line) for line in _fh if line.strip()]
+                from dtagent.util import _adjust_timestamp
+
+                for row_dict in all_rows:
+                    if row_dict.get(parent_row_id_col) == row_id:
+                        _adjust_timestamp(row_dict)
+                        yield row_dict
+
+        class TestQueryHistoryPlugin(QueryHistoryPlugin):
+            def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
+                return utils._safe_get_fixture_entries(TestQueryHist.FIXTURES, t_data, limit=3)
+
+            def _call_refresh_recent_queries(self) -> Dict:
+                # Simulate max_entries=2 applied with 3 available (1 dropped)
+                return {
+                    "status": "success",
+                    "total_processed": 2,
+                    "total_available": 3,
+                    "max_entries_applied": True,
+                    "max_entries_value": 2,
+                }
+
+        class TestSpanDynatraceSnowAgent(TestDynatraceSnowAgent):
+            from opentelemetry.sdk.resources import Resource
+
+            def _get_spans(self, resource: Resource) -> Spans:
+                return TestSpans(resource, self._configuration)
+
+        def __local_get_plugin_class(source: str):
+            return TestQueryHistoryPlugin
+
+        from dtagent import plugins
+
+        plugins._get_plugin_class = __local_get_plugin_class
+
+        # Test with max_entries limiting - should still process 3 rows from fixture
+        # but self-monitoring event should indicate 1 row was dropped
+        utils.execute_telemetry_test(
+            TestSpanDynatraceSnowAgent,
+            test_name="test_query_history_max_entries",
+            disabled_telemetry=[],
+            base_count={"query_history": {"entries": 3, "log_lines": 3, "metrics": 111, "spans": 3}},
+        )
+
+    @pytest.mark.xdist_group(name="test_telemetry")
+    def test_query_history_backward_compatibility(self):
+        """Test that default config (max_entries=0) processes all rows unchanged."""
+        import logging
+        from unittest.mock import patch
+        from typing import Dict, Generator
+        from snowflake import snowpark
+        import json as _json
+        import test._utils as utils
+        from test import TestDynatraceSnowAgent, _get_session
+        from dtagent.plugins.query_history import QueryHistoryPlugin
+        from dtagent.otel.spans import Spans
+
+        if utils.should_generate_fixtures(self.FIXTURES.values()):
+            session = _get_session()
+            session.call("APP.P_REFRESH_RECENT_QUERIES", log_on_exception=True)
+            utils._generate_all_fixtures(_get_session(), self.FIXTURES)
+
+        class TestSpans(Spans):
+            def _get_sub_rows(
+                self,
+                session: snowpark.Session,
+                view_name: str,
+                parent_row_id_col: str,
+                row_id: str,
+            ) -> Generator[Dict, None, None]:
+                fixture_path = TestQueryHist.FIXTURES[view_name]
+                with open(fixture_path, "r", encoding="utf-8") as _fh:
+                    all_rows = [_json.loads(line) for line in _fh if line.strip()]
+                from dtagent.util import _adjust_timestamp
+
+                for row_dict in all_rows:
+                    if row_dict.get(parent_row_id_col) == row_id:
+                        _adjust_timestamp(row_dict)
+                        yield row_dict
+
+        class TestQueryHistoryPlugin(QueryHistoryPlugin):
+            def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
+                return utils._safe_get_fixture_entries(TestQueryHist.FIXTURES, t_data, limit=3)
+
+            def _call_refresh_recent_queries(self) -> Dict:
+                # Simulate default config (max_entries=0, unlimited)
+                return {
+                    "status": "success",
+                    "total_processed": 3,
+                    "total_available": 3,
+                    "max_entries_applied": False,
+                    "max_entries_value": 0,
+                }
+
+        class TestSpanDynatraceSnowAgent(TestDynatraceSnowAgent):
+            from opentelemetry.sdk.resources import Resource
+
+            def _get_spans(self, resource: Resource) -> Spans:
+                return TestSpans(resource, self._configuration)
+
+        def __local_get_plugin_class(source: str):
+            return TestQueryHistoryPlugin
+
+        from dtagent import plugins
+
+        plugins._get_plugin_class = __local_get_plugin_class
+
+        # Test backward compatibility: no max_entries limiting
+        utils.execute_telemetry_test(
+            TestSpanDynatraceSnowAgent,
+            test_name="test_query_history_backward_compat",
+            disabled_telemetry=[],
+            base_count={"query_history": {"entries": 3, "log_lines": 3, "metrics": 111, "spans": 3}},
+        )
+
+
+class TestCallRefreshRecentQueries:
+    """Unit tests for _call_refresh_recent_queries() parsing logic."""
+
+    import pytest
+
+    def _make_plugin(self):
+        """Create a minimal QueryHistoryPlugin instance with a mock session."""
+        from unittest.mock import MagicMock
+        from dtagent.plugins.query_history import QueryHistoryPlugin
+
+        plugin = QueryHistoryPlugin.__new__(QueryHistoryPlugin)
+        plugin._session = MagicMock()
+        plugin._logs = MagicMock()
+        plugin._events = MagicMock()
+        return plugin
+
+    def test_returns_dict_when_snowpark_returns_dict(self):
+        """Snowpark VARIANT → dict path: result returned directly."""
+        from unittest.mock import MagicMock
+
+        plugin = self._make_plugin()
+        expected = {"status": "success", "total_processed": 5, "total_available": 10, "max_entries_applied": True, "max_entries_value": 5}
+        mock_row = MagicMock()
+        mock_row.__getitem__ = lambda self, i: expected
+        plugin._session.sql.return_value.collect.return_value = [mock_row]
+
+        result = plugin._call_refresh_recent_queries()
+        assert result == expected
+
+    def test_returns_dict_when_snowpark_returns_json_string(self):
+        """Legacy JSON string path: result parsed from string."""
+        import json
+        from unittest.mock import MagicMock
+
+        plugin = self._make_plugin()
+        expected = {"status": "success", "total_processed": 3, "total_available": 3, "max_entries_applied": False}
+        mock_row = MagicMock()
+        mock_row.__getitem__ = lambda self, i: json.dumps(expected)
+        plugin._session.sql.return_value.collect.return_value = [mock_row]
+
+        result = plugin._call_refresh_recent_queries()
+        assert result == expected
+
+    def test_returns_default_on_exception(self):
+        """Broad-except path: returns error default when procedure call raises."""
+        plugin = self._make_plugin()
+        plugin._session.sql.side_effect = RuntimeError("Snowpark connection error")
+
+        result = plugin._call_refresh_recent_queries()
+        assert result["status"] == "error"
+        assert result["max_entries_applied"] is False
+
+    def test_returns_default_when_no_rows(self):
+        """Empty result set: returns success default."""
+        plugin = self._make_plugin()
+        plugin._session.sql.return_value.collect.return_value = []
+
+        result = plugin._call_refresh_recent_queries()
+        assert result["status"] == "success"
+        assert result["max_entries_applied"] is False
+
 
 if __name__ == "__main__":
     test_class = TestQueryHist()
