@@ -465,21 +465,21 @@ After running all tests, present the results in a table using the checklist IDs:
 ```text
 ## Auto-Evaluation Results — DEV-{CURR_TAG}
 
-| Test      | Description                                            | Result     | Notes |
-|-----------|--------------------------------------------------------|------------|-------|
-| AE-C4.9   | No non_persisted_attribute_keys                        | PASS/FAIL  |       |
-| AE-C5.4   | BizEvent timestamps are current                        | PASS/FAIL  |       |
-| AE-C4.4   | Completeness span.events                               | PASS/FAIL  |       |
-| AE-C4.7   | No missing span.parent_id for child queries            | PASS/FAIL  |       |
-| AE-C1.2   | No ERROR-level agent logs                              | PASS/FAIL  |       |
-| AE-C2.3   | Query history metrics reported                         | PASS/FAIL  |       |
-| AE-C5.5   | Process metrics reported                               | PASS/FAIL  |       |
-| AE-C5.7   | Self-monitoring BizEvents all delivered                | PASS/FAIL  |       |
-| AE-C5.8   | No unexpected ingest-quality warnings (BDX-695)        | PASS/FAIL  |       |
-| AE-C5.9   | No unexpected acquisition problems (BDX-1647)          | PASS/FAIL  |       |
-| AE-C4.6   | span.parent_id present for child queries               | PASS/FAIL  |       |
-| AE-C2.1   | Budget metrics reported                                | PASS/FAIL  |       |
-| AE-C1.3   | No increase in dt.ingest.warnings (5% tolerance)       | PASS/FAIL  |       |
+| Test    | Description                                      | Result    | Notes |
+|---------|--------------------------------------------------|-----------|-------|
+| AE-C4.9 | No non_persisted_attribute_keys                  | PASS/FAIL |       |
+| AE-C5.4 | BizEvent timestamps are current                  | PASS/FAIL |       |
+| AE-C4.4 | Completeness span.events                         | PASS/FAIL |       |
+| AE-C4.7 | No missing span.parent_id for child queries      | PASS/FAIL |       |
+| AE-C1.2 | No ERROR-level agent logs                        | PASS/FAIL |       |
+| AE-C2.3 | Query history metrics reported                   | PASS/FAIL |       |
+| AE-C5.5 | Process metrics reported                         | PASS/FAIL |       |
+| AE-C5.7 | Self-monitoring BizEvents all delivered          | PASS/FAIL |       |
+| AE-C5.8 | No unexpected ingest-quality warnings            | PASS/FAIL |       |
+| AE-C5.9 | No unexpected acquisition problems               | PASS/FAIL |       |
+| AE-C4.6 | span.parent_id present for child queries         | PASS/FAIL |       |
+| AE-C2.1 | Budget metrics reported                          | PASS/FAIL |       |
+| AE-C1.3 | No increase in dt.ingest.warnings (5% tolerance) | PASS/FAIL |       |
 
 Auto-evaluated: {N}/13 — {n} passed, {f} failed
 ```
