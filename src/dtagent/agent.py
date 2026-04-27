@@ -44,6 +44,7 @@ import uuid
 import time
 import logging
 import datetime
+import threading
 
 from types import NoneType
 from typing import Tuple, Dict, List, Callable, Generator, Any, Union, Optional, Literal
@@ -73,6 +74,7 @@ from opentelemetry import version as otel_version
 ##INSERT src/dtagent/util.py
 ##INSERT src/dtagent/config.py
 ##INSERT src/dtagent/otel/otel_manager.py
+##INSERT src/dtagent/otel/ingest_warnings.py
 ##INSERT src/dtagent/otel/__init__.py
 ##INSERT build/_semantics.py
 ##INSERT src/dtagent/otel/spans.py
@@ -177,7 +179,9 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
                     #
 
                     self.report_execution_status(status="FINISHED", task_name=source, exec_id=run_id, details_dict=results[source])
+                    self._emit_ingest_warnings(plugin_name=plugin_name, run_id=run_id)
                 except RuntimeError as e:
+                    self._emit_ingest_warnings(plugin_name=plugin_name, run_id=run_id)
                     self.handle_interrupted_run(plugin_name, run_id, str(e))
             else:
                 self.report_execution_status(status="FAILED", task_name=source, exec_id=run_id)

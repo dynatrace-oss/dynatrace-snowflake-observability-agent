@@ -612,6 +612,67 @@ tiles:
         isAvailable: true
       componentState:
         inputData: null
+  "15":
+    title: Ingest warnings over time
+    type: data
+    query: |-
+      fetch bizevents, from: now()-7d
+      | filter db.system == "snowflake"
+      | filter event.type == "dsoa.ingest.warning"
+      | filter in(deployment.environment, array($Accounts))
+      | makeTimeseries count(), by: { `dsoa.ingest.warning.exporter` }
+    visualization: lineChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        xAxisLabel: timeframe
+        xAxisScaling: analyzedTimeframe
+        fieldMapping:
+          leftAxisValues:
+            - count()
+          timestamp: timeframe
+        curve: smooth
+        gapPolicy: connect
+        legend:
+          position: bottom
+      thresholds: []
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "16":
+    title: Ingest warning details (last 7 days)
+    type: data
+    query: |-
+      fetch bizevents, from: now()-7d
+      | filter db.system == "snowflake"
+      | filter event.type == "dsoa.ingest.warning"
+      | filter in(deployment.environment, array($Accounts))
+      | fields timestamp, dsoa.run.plugin, `dsoa.ingest.warning.type`, `dsoa.ingest.warning.exporter`, `dsoa.ingest.warning.detail`, `dsoa.ingest.warning.count`
+      | sort timestamp desc
+    visualization: table
+    visualizationSettings:
+      thresholds: []
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
 layouts:
   "1":
     x: 0
@@ -668,6 +729,16 @@ layouts:
     "y": 4
     w: 4
     h: 4
+  "15":
+    x: 0
+    "y": 31
+    w: 12
+    h: 6
+  "16":
+    x: 12
+    "y": 31
+    w: 12
+    h: 6
 importedWithCode: false
 settings:
   defaultTimeframe:

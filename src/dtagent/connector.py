@@ -54,6 +54,7 @@ import uuid
 import time
 import logging
 import datetime
+import threading
 
 from types import NoneType
 from typing import Tuple, Dict, List, Callable, Generator, Any, Union, Optional, Literal
@@ -84,6 +85,7 @@ from opentelemetry import version as otel_version
 ##INSERT src/dtagent/util.py
 ##INSERT src/dtagent/config.py
 ##INSERT src/dtagent/otel/otel_manager.py
+##INSERT src/dtagent/otel/ingest_warnings.py
 ##INSERT src/dtagent/otel/__init__.py
 ##INSERT build/_semantics.py
 ##INSERT src/dtagent/otel/spans.py

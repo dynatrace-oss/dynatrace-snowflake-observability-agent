@@ -63,13 +63,14 @@ plugins:
   self_monitoring:
     send_bizevents_on_deploy: true
     send_bizevents_on_run: true
+    detect_ingest_warnings: true
   table_health:
     include:
       - DTAGENT_DB.%.%
-      - '%.PUBLIC.%'
+      - "%.PUBLIC.%"
     exclude:
-      - '%.INFORMATION_SCHEMA.%'
-      - '%.%.TMP_%'
+      - "%.INFORMATION_SCHEMA.%"
+      - "%.%.TMP_%"
     min_table_bytes: 1073741824
     max_tables: 500
     max_clustered_tables: 100
