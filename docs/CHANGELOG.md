@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- Signal protection framework for `query_history` plugin: configurable top-N limiting (`max_entries`), include/exclude filters for warehouses/databases/users, and watermark-based lookback window (`max_lookback_minutes`). Prevents overload on high-volume Snowflake accounts. Self-monitoring logs and bizevents emitted when signal protection is active. All defaults preserve backward compatibility.
 - Cold tables identification plugin: identifies tables with no recent query access (default: >90 days) to enable FinOps teams to find candidates for archiving, dropping, or tiering to lower-cost storage. Reduces storage costs by sunsetting unused tables. See [Cold Tables plugin](PLUGINS.md#cold_tables_info_sec).
 - New `metering` plugin reporting credit consumption across all Snowflake service types via `METERING_HISTORY`. Covers auto-clustering, pipes, serverless tasks, AI services, replication, and more with `service_type` dimension for FinOps cost attribution.
 - **New `org_costs` plugin** (disabled by default): reports organization-level Snowflake cost and usage metrics from `SNOWFLAKE.ORGANIZATION_USAGE`. Covers five contexts — metering credits, storage, data transfer, billing amounts in currency, and remaining contract balances. Requires the Snowflake account to belong to an organization. See [Org Costs plugin](PLUGINS.md#org_costs_info_sec) and [DEVLOG.md](DEVLOG.md).
@@ -30,6 +31,12 @@ All notable changes to this project will be documented in this file.
 
 - Updated `snowflake-snowpark-python` minimum version to `>=1.49.0` (was `>=1.48.1`). Python version constraint
   remains `<3.14` — bottleneck is `snowflake==1.12.0`, not snowpark. See [DEVLOG.md](DEVLOG.md) for full audit details.
+- Improved memory handling and processing performance for high-volume Snowflake accounts. The hot-path
+  (`_cleanup_dict` → `_pack_values_to_json_strings`) now uses native Python NaN detection instead of pandas,
+  reducing per-row overhead by eliminating unnecessary `pd.Series` allocations. Events and metrics exporters
+  now flush mid-batch to bound peak memory usage. GC interval and batch flush sizes are configurable via
+  `otel.performance.*` config keys. A new `dsoa.agent.memory.peak_rss` metric is emitted after each plugin
+  run for memory self-monitoring. See [DEVLOG.md](DEVLOG.md) for full technical details.
 
 ### Deprecated
 
