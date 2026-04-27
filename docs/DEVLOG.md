@@ -136,6 +136,7 @@ This file documents detailed technical changes, internal refactorings, and devel
     Flushes events, metrics, and logs, then calls `gc.collect()`.
   - Both flush sizes are configurable via `otel.performance.spans_batch_flush_size` and
     `otel.performance.logs_batch_flush_size` config keys.
+
 ### New Plugin: Metering (BDX-1865)
 
 - **Problem**: `event_usage` plugin reads only `EVENT_USAGE_HISTORY`, covering a single service type (`TELEMETRY_DATA_INGEST`). `METERING_HISTORY` covers all service types, enabling full FinOps visibility.
