@@ -29,7 +29,37 @@ use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 
 create or replace view APP.V_QUERY_HISTORY
 as
-with cte_queries_to_check as (
+with cte_include_warehouses as (
+    select distinct ci.VALUE::varchar as pattern
+    from CONFIG.CONFIGURATIONS c, table(flatten(c.VALUE)) ci
+    where c.PATH = 'plugins.query_history.include_warehouses'
+)
+, cte_exclude_warehouses as (
+    select distinct ce.VALUE::varchar as pattern
+    from CONFIG.CONFIGURATIONS c, table(flatten(c.VALUE)) ce
+    where c.PATH = 'plugins.query_history.exclude_warehouses'
+)
+, cte_include_databases as (
+    select distinct ci.VALUE::varchar as pattern
+    from CONFIG.CONFIGURATIONS c, table(flatten(c.VALUE)) ci
+    where c.PATH = 'plugins.query_history.include_databases'
+)
+, cte_exclude_databases as (
+    select distinct ce.VALUE::varchar as pattern
+    from CONFIG.CONFIGURATIONS c, table(flatten(c.VALUE)) ce
+    where c.PATH = 'plugins.query_history.exclude_databases'
+)
+, cte_include_users as (
+    select distinct ci.VALUE::varchar as pattern
+    from CONFIG.CONFIGURATIONS c, table(flatten(c.VALUE)) ci
+    where c.PATH = 'plugins.query_history.include_users'
+)
+, cte_exclude_users as (
+    select distinct ce.VALUE::varchar as pattern
+    from CONFIG.CONFIGURATIONS c, table(flatten(c.VALUE)) ce
+    where c.PATH = 'plugins.query_history.exclude_users'
+)
+, cte_queries_to_check as (
     select
         qh.query_id,
         qh.start_time,
@@ -54,18 +84,18 @@ with cte_queries_to_check as (
             from STATUS.PROCESSED_QUERIES_CACHE
             where processed_time is not null
         )
-    and (CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.include_warehouses', '') = ''
-         or qh.warehouse_name in (select trim(t.value) from table(split_to_table(CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.include_warehouses', ''), ',')) t where t.value != ''))
-    and (CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.exclude_warehouses', '') = ''
-         or qh.warehouse_name not in (select trim(t.value) from table(split_to_table(CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.exclude_warehouses', ''), ',')) t where t.value != ''))
-    and (CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.include_databases', '') = ''
-         or qh.database_name in (select trim(t.value) from table(split_to_table(CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.include_databases', ''), ',')) t where t.value != ''))
-    and (CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.exclude_databases', '') = ''
-         or qh.database_name not in (select trim(t.value) from table(split_to_table(CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.exclude_databases', ''), ',')) t where t.value != ''))
-    and (CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.include_users', '') = ''
-         or qh.user_name in (select trim(t.value) from table(split_to_table(CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.include_users', ''), ',')) t where t.value != ''))
-    and (CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.exclude_users', '') = ''
-         or qh.user_name not in (select trim(t.value) from table(split_to_table(CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.exclude_users', ''), ',')) t where t.value != ''))
+    and ((select count(*) from cte_include_warehouses) = 0
+         or qh.warehouse_name LIKE ANY (select pattern from cte_include_warehouses))
+    and ((select count(*) from cte_exclude_warehouses) = 0
+         or not qh.warehouse_name LIKE ANY (select pattern from cte_exclude_warehouses))
+    and ((select count(*) from cte_include_databases) = 0
+         or qh.database_name LIKE ANY (select pattern from cte_include_databases))
+    and ((select count(*) from cte_exclude_databases) = 0
+         or not qh.database_name LIKE ANY (select pattern from cte_exclude_databases))
+    and ((select count(*) from cte_include_users) = 0
+         or qh.user_name LIKE ANY (select pattern from cte_include_users))
+    and ((select count(*) from cte_exclude_users) = 0
+         or not qh.user_name LIKE ANY (select pattern from cte_exclude_users))
 )
 , cte_access_history as (
     select
@@ -222,7 +252,9 @@ select
     qh.external_function_total_sent_rows,
     qh.external_function_total_sent_bytes,
 
-    qh.fault_handling_time
+    qh.fault_handling_time,
+
+    count(*) over ()                                                                                                     as _TOTAL_AVAILABLE
 from
     SNOWFLAKE.ACCOUNT_USAGE.QUERY_HISTORY           qh
 inner join
@@ -258,6 +290,11 @@ and not (qh.QUERY_TEXT = '' and
          qh.ROLE_NAME is null and
          qh.DATABASE_NAME is null and
          qh.SCHEMA_NAME is null)
+QUALIFY CASE
+    WHEN CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.max_entries', 0)::int = 0 THEN TRUE
+    ELSE ROW_NUMBER() OVER (ORDER BY qh.execution_time DESC NULLS LAST)
+             <= CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.max_entries', 0)::int
+END
 ;
 grant select on table APP.V_QUERY_HISTORY to role DTAGENT_VIEWER;
 

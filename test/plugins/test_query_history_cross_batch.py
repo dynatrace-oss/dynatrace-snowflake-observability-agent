@@ -129,7 +129,6 @@ class TestQueryHistCrossBatch:
           event_log _SPAN_ID/_TRACE_ID > cached parent OTEL context > fresh random IDs
         """
         import json as _json
-        from opentelemetry.trace import INVALID_SPAN_ID, INVALID_TRACE_ID
 
         fixture_path = self.FIXTURES["APP.V_RECENT_QUERIES"]
         with open(fixture_path, "r", encoding="utf-8") as fh:
@@ -168,7 +167,6 @@ class TestQueryHistCrossBatch:
         import json as _json
         from unittest.mock import MagicMock, patch
         from opentelemetry.sdk.resources import Resource
-        from opentelemetry.trace import INVALID_SPAN_ID, INVALID_TRACE_ID
 
         from dtagent.otel.spans import Spans
         from dtagent.config import Configuration

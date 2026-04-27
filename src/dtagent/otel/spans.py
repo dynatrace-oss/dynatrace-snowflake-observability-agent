@@ -229,6 +229,7 @@ class Spans:
         from dtagent.util import _adjust_timestamp, _unpack_json_dict  # COMPILE_REMOVE
         from dtagent.util import _cleanup_dict, _pack_values_to_json_strings  # COMPILE_REMOVE
         from opentelemetry import context as context_api
+        from opentelemetry import trace
         from opentelemetry.trace import NonRecordingSpan, SpanContext, TraceFlags
         from opentelemetry.sdk.trace import StatusCode
 
@@ -302,72 +303,70 @@ class Spans:
                     is_remote=False,
                     trace_flags=TraceFlags(TraceFlags.SAMPLED),
                 )
-                parent_ctx = context_api.set_value(
-                    "current-span",
-                    NonRecordingSpan(parent_span_ctx),
-                )
+                parent_ctx = trace.set_span_in_context(NonRecordingSpan(parent_span_ctx))
                 parent_token = context_api.attach(parent_ctx)
                 LOG.log(LL_TRACE, "Injected cached parent context span_id=%s trace_id=%s", parent_otel_span_id, parent_otel_trace_id)
             except (TypeError, ValueError) as exc:
                 LOG.debug("Failed to inject parent OTEL context: %s", exc)
 
-        with self._otel_tracer.start_as_current_span(
-            name=d_span["NAME"],
-            start_time=int(d_span["START_TIME"]),
-            end_on_exit=False,
-            attributes=span_attributes,
-            kind=self._get_span_kind(d_span, is_top_level),
-        ) as current_span:
-            spans_cnt += 1
+        try:
+            with self._otel_tracer.start_as_current_span(
+                name=d_span["NAME"],
+                start_time=int(d_span["START_TIME"]),
+                end_on_exit=False,
+                attributes=span_attributes,
+                kind=self._get_span_kind(d_span, is_top_level),
+            ) as current_span:
+                spans_cnt += 1
 
-            row_id = d_span.get(row_id_col, None)
-            LOG.log(LL_TRACE, "Processing span for row_id = %r at start_time=%r", row_id, d_span["START_TIME"])
+                row_id = d_span.get(row_id_col, None)
+                LOG.log(LL_TRACE, "Processing span for row_id = %r at start_time=%r", row_id, d_span["START_TIME"])
 
-            # Capture span context for cross-batch parent linking
-            if row_id is not None and span_context_map is not None:
-                span_ctx = current_span.get_span_context()
-                if span_ctx and span_ctx.span_id != INVALID_SPAN_ID and span_ctx.trace_id != INVALID_TRACE_ID:
-                    span_context_map[row_id] = (
-                        format(span_ctx.span_id, "016x"),
-                        format(span_ctx.trace_id, "032x"),
-                    )
+                # Capture span context for cross-batch parent linking
+                if row_id is not None and span_context_map is not None:
+                    span_ctx = current_span.get_span_context()
+                    if span_ctx and span_ctx.span_id != INVALID_SPAN_ID and span_ctx.trace_id != INVALID_TRACE_ID:
+                        span_context_map[row_id] = (
+                            format(span_ctx.span_id, "016x"),
+                            format(span_ctx.trace_id, "032x"),
+                        )
 
-            if row_id and f_span_events:
-                span_events, events_failed = f_span_events(d_span)
-                for span_event in span_events:
-                    try:
-                        current_span.add_event(**span_event)
-                        LOG.log(LL_TRACE, "Event for row id = %r: %r", row_id, span_event)
-                    except TypeError as e:
-                        events_failed += 1
-                        raise TypeError(f"row_id = {d_span[row_id_col]}; event = {span_event}; e = {e}") from e
-                events_added = len(span_events)
+                if row_id and f_span_events:
+                    span_events, events_failed = f_span_events(d_span)
+                    for span_event in span_events:
+                        try:
+                            current_span.add_event(**span_event)
+                            LOG.log(LL_TRACE, "Event for row id = %r: %r", row_id, span_event)
+                        except TypeError as e:
+                            events_failed += 1
+                            raise TypeError(f"row_id = {d_span[row_id_col]}; event = {span_event}; e = {e}") from e
+                    events_added = len(span_events)
 
-            current_span.set_attribute("dsoa.debug.span.events.added", events_added)
-            current_span.set_attribute("dsoa.debug.span.events.failed", events_failed)
+                current_span.set_attribute("dsoa.debug.span.events.added", events_added)
+                current_span.set_attribute("dsoa.debug.span.events.failed", events_failed)
 
-            LOG.log(
-                LL_TRACE,
-                "dsoa.debug.span.events.added[%r]: %d",
-                row_id,
-                events_added,
-            )
+                LOG.log(
+                    LL_TRACE,
+                    "dsoa.debug.span.events.added[%r]: %d",
+                    row_id,
+                    events_added,
+                )
 
-            if f_log_events:
-                logs_cnt += f_log_events(d_span)
+                if f_log_events:
+                    logs_cnt += f_log_events(d_span)
 
-            subspan_events_added, subspan_spans_cnt, subspan_logs_cnt = (
-                __process_subrows(row_id) if d_span.get("IS_PARENT", False) else (0, 0, 0)
-            )
+                subspan_events_added, subspan_spans_cnt, subspan_logs_cnt = (
+                    __process_subrows(row_id) if d_span.get("IS_PARENT", False) else (0, 0, 0)
+                )
 
-            current_span.set_status(StatusCode[d_span.get("STATUS_CODE", "UNSET")])
-            current_span.end(int(d_span["END_TIME"]))
+                current_span.set_status(StatusCode[d_span.get("STATUS_CODE", "UNSET")])
+                current_span.end(int(d_span["END_TIME"]))
 
-            if row_id is not None and processed_ids is not None:
-                processed_ids.append(row_id)
-
-        if parent_token is not None:
-            context_api.detach(parent_token)
+                if row_id is not None and processed_ids is not None:
+                    processed_ids.append(row_id)
+        finally:
+            if parent_token is not None:
+                context_api.detach(parent_token)
 
         LOG.log(LL_TRACE, "Leaving span reporting for %r", row_id)
         OtelManager.verify_communication()
