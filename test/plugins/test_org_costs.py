@@ -28,8 +28,8 @@ class TestOrgCosts:
         "APP.V_ORG_METERING_DAILY": "test/test_data/org_costs_metering.ndjson",
         "APP.V_ORG_STORAGE_DAILY": "test/test_data/org_costs_storage.ndjson",
         "APP.V_ORG_DATA_TRANSFER_DAILY": "test/test_data/org_costs_data_transfer.ndjson",
-        "APP.V_ORG_BILLING_USAGE_IN_CURRENCY": "test/test_data/org_billing_usage_in_currency.ndjson",
-        "APP.V_ORG_BILLING_REMAINING_BALANCE": "test/test_data/org_billing_remaining_balance.ndjson",
+        "APP.V_ORG_BILLING_USAGE_IN_CURRENCY": "test/test_data/org_costs_billing_usage_in_currency.ndjson",
+        "APP.V_ORG_BILLING_REMAINING_BALANCE": "test/test_data/org_costs_billing_remaining_balance.ndjson",
     }
 
     @pytest.mark.xdist_group(name="test_telemetry")

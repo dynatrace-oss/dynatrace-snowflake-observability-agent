@@ -2,6 +2,7 @@ attributes:
   snowflake.account.locator:
     __context_names:
       - org_costs_metering
+      - org_costs_storage
     __example: ABC12345
     __description: The account locator identifier for the Snowflake account.
   snowflake.org.billing.contract_number:
@@ -13,6 +14,7 @@ attributes:
   snowflake.organization.name:
     __context_names:
       - org_costs_metering
+      - org_costs_storage
       - org_costs_data_transfer
       - org_billing_usage_in_currency
       - org_billing_remaining_balance
@@ -22,6 +24,7 @@ dimensions:
   snowflake.account.name:
     __context_names:
       - org_costs_metering
+      - org_costs_storage
       - org_costs_data_transfer
       - org_billing_usage_in_currency
       - org_billing_remaining_balance
@@ -29,11 +32,17 @@ dimensions:
     __description: The name of the Snowflake account within the organization.
   snowflake.account.locator:
     __context_names:
+      - org_costs_storage
       - org_costs_data_transfer
       - org_billing_usage_in_currency
       - org_billing_remaining_balance
     __example: ABC12345
     __description: The account locator identifier for the Snowflake account.
+  snowflake.storage.type:
+    __context_names:
+      - org_costs_storage
+    __example: TABLE
+    __description: The type of storage being measured (e.g. TABLE, STAGE, FAILSAFE).
   snowflake.org.billing.currency:
     __context_names:
       - org_billing_usage_in_currency
@@ -71,6 +80,13 @@ dimensions:
     __example: EXTERNAL
     __description: The type of data transfer (e.g. EXTERNAL).
 metrics:
+  snowflake.org.storage.bytes:
+    __context_names:
+      - org_costs_storage
+    __example: "107374182400"
+    __description: Average daily storage bytes used by the account for the given storage type.
+    displayName: Org Storage Bytes
+    unit: Byte
   snowflake.org.billing.amount:
     __context_names:
       - org_billing_usage_in_currency
