@@ -62,7 +62,7 @@ tasks:
 
           const series = result?.resolution?.series ?? [];
           for (const s of series) {
-            const latestValue = s.values?.[s.values.length - 1];
+            const latestValue = s.values?.at(-1);
             if (latestValue !== null && latestValue < BALANCE_THRESHOLD) {
               alerts.push({
                 metric: metricId,
