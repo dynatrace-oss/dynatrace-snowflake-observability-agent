@@ -29,22 +29,73 @@ use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 
 create or replace view APP.V_QUERY_HISTORY
 as
-with cte_queries_to_check as (
+with cte_include_warehouses as (
+    select distinct ci.VALUE::varchar as pattern
+    from CONFIG.CONFIGURATIONS c, table(flatten(c.VALUE)) ci
+    where c.PATH = 'plugins.query_history.include_warehouses'
+)
+, cte_exclude_warehouses as (
+    select distinct ce.VALUE::varchar as pattern
+    from CONFIG.CONFIGURATIONS c, table(flatten(c.VALUE)) ce
+    where c.PATH = 'plugins.query_history.exclude_warehouses'
+)
+, cte_include_databases as (
+    select distinct ci.VALUE::varchar as pattern
+    from CONFIG.CONFIGURATIONS c, table(flatten(c.VALUE)) ci
+    where c.PATH = 'plugins.query_history.include_databases'
+)
+, cte_exclude_databases as (
+    select distinct ce.VALUE::varchar as pattern
+    from CONFIG.CONFIGURATIONS c, table(flatten(c.VALUE)) ce
+    where c.PATH = 'plugins.query_history.exclude_databases'
+)
+, cte_include_users as (
+    select distinct ci.VALUE::varchar as pattern
+    from CONFIG.CONFIGURATIONS c, table(flatten(c.VALUE)) ci
+    where c.PATH = 'plugins.query_history.include_users'
+)
+, cte_exclude_users as (
+    select distinct ce.VALUE::varchar as pattern
+    from CONFIG.CONFIGURATIONS c, table(flatten(c.VALUE)) ce
+    where c.PATH = 'plugins.query_history.exclude_users'
+)
+, cte_queries_to_check as (
     select
         qh.query_id,
         qh.start_time,
         qh.end_time,
-        qh.session_id
+        qh.session_id,
+        qh.warehouse_name,
+        qh.database_name,
+        qh.user_name
     from
         SNOWFLAKE.ACCOUNT_USAGE.QUERY_HISTORY qh
     where
-        qh.end_time >= timeadd(minute, -120, current_timestamp)
+        qh.end_time >= greatest(
+            coalesce(
+                (select max(LAST_TIMESTAMP) from STATUS.PROCESSED_MEASUREMENTS_LOG where MEASUREMENTS_SOURCE = 'query_history'),
+                timeadd(minute, -CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.max_lookback_minutes', 120)::int, current_timestamp)
+            ),
+            timeadd(minute, -CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.max_lookback_minutes', 120)::int, current_timestamp)
+        )
     and qh.query_text is not null
     and qh.query_id not in (
             select query_id
             from STATUS.PROCESSED_QUERIES_CACHE
             where processed_time is not null
         )
+    and ((select count(*) from cte_include_warehouses) = 0
+         or qh.warehouse_name LIKE ANY (select pattern from cte_include_warehouses))
+    and ((select count(*) from cte_exclude_warehouses) = 0
+         or not qh.warehouse_name LIKE ANY (select pattern from cte_exclude_warehouses))
+    and ((select count(*) from cte_include_databases) = 0
+         or qh.database_name LIKE ANY (select pattern from cte_include_databases))
+    and ((select count(*) from cte_exclude_databases) = 0
+         or not qh.database_name LIKE ANY (select pattern from cte_exclude_databases))
+    and ((select count(*) from cte_include_users) = 0
+         or qh.user_name LIKE ANY (select pattern from cte_include_users))
+    and ((select count(*) from cte_exclude_users) = 0
+         or not qh.user_name LIKE ANY (select pattern from cte_exclude_users))
 )
 , cte_access_history as (
     select
@@ -201,7 +252,9 @@ select
     qh.external_function_total_sent_rows,
     qh.external_function_total_sent_bytes,
 
-    qh.fault_handling_time
+    qh.fault_handling_time,
+
+    count(*) over ()                                                                                                     as _TOTAL_AVAILABLE
 from
     SNOWFLAKE.ACCOUNT_USAGE.QUERY_HISTORY           qh
 inner join
@@ -224,13 +277,24 @@ left join
  and l.RESOURCE_ATTRIBUTES:"snow.query.id"::varchar = qh.query_id
 --%:PLUGIN:event_log
 where
-    qh.end_time >= timeadd(minute, -120, current_timestamp)
+    qh.end_time >= greatest(
+        coalesce(
+            (select max(LAST_TIMESTAMP) from STATUS.PROCESSED_MEASUREMENTS_LOG where MEASUREMENTS_SOURCE = 'query_history'),
+            timeadd(minute, -CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.max_lookback_minutes', 120)::int, current_timestamp)
+        ),
+        timeadd(minute, -CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.max_lookback_minutes', 120)::int, current_timestamp)
+    )
 -- this will ensure we do not report some strange Snowflake-internal queries
 and not (qh.QUERY_TEXT = '' and
          qh.USER_NAME = 'SYSTEM' and
          qh.ROLE_NAME is null and
          qh.DATABASE_NAME is null and
          qh.SCHEMA_NAME is null)
+QUALIFY CASE
+    WHEN CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.max_entries', 0)::int = 0 THEN TRUE
+    ELSE ROW_NUMBER() OVER (ORDER BY qh.execution_time DESC NULLS LAST)
+             <= CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.max_entries', 0)::int
+END
 ;
 grant select on table APP.V_QUERY_HISTORY to role DTAGENT_VIEWER;
 

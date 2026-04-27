@@ -15,6 +15,8 @@ All notable changes to this project will be documented in this file.
 
 - Cold tables identification plugin: identifies tables with no recent query access (default: >90 days) to enable FinOps teams to find candidates for archiving, dropping, or tiering to lower-cost storage. Reduces storage costs by sunsetting unused tables. See [Cold Tables plugin](PLUGINS.md#cold_tables_info_sec).
 - **Warehouse Efficiency section** added to the Costs Monitoring dashboard: eight new tiles covering idle time ratio per warehouse, idle time trend, auto-suspend configuration audit, estimated credit waste with suggested timeout optimizations, multi-cluster utilization, idle cluster identification, and resume/suspend frequency (thrashing detection). No agent changes required — uses existing `warehouse_usage` and `resource_monitors` telemetry. See [DEVLOG.md](DEVLOG.md) for DQL implementation details.
+- Signal protection framework for `query_history` plugin: configurable top-N limiting (`max_entries`), include/exclude filters for warehouses/databases/users, and watermark-based lookback window (`max_lookback_minutes`). Prevents overload on high-volume Snowflake accounts. Self-monitoring logs and bizevents emitted when signal protection is active. All defaults preserve backward compatibility.
+- Cold tables identification plugin: identifies tables with no recent query access (default: >90 days) to enable FinOps teams to find candidates for archiving, dropping, or tiering to lower-cost storage. Reduces storage costs by sunsetting unused tables. See [Cold Tables plugin](PLUGINS.md#cold_tables_info_sec).
 - New `metering` plugin reporting credit consumption across all Snowflake service types via `METERING_HISTORY`. Covers auto-clustering, pipes, serverless tasks, AI services, replication, and more with `service_type` dimension for FinOps cost attribution.
 - **Interactive deployment wizard** (`--interactive` flag): Guides users through 5-phase configuration (core config, deployment scope, plugin selection, advanced settings, telemetry settings). Auto-triggered when config file is missing. Generates `conf/config-$ENV.yml`. Includes HTTPS reachability probes for DT tenant and Snowflake account (warn-only, non-blocking). Supports `--dry-run` (print config to stdout) and `--output=<file>` (write to custom path).
 - **New `deploy.sh` flags**: `--env=<ENV>` (replaces positional arg), `--interactive` (launch wizard), `--defaults` (generate minimal config non-interactively). Positional `$ENV` still supported with deprecation warning for backward compatibility.
@@ -24,6 +26,12 @@ All notable changes to this project will be documented in this file.
 
 - Updated `snowflake-snowpark-python` minimum version to `>=1.49.0` (was `>=1.48.1`). Python version constraint
   remains `<3.14` — bottleneck is `snowflake==1.12.0`, not snowpark. See [DEVLOG.md](DEVLOG.md) for full audit details.
+- Improved memory handling and processing performance for high-volume Snowflake accounts. The hot-path
+  (`_cleanup_dict` → `_pack_values_to_json_strings`) now uses native Python NaN detection instead of pandas,
+  reducing per-row overhead by eliminating unnecessary `pd.Series` allocations. Events and metrics exporters
+  now flush mid-batch to bound peak memory usage. GC interval and batch flush sizes are configurable via
+  `otel.performance.*` config keys. A new `dsoa.agent.memory.peak_rss` metric is emitted after each plugin
+  run for memory self-monitoring. See [DEVLOG.md](DEVLOG.md) for full technical details.
 
 ### Deprecated
 
