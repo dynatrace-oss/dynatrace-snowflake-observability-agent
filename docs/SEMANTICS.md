@@ -595,28 +595,32 @@ All telemetry delivered by this plugin is reported as `dsoa.run.context == "reso
 
 ### Attributes at the `Resource Monitors` plugin
 
-| Identifier                                                       | Description                                                        | Example     |
-| ---------------------------------------------------------------- | ------------------------------------------------------------------ | ----------- |
-| snowflake.&#8203;budget.&#8203;name                              | The name of the budget associated with the warehouse.              | BUDGET_2024 |
-| snowflake.&#8203;credits.&#8203;quota                            | The credit quota of the resource monitor.                          | 1000        |
-| snowflake.&#8203;credits.&#8203;quota.&#8203;remaining           | The remaining credits of the resource monitor.                     | 500         |
-| snowflake.&#8203;credits.&#8203;quota.&#8203;used                | The credits used by the resource monitor.                          | 500         |
-| snowflake.&#8203;resource_monitor.&#8203;frequency               | The frequency of the resource monitor.                             | DAILY       |
-| snowflake.&#8203;resource_monitor.&#8203;is_active               | Indicates if the resource monitor is active.                       | true        |
-| snowflake.&#8203;resource_monitor.&#8203;level                   | The level of the resource monitor.                                 | ACCOUNT     |
-| snowflake.&#8203;warehouse.&#8203;execution_state                | The execution state of the warehouse.                              | RUNNING     |
-| snowflake.&#8203;warehouse.&#8203;has_query_acceleration_enabled | Indicates if query acceleration is enabled for the warehouse.      | true        |
-| snowflake.&#8203;warehouse.&#8203;is_auto_resume                 | Indicates if the warehouse is set to auto<br>-resume.              | true        |
-| snowflake.&#8203;warehouse.&#8203;is_auto_suspend                | Indicates if the warehouse is set to auto<br>-suspend.             | true        |
-| snowflake.&#8203;warehouse.&#8203;is_current                     | Indicates if the warehouse is the current warehouse.               | true        |
-| snowflake.&#8203;warehouse.&#8203;is_default                     | Indicates if the warehouse is the default warehouse.               | true        |
-| snowflake.&#8203;warehouse.&#8203;is_unmonitored                 | Indicates if the warehouse is NOT monitored by a resource monitor. | true        |
-| snowflake.&#8203;warehouse.&#8203;owner                          | The owner of the warehouse.                                        | admin       |
-| snowflake.&#8203;warehouse.&#8203;owner.&#8203;role_type         | The role type of the warehouse owner.                              | SYSADMIN    |
-| snowflake.&#8203;warehouse.&#8203;scaling_policy                 | The scaling policy of the warehouse.                               | STANDARD    |
-| snowflake.&#8203;warehouse.&#8203;size                           | The size of the warehouse.                                         | X-SMALL     |
-| snowflake.&#8203;warehouse.&#8203;type                           | The type of the warehouse.                                         | STANDARD    |
-| snowflake.&#8203;warehouses.&#8203;names                         | The names of the warehouses monitored.                             | COMPUTE_WH  |
+| Identifier                                                          | Description                                                                                                                                                                | Example     |
+| ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| snowflake.&#8203;budget.&#8203;name                                 | The name of the budget associated with the warehouse.                                                                                                                      | BUDGET_2024 |
+| snowflake.&#8203;credits.&#8203;quota                               | The credit quota of the resource monitor.                                                                                                                                  | 1000        |
+| snowflake.&#8203;credits.&#8203;quota.&#8203;remaining              | The remaining credits of the resource monitor.                                                                                                                             | 500         |
+| snowflake.&#8203;credits.&#8203;quota.&#8203;used                   | The credits used by the resource monitor.                                                                                                                                  | 500         |
+| snowflake.&#8203;credits.&#8203;quota.&#8203;used_pct               | Live percentage of quota consumed at the time of threshold event emission.                                                                                                 | 85.0        |
+| snowflake.&#8203;resource_monitor.&#8203;frequency                  | The frequency of the resource monitor.                                                                                                                                     | DAILY       |
+| snowflake.&#8203;resource_monitor.&#8203;is_active                  | Indicates if the resource monitor is active.                                                                                                                               | true        |
+| snowflake.&#8203;resource_monitor.&#8203;level                      | The level of the resource monitor.                                                                                                                                         | ACCOUNT     |
+| snowflake.&#8203;resource_monitor.&#8203;threshold.&#8203;direction | Direction of the threshold crossing: `up` when quota is increasing into or remaining within a band; `down` when the consumption drops back below a previously active band. | up          |
+| snowflake.&#8203;resource_monitor.&#8203;threshold.&#8203;level     | Alert band for the threshold event: `info` (below 80%), `warn` ([80–90%)), `critical` ([90–100%)), or `exhausted` (>=100%).                                                | warn        |
+| snowflake.&#8203;resource_monitor.&#8203;threshold.&#8203;pct       | The specific threshold percentage value that was crossed to trigger the event.                                                                                             | 80          |
+| snowflake.&#8203;warehouse.&#8203;execution_state                   | The execution state of the warehouse.                                                                                                                                      | RUNNING     |
+| snowflake.&#8203;warehouse.&#8203;has_query_acceleration_enabled    | Indicates if query acceleration is enabled for the warehouse.                                                                                                              | true        |
+| snowflake.&#8203;warehouse.&#8203;is_auto_resume                    | Indicates if the warehouse is set to auto<br>-resume.                                                                                                                      | true        |
+| snowflake.&#8203;warehouse.&#8203;is_auto_suspend                   | Indicates if the warehouse is set to auto<br>-suspend.                                                                                                                     | true        |
+| snowflake.&#8203;warehouse.&#8203;is_current                        | Indicates if the warehouse is the current warehouse.                                                                                                                       | true        |
+| snowflake.&#8203;warehouse.&#8203;is_default                        | Indicates if the warehouse is the default warehouse.                                                                                                                       | true        |
+| snowflake.&#8203;warehouse.&#8203;is_unmonitored                    | Indicates if the warehouse is NOT monitored by a resource monitor.                                                                                                         | true        |
+| snowflake.&#8203;warehouse.&#8203;owner                             | The owner of the warehouse.                                                                                                                                                | admin       |
+| snowflake.&#8203;warehouse.&#8203;owner.&#8203;role_type            | The role type of the warehouse owner.                                                                                                                                      | SYSADMIN    |
+| snowflake.&#8203;warehouse.&#8203;scaling_policy                    | The scaling policy of the warehouse.                                                                                                                                       | STANDARD    |
+| snowflake.&#8203;warehouse.&#8203;size                              | The size of the warehouse.                                                                                                                                                 | X-SMALL     |
+| snowflake.&#8203;warehouse.&#8203;type                              | The type of the warehouse.                                                                                                                                                 | STANDARD    |
+| snowflake.&#8203;warehouses.&#8203;names                            | The names of the warehouses monitored.                                                                                                                                     | COMPUTE_WH  |
 
 ### Metrics at the `Resource Monitors` plugin
 

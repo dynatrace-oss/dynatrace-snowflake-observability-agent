@@ -11,6 +11,8 @@ delivers:
     type: procedure
   - name: DTAGENT_DB.CONFIG.UPDATE_RESOURCE_MONITORS_CONF()
     type: procedure
+  - name: DTAGENT_DB.STATUS.RESOURCE_MONITOR_THRESHOLD_STATE
+    type: table
   - name: DTAGENT_DB.APP.TASK_DTAGENT_RESOURCE_MONITORS
     type: task
 
