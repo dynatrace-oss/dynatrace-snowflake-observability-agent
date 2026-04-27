@@ -10,12 +10,12 @@ This file documents detailed technical changes, internal refactorings, and devel
 
 **Architecture**:
 
-- **Band model**: Four severity levels — `info`, `warn`, `critical`, `exhausted` — mapped to configurable percentage thresholds. Default thresholds: `[50, 80, 90, 100]`. Bands below `warn` are informational only (no Davis event opened; no state persisted).
+- **Band model**: Four severity levels — `info`, `warn`, `critical`, `exhausted` — mapped to configurable percentage thresholds. Default thresholds: `[50, 80, 90, 100]`. `info` band is persisted to state table to enforce one-shot emission (fires once on first crossing, not every run). No ACTIVE/CLOSED Davis event is opened for `info`; no resolution is sent. Bands below `info` produce no events and no state.
 - **State persistence** (`DTAGENT_DB.STATUS.RESOURCE_MONITOR_THRESHOLD_STATE`): Stores `(MONITOR_NAME, LAST_BAND, LAST_USED_PCT, LAST_UPDATED)` per monitor between runs. MERGE for upsert, DELETE when band drops to `None`. Created by upgrade script `src/dtagent.sql/upgrade/0.9.5/010_create_rm_threshold_state.sql` (idempotent).
 - **Transition logic** (`_plan_transition`): Pure function — given previous and current band, returns zero, one, or two `(status, level)` event actions (`ACTIVE` / `CLOSED`). Alert bands only participate in open/close transitions; `info` is informational only (logged, no Davis event). `None` (below info) never opens events.
-- **Davis events**: Uses `DavisEvents` exporter (instantiated lazily on first threshold crossing). Event title: `"Resource monitor {name} credits at {pct}%"`. Properties: `dt.event.category=RESOURCE_CONTENTION`, `event.status=ACTIVE|CLOSED`, `dt.entity.resource_monitor`, `snowflake.resource_monitor.threshold.direction`, `.level`, `.pct`, `snowflake.credits.quota.used_pct`.
+- **Davis events**: Uses `DavisEvents` exporter (instantiated lazily on first threshold crossing). Event title: `"[ACCOUNT] Resource monitor {name} credits exceeded/dropped below {threshold_pct}% threshold"` (prefix omitted for warehouse-level monitors). Properties: `event.status=ACTIVE|CLOSED`, `snowflake.resource_monitor.threshold.direction`, `.level`, `.pct`, `snowflake.credits.quota.used_pct`, `snowflake.resource_monitor.level`, `.name`.
 - **Write-after-emit ordering**: State is persisted only after the Davis event is successfully flushed, preventing ghost-open events on transient errors.
-- **Configuration** (`credits_quota_thresholds`): Optional per-monitor override dict keyed by monitor name. Falls back to global defaults when monitor is absent or override is invalid. Validation: must be a list of 1–4 ascending floats in (0, 200].
+- **Configuration** (`credits_quota_thresholds`): Optional per-monitor override dict keyed by monitor name. Falls back to global defaults when monitor is absent or override is invalid. Validation: must be a list of 1–4 ascending integers in (0, 100]; values ≥100 trigger the `exhausted` band.
 
 **New files**:
 

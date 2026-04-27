@@ -25,6 +25,7 @@
 #
 #
 import logging
+from datetime import datetime
 from typing import Tuple, Dict, Optional, List
 from snowflake.snowpark.functions import current_timestamp
 from dtagent.util import _unpack_json_dict, EVENT_TIMESTAMP_KEYS_PAYLOAD_NAME, is_regular_mode
@@ -55,6 +56,11 @@ _BAND_EVENT_TYPE = {
 
 # Sentinel value stored in state table when no band is active.
 _NO_BAND = ""
+
+
+def _escape_sql_str(value: str) -> str:
+    """Escapes single quotes in a string for safe interpolation into SQL string literals."""
+    return value.replace("'", "''")
 
 
 class ResourceMonitorsPlugin(Plugin):
@@ -242,14 +248,12 @@ class ResourceMonitorsPlugin(Plugin):
     def _compute_band(used_pct: float, thresholds: List[int]) -> Optional[str]:
         """Returns the highest band crossed by *used_pct* given *thresholds*.
 
-        Band assignment is value-driven:
+        Band assignment is value-driven using absolute cutoffs:
           - `<thresholds[0]`  → None (below any threshold)
           - `<80`             → ``info``
           - `[80, 90)`        → ``warn``
           - `[90, 100)`       → ``critical``
           - `>=100`           → ``exhausted``
-
-        Thresholds list maps positionally: index 0 = info trigger, index 1 = warn, …
 
         Args:
             used_pct (float): Current percentage of quota used.
@@ -320,8 +324,8 @@ class ResourceMonitorsPlugin(Plugin):
 
         return instructions
 
-    def _read_last_bands(self, monitor_names: List[str]) -> Dict[str, Optional[str]]:
-        """Reads last-emitted bands for all named monitors from the state table.
+    def _read_last_bands(self, monitor_names: List[str]) -> Dict[str, Tuple[Optional[str], Optional[datetime]]]:
+        """Reads last-emitted bands and update timestamps for all named monitors.
 
         Returns an empty mapping when the session is not in regular (Snowflake) mode,
         ensuring safe no-op behaviour in tests.
@@ -330,24 +334,26 @@ class ResourceMonitorsPlugin(Plugin):
             monitor_names (List[str]): Resource monitor names to look up (UPPERCASE).
 
         Returns:
-            Dict[str, Optional[str]]: Mapping from monitor name to last band (or None).
+            Dict[str, Tuple[Optional[str], Optional[datetime]]]: Mapping from monitor name
+                to ``(last_band, last_updated)``. Both are ``None`` when no state row exists.
         """
         if not is_regular_mode(self._session):
             return {}
 
-        result: Dict[str, Optional[str]] = {name: None for name in monitor_names}
+        result: Dict[str, Tuple[Optional[str], Optional[datetime]]] = {name: (None, None) for name in monitor_names}
         if not monitor_names:
             return result
 
-        quoted = ", ".join(f"'{n}'" for n in monitor_names)
+        quoted = ", ".join(f"'{_escape_sql_str(n)}'" for n in monitor_names)
         rows = self._session.sql(
-            f"SELECT MONITOR_NAME, LAST_BAND FROM STATUS.RESOURCE_MONITOR_THRESHOLD_STATE WHERE MONITOR_NAME IN ({quoted})"
+            f"SELECT MONITOR_NAME, LAST_BAND, LAST_UPDATED FROM STATUS.RESOURCE_MONITOR_THRESHOLD_STATE WHERE MONITOR_NAME IN ({quoted})"
         ).collect()
 
         for row in rows:
             name = row["MONITOR_NAME"]
             band = row["LAST_BAND"]
-            result[name] = band if band else None
+            last_updated = row["LAST_UPDATED"]
+            result[name] = (band if band else None, last_updated)
 
         return result
 
@@ -364,13 +370,15 @@ class ResourceMonitorsPlugin(Plugin):
         if not is_regular_mode(self._session):
             return
 
+        safe_name = _escape_sql_str(monitor_name)
         if band is None:
-            self._session.sql(f"DELETE FROM STATUS.RESOURCE_MONITOR_THRESHOLD_STATE WHERE MONITOR_NAME = '{monitor_name}'").collect()
+            self._session.sql(f"DELETE FROM STATUS.RESOURCE_MONITOR_THRESHOLD_STATE WHERE MONITOR_NAME = '{safe_name}'").collect()
         else:
+            safe_band = _escape_sql_str(band)
             self._session.sql(
                 "MERGE INTO STATUS.RESOURCE_MONITOR_THRESHOLD_STATE AS tgt "
                 "USING (SELECT $1 AS MONITOR_NAME, $2 AS LAST_BAND, $3 AS LAST_USED_PCT FROM VALUES "
-                f"('{monitor_name}', '{band}', {used_pct})) AS src "
+                f"('{safe_name}', '{safe_band}', {used_pct})) AS src "
                 "ON tgt.MONITOR_NAME = src.MONITOR_NAME "
                 "WHEN MATCHED THEN UPDATE SET tgt.LAST_BAND = src.LAST_BAND, "
                 "tgt.LAST_USED_PCT = src.LAST_USED_PCT, tgt.LAST_UPDATED = CURRENT_TIMESTAMP() "
@@ -389,7 +397,7 @@ class ResourceMonitorsPlugin(Plugin):
         if not is_regular_mode(self._session) or not seen_monitors:
             return
 
-        quoted = ", ".join(f"'{n}'" for n in seen_monitors)
+        quoted = ", ".join(f"'{_escape_sql_str(n)}'" for n in seen_monitors)
         self._session.sql(f"DELETE FROM STATUS.RESOURCE_MONITOR_THRESHOLD_STATE WHERE MONITOR_NAME NOT IN ({quoted})").collect()
 
     def _prepare_event_payload_threshold(
@@ -417,7 +425,13 @@ class ResourceMonitorsPlugin(Plugin):
             Tuple[str, Dict, str]: Event title, properties dict, and status string
                 (``"ACTIVE"``, ``"CLOSED"``, or ``""`` for info band).
         """
-        threshold_pct = next((t for t in sorted(thresholds, reverse=True) if used_pct >= t), thresholds[0])
+        if direction == "down":
+            # For CLOSED events use the characteristic threshold of the band being closed,
+            # not used_pct (which is already below that band).
+            band_min = {"exhausted": 100, "critical": 90, "warn": 80, "info": 0}
+            threshold_pct = next((t for t in sorted(thresholds) if t >= band_min.get(band, 0)), thresholds[0])
+        else:
+            threshold_pct = next((t for t in sorted(thresholds, reverse=True) if used_pct >= t), thresholds[0])
         title_prefix = "[ACCOUNT] " if rm_level == "ACCOUNT" else ""
         direction_label = "exceeded" if direction == "up" else "dropped below"
         title = f"{title_prefix}Resource monitor {monitor_name} credits {direction_label} {threshold_pct}% threshold"
@@ -490,6 +504,7 @@ class ResourceMonitorsPlugin(Plugin):
         overrides: Dict[str, List[int]],
         last_bands: Dict[str, Optional[str]],
         context: Dict,
+        last_updated_map: Optional[Dict[str, Optional[datetime]]] = None,
     ) -> Tuple[int, Optional[str], str]:
         """Evaluates threshold state for a single resource monitor row and emits events.
 
@@ -503,6 +518,9 @@ class ResourceMonitorsPlugin(Plugin):
             overrides (Dict[str, List[int]]): Per-monitor override mapping.
             last_bands (Dict[str, Optional[str]]): Last-emitted bands from state table.
             context (Dict): DSOA run context dictionary.
+            last_updated_map (Optional[Dict[str, Optional[datetime]]]): Last state-write
+                timestamps per monitor; used for keepalive rate-limiting. None disables
+                rate-limiting (safe for tests that do not pass timestamp state).
 
         Returns:
             Tuple[int, Optional[str], str]:
@@ -535,6 +553,17 @@ class ResourceMonitorsPlugin(Plugin):
 
         instructions = self._plan_transition(curr_band, last_band)
 
+        # Rate-limit same-band keepalive instructions when the last state write is recent.
+        if last_updated_map is not None and curr_band == last_band and curr_band in _ALERT_BANDS:
+            last_updated = last_updated_map.get(monitor_name)
+            if last_updated is not None:
+                keepalive_minutes = self._configuration.get(
+                    "resource_monitors.credits_quota_thresholds.active_keepalive_timeout_minutes", 60
+                )
+                elapsed = (datetime.utcnow() - last_updated).total_seconds() / 60
+                if elapsed < keepalive_minutes:
+                    instructions = [(b, d, s) for b, d, s in instructions if not (d == "up" and s == "ACTIVE" and b == curr_band)]
+
         events_emitted = 0
         for band, direction, status in instructions:
             emitted = self._report_threshold_davis_event(monitor_name, band, direction, status, used_pct, rm_level, thresholds, context)
@@ -544,9 +573,10 @@ class ResourceMonitorsPlugin(Plugin):
         if hasattr(self, "_davis_events") and self._davis_events is not None:
             events_emitted += self._davis_events.flush_events()
 
-        # Write state only when at least one event was successfully emitted,
-        # or when we need to clear state (curr_band is None and last_band existed).
-        if instructions or (curr_band is None and last_band is not None):
+        # Persist state only when events were successfully sent, or when clearing state for
+        # a monitor that dropped below all thresholds with no events to send (e.g. info→None).
+        no_event_needed = not instructions and curr_band is None and last_band is not None
+        if (instructions and events_emitted > 0) or no_event_needed:
             self._write_band_state(monitor_name, curr_band, used_pct)
 
         return events_emitted, curr_band, monitor_name
@@ -602,7 +632,9 @@ class ResourceMonitorsPlugin(Plugin):
                 if nm:
                     monitor_names.append(nm)
 
-            last_bands = self._read_last_bands(monitor_names)
+            raw_state = self._read_last_bands(monitor_names)
+            last_bands: Dict[str, Optional[str]] = {k: v[0] for k, v in raw_state.items()}
+            last_updated_map: Dict[str, Optional[datetime]] = {k: v[1] for k, v in raw_state.items()}
             threshold_events_cnt = 0
             seen_monitors: List[str] = []
 
@@ -624,7 +656,9 @@ class ResourceMonitorsPlugin(Plugin):
 
             # Threshold evaluation pass.
             for rw in all_rm_rows:
-                evts, _new_band, mon_name = self._process_threshold_for_rm(rw, defaults, overrides, last_bands, threshold_context)
+                evts, _new_band, mon_name = self._process_threshold_for_rm(
+                    rw, defaults, overrides, last_bands, threshold_context, last_updated_map
+                )
                 threshold_events_cnt += evts
                 if mon_name:
                     seen_monitors.append(mon_name)

@@ -28,10 +28,8 @@ connection or Dynatrace API calls are made.
 """
 
 
-class TestPlanTransition:
+class TestPlanTransition:  # pylint: disable=too-many-public-methods
     """Tests for ResourceMonitorsPlugin._plan_transition (pure function)."""
-
-    import pytest
 
     def _pt(self, curr_band, last_band):
         from dtagent.plugins.resource_monitors import ResourceMonitorsPlugin
@@ -44,7 +42,7 @@ class TestPlanTransition:
 
     def test_both_none_no_instructions(self):
         """No events emitted when below threshold on first run."""
-        assert self._pt(None, None) == []
+        assert not self._pt(None, None)
 
     def test_none_to_info_emits_up_no_status(self):
         """First crossing into info band emits up event without ACTIVE status."""
@@ -72,7 +70,7 @@ class TestPlanTransition:
 
     def test_info_stays_info_no_event(self):
         """Remaining in info band between runs emits no events (one-shot)."""
-        assert self._pt("info", "info") == []
+        assert not self._pt("info", "info")
 
     def test_warn_stays_warn_keepalive(self):
         """Remaining in warn band emits ACTIVE keepalive to hold Davis problem open."""
@@ -159,7 +157,7 @@ class TestPlanTransition:
 
     def test_info_to_none_no_close_needed(self):
         """Drop from info to below threshold: no CLOSED event (info has no lifecycle)."""
-        assert self._pt(None, "info") == []
+        assert not self._pt(None, "info")
 
 
 class TestComputeBand:
@@ -171,31 +169,40 @@ class TestComputeBand:
         return ResourceMonitorsPlugin._compute_band(used_pct, thresholds or [50, 80, 90, 100])
 
     def test_below_info_threshold_returns_none(self):
+        """Values below the lowest threshold return None."""
         assert self._cb(0) is None
         assert self._cb(49.9) is None
 
     def test_exactly_info_threshold(self):
+        """Value exactly at info threshold returns info."""
         assert self._cb(50) == "info"
 
     def test_above_info_below_warn(self):
+        """Value between info and warn thresholds returns info."""
         assert self._cb(79.9) == "info"
 
     def test_exactly_warn_threshold(self):
+        """Value exactly at warn threshold returns warn."""
         assert self._cb(80) == "warn"
 
     def test_above_warn_below_critical(self):
+        """Value between warn and critical thresholds returns warn."""
         assert self._cb(89.9) == "warn"
 
     def test_exactly_critical_threshold(self):
+        """Value exactly at critical threshold returns critical."""
         assert self._cb(90) == "critical"
 
     def test_above_critical_below_exhausted(self):
+        """Value between critical and exhausted thresholds returns critical."""
         assert self._cb(99.9) == "critical"
 
     def test_exactly_exhausted_threshold(self):
+        """Value exactly at exhausted threshold (100%) returns exhausted."""
         assert self._cb(100) == "exhausted"
 
     def test_above_exhausted(self):
+        """Value above 100% still returns exhausted."""
         assert self._cb(110) == "exhausted"
 
     def test_custom_two_band_thresholds(self):
@@ -225,12 +232,14 @@ class TestResolveThresholds:
         return plugin
 
     def test_no_override_returns_defaults(self):
+        """No override entry → global defaults returned unchanged."""
         plugin = self._make_plugin()
         defaults = [50, 80, 90, 100]
         result = plugin._resolve_thresholds_for("MY_MONITOR", defaults, {})
         assert result == defaults
 
     def test_valid_override_returned(self):
+        """Valid per-monitor override is returned instead of defaults."""
         plugin = self._make_plugin()
         defaults = [50, 80, 90, 100]
         overrides = {"MY_MONITOR": [70, 85, 95, 100]}
@@ -238,6 +247,7 @@ class TestResolveThresholds:
         assert result == [70, 85, 95, 100]
 
     def test_invalid_override_falls_back_to_defaults(self):
+        """Non-monotonic override is rejected; defaults returned."""
         plugin = self._make_plugin()
         defaults = [50, 80, 90, 100]
         # Non-monotonic override.
@@ -246,6 +256,7 @@ class TestResolveThresholds:
         assert result == defaults
 
     def test_empty_override_falls_back_to_defaults(self):
+        """Empty override list is rejected; defaults returned."""
         plugin = self._make_plugin()
         defaults = [50, 80, 90, 100]
         overrides = {"MY_MONITOR": []}
@@ -258,7 +269,7 @@ class TestProcessThresholdForRM:
 
     def _make_plugin(self, threshold_config=None):
         """Create plugin with mocked session + configuration."""
-        from unittest.mock import MagicMock, patch
+        from unittest.mock import MagicMock
         from dtagent.plugins.resource_monitors import ResourceMonitorsPlugin
 
         mock_session = MagicMock()
@@ -335,7 +346,7 @@ class TestProcessThresholdForRM:
         plugin._report_threshold_davis_event = stub_emit
         plugin._write_band_state = lambda *a, **kw: None
 
-        evts, new_band, mon_name = plugin._process_threshold_for_rm(row, [50, 80, 90, 100], {}, {"MY_RM": None}, {})
+        evts, new_band, _mon_name = plugin._process_threshold_for_rm(row, [50, 80, 90, 100], {}, {"MY_RM": None}, {})
         assert evts == 1
         assert new_band == "warn"
         assert emitted_events == [("warn", "up", "ACTIVE")]
@@ -359,7 +370,7 @@ class TestProcessThresholdForRM:
 
         plugin._report_threshold_davis_event = lambda *a, **kw: (_ for _ in ()).throw(AssertionError("should not be called"))
 
-        evts, new_band, _mon = plugin._process_threshold_for_rm(row, [50, 80, 90, 100], {}, {}, {})
+        evts, _new_band, _mon = plugin._process_threshold_for_rm(row, [50, 80, 90, 100], {}, {}, {})
         assert evts == 0
 
     def test_recovery_emits_closed(self):
