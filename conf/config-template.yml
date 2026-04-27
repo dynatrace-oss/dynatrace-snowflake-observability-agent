@@ -40,13 +40,13 @@ core:
     api_integration:
       name: "" # Default: DTAGENT_API_INTEGRATION
 agent:
-  gc_collect_interval: 100  # GC interval in number of processed entries; overrides otel.performance.gc_interval (default: 100)
-  memory_tracking_enabled: false  # Emit dsoa.agent.memory.peak_rss metric after each plugin run (default: false)
+  gc_collect_interval: 100 # GC interval in number of processed entries; overrides otel.performance.gc_interval (default: 100)
+  memory_tracking_enabled: false # Emit dsoa.agent.memory.peak_rss metric after each plugin run (default: false)
 otel:
   performance:
-    gc_interval: 100  # Garbage collection interval in number of processed entries (default: 100)
-    spans_batch_flush_size: 50  # Flush spans/metrics every N rows in _process_span_rows (default: 50)
-    logs_batch_flush_size: 100  # Flush events/metrics/logs every N entries in _log_entries (default: 100)
+    gc_interval: 100 # Garbage collection interval in number of processed entries (default: 100)
+    spans_batch_flush_size: 50 # Flush spans/metrics every N rows in _process_span_rows (default: 50)
+    logs_batch_flush_size: 100 # Flush events/metrics/logs every N entries in _log_entries (default: 100)
 plugins:
   disabled_by_default: false
   deploy_disabled_plugins: true
@@ -76,6 +76,7 @@ plugins:
   query_history:
     max_entries: 0
     max_lookback_minutes: 120
+    cache_ttl_hours: 4
     include_warehouses: []
     exclude_warehouses:
       - DTAGENT_WH

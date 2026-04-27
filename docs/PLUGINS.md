@@ -988,6 +988,26 @@ Each query execution is reported as a log line and span, with a hierarchy of spa
 profile was retrieved with `QUERY_OPERATOR_STATS`, it is delivered as span events and additional log lines. This plugin also delivers many
 metrics based on telemetry information provided by Snowflake.
 
+## Signal Protection Framework
+
+On high-volume Snowflake accounts, the plugin supports signal protection to prevent overload and timeout issues. Three complementary
+mechanisms are available:
+
+1. **Top-N Limiting** — Set `max_entries` to cap the number of queries processed per run. Queries are prioritized by `max_entries_sort`
+   (default: execution time, descending) so the most expensive queries are always captured. When the cap is hit, a self-monitoring warning
+   log and bizevent are emitted with the count of dropped rows.
+
+2. **Include/Exclude Filters** — Use `include_warehouses`, `exclude_warehouses`, `include_databases`, `exclude_databases`, `include_users`,
+   and `exclude_users` to filter queries at the SQL view level, reducing Snowflake compute cost. Exclude filters always take precedence over
+   include filters.
+
+3. **Watermark-Based Lookback** — The plugin uses the last-processed timestamp from `STATUS.LOG_PROCESSED_MEASUREMENTS` to avoid
+   reprocessing queries. The `max_lookback_minutes` parameter caps the maximum catch-up window (default: 120 minutes), ensuring the plugin
+   catches up incrementally if the agent was down for an extended period.
+
+All defaults preserve backward compatibility: `max_entries=0` (unlimited), `max_lookback_minutes=120`, and `exclude_warehouses=DTAGENT_WH`
+(exclude the agent's own warehouse only).
+
 **Note:** To correlate query spans with Snowflake's Snowtrail trace_id and span_id, the `event_log` plugin must be enabled. When enabled,
 this plugin will automatically extract trace context from the `STATUS.EVENT_LOG` table and include it in the span telemetry, allowing for
 distributed tracing correlation between your application and Snowflake queries.
@@ -1009,6 +1029,16 @@ plugins:
     is_disabled: false
     slow_queries_threshold: 10000
     slow_queries_to_analyze_limit: 50
+    max_entries: 0
+    max_lookback_minutes: 120
+    cache_ttl_hours: 4
+    include_warehouses: []
+    exclude_warehouses:
+      - DTAGENT_WH
+    include_databases: []
+    exclude_databases: []
+    include_users: []
+    exclude_users: []
     telemetry:
       - metrics
       - logs
@@ -1024,6 +1054,28 @@ The following options control this behavior:
 - `PLUGINS.QUERY_HISTORY.SLOW_QUERIES_THRESHOLD`: The execution time threshold in milliseconds. Queries running longer than this are
   considered slow and eligible for analysis. Default: `10000` (10 seconds).
 - `PLUGINS.QUERY_HISTORY.MAX_SLOWEST_QUERIES`: The maximum number of slowest queries to analyze. Default: `50`.
+
+## Signal Protection Framework Configuration
+
+The plugin supports signal protection to prevent overload on high-volume Snowflake accounts. The following options control this behavior:
+
+- `PLUGINS.QUERY_HISTORY.MAX_ENTRIES`: Maximum number of query entries to process per run. Set to `0` for unlimited (default). When set, the
+  view applies a `QUALIFY` filter keeping the top-N queries by execution time (descending). The pre-filter count is carried via
+  `_TOTAL_AVAILABLE` for self-monitoring.
+- `PLUGINS.QUERY_HISTORY.MAX_LOOKBACK_MINUTES`: Maximum lookback window in minutes for catching up on unprocessed queries. Default: `120`.
+  The plugin uses the last-processed watermark from `STATUS.LOG_PROCESSED_MEASUREMENTS` but never looks back further than this value.
+- `PLUGINS.QUERY_HISTORY.INCLUDE_WAREHOUSES`: Array of LIKE patterns (e.g. `PROD_%`, `MY_WH`). Empty array means no filter applied. Supports
+  `%` and `_` wildcards. Exclude always takes precedence over include.
+- `PLUGINS.QUERY_HISTORY.EXCLUDE_WAREHOUSES`: Array of LIKE patterns (e.g. `PROD_%`, `MY_WH`). Empty array means no filter applied. Supports
+  `%` and `_` wildcards. Exclude always takes precedence over include. Default: `["DTAGENT_WH"]`.
+- `PLUGINS.QUERY_HISTORY.INCLUDE_DATABASES`: Array of LIKE patterns (e.g. `PROD_%`, `MY_WH`). Empty array means no filter applied. Supports
+  `%` and `_` wildcards. Exclude always takes precedence over include.
+- `PLUGINS.QUERY_HISTORY.EXCLUDE_DATABASES`: Array of LIKE patterns (e.g. `PROD_%`, `MY_WH`). Empty array means no filter applied. Supports
+  `%` and `_` wildcards. Exclude always takes precedence over include.
+- `PLUGINS.QUERY_HISTORY.INCLUDE_USERS`: Array of LIKE patterns (e.g. `PROD_%`, `MY_WH`). Empty array means no filter applied. Supports `%`
+  and `_` wildcards. Exclude always takes precedence over include.
+- `PLUGINS.QUERY_HISTORY.EXCLUDE_USERS`: Array of LIKE patterns (e.g. `PROD_%`, `MY_WH`). Empty array means no filter applied. Supports `%`
+  and `_` wildcards. Exclude always takes precedence over include.
 
 > **IMPORTANT**: For the `query_history` and `active_queries` plugins to report telemetry for all queries, the `DTAGENT_VIEWER` role must be
 > granted `MONITOR` privileges on all warehouses. By default, when the `admin` scope is installed, this is ensured through the periodic
