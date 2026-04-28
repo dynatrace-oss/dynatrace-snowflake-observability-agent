@@ -64,12 +64,12 @@ dtctl apply -f /tmp/rule.json
 
 ## Available Rules
 
-| Rule | Metric Key | DPO Theme | Description | Required Plugin(s) |
-|------|-----------|-----------|-------------|-------------------|
-| [Snowflake login attempts failed](./snowflake-login-attempts-failed/) | `snowflake.login.attempts.failed` | Security | Counts failed Snowflake login attempts from `login_history` logs, dimensioned by user, client type, and error code | `login_history` |
-| [Snowflake task run failed](./snowflake-task-run-failed/) | `snowflake.task.run.failed` | Operations | Counts FAILED task runs from `task_history` logs, dimensioned by database, schema, and task name | `tasks` |
-| [Snowflake task run cancelled](./snowflake-task-run-cancelled/) | `snowflake.task.run.cancelled` | Operations | Counts CANCELLED task runs from `task_history` logs, dimensioned by database, schema, and task name | `tasks` |
-| [Snowflake task run successful](./snowflake-task-run-successful/) | `snowflake.task.run.successful` | Operations | Counts SUCCEEDED task runs from `task_history` logs, dimensioned by database, schema, and task name | `tasks` |
+| Rule                                                                  | Metric Key                        | DPO Theme  | Description                                                                                                        | Required Plugin(s) |
+|-----------------------------------------------------------------------|-----------------------------------|------------|--------------------------------------------------------------------------------------------------------------------|--------------------|
+| [Snowflake login attempts failed](./snowflake-login-attempts-failed/) | `snowflake.login.attempts.failed` | Security   | Counts failed Snowflake login attempts from `login_history` logs, dimensioned by user, client type, and error code | `login_history`    |
+| [Snowflake task run failed](./snowflake-task-run-failed/)             | `snowflake.task.run.failed`       | Operations | Counts FAILED task runs from `task_history` logs, dimensioned by database, schema, and task name                   | `tasks`            |
+| [Snowflake task run cancelled](./snowflake-task-run-cancelled/)       | `snowflake.task.run.cancelled`    | Operations | Counts CANCELLED task runs from `task_history` logs, dimensioned by database, schema, and task name                | `tasks`            |
+| [Snowflake task run successful](./snowflake-task-run-successful/)     | `snowflake.task.run.successful`   | Operations | Counts SUCCEEDED task runs from `task_history` logs, dimensioned by database, schema, and task name                | `tasks`            |
 
 ## Rule Structure
 

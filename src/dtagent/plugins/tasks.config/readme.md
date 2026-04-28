@@ -18,15 +18,16 @@ Additionally, an event is sent when a new task graph version is created. By defa
 Three companion OpenPipeline rules (`docs/openpipeline/snowflake-task-run-*/`) derive counter
 metrics from `task_history` logs at ingest time:
 
-| Metric key | Filter |
-|---|---|
-| `snowflake.task.run.failed` | `snowflake.task.run.state == "FAILED"` |
-| `snowflake.task.run.cancelled` | `snowflake.task.run.state == "CANCELLED"` |
+| Metric key                      | Filter                                    |
+|---------------------------------|-------------------------------------------|
+| `snowflake.task.run.failed`     | `snowflake.task.run.state == "FAILED"`    |
+| `snowflake.task.run.cancelled`  | `snowflake.task.run.state == "CANCELLED"` |
 | `snowflake.task.run.successful` | `snowflake.task.run.state == "SUCCEEDED"` |
 
 All three rules are dimensioned by `db.namespace`, `snowflake.schema.name`, and `snowflake.task.name`.
 
 Deploy with:
+
 ```bash
 ./scripts/deploy/deploy_dt_assets.sh --scope=openpipeline
 ```

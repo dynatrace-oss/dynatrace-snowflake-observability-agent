@@ -20,6 +20,7 @@ A companion OpenPipeline rule (`docs/openpipeline/snowflake-login-attempts-faile
 Dimensions: `db.user`, `client.type`, `error.code`.
 
 Deploy with:
+
 ```bash
 ./scripts/deploy/deploy_dt_assets.sh --scope=openpipeline
 ```
