@@ -23,7 +23,6 @@ Use cases marked with 🔜 are **upcoming** — they depend on plugins currently
 |---------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------|
 | Trust Center vulnerability monitoring | Detect potential data security issues and breaches as quickly as possible. Gather information about entities put at risk by vulnerability findings from CIS Benchmarks and Threat Intelligence scanners.  | [Trust Center plugin](PLUGINS.md#trust_center_info_sec)                                                |
 | Login and session monitoring          | Provide detailed information on login history and sessions — authentication methods, failed logins, error codes — essential for detecting security breaches and unauthorized access.                      | [Login History plugin](PLUGINS.md#login_history_info_sec)                                              |
-| Failed login attempt metric           | Derive a `snowflake.login.attempts.failed` counter metric from `login_history` logs via OpenPipeline, dimensioned by user, client type, and error code. Powers time-series alerting without DQL overhead. | [OpenPipeline rule](openpipeline/README.md), [Login History plugin](PLUGINS.md#login_history_info_sec) |
 
 ### Security — Tier 2 — Data Apps & Pipelines
 

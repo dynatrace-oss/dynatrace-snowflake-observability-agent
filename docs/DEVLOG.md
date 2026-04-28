@@ -16,25 +16,26 @@ making them available as first-class Dynatrace metrics without runtime query cos
 
 **New directory — `docs/openpipeline/`**
 
-Four YAML source files, one per metric key, following the same conventions as
-`docs/dashboards/` and `docs/workflows/`:
+A single Settings 2.0 pipeline YAML (`docs/openpipeline/snowagent-logs-pipeline/snowagent-logs-pipeline.yml`)
+ships three new metric-extraction processors alongside the existing pipeline configuration.
+The file follows the standard `objectid/schemaid/schemaversion/value` envelope and is applied
+natively by `dtctl apply` without any YAML-to-JSON conversion.
 
-- `snowflake-login-attempts-failed/snowflake-login-attempts-failed.yml` — matches
-  `dsoa.run.context == "login_history" AND event.name == "LOGIN" AND status.code == "ERROR"`;
-  dimensions: `db.user`, `client.type`, `error.code`.
-- `snowflake-task-run-failed/snowflake-task-run-failed.yml` — matches
-  `dsoa.run.context == "task_history" AND snowflake.task.run.state == "FAILED"`;
+New processors in `value.metricExtraction.processors`:
+
+- `processor_snowflake.task.run.failed_6971` — matches
+  `dsoa.run.context == "task_history" and snowflake.task.run.state == "FAILED"`;
   dimensions: `db.namespace`, `snowflake.schema.name`, `snowflake.task.name`.
-- `snowflake-task-run-cancelled/snowflake-task-run-cancelled.yml` — same as above with `CANCELLED`.
-- `snowflake-task-run-successful/snowflake-task-run-successful.yml` — same as above with `SUCCEEDED`.
+- `processor_snowflake.task.run.cancelled_3812` — same as above with `CANCELLED`.
+- `processor_snowflake.task.run.successful_5104` — same as above with `SUCCEEDED`.
 
 `snowflake.task.run.id` is intentionally excluded from all dimensions (high-cardinality guard).
 
-**Deploy script updates — `package/deploy_dt_assets.sh` and `scripts/deploy/deploy_dt_assets.sh`**
+**Deploy script updates — `scripts/deploy/deploy_dt_assets.sh`**
 
 - Scope validation extended: `dashboards | workflows | openpipeline | all`.
-- New `deploy_openpipeline_rules()` function mirrors the workflow deployment path — raw JSON,
-  no content-envelope wrapper, id written back to YAML on first deploy.
+- New `deploy_openpipeline_rules()` function applies YAML files directly via `dtctl apply -f <file>.yml`.
+  No YAML-to-JSON conversion; no id write-back (Settings 2.0 objects use a stable `objectid`).
 - `all` scope now also calls `deploy_openpipeline_rules`.
 
 **New test file — `test/core/test_openpipeline_rules.py`**

@@ -30,19 +30,28 @@ title: Test Workflow
 tasks: {}
 EOF
 
-    # OpenPipeline fixture
+    # OpenPipeline fixture — Settings 2.0 shape (objectid/schemaid/schemaversion/value)
     mkdir -p "$TEST_TEMP_DIR/docs/openpipeline/test-openpipeline-rule"
     cat > "$TEST_TEMP_DIR/docs/openpipeline/test-openpipeline-rule/test-openpipeline-rule.yml" << 'EOF'
 # OPENPIPELINE: Test OpenPipeline Rule
-id: dsoa-test-openpipeline-rule
-displayName: Test OpenPipeline Rule
-pipeline: default_logs
-processors:
-  - type: metricExtraction
-    matcher: "db.system == \"snowflake\" AND dsoa.run.context == \"test_context\""
-    metricKey: snowflake.test.metric
-    dimensions:
-      - db.namespace
+objectid: test-object-id
+schemaid: builtin:openpipeline.logs.pipelines
+schemaversion: 1.0.0
+scope: environment
+value:
+  displayName: Test OpenPipeline Rule
+  metricExtraction:
+    processors:
+      - counterMetric:
+          dimensions:
+            - extractionType: field
+              sourceFieldName: db.namespace
+          metricKey: snowflake.test.metric
+        description: Test metric extraction
+        enabled: true
+        id: processor_test_metric_0001
+        matcher: "db.system == \"snowflake\" and dsoa.run.context == \"test_context\""
+        type: counterMetric
 EOF
 
     # Mock dtctl binary — records calls, simulates success

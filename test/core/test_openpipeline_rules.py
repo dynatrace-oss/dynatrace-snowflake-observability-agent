@@ -23,7 +23,7 @@
 #
 #
 
-"""Structural validation tests for OpenPipeline metric-extraction rule YAML files."""
+"""Structural validation tests for OpenPipeline Settings 2.0 pipeline YAML files."""
 
 import glob
 import os
@@ -34,8 +34,9 @@ import pytest
 
 OPENPIPELINE_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "docs", "openpipeline")
 
+# Metric keys shipped in this PR (task-run state counters).
+# Login metrics (e.g. snowflake.login.attempts.failed) are deferred pending naming sign-off.
 KNOWN_METRIC_KEYS = {
-    "snowflake.login.attempts.failed",
     "snowflake.task.run.failed",
     "snowflake.task.run.cancelled",
     "snowflake.task.run.successful",
@@ -44,156 +45,148 @@ KNOWN_METRIC_KEYS = {
 HIGH_CARDINALITY_DIMENSIONS = {"snowflake.task.run.id"}
 
 
-def _load_all_rules() -> List[Dict[str, Any]]:
-    """Load all *.yml rule files from docs/openpipeline/**/*.yml."""
+def _load_all_pipelines() -> List[Dict[str, Any]]:
+    """Load all *.yml pipeline files from docs/openpipeline/**/*.yml."""
     pattern = os.path.join(OPENPIPELINE_DIR, "**", "*.yml")
-    rules = []
+    pipelines = []
     for path in sorted(glob.glob(pattern, recursive=True)):
         with open(path, encoding="utf-8") as fh:
             data = yaml.safe_load(fh)
         data["_source_file"] = path
-        rules.append(data)
-    return rules
+        pipelines.append(data)
+    return pipelines
+
+
+def _extract_metric_processors(pipeline: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Extract metric-extraction processors from a Settings 2.0 pipeline object."""
+    value = pipeline.get("value", {})
+    metric_extraction = value.get("metricExtraction", {})
+    return metric_extraction.get("processors", [])
 
 
 @pytest.fixture(scope="module")
-def all_rules() -> List[Dict[str, Any]]:
-    """Module-scoped fixture: loads all OpenPipeline rule YAML files once."""
-    loaded = _load_all_rules()
+def all_pipelines() -> List[Dict[str, Any]]:
+    """Module-scoped fixture: loads all OpenPipeline YAML files once."""
+    loaded = _load_all_pipelines()
     assert loaded, f"No OpenPipeline YAML files found under {OPENPIPELINE_DIR}"
     return loaded
 
 
-class TestOpenpipelineRuleStructure:
-    """Validates structural constraints for each OpenPipeline rule YAML file."""
+class TestOpenpipelineSettings2Structure:
+    """Validates Settings 2.0 structural constraints for each OpenPipeline pipeline YAML."""
 
-    def test_required_top_level_fields_present(self, all_rules):
-        """Every rule must have id, displayName, pipeline, and processors."""
-        required = {"id", "displayName", "pipeline", "processors"}
+    def test_required_top_level_fields_present(self, all_pipelines):
+        """Every pipeline file must have objectid, schemaid, schemaversion, and value."""
+        required = {"objectid", "schemaid", "schemaversion", "value"}
         problems = []
-        for rule in all_rules:
-            missing = required - set(rule.keys())
+        for pipeline in all_pipelines:
+            missing = required - set(pipeline.keys())
             if missing:
-                problems.append(f"{rule['_source_file']}: missing top-level fields: {sorted(missing)}")
+                problems.append(f"{pipeline['_source_file']}: missing top-level fields: {sorted(missing)}")
         assert not problems, "\n".join(problems)
 
-    def test_processors_is_non_empty_list(self, all_rules):
-        """The list of processors must be a non-empty."""
+    def test_schemaid_is_openpipeline(self, all_pipelines):
+        """The schemaid field must reference an openpipeline schema."""
         problems = []
-        for rule in all_rules:
-            processors = rule.get("processors")
-            if not isinstance(processors, list) or len(processors) == 0:
-                problems.append(f"{rule['_source_file']}: 'processors' must be a non-empty list")
+        for pipeline in all_pipelines:
+            schemaid = pipeline.get("schemaid", "")
+            if "openpipeline" not in schemaid:
+                problems.append(f"{pipeline['_source_file']}: schemaid {schemaid!r} does not reference an openpipeline schema")
         assert not problems, "\n".join(problems)
 
-    def test_each_processor_has_required_fields(self, all_rules):
-        """Each processor must have type, matcher, metricKey, and dimensions."""
-        required = {"type", "matcher", "metricKey", "dimensions"}
+    def test_value_contains_metric_extraction(self, all_pipelines):
+        """Every pipeline must have a value.metricExtraction.processors list."""
         problems = []
-        for rule in all_rules:
-            for idx, processor in enumerate(rule.get("processors", [])):
-                missing = required - set(processor.keys())
+        for pipeline in all_pipelines:
+            value = pipeline.get("value", {})
+            me = value.get("metricExtraction", {})
+            processors = me.get("processors")
+            if not isinstance(processors, list):
+                problems.append(f"{pipeline['_source_file']}: value.metricExtraction.processors must be a list")
+        assert not problems, "\n".join(problems)
+
+
+class TestOpenpipelineMetricProcessors:
+    """Validates metric-extraction processor content within pipeline YAML files."""
+
+    def test_task_run_metric_keys_are_present(self, all_pipelines):
+        """All known task-run metric keys must have at least one processor across all pipelines."""
+        covered = set()
+        for pipeline in all_pipelines:
+            for processor in _extract_metric_processors(pipeline):
+                key = processor.get("counterMetric", {}).get("metricKey") or processor.get("metricKey")
+                if key:
+                    covered.add(key)
+        missing = KNOWN_METRIC_KEYS - covered
+        assert not missing, f"No processor found for metric key(s): {sorted(missing)}"
+
+    def test_each_metric_processor_has_required_fields(self, all_pipelines):
+        """Validate that each metric-extraction processor has id, enabled, matcher, type, and metric block."""
+        required_base = {"id", "enabled", "matcher", "type"}
+        problems = []
+        for pipeline in all_pipelines:
+            for idx, processor in enumerate(_extract_metric_processors(pipeline)):
+                missing = required_base - set(processor.keys())
                 if missing:
-                    problems.append(f"{rule['_source_file']} processor[{idx}]: " f"missing fields: {sorted(missing)}")
-        assert not problems, "\n".join(problems)
-
-    def test_each_processor_type_is_metric_extraction(self, all_rules):
-        """All processors must have type == 'metricExtraction'."""
-        problems = []
-        for rule in all_rules:
-            for idx, processor in enumerate(rule.get("processors", [])):
-                if processor.get("type") != "metricExtraction":
+                    problems.append(f"{pipeline['_source_file']} metricExtraction.processor[{idx}]: missing fields: {sorted(missing)}")
+                p_type = processor.get("type")
+                if p_type not in ("counterMetric", "valueMetric"):
                     problems.append(
-                        f"{rule['_source_file']} processor[{idx}]: " f"type must be 'metricExtraction', got: {processor.get('type')!r}"
+                        f"{pipeline['_source_file']} metricExtraction.processor[{idx}]: "
+                        f"type must be 'counterMetric' or 'valueMetric', got: {p_type!r}"
                     )
         assert not problems, "\n".join(problems)
 
-    def test_metric_keys_are_in_allowlist(self, all_rules):
-        """All metricKey values must be from the known allow-list."""
+    def test_task_run_processors_have_dimensions(self, all_pipelines):
+        """Task-run metric processors must specify at least one dimension."""
         problems = []
-        for rule in all_rules:
-            for idx, processor in enumerate(rule.get("processors", [])):
-                key = processor.get("metricKey")
-                if key not in KNOWN_METRIC_KEYS:
-                    problems.append(
-                        f"{rule['_source_file']} processor[{idx}]: " f"unknown metricKey {key!r}; " f"allowed: {sorted(KNOWN_METRIC_KEYS)}"
-                    )
+        for pipeline in all_pipelines:
+            for idx, processor in enumerate(_extract_metric_processors(pipeline)):
+                counter = processor.get("counterMetric", {})
+                key = counter.get("metricKey")
+                if key and key.startswith("snowflake.task.run."):
+                    dims = counter.get("dimensions", [])
+                    if not isinstance(dims, list) or len(dims) == 0:
+                        problems.append(
+                            f"{pipeline['_source_file']} processor[{idx}] ({key}): " "counterMetric.dimensions must be a non-empty list"
+                        )
         assert not problems, "\n".join(problems)
 
-    def test_dimensions_is_non_empty_list(self, all_rules):
-        """Each processor's dimensions must be a non-empty list."""
+    def test_no_high_cardinality_dimensions(self, all_pipelines):
+        """No metric-extraction processor may use dimensions known to be high-cardinality."""
         problems = []
-        for rule in all_rules:
-            for idx, processor in enumerate(rule.get("processors", [])):
-                dims = processor.get("dimensions")
-                if not isinstance(dims, list) or len(dims) == 0:
-                    problems.append(f"{rule['_source_file']} processor[{idx}]: " "'dimensions' must be a non-empty list")
-        assert not problems, "\n".join(problems)
-
-    def test_no_high_cardinality_dimensions(self, all_rules):
-        """No processor may use dimensions known to be high-cardinality."""
-        problems = []
-        for rule in all_rules:
-            for idx, processor in enumerate(rule.get("processors", [])):
-                dims = set(processor.get("dimensions", []))
-                offending = dims & HIGH_CARDINALITY_DIMENSIONS
+        for pipeline in all_pipelines:
+            for idx, processor in enumerate(_extract_metric_processors(pipeline)):
+                counter = processor.get("counterMetric", {})
+                dim_names = {d.get("sourceFieldName") for d in counter.get("dimensions", [])}
+                offending = dim_names & HIGH_CARDINALITY_DIMENSIONS
                 if offending:
                     problems.append(
-                        f"{rule['_source_file']} processor[{idx}]: " f"high-cardinality dimension(s) not allowed: {sorted(offending)}"
+                        f"{pipeline['_source_file']} processor[{idx}]: " f"high-cardinality dimension(s) not allowed: {sorted(offending)}"
                     )
         assert not problems, "\n".join(problems)
 
-    def test_matchers_contain_dsoa_run_context(self, all_rules):
-        """Every processor matcher must filter on dsoa.run.context to scope the rule."""
+    def test_task_run_processor_ids_are_unique(self, all_pipelines):
+        """Processor ids must be unique across all pipeline files."""
+        seen: Dict[str, str] = {}
+        duplicates = []
+        for pipeline in all_pipelines:
+            for processor in _extract_metric_processors(pipeline):
+                proc_id = processor.get("id")
+                if proc_id and proc_id in seen:
+                    duplicates.append(f"Duplicate processor id {proc_id!r}: {seen[proc_id]} and {pipeline['_source_file']}")
+                elif proc_id:
+                    seen[proc_id] = pipeline["_source_file"]
+        assert not duplicates, "\n".join(duplicates)
+
+    def test_task_run_processors_are_enabled(self, all_pipelines):
+        """Task-run metric processors must be enabled."""
         problems = []
-        for rule in all_rules:
-            for idx, processor in enumerate(rule.get("processors", [])):
-                matcher = processor.get("matcher", "")
-                if "dsoa.run.context" not in matcher:
-                    problems.append(f"{rule['_source_file']} processor[{idx}]: " "matcher must contain 'dsoa.run.context'")
+        for pipeline in all_pipelines:
+            for idx, processor in enumerate(_extract_metric_processors(pipeline)):
+                counter = processor.get("counterMetric", {})
+                key = counter.get("metricKey")
+                if key and key.startswith("snowflake.task.run."):
+                    if not processor.get("enabled", False):
+                        problems.append(f"{pipeline['_source_file']} processor[{idx}] ({key}): processor must be enabled")
         assert not problems, "\n".join(problems)
-
-
-class TestOpenpipelineRuleUniqueness:
-    """Validates cross-file uniqueness constraints."""
-
-    def test_rule_ids_are_unique(self, all_rules):
-        """The id field must be unique across all rule files."""
-        seen: Dict[str, str] = {}
-        duplicates = []
-        for rule in all_rules:
-            rule_id = rule.get("id")
-            if rule_id in seen:
-                duplicates.append(f"Duplicate id {rule_id!r}: " f"{seen[rule_id]} and {rule['_source_file']}")
-            else:
-                seen[rule_id] = rule["_source_file"]
-        assert not duplicates, "\n".join(duplicates)
-
-    def test_metric_keys_are_unique_per_processor(self, all_rules):
-        """Each metricKey may appear in at most one processor across all rules."""
-        seen: Dict[str, str] = {}
-        duplicates = []
-        for rule in all_rules:
-            for processor in rule.get("processors", []):
-                key = processor.get("metricKey")
-                if key in seen:
-                    duplicates.append(f"Duplicate metricKey {key!r}: " f"{seen[key]} and {rule['_source_file']}")
-                else:
-                    seen[key] = rule["_source_file"]
-        assert not duplicates, "\n".join(duplicates)
-
-
-class TestOpenpipelineRuleCount:
-    """Validates the expected number of rules is present."""
-
-    def test_expected_rule_count(self, all_rules):
-        """There must be exactly 4 OpenPipeline rules defined."""
-        assert len(all_rules) == 4, (
-            f"Expected 4 OpenPipeline rule files, found {len(all_rules)}: " f"{[r['_source_file'] for r in all_rules]}"
-        )
-
-    def test_all_known_metric_keys_are_covered(self, all_rules):
-        """Every key in KNOWN_METRIC_KEYS must have at least one rule that produces it."""
-        covered = {processor.get("metricKey") for rule in all_rules for processor in rule.get("processors", [])}
-        missing = KNOWN_METRIC_KEYS - covered
-        assert not missing, f"No rule found for metric key(s): {sorted(missing)}"

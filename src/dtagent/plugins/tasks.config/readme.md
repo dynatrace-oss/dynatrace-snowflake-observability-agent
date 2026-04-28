@@ -13,10 +13,11 @@ In short, the plugin delivers, as logs by default, information on:
 
 Additionally, an event is sent when a new task graph version is created. By default, the plugin executes every 90 minutes.
 
-## OpenPipeline Metric-Extraction Rules
+## OpenPipeline Metric-Extraction Processors
 
-Three companion OpenPipeline rules (`docs/openpipeline/snowflake-task-run-*/`) derive counter
-metrics from `task_history` logs at ingest time:
+Three metric-extraction processors in the SnowAgent logs pipeline
+(`docs/openpipeline/snowagent-logs-pipeline/`) derive counter metrics from `task_history` logs at
+ingest time:
 
 | Metric key                      | Filter                                    |
 |---------------------------------|-------------------------------------------|

@@ -9,8 +9,8 @@ and [example workflows](../workflows/README.md), covering the Security and Opera
 - [Deploying OpenPipeline Rules](#deploying-openpipeline-rules)
   - [Using the Deployment Script (Recommended)](#using-the-deployment-script-recommended)
   - [Using dtctl Directly](#using-dtctl-directly)
-- [Available Rules](#available-rules)
-- [Rule Structure](#rule-structure)
+- [Available Pipelines](#available-pipelines)
+- [Pipeline File Structure](#pipeline-file-structure)
 - [Prerequisites](#prerequisites)
   - [Installing dtctl](#installing-dtctl)
 - [Related Documentation](#related-documentation)
@@ -52,50 +52,55 @@ to be installed and authenticated.
 
 ### Using dtctl Directly
 
-If you prefer to deploy a single rule manually:
+If you prefer to deploy a single pipeline settings object manually:
 
 ```bash
-# 1. Convert YAML to JSON
-./scripts/tools/yaml-to-json.sh docs/openpipeline/<name>/<name>.yml > /tmp/rule.json
-
-# 2. Apply
-dtctl apply -f /tmp/rule.json
+# Apply the Settings 2.0 pipeline YAML directly — no conversion needed
+dtctl apply -f docs/openpipeline/<name>/<name>.yml
 ```
 
-## Available Rules
+## Available Pipelines
 
-| Rule                                                                  | Metric Key                        | DPO Theme  | Description                                                                                                        | Required Plugin(s) |
-|-----------------------------------------------------------------------|-----------------------------------|------------|--------------------------------------------------------------------------------------------------------------------|--------------------|
-| [Snowflake login attempts failed](./snowflake-login-attempts-failed/) | `snowflake.login.attempts.failed` | Security   | Counts failed Snowflake login attempts from `login_history` logs, dimensioned by user, client type, and error code | `login_history`    |
-| [Snowflake task run failed](./snowflake-task-run-failed/)             | `snowflake.task.run.failed`       | Operations | Counts FAILED task runs from `task_history` logs, dimensioned by database, schema, and task name                   | `tasks`            |
-| [Snowflake task run cancelled](./snowflake-task-run-cancelled/)       | `snowflake.task.run.cancelled`    | Operations | Counts CANCELLED task runs from `task_history` logs, dimensioned by database, schema, and task name                | `tasks`            |
-| [Snowflake task run successful](./snowflake-task-run-successful/)     | `snowflake.task.run.successful`   | Operations | Counts SUCCEEDED task runs from `task_history` logs, dimensioned by database, schema, and task name                | `tasks`            |
+The `snowagent-logs-pipeline/` directory contains the full DSOA logs pipeline settings object.
+The table below lists the metric-extraction processors it ships:
 
-## Rule Structure
+| Metric Key                      | DPO Theme  | Description                                                                                          | Required Plugin(s) |
+|---------------------------------|------------|------------------------------------------------------------------------------------------------------|--------------------|
+| `snowflake.task.run.failed`     | Operations | Counts FAILED task runs from `task_history` logs, dimensioned by database, schema, and task name.    | `tasks`            |
+| `snowflake.task.run.cancelled`  | Operations | Counts CANCELLED task runs from `task_history` logs, dimensioned by database, schema, and task name. | `tasks`            |
+| `snowflake.task.run.successful` | Operations | Counts SUCCEEDED task runs from `task_history` logs, dimensioned by database, schema, and task name. | `tasks`            |
 
-Each rule folder contains:
+## Pipeline File Structure
 
-- **`*.yml`** — OpenPipeline rule definition in YAML format (compatible with `dtctl apply`)
-
-Rule YAML files follow a compact structure:
+Each pipeline folder contains a single `*.yml` file — a Dynatrace Settings 2.0 object applied
+directly via `dtctl apply`. The file follows the Settings 2.0 envelope with an inline `value`
+block that holds the full OpenPipeline pipeline definition:
 
 ```yaml
 # OPENPIPELINE: <Human-Readable Name>
-# DESCRIPTION: <what the rule does>
+# DESCRIPTION: <what the pipeline does>
 # OWNER: DSOA Team
-# PLUGINS: <required plugin(s)>
+# SCHEMA: builtin:openpipeline.logs.pipelines
 # TAGS: <comma-separated tags>
 
-id: <slug>
-displayName: <Human-Readable Name>
-pipeline: default_logs
-processors:
-  - type: metricExtraction
-    matcher: "<DQL filter expression>"
-    metricKey: <metric.key>
-    dimensions:
-      - <dim1>
-      - <dim2>
+objectid: <settings-object-id>
+schemaid: builtin:openpipeline.logs.pipelines
+schemaversion: <version>
+scope: environment
+value:
+  displayName: <Human-Readable Name>
+  metricExtraction:
+    processors:
+      - counterMetric:
+          dimensions:
+            - extractionType: field
+              sourceFieldName: <dim1>
+          metricKey: <metric.key>
+        description: <description>
+        enabled: true
+        id: <processor-id>
+        matcher: "<DQL filter expression>"
+        type: counterMetric
 ```
 
 The `# OPENPIPELINE:` comment is used by the deployment script to extract the human-readable name.
