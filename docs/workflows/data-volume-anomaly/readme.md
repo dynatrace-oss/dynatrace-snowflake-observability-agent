@@ -110,7 +110,7 @@ Both analyzer tasks expose the following parameters that can be adjusted in the 
 | `slidingWindow`     | `5`        | `3`       | Evaluation window in data points (daily intervals)             |
 | `violatingSamples`  | `3`        | `2`       | Consecutive violations needed to raise an alert                |
 | `dealertingSamples` | `5`        | `3`       | Consecutive recoveries needed to close an alert                |
-| `alertOnMissingData`| `false`    | `true`    | Whether missing data points count as a violation               |
+| `alertOnMissingData` | `false`    | `true`    | Whether missing data points count as a violation               |
 
 Drop detection uses tighter defaults because unexpected table shrinkage is a higher-severity
 signal than growth spikes.

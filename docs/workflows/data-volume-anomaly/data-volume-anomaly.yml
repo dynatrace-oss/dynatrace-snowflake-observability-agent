@@ -53,12 +53,14 @@ tasks:
           // | filter contains(db.collection.name, ".ETL.")
           // Uncomment to scope to specific table name patterns:
           // | filter matchesPhrase(db.collection.name, "FACT_")
-          | fieldsRemove row_count_avg
+          | fieldsRemove row_count_avg, row_count_diff
           | fieldsAdd
               metric_name = "snowflake.data.rows",
               _event_direction = "above",
               _event_name_template = "Abnormal data volume spike for table {dims:db.collection.name}",
-              _event_description_template = "Table {dims:db.collection.name} in {dims:deployment.environment} has experienced an abnormal spike in row count compared to the learned baseline."
+              _event_description_template =
+                "Table {dims:db.collection.name} in {dims:deployment.environment} has experienced"
+                + " an abnormal spike in row count compared to the learned baseline."
         alertCondition: ABOVE
         tolerance: 4
         generalParameters:
@@ -101,12 +103,15 @@ tasks:
           // | filter contains(db.collection.name, ".ETL.")
           // Uncomment to scope to specific table name patterns:
           // | filter matchesPhrase(db.collection.name, "FACT_")
-          | fieldsRemove row_count_avg
+          | fieldsRemove row_count_avg, row_count_diff
           | fieldsAdd
               metric_name = "snowflake.data.rows",
               _event_direction = "below",
               _event_name_template = "Abnormal data volume drop for table {dims:db.collection.name}",
-              _event_description_template = "Table {dims:db.collection.name} in {dims:deployment.environment} has experienced an unexpected drop in row count. This may indicate a failed pipeline, accidental delete, or dropped table."
+              _event_description_template =
+                "Table {dims:db.collection.name} in {dims:deployment.environment} has experienced"
+                + " an unexpected drop in row count. This may indicate a failed pipeline,"
+                + " accidental delete, or dropped table."
         alertCondition: BELOW
         tolerance: 3
         generalParameters:
