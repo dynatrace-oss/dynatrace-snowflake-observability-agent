@@ -39,7 +39,7 @@ tasks:
     input:
       query: |
         fetch logs
-        | filter telemetry.exporter.module == "inbound_shares"
+        | filter dsoa.run.context == "inbound_shares"
         | filter snowflake.share.status == "UNAVAILABLE"
         | summarize
             last_seen = max(timestamp),
@@ -72,7 +72,7 @@ tasks:
     input:
       query: |
         fetch logs, from: now()-7d
-        | filter telemetry.exporter.module == "inbound_shares"
+        | filter dsoa.run.context == "inbound_shares"
         | summarize
             last_seen = max(timestamp),
             by: {
@@ -106,7 +106,7 @@ tasks:
       body:
         timeSeriesData: |
           fetch logs
-          | filter telemetry.exporter.module == "inbound_shares"
+          | filter dsoa.run.context == "inbound_shares"
           | filter isNotNull(snowflake.data.rows)
           | makeTimeseries row_count = max(toLong(snowflake.data.rows))
             , by: {
@@ -151,7 +151,7 @@ tasks:
       states:
         detect_broken_shares: OK
         detect_disappeared_shares: OK
-        detect_volume_anomaly: OK
+        detect_volume_anomaly: SUCCESS
     predecessors:
       - detect_broken_shares
       - detect_disappeared_shares

@@ -4,7 +4,7 @@ Monitors inbound Snowflake shares for three silent failure modes: shares that ha
 UNAVAILABLE, shares that have silently disappeared (no report in the last 2 hours despite
 activity in the last 7 days), and shares whose table row counts have dropped abnormally
 below the learned seasonal baseline. All detection paths emit Dynatrace events for alerting.
-Complements the [Shares & Governance Dashboard](../dashboards/shares-governance/readme.md).
+Complements the [Shares & Governance Dashboard](../../dashboards/shares-governance/readme.md).
 
 ## Overview
 
@@ -47,7 +47,8 @@ All detection queries target the `inbound_shares` context from the `shares` plug
 
 | Field                       | Role                                                    |
 |-----------------------------|---------------------------------------------------------|
-| `telemetry.exporter.module` | Filter: `inbound_shares`                                |
+| `dsoa.run.context`          | Filter: `inbound_shares`                                |
+| `dsoa.run.plugin`           | Optional broader filter: `shares`                       |
 | `snowflake.share.status`    | Broken detection: filter for `UNAVAILABLE`              |
 | `snowflake.error.message`   | Broken detection: error context                         |
 | `snowflake.share.name`      | Dimension (per-share series and event property)         |
@@ -119,7 +120,7 @@ For low-churn accounts, `720` (12h) or `1440` (24h) reduces noise.
 
 - **`snowflake.data.rows` is a string attribute** on `inbound_shares` logs (not a native metric).
   The workflow uses `makeTimeseries` with `toLong()` as a workaround — this is intentional.
-  See the [Shares & Governance Dashboard known limitations](../dashboards/shares-governance/readme.md).
+  See the [Shares & Governance Dashboard known limitations](../../dashboards/shares-governance/readme.md).
 - **Volume anomaly requires history** — Davis AI needs at least 7 days of data to establish a
   baseline. The analyzer will not raise alerts until sufficient history is available.
 - **Disappeared threshold is clock-based** — If the shares plugin is disabled, paused, or
