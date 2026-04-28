@@ -1,0 +1,536 @@
+# WORKFLOW: DSOA — Security Anomaly Detection
+# DESCRIPTION: Detects abnormal login patterns, session counts, query volumes, and data scan sizes per user and table using Davis AI
+# OWNER: DSOA Team
+# PLUGINS: login_history, query_history
+# TAGS: snowflake, dsoa, security, anomaly-detection
+
+id: 92952e4d-56c6-3855-8f8d-f3ab04e5682f
+title: "DSOA — Security Anomaly Detection"
+description: |
+  Monitors Snowflake login activity, session counts, query volumes, and data scan sizes using
+  Davis AI Seasonal Baseline anomaly detection. Alerts when any user or table deviates
+  significantly from its learned behavioral baseline — detecting compromised accounts, runaway
+  service accounts, or abnormal data access patterns. Six parallel analyzers cover both
+  user-level and table-level dimensions. Requires the login_history and query_history plugins.
+isPrivate: false
+schemaVersion: 4
+trigger:
+  schedule:
+    isActive: true
+    trigger:
+      type: interval
+      intervalMinutes: 360
+    rule: null
+    filterParameters: {}
+    timezone: UTC
+    inputs: {}
+tasks:
+  ad_user_logins:
+    name: ad_user_logins
+    description: Detect abnormal login count per user using Davis AI Seasonal Baseline
+    action: dynatrace.davis.workflow.actions:davis-analyze
+    active: true
+    position:
+      x: -2
+      y: 1
+    conditions:
+      states: {}
+    predecessors: []
+    input:
+      analyzerName: dt.statistics.anomaly_detection.SeasonalBaselineAnomalyDetectionAnalyzer
+      body:
+        timeSeriesData: |
+          fetch logs
+          | filter telemetry.exporter.module == "login_history"
+          | filter isNotNull(db.user)
+          // Optional: scope to specific users
+          // | filter db.user IN ("SVC_ETL", "SVC_ANALYTICS")
+          // Optional: scope to specific environments
+          // | filter deployment.environment == "PROD"
+          | makeTimeseries count(), by: {
+            db.user,
+            deployment.environment
+          }
+          | fieldsAdd
+              metric_name = "snowflake.login.count",
+              _event_name_template = "Abnormal login count for user {dims:db.user} at Snowflake {dims:deployment.environment}",
+              _event_description_template = "Detected abnormal login activity by user {dims:db.user} at Snowflake {dims:deployment.environment}. Login count has exceeded the learned seasonal baseline.",
+              _event_category = "login",
+              _event_direction = "above"
+        tolerance: 1.5
+        slidingWindow: 2
+        violatingSamples: 1
+        dealertingSamples: 2
+        alertCondition: ABOVE
+        alertOnMissingData: true
+        useModelCache: true
+        extendedOutput: false
+        generalParameters:
+          timeframe:
+            startTime: now-1d
+            endTime: now
+          logVerbosity: WARNING
+          resolveDimensionalQueryData: false
+        trainingTimeframe:
+          startTime: now-30d
+          endTime: now-1d
+
+  ad_user_sessions:
+    name: ad_user_sessions
+    description: Detect abnormal session count per user using Davis AI Seasonal Baseline
+    action: dynatrace.davis.workflow.actions:davis-analyze
+    active: true
+    position:
+      x: -1
+      y: 1
+    conditions:
+      states: {}
+    predecessors: []
+    input:
+      analyzerName: dt.statistics.anomaly_detection.SeasonalBaselineAnomalyDetectionAnalyzer
+      body:
+        timeSeriesData: |
+          fetch logs
+          | filter telemetry.exporter.module == "sessions"
+          | filter isNotNull(db.user)
+          // Optional: scope to specific users
+          // | filter db.user IN ("SVC_ETL", "SVC_ANALYTICS")
+          // Optional: scope to specific environments
+          // | filter deployment.environment == "PROD"
+          | makeTimeseries count(), by: {
+            db.user,
+            deployment.environment
+          }
+          | fieldsAdd
+              metric_name = "snowflake.session.count",
+              _event_name_template = "Abnormal session count for user {dims:db.user} at Snowflake {dims:deployment.environment}",
+              _event_description_template = "Detected abnormal number of sessions started by user {dims:db.user} at Snowflake {dims:deployment.environment}. Session count has exceeded the learned seasonal baseline.",
+              _event_category = "session",
+              _event_direction = "above"
+        tolerance: 1.5
+        slidingWindow: 2
+        violatingSamples: 1
+        dealertingSamples: 2
+        alertCondition: ABOVE
+        alertOnMissingData: true
+        useModelCache: true
+        extendedOutput: false
+        generalParameters:
+          timeframe:
+            startTime: now-1d
+            endTime: now
+          logVerbosity: WARNING
+          resolveDimensionalQueryData: false
+        trainingTimeframe:
+          startTime: now-30d
+          endTime: now-1d
+
+  ad_queries_by_user:
+    name: ad_queries_by_user
+    description: Detect abnormal query count per user using Davis AI Seasonal Baseline
+    action: dynatrace.davis.workflow.actions:davis-analyze
+    active: true
+    position:
+      x: 0
+      y: 1
+    conditions:
+      states: {}
+    predecessors: []
+    input:
+      analyzerName: dt.statistics.anomaly_detection.SeasonalBaselineAnomalyDetectionAnalyzer
+      body:
+        timeSeriesData: |
+          fetch logs
+          | filter telemetry.exporter.module == "query_history"
+          | filter isNotNull(db.user)
+          // Optional: scope to specific users
+          // | filter db.user IN ("SVC_ETL", "SVC_ANALYTICS")
+          // Optional: scope to specific environments
+          // | filter deployment.environment == "PROD"
+          | makeTimeseries count(), by: {
+            db.user,
+            deployment.environment
+          }
+          | fieldsAdd
+              metric_name = "snowflake.query.count",
+              _event_name_template = "Abnormal query count for user {dims:db.user} at Snowflake {dims:deployment.environment}",
+              _event_description_template = "Detected abnormal number of queries executed by user {dims:db.user} at Snowflake {dims:deployment.environment}. Query count has exceeded the learned seasonal baseline.",
+              _event_category = "query_count",
+              _event_direction = "above"
+        tolerance: 4
+        slidingWindow: 2
+        violatingSamples: 1
+        dealertingSamples: 2
+        alertCondition: ABOVE
+        alertOnMissingData: true
+        useModelCache: true
+        extendedOutput: false
+        generalParameters:
+          timeframe:
+            startTime: now-1d
+            endTime: now
+          logVerbosity: WARNING
+          resolveDimensionalQueryData: false
+        trainingTimeframe:
+          startTime: now-30d
+          endTime: now-1d
+
+  ad_queries_by_table:
+    name: ad_queries_by_table
+    description: Detect abnormal query count per table using Davis AI Seasonal Baseline
+    action: dynatrace.davis.workflow.actions:davis-analyze
+    active: true
+    position:
+      x: 1
+      y: 1
+    conditions:
+      states: {}
+    predecessors: []
+    input:
+      analyzerName: dt.statistics.anomaly_detection.SeasonalBaselineAnomalyDetectionAnalyzer
+      body:
+        timeSeriesData: |
+          fetch logs
+          | filter telemetry.exporter.module == "query_history"
+          | filter
+              isNotNull(db.sql.table)
+                  or isNotNull(db.collection.name)
+                  or isNotNull(db.snowflake.tables)
+                  or isNotNull(db.snowflake.table_names)
+          | fieldsAdd db.collection.name = coalesce(db.sql.table, db.collection.name),
+              db.snowflake.table_names = coalesce(db.snowflake.tables, db.snowflake.table_names)
+          | fieldsRemove db.sql.table, db.snowflake.tables
+          | parse `db.snowflake.table_names`, """'"' JSON_ARRAY(strict=false, typed=true):table_names '"'"""
+          | fieldsAdd
+              db_snowflake_table_names = if(isNotNull(db.snowflake.table_names), table_names, else: array(db.collection.name))
+          | expand db.collection.name = db_snowflake_table_names
+          // Optional: scope to specific databases or schemas
+          // | filter startsWith(db.collection.name, "PROD_DB.")
+          // | filter contains(db.collection.name, ".ETL.")
+          | makeTimeseries count(), by: {
+            db.collection.name,
+            deployment.environment
+          }
+          | limit 500
+          | fieldsAdd
+              metric_name = "snowflake.query.count",
+              _event_name_template = "Abnormal query count on table {dims:db.collection.name} at Snowflake {dims:deployment.environment}",
+              _event_description_template = "Detected abnormal number of queries on table {dims:db.collection.name} at Snowflake {dims:deployment.environment}. Query count has exceeded the learned seasonal baseline.",
+              _event_category = "query_count",
+              _event_direction = "above"
+        tolerance: 5
+        slidingWindow: 2
+        violatingSamples: 1
+        dealertingSamples: 2
+        alertCondition: ABOVE
+        alertOnMissingData: false
+        useModelCache: true
+        extendedOutput: false
+        generalParameters:
+          timeframe:
+            startTime: now-1d
+            endTime: now
+          logVerbosity: WARNING
+          resolveDimensionalQueryData: false
+        trainingTimeframe:
+          startTime: now-30d
+          endTime: now-1d
+
+  ad_scanned_bytes_user:
+    name: ad_scanned_bytes_user
+    description: Detect abnormal scanned bytes per user using Davis AI Seasonal Baseline
+    action: dynatrace.davis.workflow.actions:davis-analyze
+    active: true
+    position:
+      x: 2
+      y: 1
+    conditions:
+      states: {}
+    predecessors: []
+    input:
+      analyzerName: dt.statistics.anomaly_detection.SeasonalBaselineAnomalyDetectionAnalyzer
+      body:
+        timeSeriesData: |
+          fetch logs
+          | filter telemetry.exporter.module == "query_history"
+          | filter isNotNull(db.user)
+          | filter isNotNull(snowflake.bytes_scanned)
+          // Optional: scope to specific users
+          // | filter db.user IN ("SVC_ETL", "SVC_ANALYTICS")
+          // Optional: scope to specific environments
+          // | filter deployment.environment == "PROD"
+          | makeTimeseries sum(toLong(snowflake.bytes_scanned) / 1000), by: {
+            db.user,
+            deployment.environment
+          }
+          | fieldsAdd
+              metric_name = "snowflake.bytes_scanned",
+              _event_name_template = "Abnormal data scan volume for user {dims:db.user} at Snowflake {dims:deployment.environment}",
+              _event_description_template = "Detected abnormal amount of data scanned by user {dims:db.user} at Snowflake {dims:deployment.environment}. Scanned bytes have exceeded the learned seasonal baseline.",
+              _event_category = "data_scan",
+              _event_direction = "above"
+        tolerance: 4
+        slidingWindow: 2
+        violatingSamples: 1
+        dealertingSamples: 2
+        alertCondition: ABOVE
+        alertOnMissingData: false
+        useModelCache: true
+        extendedOutput: false
+        generalParameters:
+          timeframe:
+            startTime: now-1d
+            endTime: now
+          logVerbosity: WARNING
+          resolveDimensionalQueryData: true
+        trainingTimeframe:
+          startTime: now-30d
+          endTime: now-1d
+
+  ad_scanned_bytes_table:
+    name: ad_scanned_bytes_table
+    description: Detect abnormal scanned bytes per table using Davis AI Seasonal Baseline
+    action: dynatrace.davis.workflow.actions:davis-analyze
+    active: true
+    position:
+      x: 3
+      y: 1
+    conditions:
+      states: {}
+    predecessors: []
+    input:
+      analyzerName: dt.statistics.anomaly_detection.SeasonalBaselineAnomalyDetectionAnalyzer
+      body:
+        timeSeriesData: |
+          fetch logs
+          | filter telemetry.exporter.module == "query_history"
+          | filter isNotNull(snowflake.bytes_scanned)
+          | filter
+              isNotNull(db.sql.table)
+                  or isNotNull(db.collection.name)
+                  or isNotNull(db.snowflake.tables)
+                  or isNotNull(db.snowflake.table_names)
+          | fieldsAdd db.collection.name = coalesce(db.sql.table, db.collection.name),
+              db.snowflake.table_names = coalesce(db.snowflake.tables, db.snowflake.table_names)
+          | fieldsRemove db.sql.table, db.snowflake.tables
+          | parse `db.snowflake.table_names`, """'"' JSON_ARRAY(strict=false, typed=true):table_names '"'"""
+          | fieldsAdd
+              db_snowflake_table_names = if(isNotNull(db.snowflake.table_names), table_names, else: array(db.collection.name))
+          | expand db.collection.name = db_snowflake_table_names
+          // Optional: scope to specific databases or schemas
+          // | filter startsWith(db.collection.name, "PROD_DB.")
+          // | filter contains(db.collection.name, ".ETL.")
+          | makeTimeseries sum(toLong(snowflake.bytes_scanned) / 1000), by: {
+            db.collection.name,
+            deployment.environment
+          }
+          | limit 300
+          | fieldsAdd
+              metric_name = "snowflake.bytes_scanned",
+              _event_name_template = "Abnormal data scan volume on table {dims:db.collection.name} at Snowflake {dims:deployment.environment}",
+              _event_description_template = "Detected abnormal amount of data scanned from table {dims:db.collection.name} at Snowflake {dims:deployment.environment}. Scanned bytes have exceeded the learned seasonal baseline.",
+              _event_category = "data_scan",
+              _event_direction = "above"
+        tolerance: 4
+        slidingWindow: 3
+        violatingSamples: 2
+        dealertingSamples: 3
+        alertCondition: ABOVE
+        alertOnMissingData: false
+        useModelCache: true
+        extendedOutput: false
+        generalParameters:
+          timeframe:
+            startTime: now-1d
+            endTime: now
+          logVerbosity: WARNING
+          resolveDimensionalQueryData: false
+        trainingTimeframe:
+          startTime: now-30d
+          endTime: now-1d
+
+  extract_anomaly_events:
+    name: extract_anomaly_events
+    description: Process Davis results from all six analyzers and build Dynatrace event objects
+    action: dynatrace.automations:run-javascript
+    active: true
+    position:
+      x: 0
+      y: 2
+    conditions:
+      states:
+        ad_user_logins: OK
+        ad_user_sessions: OK
+        ad_queries_by_user: OK
+        ad_queries_by_table: OK
+        ad_scanned_bytes_user: OK
+        ad_scanned_bytes_table: OK
+    predecessors:
+      - ad_user_logins
+      - ad_user_sessions
+      - ad_queries_by_user
+      - ad_queries_by_table
+      - ad_scanned_bytes_user
+      - ad_scanned_bytes_table
+    input:
+      script: |
+        import { execution } from '@dynatrace-sdk/automation-utils';
+        import { EventIngestEventType } from '@dynatrace-sdk/client-classic-environment-v2';
+
+        // === CONFIGURATION ===
+        // Change eventType to EventIngestEventType.CustomAlert to enable Davis problem correlation.
+        // CustomInfo (default) creates informational events without triggering Davis problems.
+        const CONFIG = {
+          eventType: EventIngestEventType.CustomInfo,
+          eventTimeout: 360,
+          adSource: 'dsoa.security_anomaly'
+        };
+        // === END CONFIGURATION ===
+
+        function replacePlaceholders(contentString, data) {
+          const pattern = /\{dims:(\S*?)}/gm;
+          let matches = [];
+          while ((matches = pattern.exec(contentString))) {
+            contentString = contentString.replace(matches[0], data[matches[1]]);
+          }
+          return contentString;
+        }
+
+        function unpackMap(amap) {
+          const mappedResult = {};
+          amap.forEach(item => {
+            mappedResult[item.key] = item.value;
+          });
+          return mappedResult;
+        }
+
+        function createEventObject(alert, result, events) {
+          const startTime = alert.timeframe.startTime;
+          const endTime = alert.timeframe.endTime;
+          const eventTitle = result.dimensions.find(x => x.key === '_event_name_template')?.value;
+          const eventDesc = result.dimensions.find(x => x.key === '_event_description_template')?.value;
+          const sourceMetric = result.dimensions.find(x => x.key === 'metric_name')?.value;
+          const adDirection = result.dimensions.find(x => x.key === '_event_direction')?.value;
+          const adCategory = result.dimensions.find(x => x.key === '_event_category')?.value;
+          const resultDimensions = unpackMap(result.dimensions);
+
+          const newEvent = {
+            body: {
+              eventType: CONFIG.eventType,
+              title: replacePlaceholders(eventTitle, resultDimensions),
+              properties: {
+                'event.description': replacePlaceholders(eventDesc, resultDimensions)
+              },
+              timeout: CONFIG.eventTimeout
+            }
+          };
+
+          newEvent.body.properties['event.start'] = startTime;
+          newEvent.body.properties['event.end'] = endTime;
+          newEvent.body.properties['ad.source'] = CONFIG.adSource;
+          newEvent.body.properties['ad.source_metric'] = sourceMetric;
+          if (adDirection) newEvent.body.properties['ad.direction'] = adDirection;
+          if (adCategory) newEvent.body.properties['ad.category'] = adCategory;
+
+          if (result.dimensions.length > 0) {
+            result.dimensions.forEach(dim => {
+              if (!dim.key.startsWith('_')) {
+                newEvent.body.properties[dim.key] = dim.value;
+              }
+            });
+          }
+          events.push(newEvent);
+        }
+
+        function processAnomalies(body) {
+          const events = [];
+          if (['SUCCESSFUL_WITH_WARNINGS', 'SUCCESSFUL'].includes(body.result['resultStatus']) && body.result['executionStatus'] === 'COMPLETED') {
+            for (let i = 0; i < body.result.output.length; ++i) {
+              const res = body.result.output[i];
+              if (res.analysisStatus !== 'OK') continue;
+              if (res.raisedAlerts.length > 0) {
+                res.raisedAlerts.forEach(alert => {
+                  createEventObject(alert, res, events);
+                });
+              }
+            }
+          } else {
+            console.log('Analyzer run failed!');
+            throw new Error('Previous execution was not successful');
+          }
+          return events;
+        }
+
+        export default async function ({ execution_id }) {
+          const ex = await execution(execution_id);
+
+          const anomalyDetectionResults = [
+            await ex.result('ad_user_logins'),
+            await ex.result('ad_user_sessions'),
+            await ex.result('ad_queries_by_user'),
+            await ex.result('ad_queries_by_table'),
+            await ex.result('ad_scanned_bytes_user'),
+            await ex.result('ad_scanned_bytes_table')
+          ];
+
+          let events = [];
+          for (const anomalyResults of anomalyDetectionResults) {
+            const localEvents = processAnomalies(anomalyResults);
+            events = [...events, ...localEvents];
+          }
+
+          console.log(`Extracted ${events.length} anomaly event(s)`);
+          return events;
+        }
+
+  ingest_anomaly_events:
+    name: ingest_anomaly_events
+    description: Ingest anomaly events via Dynatrace Environment V2 API
+    action: dynatrace.automations:run-javascript
+    active: true
+    position:
+      x: 0
+      y: 3
+    conditions:
+      states:
+        extract_anomaly_events: OK
+    predecessors:
+      - extract_anomaly_events
+    input:
+      script: |
+        import { execution } from '@dynatrace-sdk/automation-utils';
+        import { eventsClient } from '@dynatrace-sdk/client-classic-environment-v2';
+
+        async function ingestEvents(events) {
+          let successCount = 0;
+          const failed = [];
+          for (let i = 0; i < events.length; ++i) {
+            const res = await eventsClient.createEvent(events[i]);
+            if (res.reportCount !== 1) {
+              failed.push({ reason: 'Invalid number of ingested events' });
+            } else {
+              const status = res.eventIngestResults[0];
+              if (status.status === 'OK') {
+                successCount += 1;
+              } else {
+                failed.push(JSON.stringify(status));
+              }
+            }
+          }
+          if (successCount === 0 && failed.length === 0) {
+            console.log('No events to ingest');
+          }
+          if (successCount > 0) {
+            console.log(`Successfully ingested ${successCount} event(s)`);
+          }
+          if (failed.length > 0) {
+            console.log(`Failed to ingest ${failed.length} event(s):`, JSON.stringify(failed));
+          }
+        }
+
+        export default async function ({ execution_id }) {
+          const ex = await execution(execution_id);
+          const events = await ex.result('extract_anomaly_events');
+          await ingestEvents(events);
+          return events;
+        }
