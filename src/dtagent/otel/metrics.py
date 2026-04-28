@@ -29,6 +29,7 @@ import time
 
 from typing import Dict, Union, Optional, Tuple
 from dtagent.otel.otel_manager import OtelManager
+from dtagent.otel.ingest_warnings import IngestWarningCollector
 from dtagent.util import get_timestamp, get_now_timestamp, validate_timestamp
 from dtagent.otel import _log_warning
 
@@ -107,6 +108,28 @@ class Metrics:
                     _log_warning(response, _payload, "metric")
                 else:
                     OtelManager.set_current_fail_count(0)
+                    try:
+                        body = response.json()
+                        if isinstance(body, dict):
+                            lines_invalid = body.get("linesInvalid", 0)
+                            if lines_invalid:
+                                IngestWarningCollector.add_warning(
+                                    "lines_invalid",
+                                    "metrics",
+                                    f"Metrics ingest: {lines_invalid} line(s) invalid/rejected",
+                                    lines_invalid,
+                                )
+                            for warn_entry in body.get("warnings", []):
+                                trimmed_keys = warn_entry.get("non_persisted_attribute_keys", [])
+                                if trimmed_keys:
+                                    IngestWarningCollector.add_warning(
+                                        "attr_trimmed",
+                                        "metrics",
+                                        f"Metrics ingest: attribute key(s) not persisted: {trimmed_keys}",
+                                        len(trimmed_keys),
+                                    )
+                    except Exception:  # pylint: disable=broad-except
+                        pass
 
             except requests.exceptions.RequestException as e:
                 if isinstance(e, requests.exceptions.Timeout):

@@ -2,6 +2,333 @@
 
 This file documents detailed technical changes, internal refactorings, and development notes. For user-facing highlights, see [CHANGELOG.md](CHANGELOG.md).
 
+## [Unreleased] — BDX-1903: Fix task_history attempt stored as string
+
+### Root Cause
+
+`ATTEMPT_NUMBER` in Snowflake's `INFORMATION_SCHEMA.TASK_HISTORY` is `NUMBER(38,0)`. When passed directly into `OBJECT_CONSTRUCT` without a type cast, Snowflake serialises it as a JSON string in some contexts. Python `json.loads` then deserialises it as `str`, which `_cleanup_data` preserves, and OTEL sends as `stringValue` in the log attribute payload — rather than `intValue`.
+
+### Fix
+
+Added `::INTEGER` cast at `src/dtagent/plugins/tasks.sql/062_v_task_history.sql:57`:
+
+```sql
+'snowflake.task.run.attempt',   th.ATTEMPT_NUMBER::INTEGER,
+```
+
+`::INTEGER` forces an integer-valued numeric representation in the `OBJECT_CONSTRUCT` JSON output (in Snowflake, `INTEGER` is effectively a synonym for `NUMBER(38,0)`, not a 32-bit type). Python `json.loads` parses it as `int`; `_cleanup_data` preserves it; OTEL sends it as `intValue`. Downstream Dynatrace Grail stores it as `LONG`.
+
+### Downstream updates
+
+- `src/dtagent/plugins/tasks.config/instruments-def.yml`: `__example` changed from `"1"` (string) to `1` (integer) for semantic accuracy.
+- `docs/dashboards/tasks-pipelines/tasks-pipelines.yml`: "Task Retry Patterns" tile DQL updated from `toLong(snowflake.task.run.attempt) > 1` to `snowflake.task.run.attempt > 1`.
+
+### Test impact
+
+None. `test/test_data/tasks_history.ndjson` already stored attempt as bare integer `1`, and the existing mock-test baselines already expected an integer here, so no fixture or `test/test_results/*` updates were needed.
+
+### Deployment
+
+`--scope=plugins,config` — SQL view change requires plugin redeployment; no Python changes.
+
+---
+
+## [Unreleased] — Snowflake Consumption Dashboard Phase B
+
+### Dashboard Phase B: §1 Contract Capacity KPIs + §3 USD Consumption + Workflow Fix
+
+**Scope**: Phase B of the org-level consumption dashboard. Appends tiles `"14"`–`"24"` to the
+existing dashboard (UUID `6881ff48-0945-4e94-94af-2e4bb338724e`). Bumps version to 3.
+
+**§1 Contract Capacity KPIs** (tiles 14–20, inserted at top via layout y=0..12):
+
+- **Capacity Used (USD)** (tile 15, singleValue): `sum(snowflake.org.billing.amount)` over the
+  selected timeframe. Uses `arraySum` to correctly total daily billing rows.
+- **Remaining Capacity (USD)** (tile 16, singleValue): `last(capacity_balance) + last(rollover_balance)`.
+  Uses `avg()` on both metrics (one row per org per day) then takes the last array value.
+- **30-Day Run Rate (USD)** (tile 17, singleValue): `sum(billing.amount)` with explicit `from: now()-30d`
+  to pin the window regardless of the dashboard timeframe selector.
+- **YoY Burn Rate** (tile 18, table): Two `timeseries` pipes (current 30d and previous 30d) combined
+  via `append` + `summarize` to produce `current_usd`, `previous_usd`, annualized run rates, and
+  `pct_change`. DQL `join` across time windows is not supported, so `append` + aggregate is used.
+- **Estimated Days to Overage** (tile 19, singleValue): Derived from 30-day balance burn:
+  `balance_end / monthly_burn * 30`. Returns `-1` when burn rate is zero or negative (balance growing).
+- **Projected Overage Date** (tile 20, table): Computes `days_to_overage` then formats as a timestamp
+  string using `formatTimestamp(now() + toTimespan(...))`. Returns "No overage projected" when
+  days_to_overage ≤ 0.
+
+**§3 USD Consumption** (tiles 21–24, inserted after §2 at y=26..39):
+
+- Markdown header tile (21) includes the credit-rate fallback note inline.
+- Line chart (22): `billing.amount` by account over time.
+- Bar chart (23): `billing.amount` summarized by service type.
+- Table (24): total USD per account using `arraySum` (not `arrayAvg`) because billing rows are
+  daily totals that should be summed, not averaged.
+
+**Workflow fix** (`docs/workflows/org-contract-balance-warning/org-contract-balance-warning.yml`):
+Replaced five non-existent `snowflake.org.balance.*.remaining` metric IDs with the real keys:
+`snowflake.org.billing.free_usage_balance`, `capacity_balance`, `on_demand_consumption`,
+`rollover_balance`, `overage`. Updated `metricsClient.query` selector from `:last` to `:avg:last`
+to match the `avg()` aggregation used in the dashboard (one row per org per day).
+
+**Layout strategy**: New §1 tiles use keys `"14"`–`"20"` at y=0..12. Existing §2 tiles (`"0"`–`"3"`)
+shift to y=13..25. New §3 tiles use keys `"21"`–`"24"` at y=26..39. Existing §4–§6 tiles shift
+accordingly. No tile keys were renumbered — only layout `y` coordinates changed.
+
+---
+
+## [Unreleased] — Snowflake Consumption Dashboard Phase C
+
+### Dashboard: §7 Department / BU View
+
+**Scope**: Phase C of the org-level consumption dashboard. Appends §7 Department / BU View
+(tiles "25"–"29") to `docs/dashboards/org-costs-observability/org-costs-observability.yml`.
+Coordinates with Phase B (tiles "14"–"24") which landed concurrently.
+
+**Changes**:
+
+- **§7 Department / BU View** (5 tiles):
+  - Markdown header with inline usage note for `$bu_mapping` variable.
+  - Bar chart: credits by account (`snowflake.org.credits.used`, summarized, `bu = "Unassigned"`).
+  - Bar chart: USD billing by account (`snowflake.org.billing.amount`, `arraySum`, `bu = "Unassigned"`).
+  - Bar chart: storage by account (`snowflake.org.storage.bytes`, avg, bytes `unitsOverrides`, `bu = "Unassigned"`).
+  - Table: account-to-BU mapping view (account + bu columns, sorted by account).
+- **Layout**: tiles placed at y=67–81 (after §6 Billing at y=60–67). Three bar charts side-by-side
+  (8 cols each), table full-width below.
+- **`readme.md`** updated: §7 tile inventory table added; BU Mapping Configuration section added
+  with JSON format, example, and v1 limitation note.
+
+**v1 BU mapping design decision**:
+
+DQL does not support dynamic JSON key-indexing against a variable string at query time. The
+`$bu_mapping` variable holds a JSON object `{"ACCOUNT": "BU"}`, but there is no native DQL
+operator to look up a field value as a key in that JSON at runtime. Options considered:
+
+1. **Hardcoded `if/matchesRegex` chain** — requires dashboard edits per customer; not scalable.
+2. **Grail lookup tables** — not yet available in DSOA's target tenant tier; planned for a
+   future release.
+3. **`fieldsAdd bu = "Unassigned"` (chosen for v1)** — all accounts show as "Unassigned" by
+   default. Customers who need BU grouping can use the `$bu_mapping` variable as documentation
+   of intent and wait for the lookup-table enhancement, or apply OpenPipeline enrichment rules
+   externally to add a `bu` attribute to the metric data.
+
+The `$bu_mapping` variable is retained in the dashboard as a placeholder and configuration
+anchor. Pattern-based mapping (SQL LIKE / regex) is tracked as a future enhancement.
+
+---
+
+## [Unreleased] — Snowflake Consumption Dashboard Phase A
+
+### Dashboard Overhaul: Snowflake Consumption (Organization Level)
+
+**Scope**: Phase A of the org-level consumption dashboard. Extends `docs/dashboards/org-costs-observability/`
+in place (preserves deployed UUID `6881ff48-0945-4e94-94af-2e4bb338724e`). Bumps version to 2.
+
+**Changes**:
+
+- **Title** updated from `Org-Level Costs Observability` to `Snowflake Consumption (Organization Level)`.
+- **Variables** replaced: `$Accounts` (query, multi-select, uses `fetch logs` with `dsoa.run.plugin == "org_costs"`
+  to avoid empty-variable risk); `$credit_rate` (hidden text, default `"3.00"`, reserved for Phase B);
+  `$bu_mapping` (hidden text, default `"{}"`, reserved for Phase C BU grouping).
+- **§2 Credit Consumption** (3 tiles): line chart of credits over time by account; bar chart of credits
+  by service type; table of compute + cloud_services + total credits by account.
+- **§4 Storage** (3 tiles): line chart of storage bytes over time by account; bar chart by storage type;
+  table of total bytes by account. All byte fields have `unitsOverrides` with `unitCategory: data`.
+- **§5 Data Transfer** (2 tiles): line chart of transfer bytes over time; table by source/target cloud
+  and region. Byte fields have `unitsOverrides`.
+- **§6 Billing & Contract Balance** (2 tiles): billing amount line chart; Remaining Contract Balance
+  tile **fixed** — old query used non-existent `snowflake.org.balance.*.remaining` metric keys.
+  New query uses real keys: `snowflake.org.billing.capacity_balance`, `rollover_balance`,
+  `free_usage_balance`, `on_demand_consumption`, `overage`. Uses `avg()` (not `sum()`) because
+  `REMAINING_BALANCE_DAILY` emits one row per org per day.
+- **`instruments-def.yml`** updated: added `snowflake.storage.type` as a declared dimension for
+  `org_costs_storage` context (was emitted by the SQL view but not declared in the semantic dictionary).
+- **`readme.md`** updated: new title, 3-variable table, full Phase-A tile inventory, Phase B/C roadmap notes.
+- **`docs/dashboards/README.md`** updated: entry renamed and description expanded.
+
+**Metric-name bug root cause**: The original dashboard was authored before the `org_billing_remaining_balance`
+context was finalized. The metric keys `snowflake.org.balance.*.remaining` were placeholder names that
+never matched the emitted keys. The correct keys are in `instruments-def.yml` under `org_billing_remaining_balance`.
+
+**Phase plan**:
+
+- Phase A (this change): §2 Credits, §4 Storage, §5 Data Transfer, §6 Billing/Balance fix.
+- Phase B (future): §1 Contract Capacity KPIs (single-value tiles for capacity used, remaining, burn rate,
+  days to overage, overage date) and §3 USD Consumption. Requires billing context data.
+- Phase C (future): §6 Department/BU View using `$bu_mapping` JSON variable for account-to-BU grouping.
+
+---
+
+## [Unreleased] — org_costs Plugin: Organization-Level Costs and Usage
+
+### org_costs Plugin — Full Implementation
+
+**Scope**: New `org_costs` plugin collecting organization-level cost and usage metrics from
+`SNOWFLAKE.ORGANIZATION_USAGE`. Five contexts, disabled by default, 6-hour cron schedule.
+
+**Architecture**:
+
+- **`src/dtagent/plugins/org_costs.py`**: Multi-context plugin following the `warehouse_usage`
+  pattern. Registers five contexts via `process()` dispatching to private per-context methods.
+- **Five views** (`051`–`055`):
+  - `V_ORG_METERING_DAILY` — credit consumption by service type and service name
+  - `V_ORG_STORAGE_DAILY` — storage bytes by storage type and account locator
+  - `V_ORG_DATA_TRANSFER_DAILY` — data transfer bytes by cloud, region, and transfer type
+  - `V_ORG_BILLING_USAGE_IN_CURRENCY` — billed amounts in contract currency by account and service
+  - `V_ORG_BILLING_REMAINING_BALANCE` — five balance categories (free usage, capacity, on-demand,
+    rollover, total)
+- **Metrics** (10 total): `snowflake.org.credits.used`, `snowflake.org.credits.cloud_services`,
+  `snowflake.org.storage.bytes`, `snowflake.org.transfer.bytes`, `snowflake.org.billing.amount`,
+  and five `snowflake.org.balance.*.remaining` metrics.
+- **Admin proc** (`admin/050_p_check_organization_usage_access.sql`): Diagnostic stored procedure
+  `DTAGENT_DB.APP.P_CHECK_ORGANIZATION_USAGE_ACCESS()` that can be called manually after
+  deployment to verify ORGANIZATION_USAGE access. Returns a success or failure message.
+- **Deploy advisory** (`scripts/deploy/lib.sh::check_org_costs_access()`): Non-blocking warning
+  emitted during `prepare_deploy_script.sh` when `org_costs` is in scope and not excluded. Reminds
+  operators to verify ORGADMIN access before enabling the plugin.
+
+**Test coverage**: Five tests in `test/plugins/test_org_costs.py` using mock NDJSON fixtures.
+Each test exercises multiple `disabled_telemetry` combos and validates metric counts against
+golden files in `test/test_results/`.
+
+**Dashboards**:
+
+- New **`Org-Level Costs Observability`** dashboard (`docs/dashboards/org-costs-observability/`):
+  9 tiles covering all five metric groups. UUID `6881ff48-0945-4e94-94af-2e4bb338724e`.
+- Extended **`Costs Monitoring`** dashboard with org-level credits overview section (tiles 22/23,
+  version bumped to 21).
+
+**Workflow**: New **`Org Contract Balance Warning`** (`docs/workflows/org-contract-balance-warning/`):
+6-hour schedule, queries five `snowflake.org.billing.*` metrics (`capacity_balance`,
+`rollover_balance`, `free_usage_balance`, `on_demand_consumption`, `overage`) and logs alert if any
+drops below configurable threshold.
+
+**Doc updates**: `docs/USECASES.md` extended with "Costs — Tier 0 — Organization-Level FinOps"
+section (3 new use cases). `docs/dashboards/README.md` and `docs/workflows/README.md` updated.
+
+---
+
+## [Unreleased] — BDX-1969: Interactive Deployment Wizard
+
+## [Unreleased]: Acquisition Problem Detection
+
+### Motivation
+
+`_get_table_rows()` in `plugins/__init__.py` and `_get_sub_rows()` in `otel/spans.py` called `session.sql()` / `session.table()` with no exception handling. A `SnowparkSQLException` (e.g. view missing, permission error, network timeout) would propagate up to `agent.py` where only `RuntimeError` was caught — `SnowparkSQLException` is not a `RuntimeError`, so it would crash the entire agent run, silencing all subsequent plugins for that execution.
+
+### Implementation
+
+**New class — `AcquisitionProblemCollector` in `src/dtagent/otel/ingest_warnings.py`**
+
+Added alongside `IngestWarningCollector` in the same module. Thread-safe static-method collector, same pattern. Problem dict schema: `problem_type`, `source`, `detail`, `count`.
+
+**`_get_table_rows` — `src/dtagent/plugins/__init__.py`**
+
+Wrapped entire SQL execution + row iteration in `try/except SnowparkSQLException`. On exception: logs `ERROR`, calls `AcquisitionProblemCollector.add_problem("sql_error", ...)`, yields nothing (graceful degradation — plugin reports 0 entries).
+
+**`_get_sub_rows` — `src/dtagent/otel/spans.py`**
+
+Same pattern for sub-row queries. On `SnowparkSQLException`: logs `ERROR`, calls `AcquisitionProblemCollector.add_problem("sub_row_error", ...)`, yields nothing. Uses inline `from dtagent import LOG  # COMPILE_REMOVE` (consistent with `metrics.py` pattern).
+
+**Bizevent emission — `src/dtagent/__init__.py` + `src/dtagent/agent.py`**
+
+`AbstractDynatraceSnowAgentConnector._emit_acquisition_problems()` follows the same structure as `_emit_ingest_warnings()`. Called on both success and error paths in the agent loop (before `handle_interrupted_run`). Always calls `AcquisitionProblemCollector.reset()` in `finally`.
+
+**Compile assembly — `src/dtagent/agent.py` + `src/dtagent/connector.py`**
+
+Added `from snowflake.snowpark.functions import col` and `from snowflake.snowpark.exceptions import SnowparkSQLException` to `GENERAL_IMPORTS` in both entry-point files (these were previously inline `# COMPILE_REMOVE` imports that didn't survive compilation).
+
+**Config — `conf/config-template.yml`**
+
+Added `plugins.self_monitoring.detect_acquisition_problems: true` (default on).
+
+**Dashboard — `docs/dashboards/self-monitoring/self-monitoring.yml`**
+
+Added tiles 17 and 18 (row at `y=37`):
+
+- Tile 17: `Acquisition problems over time` — `makeTimeseries` line chart by problem type (7-day window).
+- Tile 18: `Acquisition problem details` — table of recent problems sorted by timestamp desc.
+
+**Tests — `test/otel/test_acquisition_problems.py`** (12 tests, new file)
+
+- `TestAcquisitionProblemCollector`: 7 unit tests mirroring the ingest warning collector suite.
+- `TestGetTableRowsSqlErrors`: 3 tests — clean query, exception at setup, exception during iteration.
+- `TestGetSubRowsSqlErrors`: 2 tests — clean sub-row fetch, exception during fetch.
+
+### Behavioral Change
+
+Before: `SnowparkSQLException` propagated uncaught → crashed entire agent run → all subsequent plugins silenced.
+After: Exception caught at the view-access level → plugin produces 0 entries + bizevent → agent continues to next plugin.
+
+### Performance
+
+No measurable overhead on the happy path — exception handling is zero-cost when no exception occurs.
+
+## [Unreleased] — BDX-695: Ingest-Quality Warning Detection
+
+### Motivation
+
+DSOA sends telemetry to Dynatrace over OTLP and REST APIs, but all three export paths (OTLP logs/spans, Metrics API v2, Events/BizEvents API) previously discarded HTTP response bodies on success. This meant partial rejections (`partialSuccess.rejectedLogRecords`, `linesInvalid`, `non_persisted_attribute_keys`, `rejectedEventIngestInputCount`) were silently swallowed — operators had no visibility until they noticed missing data in dashboards, often days later.
+
+### Implementation
+
+**New module — `src/dtagent/otel/ingest_warnings.py`**
+
+Introduced `IngestWarningCollector`, a thread-safe static-method collector (same pattern as `OtelManager`). Accumulates structured warning dicts during a plugin run; reset after each plugin via `_emit_ingest_warnings()`. Warning schema: `warning_type`, `exporter`, `detail`, `count`.
+
+**OTLP export path — `src/dtagent/otel/otel_manager.py`**
+
+`CustomLoggingSession.send()` is the single intercept point for both logs and spans. Added defensive JSON parsing on HTTP 2xx to detect `partialSuccess.rejectedLogRecords` and `rejectedSpans`. Wrapped in `except Exception` with pylint suppress — malformed responses must never crash the agent.
+
+**Metrics API v2 — `src/dtagent/otel/metrics.py`**
+
+`__send` inner function now parses response body on 202 for `linesInvalid > 0` and `warnings[].non_persisted_attribute_keys`. The Dynatrace Metrics API v2 is the richest source of ingest-quality feedback — attribute trimming shows up here first.
+
+**Events/BizEvents — `src/dtagent/otel/events/__init__.py`**
+
+`AbstractEvents._send` now checks for `rejectedEventIngestInputCount` in the 202 response body. BizEvents inherits this check automatically.
+
+**Bizevent emission — `src/dtagent/__init__.py` + `src/dtagent/agent.py`**
+
+`AbstractDynatraceSnowAgentConnector._emit_ingest_warnings()` reads the collector, emits one `dsoa.ingest.warning` bizevent per warning entry (guarded by `self_monitoring.detect_ingest_warnings` config and `biz_events` telemetry being allowed), then calls `IngestWarningCollector.reset()` in a `finally` block. Called on both success and error paths in the agent loop.
+
+**Compile assembly — `src/dtagent/agent.py` + `src/dtagent/connector.py`**
+
+Added `##INSERT src/dtagent/otel/ingest_warnings.py` after `otel_manager.py` in both entry-point files. Added `import threading` to `GENERAL_IMPORTS` in both files (required by `IngestWarningCollector._lock`).
+
+**Config — `conf/config-template.yml`**
+
+Added `plugins.self_monitoring.detect_ingest_warnings: true` (default on).
+
+**Dashboard — `docs/dashboards/self-monitoring/self-monitoring.yml`**
+
+Added tiles 15 and 16:
+
+- Tile 15: `Ingest warnings over time` — `makeTimeseries` line chart by exporter (7-day window).
+- Tile 16: `Ingest warning detail` — table of recent warnings sorted by timestamp desc.
+
+Layout: both tiles in a new row at `y=31`, split 12+12 columns.
+
+**Tests — `test/otel/test_ingest_warnings.py`** (17 tests, new file)
+
+- `TestIngestWarningCollector`: 7 unit tests covering add/get/has/reset/snapshot/default/thread-safety.
+- `TestCustomLoggingSessionPartialSuccess`: 4 tests for OTLP partial success parsing (clean, logs rejected, spans rejected, malformed JSON).
+- `TestMetricsIngestWarnings`: 4 tests for Metrics API v2 response parsing (clean, linesInvalid, attr_trimmed, malformed).
+- `TestEventsIngestWarnings`: 2 tests for Events API response parsing (clean, rejectedEventIngestInputCount).
+
+All tests use mock HTTP responses — no live Snowflake or DT connections required.
+
+### Performance
+
+Response body parsing runs only on successful responses (2xx). `json.loads()` on a typical <1 KB response body adds <0.1 ms. Warning bizevent emission happens at most once per plugin run when warnings are present — negligible overhead.
+
+### Backward Compatibility
+
+- Config default is `true` — existing deployments get detection automatically.
+- No schema changes to existing telemetry.
+- No SQL changes — no upgrade scripts needed.
+- No procedure signature changes.
+
 ## [Unreleased] — Resource Monitor Credit Threshold Alerting
 
 ### Resource Monitor Credit Threshold Alerting — Full Implementation

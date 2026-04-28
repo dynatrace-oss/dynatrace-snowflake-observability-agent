@@ -22,11 +22,11 @@
 # DASHBOARD: Costs Monitoring
 # DESCRIPTION:  Snowflake Cost Monitoring dashboard
 # OWNER: DSOA Team
-# PLUGINS: query_history, resource_monitors, warehouse_usage
+# PLUGINS: query_history, resource_monitors, warehouse_usage, org_costs
 # TAGS: costs
 #
 id: e446e588-b917-4a63-867c-643ca783c79e
-version: 21
+version: 22
 variables:
   - version: 2
     key: Accounts
@@ -1916,6 +1916,56 @@ tiles:
         isAvailable: true
       componentState:
         inputData: null
+  "30":
+    type: markdown
+    content: "# Organization-Level Costs (requires org_costs plugin)"
+    davis:
+      componentState:
+        inputData: null
+  "31":
+    title: Org Credits Used by Service Type
+    type: data
+    query: |-
+      timeseries val = sum(snowflake.org.credits.used), by: {
+          snowflake.service.type,
+          snowflake.service.name,
+          deployment.environment
+      }
+      | filter in(deployment.environment, array($Accounts))
+      | fieldsAdd snow_account = coalesce(deployment.environment, "unknown")
+      | fieldsRemove deployment.environment
+    visualization: lineChart
+    visualizationSettings:
+      chartSettings:
+        leftYAxisSettings:
+          label: Org Credits Used
+          isLabelVisible: true
+        xAxisScaling: analyzedTimeframe
+        fieldMapping:
+          leftAxisValues:
+            - val
+          timestamp: timeframe
+        gapPolicy: connect
+        legend:
+          position: bottom
+      thresholds: []
+      dataMapping:
+        displayedFields:
+          - snowflake.service.type
+          - snowflake.service.name
+          - snow_account
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
 layouts:
   "0":
     x: 0
@@ -2067,6 +2117,16 @@ layouts:
     "y": 102
     w: 24
     h: 5
+  "30":
+    x: 0
+    "y": 108
+    w: 24
+    h: 1
+  "31":
+    x: 0
+    "y": 109
+    w: 24
+    h: 6
 settings:
   defaultTimeframe:
     value:
