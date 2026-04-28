@@ -46,7 +46,7 @@ and `query_history` plugins.
 - DSOA deployed and collecting telemetry from your Snowflake account
 - `login_history` plugin enabled (provides login and session log records)
 - `query_history` plugin enabled (provides query records with `db.user`, `db.collection.name`,
-  `snowflake.bytes_scanned`)
+  `snowflake.data.scanned`)
 - At least 30 days of historical data recommended for accurate baseline training
 
 ## Configuration
@@ -114,7 +114,7 @@ const CONFIG = {
 | `db.user`                   | `SVC_ETL`                                          | Snowflake user (user-level events)            |
 | `db.collection.name`        | `PROD_DB.ETL.ORDERS`                               | Table name (table-level events)               |
 | `deployment.environment`    | `PROD`                                             | Snowflake account environment tag             |
-| `metric_name`               | `snowflake.bytes_scanned`                          | Metric name from the analyzer                 |
+| `metric_name`               | `snowflake.data.scanned`                           | Metric name from the analyzer                 |
 | `event.start`               | ISO timestamp                                      | Start of the anomalous timeframe              |
 | `event.end`                 | ISO timestamp                                      | End of the anomalous timeframe                |
 | `event.description`         | Human-readable description                         | Full event description with context           |
@@ -136,16 +136,16 @@ const CONFIG = {
 
 ### DQL errors in analyzer tasks
 
-- Verify the `telemetry.exporter.module` attribute is present on log records — check with
-  `fetch logs | filter isNotNull(telemetry.exporter.module) | limit 5`
-- For table-level tasks, confirm `db.snowflake.table_names` or `db.collection.name` attributes
+- Verify the `dsoa.run.context` attribute is present on log records — check with
+  `fetch logs | filter isNotNull(dsoa.run.context) | limit 5`
+- For table-level tasks, confirm `db.snowflake.tables` or `db.collection.name` attributes
   exist on query_history log records
 
 ### `ad_scanned_bytes_user` produces no results
 
-- This task requires `snowflake.bytes_scanned` to be non-null; confirm the query_history plugin
+- This task requires `snowflake.data.scanned` to be non-null; confirm the query_history plugin
   version supports this attribute
-- Check `fetch logs | filter telemetry.exporter.module == "query_history" | filter isNotNull(snowflake.bytes_scanned) | limit 1`
+- Check `fetch logs | filter dsoa.run.context == "query_history" | filter isNotNull(snowflake.data.scanned) | limit 1`
 
 ## Screenshots
 

@@ -41,7 +41,7 @@ tasks:
       body:
         timeSeriesData: |
           fetch logs
-          | filter telemetry.exporter.module == "login_history"
+          | filter dsoa.run.plugin == "login_history"
           | filter isNotNull(db.user)
           // Optional: scope to specific users
           // | filter db.user IN ("SVC_ETL", "SVC_ANALYTICS")
@@ -91,7 +91,8 @@ tasks:
       body:
         timeSeriesData: |
           fetch logs
-          | filter telemetry.exporter.module == "sessions"
+          | filter dsoa.run.plugin == "login_history"
+          | filter dsoa.run.context == "sessions"
           | filter isNotNull(db.user)
           // Optional: scope to specific users
           // | filter db.user IN ("SVC_ETL", "SVC_ANALYTICS")
@@ -141,7 +142,7 @@ tasks:
       body:
         timeSeriesData: |
           fetch logs
-          | filter telemetry.exporter.module == "query_history"
+          | filter dsoa.run.plugin == "query_history"
           | filter isNotNull(db.user)
           // Optional: scope to specific users
           // | filter db.user IN ("SVC_ETL", "SVC_ANALYTICS")
@@ -191,19 +192,13 @@ tasks:
       body:
         timeSeriesData: |
           fetch logs
-          | filter telemetry.exporter.module == "query_history"
+          | filter dsoa.run.plugin == "query_history"
           | filter
-              isNotNull(db.sql.table)
-                  or isNotNull(db.collection.name)
+              isNotNull(db.collection.name)
                   or isNotNull(db.snowflake.tables)
-                  or isNotNull(db.snowflake.table_names)
-          | fieldsAdd db.collection.name = coalesce(db.sql.table, db.collection.name),
-              db.snowflake.table_names = coalesce(db.snowflake.tables, db.snowflake.table_names)
-          | fieldsRemove db.sql.table, db.snowflake.tables
-          | parse `db.snowflake.table_names`, """'"' JSON_ARRAY(strict=false, typed=true):table_names '"'"""
           | fieldsAdd
-              db_snowflake_table_names = if(isNotNull(db.snowflake.table_names), table_names, else: array(db.collection.name))
-          | expand db.collection.name = db_snowflake_table_names
+              db_snowflake_tables = if(isNotNull(db.snowflake.tables), db.snowflake.tables, else: array(db.collection.name))
+          | expand db.collection.name = db_snowflake_tables
           // Optional: scope to specific databases or schemas
           // | filter startsWith(db.collection.name, "PROD_DB.")
           // | filter contains(db.collection.name, ".ETL.")
@@ -252,19 +247,19 @@ tasks:
       body:
         timeSeriesData: |
           fetch logs
-          | filter telemetry.exporter.module == "query_history"
+          | filter dsoa.run.plugin == "query_history"
           | filter isNotNull(db.user)
-          | filter isNotNull(snowflake.bytes_scanned)
+          | filter isNotNull(snowflake.data.scanned)
           // Optional: scope to specific users
           // | filter db.user IN ("SVC_ETL", "SVC_ANALYTICS")
           // Optional: scope to specific environments
           // | filter deployment.environment == "PROD"
-          | makeTimeseries sum(toLong(snowflake.bytes_scanned) / 1000), by: {
+          | makeTimeseries sum(toLong(snowflake.data.scanned) / 1000), by: {
             db.user,
             deployment.environment
           }
           | fieldsAdd
-              metric_name = "snowflake.bytes_scanned",
+              metric_name = "snowflake.data.scanned",
               _event_name_template = "Abnormal data scan volume for user {dims:db.user} at Snowflake {dims:deployment.environment}",
               _event_description_template = "Detected abnormal amount of data scanned by user {dims:db.user} at Snowflake {dims:deployment.environment}. Scanned bytes have exceeded the learned seasonal baseline.",
               _event_category = "data_scan",
@@ -303,30 +298,24 @@ tasks:
       body:
         timeSeriesData: |
           fetch logs
-          | filter telemetry.exporter.module == "query_history"
-          | filter isNotNull(snowflake.bytes_scanned)
+          | filter dsoa.run.plugin == "query_history"
+          | filter isNotNull(snowflake.data.scanned)
           | filter
-              isNotNull(db.sql.table)
-                  or isNotNull(db.collection.name)
+              isNotNull(db.collection.name)
                   or isNotNull(db.snowflake.tables)
-                  or isNotNull(db.snowflake.table_names)
-          | fieldsAdd db.collection.name = coalesce(db.sql.table, db.collection.name),
-              db.snowflake.table_names = coalesce(db.snowflake.tables, db.snowflake.table_names)
-          | fieldsRemove db.sql.table, db.snowflake.tables
-          | parse `db.snowflake.table_names`, """'"' JSON_ARRAY(strict=false, typed=true):table_names '"'"""
           | fieldsAdd
-              db_snowflake_table_names = if(isNotNull(db.snowflake.table_names), table_names, else: array(db.collection.name))
-          | expand db.collection.name = db_snowflake_table_names
+              db_snowflake_tables = if(isNotNull(db.snowflake.tables), db.snowflake.tables, else: array(db.collection.name))
+          | expand db.collection.name = db_snowflake_tables
           // Optional: scope to specific databases or schemas
           // | filter startsWith(db.collection.name, "PROD_DB.")
           // | filter contains(db.collection.name, ".ETL.")
-          | makeTimeseries sum(toLong(snowflake.bytes_scanned) / 1000), by: {
+          | makeTimeseries sum(toLong(snowflake.data.scanned) / 1000), by: {
             db.collection.name,
             deployment.environment
           }
           | limit 300
           | fieldsAdd
-              metric_name = "snowflake.bytes_scanned",
+              metric_name = "snowflake.data.scanned",
               _event_name_template = "Abnormal data scan volume on table {dims:db.collection.name} at Snowflake {dims:deployment.environment}",
               _event_description_template = "Detected abnormal amount of data scanned from table {dims:db.collection.name} at Snowflake {dims:deployment.environment}. Scanned bytes have exceeded the learned seasonal baseline.",
               _event_category = "data_scan",
@@ -359,12 +348,12 @@ tasks:
       y: 2
     conditions:
       states:
-        ad_user_logins: OK
-        ad_user_sessions: OK
-        ad_queries_by_user: OK
-        ad_queries_by_table: OK
-        ad_scanned_bytes_user: OK
-        ad_scanned_bytes_table: OK
+        ad_user_logins: SUCCESS
+        ad_user_sessions: SUCCESS
+        ad_queries_by_user: SUCCESS
+        ad_queries_by_table: SUCCESS
+        ad_scanned_bytes_user: SUCCESS
+        ad_scanned_bytes_table: SUCCESS
     predecessors:
       - ad_user_logins
       - ad_user_sessions
@@ -442,21 +431,17 @@ tasks:
           events.push(newEvent);
         }
 
-        function processAnomalies(body) {
+        function processAnomalies(analyzerResult) {
           const events = [];
-          if (['SUCCESSFUL_WITH_WARNINGS', 'SUCCESSFUL'].includes(body.result['resultStatus']) && body.result['executionStatus'] === 'COMPLETED') {
-            for (let i = 0; i < body.result.output.length; ++i) {
-              const res = body.result.output[i];
-              if (res.analysisStatus !== 'OK') continue;
+          if (analyzerResult && analyzerResult.output && analyzerResult.output.length > 0) {
+            analyzerResult.output.forEach(res => {
+              if (res.analysisStatus !== 'OK') return;
               if (res.raisedAlerts.length > 0) {
                 res.raisedAlerts.forEach(alert => {
                   createEventObject(alert, res, events);
                 });
               }
-            }
-          } else {
-            console.log('Analyzer run failed!');
-            throw new Error('Previous execution was not successful');
+            });
           }
           return events;
         }
