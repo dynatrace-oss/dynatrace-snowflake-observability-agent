@@ -1,5 +1,5 @@
 # WORKFLOW: DSOA — Data Volume Anomaly Detection
-# DESCRIPTION: Detects abnormal drops or changes in table row counts using Davis AI anomaly detection
+# DESCRIPTION: Detects abnormal spikes and drops in table row counts using Davis AI anomaly detection
 # OWNER: DSOA Team
 # PLUGINS: data_volume
 # TAGS: snowflake, dsoa, quality, data-volume
@@ -8,9 +8,9 @@ id: bbce8c69-4a7b-4fc5-a0dc-386908a51d40
 title: "DSOA — Data Volume Anomaly Detection"
 description: |
   Monitors row count changes per Snowflake table using Davis AI anomaly detection.
-  Alerts when a table's row count drops unexpectedly below its learned baseline — indicating
-  failed pipelines, accidental deletes, or dropped tables. Missing data (no report from a
-  table) is also treated as an anomaly. Requires the data_volume plugin.
+  Detects both unexpected spikes (bulk loads, data duplication) and drops (failed pipelines,
+  accidental deletes, dropped tables) relative to the learned seasonal baseline. Missing data
+  from any table is also treated as a potential drop anomaly. Requires the data_volume plugin.
 isPrivate: false
 schemaVersion: 4
 trigger:
@@ -24,13 +24,13 @@ trigger:
     timezone: UTC
     inputs: {}
 tasks:
-  detect_volume_anomaly:
-    name: detect_volume_anomaly
-    description: Detect abnormal row count changes per table using Davis AI
+  detect_volume_spike:
+    name: detect_volume_spike
+    description: Detect abnormal row count spikes per table using Davis AI
     action: dynatrace.davis.workflow.actions:davis-analyze
     active: true
     position:
-      x: 0
+      x: -1
       y: 1
     conditions:
       states: {}
@@ -47,14 +47,18 @@ tasks:
           , interval: 24h
           | fieldsAdd row_count_avg = arrayAvg(row_count)
           | fieldsAdd row_count_diff = row_count[] - row_count_avg
-          | filter arrayMax(row_count_diff) > 0
-          | sort row_count_diff desc
-          | limit 10
-          | fieldsRemove row_count_avg, row_count_diff
+          // Uncomment to scope to specific databases:
+          // | filter db.collection.name startsWith "PROD_DB"
+          // Uncomment to scope to specific schemas:
+          // | filter contains(db.collection.name, ".ETL.")
+          // Uncomment to scope to specific table name patterns:
+          // | filter matchesPhrase(db.collection.name, "FACT_")
+          | fieldsRemove row_count_avg
           | fieldsAdd
               metric_name = "snowflake.data.rows",
-              _event_name_template = "Abnormal data volume change for table {dims:db.collection.name}",
-              _event_description_template = "Table {dims:db.collection.name} in {dims:deployment.environment} has experienced an abnormal change in row count compared to the learned baseline."
+              _event_direction = "above",
+              _event_name_template = "Abnormal data volume spike for table {dims:db.collection.name}",
+              _event_description_template = "Table {dims:db.collection.name} in {dims:deployment.environment} has experienced an abnormal spike in row count compared to the learned baseline."
         alertCondition: ABOVE
         tolerance: 4
         generalParameters:
@@ -68,6 +72,54 @@ tasks:
         dealertingSamples: 5
         alertOnMissingData: false
 
+  detect_volume_drop:
+    name: detect_volume_drop
+    description: Detect unexpected drops or disappearance of table row counts using Davis AI
+    action: dynatrace.davis.workflow.actions:davis-analyze
+    active: true
+    position:
+      x: 1
+      y: 1
+    conditions:
+      states: {}
+    predecessors: []
+    input:
+      analyzerName: dt.statistics.anomaly_detection.SeasonalBaselineAnomalyDetectionAnalyzer
+      body:
+        timeSeriesData: |
+          timeseries row_count = max(snowflake.data.rows)
+          , by: {
+            db.collection.name,
+            deployment.environment
+          }
+          , interval: 24h
+          | fieldsAdd row_count_avg = arrayAvg(row_count)
+          | fieldsAdd row_count_diff = row_count[] - row_count_avg
+          // Uncomment to scope to specific databases:
+          // | filter db.collection.name startsWith "PROD_DB"
+          // Uncomment to scope to specific schemas:
+          // | filter contains(db.collection.name, ".ETL.")
+          // Uncomment to scope to specific table name patterns:
+          // | filter matchesPhrase(db.collection.name, "FACT_")
+          | fieldsRemove row_count_avg
+          | fieldsAdd
+              metric_name = "snowflake.data.rows",
+              _event_direction = "below",
+              _event_name_template = "Abnormal data volume drop for table {dims:db.collection.name}",
+              _event_description_template = "Table {dims:db.collection.name} in {dims:deployment.environment} has experienced an unexpected drop in row count. This may indicate a failed pipeline, accidental delete, or dropped table."
+        alertCondition: BELOW
+        tolerance: 3
+        generalParameters:
+          timeframe:
+            startTime: now()-30d
+            endTime: now
+          logVerbosity: WARNING
+          resolveDimensionalQueryData: false
+        slidingWindow: 3
+        violatingSamples: 2
+        dealertingSamples: 3
+        alertOnMissingData: true
+
   extract_anomaly_events:
     name: extract_anomaly_events
     description: Process Davis results and build Dynatrace event objects
@@ -78,9 +130,11 @@ tasks:
       y: 2
     conditions:
       states:
-        detect_volume_anomaly: SUCCESS
+        detect_volume_spike: SUCCESS
+        detect_volume_drop: SUCCESS
     predecessors:
-      - detect_volume_anomaly
+      - detect_volume_spike
+      - detect_volume_drop
     input:
       script: |
         import { execution } from '@dynatrace-sdk/automation-utils';
@@ -119,6 +173,7 @@ tasks:
           const eventTitle = result.dimensions.find(x => x.key === '_event_name_template')?.value;
           const eventDesc = result.dimensions.find(x => x.key === '_event_description_template')?.value;
           const sourceMetric = result.dimensions.find(x => x.key === 'metric_name')?.value;
+          const direction = result.dimensions.find(x => x.key === '_event_direction')?.value;
           const resultDimensions = unpackMap(result.dimensions);
 
           const newEvent = {
@@ -136,6 +191,9 @@ tasks:
           newEvent.body.properties['event.end'] = endTime;
           newEvent.body.properties['ad.source'] = CONFIG.adSource;
           newEvent.body.properties['ad.source_metric'] = sourceMetric;
+          if (direction) {
+            newEvent.body.properties['ad.direction'] = direction;
+          }
 
           if (result.dimensions.length > 0) {
             result.dimensions.forEach(dim => {
@@ -149,17 +207,20 @@ tasks:
 
         export default async function ({ execution_id }) {
           const ex = await execution(execution_id);
-          const analyzerResult = await ex.result('detect_volume_anomaly');
+          const spikeResult = await ex.result('detect_volume_spike');
+          const dropResult  = await ex.result('detect_volume_drop');
 
           const events = [];
-          if (analyzerResult && analyzerResult.output && analyzerResult.output.length > 0) {
-            analyzerResult.output.forEach(result => {
-              if (result.raisedAlerts && result.raisedAlerts.length > 0) {
-                result.raisedAlerts.forEach(alert => {
-                  createEventObject(alert, result, events);
-                });
-              }
-            });
+          for (const analyzerResult of [spikeResult, dropResult]) {
+            if (analyzerResult?.output?.length > 0) {
+              analyzerResult.output.forEach(result => {
+                if (result.raisedAlerts?.length > 0) {
+                  result.raisedAlerts.forEach(alert => {
+                    createEventObject(alert, result, events);
+                  });
+                }
+              });
+            }
           }
 
           console.log(`Extracted ${events.length} anomaly event(s)`);
