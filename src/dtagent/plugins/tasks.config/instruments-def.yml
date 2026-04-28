@@ -200,6 +200,11 @@ dimensions:
       - task_history
     __example: public
     __description: The name of the schema.
+  snowflake.task.is_internal:
+    __context_names:
+      - serverless_tasks
+    __example: false
+    __description: Whether the task is an internal DSOA scheduler task (measurement or finalizer).
   snowflake.task.name:
     __context_names:
       - serverless_tasks

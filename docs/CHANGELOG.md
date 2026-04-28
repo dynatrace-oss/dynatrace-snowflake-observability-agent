@@ -53,6 +53,12 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- `serverless_tasks` context: `db.namespace` and `snowflake.schema.name` no longer emit empty strings for DSOA's
+  own internal scheduler tasks (`_MEASUREMENT_TASK`, `_FINALIZER_TASK`). These fields are now absent when the source
+  is empty, preventing silent exclusion from dashboard `$Database`/`$Schema` variable filters. A new
+  `snowflake.task.is_internal` boolean dimension marks DSOA internal tasks so dashboards and DQL can distinguish
+  them from customer serverless tasks. See [DEVLOG.md](DEVLOG.md) for details. (BDX-1904 / TI-003)
+
 - The `event_log` plugin setup procedure now adapts to Snowflake BCR Bundle 2026\_02 (`LOG_EVENT_LEVEL` parameter).
   On accounts where the BCR is active, `LOG_EVENT_LEVEL = INFO` is set at database level, and also at account
   level when DSOA provisions and owns the event table, so events emitted by DSOA procedures continue to reach the

@@ -846,12 +846,13 @@ check the `Context Name` column below.
 
 ### Dimensions at the `Tasks` plugin
 
-| Identifier                             | Description                | Example           | Context Name                                  |
-| -------------------------------------- | -------------------------- | ----------------- | --------------------------------------------- |
-| db.&#8203;namespace                    | The name of the database.  | PROD_DB           | serverless_tasks, task_versions, task_history |
-| snowflake.&#8203;schema.&#8203;name    | The name of the schema.    | public            | serverless_tasks, task_versions, task_history |
-| snowflake.&#8203;task.&#8203;name      | The name of the task.      | daily_backup_task | serverless_tasks, task_versions, task_history |
-| snowflake.&#8203;warehouse.&#8203;name | The name of the warehouse. | COMPUTE_WH        | task_versions                                 |
+| Identifier                               | Description                                                                     | Example           | Context Name                                  |
+| ---------------------------------------- | ------------------------------------------------------------------------------- | ----------------- | --------------------------------------------- |
+| db.&#8203;namespace                      | The name of the database.                                                       | PROD_DB           | serverless_tasks, task_versions, task_history |
+| snowflake.&#8203;schema.&#8203;name      | The name of the schema.                                                         | public            | serverless_tasks, task_versions, task_history |
+| snowflake.&#8203;task.&#8203;is_internal | Whether the task is an internal DSOA scheduler task (measurement or finalizer). | False             | serverless_tasks                              |
+| snowflake.&#8203;task.&#8203;name        | The name of the task.                                                           | daily_backup_task | serverless_tasks, task_versions, task_history |
+| snowflake.&#8203;warehouse.&#8203;name   | The name of the warehouse.                                                      | COMPUTE_WH        | task_versions                                 |
 
 ### Attributes at the `Tasks` plugin
 

@@ -26,11 +26,15 @@ create or replace view DTAGENT_DB.APP.V_SERVERLESS_TASKS
 as
 select
     extract(epoch_nanosecond from sth.end_time)                                     as TIMESTAMP,
-    concat('New Serverless Tasks entry for ', sth.database_name)                    as _MESSAGE,
+    concat('New Serverless Tasks entry for ',
+           COALESCE(NULLIF(sth.database_name, ''), sth.task_name))                  as _MESSAGE,
     OBJECT_CONSTRUCT(
         'snowflake.task.name',                      sth.task_name,
-        'snowflake.schema.name',                    sth.schema_name,
-        'db.namespace',                             sth.database_name
+        'snowflake.schema.name',                    NULLIF(sth.schema_name, ''),
+        'db.namespace',                             NULLIF(sth.database_name, ''),
+        'snowflake.task.is_internal',               IFF(sth.task_name LIKE '%\\_MEASUREMENT\\_TASK' ESCAPE '\\'
+                                                        OR sth.task_name LIKE '%\\_FINALIZER\\_TASK' ESCAPE '\\',
+                                                        true, false)
     )                                                                               as DIMENSIONS,
     OBJECT_CONSTRUCT(
         'snowflake.task.start_time',                extract(epoch_nanosecond from sth.start_time),
