@@ -29,7 +29,7 @@ The Dynatrace Snowflake Observability Agent creates and uses the following Snowf
 ### Objects delivered by the agent
 
 | Name                                                              | Type                        | Language | Comment                                                                                                                                                                                                                                                                       |
-|-------------------------------------------------------------------|-----------------------------|----------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ----------------------------------------------------------------- | --------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | DTAGENT_DB                                                        | database                    |          |                                                                                                                                                                                                                                                                               |
 | DTAGENT_OWNER                                                     | role                        |          | role that owns all SnowAgent artifacts (database, schemas, tables, procedures, tasks)                                                                                                                                                                                         |
 | DTAGENT_ADMIN                                                     | role                        |          | (Optional - created only when admin scope is installed and core.snowflake.roles.admin is not set to "-") Role that handles elevated administrative operations (role grants, ownership transfers, privilege management). When disabled, admin deployment scope cannot be used. |
@@ -58,7 +58,7 @@ The Dynatrace Snowflake Observability Agent creates and uses the following Snowf
 ### Objects referenced by the agent
 
 | Name                        | Type             | Privileges                                    | Granted to     | Comment                                                                                                                                                                                            |
-|-----------------------------|------------------|-----------------------------------------------|----------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| --------------------------- | ---------------- | --------------------------------------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | SNOWFLAKE                   | application      | IMPORTED PRIVILEGES ON DATABASE               | DTAGENT_VIEWER |                                                                                                                                                                                                    |
 | ACCOUNT                     | account          | MONITOR, MONITOR USAGE, MONITOR EXECUTION     | DTAGENT_VIEWER |                                                                                                                                                                                                    |
 | ACCOUNT                     | account          | MODIFY SESSION LOG LEVEL                      | DTAGENT_VIEWER |                                                                                                                                                                                                    |
@@ -151,7 +151,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 #### Objects delivered by the `Active Queries` plugin
 
 | Name                                           | Type      |
-|------------------------------------------------|-----------|
+| ---------------------------------------------- | --------- |
 | DTAGENT_DB.APP.F_GET_FINISHED_QUERIES()        | procedure |
 | DTAGENT_DB.APP.F_GET_RUNNING_QUERIES()         | procedure |
 | DTAGENT_DB.APP.F_ACTIVE_QUERIES_INSTRUMENTED() | procedure |
@@ -161,7 +161,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 #### Objects referenced by the `Active Queries` plugin
 
 | Name                             | Type     | Privileges |
-|----------------------------------|----------|------------|
+| -------------------------------- | -------- | ---------- |
 | INFORMATION_SCHEMA.QUERY_HISTORY | function | USAGE      |
 
 <a name="budgets_info_sec"></a>
@@ -200,7 +200,7 @@ plugins:
 ```
 
 | Parameter           | Type   | Default                        | Description                                                                                                                                                                                                                |
-|---------------------|--------|--------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ------------------- | ------ | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `quota`             | int    | `10`                           | Credit quota for the agent's own `DTAGENT_BUDGET`.                                                                                                                                                                         |
 | `schedule`          | string | `USING CRON 30 0 * * * UTC`    | Cron schedule for the budgets collection task.                                                                                                                                                                             |
 | `monitored_budgets` | list   | `[]`                           | Fully-qualified custom budget names to monitor, e.g. `["MY_DB.MY_SCHEMA.MY_BUDGET"]`. Names are automatically uppercased; only standard unquoted Snowflake identifiers are supported (`[A-Za-z_][A-Za-z0-9_$]*` per part). |
@@ -230,7 +230,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 #### Objects delivered by the `Budgets` plugin
 
 | Name                                       | Type                  | Comment                                                                                   |
-|--------------------------------------------|-----------------------|-------------------------------------------------------------------------------------------|
+| ------------------------------------------ | --------------------- | ----------------------------------------------------------------------------------------- |
 | ACCOUNT_BUDGET_ADMIN                       | role                  |                                                                                           |
 | ACCOUNT_BUDGET_MONITOR                     | role                  |                                                                                           |
 | BUDGET_OWNER                               | role                  |                                                                                           |
@@ -250,7 +250,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 #### Objects referenced by the `Budgets` plugin
 
 | Name                           | Type        | Privileges                      | Granted to             | Comment                                                                                                |
-|--------------------------------|-------------|---------------------------------|------------------------|--------------------------------------------------------------------------------------------------------|
+| ------------------------------ | ----------- | ------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------ |
 | SNOWFLAKE                      | application | IMPORTED PRIVILEGES ON DATABASE | ACCOUNT_BUDGET_ADMIN   |                                                                                                        |
 | SNOWFLAKE.BUDGET_ADMIN         | role        | APPLICATION ROLE                | ACCOUNT_BUDGET_ADMIN   |                                                                                                        |
 | SNOWFLAKE.BUDGET_VIEWER        | role        | APPLICATION ROLE                | ACCOUNT_BUDGET_MONITOR |                                                                                                        |
@@ -370,7 +370,7 @@ plugins:
 ```
 
 | Key                                       | Type   | Default                    | Description                                                                       |
-|-------------------------------------------|--------|----------------------------|-----------------------------------------------------------------------------------|
+| ----------------------------------------- | ------ | -------------------------- | --------------------------------------------------------------------------------- |
 | `plugins.cold_tables.lookback_days`       | int    | `365`                      | How far back (in days) the plugin scans `ACCESS_HISTORY` to count table accesses. |
 | `plugins.cold_tables.cold_threshold_days` | int    | `90`                       | Tables not accessed within this many days are classified as `cold`.               |
 | `plugins.cold_tables.schedule`            | string | `USING CRON 0 6 * * * UTC` | Cron schedule for the cold tables collection task.                                |
@@ -384,7 +384,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 #### Objects delivered by the `Cold Tables` plugin
 
 | Name                                        | Type      |
-|---------------------------------------------|-----------|
+| ------------------------------------------- | --------- |
 | DTAGENT_DB.APP.V_COLD_TABLES                | view      |
 | DTAGENT_DB.CONFIG.UPDATE_COLD_TABLES_CONF() | procedure |
 | DTAGENT_DB.APP.TASK_DTAGENT_COLD_TABLES     | task      |
@@ -392,7 +392,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 #### Objects referenced by the `Cold Tables` plugin
 
 | Name                                   | Type | Privileges |
-|----------------------------------------|------|------------|
+| -------------------------------------- | ---- | ---------- |
 | SNOWFLAKE.ACCOUNT_USAGE.ACCESS_HISTORY | view | SELECT     |
 
 <a name="data_schemas_info_sec"></a>
@@ -426,7 +426,7 @@ plugins:
 ```
 
 | Key                                   | Type   | Default                         | Description                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-|---------------------------------------|--------|---------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ------------------------------------- | ------ | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `plugins.data_schemas.lookback_hours` | int    | `4`                             | How far back (in hours) the plugin looks for DDL-based schema changes on each run. If no prior processed timestamp exists, the plugin starts from `now - lookback_hours`. If a prior timestamp exists, the plugin starts from the more recent of that timestamp and `now - lookback_hours`, so it never reads data older than the lookback window. Default is `4`h to account for the up-to-3-hour data ingestion delay in `ACCESS_HISTORY`. |
 | `plugins.data_schemas.schedule`       | string | `USING CRON 0 0,8,16 * * * UTC` | Cron schedule for the data schemas collection task.                                                                                                                                                                                                                                                                                                                                                                                          |
 | `plugins.data_schemas.is_disabled`    | bool   | `false`                         | Set to `true` to disable this plugin entirely.                                                                                                                                                                                                                                                                                                                                                                                               |
@@ -441,7 +441,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 #### Objects delivered by the `Data Schemas` plugin
 
 | Name                                         | Type      |
-|----------------------------------------------|-----------|
+| -------------------------------------------- | --------- |
 | DTAGENT_DB.APP.V_DATA_SCHEMAS                | view      |
 | DTAGENT_DB.CONFIG.UPDATE_DATA_SCHEMAS_CONF() | procedure |
 | DTAGENT_DB.APP.TASK_DTAGENT_DATA_SCHEMAS     | task      |
@@ -449,7 +449,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 #### Objects referenced by the `Data Schemas` plugin
 
 | Name                                   | Type | Privileges |
-|----------------------------------------|------|------------|
+| -------------------------------------- | ---- | ---------- |
 | SNOWFLAKE.ACCOUNT_USAGE.ACCESS_HISTORY | view | SELECT     |
 
 <a name="data_volume_info_sec"></a>
@@ -499,7 +499,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 #### Objects delivered by the `Data Volume` plugin
 
 | Name                                        | Type      |
-|---------------------------------------------|-----------|
+| ------------------------------------------- | --------- |
 | DTAGENT_DB.APP.V_DATA_VOLUME                | view      |
 | DTAGENT_DB.CONFIG.UPDATE_DATA_VOLUME_CONF() | procedure |
 | DTAGENT_DB.APP.TASK_DTAGENT_DATA_VOLUME     | task      |
@@ -507,7 +507,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 #### Objects referenced by the `Data Volume` plugin
 
 | Name                           | Type | Privileges |
-|--------------------------------|------|------------|
+| ------------------------------ | ---- | ---------- |
 | SNOWFLAKE.ACCOUNT_USAGE.TABLES | view | SELECT     |
 
 <a name="dynamic_tables_info_sec"></a>
@@ -557,7 +557,7 @@ plugins:
 The grant granularity is derived automatically from the `include` pattern:
 
 | Include pattern               | Grant level | SQL issued                                                 |
-|-------------------------------|-------------|------------------------------------------------------------|
+| ----------------------------- | ----------- | ---------------------------------------------------------- |
 | `%.%.%` or `PROD_DB.%.%`      | Database    | `GRANT MONITOR ON ALL/FUTURE DYNAMIC TABLES IN DATABASE …` |
 | `PROD_DB.ANALYTICS.%`         | Schema      | `GRANT MONITOR ON ALL/FUTURE DYNAMIC TABLES IN SCHEMA …`   |
 | `PROD_DB.ANALYTICS.ORDERS_DT` | Table       | `GRANT MONITOR ON DYNAMIC TABLE …` (no FUTURE grant)       |
@@ -572,7 +572,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 #### Objects delivered by the `Dynamic Tables` plugin
 
 | Name                                                        | Type      | Comment                                                                                            |
-|-------------------------------------------------------------|-----------|----------------------------------------------------------------------------------------------------|
+| ----------------------------------------------------------- | --------- | -------------------------------------------------------------------------------------------------- |
 | DTAGENT_DB.APP.P_GRANT_MONITOR_DYNAMIC_TABLES()             | procedure |                                                                                                    |
 | DTAGENT_DB.APP.V_DYNAMIC_TABLE_GRAPH_HISTORY_INSTRUMENTED   | view      |                                                                                                    |
 | DTAGENT_DB.APP.V_DYNAMIC_TABLE_REFRESH_HISTORY_INSTRUMENTED | view      |                                                                                                    |
@@ -584,7 +584,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 #### Objects referenced by the `Dynamic Tables` plugin
 
 | Name                                                  | Type          | Privileges | Granted to     | Comment                                                                                                                  |
-|-------------------------------------------------------|---------------|------------|----------------|--------------------------------------------------------------------------------------------------------------------------|
+| ----------------------------------------------------- | ------------- | ---------- | -------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | SHOW DATABASES                                        | command       | USAGE      |                |                                                                                                                          |
 | ALL DYNAMIC TABLES IN DATABASE $database              | dynamic table | MONITOR    | DTAGENT_VIEWER | Granted when include pattern has wildcard schema (e.g. DB.%.%)                                                           |
 | ALL FUTURE DYNAMIC TABLES IN DATABASE $database       | dynamic table | MONITOR    | DTAGENT_VIEWER | Granted when include pattern has wildcard schema (e.g. DB.%.%)                                                           |
@@ -657,7 +657,7 @@ plugins:
 ```
 
 | Key                                  | Type   | Default                                      | Description                                                                                                                                                                                                                                                                                                                                                                                     |
-|--------------------------------------|--------|----------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ------------------------------------ | ------ | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `plugins.event_log.max_entries`      | int    | `10000`                                      | Maximum number of event log entries fetched per run. Acts as a safety cap to avoid long-running queries.                                                                                                                                                                                                                                                                                        |
 | `plugins.event_log.lookback_hours`   | int    | `24`                                         | How far back (in hours) the plugin looks for new events on each run. If no prior processed timestamp exists, the plugin starts from `now - lookback_hours`. If a prior timestamp exists, the plugin starts from the more recent of that timestamp and `now - lookback_hours`, so it never reads data older than the lookback window. Increase for initial setup; decrease to reduce query cost. |
 | `plugins.event_log.retention_hours`  | int    | `24`                                         | How long (in hours) the cleanup task retains entries in `STATUS.EVENT_LOG`. Only applies if this agent instance owns the event table.                                                                                                                                                                                                                                                           |
@@ -725,7 +725,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 #### Objects delivered by the `Event Log` plugin
 
 | Name                                            | Type       | Comment                                                                                                                                                                                                                                |
-|-------------------------------------------------|------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ----------------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | DTAGENT_DB.STATUS.EVENT_LOG                     | table/view | Dynatrace Snowflake Observability Agent can setup an event table if one does not exist. It creates a view over an existing event log table if that table was not setup by the actual Dynatrace Snowflake Observability Agent instance. |
 | DTAGENT_DB.APP.SETUP_EVENT_TABLE()              | procedure  |                                                                                                                                                                                                                                        |
 | DTAGENT_DB.APP.P_CLEANUP_EVENT_LOG()            | procedure  |                                                                                                                                                                                                                                        |
@@ -740,7 +740,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 #### Objects referenced by the `Event Log` plugin
 
 | Name            | Type    | Privileges               | Granted to     | Comment                                                                                                                                                                                          |
-|-----------------|---------|--------------------------|----------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| --------------- | ------- | ------------------------ | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | SHOW PARAMETERS | command | USAGE                    |                | We call `show PARAMETERS like 'EVENT_TABLE' in ACCOUNT` to determine if event table is already setup, and whether this is a table setup by this Dynatrace Snowflake Observability Agent instance |
 | ACCOUNT         | account | MODIFY SESSION LOG LEVEL | DTAGENT_VIEWER |                                                                                                                                                                                                  |
 | ACCOUNT         | account | MODIFY LOG EVENT LEVEL   | DTAGENT_VIEWER | Granted only on accounts that support Snowflake BCR Bundle 2026_02+ (LOG_EVENT_LEVEL parameter). On pre-BCR accounts this privilege is not available and the grant is skipped gracefully.        |
@@ -782,7 +782,7 @@ plugins:
 ```
 
 | Key                                  | Type   | Default                             | Description                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-|--------------------------------------|--------|-------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ------------------------------------ | ------ | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `plugins.event_usage.lookback_hours` | int    | `6`                                 | How far back (in hours) the plugin looks for event usage history on each run. If no prior processed timestamp exists, the plugin starts from `now - lookback_hours`. If a prior timestamp exists, the plugin starts from the more recent of that timestamp and `now - lookback_hours`, so it never reads data older than the lookback window. Default is `6`h to account for the up-to-3-hour data ingestion delay in `EVENT_USAGE_HISTORY`. |
 | `plugins.event_usage.schedule`       | string | `USING CRON 0 * * * * UTC`          | Cron schedule for the event usage collection task.                                                                                                                                                                                                                                                                                                                                                                                           |
 | `plugins.event_usage.is_disabled`    | bool   | `false`                             | Set to `true` to disable this plugin entirely.                                                                                                                                                                                                                                                                                                                                                                                               |
@@ -795,7 +795,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 #### Objects delivered by the `Event Usage` plugin
 
 | Name                                        | Type      |
-|---------------------------------------------|-----------|
+| ------------------------------------------- | --------- |
 | DTAGENT_DB.APP.V_EVENT_USAGE_HISTORY        | view      |
 | DTAGENT_DB.CONFIG.UPDATE_EVENT_USAGE_CONF() | procedure |
 | DTAGENT_DB.APP.TASK_DTAGENT_EVENT_USAGE     | task      |
@@ -803,7 +803,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 #### Objects referenced by the `Event Usage` plugin
 
 | Name                                        | Type | Privileges |
-|---------------------------------------------|------|------------|
+| ------------------------------------------- | ---- | ---------- |
 | SNOWFLAKE.ACCOUNT_USAGE.EVENT_USAGE_HISTORY | view | SELECT     |
 
 <a name="login_history_info_sec"></a>
@@ -845,7 +845,7 @@ plugins:
 ```
 
 | Key                                    | Type   | Default                       | Description                                                                                                                                                                                                                                                                                                                                        |
-|----------------------------------------|--------|-------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| -------------------------------------- | ------ | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `plugins.login_history.lookback_hours` | int    | `24`                          | How far back (in hours) the plugin looks for login and session events on each run. If no prior processed timestamp exists, the plugin starts from `now - lookback_hours`. If a prior timestamp exists, the plugin starts from the more recent of that timestamp and `now - lookback_hours`, so it never reads data older than the lookback window. |
 | `plugins.login_history.schedule`       | string | `USING CRON */30 * * * * UTC` | Cron schedule for the login history collection task.                                                                                                                                                                                                                                                                                               |
 | `plugins.login_history.is_disabled`    | bool   | `false`                       | Set to `true` to disable this plugin entirely.                                                                                                                                                                                                                                                                                                     |
@@ -858,7 +858,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 #### Objects delivered by the `Login History` plugin
 
 | Name                                          | Type      |
-|-----------------------------------------------|-----------|
+| --------------------------------------------- | --------- |
 | DTAGENT_DB.APP.V_LOGIN_HISTORY                | view      |
 | DTAGENT_DB.APP.V_SESSIONS                     | view      |
 | DTAGENT_DB.CONFIG.UPDATE_LOGIN_HISTORY_CONF() | procedure |
@@ -867,7 +867,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 #### Objects referenced by the `Login History` plugin
 
 | Name                                  | Type | Privileges |
-|---------------------------------------|------|------------|
+| ------------------------------------- | ---- | ---------- |
 | SNOWFLAKE.ACCOUNT_USAGE.LOGIN_HISTORY | view | SELECT     |
 | SNOWFLAKE.ACCOUNT_USAGE.SESSIONS      | view | SELECT     |
 
@@ -895,7 +895,7 @@ Key use cases:
 ## The Metering Configuration
 
 | Key                               | Type   | Default                             | Description                                                                                                                                                |
-|-----------------------------------|--------|-------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| --------------------------------- | ------ | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `plugins.metering.lookback_hours` | int    | `6`                                 | How far back (in hours) the plugin looks for metering history on each run. Default is `6`h to account for up-to-3-hour data latency in `METERING_HISTORY`. |
 | `plugins.metering.schedule`       | string | `USING CRON 0 * * * * UTC`          | Cron schedule for the metering collection task.                                                                                                            |
 | `plugins.metering.is_disabled`    | bool   | `false`                             | Set to `true` to disable this plugin entirely.                                                                                                             |
@@ -954,7 +954,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 #### Objects delivered by the `Metering` plugin
 
 | Name                                     | Type      |
-|------------------------------------------|-----------|
+| ---------------------------------------- | --------- |
 | DTAGENT_DB.APP.V_METERING_HISTORY        | view      |
 | DTAGENT_DB.CONFIG.UPDATE_METERING_CONF() | procedure |
 | DTAGENT_DB.APP.TASK_DTAGENT_METERING     | task      |
@@ -962,7 +962,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 #### Objects referenced by the `Metering` plugin
 
 | Name                                     | Type | Privileges |
-|------------------------------------------|------|------------|
+| ---------------------------------------- | ---- | ---------- |
 | SNOWFLAKE.ACCOUNT_USAGE.METERING_HISTORY | view | SELECT     |
 
 <a name="org_costs_info_sec"></a>
@@ -1256,7 +1256,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 #### Objects delivered by the `Query History` plugin
 
 | Name                                                     | Type            | Comment                                                                                        |
-|----------------------------------------------------------|-----------------|------------------------------------------------------------------------------------------------|
+| -------------------------------------------------------- | --------------- | ---------------------------------------------------------------------------------------------- |
 | DTAGENT_DB.STATUS.PROCESSED_QUERIES_CACHE                | table           |                                                                                                |
 | DTAGENT_DB.STATUS.UPDATE_PROCESSED_QUERIES(text,int,int) | procedure       |                                                                                                |
 | DTAGENT_DB.APP.TMP_RECENT_QUERIES                        | transient table |                                                                                                |
@@ -1275,7 +1275,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 #### Objects referenced by the `Query History` plugin
 
 | Name                                   | Type              | Privileges |
-|----------------------------------------|-------------------|------------|
+| -------------------------------------- | ----------------- | ---------- |
 | SNOWFLAKE.ACCOUNT_USAGE.ACCESS_HISTORY | view              | SELECT     |
 | SNOWFLAKE.ACCOUNT_USAGE.QUERY_HISTORY  | view              | SELECT     |
 | SNOWFLAKE.ACCOUNT_USAGE.SESSIONS       | view              | SELECT     |
@@ -1341,7 +1341,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 #### Objects delivered by the `Resource Monitors` plugin
 
 | Name                                               | Type            |
-|----------------------------------------------------|-----------------|
+| -------------------------------------------------- | --------------- |
 | DTAGENT_DB.APP.TMP_RESOURCE_MONITORS               | transient table |
 | DTAGENT_DB.APP.TMP_WAREHOUSES                      | transient table |
 | DTAGENT_DB.APP.V_RESOURCE_MONITORS                 | view            |
@@ -1354,7 +1354,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 #### Objects referenced by the `Resource Monitors` plugin
 
 | Name                   | Type    | Privileges |
-|------------------------|---------|------------|
+| ---------------------- | ------- | ---------- |
 | SHOW RESOURCE MONITORS | command | USAGE      |
 | SHOW WAREHOUSES        | command | USAGE      |
 
@@ -1406,7 +1406,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 #### Objects delivered by the `Shares` plugin
 
 | Name                                                   | Type            |
-|--------------------------------------------------------|-----------------|
+| ------------------------------------------------------ | --------------- |
 | DTAGENT_DB.APP.TMP_SHARES                              | transient table |
 | DTAGENT_DB.APP.TMP_OUTBOUND_SHARES                     | transient table |
 | DTAGENT_DB.APP.TMP_INBOUND_SHARES                      | transient table |
@@ -1422,7 +1422,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 #### Objects referenced by the `Shares` plugin
 
 | Name                                       | Type    | Privileges                      | Granted to     | Comment                                                                                                              |
-|--------------------------------------------|---------|---------------------------------|----------------|----------------------------------------------------------------------------------------------------------------------|
+| ------------------------------------------ | ------- | ------------------------------- | -------------- | -------------------------------------------------------------------------------------------------------------------- |
 | $shared_database                           | share   | IMPORTED PRIVILEGES ON DATABASE | DTAGENT_VIEWER |                                                                                                                      |
 | $shared_database.INFORMATION_SCHEMA.TABLES | view    | SELECT                          | DTAGENT_VIEWER |                                                                                                                      |
 | ACCOUNT                                    | account | IMPORT SHARE                    | DTAGENT_VIEWER | We just need to read the metadata about the shares and objects being shared wish there was a way with less privilege |
@@ -1483,7 +1483,7 @@ plugins:
 The grant granularity is derived automatically from the `include` pattern:
 
 | Include pattern             | Grant level | SQL issued                                        |
-|-----------------------------|-------------|---------------------------------------------------|
+| --------------------------- | ----------- | ------------------------------------------------- |
 | `%.%.%` or `PROD_DB.%.%`    | Database    | `GRANT MONITOR ON ALL/FUTURE PIPES IN DATABASE …` |
 | `PROD_DB.ANALYTICS.%`       | Schema      | `GRANT MONITOR ON ALL/FUTURE PIPES IN SCHEMA …`   |
 | `PROD_DB.ANALYTICS.MY_PIPE` | Pipe        | `GRANT MONITOR ON PIPE …` (no FUTURE grant)       |
@@ -1494,7 +1494,7 @@ statement, depending on the desired granularity.
 ### Configuration keys
 
 | Key                                      | Default                               | Description                                       |
-|------------------------------------------|---------------------------------------|---------------------------------------------------|
+| ---------------------------------------- | ------------------------------------- | ------------------------------------------------- |
 | `plugins.snowpipes.include`              | `['%.%.%']`                           | Pipe name patterns to include (fully qualified)   |
 | `plugins.snowpipes.exclude`              | `[DTAGENT_DB.%.%]`                    | Pipe name patterns to exclude                     |
 | `plugins.snowpipes.schedule`             | `USING CRON */5 * * * * UTC`          | Fast-mode schedule (SHOW PIPES + PIPE_STATUS)     |
@@ -1512,7 +1512,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 #### Objects delivered by the `Snowpipes` plugin
 
 | Name                                                  | Type            | Comment                                                                                   |
-|-------------------------------------------------------|-----------------|-------------------------------------------------------------------------------------------|
+| ----------------------------------------------------- | --------------- | ----------------------------------------------------------------------------------------- |
 | DTAGENT_DB.APP.TMP_SNOWPIPES_RESULT                   | transient table |                                                                                           |
 | DTAGENT_DB.APP.F_SNOWPIPES_INSTRUMENTED()             | procedure       |                                                                                           |
 | DTAGENT_DB.APP.V_SNOWPIPES_COPY_HISTORY_INSTRUMENTED  | view            |                                                                                           |
@@ -1526,7 +1526,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 #### Objects referenced by the `Snowpipes` plugin
 
 | Name                                       | Type     | Privileges                   | Granted to     | Comment                                                                                                              |
-|--------------------------------------------|----------|------------------------------|----------------|----------------------------------------------------------------------------------------------------------------------|
+| ------------------------------------------ | -------- | ---------------------------- | -------------- | -------------------------------------------------------------------------------------------------------------------- |
 | SHOW PIPES                                 | command  | USAGE                        |                |                                                                                                                      |
 | SYSTEM$PIPE_STATUS                         | function | MONITOR (per pipe)           |                |                                                                                                                      |
 | SNOWFLAKE.ACCOUNT_USAGE.COPY_HISTORY       | view     | SELECT (IMPORTED PRIVILEGES) |                |                                                                                                                      |
@@ -1629,7 +1629,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 #### Objects delivered by the `Table Health` plugin
 
 | Name                                                | Type      |
-|-----------------------------------------------------|-----------|
+| --------------------------------------------------- | --------- |
 | DTAGENT_DB.APP.V_TABLE_STORAGE                      | view      |
 | DTAGENT_DB.APP.TABLE_CLUSTERING_RESULTS             | table     |
 | DTAGENT_DB.APP.P_COLLECT_CLUSTERING_INFO()          | procedure |
@@ -1645,7 +1645,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 #### Objects referenced by the `Table Health` plugin
 
 | Name                                          | Type     | Privileges |
-|-----------------------------------------------|----------|------------|
+| --------------------------------------------- | -------- | ---------- |
 | SNOWFLAKE.ACCOUNT_USAGE.TABLE_STORAGE_METRICS | view     | SELECT     |
 | SNOWFLAKE.ACCOUNT_USAGE.TABLES                | view     | SELECT     |
 | SYSTEM$CLUSTERING_INFORMATION                 | function | USAGE      |
@@ -1696,7 +1696,7 @@ plugins:
 ```
 
 | Key                                     | Type   | Default                                       | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-|-----------------------------------------|--------|-----------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| --------------------------------------- | ------ | --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `plugins.tasks.lookback_hours`          | int    | `4`                                           | How far back (in hours) the plugin looks for serverless task history on each run. If no prior processed timestamp exists, the plugin starts from `now - lookback_hours`. If a prior timestamp exists, the plugin starts from the more recent of that timestamp and `now - lookback_hours`, so it never reads data older than the lookback window. Default is `4`h to account for the up-to-3-hour data ingestion delay in `SERVERLESS_TASK_HISTORY`.                                                                 |
 | `plugins.tasks.lookback_hours_versions` | int    | `720`                                         | How far back (in hours) the plugin looks for task version history on each run. If no prior processed timestamp exists, the plugin starts from `now - lookback_hours_versions`. If a prior timestamp exists, the plugin starts from the more recent of that timestamp and `now - lookback_hours_versions`, so it never reads data older than the lookback window. Default is `720`h (30 days) — task graph versions change infrequently and a longer window ensures new deployments catch all recent version changes. |
 | `plugins.tasks.schedule`                | string | `USING CRON 30 * * * * UTC`                   | Cron schedule for the tasks collection task.                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
@@ -1714,7 +1714,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 #### Objects delivered by the `Tasks` plugin
 
 | Name                                  | Type      |
-|---------------------------------------|-----------|
+| ------------------------------------- | --------- |
 | DTAGENT_DB.APP.V_SERVERLESS_TASKS     | view      |
 | DTAGENT_DB.APP.V_TASK_VERSIONS        | view      |
 | DTAGENT_DB.APP.V_TASK_HISTORY         | view      |
@@ -1724,7 +1724,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 #### Objects referenced by the `Tasks` plugin
 
 | Name                                            | Type     | Privileges |
-|-------------------------------------------------|----------|------------|
+| ----------------------------------------------- | -------- | ---------- |
 | SNOWFLAKE.ACCOUNT_USAGE.SERVERLESS_TASK_HISTORY | view     | SELECT     |
 | SNOWFLAKE.ACCOUNT_USAGE.TASK_VERSIONS           | view     | SELECT     |
 | INFORMATION_SCHEMA.TASK_HISTORY()               | function | USAGE      |
@@ -1771,7 +1771,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 #### Objects delivered by the `Trust Center` plugin
 
 | Name                                         | Type      |
-|----------------------------------------------|-----------|
+| -------------------------------------------- | --------- |
 | DTAGENT_DB.APP.V_TRUST_CENTER_FINDINGS       | view      |
 | DTAGENT_DB.APP.V_TRUST_CENTER_METRICS        | view      |
 | DTAGENT_DB.APP.V_TRUST_CENTER_INSTRUMENTED   | view      |
@@ -1781,7 +1781,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 #### Objects referenced by the `Trust Center` plugin
 
 | Name                            | Type | Privileges       | Granted to     |
-|---------------------------------|------|------------------|----------------|
+| ------------------------------- | ---- | ---------------- | -------------- |
 | SNOWFLAKE.TRUST_CENTER_VIEWER   | role | APPLICATION ROLE | DTAGENT_VIEWER |
 | SNOWFLAKE.TRUST_CENTER.FINDINGS | view | SELECT           | DTAGENT_VIEWER |
 
@@ -1841,7 +1841,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 #### Objects delivered by the `Users` plugin
 
 | Name                                                     | Type            | Comment                                                                                                                                                            |
-|----------------------------------------------------------|-----------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| -------------------------------------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | DTAGENT_DB.APP.TMP_USERS                                 | transient table |                                                                                                                                                                    |
 | DTAGENT_DB.APP.TMP_USERS_HELPER                          | transient table |                                                                                                                                                                    |
 | DTAGENT_DB.APP.V_USERS_INSTRUMENTED                      | view            |                                                                                                                                                                    |
@@ -1858,7 +1858,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 #### Objects referenced by the `Users` plugin
 
 | Name                                    | Type | Privileges |
-|-----------------------------------------|------|------------|
+| --------------------------------------- | ---- | ---------- |
 | SNOWFLAKE.ACCOUNT_USAGE.USERS           | view | SELECT     |
 | SNOWFLAKE.ACCOUNT_USAGE.LOGIN_HISTORY   | view | SELECT     |
 | SNOWFLAKE.ACCOUNT_USAGE.GRANTS_TO_USERS | view | SELECT     |
@@ -1901,7 +1901,7 @@ plugins:
 ```
 
 | Key                                      | Type   | Default                             | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-|------------------------------------------|--------|-------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ---------------------------------------- | ------ | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `plugins.warehouse_usage.lookback_hours` | int    | `24`                                | How far back (in hours) the plugin looks for warehouse events, load, and metering history on each run. If no prior processed timestamp exists, the plugin starts from `now - lookback_hours`. If a prior timestamp exists, the plugin starts from the more recent of that timestamp and `now - lookback_hours`, so it never reads data older than the lookback window. Applies to all three views (`WAREHOUSE_EVENTS_HISTORY`, `WAREHOUSE_LOAD_HISTORY`, `WAREHOUSE_METERING_HISTORY`). |
 | `plugins.warehouse_usage.schedule`       | string | `USING CRON 0 * * * * UTC`          | Cron schedule for the warehouse usage collection task.                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | `plugins.warehouse_usage.is_disabled`    | bool   | `false`                             | Set to `true` to disable this plugin entirely.                                                                                                                                                                                                                                                                                                                                                                                                                                          |
@@ -1914,7 +1914,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 #### Objects delivered by the `Warehouse Usage` plugin
 
 | Name                                            | Type      |
-|-------------------------------------------------|-----------|
+| ----------------------------------------------- | --------- |
 | DTAGENT_DB.APP.V_WAREHOUSE_EVENT_HISTORY        | view      |
 | DTAGENT_DB.APP.V_WAREHOUSE_LOAD_HISTORY         | view      |
 | DTAGENT_DB.APP.V_WAREHOUSE_METERING_HISTORY     | view      |
@@ -1924,7 +1924,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 #### Objects referenced by the `Warehouse Usage` plugin
 
 | Name                                               | Type | Privileges |
-|----------------------------------------------------|------|------------|
+| -------------------------------------------------- | ---- | ---------- |
 | SNOWFLAKE.ACCOUNT_USAGE.WAREHOUSE_EVENTS_HISTORY   | view | SELECT     |
 | SNOWFLAKE.ACCOUNT_USAGE.WAREHOUSE_LOAD_HISTORY     | view | SELECT     |
 | SNOWFLAKE.ACCOUNT_USAGE.WAREHOUSE_METERING_HISTORY | view | SELECT     |
