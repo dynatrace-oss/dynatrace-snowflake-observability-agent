@@ -45,6 +45,9 @@ IS_MANUAL="$5"
 OPTIONS_STR="${6:-}"
 CWD=$(dirname "$0")
 
+# shellcheck source=./lib.sh
+source "$CWD/lib.sh"
+
 # Parse comma-separated options string into an array and expose a has_option() helper.
 IFS=',' read -ra _OPTIONS <<< "$OPTIONS_STR"
 has_option() {
@@ -518,6 +521,13 @@ filter_option_code() {
 
 # Get list of plugins to exclude
 EXCLUDED_PLUGINS=$($CWD/list_plugins_to_exclude.sh)
+
+# Warn if org_costs plugin is enabled but ORGANIZATION_USAGE may be inaccessible
+if [[ "$SCOPE" == *"plugins"* || "$SCOPE" == "all" ]]; then
+    if ! echo "$EXCLUDED_PLUGINS" | grep -qw "org_costs"; then
+        check_org_costs_access
+    fi
+fi
 
 # Apply plugin filtering for non-special scopes
 if [ "$SCOPE" != "apikey" ] && [ "$SCOPE" != "teardown" ]; then

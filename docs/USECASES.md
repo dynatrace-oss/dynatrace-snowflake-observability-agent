@@ -75,14 +75,23 @@ Use cases marked with 🔜 are **upcoming** — they depend on plugins currently
 
 ### Costs — Tier 1 — Data Infrastructure
 
-| Use case                       | In Details                                                                                                                                                              | Data                                                                                 |
-|--------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------|
-| Resource monitors analysis     | Determine if the credits limit set on a resource monitor is enough, too much, or too little for future needs. Analyze quota used vs remaining to make better decisions. | [Resource Monitors plugin](PLUGINS.md#resource_monitors_info_sec)                    |
-| Budgets analysis               | Combine budget details like spending limits and linked resources with their spending history to enable complete cost analysis.                                          | [Budgets plugin](PLUGINS.md#budgets_info_sec)                                        |
-| Warehouse metering history     | Monitor credit consumption of particular warehouses, compare cloud services credits vs compute credits, and predict trends in expenses.                                 | [Warehouse Usage plugin](PLUGINS.md#warehouse_usage_info_sec)                        |
-| Event table ingest costs       | Monitor credits billed and bytes ingested for loading data into the Snowflake event table over time.                                                                    | [Metering plugin](PLUGINS.md#metering_info_sec) (was: Event Usage, deprecated 0.9.5) |
-| Service-level cost attribution | Monitor credit consumption across all Snowflake service types (auto-clustering, pipes, serverless tasks, AI services, replication) for FinOps cost allocation.          | [Metering plugin](PLUGINS.md#metering_info_sec)                                      |
-| Storage growth analysis        | Track database and table storage growth trends (total size, row counts) and time since last DDL/update for capacity planning.                                           | [Data Volume plugin](PLUGINS.md#data_volume_info_sec)                                |
+| Use case                       | In Details                                                                                                                                                                  | Data                                                                                 |
+|--------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------|
+| Resource monitors analysis     | Determine if the credits limit set on a resource monitor is enough, too much, or too little for future needs. Analyze quota used vs remaining to make better decisions.     | [Resource Monitors plugin](PLUGINS.md#resource_monitors_info_sec)                    |
+| Budgets analysis               | Combine budget details like spending limits and linked resources with their spending history to enable complete cost analysis.                                              | [Budgets plugin](PLUGINS.md#budgets_info_sec)                                        |
+| Warehouse metering history     | Monitor credit consumption of particular warehouses, compare cloud services credits vs compute credits, and predict trends in expenses.                                     | [Warehouse Usage plugin](PLUGINS.md#warehouse_usage_info_sec)                        |
+| Event table ingest costs       | Monitor credits billed and bytes ingested for loading data into the Snowflake event table over time.                                                                        | [Metering plugin](PLUGINS.md#metering_info_sec) (was: Event Usage, deprecated 0.9.5) |
+| Service-level cost attribution | Monitor credit consumption across all Snowflake service types (auto-clustering, pipes, serverless tasks, AI services, replication) for FinOps cost allocation.              | [Metering plugin](PLUGINS.md#metering_info_sec)                                      |
+| Storage growth analysis        | Track database and table storage growth trends (total size, row counts) and time since last DDL/update for capacity planning.                                               | [Data Volume plugin](PLUGINS.md#data_volume_info_sec)                                |
+| Cold table identification      | Identify tables with no recent query access to find candidates for archiving, dropping, or tiering to lower-cost storage. Reduce storage costs by sunsetting unused tables. | [Cold Tables plugin](PLUGINS.md#cold_tables_info_sec)                                |
+
+### Costs — Tier 0 — Organization-Level FinOps
+
+| Use case                             | In Details                                                                                                                                                                                         | Data                                                        |
+|--------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------|
+| Org-wide credit consumption analysis | Monitor credit consumption across all accounts in your Snowflake organization, broken down by service type and service name, to identify the biggest cost drivers at the organizational level.     | [Org Costs plugin](PLUGINS.md#org_costs_info_sec)           |
+| Contract balance monitoring          | Track remaining Snowflake contract balances (free usage, capacity, on-demand, rollover) in real time and alert when any balance approaches exhaustion before the contract period ends.             | [Org Costs plugin](PLUGINS.md#org_costs_info_sec)           |
+| Cross-account billing analysis       | Analyze billed amounts in contract currency per service type and per account across the organization to support FinOps chargebacks, forecasting, and budget governance.                            | [Org Costs plugin](PLUGINS.md#org_costs_info_sec)           |
 
 ### Costs — Tier 2 — Data Apps & Pipelines
 
@@ -128,10 +137,11 @@ Use cases marked with 🔜 are **upcoming** — they depend on plugins currently
 
 ### Quality — Tier 1 — Data Infrastructure
 
-| Use case               | In Details                                                                                                                                                                             | Data                                                    |
-|------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------|
-| Data volume monitoring | Understand how data volume in monitored databases, schemas, and tables changes over time. Identify anomalies in data volume changes (active bytes, time-travel bytes, failsafe bytes). | [Data Volume plugin](PLUGINS.md#data_volume_info_sec)   |
-| Data schema monitoring | Track database and table metadata — table types (dynamic, hybrid, iceberg, transient, temporary), clustering keys, auto-clustering status, and retention policies.                     | [Data Schemas plugin](PLUGINS.md#data_schemas_info_sec) |
+| Use case                | In Details                                                                                                                                                                             | Data                                                     |
+|-------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------|
+| Data volume monitoring  | Understand how data volume in monitored databases, schemas, and tables changes over time. Identify anomalies in data volume changes (active bytes, time-travel bytes, failsafe bytes). | [Data Volume plugin](PLUGINS.md#data_volume_info_sec)    |
+| Table health monitoring | Track table storage metrics (active bytes, time-travel bytes, failsafe bytes, retained-for-clone bytes, row counts) and clustering depth. Identify tables with excessive overhead.     | [Table Health plugin](PLUGINS.md#table_health_info_sec)  |
+| Data schema monitoring  | Track database and table metadata — table types (dynamic, hybrid, iceberg, transient, temporary), clustering keys, auto-clustering status, and retention policies.                     | [Data Schemas plugin](PLUGINS.md#data_schemas_info_sec)  |
 
 ### Quality — Tier 2 — Data Apps & Pipelines
 

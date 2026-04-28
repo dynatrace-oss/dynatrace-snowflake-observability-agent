@@ -3,6 +3,7 @@
 - [Shared semantics](#core_semantics_sec)
 - [Active Queries](#active_queries_semantics_sec)
 - [Budgets](#budgets_semantics_sec)
+- [Cold Tables](#cold_tables_semantics_sec)
 - [Data Schemas](#data_schemas_semantics_sec)
 - [Data Volume](#data_volume_semantics_sec)
 - [Dynamic Tables](#dynamic_tables_semantics_sec)
@@ -10,10 +11,12 @@
 - [Event Usage](#event_usage_semantics_sec)
 - [Login History](#login_history_semantics_sec)
 - [Metering](#metering_semantics_sec)
+- [Org Costs](#org_costs_semantics_sec)
 - [Query History](#query_history_semantics_sec)
 - [Resource Monitors](#resource_monitors_semantics_sec)
 - [Shares](#shares_semantics_sec)
 - [Snowpipes](#snowpipes_semantics_sec)
+- [Table Health](#table_health_semantics_sec)
 - [Tasks](#tasks_semantics_sec)
 - [Trust Center](#trust_center_semantics_sec)
 - [Users](#users_semantics_sec)
@@ -41,6 +44,12 @@
 | dsoa.&#8203;run.&#8203;id          | Unique ID of each execution of the Dynatrace Snowflake Observability Agent plugin. It can be used to differentiate between telemetry produced between two executions, e.g., to calculate the change in the system. | 4aa7c76c-e98c-4b8b-a5b3-a8a721bbde2d |
 | observed_timestamp                 | The timestamp (in epoch nanoseconds) when the event was observed.                                                                                                                                                  | 1741768500000000000                  |
 | snowflake.&#8203;event.&#8203;type | Type of (timestamp based) event                                                                                                                                                                                    | snowflake.table.update               |
+
+### Metrics at the `core` plugin
+
+| Identifier                                      | Name                    | Unit | Description                                                                                            | Example |
+| ----------------------------------------------- | ----------------------- | ---- | ------------------------------------------------------------------------------------------------------ | ------- |
+| dsoa.&#8203;agent.&#8203;memory.&#8203;peak_rss | Agent Peak Memory (RSS) | MB   | Peak resident set size (RSS) of the agent process in megabytes, sampled after each plugin context run. | 42.5    |
 
 <a name="active_queries_semantics_sec"></a>
 
@@ -129,6 +138,38 @@ check the `Context Name` column below.
 | ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- | ------------ |
 | snowflake.&#8203;budget.&#8203;created_on | The timestamp when the budget was created.                                                                                                                                                            | 2024-11-30 23:59:59.999     | budgets      |
 | snowflake.&#8203;event.&#8203;trigger     | Additionally to sending logs, each entry in `EVENT_TIMESTAMPS` is sent as event with key set to `snowflake.event.trigger`, value to key from `EVENT_TIMESTAMPS` and `timestamp` set to the key value. | snowflake.budget.created_on | budgets      |
+
+<a name="cold_tables_semantics_sec"></a>
+
+## The `Cold Tables` plugin semantics
+
+[Show plugin description](PLUGINS.md#cold_tables_info_sec)
+
+This plugin delivers telemetry in multiple contexts. To filter by one of plugin's context names (reported as `dsoa.run.context`), please
+check the `Context Name` column below.
+
+### Dimensions at the `Cold Tables` plugin
+
+| Identifier                                | Description                                                                                                                                                             | Example                    | Context Name |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- | ------------ |
+| db.&#8203;collection.&#8203;name          | The table name.                                                                                                                                                         | orders                     | cold_tables  |
+| db.&#8203;namespace                       | The name of the database containing the table.                                                                                                                          | analytics_db               | cold_tables  |
+| snowflake.&#8203;schema.&#8203;name       | The schema containing the table.                                                                                                                                        | public                     | cold_tables  |
+| snowflake.&#8203;table.&#8203;cold_status | Table temperature classification based on access recency: <br>- cold: no access within cold_threshold_days (default 90) <br>- warm: accessed within cold_threshold_days | cold                       | cold_tables  |
+| snowflake.&#8203;table.&#8203;full_name   | Fully qualified table name (catalog.schema.table).                                                                                                                      | ANALYTICS_DB.PUBLIC.ORDERS | cold_tables  |
+
+### Attributes at the `Cold Tables` plugin
+
+| Identifier                                     | Description                                                           | Example              | Context Name |
+| ---------------------------------------------- | --------------------------------------------------------------------- | -------------------- | ------------ |
+| snowflake.&#8203;table.&#8203;last_accessed_at | ISO 8601 timestamp of the most recent query that accessed this table. | 2026-01-15T10:30:00Z | cold_tables  |
+
+### Metrics at the `Cold Tables` plugin
+
+| Identifier                                           | Name                   | Unit  | Description                                                              | Example | Context Name |
+| ---------------------------------------------------- | ---------------------- | ----- | ------------------------------------------------------------------------ | ------- | ------------ |
+| snowflake.&#8203;table.&#8203;access.&#8203;count    | Table Access Count     | count | Total number of query accesses to this table within the lookback window. | 42      | cold_tables  |
+| snowflake.&#8203;table.&#8203;days_since_last_access | Days Since Last Access | days  | Number of days since the table was last accessed by any query.           | 95      | cold_tables  |
 
 <a name="data_schemas_semantics_sec"></a>
 
@@ -371,6 +412,55 @@ check the `Context Name` column below.
 | snowflake.&#8203;metering.&#8203;data.&#8203;rows          | Rows Processed                        | rows    | Number of rows processed by the service in the metering window.        | 50000    | metering     |
 | snowflake.&#8203;metering.&#8203;data.&#8203;size          | Bytes Processed                       | bytes   | Number of bytes processed by the service in the metering window.       | 10485760 | metering     |
 
+<a name="org_costs_semantics_sec"></a>
+
+## The `Org Costs` plugin semantics
+
+[Show plugin description](PLUGINS.md#org_costs_info_sec)
+
+This plugin delivers telemetry in multiple contexts. To filter by one of plugin's context names (reported as `dsoa.run.context`), please
+check the `Context Name` column below.
+
+### Dimensions at the `Org Costs` plugin
+
+| Identifier                                            | Description                                                       | Example            | Context Name                                                                                                                 |
+| ----------------------------------------------------- | ----------------------------------------------------------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| snowflake.&#8203;account.&#8203;locator               | The account locator identifier for the Snowflake account.         | ABC12345           | org_costs_storage, org_costs_data_transfer, org_billing_usage_in_currency, org_billing_remaining_balance                     |
+| snowflake.&#8203;account.&#8203;name                  | The name of the Snowflake account within the organization.        | MYORG-ACCOUNT1     | org_costs_metering, org_costs_storage, org_costs_data_transfer, org_billing_usage_in_currency, org_billing_remaining_balance |
+| snowflake.&#8203;org.&#8203;billing.&#8203;currency   | The currency in which billing usage amounts are denominated.      | USD                | org_billing_usage_in_currency                                                                                                |
+| snowflake.&#8203;service.&#8203;type                  | The Snowflake service type that consumed the credits.             | WAREHOUSE_METERING | org_costs_metering, org_billing_usage_in_currency                                                                            |
+| snowflake.&#8203;storage.&#8203;type                  | The type of storage (e.g. STAGE, FAILSAFE, HYBRID_TABLE_STORAGE). | STAGE              | org_costs_storage                                                                                                            |
+| snowflake.&#8203;transfer.&#8203;source.&#8203;cloud  | The cloud provider of the data transfer source.                   | AWS                | org_costs_data_transfer                                                                                                      |
+| snowflake.&#8203;transfer.&#8203;source.&#8203;region | The region of the data transfer source.                           | US_EAST_1          | org_costs_data_transfer                                                                                                      |
+| snowflake.&#8203;transfer.&#8203;target.&#8203;cloud  | The cloud provider of the data transfer target.                   | AZURE              | org_costs_data_transfer                                                                                                      |
+| snowflake.&#8203;transfer.&#8203;target.&#8203;region | The region of the data transfer target.                           | EAST_US_2          | org_costs_data_transfer                                                                                                      |
+| snowflake.&#8203;transfer.&#8203;type                 | The type of data transfer (e.g. EXTERNAL).                        | EXTERNAL           | org_costs_data_transfer                                                                                                      |
+
+### Attributes at the `Org Costs` plugin
+
+| Identifier                                                 | Description                                                        | Example      | Context Name                                                                                                                 |
+| ---------------------------------------------------------- | ------------------------------------------------------------------ | ------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| snowflake.&#8203;account.&#8203;locator                    | The account locator identifier for the Snowflake account.          | ABC12345     | org_costs_metering, org_costs_storage                                                                                        |
+| snowflake.&#8203;org.&#8203;billing.&#8203;contract_number | The contract number associated with the Snowflake billing balance. | CONTRACT-001 | org_billing_remaining_balance                                                                                                |
+| snowflake.&#8203;organization.&#8203;name                  | The name of the Snowflake organization.                            | MYORG        | org_costs_metering, org_costs_storage, org_costs_data_transfer, org_billing_usage_in_currency, org_billing_remaining_balance |
+
+### Metrics at the `Org Costs` plugin
+
+| Identifier                                                           | Name                                 | Unit     | Description                                                                        | Example       | Context Name                  |
+| -------------------------------------------------------------------- | ------------------------------------ | -------- | ---------------------------------------------------------------------------------- | ------------- | ----------------------------- |
+| snowflake.&#8203;org.&#8203;billing.&#8203;amount                    | Org Billing Amount in Currency       | currency | The billing amount in currency for the account on the given day.                   | 150.50        | org_billing_usage_in_currency |
+| snowflake.&#8203;org.&#8203;billing.&#8203;capacity_balance          | Org Billing Capacity Balance         | currency | Remaining capacity balance for the organization contract.                          | 10000.0       | org_billing_remaining_balance |
+| snowflake.&#8203;org.&#8203;billing.&#8203;free_usage_balance        | Org Billing Free Usage Balance       | currency | Remaining free usage balance for the organization contract.                        | 200.0         | org_billing_remaining_balance |
+| snowflake.&#8203;org.&#8203;billing.&#8203;on_demand_consumption     | Org Billing On-Demand Consumption    | currency | On<br>-demand consumption amount charged against the organization contract.        | 100.0         | org_billing_remaining_balance |
+| snowflake.&#8203;org.&#8203;billing.&#8203;overage                   | Org Billing Overage                  | currency | Overage amount charged beyond contracted capacity.                                 | 0.0           | org_billing_remaining_balance |
+| snowflake.&#8203;org.&#8203;billing.&#8203;rollover_balance          | Org Billing Rollover Balance         | currency | Remaining rollover balance for the organization contract.                          | 500.0         | org_billing_remaining_balance |
+| snowflake.&#8203;org.&#8203;credits.&#8203;adjustment_cloud_services | Org Cloud Services Credit Adjustment | credits  | Credit adjustment for cloud services (10% rule offset).                            | -0.5          | org_costs_metering            |
+| snowflake.&#8203;org.&#8203;credits.&#8203;cloud_services            | Org Cloud Services Credits Used      | credits  | Credits used for cloud services by the account on the given day.                   | 1.2           | org_costs_metering            |
+| snowflake.&#8203;org.&#8203;credits.&#8203;compute                   | Org Compute Credits Used             | credits  | Credits used for compute by the account on the given day.                          | 8.0           | org_costs_metering            |
+| snowflake.&#8203;org.&#8203;credits.&#8203;used                      | Org Total Credits Used               | credits  | Total credits used by the account on the given day across all service types.       | 9.2           | org_costs_metering            |
+| snowflake.&#8203;org.&#8203;data.&#8203;stored                       | Org Data Stored                      | Byte     | Total storage bytes used by the account on the given day across all storage types. | 1099511627776 | org_costs_storage             |
+| snowflake.&#8203;org.&#8203;data.&#8203;transferred                  | Org Data Transfer Bytes              | Byte     | Bytes transferred between clouds or regions on the given day.                      | 2147483648    | org_costs_data_transfer       |
+
 <a name="query_history_semantics_sec"></a>
 
 ## The `Query History` plugin semantics
@@ -511,28 +601,32 @@ All telemetry delivered by this plugin is reported as `dsoa.run.context == "reso
 
 ### Attributes at the `Resource Monitors` plugin
 
-| Identifier                                                       | Description                                                        | Example     |
-| ---------------------------------------------------------------- | ------------------------------------------------------------------ | ----------- |
-| snowflake.&#8203;budget.&#8203;name                              | The name of the budget associated with the warehouse.              | BUDGET_2024 |
-| snowflake.&#8203;credits.&#8203;quota                            | The credit quota of the resource monitor.                          | 1000        |
-| snowflake.&#8203;credits.&#8203;quota.&#8203;remaining           | The remaining credits of the resource monitor.                     | 500         |
-| snowflake.&#8203;credits.&#8203;quota.&#8203;used                | The credits used by the resource monitor.                          | 500         |
-| snowflake.&#8203;resource_monitor.&#8203;frequency               | The frequency of the resource monitor.                             | DAILY       |
-| snowflake.&#8203;resource_monitor.&#8203;is_active               | Indicates if the resource monitor is active.                       | true        |
-| snowflake.&#8203;resource_monitor.&#8203;level                   | The level of the resource monitor.                                 | ACCOUNT     |
-| snowflake.&#8203;warehouse.&#8203;execution_state                | The execution state of the warehouse.                              | RUNNING     |
-| snowflake.&#8203;warehouse.&#8203;has_query_acceleration_enabled | Indicates if query acceleration is enabled for the warehouse.      | true        |
-| snowflake.&#8203;warehouse.&#8203;is_auto_resume                 | Indicates if the warehouse is set to auto<br>-resume.              | true        |
-| snowflake.&#8203;warehouse.&#8203;is_auto_suspend                | Indicates if the warehouse is set to auto<br>-suspend.             | true        |
-| snowflake.&#8203;warehouse.&#8203;is_current                     | Indicates if the warehouse is the current warehouse.               | true        |
-| snowflake.&#8203;warehouse.&#8203;is_default                     | Indicates if the warehouse is the default warehouse.               | true        |
-| snowflake.&#8203;warehouse.&#8203;is_unmonitored                 | Indicates if the warehouse is NOT monitored by a resource monitor. | true        |
-| snowflake.&#8203;warehouse.&#8203;owner                          | The owner of the warehouse.                                        | admin       |
-| snowflake.&#8203;warehouse.&#8203;owner.&#8203;role_type         | The role type of the warehouse owner.                              | SYSADMIN    |
-| snowflake.&#8203;warehouse.&#8203;scaling_policy                 | The scaling policy of the warehouse.                               | STANDARD    |
-| snowflake.&#8203;warehouse.&#8203;size                           | The size of the warehouse.                                         | X-SMALL     |
-| snowflake.&#8203;warehouse.&#8203;type                           | The type of the warehouse.                                         | STANDARD    |
-| snowflake.&#8203;warehouses.&#8203;names                         | The names of the warehouses monitored.                             | COMPUTE_WH  |
+| Identifier                                                          | Description                                                                                                                                                                | Example     |
+| ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| snowflake.&#8203;budget.&#8203;name                                 | The name of the budget associated with the warehouse.                                                                                                                      | BUDGET_2024 |
+| snowflake.&#8203;credits.&#8203;quota                               | The credit quota of the resource monitor.                                                                                                                                  | 1000        |
+| snowflake.&#8203;credits.&#8203;quota.&#8203;remaining              | The remaining credits of the resource monitor.                                                                                                                             | 500         |
+| snowflake.&#8203;credits.&#8203;quota.&#8203;used                   | The credits used by the resource monitor.                                                                                                                                  | 500         |
+| snowflake.&#8203;credits.&#8203;quota.&#8203;used_pct               | Live percentage of quota consumed at the time of threshold event emission.                                                                                                 | 85.0        |
+| snowflake.&#8203;resource_monitor.&#8203;frequency                  | The frequency of the resource monitor.                                                                                                                                     | DAILY       |
+| snowflake.&#8203;resource_monitor.&#8203;is_active                  | Indicates if the resource monitor is active.                                                                                                                               | true        |
+| snowflake.&#8203;resource_monitor.&#8203;level                      | The level of the resource monitor.                                                                                                                                         | ACCOUNT     |
+| snowflake.&#8203;resource_monitor.&#8203;threshold.&#8203;direction | Direction of the threshold crossing: `up` when quota is increasing into or remaining within a band; `down` when the consumption drops back below a previously active band. | up          |
+| snowflake.&#8203;resource_monitor.&#8203;threshold.&#8203;level     | Alert band for the threshold event: `info` (below 80%), `warn` ([80–90%)), `critical` ([90–100%)), or `exhausted` (>=100%).                                                | warn        |
+| snowflake.&#8203;resource_monitor.&#8203;threshold.&#8203;pct       | The specific threshold percentage value that was crossed to trigger the event.                                                                                             | 80          |
+| snowflake.&#8203;warehouse.&#8203;execution_state                   | The execution state of the warehouse.                                                                                                                                      | RUNNING     |
+| snowflake.&#8203;warehouse.&#8203;has_query_acceleration_enabled    | Indicates if query acceleration is enabled for the warehouse.                                                                                                              | true        |
+| snowflake.&#8203;warehouse.&#8203;is_auto_resume                    | Indicates if the warehouse is set to auto<br>-resume.                                                                                                                      | true        |
+| snowflake.&#8203;warehouse.&#8203;is_auto_suspend                   | Indicates if the warehouse is set to auto<br>-suspend.                                                                                                                     | true        |
+| snowflake.&#8203;warehouse.&#8203;is_current                        | Indicates if the warehouse is the current warehouse.                                                                                                                       | true        |
+| snowflake.&#8203;warehouse.&#8203;is_default                        | Indicates if the warehouse is the default warehouse.                                                                                                                       | true        |
+| snowflake.&#8203;warehouse.&#8203;is_unmonitored                    | Indicates if the warehouse is NOT monitored by a resource monitor.                                                                                                         | true        |
+| snowflake.&#8203;warehouse.&#8203;owner                             | The owner of the warehouse.                                                                                                                                                | admin       |
+| snowflake.&#8203;warehouse.&#8203;owner.&#8203;role_type            | The role type of the warehouse owner.                                                                                                                                      | SYSADMIN    |
+| snowflake.&#8203;warehouse.&#8203;scaling_policy                    | The scaling policy of the warehouse.                                                                                                                                       | STANDARD    |
+| snowflake.&#8203;warehouse.&#8203;size                              | The size of the warehouse.                                                                                                                                                 | X-SMALL     |
+| snowflake.&#8203;warehouse.&#8203;type                              | The type of the warehouse.                                                                                                                                                 | STANDARD    |
+| snowflake.&#8203;warehouses.&#8203;names                            | The names of the warehouses monitored.                                                                                                                                     | COMPUTE_WH  |
 
 ### Metrics at the `Resource Monitors` plugin
 
@@ -703,6 +797,43 @@ check the `Context Name` column below.
 | --------------------------------------- | --------------------------- | ------------------------- | ------------ |
 | snowflake.&#8203;event.&#8203;trigger   | Standard event trigger key. | snowflake.pipe.created_on | snowpipes    |
 | snowflake.&#8203;pipe.&#8203;created_on | Pipe creation event.        | 2025-01-15 10:30:00.000 Z | snowpipes    |
+
+<a name="table_health_semantics_sec"></a>
+
+## The `Table Health` plugin semantics
+
+[Show plugin description](PLUGINS.md#table_health_info_sec)
+
+This plugin delivers telemetry in multiple contexts. To filter by one of plugin's context names (reported as `dsoa.run.context`), please
+check the `Context Name` column below.
+
+### Dimensions at the `Table Health` plugin
+
+| Identifier                                   | Description                                                                       | Example                        | Context Name                                          |
+| -------------------------------------------- | --------------------------------------------------------------------------------- | ------------------------------ | ----------------------------------------------------- |
+| db.&#8203;collection.&#8203;name             | The name of the table.                                                            | sales_data                     | table_storage, table_clustering, table_health_derived |
+| db.&#8203;namespace                          | The name of the database that contains the table.                                 | analytics_db                   | table_storage, table_clustering, table_health_derived |
+| snowflake.&#8203;schema.&#8203;name          | The name of the schema that contains the table.                                   | public                         | table_storage, table_clustering, table_health_derived |
+| snowflake.&#8203;table.&#8203;clustering_key | The clustering key defined on the table, or NONE if no clustering key is defined. | REGION, YEAR                   | table_clustering                                      |
+| snowflake.&#8203;table.&#8203;full_name      | The full name of the table, including the catalog, schema, and table name.        | analytics_db.public.sales_data | table_storage, table_clustering, table_health_derived |
+
+### Metrics at the `Table Health` plugin
+
+| Identifier                                                               | Name                     | Unit        | Description                                                                                                                                                                                         | Example    | Context Name         |
+| ------------------------------------------------------------------------ | ------------------------ | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | -------------------- |
+| snowflake.&#8203;data.&#8203;rows                                        | Row Count                | rows        | Number of rows in the table.                                                                                                                                                                        | 1000000    | table_storage        |
+| snowflake.&#8203;table.&#8203;active_bytes                               | Active Bytes             | bytes       | Number of bytes of active data in the table.                                                                                                                                                        | 1073741824 | table_storage        |
+| snowflake.&#8203;table.&#8203;clustering.&#8203;constant_partition_ratio | Constant Partition Ratio | ratio       | Fraction of micro<br>-partitions that are constant (fully within a single clustering key range). Higher values indicate better clustering quality.                                                  | 0.85       | table_clustering     |
+| snowflake.&#8203;table.&#8203;clustering.&#8203;degraded                 | Clustering Degraded      | {status}    | Flag indicating whether clustering has degraded beyond the configured threshold (plugins.table_health.clustering_degradation_threshold). 1 = degraded, 0 = healthy or no clustering data available. | 1          | table_health_derived |
+| snowflake.&#8203;table.&#8203;clustering.&#8203;depth                    | Clustering Depth         | {depth}     | Average clustering depth of the table. Lower values indicate better clustering. A value of 1.0 means all micro<br>-partitions are perfectly clustered.                                              | 2.5        | table_clustering     |
+| snowflake.&#8203;table.&#8203;clustering.&#8203;depth_change             | Clustering Depth Change  | {depth}     | Change in average clustering depth between the two most recent snapshots. Positive values indicate degradation; negative values indicate improvement.                                               | 0.3        | table_health_derived |
+| snowflake.&#8203;table.&#8203;clustering.&#8203;overlap                  | Clustering Overlap       | {overlap}   | Average overlap depth of the table. Lower values indicate less overlap between micro<br>-partitions and better clustering efficiency.                                                               | 1.2        | table_clustering     |
+| snowflake.&#8203;table.&#8203;clustering.&#8203;total_partitions         | Total Partitions         | {partition} | Total number of micro<br>-partitions in the table.                                                                                                                                                  | 1200       | table_clustering     |
+| snowflake.&#8203;table.&#8203;failsafe_bytes                             | Failsafe Bytes           | bytes       | Number of bytes of data in the table that is maintained for Failsafe.                                                                                                                               | 268435456  | table_storage        |
+| snowflake.&#8203;table.&#8203;growth_bytes                               | Table Growth (Bytes)     | bytes       | Change in active bytes between the two most recent snapshots. Positive values indicate growth; negative values indicate shrinkage.                                                                  | 104857600  | table_health_derived |
+| snowflake.&#8203;table.&#8203;growth_pct                                 | Table Growth (%)         | percent     | Percentage change in active bytes between the two most recent snapshots. Null when the previous snapshot had zero bytes.                                                                            | 9.77       | table_health_derived |
+| snowflake.&#8203;table.&#8203;retained_for_clone_bytes                   | Retained for Clone Bytes | bytes       | Number of bytes of data in the table that is retained for cloning.                                                                                                                                  | 134217728  | table_storage        |
+| snowflake.&#8203;table.&#8203;time_travel_bytes                          | Time Travel Bytes        | bytes       | Number of bytes of data in the table that is maintained for Time Travel.                                                                                                                            | 536870912  | table_storage        |
 
 <a name="tasks_semantics_sec"></a>
 

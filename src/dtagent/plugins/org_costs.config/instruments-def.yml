@@ -1,0 +1,165 @@
+attributes:
+  snowflake.account.locator:
+    __context_names:
+      - org_costs_metering
+      - org_costs_storage
+    __example: ABC12345
+    __description: The account locator identifier for the Snowflake account.
+  snowflake.org.billing.contract_number:
+    __context_names:
+      - org_billing_remaining_balance
+    __example: CONTRACT-001
+    __description: The contract number associated with the Snowflake billing balance.
+  snowflake.organization.name:
+    __context_names:
+      - org_costs_metering
+      - org_costs_storage
+      - org_costs_data_transfer
+      - org_billing_usage_in_currency
+      - org_billing_remaining_balance
+    __example: MYORG
+    __description: The name of the Snowflake organization.
+dimensions:
+  snowflake.account.name:
+    __context_names:
+      - org_costs_metering
+      - org_costs_storage
+      - org_costs_data_transfer
+      - org_billing_usage_in_currency
+      - org_billing_remaining_balance
+    __example: MYORG-ACCOUNT1
+    __description: The name of the Snowflake account within the organization.
+  snowflake.account.locator:
+    __context_names:
+      - org_costs_storage
+      - org_costs_data_transfer
+      - org_billing_usage_in_currency
+      - org_billing_remaining_balance
+    __example: ABC12345
+    __description: The account locator identifier for the Snowflake account.
+  snowflake.org.billing.currency:
+    __context_names:
+      - org_billing_usage_in_currency
+    __example: USD
+    __description: The currency in which billing usage amounts are denominated.
+  snowflake.service.type:
+    __context_names:
+      - org_costs_metering
+      - org_billing_usage_in_currency
+    __example: WAREHOUSE_METERING
+    __description: The Snowflake service type that consumed the credits.
+  snowflake.transfer.source.cloud:
+    __context_names:
+      - org_costs_data_transfer
+    __example: AWS
+    __description: The cloud provider of the data transfer source.
+  snowflake.transfer.source.region:
+    __context_names:
+      - org_costs_data_transfer
+    __example: US_EAST_1
+    __description: The region of the data transfer source.
+  snowflake.transfer.target.cloud:
+    __context_names:
+      - org_costs_data_transfer
+    __example: AZURE
+    __description: The cloud provider of the data transfer target.
+  snowflake.transfer.target.region:
+    __context_names:
+      - org_costs_data_transfer
+    __example: EAST_US_2
+    __description: The region of the data transfer target.
+  snowflake.storage.type:
+    __context_names:
+      - org_costs_storage
+    __example: STAGE
+    __description: The type of storage (e.g. STAGE, FAILSAFE, HYBRID_TABLE_STORAGE).
+  snowflake.transfer.type:
+    __context_names:
+      - org_costs_data_transfer
+    __example: EXTERNAL
+    __description: The type of data transfer (e.g. EXTERNAL).
+metrics:
+  snowflake.org.billing.amount:
+    __context_names:
+      - org_billing_usage_in_currency
+    __example: "150.50"
+    __description: The billing amount in currency for the account on the given day.
+    displayName: Org Billing Amount in Currency
+    unit: currency
+  snowflake.org.billing.capacity_balance:
+    __context_names:
+      - org_billing_remaining_balance
+    __example: "10000.0"
+    __description: Remaining capacity balance for the organization contract.
+    displayName: Org Billing Capacity Balance
+    unit: currency
+  snowflake.org.billing.free_usage_balance:
+    __context_names:
+      - org_billing_remaining_balance
+    __example: "200.0"
+    __description: Remaining free usage balance for the organization contract.
+    displayName: Org Billing Free Usage Balance
+    unit: currency
+  snowflake.org.billing.on_demand_consumption:
+    __context_names:
+      - org_billing_remaining_balance
+    __example: "100.0"
+    __description: On-demand consumption amount charged against the organization contract.
+    displayName: Org Billing On-Demand Consumption
+    unit: currency
+  snowflake.org.billing.overage:
+    __context_names:
+      - org_billing_remaining_balance
+    __example: "0.0"
+    __description: Overage amount charged beyond contracted capacity.
+    displayName: Org Billing Overage
+    unit: currency
+  snowflake.org.billing.rollover_balance:
+    __context_names:
+      - org_billing_remaining_balance
+    __example: "500.0"
+    __description: Remaining rollover balance for the organization contract.
+    displayName: Org Billing Rollover Balance
+    unit: currency
+  snowflake.org.credits.adjustment_cloud_services:
+    __context_names:
+      - org_costs_metering
+    __example: "-0.5"
+    __description: Credit adjustment for cloud services (10% rule offset).
+    displayName: Org Cloud Services Credit Adjustment
+    unit: credits
+  snowflake.org.credits.cloud_services:
+    __context_names:
+      - org_costs_metering
+    __example: "1.2"
+    __description: Credits used for cloud services by the account on the given day.
+    displayName: Org Cloud Services Credits Used
+    unit: credits
+  snowflake.org.credits.compute:
+    __context_names:
+      - org_costs_metering
+    __example: "8.0"
+    __description: Credits used for compute by the account on the given day.
+    displayName: Org Compute Credits Used
+    unit: credits
+  snowflake.org.credits.used:
+    __context_names:
+      - org_costs_metering
+    __example: "9.2"
+    __description: Total credits used by the account on the given day across all service types.
+    displayName: Org Total Credits Used
+    unit: credits
+  snowflake.org.data.stored:
+    __context_names:
+      - org_costs_storage
+    __example: "1099511627776"
+    __description: Total storage bytes used by the account on the given day across all storage types.
+    displayName: Org Data Stored
+    unit: Byte
+  snowflake.org.data.transferred:
+    __context_names:
+      - org_costs_data_transfer
+    __example: "2147483648"
+    __description: Bytes transferred between clouds or regions on the given day.
+    displayName: Org Data Transfer Bytes
+    unit: Byte

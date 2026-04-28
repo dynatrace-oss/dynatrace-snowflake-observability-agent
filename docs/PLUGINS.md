@@ -3,6 +3,7 @@
 - [Core Objects](#core_bom_sec)
 - [Active Queries](#active_queries_info_sec)
 - [Budgets](#budgets_info_sec)
+- [Cold Tables](#cold_tables_info_sec)
 - [Data Schemas](#data_schemas_info_sec)
 - [Data Volume](#data_volume_info_sec)
 - [Dynamic Tables](#dynamic_tables_info_sec)
@@ -10,10 +11,12 @@
 - [Event Usage](#event_usage_info_sec)
 - [Login History](#login_history_info_sec)
 - [Metering](#metering_info_sec)
+- [Org Costs](#org_costs_info_sec)
 - [Query History](#query_history_info_sec)
 - [Resource Monitors](#resource_monitors_info_sec)
 - [Shares](#shares_info_sec)
 - [Snowpipes](#snowpipes_info_sec)
+- [Table Health](#table_health_info_sec)
 - [Tasks](#tasks_info_sec)
 - [Trust Center](#trust_center_info_sec)
 - [Users](#users_info_sec)
@@ -261,6 +264,136 @@ The following tables list the Snowflake objects that this plugin delivers data f
 | $budget!GET_SPENDING_LIMIT     | procedure   | USAGE                           |                        | We call this procedure on each budget defined in Snowflake                                             |
 | $budget!GET_SPENDING_HISTORY   | procedure   | USAGE                           |                        | We call this procedure on each budget defined in Snowflake                                             |
 | SNOWFLAKE.USAGE_VIEWER         | role        | DATABASE ROLE                   | DTAGENT_VIEWER         | Optional (admin scope). Required for custom budget monitoring via P_GRANT_BUDGET_MONITORING().         |
+
+<a name="cold_tables_info_sec"></a>
+
+## The Cold Tables plugin
+
+This plugin enables identification of "cold" tables — tables that have not been accessed by queries for a configurable period (default: 90
+days). It helps FinOps teams and Snowflake administrators identify candidates for archiving, dropping, or tiering to lower-cost storage.
+
+The following information is reported:
+
+- table access frequency (total count within lookback window),
+- timestamp of the most recent query that accessed the table,
+- number of days since last access,
+- cold/warm classification based on access recency.
+
+### Configuration
+
+Default schedule: daily at 6 AM UTC (access patterns don't change hourly).
+
+Configurable parameters:
+
+- `lookback_days` (default: 365) — number of days to look back in ACCESS_HISTORY
+- `cold_threshold_days` (default: 90) — tables with no access in this many days are flagged as "cold"
+
+Example configuration:
+
+```yaml
+plugins:
+  cold_tables:
+    schedule: USING CRON 0 6 * * * UTC
+    lookback_days: 365
+    cold_threshold_days: 90
+    is_disabled: false
+    telemetry:
+      - metrics
+      - logs
+```
+
+### Known Limitations
+
+- **Never-accessed tables not included:** ACCESS_HISTORY only contains tables that have been accessed. Tables that have never been accessed
+  will not appear in the results. To identify truly never-accessed tables, a follow-up enhancement would join with
+  `INFORMATION_SCHEMA.TABLES` or `ACCOUNT_USAGE.TABLES`.
+- **ACCESS_HISTORY latency:** Up to 2 hours. Daily schedule is appropriate for this latency.
+
+### Querying in Dynatrace
+
+#### Logs — per-table detail
+
+```dql
+fetch logs
+| filter db.system == "snowflake" and dsoa.run.plugin == "cold_tables"
+| filter snowflake.table.cold_status == "cold"
+| sort timestamp desc
+| limit 50
+```
+
+#### Metrics — access count by table
+
+```dql
+timeseries avg(snowflake.table.access.count),
+  by: {db.namespace, db.collection.name, snowflake.table.cold_status}
+| filter db.system == "snowflake"
+```
+
+#### Metrics — days since last access
+
+```dql
+timeseries avg(snowflake.table.days_since_last_access),
+  by: {db.namespace, db.collection.name}
+| filter db.system == "snowflake"
+| filter snowflake.table.days_since_last_access > 90
+```
+
+#### Self-monitoring — plugin performance
+
+```dql
+fetch logs
+| filter db.system == "snowflake" and dsoa.run.context == "self_monitoring"
+| filter dsoa.run.plugin == "cold_tables"
+| fields timestamp, dsoa.run.id, cold_tables.entries, cold_tables.log_lines, cold_tables.metrics
+| sort timestamp desc
+```
+
+[Show semantics for this plugin](SEMANTICS.md#cold_tables_semantics_sec)
+
+### Cold Tables default configuration
+
+To disable this plugin, set `IS_DISABLED` to `true`.
+
+In case the global property `PLUGINS.DISABLED_BY_DEFAULT` is set to `true`, you need to explicitly set `IS_ENABLED` to `true` to enable
+selected plugins; `IS_DISABLED` is not checked then.
+
+```yaml
+plugins:
+  cold_tables:
+    schedule: USING CRON 0 6 * * * UTC
+    lookback_days: 365
+    cold_threshold_days: 90
+    is_disabled: false
+    telemetry:
+      - metrics
+      - logs
+```
+
+| Key                                       | Type   | Default                    | Description                                                                       |
+| ----------------------------------------- | ------ | -------------------------- | --------------------------------------------------------------------------------- |
+| `plugins.cold_tables.lookback_days`       | int    | `365`                      | How far back (in days) the plugin scans `ACCESS_HISTORY` to count table accesses. |
+| `plugins.cold_tables.cold_threshold_days` | int    | `90`                       | Tables not accessed within this many days are classified as `cold`.               |
+| `plugins.cold_tables.schedule`            | string | `USING CRON 0 6 * * * UTC` | Cron schedule for the cold tables collection task.                                |
+| `plugins.cold_tables.is_disabled`         | bool   | `false`                    | Set to `true` to disable this plugin entirely.                                    |
+| `plugins.cold_tables.telemetry`           | list   | `["metrics", "logs"]`      | Telemetry types to emit. Remove items to suppress specific output types.          |
+
+### Cold Tables Bill of Materials
+
+The following tables list the Snowflake objects that this plugin delivers data from or references.
+
+#### Objects delivered by the `Cold Tables` plugin
+
+| Name                                        | Type      |
+| ------------------------------------------- | --------- |
+| DTAGENT_DB.APP.V_COLD_TABLES                | view      |
+| DTAGENT_DB.CONFIG.UPDATE_COLD_TABLES_CONF() | procedure |
+| DTAGENT_DB.APP.TASK_DTAGENT_COLD_TABLES     | task      |
+
+#### Objects referenced by the `Cold Tables` plugin
+
+| Name                                   | Type | Privileges |
+| -------------------------------------- | ---- | ---------- |
+| SNOWFLAKE.ACCOUNT_USAGE.ACCESS_HISTORY | view | SELECT     |
 
 <a name="data_schemas_info_sec"></a>
 
@@ -610,6 +743,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 | --------------- | ------- | ------------------------ | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | SHOW PARAMETERS | command | USAGE                    |                | We call `show PARAMETERS like 'EVENT_TABLE' in ACCOUNT` to determine if event table is already setup, and whether this is a table setup by this Dynatrace Snowflake Observability Agent instance |
 | ACCOUNT         | account | MODIFY SESSION LOG LEVEL | DTAGENT_VIEWER |                                                                                                                                                                                                  |
+| ACCOUNT         | account | MODIFY LOG EVENT LEVEL   | DTAGENT_VIEWER | Granted only on accounts that support Snowflake BCR Bundle 2026_02+ (LOG_EVENT_LEVEL parameter). On pre-BCR accounts this privilege is not available and the grant is skipped gracefully.        |
 | $event_table    | table   | SELECT, DELETE           | DTAGENT_VIEWER | This is in case an event log table was not setup by this Dynatrace Snowflake Observability Agent instance                                                                                        |
 
 <a name="event_usage_info_sec"></a>
@@ -758,7 +892,7 @@ Key use cases:
 - trend analysis and anomaly detection on credit consumption,
 - capacity planning based on historical metering data.
 
-## Configuration
+## The Metering Configuration
 
 | Key                               | Type   | Default                             | Description                                                                                                                                                |
 | --------------------------------- | ------ | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -767,7 +901,7 @@ Key use cases:
 | `plugins.metering.is_disabled`    | bool   | `false`                             | Set to `true` to disable this plugin entirely.                                                                                                             |
 | `plugins.metering.telemetry`      | list   | `["metrics", "logs", "biz_events"]` | Telemetry types to emit. Remove items to suppress specific output types.                                                                                   |
 
-## Querying in Dynatrace
+## Querying Metering Data in Dynatrace
 
 ```dql
 // All metering logs
@@ -777,15 +911,13 @@ fetch logs
 
 // Credits by service type
 timeseries sum(snowflake.credits.used), by: {snowflake.service.type}
-| filter db.system == "snowflake" and dsoa.run.context == "metering"
 
 // Event table ingest only (backward compat with event_usage)
-timeseries sum(snowflake.credits.used)
-| filter db.system == "snowflake" and dsoa.run.context == "metering"
+timeseries sum(snowflake.credits.used), by: {snowflake.service.type}
 | filter snowflake.service.type == "TELEMETRY_DATA_INGEST"
 ```
 
-## Migration from event_usage
+### Migration from event_usage
 
 The `event_usage` plugin is deprecated as of 0.9.5. To migrate:
 
@@ -833,6 +965,168 @@ The following tables list the Snowflake objects that this plugin delivers data f
 | ---------------------------------------- | ---- | ---------- |
 | SNOWFLAKE.ACCOUNT_USAGE.METERING_HISTORY | view | SELECT     |
 
+<a name="org_costs_info_sec"></a>
+
+## The Org Costs plugin
+
+The `org_costs` plugin delivers cross-account FinOps telemetry from `SNOWFLAKE.ORGANIZATION_USAGE` views. It provides organization-wide
+credit consumption, storage usage, data transfer costs, USD billing, and contract balance data — enabling multi-account cost visibility in
+Dynatrace.
+
+## Prerequisites
+
+Access to `SNOWFLAKE.ORGANIZATION_USAGE` views requires one of the following grants. This plugin is **disabled by default**
+(`is_disabled: true`) and must be explicitly enabled after completing the prerequisite step.
+
+### Option A — Database role (recommended)
+
+```sql
+USE ROLE ACCOUNTADMIN;
+GRANT DATABASE ROLE SNOWFLAKE.ORGANIZATION_USAGE_VIEWER TO ROLE DTAGENT_VIEWER;
+```
+
+### Option B — ORGADMIN role (legacy fallback for older tenants)
+
+```sql
+USE ROLE ACCOUNTADMIN;
+GRANT ROLE ORGADMIN TO ROLE DTAGENT_OWNER;
+```
+
+## Contexts
+
+| Context                         | Source view                                      | Telemetry     |
+|---------------------------------|--------------------------------------------------|---------------|
+| `org_costs_metering`            | `ORGANIZATION_USAGE.METERING_DAILY_HISTORY`      | metrics, logs |
+| `org_costs_storage`             | `ORGANIZATION_USAGE.STORAGE_DAILY_HISTORY`       | metrics, logs |
+| `org_costs_data_transfer`       | `ORGANIZATION_USAGE.DATA_TRANSFER_DAILY_HISTORY` | metrics, logs |
+| `org_billing_usage_in_currency` | `ORGANIZATION_USAGE.USAGE_IN_CURRENCY_DAILY`     | metrics, logs |
+| `org_billing_remaining_balance` | `ORGANIZATION_USAGE.REMAINING_BALANCE_DAILY`     | metrics, logs |
+
+## Schedule
+
+Runs every 6 hours (`USING CRON 0 */6 * * * UTC`). Source data has approximately 2 hours of latency; daily-granularity views update once per
+day.
+
+## Metrics emitted
+
+### org_costs_metering
+
+| Metric                                            | Unit    | Description                                 |
+|---------------------------------------------------|---------|---------------------------------------------|
+| `snowflake.org.credits.used`                      | credits | Total credits used by account per day       |
+| `snowflake.org.credits.compute`                   | credits | Compute credits used per day                |
+| `snowflake.org.credits.cloud_services`            | credits | Cloud services credits used per day         |
+| `snowflake.org.credits.adjustment_cloud_services` | credits | Cloud services credit adjustment (10% rule) |
+
+### org_costs_storage
+
+| Metric                        | Unit | Description                                 |
+|-------------------------------|------|---------------------------------------------|
+| `snowflake.org.storage.bytes` | Byte | Storage bytes used per storage type per day |
+
+### org_costs_data_transfer
+
+| Metric                         | Unit | Description                                      |
+|--------------------------------|------|--------------------------------------------------|
+| `snowflake.org.transfer.bytes` | Byte | Bytes transferred between clouds/regions per day |
+
+### org_billing_usage_in_currency
+
+| Metric                         | Unit     | Description                                         |
+|--------------------------------|----------|-----------------------------------------------------|
+| `snowflake.org.billing.amount` | currency | Billing amount in currency per service type per day |
+
+### org_billing_remaining_balance
+
+| Metric                                        | Unit     | Description                                    |
+|-----------------------------------------------|----------|------------------------------------------------|
+| `snowflake.org.billing.capacity_balance`      | currency | Remaining contracted capacity balance          |
+| `snowflake.org.billing.rollover_balance`      | currency | Remaining rollover balance                     |
+| `snowflake.org.billing.free_usage_balance`    | currency | Remaining free usage balance                   |
+| `snowflake.org.billing.on_demand_consumption` | currency | On-demand consumption charged against contract |
+| `snowflake.org.billing.overage`               | currency | Overage charged beyond contracted capacity     |
+
+## Enablement
+
+1. Complete the prerequisite grant (Option A or B above).
+1. Set `plugins.org_costs.is_disabled: false` in your configuration.
+1. Deploy: `./scripts/deploy/deploy.sh <env> --scope=plugins,config --options=skip_confirm`
+
+## Troubleshooting
+
+- **No data for a new account:** Organization-level views may not reflect new accounts for up to 24 hours after creation.
+- **Empty results:** Verify the prerequisite grant was applied and the plugin is enabled.
+- **Stale data:** Daily-granularity views update once per day; data may appear up to 26 hours old (2h Snowflake latency + 6h collection
+  cadence + daily boundary).
+
+[Show semantics for this plugin](SEMANTICS.md#org_costs_semantics_sec)
+
+### Org Costs default configuration
+
+This plugin is **disabled by default**; you need to explicitly set `IS_ENABLED` to `true` to enable it.
+
+```yaml
+plugins:
+  org_costs:
+    lookback_hours: 48
+    schedule: USING CRON 0 */6 * * * UTC
+    is_disabled: true
+    telemetry:
+      - logs
+      - metrics
+      - biz_events
+    contexts:
+      org_costs_metering:
+        is_disabled: true
+      org_costs_storage:
+        is_disabled: true
+      org_costs_data_transfer:
+        is_disabled: true
+      org_billing_usage_in_currency:
+        is_disabled: true
+      org_billing_remaining_balance:
+        is_disabled: true
+```
+
+| Key                                                                    | Type   | Default                             | Description                                                                                                                                                                                                        |
+|------------------------------------------------------------------------|--------|-------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `plugins.org_costs.lookback_hours`                                     | int    | `48`                                | How far back (in hours) the plugin looks for organization usage data on each run. A 48-hour window accommodates Snowflake's ~2-hour view latency and ensures no daily records are missed across collection cycles. |
+| `plugins.org_costs.schedule`                                           | string | `USING CRON 0 */6 * * * UTC`        | Cron schedule for the org costs collection task (every 6 hours).                                                                                                                                                   |
+| `plugins.org_costs.is_disabled`                                        | bool   | `true`                              | Set to `false` to enable this plugin. Requires `SNOWFLAKE.ORGANIZATION_USAGE_VIEWER` database role granted to `DTAGENT_VIEWER` (see readme).                                                                       |
+| `plugins.org_costs.telemetry`                                          | list   | `["logs", "metrics", "biz_events"]` | Telemetry types to emit. Remove items to suppress specific output types.                                                                                                                                           |
+| `plugins.org_costs.contexts.org_costs_metering.is_disabled`            | bool   | `true`                              | Set to `false` to enable metering context (daily credit consumption).                                                                                                                                              |
+| `plugins.org_costs.contexts.org_costs_storage.is_disabled`             | bool   | `true`                              | Set to `false` to enable storage context (daily storage bytes by type).                                                                                                                                            |
+| `plugins.org_costs.contexts.org_costs_data_transfer.is_disabled`       | bool   | `true`                              | Set to `false` to enable data transfer context (bytes transferred between clouds/regions).                                                                                                                         |
+| `plugins.org_costs.contexts.org_billing_usage_in_currency.is_disabled` | bool   | `true`                              | Set to `false` to enable billing usage context (daily billing amount in currency).                                                                                                                                 |
+| `plugins.org_costs.contexts.org_billing_remaining_balance.is_disabled` | bool   | `true`                              | Set to `false` to enable remaining balance context (contract balance metrics).                                                                                                                                     |
+
+### Org Costs Bill of Materials
+
+The following tables list the Snowflake objects that this plugin delivers data from or references.
+
+#### Objects delivered by the `Org Costs` plugin
+
+| Name                                               | Type      |
+|----------------------------------------------------|-----------|
+| DTAGENT_DB.APP.V_ORG_METERING_DAILY                | view      |
+| DTAGENT_DB.APP.V_ORG_STORAGE_DAILY                 | view      |
+| DTAGENT_DB.APP.V_ORG_DATA_TRANSFER_DAILY           | view      |
+| DTAGENT_DB.APP.V_ORG_BILLING_USAGE_IN_CURRENCY     | view      |
+| DTAGENT_DB.APP.V_ORG_BILLING_REMAINING_BALANCE     | view      |
+| DTAGENT_DB.APP.P_CHECK_ORGANIZATION_USAGE_ACCESS() | procedure |
+| DTAGENT_DB.CONFIG.UPDATE_ORG_COSTS_CONF()          | procedure |
+| DTAGENT_DB.APP.TASK_DTAGENT_ORG_COSTS              | task      |
+
+#### Objects referenced by the `Org Costs` plugin
+
+| Name                                                     | Type | Privileges |
+|----------------------------------------------------------|------|------------|
+| SNOWFLAKE.ORGANIZATION_USAGE.METERING_DAILY_HISTORY      | view | SELECT     |
+| SNOWFLAKE.ORGANIZATION_USAGE.USAGE_IN_CURRENCY_DAILY     | view | SELECT     |
+| SNOWFLAKE.ORGANIZATION_USAGE.REMAINING_BALANCE_DAILY     | view | SELECT     |
+| SNOWFLAKE.ORGANIZATION_USAGE.DATA_TRANSFER_DAILY_HISTORY | view | SELECT     |
+| SNOWFLAKE.ORGANIZATION_USAGE.STORAGE_DAILY_HISTORY       | view | SELECT     |
+
 <a name="query_history_info_sec"></a>
 
 ## The Query History plugin
@@ -857,6 +1151,26 @@ Each query execution is reported as a log line and span, with a hierarchy of spa
 profile was retrieved with `QUERY_OPERATOR_STATS`, it is delivered as span events and additional log lines. This plugin also delivers many
 metrics based on telemetry information provided by Snowflake.
 
+## Signal Protection Framework
+
+On high-volume Snowflake accounts, the plugin supports signal protection to prevent overload and timeout issues. Three complementary
+mechanisms are available:
+
+1. **Top-N Limiting** — Set `max_entries` to cap the number of queries processed per run. Queries are prioritized by `max_entries_sort`
+   (default: execution time, descending) so the most expensive queries are always captured. When the cap is hit, a self-monitoring warning
+   log and bizevent are emitted with the count of dropped rows.
+
+2. **Include/Exclude Filters** — Use `include_warehouses`, `exclude_warehouses`, `include_databases`, `exclude_databases`, `include_users`,
+   and `exclude_users` to filter queries at the SQL view level, reducing Snowflake compute cost. Exclude filters always take precedence over
+   include filters.
+
+3. **Watermark-Based Lookback** — The plugin uses the last-processed timestamp from `STATUS.LOG_PROCESSED_MEASUREMENTS` to avoid
+   reprocessing queries. The `max_lookback_minutes` parameter caps the maximum catch-up window (default: 120 minutes), ensuring the plugin
+   catches up incrementally if the agent was down for an extended period.
+
+All defaults preserve backward compatibility: `max_entries=0` (unlimited), `max_lookback_minutes=120`, and `exclude_warehouses=DTAGENT_WH`
+(exclude the agent's own warehouse only).
+
 **Note:** To correlate query spans with Snowflake's Snowtrail trace_id and span_id, the `event_log` plugin must be enabled. When enabled,
 this plugin will automatically extract trace context from the `STATUS.EVENT_LOG` table and include it in the span telemetry, allowing for
 distributed tracing correlation between your application and Snowflake queries.
@@ -878,6 +1192,16 @@ plugins:
     is_disabled: false
     slow_queries_threshold: 10000
     slow_queries_to_analyze_limit: 50
+    max_entries: 0
+    max_lookback_minutes: 120
+    cache_ttl_hours: 4
+    include_warehouses: []
+    exclude_warehouses:
+      - DTAGENT_WH
+    include_databases: []
+    exclude_databases: []
+    include_users: []
+    exclude_users: []
     telemetry:
       - metrics
       - logs
@@ -893,6 +1217,28 @@ The following options control this behavior:
 - `PLUGINS.QUERY_HISTORY.SLOW_QUERIES_THRESHOLD`: The execution time threshold in milliseconds. Queries running longer than this are
   considered slow and eligible for analysis. Default: `10000` (10 seconds).
 - `PLUGINS.QUERY_HISTORY.MAX_SLOWEST_QUERIES`: The maximum number of slowest queries to analyze. Default: `50`.
+
+## Signal Protection Framework Configuration
+
+The plugin supports signal protection to prevent overload on high-volume Snowflake accounts. The following options control this behavior:
+
+- `PLUGINS.QUERY_HISTORY.MAX_ENTRIES`: Maximum number of query entries to process per run. Set to `0` for unlimited (default). When set, the
+  view applies a `QUALIFY` filter keeping the top-N queries by execution time (descending). The pre-filter count is carried via
+  `_TOTAL_AVAILABLE` for self-monitoring.
+- `PLUGINS.QUERY_HISTORY.MAX_LOOKBACK_MINUTES`: Maximum lookback window in minutes for catching up on unprocessed queries. Default: `120`.
+  The plugin uses the last-processed watermark from `STATUS.LOG_PROCESSED_MEASUREMENTS` but never looks back further than this value.
+- `PLUGINS.QUERY_HISTORY.INCLUDE_WAREHOUSES`: Array of LIKE patterns (e.g. `PROD_%`, `MY_WH`). Empty array means no filter applied. Supports
+  `%` and `_` wildcards. Exclude always takes precedence over include.
+- `PLUGINS.QUERY_HISTORY.EXCLUDE_WAREHOUSES`: Array of LIKE patterns (e.g. `PROD_%`, `MY_WH`). Empty array means no filter applied. Supports
+  `%` and `_` wildcards. Exclude always takes precedence over include. Default: `["DTAGENT_WH"]`.
+- `PLUGINS.QUERY_HISTORY.INCLUDE_DATABASES`: Array of LIKE patterns (e.g. `PROD_%`, `MY_WH`). Empty array means no filter applied. Supports
+  `%` and `_` wildcards. Exclude always takes precedence over include.
+- `PLUGINS.QUERY_HISTORY.EXCLUDE_DATABASES`: Array of LIKE patterns (e.g. `PROD_%`, `MY_WH`). Empty array means no filter applied. Supports
+  `%` and `_` wildcards. Exclude always takes precedence over include.
+- `PLUGINS.QUERY_HISTORY.INCLUDE_USERS`: Array of LIKE patterns (e.g. `PROD_%`, `MY_WH`). Empty array means no filter applied. Supports `%`
+  and `_` wildcards. Exclude always takes precedence over include.
+- `PLUGINS.QUERY_HISTORY.EXCLUDE_USERS`: Array of LIKE patterns (e.g. `PROD_%`, `MY_WH`). Empty array means no filter applied. Supports `%`
+  and `_` wildcards. Exclude always takes precedence over include.
 
 > **IMPORTANT**: For the `query_history` and `active_queries` plugins to report telemetry for all queries, the `DTAGENT_VIEWER` role must be
 > granted `MONITOR` privileges on all warehouses. By default, when the `admin` scope is installed, this is ensured through the periodic
@@ -953,8 +1299,10 @@ This plugin:
 
 - logs the current state of each resource monitor and warehouse,
 - logs an error if an account-level monitor setup is missing,
-- logs a warning if a warehouse is not monitored at all, and
-- sends events on all new activities of monitors and warehouses.
+- logs a warning if a warehouse is not monitored at all,
+- sends events on all new activities of monitors and warehouses, and
+- fires Davis events when a resource monitor's credit usage crosses configurable thresholds (info / warn / critical / exhausted bands) and
+  resolves them automatically when usage drops back below the threshold.
 
 [Show semantics for this plugin](SEMANTICS.md#resource_monitors_semantics_sec)
 
@@ -975,6 +1323,15 @@ plugins:
       - metrics
       - events
       - biz_events
+    credits_quota_thresholds:
+      # Default alert bands (% of quota used). Must be monotonically increasing, all values in (0, 100].
+      # Four bands are value-driven: <80 = info, [80,90) = warn, [90,100) = critical, >=100 = exhausted.
+      defaults: [50, 80, 90, 100]
+      # Per-monitor overrides — key is the resource monitor name (uppercase).
+      # Invalid overrides fall back to defaults with an ERROR log.
+      overrides: {}
+      # How often (minutes) ACTIVE keep-alive events are re-sent while quota remains in an alert band.
+      active_keepalive_timeout_minutes: 60
 ```
 
 ### Resource Monitors Bill of Materials
@@ -983,15 +1340,16 @@ The following tables list the Snowflake objects that this plugin delivers data f
 
 #### Objects delivered by the `Resource Monitors` plugin
 
-| Name                                              | Type            |
-| ------------------------------------------------- | --------------- |
-| DTAGENT_DB.APP.TMP_RESOURCE_MONITORS              | transient table |
-| DTAGENT_DB.APP.TMP_WAREHOUSES                     | transient table |
-| DTAGENT_DB.APP.V_RESOURCE_MONITORS                | view            |
-| DTAGENT_DB.APP.V_WAREHOUSES                       | view            |
-| DTAGENT_DB.APP.P_REFRESH_RESOURCE_MONITORS()      | procedure       |
-| DTAGENT_DB.CONFIG.UPDATE_RESOURCE_MONITORS_CONF() | procedure       |
-| DTAGENT_DB.APP.TASK_DTAGENT_RESOURCE_MONITORS     | task            |
+| Name                                               | Type            |
+| -------------------------------------------------- | --------------- |
+| DTAGENT_DB.APP.TMP_RESOURCE_MONITORS               | transient table |
+| DTAGENT_DB.APP.TMP_WAREHOUSES                      | transient table |
+| DTAGENT_DB.APP.V_RESOURCE_MONITORS                 | view            |
+| DTAGENT_DB.APP.V_WAREHOUSES                        | view            |
+| DTAGENT_DB.APP.P_REFRESH_RESOURCE_MONITORS()       | procedure       |
+| DTAGENT_DB.CONFIG.UPDATE_RESOURCE_MONITORS_CONF()  | procedure       |
+| DTAGENT_DB.STATUS.RESOURCE_MONITOR_THRESHOLD_STATE | table           |
+| DTAGENT_DB.APP.TASK_DTAGENT_RESOURCE_MONITORS      | task            |
 
 #### Objects referenced by the `Resource Monitors` plugin
 
@@ -1179,6 +1537,118 @@ The following tables list the Snowflake objects that this plugin delivers data f
 | ALL PIPES IN SCHEMA $db.$schema            | pipe     | MONITOR                      | DTAGENT_VIEWER | Granted when include pattern has specific schema (e.g. DB.ANALYTICS.%)                                               |
 | ALL FUTURE PIPES IN SCHEMA $db.$schema     | pipe     | MONITOR                      | DTAGENT_VIEWER | Granted when include pattern has specific schema (e.g. DB.ANALYTICS.%)                                               |
 | PIPE $db.$schema.$pipe                     | pipe     | MONITOR                      | DTAGENT_VIEWER | Granted when include pattern specifies an exact pipe name (e.g. DB.ANALYTICS.MY_PIPE); no FUTURE grant at pipe level |
+
+<a name="table_health_info_sec"></a>
+
+## The Table Health plugin
+
+This plugin enables tracking table storage metrics and clustering depth in Snowflake through reported metrics.
+
+## Table Storage Context
+
+The `table_storage` context reports the following information for each table:
+
+- active bytes (data currently stored in the table),
+- time travel bytes (data maintained for Time Travel),
+- failsafe bytes (data maintained for Failsafe),
+- retained for clone bytes (data retained for cloning),
+- number of rows in the table, and
+- clustering key definition (if any).
+
+The plugin supports include/exclude filtering to target specific tables and can be configured with minimum table size and maximum table
+count constraints.
+
+## Table Clustering Context
+
+The `table_clustering` context reports clustering depth metrics for tables that have a clustering key defined. It is enabled by default and
+can be disabled via `clustering_enabled: false`.
+
+The following information is reported:
+
+- average clustering depth (lower is better — 1.0 means perfectly clustered),
+- average partition overlap (lower is better),
+- constant partition ratio (fraction of partitions fully within one clustering key range — higher is better), and
+- total partition count.
+
+Clustering information is collected by the `P_COLLECT_CLUSTERING_INFO()` stored procedure, which calls `SYSTEM$CLUSTERING_INFORMATION()` per
+table and stores results in the `TABLE_CLUSTERING_RESULTS` staging table. The clustering task runs every 6 hours, offset by 1 hour from the
+storage task to avoid warehouse contention.
+
+## Table Health Derived Context
+
+The `table_health_derived` context reports period-over-period growth and clustering degradation signals derived from historical snapshots
+stored in `TABLE_HEALTH_HISTORY`.
+
+This context is **disabled by default** (`history_retention_days: 0`). Set `history_retention_days` to a positive integer (e.g. `30`) to
+enable snapshot collection and derived metrics.
+
+The following metrics are reported per table (requires at least two snapshots):
+
+- byte growth since the previous snapshot (`snowflake.table.growth_bytes`),
+- percentage growth since the previous snapshot (`snowflake.table.growth_pct`),
+- change in average clustering depth (`snowflake.table.clustering.depth_change`), and
+- clustering degradation flag — 1 when depth increased beyond `clustering_degradation_threshold` (`snowflake.table.clustering.degraded`).
+
+Snapshots are written by `P_SNAPSHOT_TABLE_HEALTH()` and the snapshot task runs every 6 hours, offset by 2 hours from the storage task
+(after clustering collection has completed).
+
+[Show semantics for this plugin](SEMANTICS.md#table_health_semantics_sec)
+
+### Table Health default configuration
+
+This plugin is **disabled by default**; you need to explicitly set `IS_ENABLED` to `true` to enable it.
+
+```yaml
+plugins:
+  table_health:
+    include:
+      - DTAGENT_DB.%.%
+      - "%.PUBLIC.%"
+    exclude:
+      - "%.INFORMATION_SCHEMA.%"
+      - "%.%.TMP_%"
+    min_table_bytes: 1073741824
+    max_tables: 500
+    max_clustered_tables: 100
+    clustering_enabled: true
+    history_retention_days: 0
+    clustering_degradation_threshold: 2
+    schedule: USING CRON 0 0,6,12,18 * * * UTC
+    schedule_clustering: USING CRON 0 1,7,13,19 * * * UTC
+    schedule_snapshot: USING CRON 0 2,8,14,20 * * * UTC
+    is_disabled: true
+    telemetry:
+      - metrics
+      - biz_events
+```
+
+### Table Health Bill of Materials
+
+The following tables list the Snowflake objects that this plugin delivers data from or references.
+
+#### Objects delivered by the `Table Health` plugin
+
+| Name                                                | Type      |
+| --------------------------------------------------- | --------- |
+| DTAGENT_DB.APP.V_TABLE_STORAGE                      | view      |
+| DTAGENT_DB.APP.TABLE_CLUSTERING_RESULTS             | table     |
+| DTAGENT_DB.APP.P_COLLECT_CLUSTERING_INFO()          | procedure |
+| DTAGENT_DB.APP.V_TABLE_CLUSTERING                   | view      |
+| DTAGENT_DB.APP.TABLE_HEALTH_HISTORY                 | table     |
+| DTAGENT_DB.APP.P_SNAPSHOT_TABLE_HEALTH()            | procedure |
+| DTAGENT_DB.APP.V_TABLE_HEALTH_DERIVED               | view      |
+| DTAGENT_DB.CONFIG.UPDATE_TABLE_HEALTH_CONF()        | procedure |
+| DTAGENT_DB.APP.TASK_DTAGENT_TABLE_HEALTH            | task      |
+| DTAGENT_DB.APP.TASK_DTAGENT_TABLE_HEALTH_CLUSTERING | task      |
+| DTAGENT_DB.APP.TASK_DTAGENT_TABLE_HEALTH_SNAPSHOT   | task      |
+
+#### Objects referenced by the `Table Health` plugin
+
+| Name                                          | Type     | Privileges |
+| --------------------------------------------- | -------- | ---------- |
+| SNOWFLAKE.ACCOUNT_USAGE.TABLE_STORAGE_METRICS | view     | SELECT     |
+| SNOWFLAKE.ACCOUNT_USAGE.TABLES                | view     | SELECT     |
+| SYSTEM$CLUSTERING_INFORMATION                 | function | USAGE      |
 
 <a name="tasks_info_sec"></a>
 
