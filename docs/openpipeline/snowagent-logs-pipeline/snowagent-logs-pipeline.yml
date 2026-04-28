@@ -1,0 +1,334 @@
+#
+# Copyright (c) 2025 Dynatrace Open Source
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+#
+# OPENPIPELINE: SnowAgent Logs Pipeline
+# DESCRIPTION: OpenPipeline settings object for DSOA logs — metric extraction, processing, storage routing
+# OWNER: DSOA Team
+# SCHEMA: builtin:openpipeline.logs.pipelines
+# TAGS: snowflake, dsoa, openpipeline, metrics
+
+objectid: vu9U3hXa3q0AAAABACNidWlsdGluOm9wZW5waXBlbGluZS5sb2dzLnBpcGVsaW5lcwAGdGVuYW50AAZ0ZW5hbnQAJDFkY2M0MWRlLTVlNDMtM2FiNS04NmI1LWQ0NGNhODM4YmM5Yr7vVN4V2t6t
+schemaid: builtin:openpipeline.logs.pipelines
+schemaversion: 1.60.1
+scope: environment
+externalid: ""
+summary: SnowAgent Pipeline
+value:
+  costAllocation:
+    processors: []
+  customId: pipeline_SnowAgent_Pipeline_5525
+  dataExtraction:
+    processors: []
+  davis:
+    processors:
+      - davis:
+          properties:
+            - key: event.type
+              value: CUSTOM_ALERT
+            - key: event.name
+              value: User {dims:db.user} could not login
+            - key: event.description
+              value: "User {dims:db.user} failed to Snowflake at {dims:host.name} \nwith status message {dims:status.message}"
+        description: Create problem on failed user login
+        enabled: true
+        id: processor_Create_problem_on_failed_user_login_3640
+        matcher:
+          "dsoa.run.context == \"login_history\" and \nauthentication.factor.first == \"PASSWORD\" and \nstatus.code == \"ERROR\" and
+          \ndeployment.environment == \"PROD\""
+        type: davis
+  displayName: SnowAgent Pipeline
+  metadataList: []
+  metricExtraction:
+    processors:
+      - counterMetric:
+          dimensions:
+            - extractionType: field
+              sourceFieldName: db.system
+            - extractionType: field
+              sourceFieldName: deployment.environment
+            - extractionType: field
+              sourceFieldName: db.user
+            - extractionType: field
+              sourceFieldName: host.name
+            - extractionType: field
+              sourceFieldName: client.type
+          metricKey: log.snowflake.logins.failed
+        description: Count of failed attempts to login to Snowflake
+        enabled: true
+        id: processor_snowflake.logins.fail.count_4856
+        matcher: event.name == "LOGIN" and dsoa.run.context == "login_history" and status.code == "ERROR"
+        type: counterMetric
+      - counterMetric:
+          dimensions:
+            - extractionType: field
+              sourceFieldName: db.system
+            - extractionType: field
+              sourceFieldName: deployment.environment
+            - extractionType: field
+              sourceFieldName: db.user
+            - extractionType: field
+              sourceFieldName: client.type
+            - extractionType: field
+              sourceFieldName: host.name
+          metricKey: log.snowflake.logins.successful
+        description: Count of successful attempts to login to Snowflake
+        enabled: true
+        id: processor_snowflake.logins.success.count_3900
+        matcher: event.name == "LOGIN" and dsoa.run.context == "login_history" and status.code == "OK"
+        type: counterMetric
+      - counterMetric:
+          dimensions:
+            - extractionType: field
+              sourceFieldName: db.system
+            - extractionType: field
+              sourceFieldName: deployment.environment
+            - extractionType: field
+              sourceFieldName: db.user
+            - extractionType: field
+              sourceFieldName: host.name
+            - extractionType: field
+              sourceFieldName: client.type
+          metricKey: log.snowflake.logins.total
+        description: Count of all logins to Snowflake
+        enabled: true
+        id: processor_snowflake.logins.total.count_6874
+        matcher: event.name == "LOGIN" and dsoa.run.context == "login_history"
+        type: counterMetric
+      - description: Extract query running time
+        enabled: true
+        id: processor_Extract_query_running_time_1096
+        matcher: |-
+          dsoa.run.context == "active_queries" and
+          isNotNull(snowflake.time_running)
+        type: valueMetric
+        valueMetric:
+          dimensions:
+            - extractionType: field
+              sourceFieldName: dt.entity.host_group
+            - extractionType: field
+              sourceFieldName: dt.entity.service
+            - destinationFieldName: db.user
+              extractionType: field
+              sourceFieldName: db.user
+            - destinationFieldName: service.name
+              extractionType: field
+              sourceFieldName: service.name
+            - destinationFieldName: db.namespace
+              extractionType: field
+              sourceFieldName: db.namespace
+            - destinationFieldName: snowflake.role.name
+              extractionType: field
+              sourceFieldName: snowflake.role.name
+            - destinationFieldName: snowflake.schema.name
+              extractionType: field
+              sourceFieldName: snowflake.schema.name
+          field: snowflake.time_running
+          metricKey: snowflake.time.running
+      - counterMetric:
+          dimensions:
+            - extractionType: field
+              sourceFieldName: db.namespace
+            - extractionType: field
+              sourceFieldName: snowflake.schema.name
+            - extractionType: field
+              sourceFieldName: snowflake.task.name
+          metricKey: snowflake.task.run.failed
+        description: Count of failed Snowflake task runs
+        enabled: true
+        id: processor_snowflake.task.run.failed_6971
+        matcher: dsoa.run.context == "task_history" and snowflake.task.run.state == "FAILED"
+        type: counterMetric
+      - counterMetric:
+          dimensions:
+            - extractionType: field
+              sourceFieldName: db.namespace
+            - extractionType: field
+              sourceFieldName: snowflake.schema.name
+            - extractionType: field
+              sourceFieldName: snowflake.task.name
+          metricKey: snowflake.task.run.cancelled
+        description: Count of cancelled Snowflake task runs
+        enabled: true
+        id: processor_snowflake.task.run.cancelled_3812
+        matcher: dsoa.run.context == "task_history" and snowflake.task.run.state == "CANCELLED"
+        type: counterMetric
+      - counterMetric:
+          dimensions:
+            - extractionType: field
+              sourceFieldName: db.namespace
+            - extractionType: field
+              sourceFieldName: snowflake.schema.name
+            - extractionType: field
+              sourceFieldName: snowflake.task.name
+          metricKey: snowflake.task.run.successful
+        description: Count of successful Snowflake task runs
+        enabled: true
+        id: processor_snowflake.task.run.successful_5104
+        matcher: dsoa.run.context == "task_history" and snowflake.task.run.state == "SUCCEEDED"
+        type: counterMetric
+  processing:
+    processors:
+      - description: SnowAgent
+        enabled: true
+        fieldsAdd:
+          fields:
+            - name: pipeline.name
+              value: SnowAgent
+        id: processor_SnowAgent_6743
+        matcher: "true"
+        type: fieldsAdd
+      - description: Remove observed_timestamp
+        enabled: true
+        fieldsRemove:
+          fields:
+            - observed_timestamp
+        id: processor_Remove_observed_timestamp_1743
+        matcher: "true"
+        type: fieldsRemove
+      - description: Rename old user ID
+        enabled: true
+        fieldsRename:
+          fields:
+            - fromName: snowflake.user_id
+              toName: snowflake.user.id
+        id: processor_Rename_old_user_ID_6886
+        matcher: isNotNull(snowflake.user_id)
+        type: fieldsRename
+      - description: Drop DEBUG logs
+        enabled: true
+        id: processor_Drop_DEBUG_logs_9887
+        matcher: loglevel == "DEBUG"
+        type: drop
+  productAllocation:
+    processors: []
+  securityContext:
+    processors:
+      - description: Secure budget information
+        enabled: true
+        id: processor_Secure_budget_information_9239
+        matcher: dsoa.run.context == "budgets"
+        securityContext:
+          value:
+            constant: snowflake_budget
+            type: constant
+        type: securityContext
+  smartscapeEdgeExtraction:
+    processors:
+      - description: Snowflake lineage edge
+        enabled: true
+        id: processor_Snowflake_lineage_edge_8922
+        matcher: db.system == "snowflake" and dsoa.run.context == "column_lineage"
+        smartscapeEdge:
+          edgeType: pushes_data_to
+          sourceIdFieldName: source.dt.smartscape.ext_db_column
+          sourceType: EXT_DB_COLUMN
+          targetIdFieldName: target.dt.smartscape.ext_db_column
+          targetType: EXT_DB_COLUMN
+        type: smartscapeEdge
+  smartscapeNodeExtraction:
+    processors:
+      - description: Snowflake Column
+        enabled: true
+        id: processor_Snowflake_Column_2770
+        matcher: dsoa.run.context == "column_lineage"
+        smartscapeNode:
+          extractNode: true
+          fieldsToExtract: []
+          idComponents:
+            - idComponent: id
+              referencedFieldName: snowflake.lineage.source.column
+          nodeIdFieldName: source.dt.smartscape.ext_db_column
+          nodeName:
+            field:
+              sourceFieldName: snowflake.lineage.source.column
+            type: field
+          nodeType: EXT_DB_COLUMN
+          staticEdgesToExtract:
+            - edgeType: pushes_data_to
+              targetIdFieldName: snowflake.lineage.target.column
+              targetType: EXT_DB_COLUMN
+        type: smartscapeNode
+      - description: Snowflake Column - Copy
+        enabled: true
+        id: processor_Snowflake_Column_-_Copy_4284
+        matcher: db.system == "snowflake" and dsoa.run.context == "column_lineage"
+        smartscapeNode:
+          extractNode: true
+          fieldsToExtract: []
+          idComponents:
+            - idComponent: id
+              referencedFieldName: snowflake.lineage.target.column
+          nodeIdFieldName: target.dt.smartscape.ext_db_column
+          nodeName:
+            field:
+              sourceFieldName: snowflake.lineage.target.column
+            type: field
+          nodeType: EXT_DB_COLUMN
+          staticEdgesToExtract:
+            - edgeType: contains_data_from
+              targetIdFieldName: snowflake.lineage.source.column
+              targetType: EXT_DB_COLUMN
+        type: smartscapeNode
+  storage:
+    processors:
+      - bucketAssignment:
+          bucketName: lr_logs_prod
+        description: prod bucket
+        enabled: true
+        id: processor_prod_bucket_6129
+        matcher: deployment.environment == "PROD"
+        type: bucketAssignment
+      - bucketAssignment:
+          bucketName: lr_logs_pii_prod
+        description: pii prod bucket
+        enabled: true
+        id: processor_pii_prod_3265
+        matcher: deployment.environment == "PII-PROD"
+        type: bucketAssignment
+      - bucketAssignment:
+          bucketName: lr_logs_pii_dev
+        description: pii dev bucket
+        enabled: true
+        id: processor_pii_dev_bucket_2977
+        matcher: deployment.environment == "PII-DEV"
+        type: bucketAssignment
+      - bucketAssignment:
+          bucketName: lr_logs_ci360_dev
+        description: cii 360  dev bucket
+        enabled: true
+        id: processor_cii_360__dev_bucket_6776
+        matcher: deployment.environment == "CI360-DEV"
+        type: bucketAssignment
+      - bucketAssignment:
+          bucketName: lr_logs_ci360_prod
+        description: cii 360  prod bucket
+        enabled: true
+        id: processor_cii_360__prod_bucket_5742
+        matcher: deployment.environment == "CI360PROD"
+        type: bucketAssignment
+      - bucketAssignment:
+          bucketName: lr_logs_dev
+        description: dev bucket
+        enabled: true
+        id: processor_dev_bucket_5405
+        matcher: isNotNull(deployment.environment)
+        type: bucketAssignment
+modificationinfo: null
