@@ -32,8 +32,8 @@ select
         'snowflake.task.name',                      sth.task_name,
         'snowflake.schema.name',                    NULLIF(sth.schema_name, ''),
         'db.namespace',                             NULLIF(sth.database_name, ''),
-        'snowflake.task.is_internal',               IFF(sth.task_name LIKE '%\\_MEASUREMENT\\_TASK' ESCAPE '\\'
-                                                        OR sth.task_name LIKE '%\\_FINALIZER\\_TASK' ESCAPE '\\',
+        'snowflake.task.is_internal',               IFF(ENDS_WITH(sth.task_name, '_MEASUREMENT_TASK')
+                                                        OR ENDS_WITH(sth.task_name, '_FINALIZER_TASK'),
                                                         true, false)
     )                                                                               as DIMENSIONS,
     OBJECT_CONSTRUCT(

@@ -14,9 +14,6 @@
     "snowflake.task.is_internal": false,
     "dsoa.run.plugin": "test_tasks",
     "dsoa.run.context": "serverless_tasks",
-    "code.file.path": "/Users/sebastian.kruk/Development/hex/ant-4/snowagent/src/dtagent/otel/logs.py",
-    "code.function.name": "send_log",
-    "code.line.number": 205,
     "resource_attributes": {
       "telemetry.sdk.language": "python",
       "telemetry.sdk.name": "opentelemetry",
@@ -39,9 +36,6 @@
     "snowflake.task.is_internal": true,
     "dsoa.run.plugin": "test_tasks",
     "dsoa.run.context": "serverless_tasks",
-    "code.file.path": "/Users/sebastian.kruk/Development/hex/ant-4/snowagent/src/dtagent/otel/logs.py",
-    "code.function.name": "send_log",
-    "code.line.number": 205,
     "resource_attributes": {
       "telemetry.sdk.language": "python",
       "telemetry.sdk.name": "opentelemetry",
@@ -72,9 +66,6 @@
     "snowflake.warehouse.name": "DTAGENT_WH",
     "dsoa.run.plugin": "test_tasks",
     "dsoa.run.context": "task_versions",
-    "code.file.path": "/Users/sebastian.kruk/Development/hex/ant-4/snowagent/src/dtagent/otel/logs.py",
-    "code.function.name": "send_log",
-    "code.line.number": 205,
     "resource_attributes": {
       "telemetry.sdk.language": "python",
       "telemetry.sdk.name": "opentelemetry",
@@ -110,9 +101,6 @@
     "snowflake.warehouse.name": "DTAGENT_WH_XS",
     "dsoa.run.plugin": "test_tasks",
     "dsoa.run.context": "task_versions",
-    "code.file.path": "/Users/sebastian.kruk/Development/hex/ant-4/snowagent/src/dtagent/otel/logs.py",
-    "code.function.name": "send_log",
-    "code.line.number": 205,
     "resource_attributes": {
       "telemetry.sdk.language": "python",
       "telemetry.sdk.name": "opentelemetry",
@@ -140,9 +128,6 @@
     "snowflake.task.name": "TASK_DTAGENT_USERS",
     "dsoa.run.plugin": "test_tasks",
     "dsoa.run.context": "task_history",
-    "code.file.path": "/Users/sebastian.kruk/Development/hex/ant-4/snowagent/src/dtagent/otel/logs.py",
-    "code.function.name": "send_log",
-    "code.line.number": 205,
     "resource_attributes": {
       "telemetry.sdk.language": "python",
       "telemetry.sdk.name": "opentelemetry",
@@ -170,9 +155,6 @@
     "snowflake.task.name": "TASK_DTAGENT_DATA_SCHEMAS",
     "dsoa.run.plugin": "test_tasks",
     "dsoa.run.context": "task_history",
-    "code.file.path": "/Users/sebastian.kruk/Development/hex/ant-4/snowagent/src/dtagent/otel/logs.py",
-    "code.function.name": "send_log",
-    "code.line.number": 205,
     "resource_attributes": {
       "telemetry.sdk.language": "python",
       "telemetry.sdk.name": "opentelemetry",
