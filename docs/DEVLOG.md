@@ -16,7 +16,7 @@ Added `::INTEGER` cast at `src/dtagent/plugins/tasks.sql/062_v_task_history.sql:
 'snowflake.task.run.attempt',   th.ATTEMPT_NUMBER::INTEGER,
 ```
 
-`::INTEGER` forces 32-bit integer representation in the OBJECT_CONSTRUCT JSON output. Python `json.loads` parses it as `int`; `_cleanup_data` preserves it; OTEL sends it as `intValue`. Downstream Dynatrace Grail stores it as `LONG`.
+`::INTEGER` forces an integer-valued numeric representation in the `OBJECT_CONSTRUCT` JSON output (in Snowflake, `INTEGER` is effectively a synonym for `NUMBER(38,0)`, not a 32-bit type). Python `json.loads` parses it as `int`; `_cleanup_data` preserves it; OTEL sends it as `intValue`. Downstream Dynatrace Grail stores it as `LONG`.
 
 ### Downstream updates
 
@@ -25,7 +25,7 @@ Added `::INTEGER` cast at `src/dtagent/plugins/tasks.sql/062_v_task_history.sql:
 
 ### Test impact
 
-None. `test/test_data/tasks_history.ndjson` already stored attempt as bare integer `1`. Mock tests are count-based and pass without modification.
+None. `test/test_data/tasks_history.ndjson` already stored attempt as bare integer `1`, and the existing mock-test baselines already expected an integer here, so no fixture or `test/test_results/*` updates were needed.
 
 ### Deployment
 
