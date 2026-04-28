@@ -392,7 +392,7 @@ Response body parsing runs only on successful responses (2xx). `json.loads()` on
 | `config.md`                                              | Document `PLUGINS.QUERY_HISTORY.OBFUSCATION_MODE` config key          |
 | `test/plugins/test_query_history_obfuscation.py`         | 19 unit tests across all modes and edge cases                         |
 
-## [Unreleased] — BDX-1969: Interactive Deployment Wizard
+## Interactive Deployment Wizard
 
 **Scope**: Story to eliminate manual config creation friction for first-time DSOA users. Deliverables: shared bash library, 4-phase interactive wizard, `deploy.sh` flag enhancements, full BATS test suite.
 
