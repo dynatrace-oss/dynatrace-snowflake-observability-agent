@@ -57,6 +57,7 @@ All notable changes to this project will be documented in this file.
   pre-BCR accounts the new parameter is detected as absent and the change is skipped gracefully. See
   [DEVLOG.md](DEVLOG.md) for details.
 
+- `snowflake.task.run.attempt` in the `task_history` context now emits as a numeric integer instead of a string. Downstream DQL queries no longer require a `toLong()` cast; arithmetic comparisons such as `snowflake.task.run.attempt > 1` work directly. The `Tasks & Pipelines` dashboard retry tile has been updated accordingly. Redeploy with `--scope=plugins,config` to apply. (BDX-1903)
 - Config changes on redeploy now take full effect: the config upload procedure uses DELETE + INSERT (full replace) instead of an additive MERGE, so entries removed from the YAML (e.g. a plugin's `is_enabled: true`) are also removed from Snowflake. Previously, stale config entries could override a new `disabled_by_default: true` setting.
 - Disabled plugins now have their Snowflake tasks suspended automatically on every redeploy, regardless of deploy scope. The deploy script injects `ALTER TASK IF EXISTS … SUSPEND` for every excluded plugin (including multi-task and admin-task plugins) before executing the deploy SQL. Previously, stale tasks continued running and consuming compute credits after a plugin was disabled.
 
