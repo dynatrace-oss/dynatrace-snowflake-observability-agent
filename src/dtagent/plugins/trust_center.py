@@ -40,6 +40,7 @@ class TrustCenterPlugin(Plugin):
     """Trust center plugin class."""
 
     PLUGIN_NAME = "trust_center"
+    PLUGIN_CONTEXTS: tuple = ("trust_center",)
 
     def _get_severity_log_level(self, row_dict) -> str:
         """Maps severity from the given severity to log level"""

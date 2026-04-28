@@ -37,6 +37,7 @@ class ColdTablesPlugin(Plugin):
     """Cold tables plugin class."""
 
     PLUGIN_NAME = "cold_tables"
+    PLUGIN_CONTEXTS: tuple = ("cold_tables",)
 
     def process(self, run_id: str, run_proc: bool = True, contexts: Optional[List[str]] = None) -> Dict[str, Dict[str, int]]:
         """Processes cold table identification data.

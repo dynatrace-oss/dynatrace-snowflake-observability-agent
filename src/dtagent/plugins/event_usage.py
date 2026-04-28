@@ -39,6 +39,7 @@ class EventUsagePlugin(Plugin):
     """Event usage plugin class."""
 
     PLUGIN_NAME = "event_usage"
+    PLUGIN_CONTEXTS: tuple = ("event_usage",)
 
     def _report_event_usage_log(self, row_dict: Dict, __context: Dict, log_level: int) -> bool:
         """Sends single log line for event usage plugin"""
