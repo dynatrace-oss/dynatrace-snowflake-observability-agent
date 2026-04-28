@@ -45,6 +45,12 @@
 | observed_timestamp                 | The timestamp (in epoch nanoseconds) when the event was observed.                                                                                                                                                  | 1741768500000000000                  |
 | snowflake.&#8203;event.&#8203;type | Type of (timestamp based) event                                                                                                                                                                                    | snowflake.table.update               |
 
+### Metrics at the `core` plugin
+
+| Identifier                                      | Name                    | Unit | Description                                                                                            | Example |
+| ----------------------------------------------- | ----------------------- | ---- | ------------------------------------------------------------------------------------------------------ | ------- |
+| dsoa.&#8203;agent.&#8203;memory.&#8203;peak_rss | Agent Peak Memory (RSS) | MB   | Peak resident set size (RSS) of the agent process in megabytes, sampled after each plugin context run. | 42.5    |
+
 <a name="active_queries_semantics_sec"></a>
 
 ## The `Active Queries` plugin semantics
