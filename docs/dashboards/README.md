@@ -7,7 +7,7 @@ This directory contains example Dynatrace dashboards designed to visualize and a
   - [DSOA Self-Monitoring](#dsoa-self-monitoring)
   - [Snowflake Performance Explorer](#snowflake-performance-explorer)
   - [Snowflake Query Performance](#snowflake-query-performance)
-  - [Org-Level Costs Observability](#org-level-costs-observability)
+  - [Snowflake Consumption (Organization Level)](#snowflake-consumption-organization-level)
   - [Tasks \& Pipelines Monitoring](#tasks--pipelines-monitoring)
   - [Snowpipes Monitoring](#snowpipes-monitoring)
   - [Budgets \& FinOps](#budgets--finops)
@@ -121,20 +121,21 @@ breakdown, grouped query pattern analysis, to individual long-running query dril
 
 ---
 
-### [Org-Level Costs Observability](org-costs-observability/)
+### [Snowflake Consumption (Organization Level)](org-costs-observability/)
 
-**Purpose**: Monitor organization-wide Snowflake costs across all accounts in a single dashboard.
+**Purpose**: Monitor organization-wide Snowflake consumption across all accounts — credits, storage,
+data transfer, billing amounts, and remaining contract balance in a single dashboard.
 
 **Key Features**:
 
-- Credit consumption by service type and service name across the organization
-- Cloud services credit adjustment trends
-- Organization-wide storage bytes by storage type and account locator
-- Cross-cloud and cross-region data transfer volumes
-- Billing amounts in contract currency per service type and account
-- Remaining contract balances (free usage, capacity, on-demand, rollover, total)
+- §2 Credit consumption trends by account and service type with compute/cloud-services breakdown table
+- §4 Storage bytes over time by account and by storage type (STAGE, FAILSAFE, HYBRID_TABLE_STORAGE)
+- §5 Cross-cloud and cross-region data transfer volumes with source/target region breakdown
+- §6 Billing amounts in contract currency per service type and remaining contract balance (capacity, rollover, free usage, on-demand, overage)
+- Three dashboard variables: `$Accounts` (multi-select), `$credit_rate` (hidden, for Phase B cost tiles), `$bu_mapping` (hidden JSON, for Phase C BU grouping)
+- Planned Phase B: §1 Contract Capacity KPIs and §3 USD Consumption; Phase C: §6 Department/BU View
 
-**Required Plugin**: `org_costs` (disabled by default — requires ORGADMIN or organization-linked account)
+**Required Plugin**: `org_costs` (disabled by default — requires `SNOWFLAKE.ORGANIZATION_USAGE_VIEWER` granted)
 
 **DPO Theme**: Costs
 

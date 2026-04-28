@@ -45,7 +45,7 @@ select
         'snowflake.organization.name',          ORGANIZATION_NAME
     )                                                                               as ATTRIBUTES,
     OBJECT_CONSTRUCT(
-        'snowflake.org.transfer.bytes',         BYTES_TRANSFERRED
+        'snowflake.org.data.transferred',       BYTES_TRANSFERRED
     )                                                                               as METRICS
 from SNOWFLAKE.ORGANIZATION_USAGE.DATA_TRANSFER_DAILY_HISTORY
 where

@@ -41,7 +41,7 @@ select
         'snowflake.organization.name',      ORGANIZATION_NAME
     )                                                                               as ATTRIBUTES,
     OBJECT_CONSTRUCT(
-        'snowflake.org.storage.bytes',      AVERAGE_BYTES
+        'snowflake.org.data.stored',        AVERAGE_BYTES
     )                                                                               as METRICS
 from SNOWFLAKE.ORGANIZATION_USAGE.STORAGE_DAILY_HISTORY
 where
