@@ -50,7 +50,9 @@ value:
         description: Create problem on failed user login
         enabled: true
         id: processor_Create_problem_on_failed_user_login_3640
-        matcher: "snowagent.run.context == \"login_history\" and \nauthentication.factor.first == \"PASSWORD\" and \nstatus.code == \"ERROR\" and \ndeployment.environment == \"PROD\""
+        matcher:
+          "dsoa.run.context == \"login_history\" and \nauthentication.factor.first == \"PASSWORD\" and \nstatus.code == \"ERROR\" and
+          \ndeployment.environment == \"PROD\""
         type: davis
   displayName: SnowAgent Pipeline
   metadataList: []
@@ -72,7 +74,7 @@ value:
         description: Count of failed attempts to login to Snowflake
         enabled: true
         id: processor_snowflake.logins.fail.count_4856
-        matcher: event.name == "LOGIN" and snowagent.run.context == "login_history" and status.code == "ERROR"
+        matcher: event.name == "LOGIN" and dsoa.run.context == "login_history" and status.code == "ERROR"
         type: counterMetric
       - counterMetric:
           dimensions:
@@ -90,7 +92,7 @@ value:
         description: Count of successful attempts to login to Snowflake
         enabled: true
         id: processor_snowflake.logins.success.count_3900
-        matcher: event.name == "LOGIN" and snowagent.run.context == "login_history" and status.code == "OK"
+        matcher: event.name == "LOGIN" and dsoa.run.context == "login_history" and status.code == "OK"
         type: counterMetric
       - counterMetric:
           dimensions:
@@ -108,13 +110,13 @@ value:
         description: Count of all logins to Snowflake
         enabled: true
         id: processor_snowflake.logins.total.count_6874
-        matcher: event.name == "LOGIN" and snowagent.run.context == "login_history"
+        matcher: event.name == "LOGIN" and dsoa.run.context == "login_history"
         type: counterMetric
       - description: Extract query running time
         enabled: true
         id: processor_Extract_query_running_time_1096
         matcher: |-
-          snowagent.run.context == "active_queries" and
+          dsoa.run.context == "active_queries" and
           isNotNull(snowflake.time_running)
         type: valueMetric
         valueMetric:
@@ -152,7 +154,7 @@ value:
         description: Count of failed Snowflake task runs
         enabled: true
         id: processor_snowflake.task.run.failed_6971
-        matcher: snowagent.run.context == "task_history" and snowflake.task.run.state == "FAILED"
+        matcher: dsoa.run.context == "task_history" and snowflake.task.run.state == "FAILED"
         type: counterMetric
       - counterMetric:
           dimensions:
@@ -166,7 +168,7 @@ value:
         description: Count of cancelled Snowflake task runs
         enabled: true
         id: processor_snowflake.task.run.cancelled_3812
-        matcher: snowagent.run.context == "task_history" and snowflake.task.run.state == "CANCELLED"
+        matcher: dsoa.run.context == "task_history" and snowflake.task.run.state == "CANCELLED"
         type: counterMetric
       - counterMetric:
           dimensions:
@@ -180,7 +182,7 @@ value:
         description: Count of successful Snowflake task runs
         enabled: true
         id: processor_snowflake.task.run.successful_5104
-        matcher: snowagent.run.context == "task_history" and snowflake.task.run.state == "SUCCEEDED"
+        matcher: dsoa.run.context == "task_history" and snowflake.task.run.state == "SUCCEEDED"
         type: counterMetric
   processing:
     processors:
@@ -222,7 +224,7 @@ value:
       - description: Secure budget information
         enabled: true
         id: processor_Secure_budget_information_9239
-        matcher: snowagent.run.context == "budgets"
+        matcher: dsoa.run.context == "budgets"
         securityContext:
           value:
             constant: snowflake_budget
