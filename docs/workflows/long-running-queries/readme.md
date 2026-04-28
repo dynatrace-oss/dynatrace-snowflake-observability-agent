@@ -47,14 +47,15 @@ ad_long_running_by_user      ─┘
    pattern (including weekly seasonality) and raises an alert when the max rises significantly above
    that baseline. Only `SUCCESS` queries are included.
 
-2. **`ad_long_running_by_user`** — Identical analysis grouped by `db.user` instead of warehouse,
+1. **`ad_long_running_by_user`** — Identical analysis grouped by `db.user` instead of warehouse,
    catching users whose queries suddenly run much longer than their personal baseline.
 
-3. **`extract_anomaly_events`** — Fan-in task: collects raised alerts from both analyzers, builds
-   Dynatrace event payloads with all relevant dimensions attached as event properties. Continues
-   even if one analyzer task fails (`OK` condition) so partial results are never lost.
+1. **`extract_anomaly_events`** — Fan-in task: collects raised alerts from both analyzers, builds
+   Dynatrace event payloads with all relevant dimensions attached as event properties. Waits for
+   both predecessors via `predecessors`, then JS try/catch skips any failed task so partial results
+   are never lost.
 
-4. **`ingest_anomaly_events`** — Sends each event to Dynatrace via the Environment V2 Events API.
+1. **`ingest_anomaly_events`** — Sends each event to Dynatrace via the Environment V2 Events API.
 
 ## Telemetry Source
 

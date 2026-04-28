@@ -125,9 +125,7 @@ tasks:
       x: 0
       y: 2
     conditions:
-      states:
-        ad_long_running_by_warehouse: OK
-        ad_long_running_by_user: OK
+      states: {}
     predecessors:
       - ad_long_running_by_warehouse
       - ad_long_running_by_user
