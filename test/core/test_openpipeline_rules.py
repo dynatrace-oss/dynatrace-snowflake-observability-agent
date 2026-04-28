@@ -32,10 +32,7 @@ from typing import Any, Dict, List
 import yaml
 import pytest
 
-
-OPENPIPELINE_DIR = os.path.join(
-    os.path.dirname(__file__), "..", "..", "docs", "openpipeline"
-)
+OPENPIPELINE_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "docs", "openpipeline")
 
 KNOWN_METRIC_KEYS = {
     "snowflake.login.attempts.failed",
@@ -77,20 +74,16 @@ class TestOpenpipelineRuleStructure:
         for rule in all_rules:
             missing = required - set(rule.keys())
             if missing:
-                problems.append(
-                    f"{rule['_source_file']}: missing top-level fields: {sorted(missing)}"
-                )
+                problems.append(f"{rule['_source_file']}: missing top-level fields: {sorted(missing)}")
         assert not problems, "\n".join(problems)
 
     def test_processors_is_non_empty_list(self, all_rules):
-        """processors must be a non-empty list."""
+        """The list of processors must be a non-empty."""
         problems = []
         for rule in all_rules:
             processors = rule.get("processors")
             if not isinstance(processors, list) or len(processors) == 0:
-                problems.append(
-                    f"{rule['_source_file']}: 'processors' must be a non-empty list"
-                )
+                problems.append(f"{rule['_source_file']}: 'processors' must be a non-empty list")
         assert not problems, "\n".join(problems)
 
     def test_each_processor_has_required_fields(self, all_rules):
@@ -101,10 +94,7 @@ class TestOpenpipelineRuleStructure:
             for idx, processor in enumerate(rule.get("processors", [])):
                 missing = required - set(processor.keys())
                 if missing:
-                    problems.append(
-                        f"{rule['_source_file']} processor[{idx}]: "
-                        f"missing fields: {sorted(missing)}"
-                    )
+                    problems.append(f"{rule['_source_file']} processor[{idx}]: " f"missing fields: {sorted(missing)}")
         assert not problems, "\n".join(problems)
 
     def test_each_processor_type_is_metric_extraction(self, all_rules):
@@ -114,8 +104,7 @@ class TestOpenpipelineRuleStructure:
             for idx, processor in enumerate(rule.get("processors", [])):
                 if processor.get("type") != "metricExtraction":
                     problems.append(
-                        f"{rule['_source_file']} processor[{idx}]: "
-                        f"type must be 'metricExtraction', got: {processor.get('type')!r}"
+                        f"{rule['_source_file']} processor[{idx}]: " f"type must be 'metricExtraction', got: {processor.get('type')!r}"
                     )
         assert not problems, "\n".join(problems)
 
@@ -127,9 +116,7 @@ class TestOpenpipelineRuleStructure:
                 key = processor.get("metricKey")
                 if key not in KNOWN_METRIC_KEYS:
                     problems.append(
-                        f"{rule['_source_file']} processor[{idx}]: "
-                        f"unknown metricKey {key!r}; "
-                        f"allowed: {sorted(KNOWN_METRIC_KEYS)}"
+                        f"{rule['_source_file']} processor[{idx}]: " f"unknown metricKey {key!r}; " f"allowed: {sorted(KNOWN_METRIC_KEYS)}"
                     )
         assert not problems, "\n".join(problems)
 
@@ -140,10 +127,7 @@ class TestOpenpipelineRuleStructure:
             for idx, processor in enumerate(rule.get("processors", [])):
                 dims = processor.get("dimensions")
                 if not isinstance(dims, list) or len(dims) == 0:
-                    problems.append(
-                        f"{rule['_source_file']} processor[{idx}]: "
-                        "'dimensions' must be a non-empty list"
-                    )
+                    problems.append(f"{rule['_source_file']} processor[{idx}]: " "'dimensions' must be a non-empty list")
         assert not problems, "\n".join(problems)
 
     def test_no_high_cardinality_dimensions(self, all_rules):
@@ -155,8 +139,7 @@ class TestOpenpipelineRuleStructure:
                 offending = dims & HIGH_CARDINALITY_DIMENSIONS
                 if offending:
                     problems.append(
-                        f"{rule['_source_file']} processor[{idx}]: "
-                        f"high-cardinality dimension(s) not allowed: {sorted(offending)}"
+                        f"{rule['_source_file']} processor[{idx}]: " f"high-cardinality dimension(s) not allowed: {sorted(offending)}"
                     )
         assert not problems, "\n".join(problems)
 
@@ -167,10 +150,7 @@ class TestOpenpipelineRuleStructure:
             for idx, processor in enumerate(rule.get("processors", [])):
                 matcher = processor.get("matcher", "")
                 if "dsoa.run.context" not in matcher:
-                    problems.append(
-                        f"{rule['_source_file']} processor[{idx}]: "
-                        "matcher must contain 'dsoa.run.context'"
-                    )
+                    problems.append(f"{rule['_source_file']} processor[{idx}]: " "matcher must contain 'dsoa.run.context'")
         assert not problems, "\n".join(problems)
 
 
@@ -184,10 +164,7 @@ class TestOpenpipelineRuleUniqueness:
         for rule in all_rules:
             rule_id = rule.get("id")
             if rule_id in seen:
-                duplicates.append(
-                    f"Duplicate id {rule_id!r}: "
-                    f"{seen[rule_id]} and {rule['_source_file']}"
-                )
+                duplicates.append(f"Duplicate id {rule_id!r}: " f"{seen[rule_id]} and {rule['_source_file']}")
             else:
                 seen[rule_id] = rule["_source_file"]
         assert not duplicates, "\n".join(duplicates)
@@ -200,10 +177,7 @@ class TestOpenpipelineRuleUniqueness:
             for processor in rule.get("processors", []):
                 key = processor.get("metricKey")
                 if key in seen:
-                    duplicates.append(
-                        f"Duplicate metricKey {key!r}: "
-                        f"{seen[key]} and {rule['_source_file']}"
-                    )
+                    duplicates.append(f"Duplicate metricKey {key!r}: " f"{seen[key]} and {rule['_source_file']}")
                 else:
                     seen[key] = rule["_source_file"]
         assert not duplicates, "\n".join(duplicates)
@@ -215,18 +189,11 @@ class TestOpenpipelineRuleCount:
     def test_expected_rule_count(self, all_rules):
         """There must be exactly 4 OpenPipeline rules defined."""
         assert len(all_rules) == 4, (
-            f"Expected 4 OpenPipeline rule files, found {len(all_rules)}: "
-            f"{[r['_source_file'] for r in all_rules]}"
+            f"Expected 4 OpenPipeline rule files, found {len(all_rules)}: " f"{[r['_source_file'] for r in all_rules]}"
         )
 
     def test_all_known_metric_keys_are_covered(self, all_rules):
         """Every key in KNOWN_METRIC_KEYS must have at least one rule that produces it."""
-        covered = {
-            processor.get("metricKey")
-            for rule in all_rules
-            for processor in rule.get("processors", [])
-        }
+        covered = {processor.get("metricKey") for rule in all_rules for processor in rule.get("processors", [])}
         missing = KNOWN_METRIC_KEYS - covered
-        assert not missing, (
-            f"No rule found for metric key(s): {sorted(missing)}"
-        )
+        assert not missing, f"No rule found for metric key(s): {sorted(missing)}"
