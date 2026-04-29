@@ -18,7 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-.PHONY: lint lint-python lint-format lint-pylint lint-sql lint-yaml lint-markdown lint-bom lint-shell build docs package test test-documentation test-bash test-bash-slow test-core test-plugins
+.PHONY: lint lint-python lint-format lint-pylint lint-sql lint-yaml lint-markdown lint-bom lint-shell build docs package test test-documentation test-bash test-bash-slow test-core test-plugins docker-build docker-clean docker-test
 
 # Linting targets
 lint-python:
@@ -81,3 +81,16 @@ test-plugins:
 
 # Run all tests (mirrors CI test jobs, excludes slow bash tests)
 test: test-documentation test-bash test-core test-plugins
+
+DOCKER_TAG ?= dsoa-deploy:local
+
+docker-build: ## Build DSOA deployment Docker image (run build.sh first)
+	@if [ ! -d "build" ] || [ -z "$$(ls -A build 2>/dev/null)" ]; then \
+		echo "WARNING: build/ directory is missing or empty. Run ./scripts/dev/build.sh first."; \
+	fi
+	docker build -t $(DOCKER_TAG) .
+
+docker-clean: ## Remove DSOA Docker image, stopped containers using it, and dangling layers
+	docker ps -a --filter ancestor=$(DOCKER_TAG) -q | xargs -r docker rm -f
+	docker rmi $(DOCKER_TAG) 2>/dev/null || true
+	docker image prune -f
