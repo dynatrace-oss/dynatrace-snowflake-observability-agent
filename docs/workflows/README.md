@@ -87,6 +87,7 @@ dtctl apply -f /tmp/workflow-apply.json
 | [Dynamic Table Refresh Drift Detection](./dynamic-table-drift/readme.md)      | Quality / Performance | Detects when dynamic table scheduling lag consistently exceeds target lag                      | `dynamic_tables`    |
 | [Query Slowdown Detection](./query-slowdown-detection/readme.md)              | Performance           | Detects abnormal increases in query execution time per warehouse and database                  | `query_history`     |
 | [Table Performance Degradation Detection](./table-perf-degradation/readme.md) | Performance           | Detects tables with rising partition scan ratios indicating need for re-clustering             | `query_history`     |
+| [Long-Running Queries Detection](./long-running-queries/readme.md)            | Performance           | Detects individual queries with abnormal max execution time per warehouse and user             | `query_history`     |
 
 ## Workflow Structure
 
