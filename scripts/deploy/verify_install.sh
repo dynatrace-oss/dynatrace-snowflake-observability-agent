@@ -47,6 +47,13 @@ if [[ -z "$DB_NAME" || "$DB_NAME" == "null" || "$DB_NAME" == "-" ]]; then
     fi
 fi
 
+if [[ -n "$DB_NAME" && "$DB_NAME" != "-" && "$DB_NAME" != "null" ]]; then
+    if [[ ! "$DB_NAME" =~ ^[A-Za-z_][A-Za-z0-9_\$]*$ ]]; then
+        echo "ERROR: Invalid database name '${DB_NAME}': must start with letter or underscore, contain only letters, numbers, underscores, or dollar signs" >&2
+        exit 1
+    fi
+fi
+
 DEPLOYMENT_ENV="$("$CWD/get_config_key.sh" core.deployment_environment 2>/dev/null)"
 CONNECTION_ENV="${DEPLOYMENT_ENV,,}"
 DT_ADDRESS="$("$CWD/get_config_key.sh" core.dynatrace_tenant_address 2>/dev/null)"
@@ -72,8 +79,21 @@ fi
 
 # ---- Helpers ---------------------------------------------------------------
 
+QUERY_ERROR=""
 run_sf_query() {
-    snow sql "${SNOW_ARGS[@]}" -q "$1" --format=json 2>/dev/null || echo "[]"
+    local _sf
+    _sf=$(mktemp)
+    local _out
+    if ! _out=$(snow sql "${SNOW_ARGS[@]}" -q "$1" --format=json 2>"$_sf"); then
+        QUERY_ERROR=$(< "$_sf")
+        QUERY_ERROR="${QUERY_ERROR:-Snowflake CLI returned non-zero exit}"
+        rm -f "$_sf"
+        echo "[]"
+        return 1
+    fi
+    rm -f "$_sf"
+    QUERY_ERROR=""
+    echo "$_out"
 }
 
 add_check() {
@@ -94,56 +114,72 @@ printf "--- Snowflake checks ---\n" >&2
 
 # ---- Check 1: database_exists ----------------------------------------------
 
-DB_RESULT=$(run_sf_query "SELECT COUNT(*) AS C FROM INFORMATION_SCHEMA.DATABASES WHERE DATABASE_NAME = '${DB_NAME}'")
-DB_COUNT=$(echo "$DB_RESULT" | jq -r '.[0].C // "0"' 2>/dev/null || echo "0")
-if [[ "${DB_COUNT}" -ge 1 ]] 2>/dev/null; then
-    add_check "database_exists" "PASS" "${DB_NAME} found"
+if DB_RESULT=$(run_sf_query "SELECT COUNT(*) AS C FROM SNOWFLAKE.INFORMATION_SCHEMA.DATABASES WHERE DATABASE_NAME = '${DB_NAME}'"); then
+    DB_COUNT=$(echo "$DB_RESULT" | jq -r '.[0].C // "0"' 2>/dev/null || echo "0")
+    if [[ "${DB_COUNT}" -ge 1 ]] 2>/dev/null; then
+        add_check "database_exists" "PASS" "${DB_NAME} found"
+    else
+        add_check "database_exists" "FAIL" "${DB_NAME} not found — check deployment or core.snowflake.database.name config"
+    fi
 else
-    add_check "database_exists" "FAIL" "${DB_NAME} not found — check deployment or core.snowflake.database.name config"
+    add_check "database_exists" "FAIL" "Snowflake query error: ${QUERY_ERROR}"
 fi
 
 # ---- Check 2: stored_procedures --------------------------------------------
 
-PROC_RESULT=$(run_sf_query "SELECT COUNT(*) AS C FROM ${DB_NAME}.INFORMATION_SCHEMA.PROCEDURES WHERE PROCEDURE_SCHEMA = 'AGENTS'")
-PROC_COUNT=$(echo "$PROC_RESULT" | jq -r '.[0].C // "0"' 2>/dev/null || echo "0")
-if [[ "${PROC_COUNT}" -ge 1 ]] 2>/dev/null; then
-    add_check "stored_procedures" "PASS" "${PROC_COUNT} procedures in AGENTS schema"
+if PROC_RESULT=$(run_sf_query "SELECT COUNT(*) AS C FROM ${DB_NAME}.INFORMATION_SCHEMA.PROCEDURES WHERE PROCEDURE_SCHEMA = 'AGENTS'"); then
+    PROC_COUNT=$(echo "$PROC_RESULT" | jq -r '.[0].C // "0"' 2>/dev/null || echo "0")
+    if [[ "${PROC_COUNT}" -ge 1 ]] 2>/dev/null; then
+        add_check "stored_procedures" "PASS" "${PROC_COUNT} procedures in AGENTS schema"
+    else
+        add_check "stored_procedures" "FAIL" "No stored procedures found in ${DB_NAME}.AGENTS — run setup+agents scopes"
+    fi
 else
-    add_check "stored_procedures" "FAIL" "No stored procedures found in ${DB_NAME}.AGENTS — run setup+agents scopes"
+    add_check "stored_procedures" "FAIL" "Snowflake query error: ${QUERY_ERROR}"
 fi
 
 # ---- Check 3: tasks_running ------------------------------------------------
 
-TASKS_RESULT=$(run_sf_query "SHOW TASKS IN SCHEMA ${DB_NAME}.APP")
-TASK_STARTED=$(echo "$TASKS_RESULT" | jq '[.[] | select((.state // .STATE // "") | ascii_downcase == "started")] | length' 2>/dev/null || echo "0")
-TASK_SUSPENDED=$(echo "$TASKS_RESULT" | jq '[.[] | select((.state // .STATE // "") | ascii_downcase == "suspended")] | length' 2>/dev/null || echo "0")
-TASK_TOTAL=$(( TASK_STARTED + TASK_SUSPENDED ))
-if [[ "$TASK_TOTAL" -eq 0 ]] 2>/dev/null; then
-    add_check "tasks_running" "FAIL" "No tasks found in ${DB_NAME}.APP — run agents scope deployment"
-elif [[ "$TASK_STARTED" -ge 1 ]] 2>/dev/null; then
-    add_check "tasks_running" "PASS" "${TASK_STARTED} started, ${TASK_SUSPENDED} suspended"
+if TASKS_RESULT=$(run_sf_query "SHOW TASKS IN SCHEMA ${DB_NAME}.APP"); then
+    TASK_STARTED=$(echo "$TASKS_RESULT" | jq '[.[] | select((.state // .STATE // "") | ascii_downcase == "started")] | length' 2>/dev/null || echo "0")
+    TASK_SUSPENDED=$(echo "$TASKS_RESULT" | jq '[.[] | select((.state // .STATE // "") | ascii_downcase == "suspended")] | length' 2>/dev/null || echo "0")
+    TASK_TOTAL=$(( TASK_STARTED + TASK_SUSPENDED ))
+    if [[ "$TASK_TOTAL" -eq 0 ]] 2>/dev/null; then
+        add_check "tasks_running" "FAIL" "No tasks found in ${DB_NAME}.APP — run agents scope deployment"
+    elif [[ "$TASK_STARTED" -ge 1 ]] 2>/dev/null; then
+        add_check "tasks_running" "PASS" "${TASK_STARTED} started, ${TASK_SUSPENDED} suspended"
+    else
+        add_check "tasks_running" "WARN" "0 started, ${TASK_SUSPENDED} suspended — all plugins may be disabled"
+    fi
 else
-    add_check "tasks_running" "WARN" "0 started, ${TASK_SUSPENDED} suspended — all plugins may be disabled"
+    add_check "tasks_running" "FAIL" "Snowflake query error: ${QUERY_ERROR}"
 fi
 
 # ---- Check 4: config_populated ---------------------------------------------
 
-CONFIG_RESULT=$(run_sf_query "SELECT COUNT(*) AS C FROM ${DB_NAME}.CONFIG.CONFIGURATIONS")
-CONFIG_COUNT=$(echo "$CONFIG_RESULT" | jq -r '.[0].C // "0"' 2>/dev/null || echo "0")
-if [[ "${CONFIG_COUNT}" -ge 1 ]] 2>/dev/null; then
-    add_check "config_populated" "PASS" "${CONFIG_COUNT} configuration rows"
+if CONFIG_RESULT=$(run_sf_query "SELECT COUNT(*) AS C FROM ${DB_NAME}.CONFIG.CONFIGURATIONS"); then
+    CONFIG_COUNT=$(echo "$CONFIG_RESULT" | jq -r '.[0].C // "0"' 2>/dev/null || echo "0")
+    if [[ "${CONFIG_COUNT}" -ge 1 ]] 2>/dev/null; then
+        add_check "config_populated" "PASS" "${CONFIG_COUNT} configuration rows"
+    else
+        add_check "config_populated" "FAIL" "CONFIG.CONFIGURATIONS is empty — run config scope deployment"
+    fi
 else
-    add_check "config_populated" "FAIL" "CONFIG.CONFIGURATIONS is empty — run config scope deployment"
+    add_check "config_populated" "FAIL" "Snowflake query error: ${QUERY_ERROR}"
 fi
 
 # ---- Check 5: installed_version --------------------------------------------
 
-VERSION_RESULT=$(run_sf_query "SELECT VALUE::STRING AS V FROM ${DB_NAME}.CONFIG.CONFIGURATIONS WHERE PATH = 'core.agent.version'")
-INSTALLED_VERSION=$(echo "$VERSION_RESULT" | jq -r '.[0].V // "unknown"' 2>/dev/null || echo "unknown")
-if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" != "unknown" && "$INSTALLED_VERSION" != "null" ]]; then
-    add_check "installed_version" "PASS" "${INSTALLED_VERSION}"
+if VERSION_RESULT=$(run_sf_query "SELECT VALUE::STRING AS V FROM ${DB_NAME}.CONFIG.CONFIGURATIONS WHERE PATH = 'core.agent.version'"); then
+    INSTALLED_VERSION=$(echo "$VERSION_RESULT" | jq -r '.[0].V // "unknown"' 2>/dev/null || echo "unknown")
+    if [[ -n "$INSTALLED_VERSION" && "$INSTALLED_VERSION" != "unknown" && "$INSTALLED_VERSION" != "null" ]]; then
+        add_check "installed_version" "PASS" "${INSTALLED_VERSION}"
+    else
+        add_check "installed_version" "WARN" "unknown — version persisted after first run on 0.9.5+"
+        INSTALLED_VERSION="unknown"
+    fi
 else
-    add_check "installed_version" "WARN" "unknown — version persisted after first run on 0.9.5+ (BDX-1417)"
+    add_check "installed_version" "FAIL" "Snowflake query error: ${QUERY_ERROR}"
     INSTALLED_VERSION="unknown"
 fi
 

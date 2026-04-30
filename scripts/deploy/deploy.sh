@@ -359,6 +359,7 @@ DEPLOYMENT_ID=$(uuidgen 2>/dev/null \
     || python3 -c "import uuid; print(uuid.uuid4())" 2>/dev/null \
     || echo "00000000-0000-0000-0000-$(date +%s%N | tail -c 12)")
 
+mkdir -p build
 $CWD/prepare_config.sh "${DEFAULT_CONFIG_FILE}" "${CONFIG_FILE}"
 
 # Validate and fix dynatrace_tenant_address if it uses deprecated .apps.dynatrace.com domain
