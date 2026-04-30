@@ -8,6 +8,7 @@ plugins:
     is_disabled: false
     cross_tenant_monitoring: true
     databases: []
+    discover_db_event_tables: false
     telemetry:
       - metrics
       - logs
