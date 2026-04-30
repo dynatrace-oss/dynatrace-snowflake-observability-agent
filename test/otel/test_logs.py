@@ -162,27 +162,6 @@ class TestLoggerNaming:
         assert expected_name == "DTAGENT_PROD_OTLP"
 
 
-def _make_logs_with_mock_emit(multitenancy_tag=None):
-    """Return (Logs instance, mock_emit_callable) with LoggerProvider fully mocked."""
-    with patch("dtagent.otel.logs.LoggerProvider") as mock_lp, patch("dtagent.otel.logs.Resource"), patch("dtagent.otel.logs.OtelManager"):
-        mock_config = Mock()
-        mock_config.multitenancy_tag = multitenancy_tag
-
-        def mock_get(key=None, otel_module=None, **kwargs):
-            if otel_module == "logs":
-                if kwargs.get("key") == "export_timeout_millis":
-                    return 10000
-                if kwargs.get("key") == "max_export_batch_size":
-                    return 100
-            return kwargs.get("default_value", "http://test")
-
-        mock_config.get = Mock(side_effect=mock_get)
-        logs = Logs(Mock(), mock_config)
-        mock_otel_logger = mock_lp.return_value.get_logger.return_value
-        return logs, mock_otel_logger
-
-
-# Import Logs here so the helper above can use it without patching issues inside the function
 from dtagent.otel.logs import Logs, _SEVERITY_MAP  # noqa: E402
 
 

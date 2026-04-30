@@ -27,13 +27,14 @@
 
 import logging
 from typing import Dict, Optional, Any
-from opentelemetry._logs import SeverityNumber
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk._logs import LoggerProvider
 from dtagent.util import process_timestamps_for_telemetry
 from dtagent.otel.otel_manager import CustomLoggingSession, OtelManager
 
 ##endregion COMPILE_REMOVE
+
+from opentelemetry._logs import SeverityNumber  # pylint: disable=ungrouped-imports
 
 ##region ------------------------ OpenTelemetry LOGS ---------------------------------
 
@@ -110,7 +111,7 @@ class Logs:
 
     def send_log(
         self,
-        message: str,
+        message: Optional[str],
         extra: Optional[Dict] = None,
         log_level: int = logging.INFO,
         context: Optional[Dict] = None,
