@@ -25,17 +25,26 @@
 #
 #
 
-import json
 import logging
 from typing import Dict, Optional, Any
+from opentelemetry._logs import SeverityNumber
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk._logs import LoggerProvider
-from dtagent.util import get_timestamp, validate_timestamp, process_timestamps_for_telemetry
+from dtagent.util import process_timestamps_for_telemetry
 from dtagent.otel.otel_manager import CustomLoggingSession, OtelManager
 
 ##endregion COMPILE_REMOVE
 
 ##region ------------------------ OpenTelemetry LOGS ---------------------------------
+
+_SEVERITY_MAP = {
+    5: SeverityNumber.TRACE,
+    logging.DEBUG: SeverityNumber.DEBUG,
+    logging.INFO: SeverityNumber.INFO,
+    logging.WARNING: SeverityNumber.WARN,
+    logging.ERROR: SeverityNumber.ERROR,
+    logging.CRITICAL: SeverityNumber.FATAL,
+}
 
 
 class Logs:
@@ -45,9 +54,8 @@ class Logs:
     - Dynatrace OTLP Logs: https://docs.dynatrace.com/docs/ingest-from/opentelemetry/otlp-api/ingest-logs
     - OTLP Logs Standard: https://opentelemetry.io/docs/specs/otel/logs/data-model/
 
-    Note: Dynatrace requires timestamps in milliseconds (UTC milliseconds, RFC3339, or RFC3164),
-    which differs from the OTLP standard that specifies nanoseconds. However, `observed_timestamp`
-    must be in nanoseconds per OTLP standard to preserve original timestamp precision.
+    Note: ``timestamp`` is passed as nanoseconds (OTLP standard) via ``Logger.emit()``.
+    ``observed_timestamp`` is also in nanoseconds per OTLP standard.
     """
 
     from dtagent.config import Configuration  # COMPILE_REMOVE
@@ -56,7 +64,7 @@ class Logs:
 
     def __init__(self, resource: Resource, configuration: Configuration):
         """Initialize the OTLP logs exporter."""
-        self._otel_logger: Optional[logging.Logger] = None
+        self._otel_logger: Optional[Any] = None
         self._otel_logger_provider: Optional[LoggerProvider] = None
         self._configuration = configuration
 
@@ -78,7 +86,6 @@ class Logs:
         """All necessary actions to initialize logging via OpenTelemetry"""
         from opentelemetry.exporter.otlp.proto.http._log_exporter import OTLPLogExporter
         from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
-        from opentelemetry.sdk._logs import LoggingHandler
 
         class CustomUserAgentOTLPLogExporter(OTLPLogExporter):
             """Custom OTLP Log Exporter that sets a custom User-Agent header."""
@@ -86,50 +93,6 @@ class Logs:
             def __init__(self, *args, **kwargs):
                 super().__init__(*args, **kwargs)
                 self._session.headers.update(OtelManager.get_dsoa_headers())
-
-        class CustomOTelTimestampFilter(logging.Filter):
-            """Reads record.timestamp (int epoch milliseconds) and applies it to the Python LogRecord timing fields.
-
-            Also validates record.observed_timestamp and converts it to nanoseconds for OTEL.
-            """
-
-            def filter(self, record: logging.LogRecord) -> bool:
-                # Handle timestamp field (for log record timing)
-                ts_attr = getattr(record, "timestamp", None)
-                if ts_attr is not None:
-                    delattr(record, "timestamp")
-
-                    try:
-                        ts_val = int(ts_attr)
-                        # Validate with auto-detection and convert to milliseconds using standard validation
-                        validated_ts_ms = validate_timestamp(ts_val, return_unit="ms")
-                        if validated_ts_ms is not None:
-                            record.created = validated_ts_ms / 1_000
-                            record.msecs = validated_ts_ms % 1_000
-                    except (ValueError, TypeError, OverflowError):
-                        # If conversion fails, use default timestamp
-                        pass
-
-                # Handle observed_timestamp field (must be in nanoseconds per OTLP standard)
-                observed_ts_attr = getattr(record, "observed_timestamp", None)
-                if observed_ts_attr is not None:
-                    try:
-                        observed_ts_val = int(observed_ts_attr)
-                    except (ValueError, TypeError, OverflowError):
-                        delattr(record, "observed_timestamp")
-                    else:
-                        # Validate with auto-detection and return nanoseconds; skip range validation to preserve original observed_timestamp
-                        validated_ts_ns = validate_timestamp(
-                            observed_ts_val,
-                            return_unit="ns",
-                            skip_range_validation=True,
-                        )
-                        if validated_ts_ns is not None:
-                            setattr(record, "observed_timestamp", validated_ts_ns)
-                        else:
-                            delattr(record, "observed_timestamp")
-
-                return True
 
         self._otel_logger_provider = LoggerProvider(resource=resource)
         self._otel_logger_provider.add_log_record_processor(
@@ -143,12 +106,7 @@ class Logs:
                 max_export_batch_size=self._configuration.get(otel_module="logs", key="max_export_batch_size", default_value=100),
             )
         )
-        handler = LoggingHandler(level=logging.NOTSET, logger_provider=self._otel_logger_provider)
-        handler.addFilter(CustomOTelTimestampFilter())
-
-        self._otel_logger = logging.getLogger(self.__get_logger_name())
-        self._otel_logger.setLevel(logging.NOTSET)
-        self._otel_logger.addHandler(handler)
+        self._otel_logger = self._otel_logger_provider.get_logger(self.__get_logger_name())
 
     def send_log(
         self,
@@ -159,58 +117,43 @@ class Logs:
     ):
         """Util function to ensure we send logs correctly"""
         from dtagent import LOG, LL_TRACE  # COMPILE_REMOVE
-        from dtagent.util import _to_json, _cleanup_data, _cleanup_dict  # COMPILE_REMOVE
+        from dtagent.util import _cleanup_data, _cleanup_dict  # COMPILE_REMOVE
 
         def __adjust_log_attribute(key: str, value: Any) -> Any:
-            """Ensures following things:
-            - numeric timestamps are converted to strings
-            """
             if key == "timestamp" and str(value).isnumeric():
                 value = str(int(value))
-
             return value
 
         # the following conversions through JSON are necessary to ensure certain objects like datetime are properly serialized,
         # otherwise OTEL seems to be sending objects cannot be deserialized on the Dynatrace side
         o_extra = {k: __adjust_log_attribute(k, v) for k, v in _cleanup_data(extra).items() if v is not None} if extra else {}
 
-        # Process timestamps using standard pattern:
-        # - timestamp in milliseconds (Dynatrace OTLP Logs API deviation from spec)
-        # - observed_timestamp in nanoseconds (per OTLP standard)
         validated_timestamp_ms, validated_observed_timestamp_ns = process_timestamps_for_telemetry(o_extra)
 
-        if validated_timestamp_ms:
-            o_extra["timestamp"] = validated_timestamp_ms
+        # pop timestamp fields — they go as direct emit params, not attributes
+        o_extra.pop("timestamp", None)
+        o_extra.pop("observed_timestamp", None)
 
         LOG.log(LL_TRACE, o_extra)
 
         raw_payload = o_extra | (context or {})
-        if (
-            raw_payload.get("telemetry.sdk.language") == "python"
-        ):  # remove telemetry.sdk.language="python" which is added by OTEL by default as resource attribute
+        if raw_payload.get("telemetry.sdk.language") == "python":
             del raw_payload["telemetry.sdk.language"]
-
-        # Add observed_timestamp if available (in nanoseconds per OTLP standard)
-        if validated_observed_timestamp_ns:
-            raw_payload["observed_timestamp"] = validated_observed_timestamp_ns
 
         payload = _cleanup_dict(raw_payload)
 
         if message is None:
             message = "-"
 
-        if payload.get("timestamp", None) is None:
-            payload.pop("timestamp", None)
-
-        self._otel_logger.log(level=log_level, msg=message, extra=payload)
-        LOG.log(
-            LL_TRACE,
-            "Sent log %s with extra content of count %d at level %d",
-            message,
-            len(o_extra),
-            log_level,
+        self._otel_logger.emit(
+            timestamp=validated_timestamp_ms * 1_000_000 if validated_timestamp_ms else None,
+            observed_timestamp=validated_observed_timestamp_ns,
+            severity_number=_SEVERITY_MAP.get(log_level, SeverityNumber.INFO),
+            severity_text=logging.getLevelName(log_level),
+            body=message,
+            attributes=payload if payload else None,
         )
-
+        LOG.log(LL_TRACE, "Sent log %s with extra content of count %d at level %d", message, len(o_extra), log_level)
         OtelManager.verify_communication()
 
     def flush_logs(self) -> None:
