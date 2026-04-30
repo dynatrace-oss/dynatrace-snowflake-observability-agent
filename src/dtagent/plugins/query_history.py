@@ -25,6 +25,7 @@
 #
 #
 import logging
+import re
 from typing import Any, Tuple, Dict, List, Optional
 from dtagent import LOG, LL_TRACE
 from dtagent.otel import logs, spans
@@ -118,13 +119,17 @@ class QueryHistoryPlugin(Plugin):
             )
 
             if not getattr(self._logs, "NOT_ENABLED", False):
+                log_extra = {
+                    "timestamp": query_dict["START_TIME"],
+                    "end_time": query_dict["END_TIME"],
+                    **log_dict,
+                }
+                log_extra["db.query.text"] = self._obfuscate_query_text(log_extra.get("db.query.text", ""))
+                if log_extra.get("snowflake.error.message"):
+                    log_extra["snowflake.error.message"] = self._obfuscate_query_text(log_extra["snowflake.error.message"])
                 self._logs.send_log(
-                    log_dict.get("db.query.text", "Snowflake Query"),
-                    extra={
-                        "timestamp": query_dict["START_TIME"],
-                        "end_time": query_dict["END_TIME"],
-                        **log_dict,
-                    },
+                    self._obfuscate_query_text(log_dict.get("db.query.text", "Snowflake Query")),
+                    extra=log_extra,
                     context=__context,
                 )
                 logs_sent = 1
@@ -176,6 +181,30 @@ class QueryHistoryPlugin(Plugin):
             },
             run_id,
         )
+
+    def _obfuscate_query_text(self, text: str) -> str:
+        """Apply query text obfuscation based on the configured obfuscation_mode.
+
+        This is a Python-side fallback — primary obfuscation is applied in the SQL view layer.
+        It ensures no unobfuscated text leaks through the log message body path.
+
+        Args:
+            text (str): The query text or error message to obfuscate.
+
+        Returns:
+            str: Obfuscated text according to the configured mode.
+                 Mode 'full'     → '[OBFUSCATED]'
+                 Mode 'literals' → string/numeric literals replaced with '?'
+                 Mode 'off' or unknown → text returned unchanged
+        """
+        mode = self._configuration.get(plugin_name=self._plugin_name, key="obfuscation_mode", default_value="off")
+        if mode == "full":
+            return "[OBFUSCATED]"
+        if mode == "literals":
+            text = re.sub(r"'[^']*'", "'?'", text)
+            text = re.sub(r"\b[0-9]+\.?[0-9]*\b", "?", text)
+            return text
+        return text
 
     def _call_refresh_recent_queries(self) -> Dict[str, Any]:
         """Call P_REFRESH_RECENT_QUERIES and return the result object.
