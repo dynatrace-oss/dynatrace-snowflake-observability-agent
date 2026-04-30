@@ -192,8 +192,8 @@ map_scope_to_files() {
             # Process upgrade scripts >= FROM_VERSION
             echo "09_upgrade/*.sql"
             ;;
-        apikey|teardown)
-            # These are handled specially below
+        verify|apikey|teardown)
+            # These are handled specially — no SQL files
             echo ""
             ;;
         *)
@@ -215,7 +215,7 @@ if [[ "$SCOPE" == *,* ]]; then
         single_scope=$(echo "$single_scope" | xargs)
 
         # Check for special scopes that can't be combined
-        if [ "$single_scope" == "teardown" ] || [ "$single_scope" == "all" ]; then
+        if [ "$single_scope" == "teardown" ] || [ "$single_scope" == "all" ] || [ "$single_scope" == "verify" ]; then
             echo "ERROR: Scope '$single_scope' cannot be combined with other scopes"
             exit 1
         fi
