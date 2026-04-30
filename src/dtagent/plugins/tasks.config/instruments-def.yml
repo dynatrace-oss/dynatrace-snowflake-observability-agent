@@ -138,7 +138,7 @@ attributes:
   snowflake.task.run.attempt:
     __context_names:
       - task_history
-    __example: "1"
+    __example: 1
     __description: The attempt number of the task run.
   snowflake.task.run.completed_time:
     __context_names:

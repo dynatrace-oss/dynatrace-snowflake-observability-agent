@@ -43,11 +43,11 @@ tasks:
         // Threshold below which to trigger an alert (in USD or contract currency)
         const BALANCE_THRESHOLD = 1000;
         const METRIC_IDS = [
-          'snowflake.org.balance.free_usage.remaining',
-          'snowflake.org.balance.capacity.remaining',
-          'snowflake.org.balance.on_demand.remaining',
-          'snowflake.org.balance.rollover.remaining',
-          'snowflake.org.balance.total.remaining',
+          'snowflake.org.billing.free_usage_balance',
+          'snowflake.org.billing.capacity_balance',
+          'snowflake.org.billing.on_demand_consumption',
+          'snowflake.org.billing.rollover_balance',
+          'snowflake.org.billing.overage',
         ];
 
         export default async function () {
@@ -55,7 +55,7 @@ tasks:
 
           for (const metricId of METRIC_IDS) {
             const result = await metricsClient.query({
-              metricSelector: `${metricId}:last`,
+              metricSelector: `${metricId}:avg:last`,
               resolution: 'Inf',
               from: 'now-7d',
             });
