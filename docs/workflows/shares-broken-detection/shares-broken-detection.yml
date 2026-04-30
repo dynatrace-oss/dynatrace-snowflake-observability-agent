@@ -1,0 +1,329 @@
+# WORKFLOW: DSOA — Broken Share Detection
+# DESCRIPTION: Detects broken, disappeared, or degraded Snowflake inbound shares
+# OWNER: DSOA Team
+# PLUGINS: shares
+# TAGS: snowflake, dsoa, quality, security, shares
+
+id: abe4b4af-1429-4676-a736-793c2a589e73
+title: "DSOA — Broken Share Detection"
+description: |
+  Monitors inbound Snowflake shares for three failure modes: shares that have become
+  UNAVAILABLE, shares that have silently disappeared (seen in the last 7 days but absent
+  for the last 2 hours), and shares whose table row counts have dropped abnormally below
+  the learned seasonal baseline. All three detection paths emit Dynatrace events for
+  alerting. Requires the shares plugin with inbound_shares context active.
+isPrivate: false
+schemaVersion: 4
+trigger:
+  schedule:
+    isActive: true
+    trigger:
+      type: interval
+      intervalMinutes: 360
+    rule: null
+    filterParameters: {}
+    timezone: UTC
+    inputs: {}
+tasks:
+  detect_broken_shares:
+    name: detect_broken_shares
+    description: Find inbound shares with UNAVAILABLE status
+    action: dynatrace.automations:execute-dql-query
+    active: true
+    position:
+      x: -2
+      y: 1
+    conditions:
+      states: {}
+    predecessors: []
+    input:
+      query: |
+        fetch logs
+        | filter dsoa.run.context == "inbound_shares"
+        | filter snowflake.share.status == "UNAVAILABLE"
+        | summarize
+            last_seen = max(timestamp),
+            error_msg = takeFirst(snowflake.error.message),
+            by: {
+              snowflake.share.name,
+              db.namespace,
+              deployment.environment
+            }
+        | fieldsAdd
+            _event_category = "unavailable",
+            _event_name = concat("Broken inbound share: ", snowflake.share.name),
+            _event_description = concat(
+              "Inbound share ", snowflake.share.name,
+              " in ", deployment.environment,
+              " is UNAVAILABLE. Error: ", error_msg
+            )
+
+  detect_disappeared_shares:
+    name: detect_disappeared_shares
+    description: Find inbound shares seen in the last 7d but absent for the last 2h
+    action: dynatrace.automations:execute-dql-query
+    active: true
+    position:
+      x: 0
+      y: 1
+    conditions:
+      states: {}
+    predecessors: []
+    input:
+      query: |
+        fetch logs, from: now()-7d
+        | filter dsoa.run.context == "inbound_shares"
+        | summarize
+            last_seen = max(timestamp),
+            by: {
+              snowflake.share.name,
+              deployment.environment
+            }
+        | filter last_seen < now()-2h
+        | fieldsAdd
+            _event_category = "disappeared",
+            _event_name = concat("Disappeared share: ", snowflake.share.name),
+            _event_description = concat(
+              "Inbound share ", snowflake.share.name,
+              " in ", deployment.environment,
+              " has not been observed since ", toString(last_seen),
+              ". The share may have been revoked or dropped."
+            )
+
+  detect_volume_anomaly:
+    name: detect_volume_anomaly
+    description: Detect abnormal drops in inbound share table row counts using Davis AI
+    action: dynatrace.davis.workflow.actions:davis-analyze
+    active: true
+    position:
+      x: 2
+      y: 1
+    conditions:
+      states: {}
+    predecessors: []
+    input:
+      analyzerName: dt.statistics.anomaly_detection.SeasonalBaselineAnomalyDetectionAnalyzer
+      body:
+        timeSeriesData: |
+          fetch logs
+          | filter dsoa.run.context == "inbound_shares"
+          | filter isNotNull(snowflake.data.rows)
+          | makeTimeseries row_count = max(toLong(snowflake.data.rows))
+            , by: {
+              snowflake.share.name,
+              db.collection.name,
+              deployment.environment
+            }
+            , interval: 24h
+          // Optional: scope to a specific share
+          // | filter snowflake.share.name == "MY_SHARE"
+          | fieldsAdd
+              metric_name = "snowflake.data.rows",
+              _event_category = "volume_drop",
+              _event_name_template = "Share data volume drop: {dims:db.collection.name} in {dims:snowflake.share.name}",
+              _event_description_template = concat(
+                "Table {dims:db.collection.name} in shared database ",
+                "{dims:snowflake.share.name} ({dims:deployment.environment}) ",
+                "has experienced an abnormal drop in row count."
+              )
+        alertCondition: BELOW
+        tolerance: 3
+        generalParameters:
+          timeframe:
+            startTime: now()-30d
+            endTime: now
+          logVerbosity: WARNING
+          resolveDimensionalQueryData: false
+        slidingWindow: 3
+        violatingSamples: 2
+        dealertingSamples: 3
+        alertOnMissingData: true
+
+  extract_share_events:
+    name: extract_share_events
+    description: Collect results from all detection tasks and build Dynatrace event objects
+    action: dynatrace.automations:run-javascript
+    active: true
+    position:
+      x: 0
+      y: 2
+    conditions:
+      states:
+        detect_broken_shares: OK
+        detect_disappeared_shares: OK
+        detect_volume_anomaly: SUCCESS
+    predecessors:
+      - detect_broken_shares
+      - detect_disappeared_shares
+      - detect_volume_anomaly
+    input:
+      script: |
+        import { execution } from '@dynatrace-sdk/automation-utils';
+        import { EventIngestEventType } from '@dynatrace-sdk/client-classic-environment-v2';
+
+        // === CONFIGURATION ===
+        // Change eventType to EventIngestEventType.CustomAlert to enable Davis problem correlation.
+        // CustomInfo (default) creates informational events without triggering Davis problems.
+        const CONFIG = {
+          eventType: EventIngestEventType.CustomInfo,
+          eventTimeout: 360,
+          adSource: 'dsoa.shares_broken_detection'
+        };
+        // === END CONFIGURATION ===
+
+        function replacePlaceholders(contentString, data) {
+          const pattern = /\{dims:(\S*?)}/gm;
+          let matches = [];
+          while ((matches = pattern.exec(contentString))) {
+            contentString = contentString.replace(matches[0], data[matches[1]]);
+          }
+          return contentString;
+        }
+
+        function unpackMap(amap) {
+          const mappedResult = {};
+          amap.forEach(item => {
+            mappedResult[item.key] = item.value;
+          });
+          return mappedResult;
+        }
+
+        function createDavisEventObject(alert, result, events) {
+          const startTime = alert.timeframe.startTime;
+          const endTime = alert.timeframe.endTime;
+          const eventTitle = result.dimensions.find(x => x.key === '_event_name_template')?.value;
+          const eventDesc = result.dimensions.find(x => x.key === '_event_description_template')?.value;
+          const eventCategory = result.dimensions.find(x => x.key === '_event_category')?.value;
+          const sourceMetric = result.dimensions.find(x => x.key === 'metric_name')?.value;
+          const resultDimensions = unpackMap(result.dimensions);
+
+          const newEvent = {
+            body: {
+              eventType: CONFIG.eventType,
+              title: replacePlaceholders(eventTitle, resultDimensions),
+              properties: {
+                'event.description': replacePlaceholders(eventDesc, resultDimensions)
+              },
+              timeout: CONFIG.eventTimeout
+            }
+          };
+
+          newEvent.body.properties['event.start'] = startTime;
+          newEvent.body.properties['event.end'] = endTime;
+          newEvent.body.properties['ad.source'] = CONFIG.adSource;
+          newEvent.body.properties['ad.category'] = eventCategory || 'volume_drop';
+          newEvent.body.properties['ad.source_metric'] = sourceMetric;
+
+          result.dimensions.forEach(dim => {
+            if (!dim.key.startsWith('_') && dim.key !== 'metric_name') {
+              newEvent.body.properties[dim.key] = dim.value;
+            }
+          });
+
+          events.push(newEvent);
+        }
+
+        function createDqlEventObject(record, events) {
+          const newEvent = {
+            body: {
+              eventType: CONFIG.eventType,
+              title: record['_event_name'],
+              properties: {
+                'event.description': record['_event_description'],
+                'ad.source': CONFIG.adSource,
+                'ad.category': record['_event_category'],
+                'snowflake.share.name': record['snowflake.share.name'] || '',
+                'deployment.environment': record['deployment.environment'] || ''
+              },
+              timeout: CONFIG.eventTimeout
+            }
+          };
+
+          if (record['db.namespace']) {
+            newEvent.body.properties['db.namespace'] = record['db.namespace'];
+          }
+
+          events.push(newEvent);
+        }
+
+        export default async function ({ execution_id }) {
+          const ex = await execution(execution_id);
+          const events = [];
+
+          // DQL path: broken shares (UNAVAILABLE status)
+          const brokenResult = await ex.result('detect_broken_shares');
+          if (brokenResult?.records) {
+            brokenResult.records.forEach(record => createDqlEventObject(record, events));
+          }
+
+          // DQL path: disappeared shares (seen in 7d, absent 2h)
+          const disappearedResult = await ex.result('detect_disappeared_shares');
+          if (disappearedResult?.records) {
+            disappearedResult.records.forEach(record => createDqlEventObject(record, events));
+          }
+
+          // Davis AI path: share table row count anomalies
+          const analyzerResult = await ex.result('detect_volume_anomaly');
+          if (analyzerResult?.output?.length > 0) {
+            analyzerResult.output.forEach(result => {
+              if (result.raisedAlerts?.length > 0) {
+                result.raisedAlerts.forEach(alert => createDavisEventObject(alert, result, events));
+              }
+            });
+          }
+
+          console.log(`Extracted ${events.length} share event(s)`);
+          return events;
+        }
+
+  ingest_share_events:
+    name: ingest_share_events
+    description: Ingest share events via Dynatrace Environment V2 API
+    action: dynatrace.automations:run-javascript
+    active: true
+    position:
+      x: 0
+      y: 3
+    conditions:
+      states:
+        extract_share_events: OK
+    predecessors:
+      - extract_share_events
+    input:
+      script: |
+        import { execution } from '@dynatrace-sdk/automation-utils';
+        import { eventsClient } from '@dynatrace-sdk/client-classic-environment-v2';
+
+        async function ingestEvents(events) {
+          let successCount = 0;
+          const failed = [];
+          for (let i = 0; i < events.length; ++i) {
+            const res = await eventsClient.createEvent(events[i]);
+            if (res.reportCount !== 1) {
+              failed.push({ reason: 'Invalid number of ingested events' });
+            } else {
+              const status = res.eventIngestResults[0];
+              if (status.status === 'OK') {
+                successCount += 1;
+              } else {
+                failed.push(JSON.stringify(status));
+              }
+            }
+          }
+          if (successCount === 0 && failed.length === 0) {
+            console.log('No events to ingest');
+          }
+          if (successCount > 0) {
+            console.log(`Successfully ingested ${successCount} event(s)`);
+          }
+          if (failed.length > 0) {
+            console.log(`Failed to ingest ${failed.length} event(s):`, JSON.stringify(failed));
+          }
+        }
+
+        export default async function ({ execution_id }) {
+          const ex = await execution(execution_id);
+          const events = await ex.result('extract_share_events');
+          await ingestEvents(events);
+          return events;
+        }
