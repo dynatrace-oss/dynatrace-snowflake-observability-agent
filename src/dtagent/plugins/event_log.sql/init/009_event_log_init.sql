@@ -49,6 +49,7 @@ DECLARE
     s_db_name             TEXT    DEFAULT '';
     s_db_et               TEXT    DEFAULT '';
     s_view_sql            TEXT    DEFAULT '';
+    a_db_patterns         ARRAY   DEFAULT ARRAY_CONSTRUCT();
 BEGIN
   show PARAMETERS like 'EVENT_TABLE' in ACCOUNT;
   select "value" into s_event_table_name from TABLE(result_scan(last_query_id()));
@@ -122,21 +123,23 @@ BEGIN
       RETURN 'Dynatrace Snowflake Observability Agent will use predefined Event table';
     ELSE
       -- feature flag on: discover per-DB EVENT_TABLE overrides and build UNION ALL view
+      -- read allow-list once; avoids repeated F_GET_CONFIG_VALUE calls inside the loop query
+      a_db_patterns := DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE('plugins.event_log.databases', [])::ARRAY;
+      SHOW DATABASES;
       FOR db_row IN (
-          SELECT DATABASE_NAME
-          FROM INFORMATION_SCHEMA.DATABASES
-          WHERE DELETED IS NULL
-            AND (
+          SELECT "name" AS DATABASE_NAME
+          FROM TABLE(RESULT_SCAN(LAST_QUERY_ID()))
+          WHERE (
               -- no allow-list: check all visible databases
-              array_size(DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE('plugins.event_log.databases', [])::array) = 0
+              array_size(:a_db_patterns) = 0
               -- allow-list set: only check databases matching at least one pattern
               OR EXISTS (
                 SELECT 1
-                FROM TABLE(FLATTEN(DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE('plugins.event_log.databases', [])::ARRAY)) f
-                WHERE DATABASE_NAME LIKE f.VALUE::varchar
+                FROM TABLE(FLATTEN(:a_db_patterns)) f
+                WHERE "name" LIKE f.VALUE::varchar
               )
             )
-          ORDER BY DATABASE_NAME
+          ORDER BY "name"
       ) DO
           s_db_name := db_row.DATABASE_NAME;
           s_db_et   := '';
@@ -186,11 +189,15 @@ BEGIN
               ' OBJECT_INSERT(RESOURCE_ATTRIBUTES, ''_dsoa_source_table'', ''' || :s_event_table_name || '''::VARIANT) AS RESOURCE_ATTRIBUTES,' ||
               ' SCOPE, SCOPE_ATTRIBUTES, RECORD_TYPE, RECORD, RECORD_ATTRIBUTES, VALUE' ||
               ' FROM ' || :s_event_table_name ||
-              ' WHERE RESOURCE_ATTRIBUTES[''snow.database.name'']::VARCHAR NOT IN (' || :s_override_dbs_csv || ')' ||
+              ' WHERE COALESCE(RESOURCE_ATTRIBUTES[''snow.database.name'']::VARCHAR, '''') NOT IN (' || :s_override_dbs_csv || ')' ||
               :s_union_parts;
       ELSE
-          -- flag on but no DB overrides found: fall back to simple view (no UNION ALL overhead)
-          s_view_sql := 'select * from ' || :s_event_table_name;
+          -- flag on but no DB overrides found: still tag source table for attribution consistency
+          s_view_sql :=
+              'SELECT TIMESTAMP, START_TIMESTAMP, OBSERVED_TIMESTAMP, TRACE, RESOURCE,' ||
+              ' OBJECT_INSERT(RESOURCE_ATTRIBUTES, ''_dsoa_source_table'', ''' || :s_event_table_name || '''::VARIANT) AS RESOURCE_ATTRIBUTES,' ||
+              ' SCOPE, SCOPE_ATTRIBUTES, RECORD_TYPE, RECORD, RECORD_ATTRIBUTES, VALUE' ||
+              ' FROM ' || :s_event_table_name;
       END IF;
 
       EXECUTE IMMEDIATE 'create or replace view DTAGENT_DB.STATUS.EVENT_LOG as ' || :s_view_sql;
