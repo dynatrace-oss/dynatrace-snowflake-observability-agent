@@ -38,6 +38,13 @@ class OrgCostsPlugin(Plugin):
     """Org costs plugin class."""
 
     PLUGIN_NAME = "org_costs"
+    PLUGIN_CONTEXTS: tuple = (
+        "org_costs_metering",
+        "org_costs_storage",
+        "org_costs_data_transfer",
+        "org_billing_usage_in_currency",
+        "org_billing_remaining_balance",
+    )
 
     def process(self, run_id: str, run_proc: bool = True, contexts: Optional[List[str]] = None) -> Dict[str, Dict[str, int]]:
         """Processes data for org costs plugin.
