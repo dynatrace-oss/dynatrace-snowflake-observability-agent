@@ -1175,6 +1175,42 @@ All defaults preserve backward compatibility: `max_entries=0` (unlimited), `max_
 this plugin will automatically extract trace context from the `STATUS.EVENT_LOG` table and include it in the span telemetry, allowing for
 distributed tracing correlation between your application and Snowflake queries.
 
+## Query Text Obfuscation
+
+The plugin can obfuscate query text before it is sent to Dynatrace, reducing the risk of accidentally exposing credentials, tokens, or PII.
+Obfuscation is controlled by the `obfuscation_mode` configuration key and applied to both the `db.query.text` attribute on spans and the
+`snowflake.error.message` attribute on failed queries.
+
+Three modes are available:
+
+- **`off`** (default) — query text is sent to Dynatrace unchanged. Preserves full diagnostic visibility.
+- **`literals`** — single-quoted string literals and standalone numeric literals are replaced with `?` placeholders. SQL structure,
+  keywords, table names, and column names are preserved. Best-effort: may not handle all edge cases (e.g. dollar-quoted strings, escaped
+  quotes). Not a security boundary — use `full` for strict privacy requirements.
+- **`full`** — the entire text is replaced with `[OBFUSCATED]`. No query content reaches Dynatrace. Error type and line/position info in
+  `snowflake.error.message` are also lost.
+
+### Query syntax error redaction
+
+During init (`--scope=init` or `--scope=all`), DSOA sets:
+
+```sql
+ALTER ACCOUNT SET ENABLE_UNREDACTED_QUERY_SYNTAX_ERROR = TRUE;
+```
+
+This Snowflake account parameter controls whether the full query text appears in error messages for queries that fail due to syntax or
+parsing errors. DSOA enables it so that failed queries can be diagnosed via `snowflake.error.message` on spans and logs. The
+`obfuscation_mode` setting is applied to `snowflake.error.message` as well, so choosing `literals` or `full` will also obfuscate this field.
+
+To disable unredacted syntax errors:
+
+- **Before first deploy:** remove the `ALTER ACCOUNT SET ENABLE_UNREDACTED_QUERY_SYNTAX_ERROR = TRUE;` line from
+  `009_query_history_init.sql` before running deploy with `--scope=init`.
+- **After deploy:** run `ALTER ACCOUNT SET ENABLE_UNREDACTED_QUERY_SYNTAX_ERROR = FALSE;` as `ACCOUNTADMIN`.
+
+DSOA only applies this parameter when the init script runs. Deploys that exclude `--scope=init` (e.g. `--scope=plugins,config`) will not
+re-apply it.
+
 [Show semantics for this plugin](SEMANTICS.md#query_history_semantics_sec)
 
 ### Query History default configuration
@@ -1195,6 +1231,7 @@ plugins:
     max_entries: 0
     max_lookback_minutes: 120
     cache_ttl_hours: 4
+    obfuscation_mode: "off"
     include_warehouses: []
     exclude_warehouses:
       - DTAGENT_WH
@@ -1249,28 +1286,38 @@ The plugin supports signal protection to prevent overload on high-volume Snowfla
 > - Skip the `admin` scope entirely and manually grant `MONITOR` privileges on warehouses to `DTAGENT_VIEWER`
 > - Install the `admin` scope and disable the automated grant task, then manually manage `MONITOR` privileges
 
+## Query Text Obfuscation Configuration
+
+- `PLUGINS.QUERY_HISTORY.OBFUSCATION_MODE`: Controls query text obfuscation before data is sent to Dynatrace. Applies to `db.query.text` on
+  spans and `snowflake.error.message` on failed queries. Valid values:
+  - `off` (default) — no obfuscation, full query text is forwarded unchanged.
+  - `literals` — replaces single-quoted string literals and standalone numeric literals with `?`. SQL structure and identifiers are
+    preserved.
+  - `full` — replaces the entire query text (and error message) with `[OBFUSCATED]`. Invalid values fall back to `off`.
+
 ### Query History Bill of Materials
 
 The following tables list the Snowflake objects that this plugin delivers data from or references.
 
 #### Objects delivered by the `Query History` plugin
 
-| Name                                                     | Type            | Comment                                                                                        |
-| -------------------------------------------------------- | --------------- | ---------------------------------------------------------------------------------------------- |
-| DTAGENT_DB.STATUS.PROCESSED_QUERIES_CACHE                | table           |                                                                                                |
-| DTAGENT_DB.STATUS.UPDATE_PROCESSED_QUERIES(text,int,int) | procedure       |                                                                                                |
-| DTAGENT_DB.APP.TMP_RECENT_QUERIES                        | transient table |                                                                                                |
-| DTAGENT_DB.APP.TMP_QUERY_OPERATOR_STATS                  | transient table |                                                                                                |
-| DTAGENT_DB.APP.TMP_QUERY_ACCELERATION_ESTIMATES          | transient table |                                                                                                |
-| DTAGENT_DB.APP.V_QUERY_HISTORY                           | view            |                                                                                                |
-| DTAGENT_DB.APP.V_QUERY_HISTORY_INSTRUMENTED              | view            |                                                                                                |
-| DTAGENT_DB.APP.V_RECENT_QUERIES                          | view            |                                                                                                |
-| DTAGENT_DB.APP.P_GET_ACCELERATION_ESTIMATES()            | procedure       |                                                                                                |
-| DTAGENT_DB.APP.P_REFRESH_RECENT_QUERIES()                | procedure       |                                                                                                |
-| DTAGENT_DB.CONFIG.UPDATE_QUERY_HISTORY_CONF()            | procedure       |                                                                                                |
-| DTAGENT_DB.APP.P_MONITOR_WAREHOUSES()                    | procedure       | (Admin scope only) Procedure owned by DTAGENT_ADMIN to grant MONITOR privilege on warehouses   |
-| DTAGENT_DB.APP.TASK_DTAGENT_QUERY_HISTORY                | task            |                                                                                                |
-| DTAGENT_DB.APP.TASK_DTAGENT_QUERY_HISTORY_GRANTS         | task            | (Admin scope only) Admin task owned by DTAGENT_ADMIN to grant MONITOR privileges on warehouses |
+| Name                                                          | Type            | Comment                                                                                        |
+| ------------------------------------------------------------- | --------------- | ---------------------------------------------------------------------------------------------- |
+| DTAGENT_DB.STATUS.PROCESSED_QUERIES_CACHE                     | table           |                                                                                                |
+| DTAGENT_DB.STATUS.UPDATE_PROCESSED_QUERIES(text,int,int,text) | procedure       |                                                                                                |
+| DTAGENT_DB.APP.TMP_RECENT_QUERIES                             | transient table |                                                                                                |
+| DTAGENT_DB.APP.TMP_QUERY_OPERATOR_STATS                       | transient table |                                                                                                |
+| DTAGENT_DB.APP.TMP_QUERY_ACCELERATION_ESTIMATES               | transient table |                                                                                                |
+| DTAGENT_DB.APP.F_OBFUSCATE_QUERY_TEXT(VARCHAR, VARCHAR)       | function        |                                                                                                |
+| DTAGENT_DB.APP.V_QUERY_HISTORY                                | view            |                                                                                                |
+| DTAGENT_DB.APP.V_QUERY_HISTORY_INSTRUMENTED                   | view            |                                                                                                |
+| DTAGENT_DB.APP.V_RECENT_QUERIES                               | view            |                                                                                                |
+| DTAGENT_DB.APP.P_GET_ACCELERATION_ESTIMATES()                 | procedure       |                                                                                                |
+| DTAGENT_DB.APP.P_REFRESH_RECENT_QUERIES()                     | procedure       |                                                                                                |
+| DTAGENT_DB.CONFIG.UPDATE_QUERY_HISTORY_CONF()                 | procedure       |                                                                                                |
+| DTAGENT_DB.APP.P_MONITOR_WAREHOUSES()                         | procedure       | (Admin scope only) Procedure owned by DTAGENT_ADMIN to grant MONITOR privilege on warehouses   |
+| DTAGENT_DB.APP.TASK_DTAGENT_QUERY_HISTORY                     | task            |                                                                                                |
+| DTAGENT_DB.APP.TASK_DTAGENT_QUERY_HISTORY_GRANTS              | task            | (Admin scope only) Admin task owned by DTAGENT_ADMIN to grant MONITOR privileges on warehouses |
 
 #### Objects referenced by the `Query History` plugin
 

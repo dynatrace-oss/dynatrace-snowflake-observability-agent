@@ -238,10 +238,10 @@ if [[ "$SCOPE" == *,* ]]; then
     done
     # Remove leading/trailing spaces and deduplicate
     SQL_FILES=$(echo "$SQL_FILES" | xargs)
-    #%DEV:
-    echo "DEBUG: Parsed scopes: ${SCOPE_ARRAY[*]}"
-    echo "DEBUG: Built SQL_FILES: [$SQL_FILES]"
-    #%:DEV
+    if [[ "${DSOA_DEBUG:-0}" == "1" ]]; then
+        echo "DEBUG: Parsed scopes: ${SCOPE_ARRAY[*]}" >&2
+        echo "DEBUG: Built SQL_FILES: [$SQL_FILES]" >&2
+    fi
 
     # Validate FROM_VERSION if upgrade scope is included
     if [ "$HAS_UPGRADE_SCOPE" == "true" ] && [ -z "$FROM_VERSION" ]; then
@@ -298,18 +298,18 @@ if [ "$SCOPE" != 'apikey' ] && [ "$SCOPE" != 'teardown' ]; then
     #
     #   --- building one big script to be run
     #
-    if [ "$HAS_UPGRADE_SCOPE" == "true" ]; then
+        if [ "$HAS_UPGRADE_SCOPE" == "true" ]; then
         # For upgrade scope, filter by version
         # Process each SQL file pattern separately, applying version filter to upgrade files
-        #%DEV:
-        echo "DEBUG: Processing with upgrade scope, FROM_VERSION=$FROM_VERSION"
-        #%:DEV
+        if [[ "${DSOA_DEBUG:-0}" == "1" ]]; then
+            echo "DEBUG: Processing with upgrade scope, FROM_VERSION=$FROM_VERSION" >&2
+        fi
         (
             for pattern in $SQL_FILES; do
                 # Use eval to let find handle glob patterns properly
-                #%DEV:
-                echo "DEBUG: Finding files matching build/$pattern" >&2
-                #%:DEV
+                if [[ "${DSOA_DEBUG:-0}" == "1" ]]; then
+                    echo "DEBUG: Finding files matching build/$pattern" >&2
+                fi
                 eval "find build/$pattern -type f -print 2>/dev/null"
             done
         ) |
@@ -343,19 +343,20 @@ if [ "$SCOPE" != 'apikey' ] && [ "$SCOPE" != 'teardown' ]; then
                 >"$INSTALL_SCRIPT_SQL"
     else
         # Process each SQL file pattern separately
-        #%DEV:
-        echo "DEBUG: Processing without upgrade scope"
-        #%:DEV
+        if [[ "${DSOA_DEBUG:-0}" == "1" ]]; then
+            echo "DEBUG: Processing without upgrade scope" >&2
+        fi
         (
             for pattern in $SQL_FILES; do
                 # Use eval to let find handle glob patterns properly
-                #%DEV:
-                echo "DEBUG: Finding files matching build/$pattern" >&2
-                found_files=$(eval "find build/$pattern -type f -print 2>/dev/null")
-                echo "DEBUG: Found files: $found_files" >&2
-                echo "$found_files" >&2
-                #%:DEV
-                eval "find build/$pattern -type f -print 2>/dev/null"
+                if [[ "${DSOA_DEBUG:-0}" == "1" ]]; then
+                    found_files=$(eval "find build/$pattern -type f -print 2>/dev/null")
+                    echo "DEBUG: Finding files matching build/$pattern" >&2
+                    echo "DEBUG: Found files: $found_files" >&2
+                    echo "$found_files"
+                else
+                    eval "find build/$pattern -type f -print 2>/dev/null"
+                fi
             done
         ) | sort | xargs -I {} sh -c 'echo "-- SCRIPT: $1"; cat "$1"' _ {} \; \
             >"$INSTALL_SCRIPT_SQL"
@@ -719,7 +720,7 @@ EOF
     fi
 }
 
-# Apply plugin filtering for non-special scopes and inject task suspension for excluded plugins
+# Inject task suspension/cleanup for non-special scopes
 if [ "$SCOPE" != "apikey" ] && [ "$SCOPE" != "teardown" ]; then
     inject_suspend_for_excluded_plugins "${INSTALL_SCRIPT_SQL}"
     if has_option "cleanup_disabled"; then

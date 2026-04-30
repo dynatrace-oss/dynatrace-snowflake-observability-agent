@@ -1,0 +1,11 @@
+.git/
+.venv/
+test/
+docs/
+.github/
+conf/config-*.yml
+!conf/config-template.yml
+.logs/
+__pycache__/
+*.pyc
+*.pyo

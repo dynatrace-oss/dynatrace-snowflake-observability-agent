@@ -2,7 +2,7 @@
 
 This file documents detailed technical changes, internal refactorings, and development notes. For user-facing highlights, see [CHANGELOG.md](CHANGELOG.md).
 
-## [Unreleased] — BDX-1904: Fix serverless_tasks empty namespace for account-level records
+## [Unreleased] — Fix serverless_tasks empty namespace for account-level records
 
 ### Root cause
 
@@ -12,7 +12,7 @@ and `schema_name` are empty strings (not NULL) in the source view. `V_SERVERLESS
 these directly into `OBJECT_CONSTRUCT`, causing `db.namespace = ""` and `snowflake.schema.name = ""`
 in Dynatrace. Dashboard `$Database`/`$Schema` variable filters silently excluded all internal records.
 Customer serverless tasks (warehouse-based, non-DSOA) do have populated `database_name`/`schema_name`
-and were unaffected. Discovered during BDX-1815 dashboard work (TI-003).
+and were unaffected. Discovered during dashboard work (TI-003).
 
 ### Fix — `061_v_serverless_tasks.sql`
 
@@ -48,7 +48,62 @@ regenerated. `make lint` (sqlfluff, pylint 10.00/10) passes. No Python plugin ch
 A customer could name their own task ending in `_MEASUREMENT_TASK` and get a false-positive `is_internal = true`.
 Acceptable risk — extremely unlikely naming collision. Can be tightened to a DTAGENT-specific prefix in a
 future release if needed.
-## [Unreleased] — BDX-1903: Fix task_history attempt stored as string
+
+## [Unreleased] — GitHub Workflows as Deployment Option
+
+### Docker + GitHub Actions Deployment — Full Implementation
+
+**Scope**: Adds Docker-based and GitHub Actions CI/CD deployment paths to DSOA. Removes legacy `service_user` option. Adds `--defaults` non-interactive config generation and `--ci-export=github` wizard flag.
+
+**Phase A — `service_user` removal and env-var auto-detection**:
+
+- Removed `service_user` from `deploy.sh --options` help text and all execution paths.
+- New behavior: when `SNOWFLAKE_ACCOUNT` and `SNOWFLAKE_USER` env vars are both set, `deploy.sh` automatically uses `snow sql --temporary-connection --account "$SNOWFLAKE_ACCOUNT" --user "$SNOWFLAKE_USER"`. This replaces the old `service_user` path cleanly without requiring an explicit option flag.
+- `setup.sh` detects the same env vars and skips `snow connection add` — prints a message that `--temporary-connection` will be used automatically.
+- The `#%DEV:` block for `service_user` DTAGENT_TOKEN check was removed. The `#%DEV:` block for the named-connection `snow sql` call is preserved (it wraps the fallback path).
+- BATS tests updated: removed `service_user` assertions, added tests for both env-var and named-connection paths.
+
+**Phase B — Dockerfile and Makefile**:
+
+- `Dockerfile` at repo root: `python:3.11-slim` base, installs `bash curl jq gawk yq snowflake-cli-labs`. Copies `build/`, `scripts/deploy/`, `conf/config-template.yml`, `src/assets/`. Entrypoint: `./scripts/deploy/deploy.sh`.
+- `.dockerignore`: excludes `.git/`, `.venv/`, `test/`, `docs/`, `.github/`, `conf/config-*.yml` (except template), `.logs/`, `__pycache__/`, `*.pyc`. Does NOT exclude `build/` — required for Docker context.
+- `Makefile` targets: `docker-build` (warns if `build/` missing), `docker-test` (smoke-tests `--help`).
+
+**Phase C — `--defaults` refactor**:
+
+- Previous `--defaults` implementation: generated a static skeleton config and exited. New behavior:
+  - If config doesn't exist: generates from `DSOA_DT_TENANT`, `DSOA_DEPLOYMENT_ENV` (falls back to `$ENV` uppercased), `DSOA_SF_ACCOUNT` env vars using `yq -n`. Fails with error if `DSOA_DT_TENANT` is missing.
+  - If config exists: uses it as-is, prints message.
+  - Always implies `skip_confirm` (appended to OPTIONS array).
+  - Does NOT exit — continues to deployment.
+- Build artifact check updated: `--defaults` without existing config skips the build check (config-only operation). `--defaults` with existing config requires build artifacts (proceeds to deploy).
+
+**Phase D — `--ci-export=github`**:
+
+- New `CI_EXPORT` global var in `interactive_wizard.sh`. New `--ci-export=<platform>` argument.
+- New `export_github_ci()` function: reads version from `build/config-default.yml`, substitutes `__ENV__`, `__VERSION__`, `__SF_USER__` in templates, writes `.github/workflows/dsoa-deploy.yml` and `GITHUB_SECRETS_SETUP.md`.
+- Templates in `src/assets/ci-templates/github/`: `dsoa-deploy.yml.template` (GitHub Actions workflow with `workflow_dispatch`, Docker-based deploy step), `GITHUB_SECRETS_SETUP.md.template` (key-pair auth setup guide).
+- Called after `config_persistence` in `main()`. Unknown platform → error + exit 1.
+
+**Phase E — Release workflow and package**:
+
+- `.github/workflows/release.yml`: new `build-and-push-docker` job (needs `build-and-release`, runs on tag push). Builds DSOA artifacts, logs into GHCR, pushes `ghcr.io/dynatrace-oss/dsoa-deploy:<tag>` and `:latest`.
+- `.github/workflows/dsoa-deploy-template.yml`: reference template for customers. `on: workflow_dispatch` only — never auto-triggered in DSOA repo. Shipped in release ZIP.
+- `scripts/dev/package.sh`: includes `docs/deployment/*.md` → `package/docs/deployment/` and `.github/workflows/dsoa-deploy-template.yml` → `package/dsoa-deploy-template.yml`.
+
+**Phase F — Documentation**:
+
+- New `docs/deployment/` directory: `deploy.md` (local), `docker.md` (Docker), `github-actions.md` (GitHub Actions).
+- `docs/INSTALL.md` slimmed to ~100 lines: Docker as primary quick-start, brief sections for deploy.sh and GitHub Actions, links to deployment guides.
+- `docs/INSTALL_ADVANCED.md`: added cross-links to deployment guides at top.
+
+**Test coverage**:
+
+- `test/bash/test_deployment_scripts.bats`: 3 new tests (temp-connection path, named-connection path, help text no `service_user`).
+- `test/bash/test_defaults_mode.bats`: 6 new tests covering all `--defaults` scenarios.
+- `test/bash/test_ci_export.bats`: 7 new tests covering `export_github_ci()` function and unknown platform error.
+
+## Fix task_history attempt stored as string
 
 ### Root Cause
 
@@ -254,7 +309,7 @@ section (3 new use cases). `docs/dashboards/README.md` and `docs/workflows/READM
 
 ---
 
-## [Unreleased] — BDX-1969: Interactive Deployment Wizard
+## [Unreleased] — Interactive Deployment Wizard
 
 ## [Unreleased]: Acquisition Problem Detection
 
@@ -310,7 +365,7 @@ After: Exception caught at the view-access level → plugin produces 0 entries +
 
 No measurable overhead on the happy path — exception handling is zero-cost when no exception occurs.
 
-## [Unreleased] — BDX-695: Ingest-Quality Warning Detection
+## [Unreleased] — Ingest-Quality Warning Detection
 
 ### Motivation
 
@@ -407,7 +462,38 @@ Response body parsing runs only on successful responses (2xx). `json.loads()` on
 
 **Deployment**: Requires upgrade scope before main deploy: `./scripts/deploy/deploy.sh test-qa --scope=upgrade --from-version=0.9.4 --options=skip_confirm` then `--scope=plugins,config`
 
-### Interactive Deployment Wizard — Full Implementation
+### Implementation
+
+**Problem**: Raw query text from `SNOWFLAKE.ACCOUNT_USAGE.QUERY_HISTORY` flowed through DSOA unchanged into Dynatrace spans/logs. Query text can contain hardcoded credentials (`COPY INTO ... CREDENTIALS=(...)`), API tokens in UDF bodies, or PII in `WHERE` clauses. Syntax error messages (when `ENABLE_UNREDACTED_QUERY_SYNTAX_ERROR=TRUE`) compound this — the offending query text is embedded in `snowflake.error.message`.
+
+**Design**: Three-mode obfuscation applied at two layers:
+
+1. **SQL layer (primary)** — `APP.F_OBFUSCATE_QUERY_TEXT(TEXT, MODE)` UDF in `052_f_obfuscate_query_text.sql`. Called from `053_v_query_history_instrumented.sql` for both `db.query.text` (line 77) and `snowflake.error.message` (line 97). Config value read inline via `CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.obfuscation_mode', 'off')`. Obfuscation is applied before data is materialised into `TMP_RECENT_QUERIES`, so no unobfuscated text enters the processing pipeline.
+2. **Python layer (fallback)** — `QueryHistoryPlugin._obfuscate_query_text()` in `query_history.py`. Applied to the log message body (`db.query.text` value passed to `send_log`). Guards against any future path where query text is read from Python before the SQL layer can act on it.
+
+**Modes**:
+
+- `off` (default): no transformation — backward compatible.
+- `literals`: `REGEXP_REPLACE` replaces `'[^']*'` (string literals) and `\b[0-9]+\.?[0-9]*\b` (numeric literals) with `?`. SQL keywords, identifiers, and structure are preserved. Best-effort — does not handle dollar-quoted strings or escaped quotes; documented as intentional.
+- `full`: replaces entire text with `[OBFUSCATED]`. Covers both `db.query.text` and `snowflake.error.message` for maximum privacy. Error diagnostics (line/position info) are lost; trade-off is explicit in documentation.
+
+**`ENABLE_UNREDACTED_QUERY_SYNTAX_ERROR` interaction**: This Snowflake account parameter is set to `TRUE` by `009_query_history_init.sql` (init scope only). It causes syntax-error query text to appear in `snowflake.error.message`. Because `obfuscation_mode` is also applied to `snowflake.error.message`, customers who set `obfuscation_mode: literals` or `obfuscation_mode: full` are protected against leaking query text via this path too. Customers who want to disable the parameter itself are documented in `readme.md` — DSOA does not reset it on non-init deploys.
+
+**Files changed**:
+
+| File                                                     | Change                                                                |
+|----------------------------------------------------------|-----------------------------------------------------------------------|
+| `query_history.sql/052_f_obfuscate_query_text.sql`       | New SQL UDF with CASE/REGEXP_REPLACE logic                            |
+| `query_history.sql/053_v_query_history_instrumented.sql` | Wrap `db.query.text` and `snowflake.error.message` with UDF           |
+| `query_history.py`                                       | Add `_obfuscate_query_text()`, apply to log body; import `re`         |
+| `query_history-config.yml`                               | Add `obfuscation_mode: "off"`                                         |
+| `conf/config-template.yml`                               | Add `obfuscation_mode: "off"`                                         |
+| `bom.yml`                                                | Add `F_OBFUSCATE_QUERY_TEXT(VARCHAR, VARCHAR)`                        |
+| `readme.md`                                              | Document obfuscation modes and `ENABLE_UNREDACTED_QUERY_SYNTAX_ERROR` |
+| `config.md`                                              | Document `PLUGINS.QUERY_HISTORY.OBFUSCATION_MODE` config key          |
+| `test/plugins/test_query_history_obfuscation.py`         | 19 unit tests across all modes and edge cases                         |
+
+## Interactive Deployment Wizard
 
 **Scope**: Story to eliminate manual config creation friction for first-time DSOA users. Deliverables: shared bash library, 4-phase interactive wizard, `deploy.sh` flag enhancements, full BATS test suite.
 

@@ -1,16 +1,16 @@
-# WORKFLOW: DSOA — Data Volume Anomaly Detection
-# DESCRIPTION: Detects abnormal spikes and drops in table row counts using Davis AI anomaly detection
+# WORKFLOW: DSOA — Long-Running Queries Detection
+# DESCRIPTION: Detects individual queries with abnormal max execution time per warehouse and user using Davis AI
 # OWNER: DSOA Team
-# PLUGINS: data_volume
-# TAGS: snowflake, dsoa, quality, data-volume
+# PLUGINS: query_history
+# TAGS: snowflake, dsoa, performance, query-history
 
-id: bbce8c69-4a7b-4fc5-a0dc-386908a51d40
-title: "DSOA — Data Volume Anomaly Detection"
+id: c3f7a2b1-84d0-4e9a-b5c6-1d2e8f0a3b47
+title: "DSOA — Long-Running Queries Detection"
 description: |
-  Monitors row count changes per Snowflake table using Davis AI anomaly detection.
-  Detects both unexpected spikes (bulk loads, data duplication) and drops (failed pipelines,
-  accidental deletes, dropped tables) relative to the learned seasonal baseline. Missing data
-  from any table is also treated as a potential drop anomaly. Requires the data_volume plugin.
+  Monitors maximum query execution time per warehouse and per user using Davis AI anomaly detection.
+  Alerts when max execution time significantly exceeds the learned seasonal baseline — detecting
+  individual long-running queries that would be invisible to average-based detectors. Only successful
+  queries are analyzed to avoid noise from failed executions. Requires the query_history plugin.
 isPrivate: false
 schemaVersion: 4
 trigger:
@@ -18,15 +18,15 @@ trigger:
     isActive: true
     trigger:
       type: interval
-      intervalMinutes: 720
+      intervalMinutes: 360
     rule: null
     filterParameters: {}
     timezone: UTC
     inputs: {}
 tasks:
-  detect_volume_spike:
-    name: detect_volume_spike
-    description: Detect abnormal row count spikes per table using Davis AI
+  ad_long_running_by_warehouse:
+    name: ad_long_running_by_warehouse
+    description: Detect max query execution time anomalies per warehouse using Davis AI
     action: dynatrace.davis.workflow.actions:davis-analyze
     active: true
     position:
@@ -39,44 +39,40 @@ tasks:
       analyzerName: dt.statistics.anomaly_detection.SeasonalBaselineAnomalyDetectionAnalyzer
       body:
         timeSeriesData: |
-          timeseries row_count = max(snowflake.data.rows)
+          timeseries max_exec = max(snowflake.time.execution)
           , by: {
-            db.collection.name,
+            snowflake.warehouse.name,
             deployment.environment
           }
-          , interval: 24h
-          | fieldsAdd row_count_avg = arrayAvg(row_count)
-          | fieldsAdd row_count_diff = row_count[] - row_count_avg
-          // Uncomment to scope to specific databases:
-          // | filter db.collection.name startsWith "PROD_DB"
-          // Uncomment to scope to specific schemas:
-          // | filter contains(db.collection.name, ".ETL.")
-          // Uncomment to scope to specific table name patterns:
-          // | filter matchesPhrase(db.collection.name, "FACT_")
-          | fieldsRemove row_count_avg, row_count_diff
+          , filter: {
+            snowflake.query.execution_status == "SUCCESS"
+          }
+          // Optional: restrict to specific warehouses
+          // | filter in(snowflake.warehouse.name, "COMPUTE_WH", "ANALYTICS_WH")
+          // Optional: restrict to a specific environment
+          // | filter deployment.environment == "prod"
           | fieldsAdd
-              metric_name = "snowflake.data.rows",
-              _event_direction = "above",
-              _event_name_template = "Abnormal data volume spike for table {dims:db.collection.name}",
-              _event_description_template =
-                "Table {dims:db.collection.name} in {dims:deployment.environment} has experienced"
-                + " an abnormal spike in row count compared to the learned baseline."
+              metric_name = "snowflake.query.execution_time.max",
+              _event_name_template = "Long-running query detected in warehouse {dims:snowflake.warehouse.name}",
+              _event_description_template = "Max query execution time in warehouse {dims:snowflake.warehouse.name} ({dims:deployment.environment}) has significantly exceeded the learned baseline, indicating an individual long-running query."
         alertCondition: ABOVE
-        tolerance: 4
+        tolerance: 3
         generalParameters:
           timeframe:
             startTime: now()-30d
             endTime: now
           logVerbosity: WARNING
           resolveDimensionalQueryData: false
-        slidingWindow: 5
-        violatingSamples: 3
-        dealertingSamples: 5
+        slidingWindow: 3
+        violatingSamples: 2
+        dealertingSamples: 3
         alertOnMissingData: false
+        useModelCache: true
+        extendedOutput: false
 
-  detect_volume_drop:
-    name: detect_volume_drop
-    description: Detect unexpected drops or disappearance of table row counts using Davis AI
+  ad_long_running_by_user:
+    name: ad_long_running_by_user
+    description: Detect max query execution time anomalies per user using Davis AI
     action: dynatrace.davis.workflow.actions:davis-analyze
     active: true
     position:
@@ -89,30 +85,23 @@ tasks:
       analyzerName: dt.statistics.anomaly_detection.SeasonalBaselineAnomalyDetectionAnalyzer
       body:
         timeSeriesData: |
-          timeseries row_count = max(snowflake.data.rows)
+          timeseries max_exec = max(snowflake.time.execution)
           , by: {
-            db.collection.name,
+            db.user,
             deployment.environment
           }
-          , interval: 24h
-          | fieldsAdd row_count_avg = arrayAvg(row_count)
-          | fieldsAdd row_count_diff = row_count[] - row_count_avg
-          // Uncomment to scope to specific databases:
-          // | filter db.collection.name startsWith "PROD_DB"
-          // Uncomment to scope to specific schemas:
-          // | filter contains(db.collection.name, ".ETL.")
-          // Uncomment to scope to specific table name patterns:
-          // | filter matchesPhrase(db.collection.name, "FACT_")
-          | fieldsRemove row_count_avg, row_count_diff
+          , filter: {
+            snowflake.query.execution_status == "SUCCESS"
+          }
+          // Optional: restrict to specific users
+          // | filter in(db.user, "ANALYST", "ETL_USER")
+          // Optional: restrict to a specific environment
+          // | filter deployment.environment == "prod"
           | fieldsAdd
-              metric_name = "snowflake.data.rows",
-              _event_direction = "below",
-              _event_name_template = "Abnormal data volume drop for table {dims:db.collection.name}",
-              _event_description_template =
-                "Table {dims:db.collection.name} in {dims:deployment.environment} has experienced"
-                + " an unexpected drop in row count. This may indicate a failed pipeline,"
-                + " accidental delete, or dropped table."
-        alertCondition: BELOW
+              metric_name = "snowflake.query.execution_time.max",
+              _event_name_template = "Long-running query detected for user {dims:db.user}",
+              _event_description_template = "Max query execution time for user {dims:db.user} ({dims:deployment.environment}) has significantly exceeded the learned baseline, indicating an individual long-running query."
+        alertCondition: ABOVE
         tolerance: 3
         generalParameters:
           timeframe:
@@ -123,23 +112,23 @@ tasks:
         slidingWindow: 3
         violatingSamples: 2
         dealertingSamples: 3
-        alertOnMissingData: true
+        alertOnMissingData: false
+        useModelCache: true
+        extendedOutput: false
 
   extract_anomaly_events:
     name: extract_anomaly_events
-    description: Process Davis results and build Dynatrace event objects
+    description: Process Davis results from both analyzers and build Dynatrace event objects
     action: dynatrace.automations:run-javascript
     active: true
     position:
       x: 0
       y: 2
     conditions:
-      states:
-        detect_volume_spike: SUCCESS
-        detect_volume_drop: SUCCESS
+      states: {}
     predecessors:
-      - detect_volume_spike
-      - detect_volume_drop
+      - ad_long_running_by_warehouse
+      - ad_long_running_by_user
     input:
       script: |
         import { execution } from '@dynatrace-sdk/automation-utils';
@@ -151,7 +140,7 @@ tasks:
         const CONFIG = {
           eventType: EventIngestEventType.CustomInfo,
           eventTimeout: 360,
-          adSource: 'dsoa.data_volume_anomaly'
+          adSource: 'dsoa.long_running_queries'
         };
         // === END CONFIGURATION ===
 
@@ -178,7 +167,6 @@ tasks:
           const eventTitle = result.dimensions.find(x => x.key === '_event_name_template')?.value;
           const eventDesc = result.dimensions.find(x => x.key === '_event_description_template')?.value;
           const sourceMetric = result.dimensions.find(x => x.key === 'metric_name')?.value;
-          const direction = result.dimensions.find(x => x.key === '_event_direction')?.value;
           const resultDimensions = unpackMap(result.dimensions);
 
           const newEvent = {
@@ -196,9 +184,7 @@ tasks:
           newEvent.body.properties['event.end'] = endTime;
           newEvent.body.properties['ad.source'] = CONFIG.adSource;
           newEvent.body.properties['ad.source_metric'] = sourceMetric;
-          if (direction) {
-            newEvent.body.properties['ad.direction'] = direction;
-          }
+          newEvent.body.properties['ad.direction'] = 'above';
 
           if (result.dimensions.length > 0) {
             result.dimensions.forEach(dim => {
@@ -212,14 +198,19 @@ tasks:
 
         export default async function ({ execution_id }) {
           const ex = await execution(execution_id);
-          const spikeResult = await ex.result('detect_volume_spike');
-          const dropResult  = await ex.result('detect_volume_drop');
 
           const events = [];
-          for (const analyzerResult of [spikeResult, dropResult]) {
-            if (analyzerResult?.output?.length > 0) {
+          for (const taskName of ['ad_long_running_by_warehouse', 'ad_long_running_by_user']) {
+            let analyzerResult;
+            try {
+              analyzerResult = await ex.result(taskName);
+            } catch (e) {
+              console.log(`Skipping ${taskName}: ${e.message}`);
+              continue;
+            }
+            if (analyzerResult && analyzerResult.output && analyzerResult.output.length > 0) {
               analyzerResult.output.forEach(result => {
-                if (result.raisedAlerts?.length > 0) {
+                if (result.raisedAlerts && result.raisedAlerts.length > 0) {
                   result.raisedAlerts.forEach(alert => {
                     createEventObject(alert, result, events);
                   });
