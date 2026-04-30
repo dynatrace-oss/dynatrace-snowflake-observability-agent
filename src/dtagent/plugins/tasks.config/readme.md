@@ -12,3 +12,11 @@ In short, the plugin delivers, as logs by default, information on:
 - credits used (as metric).
 
 Additionally, an event is sent when a new task graph version is created. By default, the plugin executes every 90 minutes.
+
+Note: Snowflake reports DSOA's internal scheduler tasks (`_MEASUREMENT_TASK`,
+`_FINALIZER_TASK`) in `SERVERLESS_TASK_HISTORY` as account-level records with empty
+database and schema values. DSOA normalizes those empty strings to `NULL`, so emitted
+telemetry in the `serverless_tasks` context omits `db.namespace` and
+`snowflake.schema.name` rather than sending them as empty strings. These tasks are marked
+with `snowflake.task.is_internal = true`. Use this flag to filter them in dashboards or
+DQL queries.
