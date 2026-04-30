@@ -48,6 +48,7 @@ class QueryHistoryPlugin(Plugin):
     """Query history plugin class."""
 
     PLUGIN_NAME = "query_history"
+    PLUGIN_CONTEXTS: tuple = ("query_history",)
 
     def process(self, run_id: str, run_proc: bool = True, contexts: Optional[List[str]] = None) -> Dict[str, Dict[str, int]]:
         """The actual function to process query history:

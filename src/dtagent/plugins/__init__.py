@@ -84,6 +84,12 @@ class Plugin(ABC):
     """Generic plugin class, base for all plugins."""
 
     PLUGIN_NAME = "generic_plugin"
+    PLUGIN_CONTEXTS: Tuple[str, ...] = ()
+
+    @classmethod
+    def get_contexts(cls) -> Tuple[str, ...]:
+        """Returns the declared context names for this plugin."""
+        return cls.PLUGIN_CONTEXTS
 
     def __init__(
         self,

@@ -38,6 +38,7 @@ class WarehouseUsagePlugin(Plugin):
     """Warehouse usage plugin class."""
 
     PLUGIN_NAME = "warehouse_usage"
+    PLUGIN_CONTEXTS: tuple = ("warehouse_usage", "warehouse_usage_load", "warehouse_usage_metering")
 
     def process(self, run_id: str, run_proc: bool = True, contexts: Optional[List[str]] = None) -> Dict[str, Dict[str, int]]:
         """Processes data for warehouse usage plugin.

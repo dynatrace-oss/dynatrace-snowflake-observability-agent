@@ -57,6 +57,7 @@ class TableHealthPlugin(Plugin):
     """
 
     PLUGIN_NAME = "table_health"
+    PLUGIN_CONTEXTS: tuple = ("table_storage", "table_clustering", "table_health_derived")
 
     def process(self, run_id: str, run_proc: bool = True, contexts: Optional[List[str]] = None) -> Dict[str, Dict[str, int]]:
         """Processes the measures on table storage health, clustering depth, and derived growth metrics.

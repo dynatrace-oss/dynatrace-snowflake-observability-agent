@@ -93,6 +93,7 @@ class {CamelCase}Plugin(Plugin):
     """{Name} plugin class."""
 
     PLUGIN_NAME = "{name}"
+    PLUGIN_CONTEXTS: tuple = ("{name}",)
 
     def process(self, run_id: str, run_proc: bool = True,
                 contexts: Optional[List[str]] = None) -> Dict[str, Dict[str, int]]:
@@ -127,6 +128,7 @@ Key requirements:
 
 - Class name: `{CamelCase}Plugin` inheriting `Plugin`
 - `PLUGIN_NAME` constant matching the file name
+- `PLUGIN_CONTEXTS` tuple listing every `context_name=` string used in `process()` (required — see [Context Declaration](#context-declaration))
 - `process()` method with the standard signature
 - For views: pass the view name directly to `_get_table_rows()`
 - For procedures: use `"SELECT * FROM TABLE(DTAGENT_DB.APP.F_{UPPER}_INSTRUMENTED())"`
@@ -416,6 +418,32 @@ class Test{CamelCase}:
 
 ## Advanced Topics
 
+### Context Declaration
+
+Every plugin **must** declare `PLUGIN_CONTEXTS` as a class attribute listing the exact `context_name=` strings it passes to `_log_entries()` or `_process_span_rows()`. This registry enables test validation, documentation generation, and runtime warning for unknown contexts.
+
+**Single-context plugin:**
+
+```python
+class MyPlugin(Plugin):
+    PLUGIN_NAME = "my_plugin"
+    PLUGIN_CONTEXTS: tuple = ("my_plugin",)
+```
+
+**Multi-context plugin:**
+
+```python
+class SharesPlugin(Plugin):
+    PLUGIN_NAME = "shares"
+    PLUGIN_CONTEXTS: tuple = ("outbound_shares", "inbound_shares", "shares")
+```
+
+Rules:
+
+- Every string in `PLUGIN_CONTEXTS` must appear as a `context_name=` argument in `process()`.
+- Do **not** include `"self_monitoring"` — that context belongs to the base class.
+- Requesting an undeclared context at runtime logs a warning (does not raise).
+
 ### Multi-Context Plugins
 
 Plugins can process multiple data sources as separate contexts. Guard each context:
@@ -626,7 +654,7 @@ fetch logs
 ## Checklist
 
 - [ ] Directory structure created (triad)
-- [ ] Python class inheriting `Plugin` with `PLUGIN_NAME` and `process()`
+- [ ] Python class inheriting `Plugin` with `PLUGIN_NAME`, `PLUGIN_CONTEXTS`, and `process()`
 - [ ] Instrumented SQL view (or procedure)
 - [ ] Task definition (`801_*.sql`)
 - [ ] Config update procedure (`901_*.sql`)
