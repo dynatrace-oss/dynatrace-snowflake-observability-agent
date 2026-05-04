@@ -40,6 +40,16 @@ DECLARE
     is_event_log_table    BOOLEAN DEFAULT FALSE;
     b_has_log_event_level BOOLEAN DEFAULT FALSE;
     n_param_rows          INTEGER DEFAULT 0;
+
+    -- per-database event table discovery
+    b_discover_db_tables  BOOLEAN DEFAULT FALSE;
+    n_override_count      INTEGER DEFAULT 0;
+    s_override_dbs_csv    TEXT    DEFAULT '';
+    s_union_parts         TEXT    DEFAULT '';
+    s_db_name             TEXT    DEFAULT '';
+    s_db_et               TEXT    DEFAULT '';
+    s_view_sql            TEXT    DEFAULT '';
+    a_db_patterns         ARRAY   DEFAULT ARRAY_CONSTRUCT();
 BEGIN
   show PARAMETERS like 'EVENT_TABLE' in ACCOUNT;
   select "value" into s_event_table_name from TABLE(result_scan(last_query_id()));
@@ -55,6 +65,12 @@ BEGIN
       b_has_log_event_level := FALSE;
   END;
   select TABLE_TYPE like '%TABLE' into is_event_log_table from DTAGENT_DB.INFORMATION_SCHEMA.TABLES where TABLE_SCHEMA = 'STATUS' and TABLE_NAME = 'EVENT_LOG';
+
+  -- Read the per-DB discovery toggle; defaults to false (opt-in, no change for existing deployments)
+  b_discover_db_tables := coalesce(
+      DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE('plugins.event_log.discover_db_event_tables', false::variant)::boolean,
+      false
+  );
 
   IF (ARRAY_CONTAINS(:s_event_table_name::variant, :a_no_custom_event_t)) THEN
     -- there is NO event table defined or there is Dynatrace Snowflake Observability Agent one present
@@ -89,22 +105,107 @@ BEGIN
       drop table if exists DTAGENT_DB.STATUS.EVENT_LOG;
     END IF;
 
-    -- attempt to grant select on the source table; ignore failures for read-only or Snowflake-managed tables
+    -- attempt to grant select on the account event table; ignore failures for read-only or Snowflake-managed tables
     BEGIN
       EXECUTE IMMEDIATE concat('grant select on table ', :s_event_table_name, ' to role DTAGENT_VIEWER');
     EXCEPTION
       WHEN OTHER THEN
         -- ignore failures for read-only or Snowflake-managed event tables
-        -- leaves warning in the logs
         SYSTEM$LOG_WARN(concat('Could not grant select on table ', :s_event_table_name, ' to role DTAGENT_VIEWER: ', SQLERRM));
     END;
 
-    -- create a view on top of the existing event table, so we can use it in the event_log plugin
-    EXECUTE IMMEDIATE concat('create view if not exists DTAGENT_DB.STATUS.EVENT_LOG as select * from ', :s_event_table_name);
-    grant ownership on view DTAGENT_DB.STATUS.EVENT_LOG to role DTAGENT_OWNER revoke current grants;
-    grant select on view DTAGENT_DB.STATUS.EVENT_LOG to role DTAGENT_VIEWER;
+    IF (NOT :b_discover_db_tables) THEN
+      -- feature flag off: simple view on account event table (existing behavior)
+      EXECUTE IMMEDIATE concat('create or replace view DTAGENT_DB.STATUS.EVENT_LOG as select * from ', :s_event_table_name);
+      grant ownership on view DTAGENT_DB.STATUS.EVENT_LOG to role DTAGENT_OWNER revoke current grants;
+      grant select on view DTAGENT_DB.STATUS.EVENT_LOG to role DTAGENT_VIEWER;
 
-    RETURN 'Dynatrace Snowflake Observability Agent will use predefined Event table';
+      RETURN 'Dynatrace Snowflake Observability Agent will use predefined Event table';
+    ELSE
+      -- feature flag on: discover per-DB EVENT_TABLE overrides and build UNION ALL view
+      -- read allow-list once; avoids repeated F_GET_CONFIG_VALUE calls inside the loop query
+      a_db_patterns := DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE('plugins.event_log.databases', [])::ARRAY;
+      SHOW DATABASES;
+      FOR db_row IN (
+          SELECT "name" AS DATABASE_NAME
+          FROM TABLE(RESULT_SCAN(LAST_QUERY_ID()))
+          WHERE (
+              -- no allow-list: check all visible databases
+              array_size(:a_db_patterns) = 0
+              -- allow-list set: only check databases matching at least one pattern
+              OR EXISTS (
+                SELECT 1
+                FROM TABLE(FLATTEN(:a_db_patterns)) f
+                WHERE "name" LIKE f.VALUE::varchar
+              )
+            )
+          ORDER BY "name"
+      ) DO
+          s_db_name := db_row.DATABASE_NAME;
+          s_db_et   := '';
+
+          BEGIN
+              EXECUTE IMMEDIATE 'show parameters like ''EVENT_TABLE'' in database "' || :s_db_name || '"';
+              -- COALESCE avoids NO_DATA_FOUND when no DATABASE-level override exists
+              SELECT COALESCE(MAX("value"), '')
+                INTO s_db_et
+                FROM TABLE(result_scan(last_query_id()))
+               WHERE "level" = 'DATABASE';
+          EXCEPTION
+              WHEN OTHER THEN
+                  SYSTEM$LOG_WARN('Could not check event table override for DB ' || :s_db_name || ': ' || SQLERRM);
+          END;
+
+          IF (:s_db_et != '') THEN
+              n_override_count := n_override_count + 1;
+
+              -- attempt to grant on override table; ignore failures gracefully
+              BEGIN
+                  EXECUTE IMMEDIATE 'grant select on table ' || :s_db_et || ' to role DTAGENT_VIEWER';
+              EXCEPTION
+                  WHEN OTHER THEN
+                      SYSTEM$LOG_WARN('Could not grant select on override event table ' || :s_db_et || ': ' || SQLERRM);
+              END;
+
+              -- accumulate DB names for the NOT IN filter on the account-table branch
+              IF (:s_override_dbs_csv != '') THEN
+                  s_override_dbs_csv := :s_override_dbs_csv || ', ';
+              END IF;
+              s_override_dbs_csv := :s_override_dbs_csv || '''' || :s_db_name || '''';
+
+              -- accumulate UNION ALL branch for this override DB
+              s_union_parts := :s_union_parts ||
+                  ' UNION ALL SELECT TIMESTAMP, START_TIMESTAMP, OBSERVED_TIMESTAMP, TRACE, RESOURCE,' ||
+                  ' OBJECT_INSERT(RESOURCE_ATTRIBUTES, ''_dsoa_source_table'', ''' || :s_db_et || '''::VARIANT) AS RESOURCE_ATTRIBUTES,' ||
+                  ' SCOPE, SCOPE_ATTRIBUTES, RECORD_TYPE, RECORD, RECORD_ATTRIBUTES, VALUE' ||
+                  ' FROM ' || :s_db_et;
+          END IF;
+      END FOR;
+
+      IF (:n_override_count > 0) THEN
+          -- at least one override found: account branch excludes override DBs to avoid duplication
+          s_view_sql :=
+              'SELECT TIMESTAMP, START_TIMESTAMP, OBSERVED_TIMESTAMP, TRACE, RESOURCE,' ||
+              ' OBJECT_INSERT(RESOURCE_ATTRIBUTES, ''_dsoa_source_table'', ''' || :s_event_table_name || '''::VARIANT) AS RESOURCE_ATTRIBUTES,' ||
+              ' SCOPE, SCOPE_ATTRIBUTES, RECORD_TYPE, RECORD, RECORD_ATTRIBUTES, VALUE' ||
+              ' FROM ' || :s_event_table_name ||
+              ' WHERE COALESCE(RESOURCE_ATTRIBUTES[''snow.database.name'']::VARCHAR, '''') NOT IN (' || :s_override_dbs_csv || ')' ||
+              :s_union_parts;
+      ELSE
+          -- flag on but no DB overrides found: still tag source table for attribution consistency
+          s_view_sql :=
+              'SELECT TIMESTAMP, START_TIMESTAMP, OBSERVED_TIMESTAMP, TRACE, RESOURCE,' ||
+              ' OBJECT_INSERT(RESOURCE_ATTRIBUTES, ''_dsoa_source_table'', ''' || :s_event_table_name || '''::VARIANT) AS RESOURCE_ATTRIBUTES,' ||
+              ' SCOPE, SCOPE_ATTRIBUTES, RECORD_TYPE, RECORD, RECORD_ATTRIBUTES, VALUE' ||
+              ' FROM ' || :s_event_table_name;
+      END IF;
+
+      EXECUTE IMMEDIATE 'create or replace view DTAGENT_DB.STATUS.EVENT_LOG as ' || :s_view_sql;
+      grant ownership on view DTAGENT_DB.STATUS.EVENT_LOG to role DTAGENT_OWNER revoke current grants;
+      grant select on view DTAGENT_DB.STATUS.EVENT_LOG to role DTAGENT_VIEWER;
+
+      RETURN 'Dynatrace Snowflake Observability Agent uses ' || :n_override_count::TEXT || ' DB-level event table override(s)';
+    END IF;
   END IF;
 END;
 $$
