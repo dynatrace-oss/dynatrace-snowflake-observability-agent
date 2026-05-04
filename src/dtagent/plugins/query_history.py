@@ -25,6 +25,7 @@
 #
 #
 import logging
+import re
 from typing import Any, Tuple, Dict, List, Optional
 from dtagent import LOG, LL_TRACE
 from dtagent.otel import logs, spans
@@ -33,6 +34,7 @@ from dtagent.util import (
     _unpack_json_dict,
     _unpack_json_list,
     _pack_values_to_json_strings,
+    get_now_timestamp_formatted,
 )
 from dtagent.plugins import Plugin
 from dtagent.context import get_context_name_and_run_id, RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPILE_REMOVE
@@ -46,6 +48,7 @@ class QueryHistoryPlugin(Plugin):
     """Query history plugin class."""
 
     PLUGIN_NAME = "query_history"
+    PLUGIN_CONTEXTS: tuple = ("query_history",)
 
     def process(self, run_id: str, run_proc: bool = True, contexts: Optional[List[str]] = None) -> Dict[str, Dict[str, int]]:
         """The actual function to process query history:
@@ -116,13 +119,17 @@ class QueryHistoryPlugin(Plugin):
             )
 
             if not getattr(self._logs, "NOT_ENABLED", False):
+                log_extra = {
+                    "timestamp": query_dict["START_TIME"],
+                    "end_time": query_dict["END_TIME"],
+                    **log_dict,
+                }
+                log_extra["db.query.text"] = self._obfuscate_query_text(log_extra.get("db.query.text", ""))
+                if log_extra.get("snowflake.error.message"):
+                    log_extra["snowflake.error.message"] = self._obfuscate_query_text(log_extra["snowflake.error.message"])
                 self._logs.send_log(
-                    log_dict.get("db.query.text", "Snowflake Query"),
-                    extra={
-                        "timestamp": query_dict["START_TIME"],
-                        "end_time": query_dict["END_TIME"],
-                        **log_dict,
-                    },
+                    self._obfuscate_query_text(log_dict.get("db.query.text", "Snowflake Query")),
+                    extra=log_extra,
                     context=__context,
                 )
                 logs_sent = 1
@@ -142,9 +149,11 @@ class QueryHistoryPlugin(Plugin):
 
         if run_proc:
             # getting list of recent queries with their query operator stats (query profile)
-            self._session.call("APP.P_REFRESH_RECENT_QUERIES", log_on_exception=True)
+            refresh_result = self._call_refresh_recent_queries()
             # getting slow queries and checking if they would benefit from acceleration
             self._session.call("APP.P_GET_ACCELERATION_ESTIMATES", log_on_exception=True)
+            # emit self-monitoring event if signal protection was applied
+            self._emit_overload_protection_event(refresh_result, __context)
 
         t_recent_queries = "APP.V_RECENT_QUERIES"
         processed_query_ids, processing_errors_count, span_events_added, spans_sent, logs_sent, metrics_sent = self._process_span_rows(
@@ -172,6 +181,109 @@ class QueryHistoryPlugin(Plugin):
             },
             run_id,
         )
+
+    def _obfuscate_query_text(self, text: str) -> str:
+        """Apply query text obfuscation based on the configured obfuscation_mode.
+
+        This is a Python-side fallback — primary obfuscation is applied in the SQL view layer.
+        It ensures no unobfuscated text leaks through the log message body path.
+
+        Args:
+            text (str): The query text or error message to obfuscate.
+
+        Returns:
+            str: Obfuscated text according to the configured mode.
+                 Mode 'full'     → '[OBFUSCATED]'
+                 Mode 'literals' → string/numeric literals replaced with '?'
+                 Mode 'off' or unknown → text returned unchanged
+        """
+        mode = self._configuration.get(plugin_name=self._plugin_name, key="obfuscation_mode", default_value="off")
+        if mode == "full":
+            return "[OBFUSCATED]"
+        if mode == "literals":
+            text = re.sub(r"'[^']*'", "'?'", text)
+            text = re.sub(r"\b[0-9]+\.?[0-9]*\b", "?", text)
+            return text
+        return text
+
+    def _call_refresh_recent_queries(self) -> Dict[str, Any]:
+        """Call P_REFRESH_RECENT_QUERIES and return the result object.
+
+        Returns:
+            Dict[str, Any]: Result object from the procedure with status, counts, and config info.
+        """
+        try:
+            df = self._session.sql("call APP.P_REFRESH_RECENT_QUERIES()")
+            rows = df.collect()
+            if rows:
+                result_value = rows[0][0]
+                if isinstance(result_value, dict):
+                    return result_value
+                if isinstance(result_value, str):
+                    result = _from_json(result_value)
+                    if isinstance(result, dict):
+                        return result
+                try:
+                    result = dict(result_value)
+                    if isinstance(result, dict):
+                        return result
+                except (TypeError, ValueError):
+                    pass
+            return {"status": "success", "total_processed": 0, "total_available": 0, "max_entries_applied": False}
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            LOG.warning("Failed to execute or parse P_REFRESH_RECENT_QUERIES result: %s", str(e))
+            return {"status": "error", "total_processed": 0, "total_available": 0, "max_entries_applied": False}
+
+    def _emit_overload_protection_event(self, refresh_result: Dict[str, Any], context: str) -> None:
+        """Emit self-monitoring log and bizevent if signal protection was applied.
+
+        Args:
+            refresh_result (Dict[str, Any]): Result from P_REFRESH_RECENT_QUERIES
+            context (str): Context name for logging
+        """
+        if not refresh_result.get("max_entries_applied", False):
+            return
+
+        total_processed = refresh_result.get("total_processed", 0)
+        total_available = refresh_result.get("total_available", 0)
+        max_entries = refresh_result.get("max_entries_value", 0)
+
+        if total_available > total_processed:
+            dropped_count = total_available - total_processed
+            message = (
+                f"Signal overload protection active: processed {total_processed} of {total_available} "
+                f"available queries (max_entries={max_entries}, dropped={dropped_count})"
+            )
+
+            # Emit self-monitoring warning log
+            if not getattr(self._logs, "NOT_ENABLED", False):
+                self._logs.send_log(
+                    message,
+                    extra={
+                        "timestamp": get_now_timestamp_formatted(),
+                        "dsoa.overload_protection.active": True,
+                        "dsoa.overload_protection.total_available": total_available,
+                        "dsoa.overload_protection.total_processed": total_processed,
+                        "dsoa.overload_protection.dropped_count": dropped_count,
+                        "dsoa.overload_protection.max_entries": max_entries,
+                    },
+                    log_level=logging.WARNING,
+                    context=context,
+                )
+
+            # Emit self-monitoring bizevent
+            if not getattr(self._events, "NOT_ENABLED", False):
+                self._events.send_event(
+                    event_type="dsoa.signal_overload_protection",
+                    title=message,
+                    properties={
+                        "total_available": total_available,
+                        "total_processed": total_processed,
+                        "dropped_count": dropped_count,
+                        "max_entries": max_entries,
+                    },
+                    context=context,
+                )
 
 
 ##endregion

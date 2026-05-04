@@ -88,12 +88,11 @@ class MockTelemetryClient:
 
                 if telemetry_type == "logs":
                     for entry in sorted_actual:
-                        # this should be always present in OTEL logs but is dynamically added by SDK per log
-                        assert entry.pop("code.file.path"), "Expected 'code.file.path' in log attributes"
-                        assert entry.pop("code.function.name"), "Expected 'code.function.name' in log attributes"
-                        assert entry.pop("code.line.number"), "Expected 'code.line.number' in log attributes"
+                        # dynamically added by LoggingHandler (stdlib bridge); not present with direct Logger.emit()
+                        entry.pop("code.file.path", None)
+                        entry.pop("code.function.name", None)
+                        entry.pop("code.line.number", None)
                     for entry in sorted_expected:
-                        # strip these dynamic fields from stored baseline too so comparison is stable
                         entry.pop("code.file.path", None)
                         entry.pop("code.function.name", None)
                         entry.pop("code.line.number", None)
@@ -265,6 +264,14 @@ class MockTelemetryClient:
 
         kv_data = []
         for resource in getattr(request, f"resource_{telemetry_type}"):
+            # Extract resource-level attributes
+            resource_attributes = {}
+            if resource.resource and resource.resource.attributes:
+                for kv_pair in resource.resource.attributes:
+                    key = kv_pair.key
+                    value = __extract_value(kv_pair)
+                    resource_attributes[key] = value
+
             for scope in getattr(resource, f"scope_{telemetry_type}"):
                 for record in scope.log_records if telemetry_type == "logs" else scope.spans:
                     kv_datum = {}
@@ -290,6 +297,10 @@ class MockTelemetryClient:
                             key = kv_pair.key
                             value = __extract_value(kv_pair)
                             kv_datum[key] = value
+
+                    # Add resource attributes as a separate key
+                    if resource_attributes:
+                        kv_datum["resource_attributes"] = resource_attributes
 
                     if kv_datum:
                         kv_data.append(kv_datum)

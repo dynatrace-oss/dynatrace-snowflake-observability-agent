@@ -128,13 +128,13 @@ fresh, complete deployment of the agent into each environment.
 ### Deploy the current version
 
 ```bash
-./scripts/deploy/deploy.sh dev-{CURR_TAG} --scope=all --options=skip_confirm
+./scripts/deploy/deploy.sh --env=dev-{CURR_TAG} --scope=all --options=skip_confirm
 ```
 
 ### Deploy the previous version
 
 ```bash
-./scripts/deploy/deploy.sh dev-{PREV_TAG} --scope=all --options=skip_confirm
+./scripts/deploy/deploy.sh --env=dev-{PREV_TAG} --scope=all --options=skip_confirm
 ```
 
 **Important notes to share:**
@@ -369,6 +369,40 @@ fetch bizevents
 
 **Pass:** 0 rows (every plugin has count > 0 for both STARTED and FINISHED).
 
+#### AE-C5.8 — No unexpected ingest-quality warnings (BDX-695)
+
+```dql
+fetch bizevents
+| filter db.system == "snowflake"
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| filter event.type == "dsoa.ingest.warning"
+| summarize count = count(), by: { `dsoa.ingest.warning.type`, `dsoa.ingest.warning.exporter`, dsoa.run.plugin }
+| sort count desc
+```
+
+**Pass:** 0 rows — no ingest-quality warnings were detected during the test run.
+If rows are present, inspect `dsoa.ingest.warning.detail` for each row to determine whether
+the warning is a known/expected condition (e.g. a known attribute cardinality issue) or a
+regression. Fail the check if any new warning type appears that was not present in `DEV-{PREV_TAG}`.
+
+#### AE-C5.9 — No unexpected acquisition problems (BDX-1647)
+
+```dql
+fetch bizevents
+| filter db.system == "snowflake"
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| filter event.type == "dsoa.acquisition.problem"
+| summarize count = count(), by: { `dsoa.acquisition.problem.type`, `dsoa.acquisition.problem.source`, dsoa.run.plugin }
+| sort count desc
+```
+
+**Pass:** 0 rows — no acquisition problems (SQL errors during Snowflake data acquisition) were detected.
+If rows are present, inspect `dsoa.acquisition.problem.detail` to determine whether the error is transient
+(e.g. a view that temporarily had no data) or a regression (missing view, permission error). Fail the check
+if any `sql_error` or `sub_row_error` appears on a view that was working in `DEV-{PREV_TAG}`.
+
+---
+
 #### AE-C4.6 — span.parent_id present for child queries
 
 ```dql
@@ -431,21 +465,23 @@ After running all tests, present the results in a table using the checklist IDs:
 ```text
 ## Auto-Evaluation Results — DEV-{CURR_TAG}
 
-| Test      | Description                                            | Result     | Notes |
-|-----------|--------------------------------------------------------|------------|-------|
-| AE-C4.9   | No non_persisted_attribute_keys                        | PASS/FAIL  |       |
-| AE-C5.4   | BizEvent timestamps are current                        | PASS/FAIL  |       |
-| AE-C4.4   | Completeness span.events                               | PASS/FAIL  |       |
-| AE-C4.7   | No missing span.parent_id for child queries            | PASS/FAIL  |       |
-| AE-C1.2   | No ERROR-level agent logs                              | PASS/FAIL  |       |
-| AE-C2.3   | Query history metrics reported                         | PASS/FAIL  |       |
-| AE-C5.5   | Process metrics reported                               | PASS/FAIL  |       |
-| AE-C5.7   | Self-monitoring BizEvents all delivered                | PASS/FAIL  |       |
-| AE-C4.6   | span.parent_id present for child queries               | PASS/FAIL  |       |
-| AE-C2.1   | Budget metrics reported                                | PASS/FAIL  |       |
-| AE-C1.3   | No increase in dt.ingest.warnings (5% tolerance)       | PASS/FAIL  |       |
+| Test    | Description                                      | Result    | Notes |
+|---------|--------------------------------------------------|-----------|-------|
+| AE-C4.9 | No non_persisted_attribute_keys                  | PASS/FAIL |       |
+| AE-C5.4 | BizEvent timestamps are current                  | PASS/FAIL |       |
+| AE-C4.4 | Completeness span.events                         | PASS/FAIL |       |
+| AE-C4.7 | No missing span.parent_id for child queries      | PASS/FAIL |       |
+| AE-C1.2 | No ERROR-level agent logs                        | PASS/FAIL |       |
+| AE-C2.3 | Query history metrics reported                   | PASS/FAIL |       |
+| AE-C5.5 | Process metrics reported                         | PASS/FAIL |       |
+| AE-C5.7 | Self-monitoring BizEvents all delivered          | PASS/FAIL |       |
+| AE-C5.8 | No unexpected ingest-quality warnings            | PASS/FAIL |       |
+| AE-C5.9 | No unexpected acquisition problems               | PASS/FAIL |       |
+| AE-C4.6 | span.parent_id present for child queries         | PASS/FAIL |       |
+| AE-C2.1 | Budget metrics reported                          | PASS/FAIL |       |
+| AE-C1.3 | No increase in dt.ingest.warnings (5% tolerance) | PASS/FAIL |       |
 
-Auto-evaluated: {N}/11 — {n} passed, {f} failed
+Auto-evaluated: {N}/13 — {n} passed, {f} failed
 ```
 
 Include the full table in the Phase 5 markdown report.
@@ -549,7 +585,7 @@ The report file must have the following structure:
 | AE-1 | No non_persisted_attribute_keys                      | ...    |
 ...
 
-Auto-evaluated: {N}/10 — {n} passed, {f} failed, {s} skipped
+Auto-evaluated: {N}/13 — {n} passed, {f} failed, {s} skipped
 
 ## Section Results
 
@@ -726,23 +762,24 @@ silently ignored by Dynatrace; the rendered content comes from `markdown:`.
 | `test/qa/RELEASE-CHECKLIST.md` | Full checklist with all items |
 | `test/qa/test-suite/test-suite.yml` | Notebook YAML template |
 | `scripts/test/deploy_test_notebook.sh` | Notebook deploy script |
+| `scripts/test/test_deploy_flags_manual.sh` | Manual test script for deploy.sh flag parsing (no Snowflake required) |
 | `test/qa/results/` | QA result files (create as needed) |
 
 ### Deploy commands quick reference
 
 ```bash
 # Deploy both environments (fresh) — human only on dev-* profiles (requires DTAGENT_TOKEN)
-./scripts/deploy/deploy.sh dev-{CURR_TAG} --scope=all --options=skip_confirm
-./scripts/deploy/deploy.sh dev-{PREV_TAG} --scope=all --options=skip_confirm
+./scripts/deploy/deploy.sh --env=dev-{CURR_TAG} --scope=all --options=skip_confirm
+./scripts/deploy/deploy.sh --env=dev-{PREV_TAG} --scope=all --options=skip_confirm
 
 # test-qa: AI can and must use --scope=all
-./scripts/deploy/deploy.sh test-qa --scope=all --options=skip_confirm
+./scripts/deploy/deploy.sh --env=test-qa --scope=all --options=skip_confirm
 
 # AI-safe re-deploy on dev-* profiles (no token needed) — plugins + agents + config only
-./scripts/deploy/deploy.sh dev-{CURR_TAG} --scope=plugins,agents,config --options=skip_confirm
+./scripts/deploy/deploy.sh --env=dev-{CURR_TAG} --scope=plugins,agents,config --options=skip_confirm
 
 # Config-only update (no SQL changes)
-./scripts/deploy/deploy.sh dev-{CURR_TAG} --scope=config --options=skip_confirm
+./scripts/deploy/deploy.sh --env=dev-{CURR_TAG} --scope=config --options=skip_confirm
 
 # Deploy the test notebook
 ./scripts/test/deploy_test_notebook.sh \
@@ -751,6 +788,9 @@ silently ignored by Dynatrace; the rendered content comes from `markdown:`.
 
 # Preview notebook deploy without applying
 ./scripts/test/deploy_test_notebook.sh --dry-run
+
+# Run manual deploy flag tests (no Snowflake connection required)
+bash scripts/test/test_deploy_flags_manual.sh
 ```
 
 **CRITICAL — scope rules for AI-assisted deploys:**
@@ -768,7 +808,7 @@ Never let deploy output stream directly to the tool — the log is very large an
 cause tool aborts. Always background the process and tail the log:
 
 ```bash
-./scripts/deploy/deploy.sh dev-{CURR_TAG} --scope=all --options=skip_confirm \
+./scripts/deploy/deploy.sh --env=dev-{CURR_TAG} --scope=all --options=skip_confirm \
     > /tmp/deploy-{CURR_TAG}.log 2>&1 &
 # then poll:
 sleep 30 && ps -p $PID && tail -10 /tmp/deploy-{CURR_TAG}.log
@@ -857,3 +897,86 @@ fetch logs, from: now()-5m
 ```
 
 Pass: count == 0.
+
+#### B11 — LOG_EVENT_LEVEL BCR adaptation (Snowflake BCR 2026_02)
+
+This test verifies that the `LOG_EVENT_LEVEL` BCR adaptation runs correctly
+on accounts that support the parameter, and falls back gracefully on those
+that do not.
+
+1. **Full redeploy** to `test-qa` to exercise both `002_init_db.sql` and
+   `009_event_log_init.sql`:
+
+   ```bash
+   ./scripts/dev/build.sh && \
+   ./scripts/deploy/deploy.sh test-qa \
+       --scope=init,plugins,config \
+       --options=skip_confirm
+   ```
+
+1. **Verify `LOG_EVENT_LEVEL` set at account level** — only applicable when
+   DSOA provisions and owns the event table (i.e. `EVENT_TABLE` points to
+   `DTAGENT_DB.STATUS.EVENT_LOG`). First confirm ownership:
+
+   ```sql
+   SHOW PARAMETERS LIKE 'EVENT_TABLE' IN ACCOUNT;
+   ```
+
+   If `value = DTAGENT_DB.STATUS.EVENT_LOG`, DSOA owns the event table —
+   proceed with the account-level check below. If it points elsewhere (custom
+   or Snowflake-managed table), skip this step and step 4; the account-level
+   parameter is intentionally left to the operator in that scenario.
+
+   ```sql
+   SHOW PARAMETERS LIKE 'LOG_EVENT_LEVEL' IN ACCOUNT;
+   ```
+
+   **Expected (DSOA-owned event table):** one row with `name = LOG_EVENT_LEVEL`
+   and `value = INFO`.
+   If the parameter does not exist, the account predates BCR 2026_02 — the
+   fallback path is active; skip steps 3 and 4 and record as SKIP (pre-BCR).
+
+1. **Verify `LOG_EVENT_LEVEL` set at database level**:
+
+   ```sql
+   SHOW PARAMETERS LIKE 'LOG_EVENT_LEVEL' IN DATABASE DTAGENT_DB;
+   ```
+
+   **Expected:** `value = INFO`.
+
+1. **Verify privilege was granted to DTAGENT_VIEWER**:
+
+   ```sql
+   SHOW GRANTS TO ROLE DTAGENT_VIEWER;
+   ```
+
+   **Expected:** a row with `privilege = MODIFY LOG EVENT LEVEL` and
+   `granted_on = ACCOUNT`.
+
+1. **Verify event_log plugin collects telemetry** — wait ~2 minutes after
+   deploy, then check Dynatrace:
+
+   ```dql
+   fetch logs, from: now()-10m
+   | filter deployment.environment == "test-qa"
+   | filter dsoa.run.plugin == "event_log"
+   | summarize count = count()
+   ```
+
+   **Expected:** count > 0. If count == 0, trigger the plugin manually:
+
+   ```bash
+   snow sql -c snow_agent_test-qa \
+       --role DTAGENT_OWNER \
+       --warehouse DTAGENT_WH \
+       --database DTAGENT_DB \
+       --schema APP \
+       -q "CALL APP.DTAGENT(ARRAY_CONSTRUCT('event_log'));"
+   ```
+
+   Then re-run the DQL check.
+
+**Pass criteria:**
+
+- BCR-capable account: all four SQL checks pass + telemetry count > 0.
+- Pre-BCR account: steps 2–4 skipped (parameter absent), telemetry count > 0.

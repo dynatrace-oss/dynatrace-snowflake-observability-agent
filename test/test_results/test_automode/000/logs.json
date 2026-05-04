@@ -14,7 +14,17 @@
     "dsoa.run.context": "test_automode/000",
     "code.file.path": "./src/dtagent/otel/logs.py",
     "code.function.name": "send_log",
-    "code.line.number": 205
+    "code.line.number": 205,
+    "resource_attributes": {
+      "db.system": "snowflake",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "service.name": "test.dsoa2025",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1"
+    }
   },
   {
     "content": "test_automode/000",
@@ -33,7 +43,17 @@
     "dsoa.run.context": "test_automode/000",
     "code.file.path": "./src/dtagent/otel/logs.py",
     "code.function.name": "send_log",
-    "code.line.number": 205
+    "code.line.number": 205,
+    "resource_attributes": {
+      "db.system": "snowflake",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "service.name": "test.dsoa2025",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1"
+    }
   },
   {
     "content": "New entry to STATUS.LOG_PROCESSED_MEASUREMENTS from test_automode/000",
@@ -49,6 +69,16 @@
     "dsoa.run.context": "self_monitoring",
     "code.file.path": "./src/dtagent/otel/logs.py",
     "code.function.name": "send_log",
-    "code.line.number": 205
+    "code.line.number": 205,
+    "resource_attributes": {
+      "db.system": "snowflake",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "service.name": "test.dsoa2025",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1"
+    }
   }
 ]

@@ -19,7 +19,17 @@
     "snowflake.time.queued.overload": 0,
     "snowflake.time.queued.provisioning": 0,
     "dsoa.run.plugin": "test_query_history_span_hierarchy",
-    "dsoa.run.context": "query_history"
+    "dsoa.run.context": "query_history",
+    "resource_attributes": {
+      "db.system": "snowflake",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "service.name": "test.dsoa2025",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1"
+    }
   },
   {
     "content": "CALL MY_DB.PUBLIC.P_INNER_SP();",
@@ -42,7 +52,17 @@
     "snowflake.partitions.total": 0,
     "snowflake.time.queued.overload": 0,
     "snowflake.time.queued.provisioning": 0,
-    "dsoa.run.context": "query_history"
+    "dsoa.run.context": "query_history",
+    "resource_attributes": {
+      "db.system": "snowflake",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "service.name": "test.dsoa2025",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1"
+    }
   },
   {
     "content": "SELECT * FROM MY_DB.PUBLIC.MY_TABLE;",
@@ -65,6 +85,16 @@
     "snowflake.role.name": "TEST_ROLE",
     "snowflake.warehouse.name": "TEST_WH",
     "dsoa.run.plugin": "test_query_history_span_hierarchy",
-    "dsoa.run.context": "query_history"
+    "dsoa.run.context": "query_history",
+    "resource_attributes": {
+      "db.system": "snowflake",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "service.name": "test.dsoa2025",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1"
+    }
   }
 ]

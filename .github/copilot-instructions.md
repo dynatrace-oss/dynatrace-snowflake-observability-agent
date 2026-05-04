@@ -30,7 +30,7 @@ For plugin anatomy, naming conventions, implementation patterns, and testing —
 
 ## Tech Stack
 
-- **Runtime:** Python 3.9+ (CI: 3.11), Snowflake Snowpark.
+- **Runtime:** Python 3.10+ (CI: 3.13), Snowflake Snowpark.
 - **Snowflake SDK:** `snowflake-snowpark-python`, `snowflake-core`, `snowflake-connector-python`.
 - **Telemetry:** OpenTelemetry SDK (`opentelemetry-api/sdk/exporter-otlp 1.38.0`) + Dynatrace Metrics/Events APIs.
 - **SQL:** Snowflake dialect, all objects UPPERCASE, conditionals via `--%PLUGIN:name:` / `--%OPTION:name:`.
@@ -237,6 +237,15 @@ Four mandatory phases — do not skip or merge.
 
 **Continuous learning from review feedback:** After every human review, treat the feedback as a signal to improve agent instructions. If a correction reveals a gap or misunderstanding that could affect future work, update or create the appropriate skill (`.opencode/skills/<name>/SKILL.md`) or add a rule to this file. Proactively propose the update even if not explicitly asked — do not let the same mistake recur. New skills should be created when a topic is domain-specific and reusable (e.g. dashboard patterns, workflow patterns); general agent behavior belongs in this file.
 
+## Branch Safety Rules (CRITICAL — NEVER VIOLATE)
+
+- **NEVER commit directly to `main`, `devel`, `release/*`, or `hotfix/*` branches.**
+- ALL new work must go on a `feat/*`, `dev/*`, or `fix/*` branch — follow the naming convention `(feat|fix|chore)/{version}/{short-name}`.
+- **Before starting any implementation**, ALWAYS run `git branch --show-current` and create a feature branch if on a protected branch.
+- If you accidentally commit to a protected branch: (1) create a feature branch from HEAD, (2) hard-reset the protected branch to `origin/<branch>`.
+- Protected branches: `main`, `devel`, `release/*`, `hotfix/*`
+- Safe branches for commits: `feat/*`, `dev/*`, `fix/*`, `chore/*`
+
 ## Anti-Patterns & Pitfalls
 
 - **Scope creep:** Don't refactor unrelated files for a simple change. Note issues separately; fix them later. Resist over-engineering.
@@ -255,6 +264,7 @@ Four mandatory phases — do not skip or merge.
 - **Conditional SQL:** `--%PLUGIN:name:` / `--%OPTION:name:` for conditionals.
 - **Configuration:** Never hard-code. Add to templates and YAML.
 - **Plugin enablement:** With `disabled_by_default: true`, use `is_enabled: true` (not `is_disabled: false`) to activate a plugin. Add `deploy_disabled_plugins: false` to skip deploying SQL for disabled plugins and reduce deployment time.
+- **Plugin removal:** When permanently deleting a plugin from the codebase, add it to `conf/removed_plugins.yml` (name, version, task names). This enables `--options=cleanup_disabled` to suspend and drop orphaned Snowflake objects. See the `plugin-development` skill for the full removal checklist.
 - **SQL `$$` blocks:** The `snow sql` CLI misparses cursor field access (e.g. `r_db.name`) inside `$$`-delimited procedure bodies. Always capture cursor fields into `LET` variables first (e.g. `LET v_name TEXT := r_db.name;`), then use the variable.
 - **Include/exclude filtering:** Plugins that use `include`/`exclude` pattern lists (`DB.SCHEMA.OBJECT`) must match excludes at the **same granularity** as includes — never collapse a fine-grained exclude to DB-level only. See `plugin-development` skill and `PLUGIN_DEVELOPMENT.md` for the canonical patterns.
 - **DQL semantics — `dsoa.run.plugin` vs `dsoa.run.context`:** Use `dsoa.run.plugin` to filter all telemetry produced by a plugin (regardless of which context emitted it). Use `dsoa.run.context` only when targeting a specific named context within a plugin. Never use `dsoa.run.context == "<plugin_name>"` when the intent is to select by plugin — some plugins have multiple contexts and the filter will silently miss data. Example: shares events must use `dsoa.run.plugin == "shares"`, while logs from the inbound/outbound shares contexts use `in(dsoa.run.context, {"inbound_shares", "outbound_shares"})`.

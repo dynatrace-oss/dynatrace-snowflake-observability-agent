@@ -2,9 +2,9 @@ name: Quality Checks
 
 on:
   push:
-    branches: ["devel", "main", "dev/*", "release/*", "feature/*", "hotfix/*"]
+    branches: [ "devel", "main", "dev/*", "release/*", "feature/*", "hotfix/*" ]
   pull_request:
-    branches: ["devel", "main", "dev/*", "release/*", "feature/*", "hotfix/*"]
+    branches: [ "devel", "main", "dev/*", "release/*", "feature/*", "hotfix/*" ]
 
 permissions:
   contents: read
@@ -19,7 +19,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.13"
 
       - name: Install dependencies
         run: |
@@ -44,10 +44,19 @@ jobs:
         run: yamllint src || exit 1
 
       - name: Lint Markdown
-        run: markdownlint-cli2 '[^.]*/**/*.md' '*.md' --config .markdownlint.json || exit 1
+        run: markdownlint-cli2 '[^.]*/**/*.md' '*.md' --config .markdownlint.json ||
+          exit 1
 
       - name: Lint BOM files
-        run: find src -name "bom.yml" -exec sh -c 'printf "%-50s " "$$1"; check-jsonschema --schemafile test/src-bom.schema.json "$$1" || check-jsonschema --schemafile test/src-bom.schema.json "$$1"' _ {} \;
+        run: find src -name "bom.yml" -exec sh -c 'printf "%-50s " "$$1";
+          check-jsonschema --schemafile test/src-bom.schema.json "$$1"' _ {} \;
+
+      - name: Install ShellCheck
+        run: sudo apt-get install -y shellcheck
+
+      - name: Lint Shell
+        run: shellcheck --severity=warning scripts/deploy/*.sh scripts/dev/*.sh
+          scripts/test/*.sh test/bash/*.bats
 
   test-documentation:
     runs-on: ubuntu-latest
@@ -58,7 +67,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.13"
 
       - name: Install dependencies
         run: |
@@ -76,7 +85,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11.12"
+          python-version: "3.13"
 
       - name: Install dependencies
         run: |
@@ -93,7 +102,8 @@ jobs:
 
   test-bash-slow:
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/devel' || startsWith(github.ref, 'refs/heads/release/')
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/devel' ||
+      startsWith(github.ref, 'refs/heads/release/')
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -101,7 +111,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11.12"
+          python-version: "3.13"
 
       - name: Install dependencies
         run: |
@@ -132,7 +142,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11.12"
+          python-version: "3.13"
 
       - name: Install dependencies
         run: |
@@ -150,6 +160,7 @@ jobs:
           pytest test/core/test_util.py -k "TestUtil"
           pytest test/core/test_views_structure.py -k "TestViews"
           pytest test/core/test_connector.py -k "TestTelemetrySender"
+          pytest test/core/test_performance.py -k "TestIsNanOrNone"
       - name: Run OTEL tests
         run: |
           pytest test/otel/test_events.py -k "TestEvents"
@@ -170,7 +181,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11.12"
+          python-version: "3.13"
 
       - name: Install dependencies
         run: |

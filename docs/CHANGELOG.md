@@ -9,6 +9,79 @@ All notable changes to this project will be documented in this file.
 >
 > Detailed technical changes and implementation notes are available in [DEVLOG.md](DEVLOG.md).
 
+## [Unreleased]
+
+### Added
+
+- **Event Log: per-database event table support** (`discover_db_event_tables: false` opt-in). Discovers Snowflake DB-level `EVENT_TABLE` parameter overrides, unions them with the account-level source into `STATUS.EVENT_LOG`, and tags each record with `_dsoa_source_table` in `_RESOURCE_ATTRIBUTES`. Prevents silent telemetry blackout for multi-tenant customers using DB-scoped event table isolation. Opt-in default preserves backward compatibility for existing deployments. ([BDX-716])
+
+- **Query text obfuscation** for `query_history` plugin: new `obfuscation_mode` config key (`off` / `literals` / `full`) controls whether query text and error messages are redacted before reaching Dynatrace. Mode `literals` replaces string/numeric literals with `?` while preserving SQL structure; mode `full` replaces the entire text with `[OBFUSCATED]`. Applies to both `db.query.text` and `snowflake.error.message`. Default `off` preserves backward compatibility. See [DEVLOG.md](DEVLOG.md) for implementation details.
+- **Acquisition problem detection**: SQL errors during Snowflake data acquisition (previously unhandled `SnowparkSQLException` in `_get_table_rows` and span sub-row queries) are now caught gracefully. The plugin degrades to returning 0 entries instead of crashing the entire agent run. A `dsoa.acquisition.problem` bizevent is emitted with the source view and error detail. Two new self-monitoring dashboard tiles surface acquisition problems over time. Can be disabled via `plugins.self_monitoring.detect_acquisition_problems: false`.
+- **Ingest-quality warning detection**: DSOA now inspects Dynatrace API and OTLP exporter responses for partial rejections and attribute trimming. When Dynatrace silently drops or rejects telemetry data (rejected log/span records, invalid metric lines, non-persisted attribute keys, rejected events), the agent emits `dsoa.ingest.warning` bizevents and logs a warning. Two new self-monitoring dashboard tiles visualise warnings by exporter over time and list recent warning details. Detection is on by default and can be disabled via `plugins.self_monitoring.detect_ingest_warnings: false`. See [DEVLOG.md](DEVLOG.md) for technical details.
+- **Resource Monitors**: Credit usage threshold alerting via Davis events. Configurable info/warn/critical/exhausted bands (default thresholds: 50 / 80 / 90 / 100 %). Opens a Davis event when usage crosses into an alert band and resolves it automatically when usage recovers. Per-monitor threshold overrides supported via `credits_quota_thresholds`. See [Resource Monitors plugin](PLUGINS.md#resource_monitors_info_sec).
+- Table Health plugin: monitors table storage metrics (active bytes, time-travel bytes, failsafe bytes, retained-for-clone bytes, row count) with include/exclude filtering and configurable size/count constraints. Runs every 6 hours by default (disabled by default, opt-in).
+- Table Health plugin — clustering depth context: collects `SYSTEM$CLUSTERING_INFORMATION()` for clustered tables via a staging procedure and reports average depth, average overlaps, constant partition ratio, and total partition count. Runs every 6 hours offset by 1 hour from the storage task. Enabled by default when the plugin is active; disable with `clustering_enabled: false`.
+- Table Health plugin — derived metrics context: computes period-over-period growth (bytes and %) and clustering degradation signals from historical snapshots. Disabled by default; enable by setting `history_retention_days` to a positive integer. Runs every 6 hours offset by 2 hours from the storage task.
+- Cold tables identification plugin: identifies tables with no recent query access (default: >90 days) to enable FinOps teams to find candidates for archiving, dropping, or tiering to lower-cost storage. Reduces storage costs by sunsetting unused tables. See [Cold Tables plugin](PLUGINS.md#cold_tables_info_sec).
+- **Warehouse Efficiency section** added to the Costs Monitoring dashboard: eight new tiles covering idle time ratio per warehouse, idle time trend, auto-suspend configuration audit, estimated credit waste with suggested timeout optimizations, multi-cluster utilization, idle cluster identification, and resume/suspend frequency (thrashing detection). No agent changes required — uses existing `warehouse_usage` and `resource_monitors` telemetry. See [DEVLOG.md](DEVLOG.md) for DQL implementation details.
+- Signal protection framework for `query_history` plugin: configurable top-N limiting (`max_entries`), include/exclude filters for warehouses/databases/users, and watermark-based lookback window (`max_lookback_minutes`). Prevents overload on high-volume Snowflake accounts. Self-monitoring logs and bizevents emitted when signal protection is active. All defaults preserve backward compatibility.
+- Cross-batch span parent linking for `query_history` plugin: OTEL span context (`OTEL_SPAN_ID`, `OTEL_TRACE_ID`) is now persisted in `PROCESSED_QUERIES_CACHE` and used to inject parent context for child queries whose parent was processed in a previous batch. Enables continuous trace chains across agent run cycles. Cache TTL is configurable via `query_history.cache_ttl_hours` (default: 4h). See [DEVLOG.md](DEVLOG.md) for implementation details.
+- Cold tables identification plugin: identifies tables with no recent query access (default: >90 days) to enable FinOps teams to find candidates for archiving, dropping, or tiering to lower-cost storage. Reduces storage costs by sunsetting unused tables. See [Cold Tables plugin](PLUGINS.md#cold_tables_info_sec).
+- New `metering` plugin reporting credit consumption across all Snowflake service types via `METERING_HISTORY`. Covers auto-clustering, pipes, serverless tasks, AI services, replication, and more with `service_type` dimension for FinOps cost attribution.
+- **New `org_costs` plugin** (disabled by default): reports organization-level Snowflake cost and usage metrics from `SNOWFLAKE.ORGANIZATION_USAGE`. Covers five contexts — metering credits, storage, data transfer, billing amounts in currency, and remaining contract balances. Requires the Snowflake account to belong to an organization. See [Org Costs plugin](PLUGINS.md#org_costs_info_sec) and [DEVLOG.md](DEVLOG.md).
+- **New `Org-Level Costs Observability` dashboard**: visualizes all five org-level cost signal groups (credits, cloud services, storage, data transfer, billing, and contract balance) in a single dashboard. Requires the `org_costs` plugin.
+- **Snowflake Consumption (Organization Level) dashboard** (Phase A): overhauled `Org-Level Costs Observability` dashboard with new title, three sections (§2 Credit Consumption, §4 Storage, §5 Data Transfer), corrected Remaining Contract Balance tile using real metric names, and three variables (`$Accounts`, `$credit_rate`, `$bu_mapping`). See [DEVLOG.md](DEVLOG.md).
+- **Snowflake Consumption dashboard** (Phase C — §7 Department / BU View): adds five tiles grouping credits, USD billing, and storage by account with a `bu` field seeded from the hidden `$bu_mapping` variable. In v1 the BU field defaults to `"Unassigned"` for all accounts; configure exact account-to-BU mappings via the `$bu_mapping` JSON variable in the Dynatrace UI. Pattern-based mapping is planned for a future release. See [DEVLOG.md](DEVLOG.md).
+- **Snowflake Consumption (Organization Level) dashboard** (Phase B): added §1 Contract Capacity KPIs (6 tiles: capacity used, remaining capacity, 30-day run rate, YoY burn rate comparison, estimated days to overage, projected overage date) and §3 USD Consumption (3 tiles). Fixed `Org Contract Balance Warning` workflow to use correct metric names. See [DEVLOG.md](DEVLOG.md).
+- **New `Org Contract Balance Warning` workflow**: monitors remaining Snowflake contract balances every 6 hours and alerts when any balance drops below a configurable threshold.
+- **Costs Monitoring dashboard** extended with an organization-level credits overview section (tile 22/23) for at-a-glance cross-account credit consumption.
+- **Interactive deployment wizard** (`--interactive` flag): Guides users through 5-phase configuration (core config, deployment scope, plugin selection, advanced settings, telemetry settings). Auto-triggered when config file is missing. Generates `conf/config-$ENV.yml`. Includes HTTPS reachability probes for DT tenant and Snowflake account (warn-only, non-blocking). Supports `--dry-run` (print config to stdout) and `--output=<file>` (write to custom path).
+- **New `deploy.sh` flags**: `--env=<ENV>` (replaces positional arg), `--interactive` (launch wizard), `--defaults` (generate minimal config non-interactively). Positional `$ENV` still supported with deprecation warning for backward compatibility.
+- **Shared bash library** (`scripts/deploy/lib.sh`): Logging, prompt helpers, validators (DT tenant, Snowflake account, tokens) for reuse across deployment scripts.
+- **Docker deployment option**: A `ghcr.io/dynatrace-oss/dsoa-deploy` image bundles all deployment tools and build artifacts. Single `docker run` command replaces local toolchain installation. Published to GHCR on every release tag. See [docs/deployment/docker.md](deployment/docker.md).
+- **GitHub Actions workflow template**: `dsoa-deploy-template.yml` ships with each release. Use `--ci-export=github` in the interactive wizard to generate a customized workflow and `GITHUB_SECRETS_SETUP.md` for your environment. See [docs/deployment/github-actions.md](deployment/github-actions.md).
+- **`--defaults` non-interactive config generation**: When `DSOA_DT_TENANT`, `DSOA_SF_ACCOUNT`, and `DSOA_DEPLOYMENT_ENV` env vars are set, `--defaults` generates `conf/config-$ENV.yml` without any prompts. When config already exists, uses it as-is. Always implies `skip_confirm`.
+- **`--ci-export=github`** flag on `interactive_wizard.sh`: After saving config, generates `.github/workflows/dsoa-deploy.yml` and `GITHUB_SECRETS_SETUP.md` from templates in `src/assets/ci-templates/github/`.
+- **Deployment guides**: New `docs/deployment/` directory with dedicated guides for [local deploy.sh](deployment/deploy.md), [Docker](deployment/docker.md), and [GitHub Actions](deployment/github-actions.md).
+
+### Changed
+
+- **`service_user` option removed** from `deploy.sh --options`. Replaced by automatic `--temporary-connection` detection: when `SNOWFLAKE_ACCOUNT` and `SNOWFLAKE_USER` env vars are both set, `deploy.sh` uses `snow sql --temporary-connection` automatically. `setup.sh` skips connection profile creation in the same scenario.
+- `docs/INSTALL.md` restructured: Docker is now the primary quick-start path; detailed content moved to `docs/deployment/` guides.
+- Updated `snowflake-snowpark-python` minimum version to `>=1.49.0` (was `>=1.48.1`). Python version constraint
+  remains `<3.14` — bottleneck is `snowflake==1.12.0`, not snowpark. See [DEVLOG.md](DEVLOG.md) for full audit details.
+- Improved memory handling and processing performance for high-volume Snowflake accounts. The hot-path
+  (`_cleanup_dict` → `_pack_values_to_json_strings`) now uses native Python NaN detection instead of pandas,
+  reducing per-row overhead by eliminating unnecessary `pd.Series` allocations. Events and metrics exporters
+  now flush mid-batch to bound peak memory usage. GC interval and batch flush sizes are configurable via
+  `otel.performance.*` config keys. A new `dsoa.agent.memory.peak_rss` metric is emitted after each plugin
+  run for memory self-monitoring. See [DEVLOG.md](DEVLOG.md) for full technical details.
+
+### Deprecated
+
+- `event_usage` plugin is deprecated and disabled by default. Use `metering` instead. Will be removed in 0.9.6. To reproduce the same data, filter by `snowflake.service.type == "TELEMETRY_DATA_INGEST"`.
+
+### Fixed
+
+- `serverless_tasks` context: `db.namespace` and `snowflake.schema.name` no longer emit empty strings for DSOA's
+  own internal scheduler tasks (`_MEASUREMENT_TASK`, `_FINALIZER_TASK`). These fields are now absent when the source
+  is empty, preventing silent exclusion from dashboard `$Database`/`$Schema` variable filters. A new
+  `snowflake.task.is_internal` boolean dimension marks DSOA internal tasks so dashboards and DQL can distinguish
+  them from customer serverless tasks. See [DEVLOG.md](DEVLOG.md) for details. (BDX-1904 / TI-003)
+
+- The `event_log` plugin setup procedure now adapts to Snowflake BCR Bundle 2026\_02 (`LOG_EVENT_LEVEL` parameter).
+  On accounts where the BCR is active, `LOG_EVENT_LEVEL = INFO` is set at database level, and also at account
+  level when DSOA provisions and owns the event table, so events emitted by DSOA procedures continue to reach the
+  event table. When a pre-existing/custom event table is used, the account-level parameter is left unchanged. On
+  pre-BCR accounts the new parameter is detected as absent and the change is skipped gracefully. See
+  [DEVLOG.md](DEVLOG.md) for details.
+
+- `snowflake.task.run.attempt` in the `task_history` context now emits as a numeric integer instead of a string. Downstream DQL queries no longer require a `toLong()` cast; arithmetic comparisons such as `snowflake.task.run.attempt > 1` work directly. The `Tasks & Pipelines` dashboard retry tile has been updated accordingly. Redeploy with `--scope=plugins,config` to apply. (BDX-1903)
+- Config changes on redeploy now take full effect: the config upload procedure uses DELETE + INSERT (full replace) instead of an additive MERGE, so entries removed from the YAML (e.g. a plugin's `is_enabled: true`) are also removed from Snowflake. Previously, stale config entries could override a new `disabled_by_default: true` setting.
+- Disabled plugins now have their Snowflake tasks suspended automatically on every redeploy, regardless of deploy scope. The deploy script injects `ALTER TASK IF EXISTS … SUSPEND` for every excluded plugin (including multi-task and admin-task plugins) before executing the deploy SQL. Previously, stale tasks continued running and consuming compute credits after a plugin was disabled.
+
+See [DEVLOG.md](DEVLOG.md) for implementation details.
+
 ## [0.9.4] - 2026-04-14
 
 ### Added

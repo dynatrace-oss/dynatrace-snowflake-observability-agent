@@ -25,6 +25,8 @@
 #
 #
 import gc
+import json
+import sys
 import uuid
 import logging
 import inspect
@@ -49,6 +51,7 @@ from dtagent.otel.events.bizevents import BizEvents
 from dtagent.otel.logs import Logs
 from dtagent.otel.spans import Spans
 from dtagent.otel.metrics import Metrics
+from dtagent.otel.ingest_warnings import AcquisitionProblemCollector
 from dtagent.context import RUN_CONTEXT_KEY, RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY, get_context_name_and_run_id
 
 ##endregion COMPILE_REMOVE
@@ -56,10 +59,37 @@ from dtagent.context import RUN_CONTEXT_KEY, RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RU
 ##region ------------------------ PROCESSING MEASUREMENTS ---------------------------------
 
 
+def _get_peak_memory_mb() -> float:
+    """Returns peak resident set size (RSS) in megabytes using stdlib resource module.
+
+    On Linux (Snowflake runtime), ``ru_maxrss`` is in kilobytes.
+    On macOS (developer machines), ``ru_maxrss`` is in bytes.
+    Falls back to 0.0 when the ``resource`` module is unavailable (e.g. Windows).
+
+    Returns:
+        float: Peak RSS in megabytes, or 0.0 if unavailable.
+    """
+    try:
+        import resource  # pylint: disable=import-outside-toplevel
+
+        rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        if sys.platform == "darwin":
+            return rss / (1024 * 1024)  # macOS: bytes → MB
+        return rss / 1024  # Linux: kilobytes → MB
+    except ImportError:
+        return 0.0
+
+
 class Plugin(ABC):
     """Generic plugin class, base for all plugins."""
 
     PLUGIN_NAME = "generic_plugin"
+    PLUGIN_CONTEXTS: Tuple[str, ...] = ()
+
+    @classmethod
+    def get_contexts(cls) -> Tuple[str, ...]:
+        """Returns the declared context names for this plugin."""
+        return cls.PLUGIN_CONTEXTS
 
     def __init__(
         self,
@@ -91,6 +121,16 @@ class Plugin(ABC):
         if bizevents is not None:
             self._bizevents = bizevents
 
+        # Performance tuning: read configurable GC and batch-flush intervals
+        _cfg = getattr(self, "_configuration", None)
+        self._gc_interval: int = _cfg.get(otel_module="performance", key="gc_interval", default_value=100) if _cfg else 100
+        self._span_batch_flush_size: int = (
+            _cfg.get(otel_module="performance", key="spans_batch_flush_size", default_value=50) if _cfg else 50
+        )
+        self._log_batch_flush_size: int = (
+            _cfg.get(otel_module="performance", key="logs_batch_flush_size", default_value=100) if _cfg else 100
+        )
+
         self.processed_last_timestamp = None
 
     def _has_event(
@@ -119,12 +159,19 @@ class Plugin(ABC):
         Yields:
             Generator[Dict, None, None]: Generator over result set
         """
-        df = self._session.sql(t_data) if is_select_for_table(t_data) else self._session.table(t_data)
+        from snowflake.snowpark.exceptions import SnowparkSQLException  # COMPILE_REMOVE
 
-        for row in df.to_local_iterator():
-            row_dict = row.as_dict(recursive=True)
+        try:
+            df = self._session.sql(t_data) if is_select_for_table(t_data) else self._session.table(t_data)
 
-            yield row_dict
+            for row in df.to_local_iterator():
+                row_dict = row.as_dict(recursive=True)
+
+                yield row_dict
+        except SnowparkSQLException as e:
+            short_detail = str(e)[:200]
+            LOG.error("SQL acquisition failure for '%s': %s", t_data, short_detail)
+            AcquisitionProblemCollector.add_problem("sql_error", t_data, short_detail)
 
     def _report_execution(self, measurements_source: str, last_timestamp, last_id, entries_count: dict, run_id: str):
         __context = get_context_name_and_run_id(plugin_name=self._plugin_name, context_name="self_monitoring", run_id=run_id)
@@ -138,6 +185,22 @@ class Plugin(ABC):
             log_level=logging.INFO,
             context=__context,
         )
+
+        # Emit peak memory usage as a self-monitoring metric (Snowflake runtime only)
+        if not getattr(self._metrics, "NOT_ENABLED", False) and is_regular_mode(self._session):
+            peak_mb = _get_peak_memory_mb()
+            self._metrics.report_via_metrics_api(
+                {
+                    "METRICS": {"dsoa.agent.memory.peak_rss_mb": peak_mb},
+                    "DIMENSIONS": {
+                        "dsoa.run.plugin": self._plugin_name,
+                        "dsoa.run.context": measurements_source,
+                    },
+                },
+                context_name="self_monitoring",
+                plugin_name=self._plugin_name,
+            )
+            self._metrics.flush_metrics()
 
         # if no valid timestamp given, default to last run timestamp
         if last_timestamp is None or str(last_timestamp) == "None":
@@ -208,6 +271,7 @@ class Plugin(ABC):
 
         processed_query_ids: list[str] = []
         processing_errors: list[str] = []
+        span_context_map: Dict[str, Tuple[str, str]] = {}
         span_events_added = 0
         spans_sent = 0
         logs_sent = 0
@@ -234,12 +298,25 @@ class Plugin(ABC):
                     f_span_events=f_span_events,
                     f_log_events=f_log_events,
                     context=__context,
+                    span_context_map=span_context_map,
                 )
                 span_events_added += _span_events_added
                 spans_sent += _spans_sent
                 logs_sent += _logs_sent
                 metrics_sent += _metrics_sent
                 metrics_present |= _metrics_present
+
+                # Periodic mid-batch flush to bound memory usage for high-volume accounts
+                if (
+                    self._span_batch_flush_size > 0
+                    and len(processed_query_ids) % self._span_batch_flush_size == 0
+                    and len(processed_query_ids) > 0
+                ):
+                    metrics_sent += self._metrics.flush_metrics()
+                    spans_disabled = getattr(self._spans, "NOT_ENABLED", False)
+                    if not spans_disabled:
+                        self._spans.flush_traces()
+                    gc.collect()
 
         if metrics_present:
             metrics_sent += self._metrics.flush_metrics()
@@ -276,16 +353,18 @@ class Plugin(ABC):
             )
 
         if report_status and flush_succeeded:
+            span_context_json = json.dumps({qid: {"trace_id": t, "span_id": s} for qid, (s, t) in span_context_map.items()})
             self._session.call(
                 "STATUS.UPDATE_PROCESSED_QUERIES",
                 joint_processed_query_ids,
                 processing_errors_count,
                 span_events_added,
+                span_context_json,
             )
 
         return (processed_query_ids, processing_errors_count, span_events_added, spans_sent, logs_sent, metrics_sent)
 
-    def _process_row(
+    def _process_row(  # pylint: disable=R0913
         self,
         row: dict,
         *,
@@ -297,6 +376,7 @@ class Plugin(ABC):
         f_span_events: Optional[Callable[[Dict[str, Any]], Tuple[List[Dict[str, Any]], int]]] = None,
         f_log_events: Optional[Callable[[Dict[str, Any]], None]] = None,
         context: Optional[Dict] = None,
+        span_context_map: Optional[Dict[str, Tuple[str, str]]] = None,
     ) -> Tuple[int, int, int, int, bool]:
         """Processing single row with data, with optional recursion done within span generation
 
@@ -310,6 +390,8 @@ class Plugin(ABC):
             f_span_events:             function that will produce a list of span events to be sent
             f_log_events:              function that will log current span and its events; will return number of logs sent
             context:                   context information reported as additional attributes in log/span payload
+            span_context_map (Dict):   map populated with {row_id: (span_id_hex, trace_id_hex)} after span creation;
+                                       also used to inject cached parent OTEL context for cross-batch linking
         Return:
             Tuple containing:
                 span_events_added (int):           number of span events added when processing this row
@@ -340,6 +422,7 @@ class Plugin(ABC):
                     processed_ids=processed_ids,
                     f_span_events=f_span_events,
                     f_log_events=f_log_events,
+                    span_context_map=span_context_map,
                 )
 
         elif f_log_events is not None and not getattr(self._logs, "NOT_ENABLED", False):
@@ -574,7 +657,15 @@ class Plugin(ABC):
             if was_processed:
                 processed_entries_cnt += 1
 
-            if processed_entries_cnt % 100 == 0:  # invoking garbage collection every 100 entries.
+            if self._gc_interval > 0 and processed_entries_cnt % self._gc_interval == 0:  # invoking garbage collection every N entries.
+                gc.collect()
+
+            # Periodic mid-batch flush to bound memory usage for high-volume accounts
+            if self._log_batch_flush_size > 0 and processed_entries_cnt % self._log_batch_flush_size == 0 and processed_entries_cnt > 0:
+                processed_events_cnt += self._events.flush_events()
+                processed_metrics_cnt += self._metrics.flush_metrics()
+                if not getattr(self._logs, "NOT_ENABLED", False):
+                    self._logs.flush_logs()
                 gc.collect()
 
         processed_events_cnt += self._events.flush_events()

@@ -1,7 +1,8 @@
 #!/usr/bin/env bats
 
 setup() {
-    cd "$BATS_TEST_DIRNAME/../.."
+    # shellcheck disable=SC2154
+    cd "$BATS_TEST_DIRNAME/../.." || exit 1
     # Create minimal test config
     TEST_CONFIG_FILE=$(mktemp)
     cat > "$TEST_CONFIG_FILE" << 'EOF'
@@ -88,7 +89,7 @@ EOSQL
 CREATE PROCEDURE main_agent()
 returns object
 language python
-runtime_version = '3.11'
+runtime_version = '3.13'
 packages = (
     'requests',
     'pandas',
@@ -152,7 +153,7 @@ teardown() {
     grep -q "upgrade 1.0.0" "$TEST_SQL_FILE"
 
     # Should NOT include v0.9.0 (version <= 0.9.0)
-    ! grep -q "upgrade 0.9.0" "$TEST_SQL_FILE"
+    run ! grep -q "upgrade 0.9.0" "$TEST_SQL_FILE"
 }
 
 @test "prepare_deploy_script.sh upgrade scope includes 4-part hotfix when upgrading from base version" {
@@ -166,8 +167,8 @@ teardown() {
     grep -q "upgrade 1.0.0" "$TEST_SQL_FILE"
 
     # Should NOT include v0.9.0, v0.9.3 (versions <= 0.9.3)
-    ! grep -q "upgrade 0.9.0" "$TEST_SQL_FILE"
-    ! grep -q "upgrade 0.9.3'" "$TEST_SQL_FILE"
+    run ! grep -q "upgrade 0.9.0" "$TEST_SQL_FILE"
+    run ! grep -q "upgrade 0.9.3'" "$TEST_SQL_FILE"
 }
 
 @test "prepare_deploy_script.sh upgrade scope excludes 4-part hotfix when already at that version" {
@@ -180,9 +181,9 @@ teardown() {
     grep -q "upgrade 1.0.0" "$TEST_SQL_FILE"
 
     # Should NOT include v0.9.3.1 or earlier
-    ! grep -q "upgrade 0.9.3.1" "$TEST_SQL_FILE"
-    ! grep -q "upgrade 0.9.3'" "$TEST_SQL_FILE"
-    ! grep -q "upgrade 0.9.0" "$TEST_SQL_FILE"
+    run ! grep -q "upgrade 0.9.3.1" "$TEST_SQL_FILE"
+    run ! grep -q "upgrade 0.9.3'" "$TEST_SQL_FILE"
+    run ! grep -q "upgrade 0.9.0" "$TEST_SQL_FILE"
 }
 
 @test "prepare_deploy_script.sh upgrade scope fails without from-version" {
@@ -203,7 +204,7 @@ teardown() {
     grep -q "upgrade 1.0.0" "$TEST_SQL_FILE"
 
     # Should NOT include v0.9.0 (version <= 0.9.2)
-    ! grep -q "upgrade 0.9.0" "$TEST_SQL_FILE"
+    run ! grep -q "upgrade 0.9.0" "$TEST_SQL_FILE"
 }
 
 @test "prepare_deploy_script.sh multiple scopes with upgrade filters by version" {
@@ -222,7 +223,7 @@ teardown() {
     grep -q "upgrade 1.0.0" "$TEST_SQL_FILE"
 
     # Should NOT include v0.9.0 upgrade script (version <= 0.9.2)
-    ! grep -q "upgrade 0.9.0" "$TEST_SQL_FILE"
+    run ! grep -q "upgrade 0.9.0" "$TEST_SQL_FILE"
 }
 
 @test "prepare_deploy_script.sh multiple scopes with upgrade requires from-version" {
@@ -264,7 +265,7 @@ EOF
     grep -q "active_plugin_table" "$TEST_SQL_FILE"
 
     # Should NOT include test_plugin code
-    ! grep -q "test_plugin_table" "$TEST_SQL_FILE"
+    run ! grep -q "test_plugin_table" "$TEST_SQL_FILE"
 }
 
 @test "prepare_deploy_script.sh removes inactive plugins from plugins scope" {
@@ -298,7 +299,7 @@ EOF
     grep -q "active_plugin_handler" "$TEST_SQL_FILE"
 
     # Should NOT include test_plugin
-    ! grep -q "test_plugin_handler" "$TEST_SQL_FILE"
+    run ! grep -q "test_plugin_handler" "$TEST_SQL_FILE"
 }
 
 @test "prepare_deploy_script.sh removes inactive plugins from agents scope" {
@@ -332,7 +333,7 @@ EOF
     grep -q "main_agent" "$TEST_SQL_FILE"
 
     # Should NOT include test_plugin_agent
-    ! grep -q "class TestPlugin" "$TEST_SQL_FILE"
+    run ! grep -q "class TestPlugin" "$TEST_SQL_FILE"
 }
 
 @test "prepare_deploy_script.sh removes inactive plugins from all scope" {
@@ -369,9 +370,9 @@ EOF
     grep -q "class ActivePlugin" "$TEST_SQL_FILE"
 
     # Should NOT include test_plugin code anywhere
-    ! grep -q "test_plugin_table" "$TEST_SQL_FILE"
-    ! grep -q "test_plugin_handler" "$TEST_SQL_FILE"
-    ! grep -q "test_plugin_agent" "$TEST_SQL_FILE"
-    ! grep -q "class TestPlugin" "$TEST_SQL_FILE"
+    run ! grep -q "test_plugin_table" "$TEST_SQL_FILE"
+    run ! grep -q "test_plugin_handler" "$TEST_SQL_FILE"
+    run ! grep -q "test_plugin_agent" "$TEST_SQL_FILE"
+    run ! grep -q "class TestPlugin" "$TEST_SQL_FILE"
 
 }

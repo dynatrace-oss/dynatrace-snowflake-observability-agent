@@ -38,6 +38,7 @@ class DataVolumePlugin(Plugin):
     """Data volume plugin class."""
 
     PLUGIN_NAME = "data_volume"
+    PLUGIN_CONTEXTS: tuple = ("data_volume",)
 
     def process(self, run_id: str, run_proc: bool = True, contexts: Optional[List[str]] = None) -> Dict[str, Dict[str, int]]:
         """Processes the measures on data volume

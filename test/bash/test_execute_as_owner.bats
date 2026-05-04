@@ -13,7 +13,8 @@
 #
 
 setup() {
-    cd "$BATS_TEST_DIRNAME/../.."
+    # shellcheck disable=SC2154
+    cd "$BATS_TEST_DIRNAME/../.." || exit 1
     SRC_DIR="src"
 
     # -------------------------------------------------------------------

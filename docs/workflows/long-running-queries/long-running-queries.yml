@@ -1,0 +1,276 @@
+# WORKFLOW: DSOA — Long-Running Queries Detection
+# DESCRIPTION: Detects individual queries with abnormal max execution time per warehouse and user using Davis AI
+# OWNER: DSOA Team
+# PLUGINS: query_history
+# TAGS: snowflake, dsoa, performance, query-history
+
+id: c3f7a2b1-84d0-4e9a-b5c6-1d2e8f0a3b47
+title: "DSOA — Long-Running Queries Detection"
+description: |
+  Monitors maximum query execution time per warehouse and per user using Davis AI anomaly detection.
+  Alerts when max execution time significantly exceeds the learned seasonal baseline — detecting
+  individual long-running queries that would be invisible to average-based detectors. Only successful
+  queries are analyzed to avoid noise from failed executions. Requires the query_history plugin.
+isPrivate: false
+schemaVersion: 4
+trigger:
+  schedule:
+    isActive: true
+    trigger:
+      type: interval
+      intervalMinutes: 360
+    rule: null
+    filterParameters: {}
+    timezone: UTC
+    inputs: {}
+tasks:
+  ad_long_running_by_warehouse:
+    name: ad_long_running_by_warehouse
+    description: Detect max query execution time anomalies per warehouse using Davis AI
+    action: dynatrace.davis.workflow.actions:davis-analyze
+    active: true
+    position:
+      x: -1
+      y: 1
+    conditions:
+      states: {}
+    predecessors: []
+    input:
+      analyzerName: dt.statistics.anomaly_detection.SeasonalBaselineAnomalyDetectionAnalyzer
+      body:
+        timeSeriesData: |
+          timeseries max_exec = max(snowflake.time.execution)
+          , by: {
+            snowflake.warehouse.name,
+            deployment.environment
+          }
+          , filter: {
+            snowflake.query.execution_status == "SUCCESS"
+          }
+          // Optional: restrict to specific warehouses
+          // | filter in(snowflake.warehouse.name, "COMPUTE_WH", "ANALYTICS_WH")
+          // Optional: restrict to a specific environment
+          // | filter deployment.environment == "prod"
+          | fieldsAdd
+              metric_name = "snowflake.query.execution_time.max",
+              _event_name_template = "Long-running query detected in warehouse {dims:snowflake.warehouse.name}",
+              _event_description_template = "Max query execution time in warehouse {dims:snowflake.warehouse.name} ({dims:deployment.environment}) has significantly exceeded the learned baseline, indicating an individual long-running query."
+        alertCondition: ABOVE
+        tolerance: 3
+        generalParameters:
+          timeframe:
+            startTime: now()-30d
+            endTime: now
+          logVerbosity: WARNING
+          resolveDimensionalQueryData: false
+        slidingWindow: 3
+        violatingSamples: 2
+        dealertingSamples: 3
+        alertOnMissingData: false
+        useModelCache: true
+        extendedOutput: false
+
+  ad_long_running_by_user:
+    name: ad_long_running_by_user
+    description: Detect max query execution time anomalies per user using Davis AI
+    action: dynatrace.davis.workflow.actions:davis-analyze
+    active: true
+    position:
+      x: 1
+      y: 1
+    conditions:
+      states: {}
+    predecessors: []
+    input:
+      analyzerName: dt.statistics.anomaly_detection.SeasonalBaselineAnomalyDetectionAnalyzer
+      body:
+        timeSeriesData: |
+          timeseries max_exec = max(snowflake.time.execution)
+          , by: {
+            db.user,
+            deployment.environment
+          }
+          , filter: {
+            snowflake.query.execution_status == "SUCCESS"
+          }
+          // Optional: restrict to specific users
+          // | filter in(db.user, "ANALYST", "ETL_USER")
+          // Optional: restrict to a specific environment
+          // | filter deployment.environment == "prod"
+          | fieldsAdd
+              metric_name = "snowflake.query.execution_time.max",
+              _event_name_template = "Long-running query detected for user {dims:db.user}",
+              _event_description_template = "Max query execution time for user {dims:db.user} ({dims:deployment.environment}) has significantly exceeded the learned baseline, indicating an individual long-running query."
+        alertCondition: ABOVE
+        tolerance: 3
+        generalParameters:
+          timeframe:
+            startTime: now()-30d
+            endTime: now
+          logVerbosity: WARNING
+          resolveDimensionalQueryData: false
+        slidingWindow: 3
+        violatingSamples: 2
+        dealertingSamples: 3
+        alertOnMissingData: false
+        useModelCache: true
+        extendedOutput: false
+
+  extract_anomaly_events:
+    name: extract_anomaly_events
+    description: Process Davis results from both analyzers and build Dynatrace event objects
+    action: dynatrace.automations:run-javascript
+    active: true
+    position:
+      x: 0
+      y: 2
+    conditions:
+      states: {}
+    predecessors:
+      - ad_long_running_by_warehouse
+      - ad_long_running_by_user
+    input:
+      script: |
+        import { execution } from '@dynatrace-sdk/automation-utils';
+        import { EventIngestEventType } from '@dynatrace-sdk/client-classic-environment-v2';
+
+        // === CONFIGURATION ===
+        // Change eventType to EventIngestEventType.CustomAlert to enable Davis problem correlation.
+        // CustomInfo (default) creates informational events without triggering Davis problems.
+        const CONFIG = {
+          eventType: EventIngestEventType.CustomInfo,
+          eventTimeout: 360,
+          adSource: 'dsoa.long_running_queries'
+        };
+        // === END CONFIGURATION ===
+
+        function replacePlaceholders(contentString, data) {
+          const pattern = /\{dims:(\S*?)}/gm;
+          let matches = [];
+          while ((matches = pattern.exec(contentString))) {
+            contentString = contentString.replace(matches[0], data[matches[1]]);
+          }
+          return contentString;
+        }
+
+        function unpackMap(amap) {
+          const mappedResult = {};
+          amap.forEach(item => {
+            mappedResult[item.key] = item.value;
+          });
+          return mappedResult;
+        }
+
+        function createEventObject(alert, result, events) {
+          const startTime = alert.timeframe.startTime;
+          const endTime = alert.timeframe.endTime;
+          const eventTitle = result.dimensions.find(x => x.key === '_event_name_template')?.value;
+          const eventDesc = result.dimensions.find(x => x.key === '_event_description_template')?.value;
+          const sourceMetric = result.dimensions.find(x => x.key === 'metric_name')?.value;
+          const resultDimensions = unpackMap(result.dimensions);
+
+          const newEvent = {
+            body: {
+              eventType: CONFIG.eventType,
+              title: replacePlaceholders(eventTitle, resultDimensions),
+              properties: {
+                'event.description': replacePlaceholders(eventDesc, resultDimensions)
+              },
+              timeout: CONFIG.eventTimeout
+            }
+          };
+
+          newEvent.body.properties['event.start'] = startTime;
+          newEvent.body.properties['event.end'] = endTime;
+          newEvent.body.properties['ad.source'] = CONFIG.adSource;
+          newEvent.body.properties['ad.source_metric'] = sourceMetric;
+          newEvent.body.properties['ad.direction'] = 'above';
+
+          if (result.dimensions.length > 0) {
+            result.dimensions.forEach(dim => {
+              if (!dim.key.startsWith('_')) {
+                newEvent.body.properties[dim.key] = dim.value;
+              }
+            });
+          }
+          events.push(newEvent);
+        }
+
+        export default async function ({ execution_id }) {
+          const ex = await execution(execution_id);
+
+          const events = [];
+          for (const taskName of ['ad_long_running_by_warehouse', 'ad_long_running_by_user']) {
+            let analyzerResult;
+            try {
+              analyzerResult = await ex.result(taskName);
+            } catch (e) {
+              console.log(`Skipping ${taskName}: ${e.message}`);
+              continue;
+            }
+            if (analyzerResult && analyzerResult.output && analyzerResult.output.length > 0) {
+              analyzerResult.output.forEach(result => {
+                if (result.raisedAlerts && result.raisedAlerts.length > 0) {
+                  result.raisedAlerts.forEach(alert => {
+                    createEventObject(alert, result, events);
+                  });
+                }
+              });
+            }
+          }
+
+          console.log(`Extracted ${events.length} anomaly event(s)`);
+          return events;
+        }
+
+  ingest_anomaly_events:
+    name: ingest_anomaly_events
+    description: Ingest anomaly events via Dynatrace Environment V2 API
+    action: dynatrace.automations:run-javascript
+    active: true
+    position:
+      x: 0
+      y: 3
+    conditions:
+      states:
+        extract_anomaly_events: OK
+    predecessors:
+      - extract_anomaly_events
+    input:
+      script: |
+        import { execution } from '@dynatrace-sdk/automation-utils';
+        import { eventsClient } from '@dynatrace-sdk/client-classic-environment-v2';
+
+        async function ingestEvents(events) {
+          let successCount = 0;
+          const failed = [];
+          for (let i = 0; i < events.length; ++i) {
+            const res = await eventsClient.createEvent(events[i]);
+            if (res.reportCount !== 1) {
+              failed.push({ reason: 'Invalid number of ingested events' });
+            } else {
+              const status = res.eventIngestResults[0];
+              if (status.status === 'OK') {
+                successCount += 1;
+              } else {
+                failed.push(JSON.stringify(status));
+              }
+            }
+          }
+          if (successCount === 0 && failed.length === 0) {
+            console.log('No events to ingest');
+          }
+          if (successCount > 0) {
+            console.log(`Successfully ingested ${successCount} event(s)`);
+          }
+          if (failed.length > 0) {
+            console.log(`Failed to ingest ${failed.length} event(s):`, JSON.stringify(failed));
+          }
+        }
+
+        export default async function ({ execution_id }) {
+          const ex = await execution(execution_id);
+          const events = await ex.result('extract_anomaly_events');
+          await ingestEvents(events);
+          return events;
+        }
