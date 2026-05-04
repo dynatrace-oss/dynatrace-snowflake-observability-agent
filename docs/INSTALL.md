@@ -106,6 +106,41 @@ Full guide: [docs/deployment/github-actions.md](deployment/github-actions.md)
 
 ---
 
+## Verifying Your Installation
+
+After deploying, confirm the installation is healthy:
+
+```sh
+./scripts/deploy/deploy.sh --env=production --scope=verify
+```
+
+Runs five Snowflake checks (database, stored procedures, tasks, config, version) and two optional
+Dynatrace checks (recent telemetry, version match). Outputs a JSON report on stdout and a
+human-readable summary on stderr. Exit code 0 = healthy (PASS or WARN); exit code 1 = failure.
+
+To also verify that telemetry has reached Dynatrace, export a token with the `storage:events:read`
+scope in addition to the standard ingest scopes:
+
+```sh
+export DTAGENT_TOKEN="dt0c01.YOUR_TOKEN"
+./scripts/deploy/deploy.sh --env=production --scope=verify
+```
+
+For CI/CD pipelines — deploy then verify in one pipeline step:
+
+```sh
+./scripts/deploy/deploy.sh --env=production --scope=all && \
+./scripts/deploy/deploy.sh --env=production --scope=verify
+```
+
+> [!NOTE]
+> `verify` is a standalone scope and cannot be combined with other scopes.
+> The Dynatrace checks query for bizevents from the last 2 hours, so they may show
+> no data immediately after a fresh deployment — run them again after the first scheduled task
+> execution (~15 minutes).
+
+---
+
 ## Dynatrace API Token Scopes
 
 The `DTAGENT_TOKEN` needs these scopes:

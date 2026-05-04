@@ -91,7 +91,7 @@ Required:
 Optional:
   --scope=<SCOPE>          Deployment scope (default: all)
                            Values: init, admin, setup, plugins, config, agents, apikey,
-                                   all, teardown, upgrade, dt_assets, or a file pattern
+                                   all, teardown, upgrade, dt_assets, verify, or a file pattern
                            Multiple: comma-separated (e.g. setup,plugins,config,agents)
   --from-version=<VER>     Required when --scope=upgrade (e.g. 0.9.2)
   --output-file=<FILE>     Output file path for --options=manual mode
@@ -157,7 +157,7 @@ fi
 #   --interactive — wizard collects config, actual deploy runs later
 #   --defaults without existing config — only generates config, no build artifacts required
 _skip_build_check=0
-if [[ "$SCOPE" == "dt_assets" || $INTERACTIVE -eq 1 ]]; then
+if [[ "$SCOPE" == "dt_assets" || "$SCOPE" == "verify" || $INTERACTIVE -eq 1 ]]; then
     _skip_build_check=1
 elif [[ $DEFAULTS -eq 1 && ! -f "$CONFIG_FILE" ]]; then
     _skip_build_check=1
@@ -359,6 +359,7 @@ DEPLOYMENT_ID=$(uuidgen 2>/dev/null \
     || python3 -c "import uuid; print(uuid.uuid4())" 2>/dev/null \
     || echo "00000000-0000-0000-0000-$(date +%s%N | tail -c 12)")
 
+mkdir -p build
 $CWD/prepare_config.sh "${DEFAULT_CONFIG_FILE}" "${CONFIG_FILE}"
 
 # Validate and fix dynatrace_tenant_address if it uses deprecated .apps.dynatrace.com domain
@@ -394,6 +395,12 @@ fi
 DEPLOYMENT_ENV="$($CWD/get_config_key.sh core.deployment_environment)"
 CONNECTION_ENV="${DEPLOYMENT_ENV,,}" # convert to lower case
 NOW_TS=$(date '+%Y%m%d-%H%M%S')
+
+# Route verify scope — config is loaded, skip SQL generation and Snowflake deployment
+if [[ "$SCOPE" == "verify" ]]; then
+    "$CWD/verify_install.sh" "$ENV"
+    exit $?
+fi
 
 if $IS_MANUAL; then
     if [ -n "$OUTPUT_FILE" ]; then
