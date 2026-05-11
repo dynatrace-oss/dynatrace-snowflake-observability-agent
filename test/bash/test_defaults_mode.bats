@@ -10,7 +10,7 @@ setup() {
     # Create minimal build artifacts
     mkdir -p build/09_upgrade build/30_plugins conf
     echo "SELECT 'init';" > build/00_init.sql
-    echo "SELECT 'admin'; CREATE ROLE IF NOT EXISTS DTAGENT_ADMIN;" > build/10_admin.sql
+    echo "SELECT 'admin'; CREATE ROLE IF NOT EXISTS DTAGENT_ADMIN;" > build/80_admin.sql
     echo "SELECT 'setup'; CREATE SCHEMA IF NOT EXISTS MAIN_SCHEMA;" > build/20_setup.sql
     echo "SELECT 'config';" > build/40_config.sql
     echo "SELECT 'agents';" > build/70_agents.sql
@@ -24,7 +24,7 @@ setup() {
 
 teardown() {
     rm -f conf/config-defaults-test.yml
-    rm -f build/00_init.sql build/10_admin.sql build/20_setup.sql build/40_config.sql build/70_agents.sql
+    rm -f build/00_init.sql build/80_admin.sql build/20_setup.sql build/40_config.sql build/70_agents.sql
     rm -rf build/09_upgrade build/30_plugins
     unset DSOA_DT_TENANT DSOA_DEPLOYMENT_ENV DSOA_SF_ACCOUNT
 }

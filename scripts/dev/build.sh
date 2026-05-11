@@ -209,7 +209,7 @@ if [ -d "src/dtagent.sql/upgrade" ]; then
 fi
 
 # build/80_admin.sql <- combine(src/dtagent.sql/admin/*.sql, plugin admin/*.sql wrapped in plugin blocks)
-# Assembled LAST (after 70_agents) so admin overrides correctly overwrite non-admin stubs.
+# 80_admin.sql is named last so filename sort in prepare_deploy_script.sh deploys it after all plugin files.
 : > build/80_admin.sql
 append_sql_dir "src/dtagent.sql/admin" "build/80_admin.sql"
 

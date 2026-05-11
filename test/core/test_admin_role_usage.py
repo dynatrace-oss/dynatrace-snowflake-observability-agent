@@ -287,7 +287,7 @@ class TestDeploymentScopes:
                     error_msg += f"  Line {line_num}: {line}\n"
                 error_msg += "\n"
             error_msg += "DTAGENT_ADMIN (USE ROLE) should only be used in:\n"
-            error_msg += "  - admin scope (10_admin.sql) - optional scope\n"
+            error_msg += "  - admin scope (80_admin.sql) - optional scope\n"
             error_msg += "  - upgrade scope (09_upgrade/*.sql)\n"
             error_msg += "\nNote: Grants TO ROLE DTAGENT_ADMIN are allowed in any scope.\n"
             error_msg += "\nIMPORTANT: DTAGENT_ADMIN is an optional role. If admin scope is not deployed,\n"
@@ -389,7 +389,7 @@ class TestAccountAdminRoleUsage:
 
         return {
             "init": build_dir / "00_init.sql",
-            "admin": build_dir / "10_admin.sql",
+            "admin": build_dir / "80_admin.sql",
             "setup": build_dir / "20_setup.sql",
             "plugins": list((build_dir / "30_plugins").glob("*.sql")) if (build_dir / "30_plugins").exists() else [],
             "config": build_dir / "40_config.sql",
@@ -417,7 +417,7 @@ class TestAccountAdminRoleUsage:
         return violations
 
     def test_accountadmin_only_in_init_and_upgrade(self, build_sql_files):
-        """Test that ACCOUNTADMIN role is used only in init (00_init.sql), admin (10_admin.sql), and upgrade scripts.
+        """Test that ACCOUNTADMIN role is used only in init (00_init.sql), admin (80_admin.sql), and upgrade scripts.
         This ensures proper privilege separation and security boundaries.
 
         Note: admin scope requires ACCOUNTADMIN to create DTAGENT_ADMIN role and grant MANAGE GRANTS privilege.
@@ -448,7 +448,7 @@ class TestAccountAdminRoleUsage:
                 error_msg += "\n"
             error_msg += "\nACCOUNTADMIN should only be used in:\n"
             error_msg += "  - 00_init.sql (initialization)\n"
-            error_msg += "  - 10_admin.sql (admin role creation and grants)\n"
+            error_msg += "  - 80_admin.sql (admin role creation and grants)\n"
             error_msg += "  - 09_upgrade/*.sql (upgrade scripts)\n"
 
             pytest.fail(error_msg)

@@ -736,15 +736,16 @@ as
 
 **MANDATORY doc requirement:** add an IMPORTANT callout in the plugin's `config.md` explaining that without admin scope the grants are never applied and monitoring will be **silently incomplete** — no errors, just missing data. Give the manual grant SQL.
 
-### Pattern B — Inline-with-fallback (use when the proc is called inline from other SQL)
+### Pattern B — Two-file approach (use when the proc is called inline from other SQL)
 
-Stub and admin override live in the **same file**. The stub is always deployed; the admin
-override is wrapped in a `--%OPTION:dtagent_admin:` block immediately after.
-`create or replace` ensures the admin version overwrites the stub when admin scope is on.
-Reference: `shares.sql/051_p_grant_imported_privileges.sql`.
+Stub and admin override live in **separate files**. The stub goes in the plugin's regular SQL
+directory; the admin override goes in the plugin's `admin/` subdirectory (assembled into
+`build/80_admin.sql`). Because `80_admin.sql` sorts after all plugin files in
+`prepare_deploy_script.sh`, the admin override always deploys last and correctly overwrites
+the stub with `create or replace`.
 
 ```sql
--- 051_p_do_x.sql — stub + inline admin override (single file)
+-- plugins/myplugin.sql/051_p_do_x.sql — non-admin stub (always deployed)
 create or replace procedure DTAGENT_DB.APP.P_DO_X(arg VARCHAR)
 returns text language sql execute as caller
 as $$ begin
@@ -752,12 +753,18 @@ as $$ begin
     return 'skipped: DTAGENT_ADMIN scope not deployed';
 end; $$;
 grant usage on procedure DTAGENT_DB.APP.P_DO_X(VARCHAR) to role DTAGENT_VIEWER;
+```
 
---%OPTION:dtagent_admin:
--- Admin version overwrites the stub above when dtagent_admin scope is enabled.
-create or replace procedure DTAGENT_DB.APP.P_DO_X(arg VARCHAR) ...
+```sql
+-- plugins/myplugin.sql/admin/051_p_do_x.sql — admin override (deployed into 80_admin.sql)
+create or replace procedure DTAGENT_DB.APP.P_DO_X(arg VARCHAR)
+returns text language sql execute as caller
+as $$ begin
+    -- Full admin implementation here
+    return 'ok';
+end; $$;
 grant ownership on procedure DTAGENT_DB.APP.P_DO_X(VARCHAR) to role DTAGENT_ADMIN copy current grants;
---%:OPTION:dtagent_admin
+grant usage on procedure DTAGENT_DB.APP.P_DO_X(VARCHAR) to role DTAGENT_VIEWER;
 ```
 
 ### Diagnostic helpers (exempt)
