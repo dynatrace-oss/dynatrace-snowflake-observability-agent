@@ -31,11 +31,18 @@ delivers:
   - name: DTAGENT_DB.APP.TASK_DTAGENT_QUERY_HISTORY_GRANTS
     type: task
     comment: (Admin scope only) Admin task owned by DTAGENT_ADMIN to grant MONITOR privileges on warehouses
+  - name: DTAGENT_DB.APP.V_QUERY_COST_ATTRIBUTION_SUMMARY
+    type: view
+    comment: QAH cost totals by warehouse/user/tag; requires USAGE_VIEWER or GOVERNANCE_VIEWER database role on SNOWFLAKE
 
 references:
   - name: SNOWFLAKE.ACCOUNT_USAGE.ACCESS_HISTORY
     type: view
     privileges: SELECT
+  - name: SNOWFLAKE.ACCOUNT_USAGE.QUERY_ATTRIBUTION_HISTORY
+    type: view
+    privileges: SELECT
+    comment: Requires USAGE_VIEWER or GOVERNANCE_VIEWER database role on the SNOWFLAKE database; used by query_cost_attribution context
   - name: SNOWFLAKE.ACCOUNT_USAGE.QUERY_HISTORY
     type: view
     privileges: SELECT

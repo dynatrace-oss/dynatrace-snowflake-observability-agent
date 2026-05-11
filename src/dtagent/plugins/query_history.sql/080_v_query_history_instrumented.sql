@@ -120,6 +120,14 @@ select
         'snowflake.schema.name',                                    qh.schema_name,
         'snowflake.schema.id',                                      qh.schema_id,
         'snowflake.database.id',                                    qh.database_id,
+    -- EXPERIMENTAL DDL change attribution (controlled by
+    -- plugins.query_history.track_ddl_changes; NULL when off or when
+    -- ACCESS_HISTORY.OBJECT_MODIFIED_BY_DDL is not populated for the query)
+        'snowflake.object.type',                                    qh.ddl_target_domain,
+        'snowflake.object.id',                                      qh.ddl_target_id,
+        'snowflake.object.name',                                    qh.ddl_target_name,
+        'snowflake.object.ddl.operation',                           qh.ddl_operation,
+        'snowflake.object.ddl.properties',                          qh.ddl_properties,
     -- will be filled in in spans
         'dsoa.debug.span.events.added',                        NULL,
         'dsoa.debug.span.events.failed',                       NULL,
@@ -154,6 +162,10 @@ select
         'snowflake.time.fault_handling',                            qh.fault_handling_time,
         'snowflake.time.retry',                                     qh.query_retry_time,
         'snowflake.credits.cloud_services',                         qh.credits_used_cloud_services,
+--%OPTION:query_cost_attribution:
+        'snowflake.credits.attributed_compute',                     qh.credits_attributed_compute,
+        'snowflake.credits.query_acceleration',                     qh.credits_used_query_acceleration,
+--%:OPTION:query_cost_attribution
         'snowflake.data.spilled.local',                             qh.bytes_spilled_to_local_storage,
         'snowflake.data.spilled.remote',                            qh.bytes_spilled_to_remote_storage,
         'snowflake.data.sent_over_the_network',                     qh.bytes_sent_over_the_network,

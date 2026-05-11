@@ -42,7 +42,7 @@ EXPECTED_CONTEXTS = {
         "org_billing_usage_in_currency",
         "org_billing_remaining_balance",
     ),
-    "QueryHistoryPlugin": ("query_history",),
+    "QueryHistoryPlugin": ("query_history", "query_cost_attribution"),
     "ResourceMonitorsPlugin": ("resource_monitors", "warehouses"),
     "SharesPlugin": ("outbound_shares", "inbound_shares", "shares"),
     "SnowpipesPlugin": ("snowpipes", "snowpipes_copy_history", "snowpipes_usage_history"),

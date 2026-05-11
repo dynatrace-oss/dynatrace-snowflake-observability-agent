@@ -140,7 +140,7 @@
     ],
     "db.user": "SYSTEM",
     "session.id": 22812680207694162,
-    "snowagent.run.context": "query_history",
+    "dsoa.run.context": "query_history",
     "snowagent.run.id": "5c0188ef23e84fb99fd31ffddd8d0dcd",
     "snowflake.cluster_number": 1,
     "snowflake.credits.cloud_services": 4.7e-05,

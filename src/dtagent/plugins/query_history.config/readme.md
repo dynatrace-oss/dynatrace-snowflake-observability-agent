@@ -52,3 +52,106 @@ To disable unredacted syntax errors:
 - **After deploy:** run `ALTER ACCOUNT SET ENABLE_UNREDACTED_QUERY_SYNTAX_ERROR = FALSE;` as `ACCOUNTADMIN`.
 
 DSOA only applies this parameter when the init script runs. Deploys that exclude `--scope=init` (e.g. `--scope=plugins,config`) will not re-apply it.
+
+## Query Cost Attribution (`query_cost_attribution` context)
+
+The `query_cost_attribution` context adds per-query compute credit attribution sourced from `SNOWFLAKE.ACCOUNT_USAGE.QUERY_ATTRIBUTION_HISTORY` (QAH). When enabled, it:
+
+1. Adds `snowflake.credits.attributed_compute` and `snowflake.credits.query_acceleration` metrics to every query span where QAH data is available.
+2. Emits aggregated cost summary metrics grouped by warehouse, user, and query tag via `APP.V_QUERY_COST_ATTRIBUTION_SUMMARY`.
+
+### 8-hour latency caveat
+
+QAH has an ~8-hour latency versus QUERY_HISTORY's ~45-minute latency. For queries processed within the first 8 hours, cost fields will be NULL and no credit metrics are emitted for those spans. There is no backfill pass — once a query ID is in `PROCESSED_QUERIES_CACHE`, it will not be re-processed to pick up cost data later.
+
+### Enabling the context
+
+This context is **disabled by default**. To enable, set `enabled: true` in the plugin configuration:
+
+```yaml
+plugins:
+  query_history:
+    query_cost_attribution:
+      enabled: true           # required to activate; disabled by default due to 8h QAH latency
+      summary_window_hours: 24  # lookback window for the aggregated cost summary
+```
+
+### Privilege requirements
+
+Access to `QUERY_ATTRIBUTION_HISTORY` requires the `USAGE_VIEWER` or `GOVERNANCE_VIEWER` database role on the `SNOWFLAKE` database. Grant it to the DTAGENT agent role:
+
+```sql
+GRANT DATABASE ROLE SNOWFLAKE.USAGE_VIEWER TO ROLE DTAGENT_VIEWER;
+```
+
+If the required privilege is missing, the plugin logs a warning and skips the `query_cost_attribution` context without affecting the main `query_history` context.
+
+### Example DQL queries
+
+Top 10 costliest queries by compute credits this week:
+
+```dql
+fetch spans
+| filter isNotNull(snowflake.credits.attributed_compute)
+| sort snowflake.credits.attributed_compute desc
+| limit 10
+```
+
+Compute cost trend by warehouse (last 7 days):
+
+```dql
+timeseries snowflake.credits.attributed_compute, by: { snowflake.warehouse.name }
+| timeframe: now()-7d to now()
+```
+
+Cost breakdown by query tag:
+
+```dql
+fetch logs
+| filter dsoa.run.context == "query_cost_attribution"
+| summarize total_credits = sum(snowflake.credits.attributed_compute), by: { snowflake.query.tag }
+| sort total_credits desc
+```
+
+## DDL Change Attribution (Experimental)
+
+When the `track_ddl_changes` configuration flag is enabled, the plugin extracts the
+structured DDL payload Snowflake records in `ACCESS_HISTORY.OBJECT_MODIFIED_BY_DDL` and
+surfaces it as five additional attributes on the corresponding `query_history` event:
+
+- `snowflake.object.type` — `objectDomain` (e.g. `Warehouse`, `Resource Monitor`)
+- `snowflake.object.id` — Snowflake-internal object identifier
+- `snowflake.object.name` — fully qualified object name
+- `snowflake.object.ddl.operation` — `CREATE` / `ALTER` / `DROP` / `UNDROP` / `REPLACE`
+- `snowflake.object.ddl.properties` — JSON delta of changed properties
+
+Enable it with:
+
+```sql
+CALL CONFIG.SET_CONFIG('plugins.query_history.track_ddl_changes', true);
+```
+
+Use this when you need structured, queryable warehouse / resource-monitor change
+attribution in Dynatrace (who changed what, when, what was the delta) without parsing
+`db.query.text` server-side. Compatible Dynatrace artifacts ship in
+`package/dashboards/Warehouse Change Detection.json` and
+`docs/workflows/warehouse-sensitive-change-alert/`.
+
+### Caveats
+
+- **Experimental.** The flag is off by default; the feature may be refactored into a
+  dedicated plugin in a future release.
+- **AH lag.** `ACCESS_HISTORY.OBJECT_MODIFIED_BY_DDL` is populated by Snowflake up to
+  ~3 hours after the original DDL statement. When the flag is on, the plugin holds back
+  warehouse and resource-monitor DDL rows from the standard pipeline until that catchup
+  occurs and emits a single enriched event. This means warehouse/resource-monitor change
+  alerts in Dynatrace can lag the actual change by up to ~3 hours. The default
+  `cache_ttl_hours: 4` is sufficient to cover this window — do not lower it below 3 when
+  using `track_ddl_changes`.
+- **Coverage.** `ALTER WAREHOUSE … SUSPEND` and `ALTER WAREHOUSE … RESUME` are treated
+  by Snowflake as session operations rather than DDL and may not populate
+  `OBJECT_MODIFIED_BY_DDL`; consumers that need those signals should fall back to the
+  raw `db.operation.name` attribute on `query_history` events.
+- **Naming overlap.** The five attribute names match those already emitted by the
+  `data_schemas` plugin for table / schema / database DDL — the namespaces deliberately
+  align so downstream filters work uniformly across plugins.
