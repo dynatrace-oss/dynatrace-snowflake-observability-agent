@@ -230,6 +230,11 @@ select
 
     qh.credits_used_cloud_services,
 
+--%OPTION:query_cost_attribution:
+    qah.credits_attributed_compute,
+    qah.credits_used_query_acceleration,
+--%:OPTION:query_cost_attribution
+
     qh.total_elapsed_time,
     qh.execution_time,
     qh.child_queries_wait_time,
@@ -303,6 +308,11 @@ left join
  on l.RECORD_TYPE = 'SPAN'
  and l.RESOURCE_ATTRIBUTES:"snow.query.id"::varchar = qh.query_id
 --%:PLUGIN:event_log
+--%OPTION:query_cost_attribution:
+left join
+    SNOWFLAKE.ACCOUNT_USAGE.QUERY_ATTRIBUTION_HISTORY qah
+ on qah.query_id = qh.query_id
+--%:OPTION:query_cost_attribution
 where
     qh.end_time >= greatest(
         coalesce(

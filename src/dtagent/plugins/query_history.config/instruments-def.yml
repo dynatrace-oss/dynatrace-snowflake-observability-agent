@@ -106,6 +106,12 @@ attributes:
   snowflake.cluster_number:
     __example: cluster1
     __description: The cluster number associated with the query.
+  snowflake.cost_attribution.period_end:
+    __example: "2024-11-05T22:11:07Z"
+    __description: End of the cost attribution summary window.
+  snowflake.cost_attribution.period_start:
+    __example: "2024-11-05T21:11:07Z"
+    __description: Start of the cost attribution summary window.
   snowflake.database.id:
     __example: db123
     __description: The unique identifier of the database involved in the query.
@@ -200,9 +206,6 @@ attributes:
   snowflake.query.step.id:
     __example: 1
     __description: Identifier of the step in the query plan.
-  snowflake.query.tag:
-    __example: tag1
-    __description: The tag associated with the query.
   snowflake.query.transaction_id:
     __example: txn123
     __description: The transaction ID associated with the query.
@@ -240,6 +243,15 @@ attributes:
     __example: STANDARD
     __description: The type of warehouse used.
 dimensions:
+  snowflake.query.hash:
+    __example: abc123
+    __description: Hash of the normalized query text; used as a grouping dimension in the query_cost_attribution summary context.
+  snowflake.query.parametrized_hash:
+    __example: def456
+    __description: Hash of the parameterized query text; used as a grouping dimension in the query_cost_attribution summary context.
+  snowflake.query.tag:
+    __example: etl_pipeline
+    __description: The query tag associated with the query; used as a grouping dimension in the query_cost_attribution summary context.
   db.collection.name:
     __example: users
     __description: The name of the table involved in the query.
@@ -265,6 +277,23 @@ dimensions:
     __example: COMPUTE_WH
     __description: The warehouse used to execute the query.
 metrics:
+  snowflake.cost_attribution.query_count:
+    __example: "42"
+    __description: Number of queries in this cost attribution group during the summary window.
+    displayName: Cost Attribution Query Count
+    unit: count
+  snowflake.credits.attributed_compute:
+    __example: "0.0042"
+    __description: >-
+      Compute credits attributed to this query based on weighted resource consumption.
+      Excludes warehouse idle time. NULL for queries within the ~8h QAH latency window.
+    displayName: Query Attributed Compute Credits
+    unit: credits
+  snowflake.credits.query_acceleration:
+    __example: "0.0001"
+    __description: Credits consumed by Query Acceleration Service for this query. NULL for queries within the ~8h QAH latency window.
+    displayName: Query Acceleration Credits
+    unit: credits
   snowflake.acceleration.data.scanned:
     __example: "2097152"
     __description: Number of bytes scanned by the query acceleration service.

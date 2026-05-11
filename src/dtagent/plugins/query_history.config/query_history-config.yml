@@ -17,6 +17,10 @@ plugins:
     exclude_databases: []
     include_users: []
     exclude_users: []
+    # query_cost_attribution: optional context; requires USAGE_VIEWER or GOVERNANCE_VIEWER role on SNOWFLAKE database
+    # query_cost_attribution:
+    #   enabled: true           # set to true to activate; disabled by default due to 8h QAH latency
+    #   summary_window_hours: 24
     telemetry:
       - metrics
       - logs

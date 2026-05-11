@@ -1245,6 +1245,72 @@ To disable unredacted syntax errors:
 DSOA only applies this parameter when the init script runs. Deploys that exclude `--scope=init` (e.g. `--scope=plugins,config`) will not
 re-apply it.
 
+## Query Cost Attribution (`query_cost_attribution` context)
+
+The `query_cost_attribution` context adds per-query compute credit attribution sourced from
+`SNOWFLAKE.ACCOUNT_USAGE.QUERY_ATTRIBUTION_HISTORY` (QAH). When enabled, it:
+
+1. Adds `snowflake.credits.attributed_compute` and `snowflake.credits.query_acceleration` metrics to every query span where QAH data is
+   available.
+2. Emits aggregated cost summary metrics grouped by warehouse, user, and query tag via `APP.V_QUERY_COST_ATTRIBUTION_SUMMARY`.
+
+### 8-hour latency caveat
+
+QAH has an ~8-hour latency versus QUERY_HISTORY's ~45-minute latency. For queries processed within the first 8 hours, cost fields will be
+NULL and no credit metrics are emitted for those spans. There is no backfill pass — once a query ID is in `PROCESSED_QUERIES_CACHE`, it will
+not be re-processed to pick up cost data later.
+
+### Enabling the context
+
+This context is **disabled by default**. To enable, set `enabled: true` in the plugin configuration:
+
+```yaml
+plugins:
+  query_history:
+    query_cost_attribution:
+      enabled: true # required to activate; disabled by default due to 8h QAH latency
+      summary_window_hours: 24 # lookback window for the aggregated cost summary
+```
+
+### Privilege requirements
+
+Access to `QUERY_ATTRIBUTION_HISTORY` requires the `USAGE_VIEWER` or `GOVERNANCE_VIEWER` database role on the `SNOWFLAKE` database. Grant it
+to the DTAGENT agent role:
+
+```sql
+GRANT DATABASE ROLE SNOWFLAKE.USAGE_VIEWER TO ROLE DTAGENT_VIEWER;
+```
+
+If the required privilege is missing, the plugin logs a warning and skips the `query_cost_attribution` context without affecting the main
+`query_history` context.
+
+### Example DQL queries
+
+Top 10 costliest queries by compute credits this week:
+
+```dql
+fetch spans
+| filter isNotNull(snowflake.credits.attributed_compute)
+| sort snowflake.credits.attributed_compute desc
+| limit 10
+```
+
+Compute cost trend by warehouse (last 7 days):
+
+```dql
+timeseries snowflake.credits.attributed_compute, by: { snowflake.warehouse.name }
+| timeframe: now()-7d to now()
+```
+
+Cost breakdown by query tag:
+
+```dql
+fetch logs
+| filter dsoa.run.context == "query_cost_attribution"
+| summarize total_credits = sum(snowflake.credits.attributed_compute), by: { snowflake.query.tag }
+| sort total_credits desc
+```
+
 ## DDL Change Attribution (Experimental)
 
 When the `track_ddl_changes` configuration flag is enabled, the plugin extracts the structured DDL payload Snowflake records in
@@ -1308,6 +1374,10 @@ plugins:
     exclude_databases: []
     include_users: []
     exclude_users: []
+    # query_cost_attribution: optional context; requires USAGE_VIEWER or GOVERNANCE_VIEWER role on SNOWFLAKE database
+    # query_cost_attribution:
+    #   enabled: true           # set to true to activate; disabled by default due to 8h QAH latency
+    #   summary_window_hours: 24
     telemetry:
       - metrics
       - logs
@@ -1370,35 +1440,37 @@ The following tables list the Snowflake objects that this plugin delivers data f
 
 #### Objects delivered by the `Query History` plugin
 
-| Name                                                          | Type            | Comment                                                                                        |
-| ------------------------------------------------------------- | --------------- | ---------------------------------------------------------------------------------------------- |
-| DTAGENT_DB.STATUS.PROCESSED_QUERIES_CACHE                     | table           |                                                                                                |
-| DTAGENT_DB.STATUS.UPDATE_PROCESSED_QUERIES(text,int,int,text) | procedure       |                                                                                                |
-| DTAGENT_DB.APP.TMP_RECENT_QUERIES                             | transient table |                                                                                                |
-| DTAGENT_DB.APP.TMP_QUERY_OPERATOR_STATS                       | transient table |                                                                                                |
-| DTAGENT_DB.APP.TMP_QUERY_ACCELERATION_ESTIMATES               | transient table |                                                                                                |
-| DTAGENT_DB.APP.F_OBFUSCATE_QUERY_TEXT(VARCHAR, VARCHAR)       | function        |                                                                                                |
-| DTAGENT_DB.APP.V_QUERY_HISTORY                                | view            |                                                                                                |
-| DTAGENT_DB.APP.V_QUERY_HISTORY_INSTRUMENTED                   | view            |                                                                                                |
-| DTAGENT_DB.APP.V_RECENT_QUERIES                               | view            |                                                                                                |
-| DTAGENT_DB.APP.P_GET_ACCELERATION_ESTIMATES()                 | procedure       |                                                                                                |
-| DTAGENT_DB.APP.P_REFRESH_RECENT_QUERIES()                     | procedure       |                                                                                                |
-| DTAGENT_DB.CONFIG.UPDATE_QUERY_HISTORY_CONF()                 | procedure       |                                                                                                |
-| DTAGENT_DB.APP.P_MONITOR_WAREHOUSES()                         | procedure       | (Admin scope only) Procedure owned by DTAGENT_ADMIN to grant MONITOR privilege on warehouses   |
-| DTAGENT_DB.APP.TASK_DTAGENT_QUERY_HISTORY                     | task            |                                                                                                |
-| DTAGENT_DB.APP.TASK_DTAGENT_QUERY_HISTORY_GRANTS              | task            | (Admin scope only) Admin task owned by DTAGENT_ADMIN to grant MONITOR privileges on warehouses |
+| Name                                                          | Type            | Comment                                                                                                      |
+| ------------------------------------------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------ |
+| DTAGENT_DB.STATUS.PROCESSED_QUERIES_CACHE                     | table           |                                                                                                              |
+| DTAGENT_DB.STATUS.UPDATE_PROCESSED_QUERIES(text,int,int,text) | procedure       |                                                                                                              |
+| DTAGENT_DB.APP.TMP_RECENT_QUERIES                             | transient table |                                                                                                              |
+| DTAGENT_DB.APP.TMP_QUERY_OPERATOR_STATS                       | transient table |                                                                                                              |
+| DTAGENT_DB.APP.TMP_QUERY_ACCELERATION_ESTIMATES               | transient table |                                                                                                              |
+| DTAGENT_DB.APP.F_OBFUSCATE_QUERY_TEXT(VARCHAR, VARCHAR)       | function        |                                                                                                              |
+| DTAGENT_DB.APP.V_QUERY_HISTORY                                | view            |                                                                                                              |
+| DTAGENT_DB.APP.V_QUERY_HISTORY_INSTRUMENTED                   | view            |                                                                                                              |
+| DTAGENT_DB.APP.V_RECENT_QUERIES                               | view            |                                                                                                              |
+| DTAGENT_DB.APP.P_GET_ACCELERATION_ESTIMATES()                 | procedure       |                                                                                                              |
+| DTAGENT_DB.APP.P_REFRESH_RECENT_QUERIES()                     | procedure       |                                                                                                              |
+| DTAGENT_DB.CONFIG.UPDATE_QUERY_HISTORY_CONF()                 | procedure       |                                                                                                              |
+| DTAGENT_DB.APP.P_MONITOR_WAREHOUSES()                         | procedure       | (Admin scope only) Procedure owned by DTAGENT_ADMIN to grant MONITOR privilege on warehouses                 |
+| DTAGENT_DB.APP.TASK_DTAGENT_QUERY_HISTORY                     | task            |                                                                                                              |
+| DTAGENT_DB.APP.TASK_DTAGENT_QUERY_HISTORY_GRANTS              | task            | (Admin scope only) Admin task owned by DTAGENT_ADMIN to grant MONITOR privileges on warehouses               |
+| DTAGENT_DB.APP.V_QUERY_COST_ATTRIBUTION_SUMMARY               | view            | QAH cost totals by warehouse/user/tag; requires USAGE_VIEWER or GOVERNANCE_VIEWER database role on SNOWFLAKE |
 
 #### Objects referenced by the `Query History` plugin
 
-| Name                                   | Type              | Privileges |
-| -------------------------------------- | ----------------- | ---------- |
-| SNOWFLAKE.ACCOUNT_USAGE.ACCESS_HISTORY | view              | SELECT     |
-| SNOWFLAKE.ACCOUNT_USAGE.QUERY_HISTORY  | view              | SELECT     |
-| SNOWFLAKE.ACCOUNT_USAGE.SESSIONS       | view              | SELECT     |
-| SYSTEM$ESTIMATE_QUERY_ACCELERATION     | function          | USAGE      |
-| GET_QUERY_OPERATOR_STATS               | function          | USAGE      |
-| ENABLE_UNREDACTED_QUERY_SYNTAX_ERROR   | account parameter | ALTER      |
-| SHOW WAREHOUSES                        | command           | USAGE      |
+| Name                                              | Type              | Privileges | Comment                                                                                                                    |
+| ------------------------------------------------- | ----------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------- |
+| SNOWFLAKE.ACCOUNT_USAGE.ACCESS_HISTORY            | view              | SELECT     |                                                                                                                            |
+| SNOWFLAKE.ACCOUNT_USAGE.QUERY_ATTRIBUTION_HISTORY | view              | SELECT     | Requires USAGE_VIEWER or GOVERNANCE_VIEWER database role on the SNOWFLAKE database; used by query_cost_attribution context |
+| SNOWFLAKE.ACCOUNT_USAGE.QUERY_HISTORY             | view              | SELECT     |                                                                                                                            |
+| SNOWFLAKE.ACCOUNT_USAGE.SESSIONS                  | view              | SELECT     |                                                                                                                            |
+| SYSTEM$ESTIMATE_QUERY_ACCELERATION                | function          | USAGE      |                                                                                                                            |
+| GET_QUERY_OPERATOR_STATS                          | function          | USAGE      |                                                                                                                            |
+| ENABLE_UNREDACTED_QUERY_SYNTAX_ERROR              | account parameter | ALTER      |                                                                                                                            |
+| SHOW WAREHOUSES                                   | command           | USAGE      |                                                                                                                            |
 
 <a name="resource_monitors_info_sec"></a>
 
@@ -1787,6 +1859,25 @@ In short, the plugin delivers, as logs by default, information on:
 - credits used (as metric).
 
 Additionally, an event is sent when a new task graph version is created. By default, the plugin executes every 90 minutes.
+
+## OpenPipeline Metric-Extraction Processors
+
+Three metric-extraction processors in the SnowAgent logs pipeline (`docs/openpipeline/snowagent-logs-pipeline/`) derive counter metrics from
+`task_history` logs at ingest time:
+
+| Metric key                      | Filter                                    |
+| ------------------------------- | ----------------------------------------- |
+| `snowflake.task.run.failed`     | `snowflake.task.run.state == "FAILED"`    |
+| `snowflake.task.run.cancelled`  | `snowflake.task.run.state == "CANCELLED"` |
+| `snowflake.task.run.successful` | `snowflake.task.run.state == "SUCCEEDED"` |
+
+All three rules are dimensioned by `db.namespace`, `snowflake.schema.name`, and `snowflake.task.name`.
+
+Deploy with:
+
+```bash
+./scripts/deploy/deploy_dt_assets.sh --scope=openpipeline
+```
 
 Note: Snowflake reports DSOA's internal scheduler tasks (`_MEASUREMENT_TASK`, `_FINALIZER_TASK`) in `SERVERLESS_TASK_HISTORY` as
 account-level records with empty database and schema values. DSOA normalizes those empty strings to `NULL`, so emitted telemetry in the
