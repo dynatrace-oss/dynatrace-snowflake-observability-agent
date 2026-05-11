@@ -1,6 +1,10 @@
 > **IMPORTANT**: For this plugin to function correctly, `MONITOR on PIPES` must be granted to the `DTAGENT_VIEWER` role (required for `SYSTEM$PIPE_STATUS()`).
 > By default, when the `admin` scope is installed, this is handled by the `P_GRANT_MONITOR_SNOWPIPES()` procedure, which is executed with the elevated privileges of the `DTAGENT_ADMIN` role (created only when the `admin` scope is installed), via the `APP.TASK_DTAGENT_SNOWPIPES_GRANTS` task.
 > The schedule for this task can be configured separately using the `PLUGINS.SNOWPIPES.SCHEDULE_GRANTS` configuration option.
+>
+> When the `admin` scope is **not** installed, these grants are **never applied automatically**. The plugin will report
+> **no telemetry for monitored pipes** without any errors or warnings. You must apply the grants manually
+> (see below) before going to production without admin scope.
 
 The grant granularity is derived automatically from the `include` pattern:
 

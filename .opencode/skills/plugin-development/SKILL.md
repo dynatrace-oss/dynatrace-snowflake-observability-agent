@@ -715,6 +715,52 @@ grant role ... to role DTAGENT_ADMIN;
 For cross-plugin dependencies, wrap both column references AND join clauses in
 guards. Test with the dependency both enabled and disabled.
 
+## Admin-Scoped Stored Procedures — Mandatory Patterns
+
+**Rule (enforced by static test `TestAdminProcPattern`):** every `CREATE OR REPLACE PROCEDURE` inside a `--%OPTION:dtagent_admin:` block must satisfy one of:
+
+### Pattern A — Grant-on-schedule (preferred)
+
+Proc + calling task both inside the same OPTION block. Both absent when admin off.
+
+```sql
+--%OPTION:dtagent_admin:
+create or replace procedure DTAGENT_DB.APP.P_GRANT_X() ...
+...
+create or replace task DTAGENT_DB.APP.TASK_DTAGENT_X_GRANTS
+    schedule = '...'
+as
+    call DTAGENT_DB.APP.P_GRANT_X();
+--%:OPTION:dtagent_admin
+```
+
+**MANDATORY doc requirement:** add an IMPORTANT callout in the plugin's `config.md` explaining that without admin scope the grants are never applied and monitoring will be **silently incomplete** — no errors, just missing data. Give the manual grant SQL.
+
+### Pattern B — Inline-with-fallback (use when the proc is called inline from other SQL)
+
+No-op stub always deployed; admin version overwrites it. Reference: `shares/051_p_grant_imported_privileges.sql`.
+
+```sql
+-- non-admin stub (always deployed, e.g. 051_p_do_x.sql)
+create or replace procedure DTAGENT_DB.APP.P_DO_X(arg VARCHAR)
+returns text language sql execute as caller
+as $$ begin
+    SYSTEM$LOG_WARN('P_DO_X: requires DTAGENT_ADMIN scope; skipping');
+    return 'skipped: DTAGENT_ADMIN scope not deployed';
+end; $$;
+grant usage on procedure DTAGENT_DB.APP.P_DO_X(VARCHAR) to role DTAGENT_VIEWER;
+
+-- admin version (admin/051_p_do_x.sql) overwrites stub when admin on
+--%OPTION:dtagent_admin:
+create or replace procedure DTAGENT_DB.APP.P_DO_X(arg VARCHAR) ...
+grant ownership ... to role DTAGENT_ADMIN copy current grants;
+--%:OPTION:dtagent_admin
+```
+
+### Diagnostic helpers (exempt)
+
+Manual-only verification procs: use `--%PLUGIN:{name}:` (not OPTION), so they deploy regardless of admin scope. No task needed. Document as manually callable in `config.md`.
+
 ## Upgrade Scripts (Procedure Signature Changes)
 
 When a stored procedure's parameter list changes, Snowflake won't replace it —

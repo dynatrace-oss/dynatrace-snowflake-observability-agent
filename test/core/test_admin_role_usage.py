@@ -595,3 +595,125 @@ class TestDeploymentWithoutAdminScope:
         # This is a basic check that the script can handle scope combinations
         assert "setup" in script_content, "prepare_deploy_script.sh should support setup scope"
         assert "plugins" in script_content, "prepare_deploy_script.sh should support plugins scope"
+
+
+def _collect_admin_option_procs_and_callers(src_dir: Path) -> tuple[dict, set]:
+    """Scan source SQL files and return procs defined + proc names called inside dtagent_admin OPTION blocks."""
+    admin_procs: dict = {}  # proc_name (upper) -> list[str] of source file paths
+    admin_callers: set = set()  # proc names called via CALL inside admin OPTION blocks
+
+    for sql_file in src_dir.rglob("*.sql"):
+        if should_skip_sql_file(sql_file):
+            continue
+
+        content = sql_file.read_text(encoding="utf-8")
+        in_block = False
+
+        for line in content.splitlines():
+            stripped = line.strip()
+            if stripped.startswith("--%OPTION:dtagent_admin:"):
+                in_block = True
+                continue
+            if stripped.startswith("--%:OPTION:dtagent_admin"):
+                in_block = False
+                continue
+            if not in_block:
+                continue
+
+            m = re.search(
+                r"\bCREATE\s+OR\s+REPLACE\s+PROCEDURE\s+(?:DTAGENT_DB\.)?(?:APP\.)?(\w+)\b",
+                stripped,
+                re.IGNORECASE,
+            )
+            if m:
+                name = m.group(1).upper()
+                admin_procs.setdefault(name, []).append(str(sql_file))
+
+            m = re.search(
+                r"\bCALL\s+(?:DTAGENT_DB\.)?(?:APP\.)?(\w+)\s*\(",
+                stripped,
+                re.IGNORECASE,
+            )
+            if m:
+                admin_callers.add(m.group(1).upper())
+
+    return admin_procs, admin_callers
+
+
+def _collect_non_admin_procs(src_dir: Path) -> set:
+    """Return proc names defined outside any dtagent_admin OPTION block (fallback stubs)."""
+    non_admin_procs: set = set()
+
+    for sql_file in src_dir.rglob("*.sql"):
+        if should_skip_sql_file(sql_file):
+            continue
+
+        content = sql_file.read_text(encoding="utf-8")
+        in_admin_block = False
+
+        for line in content.splitlines():
+            stripped = line.strip()
+            if stripped.startswith("--%OPTION:dtagent_admin:"):
+                in_admin_block = True
+                continue
+            if stripped.startswith("--%:OPTION:dtagent_admin"):
+                in_admin_block = False
+                continue
+            if in_admin_block:
+                continue
+
+            m = re.search(
+                r"\bCREATE\s+OR\s+REPLACE\s+PROCEDURE\s+(?:DTAGENT_DB\.)?(?:APP\.)?(\w+)\b",
+                stripped,
+                re.IGNORECASE,
+            )
+            if m:
+                non_admin_procs.add(m.group(1).upper())
+
+    return non_admin_procs
+
+
+class TestAdminProcPattern:
+    """Every admin-scoped proc must follow Pattern A (admin task calls it) or Pattern B (fallback stub exists).
+
+    Pattern A — grant-on-schedule: proc + calling task both inside --%OPTION:dtagent_admin: block.
+        When admin off, neither object deploys; customers must apply grants manually.
+    Pattern B — inline-with-fallback: a no-op stub is always deployed; admin version overwrites it.
+        Inline callers receive a graceful response when admin scope is absent.
+
+    A proc that satisfies neither pattern is dangling: it exists when admin is on but nothing
+    calls it, and there is no fallback when admin is off.
+    """
+
+    def test_admin_procs_have_task_or_fallback(self):
+        """Test that every admin-scoped stored procedure follows Pattern A or Pattern B.
+
+        Pattern A: a CALL statement inside the same --%OPTION:dtagent_admin: scope references the proc.
+        Pattern B: a same-named CREATE OR REPLACE PROCEDURE exists outside any admin OPTION block.
+        """
+        src_dir = Path(__file__).parent.parent.parent / "src"
+
+        admin_procs, admin_callers = _collect_admin_option_procs_and_callers(src_dir)
+        non_admin_procs = _collect_non_admin_procs(src_dir)
+
+        violations = []
+        for proc_name, source_files in sorted(admin_procs.items()):
+            has_caller = proc_name in admin_callers  # Pattern A
+            has_fallback = proc_name in non_admin_procs  # Pattern B
+            if not has_caller and not has_fallback:
+                violations.append((proc_name, source_files))
+
+        if violations:
+            msg = (
+                "Admin-scoped stored procedures must follow Pattern A or Pattern B:\n"
+                "  Pattern A: an admin task inside the same --%OPTION:dtagent_admin: block calls the proc.\n"
+                "  Pattern B: a non-admin fallback stub with the same name exists outside the admin block.\n\n"
+                "Reference implementation for Pattern B: shares/051_p_grant_imported_privileges.sql\n\n"
+                "Violations found:\n"
+            )
+            for proc_name, source_files in violations:
+                msg += f"\n  {proc_name}\n"
+                for sf in source_files:
+                    msg += f"    defined in: {sf}\n"
+                msg += "    → no admin CALL found AND no non-admin fallback stub\n"
+            pytest.fail(msg)
