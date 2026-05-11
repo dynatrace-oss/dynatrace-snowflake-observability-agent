@@ -40,7 +40,7 @@ class TestDocumentation:
         """
         from collections import defaultdict
 
-        aggregated = defaultdict(lambda: {"dimensions": set(), "plugin": set(), "source": set(), "runtime": set()})
+        aggregated = defaultdict(lambda: {"dimensions": set(), "plugin": set(), "source": set(), "runtime": set(), "openpipeline": set()})
 
         for item in data:
             key = (item["name"], item["type"])
@@ -48,6 +48,7 @@ class TestDocumentation:
             aggregated[key]["plugin"].add(item["plugin"])
             aggregated[key]["source"].add(item["source"])
             aggregated[key]["runtime"].add(item["runtime"])
+            aggregated[key]["openpipeline"].add(item.get("openpipeline", False))
 
         result = []
         for key, value in aggregated.items():
@@ -59,6 +60,7 @@ class TestDocumentation:
                     "plugin": ", ".join(value["plugin"]),
                     "source": ", ".join(value["source"]),
                     "runtime": any(value["runtime"]),
+                    "openpipeline": any(value["openpipeline"]),
                 }
             )
 
@@ -100,6 +102,7 @@ class TestDocumentation:
             and entry["type"] in ("metric", "dimension", "attribute", "event timestamp")
             and entry["plugin"] != ""
             and not entry["runtime"]
+            and not entry.get("openpipeline", False)
         ]
         missing_sql_listed = "\n".join([f'{data["type"]}: {data["name"]} [{data["source"]}] [{data["plugin"]}]' for data in missing_sql])
         assert not missing_sql, f"We have documentation for fields not reported in telemetry:\n {missing_sql_listed}"
