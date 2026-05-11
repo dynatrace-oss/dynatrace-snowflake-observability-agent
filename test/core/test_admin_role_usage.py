@@ -613,78 +613,95 @@ class TestDeploymentWithoutAdminScope:
         assert "plugins" in script_content, "prepare_deploy_script.sh should support plugins scope"
 
 
-def _collect_admin_option_procs_and_callers(src_dir: Path) -> tuple[dict, set]:
+_OPTION_SPLITTER = re.compile(r"(--%OPTION:dtagent_admin:|--%:OPTION:dtagent_admin)")
+
+
+def _iter_admin_option_segments(content: str):
+    """Yield (segment_text, in_block) pairs split on OPTION markers.
+
+    Splitting on the markers themselves means block transitions are detected
+    regardless of whether the marker appears on its own line or mid-content.
+    """
+    parts = _OPTION_SPLITTER.split(content)
+    in_block = False
+    for part in parts:
+        if part == "--%OPTION:dtagent_admin:":
+            in_block = True
+        elif part == "--%:OPTION:dtagent_admin":
+            in_block = False
+        else:
+            yield part, in_block
+
+
+def _assert_balanced_option_tags(content: str, file_path: Path) -> None:
+    """Assert that every OPTION open tag has a matching close tag in the file."""
+    opens = content.count("--%OPTION:dtagent_admin:")
+    closes = content.count("--%:OPTION:dtagent_admin")
+    assert opens == closes, (
+        f"Unbalanced --%OPTION:dtagent_admin: tags in {file_path}: "
+        f"{opens} open, {closes} close"
+    )
+
+
+def _collect_admin_option_procs_and_callers(sql_files: list[Path]) -> tuple[dict, set]:
     """Scan source SQL files and return procs defined + proc names called inside dtagent_admin OPTION blocks."""
     admin_procs: dict = {}  # proc_name (upper) -> list[str] of source file paths
     admin_callers: set = set()  # proc names called via CALL inside admin OPTION blocks
 
-    for sql_file in src_dir.rglob("*.sql"):
-        if should_skip_sql_file(sql_file):
-            continue
-
+    for sql_file in sql_files:
         content = sql_file.read_text(encoding="utf-8")
-        in_block = False
+        _assert_balanced_option_tags(content, sql_file)
 
-        for line in content.splitlines():
-            stripped = line.strip()
-            if stripped.startswith("--%OPTION:dtagent_admin:"):
-                in_block = True
-                continue
-            if stripped.startswith("--%:OPTION:dtagent_admin"):
-                in_block = False
-                continue
+        for segment, in_block in _iter_admin_option_segments(content):
             if not in_block:
                 continue
 
-            m = re.search(
-                r"\bCREATE\s+OR\s+REPLACE\s+PROCEDURE\s+(?:DTAGENT_DB\.)?(?:APP\.)?(\w+)\b",
-                stripped,
-                re.IGNORECASE,
-            )
-            if m:
-                name = m.group(1).upper()
-                admin_procs.setdefault(name, []).append(str(sql_file))
+            for line in segment.splitlines():
+                stripped = line.strip()
 
-            m = re.search(
-                r"\bCALL\s+(?:DTAGENT_DB\.)?(?:APP\.)?(\w+)\s*\(",
-                stripped,
-                re.IGNORECASE,
-            )
-            if m:
-                admin_callers.add(m.group(1).upper())
+                m = re.search(
+                    r"\bCREATE\s+OR\s+REPLACE\s+PROCEDURE\s+(?:DTAGENT_DB\.)?(?:APP\.)?(\w+)\b",
+                    stripped,
+                    re.IGNORECASE,
+                )
+                if m:
+                    name = m.group(1).upper()
+                    admin_procs.setdefault(name, []).append(str(sql_file))
+
+                # Intentionally matches commented-out CALLs: false positives preferred over false negatives.
+                m = re.search(
+                    r"\bCALL\s+(?:DTAGENT_DB\.)?(?:APP\.)?(\w+)\s*\(",
+                    stripped,
+                    re.IGNORECASE,
+                )
+                if m:
+                    admin_callers.add(m.group(1).upper())
 
     return admin_procs, admin_callers
 
 
-def _collect_non_admin_procs(src_dir: Path) -> set:
+def _collect_non_admin_procs(sql_files: list[Path]) -> set:
     """Return proc names defined outside any dtagent_admin OPTION block (fallback stubs)."""
     non_admin_procs: set = set()
 
-    for sql_file in src_dir.rglob("*.sql"):
-        if should_skip_sql_file(sql_file):
-            continue
-
+    for sql_file in sql_files:
         content = sql_file.read_text(encoding="utf-8")
-        in_admin_block = False
+        _assert_balanced_option_tags(content, sql_file)
 
-        for line in content.splitlines():
-            stripped = line.strip()
-            if stripped.startswith("--%OPTION:dtagent_admin:"):
-                in_admin_block = True
-                continue
-            if stripped.startswith("--%:OPTION:dtagent_admin"):
-                in_admin_block = False
-                continue
-            if in_admin_block:
+        for segment, in_block in _iter_admin_option_segments(content):
+            if in_block:
                 continue
 
-            m = re.search(
-                r"\bCREATE\s+OR\s+REPLACE\s+PROCEDURE\s+(?:DTAGENT_DB\.)?(?:APP\.)?(\w+)\b",
-                stripped,
-                re.IGNORECASE,
-            )
-            if m:
-                non_admin_procs.add(m.group(1).upper())
+            for line in segment.splitlines():
+                stripped = line.strip()
+
+                m = re.search(
+                    r"\bCREATE\s+OR\s+REPLACE\s+PROCEDURE\s+(?:DTAGENT_DB\.)?(?:APP\.)?(\w+)\b",
+                    stripped,
+                    re.IGNORECASE,
+                )
+                if m:
+                    non_admin_procs.add(m.group(1).upper())
 
     return non_admin_procs
 
@@ -708,9 +725,10 @@ class TestAdminProcPattern:
         Pattern B: a same-named CREATE OR REPLACE PROCEDURE exists outside any admin OPTION block.
         """
         src_dir = Path(__file__).parent.parent.parent / "src"
+        sql_files = [f for f in src_dir.rglob("*.sql") if not should_skip_sql_file(f)]
 
-        admin_procs, admin_callers = _collect_admin_option_procs_and_callers(src_dir)
-        non_admin_procs = _collect_non_admin_procs(src_dir)
+        admin_procs, admin_callers = _collect_admin_option_procs_and_callers(sql_files)
+        non_admin_procs = _collect_non_admin_procs(sql_files)
 
         violations = []
         for proc_name, source_files in sorted(admin_procs.items()):
