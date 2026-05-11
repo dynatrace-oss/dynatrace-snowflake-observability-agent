@@ -66,12 +66,13 @@ QAH has an ~8-hour latency versus QUERY_HISTORY's ~45-minute latency. For querie
 
 ### Enabling the context
 
-This context is **disabled by default**. To enable, uncomment and add `query_cost_attribution` to the contexts configuration:
+This context is **disabled by default**. To enable, set `enabled: true` in the plugin configuration:
 
 ```yaml
 plugins:
   query_history:
     query_cost_attribution:
+      enabled: true           # required to activate; disabled by default due to 8h QAH latency
       summary_window_hours: 24  # lookback window for the aggregated cost summary
 ```
 
@@ -107,7 +108,7 @@ Cost breakdown by query tag:
 
 ```dql
 fetch logs
-| filter event.type == "query_cost_attribution"
+| filter dsoa.run.context == "query_cost_attribution"
 | summarize total_credits = sum(snowflake.credits.attributed_compute), by: { snowflake.query.tag }
 | sort total_credits desc
 ```

@@ -193,6 +193,10 @@ class QueryHistoryPlugin(Plugin):
         if contexts is not None and "query_cost_attribution" not in contexts:
             return {"entries": 0, "log_lines": 0, "metrics": 0, "events": 0}
 
+        cost_attr_conf = self._configuration.get(plugin_name=self._plugin_name, key="query_cost_attribution") or {}
+        if not cost_attr_conf.get("enabled", False):
+            return {"entries": 0, "log_lines": 0, "metrics": 0, "events": 0}
+
         t_summary = "APP.V_QUERY_COST_ATTRIBUTION_SUMMARY"
 
         try:
@@ -203,7 +207,7 @@ class QueryHistoryPlugin(Plugin):
             )
         except Exception as e:  # pylint: disable=broad-exception-caught
             LOG.warning(
-                "QUERY_ATTRIBUTION_HISTORY requires USAGE_VIEWER database role on SNOWFLAKE database. "
+                "QUERY_ATTRIBUTION_HISTORY requires USAGE_VIEWER or GOVERNANCE_VIEWER database role on the SNOWFLAKE database. "
                 "Skipping query_cost_attribution context. Error: %s",
                 str(e),
             )

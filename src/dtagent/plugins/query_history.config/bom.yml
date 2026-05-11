@@ -33,7 +33,7 @@ delivers:
     comment: (Admin scope only) Admin task owned by DTAGENT_ADMIN to grant MONITOR privileges on warehouses
   - name: DTAGENT_DB.APP.V_QUERY_COST_ATTRIBUTION_SUMMARY
     type: view
-    comment: Aggregated per-warehouse/user/tag cost totals from QUERY_ATTRIBUTION_HISTORY; requires USAGE_VIEWER role on SNOWFLAKE database
+    comment: QAH cost totals by warehouse/user/tag; requires USAGE_VIEWER or GOVERNANCE_VIEWER database role on SNOWFLAKE
 
 references:
   - name: SNOWFLAKE.ACCOUNT_USAGE.ACCESS_HISTORY

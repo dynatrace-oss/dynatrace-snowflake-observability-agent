@@ -356,6 +356,9 @@ class TestQueryCostAttributionPlugin:
 
         plugins._get_plugin_class = __local_get_plugin_class
 
+        config = utils.get_config()
+        config._config["plugins"]["test_query_cost_attribution"] = {"query_cost_attribution": {"enabled": True, "summary_window_hours": 24}}
+
         utils.execute_telemetry_test(
             TestDynatraceSnowAgent,
             test_name="test_query_cost_attribution",
@@ -364,6 +367,7 @@ class TestQueryCostAttributionPlugin:
                 "query_history": {"entries": 0, "log_lines": 0, "metrics": 0, "spans": 0},
                 "query_cost_attribution": {"entries": 3, "log_lines": 3, "metrics": 9},
             },
+            config=config,
         )
 
     @pytest.mark.xdist_group(name="test_telemetry")
@@ -387,7 +391,7 @@ class TestQueryCostAttributionPlugin:
 
     @pytest.mark.xdist_group(name="test_telemetry")
     def test_cost_attribution_privilege_missing(self):
-        """When USAGE_VIEWER is missing, plugin logs warning and returns zeros without crashing."""
+        """When required database role is missing, plugin logs warning and returns zeros without crashing."""
         from unittest.mock import MagicMock, patch
         from dtagent.plugins.query_history import QueryHistoryPlugin
 
@@ -402,17 +406,38 @@ class TestQueryCostAttributionPlugin:
         plugin._metrics = MagicMock()
         plugin._events = MagicMock()
         plugin._configuration = MagicMock()
+        plugin._configuration.get.return_value = {"enabled": True}
 
         with patch("dtagent.plugins.query_history.LOG") as mock_log:
             result = plugin._process_query_cost_attribution(run_id="test-run-id", contexts=["query_history", "query_cost_attribution"])
 
         assert result == {"entries": 0, "log_lines": 0, "metrics": 0, "events": 0}
         mock_log.warning.assert_called_once()
-        assert "USAGE_VIEWER" in mock_log.warning.call_args[0][0]
+        warning_msg = mock_log.warning.call_args[0][0]
+        assert "QUERY_ATTRIBUTION_HISTORY" in warning_msg
 
     @pytest.mark.xdist_group(name="test_telemetry")
-    def test_cost_attribution_none_contexts_includes_all(self):
-        """When contexts=None, query_cost_attribution is processed (all contexts enabled)."""
+    def test_cost_attribution_requires_explicit_enable(self):
+        """When contexts=None but config does not enable the context, result is zeros (disabled by default)."""
+        from unittest.mock import MagicMock
+        from dtagent.plugins.query_history import QueryHistoryPlugin
+
+        plugin = QueryHistoryPlugin.__new__(QueryHistoryPlugin)
+        plugin._plugin_name = "query_history"
+        plugin._session = MagicMock()
+        plugin._logs = MagicMock()
+        plugin._metrics = MagicMock()
+        plugin._events = MagicMock()
+        plugin._configuration = MagicMock()
+        plugin._configuration.get.return_value = None
+
+        result = plugin._process_query_cost_attribution(run_id="test-run-id", contexts=None)
+
+        assert result == {"entries": 0, "log_lines": 0, "metrics": 0, "events": 0}
+
+    @pytest.mark.xdist_group(name="test_telemetry")
+    def test_cost_attribution_none_contexts_with_config_enabled(self):
+        """When contexts=None and config enables the context, query_cost_attribution is processed."""
         from unittest.mock import MagicMock, patch
         from dtagent.plugins.query_history import QueryHistoryPlugin
 
@@ -423,6 +448,7 @@ class TestQueryCostAttributionPlugin:
         plugin._metrics = MagicMock()
         plugin._events = MagicMock()
         plugin._configuration = MagicMock()
+        plugin._configuration.get.return_value = {"enabled": True}
 
         expected = (3, 3, 9, 0)
         with patch.object(plugin, "_log_entries", return_value=expected) as mock_log_entries:

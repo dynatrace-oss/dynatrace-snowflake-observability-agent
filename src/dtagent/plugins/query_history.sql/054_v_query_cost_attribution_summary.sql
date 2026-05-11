@@ -36,13 +36,13 @@ select
     extract(epoch_nanosecond from max(qah.end_time))                                    as TIMESTAMP,
     concat('Query cost attribution summary for ', coalesce(qah.warehouse_name, ''))     as _MESSAGE,
     OBJECT_CONSTRUCT(
-        'snowflake.warehouse.name',     qah.warehouse_name,
-        'db.user',                      qah.user_name,
-        'snowflake.query.tag',          qah.query_tag
+        'snowflake.warehouse.name',          qah.warehouse_name,
+        'db.user',                           qah.user_name,
+        'snowflake.query.tag',               qah.query_tag,
+        'snowflake.query.hash',              qah.query_hash,
+        'snowflake.query.parametrized_hash', qah.query_parameterized_hash
     )                                                                                   as DIMENSIONS,
     OBJECT_CONSTRUCT(
-        'snowflake.query.hash',                             qah.query_hash,
-        'snowflake.query.parametrized_hash',                qah.query_parameterized_hash,
         'snowflake.cost_attribution.period_start',          min(qah.start_time),
         'snowflake.cost_attribution.period_end',            max(qah.end_time)
     )                                                                                   as ATTRIBUTES,
