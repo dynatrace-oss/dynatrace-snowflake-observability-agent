@@ -585,7 +585,7 @@ Both the procedure and the task that calls it live inside the same `--%OPTION:dt
 ```sql
 --%OPTION:dtagent_admin:
 create or replace procedure DTAGENT_DB.APP.P_GRANT_SOMETHING()
-...
+-- ...
 
 create or replace task DTAGENT_DB.APP.TASK_DTAGENT_SOMETHING_GRANTS
     schedule = '...'
