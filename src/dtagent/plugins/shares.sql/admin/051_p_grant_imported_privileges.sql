@@ -23,24 +23,38 @@
 --
 
 --
--- Non-admin stub: always deployed. Returns a guidance message when admin scope
--- is not installed, so inline callers degrade gracefully. When admin scope IS
--- installed, admin/051_p_grant_imported_privileges.sql overwrites this stub.
+-- Admin version of P_GRANT_IMPORTED_PRIVILEGES. Deployed via 80_admin.sql (last),
+-- so it correctly overwrites the non-admin stub in shares.sql/051_p_grant_imported_privileges.sql.
 --
+-- !! Requires DTAGENT_ADMIN role (admin deployment scope) because
+-- !! GRANT IMPORTED PRIVILEGES needs MANAGE GRANTS on ACCOUNT.
+--
+--%OPTION:dtagent_admin:
 use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
+
 create or replace procedure DTAGENT_DB.APP.P_GRANT_IMPORTED_PRIVILEGES(db_name VARCHAR)
 returns text
 language sql
-execute as caller
+execute as owner  -- requires DTAGENT_ADMIN ownership; MANAGE GRANTS is held by DTAGENT_ADMIN, not the caller
 as
 $$
+DECLARE
+    v_db    TEXT DEFAULT '';
 BEGIN
-    SYSTEM$LOG_WARN('P_GRANT_IMPORTED_PRIVILEGES: requires DTAGENT_ADMIN deployment scope; skipping grant for ' || :db_name);
-    RETURN 'skipped: DTAGENT_ADMIN scope not deployed; cannot grant imported privileges on ' || :db_name;
+    v_db := UPPER(:db_name);
+    GRANT IMPORTED PRIVILEGES ON DATABASE IDENTIFIER(:v_db) TO ROLE DTAGENT_VIEWER;
+
+    RETURN 'imported privileges granted on ' || :v_db;
+EXCEPTION
+  when statement_error then
+    SYSTEM$LOG_WARN(SQLERRM);
+
+    return SQLERRM;
 END;
 $$
 ;
+
 grant usage on procedure DTAGENT_DB.APP.P_GRANT_IMPORTED_PRIVILEGES(VARCHAR) to role DTAGENT_VIEWER;
 
--- use role DTAGENT_OWNER;
--- call DTAGENT_DB.APP.P_GET_SHARES();
+grant ownership on procedure DTAGENT_DB.APP.P_GRANT_IMPORTED_PRIVILEGES(VARCHAR) to role DTAGENT_ADMIN copy current grants;
+--%:OPTION:dtagent_admin

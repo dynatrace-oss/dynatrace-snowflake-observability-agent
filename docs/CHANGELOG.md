@@ -64,6 +64,8 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- **Admin deployment ordering**: `scope=admin` now correctly overwrites non-admin procedure stubs. Previously `10_admin.sql` ran before `30_plugins/`, causing admin overrides to be silently clobbered by non-admin stubs. The fix moves admin assembly to `80_admin.sql`, which sorts after all plugin files. Plugin developers using Pattern B (two-file: stub in plugin scope, override in `admin/` directory) no longer need inline `--%OPTION:dtagent_admin:` blocks in non-admin files. See [DEVLOG.md](DEVLOG.md) for details. (BIZOBS-115)
+
 - `serverless_tasks` context: `db.namespace` and `snowflake.schema.name` no longer emit empty strings for DSOA's
   own internal scheduler tasks (`_MEASUREMENT_TASK`, `_FINALIZER_TASK`). These fields are now absent when the source
   is empty, preventing silent exclusion from dashboard `$Database`/`$Schema` variable filters. A new

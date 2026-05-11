@@ -121,23 +121,23 @@ class TestAdminRoleUsage:
             pytest.skip("No admin SQL files found. This is valid - admin scope is optional.")
 
     def test_build_creates_admin_sql(self):
-        """Test that build process creates 10_admin.sql."""
-        admin_sql = Path(__file__).parent.parent.parent / "build" / "10_admin.sql"
+        """Test that build process creates 80_admin.sql (assembled last, after plugins)."""
+        admin_sql = Path(__file__).parent.parent.parent / "build" / "80_admin.sql"
 
         # Run build if file doesn't exist
         if not admin_sql.exists():
-            pytest.skip("build/10_admin.sql not found. Run build.sh first.")
+            pytest.skip("build/80_admin.sql not found. Run build.sh first.")
 
-        assert admin_sql.is_file(), "build/10_admin.sql should exist after build"
-        assert admin_sql.stat().st_size > 0, "build/10_admin.sql should not be empty"
+        assert admin_sql.is_file(), "build/80_admin.sql should exist after build"
+        assert admin_sql.stat().st_size > 0, "build/80_admin.sql should not be empty"
 
 
 class TestDeploymentScopes:
     """Test suite for deployment scope configuration and restrictions."""
 
     def test_all_scope_includes_admin_scripts(self):
-        """Test that 'all' scope in prepare_deploy_script.sh includes admin scripts (10_admin.sql).
-        This ensures complete deployment includes administrative setup when using 'all' scope.
+        """Test that 'all' scope in prepare_deploy_script.sh includes admin scripts (80_admin.sql).
+        Admin is assembled last so it correctly overwrites non-admin procedure stubs in 30_plugins/.
 
         Note: When deploying with 'all' scope, DTAGENT_ADMIN role will be created.
         Organizations can choose to deploy without 'admin' scope by using specific scope combinations.
@@ -156,11 +156,11 @@ class TestDeploymentScopes:
 
         sql_files = match.group(1)
 
-        # Check that 10_admin.sql is included
-        assert "10_admin.sql" in sql_files, f"'all' scope must include 10_admin.sql. Found: {sql_files}"
+        # Check that 80_admin.sql is included and listed last (ordering by sort, 80 > 70)
+        assert "80_admin.sql" in sql_files, f"'all' scope must include 80_admin.sql. Found: {sql_files}"
 
         # Also verify the expected files are present
-        expected_files = ["00_init.sql", "10_admin.sql", "20_setup.sql", "40_config.sql", "70_agents.sql"]
+        expected_files = ["00_init.sql", "80_admin.sql", "20_setup.sql", "40_config.sql", "70_agents.sql"]
         for expected_file in expected_files:
             assert expected_file in sql_files, f"'all' scope missing expected file: {expected_file}. Found: {sql_files}"
 
@@ -708,7 +708,9 @@ class TestAdminProcPattern:
 
     Pattern A — grant-on-schedule: proc + calling task both inside --%OPTION:dtagent_admin: block.
         When admin off, neither object deploys; customers must apply grants manually.
-    Pattern B — inline-with-fallback: a no-op stub is always deployed; admin version overwrites it.
+    Pattern B — two-file-with-fallback: a no-op stub lives in the plugin scope (30_plugins/); the
+        admin override lives in the plugin's admin/ directory (assembled into 80_admin.sql, which
+        runs last). Deployment ordering guarantees the admin version overwrites the stub correctly.
         Inline callers receive a graceful response when admin scope is absent.
 
     A proc that satisfies neither pattern is dangling: it exists when admin is on but nothing
@@ -739,7 +741,7 @@ class TestAdminProcPattern:
                 "Admin-scoped stored procedures must follow Pattern A or Pattern B:\n"
                 "  Pattern A: an admin task inside the same --%OPTION:dtagent_admin: block calls the proc.\n"
                 "  Pattern B: a non-admin fallback stub with the same name exists outside the admin block.\n\n"
-                "Reference implementation for Pattern B: shares/051_p_grant_imported_privileges.sql\n\n"
+                "Reference implementation for Pattern B: shares/admin/051_p_grant_imported_privileges.sql\n\n"
                 "Violations found:\n"
             )
             for proc_name, source_files in violations:

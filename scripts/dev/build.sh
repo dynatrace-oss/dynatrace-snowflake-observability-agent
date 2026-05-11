@@ -208,19 +208,20 @@ if [ -d "src/dtagent.sql/upgrade" ]; then
     done < <(find "src/dtagent.sql/upgrade" -mindepth 1 -maxdepth 1 -type d | sort)
 fi
 
-# build/10_admin.sql <- combine(src/dtagent.sql/admin/*.sql, plugin admin/*.sql wrapped in plugin blocks)
-: > build/10_admin.sql
-append_sql_dir "src/dtagent.sql/admin" "build/10_admin.sql"
+# build/80_admin.sql <- combine(src/dtagent.sql/admin/*.sql, plugin admin/*.sql wrapped in plugin blocks)
+# Assembled LAST (after 70_agents) so admin overrides correctly overwrite non-admin stubs.
+: > build/80_admin.sql
+append_sql_dir "src/dtagent.sql/admin" "build/80_admin.sql"
 
 while IFS= read -r pdir; do
     pbase="$(basename "$pdir")"
     pname="${pbase%.sql}"
     admin_dir="$pdir/admin"
     if compgen -G "$admin_dir/*.sql" > /dev/null; then
-        echo "--%PLUGIN:${pname}:" >> build/10_admin.sql
-        append_sql_dir "$admin_dir" "build/10_admin.sql" 0
-        echo "--%:PLUGIN:${pname}" >> build/10_admin.sql
-        printf "\n" >> build/10_admin.sql
+        echo "--%PLUGIN:${pname}:" >> build/80_admin.sql
+        append_sql_dir "$admin_dir" "build/80_admin.sql" 0
+        echo "--%:PLUGIN:${pname}" >> build/80_admin.sql
+        printf "\n" >> build/80_admin.sql
     fi
 done < <(plugin_dirs)
 
