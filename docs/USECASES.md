@@ -23,6 +23,7 @@ Use cases marked with 🔜 are **upcoming** — they depend on plugins currently
 |---------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------|
 | Trust Center vulnerability monitoring | Detect potential data security issues and breaches as quickly as possible. Gather information about entities put at risk by vulnerability findings from CIS Benchmarks and Threat Intelligence scanners. | [Trust Center plugin](PLUGINS.md#trust_center_info_sec)   |
 | Login and session monitoring          | Provide detailed information on login history and sessions — authentication methods, failed logins, error codes — essential for detecting security breaches and unauthorized access.                     | [Login History plugin](PLUGINS.md#login_history_info_sec) |
+| Warehouse change auditing             | Audit who changed which warehouse / resource monitor, when, and the exact property delta (size, scaling policy, auto-suspend, resource monitor). Experimental, gated by `track_ddl_changes`.             | [Query History plugin](PLUGINS.md#query_history_info_sec) |
 
 ### Security — Tier 2 — Data Apps & Pipelines
 

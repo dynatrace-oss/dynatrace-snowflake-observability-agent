@@ -1,0 +1,188 @@
+# WORKFLOW: DSOA — Warehouse Sensitive Change Alert (Experimental)
+# DESCRIPTION: Alerts when a sensitive warehouse / resource-monitor property is altered.
+# OWNER: DSOA Team
+# PLUGINS: query_history (with plugins.query_history.track_ddl_changes=true)
+# TAGS: snowflake, dsoa, security, warehouse, ddl, experimental
+
+id: 9c0fb1e1-1998-47ad-9a8e-2f2bd0e9cafe
+title: "DSOA — Warehouse Sensitive Change Alert (Experimental)"
+description: |
+  Detects sensitive configuration changes to Snowflake warehouses and resource monitors —
+  size changes, scaling policy changes, auto-suspend changes, resource-monitor reassignments,
+  and cluster-count changes — and raises a Dynatrace event per detected change.
+
+  Requires the query_history plugin with the experimental
+  `plugins.query_history.track_ddl_changes` flag enabled. Because Snowflake populates
+  ACCESS_HISTORY.OBJECT_MODIFIED_BY_DDL up to ~3 h after a DDL statement, this workflow
+  fires up to ~3 h after the actual change.
+
+  May be refactored when the underlying feature graduates from experimental.
+isPrivate: false
+schemaVersion: 4
+trigger:
+  schedule:
+    isActive: true
+    trigger:
+      type: interval
+      intervalMinutes: 60
+    rule: null
+    filterParameters: {}
+    timezone: UTC
+    inputs: {}
+tasks:
+  detect_sensitive_changes:
+    name: detect_sensitive_changes
+    description: Fetch warehouse / resource-monitor DDL events with a sensitive property delta.
+    action: dynatrace.automations:execute-dql-query
+    active: true
+    position:
+      x: 0
+      y: 1
+    conditions:
+      states: {}
+    predecessors: []
+    input:
+      query: |
+        fetch events, from: now()-90m
+        | filter db.system == "snowflake"
+        | filter isNotNull(snowflake.object.ddl.operation)
+        | filter in(snowflake.object.type, array("Warehouse","Resource Monitor"))
+        | filter contains(toString(snowflake.object.ddl.properties), "WAREHOUSE_SIZE")
+             or contains(toString(snowflake.object.ddl.properties), "SCALING_POLICY")
+             or contains(toString(snowflake.object.ddl.properties), "RESOURCE_MONITOR")
+             or contains(toString(snowflake.object.ddl.properties), "AUTO_SUSPEND")
+             or contains(toString(snowflake.object.ddl.properties), "MIN_CLUSTER_COUNT")
+             or contains(toString(snowflake.object.ddl.properties), "MAX_CLUSTER_COUNT")
+        | fields timestamp,
+                 deployment.environment,
+                 db.user,
+                 snowflake.role.name,
+                 snowflake.object.type,
+                 snowflake.object.name,
+                 snowflake.object.ddl.operation,
+                 snowflake.object.ddl.properties
+        | sort timestamp desc
+        | limit 100
+
+  build_events:
+    name: build_events
+    description: Build Dynatrace event objects for each sensitive change.
+    action: dynatrace.automations:run-javascript
+    active: true
+    position:
+      x: 0
+      y: 2
+    conditions:
+      states:
+        detect_sensitive_changes: SUCCESS
+    predecessors:
+      - detect_sensitive_changes
+    input:
+      script: |
+        import { execution } from '@dynatrace-sdk/automation-utils';
+        import { EventIngestEventType } from '@dynatrace-sdk/client-classic-environment-v2';
+
+        // === CONFIGURATION ===
+        // Change eventType to EventIngestEventType.CustomAlert to enable Davis problem correlation.
+        const CONFIG = {
+          eventType: EventIngestEventType.CustomInfo,
+          eventTimeout: 60,
+          adSource: 'dsoa.warehouse_sensitive_change'
+        };
+        // === END CONFIGURATION ===
+
+        export default async function ({ execution_id }) {
+          const ex = await execution(execution_id);
+          const dqlResult = await ex.result('detect_sensitive_changes');
+
+          const events = [];
+          const records = (dqlResult && dqlResult.records) || [];
+
+          for (const r of records) {
+            const objectType = r['snowflake.object.type'] || 'unknown';
+            const objectName = r['snowflake.object.name'] || 'unknown';
+            const ddlOp = r['snowflake.object.ddl.operation'] || 'CHANGE';
+            const user = r['db.user'] || 'unknown';
+            const role = r['snowflake.role.name'] || 'unknown';
+
+            events.push({
+              body: {
+                eventType: CONFIG.eventType,
+                title: `Sensitive ${objectType} change: ${ddlOp} ${objectName}`,
+                properties: {
+                  'event.description':
+                    `Snowflake user ${user} (role ${role}) ran ${ddlOp} on ` +
+                    `${objectType} ${objectName} with a sensitive property delta.`,
+                  'event.start': r['timestamp'],
+                  'ad.source': CONFIG.adSource,
+                  'db.user': user,
+                  'snowflake.role.name': role,
+                  'snowflake.object.type': objectType,
+                  'snowflake.object.name': objectName,
+                  'snowflake.object.ddl.operation': ddlOp,
+                  'snowflake.object.ddl.properties':
+                    typeof r['snowflake.object.ddl.properties'] === 'string'
+                      ? r['snowflake.object.ddl.properties']
+                      : JSON.stringify(r['snowflake.object.ddl.properties']),
+                  'deployment.environment': r['deployment.environment']
+                },
+                timeout: CONFIG.eventTimeout
+              }
+            });
+          }
+
+          console.log(`Built ${events.length} sensitive-change event(s)`);
+          return events;
+        }
+
+  ingest_events:
+    name: ingest_events
+    description: Ingest sensitive-change events via Dynatrace Environment V2 API.
+    action: dynatrace.automations:run-javascript
+    active: true
+    position:
+      x: 0
+      y: 3
+    conditions:
+      states:
+        build_events: OK
+    predecessors:
+      - build_events
+    input:
+      script: |
+        import { execution } from '@dynatrace-sdk/automation-utils';
+        import { eventsClient } from '@dynatrace-sdk/client-classic-environment-v2';
+
+        async function ingestEvents(events) {
+          let successCount = 0;
+          const failed = [];
+          for (let i = 0; i < events.length; ++i) {
+            const res = await eventsClient.createEvent(events[i]);
+            if (res.reportCount !== 1) {
+              failed.push({ reason: 'Invalid number of ingested events' });
+            } else {
+              const status = res.eventIngestResults[0];
+              if (status.status === 'OK') {
+                successCount += 1;
+              } else {
+                failed.push(JSON.stringify(status));
+              }
+            }
+          }
+          if (successCount === 0 && failed.length === 0) {
+            console.log('No events to ingest');
+          }
+          if (successCount > 0) {
+            console.log(`Successfully ingested ${successCount} event(s)`);
+          }
+          if (failed.length > 0) {
+            console.log(`Failed to ingest ${failed.length} event(s):`, JSON.stringify(failed));
+          }
+        }
+
+        export default async function ({ execution_id }) {
+          const ex = await execution(execution_id);
+          const events = await ex.result('build_events');
+          await ingestEvents(events);
+          return events;
+        }

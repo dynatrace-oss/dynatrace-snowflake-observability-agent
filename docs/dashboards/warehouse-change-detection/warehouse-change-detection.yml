@@ -1,0 +1,256 @@
+#
+# Copyright (c) 2025 Dynatrace Open Source
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the Software), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+#
+# DASHBOARD: Warehouse Change Detection
+# DESCRIPTION: Audit warehouse and resource monitor DDL changes (experimental).
+# OWNER: DSOA Team
+# PLUGINS: query_history
+# TAGS: security, warehouse, ddl, experimental
+#
+id: bdx1998-wh-change-detection
+version: 1
+variables:
+  - version: 2
+    key: Accounts
+    type: query
+    visible: true
+    editable: true
+    input: |-
+      fetch events
+      | filter db.system == "snowflake"
+      | filter isNotNull(deployment.environment)
+      | fields deployment.environment
+      | dedup deployment.environment
+      | sort deployment.environment asc
+    multiple: true
+    defaultValue:
+      - "*"
+  - version: 2
+    key: SensitiveProperties
+    type: text
+    visible: true
+    editable: true
+    defaultValue: WAREHOUSE_SIZE,SCALING_POLICY,RESOURCE_MONITOR,AUTO_SUSPEND,MIN_CLUSTER_COUNT,MAX_CLUSTER_COUNT
+tiles:
+  "0":
+    type: markdown
+    content: |-
+      # Warehouse Change Detection
+
+      Audit who changed which **warehouse** or **resource monitor**, when, and the exact property delta.
+
+      - **Shape A** tiles use the legacy `db.operation.name` signal -- always available, but you must regex-parse target names from `db.query.text`.
+      - **Shape B** tiles use the experimental `snowflake.object.*` DDL attribution emitted when `plugins.query_history.track_ddl_changes=true`. Lag is up to ~3 h after the change due to `ACCESS_HISTORY.OBJECT_MODIFIED_BY_DDL` catchup.
+
+      See the [`query_history` plugin readme](https://github.com/dynatrace-oss/dynatrace-snowflake-observability-agent/blob/main/src/dtagent/plugins/query_history.config/readme.md) for activation instructions and caveats.
+    davis:
+      componentState:
+        inputData: null
+  "1":
+    type: markdown
+    content: "## Shape A -- Legacy change timeline (no feature flag required)"
+    davis:
+      componentState:
+        inputData: null
+  "2":
+    title: Warehouse / Resource Monitor change events (last 24 h)
+    type: data
+    query: |-
+      fetch events, from: now()-24h
+      | filter db.system == "snowflake"
+      | filter in(deployment.environment, array($Accounts))
+      | filter in(db.operation.name, array("ALTER_WAREHOUSE","CREATE_WAREHOUSE","DROP_WAREHOUSE","ALTER_RESOURCE_MONITOR","CREATE_RESOURCE_MONITOR","DROP_RESOURCE_MONITOR"))
+      | fields timestamp, deployment.environment, db.user, snowflake.role.name, db.operation.name, db.query.text
+      | sort timestamp desc
+      | limit 200
+    visualization: table
+    visualizationSettings:
+      table:
+        rowDensity: condensed
+        enableSparklines: false
+        hiddenColumns: []
+        linewrapEnabled: true
+      thresholds: []
+      dataMapping: {}
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "3":
+    type: markdown
+    content: "## Shape B -- Structured DDL attribution (requires `track_ddl_changes=true`)"
+    davis:
+      componentState:
+        inputData: null
+  "4":
+    title: Structured warehouse changes (last 7 d)
+    type: data
+    query: |-
+      fetch events, from: now()-7d
+      | filter db.system == "snowflake"
+      | filter in(deployment.environment, array($Accounts))
+      | filter isNotNull(snowflake.object.ddl.operation)
+      | filter snowflake.object.type == "Warehouse"
+      | fields timestamp, deployment.environment, db.user, snowflake.role.name, snowflake.object.name, snowflake.object.ddl.operation, snowflake.object.ddl.properties
+      | sort timestamp desc
+      | limit 200
+    visualization: table
+    visualizationSettings:
+      table:
+        rowDensity: condensed
+        enableSparklines: false
+        hiddenColumns: []
+        linewrapEnabled: true
+      thresholds: []
+      dataMapping: {}
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "5":
+    title: Sensitive-property drift (size / scaling / suspend / resource monitor)
+    type: data
+    query: |-
+      fetch events, from: now()-7d
+      | filter db.system == "snowflake"
+      | filter in(deployment.environment, array($Accounts))
+      | filter isNotNull(snowflake.object.ddl.properties)
+      | filter snowflake.object.type == "Warehouse"
+      | filter contains(toString(snowflake.object.ddl.properties), "WAREHOUSE_SIZE")
+           or contains(toString(snowflake.object.ddl.properties), "SCALING_POLICY")
+           or contains(toString(snowflake.object.ddl.properties), "RESOURCE_MONITOR")
+           or contains(toString(snowflake.object.ddl.properties), "AUTO_SUSPEND")
+           or contains(toString(snowflake.object.ddl.properties), "MIN_CLUSTER_COUNT")
+           or contains(toString(snowflake.object.ddl.properties), "MAX_CLUSTER_COUNT")
+      | fields timestamp, deployment.environment, db.user, snowflake.role.name, snowflake.object.name, snowflake.object.ddl.operation, snowflake.object.ddl.properties
+      | sort timestamp desc
+      | limit 200
+    visualization: table
+    visualizationSettings:
+      table:
+        rowDensity: condensed
+        enableSparklines: false
+        hiddenColumns: []
+        linewrapEnabled: true
+      thresholds: []
+      dataMapping: {}
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "6":
+    title: All DDL operations by object type (last 7 d)
+    type: data
+    query: |-
+      fetch events, from: now()-7d
+      | filter db.system == "snowflake"
+      | filter in(deployment.environment, array($Accounts))
+      | filter isNotNull(snowflake.object.ddl.operation)
+      | summarize event_count = count(), by: { snowflake.object.type, snowflake.object.ddl.operation }
+      | sort event_count desc
+    visualization: table
+    visualizationSettings:
+      table:
+        rowDensity: condensed
+        enableSparklines: false
+        hiddenColumns: []
+        linewrapEnabled: true
+      thresholds: []
+      dataMapping: {}
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+layouts:
+  "0":
+    x: 0
+    y: 0
+    w: 24
+    h: 4
+  "1":
+    x: 0
+    y: 4
+    w: 24
+    h: 1
+  "2":
+    x: 0
+    y: 5
+    w: 24
+    h: 8
+  "3":
+    x: 0
+    y: 13
+    w: 24
+    h: 1
+  "4":
+    x: 0
+    y: 14
+    w: 24
+    h: 8
+  "5":
+    x: 0
+    y: 22
+    w: 24
+    h: 8
+  "6":
+    x: 0
+    y: 30
+    w: 24
+    h: 6
+settings:
+  defaultTimeframe:
+    value:
+      from: now()-7d
+      to: now()
+    enabled: true
+importedWithCode: false
