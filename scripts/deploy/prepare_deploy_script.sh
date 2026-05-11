@@ -126,6 +126,11 @@ if [ -n "$TAG" ] && [ "$CUSTOM_NAMES_USED" = true ]; then
     echo "      TAG '$TAG' will only appear in telemetry as deployment.environment.tag."
 fi
 
+# Validate TAG (used as Snowflake identifier suffix when no custom DB name is set)
+if [[ -n "$TAG" && "$TAG" != "null" && "$TAG" != "-" ]]; then
+    validate_snowflake_name "$TAG" "deployment tag" || exit 1
+fi
+
 # Validate custom names if provided
 if [ "$CUSTOM_NAMES_USED" = true ]; then
     validate_snowflake_name "$CUSTOM_DB" "database" || exit 1
