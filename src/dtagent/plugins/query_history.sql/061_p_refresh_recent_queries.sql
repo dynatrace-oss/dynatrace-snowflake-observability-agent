@@ -31,14 +31,29 @@ use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 
 -- initializing TMP_RECENT_QUERIES so that we don't have to call this procedure during the deploy time
 
-create or replace transient table DTAGENT_DB.APP.TMP_RECENT_QUERIES DATA_RETENTION_TIME_IN_DAYS = 0 as
-    select
-        *,
-        false as IS_PARENT,
-        false as IS_ROOT,
-        null::text as _PARENT_OTEL_SPAN_ID,
-        null::text as _PARENT_OTEL_TRACE_ID
-    from APP.V_QUERY_HISTORY_INSTRUMENTED limit 0;
+create or replace transient table DTAGENT_DB.APP.TMP_RECENT_QUERIES (
+    TIMESTAMP                   NUMBER,
+    QUERY_ID                    VARCHAR,
+    PARENT_QUERY_ID             VARCHAR,
+    SESSION_ID                  NUMBER,
+    NAME                        VARCHAR,
+    _MESSAGE                    VARCHAR,
+    START_TIME                  NUMBER,
+    END_TIME                    NUMBER,
+    STATUS_CODE                 VARCHAR,
+--%PLUGIN:event_log:
+    _SPAN_ID                    VARCHAR,
+    _TRACE_ID                   VARCHAR,
+--%:PLUGIN:event_log
+    DIMENSIONS                  OBJECT,
+    ATTRIBUTES                  OBJECT,
+    METRICS                     OBJECT,
+    _TOTAL_AVAILABLE            NUMBER,
+    IS_PARENT                   BOOLEAN,
+    IS_ROOT                     BOOLEAN,
+    _PARENT_OTEL_SPAN_ID        TEXT,
+    _PARENT_OTEL_TRACE_ID       TEXT
+) DATA_RETENTION_TIME_IN_DAYS = 0;
 grant select, truncate, insert, update on table DTAGENT_DB.APP.TMP_RECENT_QUERIES to role DTAGENT_VIEWER;
 
 -- initializing TMP_QUERY_OPERATOR_STATS so that we don't have to call this procedure during the deploy time
@@ -54,7 +69,7 @@ as
 $$
 DECLARE
     v_max_entries           INT DEFAULT CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.max_entries', 0)::int;
-    in_tmp_table_reset      TEXT DEFAULT 'insert into DTAGENT_DB.APP.TMP_RECENT_QUERIES select *, false as IS_PARENT, false as IS_ROOT from DTAGENT_DB.APP.V_QUERY_HISTORY_INSTRUMENTED;';
+    in_tmp_table_reset      TEXT DEFAULT 'insert into DTAGENT_DB.APP.TMP_RECENT_QUERIES select *, false as IS_PARENT, false as IS_ROOT, null::text as _PARENT_OTEL_SPAN_ID, null::text as _PARENT_OTEL_TRACE_ID from DTAGENT_DB.APP.V_QUERY_HISTORY_INSTRUMENTED;';
     up_tmp_table_is_parent  TEXT DEFAULT 'update DTAGENT_DB.APP.TMP_RECENT_QUERIES set IS_PARENT = TRUE where QUERY_ID in (select distinct PARENT_QUERY_ID from DTAGENT_DB.APP.TMP_RECENT_QUERIES);';
     up_tmp_table_is_root_null TEXT DEFAULT 'update DTAGENT_DB.APP.TMP_RECENT_QUERIES set IS_ROOT = TRUE where PARENT_QUERY_ID is null;';
     up_tmp_table_is_root_miss TEXT DEFAULT 'update DTAGENT_DB.APP.TMP_RECENT_QUERIES set IS_ROOT = TRUE where PARENT_QUERY_ID is not null and PARENT_QUERY_ID not in (select distinct QUERY_ID from DTAGENT_DB.APP.TMP_RECENT_QUERIES);';

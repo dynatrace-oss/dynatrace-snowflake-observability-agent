@@ -88,12 +88,11 @@ class MockTelemetryClient:
 
                 if telemetry_type == "logs":
                     for entry in sorted_actual:
-                        # this should be always present in OTEL logs but is dynamically added by SDK per log
-                        assert entry.pop("code.file.path"), "Expected 'code.file.path' in log attributes"
-                        assert entry.pop("code.function.name"), "Expected 'code.function.name' in log attributes"
-                        assert entry.pop("code.line.number"), "Expected 'code.line.number' in log attributes"
+                        # dynamically added by LoggingHandler (stdlib bridge); not present with direct Logger.emit()
+                        entry.pop("code.file.path", None)
+                        entry.pop("code.function.name", None)
+                        entry.pop("code.line.number", None)
                     for entry in sorted_expected:
-                        # strip these dynamic fields from stored baseline too so comparison is stable
                         entry.pop("code.file.path", None)
                         entry.pop("code.function.name", None)
                         entry.pop("code.line.number", None)

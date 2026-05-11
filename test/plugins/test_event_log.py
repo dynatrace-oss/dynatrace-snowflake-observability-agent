@@ -28,6 +28,7 @@ class TestEventLog:
         "APP.V_EVENT_LOG": "test/test_data/event_log.ndjson",
         "APP.V_EVENT_LOG_METRICS_INSTRUMENTED": "test/test_data/event_log_metrics.ndjson",
         "APP.V_EVENT_LOG_SPANS_INSTRUMENTED": "test/test_data/event_log_spans.ndjson",
+        "APP.V_EVENT_LOG_MULTI_SOURCE": "test/test_data/event_log_multi_source.ndjson",
     }
 
     @pytest.mark.xdist_group(name="test_telemetry")
@@ -80,6 +81,59 @@ class TestEventLog:
                 affecting_types_for_entries=["logs", "metrics", "spans"],
                 base_count={
                     "event_log": {"entries": 2, "log_lines": 2, "metrics": 0, "events": 0},
+                    "event_log_metrics": {"entries": 2, "log_lines": 2, "metrics": 4, "events": 0},
+                    "event_log_spans": {"entries": 2, "log_lines": 0, "metrics": 0, "spans": 2, "span_events": 0, "errors": 0},
+                },
+            )
+
+    @pytest.mark.xdist_group(name="test_telemetry")
+    def test_event_log_multi_source(self):
+        import logging
+        from unittest.mock import patch
+        import test._utils as utils
+        from test import TestDynatraceSnowAgent, _get_session
+        from typing import Dict, Generator
+
+        from dtagent.plugins.event_log import EventLogPlugin
+
+        # ======================================================================
+
+        utils._generate_all_fixtures(_get_session(), self.FIXTURES)
+
+        class TestEventLogMultiSourcePlugin(EventLogPlugin):
+            def _get_events(self) -> Generator[Dict, None, None]:
+                return self._get_table_rows("APP.V_EVENT_LOG_MULTI_SOURCE")
+
+            def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
+                limit = 4 if t_data == "APP.V_EVENT_LOG_MULTI_SOURCE" else 2
+                return utils._safe_get_fixture_entries(TestEventLog.FIXTURES, t_data, limit=limit)
+
+        def __local_get_plugin_class(source: str):
+            return TestEventLogMultiSourcePlugin
+
+        from dtagent import plugins
+
+        plugins._get_plugin_class = __local_get_plugin_class
+
+        # ======================================================================
+        # Verify all 4 multi-source rows (2 account-table, 2 DB-override) flow through.
+        # _dsoa_source_table in _RESOURCE_ATTRIBUTES is unpacked automatically by
+        # _process_log_line via _unpack_json_dict — no Python changes required.
+
+        disabled_combinations = [
+            [],
+            ["logs"],
+            ["metrics", "spans"],
+        ]
+
+        for disabled_telemetry in disabled_combinations:
+            utils.execute_telemetry_test(
+                TestDynatraceSnowAgent,
+                test_name="test_event_log_multi_source",
+                disabled_telemetry=disabled_telemetry,
+                affecting_types_for_entries=["logs", "metrics", "spans"],
+                base_count={
+                    "event_log": {"entries": 4, "log_lines": 4, "metrics": 0, "events": 0},
                     "event_log_metrics": {"entries": 2, "log_lines": 2, "metrics": 4, "events": 0},
                     "event_log_spans": {"entries": 2, "log_lines": 0, "metrics": 0, "spans": 2, "span_events": 0, "errors": 0},
                 },

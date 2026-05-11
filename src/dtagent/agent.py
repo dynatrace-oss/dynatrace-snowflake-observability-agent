@@ -61,6 +61,7 @@ from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider, Tracer, SpanLimits
 from opentelemetry.sdk.trace.id_generator import RandomIdGenerator
 from opentelemetry.sdk._logs import LoggerProvider
+from opentelemetry._logs import SeverityNumber
 from opentelemetry import version as otel_version
 
 ##endregion
