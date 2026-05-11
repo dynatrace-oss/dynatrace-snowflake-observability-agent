@@ -43,6 +43,8 @@ from dtagent.context import get_context_name_and_run_id, RUN_PLUGIN_KEY, RUN_RES
 
 ##region ------------------ MEASUREMENT SOURCE: QUERY HISTORY --------------------------------
 
+_COST_ATTRIBUTION_EMPTY_RESULT: Dict[str, int] = {"entries": 0, "log_lines": 0, "metrics": 0, "events": 0}
+
 
 class QueryHistoryPlugin(Plugin):
     """Query history plugin class."""
@@ -191,11 +193,11 @@ class QueryHistoryPlugin(Plugin):
             Dict[str, int]: Telemetry counts for the query_cost_attribution context.
         """
         if contexts is not None and "query_cost_attribution" not in contexts:
-            return {"entries": 0, "log_lines": 0, "metrics": 0, "events": 0}
+            return _COST_ATTRIBUTION_EMPTY_RESULT
 
         cost_attr_conf = self._configuration.get(plugin_name=self._plugin_name, key="query_cost_attribution") or {}
         if not cost_attr_conf.get("enabled", False):
-            return {"entries": 0, "log_lines": 0, "metrics": 0, "events": 0}
+            return _COST_ATTRIBUTION_EMPTY_RESULT
 
         t_summary = "APP.V_QUERY_COST_ATTRIBUTION_SUMMARY"
 
@@ -211,7 +213,7 @@ class QueryHistoryPlugin(Plugin):
                 "Skipping query_cost_attribution context. Error: %s",
                 str(e),
             )
-            return {"entries": 0, "log_lines": 0, "metrics": 0, "events": 0}
+            return _COST_ATTRIBUTION_EMPTY_RESULT
 
         return {
             "entries": entries,
