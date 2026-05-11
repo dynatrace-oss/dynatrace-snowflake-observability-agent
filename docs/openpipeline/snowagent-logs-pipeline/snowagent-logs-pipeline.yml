@@ -55,9 +55,9 @@ value:
               sourceFieldName: host.name
             - extractionType: field
               sourceFieldName: client.type
-            - destinationFieldName: dsoa.run.context
+            - constantFieldName: dsoa.run.context
+              constantValue: openpipeline
               extractionType: constant
-              value: openpipeline
           metricKey: snowflake.login.attempts.failed
         description: Count of failed attempts to login to Snowflake
         enabled: true
@@ -76,9 +76,9 @@ value:
               sourceFieldName: client.type
             - extractionType: field
               sourceFieldName: host.name
-            - destinationFieldName: dsoa.run.context
+            - constantFieldName: dsoa.run.context
+              constantValue: openpipeline
               extractionType: constant
-              value: openpipeline
           metricKey: snowflake.login.attempts.successful
         description: Count of successful attempts to login to Snowflake
         enabled: true
@@ -97,9 +97,9 @@ value:
               sourceFieldName: host.name
             - extractionType: field
               sourceFieldName: client.type
-            - destinationFieldName: dsoa.run.context
+            - constantFieldName: dsoa.run.context
+              constantValue: openpipeline
               extractionType: constant
-              value: openpipeline
           metricKey: snowflake.login.attempts.total
         description: Count of all logins to Snowflake
         enabled: true
@@ -114,9 +114,9 @@ value:
               sourceFieldName: snowflake.schema.name
             - extractionType: field
               sourceFieldName: snowflake.task.name
-            - destinationFieldName: dsoa.run.context
+            - constantFieldName: dsoa.run.context
+              constantValue: openpipeline
               extractionType: constant
-              value: openpipeline
           metricKey: snowflake.task.run.failed
         description: Count of failed Snowflake task runs
         enabled: true
@@ -131,9 +131,9 @@ value:
               sourceFieldName: snowflake.schema.name
             - extractionType: field
               sourceFieldName: snowflake.task.name
-            - destinationFieldName: dsoa.run.context
+            - constantFieldName: dsoa.run.context
+              constantValue: openpipeline
               extractionType: constant
-              value: openpipeline
           metricKey: snowflake.task.run.cancelled
         description: Count of cancelled Snowflake task runs
         enabled: true
@@ -148,9 +148,9 @@ value:
               sourceFieldName: snowflake.schema.name
             - extractionType: field
               sourceFieldName: snowflake.task.name
-            - destinationFieldName: dsoa.run.context
+            - constantFieldName: dsoa.run.context
+              constantValue: openpipeline
               extractionType: constant
-              value: openpipeline
           metricKey: snowflake.task.run.successful
         description: Count of successful Snowflake task runs
         enabled: true
