@@ -1,0 +1,172 @@
+#
+# Copyright (c) 2025 Dynatrace Open Source
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+#
+# OPENPIPELINE: SnowAgent Logs Pipeline
+# DESCRIPTION: OpenPipeline settings object for DSOA logs — metric extraction rules only
+# OWNER: DSOA Team
+# SCHEMA: builtin:openpipeline.logs.pipelines
+# TAGS: snowflake, dsoa, openpipeline, metrics
+
+objectid: vu9U3hXa3q0AAAABACNidWlsdGluOm9wZW5waXBlbGluZS5sb2dzLnBpcGVsaW5lcwAGdGVuYW50AAZ0ZW5hbnQAJDFkY2M0MWRlLTVlNDMtM2FiNS04NmI1LWQ0NGNhODM4YmM5Yr7vVN4V2t6t
+schemaid: builtin:openpipeline.logs.pipelines
+schemaversion: 1.60.1
+scope: environment
+externalid: ""
+summary: SnowAgent Pipeline
+value:
+  costAllocation:
+    processors: []
+  customId: pipeline_SnowAgent_Pipeline_5525
+  dataExtraction:
+    processors: []
+  davis:
+    processors: []
+  displayName: SnowAgent Pipeline
+  metadataList: []
+  metricExtraction:
+    processors:
+      - counterMetric:
+          dimensions:
+            - extractionType: field
+              sourceFieldName: db.system
+            - extractionType: field
+              sourceFieldName: deployment.environment
+            - extractionType: field
+              sourceFieldName: db.user
+            - extractionType: field
+              sourceFieldName: host.name
+            - extractionType: field
+              sourceFieldName: client.type
+            - constantFieldName: dsoa.run.context
+              constantValue: openpipeline
+              extractionType: constant
+          metricKey: snowflake.login.attempts.failed
+        description: Count of failed attempts to login to Snowflake
+        enabled: true
+        id: processor_snowflake.login.attempts.failed_4856
+        matcher: event.name == "LOGIN" and dsoa.run.context == "login_history" and status.code == "ERROR"
+        type: counterMetric
+      - counterMetric:
+          dimensions:
+            - extractionType: field
+              sourceFieldName: db.system
+            - extractionType: field
+              sourceFieldName: deployment.environment
+            - extractionType: field
+              sourceFieldName: db.user
+            - extractionType: field
+              sourceFieldName: client.type
+            - extractionType: field
+              sourceFieldName: host.name
+            - constantFieldName: dsoa.run.context
+              constantValue: openpipeline
+              extractionType: constant
+          metricKey: snowflake.login.attempts.successful
+        description: Count of successful attempts to login to Snowflake
+        enabled: true
+        id: processor_snowflake.login.attempts.successful_3900
+        matcher: event.name == "LOGIN" and dsoa.run.context == "login_history" and status.code == "OK"
+        type: counterMetric
+      - counterMetric:
+          dimensions:
+            - extractionType: field
+              sourceFieldName: db.system
+            - extractionType: field
+              sourceFieldName: deployment.environment
+            - extractionType: field
+              sourceFieldName: db.user
+            - extractionType: field
+              sourceFieldName: host.name
+            - extractionType: field
+              sourceFieldName: client.type
+            - constantFieldName: dsoa.run.context
+              constantValue: openpipeline
+              extractionType: constant
+          metricKey: snowflake.login.attempts.total
+        description: Count of all logins to Snowflake
+        enabled: true
+        id: processor_snowflake.login.attempts.total_6874
+        matcher: event.name == "LOGIN" and dsoa.run.context == "login_history"
+        type: counterMetric
+      - counterMetric:
+          dimensions:
+            - extractionType: field
+              sourceFieldName: db.namespace
+            - extractionType: field
+              sourceFieldName: snowflake.schema.name
+            - extractionType: field
+              sourceFieldName: snowflake.task.name
+            - constantFieldName: dsoa.run.context
+              constantValue: openpipeline
+              extractionType: constant
+          metricKey: snowflake.task.run.failed
+        description: Count of failed Snowflake task runs
+        enabled: true
+        id: processor_snowflake.task.run.failed_6971
+        matcher: dsoa.run.context == "task_history" and snowflake.task.run.state == "FAILED"
+        type: counterMetric
+      - counterMetric:
+          dimensions:
+            - extractionType: field
+              sourceFieldName: db.namespace
+            - extractionType: field
+              sourceFieldName: snowflake.schema.name
+            - extractionType: field
+              sourceFieldName: snowflake.task.name
+            - constantFieldName: dsoa.run.context
+              constantValue: openpipeline
+              extractionType: constant
+          metricKey: snowflake.task.run.cancelled
+        description: Count of cancelled Snowflake task runs
+        enabled: true
+        id: processor_snowflake.task.run.cancelled_3812
+        matcher: dsoa.run.context == "task_history" and snowflake.task.run.state == "CANCELLED"
+        type: counterMetric
+      - counterMetric:
+          dimensions:
+            - extractionType: field
+              sourceFieldName: db.namespace
+            - extractionType: field
+              sourceFieldName: snowflake.schema.name
+            - extractionType: field
+              sourceFieldName: snowflake.task.name
+            - constantFieldName: dsoa.run.context
+              constantValue: openpipeline
+              extractionType: constant
+          metricKey: snowflake.task.run.successful
+        description: Count of successful Snowflake task runs
+        enabled: true
+        id: processor_snowflake.task.run.successful_5104
+        matcher: dsoa.run.context == "task_history" and snowflake.task.run.state == "SUCCEEDED"
+        type: counterMetric
+  processing:
+    processors: []
+  productAllocation:
+    processors: []
+  securityContext:
+    processors: []
+  smartscapeEdgeExtraction:
+    processors: []
+  smartscapeNodeExtraction:
+    processors: []
+  storage:
+    processors: []
+modificationinfo: null
