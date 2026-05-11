@@ -75,7 +75,7 @@ All notable changes to this project will be documented in this file.
   level when DSOA provisions and owns the event table, so events emitted by DSOA procedures continue to reach the
   event table. When a pre-existing/custom event table is used, the account-level parameter is left unchanged. On
   pre-BCR accounts the new parameter is detected as absent and the change is skipped gracefully. See
-  [devlog](../.context/devlog/unreleased/drop-custom-otel-timestamp-filter.md) for details.
+   [devlog](../.context/devlog/0.9.5/bug-fixes.md) for details.
 
 - `snowflake.task.run.attempt` in the `task_history` context now emits as a numeric integer instead of a string. Downstream DQL queries no longer require a `toLong()` cast; arithmetic comparisons such as `snowflake.task.run.attempt > 1` work directly. The `Tasks & Pipelines` dashboard retry tile has been updated accordingly. Redeploy with `--scope=plugins,config` to apply. (BDX-1903)
 - Config changes on redeploy now take full effect: the config upload procedure uses DELETE + INSERT (full replace) instead of an additive MERGE, so entries removed from the YAML (e.g. a plugin's `is_enabled: true`) are also removed from Snowflake. Previously, stale config entries could override a new `disabled_by_default: true` setting.
