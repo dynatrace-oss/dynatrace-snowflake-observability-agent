@@ -126,6 +126,11 @@ if [ -n "$TAG" ] && [ "$CUSTOM_NAMES_USED" = true ]; then
     echo "      TAG '$TAG' will only appear in telemetry as deployment.environment.tag."
 fi
 
+# Validate TAG (used as Snowflake identifier suffix when no custom DB name is set)
+if [[ -n "$TAG" && "$TAG" != "null" && "$TAG" != "-" ]]; then
+    validate_snowflake_name "$TAG" "deployment tag" || exit 1
+fi
+
 # Validate custom names if provided
 if [ "$CUSTOM_NAMES_USED" = true ]; then
     validate_snowflake_name "$CUSTOM_DB" "database" || exit 1
@@ -192,8 +197,8 @@ map_scope_to_files() {
             # Process upgrade scripts >= FROM_VERSION
             echo "09_upgrade/*.sql"
             ;;
-        apikey|teardown)
-            # These are handled specially below
+        verify|apikey|teardown)
+            # These are handled specially — no SQL files
             echo ""
             ;;
         *)
@@ -215,7 +220,7 @@ if [[ "$SCOPE" == *,* ]]; then
         single_scope=$(echo "$single_scope" | xargs)
 
         # Check for special scopes that can't be combined
-        if [ "$single_scope" == "teardown" ] || [ "$single_scope" == "all" ]; then
+        if [ "$single_scope" == "teardown" ] || [ "$single_scope" == "all" ] || [ "$single_scope" == "verify" ]; then
             echo "ERROR: Scope '$single_scope' cannot be combined with other scopes"
             exit 1
         fi
