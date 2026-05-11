@@ -738,10 +738,13 @@ as
 
 ### Pattern B — Inline-with-fallback (use when the proc is called inline from other SQL)
 
-No-op stub always deployed; admin version overwrites it. Reference: `shares/051_p_grant_imported_privileges.sql`.
+Stub and admin override live in the **same file**. The stub is always deployed; the admin
+override is wrapped in a `--%OPTION:dtagent_admin:` block immediately after.
+`create or replace` ensures the admin version overwrites the stub when admin scope is on.
+Reference: `shares.sql/051_p_grant_imported_privileges.sql`.
 
 ```sql
--- non-admin stub (always deployed, e.g. 051_p_do_x.sql)
+-- 051_p_do_x.sql — stub + inline admin override (single file)
 create or replace procedure DTAGENT_DB.APP.P_DO_X(arg VARCHAR)
 returns text language sql execute as caller
 as $$ begin
@@ -750,10 +753,10 @@ as $$ begin
 end; $$;
 grant usage on procedure DTAGENT_DB.APP.P_DO_X(VARCHAR) to role DTAGENT_VIEWER;
 
--- admin version (admin/051_p_do_x.sql) overwrites stub when admin on
 --%OPTION:dtagent_admin:
+-- Admin version overwrites the stub above when dtagent_admin scope is enabled.
 create or replace procedure DTAGENT_DB.APP.P_DO_X(arg VARCHAR) ...
-grant ownership ... to role DTAGENT_ADMIN copy current grants;
+grant ownership on procedure DTAGENT_DB.APP.P_DO_X(VARCHAR) to role DTAGENT_ADMIN copy current grants;
 --%:OPTION:dtagent_admin
 ```
 

@@ -54,10 +54,10 @@ def check_admin_role_usage(file_path: Path) -> list[tuple[int, str]]:
     with open(file_path, "r", encoding="utf-8") as f:
         for line_num, line in enumerate(f, 1):
             stripped = line.strip()
-            if stripped.startswith("--%OPTION:"):
+            if stripped.startswith("--%OPTION:dtagent_admin:"):
                 in_option_block = True
                 continue
-            if stripped.startswith("--%:OPTION:"):
+            if stripped.startswith("--%:OPTION:dtagent_admin"):
                 in_option_block = False
                 continue
             if in_option_block:

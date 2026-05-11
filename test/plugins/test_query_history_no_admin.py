@@ -24,13 +24,15 @@
 
 
 class TestQueryHistNoAdmin:
-    """Verify query_history plugin emits telemetry regardless of admin scope.
+    """Validate query_history plugin runs without error when admin-scoped objects are absent.
 
-    P_MONITOR_WAREHOUSES() and TASK_DTAGENT_QUERY_HISTORY_GRANTS are absent when
-    admin scope is off, but query_history.py only reads APP.V_RECENT_QUERIES —
-    it has zero Python-level dependency on admin objects. This test validates
-    that code path. Whether fewer rows appear in practice (because MONITOR grants
-    were never applied) is confirmed separately via live fixture regen on test-qa.
+    This test verifies the Python code path only: APP.V_RECENT_QUERIES is the sole data
+    source for query_history.py — there is no Python-level dependency on admin objects
+    (P_MONITOR_WAREHOUSES or TASK_DTAGENT_QUERY_HISTORY_GRANTS). The test fixture
+    (test/test_data/query_history.ndjson) is shared with the standard query_history test
+    and reflects a normal run; this is intentional. Whether fewer rows appear in practice
+    (because MONITOR grants were never applied without admin scope) is a live-environment
+    concern confirmed separately via fixture regen on test-qa with admin scope excluded.
     """
 
     import pytest

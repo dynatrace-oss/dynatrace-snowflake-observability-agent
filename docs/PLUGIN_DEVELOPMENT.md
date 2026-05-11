@@ -598,10 +598,10 @@ as
 
 #### Pattern B — Inline-with-fallback (required when the procedure is called inline from other SQL)
 
-A no-op stub is deployed unconditionally. The admin version (same object name, in `admin/` subdir) overwrites the stub when admin scope is deployed. Inline callers always find the procedure and receive a graceful response.
+A no-op stub and its admin override live in the **same file**. The stub is always deployed. The admin override is wrapped in a `--%OPTION:dtagent_admin:` block immediately after the stub — `create or replace` ensures it overwrites the stub when admin scope is deployed. Inline callers always find the procedure and receive a graceful response.
 
 ```sql
--- plugin/{name}.sql/051_p_do_something.sql  (always deployed)
+-- plugin/{name}.sql/051_p_do_something.sql  (stub + inline admin override, single file)
 create or replace procedure DTAGENT_DB.APP.P_DO_SOMETHING(arg VARCHAR)
 returns text
 language sql
@@ -615,10 +615,21 @@ end;
 $$;
 grant usage on procedure DTAGENT_DB.APP.P_DO_SOMETHING(VARCHAR) to role DTAGENT_VIEWER;
 
--- plugin/{name}.sql/admin/051_p_do_something.sql  (overwrites stub when admin on)
 --%OPTION:dtagent_admin:
+-- Admin version overwrites the stub above when dtagent_admin scope is enabled.
 create or replace procedure DTAGENT_DB.APP.P_DO_SOMETHING(arg VARCHAR)
-...
+returns text
+language sql
+execute as owner  -- requires DTAGENT_ADMIN ownership; elevated privilege held by DTAGENT_ADMIN
+as
+$$
+begin
+    -- admin implementation here
+    return 'done';
+end;
+$$;
+grant usage on procedure DTAGENT_DB.APP.P_DO_SOMETHING(VARCHAR) to role DTAGENT_VIEWER;
+grant ownership on procedure DTAGENT_DB.APP.P_DO_SOMETHING(VARCHAR) to role DTAGENT_ADMIN copy current grants;
 --%:OPTION:dtagent_admin
 ```
 
