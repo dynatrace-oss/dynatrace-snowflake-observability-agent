@@ -735,5 +735,5 @@ fetch logs
 - [ ] Build succeeds: `./scripts/dev/build.sh`
 - [ ] Lint passes: `make lint`
 - [ ] Documentation rebuilt: `./scripts/dev/build_docs.sh`
-- [ ] `CHANGELOG.md` and `DEVLOG.md` updated
+- [ ] `CHANGELOG.md` and `.context/devlog/<version>/<topic>.md` updated
 - [ ] Deployed and verified in Dynatrace

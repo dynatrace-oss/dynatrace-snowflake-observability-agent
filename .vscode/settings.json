@@ -44,7 +44,6 @@
         "dashboarding",
         "DATEADD",
         "deadsnakes",
-        "DEVLOG",
         "dtctl",
         "DTLS",
         "dynatracelabs",
@@ -245,6 +244,6 @@
         "editor.defaultFormatter": "esbenp.prettier-vscode"
     },
     "chat.promptFilesLocations": {
-        ".github/context/prompts": true
+        ".context/prompts": true
     }
 }

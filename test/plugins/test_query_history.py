@@ -259,7 +259,7 @@ class TestQueryHistDdl:
     The mock harness replays already-instrumented rows from an NDJSON fixture and
     cannot exercise the underlying SQL view changes (CTE join with
     OBJECT_MODIFIED_BY_DDL, top-N QUALIFY exemption, AH-lag holdback). Those are
-    validated via live Customer-Zero tests; see DEVLOG.md for the live plan.
+    validated via live Customer-Zero tests; see devlog for the live plan.
 
     This test guards the contract that, given a query_history row whose
     ATTRIBUTES JSON carries the five `snowflake.object.*` DDL attributes,
