@@ -64,11 +64,14 @@ dtctl apply -f docs/openpipeline/<name>/<name>.yml
 The `snowagent-logs-pipeline/` directory contains the full DSOA logs pipeline settings object.
 The table below lists the metric-extraction processors it ships:
 
-| Metric Key                      | DPO Theme  | Description                                                                                          | Required Plugin(s) |
-|---------------------------------|------------|------------------------------------------------------------------------------------------------------|--------------------|
-| `snowflake.task.run.failed`     | Operations | Counts FAILED task runs from `task_history` logs, dimensioned by database, schema, and task name.    | `tasks`            |
-| `snowflake.task.run.cancelled`  | Operations | Counts CANCELLED task runs from `task_history` logs, dimensioned by database, schema, and task name. | `tasks`            |
-| `snowflake.task.run.successful` | Operations | Counts SUCCEEDED task runs from `task_history` logs, dimensioned by database, schema, and task name. | `tasks`            |
+| Metric Key                            | DPO Theme  | Description                                                                                                                               | Required Plugin(s) |
+|---------------------------------------|------------|-------------------------------------------------------------------------------------------------------------------------------------------|--------------------|
+| `snowflake.task.run.failed`           | Operations | Counts FAILED task runs from `task_history` logs, dimensioned by database, schema, and task name.                                         | `tasks`            |
+| `snowflake.task.run.cancelled`        | Operations | Counts CANCELLED task runs from `task_history` logs, dimensioned by database, schema, and task name.                                      | `tasks`            |
+| `snowflake.task.run.successful`       | Operations | Counts SUCCEEDED task runs from `task_history` logs, dimensioned by database, schema, and task name.                                      | `tasks`            |
+| `snowflake.login.attempts.failed`     | Security   | Counts failed Snowflake login attempts from `login_history` logs, dimensioned by db.system, environment, user, host, and client type.     | `login_history`    |
+| `snowflake.login.attempts.successful` | Security   | Counts successful Snowflake login attempts from `login_history` logs, dimensioned by db.system, environment, user, client type, and host. | `login_history`    |
+| `snowflake.login.attempts.total`      | Security   | Counts all Snowflake login attempts from `login_history` logs, dimensioned by db.system, environment, user, host, and client type.        | `login_history`    |
 
 ## Pipeline File Structure
 

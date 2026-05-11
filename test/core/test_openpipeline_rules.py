@@ -34,12 +34,14 @@ import pytest
 
 OPENPIPELINE_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "docs", "openpipeline")
 
-# Metric keys shipped in this PR (task-run state counters).
-# Login metrics (e.g. snowflake.login.attempts.failed) are deferred pending naming sign-off.
+# Metric keys shipped with the SnowAgent logs pipeline.
 KNOWN_METRIC_KEYS = {
     "snowflake.task.run.failed",
     "snowflake.task.run.cancelled",
     "snowflake.task.run.successful",
+    "snowflake.login.attempts.failed",
+    "snowflake.login.attempts.successful",
+    "snowflake.login.attempts.total",
 }
 
 HIGH_CARDINALITY_DIMENSIONS = {"snowflake.task.run.id"}
@@ -144,7 +146,7 @@ class TestOpenpipelineMetricProcessors:
             for idx, processor in enumerate(_extract_metric_processors(pipeline)):
                 counter = processor.get("counterMetric", {})
                 key = counter.get("metricKey")
-                if key and key.startswith("snowflake.task.run."):
+                if key and (key.startswith("snowflake.task.run.") or key.startswith("snowflake.login.attempts.")):
                     dims = counter.get("dimensions", [])
                     if not isinstance(dims, list) or len(dims) == 0:
                         problems.append(
@@ -186,7 +188,7 @@ class TestOpenpipelineMetricProcessors:
             for idx, processor in enumerate(_extract_metric_processors(pipeline)):
                 counter = processor.get("counterMetric", {})
                 key = counter.get("metricKey")
-                if key and key.startswith("snowflake.task.run."):
+                if key and (key.startswith("snowflake.task.run.") or key.startswith("snowflake.login.attempts.")):
                     if not processor.get("enabled", False):
                         problems.append(f"{pipeline['_source_file']} processor[{idx}] ({key}): processor must be enabled")
         assert not problems, "\n".join(problems)

@@ -38,6 +38,30 @@ New processors in `value.metricExtraction.processors`:
   No YAML-to-JSON conversion; no id write-back (Settings 2.0 objects use a stable `objectid`).
 - `all` scope now also calls `deploy_openpipeline_rules`.
 
+**Login attempt metric processors — `snowflake.login.attempts.*`**
+
+Three additional processors were added for `login_history` counters. They were initially named
+`log.snowflake.logins.{failed,successful,total}` (using the `log.*` prefix) because custom
+`snowflake.*`-namespace metrics could not be created in OpenPipeline at the time. That constraint
+has been lifted; the processors have been renamed to the canonical `snowflake.login.attempts.*`
+scheme, consistent with the rest of the DSOA metric taxonomy:
+
+- `processor_snowflake.login.attempts.failed_4856` — matches `event.name == "LOGIN" and
+  dsoa.run.context == "login_history" and status.code == "ERROR"`; dimensions: `db.system`,
+  `deployment.environment`, `db.user`, `host.name`, `client.type`.
+- `processor_snowflake.login.attempts.successful_3900` — same matcher with `status.code == "OK"`;
+  dimensions: `db.system`, `deployment.environment`, `db.user`, `client.type`, `host.name`.
+- `processor_snowflake.login.attempts.total_6874` — matches all LOGIN events regardless of status;
+  same dimension set as failed.
+
+Numeric suffixes preserved for traceability. Re-applying the YAML drops the old `log.*` processors
+and creates the renamed ones — no data migration required as they are counters starting from the
+apply time.
+
+`KNOWN_METRIC_KEYS` in `test/core/test_openpipeline_rules.py` extended to include all three login
+keys; dimension-presence and enabled-state guards extended to cover `snowflake.login.attempts.*`
+prefix alongside `snowflake.task.run.*`.
+
 **New test file — `test/core/test_openpipeline_rules.py`**
 
 12 pytest tests across three classes:

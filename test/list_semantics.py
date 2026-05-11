@@ -57,6 +57,10 @@ def _get_telemetry_attribute(
         "plugin": plugin_name,
         "source": source,
         "runtime": (description_value and description_value.get("__is_defined_at_runtime", False)),
+        "openpipeline": (
+            bool(description_value) and
+            "openpipeline" in (description_value.get("__context_names") or [])
+        ),
     }
 
 
