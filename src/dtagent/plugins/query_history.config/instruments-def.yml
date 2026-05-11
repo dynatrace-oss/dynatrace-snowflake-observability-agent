@@ -63,6 +63,12 @@ attributes:
   snowflake.cluster_number:
     __example: cluster1
     __description: The cluster number associated with the query.
+  snowflake.cost_attribution.period_end:
+    __example: "2024-11-05T22:11:07Z"
+    __description: End of the cost attribution summary window.
+  snowflake.cost_attribution.period_start:
+    __example: "2024-11-05T21:11:07Z"
+    __description: Start of the cost attribution summary window.
   snowflake.database.id:
     __example: db123
     __description: The unique identifier of the database involved in the query.
