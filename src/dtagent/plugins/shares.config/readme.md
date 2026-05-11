@@ -7,3 +7,5 @@ This plugin enables tracking shares, both inbound and outbound, present in a Sno
 - sends events when a table is shared, updated, or modified (DDL).
 
 By default, shares are monitored every 60 minutes. It is possible to exclude certain shares (or parts of them) from tracking detailed information.
+
+When the `admin` scope is installed, `DTAGENT_VIEWER` is automatically granted `IMPORTED PRIVILEGES` on inbound shared databases as needed. Without admin scope, this grant must be applied manually — see `config.md` for the required SQL and details.

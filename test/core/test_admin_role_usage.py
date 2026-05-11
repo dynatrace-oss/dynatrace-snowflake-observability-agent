@@ -42,13 +42,29 @@ def find_sql_files(root_dir: str) -> dict[str, list[Path]]:
 
 
 def check_admin_role_usage(file_path: Path) -> list[tuple[int, str]]:
-    """Check for DTAGENT_ADMIN role usage or ownership grants to it."""
+    """Check for DTAGENT_ADMIN role usage or ownership grants to it.
+
+    Lines inside --%OPTION:dtagent_admin: blocks are intentionally skipped:
+    Pattern B procs (stub + admin override in same non-admin file) use OPTION blocks
+    to gate the admin version — this is valid and expected.
+    """
     violations = []
+    in_option_block = False
 
     with open(file_path, "r", encoding="utf-8") as f:
         for line_num, line in enumerate(f, 1):
+            stripped = line.strip()
+            if stripped.startswith("--%OPTION:"):
+                in_option_block = True
+                continue
+            if stripped.startswith("--%:OPTION:"):
+                in_option_block = False
+                continue
+            if in_option_block:
+                continue
+
             # Skip comments
-            if line.strip().startswith("--"):
+            if stripped.startswith("--"):
                 continue
 
             # Check for USE ROLE DTAGENT_ADMIN
