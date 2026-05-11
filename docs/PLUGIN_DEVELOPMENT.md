@@ -574,6 +574,71 @@ Never collapse a fine-grained exclude to DB-level only — this breaks the least
 
 For cross-plugin dependencies, wrap both column references AND join clauses. Test with the dependency both enabled and disabled.
 
+### Admin-Scoped Stored Procedures
+
+Every stored procedure defined inside a `--%OPTION:dtagent_admin:` block **must** follow one of two patterns. A static test (`TestAdminProcPattern.test_admin_procs_have_task_or_fallback`) enforces this on every CI run.
+
+#### Pattern A — Grant-on-schedule (preferred for privilege-granting procedures)
+
+Both the procedure and the task that calls it live inside the same `--%OPTION:dtagent_admin:` block. When admin scope is off, neither object is deployed — no orphaned tasks, no broken calls.
+
+```sql
+--%OPTION:dtagent_admin:
+create or replace procedure DTAGENT_DB.APP.P_GRANT_SOMETHING()
+-- ...
+
+create or replace task DTAGENT_DB.APP.TASK_DTAGENT_SOMETHING_GRANTS
+    schedule = '...'
+as
+    call DTAGENT_DB.APP.P_GRANT_SOMETHING();
+--%:OPTION:dtagent_admin
+```
+
+**Customer impact when admin is off:** the grants are never applied. The plugin will emit **no telemetry** for the affected resource type, silently and without errors. You **must** document the manual grant alternative in the plugin's `config.md` with an IMPORTANT callout. Without this documentation, customers deploying without admin scope will see a silent monitoring gap with no explanation.
+
+#### Pattern B — Inline-with-fallback (required when the procedure is called inline from other SQL)
+
+A no-op stub and its admin override live in the **same file**. The stub is always deployed. The admin override is wrapped in a `--%OPTION:dtagent_admin:` block immediately after the stub — `create or replace` ensures it overwrites the stub when admin scope is deployed. Inline callers always find the procedure and receive a graceful response.
+
+```sql
+-- plugin/{name}.sql/051_p_do_something.sql  (stub + inline admin override, single file)
+create or replace procedure DTAGENT_DB.APP.P_DO_SOMETHING(arg VARCHAR)
+returns text
+language sql
+execute as caller
+as
+$$
+begin
+    SYSTEM$LOG_WARN('P_DO_SOMETHING: requires DTAGENT_ADMIN scope; skipping for ' || :arg);
+    return 'skipped: DTAGENT_ADMIN scope not deployed';
+end;
+$$;
+grant usage on procedure DTAGENT_DB.APP.P_DO_SOMETHING(VARCHAR) to role DTAGENT_VIEWER;
+
+--%OPTION:dtagent_admin:
+-- Admin version overwrites the stub above when dtagent_admin scope is enabled.
+create or replace procedure DTAGENT_DB.APP.P_DO_SOMETHING(arg VARCHAR)
+returns text
+language sql
+execute as owner  -- requires DTAGENT_ADMIN ownership; elevated privilege held by DTAGENT_ADMIN
+as
+$$
+begin
+    -- admin implementation here
+    return 'done';
+end;
+$$;
+grant usage on procedure DTAGENT_DB.APP.P_DO_SOMETHING(VARCHAR) to role DTAGENT_VIEWER;
+grant ownership on procedure DTAGENT_DB.APP.P_DO_SOMETHING(VARCHAR) to role DTAGENT_ADMIN copy current grants;
+--%:OPTION:dtagent_admin
+```
+
+Reference implementation: `src/dtagent/plugins/shares.sql/051_p_grant_imported_privileges.sql`.
+
+#### Diagnostic helpers (exempt from the rule)
+
+Procedures intended for manual post-deployment verification are exempt. Use `--%PLUGIN:{name}:` instead of `--%OPTION:dtagent_admin:` so they deploy regardless of admin scope. No calling task is needed. Document them in the plugin's `config.md` as manually callable.
+
 ### Configuration Access
 
 In SQL:

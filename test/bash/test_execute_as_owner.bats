@@ -22,10 +22,12 @@ setup() {
     # Add entries as "|"-separated patterns (grep -E), e.g.:
     #   "P_SOME_SPECIAL_PROC|P_ANOTHER_ONE"
     # -------------------------------------------------------------------
-    # shares/admin/051_p_grant_imported_privileges.sql — must run as owner
+    # shares/051_p_grant_imported_privileges.sql — must run as owner
     # (DTAGENT_ADMIN) because GRANT IMPORTED PRIVILEGES requires MANAGE GRANTS
     # on ACCOUNT, which is granted to DTAGENT_ADMIN, not to the calling role.
-    EXCLUSION_PATTERN="shares.sql/admin/051_p_grant_imported_privileges"
+    # The admin version is embedded inline inside a --%OPTION:dtagent_admin: block
+    # in the same file (Pattern B inline) — there is no separate admin/ subdirectory.
+    EXCLUSION_PATTERN="shares.sql/051_p_grant_imported_privileges"
 }
 
 # -----------------------------------------------------------------------
