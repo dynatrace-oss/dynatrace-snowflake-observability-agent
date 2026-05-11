@@ -637,10 +637,7 @@ def _assert_balanced_option_tags(content: str, file_path: Path) -> None:
     """Assert that every OPTION open tag has a matching close tag in the file."""
     opens = content.count("--%OPTION:dtagent_admin:")
     closes = content.count("--%:OPTION:dtagent_admin")
-    assert opens == closes, (
-        f"Unbalanced --%OPTION:dtagent_admin: tags in {file_path}: "
-        f"{opens} open, {closes} close"
-    )
+    assert opens == closes, f"Unbalanced --%OPTION:dtagent_admin: tags in {file_path}: " f"{opens} open, {closes} close"
 
 
 def _collect_admin_option_procs_and_callers(sql_files: list[Path]) -> tuple[dict, set]:
