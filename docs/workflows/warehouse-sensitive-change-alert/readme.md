@@ -18,7 +18,7 @@ attribution feature in the `query_history` plugin.
 
 ## How It Works
 
-1. **`detect_sensitive_changes`** — DQL query against `events` looking back 90 minutes for
+1. **`detect_sensitive_changes`** — DQL query against `logs` looking back 90 minutes for
    any record where `snowflake.object.ddl.operation` is non-null, `snowflake.object.type`
    is `Warehouse` or `Resource Monitor`, and `snowflake.object.ddl.properties` contains at
    least one sensitive property name. The 90-minute window is intentionally larger than the
@@ -32,7 +32,7 @@ attribution feature in the `query_history` plugin.
 
 ## Telemetry Source
 
-Reads the following attributes from `query_history` events (all five are emitted only when
+Reads the following attributes from `query_history` logs and spans (all five are emitted only when
 `plugins.query_history.track_ddl_changes=true`):
 
 | Attribute                          | Role                                                  |

@@ -34,7 +34,7 @@ variables:
     visible: true
     editable: true
     input: |-
-      fetch events
+      fetch logs
       | filter db.system == "snowflake"
       | filter isNotNull(deployment.environment)
       | fields deployment.environment
@@ -74,7 +74,7 @@ tiles:
     title: Warehouse / Resource Monitor change events (last 24 h)
     type: data
     query: |-
-      fetch events, from: now()-24h
+      fetch logs, from: now()-24h
       | filter db.system == "snowflake"
       | filter in(deployment.environment, array($Accounts))
       | filter in(db.operation.name, array("ALTER_WAREHOUSE","CREATE_WAREHOUSE","DROP_WAREHOUSE","ALTER_RESOURCE_MONITOR","CREATE_RESOURCE_MONITOR","DROP_RESOURCE_MONITOR"))
@@ -112,7 +112,7 @@ tiles:
     title: Structured warehouse changes (last 7 d)
     type: data
     query: |-
-      fetch events, from: now()-7d
+      fetch logs, from: now()-7d
       | filter db.system == "snowflake"
       | filter in(deployment.environment, array($Accounts))
       | filter isNotNull(snowflake.object.ddl.operation)
@@ -145,7 +145,7 @@ tiles:
     title: Sensitive-property drift (size / scaling / suspend / resource monitor)
     type: data
     query: |-
-      fetch events, from: now()-7d
+      fetch logs, from: now()-7d
       | filter db.system == "snowflake"
       | filter in(deployment.environment, array($Accounts))
       | filter isNotNull(snowflake.object.ddl.properties)
@@ -184,7 +184,7 @@ tiles:
     title: All DDL operations by object type (last 7 d)
     type: data
     query: |-
-      fetch events, from: now()-7d
+      fetch logs, from: now()-7d
       | filter db.system == "snowflake"
       | filter in(deployment.environment, array($Accounts))
       | filter isNotNull(snowflake.object.ddl.operation)

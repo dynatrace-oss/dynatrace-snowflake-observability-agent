@@ -263,7 +263,7 @@ class TestQueryHistDdl:
 
     This test guards the contract that, given a query_history row whose
     ATTRIBUTES JSON carries the five `snowflake.object.*` DDL attributes,
-    the plugin pipeline emits one log / span / event per row without altering
+    the plugin pipeline emits one log / span / biz_event per row without altering
     or dropping any of them.
     """
 

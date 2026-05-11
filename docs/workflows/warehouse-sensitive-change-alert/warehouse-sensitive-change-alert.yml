@@ -43,7 +43,7 @@ tasks:
     predecessors: []
     input:
       query: |
-        fetch events, from: now()-90m
+        fetch logs, from: now()-90m
         | filter db.system == "snowflake"
         | filter isNotNull(snowflake.object.ddl.operation)
         | filter in(snowflake.object.type, array("Warehouse","Resource Monitor"))
@@ -74,7 +74,7 @@ tasks:
       y: 2
     conditions:
       states:
-        detect_sensitive_changes: SUCCESS
+        detect_sensitive_changes: OK
     predecessors:
       - detect_sensitive_changes
     input:
