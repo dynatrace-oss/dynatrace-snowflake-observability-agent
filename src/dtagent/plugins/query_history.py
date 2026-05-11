@@ -48,7 +48,7 @@ class QueryHistoryPlugin(Plugin):
     """Query history plugin class."""
 
     PLUGIN_NAME = "query_history"
-    PLUGIN_CONTEXTS: tuple = ("query_history",)
+    PLUGIN_CONTEXTS: tuple = ("query_history", "query_cost_attribution")
 
     def process(self, run_id: str, run_proc: bool = True, contexts: Optional[List[str]] = None) -> Dict[str, Dict[str, int]]:
         """The actual function to process query history:
@@ -167,7 +167,8 @@ class QueryHistoryPlugin(Plugin):
             f_log_events=__f_log_events,
         )
 
-        # return (len(processed_query_ids), processing_errors_count, span_events_added, metrics_sent)
+        cost_result = self._process_query_cost_attribution(run_id, contexts)
+
         return self._report_results(
             {
                 "query_history": {
@@ -178,9 +179,42 @@ class QueryHistoryPlugin(Plugin):
                     "span_events": span_events_added,
                     "errors": processing_errors_count,
                 },
+                "query_cost_attribution": cost_result,
             },
             run_id,
         )
+
+    def _process_query_cost_attribution(self, run_id: str, contexts: Optional[List[str]]) -> Dict[str, int]:
+        """Process aggregated cost attribution summary from QUERY_ATTRIBUTION_HISTORY.
+
+        Returns:
+            Dict[str, int]: Telemetry counts for the query_cost_attribution context.
+        """
+        if contexts is not None and "query_cost_attribution" not in contexts:
+            return {"entries": 0, "log_lines": 0, "metrics": 0, "events": 0}
+
+        t_summary = "APP.V_QUERY_COST_ATTRIBUTION_SUMMARY"
+
+        try:
+            entries, logs_sent, metrics_sent, events_sent = self._log_entries(
+                f_entry_generator=lambda: self._get_table_rows(t_summary),
+                context_name="query_cost_attribution",
+                run_uuid=run_id,
+            )
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            LOG.warning(
+                "QUERY_ATTRIBUTION_HISTORY requires USAGE_VIEWER database role on SNOWFLAKE database. "
+                "Skipping query_cost_attribution context. Error: %s",
+                str(e),
+            )
+            return {"entries": 0, "log_lines": 0, "metrics": 0, "events": 0}
+
+        return {
+            "entries": entries,
+            "log_lines": logs_sent,
+            "metrics": metrics_sent,
+            "events": events_sent,
+        }
 
     def _obfuscate_query_text(self, text: str) -> str:
         """Apply query text obfuscation based on the configured obfuscation_mode.

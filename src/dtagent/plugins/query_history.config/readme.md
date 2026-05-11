@@ -52,3 +52,62 @@ To disable unredacted syntax errors:
 - **After deploy:** run `ALTER ACCOUNT SET ENABLE_UNREDACTED_QUERY_SYNTAX_ERROR = FALSE;` as `ACCOUNTADMIN`.
 
 DSOA only applies this parameter when the init script runs. Deploys that exclude `--scope=init` (e.g. `--scope=plugins,config`) will not re-apply it.
+
+## Query Cost Attribution (`query_cost_attribution` context)
+
+The `query_cost_attribution` context adds per-query compute credit attribution sourced from `SNOWFLAKE.ACCOUNT_USAGE.QUERY_ATTRIBUTION_HISTORY` (QAH). When enabled, it:
+
+1. Adds `snowflake.credits.attributed_compute` and `snowflake.credits.query_acceleration` metrics to every query span where QAH data is available.
+2. Emits aggregated cost summary metrics grouped by warehouse, user, and query tag via `APP.V_QUERY_COST_ATTRIBUTION_SUMMARY`.
+
+### 8-hour latency caveat
+
+QAH has an ~8-hour latency versus QUERY_HISTORY's ~45-minute latency. For queries processed within the first 8 hours, cost fields will be NULL and no credit metrics are emitted for those spans. There is no backfill pass — once a query ID is in `PROCESSED_QUERIES_CACHE`, it will not be re-processed to pick up cost data later.
+
+### Enabling the context
+
+This context is **disabled by default**. To enable, uncomment and add `query_cost_attribution` to the contexts configuration:
+
+```yaml
+plugins:
+  query_history:
+    query_cost_attribution:
+      summary_window_hours: 24  # lookback window for the aggregated cost summary
+```
+
+### Privilege requirements
+
+Access to `QUERY_ATTRIBUTION_HISTORY` requires the `USAGE_VIEWER` or `GOVERNANCE_VIEWER` database role on the `SNOWFLAKE` database. Grant it to the DTAGENT agent role:
+
+```sql
+GRANT DATABASE ROLE SNOWFLAKE.USAGE_VIEWER TO ROLE DTAGENT_VIEWER;
+```
+
+If the required privilege is missing, the plugin logs a warning and skips the `query_cost_attribution` context without affecting the main `query_history` context.
+
+### Example DQL queries
+
+Top 10 costliest queries by compute credits this week:
+
+```dql
+fetch spans
+| filter isNotNull(snowflake.credits.attributed_compute)
+| sort snowflake.credits.attributed_compute desc
+| limit 10
+```
+
+Compute cost trend by warehouse (last 7 days):
+
+```dql
+timeseries snowflake.credits.attributed_compute, by: { snowflake.warehouse.name }
+| timeframe: now()-7d to now()
+```
+
+Cost breakdown by query tag:
+
+```dql
+fetch logs
+| filter event.type == "query_cost_attribution"
+| summarize total_credits = sum(snowflake.credits.attributed_compute), by: { snowflake.query.tag }
+| sort total_credits desc
+```

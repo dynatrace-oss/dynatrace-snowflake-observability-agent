@@ -197,6 +197,9 @@ attributes:
     __example: STANDARD
     __description: The type of warehouse used.
 dimensions:
+  snowflake.query.tag:
+    __example: etl_pipeline
+    __description: The query tag used to group cost attribution in the query_cost_attribution summary context.
   db.collection.name:
     __example: users
     __description: The name of the table involved in the query.
@@ -222,6 +225,23 @@ dimensions:
     __example: COMPUTE_WH
     __description: The warehouse used to execute the query.
 metrics:
+  snowflake.cost_attribution.query_count:
+    __example: "42"
+    __description: Number of queries in this cost attribution group during the summary window.
+    displayName: Cost Attribution Query Count
+    unit: count
+  snowflake.credits.attributed_compute:
+    __example: "0.0042"
+    __description: >-
+      Compute credits attributed to this query based on weighted resource consumption.
+      Excludes warehouse idle time. NULL for queries within the ~8h QAH latency window.
+    displayName: Query Attributed Compute Credits
+    unit: credits
+  snowflake.credits.query_acceleration:
+    __example: "0.0001"
+    __description: Credits consumed by Query Acceleration Service for this query. NULL for queries within the ~8h QAH latency window.
+    displayName: Query Acceleration Credits
+    unit: credits
   snowflake.acceleration.data.scanned:
     __example: "2097152"
     __description: Number of bytes scanned by the query acceleration service.

@@ -154,6 +154,8 @@ select
         'snowflake.time.fault_handling',                            qh.fault_handling_time,
         'snowflake.time.retry',                                     qh.query_retry_time,
         'snowflake.credits.cloud_services',                         qh.credits_used_cloud_services,
+        'snowflake.credits.attributed_compute',                     qh.credits_attributed_compute,
+        'snowflake.credits.query_acceleration',                     qh.credits_used_query_acceleration,
         'snowflake.data.spilled.local',                             qh.bytes_spilled_to_local_storage,
         'snowflake.data.spilled.remote',                            qh.bytes_spilled_to_remote_storage,
         'snowflake.data.sent_over_the_network',                     qh.bytes_sent_over_the_network,

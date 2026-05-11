@@ -313,6 +313,126 @@ class TestCallRefreshRecentQueries:
         assert result["max_entries_applied"] is False
 
 
+class TestQueryCostAttributionPlugin:
+    """Tests for the query_cost_attribution context of QueryHistoryPlugin."""
+
+    import pytest
+
+    FIXTURES = {
+        "APP.V_QUERY_COST_ATTRIBUTION_SUMMARY": "test/test_data/query_history_cost_attribution.ndjson",
+    }
+
+    def _make_plugin_class(self, fixtures, raise_on_summary=None):
+        """Return a QueryHistoryPlugin subclass that reads from fixtures."""
+        from typing import Dict, Generator
+        from dtagent.plugins.query_history import QueryHistoryPlugin
+        import test._utils as utils
+
+        class TestQueryCostPlugin(QueryHistoryPlugin):
+            def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
+                if raise_on_summary and t_data == "APP.V_QUERY_COST_ATTRIBUTION_SUMMARY":
+                    raise raise_on_summary
+                return utils._safe_get_fixture_entries(fixtures, t_data)
+
+            def _call_refresh_recent_queries(self) -> Dict:
+                return {"status": "success", "total_processed": 0, "total_available": 0, "max_entries_applied": False}
+
+            def _process_span_rows(self, **kwargs):  # pylint: disable=arguments-differ
+                return ([], 0, 0, 0, 0, 0)
+
+        return TestQueryCostPlugin
+
+    @pytest.mark.xdist_group(name="test_telemetry")
+    def test_cost_attribution_with_data(self):
+        """Cost data present: verify metrics are emitted for all summary rows."""
+        import test._utils as utils
+        from test import TestDynatraceSnowAgent
+        from dtagent import plugins
+
+        plugin_class = self._make_plugin_class(self.FIXTURES)
+
+        def __local_get_plugin_class(source: str):
+            return plugin_class
+
+        plugins._get_plugin_class = __local_get_plugin_class
+
+        utils.execute_telemetry_test(
+            TestDynatraceSnowAgent,
+            test_name="test_query_cost_attribution",
+            disabled_telemetry=[],
+            base_count={
+                "query_history": {"entries": 0, "log_lines": 0, "metrics": 0, "spans": 0},
+                "query_cost_attribution": {"entries": 3, "log_lines": 3, "metrics": 9},
+            },
+        )
+
+    @pytest.mark.xdist_group(name="test_telemetry")
+    def test_cost_attribution_context_disabled(self):
+        """When query_cost_attribution is not in contexts, summary view is never queried and result is zeros."""
+        from unittest.mock import MagicMock
+        from dtagent.plugins.query_history import QueryHistoryPlugin
+
+        plugin = QueryHistoryPlugin.__new__(QueryHistoryPlugin)
+        plugin._plugin_name = "query_history"
+        plugin._session = MagicMock()
+        plugin._logs = MagicMock()
+        plugin._metrics = MagicMock()
+        plugin._events = MagicMock()
+        plugin._configuration = MagicMock()
+
+        result = plugin._process_query_cost_attribution(run_id="test-run-id", contexts=["query_history"])
+
+        assert result == {"entries": 0, "log_lines": 0, "metrics": 0, "events": 0}
+        plugin._session.sql.assert_not_called()
+
+    @pytest.mark.xdist_group(name="test_telemetry")
+    def test_cost_attribution_privilege_missing(self):
+        """When USAGE_VIEWER is missing, plugin logs warning and returns zeros without crashing."""
+        from unittest.mock import MagicMock, patch
+        from dtagent.plugins.query_history import QueryHistoryPlugin
+
+        privilege_error = RuntimeError("Insufficient privileges to access QUERY_ATTRIBUTION_HISTORY")
+
+        plugin_class = self._make_plugin_class(self.FIXTURES, raise_on_summary=privilege_error)
+
+        plugin = plugin_class.__new__(plugin_class)
+        plugin._plugin_name = "query_history"
+        plugin._session = MagicMock()
+        plugin._logs = MagicMock()
+        plugin._metrics = MagicMock()
+        plugin._events = MagicMock()
+        plugin._configuration = MagicMock()
+
+        with patch("dtagent.plugins.query_history.LOG") as mock_log:
+            result = plugin._process_query_cost_attribution(run_id="test-run-id", contexts=["query_history", "query_cost_attribution"])
+
+        assert result == {"entries": 0, "log_lines": 0, "metrics": 0, "events": 0}
+        mock_log.warning.assert_called_once()
+        assert "USAGE_VIEWER" in mock_log.warning.call_args[0][0]
+
+    @pytest.mark.xdist_group(name="test_telemetry")
+    def test_cost_attribution_none_contexts_includes_all(self):
+        """When contexts=None, query_cost_attribution is processed (all contexts enabled)."""
+        from unittest.mock import MagicMock, patch
+        from dtagent.plugins.query_history import QueryHistoryPlugin
+
+        plugin = QueryHistoryPlugin.__new__(QueryHistoryPlugin)
+        plugin._plugin_name = "query_history"
+        plugin._session = MagicMock()
+        plugin._logs = MagicMock()
+        plugin._metrics = MagicMock()
+        plugin._events = MagicMock()
+        plugin._configuration = MagicMock()
+
+        expected = (3, 3, 9, 0)
+        with patch.object(plugin, "_log_entries", return_value=expected) as mock_log_entries:
+            result = plugin._process_query_cost_attribution(run_id="test-run-id", contexts=None)
+
+        mock_log_entries.assert_called_once()
+        assert result["entries"] == 3
+        assert result["metrics"] == 9
+
+
 if __name__ == "__main__":
     test_class = TestQueryHist()
     test_class.test_query_hist()
