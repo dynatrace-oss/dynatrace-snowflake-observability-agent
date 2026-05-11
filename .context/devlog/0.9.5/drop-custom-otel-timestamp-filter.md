@@ -1,4 +1,4 @@
-# [Unreleased] — BDX-1395: Drop CustomOTelTimestampFilter (direct Logger.emit path)
+# [0.9.5] — BDX-1395: Drop CustomOTelTimestampFilter (direct Logger.emit path)
 
 ## Phase A — Research (green)
 

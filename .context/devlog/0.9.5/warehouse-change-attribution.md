@@ -1,4 +1,4 @@
-# [Unreleased] — Warehouse Change Attribution (Experimental) for query_history
+# [0.9.5] — Warehouse Change Attribution (Experimental) for query_history
 
 ## Motivation
 

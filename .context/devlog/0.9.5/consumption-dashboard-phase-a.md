@@ -1,4 +1,4 @@
-# [Unreleased] — Snowflake Consumption Dashboard Phase A
+# [0.9.5] — Snowflake Consumption Dashboard Phase A
 
 ## Dashboard Overhaul: Snowflake Consumption (Organization Level)
 

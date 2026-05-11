@@ -1,4 +1,4 @@
-# [Unreleased] — Ingest-Quality Warning Detection
+# [0.9.5] — Ingest-Quality Warning Detection
 
 ## Motivation
 

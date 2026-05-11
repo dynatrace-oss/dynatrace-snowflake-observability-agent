@@ -1,4 +1,4 @@
-# [Unreleased] — Query Text Obfuscation
+# [0.9.5] — Query Text Obfuscation
 
 ## Problem
 
@@ -23,14 +23,14 @@ This Snowflake account parameter is set to `TRUE` by `009_query_history_init.sql
 
 ## Files changed
 
-| File | Change |
-|------|--------|
-| `query_history.sql/052_f_obfuscate_query_text.sql` | New SQL UDF with CASE/REGEXP_REPLACE logic |
-| `query_history.sql/053_v_query_history_instrumented.sql` | Wrap `db.query.text` and `snowflake.error.message` with UDF |
-| `query_history.py` | Add `_obfuscate_query_text()`, apply to log body; import `re` |
-| `query_history-config.yml` | Add `obfuscation_mode: "off"` |
-| `conf/config-template.yml` | Add `obfuscation_mode: "off"` |
-| `bom.yml` | Add `F_OBFUSCATE_QUERY_TEXT(VARCHAR, VARCHAR)` |
-| `readme.md` | Document obfuscation modes and `ENABLE_UNREDACTED_QUERY_SYNTAX_ERROR` |
-| `config.md` | Document `PLUGINS.QUERY_HISTORY.OBFUSCATION_MODE` config key |
-| `test/plugins/test_query_history_obfuscation.py` | 19 unit tests across all modes and edge cases |
+| File                                                     | Change                                                                |
+|----------------------------------------------------------|-----------------------------------------------------------------------|
+| `query_history.sql/052_f_obfuscate_query_text.sql`       | New SQL UDF with CASE/REGEXP_REPLACE logic                            |
+| `query_history.sql/053_v_query_history_instrumented.sql` | Wrap `db.query.text` and `snowflake.error.message` with UDF           |
+| `query_history.py`                                       | Add `_obfuscate_query_text()`, apply to log body; import `re`         |
+| `query_history-config.yml`                               | Add `obfuscation_mode: "off"`                                         |
+| `conf/config-template.yml`                               | Add `obfuscation_mode: "off"`                                         |
+| `bom.yml`                                                | Add `F_OBFUSCATE_QUERY_TEXT(VARCHAR, VARCHAR)`                        |
+| `readme.md`                                              | Document obfuscation modes and `ENABLE_UNREDACTED_QUERY_SYNTAX_ERROR` |
+| `config.md`                                              | Document `PLUGINS.QUERY_HISTORY.OBFUSCATION_MODE` config key          |
+| `test/plugins/test_query_history_obfuscation.py`         | 19 unit tests across all modes and edge cases                         |

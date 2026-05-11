@@ -1,4 +1,4 @@
-# [Unreleased] — Snowflake Consumption Dashboard Phase C
+# [0.9.5] — Snowflake Consumption Dashboard Phase C
 
 ## Dashboard: §7 Department / BU View
 

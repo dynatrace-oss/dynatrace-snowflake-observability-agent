@@ -1,4 +1,4 @@
-# [Unreleased] — Snowflake Consumption Dashboard Phase B
+# [0.9.5] — Snowflake Consumption Dashboard Phase B
 
 ## Dashboard Phase B: §1 Contract Capacity KPIs + §3 USD Consumption + Workflow Fix
 

@@ -1,4 +1,4 @@
-# [Unreleased] — BDX-716: Per-Database Event Table Support
+# [0.9.5] — BDX-716: Per-Database Event Table Support
 
 ## Problem
 

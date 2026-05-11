@@ -1,4 +1,4 @@
-# [Unreleased] — Acquisition Problem Detection
+# [0.9.5] — Acquisition Problem Detection
 
 ## Motivation
 

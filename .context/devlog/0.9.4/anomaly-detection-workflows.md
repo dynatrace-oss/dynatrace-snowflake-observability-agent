@@ -2,13 +2,13 @@
 
 Five Davis AI anomaly detection workflows covering core Snowflake observability themes:
 
-| Workflow | Plugin | Analyzer | Interval | Alert Condition |
-|----------|--------|----------|----------|-----------------|
-| Credits Exhaustion Prediction | `resource_monitors` | `GenericForecastAnalyzer` | 4 h | upper-bound forecast > 100% |
-| Query Slowdown Detection | `query_history` | `AutoAdaptiveAnomalyDetectionAnalyzer` | 6 h | ABOVE (avg exec time) |
-| Data Volume Anomaly Detection | `data_volume` | `SeasonalBaselineAnomalyDetectionAnalyzer` | 12 h | ABOVE (row count spike, top 10 tables) |
-| Table Performance Degradation Detection | `query_history` | `AutoAdaptiveAnomalyDetectionAnalyzer` | 12 h | ABOVE (partition scan ratio) |
-| Dynamic Table Refresh Drift Detection | `dynamic_tables` | `AutoAdaptiveAnomalyDetectionAnalyzer` | 6 h | ABOVE (excess lag) |
+| Workflow                                | Plugin              | Analyzer                                   | Interval | Alert Condition                        |
+|-----------------------------------------|---------------------|--------------------------------------------|----------|----------------------------------------|
+| Credits Exhaustion Prediction           | `resource_monitors` | `GenericForecastAnalyzer`                  | 4 h      | upper-bound forecast > 100%            |
+| Query Slowdown Detection                | `query_history`     | `AutoAdaptiveAnomalyDetectionAnalyzer`     | 6 h      | ABOVE (avg exec time)                  |
+| Data Volume Anomaly Detection           | `data_volume`       | `SeasonalBaselineAnomalyDetectionAnalyzer` | 12 h     | ABOVE (row count spike, top 10 tables) |
+| Table Performance Degradation Detection | `query_history`     | `AutoAdaptiveAnomalyDetectionAnalyzer`     | 12 h     | ABOVE (partition scan ratio)           |
+| Dynamic Table Refresh Drift Detection   | `dynamic_tables`    | `AutoAdaptiveAnomalyDetectionAnalyzer`     | 6 h      | ABOVE (excess lag)                     |
 
 **All workflows use native `timeseries` DQL** — not `fetch logs/events | makeTimeseries`. This
 is required because Davis analyzers expect metric dimensions in `by:` clauses; attributes

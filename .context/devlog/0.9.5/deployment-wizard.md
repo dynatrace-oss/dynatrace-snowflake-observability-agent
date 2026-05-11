@@ -1,4 +1,4 @@
-# [Unreleased] — Interactive Deployment Wizard
+# [0.9.5] — Interactive Deployment Wizard
 
 **Scope**: Story to eliminate manual config creation friction for first-time DSOA users. Deliverables: shared bash library, 4-phase interactive wizard, `deploy.sh` flag enhancements, full BATS test suite.
 

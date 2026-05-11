@@ -1,4 +1,4 @@
-# [Unreleased] — Fix serverless_tasks empty namespace for account-level records
+# [0.9.5] — Fix serverless_tasks empty namespace for account-level records
 
 ## Root cause
 

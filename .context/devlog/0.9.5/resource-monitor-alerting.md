@@ -1,4 +1,4 @@
-# [Unreleased] — Resource Monitor Credit Threshold Alerting
+# [0.9.5] — Resource Monitor Credit Threshold Alerting
 
 ## Resource Monitor Credit Threshold Alerting — Full Implementation
 

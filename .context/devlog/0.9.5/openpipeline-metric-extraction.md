@@ -1,4 +1,4 @@
-# [Unreleased] — OpenPipeline Metric-Extraction Rules
+# [0.9.5] — OpenPipeline Metric-Extraction Rules
 
 ## Motivation
 

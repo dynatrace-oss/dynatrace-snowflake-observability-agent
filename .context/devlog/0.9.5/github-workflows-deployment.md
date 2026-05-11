@@ -1,4 +1,4 @@
-# [Unreleased] — GitHub Workflows as Deployment Option
+# [0.9.5] — GitHub Workflows as Deployment Option
 
 ## Docker + GitHub Actions Deployment — Full Implementation
 

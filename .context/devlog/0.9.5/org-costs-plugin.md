@@ -1,4 +1,4 @@
-# [Unreleased] — org_costs Plugin: Organization-Level Costs and Usage
+# [0.9.5] — org_costs Plugin: Organization-Level Costs and Usage
 
 ## org_costs Plugin — Full Implementation
 
