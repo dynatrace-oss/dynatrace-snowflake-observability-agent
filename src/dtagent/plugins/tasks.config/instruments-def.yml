@@ -238,3 +238,25 @@ metrics:
     __description: Number of credits billed for serverless task usage during the START_TIME and END_TIME window.
     displayName: Snowflake Credits Used
     unit: credits
+  snowflake.task.run.failed:
+    __context_names:
+      - openpipeline
+    __description: Number of Snowflake task runs that ended in FAILED state within the collection window.
+    __example: "3"
+    displayName: Snowflake Task Runs Failed
+    unit: "1"
+  snowflake.task.run.cancelled:
+    __context_names:
+      - openpipeline
+    __description: Number of Snowflake task runs that ended in CANCELLED state within the collection window.
+    __example: "1"
+    displayName: Snowflake Task Runs Cancelled
+    unit: "1"
+  snowflake.task.run.successful:
+    __context_names:
+      - openpipeline
+    __description: >-
+      Number of Snowflake task runs that ended in SUCCEEDED state within the collection window.
+    __example: "142"
+    displayName: Snowflake Task Runs Successful
+    unit: "1"

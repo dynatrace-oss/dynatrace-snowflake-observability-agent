@@ -120,6 +120,14 @@ select
         'snowflake.schema.name',                                    qh.schema_name,
         'snowflake.schema.id',                                      qh.schema_id,
         'snowflake.database.id',                                    qh.database_id,
+    -- EXPERIMENTAL DDL change attribution (controlled by
+    -- plugins.query_history.track_ddl_changes; NULL when off or when
+    -- ACCESS_HISTORY.OBJECT_MODIFIED_BY_DDL is not populated for the query)
+        'snowflake.object.type',                                    qh.ddl_target_domain,
+        'snowflake.object.id',                                      qh.ddl_target_id,
+        'snowflake.object.name',                                    qh.ddl_target_name,
+        'snowflake.object.ddl.operation',                           qh.ddl_operation,
+        'snowflake.object.ddl.properties',                          qh.ddl_properties,
     -- will be filled in in spans
         'dsoa.debug.span.events.added',                        NULL,
         'dsoa.debug.span.events.failed',                       NULL,

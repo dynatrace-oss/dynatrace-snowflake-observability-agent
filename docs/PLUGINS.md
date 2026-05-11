@@ -1311,6 +1311,40 @@ fetch logs
 | sort total_credits desc
 ```
 
+## DDL Change Attribution (Experimental)
+
+When the `track_ddl_changes` configuration flag is enabled, the plugin extracts the structured DDL payload Snowflake records in
+`ACCESS_HISTORY.OBJECT_MODIFIED_BY_DDL` and surfaces it as five additional attributes on the corresponding `query_history` event:
+
+- `snowflake.object.type` — `objectDomain` (e.g. `Warehouse`, `Resource Monitor`)
+- `snowflake.object.id` — Snowflake-internal object identifier
+- `snowflake.object.name` — fully qualified object name
+- `snowflake.object.ddl.operation` — `CREATE` / `ALTER` / `DROP` / `UNDROP` / `REPLACE`
+- `snowflake.object.ddl.properties` — JSON delta of changed properties
+
+Enable it with:
+
+```sql
+CALL CONFIG.SET_CONFIG('plugins.query_history.track_ddl_changes', true);
+```
+
+Use this when you need structured, queryable warehouse / resource-monitor change attribution in Dynatrace (who changed what, when, what was
+the delta) without parsing `db.query.text` server-side. Compatible Dynatrace artifacts ship in
+`package/dashboards/Warehouse Change Detection.json` and `docs/workflows/warehouse-sensitive-change-alert/`.
+
+### Caveats
+
+- **Experimental.** The flag is off by default; the feature may be refactored into a dedicated plugin in a future release.
+- **AH lag.** `ACCESS_HISTORY.OBJECT_MODIFIED_BY_DDL` is populated by Snowflake up to ~3 hours after the original DDL statement. When the
+  flag is on, the plugin holds back warehouse and resource-monitor DDL rows from the standard pipeline until that catchup occurs and emits a
+  single enriched event. This means warehouse/resource-monitor change alerts in Dynatrace can lag the actual change by up to ~3 hours. The
+  default `cache_ttl_hours: 4` is sufficient to cover this window — do not lower it below 3 when using `track_ddl_changes`.
+- **Coverage.** `ALTER WAREHOUSE … SUSPEND` and `ALTER WAREHOUSE … RESUME` are treated by Snowflake as session operations rather than DDL
+  and may not populate `OBJECT_MODIFIED_BY_DDL`; consumers that need those signals should fall back to the raw `db.operation.name` attribute
+  on `query_history` events.
+- **Naming overlap.** The five attribute names match those already emitted by the `data_schemas` plugin for table / schema / database DDL —
+  the namespaces deliberately align so downstream filters work uniformly across plugins.
+
 [Show semantics for this plugin](SEMANTICS.md#query_history_semantics_sec)
 
 ### Query History default configuration
@@ -1332,6 +1366,7 @@ plugins:
     max_lookback_minutes: 120
     cache_ttl_hours: 4
     obfuscation_mode: "off"
+    track_ddl_changes: false
     include_warehouses: []
     exclude_warehouses:
       - DTAGENT_WH
@@ -1824,6 +1859,25 @@ In short, the plugin delivers, as logs by default, information on:
 - credits used (as metric).
 
 Additionally, an event is sent when a new task graph version is created. By default, the plugin executes every 90 minutes.
+
+## OpenPipeline Metric-Extraction Processors
+
+Three metric-extraction processors in the SnowAgent logs pipeline (`docs/openpipeline/snowagent-logs-pipeline/`) derive counter metrics from
+`task_history` logs at ingest time:
+
+| Metric key                      | Filter                                    |
+| ------------------------------- | ----------------------------------------- |
+| `snowflake.task.run.failed`     | `snowflake.task.run.state == "FAILED"`    |
+| `snowflake.task.run.cancelled`  | `snowflake.task.run.state == "CANCELLED"` |
+| `snowflake.task.run.successful` | `snowflake.task.run.state == "SUCCEEDED"` |
+
+All three rules are dimensioned by `db.namespace`, `snowflake.schema.name`, and `snowflake.task.name`.
+
+Deploy with:
+
+```bash
+./scripts/deploy/deploy_dt_assets.sh --scope=openpipeline
+```
 
 Note: Snowflake reports DSOA's internal scheduler tasks (`_MEASUREMENT_TASK`, `_FINALIZER_TASK`) in `SERVERLESS_TASK_HISTORY` as
 account-level records with empty database and schema values. DSOA normalizes those empty strings to `NULL`, so emitted telemetry in the

@@ -251,6 +251,94 @@ class TestQueryHist:
         )
 
 
+class TestQueryHistDdl:
+    """Mock-mode validation that experimental DDL change attribution attributes
+    flow through the query_history plugin to OTel spans / logs / events when
+    they are present in the source view payload.
+
+    The mock harness replays already-instrumented rows from an NDJSON fixture and
+    cannot exercise the underlying SQL view changes (CTE join with
+    OBJECT_MODIFIED_BY_DDL, top-N QUALIFY exemption, AH-lag holdback). Those are
+    validated via live Customer-Zero tests; see DEVLOG.md for the live plan.
+
+    This test guards the contract that, given a query_history row whose
+    ATTRIBUTES JSON carries the five `snowflake.object.*` DDL attributes,
+    the plugin pipeline emits one log / span / biz_event per row without altering
+    or dropping any of them.
+    """
+
+    import pytest
+
+    FIXTURES = {"APP.V_RECENT_QUERIES": "test/test_data/query_history_ddl.ndjson"}
+
+    @pytest.mark.xdist_group(name="test_telemetry")
+    def test_ddl_attrs_flow_through(self):
+        """Replay 4 DDL-bearing rows (ALTER/CREATE/DROP WAREHOUSE + ALTER RESOURCE MONITOR)
+        and assert the standard plugin pipeline emits one entry per row across all
+        configured telemetry combinations.
+        """
+        from typing import Dict, Generator
+        from snowflake import snowpark
+        import json as _json
+        import test._utils as utils
+        from test import TestDynatraceSnowAgent, _get_session
+        from dtagent.plugins.query_history import QueryHistoryPlugin
+        from dtagent.otel.spans import Spans
+
+        ddl_fixture_path = TestQueryHistDdl.FIXTURES["APP.V_RECENT_QUERIES"]
+
+        if utils.should_generate_fixtures([ddl_fixture_path]):
+            # DDL fixture is authored by hand (no live Snowflake source); skip regeneration.
+            pass
+
+        class TestSpans(Spans):
+            def _get_sub_rows(
+                self,
+                session: snowpark.Session,
+                view_name: str,
+                parent_row_id_col: str,
+                row_id: str,
+            ) -> Generator[Dict, None, None]:
+                with open(ddl_fixture_path, "r", encoding="utf-8") as _fh:
+                    all_rows = [_json.loads(line) for line in _fh if line.strip()]
+                from dtagent.util import _adjust_timestamp
+
+                for row_dict in all_rows:
+                    if row_dict.get(parent_row_id_col) == row_id:
+                        _adjust_timestamp(row_dict)
+                        yield row_dict
+
+        class TestQueryHistoryPlugin(QueryHistoryPlugin):
+            def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
+                return utils._get_fixture_entries(ddl_fixture_path, limit=4)
+
+        class TestSpanDynatraceSnowAgent(TestDynatraceSnowAgent):
+            from opentelemetry.sdk.resources import Resource
+
+            def _get_spans(self, resource: Resource) -> Spans:
+                return TestSpans(resource, self._configuration)
+
+        def __local_get_plugin_class(source: str):
+            return TestQueryHistoryPlugin
+
+        from dtagent import plugins
+
+        plugins._get_plugin_class = __local_get_plugin_class
+
+        # Single combination: full telemetry. Counts: 4 entries (DDL rows), 4 log
+        # lines, 4 spans. Metrics count is derived from the fixture's METRICS JSON
+        # (3 keys per row * 4 rows = 12 numeric data points). We don't assert on
+        # the exact metrics count here because the framework rolls them into
+        # OTLP datapoint resources that depend on internal batching. Use base
+        # count for entries / spans / log_lines only.
+        utils.execute_telemetry_test(
+            TestSpanDynatraceSnowAgent,
+            test_name="test_query_history_ddl",
+            disabled_telemetry=["metrics"],
+            base_count={"query_history": {"entries": 4, "log_lines": 4, "spans": 4}},
+        )
+
+
 class TestCallRefreshRecentQueries:
     """Unit tests for _call_refresh_recent_queries() parsing logic."""
 

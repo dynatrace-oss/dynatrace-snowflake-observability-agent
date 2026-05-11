@@ -115,7 +115,25 @@ with cte_include_warehouses as (
                 array_agg(
                     split_part(v.VALUE:objectName::varchar, '.', 1)::variant)
             )
-        )                                                                       as query_dbs
+        )                                                                       as query_dbs,
+        -- EXPERIMENTAL: DDL change attribution from ACCESS_HISTORY.OBJECT_MODIFIED_BY_DDL.
+        -- Only populated when plugins.query_history.track_ddl_changes=true AND Snowflake
+        -- recorded a structured DDL payload for the query. NULL otherwise (no extra rows added).
+        CASE WHEN CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.track_ddl_changes', FALSE)::boolean
+             THEN any_value(ah.object_modified_by_ddl:"objectDomain"::varchar)  END
+                                                                                as ddl_target_domain,
+        CASE WHEN CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.track_ddl_changes', FALSE)::boolean
+             THEN any_value(ah.object_modified_by_ddl:"objectId"::varchar)      END
+                                                                                as ddl_target_id,
+        CASE WHEN CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.track_ddl_changes', FALSE)::boolean
+             THEN any_value(ah.object_modified_by_ddl:"objectName"::varchar)    END
+                                                                                as ddl_target_name,
+        CASE WHEN CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.track_ddl_changes', FALSE)::boolean
+             THEN any_value(ah.object_modified_by_ddl:"operationType"::varchar) END
+                                                                                as ddl_operation,
+        CASE WHEN CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.track_ddl_changes', FALSE)::boolean
+             THEN any_value(ah.object_modified_by_ddl:"properties")             END
+                                                                                as ddl_properties
     from
         SNOWFLAKE.ACCOUNT_USAGE.ACCESS_HISTORY      ah
     inner join
@@ -172,6 +190,15 @@ select
     ah.query_dbs,
     ah.query_tables,
     ah.query_views,
+
+    -- EXPERIMENTAL DDL change attribution columns (NULL unless track_ddl_changes=true
+    -- AND ACCESS_HISTORY.OBJECT_MODIFIED_BY_DDL is populated for this query_id).
+    ah.ddl_target_domain,
+    ah.ddl_target_id,
+    ah.ddl_target_name,
+    ah.ddl_operation,
+    ah.ddl_properties,
+
     qh.query_retry_cause,
 
     qh.warehouse_id,
@@ -300,8 +327,26 @@ and not (qh.QUERY_TEXT = '' and
          qh.ROLE_NAME is null and
          qh.DATABASE_NAME is null and
          qh.SCHEMA_NAME is null)
+-- EXPERIMENTAL: when track_ddl_changes is on, hold back warehouse / resource-monitor
+-- DDL rows until ACCESS_HISTORY catches up (~3h lag) so we emit a single enriched
+-- event instead of one without and one with DDL attribution. Rows are not added to
+-- STATUS.PROCESSED_QUERIES_CACHE because they are filtered out here; on the next run
+-- after AH catchup the LEFT JOIN populates ddl_operation and the row is emitted.
+and not (
+    CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.track_ddl_changes', FALSE)::boolean
+    and qh.query_type in (
+        'ALTER_WAREHOUSE',  'CREATE_WAREHOUSE',  'DROP_WAREHOUSE',
+        'ALTER_RESOURCE_MONITOR', 'CREATE_RESOURCE_MONITOR', 'DROP_RESOURCE_MONITOR'
+    )
+    and ah.ddl_operation is null
+)
 QUALIFY CASE
     WHEN CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.max_entries', 0)::int = 0 THEN TRUE
+    -- Signal-protection exemption: never drop DDL change events when the
+    -- experimental track_ddl_changes flag is on. DDL rows are sparse and
+    -- security-relevant, so they bypass top-N execution-time pruning.
+    WHEN CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.track_ddl_changes', FALSE)::boolean
+         AND ah.ddl_operation is not null THEN TRUE
     ELSE ROW_NUMBER() OVER (ORDER BY qh.execution_time DESC NULLS LAST)
              <= CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.max_entries', 0)::int
 END
