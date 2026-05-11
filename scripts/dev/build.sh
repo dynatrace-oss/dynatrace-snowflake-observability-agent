@@ -252,4 +252,17 @@ append_sql_dir "src/dtagent.sql/agents" "build/70_agents.sql"
 # Lint staged SQL (best-effort like before)
 sqlfluff lint build/*.sql build/09_upgrade/*.sql build/30_plugins/*.sql --ignore parsing --disable-progress-bar
 
+# Copy assets into build/ so Docker image does not need src/
+if [ -d "src/assets" ]; then
+    cp -r src/assets build/assets
+fi
+
+# Copy plugin readme files into build/ for wizard plugin descriptions
+mkdir -p build/plugin-readmes
+for readme in src/dtagent/plugins/*.config/readme.md; do
+    [ -f "$readme" ] || continue
+    pname=$(basename "$(dirname "$readme")" .config)
+    cp "$readme" "build/plugin-readmes/${pname}.md"
+done
+
 echo "Building Dynatrace Snowflake Observability Agent done"

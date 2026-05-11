@@ -61,6 +61,7 @@ from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider, Tracer, SpanLimits
 from opentelemetry.sdk.trace.id_generator import RandomIdGenerator
 from opentelemetry.sdk._logs import LoggerProvider
+from opentelemetry._logs import SeverityNumber
 from opentelemetry import version as otel_version
 
 ##endregion
@@ -145,6 +146,12 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
 
             c_source = _get_plugin_class(plugin_name)
             run_id = str(uuid.uuid4().hex)
+
+            if inspect.isclass(c_source) and contexts:
+                known_contexts = getattr(c_source, "PLUGIN_CONTEXTS", ())
+                unknown = set(contexts) - set(known_contexts)
+                if unknown:
+                    LOG.warning("Unknown contexts %s for plugin %s. Known: %s", unknown, plugin_name, known_contexts)
 
             if inspect.isclass(c_source):
                 #

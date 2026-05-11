@@ -9,9 +9,9 @@ Runs every 6 hours on a schedule.
 
 ## Tasks
 
-| Task            | Action                                  | Description                                                                                                                                    |
-|-----------------|--------------------------------------   |------------------------------------------------------------------------------------------------------------------------------------------------|
-| `check_balance` | `dynatrace.automations:run-javascript`  | Queries the last known values for all five `snowflake.org.balance.*.remaining` metrics and alerts when any drops below the configured threshold|
+| Task            | Action                                 | Description                                                                                                                                                                                                                                        |
+|-----------------|----------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `check_balance` | `dynatrace.automations:run-javascript` | Queries the last known values for all five `snowflake.org.billing.*` balance metrics (for example, `snowflake.org.billing.capacity_balance` and `snowflake.org.billing.rollover_balance`) and alerts when any drops below the configured threshold |
 
 ## Configuration
 

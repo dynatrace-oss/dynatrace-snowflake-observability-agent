@@ -89,6 +89,7 @@ plugins:
     max_entries: 0
     max_lookback_minutes: 120
     cache_ttl_hours: 4
+    obfuscation_mode: "off"
     include_warehouses: []
     exclude_warehouses:
       - DTAGENT_WH

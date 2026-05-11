@@ -38,6 +38,7 @@ class SnowpipesPlugin(Plugin):
     """Snowpipes monitoring plugin class."""
 
     PLUGIN_NAME = "snowpipes"
+    PLUGIN_CONTEXTS: tuple = ("snowpipes", "snowpipes_copy_history", "snowpipes_usage_history")
 
     def process(self, run_id: str, run_proc: bool = True, contexts: Optional[List[str]] = None) -> Dict[str, Dict[str, int]]:
         """Processes the measures on snowpipes using dual-schedule architecture.

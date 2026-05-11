@@ -80,6 +80,391 @@ valid scope acceptance, output mentions `openpipeline`, scope filtering (no dash
 deployed), `all` deploys all three types, name extraction from `# OPENPIPELINE:` comment,
 graceful handling of missing directory.
 
+## [Unreleased] — BDX-1395: Drop CustomOTelTimestampFilter (direct Logger.emit path)
+
+### Phase A — Research (green)
+
+Confirmed OTel SDK 1.39.1 `Logger.emit()` accepts `timestamp` / `observed_timestamp` as keyword
+args directly — no `LogRecord` construction needed. The OTLP encoder passes `timestamp` as-is to
+`time_unix_nano` in the protobuf (confirmed via `_internal/_log_encoder/__init__.py:55`). Both
+fields are in nanoseconds (OTLP standard). The prior `LoggingHandler` path already emitted ns:
+`record.created = ms/1000` → `LoggingHandler` → `int(record.created * 1e9)` = `ms * 1_000_000`.
+The "DT requires ms" note in the class docstring was stale — the OTLP endpoint accepts standard ns.
+Wire output is identical before and after. **Phase A: green.**
+
+### Phase B — Refactor `src/dtagent/otel/logs.py`
+
+- **Removed** `CustomOTelTimestampFilter(logging.Filter)` — 43-line class that mutated
+  `record.created`/`record.msecs` to inject timestamps into the stdlib→OTel bridge.
+- **Removed** `LoggingHandler` — stdlib bridge to OTel exporter no longer needed.
+- `self._otel_logger` is now an OTel `Logger` from `self._otel_logger_provider.get_logger(name)`.
+  Instrumentation scope name (`DTAGENT[_TAG]_OTLP`) is preserved — passed directly to `get_logger`.
+- `send_log()` calls `self._otel_logger.emit(timestamp=ms*1_000_000, observed_timestamp=ns, ...)`
+  directly. `timestamp` and `observed_timestamp` are popped from the attributes dict before emit
+  to prevent duplication.
+- Added module-level `_SEVERITY_MAP` dict: Python logging levels → `SeverityNumber`
+  (`LL_TRACE=5 → TRACE`, `DEBUG`, `INFO`, `WARNING → WARN`, `ERROR`, `CRITICAL → FATAL`).
+- Removed unused `get_timestamp`, `validate_timestamp` imports from `util.py` (still used by
+  `process_timestamps_for_telemetry` internally — only the direct top-level imports were dropped).
+
+### Tests
+
+- `TestLoggerNaming.test_logger_name_matches_get_logger_call` updated to assert
+  `logger_provider.get_logger()` call instead of `logging.getLogger()`.
+- `TestCustomOTelTimestampFilter` (300 lines) removed — tested the deleted filter class.
+- Added `TestSeverityMapping` (7 cases): Python level → `SeverityNumber` including `LL_TRACE`.
+- Added `TestEmitBoundary` (10 cases): timestamp ms→ns conversion, `None` body → `"-"`,
+  timestamp/observed_timestamp absent from attributes, severity_number/text, multitenancy scope.
+
+**Wire output**: unchanged. Same protobuf, same attributes, same instrumentation scope name.
+**Affects**: `src/dtagent/otel/logs.py`, `test/otel/test_logs.py`.
+## [Unreleased] — BDX-716: Per-Database Event Table Support
+
+### Problem
+
+Snowflake's `ALTER DATABASE X SET EVENT_TABLE = ...` feature routes a database's telemetry to a DB-scoped event table, bypassing the account-level `EVENT_TABLE`. DSOA read only the account-level parameter, leaving per-DB override tables invisible. Gap grows as customers adopt DB-scoped tables for tenant isolation and regulated workloads.
+
+### Approach
+
+Opt-in config flag `plugins.event_log.discover_db_event_tables: false` (default off). When enabled, `SETUP_EVENT_TABLE()` (called at install and on agent restart via `UPDATE_EVENT_LOG_CONF`) does the following:
+
+1. **DB enumeration**: queries `INFORMATION_SCHEMA.DATABASES` filtered by the existing `plugins.event_log.databases` allow-list (or all visible DBs if list is empty).
+2. **Override detection**: for each DB, executes `SHOW PARAMETERS LIKE 'EVENT_TABLE' IN DATABASE "<db>"` and checks for a row where `"level" = 'DATABASE'`. Uses `COALESCE(MAX(...), '')` pattern to avoid `NO_DATA_FOUND` errors. Per-DB errors caught and logged as warnings — other DBs continue.
+3. **UNION ALL view**: builds `STATUS.EVENT_LOG` dynamically via `EXECUTE IMMEDIATE`:
+   - Account-table branch: all rows with `RESOURCE_ATTRIBUTES['snow.database.name']` NOT IN override-DB list, tagged `_dsoa_source_table = <account_table_fqn>` via `OBJECT_INSERT`.
+   - One branch per override DB: rows from that DB's event table, tagged with its FQN.
+   - If no overrides found: simple `SELECT * FROM <account_table>` (no UNION ALL overhead).
+4. **Permission handling**: `GRANT SELECT` attempted on each override table; failures silently warned, not rethrown (matches existing pattern for `SNOWFLAKE.TELEMETRY.EVENTS`).
+5. **Rebuild on config change**: `UPDATE_EVENT_LOG_CONF()` now calls `SETUP_EVENT_TABLE()` in a try/catch, so toggling the flag or updating `databases` automatically rebuilds the view on next agent restart.
+
+### Source attribution
+
+`_dsoa_source_table` is injected into `RESOURCE_ATTRIBUTES` using `OBJECT_INSERT(RESOURCE_ATTRIBUTES, '_dsoa_source_table', '<fqn>'::VARIANT)`. `V_EVENT_LOG` already passes `_RESOURCE_ATTRIBUTES` through; `_process_log_line` unpacks it via `_unpack_json_dict`, so the attribute surfaces in Dynatrace logs without any Python changes.
+
+### No-op invariant
+
+When `discover_db_event_tables = false` (default), the ELSE branch behaves identically to the pre-BDX-716 code. Zero behavioral change for existing deployments on upgrade.
+
+### Files changed
+
+- `src/dtagent/plugins/event_log.config/event_log-config.yml` — new key
+- `src/dtagent/plugins/event_log.sql/init/009_event_log_init.sql` — `SETUP_EVENT_TABLE()` rewrite
+- `src/dtagent/plugins/event_log.sql/901_update_event_log_config.sql` — call `SETUP_EVENT_TABLE()`
+- `test/test_data/event_log_multi_source.ndjson` — new 4-row fixture
+- `test/plugins/test_event_log.py` — `test_event_log_multi_source`
+- `src/dtagent/plugins/event_log.config/config.md` + `readme.md` — docs
+
+---
+
+## [Unreleased] — Fix serverless_tasks empty namespace for account-level records
+
+### Root cause
+
+`SNOWFLAKE.ACCOUNT_USAGE.SERVERLESS_TASK_HISTORY` is an account-level billing view. DSOA's own
+scheduler tasks (`_MEASUREMENT_TASK`, `_FINALIZER_TASK`) run at account scope, so `database_name`
+and `schema_name` are empty strings (not NULL) in the source view. `V_SERVERLESS_TASKS` passed
+these directly into `OBJECT_CONSTRUCT`, causing `db.namespace = ""` and `snowflake.schema.name = ""`
+in Dynatrace. Dashboard `$Database`/`$Schema` variable filters silently excluded all internal records.
+Customer serverless tasks (warehouse-based, non-DSOA) do have populated `database_name`/`schema_name`
+and were unaffected. Discovered during dashboard work (TI-003).
+
+### Fix — `061_v_serverless_tasks.sql`
+
+Three changes in the `select` projection of `V_SERVERLESS_TASKS`:
+
+1. **NULLIF guards**: `NULLIF(sth.database_name, '')` and `NULLIF(sth.schema_name, '')` in
+   `OBJECT_CONSTRUCT`. `OBJECT_CONSTRUCT` omits keys with NULL values, so empty strings become absent
+   keys downstream. Python plugin, OtelManager, and Grail never see the empty string.
+
+2. **`snowflake.task.is_internal` flag**: `IFF(task_name LIKE '%\_MEASUREMENT\_TASK' ESCAPE '\' OR
+   task_name LIKE '%\_FINALIZER\_TASK' ESCAPE '\', true, false)`. The `ESCAPE` clause is required
+   because `_` is a single-character wildcard in Snowflake LIKE patterns without an escape. Without it,
+   `%_MEASUREMENT_TASK` would match any task ending in any character followed by `MEASUREMENT_TASK`,
+   giving false positives. Pattern covers all plugin-specific variants
+   (e.g. `TASKS_MEASUREMENT_TASK`, `DYNAMIC_TABLES_MEASUREMENT_TASK`).
+
+3. **`_MESSAGE` fallback**: `COALESCE(NULLIF(database_name, ''), task_name)` replaces bare
+   `database_name` concatenation. Internal tasks now log `"New Serverless Tasks entry for
+   TASKS_MEASUREMENT_TASK"` instead of `"New Serverless Tasks entry for "`.
+
+### instruments-def.yml
+
+Added `snowflake.task.is_internal` under `dimensions:`. Example value: `false`. Context: `serverless_tasks`.
+
+### Testing
+
+Mock fixture `tasks_serverless.ndjson` updated: row 1 = user task (db.namespace populated, is_internal=false),
+row 2 = internal task (db.namespace/snowflake.schema.name absent, is_internal=true). Stored test results
+regenerated. `make lint` (sqlfluff, pylint 10.00/10) passes. No Python plugin changes required.
+
+### Edge case noted
+
+A customer could name their own task ending in `_MEASUREMENT_TASK` and get a false-positive `is_internal = true`.
+Acceptable risk — extremely unlikely naming collision. Can be tightened to a DTAGENT-specific prefix in a
+future release if needed.
+
+## [Unreleased] — GitHub Workflows as Deployment Option
+
+### Docker + GitHub Actions Deployment — Full Implementation
+
+**Scope**: Adds Docker-based and GitHub Actions CI/CD deployment paths to DSOA. Removes legacy `service_user` option. Adds `--defaults` non-interactive config generation and `--ci-export=github` wizard flag.
+
+**Phase A — `service_user` removal and env-var auto-detection**:
+
+- Removed `service_user` from `deploy.sh --options` help text and all execution paths.
+- New behavior: when `SNOWFLAKE_ACCOUNT` and `SNOWFLAKE_USER` env vars are both set, `deploy.sh` automatically uses `snow sql --temporary-connection --account "$SNOWFLAKE_ACCOUNT" --user "$SNOWFLAKE_USER"`. This replaces the old `service_user` path cleanly without requiring an explicit option flag.
+- `setup.sh` detects the same env vars and skips `snow connection add` — prints a message that `--temporary-connection` will be used automatically.
+- The `#%DEV:` block for `service_user` DTAGENT_TOKEN check was removed. The `#%DEV:` block for the named-connection `snow sql` call is preserved (it wraps the fallback path).
+- BATS tests updated: removed `service_user` assertions, added tests for both env-var and named-connection paths.
+
+**Phase B — Dockerfile and Makefile**:
+
+- `Dockerfile` at repo root: `python:3.11-slim` base, installs `bash curl jq gawk yq snowflake-cli-labs`. Copies `build/`, `scripts/deploy/`, `conf/config-template.yml`, `src/assets/`. Entrypoint: `./scripts/deploy/deploy.sh`.
+- `.dockerignore`: excludes `.git/`, `.venv/`, `test/`, `docs/`, `.github/`, `conf/config-*.yml` (except template), `.logs/`, `__pycache__/`, `*.pyc`. Does NOT exclude `build/` — required for Docker context.
+- `Makefile` targets: `docker-build` (warns if `build/` missing), `docker-test` (smoke-tests `--help`).
+
+**Phase C — `--defaults` refactor**:
+
+- Previous `--defaults` implementation: generated a static skeleton config and exited. New behavior:
+  - If config doesn't exist: generates from `DSOA_DT_TENANT`, `DSOA_DEPLOYMENT_ENV` (falls back to `$ENV` uppercased), `DSOA_SF_ACCOUNT` env vars using `yq -n`. Fails with error if `DSOA_DT_TENANT` is missing.
+  - If config exists: uses it as-is, prints message.
+  - Always implies `skip_confirm` (appended to OPTIONS array).
+  - Does NOT exit — continues to deployment.
+- Build artifact check updated: `--defaults` without existing config skips the build check (config-only operation). `--defaults` with existing config requires build artifacts (proceeds to deploy).
+
+**Phase D — `--ci-export=github`**:
+
+- New `CI_EXPORT` global var in `interactive_wizard.sh`. New `--ci-export=<platform>` argument.
+- New `export_github_ci()` function: reads version from `build/config-default.yml`, substitutes `__ENV__`, `__VERSION__`, `__SF_USER__` in templates, writes `.github/workflows/dsoa-deploy.yml` and `GITHUB_SECRETS_SETUP.md`.
+- Templates in `src/assets/ci-templates/github/`: `dsoa-deploy.yml.template` (GitHub Actions workflow with `workflow_dispatch`, Docker-based deploy step), `GITHUB_SECRETS_SETUP.md.template` (key-pair auth setup guide).
+- Called after `config_persistence` in `main()`. Unknown platform → error + exit 1.
+
+**Phase E — Release workflow and package**:
+
+- `.github/workflows/release.yml`: new `build-and-push-docker` job (needs `build-and-release`, runs on tag push). Builds DSOA artifacts, logs into GHCR, pushes `ghcr.io/dynatrace-oss/dsoa-deploy:<tag>` and `:latest`.
+- `.github/workflows/dsoa-deploy-template.yml`: reference template for customers. `on: workflow_dispatch` only — never auto-triggered in DSOA repo. Shipped in release ZIP.
+- `scripts/dev/package.sh`: includes `docs/deployment/*.md` → `package/docs/deployment/` and `.github/workflows/dsoa-deploy-template.yml` → `package/dsoa-deploy-template.yml`.
+
+**Phase F — Documentation**:
+
+- New `docs/deployment/` directory: `deploy.md` (local), `docker.md` (Docker), `github-actions.md` (GitHub Actions).
+- `docs/INSTALL.md` slimmed to ~100 lines: Docker as primary quick-start, brief sections for deploy.sh and GitHub Actions, links to deployment guides.
+- `docs/INSTALL_ADVANCED.md`: added cross-links to deployment guides at top.
+
+**Test coverage**:
+
+- `test/bash/test_deployment_scripts.bats`: 3 new tests (temp-connection path, named-connection path, help text no `service_user`).
+- `test/bash/test_defaults_mode.bats`: 6 new tests covering all `--defaults` scenarios.
+- `test/bash/test_ci_export.bats`: 7 new tests covering `export_github_ci()` function and unknown platform error.
+
+## Fix task_history attempt stored as string
+
+### Root Cause
+
+`ATTEMPT_NUMBER` in Snowflake's `INFORMATION_SCHEMA.TASK_HISTORY` is `NUMBER(38,0)`. When passed directly into `OBJECT_CONSTRUCT` without a type cast, Snowflake serialises it as a JSON string in some contexts. Python `json.loads` then deserialises it as `str`, which `_cleanup_data` preserves, and OTEL sends as `stringValue` in the log attribute payload — rather than `intValue`.
+
+### Fix
+
+Added `::INTEGER` cast at `src/dtagent/plugins/tasks.sql/062_v_task_history.sql:57`:
+
+```sql
+'snowflake.task.run.attempt',   th.ATTEMPT_NUMBER::INTEGER,
+```
+
+`::INTEGER` forces an integer-valued numeric representation in the `OBJECT_CONSTRUCT` JSON output (in Snowflake, `INTEGER` is effectively a synonym for `NUMBER(38,0)`, not a 32-bit type). Python `json.loads` parses it as `int`; `_cleanup_data` preserves it; OTEL sends it as `intValue`. Downstream Dynatrace Grail stores it as `LONG`.
+
+### Downstream updates
+
+- `src/dtagent/plugins/tasks.config/instruments-def.yml`: `__example` changed from `"1"` (string) to `1` (integer) for semantic accuracy.
+- `docs/dashboards/tasks-pipelines/tasks-pipelines.yml`: "Task Retry Patterns" tile DQL updated from `toLong(snowflake.task.run.attempt) > 1` to `snowflake.task.run.attempt > 1`.
+
+### Test impact
+
+None. `test/test_data/tasks_history.ndjson` already stored attempt as bare integer `1`, and the existing mock-test baselines already expected an integer here, so no fixture or `test/test_results/*` updates were needed.
+
+### Deployment
+
+`--scope=plugins,config` — SQL view change requires plugin redeployment; no Python changes.
+
+---
+
+## [Unreleased] — Snowflake Consumption Dashboard Phase B
+
+### Dashboard Phase B: §1 Contract Capacity KPIs + §3 USD Consumption + Workflow Fix
+
+**Scope**: Phase B of the org-level consumption dashboard. Appends tiles `"14"`–`"24"` to the
+existing dashboard (UUID `6881ff48-0945-4e94-94af-2e4bb338724e`). Bumps version to 3.
+
+**§1 Contract Capacity KPIs** (tiles 14–20, inserted at top via layout y=0..12):
+
+- **Capacity Used (USD)** (tile 15, singleValue): `sum(snowflake.org.billing.amount)` over the
+  selected timeframe. Uses `arraySum` to correctly total daily billing rows.
+- **Remaining Capacity (USD)** (tile 16, singleValue): `last(capacity_balance) + last(rollover_balance)`.
+  Uses `avg()` on both metrics (one row per org per day) then takes the last array value.
+- **30-Day Run Rate (USD)** (tile 17, singleValue): `sum(billing.amount)` with explicit `from: now()-30d`
+  to pin the window regardless of the dashboard timeframe selector.
+- **YoY Burn Rate** (tile 18, table): Two `timeseries` pipes (current 30d and previous 30d) combined
+  via `append` + `summarize` to produce `current_usd`, `previous_usd`, annualized run rates, and
+  `pct_change`. DQL `join` across time windows is not supported, so `append` + aggregate is used.
+- **Estimated Days to Overage** (tile 19, singleValue): Derived from 30-day balance burn:
+  `balance_end / monthly_burn * 30`. Returns `-1` when burn rate is zero or negative (balance growing).
+- **Projected Overage Date** (tile 20, table): Computes `days_to_overage` then formats as a timestamp
+  string using `formatTimestamp(now() + toTimespan(...))`. Returns "No overage projected" when
+  days_to_overage ≤ 0.
+
+**§3 USD Consumption** (tiles 21–24, inserted after §2 at y=26..39):
+
+- Markdown header tile (21) includes the credit-rate fallback note inline.
+- Line chart (22): `billing.amount` by account over time.
+- Bar chart (23): `billing.amount` summarized by service type.
+- Table (24): total USD per account using `arraySum` (not `arrayAvg`) because billing rows are
+  daily totals that should be summed, not averaged.
+
+**Workflow fix** (`docs/workflows/org-contract-balance-warning/org-contract-balance-warning.yml`):
+Replaced five non-existent `snowflake.org.balance.*.remaining` metric IDs with the real keys:
+`snowflake.org.billing.free_usage_balance`, `capacity_balance`, `on_demand_consumption`,
+`rollover_balance`, `overage`. Updated `metricsClient.query` selector from `:last` to `:avg:last`
+to match the `avg()` aggregation used in the dashboard (one row per org per day).
+
+**Layout strategy**: New §1 tiles use keys `"14"`–`"20"` at y=0..12. Existing §2 tiles (`"0"`–`"3"`)
+shift to y=13..25. New §3 tiles use keys `"21"`–`"24"` at y=26..39. Existing §4–§6 tiles shift
+accordingly. No tile keys were renumbered — only layout `y` coordinates changed.
+
+---
+
+## [Unreleased] — Snowflake Consumption Dashboard Phase C
+
+### Dashboard: §7 Department / BU View
+
+**Scope**: Phase C of the org-level consumption dashboard. Appends §7 Department / BU View
+(tiles "25"–"29") to `docs/dashboards/org-costs-observability/org-costs-observability.yml`.
+Coordinates with Phase B (tiles "14"–"24") which landed concurrently.
+
+**Changes**:
+
+- **§7 Department / BU View** (5 tiles):
+  - Markdown header with inline usage note for `$bu_mapping` variable.
+  - Bar chart: credits by account (`snowflake.org.credits.used`, summarized, `bu = "Unassigned"`).
+  - Bar chart: USD billing by account (`snowflake.org.billing.amount`, `arraySum`, `bu = "Unassigned"`).
+  - Bar chart: storage by account (`snowflake.org.storage.bytes`, avg, bytes `unitsOverrides`, `bu = "Unassigned"`).
+  - Table: account-to-BU mapping view (account + bu columns, sorted by account).
+- **Layout**: tiles placed at y=67–81 (after §6 Billing at y=60–67). Three bar charts side-by-side
+  (8 cols each), table full-width below.
+- **`readme.md`** updated: §7 tile inventory table added; BU Mapping Configuration section added
+  with JSON format, example, and v1 limitation note.
+
+**v1 BU mapping design decision**:
+
+DQL does not support dynamic JSON key-indexing against a variable string at query time. The
+`$bu_mapping` variable holds a JSON object `{"ACCOUNT": "BU"}`, but there is no native DQL
+operator to look up a field value as a key in that JSON at runtime. Options considered:
+
+1. **Hardcoded `if/matchesRegex` chain** — requires dashboard edits per customer; not scalable.
+2. **Grail lookup tables** — not yet available in DSOA's target tenant tier; planned for a
+   future release.
+3. **`fieldsAdd bu = "Unassigned"` (chosen for v1)** — all accounts show as "Unassigned" by
+   default. Customers who need BU grouping can use the `$bu_mapping` variable as documentation
+   of intent and wait for the lookup-table enhancement, or apply OpenPipeline enrichment rules
+   externally to add a `bu` attribute to the metric data.
+
+The `$bu_mapping` variable is retained in the dashboard as a placeholder and configuration
+anchor. Pattern-based mapping (SQL LIKE / regex) is tracked as a future enhancement.
+
+---
+
+## [Unreleased] — Snowflake Consumption Dashboard Phase A
+
+### Dashboard Overhaul: Snowflake Consumption (Organization Level)
+
+**Scope**: Phase A of the org-level consumption dashboard. Extends `docs/dashboards/org-costs-observability/`
+in place (preserves deployed UUID `6881ff48-0945-4e94-94af-2e4bb338724e`). Bumps version to 2.
+
+**Changes**:
+
+- **Title** updated from `Org-Level Costs Observability` to `Snowflake Consumption (Organization Level)`.
+- **Variables** replaced: `$Accounts` (query, multi-select, uses `fetch logs` with `dsoa.run.plugin == "org_costs"`
+  to avoid empty-variable risk); `$credit_rate` (hidden text, default `"3.00"`, reserved for Phase B);
+  `$bu_mapping` (hidden text, default `"{}"`, reserved for Phase C BU grouping).
+- **§2 Credit Consumption** (3 tiles): line chart of credits over time by account; bar chart of credits
+  by service type; table of compute + cloud_services + total credits by account.
+- **§4 Storage** (3 tiles): line chart of storage bytes over time by account; bar chart by storage type;
+  table of total bytes by account. All byte fields have `unitsOverrides` with `unitCategory: data`.
+- **§5 Data Transfer** (2 tiles): line chart of transfer bytes over time; table by source/target cloud
+  and region. Byte fields have `unitsOverrides`.
+- **§6 Billing & Contract Balance** (2 tiles): billing amount line chart; Remaining Contract Balance
+  tile **fixed** — old query used non-existent `snowflake.org.balance.*.remaining` metric keys.
+  New query uses real keys: `snowflake.org.billing.capacity_balance`, `rollover_balance`,
+  `free_usage_balance`, `on_demand_consumption`, `overage`. Uses `avg()` (not `sum()`) because
+  `REMAINING_BALANCE_DAILY` emits one row per org per day.
+- **`instruments-def.yml`** updated: added `snowflake.storage.type` as a declared dimension for
+  `org_costs_storage` context (was emitted by the SQL view but not declared in the semantic dictionary).
+- **`readme.md`** updated: new title, 3-variable table, full Phase-A tile inventory, Phase B/C roadmap notes.
+- **`docs/dashboards/README.md`** updated: entry renamed and description expanded.
+
+**Metric-name bug root cause**: The original dashboard was authored before the `org_billing_remaining_balance`
+context was finalized. The metric keys `snowflake.org.balance.*.remaining` were placeholder names that
+never matched the emitted keys. The correct keys are in `instruments-def.yml` under `org_billing_remaining_balance`.
+
+**Phase plan**:
+
+- Phase A (this change): §2 Credits, §4 Storage, §5 Data Transfer, §6 Billing/Balance fix.
+- Phase B (future): §1 Contract Capacity KPIs (single-value tiles for capacity used, remaining, burn rate,
+  days to overage, overage date) and §3 USD Consumption. Requires billing context data.
+- Phase C (future): §6 Department/BU View using `$bu_mapping` JSON variable for account-to-BU grouping.
+
+---
+
+## [Unreleased] — org_costs Plugin: Organization-Level Costs and Usage
+
+### org_costs Plugin — Full Implementation
+
+**Scope**: New `org_costs` plugin collecting organization-level cost and usage metrics from
+`SNOWFLAKE.ORGANIZATION_USAGE`. Five contexts, disabled by default, 6-hour cron schedule.
+
+**Architecture**:
+
+- **`src/dtagent/plugins/org_costs.py`**: Multi-context plugin following the `warehouse_usage`
+  pattern. Registers five contexts via `process()` dispatching to private per-context methods.
+- **Five views** (`051`–`055`):
+  - `V_ORG_METERING_DAILY` — credit consumption by service type and service name
+  - `V_ORG_STORAGE_DAILY` — storage bytes by storage type and account locator
+  - `V_ORG_DATA_TRANSFER_DAILY` — data transfer bytes by cloud, region, and transfer type
+  - `V_ORG_BILLING_USAGE_IN_CURRENCY` — billed amounts in contract currency by account and service
+  - `V_ORG_BILLING_REMAINING_BALANCE` — five balance categories (free usage, capacity, on-demand,
+    rollover, total)
+- **Metrics** (10 total): `snowflake.org.credits.used`, `snowflake.org.credits.cloud_services`,
+  `snowflake.org.storage.bytes`, `snowflake.org.transfer.bytes`, `snowflake.org.billing.amount`,
+  and five `snowflake.org.balance.*.remaining` metrics.
+- **Admin proc** (`admin/050_p_check_organization_usage_access.sql`): Diagnostic stored procedure
+  `DTAGENT_DB.APP.P_CHECK_ORGANIZATION_USAGE_ACCESS()` that can be called manually after
+  deployment to verify ORGANIZATION_USAGE access. Returns a success or failure message.
+- **Deploy advisory** (`scripts/deploy/lib.sh::check_org_costs_access()`): Non-blocking warning
+  emitted during `prepare_deploy_script.sh` when `org_costs` is in scope and not excluded. Reminds
+  operators to verify ORGADMIN access before enabling the plugin.
+
+**Test coverage**: Five tests in `test/plugins/test_org_costs.py` using mock NDJSON fixtures.
+Each test exercises multiple `disabled_telemetry` combos and validates metric counts against
+golden files in `test/test_results/`.
+
+**Dashboards**:
+
+- New **`Org-Level Costs Observability`** dashboard (`docs/dashboards/org-costs-observability/`):
+  9 tiles covering all five metric groups. UUID `6881ff48-0945-4e94-94af-2e4bb338724e`.
+- Extended **`Costs Monitoring`** dashboard with org-level credits overview section (tiles 22/23,
+  version bumped to 21).
+
+**Workflow**: New **`Org Contract Balance Warning`** (`docs/workflows/org-contract-balance-warning/`):
+6-hour schedule, queries five `snowflake.org.billing.*` metrics (`capacity_balance`,
+`rollover_balance`, `free_usage_balance`, `on_demand_consumption`, `overage`) and logs alert if any
+drops below configurable threshold.
+
+**Doc updates**: `docs/USECASES.md` extended with "Costs — Tier 0 — Organization-Level FinOps"
+section (3 new use cases). `docs/dashboards/README.md` and `docs/workflows/README.md` updated.
+
+---
+
+## [Unreleased] — Interactive Deployment Wizard
+
 ## [Unreleased]: Acquisition Problem Detection
 
 ### Motivation
@@ -134,7 +519,7 @@ After: Exception caught at the view-access level → plugin produces 0 entries +
 
 No measurable overhead on the happy path — exception handling is zero-cost when no exception occurs.
 
-## [Unreleased] — BDX-695: Ingest-Quality Warning Detection
+## [Unreleased] — Ingest-Quality Warning Detection
 
 ### Motivation
 
@@ -231,7 +616,38 @@ Response body parsing runs only on successful responses (2xx). `json.loads()` on
 
 **Deployment**: Requires upgrade scope before main deploy: `./scripts/deploy/deploy.sh test-qa --scope=upgrade --from-version=0.9.4 --options=skip_confirm` then `--scope=plugins,config`
 
-### Interactive Deployment Wizard — Full Implementation
+### Implementation
+
+**Problem**: Raw query text from `SNOWFLAKE.ACCOUNT_USAGE.QUERY_HISTORY` flowed through DSOA unchanged into Dynatrace spans/logs. Query text can contain hardcoded credentials (`COPY INTO ... CREDENTIALS=(...)`), API tokens in UDF bodies, or PII in `WHERE` clauses. Syntax error messages (when `ENABLE_UNREDACTED_QUERY_SYNTAX_ERROR=TRUE`) compound this — the offending query text is embedded in `snowflake.error.message`.
+
+**Design**: Three-mode obfuscation applied at two layers:
+
+1. **SQL layer (primary)** — `APP.F_OBFUSCATE_QUERY_TEXT(TEXT, MODE)` UDF in `052_f_obfuscate_query_text.sql`. Called from `053_v_query_history_instrumented.sql` for both `db.query.text` (line 77) and `snowflake.error.message` (line 97). Config value read inline via `CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.obfuscation_mode', 'off')`. Obfuscation is applied before data is materialised into `TMP_RECENT_QUERIES`, so no unobfuscated text enters the processing pipeline.
+2. **Python layer (fallback)** — `QueryHistoryPlugin._obfuscate_query_text()` in `query_history.py`. Applied to the log message body (`db.query.text` value passed to `send_log`). Guards against any future path where query text is read from Python before the SQL layer can act on it.
+
+**Modes**:
+
+- `off` (default): no transformation — backward compatible.
+- `literals`: `REGEXP_REPLACE` replaces `'[^']*'` (string literals) and `\b[0-9]+\.?[0-9]*\b` (numeric literals) with `?`. SQL keywords, identifiers, and structure are preserved. Best-effort — does not handle dollar-quoted strings or escaped quotes; documented as intentional.
+- `full`: replaces entire text with `[OBFUSCATED]`. Covers both `db.query.text` and `snowflake.error.message` for maximum privacy. Error diagnostics (line/position info) are lost; trade-off is explicit in documentation.
+
+**`ENABLE_UNREDACTED_QUERY_SYNTAX_ERROR` interaction**: This Snowflake account parameter is set to `TRUE` by `009_query_history_init.sql` (init scope only). It causes syntax-error query text to appear in `snowflake.error.message`. Because `obfuscation_mode` is also applied to `snowflake.error.message`, customers who set `obfuscation_mode: literals` or `obfuscation_mode: full` are protected against leaking query text via this path too. Customers who want to disable the parameter itself are documented in `readme.md` — DSOA does not reset it on non-init deploys.
+
+**Files changed**:
+
+| File                                                     | Change                                                                |
+|----------------------------------------------------------|-----------------------------------------------------------------------|
+| `query_history.sql/052_f_obfuscate_query_text.sql`       | New SQL UDF with CASE/REGEXP_REPLACE logic                            |
+| `query_history.sql/053_v_query_history_instrumented.sql` | Wrap `db.query.text` and `snowflake.error.message` with UDF           |
+| `query_history.py`                                       | Add `_obfuscate_query_text()`, apply to log body; import `re`         |
+| `query_history-config.yml`                               | Add `obfuscation_mode: "off"`                                         |
+| `conf/config-template.yml`                               | Add `obfuscation_mode: "off"`                                         |
+| `bom.yml`                                                | Add `F_OBFUSCATE_QUERY_TEXT(VARCHAR, VARCHAR)`                        |
+| `readme.md`                                              | Document obfuscation modes and `ENABLE_UNREDACTED_QUERY_SYNTAX_ERROR` |
+| `config.md`                                              | Document `PLUGINS.QUERY_HISTORY.OBFUSCATION_MODE` config key          |
+| `test/plugins/test_query_history_obfuscation.py`         | 19 unit tests across all modes and edge cases                         |
+
+## Interactive Deployment Wizard
 
 **Scope**: Story to eliminate manual config creation friction for first-time DSOA users. Deliverables: shared bash library, 4-phase interactive wizard, `deploy.sh` flag enhancements, full BATS test suite.
 

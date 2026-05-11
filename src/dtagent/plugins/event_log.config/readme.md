@@ -1,4 +1,4 @@
-This plugin delivers to Dynatrace data reported by Snowflake Trail in the `EVENT TABLE`.
+This plugin delivers to Dynatrace data reported by Snowflake Trail in the `EVENT TABLE`. When `discover_db_event_tables` is enabled, the plugin also discovers per-database event table overrides and unions them into a single logical source (`STATUS.EVENT_LOG`), tagging each record with its origin table FQN in `_RESOURCE_ATTRIBUTES._dsoa_source_table`.
 
 By default, it runs every 30 minutes and processes only new entries since the last run (bounded by a configurable lookback window of 24 hours), omitting entries that:
 

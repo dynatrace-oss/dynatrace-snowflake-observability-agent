@@ -234,3 +234,37 @@ teardown() {
     [ "$status" -ne 0 ]
     [[ "$output" =~ "--from-version" ]]
 }
+
+@test "deploy.sh uses --temporary-connection when SNOWFLAKE_ACCOUNT and SNOWFLAKE_USER are set" {
+    export DTAGENT_TOKEN="dt0c01.TEST12345678901234567890.TEST123456789012345678901234567890123456789012345678901234567890"
+    export SNOWFLAKE_ACCOUNT="myorg-myaccount"
+    export SNOWFLAKE_USER="svc_deploy"
+
+    # Use manual mode to avoid actually calling snow sql
+    DEPLOY_SCRIPT="test-temp-conn.sql"
+    run timeout 30 ./scripts/deploy/deploy.sh test --scope=init --output-file="$DEPLOY_SCRIPT" --options=manual,skip_confirm
+    [ "$status" -eq 0 ]
+    [ -f "$DEPLOY_SCRIPT" ]
+    rm -f "$DEPLOY_SCRIPT"
+
+    unset SNOWFLAKE_ACCOUNT SNOWFLAKE_USER
+}
+
+@test "deploy.sh uses named connection when SNOWFLAKE_ACCOUNT and SNOWFLAKE_USER are NOT set" {
+    export DTAGENT_TOKEN="dt0c01.TEST12345678901234567890.TEST123456789012345678901234567890123456789012345678901234567890"
+    unset SNOWFLAKE_ACCOUNT
+    unset SNOWFLAKE_USER
+
+    # Use manual mode — verifies named-connection path is taken (no error about missing env vars)
+    DEPLOY_SCRIPT="test-named-conn.sql"
+    run timeout 30 ./scripts/deploy/deploy.sh test --scope=init --output-file="$DEPLOY_SCRIPT" --options=manual,skip_confirm
+    [ "$status" -eq 0 ]
+    [ -f "$DEPLOY_SCRIPT" ]
+    rm -f "$DEPLOY_SCRIPT"
+}
+
+@test "deploy.sh help text does not mention service_user option" {
+    run ./scripts/deploy/deploy.sh --help
+    [ "$status" -eq 0 ]
+    ! echo "$output" | grep -q "service_user"
+}

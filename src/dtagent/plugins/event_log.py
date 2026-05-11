@@ -39,6 +39,7 @@ class EventLogPlugin(Plugin):
     """Event log plugin class."""
 
     PLUGIN_NAME = "event_log"
+    PLUGIN_CONTEXTS: tuple = ("event_log", "event_log_metrics", "event_log_spans")
 
     def _get_events(self) -> Generator[Dict, None, None]:
         """Fetches data from APP.EVENT_LOG, with limit set in configuration."""

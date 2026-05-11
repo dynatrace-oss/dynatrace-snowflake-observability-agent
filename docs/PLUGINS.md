@@ -995,7 +995,7 @@ GRANT ROLE ORGADMIN TO ROLE DTAGENT_OWNER;
 ## Contexts
 
 | Context                         | Source view                                      | Telemetry     |
-| ------------------------------- | ------------------------------------------------ | ------------- |
+|---------------------------------|--------------------------------------------------|---------------|
 | `org_costs_metering`            | `ORGANIZATION_USAGE.METERING_DAILY_HISTORY`      | metrics, logs |
 | `org_costs_storage`             | `ORGANIZATION_USAGE.STORAGE_DAILY_HISTORY`       | metrics, logs |
 | `org_costs_data_transfer`       | `ORGANIZATION_USAGE.DATA_TRANSFER_DAILY_HISTORY` | metrics, logs |
@@ -1012,7 +1012,7 @@ day.
 ### org_costs_metering
 
 | Metric                                            | Unit    | Description                                 |
-| ------------------------------------------------- | ------- | ------------------------------------------- |
+|---------------------------------------------------|---------|---------------------------------------------|
 | `snowflake.org.credits.used`                      | credits | Total credits used by account per day       |
 | `snowflake.org.credits.compute`                   | credits | Compute credits used per day                |
 | `snowflake.org.credits.cloud_services`            | credits | Cloud services credits used per day         |
@@ -1021,25 +1021,25 @@ day.
 ### org_costs_storage
 
 | Metric                        | Unit | Description                                 |
-| ----------------------------- | ---- | ------------------------------------------- |
+|-------------------------------|------|---------------------------------------------|
 | `snowflake.org.storage.bytes` | Byte | Storage bytes used per storage type per day |
 
 ### org_costs_data_transfer
 
 | Metric                         | Unit | Description                                      |
-| ------------------------------ | ---- | ------------------------------------------------ |
+|--------------------------------|------|--------------------------------------------------|
 | `snowflake.org.transfer.bytes` | Byte | Bytes transferred between clouds/regions per day |
 
 ### org_billing_usage_in_currency
 
 | Metric                         | Unit     | Description                                         |
-| ------------------------------ | -------- | --------------------------------------------------- |
+|--------------------------------|----------|-----------------------------------------------------|
 | `snowflake.org.billing.amount` | currency | Billing amount in currency per service type per day |
 
 ### org_billing_remaining_balance
 
 | Metric                                        | Unit     | Description                                    |
-| --------------------------------------------- | -------- | ---------------------------------------------- |
+|-----------------------------------------------|----------|------------------------------------------------|
 | `snowflake.org.billing.capacity_balance`      | currency | Remaining contracted capacity balance          |
 | `snowflake.org.billing.rollover_balance`      | currency | Remaining rollover balance                     |
 | `snowflake.org.billing.free_usage_balance`    | currency | Remaining free usage balance                   |
@@ -1089,7 +1089,7 @@ plugins:
 ```
 
 | Key                                                                    | Type   | Default                             | Description                                                                                                                                                                                                        |
-| ---------------------------------------------------------------------- | ------ | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+|------------------------------------------------------------------------|--------|-------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `plugins.org_costs.lookback_hours`                                     | int    | `48`                                | How far back (in hours) the plugin looks for organization usage data on each run. A 48-hour window accommodates Snowflake's ~2-hour view latency and ensures no daily records are missed across collection cycles. |
 | `plugins.org_costs.schedule`                                           | string | `USING CRON 0 */6 * * * UTC`        | Cron schedule for the org costs collection task (every 6 hours).                                                                                                                                                   |
 | `plugins.org_costs.is_disabled`                                        | bool   | `true`                              | Set to `false` to enable this plugin. Requires `SNOWFLAKE.ORGANIZATION_USAGE_VIEWER` database role granted to `DTAGENT_VIEWER` (see readme).                                                                       |
@@ -1107,7 +1107,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 #### Objects delivered by the `Org Costs` plugin
 
 | Name                                               | Type      |
-| -------------------------------------------------- | --------- |
+|----------------------------------------------------|-----------|
 | DTAGENT_DB.APP.V_ORG_METERING_DAILY                | view      |
 | DTAGENT_DB.APP.V_ORG_STORAGE_DAILY                 | view      |
 | DTAGENT_DB.APP.V_ORG_DATA_TRANSFER_DAILY           | view      |
@@ -1120,7 +1120,7 @@ The following tables list the Snowflake objects that this plugin delivers data f
 #### Objects referenced by the `Org Costs` plugin
 
 | Name                                                     | Type | Privileges |
-| -------------------------------------------------------- | ---- | ---------- |
+|----------------------------------------------------------|------|------------|
 | SNOWFLAKE.ORGANIZATION_USAGE.METERING_DAILY_HISTORY      | view | SELECT     |
 | SNOWFLAKE.ORGANIZATION_USAGE.USAGE_IN_CURRENCY_DAILY     | view | SELECT     |
 | SNOWFLAKE.ORGANIZATION_USAGE.REMAINING_BALANCE_DAILY     | view | SELECT     |
@@ -1175,6 +1175,42 @@ All defaults preserve backward compatibility: `max_entries=0` (unlimited), `max_
 this plugin will automatically extract trace context from the `STATUS.EVENT_LOG` table and include it in the span telemetry, allowing for
 distributed tracing correlation between your application and Snowflake queries.
 
+## Query Text Obfuscation
+
+The plugin can obfuscate query text before it is sent to Dynatrace, reducing the risk of accidentally exposing credentials, tokens, or PII.
+Obfuscation is controlled by the `obfuscation_mode` configuration key and applied to both the `db.query.text` attribute on spans and the
+`snowflake.error.message` attribute on failed queries.
+
+Three modes are available:
+
+- **`off`** (default) — query text is sent to Dynatrace unchanged. Preserves full diagnostic visibility.
+- **`literals`** — single-quoted string literals and standalone numeric literals are replaced with `?` placeholders. SQL structure,
+  keywords, table names, and column names are preserved. Best-effort: may not handle all edge cases (e.g. dollar-quoted strings, escaped
+  quotes). Not a security boundary — use `full` for strict privacy requirements.
+- **`full`** — the entire text is replaced with `[OBFUSCATED]`. No query content reaches Dynatrace. Error type and line/position info in
+  `snowflake.error.message` are also lost.
+
+### Query syntax error redaction
+
+During init (`--scope=init` or `--scope=all`), DSOA sets:
+
+```sql
+ALTER ACCOUNT SET ENABLE_UNREDACTED_QUERY_SYNTAX_ERROR = TRUE;
+```
+
+This Snowflake account parameter controls whether the full query text appears in error messages for queries that fail due to syntax or
+parsing errors. DSOA enables it so that failed queries can be diagnosed via `snowflake.error.message` on spans and logs. The
+`obfuscation_mode` setting is applied to `snowflake.error.message` as well, so choosing `literals` or `full` will also obfuscate this field.
+
+To disable unredacted syntax errors:
+
+- **Before first deploy:** remove the `ALTER ACCOUNT SET ENABLE_UNREDACTED_QUERY_SYNTAX_ERROR = TRUE;` line from
+  `009_query_history_init.sql` before running deploy with `--scope=init`.
+- **After deploy:** run `ALTER ACCOUNT SET ENABLE_UNREDACTED_QUERY_SYNTAX_ERROR = FALSE;` as `ACCOUNTADMIN`.
+
+DSOA only applies this parameter when the init script runs. Deploys that exclude `--scope=init` (e.g. `--scope=plugins,config`) will not
+re-apply it.
+
 [Show semantics for this plugin](SEMANTICS.md#query_history_semantics_sec)
 
 ### Query History default configuration
@@ -1195,6 +1231,7 @@ plugins:
     max_entries: 0
     max_lookback_minutes: 120
     cache_ttl_hours: 4
+    obfuscation_mode: "off"
     include_warehouses: []
     exclude_warehouses:
       - DTAGENT_WH
@@ -1249,28 +1286,38 @@ The plugin supports signal protection to prevent overload on high-volume Snowfla
 > - Skip the `admin` scope entirely and manually grant `MONITOR` privileges on warehouses to `DTAGENT_VIEWER`
 > - Install the `admin` scope and disable the automated grant task, then manually manage `MONITOR` privileges
 
+## Query Text Obfuscation Configuration
+
+- `PLUGINS.QUERY_HISTORY.OBFUSCATION_MODE`: Controls query text obfuscation before data is sent to Dynatrace. Applies to `db.query.text` on
+  spans and `snowflake.error.message` on failed queries. Valid values:
+  - `off` (default) — no obfuscation, full query text is forwarded unchanged.
+  - `literals` — replaces single-quoted string literals and standalone numeric literals with `?`. SQL structure and identifiers are
+    preserved.
+  - `full` — replaces the entire query text (and error message) with `[OBFUSCATED]`. Invalid values fall back to `off`.
+
 ### Query History Bill of Materials
 
 The following tables list the Snowflake objects that this plugin delivers data from or references.
 
 #### Objects delivered by the `Query History` plugin
 
-| Name                                                     | Type            | Comment                                                                                        |
-|----------------------------------------------------------|-----------------|------------------------------------------------------------------------------------------------|
-| DTAGENT_DB.STATUS.PROCESSED_QUERIES_CACHE                | table           |                                                                                                |
-| DTAGENT_DB.STATUS.UPDATE_PROCESSED_QUERIES(text,int,int) | procedure       |                                                                                                |
-| DTAGENT_DB.APP.TMP_RECENT_QUERIES                        | transient table |                                                                                                |
-| DTAGENT_DB.APP.TMP_QUERY_OPERATOR_STATS                  | transient table |                                                                                                |
-| DTAGENT_DB.APP.TMP_QUERY_ACCELERATION_ESTIMATES          | transient table |                                                                                                |
-| DTAGENT_DB.APP.V_QUERY_HISTORY                           | view            |                                                                                                |
-| DTAGENT_DB.APP.V_QUERY_HISTORY_INSTRUMENTED              | view            |                                                                                                |
-| DTAGENT_DB.APP.V_RECENT_QUERIES                          | view            |                                                                                                |
-| DTAGENT_DB.APP.P_GET_ACCELERATION_ESTIMATES()            | procedure       |                                                                                                |
-| DTAGENT_DB.APP.P_REFRESH_RECENT_QUERIES()                | procedure       |                                                                                                |
-| DTAGENT_DB.CONFIG.UPDATE_QUERY_HISTORY_CONF()            | procedure       |                                                                                                |
-| DTAGENT_DB.APP.P_MONITOR_WAREHOUSES()                    | procedure       | (Admin scope only) Procedure owned by DTAGENT_ADMIN to grant MONITOR privilege on warehouses   |
-| DTAGENT_DB.APP.TASK_DTAGENT_QUERY_HISTORY                | task            |                                                                                                |
-| DTAGENT_DB.APP.TASK_DTAGENT_QUERY_HISTORY_GRANTS         | task            | (Admin scope only) Admin task owned by DTAGENT_ADMIN to grant MONITOR privileges on warehouses |
+| Name                                                          | Type            | Comment                                                                                        |
+|---------------------------------------------------------------|-----------------|------------------------------------------------------------------------------------------------|
+| DTAGENT_DB.STATUS.PROCESSED_QUERIES_CACHE                     | table           |                                                                                                |
+| DTAGENT_DB.STATUS.UPDATE_PROCESSED_QUERIES(text,int,int,text) | procedure       |                                                                                                |
+| DTAGENT_DB.APP.TMP_RECENT_QUERIES                             | transient table |                                                                                                |
+| DTAGENT_DB.APP.TMP_QUERY_OPERATOR_STATS                       | transient table |                                                                                                |
+| DTAGENT_DB.APP.TMP_QUERY_ACCELERATION_ESTIMATES               | transient table |                                                                                                |
+| DTAGENT_DB.APP.F_OBFUSCATE_QUERY_TEXT(VARCHAR, VARCHAR)       | function        |                                                                                                |
+| DTAGENT_DB.APP.V_QUERY_HISTORY                                | view            |                                                                                                |
+| DTAGENT_DB.APP.V_QUERY_HISTORY_INSTRUMENTED                   | view            |                                                                                                |
+| DTAGENT_DB.APP.V_RECENT_QUERIES                               | view            |                                                                                                |
+| DTAGENT_DB.APP.P_GET_ACCELERATION_ESTIMATES()                 | procedure       |                                                                                                |
+| DTAGENT_DB.APP.P_REFRESH_RECENT_QUERIES()                     | procedure       |                                                                                                |
+| DTAGENT_DB.CONFIG.UPDATE_QUERY_HISTORY_CONF()                 | procedure       |                                                                                                |
+| DTAGENT_DB.APP.P_MONITOR_WAREHOUSES()                         | procedure       | (Admin scope only) Procedure owned by DTAGENT_ADMIN to grant MONITOR privilege on warehouses   |
+| DTAGENT_DB.APP.TASK_DTAGENT_QUERY_HISTORY                     | task            |                                                                                                |
+| DTAGENT_DB.APP.TASK_DTAGENT_QUERY_HISTORY_GRANTS              | task            | (Admin scope only) Admin task owned by DTAGENT_ADMIN to grant MONITOR privileges on warehouses |
 
 #### Objects referenced by the `Query History` plugin
 
@@ -1671,6 +1718,11 @@ In short, the plugin delivers, as logs by default, information on:
 - credits used (as metric).
 
 Additionally, an event is sent when a new task graph version is created. By default, the plugin executes every 90 minutes.
+
+Note: Snowflake reports DSOA's internal scheduler tasks (`_MEASUREMENT_TASK`, `_FINALIZER_TASK`) in `SERVERLESS_TASK_HISTORY` as
+account-level records with empty database and schema values. DSOA normalizes those empty strings to `NULL`, so emitted telemetry in the
+`serverless_tasks` context omits `db.namespace` and `snowflake.schema.name` rather than sending them as empty strings. These tasks are
+marked with `snowflake.task.is_internal = true`. Use this flag to filter them in dashboards or DQL queries.
 
 [Show semantics for this plugin](SEMANTICS.md#tasks_semantics_sec)
 

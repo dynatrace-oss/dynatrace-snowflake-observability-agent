@@ -38,6 +38,7 @@ class SharesPlugin(Plugin):
     """Shares plugin class."""
 
     PLUGIN_NAME = "shares"
+    PLUGIN_CONTEXTS: tuple = ("outbound_shares", "inbound_shares", "shares")
 
     def process(self, run_id: str, run_proc: bool = True, contexts: Optional[List[str]] = None) -> Dict[str, Dict[str, int]]:
         """Processes data for shares plugin.

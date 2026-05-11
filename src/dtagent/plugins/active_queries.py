@@ -37,6 +37,7 @@ class ActiveQueriesPlugin(Plugin):
     """Active queries plugin class."""
 
     PLUGIN_NAME = "active_queries"
+    PLUGIN_CONTEXTS: tuple = ("active_queries",)
 
     def process(self, run_id: str, run_proc: bool = True, contexts: Optional[List[str]] = None) -> Dict[str, Dict[str, int]]:
         """Processes the measures on active queries
@@ -63,15 +64,17 @@ class ActiveQueriesPlugin(Plugin):
             }
         """
         t_active_queries = "SELECT * FROM TABLE(DTAGENT_DB.APP.F_ACTIVE_QUERIES_INSTRUMENTED())"
+        entries_cnt, logs_cnt, metrics_cnt, events_cnt = 0, 0, 0, 0
 
-        entries_cnt, logs_cnt, metrics_cnt, events_cnt = self._log_entries(
-            lambda: self._get_table_rows(t_active_queries),
-            "active_queries",
-            run_uuid=run_id,
-            report_timestamp_events=False,
-            report_metrics=True,
-            log_completion=run_proc,
-        )
+        if not contexts or "active_queries" in contexts:
+            entries_cnt, logs_cnt, metrics_cnt, events_cnt = self._log_entries(
+                lambda: self._get_table_rows(t_active_queries),
+                "active_queries",
+                run_uuid=run_id,
+                report_timestamp_events=False,
+                report_metrics=True,
+                log_completion=run_proc,
+            )
 
         return self._report_results(
             {"active_queries": {"entries": entries_cnt, "log_lines": logs_cnt, "metrics": metrics_cnt, "events": events_cnt}},

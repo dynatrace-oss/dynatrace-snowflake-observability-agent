@@ -32,6 +32,13 @@ $$
 begin
     call DTAGENT_DB.CONFIG.UPDATE_PLUGIN_SCHEDULE('event_log', array_construct('cleanup'));
 
+    begin
+        call DTAGENT_DB.APP.SETUP_EVENT_TABLE();
+    exception
+        when other then
+            SYSTEM$LOG_WARN(concat('SETUP_EVENT_TABLE failed during config update: ', SQLERRM));
+    end;
+
     return 'event_log plugin config updated';
 exception
     when statement_error then

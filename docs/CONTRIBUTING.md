@@ -176,7 +176,7 @@ See the **[Plugin Development Guide](PLUGIN_DEVELOPMENT.md)** for complete step-
 
 1. **Case:** Always `snake_case`
 1. **Prefix:** Custom fields should start with `snowflake.`
-1. **Units:** Avoid measurement units in names (use `duration`, not `duration_ms`)
+1. **Units:** **No units in metric names** — use `snowflake.org.data.stored`, not `snowflake.org.storage.bytes`. Specify units in the `unit:` field of `instruments-def.yml` (e.g., `unit: Byte`)
 1. **Boolean:** Must use `is_` or `has_` prefix
 1. **No suffix:** Do not use `.count` suffix (implied for counters)
 1. **Structure:** Use dots `.` for object hierarchy (e.g., `snowflake.table.name`)

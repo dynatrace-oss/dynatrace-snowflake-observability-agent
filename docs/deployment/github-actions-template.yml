@@ -1,0 +1,63 @@
+# DSOA GitHub Actions deployment workflow template
+#
+# This is a reference template for deploying DSOA from a GitHub Actions workflow.
+# Copy this file to .github/workflows/dsoa-deploy.yml in your deployment repository
+# and replace <YOUR_ENV> with your environment name (must match conf/config-<YOUR_ENV>.yml).
+#
+# For automated generation with your environment settings, run:
+#   docker run -it -v ./conf:/app/conf ghcr.io/dynatrace-oss/dsoa-deploy:latest \
+#     --env=<ENV> --interactive --ci-export=github
+#
+# Setup instructions: see docs/deployment/github-actions.md
+
+name: Deploy DSOA to Snowflake
+on:
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: "Deployment scope"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - all
+          - init
+          - admin
+          - setup
+          - plugins
+          - config
+          - agents
+          - apikey
+          - upgrade
+          - teardown
+      from_version:
+        description: "Upgrade from version (required when scope=upgrade)"
+        required: false
+        default: ""
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout deployment config
+        uses: actions/checkout@v4
+
+      - name: Deploy DSOA
+        env:
+          FROM_VERSION: ${{ inputs.from_version }}
+        run: |
+          EXTRA_ARGS=""
+          if [ -n "$FROM_VERSION" ]; then
+            EXTRA_ARGS="--from-version=${FROM_VERSION}"
+          fi
+          docker run --rm \
+            -v "${{ github.workspace }}/conf:/app/conf" \
+            -e DTAGENT_TOKEN="${{ secrets.DTAGENT_TOKEN }}" \
+            -e SNOWFLAKE_ACCOUNT="${{ secrets.SNOWFLAKE_ACCOUNT }}" \
+            -e SNOWFLAKE_USER="${{ secrets.SNOWFLAKE_USER }}" \
+            -e SNOWFLAKE_PRIVATE_KEY_RAW="${{ secrets.SNOWFLAKE_PRIVATE_KEY_RAW }}" \
+            ghcr.io/dynatrace-oss/dsoa-deploy:latest \
+            --env=<YOUR_ENV> \
+            --scope=${{ inputs.scope }} \
+            ${EXTRA_ARGS} \
+            --options=skip_confirm

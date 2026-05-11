@@ -96,9 +96,8 @@ Optional:
   --from-version=<VER>     Required when --scope=upgrade (e.g. 0.9.2)
   --output-file=<FILE>     Output file path for --options=manual mode
   --options=<OPTIONS>      Comma-separated flags:
-                             manual        Generate SQL script without executing
-                             service_user  Use service user auth (CI/CD)
-                             skip_confirm  Skip confirmation prompt
+                              manual        Generate SQL script without executing
+                              skip_confirm  Skip confirmation prompt
                              no_dep        Skip deployment BizEvents
                              dry_run       Dry-run for dt_assets scope
   --interactive            Launch interactive configuration wizard
@@ -154,10 +153,16 @@ fi
 
 # Early build artifact check — must happen before wizard and before setup.sh.
 # Skipped for:
-#   dt_assets  — no build files needed for dashboard/workflow deploys
-#   --defaults — only generates a config file, no build artifacts required
-#   --interactive (wizard) — wizard collects config, actual deploy runs later
-if [[ "$SCOPE" != "dt_assets" && $DEFAULTS -eq 0 && $INTERACTIVE -eq 0 ]]; then
+#   dt_assets    — no build files needed for dashboard/workflow deploys
+#   --interactive — wizard collects config, actual deploy runs later
+#   --defaults without existing config — only generates config, no build artifacts required
+_skip_build_check=0
+if [[ "$SCOPE" == "dt_assets" || $INTERACTIVE -eq 1 ]]; then
+    _skip_build_check=1
+elif [[ $DEFAULTS -eq 1 && ! -f "$CONFIG_FILE" ]]; then
+    _skip_build_check=1
+fi
+if [[ $_skip_build_check -eq 0 ]]; then
     if [[ ! -d "build" ]] || [[ -z "$(ls -A build 2>/dev/null)" ]]; then
         echo "ERROR: Build artifacts are missing. Run the following command first:" >&2
         echo "       ./scripts/dev/build.sh" >&2
@@ -167,6 +172,19 @@ fi
 
 # Auto-trigger wizard if config missing and not using --defaults
 if [[ ! -f "$CONFIG_FILE" && $DEFAULTS -eq 0 ]]; then
+    # Guard: wizard requires a TTY. Without one (e.g. Docker without -it),
+    # every read call returns EOF immediately, producing cryptic errors.
+    if [[ ! -t 0 ]]; then
+        echo "ERROR: No config file found (conf/config-${ENV}.yml) and stdin is not a TTY." >&2
+        echo "" >&2
+        echo "  Interactive mode requires a TTY. If running inside Docker, add -it flags:" >&2
+        echo "    docker run -it dsoa-deploy:local --env=${ENV}" >&2
+        echo "" >&2
+        echo "  For non-interactive deployments, use one of:" >&2
+        echo "    --defaults   (generate config from env vars, then deploy)" >&2
+        echo "    --scope=...  (deploy with an existing conf/config-${ENV}.yml)" >&2
+        exit 1
+    fi
     INTERACTIVE=1
 fi
 
@@ -183,50 +201,82 @@ if [[ $INTERACTIVE -eq 1 ]]; then
         EXISTING_CONFIG="$CONFIG_FILE"
     fi
 
-    # Run wizard
+    # Run wizard — use a temp file to receive options set inside the wizard (e.g. manual mode)
+    WIZARD_OPTIONS_FILE=$(mktemp)
+    WIZARD_TOKEN_FILE=$(mktemp)
+    # shellcheck disable=SC2064
+    trap "rm -f ${WIZARD_OPTIONS_FILE} ${WIZARD_TOKEN_FILE}" EXIT
+
     if [[ -n "$EXISTING_CONFIG" ]]; then
-        "$CWD/interactive_wizard.sh" --env="$ENV" --existing-config="$EXISTING_CONFIG"
+        "$CWD/interactive_wizard.sh" --env="$ENV" --existing-config="$EXISTING_CONFIG" --options-out="$WIZARD_OPTIONS_FILE" --token-out="$WIZARD_TOKEN_FILE"
     else
-        "$CWD/interactive_wizard.sh" --env="$ENV"
+        "$CWD/interactive_wizard.sh" --env="$ENV" --options-out="$WIZARD_OPTIONS_FILE" --token-out="$WIZARD_TOKEN_FILE"
     fi
 
     if [[ $? -ne 0 ]]; then
         echo "Wizard cancelled or failed" >&2
         exit 1
     fi
+
+    # Merge options, scope, and from_version emitted by the wizard
+    if [[ -s "$WIZARD_OPTIONS_FILE" ]]; then
+        while IFS='=' read -r key val; do
+            case "$key" in
+                OPTIONS)
+                    OPTIONS_STR="${OPTIONS_STR:+${OPTIONS_STR},}${val}"
+                    IFS=',' read -ra OPTIONS <<< "$OPTIONS_STR"
+                    ;;
+                SCOPE)
+                    SCOPE="$val"
+                    ;;
+                FROM_VERSION)
+                    FROM_VERSION="$val"
+                    ;;
+            esac
+        done < "$WIZARD_OPTIONS_FILE"
+    fi
+
+    # Import token collected by the wizard into the environment (if not already set)
+    if [[ -s "$WIZARD_TOKEN_FILE" && -z "${DTAGENT_TOKEN:-}" ]]; then
+        DTAGENT_TOKEN=$(cat "$WIZARD_TOKEN_FILE")
+        export DTAGENT_TOKEN
+    fi
 fi
 
 # Generate minimal config if --defaults specified
 if [[ $DEFAULTS -eq 1 ]]; then
-    if [[ -f "$CONFIG_FILE" ]]; then
-        echo "Config file already exists: $CONFIG_FILE" >&2
-        exit 1
+    if [[ ! -f "$CONFIG_FILE" ]]; then
+        # Generate config from environment variables
+        if [[ -z "${DSOA_DT_TENANT:-}" ]]; then
+            echo "ERROR: --defaults requires DSOA_DT_TENANT env var (Dynatrace tenant address)" >&2
+            exit 1
+        fi
+
+        _deploy_env="${DSOA_DEPLOYMENT_ENV:-${ENV^^}}"
+        _sf_account="${DSOA_SF_ACCOUNT:-CHANGE_ME}"
+
+        mkdir -p conf
+        yq -n \
+            ".core.dynatrace_tenant_address = \"${DSOA_DT_TENANT}\" |
+             .core.deployment_environment = \"${_deploy_env}\" |
+             .core.snowflake.account_name = \"${_sf_account}\" |
+             .core.log_level = \"WARN\" |
+             .core.procedure_timeout = 3600 |
+             .plugins.deploy_disabled_plugins = true" \
+            > "$CONFIG_FILE"
+
+        echo "Config generated at: $CONFIG_FILE" >&2
+        echo "Run deploy.sh --env=$ENV to deploy." >&2
+        exit 0
+    else
+        echo "Config file already exists: $CONFIG_FILE — using as-is" >&2
     fi
 
-    # Create minimal config with defaults
-    mkdir -p conf
-    cat > "$CONFIG_FILE" << 'EOF'
-# Minimal DSOA configuration - generated with --defaults flag
-# Please update with your actual values before deployment
-
-core:
-  dynatrace_tenant_address: "CHANGE_ME.live.dynatrace.com"
-  snowflake:
-    account_name: "CHANGE_ME"
-  deployment_environment: "CHANGE_ME"
-  log_level: "WARN"
-  procedure_timeout: 3600
-
-plugins:
-  deploy_disabled_plugins: true
-
-# Set DTAGENT_TOKEN environment variable before deployment:
-# export DTAGENT_TOKEN="your-api-token-here"
-EOF
-
-    echo "Minimal config generated at: $CONFIG_FILE" >&2
-    echo "Please update the CHANGE_ME values and set DTAGENT_TOKEN environment variable" >&2
-    exit 0
+    # --defaults implies skip_confirm
+    if ! has_option "skip_confirm"; then
+        OPTIONS_STR="${OPTIONS_STR:+${OPTIONS_STR},}skip_confirm"
+        IFS=',' read -ra OPTIONS <<< "$OPTIONS_STR"
+    fi
 fi
 
 # Display warning when bizevent send fails
@@ -261,7 +311,7 @@ show_bizevent_warning() {
 
 if has_option "manual"; then
     IS_MANUAL="true"
-    "$CWD/setup.sh"
+    # Manual mode generates SQL only — no Snowflake connection needed
 else
     IS_MANUAL="false"
     "$CWD/setup.sh" $ENV
@@ -284,13 +334,7 @@ if [ "$SCOPE" == "upgrade" ] && [ "$FROM_VERSION" == '' ]; then
     exit 1
 fi
 
-#%DEV:
-# we only need to check DTAGENT_TOKEN if we are deploying through Jenkins
-if has_option "service_user" && [ -z "$DTAGENT_TOKEN" ]; then
-    echo "Environment variable DTAGENT_TOKEN is not defined"
-    exit 1
-fi
-#%:DEV
+
 
 DEFAULT_CONFIG_FILE="build/config-default.yml"
 CONFIG_FILE="conf/config-$ENV.yml"
@@ -300,7 +344,7 @@ if [ ! -f "$CONFIG_FILE" ]; then
     #%DEV:
     # we could just exit if config file doesn't exist and we either do not want to deploy at all or want to deploy through jenkins
 
-    if ! has_option "no_dep" && ! has_option "service_user"; then
+    if ! has_option "no_dep"; then
         #%:DEV
         exit 1
         #%DEV:
@@ -310,7 +354,10 @@ fi
 
 export BUILD_CONFIG_FILE="build/config.json"
 
-DEPLOYMENT_ID=$(uuidgen)
+DEPLOYMENT_ID=$(uuidgen 2>/dev/null \
+    || cat /proc/sys/kernel/random/uuid 2>/dev/null \
+    || python3 -c "import uuid; print(uuid.uuid4())" 2>/dev/null \
+    || echo "00000000-0000-0000-0000-$(date +%s%N | tail -c 12)")
 
 $CWD/prepare_config.sh "${DEFAULT_CONFIG_FILE}" "${CONFIG_FILE}"
 
@@ -352,7 +399,8 @@ if $IS_MANUAL; then
     if [ -n "$OUTPUT_FILE" ]; then
         INSTALL_SCRIPT_SQL="$OUTPUT_FILE"
     else
-        INSTALL_SCRIPT_SQL="dsoa-deploy-script-${DEPLOYMENT_ENV}-${NOW_TS}.sql"
+        mkdir -p output 2>/dev/null
+        INSTALL_SCRIPT_SQL="output/dsoa-deploy-script-${DEPLOYMENT_ENV}-${NOW_TS}.sql"
     fi
 else
     INSTALL_SCRIPT_SQL=$(mktemp -p build)
@@ -381,14 +429,7 @@ fi
 
 if [ -s "$INSTALL_SCRIPT_SQL" ] && ! $IS_MANUAL; then
 
-    if has_option "service_user"; then
-        # added for Jenkins to be able to skip this step, as it will never find the config file
-        # this is taken care of in the update_config.py, and config_file doesn't exist necessary data is taken from environment variables
-        # shellcheck disable=SC2154
-        SNOWFLAKE_ACCOUNT_NAME=${SNOWFLAKE_ACC_NAME}
-    else
-        SNOWFLAKE_ACCOUNT_NAME="$($CWD/get_config_key.sh core.snowflake.account_name)"
-    fi
+    SNOWFLAKE_ACCOUNT_NAME="$($CWD/get_config_key.sh core.snowflake.account_name)"
 
     INSTALL_SCRIPT_LOG="dsoa-deploy-log-$DEPLOYMENT_ENV-${NOW_TS}.sql"
     #%DEV:
@@ -410,25 +451,24 @@ if [ -s "$INSTALL_SCRIPT_SQL" ] && ! $IS_MANUAL; then
             show_bizevent_warning "STARTED"
         fi
     fi
-    #%DEV:
 
-    if ! has_option "no_dep" && ! has_option "service_user"; then
-        #%:DEV
+    # When SNOWFLAKE_ACCOUNT and SNOWFLAKE_USER env vars are both set, use temporary-connection
+    # (e.g. CI/CD environments with key-pair auth). Otherwise use named connection profile.
+    if [[ -n "${SNOWFLAKE_ACCOUNT:-}" && -n "${SNOWFLAKE_USER:-}" ]]; then
+        pushd build || exit 1
+        snow sql --temporary-connection \
+            --account "${SNOWFLAKE_ACCOUNT}" \
+            --user "${SNOWFLAKE_USER}" \
+            --filename "$(basename "${INSTALL_SCRIPT_SQL}")"
+        popd || exit 1
+    else
+        #%DEV:
         pushd build || exit 1
         snow sql --connection "snow_agent_$CONNECTION_ENV" \
-            --filename "$(basename ${INSTALL_SCRIPT_SQL})"
+            --filename "$(basename "${INSTALL_SCRIPT_SQL}")"
         popd || exit 1
-        #%DEV:
-    elif has_option "service_user"; then
-        pushd build || exit 1
-        # shellcheck disable=SC2154
-        snow sql --temporary-connection \
-            --account ${SNOWFLAKE_ACCOUNT_NAME} \
-            --user ${SNOWFLAKE_USER_NAME} \
-            --filename "$(basename ${INSTALL_SCRIPT_SQL})"
-        popd || exit 1
+        #%:DEV
     fi
-    #%:DEV
 
     cat "$INSTALL_SCRIPT_SQL" >>"$INSTALL_SCRIPT_LOG"
 

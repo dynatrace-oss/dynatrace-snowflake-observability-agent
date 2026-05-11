@@ -67,6 +67,7 @@ class ResourceMonitorsPlugin(Plugin):
     """Resource monitors plugin class."""
 
     PLUGIN_NAME = "resource_monitors"
+    PLUGIN_CONTEXTS: tuple = ("resource_monitors", "warehouses")
 
     def __init__(self, **kwargs):
         """Initialises plugin and per-run state variables.

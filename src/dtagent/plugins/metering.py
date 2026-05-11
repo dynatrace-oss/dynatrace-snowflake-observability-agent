@@ -42,6 +42,7 @@ class MeteringPlugin(Plugin):
     """
 
     PLUGIN_NAME = "metering"
+    PLUGIN_CONTEXTS: tuple = ("metering",)
 
     def _report_metering_log(self, row_dict: Dict, __context: Dict, log_level: int) -> bool:
         """Sends single log line for a metering history entry.

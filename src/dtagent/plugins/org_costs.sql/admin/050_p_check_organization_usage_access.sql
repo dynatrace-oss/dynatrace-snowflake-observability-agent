@@ -39,10 +39,10 @@ execute as caller
 as
 $$
 DECLARE
-    row_count   INT DEFAULT 0;
+    probe_value INT DEFAULT 0;
 BEGIN
-    SELECT COUNT(*)
-    INTO   :row_count
+    SELECT 1
+    INTO   :probe_value
     FROM   SNOWFLAKE.ORGANIZATION_USAGE.METERING_DAILY_HISTORY
     LIMIT  1;
 

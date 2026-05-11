@@ -53,7 +53,7 @@
   },
   {
     "content": "New Org Storage Daily entry for MYORG-ACCOUNT_A",
-    "snowflake.org.storage.bytes": 5368709120,
+    "snowflake.org.data.stored": 5368709120,
     "snowflake.organization.name": "MYORG",
     "snowflake.account.name": "MYORG-ACCOUNT_A",
     "snowflake.account.locator": "ABC12345",
@@ -76,7 +76,7 @@
   },
   {
     "content": "New Org Storage Daily entry for MYORG-ACCOUNT_A",
-    "snowflake.org.storage.bytes": 1073741824,
+    "snowflake.org.data.stored": 1073741824,
     "snowflake.organization.name": "MYORG",
     "snowflake.account.name": "MYORG-ACCOUNT_A",
     "snowflake.account.locator": "ABC12345",
@@ -99,7 +99,7 @@
   },
   {
     "content": "New Org Data Transfer Daily entry for MYORG-ACCOUNT_A",
-    "snowflake.org.transfer.bytes": 2147483648,
+    "snowflake.org.data.transferred": 2147483648,
     "snowflake.organization.name": "MYORG",
     "snowflake.account.name": "MYORG-ACCOUNT_A",
     "snowflake.account.locator": "ABC12345",
@@ -126,7 +126,7 @@
   },
   {
     "content": "New Org Data Transfer Daily entry for MYORG-ACCOUNT_A",
-    "snowflake.org.transfer.bytes": 1073741824,
+    "snowflake.org.data.transferred": 1073741824,
     "snowflake.organization.name": "MYORG",
     "snowflake.account.name": "MYORG-ACCOUNT_A",
     "snowflake.account.locator": "ABC12345",

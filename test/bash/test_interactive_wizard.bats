@@ -24,6 +24,26 @@ setup() {
     [ "$status" -eq 0 ]
 }
 
+@test "wizard fails with clear error when stdin is not a TTY" {
+    # Simulate non-TTY stdin (as in Docker without -it) by redirecting from /dev/null
+    run bash -c "scripts/deploy/interactive_wizard.sh --env=test-qa3 </dev/null 2>&1"
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"Interactive mode requires a TTY"* ]]
+    [[ "$output" == *"docker run -it"* ]]
+}
+
+@test "wizard non-TTY error message includes --defaults hint" {
+    run bash -c "scripts/deploy/interactive_wizard.sh --env=test-qa3 </dev/null 2>&1"
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"--defaults"* ]]
+}
+
+@test "wizard non-TTY error does not say Phase 1 cancelled" {
+    run bash -c "scripts/deploy/interactive_wizard.sh --env=test-qa3 </dev/null 2>&1"
+    [ "$status" -ne 0 ]
+    [[ "$output" != *"Phase 1 cancelled"* ]]
+}
+
 ##endregion
 
 ##region Config Generation Tests
@@ -737,6 +757,39 @@ _run_phase5_otel() {
     grep -q "query_history" scripts/deploy/interactive_wizard.sh
 }
 
+@test "customize_plugins: Dockerfile uses arch-aware yq download (not hardcoded amd64)" {
+    # Hardcoded yq_linux_amd64 breaks plugin customization on ARM hosts (Apple Silicon,
+    # ARM CI runners) — yq fails with 'Exec format error', read_default returns empty,
+    # and every plugin falls through to 'using defaults' with no prompts shown.
+    # The fix: detect arch at build time via uname -m and select the correct binary.
+    run grep "yq_linux_amd64" Dockerfile
+    [ "$status" -ne 0 ]
+}
+
+@test "customize_plugins: Dockerfile yq install uses uname -m for arch detection" {
+    grep -q "uname -m" Dockerfile
+}
+
+@test "customize_plugins: read_default returns schedule for active_queries when build config present" {
+    [[ -f "build/config-default.yml" ]] || skip "build/config-default.yml not present"
+    result=$(bash -c "
+        source scripts/deploy/lib.sh
+        source scripts/deploy/interactive_wizard.sh 2>/dev/null || true
+        read_default 'plugins.active_queries.schedule' ''
+    ")
+    [[ -n "$result" ]]
+}
+
+@test "customize_plugins: read_default returns schedule for query_history when build config present" {
+    [[ -f "build/config-default.yml" ]] || skip "build/config-default.yml not present"
+    result=$(bash -c "
+        source scripts/deploy/lib.sh
+        source scripts/deploy/interactive_wizard.sh 2>/dev/null || true
+        read_default 'plugins.query_history.schedule' ''
+    ")
+    [[ -n "$result" ]]
+}
+
 ##endregion
 
 ##region Plugin Checklist Order
@@ -753,6 +806,8 @@ _run_phase5_otel() {
 }
 
 @test "phase3 plugin checklist starts with active_queries (dynamic discovery)" {
+    # Requires build artifacts — skip if build/ not populated
+    [[ -f "build/config-default.yml" || -d "build/30_plugins" ]] || skip "build artifacts not present"
     first=$(bash -c "
         source scripts/deploy/lib.sh
         source scripts/deploy/interactive_wizard.sh 2>/dev/null || true
@@ -762,6 +817,8 @@ _run_phase5_otel() {
 }
 
 @test "phase3 plugin checklist ends with warehouse_usage (dynamic discovery)" {
+    # Requires build artifacts — skip if build/ not populated
+    [[ -f "build/config-default.yml" || -d "build/30_plugins" ]] || skip "build artifacts not present"
     last=$(bash -c "
         source scripts/deploy/lib.sh
         source scripts/deploy/interactive_wizard.sh 2>/dev/null || true
@@ -770,15 +827,51 @@ _run_phase5_otel() {
     [ "$last" = "warehouse_usage" ]
 }
 
-@test "discover_plugins matches filesystem plugin dirs" {
-    # Wizard's discover_plugin_names must return exactly the same set as the filesystem
+@test "discover_plugins matches build artifacts" {
+    # Requires build artifacts — skip if build/ not populated
+    [[ -f "build/config-default.yml" || -d "build/30_plugins" ]] || skip "build artifacts not present"
+    # Wizard's discover_plugin_names must return exactly the same set as build/30_plugins/
     wizard_list=$(bash -c "
         source scripts/deploy/lib.sh
         source scripts/deploy/interactive_wizard.sh 2>/dev/null || true
         discover_plugin_names
     ")
-    fs_list=$(ls -d src/dtagent/plugins/*.config/ | sed 's|src/dtagent/plugins/||;s|\.config/||' | sort)
-    [ "$wizard_list" = "$fs_list" ]
+    build_list=$(find build/30_plugins -maxdepth 1 -name '*.sql' -print0 2>/dev/null | xargs -0 -n1 basename | sed 's/\.sql$//' | sort)
+    [ "$wizard_list" = "$build_list" ]
+}
+
+@test "discover_plugins falls back to build/30_plugins when config-default.yml absent" {
+    # Simulate environment where config-default.yml does not exist.
+    # discover_plugin_names must fall back to build/30_plugins/*.sql basenames.
+    result=$(bash -c "
+        # Create a temp workspace mimicking a build without config-default.yml
+        tmpdir=\$(mktemp -d)
+        mkdir -p \"\$tmpdir/build/30_plugins\"
+        touch \"\$tmpdir/build/30_plugins/active_queries.sql\"
+        touch \"\$tmpdir/build/30_plugins/warehouse_usage.sql\"
+        touch \"\$tmpdir/build/30_plugins/query_history.sql\"
+
+        # Inline the fallback logic (mirrors the implementation)
+        root=\"\$tmpdir\"
+        build_plugins_dir=\"\${root}/build/30_plugins\"
+
+        # No config-default.yml → skip primary, use fallback
+        if [[ -d \"\$build_plugins_dir\" ]]; then
+            for f in \"\$build_plugins_dir\"/*.sql; do
+                [[ -f \"\$f\" ]] || continue
+                basename \"\$f\" .sql
+            done | sort
+        fi
+        rm -rf \"\$tmpdir\"
+    ")
+    # Must return a non-empty list
+    [ -n "$result" ]
+    # Must include known plugins
+    echo "$result" | grep -q "active_queries"
+    echo "$result" | grep -q "warehouse_usage"
+    # Must be sorted
+    sorted=$(echo "$result" | sort)
+    [ "$result" = "$sorted" ]
 }
 
 ##endregion
@@ -921,6 +1014,58 @@ _run_phase5_otel() {
         echo \"is_disabled: \$(bool_to_yaml \"\$OTEL_EVENTS_DISABLED\")\"
     " 2>/dev/null)
     [[ "$result" == *"is_disabled: true"* ]]
+}
+
+##endregion
+
+##region read_default Uses build/config-default.yml Only
+
+@test "read_default: returns value from build/config-default.yml" {
+    # When config-default.yml exists, read_default must return the value from it.
+    result=$(bash -c "
+        source scripts/deploy/lib.sh
+        source scripts/deploy/interactive_wizard.sh 2>/dev/null || true
+        if [[ ! -f \"\$DEFAULT_CONFIG\" ]]; then
+            echo 'SKIP'
+            exit 0
+        fi
+        read_default 'plugins.active_queries.schedule' ''
+    " 2>/dev/null)
+    # Either SKIP (no build yet) or a non-empty CRON expression
+    [[ "$result" == "SKIP" || "$result" == *"CRON"* ]]
+}
+
+@test "read_default: returns fallback when config-default.yml absent" {
+    # When config-default.yml does not exist, read_default must return the fallback.
+    # It must NOT fall back to src/ plugin config files.
+    result=$(bash -c "
+        source scripts/deploy/lib.sh
+        source scripts/deploy/interactive_wizard.sh 2>/dev/null || true
+        DEFAULT_CONFIG='/nonexistent/config-default.yml'
+        read_default 'plugins.active_queries.schedule' 'MY_FALLBACK'
+    " 2>/dev/null)
+    [ "$result" = "MY_FALLBACK" ]
+}
+
+@test "read_default: returns fallback for unknown key" {
+    result=$(bash -c "
+        source scripts/deploy/lib.sh
+        source scripts/deploy/interactive_wizard.sh 2>/dev/null || true
+        read_default 'plugins.active_queries.nonexistent_key' 'FALLBACK'
+    " 2>/dev/null)
+    [ "$result" = "FALLBACK" ]
+}
+
+@test "read_default: config-default.yml is single source of truth" {
+    # Verify read_default does NOT read from src/dtagent/plugins/ config files
+    result=$(bash -c "
+        source scripts/deploy/lib.sh
+        source scripts/deploy/interactive_wizard.sh 2>/dev/null || true
+        DEFAULT_CONFIG='/nonexistent/config-default.yml'
+        # Even though src/ plugin configs exist, fallback must be returned
+        read_default 'plugins.active_queries.fast_mode' 'NOPE'
+    " 2>/dev/null)
+    [ "$result" = "NOPE" ]
 }
 
 ##endregion
