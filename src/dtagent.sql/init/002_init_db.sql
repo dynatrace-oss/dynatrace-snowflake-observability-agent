@@ -34,6 +34,8 @@ alter database DTAGENT_DB set LOG_LEVEL = INFO;
 -- Set LOG_EVENT_LEVEL = INFO on accounts that support BCR Bundle 2026_02+.
 -- LOG_EVENT_LEVEL decouples event table ingestion control from LOG_LEVEL.
 -- On pre-BCR accounts the parameter does not exist so we skip it gracefully.
+-- Wrapped in EXECUTE IMMEDIATE $$ so snow sql does not split on the inner semicolons.
+EXECUTE IMMEDIATE $$
 BEGIN
   LET n_rows INTEGER := 0;
   show PARAMETERS like 'LOG_EVENT_LEVEL' in DATABASE DTAGENT_DB;
@@ -43,8 +45,10 @@ BEGIN
   END IF;
 EXCEPTION
   WHEN OTHER THEN
-    NULL; -- pre-BCR account: LOG_EVENT_LEVEL parameter not available, skip gracefully
+    NULL;
 END;
+$$
+;
 
 -- Set default DATA_RETENTION_TIME_IN_DAYS for all non-transient tables in this database
 -- This will be overridden by the configured value in the config table after deployment
