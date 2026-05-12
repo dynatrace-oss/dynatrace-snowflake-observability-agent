@@ -58,8 +58,8 @@ CREATE WAREHOUSE IF NOT EXISTS DSOA_TEST_UNMONITORED_WH
 -- ============================================================================
 USE ROLE ACCOUNTADMIN;
 
--- A resource monitor with 1 credit quota — even a few seconds of XSMALL usage
--- will push past the 50% threshold (0.5 credits).
+-- A resource monitor with 1 credit quota — reaching the 50% threshold (0.5 credits)
+-- requires approximately 17 minutes of XSMALL warehouse activity (~0.03 credits/min).
 -- Triggers: 50% (NOTIFY), 80% (NOTIFY), 90% (NOTIFY), 100% (SUSPEND)
 CREATE OR REPLACE RESOURCE MONITOR DSOA_TEST_RM_LOW_QUOTA
     WITH CREDIT_QUOTA = 1

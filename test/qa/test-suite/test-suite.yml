@@ -1578,6 +1578,7 @@ sections:
         value: |
           // After switching to mode=literals and running new queries:
           // NEW spans should NOT contain the literal string
+          // Tip: narrow timeframe to now()-30m in the UI to exclude pre-switch spans
           fetch spans
           | filter dsoa.run.context == "query_history"
           | filter deployment.environment == "DEV-094"
@@ -1597,6 +1598,7 @@ sections:
         value: |
           // After switching to mode=full and running new queries:
           // db.query.text should not contain readable SQL
+          // Tip: narrow timeframe to now()-30m in the UI to exclude pre-switch spans
           fetch spans
           | filter dsoa.run.context == "query_history"
           | filter deployment.environment == "DEV-094"

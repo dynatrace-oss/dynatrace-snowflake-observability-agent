@@ -67,7 +67,7 @@ ALTER TABLE DSOA_TEST_DB.DDL_DETECTION_TEST.DDL_TARGET_TABLE
     ADD COLUMN CREATED_AT TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP();
 
 -- ============================================================================
--- 4. DDL Operation: ALTER TABLE ADD CONSTRAINT (comment change)
+-- 4. DDL Operation: ALTER TABLE SET COMMENT (set object comment)
 -- ============================================================================
 ALTER TABLE DSOA_TEST_DB.DDL_DETECTION_TEST.DDL_TARGET_TABLE
     SET COMMENT = 'DSOA DDL detection test table — modified at ' || CURRENT_TIMESTAMP()::VARCHAR;

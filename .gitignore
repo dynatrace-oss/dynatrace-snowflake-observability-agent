@@ -42,6 +42,9 @@ dynatrace-snowflake-observability-agent
 *.pkg
 *.pdf
 
+# === QA Results (local only — replaced by symlink to shared dir in Cowork mode) ===
+test/qa/results/
+
 # === AI & Development Context ===
 .github/context/*
 .context/*

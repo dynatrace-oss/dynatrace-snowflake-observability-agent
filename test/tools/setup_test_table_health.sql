@@ -159,11 +159,11 @@ SELECT SYSTEM$CLUSTERING_INFORMATION('DSOA_TEST_DB.TABLE_HEALTH_TEST.CLUSTERED_F
 -- ============================================================================
 -- C2.9 — Storage metrics:
 --   timeseries avg(snowflake.table.active_bytes), by:{deployment.environment}
---   | filter deployment.environment == "DEV-095"
+--   | filter deployment.environment == "DEV-{CURR_TAG}"
 --
 -- C2.10 — Clustering metrics:
 --   timeseries avg(snowflake.table.clustering.depth), by:{deployment.environment}
---   | filter deployment.environment == "DEV-095"
+--   | filter deployment.environment == "DEV-{CURR_TAG}"
 
 -- ============================================================================
 -- CLEANUP (run when done testing):

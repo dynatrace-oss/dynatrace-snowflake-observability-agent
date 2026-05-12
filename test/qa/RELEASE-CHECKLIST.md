@@ -576,12 +576,14 @@ and sending data to the same Dynatrace tenant.
   string and integer literals replaced.
   DQL: same query as C10.1 — expect count == 0 when mode is `literals`
   (the literal `'DSOA_OBFUSCATION_TEST'` should be replaced with `?`).
+  Note: narrow the notebook tile timeframe to approximately 30 minutes post-mode-switch to avoid false failures from pre-switch spans.
 
 - [ ] **C10.3** `[AUTO-EVAL]` — **Mode: full** — `db.query.text` contains
   only a normalized hash.
   DQL: `fetch spans | filter dsoa.run.context == "query_history" | filter matchesPhrase(db.query.text, "SELECT") | summarize count()`
   — expect count == 0 when mode is `full` (full obfuscation replaces entire
   text with hash).
+  Note: narrow the notebook tile timeframe to approximately 30 minutes post-mode-switch to avoid false failures from pre-switch spans.
 
 ---
 
