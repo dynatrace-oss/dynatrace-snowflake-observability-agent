@@ -126,9 +126,30 @@ if [ -n "$TAG" ] && [ "$CUSTOM_NAMES_USED" = true ]; then
     echo "      TAG '$TAG' will only appear in telemetry as deployment.environment.tag."
 fi
 
-# Validate TAG (used as Snowflake identifier suffix when no custom DB name is set)
+# Validate TAG — used as an infix in generated identifiers (e.g. DTAGENT_<TAG>_DB),
+# so it must not contain spaces or invalid chars, but may start with a digit.
+validate_deployment_tag() {
+    local name="$1"
+    if [ -z "$name" ] || [ "$name" = "-" ] || [ "$name" = "null" ]; then
+        return 0
+    fi
+    if [[ "$name" =~ [[:space:]] ]]; then
+        echo "ERROR: Invalid deployment tag '$name': contains spaces"
+        return 1
+    fi
+    if [[ ! "$name" =~ ^[A-Za-z0-9_\$]+$ ]]; then
+        echo "ERROR: Invalid deployment tag '$name': must contain only letters, numbers, underscores, or dollar signs"
+        return 1
+    fi
+    if [ ${#name} -gt 255 ]; then
+        echo "ERROR: Invalid deployment tag '$name': exceeds maximum length of 255 characters"
+        return 1
+    fi
+    return 0
+}
+
 if [[ -n "$TAG" && "$TAG" != "null" && "$TAG" != "-" ]]; then
-    validate_snowflake_name "$TAG" "deployment tag" || exit 1
+    validate_deployment_tag "$TAG" || exit 1
 fi
 
 # Validate custom names if provided
