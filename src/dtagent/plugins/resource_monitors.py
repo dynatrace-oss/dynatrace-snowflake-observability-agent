@@ -25,7 +25,7 @@
 #
 #
 import logging
-from datetime import datetime
+import datetime
 from typing import Tuple, Dict, Optional, List
 from snowflake.snowpark.functions import current_timestamp
 from dtagent.util import _unpack_json_dict, EVENT_TIMESTAMP_KEYS_PAYLOAD_NAME, is_regular_mode
@@ -325,7 +325,7 @@ class ResourceMonitorsPlugin(Plugin):
 
         return instructions
 
-    def _read_last_bands(self, monitor_names: List[str]) -> Dict[str, Tuple[Optional[str], Optional[datetime]]]:
+    def _read_last_bands(self, monitor_names: List[str]) -> Dict[str, Tuple[Optional[str], Optional[datetime.datetime]]]:
         """Reads last-emitted bands and update timestamps for all named monitors.
 
         Returns an empty mapping when the session is not in regular (Snowflake) mode,
@@ -335,13 +335,13 @@ class ResourceMonitorsPlugin(Plugin):
             monitor_names (List[str]): Resource monitor names to look up (UPPERCASE).
 
         Returns:
-            Dict[str, Tuple[Optional[str], Optional[datetime]]]: Mapping from monitor name
+            Dict[str, Tuple[Optional[str], Optional[datetime.datetime]]]: Mapping from monitor name
                 to ``(last_band, last_updated)``. Both are ``None`` when no state row exists.
         """
         if not is_regular_mode(self._session):
             return {}
 
-        result: Dict[str, Tuple[Optional[str], Optional[datetime]]] = {name: (None, None) for name in monitor_names}
+        result: Dict[str, Tuple[Optional[str], Optional[datetime.datetime]]] = {name: (None, None) for name in monitor_names}
         if not monitor_names:
             return result
 
@@ -505,7 +505,7 @@ class ResourceMonitorsPlugin(Plugin):
         overrides: Dict[str, List[int]],
         last_bands: Dict[str, Optional[str]],
         context: Dict,
-        last_updated_map: Optional[Dict[str, Optional[datetime]]] = None,
+        last_updated_map: Optional[Dict[str, Optional[datetime.datetime]]] = None,
     ) -> Tuple[int, Optional[str], str]:
         """Evaluates threshold state for a single resource monitor row and emits events.
 
@@ -519,7 +519,7 @@ class ResourceMonitorsPlugin(Plugin):
             overrides (Dict[str, List[int]]): Per-monitor override mapping.
             last_bands (Dict[str, Optional[str]]): Last-emitted bands from state table.
             context (Dict): DSOA run context dictionary.
-            last_updated_map (Optional[Dict[str, Optional[datetime]]]): Last state-write
+            last_updated_map (Optional[Dict[str, Optional[datetime.datetime]]]): Last state-write
                 timestamps per monitor; used for keepalive rate-limiting. None disables
                 rate-limiting (safe for tests that do not pass timestamp state).
 
@@ -561,7 +561,7 @@ class ResourceMonitorsPlugin(Plugin):
                 keepalive_minutes = self._configuration.get(
                     "resource_monitors.credits_quota_thresholds.active_keepalive_timeout_minutes", 60
                 )
-                elapsed = (datetime.utcnow() - last_updated).total_seconds() / 60
+                elapsed = (datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) - last_updated).total_seconds() / 60
                 if elapsed < keepalive_minutes:
                     instructions = [(b, d, s) for b, d, s in instructions if not (d == "up" and s == "ACTIVE" and b == curr_band)]
 
@@ -635,7 +635,7 @@ class ResourceMonitorsPlugin(Plugin):
 
             raw_state = self._read_last_bands(monitor_names)
             last_bands: Dict[str, Optional[str]] = {k: v[0] for k, v in raw_state.items()}
-            last_updated_map: Dict[str, Optional[datetime]] = {k: v[1] for k, v in raw_state.items()}
+            last_updated_map: Dict[str, Optional[datetime.datetime]] = {k: v[1] for k, v in raw_state.items()}
             threshold_events_cnt = 0
             seen_monitors: List[str] = []
 
