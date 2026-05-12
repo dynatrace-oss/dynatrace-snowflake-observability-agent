@@ -173,7 +173,7 @@ map_scope_to_files() {
             echo "00_init.sql"
             ;;
         admin)
-            echo "10_admin.sql"
+            echo "80_admin.sql"
             ;;
         setup)
             echo "20_setup.sql"
@@ -188,7 +188,7 @@ map_scope_to_files() {
             echo "70_agents.sql"
             ;;
         all)
-            echo "00_init.sql 10_admin.sql 20_setup.sql 30_plugins/*.sql 40_config.sql 70_agents.sql"
+            echo "00_init.sql 20_setup.sql 30_plugins/*.sql 40_config.sql 70_agents.sql 80_admin.sql"
             ;;
         upgrade)
             if [ -z "$FROM_VERSION" ]; then

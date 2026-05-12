@@ -43,7 +43,7 @@ EOF
     # Create necessary build artifacts
     mkdir -p build/09_upgrade build/30_plugins conf
     echo "SELECT 'init';" > build/00_init.sql
-    echo "SELECT 'admin';" > build/10_admin.sql
+    echo "SELECT 'admin';" > build/80_admin.sql
     echo "SELECT 'setup';" > build/20_setup.sql
     echo "SELECT 'config';" > build/40_config.sql
     echo "SELECT 'agents';" > build/70_agents.sql
@@ -67,7 +67,7 @@ teardown() {
     rm -f "$TEST_CONFIG_FILE"
     rm -rf "$TEST_ENV_DIR"
     rm -f conf/config-test.json conf/config-test.yml
-    rm -f build/00_init.sql build/10_admin.sql build/20_setup.sql build/40_config.sql build/70_agents.sql
+    rm -f build/00_init.sql build/80_admin.sql build/20_setup.sql build/40_config.sql build/70_agents.sql
     rm -rf build/09_upgrade build/30_plugins
     unset BUILD_CONFIG_FILE
 }
@@ -104,7 +104,7 @@ teardown() {
 
     mkdir -p conf build/09_upgrade build/30_plugins
     echo "SELECT 'init';" > build/00_init.sql
-    echo "SELECT 'admin';" > build/10_admin.sql
+    echo "SELECT 'admin';" > build/80_admin.sql
     echo "SELECT 'setup';" > build/20_setup.sql
     echo "SELECT 'config';" > build/40_config.sql
     echo "SELECT 'agents';" > build/70_agents.sql

@@ -91,7 +91,7 @@ This gives DBAs full control over object naming before DSOA touches anything.
    ```bash
    cp build/00_init.sql conf/custom-init.sql
    # Optional: append admin setup
-   cat build/10_admin.sql >> conf/custom-init.sql
+   cat build/80_admin.sql >> conf/custom-init.sql
    ```
 
 1. Add a header to `conf/custom-init.sql` documenting your custom names:

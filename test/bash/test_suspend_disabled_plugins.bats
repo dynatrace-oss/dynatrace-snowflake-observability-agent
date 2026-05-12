@@ -30,7 +30,7 @@ CREATE TABLE snowpipes_table (id INT);
 --%:PLUGIN:snowpipes
 EOSQL
 
-    cat > build/10_admin.sql << 'EOSQL'
+    cat > build/80_admin.sql << 'EOSQL'
 CREATE ROLE IF NOT EXISTS DTAGENT_ADMIN;
 EOSQL
 
@@ -72,7 +72,7 @@ EOSQL
 
 teardown() {
     rm -f "$TEST_CONFIG_FILE" "$TEST_SQL_FILE"
-    rm -f build/00_init.sql build/10_admin.sql build/20_setup.sql build/40_config.sql build/70_agents.sql
+    rm -f build/00_init.sql build/80_admin.sql build/20_setup.sql build/40_config.sql build/70_agents.sql
     rm -rf build/09_upgrade build/30_plugins
     unset BUILD_CONFIG_FILE
 }
