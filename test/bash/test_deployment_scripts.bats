@@ -24,7 +24,7 @@ EOF
     # Create necessary build artifacts for deployment tests
     mkdir -p build/09_upgrade build/30_plugins conf
     echo "SELECT 'init';" > build/00_init.sql
-    echo "SELECT 'admin'; CREATE ROLE IF NOT EXISTS DTAGENT_ADMIN;" > build/10_admin.sql
+    echo "SELECT 'admin'; CREATE ROLE IF NOT EXISTS DTAGENT_ADMIN;" > build/80_admin.sql
     echo "SELECT 'setup'; CREATE SCHEMA IF NOT EXISTS MAIN_SCHEMA;" > build/20_setup.sql
     echo "SELECT 'config';" > build/40_config.sql
     echo "SELECT 'agents';" > build/70_agents.sql
@@ -42,7 +42,7 @@ EOF
 teardown() {
     rm -f "$TEST_CONFIG_FILE"
     rm -f conf/config-test.json conf/config-test.yml
-    rm -f build/00_init.sql build/10_admin.sql build/20_setup.sql build/40_config.sql build/70_agents.sql
+    rm -f build/00_init.sql build/80_admin.sql build/20_setup.sql build/40_config.sql build/70_agents.sql
     rm -rf build/09_upgrade build/30_plugins
     unset BUILD_CONFIG_FILE
 }
