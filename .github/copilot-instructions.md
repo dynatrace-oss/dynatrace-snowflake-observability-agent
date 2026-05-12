@@ -232,7 +232,9 @@ Four mandatory phases — do not skip or merge.
 
 **Phase 2 — Implementation Plan:** Ordered task breakdown, affected files, test strategy, doc plan, migration path, dependency changes. Store alongside proposal. Must be accepted before Phase 3.
 
-**Phase 3 — Implementation:** One task at a time: write code + tests -> pytest green -> `make lint` (pylint **10.00/10**) -> update docs -> commit. After all tasks: full suite + `make lint`, `build_docs.sh`, update `CHANGELOG.md` + `.context/devlog/<version>/<topic>.md`, open PR.
+**Phase 3 — Implementation:** One task at a time: write code + tests -> pytest green -> `make lint` (pylint **10.00/10**) -> update docs -> commit. After all tasks: full suite + `make lint`, `./scripts/dev/build.sh` (must pass), `./scripts/deploy/deploy.sh test-qa --scope=<relevant-scopes> --options=skip_confirm,dry_run` (dry-run must produce no errors), `build_docs.sh`, update `CHANGELOG.md` + `.context/devlog/<version>/<topic>.md`, open PR.
+
+> **MANDATORY build + deployment gate:** Every implementation MUST pass `./scripts/dev/build.sh` AND a dry-run deployment (`--options=skip_confirm,dry_run`) before being considered complete. Lint + tests alone are insufficient — SQL assembly errors, missing `##INSERT` references, and procedure signature conflicts only surface during build/deploy. Never skip this gate.
 
 **Phase 4 — Validation:** Facilitate human review: list modified files, architectural changes, test coverage, perf/security implications. Human validates correctness, architecture, tests, security, scope, docs.
 

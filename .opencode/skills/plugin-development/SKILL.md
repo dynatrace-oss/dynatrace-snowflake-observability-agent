@@ -556,8 +556,13 @@ Run `./scripts/dev/build_docs.sh` after documentation changes.
 
 ## Phase 7 — Build, Deploy, Validate
 
+> **MANDATORY gate:** Every plugin implementation MUST pass `./scripts/dev/build.sh` AND a
+> dry-run deployment before being considered complete. Lint + tests alone are insufficient —
+> SQL assembly errors, missing `##INSERT` references, and procedure signature conflicts only
+> surface during build/deploy. Never skip this gate.
+
 ```bash
-# 1. Build
+# 1. Build (MANDATORY — catches SQL assembly errors)
 ./scripts/dev/build.sh
 
 # 2. Run tests
@@ -566,14 +571,17 @@ Run `./scripts/dev/build_docs.sh` after documentation changes.
 # 3. Run full suite + lint
 .venv/bin/pytest && make lint
 
-# 4. Deploy to test-qa
+# 4. Dry-run deployment (MANDATORY — catches deploy-time errors before touching live env)
+./scripts/deploy/deploy.sh test-qa --scope=plugins,config --options=skip_confirm,dry_run
+
+# 5. Deploy to test-qa (after dry-run passes)
 ./scripts/deploy/deploy.sh test-qa --scope=plugins,config --options=skip_confirm
 
-# 5. Verify in Snowflake
+# 6. Verify in Snowflake
 # SHOW TASKS LIKE 'TASK_DTAGENT_{UPPER}%' IN SCHEMA DTAGENT_DB.APP;
 # CALL DTAGENT_DB.APP.DTAGENT(ARRAY_CONSTRUCT('{name}'));
 
-# 6. Verify in Dynatrace (DQL)
+# 7. Verify in Dynatrace (DQL)
 # fetch logs | filter db.system == "snowflake" | filter dsoa.run.context == "{name}"
 ```
 
