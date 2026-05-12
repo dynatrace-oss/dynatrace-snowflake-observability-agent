@@ -104,6 +104,23 @@ Verify both configs point to the same `dynatrace_tenant_address`. If they
 differ, warn the human — both environments must send data to the same tenant for
 comparison tiles to work.
 
+### 1f. Detect ORGADMIN availability
+
+Run silently. Stores whether the account has ORGADMIN access for Phase 3.5
+org_costs checks (C2.12-C2.14). If Snowflake is not yet reachable, default to
+`false` and re-check at the start of Phase 3.5.
+
+```bash
+snow sql -c snow_agent_dev-{CURR_TAG} \
+    --role DTAGENT_{CURR_TAG}_OWNER \
+    -q "SHOW ROLES LIKE 'ORGADMIN';" 2>/dev/null \
+  | grep -qc ORGADMIN && echo "HAS_ORGADMIN=true" || echo "HAS_ORGADMIN=false"
+```
+
+Store as `HAS_ORGADMIN` (`true` or `false`). Do **not** block Phase 1 on this
+check — it is informational only. If `false`, Phase 3.5 org_costs checks will
+record `SKIP (no ORGADMIN)` automatically.
+
 ### Phase 1 output
 
 Report the following before proceeding:
@@ -114,6 +131,7 @@ Previous version:  {PREV_VERSION}  (tag: {PREV_TAG},  env: DEV-{PREV_TAG})
 Dynatrace tenant:  {TENANT_ADDR}
 Config files:      conf/config-dev-{CURR_TAG}.yml  ✓
                    conf/config-dev-{PREV_TAG}.yml  ✓ / ⚠ missing
+ORGADMIN access:   {true / false}  (org_costs checks SKIP if false)
 ```
 
 Ask the human to confirm before proceeding to Phase 2.
@@ -218,23 +236,38 @@ YAML, remind the human to do so after the QA session.
 ## Phase 3.5 — Auto-Evaluation (AI runs DQL via MCP)
 
 Run **all** auto-evaluable tests using the `execute_dql` MCP tool **without
-waiting for the human**. Do not cap at 10 — run every test in this section.
-
-Due to the MCP rate limit (5 calls per 20 seconds), send tests in batches of 5
-with a brief pause between batches if needed.
+waiting for the human**. Due to the MCP rate limit (5 calls per 20 seconds),
+send tests in batches of 5 with a brief pause between batches if needed.
 
 **Substitutions:**
-- `DEV-{CURR_TAG}` → current deployment environment (e.g. `DEV-094`)
-- `DEV-{PREV_TAG}` → previous deployment environment (e.g. `DEV-093`)
+- `DEV-{CURR_TAG}` → current deployment environment (e.g. `DEV-095`)
+- `DEV-{PREV_TAG}` → previous deployment environment (e.g. `DEV-094`)
 - Default timeframe: `now()-24h` unless noted per test.
 
 Each test specifies a **DQL** and a **Pass condition**. Record each result as
 `PASS`, `FAIL`, or `SKIP` (with reason). Reference the matching checklist ID
 (e.g. C4.9) in the report.
 
+**Cowork mode:** When running with 4 parallel Claude sessions, assign batches to
+agents as follows:
+
+```
+Coordinator / ant-1  →  Batch 1 (core health, always runs first)
+ant-2 (after B8-B10) →  Batch 2 (additional metrics, logs, spans)
+ant-3                →  Batch 3 (events, active queries, shares, lifecycle)
+ant-4                →  Batch 4 (OpenPipeline, obfuscation, overload)
+```
+
+Start Batches 2-4 only after the coordinator confirms DEV-{CURR_TAG} telemetry
+is flowing (Phase 2 complete, at least one full agent cycle observed).
+
 ---
 
-### Should-be-empty checks (0 rows = PASS)
+### Batch 1 — Core health
+
+Run by coordinator (or sequentially if not using Cowork).
+
+#### Should-be-empty checks (0 rows = PASS)
 
 #### AE-C4.9 — No supportability.non_persisted_attribute_keys
 
@@ -458,12 +491,679 @@ is a FAIL. Record which warning types failed and their counts.
 
 ---
 
+---
+
+### Batch 2 — Additional metrics, logs, spans
+
+Run by eval-batch-1 (ant-2 after B8-B10) in Cowork mode, or sequentially after
+Batch 1 otherwise. All queries target `DEV-{CURR_TAG}` unless noted.
+
+#### AE-C1.1 — No Snowflake task execution failures
+
+```dql
+fetch bizevents
+| filter db.system == "snowflake"
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| filter dsoa.run.context == "self_monitoring"
+| filter dsoa.task.exec.status == "FAILED"
+| summarize count = count()
+```
+
+**Pass:** count == 0.
+
+#### AE-C2.2 — Metrics reported with deployment.environment
+
+```dql
+timeseries avg(snowflake.credits.quota), by: {deployment.environment}
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| summarize count = count()
+```
+
+**Pass:** count > 0.
+
+#### AE-C2.4 — Query time per table available (metrics)
+
+```dql
+timeseries avg(snowflake.time.total_elapsed),
+     by: { db.namespace, db.collection.name, deployment.environment}
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| summarize count = count()
+```
+
+**Pass:** count > 0.
+
+#### AE-C2.5 — Table volume tracked (rows)
+
+```dql
+timeseries { max_row_count = max(snowflake.data.rows) }
+      , by: { db.collection.name, deployment.environment }
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| summarize count = count()
+```
+
+**Pass:** count > 0. Prerequisite: `setup_test_data_volume_storage.sql` run.
+
+#### AE-C2.6 — Table volume tracked (size)
+
+```dql
+timeseries {avg(snowflake.data.rows), avg(snowflake.data.size)},
+        union: true,
+        by: { db.namespace, db.collection.name, deployment.environment }
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| summarize count = count()
+```
+
+**Pass:** count > 0.
+
+#### AE-C2.7 — Trust center metrics reported
+
+```dql
+timeseries max(snowflake.trust_center.findings), by: {deployment.environment}
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| summarize count = count()
+```
+
+**Pass:** count > 0.
+
+#### AE-C2.8 — Metrics for dynamic tables reported
+
+```dql
+timeseries {
+   avg(snowflake.table.dynamic.lag.mean)
+ , avg(snowflake.table.dynamic.lag.target.value)
+}, union:true
+ , by: {deployment.environment}
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| summarize count = count()
+```
+
+**Pass:** count > 0. (7-day timeframe recommended for dynamic table metrics.)
+
+#### AE-C2.11 — Metering metrics across ≥3 service types
+
+```dql
+timeseries sum(snowflake.credits.used), by:{snowflake.service.type}
+| summarize service_types = countDistinct(snowflake.service.type[])
+```
+
+**Pass:** service_types ≥ 3. Prerequisite: `setup_test_metering.sql` run.
+
+#### AE-C2.13 — Org costs: storage metrics (ORGADMIN required)
+
+**Skip if `HAS_ORGADMIN=false`.**
+
+```dql
+timeseries avg(snowflake.org.data.stored), by:{deployment.environment}
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| summarize count = count()
+```
+
+**Pass:** count > 0.
+
+#### AE-C2.14 — Org costs: billing capacity balance (ORGADMIN required)
+
+**Skip if `HAS_ORGADMIN=false`.**
+
+```dql
+timeseries avg(snowflake.org.billing.capacity_balance)
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| summarize count = count()
+```
+
+**Pass:** count > 0.
+
+#### AE-C3.1 — Queries with mismatched log/span coverage [SHOULD BE EMPTY]
+
+```dql
+fetch logs, scanLimitGBytes: -1
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| filter dsoa.run.context == "query_history"
+| summarize {qh_count = count(), timestamp = takeAny(timestamp)}, by: {snowflake.query.id}
+| append [
+  fetch logs, scanLimitGBytes: -1
+  | filter deployment.environment == "DEV-{CURR_TAG}"
+  | filter dsoa.run.context == "active_queries"
+  | sort timestamp asc
+  | summarize {aq_count = count(), timestamp = takeLast(timestamp)}, by: {snowflake.query.id}
+]
+| append [
+  fetch spans, scanLimitGBytes: -1
+  | filter deployment.environment == "DEV-{CURR_TAG}"
+  | filter dsoa.run.context == "query_history"
+  | summarize {sp_count = count(), sp_events = max(arraySize(span.events)), sp_events_added = max(snowagent.debug.span.events.added), timestamp = takeAny(start_time)}, by: {snowflake.query.id}
+]
+| summarize {qh_count=max(qh_count), aq_count=max(aq_count), sp_count=max(sp_count), sp_events=max(sp_events), sp_events_added=max(sp_events_added), timestamp=takeAny(timestamp)}, by:{snowflake.query.id}
+| fieldsAdd missing_data = isNull(aq_count) or (isNull(sp_count) xor isNull(qh_count)) or (qh_count != sp_count+sp_events and qh_count != sp_count+sp_events_added)
+| filterOut isNull(aq_count)
+| filter isNotNull(missing_data)
+| summarize count = count()
+```
+
+**Pass:** count == 0. Allow 2+ hours after deploy before evaluating.
+
+#### AE-C3.2 — Query time per table (logs)
+
+```dql
+fetch logs
+| filter db.system == "snowflake"
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| filter isNotNull(db.user) and isNotNull(db.collection.name) and isNotNull(snowflake.time.execution)
+| summarize count = count()
+```
+
+**Pass:** count > 0.
+
+#### AE-C3.3 — Logs for dynamic tables reported
+
+```dql
+fetch logs, from: now()-7d
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "dynamic_tables"
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| filter isNotNull(snowflake.table.dynamic.lag.target.value)
+| summarize count = count()
+```
+
+**Pass:** count > 0.
+
+#### AE-C3.4 — Event log entries reported (logs)
+
+```dql
+fetch logs
+| filter db.system == "snowflake"
+| filter contains(dsoa.run.context, "event_log")
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| summarize count = count()
+```
+
+**Pass:** count > 0.
+
+#### AE-C3.5 — Trust center status.message correctly set [COMPARE]
+
+```dql
+fetch logs
+| filter db.system == "snowflake"
+| filter dsoa.run.context == "trust_center"
+| filter in(deployment.environment, {"DEV-{PREV_TAG}", "DEV-{CURR_TAG}"})
+| summarize count = count(), by: {status.message, deployment.environment}
+| summarize rows = count()
+```
+
+**Pass:** rows > 0 (at least one status.message value is set).
+
+#### AE-C3.6 — Resource monitor warnings correct [COMPARE]
+
+```dql
+fetch logs
+| filter in(deployment.environment, {"DEV-{PREV_TAG}", "DEV-{CURR_TAG}"})
+| filter dsoa.run.context == "resource_monitors"
+| filter snowflake.warehouse.is_unmonitored
+| filter loglevel == "WARN"
+| summarize count = count(), by: {deployment.environment}
+```
+
+**Pass:** count > 0 for `DEV-{CURR_TAG}` (warnings fire when unmonitored warehouses exist).
+
+#### AE-C3.7 — Metering logs include service_type dimension
+
+```dql
+fetch logs
+| filter dsoa.run.plugin == "metering"
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| filter isNotNull(snowflake.service.type)
+| summarize count = count()
+```
+
+**Pass:** count > 0.
+
+#### AE-C4.1 — Query history spans reported
+
+```dql
+fetch spans
+| filter db.system == "snowflake"
+| filter in(deployment.environment, {"DEV-{PREV_TAG}", "DEV-{CURR_TAG}"})
+| filter dsoa.run.plugin == "query_history"
+| summarize count = count(), by: {deployment.environment}
+```
+
+**Pass:** count > 0 for `DEV-{CURR_TAG}`.
+
+#### AE-C4.2 — Query time per table (spans)
+
+```dql
+fetch spans
+| filter db.system == "snowflake"
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| filter isNotNull(db.user) and isNotNull(db.collection.name) and isNotNull(snowflake.time.execution)
+| summarize count = count()
+```
+
+**Pass:** count > 0.
+
+#### AE-C4.3 — Coverage of spans for query_history logs [SHOULD BE EMPTY]
+
+```dql
+fetch logs, from: now()-7d
+| filter db.system == "snowflake"
+| filter dsoa.run.context == "query_history"
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| summarize {logs_per_query = count()}, by: {snowflake.query.id}
+| append [
+  fetch spans, from: now()-7d
+  | filter db.system == "snowflake"
+  | filter dsoa.run.context == "query_history"
+  | filter deployment.environment == "DEV-{CURR_TAG}"
+  | fieldsAdd span_events_count = coalesce(arraySize(span.events), 0) + 1
+]
+| summarize {count_logs = sum(logs_per_query), count_events = sum(span_events_count)}, by: {snowflake.query.id}
+| filter count_events == 0 or count_events != count_logs
+| filter count_events < 2001
+| summarize count = count()
+```
+
+**Pass:** count == 0.
+
+#### AE-C4.5 — Event log entries reported (spans)
+
+```dql
+fetch spans
+| filter db.system == "snowflake"
+| filter dsoa.run.context == "event_log_spans"
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| summarize count = count()
+```
+
+**Pass:** count > 0.
+
+#### AE-C4.11 — task_history attempt is integer-typed
+
+```dql
+fetch spans
+| filter dsoa.run.plugin == "tasks"
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| filter isNotNull(snowflake.task.run.attempt)
+| fields snowflake.task.run.attempt
+| limit 5
+| summarize count = count()
+```
+
+**Pass:** count > 0 AND all `snowflake.task.run.attempt` values are numeric (not quoted strings). If the field is returned as a string (e.g., `"1"` instead of `1`), record as FAIL with the raw value.
+
+#### AE-C4.12 — serverless_tasks db.namespace is NULL not empty string [SHOULD BE EMPTY]
+
+```dql
+fetch logs
+| filter dsoa.run.context == "serverless_tasks"
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| filter db.namespace == ""
+| summarize count = count()
+```
+
+**Pass:** count == 0.
+
+---
+
+### Batch 3 — Events, active queries, shares, plugin lifecycle
+
+Run by eval-batch-2 (ant-3) in Cowork mode, or sequentially after Batch 2.
+
+#### AE-C5.2 — BizEvents sent by plugins
+
+```dql
+fetch bizevents
+| filter db.system == "snowflake"
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| filter dsoa.run.context == "self_monitoring"
+| summarize count = count(), by: {dsoa.task.name}
+| filter count == 0
+```
+
+**Pass:** 0 rows returned (every plugin has at least one BizEvent).
+
+#### AE-C5.3 — Self-monitoring BizEvents correlation
+
+```dql
+fetch bizevents
+| filter db.system == "snowflake"
+| filter dsoa.run.context == "self_monitoring"
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| summarize {count = count()}, by: {dsoa.task.exec.id, dsoa.task.name}
+| filter count != 2
+| summarize unpaired = count()
+```
+
+**Pass:** unpaired == 0 (every run has exactly one STARTED and one FINISHED BizEvent).
+
+#### AE-C5.6 — Data schemas plugin reports events
+
+```dql
+fetch events
+| filter dsoa.run.context == "data_schemas"
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| summarize count = count()
+```
+
+**Pass:** count > 0. Prerequisite: `setup_test_data_volume_storage.sql` run.
+
+#### AE-C5.10 — Resource monitor credit alert events
+
+```dql
+fetch events
+| filter dsoa.run.plugin == "resource_monitors"
+| filter event.kind == "CUSTOM_INFO"
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| summarize count = count()
+```
+
+**Pass:** count > 0 after running `setup_test_resource_monitor_alert.sql`.
+**Skip if:** simulation script was not run.
+
+#### AE-C6.1 — Long-running queries reported more than once
+
+```dql
+fetch logs
+| filter dsoa.run.context == "active_queries"
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| filter isNotNull(snowflake.query.id)
+| summarize {count = count()}, by: {snowflake.query.id}
+| filter count > 1
+| summarize multi_reported = count()
+```
+
+**Pass:** multi_reported > 0 (at least one query_id appears in more than one agent cycle).
+
+#### AE-C6.2 — RUNNING and SUCCESS statuses visible
+
+```dql
+fetch logs
+| filter dsoa.run.context == "active_queries"
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| filter isNotNull(snowflake.query.id)
+| summarize statuses = collectDistinct(snowflake.query.execution_status)
+```
+
+**Pass:** result contains both `"RUNNING"` and `"SUCCESS"` in the statuses list.
+
+#### AE-C6.3 — All statuses of active queries reported
+
+```dql
+fetch logs, from: now()-7d
+| filter dsoa.run.context == "active_queries"
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| summarize count = count(), by: {snowflake.query.execution_status}
+| sort count desc
+```
+
+**Pass:** At least 2 distinct status values are returned (e.g. RUNNING, SUCCESS).
+
+#### AE-C7.1 — Inbound and outbound shares reported (logs)
+
+```dql
+fetch logs
+| filter db.system == "snowflake"
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| filter in(dsoa.run.context, {"inbound_shares", "outbound_shares"})
+| summarize count = count(), by: {snowflake.share.kind}
+```
+
+**Pass:** rows returned for both `INBOUND` and `OUTBOUND` share kinds.
+Prerequisite: `setup_test_shares.sql` run.
+
+#### AE-C7.2 — Inbound and outbound shares reported (events)
+
+```dql
+fetch events
+| filter db.system == "snowflake"
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| filter dsoa.run.plugin == "shares"
+| summarize count = count()
+```
+
+**Pass:** count > 0.
+
+#### AE-C7.3 — Inbound shares with missing DB reported
+
+```dql
+fetch logs
+| filter db.system == "snowflake"
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| filter dsoa.run.context == "inbound_shares"
+| filter isNull(db.namespace)
+| summarize count = count()
+```
+
+**Pass:** count > 0 after running `setup_test_shares.sql` (which creates a share
+with a dropped/missing database).
+
+#### AE-C7.4 — Query count per user tracked
+
+```dql
+fetch spans
+| filter db.system == "snowflake"
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| filter isNotNull(db.user)
+| summarize user_count = countDistinct(db.user)
+```
+
+**Pass:** user_count > 0.
+
+#### AE-C8.1 — Disabled plugins produce no data [SHOULD BE EMPTY]
+
+Run **only** after a B8/B10 disabled-plugins deployment. Substitute the disabled
+plugin name for `{DISABLED_PLUGIN}` (e.g., `tasks`).
+
+```dql
+fetch logs
+| filter db.system == "snowflake"
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| filter dsoa.run.plugin == "{DISABLED_PLUGIN}"
+| filter dsoa.run.context != "self_monitoring"
+| filter timestamp > now()-15m
+| summarize count = count()
+```
+
+**Pass:** count == 0.
+**Skip if:** no disabled-plugins scenario was run.
+
+#### AE-C8.2 — Disabled plugins not in self_monitoring deployment [SHOULD BE EMPTY]
+
+Run **only** after a B10 deploy with `deploy_disabled_plugins: false`.
+
+```dql
+fetch bizevents
+| filter db.system == "snowflake"
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| filter dsoa.run.context == "self_monitoring"
+| filter dsoa.run.plugin == "{DISABLED_PLUGIN}"
+| filter timestamp > now()-30m
+| summarize count = count()
+```
+
+**Pass:** count == 0.
+**Skip if:** deploy_disabled_plugins scenario was not run.
+
+#### AE-C8.3 — Disabled plugin task suspended (no FINISHED events)
+
+Run after disabling a plugin with `--scope=config` redeploy.
+
+```dql
+fetch bizevents
+| filter db.system == "snowflake"
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| filter dsoa.run.context == "self_monitoring"
+| filter dsoa.task.exec.status == "FINISHED"
+| filter dsoa.run.plugin == "{DISABLED_PLUGIN}"
+| filter timestamp > now()-15m
+| summarize count = count()
+```
+
+**Pass:** count == 0.
+**Skip if:** B12 (disabled_by_default config redeploy) scenario was not run.
+
+#### AE-C8.4 — event_usage plugin deprecated, no new telemetry [SHOULD BE EMPTY]
+
+```dql
+fetch logs
+| filter dsoa.run.plugin == "event_usage"
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| summarize count = count()
+```
+
+**Pass:** count == 0 (metering plugin replaces event_usage as of 0.9.5).
+
+---
+
+### Batch 4 — OpenPipeline, obfuscation, overload
+
+Run by eval-batch-3 (ant-4) in Cowork mode, or sequentially after Batch 3.
+
+**Prerequisites for this batch:**
+- C9.x: OpenPipeline rules deployed (`deploy_dt_assets.sh --scope=openpipeline`),
+  `setup_test_openpipeline_traffic.sql` run, ~5-15 min for metric extraction
+- C10.x: `setup_test_query_obfuscation.sql` run, mode switches applied,
+  one agent cycle between each switch
+- C11.x: `setup_test_overload.sql` run, `max_entries` config value lowered
+
+#### AE-C9.1 — Failed login attempts metric
+
+```dql
+timeseries count(snowflake.login.attempts.failed), by:{deployment.environment}
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| summarize count = count()
+```
+
+**Pass:** count > 0.
+
+#### AE-C9.2 — Successful login attempts metric
+
+```dql
+timeseries count(snowflake.login.attempts.successful), by:{deployment.environment}
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| summarize count = count()
+```
+
+**Pass:** count > 0.
+
+#### AE-C9.3 — Total login attempts metric
+
+```dql
+timeseries count(snowflake.login.attempts.total), by:{deployment.environment}
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| summarize count = count()
+```
+
+**Pass:** count > 0.
+
+#### AE-C9.4 — Failed task runs metric
+
+```dql
+timeseries count(snowflake.task.run.failed), by:{deployment.environment}
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| summarize count = count()
+```
+
+**Pass:** count > 0.
+
+#### AE-C9.5 — Cancelled task runs metric
+
+```dql
+timeseries count(snowflake.task.run.cancelled), by:{deployment.environment}
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| summarize count = count()
+```
+
+**Pass:** count > 0.
+
+#### AE-C9.6 — Successful task runs metric
+
+```dql
+timeseries count(snowflake.task.run.successful), by:{deployment.environment}
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| summarize count = count()
+```
+
+**Pass:** count > 0.
+
+#### AE-C10.1 — Obfuscation mode: off — literal visible
+
+Requires `obfuscation_mode: off` config + agent cycle after `setup_test_query_obfuscation.sql`.
+
+```dql
+fetch spans
+| filter dsoa.run.context == "query_history"
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| filter contains(db.query.text, "'DSOA_OBFUSCATION_TEST'")
+| summarize count = count()
+```
+
+**Pass:** count > 0 (sentinel literal present in unobfuscated query text).
+
+#### AE-C10.2 — Obfuscation mode: literals — sentinel absent [SHOULD BE EMPTY]
+
+Requires `obfuscation_mode: literals` config + re-run of simulation + one agent cycle.
+Use a **narrow timeframe** (`now()-30m`) to target only post-switch spans.
+
+```dql
+fetch spans, from: now()-30m
+| filter dsoa.run.context == "query_history"
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| filter contains(db.query.text, "'DSOA_OBFUSCATION_TEST'")
+| summarize count = count()
+```
+
+**Pass:** count == 0 (literal is replaced by `?` in literals mode).
+
+#### AE-C10.3 — Obfuscation mode: full — no SQL keywords [SHOULD BE EMPTY]
+
+Requires `obfuscation_mode: full` config + re-run + one agent cycle. Use
+`now()-30m` timeframe to exclude pre-switch spans.
+
+```dql
+fetch spans, from: now()-30m
+| filter dsoa.run.context == "query_history"
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| filter matchesPhrase(db.query.text, "SELECT")
+| summarize count = count()
+```
+
+**Pass:** count == 0 (full obfuscation replaces entire query text with a hash).
+
+#### AE-C11.1 — max_entries cap enforced
+
+```dql
+fetch bizevents
+| filter dsoa.run.plugin == "query_history"
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| filter isNotNull(dsoa.acquisition.skipped_count)
+| summarize total_skipped = sum(dsoa.acquisition.skipped_count)
+```
+
+**Pass:** total_skipped > 0. Prerequisite: `setup_test_overload.sql` run and
+`max_entries` configured lower than generated row count.
+
+#### AE-C11.2 — Overload warning logged
+
+```dql
+fetch logs
+| filter dsoa.run.context == "self_monitoring"
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| filter loglevel == "WARN"
+| filter contains(content, "max_entries")
+| summarize count = count()
+```
+
+**Pass:** count > 0.
+
+---
+
 ### Auto-evaluation output
 
-After running all tests, present the results in a table using the checklist IDs:
+After running all batches, present the consolidated results table:
 
 ```text
 ## Auto-Evaluation Results — DEV-{CURR_TAG}
+
+### Batch 1 — Core health
 
 | Test    | Description                                      | Result    | Notes |
 |---------|--------------------------------------------------|-----------|-------|
@@ -481,10 +1181,76 @@ After running all tests, present the results in a table using the checklist IDs:
 | AE-C2.1 | Budget metrics reported                          | PASS/FAIL |       |
 | AE-C1.3 | No increase in dt.ingest.warnings (5% tolerance) | PASS/FAIL |       |
 
-Auto-evaluated: {N}/13 — {n} passed, {f} failed
+### Batch 2 — Additional metrics, logs, spans
+
+| Test     | Description                                     | Result    | Notes |
+|----------|-------------------------------------------------|-----------|-------|
+| AE-C1.1  | No task execution failures                      | PASS/FAIL |       |
+| AE-C2.2  | Metrics reported with deployment.environment    | PASS/FAIL |       |
+| AE-C2.4  | Query time per table (metrics)                  | PASS/FAIL |       |
+| AE-C2.5  | Table volume tracked (rows)                     | PASS/FAIL |       |
+| AE-C2.6  | Table volume tracked (size)                     | PASS/FAIL |       |
+| AE-C2.7  | Trust center metrics reported                   | PASS/FAIL |       |
+| AE-C2.8  | Dynamic table metrics reported                  | PASS/FAIL |       |
+| AE-C2.11 | Metering across >=3 service types               | PASS/FAIL |       |
+| AE-C2.13 | Org costs: storage metrics                      | PASS/FAIL/SKIP |  |
+| AE-C2.14 | Org costs: billing capacity balance             | PASS/FAIL/SKIP |  |
+| AE-C3.1  | No mismatched log/span coverage                 | PASS/FAIL |       |
+| AE-C3.2  | Query time per table (logs)                     | PASS/FAIL |       |
+| AE-C3.3  | Logs for dynamic tables reported                | PASS/FAIL |       |
+| AE-C3.4  | Event log entries (logs)                        | PASS/FAIL |       |
+| AE-C3.5  | Trust center status.message set                 | PASS/FAIL |       |
+| AE-C3.6  | Resource monitor warnings correct               | PASS/FAIL |       |
+| AE-C3.7  | Metering logs include service_type              | PASS/FAIL |       |
+| AE-C4.1  | Query history spans reported                    | PASS/FAIL |       |
+| AE-C4.2  | Query time per table (spans)                    | PASS/FAIL |       |
+| AE-C4.3  | Span coverage for query_history logs            | PASS/FAIL |       |
+| AE-C4.5  | Event log entries (spans)                       | PASS/FAIL |       |
+| AE-C4.11 | task_history attempt is integer-typed           | PASS/FAIL |       |
+| AE-C4.12 | serverless_tasks db.namespace null not empty    | PASS/FAIL |       |
+
+### Batch 3 — Events, active queries, shares, lifecycle
+
+| Test     | Description                                     | Result    | Notes |
+|----------|-------------------------------------------------|-----------|-------|
+| AE-C5.2  | BizEvents sent by all plugins                   | PASS/FAIL |       |
+| AE-C5.3  | Self-monitoring BizEvents paired                | PASS/FAIL |       |
+| AE-C5.6  | Data schemas plugin events reported             | PASS/FAIL |       |
+| AE-C5.10 | Resource monitor credit alert events            | PASS/FAIL/SKIP |  |
+| AE-C6.1  | Long-running queries reported > once            | PASS/FAIL |       |
+| AE-C6.2  | RUNNING and SUCCESS statuses visible            | PASS/FAIL |       |
+| AE-C6.3  | All active query statuses reported              | PASS/FAIL |       |
+| AE-C7.1  | Inbound/outbound shares (logs)                  | PASS/FAIL |       |
+| AE-C7.2  | Inbound/outbound shares (events)                | PASS/FAIL |       |
+| AE-C7.3  | Inbound shares with missing DB                  | PASS/FAIL |       |
+| AE-C7.4  | Query count per user tracked                    | PASS/FAIL |       |
+| AE-C8.1  | Disabled plugins produce no data                | PASS/FAIL/SKIP |  |
+| AE-C8.2  | Disabled plugins not in deployment              | PASS/FAIL/SKIP |  |
+| AE-C8.3  | Disabled plugin task suspended                  | PASS/FAIL/SKIP |  |
+| AE-C8.4  | event_usage deprecated, no telemetry            | PASS/FAIL |       |
+
+### Batch 4 — OpenPipeline, obfuscation, overload
+
+| Test     | Description                                     | Result    | Notes |
+|----------|-------------------------------------------------|-----------|-------|
+| AE-C9.1  | Failed login attempts metric                    | PASS/FAIL |       |
+| AE-C9.2  | Successful login attempts metric                | PASS/FAIL |       |
+| AE-C9.3  | Total login attempts metric                     | PASS/FAIL |       |
+| AE-C9.4  | Failed task runs metric                         | PASS/FAIL |       |
+| AE-C9.5  | Cancelled task runs metric                      | PASS/FAIL |       |
+| AE-C9.6  | Successful task runs metric                     | PASS/FAIL |       |
+| AE-C10.1 | Obfuscation mode: off — literal visible         | PASS/FAIL |       |
+| AE-C10.2 | Obfuscation mode: literals — sentinel absent    | PASS/FAIL |       |
+| AE-C10.3 | Obfuscation mode: full — no SQL keywords        | PASS/FAIL |       |
+| AE-C11.1 | max_entries cap enforced                        | PASS/FAIL |       |
+| AE-C11.2 | Overload warning logged                         | PASS/FAIL |       |
+
+Auto-evaluated: {N}/57 — {n} passed, {f} failed, {s} skipped
+  Batch 1: {n1}/13  Batch 2: {n2}/23  Batch 3: {n3}/15  Batch 4: {n4}/11
+  (Deferred: C2.15, C2.16, C4.13 — verify on next day / after data latency window)
 ```
 
-Include the full table in the Phase 5 markdown report.
+Include the full consolidated table in the Phase 5 markdown report.
 
 ---
 
@@ -530,19 +1296,22 @@ When a test fails:
 Generate the result summary table:
 
 ```text
-Section              | Pass | Fail | Skip | Total
----------------------|------|------|------|------
-A — Offline          |      |      |      |   5
-B — Deployment       |      |      |      |  10
-C1 — Data Volume     |      |      |      |   8
-C2 — Metrics         |      |      |      |   8
-C3 — Logs            |      |      |      |   6
-C4 — Spans           |      |      |      |   9
-C5 — Events          |      |      |      |   7
-C6 — Active Queries  |      |      |      |   4
-C7 — Shares          |      |      |      |   4
-C8 — Plugin Lifecycle|      |      |      |   2
-Total                |      |      |      |  63
+Section                  | Pass | Fail | Skip | Total
+-------------------------|------|------|------|------
+A — Offline              |      |      |      |  12
+B — Deployment           |      |      |      |  15
+C1 — Data Volume         |      |      |      |   8
+C2 — Metrics             |      |      |      |  16
+C3 — Logs                |      |      |      |   8
+C4 — Spans               |      |      |      |  13
+C5 — Events              |      |      |      |  10
+C6 — Active Queries      |      |      |      |   4
+C7 — Shares              |      |      |      |   4
+C8 — Plugin Lifecycle    |      |      |      |   4
+C9 — OpenPipeline        |      |      |      |   6
+C10 — Obfuscation        |      |      |      |   3
+C11 — Signal Protection  |      |      |      |   2
+Total                    |      |      |      | 105
 ```
 
 List all failed and skipped items with the human's notes.
@@ -573,35 +1342,37 @@ The report file must have the following structure:
 **Notebook:** [{NOTEBOOK_URL}]({NOTEBOOK_URL})
 **Environment:** DEV-{CURR_TAG} vs DEV-{PREV_TAG}
 **Tenant:** {TENANT_ADDR}
+**ORGADMIN:** {true / false}
 
 ## Signoff
 
-> DSOA {CURR_VERSION} QA — {DATE} — {PASS}/{TOTAL} items passed
+> DSOA {CURR_VERSION} QA — {DATE} — {PASS}/{TOTAL} items passed ({DEFERRED} deferred)
+> Deferred: C2.15, C2.16, C4.13 — re-verify after data latency window
 
 ## Auto-Evaluation (AI)
 
-| Test | Description                                          | Result |
-|------|------------------------------------------------------|--------|
-| AE-1 | No non_persisted_attribute_keys                      | ...    |
-...
+[Paste consolidated auto-eval table from Phase 3.5 here]
 
-Auto-evaluated: {N}/13 — {n} passed, {f} failed, {s} skipped
+Auto-evaluated: {N}/57 — {n} passed, {f} failed, {s} skipped
 
 ## Section Results
 
-| Section              | Pass | Fail | Skip | Total |
-|----------------------|------|------|------|-------|
-| A — Offline          |      |      |      |   5   |
-| B — Deployment       |      |      |      |  10   |
-| C1 — Data Volume     |      |      |      |   8   |
-| C2 — Metrics         |      |      |      |   8   |
-| C3 — Logs            |      |      |      |   6   |
-| C4 — Spans           |      |      |      |   9   |
-| C5 — Events          |      |      |      |   7   |
-| C6 — Active Queries  |      |      |      |   4   |
-| C7 — Shares          |      |      |      |   4   |
-| C8 — Plugin Lifecycle|      |      |      |   2   |
-| **Total**            |      |      |      | **63**|
+| Section                  | Pass | Fail | Skip | Total |
+|--------------------------|------|------|------|-------|
+| A — Offline              |      |      |      |  12   |
+| B — Deployment           |      |      |      |  15   |
+| C1 — Data Volume         |      |      |      |   8   |
+| C2 — Metrics             |      |      |      |  16   |
+| C3 — Logs                |      |      |      |   8   |
+| C4 — Spans               |      |      |      |  13   |
+| C5 — Events              |      |      |      |  10   |
+| C6 — Active Queries      |      |      |      |   4   |
+| C7 — Shares              |      |      |      |   4   |
+| C8 — Plugin Lifecycle    |      |      |      |   4   |
+| C9 — OpenPipeline        |      |      |      |   6   |
+| C10 — Obfuscation        |      |      |      |   3   |
+| C11 — Signal Protection  |      |      |      |   2   |
+| **Total**                |      |      |      | **105**|
 
 ## Failures and Skips
 
@@ -980,3 +1751,148 @@ that do not.
 
 - BCR-capable account: all four SQL checks pass + telemetry count > 0.
 - Pre-BCR account: steps 2–4 skipped (parameter absent), telemetry count > 0.
+
+#### B12 — `disabled_by_default: true` config-only redeploy (BDX-1944 / BDX-1905)
+
+From a B1 baseline (all plugins deployed and running):
+
+1. Add `plugins.disabled_by_default: true` to `conf/config-test-qa.yml`.
+
+2. **Config-only redeploy** (AI can run this):
+
+   ```bash
+   ./scripts/deploy/deploy.sh test-qa --scope=config --options=skip_confirm
+   ```
+
+3. **Verify ALL plugin tasks are suspended** — wait ~60 seconds then:
+
+   ```bash
+   snow sql -c snow_agent_test-qa \
+       --role DTAGENT_OWNER \
+       --database DTAGENT_DB \
+       --schema APP \
+       -q "SHOW TASKS IN DATABASE DTAGENT_DB;"
+   ```
+
+   **Expected:** Every `TASK_DTAGENT_*` task shows `state = suspended`.
+   Zero tasks should be in `started` state.
+
+4. **DQL confirmation** — wait for next scheduled task run (up to 5 min), then:
+
+   ```dql
+   fetch bizevents, from: now()-10m
+   | filter deployment.environment == "test-qa"
+   | filter dsoa.run.context == "self_monitoring"
+   | filter dsoa.task.exec.status == "STARTED"
+   | summarize count = count()
+   ```
+
+   **Expected:** count == 0 (no new task executions after suspension).
+
+5. Restore config (`plugins.disabled_by_default: false`) and run `--scope=config`
+   redeploy to resume tasks before the next scenario.
+
+**Pass criteria:** All tasks suspended after config-only redeploy; no new STARTED
+BizEvents within 10 minutes of suspension.
+
+---
+
+#### B13 — Interactive deploy wizard (BDX-1969)
+
+1. Move the existing config aside:
+
+   ```bash
+   mv conf/config-test-qa.yml conf/config-test-qa.yml.bak
+   ```
+
+2. Run the wizard with scripted stdin answers:
+
+   ```bash
+   echo -e "test-qa\nmy_account\nmy_user\nmy_warehouse\nmy_database\nmy_schema\nmy_tenant\nmy_token\n" \
+     | ./scripts/deploy/deploy.sh test-qa --interactive
+   ```
+
+   Adjust the echo values to match valid Snowflake and Dynatrace settings for
+   the test-qa account.
+
+3. **Verify config was generated:**
+
+   ```bash
+   test -f conf/config-test-qa.yml && yamllint conf/config-test-qa.yml \
+     && echo "PASS: config valid" || echo "FAIL: config missing or invalid"
+   ```
+
+4. **Verify deployment proceeds** — the wizard should call `deploy.sh` after
+   generating the config. Check that the deploy log shows no fatal errors.
+
+5. Restore original config:
+
+   ```bash
+   mv conf/config-test-qa.yml.bak conf/config-test-qa.yml
+   ```
+
+**Pass criteria:** Wizard generates a valid `yamllint`-passing config; deployment
+proceeds without fatal errors.
+
+---
+
+#### B14 — Non-admin deployment path (BDX-1992)
+
+Tests that `query_history` plugin still captures warehouse queries via the
+non-admin fallback when `roles.admin: "-"` is set.
+
+1. Set `roles.admin: "-"` in `conf/config-test-qa.yml` to disable admin role.
+
+2. **Full redeploy:**
+
+   ```bash
+   ./scripts/deploy/deploy.sh test-qa --scope=all --options=skip_confirm
+   ```
+
+3. **Trigger `query_history` manually:**
+
+   ```bash
+   snow sql -c snow_agent_test-qa \
+       --role DTAGENT_OWNER \
+       --warehouse DTAGENT_WH \
+       --database DTAGENT_DB \
+       --schema APP \
+       -q "CALL APP.DTAGENT(ARRAY_CONSTRUCT('query_history'));"
+   ```
+
+4. **Verify telemetry:**
+
+   ```dql
+   fetch spans, from: now()-15m
+   | filter deployment.environment == "test-qa"
+   | filter dsoa.run.plugin == "query_history"
+   | summarize count = count()
+   ```
+
+   **Expected:** count > 0 (non-admin path captures warehouse queries via
+   `P_MONITOR_WAREHOUSES` fallback procedure).
+
+5. Restore `roles.admin` to its original value and redeploy.
+
+**Pass criteria:** query_history telemetry > 0 when admin role is disabled.
+
+---
+
+#### B15 — Install completeness check (BDX-714)
+
+After a fresh B1 deployment:
+
+1. Run `--scope=verify`:
+
+   ```bash
+   ./scripts/deploy/deploy.sh test-qa --scope=verify --options=skip_confirm
+   ```
+
+2. **Verify output:**
+   - All expected Snowflake objects reported as present
+   - Installed version matches `src/dtagent/version.py` VERSION
+   - No "MISSING" or "MISMATCH" lines in output
+   - Exit code 0
+
+**Pass criteria:** `--scope=verify` exits 0 and reports all objects present with
+matching version.
