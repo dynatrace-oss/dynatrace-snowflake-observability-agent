@@ -50,6 +50,7 @@ DECLARE
     s_db_et               TEXT    DEFAULT '';
     s_view_sql            TEXT    DEFAULT '';
     a_db_patterns         ARRAY   DEFAULT ARRAY_CONSTRUCT();
+    a_filtered_dbs        ARRAY   DEFAULT ARRAY_CONSTRUCT();
 BEGIN
   show PARAMETERS like 'EVENT_TABLE' in ACCOUNT;
   select "value" into s_event_table_name from TABLE(result_scan(last_query_id()));
@@ -126,22 +127,24 @@ BEGIN
       -- read allow-list once; avoids repeated F_GET_CONFIG_VALUE calls inside the loop query
       a_db_patterns := DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE('plugins.event_log.databases', [])::ARRAY;
       SHOW DATABASES;
-      FOR db_row IN (
-          SELECT "name" AS DATABASE_NAME
-          FROM TABLE(RESULT_SCAN(LAST_QUERY_ID()))
-          WHERE (
-              -- no allow-list: check all visible databases
-              array_size(:a_db_patterns) = 0
-              -- allow-list set: only check databases matching at least one pattern
-              OR EXISTS (
-                SELECT 1
-                FROM TABLE(FLATTEN(:a_db_patterns)) f
-                WHERE "name" LIKE f.VALUE::varchar
+      -- Materialize before looping: RESULT_SCAN cursor field access (row.col) is unreliable in FOR loops.
+      a_filtered_dbs := COALESCE(
+          (
+              SELECT ARRAY_AGG("name"::TEXT)
+              FROM TABLE(RESULT_SCAN(LAST_QUERY_ID()))
+              WHERE (
+                  array_size(:a_db_patterns) = 0
+                  OR EXISTS (
+                      SELECT 1
+                      FROM TABLE(FLATTEN(:a_db_patterns)) f
+                      WHERE "name" LIKE f.VALUE::varchar
+                  )
               )
-            )
-          ORDER BY "name"
-      ) DO
-          s_db_name := db_row.DATABASE_NAME;
+          ),
+          ARRAY_CONSTRUCT()
+      );
+      FOR i_db IN 0 TO array_size(:a_filtered_dbs) - 1 DO
+          s_db_name := :a_filtered_dbs[i_db]::TEXT;
           s_db_et   := '';
 
           BEGIN
