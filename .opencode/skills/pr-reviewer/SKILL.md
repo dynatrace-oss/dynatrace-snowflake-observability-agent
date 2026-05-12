@@ -156,7 +156,7 @@ Beyond the existing comments, check for:
 - Backward compatibility concerns (procedure signature changes need upgrade
   scripts, see copilot-instructions §Anti-Patterns).
 - Copyright headers in new files.
-- `CHANGELOG.md` / `DEVLOG.md` updates where required.
+- `CHANGELOG.md` / devlog file updates where required.
 
 **Before concluding that something is broken or missing, consult the actual
 source files.** Do not flag issues based on the diff alone when the answer

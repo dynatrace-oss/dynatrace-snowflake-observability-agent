@@ -1,0 +1,9 @@
+# Ignore everything in .context/ by default
+*
+
+# Track the devlog directory (git-tracked, solves merge conflicts)
+!devlog/
+!devlog/**
+
+# Track this gitignore itself
+!.gitignore
