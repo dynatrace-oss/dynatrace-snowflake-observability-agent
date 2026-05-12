@@ -27,25 +27,22 @@ use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 create or replace view DTAGENT_DB.APP.V_ORG_DATA_TRANSFER_DAILY
 as
 select
-    USAGE_DATE                                                                      as TIMESTAMP,
+    extract(epoch_nanosecond from to_timestamp(usage_date))                         as TIMESTAMP,
     concat(
         'New Org Data Transfer Daily entry for ',
-        ACCOUNT_NAME
+        account_name
     )                                                                               as _MESSAGE,
     OBJECT_CONSTRUCT(
-        'snowflake.account.name',               ACCOUNT_NAME,
-        'snowflake.account.locator',            ACCOUNT_LOCATOR,
-        'snowflake.transfer.source.cloud',      SOURCE_CLOUD,
-        'snowflake.transfer.source.region',     SOURCE_REGION,
-        'snowflake.transfer.target.cloud',      TARGET_CLOUD,
-        'snowflake.transfer.target.region',     TARGET_REGION,
-        'snowflake.transfer.type',              TRANSFER_TYPE
+        'snowflake.account.name',               account_name,
+        'snowflake.account.locator',            account_locator,
+        'snowflake.account.region',             region,
+        'snowflake.service.type',               service_type,
+        'snowflake.organization.name',          organization_name
     )                                                                               as DIMENSIONS,
     OBJECT_CONSTRUCT(
-        'snowflake.organization.name',          ORGANIZATION_NAME
     )                                                                               as ATTRIBUTES,
     OBJECT_CONSTRUCT(
-        'snowflake.org.data.transferred',       BYTES_TRANSFERRED
+        'snowflake.org.data.transferred',       TB_TRANSFERED * 1024 * 1024 * 1024 * 1024
     )                                                                               as METRICS
 from SNOWFLAKE.ORGANIZATION_USAGE.DATA_TRANSFER_DAILY_HISTORY
 where

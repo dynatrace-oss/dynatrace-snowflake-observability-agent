@@ -77,3 +77,21 @@
 
 - `test/bash/test_config_full_replace.bats` — 5 tests verifying DELETE+INSERT pattern in `040_update_config.sql`.
 - `test/bash/test_suspend_disabled_plugins.bats` — 8 tests covering: no exclusions → no suspend SQL; single-task plugin; multi-task plugin (snowpipes); admin-task plugin (event_log); role context; scope independence (`plugins,agents`); deploy log output; teardown scope exclusion.
+
+## org_costs Plugin: Schema Alignment with ORGANIZATION_USAGE Views
+
+- **Root cause**: Three `org_costs` SQL views referenced Snowflake column names that do not exist in the actual `ORGANIZATION_USAGE.*_DAILY_HISTORY` tables:
+  - `V_ORG_METERING_DAILY` used `CREDITS_COMPUTE` and `CREDITS_CLOUD_SERVICES`; correct names are `CREDITS_USED_COMPUTE` and `CREDITS_USED_CLOUD_SERVICES`.
+  - `V_ORG_STORAGE_DAILY` used `STORAGE_TYPE` as the source column and mapped it to the `snowflake.storage.type` semantic key; the actual column is `SERVICE_TYPE` and the standard semantic key for this field is `snowflake.service.type`.
+  - `V_ORG_DATA_TRANSFER_DAILY` exposed per-transfer source/target cloud and region columns (`SOURCE_CLOUD`, `SOURCE_REGION`, `TARGET_CLOUD`, `TARGET_REGION`, `TRANSFER_TYPE`) that do not exist in `DATA_TRANSFER_DAILY_HISTORY`. The actual schema exposes `region`, `service_type`, and `organization_name` (lowercase). The metric value was stored as-is from `BYTES_TRANSFERRED` (non-existent); the correct column is `TB_TRANSFERED` (Snowflake spelling), requiring a `× 1024⁴` conversion to bytes.
+- **Fixes**:
+  - `051_v_org_metering_daily.sql`: corrected source column references for compute/cloud-services credits. Metric keys (`snowflake.org.credits.compute`, `snowflake.org.credits.cloud_services`) unchanged.
+  - `052_v_org_storage_daily.sql`: source column `STORAGE_TYPE` → `SERVICE_TYPE`; semantic key `snowflake.storage.type` → `snowflake.service.type` for consistency with other storage-context dimensions.
+  - `053_v_org_data_transfer_daily.sql`: replaced 5 stale transfer dimensions with `snowflake.account.region`, `snowflake.service.type`, `snowflake.organization.name` (moved from ATTRIBUTES to DIMENSIONS); added `extract(epoch_nanosecond from to_timestamp(usage_date))` for ns-precision timestamp consistency; added TB→bytes conversion.
+  - `051_v_metering_history.sql` (account-level metering): quoted `"ROWS"` to handle reserved-keyword conflict.
+  - `009_event_log_init.sql`: deferred `SETUP_EVENT_TABLE()` call out of the init phase (config not yet loaded at that point) into `UPDATE_EVENT_LOG_CONF()` where `discover_db_event_tables` is available.
+- **Semantic changes** (breaking for existing DQL queries):
+  - `org_costs_storage`: `snowflake.storage.type` → `snowflake.service.type`
+  - `org_costs_data_transfer`: `snowflake.transfer.{source,target}.{cloud,region}` and `snowflake.transfer.type` removed; `snowflake.account.region`, `snowflake.service.type`, `snowflake.organization.name` added as dimensions.
+- **Downstream artifacts updated**: `instruments-def.yml`, `org-costs-observability` dashboard DQL and readme, all affected mock test fixtures and expected results, `docs/SEMANTICS.md` (regenerated).
+- **Files changed**: `src/dtagent/plugins/org_costs.sql/051_v_org_metering_daily.sql`, `052_v_org_storage_daily.sql`, `053_v_org_data_transfer_daily.sql`, `src/dtagent/plugins/metering.sql/051_v_metering_history.sql`, `src/dtagent/plugins/event_log.sql/init/009_event_log_init.sql`, `src/dtagent/plugins/org_costs.config/instruments-def.yml`, `docs/dashboards/org-costs-observability/org-costs-observability.yml`, `docs/dashboards/org-costs-observability/readme.md`, `test/test_data/org_costs_{storage,data_transfer}.ndjson`, `test/test_results/test_org_costs/`, `test/test_results/test_org_billing_{usage_in_currency,remaining_balance}/`.

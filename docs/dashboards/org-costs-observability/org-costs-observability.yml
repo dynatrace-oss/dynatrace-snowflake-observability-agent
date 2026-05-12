@@ -455,9 +455,9 @@ tiles:
     type: data
     query: |-
       timeseries bytes = avg(snowflake.org.data.stored),
-        by: {snowflake.storage.type},
+        by: {snowflake.service.type},
         filter: in(deployment.environment, array($Accounts))
-      | summarize total = sum(arrayAvg(bytes)), by: {snowflake.storage.type}
+      | summarize total = sum(arrayAvg(bytes)), by: {snowflake.service.type}
     visualization: barChart
     visualizationSettings:
       chartSettings:
@@ -466,8 +466,8 @@ tiles:
           label: Storage
           isLabelVisible: true
         categoricalBarChartSettings:
-          categoryAxis: snowflake.storage.type
-          categoryAxisLabel: Storage Type
+          categoryAxis: snowflake.service.type
+          categoryAxisLabel: Service Type
           valueAxis: total
           valueAxisLabel: Storage
       thresholds: []
@@ -567,13 +567,13 @@ tiles:
       davisVisualization:
         isAvailable: true
   "10":
-    title: Transfer by Region
+    title: Transfer by Account / Region / Service
     type: data
     query: |-
       timeseries bytes = sum(snowflake.org.data.transferred),
-        by: {snowflake.transfer.source.cloud, snowflake.transfer.source.region, snowflake.transfer.target.cloud, snowflake.transfer.target.region},
+        by: {snowflake.account.name, snowflake.account.region, snowflake.service.type},
         filter: in(deployment.environment, array($Accounts))
-      | summarize total = sum(arrayAvg(bytes)), by: {snowflake.transfer.source.cloud, snowflake.transfer.source.region, snowflake.transfer.target.cloud, snowflake.transfer.target.region}
+      | summarize total = sum(arrayAvg(bytes)), by: {snowflake.account.name, snowflake.account.region, snowflake.service.type}
       | sort total desc
     visualization: table
     visualizationSettings:

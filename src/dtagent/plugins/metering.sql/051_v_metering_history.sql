@@ -40,7 +40,7 @@ select
         'snowflake.credits.used.compute',                     mh.CREDITS_USED_COMPUTE,
         'snowflake.credits.used.cloud_services',              mh.CREDITS_USED_CLOUD_SERVICES,
         'snowflake.metering.data.size',                       mh.BYTES,
-        'snowflake.metering.data.rows',                       mh.ROWS,
+        'snowflake.metering.data.rows',                       mh."ROWS",
         'snowflake.data.files',                               mh.FILES
     )                                                                           as METRICS
 from

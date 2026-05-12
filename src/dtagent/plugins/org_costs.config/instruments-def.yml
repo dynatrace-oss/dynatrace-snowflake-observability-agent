@@ -2,7 +2,6 @@ attributes:
   snowflake.account.locator:
     __context_names:
       - org_costs_metering
-      - org_costs_storage
     __example: ABC12345
     __description: The account locator identifier for the Snowflake account.
   snowflake.org.billing.contract_number:
@@ -14,7 +13,6 @@ attributes:
     __context_names:
       - org_costs_metering
       - org_costs_storage
-      - org_costs_data_transfer
       - org_billing_usage_in_currency
       - org_billing_remaining_balance
     __example: MYORG
@@ -37,47 +35,29 @@ dimensions:
       - org_billing_remaining_balance
     __example: ABC12345
     __description: The account locator identifier for the Snowflake account.
+  snowflake.account.region:
+    __context_names:
+      - org_costs_data_transfer
+    __example: US_EAST_1
+    __description: The cloud region of the Snowflake account performing the data transfer.
   snowflake.org.billing.currency:
     __context_names:
       - org_billing_usage_in_currency
     __example: USD
     __description: The currency in which billing usage amounts are denominated.
+  snowflake.organization.name:
+    __context_names:
+      - org_costs_data_transfer
+    __example: MYORG
+    __description: The name of the Snowflake organization (carried as dimension for data transfer).
   snowflake.service.type:
     __context_names:
       - org_costs_metering
+      - org_costs_storage
+      - org_costs_data_transfer
       - org_billing_usage_in_currency
     __example: WAREHOUSE_METERING
     __description: The Snowflake service type that consumed the credits.
-  snowflake.transfer.source.cloud:
-    __context_names:
-      - org_costs_data_transfer
-    __example: AWS
-    __description: The cloud provider of the data transfer source.
-  snowflake.transfer.source.region:
-    __context_names:
-      - org_costs_data_transfer
-    __example: US_EAST_1
-    __description: The region of the data transfer source.
-  snowflake.transfer.target.cloud:
-    __context_names:
-      - org_costs_data_transfer
-    __example: AZURE
-    __description: The cloud provider of the data transfer target.
-  snowflake.transfer.target.region:
-    __context_names:
-      - org_costs_data_transfer
-    __example: EAST_US_2
-    __description: The region of the data transfer target.
-  snowflake.storage.type:
-    __context_names:
-      - org_costs_storage
-    __example: STAGE
-    __description: The type of storage (e.g. STAGE, FAILSAFE, HYBRID_TABLE_STORAGE).
-  snowflake.transfer.type:
-    __context_names:
-      - org_costs_data_transfer
-    __example: EXTERNAL
-    __description: The type of data transfer (e.g. EXTERNAL).
 metrics:
   snowflake.org.billing.amount:
     __context_names:

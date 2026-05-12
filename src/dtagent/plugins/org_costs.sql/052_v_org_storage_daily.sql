@@ -35,7 +35,7 @@ select
     OBJECT_CONSTRUCT(
         'snowflake.account.name',           ACCOUNT_NAME,
         'snowflake.account.locator',        ACCOUNT_LOCATOR,
-        'snowflake.storage.type',           STORAGE_TYPE
+        'snowflake.service.type',           SERVICE_TYPE
     )                                                                               as DIMENSIONS,
     OBJECT_CONSTRUCT(
         'snowflake.organization.name',      ORGANIZATION_NAME

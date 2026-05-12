@@ -42,8 +42,8 @@ select
     )                                                                               as ATTRIBUTES,
     OBJECT_CONSTRUCT(
         'snowflake.org.credits.used',                       CREDITS_USED,
-        'snowflake.org.credits.compute',                    CREDITS_COMPUTE,
-        'snowflake.org.credits.cloud_services',             CREDITS_CLOUD_SERVICES,
+        'snowflake.org.credits.compute',                    CREDITS_USED_COMPUTE,
+        'snowflake.org.credits.cloud_services',             CREDITS_USED_CLOUD_SERVICES,
         'snowflake.org.credits.adjustment_cloud_services',  CREDITS_ADJUSTMENT_CLOUD_SERVICES
     )                                                                               as METRICS
 from SNOWFLAKE.ORGANIZATION_USAGE.METERING_DAILY_HISTORY
