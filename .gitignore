@@ -44,6 +44,7 @@ dynatrace-snowflake-observability-agent
 
 # === AI & Development Context ===
 .github/context/*
+.context/*
 .claude/settings.local.json
 *.heapsnapshot
 claude-prompts/*

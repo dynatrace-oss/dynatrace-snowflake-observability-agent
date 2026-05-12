@@ -113,14 +113,15 @@ Docs are a first-class deliverable. Run `./scripts/dev/build_docs.sh` after any 
 | New plugin | `docs/USECASES.md`, plugin `readme.md` + `config.md`, `instruments-def.yml` |
 | New metric/attribute | `instruments-def.yml`, `docs/SEMANTICS.md` |
 | Architecture change | `docs/ARCHITECTURE.md` |
-| New version / release | `docs/CHANGELOG.md` (user-facing), `docs/DEVLOG.md` (technical) |
+| New version / release | `docs/CHANGELOG.md` (user-facing), `.context/devlog/<version>/<topic>.md` (technical) |
 | Config change | `conf/config-template.yml`, plugin's `{name}-config.yml` |
 
-### CHANGELOG vs DEVLOG
+### CHANGELOG vs Development Log
 
-- **`docs/CHANGELOG.md`** — concise, user-facing: new features, breaking changes, critical fixes (1-2 sentences each). Reference `DEVLOG.md`.
-- **`docs/DEVLOG.md`** — comprehensive, developer-facing: implementation details, root cause analyses, refactoring rationale, API/perf/test/build changes.
-- Rule: user-visible changes -> both; internal-only changes -> DEVLOG only.
+- **`docs/CHANGELOG.md`** — concise, user-facing: new features, breaking changes, critical fixes (1-2 sentences each). Link to devlog entry.
+- **`.context/devlog/<version>/<topic>.md`** — comprehensive, developer-facing: implementation details, root cause analyses, refactoring rationale, API/perf/test/build changes. One file per feature/topic. Git-tracked (solves merge conflicts).
+- Rule: user-visible changes -> CHANGELOG + devlog file; internal-only changes -> devlog file only.
+- Naming: kebab-case topic file under version folder (e.g. `.context/devlog/0.9.6/new-feature.md`).
 
 ### Other requirements
 
@@ -219,7 +220,7 @@ resulting in a dashboard that returns `tiles: 0`.
 
 ## Gitignored Paths
 
-- `.github/context/` — private planning, proposals, roadmaps
+- `.context/` — private planning, proposals, roadmaps (symlinks only; devlog/ is git-tracked)
 - `conf/` — environment-specific configs
 - `test/credentials.yml` — live testing credentials
 
@@ -227,11 +228,11 @@ resulting in a dashboard that returns `tiles: 0`.
 
 Four mandatory phases — do not skip or merge.
 
-**Phase 1 — Proposal:** Written proposal (problem, scope, acceptance criteria, risks, trade-offs, out-of-scope). Store in `.github/context/proposals/`. Must be accepted before Phase 2.
+**Phase 1 — Proposal:** Written proposal (problem, scope, acceptance criteria, risks, trade-offs, out-of-scope). Store in `.context/proposals/`. Must be accepted before Phase 2.
 
 **Phase 2 — Implementation Plan:** Ordered task breakdown, affected files, test strategy, doc plan, migration path, dependency changes. Store alongside proposal. Must be accepted before Phase 3.
 
-**Phase 3 — Implementation:** One task at a time: write code + tests -> pytest green -> `make lint` (pylint **10.00/10**) -> update docs -> commit. After all tasks: full suite + `make lint`, `build_docs.sh`, update `CHANGELOG.md` + `DEVLOG.md`, open PR.
+**Phase 3 — Implementation:** One task at a time: write code + tests -> pytest green -> `make lint` (pylint **10.00/10**) -> update docs -> commit. After all tasks: full suite + `make lint`, `build_docs.sh`, update `CHANGELOG.md` + `.context/devlog/<version>/<topic>.md`, open PR.
 
 **Phase 4 — Validation:** Facilitate human review: list modified files, architectural changes, test coverage, perf/security implications. Human validates correctness, architecture, tests, security, scope, docs.
 

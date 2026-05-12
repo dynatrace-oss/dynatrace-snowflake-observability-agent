@@ -596,12 +596,13 @@ as
 
 **Customer impact when admin is off:** the grants are never applied. The plugin will emit **no telemetry** for the affected resource type, silently and without errors. You **must** document the manual grant alternative in the plugin's `config.md` with an IMPORTANT callout. Without this documentation, customers deploying without admin scope will see a silent monitoring gap with no explanation.
 
-#### Pattern B — Inline-with-fallback (required when the procedure is called inline from other SQL)
+#### Pattern B — Two-file-with-fallback (required when the procedure is called inline from other SQL)
 
-A no-op stub and its admin override live in the **same file**. The stub is always deployed. The admin override is wrapped in a `--%OPTION:dtagent_admin:` block immediately after the stub — `create or replace` ensures it overwrites the stub when admin scope is deployed. Inline callers always find the procedure and receive a graceful response.
+The no-op stub and the admin override live in **separate files**. The stub is always deployed via `30_plugins/`. The admin override lives in the plugin's `admin/` directory and is assembled into `80_admin.sql`, which runs **last** — after `30_plugins/` — so `create or replace` correctly overwrites the stub. Inline callers always find the procedure and receive a graceful response when admin scope is absent.
 
 ```sql
--- plugin/{name}.sql/051_p_do_something.sql  (stub + inline admin override, single file)
+-- plugin/{name}.sql/051_p_do_something.sql  (non-admin stub, always deployed via 30_plugins/)
+use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 create or replace procedure DTAGENT_DB.APP.P_DO_SOMETHING(arg VARCHAR)
 returns text
 language sql
@@ -614,9 +615,13 @@ begin
 end;
 $$;
 grant usage on procedure DTAGENT_DB.APP.P_DO_SOMETHING(VARCHAR) to role DTAGENT_VIEWER;
+```
 
+```sql
+-- plugin/{name}.sql/admin/051_p_do_something.sql  (admin override, deployed via 80_admin.sql — runs last)
 --%OPTION:dtagent_admin:
--- Admin version overwrites the stub above when dtagent_admin scope is enabled.
+use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
+-- Admin version: overwrites the stub above because 80_admin.sql runs after 30_plugins/.
 create or replace procedure DTAGENT_DB.APP.P_DO_SOMETHING(arg VARCHAR)
 returns text
 language sql
@@ -633,7 +638,7 @@ grant ownership on procedure DTAGENT_DB.APP.P_DO_SOMETHING(VARCHAR) to role DTAG
 --%:OPTION:dtagent_admin
 ```
 
-Reference implementation: `src/dtagent/plugins/shares.sql/051_p_grant_imported_privileges.sql`.
+Reference implementation: `src/dtagent/plugins/shares.sql/admin/051_p_grant_imported_privileges.sql`.
 
 #### Diagnostic helpers (exempt from the rule)
 
@@ -735,5 +740,5 @@ fetch logs
 - [ ] Build succeeds: `./scripts/dev/build.sh`
 - [ ] Lint passes: `make lint`
 - [ ] Documentation rebuilt: `./scripts/dev/build_docs.sh`
-- [ ] `CHANGELOG.md` and `DEVLOG.md` updated
+- [ ] `CHANGELOG.md` and `.context/devlog/<version>/<topic>.md` updated
 - [ ] Deployed and verified in Dynatrace

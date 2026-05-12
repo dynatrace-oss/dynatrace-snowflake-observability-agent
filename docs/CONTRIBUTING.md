@@ -298,7 +298,7 @@ Skills are consumed automatically by AI agents — no manual activation needed.
 - [ ] All tests pass (`pytest` and `./test/bash/run_tests.sh`)
 - [ ] Documentation updated where needed
 - [ ] User-facing changes in `docs/CHANGELOG.md`
-- [ ] Technical details in `docs/DEVLOG.md`
+- [ ] Technical details in `.context/devlog/<version>/<topic>.md`
 - [ ] `instruments-def.yml` defined and valid (if adding a plugin)
 - [ ] Use cases in `docs/USECASES.md` (if adding a plugin)
 - [ ] Code follows [Semantic Conventions](#semantic-conventions)

@@ -23,9 +23,9 @@
 --
 
 --
--- Non-admin stub: always deployed. Returns a guidance message when
--- DTAGENT_ADMIN scope is not installed, so inline callers degrade gracefully.
--- When admin scope IS installed, the block below overwrites this stub.
+-- Non-admin stub: always deployed. Returns a guidance message when admin scope
+-- is not installed, so inline callers degrade gracefully. When admin scope IS
+-- installed, admin/051_p_grant_imported_privileges.sql overwrites this stub.
 --
 use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 create or replace procedure DTAGENT_DB.APP.P_GRANT_IMPORTED_PRIVILEGES(db_name VARCHAR)
@@ -41,44 +41,6 @@ END;
 $$
 ;
 grant usage on procedure DTAGENT_DB.APP.P_GRANT_IMPORTED_PRIVILEGES(VARCHAR) to role DTAGENT_VIEWER;
-
---%OPTION:dtagent_admin:
---
--- Admin version: overwrites the stub above when dtagent_admin scope is enabled.
--- Executes as owner (DTAGENT_ADMIN) which holds MANAGE GRANTS on ACCOUNT,
--- allowing GRANT IMPORTED PRIVILEGES without caller needing elevated privileges.
---
--- !! Requires DTAGENT_ADMIN role (admin deployment scope) because
--- !! GRANT IMPORTED PRIVILEGES needs MANAGE GRANTS on ACCOUNT.
---
-use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
-
-create or replace procedure DTAGENT_DB.APP.P_GRANT_IMPORTED_PRIVILEGES(db_name VARCHAR)
-returns text
-language sql
-execute as owner  -- requires DTAGENT_ADMIN ownership; MANAGE GRANTS is held by DTAGENT_ADMIN, not the caller
-as
-$$
-DECLARE
-    v_db    TEXT DEFAULT '';
-BEGIN
-    v_db := UPPER(:db_name);
-    GRANT IMPORTED PRIVILEGES ON DATABASE IDENTIFIER(:v_db) TO ROLE DTAGENT_VIEWER;
-
-    RETURN 'imported privileges granted on ' || :v_db;
-EXCEPTION
-  when statement_error then
-    SYSTEM$LOG_WARN(SQLERRM);
-
-    return SQLERRM;
-END;
-$$
-;
-
-grant usage on procedure DTAGENT_DB.APP.P_GRANT_IMPORTED_PRIVILEGES(VARCHAR) to role DTAGENT_VIEWER;
-
-grant ownership on procedure DTAGENT_DB.APP.P_GRANT_IMPORTED_PRIVILEGES(VARCHAR) to role DTAGENT_ADMIN copy current grants;
---%:OPTION:dtagent_admin
 
 -- use role DTAGENT_OWNER;
 -- call DTAGENT_DB.APP.P_GET_SHARES();

@@ -496,7 +496,7 @@ The build process creates staged SQL scripts in the `build/` directory:
 
 - `00_init.sql` - Initialization scripts (database, roles, basic setup)
 - `09_upgrade/v*.sql` - Version-specific upgrade scripts
-- `10_admin.sql` - Administrative operations (role grants, ownership transfers)
+- `80_admin.sql` - Administrative operations (role grants, ownership transfers) — sorted last to deploy after all plugin files
 - `20_setup.sql` - Core setup (schemas, tables, procedures)
 - `30_plugins/*.sql` - Individual plugin definitions
 - `40_config.sql` - Configuration management
@@ -559,7 +559,7 @@ Administrative operations (requiring `DTAGENT_ADMIN` role when present, or manua
 - `src/dtagent.sql/admin/*.sql` - Core administrative operations
 - `src/dtagent/plugins/*.sql/admin/*.sql` - Plugin-specific administrative operations
 
-These files are compiled into `build/10_admin.sql` and deployed only when using `--scope=admin`. This ensures that:
+These files are compiled into `build/80_admin.sql` and deployed only when using `--scope=admin`. The `80_` prefix ensures admin deploys after all plugin files (`30_plugins/`), so admin procedures correctly overwrite non-admin stubs. This ensures that:
 
 1. The `DTAGENT_ADMIN` role is only created when explicitly needed
 2. Administrative privileges are only used in appropriate contexts

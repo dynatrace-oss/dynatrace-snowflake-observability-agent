@@ -28,8 +28,8 @@ EOF
     echo "-- Test init" > build/00_init.sql
     echo "SELECT 'init';" >> build/00_init.sql
 
-    echo "-- Test admin" > build/10_admin.sql
-    echo "SELECT 'admin';" >> build/10_admin.sql
+    echo "-- Test admin" > build/80_admin.sql
+    echo "SELECT 'admin';" >> build/80_admin.sql
 
     echo "-- Test setup" > build/20_setup.sql
     echo "SELECT 'setup';" >> build/20_setup.sql
@@ -49,7 +49,7 @@ EOF
 
 teardown() {
     rm -f "$TEST_CONFIG_FILE" "$TEST_SQL_FILE"
-    rm -f build/00_init.sql build/10_admin.sql build/20_setup.sql build/40_config.sql build/70_agents.sql
+    rm -f build/00_init.sql build/80_admin.sql build/20_setup.sql build/40_config.sql build/70_agents.sql
     rm -rf build/30_plugins build/09_upgrade
     unset BUILD_CONFIG_FILE DTAGENT_TOKEN
 }
