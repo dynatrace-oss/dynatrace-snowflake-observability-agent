@@ -1562,6 +1562,12 @@ silently ignored by Dynatrace; the rendered content comes from `markdown:`.
 
 # Run manual deploy flag tests (no Snowflake connection required)
 bash scripts/test/test_deploy_flags_manual.sh
+
+# Smoke test — verify all SQL generates cleanly without executing against Snowflake
+# make build -B forces a clean rebuild (ignores cached artifacts)
+# DTAGENT_TOKEN=x suppresses the interactive token prompt in update_secret.sh;
+#   the script detects the invalid format, warns, and skips the API key update — fine for smoke tests
+make build -B && DTAGENT_TOKEN=x ./scripts/deploy/deploy.sh --env=test-qa --scope=all --options=skip_confirm
 ```
 
 **CRITICAL — scope rules for AI-assisted deploys:**
@@ -1572,6 +1578,10 @@ bash scripts/test/test_deploy_flags_manual.sh
   `--scope=plugins,agents,config` instead for AI-run deploys on dev environments.
 - Always `build.sh` first if build artifacts are missing — deploy will error with
   `Build file missing: build/...`.
+- **Smoke test / SQL validation:** Use `make build -B` (force clean build) +
+  `DTAGENT_TOKEN=x` to suppress the interactive token prompt. The deploy runs
+  fully but skips the API key update in Snowflake — all SQL is generated and
+  executed, making this a sound end-to-end SQL sanity check.
 
 ### Deploy log monitoring
 
