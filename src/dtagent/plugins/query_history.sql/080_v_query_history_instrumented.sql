@@ -76,7 +76,7 @@ select
     OBJECT_CONSTRUCT(
         'db.query.text',                                            APP.F_OBFUSCATE_QUERY_TEXT(
                                                                         qh.query_text,
-                                                                        CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.obfuscation_mode', 'off')
+                                                                        CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.obfuscation_mode', TO_VARIANT('off'))
                                                                     ),
         'db.snowflake.tables',                                      qh.query_tables,
         'db.snowflake.views',                                       qh.query_views,
@@ -99,7 +99,7 @@ select
         'snowflake.error.code',                                     qh.error_code,
         'snowflake.error.message',                                  APP.F_OBFUSCATE_QUERY_TEXT(
                                                                         qh.error_message,
-                                                                        CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.obfuscation_mode', 'off')
+                                                                        CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.obfuscation_mode', TO_VARIANT('off'))
                                                                     ),
         'snowflake.session.start',                                  qh.created_on,
         'snowflake.session.closed_reason',                          qh.closed_reason,
