@@ -27,7 +27,7 @@ use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 create or replace view DTAGENT_DB.APP.V_ORG_METERING_DAILY
 as
 select
-    USAGE_DATE                                                                      as TIMESTAMP,
+    extract(epoch_nanosecond from to_timestamp(USAGE_DATE))                         as TIMESTAMP,
     concat(
         'New Org Metering Daily entry for ',
         ACCOUNT_NAME

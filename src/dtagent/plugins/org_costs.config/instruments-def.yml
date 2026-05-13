@@ -87,12 +87,12 @@ metrics:
     __description: On-demand consumption amount charged against the organization contract.
     displayName: Org Billing On-Demand Consumption
     unit: currency
-  snowflake.org.billing.overage:
+  snowflake.org.billing.marketplace_capacity_drawdown_balance:
     __context_names:
       - org_billing_remaining_balance
     __example: "0.0"
-    __description: Overage amount charged beyond contracted capacity.
-    displayName: Org Billing Overage
+    __description: Marketplace capacity drawdown balance charged against the organization contract.
+    displayName: Org Billing Marketplace Capacity Drawdown Balance
     unit: currency
   snowflake.org.billing.rollover_balance:
     __context_names:
