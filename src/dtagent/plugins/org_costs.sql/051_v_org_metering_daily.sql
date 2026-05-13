@@ -27,7 +27,7 @@ use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 create or replace view DTAGENT_DB.APP.V_ORG_METERING_DAILY
 as
 select
-    USAGE_DATE                                                                      as TIMESTAMP,
+    extract(epoch_nanosecond from to_timestamp(USAGE_DATE))                         as TIMESTAMP,
     concat(
         'New Org Metering Daily entry for ',
         ACCOUNT_NAME
@@ -42,8 +42,8 @@ select
     )                                                                               as ATTRIBUTES,
     OBJECT_CONSTRUCT(
         'snowflake.org.credits.used',                       CREDITS_USED,
-        'snowflake.org.credits.compute',                    CREDITS_COMPUTE,
-        'snowflake.org.credits.cloud_services',             CREDITS_CLOUD_SERVICES,
+        'snowflake.org.credits.compute',                    CREDITS_USED_COMPUTE,
+        'snowflake.org.credits.cloud_services',             CREDITS_USED_CLOUD_SERVICES,
         'snowflake.org.credits.adjustment_cloud_services',  CREDITS_ADJUSTMENT_CLOUD_SERVICES
     )                                                                               as METRICS
 from SNOWFLAKE.ORGANIZATION_USAGE.METERING_DAILY_HISTORY

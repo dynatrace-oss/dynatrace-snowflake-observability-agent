@@ -213,6 +213,10 @@ plugins:
 1. For **custom budgets**: configure `monitored_budgets` and run `P_GRANT_BUDGET_MONITORING()` (admin scope required), or grant privileges
    manually (see below).
 
+> **IMPORTANT**: When the `admin` scope is **not** installed, `APP.P_GRANT_BUDGET_MONITORING()` and its scheduling task are not deployed, so
+> custom budget grants are **never applied automatically**. The plugin will report **no telemetry for custom budgets** without any errors.
+> Customers must apply the grants below manually before going to production without admin scope.
+
 ### Granting access to custom budgets manually
 
 For each custom budget `<DB>.<SCHEMA>.<BUDGET_NAME>`, grant the following to `DTAGENT_VIEWER`:
@@ -553,6 +557,10 @@ plugins:
 > the elevated privileges of the `DTAGENT_ADMIN` role (created only when the `admin` scope is installed), via the
 > `APP.TASK_DTAGENT_DYNAMIC_TABLES_GRANTS` task. The schedule for this task can be configured separately using the
 > `PLUGINS.DYNAMIC_TABLES.SCHEDULE_GRANTS` configuration option.
+>
+> When the `admin` scope is **not** installed, these grants are **never applied automatically**. The plugin will report **no telemetry for
+> monitored dynamic tables** without any errors or warnings. You must apply the grants manually (see below) before going to production
+> without admin scope.
 
 The grant granularity is derived automatically from the `include` pattern:
 
@@ -1562,6 +1570,9 @@ configuration. Apart from reporting basic information on each share, as delivere
 By default, shares are monitored every 60 minutes. It is possible to exclude certain shares (or parts of them) from tracking detailed
 information.
 
+When the `admin` scope is installed, `DTAGENT_VIEWER` is automatically granted `IMPORTED PRIVILEGES` on inbound shared databases as needed.
+Without admin scope, this grant must be applied manually — see `config.md` for the required SQL and details.
+
 [Show semantics for this plugin](SEMANTICS.md#shares_semantics_sec)
 
 ### Shares default configuration
@@ -1586,6 +1597,31 @@ plugins:
       - events
       - biz_events
 ```
+
+> **IMPORTANT**: For this plugin to monitor inbound shares correctly, `DTAGENT_VIEWER` must have `IMPORTED PRIVILEGES` on each shared
+> database. By default, when the `admin` scope is installed, `APP.P_GRANT_IMPORTED_PRIVILEGES()` is called automatically whenever an inbound
+> share database cannot be queried — granting access on demand.
+>
+> When the `admin` scope is **not** installed, this grant is **never applied automatically**. The plugin will silently skip inbound share
+> table discovery for any shared database that `DTAGENT_VIEWER` cannot access — no errors, just missing data. You must grant manually for
+> each shared database before going to production without admin scope:
+>
+> ```sql
+> GRANT IMPORTED PRIVILEGES ON DATABASE <shared_database_name> TO ROLE DTAGENT_VIEWER;
+> ```
+>
+> Repeat for every inbound shared database your account has access to.
+
+## Configuration keys
+
+| Key                                      | Default                            | Description                                      |
+| ---------------------------------------- | ---------------------------------- | ------------------------------------------------ |
+| `plugins.shares.schedule`                | `USING CRON */30 * * * * UTC`      | Schedule for the shares collection task.         |
+| `plugins.shares.is_disabled`             | `false`                            | Set to `true` to disable this plugin entirely.   |
+| `plugins.shares.exclude_from_monitoring` | `[]`                               | Share names to exclude from detailed monitoring. |
+| `plugins.shares.exclude`                 | `[""]`                             | Object name patterns to exclude from tracking.   |
+| `plugins.shares.include`                 | `['%.%.%']`                        | Object name patterns to include in tracking.     |
+| `plugins.shares.telemetry`               | `["logs", "events", "biz_events"]` | Telemetry types to emit.                         |
 
 ### Shares Bill of Materials
 
@@ -1667,6 +1703,10 @@ plugins:
 > which is executed with the elevated privileges of the `DTAGENT_ADMIN` role (created only when the `admin` scope is installed), via the
 > `APP.TASK_DTAGENT_SNOWPIPES_GRANTS` task. The schedule for this task can be configured separately using the
 > `PLUGINS.SNOWPIPES.SCHEDULE_GRANTS` configuration option.
+>
+> When the `admin` scope is **not** installed, these grants are **never applied automatically**. The plugin will report **no telemetry for
+> monitored pipes** without any errors or warnings. You must apply the grants manually (see below) before going to production without admin
+> scope.
 
 The grant granularity is derived automatically from the `include` pattern:
 

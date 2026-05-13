@@ -56,7 +56,7 @@ plugin to be enabled and the Snowflake account to have `SNOWFLAKE.ORGANIZATION_U
 | Tile                         | Visualization | Metric / Query                                                      |
 |------------------------------|---------------|---------------------------------------------------------------------|
 | Storage Over Time by Account | lineChart     | `snowflake.org.data.stored` by `deployment.environment` (avg)       |
-| Storage by Type              | barChart      | `snowflake.org.data.stored` by `snowflake.storage.type` (sum)       |
+| Storage by Type              | barChart      | `snowflake.org.data.stored` by `snowflake.service.type` (sum)       |
 | Total Storage by Account     | table         | `snowflake.org.data.stored` by account (bytes unit)                 |
 
 ### §5 Data Transfer
@@ -64,7 +64,7 @@ plugin to be enabled and the Snowflake account to have `SNOWFLAKE.ORGANIZATION_U
 | Tile                          | Visualization | Metric / Query                                                      |
 |-------------------------------|---------------|---------------------------------------------------------------------|
 | Transfer Over Time by Account | lineChart     | `snowflake.org.data.transferred` by `deployment.environment`        |
-| Transfer by Region            | table         | `snowflake.org.data.transferred` by cloud/region                    |
+| Transfer by Account / Region  | table         | `snowflake.org.data.transferred` by account, region, service type   |
 
 ### §6 Billing & Contract Balance
 

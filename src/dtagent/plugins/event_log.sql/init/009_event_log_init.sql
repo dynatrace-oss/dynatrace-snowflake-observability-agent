@@ -214,7 +214,9 @@ END;
 $$
 ;
 
-call DTAGENT_DB.APP.SETUP_EVENT_TABLE();
+-- We don't call SETUP_EVENT_TABLE here as it depends on 'plugins.event_log.discover_db_event_tables' config which is not available in init.
+-- SETUP_EVENT_TABLE() is called later in the UPDATE_EVENT_LOG_CONF() procedure,
+-- which is executed as part of setup after all config functions are in place.
 
 
 --

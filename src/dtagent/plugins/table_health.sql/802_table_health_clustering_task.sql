@@ -33,10 +33,7 @@ create or replace task DTAGENT_DB.APP.TASK_DTAGENT_TABLE_HEALTH_CLUSTERING
     schedule = 'USING CRON 0 1,7,13,19 * * * UTC' -- every 6 hours at 01:00, 07:00, 13:00, 19:00 UTC
     allow_overlapping_execution = FALSE
 as
-begin
-    call DTAGENT_DB.APP.P_COLLECT_CLUSTERING_INFO();
     call DTAGENT_DB.APP.DTAGENT(ARRAY_CONSTRUCT('table_health:table_clustering'));
-end;
 
 grant ownership on task DTAGENT_DB.APP.TASK_DTAGENT_TABLE_HEALTH_CLUSTERING to role DTAGENT_VIEWER revoke current grants;
 grant operate, monitor on task DTAGENT_DB.APP.TASK_DTAGENT_TABLE_HEALTH_CLUSTERING to role DTAGENT_VIEWER;

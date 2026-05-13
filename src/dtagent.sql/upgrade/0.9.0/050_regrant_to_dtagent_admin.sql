@@ -24,7 +24,8 @@
 use role ACCOUNTADMIN;
 
 -- Grant ownership only if tables exist
-EXECUTE IMMEDIATE $$
+execute immediate
+$$
 declare
     table_list ARRAY := [
         'TMP_USERS',

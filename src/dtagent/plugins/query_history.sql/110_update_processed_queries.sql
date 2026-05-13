@@ -26,6 +26,10 @@
 -- and will log number of successfully analyzed and problematic ones in STATUS.PROCESSED_MEASUREMENTS_LOG
 --
 use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
+
+-- Drop old 4-arg overload to avoid "ambiguous overloading" errors on re-deploy without upgrade scope
+drop procedure if exists DTAGENT_DB.STATUS.UPDATE_PROCESSED_QUERIES(text, int, int);
+
 create or replace procedure DTAGENT_DB.STATUS.UPDATE_PROCESSED_QUERIES(
     query_ids text,
     processing_errors_count int,

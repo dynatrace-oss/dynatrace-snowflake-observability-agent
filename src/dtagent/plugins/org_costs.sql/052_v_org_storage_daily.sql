@@ -27,7 +27,7 @@ use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 create or replace view DTAGENT_DB.APP.V_ORG_STORAGE_DAILY
 as
 select
-    USAGE_DATE                                                                      as TIMESTAMP,
+    extract(epoch_nanosecond from to_timestamp(USAGE_DATE))                         as TIMESTAMP,
     concat(
         'New Org Storage Daily entry for ',
         ACCOUNT_NAME
@@ -35,7 +35,7 @@ select
     OBJECT_CONSTRUCT(
         'snowflake.account.name',           ACCOUNT_NAME,
         'snowflake.account.locator',        ACCOUNT_LOCATOR,
-        'snowflake.storage.type',           STORAGE_TYPE
+        'snowflake.service.type',           SERVICE_TYPE
     )                                                                               as DIMENSIONS,
     OBJECT_CONSTRUCT(
         'snowflake.organization.name',      ORGANIZATION_NAME

@@ -1,2 +1,5 @@
 # ignore agent definitions by default
 *.md
+
+# ship the canonical DSOA agent
+!dsoa-dev.md

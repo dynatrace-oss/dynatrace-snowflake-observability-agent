@@ -69,7 +69,7 @@ Runs every 6 hours (`USING CRON 0 */6 * * * UTC`). Source data has approximately
 | `snowflake.org.billing.rollover_balance` | currency | Remaining rollover balance |
 | `snowflake.org.billing.free_usage_balance` | currency | Remaining free usage balance |
 | `snowflake.org.billing.on_demand_consumption` | currency | On-demand consumption charged against contract |
-| `snowflake.org.billing.overage` | currency | Overage charged beyond contracted capacity |
+| `snowflake.org.billing.marketplace_capacity_drawdown_balance` | currency | Marketplace capacity drawdown balance charged against the contract |
 
 ## Enablement
 

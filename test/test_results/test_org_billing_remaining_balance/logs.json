@@ -57,7 +57,6 @@
     "snowflake.organization.name": "MYORG",
     "snowflake.account.name": "MYORG-ACCOUNT_A",
     "snowflake.account.locator": "ABC12345",
-    "snowflake.storage.type": "STAGE",
     "dsoa.run.plugin": "test_org_billing_remaining_balance",
     "dsoa.run.context": "org_costs_storage",
     "code.file.path": "/Users/sebastian.kruk/Development/hex/ant-3/snowagent/src/dtagent/otel/logs.py",
@@ -72,7 +71,8 @@
       "deployment.environment": "TEST",
       "host.name": "test.dsoa2025.snowflakecomputing.com",
       "telemetry.exporter.name": "dynatrace.snowagent"
-    }
+    },
+    "snowflake.service.type": "STAGE"
   },
   {
     "content": "New Org Storage Daily entry for MYORG-ACCOUNT_A",
@@ -80,7 +80,6 @@
     "snowflake.organization.name": "MYORG",
     "snowflake.account.name": "MYORG-ACCOUNT_A",
     "snowflake.account.locator": "ABC12345",
-    "snowflake.storage.type": "FAILSAFE",
     "dsoa.run.plugin": "test_org_billing_remaining_balance",
     "dsoa.run.context": "org_costs_storage",
     "code.file.path": "/Users/sebastian.kruk/Development/hex/ant-3/snowagent/src/dtagent/otel/logs.py",
@@ -95,7 +94,8 @@
       "deployment.environment": "TEST",
       "host.name": "test.dsoa2025.snowflakecomputing.com",
       "telemetry.exporter.name": "dynatrace.snowagent"
-    }
+    },
+    "snowflake.service.type": "FAILSAFE"
   },
   {
     "content": "New Org Data Transfer Daily entry for MYORG-ACCOUNT_A",
@@ -103,11 +103,6 @@
     "snowflake.organization.name": "MYORG",
     "snowflake.account.name": "MYORG-ACCOUNT_A",
     "snowflake.account.locator": "ABC12345",
-    "snowflake.transfer.source.cloud": "AWS",
-    "snowflake.transfer.source.region": "US_EAST_1",
-    "snowflake.transfer.target.cloud": "AWS",
-    "snowflake.transfer.target.region": "US_WEST_2",
-    "snowflake.transfer.type": "EXTERNAL",
     "dsoa.run.plugin": "test_org_billing_remaining_balance",
     "dsoa.run.context": "org_costs_data_transfer",
     "code.file.path": "/Users/sebastian.kruk/Development/hex/ant-3/snowagent/src/dtagent/otel/logs.py",
@@ -122,7 +117,9 @@
       "deployment.environment": "TEST",
       "host.name": "test.dsoa2025.snowflakecomputing.com",
       "telemetry.exporter.name": "dynatrace.snowagent"
-    }
+    },
+    "snowflake.account.region": "US_EAST_1",
+    "snowflake.service.type": "DATA_TRANSFER"
   },
   {
     "content": "New Org Data Transfer Daily entry for MYORG-ACCOUNT_A",
@@ -130,11 +127,6 @@
     "snowflake.organization.name": "MYORG",
     "snowflake.account.name": "MYORG-ACCOUNT_A",
     "snowflake.account.locator": "ABC12345",
-    "snowflake.transfer.source.cloud": "AWS",
-    "snowflake.transfer.source.region": "US_EAST_1",
-    "snowflake.transfer.target.cloud": "AZURE",
-    "snowflake.transfer.target.region": "EAST_US_2",
-    "snowflake.transfer.type": "EXTERNAL",
     "dsoa.run.plugin": "test_org_billing_remaining_balance",
     "dsoa.run.context": "org_costs_data_transfer",
     "code.file.path": "/Users/sebastian.kruk/Development/hex/ant-3/snowagent/src/dtagent/otel/logs.py",
@@ -149,7 +141,9 @@
       "deployment.environment": "TEST",
       "host.name": "test.dsoa2025.snowflakecomputing.com",
       "telemetry.exporter.name": "dynatrace.snowagent"
-    }
+    },
+    "snowflake.account.region": "US_EAST_1",
+    "snowflake.service.type": "DATA_TRANSFER"
   },
   {
     "content": "New Org Billing Usage in Currency entry for MYORG-ACCOUNT_A",
@@ -205,7 +199,7 @@
     "snowflake.org.billing.rollover_balance": 500.0,
     "snowflake.org.billing.free_usage_balance": 200.0,
     "snowflake.org.billing.on_demand_consumption": 100.0,
-    "snowflake.org.billing.overage": 0.0,
+    "snowflake.org.billing.marketplace_capacity_drawdown_balance": 0.0,
     "snowflake.organization.name": "MYORG",
     "snowflake.org.billing.contract_number": "CONTRACT-001",
     "snowflake.account.name": "MYORG-ACCOUNT_A",
@@ -232,7 +226,7 @@
     "snowflake.org.billing.rollover_balance": 300.0,
     "snowflake.org.billing.free_usage_balance": 150.0,
     "snowflake.org.billing.on_demand_consumption": 50.0,
-    "snowflake.org.billing.overage": 0.0,
+    "snowflake.org.billing.marketplace_capacity_drawdown_balance": 0.0,
     "snowflake.organization.name": "MYORG",
     "snowflake.org.billing.contract_number": "CONTRACT-001",
     "snowflake.account.name": "MYORG-ACCOUNT_B",

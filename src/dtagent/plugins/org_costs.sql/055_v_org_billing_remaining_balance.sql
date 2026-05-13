@@ -27,34 +27,33 @@ use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 create or replace view DTAGENT_DB.APP.V_ORG_BILLING_REMAINING_BALANCE
 as
 select
-    BALANCE_DATE                                                                    as TIMESTAMP,
+    extract(epoch_nanosecond from to_timestamp(DATE))                             as TIMESTAMP,
     concat(
         'New Org Billing Remaining Balance entry for ',
-        ACCOUNT_NAME
+        ORGANIZATION_NAME
     )                                                                               as _MESSAGE,
     OBJECT_CONSTRUCT(
-        'snowflake.account.name',           ACCOUNT_NAME,
-        'snowflake.account.locator',        ACCOUNT_LOCATOR
+        'snowflake.organization.name',      ORGANIZATION_NAME,
+        'snowflake.org.billing.currency',   CURRENCY
     )                                                                               as DIMENSIONS,
     OBJECT_CONSTRUCT(
-        'snowflake.organization.name',      ORGANIZATION_NAME,
         'snowflake.org.billing.contract_number', CONTRACT_NUMBER
     )                                                                               as ATTRIBUTES,
     OBJECT_CONSTRUCT(
-        'snowflake.org.billing.capacity_balance',       CAPACITY,
-        'snowflake.org.billing.rollover_balance',        ROLLOVER,
-        'snowflake.org.billing.free_usage_balance',      FREE_USAGE,
-        'snowflake.org.billing.on_demand_consumption',   ON_DEMAND_CONSUMPTION,
-        'snowflake.org.billing.overage',                 OVERAGE
+        'snowflake.org.billing.capacity_balance',                      CAPACITY_BALANCE,
+        'snowflake.org.billing.rollover_balance',                      ROLLOVER_BALANCE,
+        'snowflake.org.billing.free_usage_balance',                    FREE_USAGE_BALANCE,
+        'snowflake.org.billing.on_demand_consumption',                 ON_DEMAND_CONSUMPTION_BALANCE,
+        'snowflake.org.billing.marketplace_capacity_drawdown_balance', MARKETPLACE_CAPACITY_DRAWDOWN_BALANCE
     )                                                                               as METRICS
 from SNOWFLAKE.ORGANIZATION_USAGE.REMAINING_BALANCE_DAILY
 where
-    BALANCE_DATE >= DATEADD(
+    DATE >= DATEADD(
         HOUR,
         -1 * DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE('plugins.org_costs.lookback_hours', 48),
         CURRENT_TIMESTAMP()
     )
-order by BALANCE_DATE asc;
+order by DATE asc;
 
 grant select on view DTAGENT_DB.APP.V_ORG_BILLING_REMAINING_BALANCE to role DTAGENT_VIEWER;
 --%:PLUGIN:org_costs

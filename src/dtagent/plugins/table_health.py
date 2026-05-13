@@ -117,6 +117,8 @@ class TableHealthPlugin(Plugin):
 
         clustering_enabled = self._configuration.get(plugin_name="table_health", key="clustering_enabled", default_value=True)
         if clustering_enabled and (not contexts or "table_clustering" in contexts):
+            if run_proc:
+                self._session.call("APP.P_COLLECT_CLUSTERING_INFO", log_on_exception=True)
             clust_entries, clust_logs, clust_metrics, clust_events = self._log_entries(
                 f_entry_generator=lambda: self._get_table_rows("APP.V_TABLE_CLUSTERING"),
                 context_name="table_clustering",
@@ -133,6 +135,8 @@ class TableHealthPlugin(Plugin):
 
         history_retention_days = self._configuration.get(plugin_name="table_health", key="history_retention_days", default_value=0)
         if history_retention_days and history_retention_days > 0 and (not contexts or "table_health_derived" in contexts):
+            if run_proc:
+                self._session.call("APP.P_SNAPSHOT_TABLE_HEALTH", log_on_exception=True)
             derived_entries, derived_logs, derived_metrics, derived_events = self._log_entries(
                 f_entry_generator=lambda: self._get_table_rows("APP.V_TABLE_HEALTH_DERIVED"),
                 context_name="table_health_derived",
