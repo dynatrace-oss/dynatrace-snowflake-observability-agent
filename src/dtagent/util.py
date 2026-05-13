@@ -32,8 +32,6 @@ import re
 from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Union, Generator, Tuple
 
-import pandas as pd
-
 ##endregion COMPILE_REMOVE
 
 ##region --------------------------- HELPER FUNCTIONS ------------------------------------
@@ -43,6 +41,31 @@ _59_MINUTES_IN_SEC = 59 * 60
 _9_MINUTES_IN_SEC = 9 * 60
 EVENT_TIMESTAMP_KEYS_PAYLOAD_NAME = "snowflake.event.trigger"
 P_SELECT_QUERY = re.compile(r"^\s*(SELECT|SHOW\s+[^>]*->>\s*SELECT|CALL)", re.IGNORECASE | re.DOTALL)
+
+
+def _is_nan_or_none(v: Any) -> bool:
+    """Check if value is None, NaN, or NaT without pandas.
+
+    Uses IEEE 754 identity property: NaN != NaN is True for float NaN.
+    Falls back to the same trick for other types (e.g. pandas NaT).
+
+    Args:
+        v (Any): Value to check.
+
+    Returns:
+        bool: True if value is None, float NaN, or NaT-like; False otherwise.
+    """
+    if v is None:
+        return True
+    if isinstance(v, float):
+        return v != v  # pylint: disable=comparison-with-itself  # IEEE 754: NaN is the only value not equal to itself
+    if isinstance(v, (dict, list, str, int, bool, bytes)):
+        return False
+    # For datetime, Decimal, and other types — also catches pandas NaT
+    try:
+        return v != v  # pylint: disable=comparison-with-itself  # type: ignore[comparison-overlap]
+    except (TypeError, ValueError):
+        return False
 
 
 def _esc(v: Any) -> Any:
@@ -146,10 +169,15 @@ def _cleanup_data(value: Any) -> Any:
 def _pack_values_to_json_strings(value: Any, level: int = 0, max_list_level: int = 2) -> Union[Dict[str, str], List[str], str]:
     """Recursively convert all values in a dictionary to JSON strings.
 
+    At level 0 (dict), the filter step is merged into the packing loop to avoid
+    building an intermediate dict that is immediately discarded.
+
     Args:
-        value (Any): The original value, which can be a dictionary, list, or other types.
-        max_list_level (int, default = 2): Maximum nesting level on which list elements will be parsed separately.
-                                            If list is found further than this level, it will be stringified as a whole.
+        value (Any):                The original value, which can be a dictionary, list, or other types.
+        level (int):                Current recursion depth. Defaults to 0.
+        max_list_level (int):       Maximum nesting level on which list elements will be parsed separately.
+                                    If list is found further than this level, it will be stringified as a whole.
+                                    Defaults to 2.
 
     Returns:
         Union[Dict[str, str], List[str], str]: A new dictionary, list, or value with all values converted to JSON strings.
@@ -159,8 +187,8 @@ def _pack_values_to_json_strings(value: Any, level: int = 0, max_list_level: int
         return v is not None and v != {} and v != "{}" and v != [] and v != "[]"
 
     if isinstance(value, dict) and level == 0:
-        packed_dict = {k: _pack_values_to_json_strings(v, level + 1, max_list_level) for k, v in value.items()}
-        return {k: v for k, v in packed_dict.items() if __is_not_empty(v)}
+        # Single-pass: pack and filter empties in one dict comprehension
+        return {k: packed for k, v in value.items() if __is_not_empty(packed := _pack_values_to_json_strings(v, level + 1, max_list_level))}
     if isinstance(value, list) and level < max_list_level:
         packed_list = [_pack_values_to_json_strings(item, level + 1, max_list_level) for item in value]
         return [v for v in packed_list if __is_not_empty(v)]
@@ -207,15 +235,19 @@ def _clean_key(key: str) -> str:
 
 
 def _cleanup_dict(d: Any, skip_first_level_hidden=False, _in_list=False) -> Union[dict, list, str, None]:
-    """Cleans up given dictionary from any None or NaN values, and first level keys starting with _ if requested
+    """Cleans up given dictionary from any None or NaN values, and first level keys starting with _ if requested.
+
+    Single-pass implementation: builds the result dict without intermediate copies.
 
     Args:
-        d (any): The input data, which can be a dictionary, list, or any other type.
-        skip_first_level_hidden (bool, optional): If True, it skips keys starting with an underscore at the first level of the dictionary.
-                                                  Defaults to False.
+        d (Any):                            The input data, which can be a dictionary, list, or any other type.
+        skip_first_level_hidden (bool):     If True, skips keys starting with an underscore at the first level.
+                                            Defaults to False.
+        _in_list (bool):                    Internal flag indicating the value is inside a list (skips JSON parsing).
+                                            Defaults to False.
 
     Returns:
-        Union[dict, list]: _description_
+        Union[dict, list, str, None]: Cleaned value with None/NaN entries removed.
     """
 
     def __get_valid_json(json_string: str) -> Union[dict, list, None]:
@@ -229,18 +261,22 @@ def _cleanup_dict(d: Any, skip_first_level_hidden=False, _in_list=False) -> Unio
             return None
 
     if isinstance(d, dict):
-        return {
-            k: v
-            for k, v in {
-                k: _cleanup_dict(v)
-                for k, v in d.items()
-                # this is checking if v is not None, NaN, NaF, and not an empty dictionary
-                if not pd.isna(pd.Series(v)).all() and not (skip_first_level_hidden and k[0] == "_")
-            }.items()
-            if v is not None and v != {}
-        }
+        # Single-pass: filter NaN/None/hidden keys and clean values in one loop
+        result = {}
+        for k, v in d.items():
+            if skip_first_level_hidden and k[0] == "_":
+                continue
+            if _is_nan_or_none(v) or v == {} or v == []:
+                continue
+            cleaned = _cleanup_dict(v)
+            if cleaned is not None and cleaned != {} and cleaned != []:
+                result[k] = cleaned
+        return result
+
     if isinstance(d, list):
-        return [_cleanup_dict(i, _in_list=True) for i in d if not pd.isna(pd.Series(i)).all()]
+        result = [_cleanup_dict(i, _in_list=True) for i in d if not _is_nan_or_none(i) and i != {} and i != []]
+        return result if result else None
+
     if isinstance(d, str) and not _in_list:
         jd = __get_valid_json(d)
         if jd is not None:
@@ -578,7 +614,7 @@ def get_timestamp(query_data: Dict, ts_key: str, default_ts=None) -> Optional[in
         1707436800000000000
     """
     ts = query_data.get(ts_key, None)
-    if ts is not None and not pd.isna(ts):
+    if ts is not None and not _is_nan_or_none(ts):
         if isinstance(ts, datetime.datetime):
             ts = ensure_timezone_aware(ts)
             return int(ts.timestamp() * 1_000_000_000)  # Convert to nanoseconds

@@ -28,7 +28,9 @@
 
 get_value_by_name() {
   local KEY_PATH=$1
+  # shellcheck disable=SC2046,SC2154
   echo $(jq -r --arg PATH "$KEY_PATH" '.[] | select(.PATH == $PATH) | .VALUE' "$BUILD_CONFIG_FILE")
 }
 
+# shellcheck disable=SC2046
 echo $(get_value_by_name "$1")

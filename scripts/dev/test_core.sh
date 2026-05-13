@@ -37,7 +37,7 @@ fi
 iter_dir() {
     for file in test/$1/test_*.py; do
         echo $file
-        pytest -s -v $file > .logs/dtagent-$(basename $file)-$(date '+%Y%m%d-%H%M%S').log
+        pytest -s -v "$file" > ".logs/dtagent-$(basename "$file")-$(date '+%Y%m%d-%H%M%S').log"
         if [ $? -ne 0 ]; then
             exit 1
         fi

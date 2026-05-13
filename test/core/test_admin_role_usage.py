@@ -42,13 +42,29 @@ def find_sql_files(root_dir: str) -> dict[str, list[Path]]:
 
 
 def check_admin_role_usage(file_path: Path) -> list[tuple[int, str]]:
-    """Check for DTAGENT_ADMIN role usage or ownership grants to it."""
+    """Check for DTAGENT_ADMIN role usage or ownership grants to it.
+
+    Lines inside --%OPTION:dtagent_admin: blocks are intentionally skipped:
+    Pattern B procs (stub + admin override in same non-admin file) use OPTION blocks
+    to gate the admin version — this is valid and expected.
+    """
     violations = []
+    in_option_block = False
 
     with open(file_path, "r", encoding="utf-8") as f:
         for line_num, line in enumerate(f, 1):
+            stripped = line.strip()
+            if stripped.startswith("--%OPTION:dtagent_admin:"):
+                in_option_block = True
+                continue
+            if stripped.startswith("--%:OPTION:dtagent_admin"):
+                in_option_block = False
+                continue
+            if in_option_block:
+                continue
+
             # Skip comments
-            if line.strip().startswith("--"):
+            if stripped.startswith("--"):
                 continue
 
             # Check for USE ROLE DTAGENT_ADMIN
@@ -105,23 +121,23 @@ class TestAdminRoleUsage:
             pytest.skip("No admin SQL files found. This is valid - admin scope is optional.")
 
     def test_build_creates_admin_sql(self):
-        """Test that build process creates 10_admin.sql."""
-        admin_sql = Path(__file__).parent.parent.parent / "build" / "10_admin.sql"
+        """Test that build process creates 80_admin.sql (assembled last, after plugins)."""
+        admin_sql = Path(__file__).parent.parent.parent / "build" / "80_admin.sql"
 
         # Run build if file doesn't exist
         if not admin_sql.exists():
-            pytest.skip("build/10_admin.sql not found. Run build.sh first.")
+            pytest.skip("build/80_admin.sql not found. Run build.sh first.")
 
-        assert admin_sql.is_file(), "build/10_admin.sql should exist after build"
-        assert admin_sql.stat().st_size > 0, "build/10_admin.sql should not be empty"
+        assert admin_sql.is_file(), "build/80_admin.sql should exist after build"
+        assert admin_sql.stat().st_size > 0, "build/80_admin.sql should not be empty"
 
 
 class TestDeploymentScopes:
     """Test suite for deployment scope configuration and restrictions."""
 
     def test_all_scope_includes_admin_scripts(self):
-        """Test that 'all' scope in prepare_deploy_script.sh includes admin scripts (10_admin.sql).
-        This ensures complete deployment includes administrative setup when using 'all' scope.
+        """Test that 'all' scope in prepare_deploy_script.sh includes admin scripts (80_admin.sql).
+        Admin is assembled last so it correctly overwrites non-admin procedure stubs in 30_plugins/.
 
         Note: When deploying with 'all' scope, DTAGENT_ADMIN role will be created.
         Organizations can choose to deploy without 'admin' scope by using specific scope combinations.
@@ -140,11 +156,11 @@ class TestDeploymentScopes:
 
         sql_files = match.group(1)
 
-        # Check that 10_admin.sql is included
-        assert "10_admin.sql" in sql_files, f"'all' scope must include 10_admin.sql. Found: {sql_files}"
+        # Check that 80_admin.sql is included and listed last (ordering by sort, 80 > 70)
+        assert "80_admin.sql" in sql_files, f"'all' scope must include 80_admin.sql. Found: {sql_files}"
 
         # Also verify the expected files are present
-        expected_files = ["00_init.sql", "10_admin.sql", "20_setup.sql", "40_config.sql", "70_agents.sql"]
+        expected_files = ["00_init.sql", "80_admin.sql", "20_setup.sql", "40_config.sql", "70_agents.sql"]
         for expected_file in expected_files:
             assert expected_file in sql_files, f"'all' scope missing expected file: {expected_file}. Found: {sql_files}"
 
@@ -271,7 +287,7 @@ class TestDeploymentScopes:
                     error_msg += f"  Line {line_num}: {line}\n"
                 error_msg += "\n"
             error_msg += "DTAGENT_ADMIN (USE ROLE) should only be used in:\n"
-            error_msg += "  - admin scope (10_admin.sql) - optional scope\n"
+            error_msg += "  - admin scope (80_admin.sql) - optional scope\n"
             error_msg += "  - upgrade scope (09_upgrade/*.sql)\n"
             error_msg += "\nNote: Grants TO ROLE DTAGENT_ADMIN are allowed in any scope.\n"
             error_msg += "\nIMPORTANT: DTAGENT_ADMIN is an optional role. If admin scope is not deployed,\n"
@@ -373,7 +389,7 @@ class TestAccountAdminRoleUsage:
 
         return {
             "init": build_dir / "00_init.sql",
-            "admin": build_dir / "10_admin.sql",
+            "admin": build_dir / "80_admin.sql",
             "setup": build_dir / "20_setup.sql",
             "plugins": list((build_dir / "30_plugins").glob("*.sql")) if (build_dir / "30_plugins").exists() else [],
             "config": build_dir / "40_config.sql",
@@ -401,7 +417,7 @@ class TestAccountAdminRoleUsage:
         return violations
 
     def test_accountadmin_only_in_init_and_upgrade(self, build_sql_files):
-        """Test that ACCOUNTADMIN role is used only in init (00_init.sql), admin (10_admin.sql), and upgrade scripts.
+        """Test that ACCOUNTADMIN role is used only in init (00_init.sql), admin (80_admin.sql), and upgrade scripts.
         This ensures proper privilege separation and security boundaries.
 
         Note: admin scope requires ACCOUNTADMIN to create DTAGENT_ADMIN role and grant MANAGE GRANTS privilege.
@@ -432,7 +448,7 @@ class TestAccountAdminRoleUsage:
                 error_msg += "\n"
             error_msg += "\nACCOUNTADMIN should only be used in:\n"
             error_msg += "  - 00_init.sql (initialization)\n"
-            error_msg += "  - 10_admin.sql (admin role creation and grants)\n"
+            error_msg += "  - 80_admin.sql (admin role creation and grants)\n"
             error_msg += "  - 09_upgrade/*.sql (upgrade scripts)\n"
 
             pytest.fail(error_msg)
@@ -595,3 +611,142 @@ class TestDeploymentWithoutAdminScope:
         # This is a basic check that the script can handle scope combinations
         assert "setup" in script_content, "prepare_deploy_script.sh should support setup scope"
         assert "plugins" in script_content, "prepare_deploy_script.sh should support plugins scope"
+
+
+_OPTION_SPLITTER = re.compile(r"(--%OPTION:dtagent_admin:|--%:OPTION:dtagent_admin)")
+
+
+def _iter_admin_option_segments(content: str):
+    """Yield (segment_text, in_block) pairs split on OPTION markers.
+
+    Splitting on the markers themselves means block transitions are detected
+    regardless of whether the marker appears on its own line or mid-content.
+    """
+    parts = _OPTION_SPLITTER.split(content)
+    in_block = False
+    for part in parts:
+        if part == "--%OPTION:dtagent_admin:":
+            in_block = True
+        elif part == "--%:OPTION:dtagent_admin":
+            in_block = False
+        else:
+            yield part, in_block
+
+
+def _assert_balanced_option_tags(content: str, file_path: Path) -> None:
+    """Assert that every OPTION open tag has a matching close tag in the file."""
+    opens = content.count("--%OPTION:dtagent_admin:")
+    closes = content.count("--%:OPTION:dtagent_admin")
+    assert opens == closes, f"Unbalanced --%OPTION:dtagent_admin: tags in {file_path}: " f"{opens} open, {closes} close"
+
+
+def _collect_admin_option_procs_and_callers(sql_files: list[Path]) -> tuple[dict, set]:
+    """Scan source SQL files and return procs defined + proc names called inside dtagent_admin OPTION blocks."""
+    admin_procs: dict = {}  # proc_name (upper) -> list[str] of source file paths
+    admin_callers: set = set()  # proc names called via CALL inside admin OPTION blocks
+
+    for sql_file in sql_files:
+        content = sql_file.read_text(encoding="utf-8")
+        _assert_balanced_option_tags(content, sql_file)
+
+        for segment, in_block in _iter_admin_option_segments(content):
+            if not in_block:
+                continue
+
+            for line in segment.splitlines():
+                stripped = line.strip()
+
+                m = re.search(
+                    r"\bCREATE\s+OR\s+REPLACE\s+PROCEDURE\s+(?:DTAGENT_DB\.)?(?:APP\.)?(\w+)\b",
+                    stripped,
+                    re.IGNORECASE,
+                )
+                if m:
+                    name = m.group(1).upper()
+                    admin_procs.setdefault(name, []).append(str(sql_file))
+
+                # Intentionally matches commented-out CALLs: false positives preferred over false negatives.
+                m = re.search(
+                    r"\bCALL\s+(?:DTAGENT_DB\.)?(?:APP\.)?(\w+)\s*\(",
+                    stripped,
+                    re.IGNORECASE,
+                )
+                if m:
+                    admin_callers.add(m.group(1).upper())
+
+    return admin_procs, admin_callers
+
+
+def _collect_non_admin_procs(sql_files: list[Path]) -> set:
+    """Return proc names defined outside any dtagent_admin OPTION block (fallback stubs)."""
+    non_admin_procs: set = set()
+
+    for sql_file in sql_files:
+        content = sql_file.read_text(encoding="utf-8")
+        _assert_balanced_option_tags(content, sql_file)
+
+        for segment, in_block in _iter_admin_option_segments(content):
+            if in_block:
+                continue
+
+            for line in segment.splitlines():
+                stripped = line.strip()
+
+                m = re.search(
+                    r"\bCREATE\s+OR\s+REPLACE\s+PROCEDURE\s+(?:DTAGENT_DB\.)?(?:APP\.)?(\w+)\b",
+                    stripped,
+                    re.IGNORECASE,
+                )
+                if m:
+                    non_admin_procs.add(m.group(1).upper())
+
+    return non_admin_procs
+
+
+class TestAdminProcPattern:
+    """Every admin-scoped proc must follow Pattern A (admin task calls it) or Pattern B (fallback stub exists).
+
+    Pattern A — grant-on-schedule: proc + calling task both inside --%OPTION:dtagent_admin: block.
+        When admin off, neither object deploys; customers must apply grants manually.
+    Pattern B — two-file-with-fallback: a no-op stub lives in the plugin scope (30_plugins/); the
+        admin override lives in the plugin's admin/ directory (assembled into 80_admin.sql, which
+        runs last). Deployment ordering guarantees the admin version overwrites the stub correctly.
+        Inline callers receive a graceful response when admin scope is absent.
+
+    A proc that satisfies neither pattern is dangling: it exists when admin is on but nothing
+    calls it, and there is no fallback when admin is off.
+    """
+
+    def test_admin_procs_have_task_or_fallback(self):
+        """Test that every admin-scoped stored procedure follows Pattern A or Pattern B.
+
+        Pattern A: a CALL statement inside the same --%OPTION:dtagent_admin: scope references the proc.
+        Pattern B: a same-named CREATE OR REPLACE PROCEDURE exists outside any admin OPTION block.
+        """
+        src_dir = Path(__file__).parent.parent.parent / "src"
+        sql_files = [f for f in src_dir.rglob("*.sql") if not should_skip_sql_file(f)]
+
+        admin_procs, admin_callers = _collect_admin_option_procs_and_callers(sql_files)
+        non_admin_procs = _collect_non_admin_procs(sql_files)
+
+        violations = []
+        for proc_name, source_files in sorted(admin_procs.items()):
+            has_caller = proc_name in admin_callers  # Pattern A
+            has_fallback = proc_name in non_admin_procs  # Pattern B
+            if not has_caller and not has_fallback:
+                violations.append((proc_name, source_files))
+
+        if violations:
+            msg = (
+                "Admin-scoped stored procedures must follow Pattern A or Pattern B:\n"
+                "  Pattern A: an admin task inside the same --%OPTION:dtagent_admin: block calls the proc.\n"
+                "  Pattern B: a non-admin fallback stub with the same name exists outside the admin block.\n\n"
+                "Reference implementation for Pattern B: shares/admin/051_p_grant_imported_privileges.sql\n\n"
+                "Violations found:\n"
+            )
+            for proc_name, source_files in violations:
+                msg += f"\n  {proc_name}\n"
+                for sf in source_files:
+                    msg += f"    defined in: {sf}\n"
+                msg += "    → no admin CALL found AND no non-admin fallback stub\n"
+            pytest.fail(msg)

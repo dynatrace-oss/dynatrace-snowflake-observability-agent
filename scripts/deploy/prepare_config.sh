@@ -98,4 +98,5 @@ merge_yaml() {
 
 # Main function
 merged_config=$(merge_yaml "$@")
+# shellcheck disable=SC2154
 echo "$merged_config" | jq '.' > "$BUILD_CONFIG_FILE"

@@ -37,6 +37,13 @@ references:
     type: account
     privileges: MODIFY SESSION LOG LEVEL
     granted to: DTAGENT_VIEWER
+  - name: ACCOUNT
+    type: account
+    privileges: MODIFY LOG EVENT LEVEL
+    granted to: DTAGENT_VIEWER
+    comment: |
+      Granted only on accounts that support Snowflake BCR Bundle 2026_02+ (LOG_EVENT_LEVEL parameter).
+      On pre-BCR accounts this privilege is not available and the grant is skipped gracefully.
   - name: $event_table
     type: table
     privileges:

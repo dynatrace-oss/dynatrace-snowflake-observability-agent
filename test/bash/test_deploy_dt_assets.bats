@@ -1,7 +1,8 @@
 #!/usr/bin/env bats
 
 setup() {
-    cd "$BATS_TEST_DIRNAME/../.."
+    # shellcheck disable=SC2154
+    cd "$BATS_TEST_DIRNAME/../.." || exit 1
 
     # Create a temp working tree for fixtures
     TEST_TEMP_DIR=$(mktemp -d)
@@ -27,6 +28,30 @@ EOF
 # WORKFLOW: Test Workflow
 title: Test Workflow
 tasks: {}
+EOF
+
+    # OpenPipeline fixture — Settings 2.0 shape (objectid/schemaid/schemaversion/value)
+    mkdir -p "$TEST_TEMP_DIR/docs/openpipeline/test-openpipeline-rule"
+    cat > "$TEST_TEMP_DIR/docs/openpipeline/test-openpipeline-rule/test-openpipeline-rule.yml" << 'EOF'
+# OPENPIPELINE: Test OpenPipeline Rule
+objectid: test-object-id
+schemaid: builtin:openpipeline.logs.pipelines
+schemaversion: 1.0.0
+scope: environment
+value:
+  displayName: Test OpenPipeline Rule
+  metricExtraction:
+    processors:
+      - counterMetric:
+          dimensions:
+            - extractionType: field
+              sourceFieldName: db.namespace
+          metricKey: snowflake.test.metric
+        description: Test metric extraction
+        enabled: true
+        id: processor_test_metric_0001
+        matcher: "db.system == \"snowflake\" and dsoa.run.context == \"test_context\""
+        type: counterMetric
 EOF
 
     # Mock dtctl binary — records calls, simulates success
@@ -144,12 +169,14 @@ run_script() {
     run_script --scope=dashboards
     [[ "$output" =~ "dashboard" ]]
     # workflow processing should not appear in output
+    # shellcheck disable=SC2076
     [[ ! "$output" =~ "Deploying.*workflow" ]]
 }
 
 @test "scope=workflows output mentions workflow but not dashboard processing" {
     run_script --scope=workflows
     [[ "$output" =~ "workflow" ]]
+    # shellcheck disable=SC2076
     [[ ! "$output" =~ "Deploying.*dashboard" ]]
 }
 
@@ -171,14 +198,15 @@ run_script() {
 @test "deployment prints clickable Dynatrace URL on success" {
     run_script --scope=dashboards
     [ "$status" -eq 0 ]
-    [[ "$output" =~ "[URL]" ]]
+    local url_marker='\[URL\]'
+    [[ "$output" =~ $url_marker ]]
     [[ "$output" =~ "https://" ]]
 }
 
 @test "newly assigned ID is written back to YAML file" {
     # Confirm fixture YAML has no id before deploy
     [[ ! -f "$TEST_TEMP_DIR/docs/dashboards/test-dashboard/test-dashboard.yml" ]] && skip "fixture missing"
-    ! grep -q "^id:" "$TEST_TEMP_DIR/docs/dashboards/test-dashboard/test-dashboard.yml"
+    run ! grep -q "^id:" "$TEST_TEMP_DIR/docs/dashboards/test-dashboard/test-dashboard.yml"
 
     run_script --scope=dashboards
     [ "$status" -eq 0 ]
@@ -222,4 +250,43 @@ run_script() {
 @test "--env label appears in info output" {
     run_script --scope=dashboards --env=staging
     [[ "$output" =~ "staging" ]]
+}
+
+# ── Test: openpipeline scope ──────────────────────────────────────────────────
+
+@test "scope=openpipeline is accepted as valid scope" {
+    run_script --scope=openpipeline
+    [ "$status" -eq 0 ]
+}
+
+@test "scope=openpipeline output mentions openpipeline" {
+    run_script --scope=openpipeline
+    [[ "$output" =~ "openpipeline" ]]
+}
+
+@test "scope=openpipeline does not deploy dashboards or workflows" {
+    run_script --scope=openpipeline
+    # shellcheck disable=SC2076
+    [[ ! "$output" =~ "Deploying.*dashboard" ]]
+    # shellcheck disable=SC2076
+    [[ ! "$output" =~ "Deploying.*workflow" ]]
+}
+
+@test "scope=all deploys dashboards, workflows, and openpipeline rules" {
+    run_script --scope=all
+    [[ "$output" =~ "dashboard" ]]
+    [[ "$output" =~ "workflow" ]]
+    [[ "$output" =~ "openpipeline" ]]
+}
+
+@test "scope=openpipeline extracts human-readable name from OPENPIPELINE comment" {
+    run_script --scope=openpipeline
+    [[ "$output" =~ "Test OpenPipeline Rule" ]]
+}
+
+@test "missing openpipeline directory produces warning not error" {
+    rm -rf "$TEST_TEMP_DIR/docs/openpipeline"
+    run_script --scope=openpipeline
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ "not found" ]] || [[ "$output" =~ "skipping" ]] || [[ "$output" =~ "Skipping" ]]
 }

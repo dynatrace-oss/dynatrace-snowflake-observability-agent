@@ -1,0 +1,56 @@
+[
+  {
+    "content": "Metering",
+    "snowflake.credits.used": 2.345,
+    "snowflake.credits.used.compute": 1.89,
+    "snowflake.credits.used.cloud_services": 0.455,
+    "snowflake.metering.data.size": 0,
+    "snowflake.metering.data.rows": 0,
+    "snowflake.data.files": 0,
+    "snowflake.service.entity_id": 101,
+    "snowflake.service.type": "AUTO_CLUSTERING",
+    "snowflake.service.name": "MY_TABLE",
+    "dsoa.run.plugin": "test_metering",
+    "dsoa.run.context": "metering",
+    "code.file.path": "/snowagent/src/dtagent/otel/logs.py",
+    "code.function.name": "send_log",
+    "code.line.number": 205,
+    "resource_attributes": {
+      "db.system": "snowflake",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "service.name": "test.dsoa2025",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1"
+    }
+  },
+  {
+    "content": "Metering",
+    "snowflake.credits.used": 0.567,
+    "snowflake.credits.used.compute": 0.45,
+    "snowflake.credits.used.cloud_services": 0.117,
+    "snowflake.metering.data.size": 10485760,
+    "snowflake.metering.data.rows": 50000,
+    "snowflake.data.files": 120,
+    "snowflake.service.entity_id": 202,
+    "snowflake.service.type": "PIPE",
+    "snowflake.service.name": "MY_PIPE",
+    "dsoa.run.plugin": "test_metering",
+    "dsoa.run.context": "metering",
+    "code.file.path": "/snowagent/src/dtagent/otel/logs.py",
+    "code.function.name": "send_log",
+    "code.line.number": 205,
+    "resource_attributes": {
+      "db.system": "snowflake",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "service.name": "test.dsoa2025",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1"
+    }
+  }
+]

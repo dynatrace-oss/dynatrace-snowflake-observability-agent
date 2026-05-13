@@ -48,7 +48,9 @@ select
     end                                         as ATTRIBUTES,
     rc.METRICS                                  as METRICS,
     rc.is_parent                                as IS_PARENT,
-    rc.is_root                                  as IS_ROOT
+    rc.is_root                                  as IS_ROOT,
+    rc._PARENT_OTEL_SPAN_ID                     as _PARENT_OTEL_SPAN_ID,
+    rc._PARENT_OTEL_TRACE_ID                    as _PARENT_OTEL_TRACE_ID
 from      DTAGENT_DB.APP.TMP_RECENT_QUERIES rc
 left join DTAGENT_DB.APP.TMP_QUERY_OPERATOR_STATS qos
     using (QUERY_ID)

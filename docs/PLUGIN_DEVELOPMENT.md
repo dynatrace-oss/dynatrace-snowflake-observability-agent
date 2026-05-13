@@ -93,6 +93,7 @@ class {CamelCase}Plugin(Plugin):
     """{Name} plugin class."""
 
     PLUGIN_NAME = "{name}"
+    PLUGIN_CONTEXTS: tuple = ("{name}",)
 
     def process(self, run_id: str, run_proc: bool = True,
                 contexts: Optional[List[str]] = None) -> Dict[str, Dict[str, int]]:
@@ -127,6 +128,7 @@ Key requirements:
 
 - Class name: `{CamelCase}Plugin` inheriting `Plugin`
 - `PLUGIN_NAME` constant matching the file name
+- `PLUGIN_CONTEXTS` tuple listing every `context_name=` string used in `process()` (required — see [Context Declaration](#context-declaration))
 - `process()` method with the standard signature
 - For views: pass the view name directly to `_get_table_rows()`
 - For procedures: use `"SELECT * FROM TABLE(DTAGENT_DB.APP.F_{UPPER}_INSTRUMENTED())"`
@@ -145,7 +147,12 @@ use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 
 create or replace view DTAGENT_DB.APP.V_{UPPER}_INSTRUMENTED as
 with cte_source as (
-    select * from SNOWFLAKE.ACCOUNT_USAGE.SOME_VIEW
+    select                                              -- explicit columns (BCR-2275)
+        ENTITY_NAME,
+        DATABASE_NAME,
+        SCHEMA_NAME,
+        COMMENT
+    from SNOWFLAKE.ACCOUNT_USAGE.SOME_VIEW
     where DELETED is null
 )
 select
@@ -189,6 +196,7 @@ grant select on view DTAGENT_DB.APP.V_{UPPER}_INSTRUMENTED to role DTAGENT_VIEWE
 
 - ALL object names UPPERCASE (lowercase breaks custom-tag deployment)
 - Start with `use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;`
+- **Never use `SELECT *` when querying Snowflake system views** (`SNOWFLAKE.ACCOUNT_USAGE.*`, `SNOWFLAKE.INFORMATION_SCHEMA.*`) — always use explicit column lists. This protects against BCR-2275: Snowflake may add columns without notice, causing memory bloat, telemetry corruption, or view creation failures. `SELECT *` from DSOA's own views/tables is acceptable since we control those schemas.
 - Use `TIMESTAMP_LTZ` for timestamps
 - Use `object_construct()` for JSON columns
 - Grant `SELECT` on views / `USAGE` on procedures to `DTAGENT_VIEWER`
@@ -410,6 +418,32 @@ class Test{CamelCase}:
 
 ## Advanced Topics
 
+### Context Declaration
+
+Every plugin **must** declare `PLUGIN_CONTEXTS` as a class attribute listing the exact `context_name=` strings it passes to `_log_entries()` or `_process_span_rows()`. This registry enables test validation, documentation generation, and runtime warning for unknown contexts.
+
+**Single-context plugin:**
+
+```python
+class MyPlugin(Plugin):
+    PLUGIN_NAME = "my_plugin"
+    PLUGIN_CONTEXTS: tuple = ("my_plugin",)
+```
+
+**Multi-context plugin:**
+
+```python
+class SharesPlugin(Plugin):
+    PLUGIN_NAME = "shares"
+    PLUGIN_CONTEXTS: tuple = ("outbound_shares", "inbound_shares", "shares")
+```
+
+Rules:
+
+- Every string in `PLUGIN_CONTEXTS` must appear as a `context_name=` argument in `process()`.
+- Do **not** include `"self_monitoring"` — that context belongs to the base class.
+- Requesting an undeclared context at runtime logs a warning (does not raise).
+
 ### Multi-Context Plugins
 
 Plugins can process multiple data sources as separate contexts. Guard each context:
@@ -540,6 +574,76 @@ Never collapse a fine-grained exclude to DB-level only — this breaks the least
 
 For cross-plugin dependencies, wrap both column references AND join clauses. Test with the dependency both enabled and disabled.
 
+### Admin-Scoped Stored Procedures
+
+Every stored procedure defined inside a `--%OPTION:dtagent_admin:` block **must** follow one of two patterns. A static test (`TestAdminProcPattern.test_admin_procs_have_task_or_fallback`) enforces this on every CI run.
+
+#### Pattern A — Grant-on-schedule (preferred for privilege-granting procedures)
+
+Both the procedure and the task that calls it live inside the same `--%OPTION:dtagent_admin:` block. When admin scope is off, neither object is deployed — no orphaned tasks, no broken calls.
+
+```sql
+--%OPTION:dtagent_admin:
+create or replace procedure DTAGENT_DB.APP.P_GRANT_SOMETHING()
+-- ...
+
+create or replace task DTAGENT_DB.APP.TASK_DTAGENT_SOMETHING_GRANTS
+    schedule = '...'
+as
+    call DTAGENT_DB.APP.P_GRANT_SOMETHING();
+--%:OPTION:dtagent_admin
+```
+
+**Customer impact when admin is off:** the grants are never applied. The plugin will emit **no telemetry** for the affected resource type, silently and without errors. You **must** document the manual grant alternative in the plugin's `config.md` with an IMPORTANT callout. Without this documentation, customers deploying without admin scope will see a silent monitoring gap with no explanation.
+
+#### Pattern B — Two-file-with-fallback (required when the procedure is called inline from other SQL)
+
+The no-op stub and the admin override live in **separate files**. The stub is always deployed via `30_plugins/`. The admin override lives in the plugin's `admin/` directory and is assembled into `80_admin.sql`, which runs **last** — after `30_plugins/` — so `create or replace` correctly overwrites the stub. Inline callers always find the procedure and receive a graceful response when admin scope is absent.
+
+```sql
+-- plugin/{name}.sql/051_p_do_something.sql  (non-admin stub, always deployed via 30_plugins/)
+use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
+create or replace procedure DTAGENT_DB.APP.P_DO_SOMETHING(arg VARCHAR)
+returns text
+language sql
+execute as caller
+as
+$$
+begin
+    SYSTEM$LOG_WARN('P_DO_SOMETHING: requires DTAGENT_ADMIN scope; skipping for ' || :arg);
+    return 'skipped: DTAGENT_ADMIN scope not deployed';
+end;
+$$;
+grant usage on procedure DTAGENT_DB.APP.P_DO_SOMETHING(VARCHAR) to role DTAGENT_VIEWER;
+```
+
+```sql
+-- plugin/{name}.sql/admin/051_p_do_something.sql  (admin override, deployed via 80_admin.sql — runs last)
+--%OPTION:dtagent_admin:
+use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
+-- Admin version: overwrites the stub above because 80_admin.sql runs after 30_plugins/.
+create or replace procedure DTAGENT_DB.APP.P_DO_SOMETHING(arg VARCHAR)
+returns text
+language sql
+execute as owner  -- requires DTAGENT_ADMIN ownership; elevated privilege held by DTAGENT_ADMIN
+as
+$$
+begin
+    -- admin implementation here
+    return 'done';
+end;
+$$;
+grant usage on procedure DTAGENT_DB.APP.P_DO_SOMETHING(VARCHAR) to role DTAGENT_VIEWER;
+grant ownership on procedure DTAGENT_DB.APP.P_DO_SOMETHING(VARCHAR) to role DTAGENT_ADMIN copy current grants;
+--%:OPTION:dtagent_admin
+```
+
+Reference implementation: `src/dtagent/plugins/shares.sql/admin/051_p_grant_imported_privileges.sql`.
+
+#### Diagnostic helpers (exempt from the rule)
+
+Procedures intended for manual post-deployment verification are exempt. Use `--%PLUGIN:{name}:` instead of `--%OPTION:dtagent_admin:` so they deploy regardless of admin scope. No calling task is needed. Document them in the plugin's `config.md` as manually callable.
+
 ### Configuration Access
 
 In SQL:
@@ -620,7 +724,7 @@ fetch logs
 ## Checklist
 
 - [ ] Directory structure created (triad)
-- [ ] Python class inheriting `Plugin` with `PLUGIN_NAME` and `process()`
+- [ ] Python class inheriting `Plugin` with `PLUGIN_NAME`, `PLUGIN_CONTEXTS`, and `process()`
 - [ ] Instrumented SQL view (or procedure)
 - [ ] Task definition (`801_*.sql`)
 - [ ] Config update procedure (`901_*.sql`)
@@ -636,5 +740,5 @@ fetch logs
 - [ ] Build succeeds: `./scripts/dev/build.sh`
 - [ ] Lint passes: `make lint`
 - [ ] Documentation rebuilt: `./scripts/dev/build_docs.sh`
-- [ ] `CHANGELOG.md` and `DEVLOG.md` updated
+- [ ] `CHANGELOG.md` and `.context/devlog/<version>/<topic>.md` updated
 - [ ] Deployed and verified in Dynatrace

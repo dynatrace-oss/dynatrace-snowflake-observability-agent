@@ -92,10 +92,7 @@ chmod u+x package/*.sh
 VERSION=$(grep 'VERSION =' build/_version.py | awk -F'"' '{print $2}')
 
 # copying documentation
-cp -v INSTALL.md "Dynatrace-Snowflake-Observability-Agent-$VERSION.pdf" CHANGELOG.md Dynatrace-Snowflake-Observability-Agent-install.pdf package/
-
-# copying license file
-cp -v LICENSE package/
+cp -v INSTALL.md "Dynatrace-Snowflake-Observability-Agent-$VERSION.pdf" CHANGELOG.md Dynatrace-Snowflake-Observability-Agent-install.pdf LICENSE package/
 
 # copying the documentation
 mkdir -v -p package/docs
@@ -104,6 +101,17 @@ for dir in docs/*/; do
   archive_name="package/docs/$(basename "$dir").zip"
   (cd "$dir" && zip -r -1 "../../$archive_name" . -x ".*")
 done
+
+# copying deployment guides
+if [ -d "docs/deployment" ]; then
+  mkdir -v -p package/docs/deployment
+  cp -v docs/deployment/*.md package/docs/deployment/
+fi
+
+# copying GitHub Actions deployment template
+if [ -f ".github/workflows/dsoa-deploy-template.yml" ]; then
+  cp -v .github/workflows/dsoa-deploy-template.yml package/dsoa-deploy-template.yml
+fi
 
 # copying the Bill of Materials (BOM) files
 cp -v build/bom* package/docs
@@ -144,7 +152,7 @@ done
 # building a distribution zip
 BUILD=$(grep 'BUILD =' build/_version.py | awk '{print $3}')
 
-cd package
+cd package || exit 1
 zip -r -1 "../dynatrace_snowflake_observability_agent-$VERSION.$BUILD.zip" * -x .gitkeep
 cd ..
 

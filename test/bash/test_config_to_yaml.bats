@@ -4,7 +4,7 @@ setup() {
     CWD="$(pwd)"
     TEST_DIR="$(mktemp -d)"
     cp test/bash/test_object.json "$TEST_DIR"
-    cd "$TEST_DIR"
+    cd "$TEST_DIR" || exit 1
     git init
     git config init.defaultBranch main
     git config user.name "Test User"

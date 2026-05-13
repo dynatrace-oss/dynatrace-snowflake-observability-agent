@@ -1,0 +1,9 @@
+plugins:
+  metering:
+    lookback_hours: 6
+    schedule: USING CRON 0 * * * * UTC
+    is_disabled: false
+    telemetry:
+      - metrics
+      - logs
+      - biz_events

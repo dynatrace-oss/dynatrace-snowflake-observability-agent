@@ -29,22 +29,73 @@ use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 
 create or replace view APP.V_QUERY_HISTORY
 as
-with cte_queries_to_check as (
+with cte_include_warehouses as (
+    select distinct ci.VALUE::varchar as pattern
+    from CONFIG.CONFIGURATIONS c, table(flatten(c.VALUE)) ci
+    where c.PATH = 'plugins.query_history.include_warehouses'
+)
+, cte_exclude_warehouses as (
+    select distinct ce.VALUE::varchar as pattern
+    from CONFIG.CONFIGURATIONS c, table(flatten(c.VALUE)) ce
+    where c.PATH = 'plugins.query_history.exclude_warehouses'
+)
+, cte_include_databases as (
+    select distinct ci.VALUE::varchar as pattern
+    from CONFIG.CONFIGURATIONS c, table(flatten(c.VALUE)) ci
+    where c.PATH = 'plugins.query_history.include_databases'
+)
+, cte_exclude_databases as (
+    select distinct ce.VALUE::varchar as pattern
+    from CONFIG.CONFIGURATIONS c, table(flatten(c.VALUE)) ce
+    where c.PATH = 'plugins.query_history.exclude_databases'
+)
+, cte_include_users as (
+    select distinct ci.VALUE::varchar as pattern
+    from CONFIG.CONFIGURATIONS c, table(flatten(c.VALUE)) ci
+    where c.PATH = 'plugins.query_history.include_users'
+)
+, cte_exclude_users as (
+    select distinct ce.VALUE::varchar as pattern
+    from CONFIG.CONFIGURATIONS c, table(flatten(c.VALUE)) ce
+    where c.PATH = 'plugins.query_history.exclude_users'
+)
+, cte_queries_to_check as (
     select
         qh.query_id,
         qh.start_time,
         qh.end_time,
-        qh.session_id
+        qh.session_id,
+        qh.warehouse_name,
+        qh.database_name,
+        qh.user_name
     from
         SNOWFLAKE.ACCOUNT_USAGE.QUERY_HISTORY qh
     where
-        qh.end_time >= timeadd(minute, -120, current_timestamp)
+        qh.end_time >= greatest(
+            coalesce(
+                (select max(LAST_TIMESTAMP) from STATUS.PROCESSED_MEASUREMENTS_LOG where MEASUREMENTS_SOURCE = 'query_history'),
+                timeadd(minute, -CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.max_lookback_minutes', 120)::int, current_timestamp)
+            ),
+            timeadd(minute, -CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.max_lookback_minutes', 120)::int, current_timestamp)
+        )
     and qh.query_text is not null
     and qh.query_id not in (
             select query_id
             from STATUS.PROCESSED_QUERIES_CACHE
             where processed_time is not null
         )
+    and ((select count(*) from cte_include_warehouses) = 0
+         or qh.warehouse_name LIKE ANY (select pattern from cte_include_warehouses))
+    and ((select count(*) from cte_exclude_warehouses) = 0
+         or not qh.warehouse_name LIKE ANY (select pattern from cte_exclude_warehouses))
+    and ((select count(*) from cte_include_databases) = 0
+         or qh.database_name LIKE ANY (select pattern from cte_include_databases))
+    and ((select count(*) from cte_exclude_databases) = 0
+         or not qh.database_name LIKE ANY (select pattern from cte_exclude_databases))
+    and ((select count(*) from cte_include_users) = 0
+         or qh.user_name LIKE ANY (select pattern from cte_include_users))
+    and ((select count(*) from cte_exclude_users) = 0
+         or not qh.user_name LIKE ANY (select pattern from cte_exclude_users))
 )
 , cte_access_history as (
     select
@@ -64,7 +115,25 @@ with cte_queries_to_check as (
                 array_agg(
                     split_part(v.VALUE:objectName::varchar, '.', 1)::variant)
             )
-        )                                                                       as query_dbs
+        )                                                                       as query_dbs,
+        -- EXPERIMENTAL: DDL change attribution from ACCESS_HISTORY.OBJECT_MODIFIED_BY_DDL.
+        -- Only populated when plugins.query_history.track_ddl_changes=true AND Snowflake
+        -- recorded a structured DDL payload for the query. NULL otherwise (no extra rows added).
+        CASE WHEN CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.track_ddl_changes', FALSE)::boolean
+             THEN any_value(ah.object_modified_by_ddl:"objectDomain"::varchar)  END
+                                                                                as ddl_target_domain,
+        CASE WHEN CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.track_ddl_changes', FALSE)::boolean
+             THEN any_value(ah.object_modified_by_ddl:"objectId"::varchar)      END
+                                                                                as ddl_target_id,
+        CASE WHEN CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.track_ddl_changes', FALSE)::boolean
+             THEN any_value(ah.object_modified_by_ddl:"objectName"::varchar)    END
+                                                                                as ddl_target_name,
+        CASE WHEN CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.track_ddl_changes', FALSE)::boolean
+             THEN any_value(ah.object_modified_by_ddl:"operationType"::varchar) END
+                                                                                as ddl_operation,
+        CASE WHEN CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.track_ddl_changes', FALSE)::boolean
+             THEN any_value(ah.object_modified_by_ddl:"properties")             END
+                                                                                as ddl_properties
     from
         SNOWFLAKE.ACCOUNT_USAGE.ACCESS_HISTORY      ah
     inner join
@@ -121,6 +190,15 @@ select
     ah.query_dbs,
     ah.query_tables,
     ah.query_views,
+
+    -- EXPERIMENTAL DDL change attribution columns (NULL unless track_ddl_changes=true
+    -- AND ACCESS_HISTORY.OBJECT_MODIFIED_BY_DDL is populated for this query_id).
+    ah.ddl_target_domain,
+    ah.ddl_target_id,
+    ah.ddl_target_name,
+    ah.ddl_operation,
+    ah.ddl_properties,
+
     qh.query_retry_cause,
 
     qh.warehouse_id,
@@ -151,6 +229,11 @@ select
     qh.query_load_percent,
 
     qh.credits_used_cloud_services,
+
+--%OPTION:query_cost_attribution:
+    qah.credits_attributed_compute,
+    qah.credits_used_query_acceleration,
+--%:OPTION:query_cost_attribution
 
     qh.total_elapsed_time,
     qh.execution_time,
@@ -201,7 +284,9 @@ select
     qh.external_function_total_sent_rows,
     qh.external_function_total_sent_bytes,
 
-    qh.fault_handling_time
+    qh.fault_handling_time,
+
+    count(*) over ()                                                                                                     as _TOTAL_AVAILABLE
 from
     SNOWFLAKE.ACCOUNT_USAGE.QUERY_HISTORY           qh
 inner join
@@ -223,14 +308,48 @@ left join
  on l.RECORD_TYPE = 'SPAN'
  and l.RESOURCE_ATTRIBUTES:"snow.query.id"::varchar = qh.query_id
 --%:PLUGIN:event_log
+--%OPTION:query_cost_attribution:
+left join
+    SNOWFLAKE.ACCOUNT_USAGE.QUERY_ATTRIBUTION_HISTORY qah
+ on qah.query_id = qh.query_id
+--%:OPTION:query_cost_attribution
 where
-    qh.end_time >= timeadd(minute, -120, current_timestamp)
+    qh.end_time >= greatest(
+        coalesce(
+            (select max(LAST_TIMESTAMP) from STATUS.PROCESSED_MEASUREMENTS_LOG where MEASUREMENTS_SOURCE = 'query_history'),
+            timeadd(minute, -CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.max_lookback_minutes', 120)::int, current_timestamp)
+        ),
+        timeadd(minute, -CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.max_lookback_minutes', 120)::int, current_timestamp)
+    )
 -- this will ensure we do not report some strange Snowflake-internal queries
 and not (qh.QUERY_TEXT = '' and
          qh.USER_NAME = 'SYSTEM' and
          qh.ROLE_NAME is null and
          qh.DATABASE_NAME is null and
          qh.SCHEMA_NAME is null)
+-- EXPERIMENTAL: when track_ddl_changes is on, hold back warehouse / resource-monitor
+-- DDL rows until ACCESS_HISTORY catches up (~3h lag) so we emit a single enriched
+-- event instead of one without and one with DDL attribution. Rows are not added to
+-- STATUS.PROCESSED_QUERIES_CACHE because they are filtered out here; on the next run
+-- after AH catchup the LEFT JOIN populates ddl_operation and the row is emitted.
+and not (
+    CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.track_ddl_changes', FALSE)::boolean
+    and qh.query_type in (
+        'ALTER_WAREHOUSE',  'CREATE_WAREHOUSE',  'DROP_WAREHOUSE',
+        'ALTER_RESOURCE_MONITOR', 'CREATE_RESOURCE_MONITOR', 'DROP_RESOURCE_MONITOR'
+    )
+    and ah.ddl_operation is null
+)
+QUALIFY CASE
+    WHEN CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.max_entries', 0)::int = 0 THEN TRUE
+    -- Signal-protection exemption: never drop DDL change events when the
+    -- experimental track_ddl_changes flag is on. DDL rows are sparse and
+    -- security-relevant, so they bypass top-N execution-time pruning.
+    WHEN CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.track_ddl_changes', FALSE)::boolean
+         AND ah.ddl_operation is not null THEN TRUE
+    ELSE ROW_NUMBER() OVER (ORDER BY qh.execution_time DESC NULLS LAST)
+             <= CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.max_entries', 0)::int
+END
 ;
 grant select on table APP.V_QUERY_HISTORY to role DTAGENT_VIEWER;
 

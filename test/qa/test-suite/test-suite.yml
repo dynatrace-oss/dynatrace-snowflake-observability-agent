@@ -1096,3 +1096,558 @@ sections:
           | filter isNotNull(dsoa.run.plugin)
           | summarize count = count(), by: {dsoa.run.plugin}
           | sort count desc
+
+  # ---------------------------------------------------------------------------
+  # C2 — Additional Metrics (0.9.5 features)
+  # ---------------------------------------------------------------------------
+
+  - id: s-50
+    type: dql
+    showInput: false
+    title: "[C2.9] Table health: storage metrics are reported (BDX-1829)"
+    height: 200
+    state:
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          timeseries avg(snowflake.table.active_bytes), by:{deployment.environment}
+          | filter deployment.environment == "DEV-094"
+
+  - id: s-51
+    type: dql
+    showInput: false
+    title: "[C2.10] Table health: clustering metrics are reported (BDX-1829)"
+    height: 200
+    state:
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          timeseries avg(snowflake.table.clustering.depth), by:{deployment.environment}
+          | filter deployment.environment == "DEV-094"
+
+  - id: s-52
+    type: dql
+    showInput: false
+    title: "[C2.11] Metering metrics across >=3 service types (BDX-1865)"
+    height: 250
+    state:
+      visualization: barChart
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          timeseries sum(snowflake.credits.used), by:{snowflake.service.type}
+          | filter in(snowflake.service.type, {"AUTO_CLUSTERING", "SERVERLESS_TASK", "SNOWPIPE", "MATERIALIZED_VIEW", "SEARCH_OPTIMIZATION", "QUERY_ACCELERATION", "REPLICATION", "SNOWPIPE_STREAMING"})
+
+  - id: s-53
+    type: dql
+    showInput: false
+    title: "[C2.12] Org costs: credit metrics are reported (BDX-682)"
+    height: 180
+    state:
+      input:
+        timeframe:
+          from: now()-48h
+          to: now()
+        value: |
+          timeseries avg(snowflake.org.credits.used), by:{deployment.environment}
+          | filter deployment.environment == "DEV-094"
+
+  - id: s-54
+    type: dql
+    showInput: false
+    title: "[C2.13] Org costs: storage metrics are reported (BDX-682)"
+    height: 180
+    state:
+      input:
+        timeframe:
+          from: now()-48h
+          to: now()
+        value: |
+          timeseries avg(snowflake.org.data.stored), by:{deployment.environment}
+          | filter deployment.environment == "DEV-094"
+
+  - id: s-55
+    type: dql
+    showInput: false
+    title: "[C2.14] Org costs: billing capacity balance (BDX-682)"
+    height: 180
+    state:
+      input:
+        timeframe:
+          from: now()-48h
+          to: now()
+        value: |
+          timeseries avg(snowflake.org.billing.capacity_balance)
+          | filter deployment.environment == "DEV-094"
+
+  - id: s-56
+    type: dql
+    showInput: false
+    title: "[C2.15] Cold tables: access metrics reported (BDX-676) [DEFERRED 24h]"
+    height: 180
+    state:
+      input:
+        timeframe:
+          from: now()-48h
+          to: now()
+        value: |
+          timeseries avg(snowflake.table.days_since_last_access)
+          | filter deployment.environment == "DEV-094"
+
+  - id: s-57
+    type: dql
+    showInput: false
+    title: "[C2.16] Query cost attribution metrics (BDX-703) [DEFERRED 8h]"
+    height: 180
+    state:
+      input:
+        timeframe:
+          from: now()-48h
+          to: now()
+        value: |
+          timeseries avg(snowflake.credits.attributed_compute), by:{deployment.environment}
+          | filter deployment.environment == "DEV-094"
+
+  # ---------------------------------------------------------------------------
+  # C3 — Additional Logs (0.9.5 features)
+  # ---------------------------------------------------------------------------
+
+  - id: s-58
+    type: dql
+    showInput: false
+    title: "[C3.7] Metering logs include service_type dimension (BDX-1865)"
+    height: 200
+    state:
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          fetch logs
+          | filter dsoa.run.plugin == "metering"
+          | filter deployment.environment == "DEV-094"
+          | filter isNotNull(snowflake.service.type)
+          | summarize count = count(), by: {snowflake.service.type}
+          | sort count desc
+
+  - id: s-59
+    type: dql
+    showInput: false
+    title: "[C3.8] Event log per-DB source attribution (BDX-716)"
+    height: 200
+    state:
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          fetch logs
+          | filter dsoa.run.plugin == "event_log"
+          | filter deployment.environment == "DEV-094"
+          | filter isNotNull(_dsoa_source_table)
+          | summarize count = count(), by: {_dsoa_source_table}
+          | sort count desc
+
+  # ---------------------------------------------------------------------------
+  # C4 — Additional Spans (0.9.5 features)
+  # ---------------------------------------------------------------------------
+
+  - id: s-60
+    type: dql
+    showInput: false
+    title: "[C4.10] Cross-batch span parent persistence (BDX-644)"
+    height: 300
+    state:
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          // Find child spans whose parent is in a DIFFERENT agent run
+          fetch spans
+          | filter db.system == "snowflake"
+          | filter deployment.environment == "DEV-094"
+          | filter isNotNull(span.parent_id)
+          | filter isNotNull(dsoa.run.id)
+          | fields trace.id, span.id, span.parent_id, dsoa.run.id, db.query.text
+          | joinNested parent = [
+            fetch spans
+            | filter db.system == "snowflake"
+            | filter deployment.environment == "DEV-094"
+            | fields span.id, dsoa.run.id
+          ], on: {left[span.parent_id] == right[span.id]}
+          | expand parent
+          | fieldsFlatten parent, prefix: "parent."
+          | filter dsoa.run.id != parent.dsoa.run.id
+          | limit 10
+
+  - id: s-61
+    type: dql
+    showInput: false
+    title: "[C4.11] task_history attempt is integer-typed (BDX-1903)"
+    height: 180
+    state:
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          fetch spans
+          | filter dsoa.run.plugin == "tasks"
+          | filter deployment.environment == "DEV-094"
+          | filter isNotNull(snowflake.task.run.attempt)
+          | fields snowflake.task.run.attempt
+          | limit 10
+
+  - id: s-62
+    type: dql
+    showInput: false
+    title: "[C4.12] serverless_tasks db.namespace is NULL not empty string (BDX-1904) [SHOULD BE EMPTY]"
+    height: 180
+    state:
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          fetch logs
+          | filter dsoa.run.context == "serverless_tasks"
+          | filter deployment.environment == "DEV-094"
+          | filter db.namespace == ""
+          | summarize count()
+
+  - id: s-63
+    type: dql
+    showInput: false
+    title: "[C4.13] DDL change detection on query spans (BDX-1998) [DEFERRED 3h]"
+    height: 250
+    state:
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          fetch spans
+          | filter deployment.environment == "DEV-094"
+          | filter isNotNull(snowflake.object.ddl.operation)
+          | fields snowflake.object.name, snowflake.object.type,
+                  snowflake.object.ddl.operation, snowflake.object.ddl.properties,
+                  db.query.text
+          | limit 20
+
+  # ---------------------------------------------------------------------------
+  # C5 — Additional Events (0.9.5 features)
+  # ---------------------------------------------------------------------------
+
+  - id: s-64
+    type: dql
+    showInput: false
+    title: "[C5.8] Acquisition warning bizevents fire on known triggers (BDX-1647)"
+    height: 200
+    state:
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          fetch bizevents
+          | filter event.type == "dsoa.acquisition.warning"
+          | filter deployment.environment == "DEV-094"
+          | summarize count = count(), by: {dsoa.run.plugin}
+          | sort count desc
+
+  - id: s-65
+    type: dql
+    showInput: false
+    title: "[C5.9] No unexpected acquisition problems (BDX-1647) [SHOULD BE EMPTY]"
+    height: 150
+    state:
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          fetch bizevents
+          | filter event.type == "dsoa.acquisition.problem"
+          | filter deployment.environment == "DEV-094"
+          | summarize count()
+
+  - id: s-66
+    type: dql
+    showInput: false
+    title: "[C5.10] Resource monitor credit alert events (BDX-623)"
+    height: 250
+    state:
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          fetch events
+          | filter dsoa.run.plugin == "resource_monitors"
+          | filter event.kind == "CUSTOM_INFO"
+          | filter deployment.environment == "DEV-094"
+          | summarize count = count(), by: {event.name, dt.davis.event.status}
+          | sort count desc
+
+  # ---------------------------------------------------------------------------
+  # C8 — Additional Plugin Lifecycle (0.9.5 features)
+  # ---------------------------------------------------------------------------
+
+  - id: s-67
+    type: dql
+    showInput: false
+    title: "[C8.3] Disabled plugin tasks are suspended (BDX-1905)"
+    height: 180
+    state:
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          // After disabling a plugin, no FINISHED bizevents should appear for it
+          fetch bizevents
+          | filter db.system == "snowflake"
+          | filter deployment.environment == "DEV-094"
+          | filter dsoa.run.context == "self_monitoring"
+          | filter dsoa.task.exec.status == "FINISHED"
+          | summarize count = count(), last = max(timestamp), by: {dsoa.run.plugin}
+          | sort last desc
+
+  - id: s-68
+    type: dql
+    showInput: false
+    title: "[C8.4] event_usage plugin deprecated — no new telemetry (BDX-1865) [SHOULD BE EMPTY]"
+    height: 150
+    state:
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          fetch logs
+          | filter dsoa.run.plugin == "event_usage"
+          | filter deployment.environment == "DEV-094"
+          | summarize count()
+
+  # ---------------------------------------------------------------------------
+  # C9 — OpenPipeline Derived Metrics (BDX-697)
+  # ---------------------------------------------------------------------------
+
+  - id: md-openpipeline
+    type: markdown
+    markdown: |
+      ## C9 — OpenPipeline Derived Metrics (BDX-697)
+
+      These metrics are generated by Dynatrace OpenPipeline rules from DSOA log
+      records. Prerequisites:
+      - OpenPipeline rules deployed: `deploy_dt_assets.sh --scope=openpipeline`
+      - login_history and tasks plugins enabled and producing logs
+      - Allow 5-15 minutes after log ingestion for OP metric extraction
+
+  - id: s-69
+    type: dql
+    showInput: false
+    title: "[C9.1] Failed login attempts metric (BDX-697)"
+    height: 180
+    state:
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          timeseries count(snowflake.login.attempts.failed), by:{deployment.environment}
+          | filter deployment.environment == "DEV-094"
+
+  - id: s-70
+    type: dql
+    showInput: false
+    title: "[C9.2] Successful login attempts metric (BDX-697)"
+    height: 180
+    state:
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          timeseries count(snowflake.login.attempts.successful), by:{deployment.environment}
+          | filter deployment.environment == "DEV-094"
+
+  - id: s-71
+    type: dql
+    showInput: false
+    title: "[C9.3] Total login attempts metric (BDX-697)"
+    height: 180
+    state:
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          timeseries count(snowflake.login.attempts.total), by:{deployment.environment}
+          | filter deployment.environment == "DEV-094"
+
+  - id: s-72
+    type: dql
+    showInput: false
+    title: "[C9.4] Failed task runs metric (BDX-697)"
+    height: 180
+    state:
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          timeseries count(snowflake.task.run.failed), by:{deployment.environment}
+          | filter deployment.environment == "DEV-094"
+
+  - id: s-73
+    type: dql
+    showInput: false
+    title: "[C9.5] Cancelled task runs metric (BDX-697)"
+    height: 180
+    state:
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          timeseries count(snowflake.task.run.cancelled), by:{deployment.environment}
+          | filter deployment.environment == "DEV-094"
+
+  - id: s-74
+    type: dql
+    showInput: false
+    title: "[C9.6] Successful task runs metric (BDX-697)"
+    height: 180
+    state:
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          timeseries count(snowflake.task.run.successful), by:{deployment.environment}
+          | filter deployment.environment == "DEV-094"
+
+  # ---------------------------------------------------------------------------
+  # C10 — Query Text Obfuscation (BDX-1916)
+  # ---------------------------------------------------------------------------
+
+  - id: md-obfuscation
+    type: markdown
+    markdown: |
+      ## C10 — Query Text Obfuscation (BDX-1916)
+
+      Test each mode by changing `plugins.query_history.obfuscation_mode` in config
+      and re-running `setup_test_query_obfuscation.sql` between mode switches.
+      Wait for one agent cycle between mode switches.
+
+  - id: s-75
+    type: dql
+    showInput: false
+    title: "[C10.1] Mode: off — sentinel literal present in db.query.text"
+    height: 180
+    state:
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          fetch spans
+          | filter dsoa.run.context == "query_history"
+          | filter deployment.environment == "DEV-094"
+          | filter contains(db.query.text, "'DSOA_OBFUSCATION_TEST'")
+          | summarize count()
+
+  - id: s-76
+    type: dql
+    showInput: false
+    title: "[C10.2] Mode: literals — sentinel literal absent [SHOULD BE EMPTY after mode switch]"
+    height: 180
+    state:
+      input:
+        timeframe:
+          from: now()-2h
+          to: now()
+        value: |
+          // After switching to mode=literals and running new queries:
+          // NEW spans should NOT contain the literal string
+          // Tip: narrow timeframe to now()-30m in the UI to exclude pre-switch spans
+          fetch spans
+          | filter dsoa.run.context == "query_history"
+          | filter deployment.environment == "DEV-094"
+          | filter contains(db.query.text, "'DSOA_OBFUSCATION_TEST'")
+          | summarize count()
+
+  - id: s-77
+    type: dql
+    showInput: false
+    title: "[C10.3] Mode: full — no SQL keywords in db.query.text [SHOULD BE EMPTY after mode switch]"
+    height: 180
+    state:
+      input:
+        timeframe:
+          from: now()-2h
+          to: now()
+        value: |
+          // After switching to mode=full and running new queries:
+          // db.query.text should not contain readable SQL
+          // Tip: narrow timeframe to now()-30m in the UI to exclude pre-switch spans
+          fetch spans
+          | filter dsoa.run.context == "query_history"
+          | filter deployment.environment == "DEV-094"
+          | filter matchesPhrase(db.query.text, "SELECT")
+          | summarize count()
+
+  # ---------------------------------------------------------------------------
+  # C11 — Signal Protection and Overload (BDX-1965)
+  # ---------------------------------------------------------------------------
+
+  - id: md-overload
+    type: markdown
+    markdown: |
+      ## C11 — Signal Protection and Overload (BDX-1965)
+
+      Prerequisites: Run `setup_test_overload.sql` to generate >max_entries
+      query rows, then set `plugins.query_history.max_entries` to a low value.
+
+  - id: s-78
+    type: dql
+    showInput: false
+    title: "[C11.1] max_entries cap is enforced — skipped_count > 0 (BDX-1965)"
+    height: 180
+    state:
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          fetch bizevents
+          | filter dsoa.run.plugin == "query_history"
+          | filter deployment.environment == "DEV-094"
+          | filter isNotNull(dsoa.acquisition.skipped_count)
+          | summarize total_skipped = sum(dsoa.acquisition.skipped_count)
+
+  - id: s-79
+    type: dql
+    showInput: false
+    title: "[C11.2] Overload warning logged (BDX-1965)"
+    height: 180
+    state:
+      input:
+        timeframe:
+          from: now()-24h
+          to: now()
+        value: |
+          fetch logs
+          | filter dsoa.run.context == "self_monitoring"
+          | filter deployment.environment == "DEV-094"
+          | filter loglevel == "WARN"
+          | filter contains(content, "max_entries")
+          | summarize count()

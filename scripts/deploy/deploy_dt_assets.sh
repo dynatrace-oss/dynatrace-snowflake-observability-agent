@@ -24,13 +24,13 @@
 #
 
 #
-# Deploy Dynatrace dashboards and workflows using dtctl.
+# Deploy Dynatrace dashboards, workflows, and OpenPipeline rules using dtctl.
 #
 # Usage:
 #   ./deploy_dt_assets.sh [--scope=SCOPE] [--dry-run] [--env=ENV]
 #
 # Args:
-#   --scope   dashboards | workflows | all (default: all)
+#   --scope   dashboards | workflows | openpipeline | all (default: all)
 #   --dry-run preview changes without applying them
 #   --env     optional environment label for logging only
 #
@@ -69,9 +69,9 @@ done
 
 # Validate scope
 case "$SCOPE" in
-    dashboards|workflows|all) ;;
+    dashboards|workflows|openpipeline|all) ;;
     *)
-        echo "ERROR: Invalid scope '$SCOPE'. Must be one of: dashboards, workflows, all"
+        echo "ERROR: Invalid scope '$SCOPE'. Must be one of: dashboards, workflows, openpipeline, all"
         exit 1
         ;;
 esac
@@ -308,6 +308,83 @@ deploy_assets_of_type() {
     return 0
 }
 
+# Deploy all OpenPipeline settings files.
+# OpenPipeline objects are Settings 2.0 resources (schema builtin:openpipeline.logs.pipelines).
+# dtctl apply accepts YAML natively — no conversion or envelope wrapping required.
+#
+# Returns:
+#   0 if all rules deployed successfully
+#   1 if any rule failed (continues processing remaining rules)
+deploy_openpipeline_rules() {
+    local source_dir="$REPO_ROOT/docs/openpipeline"
+    local name_comment_prefix="# OPENPIPELINE:"
+    local asset_type="openpipeline"
+
+    local success_count=0
+    local failure_count=0
+
+    if [[ ! -d "$source_dir" ]]; then
+        log_warn "Directory not found, skipping ${asset_type} rules: $source_dir"
+        return 0
+    fi
+
+    # Find all YAML files one level deep (docs/openpipeline/<name>/<name>.yml)
+    local yaml_files=()
+    while IFS= read -r -d '' f; do
+        yaml_files+=("$f")
+    done < <(find "$source_dir" -mindepth 2 -maxdepth 2 -name "*.yml" -print0 2>/dev/null | sort -z)
+
+    if [[ ${#yaml_files[@]} -eq 0 ]]; then
+        log_warn "No YAML files found in $source_dir"
+        return 0
+    fi
+
+    log_info "Deploying ${#yaml_files[@]} ${asset_type} rule(s) from $source_dir"
+
+    for yaml_file in "${yaml_files[@]}"; do
+        # Extract the human-readable name from the embedded comment
+        local asset_name
+        asset_name=$(grep "^${name_comment_prefix}" "$yaml_file" | head -1 | sed "s|^${name_comment_prefix} *||" || true)
+
+        if [[ -z "$asset_name" ]]; then
+            asset_name=$(basename "$(dirname "$yaml_file")")
+        fi
+
+        log_info "Processing ${asset_type}: ${asset_name} (${yaml_file})"
+
+        # OpenPipeline settings objects are applied as-is — dtctl apply accepts YAML natively.
+        # No conversion or envelope wrapping needed (these are Settings 2.0 objects with objectid).
+        local dry_run_flag=""
+        if $DRY_RUN; then dry_run_flag="--dry-run"; fi
+
+        local dtctl_output
+        # shellcheck disable=SC2086
+        if ! dtctl_output=$(dtctl apply -f "$yaml_file" $dry_run_flag 2>&1); then
+            log_error "dtctl apply failed for: ${asset_name}"
+            echo "$dtctl_output" >&2
+            (( failure_count++ )) || true
+        else
+            local action_label
+            action_label=$(echo "$dtctl_output" | jq -r '.result.action // empty' 2>/dev/null || true)
+            action_label="${action_label:-deployed}"
+            if $DRY_RUN; then
+                log_info "[dry-run] ${asset_name}"
+            else
+                log_ok "${action_label^}: ${asset_name}"
+            fi
+            (( success_count++ )) || true
+        fi
+    done
+
+    echo ""
+    log_info "${asset_type^} deployment summary: ${success_count} succeeded, ${failure_count} failed"
+
+    if [[ $failure_count -gt 0 ]]; then
+        return 1
+    fi
+    return 0
+}
+
 # ── Pre-flight checks ────────────────────────────────────────────────────────
 
 if [[ -n "$ENV_LABEL" ]]; then
@@ -394,6 +471,10 @@ fi
 
 if [[ "$SCOPE" == "workflows" || "$SCOPE" == "all" ]]; then
     deploy_assets_of_type "workflow" "$REPO_ROOT/docs/workflows" "# WORKFLOW:" || OVERALL_STATUS=1
+fi
+
+if [[ "$SCOPE" == "openpipeline" || "$SCOPE" == "all" ]]; then
+    deploy_openpipeline_rules || OVERALL_STATUS=1
 fi
 
 # ── Final summary ────────────────────────────────────────────────────────────

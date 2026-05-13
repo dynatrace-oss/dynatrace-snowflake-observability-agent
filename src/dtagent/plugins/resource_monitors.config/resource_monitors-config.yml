@@ -7,3 +7,12 @@ plugins:
       - metrics
       - events
       - biz_events
+    credits_quota_thresholds:
+      # Default alert bands (% of quota used). Must be monotonically increasing, all values in (0, 100].
+      # Four bands are value-driven: <80 = info, [80,90) = warn, [90,100) = critical, >=100 = exhausted.
+      defaults: [50, 80, 90, 100]
+      # Per-monitor overrides — key is the resource monitor name (uppercase).
+      # Invalid overrides fall back to defaults with an ERROR log.
+      overrides: {}
+      # How often (minutes) ACTIVE keep-alive events are re-sent while quota remains in an alert band.
+      active_keepalive_timeout_minutes: 60

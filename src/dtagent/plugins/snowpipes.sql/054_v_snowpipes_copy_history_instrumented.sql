@@ -30,7 +30,29 @@ use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 create or replace view APP.V_SNOWPIPES_COPY_HISTORY_INSTRUMENTED
 as
 with cte_copy_history as (
-    select *
+    select
+        FILE_NAME,
+        STAGE_LOCATION,
+        LAST_LOAD_TIME,
+        TABLE_NAME,
+        TABLE_CATALOG_NAME,
+        TABLE_SCHEMA_NAME,
+        PIPE_CATALOG_NAME,
+        PIPE_SCHEMA_NAME,
+        PIPE_NAME,
+        STATUS,
+        ROW_COUNT,
+        ROW_PARSED,
+        FIRST_ERROR_MESSAGE,
+        FIRST_ERROR_LINE_NUMBER,
+        FIRST_ERROR_COLUMN_NAME,
+        FIRST_ERROR_CHARACTER_POS,
+        ERROR_COUNT,
+        ERROR_LIMIT,
+        FILE_SIZE,
+        PIPE_RECEIVED_TIME,
+        FIRST_COMMIT_TIME,
+        BYTES_BILLED
     from SNOWFLAKE.ACCOUNT_USAGE.COPY_HISTORY
     where PIPE_NAME IS NOT NULL
     and LAST_LOAD_TIME >= GREATEST(

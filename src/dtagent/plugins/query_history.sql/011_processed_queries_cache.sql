@@ -22,8 +22,9 @@
 --
 --
 --
--- This table keeps a log of queries that were already processed within last 2 hours.
+-- This table keeps a log of queries that were already processed within last 4 hours (configurable).
 -- When a query is processed it will have PROCESSED_TIME not NULL.
+-- OTEL_SPAN_ID and OTEL_TRACE_ID store the OpenTelemetry span context for cross-batch parent linking.
 --
 use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 
@@ -31,7 +32,9 @@ create or replace table DTAGENT_DB.STATUS.PROCESSED_QUERIES_CACHE (
     START_TIME     timestamp_ltz not null,
     QUERY_ID       text not null,
     SESSION_ID     text not null,
-    PROCESSED_TIME timestamp_ltz
+    PROCESSED_TIME timestamp_ltz,
+    OTEL_SPAN_ID   text,
+    OTEL_TRACE_ID  text
 );
 
 -- grants to the DTAGENT_VIEWER

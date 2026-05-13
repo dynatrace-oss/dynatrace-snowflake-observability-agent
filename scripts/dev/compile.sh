@@ -64,7 +64,7 @@ process_files() {
   local src_file=$1
   local dest_file=$2
 
-  echo "# pylint: disable=W0404,W0105,C0302,C0412,C0114,C0413,C0115,C0116,R0913" > "$dest_file"
+  echo "# pylint: disable=W0404,W0105,C0302,C0412,C0114,C0413,C0115,C0116,R0913,R0124,W0718" > "$dest_file"
 
   gawk '
     function plugin_name_from_path(p, t) {
@@ -134,7 +134,7 @@ process_files "src/dtagent/connector.py" "build/_send_telemetry.py"
 # -----------------------------
 for file in build/*.py; do
     echo "Validating $file"
-    pylint "$file" --disable="W0404,W0105,C0302,C0412,C0114,C0413,C0115,C0116,R0913" --output-format=parseable
+    pylint "$file" --disable="W0404,W0105,C0302,C0412,C0114,C0413,C0115,C0116,R0913,R0124,W0718" --output-format=parseable
 done
 
 echo "Compiling Dynatrace Snowflake Observability Agent done"

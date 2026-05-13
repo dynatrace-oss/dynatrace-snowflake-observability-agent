@@ -1,0 +1,12 @@
+delivers:
+  - name: DTAGENT_DB.APP.V_METERING_HISTORY
+    type: view
+  - name: DTAGENT_DB.CONFIG.UPDATE_METERING_CONF()
+    type: procedure
+  - name: DTAGENT_DB.APP.TASK_DTAGENT_METERING
+    type: task
+
+references:
+  - name: SNOWFLAKE.ACCOUNT_USAGE.METERING_HISTORY
+    type: view
+    privileges: SELECT

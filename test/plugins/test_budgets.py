@@ -72,7 +72,7 @@ class TestBudgets:
                 affecting_types_for_entries=["logs", "metrics", "events"],
                 base_count={
                     "budgets": {"entries": 1, "log_lines": 1, "metrics": 1, "events": 1},
-                    "spendings": {"entries": 0, "log_lines": 0, "metrics": 0, "events": 0},
+                    "spendings": {"entries": 2, "log_lines": 2, "metrics": 2, "events": 0},
                 },
             )
 
@@ -111,7 +111,7 @@ class TestBudgets:
             config=config,
             base_count={
                 "budgets": {"entries": 1, "log_lines": 1, "metrics": 1, "events": 1},
-                "spendings": {"entries": 0, "log_lines": 0, "metrics": 0, "events": 0},
+                "spendings": {"entries": 2, "log_lines": 2, "metrics": 2, "events": 0},
             },
         )
 

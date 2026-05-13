@@ -23,6 +23,7 @@ Use cases marked with 🔜 are **upcoming** — they depend on plugins currently
 |---------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------|
 | Trust Center vulnerability monitoring | Detect potential data security issues and breaches as quickly as possible. Gather information about entities put at risk by vulnerability findings from CIS Benchmarks and Threat Intelligence scanners. | [Trust Center plugin](PLUGINS.md#trust_center_info_sec)   |
 | Login and session monitoring          | Provide detailed information on login history and sessions — authentication methods, failed logins, error codes — essential for detecting security breaches and unauthorized access.                     | [Login History plugin](PLUGINS.md#login_history_info_sec) |
+| Warehouse change auditing             | Audit who changed which warehouse / resource monitor, when, and the exact property delta (size, scaling policy, auto-suspend, resource monitor). Experimental, gated by `track_ddl_changes`.             | [Query History plugin](PLUGINS.md#query_history_info_sec) |
 
 ### Security — Tier 2 — Data Apps & Pipelines
 
@@ -54,14 +55,15 @@ Use cases marked with 🔜 are **upcoming** — they depend on plugins currently
 
 ### Operations — Tier 2 — Data Apps & Pipelines
 
-| Use case                            | In Details                                                                                                                                            | Data                                                        |
-|-------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------|
-| Task orchestration monitoring       | Monitor task graph versions, predecessors, schedules, error integrations, and execution states. Detect failed tasks with error codes and messages.    | [Tasks plugin](PLUGINS.md#tasks_info_sec)                   |
-| Dynamic table refresh monitoring    | Track dynamic table refresh status, scheduling lag, and operational state changes to detect stale materializations.                                   | [Dynamic Tables plugin](PLUGINS.md#dynamic_tables_info_sec) |
-| Current query monitoring            | Monitor the status and runtime duration of currently executing queries across all warehouses, detecting long-running or stuck queries.                | [Active Queries plugin](PLUGINS.md#active_queries_info_sec) |
-| Snowpipe operational monitoring     | Monitor pipe health and status: detect PAUSED_BY_SNOWFLAKE and STOPPED_BY_SNOWFLAKE states, track error-file percentages, and alert on pipe failures. | Snowpipes plugin (upcoming)                                 |
-| Snowpipe stage backlog analysis     | Track pending file counts and stage scan depth to detect ingestion backlogs and stalled pipelines.                                                    | Snowpipes plugin (upcoming)                                 |
-| 🔜 Stream consumption lag detection | Monitor stream staleness, detect stalled consumers (no consumption within N intervals), and alert on streams approaching their max offset age.        | Streams plugin (upcoming)                                   |
+| Use case                            | In Details                                                                                                                                                                                                                                                                                    | Data                                                                                    |
+|-------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------|
+| Task orchestration monitoring       | Monitor task graph versions, predecessors, schedules, error integrations, and execution states. Detect failed tasks with error codes and messages.                                                                                                                                            | [Tasks plugin](PLUGINS.md#tasks_info_sec)                                               |
+| Task run state metrics              | Derive `snowflake.task.run.failed`, `snowflake.task.run.cancelled`, and `snowflake.task.run.successful` counter metrics from `task_history` logs via OpenPipeline, dimensioned by database, schema, and task name. Enables rate-based anomaly detection and alerting without raw-log queries. | [OpenPipeline rules](openpipeline/README.md), [Tasks plugin](PLUGINS.md#tasks_info_sec) |
+| Dynamic table refresh monitoring    | Track dynamic table refresh status, scheduling lag, and operational state changes to detect stale materializations.                                                                                                                                                                           | [Dynamic Tables plugin](PLUGINS.md#dynamic_tables_info_sec)                             |
+| Current query monitoring            | Monitor the status and runtime duration of currently executing queries across all warehouses, detecting long-running or stuck queries.                                                                                                                                                        | [Active Queries plugin](PLUGINS.md#active_queries_info_sec)                             |
+| Snowpipe operational monitoring     | Monitor pipe health and status: detect PAUSED_BY_SNOWFLAKE and STOPPED_BY_SNOWFLAKE states, track error-file percentages, and alert on pipe failures.                                                                                                                                         | Snowpipes plugin (upcoming)                                                             |
+| Snowpipe stage backlog analysis     | Track pending file counts and stage scan depth to detect ingestion backlogs and stalled pipelines.                                                                                                                                                                                            | Snowpipes plugin (upcoming)                                                             |
+| 🔜 Stream consumption lag detection | Monitor stream staleness, detect stalled consumers (no consumption within N intervals), and alert on streams approaching their max offset age.                                                                                                                                                | Streams plugin (upcoming)                                                               |
 
 ### Operations — Tier 3 — Data Quality & Governance
 
@@ -75,13 +77,23 @@ Use cases marked with 🔜 are **upcoming** — they depend on plugins currently
 
 ### Costs — Tier 1 — Data Infrastructure
 
-| Use case                   | In Details                                                                                                                                                              | Data                                                              |
-|----------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|
-| Resource monitors analysis | Determine if the credits limit set on a resource monitor is enough, too much, or too little for future needs. Analyze quota used vs remaining to make better decisions. | [Resource Monitors plugin](PLUGINS.md#resource_monitors_info_sec) |
-| Budgets analysis           | Combine budget details like spending limits and linked resources with their spending history to enable complete cost analysis.                                          | [Budgets plugin](PLUGINS.md#budgets_info_sec)                     |
-| Warehouse metering history | Monitor credit consumption of particular warehouses, compare cloud services credits vs compute credits, and predict trends in expenses.                                 | [Warehouse Usage plugin](PLUGINS.md#warehouse_usage_info_sec)     |
-| Event table ingest costs   | Monitor credits billed and bytes ingested for loading data into the Snowflake event table over time.                                                                    | [Event Usage plugin](PLUGINS.md#event_usage_info_sec)             |
-| Storage growth analysis    | Track database and table storage growth trends (total size, row counts) and time since last DDL/update for capacity planning.                                           | [Data Volume plugin](PLUGINS.md#data_volume_info_sec)             |
+| Use case                       | In Details                                                                                                                                                                  | Data                                                                                 |
+|--------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------|
+| Resource monitors analysis     | Determine if the credits limit set on a resource monitor is enough, too much, or too little for future needs. Analyze quota used vs remaining to make better decisions.     | [Resource Monitors plugin](PLUGINS.md#resource_monitors_info_sec)                    |
+| Budgets analysis               | Combine budget details like spending limits and linked resources with their spending history to enable complete cost analysis.                                              | [Budgets plugin](PLUGINS.md#budgets_info_sec)                                        |
+| Warehouse metering history     | Monitor credit consumption of particular warehouses, compare cloud services credits vs compute credits, and predict trends in expenses.                                     | [Warehouse Usage plugin](PLUGINS.md#warehouse_usage_info_sec)                        |
+| Event table ingest costs       | Monitor credits billed and bytes ingested for loading data into the Snowflake event table over time.                                                                        | [Metering plugin](PLUGINS.md#metering_info_sec) (was: Event Usage, deprecated 0.9.5) |
+| Service-level cost attribution | Monitor credit consumption across all Snowflake service types (auto-clustering, pipes, serverless tasks, AI services, replication) for FinOps cost allocation.              | [Metering plugin](PLUGINS.md#metering_info_sec)                                      |
+| Storage growth analysis        | Track database and table storage growth trends (total size, row counts) and time since last DDL/update for capacity planning.                                               | [Data Volume plugin](PLUGINS.md#data_volume_info_sec)                                |
+| Cold table identification      | Identify tables with no recent query access to find candidates for archiving, dropping, or tiering to lower-cost storage. Reduce storage costs by sunsetting unused tables. | [Cold Tables plugin](PLUGINS.md#cold_tables_info_sec)                                |
+
+### Costs — Tier 0 — Organization-Level FinOps
+
+| Use case                             | In Details                                                                                                                                                                                     | Data                                              |
+|--------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------|
+| Org-wide credit consumption analysis | Monitor credit consumption across all accounts in your Snowflake organization, broken down by service type and service name, to identify the biggest cost drivers at the organizational level. | [Org Costs plugin](PLUGINS.md#org_costs_info_sec) |
+| Contract balance monitoring          | Track remaining Snowflake contract balances (free usage, capacity, on-demand, rollover) in real time and alert when any balance approaches exhaustion before the contract period ends.         | [Org Costs plugin](PLUGINS.md#org_costs_info_sec) |
+| Cross-account billing analysis       | Analyze billed amounts in contract currency per service type and per account across the organization to support FinOps chargebacks, forecasting, and budget governance.                        | [Org Costs plugin](PLUGINS.md#org_costs_info_sec) |
 
 ### Costs — Tier 2 — Data Apps & Pipelines
 
@@ -127,10 +139,11 @@ Use cases marked with 🔜 are **upcoming** — they depend on plugins currently
 
 ### Quality — Tier 1 — Data Infrastructure
 
-| Use case               | In Details                                                                                                                                                                             | Data                                                    |
-|------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------|
-| Data volume monitoring | Understand how data volume in monitored databases, schemas, and tables changes over time. Identify anomalies in data volume changes (active bytes, time-travel bytes, failsafe bytes). | [Data Volume plugin](PLUGINS.md#data_volume_info_sec)   |
-| Data schema monitoring | Track database and table metadata — table types (dynamic, hybrid, iceberg, transient, temporary), clustering keys, auto-clustering status, and retention policies.                     | [Data Schemas plugin](PLUGINS.md#data_schemas_info_sec) |
+| Use case                | In Details                                                                                                                                                                             | Data                                                    |
+|-------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------|
+| Data volume monitoring  | Understand how data volume in monitored databases, schemas, and tables changes over time. Identify anomalies in data volume changes (active bytes, time-travel bytes, failsafe bytes). | [Data Volume plugin](PLUGINS.md#data_volume_info_sec)   |
+| Table health monitoring | Track table storage metrics (active bytes, time-travel bytes, failsafe bytes, retained-for-clone bytes, row counts) and clustering depth. Identify tables with excessive overhead.     | [Table Health plugin](PLUGINS.md#table_health_info_sec) |
+| Data schema monitoring  | Track database and table metadata — table types (dynamic, hybrid, iceberg, transient, temporary), clustering keys, auto-clustering status, and retention policies.                     | [Data Schemas plugin](PLUGINS.md#data_schemas_info_sec) |
 
 ### Quality — Tier 2 — Data Apps & Pipelines
 
@@ -158,16 +171,17 @@ The matrix below maps each DPO theme to the three observability tiers, showing t
 |-----------------|-----------------------------|-------------------------------|-----------------------------------|
 | **Security**    | 2 current                   | 4 current + 1 upcoming        | 1 current                         |
 | **Operations**  | 3 current                   | 3 current + 3 upcoming        | 1 current                         |
-| **Costs**       | 5 current                   | 3 current + 3 upcoming        | —                                 |
+| **Costs**       | 6 current                   | 3 current + 3 upcoming        | —                                 |
 | **Performance** | 2 current                   | 9 current + 2 upcoming        | —                                 |
 | **Quality**     | 2 current                   | 2 current + 3 upcoming        | 1 current                         |
-| **Total**       | **14 current**              | **21 current + 12 upcoming**  | **3 current**                     |
+| **Total**       | **15 current**              | **21 current + 12 upcoming**  | **3 current**                     |
 
 ### Upcoming Plugin Summary
 
 | Plugin        | Status                        | Key Use Cases                                                                              | DPO Themes                              |
 |---------------|-------------------------------|--------------------------------------------------------------------------------------------|-----------------------------------------|
 | **Snowpipes** | 0.9.4                         | Operational monitoring, FinOps attribution, ingestion validation, throughput analysis      | Operations, Costs, Performance, Quality |
+| **Metering**  | 0.9.5                         | Service-level cost attribution, event table ingest costs (replaces event\_usage)           | Costs                                   |
 | **Stages**    | Planned (deferred)            | Access auditing, storage cost visibility, data validation (non-pipe operations only)       | Security, Costs, Quality                |
 | **Streams**   | Planned (no immediate demand) | Consumption lag detection, FinOps attribution, volume spike detection, CDC drift detection | Operations, Costs, Performance, Quality |
 

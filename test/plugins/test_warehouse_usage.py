@@ -71,9 +71,9 @@ class TestWhUsage:
                 disabled_telemetry=disabled_telemetry,
                 affecting_types_for_entries=["logs", "metrics"],
                 base_count={
-                    "warehouse_usage": {"entries": 0, "log_lines": 0, "metrics": 0, "events": 0},
-                    "warehouse_usage_load": {"entries": 0, "log_lines": 0, "metrics": 0, "events": 0},
-                    "warehouse_usage_metering": {"entries": 0, "log_lines": 0, "metrics": 0, "events": 0},
+                    "warehouse_usage": {"entries": 2, "log_lines": 2, "metrics": 0, "events": 0},
+                    "warehouse_usage_load": {"entries": 2, "log_lines": 2, "metrics": 8, "events": 0},
+                    "warehouse_usage_metering": {"entries": 2, "log_lines": 2, "metrics": 6, "events": 0},
                 },
             )
 

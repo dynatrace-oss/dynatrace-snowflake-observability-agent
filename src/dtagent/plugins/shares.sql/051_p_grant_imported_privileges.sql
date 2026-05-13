@@ -23,10 +23,9 @@
 --
 
 --
--- This is a no-op stub for P_GRANT_IMPORTED_PRIVILEGES.
--- The real implementation lives in shares.sql/admin/051_p_grant_imported_privileges.sql
--- and requires the DTAGENT_ADMIN deployment scope (MANAGE GRANTS on ACCOUNT).
--- When the admin scope is deployed, it overwrites this stub with the working procedure.
+-- Non-admin stub: always deployed. Returns a guidance message when admin scope
+-- is not installed, so inline callers degrade gracefully. When admin scope IS
+-- installed, admin/051_p_grant_imported_privileges.sql overwrites this stub.
 --
 use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 create or replace procedure DTAGENT_DB.APP.P_GRANT_IMPORTED_PRIVILEGES(db_name VARCHAR)

@@ -31,7 +31,14 @@ use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 create or replace view APP.V_SNOWPIPES_USAGE_HISTORY_INSTRUMENTED
 as
 with cte_usage_history as (
-    select h.*,
+    select
+        h.PIPE_ID,
+        h.PIPE_NAME,
+        h.START_TIME,
+        h.END_TIME,
+        h.CREDITS_USED,
+        h.BYTES_BILLED,
+        h.FILES_INSERTED,
         -- Join with PIPES to resolve UUID -> human-readable FQN
         p.PIPE_NAME                                                     as RESOLVED_PIPE_FQN,
         SPLIT_PART(COALESCE(p.PIPE_NAME, ''), '.', 1)                  as RESOLVED_DB_NAME,

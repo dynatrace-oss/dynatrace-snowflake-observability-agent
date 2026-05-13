@@ -105,6 +105,7 @@ if [ "$SAFE_TEST_FIXTURE" == "-p" ]; then
             fi
 
             echo "Generating fixtures for ${TEST_NAME}"
+            # shellcheck disable=SC2154
             PYTHONPATH="$PYTHONPATH:./src" python -m $TEST_FILE_PYTHON_PATH $SAFE_TEST_FIXTURE
         done
 

@@ -139,6 +139,35 @@ class DavisEvents(GenericEvents):
 
         return events_send, _payload_to_repeat
 
+    def _pack_event_data(
+        self, event_type: Union[str, EventType], event_data: Dict[str, Any], context: Optional[Dict[str, Any]] = None, **kwargs
+    ) -> Dict[str, Any]:
+        """Packs event data into a Davis Events v2 API payload.
+
+        Delegates to the GenericEvents implementation and then promotes the ``status``
+        kwarg to a top-level envelope field (peer of ``eventType`` / ``title``).
+        The Davis Events v2 API requires ``status`` at the envelope level — placing it
+        inside ``properties`` has no effect on Davis AI problem lifecycle.
+
+        Args:
+            event_type (Union[str, EventType]): Event type, e.g. ``EventType.CUSTOM_ALERT``.
+            event_data (Dict[str, Any]):         Raw event data dictionary.
+            context (Optional[Dict[str, Any]]): Run context merged into properties.
+            **kwargs:
+                status (str, optional): ``"ACTIVE"`` or ``"CLOSED"`` — set as top-level
+                    ``status`` field in the envelope.  Any other kwargs are forwarded to
+                    the parent implementation unchanged.
+
+        Returns:
+            Dict[str, Any]: Assembled Events v2 payload with ``status`` at envelope level.
+        """
+        # Extract status before forwarding kwargs so it never lands inside properties.
+        status = kwargs.pop("status", None)
+        event_payload = super()._pack_event_data(event_type, event_data, context, **kwargs)
+        if status:
+            event_payload["status"] = status
+        return event_payload
+
     def _add_data_to_payload(self, payload: Dict[str, Any], event_data: Dict[str, Any]) -> Dict[str, Any]:
         """Adds given properties to event payload under 'properties' key.
         Davis Events API v2 requires all property values to be strings or primitive values (int, float, bool, etc.),

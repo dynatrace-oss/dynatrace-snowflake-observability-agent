@@ -13,7 +13,14 @@ delivers:
     type: view
   - name: DTAGENT_DB.APP.V_USERS_REMOVED_DIRECT_ROLES_INSTRUMENTED
     type: view
-  - name: DTAGENT_DB.CONFIG.P_GET_USERS()
+  - name: DTAGENT_DB.APP.TMP_USERS_SNAPSHOT
+    type: transient table
+  - name: DTAGENT_DB.STATUS.EMAIL_HASH_MAP
+    type: transient table
+    optional: true
+    config_key: plugins.users.retain_email_hash_map
+    comment: Created only when retain_email_hash_map is enabled; persists email→SHA-256 hash mappings across runs
+  - name: DTAGENT_DB.APP.P_GET_USERS()
     type: procedure
   - name: DTAGENT_DB.CONFIG.UPDATE_USERS_CONF()
     type: procedure

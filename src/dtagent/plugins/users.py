@@ -45,6 +45,7 @@ class UsersPlugin(Plugin):
     """Users plugin class."""
 
     PLUGIN_NAME = "users"
+    PLUGIN_CONTEXTS: tuple = ("users",)
 
     def process(self, run_id: str, run_proc: bool = True, contexts: Optional[List[str]] = None) -> Dict[str, Dict[str, int]]:
         """Processes data for users plugin.
@@ -77,39 +78,42 @@ class UsersPlugin(Plugin):
             }
         """
 
-        modes = self._configuration.get(plugin_name="users", key="roles_monitoring_mode", default_value=[])
-        processed_entries_cnt = 0
-
-        views_list = ["APP.V_USERS_INSTRUMENTED"]
-
-        if run_proc:
-            # this stored procedure will ensure that APP.TMP_USERS table is up to date
-            self._session.call("APP.P_GET_USERS", log_on_exception=True)
-
-        for mode in modes:
-            views_list.extend(ROLE_REPORTING_MODES_VIEWS[str(mode).upper()])
-
         results_dict = {}
 
-        for view in views_list:
-            entries_cnt, logs_cnt, metrics_cnt, events_cnt = self._log_entries(
-                lambda view=view: self._get_table_rows(view),
-                "users",
-                run_uuid=run_id,
-                log_completion=False,
-                report_timestamp_events=True,
-            )
-            view_name = view[6:-13].lower()  # remove APP.V_ prefix and _INSTRUMENTED suffix
-            results_dict[view_name] = {
-                "entries": entries_cnt,
-                "log_lines": logs_cnt,
-                "metrics": metrics_cnt,
-                "events": events_cnt,
-            }
-            processed_entries_cnt += entries_cnt
+        if not contexts or "users" in contexts:
+            modes = self._configuration.get(plugin_name="users", key="roles_monitoring_mode", default_value=[])
+            processed_entries_cnt = 0
 
-        if run_proc:
-            self._report_execution("users", current_timestamp() if processed_entries_cnt > 0 else None, None, results_dict, run_id=run_id)
+            views_list = ["APP.V_USERS_INSTRUMENTED"]
+
+            if run_proc:
+                # this stored procedure will ensure that APP.TMP_USERS table is up to date
+                self._session.call("APP.P_GET_USERS", log_on_exception=True)
+
+            for mode in modes:
+                views_list.extend(ROLE_REPORTING_MODES_VIEWS[str(mode).upper()])
+
+            for view in views_list:
+                entries_cnt, logs_cnt, metrics_cnt, events_cnt = self._log_entries(
+                    lambda view=view: self._get_table_rows(view),
+                    "users",
+                    run_uuid=run_id,
+                    log_completion=False,
+                    report_timestamp_events=True,
+                )
+                view_name = view[6:-13].lower()  # remove APP.V_ prefix and _INSTRUMENTED suffix
+                results_dict[view_name] = {
+                    "entries": entries_cnt,
+                    "log_lines": logs_cnt,
+                    "metrics": metrics_cnt,
+                    "events": events_cnt,
+                }
+                processed_entries_cnt += entries_cnt
+
+            if run_proc:
+                self._report_execution(
+                    "users", current_timestamp() if processed_entries_cnt > 0 else None, None, results_dict, run_id=run_id
+                )
 
         return self._report_results(results_dict, run_id)
 

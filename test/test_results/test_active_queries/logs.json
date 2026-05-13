@@ -23,7 +23,17 @@
     "snowflake.role.name": "DTAGENT_TEST_ADMIN",
     "snowflake.warehouse.name": "DTAGENT_TEST_WH",
     "dsoa.run.context": "active_queries",
-    "dsoa.run.plugin": "test_active_queries"
+    "dsoa.run.plugin": "test_active_queries",
+    "resource_attributes": {
+      "db.system": "snowflake",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "service.name": "test.dsoa2025",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1"
+    }
   },
   {
     "content": "SQL query SUCCESS at DTAGENT_TEST_DB",
@@ -49,6 +59,16 @@
     "snowflake.role.name": "DTAGENT_TEST_ADMIN",
     "snowflake.warehouse.name": "DTAGENT_TEST_WH",
     "dsoa.run.context": "active_queries",
-    "dsoa.run.plugin": "test_active_queries"
+    "dsoa.run.plugin": "test_active_queries",
+    "resource_attributes": {
+      "db.system": "snowflake",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "service.name": "test.dsoa2025",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1"
+    }
   }
 ]

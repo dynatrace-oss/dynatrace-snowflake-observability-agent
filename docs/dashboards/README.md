@@ -5,11 +5,12 @@ This directory contains example Dynatrace dashboards designed to visualize and a
 - [Distribution Package](#distribution-package)
 - [Available Dashboards](#available-dashboards)
   - [DSOA Self-Monitoring](#dsoa-self-monitoring)
+  - [Snowflake Performance Explorer](#snowflake-performance-explorer)
   - [Snowflake Query Performance](#snowflake-query-performance)
-  - [Snowflake Query Quality](#snowflake-query-quality)
-  - [Costs Monitoring](#costs-monitoring)
+  - [Snowflake Consumption (Organization Level)](#snowflake-consumption-organization-level)
   - [Tasks \& Pipelines Monitoring](#tasks--pipelines-monitoring)
   - [Snowpipes Monitoring](#snowpipes-monitoring)
+  - [Budgets \& FinOps](#budgets--finops)
   - [Snowflake Query Deep Dive](#snowflake-query-deep-dive)
   - [Data Volume \& Storage](#data-volume--storage)
   - [Snowflake Security](#snowflake-security)
@@ -58,6 +59,26 @@ Each JSON file is named after its dashboard title (e.g., `Costs Monitoring.json`
 
 ---
 
+### [Snowflake Performance Explorer](performance-explorer/)
+
+**Purpose**: Consolidated performance investigation flow from fleet-level KPIs through warehouse
+breakdown, grouped query pattern analysis, to individual long-running query drill-down.
+
+**Key Features**:
+
+- Fleet overview KPIs: total queries, total elapsed time, error rate, and average execution time
+- Warehouse performance breakdown with compilation/execution/queued time stacking
+- Grouped query analysis by query hash with p50/p90/p99 percentile latencies
+- Query health monitoring with success/failure trends and per-warehouse error rates
+- Long-running active query detection from real-time INFORMATION_SCHEMA data
+- Cross-links to Query Performance, Query Deep Dive, and Costs Monitoring dashboards
+
+**Required Plugins**: `query_history`, `active_queries`
+
+**DPO Theme**: Performance
+
+---
+
 ### [Snowflake Query Performance](query-performance/)
 
 **Purpose**: Identify slow or resource-intensive Snowflake queries to optimize performance.
@@ -74,31 +95,21 @@ Each JSON file is named after its dashboard title (e.g., `Costs Monitoring.json`
 **DPO Theme**: Performance
 
 ---
-
-### [Snowflake Query Quality](query-quality/)
-
 **Purpose**: Detect queries with full cartesian joins that indicate potential quality issues.
 
 **Key Features**:
 
 - Identify queries producing cartesian products (unintended cross joins)
 - Track cartesian join trends over time by environment, operation, and user
-- Analyze distribution of cartesian joins across different dimensions
 - Detailed query logs with execution metadata for investigation
-
 **Required Plugin**: `query_history`
-
 **DPO Theme**: Quality
 
 ---
 
-### [Costs Monitoring](costs-monitoring/)
-
 **Purpose**: Monitor and optimize Snowflake resource costs and credit consumption.
-
 **Key Features**:
 
-- Track credit usage over time with forecasting capabilities
 - Monitor credit quota utilization for resource monitors
 - Identify warehouses missing resource monitor assignments
 - Analyze warehouse performance metrics (execution time, queuing, delays)
@@ -107,6 +118,26 @@ Each JSON file is named after its dashboard title (e.g., `Costs Monitoring.json`
 **Required Plugins**: `warehouse_usage`, `resource_monitors`, `query_history`, `active_queries`
 
 **DPO Theme**: Costs, Operations
+
+---
+
+### [Snowflake Consumption (Organization Level)](org-costs-observability/)
+
+**Purpose**: Monitor organization-wide Snowflake consumption across all accounts — credits, storage,
+data transfer, billing amounts, and remaining contract balance in a single dashboard.
+
+**Key Features**:
+
+- §2 Credit consumption trends by account and service type with compute/cloud-services breakdown table
+- §4 Storage bytes over time by account and by storage type (STAGE, FAILSAFE, HYBRID_TABLE_STORAGE)
+- §5 Cross-cloud and cross-region data transfer volumes with source/target region breakdown
+- §6 Billing amounts in contract currency per service type and remaining contract balance (capacity, rollover, free usage, on-demand, overage)
+- Three dashboard variables: `$Accounts` (multi-select), `$credit_rate` (hidden, for Phase B cost tiles), `$bu_mapping` (hidden JSON, for Phase C BU grouping)
+- Planned Phase B: §1 Contract Capacity KPIs and §3 USD Consumption; Phase C: §6 Department/BU View
+
+**Required Plugin**: `org_costs` (disabled by default — requires `SNOWFLAKE.ORGANIZATION_USAGE_VIEWER` granted)
+
+**DPO Theme**: Costs
 
 ---
 

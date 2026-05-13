@@ -21,9 +21,10 @@
 -- SOFTWARE.
 --
 --
+
 --
--- APP.P_GRANT_IMPORTED_PRIVILEGES(VARCHAR) grants imported privileges on a
--- shared database to DTAGENT_VIEWER role.
+-- Admin version of P_GRANT_IMPORTED_PRIVILEGES. Deployed via 80_admin.sql (last),
+-- so it correctly overwrites the non-admin stub in shares.sql/051_p_grant_imported_privileges.sql.
 --
 -- !! Requires DTAGENT_ADMIN role (admin deployment scope) because
 -- !! GRANT IMPORTED PRIVILEGES needs MANAGE GRANTS on ACCOUNT.

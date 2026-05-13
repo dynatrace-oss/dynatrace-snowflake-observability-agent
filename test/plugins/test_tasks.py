@@ -74,8 +74,8 @@ class TestTasks:
                 disabled_telemetry=disabled_telemetry,
                 affecting_types_for_entries=["logs", "metrics", "events"],
                 base_count={
-                    "serverless_tasks": {"entries": 0, "log_lines": 0, "metrics": 0, "events": 0},
-                    "task_versions": {"entries": 0, "log_lines": 0, "metrics": 0, "events": 0},
+                    "serverless_tasks": {"entries": 2, "log_lines": 2, "metrics": 2, "events": 0},
+                    "task_versions": {"entries": 2, "log_lines": 2, "metrics": 0, "events": 2},
                     "task_history": {"entries": 2, "log_lines": 2, "metrics": 0, "events": 0},
                 },
             )

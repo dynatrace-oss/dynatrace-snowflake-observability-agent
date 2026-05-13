@@ -22,11 +22,11 @@
 # DASHBOARD: Costs Monitoring
 # DESCRIPTION:  Snowflake Cost Monitoring dashboard
 # OWNER: DSOA Team
-# PLUGINS: query_history, resource_monitors, warehouse_usage
+# PLUGINS: query_history, resource_monitors, warehouse_usage, org_costs
 # TAGS: costs
 #
 id: e446e588-b917-4a63-867c-643ca783c79e
-version: 20
+version: 22
 variables:
   - version: 2
     key: Accounts
@@ -107,6 +107,12 @@ variables:
     visible: true
     editable: true
     defaultValue: "60"
+  - version: 2
+    key: Idle_Threshold_Pct
+    type: text
+    visible: true
+    editable: true
+    defaultValue: "50"
 tiles:
   "0":
     title: Credits used
@@ -1425,6 +1431,541 @@ tiles:
       enabled: false
       davisVisualization:
         isAvailable: true
+  "22":
+    type: markdown
+    content: |
+      # Warehouse Efficiency
+      Idle time analysis, auto-suspend optimization, and multi-cluster utilization.
+    davis:
+      componentState:
+        inputData: null
+  "23":
+    title: Idle time ratio per warehouse
+    type: data
+    query: |-
+      timeseries running = avg(snowflake.load.running), by: {
+          snowflake.warehouse.name,
+          deployment.environment,
+          service.name
+      }, interval: 5m
+      | filter in(deployment.environment, array($Accounts))
+           and iAny(startsWith(snowflake.warehouse.name, concat(array($Prefix)[], "_")))
+           and in(snowflake.warehouse.name, array($Warehouses))
+      | fieldsAdd snow_account = coalesce(deployment.environment, service.name)
+      | fieldsRemove deployment.environment, service.name
+      | summarize {
+          total_intervals = arraySize(running[]),
+          idle_intervals = arraySize(arrayFilter(running[], {it <= 0.0}))
+      }, by: {snowflake.warehouse.name, snow_account}
+      | filterOut total_intervals == 0
+      | fieldsAdd
+          idle_pct = 100.0 * toDouble(idle_intervals) / toDouble(total_intervals),
+          running_pct = 100.0 * toDouble(total_intervals - idle_intervals) / toDouble(total_intervals)
+      | sort idle_pct desc
+      | fields
+          `Warehouse` = snowflake.warehouse.name,
+          `Account` = snow_account,
+          `Idle %` = idle_pct,
+          `Running %` = running_pct,
+          `Total Intervals` = total_intervals
+    visualization: table
+    visualizationSettings:
+      autoSelectVisualization: false
+      thresholds:
+        - id: 1
+          field: "Idle %"
+          title: Idle percentage
+          isEnabled: true
+          rules:
+            - id: 0
+              color:
+                Default: "var(--dt-colors-charts-categorical-color-09-default, #649438)"
+              comparator: <
+              label: ""
+              value: 30
+            - id: 1
+              color:
+                Default: "var(--dt-colors-charts-categorical-color-14-default, #d56b1a)"
+              comparator: <
+              label: ""
+              value: $Idle_Threshold_Pct
+            - id: 2
+              color:
+                Default: "var(--dt-colors-charts-categorical-color-12-default, #cd3741)"
+              comparator: ≥
+              label: ""
+              value: $Idle_Threshold_Pct
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "24":
+    title: Idle time trend per warehouse
+    type: data
+    query: |-
+      timeseries running = avg(snowflake.load.running), by: {
+          snowflake.warehouse.name,
+          deployment.environment,
+          service.name
+      }, interval: 1h
+      | filter in(deployment.environment, array($Accounts))
+           and iAny(startsWith(snowflake.warehouse.name, concat(array($Prefix)[], "_")))
+           and in(snowflake.warehouse.name, array($Warehouses))
+      | fieldsAdd snow_account = coalesce(deployment.environment, service.name)
+      | fieldsRemove deployment.environment, service.name
+      // idle_indicator: 1.0 when no queries running, 0.0 otherwise
+      | fieldsAdd idle_indicator = arrayMap(running[], {if(it <= 0.0, 1.0, else: 0.0)})
+      | summarize {
+          idle_indicator = avg(idle_indicator[])
+      }, by: {
+          timeframe,
+          interval,
+          snowflake.warehouse.name,
+          snow_account
+      }
+    visualization: lineChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        leftYAxisSettings:
+          label: Idle Ratio (0=active, 1=idle)
+          isLabelVisible: true
+        xAxisLabel: timeframe
+        xAxisScaling: analyzedTimeframe
+        fieldMapping:
+          leftAxisValues:
+            - idle_indicator
+          timestamp: timeframe
+        gapPolicy: connect
+        legend:
+          position: bottom
+      legend:
+        ratio: 18
+      thresholds: []
+      dataMapping:
+        displayedFields:
+          - snowflake.warehouse.name
+          - snow_account
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "25":
+    title: Auto-suspend configuration per warehouse
+    type: data
+    query: |-
+      fetch events
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "resource_monitors"
+      | filter isNotNull(snowflake.warehouse.name)
+      | filter in(deployment.environment, array($Accounts))
+           and iAny(startsWith(snowflake.warehouse.name, concat(array($Prefix)[], "_")))
+           and in(snowflake.warehouse.name, array($Warehouses))
+      // Exclude serverless warehouses
+      | filterOut snowflake.warehouse.type == "SNOWPARK-OPTIMIZED"
+      | summarize {
+          auto_suspend = takeLast(snowflake.warehouse.is_auto_suspend),
+          auto_resume = takeLast(snowflake.warehouse.is_auto_resume),
+          wh_size = takeLast(snowflake.warehouse.size),
+          wh_type = takeLast(snowflake.warehouse.type),
+          scaling_policy = takeLast(snowflake.warehouse.scaling_policy),
+          min_clusters = takeLast(snowflake.warehouse.clusters.min),
+          max_clusters = takeLast(snowflake.warehouse.clusters.max)
+      }, by: {snowflake.warehouse.name, deployment.environment}
+      | lookup [
+          data
+            record(wh_size = "X-Small", credits_per_hour = 1),
+            record(wh_size = "Small", credits_per_hour = 2),
+            record(wh_size = "Medium", credits_per_hour = 4),
+            record(wh_size = "Large", credits_per_hour = 8),
+            record(wh_size = "X-Large", credits_per_hour = 16),
+            record(wh_size = "XX-Large", credits_per_hour = 32),
+            record(wh_size = "XXX-Large", credits_per_hour = 64),
+            record(wh_size = "XXXX-Large", credits_per_hour = 128)
+        ], sourceField: wh_size
+         , lookupField: wh_size
+         , fields: {credits_per_hour}
+      | sort `credits_per_hour` desc
+      | fields
+          `Warehouse` = snowflake.warehouse.name,
+          `Account` = deployment.environment,
+          `Size` = wh_size,
+          `Credits/Hour` = credits_per_hour,
+          `Auto-Suspend (s)` = auto_suspend,
+          `Auto-Resume` = auto_resume,
+          `Type` = coalesce(wh_type, "-"),
+          `Scaling` = coalesce(scaling_policy, "-"),
+          `Min Clusters` = min_clusters,
+          `Max Clusters` = max_clusters
+    visualization: table
+    visualizationSettings:
+      autoSelectVisualization: false
+      thresholds: []
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "26":
+    title: Estimated credit waste from idle warehouses
+    type: data
+    query: |-
+      // Step 1: compute idle intervals per warehouse from 5-min load history
+      timeseries running = avg(snowflake.load.running), by: {
+          snowflake.warehouse.name,
+          deployment.environment,
+          service.name
+      }, interval: 5m
+      | filter in(deployment.environment, array($Accounts))
+           and iAny(startsWith(snowflake.warehouse.name, concat(array($Prefix)[], "_")))
+           and in(snowflake.warehouse.name, array($Warehouses))
+      | fieldsAdd snow_account = coalesce(deployment.environment, service.name)
+      | fieldsRemove deployment.environment, service.name
+      | summarize {
+          total_intervals = arraySize(running[]),
+          idle_intervals = arraySize(arrayFilter(running[], {it <= 0.0}))
+      }, by: {snowflake.warehouse.name, snow_account}
+      | filterOut total_intervals == 0
+      | fieldsAdd
+          idle_pct = 100.0 * toDouble(idle_intervals) / toDouble(total_intervals),
+          idle_hours = toDouble(idle_intervals) * 5.0 / 60.0
+      // Step 2: join warehouse config for size + credits/hour
+      | join [
+          fetch events
+          | filter db.system == "snowflake"
+          | filter dsoa.run.plugin == "resource_monitors"
+          | filter isNotNull(snowflake.warehouse.name)
+          | filterOut snowflake.warehouse.type == "SNOWPARK-OPTIMIZED"
+          | summarize {
+              wh_size = takeLast(snowflake.warehouse.size)
+          }, by: {snowflake.warehouse.name, deployment.environment}
+          | lookup [
+              data
+                record(wh_size = "X-Small", credits_per_hour = 1),
+                record(wh_size = "Small", credits_per_hour = 2),
+                record(wh_size = "Medium", credits_per_hour = 4),
+                record(wh_size = "Large", credits_per_hour = 8),
+                record(wh_size = "X-Large", credits_per_hour = 16),
+                record(wh_size = "XX-Large", credits_per_hour = 32),
+                record(wh_size = "XXX-Large", credits_per_hour = 64),
+                record(wh_size = "XXXX-Large", credits_per_hour = 128)
+            ], sourceField: wh_size
+             , lookupField: wh_size
+             , fields: {credits_per_hour}
+          | fields snowflake.warehouse.name, deployment.environment, wh_size, credits_per_hour
+      ]
+      , on: {left[snowflake.warehouse.name] == right[snowflake.warehouse.name],
+             left[snow_account] == right[deployment.environment]}
+      , kind: leftOuter
+      , fields: {wh_size, credits_per_hour}
+      | fieldsAdd
+          wasted_credits = idle_hours * toDouble(coalesce(credits_per_hour, 0)),
+          // Heuristic: >50% idle → aggressive 60s timeout; >20% → moderate 300s; else keep current
+          // NOTE: 60s is the Snowflake minimum billing floor
+          suggested_timeout = if(idle_pct > 50.0, "60s",
+                                 else: if(idle_pct > 20.0, "300s",
+                                          else: "Keep current"))
+      | sort wasted_credits desc
+      | fields
+          `Warehouse` = snowflake.warehouse.name,
+          `Account` = snow_account,
+          `Size` = coalesce(wh_size, "-"),
+          `Credits/Hour` = coalesce(credits_per_hour, 0),
+          `Idle Hours` = idle_hours,
+          `Idle %` = idle_pct,
+          `Wasted Credits` = wasted_credits,
+          `Suggested Timeout` = suggested_timeout
+    visualization: table
+    visualizationSettings:
+      autoSelectVisualization: false
+      thresholds:
+        - id: 1
+          field: "Wasted Credits"
+          title: Wasted credits
+          isEnabled: true
+          rules:
+            - id: 0
+              color:
+                Default: "var(--dt-colors-charts-categorical-color-09-default, #649438)"
+              comparator: <
+              label: ""
+              value: 1
+            - id: 1
+              color:
+                Default: "var(--dt-colors-charts-categorical-color-14-default, #d56b1a)"
+              comparator: <
+              label: ""
+              value: 10
+            - id: 2
+              color:
+                Default: "var(--dt-colors-charts-categorical-color-12-default, #cd3741)"
+              comparator: ≥
+              label: ""
+              value: 10
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "27":
+    title: Multi-cluster warehouse utilization over time
+    type: data
+    query: |-
+      fetch events
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "resource_monitors"
+      | filter isNotNull(snowflake.warehouse.name)
+      | filter in(deployment.environment, array($Accounts))
+           and iAny(startsWith(snowflake.warehouse.name, concat(array($Prefix)[], "_")))
+           and in(snowflake.warehouse.name, array($Warehouses))
+      // Only multi-cluster warehouses
+      | filter toDouble(snowflake.warehouse.clusters.max) > 1
+      | fieldsAdd snow_account = coalesce(deployment.environment, service.name)
+      | makeTimeseries
+          started_clusters = avg(toDouble(snowflake.warehouse.clusters.started)),
+          max_clusters = avg(toDouble(snowflake.warehouse.clusters.max)),
+        by: {snowflake.warehouse.name, snow_account}
+    visualization: lineChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        leftYAxisSettings:
+          label: Cluster Count
+          isLabelVisible: true
+        xAxisLabel: timeframe
+        xAxisScaling: analyzedTimeframe
+        fieldMapping:
+          leftAxisValues:
+            - started_clusters
+            - max_clusters
+          timestamp: timeframe
+        gapPolicy: connect
+        legend:
+          position: bottom
+      legend:
+        ratio: 18
+      thresholds: []
+      dataMapping:
+        displayedFields:
+          - snowflake.warehouse.name
+          - snow_account
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "28":
+    title: Idle clusters in multi-cluster warehouses
+    type: data
+    query: |-
+      fetch events
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "resource_monitors"
+      | filter isNotNull(snowflake.warehouse.name)
+      | filter in(deployment.environment, array($Accounts))
+           and iAny(startsWith(snowflake.warehouse.name, concat(array($Prefix)[], "_")))
+           and in(snowflake.warehouse.name, array($Warehouses))
+      // Only multi-cluster warehouses
+      | filter toDouble(snowflake.warehouse.clusters.max) > 1
+      | summarize {
+          avg_started = avg(toDouble(snowflake.warehouse.clusters.started)),
+          max_clusters = max(toDouble(snowflake.warehouse.clusters.max)),
+          min_clusters = min(toDouble(snowflake.warehouse.clusters.min))
+      }, by: {
+          snowflake.warehouse.name,
+          deployment.environment,
+          snowflake.warehouse.scaling_policy
+      }
+      | fieldsAdd
+          utilization_pct = 100.0 * avg_started / max_clusters,
+          idle_clusters = max_clusters - avg_started
+      | sort utilization_pct asc
+      | fields
+          `Warehouse` = snowflake.warehouse.name,
+          `Account` = deployment.environment,
+          `Scaling Policy` = coalesce(snowflake.warehouse.scaling_policy, "-"),
+          `Min Clusters` = min_clusters,
+          `Max Clusters` = max_clusters,
+          `Avg Started` = avg_started,
+          `Idle Clusters` = idle_clusters,
+          `Utilization %` = utilization_pct
+    visualization: table
+    visualizationSettings:
+      autoSelectVisualization: false
+      thresholds:
+        - id: 1
+          field: "Utilization %"
+          title: Cluster utilization
+          isEnabled: true
+          rules:
+            - id: 0
+              color:
+                Default: "var(--dt-colors-charts-categorical-color-12-default, #cd3741)"
+              comparator: <
+              label: ""
+              value: 30
+            - id: 1
+              color:
+                Default: "var(--dt-colors-charts-categorical-color-14-default, #d56b1a)"
+              comparator: <
+              label: ""
+              value: 70
+            - id: 2
+              color:
+                Default: "var(--dt-colors-charts-categorical-color-09-default, #649438)"
+              comparator: ≥
+              label: ""
+              value: 70
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "29":
+    title: Warehouse resume/suspend frequency
+    type: data
+    query: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "warehouse_usage"
+      | filter snowflake.warehouse.event.name == "RESUME_WAREHOUSE"
+           or snowflake.warehouse.event.name == "SUSPEND_WAREHOUSE"
+      | filter snowflake.warehouse.event.state == "STARTED"
+      | filter in(deployment.environment, array($Accounts))
+           and iAny(startsWith(snowflake.warehouse.name, concat(array($Prefix)[], "_")))
+           and in(snowflake.warehouse.name, array($Warehouses))
+      | fieldsAdd snow_account = coalesce(deployment.environment, service.name)
+      | makeTimeseries count(),
+          by: {snowflake.warehouse.event.name, snowflake.warehouse.name, snow_account}
+    visualization: barChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        leftYAxisSettings:
+          label: Event Count
+          isLabelVisible: true
+        xAxisLabel: timeframe
+        xAxisScaling: analyzedTimeframe
+        fieldMapping:
+          leftAxisValues:
+            - count()
+          timestamp: timeframe
+        legend:
+          position: bottom
+      legend:
+        ratio: 18
+      thresholds: []
+      dataMapping:
+        displayedFields:
+          - snowflake.warehouse.event.name
+          - snowflake.warehouse.name
+          - snow_account
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "30":
+    type: markdown
+    content: "# Organization-Level Costs (requires org_costs plugin)"
+    davis:
+      componentState:
+        inputData: null
+  "31":
+    title: Org Credits Used by Service Type
+    type: data
+    query: |-
+      timeseries val = sum(snowflake.org.credits.used), by: {
+          snowflake.service.type,
+          snowflake.service.name,
+          deployment.environment
+      }
+      | filter in(deployment.environment, array($Accounts))
+      | fieldsAdd snow_account = coalesce(deployment.environment, "unknown")
+      | fieldsRemove deployment.environment
+    visualization: lineChart
+    visualizationSettings:
+      chartSettings:
+        leftYAxisSettings:
+          label: Org Credits Used
+          isLabelVisible: true
+        xAxisScaling: analyzedTimeframe
+        fieldMapping:
+          leftAxisValues:
+            - val
+          timestamp: timeframe
+        gapPolicy: connect
+        legend:
+          position: bottom
+      thresholds: []
+      dataMapping:
+        displayedFields:
+          - snowflake.service.type
+          - snowflake.service.name
+          - snow_account
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
 layouts:
   "0":
     x: 0
@@ -1535,6 +2076,56 @@ layouts:
     x: 12
     "y": 72
     w: 12
+    h: 6
+  "22":
+    x: 0
+    "y": 78
+    w: 24
+    h: 1
+  "23":
+    x: 0
+    "y": 79
+    w: 12
+    h: 6
+  "24":
+    x: 12
+    "y": 79
+    w: 12
+    h: 6
+  "25":
+    x: 0
+    "y": 85
+    w: 24
+    h: 5
+  "26":
+    x: 0
+    "y": 90
+    w: 24
+    h: 6
+  "27":
+    x: 0
+    "y": 96
+    w: 12
+    h: 6
+  "28":
+    x: 12
+    "y": 96
+    w: 12
+    h: 6
+  "29":
+    x: 0
+    "y": 102
+    w: 24
+    h: 5
+  "30":
+    x: 0
+    "y": 108
+    w: 24
+    h: 1
+  "31":
+    x: 0
+    "y": 109
+    w: 24
     h: 6
 settings:
   defaultTimeframe:

@@ -4,6 +4,9 @@
   "MD007": {
     "indent": 2
   },
+  "MD024": {
+    "siblings_only": true
+  },
   "MD041": false,
   "MD033": false,
   "MD022": false,
