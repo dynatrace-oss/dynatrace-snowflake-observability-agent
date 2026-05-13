@@ -64,7 +64,7 @@ FROM TABLE(GENERATOR(ROWCOUNT => 50));
 -- 3. DDL Operation: ALTER TABLE ADD COLUMN
 -- ============================================================================
 ALTER TABLE DSOA_TEST_DB.DDL_DETECTION_TEST.DDL_TARGET_TABLE
-    ADD COLUMN CREATED_AT TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP();
+    ADD COLUMN CREATED_AT TIMESTAMP_NTZ DEFAULT NULL;
 
 -- ============================================================================
 -- 4. DDL Operation: ALTER TABLE SET COMMENT (set object comment)

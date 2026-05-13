@@ -42,6 +42,9 @@
 -- ============================================================================
 -- 1. Setup
 -- ============================================================================
+USE ROLE ACCOUNTADMIN;
+GRANT EXECUTE MANAGED TASK ON ACCOUNT TO ROLE DTAGENT_QA_OWNER;
+
 USE ROLE SYSADMIN;
 CREATE WAREHOUSE IF NOT EXISTS DSOA_TEST_WH
     WAREHOUSE_SIZE = XSMALL
