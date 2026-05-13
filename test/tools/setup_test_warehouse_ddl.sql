@@ -70,7 +70,7 @@ ALTER TABLE DSOA_TEST_DB.DDL_DETECTION_TEST.DDL_TARGET_TABLE
 -- 4. DDL Operation: ALTER TABLE SET COMMENT (set object comment)
 -- ============================================================================
 ALTER TABLE DSOA_TEST_DB.DDL_DETECTION_TEST.DDL_TARGET_TABLE
-    SET COMMENT = 'DSOA DDL detection test table — modified at ' || CURRENT_TIMESTAMP()::VARCHAR;
+    SET COMMENT = 'DSOA DDL detection test table — modified for DDL detection test';
 
 -- ============================================================================
 -- 5. DDL Operation: CREATE VIEW
@@ -104,7 +104,7 @@ ALTER TABLE DSOA_TEST_DB.DDL_DETECTION_TEST.DDL_RENAME_SOURCE
 -- ============================================================================
 -- The query_history plugin holds back warehouse/resource-monitor DDL queries
 -- until ACCESS_HISTORY catches up. This tests that hold-back path.
-ALTER WAREHOUSE DSOA_TEST_WH SET COMMENT = 'DDL detection test — ' || CURRENT_TIMESTAMP()::VARCHAR;
+ALTER WAREHOUSE DSOA_TEST_WH SET COMMENT = 'DDL detection test — modified for DDL detection test';
 
 -- ============================================================================
 -- 9. Config requirements
