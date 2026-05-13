@@ -174,9 +174,9 @@ Snowflake Observability Agent's own budget.
 All budgets the agent has been granted access to are reported as logs and metrics; this includes their details, spending limit, and recent
 expenditures. The plugin runs once a day and excludes already reported expenditures.
 
-> **Note**: This plugin is **disabled by default** because custom budget monitoring requires per-budget privilege grants. The account budget
-> (visible via `SNOWFLAKE.BUDGET_VIEWER`) is accessible automatically once enabled. For custom budgets, use `P_GRANT_BUDGET_MONITORING()`
-> (requires admin scope) or grant privileges manually — see below.
+> [!WARNING] IMPORTANT This plugin is **disabled by default** because custom budget monitoring requires per-budget privilege grants. The
+> account budget (visible via `SNOWFLAKE.BUDGET_VIEWER`) is accessible automatically once enabled. For custom budgets, use
+> `P_GRANT_BUDGET_MONITORING()` (requires admin scope) or grant privileges manually — see below.
 
 [Show semantics for this plugin](SEMANTICS.md#budgets_semantics_sec)
 
@@ -1015,24 +1015,8 @@ The `org_costs` plugin delivers cross-account FinOps telemetry from `SNOWFLAKE.O
 credit consumption, storage usage, data transfer costs, USD billing, and contract balance data — enabling multi-account cost visibility in
 Dynatrace.
 
-## Prerequisites
-
-Access to `SNOWFLAKE.ORGANIZATION_USAGE` views requires one of the following grants. This plugin is **disabled by default**
-(`is_disabled: true`) and must be explicitly enabled after completing the prerequisite step.
-
-### Option A — Database role (recommended)
-
-```sql
-USE ROLE ACCOUNTADMIN;
-GRANT DATABASE ROLE SNOWFLAKE.ORGANIZATION_USAGE_VIEWER TO ROLE DTAGENT_VIEWER;
-```
-
-### Option B — ORGADMIN role (legacy fallback for older tenants)
-
-```sql
-USE ROLE ACCOUNTADMIN;
-GRANT ROLE ORGADMIN TO ROLE DTAGENT_OWNER;
-```
+> [!WARNING] This plugin is **disabled by default** (`is_disabled: true`). It requires a Snowflake organization account. Run `--scope=init`
+> with ACCOUNTADMIN rights before enabling.
 
 ## Contexts
 
@@ -1049,55 +1033,15 @@ GRANT ROLE ORGADMIN TO ROLE DTAGENT_OWNER;
 Runs every 6 hours (`USING CRON 0 */6 * * * UTC`). Source data has approximately 2 hours of latency; daily-granularity views update once per
 day.
 
-## Metrics emitted
-
-### org_costs_metering
-
-| Metric                                            | Unit    | Description                                 |
-|---------------------------------------------------|---------|---------------------------------------------|
-| `snowflake.org.credits.used`                      | credits | Total credits used by account per day       |
-| `snowflake.org.credits.compute`                   | credits | Compute credits used per day                |
-| `snowflake.org.credits.cloud_services`            | credits | Cloud services credits used per day         |
-| `snowflake.org.credits.adjustment_cloud_services` | credits | Cloud services credit adjustment (10% rule) |
-
-### org_costs_storage
-
-| Metric                        | Unit | Description                                 |
-|-------------------------------|------|---------------------------------------------|
-| `snowflake.org.storage.bytes` | Byte | Storage bytes used per storage type per day |
-
-### org_costs_data_transfer
-
-| Metric                         | Unit | Description                                      |
-|--------------------------------|------|--------------------------------------------------|
-| `snowflake.org.transfer.bytes` | Byte | Bytes transferred between clouds/regions per day |
-
-### org_billing_usage_in_currency
-
-| Metric                         | Unit     | Description                                         |
-|--------------------------------|----------|-----------------------------------------------------|
-| `snowflake.org.billing.amount` | currency | Billing amount in currency per service type per day |
-
-### org_billing_remaining_balance
-
-| Metric                                                        | Unit     | Description                                                        |
-|---------------------------------------------------------------|----------|--------------------------------------------------------------------|
-| `snowflake.org.billing.capacity_balance`                      | currency | Remaining contracted capacity balance                              |
-| `snowflake.org.billing.rollover_balance`                      | currency | Remaining rollover balance                                         |
-| `snowflake.org.billing.free_usage_balance`                    | currency | Remaining free usage balance                                       |
-| `snowflake.org.billing.on_demand_consumption`                 | currency | On-demand consumption charged against contract                     |
-| `snowflake.org.billing.marketplace_capacity_drawdown_balance` | currency | Marketplace capacity drawdown balance charged against the contract |
-
 ## Enablement
 
-1. Complete the prerequisite grant (Option A or B above).
 1. Set `plugins.org_costs.is_disabled: false` in your configuration.
 1. Deploy: `./scripts/deploy/deploy.sh <env> --scope=plugins,config --options=skip_confirm`
 
 ## Troubleshooting
 
 - **No data for a new account:** Organization-level views may not reflect new accounts for up to 24 hours after creation.
-- **Empty results:** Verify the prerequisite grant was applied and the plugin is enabled.
+- **Empty results:** Verify the prerequisite grant was applied (`--scope=init`) and the plugin is enabled.
 - **Stale data:** Daily-granularity views update once per day; data may appear up to 26 hours old (2h Snowflake latency + 6h collection
   cadence + daily boundary).
 
@@ -1161,13 +1105,15 @@ The following tables list the Snowflake objects that this plugin delivers data f
 
 #### Objects referenced by the `Org Costs` plugin
 
-| Name                                                     | Type | Privileges |
-|----------------------------------------------------------|------|------------|
-| SNOWFLAKE.ORGANIZATION_USAGE.METERING_DAILY_HISTORY      | view | SELECT     |
-| SNOWFLAKE.ORGANIZATION_USAGE.USAGE_IN_CURRENCY_DAILY     | view | SELECT     |
-| SNOWFLAKE.ORGANIZATION_USAGE.REMAINING_BALANCE_DAILY     | view | SELECT     |
-| SNOWFLAKE.ORGANIZATION_USAGE.DATA_TRANSFER_DAILY_HISTORY | view | SELECT     |
-| SNOWFLAKE.ORGANIZATION_USAGE.STORAGE_DAILY_HISTORY       | view | SELECT     |
+| Name                                                     | Type | Privileges    | Granted to     | Comment                                                                                                      |
+|----------------------------------------------------------|------|---------------|----------------|--------------------------------------------------------------------------------------------------------------|
+| SNOWFLAKE.ORGANIZATION_USAGE.METERING_DAILY_HISTORY      | view | SELECT        |                |                                                                                                              |
+| SNOWFLAKE.ORGANIZATION_USAGE.USAGE_IN_CURRENCY_DAILY     | view | SELECT        |                |                                                                                                              |
+| SNOWFLAKE.ORGANIZATION_USAGE.REMAINING_BALANCE_DAILY     | view | SELECT        |                |                                                                                                              |
+| SNOWFLAKE.ORGANIZATION_USAGE.DATA_TRANSFER_DAILY_HISTORY | view | SELECT        |                |                                                                                                              |
+| SNOWFLAKE.ORGANIZATION_USAGE.STORAGE_DAILY_HISTORY       | view | SELECT        |                |                                                                                                              |
+| SNOWFLAKE.ORGANIZATION_USAGE_VIEWER                      | role | DATABASE ROLE | DTAGENT_VIEWER | Option A (recommended). Grants SELECT on all ORGANIZATION_USAGE views.                                       |
+| ORGADMIN                                                 | role | ROLE          | DTAGENT_OWNER  | Optional. Option B (legacy fallback). Used only on accounts without ORGANIZATION_USAGE_VIEWER database role. |
 
 <a name="query_history_info_sec"></a>
 

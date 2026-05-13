@@ -33,3 +33,15 @@ references:
   - name: SNOWFLAKE.ORGANIZATION_USAGE.STORAGE_DAILY_HISTORY
     type: view
     privileges: SELECT
+
+  - name: SNOWFLAKE.ORGANIZATION_USAGE_VIEWER
+    type: role
+    privileges: DATABASE ROLE
+    granted to: DTAGENT_VIEWER
+    comment: "Option A (recommended). Grants SELECT on all ORGANIZATION_USAGE views."
+  - name: ORGADMIN
+    type: role
+    privileges: ROLE
+    granted to: DTAGENT_OWNER
+    optional: true
+    comment: "Option B (legacy fallback). Used only on accounts without ORGANIZATION_USAGE_VIEWER database role."
