@@ -32,6 +32,8 @@ list @%TEMP_CONFIG;
 copy into TEMP_CONFIG from '@%TEMP_CONFIG/config.json' file_format = (type=JSON);
 --%:UPLOAD:CONFIG
 
+execute immediate
+$$
 begin
     delete from DTAGENT_DB.CONFIG.CONFIGURATIONS;
     insert into DTAGENT_DB.CONFIG.CONFIGURATIONS (PATH, VALUE, TYPE)
@@ -41,6 +43,7 @@ begin
             PARSE_JSON(data):TYPE::string    as TYPE
         from TEMP_CONFIG;
 end;
+$$;
 
 --%UPLOAD:SKIP:
 remove @%TEMP_CONFIG pattern='.*.json.gz';
