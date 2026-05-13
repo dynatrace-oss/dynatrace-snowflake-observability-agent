@@ -27,7 +27,7 @@ use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 create or replace view DTAGENT_DB.APP.V_ORG_BILLING_REMAINING_BALANCE
 as
 select
-    extract(epoch_nanosecond from to_timestamp("DATE"))                             as TIMESTAMP,
+    extract(epoch_nanosecond from to_timestamp(DATE))                             as TIMESTAMP,
     concat(
         'New Org Billing Remaining Balance entry for ',
         ORGANIZATION_NAME
@@ -48,12 +48,12 @@ select
     )                                                                               as METRICS
 from SNOWFLAKE.ORGANIZATION_USAGE.REMAINING_BALANCE_DAILY
 where
-    "DATE" >= DATEADD(
+    DATE >= DATEADD(
         HOUR,
         -1 * DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE('plugins.org_costs.lookback_hours', 48),
         CURRENT_TIMESTAMP()
     )
-order by "DATE" asc;
+order by DATE asc;
 
 grant select on view DTAGENT_DB.APP.V_ORG_BILLING_REMAINING_BALANCE to role DTAGENT_VIEWER;
 --%:PLUGIN:org_costs
