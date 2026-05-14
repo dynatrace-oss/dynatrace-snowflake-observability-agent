@@ -14,5 +14,8 @@
     "MD028": false,
     "MD048": false
   },
+  "ignorePatterns": [
+    "test/qa/results/**"
+  ],
   "gitignore": true
 }
