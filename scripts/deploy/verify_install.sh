@@ -58,6 +58,18 @@ DEPLOYMENT_ENV="$("$CWD/get_config_key.sh" core.deployment_environment 2>/dev/nu
 CONNECTION_ENV="${DEPLOYMENT_ENV,,}"
 DT_ADDRESS="$("$CWD/get_config_key.sh" core.dynatrace_tenant_address 2>/dev/null)"
 
+# Derive viewer role name from TAG (same pattern as DB_NAME)
+CUSTOM_VIEWER_ROLE="$("$CWD/get_config_key.sh" core.snowflake.roles.viewer 2>/dev/null)"
+if [[ -z "$CUSTOM_VIEWER_ROLE" || "$CUSTOM_VIEWER_ROLE" == "null" || "$CUSTOM_VIEWER_ROLE" == "-" || "$CUSTOM_VIEWER_ROLE" == '""' ]]; then
+    if [[ -n "$TAG" && "$TAG" != "null" && "$TAG" != "-" ]]; then
+        VIEWER_ROLE="DTAGENT_${TAG}_VIEWER"
+    else
+        VIEWER_ROLE="DTAGENT_VIEWER"
+    fi
+else
+    VIEWER_ROLE="$CUSTOM_VIEWER_ROLE"
+fi
+
 # ---- Tool check ------------------------------------------------------------
 
 if ! command -v snow &>/dev/null; then
@@ -74,7 +86,7 @@ fi
 if [[ -n "${SNOWFLAKE_ACCOUNT:-}" && -n "${SNOWFLAKE_USER:-}" ]]; then
     SNOW_ARGS=(--temporary-connection --account "$SNOWFLAKE_ACCOUNT" --user "$SNOWFLAKE_USER")
 else
-    SNOW_ARGS=(--connection "snow_agent_${CONNECTION_ENV}")
+    SNOW_ARGS=(--connection "snow_agent_${CONNECTION_ENV}" --role "$VIEWER_ROLE")
 fi
 
 # ---- Helpers ---------------------------------------------------------------
@@ -110,7 +122,7 @@ printf "\n=== DSOA Installation Verification ===\n" >&2
 printf "Environment : %s\n" "${DEPLOYMENT_ENV:-$ENV}" >&2
 printf "Database    : %s\n" "$DB_NAME" >&2
 printf "Timestamp   : %s\n\n" "$TIMESTAMP" >&2
-printf "--- Snowflake checks ---\n" >&2
+printf -- "--- Snowflake checks ---\n" >&2
 
 # ---- Check 1: database_exists ----------------------------------------------
 
@@ -127,12 +139,12 @@ fi
 
 # ---- Check 2: stored_procedures --------------------------------------------
 
-if PROC_RESULT=$(run_sf_query "SELECT COUNT(*) AS C FROM ${DB_NAME}.INFORMATION_SCHEMA.PROCEDURES WHERE PROCEDURE_SCHEMA = 'AGENTS'"); then
+if PROC_RESULT=$(run_sf_query "SELECT COUNT(*) AS C FROM ${DB_NAME}.INFORMATION_SCHEMA.PROCEDURES WHERE PROCEDURE_SCHEMA IN ('APP', 'CONFIG')"); then
     PROC_COUNT=$(echo "$PROC_RESULT" | jq -r '.[0].C // "0"' 2>/dev/null || echo "0")
     if [[ "${PROC_COUNT}" -ge 1 ]] 2>/dev/null; then
-        add_check "stored_procedures" "PASS" "${PROC_COUNT} procedures in AGENTS schema"
+        add_check "stored_procedures" "PASS" "${PROC_COUNT} procedures in APP/CONFIG schemas"
     else
-        add_check "stored_procedures" "FAIL" "No stored procedures found in ${DB_NAME}.AGENTS — run setup+agents scopes"
+        add_check "stored_procedures" "FAIL" "No stored procedures found in ${DB_NAME}.APP or ${DB_NAME}.CONFIG — run setup+agents scopes"
     fi
 else
     add_check "stored_procedures" "FAIL" "Snowflake query error: ${QUERY_ERROR}"
@@ -185,7 +197,7 @@ fi
 
 # ---- Phase B: Dynatrace checks ---------------------------------------------
 
-printf "\n--- Dynatrace checks ---\n" >&2
+printf -- "\n--- Dynatrace checks ---\n" >&2
 DT_VERSION="unknown"
 
 if [[ -z "${DTAGENT_TOKEN:-}" || ! "${DTAGENT_TOKEN}" =~ ^dt0c[0-9]{0,2}\.[a-zA-Z0-9]{24}\.[a-zA-Z0-9]{64}$ ]]; then
