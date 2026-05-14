@@ -31,6 +31,6 @@ begin
     grant database role SNOWFLAKE.ORGANIZATION_USAGE_VIEWER to role DTAGENT_VIEWER;
 exception
     when statement_error then
-        grant role ORGADMIN to role DTAGENT_OWNER;
+        grant role ORGADMIN to role DTAGENT_VIEWER;
 end;
 $$;
