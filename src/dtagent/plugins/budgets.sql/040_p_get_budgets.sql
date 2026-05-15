@@ -94,7 +94,7 @@ BEGIN
         db_name := budget.database_name;
         fqn_budget := concat(:db_name, '.', :schema_name, '.', :budget_name);
 
-        IF NOT (db_name = 'SNOWFLAKE' AND schema_name = 'LOCAL' AND budget_name = 'ACCOUNT_ROOT_BUDGET') THEN
+        IF (:db_name != 'SNOWFLAKE' OR :schema_name != 'LOCAL' OR :budget_name != 'ACCOUNT_ROOT_BUDGET') THEN
             BEGIN
                 execute immediate concat('call ', :fqn_budget, '!GET_LINKED_RESOURCES() ',
                                      '->> INSERT INTO DTAGENT_DB.APP.TMP_BUDGETS_RESOURCES(LINKED_RESOURCES, BUDGET_NAME) ',
