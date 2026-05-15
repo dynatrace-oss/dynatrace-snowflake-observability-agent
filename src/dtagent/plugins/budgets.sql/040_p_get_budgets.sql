@@ -94,32 +94,36 @@ BEGIN
         db_name := budget.database_name;
         fqn_budget := concat(:db_name, '.', :schema_name, '.', :budget_name);
 
-        BEGIN
-            execute immediate concat('call ', :fqn_budget, '!GET_LINKED_RESOURCES() ',
-                                 '->> INSERT INTO DTAGENT_DB.APP.TMP_BUDGETS_RESOURCES(LINKED_RESOURCES, BUDGET_NAME) ',
-                                 'select top 1 array_agg(object_construct(*)) as linked_resources, \'', :budget_name, '\' as budget_name from $1');
-        EXCEPTION
-            WHEN STATEMENT_ERROR THEN
-                SYSTEM$LOG_DEBUG('GET_LINKED_RESOURCES: FUNCTION_NOT_SUPPORTED_FOR_ACCOUNT_ROOT_BUDGET');
-        END;
+        IF NOT (db_name = 'SNOWFLAKE' AND schema_name = 'LOCAL' AND budget_name = 'ACCOUNT_ROOT_BUDGET') THEN
+            BEGIN
+                execute immediate concat('call ', :fqn_budget, '!GET_LINKED_RESOURCES() ',
+                                     '->> INSERT INTO DTAGENT_DB.APP.TMP_BUDGETS_RESOURCES(LINKED_RESOURCES, BUDGET_NAME) ',
+                                     'select top 1 array_agg(object_construct(*)) as linked_resources, \'', :budget_name, '\' as budget_name from $1');
+            EXCEPTION
+                WHEN STATEMENT_ERROR THEN
+                    SYSTEM$LOG_DEBUG('GET_LINKED_RESOURCES(' || :budget_name || '): ' || SQLERRM);
+            END;
 
-        BEGIN
-            execute immediate concat('call ', :fqn_budget, '!GET_SPENDING_LIMIT() ',
-                                 '->> INSERT INTO DTAGENT_DB.APP.TMP_BUDGETS_LIMITS(LIMIT, BUDGET_NAME) ',
-                                 'select top 1 "GET_SPENDING_LIMIT" as budget_limit, \'', :budget_name, '\' as budget_name from $1');
-        EXCEPTION
-            WHEN STATEMENT_ERROR THEN
-                SYSTEM$LOG_DEBUG('GET_SPENDING_LIMIT: ' || :budget_name);
-        END;
+            BEGIN
+                execute immediate concat('call ', :fqn_budget, '!GET_SPENDING_LIMIT() ',
+                                     '->> INSERT INTO DTAGENT_DB.APP.TMP_BUDGETS_LIMITS(LIMIT, BUDGET_NAME) ',
+                                     'select top 1 "GET_SPENDING_LIMIT" as budget_limit, \'', :budget_name, '\' as budget_name from $1');
+            EXCEPTION
+                WHEN STATEMENT_ERROR THEN
+                    SYSTEM$LOG_DEBUG('GET_SPENDING_LIMIT(' || :budget_name || '): ' || SQLERRM);
+            END;
 
-        BEGIN
-            execute immediate concat('call ', :fqn_budget, '!GET_SPENDING_HISTORY(TIME_LOWER_BOUND => DATEADD(days, -1, CURRENT_TIMESTAMP()), TIME_UPPER_BOUND => CURRENT_TIMESTAMP()) ',
-                                 '->> INSERT INTO DTAGENT_DB.APP.TMP_BUDGET_SPENDING(MEASUREMENT_DATE, SERVICE_TYPE, CREDITS_SPENT, BUDGET_NAME) ',
-                                 'select "MEASUREMENT_DATE", "SERVICE_TYPE", "CREDITS_SPENT", \'', :budget_name, '\' as budget_name from $1');
-        EXCEPTION
-            WHEN STATEMENT_ERROR THEN
-                SYSTEM$LOG_DEBUG('GET_SPENDING_HISTORY: ' || :budget_name);
-        END;
+            BEGIN
+                execute immediate concat('call ', :fqn_budget, '!GET_SPENDING_HISTORY(TIME_LOWER_BOUND => DATEADD(days, -1, CURRENT_TIMESTAMP()), TIME_UPPER_BOUND => CURRENT_TIMESTAMP()) ',
+                                     '->> INSERT INTO DTAGENT_DB.APP.TMP_BUDGET_SPENDING(MEASUREMENT_DATE, SERVICE_TYPE, CREDITS_SPENT, BUDGET_NAME) ',
+                                     'select "MEASUREMENT_DATE", "SERVICE_TYPE", "CREDITS_SPENT", \'', :budget_name, '\' as budget_name from $1');
+            EXCEPTION
+                WHEN STATEMENT_ERROR THEN
+                    SYSTEM$LOG_DEBUG('GET_SPENDING_HISTORY(' || :budget_name || '): ' || SQLERRM);
+            END;
+        ELSE
+            SYSTEM$LOG_DEBUG('Skipping ACCOUNT_ROOT_BUDGET (does not support instance methods)');
+        END IF;
 
 
 
