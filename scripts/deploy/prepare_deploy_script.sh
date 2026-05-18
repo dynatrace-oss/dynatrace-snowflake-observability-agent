@@ -777,6 +777,83 @@ if [[ "$SCOPE" == *"admin"* ]] && [[ "$EXCLUDED_OPTIONS" == *"dtagent_admin"* ]]
     exit 1
 fi
 
+# Deduplicate consecutive USE ROLE/DATABASE/WAREHOUSE statements.
+# Lines that contain only USE ROLE/DATABASE/WAREHOUSE tokens (possibly multiple
+# on one semicolon-separated line) are deduplicated: a USE is only emitted when
+# its value differs from the last-emitted value.  Lines that contain any other
+# token (e.g. USE SCHEMA, CREATE, …) pass through unchanged; state is still
+# updated from any USE ROLE/DATABASE/WAREHOUSE tokens found on those lines.
+DEDUP_SQL=$(mktemp)
+awk '
+    BEGIN { cur_role = ""; cur_db = ""; cur_wh = "" }
+    {
+        line = $0
+        n = split(line, toks, ";")
+
+        has_content = 0
+        pure_use = 1
+        for (i = 1; i <= n; i++) {
+            t = toks[i]
+            sub(/^[[:space:]]+/, "", t)
+            sub(/[[:space:]]+$/, "", t)
+            if (t == "") continue
+            has_content = 1
+            if (toupper(t) !~ /^USE[[:space:]]+(ROLE|DATABASE|WAREHOUSE)[[:space:]]/) {
+                pure_use = 0
+            }
+        }
+
+        if (!has_content) { print line; next }
+
+        if (pure_use) {
+            out = ""
+            for (i = 1; i <= n; i++) {
+                t = toks[i]
+                sub(/^[[:space:]]+/, "", t)
+                sub(/[[:space:]]+$/, "", t)
+                if (t == "") continue
+                ut = toupper(t)
+                if (match(ut, /^USE[[:space:]]+ROLE[[:space:]]+/)) {
+                    val = substr(t, RSTART + RLENGTH)
+                    if (val != cur_role) {
+                        out = (out == "") ? t ";" : out " " t ";"
+                        cur_role = val
+                    }
+                } else if (match(ut, /^USE[[:space:]]+DATABASE[[:space:]]+/)) {
+                    val = substr(t, RSTART + RLENGTH)
+                    if (val != cur_db) {
+                        out = (out == "") ? t ";" : out " " t ";"
+                        cur_db = val
+                    }
+                } else if (match(ut, /^USE[[:space:]]+WAREHOUSE[[:space:]]+/)) {
+                    val = substr(t, RSTART + RLENGTH)
+                    if (val != cur_wh) {
+                        out = (out == "") ? t ";" : out " " t ";"
+                        cur_wh = val
+                    }
+                }
+            }
+            if (out != "") print out
+        } else {
+            for (i = 1; i <= n; i++) {
+                t = toks[i]
+                sub(/^[[:space:]]+/, "", t)
+                sub(/[[:space:]]+$/, "", t)
+                if (t == "") continue
+                ut = toupper(t)
+                if (match(ut, /^USE[[:space:]]+ROLE[[:space:]]+/)) {
+                    cur_role = substr(t, RSTART + RLENGTH)
+                } else if (match(ut, /^USE[[:space:]]+DATABASE[[:space:]]+/)) {
+                    cur_db = substr(t, RSTART + RLENGTH)
+                } else if (match(ut, /^USE[[:space:]]+WAREHOUSE[[:space:]]+/)) {
+                    cur_wh = substr(t, RSTART + RLENGTH)
+                }
+            }
+            print line
+        }
+    }
+' "$INSTALL_SCRIPT_SQL" > "$DEDUP_SQL" && mv "$DEDUP_SQL" "$INSTALL_SCRIPT_SQL"
+
 #
 #   Cleaning up the final script
 #

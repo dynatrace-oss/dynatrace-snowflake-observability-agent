@@ -104,7 +104,7 @@ convert_yaml_to_dtctl_json() {
     local asset_type="$2"
     local asset_name="$3"
     local tmp_file
-    tmp_file=$(mktemp /tmp/dtctl-asset-XXXXXX.json)
+    tmp_file=$(mktemp /tmp/dtctl-asset-XXXXXX)
 
     # Convert YAML → raw JSON
     local raw_json
@@ -197,7 +197,7 @@ deploy_asset() {
         fi
     else
         local action_label="${asset_action:-deployed}"
-        log_ok "${action_label^}: ${asset_name}"
+        log_ok "$(tr '[:lower:]' '[:upper:]' <<< "${action_label:0:1}")${action_label:1}: ${asset_name}"
         if [[ -n "$asset_url" ]]; then
             echo "[URL]   ${asset_url}"
         fi
@@ -267,7 +267,7 @@ deploy_assets_of_type() {
 
         # Deploy
         local id_file
-        id_file=$(mktemp /tmp/dtctl-id-XXXXXX.txt)
+        id_file=$(mktemp /tmp/dtctl-id-XXXXXX)
         if deploy_asset "$tmp_json" "$asset_name" "$id_file"; then
             (( success_count++ )) || true
 
@@ -300,7 +300,7 @@ deploy_assets_of_type() {
     done
 
     echo ""
-    log_info "${asset_type^} deployment summary: ${success_count} succeeded, ${failure_count} failed"
+    log_info "$(tr '[:lower:]' '[:upper:]' <<< "${asset_type:0:1}")${asset_type:1} deployment summary: ${success_count} succeeded, ${failure_count} failed"
 
     if [[ $failure_count -gt 0 ]]; then
         return 1

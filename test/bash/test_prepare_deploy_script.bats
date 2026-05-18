@@ -336,6 +336,99 @@ EOF
     run ! grep -q "class TestPlugin" "$TEST_SQL_FILE"
 }
 
+@test "prepare_deploy_script.sh deduplicates identical USE triplets across files" {
+    cat > "$TEST_CONFIG_FILE" << 'EOF'
+[]
+EOF
+    export BUILD_CONFIG_FILE="$TEST_CONFIG_FILE"
+    export DTAGENT_TOKEN="dt0c01.TEST12345678901234567890.TEST123456789012345678901234567890123456789012345678901234567890"
+
+    cat > build/00_init.sql << 'EOSQL'
+use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
+CREATE SCHEMA IF NOT EXISTS MAIN_SCHEMA;
+EOSQL
+    cat > build/10_admin.sql << 'EOSQL'
+use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
+CREATE ROLE IF NOT EXISTS DTAGENT_ADMIN;
+EOSQL
+    cat > build/20_setup.sql << 'EOSQL'
+use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
+CREATE PROCEDURE main_proc() AS BEGIN SELECT 1; END;
+EOSQL
+
+    run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "init,admin,setup" "" "manual"
+    [ "$status" -eq 0 ]
+
+    # All three files carry the same USE triplet — dedup leaves exactly one of each
+    [ "$(grep -ci "use role DTAGENT_OWNER" "$TEST_SQL_FILE")" -eq 1 ]
+    [ "$(grep -ci "use database DTAGENT_DB" "$TEST_SQL_FILE")" -eq 1 ]
+    [ "$(grep -ci "use warehouse DTAGENT_WH" "$TEST_SQL_FILE")" -eq 1 ]
+
+    # Non-USE content from every file must still be present
+    grep -qi "MAIN_SCHEMA" "$TEST_SQL_FILE"
+    grep -qi "DTAGENT_ADMIN" "$TEST_SQL_FILE"
+    grep -qi "main_proc" "$TEST_SQL_FILE"
+}
+
+@test "prepare_deploy_script.sh preserves role transitions in USE deduplication" {
+    cat > "$TEST_CONFIG_FILE" << 'EOF'
+[]
+EOF
+    export BUILD_CONFIG_FILE="$TEST_CONFIG_FILE"
+    export DTAGENT_TOKEN="dt0c01.TEST12345678901234567890.TEST123456789012345678901234567890123456789012345678901234567890"
+
+    cat > build/00_init.sql << 'EOSQL'
+use role ACCOUNTADMIN; use database DTAGENT_DB; use warehouse DTAGENT_WH;
+CREATE SCHEMA IF NOT EXISTS MAIN_SCHEMA;
+EOSQL
+    cat > build/10_admin.sql << 'EOSQL'
+use role ACCOUNTADMIN; use database DTAGENT_DB; use warehouse DTAGENT_WH;
+CREATE ROLE IF NOT EXISTS DTAGENT_ADMIN;
+EOSQL
+    cat > build/20_setup.sql << 'EOSQL'
+use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
+CREATE PROCEDURE main_proc() AS BEGIN SELECT 1; END;
+EOSQL
+
+    run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "init,admin,setup" "" "manual"
+    [ "$status" -eq 0 ]
+
+    # First two files share ACCOUNTADMIN — deduped to one occurrence
+    [ "$(grep -ci "use role ACCOUNTADMIN" "$TEST_SQL_FILE")" -eq 1 ]
+    # Third file transitions to DTAGENT_OWNER — must be preserved
+    [ "$(grep -ci "use role DTAGENT_OWNER" "$TEST_SQL_FILE")" -eq 1 ]
+    # DATABASE and WAREHOUSE never change — each appears exactly once
+    [ "$(grep -ci "use database DTAGENT_DB" "$TEST_SQL_FILE")" -eq 1 ]
+    [ "$(grep -ci "use warehouse DTAGENT_WH" "$TEST_SQL_FILE")" -eq 1 ]
+}
+
+@test "prepare_deploy_script.sh passes through USE SCHEMA lines unchanged" {
+    cat > "$TEST_CONFIG_FILE" << 'EOF'
+[]
+EOF
+    export BUILD_CONFIG_FILE="$TEST_CONFIG_FILE"
+    export DTAGENT_TOKEN="dt0c01.TEST12345678901234567890.TEST123456789012345678901234567890123456789012345678901234567890"
+
+    cat > build/00_init.sql << 'EOSQL'
+use role ACCOUNTADMIN; use database DTAGENT_DB; use schema CONFIG; use warehouse DTAGENT_WH;
+CREATE SCHEMA IF NOT EXISTS MAIN_SCHEMA;
+EOSQL
+    cat > build/10_admin.sql << 'EOSQL'
+use role ACCOUNTADMIN; use database DTAGENT_DB; use schema CONFIG; use warehouse DTAGENT_WH;
+CREATE ROLE IF NOT EXISTS DTAGENT_ADMIN;
+EOSQL
+
+    run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "init,admin" "" "manual"
+    [ "$status" -eq 0 ]
+
+    # Lines containing USE SCHEMA are not pure USE ROLE/DB/WH and pass through unchanged
+    [ "$(grep -ci "use schema CONFIG" "$TEST_SQL_FILE")" -eq 2 ]
+
+    # Non-USE content still present
+    grep -qi "MAIN_SCHEMA" "$TEST_SQL_FILE"
+    grep -qi "DTAGENT_ADMIN" "$TEST_SQL_FILE"
+}
+
 @test "prepare_deploy_script.sh removes inactive plugins from all scope" {
     # Create config with test_plugin disabled
     cat > "$TEST_CONFIG_FILE" << 'EOF'
