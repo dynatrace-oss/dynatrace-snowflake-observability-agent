@@ -429,6 +429,39 @@ EOSQL
     grep -qi "DTAGENT_ADMIN" "$TEST_SQL_FILE"
 }
 
+@test "prepare_deploy_script.sh commented-out USE does not suppress the real USE that follows" {
+    cat > "$TEST_CONFIG_FILE" << 'EOF'
+[]
+EOF
+    export BUILD_CONFIG_FILE="$TEST_CONFIG_FILE"
+    export DTAGENT_TOKEN="dt0c01.TEST12345678901234567890.TEST123456789012345678901234567890123456789012345678901234567890"
+
+    # Block comment contains a bare USE that matches the real USE below it.
+    # Before the fix, dedup would see the commented USE first, mark the role as
+    # already active, and suppress the real USE — leaving subsequent SQL with no
+    # session context.
+    cat > build/00_init.sql << 'EOSQL'
+/*
+USE ROLE SYSADMIN;
+USE DATABASE DTAGENT_DB;
+USE WAREHOUSE DTAGENT_WH;
+*/
+USE ROLE SYSADMIN;
+USE DATABASE DTAGENT_DB;
+USE WAREHOUSE DTAGENT_WH;
+CREATE SCHEMA IF NOT EXISTS MAIN_SCHEMA;
+EOSQL
+
+    run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "init" "" "manual"
+    [ "$status" -eq 0 ]
+
+    # The real USE statements must survive dedup — comments must not suppress them
+    [ "$(grep -ci "use role SYSADMIN" "$TEST_SQL_FILE")" -eq 1 ]
+    [ "$(grep -ci "use database DTAGENT_DB" "$TEST_SQL_FILE")" -eq 1 ]
+    [ "$(grep -ci "use warehouse DTAGENT_WH" "$TEST_SQL_FILE")" -eq 1 ]
+    grep -qi "MAIN_SCHEMA" "$TEST_SQL_FILE"
+}
+
 @test "prepare_deploy_script.sh removes inactive plugins from all scope" {
     # Create config with test_plugin disabled
     cat > "$TEST_CONFIG_FILE" << 'EOF'
