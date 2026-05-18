@@ -3,3 +3,8 @@
 h2 {
     page-break-before: always;
 }
+
+/* Suppress badge/shield rows from the generated PDF */
+.no-pdf {
+    display: none;
+}

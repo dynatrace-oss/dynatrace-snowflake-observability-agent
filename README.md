@@ -6,6 +6,16 @@
 <img src="docs/assets/snowflake-logo.svg" alt="Snowflake logo" height="100" class="snowflake-logo">
 </div>
 
+<div class="no-pdf" align="center">
+
+[![Python Version](https://img.shields.io/badge/Python-3.11%2B-blue.svg?logo=python&logoColor=white)](https://www.python.org/)
+[![Snowflake](https://img.shields.io/badge/Snowflake-Integrated-29B5E8.svg?logo=snowflake&logoColor=white)](https://www.snowflake.com/)
+[![OpenTelemetry](https://img.shields.io/badge/OpenTelemetry-1.39-000000.svg?logo=opentelemetry&logoColor=white)](https://opentelemetry.io/)
+[![Docker](https://img.shields.io/badge/Docker-Enabled-2496ED.svg?logo=docker&logoColor=white)](https://www.docker.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+</div>
+
 **Dynatrace Snowflake Observability Agent (DSOA)** is a powerful tool designed to enhance [Data Platform Observability](DPO.md) within the
 Snowflake environment. It complements Dynatrace's capabilities by [extending observability with plugins](PLUGINS.md) into areas where
 traditional OneAgent or synthetic monitoring may not reach. DSOA provides [comprehensive telemetry data](SEMANTICS.md) for monitoring,
