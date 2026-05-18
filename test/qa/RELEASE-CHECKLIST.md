@@ -30,7 +30,8 @@ each passes locally or in CI before proceeding to live testing.
 
 - [ ] **A3** — `make lint` passes — pylint must score **10.00/10**
 
-- [ ] **A4** — `.venv/bin/pytest` passes — full test suite green
+- [ ] **A4** — `.venv/bin/pytest` passes — full test suite green (BDX-1830:
+  also verify `pip show snowflake-connector-python` reports `>= 4.4.0`)
 
 - [ ] **A5** — `./scripts/dev/build_docs.sh` succeeds with no errors
 
@@ -57,6 +58,30 @@ each passes locally or in CI before proceeding to live testing.
 - [ ] **A12** — OpenPipeline settings object validates against tenant.
   Run: `dtctl apply --dry-run` on `docs/openpipeline/snowagent-logs-pipeline/snowagent-logs-pipeline.yml`
   (BDX-697)
+
+- [ ] **A13** — Docker non-interactive deployment smoke test (BDX-1968).
+  Pre-requisite: `docker build -t dsoa-test .` from A9. Run:
+
+  ```bash
+  docker run --rm \
+    -e DSOA_DT_TENANT="dummy.tenant.example.com" \
+    -e DTAGENT_TOKEN="dt0c01.DUMMY.DUMMYDUMMYDUMMY" \
+    -e SNOWFLAKE_ACCOUNT="dummy-account" \
+    -e SNOWFLAKE_USER="dummy-user" \
+    dsoa-test \
+    --env=test-qa --defaults --options=skip_confirm,manual
+  ```
+
+  Verify the container exits 0 and writes a deploy SQL file to stdout/output.
+  This validates the non-interactive `--defaults` path used in GitHub Actions.
+
+- [ ] **A14** — GitHub Actions workflow template is valid (BDX-1968).
+  Verify `src/assets/ci-templates/github/dsoa-deploy.yml.template` passes
+  `yamllint`, contains a `workflow_dispatch` trigger with `scope` input, and
+  references `ghcr.io/dynatrace-oss/dsoa-deploy:` image.
+  Run: `yamllint src/assets/ci-templates/github/dsoa-deploy.yml.template`
+  Also verify `release.yml` still has the `build-and-push-docker` job that
+  publishes to GHCR on each tagged release.
 
 ---
 
@@ -161,6 +186,21 @@ and restore to a clean `--scope=all` state before the next scenario.
   deployment, run `--scope=verify`. Verify the check reports all objects
   present and version matches.
 
+- [ ] **B16** — GitHub Actions / `--temporary-connection` deployment path
+  (BDX-1968). Set `SNOWFLAKE_ACCOUNT` and `SNOWFLAKE_USER` environment
+  variables (key-pair auth) and deploy **without** a named connection profile:
+
+  ```bash
+  export SNOWFLAKE_ACCOUNT="<orgname-accountname>"
+  export SNOWFLAKE_USER="<service-account>"
+  export SNOWFLAKE_PRIVATE_KEY_RAW="<pem-private-key>"
+  ./scripts/deploy/deploy.sh test-qa --scope=config --options=skip_confirm
+  ```
+
+  Verify deploy.sh auto-detects the env vars and uses `--temporary-connection`
+  (confirm in deploy log: no `snow_agent_test-qa` named connection used).
+  This is the exact path exercised by the GitHub Actions workflow template.
+
 ---
 
 ## Section C — Live Telemetry Tests
@@ -170,13 +210,13 @@ and sending data to the same Dynatrace tenant.
 
 ### Setup
 
-1. Deploy the current release to `dev-{CURR_TAG}` (e.g. `DEV-095`):
+1. Deploy the current release to `dev-{CURR_TAG}` (e.g. `DEV-{CURR_TAG}`):
 
    ```bash
    ./scripts/deploy/deploy.sh dev-{CURR_TAG} --scope=all --options=skip_confirm
    ```
 
-1. Deploy the previous release to `dev-{PREV_TAG}` (e.g. `DEV-094`):
+1. Deploy the previous release to `dev-{PREV_TAG}` (e.g. `DEV-{PREV_TAG}`):
 
    ```bash
    ./scripts/deploy/deploy.sh dev-{PREV_TAG} --scope=all --options=skip_confirm
@@ -202,7 +242,7 @@ and sending data to the same Dynatrace tenant.
    ./scripts/deploy/deploy_dt_assets.sh --scope=openpipeline --env=test-qa
    ```
 
-> Tiles marked **[COMPARE]** display both `DEV-{PREV}` and `DEV-{CURR}` series
+> Tiles marked **[COMPARE]** display both `DEV-{PREV_TAG}` and `DEV-{CURR_TAG}` series
 > on the same chart. Verify that both series appear and neither shows unexpected
 > volume changes. All other tiles are single-environment (current only).
 
@@ -402,8 +442,8 @@ and sending data to the same Dynatrace tenant.
 
 - [ ] **C4.11** `[AUTO-EVAL]` — **task_history attempt is integer-typed**
   (BDX-1903)
-  DQL: `fetch spans | filter dsoa.run.plugin == "tasks" | filter isNotNull(snowflake.task.run.attempt) | fields snowflake.task.run.attempt | limit 5`
-  — verify values are numeric (not strings like `"1"`).
+  DQL: `fetch logs, from: now()-7d | filter dsoa.run.context == "task_history" | filter deployment.environment == "DEV-{CURR_TAG}" | filter isNotNull(snowflake.task.run.attempt) | fields snowflake.task.run.attempt | limit 5`
+  — verify values are numeric (not strings like `"1"`). Note: tasks plugin emits **logs**, not spans; use 7-day window since task runs may not occur daily.
 
 - [ ] **C4.12** `[AUTO-EVAL]` — **serverless_tasks db.namespace is NULL not
   empty string** (BDX-1904) `[SHOULD BE EMPTY]`
@@ -411,10 +451,10 @@ and sending data to the same Dynatrace tenant.
   — expect 0 rows.
 
 - [ ] **C4.13** `[BOTH]` — **DDL change detection on query spans** (BDX-1998)
-  DQL: `fetch spans | filter isNotNull(snowflake.object.ddl.operation) | fields snowflake.object.name, snowflake.object.type, snowflake.object.ddl.operation | limit 10`
-  — expect rows after running `setup_test_warehouse_ddl.sql` + agent run + 3h
-  ACCESS_HISTORY lag.
-  `[DEFERRED — DDL attributes populate ~3h after query execution]`
+  DQL: `fetch spans, from: now()-7d | filter deployment.environment == "DEV-{CURR_TAG}" | filter isNotNull(snowflake.object.ddl.operation) | fields snowflake.object.name, snowflake.object.type, snowflake.object.ddl.operation | limit 10`
+  — expect rows with `snowflake.object.ddl.operation` in `{CREATE, REPLACE, ALTER, DROP}`.
+  Note: Snowflake uses `REPLACE` (not `CREATE`) for `CREATE OR REPLACE` statements.
+  Run `setup_test_warehouse_ddl.sql` to generate ALTER and DROP examples.
 
 ---
 
@@ -446,17 +486,17 @@ and sending data to the same Dynatrace tenant.
 
 - [ ] **C5.8** `[AUTO-EVAL]` — **Acquisition warning bizevents fire on known
   triggers** (BDX-1647)
-  DQL: `fetch bizevents | filter event.type == "dsoa.acquisition.warning" | filter deployment.environment == "DEV-095" | summarize count()`
+  DQL: `fetch bizevents | filter event.type == "dsoa.acquisition.warning" | filter deployment.environment == "DEV-{CURR_TAG}" | summarize count()`
   — after running `setup_test_shares.sql` unhealthy-share scenario, expect
   count > 0. Verify `processing_errors` field is a valid JSON list.
 
 - [ ] **C5.9** `[AUTO-EVAL]` — **No unexpected acquisition problems**
   (BDX-1647) `[SHOULD BE EMPTY]`
-  DQL: `fetch bizevents | filter event.type == "dsoa.acquisition.problem" | filter deployment.environment == "DEV-095" | summarize count()`
+  DQL: `fetch bizevents | filter event.type == "dsoa.acquisition.problem" | filter deployment.environment == "DEV-{CURR_TAG}" | summarize count()`
   — expect 0 rows (problems indicate real SQL failures, not warnings).
 
 - [ ] **C5.10** `[BOTH]` — **Resource monitor credit alert events** (BDX-623)
-  DQL: `fetch events | filter dsoa.run.plugin == "resource_monitors" | filter event.kind == "CUSTOM_INFO" | filter deployment.environment == "DEV-095"`
+  DQL: `fetch events | filter dsoa.run.plugin == "resource_monitors" | filter event.kind == "CUSTOM_INFO" | filter deployment.environment == "DEV-{CURR_TAG}"`
   — after running `setup_test_resource_monitor_alert.sql`, expect threshold
   events at 50/80/90/100% levels.
   Dashboard: *Costs Monitoring* > Resource Monitor section.
@@ -521,7 +561,7 @@ and sending data to the same Dynatrace tenant.
 
 - [ ] **C8.4** `[AUTO-EVAL]` — **event_usage plugin deprecated — no new
   telemetry** (BDX-1865)
-  DQL: `fetch logs | filter dsoa.run.plugin == "event_usage" | filter deployment.environment == "DEV-095" | summarize count()`
+  DQL: `fetch logs | filter dsoa.run.plugin == "event_usage" | filter deployment.environment == "DEV-{CURR_TAG}" | summarize count()`
   — expect 0 rows (metering replaces event_usage).
 
 ---
@@ -551,7 +591,7 @@ and sending data to the same Dynatrace tenant.
   — expect > 0 after simulation traffic with failing tasks.
 
 - [ ] **C9.5** `[AUTO-EVAL]` — **Cancelled task runs metric** (BDX-697)
-  DQL: `timeseries count(snowflake.task.run.cancelled), by:{deployment.environment}`
+  DQL: `timeseries sum(snowflake.task.run.cancelled)` (no env dimension; `timeseries count()` syntax incorrect for this metric)
   — expect > 0 after simulation traffic with cancelled tasks.
 
 - [ ] **C9.6** `[AUTO-EVAL]` — **Successful task runs metric** (BDX-697)
@@ -569,14 +609,12 @@ and sending data to the same Dynatrace tenant.
 
 - [ ] **C10.1** `[AUTO-EVAL]` — **Mode: off** — `db.query.text` contains
   original SQL with literals intact.
-  DQL: `fetch spans | filter dsoa.run.context == "query_history" | filter contains(db.query.text, "'DSOA_OBFUSCATION_TEST'") | summarize count()`
-  — expect count > 0 when mode is `off`.
+  DQL: `fetch spans, from: now()-7d | filter dsoa.run.context == "query_history" | filter deployment.environment == "DEV-{CURR_TAG}" | filter contains(db.query.text, "'DSOA_OBFUSCATION_TEST'") | summarize count()`
+  — expect count > 0 when mode is `off`. Use 7-day window (simulation may have run on a prior day).
 
 - [ ] **C10.2** `[AUTO-EVAL]` — **Mode: literals** — `db.query.text` has
   string and integer literals replaced.
   DQL: same query as C10.1 — expect count == 0 when mode is `literals`
-  (the literal `'DSOA_OBFUSCATION_TEST'` should be replaced with `?`).
-  Note: narrow the notebook tile timeframe to approximately 30 minutes post-mode-switch to avoid false failures from pre-switch spans.
 
 - [ ] **C10.3** `[AUTO-EVAL]` — **Mode: full** — `db.query.text` contains
   only a normalized hash.
@@ -594,12 +632,68 @@ and sending data to the same Dynatrace tenant.
 > lower than the generated row count.
 
 - [ ] **C11.1** `[AUTO-EVAL]` — **max_entries cap is enforced** (BDX-1965)
-  DQL: `fetch bizevents | filter dsoa.run.plugin == "query_history" | filter isNotNull(dsoa.acquisition.skipped_count) | summarize total_skipped = sum(dsoa.acquisition.skipped_count)`
-  — expect total_skipped > 0 after overload simulation.
+  DQL: `fetch bizevents | filter deployment.environment == "DEV-{CURR_TAG}" | filter event.type == "dsoa.signal_overload_protection" | summarize count = count(), total_dropped = sum(toLong(dropped_count))`
+  — expect count > 0 after overload simulation. Signal is a bizevent of type `dsoa.signal_overload_protection`
+  with properties `dropped_count`, `total_processed`, `total_available`, `max_entries`.
+  Note: `dsoa.acquisition.skipped_count` does not exist in the codebase.
 
 - [ ] **C11.2** `[AUTO-EVAL]` — **Overload warning logged** (BDX-1965)
-  DQL: `fetch logs | filter dsoa.run.context == "self_monitoring" | filter loglevel == "WARN" | filter contains(content, "max_entries") | summarize count()`
-  — expect count > 0.
+  DQL: `fetch logs | filter dsoa.run.plugin == "query_history" | filter deployment.environment == "DEV-{CURR_TAG}" | filter loglevel == "WARN" | filter contains(content, "Signal overload protection active") | summarize count()`
+  — expect count > 0. Warning is emitted in the `query_history` plugin context (not `self_monitoring`).
+
+---
+
+## Section D — Dashboard Visual Inspection
+
+Open each dashboard in the Dynatrace tenant and verify it renders correctly with
+data from `DEV-{CURR_TAG}`. Check that all tiles load (no "No data" errors on
+tiles that should have data), that time-series charts show expected shapes, and
+that no tiles display error states.
+
+> **QA test notebook:** <https://aym57094.sprint.apps.dynatracelabs.com/ui/document/v0/#share=notebook;id=5bf9b0d9-6ebe-473f-8847-fe2d787a6c61>
+> All 14 dashboards deployed to aym57094 on 2026-05-18 via `./scripts/deploy/deploy_dt_assets.sh --scope=dashboards`
+
+- [ ] **D1** `[VISUAL]` — **Query Performance** dashboard renders correctly
+  <https://aym57094.sprint.apps.dynatracelabs.com/ui/apps/dynatrace.dashboards/dashboard/f245f73a-35f5-4298-8158-2a8aa4611a23>
+
+- [ ] **D2** `[VISUAL]` — **Query Quality** dashboard renders correctly
+  <https://aym57094.sprint.apps.dynatracelabs.com/ui/apps/dynatrace.dashboards/dashboard/4a90d08b-5c20-4e67-be3d-c78b57c16441>
+
+- [ ] **D3** `[VISUAL]` — **Query Deep Dive** dashboard renders correctly
+  <https://aym57094.sprint.apps.dynatracelabs.com/ui/apps/dynatrace.dashboards/dashboard/9dbac33a-25ba-4192-b748-c8b6fe561c3b>
+
+- [ ] **D4** `[VISUAL]` — **Performance Explorer** dashboard renders correctly (BDX-951)
+  <https://aym57094.sprint.apps.dynatracelabs.com/ui/apps/dynatrace.dashboards/dashboard/ebce348b-6b05-4b2b-9562-d30cdf14dcc3>
+
+- [ ] **D5** `[VISUAL]` — **Costs Monitoring** dashboard renders correctly (BDX-686: warehouse idle time tiles)
+  <https://aym57094.sprint.apps.dynatracelabs.com/ui/apps/dynatrace.dashboards/dashboard/e446e588-b917-4a63-867c-643ca783c79e>
+
+- [ ] **D6** `[VISUAL]` — **Budgets & FinOps** dashboard renders correctly
+  <https://aym57094.sprint.apps.dynatracelabs.com/ui/apps/dynatrace.dashboards/dashboard/64b09f3f-1faa-49c8-98ba-7aa496af8cdf>
+
+- [ ] **D7** `[VISUAL]` — **Org-Level Costs Observability** dashboard renders correctly (BDX-682, BDX-1182: consumption tiles)
+  <https://aym57094.sprint.apps.dynatracelabs.com/ui/apps/dynatrace.dashboards/dashboard/6881ff48-0945-4e94-94af-2e4bb338724e>
+
+- [ ] **D8** `[VISUAL]` — **Data Volume & Storage** dashboard renders correctly
+  <https://aym57094.sprint.apps.dynatracelabs.com/ui/apps/dynatrace.dashboards/dashboard/fdd7c1db-ffc0-4c75-adea-f60cadc120ad>
+
+- [ ] **D9** `[VISUAL]` — **Tasks & Pipelines** dashboard renders correctly
+  <https://aym57094.sprint.apps.dynatracelabs.com/ui/apps/dynatrace.dashboards/dashboard/5b3a0282-123e-416c-97bb-d8b6063e6323>
+
+- [ ] **D10** `[VISUAL]` — **Snowpipes Monitoring** dashboard renders correctly
+  <https://aym57094.sprint.apps.dynatracelabs.com/ui/apps/dynatrace.dashboards/dashboard/f3eda451-afe7-4035-bca8-7b09620de132>
+
+- [ ] **D11** `[VISUAL]` — **Shares & Governance** dashboard renders correctly
+  <https://aym57094.sprint.apps.dynatracelabs.com/ui/apps/dynatrace.dashboards/dashboard/579f882f-b7b7-4f78-a51f-64517849dbde>
+
+- [ ] **D12** `[VISUAL]` — **Snowflake Security** dashboard renders correctly
+  <https://aym57094.sprint.apps.dynatracelabs.com/ui/apps/dynatrace.dashboards/dashboard/0f2f0c6b-5250-4f88-bc78-fe58d80fd59a>
+
+- [ ] **D13** `[VISUAL]` — **Self-Monitoring** dashboard renders correctly
+  <https://aym57094.sprint.apps.dynatracelabs.com/ui/apps/dynatrace.dashboards/dashboard/0363ea51-aafe-4d5c-b76b-70342d5f70ed>
+
+- [ ] **D14** `[VISUAL]` — **Warehouse Change Detection** dashboard renders correctly
+  <https://aym57094.sprint.apps.dynatracelabs.com/ui/apps/dynatrace.dashboards/dashboard/662ba27b-28ce-476a-b1bb-3d39ac613b0a>
 
 ---
 
@@ -607,22 +701,23 @@ and sending data to the same Dynatrace tenant.
 
 Fill in after completing all sections.
 
-| Section                 | Passed | Failed | Skipped | Total  |
-|-------------------------|--------|--------|---------|--------|
-| A — Offline             |        |        |         | 12     |
-| B — Deployment          |        |        |         | 15     |
-| C1 — Data Volume        |        |        |         | 8      |
-| C2 — Metrics            |        |        |         | 16     |
-| C3 — Logs               |        |        |         | 8      |
-| C4 — Spans              |        |        |         | 13     |
-| C5 — Events             |        |        |         | 10     |
-| C6 — Active Queries     |        |        |         | 4      |
-| C7 — Shares             |        |        |         | 4      |
-| C8 — Plugin Lifecycle   |        |        |         | 4      |
-| C9 — OpenPipeline       |        |        |         | 6      |
-| C10 — Obfuscation       |        |        |         | 3      |
-| C11 — Signal Protection |        |        |         | 2      |
-| **Total**               |        |        |         | **105**|
+| Section                 | Passed | Failed | Skipped | Total   |
+|-------------------------|--------|--------|---------|---------|
+| A — Offline             |        |        |         | 14      |
+| B — Deployment          |        |        |         | 16      |
+| C1 — Data Volume        |        |        |         | 8       |
+| C2 — Metrics            |        |        |         | 16      |
+| C3 — Logs               |        |        |         | 8       |
+| C4 — Spans              |        |        |         | 13      |
+| C5 — Events             |        |        |         | 10      |
+| C6 — Active Queries     |        |        |         | 4       |
+| C7 — Shares             |        |        |         | 4       |
+| C8 — Plugin Lifecycle   |        |        |         | 4       |
+| C9 — OpenPipeline       |        |        |         | 6       |
+| C10 — Obfuscation       |        |        |         | 3       |
+| C11 — Signal Protection |        |        |         | 2       |
+| D — Dashboards          |        |        |         | 14      |
+| **Total**               |        |        |         | **119** |
 
 **QA Signoff:**
 
