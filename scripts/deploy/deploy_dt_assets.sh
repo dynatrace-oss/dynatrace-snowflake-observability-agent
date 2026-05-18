@@ -281,7 +281,7 @@ deploy_assets_of_type() {
                 if [[ -n "$assigned_id" ]] && (( yaml_id_count == 0 )); then
                     # Insert id: <uuid> after the last contiguous header comment block
                     local tmp_yaml
-                    tmp_yaml=$(mktemp /tmp/dtctl-yaml-XXXXXX.yml)
+                    tmp_yaml=$(mktemp /tmp/dtctl-yaml-XXXXXX)
                     awk -v id="$assigned_id" '
                         !inserted && /^[^#]/ { print "id: " id; inserted=1 }
                         { print }

@@ -531,6 +531,27 @@ if [[ "$SCOPE" == *"admin"* ]] && [[ "$EXCLUDED_OPTIONS" == *"dtagent_admin"* ]]
     exit 1
 fi
 
+#
+#   Cleaning up the final script
+#
+# Set sed in-place flag based on OS
+if [ $(uname -s) = 'Darwin' ]; then
+    SED_INPLACE=("sed" "-i" "")
+else
+    SED_INPLACE=("sed" "-i")
+fi
+
+# Strip comments before dedup so commented-out USE statements cannot
+# poison the dedup state and cause real USE statements to be suppressed.
+# Remove SQL line comments
+"${SED_INPLACE[@]}" -E -e 's/--.*$//' "$INSTALL_SCRIPT_SQL"
+# Remove SQL block comments
+"${SED_INPLACE[@]}" -E -e '/^\/\*/,/\*\//d' "$INSTALL_SCRIPT_SQL"
+# Remove Python comment-only lines (with or without leading whitespace)
+"${SED_INPLACE[@]}" -E -e '/^[[:space:]]*#/d' "$INSTALL_SCRIPT_SQL"
+# Remove Python inline comments
+"${SED_INPLACE[@]}" -E -e 's/[[:space:]]+#.*$//' "$INSTALL_SCRIPT_SQL"
+
 # Deduplicate consecutive USE ROLE/DATABASE/WAREHOUSE statements.
 # Lines that contain only USE ROLE/DATABASE/WAREHOUSE tokens (possibly multiple
 # on one semicolon-separated line) are deduplicated: a USE is only emitted when
@@ -607,25 +628,6 @@ awk '
         }
     }
 ' "$INSTALL_SCRIPT_SQL" > "$DEDUP_SQL" && mv "$DEDUP_SQL" "$INSTALL_SCRIPT_SQL"
-
-#
-#   Cleaning up the final script
-#
-# Set sed in-place flag based on OS
-if [ $(uname -s) = 'Darwin' ]; then
-    SED_INPLACE=("sed" "-i" "")
-else
-    SED_INPLACE=("sed" "-i")
-fi
-
-# Remove SQL line comments
-"${SED_INPLACE[@]}" -E -e 's/--.*$//' "$INSTALL_SCRIPT_SQL"
-# Remove SQL block comments
-"${SED_INPLACE[@]}" -E -e '/^\/\*/,/\*\//d' "$INSTALL_SCRIPT_SQL"
-# Remove Python comment-only lines (with or without leading whitespace)
-"${SED_INPLACE[@]}" -E -e '/^[[:space:]]*#/d' "$INSTALL_SCRIPT_SQL"
-# Remove Python inline comments
-"${SED_INPLACE[@]}" -E -e 's/[[:space:]]+#.*$//' "$INSTALL_SCRIPT_SQL"
 
 # Handle object name replacements
 # Priority: Custom names > TAG > Default names
