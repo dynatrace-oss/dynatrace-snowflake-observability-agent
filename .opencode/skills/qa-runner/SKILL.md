@@ -777,17 +777,23 @@ fetch spans
 
 #### AE-C4.11 — task_history attempt is integer-typed
 
+The `tasks` plugin emits **logs** (not spans) for `task_history` context. Use `fetch logs`
+and a 7-day window — task runs may not appear in the default 24h window if no
+tasks ran recently.
+
 ```dql
-fetch spans
-| filter dsoa.run.plugin == "tasks"
+fetch logs, from: now()-7d
+| filter dsoa.run.context == "task_history"
 | filter deployment.environment == "DEV-{CURR_TAG}"
 | filter isNotNull(snowflake.task.run.attempt)
 | fields snowflake.task.run.attempt
 | limit 5
-| summarize count = count()
 ```
 
-**Pass:** count > 0 AND all `snowflake.task.run.attempt` values are numeric (not quoted strings). If the field is returned as a string (e.g., `"1"` instead of `1`), record as FAIL with the raw value.
+**Pass:** rows returned AND all `snowflake.task.run.attempt` values are numeric
+(DQL returns them without surrounding quotes). The SQL view casts this field to
+`::INTEGER` — if DQL surfaces it as a quoted string like `"1"`, record as FAIL.
+**Skip if:** no task runs in the account within 7 days.
 
 #### AE-C4.12 — serverless_tasks db.namespace is NULL not empty string [SHOULD BE EMPTY]
 
@@ -1087,9 +1093,10 @@ timeseries count(snowflake.task.run.successful), by:{deployment.environment}
 #### AE-C10.1 — Obfuscation mode: off — literal visible
 
 Requires `obfuscation_mode: off` config + agent cycle after `setup_test_query_obfuscation.sql`.
+Use a **7-day window** — the simulation query may have been run on a previous day.
 
 ```dql
-fetch spans
+fetch spans, from: now()-7d
 | filter dsoa.run.context == "query_history"
 | filter deployment.environment == "DEV-{CURR_TAG}"
 | filter contains(db.query.text, "'DSOA_OBFUSCATION_TEST'")
@@ -1130,25 +1137,30 @@ fetch spans, from: now()-30m
 
 #### AE-C11.1 — max_entries cap enforced
 
+Signal overload protection emits a bizevent of type `dsoa.signal_overload_protection`
+(NOT a self-monitoring bizevent — it uses `send_event` directly). The field
+`dsoa.acquisition.skipped_count` does **not** exist; the real field is
+`dropped_count` inside the bizevent properties.
+
 ```dql
 fetch bizevents
-| filter dsoa.run.plugin == "query_history"
 | filter deployment.environment == "DEV-{CURR_TAG}"
-| filter isNotNull(dsoa.acquisition.skipped_count)
-| summarize total_skipped = sum(dsoa.acquisition.skipped_count)
+| filter event.type == "dsoa.signal_overload_protection"
+| summarize count = count(), total_dropped = sum(toLong(dropped_count))
 ```
 
-**Pass:** total_skipped > 0. Prerequisite: `setup_test_overload.sql` run and
-`max_entries` configured lower than generated row count.
+**Pass:** count > 0 (at least one overload protection event fired). Prerequisite:
+`setup_test_overload.sql` run and `plugins.query_history.max_entries` set lower
+than the generated row count.
 
 #### AE-C11.2 — Overload warning logged
 
 ```dql
 fetch logs
-| filter dsoa.run.context == "self_monitoring"
+| filter dsoa.run.plugin == "query_history"
 | filter deployment.environment == "DEV-{CURR_TAG}"
 | filter loglevel == "WARN"
-| filter contains(content, "max_entries")
+| filter contains(content, "Signal overload protection active")
 | summarize count = count()
 ```
 
@@ -1311,7 +1323,8 @@ C8 — Plugin Lifecycle    |      |      |      |   4
 C9 — OpenPipeline        |      |      |      |   6
 C10 — Obfuscation        |      |      |      |   3
 C11 — Signal Protection  |      |      |      |   2
-Total                    |      |      |      | 105
+D — Dashboards           |      |      |      |  14
+Total                    |      |      |      | 119
 ```
 
 List all failed and skipped items with the human's notes.
@@ -1372,7 +1385,8 @@ Auto-evaluated: {N}/57 — {n} passed, {f} failed, {s} skipped
 | C9 — OpenPipeline        |      |      |      |   6   |
 | C10 — Obfuscation        |      |      |      |   3   |
 | C11 — Signal Protection  |      |      |      |   2   |
-| **Total**                |      |      |      | **105**|
+| D — Dashboards           |      |      |      |  14   |
+| **Total**                |      |      |      | **119**|
 
 ## Failures and Skips
 

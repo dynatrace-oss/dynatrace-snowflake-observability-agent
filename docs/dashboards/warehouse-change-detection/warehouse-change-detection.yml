@@ -25,7 +25,7 @@
 # PLUGINS: query_history
 # TAGS: security, warehouse, ddl, experimental
 #
-id: bdx1998-wh-change-detection
+id: 662ba27b-28ce-476a-b1bb-3d39ac613b0a
 version: 1
 variables:
   - version: 2
