@@ -534,8 +534,8 @@ class TestDeploymentWithoutAdminScope:
         if not prepare_script.exists():
             pytest.skip("prepare_deploy_script.sh not found")
 
-        if not build_dir.exists():
-            pytest.skip("build directory not found. Run build.sh first.")
+        if not build_dir.exists() or not (build_dir / "00_init.sql").exists():
+            pytest.skip("build SQL files not found. Run build.sh first.")
 
         # Create a temporary output file
         with tempfile.NamedTemporaryFile(mode="w", suffix=".sql", delete=False) as tmp_file:
