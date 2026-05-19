@@ -65,6 +65,7 @@ select
     OBJECT_CONSTRUCT(
         'db.namespace',                                             qh.database_name,
         'db.collection.name',                                       qh.table_name,
+        'snowflake.table.full_name',                                qh.table_name,
         'db.operation.name',                                        qh.query_type,
         'db.snowflake.dbs',                                         qh.query_dbs,
         'db.user',                                                  qh.user_name,

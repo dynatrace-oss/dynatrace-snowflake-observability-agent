@@ -255,6 +255,9 @@ dimensions:
   db.collection.name:
     __example: users
     __description: The name of the table involved in the query.
+  snowflake.table.full_name:
+    __example: PROD_DB.PUBLIC.USERS
+    __description: Fully qualified name (DB.SCHEMA.TABLE) of the table involved in the query.
   db.namespace:
     __example: PROD_DB
     __description: The name of the database that was specified in the context of the query at compilation.

@@ -45,6 +45,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- **`snowflake.table.full_name` now emitted by `query_history`, `shares`, and `snowpipes` plugins**: the 0.9.4 refactoring introduced this FQN dimension for `data_volume` and `dynamic_tables` but missed three other plugins. All table-level telemetry now carries a fully-qualified `DB.SCHEMA.TABLE` name alongside `db.collection.name`. The `snowpipes` function resolves FQN from the pipe's own DB/schema when the pipe DDL only stores a partially-qualified table name. (BIZOBS-193)
 - **Admin deployment ordering** (`scope=admin`): admin overrides no longer silently clobbered by plugin files. `10_admin.sql` moved to `80_admin.sql` so it sorts after all plugin files. (BIZOBS-115)
 - `serverless_tasks` context: `db.namespace` and `snowflake.schema.name` no longer emit empty strings for DSOA internal scheduler tasks. New `snowflake.task.is_internal` boolean dimension identifies internal tasks. (BDX-1904)
 - `event_log` plugin setup now adapts to Snowflake BCR Bundle 2026\_02 (`LOG_EVENT_LEVEL` parameter): sets `LOG_EVENT_LEVEL = INFO` at database level when the BCR is active, skips gracefully on pre-BCR accounts.
