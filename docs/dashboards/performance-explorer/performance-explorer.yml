@@ -281,22 +281,18 @@ tiles:
     title: Compilation vs execution vs queued time
     type: data
     query: |-
-      timeseries
-          {
-          compilation = avg(snowflake.time.compilation),
-          execution = avg(snowflake.time.execution),
-          `queued overload` = avg(snowflake.time.queued.overload),
-          `queued provisioning` = avg(snowflake.time.queued.provisioning)
-          }
-        , filter: {
-          db.system == "snowflake" and
-          in(deployment.environment, array($Account)) and
-          in(snowflake.warehouse.name, array($Warehouse))
-        }
-        , union: true
+      fetch logs
+        | filter db.system == "snowflake"
         | filter dsoa.run.plugin == "query_history"
+        | filter in(deployment.environment, array($Account))
+        | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
         | filter (isNull(db.namespace) or in(db.namespace, array($Database)))
         | filter (isNull(db.user) or in(db.user, array($User)))
+        | makeTimeseries
+            compilation = avg(toLong(snowflake.time.compilation)),
+            execution = avg(toLong(snowflake.time.execution)),
+            queued_overload = avg(toLong(snowflake.time.queued.overload)),
+            queued_provisioning = avg(toLong(snowflake.time.queued.provisioning))
     visualization: areaChart
     visualizationSettings:
       autoSelectVisualization: false
@@ -314,16 +310,16 @@ tiles:
           leftAxisValues:
             - compilation
             - execution
-            - queued overload
-            - queued provisioning
+            - queued_overload
+            - queued_provisioning
           timestamp: timeframe
         gapPolicy: connect
       dataMapping:
         displayedFields:
           - compilation
           - execution
-          - queued overload
-          - queued provisioning
+          - queued_overload
+          - queued_provisioning
       unitsOverrides:
         - identifier: compilation
           unitCategory: time
@@ -341,7 +337,7 @@ tiles:
           suffix: ""
           delimiter: false
           added: 2
-        - identifier: queued overload
+        - identifier: queued_overload
           unitCategory: time
           baseUnit: millisecond
           displayUnit: null
@@ -349,7 +345,7 @@ tiles:
           suffix: ""
           delimiter: false
           added: 3
-        - identifier: queued provisioning
+        - identifier: queued_provisioning
           unitCategory: time
           baseUnit: millisecond
           displayUnit: null
@@ -827,7 +823,7 @@ tiles:
             User = db.user,
             Warehouse = snowflake.warehouse.name,
             Status = snowflake.query.execution_status,
-            Query = substring(coalesce(db.statement, db.query.text), to: 80),
+            Query = substring(db.query.text, to: 80),
             Environment = deployment.environment
         | sort Duration desc
         | limit 20
