@@ -141,7 +141,7 @@
     "snowflake.warehouse.id": 3726,
     "snowflake.warehouse.size": "X-Small",
     "snowflake.warehouse.type": "STANDARD",
-    "db.collection.name": "DTAGENT_DB.STATUS.PROCESSED_MEASUREMENTS_LOG",
+    "db.collection.name": "PROCESSED_MEASUREMENTS_LOG",
     "db.namespace": "DTAGENT_DB",
     "db.operation.name": "CALL",
     "db.snowflake.dbs": [
@@ -229,7 +229,7 @@
     "snowflake.warehouse.id": 3726,
     "snowflake.warehouse.size": "X-Small",
     "snowflake.warehouse.type": "STANDARD",
-    "db.collection.name": "DTAGENT_DB.STATUS.PROCESSED_MEASUREMENTS_LOG",
+    "db.collection.name": "PROCESSED_MEASUREMENTS_LOG",
     "db.namespace": "DTAGENT_DB",
     "db.operation.name": "SELECT",
     "db.snowflake.dbs": [

@@ -64,7 +64,7 @@ select
     -- metric and span dimensions
     OBJECT_CONSTRUCT(
         'db.namespace',                                             qh.database_name,
-        'db.collection.name',                                       qh.table_name,
+        'db.collection.name',                                       SPLIT_PART(qh.table_name, '.', -1),
         'snowflake.table.full_name',                                qh.table_name,
         'db.operation.name',                                        qh.query_type,
         'db.snowflake.dbs',                                         qh.query_dbs,

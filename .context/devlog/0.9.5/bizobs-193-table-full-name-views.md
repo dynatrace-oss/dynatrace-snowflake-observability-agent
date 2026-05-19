@@ -1,4 +1,4 @@
-# BIZOBS-193: `snowflake.table.full_name` Missing from query_history, shares, snowpipes
+# BIZOBS-193: `snowflake.table.full_name` Missing + OTel v1.28 `db.collection.name` Compliance
 
 ## Problem
 
@@ -6,7 +6,8 @@ The 0.9.4 refactoring introduced `snowflake.table.full_name` (fully-qualified `D
 as a new DIMENSIONS field for `data_volume` and `dynamic_tables` plugins, but three plugins
 were missed:
 
-- `query_history` — emitted FQN in `db.collection.name` but not in `snowflake.table.full_name`
+- `query_history` — emitted FQN in `db.collection.name` **and** was violating OTel Semantic
+  Conventions v1.28+ (which requires `db.collection.name` to be the bare table name only)
 - `shares` (inbound) — emitted only short `TABLE_NAME` in `db.collection.name`, no FQN anywhere
 - `snowpipes` — both the function and copy history view emitted only short table names, no FQN
 
@@ -17,9 +18,27 @@ produce empty joins when filtering across plugin sources.
 
 ### `query_history` — `080_v_query_history_instrumented.sql`
 
-`db.collection.name` already contained the FQN from `ACCESS_HISTORY.base_objects_accessed`
-(Snowflake returns `DB.SCHEMA.TABLE` format there). Added `snowflake.table.full_name` as a
-duplicate of the same `qh.table_name` value.
+`db.collection.name` previously held the full FQN from `ACCESS_HISTORY.base_objects_accessed`
+(`DB.SCHEMA.TABLE`). This violates OpenTelemetry Semantic Conventions v1.28+ which specifies
+`db.collection.name` as the bare collection/table name without namespace prefix.
+
+Fixed by stripping to bare name with `SPLIT_PART(qh.table_name, '.', -1)` for `db.collection.name`,
+while `snowflake.table.full_name` retains the original FQN (`qh.table_name`). `SPLIT_PART` on
+NULL returns NULL in Snowflake, so the NULL case (no tables accessed by the query) is safe.
+
+### OTel v1.28+ compliance audit (all plugins)
+
+All other plugins were already compliant — `db.collection.name` values verified:
+
+| Plugin | Source column | Type |
+|---|---|---|
+| `data_volume` | `TABLES.TABLE_NAME` | Short name ✅ |
+| `cold_tables` | `SPLIT_PART(objectName, '.', 3)` | Short name ✅ |
+| `dynamic_tables` (×3) | `DYNAMIC_TABLES().NAME` | Short name ✅ |
+| `shares` inbound | `DETAILS:"TABLE_NAME"` (JSON) | Short name ✅ |
+| `snowpipes` function | `SPLIT_PART(target, '.', -1)` | Short name ✅ |
+| `snowpipes` copy history | `COPY_HISTORY.TABLE_NAME` | Short name ✅ |
+| `table_health` (×3) | `TABLES.TABLE_NAME` / `SPLIT_PART` | Short name ✅ |
 
 ### `shares` — `061_v_inbound_shares.sql`
 
