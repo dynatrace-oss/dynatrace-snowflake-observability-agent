@@ -214,7 +214,7 @@ def _generate_plugins_info(dtagent_plugins_path: str, dtagent_conf_path: str) ->
         core_bom_sec = "core_bom_sec"
         __plugins_toc.append(f"- [Core Objects](#{core_bom_sec})")
 
-        __content += f'<a name="{core_bom_sec}"></a>\n\n## Core Snowflake Objects\n\n'
+        __content += f'<a name="{core_bom_sec}"></a>\n\n## Core Snowflake objects\n\n'
         __content += "The Dynatrace Snowflake Observability Agent creates and uses the following Snowflake objects.\n\n"
 
         bom_data = yaml.safe_load(_read_file(core_bom_path))
@@ -274,7 +274,7 @@ def _generate_plugins_info(dtagent_plugins_path: str, dtagent_conf_path: str) ->
                 if os.path.isfile(f_bom_yml):
                     bom_data = yaml.safe_load(_read_file(f_bom_yml))
 
-                    __content += f"### {plugin_title} Bill of Materials\n\n"
+                    __content += f"### {plugin_title} bill of materials\n\n"
                     __content += "The following tables list the Snowflake objects that this plugin delivers data from or references.\n\n"
 
                     __content += f"#### Objects delivered by the `{plugin_title}` plugin\n\n"

@@ -141,7 +141,7 @@
     "snowflake.warehouse.id": 3726,
     "snowflake.warehouse.size": "X-Small",
     "snowflake.warehouse.type": "STANDARD",
-    "db.collection.name": "DTAGENT_DB.STATUS.PROCESSED_MEASUREMENTS_LOG",
+    "db.collection.name": "PROCESSED_MEASUREMENTS_LOG",
     "db.namespace": "DTAGENT_DB",
     "db.operation.name": "CALL",
     "db.snowflake.dbs": [
@@ -151,6 +151,7 @@
     "snowflake.query.execution_status": "SUCCESS",
     "snowflake.role.name": "DTAGENT_ADMIN",
     "snowflake.warehouse.name": "DTAGENT_WH",
+    "snowflake.table.full_name": "DTAGENT_DB.STATUS.PROCESSED_MEASUREMENTS_LOG",
     "dsoa.run.plugin": "test_query_history_no_admin",
     "dsoa.run.context": "query_history",
     "resource_attributes": {
@@ -228,7 +229,7 @@
     "snowflake.warehouse.id": 3726,
     "snowflake.warehouse.size": "X-Small",
     "snowflake.warehouse.type": "STANDARD",
-    "db.collection.name": "DTAGENT_DB.STATUS.PROCESSED_MEASUREMENTS_LOG",
+    "db.collection.name": "PROCESSED_MEASUREMENTS_LOG",
     "db.namespace": "DTAGENT_DB",
     "db.operation.name": "SELECT",
     "db.snowflake.dbs": [
@@ -238,6 +239,7 @@
     "snowflake.query.execution_status": "SUCCESS",
     "snowflake.role.name": "DTAGENT_ADMIN",
     "snowflake.warehouse.name": "DTAGENT_WH",
+    "snowflake.table.full_name": "DTAGENT_DB.STATUS.PROCESSED_MEASUREMENTS_LOG",
     "dsoa.run.plugin": "test_query_history_no_admin",
     "dsoa.run.context": "query_history",
     "resource_attributes": {

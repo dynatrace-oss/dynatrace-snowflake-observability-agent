@@ -171,6 +171,11 @@ dimensions:
       - inbound_shares
     __example: SALES_DATA
     __description: Name of the shared Snowflake table.
+  snowflake.table.full_name:
+    __context_names:
+      - inbound_shares
+    __example: SHARE_DB.PUBLIC.SALES_DATA
+    __description: Fully qualified name (DB.SCHEMA.TABLE) of the shared Snowflake table.
   db.namespace:
     __context_names:
       - outbound_shares

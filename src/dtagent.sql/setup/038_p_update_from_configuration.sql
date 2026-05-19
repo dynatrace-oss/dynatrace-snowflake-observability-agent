@@ -59,6 +59,17 @@ begin
 
     call DTAGENT_DB.CONFIG.UPDATE_ALL_PLUGINS_SCHEDULE();
 
+    --%PLUGIN:event_log:
+    -- Re-run event table setup now that config values are loaded (e.g. discover_db_tables=true).
+    -- SETUP_EVENT_TABLE handles ACCOUNTADMIN failures internally; VIEW paths work as DTAGENT_OWNER.
+    begin
+        call DTAGENT_DB.APP.SETUP_EVENT_TABLE();
+    exception
+        when other then
+            system$log_warn(concat('SETUP_EVENT_TABLE: ', sqlerrm));
+    end;
+    --%:PLUGIN:event_log
+
     return 'OK';
 exception
     when statement_error then

@@ -22,7 +22,7 @@
 - [Users](#users_info_sec)
 - [Warehouse Usage](#warehouse_usage_info_sec)<a name="core_bom_sec"></a>
 
-## Core Snowflake Objects
+## Core Snowflake objects
 
 The Dynatrace Snowflake Observability Agent creates and uses the following Snowflake objects.
 
@@ -144,7 +144,7 @@ plugins:
 > this special task can be configured using the `PLUGINS.QUERY_HISTORY.SCHEDULE_GRANTS` configuration option. Since this procedure runs with
 > the elevated privileges of the `DTAGENT_ADMIN` role (which is only created when the `admin` scope is installed), you may choose to:
 
-### Active Queries Bill of Materials
+### Active Queries bill of materials
 
 The following tables list the Snowflake objects that this plugin delivers data from or references.
 
@@ -174,9 +174,9 @@ Snowflake Observability Agent's own budget.
 All budgets the agent has been granted access to are reported as logs and metrics; this includes their details, spending limit, and recent
 expenditures. The plugin runs once a day and excludes already reported expenditures.
 
-> **Note**: This plugin is **disabled by default** because custom budget monitoring requires per-budget privilege grants. The account budget
-> (visible via `SNOWFLAKE.BUDGET_VIEWER`) is accessible automatically once enabled. For custom budgets, use `P_GRANT_BUDGET_MONITORING()`
-> (requires admin scope) or grant privileges manually — see below.
+> [!WARNING] IMPORTANT This plugin is **disabled by default** because custom budget monitoring requires per-budget privilege grants. The
+> account budget (visible via `SNOWFLAKE.BUDGET_VIEWER`) is accessible automatically once enabled. For custom budgets, use
+> `P_GRANT_BUDGET_MONITORING()` (requires admin scope) or grant privileges manually — see below.
 
 [Show semantics for this plugin](SEMANTICS.md#budgets_semantics_sec)
 
@@ -227,7 +227,7 @@ grant usage on schema <DB>.<SCHEMA> to role DTAGENT_VIEWER;
 grant snowflake.core.budget role <DB>.<SCHEMA>.<BUDGET_NAME>!VIEWER to role DTAGENT_VIEWER;
 ```
 
-### Budgets Bill of Materials
+### Budgets bill of materials
 
 The following tables list the Snowflake objects that this plugin delivers data from or references.
 
@@ -306,7 +306,7 @@ plugins:
       - logs
 ```
 
-### Known Limitations
+### Known limitations
 
 - **Never-accessed tables not included:** ACCESS_HISTORY only contains tables that have been accessed. Tables that have never been accessed
   will not appear in the results. To identify truly never-accessed tables, a follow-up enhancement would join with
@@ -381,7 +381,7 @@ plugins:
 | `plugins.cold_tables.is_disabled`         | bool   | `false`                    | Set to `true` to disable this plugin entirely.                                    |
 | `plugins.cold_tables.telemetry`           | list   | `["metrics", "logs"]`      | Telemetry types to emit. Remove items to suppress specific output types.          |
 
-### Cold Tables Bill of Materials
+### Cold Tables bill of materials
 
 The following tables list the Snowflake objects that this plugin delivers data from or references.
 
@@ -438,7 +438,7 @@ plugins:
 | `plugins.data_schemas.exclude`        | list   | `[]`                            | List of object name patterns to exclude (SQL `LIKE` syntax). Takes precedence over `include`.                                                                                                                                                                                                                                                                                                                                                |
 | `plugins.data_schemas.telemetry`      | list   | `["events", "biz_events"]`      | Telemetry types to emit. Remove items to suppress specific output types.                                                                                                                                                                                                                                                                                                                                                                     |
 
-### Data Schemas Bill of Materials
+### Data Schemas bill of materials
 
 The following tables list the Snowflake objects that this plugin delivers data from or references.
 
@@ -496,7 +496,7 @@ plugins:
       - biz_events
 ```
 
-### Data Volume Bill of Materials
+### Data Volume bill of materials
 
 The following tables list the Snowflake objects that this plugin delivers data from or references.
 
@@ -573,7 +573,7 @@ The grant granularity is derived automatically from the `include` pattern:
 Alternatively, you may choose to grant the required permissions manually, using the appropriate
 `GRANT MONITOR ON ALL/FUTURE DYNAMIC TABLES IN …` statement, depending on the desired granularity.
 
-### Dynamic Tables Bill of Materials
+### Dynamic Tables bill of materials
 
 The following tables list the Snowflake objects that this plugin delivers data from or references.
 
@@ -760,7 +760,7 @@ plugins:
       - MYAPP_DB # only check this DB for overrides (and filter event log entries)
 ```
 
-### Event Log Bill of Materials
+### Event Log bill of materials
 
 The following tables list the Snowflake objects that this plugin delivers data from or references.
 
@@ -830,7 +830,7 @@ plugins:
 | `plugins.event_usage.is_disabled`    | bool   | `false`                             | Set to `true` to disable this plugin entirely.                                                                                                                                                                                                                                                                                                                                                                                               |
 | `plugins.event_usage.telemetry`      | list   | `["metrics", "logs", "biz_events"]` | Telemetry types to emit. Remove items to suppress specific output types.                                                                                                                                                                                                                                                                                                                                                                     |
 
-### Event Usage Bill of Materials
+### Event Usage bill of materials
 
 The following tables list the Snowflake objects that this plugin delivers data from or references.
 
@@ -893,7 +893,7 @@ plugins:
 | `plugins.login_history.is_disabled`    | bool   | `false`                       | Set to `true` to disable this plugin entirely.                                                                                                                                                                                                                                                                                                     |
 | `plugins.login_history.telemetry`      | list   | `["logs", "biz_events"]`      | Telemetry types to emit. Remove items to suppress specific output types.                                                                                                                                                                                                                                                                           |
 
-### Login History Bill of Materials
+### Login History bill of materials
 
 The following tables list the Snowflake objects that this plugin delivers data from or references.
 
@@ -989,7 +989,7 @@ plugins:
       - biz_events
 ```
 
-### Metering Bill of Materials
+### Metering bill of materials
 
 The following tables list the Snowflake objects that this plugin delivers data from or references.
 
@@ -1015,24 +1015,8 @@ The `org_costs` plugin delivers cross-account FinOps telemetry from `SNOWFLAKE.O
 credit consumption, storage usage, data transfer costs, USD billing, and contract balance data — enabling multi-account cost visibility in
 Dynatrace.
 
-## Prerequisites
-
-Access to `SNOWFLAKE.ORGANIZATION_USAGE` views requires one of the following grants. This plugin is **disabled by default**
-(`is_disabled: true`) and must be explicitly enabled after completing the prerequisite step.
-
-### Option A — Database role (recommended)
-
-```sql
-USE ROLE ACCOUNTADMIN;
-GRANT DATABASE ROLE SNOWFLAKE.ORGANIZATION_USAGE_VIEWER TO ROLE DTAGENT_VIEWER;
-```
-
-### Option B — ORGADMIN role (legacy fallback for older tenants)
-
-```sql
-USE ROLE ACCOUNTADMIN;
-GRANT ROLE ORGADMIN TO ROLE DTAGENT_OWNER;
-```
+> [!WARNING] IMPORTANT This plugin is **disabled by default** (`is_disabled: true`). It requires a Snowflake organization account. Run
+> `--scope=init` with ACCOUNTADMIN rights before enabling.
 
 ## Contexts
 
@@ -1049,55 +1033,15 @@ GRANT ROLE ORGADMIN TO ROLE DTAGENT_OWNER;
 Runs every 6 hours (`USING CRON 0 */6 * * * UTC`). Source data has approximately 2 hours of latency; daily-granularity views update once per
 day.
 
-## Metrics emitted
-
-### org_costs_metering
-
-| Metric                                            | Unit    | Description                                 |
-| ------------------------------------------------- | ------- | ------------------------------------------- |
-| `snowflake.org.credits.used`                      | credits | Total credits used by account per day       |
-| `snowflake.org.credits.compute`                   | credits | Compute credits used per day                |
-| `snowflake.org.credits.cloud_services`            | credits | Cloud services credits used per day         |
-| `snowflake.org.credits.adjustment_cloud_services` | credits | Cloud services credit adjustment (10% rule) |
-
-### org_costs_storage
-
-| Metric                        | Unit | Description                                 |
-| ----------------------------- | ---- | ------------------------------------------- |
-| `snowflake.org.storage.bytes` | Byte | Storage bytes used per storage type per day |
-
-### org_costs_data_transfer
-
-| Metric                         | Unit | Description                                      |
-| ------------------------------ | ---- | ------------------------------------------------ |
-| `snowflake.org.transfer.bytes` | Byte | Bytes transferred between clouds/regions per day |
-
-### org_billing_usage_in_currency
-
-| Metric                         | Unit     | Description                                         |
-| ------------------------------ | -------- | --------------------------------------------------- |
-| `snowflake.org.billing.amount` | currency | Billing amount in currency per service type per day |
-
-### org_billing_remaining_balance
-
-| Metric                                        | Unit     | Description                                    |
-| --------------------------------------------- | -------- | ---------------------------------------------- |
-| `snowflake.org.billing.capacity_balance`      | currency | Remaining contracted capacity balance          |
-| `snowflake.org.billing.rollover_balance`      | currency | Remaining rollover balance                     |
-| `snowflake.org.billing.free_usage_balance`    | currency | Remaining free usage balance                   |
-| `snowflake.org.billing.on_demand_consumption` | currency | On-demand consumption charged against contract |
-| `snowflake.org.billing.overage`               | currency | Overage charged beyond contracted capacity     |
-
 ## Enablement
 
-1. Complete the prerequisite grant (Option A or B above).
 1. Set `plugins.org_costs.is_disabled: false` in your configuration.
 1. Deploy: `./scripts/deploy/deploy.sh <env> --scope=plugins,config --options=skip_confirm`
 
 ## Troubleshooting
 
 - **No data for a new account:** Organization-level views may not reflect new accounts for up to 24 hours after creation.
-- **Empty results:** Verify the prerequisite grant was applied and the plugin is enabled.
+- **Empty results:** Verify the prerequisite grant was applied (`--scope=init`) and the plugin is enabled.
 - **Stale data:** Daily-granularity views update once per day; data may appear up to 26 hours old (2h Snowflake latency + 6h collection
   cadence + daily boundary).
 
@@ -1142,7 +1086,7 @@ plugins:
 | `plugins.org_costs.contexts.org_billing_usage_in_currency.is_disabled` | bool   | `true`                              | Set to `false` to enable billing usage context (daily billing amount in currency).                                                                                                                                 |
 | `plugins.org_costs.contexts.org_billing_remaining_balance.is_disabled` | bool   | `true`                              | Set to `false` to enable remaining balance context (contract balance metrics).                                                                                                                                     |
 
-### Org Costs Bill of Materials
+### Org Costs bill of materials
 
 The following tables list the Snowflake objects that this plugin delivers data from or references.
 
@@ -1161,13 +1105,15 @@ The following tables list the Snowflake objects that this plugin delivers data f
 
 #### Objects referenced by the `Org Costs` plugin
 
-| Name                                                     | Type | Privileges |
-| -------------------------------------------------------- | ---- | ---------- |
-| SNOWFLAKE.ORGANIZATION_USAGE.METERING_DAILY_HISTORY      | view | SELECT     |
-| SNOWFLAKE.ORGANIZATION_USAGE.USAGE_IN_CURRENCY_DAILY     | view | SELECT     |
-| SNOWFLAKE.ORGANIZATION_USAGE.REMAINING_BALANCE_DAILY     | view | SELECT     |
-| SNOWFLAKE.ORGANIZATION_USAGE.DATA_TRANSFER_DAILY_HISTORY | view | SELECT     |
-| SNOWFLAKE.ORGANIZATION_USAGE.STORAGE_DAILY_HISTORY       | view | SELECT     |
+| Name                                                     | Type | Privileges    | Granted to     | Comment                                                                                                      |
+| -------------------------------------------------------- | ---- | ------------- | -------------- | ------------------------------------------------------------------------------------------------------------ |
+| SNOWFLAKE.ORGANIZATION_USAGE.METERING_DAILY_HISTORY      | view | SELECT        |                |                                                                                                              |
+| SNOWFLAKE.ORGANIZATION_USAGE.USAGE_IN_CURRENCY_DAILY     | view | SELECT        |                |                                                                                                              |
+| SNOWFLAKE.ORGANIZATION_USAGE.REMAINING_BALANCE_DAILY     | view | SELECT        |                |                                                                                                              |
+| SNOWFLAKE.ORGANIZATION_USAGE.DATA_TRANSFER_DAILY_HISTORY | view | SELECT        |                |                                                                                                              |
+| SNOWFLAKE.ORGANIZATION_USAGE.STORAGE_DAILY_HISTORY       | view | SELECT        |                |                                                                                                              |
+| SNOWFLAKE.ORGANIZATION_USAGE_VIEWER                      | role | DATABASE ROLE | DTAGENT_VIEWER | Option A (recommended). Grants SELECT on all ORGANIZATION_USAGE views.                                       |
+| ORGADMIN                                                 | role | ROLE          | DTAGENT_OWNER  | Optional. Option B (legacy fallback). Used only on accounts without ORGANIZATION_USAGE_VIEWER database role. |
 
 <a name="query_history_info_sec"></a>
 
@@ -1442,7 +1388,7 @@ The plugin supports signal protection to prevent overload on high-volume Snowfla
     preserved.
   - `full` — replaces the entire query text (and error message) with `[OBFUSCATED]`. Invalid values fall back to `off`.
 
-### Query History Bill of Materials
+### Query History bill of materials
 
 The following tables list the Snowflake objects that this plugin delivers data from or references.
 
@@ -1530,7 +1476,7 @@ plugins:
       active_keepalive_timeout_minutes: 60
 ```
 
-### Resource Monitors Bill of Materials
+### Resource Monitors bill of materials
 
 The following tables list the Snowflake objects that this plugin delivers data from or references.
 
@@ -1623,7 +1569,7 @@ plugins:
 | `plugins.shares.include`                 | `['%.%.%']`                        | Object name patterns to include in tracking.     |
 | `plugins.shares.telemetry`               | `["logs", "events", "biz_events"]` | Telemetry types to emit.                         |
 
-### Shares Bill of Materials
+### Shares bill of materials
 
 The following tables list the Snowflake objects that this plugin delivers data from or references.
 
@@ -1733,7 +1679,7 @@ statement, depending on the desired granularity.
 | `plugins.snowpipes.is_disabled`          | `false`                               | Disable the plugin                                |
 | `plugins.snowpipes.telemetry`            | `[metrics, logs, events, biz_events]` | Enabled telemetry types                           |
 
-### Snowpipes Bill of Materials
+### Snowpipes bill of materials
 
 The following tables list the Snowflake objects that this plugin delivers data from or references.
 
@@ -1850,7 +1796,7 @@ plugins:
       - biz_events
 ```
 
-### Table Health Bill of Materials
+### Table Health bill of materials
 
 The following tables list the Snowflake objects that this plugin delivers data from or references.
 
@@ -1959,7 +1905,7 @@ plugins:
 > `SERVERLESS_TASK_HISTORY` is updated frequently (per task run), while `TASK_VERSIONS` only changes when a task graph is modified — hence
 > the much longer default for versions.
 
-### Tasks Bill of Materials
+### Tasks bill of materials
 
 The following tables list the Snowflake objects that this plugin delivers data from or references.
 
@@ -2016,7 +1962,7 @@ plugins:
       - biz_events
 ```
 
-### Trust Center Bill of Materials
+### Trust Center bill of materials
 
 The following tables list the Snowflake objects that this plugin delivers data from or references.
 
@@ -2086,7 +2032,7 @@ plugins:
       - biz_events
 ```
 
-### Users Bill of Materials
+### Users bill of materials
 
 The following tables list the Snowflake objects that this plugin delivers data from or references.
 
@@ -2159,7 +2105,7 @@ plugins:
 | `plugins.warehouse_usage.is_disabled`    | bool   | `false`                             | Set to `true` to disable this plugin entirely.                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | `plugins.warehouse_usage.telemetry`      | list   | `["logs", "metrics", "biz_events"]` | Telemetry types to emit. Remove items to suppress specific output types.                                                                                                                                                                                                                                                                                                                                                                                                                |
 
-### Warehouse Usage Bill of Materials
+### Warehouse Usage bill of materials
 
 The following tables list the Snowflake objects that this plugin delivers data from or references.
 

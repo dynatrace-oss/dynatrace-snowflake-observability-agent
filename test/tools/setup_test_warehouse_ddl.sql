@@ -40,6 +40,9 @@
 -- ============================================================================
 -- 1. Setup
 -- ============================================================================
+USE ROLE SYSADMIN;
+GRANT USAGE ON WAREHOUSE DSOA_TEST_WH TO ROLE DTAGENT_QA_OWNER;
+
 USE ROLE DTAGENT_QA_OWNER;
 USE WAREHOUSE DSOA_TEST_WH;
 
@@ -92,7 +95,8 @@ DROP TABLE DSOA_TEST_DB.DDL_DETECTION_TEST.DDL_EPHEMERAL;
 -- ============================================================================
 -- 7. DDL Operation: ALTER TABLE RENAME
 -- ============================================================================
-CREATE TABLE DSOA_TEST_DB.DDL_DETECTION_TEST.DDL_RENAME_SOURCE (
+DROP TABLE IF EXISTS DSOA_TEST_DB.DDL_DETECTION_TEST.DDL_RENAMED_TABLE;
+CREATE OR REPLACE TABLE DSOA_TEST_DB.DDL_DETECTION_TEST.DDL_RENAME_SOURCE (
     A NUMBER NOT NULL
 );
 

@@ -74,7 +74,8 @@ select
         'snowflake.pipe.schema',        PIPE_SCHEMA_NAME,
         'db.namespace',                 TABLE_CATALOG_NAME,
         'snowflake.schema.name',        TABLE_SCHEMA_NAME,
-        'db.collection.name',           TABLE_NAME
+        'db.collection.name',           TABLE_NAME,
+        'snowflake.table.full_name',    concat(TABLE_CATALOG_NAME, '.', TABLE_SCHEMA_NAME, '.', TABLE_NAME)
     )                                                                                                as DIMENSIONS,
     OBJECT_CONSTRUCT(
         'snowflake.copy.file_name',                     FILE_NAME,

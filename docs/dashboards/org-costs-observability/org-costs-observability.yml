@@ -26,7 +26,7 @@
 # PLUGINS: org_costs
 # TAGS: costs, org, billing, finops
 #
-id: 6881ff48-0945-4e94-94af-2e4bb338724e
+id: dec71701-c035-4cc7-b9da-7db2efde229a
 version: 3
 name: Snowflake Consumption (Organization Level)
 variables:
@@ -203,7 +203,7 @@ tiles:
           balance_end   = last(arrayAvg(cap))  + last(arrayAvg(rollover))
       | fieldsAdd monthly_burn = balance_start - balance_end
       | fieldsAdd days_to_overage = if(monthly_burn > 0, balance_end / monthly_burn * 30, else: -1)
-      | fieldsAdd projected_overage_date = if(days_to_overage > 0, formatTimestamp(now() + toTimespan(concat(toString(toLong(days_to_overage)), "d"))), else: "No overage projected")
+      | fieldsAdd projected_overage_date = if(days_to_overage > 0, formatTimestamp(now() + duration(toLong(days_to_overage), "days")), else: "No overage projected")
       | fields projected_overage_date
     visualization: table
     visualizationSettings:

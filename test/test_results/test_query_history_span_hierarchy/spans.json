@@ -23,14 +23,14 @@
     "dsoa.debug.span.events.added": 0,
     "dsoa.debug.span.events.failed": 0,
     "resource_attributes": {
-      "db.system": "snowflake",
-      "deployment.environment": "TEST",
-      "host.name": "test.dsoa2025.snowflakecomputing.com",
-      "service.name": "test.dsoa2025",
-      "telemetry.exporter.name": "dynatrace.snowagent",
       "telemetry.sdk.language": "python",
       "telemetry.sdk.name": "opentelemetry",
-      "telemetry.sdk.version": "1.39.1"
+      "telemetry.sdk.version": "1.39.1",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent"
     }
   },
   {
@@ -57,14 +57,14 @@
     "dsoa.debug.span.events.added": 0,
     "dsoa.debug.span.events.failed": 0,
     "resource_attributes": {
-      "db.system": "snowflake",
-      "deployment.environment": "TEST",
-      "host.name": "test.dsoa2025.snowflakecomputing.com",
-      "service.name": "test.dsoa2025",
-      "telemetry.exporter.name": "dynatrace.snowagent",
       "telemetry.sdk.language": "python",
       "telemetry.sdk.name": "opentelemetry",
-      "telemetry.sdk.version": "1.39.1"
+      "telemetry.sdk.version": "1.39.1",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent"
     }
   },
   {
@@ -90,14 +90,14 @@
     "dsoa.debug.span.events.added": 0,
     "dsoa.debug.span.events.failed": 0,
     "resource_attributes": {
-      "db.system": "snowflake",
-      "deployment.environment": "TEST",
-      "host.name": "test.dsoa2025.snowflakecomputing.com",
-      "service.name": "test.dsoa2025",
-      "telemetry.exporter.name": "dynatrace.snowagent",
       "telemetry.sdk.language": "python",
       "telemetry.sdk.name": "opentelemetry",
-      "telemetry.sdk.version": "1.39.1"
+      "telemetry.sdk.version": "1.39.1",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent"
     }
   }
 ]

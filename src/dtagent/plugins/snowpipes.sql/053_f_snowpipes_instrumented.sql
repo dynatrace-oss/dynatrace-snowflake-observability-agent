@@ -130,6 +130,7 @@ BEGIN
 
         LET target_table TEXT := NULL;
         LET target_table_bare TEXT := NULL;
+        LET target_table_full_name TEXT := NULL;
         BEGIN
             target_table := REGEXP_SUBSTR(:pipe_definition, 'INTO\\s+(\\S+)', 1, 1, 'ie', 1);
             -- Extract bare table name: last dot-separated component, or full value if no dots
@@ -138,10 +139,18 @@ BEGIN
                 THEN SPLIT_PART(:target_table, '.', -1)
                 ELSE :target_table
             END;
+            -- Resolve FQN: use as-is if 3 parts, prepend pipe DB if 2 parts, prepend pipe DB+schema if bare
+            target_table_full_name := CASE
+                WHEN :target_table IS NULL THEN NULL
+                WHEN ARRAY_SIZE(SPLIT(:target_table, '.')) = 3 THEN :target_table
+                WHEN ARRAY_SIZE(SPLIT(:target_table, '.')) = 2 THEN :pipe_db_name || '.' || :target_table
+                ELSE :pipe_db_name || '.' || :pipe_schema_name || '.' || :target_table
+            END;
         EXCEPTION
             WHEN statement_error THEN
                 target_table := NULL;
                 target_table_bare := NULL;
+                target_table_full_name := NULL;
         END;
 
         insert into DTAGENT_DB.APP.TMP_SNOWPIPES_RESULT
@@ -157,6 +166,7 @@ BEGIN
                 'db.namespace',                 :pipe_db_name,
                 'snowflake.schema.name',        :pipe_schema_name,
                 'db.collection.name',           :target_table_bare,
+                'snowflake.table.full_name',    :target_table_full_name,
                 'snowflake.pipe.owner',         :pipe_owner,
                 'snowflake.pipe.status',        :execution_state
             )                                                                                           as DIMENSIONS,

@@ -108,11 +108,13 @@ variables:
     editable: true
     defaultValue: "60"
   - version: 2
-    key: Idle_Threshold_Pct
-    type: text
+    key: Idle_Threshold_Val
+    type: csv
     visible: true
     editable: true
-    defaultValue: "50"
+    input: "0.01,0.02,0.05,0.10,0.25,0.50"
+    multiple: false
+    defaultValue: "0.01"
 tiles:
   "0":
     title: Credits used
@@ -1436,6 +1438,7 @@ tiles:
     content: |
       # Warehouse Efficiency
       Idle time analysis, auto-suspend optimization, and multi-cluster utilization.
+      **Idle definition:** A warehouse interval is counted as idle when `snowflake.load.running ≤ $Idle_Threshold_Val` (default: 0.01 = 1% load). Adjust `Idle_Threshold_Val` to change detection sensitivity.
     davis:
       componentState:
         inputData: null
@@ -1443,20 +1446,19 @@ tiles:
     title: Idle time ratio per warehouse
     type: data
     query: |-
-      timeseries running = avg(snowflake.load.running), by: {
+      // Idle = intervals where running load <= $Idle_Threshold_Val (default 0.01 = 1% usage)
+      timeseries running = max(snowflake.load.running), by: {
           snowflake.warehouse.name,
           deployment.environment,
           service.name
-      }, interval: 5m
+      }
       | filter in(deployment.environment, array($Accounts))
            and iAny(startsWith(snowflake.warehouse.name, concat(array($Prefix)[], "_")))
            and in(snowflake.warehouse.name, array($Warehouses))
       | fieldsAdd snow_account = coalesce(deployment.environment, service.name)
+                , total_intervals = arraySum(iCollectArray(if(isNotNull(running[]), 1)))
+                , idle_intervals = arraySum(iCollectArray(if(isNotNull(running[]) and running[] <= toDouble($Idle_Threshold_Val), 1)))
       | fieldsRemove deployment.environment, service.name
-      | summarize {
-          total_intervals = arraySize(running[]),
-          idle_intervals = arraySize(arrayFilter(running[], {it <= 0.0}))
-      }, by: {snowflake.warehouse.name, snow_account}
       | filterOut total_intervals == 0
       | fieldsAdd
           idle_pct = 100.0 * toDouble(idle_intervals) / toDouble(total_intervals),
@@ -1471,30 +1473,27 @@ tiles:
     visualization: table
     visualizationSettings:
       autoSelectVisualization: false
-      thresholds:
-        - id: 1
-          field: "Idle %"
-          title: Idle percentage
-          isEnabled: true
-          rules:
-            - id: 0
-              color:
-                Default: "var(--dt-colors-charts-categorical-color-09-default, #649438)"
-              comparator: <
-              label: ""
-              value: 30
-            - id: 1
-              color:
-                Default: "var(--dt-colors-charts-categorical-color-14-default, #d56b1a)"
-              comparator: <
-              label: ""
-              value: $Idle_Threshold_Pct
-            - id: 2
-              color:
-                Default: "var(--dt-colors-charts-categorical-color-12-default, #cd3741)"
-              comparator: ≥
-              label: ""
-              value: $Idle_Threshold_Pct
+      coloring:
+        colorRules:
+          - value: $Idle_Threshold_Pct
+            comparator: ≥
+            field: "Idle %"
+            colorMode: custom-color
+            customColor:
+              Default: "var(--dt-colors-charts-categorical-color-12-default, #cd3741)"
+          - value: 30
+            comparator: <
+            field: "Idle %"
+            colorMode: custom-color
+            customColor:
+              Default: "var(--dt-colors-charts-categorical-color-09-default, #649438)"
+          - value: $Idle_Threshold_Pct
+            comparator: <
+            field: "Idle %"
+            colorMode: custom-color
+            customColor:
+              Default: "var(--dt-colors-charts-categorical-color-14-default, #d56b1a)"
+      table: {}
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -1505,33 +1504,23 @@ tiles:
       enabled: false
       davisVisualization:
         isAvailable: true
-      componentState:
-        inputData: null
   "24":
     title: Idle time trend per warehouse
     type: data
     query: |-
-      timeseries running = avg(snowflake.load.running), by: {
+      timeseries running = max(snowflake.load.running), by: {
           snowflake.warehouse.name,
           deployment.environment,
           service.name
-      }, interval: 1h
+      }, interval: 6h
       | filter in(deployment.environment, array($Accounts))
            and iAny(startsWith(snowflake.warehouse.name, concat(array($Prefix)[], "_")))
            and in(snowflake.warehouse.name, array($Warehouses))
       | fieldsAdd snow_account = coalesce(deployment.environment, service.name)
       | fieldsRemove deployment.environment, service.name
-      // idle_indicator: 1.0 when no queries running, 0.0 otherwise
-      | fieldsAdd idle_indicator = arrayMap(running[], {if(it <= 0.0, 1.0, else: 0.0)})
-      | summarize {
-          idle_indicator = avg(idle_indicator[])
-      }, by: {
-          timeframe,
-          interval,
-          snowflake.warehouse.name,
-          snow_account
-      }
-    visualization: lineChart
+      // idle_indicator: 1.0 when load <= threshold (idle), 0.0 when active
+      | fieldsAdd idle_indicator = iCollectArray(if(isNotNull(running[]) and running[] <= toDouble($Idle_Threshold_Val), 1.0))
+    visualization: barChart
     visualizationSettings:
       chartSettings:
         truncationMode: middle
@@ -1634,7 +1623,7 @@ tiles:
     type: data
     query: |-
       // Step 1: compute idle intervals per warehouse from 5-min load history
-      timeseries running = avg(snowflake.load.running), by: {
+      timeseries running = max(snowflake.load.running), by: {
           snowflake.warehouse.name,
           deployment.environment,
           service.name
@@ -1642,12 +1631,10 @@ tiles:
       | filter in(deployment.environment, array($Accounts))
            and iAny(startsWith(snowflake.warehouse.name, concat(array($Prefix)[], "_")))
            and in(snowflake.warehouse.name, array($Warehouses))
-      | fieldsAdd snow_account = coalesce(deployment.environment, service.name)
+      | fieldsAdd snow_account = coalesce(deployment.environment, service.name),
+          total_intervals = arraySum(iCollectArray(if(isNotNull(running[]), 1))),
+          idle_intervals = arraySum(iCollectArray(if(isNotNull(running[]) and running[] <= toDouble($Idle_Threshold_Val), 1)))
       | fieldsRemove deployment.environment, service.name
-      | summarize {
-          total_intervals = arraySize(running[]),
-          idle_intervals = arraySize(arrayFilter(running[], {it <= 0.0}))
-      }, by: {snowflake.warehouse.name, snow_account}
       | filterOut total_intervals == 0
       | fieldsAdd
           idle_pct = 100.0 * toDouble(idle_intervals) / toDouble(total_intervals),

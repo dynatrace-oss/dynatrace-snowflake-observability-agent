@@ -13,11 +13,11 @@ Three ways to deploy DSOA — choose the one that fits your environment:
 
 ---
 
-## Docker (Recommended)
+## Docker (recommended)
 
 No toolchain required — just Docker. Works on any OS.
 
-### First install — interactive wizard
+### Step 1 — interactive wizard
 
 ```bash
 docker run -it \
@@ -106,7 +106,7 @@ Full guide: [docs/deployment/github-actions.md](deployment/github-actions.md)
 
 ---
 
-## Verifying Your Installation
+## Verifying your installation
 
 After deploying, confirm the installation is healthy:
 
@@ -157,7 +157,7 @@ The `DTAGENT_TOKEN` needs these scopes:
 
 After the agent is running, deploy pre-built Dynatrace dashboards and workflows.
 
-### Dynatrace Deployment Prerequisites
+### Dynatrace deployment prerequisites
 
 Install and authenticate `dtctl`:
 
