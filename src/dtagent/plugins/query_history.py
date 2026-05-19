@@ -313,15 +313,17 @@ class QueryHistoryPlugin(Plugin):
 
             # Emit self-monitoring bizevent
             if not getattr(self._events, "NOT_ENABLED", False):
-                self._events.send_event(
+                self._events.send_events(
+                    events_data=[
+                        {
+                            "total_available": total_available,
+                            "total_processed": total_processed,
+                            "dropped_count": dropped_count,
+                            "max_entries": max_entries,
+                        }
+                    ],
                     event_type="dsoa.signal_overload_protection",
                     title=message,
-                    properties={
-                        "total_available": total_available,
-                        "total_processed": total_processed,
-                        "dropped_count": dropped_count,
-                        "max_entries": max_entries,
-                    },
                     context=context,
                 )
 
