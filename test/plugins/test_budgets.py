@@ -79,8 +79,11 @@ class TestBudgets:
     @pytest.mark.xdist_group(name="test_telemetry")
     def test_budgets_account_root_budget_skipped(self):
         """Verify P_GET_BUDGETS skips ACCOUNT_ROOT_BUDGET (which doesn't support instance methods)."""
-        from test import _get_session
+        from test import _get_session, is_local_testing
         import test._utils as utils
+
+        if is_local_testing():
+            self.pytest.skip("Live Snowflake connection required — skipped in mock/local testing mode")
 
         session = _get_session()
         result = session.call("APP.P_GET_BUDGETS", log_on_exception=True)
