@@ -1,0 +1,74 @@
+================================================================================
+PLUGIN EXECUTION - QUICK START
+================================================================================
+
+THREE SIMPLE STEPS:
+
+1. EXECUTE ORG_COSTS
+   In Snowflake (snow_agent_test-qa):
+   call DTAGENT_DB.APP.DTAGENT(ARRAY_CONSTRUCT('org_costs'));
+
+2. EXECUTE QUERY_HISTORY
+   In Snowflake (snow_agent_test-qa):
+   call DTAGENT_DB.APP.DTAGENT(ARRAY_CONSTRUCT('query_history'));
+
+3. VERIFY IN DYNATRACE
+   In Dynatrace DQL:
+   fetch bizevents
+   | filter timestamp >= now()-1h
+   | summarize count(), by: {context}
+
+================================================================================
+EXPECTED RESULTS:
+
+org_costs: 5 contexts
+- org_costs_metering
+- org_costs_storage
+- org_costs_data_transfer
+- org_billing_usage_in_currency
+- org_billing_remaining_balance
+
+query_history: 2 contexts
+- query_history
+- query_cost_attribution (if enabled)
+
+================================================================================
+DETAILED GUIDES:
+
+1. Full execution guide:
+   test/qa/plugins/execution-guide.md
+
+2. SQL commands (copy-paste ready):
+   test/qa/plugins/execution-commands.txt
+
+3. Expected telemetry structure:
+   test/qa/plugins/telemetry-structure.md
+
+4. SQL script (all-in-one):
+   test/qa/plugins/plugin-execution.sql
+
+================================================================================
+KEY SUCCESS CRITERIA:
+
+✓ Procedures execute without SQL errors
+✓ Results contain run_id (UUID)
+✓ Entry counts > 0 (or source data is empty)
+✓ BizEvents appear in Dynatrace within 1-2 minutes
+✓ All telemetry types sent: logs, metrics, events, spans
+
+================================================================================
+TROUBLESHOOTING:
+
+Error: PROCEDURE_NOT_FOUND
+→ Run full setup script first
+
+No entries/counts zero
+→ For org_costs: Check if account has billing data
+→ For query_history: Execute some queries before running plugin
+
+BizEvents not in Dynatrace
+→ Check RUN_LOG for transmission errors
+→ Verify API token is valid
+→ Wait 1-2 minutes for delivery
+
+================================================================================
