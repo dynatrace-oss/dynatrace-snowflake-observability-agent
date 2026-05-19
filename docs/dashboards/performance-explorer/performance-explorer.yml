@@ -28,15 +28,13 @@
 
 id: ebce348b-6b05-4b2b-9562-d30cdf14dcc3
 name: Snowflake Performance Explorer
-version: 1
-
+version: 26
 variables:
   - version: 2
     key: Account
     type: query
     visible: true
     editable: true
-    multiple: true
     input: |-
       fetch logs
         | filter db.system == "snowflake"
@@ -45,13 +43,12 @@ variables:
         | fields snow_account
         | dedup snow_account
         | sort snow_account
-
+    multiple: true
   - version: 2
     key: Warehouse
     type: query
     visible: true
     editable: true
-    multiple: true
     input: |-
       fetch logs
         | filter db.system == "snowflake"
@@ -63,13 +60,12 @@ variables:
         | fields snowflake.warehouse.name
         | dedup snowflake.warehouse.name
         | sort snowflake.warehouse.name
-
+    multiple: true
   - version: 2
     key: Database
     type: query
     visible: true
     editable: true
-    multiple: true
     input: |-
       fetch logs
         | filter db.system == "snowflake"
@@ -82,13 +78,12 @@ variables:
         | fields db_name = coalesce(db.name, db.namespace)
         | dedup db_name
         | sort db_name asc
-
+    multiple: true
   - version: 2
     key: User
     type: query
     visible: true
     editable: true
-    multiple: true
     input: |-
       fetch logs
         | filter db.system == "snowflake"
@@ -102,7 +97,7 @@ variables:
         | fields db.user
         | dedup db.user
         | sort db.user asc
-
+    multiple: true
   - version: 2
     key: TopN
     type: csv
@@ -111,14 +106,12 @@ variables:
     multiple: false
     defaultValue: "10"
     input: "5,10,20,50,100"
-
   - version: 2
     key: SlowQueryMin
     type: text
     visible: false
     editable: true
     defaultValue: "60"
-
 tiles:
   # ── Section 1: Fleet Overview ──────────────────────────────────────────────
   "0":
@@ -212,7 +205,7 @@ tiles:
         | summarize
             total = count(),
             errors = countIf(snowflake.query.execution_status != "SUCCESS")
-        | fieldsAdd error_rate = if(total == 0, 0.0, 100.0 * toDouble(errors) / toDouble(total))
+        | fieldsAdd error_rate = if(total == 0, 0.0, else: 100.0 * toDouble(errors) / toDouble(total))
         | fields error_rate
     visualization: singleValue
     visualizationSettings:
@@ -702,7 +695,7 @@ tiles:
             total = count(),
             errors = countIf(snowflake.query.execution_status != "SUCCESS"),
           by: { snowflake.warehouse.name }
-        | fieldsAdd error_rate = if(total == 0, 0.0, 100.0 * toDouble(errors) / toDouble(total))
+        | fieldsAdd error_rate = if(total == 0, 0.0, else: 100.0 * toDouble(errors) / toDouble(total))
         | sort error_rate desc
         | fields Warehouse = snowflake.warehouse.name, error_rate
         | limit toLong($TopN)
