@@ -71,7 +71,7 @@ variables:
         | filter db.system == "snowflake"
         | fieldsAdd db_name = coalesce(db.name, db.namespace)
         | filter in(deployment.environment, array($Account))
-        | filter in(db_name, array($Database))
+        | filter in(snowflake.warehouse.name, array($Warehouse))
         | filter isNotNull(db.user)
             and isNotNull(deployment.environment)
             and isNotNull(coalesce(db.name, db.namespace))
