@@ -55,8 +55,11 @@ variables:
     input: |-
       fetch logs
         | filter db.system == "snowflake"
-        | filter in(deployment.environment, array($Account))
-        | filter isNotNull(snowflake.warehouse.name)
+        | filter isNotNull(db.user)
+            and in(deployment.environment, array($Account))
+            and isNotNull(coalesce(db.name, db.namespace))
+            and isNotNull(coalesce(db.statement, db.query.text))
+            and isNotNull(snowflake.time.execution)
         | fields snowflake.warehouse.name
         | dedup snowflake.warehouse.name
         | sort snowflake.warehouse.name
@@ -71,10 +74,14 @@ variables:
       fetch logs
         | filter db.system == "snowflake"
         | filter in(deployment.environment, array($Account))
-        | filter isNotNull(db.namespace)
-        | fields db.namespace
-        | dedup db.namespace
-        | sort db.namespace
+        | filter isNotNull(db.user)
+            and isNotNull(deployment.environment)
+            and isNotNull(coalesce(db.name, db.namespace))
+            and isNotNull(coalesce(db.statement, db.query.text))
+            and isNotNull(snowflake.time.execution)
+        | fields db_name = coalesce(db.name, db.namespace)
+        | dedup db_name
+        | sort db_name asc
 
   - version: 2
     key: User
@@ -85,8 +92,13 @@ variables:
     input: |-
       fetch logs
         | filter db.system == "snowflake"
+        | fieldsAdd db_name = coalesce(db.name, db.namespace)
         | filter in(deployment.environment, array($Account))
+        | filter in(db_name, array($Database))
         | filter isNotNull(db.user)
+            and isNotNull(deployment.environment)
+            and isNotNull(coalesce(db.name, db.namespace))
+            and isNotNull(coalesce(db.statement, db.query.text))
         | fields db.user
         | dedup db.user
         | sort db.user asc
@@ -281,25 +293,27 @@ tiles:
     title: Compilation vs execution vs queued time
     type: data
     query: |-
-      fetch logs
-        | filter db.system == "snowflake"
-        | filter dsoa.run.plugin == "query_history"
-        | filter in(deployment.environment, array($Account))
-        | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
-        | filter (isNull(db.namespace) or in(db.namespace, array($Database)))
-        | filter (isNull(db.user) or in(db.user, array($User)))
-        | makeTimeseries
-            compilation = avg(toLong(snowflake.time.compilation)),
-            execution = avg(toLong(snowflake.time.execution)),
-            queued_overload = avg(toLong(snowflake.time.queued.overload)),
-            queued_provisioning = avg(toLong(snowflake.time.queued.provisioning))
+      timeseries
+        {
+        compilation = avg(snowflake.time.compilation),
+        execution = avg(snowflake.time.execution),
+        `queued overload` = avg(snowflake.time.queued.overload),
+        `queued provisioning` = avg(snowflake.time.queued.provisioning)
+        }
+      , filter: {
+        db.system == "snowflake" and dsoa.run.plugin == "query_history"
+        and in(deployment.environment, array($Account))
+        and in(snowflake.warehouse.name, array($Warehouse))
+        and isNull(db.namespace) or in(db.namespace, array($Database))
+        and (isNull(db.user) or in(db.user, array($User)))
+      }
+      , union: true
     visualization: areaChart
     visualizationSettings:
       autoSelectVisualization: false
       chartSettings:
         truncationMode: middle
         legend:
-          hidden: false
           position: bottom
         leftYAxisSettings:
           label: Time
@@ -310,16 +324,16 @@ tiles:
           leftAxisValues:
             - compilation
             - execution
-            - queued_overload
-            - queued_provisioning
+            - "queued overload"
+            - "queued provisioning"
           timestamp: timeframe
         gapPolicy: connect
       dataMapping:
         displayedFields:
           - compilation
           - execution
-          - queued_overload
-          - queued_provisioning
+          - "queued overload"
+          - "queued provisioning"
       unitsOverrides:
         - identifier: compilation
           unitCategory: time
@@ -337,7 +351,7 @@ tiles:
           suffix: ""
           delimiter: false
           added: 2
-        - identifier: queued_overload
+        - identifier: "queued overload"
           unitCategory: time
           baseUnit: millisecond
           displayUnit: null
@@ -345,7 +359,7 @@ tiles:
           suffix: ""
           delimiter: false
           added: 3
-        - identifier: queued_provisioning
+        - identifier: "queued provisioning"
           unitCategory: time
           baseUnit: millisecond
           displayUnit: null
@@ -490,16 +504,16 @@ tiles:
         lineWrapIds: []
         columnWidths: {}
         columnOrder:
-          - "[\"exec_count\"]"
-          - "[\"p50\"]"
-          - "[\"p90\"]"
-          - "[\"p99\"]"
-          - "[\"avg_elapsed\"]"
-          - "[\"total_elapsed\"]"
-          - "[\"warehouse\"]"
-          - "[\"database\"]"
-          - "[\"query_hash\"]"
-          - "[\"query_text\"]"
+          - '["exec_count"]'
+          - '["p50"]'
+          - '["p90"]'
+          - '["p99"]'
+          - '["avg_elapsed"]'
+          - '["total_elapsed"]'
+          - '["warehouse"]'
+          - '["database"]'
+          - '["query_hash"]'
+          - '["query_text"]'
       unitsOverrides:
         - identifier: p50
           unitCategory: time
