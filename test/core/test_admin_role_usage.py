@@ -32,8 +32,8 @@ def find_sql_files(root_dir: str) -> dict[str, list[Path]]:
         if should_skip_sql_file(sql_file):
             continue
 
-        # Check if file is in admin directory
-        if "admin" in sql_file.parts:
+        # Check if file is in admin or admin-init directory
+        if "admin" in sql_file.parts or "admin-init" in sql_file.parts:
             sql_files["admin"].append(sql_file)
         else:
             sql_files["non_admin"].append(sql_file)
@@ -121,23 +121,25 @@ class TestAdminRoleUsage:
             pytest.skip("No admin SQL files found. This is valid - admin scope is optional.")
 
     def test_build_creates_admin_sql(self):
-        """Test that build process creates 80_admin.sql (assembled last, after plugins)."""
-        admin_sql = Path(__file__).parent.parent.parent / "build" / "80_admin.sql"
+        """Test that build process creates 05_admin_init.sql and 80_admin.sql."""
+        build_dir = Path(__file__).parent.parent.parent / "build"
+        admin_init_sql = build_dir / "05_admin_init.sql"
+        admin_objects_sql = build_dir / "80_admin.sql"
 
-        # Run build if file doesn't exist
-        if not admin_sql.exists():
-            pytest.skip("build/80_admin.sql not found. Run build.sh first.")
+        if not admin_init_sql.exists() and not admin_objects_sql.exists():
+            pytest.skip("build/05_admin_init.sql not found. Run build.sh first.")
 
-        assert admin_sql.is_file(), "build/80_admin.sql should exist after build"
-        assert admin_sql.stat().st_size > 0, "build/80_admin.sql should not be empty"
+        assert admin_init_sql.is_file(), "build/05_admin_init.sql should exist after build"
+        assert admin_init_sql.stat().st_size > 0, "build/05_admin_init.sql should not be empty"
+        assert admin_objects_sql.is_file(), "build/80_admin.sql should exist after build"
 
 
 class TestDeploymentScopes:
     """Test suite for deployment scope configuration and restrictions."""
 
     def test_all_scope_includes_admin_scripts(self):
-        """Test that 'all' scope in prepare_deploy_script.sh includes admin scripts (80_admin.sql).
-        Admin is assembled last so it correctly overwrites non-admin procedure stubs in 30_plugins/.
+        """Test that 'all' scope in prepare_deploy_script.sh includes both admin phases.
+        This ensures complete deployment includes administrative setup when using 'all' scope.
 
         Note: When deploying with 'all' scope, DTAGENT_ADMIN role will be created.
         Organizations can choose to deploy without 'admin' scope by using specific scope combinations.
@@ -156,11 +158,12 @@ class TestDeploymentScopes:
 
         sql_files = match.group(1)
 
-        # Check that 80_admin.sql is included and listed last (ordering by sort, 80 > 70)
+        # Check that both admin phases are included
+        assert "05_admin_init.sql" in sql_files, f"'all' scope must include 05_admin_init.sql. Found: {sql_files}"
         assert "80_admin.sql" in sql_files, f"'all' scope must include 80_admin.sql. Found: {sql_files}"
 
-        # Also verify the expected files are present
-        expected_files = ["00_init.sql", "80_admin.sql", "20_setup.sql", "40_config.sql", "70_agents.sql"]
+        # Also verify the other expected files are present
+        expected_files = ["00_init.sql", "05_admin_init.sql", "20_setup.sql", "40_config.sql", "70_agents.sql", "80_admin.sql"]
         for expected_file in expected_files:
             assert expected_file in sql_files, f"'all' scope missing expected file: {expected_file}. Found: {sql_files}"
 
@@ -287,7 +290,7 @@ class TestDeploymentScopes:
                     error_msg += f"  Line {line_num}: {line}\n"
                 error_msg += "\n"
             error_msg += "DTAGENT_ADMIN (USE ROLE) should only be used in:\n"
-            error_msg += "  - admin scope (80_admin.sql) - optional scope\n"
+            error_msg += "  - admin-objects scope (80_admin.sql) - optional scope\n"
             error_msg += "  - upgrade scope (09_upgrade/*.sql)\n"
             error_msg += "\nNote: Grants TO ROLE DTAGENT_ADMIN are allowed in any scope.\n"
             error_msg += "\nIMPORTANT: DTAGENT_ADMIN is an optional role. If admin scope is not deployed,\n"
@@ -389,7 +392,8 @@ class TestAccountAdminRoleUsage:
 
         return {
             "init": build_dir / "00_init.sql",
-            "admin": build_dir / "80_admin.sql",
+            "admin-init": build_dir / "05_admin_init.sql",
+            "admin-objects": build_dir / "80_admin.sql",
             "setup": build_dir / "20_setup.sql",
             "plugins": list((build_dir / "30_plugins").glob("*.sql")) if (build_dir / "30_plugins").exists() else [],
             "config": build_dir / "40_config.sql",
@@ -417,10 +421,10 @@ class TestAccountAdminRoleUsage:
         return violations
 
     def test_accountadmin_only_in_init_and_upgrade(self, build_sql_files):
-        """Test that ACCOUNTADMIN role is used only in init (00_init.sql), admin (80_admin.sql), and upgrade scripts.
+        """Test that ACCOUNTADMIN role is used only in init (00_init.sql), admin-init (05_admin_init.sql), and upgrade scripts.
         This ensures proper privilege separation and security boundaries.
 
-        Note: admin scope requires ACCOUNTADMIN to create DTAGENT_ADMIN role and grant MANAGE GRANTS privilege.
+        Note: admin-init scope requires ACCOUNTADMIN to create DTAGENT_ADMIN role and grant MANAGE GRANTS privilege.
         """
         violations_by_file = {}
 
@@ -448,7 +452,7 @@ class TestAccountAdminRoleUsage:
                 error_msg += "\n"
             error_msg += "\nACCOUNTADMIN should only be used in:\n"
             error_msg += "  - 00_init.sql (initialization)\n"
-            error_msg += "  - 80_admin.sql (admin role creation and grants)\n"
+            error_msg += "  - 05_admin_init.sql (admin role creation and grants)\n"
             error_msg += "  - 09_upgrade/*.sql (upgrade scripts)\n"
 
             pytest.fail(error_msg)
@@ -481,9 +485,9 @@ class TestAccountAdminRoleUsage:
             if should_skip_sql_file(sql_file):
                 continue
 
-            # Skip files in init, admin, or upgrade directories
+            # Skip files in init, admin, admin-init, or upgrade directories
             path_parts = sql_file.relative_to(src_dir).parts
-            if "init" in path_parts or "admin" in path_parts or "upgrade" in path_parts:
+            if "init" in path_parts or "admin" in path_parts or "admin-init" in path_parts or "upgrade" in path_parts:
                 continue
 
             violations = self.check_accountadmin_usage(sql_file)
@@ -499,7 +503,8 @@ class TestAccountAdminRoleUsage:
                 error_msg += "\n"
             error_msg += "\nACCOUNTADMIN should only be used in:\n"
             error_msg += "  - src/**/init/*.sql (initialization scripts)\n"
-            error_msg += "  - src/**/admin/*.sql (admin role and privilege scripts)\n"
+            error_msg += "  - src/**/admin-init/*.sql (admin role creation and privilege grants)\n"
+            error_msg += "  - src/**/admin/*.sql (admin pattern B procedure overwrites)\n"
             error_msg += "  - src/**/upgrade/*.sql (upgrade scripts)\n"
 
             pytest.fail(error_msg)
@@ -536,27 +541,33 @@ class TestDeploymentWithoutAdminScope:
         with tempfile.NamedTemporaryFile(mode="w", suffix=".sql", delete=False) as tmp_file:
             output_file = Path(tmp_file.name)
 
+        config_file = None
         try:
-            # Run prepare_deploy_script.sh with scopes that exclude admin
-            # Use init,setup,plugins,config,agents scope (no admin)
+            # prepare_deploy_script.sh reads config via BUILD_CONFIG_FILE (a JSON file).
+            # Create a minimal one matching what the bats test suite uses.
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as cfg:
+                cfg.write('[{"PATH": "core.tag", "TYPE": "str", "VALUE": "TEST"}]\n')
+                config_file = Path(cfg.name)
+
+            # Script signature: prepare_deploy_script.sh INSTALL_SCRIPT_SQL ENV SCOPE FROM_VERSION IS_MANUAL
             result = subprocess.run(
                 [
                     str(prepare_script),
-                    "--scope",
-                    "init,setup,plugins,config,agents",
-                    "--output-file",
                     str(output_file),
-                    "--build-dir",
-                    str(build_dir),
+                    "test",
+                    "init,setup,plugins,config,agents",
+                    "",
+                    "manual",
                 ],
                 capture_output=True,
                 text=True,
                 cwd=str(root_dir),
+                env={**__import__("os").environ, "BUILD_CONFIG_FILE": str(config_file)},
                 check=False,
             )
 
             if result.returncode != 0:
-                pytest.skip(f"prepare_deploy_script.sh failed: {result.stderr}")
+                pytest.fail(f"prepare_deploy_script.sh failed:\n{result.stderr}")
 
             # Read the generated script
             with open(output_file, "r", encoding="utf-8") as f:
@@ -587,9 +598,10 @@ class TestDeploymentWithoutAdminScope:
                 pytest.fail(error_msg)
 
         finally:
-            # Clean up temporary file
             if output_file.exists():
                 output_file.unlink()
+            if config_file and config_file.exists():
+                config_file.unlink()
 
     def test_prepare_script_accepts_scope_without_admin(self):
         """Test that prepare_deploy_script.sh properly handles scope combinations without admin."""

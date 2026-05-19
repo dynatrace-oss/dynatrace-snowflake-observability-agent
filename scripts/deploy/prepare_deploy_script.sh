@@ -31,7 +31,8 @@
 # * INSTALL_SCRIPT_SQL [REQUIRED] - path to the file where installation script must be written to
 # * ENV                [REQUIRED] - environment identifier (config-$ENV.yml must exist)
 # * SCOPE              [REQUIRED] - deployment scope:
-#                       init, admin, setup, plugins, config, agents, apikey, all, teardown, upgrade, or file_part
+#                       init, admin-init, admin-objects, admin (alias for both), setup, plugins, config,
+#                       agents, apikey, all, teardown, upgrade, or file_part
 # * FROM_VERSION       [OPTIONAL] - version number for upgrade scope
 # * IS_MANUAL          [OPTIONAL] - "true" to generate a human-readable script; "false" or empty for automated deploy
 # * OPTIONS_STR        [OPTIONAL] - comma-separated deploy options (e.g. cleanup_disabled,skip_confirm)
@@ -193,8 +194,14 @@ map_scope_to_files() {
         init)
             echo "00_init.sql"
             ;;
-        admin)
+        admin-init)
+            echo "05_admin_init.sql"
+            ;;
+        admin-objects)
             echo "80_admin.sql"
+            ;;
+        admin)
+            echo "05_admin_init.sql 80_admin.sql"
             ;;
         setup)
             echo "20_setup.sql"
@@ -209,7 +216,7 @@ map_scope_to_files() {
             echo "70_agents.sql"
             ;;
         all)
-            echo "00_init.sql 20_setup.sql 30_plugins/*.sql 40_config.sql 70_agents.sql 80_admin.sql"
+            echo "00_init.sql 05_admin_init.sql 20_setup.sql 30_plugins/*.sql 40_config.sql 70_agents.sql 80_admin.sql"
             ;;
         upgrade)
             if [ -z "$FROM_VERSION" ]; then
@@ -292,6 +299,26 @@ else
     fi
     SQL_FILES=$(map_scope_to_files "$SCOPE")
 fi
+
+# Warn if admin-objects is being deployed without admin-init (fresh install risk)
+_adm_has_objects=false
+_adm_has_init=false
+IFS=',' read -ra _adm_scope_arr <<< "$SCOPE"
+for _adm_tok in "${_adm_scope_arr[@]}"; do
+    _adm_tok=$(echo "$_adm_tok" | xargs)
+    case "$_adm_tok" in
+        admin-objects) _adm_has_objects=true ;;
+        admin-init)    _adm_has_init=true ;;
+        admin)         _adm_has_objects=true; _adm_has_init=true ;;
+        all)           _adm_has_objects=true; _adm_has_init=true ;;
+    esac
+done
+if [ "$_adm_has_objects" = true ] && [ "$_adm_has_init" = false ]; then
+    echo "WARNING: Scope 'admin-objects' selected without 'admin-init'."
+    echo "         On a fresh Snowflake account the DTAGENT_ADMIN role must already exist."
+    echo "         Use '--scope=admin' to deploy both phases, or run '--scope=admin-init' first."
+fi
+unset _adm_has_objects _adm_has_init _adm_scope_arr _adm_tok
 
 # Check if required SQL files exist in build folder (skip for scopes with empty SQL_FILES)
 if [ -n "$SQL_FILES" ]; then

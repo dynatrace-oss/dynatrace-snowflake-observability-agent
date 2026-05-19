@@ -34,8 +34,8 @@ def test_bash_script(request, bats_file):
         pytest.skip("bats not found in PATH — install via 'brew install bats-core' or 'npm install -g bats'")
 
     run_slow = request.config.getoption("--run-slow", default=False)
-    if _is_slow(bats_file) and not run_slow:
-        pytest.skip("slow build/package integration test — pass --run-slow to enable")
+    # if _is_slow(bats_file) and not run_slow:
+    #     pytest.skip("slow build/package integration test — pass --run-slow to enable")
 
     env = os.environ.copy()
     if run_slow and _is_slow(bats_file):

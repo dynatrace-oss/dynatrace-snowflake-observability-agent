@@ -31,7 +31,8 @@
 # * --env          [REQUIRED] - environment identifier (config-$ENV.yml must exist or will be created)
 # * $ENV           [DEPRECATED] - positional environment (backward compat, use --env= instead)
 # * --scope        [OPTIONAL] - deployment scope (default: all):
-#                               init, admin, setup, plugins, config, agents, apikey, all, teardown, upgrade, or file_part
+#                               init, admin-init, admin-objects, admin (alias for both admin phases),
+#                               setup, plugins, config, agents, apikey, all, teardown, upgrade, or file_part
 #                               Multiple scopes can be specified as comma-separated list (e.g., setup,plugins,config,agents,apikey)
 #                               Note: teardown and all cannot be combined with other scopes
 # * --from-version [OPTIONAL] - version number for upgrade scope (required if scope=upgrade)

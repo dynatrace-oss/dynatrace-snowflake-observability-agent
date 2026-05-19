@@ -495,19 +495,22 @@ Example of deployment bizevent payload.
 The build process creates staged SQL scripts in the `build/` directory:
 
 - `00_init.sql` - Initialization scripts (database, roles, basic setup)
+- `05_admin_init.sql` - ACCOUNTADMIN operations: role creation and account-level privilege grants (first deploy only)
 - `09_upgrade/v*.sql` - Version-specific upgrade scripts
-- `80_admin.sql` - Administrative operations (role grants, ownership transfers) — sorted last to deploy after all plugin files
 - `20_setup.sql` - Core setup (schemas, tables, procedures)
 - `30_plugins/*.sql` - Individual plugin definitions
 - `40_config.sql` - Configuration management
 - `70_agents.sql` - Agent task definitions
+- `80_admin.sql` - DTAGENT_ADMIN Pattern B procedure and task overwrites (every deploy, runs after plugins)
 
 ### Deployment Scopes
 
 The deployment script supports the following scopes:
 
 - `init` - Deploy initialization scripts only
-- `admin` - Deploy administrative operations (role setup, ownership)
+- `admin-init` - Deploy ACCOUNTADMIN operations: create DTAGENT_ADMIN role and grant account-level privileges (first deploy only)
+- `admin-objects` - Deploy DTAGENT_ADMIN-owned procedures and tasks after plugins (every deploy)
+- `admin` - Deploy both admin phases in correct order (alias for `admin-init` + `admin-objects`)
 - `setup` - Deploy core setup scripts
 - `plugins` - Deploy plugin definitions
 - `config` - Deploy configuration
@@ -554,18 +557,26 @@ Dynatrace Snowflake Observability Agent implements a flexible role-based securit
 
 #### Administrative Operation Isolation
 
-Administrative operations (requiring `DTAGENT_ADMIN` role when present, or manual intervention when not) are isolated in dedicated admin files:
+Administrative operations are split into two phases to enforce least-privilege principles:
 
-- `src/dtagent.sql/admin/*.sql` - Core administrative operations
-- `src/dtagent/plugins/*.sql/admin/*.sql` - Plugin-specific administrative operations
+**Phase 1 — `admin-init` (ACCOUNTADMIN, first deploy only):**
+- `src/dtagent.sql/admin-init/*.sql` - Role creation and account-level privilege grants
+- Compiled into `build/05_admin_init.sql`
+- Runs immediately after `init` (position 05) because roles must exist before other scopes create objects
 
-These files are compiled into `build/80_admin.sql` and deployed only when using `--scope=admin`. The `80_` prefix ensures admin deploys after all plugin files (`30_plugins/`), so admin procedures correctly overwrite non-admin stubs. This ensures that:
+**Phase 2 — `admin-objects` (DTAGENT_ADMIN, every deploy):**
+- `src/dtagent.sql/admin/*.sql` - Core DTAGENT_ADMIN procedure overwrites
+- `src/dtagent/plugins/*.sql/admin/*.sql` - Plugin-specific procedure and task overwrites
+- Compiled into `build/80_admin.sql`
+- Runs last (position 80) so Pattern B overwrites apply after plugins create their stubs
 
-1. The `DTAGENT_ADMIN` role is only created when explicitly needed
-2. Administrative privileges are only used in appropriate contexts
-3. Regular operations can run without elevated privileges
-4. Security audits can easily identify privileged operations
-5. Organizations can choose whether to deploy the admin scope based on their security requirements
+Use `--scope=admin` to run both phases together (backward compatible). This ensures that:
+
+1. The `DTAGENT_ADMIN` role is only created when explicitly needed (ACCOUNTADMIN required only once)
+2. Routine deploys can use `--scope=admin-objects` without requiring ACCOUNTADMIN
+3. Administrative privileges are only used in appropriate contexts
+4. Security audits can easily identify privileged operations by phase
+5. Organizations can choose whether to deploy admin scopes based on their security requirements
 
 If the admin scope is not installed:
 

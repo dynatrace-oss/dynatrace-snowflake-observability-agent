@@ -208,8 +208,11 @@ if [ -d "src/dtagent.sql/upgrade" ]; then
     done < <(find "src/dtagent.sql/upgrade" -mindepth 1 -maxdepth 1 -type d | sort)
 fi
 
-# build/80_admin.sql <- combine(src/dtagent.sql/admin/*.sql, plugin admin/*.sql wrapped in plugin blocks)
-# 80_admin.sql is named last so filename sort in prepare_deploy_script.sh deploys it after all plugin files.
+# build/05_admin_init.sql <- combine(src/dtagent.sql/admin-init/*.sql) — ACCOUNTADMIN, first-deploy only
+: > build/05_admin_init.sql
+append_sql_dir "src/dtagent.sql/admin-init" "build/05_admin_init.sql"
+
+# build/80_admin.sql <- combine(src/dtagent.sql/admin/*.sql, plugin admin/*.sql wrapped in plugin blocks) — DTAGENT_ADMIN Pattern B, every deploy
 : > build/80_admin.sql
 append_sql_dir "src/dtagent.sql/admin" "build/80_admin.sql"
 

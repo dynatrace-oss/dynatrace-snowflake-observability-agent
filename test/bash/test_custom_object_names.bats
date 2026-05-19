@@ -18,8 +18,8 @@ create resource monitor if not exists DTAGENT_RS;
 --%:OPTION:resource_monitor
 EOSQL
 
-    cat > build/80_admin.sql << 'EOSQL'
--- Admin
+    cat > build/05_admin_init.sql << 'EOSQL'
+-- Admin init
 use role DTAGENT_OWNER;
 --%OPTION:dtagent_admin:
 create role if not exists DTAGENT_ADMIN;
@@ -27,6 +27,8 @@ grant role DTAGENT_ADMIN to role DTAGENT_OWNER;
 grant manage grants on account to role DTAGENT_ADMIN;
 --%:OPTION:dtagent_admin
 EOSQL
+    echo "-- Admin objects" > build/80_admin.sql
+    echo "select 'admin objects';" >> build/80_admin.sql
 
     cat > build/20_setup.sql << 'EOSQL'
 -- Setup
@@ -61,7 +63,7 @@ EOSQL
 
 teardown() {
     rm -f "$TEST_SQL_FILE" "$TEST_CONFIG_FILE"
-    rm -f build/00_init.sql build/80_admin.sql build/20_setup.sql build/40_config.sql build/70_agents.sql
+    rm -f build/00_init.sql build/05_admin_init.sql build/80_admin.sql build/20_setup.sql build/40_config.sql build/70_agents.sql
     rm -rf build/30_plugins build/09_upgrade
     unset BUILD_CONFIG_FILE DTAGENT_TOKEN
 }

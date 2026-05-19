@@ -40,10 +40,12 @@ CREATE TABLE active_plugin_table (id INT);
 --%:PLUGIN:active_plugin
 EOSQL
 
-    cat > build/80_admin.sql << 'EOSQL'
--- Admin code
+    cat > build/05_admin_init.sql << 'EOSQL'
+-- Admin init code (ACCOUNTADMIN)
 CREATE ROLE IF NOT EXISTS DTAGENT_ADMIN;
 EOSQL
+    echo "-- Admin objects code (DTAGENT_ADMIN)" > build/80_admin.sql
+    echo "SELECT 'admin objects';" >> build/80_admin.sql
 
     cat > build/20_setup.sql << 'EOSQL'
 -- Setup code
@@ -129,7 +131,7 @@ EOSQL
 
 teardown() {
     rm -f "$TEST_CONFIG_FILE" "$TEST_SQL_FILE"
-    rm -f build/001_test.sql build/00_init.sql build/80_admin.sql build/20_setup.sql build/40_config.sql build/70_agents.sql
+    rm -f build/001_test.sql build/00_init.sql build/05_admin_init.sql build/80_admin.sql build/20_setup.sql build/40_config.sql build/70_agents.sql
     rm -rf build/09_upgrade build/30_plugins
     unset BUILD_CONFIG_FILE
 }
@@ -347,7 +349,7 @@ EOF
 use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 CREATE SCHEMA IF NOT EXISTS MAIN_SCHEMA;
 EOSQL
-    cat > build/10_admin.sql << 'EOSQL'
+    cat > build/05_admin_init.sql << 'EOSQL'
 use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 CREATE ROLE IF NOT EXISTS DTAGENT_ADMIN;
 EOSQL
@@ -356,7 +358,7 @@ use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 CREATE PROCEDURE main_proc() AS BEGIN SELECT 1; END;
 EOSQL
 
-    run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "init,admin,setup" "" "manual"
+    run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "init,admin-init,setup" "" "manual"
     [ "$status" -eq 0 ]
 
     # All three files carry the same USE triplet — dedup leaves exactly one of each
@@ -381,7 +383,7 @@ EOF
 use role ACCOUNTADMIN; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 CREATE SCHEMA IF NOT EXISTS MAIN_SCHEMA;
 EOSQL
-    cat > build/10_admin.sql << 'EOSQL'
+    cat > build/05_admin_init.sql << 'EOSQL'
 use role ACCOUNTADMIN; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 CREATE ROLE IF NOT EXISTS DTAGENT_ADMIN;
 EOSQL
@@ -390,7 +392,7 @@ use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 CREATE PROCEDURE main_proc() AS BEGIN SELECT 1; END;
 EOSQL
 
-    run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "init,admin,setup" "" "manual"
+    run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "init,admin-init,setup" "" "manual"
     [ "$status" -eq 0 ]
 
     # First two files share ACCOUNTADMIN — deduped to one occurrence
@@ -413,12 +415,12 @@ EOF
 use role ACCOUNTADMIN; use database DTAGENT_DB; use schema CONFIG; use warehouse DTAGENT_WH;
 CREATE SCHEMA IF NOT EXISTS MAIN_SCHEMA;
 EOSQL
-    cat > build/10_admin.sql << 'EOSQL'
+    cat > build/05_admin_init.sql << 'EOSQL'
 use role ACCOUNTADMIN; use database DTAGENT_DB; use schema CONFIG; use warehouse DTAGENT_WH;
 CREATE ROLE IF NOT EXISTS DTAGENT_ADMIN;
 EOSQL
 
-    run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "init,admin" "" "manual"
+    run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "init,admin-init" "" "manual"
     [ "$status" -eq 0 ]
 
     # Lines containing USE SCHEMA are not pure USE ROLE/DB/WH and pass through unchanged

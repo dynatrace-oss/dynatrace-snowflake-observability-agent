@@ -61,16 +61,17 @@ setup_file() {
     fi
 
     # Check that SQL files are copied correctly
-    # Check main SQL files - should be exactly 5 files: 00_init.sql, 80_admin.sql, 20_setup.sql, 40_config.sql, 70_agents.sql
+    # Check main SQL files - should be exactly 6 files: 00_init.sql, 05_admin_init.sql, 20_setup.sql, 40_config.sql, 70_agents.sql, 80_admin.sql
     main_sql_count=$(find build -maxdepth 1 -type f -name "*.sql" | wc -l | tr -d ' ')
-    [ "$main_sql_count" -eq 5 ]
+    [ "$main_sql_count" -eq 6 ]
 
     # Verify specific files exist
     [ -f "build/00_init.sql" ]
-    [ -f "build/80_admin.sql" ]
+    [ -f "build/05_admin_init.sql" ]
     [ -f "build/20_setup.sql" ]
     [ -f "build/40_config.sql" ]
     [ -f "build/70_agents.sql" ]
+    [ -f "build/80_admin.sql" ]
 
     # Check 09_upgrade folder
     [ -d "build/09_upgrade" ]
@@ -349,16 +350,17 @@ setup_file() {
     [ -n "$license_file" ]
 
     # Check that there are SQL files in build/
-    # Should have 5 main SQL files in build root
+    # Should have 6 main SQL files in build root
     main_sql_count=$(unzip -l "$zip_file" | grep "build/[^/]*\.sql$" | wc -l | tr -d ' ')
-    [ "$main_sql_count" -eq 5 ]
+    [ "$main_sql_count" -eq 6 ]
 
     # Check specific main SQL files exist
     [ -n "$(unzip -l "$zip_file" | grep "build/00_init.sql")" ]
-    [ -n "$(unzip -l "$zip_file" | grep "build/80_admin.sql")" ]
+    [ -n "$(unzip -l "$zip_file" | grep "build/05_admin_init.sql")" ]
     [ -n "$(unzip -l "$zip_file" | grep "build/20_setup.sql")" ]
     [ -n "$(unzip -l "$zip_file" | grep "build/40_config.sql")" ]
     [ -n "$(unzip -l "$zip_file" | grep "build/70_agents.sql")" ]
+    [ -n "$(unzip -l "$zip_file" | grep "build/80_admin.sql")" ]
 
     # Check 09_upgrade folder has SQL files
     upgrade_sql_count=$(unzip -l "$zip_file" | grep "build/09_upgrade/.*\.sql$" | wc -l | tr -d ' ')
