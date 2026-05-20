@@ -49,7 +49,10 @@ begin
         v_retention_days
     );
 
-    -- insert snapshot: join storage view with latest clustering results
+    -- insert snapshot: join raw storage data with latest clustering results
+    -- NOTE: V_TABLE_STORAGE exposes OTEL-shaped columns only; read from
+    --       SNOWFLAKE.ACCOUNT_USAGE.TABLE_STORAGE_METRICS directly here,
+    --       applying the same include/exclude/min_bytes filters as the view.
     insert into DTAGENT_DB.APP.TABLE_HEALTH_HISTORY (
         TABLE_FULL_NAME,
         TABLE_CATALOG,
@@ -64,28 +67,76 @@ begin
         AVERAGE_OVERLAPS,
         SNAPSHOTTED_AT
     )
+    with cte_includes as (
+        select ci.VALUE::text as full_table_name_pattern
+        from DTAGENT_DB.CONFIG.CONFIGURATIONS cfg,
+             table(flatten(cfg.VALUE)) ci
+        where cfg.PATH = 'plugins.table_health.include'
+    )
+    , cte_excludes as (
+        select ce.VALUE::text as full_table_name_pattern
+        from DTAGENT_DB.CONFIG.CONFIGURATIONS cfg,
+             table(flatten(cfg.VALUE)) ce
+        where cfg.PATH = 'plugins.table_health.exclude'
+    )
+    , cte_min_bytes as (
+        select coalesce(max(cfg.VALUE::number), 1073741824) as min_bytes
+        from DTAGENT_DB.CONFIG.CONFIGURATIONS cfg
+        where cfg.PATH = 'plugins.table_health.min_table_bytes'
+    )
+    , cte_max_tables as (
+        select coalesce(max(cfg.VALUE::number), 500) as max_tables
+        from DTAGENT_DB.CONFIG.CONFIGURATIONS cfg
+        where cfg.PATH = 'plugins.table_health.max_tables'
+    )
+    , cte_storage as (
+        select
+            concat(tsm.TABLE_CATALOG, '.', tsm.TABLE_SCHEMA, '.', tsm.TABLE_NAME) as table_full_name,
+            tsm.TABLE_CATALOG                                                       as table_catalog,
+            tsm.TABLE_SCHEMA                                                        as table_schema,
+            tsm.TABLE_NAME                                                          as table_name,
+            tsm.ACTIVE_BYTES                                                        as active_bytes,
+            coalesce(t.ROW_COUNT, 0)                                               as row_count,
+            tsm.TIME_TRAVEL_BYTES                                                   as time_travel_bytes,
+            tsm.FAILSAFE_BYTES                                                      as failsafe_bytes,
+            tsm.RETAINED_FOR_CLONE_BYTES                                           as retained_for_clone_bytes,
+            row_number() over (order by tsm.ACTIVE_BYTES desc)                     as row_num
+        from SNOWFLAKE.ACCOUNT_USAGE.TABLE_STORAGE_METRICS tsm
+        left join SNOWFLAKE.ACCOUNT_USAGE.TABLES t
+            on tsm.TABLE_CATALOG = t.TABLE_CATALOG
+            and tsm.TABLE_SCHEMA = t.TABLE_SCHEMA
+            and tsm.TABLE_NAME = t.TABLE_NAME
+            and t.DELETED is null
+        where tsm.ACTIVE_BYTES >= (select min_bytes from cte_min_bytes)
+        and concat(tsm.TABLE_CATALOG, '.', tsm.TABLE_SCHEMA, '.', tsm.TABLE_NAME)
+            like any (select full_table_name_pattern from cte_includes)
+        and not concat(tsm.TABLE_CATALOG, '.', tsm.TABLE_SCHEMA, '.', tsm.TABLE_NAME)
+            like any (select full_table_name_pattern from cte_excludes)
+    )
     select
-        s.TABLE_FULL_NAME,
-        s.TABLE_CATALOG,
-        s.TABLE_SCHEMA,
-        s.TABLE_NAME,
-        s.ACTIVE_BYTES,
-        s.ROW_COUNT,
-        s.TIME_TRAVEL_BYTES,
-        s.FAILSAFE_BYTES,
-        s.RETAINED_FOR_CLONE_BYTES,
+        s.table_full_name,
+        s.table_catalog,
+        s.table_schema,
+        s.table_name,
+        s.active_bytes,
+        s.row_count,
+        s.time_travel_bytes,
+        s.failsafe_bytes,
+        s.retained_for_clone_bytes,
         c.AVERAGE_DEPTH,
         c.AVERAGE_OVERLAPS,
         current_timestamp()
-    from DTAGENT_DB.APP.V_TABLE_STORAGE AS s
+    from cte_storage AS s
     left join DTAGENT_DB.APP.TABLE_CLUSTERING_RESULTS AS c
-        on c.TABLE_FULL_NAME = s.TABLE_FULL_NAME;
+        on c.TABLE_FULL_NAME = s.table_full_name
+    where s.row_num <= (select max_tables from cte_max_tables);
 
     v_inserted := sqlrowcount;
 
-    -- prune old rows
+    -- prune old rows (capture variable into LET before use in SQL per $$-block anti-pattern)
+    LET l_retention_days INTEGER := v_retention_days;
     delete from DTAGENT_DB.APP.TABLE_HEALTH_HISTORY
-    where SNAPSHOTTED_AT < dateadd('day', -v_retention_days, current_timestamp());
+    where SNAPSHOTTED_AT < dateadd('day', -:l_retention_days, current_timestamp());
 
     v_pruned := sqlrowcount;
 
