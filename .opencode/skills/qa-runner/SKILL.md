@@ -626,7 +626,8 @@ timeseries avg(`snowflake.table.active_bytes.delta`), by:{deployment.environment
 
 ```dql
 timeseries sum(snowflake.credits.used), by:{snowflake.service.type}
-| summarize service_types = countDistinct(snowflake.service.type[])
+| fieldsAdd service_type = `snowflake.service.type`
+| summarize service_types = countDistinct(service_type)
 ```
 
 **Pass:** service_types ≥ 3. Prerequisite: `setup_test_metering.sql` run.
