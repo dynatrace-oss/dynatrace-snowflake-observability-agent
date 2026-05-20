@@ -176,6 +176,12 @@ Dashboard ID: <uuid from dtctl>
 Synthetic setup: test/tools/setup_test_<plugin>.sql
 ```
 
+> **Deploy before committing** — use `--name` to deploy only the dashboard you are working on:
+>
+> ```bash
+> ./scripts/deploy/deploy_dt_assets.sh --scope=dashboards --name=<dashboard-name>
+> ```
+
 **Commit message rules:**
 
 - Do **not** include ticket or issue numbers in

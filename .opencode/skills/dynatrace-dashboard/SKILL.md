@@ -554,6 +554,9 @@ and automatic ID write-back — all in one step.
 # Deploy only dashboards
 ./scripts/deploy/deploy_dt_assets.sh --scope=dashboards
 
+# Deploy a single dashboard (recommended during iterative development)
+./scripts/deploy/deploy_dt_assets.sh --scope=dashboards --name=<dashboard-name>
+
 # Deploy only workflows
 ./scripts/deploy/deploy_dt_assets.sh --scope=workflows
 
@@ -749,7 +752,10 @@ Possible outcomes:
 6.  Write dashboard YAML in docs/dashboards/<name>/<name>.yml
 7.  Convert:  ./scripts/tools/yaml-to-json.sh ... > /tmp/<name>.json
 8.  Validate: jq . /tmp/<name>.json
-9.  Deploy:   dtctl apply -A -f /tmp/<name>.json
+9.  Deploy (single dashboard — recommended):
+      ./scripts/deploy/deploy_dt_assets.sh --scope=dashboards --name=<name>
+    Or deploy all dashboards:
+      ./scripts/deploy/deploy_dt_assets.sh --scope=dashboards
 10. Record the returned ID — embed it in the YAML as `id: <uuid>`
 11. Re-convert, inject id/name/type with python3, re-deploy to update in place:
       python3 -c "

@@ -27,12 +27,14 @@
 # Deploy Dynatrace dashboards, workflows, and OpenPipeline rules using dtctl.
 #
 # Usage:
-#   ./deploy_dt_assets.sh [--scope=SCOPE] [--dry-run] [--env=ENV]
+#   ./deploy_dt_assets.sh [--scope=SCOPE] [--dry-run] [--env=ENV] [--name=NAME]
 #
 # Args:
 #   --scope   dashboards | workflows | openpipeline | all (default: all)
 #   --dry-run preview changes without applying them
 #   --env     optional environment label for logging only
+#   --name    optional folder name filter — deploy only the matching asset
+#             (case-insensitive; glob wildcard * supported)
 #
 
 set -euo pipefail
@@ -43,6 +45,7 @@ REPO_ROOT="$(cd "$CWD/../.." && pwd)"
 SCOPE="all"
 DRY_RUN=false
 ENV_LABEL=""
+FILTER_NAME=""
 
 # ── Argument parsing ─────────────────────────────────────────────────────────
 
@@ -58,6 +61,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --env=*)
             ENV_LABEL="${1#*=}"
+            shift
+            ;;
+        --name=*)
+            FILTER_NAME="${1#--name=}"
             shift
             ;;
         *)
@@ -82,6 +89,22 @@ log_info()    { echo "[INFO]  $*"; }
 log_ok()      { echo "[OK]    $*"; }
 log_warn()    { echo "[WARN]  $*"; }
 log_error()   { echo "[ERROR] $*" >&2; }
+
+# Returns 0 if the given folder name matches the active FILTER_NAME pattern.
+# Matching is case-insensitive; a single glob wildcard (*) is supported.
+#
+# Args:
+#   $1 - folder name to test
+name_matches() {
+    local folder="$1"
+    local pattern="${FILTER_NAME,,}"
+    local target="${folder,,}"
+    if [[ "$pattern" == *"*"* ]]; then
+        [[ "$target" == $pattern ]]
+    else
+        [[ "$target" == "$pattern" ]]
+    fi
+}
 
 dtctl_available() {
     command -v dtctl &>/dev/null
@@ -226,6 +249,7 @@ deploy_assets_of_type() {
 
     local success_count=0
     local failure_count=0
+    local matched_count=0
 
     if [[ ! -d "$source_dir" ]]; then
         log_warn "Directory not found, skipping ${asset_type}s: $source_dir"
@@ -254,6 +278,14 @@ deploy_assets_of_type() {
             # Fall back to directory name, capitalized
             asset_name=$(basename "$(dirname "$yaml_file")")
         fi
+
+        # Apply --name filter if set
+        local folder_name
+        folder_name=$(basename "$(dirname "$yaml_file")")
+        if [[ -n "$FILTER_NAME" ]] && ! name_matches "$folder_name"; then
+            continue
+        fi
+        (( matched_count++ )) || true
 
         log_info "Processing ${asset_type}: ${asset_name} (${yaml_file})"
 
@@ -300,6 +332,10 @@ deploy_assets_of_type() {
     done
 
     echo ""
+    if [[ -n "$FILTER_NAME" ]] && (( matched_count == 0 )); then
+        log_error "No ${asset_type} found matching name: '${FILTER_NAME}'"
+        return 1
+    fi
     log_info "${asset_type^} deployment summary: ${success_count} succeeded, ${failure_count} failed"
 
     if [[ $failure_count -gt 0 ]]; then
@@ -322,6 +358,7 @@ deploy_openpipeline_rules() {
 
     local success_count=0
     local failure_count=0
+    local matched_count=0
 
     if [[ ! -d "$source_dir" ]]; then
         log_warn "Directory not found, skipping ${asset_type} rules: $source_dir"
@@ -350,9 +387,15 @@ deploy_openpipeline_rules() {
             asset_name=$(basename "$(dirname "$yaml_file")")
         fi
 
-        log_info "Processing ${asset_type}: ${asset_name} (${yaml_file})"
+        # Apply --name filter if set
+        local folder_name
+        folder_name=$(basename "$(dirname "$yaml_file")")
+        if [[ -n "$FILTER_NAME" ]] && ! name_matches "$folder_name"; then
+            continue
+        fi
+        (( matched_count++ )) || true
 
-        # OpenPipeline settings objects are applied as-is — dtctl apply accepts YAML natively.
+        log_info "Processing ${asset_type}: ${asset_name} (${yaml_file})" are applied as-is — dtctl apply accepts YAML natively.
         # No conversion or envelope wrapping needed (these are Settings 2.0 objects with objectid).
         local dry_run_flag=""
         if $DRY_RUN; then dry_run_flag="--dry-run"; fi
@@ -377,6 +420,10 @@ deploy_openpipeline_rules() {
     done
 
     echo ""
+    if [[ -n "$FILTER_NAME" ]] && (( matched_count == 0 )); then
+        log_error "No ${asset_type} found matching name: '${FILTER_NAME}'"
+        return 1
+    fi
     log_info "${asset_type^} deployment summary: ${success_count} succeeded, ${failure_count} failed"
 
     if [[ $failure_count -gt 0 ]]; then
@@ -397,7 +444,9 @@ fi
 
 log_info "Scope: ${SCOPE}"
 
-# Check required tools
+if [[ -n "$FILTER_NAME" ]]; then
+    log_info "Filtering to: ${FILTER_NAME}"
+fi
 if ! command -v jq &>/dev/null; then
     cat <<-'EOF'
 
