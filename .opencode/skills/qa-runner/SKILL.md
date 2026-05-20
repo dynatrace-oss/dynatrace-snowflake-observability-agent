@@ -231,6 +231,10 @@ After a successful deploy, share the notebook URL with the human and ask them to
 confirm it opens in Dynatrace. If the notebook ID needs to be committed to the
 YAML, remind the human to do so after the QA session.
 
+**Correct notebook URL format** (use the `dynatrace.notebooks` app path, not the
+legacy `document/v0` share path):
+`https://{tenant}/ui/apps/dynatrace.notebooks/notebook/{notebook-id}`
+
 ---
 
 ## Phase 3.5 — Auto-Evaluation (AI runs DQL via MCP)
@@ -902,6 +906,19 @@ fetch logs, from: now()-7d
 
 **Pass:** At least 2 distinct status values are returned (e.g. RUNNING, SUCCESS).
 
+#### AE-C6.4 — Active queries raw sample [AUTO-EVAL]
+
+```dql
+fetch logs
+| filter dsoa.run.context == "active_queries"
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| fields timestamp, snowflake.query.id, snowflake.query.execution_status, db.user, db.statement, snowflake.elapsed_time
+| fields isWrong = isTrueOrNull(snowflake.query.id == "") or isTrueOrNull(snowflake.query.execution_status == "")
+| summarize count(), by: isWrong
+```
+
+**Pass:** 0 rows with `isWrong = true` (all active query logs have non-empty `snowflake.query.id` and `snowflake.query.execution_status`).
+
 #### AE-C7.1 — Inbound and outbound shares reported (logs)
 
 ```dql
@@ -1237,6 +1254,7 @@ After running all batches, present the consolidated results table:
 | AE-C6.1  | Long-running queries reported > once            | PASS/FAIL |       |
 | AE-C6.2  | RUNNING and SUCCESS statuses visible            | PASS/FAIL |       |
 | AE-C6.3  | All active query statuses reported              | PASS/FAIL |       |
+| AE-C6.4  | Active queries raw sample (no empty key fields) | PASS/FAIL |       |
 | AE-C7.1  | Inbound/outbound shares (logs)                  | PASS/FAIL |       |
 | AE-C7.2  | Inbound/outbound shares (events)                | PASS/FAIL |       |
 | AE-C7.3  | Inbound shares with missing DB                  | PASS/FAIL |       |
@@ -1262,8 +1280,8 @@ After running all batches, present the consolidated results table:
 | AE-C11.1 | max_entries cap enforced                        | PASS/FAIL |       |
 | AE-C11.2 | Overload warning logged                         | PASS/FAIL |       |
 
-Auto-evaluated: {N}/57 — {n} passed, {f} failed, {s} skipped
-  Batch 1: {n1}/13  Batch 2: {n2}/23  Batch 3: {n3}/15  Batch 4: {n4}/11
+Auto-evaluated: {N}/58 — {n} passed, {f} failed, {s} skipped
+  Batch 1: {n1}/13  Batch 2: {n2}/23  Batch 3: {n3}/16  Batch 4: {n4}/11
   (Deferred: C2.15, C2.16, C4.13 — verify on next day / after data latency window)
 ```
 
@@ -1371,7 +1389,7 @@ The report file must have the following structure:
 
 [Paste consolidated auto-eval table from Phase 3.5 here]
 
-Auto-evaluated: {N}/57 — {n} passed, {f} failed, {s} skipped
+Auto-evaluated: {N}/58 — {n} passed, {f} failed, {s} skipped
 
 ## Section Results
 
