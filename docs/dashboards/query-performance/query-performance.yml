@@ -71,7 +71,7 @@ variables:
         | filter dsoa.run.plugin == "query_history"
         | fieldsAdd
             db_name = coalesce(db.name, db.namespace),
-            db_collection_name = coalesce(db.collection.name, db.sql.table)
+            db_collection_name = coalesce(snowflake.table.full_name, db.collection.name, db.sql.table)
         | filter in(deployment.environment, array($Account))
         | filter in(db_name, array($DB_Name))
         | filter isNotNull(db.user)
@@ -572,9 +572,10 @@ tiles:
     query: |-
       fetch logs, from:-14d
         | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "query_history"
         | fieldsAdd
             snow_account = deployment.environment,
-            db_collection_name = coalesce(db.collection.name, db.sql.table),
+            db_collection_name = coalesce(snowflake.table.full_name, db.collection.name),
             db_name = coalesce(db.name, db.namespace), db_query = coalesce(db.statement, db.query.text)
         | filter isNotNull(snow_account)
             and (isNotNull(db_collection_name) or isNotNull(db.snowflake.tables))
@@ -585,22 +586,24 @@ tiles:
         | fieldsAdd db.snowflake.tables = if(isNotNull(asArray(db_snowflake_tables)), db_snowflake_tables,
                                      else: if(isNotNull(db_snowflake_tables), parse(db_snowflake_tables, """'"' JSON_ARRAY(strict=false, typed=true):table_names '"'"""),
                                      else: array(db_collection_name)))
-        | expand db.collection.name = db.snowflake.tables
-        | filter in(db.collection.name, array($DB_Table))
+        | expand snowflake.table.full_name = db.snowflake.tables
+        | filter in(snowflake.table.full_name, array($DB_Table))
         | fieldsAdd snowflake.time.execution = toLong(snowflake.time.execution)
         | makeTimeseries {
           avg_exec_time = avg(snowflake.time.execution)
         }, by: {
-          db.collection.name
+          snowflake.table.full_name
         }, interval: 24h
         | lookup [
             timeseries {
               max_row_count = max(snowflake.data.rows)
             }, by: {
-              db.collection.name
+              snowflake.table.full_name
+            }, filter: {
+              in(deployment.environment, array($Account))
+              and in(snowflake.table.full_name, array($DB_Table))
             }, interval: 24h
-            | filter in(db.collection.name, array($DB_Table))
-        ], sourceField: db.collection.name, lookupField: db.collection.name, fields: {
+        ], sourceField: snowflake.table.full_name, lookupField: snowflake.table.full_name, fields: {
           max_row_count
         }
         | filter arrayMin(max_row_count) > 0

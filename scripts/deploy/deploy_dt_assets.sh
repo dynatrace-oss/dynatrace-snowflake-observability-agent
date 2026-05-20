@@ -100,6 +100,7 @@ name_matches() {
     local pattern="${FILTER_NAME,,}"
     local target="${folder,,}"
     if [[ "$pattern" == *"*"* ]]; then
+        # shellcheck disable=SC2053
         [[ "$target" == $pattern ]]
     else
         [[ "$target" == "$pattern" ]]

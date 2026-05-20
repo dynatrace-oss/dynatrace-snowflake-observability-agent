@@ -154,6 +154,11 @@ the top of each relevant section, as described in the `readme.md` Structure abov
 
 ## Commit Scope
 
+**CRITICAL: Never increment the `version` field in dashboard YAML files.**
+The `version` field is the Dynatrace server's optimistic locking token — a server-assigned counter
+that changes on every platform write. It is NOT a schema version or a change counter for source control.
+Preserve it exactly as exported. Bumping it in a PR accomplishes nothing and creates confusion.
+
 The git commit for a dashboard or workflow delivery must include **all** of:
 
 ```text

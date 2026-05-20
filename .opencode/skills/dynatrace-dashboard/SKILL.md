@@ -458,6 +458,31 @@ These rules come from real debugging sessions — follow them strictly:
 
     For `deployment.environment` specifically, always use it directly — never wrap in coalesce.
 
+## `version` Field — Server-Managed, Never Touch
+
+**CRITICAL: Never increment the `version` field in dashboard YAML files.**
+
+The `version` field is the Dynatrace server's **optimistic locking token** — a server-assigned
+value that changes on every write. It is NOT a schema version, file revision, or anything you control.
+
+- The value in the YAML reflects the last exported/deployed state from the platform.
+- When you `dtctl apply`, the platform ignores your submitted version and assigns its own counter.
+- The outer API envelope has a separate top-level `version` (e.g. `101`) — that is also server-managed.
+- The `content.version` (your YAML `version:` field) tracks what the platform stored inside content.
+
+**Rule:** When exporting a dashboard from the platform and saving to YAML, preserve the version as-is.
+Do NOT bump it in PRs, commits, or as part of change tracking. Treat it as read-only metadata.
+
+```yaml
+# ✅ CORRECT — preserve version exactly as exported
+version: 26    # server-assigned; do not change
+
+# ❌ WRONG — never manually increment
+version: 27    # incrementing this accomplishes nothing and creates confusion
+```
+
+---
+
 ## YAML Dashboard Format
 ```yaml
 # DASHBOARD: <Human-readable title>
@@ -468,7 +493,7 @@ These rules come from real debugging sessions — follow them strictly:
 
 id: <uuid>                  # assigned after first deploy; omit on initial creation
 name: <Human-readable title> # REQUIRED — must match dashboard display name
-version: 15
+version: 15                 # server-assigned optimistic lock token — do not change
 
 variables:
   - key: Accounts
