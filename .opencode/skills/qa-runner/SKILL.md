@@ -328,6 +328,34 @@ fetch spans, from: now()-7d
 
 **Pass:** count == 0.
 
+#### AE-C4.10 — Cross-batch span parent persistence
+
+> **Note:** When filtering by a specific `trace.id` value in DQL, always wrap the hex string with `toUid()` — e.g. `filter trace.id == toUid("01c47dd2...")`. Raw string comparison does not match the UID type used by Grail spans.
+
+```dql
+fetch spans, from: now()-24h
+| filter dsoa.run.plugin == "query_history"
+| filter isNotNull(span.parent_id)
+| lookup [fetch spans, from: now()-24h | fields span.id, dsoa.run.id], sourceField: span.parent_id, lookupField: span.id
+| filter isNotNull(lookup.dsoa.run.id)
+| filter dsoa.run.id != lookup.dsoa.run.id
+| fields trace.id, span.id, span.parent_id, dsoa.run.id, lookup.dsoa.run.id
+| limit 5
+```
+
+**Pass:** at least 1 row returned. Child spans link to parent spans from a different `dsoa.run.id`.
+
+Human visual (pick a `trace.id` from the result above):
+
+```dql
+fetch spans, from: now()-24h
+| filter trace.id == toUid("<trace_id_from_above>")
+| fields span.id, span.parent_id, dsoa.run.id, dsoa.run.context, db.statement
+| sort span.id
+```
+
+**Pass (human):** waterfall in Distributed Traces UI shows parent-child link spanning two agent runs.
+
 #### AE-C4.7 — No missing span.parent_id for child queries in same DSOA run
 
 ```dql
@@ -1522,6 +1550,21 @@ fetch logs
 fetch events
 | filter dsoa.run.context == "shares"   // WRONG — should be dsoa.run.plugin
 ```
+
+### DQL — `toUid()` for UID-typed fields
+
+Grail stores `trace.id`, `span.id`, and `span.parent_id` as **UID** typed values,
+not plain strings. When filtering by a specific literal value, always wrap the
+hex string with `toUid()`:
+
+```dql
+| filter trace.id == toUid("01c47dd2e26cbb0d31e0325cccd69bd1")  // correct
+| filter trace.id == "01c47dd2e26cbb0d31e0325cccd69bd1"         // WRONG — no match
+```
+
+This applies to any direct equality filter on `trace.id`, `span.id`, or
+`span.parent_id`. Comparison operators and `lookup`/`joinNested` on these fields
+work correctly without `toUid()` because both sides share the same type.
 
 ### B2 — Manual agent invocation
 

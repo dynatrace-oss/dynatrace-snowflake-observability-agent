@@ -434,10 +434,31 @@ and sending data to the same Dynatrace tenant.
   Notebook tile: *There are no supportability.non_persisted_attribute_keys
   reported* `[SHOULD BE EMPTY]`
 
-- [ ] **C4.10** `[BOTH]` — **Cross-batch span parent persistence** (BDX-644)
-  DQL: verify that a child query in agent run N+1 correctly links to
-  parent span from agent run N via `span.parent_id`.
-  **Human:** open cross-batch trace in Distributed Traces UI.
+- [ ] **C4.10** `[AUTO-EVAL]` — **Cross-batch span parent persistence** (BDX-644)
+  DQL (auto-eval): verify child spans in run N+1 link to parent spans from run N via `span.parent_id`:
+
+  ```dql
+  fetch spans, from: now()-24h
+  | filter dsoa.run.plugin == "query_history"
+  | filter isNotNull(span.parent_id)
+  | lookup [fetch spans, from: now()-24h | fields span.id, dsoa.run.id], sourceField: span.parent_id, lookupField: span.id
+  | filter isNotNull(lookup.dsoa.run.id)
+  | filter dsoa.run.id != lookup.dsoa.run.id
+  | fields trace.id, span.id, span.parent_id, dsoa.run.id, lookup.dsoa.run.id
+  | limit 5
+  ```
+
+  **Pass (auto):** at least 1 row returned (cross-batch parent linkage exists).
+  DQL (human visual — pick a trace.id from above result, wrap with `toUid()`):
+
+  ```dql
+  fetch spans, from: now()-24h
+  | filter trace.id == toUid("<trace_id_from_above>")
+  | fields span.id, span.parent_id, dsoa.run.id, dsoa.run.context, db.statement
+  | sort span.id
+  ```
+
+  **Pass (human):** waterfall in Distributed Traces UI shows parent-child link across two agent runs.
   Simulation: `test/tools/setup_test_span_cross_batch.sql`
 
 - [ ] **C4.11** `[AUTO-EVAL]` — **task_history attempt is integer-typed**
