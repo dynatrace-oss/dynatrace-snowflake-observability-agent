@@ -796,7 +796,7 @@ sections:
           | filter db.system == "snowflake"
           | filter deployment.environment == "DEV-094"
           | filter dsoa.run.context == "inbound_shares"
-          | filter isNull(db.namespace)
+          | filter isTrueOrNull(db.namespace == "")
           | summarize count = count(), by: {snowflake.share.name, snowflake.share.kind, db.namespace}
           | sort count desc
 

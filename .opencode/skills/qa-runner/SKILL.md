@@ -934,12 +934,14 @@ fetch logs
 | filter db.system == "snowflake"
 | filter deployment.environment == "DEV-{CURR_TAG}"
 | filter dsoa.run.context == "inbound_shares"
-| filter isNull(db.namespace)
+| filter isTrueOrNull(db.namespace == "")
 | summarize count = count()
 ```
 
 **Pass:** count > 0 after running `setup_test_shares.sql` (which creates a share
 with a dropped/missing database).
+**Note:** `db.namespace` is set to empty string `""` (not NULL) for inbound shares
+with a missing database. Use `isTrueOrNull(db.namespace == "")` — `isNull(db.namespace)` will return 0 rows.
 
 #### AE-C7.4 — Query count per user tracked
 
