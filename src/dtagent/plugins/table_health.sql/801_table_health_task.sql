@@ -31,7 +31,7 @@ create or replace task DTAGENT_DB.APP.TASK_DTAGENT_TABLE_HEALTH
     schedule = 'USING CRON 0 0,6,12,18 * * * UTC' -- every 6 hours at 00:00, 06:00, 12:00, and 18:00 UTC
     allow_overlapping_execution = FALSE
 as
-    call DTAGENT_DB.APP.DTAGENT(ARRAY_CONSTRUCT('table_health'));
+    call DTAGENT_DB.APP.DTAGENT(ARRAY_CONSTRUCT('table_health:table_storage'));
 
 grant ownership on task DTAGENT_DB.APP.TASK_DTAGENT_TABLE_HEALTH to role DTAGENT_VIEWER revoke current grants;
 grant operate, monitor on task DTAGENT_DB.APP.TASK_DTAGENT_TABLE_HEALTH to role DTAGENT_VIEWER;
