@@ -33,7 +33,7 @@ select
         ORGANIZATION_NAME
     )                                                                               as _MESSAGE,
     OBJECT_CONSTRUCT(
-        'snowflake.organization.name',      ORGANIZATION_NAME,
+        'snowflake.org.name',               ORGANIZATION_NAME,
         'snowflake.org.billing.currency',   CURRENCY
     )                                                                               as DIMENSIONS,
     OBJECT_CONSTRUCT(

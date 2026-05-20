@@ -39,8 +39,8 @@ variables:
     input: |-
       fetch logs
       | filter db.system == "snowflake" and dsoa.run.plugin == "org_costs"
-      | dedup snowflake.organization.name
-      | fields organization = snowflake.organization.name
+      | dedup snowflake.org.name
+      | fields organization = snowflake.org.name
       | filterOut isNull(organization)
     defaultValue:
       - "3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*"
@@ -82,7 +82,7 @@ tiles:
     type: data
     query: |-
       timeseries amount = sum(snowflake.org.billing.amount),
-        filter: in(snowflake.organization.name, array($Organizations)) and in(snowflake.account.name, array($Accounts))
+        filter: in(snowflake.org.name, array($Organizations)) and in(snowflake.account.name, array($Accounts))
       | summarize total = sum(arraySum(amount))
     visualization: singleValue
     visualizationSettings:
@@ -105,7 +105,7 @@ tiles:
     query: |-
       timeseries cap = avg(snowflake.org.billing.capacity_balance),
         rollover = avg(snowflake.org.billing.rollover_balance),
-        filter: in(snowflake.organization.name, array($Organizations))
+        filter: in(snowflake.org.name, array($Organizations))
       | summarize remaining = last(arrayAvg(cap)) + last(arrayAvg(rollover))
     visualization: singleValue
     visualizationSettings:
@@ -128,7 +128,7 @@ tiles:
     query: |-
       timeseries amount = sum(snowflake.org.billing.amount),
         from: now()-30d,
-        filter: in(snowflake.organization.name, array($Organizations)) and in(snowflake.account.name, array($Accounts))
+        filter: in(snowflake.org.name, array($Organizations)) and in(snowflake.account.name, array($Accounts))
       | summarize run_rate = sum(arraySum(amount))
     visualization: singleValue
     visualizationSettings:
@@ -151,13 +151,13 @@ tiles:
     query: |-
       timeseries current = sum(snowflake.org.billing.amount),
         from: now()-30d, to: now(),
-        filter: in(snowflake.organization.name, array($Organizations)) and in(snowflake.account.name, array($Accounts))
+        filter: in(snowflake.org.name, array($Organizations)) and in(snowflake.account.name, array($Accounts))
       | summarize current_usd = sum(arraySum(current))
       | fieldsAdd previous_usd = 0.0
       | append [
         timeseries prev = sum(snowflake.org.billing.amount),
           from: now()-60d, to: now()-30d,
-          filter: in(snowflake.organization.name, array($Organizations)) and in(snowflake.account.name, array($Accounts))
+          filter: in(snowflake.org.name, array($Organizations)) and in(snowflake.account.name, array($Accounts))
         | summarize previous_usd = sum(arraySum(prev))
         | fieldsAdd current_usd = 0.0
       ]
@@ -184,7 +184,7 @@ tiles:
       timeseries cap = avg(snowflake.org.billing.capacity_balance),
         rollover = avg(snowflake.org.billing.rollover_balance),
         from: now()-30d,
-        filter: in(snowflake.organization.name, array($Organizations))
+        filter: in(snowflake.org.name, array($Organizations))
       | summarize
           balance_start = first(arrayAvg(cap)) + first(arrayAvg(rollover)),
           balance_end   = last(arrayAvg(cap))  + last(arrayAvg(rollover))
@@ -213,7 +213,7 @@ tiles:
       timeseries cap = avg(snowflake.org.billing.capacity_balance),
         rollover = avg(snowflake.org.billing.rollover_balance),
         from: now()-30d,
-        filter: in(snowflake.organization.name, array($Organizations))
+        filter: in(snowflake.org.name, array($Organizations))
       | summarize
           balance_start = first(arrayAvg(cap)) + first(arrayAvg(rollover)),
           balance_end   = last(arrayAvg(cap))  + last(arrayAvg(rollover))
@@ -245,7 +245,7 @@ tiles:
     query: |-
       timeseries credits = sum(snowflake.org.credits.used),
         by: {snowflake.account.name},
-        filter: in(snowflake.organization.name, array($Organizations)) and in(snowflake.account.name, array($Accounts))
+        filter: in(snowflake.org.name, array($Organizations)) and in(snowflake.account.name, array($Accounts))
     visualization: lineChart
     visualizationSettings:
       chartSettings:
@@ -278,7 +278,7 @@ tiles:
     query: |-
       timeseries credits = sum(snowflake.org.credits.used),
         by: {snowflake.service.type},
-        filter: in(snowflake.organization.name, array($Organizations)) and in(snowflake.account.name, array($Accounts))
+        filter: in(snowflake.org.name, array($Organizations)) and in(snowflake.account.name, array($Accounts))
       | summarize total = sum(arrayAvg(credits)), by: {snowflake.service.type}
       | sort total desc
     visualization: barChart
@@ -310,7 +310,7 @@ tiles:
         cloud = sum(snowflake.org.credits.cloud_services),
         total = sum(snowflake.org.credits.used),
         by: {snowflake.account.name},
-        filter: in(snowflake.organization.name, array($Organizations)) and in(snowflake.account.name, array($Accounts))
+        filter: in(snowflake.org.name, array($Organizations)) and in(snowflake.account.name, array($Accounts))
       | summarize compute = sum(arrayAvg(compute)), cloud = sum(arrayAvg(cloud)), total = sum(arrayAvg(total)), by: {snowflake.account.name}
       | sort total desc
     visualization: table
@@ -340,7 +340,7 @@ tiles:
     query: |-
       timeseries usd = sum(snowflake.org.billing.amount),
         by: {snowflake.account.name},
-        filter: in(snowflake.organization.name, array($Organizations)) and in(snowflake.account.name, array($Accounts))
+        filter: in(snowflake.org.name, array($Organizations)) and in(snowflake.account.name, array($Accounts))
     visualization: lineChart
     visualizationSettings:
       chartSettings:
@@ -373,7 +373,7 @@ tiles:
     query: |-
       timeseries usd = sum(snowflake.org.billing.amount),
         by: {snowflake.service.type},
-        filter: in(snowflake.organization.name, array($Organizations)) and in(snowflake.account.name, array($Accounts))
+        filter: in(snowflake.org.name, array($Organizations)) and in(snowflake.account.name, array($Accounts))
       | summarize total = sum(arrayAvg(usd)), by: {snowflake.service.type}
       | sort total desc
     visualization: barChart
@@ -403,7 +403,7 @@ tiles:
     query: |-
       timeseries usd = sum(snowflake.org.billing.amount),
         by: {snowflake.account.name},
-        filter: in(snowflake.organization.name, array($Organizations)) and in(snowflake.account.name, array($Accounts))
+        filter: in(snowflake.org.name, array($Organizations)) and in(snowflake.account.name, array($Accounts))
       | summarize total_usd = sum(arraySum(usd)), by: {snowflake.account.name}
       | sort total_usd desc
     visualization: table
@@ -430,7 +430,7 @@ tiles:
     query: |-
       timeseries bytes = avg(snowflake.org.data.stored),
         by: {snowflake.account.name},
-        filter: in(snowflake.organization.name, array($Organizations)) and in(snowflake.account.name, array($Accounts))
+        filter: in(snowflake.org.name, array($Organizations)) and in(snowflake.account.name, array($Accounts))
     visualization: lineChart
     visualizationSettings:
       chartSettings:
@@ -472,7 +472,7 @@ tiles:
     query: |-
       timeseries bytes = avg(snowflake.org.data.stored),
         by: {snowflake.service.type},
-        filter: in(snowflake.organization.name, array($Organizations)) and in(snowflake.account.name, array($Accounts))
+        filter: in(snowflake.org.name, array($Organizations)) and in(snowflake.account.name, array($Accounts))
       | summarize total = sum(arrayAvg(bytes)), by: {snowflake.service.type}
     visualization: barChart
     visualizationSettings:
@@ -510,7 +510,7 @@ tiles:
     query: |-
       timeseries bytes = avg(snowflake.org.data.stored),
         by: {snowflake.account.name},
-        filter: in(snowflake.organization.name, array($Organizations)) and in(snowflake.account.name, array($Accounts))
+        filter: in(snowflake.org.name, array($Organizations)) and in(snowflake.account.name, array($Accounts))
       | summarize total_bytes = sum(arrayAvg(bytes)), by: {snowflake.account.name}
       | sort total_bytes desc
     visualization: table
@@ -546,7 +546,7 @@ tiles:
     query: |-
       timeseries bytes = sum(snowflake.org.data.transferred),
         by: {snowflake.account.name},
-        filter: in(snowflake.organization.name, array($Organizations)) and in(snowflake.account.name, array($Accounts))
+        filter: in(snowflake.org.name, array($Organizations)) and in(snowflake.account.name, array($Accounts))
     visualization: lineChart
     visualizationSettings:
       chartSettings:
@@ -588,7 +588,7 @@ tiles:
     query: |-
       timeseries bytes = sum(snowflake.org.data.transferred),
         by: {snowflake.account.name, snowflake.account.region, snowflake.service.type},
-        filter: in(snowflake.organization.name, array($Organizations)) and in(snowflake.account.name, array($Accounts))
+        filter: in(snowflake.org.name, array($Organizations)) and in(snowflake.account.name, array($Accounts))
       | summarize total = sum(arrayAvg(bytes)), by: {snowflake.account.name, snowflake.account.region, snowflake.service.type}
       | sort total desc
     visualization: table
@@ -626,7 +626,7 @@ tiles:
           snowflake.service.type,
           snowflake.account.name
       }
-      | filter in(snowflake.organization.name, array($Organizations)) and in(snowflake.account.name, array($Accounts))
+      | filter in(snowflake.org.name, array($Organizations)) and in(snowflake.account.name, array($Accounts))
     visualization: lineChart
     visualizationSettings:
       chartSettings:
@@ -665,9 +665,9 @@ tiles:
           rollover     = avg(snowflake.org.billing.rollover_balance),
           overage      = avg(snowflake.org.billing.overage)
       }, by: {
-          snowflake.organization.name
+          snowflake.org.name
       }
-      | filter in(snowflake.organization.name, array($Organizations))
+      | filter in(snowflake.org.name, array($Organizations))
     visualization: lineChart
     visualizationSettings:
       chartSettings:
@@ -689,7 +689,7 @@ tiles:
       thresholds: []
       dataMapping:
         displayedFields:
-          - snowflake.organization.name
+          - snowflake.org.name
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -714,7 +714,7 @@ tiles:
     query: |-
       timeseries credits = sum(snowflake.org.credits.used),
         by: {snowflake.account.name},
-        filter: in(snowflake.organization.name, array($Organizations)) and in(snowflake.account.name, array($Accounts))
+        filter: in(snowflake.org.name, array($Organizations)) and in(snowflake.account.name, array($Accounts))
       | summarize total = sum(arrayAvg(credits)), by: {snowflake.account.name}
       | fieldsAdd bu = "Unassigned"
       | sort total desc
@@ -746,7 +746,7 @@ tiles:
     query: |-
       timeseries usd = sum(snowflake.org.billing.amount),
         by: {snowflake.account.name},
-        filter: in(snowflake.organization.name, array($Organizations)) and in(snowflake.account.name, array($Accounts))
+        filter: in(snowflake.org.name, array($Organizations)) and in(snowflake.account.name, array($Accounts))
       | summarize total = sum(arraySum(usd)), by: {snowflake.account.name}
       | fieldsAdd bu = "Unassigned"
       | sort total desc
@@ -778,7 +778,7 @@ tiles:
     query: |-
       timeseries bytes = avg(snowflake.org.data.stored),
         by: {snowflake.account.name},
-        filter: in(snowflake.organization.name, array($Organizations)) and in(snowflake.account.name, array($Accounts))
+        filter: in(snowflake.org.name, array($Organizations)) and in(snowflake.account.name, array($Accounts))
       | summarize total = sum(arrayAvg(bytes)), by: {snowflake.account.name}
       | fieldsAdd bu = "Unassigned"
       | sort total desc
@@ -819,7 +819,7 @@ tiles:
     query: |-
       timeseries credits = sum(snowflake.org.credits.used),
         by: {snowflake.account.name},
-        filter: in(snowflake.organization.name, array($Organizations)) and in(snowflake.account.name, array($Accounts))
+        filter: in(snowflake.org.name, array($Organizations)) and in(snowflake.account.name, array($Accounts))
       | summarize total = sum(arrayAvg(credits)), by: {snowflake.account.name}
       | fieldsAdd bu = "Unassigned"
       | fields account = snowflake.account.name, bu

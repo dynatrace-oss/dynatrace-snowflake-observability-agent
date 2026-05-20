@@ -431,22 +431,21 @@ check the `Context Name` column below.
 
 ### Dimensions at the `Org Costs` plugin
 
-| Identifier                                          | Description                                                                      | Example            | Context Name                                                                                                                 |
-| --------------------------------------------------- | -------------------------------------------------------------------------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
-| snowflake.&#8203;account.&#8203;locator             | The account locator identifier for the Snowflake account.                        | ABC12345           | org_costs_storage, org_costs_data_transfer, org_billing_usage_in_currency, org_billing_remaining_balance                     |
-| snowflake.&#8203;account.&#8203;name                | The name of the Snowflake account within the organization.                       | MYORG-ACCOUNT1     | org_costs_metering, org_costs_storage, org_costs_data_transfer, org_billing_usage_in_currency, org_billing_remaining_balance |
-| snowflake.&#8203;account.&#8203;region              | The cloud region of the Snowflake account performing the data transfer.          | US_EAST_1          | org_costs_data_transfer                                                                                                      |
-| snowflake.&#8203;org.&#8203;billing.&#8203;currency | The currency in which billing usage amounts are denominated.                     | USD                | org_billing_usage_in_currency                                                                                                |
-| snowflake.&#8203;organization.&#8203;name           | The name of the Snowflake organization (carried as dimension for data transfer). | MYORG              | org_costs_data_transfer                                                                                                      |
-| snowflake.&#8203;service.&#8203;type                | The Snowflake service type that consumed the credits.                            | WAREHOUSE_METERING | org_costs_metering, org_costs_storage, org_costs_data_transfer, org_billing_usage_in_currency                                |
+| Identifier                                          | Description                                                             | Example            | Context Name                                                                                                                 |
+| --------------------------------------------------- | ----------------------------------------------------------------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| snowflake.&#8203;account.&#8203;locator             | The account locator identifier for the Snowflake account.               | ABC12345           | org_costs_storage, org_costs_data_transfer, org_billing_usage_in_currency, org_billing_remaining_balance                     |
+| snowflake.&#8203;account.&#8203;name                | The name of the Snowflake account within the organization.              | MYORG-ACCOUNT1     | org_costs_metering, org_costs_storage, org_costs_data_transfer, org_billing_usage_in_currency, org_billing_remaining_balance |
+| snowflake.&#8203;account.&#8203;region              | The cloud region of the Snowflake account performing the data transfer. | US_EAST_1          | org_costs_data_transfer                                                                                                      |
+| snowflake.&#8203;org.&#8203;billing.&#8203;currency | The currency in which billing usage amounts are denominated.            | USD                | org_billing_usage_in_currency                                                                                                |
+| snowflake.&#8203;org.&#8203;name                    | The name of the Snowflake organization.                                 | MYORG              | org_costs_metering, org_costs_storage, org_costs_data_transfer, org_billing_usage_in_currency, org_billing_remaining_balance |
+| snowflake.&#8203;service.&#8203;type                | The Snowflake service type that consumed the credits.                   | WAREHOUSE_METERING | org_costs_metering, org_costs_storage, org_costs_data_transfer, org_billing_usage_in_currency                                |
 
 ### Attributes at the `Org Costs` plugin
 
-| Identifier                                                 | Description                                                        | Example      | Context Name                                                                                        |
-| ---------------------------------------------------------- | ------------------------------------------------------------------ | ------------ | --------------------------------------------------------------------------------------------------- |
-| snowflake.&#8203;account.&#8203;locator                    | The account locator identifier for the Snowflake account.          | ABC12345     | org_costs_metering                                                                                  |
-| snowflake.&#8203;org.&#8203;billing.&#8203;contract_number | The contract number associated with the Snowflake billing balance. | CONTRACT-001 | org_billing_remaining_balance                                                                       |
-| snowflake.&#8203;organization.&#8203;name                  | The name of the Snowflake organization.                            | MYORG        | org_costs_metering, org_costs_storage, org_billing_usage_in_currency, org_billing_remaining_balance |
+| Identifier                                                 | Description                                                        | Example      | Context Name                  |
+| ---------------------------------------------------------- | ------------------------------------------------------------------ | ------------ | ----------------------------- |
+| snowflake.&#8203;account.&#8203;locator                    | The account locator identifier for the Snowflake account.          | ABC12345     | org_costs_metering            |
+| snowflake.&#8203;org.&#8203;billing.&#8203;contract_number | The contract number associated with the Snowflake billing balance. | CONTRACT-001 | org_billing_remaining_balance |
 
 ### Metrics at the `Org Costs` plugin
 
