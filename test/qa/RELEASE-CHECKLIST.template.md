@@ -306,47 +306,66 @@ and sending data to the same Dynatrace tenant.
 - [ ] **C2.8** `[AUTO-EVAL]` — **Metrics for dynamic tables are reported**
   Notebook tile: *Metrics for dynamic tables are reported*
 
-- [ ] **C2.9** `[BOTH]` — **Table health: storage metrics are reported**
+- [x] **C2.9** `[BOTH]` — **Table health: storage metrics are reported**
   (BDX-1829)
   Notebook tile: *Table health storage metrics*
   DQL: `timeseries avg(snowflake.table.active_bytes), by:{deployment.environment}`
   filtered to `dsoa.run.plugin == "table_health"` — expect data points.
   Dashboard: *Data Volume & Storage* or custom QA tile.
 
-- [ ] **C2.10** `[BOTH]` — **Table health: clustering metrics are reported**
+- [x] **C2.10** `[BOTH]` — **Table health: clustering metrics are reported**
   (BDX-1829)
   Notebook tile: *Table health clustering metrics*
   DQL: `timeseries avg(snowflake.table.clustering.depth), by:{deployment.environment}`
   — expect data points if `clustering_enabled: true` in config.
+  Simulation: create a table with a clustering key (`CLUSTER BY`) and seed
+  `APP.TABLE_CLUSTERING_RESULTS` directly if `ACCOUNT_USAGE.TABLES` latency
+  prevents `P_COLLECT_CLUSTERING_INFO` from picking it up immediately.
 
-- [ ] **C2.11** `[AUTO-EVAL]` — **Metering metrics across >=3 service types**
+- [x] **C2.11** `[AUTO-EVAL]` — **Table health: derived/growth metrics are reported**
+  (BDX-1829)
+  Notebook tile: *Table health derived metrics*
+  DQL: `timeseries avg(snowflake.table.active_bytes.delta), by:{deployment.environment}`
+  — expect data points after `history_retention_days > 0` is set in config and
+  `P_SNAPSHOT_TABLE_HEALTH` has run at least twice (required for period-over-period
+  delta computation). Run `DTAGENT(ARRAY_CONSTRUCT('table_health:table_health_derived'))`
+  to trigger manually.
+  Auto-eval DQL:
+  ```
+  timeseries avg(`snowflake.table.active_bytes.delta`), by:{deployment.environment}
+  | filter deployment.environment == "DEV-{CURR_TAG}"
+  | summarize count = count()
+  ```
+  Pass: count > 0.
+
+- [ ] **C2.12** `[AUTO-EVAL]` — **Metering metrics across >=3 service types**
   (BDX-1865)
   Notebook tile: *Metering metrics by service type*
   DQL: `timeseries sum(snowflake.credits.used), by:{snowflake.service.type}`
   filtered to `dsoa.run.plugin == "metering"` — expect >=3 distinct types.
 
-- [ ] **C2.12** `[BOTH]` — **Org costs: credit metrics are reported**
+- [ ] **C2.13** `[BOTH]` — **Org costs: credit metrics are reported**
   (BDX-682, requires ORGADMIN)
   Notebook tile: *Org costs credit metrics*
   DQL: `timeseries avg(snowflake.org.credits.used), by:{deployment.environment}`
   — expect data points. Dashboard: *Org-Level Costs Observability*.
 
-- [ ] **C2.13** `[AUTO-EVAL]` — **Org costs: storage metrics are reported**
+- [ ] **C2.14** `[AUTO-EVAL]` — **Org costs: storage metrics are reported**
   (BDX-682, requires ORGADMIN)
   DQL: `timeseries avg(snowflake.org.data.stored), by:{deployment.environment}`
   — expect data points.
 
-- [ ] **C2.14** `[AUTO-EVAL]` — **Org costs: billing/contract balance
+- [ ] **C2.15** `[AUTO-EVAL]` — **Org costs: billing/contract balance
   reported** (BDX-682, requires ORGADMIN)
   DQL: `timeseries avg(snowflake.org.billing.capacity_balance)`
   — expect data points.
 
-- [ ] **C2.15** `[DEFERRED]` — **Cold tables: access metrics reported**
+- [ ] **C2.16** `[DEFERRED]` — **Cold tables: access metrics reported**
   (BDX-676, daily schedule, 24h latency)
   DQL: `timeseries avg(snowflake.table.days_since_last_access)`
   — seed data today, verify tomorrow.
 
-- [ ] **C2.16** `[DEFERRED]` — **Query cost attribution metrics reported**
+- [ ] **C2.17** `[DEFERRED]` — **Query cost attribution metrics reported**
   (BDX-703, 8h latency from QUERY_ATTRIBUTION_HISTORY)
   DQL: `timeseries avg(snowflake.credits.attributed_compute), by:{deployment.environment}`
   — seed queries today, verify after 8+ hours.
@@ -746,5 +765,5 @@ Fill in after completing all sections.
 DSOA {VERSION} QA — {DATE} — {PASS}/{TOTAL} items passed ({DEFERRED} deferred)
 Tester: {NAME}
 Notebook: {NOTEBOOK_URL}
-Deferred items: C2.15, C2.16, C4.13 — re-verify after 24h
+Deferred items: C2.16, C2.17, C4.13 — re-verify after 24h
 ```

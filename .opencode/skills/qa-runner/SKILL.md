@@ -107,7 +107,7 @@ comparison tiles to work.
 ### 1f. Detect ORGADMIN availability
 
 Run silently. Stores whether the account has ORGADMIN access for Phase 3.5
-org_costs checks (C2.12-C2.14). If Snowflake is not yet reachable, default to
+org_costs checks (C2.13-C2.15). If Snowflake is not yet reachable, default to
 `false` and re-check at the start of Phase 3.5.
 
 ```bash
@@ -611,7 +611,18 @@ timeseries {
 
 **Pass:** count > 0. (7-day timeframe recommended for dynamic table metrics.)
 
-#### AE-C2.11 — Metering metrics across ≥3 service types
+#### AE-C2.11 — Table health: derived/growth metrics
+
+```dql
+timeseries avg(`snowflake.table.active_bytes.delta`), by:{deployment.environment}
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| summarize count = count()
+```
+
+**Pass:** count > 0. Requires `history_retention_days > 0` in config and
+`P_SNAPSHOT_TABLE_HEALTH` run at least twice before calling the agent.
+
+#### AE-C2.12 — Metering metrics across ≥3 service types
 
 ```dql
 timeseries sum(snowflake.credits.used), by:{snowflake.service.type}
@@ -620,7 +631,7 @@ timeseries sum(snowflake.credits.used), by:{snowflake.service.type}
 
 **Pass:** service_types ≥ 3. Prerequisite: `setup_test_metering.sql` run.
 
-#### AE-C2.13 — Org costs: storage metrics (ORGADMIN required)
+#### AE-C2.14 — Org costs: storage metrics (ORGADMIN required)
 
 **Skip if `HAS_ORGADMIN=false`.**
 
@@ -632,7 +643,7 @@ timeseries avg(snowflake.org.data.stored), by:{deployment.environment}
 
 **Pass:** count > 0.
 
-#### AE-C2.14 — Org costs: billing capacity balance (ORGADMIN required)
+#### AE-C2.15 — Org costs: billing capacity balance (ORGADMIN required)
 
 **Skip if `HAS_ORGADMIN=false`.**
 
@@ -1281,9 +1292,10 @@ After running all batches, present the consolidated results table:
 | AE-C2.6  | Table volume tracked (size)                     | PASS/FAIL |       |
 | AE-C2.7  | Trust center metrics reported                   | PASS/FAIL |       |
 | AE-C2.8  | Dynamic table metrics reported                  | PASS/FAIL |       |
-| AE-C2.11 | Metering across >=3 service types               | PASS/FAIL |       |
-| AE-C2.13 | Org costs: storage metrics                      | PASS/FAIL/SKIP |  |
-| AE-C2.14 | Org costs: billing capacity balance             | PASS/FAIL/SKIP |  |
+| AE-C2.11 | Table health: derived/growth metrics            | PASS/FAIL |       |
+| AE-C2.12 | Metering across >=3 service types               | PASS/FAIL |       |
+| AE-C2.14 | Org costs: storage metrics                      | PASS/FAIL/SKIP |  |
+| AE-C2.15 | Org costs: billing capacity balance             | PASS/FAIL/SKIP |  |
 | AE-C3.1  | No mismatched log/span coverage                 | PASS/FAIL |       |
 | AE-C3.2  | Query time per table (logs)                     | PASS/FAIL |       |
 | AE-C3.3  | Logs for dynamic tables reported                | PASS/FAIL |       |
@@ -1338,7 +1350,7 @@ After running all batches, present the consolidated results table:
 
 Auto-evaluated: {N}/58 — {n} passed, {f} failed, {s} skipped
   Batch 1: {n1}/13  Batch 2: {n2}/23  Batch 3: {n3}/16  Batch 4: {n4}/11
-  (Deferred: C2.15, C2.16, C4.13 — verify on next day / after data latency window)
+  (Deferred: C2.16, C2.17, C4.13 — verify on next day / after data latency window)
 ```
 
 Include the full consolidated table in the Phase 5 markdown report.
@@ -1439,7 +1451,7 @@ The report file must have the following structure:
 ## Signoff
 
 > DSOA {CURR_VERSION} QA — {DATE} — {PASS}/{TOTAL} items passed ({DEFERRED} deferred)
-> Deferred: C2.15, C2.16, C4.13 — re-verify after data latency window
+> Deferred: C2.16, C2.17, C4.13 — re-verify after data latency window
 
 ## Auto-Evaluation (AI)
 
