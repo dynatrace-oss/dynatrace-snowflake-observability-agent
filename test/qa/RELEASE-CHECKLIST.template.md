@@ -496,7 +496,7 @@ and sending data to the same Dynatrace tenant.
   — expect 0 rows (problems indicate real SQL failures, not warnings).
 
 - [ ] **C5.10** `[BOTH]` — **Resource monitor credit alert events** (BDX-623)
-  DQL: `fetch events | filter dsoa.run.plugin == "resource_monitors" | filter event.kind == "CUSTOM_INFO" | filter deployment.environment == "DEV-{CURR_TAG}"`
+  DQL: `fetch events | filter dsoa.run.plugin == "resource_monitors" | filter eventType == "CUSTOM_INFO" | filter deployment.environment == "DEV-{CURR_TAG}"`
   — after running `setup_test_resource_monitor_alert.sql`, expect threshold
   events at 50/80/90/100% levels.
   Dashboard: *Costs Monitoring* > Resource Monitor section.

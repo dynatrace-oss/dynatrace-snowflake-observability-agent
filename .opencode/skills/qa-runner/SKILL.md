@@ -856,8 +856,8 @@ fetch events
 ```dql
 fetch events
 | filter dsoa.run.plugin == "resource_monitors"
-| filter event.kind == "CUSTOM_INFO"
-| filter deployment.environment == "DEV-{CURR_TAG}"
+| filter eventType == "CUSTOM_INFO"
+| filter deployment.environment == "DEV-095"
 | summarize count = count()
 ```
 
