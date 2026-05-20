@@ -1138,13 +1138,16 @@ fetch spans, from: now()-30m
 #### AE-C11.1 — max_entries cap enforced
 
 Signal overload protection emits a bizevent of type `dsoa.signal_overload_protection`
-(NOT a self-monitoring bizevent — it uses `send_event` directly). The field
-`dsoa.acquisition.skipped_count` does **not** exist; the real field is
-`dropped_count` inside the bizevent properties.
+via `send_events()` (fix BDX-1965 / commit 0e4cb07). The field `dropped_count` is
+the top-level bizevent property; `dsoa.overload_protection.dropped_count` is a
+separate attribute on the WARN log, not on the bizevent.
+
+**Note:** `deployment.environment` value depends on which Snowflake instance the
+agent is deployed to. The test-qa instance reports as `TEST-QA`, not `DEV-{CURR_TAG}`.
+Omit the environment filter or adjust to match the target instance.
 
 ```dql
 fetch bizevents
-| filter deployment.environment == "DEV-{CURR_TAG}"
 | filter event.type == "dsoa.signal_overload_protection"
 | summarize count = count(), total_dropped = sum(toLong(dropped_count))
 ```

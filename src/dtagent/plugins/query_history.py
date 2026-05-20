@@ -312,8 +312,8 @@ class QueryHistoryPlugin(Plugin):
                 )
 
             # Emit self-monitoring bizevent
-            if not getattr(self._events, "NOT_ENABLED", False):
-                self._events.send_events(
+            if not getattr(self._bizevents, "NOT_ENABLED", False):
+                self._bizevents.send_events(
                     events_data=[
                         {
                             "total_available": total_available,
@@ -326,6 +326,7 @@ class QueryHistoryPlugin(Plugin):
                     title=message,
                     context=context,
                 )
+                self._bizevents.flush_events()
 
 
 ##endregion

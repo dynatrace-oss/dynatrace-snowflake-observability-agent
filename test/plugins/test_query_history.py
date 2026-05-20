@@ -402,6 +402,91 @@ class TestCallRefreshRecentQueries:
         assert result["max_entries_applied"] is False
 
 
+class TestEmitOverloadProtectionEvent:
+    """Unit tests for _emit_overload_protection_event() routing to bizevents."""
+
+    import pytest
+
+    def _make_plugin(self):
+        """Create a minimal QueryHistoryPlugin instance with mock telemetry."""
+        from unittest.mock import MagicMock
+        from dtagent.plugins.query_history import QueryHistoryPlugin
+
+        plugin = QueryHistoryPlugin.__new__(QueryHistoryPlugin)
+        plugin._session = MagicMock()
+        plugin._logs = MagicMock()
+        plugin._logs.NOT_ENABLED = False
+        plugin._events = MagicMock()
+        plugin._events.NOT_ENABLED = False
+        plugin._bizevents = MagicMock()
+        plugin._bizevents.NOT_ENABLED = False
+        return plugin
+
+    def test_bizevent_sent_via_bizevents_not_events(self):
+        """Overload bizevent must be routed through _bizevents, not _events."""
+        plugin = self._make_plugin()
+        refresh_result = {
+            "status": "success",
+            "total_processed": 50,
+            "total_available": 3000,
+            "max_entries_applied": True,
+            "max_entries_value": 50,
+        }
+        plugin._emit_overload_protection_event(refresh_result, {"dsoa.run.context": "query_history"})
+
+        plugin._bizevents.send_events.assert_called_once()
+        plugin._bizevents.flush_events.assert_called_once()
+        plugin._events.send_events.assert_not_called()
+
+    def test_no_event_when_max_entries_not_applied(self):
+        """No bizevent emitted when max_entries_applied is False."""
+        plugin = self._make_plugin()
+        refresh_result = {
+            "status": "success",
+            "total_processed": 10,
+            "total_available": 10,
+            "max_entries_applied": False,
+            "max_entries_value": 0,
+        }
+        plugin._emit_overload_protection_event(refresh_result, {"dsoa.run.context": "query_history"})
+
+        plugin._bizevents.send_events.assert_not_called()
+        plugin._events.send_events.assert_not_called()
+
+    def test_no_event_when_nothing_dropped(self):
+        """No bizevent emitted when total_available == total_processed (nothing dropped)."""
+        plugin = self._make_plugin()
+        refresh_result = {
+            "status": "success",
+            "total_processed": 50,
+            "total_available": 50,
+            "max_entries_applied": True,
+            "max_entries_value": 50,
+        }
+        plugin._emit_overload_protection_event(refresh_result, {"dsoa.run.context": "query_history"})
+
+        plugin._bizevents.send_events.assert_not_called()
+
+    def test_dropped_count_correct(self):
+        """dropped_count in bizevent payload equals total_available - total_processed."""
+        plugin = self._make_plugin()
+        refresh_result = {
+            "status": "success",
+            "total_processed": 50,
+            "total_available": 3177,
+            "max_entries_applied": True,
+            "max_entries_value": 50,
+        }
+        plugin._emit_overload_protection_event(refresh_result, {"dsoa.run.context": "query_history"})
+
+        call_kwargs = plugin._bizevents.send_events.call_args
+        events_data = call_kwargs.kwargs.get("events_data") or call_kwargs.args[0]
+        assert events_data[0]["dropped_count"] == 3127
+        assert events_data[0]["total_available"] == 3177
+        assert events_data[0]["total_processed"] == 50
+        assert events_data[0]["max_entries"] == 50
+
+
 class TestQueryCostAttributionPlugin:
     """Tests for the query_cost_attribution context of QueryHistoryPlugin."""
 

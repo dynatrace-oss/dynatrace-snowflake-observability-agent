@@ -1620,7 +1620,7 @@ sections:
   - id: s-78
     type: dql
     showInput: false
-    title: "[C11.1] max_entries cap is enforced — skipped_count > 0 (BDX-1965)"
+    title: "[C11.1] max_entries cap is enforced — overload bizevent emitted (BDX-1965)"
     height: 180
     state:
       input:
@@ -1629,10 +1629,8 @@ sections:
           to: now()
         value: |
           fetch bizevents
-          | filter dsoa.run.plugin == "query_history"
-          | filter deployment.environment == "DEV-094"
-          | filter isNotNull(dsoa.acquisition.skipped_count)
-          | summarize total_skipped = sum(dsoa.acquisition.skipped_count)
+          | filter event.type == "dsoa.signal_overload_protection"
+          | summarize count = count(), total_dropped = sum(toLong(dropped_count))
 
   - id: s-79
     type: dql
