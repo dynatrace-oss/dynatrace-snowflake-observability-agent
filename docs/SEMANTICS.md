@@ -475,19 +475,20 @@ All telemetry delivered by this plugin is reported as `dsoa.run.context == "quer
 
 ### Dimensions at the `Query History` plugin
 
-| Identifier                                      | Description                                                                                                          | Example      |
-| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | ------------ |
-| db.&#8203;collection.&#8203;name                | The name of the table involved in the query.                                                                         | users        |
-| db.&#8203;namespace                             | The name of the database that was specified in the context of the query at compilation.                              | PROD_DB      |
-| db.&#8203;operation.&#8203;name                 | The type of operation performed by the query.                                                                        | SELECT       |
-| db.&#8203;snowflake.&#8203;dbs                  | The databases involved in the query.                                                                                 | PROD_DB      |
-| db.&#8203;user                                  | Snowflake user who issued the query.                                                                                 | admin        |
-| snowflake.&#8203;query.&#8203;execution_status  | The execution status of the query.                                                                                   | SUCCESS      |
-| snowflake.&#8203;query.&#8203;hash              | Hash of the normalized query text; used as a grouping dimension in the query_cost_attribution summary context.       | abc123       |
-| snowflake.&#8203;query.&#8203;parametrized_hash | Hash of the parameterized query text; used as a grouping dimension in the query_cost_attribution summary context.    | def456       |
-| snowflake.&#8203;query.&#8203;tag               | The query tag associated with the query; used as a grouping dimension in the query_cost_attribution summary context. | etl_pipeline |
-| snowflake.&#8203;role.&#8203;name               | The role used to execute the query.                                                                                  | SYSADMIN     |
-| snowflake.&#8203;warehouse.&#8203;name          | The warehouse used to execute the query.                                                                             | COMPUTE_WH   |
+| Identifier                                      | Description                                                                                                          | Example              |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | -------------------- |
+| db.&#8203;collection.&#8203;name                | The name of the table involved in the query.                                                                         | users                |
+| db.&#8203;namespace                             | The name of the database that was specified in the context of the query at compilation.                              | PROD_DB              |
+| db.&#8203;operation.&#8203;name                 | The type of operation performed by the query.                                                                        | SELECT               |
+| db.&#8203;snowflake.&#8203;dbs                  | The databases involved in the query.                                                                                 | PROD_DB              |
+| db.&#8203;user                                  | Snowflake user who issued the query.                                                                                 | admin                |
+| snowflake.&#8203;query.&#8203;execution_status  | The execution status of the query.                                                                                   | SUCCESS              |
+| snowflake.&#8203;query.&#8203;hash              | Hash of the normalized query text; used as a grouping dimension in the query_cost_attribution summary context.       | abc123               |
+| snowflake.&#8203;query.&#8203;parametrized_hash | Hash of the parameterized query text; used as a grouping dimension in the query_cost_attribution summary context.    | def456               |
+| snowflake.&#8203;query.&#8203;tag               | The query tag associated with the query; used as a grouping dimension in the query_cost_attribution summary context. | etl_pipeline         |
+| snowflake.&#8203;role.&#8203;name               | The role used to execute the query.                                                                                  | SYSADMIN             |
+| snowflake.&#8203;table.&#8203;full_name         | Fully qualified name (DB.SCHEMA.TABLE) of the table involved in the query.                                           | PROD_DB.PUBLIC.USERS |
+| snowflake.&#8203;warehouse.&#8203;name          | The warehouse used to execute the query.                                                                             | COMPUTE_WH           |
 
 ### Attributes at the `Query History` plugin
 
@@ -689,13 +690,14 @@ check the `Context Name` column below.
 
 ### Dimensions at the `Shares` plugin
 
-| Identifier                          | Description                                     | Example     | Context Name                    |
-| ----------------------------------- | ----------------------------------------------- | ----------- | ------------------------------- |
-| db.&#8203;collection.&#8203;name    | Name of the shared Snowflake table.             | SALES_DATA  | inbound_shares                  |
-| db.&#8203;namespace                 | Name of the database used to store shared data. | DEV_DB      | outbound_shares, inbound_shares |
-| snowflake.&#8203;grant.&#8203;name  | Name of the grant to a share.                   | READ_ACCESS | outbound_shares                 |
-| snowflake.&#8203;schema.&#8203;name | Name of the schema where the table is located.  | PUBLIC      | inbound_shares                  |
-| snowflake.&#8203;share.&#8203;name  | Name of the share.                              | SAMPLE_DATA | outbound_shares, inbound_shares |
+| Identifier                              | Description                                                           | Example                    | Context Name                    |
+| --------------------------------------- | --------------------------------------------------------------------- | -------------------------- | ------------------------------- |
+| db.&#8203;collection.&#8203;name        | Name of the shared Snowflake table.                                   | SALES_DATA                 | inbound_shares                  |
+| db.&#8203;namespace                     | Name of the database used to store shared data.                       | DEV_DB                     | outbound_shares, inbound_shares |
+| snowflake.&#8203;grant.&#8203;name      | Name of the grant to a share.                                         | READ_ACCESS                | outbound_shares                 |
+| snowflake.&#8203;schema.&#8203;name     | Name of the schema where the table is located.                        | PUBLIC                     | inbound_shares                  |
+| snowflake.&#8203;share.&#8203;name      | Name of the share.                                                    | SAMPLE_DATA                | outbound_shares, inbound_shares |
+| snowflake.&#8203;table.&#8203;full_name | Fully qualified name (DB.SCHEMA.TABLE) of the shared Snowflake table. | SHARE_DB.PUBLIC.SALES_DATA | inbound_shares                  |
 
 ### Attributes at the `Shares` plugin
 
@@ -753,18 +755,19 @@ check the `Context Name` column below.
 
 ### Dimensions at the `Snowpipes` plugin
 
-| Identifier                             | Description                                                                       | Example                              | Context Name                                               |
-| -------------------------------------- | --------------------------------------------------------------------------------- | ------------------------------------ | ---------------------------------------------------------- |
-| db.&#8203;collection.&#8203;name       | Target table for ingested data.                                                   | TARGET_TABLE                         | snowpipes, snowpipes_copy_history                          |
-| db.&#8203;namespace                    | Database containing the target table or pipe.                                     | MY_DB                                | snowpipes, snowpipes_copy_history, snowpipes_usage_history |
-| snowflake.&#8203;pipe.&#8203;catalog   | Database containing the pipe.                                                     | MY_DB                                | snowpipes, snowpipes_copy_history, snowpipes_usage_history |
-| snowflake.&#8203;pipe.&#8203;full_name | Fully qualified pipe name (database.schema.pipe).                                 | MY_DB.MY_SCHEMA.MY_PIPE              | snowpipes                                                  |
-| snowflake.&#8203;pipe.&#8203;id        | Unique pipe UUID (from PIPE_USAGE_HISTORY).                                       | a1b2c3d4-e5f6-7890-abcd-ef1234567890 | snowpipes_usage_history                                    |
-| snowflake.&#8203;pipe.&#8203;name      | Short pipe name.                                                                  | MY_PIPE                              | snowpipes, snowpipes_copy_history, snowpipes_usage_history |
-| snowflake.&#8203;pipe.&#8203;owner     | Role owning the pipe.                                                             | LOADER_ROLE                          | snowpipes                                                  |
-| snowflake.&#8203;pipe.&#8203;schema    | Schema containing the pipe.                                                       | MY_SCHEMA                            | snowpipes, snowpipes_copy_history, snowpipes_usage_history |
-| snowflake.&#8203;pipe.&#8203;status    | Pipe execution state as original string: RUNNING, PAUSED, STOPPED*\*, STALLED*\*. | RUNNING                              | snowpipes                                                  |
-| snowflake.&#8203;schema.&#8203;name    | Schema containing the target table or pipe.                                       | MY_SCHEMA                            | snowpipes, snowpipes_copy_history, snowpipes_usage_history |
+| Identifier                              | Description                                                                       | Example                              | Context Name                                               |
+| --------------------------------------- | --------------------------------------------------------------------------------- | ------------------------------------ | ---------------------------------------------------------- |
+| db.&#8203;collection.&#8203;name        | Target table for ingested data.                                                   | TARGET_TABLE                         | snowpipes, snowpipes_copy_history                          |
+| db.&#8203;namespace                     | Database containing the target table or pipe.                                     | MY_DB                                | snowpipes, snowpipes_copy_history, snowpipes_usage_history |
+| snowflake.&#8203;pipe.&#8203;catalog    | Database containing the pipe.                                                     | MY_DB                                | snowpipes, snowpipes_copy_history, snowpipes_usage_history |
+| snowflake.&#8203;pipe.&#8203;full_name  | Fully qualified pipe name (database.schema.pipe).                                 | MY_DB.MY_SCHEMA.MY_PIPE              | snowpipes                                                  |
+| snowflake.&#8203;pipe.&#8203;id         | Unique pipe UUID (from PIPE_USAGE_HISTORY).                                       | a1b2c3d4-e5f6-7890-abcd-ef1234567890 | snowpipes_usage_history                                    |
+| snowflake.&#8203;pipe.&#8203;name       | Short pipe name.                                                                  | MY_PIPE                              | snowpipes, snowpipes_copy_history, snowpipes_usage_history |
+| snowflake.&#8203;pipe.&#8203;owner      | Role owning the pipe.                                                             | LOADER_ROLE                          | snowpipes                                                  |
+| snowflake.&#8203;pipe.&#8203;schema     | Schema containing the pipe.                                                       | MY_SCHEMA                            | snowpipes, snowpipes_copy_history, snowpipes_usage_history |
+| snowflake.&#8203;pipe.&#8203;status     | Pipe execution state as original string: RUNNING, PAUSED, STOPPED*\*, STALLED*\*. | RUNNING                              | snowpipes                                                  |
+| snowflake.&#8203;schema.&#8203;name     | Schema containing the target table or pipe.                                       | MY_SCHEMA                            | snowpipes, snowpipes_copy_history, snowpipes_usage_history |
+| snowflake.&#8203;table.&#8203;full_name | Fully qualified name (DB.SCHEMA.TABLE) of the target table for ingested data.     | ANALYTICS_DB.PUBLIC.TARGET_TABLE     | snowpipes, snowpipes_copy_history                          |
 
 ### Attributes at the `Snowpipes` plugin
 

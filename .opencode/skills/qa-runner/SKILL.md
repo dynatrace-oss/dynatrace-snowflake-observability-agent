@@ -1146,9 +1146,14 @@ separate attribute on the WARN log, not on the bizevent.
 agent is deployed to. The test-qa instance reports as `TEST-QA`, not `DEV-{CURR_TAG}`.
 Omit the environment filter or adjust to match the target instance.
 
+The bizevent is emitted under `dsoa.run.context == "self_monitoring"` (plugin:
+`query_history`). This distinguishes it from normal query history telemetry.
+
 ```dql
 fetch bizevents
 | filter event.type == "dsoa.signal_overload_protection"
+| filter dsoa.run.plugin == "query_history"
+| filter dsoa.run.context == "self_monitoring"
 | summarize count = count(), total_dropped = sum(toLong(dropped_count))
 ```
 
@@ -1158,16 +1163,38 @@ than the generated row count.
 
 #### AE-C11.2 — Overload warning logged
 
+The overload WARN log is emitted under `dsoa.run.context == "self_monitoring"` so it
+can be separated from normal query history logs in DQL.
+
 ```dql
 fetch logs
 | filter dsoa.run.plugin == "query_history"
-| filter deployment.environment == "DEV-{CURR_TAG}"
+| filter dsoa.run.context == "self_monitoring"
 | filter loglevel == "WARN"
 | filter contains(content, "Signal overload protection active")
 | summarize count = count()
 ```
 
 **Pass:** count > 0.
+
+#### AE-C11.3 — Normal query logs still flow when max_entries is set
+
+When overload protection is active (max_entries configured), normal query telemetry
+must still appear. If only `self_monitoring` logs are visible, `max_entries` is set
+too low for the query volume — data is not flowing.
+
+```dql
+fetch logs
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "query_history"
+| filter dsoa.run.context != "self_monitoring"
+| summarize count = count()
+```
+
+**Pass:** count > 0 — normal query logs are present alongside overload protection events.
+**Fail:** count == 0 — only self-monitoring/overload messages are present; `max_entries`
+is set too low. Check `CONFIG.CONFIGURATIONS` for `plugins.query_history.max_entries`
+and increase it or set to `0` to disable capping.
 
 ---
 
@@ -1258,10 +1285,11 @@ After running all batches, present the consolidated results table:
 | AE-C10.2 | Obfuscation mode: literals — sentinel absent    | PASS/FAIL |       |
 | AE-C10.3 | Obfuscation mode: full — no SQL keywords        | PASS/FAIL |       |
 | AE-C11.1 | max_entries cap enforced                        | PASS/FAIL |       |
-| AE-C11.2 | Overload warning logged                         | PASS/FAIL |       |
+| AE-C11.2 | Overload warning logged (self_monitoring ctx)   | PASS/FAIL |       |
+| AE-C11.3 | Normal query logs flow alongside overload       | PASS/FAIL |       |
 
-Auto-evaluated: {N}/57 — {n} passed, {f} failed, {s} skipped
-  Batch 1: {n1}/13  Batch 2: {n2}/23  Batch 3: {n3}/15  Batch 4: {n4}/11
+Auto-evaluated: {N}/58 — {n} passed, {f} failed, {s} skipped
+  Batch 1: {n1}/13  Batch 2: {n2}/23  Batch 3: {n3}/15  Batch 4: {n4}/12
   (Deferred: C2.15, C2.16, C4.13 — verify on next day / after data latency window)
 ```
 
@@ -1442,6 +1470,17 @@ Some plugins have a single context whose name matches the plugin name — in tha
 case both filters return the same data. However, you **must still use
 `dsoa.run.plugin`** when the intent is to select by plugin, to keep semantics
 correct and future-proof against the plugin gaining additional contexts.
+
+**Special case — `query_history` overload protection:** The signal overload
+protection log and bizevent are emitted with `dsoa.run.plugin == "query_history"`
+but `dsoa.run.context == "self_monitoring"`. This is intentional — it separates
+operational/overload signals from normal query telemetry. Use the context filter
+to distinguish them:
+
+- Normal query logs: `filter dsoa.run.plugin == "query_history" | filter dsoa.run.context != "self_monitoring"`
+- Overload protection only: `filter dsoa.run.plugin == "query_history" | filter dsoa.run.context == "self_monitoring"`
+- If **only** `self_monitoring` logs appear for `query_history`, `max_entries` is
+  set too low — the cap is dropping all queries and data is not flowing.
 
 **Example — correct (shares events from any context):**
 

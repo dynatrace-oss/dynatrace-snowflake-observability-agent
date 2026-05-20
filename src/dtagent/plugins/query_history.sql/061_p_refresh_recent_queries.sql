@@ -189,7 +189,7 @@ BEGIN
         'status', 'success',
         'total_processed', v_total_processed,
         'total_available', v_total_available,
-        'max_entries_applied', v_max_entries > 0,
+        'max_entries_applied', (v_max_entries > 0 AND v_total_available > v_total_processed),
         'max_entries_value', v_max_entries
     );
 
