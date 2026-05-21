@@ -354,7 +354,7 @@ tiles:
             colorPalette: blue-turquoise
             field: count()
             type: long
-            comparator: ">="
+            comparator: ">"
             value: null
     querySettings:
       maxResultRecords: 1000
@@ -636,7 +636,7 @@ tiles:
             colorPalette: orange
             field: count()
             type: long
-            comparator: ">="
+            comparator: ">"
             value: null
     querySettings:
       maxResultRecords: 1000
@@ -677,7 +677,7 @@ tiles:
             colorPalette: moss
             field: count()
             type: long
-            comparator: ">="
+            comparator: ">"
             value: null
     querySettings:
       maxResultRecords: 1000
@@ -845,7 +845,7 @@ tiles:
             colorPalette: yellow
             field: count
             type: double
-            comparator: ">="
+            comparator: ">"
             value: null
       unitsOverrides:
         - identifier: count
