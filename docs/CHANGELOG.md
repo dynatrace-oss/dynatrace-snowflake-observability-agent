@@ -38,6 +38,7 @@ All notable changes to this project will be documented in this file.
 - `docs/INSTALL.md` restructured: Docker is the primary quick-start path; detailed guides moved to `docs/deployment/`.
 - Updated `snowflake-snowpark-python` minimum version to `>=1.49.0`.
 - Memory handling and processing performance improved for high-volume accounts: per-row overhead reduced by eliminating unnecessary `pd.Series` allocations; events and metrics exporters flush mid-batch to bound peak memory. New `dsoa.agent.memory.peak_rss` metric emitted after each plugin run.
+- **Budgets & FinOps dashboard**: improved account filtering to include all plugins (not just budgets) and enhanced warehouse data collection from both events and logs. See [devlog](.context/devlog/0.9.5/finops-dashboard-update.md).
 
 ### Deprecated
 
