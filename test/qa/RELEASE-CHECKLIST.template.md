@@ -331,11 +331,13 @@ and sending data to the same Dynatrace tenant.
   delta computation). Run `DTAGENT(ARRAY_CONSTRUCT('table_health:table_health_derived'))`
   to trigger manually.
   Auto-eval DQL:
-  ```
+
+  ```dql
   timeseries avg(`snowflake.table.active_bytes.delta`), by:{deployment.environment}
   | filter deployment.environment == "DEV-{CURR_TAG}"
   | summarize count = count()
   ```
+
   Pass: count > 0.
 
 - [ ] **C2.12** `[AUTO-EVAL]` — **Metering metrics across >=3 service types**

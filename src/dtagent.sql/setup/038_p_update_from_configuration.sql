@@ -43,7 +43,13 @@ begin
     --%OPTION:resource_monitor:
     SNOWFLAKE_CREDIT_QUOTA := (select DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE('core.snowflake.resource_monitor.credit_quota', 5));
     if (SNOWFLAKE_CREDIT_QUOTA IS NOT NULL) then
-        call DTAGENT_DB.CONFIG.P_UPDATE_RESOURCE_MONITOR(:SNOWFLAKE_CREDIT_QUOTA);
+        begin
+            call DTAGENT_DB.CONFIG.P_UPDATE_RESOURCE_MONITOR(:SNOWFLAKE_CREDIT_QUOTA);
+        exception
+            when other then
+                system$log_warn(concat('P_UPDATE_RESOURCE_MONITOR: ', sqlerrm,
+                    ' — re-run with scope=init to restore resource monitor ownership'));
+        end;
     end if;
     --%:OPTION:resource_monitor
 
