@@ -83,38 +83,21 @@ variables:
     version: 2
     editable: true
     input: |-
-      fetch logs
+      fetch bizevents
       | filter db.system == "snowflake"
+      | filter in(dsoa.run.context, {"self_monitoring", "self-monitoring"})
       | filter in(deployment.environment, array($Accounts))
       | filter in(dsoa.run.plugin, array($Plugin_Names))
-      | fields dsoa.run.context, dsoa.run.plugin
-      | dedup dsoa.run.context, dsoa.run.plugin
-      | append [
-        fetch spans
-        | filter db.system == "snowflake"
-        | filter in(deployment.environment, array($Accounts))
-        | filter in(dsoa.run.plugin, array($Plugin_Names))
-        | fields dsoa.run.context, dsoa.run.plugin
-        | dedup dsoa.run.context, dsoa.run.plugin
-      ]
-      | append [
-        fetch events
-        | filter db.system == "snowflake"
-        | filter in(deployment.environment, array($Accounts))
-        | filter in(dsoa.run.plugin, array($Plugin_Names))
-        | fields dsoa.run.context, dsoa.run.plugin
-        | dedup dsoa.run.context, dsoa.run.plugin
-      ]
-      | append [
-        fetch bizevents
-        | filter db.system == "snowflake"
-        | filter in(deployment.environment, array($Accounts))
-        | filter in(dsoa.run.plugin, array($Plugin_Names))
-        | fields dsoa.run.context, dsoa.run.plugin
-        | dedup dsoa.run.context, dsoa.run.plugin
-      ]
+      | sort timestamp desc
+      | summarize {
+        dsoa.run.results = takeFirst(dsoa.run.results)
+      }, by: {
+        dsoa.run.id
+      }
+      | parse toString(dsoa.run.results), "'{' ARRAY{STRUCTURE{DQS:key ':' JSON:value}:i (',' SPACE?)?}{0,10}:results '}'"
+      | expand results
+      | fields dsoa.run.context = results[key]
       | dedup dsoa.run.context
-      | sort dsoa.run.context
     multiple: true
     defaultValue:
       - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
@@ -128,10 +111,10 @@ tiles:
       | filter in(dsoa.run.context, {"self_monitoring", "self-monitoring"})
       | filter in(deployment.environment, array($Accounts))
       | filter in(dsoa.run.plugin, array($Plugin_Names))
-      | filter in(dsoa.run.context, array($Plugin_Contexts))
       | sort timestamp asc
       | summarize {
           timestamp = takeFirst(timestamp),
+          dsoa.run.results = takeFirst(dsoa.run.results),
           dsoa.run.duration = max(timestamp) - min(timestamp),
           count = count()
       }, by: {
@@ -140,6 +123,11 @@ tiles:
           dsoa.task.exec.id,
           dsoa.run.plugin
       }
+      | parse toString(dsoa.run.results), "'{' ARRAY{STRUCTURE{DQS:key ':' JSON:value}:i (',' SPACE?)?}{0,10}:results '}'"
+      | expand results
+      | fieldsAdd dsoa.run.context = results[key], telemetry = results[value]
+      | fieldsFlatten telemetry,prefix:"telemetry."
+      | filter in(dsoa.run.context, array($Plugin_Contexts))
       | filter count > 1
       | makeTimeseries {
           dsoa.run.duration = sum(dsoa.run.duration)
@@ -151,6 +139,8 @@ tiles:
     visualizationSettings:
       chartSettings:
         truncationMode: middle
+        legend:
+          position: bottom
         xAxisLabel: timeframe
         xAxisScaling: analyzedTimeframe
         fieldMapping:
@@ -159,18 +149,9 @@ tiles:
           timestamp: timeframe
         curve: smooth
         gapPolicy: connect
-        legend:
-          position: bottom
-        leftYAxisSettings:
-          min:
-            mode: auto
-          max:
-            mode: auto
-          scale: linear
       dataMapping:
         displayedFields:
           - dsoa.run.plugin
-      thresholds: []
       unitsOverrides:
         - identifier: dsoa.run.duration
           unitCategory: time
@@ -179,6 +160,7 @@ tiles:
           decimals: 2
           suffix: ""
           delimiter: false
+          cascade: null
           added: 1727938388826
     querySettings:
       maxResultRecords: 1000
@@ -190,10 +172,8 @@ tiles:
       enabled: false
       davisVisualization:
         isAvailable: true
-      componentState:
-        inputData: null
   "2":
-    title: Failed plugin executions
+    title: Failed plugin runs
     type: data
     query: |-
       fetch logs
@@ -201,7 +181,6 @@ tiles:
       | filter in(dsoa.run.context, {"self_monitoring", "self-monitoring"})
       | filter in(deployment.environment, array($Accounts))
       | filter in(dsoa.run.plugin, array($Plugin_Names))
-      | filter in(dsoa.run.context, array($Plugin_Contexts))
       | filter dsoa.deployment.status == "FAILED"
       | makeTimeseries count(), by: {
           dsoa.run.plugin, snowflake.query.execution_status
@@ -216,7 +195,6 @@ tiles:
           leftAxisValues:
             - count()
           timestamp: timeframe
-      thresholds: []
       unitsOverrides:
         - identifier: sum(snowflake.total_elapsed_time)
           unitCategory: time
@@ -225,6 +203,7 @@ tiles:
           decimals: 2
           suffix: ""
           delimiter: false
+          cascade: null
           added: 1727938388826
     querySettings:
       maxResultRecords: 1000
@@ -236,8 +215,6 @@ tiles:
       enabled: false
       davisVisualization:
         isAvailable: true
-      componentState:
-        inputData: null
   "3":
     title: Plugin execution count
     type: data
@@ -247,16 +224,20 @@ tiles:
       | filter in(dsoa.run.context, {"self_monitoring", "self-monitoring"})
       | filter in(deployment.environment, array($Accounts))
       | filter in(dsoa.run.plugin, array($Plugin_Names))
-      | filter in(dsoa.run.context, array($Plugin_Contexts))
       | sort timestamp asc
       | summarize {
+          dsoa.run.results = takeFirst(dsoa.run.results),
           count = count()
       }, by: {
           deployment.environment,
           dsoa.task.exec.id,
           dsoa.run.plugin
       }
-      | filter count > 1
+      | parse toString(dsoa.run.results), "'{' ARRAY{STRUCTURE{DQS:key ':' JSON:value}:i (',' SPACE?)?}{0,10}:results '}'"
+      | expand results
+      | fieldsAdd dsoa.run.context = results[key]
+      | filter in(dsoa.run.context, array($Plugin_Contexts))
+      // | filter count > 1
       | summarize {
           dsoa.run.duration = count()
       }, by: {
@@ -265,14 +246,20 @@ tiles:
     visualization: honeycomb
     visualizationSettings:
       honeycomb:
-        colorMode: color-palette
-        colorPalette: blue
+        legend:
+          position: right
         dataMappings:
           value: dsoa.run.duration
         displayedFields:
           - dsoa.run.plugin
-        legend:
-          position: right
+      coloring:
+        colorRules:
+          - colorMode: color-palette
+            colorPalette: blue
+            field: dsoa.run.duration
+            type: string
+            comparator: "= *value*"
+            value: ""
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -283,8 +270,6 @@ tiles:
       enabled: false
       davisVisualization:
         isAvailable: true
-      componentState:
-        inputData: null
   "4":
     title: Plugin total elapse time
     type: data
@@ -294,17 +279,20 @@ tiles:
       | filter in(dsoa.run.context, {"self_monitoring", "self-monitoring"})
       | filter in(deployment.environment, array($Accounts))
       | filter in(dsoa.run.plugin, array($Plugin_Names))
-      | filter in(dsoa.run.context, array($Plugin_Contexts))
       | sort timestamp asc
       | summarize {
         dsoa.run.duration = takeLast(timestamp) - takeFirst(timestamp),
+        dsoa.run.results = takeFirst(dsoa.run.results),
         count = count()
       }, by: {
         deployment.environment,
         dsoa.task.exec.id,
         dsoa.run.plugin
       }
-      // | filter count > 1
+      | parse toString(dsoa.run.results), "'{' ARRAY{STRUCTURE{DQS:key ':' JSON:value}:i (',' SPACE?)?}{0,10}:results '}'"
+      | expand results
+      | fieldsAdd dsoa.run.context = results[key]
+      | filter in(dsoa.run.context, array($Plugin_Contexts))
       | summarize {
         dsoa.run.duration = sum(dsoa.run.duration)
       }, by: {
@@ -313,14 +301,20 @@ tiles:
     visualization: honeycomb
     visualizationSettings:
       honeycomb:
-        colorMode: color-palette
-        colorPalette: orange
         dataMappings:
           value: dsoa.run.duration
         displayedFields:
           - dsoa.run.plugin
         legend:
           position: right
+      coloring:
+        colorRules:
+          - colorMode: color-palette
+            colorPalette: red-purple
+            field: dsoa.run.duration
+            type: duration
+            comparator: ">"
+            value: null
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -331,8 +325,6 @@ tiles:
       enabled: false
       davisVisualization:
         isAvailable: true
-      componentState:
-        inputData: null
   "5":
     title: Log lines produced per data type
     type: data
@@ -356,8 +348,14 @@ tiles:
           value: count()
         displayedFields:
           - plugin_name
-        colorPalette: blue
-      thresholds: []
+      coloring:
+        colorRules:
+          - colorMode: color-palette
+            colorPalette: blue-turquoise
+            field: count()
+            type: long
+            comparator: ">="
+            value: null
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -368,10 +366,8 @@ tiles:
       enabled: false
       davisVisualization:
         isAvailable: true
-      componentState:
-        inputData: null
   "8":
-    title: Plugin executions
+    title: Plugin runs
     type: data
     query: |-
       fetch bizevents
@@ -379,16 +375,64 @@ tiles:
       | filter in(dsoa.run.context, {"self_monitoring", "self-monitoring"})
       | filter in(deployment.environment, array($Accounts))
       | filter in(dsoa.run.plugin, array($Plugin_Names))
-      | filter in(dsoa.run.context, array($Plugin_Contexts))
       | sort timestamp desc
-      | fields timestamp, dsoa.task.name, deployment.environment
+      | summarize {
+        timestamp = takeFirst(timestamp),
+        dsoa.run.results = takeFirst(dsoa.run.results),
+        dsoa.task.exec.status = takeFirst(dsoa.task.exec.status)
+      }, by: {
+          dsoa.run.id,
+          dsoa.task.name,
+          dsoa.run.plugin,
+          deployment.environment
+      }
+      | parse toString(dsoa.run.results), "'{' ARRAY{STRUCTURE{DQS:key ':' JSON:value}:i (',' SPACE?)?}{0,10}:results '}'"
+      | expand results
+      | fieldsAdd dsoa.run.context = results[key], telemetry = results[value]
+      | fieldsFlatten telemetry,prefix:"telemetry."
+      | filter in(dsoa.run.context, array($Plugin_Contexts))
+      | fields timestamp,
+          `Account`=deployment.environment,
+          `Plugin`=dsoa.run.plugin,
+          `Context`=dsoa.run.context,
+          entries=coalesce(telemetry.entries, 0),
+          errors=coalesce(telemetry.errors, 0),
+          logs=coalesce(telemetry.log_lines, 0),
+          metrics=coalesce(telemetry.metrics, 0),
+          spans=coalesce(telemetry.spans, 0),
+          events=coalesce(telemetry.events, 0),
+          `span events`=coalesce(telemetry.span_events, 0),
+          dsoa.run.id, dsoa.task.name
+      | sort timestamp desc
       | limit 50
     visualization: table
     visualizationSettings:
       table:
         columnWidths:
-          '["deployment.environment"]': 132.984375
-      thresholds: []
+          '["dsoa.run.plugin"]': 173.3
+          '["dsoa.run.context"]': 122.39
+          '["Context"]': 168.39
+          '["Plugin"]': 118.39
+      coloring:
+        colorRules:
+          - colorMode: single-color
+            color: "var(--dt-colors-charts-apdex-poor-default, #d56b1a)"
+            comparator: "="
+            field: entries
+            value: 0
+            type: long
+          - colorMode: single-color
+            color: "var(--dt-colors-charts-apdex-good-default, #1c520a)"
+            comparator: ">"
+            field: entries
+            value: 0
+            type: long
+          - colorMode: single-color
+            color: "var(--dt-colors-charts-apdex-unacceptable-default, #cd3741)"
+            comparator: ">"
+            field: errors
+            value: 0
+            type: long
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -399,8 +443,6 @@ tiles:
       enabled: false
       davisVisualization:
         isAvailable: true
-      componentState:
-        inputData: null
   "9":
     title: Accounts
     type: data
@@ -423,8 +465,14 @@ tiles:
           value: count()
         displayedFields:
           - deployment.environment
-        colorPalette: blue
-      thresholds: []
+      coloring:
+        colorRules:
+          - colorMode: color-palette
+            colorPalette: blue
+            field: count()
+            type: string
+            comparator: "= *value*"
+            value: ""
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -435,23 +483,23 @@ tiles:
       enabled: false
       davisVisualization:
         isAvailable: true
-      componentState:
-        inputData: null
   "11":
-    title: Failed plugin executions
+    title: Plugin execution problems log
     type: data
     query: |-
       fetch logs
       | filter db.system == "snowflake"
       | filter dsoa.run.context == "query_history"
       | filter in(deployment.environment, array($Accounts))
-      | filter in(dsoa.run.plugin, array($Plugin_Names))
-      | filter in(dsoa.run.context, array($Plugin_Contexts))
       | filter snowflake.query.execution_status != "SUCCESS"
       | filter matchesPattern(db.query.text,
           """'call DTAGENT' ('_' LD:tag)?  '_DB.APP.DTAGENT(ARRAY_CONSTRUCT(' ARRAY{SQS:plugin_name ', '?}{1,}:plugin_names '))'""")
       | parse `db.query.text`, """'call DTAGENT' ('_' LD:env_tag)?  '_DB.APP.DTAGENT(ARRAY_CONSTRUCT(' ARRAY{SQS:plugin_name ', '?}{1,}:plugin_names '))'"""
-      | expand plugin_name = plugin_names
+      | expand plugin_name_and_context = plugin_names
+      | fieldsAdd plugin_name = splitString(plugin_name_and_context, ":")[0]
+      | fieldsAdd plugin_context = splitString(plugin_name_and_context, ":")[1]
+      | filter isTrueOrNull(plugin_name == "?") or in(plugin_name, array($Plugin_Names))
+      | filter isTrueOrNull(plugin_context == "") or in(dsoa.run.context, array($Plugin_Contexts))
       | fields timestamp, plugin_name, query_id=snowflake.query.id, db=db.namespace, exec_status=snowflake.query.execution_status, error_message=snowflake.error.message
     visualization: table
     visualizationSettings:
@@ -463,8 +511,8 @@ tiles:
             value: log-content
         columnWidths:
           '["plugin_name"]': 157.39
+          '["error_message"]': 794
       autoSelectVisualization: false
-      thresholds: []
       unitsOverrides: []
     querySettings:
       maxResultRecords: 1000
@@ -476,56 +524,79 @@ tiles:
       enabled: false
       davisVisualization:
         isAvailable: true
-      componentState:
-        inputData: null
   "12":
     title: "Data volume by environment and type"
     type: data
     query: |-
       fetch bizevents
-      | filter db.system == "snowflake"
-      | filter in(deployment.environment, array($Accounts))
-      | filter in(dsoa.run.plugin, array($Plugin_Names))
-      | filter in(dsoa.run.context, array($Plugin_Contexts))
-      | fieldsAdd data.type = "bizevents"
-      | makeTimeseries count(), by: {deployment.environment, data.type}
+        | filter db.system == "snowflake"
+        | filter in(deployment.environment, array($Accounts))
+        | filter in(dsoa.run.plugin, array($Plugin_Names))
+        | filter in(dsoa.run.context, array($Plugin_Contexts))
+        | fieldsAdd data.type = "bizevents"
+        | makeTimeseries count = count(), by: {deployment.environment, data.type}
       | append [
-      fetch events
-      | filter db.system == "snowflake"
-      | filter in(deployment.environment, array($Accounts))
-      | filter in(dsoa.run.plugin, array($Plugin_Names))
-      | filter in(dsoa.run.context, array($Plugin_Contexts))
-      | fieldsAdd data.type = "events"
-      | makeTimeseries count(), by: {deployment.environment, data.type}
+        fetch events
+        | filter db.system == "snowflake"
+        | filter in(deployment.environment, array($Accounts))
+        | filter in(dsoa.run.plugin, array($Plugin_Names))
+        | filter in(dsoa.run.context, array($Plugin_Contexts))
+        | fieldsAdd data.type = "events"
+        | makeTimeseries count = count(), by: {deployment.environment, data.type}
       ]
       | append [
-      fetch logs
-      | filter db.system == "snowflake"
-      | filter in(deployment.environment, array($Accounts))
-      | filter in(dsoa.run.plugin, array($Plugin_Names))
-      | filter in(dsoa.run.context, array($Plugin_Contexts))
-      | fieldsAdd data.type = "logs"
-      | makeTimeseries count(), by: {deployment.environment, data.type}
+        fetch logs
+        | filter db.system == "snowflake"
+        | filter in(deployment.environment, array($Accounts))
+        | filter in(dsoa.run.plugin, array($Plugin_Names))
+        | filter in(dsoa.run.context, array($Plugin_Contexts))
+        | fieldsAdd data.type = "logs"
+        | makeTimeseries count = count(), by: {deployment.environment, data.type}
       ]
       | append [
-      fetch spans
-      | filter db.system == "snowflake"
-      | filter in(deployment.environment, array($Accounts))
-      | filter in(dsoa.run.plugin, array($Plugin_Names))
-      | filter in(dsoa.run.context, array($Plugin_Contexts))
-      | fieldsAdd data.type = "spans"
-      | makeTimeseries count(), by: {deployment.environment, data.type}
+        fetch spans
+        | filter db.system == "snowflake"
+        | filter in(deployment.environment, array($Accounts))
+        | filter in(dsoa.run.plugin, array($Plugin_Names))
+        | filter in(dsoa.run.context, array($Plugin_Contexts))
+        | fieldsAdd data.type = "spans"
+        | makeTimeseries count = count(), by: {deployment.environment, data.type}
+      ]
+      | append [
+        fetch bizevents
+        | filter db.system == "snowflake"
+        | filter in(dsoa.run.context, {"self_monitoring", "self-monitoring"})
+        | filter in(deployment.environment, array($Accounts))
+        | filter in(dsoa.run.plugin, array($Plugin_Names))
+        | sort timestamp desc
+        | summarize {
+          timestamp = takeFirst(timestamp),
+          dsoa.run.results = takeFirst(dsoa.run.results),
+          dsoa.task.exec.status = takeFirst(dsoa.task.exec.status)
+        }, by: {
+            dsoa.run.id,
+            dsoa.task.name,
+            dsoa.run.plugin,
+            deployment.environment
+        }
+        | parse toString(dsoa.run.results), "'{' ARRAY{STRUCTURE{DQS:key ':' JSON:value}:i (',' SPACE?)?}{0,10}:results '}'"
+        | expand results
+        | fieldsAdd dsoa.run.context = results[key], telemetry = results[value]
+        | fieldsFlatten telemetry,prefix:"telemetry."
+        | filter in(dsoa.run.context, array($Plugin_Contexts))
+        | fieldsAdd data.type = "metrics"
+        | makeTimeseries count = sum(coalesce(telemetry.metrics, 0)), by: {deployment.environment, data.type}
       ]
     visualization: barChart
     visualizationSettings:
+      autoSelectVisualization: false
       chartSettings:
-        legend:
-          position: bottom
         leftYAxisSettings:
           scale: log
+        legend:
+          position: bottom
       legend:
         ratio: 16
-      autoSelectVisualization: false
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -536,8 +607,6 @@ tiles:
       enabled: false
       davisVisualization:
         isAvailable: true
-      componentState:
-        inputData: null
   "13":
     title: Events produced per data type
     type: data
@@ -561,8 +630,14 @@ tiles:
           value: count()
         displayedFields:
           - plugin_name
-        colorPalette: blue
-      thresholds: []
+      coloring:
+        colorRules:
+          - colorMode: color-palette
+            colorPalette: orange
+            field: count()
+            type: long
+            comparator: ">="
+            value: null
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -573,8 +648,6 @@ tiles:
       enabled: false
       davisVisualization:
         isAvailable: true
-      componentState:
-        inputData: null
   "14":
     title: Spans produced per data type
     type: data
@@ -598,8 +671,14 @@ tiles:
           value: count()
         displayedFields:
           - plugin_name
-        colorPalette: blue
-      thresholds: []
+      coloring:
+        colorRules:
+          - colorMode: color-palette
+            colorPalette: moss
+            field: count()
+            type: long
+            comparator: ">="
+            value: null
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -610,8 +689,6 @@ tiles:
       enabled: false
       davisVisualization:
         isAvailable: true
-      componentState:
-        inputData: null
   "15":
     title: Ingest warnings over time
     type: data
@@ -625,6 +702,8 @@ tiles:
     visualizationSettings:
       chartSettings:
         truncationMode: middle
+        legend:
+          position: bottom
         xAxisLabel: timeframe
         xAxisScaling: analyzedTimeframe
         fieldMapping:
@@ -633,9 +712,6 @@ tiles:
           timestamp: timeframe
         curve: smooth
         gapPolicy: connect
-        legend:
-          position: bottom
-      thresholds: []
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -646,8 +722,6 @@ tiles:
       enabled: false
       davisVisualization:
         isAvailable: true
-      componentState:
-        inputData: null
   "16":
     title: Ingest warning details (last 7 days)
     type: data
@@ -659,8 +733,7 @@ tiles:
       | fields timestamp, dsoa.run.plugin, `dsoa.ingest.warning.type`, `dsoa.ingest.warning.exporter`, `dsoa.ingest.warning.detail`, `dsoa.ingest.warning.count`
       | sort timestamp desc
     visualization: table
-    visualizationSettings:
-      thresholds: []
+    visualizationSettings: {}
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -671,8 +744,6 @@ tiles:
       enabled: false
       davisVisualization:
         isAvailable: true
-      componentState:
-        inputData: null
   "17":
     title: Acquisition problems over time
     type: data
@@ -686,6 +757,8 @@ tiles:
     visualizationSettings:
       chartSettings:
         truncationMode: middle
+        legend:
+          position: bottom
         xAxisLabel: timeframe
         xAxisScaling: analyzedTimeframe
         fieldMapping:
@@ -694,9 +767,6 @@ tiles:
           timestamp: timeframe
         curve: smooth
         gapPolicy: connect
-        legend:
-          position: bottom
-      thresholds: []
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -707,8 +777,6 @@ tiles:
       enabled: false
       davisVisualization:
         isAvailable: true
-      componentState:
-        inputData: null
   "18":
     title: Acquisition problem details (last 7 days)
     type: data
@@ -721,7 +789,7 @@ tiles:
       | sort timestamp desc
     visualization: table
     visualizationSettings:
-      thresholds: []
+      table: {}
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -732,8 +800,73 @@ tiles:
       enabled: false
       davisVisualization:
         isAvailable: true
-      componentState:
-        inputData: null
+  "19":
+    title: Metrics produced per data type
+    type: data
+    query: |-
+      fetch bizevents
+      | filter db.system == "snowflake"
+      | filter in(dsoa.run.context, {"self_monitoring", "self-monitoring"})
+      | filter in(deployment.environment, array($Accounts))
+      | filter in(dsoa.run.plugin, array($Plugin_Names))
+      | sort timestamp desc
+      | summarize {
+        timestamp = takeFirst(timestamp),
+        dsoa.run.results = takeFirst(dsoa.run.results),
+        dsoa.task.exec.status = takeFirst(dsoa.task.exec.status)
+      }, by: {
+          dsoa.run.id,
+          dsoa.task.name,
+          dsoa.run.plugin,
+          deployment.environment
+      }
+      | parse toString(dsoa.run.results), "'{' ARRAY{STRUCTURE{DQS:key ':' JSON:value}:i (',' SPACE?)?}{0,10}:results '}'"
+      | expand results
+      | fieldsAdd dsoa.run.context = results[key], telemetry = results[value]
+      | fieldsFlatten telemetry,prefix:"telemetry."
+      | filter in(dsoa.run.context, array($Plugin_Contexts))
+      | summarize {
+        count = sum(coalesce(telemetry.metrics, 0))
+      }, by: {
+        plugin_name = dsoa.run.plugin
+      }
+    visualization: honeycomb
+    visualizationSettings:
+      honeycomb:
+        dataMappings:
+          value: count
+        displayedFields:
+          - plugin_name
+        legend:
+          position: right
+      coloring:
+        colorRules:
+          - colorMode: color-palette
+            colorPalette: yellow
+            field: count
+            type: double
+            comparator: ">="
+            value: null
+      unitsOverrides:
+        - identifier: count
+          unitCategory: unspecified
+          baseUnit: none
+          displayUnit: null
+          decimals: 0
+          suffix: ""
+          delimiter: false
+          cascade: null
+          added: 1779347224900
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
 layouts:
   "1":
     x: 0
@@ -741,34 +874,34 @@ layouts:
     w: 24
     h: 6
   "2":
-    x: 0
+    x: 16
     "y": 20
-    w: 15
+    w: 8
     h: 6
   "3":
-    x: 18
-    "y": 0
-    w: 6
-    h: 8
+    x: 16
+    "y": 4
+    w: 8
+    h: 4
   "4":
-    x: 12
+    x: 16
+    "y": 0
+    w: 8
+    h: 4
+  "5":
+    x: 4
     "y": 0
     w: 6
-    h: 8
-  "5":
-    x: 3
-    "y": 0
-    w: 5
-    h: 8
+    h: 4
   "8":
-    x: 15
+    x: 0
     "y": 20
-    w: 9
+    w: 16
     h: 6
   "9":
     x: 0
     "y": 0
-    w: 3
+    w: 4
     h: 8
   "11":
     x: 0
@@ -781,14 +914,14 @@ layouts:
     w: 24
     h: 6
   "13":
-    x: 8
+    x: 10
     "y": 0
-    w: 4
+    w: 6
     h: 4
   "14":
-    x: 8
+    x: 4
     "y": 4
-    w: 4
+    w: 6
     h: 4
   "15":
     x: 0
@@ -810,6 +943,11 @@ layouts:
     "y": 37
     w: 12
     h: 6
+  "19":
+    x: 10
+    "y": 4
+    w: 6
+    h: 4
 importedWithCode: false
 settings:
   defaultTimeframe:
