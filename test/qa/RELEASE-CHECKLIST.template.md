@@ -331,11 +331,13 @@ and sending data to the same Dynatrace tenant.
   delta computation). Run `DTAGENT(ARRAY_CONSTRUCT('table_health:table_health_derived'))`
   to trigger manually.
   Auto-eval DQL:
-  ```
+
+  ```dql
   timeseries avg(`snowflake.table.active_bytes.delta`), by:{deployment.environment}
   | filter deployment.environment == "DEV-{CURR_TAG}"
   | summarize count = count()
   ```
+
   Pass: count > 0.
 
 - [ ] **C2.12** `[AUTO-EVAL]` — **Metering metrics across >=3 service types**
@@ -737,6 +739,121 @@ that no tiles display error states.
 
 ---
 
+## Section E — Workflow Validation
+
+Verify all 10 DSOA workflows deploy, execute, and produce correct output.
+
+> **Pre-requisites:**
+>
+> 1. DSOA agent must have been running on the tenant for ≥24 h with data flowing
+>    (Davis AI needs historical baseline data for anomaly detection).
+> 1. Seed synthetic test data:
+>
+>    ```bash
+>    snow sql -c snow_agent_test-qa -f test/tools/setup_test_workflows.sql
+>    snow sql -c snow_agent_test-qa -f test/tools/setup_test_workflow_anomalies.sql
+>    ```
+>
+> 1. Deploy all workflows to the tenant:
+>
+>    ```bash
+>    ./scripts/deploy/deploy_dt_assets.sh --scope=workflows --env=test-qa
+>    ```
+
+### E1 — Static and Deployment Validation
+
+- [ ] **E1.1** `[AUTO-EVAL]` — **Workflow YAML schema validation passes**
+  Run: `.venv/bin/pytest test/workflows/test_workflow_schema.py -v`
+  Pass: all tests green (offline, no credentials required).
+
+- [ ] **E1.2** `[AUTO-EVAL]` — **Cross-workflow consistency checks pass**
+  Run: `.venv/bin/pytest test/workflows/test_workflow_consistency.py -v`
+  Pass: all tests green.
+
+- [ ] **E1.3** `[AUTO-EVAL]` — **Workflow DQL extraction and validation passes**
+  Run: `.venv/bin/pytest test/workflows/test_workflow_dql.py -v`
+  Pass: all offline tests green; `test_dql_syntax_valid_via_dtctl` passes or skips
+  (requires dtctl authentication).
+
+- [ ] **E1.4** `[AUTO-EVAL]` — **JavaScript syntax checks pass**
+  Run: `.venv/bin/pytest test/workflows/test_workflow_js.py -v`
+  Pass: all tests green (or node check skipped if node not on PATH).
+
+- [ ] **E1.5** `[AUTO-EVAL]` — **All workflows pass dry-run deployment**
+  Run: `./scripts/deploy/deploy_dt_assets.sh --scope=workflows --env=test-qa --dry-run`
+  Pass: exit code 0, no errors logged.
+
+- [ ] **E1.6** `[AUTO-EVAL]` — **All workflows deploy successfully (live)**
+  Run: `./scripts/deploy/deploy_dt_assets.sh --scope=workflows --env=test-qa`
+  Pass: all 10 workflows assigned IDs, deploy script exits 0.
+  Verify with: `dtctl get workflows -o json | python3 -c "import sys,json; wfs=json.load(sys.stdin); print(len([w for w in wfs if 'DSOA' in w.get('title','')]), 'DSOA workflows deployed')`
+
+### E2 — Execution Validation
+
+Trigger each workflow via `dtctl exec workflow <id> --watch`.
+Pass condition: workflow completes (all tasks `SUCCESS` or `OK`) within 10 minutes.
+Davis AI tasks may return empty results when no anomaly is detected — this is a PASS.
+
+- [ ] **E2.1** `[AUTO-EVAL]` — **credits-exhaustion-prediction executes without errors**
+
+- [ ] **E2.2** `[AUTO-EVAL]` — **data-volume-anomaly executes without errors**
+
+- [ ] **E2.3** `[AUTO-EVAL]` — **dynamic-table-drift executes without errors**
+
+- [ ] **E2.4** `[AUTO-EVAL]` — **long-running-queries executes without errors**
+
+- [ ] **E2.5** `[AUTO-EVAL]` — **org-contract-balance-warning executes without errors**
+  `[SKIP if HAS_ORGADMIN=false — org_costs metrics require ORGADMIN]`
+
+- [ ] **E2.6** `[AUTO-EVAL]` — **query-slowdown-detection executes without errors**
+
+- [ ] **E2.7** `[AUTO-EVAL]` — **security-anomaly-detection executes without errors**
+
+- [ ] **E2.8** `[AUTO-EVAL]` — **shares-broken-detection executes without errors**
+
+- [ ] **E2.9** `[AUTO-EVAL]` — **table-perf-degradation executes without errors**
+
+- [ ] **E2.10** `[AUTO-EVAL]` — **warehouse-sensitive-change-alert executes without errors**
+
+### E3 — Behavioral Validation
+
+These checks verify that workflows produce expected output when anomaly conditions exist.
+Require synthetic data from `setup_test_workflow_anomalies.sql`.
+
+- [ ] **E3.1** `[BOTH]` — **data-volume-anomaly emits anomaly events after spike**
+  After `setup_test_workflow_anomalies.sql` seeds a 10× row count spike, trigger the
+  workflow and verify events appear in Dynatrace:
+
+  ```dql
+  fetch events, from: now()-1h
+  | filter isNotNull(`ad.source`)
+  | filter `ad.source` == "dsoa.data_volume_anomaly"
+  | summarize count = count()
+  ```
+
+  Pass: count > 0. `[SKIP if Davis baseline < 7 days old]`
+
+- [ ] **E3.2** `[BOTH]` — **warehouse-sensitive-change-alert fires on DDL event**
+  After `setup_test_workflow_anomalies.sql` runs ALTER WAREHOUSE on `DSOA_TEST_WH_DDL_SIM`,
+  trigger the workflow and verify it detects the DDL change:
+
+  ```dql
+  fetch spans, from: now()-2h
+  | filter isNotNull(snowflake.object.ddl.operation)
+  | filter contains(snowflake.object.name, "DSOA_TEST_WH_DDL_SIM")
+  | summarize count = count()
+  ```
+
+  Pass: count > 0. Prerequisite: `plugins.query_history.track_ddl_changes: true` in config.
+  `[SKIP if track_ddl_changes not enabled]`
+
+- [ ] **E3.3** `[VISUAL]` — **All 10 workflows visible in Dynatrace Workflows UI**
+  Open: Dynatrace > Automations > Workflows.
+  Verify: all 10 DSOA workflows appear with `DSOA —` prefix in their titles, and at least
+  one shows a recent execution timestamp.
+
+---
+
 ## Result Summary
 
 Fill in after completing all sections.
@@ -757,7 +874,8 @@ Fill in after completing all sections.
 | C10 — Obfuscation       |        |        |         | 3       |
 | C11 — Signal Protection |        |        |         | 2       |
 | D — Dashboards          |        |        |         | 14      |
-| **Total**               |        |        |         | **119** |
+| E — Workflows           |        |        |         | 19      |
+| **Total**               |        |        |         | **141** |
 
 **QA Signoff:**
 
@@ -765,5 +883,5 @@ Fill in after completing all sections.
 DSOA {VERSION} QA — {DATE} — {PASS}/{TOTAL} items passed ({DEFERRED} deferred)
 Tester: {NAME}
 Notebook: {NOTEBOOK_URL}
-Deferred items: C2.16, C2.17, C4.13 — re-verify after 24h
+Deferred items: C2.16, C2.17, C4.13, E3.1 (Davis baseline) — re-verify after 24h
 ```
