@@ -833,19 +833,29 @@ Require synthetic data from `setup_test_workflow_anomalies.sql`.
 
   Pass: count > 0. `[SKIP if Davis baseline < 7 days old]`
 
-- [ ] **E3.2** `[BOTH]` — **warehouse-sensitive-change-alert fires on DDL event**
-  After `setup_test_workflow_anomalies.sql` runs ALTER WAREHOUSE on `DSOA_TEST_WH_DDL_SIM`,
-  trigger the workflow and verify it detects the DDL change:
+- [ ] **E3.2** `[BOTH]` — **warehouse-sensitive-change-alert fires on warehouse DDL**
+  Run an `ALTER WAREHOUSE` statement with a sensitive property keyword (e.g.
+  `ALTER WAREHOUSE DSOA_TEST_WH SET AUTO_SUSPEND = 120`), wait for the query_history
+  plugin to run (≤10 min), then trigger the workflow and verify it detects the change:
 
   ```dql
   fetch spans, from: now()-2h
-  | filter isNotNull(snowflake.object.ddl.operation)
-  | filter contains(snowflake.object.name, "DSOA_TEST_WH_DDL_SIM")
+  | filter db.system == "snowflake"
+  | filter in(db.operation.name, array("ALTER_WAREHOUSE", "CREATE_WAREHOUSE", "DROP_WAREHOUSE",
+      "ALTER_RESOURCE_MONITOR", "CREATE_RESOURCE_MONITOR", "DROP_RESOURCE_MONITOR"))
+  | filter contains(toString(db.query.text), "AUTO_SUSPEND")
+       or contains(toString(db.query.text), "WAREHOUSE_SIZE")
+       or contains(toString(db.query.text), "SCALING_POLICY")
   | summarize count = count()
   ```
 
-  Pass: count > 0. Prerequisite: `plugins.query_history.track_ddl_changes: true` in config.
-  `[SKIP if track_ddl_changes not enabled]`
+  Pass: count > 0. No special config required (`track_ddl_changes` is NOT needed).
+
+  NOTE: `ACCESS_HISTORY.OBJECT_MODIFIED_BY_DDL` does NOT capture warehouse DDL.
+  The workflow uses `db.operation.name` + `db.query.text` filtering instead.
+  Do NOT use `snowflake.object.ddl.operation` or `snowflake.object.name` to test
+  warehouse change detection — those attributes are only populated for database-object
+  DDL (tables, views, procedures, etc.).
 
 - [ ] **E3.3** `[VISUAL]` — **All 10 workflows visible in Dynatrace Workflows UI**
   Open: Dynatrace > Automations > Workflows.

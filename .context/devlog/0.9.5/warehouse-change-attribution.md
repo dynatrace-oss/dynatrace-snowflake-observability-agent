@@ -87,6 +87,23 @@ operation, property delta) was discarded.
 - Customer Zero will run the nine-statement DDL test plan documented in
   `.context/proposals/0.9.5/` and confirm the dashboard tiles render with live data.
 
+## QA Finding — 2026-05-25 (ses_ant3b)
+
+**`ACCESS_HISTORY.OBJECT_MODIFIED_BY_DDL` does NOT capture warehouse-level DDL.**
+
+Confirmed during live QA: `ALTER WAREHOUSE` and `CREATE WAREHOUSE` do not populate
+`OBJECT_MODIFIED_BY_DDL`. Only database-object DDL (tables, views, procedures, etc.) appears
+there. The hold-back logic in `V_QUERY_HISTORY` (which waited for `ddl_operation IS NOT NULL`
+for warehouse DDL types) was suppressing those rows indefinitely.
+
+**Fix applied (branch: fix/0.9.5/warehouse-ddl-finding):**
+
+- Removed the hold-back filter for warehouse/resource-monitor DDL types from
+  `051_v_query_history.sql`. These rows are now emitted without DDL attributes.
+- Updated `warehouse-sensitive-change-alert` workflow to use `db.operation.name` +
+  `db.query.text` keyword scanning instead of `snowflake.object.ddl.operation`.
+- See `.context/devlog/0.9.5/warehouse-ddl-limitation.md` for full analysis.
+
 ## Future work
 
 If customer adoption shows the feature is high-signal, factor it into a dedicated plugin

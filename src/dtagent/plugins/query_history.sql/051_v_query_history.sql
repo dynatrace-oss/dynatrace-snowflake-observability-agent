@@ -328,19 +328,14 @@ and not (qh.QUERY_TEXT = '' and
          qh.ROLE_NAME is null and
          qh.DATABASE_NAME is null and
          qh.SCHEMA_NAME is null)
--- EXPERIMENTAL: when track_ddl_changes is on, hold back warehouse / resource-monitor
--- DDL rows until ACCESS_HISTORY catches up (~3h lag) so we emit a single enriched
--- event instead of one without and one with DDL attribution. Rows are not added to
--- STATUS.PROCESSED_QUERIES_CACHE because they are filtered out here; on the next run
--- after AH catchup the LEFT JOIN populates ddl_operation and the row is emitted.
-and not (
-    CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.track_ddl_changes', FALSE)::boolean
-    and qh.query_type in (
-        'ALTER_WAREHOUSE',  'CREATE_WAREHOUSE',  'DROP_WAREHOUSE',
-        'ALTER_RESOURCE_MONITOR', 'CREATE_RESOURCE_MONITOR', 'DROP_RESOURCE_MONITOR'
-    )
-    and ah.ddl_operation is null
-)
+-- NOTE: warehouse and resource-monitor DDL (ALTER_WAREHOUSE, CREATE_WAREHOUSE,
+-- DROP_WAREHOUSE, ALTER_RESOURCE_MONITOR, CREATE_RESOURCE_MONITOR,
+-- DROP_RESOURCE_MONITOR) is NOT held back even when track_ddl_changes=true.
+-- Snowflake does NOT populate ACCESS_HISTORY.OBJECT_MODIFIED_BY_DDL for
+-- warehouse-level operations — only database-object DDL (tables, views, procedures,
+-- etc.) appears there. These rows are emitted without DDL attributes
+-- (snowflake.object.* will be NULL); consumers should use db.operation.name to
+-- detect warehouse changes.
 QUALIFY CASE
     WHEN CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.max_entries', 0)::int = 0 THEN TRUE
     -- Signal-protection exemption: never drop DDL change events when the

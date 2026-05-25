@@ -1,7 +1,7 @@
 # WORKFLOW: DSOA — Warehouse Sensitive Change Alert (Experimental)
 # DESCRIPTION: Alerts when a sensitive warehouse / resource-monitor property is altered.
 # OWNER: DSOA Team
-# PLUGINS: query_history (with plugins.query_history.track_ddl_changes=true)
+# PLUGINS: query_history
 # TAGS: snowflake, dsoa, security, warehouse, ddl, experimental
 
 id: 9c0fb1e1-1998-47ad-9a8e-2f2bd0e9cafe
@@ -11,12 +11,17 @@ description: |
   size changes, scaling policy changes, auto-suspend changes, resource-monitor reassignments,
   and cluster-count changes — and raises a Dynatrace event per detected change.
 
-  Requires the query_history plugin with the experimental
-  `plugins.query_history.track_ddl_changes` flag enabled. Because Snowflake populates
-  ACCESS_HISTORY.OBJECT_MODIFIED_BY_DDL up to ~3 h after a DDL statement, this workflow
-  fires up to ~3 h after the actual change.
+  Requires the query_history plugin (track_ddl_changes flag is NOT required for warehouse
+  detection). Uses db.operation.name and db.query.text from query_history spans, which are
+  always emitted for warehouse DDL regardless of the track_ddl_changes setting.
 
-  May be refactored when the underlying feature graduates from experimental.
+  NOTE: Snowflake does NOT populate ACCESS_HISTORY.OBJECT_MODIFIED_BY_DDL for warehouse-level
+  DDL (ALTER WAREHOUSE, CREATE WAREHOUSE, DROP WAREHOUSE, ALTER RESOURCE MONITOR, etc.).
+  Only database-object DDL (tables, views, procedures) appears there. This workflow therefore
+  uses db.operation.name filtering instead of snowflake.object.ddl.operation.
+
+  Caveat: db.query.text is subject to obfuscation if plugins.query_history.obfuscation_mode
+  is not "off". If obfuscation is enabled, the property-keyword scan may not match.
 isPrivate: false
 schemaVersion: 4
 trigger:
@@ -32,7 +37,7 @@ trigger:
 tasks:
   detect_sensitive_changes:
     name: detect_sensitive_changes
-    description: Fetch warehouse / resource-monitor DDL events with a sensitive property delta.
+    description: Fetch warehouse / resource-monitor DDL spans with a sensitive property keyword in the query text.
     action: dynatrace.automations:execute-dql-query
     active: true
     position:
@@ -43,24 +48,24 @@ tasks:
     predecessors: []
     input:
       query: |
-        fetch logs, from: now()-90m
+        fetch spans, from: now()-90m
         | filter db.system == "snowflake"
-        | filter isNotNull(snowflake.object.ddl.operation)
-        | filter in(snowflake.object.type, array("Warehouse","Resource Monitor"))
-        | filter contains(toString(snowflake.object.ddl.properties), "WAREHOUSE_SIZE")
-             or contains(toString(snowflake.object.ddl.properties), "SCALING_POLICY")
-             or contains(toString(snowflake.object.ddl.properties), "RESOURCE_MONITOR")
-             or contains(toString(snowflake.object.ddl.properties), "AUTO_SUSPEND")
-             or contains(toString(snowflake.object.ddl.properties), "MIN_CLUSTER_COUNT")
-             or contains(toString(snowflake.object.ddl.properties), "MAX_CLUSTER_COUNT")
+        | filter in(db.operation.name, array(
+            "ALTER_WAREHOUSE", "CREATE_WAREHOUSE", "DROP_WAREHOUSE",
+            "ALTER_RESOURCE_MONITOR", "CREATE_RESOURCE_MONITOR", "DROP_RESOURCE_MONITOR"
+          ))
+        | filter contains(toString(db.query.text), "WAREHOUSE_SIZE")
+             or contains(toString(db.query.text), "SCALING_POLICY")
+             or contains(toString(db.query.text), "RESOURCE_MONITOR")
+             or contains(toString(db.query.text), "AUTO_SUSPEND")
+             or contains(toString(db.query.text), "MIN_CLUSTER_COUNT")
+             or contains(toString(db.query.text), "MAX_CLUSTER_COUNT")
         | fields timestamp,
                  deployment.environment,
                  db.user,
                  snowflake.role.name,
-                 snowflake.object.type,
-                 snowflake.object.name,
-                 snowflake.object.ddl.operation,
-                 snowflake.object.ddl.properties
+                 db.operation.name,
+                 db.query.text
         | sort timestamp desc
         | limit 100
 
@@ -99,31 +104,25 @@ tasks:
           const records = (dqlResult && dqlResult.records) || [];
 
           for (const r of records) {
-            const objectType = r['snowflake.object.type'] || 'unknown';
-            const objectName = r['snowflake.object.name'] || 'unknown';
-            const ddlOp = r['snowflake.object.ddl.operation'] || 'CHANGE';
+            const opName = r['db.operation.name'] || 'CHANGE';
+            const queryText = r['db.query.text'] || '';
             const user = r['db.user'] || 'unknown';
             const role = r['snowflake.role.name'] || 'unknown';
 
             events.push({
               body: {
                 eventType: CONFIG.eventType,
-                title: `Sensitive ${objectType} change: ${ddlOp} ${objectName}`,
+                title: `Sensitive warehouse change: ${opName}`,
                 properties: {
                   'event.description':
-                    `Snowflake user ${user} (role ${role}) ran ${ddlOp} on ` +
-                    `${objectType} ${objectName} with a sensitive property delta.`,
+                    `Snowflake user ${user} (role ${role}) ran ${opName} ` +
+                    `with a sensitive property change.`,
                   'event.start': r['timestamp'],
                   'ad.source': CONFIG.adSource,
                   'db.user': user,
                   'snowflake.role.name': role,
-                  'snowflake.object.type': objectType,
-                  'snowflake.object.name': objectName,
-                  'snowflake.object.ddl.operation': ddlOp,
-                  'snowflake.object.ddl.properties':
-                    typeof r['snowflake.object.ddl.properties'] === 'string'
-                      ? r['snowflake.object.ddl.properties']
-                      : JSON.stringify(r['snowflake.object.ddl.properties']),
+                  'db.operation.name': opName,
+                  'db.query.text': queryText,
                   'deployment.environment': r['deployment.environment']
                 },
                 timeout: CONFIG.eventTimeout

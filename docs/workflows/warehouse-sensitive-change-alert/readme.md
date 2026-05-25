@@ -1,54 +1,50 @@
-# Workflow: Warehouse Sensitive Change Alert (Experimental)
+# Workflow: Warehouse Sensitive Change Alert
 
 Raises a Dynatrace event whenever a Snowflake warehouse or resource monitor is altered with
 a property change in the sensitive allowlist (size, scaling policy, auto-suspend,
-resource-monitor reassignment, cluster-count bounds). Built on the experimental DDL
-attribution feature in the `query_history` plugin.
+resource-monitor reassignment, cluster-count bounds).
 
 ## Overview
 
 | Property        | Value                                                                                  |
 |-----------------|----------------------------------------------------------------------------------------|
 | DPO Theme       | Security                                                                               |
-| Required Plugin | `query_history` with `plugins.query_history.track_ddl_changes=true` (experimental)     |
+| Required Plugin | `query_history` (standard; `track_ddl_changes` is NOT required)                        |
 | Trigger         | Every 60 minutes (interval)                                                            |
-| Alert condition | Any DDL on `Warehouse` or `Resource Monitor` touching a sensitive property             |
+| Alert condition | Any warehouse/resource-monitor DDL with a sensitive keyword in the query text          |
 | Event source    | `dsoa.warehouse_sensitive_change`                                                      |
-| Expected lag    | Up to ~3 hours after the actual change (driven by ACCESS_HISTORY catchup in Snowflake) |
+| Expected lag    | Near-real-time (driven by query_history plugin run interval, typically ≤10 min)        |
 
 ## How It Works
 
-1. **`detect_sensitive_changes`** — DQL query against `logs` looking back 90 minutes for
-   any record where `snowflake.object.ddl.operation` is non-null, `snowflake.object.type`
-   is `Warehouse` or `Resource Monitor`, and `snowflake.object.ddl.properties` contains at
-   least one sensitive property name. The 90-minute window is intentionally larger than the
-   60-minute interval to provide overlap and tolerate ingestion delays.
+1. **`detect_sensitive_changes`** — DQL query against `spans` looking back 90 minutes for
+   any span where `db.operation.name` is a warehouse or resource-monitor DDL type
+   (`ALTER_WAREHOUSE`, `CREATE_WAREHOUSE`, `DROP_WAREHOUSE`, `ALTER_RESOURCE_MONITOR`,
+   `CREATE_RESOURCE_MONITOR`, `DROP_RESOURCE_MONITOR`) and `db.query.text` contains at
+   least one sensitive property keyword. The 90-minute window is intentionally larger than
+   the 60-minute interval to provide overlap and tolerate ingestion delays.
 
 1. **`build_events`** — Constructs one Dynatrace event per detected change with the user,
-   role, object name, operation, and full property delta as event properties.
+   role, operation name, and raw query text as event properties.
 
 1. **`ingest_events`** — Pushes events via the Environment v2 events API. The event type
    is `CustomInfo` by default; switch to `CustomAlert` to enable Davis problem correlation.
 
 ## Telemetry Source
 
-Reads the following attributes from `query_history` logs and spans (all five are emitted only when
-`plugins.query_history.track_ddl_changes=true`):
+Reads the following attributes from `query_history` spans (always emitted for warehouse DDL):
 
-| Attribute                          | Role                                                  |
-|------------------------------------|-------------------------------------------------------|
-| `snowflake.object.type`            | Filtered to `Warehouse` / `Resource Monitor`          |
-| `snowflake.object.name`            | Identifies the affected warehouse / resource monitor  |
-| `snowflake.object.ddl.operation`   | `CREATE` / `ALTER` / `DROP` / etc.                    |
-| `snowflake.object.ddl.properties`  | JSON delta; scanned for sensitive-property keys       |
-| `db.user`, `snowflake.role.name`   | Actor attribution                                     |
-
-The two standard query_history dimensions `deployment.environment` and `db.system` scope the
-query to Snowflake telemetry from a specific DSOA deployment.
+| Attribute                | Role                                                                  |
+|--------------------------|-----------------------------------------------------------------------|
+| `db.operation.name`      | Filtered to warehouse/resource-monitor DDL types                      |
+| `db.query.text`          | Raw SQL; scanned for sensitive-property keywords                      |
+| `db.user`                | Actor (user who ran the DDL)                                          |
+| `snowflake.role.name`    | Role used                                                             |
+| `deployment.environment` | Scopes query to a specific DSOA deployment                            |
 
 ## Sensitive property allowlist
 
-The workflow scans the JSON-stringified property delta for any of these keys:
+The workflow scans `db.query.text` for any of these keywords:
 
 - `WAREHOUSE_SIZE`
 - `SCALING_POLICY`
@@ -62,14 +58,15 @@ property changes (such as `COMMENT`) deliberately do not fire.
 
 ## Caveats
 
-- **Experimental.** Tied to the `track_ddl_changes` flag in the `query_history` plugin;
-  may be refactored when that feature graduates.
-- **Lag.** `ACCESS_HISTORY.OBJECT_MODIFIED_BY_DDL` is populated up to ~3 hours after the
-  DDL statement, so this workflow will not fire in real time. For sub-hour alerting on
-  the legacy unstructured signal use a separate workflow on `db.operation.name`.
-- **`ALTER WAREHOUSE … SUSPEND` / `RESUME`** are session operations in Snowflake and are
-  not expected to appear in `OBJECT_MODIFIED_BY_DDL` — they will not trigger this workflow.
-  If you need them, alert on `db.operation.name` directly.
+- **`db.query.text` obfuscation.** If `plugins.query_history.obfuscation_mode` is not `off`,
+  query text may be obfuscated and the keyword scan will not match. Ensure obfuscation is
+  disabled or set to a mode that preserves DDL keywords for this workflow to function.
+- **`ALTER WAREHOUSE … SUSPEND` / `RESUME`** are session operations and do not carry
+  sensitive property keywords — they will not trigger this workflow. This is intentional.
+- **No structured property delta.** Unlike the `snowflake.object.ddl.properties` attribute
+  (which is only populated for database-object DDL via `ACCESS_HISTORY.OBJECT_MODIFIED_BY_DDL`),
+  this workflow uses raw SQL text. Snowflake does NOT populate `OBJECT_MODIFIED_BY_DDL` for
+  warehouse-level DDL, so structured delta is not available.
 
 ## Configuration
 
