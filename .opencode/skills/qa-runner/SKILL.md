@@ -32,6 +32,7 @@ before moving to the next. Do not skip phases.
 | 2     | Deployment guidance | Human (AI provides commands) | Both environments running            |
 | 3     | Notebook deployment | AI (runs script)             | Notebook URL                         |
 | 3.5   | Auto-evaluation     | AI (runs DQL via MCP)        | Pass/fail for auto-evaluable tests   |
+| 3.6   | Workflow deployment | AI + human gate              | 10 workflows deployed + executed     |
 | 4     | Test walkthrough    | Interactive                  | Pass/fail per checklist item         |
 | 5     | QA signoff          | AI                           | Markdown report file                 |
 
@@ -260,6 +261,7 @@ Coordinator / ant-1  →  Batch 1 (core health, always runs first)
 ant-2 (after B8-B10) →  Batch 2 (additional metrics, logs, spans)
 ant-3                →  Batch 3 (events, active queries, shares, lifecycle)
 ant-4                →  Batch 4 (OpenPipeline, obfuscation, overload)
+ant-5 (after Ph 3.6) →  Batch 5 (workflow static + deployment validation)
 ```
 
 Start Batches 2-4 only after the coordinator confirms DEV-{CURR_TAG} telemetry
@@ -1257,7 +1259,122 @@ and increase it or set to `0` to disable capping.
 
 ---
 
-### Auto-evaluation output
+### Batch 5 — Workflow static and deployment validation
+
+Run by eval-batch-4 (ant-5) in Cowork mode, or sequentially after Batch 4.
+Run **after** Phase 3.6 (workflow deploy) is confirmed complete.
+
+**Prerequisites for this batch:**
+- All 10 workflows deployed via `deploy_dt_assets.sh --scope=workflows --env=test-qa`
+- `setup_test_workflows.sql` and `setup_test_workflow_anomalies.sql` run
+
+#### AE-E1.1 — Workflow schema tests pass (offline)
+
+```bash
+.venv/bin/pytest test/workflows/test_workflow_schema.py -v --tb=short 2>&1 | tail -5
+```
+
+**Pass:** exit 0, all tests green.
+
+#### AE-E1.2 — Workflow consistency tests pass (offline)
+
+```bash
+.venv/bin/pytest test/workflows/test_workflow_consistency.py -v --tb=short 2>&1 | tail -5
+```
+
+**Pass:** exit 0, all tests green.
+
+#### AE-E1.3 — Workflow DQL tests pass (offline)
+
+```bash
+.venv/bin/pytest test/workflows/test_workflow_dql.py -v --tb=short 2>&1 | tail -5
+```
+
+**Pass:** exit 0, all non-live tests green.
+
+#### AE-E1.4 — Workflow JS syntax checks pass (offline)
+
+```bash
+.venv/bin/pytest test/workflows/test_workflow_js.py -v --tb=short 2>&1 | tail -5
+```
+
+**Pass:** exit 0, all tests green.
+
+#### AE-E1.5 — Workflow dry-run deploy succeeds
+
+```bash
+./scripts/deploy/deploy_dt_assets.sh --scope=workflows --env=test-qa --dry-run 2>&1 | tail -5
+```
+
+**Pass:** exit 0, no errors.
+
+#### AE-E2.1 — credits-exhaustion-prediction workflow deployed
+
+```dql
+fetch bizevents
+| filter event.type == "com.dynatrace.automation.workflow.execution.finished"
+| filter contains(matchesValue(workflow.title, "*credits*exhaustion*"), "true")
+| summarize count = count()
+```
+
+**Pass:** count > 0 after triggering workflow execution. `[SKIP if workflow not triggered in Phase 3.6]`
+
+#### AE-E2.3 — dynamic-table-drift workflow deployed
+
+```dql
+fetch bizevents
+| filter event.type == "com.dynatrace.automation.workflow.execution.finished"
+| filter contains(matchesValue(workflow.title, "*dynamic*table*"), "true")
+| summarize count = count()
+```
+
+**Pass:** count > 0 after trigger. `[SKIP if not triggered]`
+
+#### AE-E2.6 — query-slowdown-detection workflow deployed
+
+```dql
+fetch bizevents
+| filter event.type == "com.dynatrace.automation.workflow.execution.finished"
+| filter contains(matchesValue(workflow.title, "*query*slowdown*"), "true")
+| summarize count = count()
+```
+
+**Pass:** count > 0 after trigger. `[SKIP if not triggered]`
+
+#### AE-E2.9 — table-perf-degradation workflow deployed
+
+```dql
+fetch bizevents
+| filter event.type == "com.dynatrace.automation.workflow.execution.finished"
+| filter contains(matchesValue(workflow.title, "*table*perf*"), "true")
+| summarize count = count()
+```
+
+**Pass:** count > 0 after trigger. `[SKIP if not triggered]`
+
+#### AE-E3.1 — data-volume-anomaly events present (after spike)
+
+```dql
+fetch events, from: now()-1h
+| filter isNotNull(`ad.source`)
+| filter `ad.source` == "dsoa.data_volume_anomaly"
+| summarize count = count()
+```
+
+**Pass:** count > 0 after seeding the data volume spike.
+**Skip:** `[SKIP if Davis baseline < 7 days old]`
+
+#### AE-E3.2 — warehouse DDL events captured for sensitive-change alert
+
+```dql
+fetch spans, from: now()-2h
+| filter isNotNull(snowflake.object.ddl.operation)
+| filter contains(snowflake.object.name, "DSOA_TEST_WH_DDL_SIM")
+| summarize count = count()
+```
+
+**Pass:** count > 0 after running `setup_test_workflow_anomalies.sql`.
+**Skip:** `[SKIP if track_ddl_changes not enabled]`
 
 After running all batches, present the consolidated results table:
 
@@ -1349,12 +1466,81 @@ After running all batches, present the consolidated results table:
 | AE-C11.2 | Overload warning logged (self_monitoring ctx)   | PASS/FAIL |       |
 | AE-C11.3 | Normal query logs flow alongside overload       | PASS/FAIL |       |
 
-Auto-evaluated: {N}/58 — {n} passed, {f} failed, {s} skipped
-  Batch 1: {n1}/13  Batch 2: {n2}/23  Batch 3: {n3}/16  Batch 4: {n4}/11
-  (Deferred: C2.16, C2.17, C4.13 — verify on next day / after data latency window)
+### Batch 5 — Workflow static and deployment validation
+
+| Test     | Description                                     | Result    | Notes |
+|----------|-------------------------------------------------|-----------|-------|
+| AE-E1.1  | Workflow schema tests pass (offline)            | PASS/FAIL |       |
+| AE-E1.2  | Workflow consistency tests pass (offline)       | PASS/FAIL |       |
+| AE-E1.3  | Workflow DQL tests pass (offline)               | PASS/FAIL |       |
+| AE-E1.4  | Workflow JS syntax checks pass (offline)        | PASS/FAIL |       |
+| AE-E1.5  | Workflow dry-run deploy succeeds                | PASS/FAIL |       |
+| AE-E2.1  | credits-exhaustion-prediction workflow deployed | PASS/FAIL/SKIP | |
+| AE-E2.3  | dynamic-table-drift workflow deployed           | PASS/FAIL/SKIP | |
+| AE-E2.6  | query-slowdown-detection workflow deployed      | PASS/FAIL/SKIP | |
+| AE-E2.9  | table-perf-degradation workflow deployed        | PASS/FAIL/SKIP | |
+| AE-E3.1  | data-volume-anomaly events after spike          | PASS/FAIL/SKIP | |
+| AE-E3.2  | warehouse DDL events for sensitive-change alert | PASS/FAIL/SKIP | |
+
+Auto-evaluated: {N}/70 — {n} passed, {f} failed, {s} skipped
+  Batch 1: {n1}/13  Batch 2: {n2}/23  Batch 3: {n3}/16  Batch 4: {n4}/11  Batch 5: {n5}/7
+  (Deferred: C2.16, C2.17, C4.13, E3.1 — verify on next day / after data latency window)
 ```
 
 Include the full consolidated table in the Phase 5 markdown report.
+
+---
+
+## Phase 3.6 — Workflow Deployment
+
+Deploy all DSOA workflows to the test tenant. Ask for confirmation before triggering
+any live workflow executions (they consume credits and may send Dynatrace notifications).
+
+### 3.6a. Deploy workflows
+
+```bash
+./scripts/deploy/deploy_dt_assets.sh --scope=workflows --env=test-qa
+```
+
+Verify exit 0 and that all 10 workflows are assigned IDs. If the deploy script
+prints `0 workflows deployed`, check that `docs/workflows/` contains all 10 YAML files.
+
+### 3.6b. Confirm execution (human gate)
+
+> "All 10 workflows have been deployed. May I proceed to trigger test executions
+> for all 10 workflows? This will consume a small amount of compute credits on the
+> test tenant. Type `yes` to proceed or `skip` to skip live execution tests."
+
+If the human says `skip`, mark all E2.x execution items as `[SKIP: human skipped]` and
+proceed to Phase 4.
+
+### 3.6c. Trigger workflow executions
+
+Only proceed after human confirmation. For each of the 10 workflows, trigger via dtctl:
+
+```bash
+# List deployed DSOA workflows and capture IDs
+dtctl get workflows -o json | python3 -c "
+import sys, json
+wfs = json.load(sys.stdin)
+for w in wfs:
+    if 'DSOA' in w.get('title', ''):
+        print(w['id'], w['title'])
+"
+```
+
+Then trigger each workflow:
+
+```bash
+# Example — repeat for each workflow ID
+dtctl exec workflow <id> --watch --timeout 600
+```
+
+**ORGADMIN gate:** Before triggering `org-contract-balance-warning`, check `HAS_ORGADMIN`
+from Phase 1f. If `false`, mark E2.5 as `[SKIP: HAS_ORGADMIN=false]`.
+
+Record: each workflow's execution status (`SUCCESS` / `FAILED` / `TIMEOUT`) and
+whether any task entered an `ERROR` state.
 
 ---
 
@@ -1402,8 +1588,8 @@ Generate the result summary table:
 ```text
 Section                  | Pass | Fail | Skip | Total
 -------------------------|------|------|------|------
-A — Offline              |      |      |      |  12
-B — Deployment           |      |      |      |  15
+A — Offline              |      |      |      |  14
+B — Deployment           |      |      |      |  16
 C1 — Data Volume         |      |      |      |   8
 C2 — Metrics             |      |      |      |  16
 C3 — Logs                |      |      |      |   8
@@ -1416,7 +1602,8 @@ C9 — OpenPipeline        |      |      |      |   6
 C10 — Obfuscation        |      |      |      |   3
 C11 — Signal Protection  |      |      |      |   2
 D — Dashboards           |      |      |      |  14
-Total                    |      |      |      | 119
+E — Workflows            |      |      |      |  19
+Total                    |      |      |      | 141
 ```
 
 List all failed and skipped items with the human's notes.
@@ -1452,20 +1639,20 @@ The report file must have the following structure:
 ## Signoff
 
 > DSOA {CURR_VERSION} QA — {DATE} — {PASS}/{TOTAL} items passed ({DEFERRED} deferred)
-> Deferred: C2.16, C2.17, C4.13 — re-verify after data latency window
+> Deferred: C2.16, C2.17, C4.13, E3.1 — re-verify after data latency window
 
 ## Auto-Evaluation (AI)
 
 [Paste consolidated auto-eval table from Phase 3.5 here]
 
-Auto-evaluated: {N}/58 — {n} passed, {f} failed, {s} skipped
+Auto-evaluated: {N}/70 — {n} passed, {f} failed, {s} skipped
 
 ## Section Results
 
 | Section                  | Pass | Fail | Skip | Total |
 |--------------------------|------|------|------|-------|
-| A — Offline              |      |      |      |  12   |
-| B — Deployment           |      |      |      |  15   |
+| A — Offline              |      |      |      |  14   |
+| B — Deployment           |      |      |      |  16   |
 | C1 — Data Volume         |      |      |      |   8   |
 | C2 — Metrics             |      |      |      |  16   |
 | C3 — Logs                |      |      |      |   8   |
@@ -1478,7 +1665,8 @@ Auto-evaluated: {N}/58 — {n} passed, {f} failed, {s} skipped
 | C10 — Obfuscation        |      |      |      |   3   |
 | C11 — Signal Protection  |      |      |      |   2   |
 | D — Dashboards           |      |      |      |  14   |
-| **Total**                |      |      |      | **119**|
+| E — Workflows            |      |      |      |  19   |
+| **Total**                |      |      |      | **141**|
 
 ## Failures and Skips
 

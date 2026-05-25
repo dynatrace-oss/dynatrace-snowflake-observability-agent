@@ -38,7 +38,7 @@ tasks:
     predecessors: []
     input:
       script: |
-        import { metricsClient } from '@dynatrace-sdk/client-metrics';
+        import { metricsClient } from '@dynatrace-sdk/client-classic-environment-v2';
 
         // Threshold below which to trigger an alert (in USD or contract currency)
         const BALANCE_THRESHOLD = 1000;
