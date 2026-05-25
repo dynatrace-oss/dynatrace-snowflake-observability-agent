@@ -71,7 +71,8 @@ select
         'db.user',                                                  qh.user_name,
         'snowflake.role.name',                                      qh.role_name,
         'snowflake.warehouse.name',                                 qh.warehouse_name,
-        'snowflake.query.execution_status',                         qh.execution_status
+        'snowflake.query.execution_status',                         qh.execution_status,
+        'snowflake.user.type',                                      qh.user_type
     )                                                                                                                   as DIMENSIONS,
     -- other attributes
     OBJECT_CONSTRUCT(

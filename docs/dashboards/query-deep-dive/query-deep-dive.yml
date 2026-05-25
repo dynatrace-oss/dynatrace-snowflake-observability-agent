@@ -95,6 +95,19 @@ variables:
         | filter isNotNull(db.operation.name)
         | summarize collectDistinct(db.operation.name)
 
+  - key: UserType
+    type: query
+    visible: true
+    editable: true
+    version: 2
+    multiple: true
+    input: |
+      fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "query_history"
+        | filter isNotNull(snowflake.user.type)
+        | summarize collectDistinct(snowflake.user.type)
+
   - key: TopN
     type: csv
     visible: true
@@ -964,6 +977,40 @@ tiles:
     davis:
       enabled: false
 
+  "26":
+    title: Queries by user type
+    type: data
+    query: |
+      fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "query_history"
+        | filter isNotNull(snowflake.user.type)
+        | filter in(deployment.environment, array($Accounts))
+        | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
+        | filter (isNull(db.namespace)             or in(db.namespace, array($Database)))
+        | filter (isNull(db.user)                  or in(db.user, array($User)))
+        | filter (isNull(db.operation.name)        or in(db.operation.name, array($Operation)))
+        | summarize count = count(), by: { snowflake.user.type }
+        | sort count desc
+    visualization: pieChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        legend:
+          position: bottom
+        circleChartSettings:
+          valueType: relative
+          groupingThresholdType: relative
+      thresholds: []
+    querySettings:
+      maxResultRecords: 100
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 50
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+
   # ── Section 7: Cost Attribution & Data Transfer ────────────────────────────
   "20":
     title: ""
@@ -1246,14 +1293,21 @@ layouts:
   "18":
     x: 0
     "y": 54
-    w: 12
+    w: 8
     h: 6
 
   # Tile 19: Queries by auth type
   "19":
-    x: 12
+    x: 8
     "y": 54
-    w: 12
+    w: 8
+    h: 6
+
+  # Tile 26: Queries by user type
+  "26":
+    x: 16
+    "y": 54
+    w: 8
     h: 6
 
   # Section 7 header

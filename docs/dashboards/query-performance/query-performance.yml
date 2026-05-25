@@ -125,6 +125,20 @@ variables:
         | sort db.user asc
     multiple: true
   - version: 2
+    key: UserType
+    type: query
+    visible: true
+    editable: true
+    input: |-
+      fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "query_history"
+        | filter isNotNull(snowflake.user.type)
+        | fields snowflake.user.type
+        | dedup snowflake.user.type
+        | sort snowflake.user.type asc
+    multiple: true
+  - version: 2
     key: TAG_FILTER
     type: text
     visible: false
@@ -1125,6 +1139,113 @@ tiles:
       enabled: false
       davisVisualization:
         isAvailable: true
+  "17":
+    type: markdown
+    content: |
+      ## User Type Distribution
+      Query volume and execution time split by Snowflake user type (PERSON, SERVICE, LEGACY_SERVICE, SNOWFLAKE_SERVICE).
+    davis:
+      componentState:
+        inputData: null
+  "18":
+    title: Execution time by user type over time
+    type: data
+    query: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "query_history"
+      | fieldsAdd snow_account = deployment.environment
+      | filter in(snow_account, array($Account))
+      | filter in(coalesce(db.name, db.namespace), array($DB_Name))
+      | filter in(db.user, array($User))
+      | filter (isNull(snowflake.user.type) or in(snowflake.user.type, array($UserType)))
+      | filter isNotNull(snowflake.time.execution)
+      | fieldsAdd
+          user_type = coalesce(snowflake.user.type, "UNKNOWN"),
+          exec_time = toLong(snowflake.time.execution)
+      | makeTimeseries {
+          total_exec_time = sum(exec_time)
+        }, by: { user_type }
+    visualization: areaChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        legend:
+          position: bottom
+        leftYAxisSettings:
+          label: Execution Time
+          isLabelVisible: true
+        xAxisLabel: timeframe
+        xAxisScaling: analyzedTimeframe
+        fieldMapping:
+          leftAxisValues:
+            - total_exec_time
+          timestamp: timeframe
+        gapPolicy: connect
+      dataMapping:
+        displayedFields:
+          - user_type
+      unitsOverrides:
+        - identifier: total_exec_time
+          unitCategory: time
+          baseUnit: millisecond
+          displayUnit: null
+          decimals: 2
+          suffix: ""
+          delimiter: false
+          added: 1
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+  "19":
+    title: Query count by user type
+    type: data
+    query: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "query_history"
+      | fieldsAdd snow_account = deployment.environment
+      | filter in(snow_account, array($Account))
+      | filter in(coalesce(db.name, db.namespace), array($DB_Name))
+      | filter in(db.user, array($User))
+      | filter (isNull(snowflake.user.type) or in(snowflake.user.type, array($UserType)))
+      | fieldsAdd user_type = coalesce(snowflake.user.type, "UNKNOWN")
+      | summarize query_count = count(), by: { user_type }
+      | sort query_count desc
+    visualization: donutChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        legend:
+          hidden: false
+          position: bottom
+        circleChartSettings:
+          valueType: relative
+          groupingThresholdType: relative
+        categoricalBarChartSettings:
+          valueAxis:
+            - query_count
+          valueAxisLabel: query_count
+          categoryAxis:
+            - user_type
+          categoryAxisLabel: user_type
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
 layouts:
   "0":
     x: 0
@@ -1210,6 +1331,21 @@ layouts:
     x: 9
     "y": 44
     w: 15
+    h: 6
+  "17":
+    x: 0
+    "y": 50
+    w: 24
+    h: 2
+  "18":
+    x: 0
+    "y": 52
+    w: 14
+    h: 6
+  "19":
+    x: 14
+    "y": 52
+    w: 10
     h: 6
 importedWithCode: false
 settings:

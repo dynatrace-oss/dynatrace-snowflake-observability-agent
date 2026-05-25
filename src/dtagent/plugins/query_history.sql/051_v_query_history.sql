@@ -172,6 +172,7 @@ select
     qh.query_hash,
     qh.query_parameterized_hash,
     qh.user_name,
+    qh.user_type,
     qh.role_name,
     qh.release_version,
 

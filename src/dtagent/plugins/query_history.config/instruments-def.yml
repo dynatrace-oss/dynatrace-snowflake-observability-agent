@@ -279,6 +279,13 @@ dimensions:
   snowflake.warehouse.name:
     __example: COMPUTE_WH
     __description: The warehouse used to execute the query.
+  snowflake.user.type:
+    __example: PERSON
+    __description: >-
+      The type of user who executed the query. Possible values: PERSON (human interactive user),
+      SERVICE (programmatic service user), LEGACY_SERVICE (legacy service account),
+      SNOWFLAKE_SERVICE (Snowpark Container Services). Useful for splitting workloads
+      by human vs. automated traffic.
 metrics:
   snowflake.cost_attribution.query_count:
     __example: "42"

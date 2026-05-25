@@ -115,6 +115,22 @@ variables:
     input: "0.01,0.02,0.05,0.10,0.25,0.50"
     multiple: false
     defaultValue: "0.01"
+  - version: 2
+    key: UserType
+    type: query
+    visible: true
+    editable: true
+    input: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.context == "query_history"
+      | filter isNotNull(snowflake.user.type)
+      | fields snowflake.user.type
+      | dedup snowflake.user.type
+      | sort snowflake.user.type asc
+    multiple: true
+    defaultValue:
+      - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
 tiles:
   "0":
     title: Credits used
@@ -1953,6 +1969,62 @@ tiles:
         isAvailable: true
       componentState:
         inputData: null
+  "32":
+    title: Slow query count by user type (> $Slow_Query_Min min)
+    type: data
+    query: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.context == "query_history"
+      | filter isNotNull(snowflake.query.id)
+      | fieldsAdd snowflake.time.running.in_min = toLong(snowflake.time.total_elapsed)/1000/60
+      | filter toLong(snowflake.time.running.in_min) > toDouble($Slow_Query_Min)
+      | fieldsAdd key = concat(deployment.environment, "|", snowflake.warehouse.name)
+      | joinNested rs = [
+        fetch events
+        | filter db.system == "snowflake"
+        | filter isNotNull(snowflake.warehouse.event)
+        | filter isNotNull(snowflake.resource_monitor.name) and isNotNull(snowflake.warehouse.name)
+        | summarize {count()}, by: {
+          snowflake.resource_monitor.name,
+          snowflake.warehouse.name,
+          deployment.environment}
+        | fieldsAdd key = concat(deployment.environment, "|", snowflake.warehouse.name)
+      ], on: {left[key] == right[key]}
+       , fields: {snowflake.resource_monitor.name}
+      | expand rs = rs
+      | fieldsAdd snowflake.resource_monitor.name = rs[snowflake.resource_monitor.name]
+      | fieldsRemove rs
+      | filter in(deployment.environment, array($Accounts))
+           and iAny(startsWith(snowflake.warehouse.name, concat(array($Prefix)[], "_")))
+           and in(snowflake.resource_monitor.name, array($Resource_Monitors))
+           and in(snowflake.warehouse.name, array($Warehouses))
+      | filter (isNull(snowflake.user.type) or in(snowflake.user.type, array($UserType)))
+      | fieldsAdd user_type = coalesce(snowflake.user.type, "UNKNOWN")
+      | summarize query_count = count(), by: { user_type }
+      | sort query_count desc
+    visualization: pieChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        legend:
+          position: bottom
+        circleChartSettings:
+          valueType: relative
+          groupingThresholdType: relative
+      thresholds: []
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 1
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
 layouts:
   "0":
     x: 0
@@ -2113,6 +2185,11 @@ layouts:
     x: 0
     "y": 109
     w: 24
+    h: 6
+  "32":
+    x: 0
+    "y": 115
+    w: 12
     h: 6
 settings:
   defaultTimeframe:
