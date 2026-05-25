@@ -25,10 +25,10 @@ trigger:
     timezone: UTC
     inputs: {}
 tasks:
-  check_balance:
-    name: check_balance
-    description: Query remaining org contract balances and fire alerts if below threshold
-    action: dynatrace.automations:run-javascript
+  fetch_balances:
+    name: fetch_balances
+    description: Query remaining org contract balances via DQL timeseries
+    action: dynatrace.automations:execute-dql-query
     active: true
     position:
       x: 0
@@ -37,42 +37,70 @@ tasks:
       states: {}
     predecessors: []
     input:
+      query: |
+        timeseries {
+          free_usage_balance     = avg(snowflake.org.billing.free_usage_balance),
+          capacity_balance       = avg(snowflake.org.billing.capacity_balance),
+          on_demand_consumption  = avg(snowflake.org.billing.on_demand_consumption),
+          rollover_balance       = avg(snowflake.org.billing.rollover_balance),
+          overage                = avg(snowflake.org.billing.overage)
+        }
+        , from: now()-7d
+        , by: { deployment.environment }
+
+  check_balance:
+    name: check_balance
+    description: Evaluate balance values and build alert list if below threshold
+    action: dynatrace.automations:run-javascript
+    active: true
+    position:
+      x: 0
+      y: 2
+    conditions:
+      states:
+        fetch_balances: SUCCESS
+    predecessors:
+      - fetch_balances
+    input:
       script: |
-        import { metricsClient } from '@dynatrace-sdk/client-classic-environment-v2';
+        import { execution } from '@dynatrace-sdk/automation-utils';
 
         // Threshold below which to trigger an alert (in USD or contract currency)
         const BALANCE_THRESHOLD = 1000;
-        const METRIC_IDS = [
-          'snowflake.org.billing.free_usage_balance',
-          'snowflake.org.billing.capacity_balance',
-          'snowflake.org.billing.on_demand_consumption',
-          'snowflake.org.billing.rollover_balance',
-          'snowflake.org.billing.overage',
+        const METRIC_FIELDS = [
+          'free_usage_balance',
+          'capacity_balance',
+          'on_demand_consumption',
+          'rollover_balance',
+          'overage',
         ];
+        const METRIC_IDS = {
+          free_usage_balance:    'snowflake.org.billing.free_usage_balance',
+          capacity_balance:      'snowflake.org.billing.capacity_balance',
+          on_demand_consumption: 'snowflake.org.billing.on_demand_consumption',
+          rollover_balance:      'snowflake.org.billing.rollover_balance',
+          overage:               'snowflake.org.billing.overage',
+        };
 
-        export default async function () {
+        export default async function ({ execution_id }) {
+          const ex = await execution(execution_id);
+          const dqlResult = await ex.result('fetch_balances');
+          const records = dqlResult?.records ?? [];
+
           const alerts = [];
 
-          for (const metricId of METRIC_IDS) {
-            const result = await metricsClient.query({
-              metricSelector: `${metricId}:avg:last`,
-              resolution: 'Inf',
-              from: 'now-7d',
-            });
-
-            const dimDefs = result?.resolution?.dimensionDefinitions ?? [];
-            const series = result?.resolution?.series ?? [];
-            for (const s of series) {
-              const latestValue = s.values?.at(-1);
+          for (const record of records) {
+            const env = record['deployment.environment'] ?? '';
+            for (const field of METRIC_FIELDS) {
+              const series = record[field] ?? [];
+              // series is an array of values — take the last non-null value
+              const latestValue = [...series].reverse().find((v) => v !== null) ?? null;
               if (latestValue !== null && latestValue < BALANCE_THRESHOLD) {
-                const dimensions = Object.fromEntries(
-                  dimDefs.map((d, i) => [d.name, s.dimensionValues?.[i] ?? ''])
-                );
                 alerts.push({
-                  metric: metricId,
+                  metric: METRIC_IDS[field],
                   value: latestValue,
                   threshold: BALANCE_THRESHOLD,
-                  dimensions,
+                  dimensions: { 'deployment.environment': env },
                 });
               }
             }
@@ -94,7 +122,7 @@ tasks:
     active: true
     position:
       x: 0
-      y: 2
+      y: 3
     conditions:
       states:
         check_balance: OK
