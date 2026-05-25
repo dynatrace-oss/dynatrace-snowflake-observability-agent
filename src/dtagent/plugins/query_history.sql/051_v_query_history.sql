@@ -67,7 +67,8 @@ with cte_include_warehouses as (
         qh.session_id,
         qh.warehouse_name,
         qh.database_name,
-        qh.user_name
+        qh.user_name,
+        COUNT(*) OVER()                                                         AS _TOTAL_AVAILABLE
     from
         SNOWFLAKE.ACCOUNT_USAGE.QUERY_HISTORY qh
     where
@@ -96,6 +97,11 @@ with cte_include_warehouses as (
          or qh.user_name LIKE ANY (select pattern from cte_include_users))
     and ((select count(*) from cte_exclude_users) = 0
          or not qh.user_name LIKE ANY (select pattern from cte_exclude_users))
+    QUALIFY CASE
+        WHEN CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.max_entries', 0)::int = 0 THEN TRUE
+        ELSE ROW_NUMBER() OVER (ORDER BY qh.execution_time DESC NULLS LAST)
+                 <= CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.max_entries', 0)::int
+    END
 )
 , cte_access_history as (
     select
@@ -287,7 +293,7 @@ select
 
     qh.fault_handling_time,
 
-    count(*) over ()                                                                                                     as _TOTAL_AVAILABLE
+    cqc._TOTAL_AVAILABLE                                                                                                 as _TOTAL_AVAILABLE
 from
     SNOWFLAKE.ACCOUNT_USAGE.QUERY_HISTORY           qh
 inner join
@@ -336,16 +342,6 @@ and not (qh.QUERY_TEXT = '' and
 -- etc.) appears there. These rows are emitted without DDL attributes
 -- (snowflake.object.* will be NULL); consumers should use db.operation.name to
 -- detect warehouse changes.
-QUALIFY CASE
-    WHEN CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.max_entries', 0)::int = 0 THEN TRUE
-    -- Signal-protection exemption: never drop DDL change events when the
-    -- experimental track_ddl_changes flag is on. DDL rows are sparse and
-    -- security-relevant, so they bypass top-N execution-time pruning.
-    WHEN CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.track_ddl_changes', FALSE)::boolean
-         AND ah.ddl_operation is not null THEN TRUE
-    ELSE ROW_NUMBER() OVER (ORDER BY qh.execution_time DESC NULLS LAST)
-             <= CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.max_entries', 0)::int
-END
 ;
 grant select on table APP.V_QUERY_HISTORY to role DTAGENT_VIEWER;
 
