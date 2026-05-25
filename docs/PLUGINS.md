@@ -141,7 +141,7 @@ plugins:
 > **IMPORTANT**: For the `query_history` and `active_queries` plugins to report telemetry for all queries, the `DTAGENT_VIEWER` role must be
 > granted `MONITOR` privileges on all warehouses. By default, when the `admin` scope is installed, this is ensured through the periodic
 > execution of the `APP.P_MONITOR_WAREHOUSES()` procedure, triggered by the `APP.TASK_DTAGENT_QUERY_HISTORY_GRANTS` task. The schedule for
-> this special task can be configured using the `PLUGINS.QUERY_HISTORY.SCHEDULE_GRANTS` configuration option. Since this procedure runs with
+> this special task can be configured using the `plugins.query_history.schedule_grants` configuration option. Since this procedure runs with
 > the elevated privileges of the `DTAGENT_ADMIN` role (which is only created when the `admin` scope is installed), you may choose to:
 
 ### Active Queries bill of materials
@@ -556,7 +556,7 @@ plugins:
 > default, when the `admin` scope is installed, this is handled by the `P_GRANT_MONITOR_DYNAMIC_TABLES()` procedure, which is executed with
 > the elevated privileges of the `DTAGENT_ADMIN` role (created only when the `admin` scope is installed), via the
 > `APP.TASK_DTAGENT_DYNAMIC_TABLES_GRANTS` task. The schedule for this task can be configured separately using the
-> `PLUGINS.DYNAMIC_TABLES.SCHEDULE_GRANTS` configuration option.
+> `plugins.dynamic_tables.schedule_grants` configuration option.
 >
 > When the `admin` scope is **not** installed, these grants are **never applied automatically**. The plugin will report **no telemetry for
 > monitored dynamic tables** without any errors or warnings. You must apply the grants manually (see below) before going to production
@@ -1344,36 +1344,36 @@ the `QUERY_OPERATOR_STATS` and `SYSTEM$ESTIMATE_QUERY_ACCELERATION` functions.
 
 The following options control this behavior:
 
-- `PLUGINS.QUERY_HISTORY.SLOW_QUERIES_THRESHOLD`: The execution time threshold in milliseconds. Queries running longer than this are
+- `plugins.query_history.slow_queries_threshold`: The execution time threshold in milliseconds. Queries running longer than this are
   considered slow and eligible for analysis. Default: `10000` (10 seconds).
-- `PLUGINS.QUERY_HISTORY.MAX_SLOWEST_QUERIES`: The maximum number of slowest queries to analyze. Default: `50`.
+- `plugins.query_history.max_slowest_queries`: The maximum number of slowest queries to analyze. Default: `50`.
 
 ## Signal Protection Framework Configuration
 
 The plugin supports signal protection to prevent overload on high-volume Snowflake accounts. The following options control this behavior:
 
-- `PLUGINS.QUERY_HISTORY.MAX_ENTRIES`: Maximum number of query entries to process per run. Set to `0` for unlimited (default). When set, the
+- `plugins.query_history.max_entries`: Maximum number of query entries to process per run. Set to `0` for unlimited (default). When set, the
   view applies a `QUALIFY` filter keeping the top-N queries by execution time (descending). The pre-filter count is carried via
   `_TOTAL_AVAILABLE` for self-monitoring.
-- `PLUGINS.QUERY_HISTORY.MAX_LOOKBACK_MINUTES`: Maximum lookback window in minutes for catching up on unprocessed queries. Default: `120`.
+- `plugins.query_history.max_lookback_minutes`: Maximum lookback window in minutes for catching up on unprocessed queries. Default: `120`.
   The plugin uses the last-processed watermark from `STATUS.LOG_PROCESSED_MEASUREMENTS` but never looks back further than this value.
-- `PLUGINS.QUERY_HISTORY.INCLUDE_WAREHOUSES`: Array of LIKE patterns (e.g. `PROD_%`, `MY_WH`). Empty array means no filter applied. Supports
+- `plugins.query_history.include_warehouses`: Array of LIKE patterns (e.g. `PROD_%`, `MY_WH`). Empty array means no filter applied. Supports
   `%` and `_` wildcards. Exclude always takes precedence over include.
-- `PLUGINS.QUERY_HISTORY.EXCLUDE_WAREHOUSES`: Array of LIKE patterns (e.g. `PROD_%`, `MY_WH`). Empty array means no filter applied. Supports
+- `plugins.query_history.exclude_warehouses`: Array of LIKE patterns (e.g. `PROD_%`, `MY_WH`). Empty array means no filter applied. Supports
   `%` and `_` wildcards. Exclude always takes precedence over include. Default: `["DTAGENT_WH"]`.
-- `PLUGINS.QUERY_HISTORY.INCLUDE_DATABASES`: Array of LIKE patterns (e.g. `PROD_%`, `MY_WH`). Empty array means no filter applied. Supports
+- `plugins.query_history.include_databases`: Array of LIKE patterns (e.g. `PROD_%`, `MY_WH`). Empty array means no filter applied. Supports
   `%` and `_` wildcards. Exclude always takes precedence over include.
-- `PLUGINS.QUERY_HISTORY.EXCLUDE_DATABASES`: Array of LIKE patterns (e.g. `PROD_%`, `MY_WH`). Empty array means no filter applied. Supports
+- `plugins.query_history.exclude_databases`: Array of LIKE patterns (e.g. `PROD_%`, `MY_WH`). Empty array means no filter applied. Supports
   `%` and `_` wildcards. Exclude always takes precedence over include.
-- `PLUGINS.QUERY_HISTORY.INCLUDE_USERS`: Array of LIKE patterns (e.g. `PROD_%`, `MY_WH`). Empty array means no filter applied. Supports `%`
+- `plugins.query_history.include_users`: Array of LIKE patterns (e.g. `PROD_%`, `MY_WH`). Empty array means no filter applied. Supports `%`
   and `_` wildcards. Exclude always takes precedence over include.
-- `PLUGINS.QUERY_HISTORY.EXCLUDE_USERS`: Array of LIKE patterns (e.g. `PROD_%`, `MY_WH`). Empty array means no filter applied. Supports `%`
+- `plugins.query_history.exclude_users`: Array of LIKE patterns (e.g. `PROD_%`, `MY_WH`). Empty array means no filter applied. Supports `%`
   and `_` wildcards. Exclude always takes precedence over include.
 
 > **IMPORTANT**: For the `query_history` and `active_queries` plugins to report telemetry for all queries, the `DTAGENT_VIEWER` role must be
 > granted `MONITOR` privileges on all warehouses. By default, when the `admin` scope is installed, this is ensured through the periodic
 > execution of the `APP.P_MONITOR_WAREHOUSES()` procedure, triggered by the `APP.TASK_DTAGENT_QUERY_HISTORY_GRANTS` task. The schedule for
-> this special task can be configured using the `PLUGINS.QUERY_HISTORY.SCHEDULE_GRANTS` configuration option. Since this procedure runs with
+> this special task can be configured using the `plugins.query_history.schedule_grants` configuration option. Since this procedure runs with
 > the elevated privileges of the `DTAGENT_ADMIN` role (which is only created when the `admin` scope is installed), you may choose to:
 >
 > - Skip the `admin` scope entirely and manually grant `MONITOR` privileges on warehouses to `DTAGENT_VIEWER`
@@ -1381,7 +1381,7 @@ The plugin supports signal protection to prevent overload on high-volume Snowfla
 
 ## Query Text Obfuscation Configuration
 
-- `PLUGINS.QUERY_HISTORY.OBFUSCATION_MODE`: Controls query text obfuscation before data is sent to Dynatrace. Applies to `db.query.text` on
+- `plugins.query_history.obfuscation_mode`: Controls query text obfuscation before data is sent to Dynatrace. Applies to `db.query.text` on
   spans and `snowflake.error.message` on failed queries. Valid values:
   - `off` (default) — no obfuscation, full query text is forwarded unchanged.
   - `literals` — replaces single-quoted string literals and standalone numeric literals with `?`. SQL structure and identifiers are
@@ -1648,7 +1648,7 @@ plugins:
 > `SYSTEM$PIPE_STATUS()`). By default, when the `admin` scope is installed, this is handled by the `P_GRANT_MONITOR_SNOWPIPES()` procedure,
 > which is executed with the elevated privileges of the `DTAGENT_ADMIN` role (created only when the `admin` scope is installed), via the
 > `APP.TASK_DTAGENT_SNOWPIPES_GRANTS` task. The schedule for this task can be configured separately using the
-> `PLUGINS.SNOWPIPES.SCHEDULE_GRANTS` configuration option.
+> `plugins.snowpipes.schedule_grants` configuration option.
 >
 > When the `admin` scope is **not** installed, these grants are **never applied automatically**. The plugin will report **no telemetry for
 > monitored pipes** without any errors or warnings. You must apply the grants manually (see below) before going to production without admin
