@@ -55,6 +55,13 @@ All notable changes to this project will be documented in this file.
 - `snowflake.task.run.attempt` now emits as a numeric integer instead of a string. Downstream DQL queries no longer need `toLong()` casts. Redeploy with `--scope=plugins,config` to apply. (BDX-1903)
 - Config redeploy now fully replaces the config table (DELETE + INSERT) so removed entries take effect immediately. Previously, stale entries could override `disabled_by_default: true`.
 - Disabled plugins have their Snowflake tasks suspended automatically on every redeploy, regardless of deploy scope.
+- **`org-contract-balance-warning` workflow**: fixed JavaScript import error — `@dynatrace-sdk/client-metrics` does not exist on the Dynatrace automation runtime; replaced with `@dynatrace-sdk/client-classic-environment-v2` (BUG-E2.5a). Subsequent 406 error from `metricsClient.query()` resolved by replacing the Metrics v2 API call with a DQL `execute-dql-query` action (BUG-E2.5b). See [devlog](.context/devlog/0.9.5/qa-followup-2026-05-25.md).
+- **`warehouse-sensitive-change-alert` workflow**: corrected detection logic — `ALTER WAREHOUSE` DDL does not populate `ACCESS_HISTORY.OBJECT_MODIFIED_BY_DDL` in Snowflake; workflow DQL and test tooling updated to reflect this platform limitation. See [devlog](.context/devlog/0.9.5/qa-followup-2026-05-25.md).
+- **Configuration parameter documentation**: four plugin `config.md` files referenced config keys in uppercase (e.g. `PLUGINS.X.Y`); corrected to lowercase to match the actual YAML key format used in `conf/config-template.yml`.
+
+### Clarified
+
+- **`query_history` include/exclude filters** use SQL `LIKE` wildcards (`%` for any sequence, `_` for a single character), not glob-style `*`. Documentation updated to prevent misconfiguration.
 
 ## [0.9.4] - 2026-04-14
 
