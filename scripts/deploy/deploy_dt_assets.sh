@@ -128,7 +128,7 @@ convert_yaml_to_dtctl_json() {
     local asset_type="$2"
     local asset_name="$3"
     local tmp_file
-    tmp_file=$(mktemp /tmp/dtctl-asset-XXXXXX.json)
+    tmp_file=$(mktemp "${TMPDIR:-/tmp}/dtctl-asset-XXXXXX")
 
     # Convert YAML → raw JSON
     local raw_json
@@ -300,7 +300,7 @@ deploy_assets_of_type() {
 
         # Deploy
         local id_file
-        id_file=$(mktemp /tmp/dtctl-id-XXXXXX.txt)
+        id_file=$(mktemp "${TMPDIR:-/tmp}/dtctl-id-XXXXXX")
         if deploy_asset "$tmp_json" "$asset_name" "$id_file"; then
             (( success_count++ )) || true
 
@@ -314,7 +314,7 @@ deploy_assets_of_type() {
                 if [[ -n "$assigned_id" ]] && (( yaml_id_count == 0 )); then
                     # Insert id: <uuid> after the last contiguous header comment block
                     local tmp_yaml
-                    tmp_yaml=$(mktemp /tmp/dtctl-yaml-XXXXXX.yml)
+                    tmp_yaml=$(mktemp "${TMPDIR:-/tmp}/dtctl-yaml-XXXXXX")
                     awk -v id="$assigned_id" '
                         !inserted && /^[^#]/ { print "id: " id; inserted=1 }
                         { print }

@@ -157,7 +157,7 @@ class QueryHistoryPlugin(Plugin):
             # emit self-monitoring event if signal protection was applied
             self._emit_overload_protection_event(refresh_result, __context)
 
-        t_recent_queries = "APP.V_RECENT_QUERIES"
+        t_recent_queries = "APP.V_QUERY_HISTORY_INSTRUMENTED"
         processed_query_ids, processing_errors_count, span_events_added, spans_sent, logs_sent, metrics_sent = self._process_span_rows(
             f_entry_generator=lambda: self._get_table_rows(t_recent_queries),
             view_name=t_recent_queries,

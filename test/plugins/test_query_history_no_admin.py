@@ -26,7 +26,7 @@
 class TestQueryHistNoAdmin:
     """Validate query_history plugin runs without error when admin-scoped objects are absent.
 
-    This test verifies the Python code path only: APP.V_RECENT_QUERIES is the sole data
+    This test verifies the Python code path only: APP.V_QUERY_HISTORY_INSTRUMENTED is the sole data
     source for query_history.py — there is no Python-level dependency on admin objects
     (P_MONITOR_WAREHOUSES or TASK_DTAGENT_QUERY_HISTORY_GRANTS). The test fixture
     (test/test_data/query_history.ndjson) is shared with the standard query_history test
@@ -37,7 +37,7 @@ class TestQueryHistNoAdmin:
 
     import pytest
 
-    FIXTURES = {"APP.V_RECENT_QUERIES": "test/test_data/query_history.ndjson"}
+    FIXTURES = {"APP.V_QUERY_HISTORY_INSTRUMENTED": "test/test_data/query_history.ndjson"}
 
     @pytest.mark.xdist_group(name="test_telemetry")
     def test_query_history_no_admin(self):

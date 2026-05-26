@@ -44,7 +44,7 @@ begin
 exception
   when other then
     system$log_warn(concat('P_UPDATE_RESOURCE_MONITOR: Failed to update credit quota. ',
-      'If ownership of DTAGENT_RS was changed (e.g. via Snowflake UI with ACCOUNTADMIN), ',
+      'If ownership of DTAGENT_RS was changed (e.g. via Snowflake UI with a privileged role), ',
       're-run deployment with scope=init to restore grants. Error: ', sqlerrm));
     return 1;
 end;

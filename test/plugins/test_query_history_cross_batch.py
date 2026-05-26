@@ -37,7 +37,7 @@ Fixture layout (query_history_cross_batch.ndjson):
 class TestQueryHistCrossBatch:
     import pytest
 
-    FIXTURES = {"APP.V_RECENT_QUERIES": "test/test_data/query_history_cross_batch.ndjson"}
+    FIXTURES = {"APP.V_QUERY_HISTORY_INSTRUMENTED": "test/test_data/query_history_cross_batch.ndjson"}
 
     @pytest.mark.xdist_group(name="test_telemetry")
     def test_cross_batch_span_context_injection(self):
@@ -130,7 +130,7 @@ class TestQueryHistCrossBatch:
         """
         import json as _json
 
-        fixture_path = self.FIXTURES["APP.V_RECENT_QUERIES"]
+        fixture_path = self.FIXTURES["APP.V_QUERY_HISTORY_INSTRUMENTED"]
         with open(fixture_path, "r", encoding="utf-8") as fh:
             rows = [_json.loads(line) for line in fh if line.strip()]
 
@@ -172,7 +172,7 @@ class TestQueryHistCrossBatch:
         from dtagent.config import Configuration
         from dtagent.util import _adjust_timestamp
 
-        fixture_path = self.FIXTURES["APP.V_RECENT_QUERIES"]
+        fixture_path = self.FIXTURES["APP.V_QUERY_HISTORY_INSTRUMENTED"]
         with open(fixture_path, "r", encoding="utf-8") as fh:
             rows = [_json.loads(line) for line in fh if line.strip()]
 
@@ -207,7 +207,7 @@ class TestQueryHistCrossBatch:
                 mock_session,
                 "QUERY_ID",
                 "PARENT_QUERY_ID",
-                view_name="APP.V_RECENT_QUERIES",
+                view_name="APP.V_QUERY_HISTORY_INSTRUMENTED",
                 is_top_level=True,
                 span_context_map=span_context_map,
             )

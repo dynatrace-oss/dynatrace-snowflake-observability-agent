@@ -24,7 +24,7 @@
 class TestQueryHist:
     import pytest
 
-    FIXTURES = {"APP.V_RECENT_QUERIES": "test/test_data/query_history.ndjson"}
+    FIXTURES = {"APP.V_QUERY_HISTORY_INSTRUMENTED": "test/test_data/query_history.ndjson"}
 
     @pytest.mark.xdist_group(name="test_telemetry")
     def test_query_hist(self):
@@ -270,7 +270,7 @@ class TestQueryHistDdl:
 
     import pytest
 
-    FIXTURES = {"APP.V_RECENT_QUERIES": "test/test_data/query_history_ddl.ndjson"}
+    FIXTURES = {"APP.V_QUERY_HISTORY_INSTRUMENTED": "test/test_data/query_history_ddl.ndjson"}
 
     @pytest.mark.xdist_group(name="test_telemetry")
     def test_ddl_attrs_flow_through(self):
@@ -286,7 +286,7 @@ class TestQueryHistDdl:
         from dtagent.plugins.query_history import QueryHistoryPlugin
         from dtagent.otel.spans import Spans
 
-        ddl_fixture_path = TestQueryHistDdl.FIXTURES["APP.V_RECENT_QUERIES"]
+        ddl_fixture_path = TestQueryHistDdl.FIXTURES["APP.V_QUERY_HISTORY_INSTRUMENTED"]
 
         if utils.should_generate_fixtures([ddl_fixture_path]):
             # DDL fixture is authored by hand (no live Snowflake source); skip regeneration.
