@@ -20,14 +20,14 @@
 # SOFTWARE.
 #
 # DASHBOARD: Warehouse Change Detection
-# DESCRIPTION: Audit warehouse and resource monitor DDL changes (experimental).
+# DESCRIPTION: Audit warehouse DDL changes via query_history logs.
 # OWNER: DSOA Team
 # PLUGINS: query_history
-# TAGS: security, warehouse, ddl, experimental
+# TAGS: security, warehouse, ddl
 #
 id: 0c662c92-d629-455b-b8c6-9e74aa3df6e9
 name: Warehouse Change Detection
-version: 1
+version: 2
 variables:
   - version: 2
     key: Accounts
@@ -37,6 +37,7 @@ variables:
     input: |-
       fetch logs
       | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "query_history"
       | filter isNotNull(deployment.environment)
       | fields deployment.environment
       | dedup deployment.environment
@@ -45,40 +46,62 @@ variables:
     defaultValue:
       - "*"
   - version: 2
-    key: SensitiveProperties
-    type: text
+    key: Operation
+    type: query
     visible: true
     editable: true
-    defaultValue: WAREHOUSE_SIZE,SCALING_POLICY,RESOURCE_MONITOR,AUTO_SUSPEND,MIN_CLUSTER_COUNT,MAX_CLUSTER_COUNT
+    input: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "query_history"
+      | filter in(db.operation.name, array("ALTER", "CREATE", "DROP", "RENAME_WAREHOUSE"))
+      | fields db.operation.name
+      | dedup db.operation.name
+      | sort db.operation.name asc
+    multiple: true
+    defaultValue:
+      - "*"
+  - version: 2
+    key: Actor
+    type: query
+    visible: true
+    editable: true
+    input: |-
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "query_history"
+      | filter in(db.operation.name, array("ALTER", "CREATE", "DROP", "RENAME_WAREHOUSE"))
+      | filter isNotNull(db.user)
+      | fields db.user
+      | dedup db.user
+      | sort db.user asc
+    multiple: true
+    defaultValue:
+      - "*"
 tiles:
   "0":
     type: markdown
     content: |-
       # Warehouse Change Detection
 
-      Audit who changed which **warehouse** or **resource monitor**, when, and the exact property delta.
+      Tracks configuration changes to Snowflake warehouses — who changed what, when, and the raw SQL of the change.
 
-      - **Shape A** tiles use the legacy `db.operation.name` signal -- always available, but you must regex-parse target names from `db.query.text`.
-      - **Shape B** tiles use the experimental `snowflake.object.*` DDL attribution emitted when `plugins.query_history.track_ddl_changes=true`. Lag is up to ~3 h after the change due to `ACCESS_HISTORY.OBJECT_MODIFIED_BY_DDL` catchup.
+      Uses `query_history` logs filtered by `db.operation.name` for warehouse DDL operations. Use the **Operation** and **Actor** variables to narrow the view.
 
-      See the [`query_history` plugin readme](https://github.com/dynatrace-oss/dynatrace-snowflake-observability-agent/blob/main/src/dtagent/plugins/query_history.config/readme.md) for activation instructions and caveats.
+      > **Tip:** Enable `plugins.query_history.obfuscation_mode: "off"` if you need full SQL text visibility for change auditing.
     davis:
       componentState:
         inputData: null
   "1":
-    type: markdown
-    content: "## Shape A -- Legacy change timeline (no feature flag required)"
-    davis:
-      componentState:
-        inputData: null
-  "2":
-    title: Warehouse / Resource Monitor change events (last 24 h)
+    title: Change audit log (last 24 h)
     type: data
     query: |-
       fetch logs, from: now()-24h
       | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "query_history"
       | filter in(deployment.environment, array($Accounts))
-      | filter in(db.operation.name, array("ALTER_WAREHOUSE","CREATE_WAREHOUSE","DROP_WAREHOUSE","ALTER_RESOURCE_MONITOR","CREATE_RESOURCE_MONITOR","DROP_RESOURCE_MONITOR"))
+      | filter in(db.operation.name, array($Operation))
+      | filter in(db.user, array($Actor))
       | fields timestamp, deployment.environment, db.user, snowflake.role.name, db.operation.name, db.query.text
       | sort timestamp desc
       | limit 200
@@ -103,24 +126,78 @@ tiles:
         isAvailable: true
       componentState:
         inputData: null
-  "3":
-    type: markdown
-    content: "## Shape B -- Structured DDL attribution (requires `track_ddl_changes=true`)"
-    davis:
-      componentState:
-        inputData: null
-  "4":
-    title: Structured warehouse changes (last 7 d)
+  "2":
+    title: Changes over time (last 7 d)
     type: data
     query: |-
       fetch logs, from: now()-7d
       | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "query_history"
       | filter in(deployment.environment, array($Accounts))
-      | filter isNotNull(snowflake.object.ddl.operation)
-      | filter snowflake.object.type == "Warehouse"
-      | fields timestamp, deployment.environment, db.user, snowflake.role.name, snowflake.object.name, snowflake.object.ddl.operation, snowflake.object.ddl.properties
-      | sort timestamp desc
-      | limit 200
+      | filter in(db.operation.name, array($Operation))
+      | filter in(db.user, array($Actor))
+      | makeTimeseries count = count(), by: { db.operation.name }
+    visualization: categoricalBarChart
+    visualizationSettings:
+      thresholds: []
+      dataMapping: {}
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "3":
+    title: Changes by operation type (last 7 d)
+    type: data
+    query: |-
+      fetch logs, from: now()-7d
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "query_history"
+      | filter in(deployment.environment, array($Accounts))
+      | filter in(db.operation.name, array($Operation))
+      | filter in(db.user, array($Actor))
+      | summarize event_count = count(), by: { db.operation.name }
+      | sort event_count desc
+    visualization: table
+    visualizationSettings:
+      table:
+        rowDensity: condensed
+        enableSparklines: false
+        hiddenColumns: []
+        linewrapEnabled: true
+      thresholds: []
+      dataMapping: {}
+    querySettings:
+      maxResultRecords: 1000
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 100
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+      davisVisualization:
+        isAvailable: true
+      componentState:
+        inputData: null
+  "4":
+    title: Actor attribution (last 7 d)
+    type: data
+    query: |-
+      fetch logs, from: now()-7d
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "query_history"
+      | filter in(deployment.environment, array($Accounts))
+      | filter in(db.operation.name, array($Operation))
+      | filter in(db.user, array($Actor))
+      | summarize change_count = count(), by: { db.user, snowflake.role.name }
+      | sort change_count desc
     visualization: table
     visualizationSettings:
       table:
@@ -143,54 +220,23 @@ tiles:
       componentState:
         inputData: null
   "5":
-    title: Sensitive-property drift (size / scaling / suspend / resource monitor)
+    title: Sensitive-property changes (last 7 d)
     type: data
     query: |-
       fetch logs, from: now()-7d
       | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "query_history"
       | filter in(deployment.environment, array($Accounts))
-      | filter isNotNull(snowflake.object.ddl.properties)
-      | filter snowflake.object.type == "Warehouse"
-      | filter contains(toString(snowflake.object.ddl.properties), "WAREHOUSE_SIZE")
-           or contains(toString(snowflake.object.ddl.properties), "SCALING_POLICY")
-           or contains(toString(snowflake.object.ddl.properties), "RESOURCE_MONITOR")
-           or contains(toString(snowflake.object.ddl.properties), "AUTO_SUSPEND")
-           or contains(toString(snowflake.object.ddl.properties), "MIN_CLUSTER_COUNT")
-           or contains(toString(snowflake.object.ddl.properties), "MAX_CLUSTER_COUNT")
-      | fields timestamp, deployment.environment, db.user, snowflake.role.name, snowflake.object.name, snowflake.object.ddl.operation, snowflake.object.ddl.properties
+      | filter in(db.operation.name, array($Operation))
+      | filter in(db.user, array($Actor))
+      | filter contains(upper(toString(db.query.text)), "WAREHOUSE_SIZE")
+           or contains(upper(toString(db.query.text)), "AUTO_SUSPEND")
+           or contains(upper(toString(db.query.text)), "SCALING_POLICY")
+           or contains(upper(toString(db.query.text)), "MIN_CLUSTER_COUNT")
+           or contains(upper(toString(db.query.text)), "MAX_CLUSTER_COUNT")
+      | fields timestamp, deployment.environment, db.user, snowflake.role.name, db.operation.name, db.query.text
       | sort timestamp desc
       | limit 200
-    visualization: table
-    visualizationSettings:
-      table:
-        rowDensity: condensed
-        enableSparklines: false
-        hiddenColumns: []
-        linewrapEnabled: true
-      thresholds: []
-      dataMapping: {}
-    querySettings:
-      maxResultRecords: 1000
-      defaultScanLimitGbytes: 500
-      maxResultMegaBytes: 100
-      defaultSamplingRatio: 10
-      enableSampling: false
-    davis:
-      enabled: false
-      davisVisualization:
-        isAvailable: true
-      componentState:
-        inputData: null
-  "6":
-    title: All DDL operations by object type (last 7 d)
-    type: data
-    query: |-
-      fetch logs, from: now()-7d
-      | filter db.system == "snowflake"
-      | filter in(deployment.environment, array($Accounts))
-      | filter isNotNull(snowflake.object.ddl.operation)
-      | summarize event_count = count(), by: { snowflake.object.type, snowflake.object.ddl.operation }
-      | sort event_count desc
     visualization: table
     visualizationSettings:
       table:
@@ -217,37 +263,32 @@ layouts:
     x: 0
     y: 0
     w: 24
-    h: 4
+    h: 3
   "1":
     x: 0
-    y: 4
+    y: 3
     w: 24
-    h: 1
+    h: 9
   "2":
     x: 0
-    y: 5
+    y: 12
     w: 24
-    h: 8
+    h: 7
   "3":
     x: 0
-    y: 13
-    w: 24
-    h: 1
-  "4":
-    x: 0
-    y: 14
-    w: 24
-    h: 8
-  "5":
-    x: 0
-    y: 22
-    w: 24
-    h: 8
-  "6":
-    x: 0
-    y: 30
+    y: 19
     w: 24
     h: 6
+  "4":
+    x: 0
+    y: 25
+    w: 24
+    h: 6
+  "5":
+    x: 0
+    y: 31
+    w: 24
+    h: 8
 settings:
   defaultTimeframe:
     value:
