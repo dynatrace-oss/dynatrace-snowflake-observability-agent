@@ -123,7 +123,6 @@ variables:
     input: |-
       fetch logs
       | filter db.system == "snowflake"
-      | filter dsoa.run.context == "query_history"
       | filter isNotNull(snowflake.user.type)
       | fields snowflake.user.type
       | dedup snowflake.user.type
@@ -841,6 +840,7 @@ tiles:
            and iAny(startsWith(snowflake.warehouse.name, concat(array($Prefix)[], "_")))
            and in(snowflake.resource_monitor.name, array($Resource_Monitors))
            and in(snowflake.warehouse.name, array($Warehouses))
+      | filter (isNull(snowflake.user.type) or in(snowflake.user.type, array($UserType)))
       | fieldsRemove snowflake.resource_monitor.name
       | makeTimeseries  count(), by: { db.user }
       //, interval: 1h
@@ -896,6 +896,7 @@ tiles:
            and iAny(startsWith(snowflake.warehouse.name, concat(array($Prefix)[], "_")))
            and in(snowflake.resource_monitor.name, array($Resource_Monitors))
            and in(snowflake.warehouse.name, array($Warehouses))
+      | filter (isNull(snowflake.user.type) or in(snowflake.user.type, array($UserType)))
       | fieldsAdd snowflake.time.duration = toDuration(1000*1000*toLong(snowflake.time.total_elapsed))
       | sort snowflake.time.total_elapsed desc
       | limit 100
@@ -2189,7 +2190,7 @@ layouts:
   "32":
     x: 0
     "y": 115
-    w: 12
+    w: 24
     h: 6
 settings:
   defaultTimeframe:
