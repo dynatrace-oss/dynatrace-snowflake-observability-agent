@@ -97,7 +97,7 @@ tiles:
       copy/usage history latency). A drop below 100 % indicates one or more pipes are paused, stopped, or stalled.
     type: data
     query: |-
-      fetch events
+      fetch logs
       | filter db.system == "snowflake"
       | filter dsoa.run.plugin == "snowpipes"
       | filter in(deployment.environment, array($Accounts))
@@ -415,7 +415,7 @@ tiles:
     title: Pipe Status
     type: data
     query: |-
-      fetch events
+      fetch logs
       | filter db.system == "snowflake"
       | filter dsoa.run.plugin == "snowpipes"
       | filter in(deployment.environment, array($Accounts))
