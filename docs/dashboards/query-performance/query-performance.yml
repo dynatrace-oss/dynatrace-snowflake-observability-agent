@@ -168,6 +168,7 @@ tiles:
       }, filter: {
         in(deployment.environment, array($Account))
         and in(snowflake.warehouse.name, array($Warehouse))
+        and (isNull(snowflake.user.type) or in(snowflake.user.type, array($UserType)))
       }
         | fieldsAdd service_name = coalesce(deployment.environment, service.name)
         | fieldsRemove service.name, deployment.environment
@@ -253,6 +254,7 @@ tiles:
             in(snow_account, array($Account))
                 and in(db_name, array($DB_Name))
                 and in(db.user, array($User))
+        | filter (isNull(snowflake.user.type) or in(snowflake.user.type, array($UserType)))
         | fieldsAdd snowflake.time.execution = toLong(snowflake.time.execution)
         | makeTimeseries {
           sum_exec_time = sum(snowflake.time.execution)
@@ -312,6 +314,7 @@ tiles:
             in(snow_account, array($Account))
                 and in(db_name, array($DB_Name))
                 and in(db.user, array($User))
+        | filter (isNull(snowflake.user.type) or in(snowflake.user.type, array($UserType)))
         | fieldsAdd db.snowflake.tables = if(isNotNull(asArray(db_snowflake_tables)), db_snowflake_tables,
                                      else: if(isNotNull(db_snowflake_tables), parse(db_snowflake_tables, """'"' JSON_ARRAY(strict=false, typed=true):table_names '"'"""),
                                      else: array(db_collection_name)))
@@ -372,6 +375,7 @@ tiles:
             in(snow_account, array($Account))
                 and in(db_name, array($DB_Name))
                 and in(db.user, array($User))
+        | filter (isNull(snowflake.user.type) or in(snowflake.user.type, array($UserType)))
         | fieldsAdd snowflake.time.execution = toLong(snowflake.time.execution)
         | makeTimeseries {
           sum_exec_time = sum(snowflake.time.execution)
@@ -431,6 +435,7 @@ tiles:
             in(snow_account, array($Account))
                 and in(db_name, array($DB_Name))
                 and in(db.user, array($User))
+        | filter (isNull(snowflake.user.type) or in(snowflake.user.type, array($UserType)))
         | fieldsAdd db.snowflake.tables = if(isNotNull(asArray(db_snowflake_tables)), db_snowflake_tables,
                                      else: if(isNotNull(db_snowflake_tables), parse(db_snowflake_tables, """'"' JSON_ARRAY(strict=false, typed=true):table_names '"'"""),
                                      else: array(db_collection_name)))
@@ -489,6 +494,7 @@ tiles:
             in(snow_account, array($Account))
                 and in(db_name, array($DB_Name))
                 and in(db.user, array($User))
+        | filter (isNull(snowflake.user.type) or in(snowflake.user.type, array($UserType)))
         | fieldsAdd snowflake.time.execution = toLong(snowflake.time.execution)
         | summarize {
           sum_exec_time = sum(snowflake.time.execution)
@@ -542,6 +548,7 @@ tiles:
             in(snow_account, array($Account))
                 and in(db_name, array($DB_Name))
                 and in(db.user, array($User))
+        | filter (isNull(snowflake.user.type) or in(snowflake.user.type, array($UserType)))
         | fieldsAdd snowflake.time.execution = toLong(snowflake.time.execution)
         | summarize {
           sum_exec_time = sum(snowflake.time.execution)
@@ -595,6 +602,7 @@ tiles:
             and isNotNull(snowflake.time.execution)
         | filter in(snow_account, array($Account))
         | filter in(db_name, array($DB_Name))
+        | filter (isNull(snowflake.user.type) or in(snowflake.user.type, array($UserType)))
         | fieldsAdd db_snowflake_tables = db.snowflake.tables
         | fieldsAdd db.snowflake.tables = if(isNotNull(asArray(db_snowflake_tables)), db_snowflake_tables,
                                      else: if(isNotNull(db_snowflake_tables), parse(db_snowflake_tables, """'"' JSON_ARRAY(strict=false, typed=true):table_names '"'"""),
@@ -732,7 +740,8 @@ tiles:
         , filter: {
           db.system == "snowflake" and
           in(deployment.environment, array($Account)) and
-          in(snowflake.warehouse.name, array($Warehouse))
+          in(snowflake.warehouse.name, array($Warehouse)) and
+          (isNull(snowflake.user.type) or in(snowflake.user.type, array($UserType)))
         }
         , union:true
     visualization: areaChart
@@ -820,6 +829,7 @@ tiles:
       | filter in(snow_account, array($Account))
       | filter in(coalesce(db.name, db.namespace), array($DB_Name))
       | filter in(db.user, array($User))
+      | filter (isNull(snowflake.user.type) or in(snowflake.user.type, array($UserType)))
       | filter isNotNull(snowflake.warehouse.name)
       | summarize
           `Compilation` = sum(toLong(snowflake.time.compilation)),
@@ -915,6 +925,7 @@ tiles:
       | filter in(snow_account, array($Account))
       | filter in(coalesce(db.name, db.namespace), array($DB_Name))
       | filter in(db.user, array($User))
+      | filter (isNull(snowflake.user.type) or in(snowflake.user.type, array($UserType)))
       | filter isNotNull(snowflake.query.tag) and snowflake.query.tag != ""
       | fieldsAdd snowflake.query.tag = replacePattern(snowflake.query.tag, $TAG_FILTER, "#")
       | fieldsAdd snowflake.time.execution = toLong(snowflake.time.execution)
@@ -976,6 +987,7 @@ tiles:
       | filter in(snow_account, array($Account))
       | filter in(coalesce(db.name, db.namespace), array($DB_Name))
       | filter in(db.user, array($User))
+      | filter (isNull(snowflake.user.type) or in(snowflake.user.type, array($UserType)))
       | filter isNotNull(snowflake.query.tag) and snowflake.query.tag != ""
       | fieldsAdd snowflake.query.tag = replacePattern(snowflake.query.tag, $TAG_FILTER, "#")
       | summarize total = sum(toLong(snowflake.time.total_elapsed)),
