@@ -132,7 +132,6 @@ variables:
     input: |-
       fetch logs
         | filter db.system == "snowflake"
-        | filter dsoa.run.plugin == "query_history"
         | filter isNotNull(snowflake.user.type)
         | fields snowflake.user.type
         | dedup snowflake.user.type
