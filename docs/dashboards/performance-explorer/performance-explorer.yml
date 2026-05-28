@@ -101,6 +101,19 @@ variables:
         | sort db.user asc
     multiple: true
   - version: 2
+    key: UserType
+    type: query
+    visible: true
+    editable: true
+    input: |-
+      fetch logs
+        | filter db.system == "snowflake"
+        | filter isNotNull(snowflake.user.type)
+        | fields snowflake.user.type
+        | dedup snowflake.user.type
+        | sort snowflake.user.type asc
+    multiple: true
+  - version: 2
     key: TopN
     type: csv
     visible: false
@@ -137,6 +150,7 @@ tiles:
         | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
         | filter (isNull(db.namespace) or in(db.namespace, array($Database)))
         | filter (isNull(db.user) or in(db.user, array($User)))
+        | filter (isNull(snowflake.user.type) or in(snowflake.user.type, array($UserType)))
         | summarize total_queries = count()
     visualization: singleValue
     visualizationSettings:
@@ -166,6 +180,7 @@ tiles:
         | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
         | filter (isNull(db.namespace) or in(db.namespace, array($Database)))
         | filter (isNull(db.user) or in(db.user, array($User)))
+        | filter (isNull(snowflake.user.type) or in(snowflake.user.type, array($UserType)))
         | summarize total_elapsed = sum(toLong(snowflake.time.total_elapsed))
     visualization: singleValue
     visualizationSettings:
@@ -204,6 +219,7 @@ tiles:
         | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
         | filter (isNull(db.namespace) or in(db.namespace, array($Database)))
         | filter (isNull(db.user) or in(db.user, array($User)))
+        | filter (isNull(snowflake.user.type) or in(snowflake.user.type, array($UserType)))
         | summarize
             total = count(),
             errors = countIf(snowflake.query.execution_status != "SUCCESS")
@@ -246,6 +262,7 @@ tiles:
         | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
         | filter (isNull(db.namespace) or in(db.namespace, array($Database)))
         | filter (isNull(db.user) or in(db.user, array($User)))
+        | filter (isNull(snowflake.user.type) or in(snowflake.user.type, array($UserType)))
         | summarize avg_exec = avg(toLong(snowflake.time.execution))
     visualization: singleValue
     visualizationSettings:
@@ -301,6 +318,7 @@ tiles:
         and in(snowflake.warehouse.name, array($Warehouse))
         and isNull(db.namespace) or in(db.namespace, array($Database))
         and (isNull(db.user) or in(db.user, array($User)))
+        and (isNull(snowflake.user.type) or in(snowflake.user.type, array($UserType)))
       }
       , union: true
     visualization: areaChart
@@ -384,6 +402,7 @@ tiles:
         | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
         | filter (isNull(db.namespace) or in(db.namespace, array($Database)))
         | filter (isNull(db.user) or in(db.user, array($User)))
+        | filter (isNull(snowflake.user.type) or in(snowflake.user.type, array($UserType)))
         | filter isNotNull(snowflake.warehouse.name)
         | summarize
             Compilation = sum(toLong(snowflake.time.compilation)),
@@ -473,6 +492,7 @@ tiles:
         | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
         | filter (isNull(db.namespace) or in(db.namespace, array($Database)))
         | filter (isNull(db.user) or in(db.user, array($User)))
+        | filter (isNull(snowflake.user.type) or in(snowflake.user.type, array($UserType)))
         | summarize
             exec_count = count(),
             p50 = percentile(toDouble(snowflake.time.total_elapsed), 50),
@@ -573,6 +593,7 @@ tiles:
         | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
         | filter (isNull(db.namespace) or in(db.namespace, array($Database)))
         | filter (isNull(db.user) or in(db.user, array($User)))
+        | filter (isNull(snowflake.user.type) or in(snowflake.user.type, array($UserType)))
         | makeTimeseries avg_elapsed = avg(toDouble(snowflake.time.total_elapsed)),
             by: { snowflake.query.hash }
         | fieldsAdd sum_avg = arraySum(avg_elapsed[])
@@ -640,6 +661,7 @@ tiles:
         | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
         | filter (isNull(db.namespace) or in(db.namespace, array($Database)))
         | filter (isNull(db.user) or in(db.user, array($User)))
+        | filter (isNull(snowflake.user.type) or in(snowflake.user.type, array($UserType)))
         | fieldsAdd status_group = if(snowflake.query.execution_status == "SUCCESS", "success", else: "failed")
         | makeTimeseries count = count(), by: { status_group }
     visualization: areaChart
@@ -692,6 +714,7 @@ tiles:
         | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
         | filter (isNull(db.namespace) or in(db.namespace, array($Database)))
         | filter (isNull(db.user) or in(db.user, array($User)))
+        | filter (isNull(snowflake.user.type) or in(snowflake.user.type, array($UserType)))
         | filter isNotNull(snowflake.warehouse.name)
         | summarize
             total = count(),
