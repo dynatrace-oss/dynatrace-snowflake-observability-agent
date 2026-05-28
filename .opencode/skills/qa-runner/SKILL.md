@@ -1268,6 +1268,28 @@ Run **after** Phase 3.6 (workflow deploy) is confirmed complete.
 - All 10 workflows deployed via `deploy_dt_assets.sh --scope=workflows --env=test-qa`
 - `setup_test_workflows.sql` and `setup_test_workflow_anomalies.sql` run
 
+#### AE-E0.1 — Plugin EVENT_TIMESTAMPS declared but 'events' missing from telemetry [SHOULD PASS]
+
+Run this **before** any live-data checks. It is a static code test that does not
+require Snowflake or Dynatrace to be running.
+
+```bash
+.venv/bin/pytest test/core/test_plugin_event_timestamps.py -v --tb=short 2>&1 | tail -5
+```
+
+**Pass:** exit 0. All plugins that declare non-empty `EVENT_TIMESTAMPS` in their SQL
+views also list `events` in their telemetry config.
+
+**Fail:** One or more plugins have `EVENT_TIMESTAMPS` columns but no `events` in their
+telemetry config — timestamp events are silently dropped. Fix: add `events` to the
+offending plugin's `*-config.yml` `telemetry:` list.
+
+**Why this matters:** When `events` is absent from a plugin's telemetry list,
+`self._events` is set to `NO_OP_TELEMETRY` and all EVENT_TIMESTAMPS calls are
+discarded at runtime. The plugin log shows successful sends but no events appear in
+`fetch events`. This causes dashboards that use `fetch events | filter dsoa.run.plugin`
+to return empty results.
+
 #### AE-E1.1 — Workflow schema tests pass (offline)
 
 ```bash
@@ -1470,6 +1492,7 @@ After running all batches, present the consolidated results table:
 
 | Test     | Description                                     | Result    | Notes |
 |----------|-------------------------------------------------|-----------|-------|
+| AE-E0.1  | Plugin EVENT_TIMESTAMPS vs events telemetry     | PASS/FAIL |       |
 | AE-E1.1  | Workflow schema tests pass (offline)            | PASS/FAIL |       |
 | AE-E1.2  | Workflow consistency tests pass (offline)       | PASS/FAIL |       |
 | AE-E1.3  | Workflow DQL tests pass (offline)               | PASS/FAIL |       |
@@ -1482,8 +1505,8 @@ After running all batches, present the consolidated results table:
 | AE-E3.1  | data-volume-anomaly events after spike          | PASS/FAIL/SKIP | |
 | AE-E3.2  | warehouse DDL events for sensitive-change alert | PASS/FAIL/SKIP | |
 
-Auto-evaluated: {N}/70 — {n} passed, {f} failed, {s} skipped
-  Batch 1: {n1}/13  Batch 2: {n2}/23  Batch 3: {n3}/16  Batch 4: {n4}/11  Batch 5: {n5}/7
+Auto-evaluated: {N}/71 — {n} passed, {f} failed, {s} skipped
+  Batch 1: {n1}/13  Batch 2: {n2}/23  Batch 3: {n3}/16  Batch 4: {n4}/11  Batch 5: {n5}/8
   (Deferred: C2.16, C2.17, C4.13, E3.1 — verify on next day / after data latency window)
 ```
 

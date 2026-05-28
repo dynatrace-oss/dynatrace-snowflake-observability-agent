@@ -68,6 +68,7 @@ These rules come from real debugging sessions — follow them strictly:
    - `resource_monitors` plugin: **logs + events + metrics** (`timeseries` for credits metrics)
    - `query_history` plugin: **logs + metrics** (`fetch logs` for detail rows, `timeseries` for execution time metrics)
    - `active_queries` plugin: **logs only** — reads INFORMATION_SCHEMA in real-time
+   - `data_volume` plugin: **metrics + timestamp events** (`timeseries` for storage/row metrics; timestamp events for table update/DDL dates) — use `timeseries`-based variables (rule 22); `fetch events` works for DDL timestamp events once `events` is in the telemetry config
    - Default assumption for any new plugin context: **logs only**, unless `instruments-def.yml` or `_log_entries()` call explicitly shows `report_timestamp_events=True` or `report_all_as_events=True`
 
 2. **No `fetch metrics` for DSOA data.** DSOA does not use the standard
@@ -448,7 +449,69 @@ These rules come from real debugging sessions — follow them strictly:
           | sort snowflake.warehouse.name
     ```
 
-22. **Drop legacy coalesce backwards-compatibility fallbacks for standard attributes.**
+22. **For metrics-only plugins, derive variable values from `timeseries`, not `fetch logs/events`.**
+    When a plugin's primary telemetry is metrics (no logs, no events, or events are stale),
+    variable queries that use `fetch logs` or `fetch events` will return empty — causing all
+    dashboard tiles to blank out.  Use `timeseries` to populate variable dropdowns instead:
+
+    ```dql
+    # ✅ CORRECT — works for any metrics-emitting plugin
+    timeseries avg(snowflake.data.rows), by: { deployment.environment }
+    , filter: { db.system == "snowflake" and dsoa.run.context == "data_volume" }
+    | fields deployment.environment
+    | dedup deployment.environment
+    | sort deployment.environment asc
+    ```
+
+    The `timeseries` query returns one row per dimension value seen in the metric series;
+    piping to `| fields` + `| dedup` + `| sort` produces a clean list suitable for a
+    multi-select variable (`multiple: true`).
+
+    **When to use `timeseries`-based variable queries:**
+    - Plugin config `telemetry` list contains `metrics` but NOT `logs`
+    - Plugin config `telemetry` list contains `metrics` but NOT `events`, and events are only
+      timestamp-based (from `EVENT_TIMESTAMPS`) — those may be stale and get silently rejected
+    - Dashboard uses `timeseries` tiles as the primary visualisation
+
+    **When to use `fetch logs`-based variable queries:**
+    - Plugin emits logs as primary telemetry (`logs` in telemetry config)
+    - Dashboard has a mix of log tiles and metric tiles — prefer `fetch logs` for breadth
+
+    **Confirmed metrics-only plugins that require timeseries-based variables:**
+    - `data_volume` — emits metrics + timestamp events (table update/DDL dates); primary
+      visualisation is `timeseries`; use `timeseries avg(snowflake.data.rows)` for variables
+
+23. **`timeseries` inline filter is the single source of truth — do NOT repeat as post-pipe `| filter`.**
+    When dimensions are declared in `by:` and used as filters, put them in the `, filter: {}` block.
+    A post-pipe `| filter` on the same dimension is redundant, wastes processing, and
+    should be deleted.  The only valid use of a post-pipe `| filter` is for *computed* fields
+    that do not exist as metric dimensions (e.g. `| fieldsAdd` results):
+
+    ```dql
+    # ✅ CORRECT — filter once, inline
+    timeseries total_bytes = sum(snowflake.data.size)
+    , by: { db.namespace, deployment.environment }
+    , filter: {
+        db.system == "snowflake" and
+        dsoa.run.context == "data_volume" and
+        in(deployment.environment, array($Accounts)) and
+        (isNull(db.namespace) or in(db.namespace, array($Database)))
+      }
+
+    # ❌ WRONG — filter duplicated as post-pipe
+    timeseries total_bytes = sum(snowflake.data.size)
+    , by: { db.namespace, deployment.environment }
+    , filter: {
+        db.system == "snowflake" and
+        dsoa.run.context == "data_volume" and
+        ($Accounts == "*" or deployment.environment == $Accounts) and
+        ($Database == "*" or isNull(db.namespace) or db.namespace == $Database)
+      }
+    | filter $Accounts == "*" or deployment.environment == $Accounts          # ← DELETE
+    | filter $Database == "*" or isNull(db.namespace) or db.namespace == $Database  # ← DELETE
+    ```
+
+24. **Drop legacy coalesce backwards-compatibility fallbacks for standard attributes.**
     Stop using `coalesce(deployment.environment, service.name)` — use `deployment.environment`
     directly. The `service.name` fallback was needed during early DSOA versions before
     `deployment.environment` was standardised. The same applies to:
