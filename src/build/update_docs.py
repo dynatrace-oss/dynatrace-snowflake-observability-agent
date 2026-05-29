@@ -233,7 +233,7 @@ def _generate_plugins_info(dtagent_plugins_path: str, dtagent_conf_path: str) ->
             f_info_md = os.path.join(plugin_path, "readme.md")
             f_config_md = os.path.join(plugin_path, "config.md")
             f_bom_yml = os.path.join(plugin_path, "bom.yml")
-            plugin_name = plugin_folder.split('.')[0]
+            plugin_name = plugin_folder.split(".")[0]
             config_file_name = f"{plugin_name}-config.yml"
             config_file_path = os.path.join(plugin_path, config_file_name)
 
@@ -537,6 +537,11 @@ def generate_readme_content(dtagent_conf_path: str, dtagent_plugins_path: str) -
     readme_full_content = re.sub(
         r"\]\(test\/", "](https://github.com/dynatrace-oss/dynatrace-snowflake-observability-agent/tree/main/test/", readme_full_content
     )  # replace internal links to test directory with absolute links to GitHub
+    readme_full_content = re.sub(
+        r"\]\(.*[.]*context\/",
+        "](https://github.com/dynatrace-oss/dynatrace-snowflake-observability-agent/tree/main/.context/",
+        readme_full_content,
+    )  # replace internal links to .context directory with absolute links to GitHub
     readme_full_content = re.sub(r"\b[A-Z_]+\.md#", "#", readme_full_content)  # removing references between .md files
 
     # Update links in PDF version to point to sections within the same document
