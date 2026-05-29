@@ -118,8 +118,8 @@ Docs are a first-class deliverable. Run `./scripts/dev/build_docs.sh` after any 
 
 ### CHANGELOG vs Development Log
 
-- **`docs/CHANGELOG.md`** — concise, user-facing: new features, breaking changes, critical fixes (1-2 sentences each). Link to devlog entry.
-- **`.context/devlog/<version>/<topic>.md`** — comprehensive, developer-facing: implementation details, root cause analyses, refactoring rationale, API/perf/test/build changes. One file per feature/topic. Git-tracked (solves merge conflicts).
+- **`docs/CHANGELOG.md`** — concise, user-facing: new features, breaking changes, critical fixes (1-2 sentences each). **Never reference or link to devlog entries** — devlog is internal AI/developer memory, not customer-facing.
+- **`.context/devlog/<version>/<topic>.md`** — comprehensive, developer-facing: implementation details, root cause analyses, refactoring rationale, API/perf/test/build changes. One file per feature/topic. Git-tracked (solves merge conflicts). Serves primarily as AI operational memory for future sessions.
 - Rule: user-visible changes -> CHANGELOG + devlog file; internal-only changes -> devlog file only.
 - Naming: kebab-case topic file under version folder (e.g. `.context/devlog/0.9.6/new-feature.md`).
 

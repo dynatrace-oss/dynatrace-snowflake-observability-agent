@@ -47,13 +47,20 @@ consistent with how other DSOA workflows query Snowflake telemetry.
 behaviour, not a DSOA bug. The field captures DDL on database objects (tables, views,
 schemas) but not warehouse-level administrative DDL.
 
-**Impact:** The `warehouse-sensitive-change-alert` workflow's DQL trigger condition
-was updated to reflect what `OBJECT_MODIFIED_BY_DDL` actually captures. The workflow
-readme (`docs/workflows/warehouse-sensitive-change-alert/readme.md`) was updated to
-document this limitation explicitly.
+**Impact:** The `warehouse-sensitive-change-alert` workflow was updated to detect
+warehouse DDL via `db.operation.name` + `db.query.text` keyword matching (not
+`snowflake.object.ddl.operation`). The workflow now scans for sensitive property keywords
+(WAREHOUSE_SIZE, SCALING_POLICY, AUTO_SUSPEND, MIN_CLUSTER_COUNT, MAX_CLUSTER_COUNT,
+GENERATION, ENABLE_QUERY_ACCELERATION, QUERY_ACCELERATION_MAX_SCALE_FACTOR,
+MAX_CONCURRENCY_LEVEL) in the raw SQL text.
 
-**Test tooling:** `setup_test_workflow_anomalies.sql` corrected to use object-level DDL
-(e.g. `ALTER TABLE`) for simulation rather than `ALTER WAREHOUSE`.
+**Dashboard:** *Warehouse Change Detection* dashboard uses the same approach with
+`parse upper(db.query.text)` to extract warehouse names and operations.
+
+**E3.2 QA validation (2026-05-29):** Workflow triggered successfully, 6 events ingested
+via `dsoa.warehouse_sensitive_change` ad.source. Exec ID: `dc665507-8b99-4e84-9d52-91b3c3802b2a`.
+
+See also: `.context/devlog/0.9.5/warehouse-ddl-limitation.md` for full investigation.
 
 ---
 
