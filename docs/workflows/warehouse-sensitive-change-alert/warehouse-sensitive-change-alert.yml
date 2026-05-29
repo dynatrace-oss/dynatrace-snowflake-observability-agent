@@ -1,24 +1,16 @@
-# WORKFLOW: DSOA — Warehouse Sensitive Change Alert (Experimental)
-# DESCRIPTION: Alerts when a sensitive warehouse / resource-monitor property is altered.
+# WORKFLOW: DSOA — Warehouse Sensitive Change Alert
+# DESCRIPTION: Alerts when a sensitive warehouse property is altered.
 # OWNER: DSOA Team
 # PLUGINS: query_history
-# TAGS: snowflake, dsoa, security, warehouse, ddl, experimental
+# TAGS: snowflake, dsoa, security, warehouse, ddl
 
 id: 9c0fb1e1-1998-47ad-9a8e-2f2bd0e9cafe
-title: "DSOA — Warehouse Sensitive Change Alert (Experimental)"
+title: "DSOA — Warehouse Sensitive Change Alert"
 description: |
-  Detects sensitive configuration changes to Snowflake warehouses and resource monitors —
-  size changes, scaling policy changes, auto-suspend changes, resource-monitor reassignments,
-  and cluster-count changes — and raises a Dynatrace event per detected change.
-
-  Requires the query_history plugin (track_ddl_changes flag is NOT required for warehouse
-  detection). Uses db.operation.name and db.query.text from query_history spans, which are
-  always emitted for warehouse DDL regardless of the track_ddl_changes setting.
-
-  NOTE: Snowflake does NOT populate ACCESS_HISTORY.OBJECT_MODIFIED_BY_DDL for warehouse-level
-  DDL (ALTER WAREHOUSE, CREATE WAREHOUSE, DROP WAREHOUSE, ALTER RESOURCE MONITOR, etc.).
-  Only database-object DDL (tables, views, procedures) appears there. This workflow therefore
-  uses db.operation.name filtering instead of snowflake.object.ddl.operation.
+  Detects sensitive warehouse configuration changes by scanning query_history logs for
+  warehouse DDL operations containing sensitive property keywords (WAREHOUSE_SIZE,
+  SCALING_POLICY, AUTO_SUSPEND, MIN_CLUSTER_COUNT, MAX_CLUSTER_COUNT). Raises a Dynatrace
+  event per detected change.
 
   Caveat: db.query.text is subject to obfuscation if plugins.query_history.obfuscation_mode
   is not "off". If obfuscation is enabled, the property-keyword scan may not match.
@@ -37,7 +29,7 @@ trigger:
 tasks:
   detect_sensitive_changes:
     name: detect_sensitive_changes
-    description: Fetch warehouse / resource-monitor DDL spans with a sensitive property keyword in the query text.
+    description: Fetch warehouse DDL logs with a sensitive property keyword in the query text.
     action: dynatrace.automations:execute-dql-query
     active: true
     position:
@@ -48,15 +40,12 @@ tasks:
     predecessors: []
     input:
       query: |
-        fetch spans, from: now()-90m
+        fetch logs, from: now()-90m
         | filter db.system == "snowflake"
-        | filter in(db.operation.name, array(
-            "ALTER_WAREHOUSE", "CREATE_WAREHOUSE", "DROP_WAREHOUSE",
-            "ALTER_RESOURCE_MONITOR", "CREATE_RESOURCE_MONITOR", "DROP_RESOURCE_MONITOR"
-          ))
+        | filter dsoa.run.plugin == "query_history"
+        | filter in(db.operation.name, array("ALTER", "CREATE", "DROP", "RENAME_WAREHOUSE"))
         | filter contains(toString(db.query.text), "WAREHOUSE_SIZE")
              or contains(toString(db.query.text), "SCALING_POLICY")
-             or contains(toString(db.query.text), "RESOURCE_MONITOR")
              or contains(toString(db.query.text), "AUTO_SUSPEND")
              or contains(toString(db.query.text), "MIN_CLUSTER_COUNT")
              or contains(toString(db.query.text), "MAX_CLUSTER_COUNT")
