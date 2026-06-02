@@ -84,6 +84,7 @@ fi
 # ---- Snowflake connection args ---------------------------------------------
 
 if [[ -n "${SNOWFLAKE_ACCOUNT:-}" && -n "${SNOWFLAKE_USER:-}" ]]; then
+    export SNOWFLAKE_AUTHENTICATOR="snowflake_jwt"
     SNOW_ARGS=(--temporary-connection --account "$SNOWFLAKE_ACCOUNT" --user "$SNOWFLAKE_USER")
 else
     SNOW_ARGS=(--connection "snow_agent_${CONNECTION_ENV}" --role "$VIEWER_ROLE")

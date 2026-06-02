@@ -462,6 +462,7 @@ if [ -s "$INSTALL_SCRIPT_SQL" ] && ! $IS_MANUAL; then
     # When SNOWFLAKE_ACCOUNT and SNOWFLAKE_USER env vars are both set, use temporary-connection
     # (e.g. CI/CD environments with key-pair auth). Otherwise use named connection profile.
     if [[ -n "${SNOWFLAKE_ACCOUNT:-}" && -n "${SNOWFLAKE_USER:-}" ]]; then
+        export SNOWFLAKE_AUTHENTICATOR="snowflake_jwt"
         pushd build || exit 1
         snow sql --temporary-connection \
             --account "${SNOWFLAKE_ACCOUNT}" \

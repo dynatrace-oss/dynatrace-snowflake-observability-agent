@@ -15,21 +15,10 @@ on:
   workflow_dispatch:
     inputs:
       scope:
-        description: "Deployment scope"
+        description: "Deployment scope — single value or comma-separated (e.g. setup,plugins,agents,config). See docs/deployment/deploy.md for scope reference."
         required: true
         default: "all"
-        type: choice
-        options:
-          - all
-          - init
-          - admin
-          - setup
-          - plugins
-          - config
-          - agents
-          - apikey
-          - upgrade
-          - teardown
+        type: string
       from_version:
         description: "Upgrade from version (required when scope=upgrade)"
         required: false

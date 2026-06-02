@@ -84,7 +84,7 @@ test: test-documentation test-bash test-core test-plugins
 
 DOCKER_TAG ?= dsoa-deploy:local
 
-docker-build: ## Build DSOA deployment Docker image (run build.sh first)
+docker-build: build ## Build DSOA deployment Docker image (run build.sh first)
 	@if [ ! -d "build" ] || [ -z "$$(ls -A build 2>/dev/null)" ]; then \
 		echo "WARNING: build/ directory is missing or empty. Run ./scripts/dev/build.sh first."; \
 	fi
