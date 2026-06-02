@@ -9,7 +9,7 @@ All notable changes to this project will be documented in this file.
 >
 > Detailed technical changes and implementation notes are available in the [development log](../.context/devlog/).
 
-## [0.9.5] - 2026-05-18
+## [0.9.5] - 2026-06-08
 
 ### Added
 
