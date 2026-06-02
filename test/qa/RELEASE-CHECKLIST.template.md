@@ -83,6 +83,13 @@ each passes locally or in CI before proceeding to live testing.
   Also verify `release.yml` still has the `build-and-push-docker` job that
   publishes to GHCR on each tagged release.
 
+- [ ] **A15** — Build pipeline integration check *(optional, ~10 min — skip
+  unless `scripts/dev/build.sh`, `scripts/dev/build_docs.sh`, or
+  `scripts/dev/package.sh` were modified in this release)*.
+  Verifies `build.sh` produces the correct SQL output files, `package.sh`
+  creates a valid release zip, and `markdownlint` passes on all generated docs.
+  Run: `make test-bash-slow`
+
 ---
 
 ## Section B — Deployment Validation
@@ -870,7 +877,7 @@ Fill in after completing all sections.
 
 | Section                 | Passed | Failed | Skipped | Total   |
 |-------------------------|--------|--------|---------|---------|
-| A — Offline             |        |        |         | 14      |
+| A — Offline             |        |        |         | 15      |
 | B — Deployment          |        |        |         | 16      |
 | C1 — Data Volume        |        |        |         | 8       |
 | C2 — Metrics            |        |        |         | 16      |
@@ -885,7 +892,7 @@ Fill in after completing all sections.
 | C11 — Signal Protection |        |        |         | 2       |
 | D — Dashboards          |        |        |         | 14      |
 | E — Workflows           |        |        |         | 19      |
-| **Total**               |        |        |         | **141** |
+| **Total**               |        |        |         | **142** |
 
 **QA Signoff:**
 
