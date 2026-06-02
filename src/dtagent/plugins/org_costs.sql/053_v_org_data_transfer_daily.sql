@@ -37,7 +37,7 @@ select
         'snowflake.account.locator',            account_locator,
         'snowflake.account.region',             region,
         'snowflake.service.type',               service_type,
-        'snowflake.organization.name',          organization_name
+        'snowflake.org.name',                   organization_name
     )                                                                               as DIMENSIONS,
     OBJECT_CONSTRUCT(
     )                                                                               as ATTRIBUTES,

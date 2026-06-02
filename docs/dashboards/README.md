@@ -299,6 +299,12 @@ It converts YAML sources to JSON, wraps them in the correct dtctl envelope, and 
 ./scripts/deploy/deploy_dt_assets.sh --scope=dashboards
 ```
 
+**Deploy a single dashboard (recommended during iterative development):**
+
+```bash
+./scripts/deploy/deploy_dt_assets.sh --scope=dashboards --name=self-monitoring
+```
+
 **Dry-run (preview without applying):**
 
 ```bash

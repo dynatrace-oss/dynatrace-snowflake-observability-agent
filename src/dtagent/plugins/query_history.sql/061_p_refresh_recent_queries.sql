@@ -23,7 +23,7 @@
 --
 --
 -- APP.P_REFRESH_RECENT_QUERIES() will recreate two transient tables:
--- * APP.TMP_RECENT_QUERIES materializing current data in the APP.V_QUERY_HISTORY_INSTRUMENTED view
+-- * APP.TMP_RECENT_QUERIES materializing current data from APP.F_GET_QUERY_HISTORY()
 -- * APP.TMP_QUERY_OPERATOR_STATS where results from calling GET_QUERY_OPERATOR_STATS() per each query are kept
 -- both tables are created to have a cached data which Dynatrace Snowflake Observability Agent can send, especially when recursively sending query log as spans
 --
@@ -69,7 +69,7 @@ as
 $$
 DECLARE
     v_max_entries           INT DEFAULT CONFIG.F_GET_CONFIG_VALUE('plugins.query_history.max_entries', 0)::int;
-    in_tmp_table_reset      TEXT DEFAULT 'insert into DTAGENT_DB.APP.TMP_RECENT_QUERIES select *, false as IS_PARENT, false as IS_ROOT, null::text as _PARENT_OTEL_SPAN_ID, null::text as _PARENT_OTEL_TRACE_ID from DTAGENT_DB.APP.V_QUERY_HISTORY_INSTRUMENTED;';
+    in_tmp_table_reset      TEXT DEFAULT 'insert into DTAGENT_DB.APP.TMP_RECENT_QUERIES select *, false as IS_PARENT, false as IS_ROOT, null::text as _PARENT_OTEL_SPAN_ID, null::text as _PARENT_OTEL_TRACE_ID from TABLE(DTAGENT_DB.APP.F_GET_QUERY_HISTORY());';
     up_tmp_table_is_parent  TEXT DEFAULT 'update DTAGENT_DB.APP.TMP_RECENT_QUERIES set IS_PARENT = TRUE where QUERY_ID in (select distinct PARENT_QUERY_ID from DTAGENT_DB.APP.TMP_RECENT_QUERIES);';
     up_tmp_table_is_root_null TEXT DEFAULT 'update DTAGENT_DB.APP.TMP_RECENT_QUERIES set IS_ROOT = TRUE where PARENT_QUERY_ID is null;';
     up_tmp_table_is_root_miss TEXT DEFAULT 'update DTAGENT_DB.APP.TMP_RECENT_QUERIES set IS_ROOT = TRUE where PARENT_QUERY_ID is not null and PARENT_QUERY_ID not in (select distinct QUERY_ID from DTAGENT_DB.APP.TMP_RECENT_QUERIES);';
@@ -189,7 +189,7 @@ BEGIN
         'status', 'success',
         'total_processed', v_total_processed,
         'total_available', v_total_available,
-        'max_entries_applied', v_max_entries > 0,
+        'max_entries_applied', (v_max_entries > 0 AND v_total_available > v_total_processed),
         'max_entries_value', v_max_entries
     );
 

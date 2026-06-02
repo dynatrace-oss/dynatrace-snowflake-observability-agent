@@ -156,7 +156,10 @@ dtctl get workflow <id> -o yaml > /tmp/<name>-current.yaml
 3.  Write workflow YAML in docs/workflows/<name>/<name>.yml
 4.  Convert:   ./scripts/tools/yaml-to-json.sh ... > /tmp/<name>.json
 5.  Validate:  jq . /tmp/<name>.json
-6.  Deploy:    dtctl apply -A -f /tmp/<name>.json
+6.  Deploy (single workflow — recommended):
+      ./scripts/deploy/deploy_dt_assets.sh --scope=workflows --name=<name>
+    Or deploy all workflows:
+      ./scripts/deploy/deploy_dt_assets.sh --scope=workflows
 7.  Record returned ID — add it to the YAML as `id: <uuid>`
 8.  Re-convert and re-deploy with ID so subsequent runs update in place
 9.  Verify workflow triggers and executes correctly in Dynatrace UI

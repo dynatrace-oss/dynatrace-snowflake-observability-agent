@@ -214,7 +214,7 @@ def _generate_plugins_info(dtagent_plugins_path: str, dtagent_conf_path: str) ->
         core_bom_sec = "core_bom_sec"
         __plugins_toc.append(f"- [Core Objects](#{core_bom_sec})")
 
-        __content += f'<a name="{core_bom_sec}"></a>\n\n## Core Snowflake Objects\n\n'
+        __content += f'<a name="{core_bom_sec}"></a>\n\n## Core Snowflake objects\n\n'
         __content += "The Dynatrace Snowflake Observability Agent creates and uses the following Snowflake objects.\n\n"
 
         bom_data = yaml.safe_load(_read_file(core_bom_path))
@@ -233,7 +233,7 @@ def _generate_plugins_info(dtagent_plugins_path: str, dtagent_conf_path: str) ->
             f_info_md = os.path.join(plugin_path, "readme.md")
             f_config_md = os.path.join(plugin_path, "config.md")
             f_bom_yml = os.path.join(plugin_path, "bom.yml")
-            plugin_name = plugin_folder.split('.')[0]
+            plugin_name = plugin_folder.split(".")[0]
             config_file_name = f"{plugin_name}-config.yml"
             config_file_path = os.path.join(plugin_path, config_file_name)
 
@@ -274,7 +274,7 @@ def _generate_plugins_info(dtagent_plugins_path: str, dtagent_conf_path: str) ->
                 if os.path.isfile(f_bom_yml):
                     bom_data = yaml.safe_load(_read_file(f_bom_yml))
 
-                    __content += f"### {plugin_title} Bill of Materials\n\n"
+                    __content += f"### {plugin_title} bill of materials\n\n"
                     __content += "The following tables list the Snowflake objects that this plugin delivers data from or references.\n\n"
 
                     __content += f"#### Objects delivered by the `{plugin_title}` plugin\n\n"
@@ -537,6 +537,11 @@ def generate_readme_content(dtagent_conf_path: str, dtagent_plugins_path: str) -
     readme_full_content = re.sub(
         r"\]\(test\/", "](https://github.com/dynatrace-oss/dynatrace-snowflake-observability-agent/tree/main/test/", readme_full_content
     )  # replace internal links to test directory with absolute links to GitHub
+    readme_full_content = re.sub(
+        r"\]\(.*[.]*context\/",
+        "](https://github.com/dynatrace-oss/dynatrace-snowflake-observability-agent/tree/main/.context/",
+        readme_full_content,
+    )  # replace internal links to .context directory with absolute links to GitHub
     readme_full_content = re.sub(r"\b[A-Z_]+\.md#", "#", readme_full_content)  # removing references between .md files
 
     # Update links in PDF version to point to sections within the same document

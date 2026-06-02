@@ -2,9 +2,9 @@ name: Quality Checks
 
 on:
   push:
-    branches: [ "devel", "main", "dev/*", "release/*", "feature/*", "hotfix/*" ]
+    branches: ["devel", "main", "dev/*", "release/*", "feature/*", "hotfix/*"]
   pull_request:
-    branches: [ "devel", "main", "dev/*", "release/*", "feature/*", "hotfix/*" ]
+    branches: ["devel", "main", "dev/*", "release/*", "feature/*", "hotfix/*"]
 
 permissions:
   contents: read
@@ -44,8 +44,7 @@ jobs:
         run: yamllint src || exit 1
 
       - name: Lint Markdown
-        run: markdownlint-cli2 '[^.]*/**/*.md' '*.md' --config .markdownlint.json ||
-          exit 1
+        run: markdownlint-cli2 '[^.]*/**/*.md' '*.md' --config .markdownlint-cli2.jsonc || exit 1
 
       - name: Lint BOM files
         run: find src -name "bom.yml" -exec sh -c 'printf "%-50s " "$$1";

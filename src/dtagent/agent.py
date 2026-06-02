@@ -163,7 +163,7 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
                         {RUN_VERSION_KEY: str(VERSION), RUN_PLUGIN_KEY: c_source.PLUGIN_NAME, RUN_ID_KEY: run_id}
                     )
 
-                self.report_execution_status(status="STARTED", task_name=source, exec_id=run_id)
+                self.report_execution_status(status="STARTED", task_name=source, exec_id=run_id, plugin_name=plugin_name)
 
                 plugin_telemetry_allowed = (
                     set(
@@ -187,7 +187,9 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
                     ).process(run_id, run_proc, **({"contexts": contexts} if contexts else {}))
                     #
 
-                    self.report_execution_status(status="FINISHED", task_name=source, exec_id=run_id, details_dict=results[source])
+                    self.report_execution_status(
+                        status="FINISHED", task_name=source, exec_id=run_id, details_dict=results[source], plugin_name=plugin_name
+                    )
                     self._emit_ingest_warnings(plugin_name=plugin_name, run_id=run_id)
                     self._emit_acquisition_problems(plugin_name=plugin_name, run_id=run_id)
                 except RuntimeError as e:
@@ -195,7 +197,7 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
                     self._emit_acquisition_problems(plugin_name=plugin_name, run_id=run_id)
                     self.handle_interrupted_run(plugin_name, run_id, str(e))
             else:
-                self.report_execution_status(status="FAILED", task_name=source, exec_id=run_id)
+                self.report_execution_status(status="FAILED", task_name=source, exec_id=run_id, plugin_name=plugin_name)
                 results[source] = {"not_implemented": c_source}
                 LOG.warning(f"""Requested measuring source {plugin_name} that is not implemented: {results[source]}""")
 

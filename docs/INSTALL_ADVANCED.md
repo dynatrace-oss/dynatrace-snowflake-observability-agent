@@ -182,6 +182,25 @@ Configure custom names under `core.snowflake.*` in your config file. Set any opt
 - `snowflake.roles.admin` — if skipped, `DTAGENT_ADMIN` is not created; grant privileges manually
 - `snowflake.resource_monitor.name` — if skipped, no resource monitor is created
 
+> [!CAUTION]
+> **Do NOT modify the resource monitor quota via Snowflake Web UI using any role other than
+> DTAGENT_OWNER (or DTAGENT_$TAG_OWNER in tagged deployments).**
+>
+> If you use ACCOUNTADMIN (the Snowflake UI default) to change the quota, Snowflake reassigns
+> OWNERSHIP and MODIFY grants on the resource monitor to ACCOUNTADMIN. This causes
+> `P_UPDATE_RESOURCE_MONITOR` to fail during `scope=config` deployment with a permissions error,
+> because DTAGENT_OWNER no longer owns the monitor.
+>
+> **To fix:** Re-run deployment with `scope=init` using a user who can assume ACCOUNTADMIN:
+>
+> ```bash
+> ./scripts/deploy/deploy.sh --env=<ENV> --scope=init --options=skip_confirm
+> ```
+>
+> **To change quota safely:** Either update `core.snowflake.resource_monitor.credit_quota` in
+> your config YAML and redeploy with `scope=config`, or switch to the DTAGENT_OWNER role in the
+> Snowflake UI before modifying the monitor.
+
 ### Example: Full Custom Names
 
 ```yaml

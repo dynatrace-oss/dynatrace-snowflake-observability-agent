@@ -38,7 +38,7 @@ lint-yaml:
 	yamllint src
 
 lint-markdown:
-	markdownlint-cli2 '[^.]*/**/*.md' '*.md' --config .markdownlint.json
+	markdownlint-cli2 '[^.]*/**/*.md' '*.md' --config .markdownlint-cli2.jsonc
 
 lint-bom:
 	find src -name "bom.yml" -exec sh -c 'printf "%-50s " "$$1"; .venv/bin/check-jsonschema --schemafile test/src-bom.schema.json "$$1" || check-jsonschema --schemafile test/src-bom.schema.json "$$1"' _ {} \;

@@ -10,15 +10,26 @@
 --   The query_history plugin (when track_ddl_changes=true) joins
 --   SNOWFLAKE.ACCOUNT_USAGE.ACCESS_HISTORY and extracts the
 --   OBJECT_MODIFIED_BY_DDL array. This array is populated for DDL queries
---   (CREATE, ALTER, DROP, etc.) with ~3h latency from query execution.
+--   on DATABASE OBJECTS (CREATE, ALTER, DROP on tables, views, procedures,
+--   streams, tasks, stages, etc.) with ~3h latency from query execution.
 --
---   We generate varied DDL operations:
+--   IMPORTANT LIMITATION: ACCESS_HISTORY.OBJECT_MODIFIED_BY_DDL does NOT
+--   capture warehouse-level DDL (ALTER WAREHOUSE, CREATE WAREHOUSE,
+--   DROP WAREHOUSE, ALTER RESOURCE MONITOR, etc.). Only database-object DDL
+--   appears there. Warehouse DDL spans are emitted by query_history but will
+--   have NULL snowflake.object.* attributes regardless of track_ddl_changes.
+--
+--   We generate varied DDL operations on DATABASE OBJECTS:
 --     1. CREATE TABLE (ddl_operation = CREATE)
 --     2. ALTER TABLE ADD COLUMN (ddl_operation = ALTER)
---     3. ALTER TABLE RENAME (ddl_operation = ALTER)
---     4. CREATE OR REPLACE VIEW (ddl_operation = CREATE)
---     5. DROP TABLE (ddl_operation = DROP)
---     6. ALTER WAREHOUSE (ddl_operation = ALTER) — warehouse DDL
+--     3. ALTER TABLE SET COMMENT (ddl_operation = ALTER)
+--     4. CREATE OR REPLACE VIEW (ddl_operation = REPLACE)
+--     5. CREATE TABLE then DROP TABLE (ddl_operation = CREATE / DROP)
+--     6. ALTER TABLE RENAME (ddl_operation = ALTER)
+--
+--   Note: ALTER WAREHOUSE is NOT included here because it does not populate
+--   OBJECT_MODIFIED_BY_DDL. Warehouse change detection uses db.operation.name
+--   filtering in the warehouse-sensitive-change-alert workflow instead.
 --
 --   After ~3h, ACCESS_HISTORY will contain OBJECT_MODIFIED_BY_DDL entries
 --   for these queries. The agent's next run will attach DDL attributes to spans.
@@ -40,6 +51,9 @@
 -- ============================================================================
 -- 1. Setup
 -- ============================================================================
+USE ROLE SYSADMIN;
+GRANT USAGE ON WAREHOUSE DSOA_TEST_WH TO ROLE DTAGENT_QA_OWNER;
+
 USE ROLE DTAGENT_QA_OWNER;
 USE WAREHOUSE DSOA_TEST_WH;
 
@@ -92,7 +106,8 @@ DROP TABLE DSOA_TEST_DB.DDL_DETECTION_TEST.DDL_EPHEMERAL;
 -- ============================================================================
 -- 7. DDL Operation: ALTER TABLE RENAME
 -- ============================================================================
-CREATE TABLE DSOA_TEST_DB.DDL_DETECTION_TEST.DDL_RENAME_SOURCE (
+DROP TABLE IF EXISTS DSOA_TEST_DB.DDL_DETECTION_TEST.DDL_RENAMED_TABLE;
+CREATE OR REPLACE TABLE DSOA_TEST_DB.DDL_DETECTION_TEST.DDL_RENAME_SOURCE (
     A NUMBER NOT NULL
 );
 
@@ -100,14 +115,7 @@ ALTER TABLE DSOA_TEST_DB.DDL_DETECTION_TEST.DDL_RENAME_SOURCE
     RENAME TO DSOA_TEST_DB.DDL_DETECTION_TEST.DDL_RENAMED_TABLE;
 
 -- ============================================================================
--- 8. DDL Operation: ALTER WAREHOUSE (warehouse DDL — held-back logic)
--- ============================================================================
--- The query_history plugin holds back warehouse/resource-monitor DDL queries
--- until ACCESS_HISTORY catches up. This tests that hold-back path.
-ALTER WAREHOUSE DSOA_TEST_WH SET COMMENT = 'DDL detection test — modified for DDL detection test';
-
--- ============================================================================
--- 9. Config requirements
+-- 8. Config requirements
 -- ============================================================================
 -- In conf/config-test-qa.yml:
 --   plugins:
@@ -119,7 +127,7 @@ ALTER WAREHOUSE DSOA_TEST_WH SET COMMENT = 'DDL detection test — modified for 
 --   ./scripts/deploy/deploy.sh test-qa --scope=plugins,config --options=skip_confirm
 
 -- ============================================================================
--- 10. Verification DQL (run 3+ hours after executing this script)
+-- 9. Verification DQL (run 3+ hours after executing this script)
 -- ============================================================================
 -- C4.13 — DDL attributes on spans:
 --   fetch spans
@@ -129,12 +137,15 @@ ALTER WAREHOUSE DSOA_TEST_WH SET COMMENT = 'DDL detection test — modified for 
 --           snowflake.object.ddl.operation, snowflake.object.ddl.properties
 --   | limit 20
 --
--- Expected: rows with ddl.operation in {CREATE, ALTER, DROP}
+-- Expected: rows with ddl.operation in {CREATE, REPLACE, ALTER, DROP}
 -- and object.name matching DDL_TARGET_TABLE, DDL_TARGET_VIEW, etc.
+-- Note: Snowflake uses REPLACE (not CREATE) for CREATE OR REPLACE statements.
+--
+-- For warehouse change detection (E3.2), use the warehouse-sensitive-change-alert
+-- workflow DQL which filters on db.operation.name, NOT snowflake.object.ddl.operation.
 
 -- ============================================================================
 -- CLEANUP (run when done testing):
 --   USE ROLE DTAGENT_QA_OWNER;
 --   DROP SCHEMA IF EXISTS DSOA_TEST_DB.DDL_DETECTION_TEST CASCADE;
---   ALTER WAREHOUSE DSOA_TEST_WH SET COMMENT = '';
 -- ============================================================================

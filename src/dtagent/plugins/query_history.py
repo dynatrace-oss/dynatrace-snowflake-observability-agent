@@ -157,7 +157,7 @@ class QueryHistoryPlugin(Plugin):
             # emit self-monitoring event if signal protection was applied
             self._emit_overload_protection_event(refresh_result, __context)
 
-        t_recent_queries = "APP.V_RECENT_QUERIES"
+        t_recent_queries = "APP.V_QUERY_HISTORY_INSTRUMENTED"
         processed_query_ids, processing_errors_count, span_events_added, spans_sent, logs_sent, metrics_sent = self._process_span_rows(
             f_entry_generator=lambda: self._get_table_rows(t_recent_queries),
             view_name=t_recent_queries,
@@ -274,12 +274,18 @@ class QueryHistoryPlugin(Plugin):
             LOG.warning("Failed to execute or parse P_REFRESH_RECENT_QUERIES result: %s", str(e))
             return {"status": "error", "total_processed": 0, "total_available": 0, "max_entries_applied": False}
 
-    def _emit_overload_protection_event(self, refresh_result: Dict[str, Any], context: str) -> None:
+    def _emit_overload_protection_event(self, refresh_result: Dict[str, Any], context: Dict[str, Any]) -> None:
         """Emit self-monitoring log and bizevent if signal protection was applied.
 
+        Telemetry is emitted under the ``self_monitoring`` context (same plugin, different context name)
+        so users can distinguish overload-protection events from normal query history logs:
+
+        - Normal query logs:  ``dsoa.run.context == "query_history"``
+        - Overload protection: ``dsoa.run.context == "self_monitoring"``
+
         Args:
-            refresh_result (Dict[str, Any]): Result from P_REFRESH_RECENT_QUERIES
-            context (str): Context name for logging
+            refresh_result (Dict[str, Any]): Result from P_REFRESH_RECENT_QUERIES.
+            context      (Dict[str, Any]):  The plugin run context dict (used to extract run_id).
         """
         if not refresh_result.get("max_entries_applied", False):
             return
@@ -295,6 +301,11 @@ class QueryHistoryPlugin(Plugin):
                 f"available queries (max_entries={max_entries}, dropped={dropped_count})"
             )
 
+            # Build self-monitoring context — same plugin, different context name so overload logs
+            # are distinguishable from normal query history telemetry via dsoa.run.context filter.
+            run_id = context.get("dsoa.run.id", "")
+            sm_context = get_context_name_and_run_id(plugin_name=self._plugin_name, context_name="self_monitoring", run_id=run_id)
+
             # Emit self-monitoring warning log
             if not getattr(self._logs, "NOT_ENABLED", False):
                 self._logs.send_log(
@@ -308,22 +319,25 @@ class QueryHistoryPlugin(Plugin):
                         "dsoa.overload_protection.max_entries": max_entries,
                     },
                     log_level=logging.WARNING,
-                    context=context,
+                    context=sm_context,
                 )
 
             # Emit self-monitoring bizevent
-            if not getattr(self._events, "NOT_ENABLED", False):
-                self._events.send_event(
+            if not getattr(self._bizevents, "NOT_ENABLED", False):
+                self._bizevents.send_events(
+                    events_data=[
+                        {
+                            "total_available": total_available,
+                            "total_processed": total_processed,
+                            "dropped_count": dropped_count,
+                            "max_entries": max_entries,
+                        }
+                    ],
                     event_type="dsoa.signal_overload_protection",
                     title=message,
-                    properties={
-                        "total_available": total_available,
-                        "total_processed": total_processed,
-                        "dropped_count": dropped_count,
-                        "max_entries": max_entries,
-                    },
-                    context=context,
+                    context=sm_context,
                 )
+                self._bizevents.flush_events()
 
 
 ##endregion

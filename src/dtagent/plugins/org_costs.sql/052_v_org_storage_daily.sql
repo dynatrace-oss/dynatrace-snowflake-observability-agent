@@ -35,10 +35,10 @@ select
     OBJECT_CONSTRUCT(
         'snowflake.account.name',           ACCOUNT_NAME,
         'snowflake.account.locator',        ACCOUNT_LOCATOR,
-        'snowflake.service.type',           SERVICE_TYPE
+        'snowflake.service.type',           SERVICE_TYPE,
+        'snowflake.org.name',               ORGANIZATION_NAME
     )                                                                               as DIMENSIONS,
     OBJECT_CONSTRUCT(
-        'snowflake.organization.name',      ORGANIZATION_NAME
     )                                                                               as ATTRIBUTES,
     OBJECT_CONSTRUCT(
         'snowflake.org.data.stored',        AVERAGE_BYTES

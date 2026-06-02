@@ -38,7 +38,8 @@ select
         'snowflake.share.name',                         s.name,
         'db.namespace',                                 s.database_name,
         'snowflake.schema.name',                        ins.DETAILS:"TABLE_SCHEMA",
-        'db.collection.name',                           ins.DETAILS:"TABLE_NAME"
+        'db.collection.name',                           ins.DETAILS:"TABLE_NAME",
+        'snowflake.table.full_name',                    concat(s.database_name, '.', ins.DETAILS:"TABLE_SCHEMA"::STRING, '.', ins.DETAILS:"TABLE_NAME"::STRING)
     )                                                           as DIMENSIONS,
 
     OBJECT_CONSTRUCT(

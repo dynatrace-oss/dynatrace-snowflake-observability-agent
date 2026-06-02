@@ -22,7 +22,7 @@
 - [Users](#users_info_sec)
 - [Warehouse Usage](#warehouse_usage_info_sec)<a name="core_bom_sec"></a>
 
-## Core Snowflake Objects
+## Core Snowflake objects
 
 The Dynatrace Snowflake Observability Agent creates and uses the following Snowflake objects.
 
@@ -141,10 +141,10 @@ plugins:
 > **IMPORTANT**: For the `query_history` and `active_queries` plugins to report telemetry for all queries, the `DTAGENT_VIEWER` role must be
 > granted `MONITOR` privileges on all warehouses. By default, when the `admin` scope is installed, this is ensured through the periodic
 > execution of the `APP.P_MONITOR_WAREHOUSES()` procedure, triggered by the `APP.TASK_DTAGENT_QUERY_HISTORY_GRANTS` task. The schedule for
-> this special task can be configured using the `PLUGINS.QUERY_HISTORY.SCHEDULE_GRANTS` configuration option. Since this procedure runs with
+> this special task can be configured using the `plugins.query_history.schedule_grants` configuration option. Since this procedure runs with
 > the elevated privileges of the `DTAGENT_ADMIN` role (which is only created when the `admin` scope is installed), you may choose to:
 
-### Active Queries Bill of Materials
+### Active Queries bill of materials
 
 The following tables list the Snowflake objects that this plugin delivers data from or references.
 
@@ -174,9 +174,9 @@ Snowflake Observability Agent's own budget.
 All budgets the agent has been granted access to are reported as logs and metrics; this includes their details, spending limit, and recent
 expenditures. The plugin runs once a day and excludes already reported expenditures.
 
-> **Note**: This plugin is **disabled by default** because custom budget monitoring requires per-budget privilege grants. The account budget
-> (visible via `SNOWFLAKE.BUDGET_VIEWER`) is accessible automatically once enabled. For custom budgets, use `P_GRANT_BUDGET_MONITORING()`
-> (requires admin scope) or grant privileges manually — see below.
+> [!WARNING] IMPORTANT This plugin is **disabled by default** because custom budget monitoring requires per-budget privilege grants. The
+> account budget (visible via `SNOWFLAKE.BUDGET_VIEWER`) is accessible automatically once enabled. For custom budgets, use
+> `P_GRANT_BUDGET_MONITORING()` (requires admin scope) or grant privileges manually — see below.
 
 [Show semantics for this plugin](SEMANTICS.md#budgets_semantics_sec)
 
@@ -227,7 +227,7 @@ grant usage on schema <DB>.<SCHEMA> to role DTAGENT_VIEWER;
 grant snowflake.core.budget role <DB>.<SCHEMA>.<BUDGET_NAME>!VIEWER to role DTAGENT_VIEWER;
 ```
 
-### Budgets Bill of Materials
+### Budgets bill of materials
 
 The following tables list the Snowflake objects that this plugin delivers data from or references.
 
@@ -306,7 +306,7 @@ plugins:
       - logs
 ```
 
-### Known Limitations
+### Known limitations
 
 - **Never-accessed tables not included:** ACCESS_HISTORY only contains tables that have been accessed. Tables that have never been accessed
   will not appear in the results. To identify truly never-accessed tables, a follow-up enhancement would join with
@@ -381,7 +381,7 @@ plugins:
 | `plugins.cold_tables.is_disabled`         | bool   | `false`                    | Set to `true` to disable this plugin entirely.                                    |
 | `plugins.cold_tables.telemetry`           | list   | `["metrics", "logs"]`      | Telemetry types to emit. Remove items to suppress specific output types.          |
 
-### Cold Tables Bill of Materials
+### Cold Tables bill of materials
 
 The following tables list the Snowflake objects that this plugin delivers data from or references.
 
@@ -438,7 +438,7 @@ plugins:
 | `plugins.data_schemas.exclude`        | list   | `[]`                            | List of object name patterns to exclude (SQL `LIKE` syntax). Takes precedence over `include`.                                                                                                                                                                                                                                                                                                                                                |
 | `plugins.data_schemas.telemetry`      | list   | `["events", "biz_events"]`      | Telemetry types to emit. Remove items to suppress specific output types.                                                                                                                                                                                                                                                                                                                                                                     |
 
-### Data Schemas Bill of Materials
+### Data Schemas bill of materials
 
 The following tables list the Snowflake objects that this plugin delivers data from or references.
 
@@ -493,10 +493,11 @@ plugins:
     is_disabled: false
     telemetry:
       - metrics
+      - events
       - biz_events
 ```
 
-### Data Volume Bill of Materials
+### Data Volume bill of materials
 
 The following tables list the Snowflake objects that this plugin delivers data from or references.
 
@@ -549,6 +550,7 @@ plugins:
     telemetry:
       - metrics
       - logs
+      - events
       - biz_events
 ```
 
@@ -556,7 +558,7 @@ plugins:
 > default, when the `admin` scope is installed, this is handled by the `P_GRANT_MONITOR_DYNAMIC_TABLES()` procedure, which is executed with
 > the elevated privileges of the `DTAGENT_ADMIN` role (created only when the `admin` scope is installed), via the
 > `APP.TASK_DTAGENT_DYNAMIC_TABLES_GRANTS` task. The schedule for this task can be configured separately using the
-> `PLUGINS.DYNAMIC_TABLES.SCHEDULE_GRANTS` configuration option.
+> `plugins.dynamic_tables.schedule_grants` configuration option.
 >
 > When the `admin` scope is **not** installed, these grants are **never applied automatically**. The plugin will report **no telemetry for
 > monitored dynamic tables** without any errors or warnings. You must apply the grants manually (see below) before going to production
@@ -573,7 +575,7 @@ The grant granularity is derived automatically from the `include` pattern:
 Alternatively, you may choose to grant the required permissions manually, using the appropriate
 `GRANT MONITOR ON ALL/FUTURE DYNAMIC TABLES IN …` statement, depending on the desired granularity.
 
-### Dynamic Tables Bill of Materials
+### Dynamic Tables bill of materials
 
 The following tables list the Snowflake objects that this plugin delivers data from or references.
 
@@ -760,7 +762,7 @@ plugins:
       - MYAPP_DB # only check this DB for overrides (and filter event log entries)
 ```
 
-### Event Log Bill of Materials
+### Event Log bill of materials
 
 The following tables list the Snowflake objects that this plugin delivers data from or references.
 
@@ -830,7 +832,7 @@ plugins:
 | `plugins.event_usage.is_disabled`    | bool   | `false`                             | Set to `true` to disable this plugin entirely.                                                                                                                                                                                                                                                                                                                                                                                               |
 | `plugins.event_usage.telemetry`      | list   | `["metrics", "logs", "biz_events"]` | Telemetry types to emit. Remove items to suppress specific output types.                                                                                                                                                                                                                                                                                                                                                                     |
 
-### Event Usage Bill of Materials
+### Event Usage bill of materials
 
 The following tables list the Snowflake objects that this plugin delivers data from or references.
 
@@ -893,7 +895,7 @@ plugins:
 | `plugins.login_history.is_disabled`    | bool   | `false`                       | Set to `true` to disable this plugin entirely.                                                                                                                                                                                                                                                                                                     |
 | `plugins.login_history.telemetry`      | list   | `["logs", "biz_events"]`      | Telemetry types to emit. Remove items to suppress specific output types.                                                                                                                                                                                                                                                                           |
 
-### Login History Bill of Materials
+### Login History bill of materials
 
 The following tables list the Snowflake objects that this plugin delivers data from or references.
 
@@ -989,7 +991,7 @@ plugins:
       - biz_events
 ```
 
-### Metering Bill of Materials
+### Metering bill of materials
 
 The following tables list the Snowflake objects that this plugin delivers data from or references.
 
@@ -1015,24 +1017,8 @@ The `org_costs` plugin delivers cross-account FinOps telemetry from `SNOWFLAKE.O
 credit consumption, storage usage, data transfer costs, USD billing, and contract balance data — enabling multi-account cost visibility in
 Dynatrace.
 
-## Prerequisites
-
-Access to `SNOWFLAKE.ORGANIZATION_USAGE` views requires one of the following grants. This plugin is **disabled by default**
-(`is_disabled: true`) and must be explicitly enabled after completing the prerequisite step.
-
-### Option A — Database role (recommended)
-
-```sql
-USE ROLE ACCOUNTADMIN;
-GRANT DATABASE ROLE SNOWFLAKE.ORGANIZATION_USAGE_VIEWER TO ROLE DTAGENT_VIEWER;
-```
-
-### Option B — ORGADMIN role (legacy fallback for older tenants)
-
-```sql
-USE ROLE ACCOUNTADMIN;
-GRANT ROLE ORGADMIN TO ROLE DTAGENT_OWNER;
-```
+> [!WARNING] IMPORTANT This plugin is **disabled by default** (`is_disabled: true`). It requires a Snowflake organization account. Run
+> `--scope=init` with ACCOUNTADMIN rights before enabling.
 
 ## Contexts
 
@@ -1049,55 +1035,15 @@ GRANT ROLE ORGADMIN TO ROLE DTAGENT_OWNER;
 Runs every 6 hours (`USING CRON 0 */6 * * * UTC`). Source data has approximately 2 hours of latency; daily-granularity views update once per
 day.
 
-## Metrics emitted
-
-### org_costs_metering
-
-| Metric                                            | Unit    | Description                                 |
-| ------------------------------------------------- | ------- | ------------------------------------------- |
-| `snowflake.org.credits.used`                      | credits | Total credits used by account per day       |
-| `snowflake.org.credits.compute`                   | credits | Compute credits used per day                |
-| `snowflake.org.credits.cloud_services`            | credits | Cloud services credits used per day         |
-| `snowflake.org.credits.adjustment_cloud_services` | credits | Cloud services credit adjustment (10% rule) |
-
-### org_costs_storage
-
-| Metric                        | Unit | Description                                 |
-| ----------------------------- | ---- | ------------------------------------------- |
-| `snowflake.org.storage.bytes` | Byte | Storage bytes used per storage type per day |
-
-### org_costs_data_transfer
-
-| Metric                         | Unit | Description                                      |
-| ------------------------------ | ---- | ------------------------------------------------ |
-| `snowflake.org.transfer.bytes` | Byte | Bytes transferred between clouds/regions per day |
-
-### org_billing_usage_in_currency
-
-| Metric                         | Unit     | Description                                         |
-| ------------------------------ | -------- | --------------------------------------------------- |
-| `snowflake.org.billing.amount` | currency | Billing amount in currency per service type per day |
-
-### org_billing_remaining_balance
-
-| Metric                                        | Unit     | Description                                    |
-| --------------------------------------------- | -------- | ---------------------------------------------- |
-| `snowflake.org.billing.capacity_balance`      | currency | Remaining contracted capacity balance          |
-| `snowflake.org.billing.rollover_balance`      | currency | Remaining rollover balance                     |
-| `snowflake.org.billing.free_usage_balance`    | currency | Remaining free usage balance                   |
-| `snowflake.org.billing.on_demand_consumption` | currency | On-demand consumption charged against contract |
-| `snowflake.org.billing.overage`               | currency | Overage charged beyond contracted capacity     |
-
 ## Enablement
 
-1. Complete the prerequisite grant (Option A or B above).
 1. Set `plugins.org_costs.is_disabled: false` in your configuration.
 1. Deploy: `./scripts/deploy/deploy.sh <env> --scope=plugins,config --options=skip_confirm`
 
 ## Troubleshooting
 
 - **No data for a new account:** Organization-level views may not reflect new accounts for up to 24 hours after creation.
-- **Empty results:** Verify the prerequisite grant was applied and the plugin is enabled.
+- **Empty results:** Verify the prerequisite grant was applied (`--scope=init`) and the plugin is enabled.
 - **Stale data:** Daily-granularity views update once per day; data may appear up to 26 hours old (2h Snowflake latency + 6h collection
   cadence + daily boundary).
 
@@ -1142,7 +1088,7 @@ plugins:
 | `plugins.org_costs.contexts.org_billing_usage_in_currency.is_disabled` | bool   | `true`                              | Set to `false` to enable billing usage context (daily billing amount in currency).                                                                                                                                 |
 | `plugins.org_costs.contexts.org_billing_remaining_balance.is_disabled` | bool   | `true`                              | Set to `false` to enable remaining balance context (contract balance metrics).                                                                                                                                     |
 
-### Org Costs Bill of Materials
+### Org Costs bill of materials
 
 The following tables list the Snowflake objects that this plugin delivers data from or references.
 
@@ -1161,13 +1107,15 @@ The following tables list the Snowflake objects that this plugin delivers data f
 
 #### Objects referenced by the `Org Costs` plugin
 
-| Name                                                     | Type | Privileges |
-| -------------------------------------------------------- | ---- | ---------- |
-| SNOWFLAKE.ORGANIZATION_USAGE.METERING_DAILY_HISTORY      | view | SELECT     |
-| SNOWFLAKE.ORGANIZATION_USAGE.USAGE_IN_CURRENCY_DAILY     | view | SELECT     |
-| SNOWFLAKE.ORGANIZATION_USAGE.REMAINING_BALANCE_DAILY     | view | SELECT     |
-| SNOWFLAKE.ORGANIZATION_USAGE.DATA_TRANSFER_DAILY_HISTORY | view | SELECT     |
-| SNOWFLAKE.ORGANIZATION_USAGE.STORAGE_DAILY_HISTORY       | view | SELECT     |
+| Name                                                     | Type | Privileges    | Granted to     | Comment                                                                                                      |
+| -------------------------------------------------------- | ---- | ------------- | -------------- | ------------------------------------------------------------------------------------------------------------ |
+| SNOWFLAKE.ORGANIZATION_USAGE.METERING_DAILY_HISTORY      | view | SELECT        |                |                                                                                                              |
+| SNOWFLAKE.ORGANIZATION_USAGE.USAGE_IN_CURRENCY_DAILY     | view | SELECT        |                |                                                                                                              |
+| SNOWFLAKE.ORGANIZATION_USAGE.REMAINING_BALANCE_DAILY     | view | SELECT        |                |                                                                                                              |
+| SNOWFLAKE.ORGANIZATION_USAGE.DATA_TRANSFER_DAILY_HISTORY | view | SELECT        |                |                                                                                                              |
+| SNOWFLAKE.ORGANIZATION_USAGE.STORAGE_DAILY_HISTORY       | view | SELECT        |                |                                                                                                              |
+| SNOWFLAKE.ORGANIZATION_USAGE_VIEWER                      | role | DATABASE ROLE | DTAGENT_VIEWER | Option A (recommended). Grants SELECT on all ORGANIZATION_USAGE views.                                       |
+| ORGADMIN                                                 | role | ROLE          | DTAGENT_OWNER  | Optional. Option B (legacy fallback). Used only on accounts without ORGANIZATION_USAGE_VIEWER database role. |
 
 <a name="query_history_info_sec"></a>
 
@@ -1324,11 +1272,15 @@ fetch logs
 When the `track_ddl_changes` configuration flag is enabled, the plugin extracts the structured DDL payload Snowflake records in
 `ACCESS_HISTORY.OBJECT_MODIFIED_BY_DDL` and surfaces it as five additional attributes on the corresponding `query_history` event:
 
-- `snowflake.object.type` — `objectDomain` (e.g. `Warehouse`, `Resource Monitor`)
+- `snowflake.object.type` — `objectDomain` (e.g. `Table`, `Schema`, `View`)
 - `snowflake.object.id` — Snowflake-internal object identifier
 - `snowflake.object.name` — fully qualified object name
 - `snowflake.object.ddl.operation` — `CREATE` / `ALTER` / `DROP` / `UNDROP` / `REPLACE`
 - `snowflake.object.ddl.properties` — JSON delta of changed properties
+
+**Important:** `ACCESS_HISTORY.OBJECT_MODIFIED_BY_DDL` only captures DDL on database objects (tables, views, schemas, procedures, etc.).
+Warehouse and resource-monitor DDL does not populate this field. For warehouse change detection, use the standard `db.operation.name`
+attribute on `query_history` logs (e.g. `ALTER`, `CREATE`, `DROP`, `RENAME_WAREHOUSE`).
 
 Enable it with:
 
@@ -1336,20 +1288,18 @@ Enable it with:
 CALL CONFIG.SET_CONFIG('plugins.query_history.track_ddl_changes', true);
 ```
 
-Use this when you need structured, queryable warehouse / resource-monitor change attribution in Dynatrace (who changed what, when, what was
-the delta) without parsing `db.query.text` server-side. Compatible Dynatrace artifacts ship in
-`package/dashboards/Warehouse Change Detection.json` and `docs/workflows/warehouse-sensitive-change-alert/`.
+Use this when you need structured, queryable database-object change attribution in Dynatrace (who changed what, when, what was the delta)
+without parsing `db.query.text` server-side. Compatible Dynatrace artifacts ship in `docs/workflows/warehouse-sensitive-change-alert/`.
 
 ### Caveats
 
 - **Experimental.** The flag is off by default; the feature may be refactored into a dedicated plugin in a future release.
 - **AH lag.** `ACCESS_HISTORY.OBJECT_MODIFIED_BY_DDL` is populated by Snowflake up to ~3 hours after the original DDL statement. When the
-  flag is on, the plugin holds back warehouse and resource-monitor DDL rows from the standard pipeline until that catchup occurs and emits a
-  single enriched event. This means warehouse/resource-monitor change alerts in Dynatrace can lag the actual change by up to ~3 hours. The
+  flag is on, the plugin holds back DDL rows from the standard pipeline until that catchup occurs and emits a single enriched event. The
   default `cache_ttl_hours: 4` is sufficient to cover this window — do not lower it below 3 when using `track_ddl_changes`.
-- **Coverage.** `ALTER WAREHOUSE … SUSPEND` and `ALTER WAREHOUSE … RESUME` are treated by Snowflake as session operations rather than DDL
-  and may not populate `OBJECT_MODIFIED_BY_DDL`; consumers that need those signals should fall back to the raw `db.operation.name` attribute
-  on `query_history` events.
+- **Coverage.** `OBJECT_MODIFIED_BY_DDL` covers database-object DDL only (tables, views, schemas, procedures). Warehouse and
+  resource-monitor DDL does NOT populate this field. For warehouse change detection, use `db.operation.name` on `query_history` logs.
+  `ALTER WAREHOUSE … SUSPEND` and `ALTER WAREHOUSE … RESUME` are treated by Snowflake as session operations and do not appear as DDL at all.
 - **Naming overlap.** The five attribute names match those already emitted by the `data_schemas` plugin for table / schema / database DDL —
   the namespaces deliberately align so downstream filters work uniformly across plugins.
 
@@ -1398,36 +1348,36 @@ the `QUERY_OPERATOR_STATS` and `SYSTEM$ESTIMATE_QUERY_ACCELERATION` functions.
 
 The following options control this behavior:
 
-- `PLUGINS.QUERY_HISTORY.SLOW_QUERIES_THRESHOLD`: The execution time threshold in milliseconds. Queries running longer than this are
+- `plugins.query_history.slow_queries_threshold`: The execution time threshold in milliseconds. Queries running longer than this are
   considered slow and eligible for analysis. Default: `10000` (10 seconds).
-- `PLUGINS.QUERY_HISTORY.MAX_SLOWEST_QUERIES`: The maximum number of slowest queries to analyze. Default: `50`.
+- `plugins.query_history.max_slowest_queries`: The maximum number of slowest queries to analyze. Default: `50`.
 
 ## Signal Protection Framework Configuration
 
 The plugin supports signal protection to prevent overload on high-volume Snowflake accounts. The following options control this behavior:
 
-- `PLUGINS.QUERY_HISTORY.MAX_ENTRIES`: Maximum number of query entries to process per run. Set to `0` for unlimited (default). When set, the
+- `plugins.query_history.max_entries`: Maximum number of query entries to process per run. Set to `0` for unlimited (default). When set, the
   view applies a `QUALIFY` filter keeping the top-N queries by execution time (descending). The pre-filter count is carried via
   `_TOTAL_AVAILABLE` for self-monitoring.
-- `PLUGINS.QUERY_HISTORY.MAX_LOOKBACK_MINUTES`: Maximum lookback window in minutes for catching up on unprocessed queries. Default: `120`.
+- `plugins.query_history.max_lookback_minutes`: Maximum lookback window in minutes for catching up on unprocessed queries. Default: `120`.
   The plugin uses the last-processed watermark from `STATUS.LOG_PROCESSED_MEASUREMENTS` but never looks back further than this value.
-- `PLUGINS.QUERY_HISTORY.INCLUDE_WAREHOUSES`: Array of LIKE patterns (e.g. `PROD_%`, `MY_WH`). Empty array means no filter applied. Supports
+- `plugins.query_history.include_warehouses`: Array of LIKE patterns (e.g. `PROD_%`, `MY_WH`). Empty array means no filter applied. Supports
   `%` and `_` wildcards. Exclude always takes precedence over include.
-- `PLUGINS.QUERY_HISTORY.EXCLUDE_WAREHOUSES`: Array of LIKE patterns (e.g. `PROD_%`, `MY_WH`). Empty array means no filter applied. Supports
+- `plugins.query_history.exclude_warehouses`: Array of LIKE patterns (e.g. `PROD_%`, `MY_WH`). Empty array means no filter applied. Supports
   `%` and `_` wildcards. Exclude always takes precedence over include. Default: `["DTAGENT_WH"]`.
-- `PLUGINS.QUERY_HISTORY.INCLUDE_DATABASES`: Array of LIKE patterns (e.g. `PROD_%`, `MY_WH`). Empty array means no filter applied. Supports
+- `plugins.query_history.include_databases`: Array of LIKE patterns (e.g. `PROD_%`, `MY_WH`). Empty array means no filter applied. Supports
   `%` and `_` wildcards. Exclude always takes precedence over include.
-- `PLUGINS.QUERY_HISTORY.EXCLUDE_DATABASES`: Array of LIKE patterns (e.g. `PROD_%`, `MY_WH`). Empty array means no filter applied. Supports
+- `plugins.query_history.exclude_databases`: Array of LIKE patterns (e.g. `PROD_%`, `MY_WH`). Empty array means no filter applied. Supports
   `%` and `_` wildcards. Exclude always takes precedence over include.
-- `PLUGINS.QUERY_HISTORY.INCLUDE_USERS`: Array of LIKE patterns (e.g. `PROD_%`, `MY_WH`). Empty array means no filter applied. Supports `%`
+- `plugins.query_history.include_users`: Array of LIKE patterns (e.g. `PROD_%`, `MY_WH`). Empty array means no filter applied. Supports `%`
   and `_` wildcards. Exclude always takes precedence over include.
-- `PLUGINS.QUERY_HISTORY.EXCLUDE_USERS`: Array of LIKE patterns (e.g. `PROD_%`, `MY_WH`). Empty array means no filter applied. Supports `%`
+- `plugins.query_history.exclude_users`: Array of LIKE patterns (e.g. `PROD_%`, `MY_WH`). Empty array means no filter applied. Supports `%`
   and `_` wildcards. Exclude always takes precedence over include.
 
 > **IMPORTANT**: For the `query_history` and `active_queries` plugins to report telemetry for all queries, the `DTAGENT_VIEWER` role must be
 > granted `MONITOR` privileges on all warehouses. By default, when the `admin` scope is installed, this is ensured through the periodic
 > execution of the `APP.P_MONITOR_WAREHOUSES()` procedure, triggered by the `APP.TASK_DTAGENT_QUERY_HISTORY_GRANTS` task. The schedule for
-> this special task can be configured using the `PLUGINS.QUERY_HISTORY.SCHEDULE_GRANTS` configuration option. Since this procedure runs with
+> this special task can be configured using the `plugins.query_history.schedule_grants` configuration option. Since this procedure runs with
 > the elevated privileges of the `DTAGENT_ADMIN` role (which is only created when the `admin` scope is installed), you may choose to:
 >
 > - Skip the `admin` scope entirely and manually grant `MONITOR` privileges on warehouses to `DTAGENT_VIEWER`
@@ -1435,14 +1385,14 @@ The plugin supports signal protection to prevent overload on high-volume Snowfla
 
 ## Query Text Obfuscation Configuration
 
-- `PLUGINS.QUERY_HISTORY.OBFUSCATION_MODE`: Controls query text obfuscation before data is sent to Dynatrace. Applies to `db.query.text` on
+- `plugins.query_history.obfuscation_mode`: Controls query text obfuscation before data is sent to Dynatrace. Applies to `db.query.text` on
   spans and `snowflake.error.message` on failed queries. Valid values:
   - `off` (default) — no obfuscation, full query text is forwarded unchanged.
   - `literals` — replaces single-quoted string literals and standalone numeric literals with `?`. SQL structure and identifiers are
     preserved.
   - `full` — replaces the entire query text (and error message) with `[OBFUSCATED]`. Invalid values fall back to `off`.
 
-### Query History Bill of Materials
+### Query History bill of materials
 
 The following tables list the Snowflake objects that this plugin delivers data from or references.
 
@@ -1530,7 +1480,7 @@ plugins:
       active_keepalive_timeout_minutes: 60
 ```
 
-### Resource Monitors Bill of Materials
+### Resource Monitors bill of materials
 
 The following tables list the Snowflake objects that this plugin delivers data from or references.
 
@@ -1623,7 +1573,7 @@ plugins:
 | `plugins.shares.include`                 | `['%.%.%']`                        | Object name patterns to include in tracking.     |
 | `plugins.shares.telemetry`               | `["logs", "events", "biz_events"]` | Telemetry types to emit.                         |
 
-### Shares Bill of Materials
+### Shares bill of materials
 
 The following tables list the Snowflake objects that this plugin delivers data from or references.
 
@@ -1702,7 +1652,7 @@ plugins:
 > `SYSTEM$PIPE_STATUS()`). By default, when the `admin` scope is installed, this is handled by the `P_GRANT_MONITOR_SNOWPIPES()` procedure,
 > which is executed with the elevated privileges of the `DTAGENT_ADMIN` role (created only when the `admin` scope is installed), via the
 > `APP.TASK_DTAGENT_SNOWPIPES_GRANTS` task. The schedule for this task can be configured separately using the
-> `PLUGINS.SNOWPIPES.SCHEDULE_GRANTS` configuration option.
+> `plugins.snowpipes.schedule_grants` configuration option.
 >
 > When the `admin` scope is **not** installed, these grants are **never applied automatically**. The plugin will report **no telemetry for
 > monitored pipes** without any errors or warnings. You must apply the grants manually (see below) before going to production without admin
@@ -1733,7 +1683,7 @@ statement, depending on the desired granularity.
 | `plugins.snowpipes.is_disabled`          | `false`                               | Disable the plugin                                |
 | `plugins.snowpipes.telemetry`            | `[metrics, logs, events, biz_events]` | Enabled telemetry types                           |
 
-### Snowpipes Bill of Materials
+### Snowpipes bill of materials
 
 The following tables list the Snowflake objects that this plugin delivers data from or references.
 
@@ -1850,7 +1800,7 @@ plugins:
       - biz_events
 ```
 
-### Table Health Bill of Materials
+### Table Health bill of materials
 
 The following tables list the Snowflake objects that this plugin delivers data from or references.
 
@@ -1959,7 +1909,7 @@ plugins:
 > `SERVERLESS_TASK_HISTORY` is updated frequently (per task run), while `TASK_VERSIONS` only changes when a task graph is modified — hence
 > the much longer default for versions.
 
-### Tasks Bill of Materials
+### Tasks bill of materials
 
 The following tables list the Snowflake objects that this plugin delivers data from or references.
 
@@ -2016,7 +1966,7 @@ plugins:
       - biz_events
 ```
 
-### Trust Center Bill of Materials
+### Trust Center bill of materials
 
 The following tables list the Snowflake objects that this plugin delivers data from or references.
 
@@ -2086,7 +2036,7 @@ plugins:
       - biz_events
 ```
 
-### Users Bill of Materials
+### Users bill of materials
 
 The following tables list the Snowflake objects that this plugin delivers data from or references.
 
@@ -2159,7 +2109,7 @@ plugins:
 | `plugins.warehouse_usage.is_disabled`    | bool   | `false`                             | Set to `true` to disable this plugin entirely.                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | `plugins.warehouse_usage.telemetry`      | list   | `["logs", "metrics", "biz_events"]` | Telemetry types to emit. Remove items to suppress specific output types.                                                                                                                                                                                                                                                                                                                                                                                                                |
 
-### Warehouse Usage Bill of Materials
+### Warehouse Usage bill of materials
 
 The following tables list the Snowflake objects that this plugin delivers data from or references.
 

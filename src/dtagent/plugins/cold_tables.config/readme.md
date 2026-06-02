@@ -30,7 +30,7 @@ plugins:
       - logs
 ```
 
-### Known Limitations
+### Known limitations
 
 - **Never-accessed tables not included:** ACCESS_HISTORY only contains tables that have been accessed. Tables that have never been accessed will not appear in the results. To identify truly never-accessed tables, a follow-up enhancement would join with `INFORMATION_SCHEMA.TABLES` or `ACCOUNT_USAGE.TABLES`.
 - **ACCESS_HISTORY latency:** Up to 2 hours. Daily schedule is appropriate for this latency.

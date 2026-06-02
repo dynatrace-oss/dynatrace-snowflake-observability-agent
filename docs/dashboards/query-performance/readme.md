@@ -20,7 +20,7 @@ Eight variables enable flexible filtering across multiple dimensions. The first 
 
 - **Account**: Filter by Snowflake deployment environment. Multi-select; cascades to all downstream variables.
 - **DB_Name**: Filter by database name or namespace. Multi-select; scoped to the selected Account(s).
-- **DB_Table**: Filter by specific table name. Multi-select; scoped to the selected Account(s) and DB_Name(s). Expands `db.snowflake.tables` JSON arrays to list individual tables.
+- **DB_Table**: Filter by specific table name. Multi-select; scoped to the selected Account(s) and DB_Name(s). Resolves table names using `coalesce(snowflake.table.full_name, db.collection.name, db.sql.table)` — preferring the fully-qualified `snowflake.table.full_name` dimension added in DSOA 0.9.5 — and expands `db.snowflake.tables` JSON arrays to list individual tables.
 - **Warehouse**: Filter by Snowflake warehouse name. Multi-select; scoped to the selected Account(s).
 - **User**: Filter by database user. Multi-select; scoped to the selected Account(s) and DB_Name(s).
 

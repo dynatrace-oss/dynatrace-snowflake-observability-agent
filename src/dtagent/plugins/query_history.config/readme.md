@@ -119,11 +119,16 @@ When the `track_ddl_changes` configuration flag is enabled, the plugin extracts 
 structured DDL payload Snowflake records in `ACCESS_HISTORY.OBJECT_MODIFIED_BY_DDL` and
 surfaces it as five additional attributes on the corresponding `query_history` event:
 
-- `snowflake.object.type` — `objectDomain` (e.g. `Warehouse`, `Resource Monitor`)
+- `snowflake.object.type` — `objectDomain` (e.g. `Table`, `Schema`, `View`)
 - `snowflake.object.id` — Snowflake-internal object identifier
 - `snowflake.object.name` — fully qualified object name
 - `snowflake.object.ddl.operation` — `CREATE` / `ALTER` / `DROP` / `UNDROP` / `REPLACE`
 - `snowflake.object.ddl.properties` — JSON delta of changed properties
+
+**Important:** `ACCESS_HISTORY.OBJECT_MODIFIED_BY_DDL` only captures DDL on database objects
+(tables, views, schemas, procedures, etc.). Warehouse and resource-monitor DDL does not
+populate this field. For warehouse change detection, use the standard `db.operation.name`
+attribute on `query_history` logs (e.g. `ALTER`, `CREATE`, `DROP`, `RENAME_WAREHOUSE`).
 
 Enable it with:
 
@@ -131,10 +136,9 @@ Enable it with:
 CALL CONFIG.SET_CONFIG('plugins.query_history.track_ddl_changes', true);
 ```
 
-Use this when you need structured, queryable warehouse / resource-monitor change
-attribution in Dynatrace (who changed what, when, what was the delta) without parsing
-`db.query.text` server-side. Compatible Dynatrace artifacts ship in
-`package/dashboards/Warehouse Change Detection.json` and
+Use this when you need structured, queryable database-object change attribution in
+Dynatrace (who changed what, when, what was the delta) without parsing `db.query.text`
+server-side. Compatible Dynatrace artifacts ship in
 `docs/workflows/warehouse-sensitive-change-alert/`.
 
 ### Caveats
@@ -143,15 +147,14 @@ attribution in Dynatrace (who changed what, when, what was the delta) without pa
   dedicated plugin in a future release.
 - **AH lag.** `ACCESS_HISTORY.OBJECT_MODIFIED_BY_DDL` is populated by Snowflake up to
   ~3 hours after the original DDL statement. When the flag is on, the plugin holds back
-  warehouse and resource-monitor DDL rows from the standard pipeline until that catchup
-  occurs and emits a single enriched event. This means warehouse/resource-monitor change
-  alerts in Dynatrace can lag the actual change by up to ~3 hours. The default
-  `cache_ttl_hours: 4` is sufficient to cover this window — do not lower it below 3 when
-  using `track_ddl_changes`.
-- **Coverage.** `ALTER WAREHOUSE … SUSPEND` and `ALTER WAREHOUSE … RESUME` are treated
-  by Snowflake as session operations rather than DDL and may not populate
-  `OBJECT_MODIFIED_BY_DDL`; consumers that need those signals should fall back to the
-  raw `db.operation.name` attribute on `query_history` events.
+  DDL rows from the standard pipeline until that catchup occurs and emits a single enriched
+  event. The default `cache_ttl_hours: 4` is sufficient to cover this window — do not lower
+  it below 3 when using `track_ddl_changes`.
+- **Coverage.** `OBJECT_MODIFIED_BY_DDL` covers database-object DDL only (tables, views,
+  schemas, procedures). Warehouse and resource-monitor DDL does NOT populate this field.
+  For warehouse change detection, use `db.operation.name` on `query_history` logs.
+  `ALTER WAREHOUSE … SUSPEND` and `ALTER WAREHOUSE … RESUME` are treated by Snowflake as
+  session operations and do not appear as DDL at all.
 - **Naming overlap.** The five attribute names match those already emitted by the
   `data_schemas` plugin for table / schema / database DDL — the namespaces deliberately
   align so downstream filters work uniformly across plugins.

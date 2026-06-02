@@ -13,11 +13,11 @@ Three ways to deploy DSOA — choose the one that fits your environment:
 
 ---
 
-## Docker (Recommended)
+## Docker (recommended)
 
 No toolchain required — just Docker. Works on any OS.
 
-### First install — interactive wizard
+### Step 1 — interactive wizard
 
 ```bash
 docker run -it \
@@ -106,7 +106,7 @@ Full guide: [docs/deployment/github-actions.md](deployment/github-actions.md)
 
 ---
 
-## Verifying Your Installation
+## Verifying your installation
 
 After deploying, confirm the installation is healthy:
 
@@ -157,7 +157,7 @@ The `DTAGENT_TOKEN` needs these scopes:
 
 After the agent is running, deploy pre-built Dynatrace dashboards and workflows.
 
-### Dynatrace Deployment Prerequisites
+### Dynatrace deployment prerequisites
 
 Install and authenticate `dtctl`:
 
@@ -203,5 +203,14 @@ Pass `--env`. Example: `deploy.sh --env=production`. Run `deploy.sh --help` for 
 
 The connection name is derived from `deployment_environment` inside the config, not from the `$ENV` filename.
 Run `./setup.sh $ENV` to create the correct connection.
+
+### `P_UPDATE_RESOURCE_MONITOR` fails with permissions error
+
+Someone modified the DTAGENT_RS resource monitor using a role other than DTAGENT_OWNER
+(commonly ACCOUNTADMIN via the Snowflake Web UI). This reassigns ownership away from
+DTAGENT_OWNER, causing `scope=config` deployment to fail.
+
+**Fix:** Re-run `./scripts/deploy/deploy.sh --env=<ENV> --scope=init --options=skip_confirm`
+with a user who can assume ACCOUNTADMIN. This re-grants ownership to DTAGENT_OWNER.
 
 For more troubleshooting, see [docs/debug/](debug/) and [INSTALL_ADVANCED.md](INSTALL_ADVANCED.md).

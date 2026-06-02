@@ -10,4 +10,5 @@ plugins:
     is_disabled: false
     telemetry:
       - metrics
+      - events
       - biz_events

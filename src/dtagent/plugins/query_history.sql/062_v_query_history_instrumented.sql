@@ -22,12 +22,14 @@
 --
 --
 --
--- APP.V_RECENT_QUERIES() combines two transient tables: APP.TMP_RECENT_QUERIES and APP.TMP_QUERY_OPERATOR_STATS
+-- APP.V_QUERY_HISTORY_INSTRUMENTED combines two transient tables: APP.TMP_RECENT_QUERIES and APP.TMP_QUERY_OPERATOR_STATS
+-- Renamed from V_RECENT_QUERIES (BDX-674) to match standard naming convention.
 --
 use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
-create or replace view DTAGENT_DB.APP.V_RECENT_QUERIES
+create or replace view DTAGENT_DB.APP.V_QUERY_HISTORY_INSTRUMENTED
 as
 select
+    rc.timestamp                                as TIMESTAMP,
     rc.query_id                                 as QUERY_ID,
     qos.query_operator_stats                    as QUERY_OPERATOR_STATS,
     rc.parent_query_id                          as PARENT_QUERY_ID,
@@ -57,10 +59,8 @@ left join DTAGENT_DB.APP.TMP_QUERY_OPERATOR_STATS qos
 left join DTAGENT_DB.APP.TMP_QUERY_ACCELERATION_ESTIMATES qae
     using (QUERY_ID);
 
-grant select on view DTAGENT_DB.APP.V_RECENT_QUERIES to role DTAGENT_VIEWER;
+grant select on view DTAGENT_DB.APP.V_QUERY_HISTORY_INSTRUMENTED to role DTAGENT_VIEWER;
 
 -- example call
-
 -- use database DTAGENT_DB; use warehouse DTAGENT_WH; use role DTAGENT_VIEWER;
--- select * from APP.V_RECENT_QUERIES limit 10;
--- select * from APP.TMP_RECENT_QUERIES rc;
+-- select * from APP.V_QUERY_HISTORY_INSTRUMENTED limit 10;

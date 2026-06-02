@@ -126,8 +126,8 @@ Run `./scripts/update_docs.sh` after any codebase change.
 | Config change         | `conf/config-template.yml`, plugin's `{name}-config.yml`                       |
 
 ### CHANGELOG vs DEVLOG
-- **`docs/CHANGELOG.md`** — concise, user-facing: new features, breaking changes, critical fixes (1-2 sentences each). Reference `.context/devlog/`.
-- **`.context/devlog/$version/*.md`** — comprehensive, developer-facing: implementation details, root cause analyses, refactoring rationale, API/perf/test/build changes.
+- **`docs/CHANGELOG.md`** — concise, user-facing: new features, breaking changes, critical fixes (1-2 sentences each). **Never reference or link to devlog entries** — devlog is internal AI/developer memory, not customer-facing.
+- **`.context/devlog/$version/*.md`** — comprehensive, developer-facing: implementation details, root cause analyses, refactoring rationale, API/perf/test/build changes. Serves primarily as AI operational memory for future sessions.
 - Rule: user-visible changes → both files; internal-only changes → `.context/devlog/` only.
 
 ### Other requirements

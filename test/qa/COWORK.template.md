@@ -10,12 +10,12 @@ Phase 3.5 DQL batches simultaneously.
 
 ### 1. Snowflake environments
 
-| Profile name | Purpose                                  | Notes                            |
-|--------------|------------------------------------------|----------------------------------|
-| `dev-095`    | Current release (C-section telemetry)    | Human deploys init/admin         |
-| `dev-094`    | Previous release (cross-version compare) | Human deploys init/admin         |
-| `test-qa`    | B-section scenarios 1-7, 11-15           | AI has full `--scope=all` access |
-| `test-qa2`   | B8-B10 parallel scenarios                | Needs separate Snowflake schema  |
+| Profile name        | Purpose                                  | Notes                            |
+|---------------------|------------------------------------------|----------------------------------|
+| `dev-{CURR_TAG}`    | Current release (C-section telemetry)    | Human deploys init/admin         |
+| `dev-{PREV_TAG}`    | Previous release (cross-version compare) | Human deploys init/admin         |
+| `test-qa`           | B-section scenarios 1-7, 11-15           | AI has full `--scope=all` access |
+| `test-qa2`          | B8-B10 parallel scenarios                | Needs separate Snowflake schema  |
 
 **test-qa2 one-time setup**: Create a second config `conf/config-test-qa2.yml`
 pointing to a separate Snowflake schema with `deployment_environment: TEST-QA2`.
@@ -74,26 +74,26 @@ The launcher script can create named tmux windows automatically:
 ./scripts/test/qa-cowork-launch.sh \
     --workdir=~/Development/hex/ant-1/snowagent \
     --role=coordinator \
-    --tmux-session=qa-095
+    --tmux-session=qa-{CURR_TAG}
 
 # Open remaining panes (run each in a separate terminal, or chain them)
 ./scripts/test/qa-cowork-launch.sh \
     --workdir=~/Development/hex/ant-2/snowagent \
     --role=eval-b-parallel \
-    --tmux-session=qa-095
+    --tmux-session=qa-{CURR_TAG}
 
 ./scripts/test/qa-cowork-launch.sh \
     --workdir=~/Development/hex/ant-3/snowagent \
     --role=eval-batch-2 \
-    --tmux-session=qa-095
+    --tmux-session=qa-{CURR_TAG}
 
 ./scripts/test/qa-cowork-launch.sh \
     --workdir=~/Development/hex/ant-4/snowagent \
     --role=eval-batch-3 \
-    --tmux-session=qa-095
+    --tmux-session=qa-{CURR_TAG}
 
 # Attach and switch between panes
-tmux attach -t qa-095
+tmux attach -t qa-{CURR_TAG}
 # Switch windows: Ctrl+B then n (next) / p (prev) / 0-4 (by number)
 ```
 
@@ -105,17 +105,17 @@ There is no automatic inter-agent communication. **You are the orchestrator.**
 Watch pane output and manually signal agents when prerequisites are met.
 
 ```text
-TIME      COORDINATOR (ant-1)          ANT-2                   ANT-3 / ANT-4
-────────────────────────────────────────────────────────────────────────────
+TIME      COORDINATOR (ant-1)                    ANT-2                   ANT-3 / ANT-4
+─────────────────────────────────────────────────────────────────────────────────────
 T+0       Phase 1 (version, ORGADMIN)
-T+5m      Phase A (offline checks)     B8-B10 on test-qa2
-T+30m     Deploy DEV-095/DEV-094       B8-B10 running
+T+5m      Phase A (offline checks)               B8-B10 on test-qa2
+T+30m     Deploy DEV-{CURR_TAG}/DEV-{PREV_TAG}   B8-B10 running
           (human deploys init/admin)
-T+45m     B1-B7 on test-qa             ── B8-B10 complete ──
-T+1h      3.5 Batch 1 (core health)    [Signal ant-2 to start Batch 2]
-                                       Phase 3.5 Batch 2     Batches 3, 4 start
-T+2h      B11-B15 on test-qa           Batch 2 running       Batches 3,4 running
-T+3h      Phase 4 (VISUAL walkthrough) ─── write results ──── write results ───
+T+45m     B1-B7 on test-qa                       ── B8-B10 complete ──
+T+1h      3.5 Batch 1 (core health)              [Signal ant-2 to start Batch 2]
+                                                 Phase 3.5 Batch 2     Batches 3, 4 start
+T+2h      B11-B15 on test-qa                     Batch 2 running       Batches 3,4 running
+T+3h      Phase 4 (VISUAL walkthrough)           ─── write results ──── write results ───
 T+4h      Phase 5 (merge + signoff)
 ```
 
@@ -126,14 +126,14 @@ Agents only communicate via files. The coordinator watches for:
 ```bash
 ls ~/Development/qa-results-shared/
 # When these files appear, the corresponding agents are done:
-# qa-0.9.5-b8b10-YYYYMMDD.md    → B8-B10 complete; coordinator can start B11-B15
-# qa-0.9.5-batch2-YYYYMMDD.md   → eval-batch-1 done
-# qa-0.9.5-batch3-YYYYMMDD.md   → eval-batch-2 done
-# qa-0.9.5-batch4-YYYYMMDD.md   → eval-batch-3 done
+# qa-{CURR_VERSION}-b8b10-YYYYMMDD.md    → B8-B10 complete; coordinator can start B11-B15
+# qa-{CURR_VERSION}-batch2-YYYYMMDD.md   → eval-batch-1 done
+# qa-{CURR_VERSION}-batch3-YYYYMMDD.md   → eval-batch-2 done
+# qa-{CURR_VERSION}-batch4-YYYYMMDD.md   → eval-batch-3 done
 ```
 
 Tell the coordinator pane: *"B8-B10 is complete, please continue with B11."*
-Tell eval-batch panes: *"DEV-095 telemetry is flowing, start your batch now."*
+Tell eval-batch panes: *"DEV-{CURR_TAG} telemetry is flowing, start your batch now."*
 
 ---
 
@@ -150,12 +150,12 @@ behavior.
 The coordinator reads all partial result files and merges them:
 
 ```bash
-ls ~/Development/qa-results-shared/qa-0.9.5-*.md
+ls ~/Development/qa-results-shared/qa-{CURR_VERSION}-*.md
 # Paste each batch result into the final signoff report
 ```
 
 Tell the coordinator pane:
-> "All batch agents are done. Merge test/qa/results/qa-0.9.5-batch*.md into the
+> "All batch agents are done. Merge test/qa/results/qa-{CURR_VERSION}-batch*.md into the
 > final Phase 5 report."
 
 ---

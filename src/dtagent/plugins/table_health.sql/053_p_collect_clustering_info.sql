@@ -160,4 +160,6 @@ $$
 ;
 
 
+grant usage on procedure DTAGENT_DB.APP.P_COLLECT_CLUSTERING_INFO() to role DTAGENT_VIEWER;
+
 -- call DTAGENT_DB.APP.P_COLLECT_CLUSTERING_INFO();

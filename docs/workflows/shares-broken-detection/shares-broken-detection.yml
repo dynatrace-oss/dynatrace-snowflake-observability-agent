@@ -137,7 +137,9 @@ tasks:
         slidingWindow: 3
         violatingSamples: 2
         dealertingSamples: 3
-        alertOnMissingData: true
+        alertOnMissingData: false
+      useModelCache: true
+      extendedOutput: false
 
   extract_share_events:
     name: extract_share_events

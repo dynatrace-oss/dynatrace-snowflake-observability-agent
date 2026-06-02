@@ -34,11 +34,11 @@ select
     )                                                                               as _MESSAGE,
     OBJECT_CONSTRUCT(
         'snowflake.account.name',           ACCOUNT_NAME,
-        'snowflake.service.type',           SERVICE_TYPE
+        'snowflake.service.type',           SERVICE_TYPE,
+        'snowflake.org.name',               ORGANIZATION_NAME
     )                                                                               as DIMENSIONS,
     OBJECT_CONSTRUCT(
-        'snowflake.account.locator',        ACCOUNT_LOCATOR,
-        'snowflake.organization.name',      ORGANIZATION_NAME
+        'snowflake.account.locator',        ACCOUNT_LOCATOR
     )                                                                               as ATTRIBUTES,
     OBJECT_CONSTRUCT(
         'snowflake.org.credits.used',                       CREDITS_USED,

@@ -21,9 +21,6 @@
     "snowflake.warehouse.name": "TEST_WH",
     "dsoa.run.plugin": "test_query_history_cross_batch",
     "dsoa.run.context": "query_history",
-    "code.file.path": "/Users/sebastian.kruk/Development/hex/ant-1/snowagent/src/dtagent/otel/logs.py",
-    "code.function.name": "send_log",
-    "code.line.number": 205,
     "resource_attributes": {
       "telemetry.sdk.language": "python",
       "telemetry.sdk.name": "opentelemetry",
@@ -57,9 +54,6 @@
     "snowflake.warehouse.name": "TEST_WH",
     "dsoa.run.plugin": "test_query_history_cross_batch",
     "dsoa.run.context": "query_history",
-    "code.file.path": "/Users/sebastian.kruk/Development/hex/ant-1/snowagent/src/dtagent/otel/logs.py",
-    "code.function.name": "send_log",
-    "code.line.number": 205,
     "resource_attributes": {
       "telemetry.sdk.language": "python",
       "telemetry.sdk.name": "opentelemetry",
@@ -93,9 +87,6 @@
     "snowflake.warehouse.name": "TEST_WH",
     "dsoa.run.plugin": "test_query_history_cross_batch",
     "dsoa.run.context": "query_history",
-    "code.file.path": "/Users/sebastian.kruk/Development/hex/ant-1/snowagent/src/dtagent/otel/logs.py",
-    "code.function.name": "send_log",
-    "code.line.number": 205,
     "resource_attributes": {
       "telemetry.sdk.language": "python",
       "telemetry.sdk.name": "opentelemetry",

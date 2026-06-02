@@ -63,7 +63,7 @@ USE WAREHOUSE DSOA_TEST_WH;
 -- ============================================================================
 CREATE DATABASE IF NOT EXISTS DSOA_TEST_DB;
 
--- DSOA_TEST_DB is owned by DTAGENT_QA_OWNER (transferred by budgets_finops setup)
+-- DSOA_TEST_DB is owned by DTAGENT_QA_OWNER (ownership transferred by budgets_finops setup)
 USE ROLE DTAGENT_QA_OWNER;
 USE WAREHOUSE DSOA_TEST_WH;
 USE DATABASE DSOA_TEST_DB;

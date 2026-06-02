@@ -290,3 +290,37 @@ run_script() {
     [ "$status" -eq 0 ]
     [[ "$output" =~ "not found" ]] || [[ "$output" =~ "skipping" ]] || [[ "$output" =~ "Skipping" ]]
 }
+
+# ── Test: --name filter ───────────────────────────────────────────────────────
+
+@test "--name filters to matching dashboard" {
+    run_script --scope=dashboards --name=test-dashboard
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ "test-dashboard" ]]
+    # shellcheck disable=SC2076
+    [[ ! "$output" =~ "another-dashboard" ]]
+}
+
+@test "--name with no match exits 1 with error" {
+    run_script --scope=dashboards --name=nonexistent-dashboard
+    [ "$status" -eq 1 ]
+    [[ "$output" =~ "No dashboard found matching name" ]] || [[ "$output" =~ "nonexistent-dashboard" ]]
+}
+
+@test "--name case-insensitive match works" {
+    run_script --scope=dashboards --name=TEST-DASHBOARD
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ "Test Dashboard" ]]
+}
+
+@test "--name with glob wildcard matches subset" {
+    run_script --scope=dashboards --name="test-*"
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ "test-dashboard" ]]
+}
+
+@test "--name with --dry-run works together" {
+    run_script --scope=dashboards --name=test-dashboard --dry-run
+    [ "$status" -eq 0 ]
+    [[ "$output" =~ "dry-run" ]] || [[ "$output" =~ "Dry-run" ]]
+}

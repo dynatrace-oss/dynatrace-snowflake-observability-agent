@@ -32,6 +32,7 @@ before moving to the next. Do not skip phases.
 | 2     | Deployment guidance | Human (AI provides commands) | Both environments running            |
 | 3     | Notebook deployment | AI (runs script)             | Notebook URL                         |
 | 3.5   | Auto-evaluation     | AI (runs DQL via MCP)        | Pass/fail for auto-evaluable tests   |
+| 3.6   | Workflow deployment | AI + human gate              | 10 workflows deployed + executed     |
 | 4     | Test walkthrough    | Interactive                  | Pass/fail per checklist item         |
 | 5     | QA signoff          | AI                           | Markdown report file                 |
 
@@ -107,7 +108,7 @@ comparison tiles to work.
 ### 1f. Detect ORGADMIN availability
 
 Run silently. Stores whether the account has ORGADMIN access for Phase 3.5
-org_costs checks (C2.12-C2.14). If Snowflake is not yet reachable, default to
+org_costs checks (C2.13-C2.15). If Snowflake is not yet reachable, default to
 `false` and re-check at the start of Phase 3.5.
 
 ```bash
@@ -231,6 +232,10 @@ After a successful deploy, share the notebook URL with the human and ask them to
 confirm it opens in Dynatrace. If the notebook ID needs to be committed to the
 YAML, remind the human to do so after the QA session.
 
+**Correct notebook URL format** (use the `dynatrace.notebooks` app path, not the
+legacy `document/v0` share path):
+`https://{tenant}/ui/apps/dynatrace.notebooks/notebook/{notebook-id}`
+
 ---
 
 ## Phase 3.5 — Auto-Evaluation (AI runs DQL via MCP)
@@ -256,6 +261,7 @@ Coordinator / ant-1  →  Batch 1 (core health, always runs first)
 ant-2 (after B8-B10) →  Batch 2 (additional metrics, logs, spans)
 ant-3                →  Batch 3 (events, active queries, shares, lifecycle)
 ant-4                →  Batch 4 (OpenPipeline, obfuscation, overload)
+ant-5 (after Ph 3.6) →  Batch 5 (workflow static + deployment validation)
 ```
 
 Start Batches 2-4 only after the coordinator confirms DEV-{CURR_TAG} telemetry
@@ -323,6 +329,34 @@ fetch spans, from: now()-7d
 ```
 
 **Pass:** count == 0.
+
+#### AE-C4.10 — Cross-batch span parent persistence
+
+> **Note:** When filtering by a specific `trace.id` value in DQL, always wrap the hex string with `toUid()` — e.g. `filter trace.id == toUid("01c47dd2...")`. Raw string comparison does not match the UID type used by Grail spans.
+
+```dql
+fetch spans, from: now()-24h
+| filter dsoa.run.plugin == "query_history"
+| filter isNotNull(span.parent_id)
+| lookup [fetch spans, from: now()-24h | fields span.id, dsoa.run.id], sourceField: span.parent_id, lookupField: span.id
+| filter isNotNull(lookup.dsoa.run.id)
+| filter dsoa.run.id != lookup.dsoa.run.id
+| fields trace.id, span.id, span.parent_id, dsoa.run.id, lookup.dsoa.run.id
+| limit 5
+```
+
+**Pass:** at least 1 row returned. Child spans link to parent spans from a different `dsoa.run.id`.
+
+Human visual (pick a `trace.id` from the result above):
+
+```dql
+fetch spans, from: now()-24h
+| filter trace.id == toUid("<trace_id_from_above>")
+| fields span.id, span.parent_id, dsoa.run.id, dsoa.run.context, db.statement
+| sort span.id
+```
+
+**Pass (human):** waterfall in Distributed Traces UI shows parent-child link spanning two agent runs.
 
 #### AE-C4.7 — No missing span.parent_id for child queries in same DSOA run
 
@@ -579,16 +613,28 @@ timeseries {
 
 **Pass:** count > 0. (7-day timeframe recommended for dynamic table metrics.)
 
-#### AE-C2.11 — Metering metrics across ≥3 service types
+#### AE-C2.11 — Table health: derived/growth metrics
+
+```dql
+timeseries avg(`snowflake.table.active_bytes.delta`), by:{deployment.environment}
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| summarize count = count()
+```
+
+**Pass:** count > 0. Requires `history_retention_days > 0` in config and
+`P_SNAPSHOT_TABLE_HEALTH` run at least twice before calling the agent.
+
+#### AE-C2.12 — Metering metrics across ≥3 service types
 
 ```dql
 timeseries sum(snowflake.credits.used), by:{snowflake.service.type}
-| summarize service_types = countDistinct(snowflake.service.type[])
+| fieldsAdd service_type = `snowflake.service.type`
+| summarize service_types = countDistinct(service_type)
 ```
 
 **Pass:** service_types ≥ 3. Prerequisite: `setup_test_metering.sql` run.
 
-#### AE-C2.13 — Org costs: storage metrics (ORGADMIN required)
+#### AE-C2.14 — Org costs: storage metrics (ORGADMIN required)
 
 **Skip if `HAS_ORGADMIN=false`.**
 
@@ -600,7 +646,7 @@ timeseries avg(snowflake.org.data.stored), by:{deployment.environment}
 
 **Pass:** count > 0.
 
-#### AE-C2.14 — Org costs: billing capacity balance (ORGADMIN required)
+#### AE-C2.15 — Org costs: billing capacity balance (ORGADMIN required)
 
 **Skip if `HAS_ORGADMIN=false`.**
 
@@ -777,17 +823,23 @@ fetch spans
 
 #### AE-C4.11 — task_history attempt is integer-typed
 
+The `tasks` plugin emits **logs** (not spans) for `task_history` context. Use `fetch logs`
+and a 7-day window — task runs may not appear in the default 24h window if no
+tasks ran recently.
+
 ```dql
-fetch spans
-| filter dsoa.run.plugin == "tasks"
+fetch logs, from: now()-7d
+| filter dsoa.run.context == "task_history"
 | filter deployment.environment == "DEV-{CURR_TAG}"
 | filter isNotNull(snowflake.task.run.attempt)
 | fields snowflake.task.run.attempt
 | limit 5
-| summarize count = count()
 ```
 
-**Pass:** count > 0 AND all `snowflake.task.run.attempt` values are numeric (not quoted strings). If the field is returned as a string (e.g., `"1"` instead of `1`), record as FAIL with the raw value.
+**Pass:** rows returned AND all `snowflake.task.run.attempt` values are numeric
+(DQL returns them without surrounding quotes). The SQL view casts this field to
+`::INTEGER` — if DQL surfaces it as a quoted string like `"1"`, record as FAIL.
+**Skip if:** no task runs in the account within 7 days.
 
 #### AE-C4.12 — serverless_tasks db.namespace is NULL not empty string [SHOULD BE EMPTY]
 
@@ -850,8 +902,8 @@ fetch events
 ```dql
 fetch events
 | filter dsoa.run.plugin == "resource_monitors"
-| filter event.kind == "CUSTOM_INFO"
-| filter deployment.environment == "DEV-{CURR_TAG}"
+| filter eventType == "CUSTOM_INFO"
+| filter deployment.environment == "DEV-095"
 | summarize count = count()
 ```
 
@@ -896,6 +948,19 @@ fetch logs, from: now()-7d
 
 **Pass:** At least 2 distinct status values are returned (e.g. RUNNING, SUCCESS).
 
+#### AE-C6.4 — Active queries raw sample [AUTO-EVAL]
+
+```dql
+fetch logs
+| filter dsoa.run.context == "active_queries"
+| filter deployment.environment == "DEV-{CURR_TAG}"
+| fields timestamp, snowflake.query.id, snowflake.query.execution_status, db.user, db.statement, snowflake.elapsed_time
+| fields isWrong = isTrueOrNull(snowflake.query.id == "") or isTrueOrNull(snowflake.query.execution_status == "")
+| summarize count(), by: isWrong
+```
+
+**Pass:** 0 rows with `isWrong = true` (all active query logs have non-empty `snowflake.query.id` and `snowflake.query.execution_status`).
+
 #### AE-C7.1 — Inbound and outbound shares reported (logs)
 
 ```dql
@@ -928,12 +993,14 @@ fetch logs
 | filter db.system == "snowflake"
 | filter deployment.environment == "DEV-{CURR_TAG}"
 | filter dsoa.run.context == "inbound_shares"
-| filter isNull(db.namespace)
+| filter isTrueOrNull(db.namespace == "")
 | summarize count = count()
 ```
 
 **Pass:** count > 0 after running `setup_test_shares.sql` (which creates a share
 with a dropped/missing database).
+**Note:** `db.namespace` is set to empty string `""` (not NULL) for inbound shares
+with a missing database. Use `isTrueOrNull(db.namespace == "")` — `isNull(db.namespace)` will return 0 rows.
 
 #### AE-C7.4 — Query count per user tracked
 
@@ -1087,9 +1154,10 @@ timeseries count(snowflake.task.run.successful), by:{deployment.environment}
 #### AE-C10.1 — Obfuscation mode: off — literal visible
 
 Requires `obfuscation_mode: off` config + agent cycle after `setup_test_query_obfuscation.sql`.
+Use a **7-day window** — the simulation query may have been run on a previous day.
 
 ```dql
-fetch spans
+fetch spans, from: now()-7d
 | filter dsoa.run.context == "query_history"
 | filter deployment.environment == "DEV-{CURR_TAG}"
 | filter contains(db.query.text, "'DSOA_OBFUSCATION_TEST'")
@@ -1130,33 +1198,205 @@ fetch spans, from: now()-30m
 
 #### AE-C11.1 — max_entries cap enforced
 
+Signal overload protection emits a bizevent of type `dsoa.signal_overload_protection`
+via `send_events()` (fix BDX-1965 / commit 0e4cb07). The field `dropped_count` is
+the top-level bizevent property; `dsoa.overload_protection.dropped_count` is a
+separate attribute on the WARN log, not on the bizevent.
+
+**Note:** `deployment.environment` value depends on which Snowflake instance the
+agent is deployed to. The test-qa instance reports as `TEST-QA`, not `DEV-{CURR_TAG}`.
+Omit the environment filter or adjust to match the target instance.
+
+The bizevent is emitted under `dsoa.run.context == "self_monitoring"` (plugin:
+`query_history`). This distinguishes it from normal query history telemetry.
+
 ```dql
 fetch bizevents
+| filter event.type == "dsoa.signal_overload_protection"
 | filter dsoa.run.plugin == "query_history"
-| filter deployment.environment == "DEV-{CURR_TAG}"
-| filter isNotNull(dsoa.acquisition.skipped_count)
-| summarize total_skipped = sum(dsoa.acquisition.skipped_count)
+| filter dsoa.run.context == "self_monitoring"
+| summarize count = count(), total_dropped = sum(toLong(dropped_count))
 ```
 
-**Pass:** total_skipped > 0. Prerequisite: `setup_test_overload.sql` run and
-`max_entries` configured lower than generated row count.
+**Pass:** count > 0 (at least one overload protection event fired). Prerequisite:
+`setup_test_overload.sql` run and `plugins.query_history.max_entries` set lower
+than the generated row count.
 
 #### AE-C11.2 — Overload warning logged
 
+The overload WARN log is emitted under `dsoa.run.context == "self_monitoring"` so it
+can be separated from normal query history logs in DQL.
+
 ```dql
 fetch logs
+| filter dsoa.run.plugin == "query_history"
 | filter dsoa.run.context == "self_monitoring"
-| filter deployment.environment == "DEV-{CURR_TAG}"
 | filter loglevel == "WARN"
-| filter contains(content, "max_entries")
+| filter contains(content, "Signal overload protection active")
 | summarize count = count()
 ```
 
 **Pass:** count > 0.
 
+#### AE-C11.3 — Normal query logs still flow when max_entries is set
+
+When overload protection is active (max_entries configured), normal query telemetry
+must still appear. If only `self_monitoring` logs are visible, `max_entries` is set
+too low for the query volume — data is not flowing.
+
+```dql
+fetch logs
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "query_history"
+| filter dsoa.run.context != "self_monitoring"
+| summarize count = count()
+```
+
+**Pass:** count > 0 — normal query logs are present alongside overload protection events.
+**Fail:** count == 0 — only self-monitoring/overload messages are present; `max_entries`
+is set too low. Check `CONFIG.CONFIGURATIONS` for `plugins.query_history.max_entries`
+and increase it or set to `0` to disable capping.
+
 ---
 
-### Auto-evaluation output
+### Batch 5 — Workflow static and deployment validation
+
+Run by eval-batch-4 (ant-5) in Cowork mode, or sequentially after Batch 4.
+Run **after** Phase 3.6 (workflow deploy) is confirmed complete.
+
+**Prerequisites for this batch:**
+- All 10 workflows deployed via `deploy_dt_assets.sh --scope=workflows --env=test-qa`
+- `setup_test_workflows.sql` and `setup_test_workflow_anomalies.sql` run
+
+#### AE-E0.1 — Plugin EVENT_TIMESTAMPS declared but 'events' missing from telemetry [SHOULD PASS]
+
+Run this **before** any live-data checks. It is a static code test that does not
+require Snowflake or Dynatrace to be running.
+
+```bash
+.venv/bin/pytest test/core/test_plugin_event_timestamps.py -v --tb=short 2>&1 | tail -5
+```
+
+**Pass:** exit 0. All plugins that declare non-empty `EVENT_TIMESTAMPS` in their SQL
+views also list `events` in their telemetry config.
+
+**Fail:** One or more plugins have `EVENT_TIMESTAMPS` columns but no `events` in their
+telemetry config — timestamp events are silently dropped. Fix: add `events` to the
+offending plugin's `*-config.yml` `telemetry:` list.
+
+**Why this matters:** When `events` is absent from a plugin's telemetry list,
+`self._events` is set to `NO_OP_TELEMETRY` and all EVENT_TIMESTAMPS calls are
+discarded at runtime. The plugin log shows successful sends but no events appear in
+`fetch events`. This causes dashboards that use `fetch events | filter dsoa.run.plugin`
+to return empty results.
+
+#### AE-E1.1 — Workflow schema tests pass (offline)
+
+```bash
+.venv/bin/pytest test/workflows/test_workflow_schema.py -v --tb=short 2>&1 | tail -5
+```
+
+**Pass:** exit 0, all tests green.
+
+#### AE-E1.2 — Workflow consistency tests pass (offline)
+
+```bash
+.venv/bin/pytest test/workflows/test_workflow_consistency.py -v --tb=short 2>&1 | tail -5
+```
+
+**Pass:** exit 0, all tests green.
+
+#### AE-E1.3 — Workflow DQL tests pass (offline)
+
+```bash
+.venv/bin/pytest test/workflows/test_workflow_dql.py -v --tb=short 2>&1 | tail -5
+```
+
+**Pass:** exit 0, all non-live tests green.
+
+#### AE-E1.4 — Workflow JS syntax checks pass (offline)
+
+```bash
+.venv/bin/pytest test/workflows/test_workflow_js.py -v --tb=short 2>&1 | tail -5
+```
+
+**Pass:** exit 0, all tests green.
+
+#### AE-E1.5 — Workflow dry-run deploy succeeds
+
+```bash
+./scripts/deploy/deploy_dt_assets.sh --scope=workflows --env=test-qa --dry-run 2>&1 | tail -5
+```
+
+**Pass:** exit 0, no errors.
+
+#### AE-E2.1 — credits-exhaustion-prediction workflow deployed
+
+```dql
+fetch bizevents
+| filter event.type == "com.dynatrace.automation.workflow.execution.finished"
+| filter contains(matchesValue(workflow.title, "*credits*exhaustion*"), "true")
+| summarize count = count()
+```
+
+**Pass:** count > 0 after triggering workflow execution. `[SKIP if workflow not triggered in Phase 3.6]`
+
+#### AE-E2.3 — dynamic-table-drift workflow deployed
+
+```dql
+fetch bizevents
+| filter event.type == "com.dynatrace.automation.workflow.execution.finished"
+| filter contains(matchesValue(workflow.title, "*dynamic*table*"), "true")
+| summarize count = count()
+```
+
+**Pass:** count > 0 after trigger. `[SKIP if not triggered]`
+
+#### AE-E2.6 — query-slowdown-detection workflow deployed
+
+```dql
+fetch bizevents
+| filter event.type == "com.dynatrace.automation.workflow.execution.finished"
+| filter contains(matchesValue(workflow.title, "*query*slowdown*"), "true")
+| summarize count = count()
+```
+
+**Pass:** count > 0 after trigger. `[SKIP if not triggered]`
+
+#### AE-E2.9 — table-perf-degradation workflow deployed
+
+```dql
+fetch bizevents
+| filter event.type == "com.dynatrace.automation.workflow.execution.finished"
+| filter contains(matchesValue(workflow.title, "*table*perf*"), "true")
+| summarize count = count()
+```
+
+**Pass:** count > 0 after trigger. `[SKIP if not triggered]`
+
+#### AE-E3.1 — data-volume-anomaly events present (after spike)
+
+```dql
+fetch events, from: now()-1h
+| filter isNotNull(`ad.source`)
+| filter `ad.source` == "dsoa.data_volume_anomaly"
+| summarize count = count()
+```
+
+**Pass:** count > 0 after seeding the data volume spike.
+**Skip:** `[SKIP if Davis baseline < 7 days old]`
+
+#### AE-E3.2 — warehouse DDL events captured for sensitive-change alert
+
+```dql
+fetch spans, from: now()-2h
+| filter isNotNull(snowflake.object.ddl.operation)
+| filter contains(snowflake.object.name, "DSOA_TEST_WH_DDL_SIM")
+| summarize count = count()
+```
+
+**Pass:** count > 0 after running `setup_test_workflow_anomalies.sql`.
+**Skip:** `[SKIP if track_ddl_changes not enabled]`
 
 After running all batches, present the consolidated results table:
 
@@ -1192,9 +1432,10 @@ After running all batches, present the consolidated results table:
 | AE-C2.6  | Table volume tracked (size)                     | PASS/FAIL |       |
 | AE-C2.7  | Trust center metrics reported                   | PASS/FAIL |       |
 | AE-C2.8  | Dynamic table metrics reported                  | PASS/FAIL |       |
-| AE-C2.11 | Metering across >=3 service types               | PASS/FAIL |       |
-| AE-C2.13 | Org costs: storage metrics                      | PASS/FAIL/SKIP |  |
-| AE-C2.14 | Org costs: billing capacity balance             | PASS/FAIL/SKIP |  |
+| AE-C2.11 | Table health: derived/growth metrics            | PASS/FAIL |       |
+| AE-C2.12 | Metering across >=3 service types               | PASS/FAIL |       |
+| AE-C2.14 | Org costs: storage metrics                      | PASS/FAIL/SKIP |  |
+| AE-C2.15 | Org costs: billing capacity balance             | PASS/FAIL/SKIP |  |
 | AE-C3.1  | No mismatched log/span coverage                 | PASS/FAIL |       |
 | AE-C3.2  | Query time per table (logs)                     | PASS/FAIL |       |
 | AE-C3.3  | Logs for dynamic tables reported                | PASS/FAIL |       |
@@ -1220,6 +1461,7 @@ After running all batches, present the consolidated results table:
 | AE-C6.1  | Long-running queries reported > once            | PASS/FAIL |       |
 | AE-C6.2  | RUNNING and SUCCESS statuses visible            | PASS/FAIL |       |
 | AE-C6.3  | All active query statuses reported              | PASS/FAIL |       |
+| AE-C6.4  | Active queries raw sample (no empty key fields) | PASS/FAIL |       |
 | AE-C7.1  | Inbound/outbound shares (logs)                  | PASS/FAIL |       |
 | AE-C7.2  | Inbound/outbound shares (events)                | PASS/FAIL |       |
 | AE-C7.3  | Inbound shares with missing DB                  | PASS/FAIL |       |
@@ -1243,14 +1485,85 @@ After running all batches, present the consolidated results table:
 | AE-C10.2 | Obfuscation mode: literals — sentinel absent    | PASS/FAIL |       |
 | AE-C10.3 | Obfuscation mode: full — no SQL keywords        | PASS/FAIL |       |
 | AE-C11.1 | max_entries cap enforced                        | PASS/FAIL |       |
-| AE-C11.2 | Overload warning logged                         | PASS/FAIL |       |
+| AE-C11.2 | Overload warning logged (self_monitoring ctx)   | PASS/FAIL |       |
+| AE-C11.3 | Normal query logs flow alongside overload       | PASS/FAIL |       |
 
-Auto-evaluated: {N}/57 — {n} passed, {f} failed, {s} skipped
-  Batch 1: {n1}/13  Batch 2: {n2}/23  Batch 3: {n3}/15  Batch 4: {n4}/11
-  (Deferred: C2.15, C2.16, C4.13 — verify on next day / after data latency window)
+### Batch 5 — Workflow static and deployment validation
+
+| Test     | Description                                     | Result    | Notes |
+|----------|-------------------------------------------------|-----------|-------|
+| AE-E0.1  | Plugin EVENT_TIMESTAMPS vs events telemetry     | PASS/FAIL |       |
+| AE-E1.1  | Workflow schema tests pass (offline)            | PASS/FAIL |       |
+| AE-E1.2  | Workflow consistency tests pass (offline)       | PASS/FAIL |       |
+| AE-E1.3  | Workflow DQL tests pass (offline)               | PASS/FAIL |       |
+| AE-E1.4  | Workflow JS syntax checks pass (offline)        | PASS/FAIL |       |
+| AE-E1.5  | Workflow dry-run deploy succeeds                | PASS/FAIL |       |
+| AE-E2.1  | credits-exhaustion-prediction workflow deployed | PASS/FAIL/SKIP | |
+| AE-E2.3  | dynamic-table-drift workflow deployed           | PASS/FAIL/SKIP | |
+| AE-E2.6  | query-slowdown-detection workflow deployed      | PASS/FAIL/SKIP | |
+| AE-E2.9  | table-perf-degradation workflow deployed        | PASS/FAIL/SKIP | |
+| AE-E3.1  | data-volume-anomaly events after spike          | PASS/FAIL/SKIP | |
+| AE-E3.2  | warehouse DDL events for sensitive-change alert | PASS/FAIL/SKIP | |
+
+Auto-evaluated: {N}/71 — {n} passed, {f} failed, {s} skipped
+  Batch 1: {n1}/13  Batch 2: {n2}/23  Batch 3: {n3}/16  Batch 4: {n4}/11  Batch 5: {n5}/8
+  (Deferred: C2.16, C2.17, C4.13, E3.1 — verify on next day / after data latency window)
 ```
 
 Include the full consolidated table in the Phase 5 markdown report.
+
+---
+
+## Phase 3.6 — Workflow Deployment
+
+Deploy all DSOA workflows to the test tenant. Ask for confirmation before triggering
+any live workflow executions (they consume credits and may send Dynatrace notifications).
+
+### 3.6a. Deploy workflows
+
+```bash
+./scripts/deploy/deploy_dt_assets.sh --scope=workflows --env=test-qa
+```
+
+Verify exit 0 and that all 10 workflows are assigned IDs. If the deploy script
+prints `0 workflows deployed`, check that `docs/workflows/` contains all 10 YAML files.
+
+### 3.6b. Confirm execution (human gate)
+
+> "All 10 workflows have been deployed. May I proceed to trigger test executions
+> for all 10 workflows? This will consume a small amount of compute credits on the
+> test tenant. Type `yes` to proceed or `skip` to skip live execution tests."
+
+If the human says `skip`, mark all E2.x execution items as `[SKIP: human skipped]` and
+proceed to Phase 4.
+
+### 3.6c. Trigger workflow executions
+
+Only proceed after human confirmation. For each of the 10 workflows, trigger via dtctl:
+
+```bash
+# List deployed DSOA workflows and capture IDs
+dtctl get workflows -o json | python3 -c "
+import sys, json
+wfs = json.load(sys.stdin)
+for w in wfs:
+    if 'DSOA' in w.get('title', ''):
+        print(w['id'], w['title'])
+"
+```
+
+Then trigger each workflow:
+
+```bash
+# Example — repeat for each workflow ID
+dtctl exec workflow <id> --watch --timeout 600
+```
+
+**ORGADMIN gate:** Before triggering `org-contract-balance-warning`, check `HAS_ORGADMIN`
+from Phase 1f. If `false`, mark E2.5 as `[SKIP: HAS_ORGADMIN=false]`.
+
+Record: each workflow's execution status (`SUCCESS` / `FAILED` / `TIMEOUT`) and
+whether any task entered an `ERROR` state.
 
 ---
 
@@ -1298,8 +1611,8 @@ Generate the result summary table:
 ```text
 Section                  | Pass | Fail | Skip | Total
 -------------------------|------|------|------|------
-A — Offline              |      |      |      |  12
-B — Deployment           |      |      |      |  15
+A — Offline              |      |      |      |  14
+B — Deployment           |      |      |      |  16
 C1 — Data Volume         |      |      |      |   8
 C2 — Metrics             |      |      |      |  16
 C3 — Logs                |      |      |      |   8
@@ -1311,7 +1624,9 @@ C8 — Plugin Lifecycle    |      |      |      |   4
 C9 — OpenPipeline        |      |      |      |   6
 C10 — Obfuscation        |      |      |      |   3
 C11 — Signal Protection  |      |      |      |   2
-Total                    |      |      |      | 105
+D — Dashboards           |      |      |      |  14
+E — Workflows            |      |      |      |  19
+Total                    |      |      |      | 141
 ```
 
 List all failed and skipped items with the human's notes.
@@ -1347,20 +1662,20 @@ The report file must have the following structure:
 ## Signoff
 
 > DSOA {CURR_VERSION} QA — {DATE} — {PASS}/{TOTAL} items passed ({DEFERRED} deferred)
-> Deferred: C2.15, C2.16, C4.13 — re-verify after data latency window
+> Deferred: C2.16, C2.17, C4.13, E3.1 — re-verify after data latency window
 
 ## Auto-Evaluation (AI)
 
 [Paste consolidated auto-eval table from Phase 3.5 here]
 
-Auto-evaluated: {N}/57 — {n} passed, {f} failed, {s} skipped
+Auto-evaluated: {N}/70 — {n} passed, {f} failed, {s} skipped
 
 ## Section Results
 
 | Section                  | Pass | Fail | Skip | Total |
 |--------------------------|------|------|------|-------|
-| A — Offline              |      |      |      |  12   |
-| B — Deployment           |      |      |      |  15   |
+| A — Offline              |      |      |      |  14   |
+| B — Deployment           |      |      |      |  16   |
 | C1 — Data Volume         |      |      |      |   8   |
 | C2 — Metrics             |      |      |      |  16   |
 | C3 — Logs                |      |      |      |   8   |
@@ -1372,7 +1687,9 @@ Auto-evaluated: {N}/57 — {n} passed, {f} failed, {s} skipped
 | C9 — OpenPipeline        |      |      |      |   6   |
 | C10 — Obfuscation        |      |      |      |   3   |
 | C11 — Signal Protection  |      |      |      |   2   |
-| **Total**                |      |      |      | **105**|
+| D — Dashboards           |      |      |      |  14   |
+| E — Workflows            |      |      |      |  19   |
+| **Total**                |      |      |      | **141**|
 
 ## Failures and Skips
 
@@ -1426,6 +1743,17 @@ case both filters return the same data. However, you **must still use
 `dsoa.run.plugin`** when the intent is to select by plugin, to keep semantics
 correct and future-proof against the plugin gaining additional contexts.
 
+**Special case — `query_history` overload protection:** The signal overload
+protection log and bizevent are emitted with `dsoa.run.plugin == "query_history"`
+but `dsoa.run.context == "self_monitoring"`. This is intentional — it separates
+operational/overload signals from normal query telemetry. Use the context filter
+to distinguish them:
+
+- Normal query logs: `filter dsoa.run.plugin == "query_history" | filter dsoa.run.context != "self_monitoring"`
+- Overload protection only: `filter dsoa.run.plugin == "query_history" | filter dsoa.run.context == "self_monitoring"`
+- If **only** `self_monitoring` logs appear for `query_history`, `max_entries` is
+  set too low — the cap is dropping all queries and data is not flowing.
+
 **Example — correct (shares events from any context):**
 
 ```dql
@@ -1446,6 +1774,21 @@ fetch logs
 fetch events
 | filter dsoa.run.context == "shares"   // WRONG — should be dsoa.run.plugin
 ```
+
+### DQL — `toUid()` for UID-typed fields
+
+Grail stores `trace.id`, `span.id`, and `span.parent_id` as **UID** typed values,
+not plain strings. When filtering by a specific literal value, always wrap the
+hex string with `toUid()`:
+
+```dql
+| filter trace.id == toUid("01c47dd2e26cbb0d31e0325cccd69bd1")  // correct
+| filter trace.id == "01c47dd2e26cbb0d31e0325cccd69bd1"         // WRONG — no match
+```
+
+This applies to any direct equality filter on `trace.id`, `span.id`, or
+`span.parent_id`. Comparison operators and `lookup`/`joinNested` on these fields
+work correctly without `toUid()` because both sides share the same type.
 
 ### B2 — Manual agent invocation
 
