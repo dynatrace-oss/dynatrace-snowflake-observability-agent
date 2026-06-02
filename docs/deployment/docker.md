@@ -82,15 +82,15 @@ will prompt you to create one from scratch, ignoring any local files.**
 
 ## Environment Variables
 
-| Variable | Required | Description |
-| --- | --- | --- |
-| `DTAGENT_TOKEN` | Yes | Dynatrace API token |
-| `SNOWFLAKE_ACCOUNT` | For CI | Snowflake account identifier (enables `--temporary-connection`) |
-| `SNOWFLAKE_USER` | For CI | Snowflake service user |
-| `SNOWFLAKE_PRIVATE_KEY_RAW` | For CI | RSA private key PEM contents |
-| `DSOA_DT_TENANT` | With `--defaults` | Dynatrace tenant address for config generation |
-| `DSOA_SF_ACCOUNT` | With `--defaults` | Snowflake account for config generation |
-| `DSOA_DEPLOYMENT_ENV` | With `--defaults` | Deployment environment name |
+| Variable                    | Required          | Description                                                     |
+|-----------------------------|-------------------|-----------------------------------------------------------------|
+| `DTAGENT_TOKEN`             | Yes               | Dynatrace API token                                             |
+| `SNOWFLAKE_ACCOUNT`         | For CI            | Snowflake account identifier (enables `--temporary-connection`) |
+| `SNOWFLAKE_USER`            | For CI            | Snowflake service user                                          |
+| `SNOWFLAKE_PRIVATE_KEY_RAW` | For CI            | RSA private key PEM contents                                    |
+| `DSOA_DT_TENANT`            | With `--defaults` | Dynatrace tenant address for config generation                  |
+| `DSOA_SF_ACCOUNT`           | With `--defaults` | Snowflake account for config generation                         |
+| `DSOA_DEPLOYMENT_ENV`       | With `--defaults` | Deployment environment name                                     |
 
 ## Generating Config from Env Vars (`--defaults`)
 
@@ -136,6 +136,29 @@ docker run --rm dsoa-deploy:local --help
 
 **Note:** `build/` must exist before `docker build`. The Makefile `docker-build` target
 prints a warning if `build/` is missing.
+
+### Apple Silicon (linux/arm64 vs linux/amd64)
+
+`make docker-build` and `docker build` produce an image for your host architecture. On Apple
+Silicon that is `linux/arm64`, which will fail with `no matching manifest for linux/amd64` on
+standard GitHub Actions runners or Linux servers.
+
+To build for `linux/amd64` (or both platforms), use `docker buildx`:
+
+```bash
+# One-time builder setup
+docker buildx create --use --name multiplatform --driver docker-container
+
+# Build for amd64 and push directly to a registry (--push required for cross-platform builds)
+docker buildx build \
+    --platform linux/amd64 \
+    -t ghcr.io/YOUR_ORG/dsoa-deploy:YOUR_TAG \
+    --push \
+    .
+```
+
+For local testing only (no push needed), add `--load` instead of `--push` and specify a
+single platform: `--platform linux/amd64`.
 
 ## Specific Version
 
