@@ -94,6 +94,107 @@ class TestResMon:
             )
 
 
+class TestEscapeSqlStr:
+    """Unit tests for _escape_sql_str against Snowflake quoted-identifier character space.
+
+    Snowflake double-quoted identifiers allow virtually any character (ASCII, extended ASCII,
+    Unicode, spaces, punctuation). The only character that requires escaping inside a
+    single-quoted SQL string literal is the single quote itself — everything else is harmless.
+    """
+
+    import pytest
+
+    @pytest.mark.parametrize(
+        "name, expected_escaped, description",
+        [
+            # Unquoted identifiers — no special chars, nothing to escape
+            ("MY_MONITOR", "MY_MONITOR", "plain unquoted identifier"),
+            ("MONITOR_01", "MONITOR_01", "unquoted identifier with digit"),
+            # Single quote — the only character that must be escaped
+            ("it's", "it''s", "single quote mid-name"),
+            ("Coś';tam", "Coś'';tam", "unicode + single quote + semicolon (Snowflake quoted identifier)"),
+            ("' OR '1'='1", "'' OR ''1''=''1", "classic SQL injection pattern"),
+            ("foo'; DROP TABLE t --", "foo''; DROP TABLE t --", "SQL injection with statement terminator"),
+            ("''", "''''", "consecutive single quotes"),
+            # Characters valid in Snowflake quoted identifiers that are harmless in string literals
+            ('monitor"name', 'monitor"name', "double quote — harmless inside single-quoted literal"),
+            ("my monitor", "my monitor", "space — valid in quoted identifier"),
+            ("90%_used", "90%_used", "percent sign"),
+            ("cost$center", "cost$center", "dollar sign"),
+            ("monitor.sub", "monitor.sub", "period — valid in quoted identifier"),
+            ("alert!high", "alert!high", "exclamation mark"),
+            ("mon\\slash", "mon\\slash", "backslash — not an escape char in Snowflake string literals"),
+            # Unicode (non-ASCII) — valid in Snowflake quoted identifiers
+            ("Płatności", "Płatności", "Polish unicode identifier, no quotes"),
+            ("Cošta'Rica", "Cošta''Rica", "unicode with embedded single quote"),
+            # Edge cases
+            ("", "", "empty string"),
+        ],
+    )
+    def test_escape_sql_str(self, name, expected_escaped, description):
+        """Assert _escape_sql_str produces correct output for Snowflake identifier edge cases."""
+        from dtagent.plugins.resource_monitors import _escape_sql_str
+
+        assert _escape_sql_str(name) == expected_escaped, description
+
+    @pytest.mark.parametrize(
+        "name",
+        [
+            "it's",
+            "Coś';tam",
+            "foo'; DROP TABLE t --",
+            "' OR '1'='1",
+            'monitor"name',
+            "my monitor",
+        ],
+    )
+    def test_escape_sql_str_produces_safe_literal(self, name):
+        """Assert that wrapping the escaped name in single quotes yields a single complete SQL token.
+
+        A safe SQL string literal starts with ' and ends with ' with no unescaped ' inside.
+        We verify this by checking the assembled literal contains an even number of single quotes
+        (each internal ' is doubled to '').
+        """
+        from dtagent.plugins.resource_monitors import _escape_sql_str
+
+        literal = f"'{_escape_sql_str(name)}'"
+        # Strip the outer opening and closing quotes, then verify no lone quote remains
+        inner = literal[1:-1]
+        # After escaping, all internal quotes appear as ''. Replacing them leaves no ' behind.
+        assert "'" not in inner.replace("''", ""), f"Unescaped quote in literal for name={name!r}"
+
+    @pytest.mark.parametrize(
+        "name",
+        [
+            "it's",
+            "Coś';tam",
+            "foo'; DROP TABLE t --",
+            "' OR '1'='1",
+            'monitor"name',
+            "my monitor",
+            "90%_used",
+            "cost$center",
+            "mon\\slash",
+            "Płatności",
+            "Cošta'Rica",
+            "''",
+        ],
+    )
+    def test_escape_sql_str_round_trip_live(self, name):
+        """Execute SELECT with the escaped name against live Snowflake and verify round-trip equality."""
+        from test import _get_session, is_local_testing
+        from dtagent.plugins.resource_monitors import _escape_sql_str
+
+        if is_local_testing():
+            self.pytest.skip("Live Snowflake connection required — skipped in mock/local testing mode")
+
+        session = _get_session()
+        literal = f"'{_escape_sql_str(name)}'"
+        rows = session.sql(f"SELECT {literal} AS NAME").collect()
+        assert len(rows) == 1
+        assert rows[0]["NAME"] == name
+
+
 class TestComputeBand:
     """Unit tests for ResourceMonitorsPlugin._compute_band — positional band mapping."""
 
