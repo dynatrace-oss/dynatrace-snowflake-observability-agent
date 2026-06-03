@@ -123,7 +123,8 @@ class TestEscapeSqlStr:
             ("cost$center", "cost$center", "dollar sign"),
             ("monitor.sub", "monitor.sub", "period — valid in quoted identifier"),
             ("alert!high", "alert!high", "exclamation mark"),
-            ("mon\\slash", "mon\\slash", "backslash — not an escape char in Snowflake string literals"),
+            ("mon\\slash", "mon\\\\slash", "backslash — Snowflake treats it as escape char in string literals"),
+            ("TEST\\NOT'TEST", "TEST\\\\NOT''TEST", "backslash + single quote combined"),
             # Unicode (non-ASCII) — valid in Snowflake quoted identifiers
             ("Płatności", "Płatności", "Polish unicode identifier, no quotes"),
             ("Cošta'Rica", "Cošta''Rica", "unicode with embedded single quote"),
@@ -175,18 +176,23 @@ class TestEscapeSqlStr:
             "90%_used",
             "cost$center",
             "mon\\slash",
+            "TEST\\NOT'TEST",
             "Płatności",
             "Cošta'Rica",
             "''",
         ],
     )
     def test_escape_sql_str_round_trip_live(self, name):
-        """Execute SELECT with the escaped name against live Snowflake and verify round-trip equality."""
+        """Execute SELECT with the escaped name against live Snowflake and verify round-trip equality.
+
+        Skipped in local testing mode — Session.sql() is not supported by the Snowflake mock.
+        Requires test/credentials.yml to run.
+        """
         from test import _get_session, is_local_testing
         from dtagent.plugins.resource_monitors import _escape_sql_str
 
         if is_local_testing():
-            self.pytest.skip("Live Snowflake connection required — skipped in mock/local testing mode")
+            self.pytest.skip("Session.sql not supported in local testing mode — requires live Snowflake connection")
 
         session = _get_session()
         literal = f"'{_escape_sql_str(name)}'"

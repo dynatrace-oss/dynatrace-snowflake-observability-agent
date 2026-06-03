@@ -59,8 +59,12 @@ _NO_BAND = ""
 
 
 def _escape_sql_str(value: str) -> str:
-    """Escapes single quotes in a string for safe interpolation into SQL string literals."""
-    return value.replace("'", "''")
+    """Escapes backslashes and single quotes for safe interpolation into SQL string literals.
+
+    Backslash is escaped first so it is not applied again to the doubled single-quote sequences.
+    Snowflake treats backslash as an escape character in single-quoted string literals.
+    """
+    return value.replace("\\", "\\\\").replace("'", "''")
 
 
 class ResourceMonitorsPlugin(Plugin):
@@ -262,9 +266,9 @@ class ResourceMonitorsPlugin(Plugin):
         Returns:
             Optional[str]: Highest band name, or None if below the lowest threshold.
         """
-        for i in range(len(thresholds) - 1, -1, -1):
-            if used_pct >= thresholds[i]:
-                return _BAND_LEVELS[max(0, len(_BAND_LEVELS) - len(thresholds) + i)]
+        for i in range(1, min(len(thresholds), len(_BAND_LEVELS)) + 1):
+            if used_pct >= thresholds[-i]:
+                return _BAND_LEVELS[-i]
         return None
 
     @staticmethod
