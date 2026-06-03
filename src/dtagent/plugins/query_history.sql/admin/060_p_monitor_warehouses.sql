@@ -54,9 +54,10 @@ BEGIN
 
     -- iterate over unmonitored warehouses
     FOR r_wh IN c_warehouse_names DO
-        q_grant_monitor := 'grant monitor on warehouse ' || r_wh.name || '  to role DTAGENT_VIEWER;';
+        LET wh_name TEXT := r_wh.name;
+        q_grant_monitor := 'grant monitor on warehouse IDENTIFIER(?) to role DTAGENT_VIEWER;';
 
-        EXECUTE IMMEDIATE :q_grant_monitor;
+        EXECUTE IMMEDIATE :q_grant_monitor USING (wh_name);
     END FOR;
 
     RETURN 'MONITOR privilege on warehouses granted to DTAGENT_VIEWER';
