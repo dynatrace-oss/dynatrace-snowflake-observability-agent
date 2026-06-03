@@ -249,9 +249,11 @@ class ResourceMonitorsPlugin(Plugin):
     def _compute_band(used_pct: float, thresholds: List[int]) -> Optional[str]:
         """Returns the highest band crossed by *used_pct* given *thresholds*.
 
-        Band assignment is positional: threshold index *i* maps to
-        ``_BAND_LEVELS[min(i, len(_BAND_LEVELS) - 1)]``, so a four-element list
-        maps to info/warn/critical/exhausted regardless of the actual percentage values.
+        Band assignment is right-aligned: threshold index *i* maps to
+        ``_BAND_LEVELS[max(0, len(_BAND_LEVELS) - len(thresholds) + i)]``.
+        A four-element list maps to info/warn/critical/exhausted; a two-element
+        list maps to critical/exhausted (the last two bands); a one-element list
+        maps to exhausted.
 
         Args:
             used_pct (float): Current percentage of quota used.
@@ -262,7 +264,7 @@ class ResourceMonitorsPlugin(Plugin):
         """
         for i in range(len(thresholds) - 1, -1, -1):
             if used_pct >= thresholds[i]:
-                return _BAND_LEVELS[min(i, len(_BAND_LEVELS) - 1)]
+                return _BAND_LEVELS[max(0, len(_BAND_LEVELS) - len(thresholds) + i)]
         return None
 
     @staticmethod

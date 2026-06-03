@@ -218,11 +218,11 @@ class TestComputeBand:
             ([60, 75, 85, 95], 75, "warn"),
             ([60, 75, 85, 95], 60, "info"),
             ([60, 75, 85, 95], 59, None),
-            # Short threshold lists — index 0 always maps to "info"
-            ([80], 80, "info"),
+            # Short threshold lists — right-aligned: index 0 maps to the last N bands
+            ([80], 80, "exhausted"),
             ([80], 79, None),
-            ([70, 90], 90, "warn"),
-            ([70, 90], 70, "info"),
+            ([70, 90], 90, "exhausted"),
+            ([70, 90], 70, "critical"),
         ],
     )
     def test_compute_band(self, thresholds, used_pct, expected):
