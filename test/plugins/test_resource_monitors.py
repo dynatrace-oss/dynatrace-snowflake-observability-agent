@@ -21,7 +21,12 @@
 # SOFTWARE.
 #
 #
+"""Tests for the resource monitors plugin."""
+
+
 class TestResMon:
+    """Integration tests for ResourceMonitorsPlugin using fixture data."""
+
     import pytest
 
     T_DATA_RESMON = "APP.V_RESOURCE_MONITORS"
@@ -30,6 +35,7 @@ class TestResMon:
 
     @pytest.mark.xdist_group(name="test_telemetry")
     def test_res_mon(self):
+        """Run the resource monitors plugin against fixture data in all telemetry-disable combinations."""
         import logging
         from unittest.mock import patch
 
@@ -50,6 +56,7 @@ class TestResMon:
             utils._generate_fixture(session, self.T_DATA_WHS, self.FIXTURES[self.T_DATA_WHS])
 
         class TestResourceMonitorsPlugin(ResourceMonitorsPlugin):
+            """ResourceMonitorsPlugin subclass that reads from local fixture files."""
 
             def _get_table_rows(self, t_data: str) -> Generator[Dict, None, None]:
                 return utils._safe_get_fixture_entries(TestResMon.FIXTURES, t_data, limit=2)
@@ -85,6 +92,43 @@ class TestResMon:
                     "warehouses": {"entries": 2, "log_lines": 0, "metrics": 12, "events": 6},
                 },
             )
+
+
+class TestComputeBand:
+    """Unit tests for ResourceMonitorsPlugin._compute_band — positional band mapping."""
+
+    import pytest
+
+    @pytest.mark.parametrize(
+        "thresholds, used_pct, expected",
+        [
+            # Default thresholds [50, 80, 90, 100]
+            ([50, 80, 90, 100], 49, None),
+            ([50, 80, 90, 100], 50, "info"),
+            ([50, 80, 90, 100], 79, "info"),
+            ([50, 80, 90, 100], 80, "warn"),
+            ([50, 80, 90, 100], 89, "warn"),
+            ([50, 80, 90, 100], 90, "critical"),
+            ([50, 80, 90, 100], 99, "critical"),
+            ([50, 80, 90, 100], 100, "exhausted"),
+            # Custom override without 100 — exhausted must still be reachable at index 3
+            ([60, 75, 85, 95], 95, "exhausted"),
+            ([60, 75, 85, 95], 85, "critical"),
+            ([60, 75, 85, 95], 75, "warn"),
+            ([60, 75, 85, 95], 60, "info"),
+            ([60, 75, 85, 95], 59, None),
+            # Short threshold lists — index 0 always maps to "info"
+            ([80], 80, "info"),
+            ([80], 79, None),
+            ([70, 90], 90, "warn"),
+            ([70, 90], 70, "info"),
+        ],
+    )
+    def test_compute_band(self, thresholds, used_pct, expected):
+        """Assert that _compute_band returns the correct positional band for the given inputs."""
+        from dtagent.plugins.resource_monitors import ResourceMonitorsPlugin
+
+        assert ResourceMonitorsPlugin._compute_band(used_pct, thresholds) == expected
 
 
 if __name__ == "__main__":
