@@ -16,13 +16,13 @@
 
 </div>
 
-**Dynatrace Snowflake Observability Agent (DSOA)** is a tool designed to enhance [Data Platform Observability](DPO.md) within the
-Snowflake environment. It complements Dynatrace's capabilities by [extending observability with plugins](PLUGINS.md) into areas where
-traditional OneAgent or synthetic monitoring may not reach. DSOA provides [comprehensive telemetry data](SEMANTICS.md) for monitoring,
+**Dynatrace Snowflake Observability Agent (DSOA)** is a tool designed to enhance [Data Platform Observability](docs/DPO.md) within the
+Snowflake environment. It complements Dynatrace's capabilities by [extending observability with plugins](docs/PLUGINS.md) into areas where
+traditional OneAgent or synthetic monitoring may not reach. DSOA provides [comprehensive telemetry data](docs/SEMANTICS.md) for monitoring,
 analyzing, and detecting anomalies in data processing. It delivers observability data in the form of OpenTelemetry
-[logs](ARCHITECTURE.md#sending-logs) and [spans](ARCHITECTURE.md#sending-tracesspans), as well as Dynatrace
-[metrics](ARCHITECTURE.md#sending-metrics), [events](ARCHITECTURE.md#sending-events), and
-[business events (CloudEvents)](ARCHITECTURE.md#sending-bizevents), ensuring a seamless integration with Dynatrace's observability platform.
+[logs](docs/ARCHITECTURE.md#sending-logs) and [spans](docs/ARCHITECTURE.md#sending-tracesspans), as well as Dynatrace
+[metrics](docs/ARCHITECTURE.md#sending-metrics), [events](docs/ARCHITECTURE.md#sending-events), and
+[business events (CloudEvents)](docs/ARCHITECTURE.md#sending-bizevents), ensuring a seamless integration with Dynatrace's observability platform.
 
 **Table of contents:**
 
