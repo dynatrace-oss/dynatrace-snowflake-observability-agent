@@ -24,15 +24,17 @@
 #
 
 #
-# Deploy Dynatrace dashboards and workflows using dtctl.
+# Deploy Dynatrace dashboards, workflows, and OpenPipeline rules using dtctl.
 #
 # Usage:
-#   ./deploy_dt_assets.sh [--scope=SCOPE] [--dry-run] [--env=ENV]
+#   ./deploy_dt_assets.sh [--scope=SCOPE] [--dry-run] [--env=ENV] [--name=NAME]
 #
 # Args:
-#   --scope   dashboards | workflows | all (default: all)
+#   --scope   dashboards | workflows | openpipeline | all (default: all)
 #   --dry-run preview changes without applying them
 #   --env     optional environment label for logging only
+#   --name    optional folder name filter — deploy only the matching asset
+#             (case-insensitive; glob wildcard * supported)
 #
 
 set -euo pipefail
@@ -43,6 +45,7 @@ REPO_ROOT="$(cd "$CWD/../.." && pwd)"
 SCOPE="all"
 DRY_RUN=false
 ENV_LABEL=""
+FILTER_NAME=""
 
 # ── Argument parsing ─────────────────────────────────────────────────────────
 
@@ -60,6 +63,10 @@ while [[ $# -gt 0 ]]; do
             ENV_LABEL="${1#*=}"
             shift
             ;;
+        --name=*)
+            FILTER_NAME="${1#--name=}"
+            shift
+            ;;
         *)
             echo "Unknown parameter: $1"
             exit 1
@@ -69,9 +76,9 @@ done
 
 # Validate scope
 case "$SCOPE" in
-    dashboards|workflows|all) ;;
+    dashboards|workflows|openpipeline|all) ;;
     *)
-        echo "ERROR: Invalid scope '$SCOPE'. Must be one of: dashboards, workflows, all"
+        echo "ERROR: Invalid scope '$SCOPE'. Must be one of: dashboards, workflows, openpipeline, all"
         exit 1
         ;;
 esac
@@ -82,6 +89,23 @@ log_info()    { echo "[INFO]  $*"; }
 log_ok()      { echo "[OK]    $*"; }
 log_warn()    { echo "[WARN]  $*"; }
 log_error()   { echo "[ERROR] $*" >&2; }
+
+# Returns 0 if the given folder name matches the active FILTER_NAME pattern.
+# Matching is case-insensitive; a single glob wildcard (*) is supported.
+#
+# Args:
+#   $1 - folder name to test
+name_matches() {
+    local folder="$1"
+    local pattern="${FILTER_NAME,,}"
+    local target="${folder,,}"
+    if [[ "$pattern" == *"*"* ]]; then
+        # shellcheck disable=SC2053
+        [[ "$target" == $pattern ]]
+    else
+        [[ "$target" == "$pattern" ]]
+    fi
+}
 
 dtctl_available() {
     command -v dtctl &>/dev/null
@@ -104,7 +128,7 @@ convert_yaml_to_dtctl_json() {
     local asset_type="$2"
     local asset_name="$3"
     local tmp_file
-    tmp_file=$(mktemp /tmp/dtctl-asset-XXXXXX.json)
+    tmp_file=$(mktemp "${TMPDIR:-/tmp}/dtctl-asset-XXXXXX")
 
     # Convert YAML → raw JSON
     local raw_json
@@ -226,6 +250,7 @@ deploy_assets_of_type() {
 
     local success_count=0
     local failure_count=0
+    local matched_count=0
 
     if [[ ! -d "$source_dir" ]]; then
         log_warn "Directory not found, skipping ${asset_type}s: $source_dir"
@@ -255,6 +280,14 @@ deploy_assets_of_type() {
             asset_name=$(basename "$(dirname "$yaml_file")")
         fi
 
+        # Apply --name filter if set
+        local folder_name
+        folder_name=$(basename "$(dirname "$yaml_file")")
+        if [[ -n "$FILTER_NAME" ]] && ! name_matches "$folder_name"; then
+            continue
+        fi
+        (( matched_count++ )) || true
+
         log_info "Processing ${asset_type}: ${asset_name} (${yaml_file})"
 
         # Convert YAML → dtctl JSON envelope
@@ -267,7 +300,7 @@ deploy_assets_of_type() {
 
         # Deploy
         local id_file
-        id_file=$(mktemp /tmp/dtctl-id-XXXXXX.txt)
+        id_file=$(mktemp "${TMPDIR:-/tmp}/dtctl-id-XXXXXX")
         if deploy_asset "$tmp_json" "$asset_name" "$id_file"; then
             (( success_count++ )) || true
 
@@ -281,7 +314,7 @@ deploy_assets_of_type() {
                 if [[ -n "$assigned_id" ]] && (( yaml_id_count == 0 )); then
                     # Insert id: <uuid> after the last contiguous header comment block
                     local tmp_yaml
-                    tmp_yaml=$(mktemp /tmp/dtctl-yaml-XXXXXX.yml)
+                    tmp_yaml=$(mktemp "${TMPDIR:-/tmp}/dtctl-yaml-XXXXXX")
                     awk -v id="$assigned_id" '
                         !inserted && /^[^#]/ { print "id: " id; inserted=1 }
                         { print }
@@ -300,6 +333,98 @@ deploy_assets_of_type() {
     done
 
     echo ""
+    if [[ -n "$FILTER_NAME" ]] && (( matched_count == 0 )); then
+        log_error "No ${asset_type} found matching name: '${FILTER_NAME}'"
+        return 1
+    fi
+    log_info "${asset_type^} deployment summary: ${success_count} succeeded, ${failure_count} failed"
+
+    if [[ $failure_count -gt 0 ]]; then
+        return 1
+    fi
+    return 0
+}
+
+# Deploy all OpenPipeline settings files.
+# OpenPipeline objects are Settings 2.0 resources (schema builtin:openpipeline.logs.pipelines).
+# dtctl apply accepts YAML natively — no conversion or envelope wrapping required.
+#
+# Returns:
+#   0 if all rules deployed successfully
+#   1 if any rule failed (continues processing remaining rules)
+deploy_openpipeline_rules() {
+    local source_dir="$REPO_ROOT/docs/openpipeline"
+    local name_comment_prefix="# OPENPIPELINE:"
+    local asset_type="openpipeline"
+
+    local success_count=0
+    local failure_count=0
+    local matched_count=0
+
+    if [[ ! -d "$source_dir" ]]; then
+        log_warn "Directory not found, skipping ${asset_type} rules: $source_dir"
+        return 0
+    fi
+
+    # Find all YAML files one level deep (docs/openpipeline/<name>/<name>.yml)
+    local yaml_files=()
+    while IFS= read -r -d '' f; do
+        yaml_files+=("$f")
+    done < <(find "$source_dir" -mindepth 2 -maxdepth 2 -name "*.yml" -print0 2>/dev/null | sort -z)
+
+    if [[ ${#yaml_files[@]} -eq 0 ]]; then
+        log_warn "No YAML files found in $source_dir"
+        return 0
+    fi
+
+    log_info "Deploying ${#yaml_files[@]} ${asset_type} rule(s) from $source_dir"
+
+    for yaml_file in "${yaml_files[@]}"; do
+        # Extract the human-readable name from the embedded comment
+        local asset_name
+        asset_name=$(grep "^${name_comment_prefix}" "$yaml_file" | head -1 | sed "s|^${name_comment_prefix} *||" || true)
+
+        if [[ -z "$asset_name" ]]; then
+            asset_name=$(basename "$(dirname "$yaml_file")")
+        fi
+
+        # Apply --name filter if set
+        local folder_name
+        folder_name=$(basename "$(dirname "$yaml_file")")
+        if [[ -n "$FILTER_NAME" ]] && ! name_matches "$folder_name"; then
+            continue
+        fi
+        (( matched_count++ )) || true
+
+        log_info "Processing ${asset_type}: ${asset_name} (${yaml_file})" are applied as-is — dtctl apply accepts YAML natively.
+        # No conversion or envelope wrapping needed (these are Settings 2.0 objects with objectid).
+        local dry_run_flag=""
+        if $DRY_RUN; then dry_run_flag="--dry-run"; fi
+
+        local dtctl_output
+        # shellcheck disable=SC2086
+        if ! dtctl_output=$(dtctl apply -f "$yaml_file" $dry_run_flag 2>&1); then
+            log_error "dtctl apply failed for: ${asset_name}"
+            echo "$dtctl_output" >&2
+            (( failure_count++ )) || true
+        else
+            local action_label
+            action_label=$(echo "$dtctl_output" | jq -r '.result.action // empty' 2>/dev/null || true)
+            action_label="${action_label:-deployed}"
+            if $DRY_RUN; then
+                log_info "[dry-run] ${asset_name}"
+            else
+                log_ok "${action_label^}: ${asset_name}"
+            fi
+            (( success_count++ )) || true
+        fi
+    done
+
+    echo ""
+    if [[ -n "$FILTER_NAME" ]] && (( matched_count == 0 )); then
+        log_error "No ${asset_type} found matching name: '${FILTER_NAME}'"
+        return 1
+    fi
     log_info "${asset_type^} deployment summary: ${success_count} succeeded, ${failure_count} failed"
 
     if [[ $failure_count -gt 0 ]]; then
@@ -320,7 +445,9 @@ fi
 
 log_info "Scope: ${SCOPE}"
 
-# Check required tools
+if [[ -n "$FILTER_NAME" ]]; then
+    log_info "Filtering to: ${FILTER_NAME}"
+fi
 if ! command -v jq &>/dev/null; then
     cat <<-'EOF'
 
@@ -394,6 +521,10 @@ fi
 
 if [[ "$SCOPE" == "workflows" || "$SCOPE" == "all" ]]; then
     deploy_assets_of_type "workflow" "$REPO_ROOT/docs/workflows" "# WORKFLOW:" || OVERALL_STATUS=1
+fi
+
+if [[ "$SCOPE" == "openpipeline" || "$SCOPE" == "all" ]]; then
+    deploy_openpipeline_rules || OVERALL_STATUS=1
 fi
 
 # ── Final summary ────────────────────────────────────────────────────────────

@@ -139,3 +139,26 @@ dimensions:
       The type of event that occurred, such as:
       - LOGIN,
       - LOGOUT.
+metrics:
+  snowflake.login.attempts.failed:
+    __context_names:
+      - openpipeline
+    __description: Number of failed Snowflake login attempts within the collection window.
+    __example: "42"
+    displayName: Snowflake Login Attempts Failed
+    unit: "1"
+  snowflake.login.attempts.successful:
+    __context_names:
+      - openpipeline
+    __description: Number of successful Snowflake login attempts within the collection window.
+    __example: "1234"
+    displayName: Snowflake Login Attempts Successful
+    unit: "1"
+  snowflake.login.attempts.total:
+    __context_names:
+      - openpipeline
+    __description: >-
+      Total number of Snowflake login attempts (failed + successful) within the collection window.
+    __example: "1276"
+    displayName: Snowflake Login Attempts Total
+    unit: "1"

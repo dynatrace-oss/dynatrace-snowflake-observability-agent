@@ -40,6 +40,7 @@ class LoginHistoryPlugin(Plugin):
     """Login history plugin class."""
 
     PLUGIN_NAME = "login_history"
+    PLUGIN_CONTEXTS: tuple = ("login_history", "sessions")
 
     def _prepare_event_payload_failed_login(self, row_dict: dict) -> Tuple[EventType, str, Dict]:
         """Defines what payload should be sent once error.code column is present in the row"""

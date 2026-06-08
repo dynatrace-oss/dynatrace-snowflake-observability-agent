@@ -38,6 +38,7 @@ class DynamicTablesPlugin(Plugin):
     """Dynamic tables plugin class."""
 
     PLUGIN_NAME = "dynamic_tables"
+    PLUGIN_CONTEXTS: tuple = ("dynamic_tables", "dynamic_table_refresh_history", "dynamic_table_graph_history")
 
     def process(self, run_id: str, run_proc: bool = True, contexts: Optional[List[str]] = None) -> Dict[str, Dict[str, int]]:
         """Processes the measures on dynamic tables

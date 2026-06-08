@@ -29,7 +29,8 @@
 --%OPTION:resource_monitor:
 use role ACCOUNTADMIN; use schema DTAGENT_DB.CONFIG; use warehouse DTAGENT_WH;
 
-EXECUTE IMMEDIATE $$
+execute immediate
+$$
 declare
     the_user varchar default current_user();
 begin

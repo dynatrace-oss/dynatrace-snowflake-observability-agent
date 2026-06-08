@@ -38,6 +38,7 @@ class TasksPlugin(Plugin):
     """Tasks plugin class."""
 
     PLUGIN_NAME = "tasks"
+    PLUGIN_CONTEXTS: tuple = ("serverless_tasks", "task_versions", "task_history")
 
     def process(self, run_id: str, run_proc: bool = True, contexts: Optional[List[str]] = None) -> Dict[str, Dict[str, int]]:
         """Processes the measures on serverless tasks, task history and task versions.

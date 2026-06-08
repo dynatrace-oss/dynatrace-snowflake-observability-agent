@@ -11,11 +11,11 @@ delivers:
     type: view
   - name: DTAGENT_DB.APP.V_OUTBOUND_SHARE_TABLES
     type: view
-  - name: DTAGENT_DB.CONFIG.P_GET_SHARES()
+  - name: DTAGENT_DB.APP.P_GET_SHARES()
     type: procedure
-  - name: DTAGENT_DB.CONFIG.P_GRANT_IMPORTED_PRIVILEGES(varchar)
+  - name: DTAGENT_DB.APP.P_GRANT_IMPORTED_PRIVILEGES(VARCHAR)
     type: procedure
-  - name: DTAGENT_DB.CONFIG.P_LIST_INBOUND_TABLES(varchar,varchar,boolean)
+  - name: DTAGENT_DB.APP.P_LIST_INBOUND_TABLES(VARCHAR, VARCHAR)
     type: procedure
   - name: DTAGENT_DB.CONFIG.UPDATE_SHARES_CONF()
     type: procedure
@@ -44,7 +44,3 @@ references:
   - name: SHOW GRANTS TO SHARE $share
     type: command
     privileges: USAGE
-  - name: SNOWFLAKE.ACCOUNT_USAGE.DATABASES
-    type: view
-    privileges: SELECT
-    granted to: DTAGENT_VIEWER

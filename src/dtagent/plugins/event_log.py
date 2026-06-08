@@ -26,8 +26,7 @@
 #
 import logging
 from typing import Dict, Generator, Tuple, Optional, List
-import pandas as pd
-from dtagent.util import _unpack_json_dict
+from dtagent.util import _unpack_json_dict, _is_nan_or_none
 from dtagent.plugins import Plugin
 from dtagent.context import RUN_PLUGIN_KEY, RUN_RESULTS_KEY, RUN_ID_KEY  # COMPILE_REMOVE
 
@@ -40,6 +39,7 @@ class EventLogPlugin(Plugin):
     """Event log plugin class."""
 
     PLUGIN_NAME = "event_log"
+    PLUGIN_CONTEXTS: tuple = ("event_log", "event_log_metrics", "event_log_spans")
 
     def _get_events(self) -> Generator[Dict, None, None]:
         """Fetches data from APP.EVENT_LOG, with limit set in configuration."""
@@ -64,7 +64,7 @@ class EventLogPlugin(Plugin):
         event_dict = {
             k.lower(): v
             for k, v in row_dict.items()
-            if (k != "START_TIME" or not pd.isna(v)) and k[0] != "_"  # no empty start_time or _underscored keys
+            if (k != "START_TIME" or not _is_nan_or_none(v)) and k[0] != "_"  # no empty start_time or _underscored keys
         }
 
         self._logs.send_log(

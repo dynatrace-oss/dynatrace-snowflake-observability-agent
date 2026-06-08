@@ -15,11 +15,19 @@
     "snowflake.pipe.schema": "INGEST",
     "snowflake.pipe.status": "RUNNING",
     "snowflake.schema.name": "INGEST",
+    "snowflake.table.full_name": "DSOA_PIPE_TEST_DB.INGEST.EVENTS",
     "dsoa.run.plugin": "test_snowpipes",
     "dsoa.run.context": "snowpipes",
-    "code.file.path": "./src/dtagent/otel/logs.py",
-    "code.function.name": "send_log",
-    "code.line.number": 205
+    "resource_attributes": {
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent"
+    }
   },
   {
     "content": "Snowpipe (DSOA_PIPE_TEST_DB.INGEST.ORDERS_PIPE) status: RUNNING",
@@ -37,11 +45,19 @@
     "snowflake.pipe.schema": "INGEST",
     "snowflake.pipe.status": "RUNNING",
     "snowflake.schema.name": "INGEST",
+    "snowflake.table.full_name": "DSOA_PIPE_TEST_DB.INGEST.ORDERS",
     "dsoa.run.plugin": "test_snowpipes",
     "dsoa.run.context": "snowpipes",
-    "code.file.path": "./src/dtagent/otel/logs.py",
-    "code.function.name": "send_log",
-    "code.line.number": 205
+    "resource_attributes": {
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent"
+    }
   },
   {
     "content": "Snowpipe load: data -> EVENTS (Loaded)",
@@ -64,11 +80,19 @@
     "snowflake.pipe.name": "EVENTS_PIPE",
     "snowflake.pipe.schema": "INGEST",
     "snowflake.schema.name": "INGEST",
+    "snowflake.table.full_name": "DSOA_PIPE_TEST_DB.INGEST.EVENTS",
     "dsoa.run.plugin": "test_snowpipes",
     "dsoa.run.context": "snowpipes_copy_history",
-    "code.file.path": "./src/dtagent/otel/logs.py",
-    "code.function.name": "send_log",
-    "code.line.number": 205
+    "resource_attributes": {
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent"
+    }
   },
   {
     "content": "Snowpipe load: data -> ORDERS (Load failed)",
@@ -95,11 +119,19 @@
     "snowflake.pipe.name": "ORDERS_PIPE",
     "snowflake.pipe.schema": "INGEST",
     "snowflake.schema.name": "INGEST",
+    "snowflake.table.full_name": "DSOA_PIPE_TEST_DB.INGEST.ORDERS",
     "dsoa.run.plugin": "test_snowpipes",
     "dsoa.run.context": "snowpipes_copy_history",
-    "code.file.path": "./src/dtagent/otel/logs.py",
-    "code.function.name": "send_log",
-    "code.line.number": 205
+    "resource_attributes": {
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent"
+    }
   },
   {
     "content": "Snowpipe usage: EVENTS_PIPE (0.000000000 credits)",
@@ -115,9 +147,16 @@
     "snowflake.pipe.schema": "INGEST",
     "dsoa.run.plugin": "test_snowpipes",
     "dsoa.run.context": "snowpipes_usage_history",
-    "code.file.path": "./src/dtagent/otel/logs.py",
-    "code.function.name": "send_log",
-    "code.line.number": 205
+    "resource_attributes": {
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent"
+    }
   },
   {
     "content": "Snowpipe usage: EVENTS_PIPE (0.000000000 credits)",
@@ -133,8 +172,15 @@
     "snowflake.pipe.schema": "INGEST",
     "dsoa.run.plugin": "test_snowpipes",
     "dsoa.run.context": "snowpipes_usage_history",
-    "code.file.path": "./src/dtagent/otel/logs.py",
-    "code.function.name": "send_log",
-    "code.line.number": 205
+    "resource_attributes": {
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent"
+    }
   }
 ]

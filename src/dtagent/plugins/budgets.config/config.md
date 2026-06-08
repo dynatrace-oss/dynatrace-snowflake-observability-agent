@@ -12,6 +12,10 @@
 1. For **custom budgets**: configure `monitored_budgets` and run `P_GRANT_BUDGET_MONITORING()` (admin scope required), or grant
    privileges manually (see below).
 
+> **IMPORTANT**: When the `admin` scope is **not** installed, `APP.P_GRANT_BUDGET_MONITORING()` and its scheduling task are not
+> deployed, so custom budget grants are **never applied automatically**. The plugin will report **no telemetry for custom budgets**
+> without any errors. Customers must apply the grants below manually before going to production without admin scope.
+
 ### Granting access to custom budgets manually
 
 For each custom budget `<DB>.<SCHEMA>.<BUDGET_NAME>`, grant the following to `DTAGENT_VIEWER`:

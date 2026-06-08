@@ -6,5 +6,6 @@ This plugin:
 
 - logs the current state of each resource monitor and warehouse,
 - logs an error if an account-level monitor setup is missing,
-- logs a warning if a warehouse is not monitored at all, and
-- sends events on all new activities of monitors and warehouses.
+- logs a warning if a warehouse is not monitored at all,
+- sends events on all new activities of monitors and warehouses, and
+- fires Davis events when a resource monitor's credit usage crosses configurable thresholds (info / warn / critical / exhausted bands) and resolves them automatically when usage drops back below the threshold.

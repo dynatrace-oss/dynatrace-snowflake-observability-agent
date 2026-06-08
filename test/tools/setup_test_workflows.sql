@@ -44,7 +44,7 @@ USE SCHEMA   DSOA_TEST_DB.WORKFLOWS;
 -- 3. DATA_VOLUME plugin — tables with varied row counts
 --    The data_volume plugin reads from INFORMATION_SCHEMA.TABLE_STORAGE_METRICS
 --    and ACCOUNT_USAGE.TABLE_STORAGE_METRICS scoped to the configured include
---    pattern. The plugin emits snowflake.data.rows and snowflake.data.bytes.
+--    pattern. The plugin emits snowflake.data.rows and snowflake.data.size.
 --    The data-volume-anomaly workflow alerts on drops in row counts.
 -- ============================================================================
 

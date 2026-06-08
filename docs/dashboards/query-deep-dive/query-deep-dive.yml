@@ -95,6 +95,18 @@ variables:
         | filter isNotNull(db.operation.name)
         | summarize collectDistinct(db.operation.name)
 
+  - key: UserType
+    type: query
+    visible: true
+    editable: true
+    version: 2
+    multiple: true
+    input: |
+      fetch logs
+        | filter db.system == "snowflake"
+        | filter isNotNull(snowflake.user.type)
+        | summarize collectDistinct(snowflake.user.type)
+
   - key: TopN
     type: csv
     visible: true
@@ -126,6 +138,7 @@ tiles:
         | filter (isNull(db.namespace)             or in(db.namespace, array($Database)))
         | filter (isNull(db.user)                  or in(db.user, array($User)))
         | filter (isNull(db.operation.name)        or in(db.operation.name, array($Operation)))
+        | filter (isNull(snowflake.user.type)      or in(snowflake.user.type, array($UserType)))
         | summarize
             total_scanned_bytes = sum(toDouble(snowflake.data.scanned)),
             exec_count          = count(),
@@ -166,14 +179,14 @@ tiles:
         lineWrapIds: []
         columnWidths: {}
         columnOrder:
-          - "[\"total_scanned_bytes\"]"
-          - "[\"exec_count\"]"
-          - "[\"avg_elapsed_ms\"]"
-          - "[\"database\"]"
-          - "[\"warehouse\"]"
-          - "[\"operation\"]"
-          - "[\"query_hash\"]"
-          - "[\"query_text\"]"
+          - '["total_scanned_bytes"]'
+          - '["exec_count"]'
+          - '["avg_elapsed_ms"]'
+          - '["database"]'
+          - '["warehouse"]'
+          - '["operation"]'
+          - '["query_hash"]'
+          - '["query_text"]'
     querySettings:
       maxResultRecords: 100
       defaultScanLimitGbytes: 500
@@ -196,6 +209,7 @@ tiles:
         | filter (isNull(db.namespace)             or in(db.namespace, array($Database)))
         | filter (isNull(db.user)                  or in(db.user, array($User)))
         | filter (isNull(db.operation.name)        or in(db.operation.name, array($Operation)))
+        | filter (isNull(snowflake.user.type)      or in(snowflake.user.type, array($UserType)))
         | fieldsAdd
             local_spill  = toDouble(snowflake.data.spilled.local),
             remote_spill = toDouble(snowflake.data.spilled.remote)
@@ -247,14 +261,14 @@ tiles:
         lineWrapIds: []
         columnWidths: {}
         columnOrder:
-          - "[\"total_spill_bytes\"]"
-          - "[\"local_spill_bytes\"]"
-          - "[\"remote_spill_bytes\"]"
-          - "[\"exec_count\"]"
-          - "[\"database\"]"
-          - "[\"warehouse\"]"
-          - "[\"query_hash\"]"
-          - "[\"query_text\"]"
+          - '["total_spill_bytes"]'
+          - '["local_spill_bytes"]'
+          - '["remote_spill_bytes"]'
+          - '["exec_count"]'
+          - '["database"]'
+          - '["warehouse"]'
+          - '["query_hash"]'
+          - '["query_text"]'
     querySettings:
       maxResultRecords: 100
       defaultScanLimitGbytes: 500
@@ -277,6 +291,7 @@ tiles:
         | filter (isNull(db.namespace)             or in(db.namespace, array($Database)))
         | filter (isNull(db.user)                  or in(db.user, array($User)))
         | filter (isNull(db.operation.name)        or in(db.operation.name, array($Operation)))
+        | filter (isNull(snowflake.user.type)      or in(snowflake.user.type, array($UserType)))
         | fieldsAdd scanned = toDouble(snowflake.data.scanned)
         | makeTimeseries scanned = sum(scanned), by: { db.namespace }
     visualizationSettings:
@@ -335,6 +350,7 @@ tiles:
         | filter (isNull(db.namespace)             or in(db.namespace, array($Database)))
         | filter (isNull(db.user)                  or in(db.user, array($User)))
         | filter (isNull(db.operation.name)        or in(db.operation.name, array($Operation)))
+        | filter (isNull(snowflake.user.type)      or in(snowflake.user.type, array($UserType)))
         | fieldsAdd scan_ratio = toDouble(snowflake.partitions.scanned) / toDouble(snowflake.partitions.total)
         | makeTimeseries avg_ratio = avg(scan_ratio), by: { db.collection.name }
         | fieldsAdd sum_avg_ratio = arraySum(avg_ratio)
@@ -377,6 +393,7 @@ tiles:
         | filter (isNull(db.namespace)             or in(db.namespace, array($Database)))
         | filter (isNull(db.user)                  or in(db.user, array($User)))
         | filter (isNull(db.operation.name)        or in(db.operation.name, array($Operation)))
+        | filter (isNull(snowflake.user.type)      or in(snowflake.user.type, array($UserType)))
         | makeTimeseries
             local_spill  = sum(toDouble(snowflake.data.spilled.local)),
             remote_spill = sum(toDouble(snowflake.data.spilled.remote)),
@@ -440,6 +457,7 @@ tiles:
         | filter (isNull(db.namespace)             or in(db.namespace, array($Database)))
         | filter (isNull(db.user)                  or in(db.user, array($User)))
         | filter (isNull(db.operation.name)        or in(db.operation.name, array($Operation)))
+        | filter (isNull(snowflake.user.type)      or in(snowflake.user.type, array($UserType)))
         | makeTimeseries cache_pct = avg(toDouble(snowflake.data.scanned_from_cache) * 100), by: { db.collection.name }
         | fieldsAdd sum_cache_pct = arraySum(cache_pct)
         | sort sum_cache_pct desc
@@ -498,6 +516,7 @@ tiles:
         | filter (isNull(db.namespace)             or in(db.namespace, array($Database)))
         | filter (isNull(db.user)                  or in(db.user, array($User)))
         | filter (isNull(db.operation.name)        or in(db.operation.name, array($Operation)))
+        | filter (isNull(snowflake.user.type)      or in(snowflake.user.type, array($UserType)))
         | fields
             `Query ID`                   = snowflake.query.id,
             User                         = db.user,
@@ -551,6 +570,7 @@ tiles:
         | filter (isNull(db.namespace)             or in(db.namespace, array($Database)))
         | filter (isNull(db.user)                  or in(db.user, array($User)))
         | filter (isNull(db.operation.name)        or in(db.operation.name, array($Operation)))
+        | filter (isNull(snowflake.user.type)      or in(snowflake.user.type, array($UserType)))
         | makeTimeseries accel_bytes = sum(toDouble(snowflake.acceleration.data.scanned)), by: { snowflake.warehouse.name }
         | fieldsAdd sum_accel_bytes = arraySum(accel_bytes)
         | sort sum_accel_bytes desc
@@ -794,6 +814,7 @@ tiles:
         | filter (isNull(db.namespace)             or in(db.namespace, array($Database)))
         | filter (isNull(db.user)                  or in(db.user, array($User)))
         | filter (isNull(db.operation.name)        or in(db.operation.name, array($Operation)))
+        | filter (isNull(snowflake.user.type)      or in(snowflake.user.type, array($UserType)))
         | makeTimeseries invocations = sum(toDouble(snowflake.external_functions.invocations)), by: { snowflake.warehouse.name }
         | fieldsAdd sum_invocations = arraySum(invocations)
         | sort sum_invocations desc
@@ -835,6 +856,7 @@ tiles:
         | filter (isNull(db.namespace)             or in(db.namespace, array($Database)))
         | filter (isNull(db.user)                  or in(db.user, array($User)))
         | filter (isNull(db.operation.name)        or in(db.operation.name, array($Operation)))
+        | filter (isNull(snowflake.user.type)      or in(snowflake.user.type, array($UserType)))
         | summarize
             bytes_sent     = sum(toDouble(snowflake.external_functions.data.sent)),
             bytes_received = sum(toDouble(snowflake.external_functions.data.received)),
@@ -871,13 +893,13 @@ tiles:
         lineWrapIds: []
         columnWidths: {}
         columnOrder:
-          - "[\"bytes_sent\"]"
-          - "[\"bytes_received\"]"
-          - "[\"rows_sent\"]"
-          - "[\"rows_received\"]"
-          - "[\"invocations\"]"
-          - "[\"warehouse\"]"
-          - "[\"database\"]"
+          - '["bytes_sent"]'
+          - '["bytes_received"]'
+          - '["rows_sent"]'
+          - '["rows_received"]'
+          - '["invocations"]'
+          - '["warehouse"]'
+          - '["database"]'
     querySettings:
       maxResultRecords: 100
       defaultScanLimitGbytes: 500
@@ -909,6 +931,7 @@ tiles:
         | filter (isNull(db.namespace)             or in(db.namespace, array($Database)))
         | filter (isNull(db.user)                  or in(db.user, array($User)))
         | filter (isNull(db.operation.name)        or in(db.operation.name, array($Operation)))
+        | filter (isNull(snowflake.user.type)      or in(snowflake.user.type, array($UserType)))
         | summarize count = count(), by: { client.application.id }
         | sort count desc
     visualization: pieChart
@@ -943,7 +966,42 @@ tiles:
         | filter (isNull(db.namespace)             or in(db.namespace, array($Database)))
         | filter (isNull(db.user)                  or in(db.user, array($User)))
         | filter (isNull(db.operation.name)        or in(db.operation.name, array($Operation)))
+        | filter (isNull(snowflake.user.type)      or in(snowflake.user.type, array($UserType)))
         | summarize count = count(), by: { authentication.type }
+        | sort count desc
+    visualization: pieChart
+    visualizationSettings:
+      chartSettings:
+        truncationMode: middle
+        legend:
+          position: bottom
+        circleChartSettings:
+          valueType: relative
+          groupingThresholdType: relative
+      thresholds: []
+    querySettings:
+      maxResultRecords: 100
+      defaultScanLimitGbytes: 500
+      maxResultMegaBytes: 50
+      defaultSamplingRatio: 10
+      enableSampling: false
+    davis:
+      enabled: false
+
+  "26":
+    title: Queries by user type
+    type: data
+    query: |
+      fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "query_history"
+        | filter isNotNull(snowflake.user.type)
+        | filter in(deployment.environment, array($Accounts))
+        | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
+        | filter (isNull(db.namespace)             or in(db.namespace, array($Database)))
+        | filter (isNull(db.user)                  or in(db.user, array($User)))
+        | filter (isNull(db.operation.name)        or in(db.operation.name, array($Operation)))
+        | summarize count = count(), by: { snowflake.user.type }
         | sort count desc
     visualization: pieChart
     visualizationSettings:
@@ -986,6 +1044,7 @@ tiles:
         | filter (isNull(db.namespace)             or in(db.namespace, array($Database)))
         | filter (isNull(db.user)                  or in(db.user, array($User)))
         | filter (isNull(db.operation.name)        or in(db.operation.name, array($Operation)))
+        | filter (isNull(snowflake.user.type)      or in(snowflake.user.type, array($UserType)))
         | summarize
             credits = sum(toDouble(snowflake.credits.cloud_services)),
             by: { db.user, snowflake.role.name }
@@ -1016,6 +1075,7 @@ tiles:
         | filter (isNull(db.namespace)             or in(db.namespace, array($Database)))
         | filter (isNull(db.user)                  or in(db.user, array($User)))
         | filter (isNull(db.operation.name)        or in(db.operation.name, array($Operation)))
+        | filter (isNull(snowflake.user.type)      or in(snowflake.user.type, array($UserType)))
         | summarize
             credits = sum(toDouble(snowflake.credits.cloud_services)),
             by: { snowflake.warehouse.name }
@@ -1049,6 +1109,7 @@ tiles:
         | filter (isNull(db.namespace)             or in(db.namespace, array($Database)))
         | filter (isNull(db.user)                  or in(db.user, array($User)))
         | filter (isNull(db.operation.name)        or in(db.operation.name, array($Operation)))
+        | filter (isNull(snowflake.user.type)      or in(snowflake.user.type, array($UserType)))
         | summarize
             outbound_bytes = sum(toDouble(snowflake.data.transferred.outbound)),
             by: {
@@ -1085,6 +1146,7 @@ tiles:
         | filter (isNull(db.namespace)             or in(db.namespace, array($Database)))
         | filter (isNull(db.user)                  or in(db.user, array($User)))
         | filter (isNull(db.operation.name)        or in(db.operation.name, array($Operation)))
+        | filter (isNull(snowflake.user.type)      or in(snowflake.user.type, array($UserType)))
         | summarize
             inbound_bytes = sum(toDouble(snowflake.data.transferred.inbound)),
             by: {
@@ -1246,14 +1308,21 @@ layouts:
   "18":
     x: 0
     "y": 54
-    w: 12
+    w: 8
     h: 6
 
   # Tile 19: Queries by auth type
   "19":
-    x: 12
+    x: 8
     "y": 54
-    w: 12
+    w: 8
+    h: 6
+
+  # Tile 26: Queries by user type
+  "26":
+    x: 16
+    "y": 54
+    w: 8
     h: 6
 
   # Section 7 header

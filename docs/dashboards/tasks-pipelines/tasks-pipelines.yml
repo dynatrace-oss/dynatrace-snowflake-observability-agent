@@ -294,7 +294,7 @@ tiles:
       | filter in(db.namespace, array($Database))
       | filter in(snowflake.schema.name, array($Schema))
       | filter in(snowflake.task.name, array($TaskOrTable))
-      | filter toLong(snowflake.task.run.attempt) > 1
+      | filter snowflake.task.run.attempt > 1
       | makeTimeseries retries = count(), by: { snowflake.task.name, deployment.environment }
     visualization: barChart
     visualizationSettings:

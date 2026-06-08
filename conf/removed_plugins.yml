@@ -1,0 +1,23 @@
+# Plugins removed from the DSOA codebase.
+#
+# When a plugin is deleted from src/dtagent/plugins/, add an entry here so that
+# --options=cleanup_disabled can suspend and drop its orphaned Snowflake objects
+# on the next deployment, without requiring a live INFORMATION_SCHEMA scan alone.
+#
+# IMPORTANT: Keep this file committed in git. It is NOT environment-specific.
+#
+# Format:
+#   removed_plugins:
+#     - name: <plugin_name>           # matches the plugin directory name under src/dtagent/plugins/
+#       removed_in_version: <x.y.z>   # DSOA version in which the plugin was removed
+#       tasks:                        # fully-qualified Snowflake task names created by this plugin
+#         - DTAGENT_DB.APP.TASK_DTAGENT_<PLUGIN_NAME_UPPER>
+#
+# Example:
+#   removed_plugins:
+#     - name: legacy_metrics
+#       removed_in_version: 1.2.0
+#       tasks:
+#         - DTAGENT_DB.APP.TASK_DTAGENT_LEGACY_METRICS
+
+removed_plugins: []

@@ -1,0 +1,3 @@
+snowflake.credits.used,db.system="snowflake",service.name="test.dsoa2025",deployment.environment="TEST",host.name="test.dsoa2025.snowflakecomputing.com",dsoa.run.context="serverless_tasks",dsoa.run.plugin="test_tasks",snowflake.task.name="TASK_DTAGENT_USERS",snowflake.schema.name="APP",db.namespace="DTAGENT_DB",snowflake.task.is_internal="False" 0.5
+#snowflake.credits.used gauge dt.meta.displayName="Snowflake Credits Used",dt.meta.unit="credits"
+snowflake.credits.used,db.system="snowflake",service.name="test.dsoa2025",deployment.environment="TEST",host.name="test.dsoa2025.snowflakecomputing.com",dsoa.run.context="serverless_tasks",dsoa.run.plugin="test_tasks",snowflake.task.name="TASKS_MEASUREMENT_TASK",snowflake.task.is_internal="True" 0.1

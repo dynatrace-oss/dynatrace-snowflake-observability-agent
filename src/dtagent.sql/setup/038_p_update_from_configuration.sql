@@ -43,7 +43,13 @@ begin
     --%OPTION:resource_monitor:
     SNOWFLAKE_CREDIT_QUOTA := (select DTAGENT_DB.CONFIG.F_GET_CONFIG_VALUE('core.snowflake.resource_monitor.credit_quota', 5));
     if (SNOWFLAKE_CREDIT_QUOTA IS NOT NULL) then
-        call DTAGENT_DB.CONFIG.P_UPDATE_RESOURCE_MONITOR(:SNOWFLAKE_CREDIT_QUOTA);
+        begin
+            call DTAGENT_DB.CONFIG.P_UPDATE_RESOURCE_MONITOR(:SNOWFLAKE_CREDIT_QUOTA);
+        exception
+            when other then
+                system$log_warn(concat('P_UPDATE_RESOURCE_MONITOR: ', sqlerrm,
+                    ' — re-run with scope=init to restore resource monitor ownership'));
+        end;
     end if;
     --%:OPTION:resource_monitor
 
@@ -58,6 +64,17 @@ begin
     end if;
 
     call DTAGENT_DB.CONFIG.UPDATE_ALL_PLUGINS_SCHEDULE();
+
+    --%PLUGIN:event_log:
+    -- Re-run event table setup now that config values are loaded (e.g. discover_db_tables=true).
+    -- SETUP_EVENT_TABLE handles ACCOUNTADMIN failures internally; VIEW paths work as DTAGENT_OWNER.
+    begin
+        call DTAGENT_DB.APP.SETUP_EVENT_TABLE();
+    exception
+        when other then
+            system$log_warn(concat('SETUP_EVENT_TABLE: ', sqlerrm));
+    end;
+    --%:PLUGIN:event_log
 
     return 'OK';
 exception

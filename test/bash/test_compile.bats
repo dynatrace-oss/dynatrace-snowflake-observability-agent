@@ -1,7 +1,8 @@
 #!/usr/bin/env bats
 
 setup_file() {
-    cd "$BATS_TEST_DIRNAME/../.."
+    # shellcheck disable=SC2154
+    cd "$BATS_TEST_DIRNAME/../.." || exit 1
     # Ensure build directory exists (not present in a fresh CI checkout)
     mkdir -p build/30_plugins build/09_upgrade
     # Backup original files if exist
@@ -11,11 +12,12 @@ setup_file() {
     # Run compile.sh once for all tests; communicate result via BATS_FILE_TMPDIR
     # (export from setup_file does not propagate into individual test subshells)
     ./scripts/dev/compile.sh
+    # shellcheck disable=SC2154
     echo $? > "${BATS_FILE_TMPDIR}/compile_status"
 }
 
 teardown_file() {
-    cd "$BATS_TEST_DIRNAME/../.."
+    cd "$BATS_TEST_DIRNAME/../.." || exit 1
     # Restore or clean up
     [ -f build/_version.py.bak ] && mv build/_version.py.bak build/_version.py || rm -f build/_version.py
     [ -f build/_dtagent.py.bak ] && mv build/_dtagent.py.bak build/_dtagent.py || rm -f build/_dtagent.py
@@ -23,7 +25,8 @@ teardown_file() {
 }
 
 setup() {
-    cd "$BATS_TEST_DIRNAME/../.."
+    cd "$BATS_TEST_DIRNAME/../.." || exit 1
+    # shellcheck disable=SC2154
     COMPILE_STATUS=$(cat "${BATS_FILE_TMPDIR}/compile_status" 2>/dev/null || echo 1)
 }
 
@@ -47,8 +50,8 @@ setup() {
 
     # Check that docstrings are removed (no triple quotes followed by text)
     # We're checking that there are no typical docstring patterns
-    ! grep -E '^\s*"""[^"]*"""' build/_dtagent.py
-    ! grep -E "^\s*'''[^']*'''" build/_dtagent.py
-    ! grep -E '^\s*"""[^"]*"""' build/_send_telemetry.py
-    ! grep -E "^\s*'''[^']*'''" build/_send_telemetry.py
+    run ! grep -E '^\s*"""[^"]*"""' build/_dtagent.py
+    run ! grep -E "^\s*'''[^']*'''" build/_dtagent.py
+    run ! grep -E '^\s*"""[^"]*"""' build/_send_telemetry.py
+    run ! grep -E "^\s*'''[^']*'''" build/_send_telemetry.py
 }

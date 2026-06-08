@@ -61,6 +61,10 @@ references:
     type: role
     privileges: ROLE
     granted to: DTAGENT_ADMIN
+  - name: SYSTEM$SHOW_BUDGETS_IN_ACCOUNT
+    type: function
+    privileges: USAGE
+    comment: Called in P_GET_BUDGETS() via PARSE_JSON(SYSTEM$SHOW_BUDGETS_IN_ACCOUNT()); requires BUDGET_ADMIN role
   - name: SNOWFLAKE.CORE.BUDGET
     type: command
     privileges: USAGE

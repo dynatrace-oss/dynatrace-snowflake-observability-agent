@@ -1,0 +1,9 @@
+plugins:
+  cold_tables:
+    schedule: USING CRON 0 6 * * * UTC
+    lookback_days: 365
+    cold_threshold_days: 90
+    is_disabled: false
+    telemetry:
+      - metrics
+      - logs

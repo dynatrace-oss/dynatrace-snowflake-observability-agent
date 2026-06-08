@@ -1,0 +1,63 @@
+#  *
+#  * These materials contain confidential information and
+#  * trade secrets of Dynatrace LLC.  You shall
+#  * maintain the materials as confidential and shall not
+#  * disclose its contents to any third party except as may
+#  * be required by law or regulation.  Use disclosure
+#  * or reproduction is prohibited without the prior express
+#  * written permission of Dynatrace LLC.
+#  *
+#  * All Compuware products listed within the materials are
+#  * trademarks of Dynatrace LLC.  All other company
+#  * or product names are trademarks of their respective owners.
+#  *
+#  * Copyright (c) 2024 Dynatrace LLC.  All rights reserved.
+#  *
+#  *
+#  * Catalog of instrumentation known to Dynatrace Snowflake Observability Agent - cold_tables plugin
+#  *
+
+dimensions:
+  db.namespace:
+    __context_names: ["cold_tables"]
+    __example: analytics_db
+    __description: The name of the database containing the table.
+  snowflake.schema.name:
+    __context_names: ["cold_tables"]
+    __example: public
+    __description: The schema containing the table.
+  db.collection.name:
+    __context_names: ["cold_tables"]
+    __example: orders
+    __description: The table name.
+  snowflake.table.full_name:
+    __context_names: ["cold_tables"]
+    __example: ANALYTICS_DB.PUBLIC.ORDERS
+    __description: Fully qualified table name (catalog.schema.table).
+  snowflake.table.cold_status:
+    __context_names: ["cold_tables"]
+    __example: cold
+    __description: |
+      Table temperature classification based on access recency:
+      - cold: no access within cold_threshold_days (default 90)
+      - warm: accessed within cold_threshold_days
+
+attributes:
+  snowflake.table.last_accessed_at:
+    __context_names: ["cold_tables"]
+    __example: "2026-01-15T10:30:00Z"
+    __description: ISO 8601 timestamp of the most recent query that accessed this table.
+
+metrics:
+  snowflake.table.access.count:
+    __context_names: ["cold_tables"]
+    __example: "42"
+    __description: Total number of query accesses to this table within the lookback window.
+    displayName: Table Access Count
+    unit: count
+  snowflake.table.days_since_last_access:
+    __context_names: ["cold_tables"]
+    __example: "95"
+    __description: Number of days since the table was last accessed by any query.
+    displayName: Days Since Last Access
+    unit: days

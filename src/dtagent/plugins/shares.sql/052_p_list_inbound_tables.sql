@@ -23,6 +23,9 @@
 --
 use role DTAGENT_OWNER; use database DTAGENT_DB; use schema APP; use warehouse DTAGENT_WH; -- fixed DP-11334
 
+-- Drop old 3-arg overload to avoid "ambiguous overloading" errors on re-deploy without upgrade scope
+drop procedure if exists DTAGENT_DB.APP.P_LIST_INBOUND_TABLES(VARCHAR, VARCHAR, BOOLEAN);
+
 create or replace procedure DTAGENT_DB.APP.P_LIST_INBOUND_TABLES(share_name VARCHAR, db_name VARCHAR)
 returns table (
     SHARE_NAME text,

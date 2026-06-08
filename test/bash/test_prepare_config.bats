@@ -1,6 +1,7 @@
 #!/usr/bin/env bats
 setup() {
-    cd "$BATS_TEST_DIRNAME/../.."
+    # shellcheck disable=SC2154
+    cd "$BATS_TEST_DIRNAME/../.." || exit 1
     # Set BUILD_CONFIG_FILE to avoid issues when sourcing
     export BUILD_CONFIG_FILE="/tmp/test_config.json"
     # Source the script to test its functions

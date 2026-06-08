@@ -2,17 +2,27 @@
 
 <div class="header" style="margin-top: 2em; margin-bottom: 2em;">
 <img src="docs/assets/dynatrace-logo.svg" alt="Dynatrace logo" height="100" class="dynatrace-logo">
-<img src="docs/assets/left-arrow.svg" alt="arrow" height="100" class="left-arrow">
+<img src="docs/assets/left-arrow.svg" alt="" height="100" class="left-arrow">
 <img src="docs/assets/snowflake-logo.svg" alt="Snowflake logo" height="100" class="snowflake-logo">
 </div>
 
-**Dynatrace Snowflake Observability Agent (DSOA)** is a powerful tool designed to enhance [Data Platform Observability](DPO.md) within the
-Snowflake environment. It complements Dynatrace's capabilities by [extending observability with plugins](PLUGINS.md) into areas where
-traditional OneAgent or synthetic monitoring may not reach. DSOA provides [comprehensive telemetry data](SEMANTICS.md) for monitoring,
+<div class="no-pdf" align="center">
+
+[![Python Version](https://img.shields.io/badge/Python-3.11%2B-blue.svg?logo=python&logoColor=white)](https://www.python.org/)
+[![Snowflake](https://img.shields.io/badge/Snowflake-Integrated-29B5E8.svg?logo=snowflake&logoColor=white)](https://www.snowflake.com/)
+[![OpenTelemetry](https://img.shields.io/badge/OpenTelemetry-1.39-000000.svg?logo=opentelemetry&logoColor=white)](https://opentelemetry.io/)
+[![Docker](https://img.shields.io/badge/Docker-Enabled-2496ED.svg?logo=docker&logoColor=white)](https://www.docker.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+</div>
+
+**Dynatrace Snowflake Observability Agent (DSOA)** is a tool designed to enhance [Data Platform Observability](docs/DPO.md) within the
+Snowflake environment. It complements Dynatrace's capabilities by [extending observability with plugins](docs/PLUGINS.md) into areas where
+traditional OneAgent or synthetic monitoring may not reach. DSOA provides [comprehensive telemetry data](docs/SEMANTICS.md) for monitoring,
 analyzing, and detecting anomalies in data processing. It delivers observability data in the form of OpenTelemetry
-[logs](ARCHITECTURE.md#sending-logs) and [spans](ARCHITECTURE.md#sending-tracesspans), as well as Dynatrace
-[metrics](ARCHITECTURE.md#sending-metrics), [events](ARCHITECTURE.md#sending-events), and
-[business events (CloudEvents)](ARCHITECTURE.md#sending-bizevents), ensuring a seamless integration with Dynatrace's observability platform.
+[logs](docs/ARCHITECTURE.md#sending-logs) and [spans](docs/ARCHITECTURE.md#sending-tracesspans), as well as Dynatrace
+[metrics](docs/ARCHITECTURE.md#sending-metrics), [events](docs/ARCHITECTURE.md#sending-events), and
+[business events (CloudEvents)](docs/ARCHITECTURE.md#sending-bizevents), ensuring a seamless integration with Dynatrace's observability platform.
 
 **Table of contents:**
 

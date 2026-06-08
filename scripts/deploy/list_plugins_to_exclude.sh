@@ -30,6 +30,7 @@ list_plugins_by_status() {
   local STATUS_TYPE=$1
   local STATUS_VALUE=$2
 
+  # shellcheck disable=SC2046,SC2154
   echo $(jq -r --argjson STATUS_VALUE "$STATUS_VALUE" --arg STATUS_TYPE "$STATUS_TYPE" '.[] | select(.PATH | startswith("plugins.") and endswith(".is_" + $STATUS_TYPE)) | select(.TYPE == "bool") | select(.VALUE == $STATUS_VALUE) | .PATH | sub("plugins\\."; "") | sub("\\.is_" + $STATUS_TYPE; "")' "$BUILD_CONFIG_FILE")
 }
 
@@ -55,7 +56,8 @@ if [ "$DEPLOY_DISABLED_PLUGINS" == "false" ]; then
   if [ "$DISABLED_BY_DEFAULT" == "true" ]; then
     # We need to take the list of all plugins that are not explicitly disable (which is a default state) and exclude those that are explicitly enabled
     for PLUGIN in $NOT_DISABLED_PLUGINS; do
-      if ! [[ " $ENABLED_PLUGINS " =~ " $PLUGIN " ]]; then
+      plugin_pattern=" ${PLUGIN} "
+      if ! [[ " $ENABLED_PLUGINS " =~ $plugin_pattern ]]; then
       echo "$PLUGIN"
       fi
     done

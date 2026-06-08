@@ -163,6 +163,12 @@ dimensions:
       - snowpipes_copy_history
     __example: TARGET_TABLE
     __description: Target table for ingested data.
+  snowflake.table.full_name:
+    __context_names:
+      - snowpipes
+      - snowpipes_copy_history
+    __example: ANALYTICS_DB.PUBLIC.TARGET_TABLE
+    __description: Fully qualified name (DB.SCHEMA.TABLE) of the target table for ingested data.
   snowflake.pipe.owner:
     __context_names:
       - snowpipes

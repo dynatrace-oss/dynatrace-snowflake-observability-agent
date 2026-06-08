@@ -301,7 +301,7 @@ Not all DSOA telemetry types are available on every Dynatrace deployment. Some s
 Grail (Dynatrace's data lakehouse) and the OpenPipeline ingestion APIs.
 
 | Signal Type        | Endpoint                     | DPS Required | Notes                                           |
-| ------------------ | ---------------------------- | ------------ | ----------------------------------------------- |
+|--------------------|------------------------------|--------------|-------------------------------------------------|
 | **Logs**           | `/api/v2/otlp/v1/logs`       | No           | Available on all tenants                        |
 | **Metrics**        | `/api/v2/metrics/ingest`     | No           | Available on all tenants                        |
 | **Spans**          | `/api/v2/otlp/v1/traces`     | No           | Available on all tenants                        |
@@ -310,7 +310,7 @@ Grail (Dynatrace's data lakehouse) and the OpenPipeline ingestion APIs.
 | **Generic Events** | `/platform/ingest/v1/events` | **Yes**      | OpenPipeline-only; requires DPS                 |
 
 For guidance on configuring DSOA for a non-DPS Dynatrace tenant, see
-[Using DSOA Without a Dynatrace Platform Subscription](INSTALL.md#using-dsoa-without-a-dynatrace-platform-subscription) in INSTALL.md.
+the [Troubleshooting](INSTALL.md#troubleshooting) section of INSTALL.md.
 
 ## Sending custom telemetry
 
@@ -327,7 +327,7 @@ The `sources` parameter specifies the content to be sent to Dynatrace and can be
 The `params` object controls how `DTAGENT_DB.APP.SEND_TELEMETRY` works. Key options:
 
 | Param          | Default            | Description                                                                                    |
-| -------------- | ------------------ | ---------------------------------------------------------------------------------------------- |
+|----------------|--------------------|------------------------------------------------------------------------------------------------|
 | `auto_mode`    | `true`             | Expects data in [default structure](#default-data-structure) unless set to `false`.            |
 | `context`      | `telemetry_sender` | Identifies custom data source; used for tracking with `STATUS.F_LAST_PROCESSED_TS()`.          |
 | `metrics`      | `true`             | Enables sending metrics (only in auto-mode).                                                   |
@@ -496,7 +496,7 @@ The build process creates staged SQL scripts in the `build/` directory:
 
 - `00_init.sql` - Initialization scripts (database, roles, basic setup)
 - `09_upgrade/v*.sql` - Version-specific upgrade scripts
-- `10_admin.sql` - Administrative operations (role grants, ownership transfers)
+- `80_admin.sql` - Administrative operations (role grants, ownership transfers) — sorted last to deploy after all plugin files
 - `20_setup.sql` - Core setup (schemas, tables, procedures)
 - `30_plugins/*.sql` - Individual plugin definitions
 - `40_config.sql` - Configuration management
@@ -559,7 +559,7 @@ Administrative operations (requiring `DTAGENT_ADMIN` role when present, or manua
 - `src/dtagent.sql/admin/*.sql` - Core administrative operations
 - `src/dtagent/plugins/*.sql/admin/*.sql` - Plugin-specific administrative operations
 
-These files are compiled into `build/10_admin.sql` and deployed only when using `--scope=admin`. This ensures that:
+These files are compiled into `build/80_admin.sql` and deployed only when using `--scope=admin`. The `80_` prefix ensures admin deploys after all plugin files (`30_plugins/`), so admin procedures correctly overwrite non-admin stubs. This ensures that:
 
 1. The `DTAGENT_ADMIN` role is only created when explicitly needed
 2. Administrative privileges are only used in appropriate contexts

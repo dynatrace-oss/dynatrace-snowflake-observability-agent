@@ -28,6 +28,7 @@
 
 import requests
 from dtagent.otel import _log_warning, USER_AGENT
+from dtagent.otel.ingest_warnings import IngestWarningCollector
 
 ##region ------------------------ OTEL base class---------------------------------
 
@@ -111,4 +112,21 @@ class CustomLoggingSession(requests.Session):
             _log_warning(response, response.request.body, source=response.url.rsplit("/", 1)[-1])
         else:
             OtelManager.set_current_fail_count(0)
+            try:
+                # Dynatrace's OTLP endpoint returns JSON (not protobuf) in the response body,
+                # so JSON parsing is correct here. Non-JSON responses are handled by the except.
+                body = response.json()
+                partial = body.get("partialSuccess", {}) if isinstance(body, dict) else {}
+                rejected_logs = partial.get("rejectedLogRecords", 0)
+                rejected_spans = partial.get("rejectedSpans", 0)
+                if rejected_logs:
+                    IngestWarningCollector.add_warning(
+                        "partial_success", "logs", f"OTLP partial success: {rejected_logs} log record(s) rejected", rejected_logs
+                    )
+                if rejected_spans:
+                    IngestWarningCollector.add_warning(
+                        "partial_success", "spans", f"OTLP partial success: {rejected_spans} span(s) rejected", rejected_spans
+                    )
+            except Exception:  # pylint: disable=broad-except
+                pass
         return response

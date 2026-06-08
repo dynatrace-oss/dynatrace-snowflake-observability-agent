@@ -44,6 +44,7 @@ import uuid
 import time
 import logging
 import datetime
+import threading
 
 from types import NoneType
 from typing import Tuple, Dict, List, Callable, Generator, Any, Union, Optional, Literal
@@ -52,12 +53,15 @@ from abc import ABC, abstractmethod
 import pandas as pd
 
 from snowflake import snowpark
+from snowflake.snowpark.functions import col
+from snowflake.snowpark.exceptions import SnowparkSQLException
 
 from opentelemetry.trace import SpanKind, INVALID_SPAN_ID, INVALID_TRACE_ID
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider, Tracer, SpanLimits
 from opentelemetry.sdk.trace.id_generator import RandomIdGenerator
 from opentelemetry.sdk._logs import LoggerProvider
+from opentelemetry._logs import SeverityNumber
 from opentelemetry import version as otel_version
 
 ##endregion
@@ -73,6 +77,7 @@ from opentelemetry import version as otel_version
 ##INSERT src/dtagent/util.py
 ##INSERT src/dtagent/config.py
 ##INSERT src/dtagent/otel/otel_manager.py
+##INSERT src/dtagent/otel/ingest_warnings.py
 ##INSERT src/dtagent/otel/__init__.py
 ##INSERT build/_semantics.py
 ##INSERT src/dtagent/otel/spans.py
@@ -142,6 +147,12 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
             c_source = _get_plugin_class(plugin_name)
             run_id = str(uuid.uuid4().hex)
 
+            if inspect.isclass(c_source) and contexts:
+                known_contexts = getattr(c_source, "PLUGIN_CONTEXTS", ())
+                unknown = set(contexts) - set(known_contexts)
+                if unknown:
+                    LOG.warning("Unknown contexts %s for plugin %s. Known: %s", unknown, plugin_name, known_contexts)
+
             if inspect.isclass(c_source):
                 #
                 # running the plugin
@@ -152,7 +163,7 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
                         {RUN_VERSION_KEY: str(VERSION), RUN_PLUGIN_KEY: c_source.PLUGIN_NAME, RUN_ID_KEY: run_id}
                     )
 
-                self.report_execution_status(status="STARTED", task_name=source, exec_id=run_id)
+                self.report_execution_status(status="STARTED", task_name=source, exec_id=run_id, plugin_name=plugin_name)
 
                 plugin_telemetry_allowed = (
                     set(
@@ -176,11 +187,17 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
                     ).process(run_id, run_proc, **({"contexts": contexts} if contexts else {}))
                     #
 
-                    self.report_execution_status(status="FINISHED", task_name=source, exec_id=run_id, details_dict=results[source])
+                    self.report_execution_status(
+                        status="FINISHED", task_name=source, exec_id=run_id, details_dict=results[source], plugin_name=plugin_name
+                    )
+                    self._emit_ingest_warnings(plugin_name=plugin_name, run_id=run_id)
+                    self._emit_acquisition_problems(plugin_name=plugin_name, run_id=run_id)
                 except RuntimeError as e:
+                    self._emit_ingest_warnings(plugin_name=plugin_name, run_id=run_id)
+                    self._emit_acquisition_problems(plugin_name=plugin_name, run_id=run_id)
                     self.handle_interrupted_run(plugin_name, run_id, str(e))
             else:
-                self.report_execution_status(status="FAILED", task_name=source, exec_id=run_id)
+                self.report_execution_status(status="FAILED", task_name=source, exec_id=run_id, plugin_name=plugin_name)
                 results[source] = {"not_implemented": c_source}
                 LOG.warning(f"""Requested measuring source {plugin_name} that is not implemented: {results[source]}""")
 

@@ -35,40 +35,34 @@ variables:
     type: query
     visible: true
     input: |-
-      fetch events
-      | filter db.system == "snowflake"
-      | filter dsoa.run.context == "data_volume"
-      | filter isNotNull(deployment.environment)
-      | summarize envs = collectDistinct(deployment.environment)
-      | fields envs_and_all = array("*", envs)
-    multiple: false
-    defaultValue: "*"
+      timeseries avg(snowflake.data.rows), by: { deployment.environment }
+      , filter: { db.system == "snowflake" and dsoa.run.context == "data_volume" }
+      | fields deployment.environment
+      | dedup deployment.environment
+      | sort deployment.environment asc
+    multiple: true
   - version: 2
     key: Database
     type: query
     visible: true
     input: |-
-      fetch events
-      | filter db.system == "snowflake"
-      | filter dsoa.run.context == "data_volume"
-      | filter isNotNull(db.namespace)
-      | summarize dbs = collectDistinct(db.namespace)
-      | fields dbs_and_all = array("*", dbs)
-    multiple: false
-    defaultValue: "*"
+      timeseries avg(snowflake.data.rows), by: { db.namespace }
+      , filter: { db.system == "snowflake" and dsoa.run.context == "data_volume" }
+      | fields db.namespace
+      | dedup db.namespace
+      | sort db.namespace asc
+    multiple: true
   - version: 2
     key: TableType
     type: query
     visible: true
     input: |-
-      fetch events
-      | filter db.system == "snowflake"
-      | filter dsoa.run.context == "data_volume"
-      | filter isNotNull(snowflake.table.type)
-      | summarize types = collectDistinct(snowflake.table.type)
-      | fields types_and_all = array("*", types)
-    multiple: false
-    defaultValue: "*"
+      timeseries avg(snowflake.data.rows), by: { snowflake.table.type }
+      , filter: { db.system == "snowflake" and dsoa.run.context == "data_volume" }
+      | fields snowflake.table.type
+      | dedup snowflake.table.type
+      | sort snowflake.table.type asc
+    multiple: true
 
 tiles:
   # ── Section 1: Storage Growth Trends ──────────────────────────────────────
@@ -87,7 +81,7 @@ tiles:
       , filter: {
           db.system == "snowflake" and
           dsoa.run.context == "data_volume" and
-          ($Accounts == "*" or deployment.environment == $Accounts)
+          in(deployment.environment, array($Accounts))
         }
       | fieldsAdd latest = arrayMax(arrayRemoveNulls(total_bytes))
       | summarize total_bytes = sum(latest)
@@ -125,7 +119,7 @@ tiles:
       , filter: {
           db.system == "snowflake" and
           dsoa.run.context == "data_volume" and
-          ($Accounts == "*" or deployment.environment == $Accounts)
+          in(deployment.environment, array($Accounts))
         }
       | fieldsAdd latest = arrayMax(arrayRemoveNulls(total_rows))
       | summarize total_rows = sum(latest)
@@ -156,11 +150,9 @@ tiles:
       , filter: {
           db.system == "snowflake" and
           dsoa.run.context == "data_volume" and
-          ($Accounts == "*" or deployment.environment == $Accounts) and
-          ($Database == "*" or isNull(db.namespace) or db.namespace == $Database)
+          in(deployment.environment, array($Accounts)) and
+          (isNull(db.namespace) or in(db.namespace, array($Database)))
         }
-      | filter $Accounts == "*" or deployment.environment == $Accounts
-      | filter $Database == "*" or isNull(db.namespace) or db.namespace == $Database
     visualization: lineChart
     visualizationSettings:
       chartSettings:
@@ -210,11 +202,9 @@ tiles:
       , filter: {
           db.system == "snowflake" and
           dsoa.run.context == "data_volume" and
-          ($Accounts == "*" or deployment.environment == $Accounts) and
-          ($Database == "*" or isNull(db.namespace) or db.namespace == $Database)
+          in(deployment.environment, array($Accounts)) and
+          (isNull(db.namespace) or in(db.namespace, array($Database)))
         }
-      | filter $Accounts == "*" or deployment.environment == $Accounts
-      | filter $Database == "*" or isNull(db.namespace) or db.namespace == $Database
     visualization: lineChart
     visualizationSettings:
       chartSettings:
@@ -255,11 +245,9 @@ tiles:
       , filter: {
           db.system == "snowflake" and
           dsoa.run.context == "data_volume" and
-          ($Accounts == "*" or deployment.environment == $Accounts) and
-          ($Database == "*" or isNull(db.namespace) or db.namespace == $Database)
+          in(deployment.environment, array($Accounts)) and
+          (isNull(db.namespace) or in(db.namespace, array($Database)))
         }
-      | filter $Accounts == "*" or deployment.environment == $Accounts
-      | filter $Database == "*" or isNull(db.namespace) or db.namespace == $Database
       | fieldsAdd size = arrayMax(arrayRemoveNulls(v))
       | sort size desc
       | limit 20
@@ -326,11 +314,9 @@ tiles:
       , filter: {
           db.system == "snowflake" and
           dsoa.run.context == "data_volume" and
-          ($Accounts == "*" or deployment.environment == $Accounts) and
-          ($TableType == "*" or isNull(snowflake.table.type) or snowflake.table.type == $TableType)
+          in(deployment.environment, array($Accounts)) and
+          (isNull(snowflake.table.type) or in(snowflake.table.type, array($TableType)))
         }
-      | filter $Accounts == "*" or deployment.environment == $Accounts
-      | filter $TableType == "*" or isNull(snowflake.table.type) or snowflake.table.type == $TableType
       | fieldsAdd latest = arrayMax(arrayRemoveNulls(v))
       | filter isNotNull(latest)
       | summarize count = countDistinct(db.collection.name), by: { snowflake.table.type }
@@ -368,13 +354,10 @@ tiles:
       , filter: {
           db.system == "snowflake" and
           dsoa.run.context == "data_volume" and
-          ($Accounts == "*" or deployment.environment == $Accounts) and
-          ($Database == "*" or isNull(db.namespace) or db.namespace == $Database) and
-          ($TableType == "*" or isNull(snowflake.table.type) or snowflake.table.type == $TableType)
+          in(deployment.environment, array($Accounts)) and
+          (isNull(db.namespace) or in(db.namespace, array($Database))) and
+          (isNull(snowflake.table.type) or in(snowflake.table.type, array($TableType)))
         }
-      | filter $Accounts == "*" or deployment.environment == $Accounts
-      | filter $Database == "*" or isNull(db.namespace) or db.namespace == $Database
-      | filter $TableType == "*" or isNull(snowflake.table.type) or snowflake.table.type == $TableType
       | fieldsAdd last_update_min = arrayMax(arrayRemoveNulls(v))
       | fieldsAdd days_since_update = last_update_min / 1440.0
       | sort days_since_update desc
@@ -423,11 +406,9 @@ tiles:
       , filter: {
           db.system == "snowflake" and
           dsoa.run.context == "data_volume" and
-          ($Accounts == "*" or deployment.environment == $Accounts) and
-          ($Database == "*" or isNull(db.namespace) or db.namespace == $Database)
+          in(deployment.environment, array($Accounts)) and
+          (isNull(db.namespace) or in(db.namespace, array($Database)))
         }
-      | filter $Accounts == "*" or deployment.environment == $Accounts
-      | filter $Database == "*" or isNull(db.namespace) or db.namespace == $Database
       | fieldsAdd last_ddl_min = arrayMax(arrayRemoveNulls(v))
       | fieldsAdd days = last_ddl_min / 1440.0
       | fieldsAdd bucket = if(days < 7, "< 1 week",
@@ -478,7 +459,7 @@ tiles:
       | filter db.system == "snowflake"
       | filter dsoa.run.context == "data_schemas"
       | filter isNotNull(snowflake.object.ddl.operation)
-      | filter $Accounts == "*" or deployment.environment == $Accounts
+      | filter in(deployment.environment, array($Accounts))
       | makeTimeseries count = count(), by: { snowflake.object.ddl.operation }
     visualization: barChart
     visualizationSettings:
@@ -518,7 +499,7 @@ tiles:
       | filter db.system == "snowflake"
       | filter dsoa.run.context == "data_schemas"
       | filter isNotNull(snowflake.object.type)
-      | filter $Accounts == "*" or deployment.environment == $Accounts
+      | filter in(deployment.environment, array($Accounts))
       | summarize count = count(), by: { snowflake.object.type }
       | sort count desc
     visualization: pieChart
@@ -554,8 +535,8 @@ tiles:
       | filter db.system == "snowflake"
       | filter dsoa.run.context == "data_schemas"
       | filter isNotNull(snowflake.object.ddl.operation)
-      | filter $Accounts == "*" or deployment.environment == $Accounts
-      | filter $Database == "*" or isNull(db.namespace) or db.namespace == $Database
+      | filter in(deployment.environment, array($Accounts))
+      | filter isNull(db.namespace) or in(db.namespace, array($Database))
       | sort timestamp desc
       | limit 200
       | fields

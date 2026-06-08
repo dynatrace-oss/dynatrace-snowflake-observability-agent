@@ -40,6 +40,7 @@ class DataSchemasPlugin(Plugin):
     """Data schemas plugin class."""
 
     PLUGIN_NAME = "data_schemas"
+    PLUGIN_CONTEXTS: tuple = ("data_schemas",)
 
     def _compress_properties(self, properties_value: Dict) -> Dict:
         """Ensures that snowflake.object.ddl.properties is compressed in the 'columns' object.

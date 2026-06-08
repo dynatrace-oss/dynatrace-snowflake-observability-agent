@@ -1,11 +1,13 @@
 #!/usr/bin/env bats
 
 setup() {
-    cd "$BATS_TEST_DIRNAME/../.."
+    # shellcheck disable=SC2154
+    cd "$BATS_TEST_DIRNAME/../.." || exit 1
 }
 
 setup_file() {
-    cd "$BATS_TEST_DIRNAME/../.."
+    # shellcheck disable=SC2154
+    cd "$BATS_TEST_DIRNAME/../.." || exit 1
     if [ -z "${BATS_SLOW_TESTS:-}" ]; then
         export BUILD_DOCS_STATUS=0
         export BUILD_OUTPUT=""
@@ -59,13 +61,13 @@ setup_file() {
     fi
 
     # Check that SQL files are copied correctly
-    # Check main SQL files - should be exactly 5 files: 00_init.sql, 10_admin.sql, 20_setup.sql, 40_config.sql, 70_agents.sql
+    # Check main SQL files - should be exactly 5 files: 00_init.sql, 80_admin.sql, 20_setup.sql, 40_config.sql, 70_agents.sql
     main_sql_count=$(find build -maxdepth 1 -type f -name "*.sql" | wc -l | tr -d ' ')
     [ "$main_sql_count" -eq 5 ]
 
     # Verify specific files exist
     [ -f "build/00_init.sql" ]
-    [ -f "build/10_admin.sql" ]
+    [ -f "build/80_admin.sql" ]
     [ -f "build/20_setup.sql" ]
     [ -f "build/40_config.sql" ]
     [ -f "build/70_agents.sql" ]
@@ -353,7 +355,7 @@ setup_file() {
 
     # Check specific main SQL files exist
     [ -n "$(unzip -l "$zip_file" | grep "build/00_init.sql")" ]
-    [ -n "$(unzip -l "$zip_file" | grep "build/10_admin.sql")" ]
+    [ -n "$(unzip -l "$zip_file" | grep "build/80_admin.sql")" ]
     [ -n "$(unzip -l "$zip_file" | grep "build/20_setup.sql")" ]
     [ -n "$(unzip -l "$zip_file" | grep "build/40_config.sql")" ]
     [ -n "$(unzip -l "$zip_file" | grep "build/70_agents.sql")" ]

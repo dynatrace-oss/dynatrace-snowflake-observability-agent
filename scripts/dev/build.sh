@@ -208,19 +208,20 @@ if [ -d "src/dtagent.sql/upgrade" ]; then
     done < <(find "src/dtagent.sql/upgrade" -mindepth 1 -maxdepth 1 -type d | sort)
 fi
 
-# build/10_admin.sql <- combine(src/dtagent.sql/admin/*.sql, plugin admin/*.sql wrapped in plugin blocks)
-: > build/10_admin.sql
-append_sql_dir "src/dtagent.sql/admin" "build/10_admin.sql"
+# build/80_admin.sql <- combine(src/dtagent.sql/admin/*.sql, plugin admin/*.sql wrapped in plugin blocks)
+# 80_admin.sql is named last so filename sort in prepare_deploy_script.sh deploys it after all plugin files.
+: > build/80_admin.sql
+append_sql_dir "src/dtagent.sql/admin" "build/80_admin.sql"
 
 while IFS= read -r pdir; do
     pbase="$(basename "$pdir")"
     pname="${pbase%.sql}"
     admin_dir="$pdir/admin"
     if compgen -G "$admin_dir/*.sql" > /dev/null; then
-        echo "--%PLUGIN:${pname}:" >> build/10_admin.sql
-        append_sql_dir "$admin_dir" "build/10_admin.sql" 0
-        echo "--%:PLUGIN:${pname}" >> build/10_admin.sql
-        printf "\n" >> build/10_admin.sql
+        echo "--%PLUGIN:${pname}:" >> build/80_admin.sql
+        append_sql_dir "$admin_dir" "build/80_admin.sql" 0
+        echo "--%:PLUGIN:${pname}" >> build/80_admin.sql
+        printf "\n" >> build/80_admin.sql
     fi
 done < <(plugin_dirs)
 
@@ -251,5 +252,18 @@ append_sql_dir "src/dtagent.sql/agents" "build/70_agents.sql"
 
 # Lint staged SQL (best-effort like before)
 sqlfluff lint build/*.sql build/09_upgrade/*.sql build/30_plugins/*.sql --ignore parsing --disable-progress-bar
+
+# Copy assets into build/ so Docker image does not need src/
+if [ -d "src/assets" ]; then
+    cp -r src/assets build/assets
+fi
+
+# Copy plugin readme files into build/ for wizard plugin descriptions
+mkdir -p build/plugin-readmes
+for readme in src/dtagent/plugins/*.config/readme.md; do
+    [ -f "$readme" ] || continue
+    pname=$(basename "$(dirname "$readme")" .config)
+    cp "$readme" "build/plugin-readmes/${pname}.md"
+done
 
 echo "Building Dynatrace Snowflake Observability Agent done"

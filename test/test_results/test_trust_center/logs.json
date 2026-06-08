@@ -15,7 +15,17 @@
     "snowflake.trust_center.scanner.type": "Vulnerability",
     "vulnerability.risk.level": "MEDIUM",
     "dsoa.run.context": "trust_center",
-    "dsoa.run.plugin": "test_trust_center"
+    "dsoa.run.plugin": "test_trust_center",
+    "resource_attributes": {
+      "db.system": "snowflake",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "service.name": "test.dsoa2025",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1"
+    }
   },
   {
     "content": "TrustCenter event: [CRITICAL] 3.1 Ensure that an account-level network policy has been configured to only allow access from trusted IP addresses",
@@ -33,6 +43,16 @@
     "snowflake.trust_center.scanner.type": "Vulnerability",
     "vulnerability.risk.level": "CRITICAL",
     "dsoa.run.context": "trust_center",
-    "dsoa.run.plugin": "test_trust_center"
+    "dsoa.run.plugin": "test_trust_center",
+    "resource_attributes": {
+      "db.system": "snowflake",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "service.name": "test.dsoa2025",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1"
+    }
   }
 ]

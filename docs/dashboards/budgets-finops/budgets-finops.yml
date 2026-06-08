@@ -26,7 +26,7 @@
 # TAGS: snowflake, dsoa, finops, budgets, costs
 
 id: 64b09f3f-1faa-49c8-98ba-7aa496af8cdf
-version: 17
+version: 21
 
 variables:
   - version: 2
@@ -38,7 +38,6 @@ variables:
     input: |-
       fetch logs, from: now()-7d
       | filter db.system == "snowflake"
-      | filter dsoa.run.plugin == "budgets"
       | fields deployment.environment
       | dedup deployment.environment
       | sort deployment.environment asc
@@ -66,25 +65,29 @@ variables:
     editable: true
     multiple: true
     input: |-
-      fetch logs, from: now()-7d
+      fetch events, from: now()-7d
       | filter db.system == "snowflake"
-      | filter dsoa.run.plugin == "resource_monitors"
       | filter in(deployment.environment, array($Accounts))
-      | filter isNotNull(`snowflake.warehouse.name`)
-      | fields `snowflake.warehouse.name`
-      | dedup `snowflake.warehouse.name`
-      | sort `snowflake.warehouse.name` asc
+      | filter isNotNull(snowflake.warehouse.name)
+      | fields snowflake.warehouse.name
+      | append [
+        fetch logs, from: now()-7d
+        | filter db.system == "snowflake"
+        | filter in(deployment.environment, array($Accounts))
+        | filter isNotNull(snowflake.warehouse.name)
+        | fields snowflake.warehouse.name
+      ]
+      | dedup snowflake.warehouse.name
+      | sort snowflake.warehouse.name asc
 
 tiles:
-  # ----------------------------------------------------------------
-  # Section 1: Budget Analysis
-  # ----------------------------------------------------------------
   "0":
     type: markdown
-    content: |
+    content: |-
       ## Budget Analysis
       Track budget credit spending versus limits across all Snowflake budgets.
       Data source: `budgets` plugin (contexts: `budgets`, `spendings`).
+
 
   "1":
     title: Budget spending vs limit
@@ -122,36 +125,26 @@ tiles:
       | sort `Budget` asc
     visualization: table
     visualizationSettings:
-      table:
-        rowDensity: condensed
-        enableSparklines: false
-        hiddenColumns: []
-        lineWrapIds: []
-        columnWidths: {}
-      thresholds:
-        - id: 1
-          field: "% Used"
-          title: Budget usage
-          isEnabled: true
-          rules:
-            - id: 0
-              color:
-                Default: "var(--dt-colors-charts-categorical-color-09-default, #649438)"
-              comparator: <
-              label: ""
-              value: 75
-            - id: 1
-              color:
-                Default: "var(--dt-colors-charts-categorical-color-14-default, #d56b1a)"
-              comparator: <
-              label: ""
-              value: 100
-            - id: 2
-              color:
-                Default: "var(--dt-colors-charts-categorical-color-12-default, #cd3741)"
-              comparator: "≥"
-              label: ""
-              value: 100
+      coloring:
+        colorRules:
+          - value: 100
+            comparator: "≥"
+            field: "% Used"
+            colorMode: custom-color
+            customColor:
+              Default: "var(--dt-colors-charts-categorical-color-12-default, #cd3741)"
+          - value: 100
+            comparator: "<"
+            field: "% Used"
+            colorMode: custom-color
+            customColor:
+              Default: "var(--dt-colors-charts-categorical-color-14-default, #d56b1a)"
+          - value: 75
+            comparator: "<"
+            field: "% Used"
+            colorMode: custom-color
+            customColor:
+              Default: "var(--dt-colors-charts-categorical-color-09-default, #649438)"
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -194,7 +187,6 @@ tiles:
         gapPolicy: connect
         legend:
           position: bottom
-      thresholds: []
       dataMapping:
         displayedFields:
           - snowflake.budget.name
@@ -229,10 +221,11 @@ tiles:
     visualizationSettings:
       chartSettings:
         truncationMode: middle
+        xAxisLabel: None
+        xAxisScaling: None
+        gapPolicy: None
         legend:
           position: bottom
-        categoryOverrides: {}
-      thresholds: []
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -270,13 +263,6 @@ tiles:
           `Resources`      = resource
     visualization: table
     visualizationSettings:
-      table:
-        rowDensity: condensed
-        enableSparklines: false
-        hiddenColumns: []
-        lineWrapIds: []
-        columnWidths: {}
-      thresholds: []
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -288,15 +274,13 @@ tiles:
       davisVisualization:
         isAvailable: true
 
-  # ----------------------------------------------------------------
-  # Section 2: Warehouse Optimization
-  # ----------------------------------------------------------------
   "5":
     type: markdown
-    content: |
+    content: |-
       ## Warehouse Optimization
       Review warehouse sizing, scaling policies, cluster configuration, and resource monitor quota consumption.
       Data source: `resource_monitors` plugin (context: `resource_monitors`).
+
 
   "6":
     title: Warehouse sizing overview
@@ -332,30 +316,20 @@ tiles:
           `Unmonitored`     = is_unmonitored
     visualization: table
     visualizationSettings:
-      table:
-        rowDensity: condensed
-        enableSparklines: false
-        hiddenColumns: []
-        lineWrapIds: []
-        columnWidths: {}
-      thresholds:
-        - id: 1
-          field: Unmonitored
-          title: Resource Monitor
-          isEnabled: true
-          rules:
-            - id: 0
-              color:
-                Default: "var(--dt-colors-charts-categorical-color-09-default, #649438)"
-              comparator: =
-              label: ""
-              value: "false"
-            - id: 1
-              color:
-                Default: "var(--dt-colors-charts-categorical-color-12-default, #cd3741)"
-              comparator: =
-              label: ""
-              value: "true"
+      coloring:
+        colorRules:
+          - value: false
+            comparator: "="
+            field: "Unmonitored"
+            colorMode: custom-color
+            customColor:
+              Default: "var(--dt-colors-charts-categorical-color-09-default, #649438)"
+          - value: true
+            comparator: "="
+            field: "Unmonitored"
+            colorMode: custom-color
+            customColor:
+              Default: "var(--dt-colors-charts-categorical-color-12-default, #cd3741)"
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -403,7 +377,6 @@ tiles:
         gapPolicy: connect
         legend:
           position: bottom
-      thresholds: []
       dataMapping:
         displayedFields:
           - snowflake.warehouse.name
@@ -439,6 +412,32 @@ tiles:
           time: timestamp
     visualization: lineChart
     visualizationSettings:
+      coloring:
+        thresholdRules:
+          - color:
+              Default: "var(--dt-colors-charts-categorical-color-09-default, #649438)"
+            colorMode: single-color
+            label: ""
+            min: 70
+            mode: range
+            position: left
+            strokeOnly: false
+          - color:
+              Default: "var(--dt-colors-charts-categorical-color-14-default, #d56b1a)"
+            colorMode: single-color
+            label: ""
+            min: 30
+            mode: range
+            position: left
+            strokeOnly: false
+          - color:
+              Default: "var(--dt-colors-charts-categorical-color-12-default, #cd3741)"
+            colorMode: single-color
+            label: ""
+            max: 30
+            mode: range
+            position: left
+            strokeOnly: false
       chartSettings:
         truncationMode: middle
         leftYAxisSettings:
@@ -454,30 +453,6 @@ tiles:
         gapPolicy: connect
         legend:
           position: bottom
-      thresholds:
-        - id: 1
-          field: ""
-          title: Quota usage
-          isEnabled: true
-          rules:
-            - id: 0
-              color:
-                Default: "var(--dt-colors-charts-categorical-color-09-default, #649438)"
-              comparator: ≥
-              label: ""
-              value: 70
-            - id: 1
-              color:
-                Default: "var(--dt-colors-charts-categorical-color-14-default, #d56b1a)"
-              comparator: ≥
-              label: ""
-              value: 30
-            - id: 2
-              color:
-                Default: "var(--dt-colors-charts-categorical-color-12-default, #cd3741)"
-              comparator: <
-              label: ""
-              value: 30
       dataMapping:
         displayedFields:
           - snowflake.resource_monitor.name
@@ -493,16 +468,14 @@ tiles:
       davisVisualization:
         isAvailable: true
 
-  # ----------------------------------------------------------------
-  # Section 3: Warehouse Load
-  # ----------------------------------------------------------------
   "9":
     type: markdown
-    content: |
+    content: |-
       ## Warehouse Load
       Monitor query concurrency, queue depth, and blocked queries per warehouse.
       Data source: `warehouse_usage` plugin (context: `warehouse_usage_load`).
       Note: `ACCOUNT_USAGE.WAREHOUSE_LOAD_HISTORY` has a ~45-180 min ingestion lag.
+
 
   "10":
     title: Running vs queued queries over time
@@ -540,7 +513,6 @@ tiles:
         gapPolicy: connect
         legend:
           position: bottom
-      thresholds: []
       dataMapping:
         displayedFields:
           - snowflake.warehouse.name
@@ -572,16 +544,18 @@ tiles:
       | sort avg_running desc
     visualization: honeycomb
     visualizationSettings:
+      coloring:
+        colorRules:
+          - value:
+            comparator: "= *value*"
+            field: "avg_running"
+            colorMode: color-palette
       honeycomb:
-        shape: hexagon
         legend: auto
         dataMappings:
           value: avg_running
         displayedFields:
           - snowflake.warehouse.name
-        colorMode: color-palette
-        colorPalette: blue
-      thresholds: []
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -610,6 +584,24 @@ tiles:
           time: timestamp
     visualization: lineChart
     visualizationSettings:
+      coloring:
+        thresholdRules:
+          - color:
+              Default: "var(--dt-colors-charts-categorical-color-09-default, #649438)"
+            colorMode: single-color
+            label: ""
+            max: 1
+            mode: range
+            position: left
+            strokeOnly: false
+          - color:
+              Default: "var(--dt-colors-charts-categorical-color-14-default, #d56b1a)"
+            colorMode: single-color
+            label: ""
+            min: 1
+            mode: range
+            position: left
+            strokeOnly: false
       chartSettings:
         truncationMode: middle
         leftYAxisSettings:
@@ -624,24 +616,6 @@ tiles:
         gapPolicy: connect
         legend:
           position: bottom
-      thresholds:
-        - id: 1
-          field: ""
-          title: Blocked queries
-          isEnabled: true
-          rules:
-            - id: 0
-              color:
-                Default: "var(--dt-colors-charts-categorical-color-09-default, #649438)"
-              comparator: <
-              label: ""
-              value: 1
-            - id: 1
-              color:
-                Default: "var(--dt-colors-charts-categorical-color-14-default, #d56b1a)"
-              comparator: ≥
-              label: ""
-              value: 1
       dataMapping:
         displayedFields:
           - snowflake.warehouse.name
@@ -658,34 +632,19 @@ tiles:
         isAvailable: true
 
 layouts:
-  # ── Section 1 header ──────────────────────── y=0
-  "0":  {x: 0,  "y": 0,  w: 24, h: 1}
-  # ── Budget spending vs limit (table)  y=1
-  "1":  {x: 0,  "y": 1,  w: 12, h: 5}
-  # ── Budget spending trend (line)  y=1
-  "2":  {x: 12, "y": 1,  w: 12, h: 5}
-  # ── Budget spending by service type (pie)  y=6
-  "3":  {x: 0,  "y": 6,  w: 12, h: 5}
-  # ── Budget details (table)  y=6
-  "4":  {x: 12, "y": 6,  w: 12, h: 5}
-
-  # ── Section 2 header ──────────────────────── y=11
-  "5":  {x: 0,  "y": 11, w: 24, h: 1}
-  # ── Warehouse sizing overview (table)  y=12
-  "6":  {x: 0,  "y": 12, w: 24, h: 5}
-  # ── Cluster utilization (line)  y=17
-  "7":  {x: 0,  "y": 17, w: 12, h: 5}
-  # ── Resource monitor quota usage (line)  y=17
-  "8":  {x: 12, "y": 17, w: 12, h: 5}
-
-  # ── Section 3 header ──────────────────────── y=22
-  "9":  {x: 0,  "y": 22, w: 24, h: 1}
-  # ── Running vs queued (line)  y=23
-  "10": {x: 0,  "y": 23, w: 12, h: 5}
-  # ── Average running queries heatmap  y=23
+  "0": {x: 0, "y": 0, w: 24, h: 1}
+  "1": {x: 0, "y": 1, w: 12, h: 5}
+  "2": {x: 12, "y": 1, w: 12, h: 5}
+  "3": {x: 0, "y": 6, w: 12, h: 5}
+  "4": {x: 12, "y": 6, w: 12, h: 5}
+  "5": {x: 0, "y": 11, w: 24, h: 1}
+  "6": {x: 0, "y": 12, w: 24, h: 5}
+  "7": {x: 0, "y": 17, w: 12, h: 5}
+  "8": {x: 12, "y": 17, w: 12, h: 5}
+  "9": {x: 0, "y": 22, w: 24, h: 1}
+  "10": {x: 0, "y": 23, w: 12, h: 5}
   "11": {x: 12, "y": 23, w: 12, h: 5}
-  # ── Blocked queries (line)  y=28
-  "12": {x: 0,  "y": 28, w: 24, h: 5}
+  "12": {x: 0, "y": 28, w: 24, h: 5}
 
 settings:
   autoRefresh:

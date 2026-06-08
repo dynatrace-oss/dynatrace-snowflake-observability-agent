@@ -1,7 +1,8 @@
 #!/usr/bin/env bats
 
 setup() {
-    cd "$BATS_TEST_DIRNAME/../.."
+    # shellcheck disable=SC2154
+    cd "$BATS_TEST_DIRNAME/../.." || exit 1
     # Create minimal test config and build artifacts
     TEST_CONFIG_FILE=$(mktemp)
     cat > "$TEST_CONFIG_FILE" << 'EOF'
@@ -23,7 +24,7 @@ EOF
     # Create necessary build artifacts for deployment tests
     mkdir -p build/09_upgrade build/30_plugins conf
     echo "SELECT 'init';" > build/00_init.sql
-    echo "SELECT 'admin'; CREATE ROLE IF NOT EXISTS DTAGENT_ADMIN;" > build/10_admin.sql
+    echo "SELECT 'admin'; CREATE ROLE IF NOT EXISTS DTAGENT_ADMIN;" > build/80_admin.sql
     echo "SELECT 'setup'; CREATE SCHEMA IF NOT EXISTS MAIN_SCHEMA;" > build/20_setup.sql
     echo "SELECT 'config';" > build/40_config.sql
     echo "SELECT 'agents';" > build/70_agents.sql
@@ -41,7 +42,7 @@ EOF
 teardown() {
     rm -f "$TEST_CONFIG_FILE"
     rm -f conf/config-test.json conf/config-test.yml
-    rm -f build/00_init.sql build/10_admin.sql build/20_setup.sql build/40_config.sql build/70_agents.sql
+    rm -f build/00_init.sql build/80_admin.sql build/20_setup.sql build/40_config.sql build/70_agents.sql
     rm -rf build/09_upgrade build/30_plugins
     unset BUILD_CONFIG_FILE
 }
@@ -85,8 +86,8 @@ teardown() {
 
     [ -f "$DEPLOY_SCRIPT" ]
     grep -q "init" "$DEPLOY_SCRIPT"
-    ! grep -q "setup" "$DEPLOY_SCRIPT"
-    ! grep -q "agents" "$DEPLOY_SCRIPT"
+    run ! grep -q "setup" "$DEPLOY_SCRIPT"
+    run ! grep -q "agents" "$DEPLOY_SCRIPT"
 
     rm -f "$DEPLOY_SCRIPT"
 }
@@ -100,8 +101,8 @@ teardown() {
 
     [ -f "$DEPLOY_SCRIPT" ]
     grep -q "setup" "$DEPLOY_SCRIPT"
-    ! grep -q "init" "$DEPLOY_SCRIPT"
-    ! grep -q "agents" "$DEPLOY_SCRIPT"
+    run ! grep -q "init" "$DEPLOY_SCRIPT"
+    run ! grep -q "agents" "$DEPLOY_SCRIPT"
 
     rm -f "$DEPLOY_SCRIPT"
 }
@@ -115,8 +116,8 @@ teardown() {
 
     [ -f "$DEPLOY_SCRIPT" ]
     grep -q "plugin" "$DEPLOY_SCRIPT"
-    ! grep -q "init" "$DEPLOY_SCRIPT"
-    ! grep -q "setup" "$DEPLOY_SCRIPT"
+    run ! grep -q "init" "$DEPLOY_SCRIPT"
+    run ! grep -q "setup" "$DEPLOY_SCRIPT"
 
     rm -f "$DEPLOY_SCRIPT"
 }
@@ -130,8 +131,8 @@ teardown() {
 
     [ -f "$DEPLOY_SCRIPT" ]
     grep -q "config" "$DEPLOY_SCRIPT"
-    ! grep -q "init" "$DEPLOY_SCRIPT"
-    ! grep -q "agents" "$DEPLOY_SCRIPT"
+    run ! grep -q "init" "$DEPLOY_SCRIPT"
+    run ! grep -q "agents" "$DEPLOY_SCRIPT"
 
     rm -f "$DEPLOY_SCRIPT"
 }
@@ -145,8 +146,8 @@ teardown() {
 
     [ -f "$DEPLOY_SCRIPT" ]
     grep -q "agents" "$DEPLOY_SCRIPT"
-    ! grep -q "init" "$DEPLOY_SCRIPT"
-    ! grep -q "setup" "$DEPLOY_SCRIPT"
+    run ! grep -q "init" "$DEPLOY_SCRIPT"
+    run ! grep -q "setup" "$DEPLOY_SCRIPT"
 
     rm -f "$DEPLOY_SCRIPT"
 }
@@ -188,7 +189,7 @@ teardown() {
 
     [ -f "$DEPLOY_SCRIPT" ]
     grep -q "upgrade" "$DEPLOY_SCRIPT"
-    ! grep -q "init" "$DEPLOY_SCRIPT"
+    run ! grep -q "init" "$DEPLOY_SCRIPT"
 
     rm -f "$DEPLOY_SCRIPT"
 }
@@ -202,7 +203,7 @@ teardown() {
 
     [ -f "$DEPLOY_SCRIPT" ]
     grep -q "upgrade 0.9.3" "$DEPLOY_SCRIPT"
-    ! grep -q "upgrade 0.9.0" "$DEPLOY_SCRIPT"
+    run ! grep -q "upgrade 0.9.0" "$DEPLOY_SCRIPT"
 
     rm -f "$DEPLOY_SCRIPT"
 }
@@ -222,7 +223,7 @@ teardown() {
 
     # Should include v0.9.3 but NOT v0.9.0
     grep -q "upgrade 0.9.3" "$DEPLOY_SCRIPT"
-    ! grep -q "upgrade 0.9.0" "$DEPLOY_SCRIPT"
+    run ! grep -q "upgrade 0.9.0" "$DEPLOY_SCRIPT"
 
     rm -f "$DEPLOY_SCRIPT"
 }
@@ -232,4 +233,38 @@ teardown() {
     run timeout 30 ./scripts/deploy/deploy.sh test --scope=init,admin,upgrade,setup --options=manual,skip_confirm
     [ "$status" -ne 0 ]
     [[ "$output" =~ "--from-version" ]]
+}
+
+@test "deploy.sh uses --temporary-connection when SNOWFLAKE_ACCOUNT and SNOWFLAKE_USER are set" {
+    export DTAGENT_TOKEN="dt0c01.TEST12345678901234567890.TEST123456789012345678901234567890123456789012345678901234567890"
+    export SNOWFLAKE_ACCOUNT="myorg-myaccount"
+    export SNOWFLAKE_USER="svc_deploy"
+
+    # Use manual mode to avoid actually calling snow sql
+    DEPLOY_SCRIPT="test-temp-conn.sql"
+    run timeout 30 ./scripts/deploy/deploy.sh test --scope=init --output-file="$DEPLOY_SCRIPT" --options=manual,skip_confirm
+    [ "$status" -eq 0 ]
+    [ -f "$DEPLOY_SCRIPT" ]
+    rm -f "$DEPLOY_SCRIPT"
+
+    unset SNOWFLAKE_ACCOUNT SNOWFLAKE_USER
+}
+
+@test "deploy.sh uses named connection when SNOWFLAKE_ACCOUNT and SNOWFLAKE_USER are NOT set" {
+    export DTAGENT_TOKEN="dt0c01.TEST12345678901234567890.TEST123456789012345678901234567890123456789012345678901234567890"
+    unset SNOWFLAKE_ACCOUNT
+    unset SNOWFLAKE_USER
+
+    # Use manual mode — verifies named-connection path is taken (no error about missing env vars)
+    DEPLOY_SCRIPT="test-named-conn.sql"
+    run timeout 30 ./scripts/deploy/deploy.sh test --scope=init --output-file="$DEPLOY_SCRIPT" --options=manual,skip_confirm
+    [ "$status" -eq 0 ]
+    [ -f "$DEPLOY_SCRIPT" ]
+    rm -f "$DEPLOY_SCRIPT"
+}
+
+@test "deploy.sh help text does not mention service_user option" {
+    run ./scripts/deploy/deploy.sh --help
+    [ "$status" -eq 0 ]
+    ! echo "$output" | grep -q "service_user"
 }

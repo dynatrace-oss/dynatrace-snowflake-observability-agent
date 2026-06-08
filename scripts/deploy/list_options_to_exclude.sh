@@ -48,6 +48,7 @@ fi
 EXCLUDED_PLUGINS=$($CWD/list_plugins_to_exclude.sh)
 if [ -n "$EXCLUDED_PLUGINS" ]; then
   # Count total plugins (all plugins that have is_disabled or is_enabled properties)
+  # shellcheck disable=SC2154
   TOTAL_PLUGINS=$(jq -r '.[] | select(.PATH | startswith("plugins.") and (endswith(".is_disabled") or endswith(".is_enabled"))) | .PATH | sub("plugins\\."; "") | sub("\\.is_(disabled|enabled)"; "")' "$BUILD_CONFIG_FILE" | sort -u | wc -l | tr -d ' ')
 
   # Count excluded plugins

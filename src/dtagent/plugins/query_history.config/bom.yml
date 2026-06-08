@@ -1,7 +1,7 @@
 delivers:
   - name: DTAGENT_DB.STATUS.PROCESSED_QUERIES_CACHE
     type: table
-  - name: DTAGENT_DB.STATUS.UPDATE_PROCESSED_QUERIES(text,int,int)
+  - name: DTAGENT_DB.STATUS.UPDATE_PROCESSED_QUERIES(text,int,int,text)
     type: procedure
   - name: DTAGENT_DB.APP.TMP_RECENT_QUERIES
     type: transient table
@@ -9,13 +9,17 @@ delivers:
     type: transient table
   - name: DTAGENT_DB.APP.TMP_QUERY_ACCELERATION_ESTIMATES
     type: transient table
+  - name: DTAGENT_DB.APP.F_OBFUSCATE_QUERY_TEXT(VARCHAR, VARCHAR)
+    type: function
   - name: DTAGENT_DB.APP.V_QUERY_HISTORY
     type: view
   - name: DTAGENT_DB.APP.V_QUERY_HISTORY_INSTRUMENTED
     type: view
   - name: DTAGENT_DB.APP.V_RECENT_QUERIES
     type: view
-  - name: DTAGENT_DB.CONFIG.P_GET_ACCELERATION_ESTIMATES()
+  - name: DTAGENT_DB.APP.P_GET_ACCELERATION_ESTIMATES()
+    type: procedure
+  - name: DTAGENT_DB.APP.P_REFRESH_RECENT_QUERIES()
     type: procedure
   - name: DTAGENT_DB.CONFIG.UPDATE_QUERY_HISTORY_CONF()
     type: procedure
@@ -27,11 +31,18 @@ delivers:
   - name: DTAGENT_DB.APP.TASK_DTAGENT_QUERY_HISTORY_GRANTS
     type: task
     comment: (Admin scope only) Admin task owned by DTAGENT_ADMIN to grant MONITOR privileges on warehouses
+  - name: DTAGENT_DB.APP.V_QUERY_COST_ATTRIBUTION_SUMMARY
+    type: view
+    comment: QAH cost totals by warehouse/user/tag; requires USAGE_VIEWER or GOVERNANCE_VIEWER database role on SNOWFLAKE
 
 references:
   - name: SNOWFLAKE.ACCOUNT_USAGE.ACCESS_HISTORY
     type: view
     privileges: SELECT
+  - name: SNOWFLAKE.ACCOUNT_USAGE.QUERY_ATTRIBUTION_HISTORY
+    type: view
+    privileges: SELECT
+    comment: Requires USAGE_VIEWER or GOVERNANCE_VIEWER database role on the SNOWFLAKE database; used by query_cost_attribution context
   - name: SNOWFLAKE.ACCOUNT_USAGE.QUERY_HISTORY
     type: view
     privileges: SELECT

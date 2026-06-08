@@ -13,7 +13,8 @@
 #
 
 setup() {
-    cd "$BATS_TEST_DIRNAME/../.."
+    # shellcheck disable=SC2154
+    cd "$BATS_TEST_DIRNAME/../.." || exit 1
     SRC_DIR="src"
 
     # -------------------------------------------------------------------
@@ -24,6 +25,8 @@ setup() {
     # shares/admin/051_p_grant_imported_privileges.sql — must run as owner
     # (DTAGENT_ADMIN) because GRANT IMPORTED PRIVILEGES requires MANAGE GRANTS
     # on ACCOUNT, which is granted to DTAGENT_ADMIN, not to the calling role.
+    # The admin version lives in the admin/ subdirectory (Pattern B two-file) and
+    # is deployed via 80_admin.sql after the non-admin stub in 30_plugins/.
     EXCLUSION_PATTERN="shares.sql/admin/051_p_grant_imported_privileges"
 }
 

@@ -1,4 +1,6 @@
 delivers:
+  - name: DTAGENT_DB.APP.TMP_SNOWPIPES_RESULT
+    type: transient table
   - name: DTAGENT_DB.APP.F_SNOWPIPES_INSTRUMENTED()
     type: procedure
   - name: DTAGENT_DB.APP.V_SNOWPIPES_COPY_HISTORY_INSTRUMENTED
@@ -32,6 +34,10 @@ references:
   - name: SNOWFLAKE.ACCOUNT_USAGE.PIPE_USAGE_HISTORY
     type: view
     privileges: "SELECT (IMPORTED PRIVILEGES)"
+  - name: SNOWFLAKE.ACCOUNT_USAGE.PIPES
+    type: view
+    privileges: "SELECT (IMPORTED PRIVILEGES)"
+    comment: Joined in V_SNOWPIPES_USAGE_HISTORY_INSTRUMENTED to resolve UUID PIPE_NAME to human-readable FQN
   - name: ALL PIPES IN DATABASE $db
     type: pipe
     privileges: MONITOR

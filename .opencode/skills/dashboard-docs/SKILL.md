@@ -154,6 +154,11 @@ the top of each relevant section, as described in the `readme.md` Structure abov
 
 ## Commit Scope
 
+**CRITICAL: Never increment the `version` field in dashboard YAML files.**
+The `version` field is the Dynatrace server's optimistic locking token — a server-assigned counter
+that changes on every platform write. It is NOT a schema version or a change counter for source control.
+Preserve it exactly as exported. Bumping it in a PR accomplishes nothing and creates confusion.
+
 The git commit for a dashboard or workflow delivery must include **all** of:
 
 ```text
@@ -175,6 +180,12 @@ Covers use cases: <comma-separated list from readme Use Cases table>
 Dashboard ID: <uuid from dtctl>
 Synthetic setup: test/tools/setup_test_<plugin>.sql
 ```
+
+> **Deploy before committing** — use `--name` to deploy only the dashboard you are working on:
+>
+> ```bash
+> ./scripts/deploy/deploy_dt_assets.sh --scope=dashboards --name=<dashboard-name>
+> ```
 
 **Commit message rules:**
 

@@ -1,0 +1,181 @@
+# WORKFLOW: DSOA — Warehouse Sensitive Change Alert
+# DESCRIPTION: Alerts when a sensitive warehouse property is altered.
+# OWNER: DSOA Team
+# PLUGINS: query_history
+# TAGS: snowflake, dsoa, security, warehouse, ddl
+
+id: 9c0fb1e1-1998-47ad-9a8e-2f2bd0e9cafe
+title: "DSOA — Warehouse Sensitive Change Alert"
+description: |
+  Detects sensitive warehouse configuration changes by scanning query_history logs for
+  warehouse DDL operations containing sensitive property keywords (WAREHOUSE_SIZE,
+  SCALING_POLICY, AUTO_SUSPEND, MIN_CLUSTER_COUNT, MAX_CLUSTER_COUNT, GENERATION,
+  ENABLE_QUERY_ACCELERATION, QUERY_ACCELERATION_MAX_SCALE_FACTOR, MAX_CONCURRENCY_LEVEL).
+  Raises a Dynatrace event per detected change.
+
+  Caveat: db.query.text is subject to obfuscation if plugins.query_history.obfuscation_mode
+  is not "off". If obfuscation is enabled, the property-keyword scan may not match.
+isPrivate: false
+schemaVersion: 4
+trigger:
+  schedule:
+    isActive: true
+    trigger:
+      type: interval
+      intervalMinutes: 60
+    rule: null
+    filterParameters: {}
+    timezone: UTC
+    inputs: {}
+tasks:
+  detect_sensitive_changes:
+    name: detect_sensitive_changes
+    description: Fetch warehouse DDL logs with a sensitive property keyword in the query text.
+    action: dynatrace.automations:execute-dql-query
+    active: true
+    position:
+      x: 0
+      y: 1
+    conditions:
+      states: {}
+    predecessors: []
+    input:
+      query: |
+        fetch logs, from: now()-90m
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "query_history"
+        | filter in(db.operation.name, array("ALTER", "CREATE", "DROP", "RENAME_WAREHOUSE"))
+        | filter contains(toString(db.query.text), "WAREHOUSE_SIZE")
+             or contains(toString(db.query.text), "SCALING_POLICY")
+             or contains(toString(db.query.text), "AUTO_SUSPEND")
+             or contains(toString(db.query.text), "MIN_CLUSTER_COUNT")
+             or contains(toString(db.query.text), "MAX_CLUSTER_COUNT")
+             or contains(toString(db.query.text), "GENERATION")
+             or contains(toString(db.query.text), "ENABLE_QUERY_ACCELERATION")
+             or contains(toString(db.query.text), "QUERY_ACCELERATION_MAX_SCALE_FACTOR")
+             or contains(toString(db.query.text), "MAX_CONCURRENCY_LEVEL")
+        | fields timestamp,
+                 deployment.environment,
+                 db.user,
+                 snowflake.role.name,
+                 db.operation.name,
+                 db.query.text
+        | sort timestamp desc
+        | limit 100
+
+  build_events:
+    name: build_events
+    description: Build Dynatrace event objects for each sensitive change.
+    action: dynatrace.automations:run-javascript
+    active: true
+    position:
+      x: 0
+      y: 2
+    conditions:
+      states:
+        detect_sensitive_changes: OK
+    predecessors:
+      - detect_sensitive_changes
+    input:
+      script: |
+        import { execution } from '@dynatrace-sdk/automation-utils';
+        import { EventIngestEventType } from '@dynatrace-sdk/client-classic-environment-v2';
+
+        // === CONFIGURATION ===
+        // Change eventType to EventIngestEventType.CustomAlert to enable Davis problem correlation.
+        const CONFIG = {
+          eventType: EventIngestEventType.CustomInfo,
+          eventTimeout: 60,
+          adSource: 'dsoa.warehouse_sensitive_change'
+        };
+        // === END CONFIGURATION ===
+
+        export default async function ({ execution_id }) {
+          const ex = await execution(execution_id);
+          const dqlResult = await ex.result('detect_sensitive_changes');
+
+          const events = [];
+          const records = (dqlResult && dqlResult.records) || [];
+
+          for (const r of records) {
+            const opName = r['db.operation.name'] || 'CHANGE';
+            const queryText = r['db.query.text'] || '';
+            const user = r['db.user'] || 'unknown';
+            const role = r['snowflake.role.name'] || 'unknown';
+
+            events.push({
+              body: {
+                eventType: CONFIG.eventType,
+                title: `Sensitive warehouse change: ${opName}`,
+                properties: {
+                  'event.description':
+                    `Snowflake user ${user} (role ${role}) ran ${opName} ` +
+                    `with a sensitive property change.`,
+                  'event.start': r['timestamp'],
+                  'ad.source': CONFIG.adSource,
+                  'db.user': user,
+                  'snowflake.role.name': role,
+                  'db.operation.name': opName,
+                  'db.query.text': queryText,
+                  'deployment.environment': r['deployment.environment']
+                },
+                timeout: CONFIG.eventTimeout
+              }
+            });
+          }
+
+          console.log(`Built ${events.length} sensitive-change event(s)`);
+          return events;
+        }
+
+  ingest_events:
+    name: ingest_events
+    description: Ingest sensitive-change events via Dynatrace Environment V2 API.
+    action: dynatrace.automations:run-javascript
+    active: true
+    position:
+      x: 0
+      y: 3
+    conditions:
+      states:
+        build_events: OK
+    predecessors:
+      - build_events
+    input:
+      script: |
+        import { execution } from '@dynatrace-sdk/automation-utils';
+        import { eventsClient } from '@dynatrace-sdk/client-classic-environment-v2';
+
+        async function ingestEvents(events) {
+          let successCount = 0;
+          const failed = [];
+          for (let i = 0; i < events.length; ++i) {
+            const res = await eventsClient.createEvent(events[i]);
+            if (res.reportCount !== 1) {
+              failed.push({ reason: 'Invalid number of ingested events' });
+            } else {
+              const status = res.eventIngestResults[0];
+              if (status.status === 'OK') {
+                successCount += 1;
+              } else {
+                failed.push(JSON.stringify(status));
+              }
+            }
+          }
+          if (successCount === 0 && failed.length === 0) {
+            console.log('No events to ingest');
+          }
+          if (successCount > 0) {
+            console.log(`Successfully ingested ${successCount} event(s)`);
+          }
+          if (failed.length > 0) {
+            console.log(`Failed to ingest ${failed.length} event(s):`, JSON.stringify(failed));
+          }
+        }
+
+        export default async function ({ execution_id }) {
+          const ex = await execution(execution_id);
+          const events = await ex.result('build_events');
+          await ingestEvents(events);
+          return events;
+        }

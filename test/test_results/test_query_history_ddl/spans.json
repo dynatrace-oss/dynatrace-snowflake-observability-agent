@@ -1,0 +1,141 @@
+[
+  {
+    "snowflake.time.execution": 80,
+    "snowflake.time.compilation": 50,
+    "snowflake.time.total_elapsed": 150,
+    "db.query.text": "ALTER WAREHOUSE BDX1998_TEST_WH SET WAREHOUSE_SIZE='LARGE', AUTO_SUSPEND=600",
+    "snowflake.query.id": "01b00001-0000-0000-0000-000000000001",
+    "snowflake.object.type": "Warehouse",
+    "snowflake.object.id": "3726",
+    "snowflake.object.name": "BDX1998_TEST_WH",
+    "snowflake.object.ddl.operation": "ALTER",
+    "snowflake.object.ddl.properties": "{\"WAREHOUSE_SIZE\": {\"value\": \"LARGE\"}, \"AUTO_SUSPEND\": {\"value\": 600}}",
+    "db.namespace": "DTAGENT_DB",
+    "db.operation.name": "ALTER_WAREHOUSE",
+    "db.snowflake.dbs": [
+      "DTAGENT_DB"
+    ],
+    "db.user": "ADMIN_USER",
+    "snowflake.query.execution_status": "SUCCESS",
+    "snowflake.role.name": "SYSADMIN",
+    "snowflake.warehouse.name": "DTAGENT_WH",
+    "dsoa.run.plugin": "test_query_history_ddl",
+    "dsoa.run.context": "query_history",
+    "dsoa.debug.span.events.added": 0,
+    "dsoa.debug.span.events.failed": 0,
+    "resource_attributes": {
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent"
+    }
+  },
+  {
+    "snowflake.time.execution": 120,
+    "snowflake.time.compilation": 50,
+    "snowflake.time.total_elapsed": 200,
+    "db.query.text": "CREATE WAREHOUSE BDX1998_TEST_WH WITH WAREHOUSE_SIZE='XSMALL'",
+    "snowflake.query.id": "01b00001-0000-0000-0000-000000000002",
+    "snowflake.object.type": "Warehouse",
+    "snowflake.object.id": "3727",
+    "snowflake.object.name": "BDX1998_TEST_WH",
+    "snowflake.object.ddl.operation": "CREATE",
+    "snowflake.object.ddl.properties": "{\"WAREHOUSE_SIZE\": {\"value\": \"XSMALL\"}}",
+    "db.namespace": "DTAGENT_DB",
+    "db.operation.name": "CREATE_WAREHOUSE",
+    "db.snowflake.dbs": [
+      "DTAGENT_DB"
+    ],
+    "db.user": "ADMIN_USER",
+    "snowflake.query.execution_status": "SUCCESS",
+    "snowflake.role.name": "SYSADMIN",
+    "snowflake.warehouse.name": "DTAGENT_WH",
+    "dsoa.run.plugin": "test_query_history_ddl",
+    "dsoa.run.context": "query_history",
+    "dsoa.debug.span.events.added": 0,
+    "dsoa.debug.span.events.failed": 0,
+    "resource_attributes": {
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent"
+    }
+  },
+  {
+    "snowflake.time.execution": 60,
+    "snowflake.time.compilation": 50,
+    "snowflake.time.total_elapsed": 120,
+    "db.query.text": "DROP WAREHOUSE BDX1998_TEST_WH",
+    "snowflake.query.id": "01b00001-0000-0000-0000-000000000003",
+    "snowflake.object.type": "Warehouse",
+    "snowflake.object.id": "3727",
+    "snowflake.object.name": "BDX1998_TEST_WH",
+    "snowflake.object.ddl.operation": "DROP",
+    "db.namespace": "DTAGENT_DB",
+    "db.operation.name": "DROP_WAREHOUSE",
+    "db.snowflake.dbs": [
+      "DTAGENT_DB"
+    ],
+    "db.user": "ADMIN_USER",
+    "snowflake.query.execution_status": "SUCCESS",
+    "snowflake.role.name": "SYSADMIN",
+    "snowflake.warehouse.name": "DTAGENT_WH",
+    "dsoa.run.plugin": "test_query_history_ddl",
+    "dsoa.run.context": "query_history",
+    "dsoa.debug.span.events.added": 0,
+    "dsoa.debug.span.events.failed": 0,
+    "resource_attributes": {
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent"
+    }
+  },
+  {
+    "snowflake.time.execution": 50,
+    "snowflake.time.compilation": 50,
+    "snowflake.time.total_elapsed": 100,
+    "db.query.text": "ALTER RESOURCE MONITOR BDX1998_TEST_RM SET CREDIT_QUOTA=500",
+    "snowflake.query.id": "01b00001-0000-0000-0000-000000000004",
+    "snowflake.object.type": "Resource Monitor",
+    "snowflake.object.id": "99999",
+    "snowflake.object.name": "BDX1998_TEST_RM",
+    "snowflake.object.ddl.operation": "ALTER",
+    "snowflake.object.ddl.properties": "{\"CREDIT_QUOTA\": {\"value\": 500}}",
+    "db.namespace": "DTAGENT_DB",
+    "db.operation.name": "ALTER_RESOURCE_MONITOR",
+    "db.snowflake.dbs": [
+      "DTAGENT_DB"
+    ],
+    "db.user": "ADMIN_USER",
+    "snowflake.query.execution_status": "SUCCESS",
+    "snowflake.role.name": "ACCOUNTADMIN",
+    "snowflake.warehouse.name": "DTAGENT_WH",
+    "dsoa.run.plugin": "test_query_history_ddl",
+    "dsoa.run.context": "query_history",
+    "dsoa.debug.span.events.added": 0,
+    "dsoa.debug.span.events.failed": 0,
+    "resource_attributes": {
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent"
+    }
+  }
+]

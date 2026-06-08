@@ -37,7 +37,7 @@ Fixture layout (query_history_nested_sp.ndjson):
 class TestQueryHistSpanHierarchy:
     import pytest
 
-    FIXTURES = {"APP.V_RECENT_QUERIES": "test/test_data/query_history_nested_sp.ndjson"}
+    FIXTURES = {"APP.V_QUERY_HISTORY_INSTRUMENTED": "test/test_data/query_history_nested_sp.ndjson"}
 
     @pytest.mark.xdist_group(name="test_telemetry")
     def test_span_hierarchy(self):
@@ -143,7 +143,7 @@ class TestQueryHistSpanHierarchy:
         import json as _json
         from dtagent.util import _adjust_timestamp
 
-        fixture_path = self.FIXTURES["APP.V_RECENT_QUERIES"]
+        fixture_path = self.FIXTURES["APP.V_QUERY_HISTORY_INSTRUMENTED"]
         with open(fixture_path, "r", encoding="utf-8") as fh:
             rows = [_json.loads(line) for line in fh if line.strip()]
 
@@ -166,7 +166,7 @@ class TestQueryHistSpanHierarchy:
         """
         import json as _json
 
-        fixture_path = self.FIXTURES["APP.V_RECENT_QUERIES"]
+        fixture_path = self.FIXTURES["APP.V_QUERY_HISTORY_INSTRUMENTED"]
         with open(fixture_path, "r", encoding="utf-8") as fh:
             rows = [_json.loads(line) for line in fh if line.strip()]
 

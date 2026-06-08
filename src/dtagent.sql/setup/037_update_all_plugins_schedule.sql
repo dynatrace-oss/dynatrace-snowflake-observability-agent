@@ -23,6 +23,11 @@
 --
 use role DTAGENT_OWNER; use schema DTAGENT_DB.CONFIG; use warehouse DTAGENT_WH;
 
+-- NOTE: This procedure only iterates plugins that have a schedule entry in CONFIG.CONFIGURATIONS.
+-- Plugins that are absent from config entirely (removed or never deployed) are NOT iterated here.
+-- Task suspension for such plugins is handled at deploy time by inject_suspend_for_excluded_plugins()
+-- in scripts/deploy/prepare_deploy_script.sh, which appends ALTER TASK ... SUSPEND statements
+-- for every plugin in the EXCLUDED_PLUGINS list before the deploy script is executed.
 create or replace procedure DTAGENT_DB.CONFIG.UPDATE_ALL_PLUGINS_SCHEDULE()
 returns text
 language SQL

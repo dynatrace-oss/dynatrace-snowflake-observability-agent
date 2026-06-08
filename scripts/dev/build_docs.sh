@@ -39,6 +39,7 @@ CURRENT_DATE=$(date +%Y-%m-%d)
 rm _readme_full.md 2>/dev/null
 rm build/bom.yml 2>/dev/null
 
+# shellcheck disable=SC2154
 PYTHONPATH="$PYTHONPATH:./src" python -m build.compile_bom
 PYTHONPATH="$PYTHONPATH:./src" python -m build.update_docs
 

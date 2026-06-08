@@ -1,0 +1,269 @@
+================================================================================
+PLUGIN EXECUTION COMMANDS
+================================================================================
+
+PREREQUISITES:
+- Connect to Snowflake using: snow_agent_test-qa profile
+- Verify you're in DTAGENT_DB database
+- Verify DTAGENT_WH warehouse is selected
+
+================================================================================
+TASK 1: EXECUTE org_costs PROCEDURE
+================================================================================
+
+COMMAND:
+call DTAGENT_DB.APP.DTAGENT(ARRAY_CONSTRUCT('org_costs'));
+
+EXPECTED OUTPUT:
+- JSON response with 5 contexts:
+  - org_costs_metering
+  - org_costs_storage
+  - org_costs_data_transfer
+  - org_billing_usage_in_currency
+  - org_billing_remaining_balance
+
+- Each context should show:
+  "entries": <count>
+  "log_lines": <count>
+  "metrics": <count>
+  "events": <count>
+
+COPY-PASTE READY:
+call DTAGENT_DB.APP.DTAGENT(ARRAY_CONSTRUCT('org_costs'));
+
+================================================================================
+TASK 2: EXECUTE query_history PROCEDURE
+================================================================================
+
+COMMAND:
+call DTAGENT_DB.APP.DTAGENT(ARRAY_CONSTRUCT('query_history'));
+
+EXPECTED OUTPUT:
+- JSON response with query_history context containing:
+  "entries": <count of queries processed>
+  "log_lines": <count>
+  "metrics": <count>
+  "spans": <count of query spans>
+  "span_events": <count of operator events>
+  "errors": <error count if any>
+
+- DDL changes should appear in span_events if track_ddl_changes is enabled
+
+COPY-PASTE READY:
+call DTAGENT_DB.APP.DTAGENT(ARRAY_CONSTRUCT('query_history'));
+
+================================================================================
+TASK 3A: VERIFY EXECUTION LOGS IN SNOWFLAKE
+================================================================================
+
+Run this query to see recent plugin execution logs:
+
+COMMAND:
+select
+    run_id,
+    plugin_name,
+    context_name,
+    log_level,
+    execution_status,
+    execution_end_time,
+    count(*) as log_entries
+from DTAGENT_DB.LOG.RUN_LOG
+where execution_end_time >= current_timestamp() - interval '1 hour'
+  and plugin_name in ('org_costs', 'query_history')
+group by run_id, plugin_name, context_name, log_level, execution_status, execution_end_time
+order by execution_end_time desc;
+
+EXPECTED OUTPUT:
+- 7 rows (5 for org_costs contexts + 2 for query_history contexts)
+- All with execution_status = 'COMPLETED'
+- No rows with log_level = 'ERROR'
+
+COPY-PASTE READY:
+select
+    run_id,
+    plugin_name,
+    context_name,
+    log_level,
+    execution_status,
+    execution_end_time,
+    count(*) as log_entries
+from DTAGENT_DB.LOG.RUN_LOG
+where execution_end_time >= current_timestamp() - interval '1 hour'
+  and plugin_name in ('org_costs', 'query_history')
+group by run_id, plugin_name, context_name, log_level, execution_status, execution_end_time
+order by execution_end_time desc;
+
+================================================================================
+TASK 3B: VERIFY TELEMETRY COUNTS IN SNOWFLAKE
+================================================================================
+
+Run this query to see telemetry counts for both plugins:
+
+COMMAND:
+select
+    run_id,
+    plugin_name,
+    context_name,
+    entries,
+    log_lines,
+    metrics,
+    events,
+    spans
+from DTAGENT_DB.APP.RUN_RESULTS
+where updated_at >= current_timestamp() - interval '1 hour'
+  and plugin_name in ('org_costs', 'query_history')
+order by updated_at desc;
+
+EXPECTED OUTPUT:
+org_costs contexts (5):
+- org_costs_metering
+- org_costs_storage
+- org_costs_data_transfer
+- org_billing_usage_in_currency
+- org_billing_remaining_balance
+
+query_history contexts (2):
+- query_history
+- query_cost_attribution (if enabled)
+
+All with non-zero log_lines, metrics, events counts.
+
+COPY-PASTE READY:
+select
+    run_id,
+    plugin_name,
+    context_name,
+    entries,
+    log_lines,
+    metrics,
+    events,
+    spans
+from DTAGENT_DB.APP.RUN_RESULTS
+where updated_at >= current_timestamp() - interval '1 hour'
+  and plugin_name in ('org_costs', 'query_history')
+order by updated_at desc;
+
+================================================================================
+TASK 3C: VERIFY BizEvents IN DYNATRACE (DQL QUERIES)
+================================================================================
+
+Open Dynatrace and execute these DQL queries in the DQL editor:
+
+QUERY 1: org_costs BizEvents
+fetch bizevents
+| filter context == "org_costs_metering"
+    or context == "org_costs_storage"
+    or context == "org_costs_data_transfer"
+    or context == "org_billing_usage_in_currency"
+    or context == "org_billing_remaining_balance"
+| filter timestamp >= now()-1h
+| summarize event_count = count(), by: {context}
+
+EXPECTED OUTPUT:
+5 rows with event_count > 0
+
+QUERY 2: query_history BizEvents
+fetch bizevents
+| filter context == "query_history"
+| filter timestamp >= now()-1h
+| summarize event_count = count()
+
+EXPECTED OUTPUT:
+1 row with event_count > 0
+
+QUERY 3: DDL Events (if applicable)
+fetch bizevents
+| filter context == "query_history"
+| filter timestamp >= now()-1h
+| filter properties["ddl_type"] exists
+| summarize ddl_count = count(), by: {properties["ddl_type"]}
+
+EXPECTED OUTPUT:
+Rows for each DDL type (CREATE, ALTER, DROP) if DDL changes were made
+
+================================================================================
+EXECUTION SEQUENCE
+================================================================================
+
+1. In Snowflake (snow_agent_test-qa profile):
+   - Execute: call DTAGENT_DB.APP.DTAGENT(ARRAY_CONSTRUCT('org_costs'));
+   - Wait for completion
+   - Note the run_id from the result
+
+2. In Snowflake:
+   - Execute: call DTAGENT_DB.APP.DTAGENT(ARRAY_CONSTRUCT('query_history'));
+   - Wait for completion
+   - Note the run_id from the result
+
+3. In Snowflake:
+   - Execute Task 3A query (RUN_LOG)
+   - Execute Task 3B query (RUN_RESULTS)
+   - Verify results show both plugins with COMPLETED status
+
+4. In Dynatrace:
+   - Execute Query 1 (org_costs BizEvents)
+   - Execute Query 2 (query_history BizEvents)
+   - Execute Query 3 (DDL Events) if needed
+
+================================================================================
+SUCCESS CRITERIA
+================================================================================
+
+Task 1 - org_costs:
+  ✓ Procedure executed without errors
+  ✓ Result contains all 5 contexts
+  ✓ All contexts have entries > 0 (or source data is empty)
+  ✓ run_id is a valid UUID
+  ✓ No ERROR logs in RUN_LOG
+
+Task 2 - query_history:
+  ✓ Procedure executed without errors
+  ✓ Result contains query_history context
+  ✓ entries > 0 (or no recent queries)
+  ✓ spans > 0 (indicates query data)
+  ✓ run_id is a valid UUID
+  ✓ No ERROR logs in RUN_LOG
+
+Task 3 - Verification:
+  ✓ org_costs: All 5 BizEvent contexts present in Dynatrace
+  ✓ query_history: BizEvent context present in Dynatrace
+  ✓ Event counts are non-zero
+  ✓ All telemetry types transmitted (logs, metrics, events, spans)
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+If you see "PROCEDURE_NOT_FOUND":
+  → Run the full setup script first
+  → Verify DTAGENT_DB.APP schema contains DTAGENT procedure
+
+If entry counts are zero:
+  → For org_costs: Account may have no billing data
+  → For query_history: Execute some queries and wait 30 seconds, then retry
+  → Check if source tables have data using: select count(*) from account_usage.query_history;
+
+If BizEvents don't appear in Dynatrace:
+  → Check RUN_LOG for transmission errors
+  → Verify Dynatrace API token is valid
+  → Wait 1-2 minutes for telemetry to arrive
+
+================================================================================
+FILES REFERENCE
+================================================================================
+
+Execution Script:
+  test/qa/plugins/plugin-execution.sql
+
+Full Documentation:
+  test/qa/plugins/execution-guide.md
+
+Plugin Source Code:
+  src/dtagent/plugins/org_costs.py
+  src/dtagent/plugins/query_history.py
+
+Plugin SQL Definitions:
+  src/dtagent/plugins/org_costs.sql/
+  src/dtagent/plugins/query_history.sql/
+
+================================================================================

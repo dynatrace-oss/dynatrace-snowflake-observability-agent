@@ -1,0 +1,98 @@
+[
+  {
+    "content": "Query cost attribution summary for COMPUTE_WH",
+    "snowflake.credits.attributed_compute": 0.0042,
+    "snowflake.credits.query_acceleration": 0.0001,
+    "snowflake.cost_attribution.query_count": 15,
+    "snowflake.query.hash": "abc123def456",
+    "snowflake.query.parametrized_hash": "abc123def456",
+    "snowflake.cost_attribution.period_start": "2025-05-17T10:00:00Z",
+    "snowflake.cost_attribution.period_end": "2025-05-17T18:00:00Z",
+    "snowflake.warehouse.name": "COMPUTE_WH",
+    "db.user": "ALICE",
+    "snowflake.query.tag": "",
+    "dsoa.run.plugin": "test_query_cost_attribution",
+    "dsoa.run.context": "query_cost_attribution",
+    "resource_attributes": {
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent"
+    }
+  },
+  {
+    "content": "Query cost attribution summary for COMPUTE_WH",
+    "snowflake.credits.attributed_compute": 0.1234,
+    "snowflake.credits.query_acceleration": 0.0,
+    "snowflake.cost_attribution.query_count": 42,
+    "snowflake.query.hash": "def456abc789",
+    "snowflake.query.parametrized_hash": "def456abc789",
+    "snowflake.cost_attribution.period_start": "2025-05-17T09:00:00Z",
+    "snowflake.cost_attribution.period_end": "2025-05-17T17:30:00Z",
+    "snowflake.warehouse.name": "COMPUTE_WH",
+    "db.user": "BOB",
+    "snowflake.query.tag": "etl_pipeline",
+    "dsoa.run.plugin": "test_query_cost_attribution",
+    "dsoa.run.context": "query_cost_attribution",
+    "resource_attributes": {
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent"
+    }
+  },
+  {
+    "content": "Query cost attribution summary for REPORTING_WH",
+    "snowflake.credits.attributed_compute": 0.0,
+    "snowflake.credits.query_acceleration": 0.0,
+    "snowflake.cost_attribution.query_count": 3,
+    "snowflake.query.hash": "789xyz123abc",
+    "snowflake.query.parametrized_hash": "789xyz123abc",
+    "snowflake.cost_attribution.period_start": "2025-05-17T12:00:00Z",
+    "snowflake.cost_attribution.period_end": "2025-05-17T12:05:00Z",
+    "snowflake.warehouse.name": "REPORTING_WH",
+    "db.user": "CAROL",
+    "snowflake.query.tag": "dashboard_refresh",
+    "dsoa.run.plugin": "test_query_cost_attribution",
+    "dsoa.run.context": "query_cost_attribution",
+    "resource_attributes": {
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent"
+    }
+  },
+  {
+    "content": "New entry to STATUS.LOG_PROCESSED_MEASUREMENTS from query_cost_attribution",
+    "query_cost_attribution": {
+      "entries": 3,
+      "events": 0,
+      "log_lines": 3,
+      "metrics": 9
+    },
+    "dsoa.run.plugin": "test_query_cost_attribution",
+    "dsoa.run.context": "self_monitoring",
+    "resource_attributes": {
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent"
+    }
+  }
+]
