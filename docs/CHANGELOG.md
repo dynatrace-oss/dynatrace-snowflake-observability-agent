@@ -56,7 +56,6 @@ All notable changes to this project will be documented in this file.
 - Config redeploy now fully replaces the config table (DELETE + INSERT) so removed entries take effect immediately. Previously, stale entries could override `disabled_by_default: true`.
 - Disabled plugins have their Snowflake tasks suspended automatically on every redeploy, regardless of deploy scope.
 - **`org-contract-balance-warning` workflow**: fixed JavaScript import error — `@dynatrace-sdk/client-metrics` does not exist on the Dynatrace automation runtime; replaced with `@dynatrace-sdk/client-classic-environment-v2` (BUG-E2.5a). Subsequent 406 error from `metricsClient.query()` resolved by replacing the Metrics v2 API call with a DQL `execute-dql-query` action (BUG-E2.5b).
-- **`warehouse-sensitive-change-alert` workflow**: corrected detection logic — `ALTER WAREHOUSE` DDL does not populate `ACCESS_HISTORY.OBJECT_MODIFIED_BY_DDL` in Snowflake; workflow DQL and test tooling updated to reflect this platform limitation.
 - **Configuration parameter documentation**: four plugin `config.md` files referenced config keys in uppercase (e.g. `PLUGINS.X.Y`); corrected to lowercase to match the actual YAML key format used in `conf/config-template.yml`.
 
 ### Clarified
