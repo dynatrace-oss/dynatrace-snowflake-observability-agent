@@ -20,14 +20,16 @@ operation, property delta) was discarded.
   SELECT and consumed by `080_v_query_history_instrumented.sql`.
 
 - **AH-lag handling** — `ACCESS_HISTORY.OBJECT_MODIFIED_BY_DDL` is populated by Snowflake up to
-  ~3 hours after the DDL statement. Without handling this we would either (a) emit a non-enriched
-  event at T+45 min and an enriched event at T+3 h (duplicate), or (b) miss the structured payload
-  entirely. Decision: when `track_ddl_changes=true`, filter out warehouse / resource-monitor DDL
-  rows from the main `V_QUERY_HISTORY` SELECT until `ah.ddl_operation IS NOT NULL`. Effect: the
-  row is not picked, not cached in `STATUS.PROCESSED_QUERIES_CACHE`, and on the next run after
-  AH catchup a single enriched event is emitted. The accepted trade-off is ~3 h alert lag for
-  warehouse / resource-monitor DDL events when the feature flag is on. `cache_ttl_hours` default
-  is 4 h, comfortably above the 3 h AH lag.
+  ~3 hours after the DDL statement. For database-object DDL, the original hold-back strategy was
+  implemented: when `track_ddl_changes=true`, rows where `ah.ddl_operation IS NULL` are filtered
+  out until AH catches up, ensuring a single enriched event. `cache_ttl_hours` default is 4 h,
+  comfortably above the 3 h AH lag.
+  **[QA 2026-05-25 correction]:** Warehouse and resource-monitor DDL types were initially included
+  in the hold-back filter, but this caused those rows to be suppressed indefinitely — Snowflake
+  never populates `OBJECT_MODIFIED_BY_DDL` for warehouse-level DDL. The hold-back was removed for
+  warehouse/resource-monitor query types; those rows now emit without DDL attributes (all five
+  `snowflake.object.*` attributes NULL). See QA Finding section and
+  `.context/devlog/0.9.5/warehouse-ddl-limitation.md`.
 
 - **Top-N signal-protection exemption** — when `max_entries > 0`, the existing `QUALIFY`
   clause prunes by `execution_time DESC`. Warehouse DDL is sub-second and would be pruned out
@@ -55,10 +57,15 @@ operation, property delta) was discarded.
   (`WAREHOUSE_SIZE`, `SCALING_POLICY`, `RESOURCE_MONITOR`, `AUTO_SUSPEND`, `MIN_CLUSTER_COUNT`,
   `MAX_CLUSTER_COUNT`).
 
-- **`docs/workflows/warehouse-sensitive-change-alert/`** — new workflow that subscribes to
-  `query_history` events with non-null `snowflake.object.ddl.operation` and a `snowflake.object.type`
-  of `Warehouse` or `Resource Monitor`. Sensitive-property allowlist filter raises a Davis event
-  per change.
+- **`docs/workflows/warehouse-sensitive-change-alert/`** — new workflow that detects warehouse DDL
+  via `db.operation.name` filtering (`ALTER_WAREHOUSE`, `CREATE_WAREHOUSE`, `DROP_WAREHOUSE`,
+  `ALTER_RESOURCE_MONITOR`) and scans `db.query.text` for sensitive property keywords
+  (`WAREHOUSE_SIZE`, `SCALING_POLICY`, `RESOURCE_MONITOR`, `AUTO_SUSPEND`, `MIN_CLUSTER_COUNT`,
+  `MAX_CLUSTER_COUNT`). Raises a Davis event per sensitive change.
+  **[QA 2026-05-25 correction]:** Initial design filtered on `snowflake.object.ddl.operation` /
+  `snowflake.object.type` — this was incorrect since warehouse DDL never populates
+  `OBJECT_MODIFIED_BY_DDL`. Corrected before release to use `db.operation.name` + `db.query.text`.
+  See QA Finding section.
 
 ## Configuration
 
