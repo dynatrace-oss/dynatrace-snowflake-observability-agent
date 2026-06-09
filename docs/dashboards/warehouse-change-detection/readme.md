@@ -18,7 +18,7 @@ can detect unauthorized reconfiguration and enforce change-management policies.
 ## Changes Over Time
 
 - Bar chart trending warehouse DDL activity by operation type over the default 7-day window.
-- Reveals spikes in reconfiguration activity, correlates with deployment or incident timelines.
+- Reveals spikes in reconfiguration activity and correlates with deployment or incident timelines.
 
 ## Changes by Operation Type
 
