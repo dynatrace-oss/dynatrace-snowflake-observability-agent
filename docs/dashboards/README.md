@@ -15,6 +15,7 @@ This directory contains example Dynatrace dashboards designed to visualize and a
   - [Data Volume \& Storage](#data-volume--storage)
   - [Snowflake Security](#snowflake-security)
   - [Shares \& Governance](#shares--governance)
+  - [Warehouse Change Detection](#warehouse-change-detection)
 - [Dashboard Structure](#dashboard-structure)
 - [Importing Dashboards](#importing-dashboards)
   - [Using Deployment Script (Recommended for Automation)](#using-deployment-script-recommended-for-automation)
@@ -271,6 +272,27 @@ data transfer, billing amounts, and remaining contract balance in a single dashb
 **Required Plugin**: `shares`
 
 **DPO Theme**: Security, Operations
+
+---
+
+### [Warehouse Change Detection](warehouse-change-detection/)
+
+**Purpose**: Audit warehouse DDL changes (CREATE, ALTER, DROP, RENAME) to track who
+reconfigured Snowflake warehouses, when, and what SQL was executed.
+
+**Key Features**:
+
+- Full change audit log with timestamp, operation, warehouse name, actor (user + role),
+  and raw SQL text
+- Changes-over-time bar chart trending DDL activity by operation type over 7 days
+- Operation-type donut chart showing distribution of CREATE / ALTER / DROP / RENAME
+- Actor attribution treemap ranking users and roles by change volume
+- Sensitive-property change filter isolating high-impact ALTER statements
+  (size, scaling policy, auto-suspend, cluster bounds, query acceleration)
+
+**Required Plugin**: `query_history` (with `plugins.query_history.track_ddl_changes: true`)
+
+**DPO Theme**: Security
 
 ---
 
