@@ -290,7 +290,7 @@ reconfigured Snowflake warehouses, when, and what SQL was executed.
 - Sensitive-property change filter isolating high-impact ALTER statements
   (size, scaling policy, auto-suspend, cluster bounds, query acceleration)
 
-**Required Plugin**: `query_history` (with `plugins.query_history.track_ddl_changes: true`)
+**Required Plugin**: `query_history` (no special config required for warehouse DDL detection)
 
 **DPO Theme**: Security
 
