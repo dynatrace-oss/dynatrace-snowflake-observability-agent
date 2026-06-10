@@ -50,19 +50,6 @@ CWD=$(dirname "$0")
 source "$CWD/lib.sh"
 
 # Parse comma-separated options string into an array and expose a has_option() helper.
-IFS=',' read -ra _OPTIONS <<< "$OPTIONS_STR"
-has_option() {
-    local opt=$1
-    for item in "${_OPTIONS[@]}"; do
-        [[ "$item" == "$opt" ]] && return 0
-    done
-    return 1
-}
-
-# shellcheck source=./lib.sh
-source "$CWD/lib.sh"
-
-# Parse comma-separated options string into an array and expose a has_option() helper.
 # Trim leading/trailing whitespace from OPTIONS_STR to handle cases where options may have spaces.
 OPTIONS_STR=$(echo "$OPTIONS_STR" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
 IFS=',' read -ra _OPTIONS <<< "$OPTIONS_STR"

@@ -17,6 +17,8 @@ setup() {
     # Build artifacts required by prepare_deploy_script.sh
     mkdir -p build/30_plugins build/09_upgrade
 
+    echo "SELECT 'admin_init';" > build/05_admin_init.sql
+
     cat > build/00_init.sql << 'EOSQL'
 CREATE SCHEMA IF NOT EXISTS MAIN_SCHEMA;
 --%PLUGIN:tasks:
