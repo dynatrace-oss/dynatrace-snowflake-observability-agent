@@ -1,122 +1,134 @@
-# BIZOBS-151 — Semantic Dictionary Export Pipeline
+# BIZOBS-151 — Semantic Dictionary Export Pipeline (Structural Rewrite)
 
 ## Problem Statement
 
-DSOA defines ~200+ metrics, attributes, and dimensions across 22 `instruments-def.yml` files.
-These definitions existed only inside the agent codebase, with no machine-readable artifact in
-the format required by the Dynatrace Semantic Dictionary (`semconv.schema.json`). Without this
-artifact there was nothing to submit as a PR to `semantic-dictionary` (BIZOBS-1829 Track A) or
-to feed into the GRAIL-52472 lookup-table export pipeline (Track B).
+The initial implementation of `export_semantics.py` produced structurally incorrect output.
+Research of actual SD source files revealed fundamental errors:
 
-## Solution Design
+1. All fields were emitted into a single flat `snowflake_global.yaml` file, not split by
+   resource/signal classification.
+2. Metrics used `type: metric_group` + flat `type: metric` groups — not the SD-required
+   `model:` envelope with `interfaces:` declaration.
+3. No support for interface abstraction (`i.dsoa_resource`, `i.dsoa_warehouse`, `i.dsoa_database`).
+4. No enum emission — categorical fields emitted `type: string` instead of `type: {allow_custom_values, members}`.
+5. `event_timestamps` section ignored — no event lifecycle models produced.
+6. Fields were not classified by source section (dimensions → resource; attributes → signal).
 
-Extended the DSOA build pipeline with `export_semantics.py` which:
+## Rewrite Summary
 
-1. Globs all 22 `instruments-def.yml` files (1 core + 20 plugins).
-2. Classifies each field using a `__semdict` flag: `ref | new | deprecated-alias | otel-only`.
-3. Emits semconv-schema-compliant YAML under `build/_semdict/source/` (gitignored).
-4. Validates each output file against `semconv.schema.json` when the schema is available.
-5. Returns a summary dict with file/field counts by category.
-
-Two new shell scripts:
-
-- `build_semantic_export.sh` — orchestration wrapper (cleans output dir, calls Python, logs).
-- `validate_semantics.sh` — CI lint gate (fails on missing `__description`/`__example`; warns on missing `__unit`).
-
-## Key Design Decisions
-
-### Field Classification Strategy
-
-Four categories map directly to semconv output patterns:
-
-| Category | `__semdict` | Output | Rationale |
-|---|---|---|---|
-| Known semdict field | `ref` | `- ref: <key>` | No duplication; trust existing semdict definition |
-| New proprietary field | `new` (default) | Full `id:` block | All `dsoa.*` and `snowflake.*` namespaces |
-| Deprecated OTel field | `deprecated-alias` | `id:` + `deprecated:` + `note:` | `deployment.environment` → `deployment.environment.name` |
-| OTel field not yet in semdict | `otel-only` | `id:` + `note:` | `session.id` (Development-tier, model-scoped in semdict) |
-
-Default when flag absent: `new` — allows incremental annotation without breaking the build.
-
-### Deduplication
-
-Many fields (e.g., `snowflake.warehouse.name`, `session.id`) appear in multiple
-`instruments-def.yml` files. The exporter uses first-occurrence wins with a WARNING log on
-subsequent encounters. Annotation in the first file encountered (alphabetically by plugin name)
-takes precedence. Practical implication: `active_queries` is processed before `login_history`
-and `query_history`, so `session.id` and `db.query.text` must be annotated there.
-
-### Empty-String Examples
-
-Fields like `snowflake.pipe.invalid_reason` and `snowflake.table.dynamic.refresh.message`
-legitimately have nullable values — they use `__example: ""`. The validator accepts empty
-string as valid (`None` is the only error case).
-
-### Output Structure
+### New output structure
 
 ```
 build/_semdict/source/
-├── fields/snowflake/snowflake_global.yaml        # dsoa.run.*, deployment.environment, etc.
-└── model/smartscape/db/snowflake/metrics/
-    ├── snowflake_active_queries.yaml
-    ├── snowflake_budgets.yaml
-    ├── ... (18 more plugin files)
-    └── snowflake_warehouse_usage.yaml
+├── fields/
+│   ├── resource_fields/
+│   │   ├── snowflake_resource.yaml   # dimensions + __field_type:resource attributes
+│   │   │                              # grouped by namespace prefix (≥3 groups)
+│   │   └── dsoa.yaml                 # DSOA execution metadata (dsoa.run.*, deployment.*)
+│   └── signal_fields/
+│       └── snowflake.yaml            # attributes + __field_type:signal dimensions
+│                                     # grouped by namespace prefix (≥10 groups)
+├── metrics/
+│   ├── interfaces_dsoa.yaml          # i.dsoa_resource / i.dsoa_warehouse / i.dsoa_database
+│   ├── dsoa_metrics_model_group.yaml # model_group: dsoa.metrics
+│   └── dsoa_metrics_<plugin>.yaml    # one per plugin, model: envelope + interfaces
+└── model/
+    └── dsoa/
+        ├── model_group_dsoa_events.yaml
+        └── dsoa.events.<plugin>.yaml  # one per plugin with event_timestamps
 ```
 
-Global entries: fields from the `_core` plugin + fields whose keys appear in `GLOBAL_FIELD_KEYS`
-or start with `dsoa.`. Per-plugin entries: everything else, grouped by first-occurrence plugin.
+### Field classification rules
 
-## Annotated Files
+| instruments-def section | `__field_type` | SD output     |
+|-------------------------|----------------|---------------|
+| `dimensions`            | (absent)       | resource      |
+| `dimensions`            | `signal`       | signal        |
+| `attributes`            | (absent)       | signal        |
+| `attributes`            | `resource`     | resource      |
+| `metrics`               | any            | metric model  |
+| `event_timestamps`      | any            | event model   |
 
-`__semdict` flags added to:
+### New instrument-def annotations added
 
-- `src/dtagent.conf/instruments-def.yml` — all 7 dimensions and 3 attributes
-- `src/dtagent/plugins/active_queries.config/instruments-def.yml` — `db.query.text` (ref), `session.id` (otel-only)
-- `src/dtagent/plugins/login_history.config/instruments-def.yml` — `authentication.type` (ref), `event.id` (ref), `session.id` (otel-only), client.* fields (new)
-- `src/dtagent/plugins/query_history.config/instruments-def.yml` — `authentication.type` (ref), `db.query.text` (ref), `event.id` (ref), `session.id` (otel-only), `db.snowflake.*` (new), client.* fields (new)
+**`__field_type` overrides** (bidirectional classification override):
+- `__field_type: signal` added to `snowflake.warehouse.event.name`,
+  `snowflake.warehouse.event.state` — they describe events, not resources.
+- `__field_type: resource` added to warehouse resource identifiers:
+  `snowflake.warehouse.size`, `snowflake.warehouse.type`, `snowflake.warehouse.id`,
+  `snowflake.warehouse.cluster.number`, `snowflake.warehouse.clusters.count`,
+  `snowflake.warehouse.execution_state`, `snowflake.warehouse.has_query_acceleration_enabled`,
+  `snowflake.warehouse.is_auto_resume`, `snowflake.warehouse.is_auto_suspend`,
+  `snowflake.warehouse.owner`, `snowflake.warehouse.owner.role_type`,
+  `snowflake.warehouse.scaling_policy`, `snowflake.resource_monitor.frequency`,
+  `snowflake.resource_monitor.level`.
 
-All other plugins default to `new` (no annotation required).
+**`__enum` definitions** added to ~16 categorical fields:
+- `snowflake.warehouse.event.name` — WAREHOUSE_START/SUSPEND/RESUME/RESIZE_WAREHOUSE
+- `snowflake.warehouse.event.state` — STARTED/COMPLETED/FAILED
+- `snowflake.warehouse.event.reason` — USER_REQUEST/AUTO_SUSPEND/AUTO_RESUME/SCHEDULER
+- `snowflake.warehouse.size` — X-SMALL through 6X-LARGE
+- `snowflake.warehouse.type` — STANDARD/SNOWPARK_OPTIMIZED
+- `snowflake.warehouse.scaling_policy` — STANDARD/ECONOMY
+- `snowflake.warehouse.execution_state` — RUNNING/SUSPENDED/RESUMING/SUSPENDING/STARTED
+- `snowflake.resource_monitor.level` — ACCOUNT/WAREHOUSE (allow_custom_values: false)
+- `snowflake.resource_monitor.frequency` — DAILY/WEEKLY/MONTHLY/YEARLY/NEVER
+- `snowflake.query.execution_status` — SUCCESS/FAIL/INCIDENT_QUEUE
+- `snowflake.user.type` — PERSON/SERVICE/LEGACY_SERVICE/SNOWFLAKE_SERVICE (in query_history + users)
+- `snowflake.object.type` — Table/View/Schema/Database/Procedure
+- `snowflake.object.ddl.operation` — CREATE/ALTER/DROP/UNDROP/REPLACE
+- `db.operation.name` — SELECT/INSERT/UPDATE/DELETE/MERGE/CREATE/ALTER/DROP/GRANT/REVOKE/CALL/COPY/PUT/GET
+- `snowflake.table.type` — BASE TABLE/TEMPORARY TABLE/EXTERNAL TABLE/VIEW/MATERIALIZED VIEW
 
-## Known Issues
+### Interface and model structure
 
-1. **`authentication.type` enum gap**: semdict enum has `allow_custom_values: false` with
-   members OAUTH2/TOKEN/DEVOPSTOKEN/NONE. DSOA emits PASSWORD. Classified as `ref` with
-   `__otel_note` flagging the gap; must raise an enum extension request in the Track A PR.
+**`interfaces_dsoa.yaml`** defines:
+- `i.dsoa_resource`: 10 keys synced with `config.py RESOURCE_ATTRIBUTES`
+- `i.dsoa_warehouse`: snowflake.warehouse.name + snowflake.warehouse.id
+- `i.dsoa_database`: db.namespace + snowflake.schema.name
 
-2. **`observed_timestamp` structural field**: OTel Log Data Model structural field. Emitted as
-   `new` with `__otel_note` explaining DT normalization. Confirm with DT ingestion team before
-   submitting to semdict.
+**Metric model files**: `model:` envelope with `interfaces:` list + per-metric
+`attributes:` resolved via `__context_names` overlap, excluding interface-covered dims.
 
-3. **`session.id` model-scoped**: semdict has `session.id` only in `code_monitoring` model
-   (internal). DSOA needs a global `session.id` → classified as `otel-only` pending global semdict registration.
+**Event model files**: one per plugin that has `event_timestamps`; excludes `snowflake.event.trigger`
+(the trigger key) from the event model attributes list.
 
-4. **Metric `__type` absent**: ~13 metrics across plugins have no `__type` field (they use the
-   legacy `unit`-only pattern). These default to `gauge` instrument. Review each metric during
-   the Track A PR process and assign explicit `__type` flags.
+## Key Technical Decisions
 
-## Test Strategy
+### Deduplication and context_names matching
+Fields appearing in multiple plugins are de-duplicated at parse time (first occurrence wins).
+Dimension → metric context matching uses `__context_names` overlap: a dim with no
+`__context_names` is treated as globally applicable; a dim with context_names must have at
+least one overlap with the metric's context_names to appear in the metric's attributes list.
 
-- **Unit tests** (`test/core/test_export_semantics.py`): 42 tests covering all classification
-  types, type mapping, validation, and emission helpers. Uses mock fixture at
-  `test/test_data/instruments-def-mock.yml`. All run without filesystem side effects.
-- **Integration tests** (class `TestSemanticExporterIntegration`, `@pytest.mark.integration`):
-  run against real codebase; verify file count, directory structure, and YAML parseability.
-  Skipped when `build/` is absent. All 5 integration tests pass when `build/` exists.
+### Namespace grouping
+Both resource and signal field files group by namespace prefix within a single file. This
+makes the semantic structure clear while keeping future per-file splitting trivial.
+
+### `__type` missing on many metrics
+~130 metrics across plugins default to `gauge` instrument because they lack `__type`.
+This is pre-existing debt. A follow-up should annotate all metrics with explicit `__type`.
 
 ## Files Created/Modified
 
-| File | Change |
-|---|---|
-| `src/build/export_semantics.py` | NEW — core export logic (~300 lines, pylint 10.00/10) |
-| `scripts/dev/build_semantic_export.sh` | NEW — orchestration wrapper |
-| `scripts/dev/validate_semantics.sh` | NEW — CI lint |
-| `test/core/test_export_semantics.py` | NEW — 42 unit + integration tests |
-| `test/test_data/instruments-def-mock.yml` | NEW — mock fixture |
-| `scripts/dev/build_docs.sh` | MODIFIED — adds semantic export call |
-| `pytest.ini` | MODIFIED — registers `integration` mark |
-| `docs/CHANGELOG.md` | MODIFIED — adds user-facing entry |
-| `src/dtagent.conf/instruments-def.yml` | MODIFIED — `__semdict` annotations |
-| `src/dtagent/plugins/active_queries.config/instruments-def.yml` | MODIFIED — `__semdict` annotations |
-| `src/dtagent/plugins/login_history.config/instruments-def.yml` | MODIFIED — `__semdict` annotations |
-| `src/dtagent/plugins/query_history.config/instruments-def.yml` | MODIFIED — `__semdict` annotations |
+| File                                                              | Change                                          |
+|-------------------------------------------------------------------|-------------------------------------------------|
+| `src/build/export_semantics.py`                                   | REWRITTEN — 938 lines, pylint 10.00/10          |
+| `test/core/test_export_semantics.py`                              | REWRITTEN — 83 tests                            |
+| `test/test_data/instruments-def-mock.yml`                         | EXTENDED — __field_type, __enum, event_timestamps |
+| `src/dtagent/plugins/warehouse_usage.config/instruments-def.yml`  | `__field_type` + `__enum` annotations           |
+| `src/dtagent/plugins/resource_monitors.config/instruments-def.yml`| `__field_type` + `__enum` annotations           |
+| `src/dtagent/plugins/query_history.config/instruments-def.yml`    | `__enum` annotations                            |
+| `src/dtagent/plugins/data_volume.config/instruments-def.yml`      | `__enum` annotation (table.type)                |
+| `src/dtagent/plugins/users.config/instruments-def.yml`            | `__enum` annotation (user.type)                 |
+| `docs/CHANGELOG.md`                                               | Added rewrite entry                             |
+
+## Test Results
+
+83 tests pass (previously 42). New test classes:
+- `TestFieldClassification` — 6 tests for `_classify_field`
+- `TestNamespaceGrouping` — 4 tests for `_ns_group`
+- `TestEnumEmission` — 5 tests for `_build_type_node` and enum in `_emit_id_entry`
+- `TestExportPipelineMock` — 11 integration tests against mock fixture
+- `TestSemanticExporterIntegration` — 14 tests against real codebase
+  (15 integration tests, replaces old 5 tests)

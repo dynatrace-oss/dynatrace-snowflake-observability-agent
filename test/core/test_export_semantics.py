@@ -32,13 +32,19 @@ import pytest
 import yaml
 
 from build.export_semantics import (
+    INTERFACE_DATABASE_KEYS,
+    INTERFACE_WAREHOUSE_KEYS,
+    RESOURCE_ATTRIBUTE_KEYS,
     ExportError,
     SemanticExporter,
+    _build_type_node,
+    _classify_field,
     _emit_id_entry,
     _emit_metric_entry,
     _emit_ref_entry,
     _map_attr_type,
     _map_metric_instrument,
+    _ns_group,
     _validate_entry,
 )
 
@@ -106,6 +112,79 @@ class TestTypeMappings:
 ##endregion
 
 
+##region Unit tests — field classification
+
+
+class TestFieldClassification:
+    """Verify _classify_field produces correct bucket based on section + override."""
+
+    def test_dimension_default_is_resource(self):
+        """dimensions without __field_type override → resource."""
+        assert _classify_field("dimensions", None) == "resource"
+
+    def test_dimension_signal_override(self):
+        """dimensions with __field_type: signal → signal."""
+        assert _classify_field("dimensions", "signal") == "signal"
+
+    def test_attribute_default_is_signal(self):
+        """attributes without __field_type override → signal."""
+        assert _classify_field("attributes", None) == "signal"
+
+    def test_attribute_resource_override(self):
+        """attributes with __field_type: resource → resource."""
+        assert _classify_field("attributes", "resource") == "resource"
+
+    def test_metric_always_metric(self):
+        """metrics section always → metric regardless of override."""
+        assert _classify_field("metrics", None) == "metric"
+        assert _classify_field("metrics", "signal") == "metric"
+
+    def test_event_timestamps_classification(self):
+        """event_timestamps section → event_timestamp."""
+        assert _classify_field("event_timestamps", None) == "event_timestamp"
+
+
+##endregion
+
+
+##region Unit tests — namespace grouping
+
+
+class TestNamespaceGrouping:
+    """Verify _ns_group maps field keys to (group_id, group_type) correctly."""
+
+    def test_warehouse_signal_group(self):
+        """snowflake.warehouse.* signal fields → snowflake.warehouse group."""
+        from build.export_semantics import _SIG_NS  # pylint: disable=import-outside-toplevel
+        gid, gtype = _ns_group("snowflake.warehouse.name", _SIG_NS, "snowflake.misc", "attribute_group")
+        assert gid == "snowflake.warehouse"
+        assert gtype == "span"
+
+    def test_warehouse_resource_group(self):
+        """snowflake.warehouse.* resource fields → snowflake.warehouse resource group."""
+        from build.export_semantics import _RES_NS  # pylint: disable=import-outside-toplevel
+        gid, gtype = _ns_group("snowflake.warehouse.size", _RES_NS, "snowflake.resource", "resource")
+        assert gid == "snowflake.warehouse"
+        assert gtype == "resource"
+
+    def test_db_signal_group(self):
+        """db.* signal fields → db span group."""
+        from build.export_semantics import _SIG_NS  # pylint: disable=import-outside-toplevel
+        gid, gtype = _ns_group("db.namespace", _SIG_NS, "snowflake.misc", "attribute_group")
+        assert gid == "db"
+        assert gtype == "span"
+
+    def test_unknown_key_fallback(self):
+        """Unknown key falls back to default group."""
+        from build.export_semantics import _SIG_NS  # pylint: disable=import-outside-toplevel
+        gid, gtype = _ns_group("completely.unknown.field", _SIG_NS, "snowflake.misc", "attribute_group")
+        assert gid == "snowflake.misc"
+        assert gtype == "attribute_group"
+
+
+##endregion
+
+
 ##region Unit tests — validation
 
 
@@ -154,6 +233,24 @@ class TestValidation:
         errors = _validate_entry("test.field", entry, "attributes", "test.yml")
         assert any("__otel_note" in e for e in errors)
 
+    def test_invalid_field_type_fails(self):
+        """Unknown __field_type produces an error."""
+        entry = {"__description": "D.", "__example": "E.", "__field_type": "invalid_value"}
+        errors = _validate_entry("test.field", entry, "dimensions", "test.yml")
+        assert any("__field_type" in e for e in errors)
+
+    def test_valid_field_type_resource_passes(self):
+        """__field_type: resource is valid."""
+        entry = {"__description": "D.", "__example": "E.", "__field_type": "resource"}
+        errors = _validate_entry("test.field", entry, "attributes", "test.yml")
+        assert errors == []
+
+    def test_valid_field_type_signal_passes(self):
+        """__field_type: signal is valid."""
+        entry = {"__description": "D.", "__example": "E.", "__field_type": "signal"}
+        errors = _validate_entry("test.field", entry, "dimensions", "test.yml")
+        assert errors == []
+
 
 ##endregion
 
@@ -173,12 +270,7 @@ class TestRefEmission:
 
     def test_ref_with_otel_note_includes_note(self):
         """Ref entry with __otel_note includes note in output."""
-        entry = {
-            "__semdict": "ref",
-            "__description": "Auth method.",
-            "__example": "PASSWORD",
-            "__otel_note": "Custom enum gap.",
-        }
+        entry = {"__semdict": "ref", "__description": "Auth method.", "__example": "PASSWORD", "__otel_note": "Custom enum gap."}
         node = _emit_ref_entry("authentication.type", entry)
         assert node.get("note") == "Custom enum gap."
 
@@ -194,11 +286,7 @@ class TestIdEmission:
 
     def test_new_entry_has_id_block(self):
         """New entry produces id: block with required fields."""
-        entry = {
-            "__semdict": "new",
-            "__description": "Unique run ID.",
-            "__example": "4aa7c76c",
-        }
+        entry = {"__semdict": "new", "__description": "Unique run ID.", "__example": "4aa7c76c"}
         node = _emit_id_entry("dsoa.run.id", entry, "new")
         assert node["id"] == "dsoa.run.id"
         assert node["type"] == "string"
@@ -213,18 +301,10 @@ class TestIdEmission:
         assert "display_name" in node
 
     def test_deprecated_alias_stability(self):
-        """deprecated-alias entry stays experimental (OTel deprecated the name, not the field).
-
-        DSOA still actively emits the field for backward compatibility, so it must NOT
-        be marked stability:deprecated — that is reserved for fields from deprecated plugins.
-        Instead a note: is added warning about the OTel rename.
-        """
+        """deprecated-alias entry stays experimental — OTel renamed it, DSOA still emits it."""
         entry = {
-            "__semdict": "deprecated-alias",
-            "__otel_replacement": "deployment.environment.name",
-            "__otel_note": "Renamed in v1.26.",
-            "__description": "Deployment env.",
-            "__example": "PROD",
+            "__semdict": "deprecated-alias", "__otel_replacement": "deployment.environment.name",
+            "__otel_note": "Renamed in v1.26.", "__description": "Deployment env.", "__example": "PROD",
         }
         node = _emit_id_entry("deployment.environment", entry, "deprecated-alias")
         assert node["stability"] == "experimental", "deprecated-alias must stay experimental"
@@ -234,11 +314,8 @@ class TestIdEmission:
     def test_deprecated_alias_has_note(self):
         """deprecated-alias entry note includes __otel_note content and backward-compat message."""
         entry = {
-            "__semdict": "deprecated-alias",
-            "__otel_replacement": "deployment.environment.name",
-            "__otel_note": "Renamed in v1.26.",
-            "__description": "Deployment env.",
-            "__example": "PROD",
+            "__semdict": "deprecated-alias", "__otel_replacement": "deployment.environment.name",
+            "__otel_note": "Renamed in v1.26.", "__description": "Deployment env.", "__example": "PROD",
         }
         node = _emit_id_entry("deployment.environment", entry, "deprecated-alias")
         assert "Renamed in v1.26." in node.get("note", "")
@@ -246,12 +323,7 @@ class TestIdEmission:
 
     def test_otel_only_has_note(self):
         """otel-only entry includes note from __otel_note."""
-        entry = {
-            "__semdict": "otel-only",
-            "__otel_note": "OTel Development-tier.",
-            "__description": "Session ID.",
-            "__example": "123",
-        }
+        entry = {"__semdict": "otel-only", "__otel_note": "OTel Development-tier.", "__description": "Session ID.", "__example": "123"}
         node = _emit_id_entry("session.id", entry, "otel-only")
         assert node["stability"] == "experimental"
         assert node.get("note") == "OTel Development-tier."
@@ -267,6 +339,87 @@ class TestIdEmission:
 ##endregion
 
 
+##region Unit tests — enum emission
+
+
+class TestEnumEmission:
+    """Verify __enum fields produce type: {allow_custom_values, members} instead of type: string."""
+
+    def test_enum_produces_dict_not_string(self):
+        """Entry with __enum produces a dict type, not a string type."""
+        entry = {
+            "__description": "The warehouse type.",
+            "__example": "STANDARD",
+            "__enum": {
+                "allow_custom_values": True,
+                "members": [
+                    {"id": "standard", "value": "STANDARD", "brief": "Standard warehouse."},
+                    {"id": "snowpark_optimized", "value": "SNOWPARK_OPTIMIZED", "brief": "Snowpark optimized."},
+                ],
+            },
+        }
+        type_node = _build_type_node(entry)
+        assert isinstance(type_node, dict), "enum field should produce dict type"
+        assert "allow_custom_values" in type_node
+        assert "members" in type_node
+        assert len(type_node["members"]) == 2
+
+    def test_enum_allow_custom_values_false(self):
+        """allow_custom_values: false is preserved."""
+        entry = {
+            "__description": "Level.",
+            "__example": "ACCOUNT",
+            "__enum": {
+                "allow_custom_values": False,
+                "members": [{"id": "account", "value": "ACCOUNT", "brief": "Account level."}],
+            },
+        }
+        type_node = _build_type_node(entry)
+        assert type_node["allow_custom_values"] is False
+
+    def test_enum_member_ids_are_snake_case(self):
+        """Member IDs follow snake_case convention."""
+        entry = {
+            "__description": "Size.",
+            "__example": "X-SMALL",
+            "__enum": {
+                "allow_custom_values": True,
+                "members": [
+                    {"id": "x_small", "value": "X-SMALL", "brief": "X-Small."},
+                    {"id": "x2_large", "value": "2X-LARGE", "brief": "2X-Large."},
+                ],
+            },
+        }
+        type_node = _build_type_node(entry)
+        member_ids = [m["id"] for m in type_node["members"]]
+        assert "x_small" in member_ids
+        assert "x2_large" in member_ids
+
+    def test_no_enum_returns_string(self):
+        """Entry without __enum returns the mapped type string."""
+        entry = {"__description": "D.", "__example": "E."}
+        type_node = _build_type_node(entry)
+        assert type_node == "string"
+
+    def test_enum_in_emit_id_entry(self):
+        """_emit_id_entry produces enum dict in type: field when __enum present."""
+        entry = {
+            "__semdict": "new",
+            "__description": "Warehouse type.",
+            "__example": "STANDARD",
+            "__enum": {
+                "allow_custom_values": True,
+                "members": [{"id": "standard", "value": "STANDARD", "brief": "Standard."}],
+            },
+        }
+        node = _emit_id_entry("snowflake.warehouse.type", entry, "new")
+        assert isinstance(node["type"], dict)
+        assert node["type"]["members"][0]["value"] == "STANDARD"
+
+
+##endregion
+
+
 ##region Unit tests — metric emission
 
 
@@ -275,13 +428,7 @@ class TestMetricEmission:
 
     def test_metric_has_instrument_and_unit(self):
         """Metric entry emits instrument and unit."""
-        entry = {
-            "__semdict": "new",
-            "__type": "gauge",
-            "__unit": "{credits}",
-            "__description": "Credits used.",
-            "__example": "42.5",
-        }
+        entry = {"__semdict": "new", "__type": "gauge", "__unit": "{credits}", "__description": "Credits used.", "__example": "42.5"}
         node = _emit_metric_entry("snowflake.warehouse.credits.used", entry)
         assert node["instrument"] == "gauge"
         assert node["unit"] == "{credits}"
@@ -290,49 +437,25 @@ class TestMetricEmission:
 
     def test_metric_unit_from_unit_key(self):
         """Metric unit can come from 'unit' key (not just __unit)."""
-        entry = {
-            "__semdict": "new",
-            "__type": "counter",
-            "unit": "ms",
-            "__description": "Time.",
-            "__example": "100",
-        }
+        entry = {"__semdict": "new", "__type": "counter", "unit": "ms", "__description": "Time.", "__example": "100"}
         node = _emit_metric_entry("test.time", entry)
         assert node["unit"] == "ms"
 
     def test_counter_instrument(self):
         """__type: count maps to instrument: counter."""
-        entry = {
-            "__semdict": "new",
-            "__type": "count",
-            "__unit": "1",
-            "__description": "Query count.",
-            "__example": "100",
-        }
+        entry = {"__semdict": "new", "__type": "count", "__unit": "1", "__description": "Query count.", "__example": "100"}
         node = _emit_metric_entry("test.count", entry)
         assert node["instrument"] == "counter"
 
     def test_updowncounter_instrument(self):
         """__type: updowncounter maps correctly."""
-        entry = {
-            "__semdict": "new",
-            "__type": "updowncounter",
-            "__unit": "bytes",
-            "__description": "Memory.",
-            "__example": "1024",
-        }
+        entry = {"__semdict": "new", "__type": "updowncounter", "__unit": "bytes", "__description": "Memory.", "__example": "1024"}
         node = _emit_metric_entry("test.memory", entry)
         assert node["instrument"] == "updowncounter"
 
     def test_histogram_instrument(self):
         """__type: histogram maps correctly."""
-        entry = {
-            "__semdict": "new",
-            "__type": "histogram",
-            "__unit": "ms",
-            "__description": "Latency dist.",
-            "__example": "250",
-        }
+        entry = {"__semdict": "new", "__type": "histogram", "__unit": "ms", "__description": "Latency dist.", "__example": "250"}
         node = _emit_metric_entry("test.latency", entry)
         assert node["instrument"] == "histogram"
 
@@ -380,47 +503,237 @@ class TestSemanticExporterMock:
     def test_default_semdict_is_new(self, tmp_path):
         """Entries without __semdict flag default to 'new'."""
         exporter = SemanticExporter(repo_root=REPO_ROOT, output_dir=tmp_path / "out")
-        # Create a minimal fixture with no __semdict flag
         minimal = tmp_path / "minimal.yml"
         minimal.write_text("attributes:\n  my.field:\n    __description: D.\n    __example: E.\n")
         _, entries = exporter._parse_file("test", minimal)
         assert entries["my.field"]["semdict"] == "new"
 
-    def test_generated_yaml_has_groups(self, tmp_path):
-        """Exporter emits valid YAML with 'groups' key."""
-        out_dir = tmp_path / "out"
-        exporter = SemanticExporter(repo_root=REPO_ROOT, output_dir=out_dir)
+    def test_dimension_classified_as_resource(self, tmp_path):
+        """Dimension without __field_type override → classification: resource."""
+        exporter = SemanticExporter(repo_root=REPO_ROOT, output_dir=tmp_path / "out")
         _, entries = exporter._parse_file("mock_plugin", MOCK_FIXTURE)
+        wh_name = entries.get("snowflake.warehouse.name")
+        assert wh_name is not None
+        assert wh_name["section"] == "dimensions"
+        assert wh_name["classification"] == "resource"
 
-        # Build a plugin yaml from the entries
-        plugin_entries = {k: v for k, v in entries.items() if v["semdict"] != "ref"}
-        doc = exporter._build_plugin_yaml("mock_plugin", plugin_entries)
+    def test_dimension_signal_override_classified_as_signal(self, tmp_path):
+        """Dimension with __field_type: signal → classification: signal."""
+        exporter = SemanticExporter(repo_root=REPO_ROOT, output_dir=tmp_path / "out")
+        _, entries = exporter._parse_file("mock_plugin", MOCK_FIXTURE)
+        event_name = entries.get("snowflake.warehouse.event.name")
+        assert event_name is not None
+        assert event_name["section"] == "dimensions"
+        assert event_name["classification"] == "signal"
 
-        assert "groups" in doc
-        assert len(doc["groups"]) > 0
+    def test_attribute_resource_override_classified_as_resource(self, tmp_path):
+        """Attribute with __field_type: resource → classification: resource."""
+        exporter = SemanticExporter(repo_root=REPO_ROOT, output_dir=tmp_path / "out")
+        _, entries = exporter._parse_file("mock_plugin", MOCK_FIXTURE)
+        wh_size = entries.get("snowflake.warehouse.size")
+        assert wh_size is not None
+        assert wh_size["section"] == "attributes"
+        assert wh_size["classification"] == "resource"
+
+    def test_event_timestamps_parsed(self, tmp_path):
+        """event_timestamps section is parsed and classified as event_timestamp."""
+        exporter = SemanticExporter(repo_root=REPO_ROOT, output_dir=tmp_path / "out")
+        _, entries = exporter._parse_file("mock_plugin", MOCK_FIXTURE)
+        created = entries.get("snowflake.warehouse.created_on")
+        assert created is not None
+        assert created["section"] == "event_timestamps"
+        assert created["classification"] == "event_timestamp"
 
     def test_ref_not_in_attribute_group_id_block(self, tmp_path):
         """Ref entries appear as {'ref': key} not {'id': key} in output."""
-        out_dir = tmp_path / "out"
-        exporter = SemanticExporter(repo_root=REPO_ROOT, output_dir=out_dir)
+        exporter = SemanticExporter(repo_root=REPO_ROOT, output_dir=tmp_path / "out")
         _, entries = exporter._parse_file("mock_plugin", MOCK_FIXTURE)
-
         ref_meta = entries["db.system"]
         node = exporter._build_attribute_node("db.system", ref_meta)
         assert "ref" in node
         assert "id" not in node
 
     def test_deprecated_alias_in_output(self, tmp_path):
-        """deprecated-alias entry keeps experimental stability (OTel rename, not DSOA deprecated)."""
-        out_dir = tmp_path / "out"
-        exporter = SemanticExporter(repo_root=REPO_ROOT, output_dir=out_dir)
+        """deprecated-alias entry keeps experimental stability."""
+        exporter = SemanticExporter(repo_root=REPO_ROOT, output_dir=tmp_path / "out")
         _, entries = exporter._parse_file("mock_plugin", MOCK_FIXTURE)
-
         dep_meta = entries["deployment.environment"]
         node = exporter._build_attribute_node("deployment.environment", dep_meta)
         assert node.get("stability") == "experimental", "deprecated-alias must be experimental"
         assert "deprecated" not in node, "deprecated key must not appear for active DSOA fields"
         assert "note" in node, "deprecated-alias must have a note about OTel rename"
+
+    def test_enum_field_emits_type_dict(self, tmp_path):
+        """Field with __enum emits type: dict in output (not type: string)."""
+        exporter = SemanticExporter(repo_root=REPO_ROOT, output_dir=tmp_path / "out")
+        _, entries = exporter._parse_file("mock_plugin", MOCK_FIXTURE)
+        # snowflake.warehouse.size has __enum in the mock fixture
+        size_meta = entries.get("snowflake.warehouse.size")
+        assert size_meta is not None
+        node = exporter._build_attribute_node("snowflake.warehouse.size", size_meta)
+        assert isinstance(node["type"], dict), "enum field must produce dict type not string"
+        assert "allow_custom_values" in node["type"]
+        assert "members" in node["type"]
+
+
+##endregion
+
+
+##region Unit tests — export pipeline with mock fixture
+
+
+class TestExportPipelineMock:
+    """Test full export pipeline using a mock file (no real repo required)."""
+
+    def test_resource_fields_file_produced(self, tmp_path):
+        """Export produces resource_fields/snowflake_resource.yaml."""
+        out_dir = tmp_path / "out"
+        exporter = SemanticExporter(repo_root=REPO_ROOT, output_dir=out_dir)
+        # Use a minimal fixture pointing to just the mock file
+        _, entries = exporter._parse_file("mock_plugin", MOCK_FIXTURE)
+        resource_entries = {k: v for k, v in entries.items() if v["classification"] == "resource"}
+        sf_doc, _dsoa_doc = exporter._build_resource_fields_yaml(resource_entries)
+        assert "groups" in sf_doc
+        # snowflake.warehouse.name (dimension) and snowflake.warehouse.size (attr+resource override)
+        # should both appear in snowflake.warehouse group
+        all_attrs = [a for g in sf_doc["groups"] for a in g.get("attributes", [])]
+        keys = [a.get("id") or a.get("ref") for a in all_attrs]
+        assert "snowflake.warehouse.name" in keys or "snowflake.warehouse.size" in keys
+
+    def test_signal_fields_file_produced(self, tmp_path):
+        """Export produces signal_fields with signal-classified fields."""
+        out_dir = tmp_path / "out"
+        exporter = SemanticExporter(repo_root=REPO_ROOT, output_dir=out_dir)
+        _, entries = exporter._parse_file("mock_plugin", MOCK_FIXTURE)
+        signal_entries = {k: v for k, v in entries.items() if v["classification"] == "signal"}
+        event_ts = {k: v for k, v in entries.items() if v["classification"] == "event_timestamp"}
+        sig_doc = exporter._build_signal_fields_yaml(signal_entries, event_ts)
+        assert "groups" in sig_doc
+        # snowflake.warehouse.event.name (dimension with __field_type: signal) must be here
+        all_attrs = [a for g in sig_doc["groups"] for a in g.get("attributes", [])]
+        keys = [a.get("id") or a.get("ref") for a in all_attrs]
+        assert "snowflake.warehouse.event.name" in keys, "signal-override dimension must be in signal_fields"
+
+    def test_interfaces_yaml_has_three_interfaces(self, tmp_path):
+        """interfaces_dsoa.yaml has i.dsoa_resource, i.dsoa_warehouse, i.dsoa_database."""
+        out_dir = tmp_path / "out"
+        exporter = SemanticExporter(repo_root=REPO_ROOT, output_dir=out_dir)
+        doc = exporter._build_interfaces_yaml()
+        assert "groups" in doc
+        group_ids = {g["id"] for g in doc["groups"]}
+        assert "i.dsoa_resource" in group_ids
+        assert "i.dsoa_warehouse" in group_ids
+        assert "i.dsoa_database" in group_ids
+
+    def test_resource_interface_covers_resource_attribute_keys(self, tmp_path):
+        """i.dsoa_resource attrs are a superset of RESOURCE_ATTRIBUTE_KEYS."""
+        out_dir = tmp_path / "out"
+        exporter = SemanticExporter(repo_root=REPO_ROOT, output_dir=out_dir)
+        doc = exporter._build_interfaces_yaml()
+        i_resource = next(g for g in doc["groups"] if g["id"] == "i.dsoa_resource")
+        interface_keys = {a["ref"] for a in i_resource["attributes"] if "ref" in a}
+        assert RESOURCE_ATTRIBUTE_KEYS.issubset(interface_keys)
+
+    def test_dsoa_resource_file_has_dsoa_fields(self, tmp_path):
+        """resource_fields/dsoa.yaml only has dsoa./deployment. keys that are resource-classified.
+
+        In the mock fixture, ``deployment.environment`` is an attribute with
+        ``__semdict: deprecated-alias`` and no ``__field_type`` override, so it
+        is ``signal``-classified.  The dsoa.yaml resource file will therefore be
+        empty (or contain only fields explicitly overridden as resource).
+        This test verifies the builder produces the correct structure regardless.
+        """
+        out_dir = tmp_path / "out"
+        exporter = SemanticExporter(repo_root=REPO_ROOT, output_dir=out_dir)
+        _, entries = exporter._parse_file("mock_plugin", MOCK_FIXTURE)
+        resource_entries = {k: v for k, v in entries.items() if v["classification"] == "resource"}
+        _sf_doc, dsoa_doc = exporter._build_resource_fields_yaml(resource_entries)
+        # The dsoa group always exists in the doc structure, even if attrs list is empty
+        assert "groups" in dsoa_doc
+        assert dsoa_doc["groups"][0]["id"] == "dsoa"
+
+    def test_metric_model_has_model_envelope(self, tmp_path):
+        """Metric model file has model: envelope (not groups: at top level)."""
+        out_dir = tmp_path / "out"
+        exporter = SemanticExporter(repo_root=REPO_ROOT, output_dir=out_dir)
+        _, entries = exporter._parse_file("mock_plugin", MOCK_FIXTURE)
+        metric_entries = {k: v for k, v in entries.items() if v["classification"] == "metric"}
+        all_entries = entries
+        doc = exporter._build_metric_model_yaml("mock_plugin", metric_entries, all_entries)
+        assert "model" in doc, "metric model must use model: envelope"
+        assert "groups:" not in str(list(doc.keys())), "top level must not be groups:"
+        assert "interfaces" in doc["model"]
+
+    def test_metric_model_always_has_dsoa_resource_interface(self, tmp_path):
+        """Metric model always includes i.dsoa_resource in interfaces."""
+        out_dir = tmp_path / "out"
+        exporter = SemanticExporter(repo_root=REPO_ROOT, output_dir=out_dir)
+        _, entries = exporter._parse_file("mock_plugin", MOCK_FIXTURE)
+        metric_entries = {k: v for k, v in entries.items() if v["classification"] == "metric"}
+        doc = exporter._build_metric_model_yaml("mock_plugin", metric_entries, entries)
+        assert "i.dsoa_resource" in doc["model"]["interfaces"]
+
+    def test_event_model_produced(self, tmp_path):
+        """Event model file is produced for plugins with event_timestamps."""
+        out_dir = tmp_path / "out"
+        exporter = SemanticExporter(repo_root=REPO_ROOT, output_dir=out_dir)
+        _, entries = exporter._parse_file("mock_plugin", MOCK_FIXTURE)
+        event_ts = {k: v for k, v in entries.items() if v["classification"] == "event_timestamp"}
+        doc = exporter._build_event_model_yaml("mock_plugin", event_ts)
+        assert "model" in doc
+        assert doc["model"]["id"] == "dsoa.events.mock_plugin"
+        assert doc["model"]["model_group_id"] == "dsoa.events"
+        assert doc["model"]["data_object"] == "bizevents"
+
+    def test_event_model_excludes_trigger_key(self, tmp_path):
+        """Event model attrs include snowflake.warehouse.created_on but NOT snowflake.event.trigger."""
+        out_dir = tmp_path / "out"
+        exporter = SemanticExporter(repo_root=REPO_ROOT, output_dir=out_dir)
+        _, entries = exporter._parse_file("mock_plugin", MOCK_FIXTURE)
+        event_ts = {k: v for k, v in entries.items() if v["classification"] == "event_timestamp"}
+        doc = exporter._build_event_model_yaml("mock_plugin", event_ts)
+        group_attrs = doc["model"]["groups"][0]["attributes"]
+        attr_refs = [a.get("ref") for a in group_attrs]
+        assert "snowflake.event.trigger" not in attr_refs, "trigger key must be excluded from event model attrs"
+        assert "snowflake.warehouse.created_on" in attr_refs or "snowflake.warehouse.updated_on" in attr_refs
+
+    def test_interface_covered_dims_excluded_from_metric_attrs(self, tmp_path):
+        """Metric attributes list excludes dims covered by declared interfaces."""
+        out_dir = tmp_path / "out"
+        exporter = SemanticExporter(repo_root=REPO_ROOT, output_dir=out_dir)
+        # Create a fixture that has i.dsoa_warehouse-covered dims + other dims
+        fixture = tmp_path / "test.yml"
+        fixture.write_text(
+            "dimensions:\n"
+            "  snowflake.warehouse.name:\n"
+            "    __context_names: [ctx]\n"
+            "    __description: Warehouse name.\n"
+            "    __example: COMPUTE_WH\n"
+            "  snowflake.warehouse.id:\n"
+            "    __context_names: [ctx]\n"
+            "    __description: Warehouse ID.\n"
+            "    __example: wh123\n"
+            "  snowflake.custom.dim:\n"
+            "    __context_names: [ctx]\n"
+            "    __description: Custom dim.\n"
+            "    __example: val\n"
+            "metrics:\n"
+            "  test.metric:\n"
+            "    __context_names: [ctx]\n"
+            "    __description: A test metric.\n"
+            "    __example: '1'\n"
+            "    unit: count\n"
+        )
+        _, entries = exporter._parse_file("test_plugin", fixture)
+        metric_entries = {k: v for k, v in entries.items() if v["classification"] == "metric"}
+        doc = exporter._build_metric_model_yaml("test_plugin", metric_entries, entries)
+        metric_node = doc["model"]["groups"][0]
+        attr_refs = [a["ref"] for a in metric_node.get("attributes", [])]
+        # Interface-covered dims must NOT appear in per-metric attrs
+        for iface_key in INTERFACE_WAREHOUSE_KEYS:
+            assert iface_key not in attr_refs, f"{iface_key} must not appear (covered by i.dsoa_warehouse)"
+        # Custom dim must appear
+        assert "snowflake.custom.dim" in attr_refs
 
 
 ##endregion
@@ -435,8 +748,7 @@ class TestSemanticExporterIntegration:
     """Integration tests: run full pipeline against real codebase.
 
     These tests require the repository to have a build/ directory
-    (created by running ./scripts/dev/build.sh) and are only executed
-    when explicitly requested via -m integration.
+    and are only executed when explicitly requested via -m integration.
     """
 
     @pytest.fixture(scope="class")
@@ -448,23 +760,109 @@ class TestSemanticExporterIntegration:
         return out_dir, summary
 
     def test_files_generated(self, export_output):
-        """At least 17 YAML files are generated (1 global + ≥16 plugin metric files)."""
+        """At least 20 YAML files are generated."""
         out_dir, summary = export_output
         yaml_files = list(out_dir.rglob("*.yaml"))
-        assert len(yaml_files) >= 17, f"Expected ≥17 files, got {len(yaml_files)}"
-        assert summary["files"] >= 17
+        assert len(yaml_files) >= 20, f"Expected ≥20 files, got {len(yaml_files)}"
+        assert summary["files"] >= 20
 
-    def test_global_file_exists(self, export_output):
-        """snowflake_global.yaml is created."""
+    def test_snowflake_resource_file_exists(self, export_output):
+        """fields/resource_fields/snowflake_resource.yaml is created."""
         out_dir, _ = export_output
-        global_file = out_dir / "fields" / "snowflake" / "snowflake_global.yaml"
-        assert global_file.exists(), "snowflake_global.yaml not found"
+        rf = out_dir / "fields" / "resource_fields" / "snowflake_resource.yaml"
+        assert rf.exists(), "snowflake_resource.yaml not found"
 
-    def test_metrics_dir_exists(self, export_output):
-        """metrics/ directory is created under model/smartscape/db/snowflake/."""
+    def test_dsoa_resource_file_exists(self, export_output):
+        """fields/resource_fields/dsoa.yaml is created."""
         out_dir, _ = export_output
-        metrics_dir = out_dir / "model" / "smartscape" / "db" / "snowflake" / "metrics"
-        assert metrics_dir.exists(), "metrics/ directory not found"
+        df = out_dir / "fields" / "resource_fields" / "dsoa.yaml"
+        assert df.exists(), "dsoa.yaml not found"
+
+    def test_signal_fields_file_exists(self, export_output):
+        """fields/signal_fields/snowflake.yaml is created."""
+        out_dir, _ = export_output
+        sf = out_dir / "fields" / "signal_fields" / "snowflake.yaml"
+        assert sf.exists(), "snowflake.yaml signal_fields not found"
+
+    def test_interfaces_file_exists(self, export_output):
+        """metrics/interfaces_dsoa.yaml is created."""
+        out_dir, _ = export_output
+        fi = out_dir / "metrics" / "interfaces_dsoa.yaml"
+        assert fi.exists(), "interfaces_dsoa.yaml not found"
+
+    def test_metrics_model_group_file_exists(self, export_output):
+        """metrics/dsoa_metrics_model_group.yaml is created."""
+        out_dir, _ = export_output
+        mg = out_dir / "metrics" / "dsoa_metrics_model_group.yaml"
+        assert mg.exists(), "dsoa_metrics_model_group.yaml not found"
+
+    def test_warehouse_usage_metrics_file_exists(self, export_output):
+        """metrics/dsoa_metrics_warehouse_usage.yaml has model: envelope with interfaces."""
+        out_dir, _ = export_output
+        wf = out_dir / "metrics" / "dsoa_metrics_warehouse_usage.yaml"
+        assert wf.exists(), "dsoa_metrics_warehouse_usage.yaml not found"
+        with open(wf, "r", encoding="utf-8") as fh:
+            doc = yaml.safe_load(fh)
+        assert "model" in doc, "metric file must use model: envelope"
+        assert "interfaces" in doc["model"]
+        assert "i.dsoa_resource" in doc["model"]["interfaces"]
+
+    def test_users_event_model_exists(self, export_output):
+        """model/dsoa/dsoa.events.users.yaml is created."""
+        out_dir, _ = export_output
+        ef = out_dir / "model" / "dsoa" / "dsoa.events.users.yaml"
+        assert ef.exists(), "dsoa.events.users.yaml not found"
+
+    def test_events_model_group_exists(self, export_output):
+        """model/dsoa/model_group_dsoa_events.yaml is created."""
+        out_dir, _ = export_output
+        mg = out_dir / "model" / "dsoa" / "model_group_dsoa_events.yaml"
+        assert mg.exists(), "model_group_dsoa_events.yaml not found"
+
+    def test_snowflake_resource_has_multiple_groups(self, export_output):
+        """snowflake_resource.yaml contains multiple namespace groups."""
+        out_dir, _ = export_output
+        rf = out_dir / "fields" / "resource_fields" / "snowflake_resource.yaml"
+        with open(rf, "r", encoding="utf-8") as fh:
+            doc = yaml.safe_load(fh)
+        assert "groups" in doc
+        assert len(doc["groups"]) > 1, "snowflake_resource.yaml should have multiple namespace groups"
+
+    def test_interfaces_has_three_groups(self, export_output):
+        """interfaces_dsoa.yaml contains exactly 3 interface groups."""
+        out_dir, _ = export_output
+        fi = out_dir / "metrics" / "interfaces_dsoa.yaml"
+        with open(fi, "r", encoding="utf-8") as fh:
+            doc = yaml.safe_load(fh)
+        group_ids = {g["id"] for g in doc["groups"]}
+        assert "i.dsoa_resource" in group_ids
+        assert "i.dsoa_warehouse" in group_ids
+        assert "i.dsoa_database" in group_ids
+
+    def test_metric_attrs_do_not_contain_attribute_section_fields(self, export_output):
+        """Metric attributes: list must not include attributes-section fields.
+
+        Only dimensions (resource-classified) are valid metric dimensions.
+        Attributes-section fields (signal-classified) must NOT appear in
+        a metric's attributes: list.
+        """
+        out_dir, _ = export_output
+        # Load resource monitors or warehouse_usage — both have attributes
+        for fname in (out_dir / "metrics").glob("dsoa_metrics_*.yaml"):
+            with open(fname, "r", encoding="utf-8") as fh:
+                doc = yaml.safe_load(fh)
+            if "model" not in doc:
+                continue
+            for group in doc["model"].get("groups", []):
+                if group.get("type") != "metric":
+                    continue
+                for attr in group.get("attributes", []):
+                    # Key assertion: attribute section fields that are signal-classified
+                    # must never appear here. We spot-check known signal fields.
+                    ref = attr.get("ref", "")
+                    assert ref not in {"session.id", "dsoa.debug.span.events.added"}, (
+                        f"Signal-only field {ref!r} must not appear in metric dimensions"
+                    )
 
     def test_nonzero_field_count(self, export_output):
         """Total field count is non-zero."""
@@ -472,11 +870,11 @@ class TestSemanticExporterIntegration:
         total = summary["ref"] + summary["new"] + summary["deprecated_alias"] + summary["otel_only"]
         assert total > 0, "No fields exported"
 
-    def test_global_yaml_parseable(self, export_output):
-        """snowflake_global.yaml is valid YAML with groups key."""
+    def test_interfaces_file_parseable(self, export_output):
+        """interfaces_dsoa.yaml is valid YAML."""
         out_dir, _ = export_output
-        global_file = out_dir / "fields" / "snowflake" / "snowflake_global.yaml"
-        with open(global_file, "r", encoding="utf-8") as fh:
+        fi = out_dir / "metrics" / "interfaces_dsoa.yaml"
+        with open(fi, "r", encoding="utf-8") as fh:
             doc = yaml.safe_load(fh)
         assert "groups" in doc
         assert len(doc["groups"]) > 0

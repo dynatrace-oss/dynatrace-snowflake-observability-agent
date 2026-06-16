@@ -31,11 +31,13 @@ attributes:
     __example: SYSADMIN
     __description: The role name associated with the event.
   snowflake.warehouse.cluster.number:
+    __field_type: resource
     __context_names:
       - warehouse_usage
     __example: "1"
     __description: The number of the cluster within the warehouse.
   snowflake.warehouse.clusters.count:
+    __field_type: resource
     __context_names:
       - warehouse_usage
     __example: "2"
@@ -45,7 +47,23 @@ attributes:
       - warehouse_usage
     __example: USER_REQUEST
     __description: The reason for the event.
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: user_request
+          value: USER_REQUEST
+          brief: Event was triggered by a user request.
+        - id: auto_suspend
+          value: AUTO_SUSPEND
+          brief: Event was triggered by auto-suspend policy.
+        - id: auto_resume
+          value: AUTO_RESUME
+          brief: Event was triggered by auto-resume policy.
+        - id: scheduler
+          value: SCHEDULER
+          brief: Event was triggered by the scheduler.
   snowflake.warehouse.id:
+    __field_type: resource
     __context_names:
       - warehouse_usage
       - warehouse_usage_load
@@ -53,21 +71,84 @@ attributes:
     __example: wh123
     __description: The unique identifier for the warehouse.
   snowflake.warehouse.size:
+    __field_type: resource
     __context_names:
       - warehouse_usage
     __example: X-SMALL
     __description: The size of the warehouse.
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: x_small
+          value: X-SMALL
+          brief: X-Small warehouse.
+        - id: small
+          value: SMALL
+          brief: Small warehouse.
+        - id: medium
+          value: MEDIUM
+          brief: Medium warehouse.
+        - id: large
+          value: LARGE
+          brief: Large warehouse.
+        - id: x_large
+          value: X-LARGE
+          brief: X-Large warehouse.
+        - id: x2_large
+          value: 2X-LARGE
+          brief: 2X-Large warehouse.
+        - id: x3_large
+          value: 3X-LARGE
+          brief: 3X-Large warehouse.
+        - id: x4_large
+          value: 4X-LARGE
+          brief: 4X-Large warehouse.
+        - id: x5_large
+          value: 5X-LARGE
+          brief: 5X-Large warehouse.
+        - id: x6_large
+          value: 6X-LARGE
+          brief: 6X-Large warehouse.
 dimensions:
   snowflake.warehouse.event.name:
+    __field_type: signal
     __context_names:
       - warehouse_usage
     __example: WAREHOUSE_START
     __description: The name of the event.
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: warehouse_start
+          value: WAREHOUSE_START
+          brief: Warehouse was started.
+        - id: warehouse_suspend
+          value: WAREHOUSE_SUSPEND
+          brief: Warehouse was suspended.
+        - id: warehouse_resume
+          value: WAREHOUSE_RESUME
+          brief: Warehouse was resumed.
+        - id: resize_warehouse
+          value: RESIZE_WAREHOUSE
+          brief: Warehouse was resized.
   snowflake.warehouse.event.state:
+    __field_type: signal
     __context_names:
       - warehouse_usage
     __example: STARTED
     __description: The state of the event, such as STARTED or COMPLETED.
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: started
+          value: STARTED
+          brief: Event has started.
+        - id: completed
+          value: COMPLETED
+          brief: Event has completed.
+        - id: failed
+          value: FAILED
+          brief: Event has failed.
   snowflake.warehouse.name:
     __context_names:
       - warehouse_usage

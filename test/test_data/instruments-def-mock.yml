@@ -1,5 +1,5 @@
 # Mock instruments-def.yml for semantic export unit tests
-# Contains representative examples of all classification types
+# Contains representative examples of all classification types and new annotations
 
 attributes:
   db.system:
@@ -47,17 +47,53 @@ attributes:
     __description: "A long integer test field."
     __example: "42"
 
+  # Attribute with __field_type: resource — should go to resource_fields
+  snowflake.warehouse.size:
+    __semdict: new
+    __field_type: resource
+    __description: "The size of the warehouse."
+    __example: "X-SMALL"
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: x_small
+          value: X-SMALL
+          brief: X-Small warehouse.
+        - id: small
+          value: SMALL
+          brief: Small warehouse.
+
 dimensions:
   snowflake.warehouse.name:
     __semdict: new
     __description: "The name of the Snowflake virtual warehouse."
     __example: "COMPUTE_WH"
 
+  # Dimension with __field_type: signal — should go to signal_fields
+  snowflake.warehouse.event.name:
+    __semdict: new
+    __field_type: signal
+    __description: "The name of the warehouse event."
+    __example: "WAREHOUSE_START"
+    __context_names:
+      - mock_context
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: warehouse_start
+          value: WAREHOUSE_START
+          brief: Warehouse was started.
+        - id: warehouse_suspend
+          value: WAREHOUSE_SUSPEND
+          brief: Warehouse was suspended.
+
 metrics:
   snowflake.warehouse.credits.used:
     __semdict: new
     __type: gauge
     __unit: "{credits}"
+    __context_names:
+      - mock_context
     __description: "Total credits consumed by the warehouse during the reporting interval."
     __example: "42.5"
 
@@ -81,3 +117,18 @@ metrics:
     unit: ms
     __description: "Distribution of query latencies."
     __example: "250"
+
+event_timestamps:
+  snowflake.event.trigger:
+    __description: "Trigger key — identifies which timestamp field caused the event."
+    __example: "snowflake.warehouse.created_on"
+  snowflake.warehouse.created_on:
+    __description: "Timestamp when the warehouse was created."
+    __example: "2024-09-01 08:00:00.000"
+    __context_names:
+      - mock_context
+  snowflake.warehouse.updated_on:
+    __description: "Timestamp when the warehouse was last updated."
+    __example: "2024-11-10 14:30:00.000"
+    __context_names:
+      - mock_context

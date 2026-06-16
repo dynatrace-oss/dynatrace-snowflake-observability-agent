@@ -107,6 +107,24 @@ attributes:
       `plugins.query_history.track_ddl_changes=true` and Snowflake recorded a structured
       DDL payload for the query. Does not apply to warehouse or resource-monitor DDL —
       use `db.operation.name` for warehouse change detection.
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: table
+          value: Table
+          brief: Snowflake table.
+        - id: view
+          value: View
+          brief: Snowflake view.
+        - id: schema
+          value: Schema
+          brief: Snowflake schema.
+        - id: database
+          value: Database
+          brief: Snowflake database.
+        - id: procedure
+          value: Procedure
+          brief: Stored procedure.
   snowflake.object.id:
     __example: 1234567890
     __description: |
@@ -128,6 +146,24 @@ attributes:
       when `plugins.query_history.track_ddl_changes=true` — see `snowflake.object.type`.
       Does not apply to warehouse or resource-monitor DDL — use `db.operation.name` for
       warehouse change detection.
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: create
+          value: CREATE
+          brief: CREATE DDL operation.
+        - id: alter
+          value: ALTER
+          brief: ALTER DDL operation.
+        - id: drop
+          value: DROP
+          brief: DROP DDL operation.
+        - id: undrop
+          value: UNDROP
+          brief: UNDROP (restore) DDL operation.
+        - id: replace
+          value: REPLACE
+          brief: REPLACE DDL operation.
   snowflake.object.ddl.properties:
     __example: '{"WAREHOUSE_SIZE": {"value": "LARGE"}, "AUTO_SUSPEND": {"value": 600}}'
     __description: |
@@ -273,9 +309,51 @@ attributes:
   snowflake.warehouse.size:
     __example: X-SMALL
     __description: The size of the warehouse used.
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: x_small
+          value: X-SMALL
+          brief: X-Small warehouse.
+        - id: small
+          value: SMALL
+          brief: Small warehouse.
+        - id: medium
+          value: MEDIUM
+          brief: Medium warehouse.
+        - id: large
+          value: LARGE
+          brief: Large warehouse.
+        - id: x_large
+          value: X-LARGE
+          brief: X-Large warehouse.
+        - id: x2_large
+          value: 2X-LARGE
+          brief: 2X-Large warehouse.
+        - id: x3_large
+          value: 3X-LARGE
+          brief: 3X-Large warehouse.
+        - id: x4_large
+          value: 4X-LARGE
+          brief: 4X-Large warehouse.
+        - id: x5_large
+          value: 5X-LARGE
+          brief: 5X-Large warehouse.
+        - id: x6_large
+          value: 6X-LARGE
+          brief: 6X-Large warehouse.
   snowflake.warehouse.type:
     __example: STANDARD
     __description: The type of warehouse used.
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: standard
+          value: STANDARD
+          brief: Standard multi-cluster warehouse.
+        - id: snowpark_optimized
+          value: SNOWPARK_OPTIMIZED
+          brief: Warehouse optimized for Snowpark workloads.
 dimensions:
   snowflake.query.hash:
     __example: abc123
@@ -298,6 +376,51 @@ dimensions:
   db.operation.name:
     __example: SELECT
     __description: The type of operation performed by the query.
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: select
+          value: SELECT
+          brief: SELECT query.
+        - id: insert
+          value: INSERT
+          brief: INSERT statement.
+        - id: update
+          value: UPDATE
+          brief: UPDATE statement.
+        - id: delete
+          value: DELETE
+          brief: DELETE statement.
+        - id: merge
+          value: MERGE
+          brief: MERGE statement.
+        - id: create
+          value: CREATE
+          brief: CREATE DDL statement.
+        - id: alter
+          value: ALTER
+          brief: ALTER DDL statement.
+        - id: drop
+          value: DROP
+          brief: DROP DDL statement.
+        - id: grant
+          value: GRANT
+          brief: GRANT statement.
+        - id: revoke
+          value: REVOKE
+          brief: REVOKE statement.
+        - id: call
+          value: CALL
+          brief: CALL stored procedure.
+        - id: copy
+          value: COPY
+          brief: COPY INTO statement.
+        - id: put
+          value: PUT
+          brief: PUT file command.
+        - id: get
+          value: GET
+          brief: GET file command.
   db.snowflake.dbs:
     __example: PROD_DB
     __description: The databases involved in the query.
@@ -307,6 +430,18 @@ dimensions:
   snowflake.query.execution_status:
     __example: SUCCESS
     __description: The execution status of the query.
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: success
+          value: SUCCESS
+          brief: Query executed successfully.
+        - id: fail
+          value: FAIL
+          brief: Query execution failed.
+        - id: incident_queue
+          value: INCIDENT_QUEUE
+          brief: Query was queued due to an incident.
   snowflake.role.name:
     __example: SYSADMIN
     __description: The role used to execute the query.
@@ -320,6 +455,21 @@ dimensions:
       SERVICE (programmatic service user), LEGACY_SERVICE (legacy service account),
       SNOWFLAKE_SERVICE (Snowpark Container Services). Useful for splitting workloads
       by human vs. automated traffic.
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: person
+          value: PERSON
+          brief: Human interactive user.
+        - id: service
+          value: SERVICE
+          brief: Programmatic service user.
+        - id: legacy_service
+          value: LEGACY_SERVICE
+          brief: Legacy service account.
+        - id: snowflake_service
+          value: SNOWFLAKE_SERVICE
+          brief: Snowpark Container Services user.
 metrics:
   snowflake.cost_attribution.query_count:
     __example: "42"

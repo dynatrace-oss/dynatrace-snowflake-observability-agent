@@ -157,6 +157,21 @@ attributes:
     __context_names:
       - users
     __description: Specifies the type of user
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: person
+          value: PERSON
+          brief: Human interactive user.
+        - id: service
+          value: SERVICE
+          brief: Programmatic service user.
+        - id: legacy_service
+          value: LEGACY_SERVICE
+          brief: Legacy service account.
+        - id: snowflake_service
+          value: SNOWFLAKE_SERVICE
+          brief: Snowpark Container Services user.
   snowflake.user.privilege:
     __example: "CREATE SERVICE:SCHEMA"
     __context_names:

@@ -20,6 +20,19 @@ All notable changes to this project will be documented in this file.
 - **CI semantic validation** (`validate_semantics.sh`): fails if any `instruments-def.yml` entry
   is missing `__description` or `__example`; warns if metrics lack `__unit`.
 
+### Changed
+
+- **Semantic Dictionary export restructured** to match SD source conventions: fields split into
+  `resource_fields/` (dimensions + resource-override attributes) and `signal_fields/` (attributes
+  + signal-override dimensions) grouped by namespace prefix; metrics use `model:` envelope with
+  `interfaces:` declaration (`i.dsoa_resource`, `i.dsoa_warehouse`, `i.dsoa_database`); event
+  lifecycle models emitted under `model/dsoa/`; enum fields emit `type: {allow_custom_values,
+  members}` instead of `type: string`.
+- Added `__field_type` annotation support to `instruments-def.yml` to override default section
+  classification (e.g. `signal` on a dimension that describes event context, not the resource).
+- Added `__enum` definitions for ~16 categorical fields including warehouse size/type, query
+  execution status, user type, resource monitor level/frequency, DDL operations, and others.
+
 ## [0.9.5] - 2026-06-08
 
 ### Added

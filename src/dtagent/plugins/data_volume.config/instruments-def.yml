@@ -31,6 +31,24 @@ dimensions:
       - BASE TABLE,
       - TEMPORARY TABLE,
       - EXTERNAL TABLE.
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: base_table
+          value: BASE TABLE
+          brief: Standard persistent table.
+        - id: temporary_table
+          value: TEMPORARY TABLE
+          brief: Temporary table (session-scoped).
+        - id: external_table
+          value: EXTERNAL TABLE
+          brief: External table referencing data outside Snowflake.
+        - id: view
+          value: VIEW
+          brief: Standard view.
+        - id: materialized_view
+          value: MATERIALIZED VIEW
+          brief: Materialized view.
 
 #  * Metric definitions
 #  * KEY                    - will be matched against METRICS object with measurements prepared for sending

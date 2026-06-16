@@ -1,8 +1,17 @@
 """Export DSOA instruments-def.yml files as Semantic Dictionary-compliant YAML.
 
-Reads all instruments-def.yml files from the DSOA plugin configuration directories,
-classifies each field by its semantic-dictionary status (ref/new/deprecated-alias/otel-only),
-and emits schema-valid YAML documents under build/_semdict/source/.
+Reads all instruments-def.yml files from plugin configuration directories,
+classifies each field by section + optional ``__field_type`` override, and emits
+schema-valid YAML documents under ``build/_semdict/source/``.
+
+Classification::
+
+    dimensions + (no override) → resource_fields (type: resource)
+    dimensions + __field_type: signal → signal_fields (type: span)
+    attributes + (no override) → signal_fields (type: attribute_group)
+    attributes + __field_type: resource → resource_fields (type: resource)
+    metrics → metrics/
+    event_timestamps → model/dsoa/ + signal_fields (timestamp fields)
 """
 
 #
@@ -33,118 +42,119 @@ import argparse
 import logging
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 import yaml
 
 ##region Constants
 
-#: Fields that already exist in the Dynatrace Semantic Dictionary.
-KNOWN_REFS = {
-    "db.system",
-    "host.name",
-    "service.name",
-    "telemetry.exporter.name",
-    "telemetry.exporter.version",
-    "db.query.text",
-    "event.id",
-    "authentication.type",
+#: Fields that already exist in the Dynatrace Semantic Dictionary (emit as ref: only).
+KNOWN_REFS = {"db.system", "host.name", "service.name", "telemetry.exporter.name", "telemetry.exporter.version", "db.query.text", "event.id", "authentication.type"}
+
+#: Keys present on every DSOA telemetry record — synced with config.py RESOURCE_ATTRIBUTES.
+RESOURCE_ATTRIBUTE_KEYS: Set[str] = {
+    "db.system", "service.name", "deployment.environment", "host.name",
+    "telemetry.exporter.version", "telemetry.exporter.name",
+    "dsoa.run.id", "dsoa.run.context", "dsoa.run.plugin", "deployment.environment.tag",
 }
 
-#: Fields that belong in the global fields file (not plugin-specific).
-#: All non-metric attributes and dimensions are also promoted to global
-#: under the first-class citizen principle — models ref them rather than
-#: defining them locally.
-GLOBAL_FIELD_KEYS = {
-    "dsoa.run.id",
-    "dsoa.run.context",
-    "dsoa.run.plugin",
-    "deployment.environment",
-    "deployment.environment.tag",
-    "observed_timestamp",
-    "snowflake.event.type",
-    "dsoa.agent.memory.peak_rss",
-}
+#: Dimension keys covered by the i.dsoa_warehouse interface.
+INTERFACE_WAREHOUSE_KEYS: Set[str] = {"snowflake.warehouse.name", "snowflake.warehouse.id"}
 
-#: Known acronyms / abbreviations that must stay ALL-CAPS in display_name.
-#: Order matters: longer tokens checked first to avoid partial replacement.
-DISPLAY_NAME_ACRONYMS = (
-    "DSOA",
-    "OTel",
-    "DDL",
-    "DML",
-    "RSS",
-    "URL",
-    "API",
-    "ID",
-    "DB",
-    "QA",
-    "SQL",
-)
+#: Dimension keys covered by the i.dsoa_database interface.
+INTERFACE_DATABASE_KEYS: Set[str] = {"db.namespace", "snowflake.schema.name"}
 
-#: Instrument type mappings from instruments-def __type to semconv instrument.
-METRIC_TYPE_MAP: Dict[str, str] = {
-    "gauge": "gauge",
-    "count": "counter",
-    "counter": "counter",
-    "updowncounter": "updowncounter",
-    "histogram": "histogram",
-}
+#: Valid __field_type override values.
+VALID_FIELD_TYPES = {"resource", "signal"}
 
-#: Attribute type mappings from instruments-def __type to semconv type.
-ATTR_TYPE_MAP: Dict[str, str] = {
-    "long": "long",
-    "int": "long",
-    "double": "double",
-    "float": "double",
-    "boolean": "boolean",
-    "string": "string",
-}
+#: Acronyms that must stay ALL-CAPS in display_name (longer tokens first).
+DISPLAY_NAME_ACRONYMS = ("DSOA", "OTel", "DDL", "DML", "RSS", "URL", "API", "ID", "DB", "QA", "SQL")
+
+#: instruments-def __type → semconv instrument.
+METRIC_TYPE_MAP: Dict[str, str] = {"gauge": "gauge", "count": "counter", "counter": "counter", "updowncounter": "updowncounter", "histogram": "histogram"}
+
+#: instruments-def __type → semconv attribute type.
+ATTR_TYPE_MAP: Dict[str, str] = {"long": "long", "int": "long", "double": "double", "float": "double", "boolean": "boolean", "string": "string"}
 
 #: Valid semdict classification values.
 VALID_SEMDICT_FLAGS = {"ref", "new", "deprecated-alias", "otel-only"}
 
+# (prefix, group_id, group_type) for signal fields — order matters (longest prefix first).
+_SIG_NS: List[Tuple[str, str, str]] = [
+    ("snowflake.warehouse", "snowflake.warehouse", "span"),
+    ("snowflake.query", "snowflake.query", "span"),
+    ("snowflake.time", "snowflake.time", "span"),
+    ("snowflake.object", "snowflake.object", "span"),
+    ("snowflake.user", "snowflake.user", "attribute_group"),
+    ("snowflake.session", "snowflake.session", "attribute_group"),
+    ("snowflake.error", "snowflake.error", "attribute_group"),
+    ("snowflake.data", "snowflake.data", "attribute_group"),
+    ("snowflake.table", "snowflake.table", "attribute_group"),
+    ("snowflake.pipe", "snowflake.pipe", "attribute_group"),
+    ("snowflake.task", "snowflake.task", "attribute_group"),
+    ("snowflake.share", "snowflake.share", "attribute_group"),
+    ("snowflake.role", "snowflake.role", "attribute_group"),
+    ("snowflake.database", "snowflake.database", "attribute_group"),
+    ("snowflake.schema", "snowflake.schema", "attribute_group"),
+    ("snowflake.credits", "snowflake.credits", "attribute_group"),
+    ("snowflake.resource_monitor", "snowflake.resource_monitor", "attribute_group"),
+    ("snowflake.budget", "snowflake.budget", "attribute_group"),
+    ("snowflake.event", "snowflake.event", "attribute_group"),
+    ("snowflake.acceleration", "snowflake.acceleration", "attribute_group"),
+    ("snowflake.load", "snowflake.load", "attribute_group"),
+    ("snowflake.rows", "snowflake.rows", "attribute_group"),
+    ("snowflake.partitions", "snowflake.partitions", "attribute_group"),
+    ("snowflake.warehouses", "snowflake.warehouses", "attribute_group"),
+    ("snowflake.cost", "snowflake.cost", "attribute_group"),
+    ("snowflake.external", "snowflake.external", "attribute_group"),
+    ("snowflake.release", "snowflake.release", "attribute_group"),
+    ("snowflake.cluster", "snowflake.cluster", "attribute_group"),
+    ("snowflake.service", "snowflake.service", "attribute_group"),
+    ("snowflake.secondary", "snowflake.secondary", "attribute_group"),
+    ("client", "client", "attribute_group"),
+    ("db", "db", "span"),
+    ("authentication", "authentication", "span"),
+    ("session", "session", "attribute_group"),
+    ("plugins", "plugins", "attribute_group"),
+]
+
+# (prefix, group_id, group_type) for resource fields.
+_RES_NS: List[Tuple[str, str, str]] = [
+    ("snowflake.warehouse", "snowflake.warehouse", "resource"),
+    ("snowflake.resource_monitor", "snowflake.resource_monitor", "resource"),
+    ("snowflake.budget", "snowflake.budget", "resource"),
+    ("snowflake.org", "snowflake.account", "resource"),
+    ("snowflake.account", "snowflake.account", "resource"),
+    ("db", "db", "resource"),
+]
+
 ##endregion
-
-
-##region Logging setup
 
 log = logging.getLogger(__name__)
-
-##endregion
 
 
 ##region Data structures
 
-
 class ExportError(Exception):
     """Raised when export encounters a fatal validation error."""
-
 
 ##endregion
 
 
-##region Classification helpers
-
+##region Pure helpers
 
 def _restore_acronyms(text: str) -> str:
-    """Restore known acronyms to their correct casing in a title-cased string.
-
-    After title-casing a display name, tokens like ``Db``, ``Id``, ``Dsoa``
-    must be restored to ``DB``, ``ID``, ``DSOA`` respectively.  Comparison is
-    case-insensitive so this handles any capitalisation produced by
-    ``str.title()``.
+    """Restore known acronyms to ALL-CAPS in a title-cased string.
 
     Args:
-        text: Title-cased string that may contain incorrectly-cased acronyms.
+        text: Title-cased string.
 
     Returns:
-        String with known acronyms restored to their canonical casing.
+        String with acronyms restored.
     """
     words = text.split(" ")
     restored = []
     for word in words:
-        # Strip trailing punctuation before comparing, re-attach after
         suffix = ""
         stem = word
         if word and not word[-1].isalnum():
@@ -156,28 +166,23 @@ def _restore_acronyms(text: str) -> str:
 
 
 def _make_display_name(key: str) -> str:
-    """Convert a dot-notation field key to a human-readable display name.
-
-    All segments of the key are included to produce an unambiguous name.
-    Known acronyms (DB, ID, DSOA, OTel, RSS, …) are preserved in their
-    canonical casing.
+    """Convert dot-notation key to human-readable display name.
 
     Args:
-        key: Dot-notation field key, e.g. ``dsoa.run.id``.
+        key: Dot-notation field key.
 
     Returns:
-        Human-readable display name string, e.g. ``DSOA Run ID``.
+        Human-readable display name with acronyms preserved.
     """
     parts = key.replace("_", " ").replace("-", " ").replace(".", " ").split()
-    title_parts = " ".join(p.title() for p in parts)
-    return _restore_acronyms(title_parts)
+    return _restore_acronyms(" ".join(p.title() for p in parts))
 
 
 def _map_attr_type(raw_type: Optional[str]) -> str:
-    """Map an instruments-def ``__type`` value to a semconv attribute type.
+    """Map instruments-def __type to semconv attribute type string.
 
     Args:
-        raw_type: Value of ``__type`` from instruments-def, or ``None``.
+        raw_type: Raw __type value or None.
 
     Returns:
         Semconv type string (default ``"string"``).
@@ -188,10 +193,10 @@ def _map_attr_type(raw_type: Optional[str]) -> str:
 
 
 def _map_metric_instrument(raw_type: Optional[str]) -> str:
-    """Map an instruments-def ``__type`` value to a semconv instrument.
+    """Map instruments-def __type to semconv instrument string.
 
     Args:
-        raw_type: Value of ``__type`` from instruments-def, or ``None``.
+        raw_type: Raw __type value or None.
 
     Returns:
         Semconv instrument string (default ``"gauge"``).
@@ -206,20 +211,55 @@ def _map_metric_instrument(raw_type: Optional[str]) -> str:
     return mapped
 
 
+def _classify_field(section: str, field_type_override: Optional[str]) -> str:
+    """Determine the SD bucket for a field.
+
+    Args:
+        section:             instruments-def section name.
+        field_type_override: Value of ``__field_type`` or None.
+
+    Returns:
+        One of ``"resource"``, ``"signal"``, ``"metric"``, ``"event_timestamp"``.
+    """
+    if section == "metrics":
+        return "metric"
+    if section == "event_timestamps":
+        return "event_timestamp"
+    if section == "dimensions":
+        return "signal" if field_type_override == "signal" else "resource"
+    return "resource" if field_type_override == "resource" else "signal"
+
+
+def _ns_group(key: str, ns_map: List[Tuple[str, str, str]], default_id: str, default_type: str) -> Tuple[str, str]:
+    """Map a field key to (group_id, group_type) via prefix matching.
+
+    Args:
+        key:          Dot-notation field key.
+        ns_map:       Ordered list of (prefix, group_id, group_type) tuples.
+        default_id:   Default group_id when no prefix matches.
+        default_type: Default group_type when no prefix matches.
+
+    Returns:
+        Tuple of (group_id, group_type).
+    """
+    for prefix, group_id, group_type in ns_map:
+        if key.startswith(prefix + ".") or key == prefix:
+            return group_id, group_type
+    return default_id, default_type
+
 ##endregion
 
 
-##region Entry validation
-
+##region Validation
 
 def _validate_entry(key: str, entry: Dict[str, Any], section: str, source_file: str) -> List[str]:
     """Validate a single instruments-def entry for required semdict metadata.
 
     Args:
-        key:         Field key, e.g. ``dsoa.run.id``.
-        entry:       Dict of entry metadata from instruments-def.
-        section:     Section name: ``attributes``, ``dimensions``, or ``metrics``.
-        source_file: File path for error messages.
+        key:         Field key.
+        entry:       Entry metadata dict.
+        section:     Section name.
+        source_file: Path string for error messages.
 
     Returns:
         List of error strings (empty when validation passes).
@@ -227,33 +267,32 @@ def _validate_entry(key: str, entry: Dict[str, Any], section: str, source_file: 
     errors: List[str] = []
     if not entry.get("__description"):
         errors.append(f"[{source_file}] {section}.{key}: missing __description")
-    # Allow 0, False, and "" as valid example values — only None (key absent) is an error
     if entry.get("__example") is None:
         errors.append(f"[{source_file}] {section}.{key}: missing __example")
-
     semdict = entry.get("__semdict", "new")
     if semdict == "deprecated-alias" and not entry.get("__otel_replacement"):
         errors.append(f"[{source_file}] {section}.{key}: __semdict: deprecated-alias requires __otel_replacement")
     if semdict == "otel-only" and not entry.get("__otel_note"):
         errors.append(f"[{source_file}] {section}.{key}: __semdict: otel-only requires __otel_note")
+    field_type = entry.get("__field_type")
+    if field_type is not None and field_type not in VALID_FIELD_TYPES:
+        errors.append(f"[{source_file}] {section}.{key}: unknown __field_type '{field_type}'")
     return errors
-
 
 ##endregion
 
 
 ##region Emit helpers
 
-
 def _emit_ref_entry(key: str, entry: Dict[str, Any]) -> Dict[str, Any]:
-    """Build a ``ref:`` attribute entry.
+    """Build a ref: attribute entry.
 
     Args:
         key:   Field key to reference.
-        entry: Source instruments-def entry (used for optional note).
+        entry: Source entry (used for optional otel_note).
 
     Returns:
-        Dict representing ``{ref: key}`` plus optional ``note:``.
+        Dict with ``ref`` key and optional ``note``.
     """
     node: Dict[str, Any] = {"ref": key}
     note = entry.get("__otel_note")
@@ -262,43 +301,48 @@ def _emit_ref_entry(key: str, entry: Dict[str, Any]) -> Dict[str, Any]:
     return node
 
 
-def _emit_id_entry(key: str, entry: Dict[str, Any], semdict_flag: str) -> Dict[str, Any]:
-    """Build a full ``id:`` attribute definition block.
-
-    ``deprecated-alias`` entries represent fields that OTel has renamed but
-    DSOA still emits for backward compatibility.  They are NOT marked as
-    ``stability: deprecated`` — that is reserved for fields from deprecated
-    plugins.  Instead a ``note:`` is added citing the OTel rename, and
-    stability stays ``experimental``.
+def _build_type_node(entry: Dict[str, Any]) -> Any:
+    """Build the ``type:`` value — enum dict when __enum present, else type string.
 
     Args:
-        key:          Field key, e.g. ``dsoa.run.id``.
-        entry:        Source instruments-def entry dict.
-        semdict_flag: Classification: ``new``, ``deprecated-alias``, or ``otel-only``.
+        entry: instruments-def entry dict.
+
+    Returns:
+        Type string or enum dict.
+    """
+    enum_def = entry.get("__enum")
+    if enum_def:
+        members = []
+        for m in enum_def.get("members", []):
+            member: Dict[str, Any] = {"id": m["id"], "value": m["value"], "brief": m["brief"]}
+            if "display_name" in m:
+                member["display_name"] = m["display_name"]
+            members.append(member)
+        return {"allow_custom_values": bool(enum_def.get("allow_custom_values", True)), "members": members}
+    return _map_attr_type(entry.get("__type"))
+
+
+def _emit_id_entry(key: str, entry: Dict[str, Any], semdict_flag: str) -> Dict[str, Any]:
+    """Build a full id: attribute definition block.
+
+    Args:
+        key:          Field key.
+        entry:        instruments-def entry dict.
+        semdict_flag: ``new``, ``deprecated-alias``, or ``otel-only``.
 
     Returns:
         Dict with all required semconv attribute fields.
     """
-    raw_type = entry.get("__type")
-    attr_type = _map_attr_type(raw_type)
+    attr_type = _build_type_node(entry)
     description = str(entry["__description"]).strip()
-    example_raw = entry["__example"]
-    # Handle None/empty: use empty string as fallback for nullable fields
+    example_raw = entry.get("__example", "")
     if example_raw is None:
         example_raw = ""
     examples = [str(example_raw).strip()] if not isinstance(example_raw, list) else [str(e).strip() for e in example_raw]
-
     node: Dict[str, Any] = {
-        "id": key,
-        "display_name": _make_display_name(key),
-        "type": attr_type,
-        "stability": "experimental",
-        "brief": description,
-        "examples": examples,
+        "id": key, "display_name": _make_display_name(key), "type": attr_type,
+        "stability": "experimental", "brief": description, "examples": examples,
     }
-
-    # deprecated-alias: OTel renamed this field, but DSOA still emits it
-    # → NOT stability:deprecated; add a note warning about the OTel rename
     if semdict_flag == "deprecated-alias":
         replacement = entry.get("__otel_replacement", "")
         otel_note = entry.get("__otel_note", "")
@@ -308,64 +352,48 @@ def _emit_id_entry(key: str, entry: Dict[str, Any], semdict_flag: str) -> Dict[s
         node["note"] = warning
     elif entry.get("__otel_note"):
         node["note"] = str(entry["__otel_note"]).strip()
-
     return node
 
 
 def _emit_metric_entry(key: str, entry: Dict[str, Any]) -> Dict[str, Any]:
-    """Build a ``type: metric`` group entry.
+    """Build a type: metric group entry.
 
     Args:
-        key:   Metric key, e.g. ``snowflake.warehouse.credits.used``.
-        entry: Source instruments-def metric entry.
+        key:   Metric key.
+        entry: instruments-def metric entry.
 
     Returns:
         Dict representing a semconv metric definition.
     """
-    raw_type = entry.get("__type")
-    instrument = _map_metric_instrument(raw_type)
+    instrument = _map_metric_instrument(entry.get("__type"))
     description = str(entry.get("__description", "")).strip()
     example_raw = entry.get("__example", "0")
     examples = [str(example_raw).strip()] if not isinstance(example_raw, list) else [str(e).strip() for e in example_raw]
-
     unit = entry.get("unit") or entry.get("__unit")
     if not unit:
         log.warning("Metric '%s' has no unit; omitting unit field", key)
-
     display_name = entry.get("displayName") or _make_display_name(key)
-
     node: Dict[str, Any] = {
-        "id": key,
-        "type": "metric",
-        "metric_name": key,
-        "instrument": instrument,
-        "stability": "experimental",
-        "brief": description,
-        "examples": examples,
-        "title": display_name,
+        "id": key, "type": "metric", "metric_name": key, "instrument": instrument,
+        "stability": "experimental", "brief": description, "examples": examples, "title": display_name,
     }
     if unit:
         node["unit"] = str(unit)
-
-    note = entry.get("__otel_note")
-    if note:
-        node["note"] = str(note).strip()
-
+    if entry.get("__otel_note"):
+        node["note"] = str(entry["__otel_note"]).strip()
     return node
-
 
 ##endregion
 
 
-##region Core export class
-
+##region SemanticExporter
 
 class SemanticExporter:
     """Reads instruments-def.yml files and emits Semantic Dictionary YAML.
 
     Attributes:
-        repo_root:  Absolute path to the repository root.
-        output_dir: Directory where generated YAML files are written.
+        repo_root:   Absolute path to the repository root.
+        output_dir:  Directory where generated YAML files are written.
         schema_path: Optional path to ``semconv.schema.json`` for validation.
     """
 
@@ -373,59 +401,44 @@ class SemanticExporter:
         """Initialise the exporter.
 
         Args:
-            repo_root:   Absolute path to the repository root.
-            output_dir:  Directory to write generated YAML files (will be created).
-            schema_path: Optional path to semconv JSON schema for validation.
+            repo_root:   Repository root path.
+            output_dir:  Output directory (created on demand).
+            schema_path: Optional semconv JSON schema for validation.
         """
         self.repo_root = repo_root
         self.output_dir = output_dir
         self.schema_path = schema_path
         self._schema: Optional[Dict[str, Any]] = None
-        self._counters: Dict[str, int] = {"files": 0, "ref": 0, "new": 0, "deprecated_alias": 0, "otel_only": 0}
+        self._counters: Dict[str, int] = {
+            "files": 0, "ref": 0, "new": 0, "deprecated_alias": 0, "otel_only": 0,
+            "resource_fields": 0, "signal_fields": 0, "metric_fields": 0, "event_timestamp_fields": 0,
+        }
 
-    ##region Discovery
+    ##region Discovery + Parsing
 
     def _discover_files(self) -> List[Tuple[str, Path]]:
-        """Glob all instruments-def.yml files in the repository.
-
-        Returns:
-            List of ``(plugin_name, path)`` tuples.
-            The core file uses plugin name ``"_core"``.
-        """
+        """Glob all instruments-def.yml files. Returns list of (plugin_name, path)."""
         files: List[Tuple[str, Path]] = []
-
-        # Core global file
         core_file = self.repo_root / "src" / "dtagent.conf" / "instruments-def.yml"
         if core_file.exists():
             files.append(("_core", core_file))
         else:
             log.warning("Core instruments-def.yml not found at %s", core_file)
-
-        # Plugin files  (pattern: src/dtagent/plugins/<name>.config/instruments-def.yml)
-        plugin_glob = sorted(self.repo_root.glob("src/dtagent/plugins/*.config/instruments-def.yml"))
-        for path in plugin_glob:
-            # Extract plugin name from the directory: e.g. "warehouse_usage.config" → "warehouse_usage"
-            config_dir = path.parent.name  # e.g. "warehouse_usage.config"
-            plugin_name = config_dir.replace(".config", "")
+        for path in sorted(self.repo_root.glob("src/dtagent/plugins/*.config/instruments-def.yml")):
+            plugin_name = path.parent.name.replace(".config", "")
             files.append((plugin_name, path))
-
         log.info("Found %d instruments-def.yml files", len(files))
         return files
-
-    ##endregion
-
-    ##region Parsing
 
     def _parse_file(self, plugin_name: str, path: Path) -> Tuple[List[str], Dict[str, Dict[str, Any]]]:
         """Parse a single instruments-def.yml file.
 
         Args:
-            plugin_name: Plugin name used for error messages.
-            path:        Absolute path to the instruments-def.yml file.
+            plugin_name: Plugin name for error messages.
+            path:        Path to the file.
 
         Returns:
-            Tuple of ``(errors, entries)`` where ``entries`` is a dict
-            keyed by field key with values containing section + metadata.
+            Tuple of (errors, entries).
 
         Raises:
             ExportError: If the file cannot be parsed.
@@ -435,85 +448,68 @@ class SemanticExporter:
                 data = yaml.safe_load(fh)
         except Exception as exc:
             raise ExportError(f"Failed to parse {path}: {exc}") from exc
-
         if not data:
             log.warning("Empty instruments-def.yml: %s", path)
             return [], {}
-
         errors: List[str] = []
         entries: Dict[str, Dict[str, Any]] = {}
-
-        for section in ("attributes", "dimensions", "metrics"):
-            section_data = data.get(section) or {}
-            for key, raw_entry in section_data.items():
+        for section in ("attributes", "dimensions", "metrics", "event_timestamps"):
+            for key, raw_entry in (data.get(section) or {}).items():
                 entry = raw_entry or {}
+                if not isinstance(entry, dict):
+                    log.warning("[%s] %s.%s: skipping non-dict entry", plugin_name, section, key)
+                    continue
                 semdict_flag = entry.get("__semdict", "new")
                 if semdict_flag not in VALID_SEMDICT_FLAGS:
-                    log.warning("[%s] %s.%s: unknown __semdict value '%s'; treating as 'new'", plugin_name, section, key, semdict_flag)
+                    log.warning("[%s] %s.%s: unknown __semdict '%s'; treating as 'new'", plugin_name, section, key, semdict_flag)
                     semdict_flag = "new"
-
-                validation_errors = _validate_entry(key, entry, section, str(path))
-                errors.extend(validation_errors)
-
+                if semdict_flag != "ref":
+                    errors.extend(_validate_entry(key, entry, section, str(path)))
                 if semdict_flag == "ref" and key not in KNOWN_REFS:
                     log.warning("[%s] %s.%s: __semdict: ref but key not in KNOWN_REFS", plugin_name, section, key)
-
                 entries[key] = {
-                    "section": section,
-                    "semdict": semdict_flag,
-                    "plugin": plugin_name,
-                    "entry": entry,
+                    "section": section, "semdict": semdict_flag, "plugin": plugin_name,
+                    "entry": entry, "classification": _classify_field(section, entry.get("__field_type")),
                 }
-
         return errors, entries
 
     ##endregion
 
     ##region Grouping
 
-    def _group_entries(self, all_entries: Dict[str, Dict[str, Any]]) -> Tuple[Dict[str, Any], Dict[str, Dict[str, Any]]]:
-        """Separate entries into global fields and per-plugin metric groups.
-
-        First-class citizen principle: ALL attributes and dimensions are
-        promoted to the global fields file regardless of their origin plugin.
-        Plugin model files reference global fields via ``ref:`` entries and
-        only define their own ``type: metric`` nodes directly.
-
-        Metrics from the ``_core`` plugin (e.g. ``dsoa.agent.memory.peak_rss``)
-        are also treated as global.
+    def _group_entries(
+        self, all_entries: Dict[str, Dict[str, Any]]
+    ) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any], Dict[str, Dict[str, Any]]]:
+        """Separate entries into resource/signal/event_timestamp/metric buckets.
 
         Args:
-            all_entries: Flat dict of ``{key: entry_metadata}`` across all files.
+            all_entries: All parsed entries keyed by field key.
 
         Returns:
-            Tuple of ``(global_entries, plugin_metric_entries)`` where:
-            - ``global_entries``: ``{key: meta}`` for all attributes, dimensions,
-              and core metrics.
-            - ``plugin_metric_entries``: ``{plugin_name: {key: meta}}`` for
-              per-plugin metric-section entries only.
+            Tuple of (resource_entries, signal_entries, event_ts_entries, plugin_metric_entries).
         """
-        global_entries: Dict[str, Any] = {}
+        resource_entries: Dict[str, Any] = {}
+        signal_entries: Dict[str, Any] = {}
+        event_ts_entries: Dict[str, Any] = {}
         plugin_metric_entries: Dict[str, Dict[str, Any]] = {}
-
         for key, meta in all_entries.items():
-            section = meta["section"]
-            plugin = meta["plugin"]
-
-            if section == "metrics" and plugin != "_core":
-                # Per-plugin metrics stay in model files
-                plugin_metric_entries.setdefault(plugin, {})[key] = meta
+            classification = meta["classification"]
+            if classification == "metric":
+                plugin_metric_entries.setdefault(meta["plugin"], {})[key] = meta
+            elif classification == "event_timestamp":
+                event_ts_entries[key] = meta
+            elif classification == "resource":
+                resource_entries[key] = meta
             else:
-                # All attributes, all dimensions, and core metrics → global
-                global_entries[key] = meta
-
-        return global_entries, plugin_metric_entries
+                signal_entries[key] = meta
+        return resource_entries, signal_entries, event_ts_entries, plugin_metric_entries
 
     ##endregion
 
-    ##region YAML emission
+    ##region Attribute node building
 
     def _build_attribute_node(self, key: str, meta: Dict[str, Any]) -> Dict[str, Any]:
-        """Build a single attribute node (ref or id block).
+        """Build a ref: or id: attribute node.
 
         Args:
             key:  Field key.
@@ -524,123 +520,225 @@ class SemanticExporter:
         """
         semdict_flag = meta["semdict"]
         entry = meta["entry"]
-
         if semdict_flag == "ref":
             self._counters["ref"] += 1
             return _emit_ref_entry(key, entry)
-
         node = _emit_id_entry(key, entry, semdict_flag)
-        if semdict_flag == "deprecated-alias":
-            self._counters["deprecated_alias"] += 1
-        elif semdict_flag == "otel-only":
-            self._counters["otel_only"] += 1
-        else:
-            self._counters["new"] += 1
+        self._counters["deprecated_alias" if semdict_flag == "deprecated-alias" else "otel_only" if semdict_flag == "otel-only" else "new"] += 1
         return node
 
-    def _build_global_yaml(self, global_entries: Dict[str, Any]) -> Dict[str, Any]:
-        """Build the snowflake_global.yaml document structure.
+    ##endregion
+
+    ##region YAML document builders
+
+    def _build_resource_fields_yaml(self, resource_entries: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+        """Build resource_fields/snowflake_resource.yaml and resource_fields/dsoa.yaml.
 
         Args:
-            global_entries: Dict of ``{key: meta}`` for global fields.
+            resource_entries: All resource-classified entries.
 
         Returns:
-            Semconv-compliant YAML document dict with ``groups`` top-level key.
+            Tuple of (snowflake_resource_doc, dsoa_resource_doc).
         """
-        attributes = []
-        for key in sorted(global_entries):
-            meta = global_entries[key]
-            if meta["section"] == "metrics":
-                # Metrics in global go as metric definitions directly
-                continue
-            attributes.append(self._build_attribute_node(key, meta))
+        dsoa_keys = {k: v for k, v in resource_entries.items() if k.startswith("dsoa.") or k.startswith("deployment.")}
+        snowflake_keys = {k: v for k, v in resource_entries.items() if k not in dsoa_keys}
 
-        group: Dict[str, Any] = {
-            "id": "dsoa.fields.global",
-            "type": "attribute_group",
-            "title": "DSOA global fields",
-            "brief": "Global fields emitted by the Dynatrace Snowflake Observability Agent across all plugin contexts.",
-            "attributes": attributes,
-        }
-        groups = [group]
+        sf_groups: Dict[str, Dict[str, Any]] = {}
+        for key in sorted(snowflake_keys):
+            group_id, group_type = _ns_group(key, _RES_NS, "snowflake.resource", "resource")
+            if group_id not in sf_groups:
+                sf_groups[group_id] = {"type": group_type, "attrs": []}
+            sf_groups[group_id]["attrs"].append(self._build_attribute_node(key, snowflake_keys[key]))
+            self._counters["resource_fields"] += 1
 
-        # Emit global metrics separately
-        for key in sorted(global_entries):
-            meta = global_entries[key]
-            if meta["section"] == "metrics":
-                groups.append(self._build_metric_node(key, meta))
+        sf_group_list = [
+            {"id": gid, "type": sf_groups[gid]["type"],
+             "title": _make_display_name(gid) + " resource fields",
+             "brief": f"Resource-level fields describing Snowflake {_make_display_name(gid)} entities.",
+             "attributes": sf_groups[gid]["attrs"]}
+            for gid in sorted(sf_groups)
+        ]
 
-        return {"groups": groups}
+        dsoa_attrs = []
+        for key in sorted(dsoa_keys):
+            dsoa_attrs.append(self._build_attribute_node(key, dsoa_keys[key]))
+            self._counters["resource_fields"] += 1
 
-    def _build_plugin_yaml(self, plugin_name: str, plugin_metric_entries: Dict[str, Any]) -> Dict[str, Any]:
-        """Build a per-plugin model YAML document.
+        return (
+            {"groups": sf_group_list},
+            {"groups": [{"id": "dsoa", "type": "resource", "title": "DSOA resource fields",
+                          "brief": "Resource-level DSOA execution metadata and deployment context.", "attributes": dsoa_attrs}]},
+        )
 
-        Structure (Fix 3 — proper semdict grouping):
-        - One ``type: metric_group`` listing ``ref:`` links to all global
-          attribute/dimension fields used by this plugin's metrics.
-        - One ``type: metric`` entry per metric key.
-
-        Attributes and dimensions are NOT defined inline here — they are
-        first-class citizens in the global fields file and referenced by key.
+    def _build_signal_fields_yaml(self, signal_entries: Dict[str, Any], event_ts_entries: Dict[str, Any]) -> Dict[str, Any]:
+        """Build signal_fields/snowflake.yaml grouped by namespace.
 
         Args:
-            plugin_name:          Plugin name, e.g. ``warehouse_usage``.
-            plugin_metric_entries: Dict of ``{key: meta}`` for this plugin's
-                                   metrics section entries only.
+            signal_entries:   Signal-classified entries.
+            event_ts_entries: Event-timestamp entries (excluding trigger key).
 
         Returns:
-            Semconv-compliant YAML document dict.
+            Semconv-compliant YAML doc dict.
         """
-        plugin_title = plugin_name.replace("_", " ").title()
-        plugin_title = _restore_acronyms(plugin_title)
+        all_signal = dict(signal_entries)
+        for key, meta in event_ts_entries.items():
+            if key != "snowflake.event.trigger":
+                all_signal[key] = meta
 
-        groups: List[Dict[str, Any]] = []
+        groups_map: Dict[str, Dict[str, Any]] = {}
+        for key in sorted(all_signal):
+            group_id, group_type = _ns_group(key, _SIG_NS, "snowflake.misc", "attribute_group")
+            if group_id not in groups_map:
+                groups_map[group_id] = {"type": group_type, "attrs": []}
+            groups_map[group_id]["attrs"].append(self._build_attribute_node(key, all_signal[key]))
+            self._counters["signal_fields"] += 1
 
-        # metric_group header — refs to standard global fields used by this plugin
-        standard_refs = [{"ref": k} for k in sorted(KNOWN_REFS)]
-        metric_group: Dict[str, Any] = {
-            "id": f"snowflake.metrics.{plugin_name}",
-            "type": "metric_group",
-            "title": f"Snowflake {plugin_title} metrics",
-            "brief": f"Metrics collected by the DSOA {plugin_name} plugin.",
-            "attributes": standard_refs,
-        }
-        groups.append(metric_group)
+        return {"groups": [
+            {"id": gid, "type": groups_map[gid]["type"],
+             "title": _make_display_name(gid) + " signal fields",
+             "brief": f"Signal-level fields for {_make_display_name(gid)} telemetry.",
+             "attributes": groups_map[gid]["attrs"]}
+            for gid in sorted(groups_map)
+        ]}
 
-        # Individual metric definitions
-        for key in sorted(plugin_metric_entries):
-            groups.append(self._build_metric_node(key, plugin_metric_entries[key]))
+    def _build_interfaces_yaml(self) -> Dict[str, Any]:
+        """Build metrics/interfaces_dsoa.yaml with i.dsoa_resource/warehouse/database.
 
-        return {"groups": groups}
+        Returns:
+            Semconv-compliant YAML doc dict.
+        """
+        return {"groups": [
+            {"id": "i.dsoa_resource", "type": "interface", "title": "DSOA resource fields",
+             "brief": "Fields present on all DSOA telemetry records. Synced with config.py RESOURCE_ATTRIBUTES.",
+             "attributes": [{"ref": k} for k in sorted(RESOURCE_ATTRIBUTE_KEYS)]},
+            {"id": "i.dsoa_warehouse", "type": "interface", "title": "DSOA warehouse dimension fields",
+             "brief": "Common warehouse dimensions for per-warehouse metrics.",
+             "attributes": [{"ref": "snowflake.warehouse.name"}, {"ref": "snowflake.warehouse.id"}]},
+            {"id": "i.dsoa_database", "type": "interface", "title": "DSOA database dimension fields",
+             "brief": "Common database/schema dimensions for per-database metrics.",
+             "attributes": [{"ref": "db.namespace"}, {"ref": "snowflake.schema.name"}]},
+        ]}
 
-    def _build_metric_node(self, key: str, meta: Dict[str, Any]) -> Dict[str, Any]:
-        """Build a metric definition node.
+    def _select_interfaces(self, metric_entries: Dict[str, Any], all_entries: Dict[str, Any]) -> List[str]:
+        """Determine which DSOA interfaces to declare for a metric model.
 
         Args:
-            key:  Metric key.
-            meta: Entry metadata dict.
+            metric_entries: Per-plugin metric entries.
+            all_entries:    All parsed entries (for dimension lookup).
 
         Returns:
-            Semconv-compliant metric dict.
+            Ordered list of interface IDs.
         """
-        self._counters["new"] += 1
-        return _emit_metric_entry(key, meta["entry"])
+        uses_warehouse = uses_database = False
+        for _mk, m_meta in metric_entries.items():
+            mc_names = set(m_meta["entry"].get("__context_names") or [])
+            for dim_key, dim_meta in all_entries.items():
+                if dim_meta["classification"] != "resource":
+                    continue
+                dc_names = set(dim_meta["entry"].get("__context_names") or [])
+                # No context_names → globally applicable (e.g. shared dims de-duplicated to first plugin)
+                # With context_names → only applicable when there's a context_name overlap
+                if not dc_names or dc_names.intersection(mc_names):
+                    if dim_key in INTERFACE_WAREHOUSE_KEYS:
+                        uses_warehouse = True
+                    if dim_key in INTERFACE_DATABASE_KEYS:
+                        uses_database = True
+        interfaces = ["i.dsoa_resource"]
+        if uses_warehouse:
+            interfaces.append("i.dsoa_warehouse")
+        if uses_database:
+            interfaces.append("i.dsoa_database")
+        return interfaces
+
+    def _build_metric_model_yaml(self, plugin_name: str, metric_entries: Dict[str, Any], all_entries: Dict[str, Any]) -> Dict[str, Any]:
+        """Build a per-plugin metric model YAML document.
+
+        Args:
+            plugin_name:    Plugin name.
+            metric_entries: Plugin's metric entries.
+            all_entries:    All parsed entries for dimension resolution.
+
+        Returns:
+            Semconv-compliant YAML document dict with ``model:`` envelope.
+        """
+        plugin_title = _restore_acronyms(plugin_name.replace("_", " ").title())
+        interfaces = self._select_interfaces(metric_entries, all_entries)
+        covered: Set[str] = set(RESOURCE_ATTRIBUTE_KEYS)
+        if "i.dsoa_warehouse" in interfaces:
+            covered |= INTERFACE_WAREHOUSE_KEYS
+        if "i.dsoa_database" in interfaces:
+            covered |= INTERFACE_DATABASE_KEYS
+
+        groups = []
+        for metric_key in sorted(metric_entries):
+            m_meta = metric_entries[metric_key]
+            mc_names = set(m_meta["entry"].get("__context_names") or [])
+            dim_refs = []
+            for dim_key in sorted(all_entries):
+                dim_meta = all_entries[dim_key]
+                if dim_meta["classification"] != "resource":
+                    continue
+                if dim_key in covered:
+                    continue
+                dc_names = set(dim_meta["entry"].get("__context_names") or [])
+                # No context_names → globally applicable
+                # With context_names → must intersect metric's context_names
+                if not dc_names or dc_names.intersection(mc_names):
+                    dim_refs.append({"ref": dim_key})
+            metric_node = _emit_metric_entry(metric_key, m_meta["entry"])
+            if dim_refs:
+                metric_node["attributes"] = dim_refs
+            groups.append(metric_node)
+            self._counters["metric_fields"] += 1
+
+        return {"model": {
+            "id": f"dsoa.metrics.{plugin_name}", "title": f"Snowflake {plugin_title} Metrics",
+            "brief": f"Metrics collected by the DSOA {plugin_name} plugin from Snowflake ACCOUNT_USAGE views.",
+            "model_group_id": "dsoa.metrics", "data_object": "metric",
+            "interfaces": interfaces, "groups": groups,
+        }}
+
+    def _build_event_model_yaml(self, plugin_name: str, event_ts_entries: Dict[str, Any]) -> Dict[str, Any]:
+        """Build a per-plugin event model YAML document.
+
+        Args:
+            plugin_name:      Plugin name.
+            event_ts_entries: All event_timestamp entries across all plugins.
+
+        Returns:
+            Semconv-compliant YAML document dict with ``model:`` envelope.
+        """
+        plugin_title = _restore_acronyms(plugin_name.replace("_", " ").title())
+        plugin_ts_keys = sorted(
+            k for k, meta in event_ts_entries.items()
+            if meta["plugin"] == plugin_name and k != "snowflake.event.trigger"
+        )
+        attrs = [{"ref": "snowflake.event.type"}] + [{"ref": k} for k in plugin_ts_keys]
+        for _ in plugin_ts_keys:
+            self._counters["event_timestamp_fields"] += 1
+        return {"model": {
+            "id": f"dsoa.events.{plugin_name}", "title": f"Snowflake {plugin_title} Lifecycle Events",
+            "brief": f"Timestamp-based state-change events emitted by the DSOA {plugin_name} plugin as business events.",
+            "model_group_id": "dsoa.events", "data_object": "bizevents",
+            "interfaces": ["i.dsoa_resource"],
+            "groups": [{"id": f"dsoa.events.{plugin_name}.fields", "type": "attribute_group",
+                         "title": f"{plugin_title} event fields", "attributes": attrs}],
+        }}
 
     ##endregion
 
     ##region Schema validation
 
     def _load_schema(self) -> Optional[Dict[str, Any]]:
-        """Load the semconv JSON schema if available.
+        """Load semconv JSON schema if available.
 
         Returns:
-            Parsed JSON schema dict, or ``None`` if not found.
+            Parsed schema dict or None.
         """
         if not self.schema_path or not self.schema_path.exists():
             log.warning("semconv.schema.json not found at %s; skipping schema validation", self.schema_path)
             return None
         import json  # pylint: disable=import-outside-toplevel
-
         with open(self.schema_path, "r", encoding="utf-8") as fh:
             return json.load(fh)
 
@@ -648,17 +746,16 @@ class SemanticExporter:
         """Validate a generated YAML document against semconv.schema.json.
 
         Args:
-            doc:       Parsed YAML document to validate.
-            yaml_path: File path used for error messages.
+            doc:       Parsed YAML document.
+            yaml_path: Path for error messages.
 
         Returns:
-            ``True`` if validation passed (or schema unavailable), ``False`` on error.
+            True if valid (or schema unavailable), False on error.
         """
         if self._schema is None:
             return True
         try:
             import jsonschema  # pylint: disable=import-outside-toplevel
-
             jsonschema.validate(instance=doc, schema=self._schema)
             log.debug("Schema validation PASS: %s", yaml_path)
             return True
@@ -675,7 +772,7 @@ class SemanticExporter:
 
         Args:
             doc:      YAML-serialisable dict.
-            rel_path: Relative path under ``output_dir``.
+            rel_path: Relative path under output_dir.
 
         Returns:
             Absolute path to the written file.
@@ -695,149 +792,147 @@ class SemanticExporter:
     def export(self) -> Dict[str, int]:
         """Run the full semantic dictionary export pipeline.
 
-        Steps:
-        1. Discover all instruments-def.yml files.
-        2. Parse and validate each file.
-        3. Group entries into global and per-plugin buckets.
-        4. Emit YAML files.
-        5. Validate output against semconv.schema.json.
-        6. Return summary counters.
-
         Returns:
-            Dict with keys ``files``, ``ref``, ``new``, ``deprecated_alias``, ``otel_only``.
+            Dict with counter keys: ``files``, ``ref``, ``new``,
+            ``deprecated_alias``, ``otel_only``, ``resource_fields``,
+            ``signal_fields``, ``metric_fields``, ``event_timestamp_fields``.
 
         Raises:
-            ExportError: If any required metadata is missing or a fatal error occurs.
+            ExportError: On missing metadata or parse failure.
         """
-        ##region Step 1: Discovery
+        # Step 1: Discovery
         files = self._discover_files()
         if not files:
             raise ExportError("No instruments-def.yml files found")
-        ##endregion
 
-        ##region Step 2: Parse + validate all files
+        # Step 2: Parse + validate
         all_errors: List[str] = []
         all_entries: Dict[str, Any] = {}
-
         for plugin_name, path in files:
             log.info("Parsing %s (%s)", plugin_name, path)
             errors, entries = self._parse_file(plugin_name, path)
             all_errors.extend(errors)
-            # De-duplicate: first occurrence wins; warn on conflict
             for key, meta in entries.items():
                 if key in all_entries:
-                    log.warning(
-                        "Duplicate field key '%s' in %s (first seen in %s); using first", key, plugin_name, all_entries[key]["plugin"]
-                    )
+                    log.warning("Duplicate key '%s' in %s (first in %s); skipping", key, plugin_name, all_entries[key]["plugin"])
                 else:
                     all_entries[key] = meta
-
         if all_errors:
-            error_text = "\n".join(all_errors)
-            raise ExportError(f"Validation errors found:\n{error_text}")
-        ##endregion
+            raise ExportError("Validation errors found:\n" + "\n".join(all_errors))
 
-        ##region Step 3: Group entries
-        global_entries, plugin_entries = self._group_entries(all_entries)
-        log.info("Global fields: %d; Plugin groups: %d", len(global_entries), len(plugin_entries))
-        ##endregion
+        # Step 3: Group
+        resource_entries, signal_entries, event_ts_entries, plugin_metric_entries = self._group_entries(all_entries)
+        log.info("Resource: %d  Signal: %d  EventTS: %d  PluginMetricGroups: %d",
+                 len(resource_entries), len(signal_entries), len(event_ts_entries), len(plugin_metric_entries))
 
-        ##region Step 4: Load schema
+        # Step 4: Load schema
         self._schema = self._load_schema()
-        ##endregion
 
-        ##region Step 5: Emit global fields YAML
-        if global_entries:
-            doc = self._build_global_yaml(global_entries)
-            path_out = self._write_yaml(doc, "fields/snowflake/snowflake_global.yaml")
-            self._validate_against_schema(doc, path_out)
-        ##endregion
+        # Step 5: resource_fields
+        sf_res_doc, dsoa_res_doc = self._build_resource_fields_yaml(resource_entries)
+        if sf_res_doc.get("groups"):
+            p = self._write_yaml(sf_res_doc, "fields/resource_fields/snowflake_resource.yaml")
+            self._validate_against_schema(sf_res_doc, p)
+        if dsoa_res_doc.get("groups") and dsoa_res_doc["groups"][0].get("attributes"):
+            p = self._write_yaml(dsoa_res_doc, "fields/resource_fields/dsoa.yaml")
+            self._validate_against_schema(dsoa_res_doc, p)
 
-        ##region Step 6: Emit per-plugin YAML files
-        for plugin_name in sorted(plugin_entries):
-            entries = plugin_entries[plugin_name]
+        # Step 6: signal_fields
+        sig_doc = self._build_signal_fields_yaml(signal_entries, event_ts_entries)
+        if sig_doc.get("groups"):
+            p = self._write_yaml(sig_doc, "fields/signal_fields/snowflake.yaml")
+            self._validate_against_schema(sig_doc, p)
+
+        # Step 7: interfaces + model group
+        p = self._write_yaml(self._build_interfaces_yaml(), "metrics/interfaces_dsoa.yaml")
+        self._validate_against_schema(self._build_interfaces_yaml(), p)
+        self._write_yaml({"model_group": {"id": "dsoa.metrics", "title": "DSOA Snowflake Metrics",
+                                           "brief": "Metrics collected by the DSOA from Snowflake ACCOUNT_USAGE views."}},
+                         "metrics/dsoa_metrics_model_group.yaml")
+
+        # Step 8: per-plugin metric models
+        for plugin_name in sorted(plugin_metric_entries):
+            if plugin_name == "_core":
+                continue
+            entries = plugin_metric_entries[plugin_name]
             if not entries:
                 continue
-            doc = self._build_plugin_yaml(plugin_name, entries)
-            rel = f"model/smartscape/db/snowflake/metrics/snowflake_{plugin_name}.yaml"
-            path_out = self._write_yaml(doc, rel)
-            self._validate_against_schema(doc, path_out)
-        ##endregion
+            doc = self._build_metric_model_yaml(plugin_name, entries, all_entries)
+            p = self._write_yaml(doc, f"metrics/dsoa_metrics_{plugin_name}.yaml")
+            self._validate_against_schema(doc, p)
+
+        # Step 9: per-plugin event models
+        plugins_with_events: Set[str] = {
+            meta["plugin"] for k, meta in event_ts_entries.items() if k != "snowflake.event.trigger"
+        }
+        if plugins_with_events:
+            self._write_yaml({"model_group": {"id": "dsoa.events", "title": "DSOA Snowflake Lifecycle Events",
+                                               "brief": "Timestamp-based lifecycle events emitted by DSOA as business events."}},
+                             "model/dsoa/model_group_dsoa_events.yaml")
+            for plugin_name in sorted(plugins_with_events):
+                doc = self._build_event_model_yaml(plugin_name, event_ts_entries)
+                p = self._write_yaml(doc, f"model/dsoa/dsoa.events.{plugin_name}.yaml")
+                self._validate_against_schema(doc, p)
 
         return dict(self._counters)
 
     ##endregion
 
-
 ##endregion
 
 
-##region CLI entry point
-
+##region CLI
 
 def _parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     """Parse command-line arguments.
 
     Args:
-        argv: Argument list (defaults to ``sys.argv``).
+        argv: Argument list (defaults to sys.argv).
 
     Returns:
         Parsed argument namespace.
     """
     parser = argparse.ArgumentParser(description="Export DSOA instruments-def.yml files as Semantic Dictionary YAML.")
-    parser.add_argument(
-        "--output",
-        default="build/_semdict/source",
-        help="Output directory for generated YAML files (default: build/_semdict/source)",
-    )
-    parser.add_argument(
-        "--schema",
-        default="_otel-build-tool/semantic-conventions/semconv.schema.json",
-        help="Path to semconv.schema.json for validation",
-    )
+    parser.add_argument("--output", default="build/_semdict/source", help="Output directory (default: build/_semdict/source)")
+    parser.add_argument("--schema", default="_otel-build-tool/semantic-conventions/semconv.schema.json", help="Path to semconv.schema.json")
     parser.add_argument("--verbose", action="store_true", help="Enable DEBUG logging")
     return parser.parse_args(argv)
 
 
 def main(argv: Optional[List[str]] = None) -> int:
-    """CLI entry point for the semantic export tool.
+    """CLI entry point.
 
     Args:
-        argv: Command-line arguments (defaults to ``sys.argv``).
+        argv: Command-line arguments.
 
     Returns:
         Exit code (0 = success, 1 = error).
     """
     args = _parse_args(argv)
-
-    logging.basicConfig(
-        level=logging.DEBUG if args.verbose else logging.INFO,
-        format="%(levelname)s %(message)s",
-    )
-
+    logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO, format="%(levelname)s %(message)s")
     repo_root = Path(__file__).resolve().parents[2]
     output_dir = Path(args.output) if Path(args.output).is_absolute() else repo_root / args.output
     schema_path = Path(args.schema) if Path(args.schema).is_absolute() else repo_root / args.schema
-
     log.info("Repo root : %s", repo_root)
     log.info("Output dir: %s", output_dir)
-
     exporter = SemanticExporter(repo_root=repo_root, output_dir=output_dir, schema_path=schema_path)
-
     try:
         summary = exporter.export()
     except ExportError as exc:
         log.error("Export failed: %s", exc)
         return 1
-
     total = summary["ref"] + summary["new"] + summary["deprecated_alias"] + summary["otel_only"]
     print("✓ Export complete")
-    print(f"Files generated : {summary['files']}")
-    print(f"Total fields    : {total}")
-    print(f"  - ref               : {summary['ref']}")
-    print(f"  - new               : {summary['new']}")
-    print(f"  - deprecated-alias  : {summary['deprecated_alias']}")
-    print(f"  - otel-only         : {summary['otel_only']}")
+    print(f"Files generated            : {summary['files']}")
+    print(f"Total classified fields    : {total}")
+    print(f"  - ref                    : {summary['ref']}")
+    print(f"  - new                    : {summary['new']}")
+    print(f"  - deprecated-alias       : {summary['deprecated_alias']}")
+    print(f"  - otel-only              : {summary['otel_only']}")
+    print(f"Resource fields emitted    : {summary['resource_fields']}")
+    print(f"Signal fields emitted      : {summary['signal_fields']}")
+    print(f"Metric fields emitted      : {summary['metric_fields']}")
+    print(f"Event timestamp fields     : {summary['event_timestamp_fields']}")
     return 0
 
 

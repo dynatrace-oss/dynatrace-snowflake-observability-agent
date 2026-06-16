@@ -33,14 +33,43 @@ attributes:
     __example: "85.0"
     __description: Live percentage of quota consumed at the time of threshold event emission.
   snowflake.resource_monitor.frequency:
+    __field_type: resource
     __example: DAILY
     __description: The frequency of the resource monitor.
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: daily
+          value: DAILY
+          brief: Resource monitor resets daily.
+        - id: weekly
+          value: WEEKLY
+          brief: Resource monitor resets weekly.
+        - id: monthly
+          value: MONTHLY
+          brief: Resource monitor resets monthly.
+        - id: yearly
+          value: YEARLY
+          brief: Resource monitor resets yearly.
+        - id: never
+          value: NEVER
+          brief: Resource monitor does not reset automatically.
   snowflake.resource_monitor.is_active:
     __example: "true"
     __description: Indicates if the resource monitor is active.
   snowflake.resource_monitor.level:
+    __field_type: resource
     __example: ACCOUNT
     __description: The level of the resource monitor.
+    __enum:
+      allow_custom_values: false
+      members:
+        - id: account
+          value: ACCOUNT
+          brief: Resource monitor applies at the account level.
+        - id: warehouse
+          value: WAREHOUSE
+          brief: Resource monitor applies at the warehouse level.
   snowflake.resource_monitor.threshold.direction:
     __is_defined_at_runtime: true
     __example: up
@@ -58,15 +87,37 @@ attributes:
     __example: "80"
     __description: The specific threshold percentage value that was crossed to trigger the event.
   snowflake.warehouse.execution_state:
+    __field_type: resource
     __example: RUNNING
     __description: The execution state of the warehouse.
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: running
+          value: RUNNING
+          brief: Warehouse is running.
+        - id: suspended
+          value: SUSPENDED
+          brief: Warehouse is suspended.
+        - id: resuming
+          value: RESUMING
+          brief: Warehouse is resuming.
+        - id: suspending
+          value: SUSPENDING
+          brief: Warehouse is suspending.
+        - id: started
+          value: STARTED
+          brief: Warehouse has started.
   snowflake.warehouse.has_query_acceleration_enabled:
+    __field_type: resource
     __example: "true"
     __description: Indicates if query acceleration is enabled for the warehouse.
   snowflake.warehouse.is_auto_resume:
+    __field_type: resource
     __example: "true"
     __description: Indicates if the warehouse is set to auto-resume.
   snowflake.warehouse.is_auto_suspend:
+    __field_type: resource
     __example: "true"
     __description: Indicates if the warehouse is set to auto-suspend.
   snowflake.warehouse.is_current:
@@ -79,20 +130,76 @@ attributes:
     __example: "true"
     __description: Indicates if the warehouse is NOT monitored by a resource monitor.
   snowflake.warehouse.owner:
+    __field_type: resource
     __example: admin
     __description: The owner of the warehouse.
   snowflake.warehouse.owner.role_type:
+    __field_type: resource
     __example: SYSADMIN
     __description: The role type of the warehouse owner.
   snowflake.warehouse.scaling_policy:
+    __field_type: resource
     __example: STANDARD
     __description: The scaling policy of the warehouse.
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: standard
+          value: STANDARD
+          brief: Standard scaling policy.
+        - id: economy
+          value: ECONOMY
+          brief: Economy scaling policy (slower to scale up, saves credits).
   snowflake.warehouse.size:
+    __field_type: resource
     __example: X-SMALL
     __description: The size of the warehouse.
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: x_small
+          value: X-SMALL
+          brief: X-Small warehouse.
+        - id: small
+          value: SMALL
+          brief: Small warehouse.
+        - id: medium
+          value: MEDIUM
+          brief: Medium warehouse.
+        - id: large
+          value: LARGE
+          brief: Large warehouse.
+        - id: x_large
+          value: X-LARGE
+          brief: X-Large warehouse.
+        - id: x2_large
+          value: 2X-LARGE
+          brief: 2X-Large warehouse.
+        - id: x3_large
+          value: 3X-LARGE
+          brief: 3X-Large warehouse.
+        - id: x4_large
+          value: 4X-LARGE
+          brief: 4X-Large warehouse.
+        - id: x5_large
+          value: 5X-LARGE
+          brief: 5X-Large warehouse.
+        - id: x6_large
+          value: 6X-LARGE
+          brief: 6X-Large warehouse.
   snowflake.warehouse.type:
+    __field_type: resource
     __example: STANDARD
     __description: The type of the warehouse.
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: standard
+          value: STANDARD
+          brief: Standard multi-cluster warehouse.
+        - id: snowpark_optimized
+          value: SNOWPARK_OPTIMIZED
+          brief: Warehouse optimized for Snowpark workloads.
   snowflake.warehouses.names:
     __example: COMPUTE_WH
     __description: The names of the warehouses monitored.
