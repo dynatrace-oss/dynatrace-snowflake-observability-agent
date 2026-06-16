@@ -16,7 +16,12 @@
 #  * Catalog of instrumentation known to Dynatrace Snowflake Observability Agent
 dimensions:
   db.system:
-    __semdict: ref
+    __semdict: otel-only
+    __otel_note: >-
+      Defined in OpenTelemetry Semantic Conventions (db.system, stable) but not yet present
+      as a globally referenceable field in the Dynatrace Semantic Dictionary. Emitting as
+      a new id: definition here so DSOA can declare it properly. The value for Snowflake
+      is always 'snowflake'.
     __description: "The database management system (DBMS) product being used. It is always 'snowflake'"
     __example: "snowflake"
   deployment.environment:

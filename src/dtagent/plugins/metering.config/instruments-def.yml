@@ -26,6 +26,42 @@ dimensions:
     __example: AUTO_CLUSTERING
     __description: >-
       Snowflake service type that consumed credits (e.g. AUTO_CLUSTERING, PIPE, SERVERLESS_TASK, TELEMETRY_DATA_INGEST).
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: auto_clustering
+          value: AUTO_CLUSTERING
+          brief: Automatic micro-partition clustering service.
+        - id: pipe
+          value: PIPE
+          brief: Snowpipe data ingestion service.
+        - id: serverless_task
+          value: SERVERLESS_TASK
+          brief: Serverless task execution service.
+        - id: telemetry_data_ingest
+          value: TELEMETRY_DATA_INGEST
+          brief: Telemetry data ingestion service.
+        - id: warehouse_metering
+          value: WAREHOUSE_METERING
+          brief: Virtual warehouse compute credits.
+        - id: cloud_services
+          value: CLOUD_SERVICES
+          brief: Cloud services layer credits.
+        - id: replication
+          value: REPLICATION
+          brief: Database replication service.
+        - id: materialized_view
+          value: MATERIALIZED_VIEW
+          brief: Materialized view maintenance service.
+        - id: search_optimization
+          value: SEARCH_OPTIMIZATION
+          brief: Search optimization service.
+        - id: query_acceleration
+          value: QUERY_ACCELERATION
+          brief: Query acceleration service.
+        - id: storage
+          value: STORAGE
+          brief: Data storage service.
   snowflake.service.name:
     __context_names: ["metering"]
     __example: MY_PIPE

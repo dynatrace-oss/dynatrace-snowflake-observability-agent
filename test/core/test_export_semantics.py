@@ -173,11 +173,11 @@ class TestNamespaceGrouping:
     """Verify _ns_group maps field keys to (group_id, group_type) correctly."""
 
     def test_warehouse_signal_group(self):
-        """snowflake.warehouse.* signal fields → snowflake.warehouse group."""
+        """snowflake.warehouse.* signal fields → snowflake.warehouse group, type: attribute_group."""
         from build.export_semantics import _SIG_NS  # pylint: disable=import-outside-toplevel
         gid, gtype = _ns_group("snowflake.warehouse.name", _SIG_NS, "snowflake.misc", "attribute_group")
         assert gid == "snowflake.warehouse"
-        assert gtype == "span"
+        assert gtype == "attribute_group", "All DSOA signal groups use attribute_group per IA guidance"
 
     def test_warehouse_resource_group(self):
         """snowflake.warehouse.* resource fields → snowflake.warehouse resource group."""
@@ -187,11 +187,11 @@ class TestNamespaceGrouping:
         assert gtype == "resource"
 
     def test_db_signal_group(self):
-        """db.* signal fields → db span group."""
+        """db.* signal fields → db attribute_group (not span — cross-signal per IA guidance)."""
         from build.export_semantics import _SIG_NS  # pylint: disable=import-outside-toplevel
         gid, gtype = _ns_group("db.namespace", _SIG_NS, "snowflake.misc", "attribute_group")
         assert gid == "db"
-        assert gtype == "span"
+        assert gtype == "attribute_group"
 
     def test_unknown_key_fallback(self):
         """Unknown key falls back to default group."""
@@ -627,18 +627,26 @@ class TestExportPipelineMock:
         assert "snowflake.warehouse.name" in keys or "snowflake.warehouse.size" in keys
 
     def test_signal_fields_file_produced(self, tmp_path):
-        """Export produces signal_fields with signal-classified fields."""
+        """Export produces per-namespace signal_fields files with signal-classified fields."""
         out_dir = tmp_path / "out"
         exporter = SemanticExporter(repo_root=REPO_ROOT, output_dir=out_dir)
         _, entries = exporter._parse_file("mock_plugin", MOCK_FIXTURE)
         signal_entries = {k: v for k, v in entries.items() if v["classification"] == "signal"}
         event_ts = {k: v for k, v in entries.items() if v["classification"] == "event_timestamp"}
-        sig_doc = exporter._build_signal_fields_yaml(signal_entries, event_ts)
-        assert "groups" in sig_doc
-        # snowflake.warehouse.event.name (dimension with __field_type: signal) must be here
-        all_attrs = [a for g in sig_doc["groups"] for a in g.get("attributes", [])]
-        keys = [a.get("id") or a.get("ref") for a in all_attrs]
-        assert "snowflake.warehouse.event.name" in keys, "signal-override dimension must be in signal_fields"
+        sig_docs = exporter._build_signal_fields_yaml(signal_entries, event_ts)
+        # Returns dict of {rel_path: doc} — one file per namespace group
+        assert isinstance(sig_docs, dict), "signal fields must return dict of path → doc"
+        assert len(sig_docs) > 0, "at least one signal_fields file must be produced"
+        # All values must have 'groups' key
+        for rel_path, doc in sig_docs.items():
+            assert "groups" in doc, f"{rel_path} missing groups key"
+        # snowflake.warehouse.event.name (dimension with __field_type: signal) must appear in warehouse file
+        all_keys: set = set()
+        for doc in sig_docs.values():
+            for grp in doc["groups"]:
+                for attr in grp.get("attributes", []):
+                    all_keys.add(attr.get("id") or attr.get("ref"))
+        assert "snowflake.warehouse.event.name" in all_keys, "signal-override dimension must be in signal_fields"
 
     def test_interfaces_yaml_has_three_interfaces(self, tmp_path):
         """interfaces_dsoa.yaml has i.dsoa_resource, i.dsoa_warehouse, i.dsoa_database."""
@@ -805,10 +813,16 @@ class TestSemanticExporterIntegration:
         assert df.exists(), "dsoa.yaml not found"
 
     def test_signal_fields_file_exists(self, export_output):
-        """fields/signal_fields/snowflake.yaml is created."""
+        """fields/signal_fields/ contains per-namespace YAML files (not a single snowflake.yaml)."""
         out_dir, _ = export_output
-        sf = out_dir / "fields" / "signal_fields" / "snowflake.yaml"
-        assert sf.exists(), "snowflake.yaml signal_fields not found"
+        sig_dir = out_dir / "fields" / "signal_fields"
+        assert sig_dir.exists(), "signal_fields directory not found"
+        yaml_files = list(sig_dir.glob("*.yaml"))
+        assert len(yaml_files) >= 2, f"Expected multiple namespace files, got {len(yaml_files)}"
+        # At minimum the warehouse and query namespaces must be present
+        names = {f.name for f in yaml_files}
+        assert "snowflake_warehouse.yaml" in names or any("warehouse" in n for n in names), \
+            "snowflake_warehouse.yaml expected in signal_fields"
 
     def test_interfaces_file_exists(self, export_output):
         """metrics/interfaces_dsoa.yaml is created."""

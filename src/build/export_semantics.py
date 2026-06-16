@@ -66,7 +66,9 @@ import yaml
 ##region Constants
 
 #: Fields that already exist in the Dynatrace Semantic Dictionary (emit as ref: only).
-KNOWN_REFS = {"db.system", "host.name", "service.name", "telemetry.exporter.name", "telemetry.exporter.version", "db.query.text", "event.id", "authentication.type"}
+#: Note: db.system is in OTel semconv but NOT yet in the SD as a global field.
+#: It is annotated __semdict: otel-only in instruments-def and emitted as id:.
+KNOWN_REFS = {"host.name", "service.name", "telemetry.exporter.name", "telemetry.exporter.version", "db.query.text", "event.id", "authentication.type"}
 
 #: Keys present on every DSOA telemetry record — synced with config.py RESOURCE_ATTRIBUTES.
 RESOURCE_ATTRIBUTE_KEYS: Set[str] = {
@@ -97,11 +99,16 @@ ATTR_TYPE_MAP: Dict[str, str] = {"long": "long", "int": "long", "double": "doubl
 VALID_SEMDICT_FLAGS = {"ref", "new", "deprecated-alias", "otel-only"}
 
 # (prefix, group_id, group_type) for signal fields — order matters (longest prefix first).
+# All DSOA-owned signal groups use type: attribute_group — they appear on multiple signal
+# types (logs + spans + events) and are not canonically span-wire-format fields.
+# See IA guidance: type:span is reserved for groups whose semantics are exclusively
+# span/trace wire-format (HTTP, RPC). Using it for DSOA fields would be incorrect.
+# TODO(BIZOBS-151-IA): Re-evaluate after @information-architect review of span semantics.
 _SIG_NS: List[Tuple[str, str, str]] = [
-    ("snowflake.warehouse", "snowflake.warehouse", "span"),
-    ("snowflake.query", "snowflake.query", "span"),
-    ("snowflake.time", "snowflake.time", "span"),
-    ("snowflake.object", "snowflake.object", "span"),
+    ("snowflake.warehouse", "snowflake.warehouse", "attribute_group"),
+    ("snowflake.query", "snowflake.query", "attribute_group"),
+    ("snowflake.time", "snowflake.time", "attribute_group"),
+    ("snowflake.object", "snowflake.object", "attribute_group"),
     ("snowflake.user", "snowflake.user", "attribute_group"),
     ("snowflake.session", "snowflake.session", "attribute_group"),
     ("snowflake.error", "snowflake.error", "attribute_group"),
@@ -128,11 +135,16 @@ _SIG_NS: List[Tuple[str, str, str]] = [
     ("snowflake.cluster", "snowflake.cluster", "attribute_group"),
     ("snowflake.service", "snowflake.service", "attribute_group"),
     ("snowflake.secondary", "snowflake.secondary", "attribute_group"),
+    ("snowflake.trust_center", "snowflake.trust_center", "attribute_group"),
     ("client", "client", "attribute_group"),
-    ("db", "db", "span"),
-    ("authentication", "authentication", "span"),
+    ("db", "db", "attribute_group"),
+    ("authentication", "authentication", "attribute_group"),
     ("session", "session", "attribute_group"),
     ("plugins", "plugins", "attribute_group"),
+    ("error", "error", "attribute_group"),
+    ("status", "status", "attribute_group"),
+    ("event", "event", "attribute_group"),
+    ("vulnerability", "vulnerability", "attribute_group"),
 ]
 
 # (prefix, group_id, group_type) for resource fields.
@@ -398,6 +410,29 @@ def _emit_id_entry(key: str, entry: Dict[str, Any], semdict_flag: str) -> Dict[s
     return node
 
 
+def _coerce_metric_example(value: Any) -> Any:
+    """Coerce a metric example value to a numeric type.
+
+    Metric examples must be numbers (int or float), not strings.
+    instruments-def stores examples as strings (YAML scalar); convert back.
+
+    Args:
+        value: Raw example value from instruments-def.
+
+    Returns:
+        int or float if parseable, otherwise the original value.
+    """
+    if isinstance(value, (int, float)):
+        return value
+    try:
+        as_str = str(value).strip()
+        if "." in as_str:
+            return float(as_str)
+        return int(as_str)
+    except (ValueError, TypeError):
+        return value
+
+
 def _emit_metric_entry(key: str, entry: Dict[str, Any]) -> Dict[str, Any]:
     """Build a type: metric group entry.
 
@@ -411,7 +446,8 @@ def _emit_metric_entry(key: str, entry: Dict[str, Any]) -> Dict[str, Any]:
     instrument = _map_metric_instrument(entry.get("__type"))
     description = str(entry.get("__description", "")).strip()
     example_raw = entry.get("__example", "0")
-    examples = [str(example_raw).strip()] if not isinstance(example_raw, list) else [str(e).strip() for e in example_raw]
+    raw_list = example_raw if isinstance(example_raw, list) else [example_raw]
+    examples = [_coerce_metric_example(e) for e in raw_list]
     unit = entry.get("unit") or entry.get("__unit")
     if not unit:
         log.warning("Metric '%s' has no unit; omitting unit field", key)
@@ -621,15 +657,21 @@ class SemanticExporter:
                           "brief": "Resource-level DSOA execution metadata and deployment context.", "attributes": dsoa_attrs}]},
         )
 
-    def _build_signal_fields_yaml(self, signal_entries: Dict[str, Any], event_ts_entries: Dict[str, Any]) -> Dict[str, Any]:
-        """Build signal_fields/snowflake.yaml grouped by namespace.
+    def _build_signal_fields_yaml(
+        self, signal_entries: Dict[str, Any], event_ts_entries: Dict[str, Any]
+    ) -> Dict[str, Dict[str, Any]]:
+        """Build one signal_fields YAML file per namespace group.
+
+        Each namespace group (snowflake.query, snowflake.user, etc.) gets its own
+        file under ``fields/signal_fields/`` for easier review and future maintenance.
+        Groups that share no natural prefix fall into ``snowflake_misc.yaml``.
 
         Args:
             signal_entries:   Signal-classified entries.
             event_ts_entries: Event-timestamp entries (excluding trigger key).
 
         Returns:
-            Semconv-compliant YAML doc dict.
+            Dict mapping relative path → YAML doc dict.
         """
         all_signal = dict(signal_entries)
         for key, meta in event_ts_entries.items():
@@ -644,13 +686,19 @@ class SemanticExporter:
             groups_map[group_id]["attrs"].append(self._build_attribute_node(key, all_signal[key]))
             self._counters["signal_fields"] += 1
 
-        return {"groups": [
-            {"id": gid, "type": groups_map[gid]["type"],
-             "title": _make_display_name(gid) + " signal fields",
-             "brief": f"Signal-level fields for {_make_display_name(gid)} telemetry.",
-             "attributes": groups_map[gid]["attrs"]}
-            for gid in sorted(groups_map)
-        ]}
+        # One file per group_id — replace dots with underscores for filenames
+        docs: Dict[str, Dict[str, Any]] = {}
+        for gid in sorted(groups_map):
+            filename = gid.replace(".", "_") + ".yaml"
+            doc = {"groups": [{
+                "id": gid,
+                "type": groups_map[gid]["type"],
+                "title": _make_display_name(gid) + " signal fields",
+                "brief": f"Signal-level fields for {_make_display_name(gid)} telemetry.",
+                "attributes": groups_map[gid]["attrs"],
+            }]}
+            docs[f"fields/signal_fields/{filename}"] = doc
+        return docs
 
     def _build_interfaces_yaml(self) -> Dict[str, Any]:
         """Build metrics/interfaces_dsoa.yaml with i.dsoa_resource/warehouse/database.
@@ -683,19 +731,27 @@ class SemanticExporter:
         uses_warehouse = uses_database = False
         for _mk, m_meta in metric_entries.items():
             mc_names = set(m_meta["entry"].get("__context_names") or [])
+            m_plugin = m_meta["plugin"]
             for dim_key, dim_meta in all_entries.items():
                 # Interface selection uses DSOA dimensions (section == "dimensions")
                 # not SD classification — same reasoning as metric dim resolution.
                 if dim_meta["section"] != "dimensions":
                     continue
                 dc_names = set(dim_meta["entry"].get("__context_names") or [])
-                # No context_names → globally applicable (e.g. shared dims de-duplicated to first plugin)
-                # With context_names → only applicable when there's a context_name overlap
-                if not dc_names or dc_names.intersection(mc_names):
-                    if dim_key in INTERFACE_WAREHOUSE_KEYS:
-                        uses_warehouse = True
-                    if dim_key in INTERFACE_DATABASE_KEYS:
-                        uses_database = True
+                # A dim with context_names is applicable only when it overlaps the metric.
+                # A dim WITHOUT context_names is applicable only within the same plugin
+                # (de-duplication means it was first seen there; it is NOT globally applicable
+                # to all plugins — that caused cross-plugin dim bleed).
+                if dc_names:
+                    if not dc_names.intersection(mc_names):
+                        continue
+                else:
+                    if dim_meta["plugin"] != m_plugin:
+                        continue
+                if dim_key in INTERFACE_WAREHOUSE_KEYS:
+                    uses_warehouse = True
+                if dim_key in INTERFACE_DATABASE_KEYS:
+                    uses_database = True
         interfaces = ["i.dsoa_resource"]
         if uses_warehouse:
             interfaces.append("i.dsoa_warehouse")
@@ -726,6 +782,7 @@ class SemanticExporter:
         for metric_key in sorted(metric_entries):
             m_meta = metric_entries[metric_key]
             mc_names = set(m_meta["entry"].get("__context_names") or [])
+            m_plugin = m_meta["plugin"]
             dim_refs = []
             for dim_key in sorted(all_entries):
                 dim_meta = all_entries[dim_key]
@@ -738,10 +795,17 @@ class SemanticExporter:
                 if dim_key in covered:
                     continue
                 dc_names = set(dim_meta["entry"].get("__context_names") or [])
-                # No context_names → globally applicable
-                # With context_names → must intersect metric's context_names
-                if not dc_names or dc_names.intersection(mc_names):
-                    dim_refs.append({"ref": dim_key})
+                # A dim with context_names is applicable only when it overlaps the metric.
+                # A dim WITHOUT context_names is applicable only within the same plugin —
+                # NOT globally across all plugins (avoids cross-plugin dim bleed,
+                # e.g. trust_center dims appearing on budgets metrics).
+                if dc_names:
+                    if not dc_names.intersection(mc_names):
+                        continue
+                else:
+                    if dim_meta["plugin"] != m_plugin:
+                        continue
+                dim_refs.append({"ref": dim_key})
             metric_node = _emit_metric_entry(metric_key, m_meta["entry"])
             if dim_refs:
                 metric_node["attributes"] = dim_refs
@@ -837,7 +901,7 @@ class SemanticExporter:
         out_path = self.output_dir / rel_path
         out_path.parent.mkdir(parents=True, exist_ok=True)
         with open(out_path, "w", encoding="utf-8") as fh:
-            yaml.dump(doc, fh, default_flow_style=False, allow_unicode=True, sort_keys=False)
+            yaml.dump(doc, fh, default_flow_style=False, allow_unicode=True, sort_keys=False, width=200)
         log.debug("Wrote %s", out_path)
         self._counters["files"] += 1
         return out_path
@@ -894,11 +958,12 @@ class SemanticExporter:
             p = self._write_yaml(dsoa_res_doc, "fields/resource_fields/dsoa.yaml")
             self._validate_against_schema(dsoa_res_doc, p)
 
-        # Step 6: signal_fields
-        sig_doc = self._build_signal_fields_yaml(signal_entries, event_ts_entries)
-        if sig_doc.get("groups"):
-            p = self._write_yaml(sig_doc, "fields/signal_fields/snowflake.yaml")
-            self._validate_against_schema(sig_doc, p)
+        # Step 6: signal_fields — one file per namespace group
+        sig_docs = self._build_signal_fields_yaml(signal_entries, event_ts_entries)
+        for rel_path, sig_doc in sig_docs.items():
+            if sig_doc.get("groups"):
+                p = self._write_yaml(sig_doc, rel_path)
+                self._validate_against_schema(sig_doc, p)
 
         # Step 7: interfaces + model group
         p = self._write_yaml(self._build_interfaces_yaml(), "metrics/interfaces_dsoa.yaml")
