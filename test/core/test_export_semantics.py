@@ -213,7 +213,12 @@ class TestIdEmission:
         assert "display_name" in node
 
     def test_deprecated_alias_stability(self):
-        """deprecated-alias entry has stability: deprecated."""
+        """deprecated-alias entry stays experimental (OTel deprecated the name, not the field).
+
+        DSOA still actively emits the field for backward compatibility, so it must NOT
+        be marked stability:deprecated — that is reserved for fields from deprecated plugins.
+        Instead a note: is added warning about the OTel rename.
+        """
         entry = {
             "__semdict": "deprecated-alias",
             "__otel_replacement": "deployment.environment.name",
@@ -222,12 +227,12 @@ class TestIdEmission:
             "__example": "PROD",
         }
         node = _emit_id_entry("deployment.environment", entry, "deprecated-alias")
-        assert node["stability"] == "deprecated"
-        assert "deprecated" in node
-        assert "deployment.environment.name" in node["deprecated"]
+        assert node["stability"] == "experimental", "deprecated-alias must stay experimental"
+        assert "deprecated" not in node, "deprecated key must not appear for active DSOA fields"
+        assert "note" in node, "deprecated-alias must produce a note about the OTel rename"
 
     def test_deprecated_alias_has_note(self):
-        """deprecated-alias entry includes note from __otel_note."""
+        """deprecated-alias entry note includes __otel_note content and backward-compat message."""
         entry = {
             "__semdict": "deprecated-alias",
             "__otel_replacement": "deployment.environment.name",
@@ -236,7 +241,8 @@ class TestIdEmission:
             "__example": "PROD",
         }
         node = _emit_id_entry("deployment.environment", entry, "deprecated-alias")
-        assert node.get("note") == "Renamed in v1.26."
+        assert "Renamed in v1.26." in node.get("note", "")
+        assert "backward compatibility" in node.get("note", "")
 
     def test_otel_only_has_note(self):
         """otel-only entry includes note from __otel_note."""
@@ -405,15 +411,16 @@ class TestSemanticExporterMock:
         assert "id" not in node
 
     def test_deprecated_alias_in_output(self, tmp_path):
-        """deprecated-alias entry in plugin output has stability: deprecated."""
+        """deprecated-alias entry keeps experimental stability (OTel rename, not DSOA deprecated)."""
         out_dir = tmp_path / "out"
         exporter = SemanticExporter(repo_root=REPO_ROOT, output_dir=out_dir)
         _, entries = exporter._parse_file("mock_plugin", MOCK_FIXTURE)
 
         dep_meta = entries["deployment.environment"]
         node = exporter._build_attribute_node("deployment.environment", dep_meta)
-        assert node.get("stability") == "deprecated"
-        assert "deprecated" in node
+        assert node.get("stability") == "experimental", "deprecated-alias must be experimental"
+        assert "deprecated" not in node, "deprecated key must not appear for active DSOA fields"
+        assert "note" in node, "deprecated-alias must have a note about OTel rename"
 
 
 ##endregion
@@ -441,11 +448,11 @@ class TestSemanticExporterIntegration:
         return out_dir, summary
 
     def test_files_generated(self, export_output):
-        """At least 20 YAML files are generated."""
+        """At least 17 YAML files are generated (1 global + ≥16 plugin metric files)."""
         out_dir, summary = export_output
         yaml_files = list(out_dir.rglob("*.yaml"))
-        assert len(yaml_files) >= 20, f"Expected ≥20 files, got {len(yaml_files)}"
-        assert summary["files"] >= 20
+        assert len(yaml_files) >= 17, f"Expected ≥17 files, got {len(yaml_files)}"
+        assert summary["files"] >= 17
 
     def test_global_file_exists(self, export_output):
         """snowflake_global.yaml is created."""

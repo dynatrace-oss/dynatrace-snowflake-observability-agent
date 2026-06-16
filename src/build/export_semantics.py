@@ -52,6 +52,9 @@ KNOWN_REFS = {
 }
 
 #: Fields that belong in the global fields file (not plugin-specific).
+#: All non-metric attributes and dimensions are also promoted to global
+#: under the first-class citizen principle — models ref them rather than
+#: defining them locally.
 GLOBAL_FIELD_KEYS = {
     "dsoa.run.id",
     "dsoa.run.context",
@@ -62,6 +65,22 @@ GLOBAL_FIELD_KEYS = {
     "snowflake.event.type",
     "dsoa.agent.memory.peak_rss",
 }
+
+#: Known acronyms / abbreviations that must stay ALL-CAPS in display_name.
+#: Order matters: longer tokens checked first to avoid partial replacement.
+DISPLAY_NAME_ACRONYMS = (
+    "DSOA",
+    "OTel",
+    "DDL",
+    "DML",
+    "RSS",
+    "URL",
+    "API",
+    "ID",
+    "DB",
+    "QA",
+    "SQL",
+)
 
 #: Instrument type mappings from instruments-def __type to semconv instrument.
 METRIC_TYPE_MAP: Dict[str, str] = {
@@ -108,28 +127,50 @@ class ExportError(Exception):
 ##region Classification helpers
 
 
-def _make_display_name(key: str, semdict_flag: str) -> str:
-    """Convert a dot-notation field key to a human-readable display name.
+def _restore_acronyms(text: str) -> str:
+    """Restore known acronyms to their correct casing in a title-cased string.
+
+    After title-casing a display name, tokens like ``Db``, ``Id``, ``Dsoa``
+    must be restored to ``DB``, ``ID``, ``DSOA`` respectively.  Comparison is
+    case-insensitive so this handles any capitalisation produced by
+    ``str.title()``.
 
     Args:
-        key:          Dot-notation field key, e.g. ``dsoa.run.id``.
-        semdict_flag: Classification flag; appends ``(deprecated)`` when ``deprecated-alias``.
+        text: Title-cased string that may contain incorrectly-cased acronyms.
 
     Returns:
-        Title-case display name string.
+        String with known acronyms restored to their canonical casing.
     """
-    last_part = key.split(".")[-1]
-    words = last_part.replace("_", " ").replace("-", " ").title()
-    # Add namespace prefix for multi-segment keys to improve human readability
-    if len(key.split(".")) >= 3:
-        ns_parts = key.split(".")[:2]
-        prefix = " ".join(p.title() for p in ns_parts)
-        words = f"{prefix} {words}"
-    elif len(key.split(".")) == 2:
-        ns = key.split(".")[0].title()
-        words = f"{ns} {words}"
-    suffix = " (deprecated)" if semdict_flag == "deprecated-alias" else ""
-    return words + suffix
+    words = text.split(" ")
+    restored = []
+    for word in words:
+        # Strip trailing punctuation before comparing, re-attach after
+        suffix = ""
+        stem = word
+        if word and not word[-1].isalnum():
+            suffix = word[-1]
+            stem = word[:-1]
+        match = next((a for a in DISPLAY_NAME_ACRONYMS if a.lower() == stem.lower()), None)
+        restored.append((match if match else stem) + suffix)
+    return " ".join(restored)
+
+
+def _make_display_name(key: str) -> str:
+    """Convert a dot-notation field key to a human-readable display name.
+
+    All segments of the key are included to produce an unambiguous name.
+    Known acronyms (DB, ID, DSOA, OTel, RSS, …) are preserved in their
+    canonical casing.
+
+    Args:
+        key: Dot-notation field key, e.g. ``dsoa.run.id``.
+
+    Returns:
+        Human-readable display name string, e.g. ``DSOA Run ID``.
+    """
+    parts = key.replace("_", " ").replace("-", " ").replace(".", " ").split()
+    title_parts = " ".join(p.title() for p in parts)
+    return _restore_acronyms(title_parts)
 
 
 def _map_attr_type(raw_type: Optional[str]) -> str:
@@ -224,6 +265,12 @@ def _emit_ref_entry(key: str, entry: Dict[str, Any]) -> Dict[str, Any]:
 def _emit_id_entry(key: str, entry: Dict[str, Any], semdict_flag: str) -> Dict[str, Any]:
     """Build a full ``id:`` attribute definition block.
 
+    ``deprecated-alias`` entries represent fields that OTel has renamed but
+    DSOA still emits for backward compatibility.  They are NOT marked as
+    ``stability: deprecated`` — that is reserved for fields from deprecated
+    plugins.  Instead a ``note:`` is added citing the OTel rename, and
+    stability stays ``experimental``.
+
     Args:
         key:          Field key, e.g. ``dsoa.run.id``.
         entry:        Source instruments-def entry dict.
@@ -243,23 +290,24 @@ def _emit_id_entry(key: str, entry: Dict[str, Any], semdict_flag: str) -> Dict[s
 
     node: Dict[str, Any] = {
         "id": key,
-        "display_name": _make_display_name(key, semdict_flag),
+        "display_name": _make_display_name(key),
         "type": attr_type,
+        "stability": "experimental",
+        "brief": description,
+        "examples": examples,
     }
 
+    # deprecated-alias: OTel renamed this field, but DSOA still emits it
+    # → NOT stability:deprecated; add a note warning about the OTel rename
     if semdict_flag == "deprecated-alias":
-        node["stability"] = "deprecated"
         replacement = entry.get("__otel_replacement", "")
-        node["deprecated"] = f"Use {replacement} instead (renamed in OTel Semantic Conventions v1.26)."
-    else:
-        node["stability"] = "experimental"
-
-    node["brief"] = description
-    node["examples"] = examples
-
-    note = entry.get("__otel_note")
-    if note:
-        node["note"] = str(note).strip()
+        otel_note = entry.get("__otel_note", "")
+        warning = f"OTel renamed this field to {replacement}. DSOA continues to emit it for backward compatibility."
+        if otel_note:
+            warning = f"{otel_note} DSOA continues to emit it for backward compatibility."
+        node["note"] = warning
+    elif entry.get("__otel_note"):
+        node["note"] = str(entry["__otel_note"]).strip()
 
     return node
 
@@ -284,9 +332,7 @@ def _emit_metric_entry(key: str, entry: Dict[str, Any]) -> Dict[str, Any]:
     if not unit:
         log.warning("Metric '%s' has no unit; omitting unit field", key)
 
-    # Derive a human-readable title from the last segments of the key
-    title_parts = key.split(".")[-2:]
-    title = " ".join(p.replace("_", " ").title() for p in title_parts)
+    display_name = entry.get("displayName") or _make_display_name(key)
 
     node: Dict[str, Any] = {
         "id": key,
@@ -296,7 +342,7 @@ def _emit_metric_entry(key: str, entry: Dict[str, Any]) -> Dict[str, Any]:
         "stability": "experimental",
         "brief": description,
         "examples": examples,
-        "title": f"Snowflake {title}",
+        "title": display_name,
     }
     if unit:
         node["unit"] = str(unit)
@@ -426,32 +472,41 @@ class SemanticExporter:
     ##region Grouping
 
     def _group_entries(self, all_entries: Dict[str, Dict[str, Any]]) -> Tuple[Dict[str, Any], Dict[str, Dict[str, Any]]]:
-        """Separate entries into global fields and per-plugin groups.
+        """Separate entries into global fields and per-plugin metric groups.
 
-        Global fields are those whose keys appear in ``GLOBAL_FIELD_KEYS`` or
-        originate from the ``_core`` plugin.
+        First-class citizen principle: ALL attributes and dimensions are
+        promoted to the global fields file regardless of their origin plugin.
+        Plugin model files reference global fields via ``ref:`` entries and
+        only define their own ``type: metric`` nodes directly.
+
+        Metrics from the ``_core`` plugin (e.g. ``dsoa.agent.memory.peak_rss``)
+        are also treated as global.
 
         Args:
             all_entries: Flat dict of ``{key: entry_metadata}`` across all files.
 
         Returns:
-            Tuple of ``(global_entries, plugin_entries)`` where:
-            - ``global_entries``: ``{key: entry_metadata}`` for global fields.
-            - ``plugin_entries``: ``{plugin_name: {key: entry_metadata}}`` for plugin fields.
+            Tuple of ``(global_entries, plugin_metric_entries)`` where:
+            - ``global_entries``: ``{key: meta}`` for all attributes, dimensions,
+              and core metrics.
+            - ``plugin_metric_entries``: ``{plugin_name: {key: meta}}`` for
+              per-plugin metric-section entries only.
         """
         global_entries: Dict[str, Any] = {}
-        plugin_entries: Dict[str, Dict[str, Any]] = {}
+        plugin_metric_entries: Dict[str, Dict[str, Any]] = {}
 
         for key, meta in all_entries.items():
-            # Global if: core plugin, or key is in the global set, or starts with dsoa.
-            is_global = meta["plugin"] == "_core" or key in GLOBAL_FIELD_KEYS or key.startswith("dsoa.")
-            if is_global:
-                global_entries[key] = meta
-            else:
-                plugin = meta["plugin"]
-                plugin_entries.setdefault(plugin, {})[key] = meta
+            section = meta["section"]
+            plugin = meta["plugin"]
 
-        return global_entries, plugin_entries
+            if section == "metrics" and plugin != "_core":
+                # Per-plugin metrics stay in model files
+                plugin_metric_entries.setdefault(plugin, {})[key] = meta
+            else:
+                # All attributes, all dimensions, and core metrics → global
+                global_entries[key] = meta
+
+        return global_entries, plugin_metric_entries
 
     ##endregion
 
@@ -517,48 +572,44 @@ class SemanticExporter:
 
         return {"groups": groups}
 
-    def _build_plugin_yaml(self, plugin_name: str, plugin_entries: Dict[str, Any]) -> Dict[str, Any]:
-        """Build a per-plugin metric group YAML document.
+    def _build_plugin_yaml(self, plugin_name: str, plugin_metric_entries: Dict[str, Any]) -> Dict[str, Any]:
+        """Build a per-plugin model YAML document.
+
+        Structure (Fix 3 — proper semdict grouping):
+        - One ``type: metric_group`` listing ``ref:`` links to all global
+          attribute/dimension fields used by this plugin's metrics.
+        - One ``type: metric`` entry per metric key.
+
+        Attributes and dimensions are NOT defined inline here — they are
+        first-class citizens in the global fields file and referenced by key.
 
         Args:
-            plugin_name:    Plugin name, e.g. ``warehouse_usage``.
-            plugin_entries: Dict of ``{key: meta}`` for this plugin's fields.
+            plugin_name:          Plugin name, e.g. ``warehouse_usage``.
+            plugin_metric_entries: Dict of ``{key: meta}`` for this plugin's
+                                   metrics section entries only.
 
         Returns:
             Semconv-compliant YAML document dict.
         """
-        # Split into attrs/dims (for attribute_group) and metrics
-        attr_entries: Dict[str, Any] = {}
-        metric_entries: Dict[str, Any] = {}
-
-        for key, meta in plugin_entries.items():
-            if meta["section"] == "metrics":
-                metric_entries[key] = meta
-            else:
-                attr_entries[key] = meta
+        plugin_title = plugin_name.replace("_", " ").title()
+        plugin_title = _restore_acronyms(plugin_title)
 
         groups: List[Dict[str, Any]] = []
 
-        # Build attribute group
-        attributes = []
-        for key in sorted(attr_entries):
-            attributes.append(self._build_attribute_node(key, attr_entries[key]))
+        # metric_group header — refs to standard global fields used by this plugin
+        standard_refs = [{"ref": k} for k in sorted(KNOWN_REFS)]
+        metric_group: Dict[str, Any] = {
+            "id": f"snowflake.metrics.{plugin_name}",
+            "type": "metric_group",
+            "title": f"Snowflake {plugin_title} metrics",
+            "brief": f"Metrics collected by the DSOA {plugin_name} plugin.",
+            "attributes": standard_refs,
+        }
+        groups.append(metric_group)
 
-        if attributes or metric_entries:
-            plugin_title = plugin_name.replace("_", " ").title()
-            group: Dict[str, Any] = {
-                "id": f"snowflake.metrics.{plugin_name}",
-                "type": "metric_group",
-                "title": f"Snowflake {plugin_title} metrics",
-                "brief": f"Metrics and attributes collected by the DSOA {plugin_name} plugin.",
-            }
-            if attributes:
-                group["attributes"] = attributes
-            groups.append(group)
-
-        # Emit metric definitions
-        for key in sorted(metric_entries):
-            groups.append(self._build_metric_node(key, metric_entries[key]))
+        # Individual metric definitions
+        for key in sorted(plugin_metric_entries):
+            groups.append(self._build_metric_node(key, plugin_metric_entries[key]))
 
         return {"groups": groups}
 
