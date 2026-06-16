@@ -9,6 +9,17 @@ All notable changes to this project will be documented in this file.
 >
 > Detailed technical changes and implementation notes are available in the [development log](../.context/devlog/).
 
+## [Unreleased / 1.0.0]
+
+### Added
+
+- **Semantic Dictionary export pipeline** (`build_semantic_export.sh`): generates Semantic
+  Dictionary-compliant YAML from all `instruments-def.yml` files under `build/_semdict/source/`,
+  enabling DSOA telemetry signals to be submitted to the Dynatrace Semantic Dictionary.
+  Fields are classified as `ref` (already in semdict), `new`, `deprecated-alias`, or `otel-only`.
+- **CI semantic validation** (`validate_semantics.sh`): fails if any `instruments-def.yml` entry
+  is missing `__description` or `__example`; warns if metrics lack `__unit`.
+
 ## [0.9.5] - 2026-06-08
 
 ### Added
