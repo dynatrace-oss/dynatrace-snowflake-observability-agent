@@ -1,17 +1,34 @@
 """Export DSOA instruments-def.yml files as Semantic Dictionary-compliant YAML.
 
 Reads all instruments-def.yml files from plugin configuration directories,
-classifies each field by section + optional ``__field_type`` override, and emits
-schema-valid YAML documents under ``build/_semdict/source/``.
+classifies each field using the Semantic Dictionary resource/signal definition
+from ``source/readme.md``, and emits schema-valid YAML documents under
+``build/_semdict/source/``.
 
-Classification::
+SD definition (source/readme.md)::
 
-    dimensions + (no override) → resource_fields (type: resource)
-    dimensions + __field_type: signal → signal_fields (type: span)
-    attributes + (no override) → signal_fields (type: attribute_group)
-    attributes + __field_type: resource → resource_fields (type: resource)
-    metrics → metrics/
-    event_timestamps → model/dsoa/ + signal_fields (timestamp fields)
+    resource field  — describes the *source* of telemetry (host, process,
+                       container). Value STABLE for the lifetime of the resource.
+    signal field    — present on a single signal event (span ID, HTTP URL,
+                       DB statement, query execution status, warehouse name…).
+                       Everything that is not a resource field.
+
+Classification rules::
+
+    key in RESOURCE_ATTRIBUTE_KEYS   → resource_fields  (stable lifetime, on ALL records)
+    __field_type: resource           → resource_fields  (explicit override)
+    __field_type: signal             → signal_fields    (explicit override)
+    all other fields (any section)   → signal_fields    (default — metric dimensions
+                                        like warehouse.name, db.namespace, db.user
+                                        vary per observation, NOT per resource lifetime)
+    metrics section                  → metrics/
+    event_timestamps section         → model/dsoa/ + signal_fields (timestamp fields)
+
+Note on metric dimension resolution:
+    Metric ``attributes:`` lists use DSOA ``dimensions`` section entries (not SD
+    resource classification) because dimensions are the low-cardinality metric-
+    splitting fields.  SD resource/signal classification only governs which
+    *fields file* a field is emitted into — it does not determine metric dims.
 """
 
 #
@@ -120,11 +137,16 @@ _SIG_NS: List[Tuple[str, str, str]] = [
 
 # (prefix, group_id, group_type) for resource fields.
 _RES_NS: List[Tuple[str, str, str]] = [
+    # DSOA execution metadata — always resource (in RESOURCE_ATTRIBUTE_KEYS)
+    ("dsoa", "dsoa", "resource"),
+    ("deployment", "deployment", "resource"),
+    # snowflake.* fields that may be marked __field_type: resource by annotation
+    # (e.g. snowflake.warehouse.size, snowflake.warehouse.type when they describe
+    # a stable property of the warehouse resource rather than per-event context)
     ("snowflake.warehouse", "snowflake.warehouse", "resource"),
     ("snowflake.resource_monitor", "snowflake.resource_monitor", "resource"),
-    ("snowflake.budget", "snowflake.budget", "resource"),
-    ("snowflake.org", "snowflake.account", "resource"),
     ("snowflake.account", "snowflake.account", "resource"),
+    ("snowflake.org", "snowflake.account", "resource"),
     ("db", "db", "resource"),
 ]
 
@@ -211,10 +233,24 @@ def _map_metric_instrument(raw_type: Optional[str]) -> str:
     return mapped
 
 
-def _classify_field(section: str, field_type_override: Optional[str]) -> str:
+def _classify_field(key: str, section: str, field_type_override: Optional[str]) -> str:
     """Determine the SD bucket for a field.
 
+    SD definition (source/readme.md):
+    - Resource field: stable for the **lifetime of the resource** (host, process,
+      container, cloud). Must be present on ALL signals from that resource.
+    - Signal field: present on a single signal event. Everything that does not
+      meet the resource field definition.
+
+    For DSOA the "resource" is the Snowflake account / agent instance.  Only
+    the fields in ``RESOURCE_ATTRIBUTE_KEYS`` (synced with config.py
+    ``RESOURCE_ATTRIBUTES``) are stable for the agent's lifetime.  Metric
+    dimensions such as ``snowflake.warehouse.name``, ``db.namespace``, and
+    ``db.user`` vary per observation — they are signal fields even though
+    DSOA uses them as low-cardinality metric-splitting dimensions.
+
     Args:
+        key:                 Dot-notation field key.
         section:             instruments-def section name.
         field_type_override: Value of ``__field_type`` or None.
 
@@ -225,9 +261,16 @@ def _classify_field(section: str, field_type_override: Optional[str]) -> str:
         return "metric"
     if section == "event_timestamps":
         return "event_timestamp"
-    if section == "dimensions":
-        return "signal" if field_type_override == "signal" else "resource"
-    return "resource" if field_type_override == "resource" else "signal"
+    # Explicit override always wins
+    if field_type_override == "resource":
+        return "resource"
+    if field_type_override == "signal":
+        return "signal"
+    # Keys that are on EVERY DSOA record and stable for the agent lifetime
+    if key in RESOURCE_ATTRIBUTE_KEYS:
+        return "resource"
+    # Everything else — including metric dimensions — is a signal field
+    return "signal"
 
 
 def _ns_group(key: str, ns_map: List[Tuple[str, str, str]], default_id: str, default_type: str) -> Tuple[str, str]:
@@ -469,7 +512,7 @@ class SemanticExporter:
                     log.warning("[%s] %s.%s: __semdict: ref but key not in KNOWN_REFS", plugin_name, section, key)
                 entries[key] = {
                     "section": section, "semdict": semdict_flag, "plugin": plugin_name,
-                    "entry": entry, "classification": _classify_field(section, entry.get("__field_type")),
+                    "entry": entry, "classification": _classify_field(key, section, entry.get("__field_type")),
                 }
         return errors, entries
 
@@ -540,7 +583,15 @@ class SemanticExporter:
         Returns:
             Tuple of (snowflake_resource_doc, dsoa_resource_doc).
         """
-        dsoa_keys = {k: v for k, v in resource_entries.items() if k.startswith("dsoa.") or k.startswith("deployment.")}
+        # Route to dsoa.yaml: DSOA/deployment-namespaced fields + all well-known
+        # resource refs (host.name, service.name, telemetry.exporter.*) that exist
+        # in the SD already.  They belong with the agent identity context, not in
+        # the Snowflake-specific resource file.
+        dsoa_keys = {
+            k: v for k, v in resource_entries.items()
+            if k.startswith("dsoa.") or k.startswith("deployment.")
+            or v["semdict"] == "ref"  # known SD refs go into dsoa.yaml
+        }
         snowflake_keys = {k: v for k, v in resource_entries.items() if k not in dsoa_keys}
 
         sf_groups: Dict[str, Dict[str, Any]] = {}
@@ -633,7 +684,9 @@ class SemanticExporter:
         for _mk, m_meta in metric_entries.items():
             mc_names = set(m_meta["entry"].get("__context_names") or [])
             for dim_key, dim_meta in all_entries.items():
-                if dim_meta["classification"] != "resource":
+                # Interface selection uses DSOA dimensions (section == "dimensions")
+                # not SD classification — same reasoning as metric dim resolution.
+                if dim_meta["section"] != "dimensions":
                     continue
                 dc_names = set(dim_meta["entry"].get("__context_names") or [])
                 # No context_names → globally applicable (e.g. shared dims de-duplicated to first plugin)
@@ -676,7 +729,11 @@ class SemanticExporter:
             dim_refs = []
             for dim_key in sorted(all_entries):
                 dim_meta = all_entries[dim_key]
-                if dim_meta["classification"] != "resource":
+                # Metric attributes: list contains DSOA dimensions (section == "dimensions")
+                # regardless of SD resource/signal classification.  Dimensions are the
+                # low-cardinality metric-splitting fields; attributes section fields are
+                # high-cardinality per-event context and must NOT appear in metrics.
+                if dim_meta["section"] != "dimensions":
                     continue
                 if dim_key in covered:
                     continue

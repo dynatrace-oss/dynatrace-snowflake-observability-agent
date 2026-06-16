@@ -116,32 +116,51 @@ class TestTypeMappings:
 
 
 class TestFieldClassification:
-    """Verify _classify_field produces correct bucket based on section + override."""
+    """Verify _classify_field produces correct bucket based on key + section + override.
 
-    def test_dimension_default_is_resource(self):
-        """dimensions without __field_type override → resource."""
-        assert _classify_field("dimensions", None) == "resource"
+    SD definition (source/readme.md):
+    - resource field: STABLE for the resource lifetime (only RESOURCE_ATTRIBUTE_KEYS qualify)
+    - signal field: everything else — including metric dimensions like warehouse.name, db.user
+    """
+
+    def test_resource_attribute_key_is_resource(self):
+        """Keys in RESOURCE_ATTRIBUTE_KEYS → resource regardless of section."""
+        assert _classify_field("db.system", "dimensions", None) == "resource"
+        assert _classify_field("service.name", "attributes", None) == "resource"
+        assert _classify_field("host.name", "dimensions", None) == "resource"
+        assert _classify_field("dsoa.run.id", "attributes", None) == "resource"
+
+    def test_dimension_default_is_signal(self):
+        """dimensions without __field_type override and not in RESOURCE_ATTRIBUTE_KEYS → signal.
+
+        Metric dimensions (e.g. warehouse.name, db.namespace, db.user) vary per
+        observation — they are signal fields per SD definition even though DSOA
+        uses them for low-cardinality metric splitting.
+        """
+        assert _classify_field("snowflake.warehouse.name", "dimensions", None) == "signal"
+        assert _classify_field("db.namespace", "dimensions", None) == "signal"
+        assert _classify_field("db.user", "dimensions", None) == "signal"
 
     def test_dimension_signal_override(self):
-        """dimensions with __field_type: signal → signal."""
-        assert _classify_field("dimensions", "signal") == "signal"
+        """dimensions with __field_type: signal → signal (explicit override)."""
+        assert _classify_field("snowflake.warehouse.event.name", "dimensions", "signal") == "signal"
 
     def test_attribute_default_is_signal(self):
         """attributes without __field_type override → signal."""
-        assert _classify_field("attributes", None) == "signal"
+        assert _classify_field("snowflake.query.id", "attributes", None) == "signal"
 
     def test_attribute_resource_override(self):
-        """attributes with __field_type: resource → resource."""
-        assert _classify_field("attributes", "resource") == "resource"
+        """attributes with __field_type: resource → resource (explicit override)."""
+        assert _classify_field("snowflake.warehouse.size", "attributes", "resource") == "resource"
 
     def test_metric_always_metric(self):
         """metrics section always → metric regardless of override."""
-        assert _classify_field("metrics", None) == "metric"
-        assert _classify_field("metrics", "signal") == "metric"
+        assert _classify_field("snowflake.credits.used", "metrics", None) == "metric"
+        assert _classify_field("snowflake.credits.used", "metrics", "signal") == "metric"
 
     def test_event_timestamps_classification(self):
         """event_timestamps section → event_timestamp."""
-        assert _classify_field("event_timestamps", None) == "event_timestamp"
+        assert _classify_field("snowflake.user.created_on", "event_timestamps", None) == "event_timestamp"
 
 
 ##endregion
@@ -508,14 +527,21 @@ class TestSemanticExporterMock:
         _, entries = exporter._parse_file("test", minimal)
         assert entries["my.field"]["semdict"] == "new"
 
-    def test_dimension_classified_as_resource(self, tmp_path):
-        """Dimension without __field_type override → classification: resource."""
+    def test_dimension_classified_as_signal(self, tmp_path):
+        """Dimension not in RESOURCE_ATTRIBUTE_KEYS → classification: signal.
+
+        Per SD definition, metric dimensions like snowflake.warehouse.name vary
+        per observation — they are signal fields, not resource fields.
+        """
         exporter = SemanticExporter(repo_root=REPO_ROOT, output_dir=tmp_path / "out")
         _, entries = exporter._parse_file("mock_plugin", MOCK_FIXTURE)
         wh_name = entries.get("snowflake.warehouse.name")
         assert wh_name is not None
         assert wh_name["section"] == "dimensions"
-        assert wh_name["classification"] == "resource"
+        assert wh_name["classification"] == "signal", (
+            "snowflake.warehouse.name is a metric dimension but varies per observation "
+            "— it is a signal field per SD resource/signal definition"
+        )
 
     def test_dimension_signal_override_classified_as_signal(self, tmp_path):
         """Dimension with __field_type: signal → classification: signal."""
