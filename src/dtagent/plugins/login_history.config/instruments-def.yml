@@ -28,26 +28,38 @@ attributes:
       The second factor used for authentication, such as an MFA token,
       or NULL if not applicable.
   authentication.type:
+    __semdict: ref
+    __otel_note: >-
+      semdict enum has allow_custom_values: false (OAUTH2/TOKEN/DEVOPSTOKEN/NONE).
+      DSOA also emits PASSWORD for Snowflake password auth; this is flagged as an open enum extension request.
     __context_names:
       - sessions
     __example: PASSWORD
     __description: The type of authentication used for the session.
   client.application.id:
+    __semdict: new
+    __otel_note: "Snowflake driver metadata; closest OTel analog is service.version (different semantics). Proprietary to DSOA."
     __context_names:
       - sessions
     __example: app123
     __description: The ID of the client application used for the session.
   client.application.version:
+    __semdict: new
+    __otel_note: "Closest OTel analog: service.version (different semantics)."
     __context_names:
       - sessions
     __example: 1.0.0
     __description: The version of the client application used for the session.
   client.build_id:
+    __semdict: new
+    __otel_note: "Closest OTel analog: service.version (different semantics). Proprietary to DSOA."
     __context_names:
       - sessions
     __example: build123
     __description: The build ID of the client application.
   client.environment:
+    __semdict: new
+    __otel_note: "Closest OTel analog: deployment.environment.name (different semantics). Proprietary to DSOA."
     __context_names:
       - sessions
     __example: PRODUCTION
@@ -72,6 +84,7 @@ attributes:
       The error code associated with the login attempt, if it was not
       successful.
   event.id:
+    __semdict: ref
     __context_names:
       - login_history
       - sessions
@@ -84,6 +97,11 @@ attributes:
     __example: "987654321"
     __description: An identifier for a related event, if applicable.
   session.id:
+    __semdict: otel-only
+    __otel_note: >-
+      OTel semconv Development-tier attribute (session namespace). The semdict session.id is
+      model-scoped/internal in code_monitoring only; no global ref available. Emitting as new id:
+      pending global semdict registration.
     __context_names:
       - sessions
     __example: session123

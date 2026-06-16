@@ -16,27 +16,39 @@
 #  * Catalog of instrumentation known to Dynatrace Snowflake Observability Agent
 dimensions:
   db.system:
+    __semdict: ref
     __description: "The database management system (DBMS) product being used. It is always 'snowflake'"
     __example: "snowflake"
   deployment.environment:
+    __semdict: deprecated-alias
+    __otel_replacement: deployment.environment.name
+    __otel_note: >-
+      Renamed from deployment.environment in OTel Semantic Conventions v1.26.
+      Replacement: deployment.environment.name (stable).
     __description: "The deployment environment, e.g., production, staging, or development."
     __example: "PROD"
   deployment.environment.tag:
+    __semdict: new
     __description: "Optional tag for the deployment environment in multitenancy mode"
     __example: "SA080"
   host.name:
+    __semdict: ref
     __description: "The name of the host."
     __example: "mysnowflake.us-east-1.snowflakecomputing.com"
   service.name:
+    __semdict: ref
     __description: "The name of the service."
     __example: "mysnowflake.us-east-1"
   telemetry.exporter.name:
+    __semdict: ref
     __description: "The name of the telemetry exporter. It is always 'dynatrace.snowagent'"
     __example: "dynatrace.snowagent"
   telemetry.exporter.version:
+    __semdict: ref
     __description: "The version of the telemetry exporter."
     __example: "0.8.0.17308403933"
   dsoa.run.context:
+    __semdict: new
     __description:
       "The name of the Dynatrace Snowflake Observability Agent plugin (or part of plugin) used to produce the telemetry (logs, traces,
       metrics, or events)."
@@ -48,14 +60,20 @@ dimensions:
 #  * VALUE[example]       - the example of attribute value
 attributes:
   dsoa.run.id:
+    __semdict: new
     __description:
       "Unique ID of each execution of the Dynatrace Snowflake Observability Agent plugin. It can be used to differentiate between telemetry
       produced between two executions, e.g., to calculate the change in the system."
     __example: "4aa7c76c-e98c-4b8b-a5b3-a8a721bbde2d"
   snowflake.event.type:
+    __semdict: new
     __description: "Type of (timestamp based) event"
     __example: "snowflake.table.update"
   observed_timestamp:
+    __semdict: new
+    __otel_note: >-
+      In OTel Log Data Model, observed_timestamp is a structural field (not an attribute key).
+      Dynatrace normalizes this into the attribute bag for query consistency.
     __description: "The timestamp (in epoch nanoseconds) when the event was observed."
     __example: "1741768500000000000"
 
@@ -66,6 +84,7 @@ attributes:
 #  * VALUE[unit]          - the unit of the metric
 metrics:
   dsoa.agent.memory.peak_rss:
+    __semdict: new
     __description: "Peak resident set size (RSS) of the agent process in megabytes, sampled after each plugin context run."
     __example: "42.5"
     unit: MB

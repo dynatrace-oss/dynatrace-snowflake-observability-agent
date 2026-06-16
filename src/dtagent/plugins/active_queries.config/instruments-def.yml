@@ -24,9 +24,15 @@ attributes:
       - INSERT,
       - UPDATE.
   db.query.text:
+    __semdict: ref
     __example: SELECT * FROM sales_data
     __description: The text of the SQL query.
   session.id:
+    __semdict: otel-only
+    __otel_note: >-
+      OTel semconv Development-tier attribute (session namespace). The semdict session.id is
+      model-scoped/internal in code_monitoring only; no global ref available. Emitting as new id:
+      pending global semdict registration.
     __example: "123456789"
     __description: The unique identifier for the session in which the query was executed.
   snowflake.error.code:
