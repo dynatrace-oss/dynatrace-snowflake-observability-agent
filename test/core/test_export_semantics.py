@@ -39,6 +39,7 @@ from build.export_semantics import (
     SemanticExporter,
     _build_type_node,
     _classify_field,
+    _coerce_attribute_example,
     _emit_id_entry,
     _emit_metric_entry,
     _emit_ref_entry,
@@ -108,6 +109,39 @@ class TestTypeMappings:
     def test_metric_instrument_default_gauge(self):
         """Missing __type defaults to gauge."""
         assert _map_metric_instrument(None) == "gauge"
+
+
+##endregion
+
+
+##region Unit tests — attribute example coercion
+
+
+class TestAttributeExampleCoercion:
+    """Verify _coerce_attribute_example handles Python bool and other types correctly."""
+
+    def test_bool_true_produces_lowercase_true(self):
+        """Python True (from YAML true) → 'true' (lowercase, per semconv)."""
+        assert _coerce_attribute_example(True) == "true"
+
+    def test_bool_false_produces_lowercase_false(self):
+        """Python False (from YAML false) → 'false' (lowercase, per semconv)."""
+        assert _coerce_attribute_example(False) == "false"
+
+    def test_string_passthrough(self):
+        """String examples pass through unchanged (stripped)."""
+        assert _coerce_attribute_example("  hello  ") == "hello"
+
+    def test_int_to_string(self):
+        """Integer examples are converted to string."""
+        assert _coerce_attribute_example(42) == "42"
+
+    def test_emit_id_entry_boolean_example_lowercase(self):
+        """_emit_id_entry with __type: boolean and __example: true produces 'true' in examples."""
+        entry = {"__semdict": "new", "__type": "boolean", "__description": "Is active.", "__example": True}
+        node = _emit_id_entry("snowflake.resource_monitor.is_active", entry, "new")
+        assert node["type"] == "boolean"
+        assert node["examples"] == ["true"], "boolean True must emit as lowercase 'true'"
 
 
 ##endregion

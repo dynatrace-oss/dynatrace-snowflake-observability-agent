@@ -57,7 +57,8 @@ attributes:
           value: NEVER
           brief: Resource monitor does not reset automatically.
   snowflake.resource_monitor.is_active:
-    __example: "true"
+    __type: boolean
+    __example: true
     __description: Indicates if the resource monitor is active.
   snowflake.resource_monitor.level:
     __field_type: resource
@@ -116,24 +117,30 @@ attributes:
           brief: Warehouse is scaling to a new per-cluster size; running queries continue on the current size until resizing completes.
   snowflake.warehouse.has_query_acceleration_enabled:
     __field_type: resource
-    __example: "true"
+    __type: boolean
+    __example: true
     __description: Indicates if query acceleration is enabled for the warehouse.
   snowflake.warehouse.is_auto_resume:
     __field_type: resource
-    __example: "true"
+    __type: boolean
+    __example: true
     __description: Indicates if the warehouse is set to auto-resume.
   snowflake.warehouse.is_auto_suspend:
     __field_type: resource
-    __example: "true"
+    __type: boolean
+    __example: true
     __description: Indicates if the warehouse is set to auto-suspend.
   snowflake.warehouse.is_current:
-    __example: "true"
+    __type: boolean
+    __example: true
     __description: Indicates if the warehouse is the current warehouse.
   snowflake.warehouse.is_default:
-    __example: "true"
+    __type: boolean
+    __example: true
     __description: Indicates if the warehouse is the default warehouse.
   snowflake.warehouse.is_unmonitored:
-    __example: "true"
+    __type: boolean
+    __example: true
     __description: Indicates if the warehouse is NOT monitored by a resource monitor.
   snowflake.warehouse.owner:
     __field_type: resource

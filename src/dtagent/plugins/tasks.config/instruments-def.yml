@@ -80,7 +80,8 @@ attributes:
   snowflake.task.config.allow_overlap:
     __context_names:
       - task_versions
-    __example: "true"
+    __type: boolean
+    __example: true
     __description: Indicates if overlapping execution is allowed.
   snowflake.task.end_time:
     __context_names:

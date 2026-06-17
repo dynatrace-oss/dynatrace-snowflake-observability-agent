@@ -517,7 +517,11 @@ def _emit_id_entry(key: str, entry: Dict[str, Any], semdict_flag: str) -> Dict[s
     example_raw = entry.get("__example", "")
     if example_raw is None:
         example_raw = ""
-    examples = [str(example_raw).strip()] if not isinstance(example_raw, list) else [str(e).strip() for e in example_raw]
+    examples = (
+        [_coerce_attribute_example(example_raw)]
+        if not isinstance(example_raw, list)
+        else [_coerce_attribute_example(e) for e in example_raw]
+    )
     node: Dict[str, Any] = {
         "id": key,
         "display_name": _make_display_name(key),
@@ -559,6 +563,24 @@ def _coerce_metric_example(value: Any) -> Any:
         return int(as_str)
     except (ValueError, TypeError):
         return value
+
+
+def _coerce_attribute_example(value: Any) -> str:
+    """Coerce an attribute example value to a string suitable for semconv ``examples:``.
+
+    Handles Python booleans produced by YAML ``true``/``false`` scalars so that
+    ``True`` → ``"true"`` and ``False`` → ``"false"`` (lowercase, per semconv convention).
+    All other values are converted with ``str()``.
+
+    Args:
+        value: Raw example value from instruments-def.
+
+    Returns:
+        String representation of the example.
+    """
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    return str(value).strip()
 
 
 def _emit_metric_entry(key: str, entry: Dict[str, Any]) -> Dict[str, Any]:

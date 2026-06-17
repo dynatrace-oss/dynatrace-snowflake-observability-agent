@@ -68,7 +68,8 @@ attributes:
       - users
     __description: The expiration date of the user account.
   snowflake.user.ext_authn.duo:
-    __example: "true"
+    __type: boolean
+    __example: true
     __context_names:
       - users
     __description: Indicates if Duo authentication is enabled for the user.
@@ -78,27 +79,32 @@ attributes:
       - users
     __description: The external authentication UID for the user.
   snowflake.user.has_mfa:
-    __example: "true"
+    __type: boolean
+    __example: true
     __context_names:
       - users
     __description: Indicates if the user is enrolled for multi-factor authentication.
   snowflake.user.has_password:
-    __example: "true"
+    __type: boolean
+    __example: true
     __context_names:
       - users
     __description: Indicates if the user has a password set.
   snowflake.user.has_pat:
-    __example: "true"
+    __type: boolean
+    __example: true
     __context_names:
       - users
     __description: Indicates if a programmatic access token has been generated for the user.
   snowflake.user.has_rsa:
-    __example: "true"
+    __type: boolean
+    __example: true
     __context_names:
       - users
     __description: Indicates if RSA public key authentication is configured for the user.
   snowflake.user.has_workload_identity:
-    __example: "true"
+    __type: boolean
+    __example: true
     __context_names:
       - users
     __description: Indicates if workload identity federation is configured for the user.
@@ -108,17 +114,20 @@ attributes:
       - users
     __description: The unique identifier for the user.
   snowflake.user.is_disabled:
-    __example: "false"
+    __type: boolean
+    __example: false
     __context_names:
       - users
     __description: Indicates if the user account is disabled.
   snowflake.user.is_locked:
-    __example: "false"
+    __type: boolean
+    __example: false
     __context_names:
       - users
     __description: Indicates if the user account is locked by Snowflake.
   snowflake.user.is_from_organization:
-    __example: "true"
+    __type: boolean
+    __example: true
     __context_names:
       - users
     __description: Indicates if the user was imported from a global organization.
@@ -128,7 +137,8 @@ attributes:
       - users
     __description: The time until which the user account is locked.
   snowflake.user.must_change_password:
-    __example: "true"
+    __type: boolean
+    __example: true
     __context_names:
       - users
     __description: Indicates if the user must change their password.
