@@ -41,16 +41,18 @@ attributes:
       members:
         - id: daily
           value: DAILY
-          brief: Resource monitor resets daily.
+          brief: Credit usage counter resets to zero at 12:00 AM UTC each day from the configured start date.
         - id: weekly
           value: WEEKLY
-          brief: Resource monitor resets weekly.
+          brief: Credit usage counter resets to zero at 12:00 AM UTC each week on the same weekday as the configured start date.
         - id: monthly
           value: MONTHLY
-          brief: Resource monitor resets monthly.
+          brief: >-
+            Credit usage counter resets to zero at 12:00 AM UTC on the same day of each month as the configured start date;
+            default frequency.
         - id: yearly
           value: YEARLY
-          brief: Resource monitor resets yearly.
+          brief: Credit usage counter resets to zero once per year on the anniversary of the configured start date.
         - id: never
           value: NEVER
           brief: Resource monitor does not reset automatically.
@@ -66,7 +68,9 @@ attributes:
       members:
         - id: account
           value: ACCOUNT
-          brief: Resource monitor applies at the account level.
+          brief: >-
+            Monitors aggregate credit consumption across all warehouses in the account;
+            only one account-level monitor may exist per account.
         - id: warehouse
           value: WAREHOUSE
           brief: Resource monitor applies at the warehouse level.
@@ -93,21 +97,23 @@ attributes:
     __enum:
       allow_custom_values: true
       members:
-        - id: running
-          value: RUNNING
-          brief: Warehouse is running.
-        - id: suspended
-          value: SUSPENDED
-          brief: Warehouse is suspended.
-        - id: resuming
-          value: RESUMING
-          brief: Warehouse is resuming.
-        - id: suspending
-          value: SUSPENDING
-          brief: Warehouse is suspending.
         - id: started
           value: STARTED
-          brief: Warehouse has started.
+          brief: Compute resources provisioned and warehouse is initialising after a CREATE or RESUME operation.
+        - id: suspended
+          value: SUSPENDED
+          brief: All compute resources deallocated; no credits consumed. Auto-resumes on next query submission if AUTO_RESUME is enabled.
+        - id: resuming
+          value: RESUMING
+          brief: Compute resources being provisioned; submitted queries are queued until provisioning completes.
+        - id: suspending
+          value: SUSPENDING
+          brief: >-
+            Completing in-flight queries before deallocating compute resources;
+            credits continue to accrue until suspension is complete.
+        - id: resizing
+          value: RESIZING
+          brief: Warehouse is scaling to a new per-cluster size; running queries continue on the current size until resizing completes.
   snowflake.warehouse.has_query_acceleration_enabled:
     __field_type: resource
     __example: "true"
@@ -146,7 +152,9 @@ attributes:
       members:
         - id: standard
           value: STANDARD
-          brief: Standard scaling policy.
+          brief: >-
+            "Prioritises query throughput: adds a new cluster immediately when any query is queued,
+            ensuring minimal queue time at the cost of higher credit consumption. Default policy."
         - id: economy
           value: ECONOMY
           brief: Economy scaling policy (slower to scale up, saves credits).
@@ -159,34 +167,34 @@ attributes:
       members:
         - id: x_small
           value: X-SMALL
-          brief: X-Small warehouse.
+          brief: Smallest warehouse size; 1 credit/hour. Default size when creating a warehouse via SQL or Snowsight.
         - id: small
           value: SMALL
-          brief: Small warehouse.
+          brief: 2 credits/hour; double the compute resources of X-Small.
         - id: medium
           value: MEDIUM
-          brief: Medium warehouse.
+          brief: 4 credits/hour; suited for moderate-complexity queries and concurrent workloads.
         - id: large
           value: LARGE
-          brief: Large warehouse.
+          brief: 8 credits/hour; provides substantially more compute resources per cluster for complex queries.
         - id: x_large
           value: X-LARGE
-          brief: X-Large warehouse.
+          brief: 16 credits/hour; suitable for large-scale ETL and analytics.
         - id: x2_large
           value: 2X-LARGE
-          brief: 2X-Large warehouse.
+          brief: 32 credits/hour; credit consumption doubles at each step from X-Large.
         - id: x3_large
           value: 3X-LARGE
-          brief: 3X-Large warehouse.
+          brief: 64 credits/hour.
         - id: x4_large
           value: 4X-LARGE
-          brief: 4X-Large warehouse.
+          brief: 128 credits/hour.
         - id: x5_large
           value: 5X-LARGE
-          brief: 5X-Large warehouse.
+          brief: 256 credits/hour; generally available on AWS and Azure.
         - id: x6_large
           value: 6X-LARGE
-          brief: 6X-Large warehouse.
+          brief: 512 credits/hour; largest available size, generally available on AWS and Azure.
   snowflake.warehouse.type:
     __field_type: resource
     __example: STANDARD
@@ -199,7 +207,9 @@ attributes:
           brief: Standard multi-cluster warehouse.
         - id: snowpark_optimized
           value: SNOWPARK_OPTIMIZED
-          brief: Warehouse optimized for Snowpark workloads.
+          brief: >-
+            Single-node warehouse with configurable high-memory nodes (16x–64x vs standard) and
+            CPU architecture options; recommended for ML training and memory-intensive UDFs and stored procedures.
   snowflake.warehouses.names:
     __example: COMPUTE_WH
     __description: The names of the warehouses monitored.

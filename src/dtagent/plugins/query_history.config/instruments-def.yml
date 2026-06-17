@@ -111,19 +111,21 @@ attributes:
       members:
         - id: table
           value: Table
-          brief: Snowflake table.
+          brief: >-
+            A base, temporary, or external table object that stores or references tabular data,
+            as reported in ACCESS_HISTORY.OBJECT_MODIFIED_BY_DDL.
         - id: view
           value: View
-          brief: Snowflake view.
+          brief: A standard or secure view object whose definition is stored as a query and evaluated at access time.
         - id: schema
           value: Schema
-          brief: Snowflake schema.
+          brief: A namespace container within a database used to group tables, views, and other objects.
         - id: database
           value: Database
-          brief: Snowflake database.
+          brief: The top-level namespace container in Snowflake; groups schemas and all their child objects.
         - id: procedure
           value: Procedure
-          brief: Stored procedure.
+          brief: A callable stored procedure object encapsulating SQL or Snowpark logic that can be invoked via CALL.
   snowflake.object.id:
     __example: 1234567890
     __description: |
@@ -150,19 +152,19 @@ attributes:
       members:
         - id: create
           value: CREATE
-          brief: CREATE DDL operation.
+          brief: Creates a new database object; when used as CREATE OR REPLACE, atomically drops and recreates.
         - id: alter
           value: ALTER
-          brief: ALTER DDL operation.
+          brief: Modifies the properties or definition of an existing database object without recreating it.
         - id: drop
           value: DROP
-          brief: DROP DDL operation.
+          brief: Removes a database object; for tables, data enters Fail-safe and can be recovered via UNDROP within the retention period.
         - id: undrop
           value: UNDROP
-          brief: UNDROP (restore) DDL operation.
+          brief: Restores a previously dropped table, schema, or database from Fail-safe within the Time Travel retention window.
         - id: replace
           value: REPLACE
-          brief: REPLACE DDL operation.
+          brief: Equivalent to CREATE OR REPLACE; atomically drops and recreates the object, resetting its definition.
   snowflake.object.ddl.properties:
     __example: '{"WAREHOUSE_SIZE": {"value": "LARGE"}, "AUTO_SUSPEND": {"value": 600}}'
     __description: |
@@ -317,34 +319,34 @@ attributes:
       members:
         - id: x_small
           value: X-SMALL
-          brief: X-Small warehouse.
+          brief: Smallest warehouse size; 1 credit/hour. Default size when creating a warehouse via SQL or Snowsight.
         - id: small
           value: SMALL
-          brief: Small warehouse.
+          brief: 2 credits/hour; double the compute resources of X-Small.
         - id: medium
           value: MEDIUM
-          brief: Medium warehouse.
+          brief: 4 credits/hour; suited for moderate-complexity queries and concurrent workloads.
         - id: large
           value: LARGE
-          brief: Large warehouse.
+          brief: 8 credits/hour; provides substantially more compute resources per cluster for complex queries.
         - id: x_large
           value: X-LARGE
-          brief: X-Large warehouse.
+          brief: 16 credits/hour; suitable for large-scale ETL and analytics.
         - id: x2_large
           value: 2X-LARGE
-          brief: 2X-Large warehouse.
+          brief: 32 credits/hour; credit consumption doubles at each step from X-Large.
         - id: x3_large
           value: 3X-LARGE
-          brief: 3X-Large warehouse.
+          brief: 64 credits/hour.
         - id: x4_large
           value: 4X-LARGE
-          brief: 4X-Large warehouse.
+          brief: 128 credits/hour.
         - id: x5_large
           value: 5X-LARGE
-          brief: 5X-Large warehouse.
+          brief: 256 credits/hour; generally available on AWS and Azure.
         - id: x6_large
           value: 6X-LARGE
-          brief: 6X-Large warehouse.
+          brief: 512 credits/hour; largest available size, generally available on AWS and Azure.
   snowflake.warehouse.type:
     __example: STANDARD
     __description: The type of warehouse used.
@@ -356,7 +358,9 @@ attributes:
           brief: Standard multi-cluster warehouse.
         - id: snowpark_optimized
           value: SNOWPARK_OPTIMIZED
-          brief: Warehouse optimized for Snowpark workloads.
+          brief: >-
+            Single-node warehouse with configurable high-memory nodes (16x–64x vs standard) and
+            CPU architecture options; recommended for ML training and memory-intensive UDFs and stored procedures.
 dimensions:
   snowflake.query.hash:
     __example: abc123
@@ -384,40 +388,44 @@ dimensions:
       members:
         - id: select
           value: SELECT
-          brief: SELECT query.
+          brief: Read-only query that retrieves rows from one or more tables or views without modifying data.
         - id: insert
           value: INSERT
-          brief: INSERT statement.
+          brief: Adds one or more rows to a table; can be a single-row VALUES insert or a bulk INSERT...SELECT.
         - id: update
           value: UPDATE
-          brief: UPDATE statement.
+          brief: Modifies column values in existing rows matching a WHERE condition.
         - id: delete
           value: DELETE
-          brief: DELETE statement.
+          brief: Removes rows from a table matching a WHERE condition.
         - id: merge
           value: MERGE
-          brief: MERGE statement.
+          brief: >-
+            Conditionally INSERT, UPDATE, or DELETE rows in a target table based on a join with a source,
+            enabling upsert patterns in a single atomic operation.
         - id: create
           value: CREATE
-          brief: CREATE DDL statement.
+          brief: Creates a new database object (table, view, schema, etc.); when used as CREATE OR REPLACE, atomically drops and recreates.
         - id: alter
           value: ALTER
-          brief: ALTER DDL statement.
+          brief: Modifies the properties or definition of an existing database object without recreating it.
         - id: drop
           value: DROP
-          brief: DROP DDL statement.
+          brief: Removes a database object; for tables, data may still be recoverable via UNDROP within the Time Travel retention period.
         - id: grant
           value: GRANT
-          brief: GRANT statement.
+          brief: Assigns one or more privileges on a securable object to a role, enabling access control in Snowflake's RBAC model.
         - id: revoke
           value: REVOKE
-          brief: REVOKE statement.
+          brief: Removes previously granted privileges on a securable object from a role.
         - id: call
           value: CALL
           brief: CALL stored procedure.
         - id: copy
           value: COPY
-          brief: COPY INTO statement.
+          brief: >-
+            Bulk-loads data from internal or external stages into a table, or unloads table data to a stage;
+            Snowflake's primary batch data ingestion mechanism.
         - id: put
           value: PUT
           brief: PUT file command.
@@ -438,13 +446,25 @@ dimensions:
       members:
         - id: success
           value: SUCCESS
-          brief: Query executed successfully.
+          brief: Query completed without errors; result is available in the result cache.
         - id: fail
           value: FAIL
-          brief: Query execution failed.
-        - id: incident_queue
-          value: INCIDENT_QUEUE
-          brief: Query was queued due to an incident.
+          brief: Query failed due to a user-actionable error (e.g. syntax error, insufficient privileges).
+        - id: failed_with_error
+          value: FAILED_WITH_ERROR
+          brief: Query failed due to an internal Snowflake error unrelated to user input; retrying the statement may succeed.
+        - id: incident
+          value: INCIDENT
+          brief: Query was aborted or interrupted by a Snowflake platform incident; not caused by user error or warehouse load.
+        - id: queued
+          value: QUEUED
+          brief: Query is waiting in the warehouse queue due to concurrency limits or cluster provisioning.
+        - id: resuming_warehouse
+          value: RESUMING_WAREHOUSE
+          brief: Query is waiting for the warehouse to resume from a suspended state before execution can begin.
+        - id: running
+          value: RUNNING
+          brief: Query is actively executing on the warehouse compute resources.
   snowflake.role.name:
     __example: SYSADMIN
     __description: The role used to execute the query.
@@ -465,13 +485,19 @@ dimensions:
           brief: Human interactive user.
         - id: service
           value: SERVICE
-          brief: Programmatic service user.
+          brief: >-
+            Non-interactive integration user; cannot authenticate via password or SAML, cannot enroll in MFA.
+            Recommended for all automated service accounts.
         - id: legacy_service
           value: LEGACY_SERVICE
-          brief: Legacy service account.
+          brief: >-
+            Non-interactive integration user that, unlike SERVICE, still permits password and SAML authentication.
+            Deprecated — migrate to SERVICE type.
         - id: snowflake_service
           value: SNOWFLAKE_SERVICE
-          brief: Snowpark Container Services user.
+          brief: >-
+            System-managed user automatically created for each Snowpark Container Services (SPCS) service;
+            cannot be created or converted by administrators.
 metrics:
   snowflake.cost_attribution.query_count:
     __example: "42"

@@ -165,13 +165,19 @@ attributes:
           brief: Human interactive user.
         - id: service
           value: SERVICE
-          brief: Programmatic service user.
+          brief: >-
+            Non-interactive integration user; cannot authenticate via password or SAML, cannot enroll in MFA.
+            Recommended for all automated service accounts.
         - id: legacy_service
           value: LEGACY_SERVICE
-          brief: Legacy service account.
+          brief: >-
+            Non-interactive integration user that, unlike SERVICE, still permits password and SAML authentication.
+            Deprecated — migrate to SERVICE type.
         - id: snowflake_service
           value: SNOWFLAKE_SERVICE
-          brief: Snowpark Container Services user.
+          brief: >-
+            System-managed user automatically created for each Snowpark Container Services (SPCS) service;
+            cannot be created or converted by administrators.
   snowflake.user.privilege:
     __example: "CREATE SERVICE:SCHEMA"
     __context_names:

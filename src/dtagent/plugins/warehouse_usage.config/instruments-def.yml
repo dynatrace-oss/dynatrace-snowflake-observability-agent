@@ -50,18 +50,21 @@ attributes:
     __enum:
       allow_custom_values: true
       members:
-        - id: user_request
-          value: USER_REQUEST
-          brief: Event was triggered by a user request.
-        - id: auto_suspend
-          value: AUTO_SUSPEND
-          brief: Event was triggered by auto-suspend policy.
-        - id: auto_resume
-          value: AUTO_RESUME
-          brief: Event was triggered by auto-resume policy.
-        - id: scheduler
-          value: SCHEDULER
-          brief: Event was triggered by the scheduler.
+        - id: resource_monitor_suspend
+          value: RESOURCE_MONITOR_SUSPEND
+          brief: Warehouse was suspended because a resource monitor reached its SUSPEND or SUSPEND_IMMEDIATE threshold.
+        - id: warehouse_autoresume
+          value: WAREHOUSE_AUTORESUME
+          brief: Warehouse resumed automatically because AUTO_RESUME is enabled and a SQL statement was submitted while suspended.
+        - id: warehouse_autosuspend
+          value: WAREHOUSE_AUTOSUSPEND
+          brief: Warehouse suspended automatically after the configured AUTO_SUSPEND inactivity period elapsed.
+        - id: warehouse_resume
+          value: WAREHOUSE_RESUME
+          brief: Warehouse was resumed explicitly via ALTER WAREHOUSE RESUME or a user-initiated action.
+        - id: warehouse_suspend
+          value: WAREHOUSE_SUSPEND
+          brief: Warehouse was suspended explicitly via ALTER WAREHOUSE SUSPEND or a user-initiated action.
   snowflake.warehouse.id:
     __field_type: resource
     __context_names:
@@ -81,34 +84,34 @@ attributes:
       members:
         - id: x_small
           value: X-SMALL
-          brief: X-Small warehouse.
+          brief: Smallest warehouse size; 1 credit/hour. Default size when creating a warehouse via SQL or Snowsight.
         - id: small
           value: SMALL
-          brief: Small warehouse.
+          brief: 2 credits/hour; double the compute resources of X-Small.
         - id: medium
           value: MEDIUM
-          brief: Medium warehouse.
+          brief: 4 credits/hour; suited for moderate-complexity queries and concurrent workloads.
         - id: large
           value: LARGE
-          brief: Large warehouse.
+          brief: 8 credits/hour; provides substantially more compute resources per cluster for complex queries.
         - id: x_large
           value: X-LARGE
-          brief: X-Large warehouse.
+          brief: 16 credits/hour; suitable for large-scale ETL and analytics.
         - id: x2_large
           value: 2X-LARGE
-          brief: 2X-Large warehouse.
+          brief: 32 credits/hour; credit consumption doubles at each step from X-Large.
         - id: x3_large
           value: 3X-LARGE
-          brief: 3X-Large warehouse.
+          brief: 64 credits/hour.
         - id: x4_large
           value: 4X-LARGE
-          brief: 4X-Large warehouse.
+          brief: 128 credits/hour.
         - id: x5_large
           value: 5X-LARGE
-          brief: 5X-Large warehouse.
+          brief: 256 credits/hour; generally available on AWS and Azure.
         - id: x6_large
           value: 6X-LARGE
-          brief: 6X-Large warehouse.
+          brief: 512 credits/hour; largest available size, generally available on AWS and Azure.
 dimensions:
   snowflake.warehouse.event.name:
     __field_type: signal
@@ -119,18 +122,30 @@ dimensions:
     __enum:
       allow_custom_values: true
       members:
-        - id: warehouse_start
-          value: WAREHOUSE_START
-          brief: Warehouse was started.
-        - id: warehouse_suspend
-          value: WAREHOUSE_SUSPEND
-          brief: Warehouse was suspended.
-        - id: warehouse_resume
-          value: WAREHOUSE_RESUME
-          brief: Warehouse was resumed.
-        - id: resize_warehouse
-          value: RESIZE_WAREHOUSE
-          brief: Warehouse was resized.
+        - id: alter_warehouse
+          value: ALTER_WAREHOUSE
+          brief: A warehouse property was modified via ALTER WAREHOUSE (e.g. size, auto-suspend timeout, comment).
+        - id: create_warehouse
+          value: CREATE_WAREHOUSE
+          brief: A new virtual warehouse was created.
+        - id: drop_warehouse
+          value: DROP_WAREHOUSE
+          brief: A virtual warehouse was dropped and its compute resources released.
+        - id: resume_cluster
+          value: RESUME_CLUSTER
+          brief: An individual cluster within a multi-cluster warehouse was resumed to meet increased demand.
+        - id: resume_warehouse
+          value: RESUME_WAREHOUSE
+          brief: The warehouse transitioned from SUSPENDED to STARTED, reprovisioning compute resources.
+        - id: suspend_cluster
+          value: SUSPEND_CLUSTER
+          brief: An individual cluster within a multi-cluster warehouse was suspended due to reduced demand.
+        - id: suspend_warehouse
+          value: SUSPEND_WAREHOUSE
+          brief: The warehouse transitioned from STARTED to SUSPENDED, deallocating all compute resources.
+        - id: warehouse_consistent
+          value: WAREHOUSE_CONSISTENT
+          brief: All pending state changes for the warehouse have settled; emitted as the final event in a multi-step operation sequence.
   snowflake.warehouse.event.state:
     __field_type: signal
     __context_names:
@@ -142,13 +157,10 @@ dimensions:
       members:
         - id: started
           value: STARTED
-          brief: Event has started.
+          brief: The warehouse operation has been initiated and is in progress; a COMPLETED or further STARTED event will follow.
         - id: completed
           value: COMPLETED
-          brief: Event has completed.
-        - id: failed
-          value: FAILED
-          brief: Event has failed.
+          brief: The warehouse operation completed atomically with no further pending state changes.
   snowflake.warehouse.name:
     __context_names:
       - warehouse_usage

@@ -36,20 +36,43 @@ dimensions:
     __example: "SA080"
   host.name:
     __semdict: ref
-    __description: "The name of the host."
-    __example: "mysnowflake.us-east-1.snowflakecomputing.com"
+    __description: >-
+      Name of the host. On Unix systems, it may contain what the hostname command returns, or the fully qualified
+      hostname, or another name specified by the user. In DSOA, this is always the fully qualified Snowflake account
+      hostname ending in '.snowflakecomputing.com'. Resolved in order: explicit 'core.snowflake.host_name' config →
+      derived from account_name → auto-detected via CURRENT_ORGANIZATION_NAME()||'-'||CURRENT_ACCOUNT_NAME(). Also
+      used as event.provider in DSOA self-monitoring bizevents.
+    __example: "myorg-myaccount.snowflakecomputing.com"
   service.name:
     __semdict: ref
-    __description: "The name of the service."
-    __example: "mysnowflake.us-east-1"
+    __description: >-
+      Logical name of the service. MUST be the same for all instances of horizontally scaled services. In DSOA, this
+      is always the Snowflake account identifier without the '.snowflakecomputing.com' suffix — either
+      'orgname-accountname' (new-style) or 'accountlocator.region' (legacy). Derived from the same resolution chain
+      as host.name; functionally equivalent to host.name minus the domain suffix. Operators cannot set an arbitrary
+      service name — this is always the Snowflake account identity.
+    __example: "myorg-myaccount"
   telemetry.exporter.name:
     __semdict: ref
-    __description: "The name of the telemetry exporter. It is always 'dynatrace.snowagent'"
+    __semdict_note: >-
+      Dynatrace-proprietary field; no equivalent exists in OpenTelemetry Semantic Conventions.
+      This field identifies DSOA as the specific Dynatrace agent responsible for the telemetry.
+    __description: >-
+      The name of the telemetry exporter. In DSOA, this is a hard-coded compile-time constant; operators cannot change
+      this value. Always 'dynatrace.snowagent'. Used by Dynatrace ingestion for routing and attribution. Distinct from
+      the HTTP User-Agent header (dsoa/<version>) sent by DSOA in OTLP requests.
     __example: "dynatrace.snowagent"
   telemetry.exporter.version:
     __semdict: ref
-    __description: "The version of the telemetry exporter."
-    __example: "0.8.0.17308403933"
+    __semdict_note: >-
+      Dynatrace-proprietary field; no equivalent exists in OpenTelemetry Semantic Conventions.
+      This field carries the full DSOA build identity including CI pipeline run number.
+    __description: >-
+      The version of the telemetry exporter. In DSOA, this is always the build version of DSOA in four-part format:
+      '<major>.<minor>.<patch>.<ci-build-number>'. The build number is a CI pipeline run number baked in at compile
+      time; it is '0' in unbuilt/development deployments. Compile-time immutable — operators cannot configure this
+      value.
+    __example: "1.0.0.1234567890"
   dsoa.run.context:
     __semdict: new
     __description:
