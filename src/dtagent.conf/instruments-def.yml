@@ -17,19 +17,17 @@
 dimensions:
   db.system:
     __semdict: otel-only
-    __otel_note: >-
-      Defined in OpenTelemetry Semantic Conventions (db.system, stable) but not yet present
-      as a globally referenceable field in the Dynatrace Semantic Dictionary. Emitting as
-      a new id: definition here so DSOA can declare it properly. The value for Snowflake
-      is always 'snowflake'.
+    __semdict_note: >-
+      Defined in OpenTelemetry Semantic Conventions (db.system, stable) but not yet present as a globally referenceable field in the
+      Dynatrace Semantic Dictionary. Emitting as a new id: definition here so DSOA can declare it properly. The value for Snowflake is
+      always 'snowflake'.
     __description: "The database management system (DBMS) product being used. It is always 'snowflake'"
     __example: "snowflake"
   deployment.environment:
     __semdict: deprecated-alias
     __otel_replacement: deployment.environment.name
-    __otel_note: >-
-      Renamed from deployment.environment in OTel Semantic Conventions v1.26.
-      Replacement: deployment.environment.name (stable).
+    __semdict_note: >-
+      Renamed from deployment.environment in OTel Semantic Conventions v1.26. Replacement: deployment.environment.name (stable).
     __description: "The deployment environment, e.g., production, staging, or development."
     __example: "PROD"
   deployment.environment.tag:
@@ -38,26 +36,57 @@ dimensions:
     __example: "SA080"
   host.name:
     __semdict: ref
-    __description: "The name of the host."
-    __example: "mysnowflake.us-east-1.snowflakecomputing.com"
+    __description: >-
+      Name of the host. On Unix systems, it may contain what the hostname command returns, or the fully qualified
+      hostname, or another name specified by the user. In DSOA, this is always the fully qualified Snowflake account
+      hostname ending in '.snowflakecomputing.com'. Resolved in order: explicit 'core.snowflake.host_name' config →
+      derived from account_name → auto-detected via CURRENT_ORGANIZATION_NAME()||'-'||CURRENT_ACCOUNT_NAME(). Also
+      used as event.provider in DSOA self-monitoring bizevents.
+    __example: "myorg-myaccount.snowflakecomputing.com"
   service.name:
     __semdict: ref
-    __description: "The name of the service."
-    __example: "mysnowflake.us-east-1"
+    __description: >-
+      Logical name of the service. MUST be the same for all instances of horizontally scaled services. In DSOA, this
+      is always the Snowflake account identifier without the '.snowflakecomputing.com' suffix — either
+      'orgname-accountname' (new-style) or 'accountlocator.region' (legacy). Derived from the same resolution chain
+      as host.name; functionally equivalent to host.name minus the domain suffix. Operators cannot set an arbitrary
+      service name — this is always the Snowflake account identity.
+    __example: "myorg-myaccount"
   telemetry.exporter.name:
     __semdict: ref
-    __description: "The name of the telemetry exporter. It is always 'dynatrace.snowagent'"
+    __semdict_note: >-
+      Dynatrace-proprietary field; no equivalent exists in OpenTelemetry Semantic Conventions.
+      This field identifies DSOA as the specific Dynatrace agent responsible for the telemetry.
+    __description: >-
+      The name of the telemetry exporter. In DSOA, this is a hard-coded compile-time constant; operators cannot change
+      this value. Always 'dynatrace.snowagent'. Used by Dynatrace ingestion for routing and attribution. Distinct from
+      the HTTP User-Agent header (dsoa/<version>) sent by DSOA in OTLP requests.
     __example: "dynatrace.snowagent"
   telemetry.exporter.version:
     __semdict: ref
-    __description: "The version of the telemetry exporter."
-    __example: "0.8.0.17308403933"
+    __semdict_note: >-
+      Dynatrace-proprietary field; no equivalent exists in OpenTelemetry Semantic Conventions.
+      This field carries the full DSOA build identity including CI pipeline run number.
+    __description: >-
+      The version of the telemetry exporter. In DSOA, this is always the build version of DSOA in four-part format:
+      '<major>.<minor>.<patch>.<ci-build-number>'. The build number is a CI pipeline run number baked in at compile
+      time; it is '0' in unbuilt/development deployments. Compile-time immutable — operators cannot configure this
+      value.
+    __example: "1.0.0.1234567890"
   dsoa.run.context:
     __semdict: new
     __description:
-      "The name of the Dynatrace Snowflake Observability Agent plugin (or part of plugin) used to produce the telemetry (logs, traces,
-      metrics, or events)."
-    __example: "query_history"
+      "The name of the Dynatrace Snowflake Observability Agent context (part of plugin) used to produce the telemetry (logs, traces,
+      metrics, or events). In case of multiple contexts within the same plugin, this helps differentiate between them. If plugin delivers
+      only one context, this field will have the same value as the plugin name."
+    __example: "users_all_roles"
+  dsoa.run.plugin:
+    __semdict: new
+    __field_type: resource
+    __description:
+      "The name of the DSOA plugin that produced this telemetry. Use to filter all telemetry from a specific plugin (e.g., 'query_history',
+      'warehouse_usage'). Distinct from dsoa.run.context, which may represent a sub-context within a plugin."
+    __example: "users"
 #  * Attribute definitions
 #  * KEY                  - will be matched against ATTRIBUTES object with measurements prepared for sending
 #  * VALUE[description]   - description of the attributes -
@@ -76,9 +105,9 @@ attributes:
     __example: "snowflake.table.update"
   observed_timestamp:
     __semdict: new
-    __otel_note: >-
-      In OTel Log Data Model, observed_timestamp is a structural field (not an attribute key).
-      Dynatrace normalizes this into the attribute bag for query consistency.
+    __semdict_note: >-
+      In OTel Log Data Model, observed_timestamp is a structural field (not an attribute key). Dynatrace normalizes this into the attribute
+      bag for query consistency.
     __description: "The timestamp (in epoch nanoseconds) when the event was observed."
     __example: "1741768500000000000"
 

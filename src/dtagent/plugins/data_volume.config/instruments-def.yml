@@ -36,19 +36,23 @@ dimensions:
       members:
         - id: base_table
           value: BASE TABLE
-          brief: Standard persistent table.
+          brief: Full permanent table stored in Snowflake micro-partitions; supports all DML, Time Travel, and Fail-safe.
         - id: temporary_table
           value: TEMPORARY TABLE
           brief: Temporary table (session-scoped).
         - id: external_table
           value: EXTERNAL TABLE
-          brief: External table referencing data outside Snowflake.
+          brief: Schema overlay over data files in an external cloud storage stage; data is never loaded into Snowflake and is read-only.
         - id: view
           value: VIEW
-          brief: Standard view.
+          brief: >-
+            Non-materialized virtual table defined by a stored query; the underlying SQL is
+            re-executed on every access with no physical storage.
         - id: materialized_view
           value: MATERIALIZED VIEW
-          brief: Materialized view.
+          brief: >-
+            Pre-computed query result stored as a physical table and transparently refreshed by
+            Snowflake's background maintenance service; consumes MATERIALIZED_VIEW credits.
 
 #  * Metric definitions
 #  * KEY                    - will be matched against METRICS object with measurements prepared for sending

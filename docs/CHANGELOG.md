@@ -23,8 +23,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 - **Semantic Dictionary export restructured** to match SD source conventions: fields split into
-  `resource_fields/` (dimensions + resource-override attributes) and `signal_fields/` (attributes
-  + signal-override dimensions) grouped by namespace prefix; metrics use `model:` envelope with
+  `resource_fields/` (dimensions + resource-override attributes) and `signal_fields/` (attributes + signal-override dimensions) grouped by namespace prefix; metrics use `model:` envelope with
   `interfaces:` declaration (`i.dsoa_resource`, `i.dsoa_warehouse`, `i.dsoa_database`); event
   lifecycle models emitted under `model/dsoa/`; enum fields emit `type: {allow_custom_values,
   members}` instead of `type: string`.
