@@ -44,6 +44,7 @@ from build.export_semantics import (
     _emit_ref_entry,
     _map_attr_type,
     _map_metric_instrument,
+    _merge_field_entries,
     _ns_group,
     _validate_entry,
 )
@@ -181,11 +182,19 @@ class TestNamespaceGrouping:
         assert gtype == "attribute_group", "All DSOA signal groups use attribute_group per IA guidance"
 
     def test_warehouse_resource_group(self):
-        """snowflake.warehouse.* resource fields → snowflake.warehouse resource group."""
+        """snowflake.warehouse.* resource fields → snowflake.warehouse.resource group (avoids collision with signal group)."""
         from build.export_semantics import _RES_NS  # pylint: disable=import-outside-toplevel
 
         gid, gtype = _ns_group("snowflake.warehouse.size", _RES_NS, "snowflake.resource", "resource")
-        assert gid == "snowflake.warehouse"
+        assert gid == "snowflake.warehouse.resource"
+        assert gtype == "resource"
+
+    def test_db_resource_group(self):
+        """db.* resource fields → db.resource group (avoids collision with db signal attribute_group)."""
+        from build.export_semantics import _RES_NS  # pylint: disable=import-outside-toplevel
+
+        gid, gtype = _ns_group("db.namespace", _RES_NS, "snowflake.resource", "resource")
+        assert gid == "db.resource"
         assert gtype == "resource"
 
     def test_db_signal_group(self):
@@ -930,6 +939,133 @@ class TestSemanticExporterIntegration:
             doc = yaml.safe_load(fh)
         assert "groups" in doc
         assert len(doc["groups"]) > 0
+
+
+##endregion
+
+
+##region Unit tests — _merge_field_entries (A2: enum union dedup)
+
+
+class TestMergeFieldEntries:
+    """Verify _merge_field_entries implements the union enum merge strategy."""
+
+    def _make_meta(self, plugin: str, enum_def=None, extra=None) -> Dict[str, Any]:
+        """Helper: build a minimal entry meta dict."""
+        entry: Dict[str, Any] = {"__description": "A field.", "__example": "val"}
+        if enum_def is not None:
+            entry["__enum"] = enum_def
+        if extra:
+            entry.update(extra)
+        return {"section": "attributes", "semdict": "new", "plugin": plugin, "entry": entry, "classification": "signal"}
+
+    def test_enum_dedup_upgrade_no_enum_to_enum(self):
+        """Existing has no __enum, incoming has __enum → result upgrades to enum-rich definition."""
+        existing = self._make_meta("plugin_a")
+        incoming_enum = {"allow_custom_values": True, "members": [{"id": "v1", "value": "V1", "brief": "Value one."}]}
+        incoming = self._make_meta("plugin_b", enum_def=incoming_enum)
+        result = _merge_field_entries("test.field", existing, incoming)
+        assert result["entry"].get("__enum") is not None, "result must have __enum after upgrade"
+        assert result["plugin"] == "plugin_b", "plugin should be the incoming (enum-rich) one"
+        assert result["entry"]["__enum"]["members"][0]["value"] == "V1"
+
+    def test_enum_dedup_union_both_have_enum(self):
+        """Both have __enum with partially overlapping members → union of all unique values."""
+        enum_a = {
+            "allow_custom_values": False,
+            "members": [{"id": "a", "value": "A", "brief": "Alpha."}, {"id": "b", "value": "B", "brief": "Beta."}],
+        }
+        enum_b = {
+            "allow_custom_values": True,
+            "members": [{"id": "b", "value": "B", "brief": "Beta (dup)."}, {"id": "c", "value": "C", "brief": "Gamma."}],
+        }
+        existing = self._make_meta("plugin_a", enum_def=enum_a)
+        incoming = self._make_meta("plugin_b", enum_def=enum_b)
+        result = _merge_field_entries("test.field", existing, incoming)
+        merged_enum = result["entry"]["__enum"]
+        values = [m["value"] for m in merged_enum["members"]]
+        assert values.count("B") == 1, "duplicate value B must appear exactly once"
+        assert set(values) == {"A", "B", "C"}, "union must contain all unique values"
+        assert merged_enum["allow_custom_values"] is True, "allow_custom_values must be OR of both (False OR True = True)"
+        assert result["plugin"] == "plugin_a", "dedup winner (existing) plugin must be preserved"
+
+    def test_enum_dedup_first_wins_no_enum(self):
+        """Neither has __enum → existing wins unchanged."""
+        existing = self._make_meta("plugin_a")
+        incoming = self._make_meta("plugin_b", extra={"__description": "Incoming description."})
+        result = _merge_field_entries("test.field", existing, incoming)
+        assert result["plugin"] == "plugin_a", "first-seen plugin must win when no enum"
+        assert result["entry"].get("__description") == "A field.", "existing description must be preserved"
+
+    def test_enum_allow_custom_both_false_stays_false(self):
+        """allow_custom_values = False OR False = False."""
+        enum_a = {"allow_custom_values": False, "members": [{"id": "x", "value": "X", "brief": "X."}]}
+        enum_b = {"allow_custom_values": False, "members": [{"id": "y", "value": "Y", "brief": "Y."}]}
+        existing = self._make_meta("plugin_a", enum_def=enum_a)
+        incoming = self._make_meta("plugin_b", enum_def=enum_b)
+        result = _merge_field_entries("test.field", existing, incoming)
+        assert result["entry"]["__enum"]["allow_custom_values"] is False
+
+
+##endregion
+
+
+##region Unit tests — dim_plugins ownership tracking (A3)
+
+
+class TestDimPluginsOwnership:
+    """Verify dimension ownership tracking allows cross-plugin dims in metric models."""
+
+    def test_dim_from_discarded_plugin_appears_in_metric_model(self, tmp_path):
+        """Dim defined in plugin_b but dedup-won by plugin_a still appears in plugin_b metric."""
+        exporter = SemanticExporter(repo_root=REPO_ROOT, output_dir=tmp_path / "out")
+
+        # plugin_a defines dim first (wins dedup), plugin_b also defines it
+        plugin_a_fixture = tmp_path / "plugin_a.yml"
+        plugin_a_fixture.write_text("dimensions:\n" "  my.shared.dim:\n" "    __description: Shared dimension.\n" "    __example: val\n")
+        plugin_b_fixture = tmp_path / "plugin_b.yml"
+        plugin_b_fixture.write_text(
+            "dimensions:\n"
+            "  my.shared.dim:\n"
+            "    __description: Shared dimension (plugin b copy).\n"
+            "    __example: val\n"
+            "metrics:\n"
+            "  plugin_b.metric:\n"
+            "    __description: A metric.\n"
+            "    __example: '1'\n"
+            "    unit: count\n"
+        )
+
+        _, entries_a = exporter._parse_file("plugin_a", plugin_a_fixture)
+        _, entries_b = exporter._parse_file("plugin_b", plugin_b_fixture)
+
+        # Build combined entries with dedup (plugin_a wins for my.shared.dim)
+        all_entries: Dict[str, Any] = {}
+        dim_plugins: Dict[str, Any] = {}
+        for plugin_name, raw_entries in [("plugin_a", entries_a), ("plugin_b", entries_b)]:
+            for key, meta in raw_entries.items():
+                if meta["section"] == "dimensions":
+                    dim_plugins.setdefault(key, set()).add(plugin_name)
+                if key in all_entries:
+                    all_entries[key] = _merge_field_entries(key, all_entries[key], meta)
+                else:
+                    all_entries[key] = meta
+
+        # plugin_b's dedup winner for my.shared.dim is plugin_a
+        assert all_entries["my.shared.dim"]["plugin"] == "plugin_a", "plugin_a should have won dedup"
+        assert "plugin_b" in dim_plugins["my.shared.dim"], "dim_plugins must record plugin_b defined the dim"
+
+        # Without dim_plugins: plugin_b metric won't see the dim (old bug)
+        metric_entries_b = {k: v for k, v in all_entries.items() if v["classification"] == "metric" and v["plugin"] == "plugin_b"}
+        doc_without = exporter._build_metric_model_yaml("plugin_b", metric_entries_b, all_entries, dim_plugins=None)
+        refs_without = [a["ref"] for a in doc_without["model"]["groups"][0].get("attributes", [])]
+
+        # With dim_plugins: plugin_b metric must see the dim
+        doc_with = exporter._build_metric_model_yaml("plugin_b", metric_entries_b, all_entries, dim_plugins=dim_plugins)
+        refs_with = [a["ref"] for a in doc_with["model"]["groups"][0].get("attributes", [])]
+
+        assert "my.shared.dim" not in refs_without, "without dim_plugins the dim should be absent (old behavior)"
+        assert "my.shared.dim" in refs_with, "with dim_plugins the dim must appear in plugin_b's metric"
 
 
 ##endregion

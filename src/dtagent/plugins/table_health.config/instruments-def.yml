@@ -103,7 +103,7 @@ metrics:
       Average clustering depth of the table. Lower values indicate better clustering.
       A value of 1.0 means all micro-partitions are perfectly clustered.
     displayName: Clustering Depth
-    unit: "{depth}"
+    unit: count
   snowflake.table.clustering.overlap:
     __context_names:
       - table_clustering
@@ -112,7 +112,7 @@ metrics:
       Average overlap depth of the table. Lower values indicate less overlap between
       micro-partitions and better clustering efficiency.
     displayName: Clustering Overlap
-    unit: "{overlap}"
+    unit: count
   snowflake.table.clustering.constant_partition_ratio:
     __context_names:
       - table_clustering
@@ -128,7 +128,7 @@ metrics:
     __example: "1200"
     __description: Total number of micro-partitions in the table.
     displayName: Total Partitions
-    unit: "{partition}"
+    unit: count
   snowflake.table.growth_bytes:
     __context_names:
       - table_health_derived
@@ -155,7 +155,7 @@ metrics:
       Change in average clustering depth between the two most recent snapshots.
       Positive values indicate degradation; negative values indicate improvement.
     displayName: Clustering Depth Change
-    unit: "{depth}"
+    unit: count
   snowflake.table.clustering.degraded:
     __context_names:
       - table_health_derived
@@ -165,4 +165,4 @@ metrics:
       (plugins.table_health.clustering_degradation_threshold).
       1 = degraded, 0 = healthy or no clustering data available.
     displayName: Clustering Degraded
-    unit: "{status}"
+    unit: count

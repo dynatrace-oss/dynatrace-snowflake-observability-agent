@@ -104,6 +104,46 @@ VALID_FIELD_TYPES = {"resource", "signal"}
 #: Acronyms that must stay ALL-CAPS in display_name (longer tokens first).
 DISPLAY_NAME_ACRONYMS = ("DSOA", "OTel", "DDL", "DML", "RSS", "URL", "API", "ID", "DB", "QA", "SQL")
 
+#: instruments-def unit value → SD-valid unit abbreviation.
+#: Sources: .context/otel-build-tool/semantic-conventions/src/opentelemetry/semconv/units/unit_registry.py
+#: and juno_docs/define-data-in-grail/definition/yaml/attribute/units.md
+#: Note: OTel UCUM curly-brace annotations ({request}, {partition}, etc.) are NOT in
+#: the SD unit registry — use 'count' for such domain-specific counting units.
+UNIT_MAP: Dict[str, str] = {
+    # Data — UCUM abbreviation required
+    "bytes": "By",
+    "Byte": "By",
+    # Time
+    "days": "d",
+    "seconds": "s",
+    # Percentage
+    "percent": "%",
+    # Dimensionless
+    "factor": "1",
+    # Domain-specific counts — map to 'count' (SD Unspecified category)
+    "rows": "count",
+    "files": "count",
+    "clusters": "count",
+    "queries": "count",
+    "warehouses": "count",
+    "partitions": "count",
+    "credits": "count",
+    # Currency — use ISO/SD abbreviation
+    "currency": "US$",
+}
+
+#: Units that should carry a note explaining the original source unit when mapped to 'count'.
+#: This preserves the semantic context that is lost by collapsing domain units to 'count'.
+UNIT_NOTE_ORIGINALS: Set[str] = {
+    "rows",
+    "files",
+    "clusters",
+    "queries",
+    "warehouses",
+    "partitions",
+    "credits",
+}
+
 #: instruments-def __type → semconv instrument.
 METRIC_TYPE_MAP: Dict[str, str] = {
     "gauge": "gauge",
@@ -183,11 +223,13 @@ _RES_NS: List[Tuple[str, str, str]] = [
     # snowflake.* fields that may be marked __field_type: resource by annotation
     # (e.g. snowflake.warehouse.size, snowflake.warehouse.type when they describe
     # a stable property of the warehouse resource rather than per-event context)
-    ("snowflake.warehouse", "snowflake.warehouse", "resource"),
+    # NOTE: group IDs use a ".resource" suffix to avoid collision with the signal-field
+    # attribute_groups of the same namespace (snowflake.warehouse and db) defined in _SIG_NS.
+    ("snowflake.warehouse", "snowflake.warehouse.resource", "resource"),
     ("snowflake.resource_monitor", "snowflake.resource_monitor", "resource"),
     ("snowflake.account", "snowflake.account", "resource"),
     ("snowflake.org", "snowflake.account", "resource"),
-    ("db", "db", "resource"),
+    ("db", "db.resource", "resource"),
 ]
 
 ##endregion
@@ -331,6 +373,54 @@ def _ns_group(key: str, ns_map: List[Tuple[str, str, str]], default_id: str, def
         if key.startswith(prefix + ".") or key == prefix:
             return group_id, group_type
     return default_id, default_type
+
+
+def _merge_field_entries(key: str, existing: Dict[str, Any], incoming: Dict[str, Any]) -> Dict[str, Any]:
+    """Merge two definitions of the same field key, preferring richer enum metadata.
+
+    Rules:
+    - If only incoming has ``__enum``: upgrade existing to the incoming (enum-rich) definition.
+    - If both have ``__enum``: union members by value (first-seen wins for duplicate values);
+      ``allow_custom_values`` = logical OR of both.
+    - Otherwise: keep existing (first-seen wins, no enum to merge).
+
+    Args:
+        key:      Field key name (for logging).
+        existing: Current winning definition dict (has keys: entry, plugin, section, …).
+        incoming: New challenger definition dict.
+
+    Returns:
+        The winning definition after merge.
+    """
+    existing_enum = existing["entry"].get("__enum")
+    incoming_enum = incoming["entry"].get("__enum")
+
+    if existing_enum is None and incoming_enum is not None:
+        # Upgrade: incoming has enum info that existing is missing
+        log.debug("Enum upgrade for '%s': replacing no-enum definition from %s with enum-rich one from %s", key, existing["plugin"], incoming["plugin"])
+        return incoming
+
+    if existing_enum is not None and incoming_enum is not None:
+        # Union: merge members, OR the allow_custom_values flag
+        seen_values: Set[str] = {m["value"] for m in existing_enum.get("members", [])}
+        merged_members = list(existing_enum.get("members", []))
+        for m in incoming_enum.get("members", []):
+            if m["value"] not in seen_values:
+                merged_members.append(m)
+                seen_values.add(m["value"])
+        merged_allow = bool(existing_enum.get("allow_custom_values", True)) or bool(incoming_enum.get("allow_custom_values", True))
+        merged_enum = {"allow_custom_values": merged_allow, "members": merged_members}
+        # Return a copy of existing with the merged enum injected
+        merged_entry = dict(existing["entry"])
+        merged_entry["__enum"] = merged_enum
+        merged_meta = dict(existing)
+        merged_meta["entry"] = merged_entry
+        log.debug("Enum union for '%s': merged %d member(s) from %s into %s", key, len(merged_members), incoming["plugin"], existing["plugin"])
+        return merged_meta
+
+    # No enum to merge — keep existing (first-seen wins)
+    log.debug("Duplicate key '%s' in %s (first in %s); using first definition", key, incoming["plugin"], existing["plugin"])
+    return existing
 
 
 ##endregion
@@ -486,9 +576,14 @@ def _emit_metric_entry(key: str, entry: Dict[str, Any]) -> Dict[str, Any]:
     example_raw = entry.get("__example", "0")
     raw_list = example_raw if isinstance(example_raw, list) else [example_raw]
     examples = [_coerce_metric_example(e) for e in raw_list]
-    unit = entry.get("unit") or entry.get("__unit")
-    if not unit:
+    raw_unit = entry.get("unit") or entry.get("__unit")
+    if not raw_unit:
         log.warning("Metric '%s' has no unit; omitting unit field", key)
+    # Strip surrounding quotes that may appear in YAML (e.g. unit: "1" → 1)
+    raw_unit_str = str(raw_unit).strip('"').strip("'") if raw_unit else None
+    mapped_unit = UNIT_MAP.get(raw_unit_str, raw_unit_str) if raw_unit_str else None
+    if raw_unit_str and mapped_unit != raw_unit_str:
+        log.debug("Metric '%s': unit '%s' → '%s'", key, raw_unit_str, mapped_unit)
     display_name = entry.get("displayName") or _make_display_name(key)
     node: Dict[str, Any] = {
         "id": key,
@@ -500,10 +595,17 @@ def _emit_metric_entry(key: str, entry: Dict[str, Any]) -> Dict[str, Any]:
         "examples": examples,
         "title": display_name,
     }
-    if unit:
-        node["unit"] = str(unit)
+    if mapped_unit:
+        node["unit"] = mapped_unit
+    # Build note: start from __semdict_note (if any), then append original-unit note for
+    # domain-specific units that were collapsed to 'count' (e.g. rows, credits, partitions).
+    note_parts = []
     if entry.get("__semdict_note"):
-        node["note"] = str(entry["__semdict_note"]).strip()
+        note_parts.append(str(entry["__semdict_note"]).strip())
+    if raw_unit_str and raw_unit_str in UNIT_NOTE_ORIGINALS and mapped_unit == "count":
+        note_parts.append(f"Original unit: {raw_unit_str}.")
+    if note_parts:
+        node["note"] = " ".join(note_parts)
     return node
 
 
@@ -804,12 +906,18 @@ class SemanticExporter:
             ]
         }
 
-    def _select_interfaces(self, metric_entries: Dict[str, Any], all_entries: Dict[str, Any]) -> List[str]:
+    def _select_interfaces(
+        self, metric_entries: Dict[str, Any], all_entries: Dict[str, Any], dim_plugins: Optional[Dict[str, Set[str]]] = None
+    ) -> List[str]:
         """Determine which DSOA interfaces to declare for a metric model.
 
         Args:
             metric_entries: Per-plugin metric entries.
             all_entries:    All parsed entries (for dimension lookup).
+            dim_plugins:    Map of dimension key → set of all plugins that define it.
+                            When provided, a dim without ``__context_names`` is accepted
+                            for a plugin if that plugin is in ``dim_plugins[dim_key]``,
+                            not only if the dedup winner happened to be that plugin.
 
         Returns:
             Ordered list of interface IDs.
@@ -825,15 +933,19 @@ class SemanticExporter:
                     continue
                 dc_names = set(dim_meta["entry"].get("__context_names") or [])
                 # A dim with context_names is applicable only when it overlaps the metric.
-                # A dim WITHOUT context_names is applicable only within the same plugin
-                # (de-duplication means it was first seen there; it is NOT globally applicable
-                # to all plugins — that caused cross-plugin dim bleed).
+                # A dim WITHOUT context_names is applicable if the plugin defined the dim
+                # in any of its own instruments-def files (per dim_plugins map), or —
+                # when dim_plugins is not provided — only if the dedup winner was this plugin.
                 if dc_names:
                     if not dc_names.intersection(mc_names):
                         continue
                 else:
-                    if dim_meta["plugin"] != m_plugin:
-                        continue
+                    if dim_plugins is not None:
+                        if m_plugin not in dim_plugins.get(dim_key, set()):
+                            continue
+                    else:
+                        if dim_meta["plugin"] != m_plugin:
+                            continue
                 if dim_key in INTERFACE_WAREHOUSE_KEYS:
                     uses_warehouse = True
                 if dim_key in INTERFACE_DATABASE_KEYS:
@@ -845,19 +957,28 @@ class SemanticExporter:
             interfaces.append("i.dsoa_database")
         return interfaces
 
-    def _build_metric_model_yaml(self, plugin_name: str, metric_entries: Dict[str, Any], all_entries: Dict[str, Any]) -> Dict[str, Any]:
+    def _build_metric_model_yaml(
+        self,
+        plugin_name: str,
+        metric_entries: Dict[str, Any],
+        all_entries: Dict[str, Any],
+        dim_plugins: Optional[Dict[str, Set[str]]] = None,
+    ) -> Dict[str, Any]:
         """Build a per-plugin metric model YAML document.
 
         Args:
             plugin_name:    Plugin name.
             metric_entries: Plugin's metric entries.
             all_entries:    All parsed entries for dimension resolution.
+            dim_plugins:    Map of dimension key → set of all plugins that define it.
+                            When provided, dimensions are resolved by ownership across all
+                            plugin definitions, not just the dedup winner.
 
         Returns:
             Semconv-compliant YAML document dict with ``model:`` envelope.
         """
         plugin_title = _restore_acronyms(plugin_name.replace("_", " ").title())
-        interfaces = self._select_interfaces(metric_entries, all_entries)
+        interfaces = self._select_interfaces(metric_entries, all_entries, dim_plugins)
         covered: Set[str] = set(RESOURCE_ATTRIBUTE_KEYS)
         if "i.dsoa_warehouse" in interfaces:
             covered |= INTERFACE_WAREHOUSE_KEYS
@@ -882,15 +1003,19 @@ class SemanticExporter:
                     continue
                 dc_names = set(dim_meta["entry"].get("__context_names") or [])
                 # A dim with context_names is applicable only when it overlaps the metric.
-                # A dim WITHOUT context_names is applicable only within the same plugin —
-                # NOT globally across all plugins (avoids cross-plugin dim bleed,
-                # e.g. trust_center dims appearing on budgets metrics).
+                # A dim WITHOUT context_names is applicable if the plugin defined the dim
+                # in any of its own instruments-def files (per dim_plugins map), or —
+                # when dim_plugins is not provided — only if the dedup winner was this plugin.
                 if dc_names:
                     if not dc_names.intersection(mc_names):
                         continue
                 else:
-                    if dim_meta["plugin"] != m_plugin:
-                        continue
+                    if dim_plugins is not None:
+                        if m_plugin not in dim_plugins.get(dim_key, set()):
+                            continue
+                    else:
+                        if dim_meta["plugin"] != m_plugin:
+                            continue
                 dim_refs.append({"ref": dim_key})
             metric_node = _emit_metric_entry(metric_key, m_meta["entry"])
             if dim_refs:
@@ -1031,15 +1156,17 @@ class SemanticExporter:
         # Step 2: Parse + validate
         all_errors: List[str] = []
         all_entries: Dict[str, Any] = {}
+        dim_plugins: Dict[str, Set[str]] = {}
         for plugin_name, path in files:
             log.debug("Parsing %s (%s)", plugin_name, path)
             errors, entries = self._parse_file(plugin_name, path)
             all_errors.extend(errors)
             for key, meta in entries.items():
+                # Track all plugins that define each dimension key (for A3 ownership)
+                if meta["section"] == "dimensions":
+                    dim_plugins.setdefault(key, set()).add(plugin_name)
                 if key in all_entries:
-                    log.debug(
-                        "Duplicate key '%s' in %s (first in %s); using first definition", key, plugin_name, all_entries[key]["plugin"]
-                    )
+                    all_entries[key] = _merge_field_entries(key, all_entries[key], meta)
                 else:
                     all_entries[key] = meta
         if all_errors:
@@ -1095,7 +1222,7 @@ class SemanticExporter:
             entries = plugin_metric_entries[plugin_name]
             if not entries:
                 continue
-            doc = self._build_metric_model_yaml(plugin_name, entries, all_entries)
+            doc = self._build_metric_model_yaml(plugin_name, entries, all_entries, dim_plugins)
             p = self._write_yaml(doc, f"metrics/dsoa_metrics_{plugin_name}.yaml")
             self._validate_against_schema(doc, p)
 
