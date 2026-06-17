@@ -688,7 +688,10 @@ class TestExportPipelineMock:
         assert RESOURCE_ATTRIBUTE_KEYS.issubset(interface_keys)
 
     def test_dsoa_resource_file_has_dsoa_fields(self, tmp_path):
-        """resource_fields/dsoa.yaml only has dsoa./deployment. keys that are resource-classified.
+        """resource_fields/dsoa.yaml only has dsoa./deployment. keys (no ref: nodes).
+
+        Refs belong exclusively in the i.dsoa_resource interface (interfaces_dsoa.yaml).
+        Field definition files must contain only ``id:`` blocks — never ``ref:`` nodes.
 
         In the mock fixture, ``deployment.environment`` is an attribute with
         ``__semdict: deprecated-alias`` and no ``__field_type`` override, so it
@@ -704,6 +707,10 @@ class TestExportPipelineMock:
         # The dsoa group always exists in the doc structure, even if attrs list is empty
         assert "groups" in dsoa_doc
         assert dsoa_doc["groups"][0]["id"] == "dsoa"
+        # Field definition files must contain ONLY id: nodes — never ref: nodes
+        all_attrs = [a for g in dsoa_doc["groups"] for a in g.get("attributes", [])]
+        for attr in all_attrs:
+            assert "ref" not in attr, f"ref: node {attr!r} must not appear in dsoa.yaml field file"
 
     def test_metric_model_has_model_envelope(self, tmp_path):
         """Metric model file has model: envelope (not groups: at top level)."""

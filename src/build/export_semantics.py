@@ -773,22 +773,30 @@ class SemanticExporter:
     def _build_resource_fields_yaml(self, resource_entries: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """Build resource_fields/snowflake_resource.yaml and resource_fields/dsoa.yaml.
 
+        Ref entries (``semdict == "ref"``) are intentionally excluded from both output files.
+        They belong exclusively in the ``i.dsoa_resource`` interface (emitted by
+        ``_build_interfaces_yaml``), which already declares ``{"ref": key}`` for every key
+        in ``RESOURCE_ATTRIBUTE_KEYS``.  Including refs here would produce duplicate ``ref:``
+        nodes in field definition files, which is incorrect SD structure.
+
         Args:
             resource_entries: All resource-classified entries.
 
         Returns:
             Tuple of (snowflake_resource_doc, dsoa_resource_doc).
         """
-        # Route to dsoa.yaml: DSOA/deployment-namespaced fields + all well-known
-        # resource refs (host.name, service.name, telemetry.exporter.*) that exist
-        # in the SD already.  They belong with the agent identity context, not in
-        # the Snowflake-specific resource file.
+        # Route to dsoa.yaml: DSOA/deployment-namespaced fields only.
+        # Refs go ONLY to the interface (already in _build_interfaces_yaml) — never to field files.
         dsoa_keys = {
             k: v
             for k, v in resource_entries.items()
-            if k.startswith("dsoa.") or k.startswith("deployment.") or v["semdict"] == "ref"  # known SD refs go into dsoa.yaml
+            if (k.startswith("dsoa.") or k.startswith("deployment.")) and v["semdict"] != "ref"
         }
-        snowflake_keys = {k: v for k, v in resource_entries.items() if k not in dsoa_keys}
+        snowflake_keys = {
+            k: v
+            for k, v in resource_entries.items()
+            if k not in dsoa_keys and v["semdict"] != "ref"
+        }
 
         sf_groups: Dict[str, Dict[str, Any]] = {}
         for key in sorted(snowflake_keys):
