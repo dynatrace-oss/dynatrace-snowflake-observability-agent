@@ -18,18 +18,16 @@ dimensions:
   db.system:
     __semdict: otel-only
     __otel_note: >-
-      Defined in OpenTelemetry Semantic Conventions (db.system, stable) but not yet present
-      as a globally referenceable field in the Dynatrace Semantic Dictionary. Emitting as
-      a new id: definition here so DSOA can declare it properly. The value for Snowflake
-      is always 'snowflake'.
+      Defined in OpenTelemetry Semantic Conventions (db.system, stable) but not yet present as a globally referenceable field in the
+      Dynatrace Semantic Dictionary. Emitting as a new id: definition here so DSOA can declare it properly. The value for Snowflake is
+      always 'snowflake'.
     __description: "The database management system (DBMS) product being used. It is always 'snowflake'"
     __example: "snowflake"
   deployment.environment:
     __semdict: deprecated-alias
     __otel_replacement: deployment.environment.name
     __otel_note: >-
-      Renamed from deployment.environment in OTel Semantic Conventions v1.26.
-      Replacement: deployment.environment.name (stable).
+      Renamed from deployment.environment in OTel Semantic Conventions v1.26. Replacement: deployment.environment.name (stable).
     __description: "The deployment environment, e.g., production, staging, or development."
     __example: "PROD"
   deployment.environment.tag:
@@ -55,9 +53,17 @@ dimensions:
   dsoa.run.context:
     __semdict: new
     __description:
-      "The name of the Dynatrace Snowflake Observability Agent plugin (or part of plugin) used to produce the telemetry (logs, traces,
-      metrics, or events)."
-    __example: "query_history"
+      "The name of the Dynatrace Snowflake Observability Agent context (part of plugin) used to produce the telemetry (logs, traces,
+      metrics, or events). In case of multiple contexts within the same plugin, this helps differentiate between them. If plugin delivers
+      only one context, this field will have the same value as the plugin name."
+    __example: "users_all_roles"
+  dsoa.run.plugin:
+    __semdict: new
+    __field_type: resource
+    __description:
+      "The name of the DSOA plugin that produced this telemetry. Use to filter all telemetry from a specific plugin (e.g., 'query_history',
+      'warehouse_usage'). Distinct from dsoa.run.context, which may represent a sub-context within a plugin."
+    __example: "users"
 #  * Attribute definitions
 #  * KEY                  - will be matched against ATTRIBUTES object with measurements prepared for sending
 #  * VALUE[description]   - description of the attributes -
@@ -77,8 +83,8 @@ attributes:
   observed_timestamp:
     __semdict: new
     __otel_note: >-
-      In OTel Log Data Model, observed_timestamp is a structural field (not an attribute key).
-      Dynatrace normalizes this into the attribute bag for query consistency.
+      In OTel Log Data Model, observed_timestamp is a structural field (not an attribute key). Dynatrace normalizes this into the attribute
+      bag for query consistency.
     __description: "The timestamp (in epoch nanoseconds) when the event was observed."
     __example: "1741768500000000000"
 
