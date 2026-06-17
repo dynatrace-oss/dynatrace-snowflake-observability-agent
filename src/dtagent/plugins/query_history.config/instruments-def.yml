@@ -18,8 +18,8 @@ attributes:
   authentication.type:
     __semdict: ref
     __otel_note: >-
-      semdict enum has allow_custom_values: false (OAUTH2/TOKEN/DEVOPSTOKEN/NONE).
-      DSOA also emits PASSWORD for Snowflake password auth; this is flagged as an open enum extension request.
+      semdict enum has allow_custom_values: false (OAUTH2/TOKEN/DEVOPSTOKEN/NONE). DSOA also emits PASSWORD for Snowflake password auth;
+      this is flagged as an open enum extension request.
     __example: PASSWORD
     __description: The authentication method used for the session.
   client.application.id:
@@ -68,9 +68,8 @@ attributes:
   session.id:
     __semdict: otel-only
     __otel_note: >-
-      OTel semconv Development-tier attribute (session namespace). The semdict session.id is
-      model-scoped/internal in code_monitoring only; no global ref available. Emitting as new id:
-      pending global semdict registration.
+      OTel semconv Development-tier attribute (session namespace). The semdict session.id is model-scoped/internal in code_monitoring only;
+      no global ref available. Emitting as new id: pending global semdict registration.
     __example: "1234567890"
     __description: The session ID during which the query was executed.
   dsoa.debug.span.events.added:
@@ -185,6 +184,8 @@ attributes:
   snowflake.database.id:
     __example: db123
     __description: The unique identifier of the database involved in the query.
+    # ACCOUNT_USAGE.DATABASES supplies real siblings (name, owner, owner.role_type, type, is_transient, lifecycle, retention_time, comment)
+    # but populate from a future inventory plugin, not query_history (≈180-min latency + cost). In query_history it stays an FK.
   snowflake.error.code:
     __example: ERR123
     __description: The error code returned by the query, if any.
@@ -451,10 +452,9 @@ dimensions:
   snowflake.user.type:
     __example: PERSON
     __description: >-
-      The type of user who executed the query. Possible values: PERSON (human interactive user),
-      SERVICE (programmatic service user), LEGACY_SERVICE (legacy service account),
-      SNOWFLAKE_SERVICE (Snowpark Container Services). Useful for splitting workloads
-      by human vs. automated traffic.
+      The type of user who executed the query. Possible values: PERSON (human interactive user), SERVICE (programmatic service user),
+      LEGACY_SERVICE (legacy service account), SNOWFLAKE_SERVICE (Snowpark Container Services). Useful for splitting workloads by human vs.
+      automated traffic.
     __enum:
       allow_custom_values: true
       members:
@@ -479,8 +479,8 @@ metrics:
   snowflake.credits.attributed_compute:
     __example: "0.0042"
     __description: >-
-      Compute credits attributed to this query based on weighted resource consumption.
-      Excludes warehouse idle time. NULL for queries within the ~8h QAH latency window.
+      Compute credits attributed to this query based on weighted resource consumption. Excludes warehouse idle time. NULL for queries within
+      the ~8h QAH latency window.
     displayName: Query Attributed Compute Credits
     unit: credits
   snowflake.credits.query_acceleration:

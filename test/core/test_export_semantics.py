@@ -131,7 +131,7 @@ class TestFieldClassification:
         assert _classify_field("dsoa.run.id", "attributes", None) == "resource"
 
     def test_dimension_default_is_signal(self):
-        """dimensions without __field_type override and not in RESOURCE_ATTRIBUTE_KEYS → signal.
+        """Metric dimensions without __field_type override and not in RESOURCE_ATTRIBUTE_KEYS → signal.
 
         Metric dimensions (e.g. warehouse.name, db.namespace, db.user) vary per
         observation — they are signal fields per SD definition even though DSOA
@@ -142,24 +142,24 @@ class TestFieldClassification:
         assert _classify_field("db.user", "dimensions", None) == "signal"
 
     def test_dimension_signal_override(self):
-        """dimensions with __field_type: signal → signal (explicit override)."""
+        """Metric `dimensions` with __field_type: signal → signal (explicit override)."""
         assert _classify_field("snowflake.warehouse.event.name", "dimensions", "signal") == "signal"
 
     def test_attribute_default_is_signal(self):
-        """attributes without __field_type override → signal."""
+        """Definition of attributes without __field_type override → signal."""
         assert _classify_field("snowflake.query.id", "attributes", None) == "signal"
 
     def test_attribute_resource_override(self):
-        """attributes with __field_type: resource → resource (explicit override)."""
+        """Definition of attributes with __field_type: resource → resource (explicit override)."""
         assert _classify_field("snowflake.warehouse.size", "attributes", "resource") == "resource"
 
     def test_metric_always_metric(self):
-        """metrics section always → metric regardless of override."""
+        """Definition of metrics section always → metric regardless of override."""
         assert _classify_field("snowflake.credits.used", "metrics", None) == "metric"
         assert _classify_field("snowflake.credits.used", "metrics", "signal") == "metric"
 
     def test_event_timestamps_classification(self):
-        """event_timestamps section → event_timestamp."""
+        """Definition of event_timestamps section → event_timestamp."""
         assert _classify_field("snowflake.user.created_on", "event_timestamps", None) == "event_timestamp"
 
 
@@ -175,6 +175,7 @@ class TestNamespaceGrouping:
     def test_warehouse_signal_group(self):
         """snowflake.warehouse.* signal fields → snowflake.warehouse group, type: attribute_group."""
         from build.export_semantics import _SIG_NS  # pylint: disable=import-outside-toplevel
+
         gid, gtype = _ns_group("snowflake.warehouse.name", _SIG_NS, "snowflake.misc", "attribute_group")
         assert gid == "snowflake.warehouse"
         assert gtype == "attribute_group", "All DSOA signal groups use attribute_group per IA guidance"
@@ -182,6 +183,7 @@ class TestNamespaceGrouping:
     def test_warehouse_resource_group(self):
         """snowflake.warehouse.* resource fields → snowflake.warehouse resource group."""
         from build.export_semantics import _RES_NS  # pylint: disable=import-outside-toplevel
+
         gid, gtype = _ns_group("snowflake.warehouse.size", _RES_NS, "snowflake.resource", "resource")
         assert gid == "snowflake.warehouse"
         assert gtype == "resource"
@@ -189,6 +191,7 @@ class TestNamespaceGrouping:
     def test_db_signal_group(self):
         """db.* signal fields → db attribute_group (not span — cross-signal per IA guidance)."""
         from build.export_semantics import _SIG_NS  # pylint: disable=import-outside-toplevel
+
         gid, gtype = _ns_group("db.namespace", _SIG_NS, "snowflake.misc", "attribute_group")
         assert gid == "db"
         assert gtype == "attribute_group"
@@ -196,6 +199,7 @@ class TestNamespaceGrouping:
     def test_unknown_key_fallback(self):
         """Unknown key falls back to default group."""
         from build.export_semantics import _SIG_NS  # pylint: disable=import-outside-toplevel
+
         gid, gtype = _ns_group("completely.unknown.field", _SIG_NS, "snowflake.misc", "attribute_group")
         assert gid == "snowflake.misc"
         assert gtype == "attribute_group"
@@ -322,8 +326,11 @@ class TestIdEmission:
     def test_deprecated_alias_stability(self):
         """deprecated-alias entry stays experimental — OTel renamed it, DSOA still emits it."""
         entry = {
-            "__semdict": "deprecated-alias", "__otel_replacement": "deployment.environment.name",
-            "__otel_note": "Renamed in v1.26.", "__description": "Deployment env.", "__example": "PROD",
+            "__semdict": "deprecated-alias",
+            "__otel_replacement": "deployment.environment.name",
+            "__otel_note": "Renamed in v1.26.",
+            "__description": "Deployment env.",
+            "__example": "PROD",
         }
         node = _emit_id_entry("deployment.environment", entry, "deprecated-alias")
         assert node["stability"] == "experimental", "deprecated-alias must stay experimental"
@@ -333,8 +340,11 @@ class TestIdEmission:
     def test_deprecated_alias_has_note(self):
         """deprecated-alias entry note includes __otel_note content and backward-compat message."""
         entry = {
-            "__semdict": "deprecated-alias", "__otel_replacement": "deployment.environment.name",
-            "__otel_note": "Renamed in v1.26.", "__description": "Deployment env.", "__example": "PROD",
+            "__semdict": "deprecated-alias",
+            "__otel_replacement": "deployment.environment.name",
+            "__otel_note": "Renamed in v1.26.",
+            "__description": "Deployment env.",
+            "__example": "PROD",
         }
         node = _emit_id_entry("deployment.environment", entry, "deprecated-alias")
         assert "Renamed in v1.26." in node.get("note", "")
@@ -821,8 +831,9 @@ class TestSemanticExporterIntegration:
         assert len(yaml_files) >= 2, f"Expected multiple namespace files, got {len(yaml_files)}"
         # At minimum the warehouse and query namespaces must be present
         names = {f.name for f in yaml_files}
-        assert "snowflake_warehouse.yaml" in names or any("warehouse" in n for n in names), \
-            "snowflake_warehouse.yaml expected in signal_fields"
+        assert "snowflake_warehouse.yaml" in names or any(
+            "warehouse" in n for n in names
+        ), "snowflake_warehouse.yaml expected in signal_fields"
 
     def test_interfaces_file_exists(self, export_output):
         """metrics/interfaces_dsoa.yaml is created."""
@@ -900,9 +911,10 @@ class TestSemanticExporterIntegration:
                     # Key assertion: attribute section fields that are signal-classified
                     # must never appear here. We spot-check known signal fields.
                     ref = attr.get("ref", "")
-                    assert ref not in {"session.id", "dsoa.debug.span.events.added"}, (
-                        f"Signal-only field {ref!r} must not appear in metric dimensions"
-                    )
+                    assert ref not in {
+                        "session.id",
+                        "dsoa.debug.span.events.added",
+                    }, f"Signal-only field {ref!r} must not appear in metric dimensions"
 
     def test_nonzero_field_count(self, export_output):
         """Total field count is non-zero."""
