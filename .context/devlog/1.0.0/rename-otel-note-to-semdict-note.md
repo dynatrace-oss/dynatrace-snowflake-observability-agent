@@ -18,23 +18,25 @@ the generated Semantic Dictionary YAML, regardless of whether its content relate
 
 ## Files changed
 
-| File | Change |
-|---|---|
-| `src/build/export_semantics.py` | Renamed 8 occurrences: `__otel_note` → `__semdict_note`; updated validation error message and docstring |
-| `test/core/test_export_semantics.py` | Updated 8 test references: fixture keys, docstrings, assertions |
-| `test/test_data/instruments-def-mock.yml` | Renamed 3 fixture keys |
-| `src/dtagent.conf/instruments-def.yml` | Renamed 3 occurrences (core dimensions: `db.system`, `deployment.environment`, `observed_timestamp`) |
-| `src/dtagent/plugins/query_history.config/instruments-def.yml` | Renamed 10 occurrences; also converted inline `#` comment on `snowflake.database.id` to proper `__semdict_note:` field |
-| `src/dtagent/plugins/login_history.config/instruments-def.yml` | Renamed 6 occurrences |
-| `src/dtagent/plugins/active_queries.config/instruments-def.yml` | Renamed 1 occurrence |
+| File                                                            | Change                                                                                                                 |
+|-----------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------|
+| `src/build/export_semantics.py`                                 | Renamed 8 occurrences: `__otel_note` → `__semdict_note`; updated validation error message and docstring                |
+| `test/core/test_export_semantics.py`                            | Updated 8 test references: fixture keys, docstrings, assertions                                                        |
+| `test/test_data/instruments-def-mock.yml`                       | Renamed 3 fixture keys                                                                                                 |
+| `src/dtagent.conf/instruments-def.yml`                          | Renamed 3 occurrences (core dimensions: `db.system`, `deployment.environment`, `observed_timestamp`)                   |
+| `src/dtagent/plugins/query_history.config/instruments-def.yml`  | Renamed 10 occurrences; also converted inline `#` comment on `snowflake.database.id` to proper `__semdict_note:` field |
+| `src/dtagent/plugins/login_history.config/instruments-def.yml`  | Renamed 6 occurrences                                                                                                  |
+| `src/dtagent/plugins/active_queries.config/instruments-def.yml` | Renamed 1 occurrence                                                                                                   |
 
 ## `snowflake.database.id` note conversion
 
 The comment:
+
 ```yaml
 # ACCOUNT_USAGE.DATABASES supplies real siblings (name, owner, owner.role_type, type, is_transient, lifecycle, retention_time, comment)
 # but populate from a future inventory plugin, not query_history (≈180-min latency + cost). In query_history it stays an FK.
 ```
+
 was converted to a structured `__semdict_note:` YAML field so it surfaces in the generated Semantic Dictionary output.
 
 ## Validation logic preserved
