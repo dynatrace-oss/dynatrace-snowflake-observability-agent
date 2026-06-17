@@ -17,6 +17,11 @@
 
 attributes:
   error.code:
+    __semdict: new
+    __semdict_note: >-
+      DSOA-specific string error code for Snowflake Trust Center scanner failures. Not the same as
+      the Dynatrace SD error.code field (type: long for iOS/mobile numeric codes). Pending rename
+      to snowflake.trust_center.error.code for namespace clarity.
     __example: ERR001
     __description: The error code associated with the scanner, if any.
   event.id:
@@ -47,6 +52,10 @@ attributes:
     __example: CIS Package
     __description: The name of the scanner package used in the Trust Center.
   status.message:
+    __semdict: new
+    __semdict_note: >-
+      DSOA-specific field repurposed to carry Trust Center scanner identification information.
+      Not present in OTel semconv or the Dynatrace Semantic Dictionary as a global field.
     __example: 2.4 Ensure monitoring and alerting exist for password sign-in without MFA
     __description: The name and description of the scanner, providing additional details about the status.
 dimensions:

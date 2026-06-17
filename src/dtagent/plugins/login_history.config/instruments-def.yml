@@ -77,6 +77,11 @@ attributes:
     __description: The name of the connection used by the client, or NULL if the
       client is not using a connection URL.
   error.code:
+    __semdict: new
+    __semdict_note: >-
+      DSOA-specific string error code for Snowflake login failures (e.g. "390100"). Not the same as
+      the Dynatrace SD error.code field (which is type: long for iOS/mobile numeric codes) — semantics
+      and type are incompatible. Pending rename to snowflake.login.error.code for namespace clarity.
     __context_names:
       - login_history
     __example: ERR001
@@ -118,6 +123,10 @@ attributes:
     __example: "1633046400000000000"
     __description: The start time of the session.
   status.code:
+    __semdict: new
+    __semdict_note: >-
+      DSOA-specific field for Snowflake login attempt status (OK/ERROR). Not present in OTel semconv
+      or the Dynatrace Semantic Dictionary as a global field.
     __context_names:
       - login_history
     __example: OK
@@ -125,6 +134,10 @@ attributes:
       The status of the login attempt, indicating success (OK) or failure
       (ERROR).
   status.message:
+    __semdict: new
+    __semdict_note: >-
+      DSOA-specific field for Snowflake login attempt status details. Not present in OTel semconv
+      or the Dynatrace Semantic Dictionary as a global field.
     __context_names:
       - login_history
     __example: Login successful
