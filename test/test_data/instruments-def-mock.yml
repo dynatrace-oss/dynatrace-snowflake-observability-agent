@@ -9,7 +9,7 @@ attributes:
 
   authentication.type:
     __semdict: ref
-    __otel_note: >-
+    __semdict_note: >-
       semdict enum has allow_custom_values: false (OAUTH2/TOKEN/DEVOPSTOKEN/NONE).
       DSOA also emits PASSWORD for Snowflake password auth; this is an open enum extension request.
     __description: "The authentication method used for the session."
@@ -23,13 +23,13 @@ attributes:
   deployment.environment:
     __semdict: deprecated-alias
     __otel_replacement: deployment.environment.name
-    __otel_note: "Renamed from deployment.environment in OTel Semantic Conventions v1.26."
+    __semdict_note: "Renamed from deployment.environment in OTel Semantic Conventions v1.26."
     __description: "The deployment environment, e.g., production, staging, or development."
     __example: "PROD"
 
   session.id:
     __semdict: otel-only
-    __otel_note: >-
+    __semdict_note: >-
       OTel semconv Development-tier attribute (session namespace). The semdict session.id is
       model-scoped/internal in code_monitoring only; no global ref available.
     __description: "The session ID during which the query was executed."

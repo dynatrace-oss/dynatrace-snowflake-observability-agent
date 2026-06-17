@@ -251,10 +251,10 @@ class TestValidation:
         assert any("__otel_replacement" in e for e in errors)
 
     def test_otel_only_requires_otel_note(self):
-        """otel-only without __otel_note fails."""
+        """otel-only without __semdict_note fails."""
         entry = {"__description": "D.", "__example": "E.", "__semdict": "otel-only"}
         errors = _validate_entry("test.field", entry, "attributes", "test.yml")
-        assert any("__otel_note" in e for e in errors)
+        assert any("__semdict_note" in e for e in errors)
 
     def test_invalid_field_type_fails(self):
         """Unknown __field_type produces an error."""
@@ -292,8 +292,8 @@ class TestRefEmission:
         assert "id" not in node
 
     def test_ref_with_otel_note_includes_note(self):
-        """Ref entry with __otel_note includes note in output."""
-        entry = {"__semdict": "ref", "__description": "Auth method.", "__example": "PASSWORD", "__otel_note": "Custom enum gap."}
+        """Ref entry with __semdict_note includes note in output."""
+        entry = {"__semdict": "ref", "__description": "Auth method.", "__example": "PASSWORD", "__semdict_note": "Custom enum gap."}
         node = _emit_ref_entry("authentication.type", entry)
         assert node.get("note") == "Custom enum gap."
 
@@ -328,7 +328,7 @@ class TestIdEmission:
         entry = {
             "__semdict": "deprecated-alias",
             "__otel_replacement": "deployment.environment.name",
-            "__otel_note": "Renamed in v1.26.",
+            "__semdict_note": "Renamed in v1.26.",
             "__description": "Deployment env.",
             "__example": "PROD",
         }
@@ -338,11 +338,11 @@ class TestIdEmission:
         assert "note" in node, "deprecated-alias must produce a note about the OTel rename"
 
     def test_deprecated_alias_has_note(self):
-        """deprecated-alias entry note includes __otel_note content and backward-compat message."""
+        """deprecated-alias entry note includes __semdict_note content and backward-compat message."""
         entry = {
             "__semdict": "deprecated-alias",
             "__otel_replacement": "deployment.environment.name",
-            "__otel_note": "Renamed in v1.26.",
+            "__semdict_note": "Renamed in v1.26.",
             "__description": "Deployment env.",
             "__example": "PROD",
         }
@@ -351,8 +351,8 @@ class TestIdEmission:
         assert "backward compatibility" in node.get("note", "")
 
     def test_otel_only_has_note(self):
-        """otel-only entry includes note from __otel_note."""
-        entry = {"__semdict": "otel-only", "__otel_note": "OTel Development-tier.", "__description": "Session ID.", "__example": "123"}
+        """otel-only entry includes note from __semdict_note."""
+        entry = {"__semdict": "otel-only", "__semdict_note": "OTel Development-tier.", "__description": "Session ID.", "__example": "123"}
         node = _emit_id_entry("session.id", entry, "otel-only")
         assert node["stability"] == "experimental"
         assert node.get("note") == "OTel Development-tier."

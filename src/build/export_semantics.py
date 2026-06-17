@@ -359,8 +359,8 @@ def _validate_entry(key: str, entry: Dict[str, Any], section: str, source_file: 
     semdict = entry.get("__semdict", "new")
     if semdict == "deprecated-alias" and not entry.get("__otel_replacement"):
         errors.append(f"[{source_file}] {section}.{key}: __semdict: deprecated-alias requires __otel_replacement")
-    if semdict == "otel-only" and not entry.get("__otel_note"):
-        errors.append(f"[{source_file}] {section}.{key}: __semdict: otel-only requires __otel_note")
+    if semdict == "otel-only" and not entry.get("__semdict_note"):
+        errors.append(f"[{source_file}] {section}.{key}: __semdict: otel-only requires __semdict_note")
     field_type = entry.get("__field_type")
     if field_type is not None and field_type not in VALID_FIELD_TYPES:
         errors.append(f"[{source_file}] {section}.{key}: unknown __field_type '{field_type}'")
@@ -378,13 +378,13 @@ def _emit_ref_entry(key: str, entry: Dict[str, Any]) -> Dict[str, Any]:
 
     Args:
         key:   Field key to reference.
-        entry: Source entry (used for optional otel_note).
+        entry: Source entry (used for optional semdict_note).
 
     Returns:
         Dict with ``ref`` key and optional ``note``.
     """
     node: Dict[str, Any] = {"ref": key}
-    note = entry.get("__otel_note")
+    note = entry.get("__semdict_note")
     if note:
         node["note"] = str(note).strip()
     return node
@@ -438,13 +438,13 @@ def _emit_id_entry(key: str, entry: Dict[str, Any], semdict_flag: str) -> Dict[s
     }
     if semdict_flag == "deprecated-alias":
         replacement = entry.get("__otel_replacement", "")
-        otel_note = entry.get("__otel_note", "")
+        otel_note = entry.get("__semdict_note", "")
         warning = f"OTel renamed this field to {replacement}. DSOA continues to emit it for backward compatibility."
         if otel_note:
             warning = f"{otel_note} DSOA continues to emit it for backward compatibility."
         node["note"] = warning
-    elif entry.get("__otel_note"):
-        node["note"] = str(entry["__otel_note"]).strip()
+    elif entry.get("__semdict_note"):
+        node["note"] = str(entry["__semdict_note"]).strip()
     return node
 
 
@@ -502,8 +502,8 @@ def _emit_metric_entry(key: str, entry: Dict[str, Any]) -> Dict[str, Any]:
     }
     if unit:
         node["unit"] = str(unit)
-    if entry.get("__otel_note"):
-        node["note"] = str(entry["__otel_note"]).strip()
+    if entry.get("__semdict_note"):
+        node["note"] = str(entry["__semdict_note"]).strip()
     return node
 
 

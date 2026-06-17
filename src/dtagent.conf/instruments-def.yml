@@ -17,7 +17,7 @@
 dimensions:
   db.system:
     __semdict: otel-only
-    __otel_note: >-
+    __semdict_note: >-
       Defined in OpenTelemetry Semantic Conventions (db.system, stable) but not yet present as a globally referenceable field in the
       Dynatrace Semantic Dictionary. Emitting as a new id: definition here so DSOA can declare it properly. The value for Snowflake is
       always 'snowflake'.
@@ -26,7 +26,7 @@ dimensions:
   deployment.environment:
     __semdict: deprecated-alias
     __otel_replacement: deployment.environment.name
-    __otel_note: >-
+    __semdict_note: >-
       Renamed from deployment.environment in OTel Semantic Conventions v1.26. Replacement: deployment.environment.name (stable).
     __description: "The deployment environment, e.g., production, staging, or development."
     __example: "PROD"
@@ -82,7 +82,7 @@ attributes:
     __example: "snowflake.table.update"
   observed_timestamp:
     __semdict: new
-    __otel_note: >-
+    __semdict_note: >-
       In OTel Log Data Model, observed_timestamp is a structural field (not an attribute key). Dynatrace normalizes this into the attribute
       bag for query consistency.
     __description: "The timestamp (in epoch nanoseconds) when the event was observed."
