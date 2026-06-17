@@ -68,13 +68,28 @@ import yaml
 #: Fields that already exist in the Dynatrace Semantic Dictionary (emit as ref: only).
 #: Note: db.system is in OTel semconv but NOT yet in the SD as a global field.
 #: It is annotated __semdict: otel-only in instruments-def and emitted as id:.
-KNOWN_REFS = {"host.name", "service.name", "telemetry.exporter.name", "telemetry.exporter.version", "db.query.text", "event.id", "authentication.type"}
+KNOWN_REFS = {
+    "host.name",
+    "service.name",
+    "telemetry.exporter.name",
+    "telemetry.exporter.version",
+    "db.query.text",
+    "event.id",
+    "authentication.type",
+}
 
 #: Keys present on every DSOA telemetry record — synced with config.py RESOURCE_ATTRIBUTES.
 RESOURCE_ATTRIBUTE_KEYS: Set[str] = {
-    "db.system", "service.name", "deployment.environment", "host.name",
-    "telemetry.exporter.version", "telemetry.exporter.name",
-    "dsoa.run.id", "dsoa.run.context", "dsoa.run.plugin", "deployment.environment.tag",
+    "db.system",
+    "service.name",
+    "deployment.environment",
+    "host.name",
+    "telemetry.exporter.version",
+    "telemetry.exporter.name",
+    "dsoa.run.id",
+    "dsoa.run.context",
+    "dsoa.run.plugin",
+    "deployment.environment.tag",
 }
 
 #: Dimension keys covered by the i.dsoa_warehouse interface.
@@ -90,10 +105,23 @@ VALID_FIELD_TYPES = {"resource", "signal"}
 DISPLAY_NAME_ACRONYMS = ("DSOA", "OTel", "DDL", "DML", "RSS", "URL", "API", "ID", "DB", "QA", "SQL")
 
 #: instruments-def __type → semconv instrument.
-METRIC_TYPE_MAP: Dict[str, str] = {"gauge": "gauge", "count": "counter", "counter": "counter", "updowncounter": "updowncounter", "histogram": "histogram"}
+METRIC_TYPE_MAP: Dict[str, str] = {
+    "gauge": "gauge",
+    "count": "counter",
+    "counter": "counter",
+    "updowncounter": "updowncounter",
+    "histogram": "histogram",
+}
 
 #: instruments-def __type → semconv attribute type.
-ATTR_TYPE_MAP: Dict[str, str] = {"long": "long", "int": "long", "double": "double", "float": "double", "boolean": "boolean", "string": "string"}
+ATTR_TYPE_MAP: Dict[str, str] = {
+    "long": "long",
+    "int": "long",
+    "double": "double",
+    "float": "double",
+    "boolean": "boolean",
+    "string": "string",
+}
 
 #: Valid semdict classification values.
 VALID_SEMDICT_FLAGS = {"ref", "new", "deprecated-alias", "otel-only"}
@@ -169,13 +197,16 @@ log = logging.getLogger(__name__)
 
 ##region Data structures
 
+
 class ExportError(Exception):
     """Raised when export encounters a fatal validation error."""
+
 
 ##endregion
 
 
 ##region Pure helpers
+
 
 def _restore_acronyms(text: str) -> str:
     """Restore known acronyms to ALL-CAPS in a title-cased string.
@@ -236,7 +267,6 @@ def _map_metric_instrument(raw_type: Optional[str]) -> str:
         Semconv instrument string (default ``"gauge"``).
     """
     if not raw_type:
-        log.warning("Metric has no __type; defaulting to gauge")
         return "gauge"
     mapped = METRIC_TYPE_MAP.get(str(raw_type).lower())
     if not mapped:
@@ -302,10 +332,12 @@ def _ns_group(key: str, ns_map: List[Tuple[str, str, str]], default_id: str, def
             return group_id, group_type
     return default_id, default_type
 
+
 ##endregion
 
 
 ##region Validation
+
 
 def _validate_entry(key: str, entry: Dict[str, Any], section: str, source_file: str) -> List[str]:
     """Validate a single instruments-def entry for required semdict metadata.
@@ -334,10 +366,12 @@ def _validate_entry(key: str, entry: Dict[str, Any], section: str, source_file: 
         errors.append(f"[{source_file}] {section}.{key}: unknown __field_type '{field_type}'")
     return errors
 
+
 ##endregion
 
 
 ##region Emit helpers
+
 
 def _emit_ref_entry(key: str, entry: Dict[str, Any]) -> Dict[str, Any]:
     """Build a ref: attribute entry.
@@ -395,8 +429,12 @@ def _emit_id_entry(key: str, entry: Dict[str, Any], semdict_flag: str) -> Dict[s
         example_raw = ""
     examples = [str(example_raw).strip()] if not isinstance(example_raw, list) else [str(e).strip() for e in example_raw]
     node: Dict[str, Any] = {
-        "id": key, "display_name": _make_display_name(key), "type": attr_type,
-        "stability": "experimental", "brief": description, "examples": examples,
+        "id": key,
+        "display_name": _make_display_name(key),
+        "type": attr_type,
+        "stability": "experimental",
+        "brief": description,
+        "examples": examples,
     }
     if semdict_flag == "deprecated-alias":
         replacement = entry.get("__otel_replacement", "")
@@ -453,8 +491,14 @@ def _emit_metric_entry(key: str, entry: Dict[str, Any]) -> Dict[str, Any]:
         log.warning("Metric '%s' has no unit; omitting unit field", key)
     display_name = entry.get("displayName") or _make_display_name(key)
     node: Dict[str, Any] = {
-        "id": key, "type": "metric", "metric_name": key, "instrument": instrument,
-        "stability": "experimental", "brief": description, "examples": examples, "title": display_name,
+        "id": key,
+        "type": "metric",
+        "metric_name": key,
+        "instrument": instrument,
+        "stability": "experimental",
+        "brief": description,
+        "examples": examples,
+        "title": display_name,
     }
     if unit:
         node["unit"] = str(unit)
@@ -462,10 +506,12 @@ def _emit_metric_entry(key: str, entry: Dict[str, Any]) -> Dict[str, Any]:
         node["note"] = str(entry["__otel_note"]).strip()
     return node
 
+
 ##endregion
 
 
 ##region SemanticExporter
+
 
 class SemanticExporter:
     """Reads instruments-def.yml files and emits Semantic Dictionary YAML.
@@ -489,8 +535,15 @@ class SemanticExporter:
         self.schema_path = schema_path
         self._schema: Optional[Dict[str, Any]] = None
         self._counters: Dict[str, int] = {
-            "files": 0, "ref": 0, "new": 0, "deprecated_alias": 0, "otel_only": 0,
-            "resource_fields": 0, "signal_fields": 0, "metric_fields": 0, "event_timestamp_fields": 0,
+            "files": 0,
+            "ref": 0,
+            "new": 0,
+            "deprecated_alias": 0,
+            "otel_only": 0,
+            "resource_fields": 0,
+            "signal_fields": 0,
+            "metric_fields": 0,
+            "event_timestamp_fields": 0,
         }
 
     ##region Discovery + Parsing
@@ -547,8 +600,11 @@ class SemanticExporter:
                 if semdict_flag == "ref" and key not in KNOWN_REFS:
                     log.warning("[%s] %s.%s: __semdict: ref but key not in KNOWN_REFS", plugin_name, section, key)
                 entries[key] = {
-                    "section": section, "semdict": semdict_flag, "plugin": plugin_name,
-                    "entry": entry, "classification": _classify_field(key, section, entry.get("__field_type")),
+                    "section": section,
+                    "semdict": semdict_flag,
+                    "plugin": plugin_name,
+                    "entry": entry,
+                    "classification": _classify_field(key, section, entry.get("__field_type")),
                 }
         return errors, entries
 
@@ -603,7 +659,9 @@ class SemanticExporter:
             self._counters["ref"] += 1
             return _emit_ref_entry(key, entry)
         node = _emit_id_entry(key, entry, semdict_flag)
-        self._counters["deprecated_alias" if semdict_flag == "deprecated-alias" else "otel_only" if semdict_flag == "otel-only" else "new"] += 1
+        self._counters[
+            "deprecated_alias" if semdict_flag == "deprecated-alias" else "otel_only" if semdict_flag == "otel-only" else "new"
+        ] += 1
         return node
 
     ##endregion
@@ -624,9 +682,9 @@ class SemanticExporter:
         # in the SD already.  They belong with the agent identity context, not in
         # the Snowflake-specific resource file.
         dsoa_keys = {
-            k: v for k, v in resource_entries.items()
-            if k.startswith("dsoa.") or k.startswith("deployment.")
-            or v["semdict"] == "ref"  # known SD refs go into dsoa.yaml
+            k: v
+            for k, v in resource_entries.items()
+            if k.startswith("dsoa.") or k.startswith("deployment.") or v["semdict"] == "ref"  # known SD refs go into dsoa.yaml
         }
         snowflake_keys = {k: v for k, v in resource_entries.items() if k not in dsoa_keys}
 
@@ -639,10 +697,13 @@ class SemanticExporter:
             self._counters["resource_fields"] += 1
 
         sf_group_list = [
-            {"id": gid, "type": sf_groups[gid]["type"],
-             "title": _make_display_name(gid) + " resource fields",
-             "brief": f"Resource-level fields describing Snowflake {_make_display_name(gid)} entities.",
-             "attributes": sf_groups[gid]["attrs"]}
+            {
+                "id": gid,
+                "type": sf_groups[gid]["type"],
+                "title": _make_display_name(gid) + " resource fields",
+                "brief": f"Resource-level fields describing Snowflake {_make_display_name(gid)} entities.",
+                "attributes": sf_groups[gid]["attrs"],
+            }
             for gid in sorted(sf_groups)
         ]
 
@@ -653,13 +714,20 @@ class SemanticExporter:
 
         return (
             {"groups": sf_group_list},
-            {"groups": [{"id": "dsoa", "type": "resource", "title": "DSOA resource fields",
-                          "brief": "Resource-level DSOA execution metadata and deployment context.", "attributes": dsoa_attrs}]},
+            {
+                "groups": [
+                    {
+                        "id": "dsoa",
+                        "type": "resource",
+                        "title": "DSOA resource fields",
+                        "brief": "Resource-level DSOA execution metadata and deployment context.",
+                        "attributes": dsoa_attrs,
+                    }
+                ]
+            },
         )
 
-    def _build_signal_fields_yaml(
-        self, signal_entries: Dict[str, Any], event_ts_entries: Dict[str, Any]
-    ) -> Dict[str, Dict[str, Any]]:
+    def _build_signal_fields_yaml(self, signal_entries: Dict[str, Any], event_ts_entries: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
         """Build one signal_fields YAML file per namespace group.
 
         Each namespace group (snowflake.query, snowflake.user, etc.) gets its own
@@ -690,13 +758,17 @@ class SemanticExporter:
         docs: Dict[str, Dict[str, Any]] = {}
         for gid in sorted(groups_map):
             filename = gid.replace(".", "_") + ".yaml"
-            doc = {"groups": [{
-                "id": gid,
-                "type": groups_map[gid]["type"],
-                "title": _make_display_name(gid) + " signal fields",
-                "brief": f"Signal-level fields for {_make_display_name(gid)} telemetry.",
-                "attributes": groups_map[gid]["attrs"],
-            }]}
+            doc = {
+                "groups": [
+                    {
+                        "id": gid,
+                        "type": groups_map[gid]["type"],
+                        "title": _make_display_name(gid) + " signal fields",
+                        "brief": f"Signal-level fields for {_make_display_name(gid)} telemetry.",
+                        "attributes": groups_map[gid]["attrs"],
+                    }
+                ]
+            }
             docs[f"fields/signal_fields/{filename}"] = doc
         return docs
 
@@ -706,17 +778,31 @@ class SemanticExporter:
         Returns:
             Semconv-compliant YAML doc dict.
         """
-        return {"groups": [
-            {"id": "i.dsoa_resource", "type": "interface", "title": "DSOA resource fields",
-             "brief": "Fields present on all DSOA telemetry records. Synced with config.py RESOURCE_ATTRIBUTES.",
-             "attributes": [{"ref": k} for k in sorted(RESOURCE_ATTRIBUTE_KEYS)]},
-            {"id": "i.dsoa_warehouse", "type": "interface", "title": "DSOA warehouse dimension fields",
-             "brief": "Common warehouse dimensions for per-warehouse metrics.",
-             "attributes": [{"ref": "snowflake.warehouse.name"}, {"ref": "snowflake.warehouse.id"}]},
-            {"id": "i.dsoa_database", "type": "interface", "title": "DSOA database dimension fields",
-             "brief": "Common database/schema dimensions for per-database metrics.",
-             "attributes": [{"ref": "db.namespace"}, {"ref": "snowflake.schema.name"}]},
-        ]}
+        return {
+            "groups": [
+                {
+                    "id": "i.dsoa_resource",
+                    "type": "interface",
+                    "title": "DSOA resource fields",
+                    "brief": "Fields present on all DSOA telemetry records. Synced with config.py RESOURCE_ATTRIBUTES.",
+                    "attributes": [{"ref": k} for k in sorted(RESOURCE_ATTRIBUTE_KEYS)],
+                },
+                {
+                    "id": "i.dsoa_warehouse",
+                    "type": "interface",
+                    "title": "DSOA warehouse dimension fields",
+                    "brief": "Common warehouse dimensions for per-warehouse metrics.",
+                    "attributes": [{"ref": "snowflake.warehouse.name"}, {"ref": "snowflake.warehouse.id"}],
+                },
+                {
+                    "id": "i.dsoa_database",
+                    "type": "interface",
+                    "title": "DSOA database dimension fields",
+                    "brief": "Common database/schema dimensions for per-database metrics.",
+                    "attributes": [{"ref": "db.namespace"}, {"ref": "snowflake.schema.name"}],
+                },
+            ]
+        }
 
     def _select_interfaces(self, metric_entries: Dict[str, Any], all_entries: Dict[str, Any]) -> List[str]:
         """Determine which DSOA interfaces to declare for a metric model.
@@ -812,12 +898,17 @@ class SemanticExporter:
             groups.append(metric_node)
             self._counters["metric_fields"] += 1
 
-        return {"model": {
-            "id": f"dsoa.metrics.{plugin_name}", "title": f"Snowflake {plugin_title} Metrics",
-            "brief": f"Metrics collected by the DSOA {plugin_name} plugin from Snowflake ACCOUNT_USAGE views.",
-            "model_group_id": "dsoa.metrics", "data_object": "metric",
-            "interfaces": interfaces, "groups": groups,
-        }}
+        return {
+            "model": {
+                "id": f"dsoa.metrics.{plugin_name}",
+                "title": f"Snowflake {plugin_title} Metrics",
+                "brief": f"Metrics collected by the DSOA {plugin_name} plugin from Snowflake ACCOUNT_USAGE views.",
+                "model_group_id": "dsoa.metrics",
+                "data_object": "metric",
+                "interfaces": interfaces,
+                "groups": groups,
+            }
+        }
 
     def _build_event_model_yaml(self, plugin_name: str, event_ts_entries: Dict[str, Any]) -> Dict[str, Any]:
         """Build a per-plugin event model YAML document.
@@ -831,20 +922,29 @@ class SemanticExporter:
         """
         plugin_title = _restore_acronyms(plugin_name.replace("_", " ").title())
         plugin_ts_keys = sorted(
-            k for k, meta in event_ts_entries.items()
-            if meta["plugin"] == plugin_name and k != "snowflake.event.trigger"
+            k for k, meta in event_ts_entries.items() if meta["plugin"] == plugin_name and k != "snowflake.event.trigger"
         )
         attrs = [{"ref": "snowflake.event.type"}] + [{"ref": k} for k in plugin_ts_keys]
         for _ in plugin_ts_keys:
             self._counters["event_timestamp_fields"] += 1
-        return {"model": {
-            "id": f"dsoa.events.{plugin_name}", "title": f"Snowflake {plugin_title} Lifecycle Events",
-            "brief": f"Timestamp-based state-change events emitted by the DSOA {plugin_name} plugin as business events.",
-            "model_group_id": "dsoa.events", "data_object": "bizevents",
-            "interfaces": ["i.dsoa_resource"],
-            "groups": [{"id": f"dsoa.events.{plugin_name}.fields", "type": "attribute_group",
-                         "title": f"{plugin_title} event fields", "attributes": attrs}],
-        }}
+        return {
+            "model": {
+                "id": f"dsoa.events.{plugin_name}",
+                "title": f"Snowflake {plugin_title} Lifecycle Events",
+                "brief": f"Timestamp-based state-change events emitted by the DSOA {plugin_name} plugin as business events.",
+                "model_group_id": "dsoa.events",
+                "data_object": "bizevents",
+                "interfaces": ["i.dsoa_resource"],
+                "groups": [
+                    {
+                        "id": f"dsoa.events.{plugin_name}.fields",
+                        "type": "attribute_group",
+                        "title": f"{plugin_title} event fields",
+                        "attributes": attrs,
+                    }
+                ],
+            }
+        }
 
     ##endregion
 
@@ -860,6 +960,7 @@ class SemanticExporter:
             log.warning("semconv.schema.json not found at %s; skipping schema validation", self.schema_path)
             return None
         import json  # pylint: disable=import-outside-toplevel
+
         with open(self.schema_path, "r", encoding="utf-8") as fh:
             return json.load(fh)
 
@@ -877,6 +978,7 @@ class SemanticExporter:
             return True
         try:
             import jsonschema  # pylint: disable=import-outside-toplevel
+
             jsonschema.validate(instance=doc, schema=self._schema)
             log.debug("Schema validation PASS: %s", yaml_path)
             return True
@@ -930,12 +1032,14 @@ class SemanticExporter:
         all_errors: List[str] = []
         all_entries: Dict[str, Any] = {}
         for plugin_name, path in files:
-            log.info("Parsing %s (%s)", plugin_name, path)
+            log.debug("Parsing %s (%s)", plugin_name, path)
             errors, entries = self._parse_file(plugin_name, path)
             all_errors.extend(errors)
             for key, meta in entries.items():
                 if key in all_entries:
-                    log.warning("Duplicate key '%s' in %s (first in %s); skipping", key, plugin_name, all_entries[key]["plugin"])
+                    log.debug(
+                        "Duplicate key '%s' in %s (first in %s); using first definition", key, plugin_name, all_entries[key]["plugin"]
+                    )
                 else:
                     all_entries[key] = meta
         if all_errors:
@@ -943,8 +1047,13 @@ class SemanticExporter:
 
         # Step 3: Group
         resource_entries, signal_entries, event_ts_entries, plugin_metric_entries = self._group_entries(all_entries)
-        log.info("Resource: %d  Signal: %d  EventTS: %d  PluginMetricGroups: %d",
-                 len(resource_entries), len(signal_entries), len(event_ts_entries), len(plugin_metric_entries))
+        log.info(
+            "Resource: %d  Signal: %d  EventTS: %d  PluginMetricGroups: %d",
+            len(resource_entries),
+            len(signal_entries),
+            len(event_ts_entries),
+            len(plugin_metric_entries),
+        )
 
         # Step 4: Load schema
         self._schema = self._load_schema()
@@ -968,9 +1077,16 @@ class SemanticExporter:
         # Step 7: interfaces + model group
         p = self._write_yaml(self._build_interfaces_yaml(), "metrics/interfaces_dsoa.yaml")
         self._validate_against_schema(self._build_interfaces_yaml(), p)
-        self._write_yaml({"model_group": {"id": "dsoa.metrics", "title": "DSOA Snowflake Metrics",
-                                           "brief": "Metrics collected by the DSOA from Snowflake ACCOUNT_USAGE views."}},
-                         "metrics/dsoa_metrics_model_group.yaml")
+        self._write_yaml(
+            {
+                "model_group": {
+                    "id": "dsoa.metrics",
+                    "title": "DSOA Snowflake Metrics",
+                    "brief": "Metrics collected by the DSOA from Snowflake ACCOUNT_USAGE views.",
+                }
+            },
+            "metrics/dsoa_metrics_model_group.yaml",
+        )
 
         # Step 8: per-plugin metric models
         for plugin_name in sorted(plugin_metric_entries):
@@ -984,13 +1100,18 @@ class SemanticExporter:
             self._validate_against_schema(doc, p)
 
         # Step 9: per-plugin event models
-        plugins_with_events: Set[str] = {
-            meta["plugin"] for k, meta in event_ts_entries.items() if k != "snowflake.event.trigger"
-        }
+        plugins_with_events: Set[str] = {meta["plugin"] for k, meta in event_ts_entries.items() if k != "snowflake.event.trigger"}
         if plugins_with_events:
-            self._write_yaml({"model_group": {"id": "dsoa.events", "title": "DSOA Snowflake Lifecycle Events",
-                                               "brief": "Timestamp-based lifecycle events emitted by DSOA as business events."}},
-                             "model/dsoa/model_group_dsoa_events.yaml")
+            self._write_yaml(
+                {
+                    "model_group": {
+                        "id": "dsoa.events",
+                        "title": "DSOA Snowflake Lifecycle Events",
+                        "brief": "Timestamp-based lifecycle events emitted by DSOA as business events.",
+                    }
+                },
+                "model/dsoa/model_group_dsoa_events.yaml",
+            )
             for plugin_name in sorted(plugins_with_events):
                 doc = self._build_event_model_yaml(plugin_name, event_ts_entries)
                 p = self._write_yaml(doc, f"model/dsoa/dsoa.events.{plugin_name}.yaml")
@@ -1000,10 +1121,12 @@ class SemanticExporter:
 
     ##endregion
 
+
 ##endregion
 
 
 ##region CLI
+
 
 def _parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     """Parse command-line arguments.
