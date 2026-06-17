@@ -40,7 +40,8 @@ attributes:
     __field_type: resource
     __context_names:
       - warehouse_usage
-    __example: "2"
+    __type: long
+    __example: 2
     __description: The number of clusters in the warehouse.
   snowflake.warehouse.event.reason:
     __context_names:

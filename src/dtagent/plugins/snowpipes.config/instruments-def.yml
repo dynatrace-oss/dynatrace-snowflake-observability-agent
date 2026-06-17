@@ -79,7 +79,8 @@ attributes:
   snowflake.copy.first_error.line_number:
     __context_names:
       - snowpipes_copy_history
-    __example: "42"
+    __type: long
+    __example: 42
     __description: Line number of first error.
   snowflake.copy.first_error.column_name:
     __context_names:
@@ -89,12 +90,14 @@ attributes:
   snowflake.copy.first_error.character_position:
     __context_names:
       - snowpipes_copy_history
-    __example: "128"
+    __type: long
+    __example: 128
     __description: Character position of first error.
   snowflake.copy.errors.limit:
     __context_names:
       - snowpipes_copy_history
-    __example: "1"
+    __type: long
+    __example: 1
     __description: Error limit for the COPY.
   snowflake.copy.pipe.received_time:
     __context_names:

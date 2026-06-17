@@ -73,9 +73,11 @@ attributes:
     __example: "1234567890"
     __description: The session ID during which the query was executed.
   dsoa.debug.span.events.added:
+    __type: long
     __example: 5
     __description: Internal debug field indicating the number of span events successfully added to the given span.
   dsoa.debug.span.events.failed:
+    __type: long
     __example: 1
     __description: Internal debug field indicating the number of span events that failed to be added to the given span.
   plugins.query_history.obfuscation_mode:
@@ -211,6 +213,7 @@ attributes:
       "Indicates whether the query is eligible to benefit from the query acceleration service. Possible values are: eligible, ineligible,
       accelerated, invalid."
   snowflake.query.accel_est.upper_limit_scale_factor:
+    __type: long
     __example: 2
     __description:
       Number of the highest query acceleration scale factor in the estimatedQueryTimes object. If the status for the query is not eligible
@@ -231,7 +234,8 @@ attributes:
     __example: hash123
     __description: The hash of the query text.
   snowflake.query.hash_version:
-    __example: v1
+    __type: long
+    __example: 1
     __description: The version of the query hash.
   snowflake.query.id:
     __example: b1bbaa7f-8144-4e50-947a-b7e9bf7d62d5
@@ -244,6 +248,7 @@ attributes:
     __example: '{ "equality_join_condition": "(T4.C = T1.C)",   "join_type": "INNER" }'
     __description: Information about the operator, depending on the operator type.
   snowflake.query.operator.id:
+    __type: long
     __example: 0
     __description: The operator’s identifier, unique within the query. Values start at 0.
   snowflake.query.operator.parent_ids:
@@ -272,7 +277,8 @@ attributes:
     __example: param_hash123
     __description: The hash of the parameterized query text.
   snowflake.query.parametrized_hash_version:
-    __example: v1
+    __type: long
+    __example: 1
     __description: The version of the parameterized query hash.
   snowflake.query.parent_id:
     __example: parent123
@@ -305,7 +311,8 @@ attributes:
     __example: User logout
     __description: The reason the session was closed.
   snowflake.session.start:
-    __example: "2024-11-05T21:11:07Z"
+    __type: long
+    __example: "1633046400000000000"
     __description: The start time of the session.
   snowflake.warehouse.cluster.number:
     __example: cluster1

@@ -114,6 +114,7 @@ attributes:
   snowflake.session.start:
     __context_names:
       - sessions
+    __type: long
     __example: "1633046400000000000"
     __description: The start time of the session.
   status.code:
