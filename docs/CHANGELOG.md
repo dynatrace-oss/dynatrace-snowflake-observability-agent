@@ -31,6 +31,12 @@ All notable changes to this project will be documented in this file.
   classification (e.g. `signal` on a dimension that describes event context, not the resource).
 - Added `__enum` definitions for ~16 categorical fields including warehouse size/type, query
   execution status, user type, resource monitor level/frequency, DDL operations, and others.
+- **SD export IA fixes**: corrected group ID collisions (`snowflake.warehouse.resource`,
+  `db.resource`), fixed enum loss for 5 fields via union-merge dedup strategy, resolved
+  dimension ownership tracking for cross-plugin dims, removed incorrect `ref:` nodes from field
+  definition files, added `__type: boolean` to all boolean fields and `__type: long` to integer
+  and epoch-nanosecond fields, and annotated generic-named DSOA fields (`error.code`,
+  `status.code`, `status.message`) with `__semdict: new` and divergence notes.
 
 ## [0.9.5] - 2026-06-08
 
