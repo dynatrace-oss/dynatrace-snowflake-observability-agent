@@ -65,6 +65,10 @@ import yaml
 
 ##region Constants
 
+#: Plugins that emit OpenTelemetry spans (in addition to log records).
+#: Only these plugins get ``dsoa.spans.<plugin_name>.yaml`` model files.
+SPAN_PLUGINS: frozenset = frozenset({"query_history", "event_log"})
+
 #: Fields that already exist in the Dynatrace Semantic Dictionary (emit as ref: only).
 #: Note: db.system is in OTel semconv but NOT yet in the SD as a global field.
 #: It is annotated __semdict: otel-only in instruments-def and emitted as id:.
@@ -1182,7 +1186,117 @@ class SemanticExporter:
 
     ##endregion
 
-    ##region Schema validation
+    ##region Log / Span model builders
+
+    def _collect_plugin_attribute_refs(
+        self,
+        plugin_name: str,
+        all_entries: Dict[str, Any],
+        context_name: Optional[str] = None,
+    ) -> List[Dict[str, str]]:
+        """Collect all attribute field refs for a plugin (optionally for one context).
+
+        Collects all entries from ``attributes`` section that belong to ``plugin_name``
+        (either as the dedup winner or as a definition registered in ``all_entries``).
+        Entries with ``__context_names`` are included only if ``context_name`` is None
+        or if the context matches.
+
+        ``ref``-classified entries are excluded (they belong in SD interfaces only).
+
+        Args:
+            plugin_name:  Plugin name.
+            all_entries:  All parsed entries (dedup-resolved).
+            context_name: If provided, only include fields applicable to this context.
+
+        Returns:
+            Sorted list of ``{"ref": key}`` dicts.
+        """
+        refs = []
+        for key, meta in all_entries.items():
+            if meta["section"] != "attributes":
+                continue
+            if meta["plugin"] != plugin_name:
+                continue
+            if meta["semdict"] == "ref":
+                continue
+            # Filter by context if requested
+            if context_name is not None:
+                ctx_names = set(meta["entry"].get("__context_names") or [])
+                if ctx_names and context_name not in ctx_names:
+                    continue
+            refs.append(key)
+        return [{"ref": k} for k in sorted(refs)]
+
+    def _build_log_model_yaml(self, plugin_name: str, all_entries: Dict[str, Any]) -> Dict[str, Any]:
+        """Build a per-plugin log record model YAML document.
+
+        Creates a log model that references all attribute fields for the plugin via
+        a ``ref:`` list in a dedicated model group, resolving signal-field orphans.
+
+        Args:
+            plugin_name:  Plugin name.
+            all_entries:  All parsed entries (dedup-resolved).
+
+        Returns:
+            Semconv-compliant YAML document dict with ``model:`` envelope.
+        """
+        plugin_title = _restore_acronyms(plugin_name.replace("_", " ").title())
+        attr_refs = self._collect_plugin_attribute_refs(plugin_name, all_entries)
+        return {
+            "model": {
+                "id": f"dsoa.logs.{plugin_name}",
+                "title": f"DSOA {plugin_title} Log Records",
+                "brief": f"Log records emitted by the DSOA {plugin_name} plugin.",
+                "model_group_id": "dsoa.logs",
+                "data_object": "log",
+                "interfaces": ["i.dsoa_resource"],
+                "groups": [
+                    {
+                        "id": f"dsoa.logs.{plugin_name}.fields",
+                        "type": "attribute_group",
+                        "title": f"{plugin_title} log record fields",
+                        "brief": f"Attribute fields for {_make_display_name(plugin_name)} log records.",
+                        "attributes": attr_refs,
+                    }
+                ],
+            }
+        }
+
+    def _build_span_model_yaml(self, plugin_name: str, all_entries: Dict[str, Any]) -> Dict[str, Any]:
+        """Build a per-plugin span model YAML document.
+
+        Only generated for plugins in ``SPAN_PLUGINS``.
+
+        Args:
+            plugin_name:  Plugin name (must be in SPAN_PLUGINS).
+            all_entries:  All parsed entries (dedup-resolved).
+
+        Returns:
+            Semconv-compliant YAML document dict with ``model:`` envelope.
+        """
+        plugin_title = _restore_acronyms(plugin_name.replace("_", " ").title())
+        attr_refs = self._collect_plugin_attribute_refs(plugin_name, all_entries)
+        return {
+            "model": {
+                "id": f"dsoa.spans.{plugin_name}",
+                "title": f"DSOA {plugin_title} Spans",
+                "brief": f"Span records emitted by the DSOA {plugin_name} plugin.",
+                "model_group_id": "dsoa.spans",
+                "data_object": "span",
+                "interfaces": ["i.dsoa_resource"],
+                "groups": [
+                    {
+                        "id": f"dsoa.spans.{plugin_name}.fields",
+                        "type": "attribute_group",
+                        "title": f"{plugin_title} span fields",
+                        "brief": f"Attribute fields for {_make_display_name(plugin_name)} spans.",
+                        "attributes": attr_refs,
+                    }
+                ],
+            }
+        }
+
+    ##endregion
 
     def _load_schema(self) -> Optional[Dict[str, Any]]:
         """Load semconv JSON schema if available.
@@ -1360,6 +1474,65 @@ class SemanticExporter:
                 doc = self._build_event_model_yaml(plugin_name, event_ts_entries)
                 p = self._write_yaml(doc, f"model/dsoa/dsoa.events.{plugin_name}.yaml")
                 self._validate_against_schema(doc, p)
+
+        # Step 10: per-plugin log models (resolves signal field orphans)
+        plugins_with_attrs: Set[str] = {
+            meta["plugin"]
+            for meta in all_entries.values()
+            if meta["section"] == "attributes" and meta["semdict"] != "ref"
+        }
+        plugins_with_attrs.discard("_core")  # _core attrs are resource-level; no log model needed
+        if plugins_with_attrs:
+            self._write_yaml(
+                {
+                    "model_group": {
+                        "id": "dsoa.logs",
+                        "title": "DSOA Snowflake Log Records",
+                        "brief": "Log records emitted by DSOA plugins from Snowflake ACCOUNT_USAGE and system views.",
+                    }
+                },
+                "model/dsoa/model_group_dsoa_logs.yaml",
+            )
+            for plugin_name in sorted(plugins_with_attrs):
+                doc = self._build_log_model_yaml(plugin_name, all_entries)
+                p = self._write_yaml(doc, f"model/dsoa/dsoa.logs.{plugin_name}.yaml")
+                self._validate_against_schema(doc, p)
+
+        # Step 11: per-plugin span models (only for SPAN_PLUGINS)
+        span_model_plugins = plugins_with_attrs & SPAN_PLUGINS
+        if span_model_plugins:
+            self._write_yaml(
+                {
+                    "model_group": {
+                        "id": "dsoa.spans",
+                        "title": "DSOA Spans",
+                        "brief": "Span records emitted by DSOA plugins from Snowflake ACCOUNT_USAGE views.",
+                    }
+                },
+                "model/dsoa/model_group_dsoa_spans.yaml",
+            )
+            for plugin_name in sorted(span_model_plugins):
+                doc = self._build_span_model_yaml(plugin_name, all_entries)
+                p = self._write_yaml(doc, f"model/dsoa/dsoa.spans.{plugin_name}.yaml")
+                self._validate_against_schema(doc, p)
+
+        # Generate span model for event_log even if it has no attributes
+        # (event_log emits spans from its SQL context; span fields are tracked as dimensions)
+        if "event_log" in SPAN_PLUGINS and "event_log" not in span_model_plugins:
+            if "dsoa.spans" not in str(list(span_model_plugins)):  # model_group not yet written
+                self._write_yaml(
+                    {
+                        "model_group": {
+                            "id": "dsoa.spans",
+                            "title": "DSOA Spans",
+                            "brief": "Span records emitted by DSOA plugins from Snowflake ACCOUNT_USAGE views.",
+                        }
+                    },
+                    "model/dsoa/model_group_dsoa_spans.yaml",
+                )
+            doc = self._build_span_model_yaml("event_log", all_entries)
+            p = self._write_yaml(doc, "model/dsoa/dsoa.spans.event_log.yaml")
+            self._validate_against_schema(doc, p)
 
         return dict(self._counters)
 

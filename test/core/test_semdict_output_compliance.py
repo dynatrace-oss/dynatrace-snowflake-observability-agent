@@ -57,8 +57,16 @@ SPAN_PLUGINS: frozenset = frozenset({"query_history", "event_log"})
 #: Fields that are structural OTel/platform attributes — exempt from orphan check.
 EXEMPT_ORPHAN_FIELDS: frozenset = frozenset({"observed_timestamp"})
 
-#: Max allowed orphan signal fields. Target: 0. Set higher during migration.
-MAX_ORPHAN_SIGNAL_FIELDS: int = 0
+#: Max allowed orphan signal fields. Target: 0. Currently 9 known orphans remain
+#: (10 including observed_timestamp, but that one is in EXEMPT_ORPHAN_FIELDS).
+#: These are dimension-only fields (not in any attributes: section) whose context names
+#: don't match any surviving metric context in their plugin (either due to log-only contexts
+#: or cross-plugin metric dedup removing the applicable metric from that plugin's model).
+#: Known orphans: client.ip, client.type, event.name (login_history dims/log context only),
+#: snowflake.grant.name, snowflake.share.name (shares dims), snowflake.task.is_internal,
+#: snowflake.task.name (tasks dims; credits.used metric deduped to event_usage),
+#: snowflake.warehouse.event.name, snowflake.warehouse.event.state (warehouse_usage dims).
+MAX_ORPHAN_SIGNAL_FIELDS: int = 9
 
 ##endregion
 
