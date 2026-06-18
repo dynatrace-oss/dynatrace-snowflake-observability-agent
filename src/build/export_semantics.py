@@ -226,7 +226,7 @@ _RES_NS: List[Tuple[str, str, str]] = [
     # NOTE: group IDs use a ".resource" suffix to avoid collision with the signal-field
     # attribute_groups of the same namespace (snowflake.warehouse and db) defined in _SIG_NS.
     ("snowflake.warehouse", "snowflake.warehouse.resource", "resource"),
-    ("snowflake.resource_monitor", "snowflake.resource_monitor", "resource"),
+    ("snowflake.resource_monitor", "snowflake.resource_monitor.resource", "resource"),
     ("snowflake.account", "snowflake.account", "resource"),
     ("snowflake.org", "snowflake.account", "resource"),
     ("db", "db.resource", "resource"),
@@ -235,6 +235,48 @@ _RES_NS: List[Tuple[str, str, str]] = [
 ##endregion
 
 log = logging.getLogger(__name__)
+
+
+##region YAML output helpers
+
+
+class _IndentedDumper(yaml.Dumper):  # pylint: disable=too-many-ancestors
+    """YAML Dumper that properly indents block sequence items.
+
+    The default PyYAML Dumper uses compact (indentless) block sequences, where
+    list items (``-``) appear at the same indentation level as the parent key.
+    The Dynatrace Semantic Dictionary convention requires sequence items to be
+    indented 2 spaces beneath their parent key.
+
+    Example — default (compact, incorrect for SD)::
+
+        groups:
+        - id: foo
+          attributes:
+          - ref: bar
+
+    Example — _IndentedDumper (correct for SD)::
+
+        groups:
+          - id: foo
+            attributes:
+              - ref: bar
+    """
+
+    def increase_indent(self, flow=False, indentless=False):  # pylint: disable=arguments-differ
+        """Override to force non-indentless block sequences.
+
+        Args:
+            flow:       Whether this is a flow-style container.
+            indentless: Ignored; always forced to False so block sequences are indented.
+
+        Returns:
+            The result of the parent increase_indent with indentless=False.
+        """
+        return super().increase_indent(flow=flow, indentless=False)
+
+
+##endregion
 
 
 ##region Data structures
@@ -504,6 +546,11 @@ def _build_type_node(entry: Dict[str, Any]) -> Any:
 def _emit_id_entry(key: str, entry: Dict[str, Any], semdict_flag: str) -> Dict[str, Any]:
     """Build a full id: attribute definition block.
 
+    Respects the ``__stability`` annotation in instruments-def.  When
+    ``__stability: deprecated`` is set, the deprecated field is also emitted
+    using ``__otel_replacement`` (if present).  OTel-only fields that have no
+    explicit ``__semdict_note`` receive an auto-generated provenance note.
+
     Args:
         key:          Field key.
         entry:        instruments-def entry dict.
@@ -522,14 +569,19 @@ def _emit_id_entry(key: str, entry: Dict[str, Any], semdict_flag: str) -> Dict[s
         if not isinstance(example_raw, list)
         else [_coerce_attribute_example(e) for e in example_raw]
     )
+    # Determine stability: respect __stability annotation, default to experimental.
+    stability = str(entry.get("__stability") or "experimental").lower()
     node: Dict[str, Any] = {
         "id": key,
         "display_name": _make_display_name(key),
         "type": attr_type,
-        "stability": "experimental",
+        "stability": stability,
         "brief": description,
         "examples": examples,
     }
+    # Emit deprecated: field for deprecated-stability entries
+    if stability == "deprecated" and entry.get("__otel_replacement"):
+        node["deprecated"] = f"Use {entry['__otel_replacement']} instead."
     if semdict_flag == "deprecated-alias":
         replacement = entry.get("__otel_replacement", "")
         otel_note = entry.get("__semdict_note", "")
@@ -539,6 +591,15 @@ def _emit_id_entry(key: str, entry: Dict[str, Any], semdict_flag: str) -> Dict[s
         node["note"] = warning
     elif entry.get("__semdict_note"):
         node["note"] = str(entry["__semdict_note"]).strip()
+    elif semdict_flag == "otel-only":
+        # Auto-generate OTel provenance note when no explicit __semdict_note is provided.
+        stability_hint = stability
+        auto_note = (
+            f"Defined in OTel Semantic Conventions ({key}, {stability_hint}). "
+            "Not yet present as a globally referenceable field in the Dynatrace "
+            "Semantic Dictionary. Emitting as id: pending global SD registration."
+        )
+        node["note"] = auto_note
     return node
 
 
@@ -880,6 +941,10 @@ class SemanticExporter:
 
         groups_map: Dict[str, Dict[str, Any]] = {}
         for key in sorted(all_signal):
+            # Skip ref: entries — they belong in interfaces only, not in field definition files.
+            # Refs are included via i.dsoa_resource and related interfaces by _build_interfaces_yaml().
+            if all_signal[key]["semdict"] == "ref":
+                continue
             group_id, group_type = _ns_group(key, _SIG_NS, "snowflake.misc", "attribute_group")
             if group_id not in groups_map:
                 groups_map[group_id] = {"type": group_type, "attrs": []}
@@ -1148,6 +1213,9 @@ class SemanticExporter:
     def _write_yaml(self, doc: Dict[str, Any], rel_path: str) -> Path:
         """Write a YAML document to the output directory.
 
+        Uses :class:`_IndentedDumper` to produce properly indented block sequences
+        per Semantic Dictionary YAML conventions.
+
         Args:
             doc:      YAML-serialisable dict.
             rel_path: Relative path under output_dir.
@@ -1158,7 +1226,7 @@ class SemanticExporter:
         out_path = self.output_dir / rel_path
         out_path.parent.mkdir(parents=True, exist_ok=True)
         with open(out_path, "w", encoding="utf-8") as fh:
-            yaml.dump(doc, fh, default_flow_style=False, allow_unicode=True, sort_keys=False, width=200)
+            yaml.dump(doc, fh, Dumper=_IndentedDumper, default_flow_style=False, allow_unicode=True, sort_keys=False, width=200)
         log.debug("Wrote %s", out_path)
         self._counters["files"] += 1
         return out_path

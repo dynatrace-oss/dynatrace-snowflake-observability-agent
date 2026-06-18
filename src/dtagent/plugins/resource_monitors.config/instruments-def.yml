@@ -17,6 +17,7 @@
 
 attributes:
   snowflake.warehouse.event:
+    __is_defined_at_runtime: true
     __description: >-
       The warehouse event type key that triggered this event record. Identifies the specific warehouse lifecycle
       event (e.g., AUTO_SUSPEND, AUTO_RESUME) that was detected by the resource monitors plugin.

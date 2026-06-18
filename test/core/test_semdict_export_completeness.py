@@ -37,6 +37,7 @@ from typing import Any, Dict, List, Set
 
 import pytest
 
+from build.export_semantics import KNOWN_REFS
 from test.core._semdict_test_utils import load_all_generated_yaml, load_all_instruments_defs
 
 ##region Fixtures
@@ -231,6 +232,9 @@ class TestFieldCompleteness:
         for key, plugin_name in source_keys.items():
             # Skip intentionally excluded fields
             if key in INTENTIONALLY_EXCLUDED:
+                continue
+            # Skip KNOWN_REFS — always emitted as ref: in interfaces, never as id: in field files
+            if key in KNOWN_REFS:
                 continue
             # Skip _core metrics — intentionally not exported (DSOA self-monitoring)
             if plugin_name == "_core":

@@ -16,6 +16,7 @@
 #  * Catalog of instrumentation known to Dynatrace Snowflake Observability Agent - login_history plugin
 attributes:
   ad.source:
+    __is_defined_at_runtime: true
     __context_names:
       - login_history
     __description: >-
@@ -25,6 +26,7 @@ attributes:
     __example: "snowflake_security"
     __semdict: new
   event.description:
+    __is_defined_at_runtime: true
     __context_names:
       - login_history
     __description: Human-readable description of the login event, providing additional context about the outcome.
