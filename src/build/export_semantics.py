@@ -1002,17 +1002,24 @@ class SemanticExporter:
         }
 
     def _select_interfaces(
-        self, metric_entries: Dict[str, Any], all_entries: Dict[str, Any], dim_plugins: Optional[Dict[str, Set[str]]] = None
+        self,
+        metric_entries: Dict[str, Any],
+        all_entries: Dict[str, Any],
+        dim_plugins: Optional[Dict[str, Set[str]]] = None,
+        dim_context_by_plugin: Optional[Dict[str, Dict[str, Set[str]]]] = None,
     ) -> List[str]:
         """Determine which DSOA interfaces to declare for a metric model.
 
         Args:
-            metric_entries: Per-plugin metric entries.
-            all_entries:    All parsed entries (for dimension lookup).
-            dim_plugins:    Map of dimension key → set of all plugins that define it.
-                            When provided, a dim without ``__context_names`` is accepted
-                            for a plugin if that plugin is in ``dim_plugins[dim_key]``,
-                            not only if the dedup winner happened to be that plugin.
+            metric_entries:        Per-plugin metric entries.
+            all_entries:           All parsed entries (for dimension lookup).
+            dim_plugins:           Map of dimension key → set of all plugins that define it.
+            dim_context_by_plugin: Per-plugin map of dim_key → context name set.
+            dim_plugins:           Map of dimension key → set of all plugins that define it.
+                                   When provided, a dim without ``__context_names`` is accepted
+                                   for a plugin if that plugin is in ``dim_plugins[dim_key]``,
+                                   not only if the dedup winner happened to be that plugin.
+            dim_context_by_plugin: Per-plugin map of dim_key → context name set.
 
         Returns:
             Ordered list of interface IDs.
@@ -1021,26 +1028,26 @@ class SemanticExporter:
         for _mk, m_meta in metric_entries.items():
             mc_names = set(m_meta["entry"].get("__context_names") or [])
             m_plugin = m_meta["plugin"]
-            for dim_key, dim_meta in all_entries.items():
-                # Interface selection uses DSOA dimensions (section == "dimensions")
-                # not SD classification — same reasoning as metric dim resolution.
-                if dim_meta["section"] != "dimensions":
-                    continue
-                dc_names = set(dim_meta["entry"].get("__context_names") or [])
-                # A dim with context_names is applicable only when it overlaps the metric.
-                # A dim WITHOUT context_names is applicable if the plugin defined the dim
-                # in any of its own instruments-def files (per dim_plugins map), or —
-                # when dim_plugins is not provided — only if the dedup winner was this plugin.
-                if dc_names:
-                    if not dc_names.intersection(mc_names):
+            # Use dim_plugins as authoritative source (same logic as _build_metric_model_yaml).
+            dim_source = sorted(dim_plugins.keys()) if dim_plugins is not None else all_entries.keys()
+            for dim_key in dim_source:
+                if dim_plugins is not None:
+                    if m_plugin not in dim_plugins.get(dim_key, set()):
                         continue
                 else:
-                    if dim_plugins is not None:
-                        if m_plugin not in dim_plugins.get(dim_key, set()):
-                            continue
-                    else:
-                        if dim_meta["plugin"] != m_plugin:
-                            continue
+                    dim_meta = all_entries.get(dim_key)
+                    if not dim_meta or dim_meta["section"] != "dimensions":
+                        continue
+                    if dim_meta["plugin"] != m_plugin:
+                        continue
+                # Use per-plugin context names when available (avoids dedup winner mismatch).
+                if dim_context_by_plugin is not None:
+                    dc_names: Set[str] = dim_context_by_plugin.get(m_plugin, {}).get(dim_key, set())
+                else:
+                    dim_meta = all_entries.get(dim_key)
+                    dc_names = set(dim_meta["entry"].get("__context_names") or []) if dim_meta else set()
+                if dc_names and not dc_names.intersection(mc_names):
+                    continue
                 if dim_key in INTERFACE_WAREHOUSE_KEYS:
                     uses_warehouse = True
                 if dim_key in INTERFACE_DATABASE_KEYS:
@@ -1058,22 +1065,24 @@ class SemanticExporter:
         metric_entries: Dict[str, Any],
         all_entries: Dict[str, Any],
         dim_plugins: Optional[Dict[str, Set[str]]] = None,
+        dim_context_by_plugin: Optional[Dict[str, Dict[str, Set[str]]]] = None,
     ) -> Dict[str, Any]:
         """Build a per-plugin metric model YAML document.
 
         Args:
-            plugin_name:    Plugin name.
-            metric_entries: Plugin's metric entries.
-            all_entries:    All parsed entries for dimension resolution.
-            dim_plugins:    Map of dimension key → set of all plugins that define it.
-                            When provided, dimensions are resolved by ownership across all
-                            plugin definitions, not just the dedup winner.
+            plugin_name:           Plugin name.
+            metric_entries:        Plugin's metric entries.
+            all_entries:           All parsed entries for dimension resolution.
+            dim_plugins:           Map of dimension key → set of all plugins that define it.
+                                   When provided, dimensions are resolved by ownership across all
+                                   plugin definitions, not just the dedup winner.
+            dim_context_by_plugin: Per-plugin map of dim_key → context name set.
 
         Returns:
             Semconv-compliant YAML document dict with ``model:`` envelope.
         """
         plugin_title = _restore_acronyms(plugin_name.replace("_", " ").title())
-        interfaces = self._select_interfaces(metric_entries, all_entries, dim_plugins)
+        interfaces = self._select_interfaces(metric_entries, all_entries, dim_plugins, dim_context_by_plugin)
         covered: Set[str] = set(RESOURCE_ATTRIBUTE_KEYS)
         if "i.dsoa_warehouse" in interfaces:
             covered |= INTERFACE_WAREHOUSE_KEYS
@@ -1086,31 +1095,36 @@ class SemanticExporter:
             mc_names = set(m_meta["entry"].get("__context_names") or [])
             m_plugin = m_meta["plugin"]
             dim_refs = []
-            for dim_key in sorted(all_entries):
-                dim_meta = all_entries[dim_key]
-                # Metric attributes: list contains DSOA dimensions (section == "dimensions")
-                # regardless of SD resource/signal classification.  Dimensions are the
-                # low-cardinality metric-splitting fields; attributes section fields are
-                # high-cardinality per-event context and must NOT appear in metrics.
-                if dim_meta["section"] != "dimensions":
-                    continue
-                if dim_key in covered:
-                    continue
-                dc_names = set(dim_meta["entry"].get("__context_names") or [])
-                # A dim with context_names is applicable only when it overlaps the metric.
-                # A dim WITHOUT context_names is applicable if the plugin defined the dim
-                # in any of its own instruments-def files (per dim_plugins map), or —
-                # when dim_plugins is not provided — only if the dedup winner was this plugin.
-                if dc_names:
-                    if not dc_names.intersection(mc_names):
+            # Use dim_plugins as the canonical source for which keys are dimensions.
+            # This handles the case where cross-plugin dedup promotes an "attributes"-section
+            # definition as the winning entry, masking the "dimensions"-section definition
+            # from another plugin.  Iterating over dim_plugins ensures all dimension keys
+            # are considered for metric attribute lists regardless of which plugin won dedup.
+            dim_source = sorted(dim_plugins.keys()) if dim_plugins is not None else sorted(all_entries.keys())
+            for dim_key in dim_source:
+                if dim_plugins is not None:
+                    # Skip if the current metric's plugin didn't define this as a dimension
+                    if m_plugin not in dim_plugins.get(dim_key, set()):
                         continue
                 else:
-                    if dim_plugins is not None:
-                        if m_plugin not in dim_plugins.get(dim_key, set()):
-                            continue
-                    else:
-                        if dim_meta["plugin"] != m_plugin:
-                            continue
+                    # Fallback: use section check on all_entries
+                    dim_meta = all_entries.get(dim_key)
+                    if not dim_meta or dim_meta["section"] != "dimensions":
+                        continue
+                    if dim_meta["plugin"] != m_plugin:
+                        continue
+                if dim_key in covered:
+                    continue
+                # Use per-plugin context names when available (avoids dedup winner mismatch
+                # where shares.inbound_shares wins over table_health.table_clustering).
+                if dim_context_by_plugin is not None:
+                    dc_names: Set[str] = dim_context_by_plugin.get(m_plugin, {}).get(dim_key, set())
+                else:
+                    dim_meta = all_entries.get(dim_key)
+                    dc_names = set(dim_meta["entry"].get("__context_names") or []) if dim_meta else set()
+                # A dim with context_names is applicable only when it overlaps the metric.
+                if dc_names and not dc_names.intersection(mc_names):
+                    continue
                 dim_refs.append({"ref": dim_key})
             metric_node = _emit_metric_entry(metric_key, m_meta["entry"])
             if dim_refs:
@@ -1255,6 +1269,9 @@ class SemanticExporter:
         all_errors: List[str] = []
         all_entries: Dict[str, Any] = {}
         dim_plugins: Dict[str, Set[str]] = {}
+        # Per-plugin dimension context names: {plugin_name: {dim_key: set(context_names)}}
+        # This preserves each plugin's own context annotations independent of dedup winner.
+        dim_context_by_plugin: Dict[str, Dict[str, Set[str]]] = {}
         for plugin_name, path in files:
             log.debug("Parsing %s (%s)", plugin_name, path)
             errors, entries = self._parse_file(plugin_name, path)
@@ -1263,6 +1280,8 @@ class SemanticExporter:
                 # Track all plugins that define each dimension key (for A3 ownership)
                 if meta["section"] == "dimensions":
                     dim_plugins.setdefault(key, set()).add(plugin_name)
+                    ctx = set(meta["entry"].get("__context_names") or [])
+                    dim_context_by_plugin.setdefault(plugin_name, {}).setdefault(key, set()).update(ctx)
                 if key in all_entries:
                     all_entries[key] = _merge_field_entries(key, all_entries[key], meta)
                 else:
@@ -1320,7 +1339,7 @@ class SemanticExporter:
             entries = plugin_metric_entries[plugin_name]
             if not entries:
                 continue
-            doc = self._build_metric_model_yaml(plugin_name, entries, all_entries, dim_plugins)
+            doc = self._build_metric_model_yaml(plugin_name, entries, all_entries, dim_plugins, dim_context_by_plugin)
             p = self._write_yaml(doc, f"metrics/dsoa_metrics_{plugin_name}.yaml")
             self._validate_against_schema(doc, p)
 

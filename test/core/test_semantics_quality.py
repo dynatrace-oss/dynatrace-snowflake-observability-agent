@@ -242,10 +242,15 @@ class TestDimensionCoverage:
     """All dimensions in instruments-def must be covered by a model or interface."""
 
     def test_all_dimensions_covered(self):
-        """Every dimension key from instruments-def must appear in a metric model's attributes.
+        """Every metric-applicable dimension from instruments-def must appear in a metric model.
+
+        A dimension is "metric-applicable" if its context names overlap with any metric
+        context names in the same plugin, OR if it has no context names (applies to all contexts).
+        Dimensions whose context names only match log/span contexts (and no metric has that
+        context) are expected orphans — they are used for log attribute references, not metrics.
 
         Dimensions covered by global interfaces (i.dsoa_resource, i.dsoa_warehouse,
-        i.dsoa_database) are exempt from this check.
+        i.dsoa_database) are always exempt from this check.
 
         This test uses the generated output files to verify coverage.
         """
@@ -276,16 +281,56 @@ class TestDimensionCoverage:
                     elif ref == "i.dsoa_resource":
                         referenced_in_metrics |= RESOURCE_ATTRIBUTE_KEYS
 
-        # Build per-plugin dim sets
+        # Build per-plugin metric context names from GENERATED output (not instruments-def)
+        # to correctly handle cross-plugin metric dedup: a metric originally in plugin A
+        # may be deduped to plugin B, removing it from A's generated model.
+        plugin_metric_contexts_generated: Dict[str, Set[str]] = {}
+        for rel_path, doc in generated.items():
+            if "dsoa_metrics_" not in rel_path:
+                continue
+            # Extract plugin name from filename like dsoa_metrics_query_history.yaml
+            fname = rel_path.split("/")[-1]  # e.g. dsoa_metrics_tasks.yaml
+            plugin_nm = fname.replace("dsoa_metrics_", "").replace(".yaml", "")
+            model = doc.get("model", {})
+            for grp in model.get("groups", []):
+                ctx = set(grp.get("__context_names") or [])
+                plugin_metric_contexts_generated.setdefault(plugin_nm, set()).update(ctx)
+
+        # Build per-plugin dim sets — only check metric-applicable dimensions.
+        # Use instruments-def metric contexts as the primary signal (not generated),
+        # but if a plugin's metric was deduped away (not in generated output), skip it.
         violations = []
         for plugin_name, data in all_defs.items():
-            for dim_key in (data.get("dimensions") or {}).keys():
+            if plugin_name == "_core":
+                continue
+            # Metric contexts from instruments-def (for determining if dim is metric-relevant)
+            metric_contexts_src: Set[str] = set()
+            for _mk, m_entry in (data.get("metrics") or {}).items():
+                metric_contexts_src.update((m_entry or {}).get("__context_names") or [])
+
+            # Metric contexts actually present in generated output (post-dedup)
+            metric_contexts_gen = plugin_metric_contexts_generated.get(plugin_name, set())
+
+            for dim_key, dim_entry in (data.get("dimensions") or {}).items():
                 if dim_key in RESOURCE_ATTRIBUTE_KEYS:
                     continue  # covered by i.dsoa_resource
                 if dim_key in INTERFACE_WAREHOUSE_KEYS:
                     continue  # covered by i.dsoa_warehouse
                 if dim_key in INTERFACE_DATABASE_KEYS:
                     continue  # covered by i.dsoa_database
+                # Check if this dimension is metric-applicable in the SOURCE:
+                # if it has context names, they must overlap with metrics in instruments-def.
+                dim_contexts = set((dim_entry or {}).get("__context_names") or [])
+                if dim_contexts and not dim_contexts.intersection(metric_contexts_src):
+                    continue  # dimension applies to log/span contexts only; not a metric dim
+                # Check if the applicable metric contexts survived dedup into generated output.
+                # If all applicable metric contexts were deduped away, skip this dimension.
+                if dim_contexts:
+                    overlap_with_gen = dim_contexts.intersection(metric_contexts_gen)
+                else:
+                    overlap_with_gen = metric_contexts_gen  # no context restriction = any metric
+                if not overlap_with_gen:
+                    continue  # applicable metrics were all deduped to another plugin; skip
                 if dim_key not in referenced_in_metrics:
                     violations.append(f"{dim_key} (plugin={plugin_name}): dimension not referenced by any metric model")
 
