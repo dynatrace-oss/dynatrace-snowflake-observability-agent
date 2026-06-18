@@ -67,6 +67,7 @@ attributes:
     __description: The login event ID associated with the query.
   session.id:
     __semdict: otel-only
+    __stability: development
     __semdict_note: >-
       OTel semconv Development-tier attribute (session namespace). The semdict session.id is model-scoped/internal in code_monitoring only;
       no global ref available. Emitting as new id: pending global semdict registration.
@@ -87,6 +88,7 @@ attributes:
       Possible values: `off` (no transformation), `literals` (replace string and numeric literals with `?`),
       `full` (replace entire query text with `[OBFUSCATED]`).
   plugins.query_history.track_ddl_changes:
+    __type: boolean
     __example: false
     __is_defined_at_runtime: true
     __description: |
@@ -180,9 +182,11 @@ attributes:
     __example: cluster1
     __description: The cluster number associated with the query.
   snowflake.cost_attribution.period_end:
+    __type: timestamp
     __example: "2024-11-05T22:11:07Z"
     __description: End of the cost attribution summary window.
   snowflake.cost_attribution.period_start:
+    __type: timestamp
     __example: "2024-11-05T21:11:07Z"
     __description: Start of the cost attribution summary window.
   snowflake.database.id:
@@ -209,9 +213,23 @@ attributes:
       the query is not eligible for query acceleration, this object is empty.
   snowflake.query.accel_est.status:
     __example: eligible
-    __description:
-      "Indicates whether the query is eligible to benefit from the query acceleration service. Possible values are: eligible, ineligible,
-      accelerated, invalid."
+    __description: >-
+      Indicates whether the query is eligible to benefit from the query acceleration service.
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: eligible
+          value: eligible
+          brief: Query is eligible for query acceleration.
+        - id: ineligible
+          value: ineligible
+          brief: Query is not eligible for query acceleration.
+        - id: accelerated
+          value: accelerated
+          brief: Query was accelerated by the service.
+        - id: invalid
+          value: invalid
+          brief: Query acceleration status could not be determined.
   snowflake.query.accel_est.upper_limit_scale_factor:
     __type: long
     __example: 2
@@ -561,11 +579,12 @@ metrics:
     displayName: Bytes Scanned
     unit: bytes
   snowflake.data.scanned_from_cache:
-    __example: "75"
-    __description:
-      The percentage of data scanned from the local disk cache. The value ranges from 0.0 to 1.0. Multiply by 100 to get a true percentage.
-    displayName: Percentage Scanned from Cache
-    unit: percent
+    __example: "0.75"
+    __description: >-
+      Ratio of data scanned from the local disk cache. Value ranges from 0.0 (no cache) to 1.0 (fully cached).
+      Sourced from Snowflake PERCENTAGE_SCANNED_FROM_CACHE column (despite its name, the raw value is 0.0-1.0).
+    displayName: Data Scanned From Cache
+    unit: ratio
   snowflake.data.sent_over_the_network:
     __example: "524288"
     __description: Volume of data sent over the network.

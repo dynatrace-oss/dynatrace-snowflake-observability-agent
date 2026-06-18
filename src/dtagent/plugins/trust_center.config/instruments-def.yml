@@ -73,7 +73,22 @@ dimensions:
     __description: The type of scanner used in the Trust Center, such as 'CIS Benchmarks' or 'Threat Intelligence'.
   vulnerability.risk.level:
     __example: HIGH
-    __description: The risk level of the vulnerability, such as LOW, MEDIUM, HIGH, or CRITICAL.
+    __description: The risk level of the vulnerability as reported by Snowflake Trust Center.
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: low
+          value: LOW
+          brief: Low severity vulnerability.
+        - id: medium
+          value: MEDIUM
+          brief: Medium severity vulnerability.
+        - id: high
+          value: HIGH
+          brief: High severity vulnerability.
+        - id: critical
+          value: CRITICAL
+          brief: Critical severity vulnerability requiring immediate attention.
 metrics:
   snowflake.trust_center.findings:
     __example: "10"

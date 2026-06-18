@@ -194,8 +194,17 @@ class TestFieldCompleteness:
         dimensions, event_timestamps sections) is present in the generated output.
         Metrics are checked separately.
 
-        Excluded: __semdict: ref fields (they appear as ref: not id:, which is correct).
+        Excluded:
+        - __semdict: ref fields (they appear as ref: not id:, which is correct).
+        - snowflake.event.trigger: intentionally excluded from signal fields (special event key).
+        - _core plugin metrics: intentionally skipped by the exporter (DSOA self-monitoring).
         """
+        # Fields intentionally excluded from the generated output by the export pipeline.
+        INTENTIONALLY_EXCLUDED: frozenset = frozenset(
+            {
+                "snowflake.event.trigger",  # special event field; excluded from signal_fields by design
+            }
+        )
         all_defs = _load_all_instruments_defs()
         generated = _load_generated_yaml_files()
 
@@ -220,6 +229,16 @@ class TestFieldCompleteness:
 
         violations = []
         for key, plugin_name in source_keys.items():
+            # Skip intentionally excluded fields
+            if key in INTENTIONALLY_EXCLUDED:
+                continue
+            # Skip _core metrics — intentionally not exported (DSOA self-monitoring)
+            if plugin_name == "_core":
+                # Check if it's a metric section field from _core
+                core_data = all_defs.get("_core", {})
+                if key in (core_data.get("metrics") or {}):
+                    continue
+
             # Skip keys that are __semdict: ref in ALL definitions
             is_always_ref = True
             for data in all_defs.values():

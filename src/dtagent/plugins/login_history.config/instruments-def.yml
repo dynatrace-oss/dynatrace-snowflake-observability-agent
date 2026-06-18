@@ -15,6 +15,21 @@
 #  *
 #  * Catalog of instrumentation known to Dynatrace Snowflake Observability Agent - login_history plugin
 attributes:
+  ad.source:
+    __context_names:
+      - login_history
+    __description: >-
+      Identifies the DSOA detection rule or security domain that generated this anomaly event.
+      Current value: 'snowflake_security'. NOTE: This field is planned for rename to 'rule.id'
+      (Semantic Dictionary field) in a future release.
+    __example: "snowflake_security"
+    __semdict: new
+  event.description:
+    __context_names:
+      - login_history
+    __description: Human-readable description of the login event, providing additional context about the outcome.
+    __example: "Failed login attempt for user JOHN.DOE from 192.168.1.100."
+    __semdict: new
   authentication.factor.first:
     __context_names:
       - login_history
@@ -103,6 +118,7 @@ attributes:
     __description: An identifier for a related event, if applicable.
   session.id:
     __semdict: otel-only
+    __stability: development
     __semdict_note: >-
       OTel semconv Development-tier attribute (session namespace). The semdict session.id is
       model-scoped/internal in code_monitoring only; no global ref available. Emitting as new id:
@@ -148,6 +164,9 @@ dimensions:
   client.ip:
     __context_names:
       - login_history
+    __semdict_note: >-
+      OTel semconv uses client.address (stable). DSOA emits client.ip to match
+      Snowflake LOGIN_HISTORY.CLIENT_IP column naming. Consider migrating to client.address in a future release.
     __example: 192.168.1.1
     __description: The IP address of the client that initiated the event.
   client.type:

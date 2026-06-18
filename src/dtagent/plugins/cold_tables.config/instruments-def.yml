@@ -19,6 +19,12 @@
 
 dimensions:
   db.namespace:
+    __semdict: otel-only
+    __stability: stable
+    __semdict_note: >-
+      Defined in OTel Semantic Conventions (db.namespace, stable since v1.28).
+      Not yet present as a globally referenceable field in the Dynatrace Semantic Dictionary.
+      Emitting as id: pending global SD registration.
     __context_names: ["cold_tables"]
     __example: analytics_db
     __description: The name of the database containing the table.
@@ -27,6 +33,12 @@ dimensions:
     __example: public
     __description: The schema containing the table.
   db.collection.name:
+    __semdict: otel-only
+    __stability: stable
+    __semdict_note: >-
+      Defined in OTel Semantic Conventions (db.collection.name, stable since v1.28).
+      Not yet present as a globally referenceable field in the Dynatrace Semantic Dictionary.
+      Emitting as id: pending global SD registration.
     __context_names: ["cold_tables"]
     __example: orders
     __description: The table name.
@@ -37,10 +49,16 @@ dimensions:
   snowflake.table.cold_status:
     __context_names: ["cold_tables"]
     __example: cold
-    __description: |
-      Table temperature classification based on access recency:
-      - cold: no access within cold_threshold_days (default 90)
-      - warm: accessed within cold_threshold_days
+    __description: Table temperature classification based on access recency.
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: cold
+          value: cold
+          brief: Table data has not been recently accessed (beyond the cold threshold).
+        - id: warm
+          value: warm
+          brief: Table data has been recently accessed within the cold threshold period.
 
 attributes:
   snowflake.table.last_accessed_at:

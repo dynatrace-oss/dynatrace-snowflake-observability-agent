@@ -23,10 +23,11 @@ dimensions:
     __description: Snowflake user who issued the query.
 attributes:
   snowflake.user.bypass_mfa_until:
-    __example: "2024-11-06T00:00:00Z"
+    __type: long
+    __example: "1620213179885000000"
     __context_names:
       - users
-    __description: The time until which the user can bypass MFA.
+    __description: The time until which the user can bypass MFA. Epoch nanoseconds timestamp.
   snowflake.user.comment:
     __example: New user account
     __context_names:

@@ -70,7 +70,19 @@ attributes:
     __context_names:
       - snowpipes_copy_history
     __example: LOADED
-    __description: Load status.
+    __description: Load status of the COPY INTO operation.
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: loaded
+          value: LOADED
+          brief: File loaded successfully.
+        - id: load_failed
+          value: LOAD_FAILED
+          brief: File load failed with errors.
+        - id: partially_loaded
+          value: PARTIALLY_LOADED
+          brief: File partially loaded; some rows failed.
   snowflake.copy.first_error.message:
     __context_names:
       - snowpipes_copy_history
@@ -100,11 +112,13 @@ attributes:
     __example: 1
     __description: Error limit for the COPY.
   snowflake.copy.pipe.received_time:
+    __type: timestamp
     __context_names:
       - snowpipes_copy_history
     __example: "2025-03-12 08:55:00.000 Z"
     __description: When file was received by Snowpipe (view-only).
   snowflake.copy.first_commit_time:
+    __type: timestamp
     __context_names:
       - snowpipes_copy_history
     __example: "2025-03-12 08:56:00.000 Z"

@@ -16,6 +16,12 @@
 #  * Catalog of instrumentation known to Dynatrace Snowflake Observability Agent - resource monitors plugin
 
 attributes:
+  snowflake.warehouse.event:
+    __description: >-
+      The warehouse event type key that triggered this event record. Identifies the specific warehouse lifecycle
+      event (e.g., AUTO_SUSPEND, AUTO_RESUME) that was detected by the resource monitors plugin.
+    __example: "AUTO_SUSPEND"
+    __semdict: new
   snowflake.budget.name:
     __example: BUDGET_2024
     __description: The name of the budget associated with the warehouse.
@@ -243,12 +249,15 @@ event_timestamps:
     __example: "2024-11-01 00:00:00.000"
     __description: The timestamp when the resource monitor started.
   snowflake.warehouse.created_on:
+    __type: timestamp
     __example: "2024-09-01 08:00:00.000"
     __description: The timestamp when the warehouse was created.
   snowflake.warehouse.resumed_on:
+    __type: timestamp
     __example: "2024-11-15 09:00:00.000"
     __description: The timestamp when the warehouse was last resumed.
   snowflake.warehouse.updated_on:
+    __type: timestamp
     __example: "2024-11-10 14:30:00.000"
     __description: The timestamp when the warehouse was last updated.
 

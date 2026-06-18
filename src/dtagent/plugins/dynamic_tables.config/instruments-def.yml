@@ -50,12 +50,14 @@ attributes:
       "DYNAMIC_TABLE_DB.DYNAMIC_TABLE_SCH.EMPLOYEE_SKILL" } ]'
     __description: Each OBJECT represents a table, view, or dynamic table that serves as the input to this dynamic table.
   snowflake.table.dynamic.graph.valid_from:
+    __type: timestamp
     __context_names:
       - dynamic_table_refresh_history
       - dynamic_table_graph_history
     __example: "2024-11-20 19:53:47.448 Z"
     __description: Encodes the VALID_FROM timestamp of the DYNAMIC_TABLE_GRAPH_HISTORY table function when the refresh occurred.
   snowflake.table.dynamic.graph.valid_to:
+    __type: timestamp
     __context_names:
       - dynamic_table_graph_history
     __example: ""
@@ -74,11 +76,13 @@ attributes:
       Code representing the current state of the refresh. If the LAST_COMPLETED_REFRESH_STATE is FAILED, this column shows the error code
       associated with the failure.
   snowflake.table.dynamic.latest.data_timestamp:
+    __type: timestamp
     __context_names:
       - dynamic_tables
     __example: "2024-11-22 12:55:29.695 Z"
     __description: Data timestamp of the last successful refresh.
   snowflake.table.dynamic.latest.dependency.data_timestamp:
+    __type: timestamp
     __context_names:
       - dynamic_table_refresh_history
     __example: "2024-11-25 06:09:53.695 Z"
@@ -99,44 +103,64 @@ attributes:
     __context_names:
       - dynamic_tables
     __example: SUCCEEDED
-    __description: |
-      Status of the last terminated refresh for the dynamic table.
-      Can be one of the following:
-      - **SUCCEEDED**: Refresh completed successfully,
-      - **FAILED**: Refresh failed during execution,
-      - **UPSTREAM_FAILED**: Refresh not performed due to an upstream failed refresh,
-      - **CANCELLED**: Refresh was canceled before execution.
+    __description: Status of the last terminated refresh for the dynamic table.
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: succeeded
+          value: SUCCEEDED
+          brief: Refresh completed successfully.
+        - id: failed
+          value: FAILED
+          brief: Refresh failed during execution.
+        - id: upstream_failed
+          value: UPSTREAM_FAILED
+          brief: Refresh not performed due to an upstream failed refresh.
+        - id: cancelled
+          value: CANCELLED
+          brief: Refresh was canceled before execution.
+        - id: suspended
+          value: SUSPENDED
+          brief: Dynamic table scheduling is suspended.
   snowflake.table.dynamic.refresh.action:
     __context_names:
       - dynamic_table_refresh_history
     __example: NO_DATA
-    __description: |
-      Describes the type of refresh action performed. One of:
-      - **NO_DATA**: no new data in base tables. Doesn’t apply to the initial refresh of
-      newly created dynamic tables whether or not the base tables have data,
-      - **REINITIALIZE**: base table changed or source table of a cloned
-      dynamic table was refreshed during clone,
-      - **FULL**: Full refresh, because
-      dynamic table contains query elements that are not incremental (see
-      SHOW DYNAMIC TABLE refresh_mode_reason) or because full refresh was cheaper
-      than incremental refresh,
-      - **INCREMENTAL**: normal incremental refresh.
+    __description: Describes the type of refresh action performed.
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: no_data
+          value: NO_DATA
+          brief: No new data in base tables.
+        - id: reinitialize
+          value: REINITIALIZE
+          brief: Base table changed or source table of cloned dynamic table was refreshed.
+        - id: full
+          value: FULL
+          brief: Full refresh performed.
+        - id: incremental
+          value: INCREMENTAL
+          brief: Normal incremental refresh.
   snowflake.table.dynamic.refresh.code:
     __context_names:
       - dynamic_table_refresh_history
     __example: SUCCESS
     __description: Code representing the current state of the refresh.
   snowflake.table.dynamic.refresh.completion_target:
+    __type: timestamp
     __context_names:
       - dynamic_table_refresh_history
     __example: "2024-11-25 06:10:05.695 Z"
     __description: Time by which this refresh should complete to keep lag under the TARGET_LAG parameter for the dynamic table.
   snowflake.table.dynamic.refresh.data_timestamp:
+    __type: timestamp
     __context_names:
       - dynamic_table_refresh_history
     __example: "2024-11-25 06:09:53.695 Z"
     __description: Transactional timestamp when the refresh was evaluated.
   snowflake.table.dynamic.refresh.end:
+    __type: timestamp
     __context_names:
       - dynamic_table_refresh_history
     __example: "2024-11-25 06:09:55.308 Z"
@@ -147,6 +171,7 @@ attributes:
     __example: ""
     __description: Description of the current state of the refresh.
   snowflake.table.dynamic.refresh.start:
+    __type: timestamp
     __context_names:
       - dynamic_table_refresh_history
     __example: "2024-11-25 06:09:54.978 Z"
@@ -155,24 +180,45 @@ attributes:
     __context_names:
       - dynamic_table_refresh_history
     __example: SUCCEEDED
-    __description: |
-      Status of the refresh for the dynamic table. The status can be one of the following:
-      - **SCHEDULED**: refresh scheduled, but not yet executed,
-      - **EXECUTING**: refresh in progress,
-      - **SUCCEEDED**: refresh completed successfully,
-      - **FAILED**: refresh failed during execution,
-      - **CANCELLED**: refresh was canceled before execution,
-      - **UPSTREAM_FAILED**: refresh not performed due to an upstream failed refresh.
+    __description: Status of the refresh for the dynamic table.
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: scheduled
+          value: SCHEDULED
+          brief: Refresh scheduled but not yet executed.
+        - id: executing
+          value: EXECUTING
+          brief: Refresh in progress.
+        - id: succeeded
+          value: SUCCEEDED
+          brief: Refresh completed successfully.
+        - id: failed
+          value: FAILED
+          brief: Refresh failed during execution.
+        - id: cancelled
+          value: CANCELLED
+          brief: Refresh was canceled before execution.
+        - id: upstream_failed
+          value: UPSTREAM_FAILED
+          brief: Refresh not performed due to an upstream failed refresh.
   snowflake.table.dynamic.refresh.trigger:
     __context_names:
       - dynamic_table_refresh_history
     __example: SCHEDULED
-    __description: |
-      Describes the trigger for the refresh. One of:
-      - **SCHEDULED**: normal background refresh to meet target lag or downstream target lag,
-      - **MANUAL**: user/task used ALTER DYNAMIC TABLE <name> REFRESH,
-      - **CREATION**: refresh performed during the creation DDL statement, triggered by the creation
-      of the dynamic table or any consumer dynamic tables.
+    __description: Describes the trigger for the refresh.
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: scheduled
+          value: SCHEDULED
+          brief: Normal background refresh to meet target lag or downstream target lag.
+        - id: manual
+          value: MANUAL
+          brief: User or task triggered refresh via ALTER DYNAMIC TABLE REFRESH.
+        - id: creation
+          value: CREATION
+          brief: Refresh performed during creation DDL statement.
   snowflake.table.dynamic.scheduling.reason.code:
     __context_names:
       - dynamic_tables
@@ -236,11 +282,13 @@ event_timestamps:
     __example: "2024-11-20 19:53:47.448 Z"
     __description: The timestamp after which the description of the dynamic table is valid.
   snowflake.table.dynamic.scheduling.resumed_on:
+    __type: timestamp
     __context_names:
       - dynamic_table_graph_history
     __example: "2024-11-25 08:09:53.695 Z"
     __description: The timestamp when the dynamic table was last resumed, if ACTIVE.
   snowflake.table.dynamic.scheduling.suspended_on:
+    __type: timestamp
     __context_names:
       - dynamic_table_graph_history
     __example: "2024-11-25 06:09:53.695 Z"

@@ -29,6 +29,7 @@ attributes:
     __description: The text of the SQL query.
   session.id:
     __semdict: otel-only
+    __stability: development
     __semdict_note: >-
       OTel semconv Development-tier attribute (session namespace). The semdict session.id is
       model-scoped/internal in code_monitoring only; no global ref available. Emitting as new id:
@@ -45,6 +46,7 @@ attributes:
     __example: hash_abcdef
     __description: The hash value of the query text.
   snowflake.query.hash_version:
+    __type: long
     __example: "1"
     __description: The version of the query hash logic.
   snowflake.query.id:
@@ -54,6 +56,7 @@ attributes:
     __example: param_hash_abcdef
     __description: The hash value of the parameterized query text.
   snowflake.query.parametrized_hash_version:
+    __type: long
     __example: "1"
     __description: The version of the parameterized query hash logic.
   snowflake.query.tag:
@@ -67,9 +70,21 @@ attributes:
     __description: The type of warehouse used to execute the query.
 dimensions:
   db.namespace:
+    __semdict: otel-only
+    __stability: stable
+    __semdict_note: >-
+      Defined in OTel Semantic Conventions (db.namespace, stable since v1.28).
+      Not yet present as a globally referenceable field in the Dynatrace Semantic Dictionary.
+      Emitting as id: pending global SD registration.
     __example: analytics_db
     __description: The name of the database in which the query was executed.
   db.user:
+    __semdict: otel-only
+    __stability: experimental
+    __semdict_note: >-
+      Defined in OTel Semantic Conventions (db.user, experimental).
+      Not yet present as a globally referenceable field in the Dynatrace Semantic Dictionary.
+      Emitting as id: pending global SD registration.
     __example: john_doe
     __description: The name of the user who executed the query.
   snowflake.query.execution_status:

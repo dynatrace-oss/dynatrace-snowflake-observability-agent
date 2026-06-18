@@ -17,14 +17,17 @@
 dimensions:
   db.system:
     __semdict: otel-only
+    __stability: stable
     __semdict_note: >-
       Defined in OpenTelemetry Semantic Conventions (db.system, stable) but not yet present as a globally referenceable field in the
       Dynatrace Semantic Dictionary. Emitting as a new id: definition here so DSOA can declare it properly. The value for Snowflake is
-      always 'snowflake'.
+      always 'snowflake'. NOTE: OTel semconv renamed db.system to db.system.name (stable since v1.30). DSOA continues to emit
+      db.system for backward compatibility; migration to db.system.name planned for a future release.
     __description: "The database management system (DBMS) product being used. It is always 'snowflake'"
     __example: "snowflake"
   deployment.environment:
     __semdict: deprecated-alias
+    __stability: deprecated
     __otel_replacement: deployment.environment.name
     __semdict_note: >-
       Renamed from deployment.environment in OTel Semantic Conventions v1.26. Replacement: deployment.environment.name (stable).
@@ -121,5 +124,5 @@ metrics:
     __semdict: new
     __description: "Peak resident set size (RSS) of the agent process in megabytes, sampled after each plugin context run."
     __example: "42.5"
-    unit: MB
+    unit: MiBy
     displayName: Agent Peak Memory (RSS)
