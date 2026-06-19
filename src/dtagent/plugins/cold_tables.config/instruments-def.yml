@@ -69,13 +69,13 @@ attributes:
 metrics:
   snowflake.table.access.count:
     __context_names: ["cold_tables"]
-    __example: "42"
+    __example: 42
     __description: Total number of query accesses to this table within the lookback window.
     displayName: Table Access Count
     unit: count
   snowflake.table.days_since_last_access:
     __context_names: ["cold_tables"]
-    __example: "95"
+    __example: 95
     __description: Number of days since the table was last accessed by any query.
     displayName: Days Since Last Access
     unit: days

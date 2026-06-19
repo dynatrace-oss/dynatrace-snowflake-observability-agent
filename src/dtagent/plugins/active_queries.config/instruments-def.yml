@@ -47,7 +47,7 @@ attributes:
     __description: The hash value of the query text.
   snowflake.query.hash_version:
     __type: long
-    __example: "1"
+    __example: 1
     __description: The version of the query hash logic.
   snowflake.query.id:
     __example: b1bbaa7f-8144-4e50-947a-b7e9bf7d62d5
@@ -57,7 +57,7 @@ attributes:
     __description: The hash value of the parameterized query text.
   snowflake.query.parametrized_hash_version:
     __type: long
-    __example: "1"
+    __example: 1
     __description: The version of the parameterized query hash logic.
   snowflake.query.tag:
     __example: daily_report
@@ -113,34 +113,34 @@ dimensions:
 
 metrics:
   snowflake.time.compilation:
-    __example: "5000"
+    __example: 5000
     __description: |
       The total compilation time of the currently running query.
     displayName: Query Compilation Time
     unit: ms
   snowflake.time.running:
-    __example: "120000"
+    __example: 120000
     __description: |
       The total running time of the currently running query.
     displayName: Query Running Time
     unit: ms
   snowflake.time.execution:
-    __example: "100000"
+    __example: 100000
     __description: Execution time (in milliseconds)
     displayName: Execution Time
     unit: ms
   snowflake.time.total_elapsed:
-    __example: "120000"
+    __example: 120000
     __description: Elapsed time (in milliseconds).
     displayName: Total Elapsed Time
     unit: ms
   snowflake.data.written_to_result:
-    __example: "1048576"
+    __example: 1048576
     __description: Number of bytes written to a result object.
     displayName: Bytes Written to Result
     unit: bytes
   snowflake.rows.written_to_result:
-    __example: "1"
+    __example: 1
     __description: Number of rows written to a result object. For CREATE TABLE AS SELECT (CTAS) and all DML operations, this result is 1;.
     displayName: Rows Written to Result
     unit: rows

@@ -91,7 +91,7 @@ dimensions:
           brief: Critical severity vulnerability requiring immediate attention.
 metrics:
   snowflake.trust_center.findings:
-    __example: "10"
+    __example: 10
     __description: The total number of findings at risk identified by the scanner.
     displayName: Trust Center Findings Count
     unit: count

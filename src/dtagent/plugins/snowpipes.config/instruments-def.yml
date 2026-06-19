@@ -112,13 +112,15 @@ attributes:
     __example: 1
     __description: Error limit for the COPY.
   snowflake.copy.pipe.received_time:
-    __type: timestamp
+    __type: string
+    __semdict_note: "ISO 8601 timestamp string stored as string in Grail."
     __context_names:
       - snowpipes_copy_history
     __example: "2025-03-12 08:55:00.000 Z"
     __description: When file was received by Snowpipe (view-only).
   snowflake.copy.first_commit_time:
-    __type: timestamp
+    __type: string
+    __semdict_note: "ISO 8601 timestamp string stored as string in Grail."
     __context_names:
       - snowpipes_copy_history
     __example: "2025-03-12 08:56:00.000 Z"
@@ -213,98 +215,98 @@ metrics:
   snowflake.pipe.files.pending:
     __context_names:
       - snowpipes
-    __example: "5"
+    __example: 5
     __description: Files queued awaiting ingestion.
     displayName: Pending Files
     unit: count
   snowflake.pipe.latency.oldest_file:
     __context_names:
       - snowpipes
-    __example: "12345"
+    __example: 12345
     __description: Milliseconds since oldest pending file timestamp.
     displayName: Oldest File Latency
     unit: ms
   snowflake.pipe.files.ingested:
     __context_names:
       - snowpipes_copy_history
-    __example: "1"
+    __example: 1
     __description: Files successfully loaded in this interval.
     displayName: Files Ingested
     unit: count
   snowflake.pipe.rows.loaded:
     __context_names:
       - snowpipes_copy_history
-    __example: "1000"
+    __example: 1000
     __description: Rows inserted.
     displayName: Rows Loaded
     unit: count
   snowflake.pipe.rows.parsed:
     __context_names:
       - snowpipes_copy_history
-    __example: "1050"
+    __example: 1050
     __description: Rows parsed.
     displayName: Rows Parsed
     unit: count
   snowflake.pipe.errors:
     __context_names:
       - snowpipes_copy_history
-    __example: "0"
+    __example: 0
     __description: Files with load errors.
     displayName: Load Errors
     unit: count
   snowflake.pipe.ingest.latency:
     __context_names:
       - snowpipes_copy_history
-    __example: "5000"
+    __example: 5000
     __description: Per-file latency from PIPE_RECEIVED_TIME to LAST_LOAD_TIME (enabled by ACCOUNT_USAGE view).
     displayName: Ingest Latency
     unit: ms
   snowflake.copy.errors:
     __context_names:
       - snowpipes_copy_history
-    __example: "2"
+    __example: 2
     __description: Error count in this load.
     displayName: Copy Errors
     unit: count
   snowflake.pipe.data.ingested:
     __context_names:
       - snowpipes_usage_history
-    __example: "1048576"
+    __example: 1048576
     __description: Bytes inserted.
     displayName: Data Ingested
     unit: bytes
   snowflake.pipe.cost.credits_used:
     __context_names:
       - snowpipes_usage_history
-    __example: "0.5"
+    __example: 0.5
     __description: Serverless credits consumed.
     displayName: Credits Used
     unit: count
   snowflake.pipe.files.inserted:
     __context_names:
       - snowpipes_usage_history
-    __example: "10"
+    __example: 10
     __description: Files inserted (from PIPE_USAGE_HISTORY).
     displayName: Files Inserted
     unit: count
   snowflake.pipe.cost.bytes_billed:
     __context_names:
       - snowpipes_usage_history
-    __example: "524288"
+    __example: 524288
     __description: Bytes billed for Snowpipe usage.
     displayName: Bytes Billed
     unit: bytes
   snowflake.copy.file_size:
     __context_names:
       - snowpipes_copy_history
-    __example: "102400"
+    __example: 102400
     __description: Observed size of the source file before loading.
     displayName: File Size
     unit: bytes
   snowflake.copy.bytes_billed:
     __context_names:
       - snowpipes_copy_history
-    __example: "51200"
+    __example: 51200
     __description: Bytes billed for this copy operation.
     displayName: Copy Bytes Billed
     unit: bytes

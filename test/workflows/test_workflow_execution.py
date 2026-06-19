@@ -73,14 +73,14 @@ _STATUS_RUNNING = {"RUNNING", "QUEUED", "IN_PROGRESS"}
 # Maps workflow directory name → expected ad.source value in ingested events.
 # Workflows that do not ingest events map to None.
 _WORKFLOW_AD_SOURCE: dict[str, str | None] = {
-    "credits-exhaustion-prediction": "dsoa.credits_exhaustion_prediction",
+    "credits-exhaustion-prediction": "dsoa.credits_exhaustion",
     "data-volume-anomaly": "dsoa.data_volume_anomaly",
     "dynamic-table-drift": "dsoa.dynamic_table_drift",
     "long-running-queries": "dsoa.long_running_queries",
     "org-contract-balance-warning": None,  # Uses eventsClient separately
-    "query-slowdown-detection": "dsoa.query_slowdown_detection",
-    "security-anomaly-detection": "dsoa.security_anomaly_detection",
-    "shares-broken-detection": "dsoa.shares_broken",
+    "query-slowdown-detection": "dsoa.query_slowdown",
+    "security-anomaly-detection": "dsoa.security_anomaly",
+    "shares-broken-detection": "dsoa.shares_broken_detection",
     "table-perf-degradation": "dsoa.table_perf_degradation",
     "warehouse-sensitive-change-alert": None,  # Uses execute-dql-query, no event ingest
 }

@@ -19,6 +19,14 @@ All notable changes to this project will be documented in this file.
   Fields are classified as `ref` (already in semdict), `new`, `deprecated-alias`, or `otel-only`.
 - **CI semantic validation** (`validate_semantics.sh`): fails if any `instruments-def.yml` entry
   is missing `__description` or `__example`; warns if metrics lack `__unit`.
+- **Anomaly detection field catalog** (`ad.*` namespace): `ad.source`, `ad.source_metric`,
+  `ad.direction`, and `ad.category` are now documented at core level in `instruments-def.yml`
+  and exported to the Semantic Dictionary. These fields are set by all 10 DSOA anomaly-detection
+  workflows in Dynatrace event properties; `ad.direction` and `ad.category` include enum definitions.
+- **DQL query examples** in Semantic Dictionary model YAML: `dql_queries:` sections added for 10
+  plugins (query_history, warehouse_usage, login_history, metering, users, event_log, tasks,
+  resource_monitors, shares, budgets), meeting the SD CI F015-F017 requirement of ≥3 queries per
+  model. Queries are also surfaced in `docs/SEMANTICS.md`.
 
 ### Changed
 
@@ -37,6 +45,17 @@ All notable changes to this project will be documented in this file.
   definition files, added `__type: boolean` to all boolean fields and `__type: long` to integer
   and epoch-nanosecond fields, and annotated generic-named DSOA fields (`error.code`,
   `status.code`, `status.message`) with `__semdict: new` and divergence notes.
+- **Grail-accurate type annotations**: ISO-8601 timestamp attributes now annotated as `__type:
+  string` (Grail stores them as strings; native timestamp requires OpenPipeline). JSON object
+  fields (`snowflake.query.operator.stats`, `snowflake.object.ddl.properties`, etc.) annotated
+  as `__type: string` with serialized-JSON notes. Array-valued fields (`snowflake.user.roles.direct`,
+  `snowflake.query.operator.parent_ids`, etc.) annotated as `__type: string[]`.
+- **Interface contextual notes**: all 10 `ref:` entries in `i.dsoa_resource` now carry a `note:`
+  explaining the DSOA-specific usage context (e.g. "Always 'snowflake' for all DSOA telemetry.").
+- **SEMANTICS.md enhanced**: documentation tables now include `Note`, `Stability`, and `SD Status`
+  columns sourced from `__semdict_note`, `__stability`, and `__semdict` annotations respectively.
+- **Metric examples normalized**: all `__example` values in `metrics:` sections are now unquoted
+  numeric literals (e.g. `120000` instead of `"120000"`), matching the SD output the exporter emits.
 
 ## [0.9.5] - 2026-06-08
 

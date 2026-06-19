@@ -110,6 +110,18 @@ class TestTypeMappings:
         """Missing __type defaults to gauge."""
         assert _map_metric_instrument(None) == "gauge"
 
+    def test_attr_type_array_types(self):
+        """Array and record types map to their SD equivalents."""
+        assert _map_attr_type("string[]") == "string[]"
+        assert _map_attr_type("long[]") == "long[]"
+        assert _map_attr_type("array") == "array"
+        assert _map_attr_type("record") == "record"
+        assert _map_attr_type("record[]") == "record[]"
+
+    def test_attr_type_timestamp_falls_through_to_string(self):
+        """__type: timestamp (legacy) falls through to string (Grail reality)."""
+        assert _map_attr_type("timestamp") == "string"
+
 
 ##endregion
 
@@ -1107,6 +1119,66 @@ class TestDimPluginsOwnership:
 
         assert "my.shared.dim" not in refs_without, "without dim_plugins the dim should be absent (old behavior)"
         assert "my.shared.dim" in refs_with, "with dim_plugins the dim must appear in plugin_b's metric"
+
+
+##endregion
+
+
+##region Unit tests — update_docs.py semantics table generation
+
+
+class TestSemanticsTableColumns:
+    """Verify _generate_semantics_tables surfaces Note, Stability, and SD Status columns."""
+
+    def test_semantics_table_includes_note_stability_sdstatus(self):
+        """Dimensions/attributes tables must include Note, Stability, SD Status columns.
+
+        This is T2 from the BIZOBS-151 IA review: __semdict_note, __stability, and
+        __semdict status fields must appear in SEMANTICS.md for discoverability.
+        """
+        from build.update_docs import _generate_semantics_tables
+
+        json_data = {
+            "dimensions": {
+                "db.system": {
+                    "__description": "DBMS product.",
+                    "__example": "snowflake",
+                    "__semdict_note": "OTel-derived field.",
+                    "__stability": "stable",
+                    "__semdict": "otel-only",
+                }
+            }
+        }
+        result = _generate_semantics_tables(json_data, "test_plugin", no_global_context_name=False)
+        assert "| Note" in result or "Note" in result, "Note column must appear in semantics table"
+        assert "| Stability" in result or "Stability" in result, "Stability column must appear in semantics table"
+        assert "| SD Status" in result or "SD Status" in result, "SD Status column must appear in semantics table"
+        assert "OTel-derived field." in result, "__semdict_note content must appear in table"
+        assert "stable" in result, "__stability value must appear in table"
+        assert "otel-only" in result, "__semdict value must appear in table"
+
+    def test_metrics_table_includes_note_stability_sdstatus(self):
+        """Metrics tables must also include Note, Stability, SD Status columns."""
+        from build.update_docs import _generate_semantics_tables
+
+        json_data = {
+            "metrics": {
+                "snowflake.credits.compute": {
+                    "__description": "Credits consumed by compute.",
+                    "__example": 8,
+                    "unit": "count",
+                    "displayName": "Compute Credits",
+                    "__semdict_note": "Original unit: credits (Snowflake billing unit).",
+                    "__stability": "experimental",
+                    "__semdict": "new",
+                }
+            }
+        }
+        result = _generate_semantics_tables(json_data, "warehouse_usage", no_global_context_name=False)
+        assert "Note" in result, "Note column must appear in metrics table"
+        assert "Stability" in result, "Stability column must appear in metrics table"
+        assert "SD Status" in result, "SD Status column must appear in metrics table"
+        assert "Original unit: credits" in result, "__semdict_note content must appear in metrics table"
 
 
 ##endregion

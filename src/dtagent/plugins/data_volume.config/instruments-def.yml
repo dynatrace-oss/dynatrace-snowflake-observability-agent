@@ -62,22 +62,22 @@ dimensions:
 
 metrics:
   snowflake.data.rows:
-    __example: "1000000"
+    __example: 1000000
     __description: Sum of all rows in all objects in this scope.
     displayName: Row Count
     unit: rows
   snowflake.data.size:
-    __example: "1073741824"
+    __example: 1073741824
     __description: Total size (in bytes) of all objects in this scope.
     displayName: Table Size in Bytes
     unit: bytes
   snowflake.table.time_since.last_ddl:
-    __example: "2880"
+    __example: 2880
     __description: Time (in minutes) since last time given objects structure was altered.
     displayName: Time Since Last DDL
     unit: min
   snowflake.table.time_since.last_update:
-    __example: "1440"
+    __example: 1440
     __description: Time (in minutes) since last time content of given objects was updated.
     displayName: Time Since Last Update
     unit: min
