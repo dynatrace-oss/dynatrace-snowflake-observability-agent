@@ -165,6 +165,12 @@ ATTR_TYPE_MAP: Dict[str, str] = {
     "float": "double",
     "boolean": "boolean",
     "string": "string",
+    # Grail array and record types (confirmed via dtctl investigation 2026-06-19)
+    "string[]": "string[]",
+    "long[]": "long[]",
+    "array": "array",
+    "record": "record",
+    "record[]": "record[]",
 }
 
 #: Valid semdict classification values.
@@ -973,12 +979,30 @@ class SemanticExporter:
             docs[f"fields/signal_fields/{filename}"] = doc
         return docs
 
-    def _build_interfaces_yaml(self) -> Dict[str, Any]:
+    def _build_interfaces_yaml(self, all_entries: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Build metrics/interfaces_dsoa.yaml with i.dsoa_resource/warehouse/database.
+
+        Args:
+            all_entries: All parsed field entries keyed by field key. When provided,
+                         ``__interface_note`` values are read from each entry to annotate
+                         ``ref:`` attributes in ``i.dsoa_resource`` with contextual notes
+                         (SD C2 requirement from BIZOBS-151 IA review).
 
         Returns:
             Semconv-compliant YAML doc dict.
         """
+
+        def _ref_entry(key: str) -> Dict[str, Any]:
+            """Build a ref: attribute entry with optional note: from __interface_note."""
+            entry: Dict[str, Any] = {"ref": key}
+            if all_entries:
+                meta = all_entries.get(key)
+                if meta:
+                    note = (meta.get("entry") or meta).get("__interface_note", "")
+                    if note:
+                        entry["note"] = str(note).strip()
+            return entry
+
         return {
             "groups": [
                 {
@@ -986,7 +1010,7 @@ class SemanticExporter:
                     "type": "interface",
                     "title": "DSOA resource fields",
                     "brief": "Fields present on all DSOA telemetry records. Synced with config.py RESOURCE_ATTRIBUTES.",
-                    "attributes": [{"ref": k} for k in sorted(RESOURCE_ATTRIBUTE_KEYS)],
+                    "attributes": [_ref_entry(k) for k in sorted(RESOURCE_ATTRIBUTE_KEYS)],
                 },
                 {
                     "id": "i.dsoa_warehouse",
@@ -1070,6 +1094,7 @@ class SemanticExporter:
         all_entries: Dict[str, Any],
         dim_plugins: Optional[Dict[str, Set[str]]] = None,
         dim_context_by_plugin: Optional[Dict[str, Dict[str, Set[str]]]] = None,
+        dql_queries: Optional[List[Dict[str, Any]]] = None,
     ) -> Dict[str, Any]:
         """Build a per-plugin metric model YAML document.
 
@@ -1081,6 +1106,7 @@ class SemanticExporter:
                                    When provided, dimensions are resolved by ownership across all
                                    plugin definitions, not just the dedup winner.
             dim_context_by_plugin: Per-plugin map of dim_key → context name set.
+            dql_queries:           Optional list of DQL query dicts from instruments-def.yml.
 
         Returns:
             Semconv-compliant YAML document dict with ``model:`` envelope.
@@ -1136,24 +1162,28 @@ class SemanticExporter:
             groups.append(metric_node)
             self._counters["metric_fields"] += 1
 
-        return {
-            "model": {
-                "id": f"dsoa.metrics.{plugin_name}",
-                "title": f"Snowflake {plugin_title} Metrics",
-                "brief": f"Metrics collected by the DSOA {plugin_name} plugin from Snowflake ACCOUNT_USAGE views.",
-                "model_group_id": "dsoa.metrics",
-                "data_object": "metric",
-                "interfaces": interfaces,
-                "groups": groups,
-            }
+        model_doc: Dict[str, Any] = {
+            "id": f"dsoa.metrics.{plugin_name}",
+            "title": f"Snowflake {plugin_title} Metrics",
+            "brief": f"Metrics collected by the DSOA {plugin_name} plugin from Snowflake ACCOUNT_USAGE views.",
+            "model_group_id": "dsoa.metrics",
+            "data_object": "metric",
+            "interfaces": interfaces,
         }
+        if dql_queries:
+            model_doc["dql_queries"] = dql_queries
+        model_doc["groups"] = groups
+        return {"model": model_doc}
 
-    def _build_event_model_yaml(self, plugin_name: str, event_ts_entries: Dict[str, Any]) -> Dict[str, Any]:
+    def _build_event_model_yaml(
+        self, plugin_name: str, event_ts_entries: Dict[str, Any], dql_queries: Optional[List[Dict[str, Any]]] = None
+    ) -> Dict[str, Any]:
         """Build a per-plugin event model YAML document.
 
         Args:
             plugin_name:      Plugin name.
             event_ts_entries: All event_timestamp entries across all plugins.
+            dql_queries:      Optional list of DQL query dicts from instruments-def.yml.
 
         Returns:
             Semconv-compliant YAML document dict with ``model:`` envelope.
@@ -1165,24 +1195,25 @@ class SemanticExporter:
         attrs = [{"ref": "snowflake.event.type"}] + [{"ref": k} for k in plugin_ts_keys]
         for _ in plugin_ts_keys:
             self._counters["event_timestamp_fields"] += 1
-        return {
-            "model": {
-                "id": f"dsoa.events.{plugin_name}",
-                "title": f"Snowflake {plugin_title} Lifecycle Events",
-                "brief": f"Timestamp-based state-change events emitted by the DSOA {plugin_name} plugin as business events.",
-                "model_group_id": "dsoa.events",
-                "data_object": "bizevents",
-                "interfaces": ["i.dsoa_resource"],
-                "groups": [
-                    {
-                        "id": f"dsoa.events.{plugin_name}.fields",
-                        "type": "attribute_group",
-                        "title": f"{plugin_title} event fields",
-                        "attributes": attrs,
-                    }
-                ],
-            }
+        model_doc: Dict[str, Any] = {
+            "id": f"dsoa.events.{plugin_name}",
+            "title": f"Snowflake {plugin_title} Lifecycle Events",
+            "brief": f"Timestamp-based state-change events emitted by the DSOA {plugin_name} plugin as business events.",
+            "model_group_id": "dsoa.events",
+            "data_object": "bizevents",
+            "interfaces": ["i.dsoa_resource"],
         }
+        if dql_queries:
+            model_doc["dql_queries"] = dql_queries
+        model_doc["groups"] = [
+            {
+                "id": f"dsoa.events.{plugin_name}.fields",
+                "type": "attribute_group",
+                "title": f"{plugin_title} event fields",
+                "attributes": attrs,
+            }
+        ]
+        return {"model": model_doc}
 
     ##endregion
 
@@ -1227,7 +1258,9 @@ class SemanticExporter:
             refs.append(key)
         return [{"ref": k} for k in sorted(refs)]
 
-    def _build_log_model_yaml(self, plugin_name: str, all_entries: Dict[str, Any]) -> Dict[str, Any]:
+    def _build_log_model_yaml(
+        self, plugin_name: str, all_entries: Dict[str, Any], dql_queries: Optional[List[Dict[str, Any]]] = None
+    ) -> Dict[str, Any]:
         """Build a per-plugin log record model YAML document.
 
         Creates a log model that references all attribute fields for the plugin via
@@ -1236,33 +1269,37 @@ class SemanticExporter:
         Args:
             plugin_name:  Plugin name.
             all_entries:  All parsed entries (dedup-resolved).
+            dql_queries:  Optional list of DQL query dicts from instruments-def.yml.
 
         Returns:
             Semconv-compliant YAML document dict with ``model:`` envelope.
         """
         plugin_title = _restore_acronyms(plugin_name.replace("_", " ").title())
         attr_refs = self._collect_plugin_attribute_refs(plugin_name, all_entries)
-        return {
-            "model": {
-                "id": f"dsoa.logs.{plugin_name}",
-                "title": f"DSOA {plugin_title} Log Records",
-                "brief": f"Log records emitted by the DSOA {plugin_name} plugin.",
-                "model_group_id": "dsoa.logs",
-                "data_object": "log",
-                "interfaces": ["i.dsoa_resource"],
-                "groups": [
-                    {
-                        "id": f"dsoa.logs.{plugin_name}.fields",
-                        "type": "attribute_group",
-                        "title": f"{plugin_title} log record fields",
-                        "brief": f"Attribute fields for {_make_display_name(plugin_name)} log records.",
-                        "attributes": attr_refs,
-                    }
-                ],
-            }
+        model_doc: Dict[str, Any] = {
+            "id": f"dsoa.logs.{plugin_name}",
+            "title": f"DSOA {plugin_title} Log Records",
+            "brief": f"Log records emitted by the DSOA {plugin_name} plugin.",
+            "model_group_id": "dsoa.logs",
+            "data_object": "log",
+            "interfaces": ["i.dsoa_resource"],
         }
+        if dql_queries:
+            model_doc["dql_queries"] = dql_queries
+        model_doc["groups"] = [
+            {
+                "id": f"dsoa.logs.{plugin_name}.fields",
+                "type": "attribute_group",
+                "title": f"{plugin_title} log record fields",
+                "brief": f"Attribute fields for {_make_display_name(plugin_name)} log records.",
+                "attributes": attr_refs,
+            }
+        ]
+        return {"model": model_doc}
 
-    def _build_span_model_yaml(self, plugin_name: str, all_entries: Dict[str, Any]) -> Dict[str, Any]:
+    def _build_span_model_yaml(
+        self, plugin_name: str, all_entries: Dict[str, Any], dql_queries: Optional[List[Dict[str, Any]]] = None
+    ) -> Dict[str, Any]:
         """Build a per-plugin span model YAML document.
 
         Only generated for plugins in ``SPAN_PLUGINS``.
@@ -1270,31 +1307,33 @@ class SemanticExporter:
         Args:
             plugin_name:  Plugin name (must be in SPAN_PLUGINS).
             all_entries:  All parsed entries (dedup-resolved).
+            dql_queries:  Optional list of DQL query dicts from instruments-def.yml.
 
         Returns:
             Semconv-compliant YAML document dict with ``model:`` envelope.
         """
         plugin_title = _restore_acronyms(plugin_name.replace("_", " ").title())
         attr_refs = self._collect_plugin_attribute_refs(plugin_name, all_entries)
-        return {
-            "model": {
-                "id": f"dsoa.spans.{plugin_name}",
-                "title": f"DSOA {plugin_title} Spans",
-                "brief": f"Span records emitted by the DSOA {plugin_name} plugin.",
-                "model_group_id": "dsoa.spans",
-                "data_object": "span",
-                "interfaces": ["i.dsoa_resource"],
-                "groups": [
-                    {
-                        "id": f"dsoa.spans.{plugin_name}.fields",
-                        "type": "attribute_group",
-                        "title": f"{plugin_title} span fields",
-                        "brief": f"Attribute fields for {_make_display_name(plugin_name)} spans.",
-                        "attributes": attr_refs,
-                    }
-                ],
-            }
+        model_doc: Dict[str, Any] = {
+            "id": f"dsoa.spans.{plugin_name}",
+            "title": f"DSOA {plugin_title} Spans",
+            "brief": f"Span records emitted by the DSOA {plugin_name} plugin.",
+            "model_group_id": "dsoa.spans",
+            "data_object": "span",
+            "interfaces": ["i.dsoa_resource"],
         }
+        if dql_queries:
+            model_doc["dql_queries"] = dql_queries
+        model_doc["groups"] = [
+            {
+                "id": f"dsoa.spans.{plugin_name}.fields",
+                "type": "attribute_group",
+                "title": f"{plugin_title} span fields",
+                "brief": f"Attribute fields for {_make_display_name(plugin_name)} spans.",
+                "attributes": attr_refs,
+            }
+        ]
+        return {"model": model_doc}
 
     ##endregion
 
@@ -1386,10 +1425,23 @@ class SemanticExporter:
         # Per-plugin dimension context names: {plugin_name: {dim_key: set(context_names)}}
         # This preserves each plugin's own context annotations independent of dedup winner.
         dim_context_by_plugin: Dict[str, Dict[str, Set[str]]] = {}
+        # Per-plugin DQL query examples collected directly from the top-level dql_queries: key
+        # in each instruments-def.yml file.  Keyed by plugin_name (or "_core").
+        plugin_dql_queries: Dict[str, List[Dict[str, Any]]] = {}
         for plugin_name, path in files:
             log.debug("Parsing %s (%s)", plugin_name, path)
             errors, entries = self._parse_file(plugin_name, path)
             all_errors.extend(errors)
+            # Collect top-level dql_queries from the raw YAML (separate from field entries).
+            try:
+                with open(path, "r", encoding="utf-8") as fh:
+                    raw_data = yaml.safe_load(fh) or {}
+                raw_queries = raw_data.get("dql_queries")
+                if raw_queries and isinstance(raw_queries, list):
+                    plugin_dql_queries[plugin_name] = raw_queries
+                    log.debug("Collected %d dql_queries from %s", len(raw_queries), plugin_name)
+            except Exception as exc:  # pylint: disable=broad-except
+                log.warning("Could not re-read dql_queries from %s: %s", path, exc)
             for key, meta in entries.items():
                 # Track all plugins that define each dimension key (for A3 ownership)
                 if meta["section"] == "dimensions":
@@ -1433,8 +1485,8 @@ class SemanticExporter:
                 self._validate_against_schema(sig_doc, p)
 
         # Step 7: interfaces + model group
-        p = self._write_yaml(self._build_interfaces_yaml(), "metrics/interfaces_dsoa.yaml")
-        self._validate_against_schema(self._build_interfaces_yaml(), p)
+        p = self._write_yaml(self._build_interfaces_yaml(all_entries), "metrics/interfaces_dsoa.yaml")
+        self._validate_against_schema(self._build_interfaces_yaml(all_entries), p)
         self._write_yaml(
             {
                 "model_group": {
@@ -1453,7 +1505,14 @@ class SemanticExporter:
             entries = plugin_metric_entries[plugin_name]
             if not entries:
                 continue
-            doc = self._build_metric_model_yaml(plugin_name, entries, all_entries, dim_plugins, dim_context_by_plugin)
+            doc = self._build_metric_model_yaml(
+                plugin_name,
+                entries,
+                all_entries,
+                dim_plugins,
+                dim_context_by_plugin,
+                dql_queries=plugin_dql_queries.get(plugin_name),
+            )
             p = self._write_yaml(doc, f"metrics/dsoa_metrics_{plugin_name}.yaml")
             self._validate_against_schema(doc, p)
 
@@ -1471,7 +1530,11 @@ class SemanticExporter:
                 "model/dsoa/model_group_dsoa_events.yaml",
             )
             for plugin_name in sorted(plugins_with_events):
-                doc = self._build_event_model_yaml(plugin_name, event_ts_entries)
+                doc = self._build_event_model_yaml(
+                    plugin_name,
+                    event_ts_entries,
+                    dql_queries=plugin_dql_queries.get(plugin_name),
+                )
                 p = self._write_yaml(doc, f"model/dsoa/dsoa.events.{plugin_name}.yaml")
                 self._validate_against_schema(doc, p)
 
@@ -1494,7 +1557,11 @@ class SemanticExporter:
                 "model/dsoa/model_group_dsoa_logs.yaml",
             )
             for plugin_name in sorted(plugins_with_attrs):
-                doc = self._build_log_model_yaml(plugin_name, all_entries)
+                doc = self._build_log_model_yaml(
+                    plugin_name,
+                    all_entries,
+                    dql_queries=plugin_dql_queries.get(plugin_name),
+                )
                 p = self._write_yaml(doc, f"model/dsoa/dsoa.logs.{plugin_name}.yaml")
                 self._validate_against_schema(doc, p)
 
@@ -1512,7 +1579,11 @@ class SemanticExporter:
                 "model/dsoa/model_group_dsoa_spans.yaml",
             )
             for plugin_name in sorted(span_model_plugins):
-                doc = self._build_span_model_yaml(plugin_name, all_entries)
+                doc = self._build_span_model_yaml(
+                    plugin_name,
+                    all_entries,
+                    dql_queries=plugin_dql_queries.get(plugin_name),
+                )
                 p = self._write_yaml(doc, f"model/dsoa/dsoa.spans.{plugin_name}.yaml")
                 self._validate_against_schema(doc, p)
 
@@ -1530,7 +1601,11 @@ class SemanticExporter:
                     },
                     "model/dsoa/model_group_dsoa_spans.yaml",
                 )
-            doc = self._build_span_model_yaml("event_log", all_entries)
+            doc = self._build_span_model_yaml(
+                "event_log",
+                all_entries,
+                dql_queries=plugin_dql_queries.get("event_log"),
+            )
             p = self._write_yaml(doc, "model/dsoa/dsoa.spans.event_log.yaml")
             self._validate_against_schema(doc, p)
 

@@ -18,6 +18,7 @@ dimensions:
   db.system:
     __semdict: otel-only
     __stability: stable
+    __interface_note: "Always 'snowflake' for all DSOA telemetry."
     __semdict_note: >-
       Defined in OpenTelemetry Semantic Conventions (db.system, stable) but not yet present as a globally referenceable field in the
       Dynatrace Semantic Dictionary. Emitting as a new id: definition here so DSOA can declare it properly. The value for Snowflake is
@@ -29,16 +30,21 @@ dimensions:
     __semdict: deprecated-alias
     __stability: deprecated
     __otel_replacement: deployment.environment.name
+    __interface_note: >-
+      The Snowflake account identifier, configured via 'core.snowflake.account_name'. Deprecated in OTel v1.26;
+      use deployment.environment.name.
     __semdict_note: >-
       Renamed from deployment.environment in OTel Semantic Conventions v1.26. Replacement: deployment.environment.name (stable).
     __description: "The deployment environment, e.g., production, staging, or development."
     __example: "PROD"
   deployment.environment.tag:
     __semdict: new
+    __interface_note: "Optional user-defined tag for grouping Snowflake accounts in multitenancy mode, set via 'core.tag'."
     __description: "Optional tag for the deployment environment in multitenancy mode"
     __example: "SA080"
   host.name:
     __semdict: ref
+    __interface_note: "The Snowflake account hostname (e.g. 'xy12345.snowflakecomputing.com'), from 'core.snowflake.host_name'."
     __description: >-
       Name of the host. On Unix systems, it may contain what the hostname command returns, or the fully qualified
       hostname, or another name specified by the user. In DSOA, this is always the fully qualified Snowflake account
@@ -48,6 +54,7 @@ dimensions:
     __example: "myorg-myaccount.snowflakecomputing.com"
   service.name:
     __semdict: ref
+    __interface_note: "Always the Snowflake account identifier without '.snowflakecomputing.com' suffix (e.g. 'myorg-myaccount')."
     __description: >-
       Logical name of the service. MUST be the same for all instances of horizontally scaled services. In DSOA, this
       is always the Snowflake account identifier without the '.snowflakecomputing.com' suffix — either
@@ -57,6 +64,7 @@ dimensions:
     __example: "myorg-myaccount"
   telemetry.exporter.name:
     __semdict: ref
+    __interface_note: "Always 'dynatrace.snowagent' — identifies DSOA as the telemetry exporter."
     __semdict_note: >-
       Dynatrace-proprietary field; no equivalent exists in OpenTelemetry Semantic Conventions.
       This field identifies DSOA as the specific Dynatrace agent responsible for the telemetry.
@@ -67,6 +75,7 @@ dimensions:
     __example: "dynatrace.snowagent"
   telemetry.exporter.version:
     __semdict: ref
+    __interface_note: "The installed DSOA agent version in '<major>.<minor>.<patch>.<build>' format."
     __semdict_note: >-
       Dynatrace-proprietary field; no equivalent exists in OpenTelemetry Semantic Conventions.
       This field carries the full DSOA build identity including CI pipeline run number.
@@ -78,6 +87,7 @@ dimensions:
     __example: "1.0.0.1234567890"
   dsoa.run.context:
     __semdict: new
+    __interface_note: "Identifies the specific sub-context within the plugin (e.g. 'query_history', 'users_all_roles')."
     __description:
       "The name of the Dynatrace Snowflake Observability Agent context (part of plugin) used to produce the telemetry (logs, traces,
       metrics, or events). In case of multiple contexts within the same plugin, this helps differentiate between them. If plugin delivers
@@ -86,6 +96,7 @@ dimensions:
   dsoa.run.plugin:
     __semdict: new
     __field_type: resource
+    __interface_note: "The DSOA plugin that produced this telemetry (e.g. 'query_history', 'warehouse_usage')."
     __description:
       "The name of the DSOA plugin that produced this telemetry. Use to filter all telemetry from a specific plugin (e.g., 'query_history',
       'warehouse_usage'). Distinct from dsoa.run.context, which may represent a sub-context within a plugin."
@@ -98,6 +109,7 @@ dimensions:
 attributes:
   dsoa.run.id:
     __semdict: new
+    __interface_note: "Unique identifier for a single DSOA agent execution run. Changes on every invocation."
     __description:
       "Unique ID of each execution of the Dynatrace Snowflake Observability Agent plugin. It can be used to differentiate between telemetry
       produced between two executions, e.g., to calculate the change in the system."
@@ -113,6 +125,74 @@ attributes:
       bag for query consistency.
     __description: "The timestamp (in epoch nanoseconds) when the event was observed."
     __example: "1741768500000000000"
+  ad.source:
+    __semdict: new
+    __description: >-
+      Identifies the DSOA detection rule or workflow that generated this anomaly or alert event.
+      For workflow-emitted events, values follow the pattern 'dsoa.<workflow_identifier>'
+      (e.g. 'dsoa.long_running_queries', 'dsoa.credits_exhaustion'). For Python agent-emitted
+      login-history security events, the value is 'snowflake_security'. NOTE: This field is
+      planned for rename to 'rule.id' (Semantic Dictionary field) in a future release (tracked
+      separately from BIZOBS-151).
+    __example: "dsoa.long_running_queries"
+  ad.source_metric:
+    __semdict: new
+    __description: >-
+      The Snowflake metric key that triggered the anomaly detection. Set by DSOA workflows
+      when Davis AI or a threshold query identifies an anomalous metric value. The value is
+      always a fully-qualified DSOA metric name (e.g. 'snowflake.credits.quota.used_pct',
+      'snowflake.time.execution'). Not set for event-only workflows without metric-driven
+      detection (e.g. warehouse-sensitive-change-alert).
+    __example: "snowflake.credits.quota.used_pct"
+  ad.direction:
+    __semdict: new
+    __description: >-
+      Direction of the anomaly relative to the baseline. 'above' indicates the metric exceeded
+      the expected upper bound; 'below' indicates a drop below the expected lower bound.
+      Present only for metric-threshold anomaly workflows (data-volume-anomaly, long-running-queries,
+      security-anomaly-detection). Omitted for event-only workflows.
+    __example: "above"
+    __enum:
+      allow_custom_values: false
+      members:
+        - id: above
+          value: above
+          brief: Metric value exceeded the expected upper threshold.
+        - id: below
+          value: below
+          brief: Metric value dropped below the expected lower threshold.
+  ad.category:
+    __semdict: new
+    __description: >-
+      Anomaly classification category. Distinguishes different anomaly types within a
+      multi-type workflow. Set by shares-broken-detection (volume_drop / unavailable /
+      disappeared) and security-anomaly-detection (login / session / query_count / data_scan).
+      Omitted for single-type anomaly workflows.
+    __example: "login"
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: login
+          value: login
+          brief: Anomaly in login attempt counts (security-anomaly-detection workflow).
+        - id: session
+          value: session
+          brief: Anomaly in active session counts (security-anomaly-detection workflow).
+        - id: query_count
+          value: query_count
+          brief: Anomaly in query execution counts (security-anomaly-detection workflow).
+        - id: data_scan
+          value: data_scan
+          brief: Anomaly in data volume scanned (security-anomaly-detection workflow).
+        - id: volume_drop
+          value: volume_drop
+          brief: Detected drop in data rows for a share (shares-broken-detection workflow).
+        - id: unavailable
+          value: unavailable
+          brief: Share object no longer accessible (shares-broken-detection workflow).
+        - id: disappeared
+          value: disappeared
+          brief: Share object no longer present in the account (shares-broken-detection workflow).
 
 #  * Metric definitions
 #  * KEY                  - will be matched against METRICS object with measurements prepared for sending
@@ -123,6 +203,6 @@ metrics:
   dsoa.agent.memory.peak_rss:
     __semdict: new
     __description: "Peak resident set size (RSS) of the agent process in megabytes, sampled after each plugin context run."
-    __example: "42.5"
+    __example: 42.5
     unit: MiBy
     displayName: Agent Peak Memory (RSS)

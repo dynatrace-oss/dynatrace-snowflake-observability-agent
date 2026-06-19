@@ -92,43 +92,74 @@ attributes:
 metrics:
   snowflake.credits.used:
     __context_names: ["metering"]
-    __example: "15.5"
+    __example: 15.5
     __description: >-
       Total credits consumed by the service in the metering window.
     displayName: Snowflake Credits Used
     unit: credits
   snowflake.credits.used.compute:
     __context_names: ["metering"]
-    __example: "12.3"
+    __example: 12.3
     __description: >-
       Compute credits consumed by the service in the metering window.
     displayName: Snowflake Compute Credits Used
     unit: credits
   snowflake.credits.used.cloud_services:
     __context_names: ["metering"]
-    __example: "3.2"
+    __example: 3.2
     __description: >-
       Cloud services credits consumed by the service in the metering window.
     displayName: Snowflake Cloud Services Credits Used
     unit: credits
   snowflake.metering.data.size:
     __context_names: ["metering"]
-    __example: "10485760"
+    __example: 10485760
     __description: >-
       Number of bytes processed by the service in the metering window.
     displayName: Bytes Processed
     unit: bytes
   snowflake.metering.data.rows:
     __context_names: ["metering"]
-    __example: "50000"
+    __example: 50000
     __description: >-
       Number of rows processed by the service in the metering window.
     displayName: Rows Processed
     unit: rows
   snowflake.data.files:
     __context_names: ["metering"]
-    __example: "120"
+    __example: 120
     __description: >-
       Number of files processed by the service in the metering window.
     displayName: Files Processed
     unit: files
+dql_queries:
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "metering"
+      | sort timestamp desc
+      | limit 100
+    description: Fetch the 100 most recent DSOA metering plugin log entries from Grail.
+    description_copilot: Search for all metering plugin logs from the Snowflake observability agent.
+    internal: false
+  - query_string: |
+      timeseries credits = sum(snowflake.credits.used), by: { snowflake.service.name, deployment.environment }
+      | filter db.system == "snowflake"
+    description: Plot total credits consumed by each Snowflake service over time.
+    description_copilot: Timeseries of Snowflake credits used broken down by service type.
+    internal: false
+  - query_string: |
+      timeseries compute = sum(snowflake.credits.used.compute), by: { snowflake.service.name, deployment.environment }
+      | filter db.system == "snowflake"
+    description: Plot compute credits consumed by each Snowflake service over time.
+    description_copilot: Timeseries of Snowflake compute credits broken down by service.
+    internal: false
+  - query_string: |
+      fetch bizevents
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "metering"
+      | sort timestamp desc
+      | limit 20
+    description: Fetch recent DSOA self-monitoring business events for the metering plugin.
+    description_copilot: Search for self-monitoring events from the metering Snowflake agent plugin.
+    internal: false

@@ -26,6 +26,8 @@ attributes:
     __example: ACCOUNTADMIN
     __description: The type of role assigned to the budget owner, indicating their level of access and responsibilities.
   snowflake.budget.resource:
+    __type: string[]
+    __semdict_note: "Array of resource names (databases, warehouses) in this budget group, stored as string[] in Grail."
     __context_names:
       - budgets
     __example: '[ "database1", "warehouse1" ]'
@@ -90,14 +92,36 @@ metrics:
   snowflake.credits.limit:
     __context_names:
       - budgets
-    __example: "100"
+    __example: 100
     __description: The number of credits set as the spending limit for the budget.
     displayName: Budget Spending Limit
     unit: credits
   snowflake.credits.spent:
     __context_names:
       - spendings
-    __example: "75"
+    __example: 75
     __description: Number of credits used.
     displayName: Credits Spent
     unit: credits
+dql_queries:
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "budgets"
+      | sort timestamp desc
+      | limit 100
+    description: Fetch the 100 most recent DSOA budgets plugin log entries from Grail.
+    description_copilot: Search for all budgets plugin logs from the Snowflake observability agent.
+    internal: false
+  - query_string: |
+      timeseries spent = sum(snowflake.credits.spent), by: { snowflake.budget.name, deployment.environment }
+      | filter db.system == "snowflake"
+    description: Plot credits spent per Snowflake budget over time.
+    description_copilot: Timeseries of Snowflake credits spent per budget.
+    internal: false
+  - query_string: |
+      timeseries limit = avg(snowflake.credits.limit), by: { snowflake.budget.name, deployment.environment }
+      | filter db.system == "snowflake"
+    description: Plot the credit spending limit per Snowflake budget over time.
+    description_copilot: Timeseries of Snowflake budget spending limits per budget.
+    internal: false

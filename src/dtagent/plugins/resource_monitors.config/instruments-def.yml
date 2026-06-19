@@ -27,7 +27,7 @@ attributes:
     __example: BUDGET_2024
     __description: The name of the budget associated with the warehouse.
   snowflake.credits.quota:
-    __example: "1000"
+    __example: 1000
     __description: The credit quota of the resource monitor.
   snowflake.credits.quota.remaining:
     __example: "500"
@@ -250,91 +250,118 @@ event_timestamps:
     __example: "2024-11-01 00:00:00.000"
     __description: The timestamp when the resource monitor started.
   snowflake.warehouse.created_on:
-    __type: timestamp
+    __type: string
+    __semdict_note: >-
+      ISO 8601 timestamp string stored as string in Grail. Grail stores this as a plain string;
+      use toTimestamp() in DQL for time-based operations.
     __example: "2024-09-01 08:00:00.000"
     __description: The timestamp when the warehouse was created.
   snowflake.warehouse.resumed_on:
-    __type: timestamp
+    __type: string
+    __semdict_note: "ISO 8601 timestamp string stored as string in Grail."
     __example: "2024-11-15 09:00:00.000"
     __description: The timestamp when the warehouse was last resumed.
   snowflake.warehouse.updated_on:
-    __type: timestamp
+    __type: string
+    __semdict_note: "ISO 8601 timestamp string stored as string in Grail."
     __example: "2024-11-10 14:30:00.000"
     __description: The timestamp when the warehouse was last updated.
 
 metrics:
   snowflake.acceleration.scale_factor.max:
-    __example: "2"
+    __example: 2
     __description: Maximal scale factor for query acceleration in the given warehouse
     displayName: Query Acceleration Upper Limit Scale Factor
     unit: factor
   snowflake.compute.available:
-    __example: "60"
+    __example: 60
     __description: Percentage of available resources in given warehouse.
     displayName: Percentage Available
     unit: percent
   snowflake.compute.other:
-    __example: "10"
+    __example: 10
     __description: Percentage of other resources in given warehouse
     displayName: Percentage Other
     unit: percent
   snowflake.compute.provisioning:
-    __example: "20"
+    __example: 20
     __description: Percentage of provisioning resources in given warehouse.
     displayName: Percentage Provisioning
     unit: percent
   snowflake.compute.quiescing:
-    __example: "10"
+    __example: 10
     __description: Percentage of quiescing resources in given warehouse.
     displayName: Percentage Quiescing
     unit: percent
   snowflake.credits.quota:
-    __example: "1000"
+    __example: 1000
     __description: Total number of credits allowed for the given resource monitor
     displayName: Credits Quota
     unit: credits
   snowflake.credits.quota.remaining:
-    __example: "250"
+    __example: 250
     __description: Number of credits remaining for the given resource monitor
     displayName: Credits Remaining
     unit: credits
   snowflake.credits.quota.used:
-    __example: "750"
+    __example: 750
     __description: Number of credits used by the given resource monitor
     displayName: Credits Used
     unit: credits
   snowflake.credits.quota.used_pct:
-    __example: "75"
+    __example: 75
     __description: Percentage of quota used by given resource monitor
     displayName: Percentage Quota Used
     unit: percent
   snowflake.queries.queued:
-    __example: "5"
+    __example: 5
     __description: Current number of queued queries in the given warehouse
     displayName: Queued Queries
     unit: queries
   snowflake.queries.running:
-    __example: "15"
+    __example: 15
     __description: Current number of running queries in the given warehouse
     displayName: Running Queries
     unit: queries
   snowflake.resource_monitor.warehouses:
-    __example: "5"
+    __example: 5
     __description: Number of warehouses monitored by the given resource monitor
     displayName: Warehouses Count
     unit: warehouses
   snowflake.warehouse.clusters.max:
-    __example: "10"
+    __example: 10
     __description: Maximal number of clusters in the given warehouse
     displayName: Maximum Cluster Count
     unit: clusters
   snowflake.warehouse.clusters.min:
-    __example: "1"
+    __example: 1
     __description: Minimal number of clusters in the given warehouse
     displayName: Minimum Cluster Count
     unit: clusters
   snowflake.warehouse.clusters.started:
-    __example: "3"
+    __example: 3
     __description: Current number of started clusters in the given warehouse
     displayName: Started Clusters
     unit: clusters
+dql_queries:
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "resource_monitors"
+      | sort timestamp desc
+      | limit 100
+    description: Fetch the 100 most recent DSOA resource_monitors plugin log entries from Grail.
+    description_copilot: Search for all resource_monitors plugin logs from the Snowflake observability agent.
+    internal: false
+  - query_string: |
+      timeseries pct = avg(snowflake.credits.quota.used_pct), by: { snowflake.resource_monitor.name, deployment.environment }
+      | filter db.system == "snowflake"
+    description: Plot percentage of credit quota used per resource monitor over time.
+    description_copilot: Timeseries of Snowflake resource monitor credit quota utilization percentage.
+    internal: false
+  - query_string: |
+      timeseries remaining = avg(snowflake.credits.quota.remaining), by: { snowflake.resource_monitor.name, deployment.environment }
+      | filter db.system == "snowflake"
+    description: Plot remaining credit quota per resource monitor over time.
+    description_copilot: Timeseries of remaining Snowflake credit quota per resource monitor.
+    internal: false

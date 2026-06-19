@@ -21,8 +21,10 @@ attributes:
       - login_history
     __description: >-
       Identifies the DSOA detection rule or security domain that generated this anomaly event.
-      Current value: 'snowflake_security'. NOTE: This field is planned for rename to 'rule.id'
-      (Semantic Dictionary field) in a future release.
+      In the login_history plugin, this is always 'snowflake_security'. For workflow-emitted
+      events, values follow the 'dsoa.<workflow>' pattern. See core instruments-def for the
+      full field definition. NOTE: This field is planned for rename to 'rule.id' in a future
+      release (tracked separately from BIZOBS-151).
     __example: "snowflake_security"
     __semdict: new
   event.description:
@@ -197,14 +199,14 @@ metrics:
     __context_names:
       - openpipeline
     __description: Number of failed Snowflake login attempts within the collection window.
-    __example: "42"
+    __example: 42
     displayName: Snowflake Login Attempts Failed
     unit: "1"
   snowflake.login.attempts.successful:
     __context_names:
       - openpipeline
     __description: Number of successful Snowflake login attempts within the collection window.
-    __example: "1234"
+    __example: 1234
     displayName: Snowflake Login Attempts Successful
     unit: "1"
   snowflake.login.attempts.total:
@@ -212,6 +214,47 @@ metrics:
       - openpipeline
     __description: >-
       Total number of Snowflake login attempts (failed + successful) within the collection window.
-    __example: "1276"
+    __example: 1276
     displayName: Snowflake Login Attempts Total
     unit: "1"
+dql_queries:
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "login_history"
+      | sort timestamp desc
+      | limit 100
+    description: Fetch the 100 most recent DSOA login_history plugin log entries from Grail.
+    description_copilot: Search for all login_history plugin logs from the Snowflake observability agent.
+    internal: false
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "login_history"
+      | filter snowflake.login.is_success == "NO"
+      | sort timestamp desc
+      | limit 50
+    description: Fetch the 50 most recent failed Snowflake login attempts from login_history logs.
+    description_copilot: Search for failed Snowflake login attempts in login_history plugin logs.
+    internal: false
+  - query_string: |
+      timeseries failed = sum(snowflake.login.attempts.failed), by: { db.user, deployment.environment }
+      | filter db.system == "snowflake"
+    description: Plot the number of failed Snowflake login attempts per user over time.
+    description_copilot: Timeseries of failed Snowflake login attempts broken down by user.
+    internal: false
+  - query_string: |
+      timeseries total = sum(snowflake.login.attempts.total), by: { authentication.type, deployment.environment }
+      | filter db.system == "snowflake"
+    description: Plot total Snowflake login attempts by authentication type over time.
+    description_copilot: Timeseries of Snowflake logins broken down by authentication method.
+    internal: false
+  - query_string: |
+      fetch bizevents
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "login_history"
+      | sort timestamp desc
+      | limit 20
+    description: Fetch recent DSOA self-monitoring business events for the login_history plugin.
+    description_copilot: Search for self-monitoring events from the login_history Snowflake agent plugin.
+    internal: false

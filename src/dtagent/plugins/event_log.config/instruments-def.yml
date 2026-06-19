@@ -53,7 +53,7 @@ metrics:
     unit: "1"
     __context_names:
       - event_log_metrics
-    __example: "0.015"
+    __example: 0.015
     __description: "The percentage of CPU utilization by the process."
     __is_defined_at_runtime: true
   process.memory.usage:
@@ -61,6 +61,31 @@ metrics:
     unit: "bytes"
     __context_names:
       - event_log_metrics
-    __example: "34844672"
+    __example: 34844672
     __description: "The total memory usage by the process in bytes."
     __is_defined_at_runtime: true
+dql_queries:
+  - query_string: |
+      fetch spans
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "event_log"
+      | sort timestamp desc
+      | limit 50
+    description: Fetch the 50 most recent DSOA event_log spans from Snowflake EVENT table processing.
+    description_copilot: Search for event_log span traces produced by the Snowflake observability agent.
+    internal: false
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "event_log"
+      | sort timestamp desc
+      | limit 100
+    description: Fetch the 100 most recent DSOA event_log plugin log entries from Grail.
+    description_copilot: Search for all event_log plugin logs from the Snowflake observability agent.
+    internal: false
+  - query_string: |
+      timeseries mem = avg(process.memory.usage), by: { deployment.environment }
+      | filter db.system == "snowflake"
+    description: Plot average Snowflake process memory usage reported by the event_log plugin over time.
+    description_copilot: Timeseries of Snowflake process memory usage from event_log plugin metrics.
+    internal: false

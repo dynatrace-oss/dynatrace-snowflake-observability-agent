@@ -34,7 +34,7 @@ attributes:
     __field_type: resource
     __context_names:
       - warehouse_usage
-    __example: "1"
+    __example: 1
     __description: The number of the cluster within the warehouse.
   snowflake.warehouse.clusters.count:
     __field_type: resource
@@ -173,49 +173,86 @@ metrics:
   snowflake.credits.cloud_services:
     __context_names:
       - warehouse_usage_metering
-    __example: "2"
+    __example: 2
     __description: The number of credits used for cloud services.
     displayName: Cloud Services Credits Used
     unit: credits
   snowflake.credits.compute:
     __context_names:
       - warehouse_usage_metering
-    __example: "8"
+    __example: 8
     __description: The number of credits used for compute.
     displayName: Compute Credits Used
     unit: credits
   snowflake.credits.used:
     __context_names:
       - warehouse_usage_metering
-    __example: "10"
+    __example: 10
     __description: The total number of credits used by the warehouse.
     displayName: Snowflake Credits Used
     unit: credits
   snowflake.load.blocked:
     __context_names:
       - warehouse_usage_load
-    __example: "0"
+    __example: 0
     __description: The average number of queries blocked by a transaction lock.
     displayName: Average Blocked Queries
     unit: count
   snowflake.load.queued.overloaded:
     __context_names:
       - warehouse_usage_load
-    __example: "2"
+    __example: 2
     __description: The average number of queries queued due to load.
     displayName: Average Queued Queries (Load)
     unit: count
   snowflake.load.queued.provisioning:
     __context_names:
       - warehouse_usage_load
-    __example: "1"
+    __example: 1
     __description: The average number of queries queued due to provisioning.
     displayName: Average Queued Queries (Provisioning)
     unit: count
   snowflake.load.running:
     __context_names:
       - warehouse_usage_load
-    __example: "5"
+    __example: 5
     __description: The average number of running queries.
     displayName: Average Running Queries
     unit: count
+dql_queries:
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "warehouse_usage"
+      | sort timestamp desc
+      | limit 100
+    description: Fetch the 100 most recent DSOA warehouse_usage plugin log entries from Grail.
+    description_copilot: Search for all warehouse_usage plugin logs from the Snowflake observability agent.
+    internal: false
+  - query_string: |
+      timeseries credits = sum(snowflake.credits.compute), by: { snowflake.warehouse.name, deployment.environment }
+      | filter db.system == "snowflake"
+    description: Plot Snowflake compute credit consumption per warehouse over time.
+    description_copilot: Timeseries of Snowflake compute credits consumed per warehouse.
+    internal: false
+  - query_string: |
+      timeseries load = avg(snowflake.load.running), by: { snowflake.warehouse.name, deployment.environment }
+      | filter db.system == "snowflake"
+    description: Plot average number of running queries per warehouse over time.
+    description_copilot: Timeseries of average running query load per Snowflake warehouse.
+    internal: false
+  - query_string: |
+      timeseries val = sum(snowflake.credits.used), by: { snowflake.warehouse.name, deployment.environment }
+      | filter db.system == "snowflake"
+    description: Plot total credits used per warehouse over time.
+    description_copilot: Timeseries of total Snowflake credits consumed per warehouse.
+    internal: false
+  - query_string: |
+      fetch bizevents
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "warehouse_usage"
+      | sort timestamp desc
+      | limit 20
+    description: Fetch recent DSOA self-monitoring business events for the warehouse_usage plugin.
+    description_copilot: Search for self-monitoring events from the warehouse_usage Snowflake agent plugin.
+    internal: false

@@ -30,6 +30,8 @@ attributes:
     __example: 01b899f1-0712-45a6-0040-e00303977b8e
     __description: If present, this represents the query ID of the refresh job that produced the results for the dynamic table.
   snowflake.table.dynamic.graph.alter_trigger:
+    __type: string[]
+    __semdict_note: "Array of DDL operation names stored as string[] in Grail (e.g. CREATE_DYNAMIC_TABLE)."
     __context_names:
       - dynamic_table_graph_history
     __example: '[ "CREATE_DYNAMIC_TABLE" ]'
@@ -43,6 +45,10 @@ attributes:
       - REPLICATION_REFRESH,
       - ALTER_WAREHOUSE.
   snowflake.table.dynamic.graph.inputs:
+    __type: string[]
+    __semdict_note: >-
+      Array of input table references stored as string[] in Grail. Each element is a JSON-serialized
+      object with kind and name fields.
     __context_names:
       - dynamic_table_graph_history
     __example:
@@ -50,14 +56,20 @@ attributes:
       "DYNAMIC_TABLE_DB.DYNAMIC_TABLE_SCH.EMPLOYEE_SKILL" } ]'
     __description: Each OBJECT represents a table, view, or dynamic table that serves as the input to this dynamic table.
   snowflake.table.dynamic.graph.valid_from:
-    __type: timestamp
+    __type: string
+    __semdict_note: >-
+      ISO 8601 timestamp string stored as string in Grail. Grail stores this as a plain string;
+      use toTimestamp() in DQL for time-based operations.
     __context_names:
       - dynamic_table_refresh_history
       - dynamic_table_graph_history
     __example: "2024-11-20 19:53:47.448 Z"
     __description: Encodes the VALID_FROM timestamp of the DYNAMIC_TABLE_GRAPH_HISTORY table function when the refresh occurred.
   snowflake.table.dynamic.graph.valid_to:
-    __type: timestamp
+    __type: string
+    __semdict_note: >-
+      ISO 8601 timestamp string stored as string in Grail. Grail stores this as a plain string;
+      use toTimestamp() in DQL for time-based operations.
     __context_names:
       - dynamic_table_graph_history
     __example: ""
@@ -76,13 +88,15 @@ attributes:
       Code representing the current state of the refresh. If the LAST_COMPLETED_REFRESH_STATE is FAILED, this column shows the error code
       associated with the failure.
   snowflake.table.dynamic.latest.data_timestamp:
-    __type: timestamp
+    __type: string
+    __semdict_note: "ISO 8601 timestamp string stored as string in Grail."
     __context_names:
       - dynamic_tables
     __example: "2024-11-22 12:55:29.695 Z"
     __description: Data timestamp of the last successful refresh.
   snowflake.table.dynamic.latest.dependency.data_timestamp:
-    __type: timestamp
+    __type: string
+    __semdict_note: "ISO 8601 timestamp string stored as string in Grail."
     __context_names:
       - dynamic_table_refresh_history
     __example: "2024-11-25 06:09:53.695 Z"
@@ -148,19 +162,24 @@ attributes:
     __example: SUCCESS
     __description: Code representing the current state of the refresh.
   snowflake.table.dynamic.refresh.completion_target:
-    __type: timestamp
+    __type: string
+    __semdict_note: "ISO 8601 timestamp string stored as string in Grail."
     __context_names:
       - dynamic_table_refresh_history
     __example: "2024-11-25 06:10:05.695 Z"
     __description: Time by which this refresh should complete to keep lag under the TARGET_LAG parameter for the dynamic table.
   snowflake.table.dynamic.refresh.data_timestamp:
-    __type: timestamp
+    __type: string
+    __semdict_note: "ISO 8601 timestamp string stored as string in Grail."
     __context_names:
       - dynamic_table_refresh_history
     __example: "2024-11-25 06:09:53.695 Z"
     __description: Transactional timestamp when the refresh was evaluated.
   snowflake.table.dynamic.refresh.end:
-    __type: timestamp
+    __type: string
+    __semdict_note: >-
+      ISO 8601 timestamp string stored as string in Grail. Grail stores this as a plain string;
+      use toTimestamp() in DQL for time-based operations.
     __context_names:
       - dynamic_table_refresh_history
     __example: "2024-11-25 06:09:55.308 Z"
@@ -171,7 +190,10 @@ attributes:
     __example: ""
     __description: Description of the current state of the refresh.
   snowflake.table.dynamic.refresh.start:
-    __type: timestamp
+    __type: string
+    __semdict_note: >-
+      ISO 8601 timestamp string stored as string in Grail. Grail stores this as a plain string;
+      use toTimestamp() in DQL for time-based operations.
     __context_names:
       - dynamic_table_refresh_history
     __example: "2024-11-25 06:09:54.978 Z"
@@ -282,13 +304,15 @@ event_timestamps:
     __example: "2024-11-20 19:53:47.448 Z"
     __description: The timestamp after which the description of the dynamic table is valid.
   snowflake.table.dynamic.scheduling.resumed_on:
-    __type: timestamp
+    __type: string
+    __semdict_note: "ISO 8601 timestamp string stored as string in Grail."
     __context_names:
       - dynamic_table_graph_history
     __example: "2024-11-25 08:09:53.695 Z"
     __description: The timestamp when the dynamic table was last resumed, if ACTIVE.
   snowflake.table.dynamic.scheduling.suspended_on:
-    __type: timestamp
+    __type: string
+    __semdict_note: "ISO 8601 timestamp string stored as string in Grail."
     __context_names:
       - dynamic_table_graph_history
     __example: "2024-11-25 06:09:53.695 Z"
@@ -297,56 +321,56 @@ metrics:
   snowflake.partitions.added:
     __context_names:
       - dynamic_table_refresh_history
-    __example: "5"
+    __example: 5
     __description: The number of partitions added during the refresh.
     displayName: Partitions Added
     unit: partitions
   snowflake.partitions.removed:
     __context_names:
       - dynamic_table_refresh_history
-    __example: "3"
+    __example: 3
     __description: The number of partitions removed during the refresh.
     displayName: Partitions Removed
     unit: partitions
   snowflake.rows.copied:
     __context_names:
       - dynamic_table_refresh_history
-    __example: "75"
+    __example: 75
     __description: The number of rows copied during the refresh.
     displayName: Rows Copied
     unit: rows
   snowflake.rows.deleted:
     __context_names:
       - dynamic_table_refresh_history
-    __example: "50"
+    __example: 50
     __description: The number of rows deleted during the refresh.
     displayName: Rows Deleted
     unit: rows
   snowflake.rows.inserted:
     __context_names:
       - dynamic_table_refresh_history
-    __example: "100"
+    __example: 100
     __description: The number of rows inserted during the refresh.
     displayName: Rows Inserted
     unit: rows
   snowflake.table.dynamic.lag.max:
     __context_names:
       - dynamic_tables
-    __example: "83"
+    __example: 83
     __description: The maximum lag time in seconds of refreshes for this dynamic table.
     displayName: Maximum Lag Time
     unit: seconds
   snowflake.table.dynamic.lag.mean:
     __context_names:
       - dynamic_tables
-    __example: "26"
+    __example: 26
     __description: The mean lag time (in seconds) of refreshes for this dynamic table.
     displayName: Mean Lag Time
     unit: seconds
   snowflake.table.dynamic.lag.target.time_above:
     __context_names:
       - dynamic_tables
-    __example: "151"
+    __example: 151
     __description: The time in seconds when the actual lag was more than the defined target lag.
     displayName: Time Above Target Lag
     unit: seconds
@@ -354,7 +378,7 @@ metrics:
     __context_names:
       - dynamic_table_refresh_history
       - dynamic_table_graph_history
-    __example: "60"
+    __example: 60
     __description:
       The time in seconds in the retention period or since the last configuration change, when the actual lag was more than the defined
       target lag.
@@ -363,7 +387,7 @@ metrics:
   snowflake.table.dynamic.lag.target.within_ratio:
     __context_names:
       - dynamic_tables
-    __example: "0.999"
+    __example: 0.999
     __description:
       The ratio of time in the retention period or since the last configuration change, when actual lag is within the target lag.
     displayName: Time Within Target Lag Ratio

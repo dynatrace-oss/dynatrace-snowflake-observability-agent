@@ -79,7 +79,9 @@ _EPOCH_NS_TIMESTAMP_FIELDS: frozenset = frozenset(
     }
 )
 
-#: Timestamp fields that hold ISO-8601 string values — should have __type annotation.
+#: Timestamp fields that hold ISO-8601 string values — should be __type: string in Grail.
+#: NOTE: snowflake.grant.created_on and snowflake.table.created_on are epoch-ns longs
+#: in the shares plugin — they are in _EPOCH_NS_TIMESTAMP_FIELDS instead.
 _ISO8601_TIMESTAMP_FIELDS: frozenset = frozenset(
     {
         "snowflake.warehouse.created_on",
@@ -89,8 +91,6 @@ _ISO8601_TIMESTAMP_FIELDS: frozenset = frozenset(
         "snowflake.cost_attribution.period_end",
         "snowflake.copy.first_commit_time",
         "snowflake.copy.pipe.received_time",
-        "snowflake.grant.created_on",
-        "snowflake.table.created_on",
         "snowflake.table.dynamic.graph.valid_from",
         "snowflake.table.dynamic.graph.valid_to",
         "snowflake.table.dynamic.latest.data_timestamp",
@@ -273,11 +273,13 @@ class TestTimestampTypeAnnotations:
         assert not violations, "Epoch-ns timestamp fields with wrong __type:\n" + "\n".join(violations)
 
     def test_iso8601_timestamp_fields_have_type_annotation(self):
-        """ISO-8601 timestamp fields must have a __type annotation (not remain default string).
+        """ISO-8601 timestamp fields must have __type: string annotation.
 
-        These fields hold ISO-8601 datetime strings and should have __type: timestamp
-        OR __type: long (if emitted as epoch-ns). Either annotation is acceptable
-        as long as the type is not implicitly string (i.e. __type is not None/missing).
+        These fields hold ISO-8601 datetime strings stored as plain strings in Grail.
+        The correct SD annotation is ``__type: string`` (not ``timestamp``), because
+        Grail stores these as string attributes — native timestamp storage requires
+        OpenPipeline remapping. See ``TestTimestampFieldsAreString`` for the detailed
+        string-type enforcement test.
         """
         all_defs = _load_all_instruments_defs()
         all_fields = _collect_all_fields(all_defs)
@@ -289,8 +291,12 @@ class TestTimestampTypeAnnotations:
                 continue  # field may not be in all repos
             raw_type = entry.get("__type")
             if raw_type is None:
-                violations.append(f"{key} (plugin={entry.get('__plugin')}): missing __type annotation (expected long or timestamp)")
-        assert not violations, "Timestamp fields missing __type annotation:\n" + "\n".join(violations)
+                violations.append(f"{key} (plugin={entry.get('__plugin')}): missing __type annotation (expected string)")
+            elif raw_type == "timestamp":
+                violations.append(
+                    f"{key} (plugin={entry.get('__plugin')}): __type: timestamp is wrong; Grail stores this as string. Change to __type: string."
+                )
+        assert not violations, "ISO-8601 timestamp fields with wrong __type:\n" + "\n".join(violations)
 
 
 @pytest.mark.integration
@@ -501,6 +507,357 @@ class TestUnitBriefConsistency:
                 )
                 break  # found the field; done
         assert found, "snowflake.data.scanned_from_cache not found in any metrics section"
+
+
+@pytest.mark.integration
+class TestAdFieldsAtCoreLevel:
+    """Workflow-layer anomaly detection fields must be defined in core instruments-def.yml.
+
+    The ``ad.*`` namespace is used by all DSOA Anomaly Detection workflows to annotate
+    Dynatrace custom events with provenance, source metric, direction, and category
+    metadata. These fields are shared across all 10 workflows and must therefore be
+    documented at the core level (not per-plugin), matching the ``_core`` plugin.
+    """
+
+    _REQUIRED_AD_FIELDS: frozenset = frozenset(
+        {
+            "ad.source",
+            "ad.source_metric",
+            "ad.direction",
+            "ad.category",
+        }
+    )
+
+    def test_ad_fields_defined_in_core(self):
+        """ad.source, ad.source_metric, ad.direction, ad.category must be in _core plugin.
+
+        These fields are emitted by all 10 DSOA workflows and by login_history.py
+        (ad.source only). Core-level definition makes them visible in the SD export
+        as shared workflow metadata, not plugin-specific attributes.
+        """
+        all_defs = _load_all_instruments_defs()
+        core_data = all_defs.get("_core") or {}
+        core_fields: set = set()
+        for section in ("attributes", "dimensions", "event_timestamps"):
+            core_fields.update((core_data.get(section) or {}).keys())
+
+        missing = [f for f in sorted(self._REQUIRED_AD_FIELDS) if f not in core_fields]
+        assert not missing, "ad.* fields missing from core instruments-def.yml " "(src/dtagent.conf/instruments-def.yml):\n" + "\n".join(
+            missing
+        )
+
+    def test_ad_direction_has_enum(self):
+        """ad.direction must have a __enum definition with members 'above' and 'below'.
+
+        The direction field is a closed enum — only two values are ever emitted
+        by any DSOA workflow.
+        """
+        all_defs = _load_all_instruments_defs()
+        core_data = all_defs.get("_core") or {}
+        core_attrs = core_data.get("attributes") or {}
+
+        entry = core_attrs.get("ad.direction")
+        assert entry is not None, "ad.direction not found in _core attributes"
+
+        enum_def = entry.get("__enum")
+        assert enum_def is not None, "ad.direction must have __enum definition"
+
+        member_values = {m.get("value") for m in enum_def.get("members", [])}
+        assert "above" in member_values, "ad.direction __enum missing member 'above'"
+        assert "below" in member_values, "ad.direction __enum missing member 'below'"
+
+    def test_ad_category_has_enum(self):
+        """ad.category must have __enum with all 7 observed workflow category values.
+
+        Values observed across all 10 DSOA workflows:
+        login, session, query_count, data_scan (security-anomaly-detection),
+        volume_drop, unavailable, disappeared (shares-broken-detection).
+        """
+        all_defs = _load_all_instruments_defs()
+        core_data = all_defs.get("_core") or {}
+        core_attrs = core_data.get("attributes") or {}
+
+        entry = core_attrs.get("ad.category")
+        assert entry is not None, "ad.category not found in _core attributes"
+
+        enum_def = entry.get("__enum")
+        assert enum_def is not None, "ad.category must have __enum definition"
+
+        expected_values = {
+            "login",
+            "session",
+            "query_count",
+            "data_scan",
+            "volume_drop",
+            "unavailable",
+            "disappeared",
+        }
+        member_values = {m.get("value") for m in enum_def.get("members", [])}
+        missing = expected_values - member_values
+        assert not missing, f"ad.category __enum missing members: {sorted(missing)}"
+
+    def test_ad_fields_have_semdict_new(self):
+        """All ad.* core fields must have __semdict: new (DSOA-originating fields)."""
+        all_defs = _load_all_instruments_defs()
+        core_data = all_defs.get("_core") or {}
+        core_attrs = core_data.get("attributes") or {}
+
+        violations = []
+        for field in sorted(self._REQUIRED_AD_FIELDS):
+            entry = core_attrs.get(field)
+            if entry is None:
+                continue  # caught by test_ad_fields_defined_in_core
+            if entry.get("__semdict") != "new":
+                violations.append(f"{field}: expected __semdict: new, got {entry.get('__semdict')!r}")
+        assert not violations, "\n".join(violations)
+
+
+@pytest.mark.integration
+class TestJsonAndArrayFieldTypes:
+    """JSON-valued and array-valued fields must have correct __type annotations.
+
+    Grail reality (verified via dtctl q on 2026-06-19):
+    - JSON object fields (e.g. operator.stats, operator.time): stored as STRING
+      (serialized JSON). Must have __type: string with a __semdict_note explaining
+      the value is serialized JSON.
+    - Array fields (e.g. operator.parent_ids, user.roles.direct): stored as string[]
+      (array of strings). Must have __type: string[].
+    - JSON object arrays (e.g. graph.inputs): no data in last 30d — assumed string[]
+      or string based on OTel/Grail conventions; annotate conservatively as string[].
+
+    Note:
+        Fields with no data in the last 30 days use the assumed type from the
+        dtctl investigation; these are noted in the __semdict_note.
+    """
+
+    #: Fields that contain serialized JSON objects — stored as string in Grail.
+    _JSON_OBJECT_FIELDS: frozenset = frozenset(
+        {
+            "snowflake.query.operator.stats",
+            "snowflake.query.operator.time",
+            "snowflake.query.operator.attributes",
+            "snowflake.query.accel_est.estimated_query_times",
+            "snowflake.object.ddl.properties",
+            "snowflake.object.ddl.modified",
+        }
+    )
+
+    #: Fields that contain arrays of strings — stored as string[] in Grail.
+    _STRING_ARRAY_FIELDS: frozenset = frozenset(
+        {
+            "snowflake.query.operator.parent_ids",
+            "snowflake.table.dynamic.graph.alter_trigger",
+            "snowflake.table.dynamic.graph.inputs",
+            "snowflake.budget.resource",
+            "snowflake.user.privilege.grants_on",
+            "snowflake.user.privilege.granted_by",
+            "snowflake.user.roles.granted_by",
+            "snowflake.user.roles.direct",
+        }
+    )
+
+    def test_json_object_fields_have_string_type(self):
+        """JSON object fields must have __type: string.
+
+        These fields hold serialized JSON objects. Grail stores them as strings
+        (confirmed for operator.stats and operator.time via dtctl query 2026-06-19).
+        The __semdict_note must explain they contain serialized JSON.
+        """
+        all_defs = _load_all_instruments_defs()
+        all_fields = _collect_all_fields(all_defs)
+
+        violations = []
+        for key in sorted(self._JSON_OBJECT_FIELDS):
+            entry = all_fields.get(key)
+            if entry is None:
+                continue  # field may not be in all repos
+            raw_type = entry.get("__type")
+            if raw_type != "string":
+                violations.append(
+                    f"{key} (plugin={entry.get('__plugin')}): expected __type: string "
+                    f"(serialized JSON stored as string in Grail), got {raw_type!r}"
+                )
+
+        assert not violations, "JSON object fields with wrong __type (should be 'string'):\n" + "\n".join(violations)
+
+    def test_json_object_fields_have_semdict_note(self):
+        """JSON object fields stored as strings must have __semdict_note explaining this.
+
+        The note must mention 'JSON' so SD reviewers understand the field is not
+        plain text but a serialized object.
+        """
+        all_defs = _load_all_instruments_defs()
+        all_fields = _collect_all_fields(all_defs)
+
+        violations = []
+        for key in sorted(self._JSON_OBJECT_FIELDS):
+            entry = all_fields.get(key)
+            if entry is None:
+                continue
+            note = entry.get("__semdict_note", "") or ""
+            if "json" not in note.lower() and "JSON" not in note:
+                violations.append(
+                    f"{key} (plugin={entry.get('__plugin')}): __semdict_note must mention 'JSON' "
+                    "to clarify the field holds serialized JSON stored as string"
+                )
+
+        assert not violations, "JSON object fields missing 'JSON' in __semdict_note:\n" + "\n".join(violations)
+
+    def test_string_array_fields_have_string_array_type(self):
+        """Array-valued fields must have __type: string[].
+
+        Grail stores arrays of IDs/names as string[] (confirmed for
+        operator.parent_ids via dtctl query 2026-06-19). Other array fields
+        without 30d data are annotated as string[] conservatively.
+        """
+        all_defs = _load_all_instruments_defs()
+        all_fields = _collect_all_fields(all_defs)
+
+        violations = []
+        for key in sorted(self._STRING_ARRAY_FIELDS):
+            entry = all_fields.get(key)
+            if entry is None:
+                continue
+            raw_type = entry.get("__type")
+            if raw_type != "string[]":
+                violations.append(f"{key} (plugin={entry.get('__plugin')}): expected __type: string[], " f"got {raw_type!r}")
+
+        assert not violations, "Array fields with wrong __type (should be 'string[]'):\n" + "\n".join(violations)
+
+
+@pytest.mark.integration
+class TestTimestampFieldsAreString:
+    """ISO-8601 timestamp fields must use __type: string (Grail stores them as strings).
+
+    The Grail reality (confirmed via PO statement and dtctl investigation 2026-06-19):
+    ISO-8601 timestamp strings in log attributes are stored as strings in Grail.
+    Proper timestamp storage requires OpenPipeline remapping. Until that is in place,
+    these fields must be annotated as __type: string with a note explaining the format.
+
+    The previous annotation (__type: timestamp) was aspirational (semantic intent)
+    but incorrect for the Grail physical type. This test enforces the corrected
+    annotation: __type: string.
+
+    Note:
+        Epoch-nanosecond fields (covered by TestTimestampTypeAnnotations) are
+        __type: long — those are NOT affected by this test.
+    """
+
+    #: ISO-8601 timestamp fields that must be __type: string (not timestamp).
+    #: NOTE: snowflake.grant.created_on and snowflake.table.created_on are stored as
+    #: epoch-ns longs in the shares plugin — they use __type: long and are excluded here.
+    _ISO8601_MUST_BE_STRING: frozenset = frozenset(
+        {
+            "snowflake.warehouse.created_on",
+            "snowflake.warehouse.resumed_on",
+            "snowflake.warehouse.updated_on",
+            "snowflake.cost_attribution.period_start",
+            "snowflake.cost_attribution.period_end",
+            "snowflake.copy.first_commit_time",
+            "snowflake.copy.pipe.received_time",
+            "snowflake.table.dynamic.graph.valid_from",
+            "snowflake.table.dynamic.graph.valid_to",
+            "snowflake.table.dynamic.latest.data_timestamp",
+            "snowflake.table.dynamic.latest.dependency.data_timestamp",
+            "snowflake.table.dynamic.refresh.start",
+            "snowflake.table.dynamic.refresh.end",
+            "snowflake.table.dynamic.refresh.data_timestamp",
+            "snowflake.table.dynamic.refresh.completion_target",
+            "snowflake.table.dynamic.scheduling.resumed_on",
+            "snowflake.table.dynamic.scheduling.suspended_on",
+        }
+    )
+
+    def test_iso8601_fields_have_string_type(self):
+        """ISO-8601 timestamp fields must have __type: string, not timestamp.
+
+        Grail stores these as string attributes. Using __type: string with a
+        __semdict_note explaining the format is the correct SD annotation.
+        """
+        all_defs = _load_all_instruments_defs()
+        all_fields = _collect_all_fields(all_defs)
+
+        violations = []
+        for key in sorted(self._ISO8601_MUST_BE_STRING):
+            entry = all_fields.get(key)
+            if entry is None:
+                continue
+            raw_type = entry.get("__type")
+            if raw_type not in ("string", None):
+                # None is acceptable ONLY if the field has no __type at all
+                # (the old test allowed that); new rule: must be string
+                if raw_type == "timestamp":
+                    violations.append(
+                        f"{key} (plugin={entry.get('__plugin')}): __type: timestamp is incorrect; "
+                        "Grail stores ISO-8601 timestamp strings as string. Change to __type: string."
+                    )
+                else:
+                    violations.append(f"{key} (plugin={entry.get('__plugin')}): expected __type: string, got {raw_type!r}")
+
+        assert not violations, "ISO-8601 timestamp fields incorrectly annotated (must be __type: string):\n" + "\n".join(violations)
+
+    def test_iso8601_fields_have_timestamp_note(self):
+        """ISO-8601 timestamp fields must have __semdict_note explaining the format.
+
+        The note must mention ISO-8601 or the timestamp nature of the value so that
+        SD reviewers and API consumers understand the field is a datetime string.
+        """
+        all_defs = _load_all_instruments_defs()
+        all_fields = _collect_all_fields(all_defs)
+
+        violations = []
+        for key in sorted(self._ISO8601_MUST_BE_STRING):
+            entry = all_fields.get(key)
+            if entry is None:
+                continue
+            note = entry.get("__semdict_note", "") or ""
+            desc = entry.get("__description", "") or ""
+            combined = (note + " " + desc).lower()
+            if not any(token in combined for token in ("iso", "timestamp", "datetime", "date-time")):
+                violations.append(
+                    f"{key} (plugin={entry.get('__plugin')}): __semdict_note or __description "
+                    "must mention ISO / timestamp / datetime to explain the value format"
+                )
+
+        assert not violations, "ISO-8601 timestamp fields without format explanation:\n" + "\n".join(violations)
+
+    ##endregion
+    """Metric __example values must be numeric literals (int or float), not strings.
+
+    The exporter coerces string examples to numbers via ``_coerce_metric_example()``,
+    but the source should be authoritative. String-quoted numeric examples such as
+    ``__example: "120000"`` make the source misleading and create a gap between what
+    a contributor reads and what the SD YAML emits.
+
+    Note:
+        Examples that are genuinely strings (e.g. ISO-8601 timestamps stored as
+        string attributes) are covered by other test classes and are not metrics.
+        This test covers only the ``metrics:`` section.
+    """
+
+    def test_metric_examples_are_numeric_types(self):
+        """All metric __example values must be int or float, not strings.
+
+        Violations indicate that a quoted numeric literal (e.g. ``"120000"``)
+        should be unquoted (``120000``) in the source YAML.
+        """
+        all_defs = _load_all_instruments_defs()
+
+        violations = []
+        for plugin_name, data in all_defs.items():
+            for key, entry in (data.get("metrics") or {}).items():
+                ex = entry.get("__example")
+                if isinstance(ex, str):
+                    # Check if it's a parseable number (should be unquoted)
+                    try:
+                        float(ex)
+                        violations.append(
+                            f"{plugin_name}/{key}: __example is a quoted string {ex!r}; " "use unquoted numeric literal instead"
+                        )
+                    except (ValueError, TypeError):
+                        pass  # genuinely string (non-numeric) — OK for metrics
+
+        assert not violations, f"{len(violations)} metric(s) with string-quoted numeric __example:\n" + "\n".join(violations)
 
 
 ##endregion

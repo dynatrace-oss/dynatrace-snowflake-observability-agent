@@ -57,8 +57,8 @@ SPAN_PLUGINS: frozenset = frozenset({"query_history", "event_log"})
 #: Fields that are structural OTel/platform attributes — exempt from orphan check.
 EXEMPT_ORPHAN_FIELDS: frozenset = frozenset({"observed_timestamp"})
 
-#: Max allowed orphan signal fields. Target: 0. Currently 9 known orphans remain
-#: (10 including observed_timestamp, but that one is in EXEMPT_ORPHAN_FIELDS).
+#: Max allowed orphan signal fields. Target: 0. Currently 13 known orphans remain
+#: (14 including observed_timestamp, but that one is in EXEMPT_ORPHAN_FIELDS).
 #: These are dimension-only fields (not in any attributes: section) whose context names
 #: don't match any surviving metric context in their plugin (either due to log-only contexts
 #: or cross-plugin metric dedup removing the applicable metric from that plugin's model).
@@ -66,7 +66,9 @@ EXEMPT_ORPHAN_FIELDS: frozenset = frozenset({"observed_timestamp"})
 #: snowflake.grant.name, snowflake.share.name (shares dims), snowflake.task.is_internal,
 #: snowflake.task.name (tasks dims; credits.used metric deduped to event_usage),
 #: snowflake.warehouse.event.name, snowflake.warehouse.event.state (warehouse_usage dims).
-MAX_ORPHAN_SIGNAL_FIELDS: int = 9
+#: ad.source, ad.source_metric, ad.direction, ad.category (workflow metadata fields from
+#: _core; only emitted in Dynatrace events via workflows, not in metric/log models yet).
+MAX_ORPHAN_SIGNAL_FIELDS: int = 13
 
 ##endregion
 
@@ -469,6 +471,208 @@ class TestModelsExistForAllPlugins:
         assert not missing, "Span-emitting plugins missing span models:\n" + "\n".join(
             f"  model/dsoa/dsoa.spans.{p}.yaml" for p in sorted(missing)
         )
+
+
+@pytest.mark.integration
+class TestArrayAndRecordTypesInOutput:
+    """Generated YAML must reflect string[], record etc. for JSON/array fields."""
+
+    _STRING_ARRAY_EXPECTED: frozenset = frozenset(
+        {
+            "snowflake.query.operator.parent_ids",
+        }
+    )
+
+    _STRING_SERIALIZED_JSON: frozenset = frozenset(
+        {
+            "snowflake.query.operator.stats",
+            "snowflake.query.operator.time",
+        }
+    )
+
+    def test_string_array_fields_emit_string_array_type(self):
+        """Fields with __type: string[] must emit type: string[] in generated YAML."""
+        _require_semdict_source()
+        generated = _load_all_generated()
+
+        for _filename, doc in generated.items():
+            for group in doc.get("groups", []):
+                for attr in group.get("attributes", []):
+                    field_id = attr.get("id")
+                    if field_id in self._STRING_ARRAY_EXPECTED:
+                        actual_type = attr.get("type", "")
+                        assert actual_type == "string[]", f"{field_id}: expected type: string[] in generated YAML, got {actual_type!r}"
+
+    def test_json_object_fields_emit_string_type(self):
+        """Fields holding serialized JSON must emit type: string in generated YAML."""
+        _require_semdict_source()
+        generated = _load_all_generated()
+
+        for _filename, doc in generated.items():
+            for group in doc.get("groups", []):
+                for attr in group.get("attributes", []):
+                    field_id = attr.get("id")
+                    if field_id in self._STRING_SERIALIZED_JSON:
+                        actual_type = attr.get("type", "")
+                        assert actual_type == "string", f"{field_id}: expected type: string in generated YAML, got {actual_type!r}"
+
+
+@pytest.mark.integration
+class TestInterfaceRefNotes:
+    """Every ref: entry in i.dsoa_resource must have a contextual note:.
+
+    The SD allows ``note:`` on interface ``ref:`` entries to explain how the
+    referenced field is used in DSOA context without changing the global definition.
+    This is C2 from the BIZOBS-151 IA review.
+    """
+
+    def test_all_resource_interface_refs_have_notes(self):
+        """Every ref: attribute in i.dsoa_resource interface must have a non-empty note:.
+
+        The note provides DSOA-specific context (e.g. 'Always snowflake for all
+        DSOA telemetry.') without modifying the global field definition.
+        """
+        _require_semdict_source()
+
+        interfaces_file = SEMDICT_SOURCE / "metrics" / "interfaces_dsoa.yaml"
+        if not interfaces_file.exists():
+            pytest.skip("metrics/interfaces_dsoa.yaml not yet generated")
+
+        doc = yaml.safe_load(interfaces_file.read_text())
+        groups = doc.get("groups", [])
+
+        resource_interface = next(
+            (g for g in groups if g.get("id") == "i.dsoa_resource"),
+            None,
+        )
+        assert resource_interface is not None, "i.dsoa_resource interface not found in interfaces_dsoa.yaml"
+
+        violations = []
+        for attr in resource_interface.get("attributes", []):
+            ref = attr.get("ref")
+            if ref:
+                note = attr.get("note", "")
+                if not note or not note.strip():
+                    violations.append(f"  ref: {ref} — missing note:")
+
+        assert not violations, "i.dsoa_resource interface ref: entries missing contextual note::\n" + "\n".join(violations)
+
+
+@pytest.mark.integration
+class TestDqlQueriesOnModels:
+    """Model YAML files must include dql_queries: with at least 3 entries each."""
+
+    #: Priority plugins that must have dql_queries in their log models.
+    PRIORITY_LOG_PLUGINS: frozenset = frozenset(
+        {
+            "query_history",
+            "warehouse_usage",
+            "login_history",
+            "metering",
+            "users",
+        }
+    )
+
+    #: Priority plugins that must have dql_queries in their metric models.
+    PRIORITY_METRIC_PLUGINS: frozenset = frozenset(
+        {
+            "query_history",
+            "warehouse_usage",
+            "metering",
+        }
+    )
+
+    #: Required fields on every dql_queries entry.
+    REQUIRED_DQL_FIELDS: frozenset = frozenset({"query_string", "description", "description_copilot", "internal"})
+
+    def _load_model(self, filename: str) -> Dict[str, Any]:
+        """Load a model YAML from model/dsoa/ in the generated output.
+
+        Args:
+            filename: Filename (e.g. 'dsoa.logs.query_history.yaml').
+
+        Returns:
+            Parsed YAML content as dict, or empty dict if file not found.
+        """
+        path = SEMDICT_SOURCE / "model" / "dsoa" / filename
+        if not path.exists():
+            return {}
+        with open(path, "r", encoding="utf-8") as fh:
+            return yaml.safe_load(fh) or {}
+
+    def test_log_models_have_dql_queries(self):
+        """Priority log models must have dql_queries: with >= 3 entries.
+
+        Validates that the export pipeline propagates dql_queries from
+        instruments-def.yml into the generated model YAML files.
+        """
+        require_semdict_source()
+
+        missing_or_insufficient: List[str] = []
+        for plugin in sorted(self.PRIORITY_LOG_PLUGINS):
+            doc = self._load_model(f"dsoa.logs.{plugin}.yaml")
+            model = doc.get("model", {})
+            dql_queries = model.get("dql_queries", [])
+            if not dql_queries:
+                missing_or_insufficient.append(f"dsoa.logs.{plugin}: missing dql_queries:")
+            elif len(dql_queries) < 3:
+                missing_or_insufficient.append(f"dsoa.logs.{plugin}: only {len(dql_queries)} dql_queries entries (need >= 3)")
+
+        assert not missing_or_insufficient, "Log model files missing or insufficient dql_queries:\n" + "\n".join(missing_or_insufficient)
+
+    def test_metric_models_have_dql_queries(self):
+        """Priority metric models must have dql_queries: with >= 3 entries.
+
+        Validates that the export pipeline propagates dql_queries from
+        instruments-def.yml into the generated metric model YAML files.
+        """
+        require_semdict_source()
+
+        model_dir = SEMDICT_SOURCE / "metrics"
+        missing_or_insufficient: List[str] = []
+        for plugin in sorted(self.PRIORITY_METRIC_PLUGINS):
+            metric_file = model_dir / f"dsoa_metrics_{plugin}.yaml"
+            if not metric_file.exists():
+                missing_or_insufficient.append(f"dsoa_metrics_{plugin}.yaml: file not found")
+                continue
+            with open(metric_file, "r", encoding="utf-8") as fh:
+                doc = yaml.safe_load(fh) or {}
+            model = doc.get("model", {})
+            dql_queries = model.get("dql_queries", [])
+            if not dql_queries:
+                missing_or_insufficient.append(f"dsoa_metrics_{plugin}: missing dql_queries:")
+            elif len(dql_queries) < 3:
+                missing_or_insufficient.append(f"dsoa_metrics_{plugin}: only {len(dql_queries)} dql_queries entries (need >= 3)")
+
+        assert not missing_or_insufficient, "Metric model files missing or insufficient dql_queries:\n" + "\n".join(missing_or_insufficient)
+
+    def test_dql_queries_have_required_fields(self):
+        """Every dql_queries entry must have query_string, description, description_copilot, internal.
+
+        Checks all model/dsoa/*.yaml files that contain dql_queries:.
+        """
+        require_semdict_source()
+
+        model_dir = SEMDICT_SOURCE / "model" / "dsoa"
+        if not model_dir.exists():
+            pytest.skip("model/dsoa/ directory not found in generated output")
+
+        violations: List[str] = []
+        for yaml_file in sorted(model_dir.glob("*.yaml")):
+            with open(yaml_file, "r", encoding="utf-8") as fh:
+                doc = yaml.safe_load(fh) or {}
+            model = doc.get("model", {})
+            dql_queries = model.get("dql_queries", [])
+            if not dql_queries:
+                continue
+            for i, entry in enumerate(dql_queries):
+                for required_field in sorted(self.REQUIRED_DQL_FIELDS):
+                    if required_field not in entry:
+                        violations.append(f"{yaml_file.name}: dql_queries[{i}] missing '{required_field}'")
+                if "internal" in entry and not isinstance(entry["internal"], bool):
+                    violations.append(f"{yaml_file.name}: dql_queries[{i}].internal must be bool, got {type(entry['internal']).__name__}")
+
+        assert not violations, "dql_queries entries with missing required fields:\n" + "\n".join(violations)
 
 
 ##endregion

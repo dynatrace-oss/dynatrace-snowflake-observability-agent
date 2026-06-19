@@ -132,9 +132,9 @@ def _generate_semantics_tables(json_data: Dict, plugin_name: str, no_global_cont
 
             # Define columns based on key
             if key == "metrics":
-                columns = ["Identifier", "Name", "Unit", "Description", "Example"]
+                columns = ["Identifier", "Name", "Unit", "Description", "Example", "Note", "Stability", "SD Status"]
             else:
-                columns = ["Identifier", "Description", "Example"]
+                columns = ["Identifier", "Description", "Example", "Note", "Stability", "SD Status"]
             if no_global_context_name:
                 columns.append("Context Name")
 
@@ -146,12 +146,17 @@ def _generate_semantics_tables(json_data: Dict, plugin_name: str, no_global_cont
                 example = details.get("__example", "")
                 if isinstance(example, str) and ("@" in example or "* *" in example):
                     example = f"`{example}`"
+                # New: surface __semdict_note, __stability, __semdict status
+                note = details.get("__semdict_note", "") or ""
+                note = " ".join(note.split())  # collapse whitespace
+                stability = details.get("__stability", "") or ""
+                sd_status = details.get("__semdict", "") or ""
                 if key == "metrics":
                     name = details.get("displayName", "")
                     unit = details.get("unit", "")
-                    row = [key_id, name, unit, description, example]
+                    row = [key_id, name, unit, description, example, note, stability, sd_status]
                 else:
-                    row = [key_id, description, example]
+                    row = [key_id, description, example, note, stability, sd_status]
                 if no_global_context_name:
                     context_names = ", ".join(details.get("__context_names", []))
                     row.append(context_names)
@@ -359,6 +364,16 @@ def _generate_semantics_section(dtagent_conf_path: str, dtagent_plugins_path: st
                             )
 
                         __content += plugin_semantics
+
+                        dql_queries = plugin_input.get("dql_queries") or []
+                        if dql_queries:
+                            __content += f"\n### DQL query examples for the `{plugin_name}` plugin\n\n"
+                            for dql_entry in dql_queries:
+                                query_str = (dql_entry.get("query_string") or "").strip()
+                                description = (dql_entry.get("description") or "").strip()
+                                if description:
+                                    __content += f"{description}\n\n"
+                                __content += f"```dql\n{query_str}\n```\n\n"
 
     return __content, __plugins_toc
 

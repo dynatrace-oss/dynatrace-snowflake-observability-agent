@@ -198,6 +198,8 @@ attributes:
     __description:
       Name of the privilege and type of object this privilege granted on to the user or role. Composed as `privilege:granted_on_object`.
   snowflake.user.privilege.grants_on:
+    __type: string[]
+    __semdict_note: "Array of privilege grant target names stored as string[] in Grail."
     __example: ["TRUST_CENTER_ADMIN", "COMPUTE_WH"]
     __context_names:
       - users_all_privileges
@@ -205,6 +207,8 @@ attributes:
       List of all objects of given type on which given privilege was given; both object type and privilege are reported as
       `snowflake.user.privilege`
   snowflake.user.privilege.granted_by:
+    __type: string[]
+    __semdict_note: "Array of grantor role names stored as string[] in Grail."
     __example: ["ACCOUNTADMIN"]
     __context_names:
       - users_all_privileges
@@ -215,12 +219,16 @@ attributes:
       - users_all_roles
     __description: Comma separated list of all roles granted to a user.
   snowflake.user.roles.granted_by:
+    __type: string[]
+    __semdict_note: "Array of grantor names for role assignments stored as string[] in Grail."
     __example: ["DEMIGOD", "SECURITYADMIN", "ACCOUNTADMIN"]
     __context_names:
       - users_all_roles
       - users_direct_roles
     __description: Array of admin roles that were used to grant current list of user roles.
   snowflake.user.roles.direct:
+    __type: string[]
+    __semdict_note: "Array of directly assigned role names stored as string[] in Grail."
     __example: ["DEVOPS_ROLE", "SYSADMIN", "ACCOUNTADMIN"]
     __context_names:
       - users_direct_roles
@@ -285,3 +293,42 @@ event_timestamps:
     __context_names:
       - users_removed_direct_roles
     __description: The timestamp of the last removal of a direct role from the user.
+dql_queries:
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "users"
+      | sort timestamp desc
+      | limit 100
+    description: Fetch the 100 most recent DSOA users plugin log entries from Grail.
+    description_copilot: Search for all users plugin logs from the Snowflake observability agent.
+    internal: false
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "users"
+      | filter snowflake.user.is_disabled == "true"
+      | sort timestamp desc
+      | limit 50
+    description: Fetch log entries for disabled Snowflake users from the users plugin.
+    description_copilot: Search for disabled Snowflake user records in the users plugin logs.
+    internal: false
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "users"
+      | filter snowflake.user.has_mfa == "false"
+      | sort timestamp desc
+      | limit 50
+    description: Fetch log entries for Snowflake users without MFA enabled.
+    description_copilot: Search for Snowflake users that do not have MFA configured.
+    internal: false
+  - query_string: |
+      fetch bizevents
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "users"
+      | sort timestamp desc
+      | limit 20
+    description: Fetch recent DSOA self-monitoring business events for the users plugin.
+    description_copilot: Search for self-monitoring events from the users Snowflake agent plugin.
+    internal: false
