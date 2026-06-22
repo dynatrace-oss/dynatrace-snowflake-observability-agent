@@ -144,16 +144,104 @@ class TestAttributeExampleCoercion:
         """String examples pass through unchanged (stripped)."""
         assert _coerce_attribute_example("  hello  ") == "hello"
 
-    def test_int_to_string(self):
-        """Integer examples are converted to string."""
+    def test_int_to_string_default(self):
+        """Integer examples with no field_type are converted to string (default behaviour)."""
         assert _coerce_attribute_example(42) == "42"
 
-    def test_emit_id_entry_boolean_example_lowercase(self):
-        """_emit_id_entry with __type: boolean and __example: true produces 'true' in examples."""
+    def test_int_with_long_type_returns_int(self):
+        """Integer examples with field_type='long' return Python int."""
+        assert _coerce_attribute_example(42, "long") == 42
+        assert isinstance(_coerce_attribute_example(42, "long"), int)
+
+    def test_emit_id_entry_boolean_example_is_bool(self):
+        """_emit_id_entry with __type: boolean and __example: true produces Python bool in examples."""
         entry = {"__semdict": "new", "__type": "boolean", "__description": "Is active.", "__example": True}
         node = _emit_id_entry("snowflake.resource_monitor.is_active", entry, "new")
         assert node["type"] == "boolean"
-        assert node["examples"] == ["true"], "boolean True must emit as lowercase 'true'"
+        assert node["examples"] == [True], "boolean True must emit as Python bool True (PyYAML → 'true')"
+
+
+##endregion
+
+
+##region Unit tests — type-aware attribute example coercion
+
+
+class TestAttributeExampleTypeCoercion:
+    """Verify _coerce_attribute_example returns the correct native type per declared __type."""
+
+    def test_long_example_emits_int(self):
+        """__type: long + int example → Python int."""
+        result = _coerce_attribute_example(2, "long")
+        assert result == 2
+        assert isinstance(result, int)
+
+    def test_int_example_emits_int(self):
+        """__type: int + int example → Python int."""
+        result = _coerce_attribute_example(5, "int")
+        assert result == 5
+        assert isinstance(result, int)
+
+    def test_double_example_emits_float(self):
+        """__type: double + float example → Python float."""
+        result = _coerce_attribute_example(1.5, "double")
+        assert result == 1.5
+        assert isinstance(result, float)
+
+    def test_boolean_example_emits_bool(self):
+        """__type: boolean + True example → Python bool."""
+        result = _coerce_attribute_example(True, "boolean")
+        assert result is True
+        assert isinstance(result, bool)
+
+    def test_string_example_still_str(self):
+        """__type: string + str example → str (unchanged behaviour)."""
+        result = _coerce_attribute_example("foo", "string")
+        assert result == "foo"
+        assert isinstance(result, str)
+
+    def test_quoted_long_string_coerced_to_int(self):
+        """__type: long + quoted 19-digit string example → Python int (arbitrary precision)."""
+        result = _coerce_attribute_example("1633046400000000000", "long")
+        assert result == 1633046400000000000
+        assert isinstance(result, int)
+
+    def test_clusters_count_example_is_int(self):
+        """snowflake.warehouse.clusters.count (long) must emit int example in generated output.
+
+        Regression: before the fix, _coerce_attribute_example always returned str,
+        causing the SD build tool to reject string '2' for a long field.
+        """
+        instruments_def_path = REPO_ROOT / "src" / "dtagent" / "plugins" / "warehouse_usage.config" / "instruments-def.yml"
+        with open(instruments_def_path, "r", encoding="utf-8") as fh:
+            data = yaml.safe_load(fh)
+        # Navigate to the attributes section to find the field
+        attributes = data.get("attributes", {})
+        entry = attributes.get("snowflake.warehouse.clusters.count")
+        assert entry is not None, "snowflake.warehouse.clusters.count not found in instruments-def"
+        assert entry.get("__type") == "long", "field must be typed long"
+        field_type = str(entry.get("__type") or "").lower()
+        example_raw = entry.get("__example")
+        result = _coerce_attribute_example(example_raw, field_type)
+        assert isinstance(result, int), f"clusters.count example must be int, got {type(result).__name__}: {result!r}"
+
+    def test_has_query_acceleration_example_is_bool(self):
+        """snowflake.warehouse.has_query_acceleration_enabled (boolean) must emit bool example.
+
+        Regression: before the fix, boolean True was coerced to string 'true', causing
+        the SD build tool to reject a string example for a boolean field.
+        """
+        instruments_def_path = REPO_ROOT / "src" / "dtagent" / "plugins" / "resource_monitors.config" / "instruments-def.yml"
+        with open(instruments_def_path, "r", encoding="utf-8") as fh:
+            data = yaml.safe_load(fh)
+        attributes = data.get("attributes", {})
+        entry = attributes.get("snowflake.warehouse.has_query_acceleration_enabled")
+        assert entry is not None, "snowflake.warehouse.has_query_acceleration_enabled not found"
+        assert entry.get("__type") == "boolean", "field must be typed boolean"
+        field_type = str(entry.get("__type") or "").lower()
+        example_raw = entry.get("__example")
+        result = _coerce_attribute_example(example_raw, field_type)
+        assert isinstance(result, bool), f"has_query_acceleration_enabled example must be bool, got {type(result).__name__}: {result!r}"
 
 
 ##endregion
@@ -414,10 +502,12 @@ class TestIdEmission:
         assert "deprecated" not in node
 
     def test_long_type_mapping(self):
-        """__type: long maps to type: long in output."""
-        entry = {"__semdict": "new", "__type": "long", "__description": "D.", "__example": "42"}
+        """__type: long maps to type: long in output and example is emitted as int."""
+        entry = {"__semdict": "new", "__type": "long", "__description": "D.", "__example": 42}
         node = _emit_id_entry("test.long.field", entry, "new")
         assert node["type"] == "long"
+        assert node["examples"] == [42]
+        assert isinstance(node["examples"][0], int), "long field example must be Python int"
 
 
 ##endregion

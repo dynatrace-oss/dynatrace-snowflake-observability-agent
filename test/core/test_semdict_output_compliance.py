@@ -366,13 +366,19 @@ class TestBooleanTypesInOutput:
 
 @pytest.mark.integration
 class TestDeprecationInOutput:
-    """Deprecated fields must have stability: deprecated in generated output."""
+    """Deprecated fields must have ``deprecated:`` key (no ``stability:``) in generated output.
 
-    def test_deployment_environment_has_deprecated_stability(self):
-        """deployment.environment must have stability: deprecated in generated output.
+    SD schema rule: ``deprecated:`` and ``stability:`` are mutually exclusive on the same node.
+    Fields with ``__stability: deprecated`` in instruments-def must emit only the ``deprecated:``
+    key and must NOT emit a ``stability:`` key.
+    """
 
-        The field's own note already says it was renamed in OTel v1.26. The
-        generated YAML must reflect this by setting stability: deprecated (not experimental).
+    def test_deployment_environment_has_deprecated_key_not_stability(self):
+        """deployment.environment must have ``deprecated:`` key and NO ``stability:`` key.
+
+        The field was renamed in OTel v1.26.  Its ``__stability: deprecated`` annotation
+        triggers the mutual-exclusion rule: the SD YAML must carry ``deprecated:`` only.
+        Having both keys on the same node causes the SD build tool to reject the YAML.
         """
         generated = _load_all_generated()
 
@@ -380,8 +386,11 @@ class TestDeprecationInOutput:
             for group in doc.get("groups", []):
                 for attr in group.get("attributes", []):
                     if attr.get("id") == "deployment.environment":
-                        stability = attr.get("stability")
-                        assert stability == "deprecated", f"deployment.environment: expected stability: deprecated, got {stability!r}"
+                        assert "deprecated" in attr, "deployment.environment: missing 'deprecated:' key in generated YAML"
+                        assert "stability" not in attr, (
+                            f"deployment.environment: 'stability:' key must be absent when "
+                            f"'deprecated:' is present, but got stability={attr.get('stability')!r}"
+                        )
                         return  # found and checked
 
         pytest.fail("deployment.environment not found in any generated YAML file")

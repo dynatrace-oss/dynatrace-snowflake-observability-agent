@@ -125,8 +125,8 @@ attributes:
         - id: table
           value: Table
           brief: >-
-            A base, temporary, or external table object that stores or references tabular data,
-            as reported in ACCESS_HISTORY.OBJECT_MODIFIED_BY_DDL.
+            A base, temporary, or external table object that stores or references tabular data, as reported in
+            ACCESS_HISTORY.OBJECT_MODIFIED_BY_DDL.
         - id: view
           value: View
           brief: A standard or secure view object whose definition is stored as a query and evaluated at access time.
@@ -199,15 +199,15 @@ attributes:
   snowflake.cost_attribution.period_end:
     __type: string
     __semdict_note: >-
-      ISO 8601 timestamp string stored as string in Grail. Grail stores this as a plain string;
-      use toTimestamp() in DQL for time-based operations.
+      ISO 8601 timestamp string stored as string in Grail. Grail stores this as a plain string; use toTimestamp() in DQL for time-based
+      operations.
     __example: "2024-11-05T22:11:07Z"
     __description: End of the cost attribution summary window.
   snowflake.cost_attribution.period_start:
     __type: string
     __semdict_note: >-
-      ISO 8601 timestamp string stored as string in Grail. Grail stores this as a plain string;
-      use toTimestamp() in DQL for time-based operations.
+      ISO 8601 timestamp string stored as string in Grail. Grail stores this as a plain string; use toTimestamp() in DQL for time-based
+      operations.
     __example: "2024-11-05T21:11:07Z"
     __description: Start of the cost attribution summary window.
   snowflake.database.id:
@@ -234,8 +234,8 @@ attributes:
     __stability: stable
     __type: string
     __semdict_note: >-
-      Serialized JSON object stored as string in Grail. Contains estimated query execution times per
-      scale factor. Parse with parseJson() in DQL.
+      Serialized JSON object stored as string in Grail. Contains estimated query execution times per scale factor. Parse with parseJson() in
+      DQL.
     __example: '{ "scaleFactor1": 10, "scaleFactor2": 5 }'
     __description:
       Object that contains the estimated query execution time in seconds for different query acceleration scale factors. If the status for
@@ -303,8 +303,8 @@ attributes:
   snowflake.query.operator.attributes:
     __type: string
     __semdict_note: >-
-      Serialized JSON object stored as string in Grail. Contains query operator specific attributes
-      (e.g. join conditions). Parse with parseJson() in DQL.
+      Serialized JSON object stored as string in Grail. Contains query operator specific attributes (e.g. join conditions). Parse with
+      parseJson() in DQL.
     __example: '{ "equality_join_condition": "(T4.C = T1.C)",   "join_type": "INNER" }'
     __description: Information about the operator, depending on the operator type.
   snowflake.query.operator.id:
@@ -320,15 +320,15 @@ attributes:
   snowflake.query.operator.stats:
     __type: string
     __semdict_note: >-
-      Serialized JSON object stored as string in Grail. Contains query operator execution statistics
-      (e.g. input_rows, output_rows). Parse with parseJson() in DQL.
+      Serialized JSON object stored as string in Grail. Contains query operator execution statistics (e.g. input_rows, output_rows). Parse
+      with parseJson() in DQL.
     __example: '{ "input_rows": 64, "output_rows": 64 }'
     __description: Statistics about the operator (e.g., the number of output rows from the operator).
   snowflake.query.operator.time:
     __type: string
     __semdict_note: >-
-      Serialized JSON object stored as string in Grail. Contains query operator time breakdown
-      (e.g. overall_percentage). Parse with parseJson() in DQL.
+      Serialized JSON object stored as string in Grail. Contains query operator time breakdown (e.g. overall_percentage). Parse with
+      parseJson() in DQL.
     __example:
       '{ "overall_percentage": 50.0,"initialization": 0.5,"processing": 4.0,"synchronization": 0.5,"local_disk_io": 0.2,"remote_disk_io":
       0.1,"network_communication": 0.2 }'
@@ -362,6 +362,7 @@ attributes:
     __description: The cause for retrying the query, if applicable.
   snowflake.query.step.id:
     __example: 1
+    __type: long
     __description: Identifier of the step in the query plan.
   snowflake.query.transaction_id:
     __stability: stable
@@ -448,8 +449,8 @@ attributes:
         - id: snowpark_optimized
           value: SNOWPARK_OPTIMIZED
           brief: >-
-            Single-node warehouse with configurable high-memory nodes (16x–64x vs standard) and
-            CPU architecture options; recommended for ML training and memory-intensive UDFs and stored procedures.
+            Single-node warehouse with configurable high-memory nodes (16x–64x vs standard) and CPU architecture options; recommended for ML
+            training and memory-intensive UDFs and stored procedures.
 dimensions:
   snowflake.query.hash:
     __example: abc123
@@ -493,8 +494,8 @@ dimensions:
         - id: merge
           value: MERGE
           brief: >-
-            Conditionally INSERT, UPDATE, or DELETE rows in a target table based on a join with a source,
-            enabling upsert patterns in a single atomic operation.
+            Conditionally INSERT, UPDATE, or DELETE rows in a target table based on a join with a source, enabling upsert patterns in a
+            single atomic operation.
         - id: create
           value: CREATE
           brief: Creates a new database object (table, view, schema, etc.); when used as CREATE OR REPLACE, atomically drops and recreates.
@@ -516,8 +517,8 @@ dimensions:
         - id: copy
           value: COPY
           brief: >-
-            Bulk-loads data from internal or external stages into a table, or unloads table data to a stage;
-            Snowflake's primary batch data ingestion mechanism.
+            Bulk-loads data from internal or external stages into a table, or unloads table data to a stage; Snowflake's primary batch data
+            ingestion mechanism.
         - id: put
           value: PUT
           brief: PUT file command.
@@ -584,25 +585,24 @@ dimensions:
         - id: service
           value: SERVICE
           brief: >-
-            Non-interactive integration user; cannot authenticate via password or SAML, cannot enroll in MFA.
-            Recommended for all automated service accounts.
+            Non-interactive integration user; cannot authenticate via password or SAML, cannot enroll in MFA. Recommended for all automated
+            service accounts.
         - id: legacy_service
           value: LEGACY_SERVICE
           brief: >-
-            Non-interactive integration user that, unlike SERVICE, still permits password and SAML authentication.
-            Deprecated — migrate to SERVICE type.
+            Non-interactive integration user that, unlike SERVICE, still permits password and SAML authentication. Deprecated — migrate to
+            SERVICE type.
         - id: snowflake_service
           value: SNOWFLAKE_SERVICE
           brief: >-
-            System-managed user automatically created for each Snowpark Container Services (SPCS) service;
-            cannot be created or converted by administrators.
+            System-managed user automatically created for each Snowpark Container Services (SPCS) service; cannot be created or converted by
+            administrators.
 metrics:
   snowflake.cost_attribution.query_count:
     __stability: stable
     __semdict_note: >-
-      The .query_count name is deliberately preserved. The alternative plural
-      snowflake.cost_attribution.queries would read as a collection of query objects rather than
-      a scalar count, which is misleading in a metrics context.
+      The .query_count name is deliberately preserved. The alternative plural snowflake.cost_attribution.queries would read as a collection
+      of query objects rather than a scalar count, which is misleading in a metrics context.
     __example: 42
     __description: Number of queries in this cost attribution group during the summary window.
     displayName: Cost Attribution Query Count
@@ -657,8 +657,8 @@ metrics:
   snowflake.data.scanned_from_cache:
     __example: 0.75
     __description: >-
-      Ratio of data scanned from the local disk cache. Value ranges from 0.0 (no cache) to 1.0 (fully cached).
-      Sourced from Snowflake PERCENTAGE_SCANNED_FROM_CACHE column (despite its name, the raw value is 0.0-1.0).
+      Ratio of data scanned from the local disk cache. Value ranges from 0.0 (no cache) to 1.0 (fully cached). Sourced from Snowflake
+      PERCENTAGE_SCANNED_FROM_CACHE column (despite its name, the raw value is 0.0-1.0).
     displayName: Data Scanned From Cache
     unit: ratio
   snowflake.data.sent_over_the_network:

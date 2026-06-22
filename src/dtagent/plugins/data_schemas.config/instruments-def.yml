@@ -47,6 +47,7 @@ attributes:
       - TAG.
   snowflake.object.id:
     __stability: stable
+    __type: long
     __example: 747545
     __description: An identifier for the object, which is unique within a given account and domain.
   snowflake.object.name:

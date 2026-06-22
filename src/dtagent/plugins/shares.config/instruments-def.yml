@@ -233,6 +233,7 @@ event_timestamps:
   snowflake.share.created_on:
     __context_names:
       - shares
+    __type: long
     __example: 1639051180714000000
     __description: The timestamp when the share was created.
   snowflake.table.created_on:
@@ -242,12 +243,14 @@ event_timestamps:
     __example: 1649940827875000000
     __description: The timestamp when the table was created. Epoch nanoseconds timestamp.
   snowflake.table.ddl:
+    __type: long
     __context_names:
       - inbound_shares
     __example: 1639940327875000000
     __description: The timestamp of the last DDL operation performed on the table or view.
   snowflake.table.update:
     __stability: stable
+    __type: long
     __context_names:
       - inbound_shares
     __example: 1649962827875000000

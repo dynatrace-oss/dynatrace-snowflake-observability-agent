@@ -26,10 +26,16 @@
 # Calls export_semantics.py, validates output, and reports summary.
 #
 # Usage:
-#   ./scripts/dev/build_semantic_export.sh [--output-dir <dir>] [--verbose]
+#   ./scripts/dev/build_semantic_export.sh [--output-dir <dir>] [--clean] [--verbose]
 #
 # Options:
-#   --output-dir <dir>  Output directory (default: build/_semdict/source)
+#   --output-dir <dir>  Output directory (default: build/_semdict/source).
+#                       When a custom directory is supplied the output directory is
+#                       NOT wiped before export — only DSOA-owned files are overwritten.
+#                       Use --clean to force a wipe even for custom dirs.
+#   --clean             Force-clean the output directory before export, even when
+#                       --output-dir points to an external location (e.g. SD repo).
+#                       Always enabled for the default build/_semdict/source location.
 #   --verbose           Enable verbose (DEBUG) logging
 #   --help              Show this help message
 
@@ -41,6 +47,8 @@ EXPORT_SCRIPT="${PROJECT_ROOT}/src/build/export_semantics.py"
 VENV_PYTHON="${PROJECT_ROOT}/.venv/bin/python"
 OUTPUT_DIR="${PROJECT_ROOT}/build/_semdict/source"
 SCHEMA_PATH="${PROJECT_ROOT}/_otel-build-tool/semantic-conventions/semconv.schema.json"
+CUSTOM_OUTPUT_DIR=false
+FORCE_CLEAN=false
 EXTRA_ARGS=()
 
 # ---------------------------------------------------------------------------
@@ -58,14 +66,19 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --output-dir)
             OUTPUT_DIR="$2"
+            CUSTOM_OUTPUT_DIR=true
             shift 2
+            ;;
+        --clean)
+            FORCE_CLEAN=true
+            shift
             ;;
         --verbose)
             EXTRA_ARGS+=("--verbose")
             shift
             ;;
         --help|-h)
-            grep "^#" "${BASH_SOURCE[0]}" | grep -v "^#!" | sed 's/^# *//' | head -20
+            grep "^#" "${BASH_SOURCE[0]}" | grep -v "^#!" | sed 's/^# *//' | head -25
             exit 0
             ;;
         *)
@@ -92,10 +105,15 @@ main() {
         return 1
     fi
 
-    # Clean and recreate output directory
-    rm -rf "${OUTPUT_DIR}"
+    # Clean output directory only when safe:
+    #   - Always clean the default build/_semdict/source (never a shared working tree).
+    #   - Never clean a custom --output-dir (e.g. SD repo) unless --clean is explicitly passed,
+    #     to avoid wiping non-DSOA files in an external repository.
+    if [[ "${CUSTOM_OUTPUT_DIR}" == "false" ]] || [[ "${FORCE_CLEAN}" == "true" ]]; then
+        log_info "Cleaning output directory: ${OUTPUT_DIR}"
+        rm -rf "${OUTPUT_DIR}"
+    fi
     mkdir -p "${OUTPUT_DIR}"
-    log_info "Cleaned output directory: ${OUTPUT_DIR}"
 
     # Run export
     log_info "Running export_semantics.py..."

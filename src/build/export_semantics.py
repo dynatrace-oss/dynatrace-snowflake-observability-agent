@@ -449,7 +449,12 @@ def _merge_field_entries(key: str, existing: Dict[str, Any], incoming: Dict[str,
 
     if existing_enum is None and incoming_enum is not None:
         # Upgrade: incoming has enum info that existing is missing
-        log.debug("Enum upgrade for '%s': replacing no-enum definition from %s with enum-rich one from %s", key, existing["plugin"], incoming["plugin"])
+        log.debug(
+            "Enum upgrade for '%s': replacing no-enum definition from %s with enum-rich one from %s",
+            key,
+            existing["plugin"],
+            incoming["plugin"],
+        )
         return incoming
 
     if existing_enum is not None and incoming_enum is not None:
@@ -467,7 +472,9 @@ def _merge_field_entries(key: str, existing: Dict[str, Any], incoming: Dict[str,
         merged_entry["__enum"] = merged_enum
         merged_meta = dict(existing)
         merged_meta["entry"] = merged_entry
-        log.debug("Enum union for '%s': merged %d member(s) from %s into %s", key, len(merged_members), incoming["plugin"], existing["plugin"])
+        log.debug(
+            "Enum union for '%s': merged %d member(s) from %s into %s", key, len(merged_members), incoming["plugin"], existing["plugin"]
+        )
         return merged_meta
 
     # No enum to merge — keep existing (first-seen wins)
@@ -571,27 +578,39 @@ def _emit_id_entry(key: str, entry: Dict[str, Any], semdict_flag: str) -> Dict[s
     """
     attr_type = _build_type_node(entry)
     description = str(entry["__description"]).strip()
+    field_type = str(entry.get("__type") or "").strip().lower()
     example_raw = entry.get("__example", "")
     if example_raw is None:
         example_raw = ""
     examples = (
-        [_coerce_attribute_example(example_raw)]
+        [_coerce_attribute_example(example_raw, field_type)]
         if not isinstance(example_raw, list)
-        else [_coerce_attribute_example(e) for e in example_raw]
+        else [_coerce_attribute_example(e, field_type) for e in example_raw]
     )
     # Determine stability: respect __stability annotation, default to experimental.
+    # SD schema rule: ``deprecated:`` and ``stability:`` are mutually exclusive.
+    # - When stability is "deprecated": emit only ``deprecated:`` key, omit ``stability:``.
+    # - All other values: emit only ``stability:`` key, omit ``deprecated:``.
     stability = str(entry.get("__stability") or "experimental").lower()
-    node: Dict[str, Any] = {
-        "id": key,
-        "display_name": _make_display_name(key),
-        "type": attr_type,
-        "stability": stability,
-        "brief": description,
-        "examples": examples,
-    }
-    # Emit deprecated: field for deprecated-stability entries
-    if stability == "deprecated" and entry.get("__otel_replacement"):
-        node["deprecated"] = f"Use {entry['__otel_replacement']} instead."
+    if stability == "deprecated":
+        deprecated_msg = f"Use {entry['__otel_replacement']} instead." if entry.get("__otel_replacement") else "Deprecated."
+        node: Dict[str, Any] = {
+            "id": key,
+            "display_name": _make_display_name(key),
+            "type": attr_type,
+            "deprecated": deprecated_msg,
+            "brief": description,
+            "examples": examples,
+        }
+    else:
+        node = {
+            "id": key,
+            "display_name": _make_display_name(key),
+            "type": attr_type,
+            "stability": stability,
+            "brief": description,
+            "examples": examples,
+        }
     if semdict_flag == "deprecated-alias":
         replacement = entry.get("__otel_replacement", "")
         otel_note = entry.get("__semdict_note", "")
@@ -603,9 +622,8 @@ def _emit_id_entry(key: str, entry: Dict[str, Any], semdict_flag: str) -> Dict[s
         node["note"] = str(entry["__semdict_note"]).strip()
     elif semdict_flag == "otel-only":
         # Auto-generate OTel provenance note when no explicit __semdict_note is provided.
-        stability_hint = stability
         auto_note = (
-            f"Defined in OTel Semantic Conventions ({key}, {stability_hint}). "
+            f"Defined in OTel Semantic Conventions ({key}, {stability}). "
             "Not yet present as a globally referenceable field in the Dynatrace "
             "Semantic Dictionary. Emitting as id: pending global SD registration."
         )
@@ -636,19 +654,53 @@ def _coerce_metric_example(value: Any) -> Any:
         return value
 
 
-def _coerce_attribute_example(value: Any) -> str:
-    """Coerce an attribute example value to a string suitable for semconv ``examples:``.
+def _coerce_attribute_example(value: Any, field_type: str = "") -> Any:
+    """Coerce an attribute example to the Python type matching the declared SD field type.
 
-    Handles Python booleans produced by YAML ``true``/``false`` scalars so that
-    ``True`` → ``"true"`` and ``False`` → ``"false"`` (lowercase, per semconv convention).
-    All other values are converted with ``str()``.
+    The Semantic Dictionary build tool rejects examples whose Python type does not match
+    the declared field type — e.g. a string ``"2"`` for a ``long`` field causes a schema
+    validation error.  This function converts the raw example (typically a YAML scalar)
+    to the correct Python native type so that PyYAML serialises it correctly:
+
+    - ``long`` / ``int``    → Python :class:`int` (arbitrary precision — safe for 19-digit
+                              nanosecond timestamps)
+    - ``double`` / ``float`` → Python :class:`float`
+    - ``boolean``            → Python :class:`bool` (PyYAML serialises as ``true``/``false``)
+    - ``string`` / ``string[]`` / any other / unset → :class:`str` (strip whitespace)
 
     Args:
-        value: Raw example value from instruments-def.
+        value:      Raw example value from instruments-def (may be str, int, float, or bool).
+        field_type: Declared ``__type`` of the field (e.g. ``"long"``, ``"boolean"``).
+                    Defaults to empty string which maps to the ``str`` branch.
 
     Returns:
-        String representation of the example.
+        Python value coerced to the appropriate native type.
     """
+    normalised = (field_type or "").strip().lower()
+    if normalised in ("long", "int"):
+        if isinstance(value, bool):
+            return int(value)
+        if isinstance(value, int):
+            return value
+        try:
+            return int(str(value).strip())
+        except (ValueError, TypeError):
+            pass
+    elif normalised in ("double", "float"):
+        if isinstance(value, bool):
+            return float(value)
+        if isinstance(value, (int, float)):
+            return float(value)
+        try:
+            return float(str(value).strip())
+        except (ValueError, TypeError):
+            pass
+    elif normalised == "boolean":
+        if isinstance(value, bool):
+            return value
+        lowered = str(value).strip().lower()
+        return lowered not in ("false", "0", "no", "")
+    # Default: string (also handles string[], array, record, enum, timestamp, unknown)
     if isinstance(value, bool):
         return "true" if value else "false"
     return str(value).strip()
@@ -882,15 +934,9 @@ class SemanticExporter:
         # Route to dsoa.yaml: DSOA/deployment-namespaced fields only.
         # Refs go ONLY to the interface (already in _build_interfaces_yaml) — never to field files.
         dsoa_keys = {
-            k: v
-            for k, v in resource_entries.items()
-            if (k.startswith("dsoa.") or k.startswith("deployment.")) and v["semdict"] != "ref"
+            k: v for k, v in resource_entries.items() if (k.startswith("dsoa.") or k.startswith("deployment.")) and v["semdict"] != "ref"
         }
-        snowflake_keys = {
-            k: v
-            for k, v in resource_entries.items()
-            if k not in dsoa_keys and v["semdict"] != "ref"
-        }
+        snowflake_keys = {k: v for k, v in resource_entries.items() if k not in dsoa_keys and v["semdict"] != "ref"}
 
         sf_groups: Dict[str, Dict[str, Any]] = {}
         for key in sorted(snowflake_keys):
@@ -1541,9 +1587,7 @@ class SemanticExporter:
 
         # Step 10: per-plugin log models (resolves signal field orphans)
         plugins_with_attrs: Set[str] = {
-            meta["plugin"]
-            for meta in all_entries.values()
-            if meta["section"] == "attributes" and meta["semdict"] != "ref"
+            meta["plugin"] for meta in all_entries.values() if meta["section"] == "attributes" and meta["semdict"] != "ref"
         }
         plugins_with_attrs.discard("_core")  # _core attrs are resource-level; no log model needed
         if plugins_with_attrs:
