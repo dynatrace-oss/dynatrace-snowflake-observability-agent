@@ -20,22 +20,26 @@ attributes:
     __example: SELECT * FROM users;
     __description: The text of the query.
   snowflake.database.id:
+    __stability: stable
     __context_names:
       - serverless_tasks
       - task_versions
     __example: db123
     __description: The unique identifier for the database.
   snowflake.error.code:
+    __stability: stable
     __context_names:
       - task_history
     __example: ERR123
     __description: The error code returned by the task.
   snowflake.error.message:
+    __stability: stable
     __context_names:
       - task_history
     __example: Syntax error
     __description: The error message returned by the task.
   snowflake.query.hash:
+    __stability: stable
     __context_names:
       - task_history
     __example: hash123
@@ -46,11 +50,13 @@ attributes:
     __example: v1
     __description: The version of the query hash.
   snowflake.query.id:
+    __stability: stable
     __context_names:
       - task_history
     __example: query123
     __description: The unique identifier for the query.
   snowflake.query.parametrized_hash:
+    __stability: stable
     __context_names:
       - task_history
     __example: param_hash123
@@ -112,6 +118,7 @@ attributes:
     __example: task123
     __description: The unique identifier for the task.
   snowflake.task.instance_id:
+    __stability: stable
     __context_names:
       - serverless_tasks
     __example: instance123
@@ -137,11 +144,13 @@ attributes:
     __example: taskA, taskB
     __description: The predecessors of the task.
   snowflake.task.run.attempt:
+    __stability: stable
     __context_names:
       - task_history
     __example: 1
     __description: The attempt number of the task run.
   snowflake.task.run.completed_time:
+    __stability: stable
     __context_names:
       - task_history
     __example: "1742824007586000000"
@@ -162,16 +171,19 @@ attributes:
     __example: "0"
     __description: The return value of the task run.
   snowflake.task.run.scheduled_time:
+    __stability: stable
     __context_names:
       - task_history
     __example: "1742821828016000000"
     __description: The scheduled time of the task run.
   snowflake.task.run.scheduled_from:
+    __stability: stable
     __context_names:
       - task_history
     __example: CRON
     __description: The source from which the task was scheduled.
   snowflake.task.run.state:
+    __stability: stable
     __context_names:
       - task_history
     __example: RUNNING
@@ -195,6 +207,7 @@ dimensions:
     __example: PROD_DB
     __description: The name of the database.
   snowflake.schema.name:
+    __stability: stable
     __context_names:
       - serverless_tasks
       - task_versions
@@ -202,11 +215,13 @@ dimensions:
     __example: public
     __description: The name of the schema.
   snowflake.task.is_internal:
+    __stability: stable
     __context_names:
       - serverless_tasks
     __example: false
     __description: Whether the task is an internal DSOA scheduler task (measurement or finalizer).
   snowflake.task.name:
+    __stability: stable
     __context_names:
       - serverless_tasks
       - task_versions
@@ -214,6 +229,7 @@ dimensions:
     __example: daily_backup_task
     __description: The name of the task.
   snowflake.warehouse.name:
+    __stability: stable
     __context_names:
       - task_versions
     __example: COMPUTE_WH
@@ -227,6 +243,7 @@ event_timestamps:
       Additionally to sending logs, each entry in `EVENT_TIMESTAMPS` is sent as event with key set to `snowflake.event.trigger`, value to
       key from `EVENT_TIMESTAMPS` and `timestamp` set to the key value.
   snowflake.task.graph.version.created_on:
+    __stability: stable
     __context_names:
       - task_versions
     __example: "1633046400000000000"

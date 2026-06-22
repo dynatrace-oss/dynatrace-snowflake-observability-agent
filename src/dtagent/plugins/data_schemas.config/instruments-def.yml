@@ -16,12 +16,15 @@
 # Catalog of instrumentation known to Dynatrace Snowflake Observability Agent - data_schemas plugin
 attributes:
   snowflake.query.id:
+    __stability: stable
     __example: 01b30d58-0604-6e1c-0040-e003029c1322
     __description: An internal, system-generated identifier for the SQL statement.
   db.user:
+    __stability: stable
     __example: SYSTEM
     __description: The user who issued the query.
   snowflake.query.parent_id:
+    __stability: stable
     __example: 01b2fd01-0604-6864-0040-e003029abda2
     __description: The query ID of the parent job or NULL if the job does not have a parent.
   snowflake.query.root_id:
@@ -35,6 +38,7 @@ attributes:
       QUERY_ID, DIMENSIONS, END_TIME, NAME, ATTRIBUTES, PARENT_QUERY_ID", "objectDomain": "Table" } }'
     __description: A JSON array that specifies the objects that were associated with a write operation in the query.
   snowflake.object.type:
+    __stability: stable
     __example: "Table"
     __description: |
       The domain of the object defined or modified by the DDL operation, which includes all objects that can be tagged and:
@@ -42,12 +46,15 @@ attributes:
       - ROW ACCESS POLICY,
       - TAG.
   snowflake.object.id:
+    __stability: stable
     __example: 747545
     __description: An identifier for the object, which is unique within a given account and domain.
   snowflake.object.name:
+    __stability: stable
     __example: "DTAGENT_DB.APP.TMP_RECENT_QUERIES"
     __description: The fully qualified name of the object defined or modified by the DDL operation.
   snowflake.object.ddl.operation:
+    __stability: stable
     __example: "REPLACE"
     __description: |
       The SQL keyword that specifies the operation on the table, view, or column:
@@ -57,6 +64,7 @@ attributes:
       - REPLACE,
       - UNDROP.
   snowflake.object.ddl.properties:
+    __stability: stable
     __type: string
     __semdict_note: "Serialized JSON object stored as string in Grail. Contains DDL object property changes. Parse with parseJson() in DQL."
     __example: '{"creationMode": "CREATE", "columns": {"ADD": ["ATTRIBUTE","JOB_ID"]}}'

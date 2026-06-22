@@ -23,24 +23,28 @@ dimensions:
       - event_log_metrics
       - event_log_spans
   snowflake.schema.name:
+    __stability: stable
     __example: public
     __description: The name of the schema in which the query was executed.
     __context_names:
       - event_log_metrics
       - event_log_spans
   snowflake.role.name:
+    __stability: stable
     __example: SYSADMIN
     __description: The role used to execute the query.
     __context_names:
       - event_log_metrics
       - event_log_spans
   snowflake.warehouse.name:
+    __stability: stable
     __example: COMPUTE_WH
     __description: The warehouse used to execute the query.
     __context_names:
       - event_log_metrics
       - event_log_spans
   snowflake.query.id:
+    __stability: stable
     __example: b1bbaa7f-8144-4e50-947a-b7e9bf7d62d5
     __description: The unique identifier for the query.
     __context_names:

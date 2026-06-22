@@ -31,12 +31,14 @@ attributes:
     __example: SECURITY_EVENT
     __description: The kind of event, in this case, 'SECURITY_EVENT'.
   snowflake.entity.details:
+    __stability: stable
     __example: Contains user data
     __description: Additional details about the entity involved in the event.
   snowflake.entity.id:
     __example: entity123
     __description: The unique identifier for the entity involved in the event.
   snowflake.entity.name:
+    __stability: stable
     __example: User Table
     __description: The name of the entity involved in the event.
   snowflake.entity.type:
@@ -60,18 +62,22 @@ attributes:
     __description: The name and description of the scanner, providing additional details about the status.
 dimensions:
   event.category:
+    __stability: stable
     __example: Warning
     __description: The category of the event, such as 'Warning' or 'Vulnerability management', based on the severity.
   snowflake.trust_center.scanner.id:
+    __stability: stable
     __example: scanner123
     __description: The unique identifier for the scanner used in the Trust Center.
   snowflake.trust_center.scanner.package.id:
     __example: package123
     __description: The unique identifier for the scanner package used in the Trust Center.
   snowflake.trust_center.scanner.type:
+    __stability: stable
     __example: CIS Benchmarks
     __description: The type of scanner used in the Trust Center, such as 'CIS Benchmarks' or 'Threat Intelligence'.
   vulnerability.risk.level:
+    __stability: stable
     __example: HIGH
     __description: The risk level of the vulnerability as reported by Snowflake Trust Center.
     __enum:

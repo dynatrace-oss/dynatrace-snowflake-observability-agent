@@ -33,6 +33,7 @@ dimensions:
     __example: analytics_db
     __description: The name of the database that contains the table.
   snowflake.schema.name:
+    __stability: stable
     __context_names:
       - table_storage
       - table_clustering
@@ -46,6 +47,7 @@ dimensions:
     __description: |
       The clustering key defined on the table, or NONE if no clustering key is defined.
   snowflake.table.full_name:
+    __stability: stable
     __context_names:
       - table_storage
       - table_clustering

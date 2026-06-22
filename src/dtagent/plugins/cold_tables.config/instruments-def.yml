@@ -29,6 +29,7 @@ dimensions:
     __example: analytics_db
     __description: The name of the database containing the table.
   snowflake.schema.name:
+    __stability: stable
     __context_names: ["cold_tables"]
     __example: public
     __description: The schema containing the table.
@@ -43,10 +44,12 @@ dimensions:
     __example: orders
     __description: The table name.
   snowflake.table.full_name:
+    __stability: stable
     __context_names: ["cold_tables"]
     __example: ANALYTICS_DB.PUBLIC.ORDERS
     __description: Fully qualified table name (catalog.schema.table).
   snowflake.table.cold_status:
+    __stability: stable
     __context_names: ["cold_tables"]
     __example: cold
     __description: Table temperature classification based on access recency.

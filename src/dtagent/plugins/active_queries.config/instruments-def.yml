@@ -17,6 +17,7 @@
 
 attributes:
   db.operation.name:
+    __stability: stable
     __example: SELECT
     __description: |
       The type of operation performed by the query, such as:
@@ -37,12 +38,15 @@ attributes:
     __example: "123456789"
     __description: The unique identifier for the session in which the query was executed.
   snowflake.error.code:
+    __stability: stable
     __example: "1001"
     __description: The error code if the query failed.
   snowflake.error.message:
+    __stability: stable
     __example: Syntax error in SQL statement
     __description: The error message if the query failed.
   snowflake.query.hash:
+    __stability: stable
     __example: hash_abcdef
     __description: The hash value of the query text.
   snowflake.query.hash_version:
@@ -50,9 +54,11 @@ attributes:
     __example: 1
     __description: The version of the query hash logic.
   snowflake.query.id:
+    __stability: stable
     __example: b1bbaa7f-8144-4e50-947a-b7e9bf7d62d5
     __description: The unique identifier for the query.
   snowflake.query.parametrized_hash:
+    __stability: stable
     __example: param_hash_abcdef
     __description: The hash value of the parameterized query text.
   snowflake.query.parametrized_hash_version:
@@ -60,12 +66,15 @@ attributes:
     __example: 1
     __description: The version of the parameterized query hash logic.
   snowflake.query.tag:
+    __stability: stable
     __example: daily_report
     __description: The tag associated with the query, if any.
   snowflake.schema.name:
+    __stability: stable
     __example: public
     __description: The name of the schema in which the query was executed.
   snowflake.warehouse.type:
+    __stability: stable
     __example: STANDARD
     __description: The type of warehouse used to execute the query.
 dimensions:
@@ -88,6 +97,7 @@ dimensions:
     __example: john_doe
     __description: The name of the user who executed the query.
   snowflake.query.execution_status:
+    __stability: stable
     __example: FAILED_WITH_ERROR
     __description: |
       The execution status of the query, such as:
@@ -99,9 +109,11 @@ dimensions:
       - FAILED_WITH_ERROR,
       - FAILED_WITH_INCIDENT.
   snowflake.role.name:
+    __stability: stable
     __example: analyst_role
     __description: The role that was active in the session at the time of the query.
   snowflake.warehouse.name:
+    __stability: stable
     __example: compute_wh
     __description: The name of the warehouse used to execute the query.
 

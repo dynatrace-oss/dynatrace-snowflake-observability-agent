@@ -22,6 +22,7 @@
 
 dimensions:
   snowflake.service.type:
+    __stability: stable
     __context_names: ["metering"]
     __example: AUTO_CLUSTERING
     __description: >-
@@ -77,6 +78,7 @@ dimensions:
             Credits billed for bytes stored in Snowflake databases, internal stages, Time Travel history,
             and Fail-safe retention.
   snowflake.service.name:
+    __stability: stable
     __context_names: ["metering"]
     __example: MY_PIPE
     __description: >-

@@ -16,21 +16,25 @@
 
 attributes:
   db.user:
+    __stability: stable
     __context_names:
       - warehouse_usage
     __example: admin
     __description: The user who initiated the event.
   snowflake.query.id:
+    __stability: stable
     __context_names:
       - warehouse_usage
     __example: query123
     __description: The unique identifier for the query associated with the event.
   snowflake.role.name:
+    __stability: stable
     __context_names:
       - warehouse_usage
     __example: SYSADMIN
     __description: The role name associated with the event.
   snowflake.warehouse.cluster.number:
+    __stability: stable
     __field_type: resource
     __context_names:
       - warehouse_usage
@@ -75,6 +79,7 @@ attributes:
     __example: wh123
     __description: The unique identifier for the warehouse.
   snowflake.warehouse.size:
+    __stability: stable
     __field_type: resource
     __context_names:
       - warehouse_usage
@@ -115,6 +120,7 @@ attributes:
           brief: 512 credits/hour; largest available size, generally available on AWS and Azure.
 dimensions:
   snowflake.warehouse.event.name:
+    __stability: stable
     __field_type: signal
     __context_names:
       - warehouse_usage
@@ -148,6 +154,7 @@ dimensions:
           value: WAREHOUSE_CONSISTENT
           brief: All pending state changes for the warehouse have settled; emitted as the final event in a multi-step operation sequence.
   snowflake.warehouse.event.state:
+    __stability: stable
     __field_type: signal
     __context_names:
       - warehouse_usage
@@ -163,6 +170,7 @@ dimensions:
           value: COMPLETED
           brief: The warehouse operation completed atomically with no further pending state changes.
   snowflake.warehouse.name:
+    __stability: stable
     __context_names:
       - warehouse_usage
       - warehouse_usage_load

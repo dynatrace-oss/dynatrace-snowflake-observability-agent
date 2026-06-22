@@ -16,6 +16,7 @@
 # Catalog of instrumentation known to Dynatrace Snowflake Observability Agent - budgets plugin
 attributes:
   snowflake.budget.owner:
+    __stability: stable
     __context_names:
       - budgets
     __example: budget_admin
@@ -26,6 +27,7 @@ attributes:
     __example: ACCOUNTADMIN
     __description: The type of role assigned to the budget owner, indicating their level of access and responsibilities.
   snowflake.budget.resource:
+    __stability: stable
     __type: string[]
     __semdict_note: "Array of resource names (databases, warehouses) in this budget group, stored as string[] in Grail."
     __context_names:
@@ -40,6 +42,7 @@ dimensions:
     __example: analytics_db
     __description: The name of the database that was specified in the context of the query at compilation.
   snowflake.budget.name:
+    __stability: stable
     __context_names:
       - budgets
       - spendings
@@ -52,12 +55,14 @@ dimensions:
     __example: ANALYTICS_DB.BUDGETS.MONTHLY_BUDGET
     __description: Fully-qualified name of the budget (DATABASE.SCHEMA.NAME).
   snowflake.schema.name:
+    __stability: stable
     __context_names:
       - budgets
       - spendings
     __example: public
     __description: Schema that was specified in the context of the query at compilation.
   snowflake.service.type:
+    __stability: stable
     __context_names:
       - spendings
     __example: WAREHOUSE_METERING
@@ -84,6 +89,7 @@ event_timestamps:
       Additionally to sending logs, each entry in `EVENT_TIMESTAMPS` is sent as event with key set to `snowflake.event.trigger`, value to
       key from `EVENT_TIMESTAMPS` and `timestamp` set to the key value.
   snowflake.budget.created_on:
+    __stability: stable
     __context_names:
       - budgets
     __example: "2024-11-30 23:59:59.999"

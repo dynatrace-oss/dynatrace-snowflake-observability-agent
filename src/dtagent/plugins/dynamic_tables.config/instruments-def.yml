@@ -24,6 +24,7 @@ attributes:
       A.EMP_ID=B.EMP_ID ORDER BY B.SKILL_ID ;
     __description: The SELECT statement for this dynamic table.
   snowflake.query.id:
+    __stability: stable
     __context_names:
       - dynamic_tables
       - dynamic_table_refresh_history
@@ -137,6 +138,7 @@ attributes:
           value: SUSPENDED
           brief: Dynamic table scheduling is suspended.
   snowflake.table.dynamic.refresh.action:
+    __stability: stable
     __context_names:
       - dynamic_table_refresh_history
     __example: NO_DATA
@@ -157,6 +159,7 @@ attributes:
           value: INCREMENTAL
           brief: Normal incremental refresh.
   snowflake.table.dynamic.refresh.code:
+    __stability: stable
     __context_names:
       - dynamic_table_refresh_history
     __example: SUCCESS
@@ -185,6 +188,7 @@ attributes:
     __example: "2024-11-25 06:09:55.308 Z"
     __description: Time when the refresh completed.
   snowflake.table.dynamic.refresh.message:
+    __stability: stable
     __context_names:
       - dynamic_table_refresh_history
     __example: ""
@@ -199,6 +203,7 @@ attributes:
     __example: "2024-11-25 06:09:54.978 Z"
     __description: Time when the refresh job started.
   snowflake.table.dynamic.refresh.state:
+    __stability: stable
     __context_names:
       - dynamic_table_refresh_history
     __example: SUCCEEDED
@@ -225,6 +230,7 @@ attributes:
           value: UPSTREAM_FAILED
           brief: Refresh not performed due to an upstream failed refresh.
   snowflake.table.dynamic.refresh.trigger:
+    __stability: stable
     __context_names:
       - dynamic_table_refresh_history
     __example: SCHEDULED
@@ -254,6 +260,7 @@ attributes:
     __example: Scheduled maintenance
     __description: Text description of the reason the dynamic table is not active. Only applies if the state is not active.
   snowflake.table.dynamic.scheduling.state:
+    __stability: stable
     __context_names:
       - dynamic_tables
       - dynamic_table_graph_history
@@ -275,6 +282,7 @@ dimensions:
     __example: DYNAMIC_TABLE_DB
     __description: The name of the database in which the query was executed.
   snowflake.schema.name:
+    __stability: stable
     __context_names:
       - dynamic_tables
       - dynamic_table_refresh_history
@@ -282,6 +290,7 @@ dimensions:
     __example: DYNAMIC_TABLE_SCH
     __description: Name of the schema that contains the dynamic table.
   snowflake.table.full_name:
+    __stability: stable
     __context_names:
       - dynamic_tables
       - dynamic_table_refresh_history
@@ -304,6 +313,7 @@ event_timestamps:
     __example: "2024-11-20 19:53:47.448 Z"
     __description: The timestamp after which the description of the dynamic table is valid.
   snowflake.table.dynamic.scheduling.resumed_on:
+    __stability: stable
     __type: string
     __semdict_note: "ISO 8601 timestamp string stored as string in Grail."
     __context_names:

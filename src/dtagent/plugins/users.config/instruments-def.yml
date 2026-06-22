@@ -17,6 +17,7 @@
 
 dimensions:
   db.user:
+    __stability: stable
     __example: admin
     __context_names:
       - users
@@ -34,21 +35,25 @@ attributes:
       - users
     __description: Any comments associated with the user.
   snowflake.user.default.namespace:
+    __stability: stable
     __example: PUBLIC
     __context_names:
       - users
     __description: The default namespace for the user.
   snowflake.user.default.role:
+    __stability: stable
     __example: SYSADMIN
     __context_names:
       - users
     __description: The default role for the user.
   snowflake.user.default.secondary_role:
+    __stability: stable
     __example: SECURITYADMIN
     __context_names:
       - users
     __description: The default secondary role for the user.
   snowflake.user.default.warehouse:
+    __stability: stable
     __example: COMPUTE_WH
     __context_names:
       - users
@@ -70,35 +75,41 @@ attributes:
       - users
     __description: The expiration date of the user account.
   snowflake.user.ext_authn.duo:
+    __stability: stable
     __type: boolean
     __example: true
     __context_names:
       - users
     __description: Indicates if Duo authentication is enabled for the user.
   snowflake.user.ext_authn.uid:
+    __stability: stable
     __example: ext123
     __context_names:
       - users
     __description: The external authentication UID for the user.
   snowflake.user.has_mfa:
+    __stability: stable
     __type: boolean
     __example: true
     __context_names:
       - users
     __description: Indicates if the user is enrolled for multi-factor authentication.
   snowflake.user.has_password:
+    __stability: stable
     __type: boolean
     __example: true
     __context_names:
       - users
     __description: Indicates if the user has a password set.
   snowflake.user.has_pat:
+    __stability: stable
     __type: boolean
     __example: true
     __context_names:
       - users
     __description: Indicates if a programmatic access token has been generated for the user.
   snowflake.user.has_rsa:
+    __stability: stable
     __type: boolean
     __example: true
     __context_names:
@@ -116,12 +127,14 @@ attributes:
       - users
     __description: The unique identifier for the user.
   snowflake.user.is_disabled:
+    __stability: stable
     __type: boolean
     __example: false
     __context_names:
       - users
     __description: Indicates if the user account is disabled.
   snowflake.user.is_locked:
+    __stability: stable
     __type: boolean
     __example: false
     __context_names:
@@ -151,21 +164,25 @@ attributes:
       - users
     __description: The login name of the user.
   snowflake.user.name.first:
+    __stability: stable
     __example: John
     __context_names:
       - users
     __description: The first name of the user.
   snowflake.user.name.last:
+    __stability: stable
     __example: Doe
     __context_names:
       - users
     __description: The last name of the user.
   snowflake.user.owner:
+    __stability: stable
     __example: ACCOUNTADMIN
     __context_names:
       - users
     __description: The role that owns the user account.
   snowflake.user.type:
+    __stability: stable
     __example: LEGACY_SERVICE
     __context_names:
       - users
@@ -192,6 +209,7 @@ attributes:
             System-managed user automatically created for each Snowpark Container Services (SPCS) service;
             cannot be created or converted by administrators.
   snowflake.user.privilege:
+    __stability: stable
     __example: "CREATE SERVICE:SCHEMA"
     __context_names:
       - users_all_privileges
@@ -227,6 +245,7 @@ attributes:
       - users_direct_roles
     __description: Array of admin roles that were used to grant current list of user roles.
   snowflake.user.roles.direct:
+    __stability: stable
     __type: string[]
     __semdict_note: "Array of directly assigned role names stored as string[] in Grail."
     __example: ["DEVOPS_ROLE", "SYSADMIN", "ACCOUNTADMIN"]
@@ -234,6 +253,7 @@ attributes:
       - users_direct_roles
     __description: List of all direct roles granted to user.
   snowflake.user.roles.direct.removed:
+    __stability: stable
     __example: "ACCOUNTADMIN"
     __context_names:
       - users_removed_direct_roles
@@ -276,6 +296,7 @@ event_timestamps:
       - users
     __description: The timestamp of the user account deletion.
   snowflake.user.last_success_login:
+    __stability: stable
     __type: long
     __example: "1732181350954000000"
     __context_names:

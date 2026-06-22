@@ -11,6 +11,7 @@ attributes:
     __description: The contract number associated with the Snowflake billing balance.
 dimensions:
   snowflake.account.name:
+    __stability: stable
     __context_names:
       - org_costs_metering
       - org_costs_storage
@@ -28,6 +29,7 @@ dimensions:
     __example: ABC12345
     __description: The account locator identifier for the Snowflake account.
   snowflake.account.region:
+    __stability: stable
     __context_names:
       - org_costs_data_transfer
     __example: US_EAST_1
@@ -38,6 +40,7 @@ dimensions:
     __example: USD
     __description: The currency in which billing usage amounts are denominated.
   snowflake.org.name:
+    __stability: stable
     __context_names:
       - org_costs_metering
       - org_costs_storage
@@ -47,6 +50,7 @@ dimensions:
     __example: MYORG
     __description: The name of the Snowflake organization.
   snowflake.service.type:
+    __stability: stable
     __context_names:
       - org_costs_metering
       - org_costs_storage

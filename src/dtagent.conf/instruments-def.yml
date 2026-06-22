@@ -38,6 +38,7 @@ dimensions:
     __description: "The deployment environment, e.g., production, staging, or development."
     __example: "PROD"
   deployment.environment.tag:
+    __stability: stable
     __semdict: new
     __interface_note: "Optional user-defined tag for grouping Snowflake accounts in multitenancy mode, set via 'core.tag'."
     __description: "Optional tag for the deployment environment in multitenancy mode"
@@ -86,6 +87,7 @@ dimensions:
       value.
     __example: "1.0.0.1234567890"
   dsoa.run.context:
+    __stability: stable
     __semdict: new
     __interface_note: "Identifies the specific sub-context within the plugin (e.g. 'query_history', 'users_all_roles')."
     __description:
@@ -94,6 +96,7 @@ dimensions:
       only one context, this field will have the same value as the plugin name."
     __example: "users_all_roles"
   dsoa.run.plugin:
+    __stability: stable
     __semdict: new
     __field_type: resource
     __interface_note: "The DSOA plugin that produced this telemetry (e.g. 'query_history', 'warehouse_usage')."
@@ -108,6 +111,7 @@ dimensions:
 #  * VALUE[example]       - the example of attribute value
 attributes:
   dsoa.run.id:
+    __stability: stable
     __semdict: new
     __interface_note: "Unique identifier for a single DSOA agent execution run. Changes on every invocation."
     __description:
@@ -119,6 +123,7 @@ attributes:
     __description: "Type of (timestamp based) event"
     __example: "snowflake.table.update"
   observed_timestamp:
+    __stability: stable
     __semdict: new
     __semdict_note: >-
       In OTel Log Data Model, observed_timestamp is a structural field (not an attribute key). Dynatrace normalizes this into the attribute

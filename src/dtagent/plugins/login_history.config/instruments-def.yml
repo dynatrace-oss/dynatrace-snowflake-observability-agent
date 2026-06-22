@@ -28,6 +28,7 @@ attributes:
     __example: "snowflake_security"
     __semdict: new
   event.description:
+    __stability: stable
     __is_defined_at_runtime: true
     __context_names:
       - login_history
@@ -35,11 +36,13 @@ attributes:
     __example: "Failed login attempt for user JOHN.DOE from 192.168.1.100."
     __semdict: new
   authentication.factor.first:
+    __stability: stable
     __context_names:
       - login_history
     __example: password123
     __description: The first factor used for authentication, typically a password.
   authentication.factor.second:
+    __stability: stable
     __context_names:
       - login_history
     __example: MFA_TOKEN_ABC123
@@ -56,6 +59,7 @@ attributes:
     __example: PASSWORD
     __description: The type of authentication used for the session.
   client.application.id:
+    __stability: stable
     __semdict: new
     __semdict_note: "Snowflake driver metadata; closest OTel analog is service.version (different semantics). Proprietary to DSOA."
     __context_names:
@@ -77,6 +81,7 @@ attributes:
     __example: build123
     __description: The build ID of the client application.
   client.environment:
+    __stability: stable
     __semdict: new
     __semdict_note: "Closest OTel analog: deployment.environment.name (different semantics). Proprietary to DSOA."
     __context_names:
@@ -174,6 +179,7 @@ dimensions:
     __example: 192.168.1.1
     __description: The IP address of the client that initiated the event.
   client.type:
+    __stability: stable
     __context_names:
       - login_history
     __example: JDBC_DRIVER
@@ -181,12 +187,14 @@ dimensions:
       The type of client used to connect to Snowflake, such as JDBC_DRIVER
       or ODBC_DRIVER.
   db.user:
+    __stability: stable
     __context_names:
       - login_history
       - sessions
     __example: john_doe
     __description: The user who performed the event in the database.
   event.name:
+    __stability: stable
     __context_names:
       - login_history
     __example: LOGIN

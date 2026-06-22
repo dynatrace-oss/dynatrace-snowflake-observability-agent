@@ -32,11 +32,13 @@ attributes:
     __example: "arn:aws:sqs:us-east-1:123456789012:sf-snowpipe-AIDAEXAMPLE-pipeId"
     __description: Cloud notification channel URL.
   snowflake.pipe.created_on:
+    __stability: stable
     __context_names:
       - snowpipes
     __example: "2025-01-15 10:30:00.000 Z"
     __description: Pipe creation timestamp.
   snowflake.pipe.execution_state:
+    __stability: stable
     __context_names:
       - snowpipes
     __example: RUNNING
@@ -132,6 +134,7 @@ attributes:
     __description: Start of the usage aggregation window.
 dimensions:
   snowflake.pipe.name:
+    __stability: stable
     __context_names:
       - snowpipes
       - snowpipes_copy_history
@@ -170,6 +173,7 @@ dimensions:
     __example: MY_DB
     __description: Database containing the target table or pipe.
   snowflake.schema.name:
+    __stability: stable
     __context_names:
       - snowpipes
       - snowpipes_copy_history
@@ -183,6 +187,7 @@ dimensions:
     __example: TARGET_TABLE
     __description: Target table for ingested data.
   snowflake.table.full_name:
+    __stability: stable
     __context_names:
       - snowpipes
       - snowpipes_copy_history
@@ -194,6 +199,7 @@ dimensions:
     __example: LOADER_ROLE
     __description: Role owning the pipe.
   snowflake.pipe.status:
+    __stability: stable
     __context_names:
       - snowpipes
     __example: RUNNING
@@ -207,6 +213,7 @@ event_timestamps:
     __example: "snowflake.pipe.created_on"
     __description: Standard event trigger key.
   snowflake.pipe.created_on:
+    __stability: stable
     __context_names:
       - snowpipes
     __example: "2025-01-15 10:30:00.000 Z"

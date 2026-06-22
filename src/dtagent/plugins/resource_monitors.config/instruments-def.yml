@@ -17,6 +17,7 @@
 
 attributes:
   snowflake.warehouse.event:
+    __stability: stable
     __is_defined_at_runtime: true
     __description: >-
       The warehouse event type key that triggered this event record. Identifies the specific warehouse lifecycle
@@ -24,6 +25,7 @@ attributes:
     __example: "AUTO_SUSPEND"
     __semdict: new
   snowflake.budget.name:
+    __stability: stable
     __example: BUDGET_2024
     __description: The name of the budget associated with the warehouse.
   snowflake.credits.quota:
@@ -40,6 +42,7 @@ attributes:
     __example: "85.0"
     __description: Live percentage of quota consumed at the time of threshold event emission.
   snowflake.resource_monitor.frequency:
+    __stability: stable
     __field_type: resource
     __example: DAILY
     __description: The frequency of the resource monitor.
@@ -64,6 +67,7 @@ attributes:
           value: NEVER
           brief: Resource monitor does not reset automatically.
   snowflake.resource_monitor.is_active:
+    __stability: stable
     __type: boolean
     __example: true
     __description: Indicates if the resource monitor is active.
@@ -99,6 +103,7 @@ attributes:
     __example: "80"
     __description: The specific threshold percentage value that was crossed to trigger the event.
   snowflake.warehouse.execution_state:
+    __stability: stable
     __field_type: resource
     __example: RUNNING
     __description: The execution state of the warehouse.
@@ -128,11 +133,13 @@ attributes:
     __example: true
     __description: Indicates if query acceleration is enabled for the warehouse.
   snowflake.warehouse.is_auto_resume:
+    __stability: stable
     __field_type: resource
     __type: boolean
     __example: true
     __description: Indicates if the warehouse is set to auto-resume.
   snowflake.warehouse.is_auto_suspend:
+    __stability: stable
     __field_type: resource
     __type: boolean
     __example: true
@@ -146,6 +153,7 @@ attributes:
     __example: true
     __description: Indicates if the warehouse is the default warehouse.
   snowflake.warehouse.is_unmonitored:
+    __stability: stable
     __type: boolean
     __example: true
     __description: Indicates if the warehouse is NOT monitored by a resource monitor.
@@ -154,10 +162,12 @@ attributes:
     __example: admin
     __description: The owner of the warehouse.
   snowflake.warehouse.owner.role_type:
+    __stability: stable
     __field_type: resource
     __example: SYSADMIN
     __description: The role type of the warehouse owner.
   snowflake.warehouse.scaling_policy:
+    __stability: stable
     __field_type: resource
     __example: STANDARD
     __description: The scaling policy of the warehouse.
@@ -173,6 +183,7 @@ attributes:
           value: ECONOMY
           brief: Economy scaling policy (slower to scale up, saves credits).
   snowflake.warehouse.size:
+    __stability: stable
     __field_type: resource
     __example: X-SMALL
     __description: The size of the warehouse.
@@ -210,6 +221,7 @@ attributes:
           value: 6X-LARGE
           brief: 512 credits/hour; largest available size, generally available on AWS and Azure.
   snowflake.warehouse.type:
+    __stability: stable
     __field_type: resource
     __example: STANDARD
     __description: The type of the warehouse.
@@ -229,9 +241,11 @@ attributes:
     __description: The names of the warehouses monitored.
 dimensions:
   snowflake.resource_monitor.name:
+    __stability: stable
     __example: RM_MONITOR
     __description: The name of the resource monitor.
   snowflake.warehouse.name:
+    __stability: stable
     __example: COMPUTE_WH
     __description: The name of the warehouse.
 event_timestamps:
@@ -257,6 +271,7 @@ event_timestamps:
     __example: "2024-09-01 08:00:00.000"
     __description: The timestamp when the warehouse was created.
   snowflake.warehouse.resumed_on:
+    __stability: stable
     __type: string
     __semdict_note: "ISO 8601 timestamp string stored as string in Grail."
     __example: "2024-11-15 09:00:00.000"
