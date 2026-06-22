@@ -678,12 +678,13 @@ def _emit_metric_entry(key: str, entry: Dict[str, Any]) -> Dict[str, Any]:
     if raw_unit_str and mapped_unit != raw_unit_str:
         log.debug("Metric '%s': unit '%s' → '%s'", key, raw_unit_str, mapped_unit)
     display_name = entry.get("displayName") or _make_display_name(key)
+    stability = str(entry.get("__stability") or "experimental").lower()
     node: Dict[str, Any] = {
         "id": key,
         "type": "metric",
         "metric_name": key,
         "instrument": instrument,
-        "stability": "experimental",
+        "stability": stability,
         "brief": description,
         "examples": examples,
         "title": display_name,

@@ -598,6 +598,11 @@ dimensions:
             cannot be created or converted by administrators.
 metrics:
   snowflake.cost_attribution.query_count:
+    __stability: stable
+    __semdict_note: >-
+      The .query_count name is deliberately preserved. The alternative plural
+      snowflake.cost_attribution.queries would read as a collection of query objects rather than
+      a scalar count, which is misleading in a metrics context.
     __example: 42
     __description: Number of queries in this cost attribution group during the summary window.
     displayName: Cost Attribution Query Count

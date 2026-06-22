@@ -103,15 +103,13 @@ attributes:
   error.code:
     __semdict: new
     __semdict_note: >-
-      DSOA-specific string error code for Snowflake login failures (e.g. "390100"). Not the same as
-      the Dynatrace SD error.code field (which is type: long for iOS/mobile numeric codes) — semantics
-      and type are incompatible. Pending rename to snowflake.login.error.code for namespace clarity.
+      In DSOA, used exclusively for Snowflake login failures as a string error code (e.g. "390100").
+      Diverges from the Dynatrace SD error.code field (type: long, iOS/mobile numeric codes) — semantics
+      and type are incompatible.
     __context_names:
       - login_history
     __example: ERR001
-    __description:
-      The error code associated with the login attempt, if it was not
-      successful.
+    __description: A code identifying the type of error that occurred.
   event.id:
     __semdict: ref
     __context_names:
@@ -150,32 +148,38 @@ attributes:
   status.code:
     __semdict: new
     __semdict_note: >-
-      DSOA-specific field for Snowflake login attempt status (OK/ERROR). Not present in OTel semconv
-      or the Dynatrace Semantic Dictionary as a global field.
+      In DSOA, emitted for Snowflake login events only (OK = successful login, ERROR = failed login).
+      Not present in OTel semconv or the Dynatrace Semantic Dictionary as a generic field.
     __context_names:
       - login_history
     __example: OK
-    __description:
-      The status of the login attempt, indicating success (OK) or failure
-      (ERROR).
+    __description: The outcome status of an operation.
+    __enum:
+      allow_custom_values: false
+      members:
+        - id: ok
+          value: OK
+          brief: The operation completed successfully.
+        - id: error
+          value: ERROR
+          brief: The operation failed.
   status.message:
     __semdict: new
     __semdict_note: >-
-      DSOA-specific field for Snowflake login attempt status details. Not present in OTel semconv
-      or the Dynatrace Semantic Dictionary as a global field.
+      In DSOA, emitted for Snowflake login events — describes the reason for success or failure.
+      Not present in OTel semconv or the Dynatrace Semantic Dictionary as a generic field.
     __context_names:
       - login_history
     __example: Login successful
-    __description:
-      A message providing additional details about the status of the
-      login attempt.
+    __description: A human-readable message providing additional detail about the operation status.
 dimensions:
   client.ip:
     __context_names:
       - login_history
     __semdict_note: >-
       OTel semconv uses client.address (stable). DSOA emits client.ip to match
-      Snowflake LOGIN_HISTORY.CLIENT_IP column naming. Consider migrating to client.address in a future release.
+      Snowflake LOGIN_HISTORY.CLIENT_IP column naming. The name is intentionally preserved to make
+      the column origin self-evident.
     __example: 192.168.1.1
     __description: The IP address of the client that initiated the event.
   client.type:
