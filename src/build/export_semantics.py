@@ -56,6 +56,7 @@ Note on metric dimension resolution:
 #
 
 import argparse
+import json
 import logging
 import sys
 from pathlib import Path
@@ -104,6 +105,10 @@ INTERFACE_DATABASE_KEYS: Set[str] = {"db.namespace", "snowflake.schema.name"}
 
 #: Valid __field_type override values.
 VALID_FIELD_TYPES = {"resource", "signal"}
+
+#: Valid __stability annotation values for SD attribute/field definitions.
+#: Note: OTel's "development" tier maps to SD's "experimental" — "development" is not a valid SD value.
+VALID_STABILITY_VALUES = {"stable", "experimental", "deprecated"}
 
 #: Acronyms that must stay ALL-CAPS in display_name (longer tokens first).
 DISPLAY_NAME_ACRONYMS = ("DSOA", "OTel", "DDL", "DML", "RSS", "URL", "API", "ID", "DB", "QA", "SQL")
@@ -491,6 +496,18 @@ def _merge_field_entries(key: str, existing: Dict[str, Any], incoming: Dict[str,
 def _validate_entry(key: str, entry: Dict[str, Any], section: str, source_file: str) -> List[str]:
     """Validate a single instruments-def entry for required semdict metadata.
 
+    Checks:
+    - ``__description`` is present and non-empty.
+    - ``__example`` is present (may be empty string for nullable fields).
+    - ``__semdict: deprecated-alias`` requires ``__otel_replacement``.
+    - ``__semdict: otel-only`` requires ``__semdict_note``.
+    - ``__field_type`` is one of the valid values.
+    - ``__stability`` (when set) is one of the valid SD values.
+
+    Also emits a WARNING (not an error) when ``__example`` is a bare numeric value
+    (Python ``int`` or ``float``) and no ``__type`` annotation is present — this
+    catches future type-mismatch regressions early.
+
     Args:
         key:         Field key.
         entry:       Entry metadata dict.
@@ -513,6 +530,26 @@ def _validate_entry(key: str, entry: Dict[str, Any], section: str, source_file: 
     field_type = entry.get("__field_type")
     if field_type is not None and field_type not in VALID_FIELD_TYPES:
         errors.append(f"[{source_file}] {section}.{key}: unknown __field_type '{field_type}'")
+    stability = entry.get("__stability")
+    if stability is not None and str(stability).lower() not in VALID_STABILITY_VALUES:
+        errors.append(
+            f"[{source_file}] {section}.{key}: invalid __stability '{stability}' "
+            f"(valid values: {sorted(VALID_STABILITY_VALUES)})"
+        )
+    # Warn (non-fatal) when example is numeric but no __type annotation is present.
+    # This catches future regressions where the SD build tool would reject a numeric
+    # example for a field typed 'string' by default.
+    example = entry.get("__example")
+    attr_type = entry.get("__type")
+    if attr_type is None and isinstance(example, (int, float)) and not isinstance(example, bool):
+        log.warning(
+            "[%s] %s.%s: numeric example %r with no __type annotation — "
+            "SD will default to string type; add __type: long or __type: double",
+            source_file,
+            section,
+            key,
+            example,
+        )
     return errors
 
 
@@ -560,6 +597,54 @@ def _build_type_node(entry: Dict[str, Any]) -> Any:
     return _map_attr_type(entry.get("__type"))
 
 
+def _coerce_string_array_examples(key: str, example_raw: Any) -> List[List[str]]:
+    """Coerce a raw ``__example`` value into SD-valid list-of-lists format for ``string[]`` fields.
+
+    The Semantic Dictionary build tool requires ``string[]`` attribute examples to be a
+    **list of arrays** — each top-level element is itself a list of strings.  The canonical
+    YAML spelling is::
+
+        examples:
+          - ["val1", "val2"]
+
+    This function normalises the three input shapes encountered in instruments-def files:
+
+    - **Already list-of-lists** (each element is a list): returned as-is.
+    - **Flat list** (``["val1", "val2"]``): wrapped in an outer list → ``[["val1", "val2"]]``.
+    - **Scalar string** that is a JSON array (``'["val1", "val2"]'``): parsed and wrapped →
+      ``[["val1", "val2"]]``.  If JSON parsing fails, the string is wrapped as a
+      single-element inner list → ``[["val1"]]``.
+    - **Any other scalar**: coerced to string and wrapped as a single-element inner list.
+
+    Args:
+        key:         Field key (for debug logging).
+        example_raw: Raw ``__example`` value from instruments-def (may be str, list, …).
+
+    Returns:
+        List of string arrays suitable for the SD ``examples:`` key.
+    """
+    if isinstance(example_raw, list):
+        if example_raw and isinstance(example_raw[0], list):
+            # Already list-of-lists — validate/coerce inner elements to str
+            return [[str(item) for item in inner] for inner in example_raw]
+        # Flat list — wrap in outer list
+        log.debug("string[] field '%s': wrapping flat list example in outer list", key)
+        return [[str(item) for item in example_raw]]
+
+    # Scalar — try JSON parse first
+    as_str = str(example_raw).strip()
+    if as_str.startswith("["):
+        try:
+            parsed = json.loads(as_str)
+            if isinstance(parsed, list):
+                log.debug("string[] field '%s': parsed JSON array scalar example", key)
+                return [[str(item) for item in parsed]]
+        except (json.JSONDecodeError, ValueError):
+            log.debug("string[] field '%s': JSON parse failed on scalar; wrapping as single string", key)
+
+    return [[as_str]]
+
+
 def _emit_id_entry(key: str, entry: Dict[str, Any], semdict_flag: str) -> Dict[str, Any]:
     """Build a full id: attribute definition block.
 
@@ -567,6 +652,16 @@ def _emit_id_entry(key: str, entry: Dict[str, Any], semdict_flag: str) -> Dict[s
     ``__stability: deprecated`` is set, the deprecated field is also emitted
     using ``__otel_replacement`` (if present).  OTel-only fields that have no
     explicit ``__semdict_note`` receive an auto-generated provenance note.
+
+    For ``string[]`` fields the SD build tool requires examples to be a list of
+    arrays — each example is itself an array of strings (list-of-lists format).
+    This function normalises the raw ``__example`` value into the correct shape:
+
+    - Already a list of lists (e.g. ``[["a", "b"]]``) — emitted as-is.
+    - A flat list (e.g. ``["a", "b"]``) — wrapped in an outer list: ``[["a", "b"]]``.
+    - A scalar string that looks like a JSON array (e.g. ``'["a", "b"]'``) — parsed
+      and wrapped: ``[["a", "b"]]``.
+    - Any other scalar — wrapped in a single-element list-of-lists: ``[["value"]]``.
 
     Args:
         key:          Field key.
@@ -582,11 +677,17 @@ def _emit_id_entry(key: str, entry: Dict[str, Any], semdict_flag: str) -> Dict[s
     example_raw = entry.get("__example", "")
     if example_raw is None:
         example_raw = ""
-    examples = (
-        [_coerce_attribute_example(example_raw, field_type)]
-        if not isinstance(example_raw, list)
-        else [_coerce_attribute_example(e, field_type) for e in example_raw]
-    )
+
+    if field_type == "string[]":
+        # SD requires examples for string[] to be a list of arrays (list-of-lists).
+        examples = _coerce_string_array_examples(key, example_raw)
+    else:
+        examples = (
+            [_coerce_attribute_example(example_raw, field_type)]
+            if not isinstance(example_raw, list)
+            else [_coerce_attribute_example(e, field_type) for e in example_raw]
+        )
+
     # Determine stability: respect __stability annotation, default to experimental.
     # SD schema rule: ``deprecated:`` and ``stability:`` are mutually exclusive.
     # - When stability is "deprecated": emit only ``deprecated:`` key, omit ``stability:``.

@@ -32,7 +32,8 @@ attributes:
     __semdict_note: "Array of resource names (databases, warehouses) in this budget group, stored as string[] in Grail."
     __context_names:
       - budgets
-    __example: '[ "database1", "warehouse1" ]'
+    __example:
+      - ["database1", "warehouse1"]
     __description: The resources linked to the budget, such as databases, warehouses, or other Snowflake objects that the budget monitors.
 dimensions:
   db.namespace:

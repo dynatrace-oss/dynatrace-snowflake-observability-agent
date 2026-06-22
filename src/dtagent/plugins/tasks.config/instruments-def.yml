@@ -145,6 +145,7 @@ attributes:
     __description: The predecessors of the task.
   snowflake.task.run.attempt:
     __stability: stable
+    __type: long
     __context_names:
       - task_history
     __example: 1

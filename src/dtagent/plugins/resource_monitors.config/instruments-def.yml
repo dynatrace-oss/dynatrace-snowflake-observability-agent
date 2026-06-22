@@ -29,17 +29,21 @@ attributes:
     __example: BUDGET_2024
     __description: The name of the budget associated with the warehouse.
   snowflake.credits.quota:
+    __type: long
     __example: 1000
     __description: The credit quota of the resource monitor.
   snowflake.credits.quota.remaining:
-    __example: "500"
+    __type: double
+    __example: 500.0
     __description: The remaining credits of the resource monitor.
   snowflake.credits.quota.used:
-    __example: "500"
+    __type: double
+    __example: 500.0
     __description: The credits used by the resource monitor.
   snowflake.credits.quota.used_pct:
+    __type: double
     __is_defined_at_runtime: true
-    __example: "85.0"
+    __example: 85.0
     __description: Live percentage of quota consumed at the time of threshold event emission.
   snowflake.resource_monitor.frequency:
     __stability: stable
@@ -99,8 +103,9 @@ attributes:
       Alert band for the threshold event: ``info`` (below 80%), ``warn`` ([80–90%)),
       ``critical`` ([90–100%)), or ``exhausted`` (>=100%).
   snowflake.resource_monitor.threshold.pct:
+    __type: double
     __is_defined_at_runtime: true
-    __example: "80"
+    __example: 80.0
     __description: The specific threshold percentage value that was crossed to trigger the event.
   snowflake.warehouse.execution_state:
     __stability: stable

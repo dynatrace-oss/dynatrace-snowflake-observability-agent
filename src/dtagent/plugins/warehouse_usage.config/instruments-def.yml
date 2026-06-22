@@ -35,6 +35,7 @@ attributes:
     __description: The role name associated with the event.
   snowflake.warehouse.cluster.number:
     __stability: stable
+    __type: long
     __field_type: resource
     __context_names:
       - warehouse_usage

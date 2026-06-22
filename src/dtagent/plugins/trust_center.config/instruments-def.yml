@@ -45,7 +45,7 @@ attributes:
     __example: table
     __description: The type of entity involved in the event, such as a table, view, or user.
   snowflake.trust_center.scanner.name:
-    __example: 2.4
+    __example: "2.4"
     __description: The name of the scanner used in the Trust Center.
   snowflake.trust_center.scanner.description:
     __example: Ensure monitoring and alerting exist for password sign-in without MFA

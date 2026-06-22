@@ -218,7 +218,8 @@ attributes:
   snowflake.user.privilege.grants_on:
     __type: string[]
     __semdict_note: "Array of privilege grant target names stored as string[] in Grail."
-    __example: ["TRUST_CENTER_ADMIN", "COMPUTE_WH"]
+    __example:
+      - ["TRUST_CENTER_ADMIN", "COMPUTE_WH"]
     __context_names:
       - users_all_privileges
     __description:
@@ -227,7 +228,8 @@ attributes:
   snowflake.user.privilege.granted_by:
     __type: string[]
     __semdict_note: "Array of grantor role names stored as string[] in Grail."
-    __example: ["ACCOUNTADMIN"]
+    __example:
+      - ["ACCOUNTADMIN"]
     __context_names:
       - users_all_privileges
     __description: Array of all roles which granted grants to a user for a privilege.
@@ -239,7 +241,8 @@ attributes:
   snowflake.user.roles.granted_by:
     __type: string[]
     __semdict_note: "Array of grantor names for role assignments stored as string[] in Grail."
-    __example: ["DEMIGOD", "SECURITYADMIN", "ACCOUNTADMIN"]
+    __example:
+      - ["DEMIGOD", "SECURITYADMIN", "ACCOUNTADMIN"]
     __context_names:
       - users_all_roles
       - users_direct_roles
@@ -248,7 +251,8 @@ attributes:
     __stability: stable
     __type: string[]
     __semdict_note: "Array of directly assigned role names stored as string[] in Grail."
-    __example: ["DEVOPS_ROLE", "SYSADMIN", "ACCOUNTADMIN"]
+    __example:
+      - ["DEVOPS_ROLE", "SYSADMIN", "ACCOUNTADMIN"]
     __context_names:
       - users_direct_roles
     __description: List of all direct roles granted to user.

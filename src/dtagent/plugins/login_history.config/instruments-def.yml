@@ -125,7 +125,7 @@ attributes:
     __description: An identifier for a related event, if applicable.
   session.id:
     __semdict: otel-only
-    __stability: development
+    __stability: experimental
     __semdict_note: >-
       OTel semconv Development-tier attribute (session namespace). The semdict session.id is
       model-scoped/internal in code_monitoring only; no global ref available. Emitting as new id:

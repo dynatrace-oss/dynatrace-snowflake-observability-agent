@@ -35,11 +35,13 @@ from build.export_semantics import (
     INTERFACE_DATABASE_KEYS,
     INTERFACE_WAREHOUSE_KEYS,
     RESOURCE_ATTRIBUTE_KEYS,
+    VALID_STABILITY_VALUES,
     ExportError,
     SemanticExporter,
     _build_type_node,
     _classify_field,
     _coerce_attribute_example,
+    _coerce_string_array_examples,
     _emit_id_entry,
     _emit_metric_entry,
     _emit_ref_entry,
@@ -1269,6 +1271,251 @@ class TestSemanticsTableColumns:
         assert "Stability" in result, "Stability column must appear in metrics table"
         assert "SD Status" in result, "SD Status column must appear in metrics table"
         assert "Original unit: credits" in result, "__semdict_note content must appear in metrics table"
+
+
+##endregion
+
+
+##region Unit tests — __stability validation
+
+
+class TestStabilityValidation:
+    """Verify _validate_entry rejects invalid __stability values and accepts valid ones."""
+
+    def test_valid_stability_stable_passes(self):
+        """__stability: stable is valid."""
+        entry = {"__description": "D.", "__example": "E.", "__stability": "stable"}
+        errors = _validate_entry("test.field", entry, "attributes", "test.yml")
+        assert errors == []
+
+    def test_valid_stability_experimental_passes(self):
+        """__stability: experimental is valid."""
+        entry = {"__description": "D.", "__example": "E.", "__stability": "experimental"}
+        errors = _validate_entry("test.field", entry, "attributes", "test.yml")
+        assert errors == []
+
+    def test_valid_stability_deprecated_passes(self):
+        """__stability: deprecated is valid (mutual-exclusion handled at emit time)."""
+        entry = {"__description": "D.", "__example": "E.", "__stability": "deprecated"}
+        errors = _validate_entry("test.field", entry, "attributes", "test.yml")
+        assert errors == []
+
+    def test_invalid_stability_development_fails(self):
+        """__stability: development is NOT a valid SD value — must produce an error."""
+        entry = {"__description": "D.", "__example": "E.", "__stability": "development"}
+        errors = _validate_entry("test.field", entry, "attributes", "test.yml")
+        assert any(
+            "__stability" in e and "development" in e for e in errors
+        ), "Expected an error for __stability: development; got: " + str(errors)
+
+    def test_invalid_stability_alpha_fails(self):
+        """Arbitrary unknown stability value must produce an error."""
+        entry = {"__description": "D.", "__example": "E.", "__stability": "alpha"}
+        errors = _validate_entry("test.field", entry, "attributes", "test.yml")
+        assert any("__stability" in e for e in errors)
+
+    def test_no_stability_passes(self):
+        """Entries without __stability are valid (defaults to experimental at emit time)."""
+        entry = {"__description": "D.", "__example": "E."}
+        errors = _validate_entry("test.field", entry, "attributes", "test.yml")
+        assert errors == []
+
+    def test_valid_stability_constants(self):
+        """VALID_STABILITY_VALUES must contain exactly stable, experimental, deprecated."""
+        assert VALID_STABILITY_VALUES == {"stable", "experimental", "deprecated"}
+
+
+##endregion
+
+
+##region Unit tests — string[] example coercion
+
+
+class TestStringArrayExampleCoercion:
+    """Verify _coerce_string_array_examples produces list-of-lists for SD string[] fields."""
+
+    def test_flat_list_wrapped_in_outer_list(self):
+        """Flat list ['val1', 'val2'] → [['val1', 'val2']]."""
+        result = _coerce_string_array_examples("test.field", ["val1", "val2"])
+        assert result == [["val1", "val2"]]
+        assert isinstance(result[0], list)
+
+    def test_list_of_lists_passthrough(self):
+        """Already list-of-lists [['val1', 'val2']] → emitted as-is."""
+        result = _coerce_string_array_examples("test.field", [["val1", "val2"]])
+        assert result == [["val1", "val2"]]
+
+    def test_scalar_json_array_string_wrapped(self):
+        """Scalar string '["val1", "val2"]' parsed and wrapped → [['val1', 'val2']]."""
+        result = _coerce_string_array_examples("test.field", '["val1", "val2"]')
+        assert result == [["val1", "val2"]]
+
+    def test_scalar_non_json_string_single_element(self):
+        """Non-JSON scalar string → wrapped as single-element inner list [['val']]."""
+        result = _coerce_string_array_examples("test.field", "plain_value")
+        assert result == [["plain_value"]]
+
+    def test_scalar_bad_json_falls_back(self):
+        """Scalar string starting with '[' but invalid JSON → single-element inner list."""
+        result = _coerce_string_array_examples("test.field", "[not valid json")
+        assert len(result) == 1
+        assert isinstance(result[0], list)
+
+    def test_emit_id_entry_string_array_flat_list(self):
+        """_emit_id_entry with string[] type and flat list example produces list-of-lists."""
+        entry = {
+            "__semdict": "new",
+            "__type": "string[]",
+            "__description": "Array of resources.",
+            "__example": ["database1", "warehouse1"],
+        }
+        node = _emit_id_entry("snowflake.budget.resource", entry, "new")
+        assert node["type"] == "string[]"
+        assert node["examples"] == [["database1", "warehouse1"]], f"Expected [['database1', 'warehouse1']], got {node['examples']!r}"
+
+    def test_emit_id_entry_string_array_scalar_json(self):
+        """_emit_id_entry with string[] type and JSON scalar example produces list-of-lists."""
+        entry = {
+            "__semdict": "new",
+            "__type": "string[]",
+            "__description": "Array of IDs.",
+            "__example": '["0", "1"]',
+        }
+        node = _emit_id_entry("test.ids", entry, "new")
+        assert node["examples"] == [["0", "1"]], f"Expected [['0', '1']], got {node['examples']!r}"
+
+    def test_emit_id_entry_string_array_already_list_of_lists(self):
+        """_emit_id_entry with string[] type and already list-of-lists example passes through."""
+        entry = {
+            "__semdict": "new",
+            "__type": "string[]",
+            "__description": "Array of roles.",
+            "__example": [["ROLE_A", "ROLE_B"]],
+        }
+        node = _emit_id_entry("test.roles", entry, "new")
+        assert node["examples"] == [["ROLE_A", "ROLE_B"]]
+
+
+##endregion
+
+
+##region Integration tests — string[] examples in generated output
+
+
+class TestStringArrayExamplesInOutput:
+    """Verify string[] fields in the generated export have list-of-lists examples."""
+
+    def test_budget_resource_has_list_of_lists_examples(self, tmp_path):
+        """snowflake.budget.resource (string[]) must export with list-of-lists examples."""
+        exporter = SemanticExporter(repo_root=REPO_ROOT, output_dir=tmp_path / "out")
+        instruments_path = REPO_ROOT / "src" / "dtagent" / "plugins" / "budgets.config" / "instruments-def.yml"
+        if not instruments_path.exists():
+            pytest.skip("budgets instruments-def.yml not found")
+        _, entries = exporter._parse_file("budgets", instruments_path)
+        meta = entries.get("snowflake.budget.resource")
+        assert meta is not None, "snowflake.budget.resource not found in entries"
+        node = _emit_id_entry("snowflake.budget.resource", meta["entry"], meta["semdict"])
+        examples = node.get("examples", [])
+        assert len(examples) > 0, "examples must be non-empty"
+        assert isinstance(
+            examples[0], list
+        ), f"string[] field examples[0] must be a list, got {type(examples[0]).__name__}: {examples[0]!r}"
+
+    def test_user_roles_direct_has_list_of_lists_examples(self, tmp_path):
+        """snowflake.user.roles.direct (string[]) must export with list-of-lists examples."""
+        exporter = SemanticExporter(repo_root=REPO_ROOT, output_dir=tmp_path / "out")
+        instruments_path = REPO_ROOT / "src" / "dtagent" / "plugins" / "users.config" / "instruments-def.yml"
+        if not instruments_path.exists():
+            pytest.skip("users instruments-def.yml not found")
+        _, entries = exporter._parse_file("users", instruments_path)
+        meta = entries.get("snowflake.user.roles.direct")
+        assert meta is not None, "snowflake.user.roles.direct not found in entries"
+        node = _emit_id_entry("snowflake.user.roles.direct", meta["entry"], meta["semdict"])
+        examples = node.get("examples", [])
+        assert len(examples) > 0
+        assert isinstance(
+            examples[0], list
+        ), f"string[] field examples[0] must be a list, got {type(examples[0]).__name__}: {examples[0]!r}"
+
+    def test_dynamic_table_inputs_has_list_of_lists_examples(self, tmp_path):
+        """snowflake.table.dynamic.graph.inputs (string[]) must export with list-of-lists examples."""
+        exporter = SemanticExporter(repo_root=REPO_ROOT, output_dir=tmp_path / "out")
+        instruments_path = REPO_ROOT / "src" / "dtagent" / "plugins" / "dynamic_tables.config" / "instruments-def.yml"
+        if not instruments_path.exists():
+            pytest.skip("dynamic_tables instruments-def.yml not found")
+        _, entries = exporter._parse_file("dynamic_tables", instruments_path)
+        meta = entries.get("snowflake.table.dynamic.graph.inputs")
+        assert meta is not None, "snowflake.table.dynamic.graph.inputs not found in entries"
+        node = _emit_id_entry("snowflake.table.dynamic.graph.inputs", meta["entry"], meta["semdict"])
+        examples = node.get("examples", [])
+        assert len(examples) > 0
+        assert isinstance(
+            examples[0], list
+        ), f"string[] field examples[0] must be a list, got {type(examples[0]).__name__}: {examples[0]!r}"
+
+
+##endregion
+
+
+##region Unit tests — numeric example without __type warning
+
+
+class TestNumericExampleWithoutTypeWarning:
+    """Verify _validate_entry warns when a numeric example is used without __type."""
+
+    def test_numeric_int_example_without_type_emits_warning(self, caplog):
+        """Bare int example with no __type should trigger a WARNING log."""
+        import logging  # pylint: disable=import-outside-toplevel
+
+        entry = {"__description": "A count.", "__example": 42}
+        with caplog.at_level(logging.WARNING, logger="build.export_semantics"):
+            errors = _validate_entry("test.count", entry, "attributes", "test.yml")
+        assert errors == [], "numeric example without __type must not be a hard error"
+        assert any(
+            "numeric" in r.message.lower() or "__type" in r.message for r in caplog.records
+        ), "Expected a WARNING about numeric example without __type"
+
+    def test_numeric_float_example_without_type_emits_warning(self, caplog):
+        """Bare float example with no __type should trigger a WARNING log."""
+        import logging  # pylint: disable=import-outside-toplevel
+
+        entry = {"__description": "A percentage.", "__example": 85.0}
+        with caplog.at_level(logging.WARNING, logger="build.export_semantics"):
+            errors = _validate_entry("test.pct", entry, "attributes", "test.yml")
+        assert errors == [], "must not be a hard error"
+        assert any("numeric" in r.message.lower() or "__type" in r.message for r in caplog.records)
+
+    def test_numeric_example_with_type_no_warning(self, caplog):
+        """Numeric example with __type annotation must NOT trigger a warning."""
+        import logging  # pylint: disable=import-outside-toplevel
+
+        entry = {"__description": "A count.", "__example": 42, "__type": "long"}
+        with caplog.at_level(logging.WARNING, logger="build.export_semantics"):
+            errors = _validate_entry("test.count", entry, "attributes", "test.yml")
+        assert errors == []
+        assert not any("numeric" in r.message.lower() for r in caplog.records), "No warning expected when __type is present"
+
+    def test_bool_example_without_type_no_warning(self, caplog):
+        """Python bool (YAML true/false) without __type must NOT trigger the numeric warning."""
+        import logging  # pylint: disable=import-outside-toplevel
+
+        entry = {"__description": "A flag.", "__example": True}
+        with caplog.at_level(logging.WARNING, logger="build.export_semantics"):
+            errors = _validate_entry("test.flag", entry, "attributes", "test.yml")
+        assert errors == []
+        assert not any(
+            "numeric" in r.message.lower() for r in caplog.records
+        ), "Bool examples must not trigger the numeric-without-type warning"
+
+    def test_string_example_without_type_no_warning(self, caplog):
+        """String example without __type must not trigger the numeric warning."""
+        import logging  # pylint: disable=import-outside-toplevel
+
+        entry = {"__description": "A name.", "__example": "hello"}
+        with caplog.at_level(logging.WARNING, logger="build.export_semantics"):
+            errors = _validate_entry("test.name", entry, "attributes", "test.yml")
+        assert errors == []
+        assert not any("numeric" in r.message.lower() for r in caplog.records)
 
 
 ##endregion

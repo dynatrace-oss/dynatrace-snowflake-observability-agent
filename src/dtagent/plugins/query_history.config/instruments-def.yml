@@ -71,7 +71,7 @@ attributes:
     __description: The login event ID associated with the query.
   session.id:
     __semdict: otel-only
-    __stability: development
+    __stability: experimental
     __semdict_note: >-
       OTel semconv Development-tier attribute (session namespace). The semdict session.id is model-scoped/internal in code_monitoring only;
       no global ref available. Emitting as new id: pending global semdict registration.
@@ -141,6 +141,7 @@ attributes:
           brief: A callable stored procedure object encapsulating SQL or Snowpark logic that can be invoked via CALL.
   snowflake.object.id:
     __stability: stable
+    __type: long
     __example: 1234567890
     __description: |
       Internal Snowflake identifier of the object modified by the DDL operation. Populated
@@ -315,7 +316,8 @@ attributes:
     __type: string[]
     __semdict_note: >-
       Array of parent operator IDs stored as string[] in Grail. Values are numeric strings.
-    __example: "[0]"
+    __example:
+      - ["0", "1"]
     __description: Identifiers of the parent operators for this operator, or NULL if this is the final operator in the query plan.
   snowflake.query.operator.stats:
     __type: string

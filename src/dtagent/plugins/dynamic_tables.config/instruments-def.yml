@@ -35,7 +35,8 @@ attributes:
     __semdict_note: "Array of DDL operation names stored as string[] in Grail (e.g. CREATE_DYNAMIC_TABLE)."
     __context_names:
       - dynamic_table_graph_history
-    __example: '[ "CREATE_DYNAMIC_TABLE" ]'
+    __example:
+      - ["CREATE_DYNAMIC_TABLE"]
     __description: |
       Describes why a new entry is created in the DYNAMIC_TABLE_GRAPH_HISTORY
       function. Can be one of the following:
@@ -53,8 +54,8 @@ attributes:
     __context_names:
       - dynamic_table_graph_history
     __example:
-      '[ { "kind": "TABLE", "name": "DYNAMIC_TABLE_DB.DYNAMIC_TABLE_SCH.EMPLOYEE" }, { "kind": "TABLE", "name":
-      "DYNAMIC_TABLE_DB.DYNAMIC_TABLE_SCH.EMPLOYEE_SKILL" } ]'
+      - - '{"kind": "TABLE", "name": "DYNAMIC_TABLE_DB.DYNAMIC_TABLE_SCH.EMPLOYEE"}'
+        - '{"kind": "TABLE", "name": "DYNAMIC_TABLE_DB.DYNAMIC_TABLE_SCH.EMPLOYEE_SKILL"}'
     __description: Each OBJECT represents a table, view, or dynamic table that serves as the input to this dynamic table.
   snowflake.table.dynamic.graph.valid_from:
     __type: string
