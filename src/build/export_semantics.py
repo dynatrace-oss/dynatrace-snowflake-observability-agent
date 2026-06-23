@@ -533,8 +533,7 @@ def _validate_entry(key: str, entry: Dict[str, Any], section: str, source_file: 
     stability = entry.get("__stability")
     if stability is not None and str(stability).lower() not in VALID_STABILITY_VALUES:
         errors.append(
-            f"[{source_file}] {section}.{key}: invalid __stability '{stability}' "
-            f"(valid values: {sorted(VALID_STABILITY_VALUES)})"
+            f"[{source_file}] {section}.{key}: invalid __stability '{stability}' " f"(valid values: {sorted(VALID_STABILITY_VALUES)})"
         )
     # Warn (non-fatal) when example is numeric but no __type annotation is present.
     # This catches future regressions where the SD build tool would reject a numeric
@@ -1777,7 +1776,9 @@ def _parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     """
     parser = argparse.ArgumentParser(description="Export DSOA instruments-def.yml files as Semantic Dictionary YAML.")
     parser.add_argument("--output", default="build/_semdict/source", help="Output directory (default: build/_semdict/source)")
-    parser.add_argument("--schema", default="_otel-build-tool/semantic-conventions/semconv.schema.json", help="Path to semconv.schema.json")
+    parser.add_argument(
+        "--schema", default="scripts/tools/semconv.schema.json", help="Path to semconv.schema.json"
+    )
     parser.add_argument("--verbose", action="store_true", help="Enable DEBUG logging")
     return parser.parse_args(argv)
 

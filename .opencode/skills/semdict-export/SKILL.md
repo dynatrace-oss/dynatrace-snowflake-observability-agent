@@ -7,6 +7,14 @@ validating the output with the SD generator, and fixing common schema violations
 
 ## 1. Pre-flight — SD repo must be a real checkout, not a symlink
 
+> **Checked-in semconv schema:** `scripts/tools/semconv.schema.json` is the repo-local copy of
+> `semconv.schema.json` used for validation. Both `export_semantics.py` and
+> `build_semantic_export.sh` default to this path. When starting development on a new DSOA
+> version, update this file to match the semconv version being targeted (e.g. copy from an
+> upstream otel-build-tool checkout or the SD generator tooling). The `--schema` flag on
+> `build_semantic_export.sh` accepts an absolute path or a path relative to the repo root to
+> override the default for one-off runs against a different schema version.
+
 Before any SD generation or validation step, verify that `.context/semantic-dictionary` is a
 real git checkout:
 

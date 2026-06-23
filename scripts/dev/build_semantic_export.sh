@@ -26,7 +26,7 @@
 # Calls export_semantics.py, validates output, and reports summary.
 #
 # Usage:
-#   ./scripts/dev/build_semantic_export.sh [--output-dir <dir>] [--clean] [--verbose]
+#   ./scripts/dev/build_semantic_export.sh [--output-dir <dir>] [--clean] [--verbose] [--schema <path>]
 #
 # Options:
 #   --output-dir <dir>  Output directory (default: build/_semdict/source).
@@ -37,6 +37,8 @@
 #                       --output-dir points to an external location (e.g. SD repo).
 #                       Always enabled for the default build/_semdict/source location.
 #   --verbose           Enable verbose (DEBUG) logging
+#   --schema <path>     Path to semconv.schema.json (default: scripts/tools/semconv.schema.json).
+#                       Accepts absolute paths or paths relative to the repository root.
 #   --help              Show this help message
 
 set -euo pipefail
@@ -46,7 +48,7 @@ PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 EXPORT_SCRIPT="${PROJECT_ROOT}/src/build/export_semantics.py"
 VENV_PYTHON="${PROJECT_ROOT}/.venv/bin/python"
 OUTPUT_DIR="${PROJECT_ROOT}/build/_semdict/source"
-SCHEMA_PATH="${PROJECT_ROOT}/_otel-build-tool/semantic-conventions/semconv.schema.json"
+SCHEMA_PATH="${PROJECT_ROOT}/scripts/tools/semconv.schema.json"
 CUSTOM_OUTPUT_DIR=false
 FORCE_CLEAN=false
 EXTRA_ARGS=()
@@ -76,6 +78,14 @@ while [[ $# -gt 0 ]]; do
         --verbose)
             EXTRA_ARGS+=("--verbose")
             shift
+            ;;
+        --schema)
+            if [[ "$2" == /* ]]; then
+                SCHEMA_PATH="$2"
+            else
+                SCHEMA_PATH="${PROJECT_ROOT}/$2"
+            fi
+            shift 2
             ;;
         --help|-h)
             grep "^#" "${BASH_SOURCE[0]}" | grep -v "^#!" | sed 's/^# *//' | head -25
