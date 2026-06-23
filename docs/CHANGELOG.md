@@ -41,11 +41,23 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
-- **Semantic Dictionary export restructured** to match SD source conventions: fields split into
+- **`event_log` plugin — metric rows no longer emit spurious log records**: `process.cpu.utilization`
+  and `process.memory.usage` values were appearing in Grail logs as `kvlist`-typed string attributes
+  because `_process_metric_entries` did not suppress log emission. Fixed by passing `report_logs=False`
+  to `_log_entries` in that context — metrics are still correctly emitted via the metrics path.
+- **`resource_monitors` plugin — compute columns now emit as `double` in logs**: `snowflake.compute.available`,
+  `.other`, `.provisioning`, and `.quiescing` were emitted as string attributes (e.g. `"75"`) in log
+  records because `SHOW WAREHOUSES` returns these columns as `TEXT`. Fixed by wrapping with
+  `TRY_TO_DOUBLE()` in `V_WAREHOUSES`; empty strings (suspended warehouses) become `NULL` and are
+  silently dropped by `OBJECT_CONSTRUCT`, while active warehouses emit true `double` values.
+
+### Changed
+ to match SD source conventions: fields split into
   `resource_fields/` (dimensions + resource-override attributes) and `signal_fields/` (attributes + signal-override dimensions) grouped by namespace prefix; metrics use `model:` envelope with
   `interfaces:` declaration (`i.dsoa_resource`, `i.dsoa_warehouse`, `i.dsoa_database`); event
   lifecycle models emitted under `model/dsoa/`; enum fields emit `type: {allow_custom_values,
   members}` instead of `type: string`.
+
 - Added `__field_type` annotation support to `instruments-def.yml` to override default section
   classification (e.g. `signal` on a dimension that describes event context, not the resource).
 - Added `__enum` definitions for ~16 categorical fields including warehouse size/type, query

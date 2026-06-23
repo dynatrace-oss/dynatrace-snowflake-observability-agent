@@ -69,10 +69,10 @@ select
     )                                                                                                                   as EVENT_TIMESTAMPS,
     -- metrics
     OBJECT_CONSTRUCT(
-        'snowflake.compute.available',                              wh.available,
-        'snowflake.compute.provisioning',                           wh.provisioning,
-        'snowflake.compute.quiescing',                              wh.quiescing,
-        'snowflake.compute.other',                                  wh.other,
+        'snowflake.compute.available',                              TRY_TO_DOUBLE(wh.available),
+        'snowflake.compute.provisioning',                           TRY_TO_DOUBLE(wh.provisioning),
+        'snowflake.compute.quiescing',                              TRY_TO_DOUBLE(wh.quiescing),
+        'snowflake.compute.other',                                  TRY_TO_DOUBLE(wh.other),
         'snowflake.warehouse.clusters.min',                         wh.min_cluster_count,
         'snowflake.warehouse.clusters.max',                         wh.max_cluster_count,
         'snowflake.acceleration.scale_factor.max',                  wh.query_acceleration_max_scale_factor,
