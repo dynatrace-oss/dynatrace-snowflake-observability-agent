@@ -237,6 +237,7 @@ dimensions:
     __description: The name of the warehouse.
 event_timestamps:
   snowflake.event.trigger:
+    __type: string
     __context_names:
       - task_versions
     __example: "snowflake.task.graph.version.created_on"

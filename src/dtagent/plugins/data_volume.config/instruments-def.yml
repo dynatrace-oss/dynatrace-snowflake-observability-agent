@@ -47,13 +47,13 @@ dimensions:
         - id: view
           value: VIEW
           brief: >-
-            Non-materialized virtual table defined by a stored query; the underlying SQL is
-            re-executed on every access with no physical storage.
+            Non-materialized virtual table defined by a stored query; the underlying SQL is re-executed on every access with no physical
+            storage.
         - id: materialized_view
           value: MATERIALIZED VIEW
           brief: >-
-            Pre-computed query result stored as a physical table and transparently refreshed by
-            Snowflake's background maintenance service; consumes MATERIALIZED_VIEW credits.
+            Pre-computed query result stored as a physical table and transparently refreshed by Snowflake's background maintenance service;
+            consumes MATERIALIZED_VIEW credits.
 
 #  * Metric definitions
 #  * KEY                    - will be matched against METRICS object with measurements prepared for sending
@@ -85,6 +85,7 @@ metrics:
 
 event_timestamps:
   snowflake.event.trigger:
+    __type: string
     __example: "snowflake.table.update"
     __description:
       Additionally to sending logs, each entry in `EVENT_TIMESTAMPS` is sent as event with key set to `snowflake.event.trigger`, value to

@@ -20,8 +20,8 @@ attributes:
     __stability: stable
     __is_defined_at_runtime: true
     __description: >-
-      The warehouse event type key that triggered this event record. Identifies the specific warehouse lifecycle
-      event (e.g., AUTO_SUSPEND, AUTO_RESUME) that was detected by the resource monitors plugin.
+      The warehouse event type key that triggered this event record. Identifies the specific warehouse lifecycle event (e.g., AUTO_SUSPEND,
+      AUTO_RESUME) that was detected by the resource monitors plugin.
     __example: "AUTO_SUSPEND"
     __semdict: new
   snowflake.budget.name:
@@ -62,8 +62,8 @@ attributes:
         - id: monthly
           value: MONTHLY
           brief: >-
-            Credit usage counter resets to zero at 12:00 AM UTC on the same day of each month as the configured start date;
-            default frequency.
+            Credit usage counter resets to zero at 12:00 AM UTC on the same day of each month as the configured start date; default
+            frequency.
         - id: yearly
           value: YEARLY
           brief: Credit usage counter resets to zero once per year on the anniversary of the configured start date.
@@ -85,8 +85,8 @@ attributes:
         - id: account
           value: ACCOUNT
           brief: >-
-            Monitors aggregate credit consumption across all warehouses in the account;
-            only one account-level monitor may exist per account.
+            Monitors aggregate credit consumption across all warehouses in the account; only one account-level monitor may exist per
+            account.
         - id: warehouse
           value: WAREHOUSE
           brief: Resource monitor applies at the warehouse level.
@@ -94,14 +94,13 @@ attributes:
     __is_defined_at_runtime: true
     __example: up
     __description: >-
-      Direction of the threshold crossing: ``up`` when quota is increasing into or remaining within
-      a band; ``down`` when the consumption drops back below a previously active band.
+      Direction of the threshold crossing: ``up`` when quota is increasing into or remaining within a band; ``down`` when the consumption
+      drops back below a previously active band.
   snowflake.resource_monitor.threshold.level:
     __is_defined_at_runtime: true
     __example: warn
     __description: >-
-      Alert band for the threshold event: ``info`` (below 80%), ``warn`` ([80–90%)),
-      ``critical`` ([90–100%)), or ``exhausted`` (>=100%).
+      Alert band for the threshold event: ``info`` (below 80%), ``warn`` ([80–90%)), ``critical`` ([90–100%)), or ``exhausted`` (>=100%).
   snowflake.resource_monitor.threshold.pct:
     __type: double
     __is_defined_at_runtime: true
@@ -127,8 +126,7 @@ attributes:
         - id: suspending
           value: SUSPENDING
           brief: >-
-            Completing in-flight queries before deallocating compute resources;
-            credits continue to accrue until suspension is complete.
+            Completing in-flight queries before deallocating compute resources; credits continue to accrue until suspension is complete.
         - id: resizing
           value: RESIZING
           brief: Warehouse is scaling to a new per-cluster size; running queries continue on the current size until resizing completes.
@@ -182,8 +180,8 @@ attributes:
         - id: standard
           value: STANDARD
           brief: >-
-            "Prioritises query throughput: adds a new cluster immediately when any query is queued,
-            ensuring minimal queue time at the cost of higher credit consumption. Default policy."
+            "Prioritises query throughput: adds a new cluster immediately when any query is queued, ensuring minimal queue time at the cost
+            of higher credit consumption. Default policy."
         - id: economy
           value: ECONOMY
           brief: Economy scaling policy (slower to scale up, saves credits).
@@ -239,8 +237,8 @@ attributes:
         - id: snowpark_optimized
           value: SNOWPARK_OPTIMIZED
           brief: >-
-            Single-node warehouse with configurable high-memory nodes (16x–64x vs standard) and
-            CPU architecture options; recommended for ML training and memory-intensive UDFs and stored procedures.
+            Single-node warehouse with configurable high-memory nodes (16x–64x vs standard) and CPU architecture options; recommended for ML
+            training and memory-intensive UDFs and stored procedures.
   snowflake.warehouses.names:
     __example: COMPUTE_WH
     __description: The names of the warehouses monitored.
@@ -255,6 +253,7 @@ dimensions:
     __description: The name of the warehouse.
 event_timestamps:
   snowflake.event.trigger:
+    __type: string
     __example: "snowflake.warehouse.resumed_on"
     __description:
       Additionally to sending logs, each entry in `EVENT_TIMESTAMPS` is sent as event with key set to `snowflake.event.trigger`, value to
@@ -271,8 +270,8 @@ event_timestamps:
   snowflake.warehouse.created_on:
     __type: string
     __semdict_note: >-
-      ISO 8601 timestamp string stored as string in Grail. Grail stores this as a plain string;
-      use toTimestamp() in DQL for time-based operations.
+      ISO 8601 timestamp string stored as string in Grail. Grail stores this as a plain string; use toTimestamp() in DQL for time-based
+      operations.
     __example: "2024-09-01 08:00:00.000"
     __description: The timestamp when the warehouse was created.
   snowflake.warehouse.resumed_on:

@@ -208,6 +208,7 @@ dimensions:
       RUNNING, PAUSED, STOPPED_*, STALLED_*.
 event_timestamps:
   snowflake.event.trigger:
+    __type: string
     __context_names:
       - snowpipes
     __example: "snowflake.pipe.created_on"

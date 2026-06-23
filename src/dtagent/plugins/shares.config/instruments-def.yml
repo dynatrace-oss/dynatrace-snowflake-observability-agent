@@ -219,6 +219,7 @@ dimensions:
     __description: Name of the share.
 event_timestamps:
   snowflake.event.trigger:
+    __type: string
     __context_names:
       - outbound_shares
       - inbound_shares

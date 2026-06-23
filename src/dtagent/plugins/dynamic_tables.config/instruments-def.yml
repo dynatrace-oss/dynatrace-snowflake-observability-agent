@@ -49,8 +49,7 @@ attributes:
   snowflake.table.dynamic.graph.inputs:
     __type: string[]
     __semdict_note: >-
-      Array of input table references stored as string[] in Grail. Each element is a JSON-serialized
-      object with kind and name fields.
+      Array of input table references stored as string[] in Grail. Each element is a JSON-serialized object with kind and name fields.
     __context_names:
       - dynamic_table_graph_history
     __example:
@@ -60,8 +59,8 @@ attributes:
   snowflake.table.dynamic.graph.valid_from:
     __type: string
     __semdict_note: >-
-      ISO 8601 timestamp string stored as string in Grail. Grail stores this as a plain string;
-      use toTimestamp() in DQL for time-based operations.
+      ISO 8601 timestamp string stored as string in Grail. Grail stores this as a plain string; use toTimestamp() in DQL for time-based
+      operations.
     __context_names:
       - dynamic_table_refresh_history
       - dynamic_table_graph_history
@@ -70,8 +69,8 @@ attributes:
   snowflake.table.dynamic.graph.valid_to:
     __type: string
     __semdict_note: >-
-      ISO 8601 timestamp string stored as string in Grail. Grail stores this as a plain string;
-      use toTimestamp() in DQL for time-based operations.
+      ISO 8601 timestamp string stored as string in Grail. Grail stores this as a plain string; use toTimestamp() in DQL for time-based
+      operations.
     __context_names:
       - dynamic_table_graph_history
     __example: ""
@@ -182,8 +181,8 @@ attributes:
   snowflake.table.dynamic.refresh.end:
     __type: string
     __semdict_note: >-
-      ISO 8601 timestamp string stored as string in Grail. Grail stores this as a plain string;
-      use toTimestamp() in DQL for time-based operations.
+      ISO 8601 timestamp string stored as string in Grail. Grail stores this as a plain string; use toTimestamp() in DQL for time-based
+      operations.
     __context_names:
       - dynamic_table_refresh_history
     __example: "2024-11-25 06:09:55.308 Z"
@@ -197,8 +196,8 @@ attributes:
   snowflake.table.dynamic.refresh.start:
     __type: string
     __semdict_note: >-
-      ISO 8601 timestamp string stored as string in Grail. Grail stores this as a plain string;
-      use toTimestamp() in DQL for time-based operations.
+      ISO 8601 timestamp string stored as string in Grail. Grail stores this as a plain string; use toTimestamp() in DQL for time-based
+      operations.
     __context_names:
       - dynamic_table_refresh_history
     __example: "2024-11-25 06:09:54.978 Z"
@@ -300,6 +299,7 @@ dimensions:
     __description: Fully qualified name of the dynamic table.
 event_timestamps:
   snowflake.event.trigger:
+    __type: string
     __context_names:
       - dynamic_table_refresh_history
       - dynamic_table_graph_history

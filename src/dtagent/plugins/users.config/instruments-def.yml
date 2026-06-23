@@ -196,18 +196,18 @@ attributes:
         - id: service
           value: SERVICE
           brief: >-
-            Non-interactive integration user; cannot authenticate via password or SAML, cannot enroll in MFA.
-            Recommended for all automated service accounts.
+            Non-interactive integration user; cannot authenticate via password or SAML, cannot enroll in MFA. Recommended for all automated
+            service accounts.
         - id: legacy_service
           value: LEGACY_SERVICE
           brief: >-
-            Non-interactive integration user that, unlike SERVICE, still permits password and SAML authentication.
-            Deprecated — migrate to SERVICE type.
+            Non-interactive integration user that, unlike SERVICE, still permits password and SAML authentication. Deprecated — migrate to
+            SERVICE type.
         - id: snowflake_service
           value: SNOWFLAKE_SERVICE
           brief: >-
-            System-managed user automatically created for each Snowpark Container Services (SPCS) service;
-            cannot be created or converted by administrators.
+            System-managed user automatically created for each Snowpark Container Services (SPCS) service; cannot be created or converted by
+            administrators.
   snowflake.user.privilege:
     __stability: stable
     __example: "CREATE SERVICE:SCHEMA"
@@ -264,6 +264,7 @@ attributes:
     __description: Name of the role that was revoked from user.
 event_timestamps:
   snowflake.event.trigger:
+    __type: string
     __example: "snowflake.user.last_success_login"
     __context_names:
       - users

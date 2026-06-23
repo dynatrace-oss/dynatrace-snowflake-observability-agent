@@ -83,6 +83,7 @@ dimensions:
       - WAREHOUSE_METERING_READER
 event_timestamps:
   snowflake.event.trigger:
+    __type: string
     __context_names:
       - budgets
     __example: "snowflake.budget.created_on"
