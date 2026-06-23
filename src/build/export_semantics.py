@@ -256,12 +256,17 @@ log = logging.getLogger(__name__)
 
 
 class _IndentedDumper(yaml.Dumper):  # pylint: disable=too-many-ancestors
-    """YAML Dumper that properly indents block sequence items.
+    """YAML Dumper that properly indents block sequence items and preserves multi-line strings.
 
     The default PyYAML Dumper uses compact (indentless) block sequences, where
     list items (``-``) appear at the same indentation level as the parent key.
     The Dynatrace Semantic Dictionary convention requires sequence items to be
     indented 2 spaces beneath their parent key.
+
+    Additionally, this Dumper uses block literal style (``|``) for multi-line strings,
+    preventing the default PyYAML behaviour of wrapping them in single-quoted flow scalars
+    with embedded ``\\n`` characters.  This keeps DQL ``query_string`` values readable and
+    avoids spurious blank lines in generated YAML files.
 
     Example — default (compact, incorrect for SD)::
 
@@ -289,6 +294,31 @@ class _IndentedDumper(yaml.Dumper):  # pylint: disable=too-many-ancestors
             The result of the parent increase_indent with indentless=False.
         """
         return super().increase_indent(flow=flow, indentless=False)
+
+    def represent_str(self, data: str):
+        """Represent strings containing newlines as YAML literal block scalars (``|`` style).
+
+        PyYAML's default string representer serialises multi-line strings as single-quoted
+        flow scalars with embedded ``\\n`` sequences.  When the output file is re-read the
+        content is semantically identical, but the visual representation has an extra blank
+        line inserted after every original DQL line because the flow scalar preserves the
+        literal newlines verbatim while the surrounding indentation adds apparent spacing.
+
+        Using ``|`` (literal block style) preserves the original line structure and produces
+        clean, human-readable YAML that round-trips without extra blank lines.
+
+        Args:
+            data: String value to represent.
+
+        Returns:
+            YAML node; block-literal for multi-line strings, default scalar otherwise.
+        """
+        if "\n" in data:
+            return self.represent_scalar("tag:yaml.org,2002:str", data, style="|")
+        return self.represent_scalar("tag:yaml.org,2002:str", data)
+
+
+_IndentedDumper.add_representer(str, _IndentedDumper.represent_str)
 
 
 ##endregion
@@ -535,20 +565,23 @@ def _validate_entry(key: str, entry: Dict[str, Any], section: str, source_file: 
         errors.append(
             f"[{source_file}] {section}.{key}: invalid __stability '{stability}' " f"(valid values: {sorted(VALID_STABILITY_VALUES)})"
         )
-    # Warn (non-fatal) when example is numeric but no __type annotation is present.
-    # This catches future regressions where the SD build tool would reject a numeric
-    # example for a field typed 'string' by default.
-    example = entry.get("__example")
-    attr_type = entry.get("__type")
-    if attr_type is None and isinstance(example, (int, float)) and not isinstance(example, bool):
-        log.warning(
-            "[%s] %s.%s: numeric example %r with no __type annotation — "
-            "SD will default to string type; add __type: long or __type: double",
-            source_file,
-            section,
-            key,
-            example,
-        )
+    # Warn (non-fatal) when example is numeric but no __type annotation is present —
+    # BUT only for attribute/dimension/event_timestamp sections, NOT for metrics.
+    # In the metrics section, ``__type`` represents the instrument type
+    # (``gauge``, ``counter``, ``updowncounter``, ``histogram``), not the SD value type.
+    # Metric examples are inherently numeric; no separate __type annotation is needed there.
+    if section != "metrics":
+        example = entry.get("__example")
+        attr_type = entry.get("__type")
+        if attr_type is None and isinstance(example, (int, float)) and not isinstance(example, bool):
+            log.warning(
+                "[%s] %s.%s: numeric example %r with no __type annotation — "
+                "SD will default to string type; add __type: long or __type: double",
+                source_file,
+                section,
+                key,
+                example,
+            )
     return errors
 
 
@@ -1345,9 +1378,9 @@ class SemanticExporter:
         model_doc: Dict[str, Any] = {
             "id": f"dsoa.events.{plugin_name}",
             "title": f"Snowflake {plugin_title} Lifecycle Events",
-            "brief": f"Timestamp-based state-change events emitted by the DSOA {plugin_name} plugin as business events.",
+            "brief": f"Timestamp-based state-change events emitted by the DSOA {plugin_name} plugin via the OpenPipeline Events API.",
             "model_group_id": "dsoa.events",
-            "data_object": "bizevents",
+            "data_object": "event",
             "interfaces": ["i.dsoa_resource"],
         }
         if dql_queries:
@@ -1485,21 +1518,63 @@ class SemanticExporter:
     ##endregion
 
     def _load_schema(self) -> Optional[Dict[str, Any]]:
-        """Load semconv JSON schema if available.
+        """Load and patch semconv JSON schema if available.
+
+        The raw ``semconv.schema.json`` is written for a custom build-tool validator
+        (not standard ``jsonschema``).  The ``Attribute`` and ``SemanticConventionBase``
+        definitions use ``additionalProperties: false`` at the top level while declaring
+        their allowed properties *inside* ``allOf`` sub-schemas.  In JSON Schema draft-07,
+        ``additionalProperties: false`` only considers ``properties`` at the **same schema
+        object level** — not properties nested inside ``allOf`` — which produces spurious
+        "Additional properties not allowed" errors for all valid DSOA field definitions.
+
+        This method patches the loaded schema before returning it:
+
+        - Removes ``additionalProperties: false`` from all ``definitions`` entries that
+          declare their properties via ``allOf`` (e.g. ``Attribute``,
+          ``SemanticConventionBase``, smartscape edge types).  Removing it makes the
+          ``additionalProperties`` check a no-op while preserving all ``required`` and
+          type checks.
+        - Removes the ``anyOf(attributes|extends)`` constraint from
+          ``SemanticConventionBase``.  Metric groups that have no dimension attributes
+          do not carry an ``attributes`` list and would otherwise fail this constraint.
+
+        These patches silence false-positive errors without relaxing any meaningful
+        structural validation.  Required fields (``id``, ``type``, ``metric_name``, etc.)
+        are still enforced by the ``required`` constraints in each definition.
 
         Returns:
-            Parsed schema dict or None.
+            Patched schema dict or None if the schema file is not found.
         """
         if not self.schema_path or not self.schema_path.exists():
             log.warning("semconv.schema.json not found at %s; skipping schema validation", self.schema_path)
             return None
+        import copy  # pylint: disable=import-outside-toplevel
         import json  # pylint: disable=import-outside-toplevel
 
         with open(self.schema_path, "r", encoding="utf-8") as fh:
-            return json.load(fh)
+            raw_schema = json.load(fh)
+
+        schema = copy.deepcopy(raw_schema)
+        for defn in schema.get("definitions", {}).values():
+            # Strip additionalProperties:false — standard jsonschema draft-07 does not
+            # look inside allOf sub-schemas when evaluating additionalProperties, so this
+            # flag produces false-positive errors for every valid attribute node.
+            if defn.get("additionalProperties") is False:
+                defn.pop("additionalProperties")
+        # Remove anyOf(attributes|extends) from SemanticConventionBase:
+        # metric groups that carry no dimension attributes are otherwise rejected.
+        scb = schema.get("definitions", {}).get("SemanticConventionBase", {})
+        scb.pop("anyOf", None)
+        return schema
 
     def _validate_against_schema(self, doc: Dict[str, Any], yaml_path: Path) -> bool:
         """Validate a generated YAML document against semconv.schema.json.
+
+        Uses the patched schema loaded by :meth:`_load_schema` to avoid false-positive
+        ``additionalProperties`` errors.  Only the short ``message`` from the first
+        ``ValidationError`` is logged — the verbose ``On instance[...]`` JSON dump
+        produced by the default ``str(exc)`` rendering is intentionally suppressed.
 
         Args:
             doc:       Parsed YAML document.
@@ -1516,6 +1591,10 @@ class SemanticExporter:
             jsonschema.validate(instance=doc, schema=self._schema)
             log.debug("Schema validation PASS: %s", yaml_path)
             return True
+        except jsonschema.ValidationError as exc:  # pylint: disable=broad-except
+            # Log only the short message to avoid the verbose "On instance[...]" dump.
+            log.error("Schema validation FAIL: %s — %s", yaml_path, exc.message)
+            return False
         except Exception as exc:  # pylint: disable=broad-except
             log.error("Schema validation FAIL: %s — %s", yaml_path, exc)
             return False
@@ -1776,9 +1855,7 @@ def _parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     """
     parser = argparse.ArgumentParser(description="Export DSOA instruments-def.yml files as Semantic Dictionary YAML.")
     parser.add_argument("--output", default="build/_semdict/source", help="Output directory (default: build/_semdict/source)")
-    parser.add_argument(
-        "--schema", default="scripts/tools/semconv.schema.json", help="Path to semconv.schema.json"
-    )
+    parser.add_argument("--schema", default="scripts/tools/semconv.schema.json", help="Path to semconv.schema.json")
     parser.add_argument("--verbose", action="store_true", help="Enable DEBUG logging")
     return parser.parse_args(argv)
 

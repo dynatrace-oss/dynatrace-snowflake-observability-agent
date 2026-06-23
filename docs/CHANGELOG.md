@@ -28,6 +28,17 @@ All notable changes to this project will be documented in this file.
   resource_monitors, shares, budgets), meeting the SD CI F015-F017 requirement of ≥3 queries per
   model. Queries are also surfaced in `docs/SEMANTICS.md`.
 
+### Fixed
+
+- **Semdict event model `data_object` corrected**: timestamp-based lifecycle events
+  (e.g. `snowflake.grant.created_on`) are sent via the OpenPipeline Events API, not bizevents.
+  Generated `dsoa.events.*.yaml` models now correctly declare `data_object: event` instead of
+  `data_object: bizevents`.
+- **DQL `query_string` extra blank lines removed**: generated Semantic Dictionary YAML files
+  previously had an extra blank line after every DQL query line due to PyYAML serialising
+  multi-line strings as flow-style scalars. The YAML dumper now uses block literal style (`|`)
+  for multi-line strings, producing clean single-spaced DQL examples.
+
 ### Changed
 
 - **Semantic Dictionary export restructured** to match SD source conventions: fields split into

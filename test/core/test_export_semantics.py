@@ -25,6 +25,7 @@
 #
 
 import os
+import subprocess
 from pathlib import Path
 from typing import Any, Dict
 
@@ -38,6 +39,7 @@ from build.export_semantics import (
     VALID_STABILITY_VALUES,
     ExportError,
     SemanticExporter,
+    _IndentedDumper,
     _build_type_node,
     _classify_field,
     _coerce_attribute_example,
@@ -881,7 +883,11 @@ class TestExportPipelineMock:
         assert "model" in doc
         assert doc["model"]["id"] == "dsoa.events.mock_plugin"
         assert doc["model"]["model_group_id"] == "dsoa.events"
-        assert doc["model"]["data_object"] == "bizevents"
+        # Timestamp events go to the OpenPipeline Events API, not bizevents
+        assert doc["model"]["data_object"] == "event", (
+            "Event-timestamp models must use data_object: event (OpenPipeline Events API). "
+            "Only dsoa.* self-monitoring fields are sent to bizevents."
+        )
 
     def test_event_model_excludes_trigger_key(self, tmp_path):
         """Event model attrs include snowflake.warehouse.created_on but NOT snowflake.event.trigger."""
@@ -1516,6 +1522,229 @@ class TestNumericExampleWithoutTypeWarning:
             errors = _validate_entry("test.name", entry, "attributes", "test.yml")
         assert errors == []
         assert not any("numeric" in r.message.lower() for r in caplog.records)
+
+    def test_metrics_section_numeric_no_warning(self, caplog):
+        """Numeric metric example without __type must NOT warn.
+
+        In the ``metrics`` section ``__type`` represents the instrument type
+        (``gauge``, ``counter``, etc.), not the SD value type.  Metrics are
+        inherently numeric — no ``__type: long/double`` annotation is required.
+        """
+        import logging  # pylint: disable=import-outside-toplevel
+
+        entry = {"__description": "Credits used.", "__example": 15}
+        with caplog.at_level(logging.WARNING, logger="build.export_semantics"):
+            errors = _validate_entry("snowflake.credits.used", entry, "metrics", "test.yml")
+        assert errors == [], "must not be a hard error for metrics"
+        assert not any(
+            "numeric" in r.message.lower() for r in caplog.records
+        ), "Numeric metric examples must not trigger the no-__type warning"
+
+
+##endregion
+
+
+##region Integration tests — build_semantic_export.sh clean output
+
+
+#: Path to the build_semantic_export.sh script.
+_EXPORT_SCRIPT: Path = REPO_ROOT / "scripts" / "dev" / "build_semantic_export.sh"
+
+
+@pytest.mark.integration
+class TestBuildSemanticExportScriptOutput:
+    """Assert that build_semantic_export.sh produces zero WARNING and ERROR lines.
+
+    This is a regression gate: any future change to ``export_semantics.py`` or the
+    ``instruments-def.yml`` files that introduces new schema validation errors or
+    numeric-without-type warnings will be caught here before it reaches CI.
+
+    The test runs the shell script as a subprocess and scans the combined output
+    (stdout + stderr) for lines beginning with ``WARNING`` or ``ERROR``.
+    """
+
+    @pytest.fixture(scope="class")
+    def script_output(self):
+        """Run build_semantic_export.sh and return (returncode, combined_output)."""
+        if not _EXPORT_SCRIPT.exists():
+            pytest.skip(f"build_semantic_export.sh not found: {_EXPORT_SCRIPT}")
+        result = subprocess.run(
+            [str(_EXPORT_SCRIPT)],
+            capture_output=True,
+            text=True,
+            check=False,
+            cwd=str(REPO_ROOT),
+        )
+        combined = result.stdout + result.stderr
+        return result.returncode, combined
+
+    def test_script_exits_zero(self, script_output):
+        """build_semantic_export.sh must exit with code 0."""
+        returncode, output = script_output
+        assert returncode == 0, f"Script exited {returncode}:\n{output}"
+
+    def test_no_warning_lines(self, script_output):
+        """build_semantic_export.sh must produce zero WARNING lines.
+
+        WARNING lines indicate missing ``__type`` annotations or other non-fatal
+        issues in ``instruments-def.yml`` or ``export_semantics.py``.
+        """
+        _, output = script_output
+        warning_lines = [line for line in output.splitlines() if line.startswith("WARNING")]
+        assert warning_lines == [], f"build_semantic_export.sh produced {len(warning_lines)} WARNING line(s):\n" + "\n".join(
+            warning_lines[:20]
+        )
+
+    def test_no_error_lines(self, script_output):
+        """build_semantic_export.sh must produce zero ERROR lines.
+
+        ERROR lines indicate schema validation failures in the generated YAML files.
+        These are hard failures that mean the generated output is not SD-compliant.
+        """
+        _, output = script_output
+        error_lines = [line for line in output.splitlines() if line.startswith("ERROR")]
+        assert error_lines == [], f"build_semantic_export.sh produced {len(error_lines)} ERROR line(s):\n" + "\n".join(error_lines[:20])
+
+
+##endregion
+
+
+##region Tests — event routing correctness (Bug 1)
+
+
+class TestEventModelDataObject:
+    """Verify event-model data_object is 'event', not 'bizevents'.
+
+    Timestamp events (e.g. snowflake.grant.created_on) are routed through
+    GenericEvents → /platform/ingest/v1/events (OpenPipeline Events API).
+    Only dsoa.* self-monitoring events go through BizEvents.
+    The generated semdict model must declare data_object: event so the
+    Semantic Dictionary correctly maps the fields to the right table.
+    """
+
+    def test_event_model_data_object_is_event(self, tmp_path):
+        """_build_event_model_yaml must produce data_object: event."""
+        out_dir = tmp_path / "out"
+        exporter = SemanticExporter(repo_root=REPO_ROOT, output_dir=out_dir)
+        _, entries = exporter._parse_file("mock_plugin", MOCK_FIXTURE)
+        event_ts = {k: v for k, v in entries.items() if v["classification"] == "event_timestamp"}
+        doc = exporter._build_event_model_yaml("mock_plugin", event_ts)
+        actual = doc["model"]["data_object"]
+        assert actual == "event", (
+            f"Expected data_object='event' (OpenPipeline Events API), got '{actual}'. "
+            "Snowflake telemetry timestamp events are NOT bizevents."
+        )
+
+    def test_event_model_data_object_is_not_bizevents(self, tmp_path):
+        """_build_event_model_yaml must NOT produce data_object: bizevents."""
+        out_dir = tmp_path / "out"
+        exporter = SemanticExporter(repo_root=REPO_ROOT, output_dir=out_dir)
+        _, entries = exporter._parse_file("mock_plugin", MOCK_FIXTURE)
+        event_ts = {k: v for k, v in entries.items() if v["classification"] == "event_timestamp"}
+        doc = exporter._build_event_model_yaml("mock_plugin", event_ts)
+        assert doc["model"]["data_object"] != "bizevents", (
+            "Event-timestamp models must NOT use data_object: bizevents. "
+            "Only dsoa.* self-monitoring signals belong in the bizevents table."
+        )
+
+    def test_all_event_model_files_use_data_object_event(self):
+        """All generated dsoa.events.*.yaml files must have data_object: event."""
+        semdict_dir = REPO_ROOT / "build" / "_semdict" / "source" / "model" / "dsoa"
+        if not semdict_dir.exists():
+            pytest.skip("Semdict output dir not found — run build_semantic_export.sh first")
+        event_files = list(semdict_dir.glob("dsoa.events.*.yaml"))
+        assert event_files, "No dsoa.events.*.yaml files found in semdict output"
+        failures = []
+        for path in sorted(event_files):
+            with open(path, "r", encoding="utf-8") as fh:
+                doc = yaml.safe_load(fh)
+            data_obj = doc.get("model", {}).get("data_object")
+            if data_obj != "event":
+                failures.append(f"{path.name}: data_object={data_obj!r}")
+        assert not failures, "The following event model files have wrong data_object (expected 'event'):\n" + "\n".join(failures)
+
+
+##endregion
+
+
+##region Tests — DQL multi-line string serialisation (Bug 2)
+
+
+class TestDqlQueryStringFormatting:
+    r"""Verify DQL query_string values are serialised as block literals without extra blank lines.
+
+    Bug: PyYAML's default string representer wraps multi-line strings in flow-style
+    single-quoted scalars with embedded \n characters.  The rendered output gains an
+    extra blank line after every DQL pipe stage because the block literal's trailing
+    newline is reproduced literally in the flow scalar.
+
+    Fix: _IndentedDumper overrides represent_str to use YAML block literal style (|)
+    for any string containing a newline.
+    """
+
+    def test_indented_dumper_uses_block_literal_for_multiline(self):
+        """_IndentedDumper.represent_str uses block-literal style for multi-line strings."""
+        import io
+
+        data = {"query_string": "fetch logs\n| filter db.system == 'snowflake'\n| limit 10\n"}
+        stream = io.StringIO()
+        yaml.dump(data, stream, Dumper=_IndentedDumper, default_flow_style=False, allow_unicode=True)
+        output = stream.getvalue()
+        # Block literal marker must be present
+        assert "query_string: |" in output, f"Expected block literal style for multi-line string, got:\n{output}"
+        # Must NOT contain flow-style single-quoted value on one line
+        assert "query_string: '" not in output, f"Must not use flow-style single-quoted string, got:\n{output}"
+
+    def test_indented_dumper_no_consecutive_blank_lines_in_dql(self):
+        """Rendered DQL query_string values must not contain consecutive blank lines."""
+        import io
+
+        query = 'fetch logs\n| filter db.system == "snowflake"\n| sort timestamp desc\n| limit 100\n'
+        data = {"dql_queries": [{"query_string": query, "description": "Test query.", "internal": False}]}
+        stream = io.StringIO()
+        yaml.dump(data, stream, Dumper=_IndentedDumper, default_flow_style=False, allow_unicode=True)
+        output = stream.getvalue()
+        # Two or more consecutive blank lines within the rendered YAML indicate the bug
+        assert "\n\n\n" not in output, f"Generated YAML contains consecutive blank lines (extra blank line bug):\n{output}"
+
+    def test_single_line_strings_are_not_affected(self):
+        """Single-line strings must NOT use block literal style."""
+        import io
+
+        data = {"title": "Simple one-liner"}
+        stream = io.StringIO()
+        yaml.dump(data, stream, Dumper=_IndentedDumper, default_flow_style=False, allow_unicode=True)
+        output = stream.getvalue()
+        assert "title: Simple one-liner\n" in output, f"Single-line string should be plain scalar, got:\n{output}"
+
+    def test_generated_event_yaml_no_consecutive_blank_lines(self):
+        """Generated dsoa.events.*.yaml files must not contain consecutive blank lines inside DQL blocks."""
+        semdict_dir = REPO_ROOT / "build" / "_semdict" / "source" / "model" / "dsoa"
+        if not semdict_dir.exists():
+            pytest.skip("Semdict output dir not found — run build_semantic_export.sh first")
+        event_files = list(semdict_dir.glob("dsoa.events.*.yaml"))
+        assert event_files, "No dsoa.events.*.yaml files found in semdict output"
+        failures = []
+        for path in sorted(event_files):
+            content = path.read_text(encoding="utf-8")
+            if "\n\n\n" in content:
+                failures.append(f"{path.name}: contains consecutive blank lines (triple-newline)")
+        assert not failures, "The following event model files contain consecutive blank lines inside DQL blocks:\n" + "\n".join(failures)
+
+    def test_generated_log_yaml_no_consecutive_blank_lines(self):
+        """Generated dsoa.logs.*.yaml files must not contain consecutive blank lines inside DQL blocks."""
+        semdict_dir = REPO_ROOT / "build" / "_semdict" / "source" / "model" / "dsoa"
+        if not semdict_dir.exists():
+            pytest.skip("Semdict output dir not found — run build_semantic_export.sh first")
+        log_files = list(semdict_dir.glob("dsoa.logs.*.yaml"))
+        if not log_files:
+            pytest.skip("No dsoa.logs.*.yaml files found in semdict output")
+        failures = []
+        for path in sorted(log_files):
+            content = path.read_text(encoding="utf-8")
+            if "\n\n\n" in content:
+                failures.append(f"{path.name}: contains consecutive blank lines (triple-newline)")
+        assert not failures, "The following log model files contain consecutive blank lines inside DQL blocks:\n" + "\n".join(failures)
 
 
 ##endregion
