@@ -19,16 +19,17 @@ attributes:
   error.code:
     __semdict: new
     __semdict_note: >-
-      DSOA-specific string error code for Snowflake Trust Center scanner failures. Not the same as
-      the Dynatrace SD error.code field (type: long for iOS/mobile numeric codes). Pending rename
-      to snowflake.trust_center.error.code for namespace clarity.
+      DSOA-specific string error code for Snowflake Trust Center scanner failures. Not the same as the Dynatrace SD error.code field (type:
+      long for iOS/mobile numeric codes). Pending rename to snowflake.trust_center.error.code for namespace clarity.
     __example: ERR001
     __description: The error code associated with the scanner, if any.
   event.id:
-    __example: event123
+    __example: 13825839647097210
+    __type: long
     __description: A unique identifier for the security event.
   event.kind:
     __example: SECURITY_EVENT
+    __type: string
     __description: The kind of event, in this case, 'SECURITY_EVENT'.
   snowflake.entity.details:
     __stability: stable
@@ -56,14 +57,15 @@ attributes:
   status.message:
     __semdict: new
     __semdict_note: >-
-      DSOA-specific field repurposed to carry Trust Center scanner identification information.
-      Not present in OTel semconv or the Dynatrace Semantic Dictionary as a global field.
+      DSOA-specific field repurposed to carry Trust Center scanner identification information. Not present in OTel semconv or the Dynatrace
+      Semantic Dictionary as a global field.
     __example: 2.4 Ensure monitoring and alerting exist for password sign-in without MFA
     __description: The name and description of the scanner, providing additional details about the status.
 dimensions:
   event.category:
     __stability: stable
     __example: Warning
+    __type: string
     __description: The category of the event, such as 'Warning' or 'Vulnerability management', based on the severity.
   snowflake.trust_center.scanner.id:
     __stability: stable

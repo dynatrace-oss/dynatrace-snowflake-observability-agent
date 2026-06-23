@@ -70,13 +70,13 @@ attributes:
     __stability: stable
     __semdict: new
     __semdict_note: "Fully proprietary; no OTel analog."
-    __example: user_view
-    __type: string
+    __example: ["user_view"]
+    __type: string[]
     __description: The views involved in the query.
   event.id:
     __semdict: ref
-    __example: login123
-    __type: string
+    __example: 13825839647097210
+    __type: long
     __description: The login event ID associated with the query.
   session.id:
     __semdict: otel-only

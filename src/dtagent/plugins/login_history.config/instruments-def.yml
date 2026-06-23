@@ -33,6 +33,7 @@ attributes:
       - login_history
     __description: Human-readable description of the login event, providing additional context about the outcome.
     __example: "Failed login attempt for user JOHN.DOE from 192.168.1.100."
+    __type: string
     __semdict: new
   authentication.factor.first:
     __stability: stable
@@ -81,6 +82,7 @@ attributes:
     __context_names:
       - sessions
     __example: build123
+    __type: string
     __description: The build ID of the client application.
   client.environment:
     __stability: stable
@@ -89,6 +91,7 @@ attributes:
     __context_names:
       - sessions
     __example: PRODUCTION
+    __type: string
     __description: The environment of the client application.
   client.version:
     __context_names:
@@ -118,12 +121,13 @@ attributes:
     __context_names:
       - login_history
       - sessions
-    __example: "123456789"
+    __example: 13825839647097210
+    __type: long
     __description: A unique identifier for the login attempt or the login event associated with the session.
   event.related_id:
     __context_names:
       - login_history
-    __example: "987654321"
+    __example: 987654321
     __description: An identifier for a related event, if applicable.
   session.id:
     __semdict: otel-only
@@ -204,6 +208,7 @@ dimensions:
     __context_names:
       - login_history
     __example: LOGIN
+    __type: string
     __description: |
       The type of event that occurred, such as:
       - LOGIN,
