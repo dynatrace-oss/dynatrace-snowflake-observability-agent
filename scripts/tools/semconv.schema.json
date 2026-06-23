@@ -1,0 +1,1358 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "description": "YAML schema for semantic convention generator, use for example with VS Code.",
+  "additionalProperties": false,
+  "properties": {
+    "model": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/definitions/Model"
+        }
+      ]
+    },
+    "model_group": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/definitions/ModelGroup"
+        }
+      ]
+    },
+    "groups": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "allOf": [
+          {
+            "$ref": "#/conditions/ResourceCondition"
+          },
+          {
+            "$ref": "#/conditions/ScopeCondition"
+          },
+          {
+            "$ref": "#/conditions/AttributeGroupCondition"
+          },
+          {
+            "$ref": "#/conditions/RelationshipCondition"
+          },
+          {
+            "$ref": "#/conditions/InterfaceCondition"
+          },
+          {
+            "$ref": "#/conditions/SpanCondition"
+          },
+          {
+            "$ref": "#/conditions/EventCondition"
+          },
+          {
+            "$ref": "#/conditions/UnitsCondition"
+          },
+          {
+            "$ref": "#/conditions/MetricCondition"
+          },
+          {
+            "$ref": "#/conditions/MetricGroupCondition"
+          },
+          {
+            "$ref": "#/conditions/SmartscapeEdgeTypeCondition"
+          },
+          {
+            "$ref": "#/conditions/DefaultCondition"
+          },
+          {
+            "$ref": "#/conditions/SmartscapeEdgesCondition"
+          }
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "span",
+              "resource",
+              "metric",
+              "metric_group",
+              "event",
+              "scope",
+              "attribute_group",
+              "relationship",
+              "interface",
+              "units",
+              "smartscape_edge_type",
+              "smartscape_edge"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "Model": {
+      "type": "object",
+      "required": [
+        "id",
+        "title",
+        "data_object",
+        "model_group_id",
+        "groups"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The Model id."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title of the Model."
+        },
+        "brief": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The description/brief of the Model."
+        },
+        "internal_brief": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Internal brief description of the model. Optional property for internal documentation purposes."
+        },
+        "internal": {
+          "type": "boolean",
+          "description": "labels the Model as internal, and therefore will not be used in the public documentation and .json file"
+        },
+        "data_object": {
+          "type": "string",
+          "description": "The corresponding data object (table/view) of the Model."
+        },
+        "model_group_id": {
+          "type": "string",
+          "description": "The parent of the Model called ModelGroup (id)."
+        },
+        "dql_queries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DqlQuery"
+          },
+          "description": "List of DQL queries and additional information like description, description_copilot & internal that belongs to a Model."
+        },
+        "classic_model": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "The id of the old model(s)."
+        },
+        "interfaces": {
+          "type": "array",
+          "description": "A list of reference to groups of type `interface`."
+        },
+        "smartscape_id_inputs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Ordered list of attribute ids from Global Fields used as smartscape ID inputs."
+        },
+        "smartscape_node_name": {
+          "type": "string",
+          "description": "Node name for smartscape --> reference to a global field."
+        },
+        "smartscape_node_type": {
+          "type": "string",
+          "description": "Node type for smartscape."
+        },
+        "groups": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/conditions/ResourceCondition"
+              },
+              {
+                "$ref": "#/conditions/ScopeCondition"
+              },
+              {
+                "$ref": "#/conditions/AttributeGroupCondition"
+              },
+              {
+                "$ref": "#/conditions/RelationshipCondition"
+              },
+              {
+                "$ref": "#/conditions/InterfaceCondition"
+              },
+              {
+                "$ref": "#/conditions/SpanCondition"
+              },
+              {
+                "$ref": "#/conditions/EventCondition"
+              },
+              {
+                "$ref": "#/conditions/UnitsCondition"
+              },
+              {
+                "$ref": "#/conditions/MetricCondition"
+              },
+              {
+                "$ref": "#/conditions/MetricGroupCondition"
+              },
+              {
+                "$ref": "#/conditions/SmartscapeEdgeTypeCondition"
+              },
+              {
+                "$ref": "#/conditions/DefaultCondition"
+              },
+              {
+                "$ref": "#/conditions/SmartscapeEdgesCondition"
+              }
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "span",
+                  "resource",
+                  "metric",
+                  "metric_group",
+                  "event",
+                  "scope",
+                  "attribute_group",
+                  "relationship",
+                  "interface",
+                  "units",
+                  "smartscape_edge_type",
+                  "smartscape_edge"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "ModelGroup": {
+      "type": "object",
+      "required": [
+        "id",
+        "title",
+        "brief"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The ModelGroup id."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title of the ModelGroup."
+        },
+        "brief": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The description/brief of the ModelGroup."
+        },
+        "internal_brief": {
+          "type": "string",
+          "minLength": 1
+        },
+        "internal": {
+          "type": "boolean",
+          "description": "labels the Model Group as internal, and therefore will not be used in the public documentation and .json file (An internal ModelGroup will also exclude all Models that have this ModelGroup id assigned)."
+        },
+        "parent_model_group_id": {
+          "type": "string",
+          "description": "The id of the parent ModelGroup for sub-model-group hierarchy. When set, this ModelGroup becomes a sub-model-group of the referenced parent."
+        },
+        "dql_queries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DqlQuery"
+          },
+          "description": "List of DQL queries and additional information like description, description_copilot & internal that belongs to this ModelGroup."
+        },
+        "groups": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/conditions/ResourceCondition"
+              },
+              {
+                "$ref": "#/conditions/ScopeCondition"
+              },
+              {
+                "$ref": "#/conditions/AttributeGroupCondition"
+              },
+              {
+                "$ref": "#/conditions/RelationshipCondition"
+              },
+              {
+                "$ref": "#/conditions/InterfaceCondition"
+              },
+              {
+                "$ref": "#/conditions/SpanCondition"
+              },
+              {
+                "$ref": "#/conditions/EventCondition"
+              },
+              {
+                "$ref": "#/conditions/UnitsCondition"
+              },
+              {
+                "$ref": "#/conditions/MetricCondition"
+              },
+              {
+                "$ref": "#/conditions/MetricGroupCondition"
+              },
+              {
+                "$ref": "#/conditions/SmartscapeEdgeTypeCondition"
+              },
+              {
+                "$ref": "#/conditions/DefaultCondition"
+              },
+              {
+                "$ref": "#/conditions/SmartscapeEdgesCondition"
+              }
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "span",
+                  "resource",
+                  "metric",
+                  "metric_group",
+                  "event",
+                  "scope",
+                  "attribute_group",
+                  "relationship",
+                  "interface",
+                  "units",
+                  "smartscape_edge_type",
+                  "smartscape_edge"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "SemanticConventionBase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title"
+      ],
+      "anyOf": [
+              {
+                "required": [
+                  "attributes"
+                ]
+              },
+              {
+                "required": [
+                  "extends"
+                ]
+              }
+        ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "unique string"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The title of the Group."
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "span",
+            "resource",
+            "metric",
+            "metric_group",
+            "event",
+            "scope",
+            "attribute_group",
+            "relationship",
+            "interface",
+            "units",
+            "smartscape_edge_type",
+            "smartscape_edge"
+          ],
+          "description": "The (signal) type of the semantic convention"
+        },
+        "brief": {
+          "type": "string",
+          "minLength": 1,
+          "description": "a brief description of the semantic convention"
+        },
+        "internal_brief": {
+          "type": "string",
+          "minLength": 1,
+          "description": "internal brief description of the semantic convention. Optional property for internal documentation purposes."
+        },
+        "internal": {
+          "type": "boolean",
+          "description": "labels the group as internal, and therefore will not be used in the public documentation and not available in certain artifacts."
+        },
+        "note": {
+          "type": "string",
+          "description": "a more elaborate description of the semantic convention. It defaults to an empty string"
+        },
+        "extends": {
+          "type": "string",
+          "description": "reference another semantic convention ID. It inherits all attributes from the specified semconv."
+        },
+        "attributes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Attribute"
+          },
+          "description": "list of attributes that belong to the semconv"
+        },
+        "constraints": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "any_of"
+                ],
+                "properties": {
+                  "any_of": {
+                    "type": "array",
+                    "description": " accepts a list of sequences. Each sequence contains a list of attribute ids that are required. any_of enforces that all attributes of at least one of the sequences are set.",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        {
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "include"
+                ],
+                "properties": {
+                  "include": {
+                    "type": "string",
+                    "description": "accepts a semantic conventions id. It includes as part of this semantic convention all constraints and required attributes that are not already defined in the current semantic convention."
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    "SpanSemanticConvention": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/SemanticConventionBase"
+        }
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "span"
+        },
+        "span_kind": {
+          "type": "string",
+          "enum": [
+            "client",
+            "server",
+            "producer",
+            "consumer",
+            "internal"
+          ],
+          "description": "specifies the kind of the span. Leaf semconv nodes (in the hierarchy tree) that do not have this field set will generate a warning."
+        },
+        "events": {
+          "type": "array"
+        }
+      }
+    },
+    "EventSemanticConvention": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/SemanticConventionBase"
+        },
+        {
+          "type": "object",
+          "allOf": [
+            {
+              "required": [
+                "name"
+              ]
+            }
+          ]
+        }
+      ],
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the event."
+        }
+      }
+    },
+    "RelationshipSemanticConvention": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/SemanticConventionBase"
+        }
+      ]
+    },
+    "MetricGroupSemanticConvention": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/SemanticConventionBase"
+        }
+      ]
+    },
+    "MetricSemanticConvention": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/SemanticConventionBase"
+        }
+      ],
+      "required": [
+        "metric_name",
+        "unit",
+        "instrument"
+      ],
+      "properties": {
+        "instrument": {
+          "type": "string",
+          "description": "The instrument used to record the metric.",
+          "enum": [
+            "counter",
+            "gauge",
+            "histogram",
+            "updowncounter",
+            "cardinality"
+          ]
+        },
+        "metric_name": {
+          "type": "string",
+          "description": "The name of the metric."
+        },
+        "unit": {
+          "type": "string",
+          "description": "The unit in which the metric is measured in."
+        }
+      }
+    },
+    "ScopeSemanticConvention": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/SemanticConventionBase"
+        }
+      ]
+    },
+    "AttributeGroupConvention": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/SemanticConventionBase"
+        }
+      ]
+    },
+    "ResourceSemanticConvention": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/SemanticConventionBase"
+        }
+      ]
+    },
+    "InterfaceSemanticConvention": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/SemanticConventionBase"
+        },
+        {
+          "type": "object",
+          "required": [
+            "attributes"
+          ],
+          "propertyNames": {
+            "not": {
+              "enum": [
+                "constraints",
+                "extends"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "SmartscapeEdgeTypeSemanticConvention": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "attributes"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "unique string"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The title of the smartscape edge type group."
+        },
+        "type": {
+          "type": "string",
+          "const": "smartscape_edge_type"
+        },
+        "brief": {
+          "type": "string",
+          "description": "a brief description of the smartscape edge type group"
+        },
+        "internal_brief": {
+          "type": "string",
+          "minLength": 1,
+          "description": "internal brief description. Optional property for internal documentation purposes."
+        },
+        "attributes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SmartscapeEdgeAttribute"
+          },
+          "description": "list of smartscape edge attributes that belong to this group"
+        }
+      }
+    },
+    "SmartscapeEdgeAttribute": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "brief"
+      ],
+      "anyOf": [
+        { "required": ["stability"] },
+        { "required": ["deprecated"] }
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "unique string"
+        },
+        "stability": {
+          "type": "string",
+          "enum": [
+            "stable",
+            "experimental",
+            "deprecated"
+          ]
+        },
+        "deprecated": {
+          "type": "string",
+          "description": "specifies if the attribute is deprecated."
+        },
+        "brief": {
+          "type": "string",
+          "description": "brief description of the attribute."
+        },
+        "internal_brief": {
+          "type": "string",
+          "description": "A brief description, only for the internal documentation"
+        },
+        "internal": {
+          "type": "boolean",
+          "description": "labels the attribute as internal"
+        },
+        "display_name": {
+          "type": "string",
+          "description": "A more readable or descriptive name for display purposes"
+        },
+        "code_constant_name": {
+          "type": "string",
+          "description": "specifies the name of code constant in the generated code libraries."
+        }
+      }
+    },
+    "UnitSemanticConvention": {
+      "properties": {
+        "members": {
+          "type": "array"
+        }
+      },
+      "allOf": [
+        {
+          "$ref": "#/definitions/SemanticConventionBase"
+        },
+        {
+          "not": {
+            "allOf": [
+              {
+                "required": [
+                  "attributes"
+                ]
+              },
+              {
+                "required": [
+                  "extends"
+                ]
+              }
+            ]
+          }
+        },
+        {
+        "propertyNames": {
+          "not": {
+            "enum": [
+              "note",
+              "extends",
+              "attributes",
+              "constraints"
+            ]
+          }
+        }
+        }
+      ]
+    },
+    "SmartscapeEdgeSemanticConvention": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "edges"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "unique string"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The title of the smartscape edges group."
+        },
+        "type": {
+          "type": "string",
+          "const": "smartscape_edge"
+        },
+        "brief": {
+          "type": "string",
+          "description": "A brief description of the smartscape edges group."
+        },
+        "internal_brief": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Internal brief description."
+        },
+        "note": {
+          "type": "string",
+          "description": "A more elaborate description."
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SmartscapeEdge"
+          },
+          "description": "List of smartscape edge definitions."
+        }
+      }
+    },
+    "SmartscapeEdge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "edge_type",
+        "target_type",
+        "edge_kind"
+      ],
+      "properties": {
+        "edge_type": {
+          "type": "string",
+          "description": "Reference to an attribute id of a smartscape_edge_type group."
+        },
+        "target_type": {
+          "type": "string",
+          "description": "The id of a model that has a smartscape_node_type defined."
+        },
+        "edge_kind": {
+          "type": "string",
+          "enum": [
+            "static",
+            "dynamic"
+          ],
+          "description": "The kind of the edge - static or dynamic."
+        },
+        "stability": {
+          "type": "string",
+          "enum": [
+            "stable",
+            "experimental",
+            "deprecated"
+          ],
+          "description": "Override of the stability level."
+        },
+        "brief": {
+          "type": "string",
+          "description": "Override of the brief description."
+        },
+        "internal": {
+          "type": "boolean",
+          "description": "Labels the edge as internal."
+        },
+        "internal_brief": {
+          "type": "string",
+          "description": "Internal brief description override."
+        },
+        "deprecated": {
+          "type": "string",
+          "description": "Override of the deprecated description."
+        }
+      }
+    },
+    "SemanticConvention": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/SemanticConventionBase"
+        }
+      ],
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "not": {
+            "enum": [
+              "span",
+              "event"
+            ]
+          }
+        }
+      }
+    },
+    "AttributeEnumType": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "allow_custom_values": {
+          "type": "boolean"
+        },
+        "members": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "value"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "string unique"
+              },
+              "value": {
+                "type": [
+                  "string",
+                  "number"
+                ],
+                "description": "string or number, value of the enum entry."
+              },
+              "brief": {
+                "type": "string",
+                "description": "brief description of the enum entry value. It defaults to the value of ID."
+              },
+              "note": {
+                "type": "string",
+                "description": "longer description. It defaults to an empty string."
+              },
+              "display_name": {
+                "type": "string",
+                "description": "A more readable or descriptive name for display purposes"
+              }
+            }
+          }
+        }
+      }
+    },
+    "AttributeFullSpec": {
+      "required": [
+        "id",
+        "type"
+      ],
+      "anyOf": [
+        { "required": ["stability"] },
+        { "required": ["deprecated"] }
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "unique string"
+        },
+        "type": {
+          "oneOf": [
+            {
+              "type": "string",
+              "enum": [
+                "string",
+                "double",
+                "boolean",
+                "string[]",
+                "double[]",
+                "boolean[]",
+                "long",
+                "timestamp",
+                "duration",
+                "ipAddress",
+                "array",
+                "record",
+                "smartscapeId",
+                "long[]",
+                "timestamp[]",
+                "duration[]",
+                "ipAddress[]",
+                "record[]",
+                "smartscapeId[]"
+              ],
+              "description": "literal denoting the type"
+            },
+            {
+              "$ref": "#/definitions/AttributeEnumType"
+            }
+          ]
+        },
+        "stability": {
+          "type": "string",
+          "enum": [
+            "stable",
+            "experimental",
+            "deprecated"
+          ]
+        }
+      }
+    },
+    "AttributeReference": {
+      "type": "object",
+      "required": [
+        "ref"
+      ],
+      "properties": {
+        "ref": {
+          "type": "string",
+          "description": "reference an existing attribute"
+        }
+      }
+    },
+    "ValueType": {
+      "oneOf": [
+        {
+          "type": [
+            "string",
+            "boolean",
+            "number"
+          ]
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": [
+              "boolean",
+              "number",
+              "string"
+            ]
+          }
+        }
+      ]
+    },
+    "Attribute": {
+      "type": "object",
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "properties": {
+            "requirement_level": {
+              "description": "specifies the attribute requirement level. Can be 'required', 'conditionally_required', 'recommended', or 'opt_in'. When omitted, the attribute is 'recommended'. When set to 'conditionally_required', the string provided as <condition> MUST specify the conditions under which the attribute is required.",
+              "oneOf": [
+                {
+                  "const": "required"
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "conditionally_required"
+                  ],
+                  "properties": {
+                    "condition": {
+                      "type": "string"
+                    }
+                  }
+                },
+                {
+                  "oneOf": [
+                    {
+                      "const": "recommended"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "recommended"
+                      ],
+                      "properties": {
+                        "recommended": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "const": "opt_in"
+                }
+              ]
+            },
+            "sampling_relevant": {
+              "type": "boolean",
+              "description": "specifies if it is relevant for sampling. It defaults to false.",
+              "default": false
+            },
+            "brief": {
+              "type": "string",
+              "description": "brief description of the attribute."
+            },
+            "internal_brief": {
+              "type": "string",
+              "description": "A brief description, only for the internal documentation"
+            },
+            "note": {
+              "type": "string",
+              "description": "additional notes to the attribute. It defaults to an empty string."
+            },
+            "examples": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ValueType"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/definitions/ValueType"
+                  }
+                }
+              ],
+              "description": "sequence/dictionary of example values for the attribute. They are optional for boolean, long, double, and enum attributes. Example values must be of the same type of the attribute. If only a single example is provided, it can directly be reported without encapsulating it into a sequence/dictionary."
+            },
+            "deprecated": {
+              "type": "string",
+              "description": "specifies if the attribute is deprecated. The string provided as <description> MUST specify why it's deprecated and/or what to use instead."
+            },
+            "tags": {
+              "type": "array",
+              "description": "labels the attribute with one or multiple tags."
+            },
+            "classic_field": {
+              "type": "string",
+              "description": "labels the attribute with an existing attribute. This attribute is used to document migrations of fields and models."
+            },
+            "code_constant_name": {
+              "type": "string",
+              "description": "specifies the name of code constant in the generated code libraries. If the property is not present, the constant name is created based on the identifier of the attribute."
+            },
+            "relationships": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Relationship"
+              },
+              "description": "list of relationships that belong to a model (id), based of an relationship attr (RelationshipSemanticConvention)"
+            },
+            "internal": {
+              "type": "boolean",
+              "description": "labels the attribute as internal, and therefore will not be used in the public documentation and Davis CoPilot .json file"
+            },
+            "display_name": {
+              "type": "string",
+              "description": "A more readable or descriptive name for display purposes"
+            },
+            "stability": {
+              "type": "string",
+              "enum": [
+                "stable",
+                "experimental",
+                "deprecated"
+              ]
+            },
+            "unit": {
+              "type": "string",
+              "description": "The unit in which the attribute is measured in."
+            }
+          }
+        },
+        {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/AttributeFullSpec"
+            },
+            {
+              "$ref": "#/definitions/AttributeReference"
+            }
+          ]
+        }
+      ]
+    },
+    "DqlQuery": {
+      "type": "object",
+      "required": [
+        "query_string",
+        "description"
+      ],
+      "properties": {
+        "query_string": {
+          "type": "string",
+          "description": "A DQL query"
+        },
+        "description": {
+          "type": "string",
+          "description": "The description for the DQL query."
+        },
+        "description_copilot": {
+          "type": "string",
+          "description": "A description dedicated to the Davis CoPilot."
+        },
+        "internal": {
+          "type": "boolean",
+          "description": "An internal flag, to determine if the DQL query should not be rendered to the public documentation."
+        }
+      }
+    },
+    "Relationship": {
+      "type": "object",
+      "required": [
+        "id",
+        "type"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Refers to an existing model id."
+        },
+        "type": {
+          "type": "string",
+          "description": "Uses an existing Grail data type."
+        }
+      }
+    }
+  },
+  "conditions": {
+    "ResourceCondition": {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "resource"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "$ref": "#/definitions/ResourceSemanticConvention"
+      }
+    },
+    "ScopeCondition": {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "scope"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "$ref": "#/definitions/ScopeSemanticConvention"
+      }
+    },
+    "AttributeGroupCondition": {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "attribute_group"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "$ref": "#/definitions/AttributeGroupConvention"
+      }
+    },
+    "RelationshipCondition": {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "relationship"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "$ref": "#/definitions/RelationshipSemanticConvention"
+      }
+    },
+    "InterfaceCondition": {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "interface"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "$ref": "#/definitions/InterfaceSemanticConvention"
+      }
+    },
+    "SpanCondition": {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "span"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "$ref": "#/definitions/SpanSemanticConvention"
+      }
+    },
+    "DefaultCondition": {
+      "if": {
+        "not": {
+          "required": [
+            "type"
+          ]
+        }
+      },
+      "then": {
+        "$ref": "#/definitions/SpanSemanticConvention"
+      }
+    },
+    "EventCondition": {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "event"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "$ref": "#/definitions/EventSemanticConvention"
+      }
+    },
+    "UnitsCondition": {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "units"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "$ref": "#/definitions/UnitSemanticConvention"
+      }
+    },
+    "MetricCondition": {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "metric"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "$ref": "#/definitions/MetricSemanticConvention"
+      }
+    },
+    "MetricGroupCondition": {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "metric_group"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "$ref": "#/definitions/MetricGroupSemanticConvention"
+      }
+    },
+    "SmartscapeEdgeTypeCondition": {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "smartscape_edge_type"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "$ref": "#/definitions/SmartscapeEdgeTypeSemanticConvention"
+      }
+    },
+    "SmartscapeEdgesCondition": {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "smartscape_edge"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "$ref": "#/definitions/SmartscapeEdgeSemanticConvention"
+      }
+    }
+  }
+}
