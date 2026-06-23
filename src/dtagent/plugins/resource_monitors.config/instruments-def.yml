@@ -46,6 +46,7 @@ attributes:
     __example: 85.0
     __description: Live percentage of quota consumed at the time of threshold event emission.
   snowflake.resource_monitor.frequency:
+    __type: string
     __stability: stable
     __field_type: resource
     __example: DAILY
@@ -76,6 +77,7 @@ attributes:
     __example: true
     __description: Indicates if the resource monitor is active.
   snowflake.resource_monitor.level:
+    __type: string
     __field_type: resource
     __example: ACCOUNT
     __description: The level of the resource monitor.
@@ -107,6 +109,7 @@ attributes:
     __example: 80.0
     __description: The specific threshold percentage value that was crossed to trigger the event.
   snowflake.warehouse.execution_state:
+    __type: string
     __stability: stable
     __field_type: resource
     __example: RUNNING
@@ -170,6 +173,7 @@ attributes:
     __example: SYSADMIN
     __description: The role type of the warehouse owner.
   snowflake.warehouse.scaling_policy:
+    __type: string
     __stability: stable
     __field_type: resource
     __example: STANDARD
@@ -186,6 +190,7 @@ attributes:
           value: ECONOMY
           brief: Economy scaling policy (slower to scale up, saves credits).
   snowflake.warehouse.size:
+    __type: string
     __stability: stable
     __field_type: resource
     __example: X-SMALL
@@ -224,6 +229,7 @@ attributes:
           value: 6X-LARGE
           brief: 512 credits/hour; largest available size, generally available on AWS and Azure.
   snowflake.warehouse.type:
+    __type: string
     __stability: stable
     __field_type: resource
     __example: STANDARD

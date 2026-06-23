@@ -54,6 +54,7 @@ attributes:
       The .count suffix is deliberately preserved. Sibling metrics snowflake.warehouse.clusters.min, .max, and .started exist in the same
       namespace; using the bare plural snowflake.warehouse.clusters as a scalar would be ambiguous alongside them.
   snowflake.warehouse.event.reason:
+    __type: string
     __context_names:
       - warehouse_usage
     __example: USER_REQUEST
@@ -85,6 +86,7 @@ attributes:
     __example: wh123
     __description: The unique identifier for the warehouse.
   snowflake.warehouse.size:
+    __type: string
     __stability: stable
     __field_type: resource
     __context_names:
@@ -126,6 +128,7 @@ attributes:
           brief: 512 credits/hour; largest available size, generally available on AWS and Azure.
 dimensions:
   snowflake.warehouse.event.name:
+    __type: string
     __stability: stable
     __field_type: signal
     __context_names:
@@ -160,6 +163,7 @@ dimensions:
           value: WAREHOUSE_CONSISTENT
           brief: All pending state changes for the warehouse have settled; emitted as the final event in a multi-step operation sequence.
   snowflake.warehouse.event.state:
+    __type: string
     __stability: stable
     __field_type: signal
     __context_names:

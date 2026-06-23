@@ -121,6 +121,7 @@ attributes:
       backward-compatible behavior. May be refactored into a dedicated plugin in a future
       release.
   snowflake.object.type:
+    __type: string
     __stability: stable
     __example: Table
     __description: |
@@ -168,6 +169,7 @@ attributes:
       Does not apply to warehouse or resource-monitor DDL — use `db.operation.name` for
       warehouse change detection.
   snowflake.object.ddl.operation:
+    __type: string
     __stability: stable
     __example: ALTER
     __description: |
@@ -253,6 +255,7 @@ attributes:
       Object that contains the estimated query execution time in seconds for different query acceleration scale factors. If the status for
       the query is not eligible for query acceleration, this object is empty.
   snowflake.query.accel_est.status:
+    __type: string
     __stability: stable
     __example: eligible
     __description: >-
@@ -413,6 +416,7 @@ attributes:
     __example: wh123
     __description: The unique identifier of the warehouse used.
   snowflake.warehouse.size:
+    __type: string
     __stability: stable
     __example: X-SMALL
     __description: The size of the warehouse used.
@@ -450,6 +454,7 @@ attributes:
           value: 6X-LARGE
           brief: 512 credits/hour; largest available size, generally available on AWS and Azure.
   snowflake.warehouse.type:
+    __type: string
     __stability: stable
     __example: STANDARD
     __description: The type of warehouse used.
@@ -589,6 +594,7 @@ dimensions:
     __example: COMPUTE_WH
     __description: The warehouse used to execute the query.
   snowflake.user.type:
+    __type: string
     __stability: stable
     __example: PERSON
     __description: >-

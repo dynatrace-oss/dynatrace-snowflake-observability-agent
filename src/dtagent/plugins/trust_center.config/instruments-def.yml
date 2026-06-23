@@ -77,6 +77,7 @@ dimensions:
     __example: CIS Benchmarks
     __description: The type of scanner used in the Trust Center, such as 'CIS Benchmarks' or 'Threat Intelligence'.
   vulnerability.risk.level:
+    __type: string
     __stability: stable
     __example: HIGH
     __description: The risk level of the vulnerability as reported by Snowflake Trust Center.

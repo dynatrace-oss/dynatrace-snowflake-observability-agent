@@ -160,6 +160,7 @@ attributes:
     __example: "snowflake.credits.quota.used_pct"
     __type: string
   ad.direction:
+    __type: string
     __semdict: new
     __description: >-
       Direction of the anomaly relative to the baseline. 'above' indicates the metric exceeded the expected upper bound; 'below' indicates a

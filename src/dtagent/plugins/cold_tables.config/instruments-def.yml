@@ -49,6 +49,7 @@ dimensions:
     __example: ANALYTICS_DB.PUBLIC.ORDERS
     __description: Fully qualified table name (catalog.schema.table).
   snowflake.table.cold_status:
+    __type: string
     __stability: stable
     __context_names: ["cold_tables"]
     __example: cold

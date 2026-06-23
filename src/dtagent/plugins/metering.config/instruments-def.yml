@@ -22,6 +22,7 @@
 
 dimensions:
   snowflake.service.type:
+    __type: string
     __stability: stable
     __context_names: ["metering"]
     __example: AUTO_CLUSTERING

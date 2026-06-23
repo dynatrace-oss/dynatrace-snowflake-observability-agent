@@ -69,6 +69,7 @@ attributes:
     __example: "s3://my-bucket/data/"
     __description: Stage location (ACCOUNT_USAGE view-only).
   snowflake.copy.status:
+    __type: string
     __context_names:
       - snowpipes_copy_history
     __example: LOADED

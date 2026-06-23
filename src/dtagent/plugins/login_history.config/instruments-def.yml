@@ -111,6 +111,7 @@ attributes:
     __context_names:
       - login_history
     __example: ERR001
+
     __description: A code identifying the type of error that occurred.
   event.id:
     __semdict: ref
@@ -146,6 +147,7 @@ attributes:
     __example: "1633046400000000000"
     __description: The start time of the session.
   status.code:
+    __type: string
     __semdict: new
     __semdict_note: >-
       In DSOA, emitted for Snowflake login events only (OK = successful login, ERROR = failed login). Not present in OTel semconv or the

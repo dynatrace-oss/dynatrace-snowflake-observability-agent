@@ -27,6 +27,7 @@ dimensions:
     __example: analytics_db
     __description: The name of the database that contains the table.
   snowflake.table.type:
+    __type: string
     __stability: stable
     __example: BASE TABLE
     __description: |

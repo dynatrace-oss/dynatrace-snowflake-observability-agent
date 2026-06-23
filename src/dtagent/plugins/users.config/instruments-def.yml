@@ -183,6 +183,7 @@ attributes:
       - users
     __description: The role that owns the user account.
   snowflake.user.type:
+    __type: string
     __stability: stable
     __example: LEGACY_SERVICE
     __context_names:

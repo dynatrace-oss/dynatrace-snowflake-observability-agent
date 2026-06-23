@@ -116,6 +116,7 @@ attributes:
       Description of the current state of the refresh. If the LAST_COMPLETED_REFRESH_STATE is FAILED, this column shows the error message
       associated with the failure.
   snowflake.table.dynamic.latest.state:
+    __type: string
     __context_names:
       - dynamic_tables
     __example: SUCCEEDED
@@ -139,6 +140,7 @@ attributes:
           value: SUSPENDED
           brief: Dynamic table scheduling is suspended.
   snowflake.table.dynamic.refresh.action:
+    __type: string
     __stability: stable
     __context_names:
       - dynamic_table_refresh_history
@@ -204,6 +206,7 @@ attributes:
     __example: "2024-11-25 06:09:54.978 Z"
     __description: Time when the refresh job started.
   snowflake.table.dynamic.refresh.state:
+    __type: string
     __stability: stable
     __context_names:
       - dynamic_table_refresh_history
@@ -231,6 +234,7 @@ attributes:
           value: UPSTREAM_FAILED
           brief: Refresh not performed due to an upstream failed refresh.
   snowflake.table.dynamic.refresh.trigger:
+    __type: string
     __stability: stable
     __context_names:
       - dynamic_table_refresh_history
