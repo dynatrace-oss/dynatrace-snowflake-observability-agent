@@ -1,0 +1,338 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dynatrace.com/snowflake-observability-agent/instruments-def.schema.json",
+  "title": "DSOA instruments-def.yml",
+  "description": "Validates instruments-def.yml files. The __type field is required for all entries; run pytest test/core/test_instruments_def_schema.py to find missing annotations.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "attributes": {
+      "type": "object",
+      "description": "Log/span attribute definitions emitted by this plugin.",
+      "patternProperties": {
+        "^[a-z]": { "$ref": "#/$defs/AttributeDefinition" }
+      }
+    },
+    "dimensions": {
+      "type": "object",
+      "description": "Metric dimension definitions emitted by this plugin.",
+      "patternProperties": {
+        "^[a-z]": { "$ref": "#/$defs/DimensionDefinition" }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "description": "Metric field definitions emitted by this plugin.",
+      "patternProperties": {
+        "^[a-z]": { "$ref": "#/$defs/MetricDefinition" }
+      }
+    },
+    "event_timestamps": {
+      "type": "object",
+      "description": "Event timestamp field definitions used as event anchors by this plugin.",
+      "patternProperties": {
+        "^[a-z]": { "$ref": "#/$defs/EventTimestampDefinition" }
+      }
+    },
+    "dql_queries": {
+      "type": "array",
+      "description": "Example DQL queries illustrating how to query telemetry from this plugin.",
+      "items": { "$ref": "#/$defs/DqlQuery" }
+    }
+  },
+
+  "$defs": {
+
+    "FieldType": {
+      "type": "string",
+      "description": "The Grail/Dynatrace physical data type of the field.",
+      "enum": ["string", "long", "double", "boolean", "array", "string[]"]
+    },
+
+    "Stability": {
+      "type": "string",
+      "description": "Stability level of the field annotation.",
+      "enum": ["stable", "experimental", "deprecated"]
+    },
+
+    "Semdict": {
+      "type": "string",
+      "description": "Semantic Dictionary provenance of this field.",
+      "enum": ["new", "ref", "deprecated-alias", "otel-only"]
+    },
+
+    "FieldTypeAnnotation": {
+      "type": "string",
+      "description": "Whether the field is a resource attribute or a signal attribute.",
+      "enum": ["resource", "signal"]
+    },
+
+    "EnumMember": {
+      "type": "object",
+      "description": "A single member of a closed or open enum.",
+      "required": ["id", "value", "brief"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique snake_case identifier for this member."
+        },
+        "value": {
+          "description": "The emitted string or numeric value of this member."
+        },
+        "brief": {
+          "type": "string",
+          "description": "Short human-readable description of this member."
+        }
+      }
+    },
+
+    "EnumDefinition": {
+      "type": "object",
+      "description": "Closed or open enumeration definition for a categorical field.",
+      "required": ["allow_custom_values", "members"],
+      "additionalProperties": false,
+      "properties": {
+        "allow_custom_values": {
+          "type": "boolean",
+          "description": "If true, values outside the members list are permitted."
+        },
+        "members": {
+          "type": "array",
+          "description": "List of known enum member definitions.",
+          "items": { "$ref": "#/$defs/EnumMember" }
+        }
+      }
+    },
+
+    "DqlQuery": {
+      "type": "object",
+      "description": "An example DQL query with metadata for docs and Davis CoPilot.",
+      "required": ["query_string", "description", "description_copilot", "internal"],
+      "additionalProperties": false,
+      "properties": {
+        "query_string": {
+          "type": "string",
+          "description": "A valid DQL query string."
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable description of what the query does."
+        },
+        "description_copilot": {
+          "type": "string",
+          "description": "Davis CoPilot-optimised description of the query intent."
+        },
+        "internal": {
+          "type": "boolean",
+          "description": "If true, the query is excluded from public documentation."
+        }
+      }
+    },
+
+    "AttributeDefinition": {
+      "type": "object",
+      "description": "Annotation for a log/span attribute field. __type is required.",
+      "required": ["__description", "__example", "__type"],
+      "additionalProperties": false,
+      "properties": {
+        "__type": {
+          "$ref": "#/$defs/FieldType",
+          "description": "Grail physical data type (required for Semantic Dictionary export)."
+        },
+        "__description": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Human-readable description of this field."
+        },
+        "__example": {
+          "description": "One representative example value for this field (any JSON type)."
+        },
+        "__stability": {
+          "$ref": "#/$defs/Stability",
+          "description": "Stability level of this field annotation."
+        },
+        "__semdict": {
+          "$ref": "#/$defs/Semdict",
+          "description": "Semantic Dictionary provenance of this field."
+        },
+        "__semdict_note": {
+          "type": "string",
+          "description": "Free-text note for Semantic Dictionary reviewers."
+        },
+        "__interface_note": {
+          "type": "string",
+          "description": "Short note clarifying how this field is populated."
+        },
+        "__context_names": {
+          "type": "array",
+          "description": "Plugin contexts that emit this field.",
+          "items": { "type": "string" }
+        },
+        "__field_type": {
+          "$ref": "#/$defs/FieldTypeAnnotation",
+          "description": "Whether this is a resource attribute or a signal attribute."
+        },
+        "__is_defined_at_runtime": {
+          "type": "boolean",
+          "description": "True if the field value is determined at agent runtime."
+        },
+        "__enum": {
+          "$ref": "#/$defs/EnumDefinition",
+          "description": "Enumeration definition for categorical fields."
+        }
+      }
+    },
+
+    "DimensionDefinition": {
+      "type": "object",
+      "description": "Annotation for a metric dimension field. __type is required.",
+      "required": ["__description", "__example", "__type"],
+      "additionalProperties": false,
+      "properties": {
+        "__type": {
+          "$ref": "#/$defs/FieldType",
+          "description": "Grail physical data type (required for Semantic Dictionary export)."
+        },
+        "__description": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Human-readable description of this field."
+        },
+        "__example": {
+          "description": "One representative example value for this field (any JSON type)."
+        },
+        "__stability": {
+          "$ref": "#/$defs/Stability",
+          "description": "Stability level of this field annotation."
+        },
+        "__semdict": {
+          "$ref": "#/$defs/Semdict",
+          "description": "Semantic Dictionary provenance of this field."
+        },
+        "__semdict_note": {
+          "type": "string",
+          "description": "Free-text note for Semantic Dictionary reviewers."
+        },
+        "__interface_note": {
+          "type": "string",
+          "description": "Short note clarifying how this field is populated."
+        },
+        "__context_names": {
+          "type": "array",
+          "description": "Plugin contexts that emit this field.",
+          "items": { "type": "string" }
+        },
+        "__field_type": {
+          "$ref": "#/$defs/FieldTypeAnnotation",
+          "description": "Whether this is a resource attribute or a signal attribute."
+        },
+        "__enum": {
+          "$ref": "#/$defs/EnumDefinition",
+          "description": "Enumeration definition for categorical fields."
+        },
+        "__otel_replacement": {
+          "type": "string",
+          "description": "The OTel Semantic Conventions field that replaces this deprecated dimension."
+        }
+      }
+    },
+
+    "MetricDefinition": {
+      "type": "object",
+      "description": "Annotation for a metric field. __type, displayName, and unit are required.",
+      "required": ["__description", "__example", "__type", "displayName", "unit"],
+      "additionalProperties": false,
+      "properties": {
+        "__type": {
+          "$ref": "#/$defs/FieldType",
+          "description": "Grail physical data type (required for Semantic Dictionary export)."
+        },
+        "__description": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Human-readable description of this metric."
+        },
+        "__example": {
+          "description": "One representative numeric example for this metric (any JSON type)."
+        },
+        "__stability": {
+          "$ref": "#/$defs/Stability",
+          "description": "Stability level of this metric annotation."
+        },
+        "__semdict": {
+          "$ref": "#/$defs/Semdict",
+          "description": "Semantic Dictionary provenance of this metric."
+        },
+        "__semdict_note": {
+          "type": "string",
+          "description": "Free-text note for Semantic Dictionary reviewers."
+        },
+        "__interface_note": {
+          "type": "string",
+          "description": "Short note clarifying how this metric is populated."
+        },
+        "__context_names": {
+          "type": "array",
+          "description": "Plugin contexts that emit this metric.",
+          "items": { "type": "string" }
+        },
+        "__is_defined_at_runtime": {
+          "type": "boolean",
+          "description": "True if the metric name or value is determined at agent runtime."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Human-readable display name for this metric in Dynatrace UI."
+        },
+        "unit": {
+          "type": "string",
+          "description": "Unit of measurement (Dynatrace unit vocabulary string, e.g. 'Byte', 'MilliSecond')."
+        }
+      }
+    },
+
+    "EventTimestampDefinition": {
+      "type": "object",
+      "description": "Annotation for an event timestamp field used as an event anchor. __type is required.",
+      "required": ["__description", "__example", "__type"],
+      "additionalProperties": false,
+      "properties": {
+        "__type": {
+          "$ref": "#/$defs/FieldType",
+          "description": "Grail physical data type (required for Semantic Dictionary export)."
+        },
+        "__description": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Human-readable description of this event timestamp field."
+        },
+        "__example": {
+          "description": "One representative example value for this field (any JSON type)."
+        },
+        "__stability": {
+          "$ref": "#/$defs/Stability",
+          "description": "Stability level of this field annotation."
+        },
+        "__semdict": {
+          "$ref": "#/$defs/Semdict",
+          "description": "Semantic Dictionary provenance of this field."
+        },
+        "__semdict_note": {
+          "type": "string",
+          "description": "Free-text note for Semantic Dictionary reviewers."
+        },
+        "__interface_note": {
+          "type": "string",
+          "description": "Short note clarifying how this field is populated."
+        },
+        "__context_names": {
+          "type": "array",
+          "description": "Plugin contexts that emit this field.",
+          "items": { "type": "string" }
+        }
+      }
+    }
+
+  }
+}

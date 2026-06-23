@@ -19,9 +19,11 @@
 
 dimensions:
   db.collection.name:
+    __type: string
     __example: analytics_db.public.sales_data
     __description: The full name of the table, including the catalog, schema, and table name.
   db.namespace:
+    __type: string
     __example: analytics_db
     __description: The name of the database that contains the table.
   snowflake.table.type:
@@ -93,7 +95,7 @@ event_timestamps:
   snowflake.table.ddl:
     __example: "2024-11-01 12:00:00.000"
     __description: The timestamp of the last DDL operation performed on the table or view, including CREATE, ALTER, DROP, or UNDROP.
-    snowflake.table.update:
-      __stability: stable
-      __example: "2024-11-10 16:45:00.000"
-      __description: The timestamp of the last time the object was altered by a DML, DDL, or background metadata operation.
+  snowflake.table.update:
+    __stability: stable
+    __example: "2024-11-10 16:45:00.000"
+    __description: The timestamp of the last time the object was altered by a DML, DDL, or background metadata operation.
