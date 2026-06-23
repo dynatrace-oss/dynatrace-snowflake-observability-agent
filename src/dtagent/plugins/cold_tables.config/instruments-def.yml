@@ -19,12 +19,12 @@
 
 dimensions:
   db.namespace:
+    __type: string
     __semdict: otel-only
     __stability: stable
     __semdict_note: >-
-      Defined in OTel Semantic Conventions (db.namespace, stable since v1.28).
-      Not yet present as a globally referenceable field in the Dynatrace Semantic Dictionary.
-      Emitting as id: pending global SD registration.
+      Defined in OTel Semantic Conventions (db.namespace, stable since v1.28). Not yet present as a globally referenceable field in the
+      Dynatrace Semantic Dictionary. Emitting as id: pending global SD registration.
     __context_names: ["cold_tables"]
     __example: analytics_db
     __description: The name of the database containing the table.
@@ -34,12 +34,12 @@ dimensions:
     __example: public
     __description: The schema containing the table.
   db.collection.name:
+    __type: string
     __semdict: otel-only
     __stability: stable
     __semdict_note: >-
-      Defined in OTel Semantic Conventions (db.collection.name, stable since v1.28).
-      Not yet present as a globally referenceable field in the Dynatrace Semantic Dictionary.
-      Emitting as id: pending global SD registration.
+      Defined in OTel Semantic Conventions (db.collection.name, stable since v1.28). Not yet present as a globally referenceable field in
+      the Dynatrace Semantic Dictionary. Emitting as id: pending global SD registration.
     __context_names: ["cold_tables"]
     __example: orders
     __description: The table name.

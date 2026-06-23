@@ -19,6 +19,7 @@
 
 dimensions:
   db.collection.name:
+    __type: string
     __context_names:
       - table_storage
       - table_clustering
@@ -26,6 +27,7 @@ dimensions:
     __example: sales_data
     __description: The name of the table.
   db.namespace:
+    __type: string
     __context_names:
       - table_storage
       - table_clustering

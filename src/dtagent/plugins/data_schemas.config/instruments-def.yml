@@ -20,6 +20,7 @@ attributes:
     __example: 01b30d58-0604-6e1c-0040-e003029c1322
     __description: An internal, system-generated identifier for the SQL statement.
   db.user:
+    __type: string
     __stability: stable
     __example: SYSTEM
     __description: The user who issued the query.

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://dynatrace.com/snowflake-observability-agent/instruments-def.schema.json",
   "title": "DSOA instruments-def.yml",
-  "description": "Validates instruments-def.yml files. The __type field is required for all entries; run pytest test/core/test_instruments_def_schema.py to find missing annotations.",
+  "description": "Validates instruments-def.yml files. The __type field is required for all entries. For fields that define __enum, __type must be 'string' (all enum values are strings). Run pytest test/core/test_instruments_def_schema.py to find missing or incorrect annotations.",
   "type": "object",
   "additionalProperties": false,
   "properties": {
@@ -132,7 +132,7 @@
 
     "AttributeDefinition": {
       "type": "object",
-      "description": "Annotation for a log/span attribute field. __type is required.",
+      "description": "Annotation for a log/span attribute field. __type is required; when __enum is present __type must be 'string'.",
       "required": ["__description", "__example", "__type"],
       "additionalProperties": false,
       "properties": {
@@ -179,14 +179,18 @@
         },
         "__enum": {
           "$ref": "#/$defs/EnumDefinition",
-          "description": "Enumeration definition for categorical fields."
+          "description": "Enumeration definition for categorical fields. When present, __type must be 'string'."
         }
+      },
+      "if": { "required": ["__enum"] },
+      "then": {
+        "properties": { "__type": { "const": "string" } }
       }
     },
 
     "DimensionDefinition": {
       "type": "object",
-      "description": "Annotation for a metric dimension field. __type is required.",
+      "description": "Annotation for a metric dimension field. __type is required; when __enum is present __type must be 'string'.",
       "required": ["__description", "__example", "__type"],
       "additionalProperties": false,
       "properties": {
@@ -229,12 +233,16 @@
         },
         "__enum": {
           "$ref": "#/$defs/EnumDefinition",
-          "description": "Enumeration definition for categorical fields."
+          "description": "Enumeration definition for categorical fields. When present, __type must be 'string'."
         },
         "__otel_replacement": {
           "type": "string",
           "description": "The OTel Semantic Conventions field that replaces this deprecated dimension."
         }
+      },
+      "if": { "required": ["__enum"] },
+      "then": {
+        "properties": { "__type": { "const": "string" } }
       }
     },
 

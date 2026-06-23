@@ -37,6 +37,7 @@ attributes:
     __description: The resources linked to the budget, such as databases, warehouses, or other Snowflake objects that the budget monitors.
 dimensions:
   db.namespace:
+    __type: string
     __context_names:
       - budgets
       - spendings

@@ -23,6 +23,7 @@ attributes:
       SELECT A.EMP_ID,A.EMP_NAME,A.EMP_ADDRESS, B.SKILL_ID,B.SKILL_NAME,B.SKILL_LEVEL FROM EMPLOYEE A, EMPLOYEE_SKILL B WHERE
       A.EMP_ID=B.EMP_ID ORDER BY B.SKILL_ID ;
     __description: The SELECT statement for this dynamic table.
+    __type: string
   snowflake.query.id:
     __stability: stable
     __context_names:
@@ -268,6 +269,7 @@ attributes:
     __description: Scheduling state of the dynamic table.
 dimensions:
   db.collection.name:
+    __type: string
     __context_names:
       - dynamic_tables
       - dynamic_table_refresh_history
@@ -275,6 +277,7 @@ dimensions:
     __example: EMPLOYEE_DET
     __description: Name of the dynamic table.
   db.namespace:
+    __type: string
     __context_names:
       - dynamic_tables
       - dynamic_table_refresh_history

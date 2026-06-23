@@ -16,6 +16,7 @@
 
 attributes:
   db.user:
+    __type: string
     __stability: stable
     __context_names:
       - warehouse_usage
@@ -50,9 +51,8 @@ attributes:
     __example: 2
     __description: The number of clusters in the warehouse.
     __semdict_note: >-
-      The .count suffix is deliberately preserved. Sibling metrics snowflake.warehouse.clusters.min,
-      .max, and .started exist in the same namespace; using the bare plural snowflake.warehouse.clusters
-      as a scalar would be ambiguous alongside them.
+      The .count suffix is deliberately preserved. Sibling metrics snowflake.warehouse.clusters.min, .max, and .started exist in the same
+      namespace; using the bare plural snowflake.warehouse.clusters as a scalar would be ambiguous alongside them.
   snowflake.warehouse.event.reason:
     __context_names:
       - warehouse_usage

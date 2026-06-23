@@ -27,47 +27,56 @@ attributes:
     __semdict: new
     __semdict_note: "Snowflake driver metadata; closest OTel analog is service.version (different semantics). Proprietary to DSOA."
     __example: app123
+    __type: string
     __description: The ID of the client application used to execute the query.
   client.application.version:
     __semdict: new
     __semdict_note: "Closest OTel analog: service.version (different semantics)."
     __example: 1.0.0
+    __type: string
     __description: The version of the client application used to execute the query.
   client.build_id:
     __semdict: new
     __semdict_note: "Closest OTel analog: service.version (different semantics). Proprietary to DSOA."
     __example: build123
+    __type: string
     __description: The build ID of the client application.
   client.environment:
     __stability: stable
     __semdict: new
     __semdict_note: "Closest OTel analog: deployment.environment.name (different semantics). Proprietary to DSOA."
     __example: production
+    __type: string
     __description: The environment of the client application.
   client.version:
     __semdict: new
     __semdict_note: "Closest OTel analog: service.version (different semantics). Proprietary to DSOA."
     __example: 1.0.0
+    __type: string
     __description: The version of the client.
   db.query.text:
     __semdict: ref
     __example: SELECT * FROM users;
+    __type: string
     __description: The text of the query.
   db.snowflake.tables:
     __stability: stable
+    __type: string[]
     __semdict: new
     __semdict_note: "No OTel/semdict analog. Note: db.sql.table is itself deprecated (replaced by db.collection.name)."
-    __example: users
+    __example: ["users", "orders"]
     __description: The tables involved in the query.
   db.snowflake.views:
     __stability: stable
     __semdict: new
     __semdict_note: "Fully proprietary; no OTel analog."
     __example: user_view
+    __type: string
     __description: The views involved in the query.
   event.id:
     __semdict: ref
     __example: login123
+    __type: string
     __description: The login event ID associated with the query.
   session.id:
     __semdict: otel-only
@@ -76,6 +85,7 @@ attributes:
       OTel semconv Development-tier attribute (session namespace). The semdict session.id is model-scoped/internal in code_monitoring only;
       no global ref available. Emitting as new id: pending global semdict registration.
     __example: "1234567890"
+    __type: string
     __description: The session ID during which the query was executed.
   dsoa.debug.span.events.added:
     __stability: stable
@@ -90,6 +100,7 @@ attributes:
   plugins.query_history.obfuscation_mode:
     __stability: stable
     __example: "off"
+    __type: string
     __description: |
       Configuration key controlling query text obfuscation mode applied to `db.query.text` and `snowflake.error.message`.
       Possible values: `off` (no transformation), `literals` (replace string and numeric literals with `?`),
@@ -465,6 +476,7 @@ dimensions:
     __example: etl_pipeline
     __description: The query tag associated with the query; used as a grouping dimension in the query_cost_attribution summary context.
   db.collection.name:
+    __type: string
     __example: users
     __description: The name of the table involved in the query.
   snowflake.table.full_name:
@@ -472,11 +484,13 @@ dimensions:
     __example: PROD_DB.PUBLIC.USERS
     __description: Fully qualified name (DB.SCHEMA.TABLE) of the table involved in the query.
   db.namespace:
+    __type: string
     __example: PROD_DB
     __description: The name of the database that was specified in the context of the query at compilation.
   db.operation.name:
     __stability: stable
     __example: SELECT
+    __type: string
     __description: The type of operation performed by the query.
     __enum:
       allow_custom_values: true
@@ -529,15 +543,18 @@ dimensions:
           brief: GET file command.
   db.snowflake.dbs:
     __stability: stable
-    __example: PROD_DB
+    __type: string[]
+    __example: ["PROD_DB", "TEST_DB"]
     __description: The databases involved in the query.
   db.user:
     __stability: stable
+    __type: string
     __example: admin
     __description: Snowflake user who issued the query.
   snowflake.query.execution_status:
     __stability: stable
     __example: SUCCESS
+    __type: string
     __description: The execution status of the query.
     __enum:
       allow_custom_values: true

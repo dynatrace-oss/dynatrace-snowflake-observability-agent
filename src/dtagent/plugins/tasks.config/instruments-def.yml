@@ -19,6 +19,7 @@ attributes:
       - task_versions
     __example: SELECT * FROM users;
     __description: The text of the query.
+    __type: string
   snowflake.database.id:
     __stability: stable
     __context_names:
@@ -201,6 +202,7 @@ attributes:
     __description: The start time of the task.
 dimensions:
   db.namespace:
+    __type: string
     __context_names:
       - serverless_tasks
       - task_versions

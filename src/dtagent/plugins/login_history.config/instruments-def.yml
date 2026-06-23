@@ -19,12 +19,11 @@ attributes:
     __is_defined_at_runtime: true
     __context_names:
       - login_history
+    __type: string
     __description: >-
-      Identifies the DSOA detection rule or security domain that generated this anomaly event.
-      In the login_history plugin, this is always 'snowflake_security'. For workflow-emitted
-      events, values follow the 'dsoa.<workflow>' pattern. See core instruments-def for the
-      full field definition. NOTE: This field is planned for rename to 'rule.id' in a future
-      release (tracked separately from BIZOBS-151).
+      Identifies the DSOA detection rule or security domain that generated this anomaly event. In the login_history plugin, this is always
+      'snowflake_security'. For workflow-emitted events, values follow the 'dsoa.<workflow>' pattern. See core instruments-def for the full
+      field definition. NOTE: This field is planned for rename to 'rule.id' in a future release (tracked separately from BIZOBS-151).
     __example: "snowflake_security"
     __semdict: new
   event.description:
@@ -41,22 +40,23 @@ attributes:
       - login_history
     __example: password123
     __description: The first factor used for authentication, typically a password.
+    __type: string
   authentication.factor.second:
     __stability: stable
     __context_names:
       - login_history
     __example: MFA_TOKEN_ABC123
-    __description:
-      The second factor used for authentication, such as an MFA token,
-      or NULL if not applicable.
+    __description: The second factor used for authentication, such as an MFA token, or NULL if not applicable.
+    __type: string
   authentication.type:
     __semdict: ref
     __semdict_note: >-
-      semdict enum has allow_custom_values: false (OAUTH2/TOKEN/DEVOPSTOKEN/NONE).
-      DSOA also emits PASSWORD for Snowflake password auth; this is flagged as an open enum extension request.
+      semdict enum has allow_custom_values: false (OAUTH2/TOKEN/DEVOPSTOKEN/NONE). DSOA also emits PASSWORD for Snowflake password auth;
+      this is flagged as an open enum extension request.
     __context_names:
       - sessions
     __example: PASSWORD
+    __type: string
     __description: The type of authentication used for the session.
   client.application.id:
     __stability: stable
@@ -65,6 +65,7 @@ attributes:
     __context_names:
       - sessions
     __example: app123
+    __type: string
     __description: The ID of the client application used for the session.
   client.application.version:
     __semdict: new
@@ -72,6 +73,7 @@ attributes:
     __context_names:
       - sessions
     __example: 1.0.0
+    __type: string
     __description: The version of the client application used for the session.
   client.build_id:
     __semdict: new
@@ -93,19 +95,19 @@ attributes:
       - login_history
       - sessions
     __example: 1.0.0
+    __type: string
     __description: The version of the client software used to connect to Snowflake.
   db.snowflake.connection:
     __context_names:
       - login_history
     __example: connection_1
-    __description: The name of the connection used by the client, or NULL if the
-      client is not using a connection URL.
+    __type: string
+    __description: The name of the connection used by the client, or NULL if the client is not using a connection URL.
   error.code:
     __semdict: new
     __semdict_note: >-
-      In DSOA, used exclusively for Snowflake login failures as a string error code (e.g. "390100").
-      Diverges from the Dynatrace SD error.code field (type: long, iOS/mobile numeric codes) — semantics
-      and type are incompatible.
+      In DSOA, used exclusively for Snowflake login failures as a string error code (e.g. "390100"). Diverges from the Dynatrace SD
+      error.code field (type: long, iOS/mobile numeric codes) — semantics and type are incompatible.
     __context_names:
       - login_history
     __example: ERR001
@@ -116,8 +118,7 @@ attributes:
       - login_history
       - sessions
     __example: "123456789"
-    __description: A unique identifier for the login attempt or the login event
-      associated with the session.
+    __description: A unique identifier for the login attempt or the login event associated with the session.
   event.related_id:
     __context_names:
       - login_history
@@ -127,9 +128,8 @@ attributes:
     __semdict: otel-only
     __stability: experimental
     __semdict_note: >-
-      OTel semconv Development-tier attribute (session namespace). The semdict session.id is
-      model-scoped/internal in code_monitoring only; no global ref available. Emitting as new id:
-      pending global semdict registration.
+      OTel semconv Development-tier attribute (session namespace). The semdict session.id is model-scoped/internal in code_monitoring only;
+      no global ref available. Emitting as new id: pending global semdict registration.
     __context_names:
       - sessions
     __example: session123
@@ -148,8 +148,8 @@ attributes:
   status.code:
     __semdict: new
     __semdict_note: >-
-      In DSOA, emitted for Snowflake login events only (OK = successful login, ERROR = failed login).
-      Not present in OTel semconv or the Dynatrace Semantic Dictionary as a generic field.
+      In DSOA, emitted for Snowflake login events only (OK = successful login, ERROR = failed login). Not present in OTel semconv or the
+      Dynatrace Semantic Dictionary as a generic field.
     __context_names:
       - login_history
     __example: OK
@@ -166,8 +166,8 @@ attributes:
   status.message:
     __semdict: new
     __semdict_note: >-
-      In DSOA, emitted for Snowflake login events — describes the reason for success or failure.
-      Not present in OTel semconv or the Dynatrace Semantic Dictionary as a generic field.
+      In DSOA, emitted for Snowflake login events — describes the reason for success or failure. Not present in OTel semconv or the
+      Dynatrace Semantic Dictionary as a generic field.
     __context_names:
       - login_history
     __example: Login successful
@@ -177,25 +177,25 @@ dimensions:
     __context_names:
       - login_history
     __semdict_note: >-
-      OTel semconv uses client.address (stable). DSOA emits client.ip to match
-      Snowflake LOGIN_HISTORY.CLIENT_IP column naming. The name is intentionally preserved to make
-      the column origin self-evident.
+      OTel semconv uses client.address (stable). DSOA emits client.ip to match Snowflake LOGIN_HISTORY.CLIENT_IP column naming. The name is
+      intentionally preserved to make the column origin self-evident.
     __example: 192.168.1.1
+    __type: string
     __description: The IP address of the client that initiated the event.
   client.type:
     __stability: stable
     __context_names:
       - login_history
     __example: JDBC_DRIVER
-    __description:
-      The type of client used to connect to Snowflake, such as JDBC_DRIVER
-      or ODBC_DRIVER.
+    __type: string
+    __description: The type of client used to connect to Snowflake, such as JDBC_DRIVER or ODBC_DRIVER.
   db.user:
     __stability: stable
     __context_names:
       - login_history
       - sessions
     __example: john_doe
+    __type: string
     __description: The user who performed the event in the database.
   event.name:
     __stability: stable

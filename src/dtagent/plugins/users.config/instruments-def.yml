@@ -17,6 +17,7 @@
 
 dimensions:
   db.user:
+    __type: string
     __stability: stable
     __example: admin
     __context_names:

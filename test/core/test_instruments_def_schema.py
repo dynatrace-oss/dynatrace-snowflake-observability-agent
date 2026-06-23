@@ -13,6 +13,12 @@ Expected behavior:
     When all ``__type`` annotations have been added this test suite will be
     fully green.
 
+Enum constraint:
+    Fields that define ``__enum`` must use ``__type: string`` — all enum member
+    values across the codebase are strings, so the schema enforces this with an
+    ``if/then`` conditional.  A wrong ``__type`` on an enum field is also treated
+    as a ``__type`` annotation error (tracked, not a hard non-type failure).
+
 Note:
     All tests use ``@pytest.mark.integration`` because they read real
     ``instruments-def.yml`` files from the repository.
@@ -113,22 +119,36 @@ def _make_test_id(filepath: str) -> str:
 
 
 def _is_type_annotation_error(error: ValidationError) -> bool:
-    """Return True if *error* reports a missing ``__type`` annotation.
+    """Return True if *error* reports a missing or invalid ``__type`` annotation.
 
     The ``__type`` annotation is a new requirement being back-filled across all
     instruments-def.yml files.  These errors are tracked separately from genuine
     schema violations so that progress can be measured and the test can remain
     informative rather than just red-noise.
 
+    Two sub-cases are recognised:
+
+    1. **Missing ``__type``** — ``required`` validator fires because the entry
+       has no ``__type`` key at all.
+    2. **Wrong ``__type`` on an enum field** — ``const`` validator fires because
+       the entry has ``__enum`` defined (which implies ``__type: string``) but a
+       different type was specified.  The error path ends in ``__type``.
+
     Args:
         error: A :class:`~jsonschema.exceptions.ValidationError` instance from
             :meth:`~jsonschema.Draft202012Validator.iter_errors`.
 
     Returns:
-        ``True`` if the error is a ``required``-validator violation specifically
-        for the ``__type`` property.
+        ``True`` if the error is exclusively about the ``__type`` annotation.
     """
-    return error.validator == "required" and "__type" in error.message
+    # Case 1: __type property is absent entirely.
+    if error.validator == "required" and "__type" in error.message:
+        return True
+    # Case 2: __type is present but has the wrong value for an enum field
+    # (the if/then schema enforces const: "string" when __enum is present).
+    if error.validator == "const" and error.absolute_path and list(error.absolute_path)[-1] == "__type":
+        return True
+    return False
 
 
 ##endregion
