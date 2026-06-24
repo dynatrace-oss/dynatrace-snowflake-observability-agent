@@ -76,6 +76,7 @@ dimensions:
           brief: >-
             Credits billed for bytes stored in Snowflake databases, internal stages, Time Travel history, and Fail-safe retention.
   snowflake.service.name:
+    __type: string
     __stability: stable
     __context_names: ["metering"]
     __example: MY_PIPE
@@ -92,6 +93,7 @@ attributes:
 
 metrics:
   snowflake.credits.used:
+    __type: double
     __context_names: ["metering"]
     __example: 15.5
     __description: >-
@@ -99,6 +101,7 @@ metrics:
     displayName: Snowflake Credits Used
     unit: credits
   snowflake.credits.used.compute:
+    __type: double
     __context_names: ["metering"]
     __example: 12.3
     __description: >-
@@ -106,6 +109,7 @@ metrics:
     displayName: Snowflake Compute Credits Used
     unit: credits
   snowflake.credits.used.cloud_services:
+    __type: long
     __context_names: ["metering"]
     __example: 3.2
     __description: >-
@@ -113,6 +117,7 @@ metrics:
     displayName: Snowflake Cloud Services Credits Used
     unit: credits
   snowflake.metering.data.size:
+    __type: long
     __context_names: ["metering"]
     __example: 10485760
     __description: >-
@@ -120,6 +125,7 @@ metrics:
     displayName: Bytes Processed
     unit: bytes
   snowflake.metering.data.rows:
+    __type: long
     __context_names: ["metering"]
     __example: 50000
     __description: >-
@@ -127,6 +133,7 @@ metrics:
     displayName: Rows Processed
     unit: rows
   snowflake.data.files:
+    __type: long
     __context_names: ["metering"]
     __example: 120
     __description: >-

@@ -1,16 +1,19 @@
 attributes:
   snowflake.account.locator:
+    __type: string
     __context_names:
       - org_costs_metering
     __example: ABC12345
     __description: The account locator identifier for the Snowflake account.
   snowflake.org.billing.contract_number:
+    __type: string
     __context_names:
       - org_billing_remaining_balance
     __example: CONTRACT-001
     __description: The contract number associated with the Snowflake billing balance.
 dimensions:
   snowflake.account.name:
+    __type: string
     __stability: stable
     __context_names:
       - org_costs_metering
@@ -21,6 +24,7 @@ dimensions:
     __example: MYORG-ACCOUNT1
     __description: The name of the Snowflake account within the organization.
   snowflake.account.locator:
+    __type: string
     __context_names:
       - org_costs_storage
       - org_costs_data_transfer
@@ -29,17 +33,20 @@ dimensions:
     __example: ABC12345
     __description: The account locator identifier for the Snowflake account.
   snowflake.account.region:
+    __type: string
     __stability: stable
     __context_names:
       - org_costs_data_transfer
     __example: US_EAST_1
     __description: The cloud region of the Snowflake account performing the data transfer.
   snowflake.org.billing.currency:
+    __type: string
     __context_names:
       - org_billing_usage_in_currency
     __example: USD
     __description: The currency in which billing usage amounts are denominated.
   snowflake.org.name:
+    __type: string
     __stability: stable
     __context_names:
       - org_costs_metering
@@ -50,6 +57,7 @@ dimensions:
     __example: MYORG
     __description: The name of the Snowflake organization.
   snowflake.service.type:
+    __type: string
     __stability: stable
     __context_names:
       - org_costs_metering
@@ -60,6 +68,7 @@ dimensions:
     __description: The Snowflake service type that consumed the credits.
 metrics:
   snowflake.org.billing.amount:
+    __type: double
     __context_names:
       - org_billing_usage_in_currency
     __example: 150.5
@@ -67,6 +76,7 @@ metrics:
     displayName: Org Billing Amount in Currency
     unit: currency
   snowflake.org.billing.capacity_balance:
+    __type: double
     __context_names:
       - org_billing_remaining_balance
     __example: 10000.0
@@ -74,6 +84,7 @@ metrics:
     displayName: Org Billing Capacity Balance
     unit: currency
   snowflake.org.billing.free_usage_balance:
+    __type: double
     __context_names:
       - org_billing_remaining_balance
     __example: 200.0
@@ -81,6 +92,7 @@ metrics:
     displayName: Org Billing Free Usage Balance
     unit: currency
   snowflake.org.billing.on_demand_consumption:
+    __type: double
     __context_names:
       - org_billing_remaining_balance
     __example: 100.0
@@ -88,6 +100,7 @@ metrics:
     displayName: Org Billing On-Demand Consumption
     unit: currency
   snowflake.org.billing.marketplace_capacity_drawdown_balance:
+    __type: double
     __context_names:
       - org_billing_remaining_balance
     __example: 0.0
@@ -95,6 +108,7 @@ metrics:
     displayName: Org Billing Marketplace Capacity Drawdown Balance
     unit: currency
   snowflake.org.billing.rollover_balance:
+    __type: double
     __context_names:
       - org_billing_remaining_balance
     __example: 500.0
@@ -102,6 +116,7 @@ metrics:
     displayName: Org Billing Rollover Balance
     unit: currency
   snowflake.org.credits.adjustment_cloud_services:
+    __type: double
     __context_names:
       - org_costs_metering
     __example: -0.5
@@ -109,6 +124,7 @@ metrics:
     displayName: Org Cloud Services Credit Adjustment
     unit: credits
   snowflake.org.credits.cloud_services:
+    __type: double
     __context_names:
       - org_costs_metering
     __example: 1.2
@@ -116,6 +132,7 @@ metrics:
     displayName: Org Cloud Services Credits Used
     unit: credits
   snowflake.org.credits.compute:
+    __type: double
     __context_names:
       - org_costs_metering
     __example: 8.0
@@ -123,6 +140,7 @@ metrics:
     displayName: Org Compute Credits Used
     unit: credits
   snowflake.org.credits.used:
+    __type: double
     __context_names:
       - org_costs_metering
     __example: 9.2
@@ -130,6 +148,7 @@ metrics:
     displayName: Org Total Credits Used
     unit: credits
   snowflake.org.data.stored:
+    __type: long
     __context_names:
       - org_costs_storage
     __example: 1099511627776
@@ -137,6 +156,7 @@ metrics:
     displayName: Org Data Stored
     unit: bytes
   snowflake.org.data.transferred:
+    __type: long
     __context_names:
       - org_costs_data_transfer
     __example: 2147483648

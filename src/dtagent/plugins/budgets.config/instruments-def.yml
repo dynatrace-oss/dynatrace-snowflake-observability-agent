@@ -16,12 +16,14 @@
 # Catalog of instrumentation known to Dynatrace Snowflake Observability Agent - budgets plugin
 attributes:
   snowflake.budget.owner:
+    __type: string
     __stability: stable
     __context_names:
       - budgets
     __example: budget_admin
     __description: The owner of the budget, typically the user or role responsible for managing the budget.
   snowflake.budget.owner.role_type:
+    __type: string
     __context_names:
       - budgets
     __example: ACCOUNTADMIN
@@ -44,6 +46,7 @@ dimensions:
     __example: analytics_db
     __description: The name of the database that was specified in the context of the query at compilation.
   snowflake.budget.name:
+    __type: string
     __stability: stable
     __context_names:
       - budgets
@@ -51,12 +54,14 @@ dimensions:
     __example: monthly_budget
     __description: Name of the budget.
   snowflake.budget.full_name:
+    __type: string
     __context_names:
       - budgets
       - spendings
     __example: ANALYTICS_DB.BUDGETS.MONTHLY_BUDGET
     __description: Fully-qualified name of the budget (DATABASE.SCHEMA.NAME).
   snowflake.schema.name:
+    __type: string
     __stability: stable
     __context_names:
       - budgets
@@ -64,6 +69,7 @@ dimensions:
     __example: public
     __description: Schema that was specified in the context of the query at compilation.
   snowflake.service.type:
+    __type: string
     __stability: stable
     __context_names:
       - spendings
@@ -92,6 +98,7 @@ event_timestamps:
       Additionally to sending logs, each entry in `EVENT_TIMESTAMPS` is sent as event with key set to `snowflake.event.trigger`, value to
       key from `EVENT_TIMESTAMPS` and `timestamp` set to the key value.
   snowflake.budget.created_on:
+    __type: long
     __stability: stable
     __context_names:
       - budgets
@@ -99,6 +106,7 @@ event_timestamps:
     __description: The timestamp when the budget was created.
 metrics:
   snowflake.credits.limit:
+    __type: long
     __context_names:
       - budgets
     __example: 100
@@ -106,6 +114,7 @@ metrics:
     displayName: Budget Spending Limit
     unit: credits
   snowflake.credits.spent:
+    __type: double
     __context_names:
       - spendings
     __example: 75

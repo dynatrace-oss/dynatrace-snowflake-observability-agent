@@ -107,6 +107,7 @@ attributes:
     __type: string
     __description: The name of the connection used by the client, or NULL if the client is not using a connection URL.
   error.code:
+    __type: long
     __semdict: new
     __semdict_note: >-
       In DSOA, used exclusively for Snowflake login failures as a string error code (e.g. "390100"). Diverges from the Dynatrace SD
@@ -125,11 +126,13 @@ attributes:
     __type: long
     __description: A unique identifier for the login attempt or the login event associated with the session.
   event.related_id:
+    __type: long
     __context_names:
       - login_history
     __example: 987654321
     __description: An identifier for a related event, if applicable.
   session.id:
+    __type: string
     __semdict: otel-only
     __stability: experimental
     __semdict_note: >-
@@ -140,6 +143,7 @@ attributes:
     __example: session123
     __description: The unique identifier for the session.
   snowflake.session.closed_reason:
+    __type: string
     __context_names:
       - sessions
     __example: USER_LOGOUT
@@ -170,6 +174,7 @@ attributes:
           value: ERROR
           brief: The operation failed.
   status.message:
+    __type: string
     __semdict: new
     __semdict_note: >-
       In DSOA, emitted for Snowflake login events — describes the reason for success or failure. Not present in OTel semconv or the
@@ -215,6 +220,7 @@ dimensions:
       - LOGOUT.
 metrics:
   snowflake.login.attempts.failed:
+    __type: long
     __context_names:
       - openpipeline
     __description: Number of failed Snowflake login attempts within the collection window.
@@ -222,6 +228,7 @@ metrics:
     displayName: Snowflake Login Attempts Failed
     unit: "1"
   snowflake.login.attempts.successful:
+    __type: long
     __context_names:
       - openpipeline
     __description: Number of successful Snowflake login attempts within the collection window.
@@ -229,6 +236,7 @@ metrics:
     displayName: Snowflake Login Attempts Successful
     unit: "1"
   snowflake.login.attempts.total:
+    __type: long
     __context_names:
       - openpipeline
     __description: >-

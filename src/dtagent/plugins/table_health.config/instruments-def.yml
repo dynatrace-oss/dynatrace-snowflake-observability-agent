@@ -35,6 +35,7 @@ dimensions:
     __example: analytics_db
     __description: The name of the database that contains the table.
   snowflake.schema.name:
+    __type: string
     __stability: stable
     __context_names:
       - table_storage
@@ -43,12 +44,14 @@ dimensions:
     __example: public
     __description: The name of the schema that contains the table.
   snowflake.table.clustering_key:
+    __type: string
     __context_names:
       - table_clustering
     __example: "REGION, YEAR"
     __description: |
       The clustering key defined on the table, or NONE if no clustering key is defined.
   snowflake.table.full_name:
+    __type: string
     __stability: stable
     __context_names:
       - table_storage
@@ -65,6 +68,7 @@ dimensions:
 
 metrics:
   snowflake.table.active_bytes:
+    __type: long
     __context_names:
       - table_storage
     __example: 1073741824
@@ -72,6 +76,7 @@ metrics:
     displayName: Active Bytes
     unit: bytes
   snowflake.table.time_travel_bytes:
+    __type: long
     __context_names:
       - table_storage
     __example: 536870912
@@ -79,6 +84,7 @@ metrics:
     displayName: Time Travel Bytes
     unit: bytes
   snowflake.table.failsafe_bytes:
+    __type: long
     __context_names:
       - table_storage
     __example: 268435456
@@ -86,6 +92,7 @@ metrics:
     displayName: Failsafe Bytes
     unit: bytes
   snowflake.table.retained_for_clone_bytes:
+    __type: long
     __context_names:
       - table_storage
     __example: 134217728
@@ -93,6 +100,7 @@ metrics:
     displayName: Retained for Clone Bytes
     unit: bytes
   snowflake.data.rows:
+    __type: long
     __context_names:
       - table_storage
     __example: 1000000
@@ -100,6 +108,7 @@ metrics:
     displayName: Row Count
     unit: rows
   snowflake.table.clustering.depth:
+    __type: double
     __context_names:
       - table_clustering
     __example: 2.5
@@ -109,6 +118,7 @@ metrics:
     displayName: Clustering Depth
     unit: count
   snowflake.table.clustering.overlap:
+    __type: double
     __context_names:
       - table_clustering
     __example: 1.2
@@ -118,6 +128,7 @@ metrics:
     displayName: Clustering Overlap
     unit: count
   snowflake.table.clustering.constant_partition_ratio:
+    __type: double
     __context_names:
       - table_clustering
     __example: 0.85
@@ -127,6 +138,7 @@ metrics:
     displayName: Constant Partition Ratio
     unit: ratio
   snowflake.table.clustering.total_partitions:
+    __type: long
     __context_names:
       - table_clustering
     __example: 1200
@@ -134,6 +146,7 @@ metrics:
     displayName: Total Partitions
     unit: count
   snowflake.table.growth_bytes:
+    __type: long
     __context_names:
       - table_health_derived
     __example: 104857600
@@ -143,6 +156,7 @@ metrics:
     displayName: Table Growth (Bytes)
     unit: bytes
   snowflake.table.growth_pct:
+    __type: double
     __context_names:
       - table_health_derived
     __example: 9.77
@@ -152,6 +166,7 @@ metrics:
     displayName: Table Growth (%)
     unit: percent
   snowflake.table.clustering.depth_change:
+    __type: double
     __context_names:
       - table_health_derived
     __example: 0.3
@@ -161,6 +176,7 @@ metrics:
     displayName: Clustering Depth Change
     unit: count
   snowflake.table.clustering.degraded:
+    __type: long
     __context_names:
       - table_health_derived
     __example: 1

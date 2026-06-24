@@ -25,6 +25,7 @@ attributes:
     __description: The SELECT statement for this dynamic table.
     __type: string
   snowflake.query.id:
+    __type: string
     __stability: stable
     __context_names:
       - dynamic_tables
@@ -77,12 +78,14 @@ attributes:
     __example: ""
     __description: If present, the description of the dynamic table is valid up to this time. If null, the description is still accurate.
   snowflake.table.dynamic.lag.target.type:
+    __type: string
     __context_names:
       - dynamic_tables
       - dynamic_table_graph_history
     __example: USER_DEFINED
     __description: The type of target lag.
   snowflake.table.dynamic.latest.code:
+    __type: string
     __context_names:
       - dynamic_tables
     __example: SUCCESS
@@ -104,11 +107,13 @@ attributes:
     __example: "2024-11-25 06:09:53.695 Z"
     __description: Data timestamp of the latest dependency to become available.
   snowflake.table.dynamic.latest.dependency.name:
+    __type: string
     __context_names:
       - dynamic_table_refresh_history
     __example: DYNAMIC_TABLE_DB.DYNAMIC_TABLE_SCH.EMPLOYEE
     __description: Qualified name of the latest dependency to become available.
   snowflake.table.dynamic.latest.message:
+    __type: string
     __context_names:
       - dynamic_tables
     __example: ""
@@ -162,6 +167,7 @@ attributes:
           value: INCREMENTAL
           brief: Normal incremental refresh.
   snowflake.table.dynamic.refresh.code:
+    __type: string
     __stability: stable
     __context_names:
       - dynamic_table_refresh_history
@@ -191,6 +197,7 @@ attributes:
     __example: "2024-11-25 06:09:55.308 Z"
     __description: Time when the refresh completed.
   snowflake.table.dynamic.refresh.message:
+    __type: string
     __stability: stable
     __context_names:
       - dynamic_table_refresh_history
@@ -253,18 +260,21 @@ attributes:
           value: CREATION
           brief: Refresh performed during creation DDL statement.
   snowflake.table.dynamic.scheduling.reason.code:
+    __type: string
     __context_names:
       - dynamic_tables
       - dynamic_table_graph_history
     __example: MAINTENANCE
     __description: Optional reason code if the state is not ACTIVE.
   snowflake.table.dynamic.scheduling.reason.message:
+    __type: string
     __context_names:
       - dynamic_tables
       - dynamic_table_graph_history
     __example: Scheduled maintenance
     __description: Text description of the reason the dynamic table is not active. Only applies if the state is not active.
   snowflake.table.dynamic.scheduling.state:
+    __type: string
     __stability: stable
     __context_names:
       - dynamic_tables
@@ -289,6 +299,7 @@ dimensions:
     __example: DYNAMIC_TABLE_DB
     __description: The name of the database in which the query was executed.
   snowflake.schema.name:
+    __type: string
     __stability: stable
     __context_names:
       - dynamic_tables
@@ -297,6 +308,7 @@ dimensions:
     __example: DYNAMIC_TABLE_SCH
     __description: Name of the schema that contains the dynamic table.
   snowflake.table.full_name:
+    __type: string
     __stability: stable
     __context_names:
       - dynamic_tables
@@ -315,6 +327,7 @@ event_timestamps:
       Additionally to sending logs, each entry in `EVENT_TIMESTAMPS` is sent as event with key set to `snowflake.event.trigger`, value to
       key from `EVENT_TIMESTAMPS` and `timestamp` set to the key value.
   snowflake.table.dynamic.graph.valid_from:
+    __type: long
     __context_names:
       - dynamic_table_refresh_history
       - dynamic_table_graph_history
@@ -337,6 +350,7 @@ event_timestamps:
     __description: The timestamp when the dynamic table was suspended.
 metrics:
   snowflake.partitions.added:
+    __type: long
     __context_names:
       - dynamic_table_refresh_history
     __example: 5
@@ -344,6 +358,7 @@ metrics:
     displayName: Partitions Added
     unit: partitions
   snowflake.partitions.removed:
+    __type: long
     __context_names:
       - dynamic_table_refresh_history
     __example: 3
@@ -351,6 +366,7 @@ metrics:
     displayName: Partitions Removed
     unit: partitions
   snowflake.rows.copied:
+    __type: long
     __context_names:
       - dynamic_table_refresh_history
     __example: 75
@@ -358,6 +374,7 @@ metrics:
     displayName: Rows Copied
     unit: rows
   snowflake.rows.deleted:
+    __type: long
     __context_names:
       - dynamic_table_refresh_history
     __example: 50
@@ -365,6 +382,7 @@ metrics:
     displayName: Rows Deleted
     unit: rows
   snowflake.rows.inserted:
+    __type: long
     __context_names:
       - dynamic_table_refresh_history
     __example: 100
@@ -372,6 +390,7 @@ metrics:
     displayName: Rows Inserted
     unit: rows
   snowflake.table.dynamic.lag.max:
+    __type: long
     __context_names:
       - dynamic_tables
     __example: 83
@@ -379,6 +398,7 @@ metrics:
     displayName: Maximum Lag Time
     unit: seconds
   snowflake.table.dynamic.lag.mean:
+    __type: long
     __context_names:
       - dynamic_tables
     __example: 26
@@ -386,6 +406,7 @@ metrics:
     displayName: Mean Lag Time
     unit: seconds
   snowflake.table.dynamic.lag.target.time_above:
+    __type: long
     __context_names:
       - dynamic_tables
     __example: 151
@@ -393,6 +414,7 @@ metrics:
     displayName: Time Above Target Lag
     unit: seconds
   snowflake.table.dynamic.lag.target.value:
+    __type: long
     __context_names:
       - dynamic_table_refresh_history
       - dynamic_table_graph_history
@@ -403,6 +425,7 @@ metrics:
     displayName: Target Lag Time
     unit: seconds
   snowflake.table.dynamic.lag.target.within_ratio:
+    __type: double
     __context_names:
       - dynamic_tables
     __example: 0.999

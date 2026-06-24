@@ -17,53 +17,63 @@
 #
 attributes:
   snowflake.pipe.definition:
+    __type: string
     __context_names:
       - snowpipes
     __example: "COPY INTO MY_DB.MY_SCHEMA.TARGET_TABLE FROM @MY_DB.MY_SCHEMA.MY_STAGE"
     __description: The pipe's COPY statement.
   snowflake.pipe.invalid_reason:
+    __type: string
     __context_names:
       - snowpipes
     __example: ""
     __description: Reason the pipe is in an invalid state.
   snowflake.pipe.notification_channel:
+    __type: string
     __context_names:
       - snowpipes
     __example: "arn:aws:sqs:us-east-1:123456789012:sf-snowpipe-AIDAEXAMPLE-pipeId"
     __description: Cloud notification channel URL.
   snowflake.pipe.created_on:
+    __type: string
     __stability: stable
     __context_names:
       - snowpipes
     __example: "2025-01-15 10:30:00.000 Z"
     __description: Pipe creation timestamp.
   snowflake.pipe.execution_state:
+    __type: string
     __stability: stable
     __context_names:
       - snowpipes
     __example: RUNNING
     __description: Raw execution state from SYSTEM$PIPE_STATUS.
   snowflake.pipe.last_ingested_timestamp:
+    __type: string
     __context_names:
       - snowpipes
     __example: "2025-03-12 08:58:41.695 Z"
     __description: Most recent file ingestion timestamp.
   snowflake.pipe.last_received_message_timestamp:
+    __type: string
     __context_names:
       - snowpipes
     __example: "2025-03-12 08:57:30.000 Z"
     __description: Most recent event notification timestamp.
   snowflake.pipe.oldest_file_timestamp:
+    __type: string
     __context_names:
       - snowpipes
     __example: "2025-03-12 08:50:00.000 Z"
     __description: Timestamp of oldest pending file.
   snowflake.copy.file_name:
+    __type: string
     __context_names:
       - snowpipes_copy_history
     __example: "data/file_20250312.csv.gz"
     __description: Source file name.
   snowflake.copy.stage_location:
+    __type: string
     __context_names:
       - snowpipes_copy_history
     __example: "s3://my-bucket/data/"
@@ -87,6 +97,7 @@ attributes:
           value: PARTIALLY_LOADED
           brief: File partially loaded; some rows failed.
   snowflake.copy.first_error.message:
+    __type: string
     __context_names:
       - snowpipes_copy_history
     __example: "Number of columns in file (3) does not match that of the corresponding table (4)"
@@ -98,6 +109,7 @@ attributes:
     __example: 42
     __description: Line number of first error.
   snowflake.copy.first_error.column_name:
+    __type: string
     __context_names:
       - snowpipes_copy_history
     __example: "AMOUNT"
@@ -129,12 +141,14 @@ attributes:
     __example: "2025-03-12 08:56:00.000 Z"
     __description: When the first chunk of the file was committed.
   snowflake.pipe.usage.start_time:
+    __type: string
     __context_names:
       - snowpipes_usage_history
     __example: "2025-03-12 08:00:00.000 Z"
     __description: Start of the usage aggregation window.
 dimensions:
   snowflake.pipe.name:
+    __type: string
     __stability: stable
     __context_names:
       - snowpipes
@@ -143,11 +157,13 @@ dimensions:
     __example: MY_PIPE
     __description: Short pipe name.
   snowflake.pipe.full_name:
+    __type: string
     __context_names:
       - snowpipes
     __example: MY_DB.MY_SCHEMA.MY_PIPE
     __description: Fully qualified pipe name (database.schema.pipe).
   snowflake.pipe.catalog:
+    __type: string
     __context_names:
       - snowpipes
       - snowpipes_copy_history
@@ -155,6 +171,7 @@ dimensions:
     __example: MY_DB
     __description: Database containing the pipe.
   snowflake.pipe.schema:
+    __type: string
     __context_names:
       - snowpipes
       - snowpipes_copy_history
@@ -162,6 +179,7 @@ dimensions:
     __example: MY_SCHEMA
     __description: Schema containing the pipe.
   snowflake.pipe.id:
+    __type: string
     __context_names:
       - snowpipes_usage_history
     __example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
@@ -175,6 +193,7 @@ dimensions:
     __example: MY_DB
     __description: Database containing the target table or pipe.
   snowflake.schema.name:
+    __type: string
     __stability: stable
     __context_names:
       - snowpipes
@@ -190,6 +209,7 @@ dimensions:
     __example: TARGET_TABLE
     __description: Target table for ingested data.
   snowflake.table.full_name:
+    __type: string
     __stability: stable
     __context_names:
       - snowpipes
@@ -197,11 +217,13 @@ dimensions:
     __example: ANALYTICS_DB.PUBLIC.TARGET_TABLE
     __description: Fully qualified name (DB.SCHEMA.TABLE) of the target table for ingested data.
   snowflake.pipe.owner:
+    __type: string
     __context_names:
       - snowpipes
     __example: LOADER_ROLE
     __description: Role owning the pipe.
   snowflake.pipe.status:
+    __type: string
     __stability: stable
     __context_names:
       - snowpipes
@@ -217,6 +239,7 @@ event_timestamps:
     __example: "snowflake.pipe.created_on"
     __description: Standard event trigger key.
   snowflake.pipe.created_on:
+    __type: long
     __stability: stable
     __context_names:
       - snowpipes
@@ -224,6 +247,7 @@ event_timestamps:
     __description: Pipe creation event.
 metrics:
   snowflake.pipe.files.pending:
+    __type: long
     __context_names:
       - snowpipes
     __example: 5
@@ -231,6 +255,7 @@ metrics:
     displayName: Pending Files
     unit: count
   snowflake.pipe.latency.oldest_file:
+    __type: long
     __context_names:
       - snowpipes
     __example: 12345
@@ -238,6 +263,7 @@ metrics:
     displayName: Oldest File Latency
     unit: ms
   snowflake.pipe.files.ingested:
+    __type: long
     __context_names:
       - snowpipes_copy_history
     __example: 1
@@ -245,6 +271,7 @@ metrics:
     displayName: Files Ingested
     unit: count
   snowflake.pipe.rows.loaded:
+    __type: long
     __context_names:
       - snowpipes_copy_history
     __example: 1000
@@ -252,6 +279,7 @@ metrics:
     displayName: Rows Loaded
     unit: count
   snowflake.pipe.rows.parsed:
+    __type: long
     __context_names:
       - snowpipes_copy_history
     __example: 1050
@@ -259,6 +287,7 @@ metrics:
     displayName: Rows Parsed
     unit: count
   snowflake.pipe.errors:
+    __type: long
     __context_names:
       - snowpipes_copy_history
     __example: 0
@@ -266,6 +295,7 @@ metrics:
     displayName: Load Errors
     unit: count
   snowflake.pipe.ingest.latency:
+    __type: long
     __context_names:
       - snowpipes_copy_history
     __example: 5000
@@ -273,6 +303,7 @@ metrics:
     displayName: Ingest Latency
     unit: ms
   snowflake.copy.errors:
+    __type: long
     __context_names:
       - snowpipes_copy_history
     __example: 2
@@ -280,6 +311,7 @@ metrics:
     displayName: Copy Errors
     unit: count
   snowflake.pipe.data.ingested:
+    __type: long
     __context_names:
       - snowpipes_usage_history
     __example: 1048576
@@ -287,6 +319,7 @@ metrics:
     displayName: Data Ingested
     unit: bytes
   snowflake.pipe.cost.credits_used:
+    __type: long
     __context_names:
       - snowpipes_usage_history
     __example: 0.5
@@ -294,6 +327,7 @@ metrics:
     displayName: Credits Used
     unit: count
   snowflake.pipe.files.inserted:
+    __type: long
     __context_names:
       - snowpipes_usage_history
     __example: 10
@@ -301,6 +335,7 @@ metrics:
     displayName: Files Inserted
     unit: count
   snowflake.pipe.cost.bytes_billed:
+    __type: long
     __context_names:
       - snowpipes_usage_history
     __example: 524288
@@ -308,6 +343,7 @@ metrics:
     displayName: Bytes Billed
     unit: bytes
   snowflake.copy.file_size:
+    __type: long
     __context_names:
       - snowpipes_copy_history
     __example: 102400
@@ -315,6 +351,7 @@ metrics:
     displayName: File Size
     unit: bytes
   snowflake.copy.bytes_billed:
+    __type: long
     __context_names:
       - snowpipes_copy_history
     __example: 51200

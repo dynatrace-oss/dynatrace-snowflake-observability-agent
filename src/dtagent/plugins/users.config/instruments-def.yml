@@ -31,40 +31,47 @@ attributes:
       - users
     __description: The time until which the user can bypass MFA. Epoch nanoseconds timestamp.
   snowflake.user.comment:
+    __type: string
     __example: New user account
     __context_names:
       - users
     __description: Any comments associated with the user.
   snowflake.user.default.namespace:
+    __type: string
     __stability: stable
     __example: PUBLIC
     __context_names:
       - users
     __description: The default namespace for the user.
   snowflake.user.default.role:
+    __type: string
     __stability: stable
     __example: SYSADMIN
     __context_names:
       - users
     __description: The default role for the user.
   snowflake.user.default.secondary_role:
+    __type: string
     __stability: stable
     __example: SECURITYADMIN
     __context_names:
       - users
     __description: The default secondary role for the user.
   snowflake.user.default.warehouse:
+    __type: string
     __stability: stable
     __example: COMPUTE_WH
     __context_names:
       - users
     __description: The default warehouse for the user.
   snowflake.user.display_name:
+    __type: string
     __example: John Doe
     __context_names:
       - users
     __description: The display name of the user.
   snowflake.user.email:
+    __type: string
     __example: jdoe@example.com
     __context_names:
       - users
@@ -83,6 +90,7 @@ attributes:
       - users
     __description: Indicates if Duo authentication is enabled for the user.
   snowflake.user.ext_authn.uid:
+    __type: string
     __stability: stable
     __example: ext123
     __context_names:
@@ -123,6 +131,7 @@ attributes:
       - users
     __description: Indicates if workload identity federation is configured for the user.
   snowflake.user.id:
+    __type: long
     __example: "12345"
     __context_names:
       - users
@@ -160,23 +169,27 @@ attributes:
       - users
     __description: Indicates if the user must change their password.
   snowflake.user.name:
+    __type: string
     __example: jdoe
     __context_names:
       - users
     __description: The login name of the user.
   snowflake.user.name.first:
+    __type: string
     __stability: stable
     __example: John
     __context_names:
       - users
     __description: The first name of the user.
   snowflake.user.name.last:
+    __type: string
     __stability: stable
     __example: Doe
     __context_names:
       - users
     __description: The last name of the user.
   snowflake.user.owner:
+    __type: string
     __stability: stable
     __example: ACCOUNTADMIN
     __context_names:
@@ -211,6 +224,7 @@ attributes:
             System-managed user automatically created for each Snowpark Container Services (SPCS) service; cannot be created or converted by
             administrators.
   snowflake.user.privilege:
+    __type: string
     __stability: stable
     __example: "CREATE SERVICE:SCHEMA"
     __context_names:
@@ -236,6 +250,7 @@ attributes:
       - users_all_privileges
     __description: Array of all roles which granted grants to a user for a privilege.
   snowflake.user.roles.all:
+    __type: string
     __example: "SNOWFLAKE_FINANCE,MONITORING"
     __context_names:
       - users_all_roles
@@ -259,6 +274,7 @@ attributes:
       - users_direct_roles
     __description: List of all direct roles granted to user.
   snowflake.user.roles.direct.removed:
+    __type: string
     __stability: stable
     __example: "ACCOUNTADMIN"
     __context_names:

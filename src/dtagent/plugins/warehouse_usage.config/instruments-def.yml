@@ -23,12 +23,14 @@ attributes:
     __example: admin
     __description: The user who initiated the event.
   snowflake.query.id:
+    __type: string
     __stability: stable
     __context_names:
       - warehouse_usage
     __example: query123
     __description: The unique identifier for the query associated with the event.
   snowflake.role.name:
+    __type: string
     __stability: stable
     __context_names:
       - warehouse_usage
@@ -78,6 +80,7 @@ attributes:
           value: WAREHOUSE_SUSPEND
           brief: Warehouse was suspended explicitly via ALTER WAREHOUSE SUSPEND or a user-initiated action.
   snowflake.warehouse.id:
+    __type: long
     __field_type: resource
     __context_names:
       - warehouse_usage
@@ -180,6 +183,7 @@ dimensions:
           value: COMPLETED
           brief: The warehouse operation completed atomically with no further pending state changes.
   snowflake.warehouse.name:
+    __type: string
     __stability: stable
     __context_names:
       - warehouse_usage
@@ -189,6 +193,7 @@ dimensions:
     __description: The name of the warehouse.
 metrics:
   snowflake.credits.cloud_services:
+    __type: double
     __context_names:
       - warehouse_usage_metering
     __example: 2
@@ -196,6 +201,7 @@ metrics:
     displayName: Cloud Services Credits Used
     unit: credits
   snowflake.credits.compute:
+    __type: double
     __context_names:
       - warehouse_usage_metering
     __example: 8
@@ -203,6 +209,7 @@ metrics:
     displayName: Compute Credits Used
     unit: credits
   snowflake.credits.used:
+    __type: double
     __context_names:
       - warehouse_usage_metering
     __example: 10
@@ -210,6 +217,7 @@ metrics:
     displayName: Snowflake Credits Used
     unit: credits
   snowflake.load.blocked:
+    __type: long
     __context_names:
       - warehouse_usage_load
     __example: 0
@@ -217,6 +225,7 @@ metrics:
     displayName: Average Blocked Queries
     unit: count
   snowflake.load.queued.overloaded:
+    __type: long
     __context_names:
       - warehouse_usage_load
     __example: 2
@@ -224,6 +233,7 @@ metrics:
     displayName: Average Queued Queries (Load)
     unit: count
   snowflake.load.queued.provisioning:
+    __type: long
     __context_names:
       - warehouse_usage_load
     __example: 1
@@ -231,6 +241,7 @@ metrics:
     displayName: Average Queued Queries (Provisioning)
     unit: count
   snowflake.load.running:
+    __type: double
     __context_names:
       - warehouse_usage_load
     __example: 5

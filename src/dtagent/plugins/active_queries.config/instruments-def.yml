@@ -138,33 +138,39 @@ dimensions:
 
 metrics:
   snowflake.time.compilation:
+    __type: long
     __example: 5000
     __description: |
       The total compilation time of the currently running query.
     displayName: Query Compilation Time
     unit: ms
   snowflake.time.running:
+    __type: long
     __example: 120000
     __description: |
       The total running time of the currently running query.
     displayName: Query Running Time
     unit: ms
   snowflake.time.execution:
+    __type: long
     __example: 100000
     __description: Execution time (in milliseconds)
     displayName: Execution Time
     unit: ms
   snowflake.time.total_elapsed:
+    __type: long
     __example: 120000
     __description: Elapsed time (in milliseconds).
     displayName: Total Elapsed Time
     unit: ms
   snowflake.data.written_to_result:
+    __type: long
     __example: 1048576
     __description: Number of bytes written to a result object.
     displayName: Bytes Written to Result
     unit: bytes
   snowflake.rows.written_to_result:
+    __type: long
     __example: 1
     __description: Number of rows written to a result object. For CREATE TABLE AS SELECT (CTAS) and all DML operations, this result is 1;.
     displayName: Rows Written to Result

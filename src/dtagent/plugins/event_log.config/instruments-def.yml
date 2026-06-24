@@ -24,6 +24,7 @@ dimensions:
       - event_log_metrics
       - event_log_spans
   snowflake.schema.name:
+    __type: string
     __stability: stable
     __example: public
     __description: The name of the schema in which the query was executed.
@@ -31,6 +32,7 @@ dimensions:
       - event_log_metrics
       - event_log_spans
   snowflake.role.name:
+    __type: string
     __stability: stable
     __example: SYSADMIN
     __description: The role used to execute the query.
@@ -38,6 +40,7 @@ dimensions:
       - event_log_metrics
       - event_log_spans
   snowflake.warehouse.name:
+    __type: string
     __stability: stable
     __example: COMPUTE_WH
     __description: The warehouse used to execute the query.
@@ -45,6 +48,7 @@ dimensions:
       - event_log_metrics
       - event_log_spans
   snowflake.query.id:
+    __type: string
     __stability: stable
     __example: b1bbaa7f-8144-4e50-947a-b7e9bf7d62d5
     __description: The unique identifier for the query.
@@ -54,6 +58,7 @@ dimensions:
 
 metrics:
   process.cpu.utilization:
+    __type: double
     displayName: "Process CPU Utilization"
     unit: "1"
     __context_names:
@@ -62,6 +67,7 @@ metrics:
     __description: "The percentage of CPU utilization by the process."
     __is_defined_at_runtime: true
   process.memory.usage:
+    __type: double
     displayName: "Process Memory Usage"
     unit: "bytes"
     __context_names:
