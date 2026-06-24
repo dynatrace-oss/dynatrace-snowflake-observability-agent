@@ -397,11 +397,16 @@ def _map_metric_instrument(raw_type: Optional[str]) -> str:
     """
     if not raw_type:
         return "gauge"
-    mapped = METRIC_TYPE_MAP.get(str(raw_type).lower())
-    if not mapped:
-        log.warning("Unknown metric __type '%s'; defaulting to gauge", raw_type)
+    normalised = str(raw_type).lower()
+    mapped = METRIC_TYPE_MAP.get(normalised)
+    if mapped:
+        return mapped
+    # Physical data types (long, double, string, …) on metric entries express the
+    # value type, not the instrument kind — silently treat them as gauge.
+    if normalised in ATTR_TYPE_MAP:
         return "gauge"
-    return mapped
+    log.warning("Unknown metric __type '%s'; defaulting to gauge", raw_type)
+    return "gauge"
 
 
 def _classify_field(key: str, section: str, field_type_override: Optional[str]) -> str:
