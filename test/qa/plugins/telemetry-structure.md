@@ -245,31 +245,31 @@ Example span events (attached to span above):
     "name": "TableScan 01b4f12a:0",
     "timestamp": "<iso8601>",
     "attributes": {
-      "snowflake.query.operator.type": "TableScan",
+      "snowflake.query.step.operator.type": "TableScan",
       "snowflake.query.id": "01b4f12a-0000-0000-0000-...",
-      "snowflake.query.operator.id": 0,
-      "snowflake.query.operator.rows": 50000,
-      "snowflake.query.operator.duration_ms": 1000
+      "snowflake.query.step.operator.id": 0,
+      "snowflake.query.step.operator.rows": 50000,
+      "snowflake.query.step.operator.duration_ms": 1000
     }
   },
   {
     "name": "Filter 01b4f12a:1",
     "timestamp": "<iso8601>",
     "attributes": {
-      "snowflake.query.operator.type": "Filter",
+      "snowflake.query.step.operator.type": "Filter",
       "snowflake.query.id": "01b4f12a-0000-0000-0000-...",
-      "snowflake.query.operator.id": 1,
-      "snowflake.query.operator.rows": 5000,
-      "snowflake.query.operator.duration_ms": 200
+      "snowflake.query.step.operator.id": 1,
+      "snowflake.query.step.operator.rows": 5000,
+      "snowflake.query.step.operator.duration_ms": 200
     }
   },
   {
     "name": "DDL_CHANGE 01b4f12a:99",
     "timestamp": "<iso8601>",
     "attributes": {
-      "snowflake.query.operator.type": "CREATE TABLE",
+      "snowflake.query.step.operator.type": "CREATE TABLE",
       "snowflake.query.id": "01b4f12a-0000-0000-0000-...",
-      "snowflake.query.operator.id": 99,
+      "snowflake.query.step.operator.id": 99,
       "ddl_type": "CREATE",
       "ddl_target": "MY_DB.PUBLIC.NEW_TABLE"
     }

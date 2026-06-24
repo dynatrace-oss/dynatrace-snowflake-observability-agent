@@ -139,13 +139,13 @@ DECLARE
                                             object_construct_keep_null(
                                             'timestamp',                           extract(epoch_nanosecond from event_start_time),
                                             'snowflake.query.id',                  query_id,
-                                            'snowflake.query.step.id',             step_id,
-                                            'snowflake.query.operator.id',         operator_id,
-                                            'snowflake.query.operator.parent_ids', to_varchar(parent_operators),
-                                            'snowflake.query.operator.type',       to_varchar(operator_type),
-                                            'snowflake.query.operator.stats',      operator_statistics,
-                                            'snowflake.query.operator.attributes', operator_attributes,
-                                            'snowflake.query.operator.time',       execution_time_breakdown
+                                            'snowflake.query.step.id',                  step_id,
+                                            'snowflake.query.step.operator.id',         operator_id,
+                                            'snowflake.query.step.operator.parent_ids', to_varchar(parent_operators),
+                                            'snowflake.query.step.operator.type',       to_varchar(operator_type),
+                                            'snowflake.query.step.operator.stats',      operator_statistics,
+                                            'snowflake.query.step.operator.attributes', operator_attributes,
+                                            'snowflake.query.step.operator.time',       execution_time_breakdown
                                             )
                                         ) AS metrics
                                         FROM cte_operator_stat_metrics

@@ -68,9 +68,9 @@ variables:
         | filter isNotNull(span.events)
         | filter $Account == "*" or $Account == upper(deployment.environment)
         | filter $DB_Operation == "*" or $DB_Operation == upper(coalesce(db.operation, db.operation.name))
-        | fieldsAdd operator_stats = iCollectArray(parse(span.events[][snowflake.query.operator.stats], """JSON:stats"""))
+        | fieldsAdd operator_stats = iCollectArray(parse(span.events[][snowflake.query.step.operator.stats], """JSON:stats"""))
         | filter iAny(operator_stats[][input_rows] < operator_stats[][output_rows] and
-            span.events[][snowflake.query.operator.type] == "Join")
+            span.events[][snowflake.query.step.operator.type] == "Join")
         | fields
             start_time, end_time, snowflake.query.id, deployment.environment, db.operation, db.statement, db.user,
             snowflake.execution_status, snowflake.time.total_elapsed, snowflake.time.execution, span.events, operator_stats
@@ -93,9 +93,9 @@ tiles:
         | filter $Account == "*" or upper(deployment.environment) == $Account
         | filter $DB_Operation == "*" or upper(operation_name) == $DB_Operation
         | filter in(db.user, array($User))
-        | fieldsAdd operator_stats = iCollectArray(parse(span.events[][snowflake.query.operator.stats], """JSON:stats"""))
+        | fieldsAdd operator_stats = iCollectArray(parse(span.events[][snowflake.query.step.operator.stats], """JSON:stats"""))
         | filter iAny(operator_stats[][input_rows] < operator_stats[][output_rows] and
-            span.events[][snowflake.query.operator.type] == "Join")
+            span.events[][snowflake.query.step.operator.type] == "Join")
         | fields
             start_time, end_time, snowflake.query.id, service_name, operation_name,
             query_text = coalesce(db.statement, db.query.text), db.user, bietl.action = tags[action],
@@ -129,9 +129,9 @@ tiles:
         | filter $DB_Operation == "*" or upper(operation_name) == $DB_Operation
         | filter $Account == "*" or upper(deployment.environment) == $Account
         | filter in(db.user, array($User))
-        | fieldsAdd operator_stats = iCollectArray(parse(span.events[][snowflake.query.operator.stats], """JSON:stats"""))
+        | fieldsAdd operator_stats = iCollectArray(parse(span.events[][snowflake.query.step.operator.stats], """JSON:stats"""))
         | filter iAny(operator_stats[][input_rows] < operator_stats[][output_rows] and
-            span.events[][snowflake.query.operator.type] == "Join")
+            span.events[][snowflake.query.step.operator.type] == "Join")
         | fields
             start_time, end_time, snowflake.query.id, service_name, operation_name, db.statement, db.user,
             snowflake.execution_status, snowflake.time.total_elapsed, snowflake.time.execution, span.events,
@@ -186,9 +186,9 @@ tiles:
         | filter $Account == "*" or upper(deployment.environment) == $Account
         | filter $DB_Operation == "*" or upper(operation_name) == $DB_Operation
         | filter in(db.user, array($User))
-        | fieldsAdd operator_stats = iCollectArray(parse(span.events[][snowflake.query.operator.stats], """JSON:stats"""))
+        | fieldsAdd operator_stats = iCollectArray(parse(span.events[][snowflake.query.step.operator.stats], """JSON:stats"""))
         | filter iAny(operator_stats[][input_rows] < operator_stats[][output_rows] and
-            span.events[][snowflake.query.operator.type] == "Join")
+            span.events[][snowflake.query.step.operator.type] == "Join")
         | fields start_time, end_time, snowflake.query.id, service_name, operation_name, db.statement, db.user,
             snowflake.execution_status, snowflake.time.total_elapsed, snowflake.time.execution, span.events,
             deployment.environment, operator_stats
@@ -249,9 +249,9 @@ tiles:
         | filter $Account == "*" or upper(deployment.environment) == $Account
         | filter $DB_Operation == "*" or upper(operation_name) == $DB_Operation
         | filter in(db.user, array($User))
-        | fieldsAdd operator_stats = iCollectArray(parse(span.events[][snowflake.query.operator.stats], """JSON:stats"""))
+        | fieldsAdd operator_stats = iCollectArray(parse(span.events[][snowflake.query.step.operator.stats], """JSON:stats"""))
         | filter iAny(operator_stats[][input_rows] < operator_stats[][output_rows] and
-            span.events[][snowflake.query.operator.type] == "Join")
+            span.events[][snowflake.query.step.operator.type] == "Join")
         | fields start_time, end_time, snowflake.query.id, service_name, operation_name, db.statement, db.user,
             snowflake.execution_status, snowflake.time.total_elapsed, snowflake.time.execution, span.events,
             deployment.environment, operator_stats
@@ -294,9 +294,9 @@ tiles:
         | filter $Account == "*" or upper(deployment.environment) == $Account
         | filter $DB_Operation == "*" or upper(operation_name) == $DB_Operation
         | filter in(db.user, array($User))
-        | fieldsAdd operator_stats = iCollectArray(parse(span.events[][snowflake.query.operator.stats], """JSON:stats"""))
+        | fieldsAdd operator_stats = iCollectArray(parse(span.events[][snowflake.query.step.operator.stats], """JSON:stats"""))
         | filter iAny(operator_stats[][input_rows] < operator_stats[][output_rows] and
-            span.events[][snowflake.query.operator.type] == "Join")
+            span.events[][snowflake.query.step.operator.type] == "Join")
         | fields
             start_time, end_time, snowflake.query.id, service_name, operation_name, db.statement, db.user,
             snowflake.execution_status, snowflake.time.total_elapsed, snowflake.time.execution, span.events,
@@ -354,9 +354,9 @@ tiles:
         | filter $Account == "*" or upper(deployment.environment) == $Account
         | filter $DB_Operation == "*" or upper(operation_name) == $DB_Operation
         | filter in(db.user, array($User))
-        | fieldsAdd operator_stats = iCollectArray(parse(span.events[][snowflake.query.operator.stats], """JSON:stats"""))
+        | fieldsAdd operator_stats = iCollectArray(parse(span.events[][snowflake.query.step.operator.stats], """JSON:stats"""))
         | filter iAny(operator_stats[][input_rows] < operator_stats[][output_rows] and
-            span.events[][snowflake.query.operator.type] == "Join")
+            span.events[][snowflake.query.step.operator.type] == "Join")
         | fields
             start_time, end_time, snowflake.query.id, service_name, operation_name, db.statement, db.user,
             snowflake.execution_status, snowflake.time.total_elapsed, snowflake.time.execution, span.events,
@@ -418,9 +418,9 @@ tiles:
         | filter $Account == "*" or upper(deployment.environment) == $Account
         | filter $DB_Operation == "*" or upper(operation_name) == $DB_Operation
         | filter in(db.user, array($User))
-        | fieldsAdd operator_stats = iCollectArray(parse(span.events[][snowflake.query.operator.stats], """JSON:stats"""))
+        | fieldsAdd operator_stats = iCollectArray(parse(span.events[][snowflake.query.step.operator.stats], """JSON:stats"""))
         | filter iAny(operator_stats[][input_rows] < operator_stats[][output_rows] and
-            span.events[][snowflake.query.operator.type] == "Join")
+            span.events[][snowflake.query.step.operator.type] == "Join")
         | fields
             start_time, end_time, snowflake.query.id, service_name, operation_name, db.statement, db.user,
             snowflake.execution_status, snowflake.time.total_elapsed, snowflake.time.execution, span.events,

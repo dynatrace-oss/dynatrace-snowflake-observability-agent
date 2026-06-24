@@ -88,7 +88,7 @@
     }
   },
   {
-    "content": "Invalid type dict for attribute 'snowflake.query.operator.stats' value. Expected one of ['bool', 'str', 'bytes', 'int', 'float'] or a sequence of those types",
+    "content": "Invalid type dict for attribute 'snowflake.query.step.operator.stats' value. Expected one of ['bool', 'str', 'bytes', 'int', 'float'] or a sequence of those types",
     "db.user": "SYSTEM",
     "snow.database.id": 621,
     "snow.database.name": "DTAGENT_DB",
