@@ -46,14 +46,14 @@ Queries the `snowflake.partitions.*` metrics from the `query_history` plugin via
 
 Each ingested event carries:
 
-| Property                 | Value                                  |
-|--------------------------|----------------------------------------|
-| `event.type`             | `CustomInfo` (default)                 |
-| `ad.source`              | `dsoa.table_perf_degradation`          |
-| `ad.source_metric`       | `snowflake.table.partition_scan_ratio` |
-| `event.start/end`        | Anomaly timeframe from Davis           |
-| `db.collection.name`     | Affected table                         |
-| `deployment.environment` | Snowflake environment                  |
+| Property                  | Value                                  |
+|---------------------------|----------------------------------------|
+| `event.type`              | `CustomInfo` (default)                 |
+| `anomaly.detector`        | `dsoa.table_perf_degradation`          |
+| `metric.key`              | `snowflake.table.partition_scan_ratio` |
+| `event.start/end`         | Anomaly timeframe from Davis           |
+| `db.collection.name`      | Affected table                         |
+| `deployment.environment`  | Snowflake environment                  |
 
 ## Customization
 

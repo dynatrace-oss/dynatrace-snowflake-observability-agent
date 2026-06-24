@@ -112,7 +112,7 @@ tasks:
                     `Snowflake user ${user} (role ${role}) ran ${opName} ` +
                     `with a sensitive property change.`,
                   'event.start': r['timestamp'],
-                  'ad.source': CONFIG.adSource,
+                  'anomaly.detector': CONFIG.adSource,
                   'db.user': user,
                   'snowflake.role.name': role,
                   'db.operation.name': opName,

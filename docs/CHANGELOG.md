@@ -18,6 +18,21 @@ All notable changes to this project will be documented in this file.
   Dynatrace Semantic Dictionary convention separating configured threshold values from live consumption
   percentages (`snowflake.credits.quota.used_pct`). To migrate existing dashboards and workflows, run
   `refactor_field_names.sh` with `appx-d-threshold-pct-refactoring.csv`. See [Appendix D](APPENDIX.md#appendix-d-sec).
+- **[BREAKING] `ad.*` anomaly-detection event properties renamed to Semantic Dictionary fields**:
+  All ten anomaly-detection workflows and the `login_history` plugin now emit the following renamed fields.
+  Run `refactor_field_names.sh` with `appx-e-ad-fields-refactoring.csv` to update dashboards, notebooks,
+  and workflows. For DQL queries filtering on these fields, update the field names manually.
+  See [Appendix E](APPENDIX.md#appendix-e-sec).
+
+  | Old field | New field |
+  |-----------|-----------|
+  | `ad.source` | `anomaly.detector` |
+  | `ad.source_metric` | `metric.key` |
+  | `ad.direction` | `anomaly.direction` |
+  | `ad.category` | `anomaly.subject` |
+
+  Additionally, the `login_history` plugin changes its `anomaly.detector` value from
+  `snowflake_security` to `dsoa.failed_login_detection`.
 
 ## [0.9.5] - 2026-06-08
 

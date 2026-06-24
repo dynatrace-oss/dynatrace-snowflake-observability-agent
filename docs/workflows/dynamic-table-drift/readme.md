@@ -47,14 +47,14 @@ derived metric directly to Davis without requiring a `fetch events` → `makeTim
 
 Each ingested event carries:
 
-| Property                       | Value                                           |
-|--------------------------------|-------------------------------------------------|
-| `event.type`                   | `CustomInfo` (default)                          |
-| `ad.source`                    | `dsoa.dynamic_table_drift`                      |
-| `ad.source_metric`             | `snowflake.table.dynamic.lag.excess`            |
-| `event.start/end`              | Anomaly timeframe from Davis                    |
-| `snowflake.table.full_name`    | Affected dynamic table                          |
-| `deployment.environment`       | Snowflake environment                           |
+| Property                        | Value                                           |
+|---------------------------------|-------------------------------------------------|
+| `event.type`                    | `CustomInfo` (default)                          |
+| `anomaly.detector`              | `dsoa.dynamic_table_drift`                      |
+| `metric.key`                    | `snowflake.table.dynamic.lag.excess`            |
+| `event.start/end`               | Anomaly timeframe from Davis                    |
+| `snowflake.table.full_name`     | Affected dynamic table                          |
+| `deployment.environment`        | Snowflake environment                           |
 
 ## Customization
 

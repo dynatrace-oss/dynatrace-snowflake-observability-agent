@@ -416,10 +416,10 @@ tasks:
 
           newEvent.body.properties['event.start'] = startTime;
           newEvent.body.properties['event.end'] = endTime;
-          newEvent.body.properties['ad.source'] = CONFIG.adSource;
-          newEvent.body.properties['ad.source_metric'] = sourceMetric;
-          if (adDirection) newEvent.body.properties['ad.direction'] = adDirection;
-          if (adCategory) newEvent.body.properties['ad.category'] = adCategory;
+          newEvent.body.properties['anomaly.detector'] = CONFIG.adSource;
+          newEvent.body.properties['metric.key'] = sourceMetric;
+          if (adDirection) newEvent.body.properties['anomaly.direction'] = adDirection;
+          if (adCategory) newEvent.body.properties['anomaly.subject'] = adCategory;
 
           if (result.dimensions.length > 0) {
             result.dimensions.forEach(dim => {

@@ -54,7 +54,7 @@ class LoginHistoryPlugin(Plugin):
             "event.description": f"We have detected a failed login attempt due to f{error_message} (code: {error_code}), by {user}",
             "db.user": properties.get("db.user"),
             "timeout": 360,
-            "ad.source": "snowflake_security",
+            "anomaly.detector": "dsoa.failed_login_detection",
         }
         return EventType.CUSTOM_ALERT, "Failed login attempt", payload
 

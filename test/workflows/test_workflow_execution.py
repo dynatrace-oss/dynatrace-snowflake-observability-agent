@@ -32,7 +32,7 @@ and validates:
     anomaly is detected — that is a valid result, not a failure).
   - JavaScript tasks complete without unhandled exceptions.
   - For workflows that ingest Dynatrace events, the event type property
-    (``ad.source``) is present in the result.
+    (``anomaly.detector``) is present in the result.
 
 Requires:
   - dtctl on PATH and authenticated (``dtctl auth login``).
@@ -69,10 +69,10 @@ _STATUS_SUCCESS = {"SUCCESS", "COMPLETED"}
 _STATUS_FAILED = {"FAILED", "ERROR", "CANCELLED"}
 _STATUS_RUNNING = {"RUNNING", "QUEUED", "IN_PROGRESS"}
 
-# Per-workflow expected ``ad.source`` event property (for behavioral assertion).
-# Maps workflow directory name → expected ad.source value in ingested events.
+# Per-workflow expected ``anomaly.detector`` event property (for behavioral assertion).
+# Maps workflow directory name → expected anomaly.detector value in ingested events.
 # Workflows that do not ingest events map to None.
-_WORKFLOW_AD_SOURCE: dict[str, str | None] = {
+_WORKFLOW_ANOMALY_DETECTOR: dict[str, str | None] = {
     "credits-exhaustion-prediction": "dsoa.credits_exhaustion_prediction",
     "data-volume-anomaly": "dsoa.data_volume_anomaly",
     "dynamic-table-drift": "dsoa.dynamic_table_drift",
@@ -289,8 +289,8 @@ class TestWorkflowExecution:
             f"  {wf}: {', '.join(tasks)}" for wf, tasks in null_outputs.items()
         )
 
-    def test_event_ad_source_present_on_anomaly(self, all_workflows):
-        """For workflows that ingest Dynatrace events, verify ``ad.source`` is set.
+    def test_event_anomaly_detector_present_on_anomaly(self, all_workflows):
+        """For workflows that ingest Dynatrace events, verify ``anomaly.detector`` is set.
 
         This test only checks workflows that produced events (output length > 0).
         If no anomaly was detected, the test is automatically skipped for that workflow.
@@ -304,8 +304,8 @@ class TestWorkflowExecution:
         issues: dict[str, str] = {}
         for w in all_workflows:
             wf_name = w["name"]
-            expected_ad_source = _WORKFLOW_AD_SOURCE.get(wf_name)
-            if not expected_ad_source:
+            expected_detector = _WORKFLOW_ANOMALY_DETECTOR.get(wf_name)
+            if not expected_detector:
                 continue  # Workflow does not ingest events — skip
 
             wf_id = str(w["content"].get("id", ""))
@@ -330,12 +330,12 @@ class TestWorkflowExecution:
                 continue  # No events — no anomaly detected, skip behavioral check
 
             # Output should be a list of event objects or a count
-            # If any events were ingested, verify ad.source is in the event body
+            # If any events were ingested, verify anomaly.detector is in the event body
             if isinstance(task_output, list) and len(task_output) > 0:
                 sample_event = task_output[0]
                 props = (sample_event.get("body") or {}).get("properties") or {}
-                actual_source = props.get("ad.source", "")
-                if actual_source != expected_ad_source:
-                    issues[wf_name] = f"expected ad.source='{expected_ad_source}', got '{actual_source}'"
+                actual_detector = props.get("anomaly.detector", "")
+                if actual_detector != expected_detector:
+                    issues[wf_name] = f"expected anomaly.detector='{expected_detector}', got '{actual_detector}'"
 
-        assert not issues, f"Workflow events missing expected ad.source property: {issues}"
+        assert not issues, f"Workflow events missing expected anomaly.detector property: {issues}"

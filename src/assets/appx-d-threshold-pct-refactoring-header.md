@@ -1,8 +1,8 @@
 <a name="appendix-d-sec"></a>
 
-## Appendix D: Migrating resource monitor threshold field to version 0.9.6 or higher
+## Appendix D: Migrating resource monitor threshold field to version 1.0.0 or higher
 
-Version 0.9.6 renames the `snowflake.resource_monitor.threshold.pct` field to
+Version 1.0.0 renames the `snowflake.resource_monitor.threshold.pct` field to
 `snowflake.resource_monitor.threshold.value` and changes its type from string to double with a
 `percent` unit. This makes the field consistent with the Dynatrace Semantic Dictionary convention
 that separates the threshold configuration value from the live consumption percentage
