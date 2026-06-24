@@ -44,7 +44,6 @@ select
         'snowflake.warehouse.owner',                                wh.owner,
         'snowflake.warehouse.is_default',                           wh.is_default,
         'snowflake.warehouse.is_current',                           wh.is_current,
-        'snowflake.warehouse.is_auto_suspend',                      wh.auto_suspend,
         'snowflake.warehouse.is_auto_resume',                       wh.auto_resume,
         'snowflake.warehouse.is_unmonitored',                       IS_UNMONITORED,
 
@@ -78,7 +77,8 @@ select
         'snowflake.acceleration.scale_factor.max',                  wh.query_acceleration_max_scale_factor,
         'snowflake.warehouse.clusters.started',                     wh.started_clusters,
         'snowflake.queries.running',                                wh.running,
-        'snowflake.queries.queued',                                 wh.queued
+        'snowflake.queries.queued',                                 wh.queued,
+        'snowflake.warehouse.auto_suspend',                         wh.auto_suspend
     )                                                                                                                   as METRICS
 from APP.TMP_WAREHOUSES wh
 left join APP.TMP_RESOURCE_MONITORS rm

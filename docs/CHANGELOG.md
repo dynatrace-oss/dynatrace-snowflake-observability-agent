@@ -33,6 +33,11 @@ All notable changes to this project will be documented in this file.
 
   Additionally, the `login_history` plugin changes its `anomaly.detector` value from
   `snowflake_security` to `dsoa.failed_login_detection`.
+- **[BREAKING] `snowflake.warehouse.is_auto_suspend` renamed to `snowflake.warehouse.auto_suspend` and reclassified as a metric**:
+  The field is no longer emitted as a string attribute; it is now a numeric metric with unit `seconds`,
+  carrying the warehouse auto-suspend timeout value directly (e.g., `600`). A value of `null` or `0`
+  indicates auto-suspend is disabled. Run `refactor_field_names.sh` with
+  `appx-f-auto-suspend-refactoring.csv` to update dashboards and workflows. See [Appendix F](APPENDIX.md#appendix-f-sec).
 
 ## [0.9.5] - 2026-06-08
 

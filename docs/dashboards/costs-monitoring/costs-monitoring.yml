@@ -1586,7 +1586,7 @@ tiles:
       // Exclude serverless warehouses
       | filterOut snowflake.warehouse.type == "SNOWPARK-OPTIMIZED"
       | summarize {
-          auto_suspend = takeLast(snowflake.warehouse.is_auto_suspend),
+          auto_suspend = takeLast(snowflake.warehouse.auto_suspend),
           auto_resume = takeLast(snowflake.warehouse.is_auto_resume),
           wh_size = takeLast(snowflake.warehouse.size),
           wh_type = takeLast(snowflake.warehouse.type),

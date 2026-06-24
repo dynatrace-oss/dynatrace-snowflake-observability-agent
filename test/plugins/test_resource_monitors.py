@@ -89,7 +89,7 @@ class TestResMon:
                 affecting_types_for_entries=["logs", "metrics", "events"],
                 base_count={
                     "resource_monitors": {"entries": 2, "log_lines": 0, "metrics": 10, "events": 4},
-                    "warehouses": {"entries": 2, "log_lines": 0, "metrics": 12, "events": 6},
+                    "warehouses": {"entries": 2, "log_lines": 0, "metrics": 14, "events": 6},
                 },
             )
 

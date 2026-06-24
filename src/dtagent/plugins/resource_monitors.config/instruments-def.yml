@@ -71,9 +71,7 @@ attributes:
   snowflake.warehouse.is_auto_resume:
     __example: "true"
     __description: Indicates if the warehouse is set to auto-resume.
-  snowflake.warehouse.is_auto_suspend:
-    __example: "true"
-    __description: Indicates if the warehouse is set to auto-suspend.
+
   snowflake.warehouse.is_current:
     __example: "true"
     __description: Indicates if the warehouse is the current warehouse.
@@ -204,6 +202,13 @@ metrics:
     __description: Minimal number of clusters in the given warehouse
     displayName: Minimum Cluster Count
     unit: clusters
+  snowflake.warehouse.auto_suspend:
+    __example: "600"
+    __description: >-
+      The number of seconds after which an idle warehouse is automatically suspended.
+      A value of null or 0 indicates auto-suspend is disabled.
+    displayName: Warehouse Auto-Suspend Timeout
+    unit: seconds
   snowflake.warehouse.clusters.started:
     __example: "3"
     __description: Current number of started clusters in the given warehouse
