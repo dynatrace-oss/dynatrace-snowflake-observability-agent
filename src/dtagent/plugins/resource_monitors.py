@@ -433,7 +433,7 @@ class ResourceMonitorsPlugin(Plugin):
 
         properties = {
             "snowflake.resource_monitor.threshold.level": band,
-            "snowflake.resource_monitor.threshold.pct": threshold_pct,
+            "snowflake.resource_monitor.threshold.value": threshold_pct,
             "snowflake.resource_monitor.threshold.direction": direction,
             "snowflake.credits.quota.used_pct": used_pct,
             "snowflake.resource_monitor.level": rm_level,

@@ -53,10 +53,15 @@ attributes:
     __description: >-
       Alert band for the threshold event: ``info`` (below 80%), ``warn`` ([80–90%)),
       ``critical`` ([90–100%)), or ``exhausted`` (>=100%).
-  snowflake.resource_monitor.threshold.pct:
+  snowflake.resource_monitor.threshold.value:
     __is_defined_at_runtime: true
+    __type: double
+    __unit: percent
     __example: "80"
-    __description: The specific threshold percentage value that was crossed to trigger the event.
+    __description: >-
+      The configured threshold percentage at which this crossing event was triggered (e.g., 80 means
+      the 80% threshold was crossed). Distinct from snowflake.credits.quota.used_pct, which captures
+      live consumption at emit time.
   snowflake.warehouse.execution_state:
     __example: RUNNING
     __description: The execution state of the warehouse.

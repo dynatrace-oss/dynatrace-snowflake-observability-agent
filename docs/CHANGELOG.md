@@ -9,6 +9,16 @@ All notable changes to this project will be documented in this file.
 >
 > Detailed technical changes and implementation notes are available in the [development log](../.context/devlog/).
 
+## [1.0.0] - TBD
+
+### Changed
+
+- **[BREAKING] `snowflake.resource_monitor.threshold.pct` renamed to `snowflake.resource_monitor.threshold.value`**:
+  The field type changes from string to double and gains a `percent` unit. This aligns the field with the
+  Dynatrace Semantic Dictionary convention separating configured threshold values from live consumption
+  percentages (`snowflake.credits.quota.used_pct`). To migrate existing dashboards and workflows, run
+  `refactor_field_names.sh` with `appx-d-threshold-pct-refactoring.csv`. See [Appendix D](APPENDIX.md#appendix-d-sec).
+
 ## [0.9.5] - 2026-06-08
 
 ### Added
