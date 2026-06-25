@@ -13,47 +13,33 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
-- **[BREAKING] `snowflake.resource_monitor.threshold.pct` renamed to `snowflake.resource_monitor.threshold.value`**:
-  The field type changes from string to double and gains a `percent` unit. This aligns the field with the
-  Dynatrace Semantic Dictionary convention separating configured threshold values from live consumption
-  percentages (`snowflake.credits.quota.used_pct`). To migrate existing dashboards and workflows, run
-  `refactor_field_names.sh` with `appx-d-threshold-pct-refactoring.csv`. See [Appendix D](APPENDIX.md#appendix-d-sec).
-- **[BREAKING] `ad.*` anomaly-detection event properties renamed to Semantic Dictionary fields**:
-  All ten anomaly-detection workflows and the `login_history` plugin now emit the following renamed fields.
-  Run `refactor_field_names.sh` with `appx-e-ad-fields-refactoring.csv` to update dashboards, notebooks,
-  and workflows. For DQL queries filtering on these fields, update the field names manually.
-  See [Appendix E](APPENDIX.md#appendix-e-sec).
-
-  | Old field          | New field           |
-  |--------------------|---------------------|
-  | `ad.source`        | `anomaly.detector`  |
-  | `ad.source_metric` | `metric.key`        |
-  | `ad.direction`     | `anomaly.direction` |
-  | `ad.category`      | `anomaly.subject`   |
-
-  Additionally, the `login_history` plugin changes its `anomaly.detector` value from
-  `snowflake_security` to `dsoa.failed_login_detection`.
-- **[BREAKING] `snowflake.query.operator.*` span event attributes renamed to `snowflake.query.step.operator.*`**:
-  Six fields emitted on query operator span events now carry the `step.` infix to reflect that
-  `operator_id` values are unique within a step, not across the full query. No Snowflake API columns
-  change; this is a pure rename at the DSOA telemetry emission layer. Run `refactor_field_names.sh`
-  with `appx-c-query-step-operator-refactoring.csv` to update dashboards and workflows.
+- **[BREAKING] Multiple field renames across plugins for Semantic Dictionary alignment**:
+  Version 1.0.0 renames fields in four areas.
   See [Appendix C](APPENDIX.md#appendix-c-sec).
 
-  | Old field                             | New field                                  |
-  |---------------------------------------|--------------------------------------------|
-  | `snowflake.query.operator.attributes` | `snowflake.query.step.operator.attributes` |
-  | `snowflake.query.operator.id`         | `snowflake.query.step.operator.id`         |
-  | `snowflake.query.operator.parent_ids` | `snowflake.query.step.operator.parent_ids` |
-  | `snowflake.query.operator.stats`      | `snowflake.query.step.operator.stats`      |
-  | `snowflake.query.operator.time`       | `snowflake.query.step.operator.time`       |
-  | `snowflake.query.operator.type`       | `snowflake.query.step.operator.type`       |
+  | Old field                                  | New field                                       |
+  |--------------------------------------------|-------------------------------------------------|
+  | `ad.source`                                | `anomaly.detector`                              |
+  | `ad.source_metric`                         | `metric.key`                                    |
+  | `ad.direction`                             | `anomaly.direction`                             |
+  | `ad.category`                              | `anomaly.subject`                               |
+  | `error.code`                               | `snowflake.error.code`                          |
+  | `snowflake.credits.quota`                  | `snowflake.credits.quota.value`                 |
+  | `snowflake.query.operator.attributes`      | `snowflake.query.step.operator.attributes`      |
+  | `snowflake.query.operator.id`              | `snowflake.query.step.operator.id`              |
+  | `snowflake.query.operator.parent_ids`      | `snowflake.query.step.operator.parent_ids`      |
+  | `snowflake.query.operator.stats`           | `snowflake.query.step.operator.stats`           |
+  | `snowflake.query.operator.time`            | `snowflake.query.step.operator.time_breakdown`  |
+  | `snowflake.query.operator.type`            | `snowflake.query.step.operator.type`            |
+  | `snowflake.resource_monitor.threshold.pct` | `snowflake.resource_monitor.threshold.value`    |
+  | `snowflake.warehouse.event`                | `snowflake.warehouse.event.trigger`             |
+  | `snowflake.warehouse.is_auto_suspend`      | `snowflake.warehouse.auto_suspend`              |
 
-- **[BREAKING] `snowflake.warehouse.is_auto_suspend` renamed to `snowflake.warehouse.auto_suspend` and reclassified as a metric**:
-  The field is no longer emitted as a string attribute; it is now a numeric metric with unit `seconds`,
-  carrying the warehouse auto-suspend timeout value directly (e.g., `600`). A value of `null` or `0`
-  indicates auto-suspend is disabled. Run `refactor_field_names.sh` with
-  `appx-f-auto-suspend-refactoring.csv` to update dashboards and workflows. See [Appendix F](APPENDIX.md#appendix-f-sec).
+  Additional notes:
+  - `snowflake.resource_monitor.threshold.value` changes type from string to double with a `percent` unit.
+  - `snowflake.warehouse.auto_suspend` is reclassified from attribute to numeric metric with unit `seconds`; `null` or `0` means auto-suspend is disabled.
+  - The `login_history` plugin changes its `anomaly.detector` value from `snowflake_security` to `dsoa.failed_login_detection`.
+  - For DQL queries filtering on the renamed `ad.*` fields, update field names manually (the script handles attribute keys, not query text).
 
 ## [0.9.5] - 2026-06-08
 
