@@ -14,8 +14,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 - **[BREAKING] Multiple field renames across plugins for Semantic Dictionary alignment**:
-  Version 1.0.0 renames fields in four areas. Run `refactor_field_names.sh` with
-  `appx-c-query-step-operator-refactoring.csv` to migrate all affected dashboards, workflows, and notebooks in one pass.
+  Version 1.0.0 renames fields in four areas.
   See [Appendix C](APPENDIX.md#appendix-c-sec).
 
   | Old field                             | New field                                      |
