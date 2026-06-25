@@ -57,7 +57,7 @@ select
         'snowflake.budget.name',                                    wh.budget,
 
         -- this cannot be reported as metrics as then someone could accidently aggregate it incorrectly
-        'snowflake.credits.quota',                                  rm.credit_quota,
+        'snowflake.credits.quota.value',                            rm.credit_quota,
         'snowflake.credits.quota.used',                             rm.used_credits,
         'snowflake.credits.quota.remaining',                        rm.remaining_credits
     )                                                                                                                   as ATTRIBUTES,

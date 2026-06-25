@@ -301,7 +301,7 @@ class TestProcessThresholdForRM:
             ),
             "METRICS": json.dumps(
                 {
-                    "snowflake.credits.quota": str(quota),
+                    "snowflake.credits.quota.value": str(quota),
                     "snowflake.credits.quota.used": str(round(quota * used_pct / 100, 2)),
                     "snowflake.credits.quota.remaining": str(round(quota * (100 - used_pct) / 100, 2)),
                     "snowflake.credits.quota.used_pct": used_pct,

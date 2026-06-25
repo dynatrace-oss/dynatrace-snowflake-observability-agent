@@ -223,7 +223,7 @@ BEGIN
                     'snowflake.query.step.operator.parent_ids', null,
                     'snowflake.query.step.operator.attributes', null,
                     'snowflake.query.step.operator.stats',  null,
-                    'snowflake.query.step.operator.time',   null,
+                    'snowflake.query.step.operator.time_breakdown', null,
                     'snowflake.query.with_operator_stats', false
                 )                                                                              as ATTRIBUTES,
                 OBJECT_CONSTRUCT(
@@ -515,7 +515,7 @@ BEGIN
                     'snowflake.query.step.operator.parent_ids', null,
                     'snowflake.query.step.operator.attributes', null,
                     'snowflake.query.step.operator.stats',  null,
-                    'snowflake.query.step.operator.time',   null,
+                    'snowflake.query.step.operator.time_breakdown', null,
                     'snowflake.query.with_operator_stats', false
                 )                                                                              as attributes,
                 object_construct(

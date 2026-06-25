@@ -44,7 +44,7 @@ select
         'authentication.factor.first',                 lh.FIRST_AUTHENTICATION_FACTOR,
         'authentication.factor.second',                lh.SECOND_AUTHENTICATION_FACTOR,
         'status.code',                                  IFF(lh.IS_SUCCESS = 'YES', 'OK', 'ERROR'),
-        'error.code',                                   lh.ERROR_CODE,
+        'snowflake.error.code',                         lh.ERROR_CODE,
         'status.message',                               lh.ERROR_MESSAGE,
         'event.related_id',                             lh.RELATED_EVENT_ID,
         'db.snowflake.connection',                      lh.CONNECTION

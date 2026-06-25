@@ -81,7 +81,7 @@ select
                                                   THEN 100.0 * credits_used / credits_quota
                                                   ELSE 0
                                                   END,
-        'snowflake.credits.quota',                           dv.credits_quota,
+        'snowflake.credits.quota.value',                     dv.credits_quota,
         'snowflake.credits.quota.used',                      dv.credits_used,
         'snowflake.credits.quota.remaining',                 dv.credits_remaining,
         'snowflake.resource_monitor.warehouses',             array_size(dv.warehouses)

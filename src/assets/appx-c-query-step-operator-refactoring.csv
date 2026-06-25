@@ -1,7 +1,11 @@
 ENTITY_NAME;NEW ENTITY_NAME
+error.code;snowflake.error.code
 snowflake.query.operator.attributes;snowflake.query.step.operator.attributes
 snowflake.query.operator.id;snowflake.query.step.operator.id
 snowflake.query.operator.parent_ids;snowflake.query.step.operator.parent_ids
 snowflake.query.operator.stats;snowflake.query.step.operator.stats
-snowflake.query.operator.time;snowflake.query.step.operator.time
+snowflake.query.operator.time;snowflake.query.step.operator.time_breakdown
 snowflake.query.operator.type;snowflake.query.step.operator.type
+snowflake.credits.quota;snowflake.credits.quota.value
+snowflake.warehouse.event;snowflake.warehouse.event.trigger
+snowflake.query.step.operator.time;snowflake.query.step.operator.time_breakdown
