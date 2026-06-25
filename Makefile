@@ -63,7 +63,11 @@ test-documentation:
 	.venv/bin/pytest test/core/test_documentation.py -k "TestDocumentation"
 
 test-bash:
-	.venv/bin/pytest test/core/test_bash_scripts.py -v
+	.venv/bin/pytest test/core/test_bash_scripts.py -v --skip-semdict-regen
+
+test-semdict:
+	.venv/bin/pytest test/core/test_export_semantics.py test/core/test_semdict_export_completeness.py test/core/test_semdict_output_compliance.py -v
+	.venv/bin/pytest "test/core/test_bash_scripts.py::test_bash_script[test_ci_export]" -v
 
 test-bash-slow:
 	.venv/bin/pytest test/core/test_bash_scripts.py -v --run-slow
