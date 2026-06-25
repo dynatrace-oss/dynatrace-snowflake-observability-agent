@@ -17,23 +17,23 @@ All notable changes to this project will be documented in this file.
   Version 1.0.0 renames fields in four areas.
   See [Appendix C](APPENDIX.md#appendix-c-sec).
 
-  | Old field                             | New field                                      |
-  |---------------------------------------|------------------------------------------------|
-  | `ad.source`                           | `anomaly.detector`                             |
-  | `ad.source_metric`                    | `metric.key`                                   |
-  | `ad.direction`                        | `anomaly.direction`                            |
-  | `ad.category`                         | `anomaly.subject`                              |
-  | `error.code`                          | `snowflake.error.code`                         |
-  | `snowflake.credits.quota`             | `snowflake.credits.quota.value`                |
-  | `snowflake.query.operator.attributes` | `snowflake.query.step.operator.attributes`     |
-  | `snowflake.query.operator.id`         | `snowflake.query.step.operator.id`             |
-  | `snowflake.query.operator.parent_ids` | `snowflake.query.step.operator.parent_ids`     |
-  | `snowflake.query.operator.stats`      | `snowflake.query.step.operator.stats`          |
-  | `snowflake.query.operator.time`       | `snowflake.query.step.operator.time_breakdown` |
-  | `snowflake.query.operator.type`       | `snowflake.query.step.operator.type`           |
-  | `snowflake.resource_monitor.threshold.pct` | `snowflake.resource_monitor.threshold.value` |
-  | `snowflake.warehouse.event`           | `snowflake.warehouse.event.trigger`            |
-  | `snowflake.warehouse.is_auto_suspend` | `snowflake.warehouse.auto_suspend`             |
+  | Old field                                  | New field                                       |
+  |--------------------------------------------|-------------------------------------------------|
+  | `ad.source`                                | `anomaly.detector`                              |
+  | `ad.source_metric`                         | `metric.key`                                    |
+  | `ad.direction`                             | `anomaly.direction`                             |
+  | `ad.category`                              | `anomaly.subject`                               |
+  | `error.code`                               | `snowflake.error.code`                          |
+  | `snowflake.credits.quota`                  | `snowflake.credits.quota.value`                 |
+  | `snowflake.query.operator.attributes`      | `snowflake.query.step.operator.attributes`      |
+  | `snowflake.query.operator.id`              | `snowflake.query.step.operator.id`              |
+  | `snowflake.query.operator.parent_ids`      | `snowflake.query.step.operator.parent_ids`      |
+  | `snowflake.query.operator.stats`           | `snowflake.query.step.operator.stats`           |
+  | `snowflake.query.operator.time`            | `snowflake.query.step.operator.time_breakdown`  |
+  | `snowflake.query.operator.type`            | `snowflake.query.step.operator.type`            |
+  | `snowflake.resource_monitor.threshold.pct` | `snowflake.resource_monitor.threshold.value`    |
+  | `snowflake.warehouse.event`                | `snowflake.warehouse.event.trigger`             |
+  | `snowflake.warehouse.is_auto_suspend`      | `snowflake.warehouse.auto_suspend`              |
 
   Additional notes:
   - `snowflake.resource_monitor.threshold.value` changes type from string to double with a `percent` unit.
