@@ -533,15 +533,22 @@ def _validate_entry(key: str, entry: Dict[str, Any], section: str, source_file: 
 
     Checks:
     - ``__description`` is present and non-empty.
-    - ``__example`` is present (may be empty string for nullable fields).
+    - ``__example`` is present, non-null, and non-blank.
     - ``__semdict: deprecated-alias`` requires ``__otel_replacement``.
     - ``__semdict: otel-only`` requires ``__semdict_note``.
     - ``__field_type`` is one of the valid values.
     - ``__stability`` (when set) is one of the valid SD values.
+    - ``__example`` type matches ``__type`` when both present (non-metrics only).
 
-    Also emits a WARNING (not an error) when ``__example`` is a bare numeric value
-    (Python ``int`` or ``float``) and no ``__type`` annotation is present — this
-    catches future type-mismatch regressions early.
+    Type-match rules (skipped when ``__enum`` is present — schema enforces ``string``):
+    - ``long``     → Python ``int`` (not ``bool``)
+    - ``double``   → Python ``int`` or ``float`` (not ``bool``)
+    - ``boolean``  → Python ``bool``
+    - ``string``   → Python ``str``
+    - ``string[]`` / ``array`` → Python ``list``
+
+    In the ``metrics`` section ``__type`` is the instrument kind (gauge/counter/…),
+    not the SD value type, so type-match is not enforced there.
 
     Args:
         key:         Field key.
@@ -555,8 +562,11 @@ def _validate_entry(key: str, entry: Dict[str, Any], section: str, source_file: 
     errors: List[str] = []
     if not entry.get("__description"):
         errors.append(f"[{source_file}] {section}.{key}: missing __description")
-    if entry.get("__example") is None:
-        errors.append(f"[{source_file}] {section}.{key}: missing __example")
+    example = entry.get("__example")
+    if example is None:
+        errors.append(f"[{source_file}] {section}.{key}: missing or null __example")
+    elif isinstance(example, str) and example.strip() == "":
+        errors.append(f"[{source_file}] {section}.{key}: __example must not be empty or blank")
     semdict = entry.get("__semdict", "new")
     if semdict == "deprecated-alias" and not entry.get("__otel_replacement"):
         errors.append(f"[{source_file}] {section}.{key}: __semdict: deprecated-alias requires __otel_replacement")
@@ -570,15 +580,36 @@ def _validate_entry(key: str, entry: Dict[str, Any], section: str, source_file: 
         errors.append(
             f"[{source_file}] {section}.{key}: invalid __stability '{stability}' " f"(valid values: {sorted(VALID_STABILITY_VALUES)})"
         )
-    # Warn (non-fatal) when example is numeric but no __type annotation is present —
-    # BUT only for attribute/dimension/event_timestamp sections, NOT for metrics.
-    # In the metrics section, ``__type`` represents the instrument type
-    # (``gauge``, ``counter``, ``updowncounter``, ``histogram``), not the SD value type.
-    # Metric examples are inherently numeric; no separate __type annotation is needed there.
-    if section != "metrics":
-        example = entry.get("__example")
+    # Type-match: enforce that __example Python type is consistent with __type annotation.
+    # Only for attribute/dimension/event_timestamp sections — in metrics, __type is the
+    # instrument kind (gauge/counter/…) not the SD value type, so skip there.
+    # Also skip when __enum is present; schema already enforces __type: string for enums.
+    _TYPE_TO_EXPECTED: Dict[str, Any] = {
+        "long": int,
+        "double": (int, float),
+        "boolean": bool,
+        "string": str,
+        "string[]": list,
+        "array": list,
+    }
+    if section != "metrics" and example is not None and not (isinstance(example, str) and example.strip() == ""):
         attr_type = entry.get("__type")
-        if attr_type is None and isinstance(example, (int, float)) and not isinstance(example, bool):
+        has_enum = "__enum" in entry
+        if attr_type and not has_enum:
+            expected = _TYPE_TO_EXPECTED.get(attr_type)
+            if expected is not None:
+                is_bool = isinstance(example, bool)
+                if attr_type in ("long", "double") and is_bool:
+                    errors.append(
+                        f"[{source_file}] {section}.{key}: __type={attr_type} but __example is bool {example!r}"
+                        f" — use an integer/float value instead"
+                    )
+                elif not isinstance(example, expected):
+                    errors.append(
+                        f"[{source_file}] {section}.{key}: __type={attr_type} but __example is"
+                        f" {type(example).__name__} {example!r} — expected {expected if isinstance(expected, type) else expected}"
+                    )
+        elif attr_type is None and isinstance(example, (int, float)) and not isinstance(example, bool):
             log.warning(
                 "[%s] %s.%s: numeric example %r with no __type annotation — "
                 "SD will default to string type; add __type: long or __type: double",

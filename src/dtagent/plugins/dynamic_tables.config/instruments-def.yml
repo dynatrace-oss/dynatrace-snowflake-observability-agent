@@ -75,7 +75,7 @@ attributes:
       operations.
     __context_names:
       - dynamic_table_graph_history
-    __example: ""
+    __example: "2024-12-01 00:00:00.000 Z"
     __description: If present, the description of the dynamic table is valid up to this time. If null, the description is still accurate.
   snowflake.table.dynamic.lag.target.type:
     __type: string
@@ -116,7 +116,7 @@ attributes:
     __type: string
     __context_names:
       - dynamic_tables
-    __example: ""
+    __example: "Refresh completed successfully"
     __description:
       Description of the current state of the refresh. If the LAST_COMPLETED_REFRESH_STATE is FAILED, this column shows the error message
       associated with the failure.
@@ -201,7 +201,7 @@ attributes:
     __stability: stable
     __context_names:
       - dynamic_table_refresh_history
-    __example: ""
+    __example: "Refresh completed successfully"
     __description: Description of the current state of the refresh.
   snowflake.table.dynamic.refresh.start:
     __type: string
@@ -331,7 +331,7 @@ event_timestamps:
     __context_names:
       - dynamic_table_refresh_history
       - dynamic_table_graph_history
-    __example: "2024-11-20 19:53:47.448 Z"
+    __example: 1732135627448000000
     __description: The timestamp after which the description of the dynamic table is valid.
   snowflake.table.dynamic.scheduling.resumed_on:
     __stability: stable

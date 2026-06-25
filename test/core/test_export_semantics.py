@@ -379,16 +379,81 @@ class TestValidation:
         errors = _validate_entry("test.field", entry, "attributes", "test.yml")
         assert any("__example" in e for e in errors)
 
-    def test_empty_string_example_passes(self):
-        """Empty string __example is valid (nullable field)."""
+    def test_empty_string_example_fails(self):
+        """Empty string __example is invalid — all fields must provide a real example."""
         entry = {"__description": "A description.", "__example": ""}
+        errors = _validate_entry("test.field", entry, "attributes", "test.yml")
+        assert any("__example" in e for e in errors)
+
+    def test_blank_string_example_fails(self):
+        """Whitespace-only __example is invalid."""
+        entry = {"__description": "A description.", "__example": "   "}
+        errors = _validate_entry("test.field", entry, "attributes", "test.yml")
+        assert any("__example" in e for e in errors)
+
+    def test_zero_example_passes(self):
+        """Zero __example is valid for long/double fields."""
+        entry = {"__description": "A description.", "__example": 0, "__type": "long"}
         errors = _validate_entry("test.field", entry, "attributes", "test.yml")
         assert errors == []
 
-    def test_zero_example_passes(self):
-        """Zero __example is valid."""
-        entry = {"__description": "A description.", "__example": 0}
+    def test_type_mismatch_long_with_string_fails(self):
+        """__type: long with a string example is a hard error."""
+        entry = {"__description": "An id.", "__example": "wh123", "__type": "long"}
         errors = _validate_entry("test.field", entry, "attributes", "test.yml")
+        assert any("__type=long" in e for e in errors)
+
+    def test_type_mismatch_string_with_int_fails(self):
+        """__type: string with an integer example is a hard error."""
+        entry = {"__description": "A name.", "__example": 42, "__type": "string"}
+        errors = _validate_entry("test.field", entry, "attributes", "test.yml")
+        assert any("__type=string" in e for e in errors)
+
+    def test_type_mismatch_boolean_with_string_fails(self):
+        """__type: boolean with a string example is a hard error."""
+        entry = {"__description": "A flag.", "__example": "N", "__type": "boolean"}
+        errors = _validate_entry("test.field", entry, "attributes", "test.yml")
+        assert any("__type=boolean" in e for e in errors)
+
+    def test_type_mismatch_long_with_bool_fails(self):
+        """__type: long with a bool example is a hard error (bool is subclass of int but not a valid long)."""
+        entry = {"__description": "A count.", "__example": True, "__type": "long"}
+        errors = _validate_entry("test.field", entry, "attributes", "test.yml")
+        assert any("__type=long" in e for e in errors)
+
+    def test_type_mismatch_string_array_with_string_fails(self):
+        """__type: string[] with a plain string example is a hard error."""
+        entry = {"__description": "Names.", "__example": "COMPUTE_WH", "__type": "string[]"}
+        errors = _validate_entry("test.field", entry, "attributes", "test.yml")
+        assert any("__type=string[]" in e for e in errors)
+
+    def test_type_match_long_with_int_passes(self):
+        """__type: long with an integer example passes."""
+        entry = {"__description": "An id.", "__example": 12345, "__type": "long"}
+        errors = _validate_entry("test.field", entry, "attributes", "test.yml")
+        assert errors == []
+
+    def test_type_match_string_array_with_list_passes(self):
+        """__type: string[] with a list example passes."""
+        entry = {"__description": "Names.", "__example": ["WH_A", "WH_B"], "__type": "string[]"}
+        errors = _validate_entry("test.field", entry, "attributes", "test.yml")
+        assert errors == []
+
+    def test_enum_field_skips_type_match_check(self):
+        """Fields with __enum skip type-match validation (schema enforces string)."""
+        entry = {
+            "__description": "Status.",
+            "__example": "ACTIVE",
+            "__type": "string",
+            "__enum": {"allow_custom_values": False, "members": []},
+        }
+        errors = _validate_entry("test.field", entry, "attributes", "test.yml")
+        assert errors == []
+
+    def test_metrics_section_skips_type_match(self):
+        """Type-match is not enforced in the metrics section."""
+        entry = {"__description": "Credits.", "__example": "some_string", "__type": "long"}
+        errors = _validate_entry("test.metric", entry, "metrics", "test.yml")
         assert errors == []
 
     def test_deprecated_alias_requires_otel_replacement(self):

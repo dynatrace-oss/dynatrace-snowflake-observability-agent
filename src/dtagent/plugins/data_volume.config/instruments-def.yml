@@ -104,5 +104,5 @@ event_timestamps:
   snowflake.table.update:
     __type: long
     __stability: stable
-    __example: "2024-11-10 16:45:00.000"
+    __example: 1731256700000000000
     __description: The timestamp of the last time the object was altered by a DML, DDL, or background metadata operation.

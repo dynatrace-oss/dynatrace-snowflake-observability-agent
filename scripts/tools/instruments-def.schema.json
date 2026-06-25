@@ -10,67 +10,94 @@
       "type": "object",
       "description": "Log/span attribute definitions emitted by this plugin.",
       "patternProperties": {
-        "^[a-z]": { "$ref": "#/$defs/AttributeDefinition" }
+        "^[a-z]": {
+          "$ref": "#/$defs/AttributeDefinition"
+        }
       }
     },
     "dimensions": {
       "type": "object",
       "description": "Metric dimension definitions emitted by this plugin.",
       "patternProperties": {
-        "^[a-z]": { "$ref": "#/$defs/DimensionDefinition" }
+        "^[a-z]": {
+          "$ref": "#/$defs/DimensionDefinition"
+        }
       }
     },
     "metrics": {
       "type": "object",
       "description": "Metric field definitions emitted by this plugin.",
       "patternProperties": {
-        "^[a-z]": { "$ref": "#/$defs/MetricDefinition" }
+        "^[a-z]": {
+          "$ref": "#/$defs/MetricDefinition"
+        }
       }
     },
     "event_timestamps": {
       "type": "object",
       "description": "Event timestamp field definitions used as event anchors by this plugin.",
       "patternProperties": {
-        "^[a-z]": { "$ref": "#/$defs/EventTimestampDefinition" }
+        "^[a-z]": {
+          "$ref": "#/$defs/EventTimestampDefinition"
+        }
       }
     },
     "dql_queries": {
       "type": "array",
       "description": "Example DQL queries illustrating how to query telemetry from this plugin.",
-      "items": { "$ref": "#/$defs/DqlQuery" }
+      "items": {
+        "$ref": "#/$defs/DqlQuery"
+      }
     }
   },
-
   "$defs": {
-
     "FieldType": {
       "type": "string",
       "description": "The Grail/Dynatrace physical data type of the field.",
-      "enum": ["string", "long", "double", "boolean", "array", "string[]"]
+      "enum": [
+        "string",
+        "long",
+        "double",
+        "boolean",
+        "array",
+        "string[]"
+      ]
     },
-
     "Stability": {
       "type": "string",
       "description": "Stability level of the field annotation.",
-      "enum": ["stable", "experimental", "deprecated"]
+      "enum": [
+        "stable",
+        "experimental",
+        "deprecated"
+      ]
     },
-
     "Semdict": {
       "type": "string",
       "description": "Semantic Dictionary provenance of this field.",
-      "enum": ["new", "ref", "deprecated-alias", "otel-only"]
+      "enum": [
+        "new",
+        "ref",
+        "deprecated-alias",
+        "otel-only"
+      ]
     },
-
     "FieldTypeAnnotation": {
       "type": "string",
       "description": "Whether the field is a resource attribute or a signal attribute.",
-      "enum": ["resource", "signal"]
+      "enum": [
+        "resource",
+        "signal"
+      ]
     },
-
     "EnumMember": {
       "type": "object",
       "description": "A single member of a closed or open enum.",
-      "required": ["id", "value", "brief"],
+      "required": [
+        "id",
+        "value",
+        "brief"
+      ],
       "additionalProperties": false,
       "properties": {
         "id": {
@@ -86,11 +113,13 @@
         }
       }
     },
-
     "EnumDefinition": {
       "type": "object",
       "description": "Closed or open enumeration definition for a categorical field.",
-      "required": ["allow_custom_values", "members"],
+      "required": [
+        "allow_custom_values",
+        "members"
+      ],
       "additionalProperties": false,
       "properties": {
         "allow_custom_values": {
@@ -100,15 +129,21 @@
         "members": {
           "type": "array",
           "description": "List of known enum member definitions.",
-          "items": { "$ref": "#/$defs/EnumMember" }
+          "items": {
+            "$ref": "#/$defs/EnumMember"
+          }
         }
       }
     },
-
     "DqlQuery": {
       "type": "object",
       "description": "An example DQL query with metadata for docs and Davis CoPilot.",
-      "required": ["query_string", "description", "description_copilot", "internal"],
+      "required": [
+        "query_string",
+        "description",
+        "description_copilot",
+        "internal"
+      ],
       "additionalProperties": false,
       "properties": {
         "query_string": {
@@ -129,11 +164,14 @@
         }
       }
     },
-
     "AttributeDefinition": {
       "type": "object",
       "description": "Annotation for a log/span attribute field. __type is required; when __enum is present __type must be 'string'.",
-      "required": ["__description", "__example", "__type"],
+      "required": [
+        "__description",
+        "__example",
+        "__type"
+      ],
       "additionalProperties": false,
       "properties": {
         "__type": {
@@ -146,7 +184,16 @@
           "description": "Human-readable description of this field."
         },
         "__example": {
-          "description": "One representative example value for this field (any JSON type)."
+          "description": "One representative example value for this field (any JSON type). Must not be null or blank string.",
+          "not": {
+            "type": "null"
+          },
+          "if": {
+            "type": "string"
+          },
+          "then": {
+            "minLength": 1
+          }
         },
         "__stability": {
           "$ref": "#/$defs/Stability",
@@ -167,7 +214,9 @@
         "__context_names": {
           "type": "array",
           "description": "Plugin contexts that emit this field.",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         },
         "__field_type": {
           "$ref": "#/$defs/FieldTypeAnnotation",
@@ -182,16 +231,27 @@
           "description": "Enumeration definition for categorical fields. When present, __type must be 'string'."
         }
       },
-      "if": { "required": ["__enum"] },
+      "if": {
+        "required": [
+          "__enum"
+        ]
+      },
       "then": {
-        "properties": { "__type": { "const": "string" } }
+        "properties": {
+          "__type": {
+            "const": "string"
+          }
+        }
       }
     },
-
     "DimensionDefinition": {
       "type": "object",
       "description": "Annotation for a metric dimension field. __type is required; when __enum is present __type must be 'string'.",
-      "required": ["__description", "__example", "__type"],
+      "required": [
+        "__description",
+        "__example",
+        "__type"
+      ],
       "additionalProperties": false,
       "properties": {
         "__type": {
@@ -204,7 +264,16 @@
           "description": "Human-readable description of this field."
         },
         "__example": {
-          "description": "One representative example value for this field (any JSON type)."
+          "description": "One representative example value for this field (any JSON type). Must not be null or blank string.",
+          "not": {
+            "type": "null"
+          },
+          "if": {
+            "type": "string"
+          },
+          "then": {
+            "minLength": 1
+          }
         },
         "__stability": {
           "$ref": "#/$defs/Stability",
@@ -225,7 +294,9 @@
         "__context_names": {
           "type": "array",
           "description": "Plugin contexts that emit this field.",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         },
         "__field_type": {
           "$ref": "#/$defs/FieldTypeAnnotation",
@@ -240,16 +311,29 @@
           "description": "The OTel Semantic Conventions field that replaces this deprecated dimension."
         }
       },
-      "if": { "required": ["__enum"] },
+      "if": {
+        "required": [
+          "__enum"
+        ]
+      },
       "then": {
-        "properties": { "__type": { "const": "string" } }
+        "properties": {
+          "__type": {
+            "const": "string"
+          }
+        }
       }
     },
-
     "MetricDefinition": {
       "type": "object",
       "description": "Annotation for a metric field. __type, displayName, and unit are required.",
-      "required": ["__description", "__example", "__type", "displayName", "unit"],
+      "required": [
+        "__description",
+        "__example",
+        "__type",
+        "displayName",
+        "unit"
+      ],
       "additionalProperties": false,
       "properties": {
         "__type": {
@@ -262,7 +346,16 @@
           "description": "Human-readable description of this metric."
         },
         "__example": {
-          "description": "One representative numeric example for this metric (any JSON type)."
+          "description": "One representative numeric example for this metric (any JSON type). Must not be null or blank string.",
+          "not": {
+            "type": "null"
+          },
+          "if": {
+            "type": "string"
+          },
+          "then": {
+            "minLength": 1
+          }
         },
         "__stability": {
           "$ref": "#/$defs/Stability",
@@ -283,7 +376,9 @@
         "__context_names": {
           "type": "array",
           "description": "Plugin contexts that emit this metric.",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         },
         "__is_defined_at_runtime": {
           "type": "boolean",
@@ -299,11 +394,14 @@
         }
       }
     },
-
     "EventTimestampDefinition": {
       "type": "object",
       "description": "Annotation for an event timestamp field used as an event anchor. __type is required.",
-      "required": ["__description", "__example", "__type"],
+      "required": [
+        "__description",
+        "__example",
+        "__type"
+      ],
       "additionalProperties": false,
       "properties": {
         "__type": {
@@ -316,7 +414,16 @@
           "description": "Human-readable description of this event timestamp field."
         },
         "__example": {
-          "description": "One representative example value for this field (any JSON type)."
+          "description": "One representative example value for this field (any JSON type). Must not be null or blank string.",
+          "not": {
+            "type": "null"
+          },
+          "if": {
+            "type": "string"
+          },
+          "then": {
+            "minLength": 1
+          }
         },
         "__stability": {
           "$ref": "#/$defs/Stability",
@@ -337,10 +444,11 @@
         "__context_names": {
           "type": "array",
           "description": "Plugin contexts that emit this field.",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         }
       }
     }
-
   }
 }

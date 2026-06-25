@@ -102,7 +102,7 @@ event_timestamps:
     __stability: stable
     __context_names:
       - budgets
-    __example: "2024-11-30 23:59:59.999"
+    __example: 1732981199999000000
     __description: The timestamp when the budget was created.
 metrics:
   snowflake.credits.limit:

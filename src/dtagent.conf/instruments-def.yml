@@ -141,7 +141,7 @@ attributes:
       In OTel Log Data Model, observed_timestamp is a structural field (not an attribute key). Dynatrace normalizes this into the attribute
       bag for query consistency.
     __description: "The timestamp (in epoch nanoseconds) when the event was observed."
-    __example: "1741768500000000000"
+    __example: 1741768500000000000
   ad.source:
     __semdict: new
     __type: string

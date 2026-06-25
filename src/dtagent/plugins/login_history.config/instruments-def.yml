@@ -107,14 +107,14 @@ attributes:
     __type: string
     __description: The name of the connection used by the client, or NULL if the client is not using a connection URL.
   error.code:
-    __type: long
+    __type: string
     __semdict: new
     __semdict_note: >-
       In DSOA, used exclusively for Snowflake login failures as a string error code (e.g. "390100"). Diverges from the Dynatrace SD
       error.code field (type: long, iOS/mobile numeric codes) — semantics and type are incompatible.
     __context_names:
       - login_history
-    __example: ERR001
+    __example: "390100"
 
     __description: A code identifying the type of error that occurred.
   event.id:
@@ -152,7 +152,7 @@ attributes:
     __context_names:
       - sessions
     __type: long
-    __example: "1633046400000000000"
+    __example: 1633046400000000000
     __description: The start time of the session.
   status.code:
     __type: string

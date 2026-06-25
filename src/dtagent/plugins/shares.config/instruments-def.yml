@@ -164,7 +164,7 @@ attributes:
     __type: string
     __context_names:
       - inbound_shares
-    __example: false
+    __example: "N"
     __description: Indicates whether this is a hybrid table.
   snowflake.share.has_details_reported:
     __type: boolean

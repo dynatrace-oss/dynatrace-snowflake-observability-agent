@@ -86,7 +86,7 @@ attributes:
       - warehouse_usage
       - warehouse_usage_load
       - warehouse_usage_metering
-    __example: wh123
+    __example: 12345
     __description: The unique identifier for the warehouse.
   snowflake.warehouse.size:
     __type: string

@@ -17,12 +17,12 @@
 
 attributes:
   error.code:
-    __type: long
+    __type: string
     __semdict: new
     __semdict_note: >-
       DSOA-specific string error code for Snowflake Trust Center scanner failures. Not the same as the Dynatrace SD error.code field (type:
       long for iOS/mobile numeric codes). Pending rename to snowflake.trust_center.error.code for namespace clarity.
-    __example: ERR001
+    __example: "TRUST_CENTER_ERR001"
     __description: The error code associated with the scanner, if any.
   event.id:
     __example: 13825839647097210

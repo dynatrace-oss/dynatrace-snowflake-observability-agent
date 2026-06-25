@@ -211,7 +211,7 @@ attributes:
       use `db.operation.name` for warehouse change detection.
   snowflake.cluster_number:
     __type: long
-    __example: cluster1
+    __example: 1
     __description: The cluster number associated with the query.
   snowflake.cost_attribution.period_end:
     __type: string
@@ -230,7 +230,7 @@ attributes:
   snowflake.database.id:
     __type: long
     __stability: stable
-    __example: db123
+    __example: 123456
     __description: The unique identifier of the database involved in the query.
     __semdict_note: >-
       ACCOUNT_USAGE.DATABASES supplies related fields (name, owner, owner_role_type, type, is_transient, lifecycle, retention_time, comment)
@@ -399,7 +399,7 @@ attributes:
   snowflake.query.transaction_id:
     __type: long
     __stability: stable
-    __example: txn123
+    __example: 7890123456
     __description: The transaction ID associated with the query.
   snowflake.release_version:
     __type: string
@@ -412,7 +412,7 @@ attributes:
     __description: The type of role used to execute the query.
   snowflake.schema.id:
     __type: long
-    __example: schema123
+    __example: 78901
     __description: The unique identifier of the schema involved in the query.
   snowflake.schema.name:
     __type: string
@@ -429,16 +429,16 @@ attributes:
     __description: The reason the session was closed.
   snowflake.session.start:
     __type: long
-    __example: "1633046400000000000"
+    __example: 1633046400000000000
     __description: The start time of the session.
   snowflake.warehouse.cluster.number:
     __type: long
     __stability: stable
-    __example: cluster1
+    __example: 1
     __description: The cluster number of the warehouse used.
   snowflake.warehouse.id:
     __type: long
-    __example: wh123
+    __example: 12345
     __description: The unique identifier of the warehouse used.
   snowflake.warehouse.size:
     __type: string

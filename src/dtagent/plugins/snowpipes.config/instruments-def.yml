@@ -26,7 +26,7 @@ attributes:
     __type: string
     __context_names:
       - snowpipes
-    __example: ""
+    __example: "Pipe paused by user"
     __description: Reason the pipe is in an invalid state.
   snowflake.pipe.notification_channel:
     __type: string
@@ -243,7 +243,7 @@ event_timestamps:
     __stability: stable
     __context_names:
       - snowpipes
-    __example: "2025-01-15 10:30:00.000 Z"
+    __example: 1736936200000000000
     __description: Pipe creation event.
 metrics:
   snowflake.pipe.files.pending:

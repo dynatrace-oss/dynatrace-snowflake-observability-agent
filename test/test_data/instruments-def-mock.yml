@@ -39,13 +39,13 @@ attributes:
     __semdict: new
     __type: boolean
     __description: "A boolean test field."
-    __example: "true"
+    __example: true
 
   mock.long.value:
     __semdict: new
     __type: long
     __description: "A long integer test field."
-    __example: "42"
+    __example: 42
 
   # Attribute with __field_type: resource — should go to resource_fields
   snowflake.warehouse.size:

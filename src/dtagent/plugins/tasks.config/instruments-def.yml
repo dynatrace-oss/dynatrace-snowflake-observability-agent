@@ -26,7 +26,7 @@ attributes:
     __context_names:
       - serverless_tasks
       - task_versions
-    __example: db123
+    __example: 123456
     __description: The unique identifier for the database.
   snowflake.error.code:
     __type: string
@@ -53,7 +53,7 @@ attributes:
     __type: long
     __context_names:
       - task_history
-    __example: v1
+    __example: 1
     __description: The version of the query hash.
   snowflake.query.id:
     __type: string
@@ -73,14 +73,14 @@ attributes:
     __type: long
     __context_names:
       - task_history
-    __example: v1
+    __example: 1
     __description: The version of the parameterized query hash.
   snowflake.schema.id:
     __type: long
     __context_names:
       - serverless_tasks
       - task_versions
-    __example: schema123
+    __example: 78901
     __description: The unique identifier for the schema.
   snowflake.task.condition:
     __type: string
@@ -105,7 +105,7 @@ attributes:
     __type: long
     __context_names:
       - serverless_tasks
-    __example: "1633046700000000000"
+    __example: 1633046700000000000
     __description: The end time of the task.
   snowflake.task.error_integration:
     __type: string
@@ -125,33 +125,33 @@ attributes:
     __context_names:
       - task_versions
       - task_history
-    __example: v1
+    __example: 1
     __description: The version of the task graph.
   snowflake.task.id:
     __type: long
     __context_names:
       - serverless_tasks
       - task_versions
-    __example: task123
+    __example: 123456789
     __description: The unique identifier for the task.
   snowflake.task.instance_id:
     __type: long
     __stability: stable
     __context_names:
       - serverless_tasks
-    __example: instance123
+    __example: 987654321
     __description: The unique identifier for the task instance.
   snowflake.task.last_committed_on:
     __type: long
     __context_names:
       - task_versions
-    __example: "1633046400000000000"
+    __example: 1633046400000000000
     __description: The last committed time of the task.
   snowflake.task.last_suspended_on:
     __type: long
     __context_names:
       - task_versions
-    __example: "1633046700000000000"
+    __example: 1633046700000000000
     __description: The last suspended time of the task.
   snowflake.task.owner:
     __type: string
@@ -163,7 +163,9 @@ attributes:
     __type: string[]
     __context_names:
       - task_versions
-    __example: taskA, taskB
+    __example:
+      - taskA
+      - taskB
     __description: The predecessors of the task.
   snowflake.task.run.attempt:
     __stability: stable
@@ -177,7 +179,7 @@ attributes:
     __stability: stable
     __context_names:
       - task_history
-    __example: "1742824007586000000"
+    __example: 1742824007586000000
     __description: The completed time of the task run.
   snowflake.task.run.group_id:
     __type: string
@@ -189,7 +191,7 @@ attributes:
     __type: long
     __context_names:
       - task_history
-    __example: run123
+    __example: 123456
     __description: The unique identifier for the task run.
   snowflake.task.run.return_value:
     __type: string
@@ -202,7 +204,7 @@ attributes:
     __stability: stable
     __context_names:
       - task_history
-    __example: "1742821828016000000"
+    __example: 1742821828016000000
     __description: The scheduled time of the task run.
   snowflake.task.run.scheduled_from:
     __type: string
@@ -228,7 +230,7 @@ attributes:
     __type: long
     __context_names:
       - serverless_tasks
-    __example: "1633046400000000000"
+    __example: 1633046400000000000
     __description: The start time of the task.
 dimensions:
   db.namespace:
@@ -285,7 +287,7 @@ event_timestamps:
     __stability: stable
     __context_names:
       - task_versions
-    __example: "1633046400000000000"
+    __example: 1633046400000000000
     __description: The timestamp when the task graph version was created.
 metrics:
   snowflake.credits.used:

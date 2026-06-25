@@ -253,7 +253,9 @@ attributes:
             training and memory-intensive UDFs and stored procedures.
   snowflake.warehouses.names:
     __type: string[]
-    __example: COMPUTE_WH
+    __example:
+      - COMPUTE_WH
+      - ETL_WH
     __description: The names of the warehouses monitored.
 dimensions:
   snowflake.resource_monitor.name:
@@ -275,15 +277,15 @@ event_timestamps:
       key from `EVENT_TIMESTAMPS` and `timestamp` set to the key value.
   snowflake.resource_monitor.created_on:
     __type: long
-    __example: "2024-10-15 12:34:56.789"
+    __example: 1728991696789000000
     __description: The timestamp when the resource monitor was created.
   snowflake.resource_monitor.end_time:
     __type: long
-    __example: "2024-11-30 23:59:59.999"
+    __example: 1732981199999000000
     __description: The timestamp when the resource monitor ended.
   snowflake.resource_monitor.start_time:
     __type: long
-    __example: "2024-11-01 00:00:00.000"
+    __example: 1730419200000000000
     __description: The timestamp when the resource monitor started.
   snowflake.warehouse.created_on:
     __type: string
