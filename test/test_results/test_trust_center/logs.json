@@ -2,7 +2,7 @@
   {
     "content": "TrustCenter event: [MEDIUM] Native Apps Event Sharing Check Ensure Event Table is configured for Native Application event sharing",
     "status_code": "OK",
-    "error.code": "SECURITY_ESSENTIALS_NA_CONSUMER_ES_CHECK",
+    "snowflake.error.code": "SECURITY_ESSENTIALS_NA_CONSUMER_ES_CHECK",
     "event.id": 252009,
     "event.kind": "SECURITY_EVENT",
     "snowflake.trust_center.scanner.description": "Ensure Event Table is configured for Native Application event sharing",
@@ -30,7 +30,7 @@
   {
     "content": "TrustCenter event: [CRITICAL] 3.1 Ensure that an account-level network policy has been configured to only allow access from trusted IP addresses",
     "status_code": "OK",
-    "error.code": "SECURITY_ESSENTIALS_CIS3_1",
+    "snowflake.error.code": "SECURITY_ESSENTIALS_CIS3_1",
     "event.id": 252010,
     "event.kind": "SECURITY_EVENT",
     "snowflake.trust_center.scanner.description": "Ensure that an account-level network policy has been configured to only allow access from trusted IP addresses",

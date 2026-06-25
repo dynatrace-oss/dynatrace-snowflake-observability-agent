@@ -12,8 +12,7 @@
     "MD033": false,
     "MD022": false,
     "MD028": false,
-    "MD048": false,
-    "MD060": false
+    "MD048": false
   },
   "ignorePatterns": [
     "test/qa/results/**"

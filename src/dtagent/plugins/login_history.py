@@ -43,12 +43,12 @@ class LoginHistoryPlugin(Plugin):
     PLUGIN_CONTEXTS: tuple = ("login_history", "sessions")
 
     def _prepare_event_payload_failed_login(self, row_dict: dict) -> Tuple[EventType, str, Dict]:
-        """Defines what payload should be sent once error.code column is present in the row"""
+        """Defines what payload should be sent once snowflake.error.code column is present in the row"""
 
         properties = _unpack_payload(row_dict)
         user = properties.get("db.user")
         error_message = properties.get("status.message")
-        error_code = row_dict.get("error.code")
+        error_code = row_dict.get("snowflake.error.code")
         payload = {
             "event.name": f"Detected failed logins to Snowflake by {user}",
             "event.description": f"We have detected a failed login attempt due to f{error_message} (code: {error_code}), by {user}",
@@ -97,7 +97,7 @@ class LoginHistoryPlugin(Plugin):
                 run_uuid=run_id,
                 log_completion=run_proc,
                 start_time="TIMESTAMP",
-                event_column_to_check="error.code",
+                event_column_to_check="snowflake.error.code",
                 event_payload_prepare=self._prepare_event_payload_failed_login,
             )
             results["login_history"] = {

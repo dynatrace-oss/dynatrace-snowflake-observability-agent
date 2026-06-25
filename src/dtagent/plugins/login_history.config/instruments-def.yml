@@ -64,7 +64,7 @@ attributes:
     __example: connection_1
     __description: The name of the connection used by the client, or NULL if the
       client is not using a connection URL.
-  error.code:
+  snowflake.error.code:
     __context_names:
       - login_history
     __example: ERR001

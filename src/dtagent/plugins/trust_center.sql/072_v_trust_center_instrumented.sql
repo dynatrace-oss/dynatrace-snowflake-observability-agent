@@ -49,7 +49,7 @@ select
     )                                                                                                            as DIMENSIONS,
     OBJECT_CONSTRUCT(
         'status.message',                                           _MESSAGE,
-        'error.code',                                               tcf.scanner_id,
+        'snowflake.error.code',                                     tcf.scanner_id,
         'event.id',                                                 tcf.event_id,
         'event.kind',                                               'SECURITY_EVENT',
         'snowflake.trust_center.scanner.name',                      tcf.scanner_name,
