@@ -35,7 +35,6 @@ and the new names (version 0.8):
 | -------------------------------------------------------- | --------------------------------------------- |
 | authentiacation.factor.first                             | authentication.factor.first                   |
 | authentiacation.factor.second                            | authentication.factor.second                  |
-| error.code                                               | snowflake.error.code                          |
 | snowflake.task.run.sheduled_from                         | snowflake.task.run.scheduled_from             |
 | telemetry.exporter.module                                | dsoa.run.context                              |
 | snowflake.resource_monitor.credits.quota                 | snowflake.credits.quota                       |
@@ -161,9 +160,6 @@ and the new names (version 0.8):
 | snowflake.operator_stat                                  | snowflake.query.operator.stats                |
 | snowflake.operator_exec_time                             | snowflake.query.operator.time                 |
 | snowflake.table.event                                    | snowflake.event.trigger                       |
-| snowflake.credits.quota                                  | snowflake.credits.quota.value                 |
-| snowflake.warehouse.event                                | snowflake.warehouse.event.trigger             |
-| snowflake.query.step.operator.time                       | snowflake.query.step.operator.time_breakdown  |
 
 `*` represents possible values that might be present as part of the field name:
 `(warehouse.load.|warehouse.credits.|table.dynamic.|trust_center.|table_qs.|event_usage.|table.|budget.|budget.spending.|serverless_tasks.|resource_monitor.|warehouse.|query.)`
@@ -222,12 +218,16 @@ The table below lists all six field renames.
 
 | old name                            | new name                                     |
 | ----------------------------------- | -------------------------------------------- |
+| error.code                          | snowflake.error.code                         |
 | snowflake.query.operator.attributes | snowflake.query.step.operator.attributes     |
 | snowflake.query.operator.id         | snowflake.query.step.operator.id             |
 | snowflake.query.operator.parent_ids | snowflake.query.step.operator.parent_ids     |
 | snowflake.query.operator.stats      | snowflake.query.step.operator.stats          |
 | snowflake.query.operator.time       | snowflake.query.step.operator.time_breakdown |
 | snowflake.query.operator.type       | snowflake.query.step.operator.type           |
+| snowflake.credits.quota             | snowflake.credits.quota.value                |
+| snowflake.warehouse.event           | snowflake.warehouse.event.trigger            |
+| snowflake.query.step.operator.time  | snowflake.query.step.operator.time_breakdown |
 
 <a name="appendix-d-sec"></a>
 
