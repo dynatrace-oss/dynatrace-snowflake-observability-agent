@@ -71,9 +71,10 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
+          python -m venv .venv && .venv/bin/pip install -r requirements.txt
 
       - name: Run TestDocumentation tests
-        run: pytest test/core/test_documentation.py -k "TestDocumentation"
+        run: pytest test/core/test_documentation.py -k "TestDocumentation" --skip-semdict-regen
 
   test-bash:
     runs-on: ubuntu-latest
@@ -99,6 +100,27 @@ jobs:
 
       - name: Run bash tests
         run: pytest test/core/test_bash_scripts.py -v
+
+  test-semdict:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          python -m venv .venv && .venv/bin/pip install -r requirements.txt
+
+      - name: Run semdict tests
+        run: |
+          pytest test/core/test_export_semantics.py test/core/test_semdict_export_completeness.py test/core/test_semdict_output_compliance.py -v
+          pytest "test/core/test_bash_scripts.py::test_bash_script[test_ci_export]" -v
 
   test-core:
     runs-on: ubuntu-latest
