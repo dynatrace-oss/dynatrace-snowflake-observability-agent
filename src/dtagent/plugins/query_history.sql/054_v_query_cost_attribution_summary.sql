@@ -43,8 +43,8 @@ select
         'snowflake.query.parametrized_hash', qah.query_parameterized_hash
     )                                                                                   as DIMENSIONS,
     OBJECT_CONSTRUCT(
-        'snowflake.cost_attribution.period_start',          min(qah.start_time),
-        'snowflake.cost_attribution.period_end',            max(qah.end_time)
+        'snowflake.cost_attribution.period_start',          EXTRACT(EPOCH_NANOSECOND FROM min(qah.start_time)::TIMESTAMP_LTZ),
+        'snowflake.cost_attribution.period_end',            EXTRACT(EPOCH_NANOSECOND FROM max(qah.end_time)::TIMESTAMP_LTZ)
     )                                                                                   as ATTRIBUTES,
     OBJECT_CONSTRUCT(
         'snowflake.credits.attributed_compute',             sum(qah.credits_attributed_compute),

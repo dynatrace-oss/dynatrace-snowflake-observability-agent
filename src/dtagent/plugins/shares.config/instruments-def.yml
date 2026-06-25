@@ -131,40 +131,40 @@ attributes:
     __example: The tables defined in this database that are accessible to the current user's role.
     __description: Comment for this table.
   snowflake.table.is_auto_clustering_on:
-    __type: string
+    __type: boolean
     __context_names:
       - inbound_shares
-    __example: "YES"
+    __example: true
     __description: Indicates whether automatic clustering is enabled for the table.
   snowflake.table.is_dynamic:
-    __type: string
+    __type: boolean
     __context_names:
       - inbound_shares
-    __example: "NO"
+    __example: false
     __description: Indicates whether the table is a dynamic table.
   snowflake.table.is_iceberg:
-    __type: string
+    __type: boolean
     __context_names:
       - inbound_shares
-    __example: "NO"
+    __example: false
     __description: Indicates whether the table is an Iceberg table.
   snowflake.table.is_temporary:
-    __type: string
+    __type: boolean
     __context_names:
       - inbound_shares
-    __example: "NO"
+    __example: false
     __description: Indicates whether this is a temporary table.
   snowflake.table.is_transient:
-    __type: string
+    __type: boolean
     __context_names:
       - inbound_shares
-    __example: "NO"
+    __example: false
     __description: Indicates whether this is a transient table.
   snowflake.table.is_hybrid:
-    __type: string
+    __type: boolean
     __context_names:
       - inbound_shares
-    __example: "N"
+    __example: false
     __description: Indicates whether this is a hybrid table.
   snowflake.share.has_details_reported:
     __type: boolean

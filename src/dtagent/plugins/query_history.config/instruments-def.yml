@@ -102,6 +102,18 @@ attributes:
     __stability: stable
     __example: "off"
     __type: string
+    __enum:
+      allow_custom_values: false
+      members:
+        - id: "off"
+          value: "off"
+          brief: No obfuscation applied.
+        - id: "literals"
+          value: "literals"
+          brief: String and numeric literals are replaced with `?`.
+        - id: "full"
+          value: "full"
+          brief: Entire query text is replaced with `[OBFUSCATED]`.
     __description: |
       Configuration key controlling query text obfuscation mode applied to `db.query.text` and `snowflake.error.message`.
       Possible values: `off` (no transformation), `literals` (replace string and numeric literals with `?`),
@@ -214,18 +226,12 @@ attributes:
     __example: 1
     __description: The cluster number associated with the query.
   snowflake.cost_attribution.period_end:
-    __type: string
-    __semdict_note: >-
-      ISO 8601 timestamp string stored as string in Grail. Grail stores this as a plain string; use toTimestamp() in DQL for time-based
-      operations.
-    __example: "2024-11-05T22:11:07Z"
+    __type: long
+    __example: 1730844667000000000
     __description: End of the cost attribution summary window.
   snowflake.cost_attribution.period_start:
-    __type: string
-    __semdict_note: >-
-      ISO 8601 timestamp string stored as string in Grail. Grail stores this as a plain string; use toTimestamp() in DQL for time-based
-      operations.
-    __example: "2024-11-05T21:11:07Z"
+    __type: long
+    __example: 1730841067000000000
     __description: Start of the cost attribution summary window.
   snowflake.database.id:
     __type: long

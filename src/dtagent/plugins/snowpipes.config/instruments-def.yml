@@ -127,18 +127,16 @@ attributes:
     __example: 1
     __description: Error limit for the COPY.
   snowflake.copy.pipe.received_time:
-    __type: string
-    __semdict_note: "ISO 8601 timestamp string stored as string in Grail."
+    __type: long
     __context_names:
       - snowpipes_copy_history
-    __example: "2025-03-12 08:55:00.000 Z"
+    __example: 1741772100000000000
     __description: When file was received by Snowpipe (view-only).
   snowflake.copy.first_commit_time:
-    __type: string
-    __semdict_note: "ISO 8601 timestamp string stored as string in Grail."
+    __type: long
     __context_names:
       - snowpipes_copy_history
-    __example: "2025-03-12 08:56:00.000 Z"
+    __example: 1741772160000000000
     __description: When the first chunk of the file was committed.
   snowflake.pipe.usage.start_time:
     __type: string

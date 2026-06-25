@@ -140,7 +140,7 @@ attributes:
       no global ref available. Emitting as new id: pending global semdict registration.
     __context_names:
       - sessions
-    __example: session123
+    __example: "1234567890"
     __description: The unique identifier for the session.
   snowflake.session.closed_reason:
     __type: string

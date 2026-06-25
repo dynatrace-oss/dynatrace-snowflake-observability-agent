@@ -59,23 +59,17 @@ attributes:
         - '{"kind": "TABLE", "name": "DYNAMIC_TABLE_DB.DYNAMIC_TABLE_SCH.EMPLOYEE_SKILL"}'
     __description: Each OBJECT represents a table, view, or dynamic table that serves as the input to this dynamic table.
   snowflake.table.dynamic.graph.valid_from:
-    __type: string
-    __semdict_note: >-
-      ISO 8601 timestamp string stored as string in Grail. Grail stores this as a plain string; use toTimestamp() in DQL for time-based
-      operations.
+    __type: long
     __context_names:
       - dynamic_table_refresh_history
       - dynamic_table_graph_history
-    __example: "2024-11-20 19:53:47.448 Z"
+    __example: 1732135627448000000
     __description: Encodes the VALID_FROM timestamp of the DYNAMIC_TABLE_GRAPH_HISTORY table function when the refresh occurred.
   snowflake.table.dynamic.graph.valid_to:
-    __type: string
-    __semdict_note: >-
-      ISO 8601 timestamp string stored as string in Grail. Grail stores this as a plain string; use toTimestamp() in DQL for time-based
-      operations.
+    __type: long
     __context_names:
       - dynamic_table_graph_history
-    __example: "2024-12-01 00:00:00.000 Z"
+    __example: 1733011200000000000
     __description: If present, the description of the dynamic table is valid up to this time. If null, the description is still accurate.
   snowflake.table.dynamic.lag.target.type:
     __type: string
@@ -174,27 +168,22 @@ attributes:
     __example: SUCCESS
     __description: Code representing the current state of the refresh.
   snowflake.table.dynamic.refresh.completion_target:
-    __type: string
-    __semdict_note: "ISO 8601 timestamp string stored as string in Grail."
+    __type: long
     __context_names:
       - dynamic_table_refresh_history
-    __example: "2024-11-25 06:10:05.695 Z"
+    __example: 1732515005695000000
     __description: Time by which this refresh should complete to keep lag under the TARGET_LAG parameter for the dynamic table.
   snowflake.table.dynamic.refresh.data_timestamp:
-    __type: string
-    __semdict_note: "ISO 8601 timestamp string stored as string in Grail."
+    __type: long
     __context_names:
       - dynamic_table_refresh_history
-    __example: "2024-11-25 06:09:53.695 Z"
+    __example: 1732514993695000000
     __description: Transactional timestamp when the refresh was evaluated.
   snowflake.table.dynamic.refresh.end:
-    __type: string
-    __semdict_note: >-
-      ISO 8601 timestamp string stored as string in Grail. Grail stores this as a plain string; use toTimestamp() in DQL for time-based
-      operations.
+    __type: long
     __context_names:
       - dynamic_table_refresh_history
-    __example: "2024-11-25 06:09:55.308 Z"
+    __example: 1732514995308000000
     __description: Time when the refresh completed.
   snowflake.table.dynamic.refresh.message:
     __type: string
@@ -204,13 +193,10 @@ attributes:
     __example: "Refresh completed successfully"
     __description: Description of the current state of the refresh.
   snowflake.table.dynamic.refresh.start:
-    __type: string
-    __semdict_note: >-
-      ISO 8601 timestamp string stored as string in Grail. Grail stores this as a plain string; use toTimestamp() in DQL for time-based
-      operations.
+    __type: long
     __context_names:
       - dynamic_table_refresh_history
-    __example: "2024-11-25 06:09:54.978 Z"
+    __example: 1732514994978000000
     __description: Time when the refresh job started.
   snowflake.table.dynamic.refresh.state:
     __type: string

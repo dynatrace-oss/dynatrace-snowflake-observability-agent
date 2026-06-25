@@ -98,8 +98,8 @@ event_timestamps:
       Additionally to sending logs, each entry in `EVENT_TIMESTAMPS` is sent as event with key set to `snowflake.event.trigger`, value to
       key from `EVENT_TIMESTAMPS` and `timestamp` set to the key value.
   snowflake.table.ddl:
-    __type: string
-    __example: "2024-11-01 12:00:00.000"
+    __type: long
+    __example: 1730458800000000000
     __description: The timestamp of the last DDL operation performed on the table or view, including CREATE, ALTER, DROP, or UNDROP.
   snowflake.table.update:
     __type: long

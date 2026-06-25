@@ -35,8 +35,8 @@ select
         'db.user',                                      s.USER_NAME
     )                                   as DIMENSIONS,
     OBJECT_CONSTRUCT(
-        'snowflake.session.start',                      s.CREATED_ON,
-        'session.id',                                   s.SESSION_ID,
+        'snowflake.session.start',                      EXTRACT(EPOCH_NANOSECOND FROM s.CREATED_ON::TIMESTAMP_LTZ),
+        'session.id',                                   TO_VARCHAR(s.SESSION_ID),
         'authentication.type',                          s.AUTHENTICATION_METHOD,
         'event.id',                                     s.LOGIN_EVENT_ID,
         'client.application.id',                        s.CLIENT_APPLICATION_ID,

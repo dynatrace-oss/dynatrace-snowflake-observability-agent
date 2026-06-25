@@ -322,7 +322,6 @@ class TestBooleanTypesInOutput:
         {
             "snowflake.warehouse.has_query_acceleration_enabled",
             "snowflake.warehouse.is_auto_resume",
-            "snowflake.warehouse.is_auto_suspend",
             "snowflake.user.has_mfa",
             "snowflake.user.has_password",
             "snowflake.user.is_disabled",

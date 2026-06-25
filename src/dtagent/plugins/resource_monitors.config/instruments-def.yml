@@ -151,9 +151,9 @@ attributes:
   snowflake.warehouse.is_auto_suspend:
     __stability: stable
     __field_type: resource
-    __type: boolean
-    __example: true
-    __description: Indicates if the warehouse is set to auto-suspend.
+    __type: long
+    __example: 600
+    __description: Auto-suspend timeout in seconds for the warehouse. A value of 0 means auto-suspend is disabled.
   snowflake.warehouse.is_current:
     __type: boolean
     __example: true

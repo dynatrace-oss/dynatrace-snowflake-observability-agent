@@ -76,6 +76,16 @@ _EPOCH_NS_TIMESTAMP_FIELDS: frozenset = frozenset(
         "snowflake.user.password_last_set_time",
         "snowflake.user.bypass_mfa_until",
         "snowflake.session.start",
+        "snowflake.cost_attribution.period_start",
+        "snowflake.cost_attribution.period_end",
+        "snowflake.copy.first_commit_time",
+        "snowflake.copy.pipe.received_time",
+        "snowflake.table.dynamic.graph.valid_from",
+        "snowflake.table.dynamic.graph.valid_to",
+        "snowflake.table.dynamic.refresh.start",
+        "snowflake.table.dynamic.refresh.end",
+        "snowflake.table.dynamic.refresh.data_timestamp",
+        "snowflake.table.dynamic.refresh.completion_target",
     }
 )
 
@@ -87,18 +97,8 @@ _ISO8601_TIMESTAMP_FIELDS: frozenset = frozenset(
         "snowflake.warehouse.created_on",
         "snowflake.warehouse.resumed_on",
         "snowflake.warehouse.updated_on",
-        "snowflake.cost_attribution.period_start",
-        "snowflake.cost_attribution.period_end",
-        "snowflake.copy.first_commit_time",
-        "snowflake.copy.pipe.received_time",
-        "snowflake.table.dynamic.graph.valid_from",
-        "snowflake.table.dynamic.graph.valid_to",
         "snowflake.table.dynamic.latest.data_timestamp",
         "snowflake.table.dynamic.latest.dependency.data_timestamp",
-        "snowflake.table.dynamic.refresh.start",
-        "snowflake.table.dynamic.refresh.end",
-        "snowflake.table.dynamic.refresh.data_timestamp",
-        "snowflake.table.dynamic.refresh.completion_target",
         "snowflake.table.dynamic.scheduling.resumed_on",
         "snowflake.table.dynamic.scheduling.suspended_on",
     }
@@ -746,23 +746,16 @@ class TestTimestampFieldsAreString:
     #: ISO-8601 timestamp fields that must be __type: string (not timestamp).
     #: NOTE: snowflake.grant.created_on and snowflake.table.created_on are stored as
     #: epoch-ns longs in the shares plugin — they use __type: long and are excluded here.
+    #: Fields converted to epoch-ns (long) and removed from this set: cost_attribution.period_start/end,
+    #: copy.first_commit_time, copy.pipe.received_time, dynamic.graph.valid_from/valid_to,
+    #: dynamic.refresh.start/end/data_timestamp/completion_target.
     _ISO8601_MUST_BE_STRING: frozenset = frozenset(
         {
             "snowflake.warehouse.created_on",
             "snowflake.warehouse.resumed_on",
             "snowflake.warehouse.updated_on",
-            "snowflake.cost_attribution.period_start",
-            "snowflake.cost_attribution.period_end",
-            "snowflake.copy.first_commit_time",
-            "snowflake.copy.pipe.received_time",
-            "snowflake.table.dynamic.graph.valid_from",
-            "snowflake.table.dynamic.graph.valid_to",
             "snowflake.table.dynamic.latest.data_timestamp",
             "snowflake.table.dynamic.latest.dependency.data_timestamp",
-            "snowflake.table.dynamic.refresh.start",
-            "snowflake.table.dynamic.refresh.end",
-            "snowflake.table.dynamic.refresh.data_timestamp",
-            "snowflake.table.dynamic.refresh.completion_target",
             "snowflake.table.dynamic.scheduling.resumed_on",
             "snowflake.table.dynamic.scheduling.suspended_on",
         }
