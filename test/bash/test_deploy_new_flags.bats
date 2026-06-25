@@ -76,13 +76,13 @@ teardown() {
 
 @test "deploy.sh accepts --env= flag" {
     # Just test argument parsing, not full deployment
-    run bash -c "bash scripts/deploy/deploy.sh --env=test --scope=init 2>&1 | head -1"
+    run bash -c "bash scripts/deploy/deploy.sh --env=test --scope=init 2>&1 | head -1" </dev/null
     # Should not error on flag parsing
     [[ "$output" != *"Unknown parameter"* ]] || [ "$status" -eq 0 ]
 }
 
 @test "deploy.sh accepts positional ENV with deprecation warning" {
-    run bash -c "bash scripts/deploy/deploy.sh test --scope=init 2>&1 | grep -i deprecat"
+    run bash -c "bash scripts/deploy/deploy.sh test --scope=init 2>&1 | grep -i deprecat" </dev/null
     # Should show deprecation warning
     [[ "$output" == *"deprecated"* ]] || [[ "$output" == *"DEPRECATED"* ]]
 }
@@ -212,7 +212,7 @@ EOF
 
 @test "deploy.sh positional ENV still works" {
     # Just test that it doesn't error on parsing
-    run bash -c "bash scripts/deploy/deploy.sh test --scope=init 2>&1 | head -5"
+    run bash -c "bash scripts/deploy/deploy.sh test --scope=init 2>&1 | head -5" </dev/null
     # Should not error on argument parsing
     [[ "$output" != *"Unknown parameter"* ]] || [ "$status" -eq 0 ]
 }
