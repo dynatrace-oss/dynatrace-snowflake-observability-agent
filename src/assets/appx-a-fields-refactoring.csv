@@ -248,3 +248,6 @@ snowflake.operator_attr;snowflake.query.operator.attributes
 snowflake.operator_stat;snowflake.query.operator.stats
 snowflake.operator_exec_time;snowflake.query.operator.time
 snowflake.table.event;snowflake.event.trigger
+snowflake.credits.quota;snowflake.credits.quota.value
+snowflake.warehouse.event;snowflake.warehouse.event.trigger
+snowflake.query.step.operator.time;snowflake.query.step.operator.time_breakdown

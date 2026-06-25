@@ -51,7 +51,7 @@ class LoginHistoryPlugin(Plugin):
         error_code = row_dict.get("snowflake.error.code")
         payload = {
             "event.name": f"Detected failed logins to Snowflake by {user}",
-            "event.description": f"We have detected a failed login attempt due to f{error_message} (code: {error_code}), by {user}",
+            "event.description": f"We have detected a failed login attempt due to {error_message} (code: {error_code}), by {user}",
             "db.user": properties.get("db.user"),
             "timeout": 360,
             "anomaly.detector": "dsoa.failed_login_detection",

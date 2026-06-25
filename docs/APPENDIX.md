@@ -161,6 +161,9 @@ and the new names (version 0.8):
 | snowflake.operator_stat                                  | snowflake.query.operator.stats                |
 | snowflake.operator_exec_time                             | snowflake.query.operator.time                 |
 | snowflake.table.event                                    | snowflake.event.trigger                       |
+| snowflake.credits.quota                                  | snowflake.credits.quota.value                 |
+| snowflake.warehouse.event                                | snowflake.warehouse.event.trigger             |
+| snowflake.query.step.operator.time                       | snowflake.query.step.operator.time_breakdown  |
 
 `*` represents possible values that might be present as part of the field name:
 `(warehouse.load.|warehouse.credits.|table.dynamic.|trust_center.|table_qs.|event_usage.|table.|budget.|budget.spending.|serverless_tasks.|resource_monitor.|warehouse.|query.)`
@@ -217,14 +220,14 @@ The table below lists all six field renames.
 
 ### Field Name Mapping
 
-| old name                            | new name                                 |
-| ----------------------------------- | ---------------------------------------- |
-| snowflake.query.operator.attributes | snowflake.query.step.operator.attributes |
-| snowflake.query.operator.id         | snowflake.query.step.operator.id         |
-| snowflake.query.operator.parent_ids | snowflake.query.step.operator.parent_ids |
-| snowflake.query.operator.stats      | snowflake.query.step.operator.stats      |
-| snowflake.query.operator.time       | snowflake.query.step.operator.time       |
-| snowflake.query.operator.type       | snowflake.query.step.operator.type       |
+| old name                            | new name                                     |
+| ----------------------------------- | -------------------------------------------- |
+| snowflake.query.operator.attributes | snowflake.query.step.operator.attributes     |
+| snowflake.query.operator.id         | snowflake.query.step.operator.id             |
+| snowflake.query.operator.parent_ids | snowflake.query.step.operator.parent_ids     |
+| snowflake.query.operator.stats      | snowflake.query.step.operator.stats          |
+| snowflake.query.operator.time       | snowflake.query.step.operator.time_breakdown |
+| snowflake.query.operator.type       | snowflake.query.step.operator.type           |
 
 <a name="appendix-d-sec"></a>
 

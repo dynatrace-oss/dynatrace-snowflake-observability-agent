@@ -143,7 +143,7 @@ class ResourceMonitorsPlugin(Plugin):
             f"Warehouse {payload.get('snowflake.warehouse.name', '')} is not monitored",
             {
                 "timestamp": ts,
-                "snowflake.warehouse.event": key,
+                "snowflake.warehouse.event.trigger": key,
             },
             EventType.CUSTOM_INFO,
         )
@@ -535,7 +535,7 @@ class ResourceMonitorsPlugin(Plugin):
         if not row_dict.get("IS_ACTIVE", False):
             return 0, None, monitor_name
 
-        quota = float(metrics.get("snowflake.credits.quota", 0) or 0)
+        quota = float(metrics.get("snowflake.credits.quota.value", 0) or 0)
         if quota <= 0:
             return 0, None, monitor_name
 

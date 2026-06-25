@@ -262,7 +262,7 @@ sections:
           from: now()-24h
           to: now()
         value: |
-          timeseries avg(snowflake.credits.quota), by: {deployment.environment}
+          timeseries avg(snowflake.credits.quota.value), by: {deployment.environment}
           | filter deployment.environment == "DEV-094"
 
   - id: s-21

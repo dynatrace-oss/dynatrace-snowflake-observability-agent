@@ -50,7 +50,7 @@ SAMPLE_ROW = {
     "snowflake.query.step.operator.id": 9,
     "snowflake.query.step.operator.parent_ids": [3, 5, 7],
     "snowflake.query.step.operator.stats": {"input_rows": 20, "output_rows": 20},
-    "snowflake.query.step.operator.time": {"overall_percentage": 0},
+    "snowflake.query.step.operator.time_breakdown": {"overall_percentage": 0},
     "snowflake.query.step.operator.type": "WithReference",
     "snowflake.query.step.id": 2,
     "test.array.of.arrays": ["a", 1, ["b", 3, {"k": 4}]],

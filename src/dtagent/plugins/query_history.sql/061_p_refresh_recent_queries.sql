@@ -145,7 +145,7 @@ DECLARE
                                             'snowflake.query.step.operator.type',       to_varchar(operator_type),
                                             'snowflake.query.step.operator.stats',      operator_statistics,
                                             'snowflake.query.step.operator.attributes', operator_attributes,
-                                            'snowflake.query.step.operator.time',       execution_time_breakdown
+                                            'snowflake.query.step.operator.time_breakdown', execution_time_breakdown
                                             )
                                         ) AS metrics
                                         FROM cte_operator_stat_metrics

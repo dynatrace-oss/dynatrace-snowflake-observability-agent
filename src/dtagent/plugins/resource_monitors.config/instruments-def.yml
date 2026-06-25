@@ -19,7 +19,7 @@ attributes:
   snowflake.budget.name:
     __example: BUDGET_2024
     __description: The name of the budget associated with the warehouse.
-  snowflake.credits.quota:
+  snowflake.credits.quota.value:
     __example: "1000"
     __description: The credit quota of the resource monitor.
   snowflake.credits.quota.remaining:
@@ -62,6 +62,10 @@ attributes:
       The configured threshold percentage at which this crossing event was triggered (e.g., 80 means
       the 80% threshold was crossed). Distinct from snowflake.credits.quota.used_pct, which captures
       live consumption at emit time.
+  snowflake.warehouse.event.trigger:
+    __is_defined_at_runtime: true
+    __example: "snowflake.warehouse.created_on"
+    __description: The event that triggered the "warehouse is not monitored" notification.
   snowflake.warehouse.execution_state:
     __example: RUNNING
     __description: The execution state of the warehouse.
@@ -157,7 +161,7 @@ metrics:
     __description: Percentage of quiescing resources in given warehouse.
     displayName: Percentage Quiescing
     unit: percent
-  snowflake.credits.quota:
+  snowflake.credits.quota.value:
     __example: "1000"
     __description: Total number of credits allowed for the given resource monitor
     displayName: Credits Quota

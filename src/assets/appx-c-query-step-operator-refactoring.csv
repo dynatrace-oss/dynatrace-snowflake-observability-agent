@@ -3,5 +3,5 @@ snowflake.query.operator.attributes;snowflake.query.step.operator.attributes
 snowflake.query.operator.id;snowflake.query.step.operator.id
 snowflake.query.operator.parent_ids;snowflake.query.step.operator.parent_ids
 snowflake.query.operator.stats;snowflake.query.step.operator.stats
-snowflake.query.operator.time;snowflake.query.step.operator.time
+snowflake.query.operator.time;snowflake.query.step.operator.time_breakdown
 snowflake.query.operator.type;snowflake.query.step.operator.type

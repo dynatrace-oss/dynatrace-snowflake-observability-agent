@@ -526,7 +526,7 @@ tiles:
       | joinNested rs = [
         fetch events
         | filter db.system == "snowflake"
-        | filter isNotNull(snowflake.warehouse.event)
+        | filter isNotNull(snowflake.warehouse.event.trigger)
         | filter isNotNull(snowflake.resource_monitor.name) and isNotNull(snowflake.warehouse.name)
         | summarize {count()}, by: {
           snowflake.resource_monitor.name,
@@ -599,7 +599,7 @@ tiles:
       | joinNested rs = [
         fetch events
         | filter db.system == "snowflake"
-        | filter isNotNull(snowflake.warehouse.event)
+        | filter isNotNull(snowflake.warehouse.event.trigger)
         | filter isNotNull(snowflake.resource_monitor.name) and isNotNull(snowflake.warehouse.name)
         | summarize {count()}, by: {
           snowflake.resource_monitor.name,
@@ -824,7 +824,7 @@ tiles:
       | joinNested rs = [
         fetch events
         | filter db.system == "snowflake"
-        | filter isNotNull(snowflake.warehouse.event)
+        | filter isNotNull(snowflake.warehouse.event.trigger)
         | filter isNotNull(snowflake.resource_monitor.name) and isNotNull(snowflake.warehouse.name)
         | summarize {count()}, by: {
           snowflake.resource_monitor.name,
@@ -880,7 +880,7 @@ tiles:
       | joinNested rs = [
         fetch events
         | filter db.system == "snowflake"
-        | filter isNotNull(snowflake.warehouse.event)
+        | filter isNotNull(snowflake.warehouse.event.trigger)
         | filter isNotNull(snowflake.resource_monitor.name) and isNotNull(snowflake.warehouse.name)
         | summarize {count()}, by: {
           snowflake.resource_monitor.name,
@@ -961,7 +961,7 @@ tiles:
       | joinNested rs = [
         fetch events
         | filter db.system == "snowflake"
-        | filter isNotNull(snowflake.warehouse.event)
+        | filter isNotNull(snowflake.warehouse.event.trigger)
         | filter isNotNull(snowflake.resource_monitor.name) and isNotNull(snowflake.warehouse.name)
         | summarize {count()}, by: {
           snowflake.resource_monitor.name,
@@ -1168,7 +1168,7 @@ tiles:
       | joinNested rs = [
         fetch events
         | filter db.system == "snowflake"
-        | filter isNotNull(snowflake.warehouse.event)
+        | filter isNotNull(snowflake.warehouse.event.trigger)
         | filter in(deployment.environment, array($Accounts))
              and iAny(startsWith(snowflake.warehouse.name, concat(array($Prefix)[], "_")))
              // and (isNull(snowflake.resource_monitor.name) or in(snowflake.resource_monitor.name, array($Resource_Monitors)))
@@ -1984,7 +1984,7 @@ tiles:
       | joinNested rs = [
         fetch events
         | filter db.system == "snowflake"
-        | filter isNotNull(snowflake.warehouse.event)
+        | filter isNotNull(snowflake.warehouse.event.trigger)
         | filter isNotNull(snowflake.resource_monitor.name) and isNotNull(snowflake.warehouse.name)
         | summarize {count()}, by: {
           snowflake.resource_monitor.name,
