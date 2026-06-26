@@ -2,10 +2,7 @@
 
 - [Appendix A: Migrating semantics from version 0.7 to 0.8](#appendix-a-sec)
 - [Appendix B: Migrating meta-field semantics to version 0.8.3 or higher](#appendix-b-sec)
-- [Appendix C: Migrating query operator field names to version 1.0.0 or higher](#appendix-c-sec)
-- [Appendix D: Migrating resource monitor threshold field to version 1.0.0 or higher](#appendix-d-sec)
-- [Appendix E: Migrating anomaly-detection field names to version 1.0.0 or higher](#appendix-e-sec)
-- [Appendix F: Migrating warehouse auto-suspend field to version 1.0.0 or higher](#appendix-f-sec)
+- [Appendix C: Migrating field names to version 1.0.0 or higher](#appendix-c-sec)
 
 <a name="appendix-a-sec"></a>
 
@@ -198,12 +195,25 @@ The table below lists the changes, showing the mapping from the old names to the
 
 <a name="appendix-c-sec"></a>
 
-## Appendix C: Migrating query operator field names to version 1.0.0 or higher
+## Appendix C: Migrating field names to version 1.0.0 or higher
 
-Version 1.0.0 renames six `snowflake.query.operator.*` span event attribute fields to `snowflake.query.step.operator.*`, scoping them as
-lexical children of the `snowflake.query.step.id` concept. No Snowflake API columns change; this is a pure rename at the DSOA telemetry
-emission layer. The `operator_id` values were already unique only within a step (encoded as
-`operator_number = 10000 * step_id + operator_id`), so the new namespace reflects the true scope.
+Version 1.0.0 introduces a set of field renames across multiple plugins as part of a semantic alignment effort with the Dynatrace Semantic
+Dictionary and OpenTelemetry naming conventions. All changes are pure renames at the DSOA telemetry emission layer; no Snowflake API columns
+or underlying query logic change.
+
+The renames span four areas:
+
+- **Anomaly-detection event properties** (`ad.*` → Semantic Dictionary names): four properties emitted by all anomaly-detection workflows
+  and the `login_history` plugin are renamed. The `login_history` plugin additionally changes its `anomaly.detector` value from
+  `snowflake_security` to `dsoa.failed_login_detection`.
+- **Query operator span attributes** (`snowflake.query.operator.*` → `snowflake.query.step.operator.*`): six fields gain the `step.` infix
+  to reflect that operator IDs are unique within a step, not across the full query. The `.time` field is additionally renamed to
+  `.time_breakdown` to signal its structured JSON value.
+- **Resource monitor and warehouse scalar fields**: `snowflake.resource_monitor.threshold.pct` becomes `.threshold.value` (type changes from
+  string to double with `percent` unit); `snowflake.credits.quota` becomes `.quota.value`; `snowflake.warehouse.event` becomes
+  `.event.trigger`; `snowflake.warehouse.is_auto_suspend` becomes `.auto_suspend` and is reclassified as a numeric metric with unit
+  `seconds`.
+- **Error code field**: `error.code` is renamed to `snowflake.error.code` for namespace consistency.
 
 To update existing dashboards, workflows, or other Dynatrace assets that reference the old field names, run the `refactor_field_names.sh`
 script included in the package with the `appx-c-query-step-operator-refactoring.csv` mapping file:
@@ -212,62 +222,7 @@ script included in the package with the `appx-c-query-step-operator-refactoring.
 ./scripts/deploy/refactor_field_names.sh appx-c-query-step-operator-refactoring.csv <exported-assets-folder>
 ```
 
-The table below lists all six field renames.
-
-### Field Name Mapping
-
-| old name                            | new name                                     |
-| ----------------------------------- | -------------------------------------------- |
-| error.code                          | snowflake.error.code                         |
-| snowflake.query.operator.attributes | snowflake.query.step.operator.attributes     |
-| snowflake.query.operator.id         | snowflake.query.step.operator.id             |
-| snowflake.query.operator.parent_ids | snowflake.query.step.operator.parent_ids     |
-| snowflake.query.operator.stats      | snowflake.query.step.operator.stats          |
-| snowflake.query.operator.time       | snowflake.query.step.operator.time_breakdown |
-| snowflake.query.operator.type       | snowflake.query.step.operator.type           |
-| snowflake.credits.quota             | snowflake.credits.quota.value                |
-| snowflake.warehouse.event           | snowflake.warehouse.event.trigger            |
-| snowflake.query.step.operator.time  | snowflake.query.step.operator.time_breakdown |
-
-<a name="appendix-d-sec"></a>
-
-## Appendix D: Migrating resource monitor threshold field to version 1.0.0 or higher
-
-Version 1.0.0 renames the `snowflake.resource_monitor.threshold.pct` field to `snowflake.resource_monitor.threshold.value` and changes its
-type from string to double with a `percent` unit. This makes the field consistent with the Dynatrace Semantic Dictionary convention that
-separates the threshold configuration value from the live consumption percentage (`snowflake.credits.quota.used_pct`).
-
-To update existing dashboards, workflows, or other Dynatrace assets that reference the old field name, run the `refactor_field_names.sh`
-script included in the package with the `appx-d-threshold-pct-refactoring.csv` mapping file:
-
-```bash
-./scripts/deploy/refactor_field_names.sh appx-d-threshold-pct-refactoring.csv <exported-assets-folder>
-```
-
-The table below lists the field rename.
-
-### Field Name Mapping
-
-| old name                                 | new name                                   |
-| ---------------------------------------- | ------------------------------------------ |
-| snowflake.resource_monitor.threshold.pct | snowflake.resource_monitor.threshold.value |
-
-<a name="appendix-e-sec"></a>
-
-## Appendix E: Migrating anomaly-detection field names to version 1.0.0 or higher
-
-Version 1.0.0 renames the four `ad.*` event properties emitted by DSOA anomaly-detection workflows to Semantic Dictionary-aligned names. The
-`ad.source` field is additionally renamed in the `login_history` plugin (the source value `snowflake_security` becomes
-`dsoa.failed_login_detection`; all other `anomaly.detector` values are unchanged).
-
-To update existing dashboards, workflows, notebooks, or other Dynatrace assets that reference the old field names, run the
-`refactor_field_names.sh` script included in the package with the `appx-e-ad-fields-refactoring.csv` mapping file:
-
-```bash
-./scripts/deploy/refactor_field_names.sh appx-e-ad-fields-refactoring.csv <exported-assets-folder>
-```
-
-For DQL queries that filter on the old field names, update them manually. Example migration:
+For DQL queries that filter on renamed anomaly-detection fields, update them manually. Example migration:
 
 ```dql
 // Before
@@ -276,37 +231,25 @@ For DQL queries that filter on the old field names, update them manually. Exampl
 | filter isNotNull(`anomaly.detector`) | filter `anomaly.detector` == "dsoa.data_volume_anomaly"
 ```
 
-The table below lists the four field renames.
+The table below lists all field renames.
 
 ### Field Name Mapping
 
-| old name         | new name          |
-| ---------------- | ----------------- |
-| ad.source        | anomaly.detector  |
-| ad.source_metric | metric.key        |
-| ad.direction     | anomaly.direction |
-| ad.category      | anomaly.subject   |
-
-<a name="appendix-f-sec"></a>
-
-## Appendix F: Migrating warehouse auto-suspend field to version 1.0.0 or higher
-
-Version 1.0.0 renames `snowflake.warehouse.is_auto_suspend` to `snowflake.warehouse.auto_suspend` and reclassifies it from an attribute to a
-metric with unit `seconds`. The field now carries the actual auto-suspend timeout in seconds (e.g., `600`) rather than a boolean-style
-value, aligning with the Snowflake `SHOW WAREHOUSES` `AUTO_SUSPEND` column semantics. A value of `null` or `0` indicates auto-suspend is
-disabled.
-
-To update existing dashboards, workflows, or other Dynatrace assets that reference the old field name, run the `refactor_field_names.sh`
-script included in the package with the `appx-f-auto-suspend-refactoring.csv` mapping file:
-
-```bash
-./scripts/deploy/refactor_field_names.sh appx-f-auto-suspend-refactoring.csv <exported-assets-folder>
-```
-
-The table below lists the field rename.
-
-### Field Name Mapping
-
-| old name                            | new name                         |
-| ----------------------------------- | -------------------------------- |
-| snowflake.warehouse.is_auto_suspend | snowflake.warehouse.auto_suspend |
+| old name                                 | new name                                     |
+| ---------------------------------------- | -------------------------------------------- |
+| ad.source                                | anomaly.detector                             |
+| ad.source_metric                         | metric.key                                   |
+| ad.direction                             | anomaly.direction                            |
+| ad.category                              | anomaly.subject                              |
+| error.code                               | snowflake.error.code                         |
+| snowflake.credits.quota                  | snowflake.credits.quota.value                |
+| snowflake.query.operator.attributes      | snowflake.query.step.operator.attributes     |
+| snowflake.query.operator.id              | snowflake.query.step.operator.id             |
+| snowflake.query.operator.parent_ids      | snowflake.query.step.operator.parent_ids     |
+| snowflake.query.operator.stats           | snowflake.query.step.operator.stats          |
+| snowflake.query.operator.time            | snowflake.query.step.operator.time_breakdown |
+| snowflake.query.operator.type            | snowflake.query.step.operator.type           |
+| snowflake.query.step.operator.time       | snowflake.query.step.operator.time_breakdown |
+| snowflake.resource_monitor.threshold.pct | snowflake.resource_monitor.threshold.value   |
+| snowflake.warehouse.event                | snowflake.warehouse.event.trigger            |
+| snowflake.warehouse.is_auto_suspend      | snowflake.warehouse.auto_suspend             |

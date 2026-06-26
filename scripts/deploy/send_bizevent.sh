@@ -45,8 +45,8 @@ elif [ "$($CWD/get_config_key.sh plugins.self_monitoring.send_bizevents_on_deplo
         PARAM="full_deployment"
     fi
 
-    VERSION="$(grep -m 1 'VERSION =' build/70_agents.sql | awk -F"'" '{print $2}')"
-    BUILD="$(grep -m 1 'BUILD =' build/70_agents.sql | awk -F' ' '{print $3}')"
+     VERSION="$(grep -m 1 'VERSION =' build/70_agents.sql | sed -E "s/^.*VERSION = [\"']([^\"']+)[\"'].*$/\1/")"
+     BUILD="$(grep -m 1 'BUILD =' build/70_agents.sql | sed -E 's/^.*BUILD = ([0-9]+).*$/\1/')"
 
     if ! curl -f -X POST "https://${DT_ADDRESS}/api/v2/bizevents/ingest" \
         -H "Authorization: Api-Token ${DTAGENT_TOKEN}" \
