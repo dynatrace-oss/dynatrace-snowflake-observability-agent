@@ -74,7 +74,6 @@ attributes:
   snowflake.object.ddl.properties:
     __stability: stable
     __type: string
-    __semdict_note: "Serialized JSON object stored as string in Grail. Contains DDL object property changes. Parse with parseJson() in DQL."
     __example: '{"creationMode": "CREATE", "columns": {"ADD": ["ATTRIBUTE","JOB_ID"]}}'
     __description: |
       A JSON array that specifies the object or column properties when you create, modify, drop, or undrop the object or column.

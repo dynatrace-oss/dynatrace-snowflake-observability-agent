@@ -51,7 +51,6 @@ attributes:
   client.application.id:
     __stability: stable
     __semdict: new
-    __semdict_note: "Snowflake driver metadata; closest OTel analog is service.version (different semantics). Proprietary to DSOA."
     __context_names:
       - sessions
     __example: app123
@@ -59,7 +58,6 @@ attributes:
     __description: The ID of the client application used for the session.
   client.application.version:
     __semdict: new
-    __semdict_note: "Closest OTel analog: service.version (different semantics)."
     __context_names:
       - sessions
     __example: 1.0.0
@@ -67,7 +65,6 @@ attributes:
     __description: The version of the client application used for the session.
   client.build_id:
     __semdict: new
-    __semdict_note: "Closest OTel analog: service.version (different semantics). Proprietary to DSOA."
     __context_names:
       - sessions
     __example: build123
@@ -76,7 +73,6 @@ attributes:
   client.environment:
     __stability: stable
     __semdict: new
-    __semdict_note: "Closest OTel analog: deployment.environment.name (different semantics). Proprietary to DSOA."
     __context_names:
       - sessions
     __example: PRODUCTION

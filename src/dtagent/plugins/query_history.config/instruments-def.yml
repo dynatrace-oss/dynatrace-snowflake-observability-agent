@@ -26,32 +26,27 @@ attributes:
   client.application.id:
     __stability: stable
     __semdict: new
-    __semdict_note: "Snowflake driver metadata; closest OTel analog is service.version (different semantics). Proprietary to DSOA."
     __example: app123
     __type: string
     __description: The ID of the client application used to execute the query.
   client.application.version:
     __semdict: new
-    __semdict_note: "Closest OTel analog: service.version (different semantics)."
     __example: 1.0.0
     __type: string
     __description: The version of the client application used to execute the query.
   client.build_id:
     __semdict: new
-    __semdict_note: "Closest OTel analog: service.version (different semantics). Proprietary to DSOA."
     __example: build123
     __type: string
     __description: The build ID of the client application.
   client.environment:
     __stability: stable
     __semdict: new
-    __semdict_note: "Closest OTel analog: deployment.environment.name (different semantics). Proprietary to DSOA."
     __example: production
     __type: string
     __description: The environment of the client application.
   client.version:
     __semdict: new
-    __semdict_note: "Closest OTel analog: service.version (different semantics). Proprietary to DSOA."
     __example: 1.0.0
     __type: string
     __description: The version of the client.
@@ -64,7 +59,6 @@ attributes:
     __stability: stable
     __type: string[]
     __semdict: new
-    __semdict_note: "No OTel/semdict analog. Note: db.sql.table is itself deprecated (replaced by db.collection.name)."
     __example: ["users", "orders"]
     __description: The tables involved in the query.
   db.snowflake.views:

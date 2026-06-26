@@ -102,12 +102,15 @@ def _generate_markdown_table(columns: List[str], rows_data: List[List]) -> str:
     Returns:
         Markdown table string.
     """
+    # Escape pipe characters in cell content so they don't break table column structure
+    safe_rows = [[str(cell).replace("|", "\\|") for cell in row] for row in rows_data]
+
     # Calculate column widths
     column_widths = []
     for i, header in enumerate(columns):
         max_len = len(header)
-        for row in rows_data:
-            max_len = max(max_len, len(str(row[i])))
+        for row in safe_rows:
+            max_len = max(max_len, len(row[i]))
         column_widths.append(max_len)
 
     # Generate header
@@ -116,8 +119,8 @@ def _generate_markdown_table(columns: List[str], rows_data: List[List]) -> str:
 
     # Generate rows
     rows = ""
-    for row_data in rows_data:
-        row = "| " + " | ".join(f"{str(cell):<{w}}" for cell, w in zip(row_data, column_widths)) + " |\n"
+    for row_data in safe_rows:
+        row = "| " + " | ".join(f"{cell:<{w}}" for cell, w in zip(row_data, column_widths)) + " |\n"
         rows += row
 
     return header + separator + rows + "\n"
@@ -132,9 +135,9 @@ def _generate_semantics_tables(json_data: Dict, plugin_name: str, no_global_cont
 
             # Define columns based on key
             if key == "metrics":
-                columns = ["Identifier", "Name", "Unit", "Description", "Example", "Note", "Stability", "SD Status"]
+                columns = ["Identifier", "Name", "Unit", "Description", "Example", "Stability"]
             else:
-                columns = ["Identifier", "Description", "Example", "Note", "Stability", "SD Status"]
+                columns = ["Identifier", "Description", "Example", "Stability"]
             if no_global_context_name:
                 columns.append("Context Name")
 
@@ -146,17 +149,13 @@ def _generate_semantics_tables(json_data: Dict, plugin_name: str, no_global_cont
                 example = details.get("__example", "")
                 if isinstance(example, str) and ("@" in example or "* *" in example):
                     example = f"`{example}`"
-                # New: surface __semdict_note, __stability, __semdict status
-                note = details.get("__semdict_note", "") or ""
-                note = " ".join(note.split())  # collapse whitespace
                 stability = details.get("__stability", "") or ""
-                sd_status = details.get("__semdict", "") or ""
                 if key == "metrics":
                     name = details.get("displayName", "")
                     unit = details.get("unit", "")
-                    row = [key_id, name, unit, description, example, note, stability, sd_status]
+                    row = [key_id, name, unit, description, example, stability]
                 else:
-                    row = [key_id, description, example, note, stability, sd_status]
+                    row = [key_id, description, example, stability]
                 if no_global_context_name:
                     context_names = ", ".join(details.get("__context_names", []))
                     row.append(context_names)

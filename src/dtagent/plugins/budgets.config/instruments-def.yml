@@ -35,7 +35,7 @@ attributes:
     __context_names:
       - budgets
     __example:
-      - ["database1", "warehouse1"]
+      - ["DATABASE1", "WAREHOUSE1"]
     __description: The resources linked to the budget, such as databases, warehouses, or other Snowflake objects that the budget monitors.
 dimensions:
   db.namespace:
