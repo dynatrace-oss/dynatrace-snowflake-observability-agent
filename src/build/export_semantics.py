@@ -81,6 +81,7 @@ KNOWN_REFS = {
     "db.query.text",
     "event.id",
     "authentication.type",
+    "metric.key",
 }
 
 #: Keys present on every DSOA telemetry record — synced with config.py RESOURCE_ATTRIBUTES.
