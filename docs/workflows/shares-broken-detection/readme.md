@@ -60,19 +60,19 @@ All detection queries target the `inbound_shares` context from the `shares` plug
 ## Event Properties
 
 Each ingested event carries a base set of properties. Additional properties depend on the
-detection path (`ad.category`):
+detection path (`anomaly.subject`):
 
-| Property                 | unavailable                    | disappeared                    | volume_drop                    |
-|--------------------------|--------------------------------|--------------------------------|--------------------------------|
-| `event.type`             | `CustomInfo`                   | `CustomInfo`                   | `CustomInfo`                   |
-| `ad.source`              | `dsoa.shares_broken_detection` | `dsoa.shares_broken_detection` | `dsoa.shares_broken_detection` |
-| `ad.category`            | `unavailable`                  | `disappeared`                  | `volume_drop`                  |
-| `snowflake.share.name`   | share name                     | share name                     | share name                     |
-| `deployment.environment` | account                        | account                        | account                        |
-| `db.namespace`           | database name                  | —                              | —                              |
-| `db.collection.name`     | —                              | —                              | table name                     |
-| `ad.source_metric`       | —                              | —                              | `snowflake.data.rows`          |
-| `event.start` / `end`    | —                              | —                              | anomaly timeframe              |
+| Property                  | unavailable                    | disappeared                    | volume_drop                    |
+|---------------------------|--------------------------------|--------------------------------|--------------------------------|
+| `event.type`              | `CustomInfo`                   | `CustomInfo`                   | `CustomInfo`                   |
+| `anomaly.detector`        | `dsoa.shares_broken_detection` | `dsoa.shares_broken_detection` | `dsoa.shares_broken_detection` |
+| `anomaly.subject`         | `unavailable`                  | `disappeared`                  | `volume_drop`                  |
+| `snowflake.share.name`    | share name                     | share name                     | share name                     |
+| `deployment.environment`  | account                        | account                        | account                        |
+| `db.namespace`            | database name                  | —                              | —                              |
+| `db.collection.name`      | —                              | —                              | table name                     |
+| `metric.key`              | —                              | —                              | `snowflake.data.rows`          |
+| `event.start` / `end`     | —                              | —                              | anomaly timeframe              |
 
 ## Customization
 

@@ -9,7 +9,7 @@ All notable changes to this project will be documented in this file.
 >
 > Detailed technical changes and implementation notes are available in the [development log](../.context/devlog/).
 
-## [Unreleased / 1.0.0]
+## [1.0.0] - TBD
 
 ### Added
 
@@ -41,6 +41,47 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- **[BREAKING] `snowflake.resource_monitor.threshold.pct` renamed to `snowflake.resource_monitor.threshold.value`**:
+  The field type changes from string to double and gains a `percent` unit. This aligns the field with the
+  Dynatrace Semantic Dictionary convention separating configured threshold values from live consumption
+  percentages (`snowflake.credits.quota.used_pct`). To migrate existing dashboards and workflows, run
+  `refactor_field_names.sh` with `appx-d-threshold-pct-refactoring.csv`. See [Appendix D](APPENDIX.md#appendix-d-sec).
+- **[BREAKING] `ad.*` anomaly-detection event properties renamed to Semantic Dictionary fields**:
+  All ten anomaly-detection workflows and the `login_history` plugin now emit the following renamed fields.
+  Run `refactor_field_names.sh` with `appx-e-ad-fields-refactoring.csv` to update dashboards, notebooks,
+  and workflows. For DQL queries filtering on these fields, update the field names manually.
+  See [Appendix E](APPENDIX.md#appendix-e-sec).
+
+  | Old field          | New field           |
+  |--------------------|---------------------|
+  | `ad.source`        | `anomaly.detector`  |
+  | `ad.source_metric` | `metric.key`        |
+  | `ad.direction`     | `anomaly.direction` |
+  | `ad.category`      | `anomaly.subject`   |
+
+  Additionally, the `login_history` plugin changes its `anomaly.detector` value from
+  `snowflake_security` to `dsoa.failed_login_detection`.
+- **[BREAKING] `snowflake.query.operator.*` span event attributes renamed to `snowflake.query.step.operator.*`**:
+  Six fields emitted on query operator span events now carry the `step.` infix to reflect that
+  `operator_id` values are unique within a step, not across the full query. No Snowflake API columns
+  change; this is a pure rename at the DSOA telemetry emission layer. Run `refactor_field_names.sh`
+  with `appx-c-query-step-operator-refactoring.csv` to update dashboards and workflows.
+  See [Appendix C](APPENDIX.md#appendix-c-sec).
+
+  | Old field                             | New field                                  |
+  |---------------------------------------|--------------------------------------------|
+  | `snowflake.query.operator.attributes` | `snowflake.query.step.operator.attributes` |
+  | `snowflake.query.operator.id`         | `snowflake.query.step.operator.id`         |
+  | `snowflake.query.operator.parent_ids` | `snowflake.query.step.operator.parent_ids` |
+  | `snowflake.query.operator.stats`      | `snowflake.query.step.operator.stats`      |
+  | `snowflake.query.operator.time`       | `snowflake.query.step.operator.time`       |
+  | `snowflake.query.operator.type`       | `snowflake.query.step.operator.type`       |
+
+- **[BREAKING] `snowflake.warehouse.is_auto_suspend` renamed to `snowflake.warehouse.auto_suspend` and reclassified as a metric**:
+  The field is no longer emitted as a string attribute; it is now a numeric metric with unit `seconds`,
+  carrying the warehouse auto-suspend timeout value directly (e.g., `600`). A value of `null` or `0`
+  indicates auto-suspend is disabled. Run `refactor_field_names.sh` with
+  `appx-f-auto-suspend-refactoring.csv` to update dashboards and workflows. See [Appendix F](APPENDIX.md#appendix-f-sec).
 - **`event_log` plugin — metric rows no longer emit spurious log records**: `process.cpu.utilization`
   and `process.memory.usage` values were appearing in Grail logs as `kvlist`-typed string attributes
   because `_process_metric_entries` did not suppress log emission. Fixed by passing `report_logs=False`
@@ -50,14 +91,11 @@ All notable changes to this project will be documented in this file.
   records because `SHOW WAREHOUSES` returns these columns as `TEXT`. Fixed by wrapping with
   `TRY_TO_DOUBLE()` in `V_WAREHOUSES`; empty strings (suspended warehouses) become `NULL` and are
   silently dropped by `OBJECT_CONSTRUCT`, while active warehouses emit true `double` values.
-
-### Changed
- to match SD source conventions: fields split into
+- **SD export structure updated** to match SD source conventions: fields split into
   `resource_fields/` (dimensions + resource-override attributes) and `signal_fields/` (attributes + signal-override dimensions) grouped by namespace prefix; metrics use `model:` envelope with
   `interfaces:` declaration (`i.dsoa_resource`, `i.dsoa_warehouse`, `i.dsoa_database`); event
   lifecycle models emitted under `model/dsoa/`; enum fields emit `type: {allow_custom_values,
   members}` instead of `type: string`.
-
 - Added `__field_type` annotation support to `instruments-def.yml` to override default section
   classification (e.g. `signal` on a dimension that describes event context, not the resource).
 - Added `__enum` definitions for ~16 categorical fields including warehouse size/type, query

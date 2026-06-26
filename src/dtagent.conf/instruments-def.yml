@@ -119,6 +119,33 @@ dimensions:
 #                           in the future we should rather update semantic dictionary instead of pushing it constantly
 #  * VALUE[example]       - the example of attribute value
 attributes:
+  anomaly.detector:
+    __semdict: new
+    __description: >-
+      Identifies the DSOA workflow or plugin that detected the anomaly. Values follow the
+      ``dsoa.<workflow_name>`` convention (e.g., ``dsoa.data_volume_anomaly``) except for
+      the failed-login detector which uses ``dsoa.failed_login_detection``.
+    __example: "dsoa.data_volume_anomaly"
+  anomaly.direction:
+    __semdict: new
+    __description: >-
+      Direction of the anomaly relative to the Davis AI baseline: ``above`` when the metric
+      exceeded the upper bound, ``below`` when it dropped under the lower bound.
+    __example: "above"
+  anomaly.subject:
+    __semdict: new
+    __description: >-
+      High-level category classifying the anomaly subject within its detector. Specific
+      values are defined per workflow (e.g., ``login`` / ``session`` / ``query_count`` /
+      ``data_scan`` for security-anomaly-detection; ``unavailable`` / ``disappeared`` /
+      ``volume_drop`` for shares-broken-detection).
+    __example: "login"
+  metric.key:
+    __semdict: ref
+    __description: >-
+      The Dynatrace metric selector key for the metric that triggered the anomaly event.
+      References an existing metric in the Dynatrace Semantic Dictionary.
+    __example: "snowflake.credits.quota.used_pct"
   dsoa.run.id:
     __stability: stable
     __semdict: new

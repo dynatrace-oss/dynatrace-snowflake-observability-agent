@@ -130,7 +130,7 @@ variables:
       fetch logs
       | filter db.system == "snowflake"
       | filter dsoa.run.context == "login_history"
-      | filter isNotNull(error.code)
+      | filter isNotNull(snowflake.error.code)
       | filter in(deployment.environment, array($Environment))
       | filter if(in("Human user", array($Logins_User_Types)), matchesValue(db.user, "*.*"))
             or if(in("Service user", array($Logins_User_Types)), not matchesValue(db.user, "*.*"))
@@ -184,7 +184,7 @@ tiles:
       fetch logs
       | filter db.system == "snowflake"
       | filter dsoa.run.context == "login_history"
-      | filter isNotNull(error.code)
+      | filter isNotNull(snowflake.error.code)
         // -- BEGIN: env filters
       | filter in(deployment.environment, array($Environment))
       | filter if(in("Human user", array($Logins_User_Types)), matchesValue(db.user, "*.*"))
@@ -231,7 +231,7 @@ tiles:
       fetch logs
       | filter db.system == "snowflake"
       | filter dsoa.run.context == "login_history"
-      | filter isNotNull(error.code)
+      | filter isNotNull(snowflake.error.code)
         // -- BEGIN: env filters
       | filter in(deployment.environment, array($Environment))
       | filter if(in("Human user", array($Logins_User_Types)), matchesValue(db.user, "*.*"))
@@ -835,7 +835,7 @@ tiles:
       fetch logs
       | filter db.system == "snowflake"
       | filter dsoa.run.context == "login_history"
-      | filter isNotNull(error.code)
+      | filter isNotNull(snowflake.error.code)
         // -- BEGIN: env filters
       | filter in(deployment.environment, array($Environment))
       | filter if(in("Human user", array($Logins_User_Types)), matchesValue(db.user, "*.*"))
@@ -880,7 +880,7 @@ tiles:
       fetch logs
       | filter db.system == "snowflake"
       | filter dsoa.run.context == "login_history"
-      | filter isNotNull(error.code)
+      | filter isNotNull(snowflake.error.code)
         // -- BEGIN: env filters
       | filter in(deployment.environment, array($Environment))
       | filter if(in("Human user", array($Logins_User_Types)), matchesValue(db.user, "*.*"))
@@ -926,7 +926,7 @@ tiles:
       fetch logs
       | filter db.system == "snowflake"
       | filter dsoa.run.context == "login_history"
-      | filter isNotNull(error.code)
+      | filter isNotNull(snowflake.error.code)
         // -- BEGIN: env filters
       | filter in(deployment.environment, array($Environment))
       | filter if(in("Human user", array($Logins_User_Types)), matchesValue(db.user, "*.*"))

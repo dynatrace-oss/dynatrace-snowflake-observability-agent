@@ -44,7 +44,6 @@ select
         'snowflake.warehouse.owner',                                wh.owner,
         'snowflake.warehouse.is_default',                           TRY_TO_BOOLEAN(wh.is_default),
         'snowflake.warehouse.is_current',                           TRY_TO_BOOLEAN(wh.is_current),
-        'snowflake.warehouse.is_auto_suspend',                      wh.auto_suspend,
         'snowflake.warehouse.is_auto_resume',                       wh.auto_resume,
         'snowflake.warehouse.is_unmonitored',                       IS_UNMONITORED,
 
@@ -58,7 +57,7 @@ select
         'snowflake.budget.name',                                    wh.budget,
 
         -- this cannot be reported as metrics as then someone could accidently aggregate it incorrectly
-        'snowflake.credits.quota',                                  rm.credit_quota,
+        'snowflake.credits.quota.value',                            rm.credit_quota,
         'snowflake.credits.quota.used',                             rm.used_credits,
         'snowflake.credits.quota.remaining',                        rm.remaining_credits
     )                                                                                                                   as ATTRIBUTES,
@@ -78,7 +77,8 @@ select
         'snowflake.acceleration.scale_factor.max',                  wh.query_acceleration_max_scale_factor,
         'snowflake.warehouse.clusters.started',                     wh.started_clusters,
         'snowflake.queries.running',                                wh.running,
-        'snowflake.queries.queued',                                 wh.queued
+        'snowflake.queries.queued',                                 wh.queued,
+        'snowflake.warehouse.auto_suspend',                         wh.auto_suspend
     )                                                                                                                   as METRICS
 from APP.TMP_WAREHOUSES wh
 left join APP.TMP_RESOURCE_MONITORS rm

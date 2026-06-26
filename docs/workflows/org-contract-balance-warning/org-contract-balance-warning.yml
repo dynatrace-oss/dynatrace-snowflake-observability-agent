@@ -153,8 +153,8 @@ tasks:
                   'event.description':
                     `Balance for ${a.metric} is ${a.value.toFixed(2)}, ` +
                     `below threshold ${a.threshold}.`,
-                  'ad.source': 'dsoa.org_contract_balance_warning',
-                  'ad.source_metric': a.metric,
+                  'anomaly.detector': 'dsoa.org_contract_balance_warning',
+                  'metric.key': a.metric,
                   'balance.value': String(a.value.toFixed(2)),
                   'balance.threshold': String(a.threshold),
                   ...dimProps,

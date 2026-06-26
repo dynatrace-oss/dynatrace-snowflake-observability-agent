@@ -15,17 +15,6 @@
 #  *
 #  * Catalog of instrumentation known to Dynatrace Snowflake Observability Agent - login_history plugin
 attributes:
-  ad.source:
-    __is_defined_at_runtime: true
-    __context_names:
-      - login_history
-    __type: string
-    __description: >-
-      Identifies the DSOA detection rule or security domain that generated this anomaly event. In the login_history plugin, this is always
-      'snowflake_security'. For workflow-emitted events, values follow the 'dsoa.<workflow>' pattern. See core instruments-def for the full
-      field definition. NOTE: This field is planned for rename to 'rule.id' in a future release (tracked separately from BIZOBS-151).
-    __example: "snowflake_security"
-    __semdict: new
   event.description:
     __stability: stable
     __is_defined_at_runtime: true
@@ -106,7 +95,7 @@ attributes:
     __example: connection_1
     __type: string
     __description: The name of the connection used by the client, or NULL if the client is not using a connection URL.
-  error.code:
+  snowflake.error.code:
     __type: string
     __semdict: new
     __semdict_note: >-

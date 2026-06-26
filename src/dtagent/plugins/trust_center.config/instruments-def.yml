@@ -16,7 +16,7 @@
 #  * Catalog of instrumentation known to Dynatrace Snowflake Observability Agent - trust_center plugin
 
 attributes:
-  error.code:
+  snowflake.error.code:
     __type: string
     __semdict: new
     __semdict_note: >-

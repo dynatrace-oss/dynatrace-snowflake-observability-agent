@@ -694,7 +694,7 @@ tiles:
         | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
         | filter (isNull(db.operation.name)        or in(db.operation.name, array($Operation)))
         | fieldsAdd operator_stats = iCollectArray(
-            parse(span.events[][snowflake.query.operator.stats], """JSON:stats"""))
+            parse(span.events[][snowflake.query.step.operator.stats], """JSON:stats"""))
         | filter isNotNull(operator_stats)
         | fields
             `Query ID`       = snowflake.query.id,

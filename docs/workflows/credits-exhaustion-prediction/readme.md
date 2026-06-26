@@ -53,17 +53,17 @@ Queries `timeseries` metrics from the `resource_monitors` plugin:
 
 Each ingested event carries:
 
-| Property                          | Value                                      |
-|-----------------------------------|--------------------------------------------|
-| `event.type`                      | `CUSTOM_INFO` (default)                    |
-| `ad.source`                       | `dsoa.credits_exhaustion`                  |
-| `ad.source_metric`                | `snowflake.credits.quota.used_pct`         |
-| `snowflake.resource_monitor.name` | Affected monitor                           |
-| `deployment.environment`          | Snowflake environment                      |
-| `forecast.max_upper_pct`          | 90th-percentile peak forecast (%)          |
-| `forecast.max_point_pct`          | Median (point) peak forecast (%)           |
-| `forecast.day_of_crossing`        | First day (1-indexed) upper bound > 100%   |
-| `forecast.quality`                | Forecast quality (`VALID` / `LOW_QUALITY`) |
+| Property                           | Value                                      |
+|------------------------------------|--------------------------------------------|
+| `event.type`                       | `CUSTOM_INFO` (default)                    |
+| `anomaly.detector`                 | `dsoa.credits_exhaustion`                  |
+| `metric.key`                       | `snowflake.credits.quota.used_pct`         |
+| `snowflake.resource_monitor.name`  | Affected monitor                           |
+| `deployment.environment`           | Snowflake environment                      |
+| `forecast.max_upper_pct`           | 90th-percentile peak forecast (%)          |
+| `forecast.max_point_pct`           | Median (point) peak forecast (%)           |
+| `forecast.day_of_crossing`         | First day (1-indexed) upper bound > 100%   |
+| `forecast.quality`                 | Forecast quality (`VALID` / `LOW_QUALITY`) |
 
 ## Customization
 

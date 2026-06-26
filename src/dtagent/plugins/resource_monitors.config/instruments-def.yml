@@ -30,7 +30,7 @@ attributes:
     __stability: stable
     __example: BUDGET_2024
     __description: The name of the budget associated with the warehouse.
-  snowflake.credits.quota:
+  snowflake.credits.quota.value:
     __type: long
     __example: 1000
     __description: The credit quota of the resource monitor.
@@ -106,12 +106,21 @@ attributes:
     __is_defined_at_runtime: true
     __example: warn
     __description: >-
-      Alert band for the threshold event: ``info`` (below 80%), ``warn`` ([80–90%)), ``critical`` ([90–100%)), or ``exhausted`` (>=100%).
-  snowflake.resource_monitor.threshold.pct:
+      Alert band for the threshold event: ``info`` (below 80%), ``warn`` ([80–90%)),
+      ``critical`` ([90–100%)), or ``exhausted`` (>=100%).
+  snowflake.resource_monitor.threshold.value:
     __type: double
     __is_defined_at_runtime: true
-    __example: 80.0
-    __description: The specific threshold percentage value that was crossed to trigger the event.
+    __unit: percent
+    __example: 80
+    __description: >-
+      The configured threshold percentage at which this crossing event was triggered (e.g., 80 means
+      the 80% threshold was crossed). Distinct from snowflake.credits.quota.used_pct, which captures
+      live consumption at emit time.
+  snowflake.warehouse.event.trigger:
+    __is_defined_at_runtime: true
+    __example: "snowflake.warehouse.created_on"
+    __description: The event that triggered the "warehouse is not monitored" notification.
   snowflake.warehouse.execution_state:
     __type: string
     __stability: stable
@@ -148,12 +157,6 @@ attributes:
     __type: boolean
     __example: true
     __description: Indicates if the warehouse is set to auto-resume.
-  snowflake.warehouse.is_auto_suspend:
-    __stability: stable
-    __field_type: resource
-    __type: long
-    __example: 600
-    __description: Auto-suspend timeout in seconds for the warehouse. A value of 0 means auto-suspend is disabled.
   snowflake.warehouse.is_current:
     __type: boolean
     __example: true
@@ -337,7 +340,7 @@ metrics:
     __description: Percentage of quiescing resources in given warehouse.
     displayName: Percentage Quiescing
     unit: percent
-  snowflake.credits.quota:
+  snowflake.credits.quota.value:
     __type: double
     __example: 1000
     __description: Total number of credits allowed for the given resource monitor
@@ -391,6 +394,13 @@ metrics:
     __description: Minimal number of clusters in the given warehouse
     displayName: Minimum Cluster Count
     unit: clusters
+  snowflake.warehouse.auto_suspend:
+    __example: "600"
+    __description: >-
+      The number of seconds after which an idle warehouse is automatically suspended.
+      A value of null or 0 indicates auto-suspend is disabled.
+    displayName: Warehouse Auto-Suspend Timeout
+    unit: seconds
   snowflake.warehouse.clusters.started:
     __type: long
     __example: 3

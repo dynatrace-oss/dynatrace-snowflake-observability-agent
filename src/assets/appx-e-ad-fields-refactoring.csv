@@ -1,0 +1,5 @@
+ENTITY_NAME;NEW ENTITY_NAME
+ad.source;anomaly.detector
+ad.source_metric;metric.key
+ad.direction;anomaly.direction
+ad.category;anomaly.subject

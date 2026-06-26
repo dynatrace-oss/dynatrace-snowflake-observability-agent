@@ -36,7 +36,7 @@ and `query_history` plugins.
 
 2. **`extract_anomaly_events`** — Runs after all six analyzers complete. Collects raised alerts
    from each analyzer result, builds Dynatrace event objects with standard properties including
-   `ad.direction`, `ad.category`, and `ad.source`, and returns them as a list.
+   `anomaly.direction`, `anomaly.subject`, and `anomaly.detector`, and returns them as a list.
 
 3. **`ingest_anomaly_events`** — Ingests the event list into Dynatrace via the Environment V2
    Events API.
@@ -104,20 +104,20 @@ const CONFIG = {
 
 ## Event Properties
 
-| Property                    | Example Value                                      | Description                                   |
-|-----------------------------|----------------------------------------------------|-----------------------------------------------|
-| `event.type`                | `CustomInfo`                                       | Event type (configurable)                     |
-| `ad.source`                 | `dsoa.security_anomaly`                            | Identifies the DSOA security anomaly workflow |
-| `ad.source_metric`          | `snowflake.login.count`                            | Metric that triggered the anomaly             |
-| `ad.direction`              | `above`                                            | Direction of anomaly relative to baseline     |
-| `ad.category`               | `login` / `session` / `query_count` / `data_scan`  | Category of security anomaly detected         |
-| `db.user`                   | `SVC_ETL`                                          | Snowflake user (user-level events)            |
-| `db.collection.name`        | `PROD_DB.ETL.ORDERS`                               | Table name (table-level events)               |
-| `deployment.environment`    | `PROD`                                             | Snowflake account environment tag             |
-| `metric_name`               | `snowflake.data.scanned`                           | Metric name from the analyzer                 |
-| `event.start`               | ISO timestamp                                      | Start of the anomalous timeframe              |
-| `event.end`                 | ISO timestamp                                      | End of the anomalous timeframe                |
-| `event.description`         | Human-readable description                         | Full event description with context           |
+| Property                     | Example Value                                      | Description                                   |
+|------------------------------|----------------------------------------------------|-----------------------------------------------|
+| `event.type`                 | `CustomInfo`                                       | Event type (configurable)                     |
+| `anomaly.detector`           | `dsoa.security_anomaly`                            | Identifies the DSOA security anomaly workflow |
+| `metric.key`                 | `snowflake.login.count`                            | Metric that triggered the anomaly             |
+| `anomaly.direction`          | `above`                                            | Direction of anomaly relative to baseline     |
+| `anomaly.subject`            | `login` / `session` / `query_count` / `data_scan`  | Category of security anomaly detected         |
+| `db.user`                    | `SVC_ETL`                                          | Snowflake user (user-level events)            |
+| `db.collection.name`         | `PROD_DB.ETL.ORDERS`                               | Table name (table-level events)               |
+| `deployment.environment`     | `PROD`                                             | Snowflake account environment tag             |
+| `metric_name`                | `snowflake.data.scanned`                           | Metric name from the analyzer                 |
+| `event.start`                | ISO timestamp                                      | Start of the anomalous timeframe              |
+| `event.end`                  | ISO timestamp                                      | End of the anomalous timeframe                |
+| `event.description`          | Human-readable description                         | Full event description with context           |
 
 ## Troubleshooting
 

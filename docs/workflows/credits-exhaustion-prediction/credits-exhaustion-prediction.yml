@@ -177,8 +177,8 @@ tasks:
                 timeout: v.eventTimeout,
                 properties: {
                   'event.description': v.description,
-                  'ad.source': v.adSource,
-                  'ad.source_metric': 'snowflake.credits.quota.used_pct',
+                  'anomaly.detector': v.adSource,
+                  'metric.key': 'snowflake.credits.quota.used_pct',
                   'snowflake.resource_monitor.name': v.monitorName,
                   'deployment.environment': v.environment,
                   'forecast.max_upper_pct': String(v.maxUpperPct?.toFixed(2)),
