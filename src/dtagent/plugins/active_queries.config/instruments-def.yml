@@ -30,7 +30,7 @@ attributes:
     __example: SELECT * FROM sales_data
     __type: string
     __description: The text of the SQL query.
-  session.id:
+  snowflake.session.id:
     __semdict: otel-only
     __stability: experimental
     __type: string

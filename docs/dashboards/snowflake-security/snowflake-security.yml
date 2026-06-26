@@ -134,9 +134,9 @@ variables:
       | filter in(deployment.environment, array($Environment))
       | filter if(in("Human user", array($Logins_User_Types)), matchesValue(db.user, "*.*"))
             or if(in("Service user", array($Logins_User_Types)), not matchesValue(db.user, "*.*"))
-      | fields status.message
-      | dedup status.message
-      | sort status.message asc
+      | fields snowflake.status.message
+      | dedup snowflake.status.message
+      | sort snowflake.status.message asc
     multiple: true
     defaultValue:
       - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
@@ -189,8 +189,8 @@ tiles:
       | filter in(deployment.environment, array($Environment))
       | filter if(in("Human user", array($Logins_User_Types)), matchesValue(db.user, "*.*"))
             or if(in("Service user", array($Logins_User_Types)), not matchesValue(db.user, "*.*"))
-      | filter in(status.message, array($Login_Problems))
-        // -- END: env filters| fields timestamp, db.user, deployment.environment, status.message
+      | filter in(snowflake.status.message, array($Login_Problems))
+        // -- END: env filters| fields timestamp, db.user, deployment.environment, snowflake.status.message
         | fieldsAdd db.user=hashSha1(db.user)
       | summarize cnt = count(), by: {
          db.user
@@ -236,7 +236,7 @@ tiles:
       | filter in(deployment.environment, array($Environment))
       | filter if(in("Human user", array($Logins_User_Types)), matchesValue(db.user, "*.*"))
             or if(in("Service user", array($Logins_User_Types)), not matchesValue(db.user, "*.*"))
-      | filter in(status.message, array($Login_Problems))
+      | filter in(snowflake.status.message, array($Login_Problems))
       | parse `client.environment`, """JSON{
         DATA:application
       }(strict=false):client"""
@@ -416,7 +416,7 @@ tiles:
       | filter dsoa.run.context == "trust_center"
           and in(deployment.environment, array($Environment))
           and in(vulnerability.risk.level, array($TrustCenter_Risk_Level))
-      | fields timestamp, status.message, event.category, vulnerability.risk.level, snowflake.trust_center.scanner.type,
+      | fields timestamp, snowflake.status.message, event.category, vulnerability.risk.level, snowflake.trust_center.scanner.type,
         snowflake.trust_center.scanner.id, deployment.environment
       | append [
           fetch events
@@ -430,7 +430,7 @@ tiles:
       | summarize {
         last_timestamp = takeFirst(timestamp)
       }, by: {
-        status.message,
+        snowflake.status.message,
         event.category,
         vulnerability.risk.level,
         snowflake.trust_center.scanner.type,
@@ -439,7 +439,7 @@ tiles:
       }
       | fields
         `Scan Date`=formatTimestamp(last_timestamp, format:"yyyy-MM-dd"),
-        `Problem Descriptions`=status.message,
+        `Problem Descriptions`=snowflake.status.message,
         `Problem Category`=event.category,
         `Risk Level`=vulnerability.risk.level,
         `Scanner Type`=snowflake.trust_center.scanner.type,
@@ -453,7 +453,7 @@ tiles:
           direction: descending
         columnWidths:
           '["event.category"]': 265.5
-          '["status.message"]': 746
+          '["snowflake.status.message"]': 746
           '["Problem Descriptions"]': 534
         columnTypeOverrides:
           - fields:
@@ -840,10 +840,10 @@ tiles:
       | filter in(deployment.environment, array($Environment))
       | filter if(in("Human user", array($Logins_User_Types)), matchesValue(db.user, "*.*"))
             or if(in("Service user", array($Logins_User_Types)), not matchesValue(db.user, "*.*"))
-      | filter in(status.message, array($Login_Problems))
-        // -- END: env filters| fields timestamp, db.user, deployment.environment, status.message
+      | filter in(snowflake.status.message, array($Login_Problems))
+        // -- END: env filters| fields timestamp, db.user, deployment.environment, snowflake.status.message
       | makeTimeseries count(), by: {
-          status.message,
+          snowflake.status.message,
           deployment.environment
       }
       , bins: 20
@@ -885,8 +885,8 @@ tiles:
       | filter in(deployment.environment, array($Environment))
       | filter if(in("Human user", array($Logins_User_Types)), matchesValue(db.user, "*.*"))
             or if(in("Service user", array($Logins_User_Types)), not matchesValue(db.user, "*.*"))
-      | filter in(status.message, array($Login_Problems))
-        // -- END: env filters| fields timestamp, db.user, deployment.environment, status.message
+      | filter in(snowflake.status.message, array($Login_Problems))
+        // -- END: env filters| fields timestamp, db.user, deployment.environment, snowflake.status.message
       | summarize cnt = count(), by: {
           deployment.environment
       }
@@ -931,12 +931,12 @@ tiles:
       | filter in(deployment.environment, array($Environment))
       | filter if(in("Human user", array($Logins_User_Types)), matchesValue(db.user, "*.*"))
             or if(in("Service user", array($Logins_User_Types)), not matchesValue(db.user, "*.*"))
-      | filter in(status.message, array($Login_Problems))
-        // -- END: env filters| fields timestamp, db.user, deployment.environment, status.message
+      | filter in(snowflake.status.message, array($Login_Problems))
+        // -- END: env filters| fields timestamp, db.user, deployment.environment, snowflake.status.message
       | fields `Timestamp`=timestamp,
                `Environment`=deployment.environment,
                `User`=hashSha1(db.user),
-               `Login Problem`=status.message
+               `Login Problem`=snowflake.status.message
     visualization: table
     visualizationSettings:
       autoSelectVisualization: false

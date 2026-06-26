@@ -73,12 +73,9 @@ attributes:
     __example: 13825839647097210
     __type: long
     __description: The login event ID associated with the query.
-  session.id:
-    __semdict: otel-only
+  snowflake.session.id:
+    __semdict: new
     __stability: experimental
-    __semdict_note: >-
-      OTel semconv Development-tier attribute (session namespace). The semdict session.id is model-scoped/internal in code_monitoring only;
-      no global ref available. Emitting as new id: pending global semdict registration.
     __example: "1234567890"
     __type: string
     __description: The session ID during which the query was executed.
@@ -92,7 +89,7 @@ attributes:
     __type: long
     __example: 1
     __description: Internal debug field indicating the number of span events that failed to be added to the given span.
-  plugins.query_history.obfuscation_mode:
+  dsoa.plugins.query_history.obfuscation_mode:
     __stability: stable
     __example: "off"
     __type: string

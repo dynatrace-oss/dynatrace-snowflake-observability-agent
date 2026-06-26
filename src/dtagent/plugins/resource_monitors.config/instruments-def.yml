@@ -170,16 +170,16 @@ attributes:
     __type: boolean
     __example: true
     __description: Indicates if the warehouse is NOT monitored by a resource monitor.
-  snowflake.warehouse.owner:
+  snowflake.warehouse.owner.name:
     __type: string
     __field_type: resource
-    __example: admin
+    __example: ADMIN
     __description: The owner of the warehouse.
-  snowflake.warehouse.owner.role_type:
+  snowflake.warehouse.owner.role:
     __type: string
     __stability: stable
     __field_type: resource
-    __example: SYSADMIN
+    __example: ROLE
     __description: The role type of the warehouse owner.
   snowflake.warehouse.scaling_policy:
     __type: string
@@ -254,11 +254,9 @@ attributes:
           brief: >-
             Single-node warehouse with configurable high-memory nodes (16x–64x vs standard) and CPU architecture options; recommended for ML
             training and memory-intensive UDFs and stored procedures.
-  snowflake.warehouses.names:
+  snowflake.resource_monitor.warehouses:
     __type: string[]
-    __example:
-      - COMPUTE_WH
-      - ETL_WH
+    __example: ["COMPUTE_WH"]
     __description: The names of the warehouses monitored.
 dimensions:
   snowflake.resource_monitor.name:
@@ -376,7 +374,7 @@ metrics:
     __description: Current number of running queries in the given warehouse
     displayName: Running Queries
     unit: queries
-  snowflake.resource_monitor.warehouses:
+  snowflake.resource_monitor.warehouses.count:
     __type: long
     __example: 5
     __description: Number of warehouses monitored by the given resource monitor

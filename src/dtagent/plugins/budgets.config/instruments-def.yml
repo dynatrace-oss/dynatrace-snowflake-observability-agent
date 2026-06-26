@@ -15,18 +15,18 @@
 #  *
 # Catalog of instrumentation known to Dynatrace Snowflake Observability Agent - budgets plugin
 attributes:
-  snowflake.budget.owner:
+  snowflake.budget.owner.name:
     __type: string
     __stability: stable
     __context_names:
       - budgets
     __example: budget_admin
     __description: The owner of the budget, typically the user or role responsible for managing the budget.
-  snowflake.budget.owner.role_type:
+  snowflake.budget.owner.role:
     __type: string
     __context_names:
       - budgets
-    __example: ACCOUNTADMIN
+    __example: ROLE
     __description: The type of role assigned to the budget owner, indicating their level of access and responsibilities.
   snowflake.budget.resource:
     __stability: stable

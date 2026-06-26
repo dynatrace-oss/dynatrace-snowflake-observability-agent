@@ -168,7 +168,7 @@ attributes:
     __context_names:
       - users
     __description: Indicates if the user must change their password.
-  snowflake.user.name:
+  snowflake.user.name.login:
     __type: string
     __example: jdoe
     __context_names:
@@ -223,7 +223,7 @@ attributes:
           brief: >-
             System-managed user automatically created for each Snowpark Container Services (SPCS) service; cannot be created or converted by
             administrators.
-  snowflake.user.privilege:
+  snowflake.user.privilege.name:
     __type: string
     __stability: stable
     __example: "CREATE SERVICE:SCHEMA"
@@ -240,7 +240,7 @@ attributes:
       - users_all_privileges
     __description:
       List of all objects of given type on which given privilege was given; both object type and privilege are reported as
-      `snowflake.user.privilege`
+      `snowflake.user.privilege.name`
   snowflake.user.privilege.granted_by:
     __type: string[]
     __semdict_note: "Array of grantor role names stored as string[] in Grail."
@@ -264,7 +264,7 @@ attributes:
       - users_all_roles
       - users_direct_roles
     __description: Array of admin roles that were used to grant current list of user roles.
-  snowflake.user.roles.direct:
+  snowflake.user.roles.direct.list:
     __stability: stable
     __type: string[]
     __semdict_note: "Array of directly assigned role names stored as string[] in Grail."

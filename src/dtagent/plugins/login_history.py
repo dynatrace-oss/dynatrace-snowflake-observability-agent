@@ -47,7 +47,7 @@ class LoginHistoryPlugin(Plugin):
 
         properties = _unpack_payload(row_dict)
         user = properties.get("db.user")
-        error_message = properties.get("status.message")
+        error_message = properties.get("snowflake.status.message")
         error_code = row_dict.get("snowflake.error.code")
         payload = {
             "event.name": f"Detected failed logins to Snowflake by {user}",

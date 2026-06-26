@@ -89,7 +89,7 @@ attributes:
       - task_history
     __example: status = 'SUCCESS'
     __description: The condition text of the task.
-  snowflake.task.config:
+  snowflake.task.config.id:
     __type: string
     __context_names:
       - task_history
