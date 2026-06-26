@@ -22,7 +22,9 @@ dimensions:
     __type: string
     __semdict: otel-only
     __stability: stable
-    __semdict_note: "OTel standard field (db.namespace, stable since v1.28); emitted by its OTel name pending global Dynatrace Semantic Dictionary registration."
+    __semdict_note: >
+      OTel standard field (db.namespace, stable since v1.28);
+      emitted by its OTel name pending global Dynatrace Semantic Dictionary registration.
     __context_names: ["cold_tables"]
     __example: analytics_db
     __description: The name of the database containing the table.
@@ -36,7 +38,9 @@ dimensions:
     __type: string
     __semdict: otel-only
     __stability: stable
-    __semdict_note: "OTel standard field (db.collection.name, stable since v1.28); emitted by its OTel name pending global Dynatrace Semantic Dictionary registration."
+    __semdict_note: >
+      OTel standard field (db.collection.name, stable since v1.28);
+      emitted by its OTel name pending global Dynatrace Semantic Dictionary registration."
     __context_names: ["cold_tables"]
     __example: orders
     __description: The table name.

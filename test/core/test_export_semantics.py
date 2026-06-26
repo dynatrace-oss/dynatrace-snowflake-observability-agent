@@ -1316,7 +1316,7 @@ class TestSemanticsTableColumns:
         assert "Note" not in result, "Note column must not appear in semantics table"
         assert "SD Status" not in result, "SD Status column must not appear in semantics table"
         assert "Stability" in result, "Stability column must appear in semantics table"
-        assert "OTel-derived field." in result, "__semdict_note content must be merged into Description"
+        assert "OTel-derived field." not in result, "__semdict_note content must NOT be merged into Description"
         assert "stable" in result, "__stability value must appear in table"
 
     def test_semantics_table_columns_metrics(self):
@@ -1340,7 +1340,7 @@ class TestSemanticsTableColumns:
         assert "Note" not in result, "Note column must not appear in metrics table"
         assert "SD Status" not in result, "SD Status column must not appear in metrics table"
         assert "Stability" in result, "Stability column must appear in metrics table"
-        assert "Original unit: credits" in result, "__semdict_note content must be merged into Description"
+        assert "Original unit: credits" not in result, "__semdict_note content must NOT be merged into Description"
 
 
 ##endregion
