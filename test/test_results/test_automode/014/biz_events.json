@@ -23,7 +23,7 @@
     "source": "test.dsoa2025.snowflakecomputing.com",
     "type": "CUSTOM_INFO",
     "data": {
-      "status.code": "OK",
+      "snowflake.status.code": "OK",
       "_message": "This is a test object 1",
       "value.int": 10,
       "value.str": "test",

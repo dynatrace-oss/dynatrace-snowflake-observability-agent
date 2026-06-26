@@ -45,7 +45,7 @@ attributes:
   event.id:
     __example: login123
     __description: The login event ID associated with the query.
-  session.id:
+  snowflake.session.id:
     __example: "1234567890"
     __description: The session ID during which the query was executed.
   dsoa.debug.span.events.added:

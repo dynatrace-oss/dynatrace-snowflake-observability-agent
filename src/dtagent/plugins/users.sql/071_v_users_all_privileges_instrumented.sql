@@ -56,7 +56,7 @@ select
     'db.user',                                    grantee_name
   )                                                   as DIMENSIONS,
   OBJECT_CONSTRUCT(
-    'snowflake.user.privilege',                   concat(ar.privilege, ':', ar.granted_on),
+    'snowflake.user.privilege.name',              concat(ar.privilege, ':', ar.granted_on),
     'snowflake.user.privilege.grants_on',         listagg(distinct ar.child_role, ','),
     'snowflake.user.privilege.granted_by',        array_agg(distinct granted_by)
   )                                                   as ATTRIBUTES,

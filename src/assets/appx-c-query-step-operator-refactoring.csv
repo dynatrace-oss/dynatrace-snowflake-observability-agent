@@ -15,3 +15,16 @@ snowflake.query.step.operator.time;snowflake.query.step.operator.time_breakdown
 snowflake.resource_monitor.threshold.pct;snowflake.resource_monitor.threshold.value
 snowflake.warehouse.event;snowflake.warehouse.event.trigger
 snowflake.warehouse.is_auto_suspend;snowflake.warehouse.auto_suspend
+snowflake.budget.owner.role_type;snowflake.budget.owner.role
+snowflake.budget.owner;snowflake.budget.owner.name
+snowflake.warehouse.owner.role_type;snowflake.warehouse.owner.role
+snowflake.warehouse.owner;snowflake.warehouse.owner.name
+snowflake.resource_monitor.warehouses;snowflake.resource_monitor.warehouses.count
+snowflake.warehouses.names;snowflake.resource_monitor.warehouses
+snowflake.task.config;snowflake.task.config.id
+snowflake.user.name;snowflake.user.name.login
+snowflake.user.privilege;snowflake.user.privilege.name
+snowflake.user.roles.direct;snowflake.user.roles.direct.list
+session.id;snowflake.session.id
+status.code;snowflake.status.code
+status.message;snowflake.status.message
