@@ -23,7 +23,7 @@ attributes:
   snowflake.budget.owner.role:
     __context_names:
       - budgets
-    __example: ACCOUNTADMIN
+    __example: ROLE
     __description: The type of role assigned to the budget owner, indicating their level of access and responsibilities.
   snowflake.budget.resource:
     __context_names:
