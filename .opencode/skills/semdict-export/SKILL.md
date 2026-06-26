@@ -1,3 +1,11 @@
+---
+name: semdict-export
+description: Workflow for exporting DSOA instruments definitions to Dynatrace Semantic Dictionary (SD) YAML, validating the output with the SD generator, and fixing common schema violations.
+license: MIT
+compatibility: opencode, claude-code
+metadata:
+  audience: developers
+---
 # Skill: semdict-export
 
 Workflow for exporting DSOA instruments definitions to Dynatrace Semantic Dictionary (SD) YAML,
