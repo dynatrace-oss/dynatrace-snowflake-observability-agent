@@ -132,7 +132,7 @@ db.namespace;db.namespace
 db.operation.name;db.operation.name
 db.system;db.system
 db.user;db.user
-deployment.environment;deployment.environment
+deployment.environment;deployment.environment.name
 event.category;event.category
 event.name;event.name
 host.name;host.name

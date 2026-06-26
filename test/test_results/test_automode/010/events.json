@@ -21,7 +21,8 @@
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.plugin": "telemetry_sender",
-    "dsoa.run.context": "test_automode/010"
+    "dsoa.run.context": "test_automode/010",
+    "deployment.environment.name": "TEST"
   },
   {
     "eventType": "PERFORMANCE_EVENT",
@@ -45,7 +46,8 @@
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.plugin": "telemetry_sender",
-    "dsoa.run.context": "test_automode/010"
+    "dsoa.run.context": "test_automode/010",
+    "deployment.environment.name": "TEST"
   },
   {
     "eventType": "ERROR_EVENT",
@@ -69,7 +71,8 @@
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.plugin": "telemetry_sender",
-    "dsoa.run.context": "test_automode/010"
+    "dsoa.run.context": "test_automode/010",
+    "deployment.environment.name": "TEST"
   },
   {
     "eventType": "CUSTOM_INFO",
@@ -111,6 +114,7 @@
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.plugin": "telemetry_sender",
-    "dsoa.run.context": "test_automode/010"
+    "dsoa.run.context": "test_automode/010",
+    "deployment.environment.name": "TEST"
   }
 ]

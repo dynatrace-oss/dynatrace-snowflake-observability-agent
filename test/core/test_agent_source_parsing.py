@@ -66,6 +66,7 @@ class TestAgentSourceParsing:
                     "host.name": "test.snowflakecomputing.com",
                     "service.name": "test.dsoa",
                     "deployment.environment": "TEST",
+                    "deployment.environment.name": "TEST",
                 },
                 "dt.token": "dt0c01.FAKE.FAKE",
                 "metrics.http": "https://test.live.dynatrace.com/api/v2/metrics/ingest",

@@ -40,7 +40,8 @@
       "telemetry.exporter.name": "dynatrace.snowagent",
       "telemetry.sdk.language": "python",
       "telemetry.sdk.name": "opentelemetry",
-      "telemetry.sdk.version": "1.39.1"
+      "telemetry.sdk.version": "1.39.1",
+      "deployment.environment.name": "TEST"
     }
   },
   {
@@ -84,7 +85,8 @@
       "telemetry.exporter.name": "dynatrace.snowagent",
       "telemetry.sdk.language": "python",
       "telemetry.sdk.name": "opentelemetry",
-      "telemetry.sdk.version": "1.39.1"
+      "telemetry.sdk.version": "1.39.1",
+      "deployment.environment.name": "TEST"
     }
   },
   {
@@ -123,7 +125,8 @@
       "telemetry.exporter.name": "dynatrace.snowagent",
       "telemetry.sdk.language": "python",
       "telemetry.sdk.name": "opentelemetry",
-      "telemetry.sdk.version": "1.39.1"
+      "telemetry.sdk.version": "1.39.1",
+      "deployment.environment.name": "TEST"
     }
   },
   {
@@ -140,7 +143,7 @@
     ],
     "db.user": "SYSTEM",
     "snowflake.session.id": 22812680207694162,
-    "dsoa.run.context": "query_history",
+    "dsoa.run.context": "event_log",
     "snowagent.run.id": "5c0188ef23e84fb99fd31ffddd8d0dcd",
     "snowflake.cluster_number": 1,
     "snowflake.credits.cloud_services": 4.7e-05,
@@ -202,7 +205,6 @@
     "severity_text": "INFO",
     "snowflake.event.scope.name": "DTAGENT_OTLP",
     "record_type": "LOG",
-    "dsoa.run.context": "event_log",
     "dsoa.run.plugin": "test_event_log",
     "resource_attributes": {
       "db.system": "snowflake",
@@ -212,7 +214,8 @@
       "telemetry.exporter.name": "dynatrace.snowagent",
       "telemetry.sdk.language": "python",
       "telemetry.sdk.name": "opentelemetry",
-      "telemetry.sdk.version": "1.39.1"
+      "telemetry.sdk.version": "1.39.1",
+      "deployment.environment.name": "TEST"
     }
   }
 ]

@@ -36,10 +36,10 @@ variables:
     input: |-
       fetch events
       | filter db.system == "snowflake"
-      | filter isNotNull(deployment.environment)
-      | fields deployment.environment
-      | dedup deployment.environment
-      | sort deployment.environment asc
+      | filter isNotNull(coalesce(deployment.environment.name, deployment.environment))
+      | fields `deployment.environment` = coalesce(deployment.environment.name, deployment.environment)
+      | dedup coalesce(deployment.environment.name, deployment.environment)
+      | sort `deployment.environment` asc
     multiple: true
     defaultValue:
       - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
@@ -52,13 +52,13 @@ variables:
       fetch events
       | filter db.system == "snowflake"
       | filter isNotNull(snowflake.resource_monitor.name)
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | parse `snowflake.resource_monitor.name`, """DATA:env "_" LDATA"""
       | append [
         fetch events
         | filter db.system == "snowflake"
         | filter isNotNull(snowflake.warehouse.name)
-        | filter in(deployment.environment, array($Accounts))
+        | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
         | parse `snowflake.warehouse.name`, """DATA:env "_" LDATA"""
       ]
       | fields env
@@ -76,7 +76,7 @@ variables:
       fetch events
       | filter db.system == "snowflake"
       | filter isNotNull(snowflake.resource_monitor.name)
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | filter iAny(startsWith(snowflake.resource_monitor.name, concat(array($Prefix)[], "_")))
       | fields snowflake.resource_monitor.name
       | dedup snowflake.resource_monitor.name
@@ -93,7 +93,7 @@ variables:
       fetch events
       | filter db.system == "snowflake"
       | filter isNotNull(snowflake.warehouse.name)
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | filter isNull(snowflake.resource_monitor.name) or in(snowflake.resource_monitor.name, array($Resource_Monitors))
       | fields snowflake.warehouse.name
       | dedup snowflake.warehouse.name
@@ -137,15 +137,15 @@ tiles:
     query: |-
       timeseries snowflake.credits.quota.used = max(snowflake.credits.quota.used), by: {
           snowflake.resource_monitor.name,
-          deployment.environment,
+          deployment.environment.name,
           service.name
       }
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(deployment.environment.name, array($Accounts))
            and iAny(startsWith(snowflake.resource_monitor.name, concat(array($Prefix)[], "_")))
            and in(snowflake.resource_monitor.name, array($Resource_Monitors))
            // and in(snowflake.warehouse.name, array($Warehouses))
-      | fieldsAdd snow_account = coalesce(deployment.environment, service.name)
-      | fieldsRemove deployment.environment, service.name
+      | fieldsAdd snow_account = coalesce(deployment.environment.name, service.name)
+      | fieldsRemove deployment.environment.name, service.name
       | summarize {
           snowflake.credits.quota.used = max(snowflake.credits.quota.used[])
       }, by: {
@@ -201,15 +201,15 @@ tiles:
     query: |-
       timeseries snowflake.credits.quota = max(snowflake.credits.quota), by: {
           snowflake.resource_monitor.name,
-          deployment.environment,
+          deployment.environment.name,
           service.name
       }
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(deployment.environment.name, array($Accounts))
            and iAny(startsWith(snowflake.resource_monitor.name, concat(array($Prefix)[], "_")))
            and in(snowflake.resource_monitor.name, array($Resource_Monitors))
            // and in(snowflake.warehouse.name, array($Warehouses))
-      | fieldsAdd snow_account = coalesce(deployment.environment, service.name)
-      | fieldsRemove deployment.environment, service.name
+      | fieldsAdd snow_account = coalesce(deployment.environment.name, service.name)
+      | fieldsRemove deployment.environment.name, service.name
       | summarize {
           snowflake.credits.quota = max(snowflake.credits.quota[])
       }, by: {
@@ -311,15 +311,15 @@ tiles:
     query: |-
       timeseries snowflake.credits.quota.used_pct = max(snowflake.credits.quota.used_pct), by: {
           snowflake.resource_monitor.name,
-          deployment.environment,
+          deployment.environment.name,
           service.name
       }
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(deployment.environment.name, array($Accounts))
            and iAny(startsWith(snowflake.resource_monitor.name, concat(array($Prefix)[], "_")))
            and in(snowflake.resource_monitor.name, array($Resource_Monitors))
            // and in(snowflake.warehouse.name, array($Warehouses))
-      | fieldsAdd snow_account = coalesce(deployment.environment, service.name)
-      | fieldsRemove deployment.environment, service.name
+      | fieldsAdd snow_account = coalesce(deployment.environment.name, service.name)
+      | fieldsRemove deployment.environment.name, service.name
       | summarize {
           snowflake.credits.quota.used_pct = max(snowflake.credits.quota.used_pct[])
       }, by: {
@@ -399,24 +399,24 @@ tiles:
        fetch logs
       | filter db.system == "snowflake"
       | filter dsoa.run.context == "resource_monitors"
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | sort timestamp asc
       | summarize {
           timestamp = takeLast(timestamp),
           loglevel = takeLast(loglevel)
       }, by: {
-          deployment.environment, snowflake.warehouse.name
+          `deployment.environment` = coalesce(deployment.environment.name, deployment.environment), snowflake.warehouse.name
       }
       | filterOut loglevel == "INFO"
       | sort loglevel asc, timestamp desc
       | fields
         `Last seen`=timestamp,
-        `Account`=deployment.environment,
+        `Account`=`deployment.environment`,
         `Warehouse`=coalesce(snowflake.warehouse.name, "-"),
         `Level`=loglevel,
         `Explanation`=if(loglevel == "WARN",
                          concat("Warehouse ", snowflake.warehouse.name, " does not have Resource Monitor assigned"),
-                         else: concat("Account ", deployment.environment, " does not have global resource monitor defined"))
+                         else: concat("Account ", `deployment.environment`, " does not have global resource monitor defined"))
     visualization: table
     visualizationSettings:
       table:
@@ -465,15 +465,15 @@ tiles:
     query: |
       timeseries snowflake.time.execution = sum(snowflake.time.execution), by: {
           snowflake.warehouse.name,
-          deployment.environment,
+          deployment.environment.name,
           service.name
       }
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(deployment.environment.name, array($Accounts))
            and iAny(startsWith(snowflake.warehouse.name, concat(array($Prefix)[], "_")))
            // and in(snowflake.resource_monitor.name, array($Resource_Monitors))
            and in(snowflake.warehouse.name, array($Warehouses))
-      | fieldsAdd snow_account = coalesce(deployment.environment, service.name)
-      | fieldsRemove service.name, deployment.environment
+      | fieldsAdd snow_account = coalesce(deployment.environment.name, service.name)
+      | fieldsRemove service.name, deployment.environment.name
       | summarize {
           snowflake.time.execution = sum(snowflake.time.execution[])
       }, by: {
@@ -519,10 +519,10 @@ tiles:
     query: |-
       timeseries snowflake.time.queued.overload = sum(snowflake.time.queued.overload), by: {
           snowflake.warehouse.name,
-          deployment.environment,
+          deployment.environment.name,
           service.name
       }
-      | fieldsAdd key = concat(deployment.environment, "|", snowflake.warehouse.name)
+      | fieldsAdd key = concat(deployment.environment.name, "|", snowflake.warehouse.name)
       | joinNested rs = [
         fetch events
         | filter db.system == "snowflake"
@@ -531,20 +531,20 @@ tiles:
         | summarize {count()}, by: {
           snowflake.resource_monitor.name,
           snowflake.warehouse.name,
-          deployment.environment}
-        | fieldsAdd key = concat(deployment.environment, "|", snowflake.warehouse.name)
+          `deployment.environment` = coalesce(deployment.environment.name, deployment.environment)}
+        | fieldsAdd key = concat(`deployment.environment`, "|", snowflake.warehouse.name)
       ], on: {left[key] == right[key]}
        , fields: {snowflake.resource_monitor.name}
       | expand rs = rs
       | fieldsAdd snowflake.resource_monitor.name = rs[snowflake.resource_monitor.name]
       | fieldsRemove rs
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(deployment.environment.name, array($Accounts))
            and iAny(startsWith(snowflake.warehouse.name, concat(array($Prefix)[], "_")))
            and (isNull(snowflake.resource_monitor.name) or in(snowflake.resource_monitor.name, array($Resource_Monitors)))
            and in(snowflake.warehouse.name, array($Warehouses))
       | fieldsRemove snowflake.resource_monitor.name
-      | fieldsAdd snow_account = coalesce(deployment.environment, service.name)
-      | fieldsRemove deployment.environment, service.name
+      | fieldsAdd snow_account = coalesce(deployment.environment.name, service.name)
+      | fieldsRemove deployment.environment.name, service.name
       | summarize {
           snowflake.time.queued.overload = sum(snowflake.time.queued.overload[])
       }, by: {
@@ -592,10 +592,10 @@ tiles:
     query: |-
       timeseries snowflake.time.queued.provisioning = sum(snowflake.time.queued.provisioning), by: {
           snowflake.warehouse.name,
-          deployment.environment,
+          deployment.environment.name,
           service.name
       }
-      | fieldsAdd key = concat(deployment.environment, "|", snowflake.warehouse.name)
+      | fieldsAdd key = concat(deployment.environment.name, "|", snowflake.warehouse.name)
       | joinNested rs = [
         fetch events
         | filter db.system == "snowflake"
@@ -604,20 +604,20 @@ tiles:
         | summarize {count()}, by: {
           snowflake.resource_monitor.name,
           snowflake.warehouse.name,
-          deployment.environment}
-        | fieldsAdd key = concat(deployment.environment, "|", snowflake.warehouse.name)
+          `deployment.environment` = coalesce(deployment.environment.name, deployment.environment)}
+        | fieldsAdd key = concat(`deployment.environment`, "|", snowflake.warehouse.name)
       ], on: {left[key] == right[key]}
        , fields: {snowflake.resource_monitor.name}
       | expand rs = rs
       | fieldsAdd snowflake.resource_monitor.name = rs[snowflake.resource_monitor.name]
       | fieldsRemove rs
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(deployment.environment.name, array($Accounts))
            and iAny(startsWith(snowflake.warehouse.name, concat(array($Prefix)[], "_")))
            and (isNull(snowflake.resource_monitor.name) or in(snowflake.resource_monitor.name, array($Resource_Monitors)))
            and in(snowflake.warehouse.name, array($Warehouses))
       | fieldsRemove snowflake.resource_monitor.name
-      | fieldsAdd snow_account = coalesce(deployment.environment, service.name)
-      | fieldsRemove deployment.environment, service.name
+      | fieldsAdd snow_account = coalesce(deployment.environment.name, service.name)
+      | fieldsRemove deployment.environment.name, service.name
       | summarize {
           ssnowflake.time.queued.provisioning = sum(snowflake.time.queued.provisioning[])
       }, by: {
@@ -661,17 +661,17 @@ tiles:
     query: |-
       timeseries snowflake.credits.quota.used_pct = max(snowflake.credits.quota.used_pct), by: {
           snowflake.resource_monitor.name,
-          deployment.environment,
+          deployment.environment.name,
           service.name
       }, interval: 24h
       , from: -15d
       , to: -1d
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(deployment.environment.name, array($Accounts))
            and iAny(startsWith(snowflake.resource_monitor.name, concat(array($Prefix)[], "_")))
            and in(snowflake.resource_monitor.name, array($Resource_Monitors))
            // and in(snowflake.warehouse.name, array($Warehouses))
-      | fieldsAdd snow_account = coalesce(deployment.environment, service.name)
-      | fieldsRemove deployment.environment, service.name
+      | fieldsAdd snow_account = coalesce(deployment.environment.name, service.name)
+      | fieldsRemove deployment.environment.name, service.name
       | sort snowflake.credits.quota.used_pct desc
       // | limit 10
     visualization: davis
@@ -820,7 +820,7 @@ tiles:
       | filter isNotNull(snowflake.query.id)
       | fieldsAdd snowflake.time.running.in_min = toLong(snowflake.time.total_elapsed)/1000/60
       | filter toLong(snowflake.time.running.in_min) > toDouble($Slow_Query_Min)
-      | fieldsAdd key = concat(deployment.environment, "|", snowflake.warehouse.name)
+      | fieldsAdd key = concat(coalesce(deployment.environment.name, deployment.environment), "|", snowflake.warehouse.name)
       | joinNested rs = [
         fetch events
         | filter db.system == "snowflake"
@@ -829,14 +829,14 @@ tiles:
         | summarize {count()}, by: {
           snowflake.resource_monitor.name,
           snowflake.warehouse.name,
-          deployment.environment}
-        | fieldsAdd key = concat(deployment.environment, "|", snowflake.warehouse.name)
+          `deployment.environment` = coalesce(deployment.environment.name, deployment.environment)}
+        | fieldsAdd key = concat(`deployment.environment`, "|", snowflake.warehouse.name)
       ], on: {left[key] == right[key]}
        , fields: {snowflake.resource_monitor.name}
       | expand rs = rs
       | fieldsAdd snowflake.resource_monitor.name = rs[snowflake.resource_monitor.name]
       | fieldsRemove rs
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
            and iAny(startsWith(snowflake.warehouse.name, concat(array($Prefix)[], "_")))
            and in(snowflake.resource_monitor.name, array($Resource_Monitors))
            and in(snowflake.warehouse.name, array($Warehouses))
@@ -876,7 +876,7 @@ tiles:
       | filter isNotNull(snowflake.query.id)
       | fieldsAdd snowflake.time.running.in_min = toLong(snowflake.time.total_elapsed)/1000/60
       | filter toLong(snowflake.time.running.in_min) > toDouble($Slow_Query_Min)
-      | fieldsAdd key = concat(deployment.environment, "|", snowflake.warehouse.name)
+      | fieldsAdd key = concat(coalesce(deployment.environment.name, deployment.environment), "|", snowflake.warehouse.name)
       | joinNested rs = [
         fetch events
         | filter db.system == "snowflake"
@@ -885,14 +885,14 @@ tiles:
         | summarize {count()}, by: {
           snowflake.resource_monitor.name,
           snowflake.warehouse.name,
-          deployment.environment}
-        | fieldsAdd key = concat(deployment.environment, "|", snowflake.warehouse.name)
+          `deployment.environment` = coalesce(deployment.environment.name, deployment.environment)}
+        | fieldsAdd key = concat(`deployment.environment`, "|", snowflake.warehouse.name)
       ], on: {left[key] == right[key]}
        , fields: {snowflake.resource_monitor.name}
       | expand rs = rs
       | fieldsAdd snowflake.resource_monitor.name = rs[snowflake.resource_monitor.name]
       | fieldsRemove rs
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
            and iAny(startsWith(snowflake.warehouse.name, concat(array($Prefix)[], "_")))
            and in(snowflake.resource_monitor.name, array($Resource_Monitors))
            and in(snowflake.warehouse.name, array($Warehouses))
@@ -905,7 +905,7 @@ tiles:
         `Start Time`=timestamp-snowflake.time.duration,
         `Query ID`=snowflake.query.id,
         `User`=db.user,
-        `Account`=deployment.environment,
+        `Account`=coalesce(deployment.environment.name, deployment.environment),
         `Warehouse`=snowflake.warehouse.name,
         `Resource Monitor`=coalesce(snowflake.resource_monitor.name, "-"),
         `Query SQL`=substring(db.query.text, to: 15)
@@ -957,7 +957,7 @@ tiles:
       | filter isNotNull(snowflake.time.running)
       | fieldsAdd snowflake.time.running.in_min = toLong(snowflake.time.running)/1000/60
       | filter toLong(snowflake.time.running.in_min) > toDouble($Slow_Query_Min)
-      | fieldsAdd key = concat(deployment.environment, "|", snowflake.warehouse.name)
+      | fieldsAdd key = concat(coalesce(deployment.environment.name, deployment.environment), "|", snowflake.warehouse.name)
       | joinNested rs = [
         fetch events
         | filter db.system == "snowflake"
@@ -966,14 +966,14 @@ tiles:
         | summarize {count()}, by: {
           snowflake.resource_monitor.name,
           snowflake.warehouse.name,
-          deployment.environment}
-        | fieldsAdd key = concat(deployment.environment, "|", snowflake.warehouse.name)
+          `deployment.environment` = coalesce(deployment.environment.name, deployment.environment)}
+        | fieldsAdd key = concat(`deployment.environment`, "|", snowflake.warehouse.name)
       ], on: {left[key] == right[key]}
        , fields: {snowflake.resource_monitor.name}
       | expand rs = rs
       | fieldsAdd snowflake.resource_monitor.name = rs[snowflake.resource_monitor.name]
       | fieldsRemove rs
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
            and iAny(startsWith(snowflake.warehouse.name, concat(array($Prefix)[], "_")))
            and in(snowflake.resource_monitor.name, array($Resource_Monitors))
            and in(snowflake.warehouse.name, array($Warehouses))
@@ -987,7 +987,7 @@ tiles:
         dsoa.run.id,
         snowflake.query.id,
         snowflake.warehouse.name,
-        deployment.environment,
+        `deployment.environment` = coalesce(deployment.environment.name, deployment.environment),
         db.query.text,
         db.user
       }
@@ -996,7 +996,7 @@ tiles:
         fetch logs, from: -12h
         | filter isNotNull(snowflake.query.id)
         | filter dsoa.run.context == "query_history"
-        | filter in(deployment.environment, array($Accounts))
+        | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
              and iAny(startsWith(snowflake.warehouse.name, concat(array($Prefix)[], "_")))
              and in(snowflake.resource_monitor.name, array($Resource_Monitors))
              and in(snowflake.warehouse.name, array($Warehouses))
@@ -1014,7 +1014,7 @@ tiles:
         `Query ID`=snowflake.query.id,
         `User`=db.user,
         `Warehouse`=snowflake.warehouse.name,
-        `Account`=deployment.environment,
+        `Account`=`deployment.environment`,
         `Query SQL`=db.query.text
     visualization: table
     visualizationSettings:
@@ -1053,7 +1053,7 @@ tiles:
         snowflake.query.hash,
         snowflake.warehouse.name,
         snowflake.warehouse.size,
-        deployment.environment,
+        `deployment.environment` = coalesce(deployment.environment.name, deployment.environment),
         db.query.text,
         db.user
       }
@@ -1071,7 +1071,7 @@ tiles:
       | filterOut is_finished
       | fieldsRemove is_finished
       // -- filter out queries without resource monitor
-      | fieldsAdd join_key = concat(deployment.environment, "|", snowflake.warehouse.name)
+      | fieldsAdd join_key = concat(coalesce(deployment.environment.name, deployment.environment), "|", snowflake.warehouse.name)
       | join [
         fetch events
         | filter db.system == "snowflake"
@@ -1079,7 +1079,7 @@ tiles:
         | filter snowflake.resource_monitor.name != "ACCOUNT_GLOBAL_MONITOR"
         | filter isNotNull(snowflake.warehouse.name) and isNotNull(snowflake.resource_monitor.name)
         | summarize snowflake.credits.quota.remaining = toDouble(takeLast(snowflake.credits.quota.remaining)),
-               by: {join_key = concat(deployment.environment, "|", snowflake.warehouse.name),
+               by: {join_key = concat(coalesce(deployment.environment.name, deployment.environment), "|", snowflake.warehouse.name),
                     snowflake.warehouse.size,
                     snowflake.resource_monitor.name}
       ]
@@ -1089,7 +1089,7 @@ tiles:
       | fieldsRemove join_key
       | filterOut isNull(snowflake.resource_monitor.name)
       // ------
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
            and iAny(startsWith(snowflake.warehouse.name, concat(array($Prefix)[], "_")))
            and in(snowflake.resource_monitor.name, array($Resource_Monitors))
            and in(snowflake.warehouse.name, array($Warehouses))
@@ -1134,7 +1134,7 @@ tiles:
           `Expected Costs`=coalesce(snowflake.query.credits.expected, 0),
           `Query SQL`=substring(db.query.text, to: 15),
           `Query Hash`=snowflake.query.hash,
-          `Account`=deployment.environment,
+          `Account`=coalesce(deployment.environment.name, deployment.environment),
           `Warehouse`=snowflake.warehouse.name,
           `Warehouse Size`=coalesce(snowflake.warehouse.size, "-"),
           `Warehouse Costs`=coalesce(snowflake.warehouse.cost, "-")
@@ -1161,23 +1161,23 @@ tiles:
       | filter db.system == "snowflake"
       | filter dsoa.run.context == "warehouse_usage"
       | filter contains(snowflake.warehouse.event.name, "WAREHOUSE")
-      | fieldsAdd key = concat(deployment.environment, "|", snowflake.warehouse.name)
-      | filter in(deployment.environment, array($Accounts))
+      | fieldsAdd key = concat(coalesce(deployment.environment.name, deployment.environment), "|", snowflake.warehouse.name)
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
            and iAny(startsWith(snowflake.warehouse.name, concat(array($Prefix)[], "_")))
            and in(snowflake.warehouse.name, array($Warehouses))
       | joinNested rs = [
         fetch events
         | filter db.system == "snowflake"
         | filter isNotNull(snowflake.warehouse.event.trigger)
-        | filter in(deployment.environment, array($Accounts))
+        | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
              and iAny(startsWith(snowflake.warehouse.name, concat(array($Prefix)[], "_")))
              // and (isNull(snowflake.resource_monitor.name) or in(snowflake.resource_monitor.name, array($Resource_Monitors)))
              and in(snowflake.warehouse.name, array($Warehouses))
         | summarize {count()}, by: {
           snowflake.resource_monitor.name,
           snowflake.warehouse.name,
-          deployment.environment}
-        | fieldsAdd key = concat(deployment.environment, "|", snowflake.warehouse.name)
+          `deployment.environment` = coalesce(deployment.environment.name, deployment.environment)}
+        | fieldsAdd key = concat(`deployment.environment`, "|", snowflake.warehouse.name)
       ], on: {left[key] == right[key]}
        , fields: {snowflake.resource_monitor.name}
       | expand rs = rs
@@ -1189,7 +1189,7 @@ tiles:
       | fieldsAdd obs_timestamp = asTimestamp(ots)
       | sort obs_timestamp asc
       | fields obs_timestamp,
-               deployment.environment,
+               `deployment.environment` = coalesce(deployment.environment.name, deployment.environment),
                snowflake.warehouse.name,
                snowflake.warehouse.event.name,
                snowflake.warehouse.event.state,
@@ -1204,7 +1204,7 @@ tiles:
         finish_events = arrayRemoveNulls(collectArray(event_finish)),
         warehouse_action = arrayRemoveNulls(collectArray(warehouse_action))
       }, by: {
-        deployment.environment,
+        `deployment.environment`,
         snowflake.warehouse.name
       }
       | fieldsAdd warehouse_events = record(
@@ -1213,13 +1213,13 @@ tiles:
           warehouse_action = warehouse_action[])
       | expand warehouse_events
       | fields event_timestamp = warehouse_events[ts],
-               deployment.environment,
+               `deployment.environment`,
                snowflake.warehouse.name,
                event_delay = warehouse_events[event_delay],
                warehouse_action = warehouse_events[warehouse_action]
       | filterOut isNull(event_timestamp)
       | makeTimeseries event_delay = sum(event_delay)
-          , by: {warehouse_action, snowflake.warehouse.name, deployment.environment}
+          , by: {warehouse_action, snowflake.warehouse.name, `deployment.environment`}
           , time: event_timestamp
           // , interval: 1h
     visualization: barChart
@@ -1262,9 +1262,9 @@ tiles:
           credits_quota = max(snowflake.credits.quota),
         by: {
           snowflake.resource_monitor.name,
-          deployment.environment
+          deployment.environment.name
         }, interval: 24h
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(deployment.environment.name, array($Accounts))
            and iAny(startsWith(snowflake.resource_monitor.name, concat(array($Prefix)[], "_")))
            and in(snowflake.resource_monitor.name, array($Resource_Monitors))
     visualization: lineChart
@@ -1288,7 +1288,7 @@ tiles:
       dataMapping:
         displayedFields:
           - snowflake.resource_monitor.name
-          - deployment.environment
+          - deployment.environment.name
     querySettings:
       maxResultRecords: 1000
       defaultScanLimitGbytes: 500
@@ -1306,7 +1306,7 @@ tiles:
       fetch events
       | filter db.system == "snowflake"
       | filter dsoa.run.context == "resource_monitors"
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
            and iAny(startsWith(snowflake.resource_monitor.name, concat(array($Prefix)[], "_")))
            and in(snowflake.resource_monitor.name, array($Resource_Monitors))
       | filter isNotNull(snowflake.credits.quota.used_pct)
@@ -1317,12 +1317,12 @@ tiles:
         by: {
           snowflake.resource_monitor.name,
           snowflake.resource_monitor.frequency,
-          deployment.environment
+          `deployment.environment` = coalesce(deployment.environment.name, deployment.environment)
         }
       | sort `Used %` desc
       | fields
           `Resource Monitor` = snowflake.resource_monitor.name,
-          `Environment` = deployment.environment,
+          `Environment` = `deployment.environment`,
           `Frequency` = snowflake.resource_monitor.frequency,
           `Quota`,
           `Remaining`,
@@ -1356,7 +1356,7 @@ tiles:
       fetch events
       | filter db.system == "snowflake"
       | filter dsoa.run.context == "resource_monitors"
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
            and iAny(startsWith(snowflake.resource_monitor.name, concat(array($Prefix)[], "_")))
            and in(snowflake.resource_monitor.name, array($Resource_Monitors))
       | filter isNotNull(snowflake.resource_monitor.is_active)
@@ -1364,7 +1364,7 @@ tiles:
         by: {
           snowflake.resource_monitor.name,
           snowflake.resource_monitor.is_active,
-          deployment.environment
+          `deployment.environment` = coalesce(deployment.environment.name, deployment.environment)
         }
       | fieldsAdd state_code = if(toBoolean(snowflake.resource_monitor.is_active), 1, else: 0)
     visualization: honeycomb
@@ -1413,7 +1413,7 @@ tiles:
       fetch events
       | filter db.system == "snowflake"
       | filter dsoa.run.context == "resource_monitors"
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
            and iAny(startsWith(snowflake.resource_monitor.name, concat(array($Prefix)[], "_")))
            and in(snowflake.resource_monitor.name, array($Resource_Monitors))
       | filter isNotNull(snowflake.resource_monitor.frequency)
@@ -1425,11 +1425,11 @@ tiles:
           snowflake.resource_monitor.name,
           snowflake.resource_monitor.frequency,
           snowflake.resource_monitor.is_active,
-          deployment.environment
+          `deployment.environment` = coalesce(deployment.environment.name, deployment.environment)
         }
       | fields
           `Resource Monitor` = snowflake.resource_monitor.name,
-          `Environment` = deployment.environment,
+          `Environment` = `deployment.environment`,
           `Frequency` = snowflake.resource_monitor.frequency,
           `Active` = snowflake.resource_monitor.is_active,
           `Quota`,
@@ -1466,16 +1466,16 @@ tiles:
       // Idle = intervals where running load <= $Idle_Threshold_Val (default 0.01 = 1% usage)
       timeseries running = max(snowflake.load.running), by: {
           snowflake.warehouse.name,
-          deployment.environment,
+          deployment.environment.name,
           service.name
       }
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(deployment.environment.name, array($Accounts))
            and iAny(startsWith(snowflake.warehouse.name, concat(array($Prefix)[], "_")))
            and in(snowflake.warehouse.name, array($Warehouses))
-      | fieldsAdd snow_account = coalesce(deployment.environment, service.name)
+      | fieldsAdd snow_account = coalesce(deployment.environment.name, service.name)
                 , total_intervals = arraySum(iCollectArray(if(isNotNull(running[]), 1)))
                 , idle_intervals = arraySum(iCollectArray(if(isNotNull(running[]) and running[] <= toDouble($Idle_Threshold_Val), 1)))
-      | fieldsRemove deployment.environment, service.name
+      | fieldsRemove deployment.environment.name, service.name
       | filterOut total_intervals == 0
       | fieldsAdd
           idle_pct = 100.0 * toDouble(idle_intervals) / toDouble(total_intervals),
@@ -1527,14 +1527,14 @@ tiles:
     query: |-
       timeseries running = max(snowflake.load.running), by: {
           snowflake.warehouse.name,
-          deployment.environment,
+          deployment.environment.name,
           service.name
       }, interval: 6h
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(deployment.environment.name, array($Accounts))
            and iAny(startsWith(snowflake.warehouse.name, concat(array($Prefix)[], "_")))
            and in(snowflake.warehouse.name, array($Warehouses))
-      | fieldsAdd snow_account = coalesce(deployment.environment, service.name)
-      | fieldsRemove deployment.environment, service.name
+      | fieldsAdd snow_account = coalesce(deployment.environment.name, service.name)
+      | fieldsRemove deployment.environment.name, service.name
       // idle_indicator: 1.0 when load <= threshold (idle), 0.0 when active
       | fieldsAdd idle_indicator = iCollectArray(if(isNotNull(running[]) and running[] <= toDouble($Idle_Threshold_Val), 1.0))
     visualization: barChart
@@ -1580,7 +1580,7 @@ tiles:
       | filter db.system == "snowflake"
       | filter dsoa.run.plugin == "resource_monitors"
       | filter isNotNull(snowflake.warehouse.name)
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
            and iAny(startsWith(snowflake.warehouse.name, concat(array($Prefix)[], "_")))
            and in(snowflake.warehouse.name, array($Warehouses))
       // Exclude serverless warehouses
@@ -1593,7 +1593,7 @@ tiles:
           scaling_policy = takeLast(snowflake.warehouse.scaling_policy),
           min_clusters = takeLast(snowflake.warehouse.clusters.min),
           max_clusters = takeLast(snowflake.warehouse.clusters.max)
-      }, by: {snowflake.warehouse.name, deployment.environment}
+      }, by: {snowflake.warehouse.name, `deployment.environment` = coalesce(deployment.environment.name, deployment.environment)}
       | lookup [
           data
             record(wh_size = "X-Small", credits_per_hour = 1),
@@ -1610,7 +1610,7 @@ tiles:
       | sort `credits_per_hour` desc
       | fields
           `Warehouse` = snowflake.warehouse.name,
-          `Account` = deployment.environment,
+          `Account` = `deployment.environment`,
           `Size` = wh_size,
           `Credits/Hour` = credits_per_hour,
           `Auto-Suspend (s)` = auto_suspend,
@@ -1642,16 +1642,16 @@ tiles:
       // Step 1: compute idle intervals per warehouse from 5-min load history
       timeseries running = max(snowflake.load.running), by: {
           snowflake.warehouse.name,
-          deployment.environment,
+          deployment.environment.name,
           service.name
       }, interval: 5m
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(deployment.environment.name, array($Accounts))
            and iAny(startsWith(snowflake.warehouse.name, concat(array($Prefix)[], "_")))
            and in(snowflake.warehouse.name, array($Warehouses))
-      | fieldsAdd snow_account = coalesce(deployment.environment, service.name),
+      | fieldsAdd snow_account = coalesce(deployment.environment.name, service.name),
           total_intervals = arraySum(iCollectArray(if(isNotNull(running[]), 1))),
           idle_intervals = arraySum(iCollectArray(if(isNotNull(running[]) and running[] <= toDouble($Idle_Threshold_Val), 1)))
-      | fieldsRemove deployment.environment, service.name
+      | fieldsRemove deployment.environment.name, service.name
       | filterOut total_intervals == 0
       | fieldsAdd
           idle_pct = 100.0 * toDouble(idle_intervals) / toDouble(total_intervals),
@@ -1665,7 +1665,7 @@ tiles:
           | filterOut snowflake.warehouse.type == "SNOWPARK-OPTIMIZED"
           | summarize {
               wh_size = takeLast(snowflake.warehouse.size)
-          }, by: {snowflake.warehouse.name, deployment.environment}
+          }, by: {snowflake.warehouse.name, `deployment.environment` = coalesce(deployment.environment.name, deployment.environment)}
           | lookup [
               data
                 record(wh_size = "X-Small", credits_per_hour = 1),
@@ -1679,10 +1679,10 @@ tiles:
             ], sourceField: wh_size
              , lookupField: wh_size
              , fields: {credits_per_hour}
-          | fields snowflake.warehouse.name, deployment.environment, wh_size, credits_per_hour
+          | fields snowflake.warehouse.name, `deployment.environment`, wh_size, credits_per_hour
       ]
       , on: {left[snowflake.warehouse.name] == right[snowflake.warehouse.name],
-             left[snow_account] == right[deployment.environment]}
+             left[snow_account] == right[`deployment.environment`]}
       , kind: leftOuter
       , fields: {wh_size, credits_per_hour}
       | fieldsAdd
@@ -1749,12 +1749,12 @@ tiles:
       | filter db.system == "snowflake"
       | filter dsoa.run.plugin == "resource_monitors"
       | filter isNotNull(snowflake.warehouse.name)
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
            and iAny(startsWith(snowflake.warehouse.name, concat(array($Prefix)[], "_")))
            and in(snowflake.warehouse.name, array($Warehouses))
       // Only multi-cluster warehouses
       | filter toDouble(snowflake.warehouse.clusters.max) > 1
-      | fieldsAdd snow_account = coalesce(deployment.environment, service.name)
+      | fieldsAdd snow_account = coalesce(deployment.environment.name, deployment.environment)
       | makeTimeseries
           started_clusters = avg(toDouble(snowflake.warehouse.clusters.started)),
           max_clusters = avg(toDouble(snowflake.warehouse.clusters.max)),
@@ -1803,7 +1803,7 @@ tiles:
       | filter db.system == "snowflake"
       | filter dsoa.run.plugin == "resource_monitors"
       | filter isNotNull(snowflake.warehouse.name)
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
            and iAny(startsWith(snowflake.warehouse.name, concat(array($Prefix)[], "_")))
            and in(snowflake.warehouse.name, array($Warehouses))
       // Only multi-cluster warehouses
@@ -1814,7 +1814,7 @@ tiles:
           min_clusters = min(toDouble(snowflake.warehouse.clusters.min))
       }, by: {
           snowflake.warehouse.name,
-          deployment.environment,
+          `deployment.environment` = coalesce(deployment.environment.name, deployment.environment),
           snowflake.warehouse.scaling_policy
       }
       | fieldsAdd
@@ -1823,7 +1823,7 @@ tiles:
       | sort utilization_pct asc
       | fields
           `Warehouse` = snowflake.warehouse.name,
-          `Account` = deployment.environment,
+          `Account` = `deployment.environment`,
           `Scaling Policy` = coalesce(snowflake.warehouse.scaling_policy, "-"),
           `Min Clusters` = min_clusters,
           `Max Clusters` = max_clusters,
@@ -1879,10 +1879,10 @@ tiles:
       | filter snowflake.warehouse.event.name == "RESUME_WAREHOUSE"
            or snowflake.warehouse.event.name == "SUSPEND_WAREHOUSE"
       | filter snowflake.warehouse.event.state == "STARTED"
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
            and iAny(startsWith(snowflake.warehouse.name, concat(array($Prefix)[], "_")))
            and in(snowflake.warehouse.name, array($Warehouses))
-      | fieldsAdd snow_account = coalesce(deployment.environment, service.name)
+      | fieldsAdd snow_account = coalesce(deployment.environment.name, deployment.environment)
       | makeTimeseries count(),
           by: {snowflake.warehouse.event.name, snowflake.warehouse.name, snow_account}
     visualization: barChart
@@ -1933,11 +1933,11 @@ tiles:
       timeseries val = sum(snowflake.org.credits.used), by: {
           snowflake.service.type,
           snowflake.service.name,
-          deployment.environment
+          deployment.environment.name
       }
-      | filter in(deployment.environment, array($Accounts))
-      | fieldsAdd snow_account = coalesce(deployment.environment, "unknown")
-      | fieldsRemove deployment.environment
+      | filter in(deployment.environment.name, array($Accounts))
+      | fieldsAdd snow_account = coalesce(deployment.environment.name, "unknown")
+      | fieldsRemove deployment.environment.name
     visualization: lineChart
     visualizationSettings:
       chartSettings:
@@ -1980,7 +1980,7 @@ tiles:
       | filter isNotNull(snowflake.query.id)
       | fieldsAdd snowflake.time.running.in_min = toLong(snowflake.time.total_elapsed)/1000/60
       | filter toLong(snowflake.time.running.in_min) > toDouble($Slow_Query_Min)
-      | fieldsAdd key = concat(deployment.environment, "|", snowflake.warehouse.name)
+      | fieldsAdd key = concat(coalesce(deployment.environment.name, deployment.environment), "|", snowflake.warehouse.name)
       | joinNested rs = [
         fetch events
         | filter db.system == "snowflake"
@@ -1989,14 +1989,14 @@ tiles:
         | summarize {count()}, by: {
           snowflake.resource_monitor.name,
           snowflake.warehouse.name,
-          deployment.environment}
-        | fieldsAdd key = concat(deployment.environment, "|", snowflake.warehouse.name)
+          `deployment.environment` = coalesce(deployment.environment.name, deployment.environment)}
+        | fieldsAdd key = concat(`deployment.environment`, "|", snowflake.warehouse.name)
       ], on: {left[key] == right[key]}
        , fields: {snowflake.resource_monitor.name}
       | expand rs = rs
       | fieldsAdd snowflake.resource_monitor.name = rs[snowflake.resource_monitor.name]
       | fieldsRemove rs
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
            and iAny(startsWith(snowflake.warehouse.name, concat(array($Prefix)[], "_")))
            and in(snowflake.resource_monitor.name, array($Resource_Monitors))
            and in(snowflake.warehouse.name, array($Warehouses))

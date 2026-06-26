@@ -27,6 +27,7 @@
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.plugin": "test_budget",
-    "dsoa.run.context": "budgets"
+    "dsoa.run.context": "budgets",
+    "deployment.environment.name": "TEST"
   }
 ]

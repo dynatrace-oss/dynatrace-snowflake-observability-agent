@@ -22,7 +22,8 @@
       "service.name": "test.dsoa2025",
       "deployment.environment": "TEST",
       "host.name": "test.dsoa2025.snowflakecomputing.com",
-      "telemetry.exporter.name": "dynatrace.snowagent"
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "deployment.environment.name": "TEST"
     }
   },
   {
@@ -48,7 +49,8 @@
       "service.name": "test.dsoa2025",
       "deployment.environment": "TEST",
       "host.name": "test.dsoa2025.snowflakecomputing.com",
-      "telemetry.exporter.name": "dynatrace.snowagent"
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "deployment.environment.name": "TEST"
     }
   }
 ]
