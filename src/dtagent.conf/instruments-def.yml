@@ -169,7 +169,7 @@ attributes:
       bag for query consistency.
     __description: "The timestamp (in epoch nanoseconds) when the event was observed."
     __example: 1741768500000000000
-  ad.source:
+  anomaly.detector:
     __semdict: new
     __type: string
     __description: >-
@@ -178,15 +178,14 @@ attributes:
       login-history security events, the value is 'snowflake_security'. NOTE: This field is planned for rename to 'rule.id' (Semantic
       Dictionary field) in a future release (tracked separately from BIZOBS-151).
     __example: "dsoa.long_running_queries"
-  ad.source_metric:
-    __semdict: new
+  metric.key:
     __description: >-
       The Snowflake metric key that triggered the anomaly detection. Set by DSOA workflows when Davis AI or a threshold query identifies an
       anomalous metric value. The value is always a fully-qualified DSOA metric name (e.g. 'snowflake.credits.quota.used_pct',
       'snowflake.time.execution'). Not set for event-only workflows without metric-driven detection (e.g. warehouse-sensitive-change-alert).
     __example: "snowflake.credits.quota.used_pct"
     __type: string
-  ad.direction:
+  anomaly.direction:
     __type: string
     __semdict: new
     __description: >-
@@ -203,7 +202,7 @@ attributes:
         - id: below
           value: below
           brief: Metric value dropped below the expected lower threshold.
-  ad.category:
+  anomaly.subject:
     __semdict: new
     __type: string
     __description: >-
