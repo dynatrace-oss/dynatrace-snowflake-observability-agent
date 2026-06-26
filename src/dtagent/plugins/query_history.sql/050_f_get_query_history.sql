@@ -162,7 +162,7 @@ BEGIN
                     'db.query.text',                   app.f_obfuscate_query_text(
                                                            qh.query_text,
                                                            config.f_get_config_value(
-                                                               'plugins.query_history.obfuscation_mode',
+                                                               'dsoa.plugins.query_history.obfuscation_mode',
                                                                to_variant('off'))),
                     'db.snowflake.tables',             ah.query_tables,
                     'db.snowflake.views',              ah.query_views,
@@ -186,7 +186,7 @@ BEGIN
                     'snowflake.error.message',         app.f_obfuscate_query_text(
                                                            qh.error_message,
                                                            config.f_get_config_value(
-                                                               'plugins.query_history.obfuscation_mode',
+                                                               'dsoa.plugins.query_history.obfuscation_mode',
                                                                to_variant('off'))),
                     'snowflake.session.start',         s.created_on,
                     'snowflake.session.closed_reason', s.closed_reason,
@@ -454,7 +454,7 @@ BEGIN
                     'db.query.text',                   app.f_obfuscate_query_text(
                                                            qh.query_text,
                                                            config.f_get_config_value(
-                                                               'plugins.query_history.obfuscation_mode',
+                                                               'dsoa.plugins.query_history.obfuscation_mode',
                                                                to_variant('off'))),
                     'db.snowflake.tables',             ah.query_tables,
                     'db.snowflake.views',              ah.query_views,
@@ -478,7 +478,7 @@ BEGIN
                     'snowflake.error.message',         app.f_obfuscate_query_text(
                                                            qh.error_message,
                                                            config.f_get_config_value(
-                                                               'plugins.query_history.obfuscation_mode',
+                                                               'dsoa.plugins.query_history.obfuscation_mode',
                                                                to_variant('off'))),
                     'snowflake.session.start',         s.created_on,
                     'snowflake.session.closed_reason', s.closed_reason,
