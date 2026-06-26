@@ -85,11 +85,11 @@ attributes:
   snowflake.warehouse.is_unmonitored:
     __example: "true"
     __description: Indicates if the warehouse is NOT monitored by a resource monitor.
-  snowflake.warehouse.owner:
+  snowflake.warehouse.owner.name:
     __example: admin
     __description: The owner of the warehouse.
-  snowflake.warehouse.owner.role_type:
-    __example: SYSADMIN
+  snowflake.warehouse.owner.role:
+    __example: ROLE
     __description: The role type of the warehouse owner.
   snowflake.warehouse.scaling_policy:
     __example: STANDARD
@@ -100,8 +100,8 @@ attributes:
   snowflake.warehouse.type:
     __example: STANDARD
     __description: The type of the warehouse.
-  snowflake.warehouses.names:
-    __example: COMPUTE_WH
+  snowflake.resource_monitor.warehouses:
+    __example: '["COMPUTE_WH"]'
     __description: The names of the warehouses monitored.
 dimensions:
   snowflake.resource_monitor.name:
@@ -191,7 +191,7 @@ metrics:
     __description: Current number of running queries in the given warehouse
     displayName: Running Queries
     unit: queries
-  snowflake.resource_monitor.warehouses:
+  snowflake.resource_monitor.warehouses.count:
     __example: "5"
     __description: Number of warehouses monitored by the given resource monitor
     displayName: Warehouses Count

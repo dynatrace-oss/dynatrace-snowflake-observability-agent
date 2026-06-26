@@ -5,8 +5,8 @@
     "snowflake.event.trigger": "snowflake.budget.created_on",
     "snowflake.budget.created_on": 1723624213723000000,
     "snowflake.credits.limit": 10,
-    "snowflake.budget.owner": "ACCOUNTADMIN",
-    "snowflake.budget.owner.role_type": "ROLE",
+    "snowflake.budget.owner.name": "ACCOUNTADMIN",
+    "snowflake.budget.owner.role": "ROLE",
     "snowflake.budget.resource": [
       {
         "snowflake.budget.resource.domain": "DATABASE",

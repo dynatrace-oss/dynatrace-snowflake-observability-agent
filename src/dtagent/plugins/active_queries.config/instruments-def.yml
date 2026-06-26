@@ -26,7 +26,7 @@ attributes:
   db.query.text:
     __example: SELECT * FROM sales_data
     __description: The text of the SQL query.
-  session.id:
+  snowflake.session.id:
     __example: "123456789"
     __description: The unique identifier for the session in which the query was executed.
   snowflake.error.code:

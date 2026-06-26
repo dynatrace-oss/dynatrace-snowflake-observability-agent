@@ -38,7 +38,7 @@ select
     OBJECT_CONSTRUCT(
         'snowflake.user.id',                                                u.user_id,
         'snowflake.user.display_name',                                      u.display_name,
-        'snowflake.user.name',                                              u.name,
+        'snowflake.user.name.login',                                        u.name,
         'snowflake.user.name.first',                                        u.first_name,
         'snowflake.user.name.last',                                         u.last_name,
         'snowflake.user.email',                                             IFF(h.hash = FALSE, u.email, u.email_hash),

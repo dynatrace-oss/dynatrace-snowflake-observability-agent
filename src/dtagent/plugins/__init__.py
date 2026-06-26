@@ -434,8 +434,8 @@ class Plugin(ABC):
         return span_events_added, spans_sent, logs_sent, metrics_cnt, metrics_present
 
     def get_log_level(self, row_dict: Dict) -> int:
-        """Generic method getting log level based on status.code key value. To be overwritten by plugins when required"""
-        s_log_level = "INFO" if row_dict.get("status.code", "OK") == "OK" else "ERROR"
+        """Generic method getting log level based on snowflake.status.code key value. To be overwritten by plugins when required"""
+        s_log_level = "INFO" if row_dict.get("snowflake.status.code", "OK") == "OK" else "ERROR"
         return getattr(logging, s_log_level, logging.INFO)
 
     def report_log(self, row_dict: Dict, __context: Dict, log_level: int) -> bool:

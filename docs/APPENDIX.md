@@ -201,7 +201,7 @@ Version 1.0.0 introduces a set of field renames across multiple plugins as part 
 Dictionary and OpenTelemetry naming conventions. All changes are pure renames at the DSOA telemetry emission layer; no Snowflake API columns
 or underlying query logic change.
 
-The renames span four areas:
+The renames span several areas:
 
 - **Anomaly-detection event properties** (`ad.*` → Semantic Dictionary names): four properties emitted by all anomaly-detection workflows
   and the `login_history` plugin are renamed. The `login_history` plugin additionally changes its `anomaly.detector` value from
@@ -214,6 +214,18 @@ The renames span four areas:
   `.event.trigger`; `snowflake.warehouse.is_auto_suspend` becomes `.auto_suspend` and is reclassified as a numeric metric with unit
   `seconds`.
 - **Error code field**: `error.code` is renamed to `snowflake.error.code` for namespace consistency.
+- **Owner and role attributes**: `snowflake.warehouse.owner` and `snowflake.budget.owner` become `.owner.name` (the bare owner becomes an
+  explicit string leaf), and `snowflake.warehouse.owner.role_type`/`snowflake.budget.owner.role_type` drop the `_type` suffix to become
+  `.owner.role`.
+- **Resource-monitor warehouse fields**: the attached-warehouse name list `snowflake.warehouses.names` moves into the owning namespace as
+  `snowflake.resource_monitor.warehouses`, and the existing warehouse-count metric `snowflake.resource_monitor.warehouses` is renamed to
+  `snowflake.resource_monitor.warehouses.count` to free that name for the list.
+- **User attributes**: `snowflake.user.name` becomes `.name.login` (disambiguating it from the `.name.first`/`.name.last` siblings),
+  `snowflake.user.privilege` becomes `.privilege.name`, and `snowflake.user.roles.direct` becomes `.roles.direct.list` to signal its array
+  value.
+- **Task configuration**: `snowflake.task.config` becomes `snowflake.task.config.id`.
+- **Session and status fields**: `session.id`, `status.code`, and `status.message` are Snowflake-namespaced to `snowflake.session.id`,
+  `snowflake.status.code`, and `snowflake.status.message`.
 
 To update existing dashboards, workflows, or other Dynatrace assets that reference the old field names, run the `refactor_field_names.sh`
 script included in the package with the `appx-c-query-step-operator-refactoring.csv` mapping file:
@@ -253,3 +265,17 @@ The table below lists all field renames.
 | snowflake.resource_monitor.threshold.pct | snowflake.resource_monitor.threshold.value   |
 | snowflake.warehouse.event                | snowflake.warehouse.event.trigger            |
 | snowflake.warehouse.is_auto_suspend      | snowflake.warehouse.auto_suspend             |
+| snowflake.budget.owner.role_type         | snowflake.budget.owner.role                  |
+| snowflake.budget.owner                   | snowflake.budget.owner.name                  |
+| snowflake.warehouse.owner.role_type      | snowflake.warehouse.owner.role               |
+| snowflake.warehouse.owner                | snowflake.warehouse.owner.name               |
+| snowflake.resource_monitor.warehouses    | snowflake.resource_monitor.warehouses.count  |
+| snowflake.warehouses.names               | snowflake.resource_monitor.warehouses        |
+| snowflake.task.config                    | snowflake.task.config.id                     |
+| snowflake.user.name                      | snowflake.user.name.login                    |
+| snowflake.user.privilege                 | snowflake.user.privilege.name                |
+| snowflake.user.roles.direct              | snowflake.user.roles.direct.list             |
+| session.id                               | snowflake.session.id                         |
+| status.code                              | snowflake.status.code                        |
+| status.message                           | snowflake.status.message                     |
+| plugins.query_history.obfuscation_mode   | dsoa.plugins.query_history.obfuscation_mode  |

@@ -41,7 +41,7 @@ select
         'snowflake.warehouse.execution_state',                      wh.state,
         'snowflake.warehouse.type',                                 wh.type,
         'snowflake.warehouse.size',                                 wh.size,
-        'snowflake.warehouse.owner',                                wh.owner,
+        'snowflake.warehouse.owner.name',                           wh.owner,
         'snowflake.warehouse.is_default',                           wh.is_default,
         'snowflake.warehouse.is_current',                           wh.is_current,
         'snowflake.warehouse.is_auto_resume',                       wh.auto_resume,
@@ -49,7 +49,7 @@ select
 
         'snowflake.warehouse.has_query_acceleration_enabled',       wh.enable_query_acceleration,
         'snowflake.warehouse.scaling_policy',                       wh.scaling_policy,
-        'snowflake.warehouse.owner.role_type',                      wh.owner_role_type,
+        'snowflake.warehouse.owner.role',                           wh.owner_role_type,
 
         'snowflake.resource_monitor.level',                         rm.level,
         'snowflake.resource_monitor.frequency',                     rm.frequency,

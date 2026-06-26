@@ -2,7 +2,7 @@
   {
     "eventType": "CUSTOM_INFO",
     "title": "This is a test object 1",
-    "status.code": "OK",
+    "snowflake.status.code": "OK",
     "value.int": 10,
     "value.str": "test",
     "value.bool": true,

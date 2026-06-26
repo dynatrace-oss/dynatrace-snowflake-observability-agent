@@ -14,7 +14,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 - **[BREAKING] Multiple field renames across plugins for Semantic Dictionary alignment**:
-  Version 1.0.0 renames fields in four areas.
+  Version 1.0.0 renames fields across several areas.
   See [Appendix C](APPENDIX.md#appendix-c-sec).
 
   | Old field                                  | New field                                       |
@@ -34,9 +34,23 @@ All notable changes to this project will be documented in this file.
   | `snowflake.resource_monitor.threshold.pct` | `snowflake.resource_monitor.threshold.value`    |
   | `snowflake.warehouse.event`                | `snowflake.warehouse.event.trigger`             |
   | `snowflake.warehouse.is_auto_suspend`      | `snowflake.warehouse.auto_suspend`              |
+  | `snowflake.warehouse.owner`                | `snowflake.warehouse.owner.name`                |
+  | `snowflake.warehouse.owner.role_type`      | `snowflake.warehouse.owner.role`                |
+  | `snowflake.budget.owner`                   | `snowflake.budget.owner.name`                   |
+  | `snowflake.budget.owner.role_type`         | `snowflake.budget.owner.role`                   |
+  | `snowflake.warehouses.names`               | `snowflake.resource_monitor.warehouses`         |
+  | `snowflake.resource_monitor.warehouses`    | `snowflake.resource_monitor.warehouses.count`   |
+  | `snowflake.task.config`                    | `snowflake.task.config.id`                      |
+  | `snowflake.user.name`                      | `snowflake.user.name.login`                     |
+  | `snowflake.user.privilege`                 | `snowflake.user.privilege.name`                 |
+  | `snowflake.user.roles.direct`              | `snowflake.user.roles.direct.list`              |
+  | `session.id`                               | `snowflake.session.id`                          |
+  | `status.code`                              | `snowflake.status.code`                         |
+  | `status.message`                           | `snowflake.status.message`                      |
 
   Additional notes:
   - `snowflake.resource_monitor.threshold.value` changes type from string to double with a `percent` unit.
+  - `snowflake.warehouses.names` (the attached-warehouse name list) takes over the `snowflake.resource_monitor.warehouses` name; the previous warehouse-count metric of that name becomes `snowflake.resource_monitor.warehouses.count`.
   - `snowflake.warehouse.auto_suspend` is reclassified from attribute to numeric metric with unit `seconds`; `null` or `0` means auto-suspend is disabled.
   - The `login_history` plugin changes its `anomaly.detector` value from `snowflake_security` to `dsoa.failed_login_detection`.
   - For DQL queries filtering on the renamed `ad.*` fields, update field names manually (the script handles attribute keys, not query text).
