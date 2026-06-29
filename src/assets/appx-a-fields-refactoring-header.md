@@ -22,4 +22,4 @@ This table provides a clear mapping between the old names (version 0.7) and the 
 <!-- do not correct any typos in first column; they were in the previous release and are fixed now -->
 
 | 0.7 Name | 0.8 Name |
-|----------|----------|
+| - | - |

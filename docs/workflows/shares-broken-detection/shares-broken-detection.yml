@@ -41,6 +41,7 @@ tasks:
         fetch logs
         | filter dsoa.run.context == "inbound_shares"
         | filter snowflake.share.status == "UNAVAILABLE"
+        | fieldsAdd deployment.environment = coalesce(deployment.environment.name, deployment.environment)
         | summarize
             last_seen = max(timestamp),
             error_msg = takeFirst(snowflake.error.message),
@@ -73,6 +74,7 @@ tasks:
       query: |
         fetch logs, from: now()-7d
         | filter dsoa.run.context == "inbound_shares"
+        | fieldsAdd deployment.environment = coalesce(deployment.environment.name, deployment.environment)
         | summarize
             last_seen = max(timestamp),
             by: {
@@ -108,6 +110,7 @@ tasks:
           fetch logs
           | filter dsoa.run.context == "inbound_shares"
           | filter isNotNull(snowflake.data.rows)
+          | fieldsAdd deployment.environment = coalesce(deployment.environment.name, deployment.environment)
           | makeTimeseries row_count = max(toLong(snowflake.data.rows))
             , by: {
               snowflake.share.name,
@@ -235,7 +238,7 @@ tasks:
                 'anomaly.detector': CONFIG.adSource,
                 'anomaly.subject': record['_event_category'],
                 'snowflake.share.name': record['snowflake.share.name'] || '',
-                'deployment.environment': record['deployment.environment'] || ''
+                'deployment.environment': record['deployment.environment.name'] ?? record['deployment.environment'] ?? ''
               },
               timeout: CONFIG.eventTimeout
             }

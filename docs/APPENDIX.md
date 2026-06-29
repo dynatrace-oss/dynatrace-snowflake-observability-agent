@@ -70,6 +70,7 @@ and the new names (version 0.8):
 | snowflake.warehouse.cluster_number                       | snowflake.warehouse.cluster.number            |
 | snowflake.warehouse.cluster.count                        | snowflake.warehouse.clusters.count            |
 | snowflake.warehouse.owner_role_type                      | snowflake.warehouse.owner.role_type           |
+| deployment.environment                                   | deployment.environment.name                   |
 | db.snowflake.db_names                                    | db.snowflake.dbs                              |
 | db.snowflake.table_names                                 | db.snowflake.tables                           |
 | db.snowflake.view_names                                  | db.snowflake.views                            |

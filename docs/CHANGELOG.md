@@ -11,6 +11,18 @@ All notable changes to this project will be documented in this file.
 
 ## [1.0.0] - TBD
 
+### Added
+
+- **`deployment.environment.name` — new canonical OTel resource attribute**: DSOA now co-emits
+  `deployment.environment.name` alongside the existing `deployment.environment` on every metric, log,
+  span, and event. The new key is the OpenTelemetry Semantic Conventions canonical name; the old key
+  is retained as a deprecated alias for a 3-release sunset window (removed in 1.3.0).
+  Dashboards and workflows shipped with this release have been updated: metric tiles query
+  `deployment.environment.name` directly; record tiles (logs, spans, events) use
+  `coalesce(deployment.environment.name, deployment.environment)` for continuity across the
+  migration window. No configuration change is required — the value is derived from
+  `core.deployment_environment` as before. Note: metric data collected before upgrading to 1.0.0 was written without the `deployment.environment.name` dimension key and will not appear in queries that group or filter by that key — this gap is inherent to write-time co-emission and cannot be backfilled.
+
 ### Changed
 
 - **[BREAKING] Multiple field renames across plugins for Semantic Dictionary alignment**:

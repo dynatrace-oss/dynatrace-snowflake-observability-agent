@@ -43,7 +43,7 @@ tasks:
           }
           , by: {
             snowflake.resource_monitor.name,
-            deployment.environment
+            deployment.environment.name
           }
           , filter: {
             db.system == "snowflake"
@@ -93,7 +93,7 @@ tasks:
         //     - 'dt.davis.forecast:upper'  — 90th-percentile upper bound (14 values, one per day)
         //     - 'dt.davis.forecast:point'  — point (median) forecast (14 values)
         //     - 'dt.davis.forecast:lower'  — 10th-percentile lower bound (14 values)
-        //     - 'snowflake.resource_monitor.name' and 'deployment.environment' — flat on the record
+        //     - 'snowflake.resource_monitor.name' and 'deployment.environment.name' — flat on the record
         //   .forecastQualityAssessment — 'VALID' | 'LOW_QUALITY' | 'NO_DATA'
 
         export default async function ({ execution_id }) {
@@ -110,7 +110,7 @@ tasks:
             if (!record) continue;
 
             const monitorName = record['snowflake.resource_monitor.name'] || 'unknown';
-            const environment = record['deployment.environment'] || 'unknown';
+            const environment = record['deployment.environment.name'] ?? record['deployment.environment'] ?? 'unknown';
 
             // Use upper bound: with coverageProbability=0.9, this is the 90th-percentile path.
             // If even the upper bound stays below threshold we consider it safe.

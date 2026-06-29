@@ -24,7 +24,8 @@
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.plugin": "test_resource_monitors",
-    "dsoa.run.context": "resource_monitors"
+    "dsoa.run.context": "resource_monitors",
+    "deployment.environment.name": "TEST"
   },
   {
     "eventType": "CUSTOM_INFO",
@@ -51,7 +52,8 @@
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.plugin": "test_resource_monitors",
-    "dsoa.run.context": "resource_monitors"
+    "dsoa.run.context": "resource_monitors",
+    "deployment.environment.name": "TEST"
   },
   {
     "eventType": "CUSTOM_INFO",
@@ -77,7 +79,8 @@
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.plugin": "test_resource_monitors",
-    "dsoa.run.context": "resource_monitors"
+    "dsoa.run.context": "resource_monitors",
+    "deployment.environment.name": "TEST"
   },
   {
     "eventType": "CUSTOM_INFO",
@@ -103,7 +106,8 @@
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.plugin": "test_resource_monitors",
-    "dsoa.run.context": "resource_monitors"
+    "dsoa.run.context": "resource_monitors",
+    "deployment.environment.name": "TEST"
   },
   {
     "eventType": "CUSTOM_INFO",
@@ -142,7 +146,8 @@
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.plugin": "test_resource_monitors",
-    "dsoa.run.context": "resource_monitors"
+    "dsoa.run.context": "resource_monitors",
+    "deployment.environment.name": "TEST"
   },
   {
     "eventType": "CUSTOM_INFO",
@@ -181,7 +186,8 @@
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.plugin": "test_resource_monitors",
-    "dsoa.run.context": "resource_monitors"
+    "dsoa.run.context": "resource_monitors",
+    "deployment.environment.name": "TEST"
   },
   {
     "eventType": "CUSTOM_INFO",
@@ -220,7 +226,8 @@
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.plugin": "test_resource_monitors",
-    "dsoa.run.context": "resource_monitors"
+    "dsoa.run.context": "resource_monitors",
+    "deployment.environment.name": "TEST"
   },
   {
     "eventType": "CUSTOM_INFO",
@@ -259,7 +266,8 @@
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.plugin": "test_resource_monitors",
-    "dsoa.run.context": "resource_monitors"
+    "dsoa.run.context": "resource_monitors",
+    "deployment.environment.name": "TEST"
   },
   {
     "eventType": "CUSTOM_INFO",
@@ -298,7 +306,8 @@
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.plugin": "test_resource_monitors",
-    "dsoa.run.context": "resource_monitors"
+    "dsoa.run.context": "resource_monitors",
+    "deployment.environment.name": "TEST"
   },
   {
     "eventType": "CUSTOM_INFO",
@@ -337,6 +346,7 @@
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.plugin": "test_resource_monitors",
-    "dsoa.run.context": "resource_monitors"
+    "dsoa.run.context": "resource_monitors",
+    "deployment.environment.name": "TEST"
   }
 ]

@@ -42,7 +42,7 @@ tasks:
           timeseries row_count = max(snowflake.data.rows)
           , by: {
             db.collection.name,
-            deployment.environment
+            deployment.environment.name
           }
           , interval: 24h
           | fieldsAdd row_count_avg = arrayAvg(row_count)
@@ -59,7 +59,7 @@ tasks:
               _event_direction = "above",
               _event_name_template = "Abnormal data volume spike for table {dims:db.collection.name}",
               _event_description_template =
-                "Table {dims:db.collection.name} in {dims:deployment.environment} has experienced"
+                "Table {dims:db.collection.name} in {dims:deployment.environment.name} has experienced"
                 + " an abnormal spike in row count compared to the learned baseline."
         alertCondition: ABOVE
         tolerance: 4
@@ -92,7 +92,7 @@ tasks:
           timeseries row_count = max(snowflake.data.rows)
           , by: {
             db.collection.name,
-            deployment.environment
+            deployment.environment.name
           }
           , interval: 24h
           | fieldsAdd row_count_avg = arrayAvg(row_count)
@@ -109,7 +109,7 @@ tasks:
               _event_direction = "below",
               _event_name_template = "Abnormal data volume drop for table {dims:db.collection.name}",
               _event_description_template =
-                "Table {dims:db.collection.name} in {dims:deployment.environment} has experienced"
+                "Table {dims:db.collection.name} in {dims:deployment.environment.name} has experienced"
                 + " an unexpected drop in row count. This may indicate a failed pipeline,"
                 + " accidental delete, or dropped table."
         alertCondition: BELOW

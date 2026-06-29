@@ -26,16 +26,17 @@
 
 ### Dimensions at the `core` plugin
 
-| Identifier                               | Description                                                                                                                                          | Example                                      |
-| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
-| db.&#8203;system                         | The database management system (DBMS) product being used. It is always 'snowflake'                                                                   | snowflake                                    |
-| deployment.&#8203;environment            | The deployment environment, e.g., production, staging, or development.                                                                               | PROD                                         |
-| deployment.&#8203;environment.&#8203;tag | Optional tag for the deployment environment in multitenancy mode                                                                                     | SA080                                        |
-| dsoa.&#8203;run.&#8203;context           | The name of the Dynatrace Snowflake Observability Agent plugin (or part of plugin) used to produce the telemetry (logs, traces, metrics, or events). | query_history                                |
-| host.&#8203;name                         | The name of the host.                                                                                                                                | mysnowflake.us-east-1.snowflakecomputing.com |
-| service.&#8203;name                      | The name of the service.                                                                                                                             | mysnowflake.us-east-1                        |
-| telemetry.&#8203;exporter.&#8203;name    | The name of the telemetry exporter. It is always 'dynatrace.snowagent'                                                                               | dynatrace.snowagent                          |
-| telemetry.&#8203;exporter.&#8203;version | The version of the telemetry exporter.                                                                                                               | 0.8.0.17308403933                            |
+| Identifier                                | Description                                                                                                                                                                        | Example                                      |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| db.&#8203;system                          | The database management system (DBMS) product being used. It is always 'snowflake'                                                                                                 | snowflake                                    |
+| deployment.&#8203;environment             | Deprecated alias for deployment.environment.name. The deployment environment, e.g., production, staging, or development. Will be removed in release 1.3.0.                         | PROD                                         |
+| deployment.&#8203;environment.&#8203;name | The deployment environment name (OTel semconv canonical field), e.g., production, staging, or development. Emitted alongside deployment.environment during the deprecation window. | PROD                                         |
+| deployment.&#8203;environment.&#8203;tag  | Optional tag for the deployment environment in multitenancy mode                                                                                                                   | SA080                                        |
+| dsoa.&#8203;run.&#8203;context            | The name of the Dynatrace Snowflake Observability Agent plugin (or part of plugin) used to produce the telemetry (logs, traces, metrics, or events).                               | query_history                                |
+| host.&#8203;name                          | The name of the host.                                                                                                                                                              | mysnowflake.us-east-1.snowflakecomputing.com |
+| service.&#8203;name                       | The name of the service.                                                                                                                                                           | mysnowflake.us-east-1                        |
+| telemetry.&#8203;exporter.&#8203;name     | The name of the telemetry exporter. It is always 'dynatrace.snowagent'                                                                                                             | dynatrace.snowagent                          |
+| telemetry.&#8203;exporter.&#8203;version  | The version of the telemetry exporter.                                                                                                                                             | 0.8.0.17308403933                            |
 
 ### Attributes at the `core` plugin
 
