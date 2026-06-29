@@ -21,7 +21,7 @@ All notable changes to this project will be documented in this file.
   `deployment.environment.name` directly; record tiles (logs, spans, events) use
   `coalesce(deployment.environment.name, deployment.environment)` for continuity across the
   migration window. No configuration change is required — the value is derived from
-  `core.deployment_environment` as before.
+  `core.deployment_environment` as before. Note: metric data collected before upgrading to 1.0.0 was written without the `deployment.environment.name` dimension key and will not appear in queries that group or filter by that key — this gap is inherent to write-time co-emission and cannot be backfilled.
 
 ### Changed
 
