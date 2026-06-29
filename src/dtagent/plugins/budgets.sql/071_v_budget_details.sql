@@ -40,7 +40,7 @@ select
 
     OBJECT_CONSTRUCT(
         'snowflake.budget.owner.name',              b.owner,
-        'snowflake.budget.owner.role',              b.owner_role_type,
+        'snowflake.budget.owner.role_type',         b.owner_role_type,
         'snowflake.budget.resource',                br.linked_resources
     )                                                                                               as ATTRIBUTES,
     OBJECT_CONSTRUCT(

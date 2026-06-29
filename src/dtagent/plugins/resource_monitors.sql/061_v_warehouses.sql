@@ -49,7 +49,7 @@ select
 
         'snowflake.warehouse.has_query_acceleration_enabled',       wh.enable_query_acceleration,
         'snowflake.warehouse.scaling_policy',                       wh.scaling_policy,
-        'snowflake.warehouse.owner.role',                           wh.owner_role_type,
+        'snowflake.warehouse.owner.role_type',                      wh.owner_role_type,
 
         'snowflake.resource_monitor.level',                         rm.level,
         'snowflake.resource_monitor.frequency',                     rm.frequency,
