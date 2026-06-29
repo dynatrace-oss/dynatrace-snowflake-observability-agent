@@ -40,6 +40,17 @@ dimensions:
     __description: >-
       The DSOA deployment identifier used to differentiate Snowflake accounts / monitoring environment configurations, when reporting to the
       same Dynatrace tenant or from the same Snowflake account. Configured via 'core.snowflake.deployment_environment'.
+    __description: >-
+      Deprecated alias for deployment.environment.name. The deployment environment,
+      e.g., production, staging, or development. Will be removed in release 1.3.0.
+    __example: "PROD"
+    __deprecated: "Use deployment.environment.name instead."
+  deployment.environment.name:
+    __stability: stable
+    __semdict: otel-only
+    __description: >-
+      The deployment environment name (OTel semconv canonical field), e.g., production,
+      staging, or development. Emitted alongside deployment.environment during the deprecation window.
     __example: "PROD"
     __type: string
   deployment.environment.tag:

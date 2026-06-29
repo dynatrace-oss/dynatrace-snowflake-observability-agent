@@ -42,7 +42,7 @@ tasks:
           timeseries max_exec = max(snowflake.time.execution)
           , by: {
             snowflake.warehouse.name,
-            deployment.environment
+            deployment.environment.name
           }
           , filter: {
             snowflake.query.execution_status == "SUCCESS"
@@ -50,11 +50,11 @@ tasks:
           // Optional: restrict to specific warehouses
           // | filter in(snowflake.warehouse.name, "COMPUTE_WH", "ANALYTICS_WH")
           // Optional: restrict to a specific environment
-          // | filter deployment.environment == "prod"
+          // | filter deployment.environment.name == "prod"
           | fieldsAdd
               metric_name = "snowflake.query.execution_time.max",
               _event_name_template = "Long-running query detected in warehouse {dims:snowflake.warehouse.name}",
-              _event_description_template = "Max query execution time in warehouse {dims:snowflake.warehouse.name} ({dims:deployment.environment}) has significantly exceeded the learned baseline, indicating an individual long-running query."
+              _event_description_template = "Max query execution time in warehouse {dims:snowflake.warehouse.name} ({dims:deployment.environment.name}) has significantly exceeded the learned baseline, indicating an individual long-running query."
         alertCondition: ABOVE
         tolerance: 3
         generalParameters:
@@ -88,7 +88,7 @@ tasks:
           timeseries max_exec = max(snowflake.time.execution)
           , by: {
             db.user,
-            deployment.environment
+            deployment.environment.name
           }
           , filter: {
             snowflake.query.execution_status == "SUCCESS"
@@ -96,11 +96,11 @@ tasks:
           // Optional: restrict to specific users
           // | filter in(db.user, "ANALYST", "ETL_USER")
           // Optional: restrict to a specific environment
-          // | filter deployment.environment == "prod"
+          // | filter deployment.environment.name == "prod"
           | fieldsAdd
               metric_name = "snowflake.query.execution_time.max",
               _event_name_template = "Long-running query detected for user {dims:db.user}",
-              _event_description_template = "Max query execution time for user {dims:db.user} ({dims:deployment.environment}) has significantly exceeded the learned baseline, indicating an individual long-running query."
+              _event_description_template = "Max query execution time for user {dims:db.user} ({dims:deployment.environment.name}) has significantly exceeded the learned baseline, indicating an individual long-running query."
         alertCondition: ABOVE
         tolerance: 3
         generalParameters:

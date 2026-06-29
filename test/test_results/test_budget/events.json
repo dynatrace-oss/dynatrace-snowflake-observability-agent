@@ -6,7 +6,7 @@
     "snowflake.budget.created_on": 1723624213723000000,
     "snowflake.credits.limit": 10,
     "snowflake.budget.owner.name": "ACCOUNTADMIN",
-    "snowflake.budget.owner.role": "ROLE",
+    "snowflake.budget.owner.role_type": "ROLE",
     "snowflake.budget.resource": [
       {
         "snowflake.budget.resource.domain": "DATABASE",
@@ -27,6 +27,7 @@
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.plugin": "test_budget",
-    "dsoa.run.context": "budgets"
+    "dsoa.run.context": "budgets",
+    "deployment.environment.name": "TEST"
   }
 ]

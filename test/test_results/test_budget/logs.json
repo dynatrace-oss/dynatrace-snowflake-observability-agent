@@ -4,7 +4,7 @@
     "snowflake.budget.created_on": 1723624213723000000,
     "snowflake.credits.limit": 10,
     "snowflake.budget.owner.name": "ACCOUNTADMIN",
-    "snowflake.budget.owner.role": "ROLE",
+    "snowflake.budget.owner.role_type": "ROLE",
     "snowflake.budget.resource": [
       {
         "snowflake.budget.resource.domain": "DATABASE",
@@ -29,7 +29,8 @@
       "telemetry.exporter.name": "dynatrace.snowagent",
       "telemetry.sdk.language": "python",
       "telemetry.sdk.name": "opentelemetry",
-      "telemetry.sdk.version": "1.39.1"
+      "telemetry.sdk.version": "1.39.1",
+      "deployment.environment.name": "TEST"
     }
   },
   {
@@ -50,7 +51,8 @@
       "telemetry.exporter.name": "dynatrace.snowagent",
       "telemetry.sdk.language": "python",
       "telemetry.sdk.name": "opentelemetry",
-      "telemetry.sdk.version": "1.39.1"
+      "telemetry.sdk.version": "1.39.1",
+      "deployment.environment.name": "TEST"
     }
   },
   {
@@ -71,7 +73,8 @@
       "telemetry.exporter.name": "dynatrace.snowagent",
       "telemetry.sdk.language": "python",
       "telemetry.sdk.name": "opentelemetry",
-      "telemetry.sdk.version": "1.39.1"
+      "telemetry.sdk.version": "1.39.1",
+      "deployment.environment.name": "TEST"
     }
   }
 ]

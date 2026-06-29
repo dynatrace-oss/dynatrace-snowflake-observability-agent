@@ -106,17 +106,15 @@ attributes:
     __is_defined_at_runtime: true
     __example: warn
     __description: >-
-      Alert band for the threshold event: ``info`` (below 80%), ``warn`` ([80–90%)),
-      ``critical`` ([90–100%)), or ``exhausted`` (>=100%).
+      Alert band for the threshold event: ``info`` (below 80%), ``warn`` ([80–90%)), ``critical`` ([90–100%)), or ``exhausted`` (>=100%).
   snowflake.resource_monitor.threshold.value:
     __type: double
     __is_defined_at_runtime: true
     __unit: percent
     __example: 80
     __description: >-
-      The configured threshold percentage at which this crossing event was triggered (e.g., 80 means
-      the 80% threshold was crossed). Distinct from snowflake.credits.quota.used_pct, which captures
-      live consumption at emit time.
+      The configured threshold percentage at which this crossing event was triggered (e.g., 80 means the 80% threshold was crossed).
+      Distinct from snowflake.credits.quota.used_pct, which captures live consumption at emit time.
   snowflake.warehouse.event.trigger:
     __is_defined_at_runtime: true
     __example: "snowflake.warehouse.created_on"
@@ -175,12 +173,10 @@ attributes:
     __field_type: resource
     __example: ADMIN
     __description: The owner of the warehouse.
-  snowflake.warehouse.owner.role:
-    __type: string
-    __stability: stable
-    __field_type: resource
+  snowflake.warehouse.owner.role_type:
     __example: ROLE
-    __description: The role type of the warehouse owner.
+    __description: >
+      The principal type of the warehouse owner: ROLE or APPLICATION.
   snowflake.warehouse.scaling_policy:
     __type: string
     __stability: stable
@@ -395,8 +391,8 @@ metrics:
   snowflake.warehouse.auto_suspend:
     __example: "600"
     __description: >-
-      The number of seconds after which an idle warehouse is automatically suspended.
-      A value of null or 0 indicates auto-suspend is disabled.
+      The number of seconds after which an idle warehouse is automatically suspended. A value of null or 0 indicates auto-suspend is
+      disabled.
     displayName: Warehouse Auto-Suspend Timeout
     unit: seconds
   snowflake.warehouse.clusters.started:

@@ -54,6 +54,7 @@ tasks:
              or contains(toString(db.query.text), "ENABLE_QUERY_ACCELERATION")
              or contains(toString(db.query.text), "QUERY_ACCELERATION_MAX_SCALE_FACTOR")
              or contains(toString(db.query.text), "MAX_CONCURRENCY_LEVEL")
+        | fieldsAdd deployment.environment = coalesce(deployment.environment.name, deployment.environment)
         | fields timestamp,
                  deployment.environment,
                  db.user,

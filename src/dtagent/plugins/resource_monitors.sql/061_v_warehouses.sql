@@ -42,7 +42,7 @@ select
         'snowflake.warehouse.type',                                 wh.type,
         'snowflake.warehouse.size',                                 wh.size,
         'snowflake.warehouse.owner.name',                           wh.owner,
-        'snowflake.warehouse.owner.role',                           wh.owner_role_type,
+        'snowflake.warehouse.owner.role_type',                      wh.owner_role_type,
         'snowflake.warehouse.is_default',                           TRY_TO_BOOLEAN(wh.is_default),
         'snowflake.warehouse.is_current',                           TRY_TO_BOOLEAN(wh.is_current),
         'snowflake.warehouse.is_auto_resume',                       wh.auto_resume,

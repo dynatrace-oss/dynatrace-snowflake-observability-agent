@@ -42,6 +42,7 @@ class Configuration:
         "db.system": "snowflake",
         "service.name": "",
         "deployment.environment": "",
+        "deployment.environment.name": "",
         "host.name": "",
         "telemetry.exporter.version": f"{VERSION}.{BUILD}",
         "telemetry.exporter.name": "dynatrace.snowagent",
@@ -158,6 +159,7 @@ class Configuration:
             | {
                 "service.name": service_name,
                 "deployment.environment": config_dict["core.deployment_environment"],
+                "deployment.environment.name": config_dict["core.deployment_environment"],
                 "host.name": host_name,
             },
             "otel": __unpack_prefixed_keys(config_dict, "otel."),

@@ -214,9 +214,9 @@ The renames span several areas:
   `.event.trigger`; `snowflake.warehouse.is_auto_suspend` becomes `.auto_suspend` and is reclassified as a numeric metric with unit
   `seconds`.
 - **Error code field**: `error.code` is renamed to `snowflake.error.code` for namespace consistency.
-- **Owner and role attributes**: `snowflake.warehouse.owner` and `snowflake.budget.owner` become `.owner.name` (the bare owner becomes an
-  explicit string leaf), and `snowflake.warehouse.owner.role_type`/`snowflake.budget.owner.role_type` drop the `_type` suffix to become
-  `.owner.role`.
+- **Owner attributes**: `snowflake.warehouse.owner` and `snowflake.budget.owner` become `.owner.name` (the bare owner becomes an explicit
+  string leaf). The discriminant fields `snowflake.warehouse.owner.role_type` and `snowflake.budget.owner.role_type` retain their names
+  unchanged — they hold a principal-kind enum (`ROLE` or `APPLICATION`), not a role name, so the `_type` suffix is semantically required.
 - **Resource-monitor warehouse fields**: the attached-warehouse name list `snowflake.warehouses.names` moves into the owning namespace as
   `snowflake.resource_monitor.warehouses`, and the existing warehouse-count metric `snowflake.resource_monitor.warehouses` is renamed to
   `snowflake.resource_monitor.warehouses.count` to free that name for the list.
@@ -228,10 +228,10 @@ The renames span several areas:
   `snowflake.status.code`, and `snowflake.status.message`.
 
 To update existing dashboards, workflows, or other Dynatrace assets that reference the old field names, run the `refactor_field_names.sh`
-script included in the package with the `appx-c-query-step-operator-refactoring.csv` mapping file:
+script included in the package with the `appx-c-ga-fields-refactoring.csv` mapping file:
 
 ```bash
-./scripts/deploy/refactor_field_names.sh appx-c-query-step-operator-refactoring.csv <exported-assets-folder>
+./scripts/deploy/refactor_field_names.sh appx-c-ga-fields-refactoring.csv <exported-assets-folder>
 ```
 
 For DQL queries that filter on renamed anomaly-detection fields, update them manually. Example migration:
@@ -253,6 +253,7 @@ The table below lists all field renames.
 | ad.source_metric                         | metric.key                                   |
 | ad.direction                             | anomaly.direction                            |
 | ad.category                              | anomaly.subject                              |
+| deployment.environment                   | deployment.environment.name                  |
 | error.code                               | snowflake.error.code                         |
 | snowflake.credits.quota                  | snowflake.credits.quota.value                |
 | snowflake.query.operator.attributes      | snowflake.query.step.operator.attributes     |
@@ -265,9 +266,7 @@ The table below lists all field renames.
 | snowflake.resource_monitor.threshold.pct | snowflake.resource_monitor.threshold.value   |
 | snowflake.warehouse.event                | snowflake.warehouse.event.trigger            |
 | snowflake.warehouse.is_auto_suspend      | snowflake.warehouse.auto_suspend             |
-| snowflake.budget.owner.role_type         | snowflake.budget.owner.role                  |
 | snowflake.budget.owner                   | snowflake.budget.owner.name                  |
-| snowflake.warehouse.owner.role_type      | snowflake.warehouse.owner.role               |
 | snowflake.warehouse.owner                | snowflake.warehouse.owner.name               |
 | snowflake.resource_monitor.warehouses    | snowflake.resource_monitor.warehouses.count  |
 | snowflake.warehouses.names               | snowflake.resource_monitor.warehouses        |
