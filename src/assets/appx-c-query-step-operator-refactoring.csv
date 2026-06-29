@@ -3,6 +3,7 @@ ad.source;anomaly.detector
 ad.source_metric;metric.key
 ad.direction;anomaly.direction
 ad.category;anomaly.subject
+deployment.environment;deployment.environment.name
 error.code;snowflake.error.code
 snowflake.credits.quota;snowflake.credits.quota.value
 snowflake.query.operator.attributes;snowflake.query.step.operator.attributes
