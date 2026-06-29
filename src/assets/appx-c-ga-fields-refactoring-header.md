@@ -35,10 +35,10 @@ The renames span several areas:
   `snowflake.session.id`, `snowflake.status.code`, and `snowflake.status.message`.
 
 To update existing dashboards, workflows, or other Dynatrace assets that reference the old field names, run the
-`refactor_field_names.sh` script included in the package with the `appx-c-query-step-operator-refactoring.csv` mapping file:
+`refactor_field_names.sh` script included in the package with the `appx-c-ga-fields-refactoring.csv` mapping file:
 
 ```bash
-./scripts/deploy/refactor_field_names.sh appx-c-query-step-operator-refactoring.csv <exported-assets-folder>
+./scripts/deploy/refactor_field_names.sh appx-c-ga-fields-refactoring.csv <exported-assets-folder>
 ```
 
 For DQL queries that filter on renamed anomaly-detection fields, update them manually. Example migration:
@@ -55,4 +55,4 @@ The table below lists all field renames.
 ### Field Name Mapping
 
 | old name | new name |
-| - | - |
+|----------|----------|

@@ -70,7 +70,6 @@ and the new names (version 0.8):
 | snowflake.warehouse.cluster_number                       | snowflake.warehouse.cluster.number            |
 | snowflake.warehouse.cluster.count                        | snowflake.warehouse.clusters.count            |
 | snowflake.warehouse.owner_role_type                      | snowflake.warehouse.owner.role_type           |
-| deployment.environment                                   | deployment.environment.name                   |
 | db.snowflake.db_names                                    | db.snowflake.dbs                              |
 | db.snowflake.table_names                                 | db.snowflake.tables                           |
 | db.snowflake.view_names                                  | db.snowflake.views                            |
@@ -229,10 +228,10 @@ The renames span several areas:
   `snowflake.status.code`, and `snowflake.status.message`.
 
 To update existing dashboards, workflows, or other Dynatrace assets that reference the old field names, run the `refactor_field_names.sh`
-script included in the package with the `appx-c-query-step-operator-refactoring.csv` mapping file:
+script included in the package with the `appx-c-ga-fields-refactoring.csv` mapping file:
 
 ```bash
-./scripts/deploy/refactor_field_names.sh appx-c-query-step-operator-refactoring.csv <exported-assets-folder>
+./scripts/deploy/refactor_field_names.sh appx-c-ga-fields-refactoring.csv <exported-assets-folder>
 ```
 
 For DQL queries that filter on renamed anomaly-detection fields, update them manually. Example migration:
@@ -254,6 +253,7 @@ The table below lists all field renames.
 | ad.source_metric                         | metric.key                                   |
 | ad.direction                             | anomaly.direction                            |
 | ad.category                              | anomaly.subject                              |
+| deployment.environment                   | deployment.environment.name                  |
 | error.code                               | snowflake.error.code                         |
 | snowflake.credits.quota                  | snowflake.credits.quota.value                |
 | snowflake.query.operator.attributes      | snowflake.query.step.operator.attributes     |

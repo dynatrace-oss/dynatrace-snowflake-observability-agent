@@ -70,7 +70,7 @@ value follows — fixtures were updated accordingly.
 
 ## Migration
 
-All renames are appended to `src/assets/appx-c-query-step-operator-refactoring.csv` and surface in
+All renames are appended to `src/assets/appx-c-ga-fields-refactoring.csv` and surface in
 `docs/APPENDIX.md`. Customers run `refactor_field_names.sh` against exported assets. Note the
 script does unanchored global substitution, so bare→child renames where siblings exist (e.g.
 `snowflake.user.privilege` alongside `.privilege.grants_on`) will also rewrite the sibling
