@@ -29,36 +29,34 @@ All notable changes to this project will be documented in this file.
   Version 1.0.0 renames fields across several areas.
   See [Appendix C](APPENDIX.md#appendix-c-sec).
 
-  | Old field                                  | New field                                       |
-  |--------------------------------------------|-------------------------------------------------|
-  | `ad.source`                                | `anomaly.detector`                              |
-  | `ad.source_metric`                         | `metric.key`                                    |
-  | `ad.direction`                             | `anomaly.direction`                             |
-  | `ad.category`                              | `anomaly.subject`                               |
-  | `error.code`                               | `snowflake.error.code`                          |
-  | `snowflake.credits.quota`                  | `snowflake.credits.quota.value`                 |
-  | `snowflake.query.operator.attributes`      | `snowflake.query.step.operator.attributes`      |
-  | `snowflake.query.operator.id`              | `snowflake.query.step.operator.id`              |
-  | `snowflake.query.operator.parent_ids`      | `snowflake.query.step.operator.parent_ids`      |
-  | `snowflake.query.operator.stats`           | `snowflake.query.step.operator.stats`           |
-  | `snowflake.query.operator.time`            | `snowflake.query.step.operator.time_breakdown`  |
-  | `snowflake.query.operator.type`            | `snowflake.query.step.operator.type`            |
-  | `snowflake.resource_monitor.threshold.pct` | `snowflake.resource_monitor.threshold.value`    |
-  | `snowflake.warehouse.event`                | `snowflake.warehouse.event.trigger`             |
-  | `snowflake.warehouse.is_auto_suspend`      | `snowflake.warehouse.auto_suspend`              |
-  | `snowflake.warehouse.owner`                | `snowflake.warehouse.owner.name`                |
-  | `snowflake.warehouse.owner.role_type`      | `snowflake.warehouse.owner.role`                |
-  | `snowflake.budget.owner`                   | `snowflake.budget.owner.name`                   |
-  | `snowflake.budget.owner.role_type`         | `snowflake.budget.owner.role`                   |
-  | `snowflake.warehouses.names`               | `snowflake.resource_monitor.warehouses`         |
-  | `snowflake.resource_monitor.warehouses`    | `snowflake.resource_monitor.warehouses.count`   |
-  | `snowflake.task.config`                    | `snowflake.task.config.id`                      |
-  | `snowflake.user.name`                      | `snowflake.user.name.login`                     |
-  | `snowflake.user.privilege`                 | `snowflake.user.privilege.name`                 |
-  | `snowflake.user.roles.direct`              | `snowflake.user.roles.direct.list`              |
-  | `session.id`                               | `snowflake.session.id`                          |
-  | `status.code`                              | `snowflake.status.code`                         |
-  | `status.message`                           | `snowflake.status.message`                      |
+  | Old field                                  | New field                                      |
+  |--------------------------------------------|------------------------------------------------|
+  | `ad.source`                                | `anomaly.detector`                             |
+  | `ad.source_metric`                         | `metric.key`                                   |
+  | `ad.direction`                             | `anomaly.direction`                            |
+  | `ad.category`                              | `anomaly.subject`                              |
+  | `error.code`                               | `snowflake.error.code`                         |
+  | `snowflake.credits.quota`                  | `snowflake.credits.quota.value`                |
+  | `snowflake.query.operator.attributes`      | `snowflake.query.step.operator.attributes`     |
+  | `snowflake.query.operator.id`              | `snowflake.query.step.operator.id`             |
+  | `snowflake.query.operator.parent_ids`      | `snowflake.query.step.operator.parent_ids`     |
+  | `snowflake.query.operator.stats`           | `snowflake.query.step.operator.stats`          |
+  | `snowflake.query.operator.time`            | `snowflake.query.step.operator.time_breakdown` |
+  | `snowflake.query.operator.type`            | `snowflake.query.step.operator.type`           |
+  | `snowflake.resource_monitor.threshold.pct` | `snowflake.resource_monitor.threshold.value`   |
+  | `snowflake.warehouse.event`                | `snowflake.warehouse.event.trigger`            |
+  | `snowflake.warehouse.is_auto_suspend`      | `snowflake.warehouse.auto_suspend`             |
+  | `snowflake.warehouse.owner`                | `snowflake.warehouse.owner.name`               |
+  | `snowflake.budget.owner`                   | `snowflake.budget.owner.name`                  |
+  | `snowflake.warehouses.names`               | `snowflake.resource_monitor.warehouses`        |
+  | `snowflake.resource_monitor.warehouses`    | `snowflake.resource_monitor.warehouses.count`  |
+  | `snowflake.task.config`                    | `snowflake.task.config.id`                     |
+  | `snowflake.user.name`                      | `snowflake.user.name.login`                    |
+  | `snowflake.user.privilege`                 | `snowflake.user.privilege.name`                |
+  | `snowflake.user.roles.direct`              | `snowflake.user.roles.direct.list`             |
+  | `session.id`                               | `snowflake.session.id`                         |
+  | `status.code`                              | `snowflake.status.code`                        |
+  | `status.message`                           | `snowflake.status.message`                     |
 
   Additional notes:
   - `snowflake.resource_monitor.threshold.value` changes type from string to double with a `percent` unit.

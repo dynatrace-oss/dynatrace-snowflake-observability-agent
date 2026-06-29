@@ -215,9 +215,9 @@ The renames span several areas:
   `.event.trigger`; `snowflake.warehouse.is_auto_suspend` becomes `.auto_suspend` and is reclassified as a numeric metric with unit
   `seconds`.
 - **Error code field**: `error.code` is renamed to `snowflake.error.code` for namespace consistency.
-- **Owner and role attributes**: `snowflake.warehouse.owner` and `snowflake.budget.owner` become `.owner.name` (the bare owner becomes an
-  explicit string leaf), and `snowflake.warehouse.owner.role_type`/`snowflake.budget.owner.role_type` drop the `_type` suffix to become
-  `.owner.role`.
+- **Owner attributes**: `snowflake.warehouse.owner` and `snowflake.budget.owner` become `.owner.name` (the bare owner becomes an explicit
+  string leaf). The discriminant fields `snowflake.warehouse.owner.role_type` and `snowflake.budget.owner.role_type` retain their names
+  unchanged — they hold a principal-kind enum (`ROLE` or `APPLICATION`), not a role name, so the `_type` suffix is semantically required.
 - **Resource-monitor warehouse fields**: the attached-warehouse name list `snowflake.warehouses.names` moves into the owning namespace as
   `snowflake.resource_monitor.warehouses`, and the existing warehouse-count metric `snowflake.resource_monitor.warehouses` is renamed to
   `snowflake.resource_monitor.warehouses.count` to free that name for the list.
@@ -266,9 +266,7 @@ The table below lists all field renames.
 | snowflake.resource_monitor.threshold.pct | snowflake.resource_monitor.threshold.value   |
 | snowflake.warehouse.event                | snowflake.warehouse.event.trigger            |
 | snowflake.warehouse.is_auto_suspend      | snowflake.warehouse.auto_suspend             |
-| snowflake.budget.owner.role_type         | snowflake.budget.owner.role                  |
 | snowflake.budget.owner                   | snowflake.budget.owner.name                  |
-| snowflake.warehouse.owner.role_type      | snowflake.warehouse.owner.role               |
 | snowflake.warehouse.owner                | snowflake.warehouse.owner.name               |
 | snowflake.resource_monitor.warehouses    | snowflake.resource_monitor.warehouses.count  |
 | snowflake.warehouses.names               | snowflake.resource_monitor.warehouses        |

@@ -124,11 +124,11 @@ check the `Context Name` column below.
 
 ### Attributes at the `Budgets` plugin
 
-| Identifier                                       | Description                                                                                                             | Example                       | Context Name |
-| ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- | ----------------------------- | ------------ |
-| snowflake.&#8203;budget.&#8203;owner.&#8203;name | The owner of the budget, typically the user or role responsible for managing the budget.                                | budget_admin                  | budgets      |
-| snowflake.&#8203;budget.&#8203;owner.&#8203;role | The type of role assigned to the budget owner, indicating their level of access and responsibilities.                   | ROLE                          | budgets      |
-| snowflake.&#8203;budget.&#8203;resource          | The resources linked to the budget, such as databases, warehouses, or other Snowflake objects that the budget monitors. | [ "database1", "warehouse1" ] | budgets      |
+| Identifier                                            | Description                                                                                                             | Example                       | Context Name |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ----------------------------- | ------------ |
+| snowflake.&#8203;budget.&#8203;owner.&#8203;name      | The owner of the budget, typically the user or role responsible for managing the budget.                                | budget_admin                  | budgets      |
+| snowflake.&#8203;budget.&#8203;owner.&#8203;role_type | The principal type of the budget owner: ROLE or APPLICATION.                                                            | ROLE                          | budgets      |
+| snowflake.&#8203;budget.&#8203;resource               | The resources linked to the budget, such as databases, warehouses, or other Snowflake objects that the budget monitors. | [ "database1", "warehouse1" ] | budgets      |
 
 ### Metrics at the `Budgets` plugin
 
@@ -647,7 +647,7 @@ All telemetry delivered by this plugin is reported as `dsoa.run.context == "reso
 | snowflake.&#8203;warehouse.&#8203;is_default                        | Indicates if the warehouse is the default warehouse.                                                                                                                                                                         | true                           |
 | snowflake.&#8203;warehouse.&#8203;is_unmonitored                    | Indicates if the warehouse is NOT monitored by a resource monitor.                                                                                                                                                           | true                           |
 | snowflake.&#8203;warehouse.&#8203;owner.&#8203;name                 | The owner of the warehouse.                                                                                                                                                                                                  | admin                          |
-| snowflake.&#8203;warehouse.&#8203;owner.&#8203;role                 | The role type of the warehouse owner.                                                                                                                                                                                        | ROLE                           |
+| snowflake.&#8203;warehouse.&#8203;owner.&#8203;role_type            | The principal type of the warehouse owner: ROLE or APPLICATION.                                                                                                                                                              | ROLE                           |
 | snowflake.&#8203;warehouse.&#8203;scaling_policy                    | The scaling policy of the warehouse.                                                                                                                                                                                         | STANDARD                       |
 | snowflake.&#8203;warehouse.&#8203;size                              | The size of the warehouse.                                                                                                                                                                                                   | X-SMALL                        |
 | snowflake.&#8203;warehouse.&#8203;type                              | The type of the warehouse.                                                                                                                                                                                                   | STANDARD                       |
