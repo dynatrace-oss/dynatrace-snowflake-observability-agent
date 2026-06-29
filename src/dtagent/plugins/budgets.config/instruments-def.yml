@@ -23,6 +23,7 @@ attributes:
     __example: budget_admin
     __description: The owner of the budget, typically the user or role responsible for managing the budget.
   snowflake.budget.owner.role_type:
+    __type: string
     __context_names:
       - budgets
     __example: ROLE

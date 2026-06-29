@@ -110,7 +110,6 @@ attributes:
   snowflake.resource_monitor.threshold.value:
     __type: double
     __is_defined_at_runtime: true
-    __unit: percent
     __example: 80
     __description: >-
       The configured threshold percentage at which this crossing event was triggered (e.g., 80 means the 80% threshold was crossed).

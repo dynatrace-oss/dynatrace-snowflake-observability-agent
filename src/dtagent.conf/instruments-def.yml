@@ -41,7 +41,6 @@ dimensions:
       Deprecated alias for deployment.environment.name. The deployment environment,
       e.g., production, staging, or development. Will be removed in release 1.3.0.
     __example: "PROD"
-    __deprecated: "Use deployment.environment.name instead."
   deployment.environment.name:
     __stability: stable
     __semdict: otel-only
