@@ -15,21 +15,19 @@ change. Shipped as part of the 1.0.0 SD-alignment effort tracked in
 
 ## Renames
 
-| Current                                   | GA                                            | Plugin            |
-|-------------------------------------------|-----------------------------------------------|-------------------|
-| `snowflake.warehouse.owner`               | `snowflake.warehouse.owner.name`              | resource_monitors |
-| `snowflake.warehouse.owner.role_type`     | `snowflake.warehouse.owner.role`              | resource_monitors |
-| `snowflake.budget.owner`                  | `snowflake.budget.owner.name`                 | budgets           |
-| `snowflake.budget.owner.role_type`        | `snowflake.budget.owner.role`                 | budgets           |
-| `snowflake.task.config`                   | `snowflake.task.config.id`                    | tasks             |
-| `snowflake.user.name`                     | `snowflake.user.name.login`                   | users             |
-| `snowflake.user.privilege`                | `snowflake.user.privilege.name`               | users             |
-| `snowflake.user.roles.direct`             | `snowflake.user.roles.direct.list`            | users             |
-| `snowflake.warehouses.names`              | `snowflake.resource_monitor.warehouses`       | resource_monitors |
-| `snowflake.resource_monitor.warehouses`   | `snowflake.resource_monitor.warehouses.count` | resource_monitors |
-| `session.id`                              | `snowflake.session.id`                        | query_history, active_queries, login_history |
-| `status.code`                             | `snowflake.status.code`                       | login_history     |
-| `status.message`                          | `snowflake.status.message`                    | login_history, trust_center |
+| Current                                 | GA                                            | Plugin                                       |
+|-----------------------------------------|-----------------------------------------------|----------------------------------------------|
+| `snowflake.warehouse.owner`             | `snowflake.warehouse.owner.name`              | resource_monitors                            |
+| `snowflake.budget.owner`                | `snowflake.budget.owner.name`                 | budgets                                      |
+| `snowflake.task.config`                 | `snowflake.task.config.id`                    | tasks                                        |
+| `snowflake.user.name`                   | `snowflake.user.name.login`                   | users                                        |
+| `snowflake.user.privilege`              | `snowflake.user.privilege.name`               | users                                        |
+| `snowflake.user.roles.direct`           | `snowflake.user.roles.direct.list`            | users                                        |
+| `snowflake.warehouses.names`            | `snowflake.resource_monitor.warehouses`       | resource_monitors                            |
+| `snowflake.resource_monitor.warehouses` | `snowflake.resource_monitor.warehouses.count` | resource_monitors                            |
+| `session.id`                            | `snowflake.session.id`                        | query_history, active_queries, login_history |
+| `status.code`                           | `snowflake.status.code`                       | login_history                                |
+| `status.message`                        | `snowflake.status.message`                    | login_history, trust_center                  |
 
 ## Implementation notes
 

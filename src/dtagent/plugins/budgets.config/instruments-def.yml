@@ -24,7 +24,8 @@ attributes:
     __context_names:
       - budgets
     __example: ROLE
-    __description: The principal type of the budget owner: ROLE or APPLICATION.
+    __description: >
+      The principal type of the budget owner: ROLE or APPLICATION.
   snowflake.budget.resource:
     __context_names:
       - budgets
