@@ -1492,15 +1492,15 @@ class TestStringArrayExamplesInOutput:
         ), f"string[] field examples[0] must be a list, got {type(examples[0]).__name__}: {examples[0]!r}"
 
     def test_user_roles_direct_has_list_of_lists_examples(self, tmp_path):
-        """snowflake.user.roles.direct (string[]) must export with list-of-lists examples."""
+        """snowflake.user.roles.direct.list (string[]) must export with list-of-lists examples."""
         exporter = SemanticExporter(repo_root=REPO_ROOT, output_dir=tmp_path / "out")
         instruments_path = REPO_ROOT / "src" / "dtagent" / "plugins" / "users.config" / "instruments-def.yml"
         if not instruments_path.exists():
             pytest.skip("users instruments-def.yml not found")
         _, entries = exporter._parse_file("users", instruments_path)
-        meta = entries.get("snowflake.user.roles.direct")
-        assert meta is not None, "snowflake.user.roles.direct not found in entries"
-        node = _emit_id_entry("snowflake.user.roles.direct", meta["entry"], meta["semdict"])
+        meta = entries.get("snowflake.user.roles.direct.list")
+        assert meta is not None, "snowflake.user.roles.direct.list not found in entries"
+        node = _emit_id_entry("snowflake.user.roles.direct.list", meta["entry"], meta["semdict"])
         examples = node.get("examples", [])
         assert len(examples) > 0
         assert isinstance(
