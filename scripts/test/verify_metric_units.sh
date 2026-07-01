@@ -52,6 +52,7 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 FIXTURE="${REPO_ROOT}/test/qa/fixtures/all_metrics_ingest_payload.txt"
 SLEEP_SECONDS=120
+SKIP_INGEST=0
 
 usage() {
     cat <<'EOF'
@@ -64,6 +65,9 @@ dtctl doctor) — run 'dtctl auth login' first to switch tenants, there is no
 Options:
   --fixture=<path>    Path to the ingest fixture (default: test/qa/fixtures/all_metrics_ingest_payload.txt)
   --sleep=<seconds>   Seconds to wait between ingest and query-back (default: 120)
+  --skip-ingest       Skip Step 1 (ingest) and Step 2 (wait) — jump straight to Step 3
+                      (query-back). Use this to re-run just the query-back step against
+                      data already ingested by a previous run; no DT_API_TOKEN needed.
   -h, --help          Show this help.
 
 Requires a classic API token (metrics.ingest scope) for the ingest step, either
@@ -76,6 +80,7 @@ for arg in "$@"; do
     case "$arg" in
         --fixture=*) FIXTURE="${arg#--fixture=}" ;;
         --sleep=*) SLEEP_SECONDS="${arg#--sleep=}" ;;
+        --skip-ingest) SKIP_INGEST=1 ;;
         -h|--help) usage; exit 0 ;;
         *) echo "Unknown parameter: $arg" >&2; usage; exit 1 ;;
     esac
@@ -125,7 +130,7 @@ fi
 
 ##endregion
 
-if [[ -z "${DT_API_TOKEN:-}" ]]; then
+if [[ "$SKIP_INGEST" -eq 0 && -z "${DT_API_TOKEN:-}" ]]; then
     if [[ -t 0 ]]; then
         read -rsp "Enter Dynatrace API token for ${TENANT} (metrics.ingest scope, input hidden): " DT_API_TOKEN
         echo
@@ -149,6 +154,11 @@ echo " Fixture: $FIXTURE"
 echo "════════════════════════════════════════════════════════════════"
 
 ##region ── Step 1: Ingest the fixture ──────────────────────────────────────
+
+if [[ "$SKIP_INGEST" -eq 1 ]]; then
+    echo ""
+    echo "--- Step 1: Skipped (--skip-ingest) — assuming the fixture was already ingested."
+else
 
 echo ""
 echo "--- Step 1: Ingesting fixture..."
@@ -197,13 +207,20 @@ if [[ "$LINES_INVALID" != "0" ]]; then
     jq -r '.warnings // [] | .[]' /tmp/verify_metric_units_response.json
 fi
 
+fi
+
 ##endregion
 
 ##region ── Step 2: Wait for propagation ────────────────────────────────────
 
-echo ""
-echo "--- Step 2: Waiting ${SLEEP_SECONDS}s for metric metadata to propagate..."
-sleep "$SLEEP_SECONDS"
+if [[ "$SKIP_INGEST" -eq 1 ]]; then
+    echo ""
+    echo "--- Step 2: Skipped (--skip-ingest)."
+else
+    echo ""
+    echo "--- Step 2: Waiting ${SLEEP_SECONDS}s for metric metadata to propagate..."
+    sleep "$SLEEP_SECONDS"
+fi
 
 ##endregion
 
@@ -240,12 +257,13 @@ METADATA_SCRIPT="${REPO_ROOT}/scripts/test/query_metric_metadata.js"
 while IFS= read -r meta_line; do
     metric_name="${meta_line#\#}"
     metric_name="${metric_name%% *}"
-    expected_unit="$(echo "$meta_line" | grep -oE 'dt\.meta\.unit="[^"]*"' | sed -E 's/dt\.meta\.unit="([^"]*)"/\1/')"
+    expected_unit="$(echo "$meta_line" | { grep -oE 'dt\.meta\.unit="[^"]*"' || true; } | sed -E 's/dt\.meta\.unit="([^"]*)"/\1/')"
     [[ -z "$expected_unit" ]] && continue
 
     exec_json="$(dtctl exec function -f "$METADATA_SCRIPT" \
-        --payload "{\"metricKey\":\"${metric_name}\"}" -o json 2>/tmp/verify_metric_units_query_err.txt || true)"
-    dt_unit="$(echo "$exec_json" | jq -r '.result.unit // "NOT_FOUND"')"
+        --payload "{\"metricKey\":\"${metric_name}\"}" -o json </dev/null \
+        2>/tmp/verify_metric_units_query_err.txt || true)"
+    dt_unit="$(echo "$exec_json" | jq -r '.result.unit // "NOT_FOUND"' 2>/dev/null || echo "NOT_FOUND")"
 
     if [[ "$dt_unit" != "NOT_FOUND" && "$dt_unit" != "null" ]]; then
         printf "%-55s %-15s %-20s %-6s\n" "$metric_name" "$expected_unit" "$dt_unit" "PASS"
