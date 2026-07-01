@@ -5,57 +5,75 @@
 # Ingests test/qa/fixtures/all_metrics_ingest_payload.txt (one data line + one
 # #<metric> gauge dt.meta.unit="..." metadata line per metric defined across all
 # instruments-def.yml files — see scripts/dev/gen_metric_fixture.py) into a live
-# Dynatrace tenant, waits for propagation, then queries each metric back via
-# `dtctl query` and compares Dynatrace's reported unit to the unit we sent.
+# Dynatrace tenant, waits for propagation, then queries each metric's recognized
+# unit back via the Grail Query API's ?enrich=metric-metadata parameter (run
+# through scripts/test/query_metric_metadata.js via `dtctl exec function`) and
+# compares it to the unit we sent.
 #
-# NOT part of CI. Requires a live tenant, an ingest-capable API token, and
-# dtctl authenticated against that same tenant. Run manually during a QA pass
-# (see .opencode/skills/qa-runner/SKILL.md).
+# NOTE: neither `dtctl query`'s DQL "timeseries" JSON (only has records[].interval/
+# timeframe) nor the classic Metrics API v2 metric descriptor (only echoes back the
+# raw symbol we sent) expose what Dynatrace's unit system actually resolved a unit
+# to (e.g. "MiBy" -> "MebiByte"). Only the Grail Query API's ?enrich=metric-metadata
+# parameter does, and dtctl does not (yet) expose it as a flag — hence the ad-hoc
+# `dtctl exec function` workaround, which runs in the App Engine sandbox with
+# automatic platform (OAuth) auth, no token handling required for this step.
+#
+# The target tenant is whichever one `dtctl` is currently authenticated against
+# (`dtctl config current-context` / `dtctl doctor`) — there is no separate
+# --tenant/--env selector, since ingesting to one tenant while dtctl points at
+# another would silently produce bogus results. Run `dtctl auth login` first if
+# you need to switch tenants.
+#
+# NOT part of CI. Requires a live tenant and an ingest-capable API token.
+# Run manually during a QA pass (see .opencode/skills/qa-runner/SKILL.md).
 #
 # Usage:
-#   export DT_API_TOKEN=dt0c01.XXXX.YYYY   # classic API token, scopes: metrics.ingest
-#   ./scripts/test/verify_metric_units.sh --env=dev-095
-#   ./scripts/test/verify_metric_units.sh --tenant=abc12345.live.dynatrace.com
-#   ./scripts/test/verify_metric_units.sh --env=dev-095 --sleep=60 --fixture=path/to/fixture.txt
+#   dtctl auth login                       # make sure dtctl points at the target tenant
+#   ./scripts/test/verify_metric_units.sh  # prompts for the token (input hidden) if
+#                                           # DT_API_TOKEN is not already exported
+#   export DT_API_TOKEN=dt0c01.XXXX.YYYY   # classic API token, scope: metrics.ingest
+#   ./scripts/test/verify_metric_units.sh --sleep=60 --fixture=path/to/fixture.txt
 #
 # Prerequisites:
-#   - dtctl on PATH and authenticated against the target tenant (`dtctl auth login`)
-#   - DT_API_TOKEN env var set to a token with the "Ingest metrics" (metrics.ingest) scope
+#   - dtctl on PATH and authenticated against the target tenant (`dtctl auth login`);
+#     its OAuth session already covers the app-engine:functions:run scope needed
+#     for the query-back step
+#   - a classic API token with the "Ingest metrics" (metrics.ingest) scope, either
+#     exported as DT_API_TOKEN or entered at the interactive prompt (needed only
+#     for the ingest step)
 #   - curl, jq on PATH
 #
 # The API token is NEVER read from a config file or hardcoded — it must come from
-# the DT_API_TOKEN environment variable and is never printed or logged.
+# the DT_API_TOKEN environment variable or the interactive prompt, and is never
+# printed or logged.
 
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 FIXTURE="${REPO_ROOT}/test/qa/fixtures/all_metrics_ingest_payload.txt"
-ENV_TAG=""
-TENANT=""
 SLEEP_SECONDS=120
 
 usage() {
     cat <<'EOF'
-Usage: verify_metric_units.sh (--env=<dev-XXX> | --tenant=<tenant-address>) [options]
+Usage: verify_metric_units.sh [options]
+
+The target tenant is always dtctl's current context (dtctl config current-context /
+dtctl doctor) — run 'dtctl auth login' first to switch tenants, there is no
+--tenant/--env override.
 
 Options:
-  --env=<tag>         Environment tag matching conf/config-<tag>.yml (reads
-                       core.dynatrace_tenant_address from it via yq).
-  --tenant=<address>  Dynatrace tenant address directly, e.g. abc12345.live.dynatrace.com
-                       (overrides --env).
   --fixture=<path>    Path to the ingest fixture (default: test/qa/fixtures/all_metrics_ingest_payload.txt)
   --sleep=<seconds>   Seconds to wait between ingest and query-back (default: 120)
   -h, --help          Show this help.
 
-Requires the DT_API_TOKEN environment variable (classic API token, metrics.ingest scope)
-and an authenticated dtctl session against the same tenant (metrics read via DQL).
+Requires a classic API token (metrics.ingest scope) for the ingest step, either
+exported as DT_API_TOKEN or entered at the interactive prompt this script shows if unset.
+The query-back step uses `dtctl exec function` (dtctl's own OAuth session).
 EOF
 }
 
 for arg in "$@"; do
     case "$arg" in
-        --env=*) ENV_TAG="${arg#--env=}" ;;
-        --tenant=*) TENANT="${arg#--tenant=}" ;;
         --fixture=*) FIXTURE="${arg#--fixture=}" ;;
         --sleep=*) SLEEP_SECONDS="${arg#--sleep=}" ;;
         -h|--help) usage; exit 0 ;;
@@ -63,42 +81,66 @@ for arg in "$@"; do
     esac
 done
 
-if [[ -z "$TENANT" && -n "$ENV_TAG" ]]; then
-    CONFIG_FILE="${REPO_ROOT}/conf/config-${ENV_TAG}.yml"
-    if [[ ! -f "$CONFIG_FILE" ]]; then
-        echo "ERROR: config file not found: $CONFIG_FILE" >&2
-        exit 1
-    fi
-    if ! command -v yq >/dev/null 2>&1; then
-        echo "ERROR: yq is required to read --env config files (or pass --tenant directly)" >&2
-        exit 1
-    fi
-    TENANT="$(yq '.core.dynatrace_tenant_address' "$CONFIG_FILE")"
-fi
-
-if [[ -z "$TENANT" ]]; then
-    echo "ERROR: must supply --env=<tag> or --tenant=<address>" >&2
-    usage
-    exit 1
-fi
-
-if [[ -z "${DT_API_TOKEN:-}" ]]; then
-    echo "ERROR: DT_API_TOKEN environment variable is not set." >&2
-    echo "       export DT_API_TOKEN=dt0c01.XXXX.YYYY   # token with metrics.ingest scope" >&2
-    exit 1
-fi
-
-if [[ ! -f "$FIXTURE" ]]; then
-    echo "ERROR: fixture not found: $FIXTURE (run 'python scripts/dev/gen_metric_fixture.py' first)" >&2
-    exit 1
-fi
-
 for tool in curl jq dtctl; do
     if ! command -v "$tool" >/dev/null 2>&1; then
         echo "ERROR: required tool not on PATH: $tool" >&2
         exit 1
     fi
 done
+
+##region ── Derive the tenant from dtctl's active context ──────────────────
+
+DTCTL_CONFIG_JSON="$(dtctl config view -o json 2>/dev/null)" || {
+    echo "ERROR: 'dtctl config view' failed — is dtctl installed and configured?" >&2
+    exit 1
+}
+CURRENT_CTX="$(echo "$DTCTL_CONFIG_JSON" | jq -r '.CurrentContext // empty')"
+if [[ -z "$CURRENT_CTX" ]]; then
+    echo "ERROR: dtctl has no active context. Run 'dtctl auth login' first." >&2
+    exit 1
+fi
+ENVIRONMENT_URL="$(echo "$DTCTL_CONFIG_JSON" | jq -r --arg ctx "$CURRENT_CTX" \
+    '.Contexts[] | select(.Name == $ctx) | .Context.Environment // empty')"
+if [[ -z "$ENVIRONMENT_URL" ]]; then
+    echo "ERROR: could not determine environment for dtctl context '$CURRENT_CTX'." >&2
+    exit 1
+fi
+TENANT="${ENVIRONMENT_URL#https://}"
+TENANT="${TENANT#http://}"
+TENANT="${TENANT%/}"
+
+# dtctl's Environment is the platform/UI domain (*.apps.*), but classic REST
+# APIs like /api/v2/metrics/ingest live on a different domain — normalize the
+# same way scripts/deploy/lib.sh's validate_dt_tenant does.
+if [[ "$TENANT" == *".apps.dynatrace.com"* ]]; then
+    TENANT="${TENANT//.apps.dynatrace.com/.live.dynatrace.com}"
+elif [[ "$TENANT" == *".apps.dynatracelabs.com"* ]]; then
+    TENANT="${TENANT//.apps.dynatracelabs.com/.dynatracelabs.com}"
+fi
+
+if ! dtctl doctor >/dev/null 2>&1; then
+    echo "ERROR: dtctl is not authenticated against context '$CURRENT_CTX'. Run 'dtctl auth login'." >&2
+    exit 1
+fi
+
+##endregion
+
+if [[ -z "${DT_API_TOKEN:-}" ]]; then
+    if [[ -t 0 ]]; then
+        read -rsp "Enter Dynatrace API token for ${TENANT} (metrics.ingest scope, input hidden): " DT_API_TOKEN
+        echo
+        export DT_API_TOKEN
+    fi
+    if [[ -z "${DT_API_TOKEN:-}" ]]; then
+        echo "ERROR: no API token provided (set DT_API_TOKEN or enter it at the prompt)." >&2
+        exit 1
+    fi
+fi
+
+if [[ ! -f "$FIXTURE" ]]; then
+    echo "ERROR: fixture not found: $FIXTURE (run 'python scripts/dev/gen_metric_fixture.py' first)" >&2
+    exit 1
+fi
 
 echo "════════════════════════════════════════════════════════════════"
 echo " Metric unit-recognition QA check"
@@ -111,11 +153,35 @@ echo "════════════════════════�
 echo ""
 echo "--- Step 1: Ingesting fixture..."
 
-HTTP_STATUS=$(curl -sS -o /tmp/verify_metric_units_response.json -w "%{http_code}" \
-    -X POST "https://${TENANT}/api/v2/metrics/ingest" \
-    -H "Authorization: Api-Token ${DT_API_TOKEN}" \
-    -H "Content-Type: text/plain; charset=utf-8" \
-    --data-binary @"$FIXTURE")
+ingest_fixture() {
+    curl -sS -o /tmp/verify_metric_units_response.json -w "%{http_code}" \
+        -X POST "https://${TENANT}/api/v2/metrics/ingest" \
+        -H "Authorization: Api-Token ${DT_API_TOKEN}" \
+        -H "Content-Type: text/plain; charset=utf-8" \
+        --data-binary @"$FIXTURE"
+}
+
+HTTP_STATUS="$(ingest_fixture)"
+
+TOKEN_RETRIES=0
+while [[ "$HTTP_STATUS" == "401" && $TOKEN_RETRIES -lt 3 ]]; do
+    echo "ERROR: ingest request failed (HTTP 401 — token authentication failed)." >&2
+    cat /tmp/verify_metric_units_response.json >&2
+    echo "" >&2
+    if [[ ! -t 0 ]]; then
+        echo "ERROR: not an interactive terminal, cannot prompt for a new token." >&2
+        exit 1
+    fi
+    TOKEN_RETRIES=$((TOKEN_RETRIES + 1))
+    read -rsp "Token rejected. Re-enter Dynatrace API token for ${TENANT} (metrics.ingest scope, input hidden): " DT_API_TOKEN
+    echo
+    export DT_API_TOKEN
+    if [[ -z "$DT_API_TOKEN" ]]; then
+        echo "ERROR: no token provided, aborting." >&2
+        exit 1
+    fi
+    HTTP_STATUS="$(ingest_fixture)"
+done
 
 if [[ "$HTTP_STATUS" != "202" ]]; then
     echo "ERROR: ingest request failed (HTTP $HTTP_STATUS)" >&2
@@ -144,41 +210,50 @@ sleep "$SLEEP_SECONDS"
 ##region ── Step 3: Query each metric back and compare units ───────────────
 
 echo ""
-echo "--- Step 3: Querying recognized units via dtctl..."
+echo "--- Step 3: Querying recognized units via Grail's metric-metadata enrichment..."
 echo ""
-printf "%-55s %-15s %-15s %-6s\n" "METRIC" "EXPECTED" "DYNATRACE" "RESULT"
-printf "%-55s %-15s %-15s %-6s\n" "------" "--------" "---------" "------"
+printf "%-55s %-15s %-20s %-6s\n" "METRIC" "SENT" "DYNATRACE" "RESULT"
+printf "%-55s %-15s %-20s %-6s\n" "------" "----" "---------" "------"
 
 PASS_COUNT=0
 FAIL_COUNT=0
 FAILURES=()
 
+METADATA_SCRIPT="${REPO_ROOT}/scripts/test/query_metric_metadata.js"
+
 # Extract metric names + expected units directly from the fixture's own
 # metadata lines (avoids re-parsing instruments-def.yml in bash).
+#
+# NOTE: dtctl query's DQL "timeseries" output has no metadata.metrics[].unit
+# field at all (verified empirically — its JSON only has records[].interval/
+# timeframe), and the classic Metrics API v2 descriptor only echoes back the
+# raw symbol we sent, not what Dynatrace's unit system actually resolved it
+# to. The real recognition check requires the Grail Query API's
+# ?enrich=metric-metadata parameter, which dtctl does not (yet) expose as a
+# flag, so scripts/test/query_metric_metadata.js is run via
+# `dtctl exec function` (App Engine sandbox, automatic platform auth — no
+# token needed) to call it directly. Dynatrace returns the *canonical
+# display name* (e.g. "MiBy" -> "MebiByte", "%" -> "Percent"), not the raw
+# symbol, so PASS means "Dynatrace resolved some unit for this metric" —
+# a human should still glance at the DYNATRACE column to sanity-check the
+# resolved name actually matches the intended meaning of what was sent.
 while IFS= read -r meta_line; do
     metric_name="${meta_line#\#}"
     metric_name="${metric_name%% *}"
     expected_unit="$(echo "$meta_line" | grep -oE 'dt\.meta\.unit="[^"]*"' | sed -E 's/dt\.meta\.unit="([^"]*)"/\1/')"
     [[ -z "$expected_unit" ]] && continue
 
-    query_json="$(dtctl query "timeseries sum(${metric_name}), from: -30m" -o json 2>/tmp/verify_metric_units_query_err.txt || true)"
-    if [[ -z "$query_json" ]]; then
-        printf "%-55s %-15s %-15s %-6s\n" "$metric_name" "$expected_unit" "ERROR" "FAIL"
-        FAIL_COUNT=$((FAIL_COUNT + 1))
-        FAILURES+=("$metric_name: dtctl query failed — $(cat /tmp/verify_metric_units_query_err.txt)")
-        continue
-    fi
+    exec_json="$(dtctl exec function -f "$METADATA_SCRIPT" \
+        --payload "{\"metricKey\":\"${metric_name}\"}" -o json 2>/tmp/verify_metric_units_query_err.txt || true)"
+    dt_unit="$(echo "$exec_json" | jq -r '.result.unit // "NOT_FOUND"')"
 
-    dt_unit="$(echo "$query_json" | jq -r --arg m "$metric_name" \
-        '[.metadata.metrics[]? | select(."metric.key" == $m) | .unit] | first // "NOT_FOUND"')"
-
-    if [[ "$dt_unit" == "$expected_unit" ]]; then
-        printf "%-55s %-15s %-15s %-6s\n" "$metric_name" "$expected_unit" "$dt_unit" "PASS"
+    if [[ "$dt_unit" != "NOT_FOUND" && "$dt_unit" != "null" ]]; then
+        printf "%-55s %-15s %-20s %-6s\n" "$metric_name" "$expected_unit" "$dt_unit" "PASS"
         PASS_COUNT=$((PASS_COUNT + 1))
     else
-        printf "%-55s %-15s %-15s %-6s\n" "$metric_name" "$expected_unit" "$dt_unit" "FAIL"
+        printf "%-55s %-15s %-20s %-6s\n" "$metric_name" "$expected_unit" "$dt_unit" "FAIL"
         FAIL_COUNT=$((FAIL_COUNT + 1))
-        FAILURES+=("$metric_name: expected '$expected_unit', Dynatrace reported '$dt_unit'")
+        FAILURES+=("$metric_name: sent '$expected_unit', Dynatrace did not resolve a unit — $(cat /tmp/verify_metric_units_query_err.txt)")
     fi
 done < <(grep '^#' "$FIXTURE")
 

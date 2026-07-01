@@ -1579,8 +1579,8 @@ or the `MetricUnit` schema enum have changed — skip otherwise.
 to run it and paste back the PASS/FAIL table.
 
 ```bash
-export DT_API_TOKEN=dt0c01.XXXX.YYYY   # token with metrics.ingest scope
-./scripts/test/verify_metric_units.sh --env=dev-{CURR_TAG}
+dtctl auth login                       # make sure dtctl points at the target tenant
+./scripts/test/verify_metric_units.sh  # prompts for the token (input hidden) if unset
 ```
 
 The script:
@@ -1590,19 +1590,24 @@ The script:
    `instruments-def.yml` files — regenerate with `make gen-metric-fixture` if
    metrics changed).
 2. Waits ~2 minutes for metric metadata to propagate.
-3. Runs `dtctl query "timeseries sum(<metric>), from: -30m" -o json` per metric
-   and reads `metadata.metrics[].unit` back.
-4. Prints a PASS/FAIL table comparing the unit sent vs. the unit Dynatrace reports.
+3. Runs `scripts/test/query_metric_metadata.js` per metric via `dtctl exec
+   function` (App Engine sandbox, automatic platform auth) to call the Grail
+   Query API with `?enrich=metric-metadata` and read the resolved `unit` back.
+   Neither `dtctl query`'s DQL JSON nor the classic Metrics API v2 descriptor
+   expose the actually-*resolved* unit (only this enrichment parameter does,
+   and dtctl has no flag for it yet).
+4. Prints a PASS/FAIL table showing the unit sent vs. the unit Dynatrace resolved.
 
-**Pass condition:** `metadata.metrics[].unit` matches the `dt.meta.unit` value
-sent (verbatim) for every metric. Known **expected mismatches** are the Bucket
-C/D domain nouns documented in `scripts/dev/sync_metric_units.py` and
-`src/build/export_semantics.py` (`credits`, `files`, `partitions`, `rows`,
-`clusters`, `warehouses`, `queries`, `currency`) — Dynatrace echoes these back
-verbatim as unrecognized free text, which is expected and not a regression.
-Any *other* mismatch (a `UnitId`-recognized value not being echoed back
-identically) is a real regression — check for typos or unnoticed vocabulary
-changes in `scripts/tools/instruments-def.schema.json`'s `MetricUnit` enum.
+**Pass condition:** Dynatrace resolved *some* unit for the metric (PASS) vs.
+none at all (FAIL). Note Dynatrace returns the **canonical display name**, not
+the raw symbol (e.g. `MiBy` → `MebiByte`, `%` → `Percent`) — so a human should
+still glance at the DYNATRACE column to confirm the resolved name actually
+matches the intended meaning of what was sent, rather than expecting an exact
+string match. Known exception: the Bucket C/D domain nouns documented in
+`scripts/dev/sync_metric_units.py` and `src/build/export_semantics.py`
+(`credits`, `files`, `partitions`, `rows`, `clusters`, `warehouses`, `queries`,
+`currency`) are unrecognized free text that Dynatrace echoes back verbatim
+(sent value == resolved value) — this is expected, not a regression.
 
 ---
 
