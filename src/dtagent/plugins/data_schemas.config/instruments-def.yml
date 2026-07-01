@@ -75,6 +75,7 @@ attributes:
     __stability: stable
     __type: string
     __example: '{"creationMode": "CREATE", "columns": {"ADD": ["ATTRIBUTE","JOB_ID"]}}'
+    __semdict_note: "Stored as a serialized JSON string, not plain text."
     __description: |
       A JSON array that specifies the object or column properties when you create, modify, drop, or undrop the object or column.
       There are two types of properties: atomic and compound.

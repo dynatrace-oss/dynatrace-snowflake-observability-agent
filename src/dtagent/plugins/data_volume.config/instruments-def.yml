@@ -76,7 +76,7 @@ metrics:
     __example: 1073741824
     __description: Total size (in bytes) of all objects in this scope.
     displayName: Table Size in Bytes
-    unit: bytes
+    unit: By
   snowflake.table.time_since.last_ddl:
     __type: long
     __example: 2880

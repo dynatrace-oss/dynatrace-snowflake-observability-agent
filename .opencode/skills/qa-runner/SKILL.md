@@ -1567,6 +1567,45 @@ whether any task entered an `ERROR` state.
 
 ---
 
+## Phase 3.7 — Metric Unit Recognition Check (optional, manual)
+
+Verifies that every `dt.meta.unit` value DSOA sends is actually **recognized**
+by Dynatrace (gets a proper symbol/display in Notebooks), not just accepted as
+free text. Run this once per release when `instruments-def.yml` `unit:` values
+or the `MetricUnit` schema enum have changed — skip otherwise.
+
+**Not part of Phase 3.5 auto-eval** — requires a raw ingest-capable API token
+(`metrics.ingest` scope) which auto-eval does not have access to. Ask the human
+to run it and paste back the PASS/FAIL table.
+
+```bash
+export DT_API_TOKEN=dt0c01.XXXX.YYYY   # token with metrics.ingest scope
+./scripts/test/verify_metric_units.sh --env=dev-{CURR_TAG}
+```
+
+The script:
+
+1. Ingests `test/qa/fixtures/all_metrics_ingest_payload.txt` (one data line +
+   one `#<metric> gauge dt.meta.unit="..."` metadata line per metric across all
+   `instruments-def.yml` files — regenerate with `make gen-metric-fixture` if
+   metrics changed).
+2. Waits ~2 minutes for metric metadata to propagate.
+3. Runs `dtctl query "timeseries sum(<metric>), from: -30m" -o json` per metric
+   and reads `metadata.metrics[].unit` back.
+4. Prints a PASS/FAIL table comparing the unit sent vs. the unit Dynatrace reports.
+
+**Pass condition:** `metadata.metrics[].unit` matches the `dt.meta.unit` value
+sent (verbatim) for every metric. Known **expected mismatches** are the Bucket
+C/D domain nouns documented in `scripts/dev/sync_metric_units.py` and
+`src/build/export_semantics.py` (`credits`, `files`, `partitions`, `rows`,
+`clusters`, `warehouses`, `queries`, `currency`) — Dynatrace echoes these back
+verbatim as unrecognized free text, which is expected and not a regression.
+Any *other* mismatch (a `UnitId`-recognized value not being echoed back
+identically) is a real regression — check for typos or unnoticed vocabulary
+changes in `scripts/tools/instruments-def.schema.json`'s `MetricUnit` enum.
+
+---
+
 ## Phase 4 — Test Walkthrough
 
 Walk through `test/qa/RELEASE-CHECKLIST.md` section by section. For each item:

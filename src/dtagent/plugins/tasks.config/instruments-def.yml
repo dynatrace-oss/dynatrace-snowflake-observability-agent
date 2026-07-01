@@ -305,7 +305,7 @@ metrics:
     __description: Number of Snowflake task runs that ended in FAILED state within the collection window.
     __example: 3
     displayName: Snowflake Task Runs Failed
-    unit: "1"
+    unit: count
   snowflake.task.run.cancelled:
     __type: long
     __context_names:
@@ -313,7 +313,7 @@ metrics:
     __description: Number of Snowflake task runs that ended in CANCELLED state within the collection window.
     __example: 1
     displayName: Snowflake Task Runs Cancelled
-    unit: "1"
+    unit: count
   snowflake.task.run.successful:
     __type: long
     __context_names:
@@ -322,7 +322,7 @@ metrics:
       Number of Snowflake task runs that ended in SUCCEEDED state within the collection window.
     __example: 142
     displayName: Snowflake Task Runs Successful
-    unit: "1"
+    unit: count
 dql_queries:
   - query_string: |
       fetch logs

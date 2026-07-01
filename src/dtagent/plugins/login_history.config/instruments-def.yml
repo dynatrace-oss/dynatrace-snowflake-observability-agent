@@ -204,7 +204,7 @@ metrics:
     __description: Number of failed Snowflake login attempts within the collection window.
     __example: 42
     displayName: Snowflake Login Attempts Failed
-    unit: "1"
+    unit: count
   snowflake.login.attempts.successful:
     __type: long
     __context_names:
@@ -212,7 +212,7 @@ metrics:
     __description: Number of successful Snowflake login attempts within the collection window.
     __example: 1234
     displayName: Snowflake Login Attempts Successful
-    unit: "1"
+    unit: count
   snowflake.login.attempts.total:
     __type: long
     __context_names:
@@ -221,7 +221,7 @@ metrics:
       Total number of Snowflake login attempts (failed + successful) within the collection window.
     __example: 1276
     displayName: Snowflake Login Attempts Total
-    unit: "1"
+    unit: count
 dql_queries:
   - query_string: |
       fetch logs

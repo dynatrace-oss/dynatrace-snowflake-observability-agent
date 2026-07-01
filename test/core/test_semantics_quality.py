@@ -344,19 +344,22 @@ class TestOrphanFieldCount:
     def test_attribute_orphan_count_at_zero(self):
         """Every signal field id: must be referenced by at least one model or interface.
 
-        After Phase 4 (log/span model generation), the target is reduced to 13 known
+        After Phase 4 (log/span model generation), the target is reduced to 14 known
         orphans. These are dimension-only signal fields whose context names don't
         overlap with any surviving metric context in their plugin, making them
         unreferenceable in both log models (attributes-only) and metric models.
 
-        Known orphans (13):
+        Known orphans (14):
         - client.ip, client.type, event.name: login_history dim; log-context only
         - snowflake.grant.name, snowflake.share.name: shares dims
         - snowflake.task.is_internal, snowflake.task.name: tasks dims; credits.used deduped
         - snowflake.warehouse.event.name, snowflake.warehouse.event.state: warehouse_usage dims
         - observed_timestamp: structural OTel field (not custom attribute)
-        - ad.source, ad.source_metric, ad.direction, ad.category: workflow metadata fields
-          (emitted by Dynatrace workflows in events, not in metric/log models directly)
+        - anomaly.detector, anomaly.direction, anomaly.subject: workflow metadata fields
+          (renamed from ad.source/ad.direction/ad.category; emitted by Dynatrace workflows
+          in events, not in metric/log models directly)
+        - deployment.environment.name: OTel-stable co-emitted alias (otel-only), not yet
+          referenced by any model during the deployment.environment migration window
 
         This test acts as a REGRESSION GUARD — fail if the count increases.
         """

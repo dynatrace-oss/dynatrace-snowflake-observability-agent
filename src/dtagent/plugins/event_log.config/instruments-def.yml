@@ -60,7 +60,7 @@ metrics:
   process.cpu.utilization:
     __type: double
     displayName: "Process CPU Utilization"
-    unit: "1"
+    unit: "%"
     __context_names:
       - event_log_metrics
     __example: 0.015
@@ -69,7 +69,7 @@ metrics:
   process.memory.usage:
     __type: double
     displayName: "Process Memory Usage"
-    unit: "bytes"
+    unit: By
     __context_names:
       - event_log_metrics
     __example: 34844672

@@ -154,7 +154,7 @@ metrics:
     __example: 1099511627776
     __description: Total storage bytes used by the account on the given day across all storage types.
     displayName: Org Data Stored
-    unit: bytes
+    unit: By
   snowflake.org.data.transferred:
     __type: long
     __context_names:
@@ -162,4 +162,4 @@ metrics:
     __example: 2147483648
     __description: Bytes transferred between clouds or regions on the given day.
     displayName: Org Data Transfer Bytes
-    unit: bytes
+    unit: By

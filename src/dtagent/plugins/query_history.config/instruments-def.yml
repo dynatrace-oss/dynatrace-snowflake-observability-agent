@@ -681,7 +681,7 @@ metrics:
     __example: 2097152
     __description: Number of bytes scanned by the query acceleration service.
     displayName: Query Acceleration Bytes Scanned
-    unit: bytes
+    unit: By
   snowflake.acceleration.partitions.scanned:
     __type: long
     __example: 50
@@ -693,7 +693,7 @@ metrics:
     __example: 4
     __description: Upper limit scale factor that a query would have benefited from.
     displayName: Query Acceleration Upper Limit Scale Factor
-    unit: factor
+    unit: "1"
   snowflake.credits.cloud_services:
     __type: double
     __example: 10
@@ -705,19 +705,19 @@ metrics:
     __example: 1048576
     __description: Number of bytes deleted by the query.
     displayName: Bytes Deleted
-    unit: bytes
+    unit: By
   snowflake.data.read.from_result:
     __type: long
     __example: 1048576
     __description: Number of bytes read from a result object.
     displayName: Bytes Read from Result
-    unit: bytes
+    unit: By
   snowflake.data.scanned:
     __type: long
     __example: 10485760
     __description: Number of bytes scanned by this statement.
     displayName: Bytes Scanned
-    unit: bytes
+    unit: By
   snowflake.data.scanned_from_cache:
     __type: double
     __example: 0.75
@@ -731,55 +731,55 @@ metrics:
     __example: 524288
     __description: Volume of data sent over the network.
     displayName: Bytes Sent Over the Network
-    unit: bytes
+    unit: By
   snowflake.data.spilled.local:
     __type: long
     __example: 1048576
     __description: Volume of data spilled to local disk.
     displayName: Bytes Spilled to Local Storage
-    unit: bytes
+    unit: By
   snowflake.data.spilled.remote:
     __type: long
     __example: 2097152
     __description: Volume of data spilled to remote disk.
     displayName: Bytes Spilled to Remote Storage
-    unit: bytes
+    unit: By
   snowflake.data.transferred.inbound:
     __type: long
     __example: 10485760
     __description: Number of bytes transferred in statements that load data from another region and/or cloud.
     displayName: Inbound Data Transfer Bytes
-    unit: bytes
+    unit: By
   snowflake.data.transferred.outbound:
     __type: long
     __example: 5242880
     __description: Number of bytes transferred in statements that unload data to another region and/or cloud.
     displayName: Outbound Data Transfer Bytes
-    unit: bytes
+    unit: By
   snowflake.data.written:
     __type: long
     __example: 2097152
     __description: Number of bytes written (e.g. when loading into a table).
     displayName: Bytes Written
-    unit: bytes
+    unit: By
   snowflake.data.written_to_result:
     __type: long
     __example: 1048576
     __description: Number of bytes written to a result object.
     displayName: Bytes Written to Result
-    unit: bytes
+    unit: By
   snowflake.external_functions.data.received:
     __type: long
     __example: 1048576
     __description: The total number of bytes that this query received from all calls to all remote services.
     displayName: External Function Total Received Bytes
-    unit: bytes
+    unit: By
   snowflake.external_functions.data.sent:
     __type: long
     __example: 524288
     __description: The total number of bytes that this query sent in all calls to all remote services.
     displayName: External Function Total Sent Bytes
-    unit: bytes
+    unit: By
   snowflake.external_functions.invocations:
     __type: long
     __example: 5
@@ -803,7 +803,7 @@ metrics:
     __example: 85
     __description: The approximate percentage of active compute resources in the warehouse for this query execution.
     displayName: Query Load Percent
-    unit: percent
+    unit: "%"
   snowflake.partitions.scanned:
     __type: long
     __example: 100

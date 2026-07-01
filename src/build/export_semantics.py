@@ -114,23 +114,21 @@ VALID_STABILITY_VALUES = {"stable", "experimental", "deprecated"}
 #: Acronyms that must stay ALL-CAPS in display_name (longer tokens first).
 DISPLAY_NAME_ACRONYMS = ("DSOA", "OTel", "DDL", "DML", "RSS", "URL", "API", "ID", "DB", "QA", "SQL")
 
-#: instruments-def unit value → SD-valid unit abbreviation.
-#: Sources: .context/otel-build-tool/semantic-conventions/src/opentelemetry/semconv/units/unit_registry.py
-#: and juno_docs/define-data-in-grail/definition/yaml/attribute/units.md
-#: Note: OTel UCUM curly-brace annotations ({request}, {partition}, etc.) are NOT in
-#: the SD unit registry — use 'count' for such domain-specific counting units.
+#: instruments-def.yml unit: value -> Semantic Dictionary unit abbreviation.
+#:
+#: instruments-def.yml uses the recognized Dynatrace universal-units UCUM
+#: vocabulary directly for dt.meta.unit (see scripts/tools/instruments-def.schema.json
+#: $defs/MetricUnit and scripts/dev/sync_metric_units.py) plus a small DSOA
+#: allowlist of domain-specific free-text nouns with no recognized equivalent.
+#: The Semantic Dictionary uses a *different* abbreviation vocabulary
+#: (.context/otel-build-tool/semantic-conventions/src/opentelemetry/semconv/units/units.json).
+#: This map only needs entries where the two vocabularies diverge — most
+#: universal-units UCUM symbols (By, s, d, 1, ms, min, count, ratio, MiBy, ...)
+#: already match their SD abbreviation and require no translation.
 UNIT_MAP: Dict[str, str] = {
-    # Data — UCUM abbreviation required
-    "bytes": "By",
-    "Byte": "By",
-    # Time
-    "days": "d",
-    "seconds": "s",
-    # Percentage
-    "percent": "%",
-    # Dimensionless
-    "factor": "1",
-    # Domain-specific counts — map to 'count' (SD Unspecified category)
+    # Domain-specific counts with no recognized universal-units equivalent —
+    # map to 'count' (SD Unspecified category). Original meaning is preserved
+    # via UNIT_NOTE_ORIGINALS below.
     "rows": "count",
     "files": "count",
     "clusters": "count",
@@ -138,7 +136,8 @@ UNIT_MAP: Dict[str, str] = {
     "warehouses": "count",
     "partitions": "count",
     "credits": "count",
-    # Currency — use ISO/SD abbreviation
+    # Currency — SD abbreviation uses the $ glyph (units.json 'usd' -> 'US$');
+    # this differs from the universal-units UCUM code (USD) used for dt.meta.unit.
     "currency": "US$",
 }
 

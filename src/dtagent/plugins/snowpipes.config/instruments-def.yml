@@ -315,7 +315,7 @@ metrics:
     __example: 1048576
     __description: Bytes inserted.
     displayName: Data Ingested
-    unit: bytes
+    unit: By
   snowflake.pipe.cost.credits_used:
     __type: long
     __context_names:
@@ -339,7 +339,7 @@ metrics:
     __example: 524288
     __description: Bytes billed for Snowpipe usage.
     displayName: Bytes Billed
-    unit: bytes
+    unit: By
   snowflake.copy.file_size:
     __type: long
     __context_names:
@@ -347,7 +347,7 @@ metrics:
     __example: 102400
     __description: Observed size of the source file before loading.
     displayName: File Size
-    unit: bytes
+    unit: By
   snowflake.copy.bytes_billed:
     __type: long
     __context_names:
@@ -355,4 +355,4 @@ metrics:
     __example: 51200
     __description: Bytes billed for this copy operation.
     displayName: Copy Bytes Billed
-    unit: bytes
+    unit: By

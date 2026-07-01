@@ -168,7 +168,7 @@ metrics:
     __example: 1048576
     __description: Number of bytes written to a result object.
     displayName: Bytes Written to Result
-    unit: bytes
+    unit: By
   snowflake.rows.written_to_result:
     __type: long
     __example: 1

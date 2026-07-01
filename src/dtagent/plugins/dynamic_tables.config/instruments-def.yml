@@ -382,7 +382,7 @@ metrics:
     __example: 83
     __description: The maximum lag time in seconds of refreshes for this dynamic table.
     displayName: Maximum Lag Time
-    unit: seconds
+    unit: s
   snowflake.table.dynamic.lag.mean:
     __type: long
     __context_names:
@@ -390,7 +390,7 @@ metrics:
     __example: 26
     __description: The mean lag time (in seconds) of refreshes for this dynamic table.
     displayName: Mean Lag Time
-    unit: seconds
+    unit: s
   snowflake.table.dynamic.lag.target.time_above:
     __type: long
     __context_names:
@@ -398,7 +398,7 @@ metrics:
     __example: 151
     __description: The time in seconds when the actual lag was more than the defined target lag.
     displayName: Time Above Target Lag
-    unit: seconds
+    unit: s
   snowflake.table.dynamic.lag.target.value:
     __type: long
     __context_names:
@@ -409,7 +409,7 @@ metrics:
       The time in seconds in the retention period or since the last configuration change, when the actual lag was more than the defined
       target lag.
     displayName: Target Lag Time
-    unit: seconds
+    unit: s
   snowflake.table.dynamic.lag.target.within_ratio:
     __type: double
     __context_names:

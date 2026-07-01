@@ -30,4 +30,4 @@ metrics:
       Number of bytes of data loaded during the START_TIME and END_TIME
       window.
     displayName: Bytes Ingested for Event Table
-    unit: bytes
+    unit: By

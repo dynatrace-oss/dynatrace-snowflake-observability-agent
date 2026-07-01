@@ -66,8 +66,10 @@ EXEMPT_ORPHAN_FIELDS: frozenset = frozenset({"observed_timestamp"})
 #: snowflake.grant.name, snowflake.share.name (shares dims), snowflake.task.is_internal,
 #: snowflake.task.name (tasks dims; credits.used metric deduped to event_usage),
 #: snowflake.warehouse.event.name, snowflake.warehouse.event.state (warehouse_usage dims).
-#: ad.source, ad.source_metric, ad.direction, ad.category (workflow metadata fields from
-#: _core; only emitted in Dynatrace events via workflows, not in metric/log models yet).
+#: anomaly.detector, anomaly.direction, anomaly.subject (renamed from ad.source/ad.direction/
+#: ad.category; workflow metadata fields from _core, only emitted in Dynatrace events via
+#: workflows, not in metric/log models yet). deployment.environment.name (OTel-stable
+#: co-emitted alias, not yet referenced by any model).
 MAX_ORPHAN_SIGNAL_FIELDS: int = 13
 
 ##endregion

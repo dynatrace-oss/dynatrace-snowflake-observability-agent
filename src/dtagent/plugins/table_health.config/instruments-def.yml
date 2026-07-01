@@ -74,7 +74,7 @@ metrics:
     __example: 1073741824
     __description: Number of bytes of active data in the table.
     displayName: Active Bytes
-    unit: bytes
+    unit: By
   snowflake.table.time_travel_bytes:
     __type: long
     __context_names:
@@ -82,7 +82,7 @@ metrics:
     __example: 536870912
     __description: Number of bytes of data in the table that is maintained for Time Travel.
     displayName: Time Travel Bytes
-    unit: bytes
+    unit: By
   snowflake.table.failsafe_bytes:
     __type: long
     __context_names:
@@ -90,7 +90,7 @@ metrics:
     __example: 268435456
     __description: Number of bytes of data in the table that is maintained for Failsafe.
     displayName: Failsafe Bytes
-    unit: bytes
+    unit: By
   snowflake.table.retained_for_clone_bytes:
     __type: long
     __context_names:
@@ -98,7 +98,7 @@ metrics:
     __example: 134217728
     __description: Number of bytes of data in the table that is retained for cloning.
     displayName: Retained for Clone Bytes
-    unit: bytes
+    unit: By
   snowflake.data.rows:
     __type: long
     __context_names:
@@ -154,7 +154,7 @@ metrics:
       Change in active bytes between the two most recent snapshots.
       Positive values indicate growth; negative values indicate shrinkage.
     displayName: Table Growth (Bytes)
-    unit: bytes
+    unit: By
   snowflake.table.growth_pct:
     __type: double
     __context_names:
@@ -164,7 +164,7 @@ metrics:
       Percentage change in active bytes between the two most recent snapshots.
       Null when the previous snapshot had zero bytes.
     displayName: Table Growth (%)
-    unit: percent
+    unit: "%"
   snowflake.table.clustering.depth_change:
     __type: double
     __context_names:

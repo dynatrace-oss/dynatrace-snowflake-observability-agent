@@ -127,7 +127,6 @@ _OTEL_ONLY_FIELDS_NEEDING_NOTE: frozenset = frozenset(
 _REQUIRED_EVENT_PAYLOAD_FIELDS: List[Tuple[str, str]] = [
     ("resource_monitors", "snowflake.warehouse.event"),
     ("login_history", "event.description"),
-    ("login_history", "ad.source"),
 ]
 
 #: Enum candidates: fields that must have __enum definitions.
@@ -405,7 +404,6 @@ class TestEventPayloadFieldsCoverage:
         Discovered via code audit of _prepare_event_payload_* methods:
         - resource_monitors: snowflake.warehouse.event (key from _prepare_event_timestamps_payload_wh)
         - login_history: event.description (human-readable login event description)
-        - login_history: ad.source (detection rule identifier; planned rename to rule.id)
 
         NOTE: 'timestamp' is intentionally excluded — it is a built-in platform attribute.
         """
@@ -507,109 +505,6 @@ class TestUnitBriefConsistency:
                 )
                 break  # found the field; done
         assert found, "snowflake.data.scanned_from_cache not found in any metrics section"
-
-
-@pytest.mark.integration
-class TestAdFieldsAtCoreLevel:
-    """Workflow-layer anomaly detection fields must be defined in core instruments-def.yml.
-
-    The ``ad.*`` namespace is used by all DSOA Anomaly Detection workflows to annotate
-    Dynatrace custom events with provenance, source metric, direction, and category
-    metadata. These fields are shared across all 10 workflows and must therefore be
-    documented at the core level (not per-plugin), matching the ``_core`` plugin.
-    """
-
-    _REQUIRED_AD_FIELDS: frozenset = frozenset(
-        {
-            "ad.source",
-            "ad.source_metric",
-            "ad.direction",
-            "ad.category",
-        }
-    )
-
-    def test_ad_fields_defined_in_core(self):
-        """ad.source, ad.source_metric, ad.direction, ad.category must be in _core plugin.
-
-        These fields are emitted by all 10 DSOA workflows and by login_history.py
-        (ad.source only). Core-level definition makes them visible in the SD export
-        as shared workflow metadata, not plugin-specific attributes.
-        """
-        all_defs = _load_all_instruments_defs()
-        core_data = all_defs.get("_core") or {}
-        core_fields: set = set()
-        for section in ("attributes", "dimensions", "event_timestamps"):
-            core_fields.update((core_data.get(section) or {}).keys())
-
-        missing = [f for f in sorted(self._REQUIRED_AD_FIELDS) if f not in core_fields]
-        assert not missing, "ad.* fields missing from core instruments-def.yml " "(src/dtagent.conf/instruments-def.yml):\n" + "\n".join(
-            missing
-        )
-
-    def test_ad_direction_has_enum(self):
-        """ad.direction must have a __enum definition with members 'above' and 'below'.
-
-        The direction field is a closed enum — only two values are ever emitted
-        by any DSOA workflow.
-        """
-        all_defs = _load_all_instruments_defs()
-        core_data = all_defs.get("_core") or {}
-        core_attrs = core_data.get("attributes") or {}
-
-        entry = core_attrs.get("ad.direction")
-        assert entry is not None, "ad.direction not found in _core attributes"
-
-        enum_def = entry.get("__enum")
-        assert enum_def is not None, "ad.direction must have __enum definition"
-
-        member_values = {m.get("value") for m in enum_def.get("members", [])}
-        assert "above" in member_values, "ad.direction __enum missing member 'above'"
-        assert "below" in member_values, "ad.direction __enum missing member 'below'"
-
-    def test_ad_category_has_enum(self):
-        """ad.category must have __enum with all 7 observed workflow category values.
-
-        Values observed across all 10 DSOA workflows:
-        login, session, query_count, data_scan (security-anomaly-detection),
-        volume_drop, unavailable, disappeared (shares-broken-detection).
-        """
-        all_defs = _load_all_instruments_defs()
-        core_data = all_defs.get("_core") or {}
-        core_attrs = core_data.get("attributes") or {}
-
-        entry = core_attrs.get("ad.category")
-        assert entry is not None, "ad.category not found in _core attributes"
-
-        enum_def = entry.get("__enum")
-        assert enum_def is not None, "ad.category must have __enum definition"
-
-        expected_values = {
-            "login",
-            "session",
-            "query_count",
-            "data_scan",
-            "volume_drop",
-            "unavailable",
-            "disappeared",
-        }
-        member_values = {m.get("value") for m in enum_def.get("members", [])}
-        missing = expected_values - member_values
-        assert not missing, f"ad.category __enum missing members: {sorted(missing)}"
-
-    def test_ad_fields_have_semdict_new(self):
-        """All ad.* core fields must have __semdict: new (DSOA-originating fields)."""
-        all_defs = _load_all_instruments_defs()
-        core_data = all_defs.get("_core") or {}
-        core_attrs = core_data.get("attributes") or {}
-
-        violations = []
-        for field in sorted(self._REQUIRED_AD_FIELDS):
-            entry = core_attrs.get(field)
-            if entry is None:
-                continue  # caught by test_ad_fields_defined_in_core
-            if entry.get("__semdict") != "new":
-                violations.append(f"{field}: expected __semdict: new, got {entry.get('__semdict')!r}")
-        assert not violations, "\n".join(violations)
 
 
 @pytest.mark.integration

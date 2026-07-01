@@ -123,7 +123,7 @@ metrics:
     __description: >-
       Number of bytes processed by the service in the metering window.
     displayName: Bytes Processed
-    unit: bytes
+    unit: By
   snowflake.metering.data.rows:
     __type: long
     __context_names: ["metering"]

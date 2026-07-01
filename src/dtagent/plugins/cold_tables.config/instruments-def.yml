@@ -87,4 +87,4 @@ metrics:
     __example: 95
     __description: Number of days since the table was last accessed by any query.
     displayName: Days Since Last Access
-    unit: days
+    unit: d

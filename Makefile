@@ -18,7 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-.PHONY: lint lint-python lint-format lint-pylint lint-sql lint-yaml lint-markdown lint-bom lint-shell build docs sync-units package test test-documentation test-bash test-bash-slow test-core test-plugins docker-build docker-clean docker-test
+.PHONY: lint lint-python lint-format lint-pylint lint-sql lint-yaml lint-markdown lint-bom lint-shell build docs sync-units gen-metric-fixture package test test-documentation test-bash test-bash-slow test-core test-instruments-def test-plugins docker-build docker-clean docker-test
 
 # Linting targets
 lint-python:
@@ -58,6 +58,9 @@ docs:
 sync-units:
 	.venv/bin/python scripts/dev/sync_metric_units.py
 
+gen-metric-fixture:
+	.venv/bin/python scripts/dev/gen_metric_fixture.py
+
 package:
 	./scripts/dev/package.sh
 
@@ -82,6 +85,9 @@ test-core:
 	.venv/bin/pytest test/core/test_connector.py -k "TestTelemetrySender"
 	.venv/bin/pytest test/otel/test_events.py -k "TestEvents"
 	.venv/bin/pytest test/otel/test_otel_manager.py -k "TestOtelManager"
+
+test-instruments-def:
+	.venv/bin/pytest test/core/test_instruments_def_schema.py test/core/test_instruments_def_completeness.py test/core/test_semantics_quality.py test/core/test_metric_ingest_fixture.py -v
 
 test-plugins:
 	.venv/bin/pytest test/plugins/
