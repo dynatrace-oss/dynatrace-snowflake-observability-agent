@@ -60,6 +60,18 @@ All notable changes to this project will be documented in this file.
 - **Removed never-emitted `snowflake.warehouse.event` field**: no SQL view or plugin code emits
   this bare key; the distinct `snowflake.warehouse.event.trigger` and
   `snowflake.warehouse.event.{name,reason,state}` fields are unaffected and remain in place.
+- **`snowflake.misc` Semantic Dictionary grab-bag split into dedicated groups**: the generic
+  `snowflake_misc.yaml` field group previously held 40 unrelated fields with no shared namespace
+  home. It has been split into `anomaly`, `dsoa.debug`, `dsoa.plugins`, `deployment`,
+  `observed_timestamp`, `snowflake.account`, `snowflake.copy`, `snowflake.cost_attribution`,
+  `snowflake.entity`, `snowflake.grant`, `snowflake.org`, `snowflake.status`, and
+  `snowflake.table.dynamic.graph` — each now has its own Semantic Dictionary field group file.
+  No field names changed; only their grouping in the exported YAML.
+- **`dsoa.spans.query_history` differentiated from `dsoa.logs.query_history`**: the span model
+  previously duplicated the log model's field list and DQL examples verbatim. It now includes
+  span-specific fields (`dsoa.debug.span.events.added/failed`, `snowflake.query.step.*` operator
+  fields reported via `span.events`) that are excluded from the log model, and its DQL examples
+  lead with `fetch spans` instead of `fetch logs`.
 
 ### Changed
 
