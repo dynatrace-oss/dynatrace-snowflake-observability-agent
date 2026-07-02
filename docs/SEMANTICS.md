@@ -27,7 +27,7 @@
 ### Dimensions at the `core` plugin
 
 | Identifier                                | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Example                                | Stability  |
-|-------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------|------------|
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- | ---------- |
 | db.&#8203;system                          | The database management system (DBMS) product being used. It is always 'snowflake'                                                                                                                                                                                                                                                                                                                                                                                                                                              | snowflake                              | stable     |
 | deployment.&#8203;environment             | Deprecated alias for deployment.environment.name. The deployment environment, e.g., production, staging, or development. Will be removed in release 1.3.0.                                                                                                                                                                                                                                                                                                                                                                      | PROD                                   | deprecated |
 | deployment.&#8203;environment.&#8203;name | The deployment environment name (OTel semconv canonical field), e.g., production, staging, or development. Emitted alongside deployment.environment during the deprecation window.                                                                                                                                                                                                                                                                                                                                              | PROD                                   | stable     |
@@ -42,7 +42,7 @@
 ### Attributes at the `core` plugin
 
 | Identifier                         | Description                                                                                                                                                                                                                                                                                                | Example                              | Stability |
-|------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------|-----------|
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ | --------- |
 | anomaly.&#8203;detector            | Identifies the DSOA workflow or plugin that detected the anomaly. Values follow the `dsoa.<workflow_name>` convention (e.g., `dsoa.data_volume_anomaly`) except for the failed<br>-login detector which uses `dsoa.failed_login_detection`.                                                                | dsoa.data_volume_anomaly             |           |
 | anomaly.&#8203;direction           | Direction of the anomaly relative to the Davis AI baseline: `above` when the metric exceeded the upper bound, `below` when it dropped under the lower bound.                                                                                                                                               | above                                |           |
 | anomaly.&#8203;subject             | High<br>-level category classifying the anomaly subject within its detector. Specific values are defined per workflow (e.g., `login` / `session` / `query_count` / `data_scan` for security<br>-anomaly<br>-detection; `unavailable` / `disappeared` / `volume_drop` for shares<br>-broken<br>-detection). | login                                |           |
@@ -54,7 +54,7 @@
 ### Metrics at the `core` plugin
 
 | Identifier                                      | Name                    | Unit | Description                                                                                            | Example | Stability |
-|-------------------------------------------------|-------------------------|------|--------------------------------------------------------------------------------------------------------|---------|-----------|
+| ----------------------------------------------- | ----------------------- | ---- | ------------------------------------------------------------------------------------------------------ | ------- | --------- |
 | dsoa.&#8203;agent.&#8203;memory.&#8203;peak_rss | Agent Peak Memory (RSS) | MiBy | Peak resident set size (RSS) of the agent process in megabytes, sampled after each plugin context run. | 42.5    |           |
 
 <a name="active_queries_semantics_sec"></a>
@@ -68,7 +68,7 @@ All telemetry delivered by this plugin is reported as `dsoa.run.context == "acti
 ### Dimensions at the `Active Queries` plugin
 
 | Identifier                                     | Description                                                                                                                                                                           | Example           | Stability    |
-|------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------|--------------|
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- | ------------ |
 | db.&#8203;namespace                            | The name of the database in which the query was executed.                                                                                                                             | analytics_db      | stable       |
 | db.&#8203;user                                 | The name of the user who executed the query.                                                                                                                                          | john_doe          | experimental |
 | snowflake.&#8203;query.&#8203;execution_status | The execution status of the query, such as: <br>- RESUMING_WAREHOUSE, <br>- RUNNING, <br>- QUEUED, <br>- BLOCKED, <br>- SUCCESS, <br>- FAILED_WITH_ERROR, <br>- FAILED_WITH_INCIDENT. | FAILED_WITH_ERROR | stable       |
@@ -78,7 +78,7 @@ All telemetry delivered by this plugin is reported as `dsoa.run.context == "acti
 ### Attributes at the `Active Queries` plugin
 
 | Identifier                                              | Description                                                                                      | Example                              | Stability    |
-|---------------------------------------------------------|--------------------------------------------------------------------------------------------------|--------------------------------------|--------------|
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------ | ------------ |
 | db.&#8203;operation.&#8203;name                         | The type of operation performed by the query, such as: <br>- SELECT, <br>- INSERT, <br>- UPDATE. | SELECT                               | stable       |
 | db.&#8203;query.&#8203;text                             | The text of the SQL query.                                                                       | SELECT \* FROM sales_data            |              |
 | snowflake.&#8203;error.&#8203;code                      | The error code if the query failed.                                                              | 1001                                 | stable       |
@@ -96,13 +96,43 @@ All telemetry delivered by this plugin is reported as `dsoa.run.context == "acti
 ### Metrics at the `Active Queries` plugin
 
 | Identifier                                     | Name                    | Unit | Description                                                                                                             | Example | Stability |
-|------------------------------------------------|-------------------------|------|-------------------------------------------------------------------------------------------------------------------------|---------|-----------|
+| ---------------------------------------------- | ----------------------- | ---- | ----------------------------------------------------------------------------------------------------------------------- | ------- | --------- |
 | snowflake.&#8203;data.&#8203;written_to_result | Bytes Written to Result | By   | Number of bytes written to a result object.                                                                             | 1048576 |           |
 | snowflake.&#8203;rows.&#8203;written_to_result | Rows Written to Result  | rows | Number of rows written to a result object. For CREATE TABLE AS SELECT (CTAS) and all DML operations, this result is 1;. | 1       |           |
 | snowflake.&#8203;time.&#8203;compilation       | Query Compilation Time  | ms   | The total compilation time of the currently running query.                                                              | 5000    |           |
 | snowflake.&#8203;time.&#8203;execution         | Execution Time          | ms   | Execution time (in milliseconds)                                                                                        | 100000  |           |
 | snowflake.&#8203;time.&#8203;running           | Query Running Time      | ms   | The total running time of the currently running query.                                                                  | 120000  |           |
 | snowflake.&#8203;time.&#8203;total_elapsed     | Total Elapsed Time      | ms   | Elapsed time (in milliseconds).                                                                                         | 120000  |           |
+
+### DQL query examples for the `active_queries` plugin
+
+Plot average execution time of currently running Snowflake queries per warehouse over time.
+
+```dql
+timeseries val = avg(snowflake.time.execution), by: { snowflake.warehouse.name, deployment.environment }
+| filter db.system == "snowflake"
+```
+
+Fetch the 100 most recent DSOA active_queries plugin log entries from Grail.
+
+```dql
+fetch logs
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "active_queries"
+| sort timestamp desc
+| limit 100
+```
+
+Fetch the 50 most recent active queries that failed with an error.
+
+```dql
+fetch logs
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "active_queries"
+| filter snowflake.query.execution_status == "FAILED_WITH_ERROR"
+| sort timestamp desc
+| limit 50
+```
 
 <a name="budgets_semantics_sec"></a>
 
@@ -116,7 +146,7 @@ check the `Context Name` column below.
 ### Dimensions at the `Budgets` plugin
 
 | Identifier                               | Description                                                                                                                                                                                                                                                                                                                                                     | Example                             | Stability | Context Name       |
-|------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------|-----------|--------------------|
+| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- | --------- | ------------------ |
 | db.&#8203;namespace                      | The name of the database that was specified in the context of the query at compilation.                                                                                                                                                                                                                                                                         | analytics_db                        |           | budgets, spendings |
 | snowflake.&#8203;budget.&#8203;full_name | Fully<br>-qualified name of the budget (DATABASE.SCHEMA.NAME).                                                                                                                                                                                                                                                                                                  | ANALYTICS_DB.BUDGETS.MONTHLY_BUDGET |           | budgets, spendings |
 | snowflake.&#8203;budget.&#8203;name      | Name of the budget.                                                                                                                                                                                                                                                                                                                                             | monthly_budget                      | stable    | budgets, spendings |
@@ -126,7 +156,7 @@ check the `Context Name` column below.
 ### Attributes at the `Budgets` plugin
 
 | Identifier                                            | Description                                                                                                             | Example                       | Stability | Context Name |
-|-------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------|-------------------------------|-----------|--------------|
+| ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ----------------------------- | --------- | ------------ |
 | snowflake.&#8203;budget.&#8203;owner.&#8203;name      | The owner of the budget, typically the user or role responsible for managing the budget.                                | budget_admin                  | stable    | budgets      |
 | snowflake.&#8203;budget.&#8203;owner.&#8203;role_type | The principal type of the budget owner: ROLE or APPLICATION.                                                            | ROLE                          |           | budgets      |
 | snowflake.&#8203;budget.&#8203;resource               | The resources linked to the budget, such as databases, warehouses, or other Snowflake objects that the budget monitors. | [['DATABASE1', 'WAREHOUSE1']] | stable    | budgets      |
@@ -134,14 +164,14 @@ check the `Context Name` column below.
 ### Metrics at the `Budgets` plugin
 
 | Identifier                            | Name                  | Unit    | Description                                                     | Example | Stability | Context Name |
-|---------------------------------------|-----------------------|---------|-----------------------------------------------------------------|---------|-----------|--------------|
+| ------------------------------------- | --------------------- | ------- | --------------------------------------------------------------- | ------- | --------- | ------------ |
 | snowflake.&#8203;credits.&#8203;limit | Budget Spending Limit | credits | The number of credits set as the spending limit for the budget. | 100     |           | budgets      |
 | snowflake.&#8203;credits.&#8203;spent | Credits Spent         | credits | Number of credits used.                                         | 75      |           | spendings    |
 
 ### Event timestamps at the `Budgets` plugin
 
 | Identifier                                | Description                                                                                                                                                                                           | Example                     | Stability | Context Name |
-|-------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------|-----------|--------------|
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- | --------- | ------------ |
 | snowflake.&#8203;budget.&#8203;created_on | The timestamp when the budget was created.                                                                                                                                                            | 1732981199999000000         | stable    | budgets      |
 | snowflake.&#8203;event.&#8203;trigger     | Additionally to sending logs, each entry in `EVENT_TIMESTAMPS` is sent as event with key set to `snowflake.event.trigger`, value to key from `EVENT_TIMESTAMPS` and `timestamp` set to the key value. | snowflake.budget.created_on |           | budgets      |
 
@@ -183,7 +213,7 @@ check the `Context Name` column below.
 ### Dimensions at the `Cold Tables` plugin
 
 | Identifier                                | Description                                               | Example                    | Stability | Context Name |
-|-------------------------------------------|-----------------------------------------------------------|----------------------------|-----------|--------------|
+| ----------------------------------------- | --------------------------------------------------------- | -------------------------- | --------- | ------------ |
 | db.&#8203;collection.&#8203;name          | The table name.                                           | orders                     | stable    | cold_tables  |
 | db.&#8203;namespace                       | The name of the database containing the table.            | analytics_db               | stable    | cold_tables  |
 | snowflake.&#8203;schema.&#8203;name       | The schema containing the table.                          | public                     | stable    | cold_tables  |
@@ -193,15 +223,45 @@ check the `Context Name` column below.
 ### Attributes at the `Cold Tables` plugin
 
 | Identifier                                     | Description                                                           | Example              | Stability | Context Name |
-|------------------------------------------------|-----------------------------------------------------------------------|----------------------|-----------|--------------|
+| ---------------------------------------------- | --------------------------------------------------------------------- | -------------------- | --------- | ------------ |
 | snowflake.&#8203;table.&#8203;last_accessed_at | ISO 8601 timestamp of the most recent query that accessed this table. | 2026-01-15T10:30:00Z |           | cold_tables  |
 
 ### Metrics at the `Cold Tables` plugin
 
 | Identifier                                           | Name                   | Unit  | Description                                                              | Example | Stability | Context Name |
-|------------------------------------------------------|------------------------|-------|--------------------------------------------------------------------------|---------|-----------|--------------|
+| ---------------------------------------------------- | ---------------------- | ----- | ------------------------------------------------------------------------ | ------- | --------- | ------------ |
 | snowflake.&#8203;table.&#8203;access.&#8203;count    | Table Access Count     | count | Total number of query accesses to this table within the lookback window. | 42      |           | cold_tables  |
 | snowflake.&#8203;table.&#8203;days_since_last_access | Days Since Last Access | d     | Number of days since the table was last accessed by any query.           | 95      |           | cold_tables  |
+
+### DQL query examples for the `cold_tables` plugin
+
+Plot days since last access per table over time.
+
+```dql
+timeseries val = avg(snowflake.table.days_since_last_access), by: { snowflake.table.full_name, deployment.environment }
+| filter db.system == "snowflake"
+```
+
+Fetch the 100 most recent DSOA cold_tables plugin log entries from Grail.
+
+```dql
+fetch logs
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "cold_tables"
+| sort timestamp desc
+| limit 100
+```
+
+Rank the 20 coldest tables by days since last access.
+
+```dql
+fetch logs
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "cold_tables"
+| filter snowflake.table.cold_status == "cold"
+| sort snowflake.table.days_since_last_access desc
+| limit 20
+```
 
 <a name="data_schemas_semantics_sec"></a>
 
@@ -214,7 +274,7 @@ All telemetry delivered by this plugin is reported as `dsoa.run.context == "data
 ### Attributes at the `Data Schemas` plugin
 
 | Identifier                                           | Description                                                                                                                                                                        | Example                                                                                                                                                                                                                             | Stability |
-|------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------|
+| ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
 | db.&#8203;user                                       | The user who issued the query.                                                                                                                                                     | SYSTEM                                                                                                                                                                                                                              | stable    |
 | snowflake.&#8203;object.&#8203;ddl.&#8203;modified   | A JSON array that specifies the objects that were associated with a write operation in the query.                                                                                  | { "DTAGENT_DB.APP.TMP_RECENT_QUERIES": { "objectColumns": "HISTOGRAM_METRICS, COUNTER_METRICS, START_TIME, STATUS_CODE, SESSION_ID, QUERY_ID, DIMENSIONS, END_TIME, NAME, ATTRIBUTES, PARENT_QUERY_ID", "objectDomain": "Table" } } |           |
 | snowflake.&#8203;object.&#8203;ddl.&#8203;operation  | The SQL keyword that specifies the operation on the table, view, or column: <br>- ALTER, <br>- CREATE, <br>- DROP, <br>- REPLACE, <br>- UNDROP.                                    | REPLACE                                                                                                                                                                                                                             | stable    |
@@ -225,6 +285,40 @@ All telemetry delivered by this plugin is reported as `dsoa.run.context == "data
 | snowflake.&#8203;query.&#8203;id                     | An internal, system<br>-generated identifier for the SQL statement.                                                                                                                | 01b30d58-0604-6e1c-0040-e003029c1322                                                                                                                                                                                                | stable    |
 | snowflake.&#8203;query.&#8203;parent_id              | The query ID of the parent job or NULL if the job does not have a parent.                                                                                                          | 01b2fd01-0604-6864-0040-e003029abda2                                                                                                                                                                                                | stable    |
 | snowflake.&#8203;query.&#8203;root_id                | The query ID of the top most job in the chain or NULL if the job does not have a parent.                                                                                           | 01b2fd00-0604-6864-0040-e003029abd82                                                                                                                                                                                                |           |
+
+### DQL query examples for the `data_schemas` plugin
+
+Fetch the 100 most recent DSOA data_schemas plugin log entries (DDL change inventory) from Grail.
+
+```dql
+fetch logs
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "data_schemas"
+| sort timestamp desc
+| limit 100
+```
+
+Fetch the 50 most recent DROP DDL operations reported by the data_schemas plugin.
+
+```dql
+fetch logs
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "data_schemas"
+| filter snowflake.object.ddl.operation == "DROP"
+| sort timestamp desc
+| limit 50
+```
+
+Fetch the 50 most recent DDL changes affecting Snowflake tables.
+
+```dql
+fetch logs
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "data_schemas"
+| filter snowflake.object.type == "Table"
+| sort timestamp desc
+| limit 50
+```
 
 <a name="data_volume_semantics_sec"></a>
 
@@ -237,7 +331,7 @@ All telemetry delivered by this plugin is reported as `dsoa.run.context == "data
 ### Dimensions at the `Data Volume` plugin
 
 | Identifier                         | Description                                                                                    | Example                        | Stability |
-|------------------------------------|------------------------------------------------------------------------------------------------|--------------------------------|-----------|
+| ---------------------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------ | --------- |
 | db.&#8203;collection.&#8203;name   | The full name of the table, including the catalog, schema, and table name.                     | analytics_db.public.sales_data |           |
 | db.&#8203;namespace                | The name of the database that contains the table.                                              | analytics_db                   |           |
 | snowflake.&#8203;table.&#8203;type | The type of the table, such as: <br>- BASE TABLE, <br>- TEMPORARY TABLE, <br>- EXTERNAL TABLE. | BASE TABLE                     | stable    |
@@ -245,7 +339,7 @@ All telemetry delivered by this plugin is reported as `dsoa.run.context == "data
 ### Metrics at the `Data Volume` plugin
 
 | Identifier                                                  | Name                   | Unit | Description                                                             | Example    | Stability |
-|-------------------------------------------------------------|------------------------|------|-------------------------------------------------------------------------|------------|-----------|
+| ----------------------------------------------------------- | ---------------------- | ---- | ----------------------------------------------------------------------- | ---------- | --------- |
 | snowflake.&#8203;data.&#8203;rows                           | Row Count              | rows | Sum of all rows in all objects in this scope.                           | 1000000    |           |
 | snowflake.&#8203;data.&#8203;size                           | Table Size in Bytes    | By   | Total size (in bytes) of all objects in this scope.                     | 1073741824 |           |
 | snowflake.&#8203;table.&#8203;time_since.&#8203;last_ddl    | Time Since Last DDL    | min  | Time (in minutes) since last time given objects structure was altered.  | 2880       |           |
@@ -254,10 +348,37 @@ All telemetry delivered by this plugin is reported as `dsoa.run.context == "data
 ### Event timestamps at the `Data Volume` plugin
 
 | Identifier                            | Description                                                                                                                                                                                           | Example                | Stability |
-|---------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------|-----------|
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- | --------- |
 | snowflake.&#8203;event.&#8203;trigger | Additionally to sending logs, each entry in `EVENT_TIMESTAMPS` is sent as event with key set to `snowflake.event.trigger`, value to key from `EVENT_TIMESTAMPS` and `timestamp` set to the key value. | snowflake.table.update |           |
 | snowflake.&#8203;table.&#8203;ddl     | The timestamp of the last DDL operation performed on the table or view, including CREATE, ALTER, DROP, or UNDROP.                                                                                     | 1730458800000000000    |           |
 | snowflake.&#8203;table.&#8203;update  | The timestamp of the last time the object was altered by a DML, DDL, or background metadata operation.                                                                                                | 1731256700000000000    | stable    |
+
+### DQL query examples for the `data_volume` plugin
+
+Plot total table size in bytes per table over time.
+
+```dql
+timeseries val = sum(snowflake.data.size), by: { db.collection.name, deployment.environment }
+| filter db.system == "snowflake"
+```
+
+Fetch the 50 most recent DSOA self-monitoring business events for the data_volume plugin.
+
+```dql
+fetch bizevents
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "data_volume"
+| sort timestamp desc
+| limit 50
+```
+
+Plot row-count growth per table between consecutive measurements.
+
+```dql
+timeseries rows = sum(snowflake.data.rows), by: { db.collection.name, deployment.environment }
+| filter db.system == "snowflake"
+| fieldsAdd growth = rows - rows[1]
+```
 
 <a name="dynamic_tables_semantics_sec"></a>
 
@@ -271,7 +392,7 @@ check the `Context Name` column below.
 ### Dimensions at the `Dynamic Tables` plugin
 
 | Identifier                              | Description                                               | Example                                         | Stability | Context Name                                                               |
-|-----------------------------------------|-----------------------------------------------------------|-------------------------------------------------|-----------|----------------------------------------------------------------------------|
+| --------------------------------------- | --------------------------------------------------------- | ----------------------------------------------- | --------- | -------------------------------------------------------------------------- |
 | db.&#8203;collection.&#8203;name        | Name of the dynamic table.                                | EMPLOYEE_DET                                    |           | dynamic_tables, dynamic_table_refresh_history, dynamic_table_graph_history |
 | db.&#8203;namespace                     | The name of the database in which the query was executed. | DYNAMIC_TABLE_DB                                |           | dynamic_tables, dynamic_table_refresh_history, dynamic_table_graph_history |
 | snowflake.&#8203;schema.&#8203;name     | Name of the schema that contains the dynamic table.       | DYNAMIC_TABLE_SCH                               | stable    | dynamic_tables, dynamic_table_refresh_history, dynamic_table_graph_history |
@@ -280,7 +401,7 @@ check the `Context Name` column below.
 ### Attributes at the `Dynamic Tables` plugin
 
 | Identifier                                                                                  | Description                                                                                                                                                                                                                                                                        | Example                                                                                                                                                          | Stability | Context Name                                               |
-|---------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------|------------------------------------------------------------|
+| ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | ---------------------------------------------------------- |
 | db.&#8203;query.&#8203;text                                                                 | The SELECT statement for this dynamic table.                                                                                                                                                                                                                                       | SELECT A.EMP_ID,A.EMP_NAME,A.EMP_ADDRESS, B.SKILL_ID,B.SKILL_NAME,B.SKILL_LEVEL FROM EMPLOYEE A, EMPLOYEE_SKILL B WHERE A.EMP_ID=B.EMP_ID ORDER BY B.SKILL_ID ;  |           | dynamic_table_graph_history                                |
 | snowflake.&#8203;query.&#8203;id                                                            | If present, this represents the query ID of the refresh job that produced the results for the dynamic table.                                                                                                                                                                       | 01b899f1-0712-45a6-0040-e00303977b8e                                                                                                                             | stable    | dynamic_tables, dynamic_table_refresh_history              |
 | snowflake.&#8203;table.&#8203;dynamic.&#8203;graph.&#8203;alter_trigger                     | Describes why a new entry is created in the DYNAMIC_TABLE_GRAPH_HISTORY function. Can be one of the following: <br>- NONE (backwards<br>-compatible), <br>- CREATE_DYNAMIC_TABLE, <br>- ALTER_TARGET_LAG, <br>- SUSPEND, RESUME, <br>- REPLICATION_REFRESH, <br>- ALTER_WAREHOUSE. | [['CREATE_DYNAMIC_TABLE']]                                                                                                                                       |           | dynamic_table_graph_history                                |
@@ -310,7 +431,7 @@ check the `Context Name` column below.
 ### Metrics at the `Dynamic Tables` plugin
 
 | Identifier                                                                         | Name                         | Unit       | Description                                                                                                                                   | Example | Stability | Context Name                                               |
-|------------------------------------------------------------------------------------|------------------------------|------------|-----------------------------------------------------------------------------------------------------------------------------------------------|---------|-----------|------------------------------------------------------------|
+| ---------------------------------------------------------------------------------- | ---------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ------- | --------- | ---------------------------------------------------------- |
 | snowflake.&#8203;partitions.&#8203;added                                           | Partitions Added             | partitions | The number of partitions added during the refresh.                                                                                            | 5       |           | dynamic_table_refresh_history                              |
 | snowflake.&#8203;partitions.&#8203;removed                                         | Partitions Removed           | partitions | The number of partitions removed during the refresh.                                                                                          | 3       |           | dynamic_table_refresh_history                              |
 | snowflake.&#8203;rows.&#8203;copied                                                | Rows Copied                  | rows       | The number of rows copied during the refresh.                                                                                                 | 75      |           | dynamic_table_refresh_history                              |
@@ -325,11 +446,40 @@ check the `Context Name` column below.
 ### Event timestamps at the `Dynamic Tables` plugin
 
 | Identifier                                                                  | Description                                                                                                                                                                                           | Example                                       | Stability | Context Name                                               |
-|-----------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------|-----------|------------------------------------------------------------|
+| --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- | --------- | ---------------------------------------------------------- |
 | snowflake.&#8203;event.&#8203;trigger                                       | Additionally to sending logs, each entry in `EVENT_TIMESTAMPS` is sent as event with key set to `snowflake.event.trigger`, value to key from `EVENT_TIMESTAMPS` and `timestamp` set to the key value. | snowflake.table.dynamic.scheduling.resumed_on |           | dynamic_table_refresh_history, dynamic_table_graph_history |
 | snowflake.&#8203;table.&#8203;dynamic.&#8203;graph.&#8203;valid_from        | The timestamp after which the description of the dynamic table is valid.                                                                                                                              | 1732135627448000000                           |           | dynamic_table_refresh_history, dynamic_table_graph_history |
 | snowflake.&#8203;table.&#8203;dynamic.&#8203;scheduling.&#8203;resumed_on   | The timestamp when the dynamic table was last resumed, if ACTIVE.                                                                                                                                     | 2024-11-25 08:09:53.695 Z                     | stable    | dynamic_table_graph_history                                |
 | snowflake.&#8203;table.&#8203;dynamic.&#8203;scheduling.&#8203;suspended_on | The timestamp when the dynamic table was suspended.                                                                                                                                                   | 2024-11-25 06:09:53.695 Z                     |           | dynamic_table_graph_history                                |
+
+### DQL query examples for the `dynamic_tables` plugin
+
+Plot mean refresh lag per dynamic table over time.
+
+```dql
+timeseries val = avg(snowflake.table.dynamic.lag.mean), by: { db.collection.name, deployment.environment }
+| filter db.system == "snowflake"
+```
+
+Fetch the 100 most recent DSOA dynamic_tables plugin log entries from Grail.
+
+```dql
+fetch logs
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "dynamic_tables"
+| sort timestamp desc
+| limit 100
+```
+
+Fetch the 50 most recent DSOA self-monitoring business events for the dynamic_tables plugin.
+
+```dql
+fetch bizevents
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "dynamic_tables"
+| sort timestamp desc
+| limit 50
+```
 
 <a name="event_log_semantics_sec"></a>
 
@@ -343,7 +493,7 @@ check the `Context Name` column below.
 ### Dimensions at the `Event Log` plugin
 
 | Identifier                             | Description                                                                             | Example                              | Stability | Context Name                       |
-|----------------------------------------|-----------------------------------------------------------------------------------------|--------------------------------------|-----------|------------------------------------|
+| -------------------------------------- | --------------------------------------------------------------------------------------- | ------------------------------------ | --------- | ---------------------------------- |
 | db.&#8203;namespace                    | The name of the database that was specified in the context of the query at compilation. | PROD_DB                              |           | event_log_metrics, event_log_spans |
 | snowflake.&#8203;query.&#8203;id       | The unique identifier for the query.                                                    | b1bbaa7f-8144-4e50-947a-b7e9bf7d62d5 | stable    | event_log_metrics, event_log_spans |
 | snowflake.&#8203;role.&#8203;name      | The role used to execute the query.                                                     | SYSADMIN                             | stable    | event_log_metrics, event_log_spans |
@@ -353,7 +503,7 @@ check the `Context Name` column below.
 ### Metrics at the `Event Log` plugin
 
 | Identifier                            | Name                    | Unit | Description                                       | Example  | Stability | Context Name      |
-|---------------------------------------|-------------------------|------|---------------------------------------------------|----------|-----------|-------------------|
+| ------------------------------------- | ----------------------- | ---- | ------------------------------------------------- | -------- | --------- | ----------------- |
 | process.&#8203;cpu.&#8203;utilization | Process CPU Utilization | %    | The percentage of CPU utilization by the process. | 0.015    |           | event_log_metrics |
 | process.&#8203;memory.&#8203;usage    | Process Memory Usage    | By   | The total memory usage by the process in bytes.   | 34844672 |           | event_log_metrics |
 
@@ -397,9 +547,33 @@ All telemetry delivered by this plugin is reported as `dsoa.run.context == "even
 ### Metrics at the `Event Usage` plugin
 
 | Identifier                            | Name                           | Unit    | Description                                                                                               | Example  | Stability |
-|---------------------------------------|--------------------------------|---------|-----------------------------------------------------------------------------------------------------------|----------|-----------|
+| ------------------------------------- | ------------------------------ | ------- | --------------------------------------------------------------------------------------------------------- | -------- | --------- |
 | snowflake.&#8203;credits.&#8203;used  | Snowflake Credits Used         | credits | Number of credits billed for loading data into the event table during the START_TIME and END_TIME window. | 15       |           |
 | snowflake.&#8203;data.&#8203;ingested | Bytes Ingested for Event Table | By      | Number of bytes of data loaded during the START_TIME and END_TIME window.                                 | 10485760 |           |
+
+### DQL query examples for the `event_usage` plugin
+
+Plot credits billed for loading data into the event table over time.
+
+```dql
+timeseries val = sum(snowflake.credits.used), by: { deployment.environment }
+| filter db.system == "snowflake"
+```
+
+Plot bytes of data loaded into the event table over time.
+
+```dql
+timeseries val = sum(snowflake.data.ingested), by: { deployment.environment }
+| filter db.system == "snowflake"
+```
+
+Plot event table ingestion cost efficiency (credits per byte ingested) over time.
+
+```dql
+timeseries credits = sum(snowflake.credits.used), bytes = sum(snowflake.data.ingested), by: { deployment.environment }
+| filter db.system == "snowflake"
+| fieldsAdd credits_per_byte = credits / bytes
+```
 
 <a name="login_history_semantics_sec"></a>
 
@@ -413,7 +587,7 @@ check the `Context Name` column below.
 ### Dimensions at the `Login History` plugin
 
 | Identifier         | Description                                                                          | Example     | Stability | Context Name            |
-|--------------------|--------------------------------------------------------------------------------------|-------------|-----------|-------------------------|
+| ------------------ | ------------------------------------------------------------------------------------ | ----------- | --------- | ----------------------- |
 | client.&#8203;ip   | The IP address of the client that initiated the event.                               | 192.168.1.1 |           | login_history           |
 | client.&#8203;type | The type of client used to connect to Snowflake, such as JDBC_DRIVER or ODBC_DRIVER. | JDBC_DRIVER | stable    | login_history           |
 | db.&#8203;user     | The user who performed the event in the database.                                    | john_doe    | stable    | login_history, sessions |
@@ -421,31 +595,31 @@ check the `Context Name` column below.
 
 ### Attributes at the `Login History` plugin
 
-| Identifier                                    | Description                                                                                         | Example                                                    | Stability    | Context Name            |
-|-----------------------------------------------|-----------------------------------------------------------------------------------------------------|------------------------------------------------------------|--------------|-------------------------|
-| authentication.&#8203;factor.&#8203;first     | The first factor used for authentication, typically a password.                                     | password123                                                | stable       | login_history           |
-| authentication.&#8203;factor.&#8203;second    | The second factor used for authentication, such as an MFA token, or NULL if not applicable.         | MFA_TOKEN_ABC123                                           | stable       | login_history           |
-| authentication.&#8203;type                    | The type of authentication used for the session.                                                    | PASSWORD                                                   |              | sessions                |
-| client.&#8203;application.&#8203;id           | The ID of the client application used for the session.                                              | app123                                                     | stable       | sessions                |
-| client.&#8203;application.&#8203;version      | The version of the client application used for the session.                                         | 1.0.0                                                      |              | sessions                |
-| client.&#8203;build_id                        | The build ID of the client application.                                                             | build123                                                   |              | sessions                |
-| client.&#8203;environment                     | The environment of the client application.                                                          | PRODUCTION                                                 | stable       | sessions                |
-| client.&#8203;version                         | The version of the client software used to connect to Snowflake.                                    | 1.0.0                                                      |              | login_history, sessions |
-| db.&#8203;snowflake.&#8203;connection         | The name of the connection used by the client, or NULL if the client is not using a connection URL. | connection_1                                               |              | login_history           |
-| event.&#8203;description                      | Human<br>-readable description of the login event, providing additional context about the outcome.  | Failed login attempt for user JOHN.DOE from 192.168.1.100. | stable       | login_history           |
-| event.&#8203;id                               | A unique identifier for the login attempt or the login event associated with the session.           | 13825839647097210                                          |              | login_history, sessions |
-| event.&#8203;related_id                       | An identifier for a related event, if applicable.                                                   | 987654321                                                  |              | login_history           |
-| snowflake.&#8203;error.&#8203;code            | A code identifying the type of error that occurred.                                                 | 390100                                                     |              | login_history           |
-| snowflake.&#8203;session.&#8203;closed_reason | The reason the session was closed.                                                                  | USER_LOGOUT                                                |              | sessions                |
-| snowflake.&#8203;session.&#8203;id            | The unique identifier for the session.                                                              | 1234567890                                                 | experimental | sessions                |
-| snowflake.&#8203;session.&#8203;start         | The start time of the session.                                                                      | 1633046400000000000                                        |              | sessions                |
-| snowflake.&#8203;status.&#8203;code           | The status of the login attempt, indicating success (OK) or failure (ERROR).                        | OK                                                         |              | login_history           |
-| snowflake.&#8203;status.&#8203;message        | A human<br>-readable message providing additional detail about the operation status.                | Login successful                                           |              | login_history           |
+| Identifier                                    | Description                                                                                                  | Example                                                    | Stability    | Context Name            |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------- | ------------ | ----------------------- |
+| authentication.&#8203;factor.&#8203;first     | The first factor used for authentication, typically a password.                                              | PASSWORD                                                   | stable       | login_history           |
+| authentication.&#8203;factor.&#8203;second    | The second factor used for authentication, such as an MFA token. Omitted when only a single factor was used. | TOTP                                                       | stable       | login_history           |
+| authentication.&#8203;type                    | The type of authentication used for the session.                                                             | PASSWORD                                                   |              | sessions                |
+| client.&#8203;application.&#8203;id           | The ID of the client application used for the session.                                                       | SnowflakeJDBCDriver                                        | stable       | sessions                |
+| client.&#8203;application.&#8203;version      | The version of the client application used for the session.                                                  | 1.0.0                                                      |              | sessions                |
+| client.&#8203;build_id                        | The build ID of the client application.                                                                      | build123                                                   |              | sessions                |
+| client.&#8203;environment                     | The environment of the client application.                                                                   | PRODUCTION                                                 | stable       | sessions                |
+| client.&#8203;version                         | The version of the client software used to connect to Snowflake.                                             | 1.0.0                                                      |              | login_history, sessions |
+| db.&#8203;snowflake.&#8203;connection         | The name of the connection used by the client, or NULL if the client is not using a connection URL.          | connection_1                                               |              | login_history           |
+| event.&#8203;description                      | Human<br>-readable description of the login event, providing additional context about the outcome.           | Failed login attempt for user JOHN.DOE from 192.168.1.100. | stable       | login_history           |
+| event.&#8203;id                               | A unique identifier for the login attempt or the login event associated with the session.                    | 13825839647097210                                          |              | login_history, sessions |
+| event.&#8203;related_id                       | An identifier for a related event, if applicable.                                                            | 987654321                                                  |              | login_history           |
+| snowflake.&#8203;error.&#8203;code            | A code identifying the type of error that occurred.                                                          | 390100                                                     |              | login_history           |
+| snowflake.&#8203;session.&#8203;closed_reason | The reason the session was closed.                                                                           | USER_LOGOUT                                                |              | sessions                |
+| snowflake.&#8203;session.&#8203;id            | The unique identifier for the session.                                                                       | 1234567890                                                 | experimental | sessions                |
+| snowflake.&#8203;session.&#8203;start         | The start time of the session.                                                                               | 1633046400000000000                                        |              | sessions                |
+| snowflake.&#8203;status.&#8203;code           | The status of the login attempt, indicating success (OK) or failure (ERROR).                                 | OK                                                         |              | login_history           |
+| snowflake.&#8203;status.&#8203;message        | A human<br>-readable message providing additional detail about the operation status.                         | Login successful                                           |              | login_history           |
 
 ### Metrics at the `Login History` plugin
 
 | Identifier                                               | Name                                | Unit  | Description                                                                                  | Example | Stability | Context Name |
-|----------------------------------------------------------|-------------------------------------|-------|----------------------------------------------------------------------------------------------|---------|-----------|--------------|
+| -------------------------------------------------------- | ----------------------------------- | ----- | -------------------------------------------------------------------------------------------- | ------- | --------- | ------------ |
 | snowflake.&#8203;login.&#8203;attempts.&#8203;failed     | Snowflake Login Attempts Failed     | count | Number of failed Snowflake login attempts within the collection window.                      | 42      |           | openpipeline |
 | snowflake.&#8203;login.&#8203;attempts.&#8203;successful | Snowflake Login Attempts Successful | count | Number of successful Snowflake login attempts within the collection window.                  | 1234    |           | openpipeline |
 | snowflake.&#8203;login.&#8203;attempts.&#8203;total      | Snowflake Login Attempts Total      | count | Total number of Snowflake login attempts (failed + successful) within the collection window. | 1276    |           | openpipeline |
@@ -509,20 +683,20 @@ check the `Context Name` column below.
 ### Dimensions at the `Metering` plugin
 
 | Identifier                           | Description                                                                                                        | Example         | Stability | Context Name |
-|--------------------------------------|--------------------------------------------------------------------------------------------------------------------|-----------------|-----------|--------------|
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------ | --------------- | --------- | ------------ |
 | snowflake.&#8203;service.&#8203;name | Name of the Snowflake service entity that consumed credits.                                                        | MY_PIPE         | stable    | metering     |
 | snowflake.&#8203;service.&#8203;type | Snowflake service type that consumed credits (e.g. AUTO_CLUSTERING, PIPE, SERVERLESS_TASK, TELEMETRY_DATA_INGEST). | AUTO_CLUSTERING | stable    | metering     |
 
 ### Attributes at the `Metering` plugin
 
 | Identifier                                | Description                                        | Example | Stability | Context Name |
-|-------------------------------------------|----------------------------------------------------|---------|-----------|--------------|
+| ----------------------------------------- | -------------------------------------------------- | ------- | --------- | ------------ |
 | snowflake.&#8203;service.&#8203;entity_id | Unique Snowflake identifier of the service entity. | 12345   |           | metering     |
 
 ### Metrics at the `Metering` plugin
 
 | Identifier                                                 | Name                                  | Unit    | Description                                                            | Example  | Stability | Context Name |
-|------------------------------------------------------------|---------------------------------------|---------|------------------------------------------------------------------------|----------|-----------|--------------|
+| ---------------------------------------------------------- | ------------------------------------- | ------- | ---------------------------------------------------------------------- | -------- | --------- | ------------ |
 | snowflake.&#8203;credits.&#8203;used                       | Snowflake Credits Used                | credits | Total credits consumed by the service in the metering window.          | 15.5     |           | metering     |
 | snowflake.&#8203;credits.&#8203;used.&#8203;cloud_services | Snowflake Cloud Services Credits Used | credits | Cloud services credits consumed by the service in the metering window. | 3.2      |           | metering     |
 | snowflake.&#8203;credits.&#8203;used.&#8203;compute        | Snowflake Compute Credits Used        | credits | Compute credits consumed by the service in the metering window.        | 12.3     |           | metering     |
@@ -578,7 +752,7 @@ check the `Context Name` column below.
 ### Dimensions at the `Org Costs` plugin
 
 | Identifier                                          | Description                                                             | Example            | Stability | Context Name                                                                                                                 |
-|-----------------------------------------------------|-------------------------------------------------------------------------|--------------------|-----------|------------------------------------------------------------------------------------------------------------------------------|
+| --------------------------------------------------- | ----------------------------------------------------------------------- | ------------------ | --------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | snowflake.&#8203;account.&#8203;locator             | The account locator identifier for the Snowflake account.               | ABC12345           |           | org_costs_storage, org_costs_data_transfer, org_billing_usage_in_currency, org_billing_remaining_balance                     |
 | snowflake.&#8203;account.&#8203;name                | The name of the Snowflake account within the organization.              | MYORG-ACCOUNT1     | stable    | org_costs_metering, org_costs_storage, org_costs_data_transfer, org_billing_usage_in_currency, org_billing_remaining_balance |
 | snowflake.&#8203;account.&#8203;region              | The cloud region of the Snowflake account performing the data transfer. | US_EAST_1          | stable    | org_costs_data_transfer                                                                                                      |
@@ -589,14 +763,14 @@ check the `Context Name` column below.
 ### Attributes at the `Org Costs` plugin
 
 | Identifier                                                 | Description                                                        | Example      | Stability | Context Name                  |
-|------------------------------------------------------------|--------------------------------------------------------------------|--------------|-----------|-------------------------------|
+| ---------------------------------------------------------- | ------------------------------------------------------------------ | ------------ | --------- | ----------------------------- |
 | snowflake.&#8203;account.&#8203;locator                    | The account locator identifier for the Snowflake account.          | ABC12345     |           | org_costs_metering            |
 | snowflake.&#8203;org.&#8203;billing.&#8203;contract_number | The contract number associated with the Snowflake billing balance. | CONTRACT-001 |           | org_billing_remaining_balance |
 
 ### Metrics at the `Org Costs` plugin
 
 | Identifier                                                                       | Name                                              | Unit     | Description                                                                        | Example       | Stability | Context Name                  |
-|----------------------------------------------------------------------------------|---------------------------------------------------|----------|------------------------------------------------------------------------------------|---------------|-----------|-------------------------------|
+| -------------------------------------------------------------------------------- | ------------------------------------------------- | -------- | ---------------------------------------------------------------------------------- | ------------- | --------- | ----------------------------- |
 | snowflake.&#8203;org.&#8203;billing.&#8203;amount                                | Org Billing Amount in Currency                    | currency | The billing amount in currency for the account on the given day.                   | 150.5         |           | org_billing_usage_in_currency |
 | snowflake.&#8203;org.&#8203;billing.&#8203;capacity_balance                      | Org Billing Capacity Balance                      | currency | Remaining capacity balance for the organization contract.                          | 10000.0       |           | org_billing_remaining_balance |
 | snowflake.&#8203;org.&#8203;billing.&#8203;free_usage_balance                    | Org Billing Free Usage Balance                    | currency | Remaining free usage balance for the organization contract.                        | 200.0         |           | org_billing_remaining_balance |
@@ -610,6 +784,32 @@ check the `Context Name` column below.
 | snowflake.&#8203;org.&#8203;data.&#8203;stored                                   | Org Data Stored                                   | By       | Total storage bytes used by the account on the given day across all storage types. | 1099511627776 |           | org_costs_storage             |
 | snowflake.&#8203;org.&#8203;data.&#8203;transferred                              | Org Data Transfer Bytes                           | By       | Bytes transferred between clouds or regions on the given day.                      | 2147483648    |           | org_costs_data_transfer       |
 
+### DQL query examples for the `org_costs` plugin
+
+Plot total credits used per Snowflake account over time.
+
+```dql
+timeseries val = sum(snowflake.org.credits.used), by: { snowflake.account.name, deployment.environment }
+| filter db.system == "snowflake"
+```
+
+Fetch the 100 most recent DSOA org_costs plugin log entries from Grail.
+
+```dql
+fetch logs
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "org_costs"
+| sort timestamp desc
+| limit 100
+```
+
+Break down organization credit consumption by Snowflake service type over time.
+
+```dql
+timeseries val = sum(snowflake.org.credits.used), by: { snowflake.service.type, deployment.environment }
+| filter db.system == "snowflake"
+```
+
 <a name="query_history_semantics_sec"></a>
 
 ## The `Query History` plugin semantics
@@ -621,7 +821,7 @@ All telemetry delivered by this plugin is reported as `dsoa.run.context == "quer
 ### Dimensions at the `Query History` plugin
 
 | Identifier                                      | Description                                                                                                                                                                                                                                                                              | Example                | Stability |
-|-------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------|-----------|
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- | --------- |
 | db.&#8203;collection.&#8203;name                | The name of the table involved in the query.                                                                                                                                                                                                                                             | users                  |           |
 | db.&#8203;namespace                             | The name of the database that was specified in the context of the query at compilation.                                                                                                                                                                                                  | PROD_DB                |           |
 | db.&#8203;operation.&#8203;name                 | The type of operation performed by the query.                                                                                                                                                                                                                                            | SELECT                 | stable    |
@@ -639,9 +839,9 @@ All telemetry delivered by this plugin is reported as `dsoa.run.context == "quer
 ### Attributes at the `Query History` plugin
 
 | Identifier                                                                | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | Example                                                                                                                                                               | Stability    |
-|---------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------|
+| ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
 | authentication.&#8203;type                                                | The authentication method used for the session.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | PASSWORD                                                                                                                                                              |              |
-| client.&#8203;application.&#8203;id                                       | The ID of the client application used to execute the query.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | app123                                                                                                                                                                | stable       |
+| client.&#8203;application.&#8203;id                                       | The ID of the client application used to execute the query.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | SnowflakeJDBCDriver                                                                                                                                                   | stable       |
 | client.&#8203;application.&#8203;version                                  | The version of the client application used to execute the query.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | 1.0.0                                                                                                                                                                 |              |
 | client.&#8203;build_id                                                    | The build ID of the client application.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | build123                                                                                                                                                              |              |
 | client.&#8203;environment                                                 | The environment of the client application.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | production                                                                                                                                                            | stable       |
@@ -652,8 +852,8 @@ All telemetry delivered by this plugin is reported as `dsoa.run.context == "quer
 | dsoa.&#8203;debug.&#8203;span.&#8203;events.&#8203;added                  | Internal debug field indicating the number of span events successfully added to the given span.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | 5                                                                                                                                                                     | stable       |
 | dsoa.&#8203;debug.&#8203;span.&#8203;events.&#8203;failed                 | Internal debug field indicating the number of span events that failed to be added to the given span.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | 1                                                                                                                                                                     | stable       |
 | dsoa.&#8203;plugins.&#8203;query_history.&#8203;obfuscation_mode          | Configuration key controlling query text obfuscation mode applied to `db.query.text` and `snowflake.error.message`. Possible values: `off` (no transformation), `literals` (replace string and numeric literals with `?`), `full` (replace entire query text with `[OBFUSCATED]`).                                                                                                                                                                                                                                                                                                                                                                                                                        | off                                                                                                                                                                   | stable       |
+| dsoa.&#8203;plugins.&#8203;query_history.&#8203;track_ddl_changes         | EXPERIMENTAL. When `true`, the plugin surfaces DDL change attribution attributes (`snowflake.object.type`, `.id`, `.name`, `snowflake.object.ddl.operation`, `snowflake.object.ddl.properties`) on `query_history` events whose `ACCESS_HISTORY` row carries an `OBJECT_MODIFIED_BY_DDL` payload. Covers database<br>-object DDL only (tables, views, schemas, procedures). Warehouse and resource<br>-monitor DDL does not populate `OBJECT_MODIFIED_BY_DDL` and is not affected by this setting — use `db.operation.name` for warehouse change detection. Default `false` preserves backward<br>-compatible behavior. May be refactored into a dedicated plugin in a future release.                    | False                                                                                                                                                                 | experimental |
 | event.&#8203;id                                                           | The login event ID associated with the query.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | 13825839647097210                                                                                                                                                     |              |
-| plugins.&#8203;query_history.&#8203;track_ddl_changes                     | EXPERIMENTAL. When `true`, the plugin surfaces DDL change attribution attributes (`snowflake.object.type`, `.id`, `.name`, `snowflake.object.ddl.operation`, `snowflake.object.ddl.properties`) on `query_history` events whose `ACCESS_HISTORY` row carries an `OBJECT_MODIFIED_BY_DDL` payload. Covers database<br>-object DDL only (tables, views, schemas, procedures). Warehouse and resource<br>-monitor DDL does not populate `OBJECT_MODIFIED_BY_DDL` and is not affected by this setting — use `db.operation.name` for warehouse change detection. Default `false` preserves backward<br>-compatible behavior. May be refactored into a dedicated plugin in a future release.                    | False                                                                                                                                                                 | stable       |
 | snowflake.&#8203;cluster_number                                           | The cluster number associated with the query.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | 1                                                                                                                                                                     |              |
 | snowflake.&#8203;cost_attribution.&#8203;period_end                       | End of the cost attribution summary window.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | 1730844667000000000                                                                                                                                                   |              |
 | snowflake.&#8203;cost_attribution.&#8203;period_start                     | Start of the cost attribution summary window.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | 1730841067000000000                                                                                                                                                   |              |
@@ -705,7 +905,7 @@ All telemetry delivered by this plugin is reported as `dsoa.run.context == "quer
 ### Metrics at the `Query History` plugin
 
 | Identifier                                                      | Name                                        | Unit       | Description                                                                                                                                                                                                            | Example  | Stability |
-|-----------------------------------------------------------------|---------------------------------------------|------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------|-----------|
+| --------------------------------------------------------------- | ------------------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | --------- |
 | snowflake.&#8203;acceleration.&#8203;data.&#8203;scanned        | Query Acceleration Bytes Scanned            | By         | Number of bytes scanned by the query acceleration service.                                                                                                                                                             | 2097152  |           |
 | snowflake.&#8203;acceleration.&#8203;partitions.&#8203;scanned  | Query Acceleration Partitions Scanned       | partitions | Number of partitions scanned by the query acceleration service.                                                                                                                                                        | 50       |           |
 | snowflake.&#8203;acceleration.&#8203;scale_factor.&#8203;max    | Query Acceleration Upper Limit Scale Factor | 1          | Upper limit scale factor that a query would have benefited from.                                                                                                                                                       | 4        |           |
@@ -806,14 +1006,14 @@ All telemetry delivered by this plugin is reported as `dsoa.run.context == "reso
 ### Dimensions at the `Resource Monitors` plugin
 
 | Identifier                                    | Description                       | Example    | Stability |
-|-----------------------------------------------|-----------------------------------|------------|-----------|
+| --------------------------------------------- | --------------------------------- | ---------- | --------- |
 | snowflake.&#8203;resource_monitor.&#8203;name | The name of the resource monitor. | RM_MONITOR | stable    |
 | snowflake.&#8203;warehouse.&#8203;name        | The name of the warehouse.        | COMPUTE_WH | stable    |
 
 ### Attributes at the `Resource Monitors` plugin
 
 | Identifier                                                          | Description                                                                                                                                                                                                                  | Example                        | Stability |
-|---------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------|-----------|
+| ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ | --------- |
 | snowflake.&#8203;budget.&#8203;name                                 | The name of the budget associated with the warehouse.                                                                                                                                                                        | BUDGET_2024                    | stable    |
 | snowflake.&#8203;credits.&#8203;quota.&#8203;remaining              | The remaining credits of the resource monitor.                                                                                                                                                                               | 500.0                          |           |
 | snowflake.&#8203;credits.&#8203;quota.&#8203;used                   | The credits used by the resource monitor.                                                                                                                                                                                    | 500.0                          |           |
@@ -826,7 +1026,6 @@ All telemetry delivered by this plugin is reported as `dsoa.run.context == "reso
 | snowflake.&#8203;resource_monitor.&#8203;threshold.&#8203;level     | Alert band for the threshold event: `info` (below 80%), `warn` ([80–90%)), `critical` ([90–100%)), or `exhausted` (>=100%).                                                                                                  | warn                           |           |
 | snowflake.&#8203;resource_monitor.&#8203;threshold.&#8203;value     | The configured threshold percentage at which this crossing event was triggered (e.g., 80 means the 80% threshold was crossed). Distinct from snowflake.credits.quota.used_pct, which captures live consumption at emit time. | 80                             |           |
 | snowflake.&#8203;resource_monitor.&#8203;warehouses                 | The names of the warehouses monitored.                                                                                                                                                                                       | ['COMPUTE_WH']                 |           |
-| snowflake.&#8203;warehouse.&#8203;event                             | The warehouse event type key that triggered this event record. Identifies the specific warehouse lifecycle event (e.g., AUTO_SUSPEND, AUTO_RESUME) that was detected by the resource monitors plugin.                        | AUTO_SUSPEND                   | stable    |
 | snowflake.&#8203;warehouse.&#8203;event.&#8203;trigger              | The event that triggered the "warehouse is not monitored" notification.                                                                                                                                                      | snowflake.warehouse.created_on |           |
 | snowflake.&#8203;warehouse.&#8203;execution_state                   | The execution state of the warehouse.                                                                                                                                                                                        | RUNNING                        | stable    |
 | snowflake.&#8203;warehouse.&#8203;has_query_acceleration_enabled    | Indicates if query acceleration is enabled for the warehouse.                                                                                                                                                                | True                           |           |
@@ -843,7 +1042,7 @@ All telemetry delivered by this plugin is reported as `dsoa.run.context == "reso
 ### Metrics at the `Resource Monitors` plugin
 
 | Identifier                                                       | Name                                        | Unit       | Description                                                                                                                                  | Example | Stability |
-|------------------------------------------------------------------|---------------------------------------------|------------|----------------------------------------------------------------------------------------------------------------------------------------------|---------|-----------|
+| ---------------------------------------------------------------- | ------------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ------- | --------- |
 | snowflake.&#8203;acceleration.&#8203;scale_factor.&#8203;max     | Query Acceleration Upper Limit Scale Factor | 1          | Maximal scale factor for query acceleration in the given warehouse                                                                           | 2       |           |
 | snowflake.&#8203;compute.&#8203;available                        | Percentage Available                        | %          | Percentage of available resources in given warehouse.                                                                                        | 60      |           |
 | snowflake.&#8203;compute.&#8203;other                            | Percentage Other                            | %          | Percentage of other resources in given warehouse                                                                                             | 10      |           |
@@ -864,7 +1063,7 @@ All telemetry delivered by this plugin is reported as `dsoa.run.context == "reso
 ### Event timestamps at the `Resource Monitors` plugin
 
 | Identifier                                          | Description                                                                                                                                                                                           | Example                        | Stability |
-|-----------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------|-----------|
+| --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ | --------- |
 | snowflake.&#8203;event.&#8203;trigger               | Additionally to sending logs, each entry in `EVENT_TIMESTAMPS` is sent as event with key set to `snowflake.event.trigger`, value to key from `EVENT_TIMESTAMPS` and `timestamp` set to the key value. | snowflake.warehouse.resumed_on |           |
 | snowflake.&#8203;resource_monitor.&#8203;created_on | The timestamp when the resource monitor was created.                                                                                                                                                  | 1728991696789000000            |           |
 | snowflake.&#8203;resource_monitor.&#8203;end_time   | The timestamp when the resource monitor ended.                                                                                                                                                        | 1732981199999000000            |           |
@@ -911,7 +1110,7 @@ check the `Context Name` column below.
 ### Dimensions at the `Shares` plugin
 
 | Identifier                              | Description                                                           | Example                    | Stability | Context Name                    |
-|-----------------------------------------|-----------------------------------------------------------------------|----------------------------|-----------|---------------------------------|
+| --------------------------------------- | --------------------------------------------------------------------- | -------------------------- | --------- | ------------------------------- |
 | db.&#8203;collection.&#8203;name        | Name of the shared Snowflake table.                                   | SALES_DATA                 |           | inbound_shares                  |
 | db.&#8203;namespace                     | Name of the database used to store shared data.                       | DEV_DB                     |           | outbound_shares, inbound_shares |
 | snowflake.&#8203;grant.&#8203;name      | Name of the grant to a share.                                         | READ_ACCESS                | stable    | outbound_shares                 |
@@ -922,7 +1121,7 @@ check the `Context Name` column below.
 ### Attributes at the `Shares` plugin
 
 | Identifier                                           | Description                                                                                                          | Example                                                                             | Stability | Context Name                    |
-|------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|-----------|---------------------------------|
+| ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | --------- | ------------------------------- |
 | snowflake.&#8203;data.&#8203;rows                    | Number of rows in the table.                                                                                         | 20000                                                                               |           | inbound_shares                  |
 | snowflake.&#8203;data.&#8203;size                    | Number of bytes accessed by a scan of the table.                                                                     | 800000                                                                              |           | inbound_shares                  |
 | snowflake.&#8203;error.&#8203;message                | Provides additional context about the share status when unavailable or inaccessible.                                 | Shared database is no longer available                                              | stable    | inbound_shares                  |
@@ -956,10 +1155,10 @@ check the `Context Name` column below.
 ### Event timestamps at the `Shares` plugin
 
 | Identifier                               | Description                                                                                                                                                                                           | Example                    | Stability | Context Name                    |
-|------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------|-----------|---------------------------------|
+| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- | --------- | ------------------------------- |
 | snowflake.&#8203;event.&#8203;trigger    | Additionally to sending logs, each entry in `EVENT_TIMESTAMPS` is sent as event with key set to `snowflake.event.trigger`, value to key from `EVENT_TIMESTAMPS` and `timestamp` set to the key value. | snowflake.grant.created_on |           | outbound_shares, inbound_shares |
 | snowflake.&#8203;grant.&#8203;created_on | The timestamp when the grant was created. Epoch nanoseconds timestamp.                                                                                                                                | 1639051180946000000        | stable    | outbound_shares                 |
-| snowflake.&#8203;share.&#8203;created_on | The timestamp when the share was created.                                                                                                                                                             | 1639051180714000000        |           | shares                          |
+| snowflake.&#8203;share.&#8203;created_on | The timestamp when the share was created. Epoch nanoseconds timestamp.                                                                                                                                | 1639051180714000000        | stable    | shares                          |
 | snowflake.&#8203;table.&#8203;created_on | The timestamp when the table was created. Epoch nanoseconds timestamp.                                                                                                                                | 1649940827875000000        |           | inbound_shares                  |
 | snowflake.&#8203;table.&#8203;ddl        | The timestamp of the last DDL operation performed on the table or view.                                                                                                                               | 1639940327875000000        |           | inbound_shares                  |
 | snowflake.&#8203;table.&#8203;update     | The timestamp when the object was last altered by a DML, DDL, or background metadata operation.                                                                                                       | 1649962827875000000        | stable    | inbound_shares                  |
@@ -1009,7 +1208,7 @@ check the `Context Name` column below.
 ### Dimensions at the `Snowpipes` plugin
 
 | Identifier                              | Description                                                                       | Example                              | Stability | Context Name                                               |
-|-----------------------------------------|-----------------------------------------------------------------------------------|--------------------------------------|-----------|------------------------------------------------------------|
+| --------------------------------------- | --------------------------------------------------------------------------------- | ------------------------------------ | --------- | ---------------------------------------------------------- |
 | db.&#8203;collection.&#8203;name        | Target table for ingested data.                                                   | TARGET_TABLE                         |           | snowpipes, snowpipes_copy_history                          |
 | db.&#8203;namespace                     | Database containing the target table or pipe.                                     | MY_DB                                |           | snowpipes, snowpipes_copy_history, snowpipes_usage_history |
 | snowflake.&#8203;pipe.&#8203;catalog    | Database containing the pipe.                                                     | MY_DB                                |           | snowpipes, snowpipes_copy_history, snowpipes_usage_history |
@@ -1025,7 +1224,7 @@ check the `Context Name` column below.
 ### Attributes at the `Snowpipes` plugin
 
 | Identifier                                                         | Description                                         | Example                                                                          | Stability | Context Name            |
-|--------------------------------------------------------------------|-----------------------------------------------------|----------------------------------------------------------------------------------|-----------|-------------------------|
+| ------------------------------------------------------------------ | --------------------------------------------------- | -------------------------------------------------------------------------------- | --------- | ----------------------- |
 | snowflake.&#8203;copy.&#8203;errors.&#8203;limit                   | Error limit for the COPY.                           | 1                                                                                |           | snowpipes_copy_history  |
 | snowflake.&#8203;copy.&#8203;file_name                             | Source file name.                                   | data/file_20250312.csv.gz                                                        |           | snowpipes_copy_history  |
 | snowflake.&#8203;copy.&#8203;first_commit_time                     | When the first chunk of the file was committed.     | 1741772160000000000                                                              |           | snowpipes_copy_history  |
@@ -1049,7 +1248,7 @@ check the `Context Name` column below.
 ### Metrics at the `Snowpipes` plugin
 
 | Identifier                                              | Name                | Unit  | Description                                                                                     | Example | Stability | Context Name            |
-|---------------------------------------------------------|---------------------|-------|-------------------------------------------------------------------------------------------------|---------|-----------|-------------------------|
+| ------------------------------------------------------- | ------------------- | ----- | ----------------------------------------------------------------------------------------------- | ------- | --------- | ----------------------- |
 | snowflake.&#8203;copy.&#8203;bytes_billed               | Copy Bytes Billed   | By    | Bytes billed for this copy operation.                                                           | 51200   |           | snowpipes_copy_history  |
 | snowflake.&#8203;copy.&#8203;errors                     | Copy Errors         | count | Error count in this load.                                                                       | 2       |           | snowpipes_copy_history  |
 | snowflake.&#8203;copy.&#8203;file_size                  | File Size           | By    | Observed size of the source file before loading.                                                | 102400  |           | snowpipes_copy_history  |
@@ -1068,9 +1267,38 @@ check the `Context Name` column below.
 ### Event timestamps at the `Snowpipes` plugin
 
 | Identifier                              | Description                 | Example                   | Stability | Context Name |
-|-----------------------------------------|-----------------------------|---------------------------|-----------|--------------|
+| --------------------------------------- | --------------------------- | ------------------------- | --------- | ------------ |
 | snowflake.&#8203;event.&#8203;trigger   | Standard event trigger key. | snowflake.pipe.created_on |           | snowpipes    |
 | snowflake.&#8203;pipe.&#8203;created_on | Pipe creation event.        | 1736936200000000000       | stable    | snowpipes    |
+
+### DQL query examples for the `snowpipes` plugin
+
+Plot rows loaded per Snowpipe over time.
+
+```dql
+timeseries val = sum(snowflake.pipe.rows.loaded), by: { snowflake.pipe.name, deployment.environment }
+| filter db.system == "snowflake"
+```
+
+Fetch the 100 most recent DSOA snowpipes plugin log entries from Grail.
+
+```dql
+fetch logs
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "snowpipes"
+| sort timestamp desc
+| limit 100
+```
+
+Fetch the 50 most recent DSOA self-monitoring business events for the snowpipes plugin.
+
+```dql
+fetch bizevents
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "snowpipes"
+| sort timestamp desc
+| limit 50
+```
 
 <a name="table_health_semantics_sec"></a>
 
@@ -1084,7 +1312,7 @@ check the `Context Name` column below.
 ### Dimensions at the `Table Health` plugin
 
 | Identifier                                   | Description                                                                       | Example                        | Stability | Context Name                                          |
-|----------------------------------------------|-----------------------------------------------------------------------------------|--------------------------------|-----------|-------------------------------------------------------|
+| -------------------------------------------- | --------------------------------------------------------------------------------- | ------------------------------ | --------- | ----------------------------------------------------- |
 | db.&#8203;collection.&#8203;name             | The name of the table.                                                            | sales_data                     |           | table_storage, table_clustering, table_health_derived |
 | db.&#8203;namespace                          | The name of the database that contains the table.                                 | analytics_db                   |           | table_storage, table_clustering, table_health_derived |
 | snowflake.&#8203;schema.&#8203;name          | The name of the schema that contains the table.                                   | public                         | stable    | table_storage, table_clustering, table_health_derived |
@@ -1094,7 +1322,7 @@ check the `Context Name` column below.
 ### Metrics at the `Table Health` plugin
 
 | Identifier                                                               | Name                     | Unit  | Description                                                                                                                                                                                         | Example    | Stability | Context Name         |
-|--------------------------------------------------------------------------|--------------------------|-------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------|-----------|----------------------|
+| ------------------------------------------------------------------------ | ------------------------ | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | --------- | -------------------- |
 | snowflake.&#8203;data.&#8203;rows                                        | Row Count                | rows  | Number of rows in the table.                                                                                                                                                                        | 1000000    |           | table_storage        |
 | snowflake.&#8203;table.&#8203;active_bytes                               | Active Bytes             | By    | Number of bytes of active data in the table.                                                                                                                                                        | 1073741824 |           | table_storage        |
 | snowflake.&#8203;table.&#8203;clustering.&#8203;constant_partition_ratio | Constant Partition Ratio | ratio | Fraction of micro<br>-partitions that are constant (fully within a single clustering key range). Higher values indicate better clustering quality.                                                  | 0.85       |           | table_clustering     |
@@ -1109,6 +1337,29 @@ check the `Context Name` column below.
 | snowflake.&#8203;table.&#8203;retained_for_clone_bytes                   | Retained for Clone Bytes | By    | Number of bytes of data in the table that is retained for cloning.                                                                                                                                  | 134217728  |           | table_storage        |
 | snowflake.&#8203;table.&#8203;time_travel_bytes                          | Time Travel Bytes        | By    | Number of bytes of data in the table that is maintained for Time Travel.                                                                                                                            | 536870912  |           | table_storage        |
 
+### DQL query examples for the `table_health` plugin
+
+Plot active storage bytes per table over time.
+
+```dql
+timeseries val = avg(snowflake.table.active_bytes), by: { db.collection.name, deployment.environment }
+| filter db.system == "snowflake"
+```
+
+Plot average clustering depth per table over time.
+
+```dql
+timeseries val = avg(snowflake.table.clustering.depth), by: { db.collection.name, deployment.environment }
+| filter db.system == "snowflake"
+```
+
+Plot table size growth percentage between snapshots over time.
+
+```dql
+timeseries val = avg(snowflake.table.growth_pct), by: { db.collection.name, deployment.environment }
+| filter db.system == "snowflake"
+```
+
 <a name="tasks_semantics_sec"></a>
 
 ## The `Tasks` plugin semantics
@@ -1121,7 +1372,7 @@ check the `Context Name` column below.
 ### Dimensions at the `Tasks` plugin
 
 | Identifier                               | Description                                                                     | Example           | Stability | Context Name                                  |
-|------------------------------------------|---------------------------------------------------------------------------------|-------------------|-----------|-----------------------------------------------|
+| ---------------------------------------- | ------------------------------------------------------------------------------- | ----------------- | --------- | --------------------------------------------- |
 | db.&#8203;namespace                      | The name of the database.                                                       | PROD_DB           |           | serverless_tasks, task_versions, task_history |
 | snowflake.&#8203;schema.&#8203;name      | The name of the schema.                                                         | public            | stable    | serverless_tasks, task_versions, task_history |
 | snowflake.&#8203;task.&#8203;is_internal | Whether the task is an internal DSOA scheduler task (measurement or finalizer). | False             | stable    | serverless_tasks                              |
@@ -1131,7 +1382,7 @@ check the `Context Name` column below.
 ### Attributes at the `Tasks` plugin
 
 | Identifier                                               | Description                                    | Example               | Stability | Context Name                    |
-|----------------------------------------------------------|------------------------------------------------|-----------------------|-----------|---------------------------------|
+| -------------------------------------------------------- | ---------------------------------------------- | --------------------- | --------- | ------------------------------- |
 | db.&#8203;query.&#8203;text                              | The text of the query.                         | SELECT \* FROM users; |           | task_versions                   |
 | snowflake.&#8203;database.&#8203;id                      | The unique identifier for the database.        | 123456                | stable    | serverless_tasks, task_versions |
 | snowflake.&#8203;error.&#8203;code                       | The error code returned by the task.           | ERR123                | stable    | task_history                    |
@@ -1169,7 +1420,7 @@ check the `Context Name` column below.
 ### Metrics at the `Tasks` plugin
 
 | Identifier                                         | Name                           | Unit    | Description                                                                                   | Example | Stability | Context Name     |
-|----------------------------------------------------|--------------------------------|---------|-----------------------------------------------------------------------------------------------|---------|-----------|------------------|
+| -------------------------------------------------- | ------------------------------ | ------- | --------------------------------------------------------------------------------------------- | ------- | --------- | ---------------- |
 | snowflake.&#8203;credits.&#8203;used               | Snowflake Credits Used         | credits | Number of credits billed for serverless task usage during the START_TIME and END_TIME window. | 10      |           | serverless_tasks |
 | snowflake.&#8203;task.&#8203;run.&#8203;cancelled  | Snowflake Task Runs Cancelled  | count   | Number of Snowflake task runs that ended in CANCELLED state within the collection window.     | 1       |           | openpipeline     |
 | snowflake.&#8203;task.&#8203;run.&#8203;failed     | Snowflake Task Runs Failed     | count   | Number of Snowflake task runs that ended in FAILED state within the collection window.        | 3       |           | openpipeline     |
@@ -1178,7 +1429,7 @@ check the `Context Name` column below.
 ### Event timestamps at the `Tasks` plugin
 
 | Identifier                                                          | Description                                                                                                                                                                                           | Example                                 | Stability | Context Name  |
-|---------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------|-----------|---------------|
+| ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- | --------- | ------------- |
 | snowflake.&#8203;event.&#8203;trigger                               | Additionally to sending logs, each entry in `EVENT_TIMESTAMPS` is sent as event with key set to `snowflake.event.trigger`, value to key from `EVENT_TIMESTAMPS` and `timestamp` set to the key value. | snowflake.task.graph.version.created_on |           | task_versions |
 | snowflake.&#8203;task.&#8203;graph.&#8203;version.&#8203;created_on | The timestamp when the task graph version was created.                                                                                                                                                | 1633046400000000000                     | stable    | task_versions |
 
@@ -1223,7 +1474,7 @@ All telemetry delivered by this plugin is reported as `dsoa.run.context == "trus
 ### Dimensions at the `Trust Center` plugin
 
 | Identifier                                                            | Description                                                                                        | Example        | Stability |
-|-----------------------------------------------------------------------|----------------------------------------------------------------------------------------------------|----------------|-----------|
+| --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | -------------- | --------- |
 | event.&#8203;category                                                 | The category of the event, such as 'Warning' or 'Vulnerability management', based on the severity. | Warning        | stable    |
 | snowflake.&#8203;trust_center.&#8203;scanner.&#8203;id                | The unique identifier for the scanner used in the Trust Center.                                    | scanner123     | stable    |
 | snowflake.&#8203;trust_center.&#8203;scanner.&#8203;package.&#8203;id | The unique identifier for the scanner package used in the Trust Center.                            | package123     |           |
@@ -1233,7 +1484,7 @@ All telemetry delivered by this plugin is reported as `dsoa.run.context == "trus
 ### Attributes at the `Trust Center` plugin
 
 | Identifier                                                              | Description                                                                             | Example                                                                   | Stability |
-|-------------------------------------------------------------------------|-----------------------------------------------------------------------------------------|---------------------------------------------------------------------------|-----------|
+| ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | --------- |
 | event.&#8203;id                                                         | A unique identifier for the security event.                                             | 13825839647097210                                                         |           |
 | event.&#8203;kind                                                       | The kind of event, in this case, 'SECURITY_EVENT'.                                      | SECURITY_EVENT                                                            |           |
 | snowflake.&#8203;entity.&#8203;details                                  | Additional details about the entity involved in the event.                              | Contains user data                                                        | stable    |
@@ -1249,8 +1500,36 @@ All telemetry delivered by this plugin is reported as `dsoa.run.context == "trus
 ### Metrics at the `Trust Center` plugin
 
 | Identifier                                    | Name                        | Unit  | Description                                                     | Example | Stability |
-|-----------------------------------------------|-----------------------------|-------|-----------------------------------------------------------------|---------|-----------|
+| --------------------------------------------- | --------------------------- | ----- | --------------------------------------------------------------- | ------- | --------- |
 | snowflake.&#8203;trust_center.&#8203;findings | Trust Center Findings Count | count | The total number of findings at risk identified by the scanner. | 10      |           |
+
+### DQL query examples for the `trust_center` plugin
+
+Plot Trust Center findings count per risk level over time.
+
+```dql
+timeseries val = sum(snowflake.trust_center.findings), by: { vulnerability.risk.level, deployment.environment }
+| filter db.system == "snowflake"
+```
+
+Fetch the 100 most recent DSOA trust_center plugin log entries from Grail.
+
+```dql
+fetch logs
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "trust_center"
+| sort timestamp desc
+| limit 100
+```
+
+Break down Trust Center findings counts by severity level.
+
+```dql
+fetch logs
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "trust_center"
+| summarize count(), by: { vulnerability.risk.level }
+```
 
 <a name="users_semantics_sec"></a>
 
@@ -1264,13 +1543,13 @@ check the `Context Name` column below.
 ### Dimensions at the `Users` plugin
 
 | Identifier     | Description                          | Example | Stability | Context Name |
-|----------------|--------------------------------------|---------|-----------|--------------|
+| -------------- | ------------------------------------ | ------- | --------- | ------------ |
 | db.&#8203;user | Snowflake user who issued the query. | admin   | stable    | users        |
 
 ### Attributes at the `Users` plugin
 
 | Identifier                                                      | Description                                                                                                                                          | Example                                        | Stability | Context Name                        |
-|-----------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------|-----------|-------------------------------------|
+| --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- | --------- | ----------------------------------- |
 | snowflake.&#8203;user.&#8203;bypass_mfa_until                   | The time until which the user can bypass MFA. Epoch nanoseconds timestamp.                                                                           | 1620213179885000000                            |           | users                               |
 | snowflake.&#8203;user.&#8203;comment                            | Any comments associated with the user.                                                                                                               | New user account                               |           | users                               |
 | snowflake.&#8203;user.&#8203;default.&#8203;namespace           | The default namespace for the user.                                                                                                                  | PUBLIC                                         | stable    | users                               |
@@ -1309,7 +1588,7 @@ check the `Context Name` column below.
 ### Event timestamps at the `Users` plugin
 
 | Identifier                                                         | Description                                                                                                                                                                                           | Example                           | Stability | Context Name                                                                                 |
-|--------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------|-----------|----------------------------------------------------------------------------------------------|
+| ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- | --------- | -------------------------------------------------------------------------------------------- |
 | snowflake.&#8203;event.&#8203;trigger                              | Additionally to sending logs, each entry in `EVENT_TIMESTAMPS` is sent as event with key set to `snowflake.event.trigger`, value to key from `EVENT_TIMESTAMPS` and `timestamp` set to the key value. | snowflake.user.last_success_login |           | users, users_all_privileges, users_all_roles, users_direct_roles, users_removed_direct_roles |
 | snowflake.&#8203;user.&#8203;created_on                            | The timestamp of the user account creation.                                                                                                                                                           | 1651830381846000000               |           | users                                                                                        |
 | snowflake.&#8203;user.&#8203;deleted_on                            | The timestamp of the user account deletion.                                                                                                                                                           | 1615219846384000000               |           | users                                                                                        |
@@ -1375,7 +1654,7 @@ check the `Context Name` column below.
 ### Dimensions at the `Warehouse Usage` plugin
 
 | Identifier                                           | Description                                           | Example         | Stability | Context Name                                                    |
-|------------------------------------------------------|-------------------------------------------------------|-----------------|-----------|-----------------------------------------------------------------|
+| ---------------------------------------------------- | ----------------------------------------------------- | --------------- | --------- | --------------------------------------------------------------- |
 | snowflake.&#8203;warehouse.&#8203;event.&#8203;name  | The name of the event.                                | WAREHOUSE_START | stable    | warehouse_usage                                                 |
 | snowflake.&#8203;warehouse.&#8203;event.&#8203;state | The state of the event, such as STARTED or COMPLETED. | STARTED         | stable    | warehouse_usage                                                 |
 | snowflake.&#8203;warehouse.&#8203;name               | The name of the warehouse.                            | COMPUTE_WH      | stable    | warehouse_usage, warehouse_usage_load, warehouse_usage_metering |
@@ -1383,7 +1662,7 @@ check the `Context Name` column below.
 ### Attributes at the `Warehouse Usage` plugin
 
 | Identifier                                              | Description                                                    | Example      | Stability | Context Name                                                    |
-|---------------------------------------------------------|----------------------------------------------------------------|--------------|-----------|-----------------------------------------------------------------|
+| ------------------------------------------------------- | -------------------------------------------------------------- | ------------ | --------- | --------------------------------------------------------------- |
 | db.&#8203;user                                          | The user who initiated the event.                              | admin        | stable    | warehouse_usage                                                 |
 | snowflake.&#8203;query.&#8203;id                        | The unique identifier for the query associated with the event. | query123     | stable    | warehouse_usage                                                 |
 | snowflake.&#8203;role.&#8203;name                       | The role name associated with the event.                       | SYSADMIN     | stable    | warehouse_usage                                                 |
@@ -1396,7 +1675,7 @@ check the `Context Name` column below.
 ### Metrics at the `Warehouse Usage` plugin
 
 | Identifier                                              | Name                                  | Unit    | Description                                                  | Example | Stability | Context Name             |
-|---------------------------------------------------------|---------------------------------------|---------|--------------------------------------------------------------|---------|-----------|--------------------------|
+| ------------------------------------------------------- | ------------------------------------- | ------- | ------------------------------------------------------------ | ------- | --------- | ------------------------ |
 | snowflake.&#8203;credits.&#8203;cloud_services          | Cloud Services Credits Used           | credits | The number of credits used for cloud services.               | 2       |           | warehouse_usage_metering |
 | snowflake.&#8203;credits.&#8203;compute                 | Compute Credits Used                  | credits | The number of credits used for compute.                      | 8       |           | warehouse_usage_metering |
 | snowflake.&#8203;credits.&#8203;used                    | Snowflake Credits Used                | credits | The total number of credits used by the warehouse.           | 10      |           | warehouse_usage_metering |
