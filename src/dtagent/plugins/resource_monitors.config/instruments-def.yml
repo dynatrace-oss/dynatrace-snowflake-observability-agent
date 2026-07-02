@@ -101,12 +101,36 @@ attributes:
     __description: >-
       Direction of the threshold crossing: ``up`` when quota is increasing into or remaining within a band; ``down`` when the consumption
       drops back below a previously active band.
+    __enum:
+      allow_custom_values: false
+      members:
+        - id: up
+          value: up
+          brief: Quota is increasing into or remaining within a band.
+        - id: down
+          value: down
+          brief: Consumption drops back below a previously active band.
   snowflake.resource_monitor.threshold.level:
     __type: string
     __is_defined_at_runtime: true
     __example: warn
     __description: >-
       Alert band for the threshold event: ``info`` (below 80%), ``warn`` ([80–90%)), ``critical`` ([90–100%)), or ``exhausted`` (>=100%).
+    __enum:
+      allow_custom_values: false
+      members:
+        - id: info
+          value: info
+          brief: Quota consumption is below 80%.
+        - id: warn
+          value: warn
+          brief: Quota consumption is in the 80% (inclusive) to 90% (exclusive) range.
+        - id: critical
+          value: critical
+          brief: Quota consumption is in the 90% (inclusive) to 100% (exclusive) range.
+        - id: exhausted
+          value: exhausted
+          brief: Quota consumption is at or above 100%.
   snowflake.resource_monitor.threshold.value:
     __type: double
     __is_defined_at_runtime: true
