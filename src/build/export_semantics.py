@@ -196,6 +196,9 @@ _SIG_NS: List[Tuple[str, str, str]] = [
     ("snowflake.session", "snowflake.session", "attribute_group"),
     ("snowflake.error", "snowflake.error", "attribute_group"),
     ("snowflake.data", "snowflake.data", "attribute_group"),
+    # Dedicated sub-group for the dynamic-table dependency-graph fields — must precede the
+    # generic "snowflake.table" entry below since _ns_group returns the first prefix match.
+    ("snowflake.table.dynamic.graph", "snowflake.table.dynamic.graph", "attribute_group"),
     ("snowflake.table", "snowflake.table", "attribute_group"),
     ("snowflake.pipe", "snowflake.pipe", "attribute_group"),
     ("snowflake.task", "snowflake.task", "attribute_group"),
@@ -219,6 +222,19 @@ _SIG_NS: List[Tuple[str, str, str]] = [
     ("snowflake.service", "snowflake.service", "attribute_group"),
     ("snowflake.secondary", "snowflake.secondary", "attribute_group"),
     ("snowflake.trust_center", "snowflake.trust_center", "attribute_group"),
+    # Snowflake namespaces extracted from the snowflake.misc grab-bag (BIZOBS-151 Task 6).
+    ("snowflake.account", "snowflake.account", "attribute_group"),
+    ("snowflake.copy", "snowflake.copy", "attribute_group"),
+    ("snowflake.cost_attribution", "snowflake.cost_attribution", "attribute_group"),
+    ("snowflake.entity", "snowflake.entity", "attribute_group"),
+    ("snowflake.grant", "snowflake.grant", "attribute_group"),
+    ("snowflake.org", "snowflake.org", "attribute_group"),
+    ("snowflake.status", "snowflake.status", "attribute_group"),
+    # Bare fields that don't match their sibling group's dotted prefix (no trailing "."
+    # segment) — exact-match routing into the existing, semantically-obvious group.
+    ("snowflake.cluster_number", "snowflake.cluster", "attribute_group"),
+    ("snowflake.release_version", "snowflake.release", "attribute_group"),
+    ("snowflake.secondary_role_stats", "snowflake.secondary", "attribute_group"),
     ("client", "client", "attribute_group"),
     ("db", "db", "attribute_group"),
     ("authentication", "authentication", "attribute_group"),
@@ -228,6 +244,12 @@ _SIG_NS: List[Tuple[str, str, str]] = [
     ("status", "status", "attribute_group"),
     ("event", "event", "attribute_group"),
     ("vulnerability", "vulnerability", "attribute_group"),
+    # Non-Snowflake namespaces extracted from the snowflake.misc grab-bag (BIZOBS-151 Task 6).
+    ("anomaly", "anomaly", "attribute_group"),
+    ("dsoa.debug", "dsoa.debug", "attribute_group"),
+    ("dsoa.plugins", "dsoa.plugins", "attribute_group"),
+    ("deployment", "deployment", "attribute_group"),
+    ("observed_timestamp", "observed_timestamp", "attribute_group"),
 ]
 
 # (prefix, group_id, group_type) for resource fields.
