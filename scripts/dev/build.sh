@@ -253,6 +253,10 @@ append_sql_dir "src/dtagent.sql/config" "build/40_config.sql"
 : > build/70_agents.sql
 append_sql_dir "src/dtagent.sql/agents" "build/70_agents.sql"
 
+# build/90_finalize.sql <- combine(src/dtagent.sql/finalize/*.sql) — runs last for scope=all/upgrade
+: > build/90_finalize.sql
+append_sql_dir "src/dtagent.sql/finalize" "build/90_finalize.sql"
+
 # Lint staged SQL (best-effort like before)
 sqlfluff lint build/*.sql build/09_upgrade/*.sql build/30_plugins/*.sql --ignore parsing --disable-progress-bar
 
