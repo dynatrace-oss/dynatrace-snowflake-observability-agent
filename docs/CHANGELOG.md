@@ -30,6 +30,13 @@ All notable changes to this project will be documented in this file.
   remaining 10 model-emitting plugins (active_queries, cold_tables, data_schemas, data_volume,
   dynamic_tables, event_usage, org_costs, snowpipes, table_health, trust_center) so every
   model-emitting plugin now ships ≥3 example DQL queries.
+- **Widened DQL test enforcement** (`test/core/test_semdict_output_compliance.py`): the
+  `dql_queries` coverage tests no longer check a hardcoded "priority" subset of plugins.
+  Log, event, and metric model plugin sets are now discovered dynamically from the generated
+  `build/_semdict/source/` output (`model/dsoa/dsoa.logs.*.yaml`, `dsoa.events.*.yaml`, and
+  `metrics/dsoa_metrics_*.yaml`), and a new `test_span_models_have_dql_queries` test covers
+  the span models. A green result now means complete DQL coverage across every
+  model-emitting plugin, not just a curated subset.
 
 ### Fixed
 

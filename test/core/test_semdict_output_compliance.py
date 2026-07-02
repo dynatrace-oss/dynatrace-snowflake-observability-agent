@@ -44,6 +44,9 @@ from test.core._semdict_test_utils import (
     SEMDICT_SOURCE,
     collect_model_referenced_fields,
     collect_signal_field_ids,
+    discover_event_model_plugins,
+    discover_log_model_plugins,
+    discover_metric_model_plugins,
     load_all_generated_yaml,
     load_all_instruments_defs,
     require_semdict_source,
@@ -570,27 +573,12 @@ class TestInterfaceRefNotes:
 
 @pytest.mark.integration
 class TestDqlQueriesOnModels:
-    """Model YAML files must include dql_queries: with at least 3 entries each."""
+    """Model YAML files must include dql_queries: with at least 3 entries each.
 
-    #: Priority plugins that must have dql_queries in their log models.
-    PRIORITY_LOG_PLUGINS: frozenset = frozenset(
-        {
-            "query_history",
-            "warehouse_usage",
-            "login_history",
-            "metering",
-            "users",
-        }
-    )
-
-    #: Priority plugins that must have dql_queries in their metric models.
-    PRIORITY_METRIC_PLUGINS: frozenset = frozenset(
-        {
-            "query_history",
-            "warehouse_usage",
-            "metering",
-        }
-    )
+    Plugin sets are discovered dynamically from the generated output (rather than
+    hardcoded "priority" lists) so that a green result here means *complete* DQL
+    coverage across every model-emitting plugin, not just a curated subset.
+    """
 
     #: Required fields on every dql_queries entry.
     REQUIRED_DQL_FIELDS: frozenset = frozenset({"query_string", "description", "description_copilot", "internal"})
@@ -611,15 +599,18 @@ class TestDqlQueriesOnModels:
             return yaml.safe_load(fh) or {}
 
     def test_log_models_have_dql_queries(self):
-        """Priority log models must have dql_queries: with >= 3 entries.
+        """All log-model-emitting plugins must have dql_queries: with >= 3 entries.
 
         Validates that the export pipeline propagates dql_queries from
-        instruments-def.yml into the generated model YAML files.
+        instruments-def.yml into the generated model YAML files. Plugins are
+        discovered dynamically from ``model/dsoa/dsoa.logs.*.yaml`` so this
+        covers every plugin that emits a log model, not just a curated subset.
         """
-        require_semdict_source()
+        log_plugins = discover_log_model_plugins()
+        assert log_plugins, "No log model plugins discovered in model/dsoa/dsoa.logs.*.yaml"
 
         missing_or_insufficient: List[str] = []
-        for plugin in sorted(self.PRIORITY_LOG_PLUGINS):
+        for plugin in sorted(log_plugins):
             doc = self._load_model(f"dsoa.logs.{plugin}.yaml")
             model = doc.get("model", {})
             dql_queries = model.get("dql_queries", [])
@@ -630,17 +621,62 @@ class TestDqlQueriesOnModels:
 
         assert not missing_or_insufficient, "Log model files missing or insufficient dql_queries:\n" + "\n".join(missing_or_insufficient)
 
-    def test_metric_models_have_dql_queries(self):
-        """Priority metric models must have dql_queries: with >= 3 entries.
+    def test_event_models_have_dql_queries(self):
+        """All event-model-emitting plugins must have dql_queries: with >= 3 entries.
 
-        Validates that the export pipeline propagates dql_queries from
-        instruments-def.yml into the generated metric model YAML files.
+        Mirrors ``test_log_models_have_dql_queries`` for the event model type.
+        Plugins are discovered dynamically from ``model/dsoa/dsoa.events.*.yaml``.
+        """
+        event_plugins = discover_event_model_plugins()
+        assert event_plugins, "No event model plugins discovered in model/dsoa/dsoa.events.*.yaml"
+
+        missing_or_insufficient: List[str] = []
+        for plugin in sorted(event_plugins):
+            doc = self._load_model(f"dsoa.events.{plugin}.yaml")
+            model = doc.get("model", {})
+            dql_queries = model.get("dql_queries", [])
+            if not dql_queries:
+                missing_or_insufficient.append(f"dsoa.events.{plugin}: missing dql_queries:")
+            elif len(dql_queries) < 3:
+                missing_or_insufficient.append(f"dsoa.events.{plugin}: only {len(dql_queries)} dql_queries entries (need >= 3)")
+
+        assert not missing_or_insufficient, "Event model files missing or insufficient dql_queries:\n" + "\n".join(missing_or_insufficient)
+
+    def test_span_models_have_dql_queries(self):
+        """All span-emitting plugins must have dql_queries: with >= 3 entries.
+
+        Uses the existing ``SPAN_PLUGINS`` constant (already correct per Task 7's
+        ``dql_queries_span`` work) rather than re-deriving it.
         """
         require_semdict_source()
 
+        missing_or_insufficient: List[str] = []
+        for plugin in sorted(SPAN_PLUGINS):
+            doc = self._load_model(f"dsoa.spans.{plugin}.yaml")
+            model = doc.get("model", {})
+            dql_queries = model.get("dql_queries", [])
+            if not dql_queries:
+                missing_or_insufficient.append(f"dsoa.spans.{plugin}: missing dql_queries:")
+            elif len(dql_queries) < 3:
+                missing_or_insufficient.append(f"dsoa.spans.{plugin}: only {len(dql_queries)} dql_queries entries (need >= 3)")
+
+        assert not missing_or_insufficient, "Span model files missing or insufficient dql_queries:\n" + "\n".join(missing_or_insufficient)
+
+    def test_metric_models_have_dql_queries(self):
+        """All metric-model-emitting plugins must have dql_queries: with >= 3 entries.
+
+        Validates that the export pipeline propagates dql_queries from
+        instruments-def.yml into the generated metric model YAML files. Plugins
+        are discovered dynamically from ``metrics/dsoa_metrics_*.yaml`` (excluding
+        the ``dsoa_metrics_model_group.yaml`` container), covering every plugin
+        that emits a metric model.
+        """
+        metric_plugins = discover_metric_model_plugins()
+        assert metric_plugins, "No metric model plugins discovered in metrics/dsoa_metrics_*.yaml"
+
         model_dir = SEMDICT_SOURCE / "metrics"
         missing_or_insufficient: List[str] = []
-        for plugin in sorted(self.PRIORITY_METRIC_PLUGINS):
+        for plugin in sorted(metric_plugins):
             metric_file = model_dir / f"dsoa_metrics_{plugin}.yaml"
             if not metric_file.exists():
                 missing_or_insufficient.append(f"dsoa_metrics_{plugin}.yaml: file not found")
@@ -659,28 +695,34 @@ class TestDqlQueriesOnModels:
     def test_dql_queries_have_required_fields(self):
         """Every dql_queries entry must have query_string, description, description_copilot, internal.
 
-        Checks all model/dsoa/*.yaml files that contain dql_queries:.
+        Checks all ``model/dsoa/*.yaml`` and ``metrics/*.yaml`` files that contain
+        dql_queries:. Model-group containers (``model_group:`` key) and
+        ``interfaces_dsoa.yaml`` (``groups:`` key, no ``model:``) are naturally
+        skipped since only real ``model:`` documents carry ``dql_queries``.
         """
         require_semdict_source()
 
-        model_dir = SEMDICT_SOURCE / "model" / "dsoa"
-        if not model_dir.exists():
-            pytest.skip("model/dsoa/ directory not found in generated output")
+        model_dirs = [SEMDICT_SOURCE / "model" / "dsoa", SEMDICT_SOURCE / "metrics"]
 
         violations: List[str] = []
-        for yaml_file in sorted(model_dir.glob("*.yaml")):
-            with open(yaml_file, "r", encoding="utf-8") as fh:
-                doc = yaml.safe_load(fh) or {}
-            model = doc.get("model", {})
-            dql_queries = model.get("dql_queries", [])
-            if not dql_queries:
+        for model_dir in model_dirs:
+            if not model_dir.exists():
                 continue
-            for i, entry in enumerate(dql_queries):
-                for required_field in sorted(self.REQUIRED_DQL_FIELDS):
-                    if required_field not in entry:
-                        violations.append(f"{yaml_file.name}: dql_queries[{i}] missing '{required_field}'")
-                if "internal" in entry and not isinstance(entry["internal"], bool):
-                    violations.append(f"{yaml_file.name}: dql_queries[{i}].internal must be bool, got {type(entry['internal']).__name__}")
+            for yaml_file in sorted(model_dir.glob("*.yaml")):
+                with open(yaml_file, "r", encoding="utf-8") as fh:
+                    doc = yaml.safe_load(fh) or {}
+                model = doc.get("model", {})
+                dql_queries = model.get("dql_queries", [])
+                if not dql_queries:
+                    continue
+                for i, entry in enumerate(dql_queries):
+                    for required_field in sorted(self.REQUIRED_DQL_FIELDS):
+                        if required_field not in entry:
+                            violations.append(f"{yaml_file.name}: dql_queries[{i}] missing '{required_field}'")
+                    if "internal" in entry and not isinstance(entry["internal"], bool):
+                        violations.append(
+                            f"{yaml_file.name}: dql_queries[{i}].internal must be bool, got {type(entry['internal']).__name__}"
+                        )
 
         assert not violations, "dql_queries entries with missing required fields:\n" + "\n".join(violations)
 
