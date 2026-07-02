@@ -783,9 +783,14 @@ def _emit_id_entry(key: str, entry: Dict[str, Any], semdict_flag: str) -> Dict[s
     if semdict_flag == "deprecated-alias":
         replacement = entry.get("__otel_replacement", "")
         otel_note = entry.get("__semdict_note", "")
-        warning = f"OTel renamed this field to {replacement}. DSOA continues to emit it for backward compatibility."
+        boilerplate = "DSOA continues to emit it for backward compatibility."
         if otel_note:
-            warning = f"{otel_note} DSOA continues to emit it for backward compatibility."
+            note_text = str(otel_note).strip()
+            # Avoid double-appending the boilerplate sentence when the authored note already
+            # explains the backward-compatibility rationale (e.g. deployment.environment).
+            warning = note_text if "backward compatibility" in note_text.lower() else f"{note_text} {boilerplate}"
+        else:
+            warning = f"OTel renamed this field to {replacement}. {boilerplate}"
         node["note"] = warning
     elif entry.get("__semdict_note"):
         node["note"] = str(entry["__semdict_note"]).strip()
