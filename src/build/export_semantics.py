@@ -1791,7 +1791,7 @@ class SemanticExporter:
                     "model_group": {
                         "id": "dsoa.events",
                         "title": "DSOA Snowflake Lifecycle Events",
-                        "brief": "Timestamp-based lifecycle events emitted by DSOA as business events.",
+                        "brief": "Timestamp-based state-change events emitted by DSOA plugins via the Dynatrace OpenPipeline Events API.",
                     }
                 },
                 "model/dsoa/model_group_dsoa_events.yaml",
