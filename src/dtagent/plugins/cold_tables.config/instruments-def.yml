@@ -88,3 +88,30 @@ metrics:
     __description: Number of days since the table was last accessed by any query.
     displayName: Days Since Last Access
     unit: d
+
+dql_queries:
+  - query_string: |
+      timeseries val = avg(snowflake.table.days_since_last_access), by: { snowflake.table.full_name, deployment.environment }
+      | filter db.system == "snowflake"
+    description: Plot days since last access per table over time.
+    description_copilot: Timeseries of days since last access for Snowflake tables tracked by the cold_tables plugin.
+    internal: false
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "cold_tables"
+      | sort timestamp desc
+      | limit 100
+    description: Fetch the 100 most recent DSOA cold_tables plugin log entries from Grail.
+    description_copilot: Search for all cold_tables plugin logs from the Snowflake observability agent.
+    internal: false
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "cold_tables"
+      | filter snowflake.table.cold_status == "cold"
+      | sort snowflake.table.days_since_last_access desc
+      | limit 20
+    description: Rank the 20 coldest tables by days since last access.
+    description_copilot: Find the coldest, least-recently-accessed Snowflake tables.
+    internal: false

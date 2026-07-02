@@ -175,3 +175,30 @@ metrics:
     __description: Number of rows written to a result object. For CREATE TABLE AS SELECT (CTAS) and all DML operations, this result is 1;.
     displayName: Rows Written to Result
     unit: rows
+
+dql_queries:
+  - query_string: |
+      timeseries val = avg(snowflake.time.execution), by: { snowflake.warehouse.name, deployment.environment }
+      | filter db.system == "snowflake"
+    description: Plot average execution time of currently running Snowflake queries per warehouse over time.
+    description_copilot: Timeseries of Snowflake query execution time broken down by warehouse.
+    internal: false
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "active_queries"
+      | sort timestamp desc
+      | limit 100
+    description: Fetch the 100 most recent DSOA active_queries plugin log entries from Grail.
+    description_copilot: Search for all active_queries plugin logs from the Snowflake observability agent.
+    internal: false
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "active_queries"
+      | filter snowflake.query.execution_status == "FAILED_WITH_ERROR"
+      | sort timestamp desc
+      | limit 50
+    description: Fetch the 50 most recent active queries that failed with an error.
+    description_copilot: Find failed Snowflake query executions reported by the active_queries plugin.
+    internal: false

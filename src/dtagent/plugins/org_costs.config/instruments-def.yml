@@ -163,3 +163,26 @@ metrics:
     __description: Bytes transferred between clouds or regions on the given day.
     displayName: Org Data Transfer Bytes
     unit: By
+
+dql_queries:
+  - query_string: |
+      timeseries val = sum(snowflake.org.credits.used), by: { snowflake.account.name, deployment.environment }
+      | filter db.system == "snowflake"
+    description: Plot total credits used per Snowflake account over time.
+    description_copilot: Timeseries of Snowflake organization credit consumption per account.
+    internal: false
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "org_costs"
+      | sort timestamp desc
+      | limit 100
+    description: Fetch the 100 most recent DSOA org_costs plugin log entries from Grail.
+    description_copilot: Search for all org_costs plugin logs from the Snowflake observability agent.
+    internal: false
+  - query_string: |
+      timeseries val = sum(snowflake.org.credits.used), by: { snowflake.service.type, deployment.environment }
+      | filter db.system == "snowflake"
+    description: Break down organization credit consumption by Snowflake service type over time.
+    description_copilot: Timeseries of Snowflake credit usage broken down by service type.
+    internal: false

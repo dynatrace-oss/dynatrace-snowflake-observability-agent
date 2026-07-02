@@ -79,3 +79,34 @@ attributes:
     __description: |
       A JSON array that specifies the object or column properties when you create, modify, drop, or undrop the object or column.
       There are two types of properties: atomic and compound.
+
+dql_queries:
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "data_schemas"
+      | sort timestamp desc
+      | limit 100
+    description: Fetch the 100 most recent DSOA data_schemas plugin log entries (DDL change inventory) from Grail.
+    description_copilot: Search for all data_schemas plugin logs from the Snowflake observability agent.
+    internal: false
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "data_schemas"
+      | filter snowflake.object.ddl.operation == "DROP"
+      | sort timestamp desc
+      | limit 50
+    description: Fetch the 50 most recent DROP DDL operations reported by the data_schemas plugin.
+    description_copilot: Find recent DROP DDL operations on Snowflake objects.
+    internal: false
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "data_schemas"
+      | filter snowflake.object.type == "Table"
+      | sort timestamp desc
+      | limit 50
+    description: Fetch the 50 most recent DDL changes affecting Snowflake tables.
+    description_copilot: Find recent table structure changes captured by the data_schemas plugin.
+    internal: false

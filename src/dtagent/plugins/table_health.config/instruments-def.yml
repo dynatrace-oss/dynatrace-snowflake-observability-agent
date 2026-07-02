@@ -186,3 +186,23 @@ metrics:
       1 = degraded, 0 = healthy or no clustering data available.
     displayName: Clustering Degraded
     unit: count
+
+dql_queries:
+  - query_string: |
+      timeseries val = avg(snowflake.table.active_bytes), by: { db.collection.name, deployment.environment }
+      | filter db.system == "snowflake"
+    description: Plot active storage bytes per table over time.
+    description_copilot: Timeseries of Snowflake table active storage size.
+    internal: false
+  - query_string: |
+      timeseries val = avg(snowflake.table.clustering.depth), by: { db.collection.name, deployment.environment }
+      | filter db.system == "snowflake"
+    description: Plot average clustering depth per table over time.
+    description_copilot: Timeseries of Snowflake table clustering depth.
+    internal: false
+  - query_string: |
+      timeseries val = avg(snowflake.table.growth_pct), by: { db.collection.name, deployment.environment }
+      | filter db.system == "snowflake"
+    description: Plot table size growth percentage between snapshots over time.
+    description_copilot: Timeseries of Snowflake table growth percentage.
+    internal: false

@@ -356,3 +356,29 @@ metrics:
     __description: Bytes billed for this copy operation.
     displayName: Copy Bytes Billed
     unit: By
+
+dql_queries:
+  - query_string: |
+      timeseries val = sum(snowflake.pipe.rows.loaded), by: { snowflake.pipe.name, deployment.environment }
+      | filter db.system == "snowflake"
+    description: Plot rows loaded per Snowpipe over time.
+    description_copilot: Timeseries of rows loaded by Snowflake Snowpipes.
+    internal: false
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "snowpipes"
+      | sort timestamp desc
+      | limit 100
+    description: Fetch the 100 most recent DSOA snowpipes plugin log entries from Grail.
+    description_copilot: Search for all snowpipes plugin logs from the Snowflake observability agent.
+    internal: false
+  - query_string: |
+      fetch bizevents
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "snowpipes"
+      | sort timestamp desc
+      | limit 50
+    description: Fetch the 50 most recent DSOA self-monitoring business events for the snowpipes plugin.
+    description_copilot: Search for self-monitoring events from the snowpipes Snowflake agent plugin.
+    internal: false
