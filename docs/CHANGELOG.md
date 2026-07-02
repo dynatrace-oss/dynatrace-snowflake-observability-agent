@@ -26,7 +26,10 @@ All notable changes to this project will be documented in this file.
 - **DQL query examples** in Semantic Dictionary model YAML: `dql_queries:` sections added for 10
   plugins (query_history, warehouse_usage, login_history, metering, users, event_log, tasks,
   resource_monitors, shares, budgets), meeting the SD CI F015-F017 requirement of ≥3 queries per
-  model. Queries are also surfaced in `docs/SEMANTICS.md`.
+  model. Queries are also surfaced in `docs/SEMANTICS.md`. Coverage was completed for the
+  remaining 10 model-emitting plugins (active_queries, cold_tables, data_schemas, data_volume,
+  dynamic_tables, event_usage, org_costs, snowpipes, table_health, trust_center) so every
+  model-emitting plugin now ships ≥3 example DQL queries.
 
 ### Fixed
 
@@ -38,6 +41,25 @@ All notable changes to this project will be documented in this file.
   previously had an extra blank line after every DQL query line due to PyYAML serialising
   multi-line strings as flow-style scalars. The YAML dumper now uses block literal style (`|`)
   for multi-line strings, producing clean single-spaced DQL examples.
+- **Duplicated backward-compatibility note on deprecated-alias fields removed**: the SD export
+  generator appended the "DSOA continues to emit it for backward compatibility." boilerplate a
+  second time when the field's `__semdict_note` already explained the backward-compat rationale
+  (e.g. `deployment.environment`), producing a note with the phrase repeated.
+- **Events model-group brief wording aligned**: the `dsoa.events` model-group brief said
+  "business events" and used different terminology than the per-plugin event model brief; both
+  now consistently describe "state-change events emitted via the Dynatrace OpenPipeline Events API."
+- **`authentication.factor.first`/`.second` (login_history) modeled as open enums**: documents the
+  known Snowflake authentication factor values (`ID_TOKEN`, `OAUTH_ACCESS_TOKEN`, `PASSWORD`,
+  `PROGRAMMATIC_ACCESS_TOKEN`, `SAML2_ASSERTION`, `TOTP`) while allowing custom values.
+- **`snowflake.resource_monitor.threshold.direction`/`.level` (resource_monitors) modeled as
+  closed enums**: `up`/`down` and `info`/`warn`/`critical`/`exhausted` are fixed,
+  code-controlled value sets.
+- **`snowflake.task.condition` (tasks) modeled as an open enum**: documents canonical condition
+  forms (predecessor-success, stream-has-data, always-true) without claiming a closed set, since
+  the field holds arbitrary SQL boolean expressions.
+- **Removed never-emitted `snowflake.warehouse.event` field**: no SQL view or plugin code emits
+  this bare key; the distinct `snowflake.warehouse.event.trigger` and
+  `snowflake.warehouse.event.{name,reason,state}` fields are unaffected and remain in place.
 
 ### Changed
 
