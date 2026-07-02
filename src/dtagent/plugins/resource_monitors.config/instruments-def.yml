@@ -16,15 +16,6 @@
 #  * Catalog of instrumentation known to Dynatrace Snowflake Observability Agent - resource monitors plugin
 
 attributes:
-  snowflake.warehouse.event:
-    __type: string
-    __stability: stable
-    __is_defined_at_runtime: true
-    __description: >-
-      The warehouse event type key that triggered this event record. Identifies the specific warehouse lifecycle event (e.g., AUTO_SUSPEND,
-      AUTO_RESUME) that was detected by the resource monitors plugin.
-    __example: "AUTO_SUSPEND"
-    __semdict: new
   snowflake.budget.name:
     __type: string
     __stability: stable

@@ -125,7 +125,6 @@ _OTEL_ONLY_FIELDS_NEEDING_NOTE: frozenset = frozenset(
 #: Fields that must appear in instruments-def.yml (discovered via code audit).
 #: Tuple of (plugin_name, field_key).
 _REQUIRED_EVENT_PAYLOAD_FIELDS: List[Tuple[str, str]] = [
-    ("resource_monitors", "snowflake.warehouse.event"),
     ("login_history", "event.description"),
 ]
 
@@ -402,7 +401,6 @@ class TestEventPayloadFieldsCoverage:
         """Fields programmatically added to events by plugin code must appear in instruments-def.
 
         Discovered via code audit of _prepare_event_payload_* methods:
-        - resource_monitors: snowflake.warehouse.event (key from _prepare_event_timestamps_payload_wh)
         - login_history: event.description (human-readable login event description)
 
         NOTE: 'timestamp' is intentionally excluded — it is a built-in platform attribute.
