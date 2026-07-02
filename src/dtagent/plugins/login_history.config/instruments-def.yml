@@ -28,16 +28,41 @@ attributes:
     __stability: stable
     __context_names:
       - login_history
-    __example: password123
+    __example: PASSWORD
     __description: The first factor used for authentication, typically a password.
     __type: string
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: id_token
+          value: ID_TOKEN
+          brief: Authenticated using a Snowflake ID token.
+        - id: oauth_access_token
+          value: OAUTH_ACCESS_TOKEN
+          brief: Authenticated using an OAuth access token.
+        - id: password
+          value: PASSWORD
+          brief: Authenticated using a username/password combination.
+        - id: programmatic_access_token
+          value: PROGRAMMATIC_ACCESS_TOKEN
+          brief: Authenticated using a programmatic access token (PAT).
+        - id: saml2_assertion
+          value: SAML2_ASSERTION
+          brief: Authenticated using a SAML2 assertion (federated SSO).
   authentication.factor.second:
     __stability: stable
     __context_names:
       - login_history
-    __example: MFA_TOKEN_ABC123
-    __description: The second factor used for authentication, such as an MFA token, or NULL if not applicable.
+    __example: TOTP
+    __description: >-
+      The second factor used for authentication, such as an MFA token. Omitted when only a single factor was used.
     __type: string
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: totp
+          value: TOTP
+          brief: Time-based one-time password (MFA token).
   authentication.type:
     __semdict: ref
     __semdict_note: >-
