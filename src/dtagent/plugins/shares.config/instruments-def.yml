@@ -265,11 +265,12 @@ event_timestamps:
     __example: 1639051180946000000
     __description: The timestamp when the grant was created. Epoch nanoseconds timestamp.
   snowflake.share.created_on:
+    __stability: stable
     __context_names:
       - shares
     __type: long
     __example: 1639051180714000000
-    __description: The timestamp when the share was created.
+    __description: The timestamp when the share was created. Epoch nanoseconds timestamp.
   snowflake.table.created_on:
     __type: long
     __context_names:

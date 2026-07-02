@@ -78,7 +78,7 @@ attributes:
     __semdict: new
     __context_names:
       - sessions
-    __example: app123
+    __example: SnowflakeJDBCDriver
     __type: string
     __description: The ID of the client application used for the session.
   client.application.version:

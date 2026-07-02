@@ -26,7 +26,7 @@ attributes:
   client.application.id:
     __stability: stable
     __semdict: new
-    __example: app123
+    __example: SnowflakeJDBCDriver
     __type: string
     __description: The ID of the client application used to execute the query.
   client.application.version:
