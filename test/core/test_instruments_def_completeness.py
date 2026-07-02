@@ -61,7 +61,7 @@ _KNOWN_BOOLEAN_NO_PREFIX: frozenset = frozenset(
     {
         "snowflake.user.ext_authn.duo",
         "snowflake.grant.option",
-        "plugins.query_history.track_ddl_changes",
+        "dsoa.plugins.query_history.track_ddl_changes",
     }
 )
 
@@ -232,7 +232,7 @@ class TestBooleanTypeAnnotations:
         """Known boolean fields without is_/has_/must_ prefix must have __type: boolean.
 
         Covers: snowflake.user.ext_authn.duo, snowflake.grant.option,
-        plugins.query_history.track_ddl_changes.
+        dsoa.plugins.query_history.track_ddl_changes.
         """
         all_defs = _load_all_instruments_defs()
         all_fields = _collect_all_fields(all_defs)
