@@ -330,7 +330,7 @@ def main(session: snowpark.Session, source: Union[str, dict, list], params: dict
         results = sender.send_data(source)
     except Exception as e:  # pylint: disable=broad-except
         sender.handle_interrupted_run(source, exec_id, str(e))
-
-    sender.teardown()
+    finally:
+        sender.teardown()
 
     return results

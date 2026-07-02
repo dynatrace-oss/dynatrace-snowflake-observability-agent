@@ -171,6 +171,30 @@ class TestTelemetrySender:
         assert result is None
 
     @pytest.mark.xdist_group(name="test_telemetry")
+    def test_main_calls_teardown_even_if_handle_interrupted_run_raises(self):
+        """teardown() must still run (via finally) if handle_interrupted_run() itself raises,
+        otherwise the logger/tracer would leak instead of being shut down."""
+        import pytest
+        import dtagent.connector as connector_module
+
+        class _ConfiguredLocalSender(LocalTelemetrySender):
+            def __init__(self, session, params, exec_id):
+                super().__init__(session, params, exec_id, config=_utils.get_config())
+
+        session = _get_session()
+
+        with (
+            patch.object(connector_module, "TelemetrySender", _ConfiguredLocalSender),
+            patch.object(_ConfiguredLocalSender, "send_data", side_effect=ValueError("boom")),
+            patch.object(_ConfiguredLocalSender, "handle_interrupted_run", side_effect=RuntimeError("handler also failed")),
+            patch.object(_ConfiguredLocalSender, "teardown") as mock_teardown,
+        ):
+            with pytest.raises(RuntimeError, match="handler also failed"):
+                connector_module.main(session, "irrelevant_source", {"auto_mode": False, "context": "test_main_teardown_guarantee"})
+
+        mock_teardown.assert_called_once()
+
+    @pytest.mark.xdist_group(name="test_telemetry")
     def test_automode(self):
         session = _get_session()
 

@@ -39,12 +39,12 @@ execute immediate $$
 begin
     call DTAGENT_DB.APP.SEND_TELEMETRY(
         OBJECT_CONSTRUCT(
-            'event.type', 'dsoa.installation',
+            'event.type', 'CUSTOM_DEPLOYMENT',
             'message', 'DSOA installation completed successfully',
             'dsoa.deployment.parameter', '__DSOA_DEPLOY_SCOPE__'
         ),
         OBJECT_CONSTRUCT(
-            'context', 'installation_verification',
+            'context', 'self_monitoring',
             'auto_mode', false,
             'logs', false,
             'biz_events', true
