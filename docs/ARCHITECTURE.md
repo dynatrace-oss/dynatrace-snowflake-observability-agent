@@ -491,13 +491,15 @@ Example of deployment bizevent payload.
 ```
 
 This deployment bizevent is sent via `curl` directly from the deploying machine, so it only proves
-that machine can reach Dynatrace — it does not prove Snowflake itself can. For `--scope=all` and
-`--scope=upgrade`, a second, independent bizevent (`event.type: dsoa.installation`) is sent from
-*inside* Snowflake as the last statement of the generated deploy script, via
-`APP.SEND_TELEMETRY()` (see `build/90_finalize.sql` / `src/dtagent.sql/finalize/`). This verifies
-the actual runtime path (stored API token, network rule, external access integration) rather than
-just that the deploy script executed. It is gated by the same `SEND_BIZEVENTS_ON_DEPLOY` flag, and
-a failed send is caught and reported without failing the deployment.
+that machine can reach Dynatrace — it does not prove Snowflake itself can. For `--scope=all`,
+`--scope=upgrade`, `--scope=apikey`, and any scope combo that includes `apikey`, a second,
+independent bizevent (`event.type: dsoa.installation`) is sent from *inside* Snowflake as the last
+statement of the generated deploy script, via `APP.SEND_TELEMETRY()` (see `build/90_finalize.sql`
+/ `src/dtagent.sql/finalize/`). This verifies the actual runtime path (stored API token, network
+rule, external access integration) rather than just that the deploy script executed — and firing
+it whenever the apikey is (re)deployed means the token is verified right when it's most likely to
+need it. It is gated by the same `SEND_BIZEVENTS_ON_DEPLOY` flag, and a failed send is caught and
+reported without failing the deployment.
 
 ### Build Artifacts
 
@@ -510,7 +512,7 @@ The build process creates staged SQL scripts in the `build/` directory:
 - `30_plugins/*.sql` - Individual plugin definitions
 - `40_config.sql` - Configuration management
 - `70_agents.sql` - Agent task definitions
-- `90_finalize.sql` - Post-install verification bizevent — appended as the last statement of the generated script for `--scope=all`/`--scope=upgrade` only, after the apikey/config-refresh and disabled-plugin cleanup blocks
+- `90_finalize.sql` - Post-install verification bizevent — appended as the last statement of the generated script for `--scope=all`, `--scope=upgrade`, `--scope=apikey`, and any scope combo including `apikey`, after the apikey/config-refresh and disabled-plugin cleanup blocks
 
 ### Deployment Scopes
 

@@ -325,9 +325,10 @@ def main(session: snowpark.Session, source: Union[str, dict, list], params: dict
     """MAIN entry to this stored procedure - this is where the fun begins"""
     exec_id = str(uuid.uuid4().hex)
     sender = TelemetrySender(session, params, exec_id)
+    results = None
     try:
         results = sender.send_data(source)
-    except RuntimeError as e:
+    except Exception as e:  # pylint: disable=broad-except
         sender.handle_interrupted_run(source, exec_id, str(e))
 
     sender.teardown()

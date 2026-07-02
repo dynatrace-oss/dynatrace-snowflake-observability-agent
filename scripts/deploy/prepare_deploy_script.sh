@@ -816,9 +816,12 @@ fi
 
 # Append the post-install bizevent (build/90_finalize.sql) after everything above — including
 # the apikey/config-refresh block and any disabled-plugin task suspend/cleanup statements — so
-# it is genuinely the last statement executed for scope=all/upgrade. Appended here (not via
-# SQL_FILES) so it still runs through the TAG/identifier substitution pass just below.
-if [ "$SEND_INSTALL_BIZEVENT" == "true" ] && { [ "$SCOPE" == "all" ] || [ "$HAS_UPGRADE_SCOPE" == "true" ]; }; then
+# it is genuinely the last statement executed for scope=all/apikey/upgrade. INCLUDE_APIKEY is
+# true for scope=all, scope=apikey standalone, and any comma-separated scope combo that includes
+# apikey — verifying the token right after it's (re)deployed is exactly when it's most useful.
+# Appended here (not via SQL_FILES) so it still runs through the TAG/identifier substitution
+# pass just below.
+if [ "$SEND_INSTALL_BIZEVENT" == "true" ] && { [ "$INCLUDE_APIKEY" == "true" ] || [ "$HAS_UPGRADE_SCOPE" == "true" ]; }; then
     if [ ! -f "build/90_finalize.sql" ]; then
         echo ""
         echo "ERROR: Build artifacts are missing. Run the following command first:"

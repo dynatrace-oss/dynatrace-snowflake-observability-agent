@@ -146,6 +146,31 @@ class TestTelemetrySender:
         assert results[RUN_RESULTS_KEY][context_name]["biz_events"] == 1
 
     @pytest.mark.xdist_group(name="test_telemetry")
+    @pytest.mark.parametrize("raised_exception", [RuntimeError("too many failed attempts"), ValueError("unexpected failure")])
+    def test_main_does_not_raise_on_send_data_failure(self, raised_exception):
+        """main() must log-and-continue for any Exception from send_data(), not just RuntimeError."""
+        import dtagent.connector as connector_module
+
+        class _ConfiguredLocalSender(LocalTelemetrySender):
+            def __init__(self, session, params, exec_id):
+                super().__init__(session, params, exec_id, config=_utils.get_config())
+
+        session = _get_session()
+
+        with (
+            patch.object(connector_module, "TelemetrySender", _ConfiguredLocalSender),
+            patch.object(_ConfiguredLocalSender, "send_data", side_effect=raised_exception) as mock_send_data,
+            patch.object(_ConfiguredLocalSender, "handle_interrupted_run") as mock_handle_interrupted_run,
+            patch.object(_ConfiguredLocalSender, "teardown") as mock_teardown,
+        ):
+            result = connector_module.main(session, "irrelevant_source", {"auto_mode": False, "context": "test_main_broad_except"})
+
+        mock_send_data.assert_called_once()
+        mock_handle_interrupted_run.assert_called_once()
+        mock_teardown.assert_called_once()
+        assert result is None
+
+    @pytest.mark.xdist_group(name="test_telemetry")
     def test_automode(self):
         session = _get_session()
 

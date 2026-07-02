@@ -13,12 +13,16 @@ since they're sent via `curl` directly from the deploying machine, not from insi
 
 A new build stage, `build/90_finalize.sql` (built from `src/dtagent.sql/finalize/`), calls
 `APP.SEND_TELEMETRY()` from within Snowflake to send a `dsoa.installation` bizevent. It is
-appended as the literal last statement of the generated deploy script for `scope=all` and
-`scope=upgrade` — after the apikey/config-refresh block and any disabled-plugin task
-suspend/cleanup statements, since those are appended even later than the main `SQL_FILES`
-concatenation in `prepare_deploy_script.sh`. It is gated behind the existing
-`plugins.self_monitoring.send_bizevents_on_deploy` config flag (same flag `send_bizevent.sh`
-already uses), so it can be disabled without introducing a new config key.
+appended as the literal last statement of the generated deploy script for `scope=all`,
+`scope=upgrade`, `scope=apikey` (standalone or as part of any scope combo including `apikey`) —
+after the apikey/config-refresh block and any disabled-plugin task suspend/cleanup statements,
+since those are appended even later than the main `SQL_FILES` concatenation in
+`prepare_deploy_script.sh`. The `apikey` trigger was added after the initial `all`/`upgrade`-only
+version shipped: verifying the token from inside Snowflake is most useful right when it's
+(re)deployed, so the condition checks `INCLUDE_APIKEY` (already true for `all`, standalone
+`apikey`, and any combo containing `apikey`) instead of a literal `SCOPE == "all"` check. It is
+gated behind the existing `plugins.self_monitoring.send_bizevents_on_deploy` config flag (same
+flag `send_bizevent.sh` already uses), so it can be disabled without introducing a new config key.
 
 Payload is intentionally minimal: `event.type`, `message`, and `dsoa.deployment.parameter` (the
 deploy scope). `deployment.environment.tag` and `app.version`/`app.short_version` are **not**
@@ -55,7 +59,7 @@ separately.
 - `src/dtagent.sql/finalize/900_p_send_install_bizevent.sql` (new)
 - `scripts/dev/build.sh` — assembles `finalize/` into `build/90_finalize.sql`
 - `scripts/deploy/prepare_deploy_script.sh` — fetches `SEND_INSTALL_BIZEVENT` flag, appends
-  `build/90_finalize.sql` after the apikey/config-refresh and plugin-suspend/cleanup blocks,
-  substitutes `__DSOA_DEPLOY_SCOPE__`
-- `test/bash/test_prepare_deploy_script.bats` — 5 new tests covering ordering, scope
-  substitution, and gating
+  `build/90_finalize.sql` after the apikey/config-refresh and plugin-suspend/cleanup blocks
+  (gated on `INCLUDE_APIKEY || HAS_UPGRADE_SCOPE`), substitutes `__DSOA_DEPLOY_SCOPE__`
+- `test/bash/test_prepare_deploy_script.bats` — 7 tests covering ordering, scope substitution,
+  gating, and the standalone/combo `apikey` scope cases

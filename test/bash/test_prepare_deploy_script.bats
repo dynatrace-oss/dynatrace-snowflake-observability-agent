@@ -589,3 +589,27 @@ EOF
 
     run ! grep -q "dsoa.installation" "$TEST_SQL_FILE"
 }
+
+@test "prepare_deploy_script.sh sends install bizevent as the last statement for standalone apikey scope when enabled" {
+    enable_install_bizevent_config
+    echo "call DTAGENT_DB.APP.SEND_TELEMETRY(OBJECT_CONSTRUCT('event.type', 'dsoa.installation'), OBJECT_CONSTRUCT());" > build/90_finalize.sql
+    export DTAGENT_TOKEN="dt0c01.TEST12345678901234567890.TEST123456789012345678901234567890123456789012345678901234567890"
+
+    run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "apikey" "" "manual"
+    [ "$status" -eq 0 ]
+
+    grep -q "dsoa.installation" "$TEST_SQL_FILE"
+    [[ "$(last_non_blank_line "$TEST_SQL_FILE")" == *"dsoa.installation"* ]]
+}
+
+@test "prepare_deploy_script.sh sends install bizevent as the last statement for a scope combo including apikey" {
+    enable_install_bizevent_config
+    echo "call DTAGENT_DB.APP.SEND_TELEMETRY(OBJECT_CONSTRUCT('event.type', 'dsoa.installation'), OBJECT_CONSTRUCT());" > build/90_finalize.sql
+    export DTAGENT_TOKEN="dt0c01.TEST12345678901234567890.TEST123456789012345678901234567890123456789012345678901234567890"
+
+    run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "setup,apikey,config" "" "manual"
+    [ "$status" -eq 0 ]
+
+    grep -q "dsoa.installation" "$TEST_SQL_FILE"
+    [[ "$(last_non_blank_line "$TEST_SQL_FILE")" == *"dsoa.installation"* ]]
+}

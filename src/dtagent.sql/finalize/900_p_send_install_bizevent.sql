@@ -26,8 +26,9 @@
 -- APP.SEND_TELEMETRY() can reach the configured Dynatrace tenant from inside
 -- Snowflake (token, network rule, tenant URL) — verifying the runtime path,
 -- not just that the deploy script itself finished executing.
--- This must remain the last statement executed for the "all" and "upgrade"
--- deployment scopes; see scripts/deploy/prepare_deploy_script.sh.
+-- This must remain the last statement executed for the "all", "apikey", and
+-- "upgrade" deployment scopes (including any scope combo that includes
+-- "apikey"); see scripts/deploy/prepare_deploy_script.sh.
 --
 use role DTAGENT_OWNER; use database DTAGENT_DB; use warehouse DTAGENT_WH;
 
