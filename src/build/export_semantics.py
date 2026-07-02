@@ -1467,6 +1467,7 @@ class SemanticExporter:
         plugin_name: str,
         all_entries: Dict[str, Any],
         context_name: Optional[str] = None,
+        exclude_span_only: bool = False,
     ) -> List[Dict[str, str]]:
         """Collect all attribute field refs for a plugin (optionally for one context).
 
@@ -1477,10 +1478,23 @@ class SemanticExporter:
 
         ``ref``-classified entries are excluded (they belong in SD interfaces only).
 
+        Note: ``__context_names`` is a general per-field annotation also used (by many
+        other plugins) to scope a field to a specific source SQL view/context — e.g.
+        ``task_history`` vs. ``task_versions`` — not specifically log-vs-span. Passing a
+        ``context_name`` here only has an effect on fields that opt in via their own
+        ``__context_names`` list; callers must not assume it differentiates log/span
+        models on its own. Log/span differentiation (BIZOBS-151 Task 7) instead uses
+        the dedicated ``exclude_span_only`` flag, driven by the ``__span_only``
+        annotation, to avoid colliding with the pre-existing SQL-view-scoping use of
+        ``__context_names``.
+
         Args:
-            plugin_name:  Plugin name.
-            all_entries:  All parsed entries (dedup-resolved).
-            context_name: If provided, only include fields applicable to this context.
+            plugin_name:       Plugin name.
+            all_entries:       All parsed entries (dedup-resolved).
+            context_name:      If provided, only include fields applicable to this context.
+            exclude_span_only: If True, skip fields annotated with ``__span_only: true``
+                                (fields reported only on span records, e.g. span-event
+                                payloads) — used to build the plugin's log model.
 
         Returns:
             Sorted list of ``{"ref": key}`` dicts.
@@ -1492,6 +1506,8 @@ class SemanticExporter:
             if meta["plugin"] != plugin_name:
                 continue
             if meta["semdict"] == "ref":
+                continue
+            if exclude_span_only and meta["entry"].get("__span_only"):
                 continue
             # Filter by context if requested
             if context_name is not None:
@@ -1509,6 +1525,11 @@ class SemanticExporter:
         Creates a log model that references all attribute fields for the plugin via
         a ``ref:`` list in a dedicated model group, resolving signal-field orphans.
 
+        Fields annotated with ``__span_only: true`` are excluded here even though they
+        are still collected for the span model (BIZOBS-151 Task 7) — e.g. span-event
+        payload fields (``snowflake.query.step.*``) that only apply to the span
+        representation of a plugin's records.
+
         Args:
             plugin_name:  Plugin name.
             all_entries:  All parsed entries (dedup-resolved).
@@ -1518,7 +1539,7 @@ class SemanticExporter:
             Semconv-compliant YAML document dict with ``model:`` envelope.
         """
         plugin_title = _restore_acronyms(plugin_name.replace("_", " ").title())
-        attr_refs = self._collect_plugin_attribute_refs(plugin_name, all_entries)
+        attr_refs = self._collect_plugin_attribute_refs(plugin_name, all_entries, exclude_span_only=True)
         model_doc: Dict[str, Any] = {
             "id": f"dsoa.logs.{plugin_name}",
             "title": f"DSOA {plugin_title} Log Records",
@@ -1545,7 +1566,10 @@ class SemanticExporter:
     ) -> Dict[str, Any]:
         """Build a per-plugin span model YAML document.
 
-        Only generated for plugins in ``SPAN_PLUGINS``.
+        Only generated for plugins in ``SPAN_PLUGINS``. Unlike the log model, no
+        ``__span_only`` filtering is applied here — span-only fields (BIZOBS-151 Task 7)
+        are ordinary attributes from the span model's perspective and are included
+        alongside every other field the plugin defines.
 
         Args:
             plugin_name:  Plugin name (must be in SPAN_PLUGINS).
@@ -1717,6 +1741,10 @@ class SemanticExporter:
         # Per-plugin DQL query examples collected directly from the top-level dql_queries: key
         # in each instruments-def.yml file.  Keyed by plugin_name (or "_core").
         plugin_dql_queries: Dict[str, List[Dict[str, Any]]] = {}
+        # Per-plugin span-model-specific DQL query examples from the optional top-level
+        # dql_queries_span: key.  When present, these take priority over plugin_dql_queries
+        # for the span model only (BIZOBS-151 Task 7 — differentiate span DQL from log DQL).
+        plugin_dql_queries_span: Dict[str, List[Dict[str, Any]]] = {}
         for plugin_name, path in files:
             log.debug("Parsing %s (%s)", plugin_name, path)
             errors, entries = self._parse_file(plugin_name, path)
@@ -1729,6 +1757,10 @@ class SemanticExporter:
                 if raw_queries and isinstance(raw_queries, list):
                     plugin_dql_queries[plugin_name] = raw_queries
                     log.debug("Collected %d dql_queries from %s", len(raw_queries), plugin_name)
+                raw_queries_span = raw_data.get("dql_queries_span")
+                if raw_queries_span and isinstance(raw_queries_span, list):
+                    plugin_dql_queries_span[plugin_name] = raw_queries_span
+                    log.debug("Collected %d dql_queries_span from %s", len(raw_queries_span), plugin_name)
             except Exception as exc:  # pylint: disable=broad-except
                 log.warning("Could not re-read dql_queries from %s: %s", path, exc)
             for key, meta in entries.items():
@@ -1869,7 +1901,7 @@ class SemanticExporter:
                 doc = self._build_span_model_yaml(
                     plugin_name,
                     all_entries,
-                    dql_queries=plugin_dql_queries.get(plugin_name),
+                    dql_queries=plugin_dql_queries_span.get(plugin_name) or plugin_dql_queries.get(plugin_name),
                 )
                 p = self._write_yaml(doc, f"model/dsoa/dsoa.spans.{plugin_name}.yaml")
                 self._validate_against_schema(doc, p)
@@ -1891,7 +1923,7 @@ class SemanticExporter:
             doc = self._build_span_model_yaml(
                 "event_log",
                 all_entries,
-                dql_queries=plugin_dql_queries.get("event_log"),
+                dql_queries=plugin_dql_queries_span.get("event_log") or plugin_dql_queries.get("event_log"),
             )
             p = self._write_yaml(doc, "model/dsoa/dsoa.spans.event_log.yaml")
             self._validate_against_schema(doc, p)

@@ -48,6 +48,13 @@
       "items": {
         "$ref": "#/$defs/DqlQuery"
       }
+    },
+    "dql_queries_span": {
+      "type": "array",
+      "description": "Optional span-model-specific DQL queries. When present, these replace dql_queries on the plugin's dsoa.spans.* model only; all other model types (metrics, events, logs) continue to use dql_queries.",
+      "items": {
+        "$ref": "#/$defs/DqlQuery"
+      }
     }
   },
   "$defs": {
@@ -229,6 +236,10 @@
         "__enum": {
           "$ref": "#/$defs/EnumDefinition",
           "description": "Enumeration definition for categorical fields. When present, __type must be 'string'."
+        },
+        "__span_only": {
+          "type": "boolean",
+          "description": "True if this attribute is only reported on span (SPAN_PLUGINS) records and must be excluded from the plugin's dsoa.logs.* model."
         }
       },
       "if": {

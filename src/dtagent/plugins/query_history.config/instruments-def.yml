@@ -84,11 +84,13 @@ attributes:
     __type: long
     __example: 5
     __description: Internal debug field indicating the number of span events successfully added to the given span.
+    __span_only: true
   dsoa.debug.span.events.failed:
     __stability: stable
     __type: long
     __example: 1
     __description: Internal debug field indicating the number of span events that failed to be added to the given span.
+    __span_only: true
   dsoa.plugins.query_history.obfuscation_mode:
     __stability: stable
     __example: "off"
@@ -331,10 +333,12 @@ attributes:
       parseJson() in DQL.
     __example: '{ "equality_join_condition": "(T4.C = T1.C)",   "join_type": "INNER" }'
     __description: Information about the operator, depending on the operator type.
+    __span_only: true
   snowflake.query.step.operator.id:
     __type: long
     __example: 0
     __description: The operator's identifier, unique within a step. Values start at 0.
+    __span_only: true
   snowflake.query.step.operator.parent_ids:
     __type: string[]
     __semdict_note: >-
@@ -342,6 +346,7 @@ attributes:
     __example:
       - ["0", "1"]
     __description: Identifiers of the parent operators for this operator, or NULL if this is the final operator in the query plan.
+    __span_only: true
   snowflake.query.step.operator.stats:
     __type: string
     __semdict_note: >-
@@ -349,6 +354,7 @@ attributes:
       with parseJson() in DQL.
     __example: '{ "input_rows": 64, "output_rows": 64 }'
     __description: Statistics about the operator (e.g., the number of output rows from the operator).
+    __span_only: true
   snowflake.query.step.operator.time_breakdown:
     __type: string
     __semdict_note: >-
@@ -366,10 +372,12 @@ attributes:
       - **local_disk_io**: Time during which processing was blocked while waiting for local disk access,
       - **remote_disk_io**: Time during which processing was blocked while waiting for remote disk access,
       - **network_communication**: Time during which processing was waiting for network data transfer.
+    __span_only: true
   snowflake.query.step.operator.type:
     __type: string
     __example: TableScan
     __description: The type of query operator (e.g., TableScan or Filter).
+    __span_only: true
   snowflake.query.parametrized_hash:
     __type: string
     __stability: stable
@@ -394,6 +402,7 @@ attributes:
     __type: long
     __description: Identifier of the step in the query execution plan.
       operator_id values are unique within a step, not across the full query.
+    __span_only: true
   snowflake.query.transaction_id:
     __type: long
     __stability: stable
@@ -953,4 +962,42 @@ dql_queries:
       | limit 20
     description: Fetch recent DSOA self-monitoring business events for the query_history plugin.
     description_copilot: Search for self-monitoring events from the query_history Snowflake agent plugin.
+    internal: false
+# Span-model-specific DQL (BIZOBS-151 Task 7). Falls back to dql_queries above for any model
+# type that does not read this key. Leads with `fetch spans` (not `fetch logs`) since these
+# queries are attached only to dsoa.spans.query_history, where the span representation of a
+# single Snowflake query execution — including its query-plan step/operator span events — is
+# the natural entry point.
+dql_queries_span:
+  - query_string: |
+      fetch spans
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "query_history"
+      | sort timestamp desc
+      | limit 50
+    description: Fetch the 50 most recent DSOA query_history spans (individual Snowflake query executions).
+    description_copilot: Find query_history span traces produced by the Snowflake observability agent.
+    internal: false
+  - query_string: |
+      fetch spans
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "query_history"
+      | filter isNotNull(trace.id) and isNotNull(span.id)
+      | fields trace.id, span.id, request.is_root_span, snowflake.query.id, start_time, end_time
+      | sort start_time desc
+      | limit 50
+    description: Correlate DSOA query_history spans by trace.id/span.id to inspect the root span and timing for a Snowflake query execution.
+    description_copilot: Find the trace and span identifiers for Snowflake query execution spans, including whether each is the root span.
+    internal: false
+  - query_string: |
+      fetch spans
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "query_history"
+      | expand span.events
+      | filter contains(span.events.name, "snowflake.query.step")
+      | fields snowflake.query.step.id, snowflake.query.step.operator.type, snowflake.query.step.operator.stats, span.events.timestamp
+      | sort span.events.timestamp desc
+      | limit 100
+    description: Inspect Snowflake query-plan step/operator span events (snowflake.query.step.*) recorded on query_history spans.
+    description_copilot: List query execution plan steps and operators recorded as span events on Snowflake query spans.
     internal: false
