@@ -109,8 +109,8 @@ attributes:
       Configuration key controlling query text obfuscation mode applied to `db.query.text` and `snowflake.error.message`.
       Possible values: `off` (no transformation), `literals` (replace string and numeric literals with `?`),
       `full` (replace entire query text with `[OBFUSCATED]`).
-  plugins.query_history.track_ddl_changes:
-    __stability: stable
+  dsoa.plugins.query_history.track_ddl_changes:
+    __stability: experimental
     __type: boolean
     __example: false
     __is_defined_at_runtime: true
