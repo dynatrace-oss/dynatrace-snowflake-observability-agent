@@ -1,4 +1,4 @@
-# BIZOBS-151 — Semantic Dictionary Export Pipeline (Structural Rewrite)
+# Semantic Dictionary Export Pipeline (Structural Rewrite)
 
 ## Problem Statement
 
@@ -40,18 +40,19 @@ build/_semdict/source/
 
 ### Field classification rules
 
-| instruments-def section | `__field_type` | SD output     |
-|-------------------------|----------------|---------------|
-| `dimensions`            | (absent)       | resource      |
-| `dimensions`            | `signal`       | signal        |
-| `attributes`            | (absent)       | signal        |
-| `attributes`            | `resource`     | resource      |
-| `metrics`               | any            | metric model  |
-| `event_timestamps`      | any            | event model   |
+| instruments-def section | `__field_type` | SD output    |
+|-------------------------|----------------|--------------|
+| `dimensions`            | (absent)       | resource     |
+| `dimensions`            | `signal`       | signal       |
+| `attributes`            | (absent)       | signal       |
+| `attributes`            | `resource`     | resource     |
+| `metrics`               | any            | metric model |
+| `event_timestamps`      | any            | event model  |
 
 ### New instrument-def annotations added
 
 **`__field_type` overrides** (bidirectional classification override):
+
 - `__field_type: signal` added to `snowflake.warehouse.event.name`,
   `snowflake.warehouse.event.state` — they describe events, not resources.
 - `__field_type: resource` added to warehouse resource identifiers:
@@ -64,6 +65,7 @@ build/_semdict/source/
   `snowflake.resource_monitor.level`.
 
 **`__enum` definitions** added to ~16 categorical fields:
+
 - `snowflake.warehouse.event.name` — WAREHOUSE_START/SUSPEND/RESUME/RESIZE_WAREHOUSE
 - `snowflake.warehouse.event.state` — STARTED/COMPLETED/FAILED
 - `snowflake.warehouse.event.reason` — USER_REQUEST/AUTO_SUSPEND/AUTO_RESUME/SCHEDULER
@@ -83,6 +85,7 @@ build/_semdict/source/
 ### Interface and model structure
 
 **`interfaces_dsoa.yaml`** defines:
+
 - `i.dsoa_resource`: 10 keys synced with `config.py RESOURCE_ATTRIBUTES`
 - `i.dsoa_warehouse`: snowflake.warehouse.name + snowflake.warehouse.id
 - `i.dsoa_database`: db.namespace + snowflake.schema.name
@@ -111,21 +114,22 @@ This is pre-existing debt. A follow-up should annotate all metrics with explicit
 
 ## Files Created/Modified
 
-| File                                                              | Change                                          |
-|-------------------------------------------------------------------|-------------------------------------------------|
-| `src/build/export_semantics.py`                                   | REWRITTEN — 938 lines, pylint 10.00/10          |
-| `test/core/test_export_semantics.py`                              | REWRITTEN — 83 tests                            |
-| `test/test_data/instruments-def-mock.yml`                         | EXTENDED — __field_type, __enum, event_timestamps |
-| `src/dtagent/plugins/warehouse_usage.config/instruments-def.yml`  | `__field_type` + `__enum` annotations           |
-| `src/dtagent/plugins/resource_monitors.config/instruments-def.yml`| `__field_type` + `__enum` annotations           |
-| `src/dtagent/plugins/query_history.config/instruments-def.yml`    | `__enum` annotations                            |
-| `src/dtagent/plugins/data_volume.config/instruments-def.yml`      | `__enum` annotation (table.type)                |
-| `src/dtagent/plugins/users.config/instruments-def.yml`            | `__enum` annotation (user.type)                 |
-| `docs/CHANGELOG.md`                                               | Added rewrite entry                             |
+| File                                                               | Change                                           |
+|--------------------------------------------------------------------|--------------------------------------------------|
+| `src/build/export_semantics.py`                                    | REWRITTEN — 938 lines, pylint 10.00/10           |
+| `test/core/test_export_semantics.py`                               | REWRITTEN — 83 tests                             |
+| `test/test_data/instruments-def-mock.yml`                          | EXTENDED — __field_type,__enum, event_timestamps |
+| `src/dtagent/plugins/warehouse_usage.config/instruments-def.yml`   | `__field_type` + `__enum` annotations            |
+| `src/dtagent/plugins/resource_monitors.config/instruments-def.yml` | `__field_type` + `__enum` annotations            |
+| `src/dtagent/plugins/query_history.config/instruments-def.yml`     | `__enum` annotations                             |
+| `src/dtagent/plugins/data_volume.config/instruments-def.yml`       | `__enum` annotation (table.type)                 |
+| `src/dtagent/plugins/users.config/instruments-def.yml`             | `__enum` annotation (user.type)                  |
+| `docs/CHANGELOG.md`                                                | Added rewrite entry                              |
 
 ## Test Results
 
 83 tests pass (previously 42). New test classes:
+
 - `TestFieldClassification` — 6 tests for `_classify_field`
 - `TestNamespaceGrouping` — 4 tests for `_ns_group`
 - `TestEnumEmission` — 5 tests for `_build_type_node` and enum in `_emit_id_entry`

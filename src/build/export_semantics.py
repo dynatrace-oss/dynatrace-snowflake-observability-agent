@@ -187,7 +187,7 @@ VALID_SEMDICT_FLAGS = {"ref", "new", "deprecated-alias", "otel-only"}
 # types (logs + spans + events) and are not canonically span-wire-format fields.
 # See IA guidance: type:span is reserved for groups whose semantics are exclusively
 # span/trace wire-format (HTTP, RPC). Using it for DSOA fields would be incorrect.
-# TODO(BIZOBS-151-IA): Re-evaluate after @information-architect review of span semantics.
+# TODO: Re-evaluate after @information-architect review of span semantics.
 _SIG_NS: List[Tuple[str, str, str]] = [
     ("snowflake.warehouse", "snowflake.warehouse", "attribute_group"),
     ("snowflake.query", "snowflake.query", "attribute_group"),
@@ -223,7 +223,7 @@ _SIG_NS: List[Tuple[str, str, str]] = [
     ("snowflake.service", "snowflake.service", "attribute_group"),
     ("snowflake.secondary", "snowflake.secondary", "attribute_group"),
     ("snowflake.trust_center", "snowflake.trust_center", "attribute_group"),
-    # Snowflake namespaces extracted from the snowflake.misc grab-bag (BIZOBS-151 Task 6).
+    # Snowflake namespaces extracted from the snowflake.misc grab-bag
     ("snowflake.account", "snowflake.account", "attribute_group"),
     ("snowflake.copy", "snowflake.copy", "attribute_group"),
     ("snowflake.cost_attribution", "snowflake.cost_attribution", "attribute_group"),
@@ -245,7 +245,7 @@ _SIG_NS: List[Tuple[str, str, str]] = [
     ("status", "status", "attribute_group"),
     ("event", "event", "attribute_group"),
     ("vulnerability", "vulnerability", "attribute_group"),
-    # Non-Snowflake namespaces extracted from the snowflake.misc grab-bag (BIZOBS-151 Task 6).
+    # Non-Snowflake namespaces extracted from the snowflake.misc grab-bag
     ("anomaly", "anomaly", "attribute_group"),
     ("dsoa.debug", "dsoa.debug", "attribute_group"),
     ("dsoa.plugins", "dsoa.plugins", "attribute_group"),
@@ -1229,8 +1229,7 @@ class SemanticExporter:
         Args:
             all_entries: All parsed field entries keyed by field key. When provided,
                          ``__interface_note`` values are read from each entry to annotate
-                         ``ref:`` attributes in ``i.dsoa_resource`` with contextual notes
-                         (SD C2 requirement from BIZOBS-151 IA review).
+                         ``ref:`` attributes in ``i.dsoa_resource`` with contextual notes.
 
         Returns:
             Semconv-compliant YAML doc dict.
@@ -1484,7 +1483,7 @@ class SemanticExporter:
         ``task_history`` vs. ``task_versions`` — not specifically log-vs-span. Passing a
         ``context_name`` here only has an effect on fields that opt in via their own
         ``__context_names`` list; callers must not assume it differentiates log/span
-        models on its own. Log/span differentiation (BIZOBS-151 Task 7) instead uses
+        models on its own. Log/span differentiation instead uses
         the dedicated ``exclude_span_only`` flag, driven by the ``__span_only``
         annotation, to avoid colliding with the pre-existing SQL-view-scoping use of
         ``__context_names``.
@@ -1527,7 +1526,7 @@ class SemanticExporter:
         a ``ref:`` list in a dedicated model group, resolving signal-field orphans.
 
         Fields annotated with ``__span_only: true`` are excluded here even though they
-        are still collected for the span model (BIZOBS-151 Task 7) — e.g. span-event
+        are still collected for the span model, e.g., span-event
         payload fields (``snowflake.query.step.*``) that only apply to the span
         representation of a plugin's records.
 
@@ -1568,7 +1567,7 @@ class SemanticExporter:
         """Build a per-plugin span model YAML document.
 
         Only generated for plugins in ``SPAN_PLUGINS``. Unlike the log model, no
-        ``__span_only`` filtering is applied here — span-only fields (BIZOBS-151 Task 7)
+        ``__span_only`` filtering is applied here — span-only fields
         are ordinary attributes from the span model's perspective and are included
         alongside every other field the plugin defines.
 
@@ -1744,7 +1743,7 @@ class SemanticExporter:
         plugin_dql_queries: Dict[str, List[Dict[str, Any]]] = {}
         # Per-plugin span-model-specific DQL query examples from the optional top-level
         # dql_queries_span: key.  When present, these take priority over plugin_dql_queries
-        # for the span model only (BIZOBS-151 Task 7 — differentiate span DQL from log DQL).
+        # for the span model only (differentiate span DQL from log DQL).
         plugin_dql_queries_span: Dict[str, List[Dict[str, Any]]] = {}
         for plugin_name, path in files:
             log.debug("Parsing %s (%s)", plugin_name, path)

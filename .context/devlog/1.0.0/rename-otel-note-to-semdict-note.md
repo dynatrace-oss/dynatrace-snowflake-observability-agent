@@ -1,6 +1,6 @@
 # Rename `__otel_note` → `__semdict_note` in instruments-def schema
 
-**Ticket:** BIZOBS-151 (semantic dictionary YAML build — schema cleanup)
+**Ticket:** (semantic dictionary YAML build — schema cleanup)
 **Branch:** `feat/1.0.0/rename-otel-note-to-semdict-note`
 **Date:** 2026-06-17
 

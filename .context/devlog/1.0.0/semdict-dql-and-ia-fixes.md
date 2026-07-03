@@ -1,8 +1,8 @@
-# BIZOBS-151 — DQL Coverage & IA Fixes (Round 4)
+# DQL Coverage & IA Fixes (Round 4)
 
 ## Summary
 
-Closed out the remaining lightweight tasks from the BIZOBS-151 implementation plan
+Closed out the remaining lightweight tasks from the implementation plan
 (Tasks 1, 2, 3, 4, 5, 8, 9, 10, 12) to finalize the DSOA -> Semantic Dictionary export
 for handover to the Information Architect. Tasks 6, 7, and 11 (grouping restructure,
 per-model-type DQL, widened test enforcement) are deliberately deferred to a future
@@ -52,6 +52,7 @@ OpenPipeline Events API."
 
 `authentication.factor.first` / `.second` in `login_history.config/instruments-def.yml`
 converted to open enums (`allow_custom_values: true`):
+
 - First factor: `ID_TOKEN`, `OAUTH_ACCESS_TOKEN`, `PASSWORD`, `PROGRAMMATIC_ACCESS_TOKEN`,
   `SAML2_ASSERTION`. Example changed from `password123` to `PASSWORD`.
 - Second factor: `TOTP`. Description reworded per convention S5 (absence is field
@@ -97,7 +98,7 @@ untouched.
 
 `test/core/test_instruments_def_completeness.py::TestBooleanTypeAnnotations::
 test_known_boolean_fields_without_prefix_have_type_annotation` still referenced the
-pre-BIZOBS-2057 field name `plugins.query_history.track_ddl_changes`. That rename
+field name `plugins.query_history.track_ddl_changes`. That rename
 (to `dsoa.plugins.query_history.track_ddl_changes`) was already implemented and
 merged into this branch before this session (commits 266b93e, 6e323e0), but the test
 file's coverage list and docstring were never updated to match, so `make
@@ -116,33 +117,33 @@ stale-string test fix.
    separate Semantic Dictionary Bitbucket repo, not committed here.
 3. `./scripts/dev/build_docs.sh` — rebuilt `docs/SEMANTICS.md` (new DQL query
    sections for the 10 plugins, updated enum tables) and `docs/APPENDIX.md` (gained
-   one row in the field-rename table for the already-merged BIZOBS-2057 rename,
+   one row in the field-rename table for the already-merged rename,
    surfaced by the regeneration since that rename predates this session's export
    run history).
 
 ## Files Changed
 
-| File | Change |
-|---|---|
-| `src/build/export_semantics.py` | Task 2: guard against duplicated backward-compat note; Task 3: events model-group brief wording |
-| `src/dtagent/plugins/active_queries.config/instruments-def.yml` | Task 1: dql_queries |
-| `src/dtagent/plugins/cold_tables.config/instruments-def.yml` | Task 1: dql_queries |
-| `src/dtagent/plugins/data_schemas.config/instruments-def.yml` | Task 1: dql_queries |
-| `src/dtagent/plugins/data_volume.config/instruments-def.yml` | Task 1: dql_queries |
-| `src/dtagent/plugins/dynamic_tables.config/instruments-def.yml` | Task 1: dql_queries |
-| `src/dtagent/plugins/event_usage.config/instruments-def.yml` | Task 1: dql_queries |
-| `src/dtagent/plugins/org_costs.config/instruments-def.yml` | Task 1: dql_queries |
-| `src/dtagent/plugins/snowpipes.config/instruments-def.yml` | Task 1: dql_queries |
-| `src/dtagent/plugins/table_health.config/instruments-def.yml` | Task 1: dql_queries |
-| `src/dtagent/plugins/trust_center.config/instruments-def.yml` | Task 1: dql_queries |
-| `src/dtagent/plugins/login_history.config/instruments-def.yml` | Task 4: auth factor open enums; Task 10: client.application.id example |
-| `src/dtagent/plugins/resource_monitors.config/instruments-def.yml` | Task 5: threshold closed enums; Task 9: removed snowflake.warehouse.event |
-| `src/dtagent/plugins/tasks.config/instruments-def.yml` | Task 8: task.condition open enum |
-| `src/dtagent/plugins/query_history.config/instruments-def.yml` | Task 10: client.application.id example |
-| `src/dtagent/plugins/shares.config/instruments-def.yml` | Task 10: share.created_on stability + note |
-| `test/core/test_instruments_def_completeness.py` | Task 9: removed coverage tuple; stale field-name fix (BIZOBS-2057 test hygiene) |
-| `test/qa/fixtures/all_metrics_ingest_payload.txt` | Task 12: regenerated |
-| `docs/SEMANTICS.md`, `docs/APPENDIX.md` | Task 12: regenerated |
+| File                                                               | Change                                                                                          |
+|--------------------------------------------------------------------|-------------------------------------------------------------------------------------------------|
+| `src/build/export_semantics.py`                                    | Task 2: guard against duplicated backward-compat note; Task 3: events model-group brief wording |
+| `src/dtagent/plugins/active_queries.config/instruments-def.yml`    | Task 1: dql_queries                                                                             |
+| `src/dtagent/plugins/cold_tables.config/instruments-def.yml`       | Task 1: dql_queries                                                                             |
+| `src/dtagent/plugins/data_schemas.config/instruments-def.yml`      | Task 1: dql_queries                                                                             |
+| `src/dtagent/plugins/data_volume.config/instruments-def.yml`       | Task 1: dql_queries                                                                             |
+| `src/dtagent/plugins/dynamic_tables.config/instruments-def.yml`    | Task 1: dql_queries                                                                             |
+| `src/dtagent/plugins/event_usage.config/instruments-def.yml`       | Task 1: dql_queries                                                                             |
+| `src/dtagent/plugins/org_costs.config/instruments-def.yml`         | Task 1: dql_queries                                                                             |
+| `src/dtagent/plugins/snowpipes.config/instruments-def.yml`         | Task 1: dql_queries                                                                             |
+| `src/dtagent/plugins/table_health.config/instruments-def.yml`      | Task 1: dql_queries                                                                             |
+| `src/dtagent/plugins/trust_center.config/instruments-def.yml`      | Task 1: dql_queries                                                                             |
+| `src/dtagent/plugins/login_history.config/instruments-def.yml`     | Task 4: auth factor open enums; Task 10: client.application.id example                          |
+| `src/dtagent/plugins/resource_monitors.config/instruments-def.yml` | Task 5: threshold closed enums; Task 9: removed snowflake.warehouse.event                       |
+| `src/dtagent/plugins/tasks.config/instruments-def.yml`             | Task 8: task.condition open enum                                                                |
+| `src/dtagent/plugins/query_history.config/instruments-def.yml`     | Task 10: client.application.id example                                                          |
+| `src/dtagent/plugins/shares.config/instruments-def.yml`            | Task 10: share.created_on stability + note                                                      |
+| `test/core/test_instruments_def_completeness.py`                   | Task 9: removed coverage tuple; stale field-name fix ( test hygiene)                            |
+| `test/qa/fixtures/all_metrics_ingest_payload.txt`                  | Task 12: regenerated                                                                            |
+| `docs/SEMANTICS.md`, `docs/APPENDIX.md`                            | Task 12: regenerated                                                                            |
 
 ## Test Results
 
@@ -169,5 +170,5 @@ stale-string test fix.
 - Task 11 — widen `test_semdict_output_compliance.py` DQL enforcement from the
   hardcoded priority-plugin frozensets to the full set of model-emitting plugins.
 - Task 1b — model-group DQL, pending an SD-team decision on F015/F017 applicability.
-- BIZOBS-2058 (S6: `snowflake.table.ddl` rename), BIZOBS-2060 (ISO-8601 -> epoch
+- (S6: `snowflake.table.ddl` rename), (ISO-8601 -> epoch
   timestamp conversions) — tracked separately, deferred to 1.0.1+.

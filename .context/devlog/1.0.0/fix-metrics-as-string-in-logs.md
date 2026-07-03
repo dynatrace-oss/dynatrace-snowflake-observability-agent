@@ -1,8 +1,6 @@
 # Fix: Metric Fields Emitting String Values in Grail Logs
 
 **Date:** 2026-06-23
-**Branch:** `feat/1.0.0/bizobs-151-semantic-export`
-**Ticket:** BIZOBS-151 (field type audit)
 
 ## Problem
 
@@ -82,6 +80,7 @@ metric_entries_cnt, metric_logs_cnt, metric_metrics_cnt, metric_event_cnt = self
 
 Wrapped `available`, `provisioning`, `quiescing`, `other` columns with `TRY_TO_DOUBLE()`
 in the METRICS `OBJECT_CONSTRUCT`. `OBJECT_CONSTRUCT` silently drops NULL keys, so:
+
 - Suspended warehouses (`""` → `NULL`) → no metric attribute emitted in logs
 - Active warehouses (`"75"` → `75.0`) → true `double` emitted in both logs and metrics
 
@@ -102,6 +101,7 @@ in the METRICS `OBJECT_CONSTRUCT`. `OBJECT_CONSTRUCT` silently drops NULL keys, 
 ## Test Changes
 
 Updated `test/plugins/test_event_log.py`:
+
 - `event_log_metrics` context `log_lines` count: `2` → `0` (logs suppressed)
 - Deleted and regenerated `test/test_results/test_event_log/logs.json` and
   `test/test_results/test_event_log_multi_source/logs.json` — metric log entries removed

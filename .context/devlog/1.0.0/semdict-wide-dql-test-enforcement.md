@@ -1,13 +1,12 @@
-# BIZOBS-151 — Widen DQL Test Enforcement (Task 11, final task)
+# Widen DQL Test Enforcement (Task 11, final task)
 
 ## Summary
 
-Closed out the final in-session task from the BIZOBS-151 implementation plan — Task 11,
+Closed out the final in-session task from the implementation plan — Task 11,
 widening `test/core/test_semdict_output_compliance.py`'s DQL coverage enforcement so a green
 result means *complete* coverage across every model-emitting plugin, not just a curated
-"priority" subset. This was deliberately deferred from the prior session (see
-`bizobs-151-misc-split-and-span-differentiation.md`, "Known Remaining Work"). With this task
-done, all in-session tasks (1-11) of the BIZOBS-151 plan are complete; only PR
+"priority" subset. This was deliberately deferred from the prior session ("Known Remaining Work"). With this task
+done, all in-session tasks (1-11) of the implementation plan are complete; only PR
 submission/IA handover remains, which is out of scope for this ticket's implementation work.
 
 ## Motivation
@@ -84,24 +83,23 @@ test change touches those files' content.
 Discovered plugin counts, confirmed against a fresh regeneration of
 `build/_semdict/source/`:
 
-| Model type | Discovered count | Plugins |
-| --- | --- | --- |
-| Log | 16 | active_queries, budgets, cold_tables, data_schemas, dynamic_tables, login_history, metering, org_costs, query_history, resource_monitors, shares, snowpipes, tasks, trust_center, users, warehouse_usage |
-| Event | 8 | budgets, data_volume, dynamic_tables, resource_monitors, shares, snowpipes, tasks, users |
-| Metric | 17 | active_queries, budgets, cold_tables, data_volume, dynamic_tables, event_log, event_usage, login_history, metering, org_costs, query_history, resource_monitors, snowpipes, table_health, tasks, trust_center, warehouse_usage |
-| Span | 2 (unchanged `SPAN_PLUGINS`) | query_history, event_log |
+| Model type | Discovered count             | Plugins                                                                                                                                                                                                                        |
+|------------|------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Log        | 16                           | active_queries, budgets, cold_tables, data_schemas, dynamic_tables, login_history, metering, org_costs, query_history, resource_monitors, shares, snowpipes, tasks, trust_center, users, warehouse_usage                       |
+| Event      | 8                            | budgets, data_volume, dynamic_tables, resource_monitors, shares, snowpipes, tasks, users                                                                                                                                       |
+| Metric     | 17                           | active_queries, budgets, cold_tables, data_volume, dynamic_tables, event_log, event_usage, login_history, metering, org_costs, query_history, resource_monitors, snowpipes, table_health, tasks, trust_center, warehouse_usage |
+| Span       | 2 (unchanged `SPAN_PLUGINS`) | query_history, event_log                                                                                                                                                                                                       |
 
 Widening the enforcement did **not** go red — confirming the plan's prediction that every
 plugin already had `dql_queries:` with ≥3 entries in every model type it emits (from Task 1).
 
 ## Files Changed
 
-| File | Change |
-| --- | --- |
-| `test/core/_semdict_test_utils.py` | Added `_discover_model_plugins`, `discover_log_model_plugins`, `discover_event_model_plugins`, `discover_metric_model_plugins`; added `re` import. |
+| File                                          | Change                                                                                                                                                                                                                                                                                                                                         |
+|-----------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `test/core/_semdict_test_utils.py`            | Added `_discover_model_plugins`, `discover_log_model_plugins`, `discover_event_model_plugins`, `discover_metric_model_plugins`; added `re` import.                                                                                                                                                                                             |
 | `test/core/test_semdict_output_compliance.py` | Removed hardcoded `PRIORITY_LOG_PLUGINS`/`PRIORITY_METRIC_PLUGINS`; widened `test_log_models_have_dql_queries`/`test_metric_models_have_dql_queries` to dynamic discovery; added `test_event_models_have_dql_queries` and `test_span_models_have_dql_queries`; extended `test_dql_queries_have_required_fields` to also scan `metrics/*.yaml`. |
-| `.context/dev-notes/1.0.0/BIZOBS-151/BIZOBS-151-implementation-plan.md` | Marked Task 11 done (✅); ticked all Definition-of-Done checklist items; updated `status:` frontmatter to `implementation-complete-pending-pr`. |
-| `docs/CHANGELOG.md` | Added `[1.0.0]` entry describing the widened DQL test enforcement. |
+| `docs/CHANGELOG.md`                           | Added `[1.0.0]` entry describing the widened DQL test enforcement.                                                                                                                                                                                                                                                                             |
 
 ## Test Results
 
@@ -128,5 +126,5 @@ plugin already had `dql_queries:` with ≥3 entries in every model type it emits
   task for this plan.
 - Task 1b — model-group DQL, pending an SD-team decision on F015/F017 applicability that was
   never made; deliberately stays out of scope per the plan's own decision branch.
-- BIZOBS-2058 (S6: `snowflake.table.ddl` rename), BIZOBS-2060 (ISO-8601 -> epoch timestamp
+- (S6: `snowflake.table.ddl` rename), (ISO-8601 -> epoch timestamp
   conversions) — tracked separately, deferred to 1.0.1+.

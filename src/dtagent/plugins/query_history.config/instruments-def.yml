@@ -400,8 +400,8 @@ attributes:
   snowflake.query.step.id:
     __example: 1
     __type: long
-    __description: Identifier of the step in the query execution plan.
-      operator_id values are unique within a step, not across the full query.
+    __description:
+      Identifier of the step in the query execution plan. operator_id values are unique within a step, not across the full query.
     __span_only: true
   snowflake.query.transaction_id:
     __type: long
@@ -963,7 +963,7 @@ dql_queries:
     description: Fetch recent DSOA self-monitoring business events for the query_history plugin.
     description_copilot: Search for self-monitoring events from the query_history Snowflake agent plugin.
     internal: false
-# Span-model-specific DQL (BIZOBS-151 Task 7). Falls back to dql_queries above for any model
+# Span-model-specific DQL. Falls back to dql_queries above for any model
 # type that does not read this key. Leads with `fetch spans` (not `fetch logs`) since these
 # queries are attached only to dsoa.spans.query_history, where the span representation of a
 # single Snowflake query execution — including its query-plan step/operator span events — is

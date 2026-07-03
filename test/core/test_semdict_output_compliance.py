@@ -536,7 +536,6 @@ class TestInterfaceRefNotes:
 
     The SD allows ``note:`` on interface ``ref:`` entries to explain how the
     referenced field is used in DSOA context without changing the global definition.
-    This is C2 from the BIZOBS-151 IA review.
     """
 
     def test_all_resource_interface_refs_have_notes(self):

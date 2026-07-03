@@ -79,7 +79,7 @@ prefixes in customer assets — a pre-existing limitation of the tool (same as t
 
 ## Out of scope
 
-- `snowflake.warehouse.event` → `.event.trigger` code path (BIZOBS-1938; the migration row already
+- `snowflake.warehouse.event` → `.event.trigger` code path (the migration row already
   existed in appx-c).
 - `snowflake.user.roles.direct.removed` / `.removed_on` siblings (not part of this batch).
 - Dashboard/workflow DQL updates (tracked separately).

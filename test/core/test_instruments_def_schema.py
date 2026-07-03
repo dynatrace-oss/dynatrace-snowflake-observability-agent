@@ -6,7 +6,7 @@ to the schema defined in ``scripts/tools/instruments-def.schema.json``.
 Expected behavior:
     Until all ``__type`` annotations are added this test suite is **expected to
     fail**.  The ``__type`` annotation is a new requirement introduced during the
-    BIZOBS-151 Semantic Dictionary export work.  Non-``__type`` schema violations
+    Semantic Dictionary export work.  Non-``__type`` schema violations
     are always a hard failure — they indicate a genuine structural problem with
     the source file or schema definition.
 

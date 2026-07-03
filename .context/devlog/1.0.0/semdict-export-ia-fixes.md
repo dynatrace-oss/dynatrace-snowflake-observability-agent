@@ -1,4 +1,4 @@
-# Semantic Dictionary Export — IA Fixes (BIZOBS-151)
+# Semantic Dictionary Export — IA Fixes
 
 ## Summary
 
@@ -10,12 +10,14 @@ Fixed a set of information-architecture defects in the SD export pipeline and th
 ### A1 — Group ID collision fix (`_RES_NS`)
 
 **Problem:** Two resource-field group IDs collided with signal-field group IDs of the same name:
+
 - `("snowflake.warehouse", "snowflake.warehouse", "resource")` in `_RES_NS` collided with
   `("snowflake.warehouse", "snowflake.warehouse", "attribute_group")` in `_SIG_NS`.
 - `("db", "db", "resource")` in `_RES_NS` collided with `("db", "db", "attribute_group")`
   in `_SIG_NS`.
 
 **Fix:** Renamed resource group IDs to carry a `.resource` suffix:
+
 - `snowflake.warehouse.resource` (resource group for warehouse-scoped resource fields)
 - `db.resource` (resource group for db-scoped resource fields)
 
@@ -29,10 +31,12 @@ Fixed a set of information-architecture defects in the SD export pipeline and th
 **Problem:** The dedup loop in `export()` used first-seen-wins for all duplicate keys.
 Five fields had their enum-rich definition discarded because a different plugin defined
 the same key first (without `__enum`):
+
 - `db.operation.name`, `snowflake.query.execution_status`, `snowflake.warehouse.type`,
   `snowflake.object.type`, `snowflake.object.ddl.operation`
 
 **Fix:** Extracted `_merge_field_entries(key, existing, incoming)`:
+
 - No-enum → enum: upgrade to enum-rich definition.
 - Enum + enum: union members by value (first-seen wins for dupes); `allow_custom_values = OR`.
 - No-enum + no-enum: first-seen wins unchanged.
@@ -50,6 +54,7 @@ later-defined plugins that also own the dimension (but lost dedup) got no dimens
 their metric models.
 
 **Fix:**
+
 - Built `dim_plugins: Dict[str, Set[str]]` during the parse loop, recording every plugin
   that defines each dimension key (before dedup filtering).
 - Added optional `dim_plugins` parameter to `_select_interfaces()` and
@@ -84,6 +89,7 @@ dsoa group's attributes list.
 present. String examples `"true"` and `"false"` were also incorrect SD YAML.
 
 **Fix:**
+
 - Added `_coerce_attribute_example()` to convert Python `True`/`False` (from YAML `true`/`false`)
   to lowercase strings `"true"`/`"false"` for the semconv `examples:` list.
 - Updated `_emit_id_entry()` to use `_coerce_attribute_example()` instead of `str()`.
@@ -106,6 +112,7 @@ present. String examples `"true"` and `"false"` were also incorrect SD YAML.
 **Problem:** Integer and epoch-nanosecond fields emitted as `type: string`.
 
 **Fix:** Added `__type: long` to:
+
 - Integer fields: `warehouse.clusters.count`, `query.operator.id`, `query.hash_version`
   (fixed example `v1` → `1`), `query.parametrized_hash_version` (fixed example `v1` → `1`),
   `query.accel_est.upper_limit_scale_factor`, `dsoa.debug.span.events.added/failed`,
@@ -123,6 +130,7 @@ present. String examples `"true"` and `"false"` were also incorrect SD YAML.
 `__semdict_note` explaining their DSOA-specific semantics or divergence from OTel/SD.
 
 **Key facts:**
+
 - `error.code` — NOT in OTel semconv. The SD has its own `error.code` as `type: long` for
   iOS/mobile numeric codes. DSOA's `error.code` is a string Snowflake error code — incompatible
   semantics. Must NOT use `__semdict: ref`.
@@ -135,19 +143,19 @@ login_history, two in trust_center). Notes document the divergence from SD and p
 
 ## Files Changed
 
-| File | Change |
-|---|---|
-| `src/build/export_semantics.py` | A1: `_RES_NS` IDs; A2: `_merge_field_entries()`; A3: `dim_plugins` tracking; A4: ref exclusion; B-bool: `_coerce_attribute_example()` |
-| `test/core/test_export_semantics.py` | New tests for A1–A4, B-bool, A2 merge, A3 ownership |
-| `src/dtagent/plugins/resource_monitors.config/instruments-def.yml` | B-bool: 7 fields |
-| `src/dtagent/plugins/users.config/instruments-def.yml` | B-bool: 10 fields; B-long: 9 epoch-ns fields |
-| `src/dtagent/plugins/query_history.config/instruments-def.yml` | B-bool: 2 fields; B-long: 5 fields + session.start ISO→epoch |
-| `src/dtagent/plugins/login_history.config/instruments-def.yml` | B-long: session.start; C: error.code, status.code, status.message |
-| `src/dtagent/plugins/tasks.config/instruments-def.yml` | B-bool: allow_overlap |
-| `src/dtagent/plugins/warehouse_usage.config/instruments-def.yml` | B-long: clusters.count |
-| `src/dtagent/plugins/snowpipes.config/instruments-def.yml` | B-long: 3 copy error fields |
-| `src/dtagent/plugins/trust_center.config/instruments-def.yml` | C: error.code, status.message |
-| `src/dtagent/plugins/table_health.config/instruments-def.yml` | Fix pre-existing trailing blank line (yamllint) |
+| File                                                               | Change                                                                                                                                |
+|--------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------|
+| `src/build/export_semantics.py`                                    | A1: `_RES_NS` IDs; A2: `_merge_field_entries()`; A3: `dim_plugins` tracking; A4: ref exclusion; B-bool: `_coerce_attribute_example()` |
+| `test/core/test_export_semantics.py`                               | New tests for A1–A4, B-bool, A2 merge, A3 ownership                                                                                   |
+| `src/dtagent/plugins/resource_monitors.config/instruments-def.yml` | B-bool: 7 fields                                                                                                                      |
+| `src/dtagent/plugins/users.config/instruments-def.yml`             | B-bool: 10 fields; B-long: 9 epoch-ns fields                                                                                          |
+| `src/dtagent/plugins/query_history.config/instruments-def.yml`     | B-bool: 2 fields; B-long: 5 fields + session.start ISO→epoch                                                                          |
+| `src/dtagent/plugins/login_history.config/instruments-def.yml`     | B-long: session.start; C: error.code, status.code, status.message                                                                     |
+| `src/dtagent/plugins/tasks.config/instruments-def.yml`             | B-bool: allow_overlap                                                                                                                 |
+| `src/dtagent/plugins/warehouse_usage.config/instruments-def.yml`   | B-long: clusters.count                                                                                                                |
+| `src/dtagent/plugins/snowpipes.config/instruments-def.yml`         | B-long: 3 copy error fields                                                                                                           |
+| `src/dtagent/plugins/trust_center.config/instruments-def.yml`      | C: error.code, status.message                                                                                                         |
+| `src/dtagent/plugins/table_health.config/instruments-def.yml`      | Fix pre-existing trailing blank line (yamllint)                                                                                       |
 
 ## Test Results
 

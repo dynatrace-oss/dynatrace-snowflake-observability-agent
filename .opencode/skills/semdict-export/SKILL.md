@@ -64,7 +64,7 @@ git checkout main && git pull
 git checkout -B draft/<ticket>/<short-topic>
 ```
 
-Branch naming: `draft/<ticket>/<short-topic>` (e.g. `draft/BIZOBS-151/DSOA-semantics`).
+Branch naming: `draft/<ticket>/<short-topic>` (e.g. `draft/ABC-123/DSOA-semantics`).
 
 Skip these steps only if `git branch --show-current` already returns the expected feature branch.
 

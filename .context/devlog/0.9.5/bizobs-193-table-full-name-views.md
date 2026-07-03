@@ -1,4 +1,4 @@
-# BIZOBS-193: `snowflake.table.full_name` Missing + OTel v1.28 `db.collection.name` Compliance
+# `snowflake.table.full_name` Missing + OTel v1.28 `db.collection.name` Compliance
 
 ## Problem
 
@@ -30,15 +30,15 @@ NULL returns NULL in Snowflake, so the NULL case (no tables accessed by the quer
 
 All other plugins were already compliant — `db.collection.name` values verified:
 
-| Plugin | Source column | Type |
-|---|---|---|
-| `data_volume` | `TABLES.TABLE_NAME` | Short name ✅ |
-| `cold_tables` | `SPLIT_PART(objectName, '.', 3)` | Short name ✅ |
-| `dynamic_tables` (×3) | `DYNAMIC_TABLES().NAME` | Short name ✅ |
-| `shares` inbound | `DETAILS:"TABLE_NAME"` (JSON) | Short name ✅ |
-| `snowpipes` function | `SPLIT_PART(target, '.', -1)` | Short name ✅ |
-| `snowpipes` copy history | `COPY_HISTORY.TABLE_NAME` | Short name ✅ |
-| `table_health` (×3) | `TABLES.TABLE_NAME` / `SPLIT_PART` | Short name ✅ |
+| Plugin                   | Source column                      | Type         |
+|--------------------------|------------------------------------|--------------|
+| `data_volume`            | `TABLES.TABLE_NAME`                | Short name ✅ |
+| `cold_tables`            | `SPLIT_PART(objectName, '.', 3)`   | Short name ✅ |
+| `dynamic_tables` (×3)    | `DYNAMIC_TABLES().NAME`            | Short name ✅ |
+| `shares` inbound         | `DETAILS:"TABLE_NAME"` (JSON)      | Short name ✅ |
+| `snowpipes` function     | `SPLIT_PART(target, '.', -1)`      | Short name ✅ |
+| `snowpipes` copy history | `COPY_HISTORY.TABLE_NAME`          | Short name ✅ |
+| `table_health` (×3)      | `TABLES.TABLE_NAME` / `SPLIT_PART` | Short name ✅ |
 
 ### `shares` — `061_v_inbound_shares.sql`
 
@@ -94,6 +94,7 @@ Updated NDJSON fixtures to include `snowflake.table.full_name` in DIMENSIONS:
 - `test/test_data/snowpipes_copy_history.ndjson` — same construction
 
 Regenerated golden result files for:
+
 - `test/test_results/test_query_history/`
 - `test/test_results/test_query_history_backward_compat/`
 - `test/test_results/test_query_history_max_entries/`
@@ -105,5 +106,5 @@ Regenerated golden result files for:
 ## Scope of Impact
 
 Note: this fix addresses the **source data** (SQL views). The dashboard and workflow DQL
-queries that use `db.collection.name` without `snowflake.table.full_name` (BIZOBS-193 scope)
+queries that use `db.collection.name` without `snowflake.table.full_name` (scope)
 are tracked separately for a follow-up pass.

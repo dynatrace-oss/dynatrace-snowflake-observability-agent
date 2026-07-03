@@ -1,8 +1,8 @@
-# BIZOBS-151 — `snowflake.misc` Split & Span Model Differentiation (Round 5)
+# `snowflake.misc` Split & Span Model Differentiation (Round 5)
 
 ## Summary
 
-Closed out the two heaviest remaining tasks from the BIZOBS-151 implementation plan —
+Closed out the two heaviest remaining tasks from the implementation plan —
 Task 6 (split the `snowflake.misc` grab-bag) and Task 7 (differentiate
 `dsoa.spans.query_history` from the log model). Both were flagged in the plan's "Task
 dependency notes" as the heaviest generator changes and the ones carrying the most
@@ -140,13 +140,12 @@ them without DSOA claiming ownership of their definitions.
 
 ## Files Changed
 
-| File | Change |
-| --- | --- |
-| `src/build/export_semantics.py` | Task 6: 15 new `_SIG_NS` entries (incl. one dynamic-graph entry ordered before its generic parent, three exact-match bare-field routes). Task 7: `plugin_dql_queries_span` dict + read + span call-site fallback; `exclude_span_only` param on `_collect_plugin_attribute_refs`; `_build_log_model_yaml` now excludes `__span_only` fields. |
-| `scripts/tools/instruments-def.schema.json` | Task 7: added `dql_queries_span` top-level property and `__span_only` `AttributeDefinition` property. |
-| `src/dtagent/plugins/query_history.config/instruments-def.yml` | Task 7: `__span_only: true` on 9 fields; new `dql_queries_span:` block (3 entries). |
-| `.context/dev-notes/1.0.0/BIZOBS-151/BIZOBS-151-implementation-plan.md` | Marked Task 6/7 done (✅) with implementation notes. |
-| `docs/CHANGELOG.md` | Added `[1.0.0]` entries for both tasks. |
+| File                                                           | Change                                                                                                                                                                                                                                                                                                                                      |
+|----------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `src/build/export_semantics.py`                                | Task 6: 15 new `_SIG_NS` entries (incl. one dynamic-graph entry ordered before its generic parent, three exact-match bare-field routes). Task 7: `plugin_dql_queries_span` dict + read + span call-site fallback; `exclude_span_only` param on `_collect_plugin_attribute_refs`; `_build_log_model_yaml` now excludes `__span_only` fields. |
+| `scripts/tools/instruments-def.schema.json`                    | Task 7: added `dql_queries_span` top-level property and `__span_only` `AttributeDefinition` property.                                                                                                                                                                                                                                       |
+| `src/dtagent/plugins/query_history.config/instruments-def.yml` | Task 7: `__span_only: true` on 9 fields; new `dql_queries_span:` block (3 entries).                                                                                                                                                                                                                                                         |
+| `docs/CHANGELOG.md`                                            | Added `[1.0.0]` entries for both tasks.                                                                                                                                                                                                                                                                                                     |
 
 ## Test Results
 
@@ -175,5 +174,5 @@ them without DSOA claiming ownership of their definitions.
 - Task 11 — widen `test_semdict_output_compliance.py` DQL enforcement from the hardcoded
   priority-plugin frozensets to the full set of model-emitting plugins.
 - Task 1b — model-group DQL, pending an SD-team decision on F015/F017 applicability.
-- BIZOBS-2058 (S6: `snowflake.table.ddl` rename), BIZOBS-2060 (ISO-8601 -> epoch timestamp
+- (S6: `snowflake.table.ddl` rename), (ISO-8601 -> epoch timestamp
   conversions) — tracked separately, deferred to 1.0.1+.
