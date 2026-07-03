@@ -128,8 +128,9 @@ teardown() {
 }
 
 @test "deploy.sh --defaults uses existing config without regenerating" {
-    # Config already exists from setup()
-    run bash "$BATS_TEST_DIRNAME/../../scripts/deploy/deploy.sh" --env=test --defaults
+    # Config already exists from setup(). Use options=manual so --defaults'
+    # continue-to-deployment behavior doesn't attempt a real Snowflake connection.
+    run bash "$BATS_TEST_DIRNAME/../../scripts/deploy/deploy.sh" --env=test --defaults --options=manual </dev/null
     [[ "$output" == *"already exists"* ]]
 }
 
