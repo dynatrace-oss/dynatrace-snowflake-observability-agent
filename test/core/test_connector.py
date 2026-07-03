@@ -173,7 +173,8 @@ class TestTelemetrySender:
     @pytest.mark.xdist_group(name="test_telemetry")
     def test_main_calls_teardown_even_if_handle_interrupted_run_raises(self):
         """teardown() must still run (via finally) if handle_interrupted_run() itself raises,
-        otherwise the logger/tracer would leak instead of being shut down."""
+        otherwise the logger/tracer would leak instead of being shut down.
+        """
         import pytest
         import dtagent.connector as connector_module
 
