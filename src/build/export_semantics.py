@@ -74,6 +74,7 @@ SPAN_PLUGINS: frozenset = frozenset({"query_history", "event_log"})
 #: Note: db.system is in OTel semconv but NOT yet in the SD as a global field.
 #: It is annotated __semdict: otel-only in instruments-def and emitted as id:.
 KNOWN_REFS = {
+    "db.system",
     "host.name",
     "service.name",
     "telemetry.exporter.name",
