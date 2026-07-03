@@ -23,6 +23,14 @@ All notable changes to this project will be documented in this file.
   migration window. No configuration change is required — the value is derived from
   `core.deployment_environment` as before. Note: metric data collected before upgrading to 1.0.0 was written without the `deployment.environment.name` dimension key and will not appear in queries that group or filter by that key — this gap is inherent to write-time co-emission and cannot be backfilled.
 
+- **Post-install verification bizevent**: a full deploy (`--scope=all`), upgrade
+  (`--scope=upgrade`), or API key (re)deploy (`--scope=apikey`, or any scope combo including
+  `apikey`) now ends by sending a `dsoa.installation` bizevent from inside Snowflake via
+  `APP.SEND_TELEMETRY()`, confirming that the configured Dynatrace tenant is actually reachable
+  from Snowflake (not just that the deploy script itself finished). Gated by the existing
+  `plugins.self_monitoring.send_bizevents_on_deploy` config flag; a failure to send never fails
+  the deployment.
+
 ### Changed
 
 - **[BREAKING] Multiple field renames across plugins for Semantic Dictionary alignment**:
