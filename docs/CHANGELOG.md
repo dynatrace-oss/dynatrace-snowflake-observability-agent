@@ -17,8 +17,10 @@ All notable changes to this project will be documented in this file.
   Dictionary-compliant YAML from all `instruments-def.yml` files under `build/_semdict/source/`,
   enabling DSOA telemetry signals to be submitted to the Dynatrace Semantic Dictionary.
   Fields are classified as `ref` (already in semdict), `new`, `deprecated-alias`, or `otel-only`.
-- **CI semantic validation** (`validate_semantics.sh`): fails if any `instruments-def.yml` entry
-  is missing `__description` or `__example`; warns if metrics lack `__unit`.
+- **CI semantic validation**: `instruments-def.yml` entries are validated for required
+  `__description`, `__example`, and `unit` annotations via `test/core/test_instruments_def_schema.py`;
+  `__semdict: ref` provenance is enforced via `TestSemdicRefProvenance` in
+  `test/core/test_instruments_def_completeness.py`.
 - **Anomaly detection field catalog** (`ad.*` namespace): `ad.source`, `ad.source_metric`,
   `ad.direction`, and `ad.category` are now documented at core level in `instruments-def.yml`
   and exported to the Semantic Dictionary. These fields are set by all 10 DSOA anomaly-detection

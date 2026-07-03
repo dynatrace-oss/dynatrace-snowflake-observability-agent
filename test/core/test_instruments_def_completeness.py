@@ -128,6 +128,24 @@ _REQUIRED_EVENT_PAYLOAD_FIELDS: List[Tuple[str, str]] = [
     ("login_history", "event.description"),
 ]
 
+#: Fields where __semdict: ref is correct — they are already registered in the
+#: Dynatrace Semantic Dictionary (OTel Semantic Conventions or Dynatrace SD).
+#: Using ref on any field NOT in this set is a mistake; add it here when the
+#: field has been officially registered upstream.
+_KNOWN_SEMDICT_REFS: frozenset = frozenset(
+    {
+        "db.system",
+        "host.name",
+        "metric.key",
+        "service.name",
+        "telemetry.exporter.name",
+        "telemetry.exporter.version",
+        "db.query.text",
+        "event.id",
+        "authentication.type",
+    }
+)
+
 #: Enum candidates: fields that must have __enum definitions.
 _REQUIRED_ENUM_FIELDS: frozenset = frozenset(
     {
@@ -706,6 +724,40 @@ class TestTimestampFieldsAreString:
                 )
 
         assert not violations, "ISO-8601 timestamp fields without format explanation:\n" + "\n".join(violations)
+
+
+@pytest.mark.integration
+class TestSemdicRefProvenance:
+    """Fields annotated __semdict: ref must be in the known SD reference list.
+
+    ``__semdict: ref`` means the field is already registered in the Dynatrace
+    Semantic Dictionary or OTel Semantic Conventions.  Using it on a DSOA-custom
+    field silently skips new-field registration in the SD export pipeline — this
+    test makes that mistake a hard CI failure.
+
+    To legitimise a new ``ref`` entry: add the field key to ``_KNOWN_SEMDICT_REFS``
+    with a comment confirming it is registered upstream.
+    """
+
+    def test_semdict_ref_fields_are_known_refs(self):
+        """Every entry with __semdict: ref must appear in _KNOWN_SEMDICT_REFS.
+
+        Covers attributes, dimensions, metrics, and event_timestamps sections
+        across all plugins and the core instruments-def.yml.
+        """
+        all_defs = _load_all_instruments_defs()
+
+        violations = []
+        for plugin_name, data in all_defs.items():
+            for section in ("attributes", "dimensions", "metrics", "event_timestamps"):
+                for key, entry in (data.get(section) or {}).items():
+                    if (entry or {}).get("__semdict") == "ref" and key not in _KNOWN_SEMDICT_REFS:
+                        violations.append(
+                            f"{key} (plugin={plugin_name}, section={section}): "
+                            "__semdict: ref but not in _KNOWN_SEMDICT_REFS — "
+                            "add to the allowlist or change annotation to 'new'"
+                        )
+        assert not violations, "__semdict: ref on unknown fields:\n" + "\n".join(violations)
 
     ##endregion
     """Metric __example values must be numeric literals (int or float), not strings.
