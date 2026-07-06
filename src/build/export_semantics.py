@@ -74,29 +74,30 @@ SPAN_PLUGINS: frozenset = frozenset({"query_history", "event_log"})
 #: Note: db.system is in OTel semconv but NOT yet in the SD as a global field.
 #: It is annotated __semdict: otel-only in instruments-def and emitted as id:.
 KNOWN_REFS = {
+    "authentication.type",
+    "db.query.text",
     "db.system",
+    "event.id",
     "host.name",
+    "metric.key",
     "service.name",
     "telemetry.exporter.name",
     "telemetry.exporter.version",
-    "db.query.text",
-    "event.id",
-    "authentication.type",
-    "metric.key",
 }
 
 #: Keys present on every DSOA telemetry record — synced with config.py RESOURCE_ATTRIBUTES.
 RESOURCE_ATTRIBUTE_KEYS: Set[str] = {
     "db.system",
-    "service.name",
-    "deployment.environment",
-    "host.name",
-    "telemetry.exporter.version",
-    "telemetry.exporter.name",
-    "dsoa.run.id",
-    "dsoa.run.context",
-    "dsoa.run.plugin",
+    "deployment.environment.name",
     "deployment.environment.tag",
+    "deployment.environment",
+    "dsoa.run.context",
+    "dsoa.run.id",
+    "dsoa.run.plugin",
+    "host.name",
+    "service.name",
+    "telemetry.exporter.name",
+    "telemetry.exporter.version",
 }
 
 #: Dimension keys covered by the i.dsoa_warehouse interface.
