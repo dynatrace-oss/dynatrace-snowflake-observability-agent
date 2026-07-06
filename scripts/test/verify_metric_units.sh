@@ -156,16 +156,13 @@ echo ""
 echo "--- Step 1: Ingesting fixture..."
 
 ingest_fixture() {
-    # The fixture's leading '#'-comment header block (everything up to and
-    # including the first blank line) is documentation for humans, not part
-    # of the ingest payload — the classic ingest line protocol only allows a
-    # '#' line immediately preceding its own data line (metric metadata), so
-    # sending the header verbatim gets rejected as invalid metric lines.
+    # The fixture contains only MINT data/metadata lines — no comment header.
+    # Send it verbatim (the MINT line protocol uses '#' as metric metadata, not comments).
     curl -sS -o /tmp/verify_metric_units_response.json -w "%{http_code}" \
         -X POST "https://${TENANT}/api/v2/metrics/ingest" \
         -H "Authorization: Api-Token ${DT_API_TOKEN}" \
         -H "Content-Type: text/plain; charset=utf-8" \
-        --data-binary @<(awk 'BEGIN{header=1} /^$/{header=0; next} !header' "$FIXTURE")
+        --data-binary @"$FIXTURE"
 }
 
 HTTP_STATUS="$(ingest_fixture)"
