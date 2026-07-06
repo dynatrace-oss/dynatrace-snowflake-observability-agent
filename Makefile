@@ -61,6 +61,9 @@ sync-units:
 gen-metric-fixture:
 	.venv/bin/python scripts/dev/gen_metric_fixture.py
 
+verify-metric-units: gen-metric-fixture
+	./scripts/test/verify_metric_units.sh
+
 package:
 	./scripts/dev/package.sh
 
