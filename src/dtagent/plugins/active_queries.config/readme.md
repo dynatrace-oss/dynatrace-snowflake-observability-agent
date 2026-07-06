@@ -19,7 +19,7 @@ Multiple statuses can be chosen (for example: `["RUNNING", "QUEUED"]`). This fil
 fetch logs
 | filter db.system == "snowflake"
 | filter dsoa.run.context == "active_queries"
-| filter deployment.environment == "YOUR_ENV"
+| filter deployment.environment.name == "YOUR_ENV"
 | sort timestamp asc
 | summarize {
   timestamp = takeFirst(timestamp),

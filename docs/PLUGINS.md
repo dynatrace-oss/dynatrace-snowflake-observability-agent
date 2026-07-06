@@ -99,7 +99,7 @@ Additionally, you can decide to monitor details for queries only with selected e
 fetch logs
 | filter db.system == "snowflake"
 | filter dsoa.run.context == "active_queries"
-| filter deployment.environment == "YOUR_ENV"
+| filter deployment.environment.name == "YOUR_ENV"
 | sort timestamp asc
 | summarize {
   timestamp = takeFirst(timestamp),
@@ -330,16 +330,14 @@ fetch logs
 ```dql
 timeseries avg(snowflake.table.access.count),
   by: {db.namespace, db.collection.name, snowflake.table.cold_status}
-| filter db.system == "snowflake"
 ```
 
 #### Metrics — days since last access
 
 ```dql
 timeseries avg(snowflake.table.days_since_last_access),
-  by: {db.namespace, db.collection.name}
-| filter db.system == "snowflake"
-| filter snowflake.table.days_since_last_access > 90
+  by: {db.namespace, db.collection.name, snowflake.table.cold_status}
+| filter snowflake.table.cold_status == "cold"
 ```
 
 #### Self-monitoring — plugin performance

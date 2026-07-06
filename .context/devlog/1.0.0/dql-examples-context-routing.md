@@ -175,3 +175,38 @@ Three `test/core` tests fail identically on a clean checkout of this branch (ver
   field-definition/interface concern, not a `dql_queries` concern).
 
 These should be addressed separately.
+
+## Follow-up — plugin readme tutorial DQL corrected too
+
+The same `db.system`/`deployment.environment.name` bug class also appeared in the **tutorial**
+DQL code fences inside the plugin `readme.md` sources, which `build_docs.sh`
+(`src/build/update_docs.py`) assembles into `docs/PLUGINS.md` (alongside `docs/USECASES.md` and
+the generated semantics). These were fixed at the **source** readmes and `docs/PLUGINS.md` was
+regenerated (the generated file itself was not hand-edited).
+
+Changes (each fence re-validated with `dtctl verify query -o json` → `valid: true`):
+
+- `src/dtagent/plugins/active_queries.config/readme.md` (line 22): inside a `fetch logs`
+  block, `deployment.environment` → `deployment.environment.name`. The `fetch logs` block's
+  own `db.system` filter is valid and was kept.
+- `src/dtagent/plugins/cold_tables.config/readme.md`:
+  - "Metrics — access count by table": removed the invalid trailing
+    `| filter db.system == "snowflake"` (`db.system` is not in the `timeseries ... by:` list).
+  - "Metrics — days since last access": removed both invalid trailing filters
+    (`| filter db.system` and `| filter snowflake.table.days_since_last_access > 90` — the
+    latter filters on the aggregated metric, not a `by:` dimension). To preserve the original
+    "only stale/cold tables" intent, added `snowflake.table.cold_status` (a real cold_tables
+    dimension) to `by:` and filtered on it (`| filter snowflake.table.cold_status == "cold"`).
+  - The two `fetch logs` blocks in this file correctly use `db.system` and were left as-is.
+
+Discriminator applied throughout: a post-`timeseries` `| filter X` is only invalid (and
+removed) when `X` is not one of the `by:` dimensions (e.g. `db.system`, or an aggregated metric
+name); it is valid and kept when `X` is a grouped dimension. Confirmed no changes were needed
+for `query_history.config/readme.md` (its only `timeseries` has no trailing `db.system` filter
+and no bare `deployment.environment`) or `metering.config/readme.md` (its
+`| filter snowflake.service.type == "TELEMETRY_DATA_INGEST"` is valid because
+`snowflake.service.type` is in the `by:` clause). A repo-wide scan of all
+`src/dtagent/plugins/*.config/readme.md` and `docs/USECASES.md` found no other affected
+snippets. Workflow DQL (`docs/workflows/`) is a separate surface with its own tests and was out
+of scope.
+
