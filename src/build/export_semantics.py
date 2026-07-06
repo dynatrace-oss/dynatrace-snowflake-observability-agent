@@ -130,13 +130,13 @@ UNIT_MAP: Dict[str, str] = {
     # Domain-specific counts with no recognized universal-units equivalent —
     # map to 'count' (SD Unspecified category). Original meaning is preserved
     # via UNIT_NOTE_ORIGINALS below.
-    "rows": "count",
-    "files": "count",
-    "clusters": "count",
-    "queries": "count",
-    "warehouses": "count",
-    "partitions": "count",
-    "credits": "count",
+    "row": "count",
+    "file": "count",
+    "cluster": "count",
+    "query": "count",
+    "warehouse": "count",
+    "partition": "count",
+    "credit": "count",
     # Currency — SD abbreviation uses the $ glyph (units.json 'usd' -> 'US$');
     # this differs from the universal-units UCUM code (USD) used for dt.meta.unit.
     "currency": "US$",
@@ -145,13 +145,13 @@ UNIT_MAP: Dict[str, str] = {
 #: Units that should carry a note explaining the original source unit when mapped to 'count'.
 #: This preserves the semantic context that is lost by collapsing domain units to 'count'.
 UNIT_NOTE_ORIGINALS: Set[str] = {
-    "rows",
-    "files",
-    "clusters",
-    "queries",
-    "warehouses",
-    "partitions",
-    "credits",
+    "row",
+    "file",
+    "cluster",
+    "query",
+    "warehouse",
+    "partition",
+    "credit",
 }
 
 #: instruments-def __type → semconv instrument.
