@@ -6,17 +6,11 @@
 # #<metric> gauge dt.meta.unit="..." metadata line per metric defined across all
 # instruments-def.yml files — see scripts/dev/gen_metric_fixture.py) into a live
 # Dynatrace tenant, waits for propagation, then queries each metric's recognized
-# unit back via the Grail Query API's ?enrich=metric-metadata parameter (run
-# through scripts/test/query_metric_metadata.js via `dtctl exec function`) and
-# compares it to the unit we sent.
-#
-# NOTE: neither `dtctl query`'s DQL "timeseries" JSON (only has records[].interval/
-# timeframe) nor the classic Metrics API v2 metric descriptor (only echoes back the
-# raw symbol we sent) expose what Dynatrace's unit system actually resolved a unit
-# to (e.g. "MiBy" -> "MebiByte"). Only the Grail Query API's ?enrich=metric-metadata
-# parameter does, and dtctl does not (yet) expose it as a flag — hence the ad-hoc
-# `dtctl exec function` workaround, which runs in the App Engine sandbox with
-# automatic platform (OAuth) auth, no token handling required for this step.
+# unit back via `dtctl query --metadata=metrics`
+# (Grail Query API metric-metadata enrichment, exposed natively since dtctl ≥ 0.x).
+# `dtctl query`'s JSON includes `metadata.metrics[].unit` and `.displayName`,
+# which reflect what Dynatrace's unit system actually resolved (e.g. "MiBy" ->
+# "MebiByte"), not just the raw symbol we sent.
 #
 # The target tenant is whichever one `dtctl` is currently authenticated against
 # (`dtctl config current-context` / `dtctl doctor`) — there is no separate
@@ -35,9 +29,7 @@
 #   ./scripts/test/verify_metric_units.sh --sleep=60 --fixture=path/to/fixture.txt
 #
 # Prerequisites:
-#   - dtctl on PATH and authenticated against the target tenant (`dtctl auth login`);
-#     its OAuth session already covers the app-engine:functions:run scope needed
-#     for the query-back step
+#   - dtctl on PATH and authenticated against the target tenant (`dtctl auth login`)
 #   - a classic API token with the "Ingest metrics" (metrics.ingest) scope, either
 #     exported as DT_API_TOKEN or entered at the interactive prompt (needed only
 #     for the ingest step)
@@ -72,7 +64,7 @@ Options:
 
 Requires a classic API token (metrics.ingest scope) for the ingest step, either
 exported as DT_API_TOKEN or entered at the interactive prompt this script shows if unset.
-The query-back step uses `dtctl exec function` (dtctl's own OAuth session).
+The query-back step uses `dtctl query --metadata=metrics` (dtctl's own OAuth session).
 EOF
 }
 
@@ -232,7 +224,7 @@ fi
 ##region ── Step 3: Query each metric back and compare units ───────────────
 
 echo ""
-echo "--- Step 3: Querying recognized units via Grail's metric-metadata enrichment..."
+echo "--- Step 3: Querying recognized units via dtctl query --metadata=metrics..."
 echo ""
 printf "%-55s %-15s %-20s %-6s\n" "METRIC" "SENT" "DYNATRACE" "RESULT"
 printf "%-55s %-15s %-20s %-6s\n" "------" "----" "---------" "------"
@@ -241,20 +233,11 @@ PASS_COUNT=0
 FAIL_COUNT=0
 FAILURES=()
 
-METADATA_SCRIPT="${REPO_ROOT}/scripts/test/query_metric_metadata.js"
-
 # Extract metric names + expected units directly from the fixture's own
 # metadata lines (avoids re-parsing instruments-def.yml in bash).
 #
-# NOTE: dtctl query's DQL "timeseries" output has no metadata.metrics[].unit
-# field at all (verified empirically — its JSON only has records[].interval/
-# timeframe), and the classic Metrics API v2 descriptor only echoes back the
-# raw symbol we sent, not what Dynatrace's unit system actually resolved it
-# to. The real recognition check requires the Grail Query API's
-# ?enrich=metric-metadata parameter, which dtctl does not (yet) expose as a
-# flag, so scripts/test/query_metric_metadata.js is run via
-# `dtctl exec function` (App Engine sandbox, automatic platform auth — no
-# token needed) to call it directly. Dynatrace returns the *canonical
+# `dtctl query --metadata=metrics` exposes the Grail Query API's
+# metric-metadata enrichment natively. Dynatrace returns the *canonical
 # display name* (e.g. "MiBy" -> "MebiByte", "%" -> "Percent"), not the raw
 # symbol, so PASS means "Dynatrace resolved some unit for this metric" —
 # a human should still glance at the DYNATRACE column to sanity-check the
@@ -265,10 +248,12 @@ while IFS= read -r meta_line; do
     expected_unit="$(echo "$meta_line" | { grep -oE 'dt\.meta\.unit="[^"]*"' || true; } | sed -E 's/dt\.meta\.unit="([^"]*)"/\1/')"
     [[ -z "$expected_unit" ]] && continue
 
-    exec_json="$(dtctl exec function -f "$METADATA_SCRIPT" \
-        --payload "{\"metricKey\":\"${metric_name}\"}" -o json </dev/null \
+    query_json="$(dtctl query "timeseries sum(${metric_name}), from: -90m" -o json --metadata=metrics \
         2>/tmp/verify_metric_units_query_err.txt || true)"
-    dt_unit="$(echo "$exec_json" | jq -r '.result.unit // "NOT_FOUND"' 2>/dev/null || echo "NOT_FOUND")"
+    dt_unit="$(echo "$query_json" | jq -r --arg k "${metric_name}" \
+        '.metadata.metrics[] | select(.["metric.key"] == $k) | .unit // "NOT_FOUND"' \
+        2>/dev/null | head -n1 || echo "NOT_FOUND")"
+    [[ -z "$dt_unit" ]] && dt_unit="NOT_FOUND"
 
     if [[ "$dt_unit" != "NOT_FOUND" && "$dt_unit" != "null" ]]; then
         printf "%-55s %-15s %-20s %-6s\n" "$metric_name" "$expected_unit" "$dt_unit" "PASS"

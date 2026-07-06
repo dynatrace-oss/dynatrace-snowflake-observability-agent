@@ -1590,12 +1590,10 @@ The script:
    `instruments-def.yml` files — regenerate with `make gen-metric-fixture` if
    metrics changed).
 2. Waits ~2 minutes for metric metadata to propagate.
-3. Runs `scripts/test/query_metric_metadata.js` per metric via `dtctl exec
-   function` (App Engine sandbox, automatic platform auth) to call the Grail
-   Query API with `?enrich=metric-metadata` and read the resolved `unit` back.
-   Neither `dtctl query`'s DQL JSON nor the classic Metrics API v2 descriptor
-   expose the actually-*resolved* unit (only this enrichment parameter does,
-   and dtctl has no flag for it yet).
+3. For each metric, runs `dtctl query "timeseries sum(<key>), from: -90m"
+   -o json --metadata=metrics` and reads the resolved `unit` from
+   `metadata.metrics[].unit`. `dtctl` now exposes the Grail Query API's
+   metric-metadata enrichment natively — no App Engine sandbox required.
 4. Prints a PASS/FAIL table showing the unit sent vs. the unit Dynatrace resolved.
 
 **Pass condition:** Dynatrace resolved *some* unit for the metric (PASS) vs.
