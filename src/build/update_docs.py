@@ -94,10 +94,10 @@ def _get_clean_description(details: dict) -> str:
     of ``SEMANTICS.md`` understand the valid values without consulting the
     raw YAML source.
 
-    Format::
+    Format (HTML-rendered in Markdown table cells)::
 
-        <base description> Possible values: VALUE — brief, VALUE — brief[, …].
-        Additional values may be present.
+        <base description> <br> Possible values: <ul><li>- `VALUE` — brief,
+        <li> `VALUE` — brief, …</ul> Additional values may be present.
 
     The trailing sentence is added only when ``allow_custom_values`` is
     ``true`` (i.e. the enum is open-ended).
@@ -121,10 +121,11 @@ def _get_clean_description(details: dict) -> str:
         value = member.get("value", "")
         brief = (member.get("brief") or "").rstrip(".")
         if brief:
-            parts.append(f"`{value}` — {brief}")
+            parts.append(f"<li> `{value}` — {brief}")
         else:
-            parts.append(f"`{value}`")
-    enum_text = "Possible values: " + ", ".join(parts) + "."
+            parts.append(f"<li> `{value}`")
+    items = ", ".join(parts)
+    enum_text = f"<br> Possible values: <ul>{items}</ul>"
     if enum_def.get("allow_custom_values"):
         enum_text += " Additional values may be present."
     separator = " " if base and not base.endswith(" ") else ""

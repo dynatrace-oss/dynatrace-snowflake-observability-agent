@@ -1395,8 +1395,9 @@ class TestEnumDescriptionInSemantics:
         result = _get_clean_description(details)
 
         assert "Possible values:" in result
-        assert "`OK`" in result
-        assert "`ERROR`" in result
+        assert "<ul>" in result
+        assert "<li> `OK`" in result
+        assert "<li> `ERROR`" in result
         assert "Additional values may be present." not in result
 
     def test_enum_brief_trailing_period_stripped(self):
@@ -1414,10 +1415,9 @@ class TestEnumDescriptionInSemantics:
         }
         result = _get_clean_description(details)
 
-        # "Completed successfully." stripped of trailing period → no ".," artifact
-        assert "Completed successfully." not in result or result.endswith("Completed successfully.")
-        # The period must only appear once at the end
-        assert "`DONE` — Completed successfully." in result
+        # Trailing period stripped from brief → no ".," or ".." artifact inside the list
+        assert "<li>- `DONE` — Completed successfully" in result
+        assert "<li>- `DONE` — Completed successfully.," not in result
 
     def test_enum_without_brief_renders_value_only(self):
         """Enum members without a brief must render as just `VALUE` without the dash."""
@@ -1433,7 +1433,7 @@ class TestEnumDescriptionInSemantics:
             },
         }
         result = _get_clean_description(details)
-        assert "`FOO`" in result
+        assert "<li>- `FOO`" in result
         assert " — " not in result
 
     def test_no_enum_description_unchanged(self):
