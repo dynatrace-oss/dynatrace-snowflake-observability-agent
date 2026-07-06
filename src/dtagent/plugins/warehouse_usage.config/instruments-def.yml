@@ -250,6 +250,32 @@ metrics:
     unit: count
 dql_queries:
   - query_string: |
+      timeseries credits = sum(snowflake.credits.compute), by: { snowflake.warehouse.name, deployment.environment.name }
+    description: Plot Snowflake compute credit consumption per warehouse over time.
+    description_copilot: Timeseries of Snowflake compute credits consumed per warehouse.
+    internal: false
+    context:
+      - metrics
+  - query_string: |
+      timeseries load = avg(snowflake.load.running), by: { snowflake.warehouse.name, deployment.environment.name }
+    description: Plot average number of running queries per warehouse over time.
+    description_copilot: Timeseries of average running query load per Snowflake warehouse.
+    internal: false
+    context:
+      - metrics
+  - query_string: |
+      timeseries {
+        running = avg(snowflake.load.running),
+        queued_overloaded = avg(snowflake.load.queued.overloaded),
+        blocked = avg(snowflake.load.blocked)
+      },
+        by: { snowflake.warehouse.name, deployment.environment.name }
+    description: Compare running, overload-queued and blocked query load per Snowflake warehouse over time.
+    description_copilot: Timeseries comparing running, queued and blocked query load per Snowflake warehouse.
+    internal: false
+    context:
+      - metrics
+  - query_string: |
       fetch logs
       | filter db.system == "snowflake"
       | filter dsoa.run.plugin == "warehouse_usage"
@@ -258,30 +284,31 @@ dql_queries:
     description: Fetch the 100 most recent DSOA warehouse_usage plugin log entries from Grail.
     description_copilot: Search for all warehouse_usage plugin logs from the Snowflake observability agent.
     internal: false
+    context:
+      - logs
   - query_string: |
-      timeseries credits = sum(snowflake.credits.compute), by: { snowflake.warehouse.name, deployment.environment }
-      | filter db.system == "snowflake"
-    description: Plot Snowflake compute credit consumption per warehouse over time.
-    description_copilot: Timeseries of Snowflake compute credits consumed per warehouse.
-    internal: false
-  - query_string: |
-      timeseries load = avg(snowflake.load.running), by: { snowflake.warehouse.name, deployment.environment }
-      | filter db.system == "snowflake"
-    description: Plot average number of running queries per warehouse over time.
-    description_copilot: Timeseries of average running query load per Snowflake warehouse.
-    internal: false
-  - query_string: |
-      timeseries val = sum(snowflake.credits.used), by: { snowflake.warehouse.name, deployment.environment }
-      | filter db.system == "snowflake"
-    description: Plot total credits used per warehouse over time.
-    description_copilot: Timeseries of total Snowflake credits consumed per warehouse.
-    internal: false
-  - query_string: |
-      fetch bizevents
+      fetch logs
       | filter db.system == "snowflake"
       | filter dsoa.run.plugin == "warehouse_usage"
+      | filter isNotNull(snowflake.warehouse.name)
+      | fields timestamp, snowflake.warehouse.name, snowflake.warehouse.event.name, snowflake.warehouse.event.state
       | sort timestamp desc
-      | limit 20
-    description: Fetch recent DSOA self-monitoring business events for the warehouse_usage plugin.
-    description_copilot: Search for self-monitoring events from the warehouse_usage Snowflake agent plugin.
+      | limit 50
+    description: Inspect Snowflake warehouse state-change events (start, resume, suspend) from the warehouse_usage plugin.
+    description_copilot: Show Snowflake warehouse start, resume and suspend events.
     internal: false
+    context:
+      - logs
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "warehouse_usage"
+      | filter isNotNull(snowflake.warehouse.name)
+      | summarize { events = count() }, by: { snowflake.warehouse.name, snowflake.warehouse.event.name }
+      | sort events desc
+      | limit 25
+    description: Count Snowflake warehouse state-change events grouped by warehouse and event type.
+    description_copilot: Break down Snowflake warehouse state-change events by warehouse and event type.
+    internal: false
+    context:
+      - logs

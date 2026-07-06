@@ -77,26 +77,60 @@ metrics:
     __is_defined_at_runtime: true
 dql_queries:
   - query_string: |
+      timeseries mem = avg(process.memory.usage), by: { snowflake.warehouse.name, deployment.environment.name }
+    description: Plot average process memory usage captured from the Snowflake event table over time.
+    description_copilot: Timeseries of Snowflake process memory usage from the event log.
+    internal: false
+    context:
+      - metrics
+  - query_string: |
+      timeseries cpu = avg(process.cpu.utilization), by: { snowflake.warehouse.name, deployment.environment.name }
+    description: Plot average process CPU utilization captured from the Snowflake event table over time.
+    description_copilot: Timeseries of Snowflake process CPU utilization from the event log.
+    internal: false
+    context:
+      - metrics
+  - query_string: |
+      timeseries { mem = avg(process.memory.usage), cpu = avg(process.cpu.utilization) },
+        by: { snowflake.warehouse.name, deployment.environment.name }
+    description: Compare process memory usage and CPU utilization per warehouse from the Snowflake event table.
+    description_copilot: Timeseries comparing Snowflake process memory and CPU from the event log.
+    internal: false
+    context:
+      - metrics
+  - query_string: |
       fetch spans
       | filter db.system == "snowflake"
       | filter dsoa.run.plugin == "event_log"
       | sort timestamp desc
       | limit 50
-    description: Fetch the 50 most recent DSOA event_log spans from Snowflake EVENT table processing.
-    description_copilot: Search for event_log span traces produced by the Snowflake observability agent.
+    description: Fetch the 50 most recent DSOA event_log spans (traced records from the Snowflake event table).
+    description_copilot: Find event_log span traces produced by the Snowflake observability agent.
     internal: false
+    context:
+      - spans
   - query_string: |
-      fetch logs
+      fetch spans
       | filter db.system == "snowflake"
       | filter dsoa.run.plugin == "event_log"
+      | filter isNotNull(snowflake.query.id)
+      | fields timestamp, snowflake.query.id, snowflake.warehouse.name, snowflake.role.name
       | sort timestamp desc
-      | limit 100
-    description: Fetch the 100 most recent DSOA event_log plugin log entries from Grail.
-    description_copilot: Search for all event_log plugin logs from the Snowflake observability agent.
+      | limit 50
+    description: Inspect event_log spans correlated to a Snowflake query, including warehouse and role context.
+    description_copilot: Show event_log spans linked to Snowflake queries with their warehouse and role.
     internal: false
+    context:
+      - spans
   - query_string: |
-      timeseries mem = avg(process.memory.usage), by: { deployment.environment }
+      fetch spans
       | filter db.system == "snowflake"
-    description: Plot average Snowflake process memory usage reported by the event_log plugin over time.
-    description_copilot: Timeseries of Snowflake process memory usage from event_log plugin metrics.
+      | filter dsoa.run.plugin == "event_log"
+      | filter isNotNull(snowflake.warehouse.name)
+      | summarize { spans = count() }, by: { snowflake.warehouse.name }
+      | sort spans desc
+    description: Count event_log spans grouped by warehouse.
+    description_copilot: Break down event_log spans by Snowflake warehouse.
     internal: false
+    context:
+      - spans

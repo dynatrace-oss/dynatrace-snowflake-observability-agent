@@ -419,14 +419,34 @@ metrics:
       The ratio of time in the retention period or since the last configuration change, when actual lag is within the target lag.
     displayName: Time Within Target Lag Ratio
     unit: ratio
-
 dql_queries:
   - query_string: |
-      timeseries val = avg(snowflake.table.dynamic.lag.mean), by: { db.collection.name, deployment.environment }
-      | filter db.system == "snowflake"
-    description: Plot mean refresh lag per dynamic table over time.
-    description_copilot: Timeseries of Snowflake dynamic table refresh lag.
+      timeseries val = avg(snowflake.table.dynamic.lag.mean), by: { db.collection.name, deployment.environment.name }
+    description: Plot the mean refresh lag per dynamic table over time.
+    description_copilot: Timeseries of Snowflake dynamic table mean refresh lag.
     internal: false
+    context:
+      - metrics
+  - query_string: |
+      timeseries { lag_mean = avg(snowflake.table.dynamic.lag.mean), lag_max = max(snowflake.table.dynamic.lag.max) },
+        by: { db.collection.name, deployment.environment.name }
+    description: Compare mean and maximum refresh lag per dynamic table over time.
+    description_copilot: Timeseries comparing mean and maximum Snowflake dynamic table refresh lag.
+    internal: false
+    context:
+      - metrics
+  - query_string: |
+      timeseries {
+        inserted = sum(snowflake.rows.inserted),
+        deleted = sum(snowflake.rows.deleted),
+        copied = sum(snowflake.rows.copied)
+      },
+        by: { db.collection.name, deployment.environment.name }
+    description: Plot rows inserted, deleted and copied per dynamic table refresh over time.
+    description_copilot: Timeseries of rows inserted, deleted and copied per Snowflake dynamic table refresh.
+    internal: false
+    context:
+      - metrics
   - query_string: |
       fetch logs
       | filter db.system == "snowflake"
@@ -436,12 +456,64 @@ dql_queries:
     description: Fetch the 100 most recent DSOA dynamic_tables plugin log entries from Grail.
     description_copilot: Search for all dynamic_tables plugin logs from the Snowflake observability agent.
     internal: false
+    context:
+      - logs
   - query_string: |
-      fetch bizevents
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "dynamic_tables"
+      | filter toDouble(snowflake.table.dynamic.lag.target.within_ratio) < 1.0
+      | sort timestamp desc
+      | limit 50
+    description: Fetch dynamic table refreshes that missed their target lag (within-ratio below 1.0).
+    description_copilot: Find Snowflake dynamic tables that failed to meet their target refresh lag.
+    internal: false
+    context:
+      - logs
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "dynamic_tables"
+      | filter isNotNull(snowflake.table.full_name)
+      | summarize { max_lag = takeMax(toLong(snowflake.table.dynamic.lag.max)) }, by: { snowflake.table.full_name }
+      | sort max_lag desc
+      | limit 25
+    description: Rank dynamic tables by their maximum observed refresh lag.
+    description_copilot: Find the Snowflake dynamic tables with the highest refresh lag.
+    internal: false
+    context:
+      - logs
+  - query_string: |
+      fetch events
       | filter db.system == "snowflake"
       | filter dsoa.run.plugin == "dynamic_tables"
       | sort timestamp desc
       | limit 50
-    description: Fetch the 50 most recent DSOA self-monitoring business events for the dynamic_tables plugin.
-    description_copilot: Search for self-monitoring events from the dynamic_tables Snowflake agent plugin.
+    description: Fetch the most recent DSOA dynamic_tables lifecycle events (scheduling suspend/resume, graph version).
+    description_copilot: Search for Snowflake dynamic table scheduling and graph lifecycle events.
     internal: false
+    context:
+      - events
+  - query_string: |
+      fetch events
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "dynamic_tables"
+      | summarize { events = count() }, by: { snowflake.event.type }
+      | sort events desc
+    description: Count DSOA dynamic_tables lifecycle events grouped by event type.
+    description_copilot: Break down Snowflake dynamic table lifecycle events by their event type.
+    internal: false
+    context:
+      - events
+  - query_string: |
+      fetch events
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "dynamic_tables"
+      | filter snowflake.event.type == "snowflake.table.dynamic.scheduling.suspended_on"
+      | sort timestamp desc
+      | limit 25
+    description: Fetch scheduling-suspended lifecycle events for Snowflake dynamic tables.
+    description_copilot: Find when Snowflake dynamic table scheduling was suspended.
+    internal: false
+    context:
+      - events

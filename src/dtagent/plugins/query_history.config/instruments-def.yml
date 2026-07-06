@@ -879,6 +879,28 @@ metrics:
     unit: ms
 dql_queries:
   - query_string: |
+      timeseries val = sum(snowflake.time.execution), by: { snowflake.warehouse.name, deployment.environment.name }
+    description: Plot total Snowflake query execution time per warehouse over time.
+    description_copilot: Timeseries of Snowflake query execution time broken down by warehouse.
+    internal: false
+    context:
+      - metrics
+  - query_string: |
+      timeseries credits = sum(snowflake.credits.attributed_compute), by: { db.user, deployment.environment.name }
+    description: Plot attributed compute credits consumed per user over time.
+    description_copilot: Timeseries of Snowflake attributed compute credits consumed per user.
+    internal: false
+    context:
+      - metrics
+  - query_string: |
+      timeseries { compute = sum(snowflake.credits.attributed_compute), scanned = sum(snowflake.data.scanned) },
+        by: { snowflake.warehouse.name, deployment.environment.name }
+    description: Compare attributed compute credits against bytes scanned per warehouse over time.
+    description_copilot: Timeseries comparing Snowflake attributed compute credits and bytes scanned per warehouse.
+    internal: false
+    context:
+      - metrics
+  - query_string: |
       fetch logs
       | filter db.system == "snowflake"
       | filter dsoa.run.plugin == "query_history"
@@ -887,6 +909,40 @@ dql_queries:
     description: Fetch the 100 most recent DSOA query_history plugin log entries from Grail.
     description_copilot: Search for all query_history plugin logs from the Snowflake observability agent.
     internal: false
+    context:
+      - logs
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "query_history"
+      | filter isNotNull(snowflake.query.id)
+      | fieldsAdd running_min = toLong(snowflake.time.total_elapsed) / 1000 / 60
+      | filter running_min > 5
+      | fields timestamp, snowflake.query.id, db.user, snowflake.warehouse.name, running_min
+      | sort running_min desc
+      | limit 50
+    description: Find Snowflake queries that ran longer than five minutes, with their user and warehouse.
+    description_copilot: Find long-running Snowflake queries exceeding five minutes of total elapsed time.
+    internal: false
+    context:
+      - logs
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "query_history"
+      | filter isNotNull(snowflake.warehouse.name)
+      | summarize {
+          queries = count(),
+          avg_exec_ms = avg(toLong(snowflake.time.execution)),
+          p90_exec_ms = percentile(toLong(snowflake.time.execution), 90)
+        }, by: { snowflake.warehouse.name }
+      | sort p90_exec_ms desc
+      | limit 25
+    description: Rank warehouses by the p90 execution time of their Snowflake queries.
+    description_copilot: Find which Snowflake warehouses have the slowest queries by p90 execution time.
+    internal: false
+    context:
+      - logs
   - query_string: |
       fetch spans
       | filter db.system == "snowflake"
@@ -896,42 +952,8 @@ dql_queries:
     description: Fetch the 50 most recent DSOA query_history spans (individual Snowflake query executions).
     description_copilot: Find query_history span traces produced by the Snowflake observability agent.
     internal: false
-  - query_string: |
-      timeseries val = sum(snowflake.time.execution), by: { snowflake.warehouse.name, deployment.environment }
-      | filter db.system == "snowflake"
-    description: Plot average Snowflake query execution time per warehouse over time.
-    description_copilot: Timeseries of Snowflake query execution time broken down by warehouse.
-    internal: false
-  - query_string: |
-      timeseries credits = sum(snowflake.credits.attributed_compute), by: { db.user, deployment.environment }
-      | filter db.system == "snowflake"
-    description: Plot attributed compute credits consumed per user over time.
-    description_copilot: Timeseries of Snowflake attributed compute credits consumed per user.
-    internal: false
-  - query_string: |
-      fetch bizevents
-      | filter db.system == "snowflake"
-      | filter dsoa.run.plugin == "query_history"
-      | sort timestamp desc
-      | limit 20
-    description: Fetch recent DSOA self-monitoring business events for the query_history plugin.
-    description_copilot: Search for self-monitoring events from the query_history Snowflake agent plugin.
-    internal: false
-# Span-model-specific DQL. Falls back to dql_queries above for any model
-# type that does not read this key. Leads with `fetch spans` (not `fetch logs`) since these
-# queries are attached only to dsoa.spans.query_history, where the span representation of a
-# single Snowflake query execution — including its query-plan step/operator span events — is
-# the natural entry point.
-dql_queries_span:
-  - query_string: |
-      fetch spans
-      | filter db.system == "snowflake"
-      | filter dsoa.run.plugin == "query_history"
-      | sort timestamp desc
-      | limit 50
-    description: Fetch the 50 most recent DSOA query_history spans (individual Snowflake query executions).
-    description_copilot: Find query_history span traces produced by the Snowflake observability agent.
-    internal: false
+    context:
+      - spans
   - query_string: |
       fetch spans
       | filter db.system == "snowflake"
@@ -943,6 +965,8 @@ dql_queries_span:
     description: Correlate DSOA query_history spans by trace.id/span.id to inspect the root span and timing for a Snowflake query execution.
     description_copilot: Find the trace and span identifiers for Snowflake query execution spans, including whether each is the root span.
     internal: false
+    context:
+      - spans
   - query_string: |
       fetch spans
       | filter db.system == "snowflake"
@@ -955,3 +979,5 @@ dql_queries_span:
     description: Inspect Snowflake query-plan step/operator span events (snowflake.query.step.*) recorded on query_history spans.
     description_copilot: List query execution plan steps and operators recorded as span events on Snowflake query spans.
     internal: false
+    context:
+      - spans

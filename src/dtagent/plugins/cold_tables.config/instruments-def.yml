@@ -88,14 +88,29 @@ metrics:
     __description: Number of days since the table was last accessed by any query.
     displayName: Days Since Last Access
     unit: d
-
 dql_queries:
   - query_string: |
-      timeseries val = avg(snowflake.table.days_since_last_access), by: { snowflake.table.full_name, deployment.environment }
-      | filter db.system == "snowflake"
-    description: Plot days since last access per table over time.
-    description_copilot: Timeseries of days since last access for Snowflake tables tracked by the cold_tables plugin.
+      timeseries val = avg(snowflake.table.days_since_last_access), by: { snowflake.table.full_name, deployment.environment.name }
+    description: Plot the average number of days since last access per Snowflake table over time.
+    description_copilot: Timeseries of days since last access per Snowflake table.
     internal: false
+    context:
+      - metrics
+  - query_string: |
+      timeseries accesses = sum(snowflake.table.access.count), by: { snowflake.table.full_name, deployment.environment.name }
+    description: Plot access counts per Snowflake table over time to spot rarely-used tables.
+    description_copilot: Timeseries of access counts per Snowflake table.
+    internal: false
+    context:
+      - metrics
+  - query_string: |
+      timeseries { days_idle = avg(snowflake.table.days_since_last_access), accesses = sum(snowflake.table.access.count) },
+        by: { snowflake.table.full_name, deployment.environment.name }
+    description: Compare idle days against access counts per Snowflake table to identify cold storage candidates.
+    description_copilot: Timeseries comparing idle days and access counts per Snowflake table.
+    internal: false
+    context:
+      - metrics
   - query_string: |
       fetch logs
       | filter db.system == "snowflake"
@@ -105,13 +120,30 @@ dql_queries:
     description: Fetch the 100 most recent DSOA cold_tables plugin log entries from Grail.
     description_copilot: Search for all cold_tables plugin logs from the Snowflake observability agent.
     internal: false
+    context:
+      - logs
   - query_string: |
       fetch logs
       | filter db.system == "snowflake"
       | filter dsoa.run.plugin == "cold_tables"
-      | filter snowflake.table.cold_status == "cold"
-      | sort snowflake.table.days_since_last_access desc
-      | limit 20
-    description: Rank the 20 coldest tables by days since last access.
-    description_copilot: Find the coldest, least-recently-accessed Snowflake tables.
+      | filter snowflake.table.cold_status == "COLD"
+      | sort timestamp desc
+      | limit 50
+    description: Fetch the 50 most recent tables classified as COLD by the cold_tables plugin.
+    description_copilot: Find Snowflake tables currently classified as cold.
     internal: false
+    context:
+      - logs
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "cold_tables"
+      | filter isNotNull(snowflake.table.full_name)
+      | summarize { idle_days = takeMax(toLong(snowflake.table.days_since_last_access)) }, by: { snowflake.table.full_name }
+      | sort idle_days desc
+      | limit 25
+    description: Rank Snowflake tables by how long they have been idle.
+    description_copilot: Find the Snowflake tables that have been idle the longest.
+    internal: false
+    context:
+      - logs

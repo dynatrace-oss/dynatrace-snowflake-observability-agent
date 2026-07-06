@@ -347,6 +347,8 @@ dql_queries:
     description: Fetch the 100 most recent DSOA users plugin log entries from Grail.
     description_copilot: Search for all users plugin logs from the Snowflake observability agent.
     internal: false
+    context:
+      - logs
   - query_string: |
       fetch logs
       | filter db.system == "snowflake"
@@ -357,6 +359,8 @@ dql_queries:
     description: Fetch log entries for disabled Snowflake users from the users plugin.
     description_copilot: Search for disabled Snowflake user records in the users plugin logs.
     internal: false
+    context:
+      - logs
   - query_string: |
       fetch logs
       | filter db.system == "snowflake"
@@ -367,6 +371,8 @@ dql_queries:
     description: Fetch log entries for Snowflake users without MFA enabled.
     description_copilot: Search for Snowflake users that do not have MFA configured.
     internal: false
+    context:
+      - logs
   - query_string: |
       fetch bizevents
       | filter db.system == "snowflake"
@@ -376,3 +382,27 @@ dql_queries:
     description: Fetch recent DSOA self-monitoring business events for the users plugin.
     description_copilot: Search for self-monitoring events from the users Snowflake agent plugin.
     internal: false
+    context:
+      - events
+  - query_string: |
+      fetch events
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "users"
+      | sort timestamp desc
+      | limit 50
+    description: Fetch the most recent DSOA users lifecycle events (creation, deletion and role-change anchors).
+    description_copilot: Search for Snowflake user lifecycle events from the users plugin.
+    internal: false
+    context:
+      - events
+  - query_string: |
+      fetch events
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "users"
+      | summarize { events = count() }, by: { snowflake.event.type }
+      | sort events desc
+    description: Count DSOA users lifecycle events grouped by event type.
+    description_copilot: Break down Snowflake user lifecycle events by their event type.
+    internal: false
+    context:
+      - events

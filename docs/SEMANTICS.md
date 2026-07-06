@@ -109,8 +109,25 @@ All telemetry delivered by this plugin is reported as `dsoa.run.context == "acti
 Plot average execution time of currently running Snowflake queries per warehouse over time.
 
 ```dql
-timeseries val = avg(snowflake.time.execution), by: { snowflake.warehouse.name, deployment.environment }
-| filter db.system == "snowflake"
+timeseries val = avg(snowflake.time.execution), by: { snowflake.warehouse.name, deployment.environment.name }
+```
+
+Compare average compilation, execution and total running time of active Snowflake queries per warehouse.
+
+```dql
+timeseries {
+  execution = avg(snowflake.time.execution),
+  running = avg(snowflake.time.running),
+  compilation = avg(snowflake.time.compilation)
+},
+  by: { snowflake.warehouse.name, deployment.environment.name }
+```
+
+Plot the 90th percentile total elapsed time of active Snowflake queries broken down by warehouse and role.
+
+```dql
+timeseries p90 = percentile(snowflake.time.total_elapsed, 90),
+  by: { snowflake.warehouse.name, snowflake.role.name, deployment.environment.name }
 ```
 
 Fetch the 100 most recent DSOA active_queries plugin log entries from Grail.
@@ -132,6 +149,18 @@ fetch logs
 | filter snowflake.query.execution_status == "FAILED_WITH_ERROR"
 | sort timestamp desc
 | limit 50
+```
+
+Rank warehouses by the average running time of their currently active Snowflake queries.
+
+```dql
+fetch logs
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "active_queries"
+| filter isNotNull(snowflake.warehouse.name)
+| summarize { count = count(), avg_running_ms = avg(toLong(snowflake.time.running)) }, by: { snowflake.warehouse.name }
+| sort avg_running_ms desc
+| limit 20
 ```
 
 <a name="budgets_semantics_sec"></a>
@@ -177,6 +206,25 @@ check the `Context Name` column below.
 
 ### DQL query examples for the `budgets` plugin
 
+Plot credits spent per Snowflake budget over time.
+
+```dql
+timeseries spent = sum(snowflake.credits.spent), by: { snowflake.budget.name, deployment.environment.name }
+```
+
+Plot the credit spending limit per Snowflake budget over time.
+
+```dql
+timeseries budget_limit = avg(snowflake.credits.limit), by: { snowflake.budget.name, deployment.environment.name }
+```
+
+Compare credits spent against the configured limit per Snowflake budget over time.
+
+```dql
+timeseries { spent = sum(snowflake.credits.spent), budget_limit = avg(snowflake.credits.limit) },
+  by: { snowflake.budget.name, deployment.environment.name }
+```
+
 Fetch the 100 most recent DSOA budgets plugin log entries from Grail.
 
 ```dql
@@ -187,18 +235,58 @@ fetch logs
 | limit 100
 ```
 
-Plot credits spent per Snowflake budget over time.
+Inspect the latest spend and limit readings for each Snowflake budget.
 
 ```dql
-timeseries spent = sum(snowflake.credits.spent), by: { snowflake.budget.name, deployment.environment }
+fetch logs
 | filter db.system == "snowflake"
+| filter dsoa.run.plugin == "budgets"
+| filter isNotNull(snowflake.budget.name)
+| fields timestamp, snowflake.budget.name, snowflake.credits.spent, snowflake.credits.limit
+| sort timestamp desc
+| limit 50
 ```
 
-Plot the credit spending limit per Snowflake budget over time.
+Rank Snowflake budgets by their most recent credits-spent reading.
 
 ```dql
-timeseries limit = avg(snowflake.credits.limit), by: { snowflake.budget.name, deployment.environment }
+fetch logs
 | filter db.system == "snowflake"
+| filter dsoa.run.plugin == "budgets"
+| filter isNotNull(snowflake.budget.name)
+| summarize { latest_spent = takeMax(toDouble(snowflake.credits.spent)) }, by: { snowflake.budget.name }
+| sort latest_spent desc
+```
+
+Fetch the most recent DSOA budgets lifecycle events from Grail.
+
+```dql
+fetch events
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "budgets"
+| sort timestamp desc
+| limit 50
+```
+
+Count DSOA budgets lifecycle events grouped by event type.
+
+```dql
+fetch events
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "budgets"
+| summarize { events = count() }, by: { snowflake.event.type }
+| sort events desc
+```
+
+Fetch budget-creation lifecycle events reported by the budgets plugin.
+
+```dql
+fetch events
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "budgets"
+| filter snowflake.event.type == "snowflake.budget.created_on"
+| sort timestamp desc
+| limit 25
 ```
 
 <a name="cold_tables_semantics_sec"></a>
@@ -235,11 +323,23 @@ check the `Context Name` column below.
 
 ### DQL query examples for the `cold_tables` plugin
 
-Plot days since last access per table over time.
+Plot the average number of days since last access per Snowflake table over time.
 
 ```dql
-timeseries val = avg(snowflake.table.days_since_last_access), by: { snowflake.table.full_name, deployment.environment }
-| filter db.system == "snowflake"
+timeseries val = avg(snowflake.table.days_since_last_access), by: { snowflake.table.full_name, deployment.environment.name }
+```
+
+Plot access counts per Snowflake table over time to spot rarely-used tables.
+
+```dql
+timeseries accesses = sum(snowflake.table.access.count), by: { snowflake.table.full_name, deployment.environment.name }
+```
+
+Compare idle days against access counts per Snowflake table to identify cold storage candidates.
+
+```dql
+timeseries { days_idle = avg(snowflake.table.days_since_last_access), accesses = sum(snowflake.table.access.count) },
+  by: { snowflake.table.full_name, deployment.environment.name }
 ```
 
 Fetch the 100 most recent DSOA cold_tables plugin log entries from Grail.
@@ -252,15 +352,27 @@ fetch logs
 | limit 100
 ```
 
-Rank the 20 coldest tables by days since last access.
+Fetch the 50 most recent tables classified as COLD by the cold_tables plugin.
 
 ```dql
 fetch logs
 | filter db.system == "snowflake"
 | filter dsoa.run.plugin == "cold_tables"
-| filter snowflake.table.cold_status == "cold"
-| sort snowflake.table.days_since_last_access desc
-| limit 20
+| filter snowflake.table.cold_status == "COLD"
+| sort timestamp desc
+| limit 50
+```
+
+Rank Snowflake tables by how long they have been idle.
+
+```dql
+fetch logs
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "cold_tables"
+| filter isNotNull(snowflake.table.full_name)
+| summarize { idle_days = takeMax(toLong(snowflake.table.days_since_last_access)) }, by: { snowflake.table.full_name }
+| sort idle_days desc
+| limit 25
 ```
 
 <a name="data_schemas_semantics_sec"></a>
@@ -355,29 +467,53 @@ All telemetry delivered by this plugin is reported as `dsoa.run.context == "data
 
 ### DQL query examples for the `data_volume` plugin
 
-Plot total table size in bytes per table over time.
+Plot total storage size in bytes per table over time.
 
 ```dql
-timeseries val = sum(snowflake.data.size), by: { db.collection.name, deployment.environment }
-| filter db.system == "snowflake"
+timeseries val = sum(snowflake.data.size), by: { db.collection.name, deployment.environment.name }
 ```
 
-Fetch the 50 most recent DSOA self-monitoring business events for the data_volume plugin.
+Plot total row count per Snowflake table over time.
+
+```dql
+timeseries rows = sum(snowflake.data.rows), by: { db.collection.name, deployment.environment.name }
+```
+
+Compare storage size and row count per Snowflake table over time.
+
+```dql
+timeseries { bytes = sum(snowflake.data.size), rows = sum(snowflake.data.rows) },
+  by: { db.collection.name, deployment.environment.name }
+```
+
+Fetch recent DSOA self-monitoring business events for the data_volume plugin.
 
 ```dql
 fetch bizevents
 | filter db.system == "snowflake"
 | filter dsoa.run.plugin == "data_volume"
 | sort timestamp desc
+| limit 20
+```
+
+Fetch the most recent DSOA data_volume lifecycle events (table DDL and data-update anchors).
+
+```dql
+fetch events
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "data_volume"
+| sort timestamp desc
 | limit 50
 ```
 
-Plot row-count growth per table between consecutive measurements.
+Count DSOA data_volume lifecycle events grouped by event type.
 
 ```dql
-timeseries rows = sum(snowflake.data.rows), by: { db.collection.name, deployment.environment }
+fetch events
 | filter db.system == "snowflake"
-| fieldsAdd growth = rows - rows[1]
+| filter dsoa.run.plugin == "data_volume"
+| summarize { events = count() }, by: { snowflake.event.type }
+| sort events desc
 ```
 
 <a name="dynamic_tables_semantics_sec"></a>
@@ -454,11 +590,28 @@ check the `Context Name` column below.
 
 ### DQL query examples for the `dynamic_tables` plugin
 
-Plot mean refresh lag per dynamic table over time.
+Plot the mean refresh lag per dynamic table over time.
 
 ```dql
-timeseries val = avg(snowflake.table.dynamic.lag.mean), by: { db.collection.name, deployment.environment }
-| filter db.system == "snowflake"
+timeseries val = avg(snowflake.table.dynamic.lag.mean), by: { db.collection.name, deployment.environment.name }
+```
+
+Compare mean and maximum refresh lag per dynamic table over time.
+
+```dql
+timeseries { lag_mean = avg(snowflake.table.dynamic.lag.mean), lag_max = max(snowflake.table.dynamic.lag.max) },
+  by: { db.collection.name, deployment.environment.name }
+```
+
+Plot rows inserted, deleted and copied per dynamic table refresh over time.
+
+```dql
+timeseries {
+  inserted = sum(snowflake.rows.inserted),
+  deleted = sum(snowflake.rows.deleted),
+  copied = sum(snowflake.rows.copied)
+},
+  by: { db.collection.name, deployment.environment.name }
 ```
 
 Fetch the 100 most recent DSOA dynamic_tables plugin log entries from Grail.
@@ -471,14 +624,58 @@ fetch logs
 | limit 100
 ```
 
-Fetch the 50 most recent DSOA self-monitoring business events for the dynamic_tables plugin.
+Fetch dynamic table refreshes that missed their target lag (within-ratio below 1.0).
 
 ```dql
-fetch bizevents
+fetch logs
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "dynamic_tables"
+| filter toDouble(snowflake.table.dynamic.lag.target.within_ratio) < 1.0
+| sort timestamp desc
+| limit 50
+```
+
+Rank dynamic tables by their maximum observed refresh lag.
+
+```dql
+fetch logs
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "dynamic_tables"
+| filter isNotNull(snowflake.table.full_name)
+| summarize { max_lag = takeMax(toLong(snowflake.table.dynamic.lag.max)) }, by: { snowflake.table.full_name }
+| sort max_lag desc
+| limit 25
+```
+
+Fetch the most recent DSOA dynamic_tables lifecycle events (scheduling suspend/resume, graph version).
+
+```dql
+fetch events
 | filter db.system == "snowflake"
 | filter dsoa.run.plugin == "dynamic_tables"
 | sort timestamp desc
 | limit 50
+```
+
+Count DSOA dynamic_tables lifecycle events grouped by event type.
+
+```dql
+fetch events
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "dynamic_tables"
+| summarize { events = count() }, by: { snowflake.event.type }
+| sort events desc
+```
+
+Fetch scheduling-suspended lifecycle events for Snowflake dynamic tables.
+
+```dql
+fetch events
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "dynamic_tables"
+| filter snowflake.event.type == "snowflake.table.dynamic.scheduling.suspended_on"
+| sort timestamp desc
+| limit 25
 ```
 
 <a name="event_log_semantics_sec"></a>
@@ -509,7 +706,26 @@ check the `Context Name` column below.
 
 ### DQL query examples for the `event_log` plugin
 
-Fetch the 50 most recent DSOA event_log spans from Snowflake EVENT table processing.
+Plot average process memory usage captured from the Snowflake event table over time.
+
+```dql
+timeseries mem = avg(process.memory.usage), by: { snowflake.warehouse.name, deployment.environment.name }
+```
+
+Plot average process CPU utilization captured from the Snowflake event table over time.
+
+```dql
+timeseries cpu = avg(process.cpu.utilization), by: { snowflake.warehouse.name, deployment.environment.name }
+```
+
+Compare process memory usage and CPU utilization per warehouse from the Snowflake event table.
+
+```dql
+timeseries { mem = avg(process.memory.usage), cpu = avg(process.cpu.utilization) },
+  by: { snowflake.warehouse.name, deployment.environment.name }
+```
+
+Fetch the 50 most recent DSOA event_log spans (traced records from the Snowflake event table).
 
 ```dql
 fetch spans
@@ -519,21 +735,27 @@ fetch spans
 | limit 50
 ```
 
-Fetch the 100 most recent DSOA event_log plugin log entries from Grail.
+Inspect event_log spans correlated to a Snowflake query, including warehouse and role context.
 
 ```dql
-fetch logs
+fetch spans
 | filter db.system == "snowflake"
 | filter dsoa.run.plugin == "event_log"
+| filter isNotNull(snowflake.query.id)
+| fields timestamp, snowflake.query.id, snowflake.warehouse.name, snowflake.role.name
 | sort timestamp desc
-| limit 100
+| limit 50
 ```
 
-Plot average Snowflake process memory usage reported by the event_log plugin over time.
+Count event_log spans grouped by warehouse.
 
 ```dql
-timeseries mem = avg(process.memory.usage), by: { deployment.environment }
+fetch spans
 | filter db.system == "snowflake"
+| filter dsoa.run.plugin == "event_log"
+| filter isNotNull(snowflake.warehouse.name)
+| summarize { spans = count() }, by: { snowflake.warehouse.name }
+| sort spans desc
 ```
 
 <a name="event_usage_semantics_sec"></a>
@@ -556,23 +778,20 @@ All telemetry delivered by this plugin is reported as `dsoa.run.context == "even
 Plot credits billed for loading data into the event table over time.
 
 ```dql
-timeseries val = sum(snowflake.credits.used), by: { deployment.environment }
-| filter db.system == "snowflake"
+timeseries val = sum(snowflake.credits.used), by: { deployment.environment.name }
 ```
 
 Plot bytes of data loaded into the event table over time.
 
 ```dql
-timeseries val = sum(snowflake.data.ingested), by: { deployment.environment }
-| filter db.system == "snowflake"
+timeseries val = sum(snowflake.data.ingested), by: { deployment.environment.name }
 ```
 
-Plot event table ingestion cost efficiency (credits per byte ingested) over time.
+Report total daily bytes ingested into the event table per Snowflake account.
 
 ```dql
-timeseries credits = sum(snowflake.credits.used), bytes = sum(snowflake.data.ingested), by: { deployment.environment }
-| filter db.system == "snowflake"
-| fieldsAdd credits_per_byte = credits / bytes
+timeseries ingested = sum(snowflake.data.ingested), interval: 1d, by: { deployment.environment.name }
+| fieldsAdd total_ingested = arraySum(ingested)
 ```
 
 <a name="login_history_semantics_sec"></a>
@@ -626,6 +845,25 @@ check the `Context Name` column below.
 
 ### DQL query examples for the `login_history` plugin
 
+Plot failed Snowflake login attempts per user over time.
+
+```dql
+timeseries failed = sum(snowflake.login.attempts.failed), by: { db.user, deployment.environment.name }
+```
+
+Plot total Snowflake login attempts broken down by client type over time.
+
+```dql
+timeseries total = sum(snowflake.login.attempts.total), by: { client.type, deployment.environment.name }
+```
+
+Compare failed and successful Snowflake login attempts per user over time.
+
+```dql
+timeseries { failed = sum(snowflake.login.attempts.failed), successful = sum(snowflake.login.attempts.successful) },
+  by: { db.user, deployment.environment.name }
+```
+
 Fetch the 100 most recent DSOA login_history plugin log entries from Grail.
 
 ```dql
@@ -636,39 +874,28 @@ fetch logs
 | limit 100
 ```
 
-Fetch the 50 most recent failed Snowflake login attempts from login_history logs.
+Fetch failed Snowflake logins with their authentication type and error details.
 
 ```dql
 fetch logs
 | filter db.system == "snowflake"
 | filter dsoa.run.plugin == "login_history"
-| filter snowflake.login.is_success == "NO"
+| filter isNotNull(snowflake.error.code)
+| fields timestamp, db.user, authentication.type, snowflake.error.code, snowflake.status.message
 | sort timestamp desc
 | limit 50
 ```
 
-Plot the number of failed Snowflake login attempts per user over time.
+Rank source IP and user combinations by Snowflake login attempt volume.
 
 ```dql
-timeseries failed = sum(snowflake.login.attempts.failed), by: { db.user, deployment.environment }
-| filter db.system == "snowflake"
-```
-
-Plot total Snowflake login attempts by authentication type over time.
-
-```dql
-timeseries total = sum(snowflake.login.attempts.total), by: { authentication.type, deployment.environment }
-| filter db.system == "snowflake"
-```
-
-Fetch recent DSOA self-monitoring business events for the login_history plugin.
-
-```dql
-fetch bizevents
+fetch logs
 | filter db.system == "snowflake"
 | filter dsoa.run.plugin == "login_history"
-| sort timestamp desc
-| limit 20
+| filter isNotNull(client.ip)
+| summarize { attempts = count() }, by: { client.ip, db.user }
+| sort attempts desc
+| limit 25
 ```
 
 <a name="metering_semantics_sec"></a>
@@ -706,6 +933,25 @@ check the `Context Name` column below.
 
 ### DQL query examples for the `metering` plugin
 
+Plot total credits consumed per Snowflake service over time.
+
+```dql
+timeseries credits = sum(snowflake.credits.used), by: { snowflake.service.name, deployment.environment.name }
+```
+
+Plot compute credits consumed per Snowflake service type over time.
+
+```dql
+timeseries compute = sum(snowflake.credits.used.compute), by: { snowflake.service.type, deployment.environment.name }
+```
+
+Compare compute and cloud-services credits per Snowflake service over time.
+
+```dql
+timeseries { compute = sum(snowflake.credits.used.compute), cloud_services = sum(snowflake.credits.used.cloud_services) },
+  by: { snowflake.service.name, deployment.environment.name }
+```
+
 Fetch the 100 most recent DSOA metering plugin log entries from Grail.
 
 ```dql
@@ -716,28 +962,28 @@ fetch logs
 | limit 100
 ```
 
-Plot total credits consumed by each Snowflake service over time.
+Inspect per-service credit consumption readings from the metering plugin.
 
 ```dql
-timeseries credits = sum(snowflake.credits.used), by: { snowflake.service.name, deployment.environment }
-| filter db.system == "snowflake"
-```
-
-Plot compute credits consumed by each Snowflake service over time.
-
-```dql
-timeseries compute = sum(snowflake.credits.used.compute), by: { snowflake.service.name, deployment.environment }
-| filter db.system == "snowflake"
-```
-
-Fetch recent DSOA self-monitoring business events for the metering plugin.
-
-```dql
-fetch bizevents
+fetch logs
 | filter db.system == "snowflake"
 | filter dsoa.run.plugin == "metering"
+| filter isNotNull(snowflake.service.name)
+| fields timestamp, snowflake.service.name, snowflake.service.type, snowflake.credits.used
 | sort timestamp desc
-| limit 20
+| limit 50
+```
+
+Rank Snowflake services by total metered credit consumption.
+
+```dql
+fetch logs
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "metering"
+| filter isNotNull(snowflake.service.name)
+| summarize { total_credits = sum(toDouble(snowflake.credits.used)) }, by: { snowflake.service.name }
+| sort total_credits desc
+| limit 25
 ```
 
 <a name="org_costs_semantics_sec"></a>
@@ -786,11 +1032,23 @@ check the `Context Name` column below.
 
 ### DQL query examples for the `org_costs` plugin
 
-Plot total credits used per Snowflake account over time.
+Plot total organisation credits used per Snowflake account over time.
 
 ```dql
-timeseries val = sum(snowflake.org.credits.used), by: { snowflake.account.name, deployment.environment }
-| filter db.system == "snowflake"
+timeseries val = sum(snowflake.org.credits.used), by: { snowflake.account.name, deployment.environment.name }
+```
+
+Plot organisation credits used per Snowflake service type over time.
+
+```dql
+timeseries val = sum(snowflake.org.credits.used), by: { snowflake.service.type, deployment.environment.name }
+```
+
+Compare total billed amount against on-demand consumption per Snowflake account over time.
+
+```dql
+timeseries { billed = sum(snowflake.org.billing.amount), on_demand = sum(snowflake.org.billing.on_demand_consumption) },
+  by: { snowflake.account.name, deployment.environment.name }
 ```
 
 Fetch the 100 most recent DSOA org_costs plugin log entries from Grail.
@@ -803,11 +1061,28 @@ fetch logs
 | limit 100
 ```
 
-Break down organization credit consumption by Snowflake service type over time.
+Inspect per-account organisation credit and billing readings from the org_costs plugin.
 
 ```dql
-timeseries val = sum(snowflake.org.credits.used), by: { snowflake.service.type, deployment.environment }
+fetch logs
 | filter db.system == "snowflake"
+| filter dsoa.run.plugin == "org_costs"
+| filter isNotNull(snowflake.account.name)
+| fields timestamp, snowflake.account.name, snowflake.org.credits.used, snowflake.org.billing.amount
+| sort timestamp desc
+| limit 50
+```
+
+Rank Snowflake accounts by total organisation billing amount.
+
+```dql
+fetch logs
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "org_costs"
+| filter isNotNull(snowflake.account.name)
+| summarize { total_billed = sum(toDouble(snowflake.org.billing.amount)) }, by: { snowflake.account.name }
+| sort total_billed desc
+| limit 25
 ```
 
 <a name="query_history_semantics_sec"></a>
@@ -951,6 +1226,25 @@ All telemetry delivered by this plugin is reported as `dsoa.run.context == "quer
 
 ### DQL query examples for the `query_history` plugin
 
+Plot total Snowflake query execution time per warehouse over time.
+
+```dql
+timeseries val = sum(snowflake.time.execution), by: { snowflake.warehouse.name, deployment.environment.name }
+```
+
+Plot attributed compute credits consumed per user over time.
+
+```dql
+timeseries credits = sum(snowflake.credits.attributed_compute), by: { db.user, deployment.environment.name }
+```
+
+Compare attributed compute credits against bytes scanned per warehouse over time.
+
+```dql
+timeseries { compute = sum(snowflake.credits.attributed_compute), scanned = sum(snowflake.data.scanned) },
+  by: { snowflake.warehouse.name, deployment.environment.name }
+```
+
 Fetch the 100 most recent DSOA query_history plugin log entries from Grail.
 
 ```dql
@@ -959,6 +1253,36 @@ fetch logs
 | filter dsoa.run.plugin == "query_history"
 | sort timestamp desc
 | limit 100
+```
+
+Find Snowflake queries that ran longer than five minutes, with their user and warehouse.
+
+```dql
+fetch logs
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "query_history"
+| filter isNotNull(snowflake.query.id)
+| fieldsAdd running_min = toLong(snowflake.time.total_elapsed) / 1000 / 60
+| filter running_min > 5
+| fields timestamp, snowflake.query.id, db.user, snowflake.warehouse.name, running_min
+| sort running_min desc
+| limit 50
+```
+
+Rank warehouses by the p90 execution time of their Snowflake queries.
+
+```dql
+fetch logs
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "query_history"
+| filter isNotNull(snowflake.warehouse.name)
+| summarize {
+    queries = count(),
+    avg_exec_ms = avg(toLong(snowflake.time.execution)),
+    p90_exec_ms = percentile(toLong(snowflake.time.execution), 90)
+  }, by: { snowflake.warehouse.name }
+| sort p90_exec_ms desc
+| limit 25
 ```
 
 Fetch the 50 most recent DSOA query_history spans (individual Snowflake query executions).
@@ -971,28 +1295,29 @@ fetch spans
 | limit 50
 ```
 
-Plot average Snowflake query execution time per warehouse over time.
+Correlate DSOA query_history spans by trace.id/span.id to inspect the root span and timing for a Snowflake query execution.
 
 ```dql
-timeseries val = sum(snowflake.time.execution), by: { snowflake.warehouse.name, deployment.environment }
-| filter db.system == "snowflake"
-```
-
-Plot attributed compute credits consumed per user over time.
-
-```dql
-timeseries credits = sum(snowflake.credits.attributed_compute), by: { db.user, deployment.environment }
-| filter db.system == "snowflake"
-```
-
-Fetch recent DSOA self-monitoring business events for the query_history plugin.
-
-```dql
-fetch bizevents
+fetch spans
 | filter db.system == "snowflake"
 | filter dsoa.run.plugin == "query_history"
-| sort timestamp desc
-| limit 20
+| filter isNotNull(trace.id) and isNotNull(span.id)
+| fields trace.id, span.id, request.is_root_span, snowflake.query.id, start_time, end_time
+| sort start_time desc
+| limit 50
+```
+
+Inspect Snowflake query-plan step/operator span events (snowflake.query.step.\*) recorded on query_history spans.
+
+```dql
+fetch spans
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "query_history"
+| expand span.events
+| filter contains(span.events.name, "snowflake.query.step")
+| fields snowflake.query.step.id, snowflake.query.step.operator.type, snowflake.query.step.operator.stats, span.events.timestamp
+| sort span.events.timestamp desc
+| limit 100
 ```
 
 <a name="resource_monitors_semantics_sec"></a>
@@ -1074,6 +1399,26 @@ All telemetry delivered by this plugin is reported as `dsoa.run.context == "reso
 
 ### DQL query examples for the `resource_monitors` plugin
 
+Plot the percentage of the credit quota consumed per Snowflake resource monitor over time.
+
+```dql
+timeseries pct = avg(snowflake.credits.quota.used_pct), by: { snowflake.resource_monitor.name, deployment.environment.name }
+```
+
+Plot the remaining credit quota per Snowflake resource monitor over time.
+
+```dql
+timeseries remaining = avg(snowflake.credits.quota.remaining),
+  by: { snowflake.resource_monitor.name, deployment.environment.name }
+```
+
+Compare consumed credits against the configured quota per Snowflake resource monitor over time.
+
+```dql
+timeseries { used = max(snowflake.credits.quota.used), quota = max(snowflake.credits.quota.value) },
+  by: { snowflake.resource_monitor.name, deployment.environment.name }
+```
+
 Fetch the 100 most recent DSOA resource_monitors plugin log entries from Grail.
 
 ```dql
@@ -1084,18 +1429,59 @@ fetch logs
 | limit 100
 ```
 
-Plot percentage of credit quota used per resource monitor over time.
+Inspect per-monitor credit quota consumption readings from the resource_monitors plugin.
 
 ```dql
-timeseries pct = avg(snowflake.credits.quota.used_pct), by: { snowflake.resource_monitor.name, deployment.environment }
+fetch logs
 | filter db.system == "snowflake"
+| filter dsoa.run.plugin == "resource_monitors"
+| filter isNotNull(snowflake.resource_monitor.name)
+| fields timestamp, snowflake.resource_monitor.name, snowflake.credits.quota.used, snowflake.credits.quota.used_pct
+| sort timestamp desc
+| limit 50
 ```
 
-Plot remaining credit quota per resource monitor over time.
+Fetch resource monitors that have consumed more than 90% of their credit quota.
 
 ```dql
-timeseries remaining = avg(snowflake.credits.quota.remaining), by: { snowflake.resource_monitor.name, deployment.environment }
+fetch logs
 | filter db.system == "snowflake"
+| filter dsoa.run.plugin == "resource_monitors"
+| filter toDouble(snowflake.credits.quota.used_pct) > 90
+| sort timestamp desc
+| limit 50
+```
+
+Fetch the most recent DSOA resource_monitors lifecycle events (monitor and warehouse state changes).
+
+```dql
+fetch events
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "resource_monitors"
+| sort timestamp desc
+| limit 50
+```
+
+Count DSOA resource_monitors lifecycle events grouped by event type.
+
+```dql
+fetch events
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "resource_monitors"
+| summarize { events = count() }, by: { snowflake.event.type }
+| sort events desc
+```
+
+Inspect resource monitor lifecycle events with their monitor name and event type.
+
+```dql
+fetch events
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "resource_monitors"
+| filter isNotNull(snowflake.resource_monitor.name)
+| fields timestamp, snowflake.event.type, snowflake.resource_monitor.name
+| sort timestamp desc
+| limit 25
 ```
 
 <a name="shares_semantics_sec"></a>
@@ -1165,25 +1551,38 @@ check the `Context Name` column below.
 
 ### DQL query examples for the `shares` plugin
 
-Fetch the 100 most recent DSOA shares plugin log entries from Grail.
+Fetch the 100 most recent DSOA shares plugin log entries (inbound and outbound shares) from Grail.
 
 ```dql
 fetch logs
 | filter db.system == "snowflake"
-| filter dsoa.run.plugin == "shares"
+| filter in(dsoa.run.context, {"inbound_shares", "outbound_shares"})
 | sort timestamp desc
 | limit 100
 ```
 
-Fetch log entries for both inbound and outbound Snowflake shares.
+Inspect outbound Snowflake shares and the objects they expose.
 
 ```dql
 fetch logs
 | filter db.system == "snowflake"
-| filter dsoa.run.plugin == "shares"
-| filter in(dsoa.run.context, {"inbound_shares", "outbound_shares"})
+| filter dsoa.run.context == "outbound_shares"
+| filter isNotNull(snowflake.share.name)
+| fields timestamp, snowflake.share.name, snowflake.table.full_name
 | sort timestamp desc
 | limit 50
+```
+
+Rank Snowflake shares by the number of shared objects they contain.
+
+```dql
+fetch logs
+| filter db.system == "snowflake"
+| filter in(dsoa.run.context, {"inbound_shares", "outbound_shares"})
+| filter isNotNull(snowflake.share.name)
+| summarize { objects = count() }, by: { snowflake.share.name }
+| sort objects desc
+| limit 25
 ```
 
 Fetch recent DSOA self-monitoring business events for the shares plugin.
@@ -1194,6 +1593,26 @@ fetch bizevents
 | filter dsoa.run.plugin == "shares"
 | sort timestamp desc
 | limit 20
+```
+
+Fetch the most recent DSOA shares lifecycle events (share, grant and table creation anchors).
+
+```dql
+fetch events
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "shares"
+| sort timestamp desc
+| limit 50
+```
+
+Count DSOA shares lifecycle events grouped by event type.
+
+```dql
+fetch events
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "shares"
+| summarize { events = count() }, by: { snowflake.event.type }
+| sort events desc
 ```
 
 <a name="snowpipes_semantics_sec"></a>
@@ -1276,8 +1695,21 @@ check the `Context Name` column below.
 Plot rows loaded per Snowpipe over time.
 
 ```dql
-timeseries val = sum(snowflake.pipe.rows.loaded), by: { snowflake.pipe.name, deployment.environment }
-| filter db.system == "snowflake"
+timeseries val = sum(snowflake.pipe.rows.loaded), by: { snowflake.pipe.name, deployment.environment.name }
+```
+
+Compare bytes ingested against credits used per Snowpipe over time.
+
+```dql
+timeseries { ingested = sum(snowflake.pipe.data.ingested), credits = sum(snowflake.pipe.cost.credits_used) },
+  by: { snowflake.pipe.name, deployment.environment.name }
+```
+
+Plot pending files and ingestion errors per Snowpipe over time.
+
+```dql
+timeseries { pending = max(snowflake.pipe.files.pending), errors = sum(snowflake.pipe.errors) },
+  by: { snowflake.pipe.name, deployment.environment.name }
 ```
 
 Fetch the 100 most recent DSOA snowpipes plugin log entries from Grail.
@@ -1290,14 +1722,58 @@ fetch logs
 | limit 100
 ```
 
-Fetch the 50 most recent DSOA self-monitoring business events for the snowpipes plugin.
+Fetch Snowpipe readings that reported ingestion errors.
+
+```dql
+fetch logs
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "snowpipes"
+| filter toLong(snowflake.pipe.errors) > 0
+| fields timestamp, snowflake.pipe.name, snowflake.pipe.errors, snowflake.pipe.files.pending
+| sort timestamp desc
+| limit 50
+```
+
+Rank Snowpipes by total rows loaded.
+
+```dql
+fetch logs
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "snowpipes"
+| filter isNotNull(snowflake.pipe.name)
+| summarize { total_rows = sum(toLong(snowflake.pipe.rows.loaded)) }, by: { snowflake.pipe.name }
+| sort total_rows desc
+| limit 25
+```
+
+Fetch recent DSOA self-monitoring business events for the snowpipes plugin.
 
 ```dql
 fetch bizevents
 | filter db.system == "snowflake"
 | filter dsoa.run.plugin == "snowpipes"
 | sort timestamp desc
+| limit 20
+```
+
+Fetch the most recent DSOA snowpipes lifecycle events (pipe creation anchors).
+
+```dql
+fetch events
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "snowpipes"
+| sort timestamp desc
 | limit 50
+```
+
+Count DSOA snowpipes lifecycle events grouped by event type.
+
+```dql
+fetch events
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "snowpipes"
+| summarize { events = count() }, by: { snowflake.event.type }
+| sort events desc
 ```
 
 <a name="table_health_semantics_sec"></a>
@@ -1342,22 +1818,19 @@ check the `Context Name` column below.
 Plot active storage bytes per table over time.
 
 ```dql
-timeseries val = avg(snowflake.table.active_bytes), by: { db.collection.name, deployment.environment }
-| filter db.system == "snowflake"
+timeseries val = avg(snowflake.table.active_bytes), by: { db.collection.name, deployment.environment.name }
 ```
 
 Plot average clustering depth per table over time.
 
 ```dql
-timeseries val = avg(snowflake.table.clustering.depth), by: { db.collection.name, deployment.environment }
-| filter db.system == "snowflake"
+timeseries val = avg(snowflake.table.clustering.depth), by: { db.collection.name, deployment.environment.name }
 ```
 
 Plot table size growth percentage between snapshots over time.
 
 ```dql
-timeseries val = avg(snowflake.table.growth_pct), by: { db.collection.name, deployment.environment }
-| filter db.system == "snowflake"
+timeseries val = avg(snowflake.table.growth_pct), by: { db.collection.name, deployment.environment.name }
 ```
 
 <a name="tasks_semantics_sec"></a>
@@ -1435,6 +1908,29 @@ check the `Context Name` column below.
 
 ### DQL query examples for the `tasks` plugin
 
+Plot the number of failed Snowflake task runs per task over time.
+
+```dql
+timeseries failed = sum(snowflake.task.run.failed), by: { snowflake.task.name, deployment.environment.name }
+```
+
+Compare successful, failed and cancelled Snowflake task runs per task over time.
+
+```dql
+timeseries {
+  successful = sum(snowflake.task.run.successful),
+  failed = sum(snowflake.task.run.failed),
+  cancelled = sum(snowflake.task.run.cancelled)
+},
+  by: { snowflake.task.name, deployment.environment.name }
+```
+
+Plot credits consumed by Snowflake task runs per task over time.
+
+```dql
+timeseries credits = sum(snowflake.credits.used), by: { snowflake.task.name, deployment.environment.name }
+```
+
 Fetch the 100 most recent DSOA tasks plugin log entries from Grail.
 
 ```dql
@@ -1445,22 +1941,60 @@ fetch logs
 | limit 100
 ```
 
-Fetch log entries for failed Snowflake task runs from the tasks plugin.
+Fetch log entries for failed Snowflake task runs.
 
 ```dql
 fetch logs
 | filter db.system == "snowflake"
 | filter dsoa.run.plugin == "tasks"
 | filter snowflake.task.run.state == "FAILED"
+| fields timestamp, snowflake.task.name, snowflake.warehouse.name, snowflake.task.run.state
 | sort timestamp desc
 | limit 50
 ```
 
-Plot number of failed Snowflake task runs per task name over time.
+Rank Snowflake tasks by number of recorded runs.
 
 ```dql
-timeseries failed = sum(snowflake.task.run.failed), by: { snowflake.task.name, deployment.environment }
+fetch logs
 | filter db.system == "snowflake"
+| filter dsoa.run.plugin == "tasks"
+| filter isNotNull(snowflake.task.name)
+| summarize { runs = count() }, by: { snowflake.task.name }
+| sort runs desc
+| limit 25
+```
+
+Fetch the most recent DSOA tasks lifecycle events (task graph version anchors).
+
+```dql
+fetch events
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "tasks"
+| sort timestamp desc
+| limit 50
+```
+
+Count DSOA tasks lifecycle events grouped by event type.
+
+```dql
+fetch events
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "tasks"
+| summarize { events = count() }, by: { snowflake.event.type }
+| sort events desc
+```
+
+Inspect task lifecycle events with their task name and event type.
+
+```dql
+fetch events
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "tasks"
+| filter isNotNull(snowflake.task.name)
+| fields timestamp, snowflake.event.type, snowflake.task.name
+| sort timestamp desc
+| limit 25
 ```
 
 <a name="trust_center_semantics_sec"></a>
@@ -1505,11 +2039,23 @@ All telemetry delivered by this plugin is reported as `dsoa.run.context == "trus
 
 ### DQL query examples for the `trust_center` plugin
 
-Plot Trust Center findings count per risk level over time.
+Plot the number of Trust Center findings by risk level over time.
 
 ```dql
-timeseries val = sum(snowflake.trust_center.findings), by: { vulnerability.risk.level, deployment.environment }
-| filter db.system == "snowflake"
+timeseries val = sum(snowflake.trust_center.findings), by: { vulnerability.risk.level, deployment.environment.name }
+```
+
+Plot the number of Trust Center findings by scanner type over time.
+
+```dql
+timeseries val = sum(snowflake.trust_center.findings),
+  by: { snowflake.trust_center.scanner.type, deployment.environment.name }
+```
+
+Plot Trust Center findings by security category over time.
+
+```dql
+timeseries findings = sum(snowflake.trust_center.findings), by: { event.category, deployment.environment.name }
 ```
 
 Fetch the 100 most recent DSOA trust_center plugin log entries from Grail.
@@ -1522,13 +2068,26 @@ fetch logs
 | limit 100
 ```
 
-Break down Trust Center findings counts by severity level.
+Fetch critical-severity Trust Center findings reported by the trust_center plugin.
 
 ```dql
 fetch logs
 | filter db.system == "snowflake"
 | filter dsoa.run.plugin == "trust_center"
-| summarize count(), by: { vulnerability.risk.level }
+| filter vulnerability.risk.level == "CRITICAL"
+| sort timestamp desc
+| limit 50
+```
+
+Break down Trust Center findings by scanner type and risk level.
+
+```dql
+fetch logs
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "trust_center"
+| summarize { findings = count() }, by: { snowflake.trust_center.scanner.type, vulnerability.risk.level }
+| sort findings desc
+| limit 25
 ```
 
 <a name="users_semantics_sec"></a>
@@ -1642,6 +2201,26 @@ fetch bizevents
 | limit 20
 ```
 
+Fetch the most recent DSOA users lifecycle events (creation, deletion and role-change anchors).
+
+```dql
+fetch events
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "users"
+| sort timestamp desc
+| limit 50
+```
+
+Count DSOA users lifecycle events grouped by event type.
+
+```dql
+fetch events
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "users"
+| summarize { events = count() }, by: { snowflake.event.type }
+| sort events desc
+```
+
 <a name="warehouse_usage_semantics_sec"></a>
 
 ## The `Warehouse Usage` plugin semantics
@@ -1686,6 +2265,29 @@ check the `Context Name` column below.
 
 ### DQL query examples for the `warehouse_usage` plugin
 
+Plot Snowflake compute credit consumption per warehouse over time.
+
+```dql
+timeseries credits = sum(snowflake.credits.compute), by: { snowflake.warehouse.name, deployment.environment.name }
+```
+
+Plot average number of running queries per warehouse over time.
+
+```dql
+timeseries load = avg(snowflake.load.running), by: { snowflake.warehouse.name, deployment.environment.name }
+```
+
+Compare running, overload-queued and blocked query load per Snowflake warehouse over time.
+
+```dql
+timeseries {
+  running = avg(snowflake.load.running),
+  queued_overloaded = avg(snowflake.load.queued.overloaded),
+  blocked = avg(snowflake.load.blocked)
+},
+  by: { snowflake.warehouse.name, deployment.environment.name }
+```
+
 Fetch the 100 most recent DSOA warehouse_usage plugin log entries from Grail.
 
 ```dql
@@ -1696,33 +2298,26 @@ fetch logs
 | limit 100
 ```
 
-Plot Snowflake compute credit consumption per warehouse over time.
+Inspect Snowflake warehouse state-change events (start, resume, suspend) from the warehouse_usage plugin.
 
 ```dql
-timeseries credits = sum(snowflake.credits.compute), by: { snowflake.warehouse.name, deployment.environment }
-| filter db.system == "snowflake"
-```
-
-Plot average number of running queries per warehouse over time.
-
-```dql
-timeseries load = avg(snowflake.load.running), by: { snowflake.warehouse.name, deployment.environment }
-| filter db.system == "snowflake"
-```
-
-Plot total credits used per warehouse over time.
-
-```dql
-timeseries val = sum(snowflake.credits.used), by: { snowflake.warehouse.name, deployment.environment }
-| filter db.system == "snowflake"
-```
-
-Fetch recent DSOA self-monitoring business events for the warehouse_usage plugin.
-
-```dql
-fetch bizevents
+fetch logs
 | filter db.system == "snowflake"
 | filter dsoa.run.plugin == "warehouse_usage"
+| filter isNotNull(snowflake.warehouse.name)
+| fields timestamp, snowflake.warehouse.name, snowflake.warehouse.event.name, snowflake.warehouse.event.state
 | sort timestamp desc
-| limit 20
+| limit 50
+```
+
+Count Snowflake warehouse state-change events grouped by warehouse and event type.
+
+```dql
+fetch logs
+| filter db.system == "snowflake"
+| filter dsoa.run.plugin == "warehouse_usage"
+| filter isNotNull(snowflake.warehouse.name)
+| summarize { events = count() }, by: { snowflake.warehouse.name, snowflake.warehouse.event.name }
+| sort events desc
+| limit 25
 ```

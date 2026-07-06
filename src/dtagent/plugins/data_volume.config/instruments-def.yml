@@ -106,27 +106,59 @@ event_timestamps:
     __stability: stable
     __example: 1731256700000000000
     __description: The timestamp of the last time the object was altered by a DML, DDL, or background metadata operation.
-
 dql_queries:
   - query_string: |
-      timeseries val = sum(snowflake.data.size), by: { db.collection.name, deployment.environment }
-      | filter db.system == "snowflake"
-    description: Plot total table size in bytes per table over time.
-    description_copilot: Timeseries of Snowflake table size tracked by the data_volume plugin.
+      timeseries val = sum(snowflake.data.size), by: { db.collection.name, deployment.environment.name }
+    description: Plot total storage size in bytes per table over time.
+    description_copilot: Timeseries of Snowflake table storage size in bytes.
     internal: false
+    context:
+      - metrics
+  - query_string: |
+      timeseries rows = sum(snowflake.data.rows), by: { db.collection.name, deployment.environment.name }
+    description: Plot total row count per Snowflake table over time.
+    description_copilot: Timeseries of Snowflake table row count.
+    internal: false
+    context:
+      - metrics
+  - query_string: |
+      timeseries { bytes = sum(snowflake.data.size), rows = sum(snowflake.data.rows) },
+        by: { db.collection.name, deployment.environment.name }
+    description: Compare storage size and row count per Snowflake table over time.
+    description_copilot: Timeseries comparing Snowflake table storage size and row count.
+    internal: false
+    context:
+      - metrics
   - query_string: |
       fetch bizevents
       | filter db.system == "snowflake"
       | filter dsoa.run.plugin == "data_volume"
       | sort timestamp desc
-      | limit 50
-    description: Fetch the 50 most recent DSOA self-monitoring business events for the data_volume plugin.
+      | limit 20
+    description: Fetch recent DSOA self-monitoring business events for the data_volume plugin.
     description_copilot: Search for self-monitoring events from the data_volume Snowflake agent plugin.
     internal: false
+    context:
+      - events
   - query_string: |
-      timeseries rows = sum(snowflake.data.rows), by: { db.collection.name, deployment.environment }
+      fetch events
       | filter db.system == "snowflake"
-      | fieldsAdd growth = rows - rows[1]
-    description: Plot row-count growth per table between consecutive measurements.
-    description_copilot: Timeseries of row-count growth for Snowflake tables tracked by the data_volume plugin.
+      | filter dsoa.run.plugin == "data_volume"
+      | sort timestamp desc
+      | limit 50
+    description: Fetch the most recent DSOA data_volume lifecycle events (table DDL and data-update anchors).
+    description_copilot: Search for Snowflake table DDL and data-update lifecycle events from the data_volume plugin.
     internal: false
+    context:
+      - events
+  - query_string: |
+      fetch events
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "data_volume"
+      | summarize { events = count() }, by: { snowflake.event.type }
+      | sort events desc
+    description: Count DSOA data_volume lifecycle events grouped by event type.
+    description_copilot: Break down Snowflake data_volume lifecycle events by their event type.
+    internal: false
+    context:
+      - events

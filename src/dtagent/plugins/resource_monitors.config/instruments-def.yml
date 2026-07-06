@@ -420,6 +420,29 @@ metrics:
     unit: cluster
 dql_queries:
   - query_string: |
+      timeseries pct = avg(snowflake.credits.quota.used_pct), by: { snowflake.resource_monitor.name, deployment.environment.name }
+    description: Plot the percentage of the credit quota consumed per Snowflake resource monitor over time.
+    description_copilot: Timeseries of the percentage of credit quota used per Snowflake resource monitor.
+    internal: false
+    context:
+      - metrics
+  - query_string: |
+      timeseries remaining = avg(snowflake.credits.quota.remaining),
+        by: { snowflake.resource_monitor.name, deployment.environment.name }
+    description: Plot the remaining credit quota per Snowflake resource monitor over time.
+    description_copilot: Timeseries of remaining credit quota per Snowflake resource monitor.
+    internal: false
+    context:
+      - metrics
+  - query_string: |
+      timeseries { used = max(snowflake.credits.quota.used), quota = max(snowflake.credits.quota.value) },
+        by: { snowflake.resource_monitor.name, deployment.environment.name }
+    description: Compare consumed credits against the configured quota per Snowflake resource monitor over time.
+    description_copilot: Timeseries comparing consumed credits and configured quota per Snowflake resource monitor.
+    internal: false
+    context:
+      - metrics
+  - query_string: |
       fetch logs
       | filter db.system == "snowflake"
       | filter dsoa.run.plugin == "resource_monitors"
@@ -428,15 +451,65 @@ dql_queries:
     description: Fetch the 100 most recent DSOA resource_monitors plugin log entries from Grail.
     description_copilot: Search for all resource_monitors plugin logs from the Snowflake observability agent.
     internal: false
+    context:
+      - logs
   - query_string: |
-      timeseries pct = avg(snowflake.credits.quota.used_pct), by: { snowflake.resource_monitor.name, deployment.environment }
+      fetch logs
       | filter db.system == "snowflake"
-    description: Plot percentage of credit quota used per resource monitor over time.
-    description_copilot: Timeseries of Snowflake resource monitor credit quota utilization percentage.
+      | filter dsoa.run.plugin == "resource_monitors"
+      | filter isNotNull(snowflake.resource_monitor.name)
+      | fields timestamp, snowflake.resource_monitor.name, snowflake.credits.quota.used, snowflake.credits.quota.used_pct
+      | sort timestamp desc
+      | limit 50
+    description: Inspect per-monitor credit quota consumption readings from the resource_monitors plugin.
+    description_copilot: Show recent Snowflake resource monitor credit quota consumption.
     internal: false
+    context:
+      - logs
   - query_string: |
-      timeseries remaining = avg(snowflake.credits.quota.remaining), by: { snowflake.resource_monitor.name, deployment.environment }
+      fetch logs
       | filter db.system == "snowflake"
-    description: Plot remaining credit quota per resource monitor over time.
-    description_copilot: Timeseries of remaining Snowflake credit quota per resource monitor.
+      | filter dsoa.run.plugin == "resource_monitors"
+      | filter toDouble(snowflake.credits.quota.used_pct) > 90
+      | sort timestamp desc
+      | limit 50
+    description: Fetch resource monitors that have consumed more than 90% of their credit quota.
+    description_copilot: Find Snowflake resource monitors close to exhausting their credit quota.
     internal: false
+    context:
+      - logs
+  - query_string: |
+      fetch events
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "resource_monitors"
+      | sort timestamp desc
+      | limit 50
+    description: Fetch the most recent DSOA resource_monitors lifecycle events (monitor and warehouse state changes).
+    description_copilot: Search for Snowflake resource monitor and warehouse lifecycle events.
+    internal: false
+    context:
+      - events
+  - query_string: |
+      fetch events
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "resource_monitors"
+      | summarize { events = count() }, by: { snowflake.event.type }
+      | sort events desc
+    description: Count DSOA resource_monitors lifecycle events grouped by event type.
+    description_copilot: Break down Snowflake resource monitor lifecycle events by their event type.
+    internal: false
+    context:
+      - events
+  - query_string: |
+      fetch events
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "resource_monitors"
+      | filter isNotNull(snowflake.resource_monitor.name)
+      | fields timestamp, snowflake.event.type, snowflake.resource_monitor.name
+      | sort timestamp desc
+      | limit 25
+    description: Inspect resource monitor lifecycle events with their monitor name and event type.
+    description_copilot: Show Snowflake resource monitor lifecycle events with monitor name and event type.
+    internal: false
+    context:
+      - events

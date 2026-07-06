@@ -25,6 +25,13 @@ All notable changes to this project will be documented in this file.
   `ad.direction`, and `ad.category` are now documented at core level in `instruments-def.yml`
   and exported to the Semantic Dictionary. These fields are set by all 10 DSOA anomaly-detection
   workflows in Dynatrace event properties; `ad.direction` and `ad.category` include enum definitions.
+- **Per-model-type routing of DQL examples** (`context:` field): each entry under
+  `dql_queries:` now declares a `context:` array (`metrics`, `logs`, `events`, `spans`)
+  that routes the example to only the matching Semantic Dictionary model type(s). Metric
+  models now show only `timeseries` examples, log models only `fetch logs`, event models
+  only `fetch events`/`fetch bizevents`, and span models only `fetch spans` — previously the
+  same flat list was attached to every model type. Every model-emitting plugin ships ≥3
+  genuine, tenant-validated example queries for each model type it emits.
 - **DQL query examples** in Semantic Dictionary model YAML: `dql_queries:` sections added for 10
   plugins (query_history, warehouse_usage, login_history, metering, users, event_log, tasks,
   resource_monitors, shares, budgets), meeting the SD CI F015-F017 requirement of ≥3 queries per
@@ -42,6 +49,16 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- **Invalid `db.system` filter removed from `timeseries` example queries**: the example DQL
+  under `dql_queries:` grouped metrics with `timeseries ... by: { ... }` and then appended
+  `| filter db.system == "snowflake"`, which references a field that does not exist after a
+  `timeseries` aggregation. The filter has been removed from every metric (`timeseries`)
+  example while being retained on `fetch logs`/`spans`/`events`/`bizevents` examples where
+  `db.system` is a valid record field. All example queries are now validated for structural
+  soundness with `dtctl verify query` (see `test/core/test_dql_examples_valid.py`).
+- **Example DQL migrated to `deployment.environment.name`**: example queries now group and
+  filter on the canonical OpenTelemetry resource attribute `deployment.environment.name`
+  instead of the deprecated `deployment.environment` alias.
 - **Enum values now visible in SEMANTICS.md**: the doc generator now appends a
   "Possible values: `VALUE` — brief, ..." section to any field that defines `__enum`
   members in `instruments-def.yml`. Previously, structured enum metadata was silently

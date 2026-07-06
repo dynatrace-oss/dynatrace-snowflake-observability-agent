@@ -337,6 +337,32 @@ metrics:
     unit: count
 dql_queries:
   - query_string: |
+      timeseries failed = sum(snowflake.task.run.failed), by: { snowflake.task.name, deployment.environment.name }
+    description: Plot the number of failed Snowflake task runs per task over time.
+    description_copilot: Timeseries of failed Snowflake task runs per task name.
+    internal: false
+    context:
+      - metrics
+  - query_string: |
+      timeseries {
+        successful = sum(snowflake.task.run.successful),
+        failed = sum(snowflake.task.run.failed),
+        cancelled = sum(snowflake.task.run.cancelled)
+      },
+        by: { snowflake.task.name, deployment.environment.name }
+    description: Compare successful, failed and cancelled Snowflake task runs per task over time.
+    description_copilot: Timeseries comparing successful, failed and cancelled Snowflake task runs.
+    internal: false
+    context:
+      - metrics
+  - query_string: |
+      timeseries credits = sum(snowflake.credits.used), by: { snowflake.task.name, deployment.environment.name }
+    description: Plot credits consumed by Snowflake task runs per task over time.
+    description_copilot: Timeseries of credits consumed per Snowflake task.
+    internal: false
+    context:
+      - metrics
+  - query_string: |
       fetch logs
       | filter db.system == "snowflake"
       | filter dsoa.run.plugin == "tasks"
@@ -345,19 +371,66 @@ dql_queries:
     description: Fetch the 100 most recent DSOA tasks plugin log entries from Grail.
     description_copilot: Search for all tasks plugin logs from the Snowflake observability agent.
     internal: false
+    context:
+      - logs
   - query_string: |
       fetch logs
       | filter db.system == "snowflake"
       | filter dsoa.run.plugin == "tasks"
       | filter snowflake.task.run.state == "FAILED"
+      | fields timestamp, snowflake.task.name, snowflake.warehouse.name, snowflake.task.run.state
       | sort timestamp desc
       | limit 50
-    description: Fetch log entries for failed Snowflake task runs from the tasks plugin.
+    description: Fetch log entries for failed Snowflake task runs.
     description_copilot: Search for failed Snowflake task runs in the tasks plugin logs.
     internal: false
+    context:
+      - logs
   - query_string: |
-      timeseries failed = sum(snowflake.task.run.failed), by: { snowflake.task.name, deployment.environment }
+      fetch logs
       | filter db.system == "snowflake"
-    description: Plot number of failed Snowflake task runs per task name over time.
-    description_copilot: Timeseries of failed Snowflake task runs broken down by task name.
+      | filter dsoa.run.plugin == "tasks"
+      | filter isNotNull(snowflake.task.name)
+      | summarize { runs = count() }, by: { snowflake.task.name }
+      | sort runs desc
+      | limit 25
+    description: Rank Snowflake tasks by number of recorded runs.
+    description_copilot: Find which Snowflake tasks run most frequently.
     internal: false
+    context:
+      - logs
+  - query_string: |
+      fetch events
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "tasks"
+      | sort timestamp desc
+      | limit 50
+    description: Fetch the most recent DSOA tasks lifecycle events (task graph version anchors).
+    description_copilot: Search for Snowflake task graph lifecycle events from the tasks plugin.
+    internal: false
+    context:
+      - events
+  - query_string: |
+      fetch events
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "tasks"
+      | summarize { events = count() }, by: { snowflake.event.type }
+      | sort events desc
+    description: Count DSOA tasks lifecycle events grouped by event type.
+    description_copilot: Break down Snowflake task lifecycle events by their event type.
+    internal: false
+    context:
+      - events
+  - query_string: |
+      fetch events
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "tasks"
+      | filter isNotNull(snowflake.task.name)
+      | fields timestamp, snowflake.event.type, snowflake.task.name
+      | sort timestamp desc
+      | limit 25
+    description: Inspect task lifecycle events with their task name and event type.
+    description_copilot: Show Snowflake task lifecycle events with task name and event type.
+    internal: false
+    context:
+      - events

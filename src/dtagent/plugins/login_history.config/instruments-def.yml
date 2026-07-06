@@ -248,6 +248,28 @@ metrics:
     unit: count
 dql_queries:
   - query_string: |
+      timeseries failed = sum(snowflake.login.attempts.failed), by: { db.user, deployment.environment.name }
+    description: Plot failed Snowflake login attempts per user over time.
+    description_copilot: Timeseries of failed Snowflake login attempts per user.
+    internal: false
+    context:
+      - metrics
+  - query_string: |
+      timeseries total = sum(snowflake.login.attempts.total), by: { client.type, deployment.environment.name }
+    description: Plot total Snowflake login attempts broken down by client type over time.
+    description_copilot: Timeseries of total Snowflake login attempts per client type.
+    internal: false
+    context:
+      - metrics
+  - query_string: |
+      timeseries { failed = sum(snowflake.login.attempts.failed), successful = sum(snowflake.login.attempts.successful) },
+        by: { db.user, deployment.environment.name }
+    description: Compare failed and successful Snowflake login attempts per user over time.
+    description_copilot: Timeseries comparing failed and successful Snowflake login attempts per user.
+    internal: false
+    context:
+      - metrics
+  - query_string: |
       fetch logs
       | filter db.system == "snowflake"
       | filter dsoa.run.plugin == "login_history"
@@ -256,34 +278,31 @@ dql_queries:
     description: Fetch the 100 most recent DSOA login_history plugin log entries from Grail.
     description_copilot: Search for all login_history plugin logs from the Snowflake observability agent.
     internal: false
+    context:
+      - logs
   - query_string: |
       fetch logs
       | filter db.system == "snowflake"
       | filter dsoa.run.plugin == "login_history"
-      | filter snowflake.login.is_success == "NO"
+      | filter isNotNull(snowflake.error.code)
+      | fields timestamp, db.user, authentication.type, snowflake.error.code, snowflake.status.message
       | sort timestamp desc
       | limit 50
-    description: Fetch the 50 most recent failed Snowflake login attempts from login_history logs.
-    description_copilot: Search for failed Snowflake login attempts in login_history plugin logs.
+    description: Fetch failed Snowflake logins with their authentication type and error details.
+    description_copilot: Find failed Snowflake login attempts with error codes and authentication type.
     internal: false
+    context:
+      - logs
   - query_string: |
-      timeseries failed = sum(snowflake.login.attempts.failed), by: { db.user, deployment.environment }
-      | filter db.system == "snowflake"
-    description: Plot the number of failed Snowflake login attempts per user over time.
-    description_copilot: Timeseries of failed Snowflake login attempts broken down by user.
-    internal: false
-  - query_string: |
-      timeseries total = sum(snowflake.login.attempts.total), by: { authentication.type, deployment.environment }
-      | filter db.system == "snowflake"
-    description: Plot total Snowflake login attempts by authentication type over time.
-    description_copilot: Timeseries of Snowflake logins broken down by authentication method.
-    internal: false
-  - query_string: |
-      fetch bizevents
+      fetch logs
       | filter db.system == "snowflake"
       | filter dsoa.run.plugin == "login_history"
-      | sort timestamp desc
-      | limit 20
-    description: Fetch recent DSOA self-monitoring business events for the login_history plugin.
-    description_copilot: Search for self-monitoring events from the login_history Snowflake agent plugin.
+      | filter isNotNull(client.ip)
+      | summarize { attempts = count() }, by: { client.ip, db.user }
+      | sort attempts desc
+      | limit 25
+    description: Rank source IP and user combinations by Snowflake login attempt volume.
+    description_copilot: Find which source IPs and users generate the most Snowflake login attempts.
     internal: false
+    context:
+      - logs

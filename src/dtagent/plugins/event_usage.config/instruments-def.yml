@@ -31,24 +31,26 @@ metrics:
       window.
     displayName: Bytes Ingested for Event Table
     unit: By
-
 dql_queries:
   - query_string: |
-      timeseries val = sum(snowflake.credits.used), by: { deployment.environment }
-      | filter db.system == "snowflake"
+      timeseries val = sum(snowflake.credits.used), by: { deployment.environment.name }
     description: Plot credits billed for loading data into the event table over time.
     description_copilot: Timeseries of Snowflake event table credit usage.
     internal: false
+    context:
+      - metrics
   - query_string: |
-      timeseries val = sum(snowflake.data.ingested), by: { deployment.environment }
-      | filter db.system == "snowflake"
+      timeseries val = sum(snowflake.data.ingested), by: { deployment.environment.name }
     description: Plot bytes of data loaded into the event table over time.
     description_copilot: Timeseries of Snowflake event table data ingestion volume.
     internal: false
+    context:
+      - metrics
   - query_string: |
-      timeseries credits = sum(snowflake.credits.used), bytes = sum(snowflake.data.ingested), by: { deployment.environment }
-      | filter db.system == "snowflake"
-      | fieldsAdd credits_per_byte = credits / bytes
-    description: Plot event table ingestion cost efficiency (credits per byte ingested) over time.
-    description_copilot: Timeseries of Snowflake event table cost efficiency.
+      timeseries ingested = sum(snowflake.data.ingested), interval: 1d, by: { deployment.environment.name }
+      | fieldsAdd total_ingested = arraySum(ingested)
+    description: Report total daily bytes ingested into the event table per Snowflake account.
+    description_copilot: Daily total of Snowflake event table data ingestion per account.
     internal: false
+    context:
+      - metrics
