@@ -87,9 +87,48 @@ def _get_plugin_title(plugin_name: str) -> str:
 
 
 def _get_clean_description(details: dict) -> str:
-    """Rephrases descriptions to be properly displayed in columns."""
+    """Rephrases descriptions to be properly displayed in columns.
+
+    When the field has a ``__enum`` definition, a human-readable list of
+    possible values is appended after the base description so that readers
+    of ``SEMANTICS.md`` understand the valid values without consulting the
+    raw YAML source.
+
+    Format::
+
+        <base description> Possible values: VALUE — brief, VALUE — brief[, …].
+        Additional values may be present.
+
+    The trailing sentence is added only when ``allow_custom_values`` is
+    ``true`` (i.e. the enum is open-ended).
+
+    Args:
+        details: Field entry dict from ``instruments-def.yml``.
+
+    Returns:
+        Description string suitable for a Markdown table cell.
+    """
     description = details.get("__description", "")
-    return description.replace("\n", " ").replace("-", "<br>-")
+    base = description.replace("\n", " ").replace("-", "<br>-")
+    enum_def = details.get("__enum")
+    if not enum_def or not isinstance(enum_def, dict):
+        return base
+    members = enum_def.get("members") or []
+    if not members:
+        return base
+    parts = []
+    for member in members:
+        value = member.get("value", "")
+        brief = (member.get("brief") or "").rstrip(".")
+        if brief:
+            parts.append(f"`{value}` — {brief}")
+        else:
+            parts.append(f"`{value}`")
+    enum_text = "Possible values: " + ", ".join(parts) + "."
+    if enum_def.get("allow_custom_values"):
+        enum_text += " Additional values may be present."
+    separator = " " if base and not base.endswith(" ") else ""
+    return f"{base}{separator}{enum_text}"
 
 
 def _generate_markdown_table(columns: List[str], rows_data: List[List]) -> str:

@@ -42,6 +42,12 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- **Enum values now visible in SEMANTICS.md**: the doc generator now appends a
+  "Possible values: `VALUE` — brief, ..." section to any field that defines `__enum`
+  members in `instruments-def.yml`. Previously, structured enum metadata was silently
+  dropped from the generated documentation. Affects all fields with `__enum` across all
+  plugins (e.g. `snowflake.table.dynamic.refresh.trigger`, `snowflake.warehouse.size`,
+  `snowflake.query.execution_status`, and 20+ others).
 - **Semdict event model `data_object` corrected**: timestamp-based lifecycle events
   (e.g. `snowflake.grant.created_on`) are sent via the OpenPipeline Events API, not bizevents.
   Generated `dsoa.events.*.yaml` models now correctly declare `data_object: event` instead of

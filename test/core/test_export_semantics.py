@@ -1343,6 +1343,139 @@ class TestSemanticsTableColumns:
         assert "Original unit: credits" not in result, "__semdict_note content must NOT be merged into Description"
 
 
+class TestEnumDescriptionInSemantics:
+    """Verify that __enum members are rendered as human-readable text in SEMANTICS.md."""
+
+    def test_enum_values_appended_to_description(self):
+        """Fields with __enum must have a 'Possible values' section appended to their description cell."""
+        from build.update_docs import _generate_semantics_tables
+
+        json_data = {
+            "attributes": {
+                "snowflake.table.dynamic.refresh.trigger": {
+                    "__description": "Describes the trigger for the refresh.",
+                    "__example": "SCHEDULED",
+                    "__stability": "stable",
+                    "__type": "string",
+                    "__enum": {
+                        "allow_custom_values": True,
+                        "members": [
+                            {"id": "scheduled", "value": "SCHEDULED", "brief": "Normal background refresh."},
+                            {"id": "manual", "value": "MANUAL", "brief": "User triggered refresh."},
+                            {"id": "creation", "value": "CREATION", "brief": "Refresh during creation DDL."},
+                        ],
+                    },
+                }
+            }
+        }
+        result = _generate_semantics_tables(json_data, "dynamic_tables", no_global_context_name=False)
+
+        assert "Possible values:" in result, "Enum values must appear as 'Possible values:' in description"
+        assert "`SCHEDULED`" in result, "SCHEDULED enum value must appear in description"
+        assert "`MANUAL`" in result, "MANUAL enum value must appear in description"
+        assert "`CREATION`" in result, "CREATION enum value must appear in description"
+        assert "Normal background refresh" in result, "SCHEDULED brief must appear"
+        assert "User triggered refresh" in result, "MANUAL brief must appear"
+        assert "Additional values may be present." in result, "allow_custom_values=True must add note"
+
+    def test_enum_closed_no_additional_values_note(self):
+        """When allow_custom_values is False, the 'Additional values may be present' note must be absent."""
+        from build.update_docs import _get_clean_description
+
+        details = {
+            "__description": "The operation status.",
+            "__enum": {
+                "allow_custom_values": False,
+                "members": [
+                    {"id": "ok", "value": "OK", "brief": "Success."},
+                    {"id": "error", "value": "ERROR", "brief": "Failure."},
+                ],
+            },
+        }
+        result = _get_clean_description(details)
+
+        assert "Possible values:" in result
+        assert "`OK`" in result
+        assert "`ERROR`" in result
+        assert "Additional values may be present." not in result
+
+    def test_enum_brief_trailing_period_stripped(self):
+        """Trailing periods in enum member briefs must be stripped to avoid double periods."""
+        from build.update_docs import _get_clean_description
+
+        details = {
+            "__description": "Refresh state.",
+            "__enum": {
+                "allow_custom_values": False,
+                "members": [
+                    {"id": "done", "value": "DONE", "brief": "Completed successfully."},
+                ],
+            },
+        }
+        result = _get_clean_description(details)
+
+        # "Completed successfully." stripped of trailing period → no ".," artifact
+        assert "Completed successfully." not in result or result.endswith("Completed successfully.")
+        # The period must only appear once at the end
+        assert "`DONE` — Completed successfully." in result
+
+    def test_enum_without_brief_renders_value_only(self):
+        """Enum members without a brief must render as just `VALUE` without the dash."""
+        from build.update_docs import _get_clean_description
+
+        details = {
+            "__description": "Some field.",
+            "__enum": {
+                "allow_custom_values": False,
+                "members": [
+                    {"id": "foo", "value": "FOO"},
+                ],
+            },
+        }
+        result = _get_clean_description(details)
+        assert "`FOO`" in result
+        assert " — " not in result
+
+    def test_no_enum_description_unchanged(self):
+        """Fields without __enum must have their description returned unchanged (newline handling only)."""
+        from build.update_docs import _get_clean_description
+
+        details = {"__description": "Plain description."}
+        result = _get_clean_description(details)
+        assert result == "Plain description."
+        assert "Possible values:" not in result
+
+    def test_enum_empty_members_no_possible_values(self):
+        """An __enum block with no members must not produce 'Possible values:' text."""
+        from build.update_docs import _get_clean_description
+
+        details = {
+            "__description": "Field with empty enum.",
+            "__enum": {"allow_custom_values": True, "members": []},
+        }
+        result = _get_clean_description(details)
+        assert "Possible values:" not in result
+
+    def test_dynamic_refresh_trigger_in_real_instruments_def(self):
+        """The real dynamic_tables instruments-def.yml must produce enum docs for snowflake.table.dynamic.refresh.trigger."""
+        import yaml
+
+        with open("src/dtagent/plugins/dynamic_tables.config/instruments-def.yml", encoding="utf-8") as fh:
+            data = yaml.safe_load(fh)
+
+        from build.update_docs import _get_clean_description
+
+        trigger_entry = data.get("attributes", {}).get("snowflake.table.dynamic.refresh.trigger", {})
+        assert trigger_entry, "snowflake.table.dynamic.refresh.trigger must exist in dynamic_tables instruments-def"
+
+        result = _get_clean_description(trigger_entry)
+        assert "Possible values:" in result, "trigger field must have Possible values: section"
+        assert "`SCHEDULED`" in result, "SCHEDULED must appear in enum docs"
+        assert "`MANUAL`" in result, "MANUAL must appear in enum docs"
+        assert "`CREATION`" in result, "CREATION must appear in enum docs"
+        assert "Additional values may be present." in result, "allow_custom_values=True must add note"
+
+
 ##endregion
 
 
