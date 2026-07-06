@@ -1601,10 +1601,11 @@ none at all (FAIL). Note Dynatrace returns the **canonical display name**, not
 the raw symbol (e.g. `MiBy` → `MebiByte`, `%` → `Percent`) — so a human should
 still glance at the DYNATRACE column to confirm the resolved name actually
 matches the intended meaning of what was sent, rather than expecting an exact
-string match. Known exception: the Bucket C/D domain nouns documented in
-`scripts/dev/sync_metric_units.py` and `src/build/export_semantics.py`
-(`credits`, `files`, `partitions`, `rows`, `clusters`, `warehouses`, `queries`,
-`currency`) are unrecognized free text that Dynatrace echoes back verbatim
+string match. Known exception: the Bucket C/D domain nouns documented in the
+`MetricUnit` schema (`scripts/tools/instruments-def.schema.json`) and
+`src/build/export_semantics.py` (`credit`, `file`, `partition`, `row`,
+`cluster`, `warehouse`, `query`, `currency`) are unrecognized free text
+that Dynatrace echoes back verbatim
 (sent value == resolved value) — this is expected, not a regression.
 
 ---

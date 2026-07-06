@@ -463,7 +463,7 @@
     },
     "MetricUnit": {
       "type": "string",
-      "description": "Dynatrace Metrics API dt.meta.unit vocabulary. Must be one of the recognized universal-units UCUM symbols (sourced from .context/universal-units/UnitId.java via scripts/dev/sync_metric_units.py) plus a small DSOA allowlist of domain-specific free-text values (credits, currency, files, partitions, rows, clusters, warehouses, queries). NOTE: this is NOT the same vocabulary as the Semantic Dictionary export -- see UNIT_MAP in src/build/export_semantics.py for the SD translation.",
+      "description": "Dynatrace Metrics API dt.meta.unit vocabulary. Must be one of the recognized universal-units UCUM symbols (maintained via internal Dynatrace tooling) plus a small DSOA allowlist of domain-specific free-text values (credits, currency, files, partitions, rows, clusters, warehouses, queries). NOTE: this is NOT the same vocabulary as the Semantic Dictionary export -- see UNIT_MAP in src/build/export_semantics.py for the SD translation.",
       "enum": [
         "%",
         "1",

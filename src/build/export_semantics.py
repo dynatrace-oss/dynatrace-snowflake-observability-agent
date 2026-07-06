@@ -119,11 +119,11 @@ DISPLAY_NAME_ACRONYMS = ("DSOA", "OTel", "DDL", "DML", "RSS", "URL", "API", "ID"
 #:
 #: instruments-def.yml uses the recognized Dynatrace universal-units UCUM
 #: vocabulary directly for dt.meta.unit (see scripts/tools/instruments-def.schema.json
-#: $defs/MetricUnit and scripts/dev/sync_metric_units.py) plus a small DSOA
-#: allowlist of domain-specific free-text nouns with no recognized equivalent.
-#: The Semantic Dictionary uses a *different* abbreviation vocabulary
-#: (.context/otel-build-tool/semantic-conventions/src/opentelemetry/semconv/units/units.json).
-#: This map only needs entries where the two vocabularies diverge — most
+#: $defs/MetricUnit, maintained via internal Dynatrace tooling) plus a small
+#: DSOA allowlist of domain-specific free-text nouns with no recognized equivalent.
+#: The Semantic Dictionary uses a *different* abbreviation vocabulary (the
+#: OTel semantic-conventions units registry). This map only needs entries
+#: where the two vocabularies diverge — most
 #: universal-units UCUM symbols (By, s, d, 1, ms, min, count, ratio, MiBy, ...)
 #: already match their SD abbreviation and require no translation.
 UNIT_MAP: Dict[str, str] = {

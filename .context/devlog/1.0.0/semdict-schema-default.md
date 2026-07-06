@@ -16,10 +16,10 @@
 
 ## Why
 
-Both tools previously pointed to gitignored / external paths (`.context/otel-build-tool/`
-and `_otel-build-tool/`) that are not present in a fresh checkout. This caused every
-developer's first run — and CI — to silently skip schema validation because the schema
-file was missing, defeating the purpose of the `--schema` flag entirely.
+Both tools previously pointed to gitignored / external paths that are not present in a
+fresh checkout. This caused every developer's first run — and CI — to silently skip
+schema validation because the schema file was missing, defeating the purpose of the
+`--schema` flag entirely.
 
 `scripts/tools/semconv.schema.json` is checked in with the repo and is always present.
 It should be kept in sync with the semconv version DSOA targets.
@@ -28,11 +28,9 @@ It should be kept in sync with the semconv version DSOA targets.
 
 When starting development on a new DSOA version (or adopting a new semconv release):
 
-1. Copy the updated schema from the upstream otel-build-tool checkout or SD generator:
-   ```bash
-   cp .context/otel-build-tool/semantic-conventions/semconv.schema.json \
-      scripts/tools/semconv.schema.json
-   ```
+1. Updating `scripts/tools/semconv.schema.json` to a new semconv version requires
+   access to internal Dynatrace tooling (the upstream OTel semconv build tooling or
+   the SD generator). Ask a maintainer if you need this updated.
 2. Commit the updated `scripts/tools/semconv.schema.json` alongside the related
    instruments-def changes.
 3. Use `--schema <path>` for one-off runs against a different schema version without

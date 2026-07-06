@@ -18,7 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-.PHONY: lint lint-python lint-format lint-pylint lint-sql lint-yaml lint-markdown lint-bom lint-shell build docs sync-units gen-metric-fixture package test test-documentation test-bash test-bash-slow test-core test-instruments-def test-plugins docker-build docker-clean docker-test
+.PHONY: lint lint-python lint-format lint-pylint lint-sql lint-yaml lint-markdown lint-bom lint-shell build docs gen-metric-fixture package test test-documentation test-bash test-bash-slow test-core test-instruments-def test-plugins docker-build docker-clean docker-test
 
 # Linting targets
 lint-python:
@@ -54,9 +54,6 @@ build:
 
 docs:
 	./scripts/dev/build_docs.sh
-
-sync-units:
-	.venv/bin/python scripts/dev/sync_metric_units.py
 
 gen-metric-fixture:
 	.venv/bin/python scripts/dev/gen_metric_fixture.py
