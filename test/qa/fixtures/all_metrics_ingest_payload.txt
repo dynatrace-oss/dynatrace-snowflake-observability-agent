@@ -167,9 +167,9 @@ snowflake.pipe.rows.loaded 1000
 snowflake.pipe.rows.parsed 1050
 #snowflake.pipe.rows.parsed gauge dt.meta.displayName="Rows Parsed",dt.meta.unit="count"
 snowflake.queries.queued 5
-#snowflake.queries.queued gauge dt.meta.displayName="Queued Queries",dt.meta.unit="querie"
+#snowflake.queries.queued gauge dt.meta.displayName="Queued Queries",dt.meta.unit="query"
 snowflake.queries.running 15
-#snowflake.queries.running gauge dt.meta.displayName="Running Queries",dt.meta.unit="querie"
+#snowflake.queries.running gauge dt.meta.displayName="Running Queries",dt.meta.unit="query"
 snowflake.resource_monitor.warehouses.count 5
 #snowflake.resource_monitor.warehouses.count gauge dt.meta.displayName="Warehouses Count",dt.meta.unit="warehouse"
 snowflake.rows.copied 75

@@ -379,13 +379,13 @@ metrics:
     __example: 5
     __description: Current number of queued queries in the given warehouse
     displayName: Queued Queries
-    unit: querie
+    unit: query
   snowflake.queries.running:
     __type: long
     __example: 15
     __description: Current number of running queries in the given warehouse
     displayName: Running Queries
-    unit: querie
+    unit: query
   snowflake.resource_monitor.warehouses.count:
     __type: long
     __example: 5
