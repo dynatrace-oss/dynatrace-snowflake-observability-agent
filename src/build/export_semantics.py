@@ -551,6 +551,31 @@ def _merge_field_entries(key: str, existing: Dict[str, Any], incoming: Dict[str,
     return existing
 
 
+def _dql_for_context(queries: Optional[List[Dict[str, Any]]], target: str) -> List[Dict[str, Any]]:
+    """Filter a plugin's DQL example queries down to those applicable to one model type.
+
+    Each entry's ``context`` list declares which model types it illustrates
+    (``metrics``, ``logs``, ``events``, ``spans``). This routes each example to the
+    matching Semantic Dictionary model(s) only, so a ``fetch logs`` example never lands
+    on a metric/span model, a ``timeseries`` example never lands on a log/event model, etc.
+
+    The ``context`` key is a routing directive, not part of the SD ``DqlQuery`` shape, so
+    it is stripped from every returned dict — it must never appear in the generated YAML.
+
+    Args:
+        queries: The plugin's raw ``dql_queries`` list (may be ``None``).
+        target:  Target model type — one of ``metrics``, ``logs``, ``events``, ``spans``.
+
+    Returns:
+        Queries whose ``context`` includes ``target``, each with ``context`` removed.
+    """
+    result: List[Dict[str, Any]] = []
+    for query in queries or []:
+        if target in (query.get("context") or []):
+            result.append({k: v for k, v in query.items() if k != "context"})
+    return result
+
+
 ##endregion
 
 
@@ -1745,12 +1770,9 @@ class SemanticExporter:
         # This preserves each plugin's own context annotations independent of dedup winner.
         dim_context_by_plugin: Dict[str, Dict[str, Set[str]]] = {}
         # Per-plugin DQL query examples collected directly from the top-level dql_queries: key
-        # in each instruments-def.yml file.  Keyed by plugin_name (or "_core").
+        # in each instruments-def.yml file.  Keyed by plugin_name (or "_core").  Each entry's
+        # ``context`` list routes it to the matching model type(s) via ``_dql_for_context``.
         plugin_dql_queries: Dict[str, List[Dict[str, Any]]] = {}
-        # Per-plugin span-model-specific DQL query examples from the optional top-level
-        # dql_queries_span: key.  When present, these take priority over plugin_dql_queries
-        # for the span model only (differentiate span DQL from log DQL).
-        plugin_dql_queries_span: Dict[str, List[Dict[str, Any]]] = {}
         for plugin_name, path in files:
             log.debug("Parsing %s (%s)", plugin_name, path)
             errors, entries = self._parse_file(plugin_name, path)
@@ -1763,10 +1785,6 @@ class SemanticExporter:
                 if raw_queries and isinstance(raw_queries, list):
                     plugin_dql_queries[plugin_name] = raw_queries
                     log.debug("Collected %d dql_queries from %s", len(raw_queries), plugin_name)
-                raw_queries_span = raw_data.get("dql_queries_span")
-                if raw_queries_span and isinstance(raw_queries_span, list):
-                    plugin_dql_queries_span[plugin_name] = raw_queries_span
-                    log.debug("Collected %d dql_queries_span from %s", len(raw_queries_span), plugin_name)
             except Exception as exc:  # pylint: disable=broad-except
                 log.warning("Could not re-read dql_queries from %s: %s", path, exc)
             for key, meta in entries.items():
@@ -1838,7 +1856,7 @@ class SemanticExporter:
                 all_entries,
                 dim_plugins,
                 dim_context_by_plugin,
-                dql_queries=plugin_dql_queries.get(plugin_name),
+                dql_queries=_dql_for_context(plugin_dql_queries.get(plugin_name), "metrics"),
             )
             p = self._write_yaml(doc, f"metrics/dsoa_metrics_{plugin_name}.yaml")
             self._validate_against_schema(doc, p)
@@ -1860,7 +1878,7 @@ class SemanticExporter:
                 doc = self._build_event_model_yaml(
                     plugin_name,
                     event_ts_entries,
-                    dql_queries=plugin_dql_queries.get(plugin_name),
+                    dql_queries=_dql_for_context(plugin_dql_queries.get(plugin_name), "events"),
                 )
                 p = self._write_yaml(doc, f"model/dsoa/dsoa.events.{plugin_name}.yaml")
                 self._validate_against_schema(doc, p)
@@ -1885,7 +1903,7 @@ class SemanticExporter:
                 doc = self._build_log_model_yaml(
                     plugin_name,
                     all_entries,
-                    dql_queries=plugin_dql_queries.get(plugin_name),
+                    dql_queries=_dql_for_context(plugin_dql_queries.get(plugin_name), "logs"),
                 )
                 p = self._write_yaml(doc, f"model/dsoa/dsoa.logs.{plugin_name}.yaml")
                 self._validate_against_schema(doc, p)
@@ -1907,7 +1925,7 @@ class SemanticExporter:
                 doc = self._build_span_model_yaml(
                     plugin_name,
                     all_entries,
-                    dql_queries=plugin_dql_queries_span.get(plugin_name) or plugin_dql_queries.get(plugin_name),
+                    dql_queries=_dql_for_context(plugin_dql_queries.get(plugin_name), "spans"),
                 )
                 p = self._write_yaml(doc, f"model/dsoa/dsoa.spans.{plugin_name}.yaml")
                 self._validate_against_schema(doc, p)
@@ -1929,7 +1947,7 @@ class SemanticExporter:
             doc = self._build_span_model_yaml(
                 "event_log",
                 all_entries,
-                dql_queries=plugin_dql_queries_span.get("event_log") or plugin_dql_queries.get("event_log"),
+                dql_queries=_dql_for_context(plugin_dql_queries.get("event_log"), "spans"),
             )
             p = self._write_yaml(doc, "model/dsoa/dsoa.spans.event_log.yaml")
             self._validate_against_schema(doc, p)

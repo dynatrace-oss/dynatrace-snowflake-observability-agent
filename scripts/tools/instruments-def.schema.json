@@ -48,13 +48,6 @@
       "items": {
         "$ref": "#/$defs/DqlQuery"
       }
-    },
-    "dql_queries_span": {
-      "type": "array",
-      "description": "Optional span-model-specific DQL queries. When present, these replace dql_queries on the plugin's dsoa.spans.* model only; all other model types (metrics, events, logs) continue to use dql_queries.",
-      "items": {
-        "$ref": "#/$defs/DqlQuery"
-      }
     }
   },
   "$defs": {
@@ -149,7 +142,8 @@
         "query_string",
         "description",
         "description_copilot",
-        "internal"
+        "internal",
+        "context"
       ],
       "additionalProperties": false,
       "properties": {
@@ -168,6 +162,21 @@
         "internal": {
           "type": "boolean",
           "description": "If true, the query is excluded from public documentation."
+        },
+        "context": {
+          "type": "array",
+          "description": "Model types this example applies to; routes the query to the matching Semantic Dictionary model(s) only.",
+          "items": {
+            "type": "string",
+            "enum": [
+              "metrics",
+              "logs",
+              "events",
+              "spans"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
         }
       }
     },
