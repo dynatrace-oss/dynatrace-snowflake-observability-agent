@@ -122,7 +122,7 @@ metrics:
     __example: -0.5
     __description: Credit adjustment for cloud services (10% rule offset).
     displayName: Org Cloud Services Credit Adjustment
-    unit: credits
+    unit: credit
   snowflake.org.credits.cloud_services:
     __type: double
     __context_names:
@@ -130,7 +130,7 @@ metrics:
     __example: 1.2
     __description: Credits used for cloud services by the account on the given day.
     displayName: Org Cloud Services Credits Used
-    unit: credits
+    unit: credit
   snowflake.org.credits.compute:
     __type: double
     __context_names:
@@ -138,7 +138,7 @@ metrics:
     __example: 8.0
     __description: Credits used for compute by the account on the given day.
     displayName: Org Compute Credits Used
-    unit: credits
+    unit: credit
   snowflake.org.credits.used:
     __type: double
     __context_names:
@@ -146,7 +146,7 @@ metrics:
     __example: 9.2
     __description: Total credits used by the account on the given day across all service types.
     displayName: Org Total Credits Used
-    unit: credits
+    unit: credit
   snowflake.org.data.stored:
     __type: long
     __context_names:

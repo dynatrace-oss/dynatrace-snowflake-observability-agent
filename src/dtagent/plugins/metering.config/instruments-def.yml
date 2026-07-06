@@ -99,7 +99,7 @@ metrics:
     __description: >-
       Total credits consumed by the service in the metering window.
     displayName: Snowflake Credits Used
-    unit: credits
+    unit: credit
   snowflake.credits.used.compute:
     __type: double
     __context_names: ["metering"]
@@ -107,7 +107,7 @@ metrics:
     __description: >-
       Compute credits consumed by the service in the metering window.
     displayName: Snowflake Compute Credits Used
-    unit: credits
+    unit: credit
   snowflake.credits.used.cloud_services:
     __type: long
     __context_names: ["metering"]
@@ -115,7 +115,7 @@ metrics:
     __description: >-
       Cloud services credits consumed by the service in the metering window.
     displayName: Snowflake Cloud Services Credits Used
-    unit: credits
+    unit: credit
   snowflake.metering.data.size:
     __type: long
     __context_names: ["metering"]
@@ -131,7 +131,7 @@ metrics:
     __description: >-
       Number of rows processed by the service in the metering window.
     displayName: Rows Processed
-    unit: rows
+    unit: row
   snowflake.data.files:
     __type: long
     __context_names: ["metering"]
@@ -139,7 +139,7 @@ metrics:
     __description: >-
       Number of files processed by the service in the metering window.
     displayName: Files Processed
-    unit: files
+    unit: file
 dql_queries:
   - query_string: |
       fetch logs

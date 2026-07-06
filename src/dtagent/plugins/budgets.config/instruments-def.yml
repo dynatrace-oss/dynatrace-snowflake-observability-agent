@@ -113,7 +113,7 @@ metrics:
     __example: 100
     __description: The number of credits set as the spending limit for the budget.
     displayName: Budget Spending Limit
-    unit: credits
+    unit: credit
   snowflake.credits.spent:
     __type: double
     __context_names:
@@ -121,7 +121,7 @@ metrics:
     __example: 75
     __description: Number of credits used.
     displayName: Credits Spent
-    unit: credits
+    unit: credit
 dql_queries:
   - query_string: |
       fetch logs

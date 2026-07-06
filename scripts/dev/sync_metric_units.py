@@ -94,14 +94,14 @@ SCHEMA_JSON = _REPO_ROOT / "scripts" / "tools" / "instruments-def.schema.json"
 # export_semantics.py for their Semantic Dictionary translation.
 DSOA_ALLOWLIST = frozenset(
     {
-        "credits",
+        "credit",
         "currency",
-        "files",
-        "partitions",
-        "rows",
-        "clusters",
-        "warehouses",
-        "queries",
+        "file",
+        "partition",
+        "row",
+        "cluster",
+        "warehouse",
+        "query",
     }
 )
 

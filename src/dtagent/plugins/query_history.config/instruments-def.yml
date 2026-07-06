@@ -678,13 +678,13 @@ metrics:
       Compute credits attributed to this query based on weighted resource consumption. Excludes warehouse idle time. NULL for queries within
       the ~8h QAH latency window.
     displayName: Query Attributed Compute Credits
-    unit: credits
+    unit: credit
   snowflake.credits.query_acceleration:
     __type: double
     __example: 0.0001
     __description: Credits consumed by Query Acceleration Service for this query. NULL for queries within the ~8h QAH latency window.
     displayName: Query Acceleration Credits
-    unit: credits
+    unit: credit
   snowflake.acceleration.data.scanned:
     __type: long
     __example: 2097152
@@ -696,7 +696,7 @@ metrics:
     __example: 50
     __description: Number of partitions scanned by the query acceleration service.
     displayName: Query Acceleration Partitions Scanned
-    unit: partitions
+    unit: partition
   snowflake.acceleration.scale_factor.max:
     __type: long
     __example: 4
@@ -708,7 +708,7 @@ metrics:
     __example: 10
     __description: Number of credits used for cloud services.
     displayName: Cloud Services Credits Used
-    unit: credits
+    unit: credit
   snowflake.data.deleted:
     __type: long
     __example: 1048576
@@ -800,13 +800,13 @@ metrics:
     __example: 1000
     __description: The total number of rows that this query received from all calls to all remote services.
     displayName: External Function Total Received Rows
-    unit: rows
+    unit: row
   snowflake.external_functions.rows.sent:
     __type: long
     __example: 500
     __description: The total number of rows that this query sent in all calls to all remote services.
     displayName: External Function Total Sent Rows
-    unit: rows
+    unit: row
   snowflake.load.used:
     __type: long
     __example: 85
@@ -818,43 +818,43 @@ metrics:
     __example: 100
     __description: Number of micro-partitions scanned.
     displayName: Partitions Scanned
-    unit: partitions
+    unit: partition
   snowflake.partitions.total:
     __type: long
     __example: 500
     __description: Total micro-partitions of all tables included in this query.
     displayName: Partitions Total
-    unit: partitions
+    unit: partition
   snowflake.rows.deleted:
     __type: long
     __example: 500
     __description: Number of rows deleted by the query.
     displayName: Rows Deleted
-    unit: rows
+    unit: row
   snowflake.rows.inserted:
     __type: long
     __example: 1000
     __description: Number of rows inserted by the query.
     displayName: Rows Inserted
-    unit: rows
+    unit: row
   snowflake.rows.unloaded:
     __type: long
     __example: 1000
     __description: Number of rows unloaded during data export.
     displayName: Rows Unloaded
-    unit: rows
+    unit: row
   snowflake.rows.updated:
     __type: long
     __example: 300
     __description: Number of rows updated by the query.
     displayName: Rows Updated
-    unit: rows
+    unit: row
   snowflake.rows.written_to_result:
     __type: long
     __example: 1
     __description: Number of rows written to a result object. For CREATE TABLE AS SELECT (CTAS) and all DML operations, this result is 1;.
     displayName: Rows Written to Result
-    unit: rows
+    unit: row
   snowflake.time.child_queries_wait:
     __type: long
     __example: 200

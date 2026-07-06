@@ -199,7 +199,7 @@ metrics:
     __example: 2
     __description: The number of credits used for cloud services.
     displayName: Cloud Services Credits Used
-    unit: credits
+    unit: credit
   snowflake.credits.compute:
     __type: double
     __context_names:
@@ -207,7 +207,7 @@ metrics:
     __example: 8
     __description: The number of credits used for compute.
     displayName: Compute Credits Used
-    unit: credits
+    unit: credit
   snowflake.credits.used:
     __type: double
     __context_names:
@@ -215,7 +215,7 @@ metrics:
     __example: 10
     __description: The total number of credits used by the warehouse.
     displayName: Snowflake Credits Used
-    unit: credits
+    unit: credit
   snowflake.load.blocked:
     __type: long
     __context_names:

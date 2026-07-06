@@ -106,7 +106,7 @@ metrics:
     __example: 1000000
     __description: Number of rows in the table.
     displayName: Row Count
-    unit: rows
+    unit: row
   snowflake.table.clustering.depth:
     __type: double
     __context_names:

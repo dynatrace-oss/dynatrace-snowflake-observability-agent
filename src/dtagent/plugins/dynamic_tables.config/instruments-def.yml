@@ -342,7 +342,7 @@ metrics:
     __example: 5
     __description: The number of partitions added during the refresh.
     displayName: Partitions Added
-    unit: partitions
+    unit: partition
   snowflake.partitions.removed:
     __type: long
     __context_names:
@@ -350,7 +350,7 @@ metrics:
     __example: 3
     __description: The number of partitions removed during the refresh.
     displayName: Partitions Removed
-    unit: partitions
+    unit: partition
   snowflake.rows.copied:
     __type: long
     __context_names:
@@ -358,7 +358,7 @@ metrics:
     __example: 75
     __description: The number of rows copied during the refresh.
     displayName: Rows Copied
-    unit: rows
+    unit: row
   snowflake.rows.deleted:
     __type: long
     __context_names:
@@ -366,7 +366,7 @@ metrics:
     __example: 50
     __description: The number of rows deleted during the refresh.
     displayName: Rows Deleted
-    unit: rows
+    unit: row
   snowflake.rows.inserted:
     __type: long
     __context_names:
@@ -374,7 +374,7 @@ metrics:
     __example: 100
     __description: The number of rows inserted during the refresh.
     displayName: Rows Inserted
-    unit: rows
+    unit: row
   snowflake.table.dynamic.lag.max:
     __type: long
     __context_names:

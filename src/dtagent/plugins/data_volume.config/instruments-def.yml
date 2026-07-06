@@ -70,7 +70,7 @@ metrics:
     __example: 1000000
     __description: Sum of all rows in all objects in this scope.
     displayName: Row Count
-    unit: rows
+    unit: row
   snowflake.data.size:
     __type: long
     __example: 1073741824

@@ -355,19 +355,19 @@ metrics:
     __example: 1000
     __description: Total number of credits allowed for the given resource monitor
     displayName: Credits Quota
-    unit: credits
+    unit: credit
   snowflake.credits.quota.remaining:
     __type: double
     __example: 250
     __description: Number of credits remaining for the given resource monitor
     displayName: Credits Remaining
-    unit: credits
+    unit: credit
   snowflake.credits.quota.used:
     __type: double
     __example: 750
     __description: Number of credits used by the given resource monitor
     displayName: Credits Used
-    unit: credits
+    unit: credit
   snowflake.credits.quota.used_pct:
     __type: double
     __example: 75
@@ -379,31 +379,31 @@ metrics:
     __example: 5
     __description: Current number of queued queries in the given warehouse
     displayName: Queued Queries
-    unit: queries
+    unit: querie
   snowflake.queries.running:
     __type: long
     __example: 15
     __description: Current number of running queries in the given warehouse
     displayName: Running Queries
-    unit: queries
+    unit: querie
   snowflake.resource_monitor.warehouses.count:
     __type: long
     __example: 5
     __description: Number of warehouses monitored by the given resource monitor
     displayName: Warehouses Count
-    unit: warehouses
+    unit: warehouse
   snowflake.warehouse.clusters.max:
     __type: long
     __example: 10
     __description: Maximal number of clusters in the given warehouse
     displayName: Maximum Cluster Count
-    unit: clusters
+    unit: cluster
   snowflake.warehouse.clusters.min:
     __type: long
     __example: 1
     __description: Minimal number of clusters in the given warehouse
     displayName: Minimum Cluster Count
-    unit: clusters
+    unit: cluster
   snowflake.warehouse.auto_suspend:
     __type: long
     __example: 600
@@ -417,7 +417,7 @@ metrics:
     __example: 3
     __description: Current number of started clusters in the given warehouse
     displayName: Started Clusters
-    unit: clusters
+    unit: cluster
 dql_queries:
   - query_string: |
       fetch logs
