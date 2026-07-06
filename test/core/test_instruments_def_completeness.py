@@ -134,14 +134,19 @@ _REQUIRED_EVENT_PAYLOAD_FIELDS: List[Tuple[str, str]] = [
 #: field has been officially registered upstream.
 _KNOWN_SEMDICT_REFS: frozenset = frozenset(
     {
+        "db.operation.name",
+        "db.query.text",
         "db.system",
+        "event.category",
+        "event.description",
+        "event.id",
+        "event.name",
         "host.name",
         "metric.key",
         "service.name",
         "telemetry.exporter.name",
         "telemetry.exporter.version",
-        "db.query.text",
-        "event.id",
+        "vulnerability.risk.level",
         "authentication.type",
     }
 )
@@ -151,7 +156,6 @@ _REQUIRED_ENUM_FIELDS: frozenset = frozenset(
     {
         "snowflake.copy.status",
         "snowflake.query.accel_est.status",
-        "vulnerability.risk.level",
         "snowflake.table.dynamic.latest.state",
         "snowflake.table.dynamic.refresh.state",
         "snowflake.table.dynamic.refresh.action",

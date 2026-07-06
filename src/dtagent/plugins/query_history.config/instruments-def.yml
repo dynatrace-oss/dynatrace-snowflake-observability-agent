@@ -529,59 +529,13 @@ dimensions:
     __example: PROD_DB
     __description: The name of the database that was specified in the context of the query at compilation.
   db.operation.name:
-    __stability: stable
+    __semdict: ref
+    __semdict_note: >-
+      Snowflake-specific values include: SELECT, INSERT, UPDATE, DELETE, MERGE, CREATE, ALTER, DROP, GRANT, REVOKE, CALL, COPY, PUT, GET.
+      The SD global definition covers the common OTel subset; these Snowflake extensions are emitted as custom values.
     __example: SELECT
     __type: string
     __description: The type of operation performed by the query.
-    __enum:
-      allow_custom_values: true
-      members:
-        - id: select
-          value: SELECT
-          brief: Read-only query that retrieves rows from one or more tables or views without modifying data.
-        - id: insert
-          value: INSERT
-          brief: Adds one or more rows to a table; can be a single-row VALUES insert or a bulk INSERT...SELECT.
-        - id: update
-          value: UPDATE
-          brief: Modifies column values in existing rows matching a WHERE condition.
-        - id: delete
-          value: DELETE
-          brief: Removes rows from a table matching a WHERE condition.
-        - id: merge
-          value: MERGE
-          brief: >-
-            Conditionally INSERT, UPDATE, or DELETE rows in a target table based on a join with a source, enabling upsert patterns in a
-            single atomic operation.
-        - id: create
-          value: CREATE
-          brief: Creates a new database object (table, view, schema, etc.); when used as CREATE OR REPLACE, atomically drops and recreates.
-        - id: alter
-          value: ALTER
-          brief: Modifies the properties or definition of an existing database object without recreating it.
-        - id: drop
-          value: DROP
-          brief: Removes a database object; for tables, data may still be recoverable via UNDROP within the Time Travel retention period.
-        - id: grant
-          value: GRANT
-          brief: Assigns one or more privileges on a securable object to a role, enabling access control in Snowflake's RBAC model.
-        - id: revoke
-          value: REVOKE
-          brief: Removes previously granted privileges on a securable object from a role.
-        - id: call
-          value: CALL
-          brief: CALL stored procedure.
-        - id: copy
-          value: COPY
-          brief: >-
-            Bulk-loads data from internal or external stages into a table, or unloads table data to a stage; Snowflake's primary batch data
-            ingestion mechanism.
-        - id: put
-          value: PUT
-          brief: PUT file command.
-        - id: get
-          value: GET
-          brief: GET file command.
   db.snowflake.dbs:
     __stability: stable
     __type: string[]

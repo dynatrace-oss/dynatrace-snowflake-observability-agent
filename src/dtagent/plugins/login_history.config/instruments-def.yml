@@ -16,14 +16,13 @@
 #  * Catalog of instrumentation known to Dynatrace Snowflake Observability Agent - login_history plugin
 attributes:
   event.description:
-    __stability: stable
+    __semdict: ref
     __is_defined_at_runtime: true
     __context_names:
       - login_history
     __description: Human-readable description of the login event, providing additional context about the outcome.
     __example: "Failed login attempt for user JOHN.DOE from 192.168.1.100."
     __type: string
-    __semdict: new
   authentication.factor.first:
     __stability: stable
     __context_names:
@@ -212,7 +211,7 @@ dimensions:
     __type: string
     __description: The user who performed the event in the database.
   event.name:
-    __stability: stable
+    __semdict: ref
     __context_names:
       - login_history
     __example: LOGIN

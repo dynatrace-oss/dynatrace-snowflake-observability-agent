@@ -75,14 +75,19 @@ SPAN_PLUGINS: frozenset = frozenset({"query_history", "event_log"})
 #: It is annotated __semdict: otel-only in instruments-def and emitted as id:.
 KNOWN_REFS = {
     "authentication.type",
+    "db.operation.name",
     "db.query.text",
     "db.system",
+    "event.category",
+    "event.description",
     "event.id",
+    "event.name",
     "host.name",
     "metric.key",
     "service.name",
     "telemetry.exporter.name",
     "telemetry.exporter.version",
+    "vulnerability.risk.level",
 }
 
 #: Keys present on every DSOA telemetry record — synced with config.py RESOURCE_ATTRIBUTES.

@@ -17,7 +17,7 @@
 
 attributes:
   db.operation.name:
-    __stability: stable
+    __semdict: ref
     __example: SELECT
     __type: string
     __description: |
