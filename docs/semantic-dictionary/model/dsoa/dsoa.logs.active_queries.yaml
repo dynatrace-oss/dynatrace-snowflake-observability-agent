@@ -1,0 +1,55 @@
+model:
+  id: dsoa.logs.active_queries
+  title: DSOA Active Queries Log Records
+  brief: Log records emitted by the DSOA active_queries plugin.
+  model_group_id: dsoa.logs
+  data_object: log
+  interfaces:
+    - i.dsoa_resource
+  dql_queries:
+    - query_string: |
+        fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "active_queries"
+        | sort timestamp desc
+        | limit 100
+      description: Fetch the 100 most recent DSOA active_queries plugin log entries from Grail.
+      description_copilot: Search for all active_queries plugin logs from the Snowflake observability agent.
+      internal: false
+    - query_string: |
+        fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "active_queries"
+        | filter snowflake.query.execution_status == "FAILED_WITH_ERROR"
+        | sort timestamp desc
+        | limit 50
+      description: Fetch the 50 most recent active queries that failed with an error.
+      description_copilot: Find failed Snowflake query executions reported by the active_queries plugin.
+      internal: false
+    - query_string: |
+        fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "active_queries"
+        | filter isNotNull(snowflake.warehouse.name)
+        | summarize { count = count(), avg_running_ms = avg(toLong(snowflake.time.running)) }, by: { snowflake.warehouse.name }
+        | sort avg_running_ms desc
+        | limit 20
+      description: Rank warehouses by the average running time of their currently active Snowflake queries.
+      description_copilot: Find which Snowflake warehouses have the slowest currently running queries by average running time.
+      internal: false
+  groups:
+    - id: dsoa.logs.active_queries.fields
+      type: attribute_group
+      title: Active Queries log record fields
+      brief: Attribute fields for Active Queries log records.
+      attributes:
+        - ref: snowflake.error.code
+        - ref: snowflake.error.message
+        - ref: snowflake.query.hash
+        - ref: snowflake.query.hash_version
+        - ref: snowflake.query.id
+        - ref: snowflake.query.parametrized_hash
+        - ref: snowflake.query.parametrized_hash_version
+        - ref: snowflake.query.tag
+        - ref: snowflake.schema.name
+        - ref: snowflake.session.id

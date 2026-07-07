@@ -1,0 +1,811 @@
+model:
+  id: dsoa.metrics.query_history
+  title: Snowflake Query History Metrics
+  brief: Metrics collected by the DSOA query_history plugin from Snowflake ACCOUNT_USAGE views.
+  model_group_id: dsoa.metrics
+  data_object: metric
+  interfaces:
+    - i.dsoa_resource
+    - i.dsoa_warehouse
+    - i.dsoa_database
+  dql_queries:
+    - query_string: |
+        timeseries val = sum(snowflake.time.execution), by: { snowflake.warehouse.name, deployment.environment.name }
+      description: Plot total Snowflake query execution time per warehouse over time.
+      description_copilot: Timeseries of Snowflake query execution time broken down by warehouse.
+      internal: false
+    - query_string: |
+        timeseries credits = sum(snowflake.credits.attributed_compute), by: { db.user, deployment.environment.name }
+      description: Plot attributed compute credits consumed per user over time.
+      description_copilot: Timeseries of Snowflake attributed compute credits consumed per user.
+      internal: false
+    - query_string: |
+        timeseries { compute = sum(snowflake.credits.attributed_compute), scanned = sum(snowflake.data.scanned) },
+          by: { snowflake.warehouse.name, deployment.environment.name }
+      description: Compare attributed compute credits against bytes scanned per warehouse over time.
+      description_copilot: Timeseries comparing Snowflake attributed compute credits and bytes scanned per warehouse.
+      internal: false
+  groups:
+    - id: snowflake.acceleration.data.scanned
+      type: metric
+      metric_name: snowflake.acceleration.data.scanned
+      instrument: gauge
+      stability: experimental
+      brief: Number of bytes scanned by the query acceleration service.
+      examples:
+        - 2097152
+      title: Query Acceleration Bytes Scanned
+      unit: By
+      attributes:
+        - ref: db.collection.name
+        - ref: db.operation.name
+        - ref: db.snowflake.dbs
+        - ref: db.user
+        - ref: snowflake.query.execution_status
+        - ref: snowflake.query.hash
+        - ref: snowflake.query.parametrized_hash
+        - ref: snowflake.query.tag
+        - ref: snowflake.role.name
+        - ref: snowflake.table.full_name
+        - ref: snowflake.user.type
+    - id: snowflake.acceleration.partitions.scanned
+      type: metric
+      metric_name: snowflake.acceleration.partitions.scanned
+      instrument: gauge
+      stability: experimental
+      brief: Number of partitions scanned by the query acceleration service.
+      examples:
+        - 50
+      title: Query Acceleration Partitions Scanned
+      unit: count
+      note: 'Original unit: partition.'
+      attributes:
+        - ref: db.collection.name
+        - ref: db.operation.name
+        - ref: db.snowflake.dbs
+        - ref: db.user
+        - ref: snowflake.query.execution_status
+        - ref: snowflake.query.hash
+        - ref: snowflake.query.parametrized_hash
+        - ref: snowflake.query.tag
+        - ref: snowflake.role.name
+        - ref: snowflake.table.full_name
+        - ref: snowflake.user.type
+    - id: snowflake.acceleration.scale_factor.max
+      type: metric
+      metric_name: snowflake.acceleration.scale_factor.max
+      instrument: gauge
+      stability: experimental
+      brief: Upper limit scale factor that a query would have benefited from.
+      examples:
+        - 4
+      title: Query Acceleration Upper Limit Scale Factor
+      unit: '1'
+      attributes:
+        - ref: db.collection.name
+        - ref: db.operation.name
+        - ref: db.snowflake.dbs
+        - ref: db.user
+        - ref: snowflake.query.execution_status
+        - ref: snowflake.query.hash
+        - ref: snowflake.query.parametrized_hash
+        - ref: snowflake.query.tag
+        - ref: snowflake.role.name
+        - ref: snowflake.table.full_name
+        - ref: snowflake.user.type
+    - id: snowflake.cost_attribution.query_count
+      type: metric
+      metric_name: snowflake.cost_attribution.query_count
+      instrument: gauge
+      stability: stable
+      brief: Number of queries in this cost attribution group during the summary window.
+      examples:
+        - 42
+      title: Cost Attribution Query Count
+      unit: count
+      note: The .query_count name is deliberately preserved. The alternative plural snowflake.cost_attribution.queries would read as a collection of query objects rather than a scalar count, which is misleading
+        in a metrics context.
+      attributes:
+        - ref: db.collection.name
+        - ref: db.operation.name
+        - ref: db.snowflake.dbs
+        - ref: db.user
+        - ref: snowflake.query.execution_status
+        - ref: snowflake.query.hash
+        - ref: snowflake.query.parametrized_hash
+        - ref: snowflake.query.tag
+        - ref: snowflake.role.name
+        - ref: snowflake.table.full_name
+        - ref: snowflake.user.type
+    - id: snowflake.credits.attributed_compute
+      type: metric
+      metric_name: snowflake.credits.attributed_compute
+      instrument: gauge
+      stability: experimental
+      brief: Compute credits attributed to this query based on weighted resource consumption. Excludes warehouse idle time. NULL for queries within the ~8h QAH latency window.
+      examples:
+        - 0.0042
+      title: Query Attributed Compute Credits
+      unit: count
+      note: 'Original unit: credit.'
+      attributes:
+        - ref: db.collection.name
+        - ref: db.operation.name
+        - ref: db.snowflake.dbs
+        - ref: db.user
+        - ref: snowflake.query.execution_status
+        - ref: snowflake.query.hash
+        - ref: snowflake.query.parametrized_hash
+        - ref: snowflake.query.tag
+        - ref: snowflake.role.name
+        - ref: snowflake.table.full_name
+        - ref: snowflake.user.type
+    - id: snowflake.credits.cloud_services
+      type: metric
+      metric_name: snowflake.credits.cloud_services
+      instrument: gauge
+      stability: experimental
+      brief: Number of credits used for cloud services.
+      examples:
+        - 10
+      title: Cloud Services Credits Used
+      unit: count
+      note: 'Original unit: credit.'
+      attributes:
+        - ref: db.collection.name
+        - ref: db.operation.name
+        - ref: db.snowflake.dbs
+        - ref: db.user
+        - ref: snowflake.query.execution_status
+        - ref: snowflake.query.hash
+        - ref: snowflake.query.parametrized_hash
+        - ref: snowflake.query.tag
+        - ref: snowflake.role.name
+        - ref: snowflake.table.full_name
+        - ref: snowflake.user.type
+    - id: snowflake.credits.query_acceleration
+      type: metric
+      metric_name: snowflake.credits.query_acceleration
+      instrument: gauge
+      stability: experimental
+      brief: Credits consumed by Query Acceleration Service for this query. NULL for queries within the ~8h QAH latency window.
+      examples:
+        - 0.0001
+      title: Query Acceleration Credits
+      unit: count
+      note: 'Original unit: credit.'
+      attributes:
+        - ref: db.collection.name
+        - ref: db.operation.name
+        - ref: db.snowflake.dbs
+        - ref: db.user
+        - ref: snowflake.query.execution_status
+        - ref: snowflake.query.hash
+        - ref: snowflake.query.parametrized_hash
+        - ref: snowflake.query.tag
+        - ref: snowflake.role.name
+        - ref: snowflake.table.full_name
+        - ref: snowflake.user.type
+    - id: snowflake.data.deleted
+      type: metric
+      metric_name: snowflake.data.deleted
+      instrument: gauge
+      stability: experimental
+      brief: Number of bytes deleted by the query.
+      examples:
+        - 1048576
+      title: Bytes Deleted
+      unit: By
+      attributes:
+        - ref: db.collection.name
+        - ref: db.operation.name
+        - ref: db.snowflake.dbs
+        - ref: db.user
+        - ref: snowflake.query.execution_status
+        - ref: snowflake.query.hash
+        - ref: snowflake.query.parametrized_hash
+        - ref: snowflake.query.tag
+        - ref: snowflake.role.name
+        - ref: snowflake.table.full_name
+        - ref: snowflake.user.type
+    - id: snowflake.data.read.from_result
+      type: metric
+      metric_name: snowflake.data.read.from_result
+      instrument: gauge
+      stability: experimental
+      brief: Number of bytes read from a result object.
+      examples:
+        - 1048576
+      title: Bytes Read from Result
+      unit: By
+      attributes:
+        - ref: db.collection.name
+        - ref: db.operation.name
+        - ref: db.snowflake.dbs
+        - ref: db.user
+        - ref: snowflake.query.execution_status
+        - ref: snowflake.query.hash
+        - ref: snowflake.query.parametrized_hash
+        - ref: snowflake.query.tag
+        - ref: snowflake.role.name
+        - ref: snowflake.table.full_name
+        - ref: snowflake.user.type
+    - id: snowflake.data.scanned
+      type: metric
+      metric_name: snowflake.data.scanned
+      instrument: gauge
+      stability: experimental
+      brief: Number of bytes scanned by this statement.
+      examples:
+        - 10485760
+      title: Bytes Scanned
+      unit: By
+      attributes:
+        - ref: db.collection.name
+        - ref: db.operation.name
+        - ref: db.snowflake.dbs
+        - ref: db.user
+        - ref: snowflake.query.execution_status
+        - ref: snowflake.query.hash
+        - ref: snowflake.query.parametrized_hash
+        - ref: snowflake.query.tag
+        - ref: snowflake.role.name
+        - ref: snowflake.table.full_name
+        - ref: snowflake.user.type
+    - id: snowflake.data.scanned_from_cache
+      type: metric
+      metric_name: snowflake.data.scanned_from_cache
+      instrument: gauge
+      stability: experimental
+      brief: Ratio of data scanned from the local disk cache. Value ranges from 0.0 (no cache) to 1.0 (fully cached). Sourced from Snowflake PERCENTAGE_SCANNED_FROM_CACHE column (despite its name, the raw
+        value is 0.0-1.0).
+      examples:
+        - 0.75
+      title: Data Scanned From Cache
+      unit: ratio
+      attributes:
+        - ref: db.collection.name
+        - ref: db.operation.name
+        - ref: db.snowflake.dbs
+        - ref: db.user
+        - ref: snowflake.query.execution_status
+        - ref: snowflake.query.hash
+        - ref: snowflake.query.parametrized_hash
+        - ref: snowflake.query.tag
+        - ref: snowflake.role.name
+        - ref: snowflake.table.full_name
+        - ref: snowflake.user.type
+    - id: snowflake.data.sent_over_the_network
+      type: metric
+      metric_name: snowflake.data.sent_over_the_network
+      instrument: gauge
+      stability: experimental
+      brief: Volume of data sent over the network.
+      examples:
+        - 524288
+      title: Bytes Sent Over the Network
+      unit: By
+      attributes:
+        - ref: db.collection.name
+        - ref: db.operation.name
+        - ref: db.snowflake.dbs
+        - ref: db.user
+        - ref: snowflake.query.execution_status
+        - ref: snowflake.query.hash
+        - ref: snowflake.query.parametrized_hash
+        - ref: snowflake.query.tag
+        - ref: snowflake.role.name
+        - ref: snowflake.table.full_name
+        - ref: snowflake.user.type
+    - id: snowflake.data.spilled.local
+      type: metric
+      metric_name: snowflake.data.spilled.local
+      instrument: gauge
+      stability: experimental
+      brief: Volume of data spilled to local disk.
+      examples:
+        - 1048576
+      title: Bytes Spilled to Local Storage
+      unit: By
+      attributes:
+        - ref: db.collection.name
+        - ref: db.operation.name
+        - ref: db.snowflake.dbs
+        - ref: db.user
+        - ref: snowflake.query.execution_status
+        - ref: snowflake.query.hash
+        - ref: snowflake.query.parametrized_hash
+        - ref: snowflake.query.tag
+        - ref: snowflake.role.name
+        - ref: snowflake.table.full_name
+        - ref: snowflake.user.type
+    - id: snowflake.data.spilled.remote
+      type: metric
+      metric_name: snowflake.data.spilled.remote
+      instrument: gauge
+      stability: experimental
+      brief: Volume of data spilled to remote disk.
+      examples:
+        - 2097152
+      title: Bytes Spilled to Remote Storage
+      unit: By
+      attributes:
+        - ref: db.collection.name
+        - ref: db.operation.name
+        - ref: db.snowflake.dbs
+        - ref: db.user
+        - ref: snowflake.query.execution_status
+        - ref: snowflake.query.hash
+        - ref: snowflake.query.parametrized_hash
+        - ref: snowflake.query.tag
+        - ref: snowflake.role.name
+        - ref: snowflake.table.full_name
+        - ref: snowflake.user.type
+    - id: snowflake.data.transferred.inbound
+      type: metric
+      metric_name: snowflake.data.transferred.inbound
+      instrument: gauge
+      stability: experimental
+      brief: Number of bytes transferred in statements that load data from another region and/or cloud.
+      examples:
+        - 10485760
+      title: Inbound Data Transfer Bytes
+      unit: By
+      attributes:
+        - ref: db.collection.name
+        - ref: db.operation.name
+        - ref: db.snowflake.dbs
+        - ref: db.user
+        - ref: snowflake.query.execution_status
+        - ref: snowflake.query.hash
+        - ref: snowflake.query.parametrized_hash
+        - ref: snowflake.query.tag
+        - ref: snowflake.role.name
+        - ref: snowflake.table.full_name
+        - ref: snowflake.user.type
+    - id: snowflake.data.transferred.outbound
+      type: metric
+      metric_name: snowflake.data.transferred.outbound
+      instrument: gauge
+      stability: experimental
+      brief: Number of bytes transferred in statements that unload data to another region and/or cloud.
+      examples:
+        - 5242880
+      title: Outbound Data Transfer Bytes
+      unit: By
+      attributes:
+        - ref: db.collection.name
+        - ref: db.operation.name
+        - ref: db.snowflake.dbs
+        - ref: db.user
+        - ref: snowflake.query.execution_status
+        - ref: snowflake.query.hash
+        - ref: snowflake.query.parametrized_hash
+        - ref: snowflake.query.tag
+        - ref: snowflake.role.name
+        - ref: snowflake.table.full_name
+        - ref: snowflake.user.type
+    - id: snowflake.data.written
+      type: metric
+      metric_name: snowflake.data.written
+      instrument: gauge
+      stability: experimental
+      brief: Number of bytes written (e.g. when loading into a table).
+      examples:
+        - 2097152
+      title: Bytes Written
+      unit: By
+      attributes:
+        - ref: db.collection.name
+        - ref: db.operation.name
+        - ref: db.snowflake.dbs
+        - ref: db.user
+        - ref: snowflake.query.execution_status
+        - ref: snowflake.query.hash
+        - ref: snowflake.query.parametrized_hash
+        - ref: snowflake.query.tag
+        - ref: snowflake.role.name
+        - ref: snowflake.table.full_name
+        - ref: snowflake.user.type
+    - id: snowflake.external_functions.data.received
+      type: metric
+      metric_name: snowflake.external_functions.data.received
+      instrument: gauge
+      stability: experimental
+      brief: The total number of bytes that this query received from all calls to all remote services.
+      examples:
+        - 1048576
+      title: External Function Total Received Bytes
+      unit: By
+      attributes:
+        - ref: db.collection.name
+        - ref: db.operation.name
+        - ref: db.snowflake.dbs
+        - ref: db.user
+        - ref: snowflake.query.execution_status
+        - ref: snowflake.query.hash
+        - ref: snowflake.query.parametrized_hash
+        - ref: snowflake.query.tag
+        - ref: snowflake.role.name
+        - ref: snowflake.table.full_name
+        - ref: snowflake.user.type
+    - id: snowflake.external_functions.data.sent
+      type: metric
+      metric_name: snowflake.external_functions.data.sent
+      instrument: gauge
+      stability: experimental
+      brief: The total number of bytes that this query sent in all calls to all remote services.
+      examples:
+        - 524288
+      title: External Function Total Sent Bytes
+      unit: By
+      attributes:
+        - ref: db.collection.name
+        - ref: db.operation.name
+        - ref: db.snowflake.dbs
+        - ref: db.user
+        - ref: snowflake.query.execution_status
+        - ref: snowflake.query.hash
+        - ref: snowflake.query.parametrized_hash
+        - ref: snowflake.query.tag
+        - ref: snowflake.role.name
+        - ref: snowflake.table.full_name
+        - ref: snowflake.user.type
+    - id: snowflake.external_functions.invocations
+      type: metric
+      metric_name: snowflake.external_functions.invocations
+      instrument: gauge
+      stability: experimental
+      brief: The aggregate number of times that this query called remote services. For important details, see the Usage Notes.
+      examples:
+        - 5
+      title: External Function Total Invocations
+      unit: count
+      attributes:
+        - ref: db.collection.name
+        - ref: db.operation.name
+        - ref: db.snowflake.dbs
+        - ref: db.user
+        - ref: snowflake.query.execution_status
+        - ref: snowflake.query.hash
+        - ref: snowflake.query.parametrized_hash
+        - ref: snowflake.query.tag
+        - ref: snowflake.role.name
+        - ref: snowflake.table.full_name
+        - ref: snowflake.user.type
+    - id: snowflake.external_functions.rows.received
+      type: metric
+      metric_name: snowflake.external_functions.rows.received
+      instrument: gauge
+      stability: experimental
+      brief: The total number of rows that this query received from all calls to all remote services.
+      examples:
+        - 1000
+      title: External Function Total Received Rows
+      unit: count
+      note: 'Original unit: row.'
+      attributes:
+        - ref: db.collection.name
+        - ref: db.operation.name
+        - ref: db.snowflake.dbs
+        - ref: db.user
+        - ref: snowflake.query.execution_status
+        - ref: snowflake.query.hash
+        - ref: snowflake.query.parametrized_hash
+        - ref: snowflake.query.tag
+        - ref: snowflake.role.name
+        - ref: snowflake.table.full_name
+        - ref: snowflake.user.type
+    - id: snowflake.external_functions.rows.sent
+      type: metric
+      metric_name: snowflake.external_functions.rows.sent
+      instrument: gauge
+      stability: experimental
+      brief: The total number of rows that this query sent in all calls to all remote services.
+      examples:
+        - 500
+      title: External Function Total Sent Rows
+      unit: count
+      note: 'Original unit: row.'
+      attributes:
+        - ref: db.collection.name
+        - ref: db.operation.name
+        - ref: db.snowflake.dbs
+        - ref: db.user
+        - ref: snowflake.query.execution_status
+        - ref: snowflake.query.hash
+        - ref: snowflake.query.parametrized_hash
+        - ref: snowflake.query.tag
+        - ref: snowflake.role.name
+        - ref: snowflake.table.full_name
+        - ref: snowflake.user.type
+    - id: snowflake.load.used
+      type: metric
+      metric_name: snowflake.load.used
+      instrument: gauge
+      stability: experimental
+      brief: The approximate percentage of active compute resources in the warehouse for this query execution.
+      examples:
+        - 85
+      title: Query Load Percent
+      unit: '%'
+      attributes:
+        - ref: db.collection.name
+        - ref: db.operation.name
+        - ref: db.snowflake.dbs
+        - ref: db.user
+        - ref: snowflake.query.execution_status
+        - ref: snowflake.query.hash
+        - ref: snowflake.query.parametrized_hash
+        - ref: snowflake.query.tag
+        - ref: snowflake.role.name
+        - ref: snowflake.table.full_name
+        - ref: snowflake.user.type
+    - id: snowflake.partitions.scanned
+      type: metric
+      metric_name: snowflake.partitions.scanned
+      instrument: gauge
+      stability: experimental
+      brief: Number of micro-partitions scanned.
+      examples:
+        - 100
+      title: Partitions Scanned
+      unit: count
+      note: 'Original unit: partition.'
+      attributes:
+        - ref: db.collection.name
+        - ref: db.operation.name
+        - ref: db.snowflake.dbs
+        - ref: db.user
+        - ref: snowflake.query.execution_status
+        - ref: snowflake.query.hash
+        - ref: snowflake.query.parametrized_hash
+        - ref: snowflake.query.tag
+        - ref: snowflake.role.name
+        - ref: snowflake.table.full_name
+        - ref: snowflake.user.type
+    - id: snowflake.partitions.total
+      type: metric
+      metric_name: snowflake.partitions.total
+      instrument: gauge
+      stability: experimental
+      brief: Total micro-partitions of all tables included in this query.
+      examples:
+        - 500
+      title: Partitions Total
+      unit: count
+      note: 'Original unit: partition.'
+      attributes:
+        - ref: db.collection.name
+        - ref: db.operation.name
+        - ref: db.snowflake.dbs
+        - ref: db.user
+        - ref: snowflake.query.execution_status
+        - ref: snowflake.query.hash
+        - ref: snowflake.query.parametrized_hash
+        - ref: snowflake.query.tag
+        - ref: snowflake.role.name
+        - ref: snowflake.table.full_name
+        - ref: snowflake.user.type
+    - id: snowflake.rows.unloaded
+      type: metric
+      metric_name: snowflake.rows.unloaded
+      instrument: gauge
+      stability: experimental
+      brief: Number of rows unloaded during data export.
+      examples:
+        - 1000
+      title: Rows Unloaded
+      unit: count
+      note: 'Original unit: row.'
+      attributes:
+        - ref: db.collection.name
+        - ref: db.operation.name
+        - ref: db.snowflake.dbs
+        - ref: db.user
+        - ref: snowflake.query.execution_status
+        - ref: snowflake.query.hash
+        - ref: snowflake.query.parametrized_hash
+        - ref: snowflake.query.tag
+        - ref: snowflake.role.name
+        - ref: snowflake.table.full_name
+        - ref: snowflake.user.type
+    - id: snowflake.rows.updated
+      type: metric
+      metric_name: snowflake.rows.updated
+      instrument: gauge
+      stability: experimental
+      brief: Number of rows updated by the query.
+      examples:
+        - 300
+      title: Rows Updated
+      unit: count
+      note: 'Original unit: row.'
+      attributes:
+        - ref: db.collection.name
+        - ref: db.operation.name
+        - ref: db.snowflake.dbs
+        - ref: db.user
+        - ref: snowflake.query.execution_status
+        - ref: snowflake.query.hash
+        - ref: snowflake.query.parametrized_hash
+        - ref: snowflake.query.tag
+        - ref: snowflake.role.name
+        - ref: snowflake.table.full_name
+        - ref: snowflake.user.type
+    - id: snowflake.time.child_queries_wait
+      type: metric
+      metric_name: snowflake.time.child_queries_wait
+      instrument: gauge
+      stability: experimental
+      brief: Time (in milliseconds) to complete the cached lookup when calling a memoizable function.
+      examples:
+        - 200
+      title: Child Queries Wait Time
+      unit: ms
+      attributes:
+        - ref: db.collection.name
+        - ref: db.operation.name
+        - ref: db.snowflake.dbs
+        - ref: db.user
+        - ref: snowflake.query.execution_status
+        - ref: snowflake.query.hash
+        - ref: snowflake.query.parametrized_hash
+        - ref: snowflake.query.tag
+        - ref: snowflake.role.name
+        - ref: snowflake.table.full_name
+        - ref: snowflake.user.type
+    - id: snowflake.time.fault_handling
+      type: metric
+      metric_name: snowflake.time.fault_handling
+      instrument: gauge
+      stability: experimental
+      brief: Total execution time (in milliseconds) for query retries caused by errors that are not actionable.
+      examples:
+        - 1500
+      title: Fault Handling Time
+      unit: ms
+      attributes:
+        - ref: db.collection.name
+        - ref: db.operation.name
+        - ref: db.snowflake.dbs
+        - ref: db.user
+        - ref: snowflake.query.execution_status
+        - ref: snowflake.query.hash
+        - ref: snowflake.query.parametrized_hash
+        - ref: snowflake.query.tag
+        - ref: snowflake.role.name
+        - ref: snowflake.table.full_name
+        - ref: snowflake.user.type
+    - id: snowflake.time.list_external_files
+      type: metric
+      metric_name: snowflake.time.list_external_files
+      instrument: gauge
+      stability: experimental
+      brief: Time (in milliseconds) spent listing external files.
+      examples:
+        - 300
+      title: List External Files Time
+      unit: ms
+      attributes:
+        - ref: db.collection.name
+        - ref: db.operation.name
+        - ref: db.snowflake.dbs
+        - ref: db.user
+        - ref: snowflake.query.execution_status
+        - ref: snowflake.query.hash
+        - ref: snowflake.query.parametrized_hash
+        - ref: snowflake.query.tag
+        - ref: snowflake.role.name
+        - ref: snowflake.table.full_name
+        - ref: snowflake.user.type
+    - id: snowflake.time.queued.overload
+      type: metric
+      metric_name: snowflake.time.queued.overload
+      instrument: gauge
+      stability: experimental
+      brief: Time (in milliseconds) spent in the warehouse queue, due to the warehouse being overloaded by the current query workload.
+      examples:
+        - 1500
+      title: Queued Overload Time
+      unit: ms
+      attributes:
+        - ref: db.collection.name
+        - ref: db.operation.name
+        - ref: db.snowflake.dbs
+        - ref: db.user
+        - ref: snowflake.query.execution_status
+        - ref: snowflake.query.hash
+        - ref: snowflake.query.parametrized_hash
+        - ref: snowflake.query.tag
+        - ref: snowflake.role.name
+        - ref: snowflake.table.full_name
+        - ref: snowflake.user.type
+    - id: snowflake.time.queued.provisioning
+      type: metric
+      metric_name: snowflake.time.queued.provisioning
+      instrument: gauge
+      stability: experimental
+      brief: Time (in milliseconds) spent in the warehouse queue, waiting for the warehouse compute resources to provision, due to warehouse creation, resume, or resize.
+      examples:
+        - 3000
+      title: Queued Provisioning Time
+      unit: ms
+      attributes:
+        - ref: db.collection.name
+        - ref: db.operation.name
+        - ref: db.snowflake.dbs
+        - ref: db.user
+        - ref: snowflake.query.execution_status
+        - ref: snowflake.query.hash
+        - ref: snowflake.query.parametrized_hash
+        - ref: snowflake.query.tag
+        - ref: snowflake.role.name
+        - ref: snowflake.table.full_name
+        - ref: snowflake.user.type
+    - id: snowflake.time.repair
+      type: metric
+      metric_name: snowflake.time.repair
+      instrument: gauge
+      stability: experimental
+      brief: Time (in milliseconds) spent in the warehouse queue, waiting for compute resources in the warehouse to be repaired.
+      examples:
+        - 500
+      title: Queued Repair Time
+      unit: ms
+      attributes:
+        - ref: db.collection.name
+        - ref: db.operation.name
+        - ref: db.snowflake.dbs
+        - ref: db.user
+        - ref: snowflake.query.execution_status
+        - ref: snowflake.query.hash
+        - ref: snowflake.query.parametrized_hash
+        - ref: snowflake.query.tag
+        - ref: snowflake.role.name
+        - ref: snowflake.table.full_name
+        - ref: snowflake.user.type
+    - id: snowflake.time.retry
+      type: metric
+      metric_name: snowflake.time.retry
+      instrument: gauge
+      stability: experimental
+      brief: Total execution time (in milliseconds) for query retries caused by actionable errors.
+      examples:
+        - 2000
+      title: Query Retry Time
+      unit: ms
+      attributes:
+        - ref: db.collection.name
+        - ref: db.operation.name
+        - ref: db.snowflake.dbs
+        - ref: db.user
+        - ref: snowflake.query.execution_status
+        - ref: snowflake.query.hash
+        - ref: snowflake.query.parametrized_hash
+        - ref: snowflake.query.tag
+        - ref: snowflake.role.name
+        - ref: snowflake.table.full_name
+        - ref: snowflake.user.type
+    - id: snowflake.time.transaction_blocked
+      type: metric
+      metric_name: snowflake.time.transaction_blocked
+      instrument: gauge
+      stability: experimental
+      brief: Time (in milliseconds) spent blocked by a concurrent DML.
+      examples:
+        - 1000
+      title: Transaction Blocked Time
+      unit: ms
+      attributes:
+        - ref: db.collection.name
+        - ref: db.operation.name
+        - ref: db.snowflake.dbs
+        - ref: db.user
+        - ref: snowflake.query.execution_status
+        - ref: snowflake.query.hash
+        - ref: snowflake.query.parametrized_hash
+        - ref: snowflake.query.tag
+        - ref: snowflake.role.name
+        - ref: snowflake.table.full_name
+        - ref: snowflake.user.type

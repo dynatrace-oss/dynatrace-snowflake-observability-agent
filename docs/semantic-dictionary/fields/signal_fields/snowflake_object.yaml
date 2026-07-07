@@ -1,0 +1,97 @@
+groups:
+  - id: snowflake.object
+    type: attribute_group
+    title: Snowflake Object signal fields
+    brief: Signal-level fields for Snowflake Object telemetry.
+    attributes:
+      - id: snowflake.object.ddl.modified
+        display_name: Snowflake Object DDL Modified
+        type: string
+        stability: experimental
+        brief: A JSON array that specifies the objects that were associated with a write operation in the query.
+        examples:
+          - '{ "DTAGENT_DB.APP.TMP_RECENT_QUERIES": { "objectColumns": "HISTOGRAM_METRICS, COUNTER_METRICS, START_TIME, STATUS_CODE, SESSION_ID, QUERY_ID, DIMENSIONS, END_TIME, NAME, ATTRIBUTES, PARENT_QUERY_ID",
+            "objectDomain": "Table" } }'
+        note: Serialized JSON object stored as string in Grail. Contains modified DDL object details. Parse with parseJson() in DQL.
+      - id: snowflake.object.ddl.operation
+        display_name: Snowflake Object DDL Operation
+        type:
+          allow_custom_values: true
+          members:
+            - id: create
+              value: CREATE
+              brief: Creates a new database object; when used as CREATE OR REPLACE, atomically drops and recreates.
+            - id: alter
+              value: ALTER
+              brief: Modifies the properties or definition of an existing database object without recreating it.
+            - id: drop
+              value: DROP
+              brief: Removes a database object; for tables, data enters Fail-safe and can be recovered via UNDROP within the retention period.
+            - id: undrop
+              value: UNDROP
+              brief: Restores a previously dropped table, schema, or database from Fail-safe within the Time Travel retention window.
+            - id: replace
+              value: REPLACE
+              brief: Equivalent to CREATE OR REPLACE; atomically drops and recreates the object, resetting its definition.
+        stability: stable
+        brief: |-
+          DDL operation type (`CREATE`, `ALTER`, `DROP`, `UNDROP`, `REPLACE`). Populated only
+          when `plugins.query_history.track_ddl_changes=true` — see `snowflake.object.type`.
+          Does not apply to warehouse or resource-monitor DDL — use `db.operation.name` for
+          warehouse change detection.
+        examples:
+          - ALTER
+      - id: snowflake.object.ddl.properties
+        display_name: Snowflake Object DDL Properties
+        type: string
+        stability: stable
+        brief: |-
+          A JSON array that specifies the object or column properties when you create, modify, drop, or undrop the object or column.
+          There are two types of properties: atomic and compound.
+        examples:
+          - '{"creationMode": "CREATE", "columns": {"ADD": ["ATTRIBUTE","JOB_ID"]}}'
+        note: Stored as a serialized JSON string, not plain text.
+      - id: snowflake.object.id
+        display_name: Snowflake Object ID
+        type: long
+        stability: stable
+        brief: An identifier for the object, which is unique within a given account and domain.
+        examples:
+          - 747545
+      - id: snowflake.object.name
+        display_name: Snowflake Object Name
+        type: string
+        stability: stable
+        brief: The fully qualified name of the object defined or modified by the DDL operation.
+        examples:
+          - DTAGENT_DB.APP.TMP_RECENT_QUERIES
+      - id: snowflake.object.type
+        display_name: Snowflake Object Type
+        type:
+          allow_custom_values: true
+          members:
+            - id: table
+              value: Table
+              brief: A base, temporary, or external table object that stores or references tabular data, as reported in ACCESS_HISTORY.OBJECT_MODIFIED_BY_DDL.
+            - id: view
+              value: View
+              brief: A standard or secure view object whose definition is stored as a query and evaluated at access time.
+            - id: schema
+              value: Schema
+              brief: A namespace container within a database used to group tables, views, and other objects.
+            - id: database
+              value: Database
+              brief: The top-level namespace container in Snowflake; groups schemas and all their child objects.
+            - id: procedure
+              value: Procedure
+              brief: A callable stored procedure object encapsulating SQL or Snowpark logic that can be invoked via CALL.
+        stability: stable
+        brief: |-
+          Type of object modified by the DDL operation captured for this query, as recorded by
+          Snowflake in `ACCESS_HISTORY.OBJECT_MODIFIED_BY_DDL.objectDomain` (e.g. `Table`,
+          `View`, `Schema`, `Database`). Populated only when
+          `plugins.query_history.track_ddl_changes=true` and Snowflake recorded a structured
+          DDL payload for the query. Does not apply to warehouse or resource-monitor DDL —
+          use `db.operation.name` for warehouse change detection.
+        examples:
+          - Table

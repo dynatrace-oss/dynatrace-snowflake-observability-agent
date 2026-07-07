@@ -1,0 +1,42 @@
+model:
+  id: dsoa.metrics.trust_center
+  title: Snowflake Trust Center Metrics
+  brief: Metrics collected by the DSOA trust_center plugin from Snowflake ACCOUNT_USAGE views.
+  model_group_id: dsoa.metrics
+  data_object: metric
+  interfaces:
+    - i.dsoa_resource
+  dql_queries:
+    - query_string: |
+        timeseries val = sum(snowflake.trust_center.findings), by: { vulnerability.risk.level, deployment.environment.name }
+      description: Plot the number of Trust Center findings by risk level over time.
+      description_copilot: Timeseries of Snowflake Trust Center findings by risk level.
+      internal: false
+    - query_string: |
+        timeseries val = sum(snowflake.trust_center.findings),
+          by: { snowflake.trust_center.scanner.type, deployment.environment.name }
+      description: Plot the number of Trust Center findings by scanner type over time.
+      description_copilot: Timeseries of Snowflake Trust Center findings by scanner type.
+      internal: false
+    - query_string: |
+        timeseries findings = sum(snowflake.trust_center.findings), by: { event.category, deployment.environment.name }
+      description: Plot Trust Center findings by security category over time.
+      description_copilot: Timeseries of Snowflake Trust Center findings by security category.
+      internal: false
+  groups:
+    - id: snowflake.trust_center.findings
+      type: metric
+      metric_name: snowflake.trust_center.findings
+      instrument: gauge
+      stability: experimental
+      brief: The total number of findings at risk identified by the scanner.
+      examples:
+        - 10
+      title: Trust Center Findings Count
+      unit: count
+      attributes:
+        - ref: event.category
+        - ref: snowflake.trust_center.scanner.id
+        - ref: snowflake.trust_center.scanner.package.id
+        - ref: snowflake.trust_center.scanner.type
+        - ref: vulnerability.risk.level

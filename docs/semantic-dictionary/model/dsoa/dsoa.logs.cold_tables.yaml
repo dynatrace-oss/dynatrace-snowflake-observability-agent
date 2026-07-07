@@ -1,0 +1,46 @@
+model:
+  id: dsoa.logs.cold_tables
+  title: DSOA Cold Tables Log Records
+  brief: Log records emitted by the DSOA cold_tables plugin.
+  model_group_id: dsoa.logs
+  data_object: log
+  interfaces:
+    - i.dsoa_resource
+  dql_queries:
+    - query_string: |
+        fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "cold_tables"
+        | sort timestamp desc
+        | limit 100
+      description: Fetch the 100 most recent DSOA cold_tables plugin log entries from Grail.
+      description_copilot: Search for all cold_tables plugin logs from the Snowflake observability agent.
+      internal: false
+    - query_string: |
+        fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "cold_tables"
+        | filter snowflake.table.cold_status == "COLD"
+        | sort timestamp desc
+        | limit 50
+      description: Fetch the 50 most recent tables classified as COLD by the cold_tables plugin.
+      description_copilot: Find Snowflake tables currently classified as cold.
+      internal: false
+    - query_string: |
+        fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "cold_tables"
+        | filter isNotNull(snowflake.table.full_name)
+        | summarize { idle_days = takeMax(toLong(snowflake.table.days_since_last_access)) }, by: { snowflake.table.full_name }
+        | sort idle_days desc
+        | limit 25
+      description: Rank Snowflake tables by how long they have been idle.
+      description_copilot: Find the Snowflake tables that have been idle the longest.
+      internal: false
+  groups:
+    - id: dsoa.logs.cold_tables.fields
+      type: attribute_group
+      title: Cold Tables log record fields
+      brief: Attribute fields for Cold Tables log records.
+      attributes:
+        - ref: snowflake.table.last_accessed_at

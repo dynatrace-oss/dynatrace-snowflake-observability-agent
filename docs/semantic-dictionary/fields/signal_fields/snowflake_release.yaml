@@ -1,0 +1,13 @@
+groups:
+  - id: snowflake.release
+    type: attribute_group
+    title: Snowflake Release signal fields
+    brief: Signal-level fields for Snowflake Release telemetry.
+    attributes:
+      - id: snowflake.release_version
+        display_name: Snowflake Release Version
+        type: string
+        stability: experimental
+        brief: The release version of Snowflake at the time of query execution.
+        examples:
+          - '5.0'

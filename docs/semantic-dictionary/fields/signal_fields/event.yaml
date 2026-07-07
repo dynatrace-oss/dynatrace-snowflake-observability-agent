@@ -1,0 +1,20 @@
+groups:
+  - id: event
+    type: attribute_group
+    title: Event signal fields
+    brief: Signal-level fields for Event telemetry.
+    attributes:
+      - id: event.kind
+        display_name: Event Kind
+        type: string
+        stability: experimental
+        brief: The kind of event, in this case, 'SECURITY_EVENT'.
+        examples:
+          - SECURITY_EVENT
+      - id: event.related_id
+        display_name: Event Related ID
+        type: long
+        stability: experimental
+        brief: An identifier for a related event, if applicable.
+        examples:
+          - 987654321

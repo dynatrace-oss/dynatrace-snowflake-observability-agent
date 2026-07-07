@@ -1,0 +1,374 @@
+groups:
+  - id: snowflake.table
+    type: attribute_group
+    title: Snowflake Table signal fields
+    brief: Signal-level fields for Snowflake Table telemetry.
+    attributes:
+      - id: snowflake.table.clustering_key
+        display_name: Snowflake Table Clustering Key
+        type: string
+        stability: experimental
+        brief: Clustering key for the table.
+        examples:
+          - DATE
+      - id: snowflake.table.cold_status
+        display_name: Snowflake Table Cold Status
+        type:
+          allow_custom_values: true
+          members:
+            - id: cold
+              value: cold
+              brief: Table data has not been recently accessed (beyond the cold threshold).
+            - id: warm
+              value: warm
+              brief: Table data has been recently accessed within the cold threshold period.
+        stability: stable
+        brief: Table temperature classification based on access recency.
+        examples:
+          - cold
+      - id: snowflake.table.comment
+        display_name: Snowflake Table Comment
+        type: string
+        stability: experimental
+        brief: Comment for this table.
+        examples:
+          - The tables defined in this database that are accessible to the current user's role.
+      - id: snowflake.table.created_on
+        display_name: Snowflake Table Created On
+        type: long
+        stability: experimental
+        brief: The timestamp when the table was created. Epoch nanoseconds timestamp.
+        examples:
+          - 1649940827875000000
+      - id: snowflake.table.ddl
+        display_name: Snowflake Table DDL
+        type: long
+        stability: experimental
+        brief: The timestamp of the last DDL operation performed on the table or view, including CREATE, ALTER, DROP, or UNDROP.
+        examples:
+          - 1730458800000000000
+      - id: snowflake.table.dynamic.lag.target.type
+        display_name: Snowflake Table Dynamic Lag Target Type
+        type: string
+        stability: experimental
+        brief: The type of target lag.
+        examples:
+          - USER_DEFINED
+      - id: snowflake.table.dynamic.latest.code
+        display_name: Snowflake Table Dynamic Latest Code
+        type: string
+        stability: experimental
+        brief: Code representing the current state of the refresh. If the LAST_COMPLETED_REFRESH_STATE is FAILED, this column shows the error code associated with the failure.
+        examples:
+          - SUCCESS
+      - id: snowflake.table.dynamic.latest.data_timestamp
+        display_name: Snowflake Table Dynamic Latest Data Timestamp
+        type: string
+        stability: experimental
+        brief: Data timestamp of the last successful refresh.
+        examples:
+          - '2024-11-22 12:55:29.695 Z'
+        note: ISO 8601 timestamp string stored as string in Grail.
+      - id: snowflake.table.dynamic.latest.dependency.data_timestamp
+        display_name: Snowflake Table Dynamic Latest Dependency Data Timestamp
+        type: string
+        stability: experimental
+        brief: Data timestamp of the latest dependency to become available.
+        examples:
+          - '2024-11-25 06:09:53.695 Z'
+        note: ISO 8601 timestamp string stored as string in Grail.
+      - id: snowflake.table.dynamic.latest.dependency.name
+        display_name: Snowflake Table Dynamic Latest Dependency Name
+        type: string
+        stability: experimental
+        brief: Qualified name of the latest dependency to become available.
+        examples:
+          - DYNAMIC_TABLE_DB.DYNAMIC_TABLE_SCH.EMPLOYEE
+      - id: snowflake.table.dynamic.latest.message
+        display_name: Snowflake Table Dynamic Latest Message
+        type: string
+        stability: experimental
+        brief: Description of the current state of the refresh. If the LAST_COMPLETED_REFRESH_STATE is FAILED, this column shows the error message associated with the failure.
+        examples:
+          - Refresh completed successfully
+      - id: snowflake.table.dynamic.latest.state
+        display_name: Snowflake Table Dynamic Latest State
+        type:
+          allow_custom_values: true
+          members:
+            - id: succeeded
+              value: SUCCEEDED
+              brief: Refresh completed successfully.
+            - id: failed
+              value: FAILED
+              brief: Refresh failed during execution.
+            - id: upstream_failed
+              value: UPSTREAM_FAILED
+              brief: Refresh not performed due to an upstream failed refresh.
+            - id: cancelled
+              value: CANCELLED
+              brief: Refresh was canceled before execution.
+            - id: suspended
+              value: SUSPENDED
+              brief: Dynamic table scheduling is suspended.
+        stability: experimental
+        brief: Status of the last terminated refresh for the dynamic table.
+        examples:
+          - SUCCEEDED
+      - id: snowflake.table.dynamic.refresh.action
+        display_name: Snowflake Table Dynamic Refresh Action
+        type:
+          allow_custom_values: true
+          members:
+            - id: no_data
+              value: NO_DATA
+              brief: No new data in base tables.
+            - id: reinitialize
+              value: REINITIALIZE
+              brief: Base table changed or source table of cloned dynamic table was refreshed.
+            - id: full
+              value: FULL
+              brief: Full refresh performed.
+            - id: incremental
+              value: INCREMENTAL
+              brief: Normal incremental refresh.
+        stability: stable
+        brief: Describes the type of refresh action performed.
+        examples:
+          - NO_DATA
+      - id: snowflake.table.dynamic.refresh.code
+        display_name: Snowflake Table Dynamic Refresh Code
+        type: string
+        stability: stable
+        brief: Code representing the current state of the refresh.
+        examples:
+          - SUCCESS
+      - id: snowflake.table.dynamic.refresh.completion_target
+        display_name: Snowflake Table Dynamic Refresh Completion Target
+        type: long
+        stability: experimental
+        brief: Time by which this refresh should complete to keep lag under the TARGET_LAG parameter for the dynamic table.
+        examples:
+          - 1732515005695000000
+      - id: snowflake.table.dynamic.refresh.data_timestamp
+        display_name: Snowflake Table Dynamic Refresh Data Timestamp
+        type: long
+        stability: experimental
+        brief: Transactional timestamp when the refresh was evaluated.
+        examples:
+          - 1732514993695000000
+      - id: snowflake.table.dynamic.refresh.end
+        display_name: Snowflake Table Dynamic Refresh End
+        type: long
+        stability: experimental
+        brief: Time when the refresh completed.
+        examples:
+          - 1732514995308000000
+      - id: snowflake.table.dynamic.refresh.message
+        display_name: Snowflake Table Dynamic Refresh Message
+        type: string
+        stability: stable
+        brief: Description of the current state of the refresh.
+        examples:
+          - Refresh completed successfully
+      - id: snowflake.table.dynamic.refresh.start
+        display_name: Snowflake Table Dynamic Refresh Start
+        type: long
+        stability: experimental
+        brief: Time when the refresh job started.
+        examples:
+          - 1732514994978000000
+      - id: snowflake.table.dynamic.refresh.state
+        display_name: Snowflake Table Dynamic Refresh State
+        type:
+          allow_custom_values: true
+          members:
+            - id: scheduled
+              value: SCHEDULED
+              brief: Refresh scheduled but not yet executed.
+            - id: executing
+              value: EXECUTING
+              brief: Refresh in progress.
+            - id: succeeded
+              value: SUCCEEDED
+              brief: Refresh completed successfully.
+            - id: failed
+              value: FAILED
+              brief: Refresh failed during execution.
+            - id: cancelled
+              value: CANCELLED
+              brief: Refresh was canceled before execution.
+            - id: upstream_failed
+              value: UPSTREAM_FAILED
+              brief: Refresh not performed due to an upstream failed refresh.
+        stability: stable
+        brief: Status of the refresh for the dynamic table.
+        examples:
+          - SUCCEEDED
+      - id: snowflake.table.dynamic.refresh.trigger
+        display_name: Snowflake Table Dynamic Refresh Trigger
+        type:
+          allow_custom_values: true
+          members:
+            - id: scheduled
+              value: SCHEDULED
+              brief: Normal background refresh to meet target lag or downstream target lag.
+            - id: manual
+              value: MANUAL
+              brief: User or task triggered refresh via ALTER DYNAMIC TABLE REFRESH.
+            - id: creation
+              value: CREATION
+              brief: Refresh performed during creation DDL statement.
+        stability: stable
+        brief: Describes the trigger for the refresh.
+        examples:
+          - SCHEDULED
+      - id: snowflake.table.dynamic.scheduling.reason.code
+        display_name: Snowflake Table Dynamic Scheduling Reason Code
+        type: string
+        stability: experimental
+        brief: Optional reason code if the state is not ACTIVE.
+        examples:
+          - MAINTENANCE
+      - id: snowflake.table.dynamic.scheduling.reason.message
+        display_name: Snowflake Table Dynamic Scheduling Reason Message
+        type: string
+        stability: experimental
+        brief: Text description of the reason the dynamic table is not active. Only applies if the state is not active.
+        examples:
+          - Scheduled maintenance
+      - id: snowflake.table.dynamic.scheduling.resumed_on
+        display_name: Snowflake Table Dynamic Scheduling Resumed On
+        type: string
+        stability: stable
+        brief: The timestamp when the dynamic table was last resumed, if ACTIVE.
+        examples:
+          - '2024-11-25 08:09:53.695 Z'
+        note: ISO 8601 timestamp string stored as string in Grail.
+      - id: snowflake.table.dynamic.scheduling.state
+        display_name: Snowflake Table Dynamic Scheduling State
+        type: string
+        stability: stable
+        brief: Scheduling state of the dynamic table.
+        examples:
+          - ACTIVE
+      - id: snowflake.table.dynamic.scheduling.suspended_on
+        display_name: Snowflake Table Dynamic Scheduling Suspended On
+        type: string
+        stability: experimental
+        brief: The timestamp when the dynamic table was suspended.
+        examples:
+          - '2024-11-25 06:09:53.695 Z'
+        note: ISO 8601 timestamp string stored as string in Grail.
+      - id: snowflake.table.full_name
+        display_name: Snowflake Table Full Name
+        type: string
+        stability: stable
+        brief: Fully qualified table name (catalog.schema.table).
+        examples:
+          - ANALYTICS_DB.PUBLIC.ORDERS
+      - id: snowflake.table.is_auto_clustering_on
+        display_name: Snowflake Table Is Auto Clustering On
+        type: boolean
+        stability: experimental
+        brief: Indicates whether automatic clustering is enabled for the table.
+        examples:
+          - true
+      - id: snowflake.table.is_dynamic
+        display_name: Snowflake Table Is Dynamic
+        type: boolean
+        stability: experimental
+        brief: Indicates whether the table is a dynamic table.
+        examples:
+          - false
+      - id: snowflake.table.is_hybrid
+        display_name: Snowflake Table Is Hybrid
+        type: boolean
+        stability: experimental
+        brief: Indicates whether this is a hybrid table.
+        examples:
+          - false
+      - id: snowflake.table.is_iceberg
+        display_name: Snowflake Table Is Iceberg
+        type: boolean
+        stability: experimental
+        brief: Indicates whether the table is an Iceberg table.
+        examples:
+          - false
+      - id: snowflake.table.is_temporary
+        display_name: Snowflake Table Is Temporary
+        type: boolean
+        stability: experimental
+        brief: Indicates whether this is a temporary table.
+        examples:
+          - false
+      - id: snowflake.table.is_transient
+        display_name: Snowflake Table Is Transient
+        type: boolean
+        stability: experimental
+        brief: Indicates whether this is a transient table.
+        examples:
+          - false
+      - id: snowflake.table.last_accessed_at
+        display_name: Snowflake Table Last Accessed At
+        type: string
+        stability: experimental
+        brief: ISO 8601 timestamp of the most recent query that accessed this table.
+        examples:
+          - '2026-01-15T10:30:00Z'
+      - id: snowflake.table.last_ddl_by
+        display_name: Snowflake Table Last DDL By
+        type: string
+        stability: experimental
+        brief: The current username for the user who executed the last DDL operation.
+        examples:
+          - DBA_USER
+      - id: snowflake.table.owner
+        display_name: Snowflake Table Owner
+        type: string
+        stability: experimental
+        brief: Name of the role that owns the table.
+        examples:
+          - ACCOUNTADMIN
+      - id: snowflake.table.retention_time
+        display_name: Snowflake Table Retention Time
+        type: long
+        stability: experimental
+        brief: Number of days that historical data is retained for Time Travel.
+        examples:
+          - 5
+      - id: snowflake.table.type
+        display_name: Snowflake Table Type
+        type:
+          allow_custom_values: true
+          members:
+            - id: base_table
+              value: BASE TABLE
+              brief: Full permanent table stored in Snowflake micro-partitions; supports all DML, Time Travel, and Fail-safe.
+            - id: temporary_table
+              value: TEMPORARY TABLE
+              brief: Temporary table (session-scoped).
+            - id: external_table
+              value: EXTERNAL TABLE
+              brief: Schema overlay over data files in an external cloud storage stage; data is never loaded into Snowflake and is read-only.
+            - id: view
+              value: VIEW
+              brief: Non-materialized virtual table defined by a stored query; the underlying SQL is re-executed on every access with no physical storage.
+            - id: materialized_view
+              value: MATERIALIZED VIEW
+              brief: Pre-computed query result stored as a physical table and transparently refreshed by Snowflake's background maintenance service; consumes MATERIALIZED_VIEW credits.
+        stability: stable
+        brief: |-
+          The type of the table, such as:
+          - BASE TABLE,
+          - TEMPORARY TABLE,
+          - EXTERNAL TABLE.
+        examples:
+          - BASE TABLE
+      - id: snowflake.table.update
+        display_name: Snowflake Table Update
+        type: long
+        stability: stable
+        brief: The timestamp of the last time the object was altered by a DML, DDL, or background metadata operation.
+        examples:
+          - 1731256700000000000

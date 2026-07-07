@@ -1,0 +1,43 @@
+model:
+  id: dsoa.events.snowpipes
+  title: Snowflake Snowpipes Lifecycle Events
+  brief: Timestamp-based state-change events emitted by the DSOA snowpipes plugin via the OpenPipeline Events API.
+  model_group_id: dsoa.events
+  data_object: event
+  interfaces:
+    - i.dsoa_resource
+  dql_queries:
+    - query_string: |
+        fetch bizevents
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "snowpipes"
+        | sort timestamp desc
+        | limit 20
+      description: Fetch recent DSOA self-monitoring business events for the snowpipes plugin.
+      description_copilot: Search for self-monitoring events from the snowpipes Snowflake agent plugin.
+      internal: false
+    - query_string: |
+        fetch events
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "snowpipes"
+        | sort timestamp desc
+        | limit 50
+      description: Fetch the most recent DSOA snowpipes lifecycle events (pipe creation anchors).
+      description_copilot: Search for Snowflake pipe lifecycle events from the snowpipes plugin.
+      internal: false
+    - query_string: |
+        fetch events
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "snowpipes"
+        | summarize { events = count() }, by: { snowflake.event.type }
+        | sort events desc
+      description: Count DSOA snowpipes lifecycle events grouped by event type.
+      description_copilot: Break down Snowflake pipe lifecycle events by their event type.
+      internal: false
+  groups:
+    - id: dsoa.events.snowpipes.fields
+      type: attribute_group
+      title: Snowpipes event fields
+      attributes:
+        - ref: snowflake.event.type
+        - ref: snowflake.pipe.created_on

@@ -1,0 +1,87 @@
+groups:
+  - id: snowflake.copy
+    type: attribute_group
+    title: Snowflake Copy signal fields
+    brief: Signal-level fields for Snowflake Copy telemetry.
+    attributes:
+      - id: snowflake.copy.errors.limit
+        display_name: Snowflake Copy Errors Limit
+        type: long
+        stability: experimental
+        brief: Error limit for the COPY.
+        examples:
+          - 1
+      - id: snowflake.copy.file_name
+        display_name: Snowflake Copy File Name
+        type: string
+        stability: experimental
+        brief: Source file name.
+        examples:
+          - data/file_20250312.csv.gz
+      - id: snowflake.copy.first_commit_time
+        display_name: Snowflake Copy First Commit Time
+        type: long
+        stability: experimental
+        brief: When the first chunk of the file was committed.
+        examples:
+          - 1741772160000000000
+      - id: snowflake.copy.first_error.character_position
+        display_name: Snowflake Copy First Error Character Position
+        type: long
+        stability: experimental
+        brief: Character position of first error.
+        examples:
+          - 128
+      - id: snowflake.copy.first_error.column_name
+        display_name: Snowflake Copy First Error Column Name
+        type: string
+        stability: experimental
+        brief: Column name causing the first error.
+        examples:
+          - AMOUNT
+      - id: snowflake.copy.first_error.line_number
+        display_name: Snowflake Copy First Error Line Number
+        type: long
+        stability: experimental
+        brief: Line number of first error.
+        examples:
+          - 42
+      - id: snowflake.copy.first_error.message
+        display_name: Snowflake Copy First Error Message
+        type: string
+        stability: experimental
+        brief: First error message for failed loads.
+        examples:
+          - Number of columns in file (3) does not match that of the corresponding table (4)
+      - id: snowflake.copy.pipe.received_time
+        display_name: Snowflake Copy Pipe Received Time
+        type: long
+        stability: experimental
+        brief: When file was received by Snowpipe (view-only).
+        examples:
+          - 1741772100000000000
+      - id: snowflake.copy.stage_location
+        display_name: Snowflake Copy Stage Location
+        type: string
+        stability: experimental
+        brief: Stage location (ACCOUNT_USAGE view-only).
+        examples:
+          - s3://my-bucket/data/
+      - id: snowflake.copy.status
+        display_name: Snowflake Copy Status
+        type:
+          allow_custom_values: true
+          members:
+            - id: loaded
+              value: LOADED
+              brief: File loaded successfully.
+            - id: load_failed
+              value: LOAD_FAILED
+              brief: File load failed with errors.
+            - id: partially_loaded
+              value: PARTIALLY_LOADED
+              brief: File partially loaded; some rows failed.
+        stability: experimental
+        brief: Load status of the COPY INTO operation.
+        examples:
+          - LOADED

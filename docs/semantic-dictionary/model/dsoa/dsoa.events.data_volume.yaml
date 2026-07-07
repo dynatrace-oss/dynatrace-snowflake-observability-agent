@@ -1,0 +1,44 @@
+model:
+  id: dsoa.events.data_volume
+  title: Snowflake Data Volume Lifecycle Events
+  brief: Timestamp-based state-change events emitted by the DSOA data_volume plugin via the OpenPipeline Events API.
+  model_group_id: dsoa.events
+  data_object: event
+  interfaces:
+    - i.dsoa_resource
+  dql_queries:
+    - query_string: |
+        fetch bizevents
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "data_volume"
+        | sort timestamp desc
+        | limit 20
+      description: Fetch recent DSOA self-monitoring business events for the data_volume plugin.
+      description_copilot: Search for self-monitoring events from the data_volume Snowflake agent plugin.
+      internal: false
+    - query_string: |
+        fetch events
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "data_volume"
+        | sort timestamp desc
+        | limit 50
+      description: Fetch the most recent DSOA data_volume lifecycle events (table DDL and data-update anchors).
+      description_copilot: Search for Snowflake table DDL and data-update lifecycle events from the data_volume plugin.
+      internal: false
+    - query_string: |
+        fetch events
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "data_volume"
+        | summarize { events = count() }, by: { snowflake.event.type }
+        | sort events desc
+      description: Count DSOA data_volume lifecycle events grouped by event type.
+      description_copilot: Break down Snowflake data_volume lifecycle events by their event type.
+      internal: false
+  groups:
+    - id: dsoa.events.data_volume.fields
+      type: attribute_group
+      title: Data Volume event fields
+      attributes:
+        - ref: snowflake.event.type
+        - ref: snowflake.table.ddl
+        - ref: snowflake.table.update

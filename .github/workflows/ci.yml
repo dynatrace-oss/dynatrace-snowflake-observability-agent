@@ -122,6 +122,12 @@ jobs:
           pytest test/core/test_export_semantics.py test/core/test_semdict_export_completeness.py test/core/test_semdict_output_compliance.py -v
           pytest "test/core/test_bash_scripts.py::test_bash_script[test_ci_export]" -v
 
+      - name: Check docs/semantic-dictionary freshness
+        run: |
+          ./scripts/dev/build_semantic_export.sh --output-dir docs/semantic-dictionary
+          git diff --exit-code docs/semantic-dictionary/ || \
+            (echo "docs/semantic-dictionary/ is stale — run 'make semantic-dictionary' and commit" && exit 1)
+
   test-core:
     runs-on: ubuntu-latest
     steps:

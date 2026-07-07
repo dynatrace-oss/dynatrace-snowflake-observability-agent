@@ -1,0 +1,14 @@
+groups:
+  - id: observed_timestamp
+    type: attribute_group
+    title: Observed Timestamp signal fields
+    brief: Signal-level fields for Observed Timestamp telemetry.
+    attributes:
+      - id: observed_timestamp
+        display_name: Observed Timestamp
+        type: long
+        stability: stable
+        brief: The timestamp (in epoch nanoseconds) when the event was observed.
+        examples:
+          - 1741768500000000000
+        note: In OTel Log Data Model, observed_timestamp is a structural field (not an attribute key). Dynatrace normalizes this into the attribute bag for query consistency.

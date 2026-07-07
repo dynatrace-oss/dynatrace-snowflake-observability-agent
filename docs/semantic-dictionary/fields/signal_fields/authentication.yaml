@@ -1,0 +1,42 @@
+groups:
+  - id: authentication
+    type: attribute_group
+    title: Authentication signal fields
+    brief: Signal-level fields for Authentication telemetry.
+    attributes:
+      - id: authentication.factor.first
+        display_name: Authentication Factor First
+        type:
+          allow_custom_values: true
+          members:
+            - id: id_token
+              value: ID_TOKEN
+              brief: Authenticated using a Snowflake ID token.
+            - id: oauth_access_token
+              value: OAUTH_ACCESS_TOKEN
+              brief: Authenticated using an OAuth access token.
+            - id: password
+              value: PASSWORD
+              brief: Authenticated using a username/password combination.
+            - id: programmatic_access_token
+              value: PROGRAMMATIC_ACCESS_TOKEN
+              brief: Authenticated using a programmatic access token (PAT).
+            - id: saml2_assertion
+              value: SAML2_ASSERTION
+              brief: Authenticated using a SAML2 assertion (federated SSO).
+        stability: stable
+        brief: The first factor used for authentication, typically a password.
+        examples:
+          - PASSWORD
+      - id: authentication.factor.second
+        display_name: Authentication Factor Second
+        type:
+          allow_custom_values: true
+          members:
+            - id: totp
+              value: TOTP
+              brief: Time-based one-time password (MFA token).
+        stability: stable
+        brief: The second factor used for authentication, such as an MFA token. Omitted when only a single factor was used.
+        examples:
+          - TOTP

@@ -1,0 +1,92 @@
+groups:
+  - id: snowflake.resource_monitor
+    type: attribute_group
+    title: Snowflake Resource Monitor signal fields
+    brief: Signal-level fields for Snowflake Resource Monitor telemetry.
+    attributes:
+      - id: snowflake.resource_monitor.created_on
+        display_name: Snowflake Resource Monitor Created On
+        type: long
+        stability: experimental
+        brief: The timestamp when the resource monitor was created.
+        examples:
+          - 1728991696789000000
+      - id: snowflake.resource_monitor.end_time
+        display_name: Snowflake Resource Monitor End Time
+        type: long
+        stability: experimental
+        brief: The timestamp when the resource monitor ended.
+        examples:
+          - 1732981199999000000
+      - id: snowflake.resource_monitor.is_active
+        display_name: Snowflake Resource Monitor Is Active
+        type: boolean
+        stability: stable
+        brief: Indicates if the resource monitor is active.
+        examples:
+          - true
+      - id: snowflake.resource_monitor.name
+        display_name: Snowflake Resource Monitor Name
+        type: string
+        stability: stable
+        brief: The name of the resource monitor.
+        examples:
+          - RM_MONITOR
+      - id: snowflake.resource_monitor.start_time
+        display_name: Snowflake Resource Monitor Start Time
+        type: long
+        stability: experimental
+        brief: The timestamp when the resource monitor started.
+        examples:
+          - 1730419200000000000
+      - id: snowflake.resource_monitor.threshold.direction
+        display_name: Snowflake Resource Monitor Threshold Direction
+        type:
+          allow_custom_values: false
+          members:
+            - id: up
+              value: up
+              brief: Quota is increasing into or remaining within a band.
+            - id: down
+              value: down
+              brief: Consumption drops back below a previously active band.
+        stability: experimental
+        brief: 'Direction of the threshold crossing: ``up`` when quota is increasing into or remaining within a band; ``down`` when the consumption drops back below a previously active band.'
+        examples:
+          - up
+      - id: snowflake.resource_monitor.threshold.level
+        display_name: Snowflake Resource Monitor Threshold Level
+        type:
+          allow_custom_values: false
+          members:
+            - id: info
+              value: info
+              brief: Quota consumption is below 80%.
+            - id: warn
+              value: warn
+              brief: Quota consumption is in the 80% (inclusive) to 90% (exclusive) range.
+            - id: critical
+              value: critical
+              brief: Quota consumption is in the 90% (inclusive) to 100% (exclusive) range.
+            - id: exhausted
+              value: exhausted
+              brief: Quota consumption is at or above 100%.
+        stability: experimental
+        brief: 'Alert band for the threshold event: ``info`` (below 80%), ``warn`` ([80–90%)), ``critical`` ([90–100%)), or ``exhausted`` (>=100%).'
+        examples:
+          - warn
+      - id: snowflake.resource_monitor.threshold.value
+        display_name: Snowflake Resource Monitor Threshold Value
+        type: double
+        stability: experimental
+        brief: The configured threshold percentage at which this crossing event was triggered (e.g., 80 means the 80% threshold was crossed). Distinct from snowflake.credits.quota.used_pct, which captures
+          live consumption at emit time.
+        examples:
+          - 80.0
+      - id: snowflake.resource_monitor.warehouses
+        display_name: Snowflake Resource Monitor Warehouses
+        type: string[]
+        stability: experimental
+        brief: The names of the warehouses monitored.
+        examples:
+          - - COMPUTE_WH

@@ -1,0 +1,28 @@
+groups:
+  - id: snowflake.status
+    type: attribute_group
+    title: Snowflake Status signal fields
+    brief: Signal-level fields for Snowflake Status telemetry.
+    attributes:
+      - id: snowflake.status.code
+        display_name: Snowflake Status Code
+        type:
+          allow_custom_values: false
+          members:
+            - id: ok
+              value: OK
+              brief: The operation completed successfully.
+            - id: error
+              value: ERROR
+              brief: The operation failed.
+        stability: experimental
+        brief: The status of the login attempt, indicating success (OK) or failure (ERROR).
+        examples:
+          - OK
+      - id: snowflake.status.message
+        display_name: Snowflake Status Message
+        type: string
+        stability: experimental
+        brief: A human-readable message providing additional detail about the operation status.
+        examples:
+          - Login successful

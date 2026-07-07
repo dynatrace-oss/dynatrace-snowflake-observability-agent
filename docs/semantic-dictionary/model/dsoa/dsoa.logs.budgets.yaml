@@ -1,0 +1,48 @@
+model:
+  id: dsoa.logs.budgets
+  title: DSOA Budgets Log Records
+  brief: Log records emitted by the DSOA budgets plugin.
+  model_group_id: dsoa.logs
+  data_object: log
+  interfaces:
+    - i.dsoa_resource
+  dql_queries:
+    - query_string: |
+        fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "budgets"
+        | sort timestamp desc
+        | limit 100
+      description: Fetch the 100 most recent DSOA budgets plugin log entries from Grail.
+      description_copilot: Search for all budgets plugin logs from the Snowflake observability agent.
+      internal: false
+    - query_string: |
+        fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "budgets"
+        | filter isNotNull(snowflake.budget.name)
+        | fields timestamp, snowflake.budget.name, snowflake.credits.spent, snowflake.credits.limit
+        | sort timestamp desc
+        | limit 50
+      description: Inspect the latest spend and limit readings for each Snowflake budget.
+      description_copilot: Show recent Snowflake budget spend and limit values per budget.
+      internal: false
+    - query_string: |
+        fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "budgets"
+        | filter isNotNull(snowflake.budget.name)
+        | summarize { latest_spent = takeMax(toDouble(snowflake.credits.spent)) }, by: { snowflake.budget.name }
+        | sort latest_spent desc
+      description: Rank Snowflake budgets by their most recent credits-spent reading.
+      description_copilot: Find which Snowflake budgets have spent the most credits.
+      internal: false
+  groups:
+    - id: dsoa.logs.budgets.fields
+      type: attribute_group
+      title: Budgets log record fields
+      brief: Attribute fields for Budgets log records.
+      attributes:
+        - ref: snowflake.budget.owner.name
+        - ref: snowflake.budget.owner.role_type
+        - ref: snowflake.budget.resource

@@ -1,0 +1,47 @@
+model:
+  id: dsoa.logs.org_costs
+  title: DSOA Org Costs Log Records
+  brief: Log records emitted by the DSOA org_costs plugin.
+  model_group_id: dsoa.logs
+  data_object: log
+  interfaces:
+    - i.dsoa_resource
+  dql_queries:
+    - query_string: |
+        fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "org_costs"
+        | sort timestamp desc
+        | limit 100
+      description: Fetch the 100 most recent DSOA org_costs plugin log entries from Grail.
+      description_copilot: Search for all org_costs plugin logs from the Snowflake observability agent.
+      internal: false
+    - query_string: |
+        fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "org_costs"
+        | filter isNotNull(snowflake.account.name)
+        | fields timestamp, snowflake.account.name, snowflake.org.credits.used, snowflake.org.billing.amount
+        | sort timestamp desc
+        | limit 50
+      description: Inspect per-account organisation credit and billing readings from the org_costs plugin.
+      description_copilot: Show recent Snowflake organisation credit and billing figures per account.
+      internal: false
+    - query_string: |
+        fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "org_costs"
+        | filter isNotNull(snowflake.account.name)
+        | summarize { total_billed = sum(toDouble(snowflake.org.billing.amount)) }, by: { snowflake.account.name }
+        | sort total_billed desc
+        | limit 25
+      description: Rank Snowflake accounts by total organisation billing amount.
+      description_copilot: Find which Snowflake accounts have the highest organisation billing amount.
+      internal: false
+  groups:
+    - id: dsoa.logs.org_costs.fields
+      type: attribute_group
+      title: Org Costs log record fields
+      brief: Attribute fields for Org Costs log records.
+      attributes:
+        - ref: snowflake.org.billing.contract_number
