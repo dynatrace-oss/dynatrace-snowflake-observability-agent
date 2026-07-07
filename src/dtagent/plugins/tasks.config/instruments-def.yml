@@ -89,18 +89,6 @@ attributes:
       - task_history
     __example: status = 'SUCCESS'
     __description: The condition text of the task.
-    __enum:
-      allow_custom_values: true
-      members:
-        - id: success_condition
-          value: status = 'SUCCESS'
-          brief: Runs the task only when the predecessor task(s) completed successfully.
-        - id: stream_has_data
-          value: SYSTEM$STREAM_HAS_DATA('<stream_name>')
-          brief: Runs the task only when the referenced stream has change data available.
-        - id: always
-          value: "TRUE"
-          brief: Task has no meaningful condition gate and always runs when triggered.
   snowflake.task.config.id:
     __type: string
     __context_names:

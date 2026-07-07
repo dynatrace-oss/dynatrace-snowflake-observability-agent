@@ -60,7 +60,7 @@ import json
 import logging
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, ClassVar, Dict, List, Optional, Set, Tuple
 
 import yaml
 
@@ -324,30 +324,71 @@ class _IndentedDumper(yaml.Dumper):  # pylint: disable=too-many-ancestors
         """
         return super().increase_indent(flow=flow, indentless=False)
 
+    # YAML 1.1 treats these bare words as booleans; double-quote them so the SD
+    # generator (which uses a YAML 1.1-aware parser) reads them as strings.
+    _YAML11_BOOL_SYNONYMS: ClassVar[frozenset] = frozenset({
+        "y", "Y", "yes", "Yes", "YES", "n", "N", "no", "No", "NO",
+        "true", "True", "TRUE", "false", "False", "FALSE",
+        "on", "On", "ON", "off", "Off", "OFF",
+    })
+
     def represent_str(self, data: str):
-        """Represent strings containing newlines as YAML literal block scalars (``|`` style).
+        """Represent strings as YAML scalars with appropriate quoting.
 
-        PyYAML's default string representer serialises multi-line strings as single-quoted
-        flow scalars with embedded ``\\n`` sequences.  When the output file is re-read the
-        content is semantically identical, but the visual representation has an extra blank
-        line inserted after every original DQL line because the flow scalar preserves the
-        literal newlines verbatim while the surrounding indentation adds apparent spacing.
-
-        Using ``|`` (literal block style) preserves the original line structure and produces
-        clean, human-readable YAML that round-trips without extra blank lines.
+        - Multi-line strings use literal block style (``|``) for readability.
+        - Strings that are YAML 1.1 boolean synonyms (off, TRUE, yes, …) use
+          double-quote style so downstream parsers always read them as strings.
+        - Everything else uses PyYAML's default (plain or single-quoted as needed).
 
         Args:
             data: String value to represent.
 
         Returns:
-            YAML node; block-literal for multi-line strings, default scalar otherwise.
+            YAML scalar node.
         """
         if "\n" in data:
             return self.represent_scalar("tag:yaml.org,2002:str", data, style="|")
+        if data in self._YAML11_BOOL_SYNONYMS:
+            return self.represent_scalar("tag:yaml.org,2002:str", data, style='"')
         return self.represent_scalar("tag:yaml.org,2002:str", data)
+
+    def represent_sequence(self, tag, sequence, flow_style=None):
+        """Use flow style for single-scalar sequences (e.g. ``examples: [ false ]``).
+
+        The SD convention writes single-value example arrays inline.  Multi-element
+        sequences keep block style via the ``increase_indent`` override.
+
+        Args:
+            tag:        YAML tag for the sequence.
+            sequence:   The Python sequence to represent.
+            flow_style: Explicit flow_style override; respected if provided.
+
+        Returns:
+            YAML sequence node.
+        """
+        if flow_style is None and len(sequence) == 1 and not isinstance(sequence[0], (dict, list)):
+            flow_style = True
+        return super().represent_sequence(tag, sequence, flow_style=flow_style)
 
 
 _IndentedDumper.add_representer(str, _IndentedDumper.represent_str)
+
+
+class _QuotedStr(str):
+    """String that is always serialised with double-quote YAML style.
+
+    Used for enum member ``id`` and ``value`` fields so that all member scalars
+    have a consistent explicit string tag — avoiding the SD generator's type
+    checker treating differently-styled scalars (e.g. ``"off"`` vs ``literals``)
+    as different types.
+    """
+
+
+def _represent_quoted_str(dumper: _IndentedDumper, data: str) -> yaml.ScalarNode:
+    return dumper.represent_scalar("tag:yaml.org,2002:str", data, style='"')
+
+
+_IndentedDumper.add_representer(_QuotedStr, _represent_quoted_str)
 
 
 ##endregion
@@ -711,7 +752,13 @@ def _build_type_node(entry: Dict[str, Any]) -> Any:
     if enum_def:
         members = []
         for m in enum_def.get("members", []):
-            member: Dict[str, Any] = {"id": m["id"], "value": m["value"], "brief": m["brief"]}
+            # _QuotedStr forces double-quote style on all member id/value scalars so the
+            # SD generator's enum type checker sees a uniform style across all members.
+            member: Dict[str, Any] = {
+                "id": _QuotedStr(m["id"]),
+                "value": _QuotedStr(m["value"]),
+                "brief": m["brief"],
+            }
             if "display_name" in m:
                 member["display_name"] = m["display_name"]
             members.append(member)
@@ -859,28 +906,6 @@ def _emit_id_entry(key: str, entry: Dict[str, Any], semdict_flag: str) -> Dict[s
     return node
 
 
-def _coerce_metric_example(value: Any) -> Any:
-    """Coerce a metric example value to a numeric type.
-
-    Metric examples must be numbers (int or float), not strings.
-    instruments-def stores examples as strings (YAML scalar); convert back.
-
-    Args:
-        value: Raw example value from instruments-def.
-
-    Returns:
-        int or float if parseable, otherwise the original value.
-    """
-    if isinstance(value, (int, float)):
-        return value
-    try:
-        as_str = str(value).strip()
-        if "." in as_str:
-            return float(as_str)
-        return int(as_str)
-    except (ValueError, TypeError):
-        return value
-
 
 def _coerce_attribute_example(value: Any, field_type: str = "") -> Any:
     """Coerce an attribute example to the Python type matching the declared SD field type.
@@ -946,9 +971,6 @@ def _emit_metric_entry(key: str, entry: Dict[str, Any]) -> Dict[str, Any]:
     """
     instrument = _map_metric_instrument(entry.get("__type"))
     description = str(entry.get("__description", "")).strip()
-    example_raw = entry.get("__example", "0")
-    raw_list = example_raw if isinstance(example_raw, list) else [example_raw]
-    examples = [_coerce_metric_example(e) for e in raw_list]
     raw_unit = entry.get("unit") or entry.get("__unit")
     if not raw_unit:
         log.warning("Metric '%s' has no unit; omitting unit field", key)
@@ -958,15 +980,12 @@ def _emit_metric_entry(key: str, entry: Dict[str, Any]) -> Dict[str, Any]:
     if raw_unit_str and mapped_unit != raw_unit_str:
         log.debug("Metric '%s': unit '%s' → '%s'", key, raw_unit_str, mapped_unit)
     display_name = entry.get("displayName") or _make_display_name(key)
-    stability = str(entry.get("__stability") or "experimental").lower()
     node: Dict[str, Any] = {
         "id": key,
         "type": "metric",
         "metric_name": key,
         "instrument": instrument,
-        "stability": stability,
         "brief": description,
-        "examples": examples,
         "title": display_name,
     }
     if mapped_unit:
