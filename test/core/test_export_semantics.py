@@ -1416,8 +1416,8 @@ class TestEnumDescriptionInSemantics:
         result = _get_clean_description(details)
 
         # Trailing period stripped from brief → no ".," or ".." artifact inside the list
-        assert "<li>- `DONE` — Completed successfully" in result
-        assert "<li>- `DONE` — Completed successfully.," not in result
+        assert "<li> `DONE` — Completed successfully" in result
+        assert "<li> `DONE` — Completed successfully.," not in result
 
     def test_enum_without_brief_renders_value_only(self):
         """Enum members without a brief must render as just `VALUE` without the dash."""
@@ -1433,7 +1433,7 @@ class TestEnumDescriptionInSemantics:
             },
         }
         result = _get_clean_description(details)
-        assert "<li>- `FOO`" in result
+        assert "<li> `FOO`" in result
         assert " — " not in result
 
     def test_no_enum_description_unchanged(self):

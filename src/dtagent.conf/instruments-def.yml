@@ -48,6 +48,9 @@ dimensions:
     __semdict_note: >-
       OTel Semantic Conventions stable canonical name (since v1.26). DSOA co-emits this alongside the deprecated
       `deployment.environment` during the migration window. Operators should migrate DQL queries to filter by this key.
+    __interface_note: >-
+      User-configured deployment environment label (OTel-stable canonical key), e.g. 'PROD', 'STG', or 'DEV'. Set via
+      'core.snowflake.deployment_environment'. Prefer this key over the deprecated deployment.environment alias.
     __description: >-
       The deployment environment name (OTel semconv canonical field), e.g., production,
       staging, or development. Emitted alongside deployment.environment during the deprecation window.
