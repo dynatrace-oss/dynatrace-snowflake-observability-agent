@@ -391,6 +391,20 @@ def _represent_quoted_str(dumper: _IndentedDumper, data: str) -> yaml.ScalarNode
 _IndentedDumper.add_representer(_QuotedStr, _represent_quoted_str)
 
 
+class _SingleQuotedStr(str):
+    """String that is always serialised with single-quote YAML style.
+
+    Used for attribute example values so they match hand-authored SD YAML convention.
+    """
+
+
+def _represent_single_quoted_str(dumper: _IndentedDumper, data: str) -> yaml.ScalarNode:
+    return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="'")
+
+
+_IndentedDumper.add_representer(_SingleQuotedStr, _represent_single_quoted_str)
+
+
 ##endregion
 
 
@@ -795,10 +809,10 @@ def _coerce_string_array_examples(key: str, example_raw: Any) -> List[List[str]]
     if isinstance(example_raw, list):
         if example_raw and isinstance(example_raw[0], list):
             # Already list-of-lists — validate/coerce inner elements to str
-            return [[str(item) for item in inner] for inner in example_raw]
+            return [[_SingleQuotedStr(item) for item in inner] for inner in example_raw]
         # Flat list — wrap in outer list
         log.debug("string[] field '%s': wrapping flat list example in outer list", key)
-        return [[str(item) for item in example_raw]]
+        return [[_SingleQuotedStr(item) for item in example_raw]]
 
     # Scalar — try JSON parse first
     as_str = str(example_raw).strip()
@@ -807,11 +821,11 @@ def _coerce_string_array_examples(key: str, example_raw: Any) -> List[List[str]]
             parsed = json.loads(as_str)
             if isinstance(parsed, list):
                 log.debug("string[] field '%s': parsed JSON array scalar example", key)
-                return [[str(item) for item in parsed]]
+                return [[_SingleQuotedStr(item) for item in parsed]]
         except (json.JSONDecodeError, ValueError):
             log.debug("string[] field '%s': JSON parse failed on scalar; wrapping as single string", key)
 
-    return [[as_str]]
+    return [[_SingleQuotedStr(as_str)]]
 
 
 def _emit_id_entry(key: str, entry: Dict[str, Any], semdict_flag: str) -> Dict[str, Any]:
@@ -955,8 +969,8 @@ def _coerce_attribute_example(value: Any, field_type: str = "") -> Any:
         return lowered not in ("false", "0", "no", "")
     # Default: string (also handles string[], array, record, enum, timestamp, unknown)
     if isinstance(value, bool):
-        return "true" if value else "false"
-    return str(value).strip()
+        return _SingleQuotedStr("true" if value else "false")
+    return _SingleQuotedStr(str(value).strip())
 
 
 def _emit_metric_entry(key: str, entry: Dict[str, Any]) -> Dict[str, Any]:
