@@ -59,11 +59,13 @@ import argparse
 import json
 import logging
 import os
+import re
 import sys
 from pathlib import Path
 from typing import Any, ClassVar, Dict, List, Optional, Set, Tuple
 
 import yaml
+from ruamel.yaml import YAML as RuamelYAML
 
 # Load .env file if present (never fails — python-dotenv optional, raw parsing fallback).
 def _load_dotenv(env_path: Path) -> None:
@@ -332,6 +334,54 @@ log = logging.getLogger(__name__)
 
 ##region YAML output helpers
 
+_FLOW_SEQ_RE = re.compile(r"^(\s+\S+:\s*)\[([^\]]+)\]$", re.MULTILINE)
+
+
+def _add_flow_seq_spaces(content: str) -> str:
+    """Add spaces inside YAML flow-sequence brackets to match SD convention.
+
+    Transforms ``['A']`` → ``[ 'A' ]``.  Only matches ``key: [...]`` patterns on
+    their own line, so markdown links inside block scalars are unaffected.
+    """
+    return _FLOW_SEQ_RE.sub(r"\1[ \2 ]", content)
+
+
+def _make_ruamel_yaml() -> RuamelYAML:
+    """Return a ruamel.yaml instance configured for round-trip YAML processing.
+
+    ``preserve_quotes=True`` keeps single/double/block-scalar styles intact.
+    ``indent(mapping=2, sequence=4, offset=2)`` matches the SD 2-space list style
+    so existing files are re-emitted byte-for-byte (including inline comments)
+    except for appended DSOA additions.
+    """
+    ry = RuamelYAML()
+    ry.preserve_quotes = True
+    ry.width = 200
+    ry.indent(mapping=2, sequence=4, offset=2)
+    return ry
+
+
+def _merge_into_ruamel(existing, new) -> None:
+    """Merge DSOA groups from *new* CommentedMap into *existing* CommentedMap in-place.
+
+    Preserves all existing content (including inline comments) unchanged.
+    Only appends new group IDs or new attribute IDs not already present.
+    """
+    if "groups" not in existing or "groups" not in new:
+        return
+    existing_by_id = {g["id"]: g for g in existing.get("groups", [])}
+    for new_group in new.get("groups", []):
+        gid = new_group["id"]
+        if gid in existing_by_id:
+            ex_g = existing_by_id[gid]
+            ex_attrs = ex_g.get("attributes", [])
+            ex_ids = {a.get("id") or a.get("ref") for a in ex_attrs}
+            for new_attr in new_group.get("attributes", []):
+                if (new_attr.get("id") or new_attr.get("ref")) not in ex_ids:
+                    ex_attrs.append(new_attr)
+        else:
+            existing["groups"].append(new_group)
+
 
 class _IndentedDumper(yaml.Dumper):  # pylint: disable=too-many-ancestors
     """YAML Dumper that properly indents block sequence items and preserves multi-line strings.
@@ -396,7 +446,10 @@ class _IndentedDumper(yaml.Dumper):  # pylint: disable=too-many-ancestors
             YAML scalar node.
         """
         if "\n" in data:
-            return self.represent_scalar("tag:yaml.org,2002:str", data, style="|")
+            # Use folded (>) for single-line content with trailing newline; literal (|) for
+            # true multi-line content (e.g. DQL queries) where newlines must be preserved.
+            style = ">" if data.endswith("\n") and data.count("\n") == 1 else "|"
+            return self.represent_scalar("tag:yaml.org,2002:str", data, style=style)
         if data in self._YAML11_BOOL_SYNONYMS:
             return self.represent_scalar("tag:yaml.org,2002:str", data, style='"')
         return self.represent_scalar("tag:yaml.org,2002:str", data)
@@ -415,7 +468,7 @@ class _IndentedDumper(yaml.Dumper):  # pylint: disable=too-many-ancestors
         Returns:
             YAML sequence node.
         """
-        if flow_style is None and len(sequence) == 1 and not isinstance(sequence[0], (dict, list)):
+        if flow_style is None and sequence and not any(isinstance(v, (dict, list)) for v in sequence):
             flow_style = True
         return super().represent_sequence(tag, sequence, flow_style=flow_style)
 
@@ -815,15 +868,13 @@ def _build_type_node(entry: Dict[str, Any]) -> Any:
     if enum_def:
         members = []
         for m in enum_def.get("members", []):
-            # _QuotedStr forces double-quote style on all member id/value scalars so the
-            # SD generator's enum type checker sees a uniform style across all members.
             member: Dict[str, Any] = {
-                "id": _QuotedStr(m["id"]),
-                "value": _QuotedStr(m["value"]),
+                "id": m["id"],                               # plain — SD: no quotes on member id
+                "value": _QuotedStr(m["value"]),             # double-quoted — SD convention
                 "brief": m["brief"],
             }
             if "display_name" in m:
-                member["display_name"] = m["display_name"]
+                member["display_name"] = _SingleQuotedStr(m["display_name"])  # single-quoted
             members.append(member)
         return {"allow_custom_values": bool(enum_def.get("allow_custom_values", True)), "members": members}
     return _map_attr_type(entry.get("__type"))
@@ -929,7 +980,7 @@ def _emit_id_entry(key: str, entry: Dict[str, Any], semdict_flag: str) -> Dict[s
         deprecated_msg = f"Use {entry['__otel_replacement']} instead." if entry.get("__otel_replacement") else "Deprecated."
         node: Dict[str, Any] = {
             "id": key,
-            "display_name": _make_display_name(key),
+            "display_name": _SingleQuotedStr(_make_display_name(key)),
             "type": attr_type,
             "deprecated": deprecated_msg,
             "brief": description,
@@ -938,7 +989,7 @@ def _emit_id_entry(key: str, entry: Dict[str, Any], semdict_flag: str) -> Dict[s
     else:
         node = {
             "id": key,
-            "display_name": _make_display_name(key),
+            "display_name": _SingleQuotedStr(_make_display_name(key)),
             "type": attr_type,
             "stability": stability,
             "brief": description,
@@ -1072,11 +1123,17 @@ def _requote_scalars(doc: Dict[str, Any]) -> None:
     """Re-wrap string scalars that require explicit quoting after a YAML round-trip.
 
     yaml.safe_load strips subclass type info (_SingleQuotedStr, _QuotedStr), turning
-    them back into plain str. This restores single-quote style on all example values
-    and enum member id/value fields before writing.
+    them back into plain str. This restores the correct quote style per SD convention:
+    - attribute display_name: single-quoted
+    - examples: single-quoted
+    - member id: plain (no re-wrapping needed)
+    - member value: double-quoted
+    - member display_name: single-quoted
     """
     for group in doc.get("groups", []):
         for attr in group.get("attributes", []):
+            if isinstance(attr.get("display_name"), str):
+                attr["display_name"] = _SingleQuotedStr(attr["display_name"])
             if "examples" in attr:
                 attr["examples"] = [
                     _SingleQuotedStr(v) if isinstance(v, str) else v
@@ -1085,9 +1142,10 @@ def _requote_scalars(doc: Dict[str, Any]) -> None:
             attr_type = attr.get("type")
             if isinstance(attr_type, dict):
                 for member in attr_type.get("members", []):
-                    for key in ("id", "value"):
-                        if isinstance(member.get(key), str):
-                            member[key] = _SingleQuotedStr(member[key])
+                    if isinstance(member.get("value"), str):
+                        member["value"] = _QuotedStr(member["value"])
+                    if isinstance(member.get("display_name"), str):
+                        member["display_name"] = _SingleQuotedStr(member["display_name"])
 
 
 ##region SemanticExporter
@@ -1828,42 +1886,6 @@ class SemanticExporter:
 
     ##region File writing
 
-    @staticmethod
-    def _merge_group(existing_group: Dict[str, Any], new_group: Dict[str, Any]) -> Dict[str, Any]:
-        """Merge DSOA attributes into an existing group, appending only new attribute IDs."""
-        existing_attrs = existing_group.get("attributes", [])
-        new_attrs = new_group.get("attributes", [])
-        existing_ids = {a.get("id") or a.get("ref") for a in existing_attrs}
-        added = [a for a in new_attrs if (a.get("id") or a.get("ref")) not in existing_ids]
-        merged = dict(existing_group)
-        merged["attributes"] = existing_attrs + added
-        return merged
-
-    @staticmethod
-    def _merge_yaml_doc(existing: Dict[str, Any], new: Dict[str, Any]) -> Dict[str, Any]:
-        """Merge DSOA groups into an existing YAML doc, preserving non-DSOA content.
-
-        Existing groups are kept in their original order. Where a group ID matches a
-        DSOA-generated group, attributes are merged at field level (DSOA adds new
-        attribute IDs, existing ones are untouched). New DSOA groups are appended.
-        """
-        if "groups" not in existing or "groups" not in new:
-            return new
-        new_by_id = {g["id"]: g for g in new["groups"]}
-        merged: List[Dict[str, Any]] = []
-        seen: set = set()
-        for g in existing["groups"]:
-            gid = g["id"]
-            if gid in new_by_id:
-                merged.append(SemanticExporter._merge_group(g, new_by_id[gid]))
-            else:
-                merged.append(g)
-            seen.add(gid)
-        for g in new["groups"]:
-            if g["id"] not in seen:
-                merged.append(g)
-        return {**existing, "groups": merged}
-
     def _write_yaml(self, doc: Dict[str, Any], rel_path: str) -> Path:
         """Write a YAML document to the output directory.
 
@@ -1883,13 +1905,21 @@ class SemanticExporter:
         """
         out_path = self.output_dir / rel_path
         out_path.parent.mkdir(parents=True, exist_ok=True)
-        if out_path.exists():
-            with open(out_path, "r", encoding="utf-8") as fh:
-                existing = yaml.safe_load(fh) or {}
-            doc = self._merge_yaml_doc(existing, doc)
         _requote_scalars(doc)
-        with open(out_path, "w", encoding="utf-8") as fh:
-            yaml.dump(doc, fh, Dumper=_IndentedDumper, default_flow_style=False, allow_unicode=True, sort_keys=False, width=200)
+        dsoa_text = yaml.dump(doc, Dumper=_IndentedDumper, default_flow_style=False, allow_unicode=True, sort_keys=False, width=200)
+        dsoa_text = _add_flow_seq_spaces(dsoa_text)
+        if not out_path.exists():
+            out_path.write_text(dsoa_text, encoding="utf-8")
+        else:
+            # Use ruamel.yaml round-trip merge so inline comments in the existing file
+            # (e.g. stability: experimental # traces-in-grail) are preserved.
+            ry = _make_ruamel_yaml()
+            dsoa_cm = ry.load(dsoa_text)
+            with open(out_path, "r", encoding="utf-8") as fh:
+                existing_cm = ry.load(fh)
+            _merge_into_ruamel(existing_cm, dsoa_cm)
+            with open(out_path, "w", encoding="utf-8") as fh:
+                ry.dump(existing_cm, fh)
         log.debug("Wrote %s", out_path)
         self._counters["files"] += 1
         return out_path
