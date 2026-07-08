@@ -22,6 +22,7 @@ test/test_data/*.pkl
 # === Credentials & Secrets ===
 *.token
 *credentials*.*
+.env
 
 # === Logs ===
 log.*

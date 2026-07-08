@@ -16,14 +16,13 @@
 #  * Catalog of instrumentation known to Dynatrace Snowflake Observability Agent
 dimensions:
   db.system:
-    __semdict: otel-only
+    __semdict: ref
     __stability: stable
     __interface_note: "Always 'snowflake' for all DSOA telemetry."
     __semdict_note: >-
-      Defined in OpenTelemetry Semantic Conventions (db.system, stable) but not yet present as a globally referenceable field in the
-      Dynatrace Semantic Dictionary. Emitting as a new id: definition here so DSOA can declare it properly. The value for Snowflake is
-      always 'snowflake'. NOTE: OTel semconv renamed db.system to db.system.name (stable since v1.30). DSOA continues to emit db.system for
-      backward compatibility; migration to db.system.name planned for a future release.
+      Defined in the Dynatrace Semantic Dictionary as a global field (db group). DSOA references it via the i.dsoa_resource
+      interface. The value for Snowflake is always 'snowflake'. NOTE: OTel semconv renamed db.system to db.system.name (stable
+      since v1.30). DSOA continues to emit db.system for backward compatibility; migration to db.system.name planned for a future release.
     __description: "The database management system (DBMS) product being used. It is always 'snowflake'"
     __example: "snowflake"
     __type: string
