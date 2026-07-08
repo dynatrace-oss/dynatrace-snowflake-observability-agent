@@ -1019,6 +1019,28 @@ def _emit_metric_entry(key: str, entry: Dict[str, Any]) -> Dict[str, Any]:
 ##endregion
 
 
+def _requote_scalars(doc: Dict[str, Any]) -> None:
+    """Re-wrap string scalars that require explicit quoting after a YAML round-trip.
+
+    yaml.safe_load strips subclass type info (_SingleQuotedStr, _QuotedStr), turning
+    them back into plain str. This restores single-quote style on all example values
+    and enum member id/value fields before writing.
+    """
+    for group in doc.get("groups", []):
+        for attr in group.get("attributes", []):
+            if "examples" in attr:
+                attr["examples"] = [
+                    _SingleQuotedStr(v) if isinstance(v, str) else v
+                    for v in attr["examples"]
+                ]
+            attr_type = attr.get("type")
+            if isinstance(attr_type, dict):
+                for member in attr_type.get("members", []):
+                    for key in ("id", "value"):
+                        if isinstance(member.get(key), str):
+                            member[key] = _SingleQuotedStr(member[key])
+
+
 ##region SemanticExporter
 
 
@@ -1269,22 +1291,25 @@ class SemanticExporter:
             groups_map[group_id]["attrs"].append(self._build_attribute_node(key, all_signal[key]))
             self._counters["signal_fields"] += 1
 
-        # One file per group_id — replace dots with underscores for filenames
+        # One file per group_id — snowflake_* groups are combined into a single snowflake.yaml
         docs: Dict[str, Dict[str, Any]] = {}
         for gid in sorted(groups_map):
-            filename = gid.replace(".", "_") + ".yaml"
-            doc = {
-                "groups": [
-                    {
-                        "id": gid,
-                        "type": groups_map[gid]["type"],
-                        "title": _make_display_name(gid) + " signal fields",
-                        "brief": f"Signal-level fields for {_make_display_name(gid)} telemetry.",
-                        "attributes": groups_map[gid]["attrs"],
-                    }
-                ]
+            group_entry = {
+                "id": gid,
+                "type": groups_map[gid]["type"],
+                "title": _make_display_name(gid) + " signal fields",
+                "brief": f"Signal-level fields for {_make_display_name(gid)} telemetry.",
+                "attributes": groups_map[gid]["attrs"],
             }
-            docs[f"fields/signal_fields/{filename}"] = doc
+            if gid.startswith("snowflake"):
+                rel_path = "fields/signal_fields/snowflake.yaml"
+                if rel_path in docs:
+                    docs[rel_path]["groups"].append(group_entry)
+                else:
+                    docs[rel_path] = {"groups": [group_entry]}
+            else:
+                filename = gid.replace(".", "_") + ".yaml"
+                docs[f"fields/signal_fields/{filename}"] = {"groups": [group_entry]}
         return docs
 
     def _build_interfaces_yaml(self, all_entries: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -1754,8 +1779,48 @@ class SemanticExporter:
 
     ##region File writing
 
+    @staticmethod
+    def _merge_group(existing_group: Dict[str, Any], new_group: Dict[str, Any]) -> Dict[str, Any]:
+        """Merge DSOA attributes into an existing group, appending only new attribute IDs."""
+        existing_attrs = existing_group.get("attributes", [])
+        new_attrs = new_group.get("attributes", [])
+        existing_ids = {a.get("id") or a.get("ref") for a in existing_attrs}
+        added = [a for a in new_attrs if (a.get("id") or a.get("ref")) not in existing_ids]
+        merged = dict(existing_group)
+        merged["attributes"] = existing_attrs + added
+        return merged
+
+    @staticmethod
+    def _merge_yaml_doc(existing: Dict[str, Any], new: Dict[str, Any]) -> Dict[str, Any]:
+        """Merge DSOA groups into an existing YAML doc, preserving non-DSOA content.
+
+        Existing groups are kept in their original order. Where a group ID matches a
+        DSOA-generated group, attributes are merged at field level (DSOA adds new
+        attribute IDs, existing ones are untouched). New DSOA groups are appended.
+        """
+        if "groups" not in existing or "groups" not in new:
+            return new
+        new_by_id = {g["id"]: g for g in new["groups"]}
+        merged: List[Dict[str, Any]] = []
+        seen: set = set()
+        for g in existing["groups"]:
+            gid = g["id"]
+            if gid in new_by_id:
+                merged.append(SemanticExporter._merge_group(g, new_by_id[gid]))
+            else:
+                merged.append(g)
+            seen.add(gid)
+        for g in new["groups"]:
+            if g["id"] not in seen:
+                merged.append(g)
+        return {**existing, "groups": merged}
+
     def _write_yaml(self, doc: Dict[str, Any], rel_path: str) -> Path:
         """Write a YAML document to the output directory.
+
+        When the target file already exists, DSOA groups are merged into it rather
+        than replacing the file wholesale — preserving SD-maintained content in
+        groups that DSOA does not own.
 
         Uses :class:`_IndentedDumper` to produce properly indented block sequences
         per Semantic Dictionary YAML conventions.
@@ -1769,6 +1834,11 @@ class SemanticExporter:
         """
         out_path = self.output_dir / rel_path
         out_path.parent.mkdir(parents=True, exist_ok=True)
+        if out_path.exists():
+            with open(out_path, "r", encoding="utf-8") as fh:
+                existing = yaml.safe_load(fh) or {}
+            doc = self._merge_yaml_doc(existing, doc)
+        _requote_scalars(doc)
         with open(out_path, "w", encoding="utf-8") as fh:
             yaml.dump(doc, fh, Dumper=_IndentedDumper, default_flow_style=False, allow_unicode=True, sort_keys=False, width=200)
         log.debug("Wrote %s", out_path)
