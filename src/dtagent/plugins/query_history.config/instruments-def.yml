@@ -93,13 +93,13 @@ attributes:
     __span_only: true
   dsoa.plugins.query_history.obfuscation_mode:
     __stability: stable
-    __example: "off"
+    __example: "none"
     __type: string
     __enum:
       allow_custom_values: false
       members:
-        - id: "off"
-          value: "off"
+        - id: "none"
+          value: "none"
           brief: No obfuscation applied.
         - id: "literals"
           value: "literals"
@@ -109,7 +109,7 @@ attributes:
           brief: Entire query text is replaced with `[OBFUSCATED]`.
     __description: |
       Configuration key controlling query text obfuscation mode applied to `db.query.text` and `snowflake.error.message`.
-      Possible values: `off` (no transformation), `literals` (replace string and numeric literals with `?`),
+      Possible values: `none` (no transformation), `literals` (replace string and numeric literals with `?`),
       `full` (replace entire query text with `[OBFUSCATED]`).
   dsoa.plugins.query_history.track_ddl_changes:
     __stability: experimental
