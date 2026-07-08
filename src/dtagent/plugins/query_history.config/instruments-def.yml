@@ -54,13 +54,13 @@ attributes:
   dsoa.debug.span.events.failed:
     __example: 1
     __description: Internal debug field indicating the number of span events that failed to be added to the given span.
-  dsoa.plugins.query_history.obfuscation_mode:
+  plugins.query_history.obfuscation_mode:
     __example: "off"
     __description: |
       Configuration key controlling query text obfuscation mode applied to `db.query.text` and `snowflake.error.message`.
       Possible values: `off` (no transformation), `literals` (replace string and numeric literals with `?`),
       `full` (replace entire query text with `[OBFUSCATED]`).
-  dsoa.plugins.query_history.track_ddl_changes:
+  plugins.query_history.track_ddl_changes:
     __example: "false"
     __is_defined_at_runtime: true
     __description: |

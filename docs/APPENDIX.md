@@ -277,5 +277,3 @@ The table below lists all field renames.
 | session.id                               | snowflake.session.id                         |
 | status.code                              | snowflake.status.code                        |
 | status.message                           | snowflake.status.message                     |
-| plugins.query_history.obfuscation_mode   | dsoa.plugins.query_history.obfuscation_mode  |
-| plugins.query_history.track_ddl_changes  | dsoa.plugins.query_history.track_ddl_changes |
