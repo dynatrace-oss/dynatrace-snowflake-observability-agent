@@ -38,10 +38,9 @@ variables:
     input: |-
       fetch logs, from: now()-7d
       | filter db.system == "snowflake"
-      | fields coalesce(deployment.environment.name, deployment.environment)
-      | dedup coalesce(deployment.environment.name, deployment.environment)
-      | sort coalesce(deployment.environment.name, deployment.environment) asc
-
+      | fields env_name = coalesce(deployment.environment.name, deployment.environment)
+      | dedup env_name
+      | sort env_name asc
   - version: 2
     key: Budget
     type: query
@@ -102,7 +101,7 @@ tiles:
       | filter isNotNull(`snowflake.budget.name`)
       | summarize {
           spent = sum(toDouble(`snowflake.credits.spent`))
-        }, by: { `snowflake.budget.name`, coalesce(deployment.environment.name, deployment.environment) }
+        }, by: { `snowflake.budget.name`, env_name = coalesce(deployment.environment.name, deployment.environment) }
       | join [
           fetch logs
           | filter db.system == "snowflake"
@@ -118,7 +117,7 @@ tiles:
         , fields: { limit_val }
       | fields
           `Budget`   = `snowflake.budget.name`,
-          `Account`  = coalesce(deployment.environment.name, deployment.environment),
+          `Account`  = env_name,
           `Spent`    = spent,
           `Limit`    = limit_val,
           `% Used`   = if(limit_val > 0, spent / limit_val * 100, else: 0)
@@ -253,11 +252,11 @@ tiles:
           limit_val  = max(toDouble(`snowflake.credits.limit`)),
           owner      = takeLast(`snowflake.budget.owner`),
           resource   = takeLast(`snowflake.budget.resource`)
-        }, by: { `snowflake.budget.name`, coalesce(deployment.environment.name, deployment.environment) }
+        }, by: { `snowflake.budget.name`, env_name = coalesce(deployment.environment.name, deployment.environment) }
       | sort `snowflake.budget.name` asc
       | fields
           `Budget`         = `snowflake.budget.name`,
-          `Account`        = coalesce(deployment.environment.name, deployment.environment),
+          `Account`        = env_name,
           `Limit (Credits)` = limit_val,
           `Owner`          = owner,
           `Resources`      = resource
@@ -302,11 +301,11 @@ tiles:
           execution_state  = takeLast(`snowflake.warehouse.execution_state`),
           auto_resume      = takeLast(`snowflake.warehouse.is_auto_resume`),
           is_unmonitored   = takeLast(`snowflake.warehouse.is_unmonitored`)
-        }, by: { `snowflake.warehouse.name`, coalesce(deployment.environment.name, deployment.environment) }
+        }, by: { `snowflake.warehouse.name`, env_name = coalesce(deployment.environment.name, deployment.environment) }
       | sort `snowflake.warehouse.name` asc
       | fields
           `Warehouse`       = `snowflake.warehouse.name`,
-          `Account`         = coalesce(deployment.environment.name, deployment.environment),
+          `Account`         = env_name,
           `Size`            = size,
           `Scaling Policy`  = scaling_policy,
           `Min Clusters`    = min_clusters,

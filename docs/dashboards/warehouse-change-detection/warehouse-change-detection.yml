@@ -43,9 +43,9 @@ variables:
       | parse upper(content), """('CREATE'|'DROP'|'ALTER'):operation SPACE+ ('WAREHOUSE'):object SPACE LDATA"""
       | filter isNotNull(operation) and isNotNull(object)
       | filter isNotNull(coalesce(deployment.environment.name, deployment.environment))
-      | fields coalesce(deployment.environment.name, deployment.environment)
-      | dedup coalesce(deployment.environment.name, deployment.environment)
-      | sort coalesce(deployment.environment.name, deployment.environment) asc
+      | fields env_name = coalesce(deployment.environment.name, deployment.environment)
+      | dedup env_name
+      | sort env_name asc
   - version: 2
     key: Operation
     type: query

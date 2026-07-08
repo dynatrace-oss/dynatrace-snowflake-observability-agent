@@ -38,10 +38,10 @@ variables:
       fetch logs
       | filter db.system == "snowflake"
       | filter dsoa.run.context == "task_history" or dsoa.run.context == "dynamic_tables"
-      | fields coalesce(deployment.environment.name, deployment.environment)
-      | dedup coalesce(deployment.environment.name, deployment.environment)
-      | filterOut isNull(coalesce(deployment.environment.name, deployment.environment))
-      | sort coalesce(deployment.environment.name, deployment.environment) asc
+      | fields env_name = coalesce(deployment.environment.name, deployment.environment)
+      | dedup env_name
+      | filterOut isNull(env_name)
+      | sort env_name asc
     multiple: true
     defaultValue:
       - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
@@ -696,7 +696,7 @@ tiles:
       | sort ratio asc
       | fields
           `Table` = snowflake.table.full_name,
-          `Account` = coalesce(deployment.environment.name, deployment.environment),
+          `Account` = `deployment.environment`,
           `Within-Target Ratio` = ratio
     visualization: table
     visualizationSettings:

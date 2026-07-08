@@ -38,7 +38,7 @@ variables:
       | filter db.system == "snowflake"
       | filter isNotNull(coalesce(deployment.environment.name, deployment.environment))
       | fields `deployment.environment` = coalesce(deployment.environment.name, deployment.environment)
-      | dedup coalesce(deployment.environment.name, deployment.environment)
+      | dedup `deployment.environment`
       | sort `deployment.environment` asc
     multiple: true
     defaultValue:
@@ -1071,7 +1071,7 @@ tiles:
       | filterOut is_finished
       | fieldsRemove is_finished
       // -- filter out queries without resource monitor
-      | fieldsAdd join_key = concat(coalesce(deployment.environment.name, deployment.environment), "|", snowflake.warehouse.name)
+      | fieldsAdd join_key = concat(`deployment.environment`, "|", snowflake.warehouse.name)
       | join [
         fetch events
         | filter db.system == "snowflake"
@@ -1079,7 +1079,7 @@ tiles:
         | filter snowflake.resource_monitor.name != "ACCOUNT_GLOBAL_MONITOR"
         | filter isNotNull(snowflake.warehouse.name) and isNotNull(snowflake.resource_monitor.name)
         | summarize snowflake.credits.quota.remaining = toDouble(takeLast(snowflake.credits.quota.remaining)),
-               by: {join_key = concat(coalesce(deployment.environment.name, deployment.environment), "|", snowflake.warehouse.name),
+               by: {join_key = concat(`deployment.environment`, "|", snowflake.warehouse.name),
                     snowflake.warehouse.size,
                     snowflake.resource_monitor.name}
       ]
@@ -1089,7 +1089,7 @@ tiles:
       | fieldsRemove join_key
       | filterOut isNull(snowflake.resource_monitor.name)
       // ------
-      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
+      | filter in(`deployment.environment`, array($Accounts))
            and iAny(startsWith(snowflake.warehouse.name, concat(array($Prefix)[], "_")))
            and in(snowflake.resource_monitor.name, array($Resource_Monitors))
            and in(snowflake.warehouse.name, array($Warehouses))
@@ -1134,7 +1134,7 @@ tiles:
           `Expected Costs`=coalesce(snowflake.query.credits.expected, 0),
           `Query SQL`=substring(db.query.text, to: 15),
           `Query Hash`=snowflake.query.hash,
-          `Account`=coalesce(deployment.environment.name, deployment.environment),
+          `Account`=`deployment.environment`,
           `Warehouse`=snowflake.warehouse.name,
           `Warehouse Size`=coalesce(snowflake.warehouse.size, "-"),
           `Warehouse Costs`=coalesce(snowflake.warehouse.cost, "-")
