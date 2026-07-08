@@ -134,7 +134,7 @@ tiles:
       | filter in(snowflake.schema.name, array($Schema))
       | filter in(snowflake.task.name, array($TaskOrTable))
       | filter isNotNull(snowflake.task.run.state)
-      | makeTimeseries count = count(), by: { snowflake.task.run.state, `deployment.environment` = coalesce(deployment.environment.name, deployment.environment) }
+      | makeTimeseries count = count(), by: { snowflake.task.run.state, env_name = coalesce(deployment.environment.name, deployment.environment) }
     visualization: barChart
     visualizationSettings:
       chartSettings:
@@ -233,7 +233,7 @@ tiles:
       | filter isNotNull(snowflake.task.run.scheduled_time)
       | filter toLong(snowflake.task.run.scheduled_time) > 0
       | fieldsAdd duration_sec = (toLong(snowflake.task.run.completed_time) - toLong(snowflake.task.run.scheduled_time)) / 1000000000
-      | makeTimeseries avg_duration = avg(duration_sec), by: { snowflake.task.name, `deployment.environment` = coalesce(deployment.environment.name, deployment.environment) }
+      | makeTimeseries avg_duration = avg(duration_sec), by: { snowflake.task.name, env_name = coalesce(deployment.environment.name, deployment.environment) }
     visualization: lineChart
     visualizationSettings:
       chartSettings:
@@ -295,7 +295,7 @@ tiles:
       | filter in(snowflake.schema.name, array($Schema))
       | filter in(snowflake.task.name, array($TaskOrTable))
       | filter snowflake.task.run.attempt > 1
-      | makeTimeseries retries = count(), by: { snowflake.task.name, `deployment.environment` = coalesce(deployment.environment.name, deployment.environment) }
+      | makeTimeseries retries = count(), by: { snowflake.task.name, env_name = coalesce(deployment.environment.name, deployment.environment) }
     visualization: barChart
     visualizationSettings:
       chartSettings:
@@ -496,12 +496,12 @@ tiles:
       | sort timestamp desc
       | summarize {
           state = takeFirst(snowflake.table.dynamic.scheduling.state)
-        }, by: { db.collection.name, `deployment.environment` = coalesce(deployment.environment.name, deployment.environment) }
+        }, by: { db.collection.name, env_name = coalesce(deployment.environment.name, deployment.environment) }
       | fieldsAdd state_code = toLong(
           if(state == "ACTIVE", 1,
           else: if(state == "SUSPENDED", 2, else: 3))
         )
-      | fields db.collection.name, `deployment.environment`, state, state_code
+      | fields db.collection.name, env_name, state, state_code
     visualization: honeycomb
     visualizationSettings:
       honeycomb:
@@ -565,7 +565,7 @@ tiles:
       | makeTimeseries {
           mean_lag = avg(toDouble(snowflake.table.dynamic.lag.mean)),
           max_lag = max(toDouble(snowflake.table.dynamic.lag.max))
-        }, by: { db.collection.name, `deployment.environment` = coalesce(deployment.environment.name, deployment.environment) }
+        }, by: { db.collection.name, env_name = coalesce(deployment.environment.name, deployment.environment) }
     visualization: lineChart
     visualizationSettings:
       chartSettings:
@@ -636,7 +636,7 @@ tiles:
       | filter in(snowflake.schema.name, array($Schema))
       | filter in(db.collection.name, array($TaskOrTable))
       | filter isNotNull(snowflake.table.dynamic.lag.target.time_above)
-      | makeTimeseries above = max(toDouble(snowflake.table.dynamic.lag.target.time_above)), by: { db.collection.name, `deployment.environment` = coalesce(deployment.environment.name, deployment.environment) }
+      | makeTimeseries above = max(toDouble(snowflake.table.dynamic.lag.target.time_above)), by: { db.collection.name, env_name = coalesce(deployment.environment.name, deployment.environment) }
     visualization: barChart
     visualizationSettings:
       chartSettings:
@@ -692,11 +692,11 @@ tiles:
       | filter in(snowflake.schema.name, array($Schema))
       | filter in(db.collection.name, array($TaskOrTable))
       | filter isNotNull(snowflake.table.dynamic.lag.target.within_ratio)
-      | summarize ratio = avg(toDouble(snowflake.table.dynamic.lag.target.within_ratio)), by: { snowflake.table.full_name, `deployment.environment` = coalesce(deployment.environment.name, deployment.environment) }
+      | summarize ratio = avg(toDouble(snowflake.table.dynamic.lag.target.within_ratio)), by: { snowflake.table.full_name, env_name = coalesce(deployment.environment.name, deployment.environment) }
       | sort ratio asc
       | fields
           `Table` = snowflake.table.full_name,
-          `Account` = `deployment.environment`,
+          `Account` = env_name,
           `Within-Target Ratio` = ratio
     visualization: table
     visualizationSettings:
