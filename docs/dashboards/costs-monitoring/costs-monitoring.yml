@@ -1079,7 +1079,7 @@ tiles:
         | filter snowflake.resource_monitor.name != "ACCOUNT_GLOBAL_MONITOR"
         | filter isNotNull(snowflake.warehouse.name) and isNotNull(snowflake.resource_monitor.name)
         | summarize snowflake.credits.quota.remaining = toDouble(takeLast(snowflake.credits.quota.remaining)),
-               by: {join_key = concat(`deployment.environment`, "|", snowflake.warehouse.name),
+               by: {join_key = concat(coalesce(deployment.environment.name, deployment.environment), "|", snowflake.warehouse.name),
                     snowflake.warehouse.size,
                     snowflake.resource_monitor.name}
       ]
