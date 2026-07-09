@@ -36,28 +36,28 @@ variables:
     input: |
       fetch logs
       | filter db.system == "snowflake"
-      | fields coalesce(deployment.environment.name, deployment.environment)
-      | dedup coalesce(deployment.environment.name, deployment.environment)
+      | fields env_name = coalesce(deployment.environment.name, deployment.environment)
+      | dedup env_name
       | append [
         fetch spans
         | filter db.system == "snowflake"
-        | fields coalesce(deployment.environment.name, deployment.environment)
-        | dedup coalesce(deployment.environment.name, deployment.environment)
+        | fields env_name = coalesce(deployment.environment.name, deployment.environment)
+        | dedup env_name
       ]
       | append [
         fetch events
         | filter db.system == "snowflake"
-        | fields coalesce(deployment.environment.name, deployment.environment)
-        | dedup coalesce(deployment.environment.name, deployment.environment)
+        | fields env_name = coalesce(deployment.environment.name, deployment.environment)
+        | dedup env_name
       ]
       | append [
         fetch bizevents
         | filter db.system == "snowflake"
-        | fields coalesce(deployment.environment.name, deployment.environment)
-        | dedup coalesce(deployment.environment.name, deployment.environment)
+        | fields env_name = coalesce(deployment.environment.name, deployment.environment)
+        | dedup env_name
       ]
-      | dedup coalesce(deployment.environment.name, deployment.environment)
-      | sort coalesce(deployment.environment.name, deployment.environment)
+      | dedup env_name
+      | sort env_name
     multiple: true
     defaultValue:
       - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*

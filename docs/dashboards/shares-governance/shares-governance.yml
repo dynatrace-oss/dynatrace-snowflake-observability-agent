@@ -39,9 +39,9 @@ variables:
       fetch logs
       | filter db.system == "snowflake"
       | filter in(dsoa.run.context, array("outbound_shares", "inbound_shares", "shares"))
-      | fields coalesce(deployment.environment.name, deployment.environment)
-      | dedup coalesce(deployment.environment.name, deployment.environment)
-      | sort coalesce(deployment.environment.name, deployment.environment) asc
+      | fields env_name = coalesce(deployment.environment.name, deployment.environment)
+      | dedup env_name
+      | sort env_name asc
     multiple: true
     defaultValue:
       - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
@@ -228,11 +228,11 @@ tiles:
           last_seen = takeLast(timestamp)
         }, by: {
           snowflake.share.name,
-          coalesce(deployment.environment.name, deployment.environment)
+          env_name = coalesce(deployment.environment.name, deployment.environment)
         }
       | fields
           `Share Name` = snowflake.share.name,
-          `Account` = coalesce(deployment.environment.name, deployment.environment),
+          `Account` = env_name,
           `Database` = database,
           `Error Message` = error,
           `Last Observed` = last_seen
@@ -370,10 +370,10 @@ tiles:
           firstSeen    = min(timestamp),
           lastSeen     = max(timestamp),
           seenRecently = countIf(timestamp >= now()-2h) > 0,
-          by: {coalesce(deployment.environment.name, deployment.environment), snowflake.share.name, db.namespace}
+          by: {env_name = coalesce(deployment.environment.name, deployment.environment), snowflake.share.name, db.namespace}
       | filter seenRecently == false
       | fields
-          `Account`    = coalesce(deployment.environment.name, deployment.environment),
+          `Account`    = env_name,
           `Share`      = snowflake.share.name,
           `Database`   = db.namespace,
           `First Seen` = firstSeen,
