@@ -61,6 +61,7 @@ import logging
 import os
 import re
 import sys
+from io import StringIO
 from pathlib import Path
 from typing import Any, ClassVar, Dict, List, Optional, Set, Tuple
 
@@ -1340,7 +1341,7 @@ class SemanticExporter:
             {
                 "id": gid,
                 "type": sf_groups[gid]["type"],
-                "title": _make_display_name(gid) + " resource fields",
+                "title": _make_display_name(gid) + " resource",
                 "brief": f"Resource-level fields describing Snowflake {_make_display_name(gid)} entities.",
                 "attributes": sf_groups[gid]["attrs"],
             }
@@ -1404,7 +1405,7 @@ class SemanticExporter:
             group_entry = {
                 "id": gid,
                 "type": groups_map[gid]["type"],
-                "title": _make_display_name(gid) + " signal fields",
+                "title": _make_display_name(gid) + " signal",
                 "brief": f"Signal-level fields for {_make_display_name(gid)} telemetry.",
                 "attributes": groups_map[gid]["attrs"],
             }
@@ -1550,7 +1551,6 @@ class SemanticExporter:
         Returns:
             Semconv-compliant YAML document dict with ``model:`` envelope.
         """
-        plugin_title = _restore_acronyms(plugin_name.replace("_", " ").title())
         interfaces = self._select_interfaces(metric_entries, all_entries, dim_plugins, dim_context_by_plugin)
         covered: Set[str] = set(RESOURCE_ATTRIBUTE_KEYS)
         if "i.dsoa_warehouse" in interfaces:
@@ -1603,7 +1603,7 @@ class SemanticExporter:
 
         model_doc: Dict[str, Any] = {
             "id": f"dsoa.metrics.{plugin_name}",
-            "title": f"Snowflake {plugin_title} Metrics",
+            "title": f"Snowflake {plugin_name.replace('_', ' ')} metrics",
             "brief": f"Metrics collected by the DSOA {plugin_name} plugin from Snowflake ACCOUNT_USAGE views.",
             "model_group_id": "dsoa.metrics",
             "data_object": "metric",
@@ -1627,7 +1627,6 @@ class SemanticExporter:
         Returns:
             Semconv-compliant YAML document dict with ``model:`` envelope.
         """
-        plugin_title = _restore_acronyms(plugin_name.replace("_", " ").title())
         plugin_ts_keys = sorted(
             k for k, meta in event_ts_entries.items() if meta["plugin"] == plugin_name and k != "snowflake.event.trigger"
         )
@@ -1636,7 +1635,7 @@ class SemanticExporter:
             self._counters["event_timestamp_fields"] += 1
         model_doc: Dict[str, Any] = {
             "id": f"dsoa.events.{plugin_name}",
-            "title": f"Snowflake {plugin_title} Lifecycle Events",
+            "title": f"Snowflake {plugin_name.replace('_', ' ')} lifecycle events",
             "brief": f"Timestamp-based state-change events emitted by the DSOA {plugin_name} plugin via the OpenPipeline Events API.",
             "model_group_id": "dsoa.events",
             "data_object": "event",
@@ -1648,7 +1647,7 @@ class SemanticExporter:
             {
                 "id": f"dsoa.events.{plugin_name}.fields",
                 "type": "attribute_group",
-                "title": f"{plugin_title} event fields",
+                "title": f"{plugin_name.replace('_', ' ').capitalize()} event fields",
                 "attributes": attrs,
             }
         ]
@@ -1734,11 +1733,10 @@ class SemanticExporter:
         Returns:
             Semconv-compliant YAML document dict with ``model:`` envelope.
         """
-        plugin_title = _restore_acronyms(plugin_name.replace("_", " ").title())
         attr_refs = self._collect_plugin_attribute_refs(plugin_name, all_entries, exclude_span_only=True)
         model_doc: Dict[str, Any] = {
             "id": f"dsoa.logs.{plugin_name}",
-            "title": f"DSOA {plugin_title} Log Records",
+            "title": f"DSOA {plugin_name.replace('_', ' ')} log records",
             "brief": f"Log records emitted by the DSOA {plugin_name} plugin.",
             "model_group_id": "dsoa.logs",
             "data_object": "log",
@@ -1746,15 +1744,18 @@ class SemanticExporter:
         }
         if dql_queries:
             model_doc["dql_queries"] = dql_queries
-        model_doc["groups"] = [
-            {
-                "id": f"dsoa.logs.{plugin_name}.fields",
-                "type": "attribute_group",
-                "title": f"{plugin_title} log record fields",
-                "brief": f"Attribute fields for {_make_display_name(plugin_name)} log records.",
-                "attributes": attr_refs,
-            }
-        ]
+        if attr_refs:
+            model_doc["groups"] = [
+                {
+                    "id": f"dsoa.logs.{plugin_name}.fields",
+                    "type": "attribute_group",
+                    "title": f"{plugin_name.replace('_', ' ').capitalize()} log record fields",
+                    "brief": f"Attribute fields for {_make_display_name(plugin_name)} log records.",
+                    "attributes": attr_refs,
+                }
+            ]
+        else:
+            model_doc["groups"] = []
         return {"model": model_doc}
 
     def _build_span_model_yaml(
@@ -1775,11 +1776,10 @@ class SemanticExporter:
         Returns:
             Semconv-compliant YAML document dict with ``model:`` envelope.
         """
-        plugin_title = _restore_acronyms(plugin_name.replace("_", " ").title())
         attr_refs = self._collect_plugin_attribute_refs(plugin_name, all_entries)
         model_doc: Dict[str, Any] = {
             "id": f"dsoa.spans.{plugin_name}",
-            "title": f"DSOA {plugin_title} Spans",
+            "title": f"DSOA {plugin_name.replace('_', ' ')} spans",
             "brief": f"Span records emitted by the DSOA {plugin_name} plugin.",
             "model_group_id": "dsoa.spans",
             "data_object": "span",
@@ -1787,15 +1787,18 @@ class SemanticExporter:
         }
         if dql_queries:
             model_doc["dql_queries"] = dql_queries
-        model_doc["groups"] = [
-            {
-                "id": f"dsoa.spans.{plugin_name}.fields",
-                "type": "attribute_group",
-                "title": f"{plugin_title} span fields",
-                "brief": f"Attribute fields for {_make_display_name(plugin_name)} spans.",
-                "attributes": attr_refs,
-            }
-        ]
+        if attr_refs:
+            model_doc["groups"] = [
+                {
+                    "id": f"dsoa.spans.{plugin_name}.fields",
+                    "type": "attribute_group",
+                    "title": f"{plugin_name.replace('_', ' ').capitalize()} span fields",
+                    "brief": f"Attribute fields for {_make_display_name(plugin_name)} spans.",
+                    "attributes": attr_refs,
+                }
+            ]
+        else:
+            model_doc["groups"] = []
         return {"model": model_doc}
 
     ##endregion
@@ -1918,8 +1921,9 @@ class SemanticExporter:
             with open(out_path, "r", encoding="utf-8") as fh:
                 existing_cm = ry.load(fh)
             _merge_into_ruamel(existing_cm, dsoa_cm)
-            with open(out_path, "w", encoding="utf-8") as fh:
-                ry.dump(existing_cm, fh)
+            buf = StringIO()
+            ry.dump(existing_cm, buf)
+            out_path.write_text(_add_flow_seq_spaces(buf.getvalue()), encoding="utf-8")
         log.debug("Wrote %s", out_path)
         self._counters["files"] += 1
         return out_path
@@ -1944,6 +1948,35 @@ class SemanticExporter:
         log.debug("Wrote %s", out_path)
         self._counters["files"] += 1
         return out_path
+
+    def _write_owners(self, content: str) -> Path:
+        """Update the OWNERS file at the SD repo root with the DSOA section.
+
+        The OWNERS file lives one level above source/ (i.e. output_dir.parent).
+        An existing '## DSOA' block (from that marker through the next '## ' line
+        or EOF) is replaced; if none exists the section is appended.
+        """
+        owners_path = self.output_dir.parent / "OWNERS"
+        if owners_path.exists():
+            existing = owners_path.read_text(encoding="utf-8")
+            marker = "## DSOA"
+            idx = existing.find(marker)
+            if idx >= 0:
+                # Find next section header after the DSOA block (if any)
+                rest = existing[idx + len(marker):]
+                next_match = re.search(r"\n## ", rest)
+                if next_match:
+                    existing = existing[:idx] + existing[idx + len(marker) + next_match.start() + 1 :]
+                else:
+                    existing = existing[:idx]
+            base = existing.rstrip("\n") + "\n\n"
+        else:
+            owners_path.parent.mkdir(parents=True, exist_ok=True)
+            base = ""
+        owners_path.write_text(base + content, encoding="utf-8")
+        log.debug("Wrote %s", owners_path)
+        self._counters["files"] += 1
+        return owners_path
 
     def _build_owners_entries(self, signal_group_ids: List[str], resource_group_ids: List[str], plugin_names: List[str]) -> str:
         """Generate the DSOA section of the Semantic Dictionary OWNERS file.
@@ -2039,9 +2072,9 @@ class SemanticExporter:
         to change the ownership table.
         """
         stubs = {
-            "dsoa.logs": ("DSOA Snowflake Log Records", "Log records emitted by DSOA plugins from Snowflake ACCOUNT_USAGE and system views."),
-            "dsoa.events": ("DSOA Snowflake Lifecycle Events", "Timestamp-based state-change events emitted by DSOA plugins via the Dynatrace OpenPipeline Events API."),
-            "dsoa.spans": ("DSOA Spans", "Span records emitted by DSOA plugins from Snowflake ACCOUNT_USAGE views."),
+            "dsoa.logs": ("DSOA Snowflake log records", "Log records emitted by DSOA plugins from Snowflake ACCOUNT_USAGE and system views."),
+            "dsoa.events": ("DSOA Snowflake lifecycle events", "Timestamp-based state-change events emitted by DSOA plugins via the Dynatrace OpenPipeline Events API."),
+            "dsoa.spans": ("DSOA spans", "Span records emitted by DSOA plugins from Snowflake ACCOUNT_USAGE views."),
         }
         result: Dict[str, str] = {}
         for group_id, (title, description) in stubs.items():
@@ -2160,7 +2193,7 @@ class SemanticExporter:
             {
                 "model_group": {
                     "id": "dsoa.metrics",
-                    "title": "DSOA Snowflake Metrics",
+                    "title": "DSOA Snowflake metrics",
                     "brief": "Metrics collected by the DSOA from Snowflake ACCOUNT_USAGE views.",
                 }
             },
@@ -2192,11 +2225,11 @@ class SemanticExporter:
                 {
                     "model_group": {
                         "id": "dsoa.events",
-                        "title": "DSOA Snowflake Lifecycle Events",
+                        "title": "DSOA Snowflake lifecycle events",
                         "brief": "Timestamp-based state-change events emitted by DSOA plugins via the Dynatrace OpenPipeline Events API.",
                     }
                 },
-                "model/snowflake/model_group_dsoa_events.yaml",
+                "model/snowflake/events/model_group_dsoa_events.yaml",
             )
             for plugin_name in sorted(plugins_with_events):
                 doc = self._build_event_model_yaml(
@@ -2204,7 +2237,7 @@ class SemanticExporter:
                     event_ts_entries,
                     dql_queries=_dql_for_context(plugin_dql_queries.get(plugin_name), "events"),
                 )
-                p = self._write_yaml(doc, f"model/snowflake/dsoa.events.{plugin_name}.yaml")
+                p = self._write_yaml(doc, f"model/snowflake/events/dsoa.events.{plugin_name}.yaml")
                 self._validate_against_schema(doc, p)
 
         # Step 10: per-plugin log models (resolves signal field orphans)
@@ -2217,11 +2250,11 @@ class SemanticExporter:
                 {
                     "model_group": {
                         "id": "dsoa.logs",
-                        "title": "DSOA Snowflake Log Records",
+                        "title": "DSOA Snowflake log records",
                         "brief": "Log records emitted by DSOA plugins from Snowflake ACCOUNT_USAGE and system views.",
                     }
                 },
-                "model/snowflake/model_group_dsoa_logs.yaml",
+                "model/snowflake/logs/model_group_dsoa_logs.yaml",
             )
             for plugin_name in sorted(plugins_with_attrs):
                 doc = self._build_log_model_yaml(
@@ -2229,7 +2262,7 @@ class SemanticExporter:
                     all_entries,
                     dql_queries=_dql_for_context(plugin_dql_queries.get(plugin_name), "logs"),
                 )
-                p = self._write_yaml(doc, f"model/snowflake/dsoa.logs.{plugin_name}.yaml")
+                p = self._write_yaml(doc, f"model/snowflake/logs/dsoa.logs.{plugin_name}.yaml")
                 self._validate_against_schema(doc, p)
 
         # Step 11: per-plugin span models (only for SPAN_PLUGINS)
@@ -2239,11 +2272,11 @@ class SemanticExporter:
                 {
                     "model_group": {
                         "id": "dsoa.spans",
-                        "title": "DSOA Spans",
+                        "title": "DSOA spans",
                         "brief": "Span records emitted by DSOA plugins from Snowflake ACCOUNT_USAGE views.",
                     }
                 },
-                "model/snowflake/model_group_dsoa_spans.yaml",
+                "model/snowflake/spans/model_group_dsoa_spans.yaml",
             )
             for plugin_name in sorted(span_model_plugins):
                 doc = self._build_span_model_yaml(
@@ -2251,7 +2284,7 @@ class SemanticExporter:
                     all_entries,
                     dql_queries=_dql_for_context(plugin_dql_queries.get(plugin_name), "spans"),
                 )
-                p = self._write_yaml(doc, f"model/snowflake/dsoa.spans.{plugin_name}.yaml")
+                p = self._write_yaml(doc, f"model/snowflake/spans/dsoa.spans.{plugin_name}.yaml")
                 self._validate_against_schema(doc, p)
 
         # Generate span model for event_log even if it has no attributes
@@ -2262,25 +2295,25 @@ class SemanticExporter:
                     {
                         "model_group": {
                             "id": "dsoa.spans",
-                            "title": "DSOA Spans",
+                            "title": "DSOA spans",
                             "brief": "Span records emitted by DSOA plugins from Snowflake ACCOUNT_USAGE views.",
                         }
                     },
-                    "model/snowflake/model_group_dsoa_spans.yaml",
+                    "model/snowflake/spans/model_group_dsoa_spans.yaml",
                 )
             doc = self._build_span_model_yaml(
                 "event_log",
                 all_entries,
                 dql_queries=_dql_for_context(plugin_dql_queries.get("event_log"), "spans"),
             )
-            p = self._write_yaml(doc, "model/snowflake/dsoa.spans.event_log.yaml")
+            p = self._write_yaml(doc, "model/snowflake/spans/dsoa.spans.event_log.yaml")
             self._validate_against_schema(doc, p)
 
         # Step 12: SD metadata — OWNERS section, field categories, and doc model stubs
         signal_group_ids = [g["id"] for doc in sig_docs.values() for g in doc.get("groups", [])]
         resource_group_ids = [g["id"] for g in sf_res_doc.get("groups", [])] + [g["id"] for g in dsoa_res_doc.get("groups", [])]
         plugin_names_sorted = sorted(plugin_metric_entries.keys() - {"_core"})
-        self._write_text(self._build_owners_entries(signal_group_ids, resource_group_ids, plugin_names_sorted), "OWNERS_DSOA_SECTION.txt")
+        self._write_owners(self._build_owners_entries(signal_group_ids, resource_group_ids, plugin_names_sorted))
         self._write_json(self._build_field_categories_entry(signal_group_ids, resource_group_ids), "global_field_categories_entry.json")
         for rel_path, content in self._build_model_doc_stubs().items():
             self._write_text(content, rel_path)
