@@ -24,6 +24,7 @@
 """Extracts telemetry semantics (attributes, dimensions, metrics) documented in instruments-def.yml
 files and emitted in SQL view definitions, for cross-checking by test/core/test_documentation.py.
 """
+
 import os
 import re
 import argparse
@@ -108,10 +109,7 @@ def _extract_attributes_from_view_def(sql_query: str, _plugin_name: str) -> List
     # nested config lookup inside an ATTRIBUTES/DIMENSIONS/... block isn't mistaken for a key.
     config_lookup_paths = set(re.findall(r"config\.f_get_config_value\(\s*'([^']+)'", sql_query, re.IGNORECASE))
 
-    d_matches = {
-        match[1]: [value for value in re.findall(r"'(.*?)'", match[0]) if value not in config_lookup_paths]
-        for match in matches
-    }
+    d_matches = {match[1]: [value for value in re.findall(r"'(.*?)'", match[0]) if value not in config_lookup_paths] for match in matches}
 
     results = []
 
@@ -189,7 +187,7 @@ def _save_results(results: list, directory: str):
 
 
 def list_semantics(src_dir: str) -> List[Dict]:
-    """Prepares a aggregate of semantics coming from instrumentation specs and the SQL files with views
+    """Prepares an aggregate of semantics coming from instrumentation specs and the SQL files with views
 
     Args:
         src_dir (str): the root folder from where the files should be analyzed
