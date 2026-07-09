@@ -21,6 +21,9 @@
 # SOFTWARE.
 #
 #
+"""Extracts telemetry semantics (attributes, dimensions, metrics) documented in instruments-def.yml
+files and emitted in SQL view definitions, for cross-checking by test/core/test_documentation.py.
+"""
 import os
 import re
 import argparse
@@ -97,7 +100,18 @@ def _extract_attributes_from_view_def(sql_query: str, _plugin_name: str) -> List
     """Extracts dimension and attribute names from SQL files"""
     pattern = re.compile(r"OBJECT_CONSTRUCT\((.*?)\)\s+as\s+(DIMENSIONS|ATTRIBUTES|METRICS|EVENT_TIMESTAMPS)", re.DOTALL)
     matches = pattern.findall(sql_query)
-    d_matches = {match[1]: re.findall(r"'(.*?)'", match[0]) for match in matches}
+
+    # config.f_get_config_value('some.path', ...) calls are internal config lookups, not
+    # emitted attributes — their path literal may intentionally differ from the documented
+    # SD-catalog name (e.g. plugins.query_history.obfuscation_mode vs the documented
+    # dsoa.plugins.query_history.obfuscation_mode). Exclude them from candidate names so a
+    # nested config lookup inside an ATTRIBUTES/DIMENSIONS/... block isn't mistaken for a key.
+    config_lookup_paths = set(re.findall(r"config\.f_get_config_value\(\s*'([^']+)'", sql_query, re.IGNORECASE))
+
+    d_matches = {
+        match[1]: [value for value in re.findall(r"'(.*?)'", match[0]) if value not in config_lookup_paths]
+        for match in matches
+    }
 
     results = []
 
@@ -199,6 +213,7 @@ def list_semantics(src_dir: str) -> List[Dict]:
 
 
 def main():
+    """CLI entrypoint: lists semantics for a given directory and saves them as JSON."""
     LOG.setLevel(logging.INFO)
     ch = logging.StreamHandler()
     ch.setLevel(logging.INFO)
