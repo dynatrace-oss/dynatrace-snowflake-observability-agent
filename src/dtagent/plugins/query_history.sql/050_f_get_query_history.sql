@@ -96,16 +96,16 @@ BEGIN
                     ah.query_start_time                                                         as start_time,
                     ah.parent_query_id,
                     array_distinct(array_agg(
-                        case when t.value:objectdomain = 'Table'
-                             then t.value:objectname::varchar else null end))                   as query_tables,
+                        case when t.value:objectDomain = 'Table'
+                             then t.value:objectName::varchar else null end))                   as query_tables,
                     array_distinct(array_cat(
-                        array_agg(case when t.value:objectdomain = 'View'
-                                       then t.value:objectname::varchar else null end),
-                        array_agg(case when v.value:objectdomain = 'View'
-                                       then v.value:objectname::varchar else null end)))        as query_views,
+                        array_agg(case when t.value:objectDomain = 'View'
+                                       then t.value:objectName::varchar else null end),
+                        array_agg(case when v.value:objectDomain = 'View'
+                                       then v.value:objectName::varchar else null end)))        as query_views,
                     array_distinct(array_cat(
-                        array_agg(split_part(t.value:objectname::varchar, '.', 1)::variant),
-                        array_agg(split_part(v.value:objectname::varchar, '.', 1)::variant)))  as query_dbs,
+                        array_agg(split_part(t.value:objectName::varchar, '.', 1)::variant),
+                        array_agg(split_part(v.value:objectName::varchar, '.', 1)::variant)))  as query_dbs,
                     any_value(ah.object_modified_by_ddl:"objectDomain"::varchar)               as ddl_target_domain,
                     any_value(ah.object_modified_by_ddl:"objectId"::varchar)                   as ddl_target_id,
                     any_value(ah.object_modified_by_ddl:"objectName"::varchar)                 as ddl_target_name,
@@ -388,16 +388,16 @@ BEGIN
                     ah.query_start_time                                                         as start_time,
                     ah.parent_query_id,
                     array_distinct(array_agg(
-                        case when t.value:objectdomain = 'Table'
-                             then t.value:objectname::varchar else null end))                   as query_tables,
+                        case when t.value:objectDomain = 'Table'
+                             then t.value:objectName::varchar else null end))                   as query_tables,
                     array_distinct(array_cat(
-                        array_agg(case when t.value:objectdomain = 'View'
-                                       then t.value:objectname::varchar else null end),
-                        array_agg(case when v.value:objectdomain = 'View'
-                                       then v.value:objectname::varchar else null end)))        as query_views,
+                        array_agg(case when t.value:objectDomain = 'View'
+                                       then t.value:objectName::varchar else null end),
+                        array_agg(case when v.value:objectDomain = 'View'
+                                       then v.value:objectName::varchar else null end)))        as query_views,
                     array_distinct(array_cat(
-                        array_agg(split_part(t.value:objectname::varchar, '.', 1)::variant),
-                        array_agg(split_part(v.value:objectname::varchar, '.', 1)::variant)))  as query_dbs,
+                        array_agg(split_part(t.value:objectName::varchar, '.', 1)::variant),
+                        array_agg(split_part(v.value:objectName::varchar, '.', 1)::variant)))  as query_dbs,
                     any_value(ah.object_modified_by_ddl:"objectDomain"::varchar)               as ddl_target_domain,
                     any_value(ah.object_modified_by_ddl:"objectId"::varchar)                   as ddl_target_id,
                     any_value(ah.object_modified_by_ddl:"objectName"::varchar)                 as ddl_target_name,
