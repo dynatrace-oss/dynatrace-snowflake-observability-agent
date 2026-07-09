@@ -249,8 +249,8 @@ class TestDimensionCoverage:
         Dimensions whose context names only match log/span contexts (and no metric has that
         context) are expected orphans — they are used for log attribute references, not metrics.
 
-        Dimensions covered by global interfaces (i.dsoa_resource, i.dsoa_warehouse,
-        i.dsoa_database) are always exempt from this check.
+        Dimensions covered by global interfaces (i.dsoa_resource, i.snowflake_warehouse,
+        i.snowflake_database) are always exempt from this check.
 
         This test uses the generated output files to verify coverage.
         """
@@ -263,7 +263,7 @@ class TestDimensionCoverage:
         # Collect referenced attrs from all metric files
         referenced_in_metrics: Set[str] = set()
         for rel_path, doc in generated.items():
-            if "dsoa_metrics_" not in rel_path:
+            if "snowflake_metrics_" not in rel_path:
                 continue
             model = doc.get("model", {})
             for group in model.get("groups", []):
@@ -274,9 +274,9 @@ class TestDimensionCoverage:
             for iface in model.get("interfaces", []):
                 if isinstance(iface, dict):
                     ref = iface.get("ref", "")
-                    if ref == "i.dsoa_warehouse":
+                    if ref == "i.snowflake_warehouse":
                         referenced_in_metrics |= INTERFACE_WAREHOUSE_KEYS
-                    elif ref == "i.dsoa_database":
+                    elif ref == "i.snowflake_database":
                         referenced_in_metrics |= INTERFACE_DATABASE_KEYS
                     elif ref == "i.dsoa_resource":
                         referenced_in_metrics |= RESOURCE_ATTRIBUTE_KEYS
@@ -286,11 +286,11 @@ class TestDimensionCoverage:
         # may be deduped to plugin B, removing it from A's generated model.
         plugin_metric_contexts_generated: Dict[str, Set[str]] = {}
         for rel_path, doc in generated.items():
-            if "dsoa_metrics_" not in rel_path:
+            if "snowflake_metrics_" not in rel_path:
                 continue
-            # Extract plugin name from filename like dsoa_metrics_query_history.yaml
-            fname = rel_path.split("/")[-1]  # e.g. dsoa_metrics_tasks.yaml
-            plugin_nm = fname.replace("dsoa_metrics_", "").replace(".yaml", "")
+            # Extract plugin name from filename like snowflake_metrics_query_history.yaml
+            fname = rel_path.split("/")[-1]  # e.g. snowflake_metrics_tasks.yaml
+            plugin_nm = fname.replace("snowflake_metrics_", "").replace(".yaml", "")
             model = doc.get("model", {})
             for grp in model.get("groups", []):
                 ctx = set(grp.get("__context_names") or [])
@@ -315,9 +315,9 @@ class TestDimensionCoverage:
                 if dim_key in RESOURCE_ATTRIBUTE_KEYS:
                     continue  # covered by i.dsoa_resource
                 if dim_key in INTERFACE_WAREHOUSE_KEYS:
-                    continue  # covered by i.dsoa_warehouse
+                    continue  # covered by i.snowflake_warehouse
                 if dim_key in INTERFACE_DATABASE_KEYS:
-                    continue  # covered by i.dsoa_database
+                    continue  # covered by i.snowflake_database
                 # Check if this dimension is metric-applicable in the SOURCE:
                 # if it has context names, they must overlap with metrics in instruments-def.
                 dim_contexts = set((dim_entry or {}).get("__context_names") or [])

@@ -432,20 +432,20 @@ class TestModelsExistForAllPlugins:
     """Plugins with attributes must have corresponding log (and span) model files."""
 
     def test_log_models_exist_for_all_attribute_plugins(self):
-        """Every plugin with attributes: in instruments-def must have a dsoa.logs.<plugin>.yaml.
+        """Every plugin with attributes: in instruments-def must have a snowflake.logs.<plugin>.yaml.
 
         This test will be RED until Phase 4 (log/span model generation) is complete.
         """
         _require_semdict_source()
 
-        model_dir = SEMDICT_SOURCE / "model" / "dsoa"
+        model_dir = SEMDICT_SOURCE / "model" / "snowflake" / "logs"
         if not model_dir.exists():
-            pytest.fail("model/dsoa/ directory not found in generated output")
+            pytest.fail("model/snowflake/logs/ directory not found in generated output")
 
         existing_log_models: Set[str] = set()
-        for yaml_file in model_dir.glob("dsoa.logs.*.yaml"):
-            # Extract plugin name from filename like dsoa.logs.query_history.yaml
-            stem = yaml_file.stem  # e.g. "dsoa.logs.query_history"
+        for yaml_file in model_dir.glob("snowflake.logs.*.yaml"):
+            # Extract plugin name from filename like snowflake.logs.query_history.yaml
+            stem = yaml_file.stem  # e.g. "snowflake.logs.query_history"
             parts = stem.split(".")
             if len(parts) >= 3:
                 plugin_name = ".".join(parts[2:])
@@ -461,19 +461,19 @@ class TestModelsExistForAllPlugins:
 
         missing = plugins_needing_models - existing_log_models
         assert not missing, "Plugins with attributes but no log model:\n" + "\n".join(
-            f"  model/dsoa/dsoa.logs.{p}.yaml" for p in sorted(missing)
+            f"  model/snowflake/logs/snowflake.logs.{p}.yaml" for p in sorted(missing)
         )
 
     def test_span_models_exist_for_span_plugins(self):
-        """Span-emitting plugins (query_history, event_log) must have dsoa.spans.<plugin>.yaml."""
+        """Span-emitting plugins (query_history, event_log) must have snowflake.spans.<plugin>.yaml."""
         _require_semdict_source()
 
-        model_dir = SEMDICT_SOURCE / "model" / "dsoa"
+        model_dir = SEMDICT_SOURCE / "model" / "snowflake" / "spans"
         if not model_dir.exists():
-            pytest.fail("model/dsoa/ directory not found in generated output")
+            pytest.fail("model/snowflake/spans/ directory not found in generated output")
 
         existing_span_models: Set[str] = set()
-        for yaml_file in model_dir.glob("dsoa.spans.*.yaml"):
+        for yaml_file in model_dir.glob("snowflake.spans.*.yaml"):
             stem = yaml_file.stem
             parts = stem.split(".")
             if len(parts) >= 3:
@@ -482,7 +482,7 @@ class TestModelsExistForAllPlugins:
 
         missing = SPAN_PLUGINS - existing_span_models
         assert not missing, "Span-emitting plugins missing span models:\n" + "\n".join(
-            f"  model/dsoa/dsoa.spans.{p}.yaml" for p in sorted(missing)
+            f"  model/snowflake/spans/snowflake.spans.{p}.yaml" for p in sorted(missing)
         )
 
 
@@ -582,16 +582,17 @@ class TestDqlQueriesOnModels:
     #: Required fields on every dql_queries entry.
     REQUIRED_DQL_FIELDS: frozenset = frozenset({"query_string", "description", "description_copilot", "internal"})
 
-    def _load_model(self, filename: str) -> Dict[str, Any]:
-        """Load a model YAML from model/dsoa/ in the generated output.
+    def _load_model(self, signal_type: str, filename: str) -> Dict[str, Any]:
+        """Load a model YAML from model/snowflake/<signal_type>/ in the generated output.
 
         Args:
-            filename: Filename (e.g. 'dsoa.logs.query_history.yaml').
+            signal_type: Subfolder name ('logs', 'events', or 'spans').
+            filename:    Filename (e.g. 'snowflake.logs.query_history.yaml').
 
         Returns:
             Parsed YAML content as dict, or empty dict if file not found.
         """
-        path = SEMDICT_SOURCE / "model" / "dsoa" / filename
+        path = SEMDICT_SOURCE / "model" / "snowflake" / signal_type / filename
         if not path.exists():
             return {}
         with open(path, "r", encoding="utf-8") as fh:
@@ -602,21 +603,21 @@ class TestDqlQueriesOnModels:
 
         Validates that the export pipeline propagates dql_queries from
         instruments-def.yml into the generated model YAML files. Plugins are
-        discovered dynamically from ``model/dsoa/dsoa.logs.*.yaml`` so this
+        discovered dynamically from ``model/snowflake/logs/snowflake.logs.*.yaml`` so this
         covers every plugin that emits a log model, not just a curated subset.
         """
         log_plugins = discover_log_model_plugins()
-        assert log_plugins, "No log model plugins discovered in model/dsoa/dsoa.logs.*.yaml"
+        assert log_plugins, "No log model plugins discovered in model/snowflake/logs/snowflake.logs.*.yaml"
 
         missing_or_insufficient: List[str] = []
         for plugin in sorted(log_plugins):
-            doc = self._load_model(f"dsoa.logs.{plugin}.yaml")
+            doc = self._load_model("logs", f"snowflake.logs.{plugin}.yaml")
             model = doc.get("model", {})
             dql_queries = model.get("dql_queries", [])
             if not dql_queries:
-                missing_or_insufficient.append(f"dsoa.logs.{plugin}: missing dql_queries:")
+                missing_or_insufficient.append(f"snowflake.logs.{plugin}: missing dql_queries:")
             elif len(dql_queries) < 3:
-                missing_or_insufficient.append(f"dsoa.logs.{plugin}: only {len(dql_queries)} dql_queries entries (need >= 3)")
+                missing_or_insufficient.append(f"snowflake.logs.{plugin}: only {len(dql_queries)} dql_queries entries (need >= 3)")
 
         assert not missing_or_insufficient, "Log model files missing or insufficient dql_queries:\n" + "\n".join(missing_or_insufficient)
 
@@ -624,20 +625,20 @@ class TestDqlQueriesOnModels:
         """All event-model-emitting plugins must have dql_queries: with >= 3 entries.
 
         Mirrors ``test_log_models_have_dql_queries`` for the event model type.
-        Plugins are discovered dynamically from ``model/dsoa/dsoa.events.*.yaml``.
+        Plugins are discovered dynamically from ``model/snowflake/events/snowflake.events.*.yaml``.
         """
         event_plugins = discover_event_model_plugins()
-        assert event_plugins, "No event model plugins discovered in model/dsoa/dsoa.events.*.yaml"
+        assert event_plugins, "No event model plugins discovered in model/snowflake/events/snowflake.events.*.yaml"
 
         missing_or_insufficient: List[str] = []
         for plugin in sorted(event_plugins):
-            doc = self._load_model(f"dsoa.events.{plugin}.yaml")
+            doc = self._load_model("events", f"snowflake.events.{plugin}.yaml")
             model = doc.get("model", {})
             dql_queries = model.get("dql_queries", [])
             if not dql_queries:
-                missing_or_insufficient.append(f"dsoa.events.{plugin}: missing dql_queries:")
+                missing_or_insufficient.append(f"snowflake.events.{plugin}: missing dql_queries:")
             elif len(dql_queries) < 3:
-                missing_or_insufficient.append(f"dsoa.events.{plugin}: only {len(dql_queries)} dql_queries entries (need >= 3)")
+                missing_or_insufficient.append(f"snowflake.events.{plugin}: only {len(dql_queries)} dql_queries entries (need >= 3)")
 
         assert not missing_or_insufficient, "Event model files missing or insufficient dql_queries:\n" + "\n".join(missing_or_insufficient)
 
@@ -651,13 +652,13 @@ class TestDqlQueriesOnModels:
 
         missing_or_insufficient: List[str] = []
         for plugin in sorted(SPAN_PLUGINS):
-            doc = self._load_model(f"dsoa.spans.{plugin}.yaml")
+            doc = self._load_model("spans", f"snowflake.spans.{plugin}.yaml")
             model = doc.get("model", {})
             dql_queries = model.get("dql_queries", [])
             if not dql_queries:
-                missing_or_insufficient.append(f"dsoa.spans.{plugin}: missing dql_queries:")
+                missing_or_insufficient.append(f"snowflake.spans.{plugin}: missing dql_queries:")
             elif len(dql_queries) < 3:
-                missing_or_insufficient.append(f"dsoa.spans.{plugin}: only {len(dql_queries)} dql_queries entries (need >= 3)")
+                missing_or_insufficient.append(f"snowflake.spans.{plugin}: only {len(dql_queries)} dql_queries entries (need >= 3)")
 
         assert not missing_or_insufficient, "Span model files missing or insufficient dql_queries:\n" + "\n".join(missing_or_insufficient)
 
@@ -666,28 +667,28 @@ class TestDqlQueriesOnModels:
 
         Validates that the export pipeline propagates dql_queries from
         instruments-def.yml into the generated metric model YAML files. Plugins
-        are discovered dynamically from ``metrics/dsoa_metrics_*.yaml`` (excluding
-        the ``dsoa_metrics_model_group.yaml`` container), covering every plugin
+        are discovered dynamically from ``metrics/snowflake_metrics_*.yaml`` (excluding
+        the ``snowflake_metrics_model_group.yaml`` container), covering every plugin
         that emits a metric model.
         """
         metric_plugins = discover_metric_model_plugins()
-        assert metric_plugins, "No metric model plugins discovered in metrics/dsoa_metrics_*.yaml"
+        assert metric_plugins, "No metric model plugins discovered in metrics/snowflake_metrics_*.yaml"
 
         model_dir = SEMDICT_SOURCE / "metrics"
         missing_or_insufficient: List[str] = []
         for plugin in sorted(metric_plugins):
-            metric_file = model_dir / f"dsoa_metrics_{plugin}.yaml"
+            metric_file = model_dir / f"snowflake_metrics_{plugin}.yaml"
             if not metric_file.exists():
-                missing_or_insufficient.append(f"dsoa_metrics_{plugin}.yaml: file not found")
+                missing_or_insufficient.append(f"snowflake_metrics_{plugin}.yaml: file not found")
                 continue
             with open(metric_file, "r", encoding="utf-8") as fh:
                 doc = yaml.safe_load(fh) or {}
             model = doc.get("model", {})
             dql_queries = model.get("dql_queries", [])
             if not dql_queries:
-                missing_or_insufficient.append(f"dsoa_metrics_{plugin}: missing dql_queries:")
+                missing_or_insufficient.append(f"snowflake_metrics_{plugin}: missing dql_queries:")
             elif len(dql_queries) < 3:
-                missing_or_insufficient.append(f"dsoa_metrics_{plugin}: only {len(dql_queries)} dql_queries entries (need >= 3)")
+                missing_or_insufficient.append(f"snowflake_metrics_{plugin}: only {len(dql_queries)} dql_queries entries (need >= 3)")
 
         assert not missing_or_insufficient, "Metric model files missing or insufficient dql_queries:\n" + "\n".join(missing_or_insufficient)
 
@@ -701,7 +702,12 @@ class TestDqlQueriesOnModels:
         """
         require_semdict_source()
 
-        model_dirs = [SEMDICT_SOURCE / "model" / "dsoa", SEMDICT_SOURCE / "metrics"]
+        model_dirs = [
+            SEMDICT_SOURCE / "model" / "snowflake" / "events",
+            SEMDICT_SOURCE / "model" / "snowflake" / "logs",
+            SEMDICT_SOURCE / "model" / "snowflake" / "spans",
+            SEMDICT_SOURCE / "metrics",
+        ]
 
         violations: List[str] = []
         for model_dir in model_dirs:

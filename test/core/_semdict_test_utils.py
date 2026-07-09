@@ -136,7 +136,7 @@ def _discover_model_plugins(glob_pattern: str, base_dir: Path, filename_regex: s
 
     Only files whose parsed document has a truthy top-level ``model:`` key are
     considered real per-plugin models — this excludes ``model_group:`` container
-    files (e.g. ``model_group_dsoa_logs.yaml``) and non-model files (e.g.
+    files (e.g. ``model_group_snowflake_logs.yaml``) and non-model files (e.g.
     ``interfaces_dsoa.yaml``, which has a top-level ``groups:`` key instead).
 
     Args:
@@ -166,12 +166,12 @@ def discover_log_model_plugins() -> Set[str]:
     """Discover all plugins that emit a log model in the generated output.
 
     Returns:
-        Set of plugin name strings (derived from ``dsoa.logs.<plugin>.yaml`` filenames).
+        Set of plugin name strings (derived from ``snowflake.logs.<plugin>.yaml`` filenames).
     """
     return _discover_model_plugins(
-        "dsoa.logs.*.yaml",
-        SEMDICT_SOURCE / "model" / "dsoa",
-        r"dsoa\.logs\.(?P<plugin>.+)\.yaml",
+        "snowflake.logs.*.yaml",
+        SEMDICT_SOURCE / "model" / "snowflake" / "logs",
+        r"snowflake\.logs\.(?P<plugin>.+)\.yaml",
     )
 
 
@@ -179,12 +179,12 @@ def discover_event_model_plugins() -> Set[str]:
     """Discover all plugins that emit an event model in the generated output.
 
     Returns:
-        Set of plugin name strings (derived from ``dsoa.events.<plugin>.yaml`` filenames).
+        Set of plugin name strings (derived from ``snowflake.events.<plugin>.yaml`` filenames).
     """
     return _discover_model_plugins(
-        "dsoa.events.*.yaml",
-        SEMDICT_SOURCE / "model" / "dsoa",
-        r"dsoa\.events\.(?P<plugin>.+)\.yaml",
+        "snowflake.events.*.yaml",
+        SEMDICT_SOURCE / "model" / "snowflake" / "events",
+        r"snowflake\.events\.(?P<plugin>.+)\.yaml",
     )
 
 
@@ -196,12 +196,12 @@ def discover_metric_model_plugins() -> Set[str]:
     log/event discovery.
 
     Returns:
-        Set of plugin name strings (derived from ``dsoa_metrics_<plugin>.yaml`` filenames).
+        Set of plugin name strings (derived from ``snowflake_metrics_<plugin>.yaml`` filenames).
     """
     return _discover_model_plugins(
-        "dsoa_metrics_*.yaml",
+        "snowflake_metrics_*.yaml",
         SEMDICT_SOURCE / "metrics",
-        r"dsoa_metrics_(?P<plugin>.+)\.yaml",
+        r"snowflake_metrics_(?P<plugin>.+)\.yaml",
     )
 
 

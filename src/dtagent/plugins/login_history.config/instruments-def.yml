@@ -136,6 +136,8 @@ attributes:
     __description: A unique identifier for the login attempt or the login event associated with the session.
   event.related_id:
     __type: long
+    __semdict: new
+    __stability: experimental
     __context_names:
       - login_history
     __example: 987654321
@@ -165,9 +167,7 @@ attributes:
     __context_names:
       - login_history
     __example: OK
-    __description:
-      The status of the login attempt, indicating success (OK) or failure
-      (ERROR).
+    __description: The status of the login attempt, indicating success (OK) or failure (ERROR).
     __type: string
     __enum:
       allow_custom_values: false

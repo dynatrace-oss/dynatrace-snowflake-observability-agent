@@ -872,23 +872,23 @@ class TestExportPipelineMock:
                     all_keys.add(attr.get("id") or attr.get("ref"))
         assert "snowflake.warehouse.event.name" in all_keys, "signal-override dimension must be in signal_fields"
 
-    def test_interfaces_yaml_has_three_interfaces(self, tmp_path):
-        """interfaces_dsoa.yaml has i.dsoa_resource, i.dsoa_warehouse, i.dsoa_database."""
+    def test_interfaces_yaml_has_correct_interfaces(self, tmp_path):
+        """interfaces_dsoa.yaml has i.dsoa_resource; interfaces_snowflake.yaml has i.snowflake_warehouse/database."""
         out_dir = tmp_path / "out"
         exporter = SemanticExporter(repo_root=REPO_ROOT, output_dir=out_dir)
-        doc = exporter._build_interfaces_yaml()
-        assert "groups" in doc
-        group_ids = {g["id"] for g in doc["groups"]}
-        assert "i.dsoa_resource" in group_ids
-        assert "i.dsoa_warehouse" in group_ids
-        assert "i.dsoa_database" in group_ids
+        dsoa_doc, sf_doc = exporter._build_interfaces_yaml()
+        dsoa_ids = {g["id"] for g in dsoa_doc["groups"]}
+        sf_ids = {g["id"] for g in sf_doc["groups"]}
+        assert "i.dsoa_resource" in dsoa_ids
+        assert "i.snowflake_warehouse" in sf_ids
+        assert "i.snowflake_database" in sf_ids
 
     def test_resource_interface_covers_resource_attribute_keys(self, tmp_path):
         """i.dsoa_resource attrs are a superset of RESOURCE_ATTRIBUTE_KEYS."""
         out_dir = tmp_path / "out"
         exporter = SemanticExporter(repo_root=REPO_ROOT, output_dir=out_dir)
-        doc = exporter._build_interfaces_yaml()
-        i_resource = next(g for g in doc["groups"] if g["id"] == "i.dsoa_resource")
+        dsoa_doc, _ = exporter._build_interfaces_yaml()
+        i_resource = next(g for g in dsoa_doc["groups"] if g["id"] == "i.dsoa_resource")
         interface_keys = {a["ref"] for a in i_resource["attributes"] if "ref" in a}
         assert RESOURCE_ATTRIBUTE_KEYS.issubset(interface_keys)
 
@@ -946,8 +946,8 @@ class TestExportPipelineMock:
         event_ts = {k: v for k, v in entries.items() if v["classification"] == "event_timestamp"}
         doc = exporter._build_event_model_yaml("mock_plugin", event_ts)
         assert "model" in doc
-        assert doc["model"]["id"] == "dsoa.events.mock_plugin"
-        assert doc["model"]["model_group_id"] == "dsoa.events"
+        assert doc["model"]["id"] == "snowflake.events.mock_plugin"
+        assert doc["model"]["model_group_id"] == "snowflake.events"
         # Timestamp events go to the OpenPipeline Events API, not bizevents
         assert doc["model"]["data_object"] == "event", (
             "Event-timestamp models must use data_object: event (OpenPipeline Events API). "
@@ -970,7 +970,7 @@ class TestExportPipelineMock:
         """Metric attributes list excludes dims covered by declared interfaces."""
         out_dir = tmp_path / "out"
         exporter = SemanticExporter(repo_root=REPO_ROOT, output_dir=out_dir)
-        # Create a fixture that has i.dsoa_warehouse-covered dims + other dims
+        # Create a fixture that has i.snowflake_warehouse-covered dims + other dims
         fixture = tmp_path / "test.yml"
         fixture.write_text(
             "dimensions:\n"
@@ -1000,7 +1000,7 @@ class TestExportPipelineMock:
         attr_refs = [a["ref"] for a in metric_node.get("attributes", [])]
         # Interface-covered dims must NOT appear in per-metric attrs
         for iface_key in INTERFACE_WAREHOUSE_KEYS:
-            assert iface_key not in attr_refs, f"{iface_key} must not appear (covered by i.dsoa_warehouse)"
+            assert iface_key not in attr_refs, f"{iface_key} must not appear (covered by i.snowflake_warehouse)"
         # Custom dim must appear
         assert "snowflake.custom.dim" in attr_refs
 
@@ -1054,11 +1054,9 @@ class TestSemanticExporterIntegration:
         assert sig_dir.exists(), "signal_fields directory not found"
         yaml_files = list(sig_dir.glob("*.yaml"))
         assert len(yaml_files) >= 2, f"Expected multiple namespace files, got {len(yaml_files)}"
-        # At minimum the warehouse and query namespaces must be present
+        # All snowflake signal groups are combined into a single snowflake.yaml
         names = {f.name for f in yaml_files}
-        assert "snowflake_warehouse.yaml" in names or any(
-            "warehouse" in n for n in names
-        ), "snowflake_warehouse.yaml expected in signal_fields"
+        assert "snowflake.yaml" in names, "snowflake.yaml expected in signal_fields"
 
     def test_interfaces_file_exists(self, export_output):
         """metrics/interfaces_dsoa.yaml is created."""
@@ -1067,16 +1065,16 @@ class TestSemanticExporterIntegration:
         assert fi.exists(), "interfaces_dsoa.yaml not found"
 
     def test_metrics_model_group_file_exists(self, export_output):
-        """metrics/dsoa_metrics_model_group.yaml is created."""
+        """metrics/snowflake_metrics_model_group.yaml is created."""
         out_dir, _ = export_output
-        mg = out_dir / "metrics" / "dsoa_metrics_model_group.yaml"
-        assert mg.exists(), "dsoa_metrics_model_group.yaml not found"
+        mg = out_dir / "metrics" / "snowflake_metrics_model_group.yaml"
+        assert mg.exists(), "snowflake_metrics_model_group.yaml not found"
 
     def test_warehouse_usage_metrics_file_exists(self, export_output):
-        """metrics/dsoa_metrics_warehouse_usage.yaml has model: envelope with interfaces."""
+        """metrics/snowflake_metrics_warehouse_usage.yaml has model: envelope with interfaces."""
         out_dir, _ = export_output
-        wf = out_dir / "metrics" / "dsoa_metrics_warehouse_usage.yaml"
-        assert wf.exists(), "dsoa_metrics_warehouse_usage.yaml not found"
+        wf = out_dir / "metrics" / "snowflake_metrics_warehouse_usage.yaml"
+        assert wf.exists(), "snowflake_metrics_warehouse_usage.yaml not found"
         with open(wf, "r", encoding="utf-8") as fh:
             doc = yaml.safe_load(fh)
         assert "model" in doc, "metric file must use model: envelope"
@@ -1084,16 +1082,16 @@ class TestSemanticExporterIntegration:
         assert "i.dsoa_resource" in doc["model"]["interfaces"]
 
     def test_users_event_model_exists(self, export_output):
-        """model/dsoa/dsoa.events.users.yaml is created."""
+        """model/snowflake/events/snowflake.events.users.yaml is created."""
         out_dir, _ = export_output
-        ef = out_dir / "model" / "dsoa" / "dsoa.events.users.yaml"
-        assert ef.exists(), "dsoa.events.users.yaml not found"
+        ef = out_dir / "model" / "snowflake" / "events" / "snowflake.events.users.yaml"
+        assert ef.exists(), "snowflake.events.users.yaml not found"
 
     def test_events_model_group_exists(self, export_output):
-        """model/dsoa/model_group_dsoa_events.yaml is created."""
+        """model/snowflake/events/model_group_snowflake_events.yaml is created."""
         out_dir, _ = export_output
-        mg = out_dir / "model" / "dsoa" / "model_group_dsoa_events.yaml"
-        assert mg.exists(), "model_group_dsoa_events.yaml not found"
+        mg = out_dir / "model" / "snowflake" / "events" / "model_group_snowflake_events.yaml"
+        assert mg.exists(), "model_group_snowflake_events.yaml not found"
 
     def test_snowflake_resource_has_multiple_groups(self, export_output):
         """snowflake_resource.yaml contains multiple namespace groups."""
@@ -1104,16 +1102,16 @@ class TestSemanticExporterIntegration:
         assert "groups" in doc
         assert len(doc["groups"]) > 1, "snowflake_resource.yaml should have multiple namespace groups"
 
-    def test_interfaces_has_three_groups(self, export_output):
-        """interfaces_dsoa.yaml contains exactly 3 interface groups."""
+    def test_interfaces_has_correct_groups(self, export_output):
+        """interfaces_dsoa.yaml has i.dsoa_resource; interfaces_snowflake.yaml has warehouse/database."""
         out_dir, _ = export_output
-        fi = out_dir / "metrics" / "interfaces_dsoa.yaml"
-        with open(fi, "r", encoding="utf-8") as fh:
-            doc = yaml.safe_load(fh)
-        group_ids = {g["id"] for g in doc["groups"]}
-        assert "i.dsoa_resource" in group_ids
-        assert "i.dsoa_warehouse" in group_ids
-        assert "i.dsoa_database" in group_ids
+        dsoa_doc = yaml.safe_load((out_dir / "metrics" / "interfaces_dsoa.yaml").read_text(encoding="utf-8"))
+        sf_doc = yaml.safe_load((out_dir / "metrics" / "interfaces_snowflake.yaml").read_text(encoding="utf-8"))
+        dsoa_ids = {g["id"] for g in dsoa_doc["groups"]}
+        sf_ids = {g["id"] for g in sf_doc["groups"]}
+        assert "i.dsoa_resource" in dsoa_ids
+        assert "i.snowflake_warehouse" in sf_ids
+        assert "i.snowflake_database" in sf_ids
 
     def test_metric_attrs_do_not_contain_attribute_section_fields(self, export_output):
         """Metric attributes: list must not include attributes-section fields.
@@ -1124,7 +1122,7 @@ class TestSemanticExporterIntegration:
         """
         out_dir, _ = export_output
         # Load resource monitors or warehouse_usage — both have attributes
-        for fname in (out_dir / "metrics").glob("dsoa_metrics_*.yaml"):
+        for fname in (out_dir / "metrics").glob("snowflake_metrics_*.yaml"):
             with open(fname, "r", encoding="utf-8") as fh:
                 doc = yaml.safe_load(fh)
             if "model" not in doc:
@@ -1845,12 +1843,12 @@ class TestEventModelDataObject:
         )
 
     def test_all_event_model_files_use_data_object_event(self):
-        """All generated dsoa.events.*.yaml files must have data_object: event."""
-        semdict_dir = REPO_ROOT / "build" / "_semdict" / "source" / "model" / "dsoa"
+        """All generated snowflake.events.*.yaml files must have data_object: event."""
+        semdict_dir = REPO_ROOT / "build" / "_semdict" / "source" / "model" / "snowflake" / "events"
         if not semdict_dir.exists():
             pytest.skip("Semdict output dir not found — run build_semantic_export.sh first")
-        event_files = list(semdict_dir.glob("dsoa.events.*.yaml"))
-        assert event_files, "No dsoa.events.*.yaml files found in semdict output"
+        event_files = list(semdict_dir.glob("snowflake.events.*.yaml"))
+        assert event_files, "No snowflake.events.*.yaml files found in semdict output"
         failures = []
         for path in sorted(event_files):
             with open(path, "r", encoding="utf-8") as fh:
@@ -1915,12 +1913,12 @@ class TestDqlQueryStringFormatting:
         assert "title: Simple one-liner\n" in output, f"Single-line string should be plain scalar, got:\n{output}"
 
     def test_generated_event_yaml_no_consecutive_blank_lines(self):
-        """Generated dsoa.events.*.yaml files must not contain consecutive blank lines inside DQL blocks."""
-        semdict_dir = REPO_ROOT / "build" / "_semdict" / "source" / "model" / "dsoa"
+        """Generated snowflake.events.*.yaml files must not contain consecutive blank lines inside DQL blocks."""
+        semdict_dir = REPO_ROOT / "build" / "_semdict" / "source" / "model" / "snowflake" / "events"
         if not semdict_dir.exists():
             pytest.skip("Semdict output dir not found — run build_semantic_export.sh first")
-        event_files = list(semdict_dir.glob("dsoa.events.*.yaml"))
-        assert event_files, "No dsoa.events.*.yaml files found in semdict output"
+        event_files = list(semdict_dir.glob("snowflake.events.*.yaml"))
+        assert event_files, "No snowflake.events.*.yaml files found in semdict output"
         failures = []
         for path in sorted(event_files):
             content = path.read_text(encoding="utf-8")
@@ -1929,13 +1927,13 @@ class TestDqlQueryStringFormatting:
         assert not failures, "The following event model files contain consecutive blank lines inside DQL blocks:\n" + "\n".join(failures)
 
     def test_generated_log_yaml_no_consecutive_blank_lines(self):
-        """Generated dsoa.logs.*.yaml files must not contain consecutive blank lines inside DQL blocks."""
-        semdict_dir = REPO_ROOT / "build" / "_semdict" / "source" / "model" / "dsoa"
+        """Generated snowflake.logs.*.yaml files must not contain consecutive blank lines inside DQL blocks."""
+        semdict_dir = REPO_ROOT / "build" / "_semdict" / "source" / "model" / "snowflake" / "logs"
         if not semdict_dir.exists():
             pytest.skip("Semdict output dir not found — run build_semantic_export.sh first")
-        log_files = list(semdict_dir.glob("dsoa.logs.*.yaml"))
+        log_files = list(semdict_dir.glob("snowflake.logs.*.yaml"))
         if not log_files:
-            pytest.skip("No dsoa.logs.*.yaml files found in semdict output")
+            pytest.skip("No snowflake.logs.*.yaml files found in semdict output")
         failures = []
         for path in sorted(log_files):
             content = path.read_text(encoding="utf-8")
