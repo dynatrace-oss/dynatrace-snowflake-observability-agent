@@ -1992,6 +1992,17 @@ class SemanticExporter:
         self._counters["files"] += 1
         return out_path
 
+    @property
+    def _sd_root(self) -> Path:
+        """Return the SD repo root directory for SD-metadata files (OWNERS, doc/, definitions/).
+
+        When ``output_dir`` ends in ``source`` the SD root is ``output_dir.parent``
+        (standard SD layout: ``<repo-root>/source/``).  Otherwise (e.g. when
+        ``--output docs/semantic-dictionary`` is passed without a ``source/`` tier)
+        the SD root is ``output_dir`` itself.
+        """
+        return self.output_dir.parent if self.output_dir.name == "source" else self.output_dir
+
     def _write_text(self, content: str, rel_path: str) -> Path:
         """Write a plain-text or Markdown file to the output directory."""
         out_path = self.output_dir / rel_path
@@ -2003,8 +2014,8 @@ class SemanticExporter:
         return out_path
 
     def _write_sd_root_text(self, content: str, rel_path: str) -> Path:
-        """Write a plain-text file relative to the SD repo root (output_dir.parent)."""
-        out_path = self.output_dir.parent / rel_path
+        """Write a plain-text file relative to the SD repo root (see :attr:`_sd_root`)."""
+        out_path = self._sd_root / rel_path
         out_path.parent.mkdir(parents=True, exist_ok=True)
         out_path.write_text(content, encoding="utf-8")
         log.debug("Wrote %s", out_path)
@@ -2029,7 +2040,7 @@ class SemanticExporter:
         An existing '## DSOA' block (from that marker through the next '## ' line
         or EOF) is replaced; if none exists the section is appended.
         """
-        owners_path = self.output_dir.parent / "OWNERS"
+        owners_path = self._sd_root / "OWNERS"
         if owners_path.exists():
             existing = owners_path.read_text(encoding="utf-8")
             marker = "## DSOA"
@@ -2127,7 +2138,7 @@ class SemanticExporter:
         Reads the existing SD file (if present), injects the DSOA category under
         SD_FIELD_CATEGORY, and writes the result back in-place.
         """
-        gfc_path = self.output_dir.parent / "definitions" / "mapping" / "global_field_categories.json"
+        gfc_path = self._sd_root / "definitions" / "mapping" / "global_field_categories.json"
         existing: Dict[str, Any] = {}
         if gfc_path.exists():
             with open(gfc_path, "r", encoding="utf-8") as fh:
@@ -2178,6 +2189,53 @@ class SemanticExporter:
                 "<!-- end_dynatrace_internal -->\n"
             )
             result[f"doc/model/snowflake/{subdir}/readme.md"] = content
+        return result
+
+    def _build_per_model_doc_stubs(self, models: List[Dict[str, Any]]) -> Dict[str, str]:
+        """Generate per-model doc/model/snowflake/<type>/<plugin>.md stub files.
+
+        The SD generator reads these stubs and fills in the ``<!-- model <id> -->``
+        sections with the generated attribute tables and DQL examples.  Without them
+        the generator has nothing to populate and the F001 / F004 / F025 sanity
+        checks fire for every undefined model.
+
+        Each stub is minimal — just enough for the generator to recognise and fill
+        in.  The ``<!-- model <id> --> … <!-- end_model -->`` block is intentionally
+        empty; the generator replaces it with the rendered model description and
+        DQL examples.
+
+        Args:
+            models: List of dicts with keys ``id`` (model ID, e.g.
+                    ``snowflake.logs.metering``), ``title``, ``brief``, and
+                    ``signal_type`` (``logs``, ``events``, ``spans``).
+
+        Returns:
+            Dict mapping relative output path (``doc/model/snowflake/…``) → content.
+        """
+        result: Dict[str, str] = {}
+        for model in models:
+            model_id = model["id"]
+            title = model["title"]
+            brief = model.get("brief", "")
+            signal_type = model["signal_type"]  # logs | events | spans
+            plugin = model_id.split(".")[-1]    # last segment is the plugin name
+            content = (
+                f"<!-- model {model_id} -->\n"
+                "<!-- The content between the markdown start and end comments (tags) is generated. Please do not edit manually. -->\n"
+                "\n"
+                f"## {title}\n"
+                "\n"
+                f"{brief}\n"
+                "\n"
+                "<!-- end_model -->\n"
+                "\n"
+                "<!-- dynatrace_internal -->\n"
+                "| Responsible PM | Maintainer | Team |\n"
+                "|---|---|---|\n"
+                f"| {SD_PM} | {SD_MAINTAINER} | {SD_TEAM} |\n"
+                "<!-- end_dynatrace_internal -->\n"
+            )
+            result[f"doc/model/snowflake/{signal_type}/{plugin}.md"] = content
         return result
 
     ##endregion
@@ -2418,6 +2476,34 @@ class SemanticExporter:
         self._write_owners(self._build_owners_entries(signal_group_ids, resource_group_ids, plugin_names_sorted))
         self._update_field_categories(signal_group_ids, resource_group_ids)
         for rel_path, content in self._build_model_doc_stubs().items():
+            self._write_sd_root_text(content, rel_path)
+
+        # Per-model doc stubs (logs, events, spans) — required by the SD generator to
+        # populate the ``<!-- model <id> -->`` sections (F001/F004/F025 root cause A).
+        per_model_stubs: List[Dict[str, Any]] = []
+        for plugin_name in sorted(plugins_with_attrs):
+            per_model_stubs.append({
+                "id": f"snowflake.logs.{plugin_name}",
+                "title": f"Snowflake {plugin_name.replace('_', ' ')} log records",
+                "brief": f"Log records emitted by the DSOA {plugin_name} plugin from Snowflake ACCOUNT_USAGE and system views.",
+                "signal_type": "logs",
+            })
+        for plugin_name in sorted(plugins_with_events):
+            per_model_stubs.append({
+                "id": f"snowflake.events.{plugin_name}",
+                "title": f"Snowflake {plugin_name.replace('_', ' ')} lifecycle events",
+                "brief": f"Timestamp-based state-change events emitted by the DSOA {plugin_name} plugin via the OpenPipeline Events API.",
+                "signal_type": "events",
+            })
+        all_span_plugins = span_model_plugins | ({"event_log"} if "event_log" in SPAN_PLUGINS else set())
+        for plugin_name in sorted(all_span_plugins):
+            per_model_stubs.append({
+                "id": f"snowflake.spans.{plugin_name}",
+                "title": f"Snowflake {plugin_name.replace('_', ' ')} spans",
+                "brief": f"Span records emitted by the DSOA {plugin_name} plugin from Snowflake ACCOUNT_USAGE views.",
+                "signal_type": "spans",
+            })
+        for rel_path, content in self._build_per_model_doc_stubs(per_model_stubs).items():
             self._write_sd_root_text(content, rel_path)
 
         return dict(self._counters)

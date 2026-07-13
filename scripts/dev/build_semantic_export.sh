@@ -26,7 +26,8 @@
 # Calls export_semantics.py, validates output, and reports summary.
 #
 # Usage:
-#   ./scripts/dev/build_semantic_export.sh [--output-dir <dir>] [--clean] [--verbose] [--schema <path>]
+#   ./scripts/dev/build_semantic_export.sh [--output-dir <dir>] [--clean] [--verbose]
+#                                          [--schema <path>] [--generate-docs] [--sd-repo <dir>]
 #
 # Options:
 #   --output-dir <dir>  Output directory (default: build/_semdict/source).
@@ -39,6 +40,13 @@
 #   --verbose           Enable verbose (DEBUG) logging
 #   --schema <path>     Path to semconv.schema.json (default: scripts/tools/semconv.schema.json).
 #                       Accepts absolute paths or paths relative to the repository root.
+#   --generate-docs     After YAML export, run the SD generator (--md-only) to produce
+#                       per-model Markdown docs and copy them into docs/semantic-dictionary/doc/.
+#                       Requires Docker and the full SD repo checkout at .context/semantic-dictionary/.
+#                       Use --sd-repo to point to a different SD repo location.
+#   --sd-repo <dir>     Path to the full SD repo checkout containing generator/generate.sh.
+#                       Only used when --generate-docs is passed.
+#                       Default: .context/semantic-dictionary relative to the project root.
 #   --help              Show this help message
 
 set -euo pipefail
@@ -49,8 +57,10 @@ EXPORT_SCRIPT="${PROJECT_ROOT}/src/build/export_semantics.py"
 VENV_PYTHON="${PROJECT_ROOT}/.venv/bin/python"
 OUTPUT_DIR="${PROJECT_ROOT}/build/_semdict/source"
 SCHEMA_PATH="${PROJECT_ROOT}/scripts/tools/semconv.schema.json"
+SD_REPO="${PROJECT_ROOT}/.context/semantic-dictionary"
 CUSTOM_OUTPUT_DIR=false
 FORCE_CLEAN=false
+GENERATE_DOCS=false
 EXTRA_ARGS=()
 
 # ---------------------------------------------------------------------------
@@ -87,8 +97,20 @@ while [[ $# -gt 0 ]]; do
             fi
             shift 2
             ;;
+        --generate-docs)
+            GENERATE_DOCS=true
+            shift
+            ;;
+        --sd-repo)
+            if [[ "$2" == /* ]]; then
+                SD_REPO="$2"
+            else
+                SD_REPO="${PROJECT_ROOT}/$2"
+            fi
+            shift 2
+            ;;
         --help|-h)
-            grep "^#" "${BASH_SOURCE[0]}" | grep -v "^#!" | sed 's/^# *//' | head -25
+            grep "^#" "${BASH_SOURCE[0]}" | grep -v "^#!" | sed 's/^# *//' | head -35
             exit 0
             ;;
         *)
@@ -97,6 +119,76 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+# ---------------------------------------------------------------------------
+# Doc generation: export into SD repo, run generator, copy doc/ output back
+# ---------------------------------------------------------------------------
+generate_docs() {
+    local docs_out="${PROJECT_ROOT}/docs/semantic-dictionary/doc"
+
+    log_info "--generate-docs: validating SD repo at ${SD_REPO}"
+    if [[ ! -d "${SD_REPO}/generator" ]]; then
+        log_error "--generate-docs requires a full SD repo checkout with generator/ at: ${SD_REPO}"
+        log_error "Clone the semantic-dictionary repo there or pass --sd-repo <path>."
+        return 1
+    fi
+    if ! command -v docker &>/dev/null; then
+        log_error "--generate-docs requires Docker to be available on PATH"
+        return 1
+    fi
+
+    # Step 1: export YAML into the SD repo so the generator sees up-to-date source/
+    log_info "--generate-docs: exporting YAML into SD repo at ${SD_REPO}"
+    cd "${PROJECT_ROOT}"
+    if ! PYTHONPATH="${PROJECT_ROOT}/src" "${VENV_PYTHON}" "${EXPORT_SCRIPT}" \
+        --output "${SD_REPO}/source" \
+        --schema "${SCHEMA_PATH}" \
+        "${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}"; then
+        log_error "--generate-docs: export into SD repo failed"
+        return 1
+    fi
+
+    # Step 2: resolve generator image version and SD version from SD repo metadata
+    local generator_version sd_version
+    generator_version=$(grep "^version=" "${SD_REPO}/generator/generator-version.properties" | cut -d= -f2)
+    sd_version=$(grep "^version=" "${SD_REPO}/version.properties" | cut -d= -f2)
+    if [[ -z "${generator_version}" || -z "${sd_version}" ]]; then
+        log_error "--generate-docs: could not read generator/SD version from ${SD_REPO}"
+        return 1
+    fi
+    local generator_image="registry.lab.dynatrace.org/deus/otel-build-tool:${generator_version}"
+    log_info "--generate-docs: SD version=${sd_version}  generator image=${generator_image}"
+
+    # Step 3: pull the generator image
+    log_info "--generate-docs: pulling generator image ${generator_image}"
+    if ! docker pull "${generator_image}"; then
+        log_error "--generate-docs: docker pull failed for ${generator_image}"
+        return 1
+    fi
+
+    # Step 4: run the generator in --md-only mode (non-interactive; avoids -it tty requirement)
+    log_info "--generate-docs: running SD generator markdown mode (non-interactive)"
+    if ! docker run --rm \
+        -v "${SD_REPO}/source:/source" \
+        -v "${SD_REPO}/doc:/doc" \
+        "${generator_image}" \
+        --version "${sd_version}" \
+        --missing-property-mode warning \
+        --yaml-root /source \
+        markdown \
+        --markdown-root /doc; then
+        log_error "--generate-docs: SD generator container failed"
+        return 1
+    fi
+
+    # Step 5: sync only the snowflake model docs into docs/semantic-dictionary/doc/
+    # (the SD doc/ tree is large; we copy only the DSOA-owned model/ subdirectory)
+    log_info "--generate-docs: syncing ${SD_REPO}/doc/model/snowflake/ -> ${docs_out}/model/snowflake/"
+    mkdir -p "${docs_out}/model/snowflake"
+    rsync -a --delete "${SD_REPO}/doc/model/snowflake/" "${docs_out}/model/snowflake/"
+    log_success "--generate-docs: doc/model/snowflake/ synced to ${docs_out}/model/snowflake/"
+    return 0
+}
 
 # ---------------------------------------------------------------------------
 # Pre-flight checks
@@ -138,7 +230,16 @@ main() {
 
     log_success "Semantic dictionary export complete"
     log_info "Output: ${OUTPUT_DIR}"
+
+    # Optional doc generation step
+    if [[ "${GENERATE_DOCS}" == "true" ]]; then
+        if ! generate_docs; then
+            return 1
+        fi
+    fi
+
     return 0
 }
 
 main "$@"
+

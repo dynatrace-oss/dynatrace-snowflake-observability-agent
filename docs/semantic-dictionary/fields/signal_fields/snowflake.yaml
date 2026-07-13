@@ -180,8 +180,8 @@ groups:
         stability: stable
         brief: The unique identifier of the database involved in the query.
         examples: [ 123456 ]
-        note: ACCOUNT_USAGE.DATABASES supplies related fields (name, owner, owner_role_type, type, is_transient, lifecycle, retention_time, comment) but these should be populated by a future inventory plugin,
-          not query_history (≈180-min latency + cost). In query_history, snowflake.database.id stays a foreign key only.
+        note: ACCOUNT_USAGE.DATABASES supplies related fields (name, owner, owner_role_type, type, is_transient, lifecycle, retention_time, comment) but these should be populated by a future inventory
+          plugin, not query_history (≈180-min latency + cost). In query_history, snowflake.database.id stays a foreign key only.
   - id: snowflake.entity
     type: attribute_group
     title: Snowflake Entity signal
@@ -303,7 +303,7 @@ groups:
         stability: experimental
         brief: A JSON array that specifies the objects that were associated with a write operation in the query.
         examples: [ '{ "DTAGENT_DB.APP.TMP_RECENT_QUERIES": { "objectColumns": "HISTOGRAM_METRICS, COUNTER_METRICS, START_TIME, STATUS_CODE, SESSION_ID, QUERY_ID, DIMENSIONS, END_TIME, NAME, ATTRIBUTES,
-            PARENT_QUERY_ID", "objectDomain": "Table" } }' ]
+              PARENT_QUERY_ID", "objectDomain": "Table" } }' ]
         note: Serialized JSON object stored as string in Grail. Contains modified DDL object details. Parse with parseJson() in DQL.
       - id: snowflake.object.ddl.operation
         display_name: 'Snowflake Object DDL Operation'
@@ -517,8 +517,8 @@ groups:
         display_name: 'Snowflake Query Accel Est Estimated Query Times'
         type: string
         stability: stable
-        brief: Object that contains the estimated query execution time in seconds for different query acceleration scale factors. If the status for the query is not eligible for query acceleration, this
-          object is empty.
+        brief: Object that contains the estimated query execution time in seconds for different query acceleration scale factors. If the status for the query is not eligible for query acceleration, 
+          this object is empty.
         examples: [ '{ "scaleFactor1": 10, "scaleFactor2": 5 }' ]
         note: Serialized JSON object stored as string in Grail. Contains estimated query execution times per scale factor. Parse with parseJson() in DQL.
       - id: snowflake.query.accel_est.status
@@ -811,8 +811,8 @@ groups:
         display_name: 'Snowflake Resource Monitor Threshold Value'
         type: double
         stability: experimental
-        brief: The configured threshold percentage at which this crossing event was triggered (e.g., 80 means the 80% threshold was crossed). Distinct from snowflake.credits.quota.used_pct, which captures
-          live consumption at emit time.
+        brief: The configured threshold percentage at which this crossing event was triggered (e.g., 80 means the 80% threshold was crossed). Distinct from snowflake.credits.quota.used_pct, which 
+          captures live consumption at emit time.
         examples: [ 80.0 ]
       - id: snowflake.resource_monitor.warehouses
         display_name: 'Snowflake Resource Monitor Warehouses'
@@ -2075,7 +2075,8 @@ groups:
               brief: Standard multi-cluster warehouse.
             - id: snowpark_optimized
               value: "SNOWPARK_OPTIMIZED"
-              brief: Single-node warehouse with configurable high-memory nodes (16x–64x vs standard) and CPU architecture options; recommended for ML training and memory-intensive UDFs and stored procedures.
+              brief: Single-node warehouse with configurable high-memory nodes (16x–64x vs standard) and CPU architecture options; recommended for ML training and memory-intensive UDFs and stored 
+                procedures.
         stability: stable
         brief: The type of warehouse used.
         examples: [ 'STANDARD' ]

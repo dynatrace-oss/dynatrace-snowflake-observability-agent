@@ -18,7 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-.PHONY: lint lint-python lint-format lint-pylint lint-sql lint-yaml lint-markdown lint-bom lint-shell build docs semantic-dictionary gen-metric-fixture package test test-documentation test-bash test-bash-slow test-core test-instruments-def test-plugins docker-build docker-clean docker-test
+.PHONY: lint lint-python lint-format lint-pylint lint-sql lint-yaml lint-markdown lint-bom lint-shell build docs semantic-dictionary semantic-dictionary-full gen-metric-fixture package test test-documentation test-bash test-bash-slow test-core test-instruments-def test-plugins docker-build docker-clean docker-test
 
 # Linting targets
 lint-python:
@@ -57,6 +57,9 @@ docs:
 
 semantic-dictionary:
 	./scripts/dev/build_semantic_export.sh --output-dir docs/semantic-dictionary
+
+semantic-dictionary-full:
+	./scripts/dev/build_semantic_export.sh --output-dir docs/semantic-dictionary --generate-docs
 
 gen-metric-fixture:
 	.venv/bin/python scripts/dev/gen_metric_fixture.py

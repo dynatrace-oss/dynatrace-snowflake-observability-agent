@@ -1,0 +1,50 @@
+{
+  "data_observability": {
+    "display_name": "Data Observability",
+    "description": "Snowflake observability fields (DSOA)",
+    "signal_groups": [
+      "anomaly",
+      "authentication",
+      "client",
+      "db",
+      "dsoa.debug",
+      "dsoa.plugins",
+      "event",
+      "observed_timestamp",
+      "snowflake.account",
+      "snowflake.budget",
+      "snowflake.cluster",
+      "snowflake.copy",
+      "snowflake.cost_attribution",
+      "snowflake.database",
+      "snowflake.entity",
+      "snowflake.error",
+      "snowflake.event",
+      "snowflake.grant",
+      "snowflake.object",
+      "snowflake.org",
+      "snowflake.pipe",
+      "snowflake.query",
+      "snowflake.release",
+      "snowflake.resource_monitor",
+      "snowflake.role",
+      "snowflake.schema",
+      "snowflake.secondary",
+      "snowflake.service",
+      "snowflake.session",
+      "snowflake.share",
+      "snowflake.status",
+      "snowflake.table",
+      "snowflake.table.dynamic.graph",
+      "snowflake.task",
+      "snowflake.trust_center",
+      "snowflake.user",
+      "snowflake.warehouse"
+    ],
+    "resource_groups": [
+      "dsoa",
+      "snowflake.resource_monitor.resource",
+      "snowflake.warehouse.resource"
+    ]
+  }
+}

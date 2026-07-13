@@ -88,8 +88,8 @@ model:
       brief: Number of queries in this cost attribution group during the summary window.
       title: Cost Attribution Query Count
       unit: count
-      note: The .query_count name is deliberately preserved. The alternative plural snowflake.cost_attribution.queries would read as a collection of query objects rather than a scalar count, which is misleading
-        in a metrics context.
+      note: The .query_count name is deliberately preserved. The alternative plural snowflake.cost_attribution.queries would read as a collection of query objects rather than a scalar count, which is 
+        misleading in a metrics context.
       attributes:
         - ref: db.collection.name
         - ref: db.operation.name
@@ -223,8 +223,8 @@ model:
       type: metric
       metric_name: snowflake.data.scanned_from_cache
       instrument: gauge
-      brief: Ratio of data scanned from the local disk cache. Value ranges from 0.0 (no cache) to 1.0 (fully cached). Sourced from Snowflake PERCENTAGE_SCANNED_FROM_CACHE column (despite its name, the raw
-        value is 0.0-1.0).
+      brief: Ratio of data scanned from the local disk cache. Value ranges from 0.0 (no cache) to 1.0 (fully cached). Sourced from Snowflake PERCENTAGE_SCANNED_FROM_CACHE column (despite its name, the
+        raw value is 0.0-1.0).
       title: Data Scanned From Cache
       unit: ratio
       attributes:
