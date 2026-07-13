@@ -1,0 +1,76 @@
+model:
+  id: snowflake.logs.users
+  title: Snowflake users log records
+  brief: Log records emitted by the DSOA users plugin.
+  model_group_id: snowflake.logs
+  data_object: log
+  interfaces: [ i.dsoa_resource ]
+  dql_queries:
+    - query_string: |
+        fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "users"
+        | sort timestamp desc
+        | limit 100
+      description: Fetch the 100 most recent DSOA users plugin log entries from Grail.
+      description_copilot: Search for all users plugin logs from the Snowflake observability agent.
+      internal: false
+    - query_string: |
+        fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "users"
+        | filter snowflake.user.is_disabled == "true"
+        | sort timestamp desc
+        | limit 50
+      description: Fetch log entries for disabled Snowflake users from the users plugin.
+      description_copilot: Search for disabled Snowflake user records in the users plugin logs.
+      internal: false
+    - query_string: |
+        fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "users"
+        | filter snowflake.user.has_mfa == "false"
+        | sort timestamp desc
+        | limit 50
+      description: Fetch log entries for Snowflake users without MFA enabled.
+      description_copilot: Search for Snowflake users that do not have MFA configured.
+      internal: false
+  groups:
+    - id: snowflake.logs.users.fields
+      type: attribute_group
+      title: Users log record fields
+      brief: Attribute fields for Users log records.
+      attributes:
+        - ref: snowflake.user.bypass_mfa_until
+        - ref: snowflake.user.comment
+        - ref: snowflake.user.default.namespace
+        - ref: snowflake.user.default.role
+        - ref: snowflake.user.default.secondary_role
+        - ref: snowflake.user.default.warehouse
+        - ref: snowflake.user.display_name
+        - ref: snowflake.user.email
+        - ref: snowflake.user.expires_at
+        - ref: snowflake.user.ext_authn.duo
+        - ref: snowflake.user.ext_authn.uid
+        - ref: snowflake.user.has_mfa
+        - ref: snowflake.user.has_password
+        - ref: snowflake.user.has_pat
+        - ref: snowflake.user.has_rsa
+        - ref: snowflake.user.has_workload_identity
+        - ref: snowflake.user.id
+        - ref: snowflake.user.is_disabled
+        - ref: snowflake.user.is_from_organization
+        - ref: snowflake.user.is_locked
+        - ref: snowflake.user.locked_until_time
+        - ref: snowflake.user.must_change_password
+        - ref: snowflake.user.name.first
+        - ref: snowflake.user.name.last
+        - ref: snowflake.user.name.login
+        - ref: snowflake.user.owner
+        - ref: snowflake.user.privilege.granted_by
+        - ref: snowflake.user.privilege.grants_on
+        - ref: snowflake.user.privilege.name
+        - ref: snowflake.user.roles.all
+        - ref: snowflake.user.roles.direct.list
+        - ref: snowflake.user.roles.direct.removed
+        - ref: snowflake.user.roles.granted_by

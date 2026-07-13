@@ -1,0 +1,35 @@
+model_group:
+  id: snowflake.spans
+  title: Snowflake spans
+  brief: Span records emitted by DSOA plugins from Snowflake ACCOUNT_USAGE views.
+  dql_queries:
+    - query_string: |
+        fetch spans
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "event_log"
+        | sort timestamp desc
+        | limit 50
+      description: Fetch the 50 most recent DSOA event_log spans (traced records from the Snowflake event table).
+      description_copilot: Find event_log span traces produced by the Snowflake observability agent.
+      internal: false
+    - query_string: |
+        fetch spans
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "event_log"
+        | filter isNotNull(snowflake.query.id)
+        | fields timestamp, snowflake.query.id, snowflake.warehouse.name, snowflake.role.name
+        | sort timestamp desc
+        | limit 50
+      description: Inspect event_log spans correlated to a Snowflake query, including warehouse and role context.
+      description_copilot: Show event_log spans linked to Snowflake queries with their warehouse and role.
+      internal: false
+    - query_string: |
+        fetch spans
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "event_log"
+        | filter isNotNull(snowflake.warehouse.name)
+        | summarize { spans = count() }, by: { snowflake.warehouse.name }
+        | sort spans desc
+      description: Count event_log spans grouped by warehouse.
+      description_copilot: Break down event_log spans by Snowflake warehouse.
+      internal: false

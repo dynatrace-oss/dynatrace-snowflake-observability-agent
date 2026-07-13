@@ -9,8 +9,8 @@ groups:
       - ref: deployment.environment
         note: User-configured deployment environment label, e.g. 'PROD', 'STG', or 'DEV'. Set via 'core.snowflake.deployment_environment'.
       - ref: deployment.environment.name
-        note: User-configured deployment environment label (OTel-stable canonical key), e.g. 'PROD', 'STG', or 'DEV'. Set via 'core.snowflake.deployment_environment'. Prefer this key over the deprecated
-          deployment.environment alias.
+        note: User-configured deployment environment label (OTel-stable canonical key), e.g. 'PROD', 'STG', or 'DEV'. Set via 'core.snowflake.deployment_environment'. Prefer this key over the 
+          deprecated deployment.environment alias.
       - ref: deployment.environment.tag
         note: Optional user-defined tag for grouping Snowflake accounts in multitenancy mode, set via 'core.tag'.
       - ref: dsoa.run.context

@@ -1,0 +1,210 @@
+model:
+  id: snowflake.metrics.snowpipes
+  title: Snowflake snowpipes metrics
+  brief: Metrics collected by the DSOA snowpipes plugin from Snowflake ACCOUNT_USAGE views.
+  model_group_id: snowflake.metrics
+  data_object: metric
+  interfaces: [ i.dsoa_resource, i.snowflake_database ]
+  dql_queries:
+    - query_string: >
+        timeseries val = sum(snowflake.pipe.rows.loaded), by: { snowflake.pipe.name, deployment.environment.name }
+      description: Plot rows loaded per Snowpipe over time.
+      description_copilot: Timeseries of rows loaded per Snowflake pipe.
+      internal: false
+    - query_string: |
+        timeseries { ingested = sum(snowflake.pipe.data.ingested), credits = sum(snowflake.pipe.cost.credits_used) },
+          by: { snowflake.pipe.name, deployment.environment.name }
+      description: Compare bytes ingested against credits used per Snowpipe over time.
+      description_copilot: Timeseries comparing Snowflake pipe ingested bytes and credits used.
+      internal: false
+    - query_string: |
+        timeseries { pending = max(snowflake.pipe.files.pending), errors = sum(snowflake.pipe.errors) },
+          by: { snowflake.pipe.name, deployment.environment.name }
+      description: Plot pending files and ingestion errors per Snowpipe over time.
+      description_copilot: Timeseries of pending files and errors per Snowflake pipe.
+      internal: false
+  groups:
+    - id: snowflake.copy.bytes_billed
+      type: metric
+      metric_name: snowflake.copy.bytes_billed
+      instrument: gauge
+      brief: Bytes billed for this copy operation.
+      title: Copy Bytes Billed
+      unit: By
+      attributes:
+        - ref: db.collection.name
+        - ref: snowflake.pipe.catalog
+        - ref: snowflake.pipe.name
+        - ref: snowflake.pipe.schema
+        - ref: snowflake.table.full_name
+    - id: snowflake.copy.errors
+      type: metric
+      metric_name: snowflake.copy.errors
+      instrument: gauge
+      brief: Error count in this load.
+      title: Copy Errors
+      unit: count
+      attributes:
+        - ref: db.collection.name
+        - ref: snowflake.pipe.catalog
+        - ref: snowflake.pipe.name
+        - ref: snowflake.pipe.schema
+        - ref: snowflake.table.full_name
+    - id: snowflake.copy.file_size
+      type: metric
+      metric_name: snowflake.copy.file_size
+      instrument: gauge
+      brief: Observed size of the source file before loading.
+      title: File Size
+      unit: By
+      attributes:
+        - ref: db.collection.name
+        - ref: snowflake.pipe.catalog
+        - ref: snowflake.pipe.name
+        - ref: snowflake.pipe.schema
+        - ref: snowflake.table.full_name
+    - id: snowflake.pipe.cost.bytes_billed
+      type: metric
+      metric_name: snowflake.pipe.cost.bytes_billed
+      instrument: gauge
+      brief: Bytes billed for Snowpipe usage.
+      title: Bytes Billed
+      unit: By
+      attributes:
+        - ref: snowflake.pipe.catalog
+        - ref: snowflake.pipe.id
+        - ref: snowflake.pipe.name
+        - ref: snowflake.pipe.schema
+    - id: snowflake.pipe.cost.credits_used
+      type: metric
+      metric_name: snowflake.pipe.cost.credits_used
+      instrument: gauge
+      brief: Serverless credits consumed.
+      title: Credits Used
+      unit: count
+      attributes:
+        - ref: snowflake.pipe.catalog
+        - ref: snowflake.pipe.id
+        - ref: snowflake.pipe.name
+        - ref: snowflake.pipe.schema
+    - id: snowflake.pipe.data.ingested
+      type: metric
+      metric_name: snowflake.pipe.data.ingested
+      instrument: gauge
+      brief: Bytes inserted.
+      title: Data Ingested
+      unit: By
+      attributes:
+        - ref: snowflake.pipe.catalog
+        - ref: snowflake.pipe.id
+        - ref: snowflake.pipe.name
+        - ref: snowflake.pipe.schema
+    - id: snowflake.pipe.errors
+      type: metric
+      metric_name: snowflake.pipe.errors
+      instrument: gauge
+      brief: Files with load errors.
+      title: Load Errors
+      unit: count
+      attributes:
+        - ref: db.collection.name
+        - ref: snowflake.pipe.catalog
+        - ref: snowflake.pipe.name
+        - ref: snowflake.pipe.schema
+        - ref: snowflake.table.full_name
+    - id: snowflake.pipe.files.ingested
+      type: metric
+      metric_name: snowflake.pipe.files.ingested
+      instrument: gauge
+      brief: Files successfully loaded in this interval.
+      title: Files Ingested
+      unit: count
+      attributes:
+        - ref: db.collection.name
+        - ref: snowflake.pipe.catalog
+        - ref: snowflake.pipe.name
+        - ref: snowflake.pipe.schema
+        - ref: snowflake.table.full_name
+    - id: snowflake.pipe.files.inserted
+      type: metric
+      metric_name: snowflake.pipe.files.inserted
+      instrument: gauge
+      brief: Files inserted (from PIPE_USAGE_HISTORY).
+      title: Files Inserted
+      unit: count
+      attributes:
+        - ref: snowflake.pipe.catalog
+        - ref: snowflake.pipe.id
+        - ref: snowflake.pipe.name
+        - ref: snowflake.pipe.schema
+    - id: snowflake.pipe.files.pending
+      type: metric
+      metric_name: snowflake.pipe.files.pending
+      instrument: gauge
+      brief: Files queued awaiting ingestion.
+      title: Pending Files
+      unit: count
+      attributes:
+        - ref: db.collection.name
+        - ref: snowflake.pipe.catalog
+        - ref: snowflake.pipe.full_name
+        - ref: snowflake.pipe.name
+        - ref: snowflake.pipe.owner
+        - ref: snowflake.pipe.schema
+        - ref: snowflake.pipe.status
+        - ref: snowflake.table.full_name
+    - id: snowflake.pipe.ingest.latency
+      type: metric
+      metric_name: snowflake.pipe.ingest.latency
+      instrument: gauge
+      brief: Per-file latency from PIPE_RECEIVED_TIME to LAST_LOAD_TIME (enabled by ACCOUNT_USAGE view).
+      title: Ingest Latency
+      unit: ms
+      attributes:
+        - ref: db.collection.name
+        - ref: snowflake.pipe.catalog
+        - ref: snowflake.pipe.name
+        - ref: snowflake.pipe.schema
+        - ref: snowflake.table.full_name
+    - id: snowflake.pipe.latency.oldest_file
+      type: metric
+      metric_name: snowflake.pipe.latency.oldest_file
+      instrument: gauge
+      brief: Milliseconds since oldest pending file timestamp.
+      title: Oldest File Latency
+      unit: ms
+      attributes:
+        - ref: db.collection.name
+        - ref: snowflake.pipe.catalog
+        - ref: snowflake.pipe.full_name
+        - ref: snowflake.pipe.name
+        - ref: snowflake.pipe.owner
+        - ref: snowflake.pipe.schema
+        - ref: snowflake.pipe.status
+        - ref: snowflake.table.full_name
+    - id: snowflake.pipe.rows.loaded
+      type: metric
+      metric_name: snowflake.pipe.rows.loaded
+      instrument: gauge
+      brief: Rows inserted.
+      title: Rows Loaded
+      unit: count
+      attributes:
+        - ref: db.collection.name
+        - ref: snowflake.pipe.catalog
+        - ref: snowflake.pipe.name
+        - ref: snowflake.pipe.schema
+        - ref: snowflake.table.full_name
+    - id: snowflake.pipe.rows.parsed
+      type: metric
+      metric_name: snowflake.pipe.rows.parsed
+      instrument: gauge
+      brief: Rows parsed.
+      title: Rows Parsed
+      unit: count
+      attributes:
+        - ref: db.collection.name
+        - ref: snowflake.pipe.catalog
+        - ref: snowflake.pipe.name
+        - ref: snowflake.pipe.schema
+        - ref: snowflake.table.full_name

@@ -233,3 +233,18 @@ metrics:
     __type: double
     unit: MiBy
     displayName: Agent Peak Memory (RSS)
+
+# Group-level DQL examples for SD model_group YAML files.
+# Each key is a model group ID (snowflake.*). Values are lists of use_plugin_dql
+# references that expand to an existing plugin's dql_queries at export time,
+# filtered by the specified signal context. This keeps instruments-def.yml as the
+# single source of truth for DQL without duplicating query strings.
+model_group_dql:
+  snowflake.metrics:
+    - use_plugin_dql: {plugin: metering, context: metrics}
+  snowflake.logs:
+    - use_plugin_dql: {plugin: metering, context: logs}
+  snowflake.events:
+    - use_plugin_dql: {plugin: budgets, context: events}
+  snowflake.spans:
+    - use_plugin_dql: {plugin: event_log, context: spans}

@@ -1,0 +1,135 @@
+model:
+  id: snowflake.metrics.dynamic_tables
+  title: Snowflake dynamic tables metrics
+  brief: Metrics collected by the DSOA dynamic_tables plugin from Snowflake ACCOUNT_USAGE views.
+  model_group_id: snowflake.metrics
+  data_object: metric
+  interfaces: [ i.dsoa_resource, i.snowflake_database ]
+  dql_queries:
+    - query_string: >
+        timeseries val = avg(snowflake.table.dynamic.lag.mean), by: { db.collection.name, deployment.environment.name }
+      description: Plot the mean refresh lag per dynamic table over time.
+      description_copilot: Timeseries of Snowflake dynamic table mean refresh lag.
+      internal: false
+    - query_string: |
+        timeseries { lag_mean = avg(snowflake.table.dynamic.lag.mean), lag_max = max(snowflake.table.dynamic.lag.max) },
+          by: { db.collection.name, deployment.environment.name }
+      description: Compare mean and maximum refresh lag per dynamic table over time.
+      description_copilot: Timeseries comparing mean and maximum Snowflake dynamic table refresh lag.
+      internal: false
+    - query_string: |
+        timeseries {
+          inserted = sum(snowflake.rows.inserted),
+          deleted = sum(snowflake.rows.deleted),
+          copied = sum(snowflake.rows.copied)
+        },
+          by: { db.collection.name, deployment.environment.name }
+      description: Plot rows inserted, deleted and copied per dynamic table refresh over time.
+      description_copilot: Timeseries of rows inserted, deleted and copied per Snowflake dynamic table refresh.
+      internal: false
+  groups:
+    - id: snowflake.partitions.added
+      type: metric
+      metric_name: snowflake.partitions.added
+      instrument: gauge
+      brief: The number of partitions added during the refresh.
+      title: Partitions Added
+      unit: count
+      note: 'Original unit: partition.'
+      attributes:
+        - ref: db.collection.name
+        - ref: snowflake.table.full_name
+    - id: snowflake.partitions.removed
+      type: metric
+      metric_name: snowflake.partitions.removed
+      instrument: gauge
+      brief: The number of partitions removed during the refresh.
+      title: Partitions Removed
+      unit: count
+      note: 'Original unit: partition.'
+      attributes:
+        - ref: db.collection.name
+        - ref: snowflake.table.full_name
+    - id: snowflake.rows.copied
+      type: metric
+      metric_name: snowflake.rows.copied
+      instrument: gauge
+      brief: The number of rows copied during the refresh.
+      title: Rows Copied
+      unit: count
+      note: 'Original unit: row.'
+      attributes:
+        - ref: db.collection.name
+        - ref: snowflake.table.full_name
+    - id: snowflake.rows.deleted
+      type: metric
+      metric_name: snowflake.rows.deleted
+      instrument: gauge
+      brief: The number of rows deleted during the refresh.
+      title: Rows Deleted
+      unit: count
+      note: 'Original unit: row.'
+      attributes:
+        - ref: db.collection.name
+        - ref: snowflake.table.full_name
+    - id: snowflake.rows.inserted
+      type: metric
+      metric_name: snowflake.rows.inserted
+      instrument: gauge
+      brief: The number of rows inserted during the refresh.
+      title: Rows Inserted
+      unit: count
+      note: 'Original unit: row.'
+      attributes:
+        - ref: db.collection.name
+        - ref: snowflake.table.full_name
+    - id: snowflake.table.dynamic.lag.max
+      type: metric
+      metric_name: snowflake.table.dynamic.lag.max
+      instrument: gauge
+      brief: The maximum lag time in seconds of refreshes for this dynamic table.
+      title: Maximum Lag Time
+      unit: s
+      attributes:
+        - ref: db.collection.name
+        - ref: snowflake.table.full_name
+    - id: snowflake.table.dynamic.lag.mean
+      type: metric
+      metric_name: snowflake.table.dynamic.lag.mean
+      instrument: gauge
+      brief: The mean lag time (in seconds) of refreshes for this dynamic table.
+      title: Mean Lag Time
+      unit: s
+      attributes:
+        - ref: db.collection.name
+        - ref: snowflake.table.full_name
+    - id: snowflake.table.dynamic.lag.target.time_above
+      type: metric
+      metric_name: snowflake.table.dynamic.lag.target.time_above
+      instrument: gauge
+      brief: The time in seconds when the actual lag was more than the defined target lag.
+      title: Time Above Target Lag
+      unit: s
+      attributes:
+        - ref: db.collection.name
+        - ref: snowflake.table.full_name
+    - id: snowflake.table.dynamic.lag.target.value
+      type: metric
+      metric_name: snowflake.table.dynamic.lag.target.value
+      instrument: gauge
+      brief: The time in seconds in the retention period or since the last configuration change, when the actual lag was more than the defined target lag.
+      title: Target Lag Time
+      unit: s
+      attributes:
+        - ref: db.collection.name
+        - ref: snowflake.table.full_name
+    - id: snowflake.table.dynamic.lag.target.within_ratio
+      type: metric
+      metric_name: snowflake.table.dynamic.lag.target.within_ratio
+      instrument: gauge
+      brief: The ratio of time in the retention period or since the last configuration change, when actual lag is within the target lag.
+      title: Time Within Target Lag Ratio
+      unit: ratio
+      attributes:
+        - ref: db.collection.name
+        - ref: snowflake.table.full_name

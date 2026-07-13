@@ -70,8 +70,8 @@ groups:
         brief: The number of clusters in the warehouse.
         examples:
           - 2
-        note: The .count suffix is deliberately preserved. Sibling metrics snowflake.warehouse.clusters.min, .max, and .started exist in the same namespace; using the bare plural snowflake.warehouse.clusters
-          as a scalar would be ambiguous alongside them.
+        note: The .count suffix is deliberately preserved. Sibling metrics snowflake.warehouse.clusters.min, .max, and .started exist in the same namespace; using the bare plural 
+          snowflake.warehouse.clusters as a scalar would be ambiguous alongside them.
       - id: snowflake.warehouse.execution_state
         display_name: Snowflake Warehouse Execution State
         type:

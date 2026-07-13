@@ -1,0 +1,33 @@
+model_group:
+  id: snowflake.events
+  title: Snowflake lifecycle events
+  brief: Timestamp-based state-change events emitted by DSOA plugins via the Dynatrace OpenPipeline Events API.
+  dql_queries:
+    - query_string: |
+        fetch events
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "budgets"
+        | sort timestamp desc
+        | limit 50
+      description: Fetch the most recent DSOA budgets lifecycle events from Grail.
+      description_copilot: Search for Snowflake budget lifecycle events emitted by the observability agent.
+      internal: false
+    - query_string: |
+        fetch events
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "budgets"
+        | summarize { events = count() }, by: { snowflake.event.type }
+        | sort events desc
+      description: Count DSOA budgets lifecycle events grouped by event type.
+      description_copilot: Break down Snowflake budget lifecycle events by their event type.
+      internal: false
+    - query_string: |
+        fetch events
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "budgets"
+        | filter snowflake.event.type == "snowflake.budget.created_on"
+        | sort timestamp desc
+        | limit 25
+      description: Fetch budget-creation lifecycle events reported by the budgets plugin.
+      description_copilot: Find when Snowflake budgets were created from the budgets plugin lifecycle events.
+      internal: false

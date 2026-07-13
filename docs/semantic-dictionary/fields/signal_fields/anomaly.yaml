@@ -8,8 +8,8 @@ groups:
         display_name: Anomaly Detector
         type: string
         stability: experimental
-        brief: Identifies the DSOA workflow or plugin that detected the anomaly. Values follow the ``dsoa.<workflow_name>`` convention (e.g., ``dsoa.data_volume_anomaly``) except for the failed-login detector
-          which uses ``dsoa.failed_login_detection``.
+        brief: Identifies the DSOA workflow or plugin that detected the anomaly. Values follow the ``dsoa.<workflow_name>`` convention (e.g., ``dsoa.data_volume_anomaly``) except for the failed-login 
+          detector which uses ``dsoa.failed_login_detection``.
         examples:
           - dsoa.data_volume_anomaly
       - id: anomaly.direction
@@ -54,7 +54,7 @@ groups:
               value: disappeared
               brief: Share object no longer present in the account (shares-broken-detection workflow).
         stability: experimental
-        brief: High-level category classifying the anomaly subject within its detector. Specific values are defined per workflow (e.g., ``login`` / ``session`` / ``query_count`` / ``data_scan`` for security-anomaly-detection;
-          ``unavailable`` / ``disappeared`` / ``volume_drop`` for shares-broken-detection).
+        brief: High-level category classifying the anomaly subject within its detector. Specific values are defined per workflow (e.g., ``login`` / ``session`` / ``query_count`` / ``data_scan`` for 
+          security-anomaly-detection; ``unavailable`` / ``disappeared`` / ``volume_drop`` for shares-broken-detection).
         examples:
           - login

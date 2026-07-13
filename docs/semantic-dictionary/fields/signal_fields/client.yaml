@@ -39,7 +39,8 @@ groups:
         brief: The IP address of the client that initiated the event.
         examples:
           - 192.168.1.1
-        note: OTel semconv uses client.address (stable). DSOA emits client.ip to match Snowflake LOGIN_HISTORY.CLIENT_IP column naming. The name is intentionally preserved to make the column origin self-evident.
+        note: OTel semconv uses client.address (stable). DSOA emits client.ip to match Snowflake LOGIN_HISTORY.CLIENT_IP column naming. The name is intentionally preserved to make the column origin 
+          self-evident.
       - id: client.type
         display_name: Client Type
         type: string

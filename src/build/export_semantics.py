@@ -747,6 +747,50 @@ def _dql_for_context(queries: Optional[List[Dict[str, Any]]], target: str) -> Li
     return result
 
 
+def _resolve_model_group_dql(
+    raw: Dict[str, Any],
+    plugin_dql_queries: Dict[str, List[Dict[str, Any]]],
+) -> Dict[str, List[Dict[str, Any]]]:
+    """Resolve the ``model_group_dql`` block from the core instruments-def into SD-ready DQL lists.
+
+    Each entry in the raw block is either a literal ``DqlQuery`` dict or a
+    ``use_plugin_dql`` reference ``{plugin: <name>, context: <ctx>}``.  References are
+    expanded by pulling matching queries from ``plugin_dql_queries`` via
+    ``_dql_for_context``; the ``context`` routing key is stripped in both cases so the
+    result is a clean list of ``DqlQuery`` objects suitable for direct embedding in
+    model_group YAML.
+
+    Args:
+        raw:                Raw ``model_group_dql`` dict from the core instruments-def.
+        plugin_dql_queries: Per-plugin query lists already collected during export (keyed
+                            by plugin name).
+
+    Returns:
+        Dict mapping model group ID → resolved list of SD ``DqlQuery`` dicts.  Groups
+        with no resolvable queries are omitted.
+    """
+    resolved: Dict[str, List[Dict[str, Any]]] = {}
+    for group_id, entries in (raw or {}).items():
+        queries: List[Dict[str, Any]] = []
+        for entry in entries or []:
+            ref = entry.get("use_plugin_dql")
+            if ref:
+                plugin = ref.get("plugin", "")
+                context = ref.get("context", "")
+                expanded = _dql_for_context(plugin_dql_queries.get(plugin), context)
+                if not expanded:
+                    log.warning("model_group_dql[%s]: use_plugin_dql plugin=%s context=%s yielded no queries", group_id, plugin, context)
+                queries.extend(expanded)
+            else:
+                # Literal DqlQuery — strip context key if present (routing directive, not SD shape)
+                queries.append({k: v for k, v in entry.items() if k != "context"})
+        if queries:
+            resolved[group_id] = queries
+        else:
+            log.warning("model_group_dql[%s]: resolved to empty list; dql_queries will be omitted", group_id)
+    return resolved
+
+
 ##endregion
 
 
@@ -2194,6 +2238,19 @@ class SemanticExporter:
         if all_errors:
             raise ExportError("Validation errors found:\n" + "\n".join(all_errors))
 
+        # Resolve model_group_dql from core instruments-def (expands use_plugin_dql references).
+        _core_raw: Dict[str, Any] = {}
+        for plugin_name, path in files:
+            if plugin_name == "_core":
+                try:
+                    with open(path, "r", encoding="utf-8") as fh:
+                        _core_raw = yaml.safe_load(fh) or {}
+                except Exception as exc:  # pylint: disable=broad-except
+                    log.warning("Could not re-read core instruments-def from %s: %s", path, exc)
+                break
+        resolved_mg_dql = _resolve_model_group_dql(_core_raw.get("model_group_dql"), plugin_dql_queries)
+        log.info("Resolved model_group_dql for %d group(s): %s", len(resolved_mg_dql), sorted(resolved_mg_dql))
+
         # Step 3: Group
         resource_entries, signal_entries, event_ts_entries, plugin_metric_entries = self._group_entries(all_entries)
         log.info(
@@ -2235,6 +2292,7 @@ class SemanticExporter:
                     "id": "snowflake.metrics",
                     "title": "Snowflake metrics",
                     "brief": "Metrics collected by the DSOA from Snowflake ACCOUNT_USAGE views.",
+                    **({} if not resolved_mg_dql.get("snowflake.metrics") else {"dql_queries": resolved_mg_dql["snowflake.metrics"]}),
                 }
             },
             "metrics/snowflake_metrics_model_group.yaml",
@@ -2267,6 +2325,7 @@ class SemanticExporter:
                         "id": "snowflake.events",
                         "title": "Snowflake lifecycle events",
                         "brief": "Timestamp-based state-change events emitted by DSOA plugins via the Dynatrace OpenPipeline Events API.",
+                        **({} if not resolved_mg_dql.get("snowflake.events") else {"dql_queries": resolved_mg_dql["snowflake.events"]}),
                     }
                 },
                 "model/snowflake/events/model_group_snowflake_events.yaml",
@@ -2292,6 +2351,7 @@ class SemanticExporter:
                         "id": "snowflake.logs",
                         "title": "Snowflake log records",
                         "brief": "Log records emitted by DSOA plugins from Snowflake ACCOUNT_USAGE and system views.",
+                        **({} if not resolved_mg_dql.get("snowflake.logs") else {"dql_queries": resolved_mg_dql["snowflake.logs"]}),
                     }
                 },
                 "model/snowflake/logs/model_group_snowflake_logs.yaml",
@@ -2314,6 +2374,7 @@ class SemanticExporter:
                         "id": "snowflake.spans",
                         "title": "Snowflake spans",
                         "brief": "Span records emitted by DSOA plugins from Snowflake ACCOUNT_USAGE views.",
+                        **({} if not resolved_mg_dql.get("snowflake.spans") else {"dql_queries": resolved_mg_dql["snowflake.spans"]}),
                     }
                 },
                 "model/snowflake/spans/model_group_snowflake_spans.yaml",
@@ -2337,6 +2398,7 @@ class SemanticExporter:
                             "id": "snowflake.spans",
                             "title": "Snowflake spans",
                             "brief": "Span records emitted by DSOA plugins from Snowflake ACCOUNT_USAGE views.",
+                            **({} if not resolved_mg_dql.get("snowflake.spans") else {"dql_queries": resolved_mg_dql["snowflake.spans"]}),
                         }
                     },
                     "model/snowflake/spans/model_group_snowflake_spans.yaml",

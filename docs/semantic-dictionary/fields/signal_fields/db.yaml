@@ -34,23 +34,23 @@ groups:
         stability: stable
         brief: The databases involved in the query.
         examples:
-          - - PROD_DB
-            - TEST_DB
+          -   - PROD_DB
+              - TEST_DB
       - id: db.snowflake.tables
         display_name: DB Snowflake Tables
         type: string[]
         stability: stable
         brief: The tables involved in the query.
         examples:
-          - - users
-            - orders
+          -   - users
+              - orders
       - id: db.snowflake.views
         display_name: DB Snowflake Views
         type: string[]
         stability: stable
         brief: The views involved in the query.
         examples:
-          - - user_view
+          -   - user_view
         note: Fully proprietary; no OTel analog.
       - id: db.user
         display_name: DB User

@@ -731,5 +731,36 @@ class TestDqlQueriesOnModels:
 
         assert not violations, "dql_queries entries with missing required fields:\n" + "\n".join(violations)
 
+    def test_model_groups_have_dql_queries(self):
+        """All four snowflake.* model_group YAML files must contain dql_queries:.
+
+        Validates that the model_group_dql mechanism in instruments-def.yml is wired
+        up correctly and the export pipeline attaches DQL examples to every model_group
+        container (metrics, events, logs, spans).
+        """
+        require_semdict_source()
+
+        model_group_files = [
+            (SEMDICT_SOURCE / "metrics" / "snowflake_metrics_model_group.yaml", "snowflake.metrics"),
+            (SEMDICT_SOURCE / "model" / "snowflake" / "events" / "model_group_snowflake_events.yaml", "snowflake.events"),
+            (SEMDICT_SOURCE / "model" / "snowflake" / "logs" / "model_group_snowflake_logs.yaml", "snowflake.logs"),
+            (SEMDICT_SOURCE / "model" / "snowflake" / "spans" / "model_group_snowflake_spans.yaml", "snowflake.spans"),
+        ]
+        missing: List[str] = []
+        for yaml_path, group_id in model_group_files:
+            if not yaml_path.exists():
+                missing.append(f"{group_id}: file not found ({yaml_path.name})")
+                continue
+            with open(yaml_path, "r", encoding="utf-8") as fh:
+                doc = yaml.safe_load(fh) or {}
+            mg = doc.get("model_group", {})
+            dql = mg.get("dql_queries")
+            if not dql:
+                missing.append(f"{group_id}: missing dql_queries in {yaml_path.name}")
+            elif len(dql) < 1:
+                missing.append(f"{group_id}: empty dql_queries in {yaml_path.name}")
+
+        assert not missing, "model_group files missing dql_queries:\n" + "\n".join(missing)
+
 
 ##endregion
