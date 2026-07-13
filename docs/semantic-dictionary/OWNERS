@@ -8,6 +8,10 @@ path source/fields/resource_fields/snowflake_resource.yaml, \
      source/fields/signal_fields/dsoa_plugins.yaml, \
      source/fields/signal_fields/observed_timestamp.yaml, \
      source/fields/signal_fields/snowflake.yaml, \
+     source/fields/signal_fields/authentication.yaml, \
+     source/fields/signal_fields/client.yaml, \
+     source/fields/signal_fields/db.yaml, \
+     source/fields/signal_fields/event.yaml, \
      source/metrics/snowflake_metrics_**, \
      source/metrics/interfaces_dsoa.yaml, \
      source/metrics/interfaces_snowflake.yaml, \

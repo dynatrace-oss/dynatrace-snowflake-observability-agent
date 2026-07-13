@@ -2084,7 +2084,9 @@ class SemanticExporter:
         if any(gid.startswith("dsoa") or gid.startswith("deployment") for gid in resource_group_ids):
             paths.append(dsoa_res_file)
 
-        # Signal field source files (DSOA-owned only)
+        # Signal field source files — DSOA-owned groups and shared groups we co-contribute to
+        # (authentication, client, db, event are SD-shared but we write into them; they must be
+        # listed in OWNERS so the F027 sanity check does not fire)
         snowflake_added = False
         for gid in sorted(signal_group_ids):
             if not any(gid == p or gid.startswith(p + ".") for p in SD_OWNED_GROUP_PREFIXES):
@@ -2096,6 +2098,12 @@ class SemanticExporter:
             else:
                 filename = gid.replace(".", "_") + ".yaml"
                 paths.append(f"source/fields/signal_fields/{filename}")
+
+        # Shared signal field files we merge DSOA fields into (not DSOA-exclusive but co-owned)
+        for shared_group in sorted({"authentication", "client", "db", "event"}):
+            shared_path = f"source/fields/signal_fields/{shared_group}.yaml"
+            if shared_path not in paths:
+                paths.append(shared_path)
 
         # Metrics files
         paths.append("source/metrics/snowflake_metrics_**")
