@@ -51,7 +51,11 @@ attributes:
     __is_defined_at_runtime: true
     __example: warn
     __description: >-
-      Alert band for the threshold event: ``info`` (below 80%), ``warn`` ([80–90%)), ``critical`` ([90–100%)), or ``exhausted`` (>=100%).
+      Alert band the resource monitor's credit usage fell into when the event was emitted:
+      one of ``info``, ``warn``, ``critical``, or ``exhausted`` (increasing severity). The
+      percentage boundaries for each band are configurable via
+      ``plugins.resource_monitors.credits_quota_thresholds`` (default ``[50, 80, 90, 100]``);
+      the specific crossed percentage is reported in ``snowflake.resource_monitor.threshold.value``.
   snowflake.resource_monitor.threshold.value:
     __is_defined_at_runtime: true
     __type: double
