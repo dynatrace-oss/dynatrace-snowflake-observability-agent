@@ -375,9 +375,27 @@ def _merge_into_ruamel(existing, new) -> None:
     requiring ``--clean``.  Inline comments on unchanged keys are preserved.
     Blank-line spacing from the last SD-native attribute is mirrored on each
     appended DSOA attribute so the output matches SD style.
+
+    Also handles ``model_group`` top-level key: updates ``dql_queries`` (and other
+    scalar/list keys like ``brief``, ``title``) from *new* when the value is non-empty,
+    so model-group DQL query lists propagate on re-export without ``--clean``.
     """
     # Scalar fields on an existing attribute that we always overwrite from new.
     _UPDATABLE_KEYS = frozenset({"brief", "stability", "deprecated", "type", "examples", "note"})
+    # Top-level model_group keys we propagate from new → existing when new has a value.
+    _MG_UPDATABLE_KEYS = frozenset({"brief", "title", "dql_queries"})
+
+    # Handle model_group top-level key (model group files use this instead of "groups").
+    if "model_group" in existing and "model_group" in new:
+        ex_mg = existing["model_group"]
+        new_mg = new["model_group"]
+        for key in _MG_UPDATABLE_KEYS:
+            val = new_mg.get(key)
+            if val:  # propagate only when new has a non-empty value
+                ex_mg[key] = val
+            elif key in ex_mg and val is not None:
+                # new explicitly has the key but empty — remove from existing
+                del ex_mg[key]
 
     if "groups" not in existing or "groups" not in new:
         return
@@ -2608,6 +2626,17 @@ class SemanticExporter:
                 for gid in sorted(sig_group_titles)
                 if any(gid == p or gid.startswith(p + ".") for p in SD_OWNED_GROUP_PREFIXES)
             ]
+            # Also include resource_fields groups (dsoa, snowflake.resource_monitor.resource,
+            # snowflake.warehouse.resource) — they are global groups and require a doc stub
+            # so the SD generator can find them (otherwise F003 fires).
+            res_group_titles: Dict[str, str] = {
+                g["id"]: g.get("title", "")
+                for res_doc in (sf_res_doc, dsoa_res_doc)
+                for g in res_doc.get("groups", [])
+            }
+            for gid, title in sorted(res_group_titles.items()):
+                if any(gid == p or gid.startswith(p + ".") for p in SD_OWNED_GROUP_PREFIXES):
+                    field_stubs.append({"group_id": gid, "title": title})
             for rel_path, content in self._build_per_field_doc_stubs(field_stubs).items():
                 self._write_sd_root_text(content, rel_path)
 
