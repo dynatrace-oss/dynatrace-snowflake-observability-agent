@@ -187,6 +187,7 @@ attributes:
     __description: A human-readable message providing additional detail about the operation status.
 dimensions:
   client.ip:
+    __semdict: sd-native
     __context_names:
       - login_history
     __semdict_note: >-
