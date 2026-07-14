@@ -40,9 +40,8 @@ attributes:
     __example:
       - ["CREATE_DYNAMIC_TABLE"]
     __description: >-
-      Describes why a new entry is created in the DYNAMIC_TABLE_GRAPH_HISTORY function.
-      Possible values: NONE (backwards-compatible), CREATE_DYNAMIC_TABLE, ALTER_TARGET_LAG,
-      SUSPEND, RESUME, REPLICATION_REFRESH, ALTER_WAREHOUSE.
+      Describes why a new entry is created in the DYNAMIC_TABLE_GRAPH_HISTORY function. Possible values: NONE (backwards-compatible),
+      CREATE_DYNAMIC_TABLE, ALTER_TARGET_LAG, SUSPEND, RESUME, REPLICATION_REFRESH, ALTER_WAREHOUSE.
   snowflake.table.dynamic.graph.inputs:
     __type: string[]
     __semdict_note: >-
@@ -272,6 +271,7 @@ dimensions:
     __example: EMPLOYEE_DET
     __description: Name of the dynamic table.
   db.namespace:
+    __semdict: ref
     __type: string
     __context_names:
       - dynamic_tables

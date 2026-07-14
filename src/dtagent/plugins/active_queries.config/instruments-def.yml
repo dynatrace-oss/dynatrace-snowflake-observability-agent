@@ -90,7 +90,7 @@ attributes:
 dimensions:
   db.namespace:
     __type: string
-    __semdict: otel-only
+    __semdict: ref
     __stability: stable
     __semdict_note: >-
       Defined in OTel Semantic Conventions (db.namespace, stable since v1.28). Not yet present as a globally referenceable field in the

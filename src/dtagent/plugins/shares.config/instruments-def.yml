@@ -206,6 +206,7 @@ attributes:
     __description: Indicates the table type.
 dimensions:
   db.collection.name:
+    __semdict: ref
     __type: string
     __context_names:
       - inbound_shares
@@ -219,6 +220,7 @@ dimensions:
     __example: SHARE_DB.PUBLIC.SALES_DATA
     __description: Fully qualified name (DB.SCHEMA.TABLE) of the shared Snowflake table.
   db.namespace:
+    __semdict: ref
     __type: string
     __context_names:
       - outbound_shares

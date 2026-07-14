@@ -364,9 +364,8 @@ attributes:
       '{ "overall_percentage": 50.0,"initialization": 0.5,"processing": 4.0,"synchronization": 0.5,"local_disk_io": 0.2,"remote_disk_io":
       0.1,"network_communication": 0.2 }'
     __description: >-
-      Serialized JSON object with the breakdown of the execution time of the operator.
-      Keys: overall_percentage (total query time %), initialization, processing, synchronization,
-      local_disk_io, remote_disk_io, network_communication (each in milliseconds).
+      Serialized JSON object with the breakdown of the execution time of the operator. Keys: overall_percentage (total query time %),
+      initialization, processing, synchronization, local_disk_io, remote_disk_io, network_communication (each in milliseconds).
     __span_only: true
   snowflake.query.step.operator.type:
     __type: string
@@ -511,6 +510,7 @@ dimensions:
     __example: etl_pipeline
     __description: The query tag associated with the query; used as a grouping dimension in the query_cost_attribution summary context.
   db.collection.name:
+    __semdict: ref
     __type: string
     __example: users
     __description: The name of the table involved in the query.
@@ -520,6 +520,7 @@ dimensions:
     __example: PROD_DB.PUBLIC.USERS
     __description: Fully qualified name (DB.SCHEMA.TABLE) of the table involved in the query.
   db.namespace:
+    __semdict: ref
     __type: string
     __example: PROD_DB
     __description: The name of the database that was specified in the context of the query at compilation.

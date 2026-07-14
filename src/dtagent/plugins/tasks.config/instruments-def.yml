@@ -234,6 +234,7 @@ attributes:
     __description: The start time of the task.
 dimensions:
   db.namespace:
+    __semdict: ref
     __type: string
     __context_names:
       - serverless_tasks

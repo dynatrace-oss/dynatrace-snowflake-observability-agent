@@ -17,6 +17,7 @@
 
 dimensions:
   db.namespace:
+    __semdict: ref
     __type: string
     __example: PROD_DB
     __description: The name of the database that was specified in the context of the query at compilation.

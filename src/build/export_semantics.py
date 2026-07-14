@@ -96,6 +96,8 @@ SPAN_PLUGINS: frozenset = frozenset({"query_history", "event_log"})
 KNOWN_REFS = {
     "authentication.type",
     "client.ip",
+    "db.collection.name",
+    "db.namespace",
     "db.operation.name",
     "db.query.text",
     "db.system",

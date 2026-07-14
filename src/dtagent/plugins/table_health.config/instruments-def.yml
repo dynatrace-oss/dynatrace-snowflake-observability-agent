@@ -19,6 +19,7 @@
 
 dimensions:
   db.collection.name:
+    __semdict: ref
     __type: string
     __context_names:
       - table_storage
@@ -27,6 +28,7 @@ dimensions:
     __example: sales_data
     __description: The name of the table.
   db.namespace:
+    __semdict: ref
     __type: string
     __context_names:
       - table_storage

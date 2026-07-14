@@ -19,10 +19,12 @@
 
 dimensions:
   db.collection.name:
+    __semdict: ref
     __type: string
     __example: analytics_db.public.sales_data
     __description: The full name of the table, including the catalog, schema, and table name.
   db.namespace:
+    __semdict: ref
     __type: string
     __example: analytics_db
     __description: The name of the database that contains the table.

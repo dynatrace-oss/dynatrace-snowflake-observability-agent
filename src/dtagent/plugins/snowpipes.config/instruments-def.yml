@@ -183,6 +183,7 @@ dimensions:
     __example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
     __description: Unique pipe UUID (from PIPE_USAGE_HISTORY).
   db.namespace:
+    __semdict: ref
     __type: string
     __context_names:
       - snowpipes
@@ -200,6 +201,7 @@ dimensions:
     __example: MY_SCHEMA
     __description: Schema containing the target table or pipe.
   db.collection.name:
+    __semdict: ref
     __type: string
     __context_names:
       - snowpipes
