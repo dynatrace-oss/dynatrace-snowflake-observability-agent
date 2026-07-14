@@ -1943,3 +1943,84 @@ class TestDqlQueryStringFormatting:
 
 
 ##endregion
+
+
+##region Tests — _build_per_field_doc_stubs
+
+
+class TestBuildPerFieldDocStubs:
+    """Unit tests for SemanticExporter._build_per_field_doc_stubs.
+
+    Verifies that the generated doc/fields/ stub content is well-formed
+    and uses the correct SD generator markers.
+    """
+
+    def _make_exporter(self, tmp_path):
+        """Return a SemanticExporter instance suitable for stub-generation tests."""
+        return SemanticExporter(repo_root=REPO_ROOT, output_dir=tmp_path / "out")
+
+    def test_single_group_produces_correct_filename(self, tmp_path):
+        """A single group_id maps to doc/fields/<normalised>.md."""
+        exporter = self._make_exporter(tmp_path)
+        result = exporter._build_per_field_doc_stubs([{"group_id": "snowflake.account", "title": "Snowflake Account signal"}])
+        assert "doc/fields/snowflake_account.md" in result
+
+    def test_dot_in_group_id_replaced_by_underscore(self, tmp_path):
+        """Dots in group_id are replaced by underscores in the filename."""
+        exporter = self._make_exporter(tmp_path)
+        result = exporter._build_per_field_doc_stubs([{"group_id": "snowflake.table.dynamic.graph", "title": "T"}])
+        assert "doc/fields/snowflake_table_dynamic_graph.md" in result
+
+    def test_stub_contains_semconv_marker(self, tmp_path):
+        """Stub content must contain the <!-- semconv <group_id> --> opening tag."""
+        exporter = self._make_exporter(tmp_path)
+        result = exporter._build_per_field_doc_stubs([{"group_id": "anomaly", "title": "Anomaly signal fields"}])
+        content = result["doc/fields/anomaly.md"]
+        assert "<!-- semconv anomaly -->" in content
+
+    def test_stub_contains_end_semconv_marker(self, tmp_path):
+        """Stub content must contain the <!-- end_semconv --> closing tag."""
+        exporter = self._make_exporter(tmp_path)
+        result = exporter._build_per_field_doc_stubs([{"group_id": "anomaly", "title": "Anomaly signal fields"}])
+        content = result["doc/fields/anomaly.md"]
+        assert "<!-- end_semconv -->" in content
+
+    def test_stub_heading_uses_title(self, tmp_path):
+        """The markdown heading uses the supplied title."""
+        exporter = self._make_exporter(tmp_path)
+        result = exporter._build_per_field_doc_stubs([{"group_id": "observed_timestamp", "title": "Observed Timestamp signal fields"}])
+        content = result["doc/fields/observed_timestamp.md"]
+        assert "## Observed Timestamp signal fields" in content
+
+    def test_stub_heading_falls_back_when_title_empty(self, tmp_path):
+        """When title is empty the heading is derived from the group_id."""
+        exporter = self._make_exporter(tmp_path)
+        result = exporter._build_per_field_doc_stubs([{"group_id": "dsoa.debug", "title": ""}])
+        content = result["doc/fields/dsoa_debug.md"]
+        assert content.startswith("## ")
+        assert "<!--" in content  # some semconv marker follows
+
+    def test_multiple_groups_produce_multiple_files(self, tmp_path):
+        """Multiple groups each produce their own stub file."""
+        exporter = self._make_exporter(tmp_path)
+        groups = [
+            {"group_id": "anomaly", "title": "Anomaly"},
+            {"group_id": "dsoa.debug", "title": "DSOA Debug"},
+            {"group_id": "snowflake.warehouse", "title": "Snowflake Warehouse"},
+        ]
+        result = exporter._build_per_field_doc_stubs(groups)
+        assert len(result) == 3
+        assert "doc/fields/anomaly.md" in result
+        assert "doc/fields/dsoa_debug.md" in result
+        assert "doc/fields/snowflake_warehouse.md" in result
+
+    def test_stub_contains_dynatrace_internal_block(self, tmp_path):
+        """Stub content includes the <!-- dynatrace_internal --> ownership block."""
+        exporter = self._make_exporter(tmp_path)
+        result = exporter._build_per_field_doc_stubs([{"group_id": "anomaly", "title": "Anomaly"}])
+        content = result["doc/fields/anomaly.md"]
+        assert "<!-- dynatrace_internal -->" in content
+        assert "<!-- end_dynatrace_internal -->" in content
+
+
+##endregion

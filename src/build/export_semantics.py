@@ -1218,17 +1218,24 @@ class SemanticExporter:
         schema_path: Optional path to ``semconv.schema.json`` for validation.
     """
 
-    def __init__(self, repo_root: Path, output_dir: Path, schema_path: Optional[Path] = None) -> None:
+    def __init__(self, repo_root: Path, output_dir: Path, schema_path: Optional[Path] = None, sd_metadata: bool = False) -> None:
         """Initialise the exporter.
 
         Args:
             repo_root:   Repository root path.
             output_dir:  Output directory (created on demand).
             schema_path: Optional semconv JSON schema for validation.
+            sd_metadata: When ``True``, write SD metadata files alongside the YAML source:
+                         ``OWNERS``, ``definitions/mapping/global_field_categories.json``,
+                         and ``doc/`` model/field stubs required by the SD generator.
+                         Set this only when targeting the actual SD repo checkout —
+                         **not** for the regular ``make semantic-dictionary`` export to
+                         ``docs/semantic-dictionary/``.
         """
         self.repo_root = repo_root
         self.output_dir = output_dir
         self.schema_path = schema_path
+        self._sd_metadata = sd_metadata
         self._schema: Optional[Dict[str, Any]] = None
         self._counters: Dict[str, int] = {
             "files": 0,
@@ -2143,13 +2150,20 @@ class SemanticExporter:
     def _update_field_categories(self, signal_group_ids: List[str], resource_group_ids: List[str]) -> None:
         """Merge the DSOA entry into definitions/mapping/global_field_categories.json.
 
-        Reads the existing SD file (if present), injects the DSOA category under
-        SD_FIELD_CATEGORY, and writes the result back in-place.
+        Reads the existing SD file at the SD repo root (if present), otherwise falls back
+        to the seed copy at ``scripts/tools/global_field_categories.json``.  Injects the
+        DSOA category under ``SD_FIELD_CATEGORY`` and writes the result in-place to the
+        SD repo root path so all other categories are preserved.
         """
         gfc_path = self._sd_root / "definitions" / "mapping" / "global_field_categories.json"
+        seed_path = self.repo_root / "scripts" / "tools" / "global_field_categories.json"
         existing: Dict[str, Any] = {}
         if gfc_path.exists():
             with open(gfc_path, "r", encoding="utf-8") as fh:
+                existing = json.load(fh)
+        elif seed_path.exists():
+            log.debug("global_field_categories.json not found at SD root; using seed from %s", seed_path)
+            with open(seed_path, "r", encoding="utf-8") as fh:
                 existing = json.load(fh)
         existing[SD_FIELD_CATEGORY] = {
             "display_name": SD_FIELD_CATEGORY_DISPLAY_NAME,
@@ -2244,6 +2258,49 @@ class SemanticExporter:
                 "<!-- end_dynatrace_internal -->\n"
             )
             result[f"doc/model/snowflake/{signal_type}/{plugin}.md"] = content
+        return result
+
+    def _build_per_field_doc_stubs(self, field_groups: List[Dict[str, Any]]) -> Dict[str, str]:
+        """Generate doc/fields/<group_id_normalized>.md stubs for DSOA-owned signal field groups.
+
+        The SD generator reads these stubs and fills in the ``<!-- semconv <group_id> -->``
+        sections with rendered attribute tables.  Without them, field groups have no
+        documentation entry in the SD and the F001/F004/F025 sanity checks can fire for
+        any signal_fields file that depends on them.
+
+        Each stub is minimal — a heading and the semconv marker.  The generator replaces
+        everything between ``<!-- semconv <id> -->`` and ``<!-- end_semconv -->`` with the
+        rendered attribute table and description.
+
+        The filename is the group ID with dots replaced by underscores, matching the SD
+        convention (e.g. ``snowflake.account`` → ``doc/fields/snowflake_account.md``).
+
+        Args:
+            field_groups: List of dicts with keys ``group_id`` (e.g.
+                          ``snowflake.account``) and ``title`` (e.g.
+                          ``Snowflake Account signal``).
+
+        Returns:
+            Dict mapping relative output path (``doc/fields/…``) → stub content.
+        """
+        result: Dict[str, str] = {}
+        for fg in field_groups:
+            group_id = fg["group_id"]
+            title = fg.get("title") or group_id.replace(".", " ").replace("_", " ").title()
+            filename = group_id.replace(".", "_") + ".md"
+            content = (
+                f"## {title}\n"
+                "\n"
+                f"<!-- semconv {group_id} -->\n"
+                "<!-- end_semconv -->\n"
+                "\n"
+                "<!-- dynatrace_internal -->\n"
+                "| Responsible PM | Maintainer | Team |\n"
+                "|---|---|---|\n"
+                f"| {SD_PM} | {SD_MAINTAINER} | {SD_TEAM} |\n"
+                "<!-- end_dynatrace_internal -->\n"
+            )
+            result[f"doc/fields/{filename}"] = content
         return result
 
     ##endregion
@@ -2477,42 +2534,61 @@ class SemanticExporter:
             p = self._write_yaml(doc, "model/snowflake/spans/snowflake.spans.event_log.yaml")
             self._validate_against_schema(doc, p)
 
-        # Step 12: SD metadata — OWNERS section, field categories, and doc model stubs
-        signal_group_ids = [g["id"] for doc in sig_docs.values() for g in doc.get("groups", [])]
-        resource_group_ids = [g["id"] for g in sf_res_doc.get("groups", [])] + [g["id"] for g in dsoa_res_doc.get("groups", [])]
-        plugin_names_sorted = sorted(plugin_metric_entries.keys() - {"_core"})
-        self._write_owners(self._build_owners_entries(signal_group_ids, resource_group_ids, plugin_names_sorted))
-        self._update_field_categories(signal_group_ids, resource_group_ids)
-        for rel_path, content in self._build_model_doc_stubs().items():
-            self._write_sd_root_text(content, rel_path)
+        # Step 12: SD metadata — OWNERS, field categories, and doc stubs.
+        # Only written when targeting the actual SD repo (--sd-metadata flag).
+        # Never written for the regular 'make semantic-dictionary' export to docs/.
+        if self._sd_metadata:
+            signal_group_ids = [g["id"] for doc in sig_docs.values() for g in doc.get("groups", [])]
+            resource_group_ids = [g["id"] for g in sf_res_doc.get("groups", [])] + [g["id"] for g in dsoa_res_doc.get("groups", [])]
+            plugin_names_sorted = sorted(plugin_metric_entries.keys() - {"_core"})
+            self._write_owners(self._build_owners_entries(signal_group_ids, resource_group_ids, plugin_names_sorted))
+            self._update_field_categories(signal_group_ids, resource_group_ids)
+            for rel_path, content in self._build_model_doc_stubs().items():
+                self._write_sd_root_text(content, rel_path)
 
-        # Per-model doc stubs (logs, events, spans) — required by the SD generator to
-        # populate the ``<!-- model <id> -->`` sections (F001/F004/F025 root cause A).
-        per_model_stubs: List[Dict[str, Any]] = []
-        for plugin_name in sorted(plugins_with_attrs):
-            per_model_stubs.append({
-                "id": f"snowflake.logs.{plugin_name}",
-                "title": f"Snowflake {plugin_name.replace('_', ' ')} log records",
-                "brief": f"Log records emitted by the DSOA {plugin_name} plugin from Snowflake ACCOUNT_USAGE and system views.",
-                "signal_type": "logs",
-            })
-        for plugin_name in sorted(plugins_with_events):
-            per_model_stubs.append({
-                "id": f"snowflake.events.{plugin_name}",
-                "title": f"Snowflake {plugin_name.replace('_', ' ')} lifecycle events",
-                "brief": f"Timestamp-based state-change events emitted by the DSOA {plugin_name} plugin via the OpenPipeline Events API.",
-                "signal_type": "events",
-            })
-        all_span_plugins = span_model_plugins | ({"event_log"} if "event_log" in SPAN_PLUGINS else set())
-        for plugin_name in sorted(all_span_plugins):
-            per_model_stubs.append({
-                "id": f"snowflake.spans.{plugin_name}",
-                "title": f"Snowflake {plugin_name.replace('_', ' ')} spans",
-                "brief": f"Span records emitted by the DSOA {plugin_name} plugin from Snowflake ACCOUNT_USAGE views.",
-                "signal_type": "spans",
-            })
-        for rel_path, content in self._build_per_model_doc_stubs(per_model_stubs).items():
-            self._write_sd_root_text(content, rel_path)
+            # Per-model doc stubs (logs, events, spans) — required by the SD generator to
+            # populate the ``<!-- model <id> -->`` sections (F001/F004/F025 root cause A).
+            per_model_stubs: List[Dict[str, Any]] = []
+            for plugin_name in sorted(plugins_with_attrs):
+                per_model_stubs.append({
+                    "id": f"snowflake.logs.{plugin_name}",
+                    "title": f"Snowflake {plugin_name.replace('_', ' ')} log records",
+                    "brief": f"Log records emitted by the DSOA {plugin_name} plugin from Snowflake ACCOUNT_USAGE and system views.",
+                    "signal_type": "logs",
+                })
+            for plugin_name in sorted(plugins_with_events):
+                per_model_stubs.append({
+                    "id": f"snowflake.events.{plugin_name}",
+                    "title": f"Snowflake {plugin_name.replace('_', ' ')} lifecycle events",
+                    "brief": f"Timestamp-based state-change events emitted by the DSOA {plugin_name} plugin via the OpenPipeline Events API.",
+                    "signal_type": "events",
+                })
+            all_span_plugins = span_model_plugins | ({"event_log"} if "event_log" in SPAN_PLUGINS else set())
+            for plugin_name in sorted(all_span_plugins):
+                per_model_stubs.append({
+                    "id": f"snowflake.spans.{plugin_name}",
+                    "title": f"Snowflake {plugin_name.replace('_', ' ')} spans",
+                    "brief": f"Span records emitted by the DSOA {plugin_name} plugin from Snowflake ACCOUNT_USAGE views.",
+                    "signal_type": "spans",
+                })
+            for rel_path, content in self._build_per_model_doc_stubs(per_model_stubs).items():
+                self._write_sd_root_text(content, rel_path)
+
+            # Per-field-group doc stubs — required by the SD generator to populate the
+            # ``<!-- semconv <group_id> -->`` sections in doc/fields/ (point 3 of review).
+            # Titles are derived from sig_docs (Option A) to avoid re-reading YAML.
+            sig_group_titles: Dict[str, str] = {
+                g["id"]: g.get("title", "")
+                for doc in sig_docs.values()
+                for g in doc.get("groups", [])
+            }
+            field_stubs = [
+                {"group_id": gid, "title": sig_group_titles.get(gid, "")}
+                for gid in sorted(sig_group_titles)
+                if any(gid == p or gid.startswith(p + ".") for p in SD_OWNED_GROUP_PREFIXES)
+            ]
+            for rel_path, content in self._build_per_field_doc_stubs(field_stubs).items():
+                self._write_sd_root_text(content, rel_path)
 
         return dict(self._counters)
 
@@ -2538,6 +2614,16 @@ def _parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     parser.add_argument("--output", default="build/_semdict/source", help="Output directory (default: build/_semdict/source)")
     parser.add_argument("--schema", default="scripts/tools/semconv.schema.json", help="Path to semconv.schema.json")
     parser.add_argument("--verbose", action="store_true", help="Enable DEBUG logging")
+    parser.add_argument(
+        "--sd-metadata",
+        action="store_true",
+        help=(
+            "Write SD metadata files alongside the YAML source: OWNERS, "
+            "definitions/mapping/global_field_categories.json, and doc/ model/field stubs. "
+            "Only for SD repo exports (e.g. via --generate-docs). "
+            "Do NOT pass this for the regular 'make semantic-dictionary' export."
+        ),
+    )
     return parser.parse_args(argv)
 
 
@@ -2557,7 +2643,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     schema_path = Path(args.schema) if Path(args.schema).is_absolute() else repo_root / args.schema
     log.info("Repo root : %s", repo_root)
     log.info("Output dir: %s", output_dir)
-    exporter = SemanticExporter(repo_root=repo_root, output_dir=output_dir, schema_path=schema_path)
+    exporter = SemanticExporter(repo_root=repo_root, output_dir=output_dir, schema_path=schema_path, sd_metadata=args.sd_metadata)
     try:
         summary = exporter.export()
     except ExportError as exc:

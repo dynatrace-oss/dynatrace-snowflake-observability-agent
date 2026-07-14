@@ -40,8 +40,11 @@
 #   --verbose           Enable verbose (DEBUG) logging
 #   --schema <path>     Path to semconv.schema.json (default: scripts/tools/semconv.schema.json).
 #                       Accepts absolute paths or paths relative to the repository root.
-#   --generate-docs     After YAML export, run the SD generator (--md-only) to produce
-#                       per-model Markdown docs and copy them into docs/semantic-dictionary/doc/.
+#   --generate-docs     After YAML export, write SD metadata (OWNERS, definitions, doc/
+#                       model and field stubs) into the SD repo and run the SD generator
+#                       (--md-only) to fill the stubs with rendered attribute tables and
+#                       DQL examples. Results stay in the SD repo checkout ready to commit
+#                       to PR #1903 — nothing is copied back to docs/semantic-dictionary/.
 #                       Requires Docker and the full SD repo checkout at .context/semantic-dictionary/.
 #                       Use --sd-repo to point to a different SD repo location.
 #   --sd-repo <dir>     Path to the full SD repo checkout containing generator/generate.sh.
@@ -124,8 +127,6 @@ done
 # Doc generation: export into SD repo, run generator, copy doc/ output back
 # ---------------------------------------------------------------------------
 generate_docs() {
-    local docs_out="${PROJECT_ROOT}/docs/semantic-dictionary/doc"
-
     log_info "--generate-docs: validating SD repo at ${SD_REPO}"
     if [[ ! -d "${SD_REPO}/generator" ]]; then
         log_error "--generate-docs requires a full SD repo checkout with generator/ at: ${SD_REPO}"
@@ -137,12 +138,13 @@ generate_docs() {
         return 1
     fi
 
-    # Step 1: export YAML into the SD repo so the generator sees up-to-date source/
-    log_info "--generate-docs: exporting YAML into SD repo at ${SD_REPO}"
+    # Step 1: export YAML + SD metadata (OWNERS, definitions, doc stubs) into the SD repo
+    log_info "--generate-docs: exporting YAML + SD metadata into SD repo at ${SD_REPO}"
     cd "${PROJECT_ROOT}"
     if ! PYTHONPATH="${PROJECT_ROOT}/src" "${VENV_PYTHON}" "${EXPORT_SCRIPT}" \
         --output "${SD_REPO}/source" \
         --schema "${SCHEMA_PATH}" \
+        --sd-metadata \
         "${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}"; then
         log_error "--generate-docs: export into SD repo failed"
         return 1
@@ -181,12 +183,8 @@ generate_docs() {
         return 1
     fi
 
-    # Step 5: sync only the snowflake model docs into docs/semantic-dictionary/doc/
-    # (the SD doc/ tree is large; we copy only the DSOA-owned model/ subdirectory)
-    log_info "--generate-docs: syncing ${SD_REPO}/doc/model/snowflake/ -> ${docs_out}/model/snowflake/"
-    mkdir -p "${docs_out}/model/snowflake"
-    rsync -a --delete "${SD_REPO}/doc/model/snowflake/" "${docs_out}/model/snowflake/"
-    log_success "--generate-docs: doc/model/snowflake/ synced to ${docs_out}/model/snowflake/"
+    log_success "--generate-docs: SD repo at ${SD_REPO} is ready."
+    log_info "  doc/model/snowflake/ and doc/fields/ stubs generated — commit to SD PR #1903"
     return 0
 }
 
