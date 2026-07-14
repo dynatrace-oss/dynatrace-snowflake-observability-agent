@@ -357,7 +357,7 @@ def _make_ruamel_yaml() -> RuamelYAML:
     """
     ry = RuamelYAML()
     ry.preserve_quotes = True
-    ry.width = 200
+    ry.width = 4096
     ry.indent(mapping=2, sequence=4, offset=2)
     return ry
 
@@ -366,10 +366,17 @@ def _merge_into_ruamel(existing, new) -> None:
     """Merge DSOA groups from *new* CommentedMap into *existing* CommentedMap in-place.
 
     Preserves all existing content (including inline comments) unchanged.
-    Only appends new group IDs or new attribute IDs not already present.
+    Appends new group IDs or new attribute IDs not already present.
+    For attributes that already exist, updates mutable scalar fields (``brief``,
+    ``stability``, ``deprecated``, ``type``, ``examples``) so that description
+    and metadata changes in instruments-def are reflected on re-export without
+    requiring ``--clean``.  Inline comments on unchanged keys are preserved.
     Blank-line spacing from the last SD-native attribute is mirrored on each
     appended DSOA attribute so the output matches SD style.
     """
+    # Scalar fields on an existing attribute that we always overwrite from new.
+    _UPDATABLE_KEYS = frozenset({"brief", "stability", "deprecated", "type", "examples", "note"})
+
     if "groups" not in existing or "groups" not in new:
         return
     existing_by_id = {g["id"]: g for g in existing.get("groups", [])}
@@ -378,7 +385,7 @@ def _merge_into_ruamel(existing, new) -> None:
         if gid in existing_by_id:
             ex_g = existing_by_id[gid]
             ex_attrs = ex_g.get("attributes", [])
-            ex_ids = {a.get("id") or a.get("ref") for a in ex_attrs}
+            ex_ids = {a.get("id") or a.get("ref"): i for i, a in enumerate(ex_attrs)}
             # Capture the blank-line token used before the last SD-native attribute.
             blank_token = None
             if ex_attrs and hasattr(ex_attrs, "ca"):
@@ -387,12 +394,21 @@ def _merge_into_ruamel(existing, new) -> None:
                 if ca_entry:
                     blank_token = ca_entry[0]
             for new_attr in new_group.get("attributes", []):
-                if (new_attr.get("id") or new_attr.get("ref")) not in ex_ids:
+                attr_key = new_attr.get("id") or new_attr.get("ref")
+                if attr_key not in ex_ids:
                     idx = len(ex_attrs)
                     ex_attrs.append(new_attr)
                     if blank_token is not None and hasattr(ex_attrs, "ca"):
                         ex_attrs.ca.items.setdefault(idx, [None, None, None, None])
                         ex_attrs.ca.items[idx][0] = blank_token
+                else:
+                    # Attribute already exists: update mutable scalar fields.
+                    ex_attr = ex_attrs[ex_ids[attr_key]]
+                    for key in _UPDATABLE_KEYS:
+                        if key in new_attr:
+                            ex_attr[key] = new_attr[key]
+                        elif key in ex_attr:
+                            del ex_attr[key]
         else:
             existing["groups"].append(new_group)
 
@@ -437,12 +453,15 @@ class _IndentedDumper(yaml.Dumper):  # pylint: disable=too-many-ancestors
         """
         return super().increase_indent(flow=flow, indentless=False)
 
-    # YAML 1.1 treats these bare words as booleans; double-quote them so the SD
+    # YAML 1.1 treats these bare words as booleans or nulls; double-quote them so the SD
     # generator (which uses a YAML 1.1-aware parser) reads them as strings.
     _YAML11_BOOL_SYNONYMS: ClassVar[frozenset] = frozenset({
+        # Boolean synonyms
         "y", "Y", "yes", "Yes", "YES", "n", "N", "no", "No", "NO",
         "true", "True", "TRUE", "false", "False", "FALSE",
         "on", "On", "ON", "off", "Off", "OFF",
+        # Null synonyms (YAML 1.1: none/null/~ all resolve to null)
+        "~", "null", "Null", "NULL", "none", "None", "NONE",
     })
 
     def represent_str(self, data: str):
@@ -1980,7 +1999,7 @@ class SemanticExporter:
         out_path = self.output_dir / rel_path
         out_path.parent.mkdir(parents=True, exist_ok=True)
         _requote_scalars(doc)
-        dsoa_text = yaml.dump(doc, Dumper=_IndentedDumper, default_flow_style=False, allow_unicode=True, sort_keys=False, width=200)
+        dsoa_text = yaml.dump(doc, Dumper=_IndentedDumper, default_flow_style=False, allow_unicode=True, sort_keys=False, width=4096)
         dsoa_text = _add_flow_seq_spaces(dsoa_text)
         if not out_path.exists():
             out_path.write_text(dsoa_text, encoding="utf-8")

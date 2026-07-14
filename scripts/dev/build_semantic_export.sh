@@ -183,6 +183,32 @@ generate_docs() {
         return 1
     fi
 
+    # Step 5: restore non-DSOA doc files that the generator may have touched.
+    # The SD generator regenerates ALL doc/ Markdown files, not just DSOA-owned ones.
+    # We must restore everything outside DSOA ownership to avoid polluting the PR.
+    # DSOA-owned doc paths:
+    #   doc/model/snowflake/**       — per-plugin model stubs
+    #   doc/fields/snowflake_*.md   — Snowflake signal field groups
+    #   doc/fields/anomaly.md       — anomaly signal fields
+    #   doc/fields/dsoa_*.md        — DSOA-specific field groups
+    #   doc/fields/observed_timestamp.md
+    log_info "--generate-docs: restoring non-DSOA doc files touched by the generator"
+    cd "${SD_REPO}"
+    # Collect all doc/ changes, then revert anything that isn't DSOA-owned
+    git diff HEAD --name-only -- doc/ | while IFS= read -r f; do
+        # Keep DSOA-owned paths; revert everything else
+        if [[ "${f}" == doc/model/snowflake/* ]] || \
+           [[ "${f}" == doc/fields/snowflake_*.md ]] || \
+           [[ "${f}" == doc/fields/anomaly.md ]] || \
+           [[ "${f}" == doc/fields/dsoa_*.md ]] || \
+           [[ "${f}" == doc/fields/observed_timestamp.md ]]; then
+            : # keep
+        else
+            git checkout HEAD -- "${f}" 2>/dev/null || true
+        fi
+    done
+    cd "${PROJECT_ROOT}"
+
     log_success "--generate-docs: SD repo at ${SD_REPO} is ready."
     log_info "  doc/model/snowflake/ and doc/fields/ stubs generated — commit to SD PR #1903"
     return 0

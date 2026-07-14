@@ -363,15 +363,10 @@ attributes:
     __example:
       '{ "overall_percentage": 50.0,"initialization": 0.5,"processing": 4.0,"synchronization": 0.5,"local_disk_io": 0.2,"remote_disk_io":
       0.1,"network_communication": 0.2 }'
-    __description: |
-      The breakdown of the execution time of the operator:
-      - **overall_percentage**: The percentage of the total query time spent by this operator,
-      - **initialization**: Time spent setting up query processing,
-      - **processing**: Time spent processing the data by the CPU,
-      - **synchronization**: Time spent synchronizing activities between participating processes,
-      - **local_disk_io**: Time during which processing was blocked while waiting for local disk access,
-      - **remote_disk_io**: Time during which processing was blocked while waiting for remote disk access,
-      - **network_communication**: Time during which processing was waiting for network data transfer.
+    __description: >-
+      Serialized JSON object with the breakdown of the execution time of the operator.
+      Keys: overall_percentage (total query time %), initialization, processing, synchronization,
+      local_disk_io, remote_disk_io, network_communication (each in milliseconds).
     __span_only: true
   snowflake.query.step.operator.type:
     __type: string
