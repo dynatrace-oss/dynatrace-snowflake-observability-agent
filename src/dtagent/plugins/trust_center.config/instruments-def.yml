@@ -25,10 +25,12 @@ attributes:
     __example: "TRUST_CENTER_ERR001"
     __description: The error code associated with the scanner, if any.
   event.id:
+    __semdict: ref
     __example: 13825839647097210
     __type: long
     __description: A unique identifier for the security event.
   event.kind:
+    __semdict: ref
     __example: SECURITY_EVENT
     __stability: stable
     __type: string
