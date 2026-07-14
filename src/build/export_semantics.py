@@ -95,12 +95,14 @@ SPAN_PLUGINS: frozenset = frozenset({"query_history", "event_log"})
 #: Fields that already exist in the Dynatrace Semantic Dictionary (emit as ref: only).
 KNOWN_REFS = {
     "authentication.type",
+    "client.ip",
     "db.operation.name",
     "db.query.text",
     "db.system",
     "event.category",
     "event.description",
     "event.id",
+    "event.kind",
     "event.name",
     "host.name",
     "metric.key",
