@@ -30,6 +30,7 @@ attributes:
     __description: A unique identifier for the security event.
   event.kind:
     __example: SECURITY_EVENT
+    __stability: stable
     __type: string
     __description: The kind of event, in this case, 'SECURITY_EVENT'.
   snowflake.entity.details:
