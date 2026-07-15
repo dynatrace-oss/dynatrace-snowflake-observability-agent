@@ -73,16 +73,16 @@ Queries the `snowflake.time.execution` metric from the `query_history` plugin:
 
 Each ingested event carries:
 
-| Property                   | Value                                        |
-|----------------------------|----------------------------------------------|
-| `event.type`               | `CustomInfo` (default)                       |
-| `ad.source`                | `dsoa.long_running_queries`                  |
-| `ad.source_metric`         | `snowflake.query.execution_time.max`         |
-| `ad.direction`             | `above`                                      |
-| `event.start/end`          | Anomaly timeframe from Davis                 |
-| `snowflake.warehouse.name` | Affected warehouse (warehouse analyzer only) |
-| `db.user`                  | Affected user (user analyzer only)           |
-| `deployment.environment`   | Snowflake environment                        |
+| Property                    | Value                                        |
+|-----------------------------|----------------------------------------------|
+| `event.type`                | `CustomInfo` (default)                       |
+| `anomaly.detector`          | `dsoa.long_running_queries`                  |
+| `metric.key`                | `snowflake.query.execution_time.max`         |
+| `anomaly.direction`         | `above`                                      |
+| `event.start/end`           | Anomaly timeframe from Davis                 |
+| `snowflake.warehouse.name`  | Affected warehouse (warehouse analyzer only) |
+| `db.user`                   | Affected user (user analyzer only)           |
+| `deployment.environment`    | Snowflake environment                        |
 
 ## Customization
 

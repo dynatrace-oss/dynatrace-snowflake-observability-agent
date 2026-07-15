@@ -143,7 +143,7 @@ class ResourceMonitorsPlugin(Plugin):
             f"Warehouse {payload.get('snowflake.warehouse.name', '')} is not monitored",
             {
                 "timestamp": ts,
-                "snowflake.warehouse.event": key,
+                "snowflake.warehouse.event.trigger": key,
             },
             EventType.CUSTOM_INFO,
         )
@@ -433,7 +433,7 @@ class ResourceMonitorsPlugin(Plugin):
 
         properties = {
             "snowflake.resource_monitor.threshold.level": band,
-            "snowflake.resource_monitor.threshold.pct": threshold_pct,
+            "snowflake.resource_monitor.threshold.value": threshold_pct,
             "snowflake.resource_monitor.threshold.direction": direction,
             "snowflake.credits.quota.used_pct": used_pct,
             "snowflake.resource_monitor.level": rm_level,
@@ -535,11 +535,11 @@ class ResourceMonitorsPlugin(Plugin):
         if not row_dict.get("IS_ACTIVE", False):
             return 0, None, monitor_name
 
-        quota = float(metrics.get("snowflake.credits.quota", 0) or 0)
+        quota = float(metrics.get("snowflake.credits.quota.value", 0))
         if quota <= 0:
             return 0, None, monitor_name
 
-        used_pct = float(metrics.get("snowflake.credits.quota.used_pct", 0) or 0)
+        used_pct = float(metrics.get("snowflake.credits.quota.used_pct", 0))
         rm_level = str(attrs.get("snowflake.resource_monitor.level", "WAREHOUSE")).upper()
 
         thresholds = self._resolve_thresholds_for(monitor_name, defaults, overrides)

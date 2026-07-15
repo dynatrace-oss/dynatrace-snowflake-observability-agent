@@ -33,7 +33,7 @@ select
     'db.user',                                    grantee_name
   )                                                     as DIMENSIONS,
   OBJECT_CONSTRUCT(
-    'snowflake.user.roles.direct',                array_agg(role),
+    'snowflake.user.roles.direct.list',           array_agg(role),
     'snowflake.user.roles.granted_by',            array_agg(granted_by)
   )                                                     as ATTRIBUTES,
   OBJECT_CONSTRUCT(

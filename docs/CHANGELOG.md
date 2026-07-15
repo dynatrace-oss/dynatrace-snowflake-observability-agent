@@ -9,6 +9,70 @@ All notable changes to this project will be documented in this file.
 >
 > Detailed technical changes and implementation notes are available in the [development log](../.context/devlog/).
 
+## [1.0.0] - 2026-07-13
+
+### Added
+
+- **`deployment.environment.name` — new canonical OTel resource attribute**: DSOA now co-emits
+  `deployment.environment.name` alongside the existing `deployment.environment` on every metric, log,
+  span, and event. The new key is the OpenTelemetry Semantic Conventions canonical name; the old key
+  is retained as a deprecated alias for a 3-release sunset window (removed in 1.3.0).
+  Dashboards and workflows shipped with this release have been updated: metric tiles query
+  `deployment.environment.name` directly; record tiles (logs, spans, events) use
+  `coalesce(deployment.environment.name, deployment.environment)` for continuity across the
+  migration window. No configuration change is required — the value is derived from
+  `core.deployment_environment` as before. Note: metric data collected before upgrading to 1.0.0 was written without the `deployment.environment.name` dimension key and will not appear in queries that group or filter by that key — this gap is inherent to write-time co-emission and cannot be backfilled.
+
+- **Post-install verification bizevent**: a full deploy (`--scope=all`), upgrade
+  (`--scope=upgrade`), or API key (re)deploy (`--scope=apikey`, or any scope combo including
+  `apikey`) now ends by sending a `dsoa.installation` bizevent from inside Snowflake via
+  `APP.SEND_TELEMETRY()`, confirming that the configured Dynatrace tenant is actually reachable
+  from Snowflake (not just that the deploy script itself finished). Gated by the existing
+  `plugins.self_monitoring.send_bizevents_on_deploy` config flag; a failure to send never fails
+  the deployment.
+
+### Changed
+
+- **[BREAKING] Multiple field renames across plugins for Semantic Dictionary alignment**:
+  Version 1.0.0 renames fields across several areas.
+  See [Appendix C](APPENDIX.md#appendix-c-sec).
+
+  | Old field                                  | New field                                      |
+  |--------------------------------------------|------------------------------------------------|
+  | `ad.source`                                | `anomaly.detector`                             |
+  | `ad.source_metric`                         | `metric.key`                                   |
+  | `ad.direction`                             | `anomaly.direction`                            |
+  | `ad.category`                              | `anomaly.subject`                              |
+  | `error.code`                               | `snowflake.error.code`                         |
+  | `snowflake.credits.quota`                  | `snowflake.credits.quota.value`                |
+  | `snowflake.query.operator.attributes`      | `snowflake.query.step.operator.attributes`     |
+  | `snowflake.query.operator.id`              | `snowflake.query.step.operator.id`             |
+  | `snowflake.query.operator.parent_ids`      | `snowflake.query.step.operator.parent_ids`     |
+  | `snowflake.query.operator.stats`           | `snowflake.query.step.operator.stats`          |
+  | `snowflake.query.operator.time`            | `snowflake.query.step.operator.time_breakdown` |
+  | `snowflake.query.operator.type`            | `snowflake.query.step.operator.type`           |
+  | `snowflake.resource_monitor.threshold.pct` | `snowflake.resource_monitor.threshold.value`   |
+  | `snowflake.warehouse.event`                | `snowflake.warehouse.event.trigger`            |
+  | `snowflake.warehouse.is_auto_suspend`      | `snowflake.warehouse.auto_suspend`             |
+  | `snowflake.warehouse.owner`                | `snowflake.warehouse.owner.name`               |
+  | `snowflake.budget.owner`                   | `snowflake.budget.owner.name`                  |
+  | `snowflake.warehouses.names`               | `snowflake.resource_monitor.warehouses`        |
+  | `snowflake.resource_monitor.warehouses`    | `snowflake.resource_monitor.warehouses.count`  |
+  | `snowflake.task.config`                    | `snowflake.task.config.id`                     |
+  | `snowflake.user.name`                      | `snowflake.user.name.login`                    |
+  | `snowflake.user.privilege`                 | `snowflake.user.privilege.name`                |
+  | `snowflake.user.roles.direct`              | `snowflake.user.roles.direct.list`             |
+  | `session.id`                               | `snowflake.session.id`                         |
+  | `status.code`                              | `snowflake.status.code`                        |
+  | `status.message`                           | `snowflake.status.message`                     |
+
+  Additional notes:
+  - `snowflake.resource_monitor.threshold.value` changes type from string to double with a `percent` unit.
+  - `snowflake.warehouses.names` (the attached-warehouse name list) takes over the `snowflake.resource_monitor.warehouses` name; the previous warehouse-count metric of that name becomes `snowflake.resource_monitor.warehouses.count`.
+  - `snowflake.warehouse.auto_suspend` is reclassified from attribute to numeric metric with unit `seconds`; `null` or `0` means auto-suspend is disabled.
+  - The `login_history` plugin changes its `anomaly.detector` value from `snowflake_security` to `dsoa.failed_login_detection`.
+  - For DQL queries filtering on the renamed `ad.*` fields, update field names manually (the script handles attribute keys, not query text).
+
 ## [0.9.5] - 2026-06-08
 
 ### Added

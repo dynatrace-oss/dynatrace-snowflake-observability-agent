@@ -132,7 +132,7 @@ attributes:
     __context_names:
       - users
     __description: Indicates if the user must change their password.
-  snowflake.user.name:
+  snowflake.user.name.login:
     __example: jdoe
     __context_names:
       - users
@@ -157,7 +157,7 @@ attributes:
     __context_names:
       - users
     __description: Specifies the type of user
-  snowflake.user.privilege:
+  snowflake.user.privilege.name:
     __example: "CREATE SERVICE:SCHEMA"
     __context_names:
       - users_all_privileges
@@ -169,7 +169,7 @@ attributes:
       - users_all_privileges
     __description:
       List of all objects of given type on which given privilege was given; both object type and privilege are reported as
-      `snowflake.user.privilege`
+      `snowflake.user.privilege.name`
   snowflake.user.privilege.granted_by:
     __example: ["ACCOUNTADMIN"]
     __context_names:
@@ -186,7 +186,7 @@ attributes:
       - users_all_roles
       - users_direct_roles
     __description: Array of admin roles that were used to grant current list of user roles.
-  snowflake.user.roles.direct:
+  snowflake.user.roles.direct.list:
     __example: ["DEVOPS_ROLE", "SYSADMIN", "ACCOUNTADMIN"]
     __context_names:
       - users_direct_roles

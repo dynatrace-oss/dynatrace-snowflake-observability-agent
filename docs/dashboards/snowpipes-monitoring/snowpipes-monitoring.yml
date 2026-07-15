@@ -37,9 +37,9 @@ variables:
       fetch logs
       | filter db.system == "snowflake"
       | filter dsoa.run.plugin == "snowpipes"
-      | fields deployment.environment
-      | dedup deployment.environment
-      | sort deployment.environment asc
+      | fields env_name = coalesce(deployment.environment.name, deployment.environment)
+      | dedup env_name
+      | sort env_name asc
     multiple: true
     defaultValue:
       - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
@@ -52,7 +52,7 @@ variables:
       fetch logs
       | filter db.system == "snowflake"
       | filter dsoa.run.plugin == "snowpipes"
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | fields snowflake.pipe.name
       | dedup snowflake.pipe.name
       | filterOut isNull(snowflake.pipe.name)
@@ -100,7 +100,7 @@ tiles:
       fetch logs
       | filter db.system == "snowflake"
       | filter dsoa.run.plugin == "snowpipes"
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | filter in(snowflake.pipe.name, array($Pipe))
       | filter isNotNull(snowflake.pipe.status)
       | makeTimeseries {
@@ -176,7 +176,7 @@ tiles:
       , filter: {
           db.system == "snowflake" and
           dsoa.run.context == "snowpipes_usage_history" and
-          in(deployment.environment, array($Accounts))
+          in(deployment.environment.name, array($Accounts))
         }
       | fieldsAdd total_credits = arraySum(credits)
     visualization: singleValue
@@ -211,7 +211,7 @@ tiles:
       , filter: {
           db.system == "snowflake" and
           dsoa.run.context == "snowpipes_copy_history" and
-          in(deployment.environment, array($Accounts))
+          in(deployment.environment.name, array($Accounts))
         }
       | fieldsAdd total_files = arraySum(files)
     visualization: singleValue
@@ -256,7 +256,7 @@ tiles:
       | filter db.system == "snowflake"
       | filter dsoa.run.plugin == "snowpipes"
       | filter dsoa.run.context == "snowpipes_copy_history"
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | filter isNotNull(`snowflake.pipe.ingest.latency`)
       | makeTimeseries { p95_latency = percentile(toLong(`snowflake.pipe.ingest.latency`), 95) }
       | fieldsAdd p95_latency_value = arrayLast(p95_latency)
@@ -306,7 +306,7 @@ tiles:
       , filter: {
           db.system == "snowflake" and
           dsoa.run.context == "snowpipes_copy_history" and
-          in(deployment.environment, array($Accounts))
+          in(deployment.environment.name, array($Accounts))
         }
       | fieldsAdd total_errors = `snowflake.copy.errors`[] + `snowflake.pipe.errors`[]
       | fieldsRemove `snowflake.copy.errors`, `snowflake.pipe.errors`
@@ -371,7 +371,7 @@ tiles:
       , filter: {
           db.system == "snowflake" and
           dsoa.run.context == "snowpipes_copy_history" and
-          in(deployment.environment, array($Accounts))
+          in(deployment.environment.name, array($Accounts))
         }
       | fieldsAdd total_bytes = arraySum(bytes)
     visualization: singleValue
@@ -418,17 +418,17 @@ tiles:
       fetch logs
       | filter db.system == "snowflake"
       | filter dsoa.run.plugin == "snowpipes"
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | filter isNotNull(snowflake.pipe.status)
       | filter in(snowflake.pipe.name, array($Pipe))
       | summarize {
           status = takeLast(snowflake.pipe.status)
-        }, by: { snowflake.pipe.name, deployment.environment }
+        }, by: { snowflake.pipe.name, `deployment.environment` = coalesce(deployment.environment.name, deployment.environment) }
       | fieldsAdd status_code = toLong(
           if(status == "RUNNING", 1,
           else: if(status == "PAUSED", 2, else: 3))
         )
-      | fields snowflake.pipe.name, deployment.environment, status, status_code
+      | fields snowflake.pipe.name, `deployment.environment`, status, status_code
     visualization: honeycomb
     visualizationSettings:
       honeycomb:
@@ -486,9 +486,9 @@ tiles:
     query: |-
       timeseries latency = avg(snowflake.pipe.ingest.latency), by: {
           snowflake.pipe.name,
-          deployment.environment
+          deployment.environment.name
         }
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(deployment.environment.name, array($Accounts))
       | filter in(snowflake.pipe.name, array($Pipe))
       | fieldsAdd threshold_warning = toDouble($Threshold_Latency_Warning)
       | fieldsAdd threshold_critical = toDouble($Threshold_Latency_Critical)
@@ -569,9 +569,9 @@ tiles:
     query: |-
       timeseries pending = sum(snowflake.pipe.files.pending), by: {
           snowflake.pipe.name,
-          deployment.environment
+          deployment.environment.name
         }
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(deployment.environment.name, array($Accounts))
       | filter in(snowflake.pipe.name, array($Pipe))
       | fieldsAdd threshold_warning = toDouble($Threshold_Backlog_Warning)
       | fieldsAdd threshold_critical = toDouble($Threshold_Backlog_Critical)
@@ -642,7 +642,7 @@ tiles:
       | filter db.system == "snowflake"
       | filter dsoa.run.plugin == "snowpipes"
       | filter dsoa.run.context == "snowpipes_copy_history"
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | filter in(snowflake.pipe.name, array($Pipe))
       | summarize {
           data = sum(toDouble(`snowflake.copy.file_size`))
@@ -706,7 +706,7 @@ tiles:
       | filter db.system == "snowflake"
       | filter dsoa.run.plugin == "snowpipes"
       | filter dsoa.run.context == "snowpipes_copy_history"
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | summarize {
           total_errors = sum(toLong(`snowflake.pipe.errors`)) + sum(toLong(`snowflake.copy.errors`))
         }, by: { db.collection.name }
@@ -749,7 +749,7 @@ tiles:
       | filter db.system == "snowflake"
       | filter dsoa.run.plugin == "snowpipes"
       | filter dsoa.run.context == "snowpipes_copy_history"
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(coalesce(deployment.environment.name, deployment.environment), array($Accounts))
       | summarize {
           total_errors = sum(toLong(`snowflake.pipe.errors`)) + sum(toLong(`snowflake.copy.errors`))
         }, by: {
@@ -804,9 +804,9 @@ tiles:
     query: |-
       timeseries credits = sum(snowflake.pipe.cost.credits_used), by: {
           snowflake.pipe.name,
-          deployment.environment
+          deployment.environment.name
         }
-      | filter in(deployment.environment, array($Accounts))
+      | filter in(deployment.environment.name, array($Accounts))
       | filter in(snowflake.pipe.name, array($Pipe))
     visualization: lineChart
     visualizationSettings:

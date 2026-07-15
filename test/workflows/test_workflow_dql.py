@@ -36,12 +36,9 @@ marked ``live`` and skipped automatically when ``--live`` is not passed or
 ``dtctl`` is absent.
 """
 
-import pathlib
 import re
 import shutil
 import subprocess
-import tempfile
-
 import pytest
 
 from test.workflows.conftest import extract_dql_queries
@@ -225,14 +222,16 @@ class TestWorkflowDql:
                 )
                 if result.returncode != 0:
                     stderr = result.stderr.strip()
-                    # Skip auth failures — dtctl token expired or not configured
+                    # Skip auth/config failures — dtctl not set up or token expired
                     if (
                         "token is required" in stderr
                         or "token expired" in stderr
                         or "refresh failed" in stderr
                         or "authentication" in stderr.lower()
+                        or "config_error" in stderr
+                        or "config file not found" in stderr
                     ):
-                        pytest.skip("dtctl not authenticated (token expired/missing) — re-run after 'dtctl auth login'")
+                        pytest.skip("dtctl not configured — run 'dtctl config set-context' and 'dtctl auth login'")
                     failures.setdefault(w["name"], []).append(
                         {
                             "dql_index": idx,

@@ -19,7 +19,7 @@
     "snowflake.user.ext_authn.duo": false,
     "snowflake.user.has_password": false,
     "snowflake.user.id": 298,
-    "snowflake.user.name": "TEST_USER_1",
+    "snowflake.user.name.login": "TEST_USER_1",
     "snowflake.user.name.first": "Test",
     "snowflake.user.name.last": "User",
     "snowflake.user.owner": "AAD_PROVISIONER",
@@ -34,7 +34,8 @@
       "telemetry.exporter.name": "dynatrace.snowagent",
       "telemetry.sdk.language": "python",
       "telemetry.sdk.name": "opentelemetry",
-      "telemetry.sdk.version": "1.39.1"
+      "telemetry.sdk.version": "1.39.1",
+      "deployment.environment.name": "TEST"
     }
   },
   {
@@ -57,7 +58,7 @@
     "snowflake.user.ext_authn.duo": false,
     "snowflake.user.has_workload_identity": false,
     "snowflake.user.id": 618,
-    "snowflake.user.name": "TEST_DATAMODEL_UPGRADER",
+    "snowflake.user.name.login": "TEST_DATAMODEL_UPGRADER",
     "snowflake.user.owner": "SECURITYADMIN",
     "db.user": "TEST_DATAMODEL_UPGRADER",
     "dsoa.run.plugin": "test_users",
@@ -70,13 +71,14 @@
       "telemetry.exporter.name": "dynatrace.snowagent",
       "telemetry.sdk.language": "python",
       "telemetry.sdk.name": "opentelemetry",
-      "telemetry.sdk.version": "1.39.1"
+      "telemetry.sdk.version": "1.39.1",
+      "deployment.environment.name": "TEST"
     }
   },
   {
     "content": "users",
     "snowflake.user.roles.last_altered": 1661498740003000000,
-    "snowflake.user.roles.direct": [
+    "snowflake.user.roles.direct.list": [
       "TEST_USER_ROLE"
     ],
     "snowflake.user.roles.granted_by": [
@@ -93,13 +95,14 @@
       "telemetry.exporter.name": "dynatrace.snowagent",
       "telemetry.sdk.language": "python",
       "telemetry.sdk.name": "opentelemetry",
-      "telemetry.sdk.version": "1.39.1"
+      "telemetry.sdk.version": "1.39.1",
+      "deployment.environment.name": "TEST"
     }
   },
   {
     "content": "users",
     "snowflake.user.roles.last_altered": 1615219848339000000,
-    "snowflake.user.roles.direct": [
+    "snowflake.user.roles.direct.list": [
       "SCRATCHPAD_ROLE"
     ],
     "snowflake.user.roles.granted_by": [
@@ -116,7 +119,8 @@
       "telemetry.exporter.name": "dynatrace.snowagent",
       "telemetry.sdk.language": "python",
       "telemetry.sdk.name": "opentelemetry",
-      "telemetry.sdk.version": "1.39.1"
+      "telemetry.sdk.version": "1.39.1",
+      "deployment.environment.name": "TEST"
     }
   },
   {
@@ -134,7 +138,8 @@
       "telemetry.exporter.name": "dynatrace.snowagent",
       "telemetry.sdk.language": "python",
       "telemetry.sdk.name": "opentelemetry",
-      "telemetry.sdk.version": "1.39.1"
+      "telemetry.sdk.version": "1.39.1",
+      "deployment.environment.name": "TEST"
     }
   },
   {
@@ -152,7 +157,8 @@
       "telemetry.exporter.name": "dynatrace.snowagent",
       "telemetry.sdk.language": "python",
       "telemetry.sdk.name": "opentelemetry",
-      "telemetry.sdk.version": "1.39.1"
+      "telemetry.sdk.version": "1.39.1",
+      "deployment.environment.name": "TEST"
     }
   },
   {
@@ -173,7 +179,8 @@
       "telemetry.exporter.name": "dynatrace.snowagent",
       "telemetry.sdk.language": "python",
       "telemetry.sdk.name": "opentelemetry",
-      "telemetry.sdk.version": "1.39.1"
+      "telemetry.sdk.version": "1.39.1",
+      "deployment.environment.name": "TEST"
     }
   },
   {
@@ -195,13 +202,14 @@
       "telemetry.exporter.name": "dynatrace.snowagent",
       "telemetry.sdk.language": "python",
       "telemetry.sdk.name": "opentelemetry",
-      "telemetry.sdk.version": "1.39.1"
+      "telemetry.sdk.version": "1.39.1",
+      "deployment.environment.name": "TEST"
     }
   },
   {
     "content": "users",
     "snowflake.user.privilege.last_altered": 1615219847793000000,
-    "snowflake.user.privilege": "UPDATE:VIEW",
+    "snowflake.user.privilege.name": "UPDATE:VIEW",
     "snowflake.user.privilege.granted_by": [
       "SECURITYADMIN"
     ],
@@ -217,13 +225,14 @@
       "telemetry.exporter.name": "dynatrace.snowagent",
       "telemetry.sdk.language": "python",
       "telemetry.sdk.name": "opentelemetry",
-      "telemetry.sdk.version": "1.39.1"
+      "telemetry.sdk.version": "1.39.1",
+      "deployment.environment.name": "TEST"
     }
   },
   {
     "content": "users",
     "snowflake.user.privilege.last_altered": 1720426973204000000,
-    "snowflake.user.privilege": "APPLYBUDGET:TABLE",
+    "snowflake.user.privilege.name": "APPLYBUDGET:TABLE",
     "snowflake.user.privilege.granted_by": [
       "SECURITYADMIN"
     ],
@@ -239,7 +248,8 @@
       "telemetry.exporter.name": "dynatrace.snowagent",
       "telemetry.sdk.language": "python",
       "telemetry.sdk.name": "opentelemetry",
-      "telemetry.sdk.version": "1.39.1"
+      "telemetry.sdk.version": "1.39.1",
+      "deployment.environment.name": "TEST"
     }
   }
 ]

@@ -46,7 +46,7 @@ tasks:
           overage                = avg(snowflake.org.billing.overage)
         }
         , from: now()-7d
-        , by: { deployment.environment }
+        , by: { deployment.environment.name }
 
   check_balance:
     name: check_balance
@@ -90,7 +90,7 @@ tasks:
           const alerts = [];
 
           for (const record of records) {
-            const env = record['deployment.environment'] ?? '';
+            const env = record['deployment.environment.name'] ?? record['deployment.environment'] ?? '';
             for (const field of METRIC_FIELDS) {
               const series = record[field] ?? [];
               // series is an array of values — take the last non-null value
@@ -153,8 +153,8 @@ tasks:
                   'event.description':
                     `Balance for ${a.metric} is ${a.value.toFixed(2)}, ` +
                     `below threshold ${a.threshold}.`,
-                  'ad.source': 'dsoa.org_contract_balance_warning',
-                  'ad.source_metric': a.metric,
+                  'anomaly.detector': 'dsoa.org_contract_balance_warning',
+                  'metric.key': a.metric,
                   'balance.value': String(a.value.toFixed(2)),
                   'balance.threshold': String(a.threshold),
                   ...dimProps,

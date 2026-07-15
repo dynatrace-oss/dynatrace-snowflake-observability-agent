@@ -293,10 +293,10 @@ Example for TableScan:
   "name": "TableScan 01b4f12a:0",
   "timestamp": <operator_start_time>,
   "attributes": {
-    "snowflake.query.operator.type": "TableScan",
-    "snowflake.query.operator.id": 0,
-    "snowflake.query.operator.rows": 50000,
-    "snowflake.query.operator.duration_ms": 1000
+    "snowflake.query.step.operator.type": "TableScan",
+    "snowflake.query.step.operator.id": 0,
+    "snowflake.query.step.operator.rows": 50000,
+    "snowflake.query.step.operator.duration_ms": 1000
   }
 }
 
@@ -305,8 +305,8 @@ DDL Change Event (if query is CREATE/ALTER/DROP):
   "name": "DDL_CHANGE 01b4f12a:99",
   "timestamp": <query_completion_time>,
   "attributes": {
-    "snowflake.query.operator.type": "CREATE TABLE",
-    "snowflake.query.operator.id": 99,
+    "snowflake.query.step.operator.type": "CREATE TABLE",
+    "snowflake.query.step.operator.id": 99,
     "ddl_type": "CREATE",
     "ddl_target": "MY_DB.PUBLIC.NEW_TABLE",
     "ddl_statement": "<full DDL text>"

@@ -70,6 +70,18 @@ else
     VIEWER_ROLE="$CUSTOM_VIEWER_ROLE"
 fi
 
+# Derive warehouse name from TAG (same pattern as DB_NAME/VIEWER_ROLE)
+CUSTOM_WAREHOUSE="$("$CWD/get_config_key.sh" core.snowflake.warehouse.name 2>/dev/null)"
+if [[ -z "$CUSTOM_WAREHOUSE" || "$CUSTOM_WAREHOUSE" == "null" || "$CUSTOM_WAREHOUSE" == "-" || "$CUSTOM_WAREHOUSE" == '""' ]]; then
+    if [[ -n "$TAG" && "$TAG" != "null" && "$TAG" != "-" ]]; then
+        WAREHOUSE_NAME="DTAGENT_${TAG}_WH"
+    else
+        WAREHOUSE_NAME="DTAGENT_WH"
+    fi
+else
+    WAREHOUSE_NAME="$CUSTOM_WAREHOUSE"
+fi
+
 # ---- Tool check ------------------------------------------------------------
 
 if ! command -v snow &>/dev/null; then
@@ -85,9 +97,9 @@ fi
 
 if [[ -n "${SNOWFLAKE_ACCOUNT:-}" && -n "${SNOWFLAKE_USER:-}" ]]; then
     export SNOWFLAKE_AUTHENTICATOR="snowflake_jwt"
-    SNOW_ARGS=(--temporary-connection --account "$SNOWFLAKE_ACCOUNT" --user "$SNOWFLAKE_USER")
+    SNOW_ARGS=(--temporary-connection --account "$SNOWFLAKE_ACCOUNT" --user "$SNOWFLAKE_USER" --warehouse "$WAREHOUSE_NAME")
 else
-    SNOW_ARGS=(--connection "snow_agent_${CONNECTION_ENV}" --role "$VIEWER_ROLE")
+    SNOW_ARGS=(--connection "snow_agent_${CONNECTION_ENV}" --role "$VIEWER_ROLE" --warehouse "$WAREHOUSE_NAME")
 fi
 
 # ---- Helpers ---------------------------------------------------------------

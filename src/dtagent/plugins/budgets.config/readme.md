@@ -4,6 +4,6 @@ All budgets the agent has been granted access to are reported as logs and metric
 expenditures. The plugin runs once a day and excludes already reported expenditures.
 
 > [!WARNING] IMPORTANT
->This plugin is **disabled by default** because custom budget monitoring requires per-budget privilege grants.
+> This plugin is **disabled by default** because custom budget monitoring requires per-budget privilege grants.
 > The account budget (visible via `SNOWFLAKE.BUDGET_VIEWER`) is accessible automatically once enabled. For custom budgets,
 > use `P_GRANT_BUDGET_MONITORING()` (requires admin scope) or grant privileges manually — see below.

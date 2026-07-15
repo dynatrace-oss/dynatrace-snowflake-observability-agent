@@ -5,15 +5,15 @@
     "snowflake.event.trigger": "snowflake.resource_monitor.created_on",
     "snowflake.resource_monitor.created_on": 1722126338621000000,
     "snowflake.resource_monitor.start_time": 1722126338665000000,
-    "snowflake.credits.quota": "15.00",
+    "snowflake.credits.quota.value": "15.00",
     "snowflake.credits.quota.remaining": "8.79",
     "snowflake.credits.quota.used": "6.21",
     "snowflake.credits.quota.used_pct": 41.4,
-    "snowflake.resource_monitor.warehouses": 2,
+    "snowflake.resource_monitor.warehouses.count": 2,
     "snowflake.resource_monitor.frequency": "DAILY",
     "snowflake.resource_monitor.is_active": true,
     "snowflake.resource_monitor.level": "ACCOUNT",
-    "snowflake.warehouses.names": [
+    "snowflake.resource_monitor.warehouses": [
       "SYSTEM$STREAMLIT_NOTEBOOK_WH",
       "UNMONITORED_WH"
     ],
@@ -24,7 +24,8 @@
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.plugin": "test_resource_monitors",
-    "dsoa.run.context": "resource_monitors"
+    "dsoa.run.context": "resource_monitors",
+    "deployment.environment.name": "TEST"
   },
   {
     "eventType": "CUSTOM_INFO",
@@ -32,15 +33,15 @@
     "snowflake.event.trigger": "snowflake.resource_monitor.start_time",
     "snowflake.resource_monitor.created_on": 1722126338621000000,
     "snowflake.resource_monitor.start_time": 1722126338665000000,
-    "snowflake.credits.quota": "15.00",
+    "snowflake.credits.quota.value": "15.00",
     "snowflake.credits.quota.remaining": "8.79",
     "snowflake.credits.quota.used": "6.21",
     "snowflake.credits.quota.used_pct": 41.4,
-    "snowflake.resource_monitor.warehouses": 2,
+    "snowflake.resource_monitor.warehouses.count": 2,
     "snowflake.resource_monitor.frequency": "DAILY",
     "snowflake.resource_monitor.is_active": true,
     "snowflake.resource_monitor.level": "ACCOUNT",
-    "snowflake.warehouses.names": [
+    "snowflake.resource_monitor.warehouses": [
       "SYSTEM$STREAMLIT_NOTEBOOK_WH",
       "UNMONITORED_WH"
     ],
@@ -51,7 +52,8 @@
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.plugin": "test_resource_monitors",
-    "dsoa.run.context": "resource_monitors"
+    "dsoa.run.context": "resource_monitors",
+    "deployment.environment.name": "TEST"
   },
   {
     "eventType": "CUSTOM_INFO",
@@ -59,15 +61,15 @@
     "snowflake.event.trigger": "snowflake.resource_monitor.created_on",
     "snowflake.resource_monitor.created_on": 1728174328873000000,
     "snowflake.resource_monitor.start_time": 1728174328890000000,
-    "snowflake.credits.quota": "1.00",
+    "snowflake.credits.quota.value": "1.00",
     "snowflake.credits.quota.remaining": "1.00",
     "snowflake.credits.quota.used": "0.00",
     "snowflake.credits.quota.used_pct": 0,
-    "snowflake.resource_monitor.warehouses": 1,
+    "snowflake.resource_monitor.warehouses.count": 1,
     "snowflake.resource_monitor.frequency": "DAILY",
     "snowflake.resource_monitor.is_active": true,
     "snowflake.resource_monitor.level": "WAREHOUSE",
-    "snowflake.warehouses.names": [
+    "snowflake.resource_monitor.warehouses": [
       "NATIVE_APP_QUICKSTART_WH"
     ],
     "snowflake.resource_monitor.name": "NATIVE_APP_QUICKSTART_RS",
@@ -77,7 +79,8 @@
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.plugin": "test_resource_monitors",
-    "dsoa.run.context": "resource_monitors"
+    "dsoa.run.context": "resource_monitors",
+    "deployment.environment.name": "TEST"
   },
   {
     "eventType": "CUSTOM_INFO",
@@ -85,15 +88,15 @@
     "snowflake.event.trigger": "snowflake.resource_monitor.start_time",
     "snowflake.resource_monitor.created_on": 1728174328873000000,
     "snowflake.resource_monitor.start_time": 1728174328890000000,
-    "snowflake.credits.quota": "1.00",
+    "snowflake.credits.quota.value": "1.00",
     "snowflake.credits.quota.remaining": "1.00",
     "snowflake.credits.quota.used": "0.00",
     "snowflake.credits.quota.used_pct": 0,
-    "snowflake.resource_monitor.warehouses": 1,
+    "snowflake.resource_monitor.warehouses.count": 1,
     "snowflake.resource_monitor.frequency": "DAILY",
     "snowflake.resource_monitor.is_active": true,
     "snowflake.resource_monitor.level": "WAREHOUSE",
-    "snowflake.warehouses.names": [
+    "snowflake.resource_monitor.warehouses": [
       "NATIVE_APP_QUICKSTART_WH"
     ],
     "snowflake.resource_monitor.name": "NATIVE_APP_QUICKSTART_RS",
@@ -103,12 +106,13 @@
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.plugin": "test_resource_monitors",
-    "dsoa.run.context": "resource_monitors"
+    "dsoa.run.context": "resource_monitors",
+    "deployment.environment.name": "TEST"
   },
   {
     "eventType": "CUSTOM_INFO",
     "title": "Warehouse COMPUTE_WH is not monitored",
-    "snowflake.warehouse.event": "snowflake.warehouse.created_on",
+    "snowflake.warehouse.event.trigger": "snowflake.warehouse.created_on",
     "snowflake.warehouse.created_on": 1614961356578000000,
     "snowflake.warehouse.resumed_on": 1741738203231000000,
     "snowflake.warehouse.updated_on": 1741738203231000000,
@@ -118,7 +122,7 @@
     "snowflake.warehouse.clusters.max": 1,
     "snowflake.warehouse.clusters.min": 1,
     "snowflake.warehouse.clusters.started": 0,
-    "snowflake.credits.quota": "1.00",
+    "snowflake.credits.quota.value": "1.00",
     "snowflake.credits.quota.remaining": "0.94",
     "snowflake.credits.quota.used": "0.06",
     "snowflake.resource_monitor.frequency": "DAILY",
@@ -126,10 +130,10 @@
     "snowflake.warehouse.execution_state": "SUSPENDED",
     "snowflake.warehouse.has_query_acceleration_enabled": "false",
     "snowflake.warehouse.is_auto_resume": "true",
-    "snowflake.warehouse.is_auto_suspend": 10,
+    "snowflake.warehouse.auto_suspend": 10,
     "snowflake.warehouse.is_current": "N",
     "snowflake.warehouse.is_default": "N",
-    "snowflake.warehouse.owner": "SYSADMIN",
+    "snowflake.warehouse.owner.name": "SYSADMIN",
     "snowflake.warehouse.owner.role_type": "ROLE",
     "snowflake.warehouse.scaling_policy": "STANDARD",
     "snowflake.warehouse.size": "X-Small",
@@ -142,12 +146,13 @@
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.plugin": "test_resource_monitors",
-    "dsoa.run.context": "resource_monitors"
+    "dsoa.run.context": "resource_monitors",
+    "deployment.environment.name": "TEST"
   },
   {
     "eventType": "CUSTOM_INFO",
     "title": "Warehouse COMPUTE_WH is not monitored",
-    "snowflake.warehouse.event": "snowflake.warehouse.resumed_on",
+    "snowflake.warehouse.event.trigger": "snowflake.warehouse.resumed_on",
     "snowflake.warehouse.created_on": 1614961356578000000,
     "snowflake.warehouse.resumed_on": 1741738203231000000,
     "snowflake.warehouse.updated_on": 1741738203231000000,
@@ -157,7 +162,7 @@
     "snowflake.warehouse.clusters.max": 1,
     "snowflake.warehouse.clusters.min": 1,
     "snowflake.warehouse.clusters.started": 0,
-    "snowflake.credits.quota": "1.00",
+    "snowflake.credits.quota.value": "1.00",
     "snowflake.credits.quota.remaining": "0.94",
     "snowflake.credits.quota.used": "0.06",
     "snowflake.resource_monitor.frequency": "DAILY",
@@ -165,10 +170,10 @@
     "snowflake.warehouse.execution_state": "SUSPENDED",
     "snowflake.warehouse.has_query_acceleration_enabled": "false",
     "snowflake.warehouse.is_auto_resume": "true",
-    "snowflake.warehouse.is_auto_suspend": 10,
+    "snowflake.warehouse.auto_suspend": 10,
     "snowflake.warehouse.is_current": "N",
     "snowflake.warehouse.is_default": "N",
-    "snowflake.warehouse.owner": "SYSADMIN",
+    "snowflake.warehouse.owner.name": "SYSADMIN",
     "snowflake.warehouse.owner.role_type": "ROLE",
     "snowflake.warehouse.scaling_policy": "STANDARD",
     "snowflake.warehouse.size": "X-Small",
@@ -181,12 +186,13 @@
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.plugin": "test_resource_monitors",
-    "dsoa.run.context": "resource_monitors"
+    "dsoa.run.context": "resource_monitors",
+    "deployment.environment.name": "TEST"
   },
   {
     "eventType": "CUSTOM_INFO",
     "title": "Warehouse COMPUTE_WH is not monitored",
-    "snowflake.warehouse.event": "snowflake.warehouse.updated_on",
+    "snowflake.warehouse.event.trigger": "snowflake.warehouse.updated_on",
     "snowflake.warehouse.created_on": 1614961356578000000,
     "snowflake.warehouse.resumed_on": 1741738203231000000,
     "snowflake.warehouse.updated_on": 1741738203231000000,
@@ -196,7 +202,7 @@
     "snowflake.warehouse.clusters.max": 1,
     "snowflake.warehouse.clusters.min": 1,
     "snowflake.warehouse.clusters.started": 0,
-    "snowflake.credits.quota": "1.00",
+    "snowflake.credits.quota.value": "1.00",
     "snowflake.credits.quota.remaining": "0.94",
     "snowflake.credits.quota.used": "0.06",
     "snowflake.resource_monitor.frequency": "DAILY",
@@ -204,10 +210,10 @@
     "snowflake.warehouse.execution_state": "SUSPENDED",
     "snowflake.warehouse.has_query_acceleration_enabled": "false",
     "snowflake.warehouse.is_auto_resume": "true",
-    "snowflake.warehouse.is_auto_suspend": 10,
+    "snowflake.warehouse.auto_suspend": 10,
     "snowflake.warehouse.is_current": "N",
     "snowflake.warehouse.is_default": "N",
-    "snowflake.warehouse.owner": "SYSADMIN",
+    "snowflake.warehouse.owner.name": "SYSADMIN",
     "snowflake.warehouse.owner.role_type": "ROLE",
     "snowflake.warehouse.scaling_policy": "STANDARD",
     "snowflake.warehouse.size": "X-Small",
@@ -220,12 +226,13 @@
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.plugin": "test_resource_monitors",
-    "dsoa.run.context": "resource_monitors"
+    "dsoa.run.context": "resource_monitors",
+    "deployment.environment.name": "TEST"
   },
   {
     "eventType": "CUSTOM_INFO",
     "title": "Warehouse DEVELCLONE_WH is not monitored",
-    "snowflake.warehouse.event": "snowflake.warehouse.created_on",
+    "snowflake.warehouse.event.trigger": "snowflake.warehouse.created_on",
     "snowflake.warehouse.created_on": 1623296570505000000,
     "snowflake.warehouse.resumed_on": 1723467521001000000,
     "snowflake.warehouse.updated_on": 1728174334355000000,
@@ -235,7 +242,7 @@
     "snowflake.warehouse.clusters.max": 1,
     "snowflake.warehouse.clusters.min": 1,
     "snowflake.warehouse.clusters.started": 0,
-    "snowflake.credits.quota": "1.00",
+    "snowflake.credits.quota.value": "1.00",
     "snowflake.credits.quota.remaining": "1.00",
     "snowflake.credits.quota.used": "0.00",
     "snowflake.resource_monitor.frequency": "DAILY",
@@ -243,10 +250,10 @@
     "snowflake.warehouse.execution_state": "SUSPENDED",
     "snowflake.warehouse.has_query_acceleration_enabled": "false",
     "snowflake.warehouse.is_auto_resume": "true",
-    "snowflake.warehouse.is_auto_suspend": 600,
+    "snowflake.warehouse.auto_suspend": 600,
     "snowflake.warehouse.is_current": "N",
     "snowflake.warehouse.is_default": "N",
-    "snowflake.warehouse.owner": "SYSADMIN",
+    "snowflake.warehouse.owner.name": "SYSADMIN",
     "snowflake.warehouse.owner.role_type": "ROLE",
     "snowflake.warehouse.scaling_policy": "ECONOMY",
     "snowflake.warehouse.size": "Small",
@@ -259,12 +266,13 @@
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.plugin": "test_resource_monitors",
-    "dsoa.run.context": "resource_monitors"
+    "dsoa.run.context": "resource_monitors",
+    "deployment.environment.name": "TEST"
   },
   {
     "eventType": "CUSTOM_INFO",
     "title": "Warehouse DEVELCLONE_WH is not monitored",
-    "snowflake.warehouse.event": "snowflake.warehouse.resumed_on",
+    "snowflake.warehouse.event.trigger": "snowflake.warehouse.resumed_on",
     "snowflake.warehouse.created_on": 1623296570505000000,
     "snowflake.warehouse.resumed_on": 1723467521001000000,
     "snowflake.warehouse.updated_on": 1728174334355000000,
@@ -274,7 +282,7 @@
     "snowflake.warehouse.clusters.max": 1,
     "snowflake.warehouse.clusters.min": 1,
     "snowflake.warehouse.clusters.started": 0,
-    "snowflake.credits.quota": "1.00",
+    "snowflake.credits.quota.value": "1.00",
     "snowflake.credits.quota.remaining": "1.00",
     "snowflake.credits.quota.used": "0.00",
     "snowflake.resource_monitor.frequency": "DAILY",
@@ -282,10 +290,10 @@
     "snowflake.warehouse.execution_state": "SUSPENDED",
     "snowflake.warehouse.has_query_acceleration_enabled": "false",
     "snowflake.warehouse.is_auto_resume": "true",
-    "snowflake.warehouse.is_auto_suspend": 600,
+    "snowflake.warehouse.auto_suspend": 600,
     "snowflake.warehouse.is_current": "N",
     "snowflake.warehouse.is_default": "N",
-    "snowflake.warehouse.owner": "SYSADMIN",
+    "snowflake.warehouse.owner.name": "SYSADMIN",
     "snowflake.warehouse.owner.role_type": "ROLE",
     "snowflake.warehouse.scaling_policy": "ECONOMY",
     "snowflake.warehouse.size": "Small",
@@ -298,12 +306,13 @@
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.plugin": "test_resource_monitors",
-    "dsoa.run.context": "resource_monitors"
+    "dsoa.run.context": "resource_monitors",
+    "deployment.environment.name": "TEST"
   },
   {
     "eventType": "CUSTOM_INFO",
     "title": "Warehouse DEVELCLONE_WH is not monitored",
-    "snowflake.warehouse.event": "snowflake.warehouse.updated_on",
+    "snowflake.warehouse.event.trigger": "snowflake.warehouse.updated_on",
     "snowflake.warehouse.created_on": 1623296570505000000,
     "snowflake.warehouse.resumed_on": 1723467521001000000,
     "snowflake.warehouse.updated_on": 1728174334355000000,
@@ -313,7 +322,7 @@
     "snowflake.warehouse.clusters.max": 1,
     "snowflake.warehouse.clusters.min": 1,
     "snowflake.warehouse.clusters.started": 0,
-    "snowflake.credits.quota": "1.00",
+    "snowflake.credits.quota.value": "1.00",
     "snowflake.credits.quota.remaining": "1.00",
     "snowflake.credits.quota.used": "0.00",
     "snowflake.resource_monitor.frequency": "DAILY",
@@ -321,10 +330,10 @@
     "snowflake.warehouse.execution_state": "SUSPENDED",
     "snowflake.warehouse.has_query_acceleration_enabled": "false",
     "snowflake.warehouse.is_auto_resume": "true",
-    "snowflake.warehouse.is_auto_suspend": 600,
+    "snowflake.warehouse.auto_suspend": 600,
     "snowflake.warehouse.is_current": "N",
     "snowflake.warehouse.is_default": "N",
-    "snowflake.warehouse.owner": "SYSADMIN",
+    "snowflake.warehouse.owner.name": "SYSADMIN",
     "snowflake.warehouse.owner.role_type": "ROLE",
     "snowflake.warehouse.scaling_policy": "ECONOMY",
     "snowflake.warehouse.size": "Small",
@@ -337,6 +346,7 @@
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.plugin": "test_resource_monitors",
-    "dsoa.run.context": "resource_monitors"
+    "dsoa.run.context": "resource_monitors",
+    "deployment.environment.name": "TEST"
   }
 ]

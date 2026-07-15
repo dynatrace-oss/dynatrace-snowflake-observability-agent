@@ -38,7 +38,7 @@ variables:
     input: |-
       fetch logs
         | filter db.system == "snowflake"
-        | fieldsAdd snow_account = deployment.environment
+        | fieldsAdd snow_account = coalesce(deployment.environment.name, deployment.environment)
         | filter isNotNull(snow_account)
         | fields snow_account
         | dedup snow_account
@@ -53,7 +53,7 @@ variables:
       fetch logs
         | filter db.system == "snowflake"
         | filter isNotNull(db.user)
-            and in(deployment.environment, array($Account))
+            and in(coalesce(deployment.environment.name, deployment.environment), array($Account))
             and isNotNull(coalesce(db.name, db.namespace))
             and isNotNull(coalesce(db.statement, db.query.text))
             and isNotNull(snowflake.time.execution)
@@ -70,10 +70,10 @@ variables:
       fetch logs
         | filter db.system == "snowflake"
         | fieldsAdd db_name = coalesce(db.name, db.namespace)
-        | filter in(deployment.environment, array($Account))
+        | filter in(coalesce(deployment.environment.name, deployment.environment), array($Account))
         | filter in(snowflake.warehouse.name, array($Warehouse))
         | filter isNotNull(db.user)
-            and isNotNull(deployment.environment)
+            and isNotNull(coalesce(deployment.environment.name, deployment.environment))
             and isNotNull(coalesce(db.name, db.namespace))
             and isNotNull(coalesce(db.statement, db.query.text))
             and isNotNull(snowflake.time.execution)
@@ -90,10 +90,10 @@ variables:
       fetch logs
         | filter db.system == "snowflake"
         | fieldsAdd db_name = coalesce(db.name, db.namespace)
-        | filter in(deployment.environment, array($Account))
+        | filter in(coalesce(deployment.environment.name, deployment.environment), array($Account))
         | filter in(db_name, array($Database))
         | filter isNotNull(db.user)
-            and isNotNull(deployment.environment)
+            and isNotNull(coalesce(deployment.environment.name, deployment.environment))
             and isNotNull(coalesce(db.name, db.namespace))
             and isNotNull(coalesce(db.statement, db.query.text))
         | fields db.user
@@ -146,7 +146,7 @@ tiles:
       fetch logs
         | filter db.system == "snowflake"
         | filter dsoa.run.plugin == "query_history"
-        | filter in(deployment.environment, array($Account))
+        | filter in(coalesce(deployment.environment.name, deployment.environment), array($Account))
         | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
         | filter (isNull(db.namespace) or in(db.namespace, array($Database)))
         | filter (isNull(db.user) or in(db.user, array($User)))
@@ -176,7 +176,7 @@ tiles:
       fetch logs
         | filter db.system == "snowflake"
         | filter dsoa.run.plugin == "query_history"
-        | filter in(deployment.environment, array($Account))
+        | filter in(coalesce(deployment.environment.name, deployment.environment), array($Account))
         | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
         | filter (isNull(db.namespace) or in(db.namespace, array($Database)))
         | filter (isNull(db.user) or in(db.user, array($User)))
@@ -215,7 +215,7 @@ tiles:
       fetch logs
         | filter db.system == "snowflake"
         | filter dsoa.run.plugin == "query_history"
-        | filter in(deployment.environment, array($Account))
+        | filter in(coalesce(deployment.environment.name, deployment.environment), array($Account))
         | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
         | filter (isNull(db.namespace) or in(db.namespace, array($Database)))
         | filter (isNull(db.user) or in(db.user, array($User)))
@@ -258,7 +258,7 @@ tiles:
       fetch logs
         | filter db.system == "snowflake"
         | filter dsoa.run.plugin == "query_history"
-        | filter in(deployment.environment, array($Account))
+        | filter in(coalesce(deployment.environment.name, deployment.environment), array($Account))
         | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
         | filter (isNull(db.namespace) or in(db.namespace, array($Database)))
         | filter (isNull(db.user) or in(db.user, array($User)))
@@ -314,7 +314,7 @@ tiles:
         }
       , filter: {
         db.system == "snowflake" and dsoa.run.plugin == "query_history"
-        and in(deployment.environment, array($Account))
+        and in(deployment.environment.name, array($Account))
         and in(snowflake.warehouse.name, array($Warehouse))
         and isNull(db.namespace) or in(db.namespace, array($Database))
         and (isNull(db.user) or in(db.user, array($User)))
@@ -398,7 +398,7 @@ tiles:
       fetch logs
         | filter db.system == "snowflake"
         | filter dsoa.run.plugin == "query_history"
-        | filter in(deployment.environment, array($Account))
+        | filter in(coalesce(deployment.environment.name, deployment.environment), array($Account))
         | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
         | filter (isNull(db.namespace) or in(db.namespace, array($Database)))
         | filter (isNull(db.user) or in(db.user, array($User)))
@@ -488,7 +488,7 @@ tiles:
         | filter db.system == "snowflake"
         | filter dsoa.run.plugin == "query_history"
         | filter isNotNull(snowflake.query.hash)
-        | filter in(deployment.environment, array($Account))
+        | filter in(coalesce(deployment.environment.name, deployment.environment), array($Account))
         | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
         | filter (isNull(db.namespace) or in(db.namespace, array($Database)))
         | filter (isNull(db.user) or in(db.user, array($User)))
@@ -589,7 +589,7 @@ tiles:
         | filter db.system == "snowflake"
         | filter dsoa.run.plugin == "query_history"
         | filter isNotNull(snowflake.query.hash)
-        | filter in(deployment.environment, array($Account))
+        | filter in(coalesce(deployment.environment.name, deployment.environment), array($Account))
         | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
         | filter (isNull(db.namespace) or in(db.namespace, array($Database)))
         | filter (isNull(db.user) or in(db.user, array($User)))
@@ -657,7 +657,7 @@ tiles:
       fetch logs
         | filter db.system == "snowflake"
         | filter dsoa.run.plugin == "query_history"
-        | filter in(deployment.environment, array($Account))
+        | filter in(coalesce(deployment.environment.name, deployment.environment), array($Account))
         | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
         | filter (isNull(db.namespace) or in(db.namespace, array($Database)))
         | filter (isNull(db.user) or in(db.user, array($User)))
@@ -710,7 +710,7 @@ tiles:
       fetch logs
         | filter db.system == "snowflake"
         | filter dsoa.run.plugin == "query_history"
-        | filter in(deployment.environment, array($Account))
+        | filter in(coalesce(deployment.environment.name, deployment.environment), array($Account))
         | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
         | filter (isNull(db.namespace) or in(db.namespace, array($Database)))
         | filter (isNull(db.user) or in(db.user, array($User)))
@@ -774,7 +774,7 @@ tiles:
       fetch logs
         | filter db.system == "snowflake"
         | filter dsoa.run.plugin == "active_queries"
-        | filter in(deployment.environment, array($Account))
+        | filter in(coalesce(deployment.environment.name, deployment.environment), array($Account))
         | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
         | filter isNotNull(snowflake.warehouse.name)
         | summarize
@@ -784,7 +784,7 @@ tiles:
             Avg = avg(toLong(snowflake.time.total_elapsed)),
           by: {
             snowflake.warehouse.name,
-            deployment.environment
+            `deployment.environment` = coalesce(deployment.environment.name, deployment.environment)
           }
         | fields
             Warehouse = snowflake.warehouse.name,
@@ -846,7 +846,7 @@ tiles:
       fetch logs
         | filter db.system == "snowflake"
         | filter dsoa.run.plugin == "active_queries"
-        | filter in(deployment.environment, array($Account))
+        | filter in(coalesce(deployment.environment.name, deployment.environment), array($Account))
         | filter (isNull(snowflake.warehouse.name) or in(snowflake.warehouse.name, array($Warehouse)))
         | filter toLong(snowflake.time.total_elapsed) > 60 * 1000 * toLong($SlowQueryMin)
         | fields
@@ -856,7 +856,7 @@ tiles:
             Warehouse = snowflake.warehouse.name,
             Status = snowflake.query.execution_status,
             Query = substring(db.query.text, to: 80),
-            Environment = deployment.environment
+            Environment = coalesce(deployment.environment.name, deployment.environment)
         | sort Duration desc
         | limit 20
     visualization: table

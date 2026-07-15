@@ -129,7 +129,7 @@ DECLARE
             OBJECT_CONSTRUCT(
                 'db.query.text',                                            qh.query_text,
                 'db.operation.name',                                        qh.query_type,
-                'session.id',                                               qh.session_id,
+                'snowflake.session.id',                                     qh.session_id,
                 'snowflake.query.id',                                       qh.query_id,
                 'snowflake.query.tag',                                      qh.query_tag,
                 'snowflake.query.hash',                                     qh.query_hash,
