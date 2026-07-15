@@ -892,7 +892,7 @@ awk '
                 if (t == "") continue
                 ut = toupper(t)
                 if (match(ut, /^USE[[:space:]]+ROLE[[:space:]]+/)) {
-                    val = substr(t, RSTART + RLENGTH)
+                    val = toupper(substr(t, RSTART + RLENGTH))
                     if (val != cur_role) {
                         out = (out == "") ? t ";" : out " " t ";"
                         cur_role = val
