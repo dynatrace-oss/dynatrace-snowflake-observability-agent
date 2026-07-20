@@ -1,4 +1,4 @@
-# Dashboard: Snowflake Query Quality
+# Snowflake Query Quality
 
 This dashboard identifies and analyzes Snowflake queries with full cartesian joins, which are often indicators of query quality issues. Cartesian joins are detected when a Join operator's output rows exceed its input rows, suggesting that the query may be producing an unintended cross product of data sets. This can lead to poor performance, excessive resource consumption, and potentially incorrect results.
 

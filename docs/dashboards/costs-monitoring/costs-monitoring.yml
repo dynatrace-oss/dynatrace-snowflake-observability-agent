@@ -26,6 +26,7 @@
 # TAGS: costs
 #
 id: e446e588-b917-4a63-867c-643ca783c79e
+name: Snowflake Costs Monitoring
 version: 22
 variables:
   - version: 2

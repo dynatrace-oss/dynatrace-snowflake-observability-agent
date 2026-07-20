@@ -26,6 +26,7 @@
 # TAGS: self-monitoring
 #
 id: 0363ea51-aafe-4d5c-b76b-70342d5f70ed
+name: Snowflake Observability Agent Self-Monitoring
 version: 21
 variables:
   - key: Accounts

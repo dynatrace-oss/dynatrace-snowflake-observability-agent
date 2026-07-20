@@ -1,6 +1,6 @@
-# Dashboard: Data Volume & Storage
+# Snowflake Data Volume & Storage
 
-The **Data Volume & Storage** dashboard gives data stewards, FinOps teams, and governance
+The **Snowflake Data Volume & Storage** dashboard gives data stewards, FinOps teams, and governance
 leads a single pane of glass into how data grows, how fresh it is, and who is changing it.
 It combines storage byte and row count trends from the `data_volume` plugin with DDL audit
 events from the `data_schemas` plugin, covering five use cases across Quality, Costs, and

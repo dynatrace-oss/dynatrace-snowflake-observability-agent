@@ -1,4 +1,4 @@
-# Dashboard: Snowflake Query Deep Dive
+# Snowflake Query Deep Dive
 
 Advanced query analytics for DBAs and FinOps teams covering eight use cases:
 costly repeated queries, table performance degradation, query acceleration analysis,

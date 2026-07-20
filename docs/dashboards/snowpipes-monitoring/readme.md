@@ -1,4 +1,4 @@
-# Dashboard: Snowpipes Monitoring
+# Snowflake Snowpipes Monitoring
 
 This dashboard provides comprehensive monitoring of Snowflake Snowpipe continuous data ingestion pipelines. It tracks pipeline health, ingestion latency, stage backlog, error rates, data volumes, and credit consumption, enabling operators to quickly detect and diagnose issues with their automated data loading workflows.
 

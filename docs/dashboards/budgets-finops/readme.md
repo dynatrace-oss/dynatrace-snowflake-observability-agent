@@ -1,8 +1,8 @@
-# Budgets & FinOps Dashboard
+# Snowflake Budgets & FinOps
 
 ## Overview
 
-The **Budgets & FinOps Dashboard** provides a unified view of Snowflake budget
+The **Snowflake Budgets & FinOps** dashboard provides a unified view of Snowflake budget
 consumption, warehouse sizing optimisation, and warehouse load patterns. It is
 designed for FinOps practitioners, platform engineers, and Snowflake account
 owners who need to track credit spend, understand where costs originate, and
@@ -140,9 +140,9 @@ lag. Load tiles reflect a delayed view of warehouse activity.
 
 ## Related Dashboards
 
-- [Costs Monitoring](../costs-monitoring/readme.md) — credit quota utilisation
+- [Snowflake Costs Monitoring](../costs-monitoring/readme.md) — credit quota utilisation
   and resource monitor alerts (complements Section 2 of this dashboard)
-- [DSOA Self-Monitoring](../self-monitoring/readme.md) — plugin execution health
+- [Snowflake Observability Agent Self-Monitoring](../self-monitoring/readme.md) — plugin execution health
 
 ## Related Documentation
 

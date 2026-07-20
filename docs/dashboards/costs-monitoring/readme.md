@@ -1,4 +1,4 @@
-# Dashboard: Costs Monitoring
+# Snowflake Costs Monitoring
 
 This dashboard provides insights into the costs associated with your Snowflake usage. It includes visualizations and metrics that help you monitor and analyze your spending patterns, identify cost drivers, and optimize your resource allocation.
 

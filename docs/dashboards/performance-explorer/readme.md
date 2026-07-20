@@ -1,4 +1,4 @@
-# Dashboard: Snowflake Performance Explorer
+# Snowflake Performance Explorer
 
 Consolidated performance investigation flow for Snowflake environments — from fleet-level KPIs
 through warehouse breakdown and grouped query pattern analysis to individual long-running query
@@ -126,11 +126,11 @@ outliers; decrease it to catch moderately slow queries earlier.
 
 Navigation tiles linking to complementary dashboards:
 
-- **[Query Performance](../query-performance/)** — execution time trends by database, table, and
+- **[Snowflake Query Performance](../query-performance/)** — execution time trends by database, table, and
   user; top-N resource consumer donut charts; AI-powered anomaly detection
-- **[Query Deep Dive](../query-deep-dive/)** — costly repeated queries by bytes scanned and spill,
+- **[Snowflake Query Deep Dive](../query-deep-dive/)** — costly repeated queries by bytes scanned and spill,
   table performance degradation, query acceleration, external functions, cost attribution
-- **[Costs Monitoring](../costs-monitoring/)** — credit usage, resource monitor quota utilization,
+- **[Snowflake Costs Monitoring](../costs-monitoring/)** — credit usage, resource monitor quota utilization,
   warehouse costs, and slow query credit drain
 
 ## Required Plugins

@@ -1,4 +1,4 @@
-# Dashboard: Snowflake Security
+# Snowflake Security
 
 This dashboard provides insights into the security aspects of your Snowflake accounts. It includes visualizations and metrics that help you monitor user authentication, login issues, administrative activity, and security compliance based on Snowflake's Trust Center.
 

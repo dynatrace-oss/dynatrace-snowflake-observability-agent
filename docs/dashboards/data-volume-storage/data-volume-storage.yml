@@ -26,7 +26,7 @@
 # TAGS: snowflake, dsoa, data-volume, storage, quality, costs, governance
 #
 id: fdd7c1db-ffc0-4c75-adea-f60cadc120ad
-name: Data Volume & Storage
+name: Snowflake Data Volume & Storage
 version: 15
 
 variables:

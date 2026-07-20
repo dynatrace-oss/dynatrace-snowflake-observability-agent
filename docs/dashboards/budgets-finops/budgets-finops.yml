@@ -26,6 +26,7 @@
 # TAGS: snowflake, dsoa, finops, budgets, costs
 
 id: 64b09f3f-1faa-49c8-98ba-7aa496af8cdf
+name: Snowflake Budgets & FinOps
 version: 21
 
 variables:

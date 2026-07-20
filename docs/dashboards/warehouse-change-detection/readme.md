@@ -1,4 +1,4 @@
-# Dashboard: Warehouse Change Detection
+# Snowflake Warehouse Change Detection
 
 This dashboard provides a security audit trail for Snowflake warehouse configuration changes.
 It surfaces every CREATE, ALTER, DROP, and RENAME_WAREHOUSE operation logged by the `query_history`

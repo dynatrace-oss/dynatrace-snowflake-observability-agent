@@ -1,4 +1,4 @@
-# Snowflake Consumption (Organization Level) Dashboard
+# Snowflake Consumption (Organization Level)
 
 Organization-wide Snowflake consumption monitoring across all accounts. Requires the `org_costs`
 plugin to be enabled and the Snowflake account to have `SNOWFLAKE.ORGANIZATION_USAGE_VIEWER` granted.

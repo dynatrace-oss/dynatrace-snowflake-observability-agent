@@ -26,6 +26,7 @@
 # TAGS: security
 #
 id: 0f2f0c6b-5250-4f88-bc78-fe58d80fd59a
+name: Snowflake Security
 version: 25
 variables:
   - version: 2

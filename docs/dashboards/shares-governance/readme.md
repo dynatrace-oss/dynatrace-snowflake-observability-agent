@@ -1,4 +1,4 @@
-# Dashboard: Snowflake Shares & Governance
+# Snowflake Shares & Governance
 
 This dashboard gives data platform and security teams a single pane of glass for monitoring the health, security posture, and governance of Snowflake data sharing. It surfaces both sides of the sharing boundary: the outbound shares your organisation publishes to external consumers, and the inbound shares your accounts receive from providers. At a glance you can see which shares are active, which are broken, whether outbound shares follow your secure-objects policy, and who has been granted access to your data.
 

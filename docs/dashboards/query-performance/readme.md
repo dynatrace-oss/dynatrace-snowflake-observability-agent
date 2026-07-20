@@ -1,4 +1,4 @@
-# Dashboard: Snowflake Query Performance
+# Snowflake Query Performance
 
 This dashboard provides comprehensive insights into the performance of Snowflake queries, helping database administrators and developers identify slow or resource-intensive queries. It enables performance monitoring across multiple dimensions including accounts, databases, tables, and users, facilitating targeted optimization efforts.
 

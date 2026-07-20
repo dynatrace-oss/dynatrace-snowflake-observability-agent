@@ -1,4 +1,4 @@
-# Dashboard: Tasks & Pipelines Monitoring
+# Snowflake Tasks & Pipelines Monitoring
 
 This dashboard gives pipeline owners a single pane of glass for monitoring the health, performance, cost, and data freshness of Snowflake task graphs and dynamic tables. It covers the full lifecycle: from detecting a failed or retried task run, to attributing serverless compute spend to specific pipelines, to verifying that dynamic tables are meeting their configured freshness SLAs.
 

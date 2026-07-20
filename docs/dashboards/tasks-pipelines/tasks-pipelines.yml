@@ -26,7 +26,7 @@
 # TAGS: snowflake, dsoa, tasks, dynamic_tables, pipelines, operations, performance, costs, quality
 #
 id: 5b3a0282-123e-416c-97bb-d8b6063e6323
-name: Tasks & Pipelines Monitoring
+name: Snowflake Tasks & Pipelines Monitoring
 version: 26
 variables:
   - key: Accounts

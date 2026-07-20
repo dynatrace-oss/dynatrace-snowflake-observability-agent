@@ -1,4 +1,4 @@
-# Dashboard: DSOA Self-Monitoring
+# Snowflake Observability Agent Self-Monitoring
 
 This dashboard provides a comprehensive overview of the Dynatrace Snowflake Open Source Agent (DSOA) itself, focusing on its operational health, performance, and resource consumption. It is designed to help administrators monitor the agent's activity, identify performance bottlenecks, and troubleshoot any issues that may arise during its execution.
 
