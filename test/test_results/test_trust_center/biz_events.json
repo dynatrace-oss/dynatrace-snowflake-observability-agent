@@ -12,11 +12,11 @@
       "db.system": "snowflake",
       "service.name": "test.dsoa2025",
       "deployment.environment": "TEST",
+      "deployment.environment.name": "TEST",
       "host.name": "test.dsoa2025.snowflakecomputing.com",
       "telemetry.exporter.name": "dynatrace.snowagent",
-      "dsoa.run.context": "self_monitoring",
       "dsoa.run.plugin": "test_trust_center",
-      "deployment.environment.name": "TEST"
+      "dsoa.run.context": "self_monitoring"
     }
   },
   {
@@ -33,10 +33,10 @@
       "db.system": "snowflake",
       "service.name": "test.dsoa2025",
       "deployment.environment": "TEST",
+      "deployment.environment.name": "TEST",
       "host.name": "test.dsoa2025.snowflakecomputing.com",
       "telemetry.exporter.name": "dynatrace.snowagent",
-      "dsoa.run.context": "self_monitoring",
-      "deployment.environment.name": "TEST"
+      "dsoa.run.context": "self_monitoring"
     }
   }
 ]

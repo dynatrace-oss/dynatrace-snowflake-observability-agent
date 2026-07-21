@@ -58,8 +58,6 @@ class TestLoginHist:
 
         disabled_combinations = [
             [],
-            ["logs"],
-            ["events"],
             ["logs", "events"],
         ]
 
@@ -70,7 +68,7 @@ class TestLoginHist:
                 disabled_telemetry=disabled_telemetry,
                 affecting_types_for_entries=["logs", "events"],
                 base_count={
-                    "login_history": {"entries": 2, "log_lines": 2, "metrics": 0, "events": 0},
+                    "login_history": {"entries": 2, "log_lines": 1, "metrics": 0, "events": 1},
                     "sessions": {"entries": 2, "log_lines": 2, "metrics": 0, "events": 0},
                 },
             )

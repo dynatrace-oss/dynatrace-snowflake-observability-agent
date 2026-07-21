@@ -465,7 +465,7 @@ class Plugin(ABC):
         start_time: Optional[str],
         end_time: Optional[str],
         properties: Optional[Dict[str, Any]],
-        __context: Optional[Dict[str, Any]],
+        _context: Optional[Dict[str, Any]],
     ) -> int:
         """Generic method reporting single log line for _log_entries. To be overwritten by plugins when required
 
@@ -476,7 +476,7 @@ class Plugin(ABC):
             start_time (str): start time key in row_dict
             end_time (str): end time key in row_dict
             properties (Dict): additional properties to be added to event payload
-            context (Optional[Dict]): additional context to be added to event payload
+            _context (Optional[Dict]): additional context to be added to event payload
         Returns:
             int: 1+ if event was reported successfully, 0 otherwise
         """
@@ -487,7 +487,7 @@ class Plugin(ABC):
             start_time_key=start_time,
             end_time_key=end_time,
             additional_payload=properties,
-            context=__context,
+            context=_context,
         )
 
     def prepare_timestamp_event(
@@ -551,7 +551,8 @@ class Plugin(ABC):
             end_time (str): name of the key containing the end time
             log_completion (bool): indicator whether to log the completion of reporting the payload to
                                    DTAGENT_DB.STATUS.LOG_PROCESSED_MEASUREMENTS
-            event_column_to_check (str): if this columns exists in the payload, an event will be sent instead of log
+            event_column_to_check (str): if this columns exists in the payload, an event will be sent instead of log.
+                Must be a **top-level column** in the view result — cannot be nested inside ``OBJECT_CONSTRUCT`` or any other SQL composite.
             event_value_to_check (str): if the previously stated event_column_to_check exists and is not None and this argument is not None,
                                         the event will be sent if the column value is equal to event_value_to_check
             event_payload_prepare (function): additional function preparing payload for the event.
@@ -637,11 +638,11 @@ class Plugin(ABC):
                 processed_events_cnt += f_report_event(
                     row_dict,
                     event_type,
-                    title,
+                    title=title,
                     start_time=start_time,
                     end_time=end_time,
                     properties=properties,
-                    context=__context,
+                    _context=__context,
                 )
                 was_processed = True
             elif (

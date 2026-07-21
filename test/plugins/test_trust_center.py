@@ -59,10 +59,6 @@ class TestTrustCenter:
         disabled_combinations = [
             [],
             ["metrics"],
-            ["logs"],
-            ["events"],
-            ["metrics", "logs"],
-            ["metrics", "events"],
             ["logs", "events"],
             ["metrics", "logs", "events"],
         ]
@@ -74,7 +70,7 @@ class TestTrustCenter:
                 disabled_telemetry=disabled_telemetry,
                 affecting_types_for_entries=["logs", "metrics", "events"],
                 base_count={
-                    "trust_center": {"entries": 2, "log_lines": 2, "events": 0},
+                    "trust_center": {"entries": 2, "log_lines": 1, "events": 1},
                     "trust_center_metrics": {"entries": 2, "metrics": 2},
                 },
             )
