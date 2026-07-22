@@ -96,10 +96,13 @@ variables:
       | filter in(db.operation.name, array($Operation))
       | filter in(db.operation.name, array("ALTER","CREATE","DROP", "RENAME_WAREHOUSE"))
       | parse upper(db.query.text), """('CREATE'|'DROP'|'ALTER'):operation SPACE+ ('WAREHOUSE'):type (SPACE+ "IF" (SPACE+ "NOT")? SPACE+ "EXISTS")? SPACE+ (NSPACE+):object (SPACE+ "SET" SPACE+ (LDATA):parameter_name SPACE* "=" SPACE* (LDATA):parameter_value)?"""
-      | filter isNotNull(operation) and isNotNull(type)  and isNotNull(snowflake.warehouse.name)
-      | fields snowflake.warehouse.name
-      | dedup snowflake.warehouse.name
-      | sort snowflake.warehouse.name asc
+      | filter isNotNull(operation) and isNotNull(type) and isNotNull(object)
+      | parse object, """'IDENTIFIER(' (LDATA):ident_inner ')'"""
+      | fieldsAdd warehouse_name = if(isNotNull(ident_inner), replaceString(ident_inner, "'", ""), else: object)
+      | filter isNotNull(warehouse_name)
+      | fields warehouse_name
+      | dedup warehouse_name
+      | sort warehouse_name asc
 tiles:
   "0":
     type: markdown
