@@ -177,6 +177,11 @@ SD_OWNED_GROUP_PREFIXES: frozenset = frozenset({"snowflake", "dsoa", "anomaly", 
 #: Acronyms that must stay ALL-CAPS in display_name (longer tokens first).
 DISPLAY_NAME_ACRONYMS = ("DSOA", "OTel", "DDL", "DML", "RSS", "URL", "API", "ID", "DB", "QA", "SQL")
 
+#: Multi-word proper nouns / product names that must retain their capitalisation
+#: in SD group ``title:`` and ``brief:`` fields (sentence-case context only).
+#: Each entry is the correctly-cased phrase; matching is case-insensitive.
+TITLE_PROPER_NOUNS = ("Trust Center",)
+
 #: instruments-def.yml unit: value -> Semantic Dictionary unit abbreviation.
 #:
 #: instruments-def.yml uses the recognized Dynatrace universal-units UCUM
@@ -617,7 +622,8 @@ def _make_title(key: str) -> str:
     """Convert dot-notation key to sentence-case title for SD group ``title:`` fields.
 
     Sentence case means only the first word is capitalised; subsequent words are
-    lowercase unless they are acronyms restored by :func:`_restore_acronyms`.
+    lowercase unless they are acronyms restored by :func:`_restore_acronyms` or
+    multi-word proper nouns listed in :data:`TITLE_PROPER_NOUNS`.
     This matches the SD convention documented in
     ``juno_docs/define-data-in-grail/definition/yaml/common/title.md``.
 
@@ -625,14 +631,17 @@ def _make_title(key: str) -> str:
         key: Dot-notation field key (e.g. ``snowflake.warehouse``).
 
     Returns:
-        Sentence-case title with acronyms preserved
-        (e.g. ``"Snowflake warehouse"``).
+        Sentence-case title with acronyms and proper nouns preserved
+        (e.g. ``"Snowflake warehouse"``, ``"Snowflake Trust Center"``).
     """
     parts = key.replace("_", " ").replace("-", " ").replace(".", " ").split()
     if not parts:
         return ""
     titled = [parts[0].capitalize()] + [p.lower() for p in parts[1:]]
-    return _restore_acronyms(" ".join(titled))
+    result = _restore_acronyms(" ".join(titled))
+    for noun in TITLE_PROPER_NOUNS:
+        result = result.replace(noun.lower(), noun)
+    return result
 
 
 def _map_attr_type(raw_type: Optional[str]) -> str:

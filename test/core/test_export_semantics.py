@@ -47,6 +47,7 @@ from build.export_semantics import (
     _emit_id_entry,
     _emit_metric_entry,
     _emit_ref_entry,
+    _make_title,
     _map_attr_type,
     _map_metric_instrument,
     _merge_field_entries,
@@ -125,6 +126,46 @@ class TestTypeMappings:
     def test_attr_type_timestamp_falls_through_to_string(self):
         """__type: timestamp (legacy) falls through to string (Grail reality)."""
         assert _map_attr_type("timestamp") == "string"
+
+
+##endregion
+
+
+##region Unit tests — _make_title
+
+
+class TestMakeTitle:
+    """Verify _make_title produces sentence-case titles with preserved proper nouns."""
+
+    def test_simple_key(self):
+        """Single namespace word is capitalised."""
+        assert _make_title("snowflake") == "Snowflake"
+
+    def test_dotted_key_sentence_case(self):
+        """Dot-separated key produces sentence case — only first word capitalised."""
+        assert _make_title("snowflake.warehouse") == "Snowflake warehouse"
+
+    def test_underscore_key(self):
+        """Underscore-separated words are treated as word boundaries."""
+        assert _make_title("snowflake.resource_monitor") == "Snowflake resource monitor"
+
+    def test_acronym_preserved(self):
+        """Known acronyms (e.g. DSOA, SQL) are kept ALL-CAPS."""
+        assert _make_title("dsoa.run.plugin") == "DSOA run plugin"
+        assert _make_title("snowflake.sql.query") == "Snowflake SQL query"
+
+    def test_proper_noun_trust_center(self):
+        """Trust Center (Snowflake product name) retains its capitalisation."""
+        assert _make_title("snowflake.trust_center") == "Snowflake Trust Center"
+
+    def test_proper_noun_trust_center_with_suffix(self):
+        """Trust Center is preserved even when a suffix follows."""
+        result = _make_title("snowflake.trust_center") + " signal fields"
+        assert result == "Snowflake Trust Center signal fields"
+
+    def test_empty_key(self):
+        """Empty key returns empty string."""
+        assert _make_title("") == ""
 
 
 ##endregion
