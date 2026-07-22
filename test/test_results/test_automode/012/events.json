@@ -1,6 +1,6 @@
 [
   {
-    "eventType": "CUSTOM_INFO",
+    "event.type": "CUSTOM_INFO",
     "title": "This is a test object 1",
     "snowflake.status.code": "OK",
     "value.int": 10,
@@ -25,7 +25,7 @@
     "deployment.environment.name": "TEST"
   },
   {
-    "eventType": "PERFORMANCE_EVENT",
+    "event.type": "PERFORMANCE_EVENT",
     "title": "This is a test object 2",
     "snowflake.status.code": "OK",
     "event.type": "PERFORMANCE_EVENT",
@@ -50,7 +50,7 @@
     "deployment.environment.name": "TEST"
   },
   {
-    "eventType": "ERROR_EVENT",
+    "event.type": "ERROR_EVENT",
     "title": "Event sent with test_automode/012",
     "snowflake.status.code": "ERROR",
     "event.type": "ERROR_EVENT",
@@ -75,7 +75,7 @@
     "deployment.environment.name": "TEST"
   },
   {
-    "eventType": "CUSTOM_INFO",
+    "event.type": "CUSTOM_INFO",
     "title": "Event sent with test_automode/012",
     "test_object": {
       "key": "value",

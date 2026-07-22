@@ -1,6 +1,6 @@
 [
   {
-    "eventType": "CUSTOM_INFO",
+    "event.type": "CUSTOM_INFO",
     "title": "Table event snowflake.task.graph.version.created_on.",
     "snowflake.event.trigger": "snowflake.task.graph.version.created_on",
     "snowflake.task.graph.version.created_on": 1760681133000000000,
@@ -28,7 +28,7 @@
     "deployment.environment.name": "TEST"
   },
   {
-    "eventType": "CUSTOM_INFO",
+    "event.type": "CUSTOM_INFO",
     "title": "Table event snowflake.task.graph.version.created_on.",
     "snowflake.event.trigger": "snowflake.task.graph.version.created_on",
     "snowflake.task.graph.version.created_on": 1760681133100000000,

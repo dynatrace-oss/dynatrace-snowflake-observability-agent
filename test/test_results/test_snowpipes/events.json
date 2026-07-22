@@ -1,6 +1,6 @@
 [
   {
-    "eventType": "CUSTOM_INFO",
+    "event.type": "CUSTOM_INFO",
     "title": "Table event snowflake.pipe.created_on.",
     "snowflake.event.trigger": "snowflake.pipe.created_on",
     "snowflake.pipe.created_on": "2026-03-17 11:43:21.694 Z",
@@ -28,7 +28,7 @@
     "deployment.environment.name": "TEST"
   },
   {
-    "eventType": "CUSTOM_INFO",
+    "event.type": "CUSTOM_INFO",
     "title": "Table event snowflake.pipe.created_on.",
     "snowflake.event.trigger": "snowflake.pipe.created_on",
     "snowflake.pipe.created_on": "2026-03-17 11:43:22.124 Z",

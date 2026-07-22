@@ -1,6 +1,6 @@
 [
   {
-    "eventType": "CUSTOM_ALERT",
+    "event.type": "CUSTOM_ALERT",
     "title": "Trust Center Critical problem",
     "snowflake.error.code": "SECURITY_ESSENTIALS_CIS3_1",
     "event.id": 252010,

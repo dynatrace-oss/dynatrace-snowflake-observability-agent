@@ -1,6 +1,6 @@
 [
   {
-    "eventType": "CUSTOM_INFO",
+    "event.type": "CUSTOM_INFO",
     "title": "This is a test object 1",
     "snowflake.status.code": "OK",
     "value.int": 10,

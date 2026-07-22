@@ -1,6 +1,6 @@
 [
   {
-    "eventType": "CUSTOM_ALERT",
+    "event.type": "CUSTOM_ALERT",
     "title": "Failed login attempt",
     "event.name": "FAILED_LOGIN",
     "event.description": "We have detected a failed login attempt due to INCORRECT_USERNAME_PASSWORD (code: 390001), by SNOWAGENT_ADMIN",

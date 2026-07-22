@@ -1,6 +1,6 @@
 [
   {
-    "eventType": "CUSTOM_INFO",
+    "event.type": "CUSTOM_INFO",
     "title": "Table event data_update.",
     "snowflake.event.trigger": "data_update",
     "data_update": 1731675389099000000,
@@ -22,7 +22,7 @@
     "deployment.environment.name": "TEST"
   },
   {
-    "eventType": "CUSTOM_INFO",
+    "event.type": "CUSTOM_INFO",
     "title": "Table event ddl.",
     "snowflake.event.trigger": "ddl",
     "data_update": 1731675389099000000,

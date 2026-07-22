@@ -1,6 +1,6 @@
 [
   {
-    "eventType": "CUSTOM_INFO",
+    "event.type": "CUSTOM_INFO",
     "title": "Resource monitor ACCOUNT_GLOBAL_MONITOR event: snowflake.resource_monitor.created_on",
     "snowflake.event.trigger": "snowflake.resource_monitor.created_on",
     "snowflake.resource_monitor.created_on": 1722126338621000000,
@@ -28,7 +28,7 @@
     "deployment.environment.name": "TEST"
   },
   {
-    "eventType": "CUSTOM_INFO",
+    "event.type": "CUSTOM_INFO",
     "title": "Resource monitor ACCOUNT_GLOBAL_MONITOR event: snowflake.resource_monitor.start_time",
     "snowflake.event.trigger": "snowflake.resource_monitor.start_time",
     "snowflake.resource_monitor.created_on": 1722126338621000000,
@@ -56,7 +56,7 @@
     "deployment.environment.name": "TEST"
   },
   {
-    "eventType": "CUSTOM_INFO",
+    "event.type": "CUSTOM_INFO",
     "title": "Resource monitor NATIVE_APP_QUICKSTART_RS event: snowflake.resource_monitor.created_on",
     "snowflake.event.trigger": "snowflake.resource_monitor.created_on",
     "snowflake.resource_monitor.created_on": 1728174328873000000,
@@ -83,7 +83,7 @@
     "deployment.environment.name": "TEST"
   },
   {
-    "eventType": "CUSTOM_INFO",
+    "event.type": "CUSTOM_INFO",
     "title": "Resource monitor NATIVE_APP_QUICKSTART_RS event: snowflake.resource_monitor.start_time",
     "snowflake.event.trigger": "snowflake.resource_monitor.start_time",
     "snowflake.resource_monitor.created_on": 1728174328873000000,
@@ -110,7 +110,7 @@
     "deployment.environment.name": "TEST"
   },
   {
-    "eventType": "CUSTOM_INFO",
+    "event.type": "CUSTOM_INFO",
     "title": "Warehouse COMPUTE_WH is not monitored",
     "snowflake.warehouse.event.trigger": "snowflake.warehouse.created_on",
     "snowflake.warehouse.created_on": 1614961356578000000,
@@ -150,7 +150,7 @@
     "deployment.environment.name": "TEST"
   },
   {
-    "eventType": "CUSTOM_INFO",
+    "event.type": "CUSTOM_INFO",
     "title": "Warehouse COMPUTE_WH is not monitored",
     "snowflake.warehouse.event.trigger": "snowflake.warehouse.resumed_on",
     "snowflake.warehouse.created_on": 1614961356578000000,
@@ -190,7 +190,7 @@
     "deployment.environment.name": "TEST"
   },
   {
-    "eventType": "CUSTOM_INFO",
+    "event.type": "CUSTOM_INFO",
     "title": "Warehouse COMPUTE_WH is not monitored",
     "snowflake.warehouse.event.trigger": "snowflake.warehouse.updated_on",
     "snowflake.warehouse.created_on": 1614961356578000000,
@@ -230,7 +230,7 @@
     "deployment.environment.name": "TEST"
   },
   {
-    "eventType": "CUSTOM_INFO",
+    "event.type": "CUSTOM_INFO",
     "title": "Warehouse DEVELCLONE_WH is not monitored",
     "snowflake.warehouse.event.trigger": "snowflake.warehouse.created_on",
     "snowflake.warehouse.created_on": 1623296570505000000,
@@ -270,7 +270,7 @@
     "deployment.environment.name": "TEST"
   },
   {
-    "eventType": "CUSTOM_INFO",
+    "event.type": "CUSTOM_INFO",
     "title": "Warehouse DEVELCLONE_WH is not monitored",
     "snowflake.warehouse.event.trigger": "snowflake.warehouse.resumed_on",
     "snowflake.warehouse.created_on": 1623296570505000000,
@@ -310,7 +310,7 @@
     "deployment.environment.name": "TEST"
   },
   {
-    "eventType": "CUSTOM_INFO",
+    "event.type": "CUSTOM_INFO",
     "title": "Warehouse DEVELCLONE_WH is not monitored",
     "snowflake.warehouse.event.trigger": "snowflake.warehouse.updated_on",
     "snowflake.warehouse.created_on": 1623296570505000000,

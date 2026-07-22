@@ -1,6 +1,6 @@
 [
   {
-    "eventType": "CUSTOM_INFO",
+    "event.type": "CUSTOM_INFO",
     "title": "Table event snowflake.table.update.",
     "snowflake.event.trigger": "snowflake.table.update",
     "snowflake.table.update": 1736851468626000000,
@@ -22,7 +22,7 @@
     "deployment.environment.name": "TEST"
   },
   {
-    "eventType": "CUSTOM_INFO",
+    "event.type": "CUSTOM_INFO",
     "title": "Table event snowflake.table.ddl.",
     "snowflake.event.trigger": "snowflake.table.ddl",
     "snowflake.table.ddl": 1733122324468000000,
@@ -46,7 +46,7 @@
     "deployment.environment.name": "TEST"
   },
   {
-    "eventType": "CUSTOM_INFO",
+    "event.type": "CUSTOM_INFO",
     "title": "Table event snowflake.table.update.",
     "snowflake.event.trigger": "snowflake.table.update",
     "snowflake.table.ddl": 1733122324468000000,
