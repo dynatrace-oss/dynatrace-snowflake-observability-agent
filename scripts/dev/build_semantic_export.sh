@@ -116,6 +116,10 @@ while [[ $# -gt 0 ]]; do
             grep "^#" "${BASH_SOURCE[0]}" | grep -v "^#!" | sed 's/^# *//' | head -35
             exit 0
             ;;
+        --no-display-name)
+            EXTRA_ARGS+=("--no-display-name")
+            shift
+            ;;
         *)
             log_error "Unknown argument: $1"
             exit 1
