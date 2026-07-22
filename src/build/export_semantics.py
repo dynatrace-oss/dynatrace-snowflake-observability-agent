@@ -976,11 +976,12 @@ def _emit_ref_entry(key: str, entry: Dict[str, Any]) -> Dict[str, Any]:
     return node
 
 
-def _build_type_node(entry: Dict[str, Any]) -> Any:
+def _build_type_node(entry: Dict[str, Any], no_display_name: bool = False) -> Any:
     """Build the ``type:`` value — enum dict when __enum present, else type string.
 
     Args:
-        entry: instruments-def entry dict.
+        entry:           instruments-def entry dict.
+        no_display_name: When ``True``, omit ``display_name`` from enum member nodes.
 
     Returns:
         Type string or enum dict.
@@ -994,7 +995,7 @@ def _build_type_node(entry: Dict[str, Any]) -> Any:
                 "value": _QuotedStr(m["value"]),             # double-quoted — SD convention
                 "brief": m["brief"],
             }
-            if "display_name" in m:
+            if "display_name" in m and not no_display_name:
                 member["display_name"] = _SingleQuotedStr(m["display_name"])  # single-quoted
             members.append(member)
         return {"allow_custom_values": bool(enum_def.get("allow_custom_values", True)), "members": members}
@@ -1049,7 +1050,7 @@ def _coerce_string_array_examples(key: str, example_raw: Any) -> List[List[str]]
     return [[_SingleQuotedStr(as_str)]]
 
 
-def _emit_id_entry(key: str, entry: Dict[str, Any], semdict_flag: str) -> Dict[str, Any]:
+def _emit_id_entry(key: str, entry: Dict[str, Any], semdict_flag: str, no_display_name: bool = False) -> Dict[str, Any]:
     """Build a full id: attribute definition block.
 
     Respects the ``__stability`` annotation in instruments-def.  When
@@ -1068,14 +1069,16 @@ def _emit_id_entry(key: str, entry: Dict[str, Any], semdict_flag: str) -> Dict[s
     - Any other scalar — wrapped in a single-element list-of-lists: ``[["value"]]``.
 
     Args:
-        key:          Field key.
-        entry:        instruments-def entry dict.
-        semdict_flag: ``new``, ``deprecated-alias``, or ``otel-only``.
+        key:             Field key.
+        entry:           instruments-def entry dict.
+        semdict_flag:    ``new``, ``deprecated-alias``, or ``otel-only``.
+        no_display_name: When ``True``, omit the ``display_name`` property from
+                         the emitted node.
 
     Returns:
         Dict with all required semconv attribute fields.
     """
-    attr_type = _build_type_node(entry)
+    attr_type = _build_type_node(entry, no_display_name=no_display_name)
     description = str(entry["__description"]).strip()
     field_type = str(entry.get("__type") or "").strip().lower()
     example_raw = entry.get("__example", "")
@@ -1101,7 +1104,7 @@ def _emit_id_entry(key: str, entry: Dict[str, Any], semdict_flag: str) -> Dict[s
         deprecated_msg = f"Use {entry['__otel_replacement']} instead." if entry.get("__otel_replacement") else "Deprecated."
         node: Dict[str, Any] = {
             "id": key,
-            "display_name": _SingleQuotedStr(_make_display_name(key)),
+            **({} if no_display_name else {"display_name": _SingleQuotedStr(_make_display_name(key))}),
             "type": attr_type,
             "deprecated": deprecated_msg,
             "brief": description,
@@ -1110,7 +1113,7 @@ def _emit_id_entry(key: str, entry: Dict[str, Any], semdict_flag: str) -> Dict[s
     else:
         node = {
             "id": key,
-            "display_name": _SingleQuotedStr(_make_display_name(key)),
+            **({} if no_display_name else {"display_name": _SingleQuotedStr(_make_display_name(key))}),
             "type": attr_type,
             "stability": stability,
             "brief": description,
@@ -1281,24 +1284,29 @@ class SemanticExporter:
         schema_path: Optional path to ``semconv.schema.json`` for validation.
     """
 
-    def __init__(self, repo_root: Path, output_dir: Path, schema_path: Optional[Path] = None, sd_metadata: bool = False) -> None:
+    def __init__(self, repo_root: Path, output_dir: Path, schema_path: Optional[Path] = None, sd_metadata: bool = False, no_display_name: bool = False) -> None:
         """Initialise the exporter.
 
         Args:
-            repo_root:   Repository root path.
-            output_dir:  Output directory (created on demand).
-            schema_path: Optional semconv JSON schema for validation.
-            sd_metadata: When ``True``, write SD metadata files alongside the YAML source:
-                         ``OWNERS``, ``definitions/mapping/global_field_categories.json``,
-                         and ``doc/`` model/field stubs required by the SD generator.
-                         Set this only when targeting the actual SD repo checkout —
-                         **not** for the regular ``make semantic-dictionary`` export to
-                         ``docs/semantic-dictionary/``.
+            repo_root:        Repository root path.
+            output_dir:       Output directory (created on demand).
+            schema_path:      Optional semconv JSON schema for validation.
+            sd_metadata:      When ``True``, write SD metadata files alongside the YAML source:
+                              ``OWNERS``, ``definitions/mapping/global_field_categories.json``,
+                              and ``doc/`` model/field stubs required by the SD generator.
+                              Set this only when targeting the actual SD repo checkout —
+                              **not** for the regular ``make semantic-dictionary`` export to
+                              ``docs/semantic-dictionary/``.
+            no_display_name:  When ``True``, suppress the ``display_name`` property on all
+                              emitted attribute and enum member nodes.  Use when the target
+                              SD PR should not include ``display_name`` fields (e.g. when the
+                              SD committee has not yet approved them for a namespace).
         """
         self.repo_root = repo_root
         self.output_dir = output_dir
         self.schema_path = schema_path
         self._sd_metadata = sd_metadata
+        self._no_display_name = no_display_name
         self._schema: Optional[Dict[str, Any]] = None
         self._counters: Dict[str, int] = {
             "files": 0,
@@ -1424,7 +1432,7 @@ class SemanticExporter:
         if semdict_flag == "ref":
             self._counters["ref"] += 1
             return _emit_ref_entry(key, entry)
-        node = _emit_id_entry(key, entry, semdict_flag)
+        node = _emit_id_entry(key, entry, semdict_flag, no_display_name=self._no_display_name)
         self._counters[
             "deprecated_alias" if semdict_flag == "deprecated-alias" else "otel_only" if semdict_flag == "otel-only" else "new"
         ] += 1
@@ -2708,6 +2716,16 @@ def _parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
             "Do NOT pass this for the regular 'make semantic-dictionary' export."
         ),
     )
+    parser.add_argument(
+        "--no-display-name",
+        action="store_true",
+        dest="no_display_name",
+        help=(
+            "Suppress the display_name property on all emitted attribute and enum member nodes. "
+            "Use when the target SD PR should not include display_name fields "
+            "(e.g. when the SD committee has not yet approved them for a namespace)."
+        ),
+    )
     return parser.parse_args(argv)
 
 
@@ -2727,7 +2745,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     schema_path = Path(args.schema) if Path(args.schema).is_absolute() else repo_root / args.schema
     log.info("Repo root : %s", repo_root)
     log.info("Output dir: %s", output_dir)
-    exporter = SemanticExporter(repo_root=repo_root, output_dir=output_dir, schema_path=schema_path, sd_metadata=args.sd_metadata)
+    exporter = SemanticExporter(repo_root=repo_root, output_dir=output_dir, schema_path=schema_path, sd_metadata=args.sd_metadata, no_display_name=args.no_display_name)
     try:
         summary = exporter.export()
     except ExportError as exc:

@@ -663,6 +663,75 @@ class TestEnumEmission:
 ##endregion
 
 
+##region Unit tests — no_display_name flag
+
+
+class TestNoDisplayName:
+    """Verify --no-display-name suppresses display_name on attribute and enum member nodes."""
+
+    _BASE_ENTRY = {
+        "__description": "A test field.",
+        "__example": "value",
+        "__stability": "stable",
+        "__field_type": "signal",
+    }
+
+    def test_display_name_present_by_default(self):
+        """display_name is emitted on attribute nodes when no_display_name=False (default)."""
+        node = _emit_id_entry("snowflake.test.field", self._BASE_ENTRY.copy(), "new")
+        assert "display_name" in node
+
+    def test_display_name_absent_when_flag_set(self):
+        """display_name is NOT emitted on attribute nodes when no_display_name=True."""
+        node = _emit_id_entry("snowflake.test.field", self._BASE_ENTRY.copy(), "new", no_display_name=True)
+        assert "display_name" not in node
+
+    def test_display_name_absent_on_deprecated_node(self):
+        """display_name is NOT emitted on deprecated attribute nodes when no_display_name=True."""
+        entry = {**self._BASE_ENTRY, "__stability": "deprecated", "__otel_replacement": "snowflake.test.other"}
+        node = _emit_id_entry("snowflake.test.field", entry, "new", no_display_name=True)
+        assert "display_name" not in node
+        assert "deprecated" in node
+
+    def test_enum_member_display_name_present_by_default(self):
+        """display_name is emitted on enum members when no_display_name=False (default)."""
+        entry = {
+            **self._BASE_ENTRY,
+            "__enum": {
+                "allow_custom_values": True,
+                "members": [{"id": "standard", "value": "STANDARD", "brief": "Standard.", "display_name": "Standard"}],
+            },
+        }
+        node = _emit_id_entry("snowflake.warehouse.type", entry, "new")
+        assert "display_name" in node["type"]["members"][0]
+
+    def test_enum_member_display_name_absent_when_flag_set(self):
+        """display_name is NOT emitted on enum members when no_display_name=True."""
+        entry = {
+            **self._BASE_ENTRY,
+            "__enum": {
+                "allow_custom_values": True,
+                "members": [{"id": "standard", "value": "STANDARD", "brief": "Standard.", "display_name": "Standard"}],
+            },
+        }
+        node = _emit_id_entry("snowflake.warehouse.type", entry, "new", no_display_name=True)
+        assert "display_name" not in node["type"]["members"][0]
+
+    def test_enum_member_without_display_name_unaffected(self):
+        """Enum members that have no display_name are unaffected by the flag."""
+        entry = {
+            **self._BASE_ENTRY,
+            "__enum": {
+                "allow_custom_values": True,
+                "members": [{"id": "standard", "value": "STANDARD", "brief": "Standard."}],
+            },
+        }
+        node = _emit_id_entry("snowflake.warehouse.type", entry, "new", no_display_name=True)
+        assert "display_name" not in node["type"]["members"][0]
+
+
+##endregion
+
 ##region Unit tests — metric emission
 
 
