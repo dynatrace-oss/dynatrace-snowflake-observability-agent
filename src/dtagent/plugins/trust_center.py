@@ -120,9 +120,12 @@ class TrustCenterPlugin(Plugin):
             event_column_to_check="_SEVERITY",
             event_value_to_check="CRITICAL",
             event_payload_prepare=self._prepare_event_payload_critical_risk,
+            f_report_event=self._report_via_davis_events,
             f_report_log=self._report_instrumented_log,
             f_get_log_level=self._get_severity_log_level,
         )
+        if self._davis_events is not None:
+            events_sent_cnt += self._davis_events.flush_events()
 
         results_dict = {
             "trust_center": {

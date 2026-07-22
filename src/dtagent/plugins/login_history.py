@@ -99,7 +99,10 @@ class LoginHistoryPlugin(Plugin):
                 start_time="TIMESTAMP",
                 event_column_to_check="_ERROR_CODE",
                 event_payload_prepare=self._prepare_event_payload_failed_login,
+                f_report_event=self._report_via_davis_events,
             )
+            if self._davis_events is not None:
+                login_history_events_cnt += self._davis_events.flush_events()
             results["login_history"] = {
                 "entries": login_history_entries_cnt,
                 "log_lines": login_history_logs_cnt,

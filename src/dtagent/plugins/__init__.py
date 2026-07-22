@@ -132,6 +132,7 @@ class Plugin(ABC):
         )
 
         self.processed_last_timestamp = None
+        self._davis_events = None
 
     def _has_event(
         self,
@@ -481,6 +482,50 @@ class Plugin(ABC):
             int: 1+ if event was reported successfully, 0 otherwise
         """
         return self._events.report_via_api(
+            query_data=row_dict,
+            event_type=event_type,
+            title=title,
+            start_time_key=start_time,
+            end_time_key=end_time,
+            additional_payload=properties,
+            context=_context,
+        )
+
+    def _report_via_davis_events(
+        self,
+        row_dict: Dict,
+        event_type: Union[str, EventType],
+        *,
+        title: Optional[str],
+        start_time: Optional[str],
+        end_time: Optional[str],
+        properties: Optional[Dict[str, Any]],
+        _context: Optional[Dict[str, Any]],
+    ) -> int:
+        """Drop-in replacement for report_event that routes the event through the Davis Events v2 API.
+
+        Use as ``f_report_event=self._report_via_davis_events`` in ``_log_entries`` when the event
+        must appear in the Dynatrace Problems app rather than the generic OpenPipeline events store.
+        Lazily initialises ``self._davis_events`` on first call; callers are responsible for calling
+        ``self._davis_events.flush_events()`` after ``_log_entries`` returns.
+
+        Args:
+            row_dict (Dict): row dictionary
+            event_type (str): event type
+            title (str): event title
+            start_time (str): start time key in row_dict
+            end_time (str): end time key in row_dict
+            properties (Dict): additional properties to be added to event payload
+            _context (Optional[Dict]): additional context to be added to event payload
+
+        Returns:
+            int: 1+ if event was queued successfully, 0 otherwise
+        """
+        from dtagent.otel.events.davis import DavisEvents  # COMPILE_REMOVE
+
+        if self._davis_events is None:
+            self._davis_events = DavisEvents(self._configuration)
+        return self._davis_events.report_via_api(
             query_data=row_dict,
             event_type=event_type,
             title=title,
