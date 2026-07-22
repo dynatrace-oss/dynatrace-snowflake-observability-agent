@@ -613,6 +613,28 @@ def _make_display_name(key: str) -> str:
     return _restore_acronyms(" ".join(p.title() for p in parts))
 
 
+def _make_title(key: str) -> str:
+    """Convert dot-notation key to sentence-case title for SD group ``title:`` fields.
+
+    Sentence case means only the first word is capitalised; subsequent words are
+    lowercase unless they are acronyms restored by :func:`_restore_acronyms`.
+    This matches the SD convention documented in
+    ``juno_docs/define-data-in-grail/definition/yaml/common/title.md``.
+
+    Args:
+        key: Dot-notation field key (e.g. ``snowflake.warehouse``).
+
+    Returns:
+        Sentence-case title with acronyms preserved
+        (e.g. ``"Snowflake warehouse"``).
+    """
+    parts = key.replace("_", " ").replace("-", " ").replace(".", " ").split()
+    if not parts:
+        return ""
+    titled = [parts[0].capitalize()] + [p.lower() for p in parts[1:]]
+    return _restore_acronyms(" ".join(titled))
+
+
 def _map_attr_type(raw_type: Optional[str]) -> str:
     """Map instruments-def __type to semconv attribute type string.
 
@@ -1446,8 +1468,8 @@ class SemanticExporter:
             {
                 "id": gid,
                 "type": sf_groups[gid]["type"],
-                "title": _make_display_name(gid[: -len(".resource")] if gid.endswith(".resource") else gid) + " resource",
-                "brief": f"Resource-level fields describing Snowflake {_make_display_name(gid)} entities.",
+                "title": _make_title(gid[: -len(".resource")] if gid.endswith(".resource") else gid) + " resource fields",
+                "brief": f"Resource-level fields describing Snowflake {_make_title(gid)} entities.",
                 "attributes": sf_groups[gid]["attrs"],
             }
             for gid in sorted(sf_groups)
@@ -1510,8 +1532,8 @@ class SemanticExporter:
             group_entry = {
                 "id": gid,
                 "type": groups_map[gid]["type"],
-                "title": _make_display_name(gid) + " signal",
-                "brief": f"Signal-level fields for {_make_display_name(gid)} telemetry.",
+                "title": _make_title(gid) + " signal fields",
+                "brief": f"Signal-level fields for {_make_title(gid)} telemetry.",
                 "attributes": groups_map[gid]["attrs"],
             }
             if gid.startswith("snowflake"):
@@ -2316,10 +2338,16 @@ class SemanticExporter:
         The filename is the group ID with dots replaced by underscores, matching the SD
         convention (e.g. ``snowflake.account`` → ``doc/fields/snowflake_account.md``).
 
+        The ``## h2`` heading uses only the namespace name in sentence case (no type
+        qualifier, no "fields" suffix) following the empirical SD doc convention seen in
+        ``doc/fields/host.md``, ``doc/fields/app.md`` etc.  The YAML ``title:`` (with the
+        "fields" suffix) is rendered as the ``### h3`` heading inside the semconv block by
+        the SD generator itself.
+
         Args:
             field_groups: List of dicts with keys ``group_id`` (e.g.
                           ``snowflake.account``) and ``title`` (e.g.
-                          ``Snowflake Account signal``).
+                          ``Snowflake account signal fields``).
 
         Returns:
             Dict mapping relative output path (``doc/fields/…``) → stub content.
@@ -2327,10 +2355,14 @@ class SemanticExporter:
         result: Dict[str, str] = {}
         for fg in field_groups:
             group_id = fg["group_id"]
-            title = fg.get("title") or group_id.replace(".", " ").replace("_", " ").title()
+            # h2 heading: sentence-case namespace only — strip ".resource" suffix if present,
+            # no type qualifier ("signal"/"resource"), no "fields" suffix.
+            # This matches the SD empirical convention: "## Host", "## App", etc.
+            ns_key = group_id[: -len(".resource")] if group_id.endswith(".resource") else group_id
+            h2_title = _make_title(ns_key)
             filename = group_id.replace(".", "_") + ".md"
             content = (
-                f"## {title}\n"
+                f"## {h2_title}\n"
                 "\n"
                 f"<!-- semconv {group_id} -->\n"
                 "<!-- end_semconv -->\n"

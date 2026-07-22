@@ -1985,19 +1985,31 @@ class TestBuildPerFieldDocStubs:
         content = result["doc/fields/anomaly.md"]
         assert "<!-- end_semconv -->" in content
 
-    def test_stub_heading_uses_title(self, tmp_path):
-        """The markdown heading uses the supplied title."""
+    def test_stub_heading_uses_namespace_sentence_case(self, tmp_path):
+        """The ## h2 heading uses the namespace (group_id) in sentence case — no type qualifier or 'fields' suffix."""
         exporter = self._make_exporter(tmp_path)
-        result = exporter._build_per_field_doc_stubs([{"group_id": "observed_timestamp", "title": "Observed Timestamp signal fields"}])
+        result = exporter._build_per_field_doc_stubs([{"group_id": "observed_timestamp", "title": "Observed timestamp signal fields"}])
         content = result["doc/fields/observed_timestamp.md"]
-        assert "## Observed Timestamp signal fields" in content
+        # h2 must be sentence-case namespace only — no "signal", no "fields"
+        assert "## Observed timestamp\n" in content
+        # The YAML title (with "fields") is NOT the h2 — it appears in the YAML group node, not the doc stub heading
+        assert "## Observed timestamp signal fields" not in content
 
-    def test_stub_heading_falls_back_when_title_empty(self, tmp_path):
-        """When title is empty the heading is derived from the group_id."""
+    def test_stub_heading_resource_strips_suffix(self, tmp_path):
+        """For resource field groups (group_id ends with .resource) the h2 strips that suffix."""
+        exporter = self._make_exporter(tmp_path)
+        result = exporter._build_per_field_doc_stubs(
+            [{"group_id": "snowflake.warehouse.resource", "title": "Snowflake warehouse resource fields"}]
+        )
+        content = result["doc/fields/snowflake_warehouse_resource.md"]
+        assert "## Snowflake warehouse\n" in content
+
+    def test_stub_heading_derived_from_group_id(self, tmp_path):
+        """The heading is always derived from group_id, regardless of whether title is empty."""
         exporter = self._make_exporter(tmp_path)
         result = exporter._build_per_field_doc_stubs([{"group_id": "dsoa.debug", "title": ""}])
         content = result["doc/fields/dsoa_debug.md"]
-        assert content.startswith("## ")
+        assert "## DSOA debug\n" in content
         assert "<!--" in content  # some semconv marker follows
 
     def test_multiple_groups_produce_multiple_files(self, tmp_path):
