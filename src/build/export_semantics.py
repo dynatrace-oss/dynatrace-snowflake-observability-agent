@@ -180,7 +180,7 @@ DISPLAY_NAME_ACRONYMS = ("DSOA", "OTel", "DDL", "DML", "RSS", "URL", "API", "ID"
 #: Multi-word proper nouns / product names that must retain their capitalisation
 #: in SD group ``title:`` and ``brief:`` fields (sentence-case context only).
 #: Each entry is the correctly-cased phrase; matching is case-insensitive.
-TITLE_PROPER_NOUNS = ("Trust Center",)
+TITLE_PROPER_NOUNS = ("Trust Center", "Resource Monitor", "Snowflake", "Dynatrace", "Data Observability", "Dynatrace Observability")
 
 #: instruments-def.yml unit: value -> Semantic Dictionary unit abbreviation.
 #:
@@ -2369,14 +2369,12 @@ class SemanticExporter:
         The filename is the group ID with dots replaced by underscores, matching the SD
         convention (e.g. ``snowflake.account`` → ``doc/fields/snowflake_account.md``).
 
-        The ``## h2`` heading uses the namespace name in sentence case.  Signal-field
-        groups get a bare namespace heading (e.g. ``## Snowflake warehouse``) following
-        the empirical SD doc convention seen in ``doc/fields/host.md``, ``doc/fields/app.md``.
-        Resource-field groups (those originating from ``resource_fields/``) additionally
-        carry a `` resource`` qualifier (e.g. ``## DSOA resource``,
-        ``## Snowflake warehouse resource``) — never a ``fields`` suffix.  The YAML
-        ``title:`` (with the "fields" suffix) is rendered as the ``### h3`` heading inside
-        the semconv block by the SD generator itself.
+        The ``## h2`` heading uses the namespace name in sentence case — no ``fields``
+        or ``resource`` suffix, matching the SD doc convention seen in
+        ``doc/fields/host.md``, ``doc/fields/app.md`` (e.g. ``## Snowflake warehouse``).
+        Groups with a ``.resource`` id suffix have that part stripped before titling.
+        The YAML ``title:`` (with the "fields" suffix) is rendered as the ``### h3``
+        heading inside the semconv block by the SD generator itself.
 
         Args:
             field_groups: List of dicts with keys ``group_id`` (e.g.
@@ -2390,13 +2388,10 @@ class SemanticExporter:
         result: Dict[str, str] = {}
         for fg in field_groups:
             group_id = fg["group_id"]
-            is_resource = fg.get("is_resource", False)
-            # h2 heading: sentence-case namespace, no "fields" suffix.
-            # Signal groups → bare namespace (e.g. "## Snowflake warehouse").
-            # Resource groups → namespace + " resource" (e.g. "## DSOA resource",
-            #   "## Snowflake warehouse resource"); strip any ".resource" id suffix first.
+            # h2 heading: sentence-case namespace, no "fields" or "resource" suffix.
+            # Strip any ".resource" id suffix so "snowflake.warehouse.resource" → "## Snowflake warehouse".
             ns_key = group_id[: -len(".resource")] if group_id.endswith(".resource") else group_id
-            h2_title = _make_title(ns_key) + (" resource" if is_resource else "")
+            h2_title = _make_title(ns_key)
             filename = group_id.replace(".", "_") + ".md"
             content = (
                 f"## {h2_title}\n"

@@ -147,7 +147,7 @@ class TestMakeTitle:
 
     def test_underscore_key(self):
         """Underscore-separated words are treated as word boundaries."""
-        assert _make_title("snowflake.resource_monitor") == "Snowflake resource monitor"
+        assert _make_title("snowflake.resource_monitor") == "Snowflake Resource Monitor"
 
     def test_acronym_preserved(self):
         """Known acronyms (e.g. DSOA, SQL) are kept ALL-CAPS."""
@@ -2205,23 +2205,23 @@ class TestBuildPerFieldDocStubs:
         # The YAML title (with "fields") is NOT the h2 — it appears in the YAML group node, not the doc stub heading
         assert "## Observed timestamp signal fields" not in content
 
-    def test_stub_heading_resource_group_gets_resource_suffix(self, tmp_path):
-        """A resource group's ## h2 heading strips the .resource id suffix and appends ' resource' (no 'fields')."""
+    def test_stub_heading_resource_group_strips_resource_id_suffix(self, tmp_path):
+        """A resource group's ## h2 heading strips the .resource id suffix, no suffix appended."""
         exporter = self._make_exporter(tmp_path)
         result = exporter._build_per_field_doc_stubs(
             [{"group_id": "snowflake.warehouse.resource", "title": "Snowflake warehouse resource fields", "is_resource": True}]
         )
         content = result["doc/fields/snowflake_warehouse_resource.md"]
-        assert "## Snowflake warehouse resource\n" in content
-        assert "## Snowflake warehouse resource fields" not in content
+        assert "## Snowflake warehouse\n" in content
+        assert "## Snowflake warehouse resource" not in content
 
     def test_stub_heading_dsoa_resource_group(self, tmp_path):
-        """The DSOA resource group (group_id 'dsoa', no .resource suffix) renders '## DSOA resource'."""
+        """The DSOA resource group (group_id 'dsoa', no .resource suffix) renders '## DSOA'."""
         exporter = self._make_exporter(tmp_path)
         result = exporter._build_per_field_doc_stubs([{"group_id": "dsoa", "title": "DSOA resource fields", "is_resource": True}])
         content = result["doc/fields/dsoa.md"]
-        assert "## DSOA resource\n" in content
-        assert "## DSOA resource fields" not in content
+        assert "## DSOA\n" in content
+        assert "## DSOA resource" not in content
 
     def test_stub_heading_signal_group_no_resource_suffix(self, tmp_path):
         """A signal group is never given a ' resource' suffix even when its namespace matches a resource one."""
