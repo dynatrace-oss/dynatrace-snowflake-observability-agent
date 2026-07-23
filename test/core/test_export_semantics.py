@@ -2058,6 +2058,104 @@ class TestDqlQueryStringFormatting:
 ##region Tests — _build_per_field_doc_stubs
 
 
+class TestBuildPerModelDocStubs:
+    """Unit tests for SemanticExporter._build_per_model_doc_stubs.
+
+    Verifies each per-model stub references both the model (<!-- model -->) and its
+    inner attribute_group (<!-- semconv <id>.fields -->) so that F025 does not fire.
+    """
+
+    def _make_exporter(self, tmp_path):
+        """Return a SemanticExporter instance suitable for stub-generation tests."""
+        return SemanticExporter(repo_root=REPO_ROOT, output_dir=tmp_path / "out")
+
+    def test_model_stub_contains_model_tag(self, tmp_path):
+        """The stub contains the <!-- model <id> --> block."""
+        exporter = self._make_exporter(tmp_path)
+        result = exporter._build_per_model_doc_stubs(
+            [
+                {
+                    "id": "snowflake.logs.query_history",
+                    "title": "Snowflake query history log records",
+                    "brief": "b",
+                    "signal_type": "logs",
+                    "has_fields": True,
+                }
+            ]
+        )
+        content = result["doc/model/snowflake/logs/query_history.md"]
+        assert "<!-- model snowflake.logs.query_history -->" in content
+        assert "<!-- end_model -->" in content
+
+    def test_model_stub_references_inner_fields_group(self, tmp_path):
+        """The stub references the inner attribute_group via <!-- semconv <id>.fields --> (F025 fix)."""
+        exporter = self._make_exporter(tmp_path)
+        result = exporter._build_per_model_doc_stubs(
+            [
+                {
+                    "id": "snowflake.logs.query_history",
+                    "title": "Snowflake query history log records",
+                    "brief": "b",
+                    "signal_type": "logs",
+                    "has_fields": True,
+                }
+            ]
+        )
+        content = result["doc/model/snowflake/logs/query_history.md"]
+        assert "<!-- semconv snowflake.logs.query_history.fields -->" in content
+        assert "<!-- end_semconv -->" in content
+
+    def test_model_stub_events_and_spans_signal_types(self, tmp_path):
+        """Event and span models produce the inner semconv ref under the right path."""
+        exporter = self._make_exporter(tmp_path)
+        result = exporter._build_per_model_doc_stubs(
+            [
+                {
+                    "id": "snowflake.events.budgets",
+                    "title": "Snowflake budgets lifecycle events",
+                    "brief": "b",
+                    "signal_type": "events",
+                    "has_fields": True,
+                },
+                {
+                    "id": "snowflake.spans.query_history",
+                    "title": "Snowflake query history spans",
+                    "brief": "b",
+                    "signal_type": "spans",
+                    "has_fields": True,
+                },
+            ]
+        )
+        events = result["doc/model/snowflake/events/budgets.md"]
+        spans = result["doc/model/snowflake/spans/query_history.md"]
+        assert "<!-- semconv snowflake.events.budgets.fields -->" in events
+        assert "<!-- semconv snowflake.spans.query_history.fields -->" in spans
+
+    def test_model_stub_without_fields_group_omits_semconv_ref(self, tmp_path):
+        """A model with has_fields=False (e.g. attribute-less event_log span) omits the inner semconv ref."""
+        exporter = self._make_exporter(tmp_path)
+        result = exporter._build_per_model_doc_stubs(
+            [
+                {
+                    "id": "snowflake.spans.event_log",
+                    "title": "Snowflake event log spans",
+                    "brief": "b",
+                    "signal_type": "spans",
+                    "has_fields": False,
+                }
+            ]
+        )
+        content = result["doc/model/snowflake/spans/event_log.md"]
+        assert "<!-- model snowflake.spans.event_log -->" in content
+        assert "<!-- semconv snowflake.spans.event_log.fields -->" not in content
+
+
+##endregion
+
+
+##region Tests — _build_per_field_doc_stubs
+
+
 class TestBuildPerFieldDocStubs:
     """Unit tests for SemanticExporter._build_per_field_doc_stubs.
 
@@ -2096,28 +2194,49 @@ class TestBuildPerFieldDocStubs:
         assert "<!-- end_semconv -->" in content
 
     def test_stub_heading_uses_namespace_sentence_case(self, tmp_path):
-        """The ## h2 heading uses the namespace (group_id) in sentence case — no type qualifier or 'fields' suffix."""
+        """A signal group's ## h2 heading uses the namespace in sentence case — no type qualifier or 'fields' suffix."""
         exporter = self._make_exporter(tmp_path)
-        result = exporter._build_per_field_doc_stubs([{"group_id": "observed_timestamp", "title": "Observed timestamp signal fields"}])
+        result = exporter._build_per_field_doc_stubs(
+            [{"group_id": "observed_timestamp", "title": "Observed timestamp signal fields", "is_resource": False}]
+        )
         content = result["doc/fields/observed_timestamp.md"]
-        # h2 must be sentence-case namespace only — no "signal", no "fields"
+        # h2 must be sentence-case namespace only — no "signal", no "resource", no "fields"
         assert "## Observed timestamp\n" in content
         # The YAML title (with "fields") is NOT the h2 — it appears in the YAML group node, not the doc stub heading
         assert "## Observed timestamp signal fields" not in content
 
-    def test_stub_heading_resource_strips_suffix(self, tmp_path):
-        """For resource field groups (group_id ends with .resource) the h2 strips that suffix."""
+    def test_stub_heading_resource_group_gets_resource_suffix(self, tmp_path):
+        """A resource group's ## h2 heading strips the .resource id suffix and appends ' resource' (no 'fields')."""
         exporter = self._make_exporter(tmp_path)
         result = exporter._build_per_field_doc_stubs(
-            [{"group_id": "snowflake.warehouse.resource", "title": "Snowflake warehouse resource fields"}]
+            [{"group_id": "snowflake.warehouse.resource", "title": "Snowflake warehouse resource fields", "is_resource": True}]
         )
         content = result["doc/fields/snowflake_warehouse_resource.md"]
+        assert "## Snowflake warehouse resource\n" in content
+        assert "## Snowflake warehouse resource fields" not in content
+
+    def test_stub_heading_dsoa_resource_group(self, tmp_path):
+        """The DSOA resource group (group_id 'dsoa', no .resource suffix) renders '## DSOA resource'."""
+        exporter = self._make_exporter(tmp_path)
+        result = exporter._build_per_field_doc_stubs([{"group_id": "dsoa", "title": "DSOA resource fields", "is_resource": True}])
+        content = result["doc/fields/dsoa.md"]
+        assert "## DSOA resource\n" in content
+        assert "## DSOA resource fields" not in content
+
+    def test_stub_heading_signal_group_no_resource_suffix(self, tmp_path):
+        """A signal group is never given a ' resource' suffix even when its namespace matches a resource one."""
+        exporter = self._make_exporter(tmp_path)
+        result = exporter._build_per_field_doc_stubs(
+            [{"group_id": "snowflake.warehouse", "title": "Snowflake warehouse signal fields", "is_resource": False}]
+        )
+        content = result["doc/fields/snowflake_warehouse.md"]
         assert "## Snowflake warehouse\n" in content
+        assert "## Snowflake warehouse resource" not in content
 
     def test_stub_heading_derived_from_group_id(self, tmp_path):
         """The heading is always derived from group_id, regardless of whether title is empty."""
         exporter = self._make_exporter(tmp_path)
-        result = exporter._build_per_field_doc_stubs([{"group_id": "dsoa.debug", "title": ""}])
+        result = exporter._build_per_field_doc_stubs([{"group_id": "dsoa.debug", "title": "", "is_resource": False}])
         content = result["doc/fields/dsoa_debug.md"]
         assert "## DSOA debug\n" in content
         assert "<!--" in content  # some semconv marker follows

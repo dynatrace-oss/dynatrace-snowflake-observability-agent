@@ -28,6 +28,7 @@
 # Usage:
 #   ./scripts/dev/build_semantic_export.sh [--output-dir <dir>] [--clean] [--verbose]
 #                                          [--schema <path>] [--generate-docs] [--sd-repo <dir>]
+#                                          [--no-display-name] [--check]
 #
 # Options:
 #   --output-dir <dir>  Output directory (default: build/_semdict/source).
@@ -48,8 +49,15 @@
 #                       Requires Docker and the full SD repo checkout at .context/semantic-dictionary/.
 #                       Use --sd-repo to point to a different SD repo location.
 #   --sd-repo <dir>     Path to the full SD repo checkout containing generator/generate.sh.
-#                       Only used when --generate-docs is passed.
+#                       Only used when --generate-docs or --check is passed.
 #                       Default: .context/semantic-dictionary relative to the project root.
+#   --no-display-name   Suppress the display_name property on all emitted attribute and
+#                       enum member nodes. Passed through to export_semantics.py.
+#   --check             After export into the SD repo, run the SD generator's sanity checks
+#                       (F001–F035, incl. F025 "unused domain-specific groups") against the
+#                       SD repo source/ and doc/ and report the findings. Implies the same
+#                       SD-metadata export as --generate-docs. Requires Docker and a full SD
+#                       repo checkout. Use --sd-repo to point to a different location.
 #   --help              Show this help message
 
 set -euo pipefail
@@ -64,6 +72,7 @@ SD_REPO="${PROJECT_ROOT}/.context/semantic-dictionary"
 CUSTOM_OUTPUT_DIR=false
 FORCE_CLEAN=false
 GENERATE_DOCS=false
+RUN_CHECKS=false
 EXTRA_ARGS=()
 
 # ---------------------------------------------------------------------------
@@ -118,6 +127,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --no-display-name)
             EXTRA_ARGS+=("--no-display-name")
+            shift
+            ;;
+        --check)
+            RUN_CHECKS=true
             shift
             ;;
         *)
@@ -219,6 +232,116 @@ generate_docs() {
 }
 
 # ---------------------------------------------------------------------------
+# Sanity checks: export into SD repo, run the generator's sanity-check mode
+# and report findings (F001–F035, incl. F025 unused domain-specific groups).
+# ---------------------------------------------------------------------------
+run_sanity_checks() {
+    log_info "--check: validating SD repo at ${SD_REPO}"
+    if [[ ! -d "${SD_REPO}/generator" ]]; then
+        log_error "--check requires a full SD repo checkout with generator/ at: ${SD_REPO}"
+        log_error "Clone the semantic-dictionary repo there or pass --sd-repo <path>."
+        return 1
+    fi
+    if ! command -v docker &>/dev/null; then
+        log_error "--check requires Docker to be available on PATH"
+        return 1
+    fi
+
+    # Step 1: export YAML + SD metadata (OWNERS, definitions, doc stubs) into the SD repo.
+    # The sanity checks compare source/ YAML against doc/ Markdown, so the metadata and
+    # doc stubs must be present — this mirrors the --generate-docs export step.
+    log_info "--check: exporting YAML + SD metadata into SD repo at ${SD_REPO}"
+    cd "${PROJECT_ROOT}"
+    if ! PYTHONPATH="${PROJECT_ROOT}/src" "${VENV_PYTHON}" "${EXPORT_SCRIPT}" \
+        --output "${SD_REPO}/source" \
+        --schema "${SCHEMA_PATH}" \
+        --sd-metadata \
+        "${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}"; then
+        log_error "--check: export into SD repo failed"
+        return 1
+    fi
+
+    # Step 2: resolve generator image version and SD version from SD repo metadata
+    local generator_version sd_version
+    generator_version=$(grep "^version=" "${SD_REPO}/generator/generator-version.properties" | cut -d= -f2)
+    sd_version=$(grep "^version=" "${SD_REPO}/version.properties" | cut -d= -f2)
+    if [[ -z "${generator_version}" || -z "${sd_version}" ]]; then
+        log_error "--check: could not read generator/SD version from ${SD_REPO}"
+        return 1
+    fi
+    local generator_image="registry.lab.dynatrace.org/deus/otel-build-tool:${generator_version}"
+    log_info "--check: SD version=${sd_version}  generator image=${generator_image}"
+
+    # Step 3: pull the generator image
+    log_info "--check: pulling generator image ${generator_image}"
+    if ! docker pull "${generator_image}"; then
+        log_error "--check: docker pull failed for ${generator_image}"
+        return 1
+    fi
+
+    # Step 4: locate the required inputs for sanity-check mode.
+    # OWNERS and the global field categories file are written by the --sd-metadata export.
+    local owners_rel="OWNERS"
+    local categories_rel="definitions/mapping/global_field_categories.json"
+    if [[ ! -f "${SD_REPO}/${owners_rel}" ]]; then
+        log_error "--check: missing ${owners_rel} in SD repo (expected from --sd-metadata export)"
+        return 1
+    fi
+    if [[ ! -f "${SD_REPO}/${categories_rel}" ]]; then
+        log_error "--check: missing ${categories_rel} in SD repo (expected from --sd-metadata export)"
+        return 1
+    fi
+
+    # Step 5: run the generator in sanity_check mode (non-interactive).
+    # --md-check makes it report status without rewriting Markdown files.
+    # The generator exits 0 even when it reports findings (it is a report, not a gate),
+    # so capture the output and surface the DSOA-relevant findings explicitly.
+    log_info "--check: running SD generator sanity checks (F001–F035)"
+    local check_output check_rc=0
+    check_output=$(docker run --rm \
+        -v "${SD_REPO}/source:/source" \
+        -v "${SD_REPO}/doc:/doc" \
+        -v "${SD_REPO}/${owners_rel}:/owners/OWNERS:ro" \
+        -v "${SD_REPO}/${categories_rel}:/categories/global_field_categories.json:ro" \
+        "${generator_image}" \
+        --version "${sd_version}" \
+        --missing-property-mode warning \
+        --yaml-root /source \
+        sanity_check \
+        --markdown-root /doc \
+        --md-check \
+        --owners-file-path /owners/OWNERS \
+        --global-field-categories-path /categories/global_field_categories.json 2>&1) || check_rc=$?
+
+    echo "${check_output}"
+
+    if [[ "${check_rc}" -ne 0 ]]; then
+        log_error "--check: SD generator sanity-check run failed (exit code ${check_rc})."
+        return "${check_rc}"
+    fi
+
+    # Surface DSOA-relevant F025 findings (unused domain-specific groups) — the metric that
+    # matters for PR #1903. Other vendors' pre-existing findings are ignored here.
+    local dsoa_f025
+    dsoa_f025=$(echo "${check_output}" \
+        | grep "F025:" \
+        | grep -E "snowflake|/source/fields/.*(dsoa|anomaly)|'dsoa|'anomaly|'observed_timestamp" \
+        | wc -l | tr -d ' ')
+
+    if [[ "${dsoa_f025}" -gt 0 ]]; then
+        log_warn "--check: ${dsoa_f025} DSOA-related F025 finding(s) — unused domain-specific groups."
+        log_warn "  These groups exist in source/ YAML but are not referenced by any doc/ Markdown."
+        echo "${check_output}" | grep "F025:" \
+            | grep -E "snowflake|/source/fields/.*(dsoa|anomaly)|'dsoa|'anomaly|'observed_timestamp" >&2
+        return 1
+    fi
+
+    log_success "--check: no DSOA-related F025 findings — all DSOA groups are documented."
+    log_info "  (Pre-existing findings for other vendors, if any, are reported above but not gated.)"
+    return 0
+}
+
+# ---------------------------------------------------------------------------
 # Pre-flight checks
 # ---------------------------------------------------------------------------
 main() {
@@ -262,6 +385,13 @@ main() {
     # Optional doc generation step
     if [[ "${GENERATE_DOCS}" == "true" ]]; then
         if ! generate_docs; then
+            return 1
+        fi
+    fi
+
+    # Optional sanity-check step
+    if [[ "${RUN_CHECKS}" == "true" ]]; then
+        if ! run_sanity_checks; then
             return 1
         fi
     fi

@@ -2301,15 +2301,22 @@ class SemanticExporter:
         the generator has nothing to populate and the F001 / F004 / F025 sanity
         checks fire for every undefined model.
 
-        Each stub is minimal — just enough for the generator to recognise and fill
-        in.  The ``<!-- model <id> --> … <!-- end_model -->`` block is intentionally
-        empty; the generator replaces it with the rendered model description and
-        DQL examples.
+        Each stub contains the ``<!-- model <id> --> … <!-- end_model -->`` block
+        (populated by the generator with the model description and DQL examples) plus,
+        when the model has an inner ``attribute_group``, a ``<!-- semconv <id>.fields -->``
+        reference for it.  The inner-group reference is required — without it F025
+        ("unused domain-specific groups") fires for every ``<model_id>.fields`` group,
+        because the ``<!-- model -->`` tag documents the model itself but not its
+        attribute groups.  This mirrors well-formed SD model docs (e.g. the Davis
+        models, which reference each inner group with its own ``<!-- semconv -->`` tag).
+        Models without an inner group (``has_fields`` False, e.g. the attribute-less
+        ``event_log`` span model) omit the reference to avoid a dangling-group error.
 
         Args:
             models: List of dicts with keys ``id`` (model ID, e.g.
-                    ``snowflake.logs.metering``), ``title``, ``brief``, and
-                    ``signal_type`` (``logs``, ``events``, ``spans``).
+                    ``snowflake.logs.metering``), ``title``, ``brief``,
+                    ``signal_type`` (``logs``, ``events``, ``spans``), and
+                    ``has_fields`` (whether the model has an inner ``.fields`` group).
 
         Returns:
             Dict mapping relative output path (``doc/model/snowflake/…``) → content.
@@ -2320,7 +2327,13 @@ class SemanticExporter:
             title = model["title"]
             brief = model.get("brief", "")
             signal_type = model["signal_type"]  # logs | events | spans
+            has_fields = model.get("has_fields", True)
             plugin = model_id.split(".")[-1]    # last segment is the plugin name
+            # The model's inner attribute_group is always ``<model_id>.fields`` (see
+            # _build_*_model_yaml). It must be referenced with its own semconv tag so
+            # F025 does not flag it as an unused domain-specific group — but only when
+            # the model actually declares that group.
+            fields_ref = f"<!-- semconv {model_id}.fields -->\n<!-- end_semconv -->\n\n" if has_fields else ""
             content = (
                 f"<!-- model {model_id} -->\n"
                 "<!-- The content between the markdown start and end comments (tags) is generated. Please do not edit manually. -->\n"
@@ -2331,6 +2344,7 @@ class SemanticExporter:
                 "\n"
                 "<!-- end_model -->\n"
                 "\n"
+                f"{fields_ref}"
                 "<!-- dynatrace_internal -->\n"
                 "| Responsible PM | Maintainer | Team |\n"
                 "|---|---|---|\n"
@@ -2355,16 +2369,20 @@ class SemanticExporter:
         The filename is the group ID with dots replaced by underscores, matching the SD
         convention (e.g. ``snowflake.account`` → ``doc/fields/snowflake_account.md``).
 
-        The ``## h2`` heading uses only the namespace name in sentence case (no type
-        qualifier, no "fields" suffix) following the empirical SD doc convention seen in
-        ``doc/fields/host.md``, ``doc/fields/app.md`` etc.  The YAML ``title:`` (with the
-        "fields" suffix) is rendered as the ``### h3`` heading inside the semconv block by
-        the SD generator itself.
+        The ``## h2`` heading uses the namespace name in sentence case.  Signal-field
+        groups get a bare namespace heading (e.g. ``## Snowflake warehouse``) following
+        the empirical SD doc convention seen in ``doc/fields/host.md``, ``doc/fields/app.md``.
+        Resource-field groups (those originating from ``resource_fields/``) additionally
+        carry a `` resource`` qualifier (e.g. ``## DSOA resource``,
+        ``## Snowflake warehouse resource``) — never a ``fields`` suffix.  The YAML
+        ``title:`` (with the "fields" suffix) is rendered as the ``### h3`` heading inside
+        the semconv block by the SD generator itself.
 
         Args:
             field_groups: List of dicts with keys ``group_id`` (e.g.
-                          ``snowflake.account``) and ``title`` (e.g.
-                          ``Snowflake account signal fields``).
+                          ``snowflake.account``), ``title`` (e.g.
+                          ``Snowflake account signal fields``), and ``is_resource``
+                          (``True`` for resource_fields-origin groups).
 
         Returns:
             Dict mapping relative output path (``doc/fields/…``) → stub content.
@@ -2372,11 +2390,13 @@ class SemanticExporter:
         result: Dict[str, str] = {}
         for fg in field_groups:
             group_id = fg["group_id"]
-            # h2 heading: sentence-case namespace only — strip ".resource" suffix if present,
-            # no type qualifier ("signal"/"resource"), no "fields" suffix.
-            # This matches the SD empirical convention: "## Host", "## App", etc.
+            is_resource = fg.get("is_resource", False)
+            # h2 heading: sentence-case namespace, no "fields" suffix.
+            # Signal groups → bare namespace (e.g. "## Snowflake warehouse").
+            # Resource groups → namespace + " resource" (e.g. "## DSOA resource",
+            #   "## Snowflake warehouse resource"); strip any ".resource" id suffix first.
             ns_key = group_id[: -len(".resource")] if group_id.endswith(".resource") else group_id
-            h2_title = _make_title(ns_key)
+            h2_title = _make_title(ns_key) + (" resource" if is_resource else "")
             filename = group_id.replace(".", "_") + ".md"
             content = (
                 f"## {h2_title}\n"
@@ -2645,6 +2665,7 @@ class SemanticExporter:
                     "title": f"Snowflake {plugin_name.replace('_', ' ')} log records",
                     "brief": f"Log records emitted by the DSOA {plugin_name} plugin from Snowflake ACCOUNT_USAGE and system views.",
                     "signal_type": "logs",
+                    "has_fields": True,
                 })
             for plugin_name in sorted(plugins_with_events):
                 per_model_stubs.append({
@@ -2652,6 +2673,7 @@ class SemanticExporter:
                     "title": f"Snowflake {plugin_name.replace('_', ' ')} lifecycle events",
                     "brief": f"Timestamp-based state-change events emitted by the DSOA {plugin_name} plugin via the OpenPipeline Events API.",
                     "signal_type": "events",
+                    "has_fields": True,
                 })
             all_span_plugins = span_model_plugins | ({"event_log"} if "event_log" in SPAN_PLUGINS else set())
             for plugin_name in sorted(all_span_plugins):
@@ -2660,6 +2682,10 @@ class SemanticExporter:
                     "title": f"Snowflake {plugin_name.replace('_', ' ')} spans",
                     "brief": f"Span records emitted by the DSOA {plugin_name} plugin from Snowflake ACCOUNT_USAGE views.",
                     "signal_type": "spans",
+                    # A span model has an inner <plugin>.fields attribute_group only when it
+                    # has attribute refs (span_model_plugins). event_log is added even without
+                    # attributes and therefore has empty groups — no inner semconv reference.
+                    "has_fields": plugin_name in span_model_plugins,
                 })
             for rel_path, content in self._build_per_model_doc_stubs(per_model_stubs).items():
                 self._write_sd_root_text(content, rel_path)
@@ -2673,13 +2699,14 @@ class SemanticExporter:
                 for g in doc.get("groups", [])
             }
             field_stubs = [
-                {"group_id": gid, "title": sig_group_titles.get(gid, "")}
+                {"group_id": gid, "title": sig_group_titles.get(gid, ""), "is_resource": False}
                 for gid in sorted(sig_group_titles)
                 if any(gid == p or gid.startswith(p + ".") for p in SD_OWNED_GROUP_PREFIXES)
             ]
             # Also include resource_fields groups (dsoa, snowflake.resource_monitor.resource,
             # snowflake.warehouse.resource) — they are global groups and require a doc stub
-            # so the SD generator can find them (otherwise F003 fires).
+            # so the SD generator can find them (otherwise F003 fires).  These originate from
+            # the resource_fields docs, so their h2 heading carries a " resource" qualifier.
             res_group_titles: Dict[str, str] = {
                 g["id"]: g.get("title", "")
                 for res_doc in (sf_res_doc, dsoa_res_doc)
@@ -2687,7 +2714,7 @@ class SemanticExporter:
             }
             for gid, title in sorted(res_group_titles.items()):
                 if any(gid == p or gid.startswith(p + ".") for p in SD_OWNED_GROUP_PREFIXES):
-                    field_stubs.append({"group_id": gid, "title": title})
+                    field_stubs.append({"group_id": gid, "title": title, "is_resource": True})
             for rel_path, content in self._build_per_field_doc_stubs(field_stubs).items():
                 self._write_sd_root_text(content, rel_path)
 
