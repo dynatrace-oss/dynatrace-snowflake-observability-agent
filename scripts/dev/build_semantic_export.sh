@@ -54,8 +54,10 @@
 #   --no-display-name   Suppress the display_name property on all emitted attribute and
 #                       enum member nodes. Passed through to export_semantics.py.
 #   --check             After export into the SD repo, run the SD generator's sanity checks
-#                       (F001–F035, incl. F025 "unused domain-specific groups") against the
-#                       SD repo source/ and doc/ and report the findings. Implies the same
+#                       (F001–F043, incl. F025 "unused domain-specific groups") against the
+#                       SD repo source/ and doc/, scoped via --files-to-check to only the
+#                       DSOA-owned source files (so the thousands of pre-existing findings
+#                       from other vendor namespaces are excluded). Implies the same
 #                       SD-metadata export as --generate-docs. Requires Docker and a full SD
 #                       repo checkout. Use --sd-repo to point to a different location.
 #   --help              Show this help message
@@ -292,11 +294,40 @@ run_sanity_checks() {
         return 1
     fi
 
-    # Step 5: run the generator in sanity_check mode (non-interactive).
+    # Step 5: collect the DSOA-owned source files so the sanity checks only report on the
+    # files this export produces — not the thousands of pre-existing findings across every
+    # other vendor namespace in the SD repo. The generator's --files-to-check expects the
+    # container-internal /source/... paths (the SD repo source/ is mounted at /source).
+    # The globs mirror SD_OWNED_GROUP_PREFIXES in export_semantics.py.
+    local dsoa_files=()
+    local f
+    while IFS= read -r f; do
+        dsoa_files+=("/${f}")
+    done < <(cd "${SD_REPO}" && find source \( \
+            -path "source/fields/signal_fields/snowflake.yaml" \
+            -o -path "source/fields/signal_fields/anomaly.yaml" \
+            -o -path "source/fields/signal_fields/dsoa*.yaml" \
+            -o -path "source/fields/signal_fields/observed_timestamp.yaml" \
+            -o -path "source/fields/resource_fields/dsoa.yaml" \
+            -o -path "source/fields/resource_fields/snowflake_resource.yaml" \
+            -o -path "source/model/snowflake/*.yaml" \
+            -o -path "source/model/snowflake/**/*.yaml" \
+            -o -path "source/metrics/snowflake_*.yaml" \
+            -o -path "source/metrics/interfaces_dsoa.yaml" \
+            -o -path "source/metrics/interfaces_snowflake.yaml" \
+        \) -name "*.yaml" | sort)
+
+    if [[ "${#dsoa_files[@]}" -eq 0 ]]; then
+        log_error "--check: no DSOA source files found under ${SD_REPO}/source — did the export run?"
+        return 1
+    fi
+    log_info "--check: scoping sanity checks to ${#dsoa_files[@]} DSOA-owned source file(s)"
+
+    # Step 6: run the generator in sanity_check mode (non-interactive), scoped to DSOA files.
     # --md-check makes it report status without rewriting Markdown files.
     # The generator exits 0 even when it reports findings (it is a report, not a gate),
-    # so capture the output and surface the DSOA-relevant findings explicitly.
-    log_info "--check: running SD generator sanity checks (F001–F035)"
+    # so parse the "Total: N issues found" line to decide the return code.
+    log_info "--check: running SD generator sanity checks (F001–F043), DSOA-scoped"
     local check_output check_rc=0
     check_output=$(docker run --rm \
         -v "${SD_REPO}/source:/source" \
@@ -311,7 +342,8 @@ run_sanity_checks() {
         --markdown-root /doc \
         --md-check \
         --owners-file-path /owners/OWNERS \
-        --global-field-categories-path /categories/global_field_categories.json 2>&1) || check_rc=$?
+        --global-field-categories-path /categories/global_field_categories.json \
+        --files-to-check "${dsoa_files[@]}" 2>&1) || check_rc=$?
 
     echo "${check_output}"
 
@@ -320,24 +352,19 @@ run_sanity_checks() {
         return "${check_rc}"
     fi
 
-    # Surface DSOA-relevant F025 findings (unused domain-specific groups) — the metric that
-    # matters for PR #1903. Other vendors' pre-existing findings are ignored here.
-    local dsoa_f025
-    dsoa_f025=$(echo "${check_output}" \
-        | grep "F025:" \
-        | grep -E "snowflake|/source/fields/.*(dsoa|anomaly)|'dsoa|'anomaly|'observed_timestamp" \
-        | wc -l | tr -d ' ')
+    # Parse the reported total (findings are now DSOA-scoped, so any total > 0 is ours).
+    local total_issues
+    total_issues=$(echo "${check_output}" | grep -oE "Total: [0-9]+ issues found" | grep -oE "[0-9]+" | tail -1)
+    total_issues="${total_issues:-0}"
 
-    if [[ "${dsoa_f025}" -gt 0 ]]; then
-        log_warn "--check: ${dsoa_f025} DSOA-related F025 finding(s) — unused domain-specific groups."
-        log_warn "  These groups exist in source/ YAML but are not referenced by any doc/ Markdown."
-        echo "${check_output}" | grep "F025:" \
-            | grep -E "snowflake|/source/fields/.*(dsoa|anomaly)|'dsoa|'anomaly|'observed_timestamp" >&2
+    if [[ "${total_issues}" -gt 0 ]]; then
+        log_warn "--check: ${total_issues} DSOA-scoped sanity finding(s) — see the summary above."
+        log_warn "  Note: some findings (e.g. F027/F030 OWNERS coverage) may be pre-existing"
+        log_warn "  SD-repo issues that also touch DSOA files. Review each before acting."
         return 1
     fi
 
-    log_success "--check: no DSOA-related F025 findings — all DSOA groups are documented."
-    log_info "  (Pre-existing findings for other vendors, if any, are reported above but not gated.)"
+    log_success "--check: no DSOA-scoped sanity findings — all DSOA groups are documented."
     return 0
 }
 
