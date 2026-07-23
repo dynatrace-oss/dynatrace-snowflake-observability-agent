@@ -49,6 +49,7 @@ from build.export_semantics import (
     _emit_ref_entry,
     _make_title,
     _map_attr_type,
+    _plugin_label,
     _map_metric_instrument,
     _merge_field_entries,
     _ns_group,
@@ -166,6 +167,52 @@ class TestMakeTitle:
     def test_empty_key(self):
         """Empty key returns empty string."""
         assert _make_title("") == ""
+
+    def test_org_expanded_to_organization(self):
+        """'org' as a standalone word is expanded to 'organization'."""
+        assert _make_title("snowflake.org") == "Snowflake organization"
+
+    def test_org_costs_expanded(self):
+        """'org' word in compound key is expanded."""
+        assert _make_title("org_costs") == "Organization costs"
+
+    def test_snowpipe_proper_noun(self):
+        """Snowpipe and Snowpipes are treated as proper nouns."""
+        assert _make_title("snowpipe") == "Snowpipe"
+        assert _make_title("snowpipes") == "Snowpipes"
+
+
+##endregion
+
+
+##region Unit tests — _plugin_label
+
+
+class TestPluginLabel:
+    """Verify _plugin_label applies word substitutions and proper-noun capitalisation."""
+
+    def test_snowpipes_capitalised(self):
+        """'snowpipes' plugin name becomes 'Snowpipes' (proper noun)."""
+        assert _plugin_label("snowpipes") == "Snowpipes"
+
+    def test_trust_center_capitalised(self):
+        """'trust_center' becomes 'Trust Center' (proper noun)."""
+        assert _plugin_label("trust_center") == "Trust Center"
+
+    def test_org_costs_expanded(self):
+        """'org' word is expanded to 'organization'."""
+        assert _plugin_label("org_costs") == "organization costs"
+
+    def test_plain_plugin_name_unchanged(self):
+        """Plain plugin names (no substitution needed) are returned as-is (lowercase)."""
+        assert _plugin_label("metering") == "metering"
+        assert _plugin_label("event_log") == "event log"
+
+    def test_cap_first_upcases_first_char_only(self):
+        """cap_first=True upcases only the first character without lowercasing the rest."""
+        assert _plugin_label("trust_center", cap_first=True) == "Trust Center"
+        assert _plugin_label("org_costs", cap_first=True) == "Organization costs"
+        assert _plugin_label("snowpipes", cap_first=True) == "Snowpipes"
 
 
 ##endregion
@@ -2216,12 +2263,12 @@ class TestBuildPerFieldDocStubs:
         assert "## Snowflake warehouse resource" not in content
 
     def test_stub_heading_dsoa_resource_group(self, tmp_path):
-        """The DSOA resource group (group_id 'dsoa', no .resource suffix) renders '## DSOA'."""
+        """The DSOA resource group (group_id 'dsoa') renders the full product name via override."""
         exporter = self._make_exporter(tmp_path)
         result = exporter._build_per_field_doc_stubs([{"group_id": "dsoa", "title": "DSOA resource fields", "is_resource": True}])
         content = result["doc/fields/dsoa.md"]
-        assert "## DSOA\n" in content
-        assert "## DSOA resource" not in content
+        assert "## Dynatrace Snowflake Observability Agent (DSOA)\n" in content
+        assert "## DSOA\n" not in content
 
     def test_stub_heading_signal_group_no_resource_suffix(self, tmp_path):
         """A signal group is never given a ' resource' suffix even when its namespace matches a resource one."""
@@ -2238,8 +2285,20 @@ class TestBuildPerFieldDocStubs:
         exporter = self._make_exporter(tmp_path)
         result = exporter._build_per_field_doc_stubs([{"group_id": "dsoa.debug", "title": "", "is_resource": False}])
         content = result["doc/fields/dsoa_debug.md"]
-        assert "## DSOA debug\n" in content
+        assert "## Dynatrace Snowflake Observability Agent (DSOA) debug\n" in content
         assert "<!--" in content  # some semconv marker follows
+
+    def test_stub_heading_dsoa_subgroups_use_full_name(self, tmp_path):
+        """dsoa.debug and dsoa.plugins stubs use the full product name as h2 prefix."""
+        exporter = self._make_exporter(tmp_path)
+        result = exporter._build_per_field_doc_stubs(
+            [
+                {"group_id": "dsoa.debug", "title": "", "is_resource": False},
+                {"group_id": "dsoa.plugins", "title": "", "is_resource": False},
+            ]
+        )
+        assert "## Dynatrace Snowflake Observability Agent (DSOA) debug\n" in result["doc/fields/dsoa_debug.md"]
+        assert "## Dynatrace Snowflake Observability Agent (DSOA) plugins\n" in result["doc/fields/dsoa_plugins.md"]
 
     def test_multiple_groups_produce_multiple_files(self, tmp_path):
         """Multiple groups each produce their own stub file."""

@@ -180,7 +180,28 @@ DISPLAY_NAME_ACRONYMS = ("DSOA", "OTel", "DDL", "DML", "RSS", "URL", "API", "ID"
 #: Multi-word proper nouns / product names that must retain their capitalisation
 #: in SD group ``title:`` and ``brief:`` fields (sentence-case context only).
 #: Each entry is the correctly-cased phrase; matching is case-insensitive.
-TITLE_PROPER_NOUNS = ("Trust Center", "Resource Monitor", "Snowflake", "Dynatrace", "Data Observability", "Dynatrace Observability")
+TITLE_PROPER_NOUNS = (
+    "Trust Center",
+    "Resource Monitor",
+    "Snowflake",
+    "Dynatrace",
+    "Data Observability",
+    "Dynatrace Observability",
+    "Snowpipe",
+    "Snowpipes",
+)
+
+#: Word-level substitutions applied in _make_title, _make_display_name, and _plugin_label.
+_WORD_SUBS: Dict[str, str] = {"org": "organization"}
+
+#: Override map for doc/fields/ stub h2 headings keyed by group_id (ns_key after
+#: stripping any .resource suffix).  Used when _make_title produces an inadequate
+#: heading — e.g. the top-level "dsoa" group needs the full product name.
+_FIELD_STUB_H2_OVERRIDES: Dict[str, str] = {
+    "dsoa": "Dynatrace Snowflake Observability Agent (DSOA)",
+    "dsoa.debug": "Dynatrace Snowflake Observability Agent (DSOA) debug",
+    "dsoa.plugins": "Dynatrace Snowflake Observability Agent (DSOA) plugins",
+}
 
 #: instruments-def.yml unit: value -> Semantic Dictionary unit abbreviation.
 #:
@@ -615,6 +636,7 @@ def _make_display_name(key: str) -> str:
         Human-readable display name with acronyms preserved.
     """
     parts = key.replace("_", " ").replace("-", " ").replace(".", " ").split()
+    parts = [_WORD_SUBS.get(p, p) for p in parts]
     return _restore_acronyms(" ".join(p.title() for p in parts))
 
 
@@ -637,11 +659,38 @@ def _make_title(key: str) -> str:
     parts = key.replace("_", " ").replace("-", " ").replace(".", " ").split()
     if not parts:
         return ""
+    parts = [_WORD_SUBS.get(p, p) for p in parts]
     titled = [parts[0].capitalize()] + [p.lower() for p in parts[1:]]
     result = _restore_acronyms(" ".join(titled))
     for noun in TITLE_PROPER_NOUNS:
         result = result.replace(noun.lower(), noun)
     return result
+
+
+def _plugin_label(plugin_name: str, *, cap_first: bool = False) -> str:
+    """Convert a plugin identifier to a human-readable label with proper-noun capitalisation.
+
+    Unlike :func:`_make_title`, this function does not call :func:`_restore_acronyms` or
+    split on dots — it only processes underscore-joined plugin identifiers (e.g.
+    ``"trust_center"``, ``"org_costs"``, ``"snowpipes"``).
+
+    Args:
+        plugin_name: Underscore-separated plugin identifier.
+        cap_first:   If True, capitalise the first character only (without lowercasing
+                     the rest, which ``.capitalize()`` would do and which would break
+                     proper nouns like "Trust Center").
+
+    Returns:
+        Human-readable label (e.g. ``"Trust Center"``, ``"organization costs"``,
+        ``"Snowpipes"``).
+    """
+    parts = [_WORD_SUBS.get(w, w) for w in plugin_name.split("_")]
+    label = " ".join(parts)
+    for noun in TITLE_PROPER_NOUNS:
+        label = label.replace(noun.lower(), noun)
+    if cap_first and label:
+        label = label[0].upper() + label[1:]
+    return label
 
 
 def _map_attr_type(raw_type: Optional[str]) -> str:
@@ -1504,7 +1553,7 @@ class SemanticExporter:
                     {
                         "id": "dsoa",
                         "type": "resource",
-                        "title": "DSOA resource fields",
+                        "title": "Dynatrace Snowflake Observability Agent (DSOA) resource fields",
                         "brief": "Resource-level DSOA execution metadata and deployment context.",
                         "attributes": dsoa_attrs,
                     }
@@ -1549,7 +1598,7 @@ class SemanticExporter:
             group_entry = {
                 "id": gid,
                 "type": groups_map[gid]["type"],
-                "title": _make_title(gid) + " signal fields",
+                "title": (_FIELD_STUB_H2_OVERRIDES.get(gid) or _make_title(gid)) + " signal fields",
                 "brief": f"Signal-level fields for {_make_title(gid)} telemetry.",
                 "attributes": groups_map[gid]["attrs"],
             }
@@ -1754,7 +1803,7 @@ class SemanticExporter:
 
         model_doc: Dict[str, Any] = {
             "id": f"snowflake.metrics.{plugin_name}",
-            "title": f"Snowflake {plugin_name.replace('_', ' ')} metrics",
+            "title": f"Snowflake {_plugin_label(plugin_name)} metrics",
             "brief": f"Metrics collected by the DSOA {plugin_name} plugin from Snowflake ACCOUNT_USAGE views.",
             "model_group_id": "snowflake.metrics",
             "data_object": "metric",
@@ -1786,7 +1835,7 @@ class SemanticExporter:
             self._counters["event_timestamp_fields"] += 1
         model_doc: Dict[str, Any] = {
             "id": f"snowflake.events.{plugin_name}",
-            "title": f"Snowflake {plugin_name.replace('_', ' ')} lifecycle events",
+            "title": f"Snowflake {_plugin_label(plugin_name)} lifecycle events",
             "brief": f"Timestamp-based state-change events emitted by the DSOA {plugin_name} plugin via the OpenPipeline Events API.",
             "model_group_id": "snowflake.events",
             "data_object": "event",
@@ -1798,7 +1847,7 @@ class SemanticExporter:
             {
                 "id": f"snowflake.events.{plugin_name}.fields",
                 "type": "attribute_group",
-                "title": f"{plugin_name.replace('_', ' ').capitalize()} event fields",
+                "title": f"{_plugin_label(plugin_name, cap_first=True)} event fields",
                 "attributes": attrs,
             }
         ]
@@ -1887,7 +1936,7 @@ class SemanticExporter:
         attr_refs = self._collect_plugin_attribute_refs(plugin_name, all_entries, exclude_span_only=True)
         model_doc: Dict[str, Any] = {
             "id": f"snowflake.logs.{plugin_name}",
-            "title": f"Snowflake {plugin_name.replace('_', ' ')} log records",
+            "title": f"Snowflake {_plugin_label(plugin_name)} log records",
             "brief": f"Log records emitted by the DSOA {plugin_name} plugin.",
             "model_group_id": "snowflake.logs",
             "data_object": "log",
@@ -1900,7 +1949,7 @@ class SemanticExporter:
                 {
                     "id": f"snowflake.logs.{plugin_name}.fields",
                     "type": "attribute_group",
-                    "title": f"{plugin_name.replace('_', ' ').capitalize()} log record fields",
+                    "title": f"{_plugin_label(plugin_name, cap_first=True)} log record fields",
                     "brief": f"Attribute fields for {_make_display_name(plugin_name)} log records.",
                     "attributes": attr_refs,
                 }
@@ -1930,7 +1979,7 @@ class SemanticExporter:
         attr_refs = self._collect_plugin_attribute_refs(plugin_name, all_entries)
         model_doc: Dict[str, Any] = {
             "id": f"snowflake.spans.{plugin_name}",
-            "title": f"Snowflake {plugin_name.replace('_', ' ')} spans",
+            "title": f"Snowflake {_plugin_label(plugin_name)} spans",
             "brief": f"Span records emitted by the DSOA {plugin_name} plugin.",
             "model_group_id": "snowflake.spans",
             "data_object": "span",
@@ -1943,7 +1992,7 @@ class SemanticExporter:
                 {
                     "id": f"snowflake.spans.{plugin_name}.fields",
                     "type": "attribute_group",
-                    "title": f"{plugin_name.replace('_', ' ').capitalize()} span fields",
+                    "title": f"{_plugin_label(plugin_name, cap_first=True)} span fields",
                     "brief": f"Attribute fields for {_make_display_name(plugin_name)} spans.",
                     "attributes": attr_refs,
                 }
@@ -2219,11 +2268,11 @@ class SemanticExporter:
         paths.append("doc/model/snowflake/**")
 
         # Format as OWNERS syntax
-        lines = ["## DSOA - Dynatrace Snowflake Observability Agent"]
-        indent = "     "
-        lines.append("path " + (", \\\n" + indent).join(paths))
+        lines = ["    ## DSOA - Dynatrace Snowflake Observability Agent"]
+        indent = "        "
+        lines.append("    path " + (", \\\n" + indent).join(paths))
         for owner in SD_OWNERS:
-            lines.append(f"    {owner}")
+            lines.append(f"        {owner}")
         lines.append("")
         return "\n".join(lines)
 
@@ -2391,7 +2440,7 @@ class SemanticExporter:
             # h2 heading: sentence-case namespace, no "fields" or "resource" suffix.
             # Strip any ".resource" id suffix so "snowflake.warehouse.resource" → "## Snowflake warehouse".
             ns_key = group_id[: -len(".resource")] if group_id.endswith(".resource") else group_id
-            h2_title = _make_title(ns_key)
+            h2_title = _FIELD_STUB_H2_OVERRIDES.get(ns_key) or _make_title(ns_key)
             filename = group_id.replace(".", "_") + ".md"
             content = (
                 f"## {h2_title}\n"
@@ -2657,7 +2706,7 @@ class SemanticExporter:
             for plugin_name in sorted(plugins_with_attrs):
                 per_model_stubs.append({
                     "id": f"snowflake.logs.{plugin_name}",
-                    "title": f"Snowflake {plugin_name.replace('_', ' ')} log records",
+                    "title": f"Snowflake {_plugin_label(plugin_name)} log records",
                     "brief": f"Log records emitted by the DSOA {plugin_name} plugin from Snowflake ACCOUNT_USAGE and system views.",
                     "signal_type": "logs",
                     "has_fields": True,
@@ -2665,7 +2714,7 @@ class SemanticExporter:
             for plugin_name in sorted(plugins_with_events):
                 per_model_stubs.append({
                     "id": f"snowflake.events.{plugin_name}",
-                    "title": f"Snowflake {plugin_name.replace('_', ' ')} lifecycle events",
+                    "title": f"Snowflake {_plugin_label(plugin_name)} lifecycle events",
                     "brief": f"Timestamp-based state-change events emitted by the DSOA {plugin_name} plugin via the OpenPipeline Events API.",
                     "signal_type": "events",
                     "has_fields": True,
@@ -2674,7 +2723,7 @@ class SemanticExporter:
             for plugin_name in sorted(all_span_plugins):
                 per_model_stubs.append({
                     "id": f"snowflake.spans.{plugin_name}",
-                    "title": f"Snowflake {plugin_name.replace('_', ' ')} spans",
+                    "title": f"Snowflake {_plugin_label(plugin_name)} spans",
                     "brief": f"Span records emitted by the DSOA {plugin_name} plugin from Snowflake ACCOUNT_USAGE views.",
                     "signal_type": "spans",
                     # A span model has an inner <plugin>.fields attribute_group only when it
