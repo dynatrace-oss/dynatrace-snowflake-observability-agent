@@ -28,7 +28,6 @@
     "event.type": "PERFORMANCE_EVENT",
     "title": "This is a test object 2",
     "snowflake.status.code": "OK",
-    "event.type": "PERFORMANCE_EVENT",
     "value.int": 10000000,
     "value.str": "test 2",
     "value.bool": false,
