@@ -140,9 +140,9 @@ lag. Load tiles reflect a delayed view of warehouse activity.
 
 ## Related Dashboards
 
-- [Snowflake Costs Monitoring](../costs-monitoring/readme.md) — credit quota utilisation
+- [Snowflake Costs Monitoring](../snowflake-costs-monitoring/readme.md) — credit quota utilisation
   and resource monitor alerts (complements Section 2 of this dashboard)
-- [Snowflake Observability Agent Self-Monitoring](../self-monitoring/readme.md) — plugin execution health
+- [Snowflake Observability Agent Self-Monitoring](../snowflake-observability-agent-self-monitoring/readme.md) — plugin execution health
 
 ## Related Documentation
 

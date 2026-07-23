@@ -19,7 +19,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 #
-# DASHBOARD: Data Volume & Storage
+# DASHBOARD: Snowflake Data Volume & Storage
 # DESCRIPTION: Snowflake data volume trends, storage growth, table lifecycle, and DDL change tracking
 # OWNER: DSOA Team
 # PLUGINS: data_volume, data_schemas

@@ -172,7 +172,7 @@ Use `deploy_dt_assets.sh` — it handles YAML-to-JSON conversion, envelope const
 ./scripts/deploy/deploy_dt_assets.sh --scope=dashboards --env=test-qa
 
 # Deploy a single dashboard by name
-./scripts/deploy/deploy_dt_assets.sh --scope=dashboards --env=test-qa --name=self-monitoring
+./scripts/deploy/deploy_dt_assets.sh --scope=dashboards --env=test-qa --name=snowflake-observability-agent-self-monitoring
 
 # Dry-run (no changes applied)
 ./scripts/deploy/deploy_dt_assets.sh --scope=dashboards --env=test-qa --dry-run

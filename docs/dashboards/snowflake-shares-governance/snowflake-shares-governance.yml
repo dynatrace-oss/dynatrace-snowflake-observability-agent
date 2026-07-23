@@ -19,7 +19,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 #
-# DASHBOARD: Shares & Governance
+# DASHBOARD: Snowflake Shares & Governance
 # DESCRIPTION: Monitor inbound and outbound Snowflake data shares - security, quality, and operational health
 # OWNER: DSOA Team
 # PLUGINS: shares

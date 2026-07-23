@@ -19,7 +19,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 #
-# DASHBOARD: Warehouse Change Detection
+# DASHBOARD: Snowflake Warehouse Change Detection
 # DESCRIPTION: Audit warehouse DDL changes via query_history logs.
 # OWNER: DSOA Team
 # PLUGINS: query_history
@@ -263,7 +263,7 @@ tiles:
            or contains(upper(toString(db.query.text)), "MIN_CLUSTER_COUNT")
            or contains(upper(toString(db.query.text)), "MAX_CLUSTER_COUNT")
       | parse upper(db.query.text), """('CREATE'|'DROP'|'ALTER'):operation SPACE+ ('WAREHOUSE'):type (SPACE+ "IF" (SPACE+ "NOT")? SPACE+ "EXISTS")? SPACE+ (NSPACE+):object (SPACE+ "SET" SPACE+ (LDATA):parameter_name SPACE* "=" SPACE* (LDATA):parameter_value)?"""
-      | filter isNotNull(operation) and isNotNull(type) and isNotNull(snowflake.warehouse.name)
+      | filter isNotNull(operation) and isNotNull(type) and isNotNull(object)
       | parse object, """'IDENTIFIER(' (LDATA):ident_inner ')'"""
       | fieldsAdd warehouse_name = if(isNotNull(ident_inner), replaceString(ident_inner, "'", ""), else: object)
       | filter in(warehouse_name, array($Warehouse))

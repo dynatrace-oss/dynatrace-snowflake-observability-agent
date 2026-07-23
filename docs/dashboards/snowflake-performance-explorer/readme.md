@@ -126,11 +126,11 @@ outliers; decrease it to catch moderately slow queries earlier.
 
 Navigation tiles linking to complementary dashboards:
 
-- **[Snowflake Query Performance](../query-performance/)** — execution time trends by database, table, and
+- **[Snowflake Query Performance](../snowflake-query-performance/)** — execution time trends by database, table, and
   user; top-N resource consumer donut charts; AI-powered anomaly detection
-- **[Snowflake Query Deep Dive](../query-deep-dive/)** — costly repeated queries by bytes scanned and spill,
+- **[Snowflake Query Deep Dive](../snowflake-query-deep-dive/)** — costly repeated queries by bytes scanned and spill,
   table performance degradation, query acceleration, external functions, cost attribution
-- **[Snowflake Costs Monitoring](../costs-monitoring/)** — credit usage, resource monitor quota utilization,
+- **[Snowflake Costs Monitoring](../snowflake-costs-monitoring/)** — credit usage, resource monitor quota utilization,
   warehouse costs, and slow query credit drain
 
 ## Required Plugins

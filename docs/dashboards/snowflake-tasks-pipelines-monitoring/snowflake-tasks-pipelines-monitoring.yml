@@ -19,7 +19,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 #
-# DASHBOARD: Tasks & Pipelines Monitoring
+# DASHBOARD: Snowflake Tasks & Pipelines Monitoring
 # DESCRIPTION: Monitor Snowflake task orchestration, serverless costs, and dynamic table freshness
 # OWNER: DSOA Team
 # PLUGINS: tasks, dynamic_tables

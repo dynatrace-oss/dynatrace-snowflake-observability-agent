@@ -19,7 +19,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 #
-# DASHBOARD: Costs Monitoring
+# DASHBOARD: Snowflake Costs Monitoring
 # DESCRIPTION:  Snowflake Cost Monitoring dashboard
 # OWNER: DSOA Team
 # PLUGINS: query_history, resource_monitors, warehouse_usage, org_costs

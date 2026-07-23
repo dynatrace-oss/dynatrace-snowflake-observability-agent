@@ -19,7 +19,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 #
-# DASHBOARD: Budgets & FinOps
+# DASHBOARD: Snowflake Budgets & FinOps
 # DESCRIPTION: Snowflake budget tracking, event-table ingest costs, warehouse sizing and load analysis
 # OWNER: DSOA Team
 # PLUGINS: budgets, warehouse_usage, resource_monitors
