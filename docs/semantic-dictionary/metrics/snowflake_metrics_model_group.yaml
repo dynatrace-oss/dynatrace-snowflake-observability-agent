@@ -7,15 +7,12 @@ model_group:
         timeseries credits = sum(snowflake.credits.used), by: { snowflake.service.name, deployment.environment.name }
       description: Plot total credits consumed per Snowflake service over time.
       description_copilot: Timeseries of Snowflake credits consumed per service.
-      internal: false
     - query_string: >
         timeseries compute = sum(snowflake.credits.used.compute), by: { snowflake.service.type, deployment.environment.name }
       description: Plot compute credits consumed per Snowflake service type over time.
       description_copilot: Timeseries of Snowflake compute credits per service type.
-      internal: false
     - query_string: |
         timeseries { compute = sum(snowflake.credits.used.compute), cloud_services = sum(snowflake.credits.used.cloud_services) },
           by: { snowflake.service.name, deployment.environment.name }
       description: Compare compute and cloud-services credits per Snowflake service over time.
       description_copilot: Timeseries comparing Snowflake compute and cloud-services credits per service.
-      internal: false

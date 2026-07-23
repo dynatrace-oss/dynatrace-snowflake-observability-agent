@@ -15,7 +15,6 @@ model:
         | limit 50
       description: Fetch the 50 most recent DSOA event_log spans (traced records from the Snowflake event table).
       description_copilot: Find event_log span traces produced by the Snowflake observability agent.
-      internal: false
     - query_string: |
         fetch spans
         | filter db.system == "snowflake"
@@ -26,7 +25,6 @@ model:
         | limit 50
       description: Inspect event_log spans correlated to a Snowflake query, including warehouse and role context.
       description_copilot: Show event_log spans linked to Snowflake queries with their warehouse and role.
-      internal: false
     - query_string: |
         fetch spans
         | filter db.system == "snowflake"
@@ -36,7 +34,6 @@ model:
         | sort spans desc
       description: Count event_log spans grouped by warehouse.
       description_copilot: Break down event_log spans by Snowflake warehouse.
-      internal: false
   groups:
     - id: dsoa.spans.event_log.fields
       type: attribute_group

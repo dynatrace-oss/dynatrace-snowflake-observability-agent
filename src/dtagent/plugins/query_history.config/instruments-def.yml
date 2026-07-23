@@ -878,14 +878,12 @@ dql_queries:
       timeseries val = sum(snowflake.time.execution), by: { snowflake.warehouse.name, deployment.environment.name }
     description: Plot total Snowflake query execution time per warehouse over time.
     description_copilot: Timeseries of Snowflake query execution time broken down by warehouse.
-    internal: false
     context:
       - metrics
   - query_string: |
       timeseries credits = sum(snowflake.credits.attributed_compute), by: { db.user, deployment.environment.name }
     description: Plot attributed compute credits consumed per user over time.
     description_copilot: Timeseries of Snowflake attributed compute credits consumed per user.
-    internal: false
     context:
       - metrics
   - query_string: |
@@ -893,7 +891,6 @@ dql_queries:
         by: { snowflake.warehouse.name, deployment.environment.name }
     description: Compare attributed compute credits against bytes scanned per warehouse over time.
     description_copilot: Timeseries comparing Snowflake attributed compute credits and bytes scanned per warehouse.
-    internal: false
     context:
       - metrics
   - query_string: |
@@ -904,7 +901,6 @@ dql_queries:
       | limit 100
     description: Fetch the 100 most recent DSOA query_history plugin log entries from Grail.
     description_copilot: Search for all query_history plugin logs from the Snowflake observability agent.
-    internal: false
     context:
       - logs
   - query_string: |
@@ -919,7 +915,6 @@ dql_queries:
       | limit 50
     description: Find Snowflake queries that ran longer than five minutes, with their user and warehouse.
     description_copilot: Find long-running Snowflake queries exceeding five minutes of total elapsed time.
-    internal: false
     context:
       - logs
   - query_string: |
@@ -936,7 +931,6 @@ dql_queries:
       | limit 25
     description: Rank warehouses by the p90 execution time of their Snowflake queries.
     description_copilot: Find which Snowflake warehouses have the slowest queries by p90 execution time.
-    internal: false
     context:
       - logs
   - query_string: |
@@ -947,7 +941,6 @@ dql_queries:
       | limit 50
     description: Fetch the 50 most recent DSOA query_history spans (individual Snowflake query executions).
     description_copilot: Find query_history span traces produced by the Snowflake observability agent.
-    internal: false
     context:
       - spans
   - query_string: |
@@ -960,7 +953,6 @@ dql_queries:
       | limit 50
     description: Correlate DSOA query_history spans by trace.id/span.id to inspect the root span and timing for a Snowflake query execution.
     description_copilot: Find the trace and span identifiers for Snowflake query execution spans, including whether each is the root span.
-    internal: false
     context:
       - spans
   - query_string: |
@@ -974,6 +966,5 @@ dql_queries:
       | limit 100
     description: Inspect Snowflake query-plan step/operator span events (snowflake.query.step.*) recorded on query_history spans.
     description_copilot: List query execution plan steps and operators recorded as span events on Snowflake query spans.
-    internal: false
     context:
       - spans

@@ -15,7 +15,6 @@ model:
         | limit 100
       description: Fetch the 100 most recent DSOA budgets plugin log entries from Grail.
       description_copilot: Search for all budgets plugin logs from the Snowflake observability agent.
-      internal: false
     - query_string: |
         fetch logs
         | filter db.system == "snowflake"
@@ -26,7 +25,6 @@ model:
         | limit 50
       description: Inspect the latest spend and limit readings for each Snowflake budget.
       description_copilot: Show recent Snowflake budget spend and limit values per budget.
-      internal: false
     - query_string: |
         fetch logs
         | filter db.system == "snowflake"
@@ -36,7 +34,6 @@ model:
         | sort latest_spent desc
       description: Rank Snowflake budgets by their most recent credits-spent reading.
       description_copilot: Find which Snowflake budgets have spent the most credits.
-      internal: false
   groups:
     - id: dsoa.logs.budgets.fields
       type: attribute_group

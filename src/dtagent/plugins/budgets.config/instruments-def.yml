@@ -128,14 +128,12 @@ dql_queries:
       timeseries spent = sum(snowflake.credits.spent), by: { snowflake.budget.name, deployment.environment.name }
     description: Plot credits spent per Snowflake budget over time.
     description_copilot: Timeseries of Snowflake credits spent per budget.
-    internal: false
     context:
       - metrics
   - query_string: |
       timeseries budget_limit = avg(snowflake.credits.limit), by: { snowflake.budget.name, deployment.environment.name }
     description: Plot the credit spending limit per Snowflake budget over time.
     description_copilot: Timeseries of Snowflake budget spending limits per budget.
-    internal: false
     context:
       - metrics
   - query_string: |
@@ -143,7 +141,6 @@ dql_queries:
         by: { snowflake.budget.name, deployment.environment.name }
     description: Compare credits spent against the configured limit per Snowflake budget over time.
     description_copilot: Timeseries comparing Snowflake budget spend against its credit limit per budget.
-    internal: false
     context:
       - metrics
   - query_string: |
@@ -154,7 +151,6 @@ dql_queries:
       | limit 100
     description: Fetch the 100 most recent DSOA budgets plugin log entries from Grail.
     description_copilot: Search for all budgets plugin logs from the Snowflake observability agent.
-    internal: false
     context:
       - logs
   - query_string: |
@@ -167,7 +163,6 @@ dql_queries:
       | limit 50
     description: Inspect the latest spend and limit readings for each Snowflake budget.
     description_copilot: Show recent Snowflake budget spend and limit values per budget.
-    internal: false
     context:
       - logs
   - query_string: |
@@ -179,7 +174,6 @@ dql_queries:
       | sort latest_spent desc
     description: Rank Snowflake budgets by their most recent credits-spent reading.
     description_copilot: Find which Snowflake budgets have spent the most credits.
-    internal: false
     context:
       - logs
   - query_string: |
@@ -190,7 +184,6 @@ dql_queries:
       | limit 50
     description: Fetch the most recent DSOA budgets lifecycle events from Grail.
     description_copilot: Search for Snowflake budget lifecycle events emitted by the observability agent.
-    internal: false
     context:
       - events
   - query_string: |
@@ -201,7 +194,6 @@ dql_queries:
       | sort events desc
     description: Count DSOA budgets lifecycle events grouped by event type.
     description_copilot: Break down Snowflake budget lifecycle events by their event type.
-    internal: false
     context:
       - events
   - query_string: |
@@ -213,6 +205,5 @@ dql_queries:
       | limit 25
     description: Fetch budget-creation lifecycle events reported by the budgets plugin.
     description_copilot: Find when Snowflake budgets were created from the budgets plugin lifecycle events.
-    internal: false
     context:
       - events

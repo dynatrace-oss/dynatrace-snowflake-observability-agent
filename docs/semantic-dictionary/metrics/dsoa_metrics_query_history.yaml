@@ -13,18 +13,15 @@ model:
         timeseries val = sum(snowflake.time.execution), by: { snowflake.warehouse.name, deployment.environment.name }
       description: Plot total Snowflake query execution time per warehouse over time.
       description_copilot: Timeseries of Snowflake query execution time broken down by warehouse.
-      internal: false
     - query_string: |
         timeseries credits = sum(snowflake.credits.attributed_compute), by: { db.user, deployment.environment.name }
       description: Plot attributed compute credits consumed per user over time.
       description_copilot: Timeseries of Snowflake attributed compute credits consumed per user.
-      internal: false
     - query_string: |
         timeseries { compute = sum(snowflake.credits.attributed_compute), scanned = sum(snowflake.data.scanned) },
           by: { snowflake.warehouse.name, deployment.environment.name }
       description: Compare attributed compute credits against bytes scanned per warehouse over time.
       description_copilot: Timeseries comparing Snowflake attributed compute credits and bytes scanned per warehouse.
-      internal: false
   groups:
     - id: snowflake.acceleration.data.scanned
       type: metric
@@ -58,7 +55,7 @@ model:
         - 50
       title: Query Acceleration Partitions Scanned
       unit: count
-      note: 'Original unit: partition.'
+      note: "Original unit: partition."
       attributes:
         - ref: db.collection.name
         - ref: db.operation.name
@@ -80,7 +77,7 @@ model:
       examples:
         - 4
       title: Query Acceleration Upper Limit Scale Factor
-      unit: '1'
+      unit: "1"
       attributes:
         - ref: db.collection.name
         - ref: db.operation.name
@@ -103,8 +100,9 @@ model:
         - 42
       title: Cost Attribution Query Count
       unit: count
-      note: The .query_count name is deliberately preserved. The alternative plural snowflake.cost_attribution.queries would read as a collection of query objects rather than a scalar count, which is misleading
-        in a metrics context.
+      note:
+        The .query_count name is deliberately preserved. The alternative plural snowflake.cost_attribution.queries would read as a
+        collection of query objects rather than a scalar count, which is misleading in a metrics context.
       attributes:
         - ref: db.collection.name
         - ref: db.operation.name
@@ -122,12 +120,14 @@ model:
       metric_name: snowflake.credits.attributed_compute
       instrument: gauge
       stability: experimental
-      brief: Compute credits attributed to this query based on weighted resource consumption. Excludes warehouse idle time. NULL for queries within the ~8h QAH latency window.
+      brief:
+        Compute credits attributed to this query based on weighted resource consumption. Excludes warehouse idle time. NULL for queries
+        within the ~8h QAH latency window.
       examples:
         - 0.0042
       title: Query Attributed Compute Credits
       unit: count
-      note: 'Original unit: credit.'
+      note: "Original unit: credit."
       attributes:
         - ref: db.collection.name
         - ref: db.operation.name
@@ -150,7 +150,7 @@ model:
         - 10
       title: Cloud Services Credits Used
       unit: count
-      note: 'Original unit: credit.'
+      note: "Original unit: credit."
       attributes:
         - ref: db.collection.name
         - ref: db.operation.name
@@ -173,7 +173,7 @@ model:
         - 0.0001
       title: Query Acceleration Credits
       unit: count
-      note: 'Original unit: credit.'
+      note: "Original unit: credit."
       attributes:
         - ref: db.collection.name
         - ref: db.operation.name
@@ -257,8 +257,9 @@ model:
       metric_name: snowflake.data.scanned_from_cache
       instrument: gauge
       stability: experimental
-      brief: Ratio of data scanned from the local disk cache. Value ranges from 0.0 (no cache) to 1.0 (fully cached). Sourced from Snowflake PERCENTAGE_SCANNED_FROM_CACHE column (despite its name, the raw
-        value is 0.0-1.0).
+      brief:
+        Ratio of data scanned from the local disk cache. Value ranges from 0.0 (no cache) to 1.0 (fully cached). Sourced from Snowflake
+        PERCENTAGE_SCANNED_FROM_CACHE column (despite its name, the raw value is 0.0-1.0).
       examples:
         - 0.75
       title: Data Scanned From Cache
@@ -483,7 +484,7 @@ model:
         - 1000
       title: External Function Total Received Rows
       unit: count
-      note: 'Original unit: row.'
+      note: "Original unit: row."
       attributes:
         - ref: db.collection.name
         - ref: db.operation.name
@@ -506,7 +507,7 @@ model:
         - 500
       title: External Function Total Sent Rows
       unit: count
-      note: 'Original unit: row.'
+      note: "Original unit: row."
       attributes:
         - ref: db.collection.name
         - ref: db.operation.name
@@ -528,7 +529,7 @@ model:
       examples:
         - 85
       title: Query Load Percent
-      unit: '%'
+      unit: "%"
       attributes:
         - ref: db.collection.name
         - ref: db.operation.name
@@ -551,7 +552,7 @@ model:
         - 100
       title: Partitions Scanned
       unit: count
-      note: 'Original unit: partition.'
+      note: "Original unit: partition."
       attributes:
         - ref: db.collection.name
         - ref: db.operation.name
@@ -574,7 +575,7 @@ model:
         - 500
       title: Partitions Total
       unit: count
-      note: 'Original unit: partition.'
+      note: "Original unit: partition."
       attributes:
         - ref: db.collection.name
         - ref: db.operation.name
@@ -597,7 +598,7 @@ model:
         - 1000
       title: Rows Unloaded
       unit: count
-      note: 'Original unit: row.'
+      note: "Original unit: row."
       attributes:
         - ref: db.collection.name
         - ref: db.operation.name
@@ -620,7 +621,7 @@ model:
         - 300
       title: Rows Updated
       unit: count
-      note: 'Original unit: row.'
+      note: "Original unit: row."
       attributes:
         - ref: db.collection.name
         - ref: db.operation.name
@@ -726,7 +727,9 @@ model:
       metric_name: snowflake.time.queued.provisioning
       instrument: gauge
       stability: experimental
-      brief: Time (in milliseconds) spent in the warehouse queue, waiting for the warehouse compute resources to provision, due to warehouse creation, resume, or resize.
+      brief:
+        Time (in milliseconds) spent in the warehouse queue, waiting for the warehouse compute resources to provision, due to warehouse
+        creation, resume, or resize.
       examples:
         - 3000
       title: Queued Provisioning Time

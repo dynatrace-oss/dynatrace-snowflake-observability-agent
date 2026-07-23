@@ -93,14 +93,12 @@ dql_queries:
       timeseries val = avg(snowflake.table.days_since_last_access), by: { snowflake.table.full_name, deployment.environment.name }
     description: Plot the average number of days since last access per Snowflake table over time.
     description_copilot: Timeseries of days since last access per Snowflake table.
-    internal: false
     context:
       - metrics
   - query_string: |
       timeseries accesses = sum(snowflake.table.access.count), by: { snowflake.table.full_name, deployment.environment.name }
     description: Plot access counts per Snowflake table over time to spot rarely-used tables.
     description_copilot: Timeseries of access counts per Snowflake table.
-    internal: false
     context:
       - metrics
   - query_string: |
@@ -108,7 +106,6 @@ dql_queries:
         by: { snowflake.table.full_name, deployment.environment.name }
     description: Compare idle days against access counts per Snowflake table to identify cold storage candidates.
     description_copilot: Timeseries comparing idle days and access counts per Snowflake table.
-    internal: false
     context:
       - metrics
   - query_string: |
@@ -119,7 +116,6 @@ dql_queries:
       | limit 100
     description: Fetch the 100 most recent DSOA cold_tables plugin log entries from Grail.
     description_copilot: Search for all cold_tables plugin logs from the Snowflake observability agent.
-    internal: false
     context:
       - logs
   - query_string: |
@@ -131,7 +127,6 @@ dql_queries:
       | limit 50
     description: Fetch the 50 most recent tables classified as COLD by the cold_tables plugin.
     description_copilot: Find Snowflake tables currently classified as cold.
-    internal: false
     context:
       - logs
   - query_string: |
@@ -144,6 +139,5 @@ dql_queries:
       | limit 25
     description: Rank Snowflake tables by how long they have been idle.
     description_copilot: Find the Snowflake tables that have been idle the longest.
-    internal: false
     context:
       - logs

@@ -301,7 +301,6 @@ dql_queries:
       | limit 100
     description: Fetch the 100 most recent DSOA shares plugin log entries (inbound and outbound shares) from Grail.
     description_copilot: Search for all shares plugin logs from the Snowflake observability agent.
-    internal: false
     context:
       - logs
   - query_string: |
@@ -314,7 +313,6 @@ dql_queries:
       | limit 50
     description: Inspect outbound Snowflake shares and the objects they expose.
     description_copilot: Show Snowflake outbound shares and the tables they expose.
-    internal: false
     context:
       - logs
   - query_string: |
@@ -327,7 +325,6 @@ dql_queries:
       | limit 25
     description: Rank Snowflake shares by the number of shared objects they contain.
     description_copilot: Find which Snowflake shares expose the most objects.
-    internal: false
     context:
       - logs
   - query_string: |
@@ -338,7 +335,6 @@ dql_queries:
       | limit 20
     description: Fetch recent DSOA self-monitoring business events for the shares plugin.
     description_copilot: Search for self-monitoring events from the shares Snowflake agent plugin.
-    internal: false
     context:
       - events
   - query_string: |
@@ -349,7 +345,6 @@ dql_queries:
       | limit 50
     description: Fetch the most recent DSOA shares lifecycle events (share, grant and table creation anchors).
     description_copilot: Search for Snowflake share and grant lifecycle events from the shares plugin.
-    internal: false
     context:
       - events
   - query_string: |
@@ -360,6 +355,5 @@ dql_queries:
       | sort events desc
     description: Count DSOA shares lifecycle events grouped by event type.
     description_copilot: Break down Snowflake share lifecycle events by their event type.
-    internal: false
     context:
       - events

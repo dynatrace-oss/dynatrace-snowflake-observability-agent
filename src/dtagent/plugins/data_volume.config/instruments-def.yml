@@ -110,14 +110,12 @@ dql_queries:
       timeseries val = sum(snowflake.data.size), by: { db.collection.name, deployment.environment.name }
     description: Plot total storage size in bytes per table over time.
     description_copilot: Timeseries of Snowflake table storage size in bytes.
-    internal: false
     context:
       - metrics
   - query_string: |
       timeseries rows = sum(snowflake.data.rows), by: { db.collection.name, deployment.environment.name }
     description: Plot total row count per Snowflake table over time.
     description_copilot: Timeseries of Snowflake table row count.
-    internal: false
     context:
       - metrics
   - query_string: |
@@ -125,7 +123,6 @@ dql_queries:
         by: { db.collection.name, deployment.environment.name }
     description: Compare storage size and row count per Snowflake table over time.
     description_copilot: Timeseries comparing Snowflake table storage size and row count.
-    internal: false
     context:
       - metrics
   - query_string: |
@@ -136,7 +133,6 @@ dql_queries:
       | limit 20
     description: Fetch recent DSOA self-monitoring business events for the data_volume plugin.
     description_copilot: Search for self-monitoring events from the data_volume Snowflake agent plugin.
-    internal: false
     context:
       - events
   - query_string: |
@@ -147,7 +143,6 @@ dql_queries:
       | limit 50
     description: Fetch the most recent DSOA data_volume lifecycle events (table DDL and data-update anchors).
     description_copilot: Search for Snowflake table DDL and data-update lifecycle events from the data_volume plugin.
-    internal: false
     context:
       - events
   - query_string: |
@@ -158,6 +153,5 @@ dql_queries:
       | sort events desc
     description: Count DSOA data_volume lifecycle events grouped by event type.
     description_copilot: Break down Snowflake data_volume lifecycle events by their event type.
-    internal: false
     context:
       - events

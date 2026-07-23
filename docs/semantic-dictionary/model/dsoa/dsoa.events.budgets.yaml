@@ -15,7 +15,6 @@ model:
         | limit 50
       description: Fetch the most recent DSOA budgets lifecycle events from Grail.
       description_copilot: Search for Snowflake budget lifecycle events emitted by the observability agent.
-      internal: false
     - query_string: |
         fetch events
         | filter db.system == "snowflake"
@@ -24,7 +23,6 @@ model:
         | sort events desc
       description: Count DSOA budgets lifecycle events grouped by event type.
       description_copilot: Break down Snowflake budget lifecycle events by their event type.
-      internal: false
     - query_string: |
         fetch events
         | filter db.system == "snowflake"
@@ -34,7 +32,6 @@ model:
         | limit 25
       description: Fetch budget-creation lifecycle events reported by the budgets plugin.
       description_copilot: Find when Snowflake budgets were created from the budgets plugin lifecycle events.
-      internal: false
   groups:
     - id: dsoa.events.budgets.fields
       type: attribute_group

@@ -11,7 +11,6 @@ model_group:
         | limit 100
       description: Fetch the 100 most recent DSOA metering plugin log entries from Grail.
       description_copilot: Search for all metering plugin logs from the Snowflake observability agent.
-      internal: false
     - query_string: |
         fetch logs
         | filter db.system == "snowflake"
@@ -22,7 +21,6 @@ model_group:
         | limit 50
       description: Inspect per-service credit consumption readings from the metering plugin.
       description_copilot: Show recent Snowflake per-service credit consumption from the metering plugin.
-      internal: false
     - query_string: |
         fetch logs
         | filter db.system == "snowflake"
@@ -33,4 +31,3 @@ model_group:
         | limit 25
       description: Rank Snowflake services by total metered credit consumption.
       description_copilot: Find which Snowflake services consume the most metered credits.
-      internal: false

@@ -4,7 +4,7 @@ model:
   brief: Log records emitted by the DSOA active_queries plugin.
   model_group_id: snowflake.logs
   data_object: log
-  interfaces: [ i.dsoa_resource ]
+  interfaces: [i.dsoa_resource]
   dql_queries:
     - query_string: |
         fetch logs
@@ -14,7 +14,6 @@ model:
         | limit 100
       description: Fetch the 100 most recent DSOA active_queries plugin log entries from Grail.
       description_copilot: Search for all active_queries plugin logs from the Snowflake observability agent.
-      internal: false
     - query_string: |
         fetch logs
         | filter db.system == "snowflake"
@@ -24,7 +23,6 @@ model:
         | limit 50
       description: Fetch the 50 most recent active queries that failed with an error.
       description_copilot: Find failed Snowflake query executions reported by the active_queries plugin.
-      internal: false
     - query_string: |
         fetch logs
         | filter db.system == "snowflake"
@@ -35,7 +33,6 @@ model:
         | limit 20
       description: Rank warehouses by the average running time of their currently active Snowflake queries.
       description_copilot: Find which Snowflake warehouses have the slowest currently running queries by average running time.
-      internal: false
   groups:
     - id: snowflake.logs.active_queries.fields
       type: attribute_group

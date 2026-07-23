@@ -11,18 +11,15 @@ model:
         timeseries credits = sum(snowflake.credits.used), by: { snowflake.service.name, deployment.environment.name }
       description: Plot total credits consumed per Snowflake service over time.
       description_copilot: Timeseries of Snowflake credits consumed per service.
-      internal: false
     - query_string: |
         timeseries compute = sum(snowflake.credits.used.compute), by: { snowflake.service.type, deployment.environment.name }
       description: Plot compute credits consumed per Snowflake service type over time.
       description_copilot: Timeseries of Snowflake compute credits per service type.
-      internal: false
     - query_string: |
         timeseries { compute = sum(snowflake.credits.used.compute), cloud_services = sum(snowflake.credits.used.cloud_services) },
           by: { snowflake.service.name, deployment.environment.name }
       description: Compare compute and cloud-services credits per Snowflake service over time.
       description_copilot: Timeseries comparing Snowflake compute and cloud-services credits per service.
-      internal: false
   groups:
     - id: snowflake.credits.used.cloud_services
       type: metric
@@ -34,7 +31,7 @@ model:
         - 3.2
       title: Snowflake Cloud Services Credits Used
       unit: count
-      note: 'Original unit: credit.'
+      note: "Original unit: credit."
       attributes:
         - ref: snowflake.service.name
         - ref: snowflake.service.type
@@ -48,7 +45,7 @@ model:
         - 12.3
       title: Snowflake Compute Credits Used
       unit: count
-      note: 'Original unit: credit.'
+      note: "Original unit: credit."
       attributes:
         - ref: snowflake.service.name
         - ref: snowflake.service.type
@@ -62,7 +59,7 @@ model:
         - 120
       title: Files Processed
       unit: count
-      note: 'Original unit: file.'
+      note: "Original unit: file."
       attributes:
         - ref: snowflake.service.name
         - ref: snowflake.service.type
@@ -76,7 +73,7 @@ model:
         - 50000
       title: Rows Processed
       unit: count
-      note: 'Original unit: row.'
+      note: "Original unit: row."
       attributes:
         - ref: snowflake.service.name
         - ref: snowflake.service.type

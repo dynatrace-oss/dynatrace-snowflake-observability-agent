@@ -11,18 +11,15 @@ model:
         timeseries val = sum(snowflake.credits.used), by: { deployment.environment.name }
       description: Plot credits billed for loading data into the event table over time.
       description_copilot: Timeseries of Snowflake event table credit usage.
-      internal: false
     - query_string: |
         timeseries val = sum(snowflake.data.ingested), by: { deployment.environment.name }
       description: Plot bytes of data loaded into the event table over time.
       description_copilot: Timeseries of Snowflake event table data ingestion volume.
-      internal: false
     - query_string: |
         timeseries ingested = sum(snowflake.data.ingested), interval: 1d, by: { deployment.environment.name }
         | fieldsAdd total_ingested = arraySum(ingested)
       description: Report total daily bytes ingested into the event table per Snowflake account.
       description_copilot: Daily total of Snowflake event table data ingestion per account.
-      internal: false
   groups:
     - id: snowflake.credits.used
       type: metric
@@ -34,7 +31,7 @@ model:
         - 15
       title: Snowflake Credits Used
       unit: count
-      note: 'Original unit: credit.'
+      note: "Original unit: credit."
     - id: snowflake.data.ingested
       type: metric
       metric_name: snowflake.data.ingested

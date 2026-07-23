@@ -180,7 +180,6 @@ dql_queries:
       timeseries val = avg(snowflake.time.execution), by: { snowflake.warehouse.name, deployment.environment.name }
     description: Plot average execution time of currently running Snowflake queries per warehouse over time.
     description_copilot: Timeseries of Snowflake query execution time broken down by warehouse.
-    internal: false
     context:
       - metrics
   - query_string: |
@@ -192,7 +191,6 @@ dql_queries:
         by: { snowflake.warehouse.name, deployment.environment.name }
     description: Compare average compilation, execution and total running time of active Snowflake queries per warehouse.
     description_copilot: Timeseries comparing Snowflake query compilation, execution and running times per warehouse.
-    internal: false
     context:
       - metrics
   - query_string: |
@@ -200,7 +198,6 @@ dql_queries:
         by: { snowflake.warehouse.name, snowflake.role.name, deployment.environment.name }
     description: Plot the 90th percentile total elapsed time of active Snowflake queries broken down by warehouse and role.
     description_copilot: Timeseries of the p90 total elapsed time of active Snowflake queries per warehouse and role.
-    internal: false
     context:
       - metrics
   - query_string: |
@@ -211,7 +208,6 @@ dql_queries:
       | limit 100
     description: Fetch the 100 most recent DSOA active_queries plugin log entries from Grail.
     description_copilot: Search for all active_queries plugin logs from the Snowflake observability agent.
-    internal: false
     context:
       - logs
   - query_string: |
@@ -223,7 +219,6 @@ dql_queries:
       | limit 50
     description: Fetch the 50 most recent active queries that failed with an error.
     description_copilot: Find failed Snowflake query executions reported by the active_queries plugin.
-    internal: false
     context:
       - logs
   - query_string: |
@@ -236,6 +231,5 @@ dql_queries:
       | limit 20
     description: Rank warehouses by the average running time of their currently active Snowflake queries.
     description_copilot: Find which Snowflake warehouses have the slowest currently running queries by average running time.
-    internal: false
     context:
       - logs

@@ -13,18 +13,15 @@ model:
         timeseries mem = avg(process.memory.usage), by: { snowflake.warehouse.name, deployment.environment.name }
       description: Plot average process memory usage captured from the Snowflake event table over time.
       description_copilot: Timeseries of Snowflake process memory usage from the event log.
-      internal: false
     - query_string: |
         timeseries cpu = avg(process.cpu.utilization), by: { snowflake.warehouse.name, deployment.environment.name }
       description: Plot average process CPU utilization captured from the Snowflake event table over time.
       description_copilot: Timeseries of Snowflake process CPU utilization from the event log.
-      internal: false
     - query_string: |
         timeseries { mem = avg(process.memory.usage), cpu = avg(process.cpu.utilization) },
           by: { snowflake.warehouse.name, deployment.environment.name }
       description: Compare process memory usage and CPU utilization per warehouse from the Snowflake event table.
       description_copilot: Timeseries comparing Snowflake process memory and CPU from the event log.
-      internal: false
   groups:
     - id: process.cpu.utilization
       type: metric
@@ -35,7 +32,7 @@ model:
       examples:
         - 0.015
       title: Process CPU Utilization
-      unit: '%'
+      unit: "%"
       attributes:
         - ref: snowflake.query.id
         - ref: snowflake.role.name

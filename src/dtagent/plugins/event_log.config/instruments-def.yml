@@ -81,14 +81,12 @@ dql_queries:
       timeseries mem = avg(process.memory.usage), by: { snowflake.warehouse.name, deployment.environment.name }
     description: Plot average process memory usage captured from the Snowflake event table over time.
     description_copilot: Timeseries of Snowflake process memory usage from the event log.
-    internal: false
     context:
       - metrics
   - query_string: |
       timeseries cpu = avg(process.cpu.utilization), by: { snowflake.warehouse.name, deployment.environment.name }
     description: Plot average process CPU utilization captured from the Snowflake event table over time.
     description_copilot: Timeseries of Snowflake process CPU utilization from the event log.
-    internal: false
     context:
       - metrics
   - query_string: |
@@ -96,7 +94,6 @@ dql_queries:
         by: { snowflake.warehouse.name, deployment.environment.name }
     description: Compare process memory usage and CPU utilization per warehouse from the Snowflake event table.
     description_copilot: Timeseries comparing Snowflake process memory and CPU from the event log.
-    internal: false
     context:
       - metrics
   - query_string: |
@@ -107,7 +104,6 @@ dql_queries:
       | limit 50
     description: Fetch the 50 most recent DSOA event_log spans (traced records from the Snowflake event table).
     description_copilot: Find event_log span traces produced by the Snowflake observability agent.
-    internal: false
     context:
       - spans
   - query_string: |
@@ -120,7 +116,6 @@ dql_queries:
       | limit 50
     description: Inspect event_log spans correlated to a Snowflake query, including warehouse and role context.
     description_copilot: Show event_log spans linked to Snowflake queries with their warehouse and role.
-    internal: false
     context:
       - spans
   - query_string: |
@@ -132,6 +127,5 @@ dql_queries:
       | sort spans desc
     description: Count event_log spans grouped by warehouse.
     description_copilot: Break down event_log spans by Snowflake warehouse.
-    internal: false
     context:
       - spans

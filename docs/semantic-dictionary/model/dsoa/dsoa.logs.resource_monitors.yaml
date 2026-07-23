@@ -15,7 +15,6 @@ model:
         | limit 100
       description: Fetch the 100 most recent DSOA resource_monitors plugin log entries from Grail.
       description_copilot: Search for all resource_monitors plugin logs from the Snowflake observability agent.
-      internal: false
     - query_string: |
         fetch logs
         | filter db.system == "snowflake"
@@ -26,7 +25,6 @@ model:
         | limit 50
       description: Inspect per-monitor credit quota consumption readings from the resource_monitors plugin.
       description_copilot: Show recent Snowflake resource monitor credit quota consumption.
-      internal: false
     - query_string: |
         fetch logs
         | filter db.system == "snowflake"
@@ -36,7 +34,6 @@ model:
         | limit 50
       description: Fetch resource monitors that have consumed more than 90% of their credit quota.
       description_copilot: Find Snowflake resource monitors close to exhausting their credit quota.
-      internal: false
   groups:
     - id: dsoa.logs.resource_monitors.fields
       type: attribute_group

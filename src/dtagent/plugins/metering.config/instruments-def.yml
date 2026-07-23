@@ -145,14 +145,12 @@ dql_queries:
       timeseries credits = sum(snowflake.credits.used), by: { snowflake.service.name, deployment.environment.name }
     description: Plot total credits consumed per Snowflake service over time.
     description_copilot: Timeseries of Snowflake credits consumed per service.
-    internal: false
     context:
       - metrics
   - query_string: |
       timeseries compute = sum(snowflake.credits.used.compute), by: { snowflake.service.type, deployment.environment.name }
     description: Plot compute credits consumed per Snowflake service type over time.
     description_copilot: Timeseries of Snowflake compute credits per service type.
-    internal: false
     context:
       - metrics
   - query_string: |
@@ -160,7 +158,6 @@ dql_queries:
         by: { snowflake.service.name, deployment.environment.name }
     description: Compare compute and cloud-services credits per Snowflake service over time.
     description_copilot: Timeseries comparing Snowflake compute and cloud-services credits per service.
-    internal: false
     context:
       - metrics
   - query_string: |
@@ -171,7 +168,6 @@ dql_queries:
       | limit 100
     description: Fetch the 100 most recent DSOA metering plugin log entries from Grail.
     description_copilot: Search for all metering plugin logs from the Snowflake observability agent.
-    internal: false
     context:
       - logs
   - query_string: |
@@ -184,7 +180,6 @@ dql_queries:
       | limit 50
     description: Inspect per-service credit consumption readings from the metering plugin.
     description_copilot: Show recent Snowflake per-service credit consumption from the metering plugin.
-    internal: false
     context:
       - logs
   - query_string: |
@@ -197,6 +192,5 @@ dql_queries:
       | limit 25
     description: Rank Snowflake services by total metered credit consumption.
     description_copilot: Find which Snowflake services consume the most metered credits.
-    internal: false
     context:
       - logs

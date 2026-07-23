@@ -15,7 +15,6 @@ model:
         | limit 100
       description: Fetch the 100 most recent DSOA org_costs plugin log entries from Grail.
       description_copilot: Search for all org_costs plugin logs from the Snowflake observability agent.
-      internal: false
     - query_string: |
         fetch logs
         | filter db.system == "snowflake"
@@ -26,7 +25,6 @@ model:
         | limit 50
       description: Inspect per-account organisation credit and billing readings from the org_costs plugin.
       description_copilot: Show recent Snowflake organisation credit and billing figures per account.
-      internal: false
     - query_string: |
         fetch logs
         | filter db.system == "snowflake"
@@ -37,7 +35,6 @@ model:
         | limit 25
       description: Rank Snowflake accounts by total organisation billing amount.
       description_copilot: Find which Snowflake accounts have the highest organisation billing amount.
-      internal: false
   groups:
     - id: dsoa.logs.org_costs.fields
       type: attribute_group

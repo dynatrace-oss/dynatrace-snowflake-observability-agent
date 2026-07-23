@@ -15,7 +15,6 @@ model:
         | limit 20
       description: Fetch recent DSOA self-monitoring business events for the shares plugin.
       description_copilot: Search for self-monitoring events from the shares Snowflake agent plugin.
-      internal: false
     - query_string: |
         fetch events
         | filter db.system == "snowflake"
@@ -24,7 +23,6 @@ model:
         | limit 50
       description: Fetch the most recent DSOA shares lifecycle events (share, grant and table creation anchors).
       description_copilot: Search for Snowflake share and grant lifecycle events from the shares plugin.
-      internal: false
     - query_string: |
         fetch events
         | filter db.system == "snowflake"
@@ -33,7 +31,6 @@ model:
         | sort events desc
       description: Count DSOA shares lifecycle events grouped by event type.
       description_copilot: Break down Snowflake share lifecycle events by their event type.
-      internal: false
   groups:
     - id: dsoa.events.shares.fields
       type: attribute_group

@@ -11,18 +11,15 @@ model:
         timeseries failed = sum(snowflake.login.attempts.failed), by: { db.user, deployment.environment.name }
       description: Plot failed Snowflake login attempts per user over time.
       description_copilot: Timeseries of failed Snowflake login attempts per user.
-      internal: false
     - query_string: |
         timeseries total = sum(snowflake.login.attempts.total), by: { client.type, deployment.environment.name }
       description: Plot total Snowflake login attempts broken down by client type over time.
       description_copilot: Timeseries of total Snowflake login attempts per client type.
-      internal: false
     - query_string: |
         timeseries { failed = sum(snowflake.login.attempts.failed), successful = sum(snowflake.login.attempts.successful) },
           by: { db.user, deployment.environment.name }
       description: Compare failed and successful Snowflake login attempts per user over time.
       description_copilot: Timeseries comparing failed and successful Snowflake login attempts per user.
-      internal: false
   groups:
     - id: snowflake.login.attempts.failed
       type: metric

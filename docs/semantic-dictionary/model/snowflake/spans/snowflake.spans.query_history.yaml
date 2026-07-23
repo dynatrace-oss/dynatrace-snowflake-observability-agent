@@ -4,7 +4,7 @@ model:
   brief: Span records emitted by the DSOA query_history plugin.
   model_group_id: snowflake.spans
   data_object: span
-  interfaces: [ i.dsoa_resource ]
+  interfaces: [i.dsoa_resource]
   dql_queries:
     - query_string: |
         fetch spans
@@ -14,7 +14,6 @@ model:
         | limit 50
       description: Fetch the 50 most recent DSOA query_history spans (individual Snowflake query executions).
       description_copilot: Find query_history span traces produced by the Snowflake observability agent.
-      internal: false
     - query_string: |
         fetch spans
         | filter db.system == "snowflake"
@@ -23,9 +22,9 @@ model:
         | fields trace.id, span.id, request.is_root_span, snowflake.query.id, start_time, end_time
         | sort start_time desc
         | limit 50
-      description: Correlate DSOA query_history spans by trace.id/span.id to inspect the root span and timing for a Snowflake query execution.
+      description:
+        Correlate DSOA query_history spans by trace.id/span.id to inspect the root span and timing for a Snowflake query execution.
       description_copilot: Find the trace and span identifiers for Snowflake query execution spans, including whether each is the root span.
-      internal: false
     - query_string: |
         fetch spans
         | filter db.system == "snowflake"
@@ -37,7 +36,6 @@ model:
         | limit 100
       description: Inspect Snowflake query-plan step/operator span events (snowflake.query.step.*) recorded on query_history spans.
       description_copilot: List query execution plan steps and operators recorded as span events on Snowflake query spans.
-      internal: false
   groups:
     - id: snowflake.spans.query_history.fields
       type: attribute_group

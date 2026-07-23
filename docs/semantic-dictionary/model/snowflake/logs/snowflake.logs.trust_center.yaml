@@ -4,7 +4,7 @@ model:
   brief: Log records emitted by the DSOA trust_center plugin.
   model_group_id: snowflake.logs
   data_object: log
-  interfaces: [ i.dsoa_resource ]
+  interfaces: [i.dsoa_resource]
   dql_queries:
     - query_string: |
         fetch logs
@@ -14,7 +14,6 @@ model:
         | limit 100
       description: Fetch the 100 most recent DSOA trust_center plugin log entries from Grail.
       description_copilot: Search for all trust_center plugin logs from the Snowflake observability agent.
-      internal: false
     - query_string: |
         fetch logs
         | filter db.system == "snowflake"
@@ -24,7 +23,6 @@ model:
         | limit 50
       description: Fetch critical-severity Trust Center findings reported by the trust_center plugin.
       description_copilot: Find critical Snowflake Trust Center security findings.
-      internal: false
     - query_string: |
         fetch logs
         | filter db.system == "snowflake"
@@ -34,7 +32,6 @@ model:
         | limit 25
       description: Break down Trust Center findings by scanner type and risk level.
       description_copilot: Summarise Snowflake Trust Center findings by scanner type and risk level.
-      internal: false
   groups:
     - id: snowflake.logs.trust_center.fields
       type: attribute_group

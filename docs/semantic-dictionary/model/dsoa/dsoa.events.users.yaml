@@ -15,7 +15,6 @@ model:
         | limit 20
       description: Fetch recent DSOA self-monitoring business events for the users plugin.
       description_copilot: Search for self-monitoring events from the users Snowflake agent plugin.
-      internal: false
     - query_string: |
         fetch events
         | filter db.system == "snowflake"
@@ -24,7 +23,6 @@ model:
         | limit 50
       description: Fetch the most recent DSOA users lifecycle events (creation, deletion and role-change anchors).
       description_copilot: Search for Snowflake user lifecycle events from the users plugin.
-      internal: false
     - query_string: |
         fetch events
         | filter db.system == "snowflake"
@@ -33,7 +31,6 @@ model:
         | sort events desc
       description: Count DSOA users lifecycle events grouped by event type.
       description_copilot: Break down Snowflake user lifecycle events by their event type.
-      internal: false
   groups:
     - id: dsoa.events.users.fields
       type: attribute_group

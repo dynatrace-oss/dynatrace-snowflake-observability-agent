@@ -4,13 +4,12 @@ model:
   brief: Metrics collected by the DSOA tasks plugin from Snowflake ACCOUNT_USAGE views.
   model_group_id: snowflake.metrics
   data_object: metric
-  interfaces: [ i.dsoa_resource ]
+  interfaces: [i.dsoa_resource]
   dql_queries:
     - query_string: >
         timeseries failed = sum(snowflake.task.run.failed), by: { snowflake.task.name, deployment.environment.name }
       description: Plot the number of failed Snowflake task runs per task over time.
       description_copilot: Timeseries of failed Snowflake task runs per task name.
-      internal: false
     - query_string: |
         timeseries {
           successful = sum(snowflake.task.run.successful),
@@ -20,12 +19,10 @@ model:
           by: { snowflake.task.name, deployment.environment.name }
       description: Compare successful, failed and cancelled Snowflake task runs per task over time.
       description_copilot: Timeseries comparing successful, failed and cancelled Snowflake task runs.
-      internal: false
     - query_string: >
         timeseries credits = sum(snowflake.credits.used), by: { snowflake.task.name, deployment.environment.name }
       description: Plot credits consumed by Snowflake task runs per task over time.
       description_copilot: Timeseries of credits consumed per Snowflake task.
-      internal: false
   groups:
     - id: snowflake.task.run.cancelled
       type: metric

@@ -15,7 +15,6 @@ model:
         | limit 50
       description: Fetch the most recent DSOA resource_monitors lifecycle events (monitor and warehouse state changes).
       description_copilot: Search for Snowflake resource monitor and warehouse lifecycle events.
-      internal: false
     - query_string: |
         fetch events
         | filter db.system == "snowflake"
@@ -24,7 +23,6 @@ model:
         | sort events desc
       description: Count DSOA resource_monitors lifecycle events grouped by event type.
       description_copilot: Break down Snowflake resource monitor lifecycle events by their event type.
-      internal: false
     - query_string: |
         fetch events
         | filter db.system == "snowflake"
@@ -35,7 +33,6 @@ model:
         | limit 25
       description: Inspect resource monitor lifecycle events with their monitor name and event type.
       description_copilot: Show Snowflake resource monitor lifecycle events with monitor name and event type.
-      internal: false
   groups:
     - id: dsoa.events.resource_monitors.fields
       type: attribute_group

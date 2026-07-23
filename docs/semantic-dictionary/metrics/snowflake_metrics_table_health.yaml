@@ -4,23 +4,20 @@ model:
   brief: Metrics collected by the DSOA table_health plugin from Snowflake ACCOUNT_USAGE views.
   model_group_id: snowflake.metrics
   data_object: metric
-  interfaces: [ i.dsoa_resource, i.snowflake_database ]
+  interfaces: [i.dsoa_resource, i.snowflake_database]
   dql_queries:
     - query_string: >
         timeseries val = avg(snowflake.table.active_bytes), by: { db.collection.name, deployment.environment.name }
       description: Plot active storage bytes per table over time.
       description_copilot: Timeseries of Snowflake table active storage size.
-      internal: false
     - query_string: >
         timeseries val = avg(snowflake.table.clustering.depth), by: { db.collection.name, deployment.environment.name }
       description: Plot average clustering depth per table over time.
       description_copilot: Timeseries of Snowflake table clustering depth.
-      internal: false
     - query_string: >
         timeseries val = avg(snowflake.table.growth_pct), by: { db.collection.name, deployment.environment.name }
       description: Plot table size growth percentage between snapshots over time.
       description_copilot: Timeseries of Snowflake table growth percentage.
-      internal: false
   groups:
     - id: snowflake.table.active_bytes
       type: metric
@@ -137,7 +134,7 @@ model:
         Percentage change in active bytes between the two most recent snapshots.
         Null when the previous snapshot had zero bytes.
       title: Table Growth (%)
-      unit: '%'
+      unit: "%"
       attributes:
         - ref: db.collection.name
         - ref: snowflake.table.full_name

@@ -12,12 +12,10 @@ model:
         timeseries credits = sum(snowflake.credits.compute), by: { snowflake.warehouse.name, deployment.environment.name }
       description: Plot Snowflake compute credit consumption per warehouse over time.
       description_copilot: Timeseries of Snowflake compute credits consumed per warehouse.
-      internal: false
     - query_string: |
         timeseries load = avg(snowflake.load.running), by: { snowflake.warehouse.name, deployment.environment.name }
       description: Plot average number of running queries per warehouse over time.
       description_copilot: Timeseries of average running query load per Snowflake warehouse.
-      internal: false
     - query_string: |
         timeseries {
           running = avg(snowflake.load.running),
@@ -27,7 +25,6 @@ model:
           by: { snowflake.warehouse.name, deployment.environment.name }
       description: Compare running, overload-queued and blocked query load per Snowflake warehouse over time.
       description_copilot: Timeseries comparing running, queued and blocked query load per Snowflake warehouse.
-      internal: false
   groups:
     - id: snowflake.credits.compute
       type: metric
@@ -39,7 +36,7 @@ model:
         - 8
       title: Compute Credits Used
       unit: count
-      note: 'Original unit: credit.'
+      note: "Original unit: credit."
     - id: snowflake.load.blocked
       type: metric
       metric_name: snowflake.load.blocked

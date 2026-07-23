@@ -108,7 +108,6 @@ dql_queries:
       timeseries val = sum(snowflake.trust_center.findings), by: { vulnerability.risk.level, deployment.environment.name }
     description: Plot the number of Trust Center findings by risk level over time.
     description_copilot: Timeseries of Snowflake Trust Center findings by risk level.
-    internal: false
     context:
       - metrics
   - query_string: |
@@ -116,14 +115,12 @@ dql_queries:
         by: { snowflake.trust_center.scanner.type, deployment.environment.name }
     description: Plot the number of Trust Center findings by scanner type over time.
     description_copilot: Timeseries of Snowflake Trust Center findings by scanner type.
-    internal: false
     context:
       - metrics
   - query_string: |
       timeseries findings = sum(snowflake.trust_center.findings), by: { event.category, deployment.environment.name }
     description: Plot Trust Center findings by security category over time.
     description_copilot: Timeseries of Snowflake Trust Center findings by security category.
-    internal: false
     context:
       - metrics
   - query_string: |
@@ -134,7 +131,6 @@ dql_queries:
       | limit 100
     description: Fetch the 100 most recent DSOA trust_center plugin log entries from Grail.
     description_copilot: Search for all trust_center plugin logs from the Snowflake observability agent.
-    internal: false
     context:
       - logs
   - query_string: |
@@ -146,7 +142,6 @@ dql_queries:
       | limit 50
     description: Fetch critical-severity Trust Center findings reported by the trust_center plugin.
     description_copilot: Find critical Snowflake Trust Center security findings.
-    internal: false
     context:
       - logs
   - query_string: |
@@ -158,6 +153,5 @@ dql_queries:
       | limit 25
     description: Break down Trust Center findings by scanner type and risk level.
     description_copilot: Summarise Snowflake Trust Center findings by scanner type and risk level.
-    internal: false
     context:
       - logs

@@ -15,7 +15,6 @@ model:
         | limit 50
       description: Fetch the most recent DSOA dynamic_tables lifecycle events (scheduling suspend/resume, graph version).
       description_copilot: Search for Snowflake dynamic table scheduling and graph lifecycle events.
-      internal: false
     - query_string: |
         fetch events
         | filter db.system == "snowflake"
@@ -24,7 +23,6 @@ model:
         | sort events desc
       description: Count DSOA dynamic_tables lifecycle events grouped by event type.
       description_copilot: Break down Snowflake dynamic table lifecycle events by their event type.
-      internal: false
     - query_string: |
         fetch events
         | filter db.system == "snowflake"
@@ -34,7 +32,6 @@ model:
         | limit 25
       description: Fetch scheduling-suspended lifecycle events for Snowflake dynamic tables.
       description_copilot: Find when Snowflake dynamic table scheduling was suspended.
-      internal: false
   groups:
     - id: dsoa.events.dynamic_tables.fields
       type: attribute_group

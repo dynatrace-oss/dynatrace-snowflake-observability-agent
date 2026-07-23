@@ -12,19 +12,16 @@ model:
         timeseries val = sum(snowflake.pipe.rows.loaded), by: { snowflake.pipe.name, deployment.environment.name }
       description: Plot rows loaded per Snowpipe over time.
       description_copilot: Timeseries of rows loaded per Snowflake pipe.
-      internal: false
     - query_string: |
         timeseries { ingested = sum(snowflake.pipe.data.ingested), credits = sum(snowflake.pipe.cost.credits_used) },
           by: { snowflake.pipe.name, deployment.environment.name }
       description: Compare bytes ingested against credits used per Snowpipe over time.
       description_copilot: Timeseries comparing Snowflake pipe ingested bytes and credits used.
-      internal: false
     - query_string: |
         timeseries { pending = max(snowflake.pipe.files.pending), errors = sum(snowflake.pipe.errors) },
           by: { snowflake.pipe.name, deployment.environment.name }
       description: Plot pending files and ingestion errors per Snowpipe over time.
       description_copilot: Timeseries of pending files and errors per Snowflake pipe.
-      internal: false
   groups:
     - id: snowflake.copy.bytes_billed
       type: metric

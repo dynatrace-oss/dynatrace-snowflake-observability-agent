@@ -12,13 +12,11 @@ model:
         timeseries val = avg(snowflake.table.dynamic.lag.mean), by: { db.collection.name, deployment.environment.name }
       description: Plot the mean refresh lag per dynamic table over time.
       description_copilot: Timeseries of Snowflake dynamic table mean refresh lag.
-      internal: false
     - query_string: |
         timeseries { lag_mean = avg(snowflake.table.dynamic.lag.mean), lag_max = max(snowflake.table.dynamic.lag.max) },
           by: { db.collection.name, deployment.environment.name }
       description: Compare mean and maximum refresh lag per dynamic table over time.
       description_copilot: Timeseries comparing mean and maximum Snowflake dynamic table refresh lag.
-      internal: false
     - query_string: |
         timeseries {
           inserted = sum(snowflake.rows.inserted),
@@ -28,7 +26,6 @@ model:
           by: { db.collection.name, deployment.environment.name }
       description: Plot rows inserted, deleted and copied per dynamic table refresh over time.
       description_copilot: Timeseries of rows inserted, deleted and copied per Snowflake dynamic table refresh.
-      internal: false
   groups:
     - id: snowflake.partitions.added
       type: metric
@@ -40,7 +37,7 @@ model:
         - 5
       title: Partitions Added
       unit: count
-      note: 'Original unit: partition.'
+      note: "Original unit: partition."
       attributes:
         - ref: db.collection.name
         - ref: snowflake.table.full_name
@@ -54,7 +51,7 @@ model:
         - 3
       title: Partitions Removed
       unit: count
-      note: 'Original unit: partition.'
+      note: "Original unit: partition."
       attributes:
         - ref: db.collection.name
         - ref: snowflake.table.full_name
@@ -68,7 +65,7 @@ model:
         - 75
       title: Rows Copied
       unit: count
-      note: 'Original unit: row.'
+      note: "Original unit: row."
       attributes:
         - ref: db.collection.name
         - ref: snowflake.table.full_name
@@ -82,7 +79,7 @@ model:
         - 50
       title: Rows Deleted
       unit: count
-      note: 'Original unit: row.'
+      note: "Original unit: row."
       attributes:
         - ref: db.collection.name
         - ref: snowflake.table.full_name
@@ -96,7 +93,7 @@ model:
         - 100
       title: Rows Inserted
       unit: count
-      note: 'Original unit: row.'
+      note: "Original unit: row."
       attributes:
         - ref: db.collection.name
         - ref: snowflake.table.full_name
@@ -144,7 +141,9 @@ model:
       metric_name: snowflake.table.dynamic.lag.target.value
       instrument: gauge
       stability: experimental
-      brief: The time in seconds in the retention period or since the last configuration change, when the actual lag was more than the defined target lag.
+      brief:
+        The time in seconds in the retention period or since the last configuration change, when the actual lag was more than the defined
+        target lag.
       examples:
         - 60
       title: Target Lag Time

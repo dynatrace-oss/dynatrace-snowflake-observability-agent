@@ -15,7 +15,6 @@ model:
         | limit 50
       description: Fetch the most recent DSOA tasks lifecycle events (task graph version anchors).
       description_copilot: Search for Snowflake task graph lifecycle events from the tasks plugin.
-      internal: false
     - query_string: |
         fetch events
         | filter db.system == "snowflake"
@@ -24,7 +23,6 @@ model:
         | sort events desc
       description: Count DSOA tasks lifecycle events grouped by event type.
       description_copilot: Break down Snowflake task lifecycle events by their event type.
-      internal: false
     - query_string: |
         fetch events
         | filter db.system == "snowflake"
@@ -35,7 +33,6 @@ model:
         | limit 25
       description: Inspect task lifecycle events with their task name and event type.
       description_copilot: Show Snowflake task lifecycle events with task name and event type.
-      internal: false
   groups:
     - id: dsoa.events.tasks.fields
       type: attribute_group

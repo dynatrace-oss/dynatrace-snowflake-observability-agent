@@ -15,7 +15,6 @@ model:
         | limit 100
       description: Fetch the 100 most recent DSOA query_history plugin log entries from Grail.
       description_copilot: Search for all query_history plugin logs from the Snowflake observability agent.
-      internal: false
     - query_string: |
         fetch logs
         | filter db.system == "snowflake"
@@ -28,7 +27,6 @@ model:
         | limit 50
       description: Find Snowflake queries that ran longer than five minutes, with their user and warehouse.
       description_copilot: Find long-running Snowflake queries exceeding five minutes of total elapsed time.
-      internal: false
     - query_string: |
         fetch logs
         | filter db.system == "snowflake"
@@ -43,7 +41,6 @@ model:
         | limit 25
       description: Rank warehouses by the p90 execution time of their Snowflake queries.
       description_copilot: Find which Snowflake warehouses have the slowest queries by p90 execution time.
-      internal: false
   groups:
     - id: dsoa.logs.query_history.fields
       type: attribute_group

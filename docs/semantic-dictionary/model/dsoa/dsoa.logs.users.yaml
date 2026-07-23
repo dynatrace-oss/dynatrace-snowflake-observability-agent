@@ -15,7 +15,6 @@ model:
         | limit 100
       description: Fetch the 100 most recent DSOA users plugin log entries from Grail.
       description_copilot: Search for all users plugin logs from the Snowflake observability agent.
-      internal: false
     - query_string: |
         fetch logs
         | filter db.system == "snowflake"
@@ -25,7 +24,6 @@ model:
         | limit 50
       description: Fetch log entries for disabled Snowflake users from the users plugin.
       description_copilot: Search for disabled Snowflake user records in the users plugin logs.
-      internal: false
     - query_string: |
         fetch logs
         | filter db.system == "snowflake"
@@ -35,7 +33,6 @@ model:
         | limit 50
       description: Fetch log entries for Snowflake users without MFA enabled.
       description_copilot: Search for Snowflake users that do not have MFA configured.
-      internal: false
   groups:
     - id: dsoa.logs.users.fields
       type: attribute_group

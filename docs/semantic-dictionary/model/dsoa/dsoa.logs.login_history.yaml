@@ -15,7 +15,6 @@ model:
         | limit 100
       description: Fetch the 100 most recent DSOA login_history plugin log entries from Grail.
       description_copilot: Search for all login_history plugin logs from the Snowflake observability agent.
-      internal: false
     - query_string: |
         fetch logs
         | filter db.system == "snowflake"
@@ -26,7 +25,6 @@ model:
         | limit 50
       description: Fetch failed Snowflake logins with their authentication type and error details.
       description_copilot: Find failed Snowflake login attempts with error codes and authentication type.
-      internal: false
     - query_string: |
         fetch logs
         | filter db.system == "snowflake"
@@ -37,7 +35,6 @@ model:
         | limit 25
       description: Rank source IP and user combinations by Snowflake login attempt volume.
       description_copilot: Find which source IPs and users generate the most Snowflake login attempts.
-      internal: false
   groups:
     - id: dsoa.logs.login_history.fields
       type: attribute_group

@@ -4,7 +4,7 @@ model:
   brief: Log records emitted by the DSOA data_schemas plugin.
   model_group_id: snowflake.logs
   data_object: log
-  interfaces: [ i.dsoa_resource ]
+  interfaces: [i.dsoa_resource]
   dql_queries:
     - query_string: |
         fetch logs
@@ -14,7 +14,6 @@ model:
         | limit 100
       description: Fetch the 100 most recent DSOA data_schemas plugin log entries (DDL change inventory) from Grail.
       description_copilot: Search for all data_schemas plugin logs from the Snowflake observability agent.
-      internal: false
     - query_string: |
         fetch logs
         | filter db.system == "snowflake"
@@ -24,7 +23,6 @@ model:
         | limit 50
       description: Fetch the 50 most recent DROP DDL operations reported by the data_schemas plugin.
       description_copilot: Find recent DROP DDL operations on Snowflake objects.
-      internal: false
     - query_string: |
         fetch logs
         | filter db.system == "snowflake"
@@ -34,7 +32,6 @@ model:
         | limit 50
       description: Fetch the 50 most recent DDL changes affecting Snowflake tables.
       description_copilot: Find recent table structure changes captured by the data_schemas plugin.
-      internal: false
   groups:
     - id: snowflake.logs.data_schemas.fields
       type: attribute_group

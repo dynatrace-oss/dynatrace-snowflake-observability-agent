@@ -4,24 +4,21 @@ model:
   brief: Metrics collected by the DSOA org_costs plugin from Snowflake ACCOUNT_USAGE views.
   model_group_id: snowflake.metrics
   data_object: metric
-  interfaces: [ i.dsoa_resource ]
+  interfaces: [i.dsoa_resource]
   dql_queries:
     - query_string: >
         timeseries val = sum(snowflake.org.credits.used), by: { snowflake.account.name, deployment.environment.name }
       description: Plot total organisation credits used per Snowflake account over time.
       description_copilot: Timeseries of Snowflake organisation credits used per account.
-      internal: false
     - query_string: >
         timeseries val = sum(snowflake.org.credits.used), by: { snowflake.service.type, deployment.environment.name }
       description: Plot organisation credits used per Snowflake service type over time.
       description_copilot: Timeseries of Snowflake organisation credits used per service type.
-      internal: false
     - query_string: |
         timeseries { billed = sum(snowflake.org.billing.amount), on_demand = sum(snowflake.org.billing.on_demand_consumption) },
           by: { snowflake.account.name, deployment.environment.name }
       description: Compare total billed amount against on-demand consumption per Snowflake account over time.
       description_copilot: Timeseries comparing Snowflake billed amount and on-demand consumption per account.
-      internal: false
   groups:
     - id: snowflake.org.billing.amount
       type: metric
@@ -98,7 +95,7 @@ model:
       brief: Credit adjustment for cloud services (10% rule offset).
       title: Org Cloud Services Credit Adjustment
       unit: count
-      note: 'Original unit: credit.'
+      note: "Original unit: credit."
       attributes:
         - ref: snowflake.account.name
         - ref: snowflake.org.name
@@ -110,7 +107,7 @@ model:
       brief: Credits used for cloud services by the account on the given day.
       title: Org Cloud Services Credits Used
       unit: count
-      note: 'Original unit: credit.'
+      note: "Original unit: credit."
       attributes:
         - ref: snowflake.account.name
         - ref: snowflake.org.name
@@ -122,7 +119,7 @@ model:
       brief: Credits used for compute by the account on the given day.
       title: Org Compute Credits Used
       unit: count
-      note: 'Original unit: credit.'
+      note: "Original unit: credit."
       attributes:
         - ref: snowflake.account.name
         - ref: snowflake.org.name
@@ -134,7 +131,7 @@ model:
       brief: Total credits used by the account on the given day across all service types.
       title: Org Total Credits Used
       unit: count
-      note: 'Original unit: credit.'
+      note: "Original unit: credit."
       attributes:
         - ref: snowflake.account.name
         - ref: snowflake.org.name

@@ -168,14 +168,12 @@ dql_queries:
       timeseries val = sum(snowflake.org.credits.used), by: { snowflake.account.name, deployment.environment.name }
     description: Plot total organisation credits used per Snowflake account over time.
     description_copilot: Timeseries of Snowflake organisation credits used per account.
-    internal: false
     context:
       - metrics
   - query_string: |
       timeseries val = sum(snowflake.org.credits.used), by: { snowflake.service.type, deployment.environment.name }
     description: Plot organisation credits used per Snowflake service type over time.
     description_copilot: Timeseries of Snowflake organisation credits used per service type.
-    internal: false
     context:
       - metrics
   - query_string: |
@@ -183,7 +181,6 @@ dql_queries:
         by: { snowflake.account.name, deployment.environment.name }
     description: Compare total billed amount against on-demand consumption per Snowflake account over time.
     description_copilot: Timeseries comparing Snowflake billed amount and on-demand consumption per account.
-    internal: false
     context:
       - metrics
   - query_string: |
@@ -194,7 +191,6 @@ dql_queries:
       | limit 100
     description: Fetch the 100 most recent DSOA org_costs plugin log entries from Grail.
     description_copilot: Search for all org_costs plugin logs from the Snowflake observability agent.
-    internal: false
     context:
       - logs
   - query_string: |
@@ -207,7 +203,6 @@ dql_queries:
       | limit 50
     description: Inspect per-account organisation credit and billing readings from the org_costs plugin.
     description_copilot: Show recent Snowflake organisation credit and billing figures per account.
-    internal: false
     context:
       - logs
   - query_string: |
@@ -220,6 +215,5 @@ dql_queries:
       | limit 25
     description: Rank Snowflake accounts by total organisation billing amount.
     description_copilot: Find which Snowflake accounts have the highest organisation billing amount.
-    internal: false
     context:
       - logs

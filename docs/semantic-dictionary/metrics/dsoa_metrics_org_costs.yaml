@@ -11,18 +11,15 @@ model:
         timeseries val = sum(snowflake.org.credits.used), by: { snowflake.account.name, deployment.environment.name }
       description: Plot total organisation credits used per Snowflake account over time.
       description_copilot: Timeseries of Snowflake organisation credits used per account.
-      internal: false
     - query_string: |
         timeseries val = sum(snowflake.org.credits.used), by: { snowflake.service.type, deployment.environment.name }
       description: Plot organisation credits used per Snowflake service type over time.
       description_copilot: Timeseries of Snowflake organisation credits used per service type.
-      internal: false
     - query_string: |
         timeseries { billed = sum(snowflake.org.billing.amount), on_demand = sum(snowflake.org.billing.on_demand_consumption) },
           by: { snowflake.account.name, deployment.environment.name }
       description: Compare total billed amount against on-demand consumption per Snowflake account over time.
       description_copilot: Timeseries comparing Snowflake billed amount and on-demand consumption per account.
-      internal: false
   groups:
     - id: snowflake.org.billing.amount
       type: metric
@@ -120,7 +117,7 @@ model:
         - -0.5
       title: Org Cloud Services Credit Adjustment
       unit: count
-      note: 'Original unit: credit.'
+      note: "Original unit: credit."
       attributes:
         - ref: snowflake.account.name
         - ref: snowflake.org.name
@@ -135,7 +132,7 @@ model:
         - 1.2
       title: Org Cloud Services Credits Used
       unit: count
-      note: 'Original unit: credit.'
+      note: "Original unit: credit."
       attributes:
         - ref: snowflake.account.name
         - ref: snowflake.org.name
@@ -150,7 +147,7 @@ model:
         - 8.0
       title: Org Compute Credits Used
       unit: count
-      note: 'Original unit: credit.'
+      note: "Original unit: credit."
       attributes:
         - ref: snowflake.account.name
         - ref: snowflake.org.name
@@ -165,7 +162,7 @@ model:
         - 9.2
       title: Org Total Credits Used
       unit: count
-      note: 'Original unit: credit.'
+      note: "Original unit: credit."
       attributes:
         - ref: snowflake.account.name
         - ref: snowflake.org.name

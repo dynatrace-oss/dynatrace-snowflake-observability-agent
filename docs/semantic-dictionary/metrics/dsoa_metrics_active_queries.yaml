@@ -13,7 +13,6 @@ model:
         timeseries val = avg(snowflake.time.execution), by: { snowflake.warehouse.name, deployment.environment.name }
       description: Plot average execution time of currently running Snowflake queries per warehouse over time.
       description_copilot: Timeseries of Snowflake query execution time broken down by warehouse.
-      internal: false
     - query_string: |
         timeseries {
           execution = avg(snowflake.time.execution),
@@ -23,13 +22,11 @@ model:
           by: { snowflake.warehouse.name, deployment.environment.name }
       description: Compare average compilation, execution and total running time of active Snowflake queries per warehouse.
       description_copilot: Timeseries comparing Snowflake query compilation, execution and running times per warehouse.
-      internal: false
     - query_string: |
         timeseries p90 = percentile(snowflake.time.total_elapsed, 90),
           by: { snowflake.warehouse.name, snowflake.role.name, deployment.environment.name }
       description: Plot the 90th percentile total elapsed time of active Snowflake queries broken down by warehouse and role.
       description_copilot: Timeseries of the p90 total elapsed time of active Snowflake queries per warehouse and role.
-      internal: false
   groups:
     - id: snowflake.data.written_to_result
       type: metric
@@ -55,7 +52,7 @@ model:
         - 1
       title: Rows Written to Result
       unit: count
-      note: 'Original unit: row.'
+      note: "Original unit: row."
       attributes:
         - ref: db.user
         - ref: snowflake.query.execution_status

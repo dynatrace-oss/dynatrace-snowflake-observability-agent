@@ -4,24 +4,21 @@ model:
   brief: Metrics collected by the DSOA query_history plugin from Snowflake ACCOUNT_USAGE views.
   model_group_id: snowflake.metrics
   data_object: metric
-  interfaces: [ i.dsoa_resource, i.snowflake_warehouse, i.snowflake_database ]
+  interfaces: [i.dsoa_resource, i.snowflake_warehouse, i.snowflake_database]
   dql_queries:
     - query_string: >
         timeseries val = sum(snowflake.time.execution), by: { snowflake.warehouse.name, deployment.environment.name }
       description: Plot total Snowflake query execution time per warehouse over time.
       description_copilot: Timeseries of Snowflake query execution time broken down by warehouse.
-      internal: false
     - query_string: >
         timeseries credits = sum(snowflake.credits.attributed_compute), by: { db.user, deployment.environment.name }
       description: Plot attributed compute credits consumed per user over time.
       description_copilot: Timeseries of Snowflake attributed compute credits consumed per user.
-      internal: false
     - query_string: |
         timeseries { compute = sum(snowflake.credits.attributed_compute), scanned = sum(snowflake.data.scanned) },
           by: { snowflake.warehouse.name, deployment.environment.name }
       description: Compare attributed compute credits against bytes scanned per warehouse over time.
       description_copilot: Timeseries comparing Snowflake attributed compute credits and bytes scanned per warehouse.
-      internal: false
   groups:
     - id: snowflake.acceleration.data.scanned
       type: metric
@@ -49,7 +46,7 @@ model:
       brief: Number of partitions scanned by the query acceleration service.
       title: Query Acceleration Partitions Scanned
       unit: count
-      note: 'Original unit: partition.'
+      note: "Original unit: partition."
       attributes:
         - ref: db.collection.name
         - ref: db.operation.name
@@ -68,7 +65,7 @@ model:
       instrument: gauge
       brief: Upper limit scale factor that a query would have benefited from.
       title: Query Acceleration Upper Limit Scale Factor
-      unit: '1'
+      unit: "1"
       attributes:
         - ref: db.collection.name
         - ref: db.operation.name
@@ -88,8 +85,9 @@ model:
       brief: Number of queries in this cost attribution group during the summary window.
       title: Cost Attribution Query Count
       unit: count
-      note: The .query_count name is deliberately preserved. The alternative plural snowflake.cost_attribution.queries would read as a collection of query objects rather than a scalar count, which is 
-        misleading in a metrics context.
+      note:
+        The .query_count name is deliberately preserved. The alternative plural snowflake.cost_attribution.queries would read as a
+        collection of query objects rather than a scalar count, which is misleading in a metrics context.
       attributes:
         - ref: db.collection.name
         - ref: db.operation.name
@@ -106,10 +104,12 @@ model:
       type: metric
       metric_name: snowflake.credits.attributed_compute
       instrument: gauge
-      brief: Compute credits attributed to this query based on weighted resource consumption. Excludes warehouse idle time. NULL for queries within the ~8h QAH latency window.
+      brief:
+        Compute credits attributed to this query based on weighted resource consumption. Excludes warehouse idle time. NULL for queries
+        within the ~8h QAH latency window.
       title: Query Attributed Compute Credits
       unit: count
-      note: 'Original unit: credit.'
+      note: "Original unit: credit."
       attributes:
         - ref: db.collection.name
         - ref: db.operation.name
@@ -129,7 +129,7 @@ model:
       brief: Number of credits used for cloud services.
       title: Cloud Services Credits Used
       unit: count
-      note: 'Original unit: credit.'
+      note: "Original unit: credit."
       attributes:
         - ref: db.collection.name
         - ref: db.operation.name
@@ -149,7 +149,7 @@ model:
       brief: Credits consumed by Query Acceleration Service for this query. NULL for queries within the ~8h QAH latency window.
       title: Query Acceleration Credits
       unit: count
-      note: 'Original unit: credit.'
+      note: "Original unit: credit."
       attributes:
         - ref: db.collection.name
         - ref: db.operation.name
@@ -223,8 +223,9 @@ model:
       type: metric
       metric_name: snowflake.data.scanned_from_cache
       instrument: gauge
-      brief: Ratio of data scanned from the local disk cache. Value ranges from 0.0 (no cache) to 1.0 (fully cached). Sourced from Snowflake PERCENTAGE_SCANNED_FROM_CACHE column (despite its name, the
-        raw value is 0.0-1.0).
+      brief:
+        Ratio of data scanned from the local disk cache. Value ranges from 0.0 (no cache) to 1.0 (fully cached). Sourced from Snowflake
+        PERCENTAGE_SCANNED_FROM_CACHE column (despite its name, the raw value is 0.0-1.0).
       title: Data Scanned From Cache
       unit: ratio
       attributes:
@@ -417,7 +418,7 @@ model:
       brief: The total number of rows that this query received from all calls to all remote services.
       title: External Function Total Received Rows
       unit: count
-      note: 'Original unit: row.'
+      note: "Original unit: row."
       attributes:
         - ref: db.collection.name
         - ref: db.operation.name
@@ -437,7 +438,7 @@ model:
       brief: The total number of rows that this query sent in all calls to all remote services.
       title: External Function Total Sent Rows
       unit: count
-      note: 'Original unit: row.'
+      note: "Original unit: row."
       attributes:
         - ref: db.collection.name
         - ref: db.operation.name
@@ -456,7 +457,7 @@ model:
       instrument: gauge
       brief: The approximate percentage of active compute resources in the warehouse for this query execution.
       title: Query Load Percent
-      unit: '%'
+      unit: "%"
       attributes:
         - ref: db.collection.name
         - ref: db.operation.name
@@ -476,7 +477,7 @@ model:
       brief: Number of micro-partitions scanned.
       title: Partitions Scanned
       unit: count
-      note: 'Original unit: partition.'
+      note: "Original unit: partition."
       attributes:
         - ref: db.collection.name
         - ref: db.operation.name
@@ -496,7 +497,7 @@ model:
       brief: Total micro-partitions of all tables included in this query.
       title: Partitions Total
       unit: count
-      note: 'Original unit: partition.'
+      note: "Original unit: partition."
       attributes:
         - ref: db.collection.name
         - ref: db.operation.name
@@ -516,7 +517,7 @@ model:
       brief: Number of rows unloaded during data export.
       title: Rows Unloaded
       unit: count
-      note: 'Original unit: row.'
+      note: "Original unit: row."
       attributes:
         - ref: db.collection.name
         - ref: db.operation.name
@@ -536,7 +537,7 @@ model:
       brief: Number of rows updated by the query.
       title: Rows Updated
       unit: count
-      note: 'Original unit: row.'
+      note: "Original unit: row."
       attributes:
         - ref: db.collection.name
         - ref: db.operation.name
@@ -629,7 +630,9 @@ model:
       type: metric
       metric_name: snowflake.time.queued.provisioning
       instrument: gauge
-      brief: Time (in milliseconds) spent in the warehouse queue, waiting for the warehouse compute resources to provision, due to warehouse creation, resume, or resize.
+      brief:
+        Time (in milliseconds) spent in the warehouse queue, waiting for the warehouse compute resources to provision, due to warehouse
+        creation, resume, or resize.
       title: Queued Provisioning Time
       unit: ms
       attributes:

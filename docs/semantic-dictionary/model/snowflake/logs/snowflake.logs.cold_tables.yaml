@@ -4,7 +4,7 @@ model:
   brief: Log records emitted by the DSOA cold_tables plugin.
   model_group_id: snowflake.logs
   data_object: log
-  interfaces: [ i.dsoa_resource ]
+  interfaces: [i.dsoa_resource]
   dql_queries:
     - query_string: |
         fetch logs
@@ -14,7 +14,6 @@ model:
         | limit 100
       description: Fetch the 100 most recent DSOA cold_tables plugin log entries from Grail.
       description_copilot: Search for all cold_tables plugin logs from the Snowflake observability agent.
-      internal: false
     - query_string: |
         fetch logs
         | filter db.system == "snowflake"
@@ -24,7 +23,6 @@ model:
         | limit 50
       description: Fetch the 50 most recent tables classified as COLD by the cold_tables plugin.
       description_copilot: Find Snowflake tables currently classified as cold.
-      internal: false
     - query_string: |
         fetch logs
         | filter db.system == "snowflake"
@@ -35,7 +33,6 @@ model:
         | limit 25
       description: Rank Snowflake tables by how long they have been idle.
       description_copilot: Find the Snowflake tables that have been idle the longest.
-      internal: false
   groups:
     - id: snowflake.logs.cold_tables.fields
       type: attribute_group
