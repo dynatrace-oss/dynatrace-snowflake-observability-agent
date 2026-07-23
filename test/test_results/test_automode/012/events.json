@@ -52,7 +52,6 @@
     "event.type": "ERROR_EVENT",
     "title": "Event sent with test_automode/012",
     "snowflake.status.code": "ERROR",
-    "event.type": "ERROR_EVENT",
     "test.message": "This is a test object 3",
     "value.int": -10,
     "value.str": "error test",
