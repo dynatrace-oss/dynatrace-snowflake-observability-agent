@@ -9,7 +9,7 @@ All notable changes to this project will be documented in this file.
 >
 > Detailed technical changes and implementation notes are available in the [development log](../.context/devlog/).
 
-## [1.0.0] - TBD
+## [1.0.2] - TBD
 
 ### Added
 
@@ -105,7 +105,9 @@ All notable changes to this project will be documented in this file.
   fields reported via `span.events`) that are excluded from the log model, and its DQL examples
   lead with `fetch spans` instead of `fetch logs`.
 
-### Changed
+## [1.0.0] - 2026-07-13
+
+### Added
 
 - **`deployment.environment.name` — new canonical OTel resource attribute**: DSOA now co-emits
   `deployment.environment.name` alongside the existing `deployment.environment` on every metric, log,
@@ -116,12 +118,23 @@ All notable changes to this project will be documented in this file.
   `coalesce(deployment.environment.name, deployment.environment)` for continuity across the
   migration window. No configuration change is required — the value is derived from
   `core.deployment_environment` as before. Note: metric data collected before upgrading to 1.0.0 was written without the `deployment.environment.name` dimension key and will not appear in queries that group or filter by that key — this gap is inherent to write-time co-emission and cannot be backfilled.
+
+- **Post-install verification bizevent**: a full deploy (`--scope=all`), upgrade
+  (`--scope=upgrade`), or API key (re)deploy (`--scope=apikey`, or any scope combo including
+  `apikey`) now ends by sending a `dsoa.installation` bizevent from inside Snowflake via
+  `APP.SEND_TELEMETRY()`, confirming that the configured Dynatrace tenant is actually reachable
+  from Snowflake (not just that the deploy script itself finished). Gated by the existing
+  `plugins.self_monitoring.send_bizevents_on_deploy` config flag; a failure to send never fails
+  the deployment.
+
+### Changed
+
 - **[BREAKING] Multiple field renames across plugins for Semantic Dictionary alignment**:
   Version 1.0.0 renames fields across several areas.
   See [Appendix C](APPENDIX.md#appendix-c-sec).
 
   | Old field                                  | New field                                      |
-  |--------------------------------------------|------------------------------------------------|
+  | ------------------------------------------ | ---------------------------------------------- |
   | `ad.source`                                | `anomaly.detector`                             |
   | `ad.source_metric`                         | `metric.key`                                   |
   | `ad.direction`                             | `anomaly.direction`                            |
@@ -149,52 +162,13 @@ All notable changes to this project will be documented in this file.
   | `status.code`                              | `snowflake.status.code`                        |
   | `status.message`                           | `snowflake.status.message`                     |
 
-- **[BREAKING] `snowflake.warehouse.is_auto_suspend` renamed to `snowflake.warehouse.auto_suspend` and reclassified as a metric**:
-  The field is no longer emitted as a string attribute; it is now a numeric metric with unit `seconds`,
-  carrying the warehouse auto-suspend timeout value directly (e.g., `600`). A value of `null` or `0`
-  indicates auto-suspend is disabled. Run `refactor_field_names.sh` with
-  `appx-f-auto-suspend-refactoring.csv` to update dashboards and workflows. See [Appendix F](APPENDIX.md#appendix-f-sec).
-- **`event_log` plugin — metric rows no longer emit spurious log records**: `process.cpu.utilization`
-  and `process.memory.usage` values were appearing in Grail logs as `kvlist`-typed string attributes
-  because `_process_metric_entries` did not suppress log emission. Fixed by passing `report_logs=False`
-  to `_log_entries` in that context — metrics are still correctly emitted via the metrics path.
-- **`resource_monitors` plugin — compute columns now emit as `double` in logs**: `snowflake.compute.available`,
-  `.other`, `.provisioning`, and `.quiescing` were emitted as string attributes (e.g. `"75"`) in log
-  records because `SHOW WAREHOUSES` returns these columns as `TEXT`. Fixed by wrapping with
-  `TRY_TO_DOUBLE()` in `V_WAREHOUSES`; empty strings (suspended warehouses) become `NULL` and are
-  silently dropped by `OBJECT_CONSTRUCT`, while active warehouses emit true `double` values.
-- **SD export structure updated** to match SD source conventions: fields split into
-  `resource_fields/` (dimensions + resource-override attributes) and `signal_fields/` (attributes + signal-override dimensions) grouped by namespace prefix; metrics use `model:` envelope with
-  `interfaces:` declaration (`i.dsoa_resource`, `i.dsoa_warehouse`, `i.dsoa_database`); event
-  lifecycle models emitted under `model/dsoa/`; enum fields emit `type: {allow_custom_values,
-  members}` instead of `type: string`.
-- Added `__field_type` annotation support to `instruments-def.yml` to override default section
-  classification (e.g. `signal` on a dimension that describes event context, not the resource).
-- Added `__enum` definitions for ~16 categorical fields including warehouse size/type, query
-  execution status, user type, resource monitor level/frequency, DDL operations, and others.
-- **SD export IA fixes**: corrected group ID collisions (`snowflake.warehouse.resource`,
-  `db.resource`), fixed enum loss for 5 fields via union-merge dedup strategy, resolved
-  dimension ownership tracking for cross-plugin dims, removed incorrect `ref:` nodes from field
-  definition files, added `__type: boolean` to all boolean fields and `__type: long` to integer
-  and epoch-nanosecond fields, and annotated generic-named DSOA fields (`error.code`,
-  `status.code`, `status.message`) with `__semdict: new` and divergence notes.
-- **Grail-accurate type annotations**: ISO-8601 timestamp attributes now annotated as `__type:
-  string` (Grail stores them as strings; native timestamp requires OpenPipeline). JSON object
-  fields (`snowflake.query.operator.stats`, `snowflake.object.ddl.properties`, etc.) annotated
-  as `__type: string` with serialized-JSON notes. Array-valued fields (`snowflake.user.roles.direct`,
-  `snowflake.query.operator.parent_ids`, etc.) annotated as `__type: string[]`.
-- **Interface contextual notes**: all 10 `ref:` entries in `i.dsoa_resource` now carry a `note:`
-  explaining the DSOA-specific usage context (e.g. "Always 'snowflake' for all DSOA telemetry.").
-- **SEMANTICS.md enhanced**: documentation tables now include `Note`, `Stability`, and `SD Status`
-  columns sourced from `__semdict_note`, `__stability`, and `__semdict` annotations respectively.
-- **Metric examples normalized**: all `__example` values in `metrics:` sections are now unquoted
-  numeric literals (e.g. `120000` instead of `"120000"`), matching the SD output the exporter emits.
   Additional notes:
-  - `snowflake.resource_monitor.threshold.value` changes type from string to double with a `percent` unit.
-  - `snowflake.warehouses.names` (the attached-warehouse name list) takes over the `snowflake.resource_monitor.warehouses` name; the previous warehouse-count metric of that name becomes `snowflake.resource_monitor.warehouses.count`.
-  - `snowflake.warehouse.auto_suspend` is reclassified from attribute to numeric metric with unit `seconds`; `null` or `0` means auto-suspend is disabled.
-  - The `login_history` plugin changes its `anomaly.detector` value from `snowflake_security` to `dsoa.failed_login_detection`.
-  - For DQL queries filtering on the renamed `ad.*` fields, update field names manually (the script handles attribute keys, not query text).
+
+- `snowflake.resource_monitor.threshold.value` changes type from string to double with a `percent` unit.
+- `snowflake.warehouses.names` (the attached-warehouse name list) takes over the `snowflake.resource_monitor.warehouses` name; the previous warehouse-count metric of that name becomes `snowflake.resource_monitor.warehouses.count`.
+- `snowflake.warehouse.auto_suspend` is reclassified from attribute to numeric metric with unit `seconds`; `null` or `0` means auto-suspend is disabled.
+- The `login_history` plugin changes its `anomaly.detector` value from `snowflake_security` to `dsoa.failed_login_detection`.
+- For DQL queries filtering on the renamed `ad.*` fields, update field names manually (the script handles attribute keys, not query text).
 
 ## [0.9.5] - 2026-06-08
 

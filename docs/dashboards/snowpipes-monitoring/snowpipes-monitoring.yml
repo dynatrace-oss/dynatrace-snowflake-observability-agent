@@ -37,9 +37,9 @@ variables:
       fetch logs
       | filter db.system == "snowflake"
       | filter dsoa.run.plugin == "snowpipes"
-      | fields coalesce(deployment.environment.name, deployment.environment)
-      | dedup coalesce(deployment.environment.name, deployment.environment)
-      | sort coalesce(deployment.environment.name, deployment.environment) asc
+      | fields env_name = coalesce(deployment.environment.name, deployment.environment)
+      | dedup env_name
+      | sort env_name asc
     multiple: true
     defaultValue:
       - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*

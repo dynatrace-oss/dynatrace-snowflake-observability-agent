@@ -20,9 +20,9 @@ dimensions:
     __stability: stable
     __interface_note: "Always 'snowflake' for all DSOA telemetry."
     __semdict_note: >-
-      Defined in the Dynatrace Semantic Dictionary as a global field (db group). DSOA references it via the i.dsoa_resource
-      interface. The value for Snowflake is always 'snowflake'. NOTE: OTel semconv renamed db.system to db.system.name (stable
-      since v1.30). DSOA continues to emit db.system for backward compatibility; migration to db.system.name planned for a future release.
+      Defined in the Dynatrace Semantic Dictionary as a global field (db group). DSOA references it via the i.dsoa_resource interface. The
+      value for Snowflake is always 'snowflake'. NOTE: OTel semconv renamed db.system to db.system.name (stable since v1.30). DSOA continues
+      to emit db.system for backward compatibility; migration to db.system.name planned for a future release.
     __description: "The database management system (DBMS) product being used. It is always 'snowflake'"
     __example: "snowflake"
     __type: string
@@ -37,22 +37,22 @@ dimensions:
       `deployment.environment` for backward compatibility with existing Dynatrace configurations; migration to `deployment.environment.name`
       is deferred pending adoption analysis.
     __description: >-
-      Deprecated alias for deployment.environment.name. The deployment environment,
-      e.g., production, staging, or development. Will be removed in release 1.3.0.
+      Deprecated alias for deployment.environment.name. The deployment environment, e.g., production, staging, or development. Will be
+      removed in release 1.3.0.
     __example: "PROD"
     __type: string
   deployment.environment.name:
     __stability: stable
     __semdict: otel-only
     __semdict_note: >-
-      OTel Semantic Conventions stable canonical name (since v1.26). DSOA co-emits this alongside the deprecated
-      `deployment.environment` during the migration window. Operators should migrate DQL queries to filter by this key.
+      OTel Semantic Conventions stable canonical name (since v1.26). DSOA co-emits this alongside the deprecated `deployment.environment`
+      during the migration window. Operators should migrate DQL queries to filter by this key.
     __interface_note: >-
       User-configured deployment environment label (OTel-stable canonical key), e.g. 'PROD', 'STG', or 'DEV'. Set via
       'core.snowflake.deployment_environment'. Prefer this key over the deprecated deployment.environment alias.
     __description: >-
-      The deployment environment name (OTel semconv canonical field), e.g., production,
-      staging, or development. Emitted alongside deployment.environment during the deprecation window.
+      The deployment environment name (OTel semconv canonical field), e.g., production, staging, or development. Emitted alongside
+      deployment.environment during the deprecation window.
     __example: "PROD"
     __type: string
   deployment.environment.tag:
@@ -136,16 +136,15 @@ attributes:
     __semdict: new
     __type: string
     __description: >-
-      Identifies the DSOA workflow or plugin that detected the anomaly. Values follow the
-      ``dsoa.<workflow_name>`` convention (e.g., ``dsoa.data_volume_anomaly``) except for
-      the failed-login detector which uses ``dsoa.failed_login_detection``.
+      Identifies the DSOA workflow or plugin that detected the anomaly. Values follow the ``dsoa.<workflow_name>`` convention (e.g.,
+      ``dsoa.data_volume_anomaly``) except for the failed-login detector which uses ``dsoa.failed_login_detection``.
     __example: "dsoa.data_volume_anomaly"
   anomaly.direction:
     __semdict: new
     __type: string
     __description: >-
-      Direction of the anomaly relative to the Davis AI baseline: ``above`` when the metric
-      exceeded the upper bound, ``below`` when it dropped under the lower bound.
+      Direction of the anomaly relative to the Davis AI baseline: ``above`` when the metric exceeded the upper bound, ``below`` when it
+      dropped under the lower bound.
     __example: "above"
     __enum:
       allow_custom_values: false
@@ -160,10 +159,9 @@ attributes:
     __semdict: new
     __type: string
     __description: >-
-      High-level category classifying the anomaly subject within its detector. Specific
-      values are defined per workflow (e.g., ``login`` / ``session`` / ``query_count`` /
-      ``data_scan`` for security-anomaly-detection; ``unavailable`` / ``disappeared`` /
-      ``volume_drop`` for shares-broken-detection).
+      High-level category classifying the anomaly subject within its detector. Specific values are defined per workflow (e.g., ``login`` /
+      ``session`` / ``query_count`` / ``data_scan`` for security-anomaly-detection; ``unavailable`` / ``disappeared`` / ``volume_drop`` for
+      shares-broken-detection).
     __example: "login"
     __enum:
       allow_custom_values: true
@@ -193,8 +191,8 @@ attributes:
     __semdict: ref
     __type: string
     __description: >-
-      The Dynatrace metric selector key for the metric that triggered the anomaly event.
-      References an existing metric in the Dynatrace Semantic Dictionary.
+      The Dynatrace metric selector key for the metric that triggered the anomaly event. References an existing metric in the Dynatrace
+      Semantic Dictionary.
     __example: "snowflake.credits.quota.used_pct"
   dsoa.run.id:
     __stability: stable
@@ -241,10 +239,10 @@ metrics:
 # single source of truth for DQL without duplicating query strings.
 model_group_dql:
   snowflake.metrics:
-    - use_plugin_dql: {plugin: metering, context: metrics}
+    - use_plugin_dql: { plugin: metering, context: metrics }
   snowflake.logs:
-    - use_plugin_dql: {plugin: metering, context: logs}
+    - use_plugin_dql: { plugin: metering, context: logs }
   snowflake.events:
-    - use_plugin_dql: {plugin: budgets, context: events}
+    - use_plugin_dql: { plugin: budgets, context: events }
   snowflake.spans:
-    - use_plugin_dql: {plugin: event_log, context: spans}
+    - use_plugin_dql: { plugin: event_log, context: spans }

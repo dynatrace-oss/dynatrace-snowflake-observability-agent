@@ -16,7 +16,7 @@ change. Shipped as part of the 1.0.0 SD-alignment effort tracked in
 ## Renames
 
 | Current                                 | GA                                            | Plugin                                       |
-|-----------------------------------------|-----------------------------------------------|----------------------------------------------|
+| --------------------------------------- | --------------------------------------------- | -------------------------------------------- |
 | `snowflake.warehouse.owner`             | `snowflake.warehouse.owner.name`              | resource_monitors                            |
 | `snowflake.budget.owner`                | `snowflake.budget.owner.name`                 | budgets                                      |
 | `snowflake.task.config`                 | `snowflake.task.config.id`                    | tasks                                        |

@@ -72,6 +72,12 @@ TAG=${TAG:-""}
 echo "Deploying with tag ${TAG}"
 
 #
+# Whether to append the post-install bizevent (build/90_finalize.sql) for scope=all/upgrade,
+# confirming from inside Snowflake that APP.SEND_TELEMETRY() can reach the configured Dynatrace tenant
+#
+SEND_INSTALL_BIZEVENT=$($CWD/get_config_key.sh plugins.self_monitoring.send_bizevents_on_deploy)
+
+#
 # Get custom object names from config
 #
 CUSTOM_DB=$($CWD/get_config_key.sh core.snowflake.database.name)
@@ -808,6 +814,26 @@ if [[ "$SCOPE" == *"admin"* ]] && [[ "$EXCLUDED_OPTIONS" == *"dtagent_admin"* ]]
     exit 1
 fi
 
+# Append the post-install bizevent (build/90_finalize.sql) after everything above — including
+# the apikey/config-refresh block and any disabled-plugin task suspend/cleanup statements — so
+# it is genuinely the last statement executed for scope=all/apikey/upgrade. INCLUDE_APIKEY is
+# true for scope=all, scope=apikey standalone, and any comma-separated scope combo that includes
+# apikey — verifying the token right after it's (re)deployed is exactly when it's most useful.
+# Appended here (not via SQL_FILES) so it still runs through the TAG/identifier substitution
+# pass just below.
+if [ "$SEND_INSTALL_BIZEVENT" == "true" ] && { [ "$INCLUDE_APIKEY" == "true" ] || [ "$HAS_UPGRADE_SCOPE" == "true" ]; }; then
+    if [ ! -f "build/90_finalize.sql" ]; then
+        echo ""
+        echo "ERROR: Build artifacts are missing. Run the following command first:"
+        echo "       ./scripts/dev/build.sh"
+        echo ""
+        echo "Missing files: build/90_finalize.sql"
+        echo ""
+        exit 1
+    fi
+    cat "build/90_finalize.sql" >>"$INSTALL_SCRIPT_SQL"
+fi
+
 #
 #   Cleaning up the final script
 #
@@ -866,7 +892,7 @@ awk '
                 if (t == "") continue
                 ut = toupper(t)
                 if (match(ut, /^USE[[:space:]]+ROLE[[:space:]]+/)) {
-                    val = substr(t, RSTART + RLENGTH)
+                    val = toupper(substr(t, RSTART + RLENGTH))
                     if (val != cur_role) {
                         out = (out == "") ? t ";" : out " " t ";"
                         cur_role = val
@@ -959,6 +985,9 @@ elif [ -n "$TAG" ]; then
     "${SED_INPLACE[@]}" -E -e "s/(^|[^A-Za-z0-9_\$])DTAGENT_WH([^A-Za-z0-9_\$]|$)/\1DTAGENT_${TAG}_WH\2/g" "$INSTALL_SCRIPT_SQL"
     "${SED_INPLACE[@]}" -E -e "s/(^|[^A-Za-z0-9_\$])DTAGENT_RS([^A-Za-z0-9_\$]|$)/\1DTAGENT_${TAG}_RS\2/g" "$INSTALL_SCRIPT_SQL"
 fi
+
+# Fill in the deploy scope for the post-install bizevent (build/90_finalize.sql), if present
+"${SED_INPLACE[@]}" -E -e "s/__DSOA_DEPLOY_SCOPE__/${SCOPE}/g" "$INSTALL_SCRIPT_SQL"
 
 # Remove double newlines from the deployment script
 "${SED_INPLACE[@]}" '/^$/N;/^\n$/d' "$INSTALL_SCRIPT_SQL"

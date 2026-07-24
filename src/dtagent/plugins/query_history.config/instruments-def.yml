@@ -92,14 +92,14 @@ attributes:
     __description: Internal debug field indicating the number of span events that failed to be added to the given span.
     __span_only: true
   dsoa.plugins.query_history.obfuscation_mode:
-    __stability: stable
-    __example: "none"
+    __stability: experimental
+    __example: "off"
     __type: string
     __enum:
       allow_custom_values: false
       members:
-        - id: "none"
-          value: "none"
+        - id: "off"
+          value: "off"
           brief: No obfuscation applied.
         - id: "literals"
           value: "literals"
@@ -107,10 +107,14 @@ attributes:
         - id: "full"
           value: "full"
           brief: Entire query text is replaced with `[OBFUSCATED]`.
+    __is_defined_at_runtime: true
     __description: |
       Configuration key controlling query text obfuscation mode applied to `db.query.text` and `snowflake.error.message`.
       Possible values: `none` (no transformation), `literals` (replace string and numeric literals with `?`),
       `full` (replace entire query text with `[OBFUSCATED]`).
+    __semdict_note: |
+      Note: this is the SD-catalog attribute name; the actual config path read at runtime is
+      `plugins.query_history.obfuscation_mode` (no `dsoa.` prefix) — see `050_f_get_query_history.sql`.
   dsoa.plugins.query_history.track_ddl_changes:
     __stability: experimental
     __type: boolean
@@ -126,6 +130,10 @@ attributes:
       `db.operation.name` for warehouse change detection. Default `false` preserves
       backward-compatible behavior. May be refactored into a dedicated plugin in a future
       release.
+    __semdict_note: |
+      Note: this is the SD-catalog attribute name; the actual config path is
+      `plugins.query_history.track_ddl_changes` (no `dsoa.` prefix). Not currently wired up
+      to any reader in code — setting this has no runtime effect yet.
   snowflake.object.type:
     __type: string
     __stability: stable
@@ -363,9 +371,15 @@ attributes:
     __example:
       '{ "overall_percentage": 50.0,"initialization": 0.5,"processing": 4.0,"synchronization": 0.5,"local_disk_io": 0.2,"remote_disk_io":
       0.1,"network_communication": 0.2 }'
-    __description: >-
-      Serialized JSON object with the breakdown of the execution time of the operator. Keys: overall_percentage (total query time %),
-      initialization, processing, synchronization, local_disk_io, remote_disk_io, network_communication (each in milliseconds).
+    __description: |
+      The breakdown of the execution time of the operator:
+      - **overall_percentage**: The percentage of the total query time spent by this operator,
+      - **initialization**: Time spent setting up query processing,
+      - **processing**: Time spent processing the data by the CPU,
+      - **synchronization**: Time spent synchronizing activities between participating processes,
+      - **local_disk_io**: Time during which processing was blocked while waiting for local disk access,
+      - **remote_disk_io**: Time during which processing was blocked while waiting for remote disk access,
+      - **network_communication**: Time during which processing was waiting for network data transfer.
     __span_only: true
   snowflake.query.step.operator.type:
     __type: string

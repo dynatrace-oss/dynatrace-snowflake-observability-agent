@@ -125,10 +125,14 @@ attributes:
   snowflake.resource_monitor.threshold.value:
     __type: double
     __is_defined_at_runtime: true
+    __unit: "%"
     __example: 80
     __description: >-
-      The configured threshold percentage at which this crossing event was triggered (e.g., 80 means the 80% threshold was crossed).
-      Distinct from snowflake.credits.quota.used_pct, which captures live consumption at emit time.
+      Alert band the resource monitor's credit usage fell into when the event was emitted: one of ``info``, ``warn``, ``critical``, or
+      ``exhausted`` (increasing severity). The percentage boundaries for each band are configurable via
+      ``plugins.resource_monitors.credits_quota_thresholds`` (default ``[50, 80, 90, 100]``); the specific crossed percentage is reported in
+      ``snowflake.resource_monitor.threshold.value``. The configured threshold percentage at which this crossing event was triggered (e.g.,
+      80 means the 80% threshold was crossed). Distinct from snowflake.credits.quota.used_pct, which captures live consumption at emit time.
   snowflake.warehouse.event.trigger:
     __type: string
     __is_defined_at_runtime: true

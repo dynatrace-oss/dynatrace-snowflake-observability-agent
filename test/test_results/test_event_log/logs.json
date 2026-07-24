@@ -114,7 +114,6 @@
     "severity_text": "INFO",
     "snowflake.event.scope.name": "DTAGENT_OTLP",
     "record_type": "LOG",
-    "dsoa.run.context": "event_log",
     "dsoa.run.plugin": "test_event_log",
     "resource_attributes": {
       "db.system": "snowflake",

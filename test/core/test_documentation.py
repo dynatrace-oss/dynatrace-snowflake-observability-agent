@@ -23,10 +23,13 @@
 #
 #
 
+"""Tests verifying that plugin telemetry semantics are fully documented and vice versa."""
+
 from typing import Dict, List
 
 
 class TestDocumentation:
+    """Checks that instruments-def.yml documentation matches attributes/dimensions/metrics found in SQL views."""
 
     def _aggregate_data(self, data: List[Dict]) -> List[Dict]:
         """Aggregates given list of objects by 'name' and 'type' keys,
@@ -67,6 +70,7 @@ class TestDocumentation:
         return result
 
     def test_check_missing_file(self):
+        """Every non-empty plugin config directory must have info.md, instruments-def.yml, and bom.yml."""
         import glob
         import os
 
@@ -80,6 +84,7 @@ class TestDocumentation:
                 assert os.path.getsize(full_path), f"Documentation file {full_path} seems to be empty"
 
     def test_matching_documentation(self):
+        """SQL-emitted semantics must all be documented, and documented semantics must all appear in SQL."""
         from test.list_semantics import list_semantics
         from dtagent import context
         from dtagent.config import Configuration

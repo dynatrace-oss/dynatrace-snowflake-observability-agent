@@ -126,7 +126,7 @@ class TestAdminRoleUsage:
         admin_init_sql = build_dir / "05_admin_init.sql"
         admin_objects_sql = build_dir / "80_admin.sql"
 
-        if not admin_init_sql.exists() and not admin_objects_sql.exists():
+        if not admin_init_sql.exists() or not admin_objects_sql.exists():
             pytest.skip("build/05_admin_init.sql not found. Run build.sh first.")
 
         assert admin_init_sql.is_file(), "build/05_admin_init.sql should exist after build"

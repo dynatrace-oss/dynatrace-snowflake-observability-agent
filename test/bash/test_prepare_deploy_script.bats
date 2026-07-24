@@ -131,9 +131,34 @@ EOSQL
 
 teardown() {
     rm -f "$TEST_CONFIG_FILE" "$TEST_SQL_FILE"
-    rm -f build/001_test.sql build/00_init.sql build/05_admin_init.sql build/80_admin.sql build/20_setup.sql build/40_config.sql build/70_agents.sql
+    rm -f build/001_test.sql build/00_init.sql build/05_admin_init.sql build/80_admin.sql build/20_setup.sql build/40_config.sql build/70_agents.sql build/90_finalize.sql
     rm -rf build/09_upgrade build/30_plugins
     unset BUILD_CONFIG_FILE
+}
+
+# Config fixture with the install-bizevent flag enabled, otherwise identical to the default fixture
+enable_install_bizevent_config() {
+    cat > "$TEST_CONFIG_FILE" << 'EOF'
+[
+  {
+    "PATH": "core.tag",
+    "TYPE": "str",
+    "VALUE": "TEST"
+  },
+  {
+    "PATH": "plugins.self_monitoring.send_bizevents_on_deploy",
+    "TYPE": "bool",
+    "VALUE": true
+  }
+]
+EOF
+    export BUILD_CONFIG_FILE="$TEST_CONFIG_FILE"
+}
+
+# Returns the last non-blank line of a file, matching how the generated deploy script's
+# actual last executed statement would appear once trailing blank lines are ignored.
+last_non_blank_line() {
+    grep -v '^[[:space:]]*$' "$1" | tail -n 1
 }
 
 @test "prepare_deploy_script.sh runs with manual param" {
@@ -503,4 +528,88 @@ EOF
     run ! grep -q "test_plugin_agent" "$TEST_SQL_FILE"
     run ! grep -q "class TestPlugin" "$TEST_SQL_FILE"
 
+}
+
+@test "prepare_deploy_script.sh sends install bizevent as the last statement for all scope when enabled" {
+    enable_install_bizevent_config
+    echo "call DTAGENT_DB.APP.SEND_TELEMETRY(OBJECT_CONSTRUCT('event.type', 'dsoa.installation'), OBJECT_CONSTRUCT());" > build/90_finalize.sql
+    export DTAGENT_TOKEN="dt0c01.TEST12345678901234567890.TEST123456789012345678901234567890123456789012345678901234567890"
+
+    run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "all" "" "manual"
+    [ "$status" -eq 0 ]
+
+    grep -q "dsoa.installation" "$TEST_SQL_FILE"
+    [[ "$(last_non_blank_line "$TEST_SQL_FILE")" == *"dsoa.installation"* ]]
+}
+
+@test "prepare_deploy_script.sh sends install bizevent as the last statement for upgrade scope when enabled" {
+    enable_install_bizevent_config
+    echo "call DTAGENT_DB.APP.SEND_TELEMETRY(OBJECT_CONSTRUCT('event.type', 'dsoa.installation'), OBJECT_CONSTRUCT());" > build/90_finalize.sql
+    export DTAGENT_TOKEN="dt0c01.TEST12345678901234567890.TEST123456789012345678901234567890123456789012345678901234567890"
+
+    run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "upgrade" "0.9.2" "manual"
+    [ "$status" -eq 0 ]
+
+    # Should still include the filtered upgrade files, with the bizevent after all of them
+    grep -q "upgrade 0.9.3" "$TEST_SQL_FILE"
+    grep -q "upgrade 1.0.0" "$TEST_SQL_FILE"
+    grep -q "dsoa.installation" "$TEST_SQL_FILE"
+    [[ "$(last_non_blank_line "$TEST_SQL_FILE")" == *"dsoa.installation"* ]]
+}
+
+@test "prepare_deploy_script.sh substitutes the deploy scope into the install bizevent payload" {
+    enable_install_bizevent_config
+    echo "call DTAGENT_DB.APP.SEND_TELEMETRY(OBJECT_CONSTRUCT('dsoa.deployment.parameter', '__DSOA_DEPLOY_SCOPE__'), OBJECT_CONSTRUCT());" > build/90_finalize.sql
+    export DTAGENT_TOKEN="dt0c01.TEST12345678901234567890.TEST123456789012345678901234567890123456789012345678901234567890"
+
+    run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "all" "" "manual"
+    [ "$status" -eq 0 ]
+
+    grep -q "'dsoa.deployment.parameter', 'all'" "$TEST_SQL_FILE"
+    run ! grep -q "__DSOA_DEPLOY_SCOPE__" "$TEST_SQL_FILE"
+}
+
+@test "prepare_deploy_script.sh omits install bizevent when send_bizevents_on_deploy is not enabled" {
+    # Default fixture config has no plugins.self_monitoring.send_bizevents_on_deploy key
+    export DTAGENT_TOKEN="dt0c01.TEST12345678901234567890.TEST123456789012345678901234567890123456789012345678901234567890"
+
+    run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "all" "" "manual"
+    [ "$status" -eq 0 ]
+
+    run ! grep -q "dsoa.installation" "$TEST_SQL_FILE"
+}
+
+@test "prepare_deploy_script.sh omits install bizevent for partial scopes even when enabled" {
+    enable_install_bizevent_config
+    echo "call DTAGENT_DB.APP.SEND_TELEMETRY(OBJECT_CONSTRUCT('event.type', 'dsoa.installation'), OBJECT_CONSTRUCT());" > build/90_finalize.sql
+    export DTAGENT_TOKEN="dt0c01.TEST12345678901234567890.TEST123456789012345678901234567890123456789012345678901234567890"
+
+    run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "config" "" "manual"
+    [ "$status" -eq 0 ]
+
+    run ! grep -q "dsoa.installation" "$TEST_SQL_FILE"
+}
+
+@test "prepare_deploy_script.sh sends install bizevent as the last statement for standalone apikey scope when enabled" {
+    enable_install_bizevent_config
+    echo "call DTAGENT_DB.APP.SEND_TELEMETRY(OBJECT_CONSTRUCT('event.type', 'dsoa.installation'), OBJECT_CONSTRUCT());" > build/90_finalize.sql
+    export DTAGENT_TOKEN="dt0c01.TEST12345678901234567890.TEST123456789012345678901234567890123456789012345678901234567890"
+
+    run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "apikey" "" "manual"
+    [ "$status" -eq 0 ]
+
+    grep -q "dsoa.installation" "$TEST_SQL_FILE"
+    [[ "$(last_non_blank_line "$TEST_SQL_FILE")" == *"dsoa.installation"* ]]
+}
+
+@test "prepare_deploy_script.sh sends install bizevent as the last statement for a scope combo including apikey" {
+    enable_install_bizevent_config
+    echo "call DTAGENT_DB.APP.SEND_TELEMETRY(OBJECT_CONSTRUCT('event.type', 'dsoa.installation'), OBJECT_CONSTRUCT());" > build/90_finalize.sql
+    export DTAGENT_TOKEN="dt0c01.TEST12345678901234567890.TEST123456789012345678901234567890123456789012345678901234567890"
+
+    run timeout 30 ./scripts/deploy/prepare_deploy_script.sh "$TEST_SQL_FILE" "test" "setup,apikey,config" "" "manual"
+    [ "$status" -eq 0 ]
+
+    grep -q "dsoa.installation" "$TEST_SQL_FILE"
+    [[ "$(last_non_blank_line "$TEST_SQL_FILE")" == *"dsoa.installation"* ]]
 }

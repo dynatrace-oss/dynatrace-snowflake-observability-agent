@@ -23,6 +23,9 @@ test/test_data/*.pkl
 *.token
 *credentials*.*
 .env
+*.p8
+*.pem
+*.pub
 
 # === Logs ===
 log.*
