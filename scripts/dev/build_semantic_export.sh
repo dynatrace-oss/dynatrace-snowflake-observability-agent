@@ -311,10 +311,17 @@ run_sanity_checks() {
             -o -path "source/fields/resource_fields/dsoa.yaml" \
             -o -path "source/fields/resource_fields/snowflake_resource.yaml" \
             -o -path "source/model/snowflake/*.yaml" \
+            -o -path "source/model/snowflake/logs/*.yaml" \
+            -o -path "source/model/snowflake/spans/*.yaml" \
+            -o -path "source/model/snowflake/events/*.yaml" \
             -o -path "source/model/snowflake/**/*.yaml" \
             -o -path "source/metrics/snowflake_*.yaml" \
             -o -path "source/metrics/interfaces_dsoa.yaml" \
             -o -path "source/metrics/interfaces_snowflake.yaml" \
+            -o -path "source/fields/signal_fields/authentication.yaml" \
+            -o -path "source/fields/signal_fields/client.yaml" \
+            -o -path "source/fields/signal_fields/db.yaml" \
+            -o -path "source/fields/signal_fields/event.yaml" \
         \) -name "*.yaml" | sort)
 
     if [[ "${#dsoa_files[@]}" -eq 0 ]]; then
