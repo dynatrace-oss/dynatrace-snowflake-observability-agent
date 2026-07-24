@@ -27,6 +27,9 @@ All notable changes to this project will be documented in this file.
 
 - **DQL example queries**: removed invalid `db.system` filter from `timeseries` queries; migrated
   group-by and filter expressions to `deployment.environment.name`.
+- **`plugins.query_history.obfuscation_mode` default value renamed**: the `off` value (no obfuscation)
+  is now `none`. Update any explicit `obfuscation_mode: off` configuration entries to `obfuscation_mode: none`;
+  the `literals` and `full` values are unchanged.
 
 ## [1.0.0] - 2026-07-13
 

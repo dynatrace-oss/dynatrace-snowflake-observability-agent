@@ -163,7 +163,7 @@ BEGIN
                                                            qh.query_text,
                                                            config.f_get_config_value(
                                                                'dsoa.plugins.query_history.obfuscation_mode',
-                                                               to_variant('off'))),
+                                                               to_variant('none'))),
                     'db.snowflake.tables',             ah.query_tables,
                     'db.snowflake.views',              ah.query_views,
                     'snowflake.session.id',            TO_VARCHAR(qh.session_id),
@@ -187,7 +187,7 @@ BEGIN
                                                            qh.error_message,
                                                            config.f_get_config_value(
                                                                'dsoa.plugins.query_history.obfuscation_mode',
-                                                               to_variant('off'))),
+                                                               to_variant('none'))),
                     'snowflake.session.start',         EXTRACT(EPOCH_NANOSECOND FROM s.created_on::TIMESTAMP_LTZ),
                     'snowflake.session.closed_reason', s.closed_reason,
                     'snowflake.query.retry_cause',     qh.query_retry_cause,
@@ -455,7 +455,7 @@ BEGIN
                                                            qh.query_text,
                                                            config.f_get_config_value(
                                                                'dsoa.plugins.query_history.obfuscation_mode',
-                                                               to_variant('off'))),
+                                                               to_variant('none'))),
                     'db.snowflake.tables',             ah.query_tables,
                     'db.snowflake.views',              ah.query_views,
                     'snowflake.session.id',            TO_VARCHAR(qh.session_id),
@@ -479,7 +479,7 @@ BEGIN
                                                            qh.error_message,
                                                            config.f_get_config_value(
                                                                'dsoa.plugins.query_history.obfuscation_mode',
-                                                               to_variant('off'))),
+                                                               to_variant('none'))),
                     'snowflake.session.start',         EXTRACT(EPOCH_NANOSECOND FROM s.created_on::TIMESTAMP_LTZ),
                     'snowflake.session.closed_reason', s.closed_reason,
                     'snowflake.query.retry_cause',     qh.query_retry_cause,

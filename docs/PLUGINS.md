@@ -1385,10 +1385,10 @@ The plugin supports signal protection to prevent overload on high-volume Snowfla
 
 - `plugins.query_history.obfuscation_mode`: Controls query text obfuscation before data is sent to Dynatrace. Applies to `db.query.text` on
   spans and `snowflake.error.message` on failed queries. Valid values:
-  - `off` (default) — no obfuscation, full query text is forwarded unchanged.
+  - `none` (default) — no obfuscation, full query text is forwarded unchanged.
   - `literals` — replaces single-quoted string literals and standalone numeric literals with `?`. SQL structure and identifiers are
     preserved.
-  - `full` — replaces the entire query text (and error message) with `[OBFUSCATED]`. Invalid values fall back to `off`.
+  - `full` — replaces the entire query text (and error message) with `[OBFUSCATED]`. Invalid values fall back to `none`.
 
 ### Query History bill of materials
 

@@ -110,7 +110,7 @@ tiles:
 
       Uses `query_history` logs filtered by `db.operation.name` for warehouse DDL operations. Use the **Operation** and **Actor** variables to narrow the view.
 
-      > **Tip:** Enable `plugins.query_history.obfuscation_mode: "off"` if you need full SQL text visibility for change auditing.
+      > **Tip:** Enable `plugins.query_history.obfuscation_mode: "none"` if you need full SQL text visibility for change auditing.
     davis:
       componentState:
         inputData: null

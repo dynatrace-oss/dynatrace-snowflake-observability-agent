@@ -93,13 +93,13 @@ attributes:
     __span_only: true
   dsoa.plugins.query_history.obfuscation_mode:
     __stability: experimental
-    __example: "off"
+    __example: "none"
     __type: string
     __enum:
       allow_custom_values: false
       members:
-        - id: "off"
-          value: "off"
+        - id: "none"
+          value: "none"
           brief: No obfuscation applied.
         - id: "literals"
           value: "literals"
