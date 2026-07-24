@@ -1,0 +1,141 @@
+[
+  {
+    "content": "New Warehouse Event History entry at DTAGENT_WH",
+    "db.user": "TEST.USER",
+    "snowflake.warehouse.id": 12345,
+    "snowflake.warehouse.cluster.number": 1,
+    "snowflake.warehouse.event.reason": "QUERY",
+    "snowflake.role.name": "DTAGENT_VIEWER",
+    "snowflake.query.id": "01bb391a-b277-4d00-0000-000000000010",
+    "snowflake.warehouse.size": "X-Small",
+    "snowflake.warehouse.clusters.count": 1,
+    "snowflake.warehouse.name": "DTAGENT_WH",
+    "snowflake.warehouse.event.name": "RESUME_WAREHOUSE",
+    "snowflake.warehouse.event.state": "STARTED",
+    "dsoa.run.plugin": "test_warehouse_usage",
+    "dsoa.run.context": "warehouse_usage",
+    "resource_attributes": {
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "deployment.environment.name": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent"
+    }
+  },
+  {
+    "content": "New Warehouse Event History entry at DTAGENT_WH_XS",
+    "db.user": "SNOWAGENT_ADMIN",
+    "snowflake.warehouse.id": 67890,
+    "snowflake.warehouse.cluster.number": 1,
+    "snowflake.warehouse.event.reason": "AUTO_SUSPEND",
+    "snowflake.role.name": "DTAGENT_OWNER",
+    "snowflake.warehouse.size": "X-Small",
+    "snowflake.warehouse.clusters.count": 1,
+    "snowflake.warehouse.name": "DTAGENT_WH_XS",
+    "snowflake.warehouse.event.name": "SUSPEND_WAREHOUSE",
+    "snowflake.warehouse.event.state": "COMPLETED",
+    "dsoa.run.plugin": "test_warehouse_usage",
+    "dsoa.run.context": "warehouse_usage",
+    "resource_attributes": {
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "deployment.environment.name": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent"
+    }
+  },
+  {
+    "content": "New Warehouse Load History entry at DTAGENT_WH",
+    "snowflake.load.running": 2.5,
+    "snowflake.load.queued.overloaded": 0.3,
+    "snowflake.load.queued.provisioning": 0.0,
+    "snowflake.load.blocked": 0.1,
+    "snowflake.warehouse.id": 12345,
+    "snowflake.warehouse.name": "DTAGENT_WH",
+    "dsoa.run.plugin": "test_warehouse_usage",
+    "dsoa.run.context": "warehouse_usage_load",
+    "resource_attributes": {
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "deployment.environment.name": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent"
+    }
+  },
+  {
+    "content": "New Warehouse Load History entry at DTAGENT_WH_XS",
+    "snowflake.load.running": 0.0,
+    "snowflake.load.queued.overloaded": 0.0,
+    "snowflake.load.queued.provisioning": 0.0,
+    "snowflake.load.blocked": 0.0,
+    "snowflake.warehouse.id": 67890,
+    "snowflake.warehouse.name": "DTAGENT_WH_XS",
+    "dsoa.run.plugin": "test_warehouse_usage",
+    "dsoa.run.context": "warehouse_usage_load",
+    "resource_attributes": {
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "deployment.environment.name": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent"
+    }
+  },
+  {
+    "content": "New Warehouse Metering History entry at DTAGENT_WH",
+    "snowflake.credits.used": 1.2,
+    "snowflake.credits.compute": 1.1,
+    "snowflake.credits.cloud_services": 0.1,
+    "snowflake.warehouse.id": 12345,
+    "snowflake.warehouse.name": "DTAGENT_WH",
+    "dsoa.run.plugin": "test_warehouse_usage",
+    "dsoa.run.context": "warehouse_usage_metering",
+    "resource_attributes": {
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "deployment.environment.name": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent"
+    }
+  },
+  {
+    "content": "New Warehouse Metering History entry at DTAGENT_WH_XS",
+    "snowflake.credits.used": 0.5,
+    "snowflake.credits.compute": 0.5,
+    "snowflake.credits.cloud_services": 0.0,
+    "snowflake.warehouse.id": 67890,
+    "snowflake.warehouse.name": "DTAGENT_WH_XS",
+    "dsoa.run.plugin": "test_warehouse_usage",
+    "dsoa.run.context": "warehouse_usage_metering",
+    "resource_attributes": {
+      "telemetry.sdk.language": "python",
+      "telemetry.sdk.name": "opentelemetry",
+      "telemetry.sdk.version": "1.39.1",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "deployment.environment.name": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent"
+    }
+  }
+]
