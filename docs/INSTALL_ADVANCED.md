@@ -161,6 +161,18 @@ This gives DBAs full control over object naming before DSOA touches anything.
 
 By default, DSOA creates Snowflake objects with these names:
 
+> [!CAUTION]
+> **Setting any custom name disables TAG-based suffixing for ALL Snowflake objects.**
+> If you configure even one custom name, the `core.tag` value is no longer used to suffix object
+> names — it will only appear as `deployment.environment.tag` in telemetry.
+>
+> You should specify custom names for **all** configurable objects together. Providing a custom name
+> for only some objects (e.g., the warehouse but not the database or roles) results in a mixed
+> deployment where some objects use your custom name and others fall back to `DTAGENT_*` defaults.
+>
+> See [TAG and Custom Names Interaction](#tag-and-custom-names-interaction) for the full behavior
+> table.
+
 | Object           | Default Name              |
 |------------------|---------------------------|
 | Database         | `DTAGENT_DB`              |
@@ -200,6 +212,18 @@ Configure custom names under `core.snowflake.*` in your config file. Set any opt
 > **To change quota safely:** Either update `core.snowflake.resource_monitor.credit_quota` in
 > your config YAML and redeploy with `scope=config`, or switch to the DTAGENT_OWNER role in the
 > Snowflake UI before modifying the monitor.
+
+### Internally managed objects
+
+Two Snowflake objects are always created and named by DSOA internally and are not configurable:
+
+| Object           | Default name           | Notes                                                                                                                  |
+|------------------|------------------------|------------------------------------------------------------------------------------------------------------------------|
+| Snowflake secret | `DTAGENT_API_KEY`      | Stores the Dynatrace API token; lives inside the database schema. Renamed by TAG but not by custom names.              |
+| Network rule     | `DTAGENT_NETWORK_RULE` | Allows outbound HTTPS to Dynatrace; lives inside the database schema. Name is fixed regardless of TAG or custom names. |
+
+These objects are scoped to the database schema (`<DB>.CONFIG.<NAME>`), so they are isolated per
+database and do not conflict between DSOA instances even when the database is renamed.
 
 ### Example: Full Custom Names
 
@@ -302,6 +326,22 @@ snow connection list | grep -q "$EXPECTED" && echo "OK" || echo "MISSING: $EXPEC
 Deploy multiple DSOA instances on the same Snowflake account to send telemetry to one or more
 Dynatrace tenants. Each instance needs a unique `deployment_environment` and unique Snowflake
 object names (via `tag` or custom names).
+
+### What is TAG?
+
+`TAG` is an identifier that DSOA appends to all Snowflake object names when multiple DSOA instances
+are deployed on the same Snowflake account. Setting `core.tag: TNA` in your config produces objects
+named `DTAGENT_TNA_DB`, `DTAGENT_TNA_WH`, `DTAGENT_TNA_OWNER`, and so on — preventing name
+collisions between instances.
+
+`core.tag` serves two independent purposes:
+
+1. **Object naming suffix** — applied during deployment to all Snowflake objects listed in
+   [TAG-suffixed objects](#using-tag-simpler). This is suppressed when any custom object name is
+   configured (see [Custom Object Names](#custom-object-names)).
+2. **Telemetry attribute** — emitted as `deployment.environment.tag` on all telemetry, enabling
+   per-instance filtering in Dynatrace. This is always emitted when `core.tag` is set, regardless
+   of whether custom names are used.
 
 ### Using TAG (Simpler)
 

@@ -53,7 +53,7 @@ setup() {
     # sourcing the wizard and calling the function directly with known variables.
     local test_dir
     test_dir=$(mktemp -d)
-    cd "$test_dir"
+    pushd "$test_dir" > /dev/null
     mkdir -p conf
 
     # Source the wizard (which also sources lib.sh)
@@ -103,7 +103,7 @@ setup() {
     snowflake_count=$(grep -c "^  snowflake:" "$config_file" || true)
     [ "$snowflake_count" -le 1 ]
 
-    cd - > /dev/null
+    popd > /dev/null
     rm -rf "$test_dir"
 }
 
@@ -111,7 +111,7 @@ setup() {
     # Create a temporary directory for test
     local test_dir
     test_dir=$(mktemp -d)
-    cd "$test_dir"
+    pushd "$test_dir" > /dev/null
     mkdir -p conf
 
     # Create a simple test that just checks the config generation function
@@ -164,7 +164,7 @@ EOFYAML
     grep -q "deployment_environment" "$config_file"
     grep -q "test.live.dynatrace.com" "$config_file"
 
-    cd - > /dev/null
+    popd > /dev/null
     rm -rf "$test_dir"
 }
 

@@ -100,7 +100,7 @@ teardown() {
 @test "deploy.sh --defaults creates minimal config" {
     local test_dir
     test_dir=$(mktemp -d)
-    cd "$test_dir"
+    pushd "$test_dir" > /dev/null
 
     mkdir -p conf build/09_upgrade build/30_plugins
     echo "SELECT 'init';" > build/00_init.sql
@@ -123,7 +123,7 @@ teardown() {
     grep -q "snowflake" "conf/config-test-defaults.yml"
     grep -q "deployment_environment" "conf/config-test-defaults.yml"
 
-    cd - > /dev/null
+    popd > /dev/null
     rm -rf "$test_dir"
 }
 
@@ -140,7 +140,7 @@ teardown() {
 @test "deploy.sh: missing config + non-TTY stdin prints actionable error" {
     local test_dir
     test_dir=$(mktemp -d)
-    cd "$test_dir"
+    pushd "$test_dir" > /dev/null
     mkdir -p build/09_upgrade build/30_plugins
     echo "SELECT 'init';" > build/00_init.sql
 
@@ -150,14 +150,14 @@ teardown() {
     [[ "$output" == *"stdin is not a TTY"* ]]
     [[ "$output" == *"docker run -it"* ]]
 
-    cd - > /dev/null
+    popd > /dev/null
     rm -rf "$test_dir"
 }
 
 @test "deploy.sh: missing config + non-TTY error does not say Wizard cancelled" {
     local test_dir
     test_dir=$(mktemp -d)
-    cd "$test_dir"
+    pushd "$test_dir" > /dev/null
     mkdir -p build/09_upgrade build/30_plugins
     echo "SELECT 'init';" > build/00_init.sql
 
@@ -165,14 +165,14 @@ teardown() {
     [ "$status" -ne 0 ]
     [[ "$output" != *"Wizard cancelled"* ]]
 
-    cd - > /dev/null
+    popd > /dev/null
     rm -rf "$test_dir"
 }
 
 @test "deploy.sh: --interactive flag + non-TTY stdin prints actionable error" {
     local test_dir
     test_dir=$(mktemp -d)
-    cd "$test_dir"
+    pushd "$test_dir" > /dev/null
     mkdir -p conf build/09_upgrade build/30_plugins
     echo "SELECT 'init';" > build/00_init.sql
     # Config exists so auto-trigger won't fire — but --interactive is explicit
@@ -188,7 +188,7 @@ EOF
     [ "$status" -ne 0 ]
     [[ "$output" == *"Interactive mode requires a TTY"* ]]
 
-    cd - > /dev/null
+    popd > /dev/null
     rm -rf "$test_dir"
 }
 

@@ -4,7 +4,7 @@ setup() {
     CWD="$(pwd)"
     TEST_DIR="$(mktemp -d)"
     cp test/bash/test_object.json "$TEST_DIR"
-    cd "$TEST_DIR" || exit 1
+    pushd "$TEST_DIR" > /dev/null || exit 1
     git init
     git config init.defaultBranch main
     git config user.name "Test User"
@@ -14,12 +14,11 @@ setup() {
 }
 
 teardown() {
-    cd /
+    popd > /dev/null
     rm -rf "$TEST_DIR"
 }
 
 @test "convert and git mv object JSON" {
-    cd "$TEST_DIR"
     run "$CWD/scripts/tools/config_to_yaml.sh" "$TEST_DIR/test_object.json"
     if [ "$status" -ne 0 ]; then
         echo "build.sh failed with status $status"
