@@ -154,6 +154,6 @@ BUILD=$(grep 'BUILD =' build/_version.py | awk '{print $3}')
 
 pushd package > /dev/null || exit 1
 zip -r -1 "../dynatrace_snowflake_observability_agent-$VERSION.$BUILD.zip" * -x .gitkeep
-popd > /dev/null
+popd > /dev/null || exit
 
 echo -e "\n-\n-\nDynatrace Snowflake Observability Agent package version $VERSION.$BUILD prepared\n-\n-\n"

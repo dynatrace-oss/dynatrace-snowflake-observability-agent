@@ -14,7 +14,7 @@ setup() {
 }
 
 teardown() {
-    popd > /dev/null
+    popd > /dev/null || exit
     rm -rf "$TEST_DIR"
 }
 
