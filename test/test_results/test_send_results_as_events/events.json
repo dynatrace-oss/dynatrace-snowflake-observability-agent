@@ -1,6 +1,6 @@
 [
   {
-    "eventType": "CUSTOM_INFO",
+    "event.type": "CUSTOM_INFO",
     "title": "Test event for Data Volume",
     "snowflake.table.update": 1736851468626000000,
     "snowflake.data.rows": 6,
@@ -19,7 +19,7 @@
     "deployment.environment.name": "TEST"
   },
   {
-    "eventType": "CUSTOM_INFO",
+    "event.type": "CUSTOM_INFO",
     "title": "Test event for Data Volume",
     "snowflake.table.ddl": 1733122324468000000,
     "snowflake.table.update": 1741707972204000000,

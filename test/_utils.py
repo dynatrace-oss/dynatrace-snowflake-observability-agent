@@ -142,7 +142,13 @@ def _generate_all_fixtures(session: snowpark.Session, fixtures: dict, force: boo
 
 
 def _logging_findings(
-    session: snowpark.Session, dtagent, log_tag: str, log_level: logging, show_detailed_logs: bool, disabled_telemetry: List[str] = None
+    session: snowpark.Session,
+    dtagent,
+    log_tag: str,
+    log_level: logging,
+    show_detailed_logs: bool,
+    disabled_telemetry: List[str] = None,
+    skip_content_check: List[str] = None,
 ) -> Dict[str, Dict[str, int]]:
     from test import is_local_testing
 
@@ -158,7 +164,7 @@ def _logging_findings(
 
         print(LOG.getEffectiveLevel())
 
-    results = dtagent.process([str(log_tag)], False, disabled_telemetry=disabled_telemetry)
+    results = dtagent.process([str(log_tag)], False, disabled_telemetry=disabled_telemetry, skip_content_check=skip_content_check)
     dtagent.teardown()
     session.close()
 
@@ -339,6 +345,7 @@ def execute_telemetry_test(
     test_name: str,
     affecting_types_for_entries: List[str] = None,
     config: TestConfiguration = None,
+    skip_content_check: List[str] = None,
 ):
     """Generalized test function for telemetry plugins.
 
@@ -350,6 +357,10 @@ def execute_telemetry_test(
         base_count: Base count for expectations for each telemetry type
         affecting_types_for_entries: Telemetry types that affect entries count
         metrics_at_least: Whether metrics should be at least or exactly the expected
+        skip_content_check: Telemetry types to count-check but not content-diff against the
+            expected fixture. Use when conditional routing makes a still-enabled channel's
+            content legitimately differ from the fixture recorded for other combinations
+            (e.g. rows falling back to logs when events are disabled elsewhere).
     """
     from test import _get_session
     from dtagent.context import RUN_ID_KEY, RUN_RESULTS_KEY
@@ -369,6 +380,7 @@ def execute_telemetry_test(
         logging.INFO,
         False,
         disabled_telemetry,
+        skip_content_check=skip_content_check,
     )
 
     assert test_name in results

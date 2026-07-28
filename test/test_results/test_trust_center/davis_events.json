@@ -1,0 +1,28 @@
+[
+  {
+    "title": "Trust Center Critical problem",
+    "properties": {
+      "snowflake.error.code": "SECURITY_ESSENTIALS_CIS3_1",
+      "event.id": 252010,
+      "event.kind": "SECURITY_EVENT",
+      "snowflake.trust_center.scanner.description": "Ensure that an account-level network policy has been configured to only allow access from trusted IP addresses",
+      "snowflake.trust_center.scanner.name": "3.1",
+      "snowflake.trust_center.scanner.package.name": "Security Essentials",
+      "snowflake.status.message": "[CRITICAL] 3.1 Ensure that an account-level network policy has been configured to only allow access from trusted IP addresses",
+      "event.category": "Vulnerability management",
+      "snowflake.trust_center.scanner.id": "SECURITY_ESSENTIALS_CIS3_1",
+      "snowflake.trust_center.scanner.package.id": "SECURITY_ESSENTIALS",
+      "snowflake.trust_center.scanner.type": "Vulnerability",
+      "vulnerability.risk.level": "CRITICAL",
+      "db.system": "snowflake",
+      "service.name": "test.dsoa2025",
+      "deployment.environment": "TEST",
+      "deployment.environment.name": "TEST",
+      "host.name": "test.dsoa2025.snowflakecomputing.com",
+      "telemetry.exporter.name": "dynatrace.snowagent",
+      "dsoa.run.plugin": "test_trust_center",
+      "dsoa.run.context": "trust_center"
+    },
+    "eventType": "CUSTOM_ALERT"
+  }
+]

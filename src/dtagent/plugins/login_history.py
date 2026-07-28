@@ -48,7 +48,7 @@ class LoginHistoryPlugin(Plugin):
         properties = _unpack_payload(row_dict)
         user = properties.get("db.user")
         error_message = properties.get("snowflake.status.message")
-        error_code = row_dict.get("snowflake.error.code")
+        error_code = row_dict.get("_ERROR_CODE")
         payload = {
             "event.name": f"Detected failed logins to Snowflake by {user}",
             "event.description": f"We have detected a failed login attempt due to {error_message} (code: {error_code}), by {user}",
@@ -97,9 +97,12 @@ class LoginHistoryPlugin(Plugin):
                 run_uuid=run_id,
                 log_completion=run_proc,
                 start_time="TIMESTAMP",
-                event_column_to_check="snowflake.error.code",
+                event_column_to_check="_ERROR_CODE",
                 event_payload_prepare=self._prepare_event_payload_failed_login,
+                f_report_event=self._report_via_davis_events,
             )
+            if self._davis_events is not None:
+                login_history_events_cnt += self._davis_events.flush_events()
             results["login_history"] = {
                 "entries": login_history_entries_cnt,
                 "log_lines": login_history_logs_cnt,

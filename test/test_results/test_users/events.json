@@ -1,6 +1,6 @@
 [
   {
-    "eventType": "CUSTOM_INFO",
+    "event.type": "CUSTOM_INFO",
     "title": "Table event snowflake.user.created_on.",
     "snowflake.event.trigger": "snowflake.user.created_on",
     "snowflake.user.created_on": 1644434689039000000,
@@ -36,7 +36,7 @@
     "deployment.environment.name": "TEST"
   },
   {
-    "eventType": "CUSTOM_INFO",
+    "event.type": "CUSTOM_INFO",
     "title": "Table event snowflake.user.last_success_login.",
     "snowflake.event.trigger": "snowflake.user.last_success_login",
     "snowflake.user.created_on": 1644434689039000000,
@@ -72,7 +72,7 @@
     "deployment.environment.name": "TEST"
   },
   {
-    "eventType": "CUSTOM_INFO",
+    "event.type": "CUSTOM_INFO",
     "title": "Table event snowflake.user.created_on.",
     "snowflake.event.trigger": "snowflake.user.created_on",
     "snowflake.user.created_on": 1679517315842000000,
@@ -106,7 +106,7 @@
     "deployment.environment.name": "TEST"
   },
   {
-    "eventType": "CUSTOM_INFO",
+    "event.type": "CUSTOM_INFO",
     "title": "Table event snowflake.user.last_success_login.",
     "snowflake.event.trigger": "snowflake.user.last_success_login",
     "snowflake.user.created_on": 1679517315842000000,
@@ -140,7 +140,7 @@
     "deployment.environment.name": "TEST"
   },
   {
-    "eventType": "CUSTOM_INFO",
+    "event.type": "CUSTOM_INFO",
     "title": "Table event snowflake.user.password_last_set_time.",
     "snowflake.event.trigger": "snowflake.user.password_last_set_time",
     "snowflake.user.created_on": 1679517315842000000,
@@ -174,7 +174,7 @@
     "deployment.environment.name": "TEST"
   },
   {
-    "eventType": "CUSTOM_INFO",
+    "event.type": "CUSTOM_INFO",
     "title": "Table event snowflake.user.roles.last_altered.",
     "snowflake.event.trigger": "snowflake.user.roles.last_altered",
     "snowflake.user.roles.last_altered": 1661498740003000000,
@@ -195,7 +195,7 @@
     "deployment.environment.name": "TEST"
   },
   {
-    "eventType": "CUSTOM_INFO",
+    "event.type": "CUSTOM_INFO",
     "title": "Table event snowflake.user.roles.last_altered.",
     "snowflake.event.trigger": "snowflake.user.roles.last_altered",
     "snowflake.user.roles.last_altered": 1615219848339000000,
@@ -216,7 +216,7 @@
     "deployment.environment.name": "TEST"
   },
   {
-    "eventType": "CUSTOM_INFO",
+    "event.type": "CUSTOM_INFO",
     "title": "Table event snowflake.user.roles.direct.removed_on.",
     "snowflake.event.trigger": "snowflake.user.roles.direct.removed_on",
     "snowflake.user.roles.direct.removed_on": 1747375200000000000,
@@ -232,7 +232,7 @@
     "deployment.environment.name": "TEST"
   },
   {
-    "eventType": "CUSTOM_INFO",
+    "event.type": "CUSTOM_INFO",
     "title": "Table event snowflake.user.roles.direct.removed_on.",
     "snowflake.event.trigger": "snowflake.user.roles.direct.removed_on",
     "snowflake.user.roles.direct.removed_on": 1622116800000000000,
@@ -248,7 +248,7 @@
     "deployment.environment.name": "TEST"
   },
   {
-    "eventType": "CUSTOM_INFO",
+    "event.type": "CUSTOM_INFO",
     "title": "Table event snowflake.user.roles.last_altered.",
     "snowflake.event.trigger": "snowflake.user.roles.last_altered",
     "snowflake.user.roles.last_altered": 1649326499175000000,
@@ -267,7 +267,7 @@
     "deployment.environment.name": "TEST"
   },
   {
-    "eventType": "CUSTOM_INFO",
+    "event.type": "CUSTOM_INFO",
     "title": "Table event snowflake.user.roles.last_altered.",
     "snowflake.event.trigger": "snowflake.user.roles.last_altered",
     "snowflake.user.roles.last_altered": 1624012210371000000,
@@ -287,7 +287,7 @@
     "deployment.environment.name": "TEST"
   },
   {
-    "eventType": "CUSTOM_INFO",
+    "event.type": "CUSTOM_INFO",
     "title": "Table event snowflake.user.privilege.last_altered.",
     "snowflake.event.trigger": "snowflake.user.privilege.last_altered",
     "snowflake.user.privilege.last_altered": 1615219847793000000,
@@ -307,7 +307,7 @@
     "deployment.environment.name": "TEST"
   },
   {
-    "eventType": "CUSTOM_INFO",
+    "event.type": "CUSTOM_INFO",
     "title": "Table event snowflake.user.privilege.last_altered.",
     "snowflake.event.trigger": "snowflake.user.privilege.last_altered",
     "snowflake.user.privilege.last_altered": 1720426973204000000,

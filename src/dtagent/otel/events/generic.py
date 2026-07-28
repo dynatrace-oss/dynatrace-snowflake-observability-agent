@@ -126,7 +126,7 @@ class GenericEvents(AbstractEvents):
 
         event_payload = self._add_data_to_payload(
             {
-                "eventType": str(event_data.get("event.type", event_type)),
+                "event.type": str(event_data.get("event.type", event_type)),
                 "title": title,
             },
             _cleanup_dict(event_data_extended or {}) | (self._resource_attributes or {}) | (context or {}),

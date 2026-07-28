@@ -1,6 +1,6 @@
 [
   {
-    "eventType": "CUSTOM_INFO",
+    "event.type": "CUSTOM_INFO",
     "title": "Table event snowflake.table.dynamic.graph.valid_from.",
     "snowflake.event.trigger": "snowflake.table.dynamic.graph.valid_from",
     "snowflake.table.dynamic.graph.valid_from": 1732132427448000000,

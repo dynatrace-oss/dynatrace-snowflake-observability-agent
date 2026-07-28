@@ -32,6 +32,7 @@ select
     concat(lh.event_type,
            ': ',
            lh.user_name)               as _MESSAGE, -- _underscored attributes are not reported; _message is used as content/title for log
+    lh.ERROR_CODE                      as _ERROR_CODE, -- top-level trigger column for failed-login event detection; not reported as telemetry
     OBJECT_CONSTRUCT(
         'event.name',                                   lh.EVENT_TYPE,
         'db.user',                                      lh.USER_NAME,

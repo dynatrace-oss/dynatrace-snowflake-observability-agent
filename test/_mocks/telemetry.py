@@ -44,11 +44,18 @@ class MockTelemetryClient:
         else:
             self.test_results_dir = None
             self.expected_results = {}
-        self.is_test_results_missing = not self.expected_results
         self.test_results: Dict[str, List[Any]] = {}
 
-    def store_or_test_results(self, disabled_telemetry: List[str] = None) -> None:
-        """Store the collected test results into files for future reference."""
+    def store_or_test_results(self, disabled_telemetry: List[str] = None, skip_content_check: List[str] = None) -> None:
+        """Store the collected test results into files for future reference.
+
+        Args:
+            disabled_telemetry: Telemetry types that were disabled for this run; their content
+                is not compared since no data is expected to have been sent.
+            skip_content_check: Telemetry types to count-check but not content-diff against the
+                expected fixture. Use when conditional routing makes a still-enabled channel's
+                content legitimately differ from the fixture recorded for other combinations.
+        """
         # Remove duplicates while preserving order
         dedup_results = {}
         for telemetry_type, content in self.test_results.items():
@@ -62,65 +69,73 @@ class MockTelemetryClient:
                     dedup_results[telemetry_type].append(item)
         self.test_results = dedup_results
 
-        # store or test results
-        if self.is_test_results_missing:
-            for telemetry_type, content in self.test_results.items():
+        disabled_telemetry = disabled_telemetry or []
+        skip_content_check = set(skip_content_check or [])
+        # davis events are gated by the same "events" flag as generic events (see
+        # dtagent.plugins.Plugin._log_entries), so disabling "events" also silences davis_events.
+        if "events" in disabled_telemetry:
+            skip_content_check.add("davis_events")
+
+        # save fixtures for telemetry types that have never been recorded for this test yet,
+        # so a newly-introduced channel (e.g. davis_events) doesn't require regenerating every
+        # other already-recorded channel's fixture.
+        for telemetry_type, content in self.test_results.items():
+            if telemetry_type not in self.expected_results:
                 self._save_telemetry_test_data(telemetry_type, content)
-        else:
-            disabled_telemetry = disabled_telemetry or []
-            # otherwise we will test if save_test_results would match expected results
-            for telemetry_type, expected_content in self.expected_results.items():
-                # skip disabled telemetry types
-                if telemetry_type in disabled_telemetry:
-                    continue
 
-                actual_content = self.test_results.get(telemetry_type, [])
+        # test that already-recorded telemetry types would match expected results
+        for telemetry_type, expected_content in self.expected_results.items():
+            # skip disabled telemetry types and types explicitly opted out of content diffing
+            if telemetry_type in disabled_telemetry or telemetry_type in skip_content_check:
+                continue
 
-                # Sort both lists for comparison, handling dicts by serializing with sorted keys
-                def sort_key(item):
-                    if isinstance(item, dict):
-                        return json.dumps(item, sort_keys=True)
-                    return str(item)
+            actual_content = self.test_results.get(telemetry_type, [])
 
-                sorted_actual = sorted(actual_content, key=sort_key)
-                sorted_expected = sorted(expected_content, key=sort_key)
-                import difflib
+            # Sort both lists for comparison, handling dicts by serializing with sorted keys
+            def sort_key(item):
+                if isinstance(item, dict):
+                    return json.dumps(item, sort_keys=True)
+                return str(item)
 
-                if telemetry_type == "logs":
-                    for entry in sorted_actual:
-                        # dynamically added by LoggingHandler (stdlib bridge); not present with direct Logger.emit()
-                        entry.pop("code.file.path", None)
-                        entry.pop("code.function.name", None)
-                        entry.pop("code.line.number", None)
-                    for entry in sorted_expected:
-                        entry.pop("code.file.path", None)
-                        entry.pop("code.function.name", None)
-                        entry.pop("code.line.number", None)
+            sorted_actual = sorted(actual_content, key=sort_key)
+            sorted_expected = sorted(expected_content, key=sort_key)
+            import difflib
 
-                if sorted_actual != sorted_expected:
-                    _, filepath = self._determine_file_name(telemetry_type)
-                    if telemetry_type == "metrics":
-                        diff = "\n".join(
-                            difflib.unified_diff(sorted_expected, sorted_actual, fromfile="expected", tofile="actual", lineterm="")
+            if telemetry_type == "logs":
+                for entry in sorted_actual:
+                    # dynamically added by LoggingHandler (stdlib bridge); not present with direct Logger.emit()
+                    entry.pop("code.file.path", None)
+                    entry.pop("code.function.name", None)
+                    entry.pop("code.line.number", None)
+                for entry in sorted_expected:
+                    entry.pop("code.file.path", None)
+                    entry.pop("code.function.name", None)
+                    entry.pop("code.line.number", None)
+
+            if sorted_actual != sorted_expected:
+                _, filepath = self._determine_file_name(telemetry_type)
+                if telemetry_type == "metrics":
+                    diff = "\n".join(
+                        difflib.unified_diff(sorted_expected, sorted_actual, fromfile="expected", tofile="actual", lineterm="")
+                    )
+                else:
+                    expected_str = json.dumps(sorted_expected, indent=2, sort_keys=True)
+                    actual_str = json.dumps(sorted_actual, indent=2, sort_keys=True)
+                    diff = "\n".join(
+                        difflib.unified_diff(
+                            expected_str.splitlines(), actual_str.splitlines(), fromfile="expected", tofile="actual", lineterm=""
                         )
-                    else:
-                        expected_str = json.dumps(sorted_expected, indent=2, sort_keys=True)
-                        actual_str = json.dumps(sorted_actual, indent=2, sort_keys=True)
-                        diff = "\n".join(
-                            difflib.unified_diff(
-                                expected_str.splitlines(), actual_str.splitlines(), fromfile="expected", tofile="actual", lineterm=""
-                            )
-                        )
-                        if telemetry_type == "biz_events":
-                            if isinstance(sorted_actual, list):
-                                for entry in sorted_actual:
-                                    entry["data"].pop(RUN_RESULTS_KEY, None)
-                            else:
-                                sorted_actual["data"].pop(RUN_RESULTS_KEY, None)
+                    )
+                    if telemetry_type == "biz_events":
+                        if isinstance(sorted_actual, list):
+                            for entry in sorted_actual:
+                                entry["data"].pop(RUN_RESULTS_KEY, None)
+                        else:
+                            sorted_actual["data"].pop(RUN_RESULTS_KEY, None)
 
-                    assert (
-                        sorted_actual == sorted_expected
-                    ), f"Telemetry type {telemetry_type} does not match expected results from {filepath}:\n\nDiff:\n{diff}"
+                assert (
+                    sorted_actual == sorted_expected
+                ), f"Telemetry type {telemetry_type} does not match expected results from {filepath}:\n\nDiff:\n{diff}"
 
     @contextmanager
     def mock_telemetry_sending(self):
@@ -152,7 +167,7 @@ class MockTelemetryClient:
 
     def _load_test_results(self) -> Dict[str, Any]:
         """Load expected test results from files into a dictionary."""
-        telemetry_types = ["logs", "spans", "metrics", "events", "biz_events"]
+        telemetry_types = ["logs", "spans", "metrics", "events", "biz_events", "davis_events"]
         expected_results = {}
         for telemetry_type in telemetry_types:
             data = self._load_telemetry_test_data(telemetry_type)

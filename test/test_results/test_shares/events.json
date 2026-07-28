@@ -1,6 +1,6 @@
 [
   {
-    "eventType": "CUSTOM_INFO",
+    "event.type": "CUSTOM_INFO",
     "title": "Table event snowflake.grant.created_on.",
     "snowflake.event.trigger": "snowflake.grant.created_on",
     "snowflake.grant.created_on": 1687246726499000000,
@@ -28,7 +28,7 @@
     "deployment.environment.name": "TEST"
   },
   {
-    "eventType": "CUSTOM_INFO",
+    "event.type": "CUSTOM_INFO",
     "title": "Table event snowflake.grant.created_on.",
     "snowflake.event.trigger": "snowflake.grant.created_on",
     "snowflake.grant.created_on": 1668416468928000000,
@@ -56,7 +56,7 @@
     "deployment.environment.name": "TEST"
   },
   {
-    "eventType": "CUSTOM_INFO",
+    "event.type": "CUSTOM_INFO",
     "title": "Table event snowflake.share.created_on.",
     "snowflake.event.trigger": "snowflake.share.created_on",
     "snowflake.share.created_on": 1633629486209000000,
@@ -73,7 +73,7 @@
     "deployment.environment.name": "TEST"
   },
   {
-    "eventType": "CUSTOM_INFO",
+    "event.type": "CUSTOM_INFO",
     "title": "Table event snowflake.share.created_on.",
     "snowflake.event.trigger": "snowflake.share.created_on",
     "snowflake.share.created_on": 1568850151405000000,

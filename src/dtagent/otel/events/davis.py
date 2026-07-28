@@ -166,6 +166,8 @@ class DavisEvents(GenericEvents):
         event_payload = super()._pack_event_data(event_type, event_data, context, **kwargs)
         if status:
             event_payload["status"] = status
+        # Davis Events v2 API requires the camelCase key name.
+        event_payload["eventType"] = event_payload.pop("event.type")
         return event_payload
 
     def _add_data_to_payload(self, payload: Dict[str, Any], event_data: Dict[str, Any]) -> Dict[str, Any]:
