@@ -35,8 +35,8 @@ docs/workflows/README.md
 ## `readme.md` Structure
 
 Use a **narrative-first, use-case-oriented** style. The canonical reference is
-`docs/dashboards/snowpipes-monitoring/readme.md` and
-`docs/dashboards/tasks-pipelines/readme.md` — read one of them before writing.
+`docs/dashboards/snowflake-snowpipes-monitoring/readme.md` and
+`docs/dashboards/snowflake-tasks-pipelines-monitoring/readme.md` — read one of them before writing.
 
 **Rules:**
 

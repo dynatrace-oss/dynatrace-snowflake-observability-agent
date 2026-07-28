@@ -43,7 +43,7 @@ Each JSON file is named after its dashboard title (e.g., `Costs Monitoring.json`
 
 ## Available Dashboards
 
-### [DSOA Self-Monitoring](self-monitoring/)
+### [DSOA Self-Monitoring](snowflake-observability-agent-self-monitoring/)
 
 **Purpose**: Monitor the operational health and performance of the DSOA agent itself.
 
@@ -60,7 +60,7 @@ Each JSON file is named after its dashboard title (e.g., `Costs Monitoring.json`
 
 ---
 
-### [Snowflake Performance Explorer](performance-explorer/)
+### [Snowflake Performance Explorer](snowflake-performance-explorer/)
 
 **Purpose**: Consolidated performance investigation flow from fleet-level KPIs through warehouse
 breakdown, grouped query pattern analysis, to individual long-running query drill-down.
@@ -80,7 +80,7 @@ breakdown, grouped query pattern analysis, to individual long-running query dril
 
 ---
 
-### [Snowflake Query Performance](query-performance/)
+### [Snowflake Query Performance](snowflake-query-performance/)
 
 **Purpose**: Identify slow or resource-intensive Snowflake queries to optimize performance.
 
@@ -122,7 +122,7 @@ breakdown, grouped query pattern analysis, to individual long-running query dril
 
 ---
 
-### [Snowflake Consumption (Organization Level)](org-costs-observability/)
+### [Snowflake Consumption (Organization Level)](snowflake-consumption-organization-level/)
 
 **Purpose**: Monitor organization-wide Snowflake consumption across all accounts — credits, storage,
 data transfer, billing amounts, and remaining contract balance in a single dashboard.
@@ -142,7 +142,7 @@ data transfer, billing amounts, and remaining contract balance in a single dashb
 
 ---
 
-### [Tasks & Pipelines Monitoring](tasks-pipelines/)
+### [Tasks & Pipelines Monitoring](snowflake-tasks-pipelines-monitoring/)
 
 **Purpose**: Monitor the health, performance, cost, and data freshness of Snowflake task graphs and dynamic tables.
 
@@ -161,7 +161,7 @@ data transfer, billing amounts, and remaining contract balance in a single dashb
 
 ---
 
-### [Snowpipes Monitoring](snowpipes-monitoring/)
+### [Snowpipes Monitoring](snowflake-snowpipes-monitoring/)
 
 **Purpose**: Monitor the health, performance, and cost of Snowflake Snowpipe continuous data ingestion pipelines.
 
@@ -180,7 +180,7 @@ data transfer, billing amounts, and remaining contract balance in a single dashb
 
 ---
 
-### [Budgets & FinOps](budgets-finops/)
+### [Budgets & FinOps](snowflake-budgets-finops/)
 
 **Purpose**: Track Snowflake budget spending, warehouse sizing decisions, and warehouse load patterns.
 
@@ -198,7 +198,7 @@ data transfer, billing amounts, and remaining contract balance in a single dashb
 
 ---
 
-### [Snowflake Query Deep Dive](query-deep-dive/)
+### [Snowflake Query Deep Dive](snowflake-query-deep-dive/)
 
 **Purpose**: Advanced query analytics for DBAs and FinOps teams — covering costly repeated queries, table performance degradation, query acceleration, multi-level analysis, external functions, query origins, and cost attribution.
 
@@ -219,7 +219,7 @@ data transfer, billing amounts, and remaining contract balance in a single dashb
 
 ---
 
-### [Data Volume & Storage](data-volume-storage/)
+### [Data Volume & Storage](snowflake-data-volume-storage/)
 
 **Purpose**: Monitor data growth, storage consumption, table freshness, and schema change history across Snowflake databases.
 
@@ -256,7 +256,7 @@ data transfer, billing amounts, and remaining contract balance in a single dashb
 
 ---
 
-### [Shares & Governance](shares-governance/)
+### [Shares & Governance](snowflake-shares-governance/)
 
 **Purpose**: Monitor the health, security posture, and governance of Snowflake data sharing across inbound and outbound shares.
 
@@ -275,7 +275,7 @@ data transfer, billing amounts, and remaining contract balance in a single dashb
 
 ---
 
-### [Warehouse Change Detection](warehouse-change-detection/)
+### [Warehouse Change Detection](snowflake-warehouse-change-detection/)
 
 **Purpose**: Audit warehouse DDL changes (CREATE, ALTER, DROP, RENAME) to track who
 reconfigured Snowflake warehouses, when, and what SQL was executed.
@@ -324,7 +324,7 @@ It converts YAML sources to JSON, wraps them in the correct dtctl envelope, and 
 **Deploy a single dashboard (recommended during iterative development):**
 
 ```bash
-./scripts/deploy/deploy_dt_assets.sh --scope=dashboards --name=self-monitoring
+./scripts/deploy/deploy_dt_assets.sh --scope=dashboards --name=snowflake-observability-agent-self-monitoring
 ```
 
 **Dry-run (preview without applying):**

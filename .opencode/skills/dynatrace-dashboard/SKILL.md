@@ -24,8 +24,8 @@ for DSOA telemetry visualisation.
 | Workflow readme        | `docs/workflows/<workflow-name>/readme.md`              |
 
 Dashboard names use a descriptive slug, not necessarily the plugin name,
-since dashboards may span multiple plugins (e.g. `snowpipes-monitoring`,
-`tasks-pipelines`, `budgets-finops`).
+since dashboards may span multiple plugins (e.g. `snowflake-snowpipes-monitoring`,
+`snowflake-tasks-pipelines-monitoring`, `snowflake-budgets-finops`).
 
 ## Metric / Attribute Reference
 
