@@ -129,6 +129,24 @@ if [ -n "$CUSTOM_ADMIN" ] && [ "$CUSTOM_ADMIN" != "null" ] && [ "$CUSTOM_ADMIN" 
 if [ -n "$CUSTOM_VIEWER" ] && [ "$CUSTOM_VIEWER" != "null" ] && [ "$CUSTOM_VIEWER" != "" ]; then CUSTOM_NAMES_USED=true; fi
 if [ -n "$CUSTOM_API_INTEGRATION" ] && [ "$CUSTOM_API_INTEGRATION" != "null" ] && [ "$CUSTOM_API_INTEGRATION" != "" ]; then CUSTOM_NAMES_USED=true; fi
 
+# Warn if only a partial set of custom names was provided
+if [ "$CUSTOM_NAMES_USED" = true ]; then
+    MISSING_NAMES=()
+    { [ -z "$CUSTOM_DB" ] || [ "$CUSTOM_DB" = "null" ]; }                             && MISSING_NAMES+=("core.snowflake.database.name")
+    { [ -z "$CUSTOM_WH" ] || [ "$CUSTOM_WH" = "null" ]; }                             && MISSING_NAMES+=("core.snowflake.warehouse.name")
+    { [ -z "$CUSTOM_OWNER" ] || [ "$CUSTOM_OWNER" = "null" ]; }                       && MISSING_NAMES+=("core.snowflake.roles.owner")
+    { [ -z "$CUSTOM_VIEWER" ] || [ "$CUSTOM_VIEWER" = "null" ]; }                     && MISSING_NAMES+=("core.snowflake.roles.viewer")
+    { [ -z "$CUSTOM_API_INTEGRATION" ] || [ "$CUSTOM_API_INTEGRATION" = "null" ]; }   && MISSING_NAMES+=("core.snowflake.api_integration.name")
+    if [ "${#MISSING_NAMES[@]}" -gt 0 ]; then
+        echo "WARNING: Custom names are enabled but the following objects will use DTAGENT_* defaults:"
+        for name in "${MISSING_NAMES[@]}"; do
+            echo "         - $name"
+        done
+        echo "         This results in mixed object naming. Consider specifying all custom names"
+        echo "         or removing all custom names and using core.tag for multitenancy instead."
+    fi
+fi
+
 # When custom names are used, TAG only affects telemetry (deployment.environment.tag)
 # When custom names are NOT used, TAG affects both object naming AND telemetry
 if [ -n "$TAG" ] && [ "$CUSTOM_NAMES_USED" = true ]; then
