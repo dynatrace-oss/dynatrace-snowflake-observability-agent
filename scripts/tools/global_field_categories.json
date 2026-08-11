@@ -1,5 +1,5 @@
 {
-  "_comment": "Maps every Global Fields group to a category. Used to split global fields into per-category lookup tables. Sanity check F036 in the generator acts as a safety net to warn about groups missing from this file. Maintained by the tooling team — add new group IDs here when they are introduced in source/fields/. Each category entry has: display_name (human-readable label), description (short summary), signal_groups (IDs from source/fields/signal_fields/), resource_groups (IDs from source/fields/resource_fields/).",
+  "_comment": "Maps every Global Fields group to a category. Used to split global fields into per-category lookup tables. Sanity check F036 in the generator acts as a safety net to warn about groups missing from this file. Maintained by the tooling team---add new group IDs here when they are introduced in source/fields/. Each category entry has: display_name (human-readable label), description (short summary), signal_groups (IDs from source/fields/signal_fields/), resource_groups (IDs from source/fields/resource_fields/).",
   "general": {
     "display_name": "General",
     "description": "Foundation fields for all data types",
