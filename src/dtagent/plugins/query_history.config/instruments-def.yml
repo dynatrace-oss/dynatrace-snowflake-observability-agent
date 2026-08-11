@@ -373,6 +373,7 @@ attributes:
       0.1,"network_communication": 0.2 }'
     __description: |
       The breakdown of the execution time of the operator:
+
       - **overall_percentage**: The percentage of the total query time spent by this operator,
       - **initialization**: Time spent setting up query processing,
       - **processing**: Time spent processing the data by the CPU,
