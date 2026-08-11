@@ -42,6 +42,8 @@ variables:
         | filter db.system == "snowflake"
         | filter dsoa.run.plugin == "query_history"
         | summarize collectDistinct(coalesce(deployment.environment.name, deployment.environment))
+    defaultValue:
+      - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
 
   - key: Warehouse
     type: query
@@ -55,6 +57,8 @@ variables:
         | filter dsoa.run.plugin == "query_history"
         | filter isNotNull(snowflake.warehouse.name)
         | summarize collectDistinct(snowflake.warehouse.name)
+    defaultValue:
+      - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
 
   - key: Database
     type: query
@@ -68,6 +72,8 @@ variables:
         | filter dsoa.run.plugin == "query_history"
         | filter isNotNull(db.namespace)
         | summarize collectDistinct(db.namespace)
+    defaultValue:
+      - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
 
   - key: User
     type: query
@@ -81,6 +87,8 @@ variables:
         | filter dsoa.run.plugin == "query_history"
         | filter isNotNull(db.user)
         | summarize collectDistinct(db.user)
+    defaultValue:
+      - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
 
   - key: Operation
     type: query
@@ -94,6 +102,8 @@ variables:
         | filter dsoa.run.plugin == "query_history"
         | filter isNotNull(db.operation.name)
         | summarize collectDistinct(db.operation.name)
+    defaultValue:
+      - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
 
   - key: UserType
     type: query
@@ -106,6 +116,8 @@ variables:
         | filter db.system == "snowflake"
         | filter isNotNull(snowflake.user.type)
         | summarize collectDistinct(snowflake.user.type)
+    defaultValue:
+      - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
 
   - key: TopN
     type: csv

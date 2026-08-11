@@ -157,18 +157,18 @@ variables:
     editable: true
     input: data record(sysusr = "Yes"), record(sysusr = "No")
     multiple: false
+    defaultValue:
+     - No
   - version: 2
     key: Exclude_our_system_users
-    type: query
+    name: Exclude_our_system_users
     visible: false
+    type: csv
     editable: true
-    input: |
-      fetch logs
-        | filter db.system == "snowflake"
-            and db.user == "TERRAFORM_USER"
-        | summarize db_user = collectDistinct(db.user)
-        // | fields db_user_and_all = array("*", db_user)
-    multiple: false
+    input: TERRAFORM_USER
+    multiple: true
+    defaultValue:
+      - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
   - version: 2
     key: Additional_ADMIN_Roles
     type: query
@@ -301,10 +301,10 @@ tiles:
         | filter dsoa.run.context == "query_history"
             and in(snowflake.role.name, array($Snowflake_Role_Name))
             and in(coalesce(deployment.environment.name, deployment.environment), array($Environment))
-            and in(snowflake.query.execution_status, $Query_Execution_Status)
+            and in(snowflake.query.execution_status, array($Query_Execution_Status))
             and in(db.operation.name, array($Operation_Name))
         // | filter db.sql.table=="query_history"
-        | filterOut if($Exclude_SYSTEM_user == "Yes", db.user == "SYSTEM") or in(db.user, $Exclude_our_system_users)
+        | filterOut if($Exclude_SYSTEM_user == "Yes", db.user == "SYSTEM") or in(db.user, array($Exclude_our_system_users))
         | fields db.user, snowflake.role.name, content, timestamp
         | makeTimeseries cnt = count(), by: {
           db.user,
@@ -370,7 +370,7 @@ tiles:
             and in(snowflake.role.name, array($Snowflake_Role_Name))
             and in(snowflake.query.execution_status, array($Query_Execution_Status))
             and in(db.operation.name, array($Operation_Name))
-        | filterOut if($Exclude_SYSTEM_user == "Yes", db.user == "SYSTEM") or in(db.user, $Exclude_our_system_users)
+        | filterOut if($Exclude_SYSTEM_user == "Yes", db.user == "SYSTEM") or in(db.user, array($Exclude_our_system_users))
         | fields db.user, snowflake.role.name, content, timestamp
         | summarize cnt = count(), by: {
           db.user
@@ -493,7 +493,7 @@ tiles:
             and isNotNull(db.query.text)
             and in(snowflake.query.execution_status, array($Query_Execution_Status))
             and in(db.operation.name, array($Operation_Name))
-        | filterOut if($Exclude_SYSTEM_user == "Yes", db.user == "SYSTEM") or in(db.user, $Exclude_our_system_users)
+        | filterOut if($Exclude_SYSTEM_user == "Yes", db.user == "SYSTEM") or in(db.user, array($Exclude_our_system_users))
         // | filter db.sql.table=="query_history"
         | fields db.user, snowflake.role.name, `deployment.environment` = coalesce(deployment.environment.name, deployment.environment), db.query.text, timestamp, db.operation.name,
             snowflake.query.execution_status
@@ -540,7 +540,7 @@ tiles:
             and in(snowflake.role.name, array($Snowflake_Role_Name))
             and in(snowflake.query.execution_status, array($Query_Execution_Status))
             and in(db.operation.name, array($Operation_Name))
-        | filterOut if($Exclude_SYSTEM_user == "Yes", db.user == "SYSTEM") or in(db.user, $Exclude_our_system_users)
+        | filterOut if($Exclude_SYSTEM_user == "Yes", db.user == "SYSTEM") or in(db.user, array($Exclude_our_system_users))
         | fields db.user, snowflake.role.name, content, timestamp
         | summarize cnt = count(), by: {
           snowflake.role.name
@@ -796,7 +796,7 @@ tiles:
             and in(snowflake.role.name, array($Snowflake_Role_Name))
             and in(snowflake.query.execution_status, array($Query_Execution_Status))
             and in(db.operation.name, array($Operation_Name))
-        | filterOut if($Exclude_SYSTEM_user == "Yes", db.user == "SYSTEM") or in(db.user, $Exclude_our_system_users)
+        | filterOut if($Exclude_SYSTEM_user == "Yes", db.user == "SYSTEM") or in(db.user, array($Exclude_our_system_users))
         | fieldsAdd `deployment.environment` = coalesce(deployment.environment.name, deployment.environment)
         | summarize cnt = count(), by: {
           deployment.environment
