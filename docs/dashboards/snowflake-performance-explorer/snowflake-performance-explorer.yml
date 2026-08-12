@@ -44,6 +44,8 @@ variables:
         | dedup snow_account
         | sort snow_account
     multiple: true
+    defaultValue:
+      - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
   - version: 2
     key: Warehouse
     type: query
@@ -61,6 +63,8 @@ variables:
         | dedup snowflake.warehouse.name
         | sort snowflake.warehouse.name
     multiple: true
+    defaultValue:
+      - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
   - version: 2
     key: Database
     type: query
@@ -81,6 +85,8 @@ variables:
         | dedup db_name
         | sort db_name asc
     multiple: true
+    defaultValue:
+      - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
   - version: 2
     key: User
     type: query
@@ -100,6 +106,8 @@ variables:
         | dedup db.user
         | sort db.user asc
     multiple: true
+    defaultValue:
+      - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
   - version: 2
     key: UserType
     type: query
@@ -113,6 +121,8 @@ variables:
         | dedup snowflake.user.type
         | sort snowflake.user.type asc
     multiple: true
+    defaultValue:
+      - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
   - version: 2
     key: TopN
     type: csv
@@ -887,50 +897,6 @@ tiles:
       davisVisualization:
         isAvailable: true
 
-  # ── Section 6: Navigation ──────────────────────────────────────────────────
-  "17":
-    title: ""
-    type: markdown
-    content: |
-      ## Related Dashboards
-      Navigate to complementary dashboards for deeper analysis.
-    davis:
-      componentState:
-        inputData: null
-
-  "18":
-    title: ""
-    type: markdown
-    content: |
-      ### [Query Performance →](/ui/apps/dynatrace.dashboards/dashboard/f245f73a-35f5-4298-8158-2a8aa4611a23)
-
-      Execution time trends by database, table, and user. Top-N resource consumer analysis. AI-powered anomaly detection.
-    davis:
-      componentState:
-        inputData: null
-
-  "19":
-    title: ""
-    type: markdown
-    content: |
-      ### [Query Deep Dive →](/ui/apps/dynatrace.dashboards/dashboard/9dbac33a-25ba-4192-b748-c8b6fe561c3b)
-
-      Costly repeated queries, table performance degradation, query acceleration, external functions, and cost attribution.
-    davis:
-      componentState:
-        inputData: null
-
-  "20":
-    title: ""
-    type: markdown
-    content: |
-      ### [Costs Monitoring →](/ui/apps/dynatrace.dashboards/dashboard/e446e588-b917-4a63-867c-643ca783c79e)
-
-      Credit usage, resource monitor quota utilization, warehouse costs, and slow query credit drain.
-    davis:
-      componentState:
-        inputData: null
-
 layouts:
   # Section 1: Fleet Overview
   "0":
@@ -1027,27 +993,6 @@ layouts:
     w: 15
     h: 6
 
-  # Section 6: Navigation
-  "17":
-    x: 0
-    "y": 44
-    w: 24
-    h: 2
-  "18":
-    x: 0
-    "y": 46
-    w: 8
-    h: 3
-  "19":
-    x: 8
-    "y": 46
-    w: 8
-    h: 3
-  "20":
-    x: 16
-    "y": 46
-    w: 8
-    h: 3
 
 settings:
   defaultTimeframe:

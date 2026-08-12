@@ -42,6 +42,8 @@ variables:
       | fields env_name = coalesce(deployment.environment.name, deployment.environment)
       | dedup env_name
       | sort env_name asc
+    defaultValue:
+      - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
   - version: 2
     key: Budget
     type: query
@@ -57,7 +59,8 @@ variables:
       | fields `snowflake.budget.name`
       | dedup `snowflake.budget.name`
       | sort `snowflake.budget.name` asc
-
+    defaultValue:
+      - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
   - version: 2
     key: Warehouse
     type: query
@@ -79,6 +82,8 @@ variables:
       ]
       | dedup snowflake.warehouse.name
       | sort snowflake.warehouse.name asc
+    defaultValue:
+      - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
 
 tiles:
   "0":

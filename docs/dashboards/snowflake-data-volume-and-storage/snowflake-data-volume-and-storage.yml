@@ -41,6 +41,8 @@ variables:
       | dedup deployment.environment.name
       | sort deployment.environment.name asc
     multiple: true
+    defaultValue:
+      - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
   - version: 2
     key: Database
     type: query
@@ -52,6 +54,8 @@ variables:
       | dedup db.namespace
       | sort db.namespace asc
     multiple: true
+    defaultValue:
+      - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
   - version: 2
     key: TableType
     type: query
@@ -63,6 +67,8 @@ variables:
       | dedup snowflake.table.type
       | sort snowflake.table.type asc
     multiple: true
+    defaultValue:
+      - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
 
 tiles:
   # ── Section 1: Storage Growth Trends ──────────────────────────────────────

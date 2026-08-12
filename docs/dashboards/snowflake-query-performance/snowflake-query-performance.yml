@@ -43,6 +43,8 @@ variables:
         | dedup snow_account
         | sort snow_account
     multiple: true
+    defaultValue:
+      - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
   - version: 2
     key: DB_Name
     type: query
@@ -61,6 +63,8 @@ variables:
         | dedup db_name
         | sort db_name asc
     multiple: true
+    defaultValue:
+      - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
   - version: 2
     key: DB_Table
     type: query
@@ -89,6 +93,8 @@ variables:
         | dedup db.collection.name
         | sort db.collection.name asc
     multiple: true
+    defaultValue:
+      - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
   - version: 2
     key: Warehouse
     type: query
@@ -106,6 +112,8 @@ variables:
         | dedup snowflake.warehouse.name
         | sort snowflake.warehouse.name
     multiple: true
+    defaultValue:
+      - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
   - version: 2
     key: User
     type: query
@@ -125,6 +133,8 @@ variables:
         | dedup db.user
         | sort db.user asc
     multiple: true
+    defaultValue:
+      - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
   - version: 2
     key: UserType
     type: query
@@ -138,6 +148,8 @@ variables:
         | dedup snowflake.user.type
         | sort snowflake.user.type asc
     multiple: true
+    defaultValue:
+      - 3420b2ac-f1cf-4b24-b62d-61ba1ba8ed05*
   - version: 2
     key: TAG_FILTER
     type: text

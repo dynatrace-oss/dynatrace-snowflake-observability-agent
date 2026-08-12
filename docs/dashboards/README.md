@@ -219,7 +219,7 @@ data transfer, billing amounts, and remaining contract balance in a single dashb
 
 ---
 
-### [Data Volume & Storage](snowflake-data-volume-storage/)
+### [Data Volume & Storage](snowflake-data-volume-and-storage/)
 
 **Purpose**: Monitor data growth, storage consumption, table freshness, and schema change history across Snowflake databases.
 
