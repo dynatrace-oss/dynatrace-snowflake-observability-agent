@@ -161,7 +161,6 @@ variables:
      - No
   - version: 2
     key: Exclude_our_system_users
-    name: Exclude_our_system_users
     visible: false
     type: csv
     editable: true
