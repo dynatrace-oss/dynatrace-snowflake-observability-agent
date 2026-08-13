@@ -37,7 +37,7 @@ teardown() {
 @test "--ci-export=github generates .github/workflows/dsoa-deploy.yml" {
     local test_dir
     test_dir=$(mktemp -d)
-    cd "$test_dir"
+    pushd "$test_dir" > /dev/null
     mkdir -p build conf
 
     cat > build/config-default.yml << 'EOF'
@@ -57,14 +57,14 @@ EOF
     [ "$status" -eq 0 ]
     [ -f ".github/workflows/dsoa-deploy.yml" ]
 
-    cd "$BATS_TEST_DIRNAME/../.."
+    popd > /dev/null
     rm -rf "$test_dir"
 }
 
 @test "--ci-export=github generates GITHUB_SECRETS_SETUP.md" {
     local test_dir
     test_dir=$(mktemp -d)
-    cd "$test_dir"
+    pushd "$test_dir" > /dev/null
     mkdir -p build conf
 
     cat > build/config-default.yml << 'EOF'
@@ -83,14 +83,14 @@ EOF
     [ "$status" -eq 0 ]
     [ -f "GITHUB_SECRETS_SETUP.md" ]
 
-    cd "$BATS_TEST_DIRNAME/../.."
+    popd > /dev/null
     rm -rf "$test_dir"
 }
 
 @test "--ci-export=github substitutes env name in workflow" {
     local test_dir
     test_dir=$(mktemp -d)
-    cd "$test_dir"
+    pushd "$test_dir" > /dev/null
     mkdir -p build conf
 
     cat > build/config-default.yml << 'EOF'
@@ -108,14 +108,14 @@ EOF
     export_github_ci "ci-test"
     grep -q "ci-test" .github/workflows/dsoa-deploy.yml
 
-    cd "$BATS_TEST_DIRNAME/../.."
+    popd > /dev/null
     rm -rf "$test_dir"
 }
 
 @test "--ci-export=github substitutes version from build/config-default.yml" {
     local test_dir
     test_dir=$(mktemp -d)
-    cd "$test_dir"
+    pushd "$test_dir" > /dev/null
     mkdir -p build conf
 
     cat > build/config-default.yml << 'EOF'
@@ -133,14 +133,14 @@ EOF
     export_github_ci "ci-test"
     grep -q "0.9.5" .github/workflows/dsoa-deploy.yml
 
-    cd "$BATS_TEST_DIRNAME/../.."
+    popd > /dev/null
     rm -rf "$test_dir"
 }
 
 @test "--ci-export=github workflow YAML has no unsubstituted placeholders" {
     local test_dir
     test_dir=$(mktemp -d)
-    cd "$test_dir"
+    pushd "$test_dir" > /dev/null
     mkdir -p build conf
 
     cat > build/config-default.yml << 'EOF'
@@ -159,14 +159,14 @@ EOF
     run grep -q "__[A-Z_]*__" .github/workflows/dsoa-deploy.yml
     [ "$status" -ne 0 ]
 
-    cd "$BATS_TEST_DIRNAME/../.."
+    popd > /dev/null
     rm -rf "$test_dir"
 }
 
 @test "--ci-export=github workflow YAML is syntactically valid" {
     local test_dir
     test_dir=$(mktemp -d)
-    cd "$test_dir"
+    pushd "$test_dir" > /dev/null
     mkdir -p build conf
 
     cat > build/config-default.yml << 'EOF'
@@ -185,14 +185,14 @@ EOF
     run yq '.' .github/workflows/dsoa-deploy.yml
     [ "$status" -eq 0 ]
 
-    cd "$BATS_TEST_DIRNAME/../.."
+    popd > /dev/null
     rm -rf "$test_dir"
 }
 
 @test "--ci-export=unknown prints error and fails" {
     local test_dir
     test_dir=$(mktemp -d)
-    cd "$test_dir"
+    pushd "$test_dir" > /dev/null
     mkdir -p build conf
 
     cat > build/config-default.yml << 'EOF'
@@ -221,6 +221,6 @@ EOF
     [ "$status" -ne 0 ]
     echo "$output" | grep -qi "unknown"
 
-    cd "$BATS_TEST_DIRNAME/../.."
+    popd > /dev/null
     rm -rf "$test_dir"
 }

@@ -5,7 +5,7 @@
     "deployment.environment": "TEST",
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
-    "eventType": "CUSTOM_INFO",
+    "event.type": "CUSTOM_INFO",
     "title": "Dynatrace Snowflake Observability Agent test event 1",
     "deployment.environment.name": "TEST"
   },
@@ -27,7 +27,7 @@
     "deployment.environment": "TEST",
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
-    "eventType": "AVAILABILITY_EVENT",
+    "event.type": "AVAILABILITY_EVENT",
     "title": "Dynatrace Snowflake Observability Agent test event 2",
     "timeout": 30,
     "deployment.environment.name": "TEST"
@@ -39,7 +39,7 @@
     "deployment.environment": "TEST",
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
-    "eventType": "CUSTOM_ANNOTATION",
+    "event.type": "CUSTOM_ANNOTATION",
     "title": "Dynatrace Snowflake Observability Agent test event 3",
     "timeout": 30,
     "deployment.environment.name": "TEST"
@@ -51,7 +51,7 @@
     "deployment.environment": "TEST",
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
-    "eventType": "CUSTOM_ALERT",
+    "event.type": "CUSTOM_ALERT",
     "title": "Dynatrace Snowflake Observability Agent test event 4",
     "timeout": 15,
     "deployment.environment.name": "TEST"
@@ -63,7 +63,7 @@
     "deployment.environment": "TEST",
     "host.name": "test.dsoa2025.snowflakecomputing.com",
     "telemetry.exporter.name": "dynatrace.snowagent",
-    "eventType": "CUSTOM_DEPLOYMENT",
+    "event.type": "CUSTOM_DEPLOYMENT",
     "title": "Dynatrace Snowflake Observability Agent test event 5",
     "deployment.environment.name": "TEST"
   },
@@ -76,7 +76,7 @@
     "telemetry.exporter.name": "dynatrace.snowagent",
     "dsoa.run.context": "data_volume",
     "dsoa.run.plugin": "test_send_events_directly",
-    "eventType": "CUSTOM_DEPLOYMENT",
+    "event.type": "CUSTOM_DEPLOYMENT",
     "title": "Dynatrace Snowflake Observability Agent test event 6",
     "deployment.environment.name": "TEST"
   }

@@ -77,7 +77,7 @@ class DataSchemasPlugin(Plugin):
         )
 
     def _report_all_entries_as_events(
-        self, row_dict, event_type, title, *, start_time, end_time, properties, context
+        self, row_dict, event_type, title, *, start_time, end_time, properties, _context
     ) -> int:  # pylint: disable=unused-argument
         """Defines how all entries as events should be reported
 
@@ -103,7 +103,7 @@ class DataSchemasPlugin(Plugin):
             additional_payload=properties,
             start_time_key=start_time,
             event_type=event_type,
-            context=context,
+            context=_context,
         )
 
     def process(self, run_id: str, run_proc: bool = True, contexts: Optional[List[str]] = None) -> Dict[str, Dict[str, int]]:

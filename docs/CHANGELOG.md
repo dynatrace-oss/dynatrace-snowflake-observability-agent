@@ -9,7 +9,22 @@ All notable changes to this project will be documented in this file.
 >
 > Detailed technical changes and implementation notes are available in the [development log](../.context/devlog/).
 
-## [1.0.2] - TBD
+## [1.0.1] - Unreleased
+
+### Documentation — custom object names and multitenancy TAG behavior
+
+Improved documentation in `INSTALL_ADVANCED.md` for the interaction between custom object names
+and the `core.tag` multitenancy mechanism:
+
+- Added a `[!CAUTION]` callout in the Custom Object Names section explaining that setting any
+  custom name disables TAG-based object naming for all objects, and that all configurable names
+  should be specified together to avoid mixed naming.
+- Added a note documenting `DTAGENT_API_KEY` and `DTAGENT_NETWORK_RULE` as internally managed
+  objects that are not user-configurable.
+- Added a `$TAG` concept paragraph in the Multitenancy section explaining the dual purpose of
+  `core.tag` (object naming suffix and `deployment.environment.tag` telemetry attribute).
+- The deploy script now emits a `WARNING:` message at deploy time when custom names are enabled
+  but only a partial set of object names has been configured.
 
 ### Added
 

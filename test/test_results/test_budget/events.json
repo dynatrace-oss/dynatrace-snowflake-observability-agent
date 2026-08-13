@@ -1,6 +1,6 @@
 [
   {
-    "eventType": "CUSTOM_INFO",
+    "event.type": "CUSTOM_INFO",
     "title": "Table event snowflake.budget.created_on.",
     "snowflake.event.trigger": "snowflake.budget.created_on",
     "snowflake.budget.created_on": 1723624213723000000,
