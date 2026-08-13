@@ -4,7 +4,7 @@ model:
   brief: Metrics collected by the DSOA budgets plugin from Snowflake ACCOUNT_USAGE views.
   model_group_id: snowflake.metrics
   data_object: metric
-  interfaces: [i.dsoa_resource, i.snowflake_database]
+  interfaces: [ i.dsoa_resource, i.snowflake_database ]
   dql_queries:
     - query_string: >
         timeseries spent = sum(snowflake.credits.spent), by: { snowflake.budget.name, deployment.environment.name }

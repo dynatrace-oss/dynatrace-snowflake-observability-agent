@@ -19,44 +19,39 @@ groups:
         brief: The name of the database in which the query was executed.
         examples:
           - analytics_db
-        note: 'Defined in OTel Semantic Conventions (db.namespace, stable since v1.28). Not yet present as a globally referenceable field in the Dynatrace Semantic Dictionary. Emitting as id: pending global
-          SD registration.'
+        note: 'Defined in OTel Semantic Conventions (db.namespace, stable since v1.28). Not yet present as a globally referenceable field in the Dynatrace Semantic Dictionary. Emitting as id: pending global SD registration.'
       - id: db.snowflake.connection
         display_name: DB Snowflake Connection
         type: string
         stability: experimental
         brief: The name of the connection used by the client, or NULL if the client is not using a connection URL.
-        examples:
-          - connection_1
+        examples: [ 'connection_1' ]
       - id: db.snowflake.dbs
         display_name: DB Snowflake Dbs
         type: string[]
         stability: stable
         brief: The databases involved in the query.
         examples:
-          -   - PROD_DB
-              - TEST_DB
+          - ['PROD_DB', 'TEST_DB']
       - id: db.snowflake.tables
         display_name: DB Snowflake Tables
         type: string[]
         stability: stable
         brief: The tables involved in the query.
         examples:
-          -   - users
-              - orders
+          - ['users', 'orders']
       - id: db.snowflake.views
         display_name: DB Snowflake Views
         type: string[]
         stability: stable
         brief: The views involved in the query.
         examples:
-          -   - user_view
+          - ['user_view']
         note: Fully proprietary; no OTel analog.
       - id: db.user
         display_name: DB User
         type: string
         stability: experimental
         brief: The name of the user who executed the query.
-        examples:
-          - john_doe
+        examples: [ 'john_doe' ]
         note: 'Defined in OTel Semantic Conventions (db.user, experimental). Not yet present as a globally referenceable field in the Dynatrace Semantic Dictionary. Emitting as id: pending global SD registration.'

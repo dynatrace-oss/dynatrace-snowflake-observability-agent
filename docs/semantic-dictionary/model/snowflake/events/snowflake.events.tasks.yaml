@@ -4,7 +4,7 @@ model:
   brief: Timestamp-based state-change events emitted by the DSOA tasks plugin via the OpenPipeline Events API.
   model_group_id: snowflake.events
   data_object: event
-  interfaces: [i.dsoa_resource]
+  interfaces: [ i.dsoa_resource ]
   dql_queries:
     - query_string: |
         fetch events

@@ -4,7 +4,7 @@ model:
   brief: Metrics collected by the DSOA tasks plugin from Snowflake ACCOUNT_USAGE views.
   model_group_id: snowflake.metrics
   data_object: metric
-  interfaces: [i.dsoa_resource]
+  interfaces: [ i.dsoa_resource ]
   dql_queries:
     - query_string: >
         timeseries failed = sum(snowflake.task.run.failed), by: { snowflake.task.name, deployment.environment.name }

@@ -4,7 +4,7 @@ model:
   brief: Metrics collected by the DSOA trust_center plugin from Snowflake ACCOUNT_USAGE views.
   model_group_id: snowflake.metrics
   data_object: metric
-  interfaces: [i.dsoa_resource]
+  interfaces: [ i.dsoa_resource ]
   dql_queries:
     - query_string: >
         timeseries val = sum(snowflake.trust_center.findings), by: { vulnerability.risk.level, deployment.environment.name }

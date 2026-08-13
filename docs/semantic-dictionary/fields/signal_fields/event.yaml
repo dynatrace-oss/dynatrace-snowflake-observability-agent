@@ -16,5 +16,4 @@ groups:
         type: long
         stability: experimental
         brief: An identifier for a related event, if applicable.
-        examples:
-          - 987654321
+        examples: [ 987654321 ]

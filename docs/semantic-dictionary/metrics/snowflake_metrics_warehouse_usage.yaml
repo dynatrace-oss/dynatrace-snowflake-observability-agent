@@ -4,7 +4,7 @@ model:
   brief: Metrics collected by the DSOA warehouse_usage plugin from Snowflake ACCOUNT_USAGE views.
   model_group_id: snowflake.metrics
   data_object: metric
-  interfaces: [i.dsoa_resource, i.snowflake_warehouse]
+  interfaces: [ i.dsoa_resource, i.snowflake_warehouse ]
   dql_queries:
     - query_string: >
         timeseries credits = sum(snowflake.credits.compute), by: { snowflake.warehouse.name, deployment.environment.name }

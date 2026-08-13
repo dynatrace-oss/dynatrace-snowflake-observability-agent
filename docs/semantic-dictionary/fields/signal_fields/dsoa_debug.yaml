@@ -9,12 +9,10 @@ groups:
         type: long
         stability: stable
         brief: Internal debug field indicating the number of span events successfully added to the given span.
-        examples:
-          - 5
+        examples: [ 5 ]
       - id: dsoa.debug.span.events.failed
         display_name: DSOA Debug Span Events Failed
         type: long
         stability: stable
         brief: Internal debug field indicating the number of span events that failed to be added to the given span.
-        examples:
-          - 1
+        examples: [ 1 ]

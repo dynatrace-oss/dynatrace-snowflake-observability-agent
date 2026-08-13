@@ -4,7 +4,7 @@ model:
   brief: Log records emitted by the DSOA budgets plugin.
   model_group_id: snowflake.logs
   data_object: log
-  interfaces: [i.dsoa_resource]
+  interfaces: [ i.dsoa_resource ]
   dql_queries:
     - query_string: |
         fetch logs

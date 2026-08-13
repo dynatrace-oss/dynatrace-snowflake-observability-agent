@@ -4,7 +4,7 @@ model:
   brief: Metrics collected by the DSOA cold_tables plugin from Snowflake ACCOUNT_USAGE views.
   model_group_id: snowflake.metrics
   data_object: metric
-  interfaces: [i.dsoa_resource, i.snowflake_database]
+  interfaces: [ i.dsoa_resource, i.snowflake_database ]
   dql_queries:
     - query_string: >
         timeseries val = avg(snowflake.table.days_since_last_access), by: { snowflake.table.full_name, deployment.environment.name }

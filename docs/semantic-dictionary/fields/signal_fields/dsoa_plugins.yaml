@@ -9,22 +9,24 @@ groups:
         type:
           allow_custom_values: false
           members:
-            - id: 'off'
-              value: 'off'
+            - id: "none"
+              value: "none"
               brief: No obfuscation applied.
             - id: literals
-              value: literals
+              value: "literals"
               brief: String and numeric literals are replaced with `?`.
             - id: full
-              value: full
+              value: "full"
               brief: Entire query text is replaced with `[OBFUSCATED]`.
-        stability: stable
+        stability: experimental
         brief: |-
           Configuration key controlling query text obfuscation mode applied to `db.query.text` and `snowflake.error.message`.
-          Possible values: `off` (no transformation), `literals` (replace string and numeric literals with `?`),
+          Possible values: `none` (no transformation), `literals` (replace string and numeric literals with `?`),
           `full` (replace entire query text with `[OBFUSCATED]`).
-        examples:
-          - 'off'
+        examples: [ 'none' ]
+        note: |-
+          Note: this is the SD-catalog attribute name; the actual config path read at runtime is
+          `plugins.query_history.obfuscation_mode` (no `dsoa.` prefix) — see `050_f_get_query_history.sql`.
       - id: dsoa.plugins.query_history.track_ddl_changes
         display_name: DSOA Plugins Query History Track DDL Changes
         type: boolean
@@ -39,5 +41,8 @@ groups:
           `db.operation.name` for warehouse change detection. Default `false` preserves
           backward-compatible behavior. May be refactored into a dedicated plugin in a future
           release.
-        examples:
-          - false
+        examples: [ false ]
+        note: |-
+          Note: this is the SD-catalog attribute name; the actual config path is
+          `plugins.query_history.track_ddl_changes` (no `dsoa.` prefix). Not currently wired up
+          to any reader in code — setting this has no runtime effect yet.

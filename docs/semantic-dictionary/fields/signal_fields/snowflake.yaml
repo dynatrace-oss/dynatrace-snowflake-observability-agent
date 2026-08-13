@@ -180,8 +180,7 @@ groups:
         stability: stable
         brief: The unique identifier of the database involved in the query.
         examples: [ 123456 ]
-        note: ACCOUNT_USAGE.DATABASES supplies related fields (name, owner, owner_role_type, type, is_transient, lifecycle, retention_time, comment) but these should be populated by a future inventory
-          plugin, not query_history (≈180-min latency + cost). In query_history, snowflake.database.id stays a foreign key only.
+        note: ACCOUNT_USAGE.DATABASES supplies related fields (name, owner, owner_role_type, type, is_transient, lifecycle, retention_time, comment) but these should be populated by a future inventory plugin, not query_history (≈180-min latency + cost). In query_history, snowflake.database.id stays a foreign key only.
   - id: snowflake.entity
     type: attribute_group
     title: Snowflake Entity signal
@@ -302,8 +301,7 @@ groups:
         type: string
         stability: experimental
         brief: A JSON array that specifies the objects that were associated with a write operation in the query.
-        examples: [ '{ "DTAGENT_DB.APP.TMP_RECENT_QUERIES": { "objectColumns": "HISTOGRAM_METRICS, COUNTER_METRICS, START_TIME, STATUS_CODE, SESSION_ID, QUERY_ID, DIMENSIONS, END_TIME, NAME, ATTRIBUTES,
-              PARENT_QUERY_ID", "objectDomain": "Table" } }' ]
+        examples: [ '{ "DTAGENT_DB.APP.TMP_RECENT_QUERIES": { "objectColumns": "HISTOGRAM_METRICS, COUNTER_METRICS, START_TIME, STATUS_CODE, SESSION_ID, QUERY_ID, DIMENSIONS, END_TIME, NAME, ATTRIBUTES, PARENT_QUERY_ID", "objectDomain": "Table" } }' ]
         note: Serialized JSON object stored as string in Grail. Contains modified DDL object details. Parse with parseJson() in DQL.
       - id: snowflake.object.ddl.operation
         display_name: 'Snowflake Object DDL Operation'
@@ -517,8 +515,7 @@ groups:
         display_name: 'Snowflake Query Accel Est Estimated Query Times'
         type: string
         stability: stable
-        brief: Object that contains the estimated query execution time in seconds for different query acceleration scale factors. If the status for the query is not eligible for query acceleration, 
-          this object is empty.
+        brief: Object that contains the estimated query execution time in seconds for different query acceleration scale factors. If the status for the query is not eligible for query acceleration, this object is empty.
         examples: [ '{ "scaleFactor1": 10, "scaleFactor2": 5 }' ]
         note: Serialized JSON object stored as string in Grail. Contains estimated query execution times per scale factor. Parse with parseJson() in DQL.
       - id: snowflake.query.accel_est.status
@@ -694,6 +691,7 @@ groups:
         stability: experimental
         brief: |-
           The breakdown of the execution time of the operator:
+
           - **overall_percentage**: The percentage of the total query time spent by this operator,
           - **initialization**: Time spent setting up query processing,
           - **processing**: Time spent processing the data by the CPU,
@@ -811,8 +809,7 @@ groups:
         display_name: 'Snowflake Resource Monitor Threshold Value'
         type: double
         stability: experimental
-        brief: The configured threshold percentage at which this crossing event was triggered (e.g., 80 means the 80% threshold was crossed). Distinct from snowflake.credits.quota.used_pct, which 
-          captures live consumption at emit time.
+        brief: 'Alert band the resource monitor''s credit usage fell into when the event was emitted: one of ``info``, ``warn``, ``critical``, or ``exhausted`` (increasing severity). The percentage boundaries for each band are configurable via ``plugins.resource_monitors.credits_quota_thresholds`` (default ``[50, 80, 90, 100]``); the specific crossed percentage is reported in ``snowflake.resource_monitor.threshold.value``. The configured threshold percentage at which this crossing event was triggered (e.g., 80 means the 80% threshold was crossed). Distinct from snowflake.credits.quota.used_pct, which captures live consumption at emit time.'
         examples: [ 80.0 ]
       - id: snowflake.resource_monitor.warehouses
         display_name: 'Snowflake Resource Monitor Warehouses'
@@ -941,8 +938,7 @@ groups:
         stability: experimental
         brief: The unique identifier for the session in which the query was executed.
         examples: [ '123456789' ]
-        note: 'OTel semconv Development-tier attribute (session namespace). The semdict session.id is model-scoped/internal in code_monitoring only; no global ref available. Emitting as new id: pending
-          global semdict registration.'
+        note: 'OTel semconv Development-tier attribute (session namespace). The semdict session.id is model-scoped/internal in code_monitoring only; no global ref available. Emitting as new id: pending global semdict registration.'
       - id: snowflake.session.start
         display_name: 'Snowflake Session Start'
         type: long
@@ -1361,11 +1357,7 @@ groups:
               value: "MATERIALIZED VIEW"
               brief: Pre-computed query result stored as a physical table and transparently refreshed by Snowflake's background maintenance service; consumes MATERIALIZED_VIEW credits.
         stability: stable
-        brief: |-
-          The type of the table, such as:
-          - BASE TABLE,
-          - TEMPORARY TABLE,
-          - EXTERNAL TABLE.
+        brief: 'The type of the table. Possible values: BASE TABLE, TEMPORARY TABLE, EXTERNAL TABLE.'
         examples: [ 'BASE TABLE' ]
       - id: snowflake.table.update
         display_name: 'Snowflake Table Update'
@@ -1382,15 +1374,7 @@ groups:
         display_name: 'Snowflake Table Dynamic Graph Alter Trigger'
         type: string[]
         stability: experimental
-        brief: |-
-          Describes why a new entry is created in the DYNAMIC_TABLE_GRAPH_HISTORY
-          function. Can be one of the following:
-          - NONE (backwards-compatible),
-          - CREATE_DYNAMIC_TABLE,
-          - ALTER_TARGET_LAG,
-          - SUSPEND, RESUME,
-          - REPLICATION_REFRESH,
-          - ALTER_WAREHOUSE.
+        brief: 'Describes why a new entry is created in the DYNAMIC_TABLE_GRAPH_HISTORY function. Possible values: NONE (backwards-compatible), CREATE_DYNAMIC_TABLE, ALTER_TARGET_LAG, SUSPEND, RESUME, REPLICATION_REFRESH, ALTER_WAREHOUSE.'
         examples:
           - ['CREATE_DYNAMIC_TABLE']
         note: Array of DDL operation names stored as string[] in Grail (e.g. CREATE_DYNAMIC_TABLE).
@@ -1888,8 +1872,7 @@ groups:
               value: "SNOWFLAKE_SERVICE"
               brief: System-managed user automatically created for each Snowpark Container Services (SPCS) service; cannot be created or converted by administrators.
         stability: stable
-        brief: 'The type of user who executed the query. Possible values: PERSON (human interactive user), SERVICE (programmatic service user), LEGACY_SERVICE (legacy service account), SNOWFLAKE_SERVICE
-          (Snowpark Container Services). Useful for splitting workloads by human vs. automated traffic.'
+        brief: 'The type of user who executed the query. Possible values: PERSON (human interactive user), SERVICE (programmatic service user), LEGACY_SERVICE (legacy service account), SNOWFLAKE_SERVICE (Snowpark Container Services). Useful for splitting workloads by human vs. automated traffic.'
         examples: [ 'PERSON' ]
   - id: snowflake.warehouse
     type: attribute_group
@@ -2075,8 +2058,7 @@ groups:
               brief: Standard multi-cluster warehouse.
             - id: snowpark_optimized
               value: "SNOWPARK_OPTIMIZED"
-              brief: Single-node warehouse with configurable high-memory nodes (16x–64x vs standard) and CPU architecture options; recommended for ML training and memory-intensive UDFs and stored 
-                procedures.
+              brief: Single-node warehouse with configurable high-memory nodes (16x–64x vs standard) and CPU architecture options; recommended for ML training and memory-intensive UDFs and stored procedures.
         stability: stable
         brief: The type of warehouse used.
         examples: [ 'STANDARD' ]

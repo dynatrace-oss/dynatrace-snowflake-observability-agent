@@ -4,7 +4,7 @@ model:
   brief: Metrics collected by the DSOA org_costs plugin from Snowflake ACCOUNT_USAGE views.
   model_group_id: snowflake.metrics
   data_object: metric
-  interfaces: [i.dsoa_resource]
+  interfaces: [ i.dsoa_resource ]
   dql_queries:
     - query_string: >
         timeseries val = sum(snowflake.org.credits.used), by: { snowflake.account.name, deployment.environment.name }

@@ -9,29 +9,25 @@ groups:
         type: string
         stability: stable
         brief: The ID of the client application used for the session.
-        examples:
-          - SnowflakeJDBCDriver
+        examples: [ 'SnowflakeJDBCDriver' ]
       - id: client.application.version
         display_name: Client Application Version
         type: string
         stability: experimental
         brief: The version of the client application used for the session.
-        examples:
-          - 1.0.0
+        examples: [ '1.0.0' ]
       - id: client.build_id
         display_name: Client Build ID
         type: string
         stability: experimental
         brief: The build ID of the client application.
-        examples:
-          - build123
+        examples: [ 'build123' ]
       - id: client.environment
         display_name: Client Environment
         type: string
         stability: stable
         brief: The environment of the client application.
-        examples:
-          - PRODUCTION
+        examples: [ 'PRODUCTION' ]
       - id: client.ip
         display_name: Client Ip
         type: string
@@ -39,19 +35,16 @@ groups:
         brief: The IP address of the client that initiated the event.
         examples:
           - 192.168.1.1
-        note: OTel semconv uses client.address (stable). DSOA emits client.ip to match Snowflake LOGIN_HISTORY.CLIENT_IP column naming. The name is intentionally preserved to make the column origin 
-          self-evident.
+        note: OTel semconv uses client.address (stable). DSOA emits client.ip to match Snowflake LOGIN_HISTORY.CLIENT_IP column naming. The name is intentionally preserved to make the column origin self-evident.
       - id: client.type
         display_name: Client Type
         type: string
         stability: stable
         brief: The type of client used to connect to Snowflake, such as JDBC_DRIVER or ODBC_DRIVER.
-        examples:
-          - JDBC_DRIVER
+        examples: [ 'JDBC_DRIVER' ]
       - id: client.version
         display_name: Client Version
         type: string
         stability: experimental
         brief: The version of the client software used to connect to Snowflake.
-        examples:
-          - 1.0.0
+        examples: [ '1.0.0' ]

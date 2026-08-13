@@ -4,7 +4,7 @@ model:
   brief: Metrics collected by the DSOA resource_monitors plugin from Snowflake ACCOUNT_USAGE views.
   model_group_id: snowflake.metrics
   data_object: metric
-  interfaces: [i.dsoa_resource, i.snowflake_warehouse]
+  interfaces: [ i.dsoa_resource, i.snowflake_warehouse ]
   dql_queries:
     - query_string: >
         timeseries pct = avg(snowflake.credits.quota.used_pct), by: { snowflake.resource_monitor.name, deployment.environment.name }
@@ -130,9 +130,7 @@ model:
       type: metric
       metric_name: snowflake.warehouse.auto_suspend
       instrument: gauge
-      brief:
-        The number of seconds after which an idle warehouse is automatically suspended. A value of null or 0 indicates auto-suspend is
-        disabled.
+      brief: The number of seconds after which an idle warehouse is automatically suspended. A value of null or 0 indicates auto-suspend is disabled.
       title: Warehouse Auto-Suspend Timeout
       unit: s
       attributes:
