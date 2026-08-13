@@ -580,7 +580,7 @@ class TestDqlQueriesOnModels:
     """
 
     #: Required fields on every dql_queries entry.
-    REQUIRED_DQL_FIELDS: frozenset = frozenset({"query_string", "description", "description_copilot", "internal"})
+    REQUIRED_DQL_FIELDS: frozenset = frozenset({"query_string", "description", "description_copilot"})
 
     def _load_model(self, signal_type: str, filename: str) -> Dict[str, Any]:
         """Load a model YAML from model/snowflake/<signal_type>/ in the generated output.
@@ -693,7 +693,7 @@ class TestDqlQueriesOnModels:
         assert not missing_or_insufficient, "Metric model files missing or insufficient dql_queries:\n" + "\n".join(missing_or_insufficient)
 
     def test_dql_queries_have_required_fields(self):
-        """Every dql_queries entry must have query_string, description, description_copilot, internal.
+        """Every dql_queries entry must have query_string, description, description_copilot.
 
         Checks all ``model/dsoa/*.yaml`` and ``metrics/*.yaml`` files that contain
         dql_queries:. Model-group containers (``model_group:`` key) and

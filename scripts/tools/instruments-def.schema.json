@@ -142,7 +142,6 @@
         "query_string",
         "description",
         "description_copilot",
-        "internal",
         "context"
       ],
       "additionalProperties": false,
