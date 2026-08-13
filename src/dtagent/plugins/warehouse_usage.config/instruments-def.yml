@@ -16,59 +16,175 @@
 
 attributes:
   db.user:
+    __type: string
+    __stability: stable
     __context_names:
       - warehouse_usage
     __example: admin
     __description: The user who initiated the event.
   snowflake.query.id:
+    __type: string
+    __stability: stable
     __context_names:
       - warehouse_usage
     __example: query123
     __description: The unique identifier for the query associated with the event.
   snowflake.role.name:
+    __type: string
+    __stability: stable
     __context_names:
       - warehouse_usage
     __example: SYSADMIN
     __description: The role name associated with the event.
   snowflake.warehouse.cluster.number:
+    __stability: stable
+    __type: long
+    __field_type: resource
     __context_names:
       - warehouse_usage
-    __example: "1"
+    __example: 1
     __description: The number of the cluster within the warehouse.
   snowflake.warehouse.clusters.count:
+    __field_type: resource
+    __stability: stable
     __context_names:
       - warehouse_usage
-    __example: "2"
+    __type: long
+    __example: 2
     __description: The number of clusters in the warehouse.
+    __semdict_note: >-
+      The .count suffix is deliberately preserved. Sibling metrics snowflake.warehouse.clusters.min, .max, and .started exist in the same
+      namespace; using the bare plural snowflake.warehouse.clusters as a scalar would be ambiguous alongside them.
   snowflake.warehouse.event.reason:
+    __type: string
     __context_names:
       - warehouse_usage
     __example: USER_REQUEST
     __description: The reason for the event.
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: resource_monitor_suspend
+          value: RESOURCE_MONITOR_SUSPEND
+          brief: Warehouse was suspended because a resource monitor reached its SUSPEND or SUSPEND_IMMEDIATE threshold.
+        - id: warehouse_autoresume
+          value: WAREHOUSE_AUTORESUME
+          brief: Warehouse resumed automatically because AUTO_RESUME is enabled and a SQL statement was submitted while suspended.
+        - id: warehouse_autosuspend
+          value: WAREHOUSE_AUTOSUSPEND
+          brief: Warehouse suspended automatically after the configured AUTO_SUSPEND inactivity period elapsed.
+        - id: warehouse_resume
+          value: WAREHOUSE_RESUME
+          brief: Warehouse was resumed explicitly via ALTER WAREHOUSE RESUME or a user-initiated action.
+        - id: warehouse_suspend
+          value: WAREHOUSE_SUSPEND
+          brief: Warehouse was suspended explicitly via ALTER WAREHOUSE SUSPEND or a user-initiated action.
   snowflake.warehouse.id:
+    __type: long
+    __field_type: resource
     __context_names:
       - warehouse_usage
       - warehouse_usage_load
       - warehouse_usage_metering
-    __example: wh123
+    __example: 12345
     __description: The unique identifier for the warehouse.
   snowflake.warehouse.size:
+    __type: string
+    __stability: stable
+    __field_type: resource
     __context_names:
       - warehouse_usage
     __example: X-SMALL
     __description: The size of the warehouse.
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: x_small
+          value: X-SMALL
+          brief: Smallest warehouse size; 1 credit/hour. Default size when creating a warehouse via SQL or Snowsight.
+        - id: small
+          value: SMALL
+          brief: 2 credits/hour; double the compute resources of X-Small.
+        - id: medium
+          value: MEDIUM
+          brief: 4 credits/hour; suited for moderate-complexity queries and concurrent workloads.
+        - id: large
+          value: LARGE
+          brief: 8 credits/hour; provides substantially more compute resources per cluster for complex queries.
+        - id: x_large
+          value: X-LARGE
+          brief: 16 credits/hour; suitable for large-scale ETL and analytics.
+        - id: x2_large
+          value: 2X-LARGE
+          brief: 32 credits/hour; credit consumption doubles at each step from X-Large.
+        - id: x3_large
+          value: 3X-LARGE
+          brief: 64 credits/hour.
+        - id: x4_large
+          value: 4X-LARGE
+          brief: 128 credits/hour.
+        - id: x5_large
+          value: 5X-LARGE
+          brief: 256 credits/hour; generally available on AWS and Azure.
+        - id: x6_large
+          value: 6X-LARGE
+          brief: 512 credits/hour; largest available size, generally available on AWS and Azure.
 dimensions:
   snowflake.warehouse.event.name:
+    __type: string
+    __stability: stable
+    __field_type: signal
     __context_names:
       - warehouse_usage
     __example: WAREHOUSE_START
     __description: The name of the event.
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: alter_warehouse
+          value: ALTER_WAREHOUSE
+          brief: A warehouse property was modified via ALTER WAREHOUSE (e.g. size, auto-suspend timeout, comment).
+        - id: create_warehouse
+          value: CREATE_WAREHOUSE
+          brief: A new virtual warehouse was created.
+        - id: drop_warehouse
+          value: DROP_WAREHOUSE
+          brief: A virtual warehouse was dropped and its compute resources released.
+        - id: resume_cluster
+          value: RESUME_CLUSTER
+          brief: An individual cluster within a multi-cluster warehouse was resumed to meet increased demand.
+        - id: resume_warehouse
+          value: RESUME_WAREHOUSE
+          brief: The warehouse transitioned from SUSPENDED to STARTED, reprovisioning compute resources.
+        - id: suspend_cluster
+          value: SUSPEND_CLUSTER
+          brief: An individual cluster within a multi-cluster warehouse was suspended due to reduced demand.
+        - id: suspend_warehouse
+          value: SUSPEND_WAREHOUSE
+          brief: The warehouse transitioned from STARTED to SUSPENDED, deallocating all compute resources.
+        - id: warehouse_consistent
+          value: WAREHOUSE_CONSISTENT
+          brief: All pending state changes for the warehouse have settled; emitted as the final event in a multi-step operation sequence.
   snowflake.warehouse.event.state:
+    __type: string
+    __stability: stable
+    __field_type: signal
     __context_names:
       - warehouse_usage
     __example: STARTED
     __description: The state of the event, such as STARTED or COMPLETED.
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: started
+          value: STARTED
+          brief: The warehouse operation has been initiated and is in progress; a COMPLETED or further STARTED event will follow.
+        - id: completed
+          value: COMPLETED
+          brief: The warehouse operation completed atomically with no further pending state changes.
   snowflake.warehouse.name:
+    __type: string
+    __stability: stable
     __context_names:
       - warehouse_usage
       - warehouse_usage_load
@@ -77,51 +193,116 @@ dimensions:
     __description: The name of the warehouse.
 metrics:
   snowflake.credits.cloud_services:
+    __type: double
     __context_names:
       - warehouse_usage_metering
-    __example: "2"
+    __example: 2
     __description: The number of credits used for cloud services.
     displayName: Cloud Services Credits Used
-    unit: credits
+    unit: credit
   snowflake.credits.compute:
+    __type: double
     __context_names:
       - warehouse_usage_metering
-    __example: "8"
+    __example: 8
     __description: The number of credits used for compute.
     displayName: Compute Credits Used
-    unit: credits
+    unit: credit
   snowflake.credits.used:
+    __type: double
     __context_names:
       - warehouse_usage_metering
-    __example: "10"
+    __example: 10
     __description: The total number of credits used by the warehouse.
     displayName: Snowflake Credits Used
-    unit: credits
+    unit: credit
   snowflake.load.blocked:
+    __type: long
     __context_names:
       - warehouse_usage_load
-    __example: "0"
+    __example: 0
     __description: The average number of queries blocked by a transaction lock.
     displayName: Average Blocked Queries
     unit: count
   snowflake.load.queued.overloaded:
+    __type: long
     __context_names:
       - warehouse_usage_load
-    __example: "2"
+    __example: 2
     __description: The average number of queries queued due to load.
     displayName: Average Queued Queries (Load)
     unit: count
   snowflake.load.queued.provisioning:
+    __type: long
     __context_names:
       - warehouse_usage_load
-    __example: "1"
+    __example: 1
     __description: The average number of queries queued due to provisioning.
     displayName: Average Queued Queries (Provisioning)
     unit: count
   snowflake.load.running:
+    __type: double
     __context_names:
       - warehouse_usage_load
-    __example: "5"
+    __example: 5
     __description: The average number of running queries.
     displayName: Average Running Queries
     unit: count
+dql_queries:
+  - query_string: |
+      timeseries credits = sum(snowflake.credits.compute), by: { snowflake.warehouse.name, deployment.environment.name }
+    description: Plot Snowflake compute credit consumption per warehouse over time.
+    description_copilot: Timeseries of Snowflake compute credits consumed per warehouse.
+    context:
+      - metrics
+  - query_string: |
+      timeseries load = avg(snowflake.load.running), by: { snowflake.warehouse.name, deployment.environment.name }
+    description: Plot average number of running queries per warehouse over time.
+    description_copilot: Timeseries of average running query load per Snowflake warehouse.
+    context:
+      - metrics
+  - query_string: |
+      timeseries {
+        running = avg(snowflake.load.running),
+        queued_overloaded = avg(snowflake.load.queued.overloaded),
+        blocked = avg(snowflake.load.blocked)
+      },
+        by: { snowflake.warehouse.name, deployment.environment.name }
+    description: Compare running, overload-queued and blocked query load per Snowflake warehouse over time.
+    description_copilot: Timeseries comparing running, queued and blocked query load per Snowflake warehouse.
+    context:
+      - metrics
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "warehouse_usage"
+      | sort timestamp desc
+      | limit 100
+    description: Fetch the 100 most recent DSOA warehouse_usage plugin log entries from Grail.
+    description_copilot: Search for all warehouse_usage plugin logs from the Snowflake observability agent.
+    context:
+      - logs
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "warehouse_usage"
+      | filter isNotNull(snowflake.warehouse.name)
+      | fields timestamp, snowflake.warehouse.name, snowflake.warehouse.event.name, snowflake.warehouse.event.state
+      | sort timestamp desc
+      | limit 50
+    description: Inspect Snowflake warehouse state-change events (start, resume, suspend) from the warehouse_usage plugin.
+    description_copilot: Show Snowflake warehouse start, resume and suspend events.
+    context:
+      - logs
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "warehouse_usage"
+      | filter isNotNull(snowflake.warehouse.name)
+      | summarize { events = count() }, by: { snowflake.warehouse.name, snowflake.warehouse.event.name }
+      | sort events desc
+      | limit 25
+    description: Count Snowflake warehouse state-change events grouped by warehouse and event type.
+    description_copilot: Break down Snowflake warehouse state-change events by warehouse and event type.
+    context:
+      - logs

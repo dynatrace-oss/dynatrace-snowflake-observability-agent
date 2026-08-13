@@ -1,0 +1,44 @@
+model:
+  id: snowflake.logs.warehouse_usage
+  title: Snowflake warehouse usage log records
+  brief: Log records emitted by the DSOA warehouse_usage plugin.
+  model_group_id: snowflake.logs
+  data_object: log
+  interfaces: [ i.dsoa_resource ]
+  dql_queries:
+    - query_string: |
+        fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "warehouse_usage"
+        | sort timestamp desc
+        | limit 100
+      description: Fetch the 100 most recent DSOA warehouse_usage plugin log entries from Grail.
+      description_copilot: Search for all warehouse_usage plugin logs from the Snowflake observability agent.
+    - query_string: |
+        fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "warehouse_usage"
+        | filter isNotNull(snowflake.warehouse.name)
+        | fields timestamp, snowflake.warehouse.name, snowflake.warehouse.event.name, snowflake.warehouse.event.state
+        | sort timestamp desc
+        | limit 50
+      description: Inspect Snowflake warehouse state-change events (start, resume, suspend) from the warehouse_usage plugin.
+      description_copilot: Show Snowflake warehouse start, resume and suspend events.
+    - query_string: |
+        fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "warehouse_usage"
+        | filter isNotNull(snowflake.warehouse.name)
+        | summarize { events = count() }, by: { snowflake.warehouse.name, snowflake.warehouse.event.name }
+        | sort events desc
+        | limit 25
+      description: Count Snowflake warehouse state-change events grouped by warehouse and event type.
+      description_copilot: Break down Snowflake warehouse state-change events by warehouse and event type.
+  groups:
+    - id: snowflake.logs.warehouse_usage.fields
+      type: attribute_group
+      title: Warehouse usage log record fields
+      brief: Attribute fields for Warehouse Usage log records.
+      attributes:
+        - ref: snowflake.warehouse.clusters.count
+        - ref: snowflake.warehouse.event.reason

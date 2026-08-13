@@ -1,0 +1,20 @@
+groups:
+  - id: snowflake.cost_attribution
+    type: attribute_group
+    title: Snowflake Cost Attribution signal fields
+    brief: Signal-level fields for Snowflake Cost Attribution telemetry.
+    attributes:
+      - id: snowflake.cost_attribution.period_end
+        display_name: Snowflake Cost Attribution Period End
+        type: long
+        stability: experimental
+        brief: End of the cost attribution summary window.
+        examples:
+          - 1730844667000000000
+      - id: snowflake.cost_attribution.period_start
+        display_name: Snowflake Cost Attribution Period Start
+        type: long
+        stability: experimental
+        brief: Start of the cost attribution summary window.
+        examples:
+          - 1730841067000000000

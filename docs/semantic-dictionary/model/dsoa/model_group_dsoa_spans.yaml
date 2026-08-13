@@ -1,0 +1,4 @@
+model_group:
+  id: dsoa.spans
+  title: DSOA Spans
+  brief: Span records emitted by DSOA plugins from Snowflake ACCOUNT_USAGE views.

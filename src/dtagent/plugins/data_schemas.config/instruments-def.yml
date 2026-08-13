@@ -16,23 +16,34 @@
 # Catalog of instrumentation known to Dynatrace Snowflake Observability Agent - data_schemas plugin
 attributes:
   snowflake.query.id:
+    __type: string
+    __stability: stable
     __example: 01b30d58-0604-6e1c-0040-e003029c1322
     __description: An internal, system-generated identifier for the SQL statement.
   db.user:
+    __type: string
+    __stability: stable
     __example: SYSTEM
     __description: The user who issued the query.
   snowflake.query.parent_id:
+    __type: string
+    __stability: stable
     __example: 01b2fd01-0604-6864-0040-e003029abda2
     __description: The query ID of the parent job or NULL if the job does not have a parent.
   snowflake.query.root_id:
+    __type: string
     __example: 01b2fd00-0604-6864-0040-e003029abd82
     __description: The query ID of the top most job in the chain or NULL if the job does not have a parent.
   snowflake.object.ddl.modified:
+    __type: string
+    __semdict_note: "Serialized JSON object stored as string in Grail. Contains modified DDL object details. Parse with parseJson() in DQL."
     __example:
       '{ "DTAGENT_DB.APP.TMP_RECENT_QUERIES": { "objectColumns": "HISTOGRAM_METRICS, COUNTER_METRICS, START_TIME, STATUS_CODE, SESSION_ID,
       QUERY_ID, DIMENSIONS, END_TIME, NAME, ATTRIBUTES, PARENT_QUERY_ID", "objectDomain": "Table" } }'
     __description: A JSON array that specifies the objects that were associated with a write operation in the query.
   snowflake.object.type:
+    __type: string
+    __stability: stable
     __example: "Table"
     __description: |
       The domain of the object defined or modified by the DDL operation, which includes all objects that can be tagged and:
@@ -40,12 +51,18 @@ attributes:
       - ROW ACCESS POLICY,
       - TAG.
   snowflake.object.id:
+    __stability: stable
+    __type: long
     __example: 747545
     __description: An identifier for the object, which is unique within a given account and domain.
   snowflake.object.name:
+    __type: string
+    __stability: stable
     __example: "DTAGENT_DB.APP.TMP_RECENT_QUERIES"
     __description: The fully qualified name of the object defined or modified by the DDL operation.
   snowflake.object.ddl.operation:
+    __type: string
+    __stability: stable
     __example: "REPLACE"
     __description: |
       The SQL keyword that specifies the operation on the table, view, or column:
@@ -55,7 +72,43 @@ attributes:
       - REPLACE,
       - UNDROP.
   snowflake.object.ddl.properties:
+    __stability: stable
+    __type: string
     __example: '{"creationMode": "CREATE", "columns": {"ADD": ["ATTRIBUTE","JOB_ID"]}}'
+    __semdict_note: "Stored as a serialized JSON string, not plain text."
     __description: |
       A JSON array that specifies the object or column properties when you create, modify, drop, or undrop the object or column.
       There are two types of properties: atomic and compound.
+dql_queries:
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "data_schemas"
+      | sort timestamp desc
+      | limit 100
+    description: Fetch the 100 most recent DSOA data_schemas plugin log entries (DDL change inventory) from Grail.
+    description_copilot: Search for all data_schemas plugin logs from the Snowflake observability agent.
+    context:
+      - logs
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "data_schemas"
+      | filter snowflake.object.ddl.operation == "DROP"
+      | sort timestamp desc
+      | limit 50
+    description: Fetch the 50 most recent DROP DDL operations reported by the data_schemas plugin.
+    description_copilot: Find recent DROP DDL operations on Snowflake objects.
+    context:
+      - logs
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "data_schemas"
+      | filter snowflake.object.type == "Table"
+      | sort timestamp desc
+      | limit 50
+    description: Fetch the 50 most recent DDL changes affecting Snowflake tables.
+    description_copilot: Find recent table structure changes captured by the data_schemas plugin.
+    context:
+      - logs

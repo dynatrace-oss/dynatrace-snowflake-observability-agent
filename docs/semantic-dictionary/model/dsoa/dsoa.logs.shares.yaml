@@ -1,0 +1,68 @@
+model:
+  id: dsoa.logs.shares
+  title: DSOA Shares Log Records
+  brief: Log records emitted by the DSOA shares plugin.
+  model_group_id: dsoa.logs
+  data_object: log
+  interfaces:
+    - i.dsoa_resource
+  dql_queries:
+    - query_string: |
+        fetch logs
+        | filter db.system == "snowflake"
+        | filter in(dsoa.run.context, {"inbound_shares", "outbound_shares"})
+        | sort timestamp desc
+        | limit 100
+      description: Fetch the 100 most recent DSOA shares plugin log entries (inbound and outbound shares) from Grail.
+      description_copilot: Search for all shares plugin logs from the Snowflake observability agent.
+    - query_string: |
+        fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.context == "outbound_shares"
+        | filter isNotNull(snowflake.share.name)
+        | fields timestamp, snowflake.share.name, snowflake.table.full_name
+        | sort timestamp desc
+        | limit 50
+      description: Inspect outbound Snowflake shares and the objects they expose.
+      description_copilot: Show Snowflake outbound shares and the tables they expose.
+    - query_string: |
+        fetch logs
+        | filter db.system == "snowflake"
+        | filter in(dsoa.run.context, {"inbound_shares", "outbound_shares"})
+        | filter isNotNull(snowflake.share.name)
+        | summarize { objects = count() }, by: { snowflake.share.name }
+        | sort objects desc
+        | limit 25
+      description: Rank Snowflake shares by the number of shared objects they contain.
+      description_copilot: Find which Snowflake shares expose the most objects.
+  groups:
+    - id: dsoa.logs.shares.fields
+      type: attribute_group
+      title: Shares log record fields
+      brief: Attribute fields for Shares log records.
+      attributes:
+        - ref: snowflake.grant.by
+        - ref: snowflake.grant.grantee
+        - ref: snowflake.grant.on
+        - ref: snowflake.grant.option
+        - ref: snowflake.grant.privilege
+        - ref: snowflake.grant.to
+        - ref: snowflake.share.has_details_reported
+        - ref: snowflake.share.is_secure_objects_only
+        - ref: snowflake.share.kind
+        - ref: snowflake.share.listing_global_name
+        - ref: snowflake.share.owner
+        - ref: snowflake.share.shared_from
+        - ref: snowflake.share.shared_to
+        - ref: snowflake.share.status
+        - ref: snowflake.table.clustering_key
+        - ref: snowflake.table.comment
+        - ref: snowflake.table.is_auto_clustering_on
+        - ref: snowflake.table.is_dynamic
+        - ref: snowflake.table.is_hybrid
+        - ref: snowflake.table.is_iceberg
+        - ref: snowflake.table.is_temporary
+        - ref: snowflake.table.is_transient
+        - ref: snowflake.table.last_ddl_by
+        - ref: snowflake.table.owner
+        - ref: snowflake.table.retention_time

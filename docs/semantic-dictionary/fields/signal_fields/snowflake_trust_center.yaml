@@ -1,0 +1,48 @@
+groups:
+  - id: snowflake.trust_center
+    type: attribute_group
+    title: Snowflake Trust Center signal fields
+    brief: Signal-level fields for Snowflake Trust Center telemetry.
+    attributes:
+      - id: snowflake.trust_center.scanner.description
+        display_name: Snowflake Trust Center Scanner Description
+        type: string
+        stability: experimental
+        brief: A short description of the scanner used in the Trust Center.
+        examples:
+          - Ensure monitoring and alerting exist for password sign-in without MFA
+      - id: snowflake.trust_center.scanner.id
+        display_name: Snowflake Trust Center Scanner ID
+        type: string
+        stability: stable
+        brief: The unique identifier for the scanner used in the Trust Center.
+        examples:
+          - scanner123
+      - id: snowflake.trust_center.scanner.name
+        display_name: Snowflake Trust Center Scanner Name
+        type: string
+        stability: experimental
+        brief: The name of the scanner used in the Trust Center.
+        examples:
+          - '2.4'
+      - id: snowflake.trust_center.scanner.package.id
+        display_name: Snowflake Trust Center Scanner Package ID
+        type: string
+        stability: experimental
+        brief: The unique identifier for the scanner package used in the Trust Center.
+        examples:
+          - package123
+      - id: snowflake.trust_center.scanner.package.name
+        display_name: Snowflake Trust Center Scanner Package Name
+        type: string
+        stability: experimental
+        brief: The name of the scanner package used in the Trust Center.
+        examples:
+          - CIS Package
+      - id: snowflake.trust_center.scanner.type
+        display_name: Snowflake Trust Center Scanner Type
+        type: string
+        stability: stable
+        brief: The type of scanner used in the Trust Center, such as 'CIS Benchmarks' or 'Threat Intelligence'.
+        examples:
+          - CIS Benchmarks

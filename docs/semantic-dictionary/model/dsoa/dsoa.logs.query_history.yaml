@@ -1,0 +1,78 @@
+model:
+  id: dsoa.logs.query_history
+  title: DSOA Query History Log Records
+  brief: Log records emitted by the DSOA query_history plugin.
+  model_group_id: dsoa.logs
+  data_object: log
+  interfaces:
+    - i.dsoa_resource
+  dql_queries:
+    - query_string: |
+        fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "query_history"
+        | sort timestamp desc
+        | limit 100
+      description: Fetch the 100 most recent DSOA query_history plugin log entries from Grail.
+      description_copilot: Search for all query_history plugin logs from the Snowflake observability agent.
+    - query_string: |
+        fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "query_history"
+        | filter isNotNull(snowflake.query.id)
+        | fieldsAdd running_min = toLong(snowflake.time.total_elapsed) / 1000 / 60
+        | filter running_min > 5
+        | fields timestamp, snowflake.query.id, db.user, snowflake.warehouse.name, running_min
+        | sort running_min desc
+        | limit 50
+      description: Find Snowflake queries that ran longer than five minutes, with their user and warehouse.
+      description_copilot: Find long-running Snowflake queries exceeding five minutes of total elapsed time.
+    - query_string: |
+        fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "query_history"
+        | filter isNotNull(snowflake.warehouse.name)
+        | summarize {
+            queries = count(),
+            avg_exec_ms = avg(toLong(snowflake.time.execution)),
+            p90_exec_ms = percentile(toLong(snowflake.time.execution), 90)
+          }, by: { snowflake.warehouse.name }
+        | sort p90_exec_ms desc
+        | limit 25
+      description: Rank warehouses by the p90 execution time of their Snowflake queries.
+      description_copilot: Find which Snowflake warehouses have the slowest queries by p90 execution time.
+  groups:
+    - id: dsoa.logs.query_history.fields
+      type: attribute_group
+      title: Query History log record fields
+      brief: Attribute fields for Query History log records.
+      attributes:
+        - ref: db.snowflake.tables
+        - ref: db.snowflake.views
+        - ref: dsoa.plugins.query_history.obfuscation_mode
+        - ref: dsoa.plugins.query_history.track_ddl_changes
+        - ref: snowflake.cluster_number
+        - ref: snowflake.cost_attribution.period_end
+        - ref: snowflake.cost_attribution.period_start
+        - ref: snowflake.database.id
+        - ref: snowflake.object.ddl.operation
+        - ref: snowflake.object.type
+        - ref: snowflake.query.accel_est.estimated_query_times
+        - ref: snowflake.query.accel_est.status
+        - ref: snowflake.query.accel_est.upper_limit_scale_factor
+        - ref: snowflake.query.data_transfer.inbound.cloud
+        - ref: snowflake.query.data_transfer.inbound.region
+        - ref: snowflake.query.data_transfer.outbound.cloud
+        - ref: snowflake.query.data_transfer.outbound.region
+        - ref: snowflake.query.is_client_generated
+        - ref: snowflake.query.retry_cause
+        - ref: snowflake.query.transaction_id
+        - ref: snowflake.query.with_operator_stats
+        - ref: snowflake.release_version
+        - ref: snowflake.role.type
+        - ref: snowflake.schema.id
+        - ref: snowflake.secondary_role_stats
+        - ref: snowflake.warehouse.cluster.number
+        - ref: snowflake.warehouse.id
+        - ref: snowflake.warehouse.size
+        - ref: snowflake.warehouse.type

@@ -17,57 +17,141 @@
 
 attributes:
   snowflake.error.code:
-    __example: ERR001
+    __type: string
+    __semdict: new
+    __semdict_note: >-
+      DSOA-specific string error code for Snowflake Trust Center scanner failures. Not the same as the Dynatrace SD error.code field (type:
+      long for iOS/mobile numeric codes). Pending rename to snowflake.trust_center.error.code for namespace clarity.
+    __example: "TRUST_CENTER_ERR001"
     __description: The error code associated with the scanner, if any.
   event.id:
-    __example: event123
+    __semdict: ref
+    __example: 13825839647097210
+    __type: long
     __description: A unique identifier for the security event.
   event.kind:
+    __semdict: ref
     __example: SECURITY_EVENT
+    __stability: stable
+    __type: string
     __description: The kind of event, in this case, 'SECURITY_EVENT'.
   snowflake.entity.details:
+    __type: string
+    __stability: stable
     __example: Contains user data
     __description: Additional details about the entity involved in the event.
   snowflake.entity.id:
+    __type: string
     __example: entity123
     __description: The unique identifier for the entity involved in the event.
   snowflake.entity.name:
+    __type: string
+    __stability: stable
     __example: User Table
     __description: The name of the entity involved in the event.
   snowflake.entity.type:
+    __type: string
     __example: table
     __description: The type of entity involved in the event, such as a table, view, or user.
   snowflake.trust_center.scanner.name:
-    __example: 2.4
+    __type: string
+    __example: "2.4"
     __description: The name of the scanner used in the Trust Center.
   snowflake.trust_center.scanner.description:
+    __type: string
     __example: Ensure monitoring and alerting exist for password sign-in without MFA
     __description: A short description of the scanner used in the Trust Center.
   snowflake.trust_center.scanner.package.name:
+    __type: string
     __example: CIS Package
     __description: The name of the scanner package used in the Trust Center.
   snowflake.status.message:
+    __type: string
+    __semdict: new
     __example: 2.4 Ensure monitoring and alerting exist for password sign-in without MFA
     __description: The name and description of the scanner, providing additional details about the status.
 dimensions:
   event.category:
+    __semdict: ref
     __example: Warning
+    __type: string
     __description: The category of the event, such as 'Warning' or 'Vulnerability management', based on the severity.
   snowflake.trust_center.scanner.id:
+    __type: string
+    __stability: stable
     __example: scanner123
     __description: The unique identifier for the scanner used in the Trust Center.
   snowflake.trust_center.scanner.package.id:
+    __type: string
     __example: package123
     __description: The unique identifier for the scanner package used in the Trust Center.
   snowflake.trust_center.scanner.type:
+    __type: string
+    __stability: stable
     __example: CIS Benchmarks
     __description: The type of scanner used in the Trust Center, such as 'CIS Benchmarks' or 'Threat Intelligence'.
   vulnerability.risk.level:
+    __semdict: ref
+    __semdict_note: Snowflake Trust Center uses values LOW, MEDIUM, HIGH, CRITICAL — all within the SD global enum.
+    __type: string
     __example: HIGH
-    __description: The risk level of the vulnerability, such as LOW, MEDIUM, HIGH, or CRITICAL.
+    __description: The risk level of the vulnerability as reported by Snowflake Trust Center.
 metrics:
   snowflake.trust_center.findings:
-    __example: "10"
+    __type: long
+    __example: 10
     __description: The total number of findings at risk identified by the scanner.
     displayName: Trust Center Findings Count
     unit: count
+dql_queries:
+  - query_string: |
+      timeseries val = sum(snowflake.trust_center.findings), by: { vulnerability.risk.level, deployment.environment.name }
+    description: Plot the number of Trust Center findings by risk level over time.
+    description_copilot: Timeseries of Snowflake Trust Center findings by risk level.
+    context:
+      - metrics
+  - query_string: |
+      timeseries val = sum(snowflake.trust_center.findings),
+        by: { snowflake.trust_center.scanner.type, deployment.environment.name }
+    description: Plot the number of Trust Center findings by scanner type over time.
+    description_copilot: Timeseries of Snowflake Trust Center findings by scanner type.
+    context:
+      - metrics
+  - query_string: |
+      timeseries findings = sum(snowflake.trust_center.findings), by: { event.category, deployment.environment.name }
+    description: Plot Trust Center findings by security category over time.
+    description_copilot: Timeseries of Snowflake Trust Center findings by security category.
+    context:
+      - metrics
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "trust_center"
+      | sort timestamp desc
+      | limit 100
+    description: Fetch the 100 most recent DSOA trust_center plugin log entries from Grail.
+    description_copilot: Search for all trust_center plugin logs from the Snowflake observability agent.
+    context:
+      - logs
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "trust_center"
+      | filter vulnerability.risk.level == "CRITICAL"
+      | sort timestamp desc
+      | limit 50
+    description: Fetch critical-severity Trust Center findings reported by the trust_center plugin.
+    description_copilot: Find critical Snowflake Trust Center security findings.
+    context:
+      - logs
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "trust_center"
+      | summarize { findings = count() }, by: { snowflake.trust_center.scanner.type, vulnerability.risk.level }
+      | sort findings desc
+      | limit 25
+    description: Break down Trust Center findings by scanner type and risk level.
+    description_copilot: Summarise Snowflake Trust Center findings by scanner type and risk level.
+    context:
+      - logs

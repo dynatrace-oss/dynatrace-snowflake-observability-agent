@@ -1,0 +1,29 @@
+groups:
+  - id: snowflake.session
+    type: attribute_group
+    title: Snowflake Session signal fields
+    brief: Signal-level fields for Snowflake Session telemetry.
+    attributes:
+      - id: snowflake.session.closed_reason
+        display_name: Snowflake Session Closed Reason
+        type: string
+        stability: experimental
+        brief: The reason the session was closed.
+        examples:
+          - USER_LOGOUT
+      - id: snowflake.session.id
+        display_name: Snowflake Session ID
+        type: string
+        stability: experimental
+        brief: The unique identifier for the session in which the query was executed.
+        examples:
+          - '123456789'
+        note: 'OTel semconv Development-tier attribute (session namespace). The semdict session.id is model-scoped/internal in code_monitoring only; no global ref available. Emitting as new id: pending
+          global semdict registration.'
+      - id: snowflake.session.start
+        display_name: Snowflake Session Start
+        type: long
+        stability: experimental
+        brief: The start time of the session.
+        examples:
+          - 1633046400000000000

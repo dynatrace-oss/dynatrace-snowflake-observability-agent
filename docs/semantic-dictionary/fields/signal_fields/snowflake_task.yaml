@@ -1,0 +1,200 @@
+groups:
+  - id: snowflake.task
+    type: attribute_group
+    title: Snowflake Task signal fields
+    brief: Signal-level fields for Snowflake Task telemetry.
+    attributes:
+      - id: snowflake.task.condition
+        display_name: Snowflake Task Condition
+        type:
+          allow_custom_values: true
+          members:
+            - id: success_condition
+              value: status = 'SUCCESS'
+              brief: Runs the task only when the predecessor task(s) completed successfully.
+            - id: stream_has_data
+              value: SYSTEM$STREAM_HAS_DATA('<stream_name>')
+              brief: Runs the task only when the referenced stream has change data available.
+            - id: always
+              value: 'TRUE'
+              brief: Task has no meaningful condition gate and always runs when triggered.
+        stability: experimental
+        brief: The condition text of the task.
+        examples:
+          - status = 'SUCCESS'
+      - id: snowflake.task.config.allow_overlap
+        display_name: Snowflake Task Config Allow Overlap
+        type: boolean
+        stability: experimental
+        brief: Indicates if overlapping execution is allowed.
+        examples:
+          - true
+      - id: snowflake.task.config.id
+        display_name: Snowflake Task Config ID
+        type: string
+        stability: experimental
+        brief: The configuration of the task.
+        examples:
+          - config123
+      - id: snowflake.task.end_time
+        display_name: Snowflake Task End Time
+        type: long
+        stability: experimental
+        brief: The end time of the task.
+        examples:
+          - 1633046700000000000
+      - id: snowflake.task.error_integration
+        display_name: Snowflake Task Error Integration
+        type: string
+        stability: experimental
+        brief: The error integration for the task.
+        examples:
+          - error_integration123
+      - id: snowflake.task.graph.root_id
+        display_name: Snowflake Task Graph Root ID
+        type: string
+        stability: experimental
+        brief: The root ID of the task graph.
+        examples:
+          - root123
+      - id: snowflake.task.graph.version
+        display_name: Snowflake Task Graph Version
+        type: long
+        stability: experimental
+        brief: The version of the task graph.
+        examples:
+          - 1
+      - id: snowflake.task.graph.version.created_on
+        display_name: Snowflake Task Graph Version Created On
+        type: long
+        stability: stable
+        brief: The timestamp when the task graph version was created.
+        examples:
+          - 1633046400000000000
+      - id: snowflake.task.id
+        display_name: Snowflake Task ID
+        type: long
+        stability: experimental
+        brief: The unique identifier for the task.
+        examples:
+          - 123456789
+      - id: snowflake.task.instance_id
+        display_name: Snowflake Task Instance ID
+        type: long
+        stability: stable
+        brief: The unique identifier for the task instance.
+        examples:
+          - 987654321
+      - id: snowflake.task.is_internal
+        display_name: Snowflake Task Is Internal
+        type: boolean
+        stability: stable
+        brief: Whether the task is an internal DSOA scheduler task (measurement or finalizer).
+        examples:
+          - false
+      - id: snowflake.task.last_committed_on
+        display_name: Snowflake Task Last Committed On
+        type: long
+        stability: experimental
+        brief: The last committed time of the task.
+        examples:
+          - 1633046400000000000
+      - id: snowflake.task.last_suspended_on
+        display_name: Snowflake Task Last Suspended On
+        type: long
+        stability: experimental
+        brief: The last suspended time of the task.
+        examples:
+          - 1633046700000000000
+      - id: snowflake.task.name
+        display_name: Snowflake Task Name
+        type: string
+        stability: stable
+        brief: The name of the task.
+        examples:
+          - daily_backup_task
+      - id: snowflake.task.owner
+        display_name: Snowflake Task Owner
+        type: string
+        stability: experimental
+        brief: The owner of the task.
+        examples:
+          - admin
+      - id: snowflake.task.predecessors
+        display_name: Snowflake Task Predecessors
+        type: string[]
+        stability: experimental
+        brief: The predecessors of the task.
+        examples:
+          - - taskA
+            - taskB
+      - id: snowflake.task.run.attempt
+        display_name: Snowflake Task Run Attempt
+        type: long
+        stability: stable
+        brief: The attempt number of the task run.
+        examples:
+          - 1
+      - id: snowflake.task.run.completed_time
+        display_name: Snowflake Task Run Completed Time
+        type: long
+        stability: stable
+        brief: The completed time of the task run.
+        examples:
+          - 1742824007586000000
+      - id: snowflake.task.run.group_id
+        display_name: Snowflake Task Run Group ID
+        type: string
+        stability: experimental
+        brief: The group ID of the task run.
+        examples:
+          - group123
+      - id: snowflake.task.run.id
+        display_name: Snowflake Task Run ID
+        type: long
+        stability: experimental
+        brief: The unique identifier for the task run.
+        examples:
+          - 123456
+      - id: snowflake.task.run.return_value
+        display_name: Snowflake Task Run Return Value
+        type: string
+        stability: experimental
+        brief: The return value of the task run.
+        examples:
+          - '0'
+      - id: snowflake.task.run.scheduled_from
+        display_name: Snowflake Task Run Scheduled From
+        type: string
+        stability: stable
+        brief: The source from which the task was scheduled.
+        examples:
+          - CRON
+      - id: snowflake.task.run.scheduled_time
+        display_name: Snowflake Task Run Scheduled Time
+        type: long
+        stability: stable
+        brief: The scheduled time of the task run.
+        examples:
+          - 1742821828016000000
+      - id: snowflake.task.run.state
+        display_name: Snowflake Task Run State
+        type: string
+        stability: stable
+        brief: The state of the task run.
+        examples:
+          - RUNNING
+      - id: snowflake.task.schedule
+        display_name: Snowflake Task Schedule
+        type: string
+        stability: experimental
+        brief: The schedule of the task.
+        examples:
+          - 0 0 * * *
+      - id: snowflake.task.start_time
+        display_name: Snowflake Task Start Time
+        type: long
+        stability: experimental
+        brief: The start time of the task.
+        examples:
+          - 1633046400000000000

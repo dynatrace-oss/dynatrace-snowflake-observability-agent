@@ -1,0 +1,45 @@
+model:
+  id: snowflake.metrics.budgets
+  title: Snowflake budgets metrics
+  brief: Metrics collected by the DSOA budgets plugin from Snowflake ACCOUNT_USAGE views.
+  model_group_id: snowflake.metrics
+  data_object: metric
+  interfaces: [ i.dsoa_resource, i.snowflake_database ]
+  dql_queries:
+    - query_string: >
+        timeseries spent = sum(snowflake.credits.spent), by: { snowflake.budget.name, deployment.environment.name }
+      description: Plot credits spent per Snowflake budget over time.
+      description_copilot: Timeseries of Snowflake credits spent per budget.
+    - query_string: >
+        timeseries budget_limit = avg(snowflake.credits.limit), by: { snowflake.budget.name, deployment.environment.name }
+      description: Plot the credit spending limit per Snowflake budget over time.
+      description_copilot: Timeseries of Snowflake budget spending limits per budget.
+    - query_string: |
+        timeseries { spent = sum(snowflake.credits.spent), budget_limit = avg(snowflake.credits.limit) },
+          by: { snowflake.budget.name, deployment.environment.name }
+      description: Compare credits spent against the configured limit per Snowflake budget over time.
+      description_copilot: Timeseries comparing Snowflake budget spend against its credit limit per budget.
+  groups:
+    - id: snowflake.credits.limit
+      type: metric
+      metric_name: snowflake.credits.limit
+      instrument: gauge
+      brief: The number of credits set as the spending limit for the budget.
+      title: Budget Spending Limit
+      unit: count
+      note: "Original unit: credit."
+      attributes:
+        - ref: snowflake.budget.full_name
+        - ref: snowflake.budget.name
+    - id: snowflake.credits.spent
+      type: metric
+      metric_name: snowflake.credits.spent
+      instrument: gauge
+      brief: Number of credits used.
+      title: Credits Spent
+      unit: count
+      note: "Original unit: credit."
+      attributes:
+        - ref: snowflake.budget.full_name
+        - ref: snowflake.budget.name
+        - ref: snowflake.service.type

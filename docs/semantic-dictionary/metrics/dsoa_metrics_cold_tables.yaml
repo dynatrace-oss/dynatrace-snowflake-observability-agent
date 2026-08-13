@@ -1,0 +1,52 @@
+model:
+  id: dsoa.metrics.cold_tables
+  title: Snowflake Cold Tables Metrics
+  brief: Metrics collected by the DSOA cold_tables plugin from Snowflake ACCOUNT_USAGE views.
+  model_group_id: dsoa.metrics
+  data_object: metric
+  interfaces:
+    - i.dsoa_resource
+    - i.dsoa_database
+  dql_queries:
+    - query_string: |
+        timeseries val = avg(snowflake.table.days_since_last_access), by: { snowflake.table.full_name, deployment.environment.name }
+      description: Plot the average number of days since last access per Snowflake table over time.
+      description_copilot: Timeseries of days since last access per Snowflake table.
+    - query_string: |
+        timeseries accesses = sum(snowflake.table.access.count), by: { snowflake.table.full_name, deployment.environment.name }
+      description: Plot access counts per Snowflake table over time to spot rarely-used tables.
+      description_copilot: Timeseries of access counts per Snowflake table.
+    - query_string: |
+        timeseries { days_idle = avg(snowflake.table.days_since_last_access), accesses = sum(snowflake.table.access.count) },
+          by: { snowflake.table.full_name, deployment.environment.name }
+      description: Compare idle days against access counts per Snowflake table to identify cold storage candidates.
+      description_copilot: Timeseries comparing idle days and access counts per Snowflake table.
+  groups:
+    - id: snowflake.table.access.count
+      type: metric
+      metric_name: snowflake.table.access.count
+      instrument: gauge
+      stability: experimental
+      brief: Total number of query accesses to this table within the lookback window.
+      examples:
+        - 42
+      title: Table Access Count
+      unit: count
+      attributes:
+        - ref: db.collection.name
+        - ref: snowflake.table.cold_status
+        - ref: snowflake.table.full_name
+    - id: snowflake.table.days_since_last_access
+      type: metric
+      metric_name: snowflake.table.days_since_last_access
+      instrument: gauge
+      stability: experimental
+      brief: Number of days since the table was last accessed by any query.
+      examples:
+        - 95
+      title: Days Since Last Access
+      unit: d
+      attributes:
+        - ref: db.collection.name
+        - ref: snowflake.table.cold_status
+        - ref: snowflake.table.full_name

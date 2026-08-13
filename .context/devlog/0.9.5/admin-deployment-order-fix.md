@@ -1,4 +1,4 @@
-# Admin Deployment Order Fix (BIZOBS-115)
+# Admin Deployment Order Fix
 
 ## Root Cause
 
@@ -39,15 +39,15 @@ now references only the stub itself, with no inline option blocks.
 
 ## Deployment Contract
 
-| Scope | Files included | Admin overrides? |
-| --- | --- | --- |
-| `init` | `00_init.sql` | No |
-| `setup` | `20_setup.sql` | No |
-| `plugins` | `30_plugins/*.sql` | No (stubs only) |
-| `config` | `40_config.sql` | No |
-| `agents` | `70_agents.sql` | No |
-| `admin` | `80_admin.sql` | Yes (runs independently, DBA path) |
-| `all` | all of the above, admin last | Yes |
+| Scope     | Files included               | Admin overrides?                   |
+|-----------|------------------------------|------------------------------------|
+| `init`    | `00_init.sql`                | No                                 |
+| `setup`   | `20_setup.sql`               | No                                 |
+| `plugins` | `30_plugins/*.sql`           | No (stubs only)                    |
+| `config`  | `40_config.sql`              | No                                 |
+| `agents`  | `70_agents.sql`              | No                                 |
+| `admin`   | `80_admin.sql`               | Yes (runs independently, DBA path) |
+| `all`     | all of the above, admin last | Yes                                |
 
 ## Pattern B Semantics (Updated)
 

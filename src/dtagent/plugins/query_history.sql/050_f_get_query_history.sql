@@ -96,16 +96,16 @@ BEGIN
                     ah.query_start_time                                                         as start_time,
                     ah.parent_query_id,
                     array_distinct(array_agg(
-                        case when t.value:objectDomain = 'Table'
-                             then t.value:objectName::varchar else null end))                   as query_tables,
+                        case when t.value:objectdomain = 'Table'
+                             then t.value:objectname::varchar else null end))                   as query_tables,
                     array_distinct(array_cat(
-                        array_agg(case when t.value:objectDomain = 'View'
-                                       then t.value:objectName::varchar else null end),
-                        array_agg(case when v.value:objectDomain = 'View'
-                                       then v.value:objectName::varchar else null end)))        as query_views,
+                        array_agg(case when t.value:objectdomain = 'View'
+                                       then t.value:objectname::varchar else null end),
+                        array_agg(case when v.value:objectdomain = 'View'
+                                       then v.value:objectname::varchar else null end)))        as query_views,
                     array_distinct(array_cat(
-                        array_agg(split_part(t.value:objectName::varchar, '.', 1)::variant),
-                        array_agg(split_part(v.value:objectName::varchar, '.', 1)::variant)))  as query_dbs,
+                        array_agg(split_part(t.value:objectname::varchar, '.', 1)::variant),
+                        array_agg(split_part(v.value:objectname::varchar, '.', 1)::variant)))  as query_dbs,
                     any_value(ah.object_modified_by_ddl:"objectDomain"::varchar)               as ddl_target_domain,
                     any_value(ah.object_modified_by_ddl:"objectId"::varchar)                   as ddl_target_id,
                     any_value(ah.object_modified_by_ddl:"objectName"::varchar)                 as ddl_target_name,
@@ -162,11 +162,11 @@ BEGIN
                     'db.query.text',                   app.f_obfuscate_query_text(
                                                            qh.query_text,
                                                            config.f_get_config_value(
-                                                               'plugins.query_history.obfuscation_mode',
-                                                               to_variant('off'))),
+                                                               'dsoa.plugins.query_history.obfuscation_mode',
+                                                               to_variant('none'))),
                     'db.snowflake.tables',             ah.query_tables,
                     'db.snowflake.views',              ah.query_views,
-                    'snowflake.session.id',            qh.session_id,
+                    'snowflake.session.id',            TO_VARCHAR(qh.session_id),
                     'event.id',                        s.login_event_id,
                     'authentication.type',             s.authentication_method,
                     'client.application.id',           s.client_application_id,
@@ -186,9 +186,9 @@ BEGIN
                     'snowflake.error.message',         app.f_obfuscate_query_text(
                                                            qh.error_message,
                                                            config.f_get_config_value(
-                                                               'plugins.query_history.obfuscation_mode',
-                                                               to_variant('off'))),
-                    'snowflake.session.start',         s.created_on,
+                                                               'dsoa.plugins.query_history.obfuscation_mode',
+                                                               to_variant('none'))),
+                    'snowflake.session.start',         EXTRACT(EPOCH_NANOSECOND FROM s.created_on::TIMESTAMP_LTZ),
                     'snowflake.session.closed_reason', s.closed_reason,
                     'snowflake.query.retry_cause',     qh.query_retry_cause,
                     'snowflake.secondary_role_stats',  qh.secondary_role_stats,
@@ -388,16 +388,16 @@ BEGIN
                     ah.query_start_time                                                         as start_time,
                     ah.parent_query_id,
                     array_distinct(array_agg(
-                        case when t.value:objectDomain = 'Table'
-                             then t.value:objectName::varchar else null end))                   as query_tables,
+                        case when t.value:objectdomain = 'Table'
+                             then t.value:objectname::varchar else null end))                   as query_tables,
                     array_distinct(array_cat(
-                        array_agg(case when t.value:objectDomain = 'View'
-                                       then t.value:objectName::varchar else null end),
-                        array_agg(case when v.value:objectDomain = 'View'
-                                       then v.value:objectName::varchar else null end)))        as query_views,
+                        array_agg(case when t.value:objectdomain = 'View'
+                                       then t.value:objectname::varchar else null end),
+                        array_agg(case when v.value:objectdomain = 'View'
+                                       then v.value:objectname::varchar else null end)))        as query_views,
                     array_distinct(array_cat(
-                        array_agg(split_part(t.value:objectName::varchar, '.', 1)::variant),
-                        array_agg(split_part(v.value:objectName::varchar, '.', 1)::variant)))  as query_dbs,
+                        array_agg(split_part(t.value:objectname::varchar, '.', 1)::variant),
+                        array_agg(split_part(v.value:objectname::varchar, '.', 1)::variant)))  as query_dbs,
                     any_value(ah.object_modified_by_ddl:"objectDomain"::varchar)               as ddl_target_domain,
                     any_value(ah.object_modified_by_ddl:"objectId"::varchar)                   as ddl_target_id,
                     any_value(ah.object_modified_by_ddl:"objectName"::varchar)                 as ddl_target_name,
@@ -454,11 +454,11 @@ BEGIN
                     'db.query.text',                   app.f_obfuscate_query_text(
                                                            qh.query_text,
                                                            config.f_get_config_value(
-                                                               'plugins.query_history.obfuscation_mode',
-                                                               to_variant('off'))),
+                                                               'dsoa.plugins.query_history.obfuscation_mode',
+                                                               to_variant('none'))),
                     'db.snowflake.tables',             ah.query_tables,
                     'db.snowflake.views',              ah.query_views,
-                    'snowflake.session.id',            qh.session_id,
+                    'snowflake.session.id',            TO_VARCHAR(qh.session_id),
                     'event.id',                        s.login_event_id,
                     'authentication.type',             s.authentication_method,
                     'client.application.id',           s.client_application_id,
@@ -478,9 +478,9 @@ BEGIN
                     'snowflake.error.message',         app.f_obfuscate_query_text(
                                                            qh.error_message,
                                                            config.f_get_config_value(
-                                                               'plugins.query_history.obfuscation_mode',
-                                                               to_variant('off'))),
-                    'snowflake.session.start',         s.created_on,
+                                                               'dsoa.plugins.query_history.obfuscation_mode',
+                                                               to_variant('none'))),
+                    'snowflake.session.start',         EXTRACT(EPOCH_NANOSECOND FROM s.created_on::TIMESTAMP_LTZ),
                     'snowflake.session.closed_reason', s.closed_reason,
                     'snowflake.query.retry_cause',     qh.query_retry_cause,
                     'snowflake.secondary_role_stats',  qh.secondary_role_stats,

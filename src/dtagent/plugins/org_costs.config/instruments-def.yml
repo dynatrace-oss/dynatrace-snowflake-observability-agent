@@ -1,16 +1,20 @@
 attributes:
   snowflake.account.locator:
+    __type: string
     __context_names:
       - org_costs_metering
     __example: ABC12345
     __description: The account locator identifier for the Snowflake account.
   snowflake.org.billing.contract_number:
+    __type: string
     __context_names:
       - org_billing_remaining_balance
     __example: CONTRACT-001
     __description: The contract number associated with the Snowflake billing balance.
 dimensions:
   snowflake.account.name:
+    __type: string
+    __stability: stable
     __context_names:
       - org_costs_metering
       - org_costs_storage
@@ -20,6 +24,7 @@ dimensions:
     __example: MYORG-ACCOUNT1
     __description: The name of the Snowflake account within the organization.
   snowflake.account.locator:
+    __type: string
     __context_names:
       - org_costs_storage
       - org_costs_data_transfer
@@ -28,16 +33,21 @@ dimensions:
     __example: ABC12345
     __description: The account locator identifier for the Snowflake account.
   snowflake.account.region:
+    __type: string
+    __stability: stable
     __context_names:
       - org_costs_data_transfer
     __example: US_EAST_1
     __description: The cloud region of the Snowflake account performing the data transfer.
   snowflake.org.billing.currency:
+    __type: string
     __context_names:
       - org_billing_usage_in_currency
     __example: USD
     __description: The currency in which billing usage amounts are denominated.
   snowflake.org.name:
+    __type: string
+    __stability: stable
     __context_names:
       - org_costs_metering
       - org_costs_storage
@@ -47,6 +57,8 @@ dimensions:
     __example: MYORG
     __description: The name of the Snowflake organization.
   snowflake.service.type:
+    __type: string
+    __stability: stable
     __context_names:
       - org_costs_metering
       - org_costs_storage
@@ -56,86 +68,152 @@ dimensions:
     __description: The Snowflake service type that consumed the credits.
 metrics:
   snowflake.org.billing.amount:
+    __type: double
     __context_names:
       - org_billing_usage_in_currency
-    __example: "150.50"
+    __example: 150.5
     __description: The billing amount in currency for the account on the given day.
     displayName: Org Billing Amount in Currency
     unit: currency
   snowflake.org.billing.capacity_balance:
+    __type: double
     __context_names:
       - org_billing_remaining_balance
-    __example: "10000.0"
+    __example: 10000.0
     __description: Remaining capacity balance for the organization contract.
     displayName: Org Billing Capacity Balance
     unit: currency
   snowflake.org.billing.free_usage_balance:
+    __type: double
     __context_names:
       - org_billing_remaining_balance
-    __example: "200.0"
+    __example: 200.0
     __description: Remaining free usage balance for the organization contract.
     displayName: Org Billing Free Usage Balance
     unit: currency
   snowflake.org.billing.on_demand_consumption:
+    __type: double
     __context_names:
       - org_billing_remaining_balance
-    __example: "100.0"
+    __example: 100.0
     __description: On-demand consumption amount charged against the organization contract.
     displayName: Org Billing On-Demand Consumption
     unit: currency
   snowflake.org.billing.marketplace_capacity_drawdown_balance:
+    __type: double
     __context_names:
       - org_billing_remaining_balance
-    __example: "0.0"
+    __example: 0.0
     __description: Marketplace capacity drawdown balance charged against the organization contract.
     displayName: Org Billing Marketplace Capacity Drawdown Balance
     unit: currency
   snowflake.org.billing.rollover_balance:
+    __type: double
     __context_names:
       - org_billing_remaining_balance
-    __example: "500.0"
+    __example: 500.0
     __description: Remaining rollover balance for the organization contract.
     displayName: Org Billing Rollover Balance
     unit: currency
   snowflake.org.credits.adjustment_cloud_services:
+    __type: double
     __context_names:
       - org_costs_metering
-    __example: "-0.5"
+    __example: -0.5
     __description: Credit adjustment for cloud services (10% rule offset).
     displayName: Org Cloud Services Credit Adjustment
-    unit: credits
+    unit: credit
   snowflake.org.credits.cloud_services:
+    __type: double
     __context_names:
       - org_costs_metering
-    __example: "1.2"
+    __example: 1.2
     __description: Credits used for cloud services by the account on the given day.
     displayName: Org Cloud Services Credits Used
-    unit: credits
+    unit: credit
   snowflake.org.credits.compute:
+    __type: double
     __context_names:
       - org_costs_metering
-    __example: "8.0"
+    __example: 8.0
     __description: Credits used for compute by the account on the given day.
     displayName: Org Compute Credits Used
-    unit: credits
+    unit: credit
   snowflake.org.credits.used:
+    __type: double
     __context_names:
       - org_costs_metering
-    __example: "9.2"
+    __example: 9.2
     __description: Total credits used by the account on the given day across all service types.
     displayName: Org Total Credits Used
-    unit: credits
+    unit: credit
   snowflake.org.data.stored:
+    __type: long
     __context_names:
       - org_costs_storage
-    __example: "1099511627776"
+    __example: 1099511627776
     __description: Total storage bytes used by the account on the given day across all storage types.
     displayName: Org Data Stored
-    unit: Byte
+    unit: By
   snowflake.org.data.transferred:
+    __type: long
     __context_names:
       - org_costs_data_transfer
-    __example: "2147483648"
+    __example: 2147483648
     __description: Bytes transferred between clouds or regions on the given day.
     displayName: Org Data Transfer Bytes
-    unit: Byte
+    unit: By
+dql_queries:
+  - query_string: |
+      timeseries val = sum(snowflake.org.credits.used), by: { snowflake.account.name, deployment.environment.name }
+    description: Plot total organisation credits used per Snowflake account over time.
+    description_copilot: Timeseries of Snowflake organisation credits used per account.
+    context:
+      - metrics
+  - query_string: |
+      timeseries val = sum(snowflake.org.credits.used), by: { snowflake.service.type, deployment.environment.name }
+    description: Plot organisation credits used per Snowflake service type over time.
+    description_copilot: Timeseries of Snowflake organisation credits used per service type.
+    context:
+      - metrics
+  - query_string: |
+      timeseries { billed = sum(snowflake.org.billing.amount), on_demand = sum(snowflake.org.billing.on_demand_consumption) },
+        by: { snowflake.account.name, deployment.environment.name }
+    description: Compare total billed amount against on-demand consumption per Snowflake account over time.
+    description_copilot: Timeseries comparing Snowflake billed amount and on-demand consumption per account.
+    context:
+      - metrics
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "org_costs"
+      | sort timestamp desc
+      | limit 100
+    description: Fetch the 100 most recent DSOA org_costs plugin log entries from Grail.
+    description_copilot: Search for all org_costs plugin logs from the Snowflake observability agent.
+    context:
+      - logs
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "org_costs"
+      | filter isNotNull(snowflake.account.name)
+      | fields timestamp, snowflake.account.name, snowflake.org.credits.used, snowflake.org.billing.amount
+      | sort timestamp desc
+      | limit 50
+    description: Inspect per-account organisation credit and billing readings from the org_costs plugin.
+    description_copilot: Show recent Snowflake organisation credit and billing figures per account.
+    context:
+      - logs
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "org_costs"
+      | filter isNotNull(snowflake.account.name)
+      | summarize { total_billed = sum(toDouble(snowflake.org.billing.amount)) }, by: { snowflake.account.name }
+      | sort total_billed desc
+      | limit 25
+    description: Rank Snowflake accounts by total organisation billing amount.
+    description_copilot: Find which Snowflake accounts have the highest organisation billing amount.
+    context:
+      - logs

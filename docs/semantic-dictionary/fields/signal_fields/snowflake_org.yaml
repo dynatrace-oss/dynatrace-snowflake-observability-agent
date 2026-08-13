@@ -1,0 +1,27 @@
+groups:
+  - id: snowflake.org
+    type: attribute_group
+    title: Snowflake Org signal fields
+    brief: Signal-level fields for Snowflake Org telemetry.
+    attributes:
+      - id: snowflake.org.billing.contract_number
+        display_name: Snowflake Org Billing Contract Number
+        type: string
+        stability: experimental
+        brief: The contract number associated with the Snowflake billing balance.
+        examples:
+          - CONTRACT-001
+      - id: snowflake.org.billing.currency
+        display_name: Snowflake Org Billing Currency
+        type: string
+        stability: experimental
+        brief: The currency in which billing usage amounts are denominated.
+        examples:
+          - USD
+      - id: snowflake.org.name
+        display_name: Snowflake Org Name
+        type: string
+        stability: stable
+        brief: The name of the Snowflake organization.
+        examples:
+          - MYORG

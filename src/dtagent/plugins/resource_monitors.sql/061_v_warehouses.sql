@@ -42,14 +42,14 @@ select
         'snowflake.warehouse.type',                                 wh.type,
         'snowflake.warehouse.size',                                 wh.size,
         'snowflake.warehouse.owner.name',                           wh.owner,
-        'snowflake.warehouse.is_default',                           wh.is_default,
-        'snowflake.warehouse.is_current',                           wh.is_current,
+        'snowflake.warehouse.owner.role_type',                      wh.owner_role_type,
+        'snowflake.warehouse.is_default',                           TRY_TO_BOOLEAN(wh.is_default),
+        'snowflake.warehouse.is_current',                           TRY_TO_BOOLEAN(wh.is_current),
         'snowflake.warehouse.is_auto_resume',                       wh.auto_resume,
         'snowflake.warehouse.is_unmonitored',                       IS_UNMONITORED,
 
         'snowflake.warehouse.has_query_acceleration_enabled',       wh.enable_query_acceleration,
         'snowflake.warehouse.scaling_policy',                       wh.scaling_policy,
-        'snowflake.warehouse.owner.role_type',                      wh.owner_role_type,
 
         'snowflake.resource_monitor.level',                         rm.level,
         'snowflake.resource_monitor.frequency',                     rm.frequency,
@@ -68,10 +68,10 @@ select
     )                                                                                                                   as EVENT_TIMESTAMPS,
     -- metrics
     OBJECT_CONSTRUCT(
-        'snowflake.compute.available',                              wh.available,
-        'snowflake.compute.provisioning',                           wh.provisioning,
-        'snowflake.compute.quiescing',                              wh.quiescing,
-        'snowflake.compute.other',                                  wh.other,
+        'snowflake.compute.available',                              TRY_TO_DOUBLE(wh.available),
+        'snowflake.compute.provisioning',                           TRY_TO_DOUBLE(wh.provisioning),
+        'snowflake.compute.quiescing',                              TRY_TO_DOUBLE(wh.quiescing),
+        'snowflake.compute.other',                                  TRY_TO_DOUBLE(wh.other),
         'snowflake.warehouse.clusters.min',                         wh.min_cluster_count,
         'snowflake.warehouse.clusters.max',                         wh.max_cluster_count,
         'snowflake.acceleration.scale_factor.max',                  wh.query_acceleration_max_scale_factor,

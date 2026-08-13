@@ -1,0 +1,163 @@
+model:
+  id: snowflake.metrics.org_costs
+  title: Snowflake org costs metrics
+  brief: Metrics collected by the DSOA org_costs plugin from Snowflake ACCOUNT_USAGE views.
+  model_group_id: snowflake.metrics
+  data_object: metric
+  interfaces: [ i.dsoa_resource ]
+  dql_queries:
+    - query_string: >
+        timeseries val = sum(snowflake.org.credits.used), by: { snowflake.account.name, deployment.environment.name }
+      description: Plot total organisation credits used per Snowflake account over time.
+      description_copilot: Timeseries of Snowflake organisation credits used per account.
+    - query_string: >
+        timeseries val = sum(snowflake.org.credits.used), by: { snowflake.service.type, deployment.environment.name }
+      description: Plot organisation credits used per Snowflake service type over time.
+      description_copilot: Timeseries of Snowflake organisation credits used per service type.
+    - query_string: |
+        timeseries { billed = sum(snowflake.org.billing.amount), on_demand = sum(snowflake.org.billing.on_demand_consumption) },
+          by: { snowflake.account.name, deployment.environment.name }
+      description: Compare total billed amount against on-demand consumption per Snowflake account over time.
+      description_copilot: Timeseries comparing Snowflake billed amount and on-demand consumption per account.
+  groups:
+    - id: snowflake.org.billing.amount
+      type: metric
+      metric_name: snowflake.org.billing.amount
+      instrument: gauge
+      brief: The billing amount in currency for the account on the given day.
+      title: Org Billing Amount in Currency
+      unit: US$
+      attributes:
+        - ref: snowflake.account.locator
+        - ref: snowflake.account.name
+        - ref: snowflake.org.billing.currency
+        - ref: snowflake.org.name
+        - ref: snowflake.service.type
+    - id: snowflake.org.billing.capacity_balance
+      type: metric
+      metric_name: snowflake.org.billing.capacity_balance
+      instrument: gauge
+      brief: Remaining capacity balance for the organization contract.
+      title: Org Billing Capacity Balance
+      unit: US$
+      attributes:
+        - ref: snowflake.account.locator
+        - ref: snowflake.account.name
+        - ref: snowflake.org.name
+    - id: snowflake.org.billing.free_usage_balance
+      type: metric
+      metric_name: snowflake.org.billing.free_usage_balance
+      instrument: gauge
+      brief: Remaining free usage balance for the organization contract.
+      title: Org Billing Free Usage Balance
+      unit: US$
+      attributes:
+        - ref: snowflake.account.locator
+        - ref: snowflake.account.name
+        - ref: snowflake.org.name
+    - id: snowflake.org.billing.marketplace_capacity_drawdown_balance
+      type: metric
+      metric_name: snowflake.org.billing.marketplace_capacity_drawdown_balance
+      instrument: gauge
+      brief: Marketplace capacity drawdown balance charged against the organization contract.
+      title: Org Billing Marketplace Capacity Drawdown Balance
+      unit: US$
+      attributes:
+        - ref: snowflake.account.locator
+        - ref: snowflake.account.name
+        - ref: snowflake.org.name
+    - id: snowflake.org.billing.on_demand_consumption
+      type: metric
+      metric_name: snowflake.org.billing.on_demand_consumption
+      instrument: gauge
+      brief: On-demand consumption amount charged against the organization contract.
+      title: Org Billing On-Demand Consumption
+      unit: US$
+      attributes:
+        - ref: snowflake.account.locator
+        - ref: snowflake.account.name
+        - ref: snowflake.org.name
+    - id: snowflake.org.billing.rollover_balance
+      type: metric
+      metric_name: snowflake.org.billing.rollover_balance
+      instrument: gauge
+      brief: Remaining rollover balance for the organization contract.
+      title: Org Billing Rollover Balance
+      unit: US$
+      attributes:
+        - ref: snowflake.account.locator
+        - ref: snowflake.account.name
+        - ref: snowflake.org.name
+    - id: snowflake.org.credits.adjustment_cloud_services
+      type: metric
+      metric_name: snowflake.org.credits.adjustment_cloud_services
+      instrument: gauge
+      brief: Credit adjustment for cloud services (10% rule offset).
+      title: Org Cloud Services Credit Adjustment
+      unit: count
+      note: "Original unit: credit."
+      attributes:
+        - ref: snowflake.account.name
+        - ref: snowflake.org.name
+        - ref: snowflake.service.type
+    - id: snowflake.org.credits.cloud_services
+      type: metric
+      metric_name: snowflake.org.credits.cloud_services
+      instrument: gauge
+      brief: Credits used for cloud services by the account on the given day.
+      title: Org Cloud Services Credits Used
+      unit: count
+      note: "Original unit: credit."
+      attributes:
+        - ref: snowflake.account.name
+        - ref: snowflake.org.name
+        - ref: snowflake.service.type
+    - id: snowflake.org.credits.compute
+      type: metric
+      metric_name: snowflake.org.credits.compute
+      instrument: gauge
+      brief: Credits used for compute by the account on the given day.
+      title: Org Compute Credits Used
+      unit: count
+      note: "Original unit: credit."
+      attributes:
+        - ref: snowflake.account.name
+        - ref: snowflake.org.name
+        - ref: snowflake.service.type
+    - id: snowflake.org.credits.used
+      type: metric
+      metric_name: snowflake.org.credits.used
+      instrument: gauge
+      brief: Total credits used by the account on the given day across all service types.
+      title: Org Total Credits Used
+      unit: count
+      note: "Original unit: credit."
+      attributes:
+        - ref: snowflake.account.name
+        - ref: snowflake.org.name
+        - ref: snowflake.service.type
+    - id: snowflake.org.data.stored
+      type: metric
+      metric_name: snowflake.org.data.stored
+      instrument: gauge
+      brief: Total storage bytes used by the account on the given day across all storage types.
+      title: Org Data Stored
+      unit: By
+      attributes:
+        - ref: snowflake.account.locator
+        - ref: snowflake.account.name
+        - ref: snowflake.org.name
+        - ref: snowflake.service.type
+    - id: snowflake.org.data.transferred
+      type: metric
+      metric_name: snowflake.org.data.transferred
+      instrument: gauge
+      brief: Bytes transferred between clouds or regions on the given day.
+      title: Org Data Transfer Bytes
+      unit: By
+      attributes:
+        - ref: snowflake.account.locator
+        - ref: snowflake.account.name
+        - ref: snowflake.account.region
+        - ref: snowflake.org.name
+        - ref: snowflake.service.type

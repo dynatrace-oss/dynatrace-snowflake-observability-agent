@@ -1,0 +1,247 @@
+groups:
+  - id: snowflake.query
+    type: attribute_group
+    title: Snowflake Query signal fields
+    brief: Signal-level fields for Snowflake Query telemetry.
+    attributes:
+      - id: snowflake.query.accel_est.estimated_query_times
+        display_name: Snowflake Query Accel Est Estimated Query Times
+        type: string
+        stability: stable
+        brief: Object that contains the estimated query execution time in seconds for different query acceleration scale factors. If the status for the query is not eligible for query acceleration, this
+          object is empty.
+        examples:
+          - '{ "scaleFactor1": 10, "scaleFactor2": 5 }'
+        note: Serialized JSON object stored as string in Grail. Contains estimated query execution times per scale factor. Parse with parseJson() in DQL.
+      - id: snowflake.query.accel_est.status
+        display_name: Snowflake Query Accel Est Status
+        type:
+          allow_custom_values: true
+          members:
+            - id: eligible
+              value: eligible
+              brief: Query is eligible for query acceleration.
+            - id: ineligible
+              value: ineligible
+              brief: Query is not eligible for query acceleration.
+            - id: accelerated
+              value: accelerated
+              brief: Query was accelerated by the service.
+            - id: invalid
+              value: invalid
+              brief: Query acceleration status could not be determined.
+        stability: stable
+        brief: Indicates whether the query is eligible to benefit from the query acceleration service.
+        examples:
+          - eligible
+      - id: snowflake.query.accel_est.upper_limit_scale_factor
+        display_name: Snowflake Query Accel Est Upper Limit Scale Factor
+        type: long
+        stability: stable
+        brief: Number of the highest query acceleration scale factor in the estimatedQueryTimes object. If the status for the query is not eligible for query acceleration, this field is set to 0.
+        examples:
+          - 2
+      - id: snowflake.query.data_transfer.inbound.cloud
+        display_name: Snowflake Query Data Transfer Inbound Cloud
+        type: string
+        stability: stable
+        brief: The cloud provider from which data was transferred inbound.
+        examples:
+          - AWS
+      - id: snowflake.query.data_transfer.inbound.region
+        display_name: Snowflake Query Data Transfer Inbound Region
+        type: string
+        stability: stable
+        brief: The region from which data was transferred inbound.
+        examples:
+          - us-west-2
+      - id: snowflake.query.data_transfer.outbound.cloud
+        display_name: Snowflake Query Data Transfer Outbound Cloud
+        type: string
+        stability: stable
+        brief: The cloud provider to which data was transferred outbound.
+        examples:
+          - AWS
+      - id: snowflake.query.data_transfer.outbound.region
+        display_name: Snowflake Query Data Transfer Outbound Region
+        type: string
+        stability: stable
+        brief: The region to which data was transferred outbound.
+        examples:
+          - us-west-2
+      - id: snowflake.query.execution_status
+        display_name: Snowflake Query Execution Status
+        type:
+          allow_custom_values: true
+          members:
+            - id: success
+              value: SUCCESS
+              brief: Query completed without errors; result is available in the result cache.
+            - id: fail
+              value: FAIL
+              brief: Query failed due to a user-actionable error (e.g. syntax error, insufficient privileges).
+            - id: failed_with_error
+              value: FAILED_WITH_ERROR
+              brief: Query failed due to an internal Snowflake error unrelated to user input; retrying the statement may succeed.
+            - id: incident
+              value: INCIDENT
+              brief: Query was aborted or interrupted by a Snowflake platform incident; not caused by user error or warehouse load.
+            - id: queued
+              value: QUEUED
+              brief: Query is waiting in the warehouse queue due to concurrency limits or cluster provisioning.
+            - id: resuming_warehouse
+              value: RESUMING_WAREHOUSE
+              brief: Query is waiting for the warehouse to resume from a suspended state before execution can begin.
+            - id: running
+              value: RUNNING
+              brief: Query is actively executing on the warehouse compute resources.
+        stability: stable
+        brief: The execution status of the query.
+        examples:
+          - SUCCESS
+      - id: snowflake.query.hash
+        display_name: Snowflake Query Hash
+        type: string
+        stability: stable
+        brief: The hash value of the query text.
+        examples:
+          - hash_abcdef
+      - id: snowflake.query.hash_version
+        display_name: Snowflake Query Hash Version
+        type: long
+        stability: experimental
+        brief: The version of the query hash logic.
+        examples:
+          - 1
+      - id: snowflake.query.id
+        display_name: Snowflake Query ID
+        type: string
+        stability: stable
+        brief: The unique identifier for the query.
+        examples:
+          - b1bbaa7f-8144-4e50-947a-b7e9bf7d62d5
+      - id: snowflake.query.is_client_generated
+        display_name: Snowflake Query Is Client Generated
+        type: boolean
+        stability: stable
+        brief: Indicates if the statement was generated by the client.
+        examples:
+          - true
+      - id: snowflake.query.parametrized_hash
+        display_name: Snowflake Query Parametrized Hash
+        type: string
+        stability: stable
+        brief: The hash value of the parameterized query text.
+        examples:
+          - param_hash_abcdef
+      - id: snowflake.query.parametrized_hash_version
+        display_name: Snowflake Query Parametrized Hash Version
+        type: long
+        stability: experimental
+        brief: The version of the parameterized query hash logic.
+        examples:
+          - 1
+      - id: snowflake.query.parent_id
+        display_name: Snowflake Query Parent ID
+        type: string
+        stability: stable
+        brief: The query ID of the parent job or NULL if the job does not have a parent.
+        examples:
+          - 01b2fd01-0604-6864-0040-e003029abda2
+      - id: snowflake.query.retry_cause
+        display_name: Snowflake Query Retry Cause
+        type: string
+        stability: stable
+        brief: The cause for retrying the query, if applicable.
+        examples:
+          - Network issue
+      - id: snowflake.query.root_id
+        display_name: Snowflake Query Root ID
+        type: string
+        stability: experimental
+        brief: The query ID of the top most job in the chain or NULL if the job does not have a parent.
+        examples:
+          - 01b2fd00-0604-6864-0040-e003029abd82
+      - id: snowflake.query.step.id
+        display_name: Snowflake Query Step ID
+        type: long
+        stability: experimental
+        brief: Identifier of the step in the query execution plan. operator_id values are unique within a step, not across the full query.
+        examples:
+          - 1
+      - id: snowflake.query.step.operator.attributes
+        display_name: Snowflake Query Step Operator Attributes
+        type: string
+        stability: experimental
+        brief: Information about the operator, depending on the operator type.
+        examples:
+          - '{ "equality_join_condition": "(T4.C = T1.C)",   "join_type": "INNER" }'
+        note: Serialized JSON object stored as string in Grail. Contains query operator specific attributes (e.g. join conditions). Parse with parseJson() in DQL.
+      - id: snowflake.query.step.operator.id
+        display_name: Snowflake Query Step Operator ID
+        type: long
+        stability: experimental
+        brief: The operator's identifier, unique within a step. Values start at 0.
+        examples:
+          - 0
+      - id: snowflake.query.step.operator.parent_ids
+        display_name: Snowflake Query Step Operator Parent Ids
+        type: string[]
+        stability: experimental
+        brief: Identifiers of the parent operators for this operator, or NULL if this is the final operator in the query plan.
+        examples:
+          - - '0'
+            - '1'
+        note: Array of parent operator IDs stored as string[] in Grail. Values are numeric strings.
+      - id: snowflake.query.step.operator.stats
+        display_name: Snowflake Query Step Operator Stats
+        type: string
+        stability: experimental
+        brief: Statistics about the operator (e.g., the number of output rows from the operator).
+        examples:
+          - '{ "input_rows": 64, "output_rows": 64 }'
+        note: Serialized JSON object stored as string in Grail. Contains query operator execution statistics (e.g. input_rows, output_rows). Parse with parseJson() in DQL.
+      - id: snowflake.query.step.operator.time_breakdown
+        display_name: Snowflake Query Step Operator Time Breakdown
+        type: string
+        stability: experimental
+        brief: |-
+          The breakdown of the execution time of the operator:
+          - **overall_percentage**: The percentage of the total query time spent by this operator,
+          - **initialization**: Time spent setting up query processing,
+          - **processing**: Time spent processing the data by the CPU,
+          - **synchronization**: Time spent synchronizing activities between participating processes,
+          - **local_disk_io**: Time during which processing was blocked while waiting for local disk access,
+          - **remote_disk_io**: Time during which processing was blocked while waiting for remote disk access,
+          - **network_communication**: Time during which processing was waiting for network data transfer.
+        examples:
+          - '{ "overall_percentage": 50.0,"initialization": 0.5,"processing": 4.0,"synchronization": 0.5,"local_disk_io": 0.2,"remote_disk_io": 0.1,"network_communication": 0.2 }'
+        note: Serialized JSON object stored as string in Grail. Contains query operator time breakdown (e.g. overall_percentage). Parse with parseJson() in DQL.
+      - id: snowflake.query.step.operator.type
+        display_name: Snowflake Query Step Operator Type
+        type: string
+        stability: experimental
+        brief: The type of query operator (e.g., TableScan or Filter).
+        examples:
+          - TableScan
+      - id: snowflake.query.tag
+        display_name: Snowflake Query Tag
+        type: string
+        stability: stable
+        brief: The tag associated with the query, if any.
+        examples:
+          - daily_report
+      - id: snowflake.query.transaction_id
+        display_name: Snowflake Query Transaction ID
+        type: long
+        stability: stable
+        brief: The transaction ID associated with the query.
+        examples:
+          - 7890123456
+      - id: snowflake.query.with_operator_stats
+        display_name: Snowflake Query With Operator Stats
+        type: boolean
+        stability: experimental
+        brief: Indicates if the query was executed with operator-level statistics enabled.
+        examples:
+          - true

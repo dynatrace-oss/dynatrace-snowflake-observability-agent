@@ -16,47 +16,63 @@
 # Catalog of instrumentation known to Dynatrace Snowflake Observability Agent - budgets plugin
 attributes:
   snowflake.budget.owner.name:
+    __type: string
+    __stability: stable
     __context_names:
       - budgets
     __example: budget_admin
     __description: The owner of the budget, typically the user or role responsible for managing the budget.
   snowflake.budget.owner.role_type:
+    __type: string
     __context_names:
       - budgets
     __example: ROLE
     __description: >
       The principal type of the budget owner: ROLE or APPLICATION.
   snowflake.budget.resource:
+    __stability: stable
+    __type: string[]
+    __semdict_note: "Array of resource names (databases, warehouses) in this budget group, stored as string[] in Grail."
     __context_names:
       - budgets
-    __example: '[ "database1", "warehouse1" ]'
+    __example:
+      - ["DATABASE1", "WAREHOUSE1"]
     __description: The resources linked to the budget, such as databases, warehouses, or other Snowflake objects that the budget monitors.
 dimensions:
   db.namespace:
+    __semdict: ref
+    __type: string
     __context_names:
       - budgets
       - spendings
     __example: analytics_db
     __description: The name of the database that was specified in the context of the query at compilation.
   snowflake.budget.name:
+    __type: string
+    __stability: stable
     __context_names:
       - budgets
       - spendings
     __example: monthly_budget
     __description: Name of the budget.
   snowflake.budget.full_name:
+    __type: string
     __context_names:
       - budgets
       - spendings
     __example: ANALYTICS_DB.BUDGETS.MONTHLY_BUDGET
     __description: Fully-qualified name of the budget (DATABASE.SCHEMA.NAME).
   snowflake.schema.name:
+    __type: string
+    __stability: stable
     __context_names:
       - budgets
       - spendings
     __example: public
     __description: Schema that was specified in the context of the query at compilation.
   snowflake.service.type:
+    __type: string
+    __stability: stable
     __context_names:
       - spendings
     __example: WAREHOUSE_METERING
@@ -76,6 +92,7 @@ dimensions:
       - WAREHOUSE_METERING_READER
 event_timestamps:
   snowflake.event.trigger:
+    __type: string
     __context_names:
       - budgets
     __example: "snowflake.budget.created_on"
@@ -83,22 +100,110 @@ event_timestamps:
       Additionally to sending logs, each entry in `EVENT_TIMESTAMPS` is sent as event with key set to `snowflake.event.trigger`, value to
       key from `EVENT_TIMESTAMPS` and `timestamp` set to the key value.
   snowflake.budget.created_on:
+    __type: long
+    __stability: stable
     __context_names:
       - budgets
-    __example: "2024-11-30 23:59:59.999"
+    __example: 1732981199999000000
     __description: The timestamp when the budget was created.
 metrics:
   snowflake.credits.limit:
+    __type: long
     __context_names:
       - budgets
-    __example: "100"
+    __example: 100
     __description: The number of credits set as the spending limit for the budget.
     displayName: Budget Spending Limit
-    unit: credits
+    unit: credit
   snowflake.credits.spent:
+    __type: double
     __context_names:
       - spendings
-    __example: "75"
+    __example: 75
     __description: Number of credits used.
     displayName: Credits Spent
-    unit: credits
+    unit: credit
+dql_queries:
+  - query_string: |
+      timeseries spent = sum(snowflake.credits.spent), by: { snowflake.budget.name, deployment.environment.name }
+    description: Plot credits spent per Snowflake budget over time.
+    description_copilot: Timeseries of Snowflake credits spent per budget.
+    context:
+      - metrics
+  - query_string: |
+      timeseries budget_limit = avg(snowflake.credits.limit), by: { snowflake.budget.name, deployment.environment.name }
+    description: Plot the credit spending limit per Snowflake budget over time.
+    description_copilot: Timeseries of Snowflake budget spending limits per budget.
+    context:
+      - metrics
+  - query_string: |
+      timeseries { spent = sum(snowflake.credits.spent), budget_limit = avg(snowflake.credits.limit) },
+        by: { snowflake.budget.name, deployment.environment.name }
+    description: Compare credits spent against the configured limit per Snowflake budget over time.
+    description_copilot: Timeseries comparing Snowflake budget spend against its credit limit per budget.
+    context:
+      - metrics
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "budgets"
+      | sort timestamp desc
+      | limit 100
+    description: Fetch the 100 most recent DSOA budgets plugin log entries from Grail.
+    description_copilot: Search for all budgets plugin logs from the Snowflake observability agent.
+    context:
+      - logs
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "budgets"
+      | filter isNotNull(snowflake.budget.name)
+      | fields timestamp, snowflake.budget.name, snowflake.credits.spent, snowflake.credits.limit
+      | sort timestamp desc
+      | limit 50
+    description: Inspect the latest spend and limit readings for each Snowflake budget.
+    description_copilot: Show recent Snowflake budget spend and limit values per budget.
+    context:
+      - logs
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "budgets"
+      | filter isNotNull(snowflake.budget.name)
+      | summarize { latest_spent = takeMax(toDouble(snowflake.credits.spent)) }, by: { snowflake.budget.name }
+      | sort latest_spent desc
+    description: Rank Snowflake budgets by their most recent credits-spent reading.
+    description_copilot: Find which Snowflake budgets have spent the most credits.
+    context:
+      - logs
+  - query_string: |
+      fetch events
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "budgets"
+      | sort timestamp desc
+      | limit 50
+    description: Fetch the most recent DSOA budgets lifecycle events from Grail.
+    description_copilot: Search for Snowflake budget lifecycle events emitted by the observability agent.
+    context:
+      - events
+  - query_string: |
+      fetch events
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "budgets"
+      | summarize { events = count() }, by: { snowflake.event.type }
+      | sort events desc
+    description: Count DSOA budgets lifecycle events grouped by event type.
+    description_copilot: Break down Snowflake budget lifecycle events by their event type.
+    context:
+      - events
+  - query_string: |
+      fetch events
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "budgets"
+      | filter snowflake.event.type == "snowflake.budget.created_on"
+      | sort timestamp desc
+      | limit 25
+    description: Fetch budget-creation lifecycle events reported by the budgets plugin.
+    description_copilot: Find when Snowflake budgets were created from the budgets plugin lifecycle events.
+    context:
+      - events

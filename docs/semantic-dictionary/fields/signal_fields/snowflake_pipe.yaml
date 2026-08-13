@@ -1,0 +1,120 @@
+groups:
+  - id: snowflake.pipe
+    type: attribute_group
+    title: Snowflake Pipe signal fields
+    brief: Signal-level fields for Snowflake Pipe telemetry.
+    attributes:
+      - id: snowflake.pipe.catalog
+        display_name: Snowflake Pipe Catalog
+        type: string
+        stability: experimental
+        brief: Database containing the pipe.
+        examples:
+          - MY_DB
+      - id: snowflake.pipe.created_on
+        display_name: Snowflake Pipe Created On
+        type: long
+        stability: stable
+        brief: Pipe creation event.
+        examples:
+          - 1736936200000000000
+      - id: snowflake.pipe.definition
+        display_name: Snowflake Pipe Definition
+        type: string
+        stability: experimental
+        brief: The pipe's COPY statement.
+        examples:
+          - COPY INTO MY_DB.MY_SCHEMA.TARGET_TABLE FROM @MY_DB.MY_SCHEMA.MY_STAGE
+      - id: snowflake.pipe.execution_state
+        display_name: Snowflake Pipe Execution State
+        type: string
+        stability: stable
+        brief: Raw execution state from SYSTEM$PIPE_STATUS.
+        examples:
+          - RUNNING
+      - id: snowflake.pipe.full_name
+        display_name: Snowflake Pipe Full Name
+        type: string
+        stability: experimental
+        brief: Fully qualified pipe name (database.schema.pipe).
+        examples:
+          - MY_DB.MY_SCHEMA.MY_PIPE
+      - id: snowflake.pipe.id
+        display_name: Snowflake Pipe ID
+        type: string
+        stability: experimental
+        brief: Unique pipe UUID (from PIPE_USAGE_HISTORY).
+        examples:
+          - a1b2c3d4-e5f6-7890-abcd-ef1234567890
+      - id: snowflake.pipe.invalid_reason
+        display_name: Snowflake Pipe Invalid Reason
+        type: string
+        stability: experimental
+        brief: Reason the pipe is in an invalid state.
+        examples:
+          - Pipe paused by user
+      - id: snowflake.pipe.last_ingested_timestamp
+        display_name: Snowflake Pipe Last Ingested Timestamp
+        type: string
+        stability: experimental
+        brief: Most recent file ingestion timestamp.
+        examples:
+          - '2025-03-12 08:58:41.695 Z'
+      - id: snowflake.pipe.last_received_message_timestamp
+        display_name: Snowflake Pipe Last Received Message Timestamp
+        type: string
+        stability: experimental
+        brief: Most recent event notification timestamp.
+        examples:
+          - '2025-03-12 08:57:30.000 Z'
+      - id: snowflake.pipe.name
+        display_name: Snowflake Pipe Name
+        type: string
+        stability: stable
+        brief: Short pipe name.
+        examples:
+          - MY_PIPE
+      - id: snowflake.pipe.notification_channel
+        display_name: Snowflake Pipe Notification Channel
+        type: string
+        stability: experimental
+        brief: Cloud notification channel URL.
+        examples:
+          - arn:aws:sqs:us-east-1:123456789012:sf-snowpipe-AIDAEXAMPLE-pipeId
+      - id: snowflake.pipe.oldest_file_timestamp
+        display_name: Snowflake Pipe Oldest File Timestamp
+        type: string
+        stability: experimental
+        brief: Timestamp of oldest pending file.
+        examples:
+          - '2025-03-12 08:50:00.000 Z'
+      - id: snowflake.pipe.owner
+        display_name: Snowflake Pipe Owner
+        type: string
+        stability: experimental
+        brief: Role owning the pipe.
+        examples:
+          - LOADER_ROLE
+      - id: snowflake.pipe.schema
+        display_name: Snowflake Pipe Schema
+        type: string
+        stability: experimental
+        brief: Schema containing the pipe.
+        examples:
+          - MY_SCHEMA
+      - id: snowflake.pipe.status
+        display_name: Snowflake Pipe Status
+        type: string
+        stability: stable
+        brief: |-
+          Pipe execution state as original string:
+          RUNNING, PAUSED, STOPPED_*, STALLED_*.
+        examples:
+          - RUNNING
+      - id: snowflake.pipe.usage.start_time
+        display_name: Snowflake Pipe Usage Start Time
+        type: string
+        stability: experimental
+        brief: Start of the usage aggregation window.
+        examples:
+          - '2025-03-12 08:00:00.000 Z'

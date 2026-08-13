@@ -1,0 +1,42 @@
+model:
+  id: dsoa.events.tasks
+  title: Snowflake Tasks Lifecycle Events
+  brief: Timestamp-based state-change events emitted by the DSOA tasks plugin via the OpenPipeline Events API.
+  model_group_id: dsoa.events
+  data_object: event
+  interfaces:
+    - i.dsoa_resource
+  dql_queries:
+    - query_string: |
+        fetch events
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "tasks"
+        | sort timestamp desc
+        | limit 50
+      description: Fetch the most recent DSOA tasks lifecycle events (task graph version anchors).
+      description_copilot: Search for Snowflake task graph lifecycle events from the tasks plugin.
+    - query_string: |
+        fetch events
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "tasks"
+        | summarize { events = count() }, by: { snowflake.event.type }
+        | sort events desc
+      description: Count DSOA tasks lifecycle events grouped by event type.
+      description_copilot: Break down Snowflake task lifecycle events by their event type.
+    - query_string: |
+        fetch events
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "tasks"
+        | filter isNotNull(snowflake.task.name)
+        | fields timestamp, snowflake.event.type, snowflake.task.name
+        | sort timestamp desc
+        | limit 25
+      description: Inspect task lifecycle events with their task name and event type.
+      description_copilot: Show Snowflake task lifecycle events with task name and event type.
+  groups:
+    - id: dsoa.events.tasks.fields
+      type: attribute_group
+      title: Tasks event fields
+      attributes:
+        - ref: snowflake.event.type
+        - ref: snowflake.task.graph.version.created_on

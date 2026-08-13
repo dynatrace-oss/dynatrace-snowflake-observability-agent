@@ -1,0 +1,63 @@
+model:
+  id: snowflake.metrics.data_volume
+  title: Snowflake data volume metrics
+  brief: Metrics collected by the DSOA data_volume plugin from Snowflake ACCOUNT_USAGE views.
+  model_group_id: snowflake.metrics
+  data_object: metric
+  interfaces: [ i.dsoa_resource, i.snowflake_database ]
+  dql_queries:
+    - query_string: >
+        timeseries val = sum(snowflake.data.size), by: { db.collection.name, deployment.environment.name }
+      description: Plot total storage size in bytes per table over time.
+      description_copilot: Timeseries of Snowflake table storage size in bytes.
+    - query_string: >
+        timeseries rows = sum(snowflake.data.rows), by: { db.collection.name, deployment.environment.name }
+      description: Plot total row count per Snowflake table over time.
+      description_copilot: Timeseries of Snowflake table row count.
+    - query_string: |
+        timeseries { bytes = sum(snowflake.data.size), rows = sum(snowflake.data.rows) },
+          by: { db.collection.name, deployment.environment.name }
+      description: Compare storage size and row count per Snowflake table over time.
+      description_copilot: Timeseries comparing Snowflake table storage size and row count.
+  groups:
+    - id: snowflake.data.rows
+      type: metric
+      metric_name: snowflake.data.rows
+      instrument: gauge
+      brief: Sum of all rows in all objects in this scope.
+      title: Row Count
+      unit: count
+      note: "Original unit: row."
+      attributes:
+        - ref: db.collection.name
+        - ref: snowflake.table.type
+    - id: snowflake.data.size
+      type: metric
+      metric_name: snowflake.data.size
+      instrument: gauge
+      brief: Total size (in bytes) of all objects in this scope.
+      title: Table Size in Bytes
+      unit: By
+      attributes:
+        - ref: db.collection.name
+        - ref: snowflake.table.type
+    - id: snowflake.table.time_since.last_ddl
+      type: metric
+      metric_name: snowflake.table.time_since.last_ddl
+      instrument: gauge
+      brief: Time (in minutes) since last time given objects structure was altered.
+      title: Time Since Last DDL
+      unit: min
+      attributes:
+        - ref: db.collection.name
+        - ref: snowflake.table.type
+    - id: snowflake.table.time_since.last_update
+      type: metric
+      metric_name: snowflake.table.time_since.last_update
+      instrument: gauge
+      brief: Time (in minutes) since last time content of given objects was updated.
+      title: Time Since Last Update
+      unit: min
+      attributes:
+        - ref: db.collection.name
+        - ref: snowflake.table.type

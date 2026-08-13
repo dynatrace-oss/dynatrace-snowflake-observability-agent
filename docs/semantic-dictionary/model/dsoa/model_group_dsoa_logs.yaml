@@ -1,0 +1,4 @@
+model_group:
+  id: dsoa.logs
+  title: DSOA Snowflake Log Records
+  brief: Log records emitted by DSOA plugins from Snowflake ACCOUNT_USAGE and system views.

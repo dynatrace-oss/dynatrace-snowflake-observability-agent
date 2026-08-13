@@ -19,45 +19,125 @@
 
 dimensions:
   db.namespace:
+    __type: string
+    __semdict: ref
+    __stability: stable
+    __semdict_note: >
+      OTel standard field (db.namespace, stable since v1.28); emitted by its OTel name pending global Dynatrace Semantic Dictionary
+      registration.
     __context_names: ["cold_tables"]
     __example: analytics_db
     __description: The name of the database containing the table.
   snowflake.schema.name:
+    __type: string
+    __stability: stable
     __context_names: ["cold_tables"]
     __example: public
     __description: The schema containing the table.
   db.collection.name:
+    __type: string
+    __semdict: ref
+    __stability: stable
+    __semdict_note: >
+      OTel standard field (db.collection.name, stable since v1.28); emitted by its OTel name pending global Dynatrace Semantic Dictionary
+      registration."
     __context_names: ["cold_tables"]
     __example: orders
     __description: The table name.
   snowflake.table.full_name:
+    __type: string
+    __stability: stable
     __context_names: ["cold_tables"]
     __example: ANALYTICS_DB.PUBLIC.ORDERS
     __description: Fully qualified table name (catalog.schema.table).
   snowflake.table.cold_status:
+    __type: string
+    __stability: stable
     __context_names: ["cold_tables"]
     __example: cold
-    __description: |
-      Table temperature classification based on access recency:
-      - cold: no access within cold_threshold_days (default 90)
-      - warm: accessed within cold_threshold_days
+    __description: Table temperature classification based on access recency.
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: cold
+          value: cold
+          brief: Table data has not been recently accessed (beyond the cold threshold).
+        - id: warm
+          value: warm
+          brief: Table data has been recently accessed within the cold threshold period.
 
 attributes:
   snowflake.table.last_accessed_at:
+    __type: string
     __context_names: ["cold_tables"]
     __example: "2026-01-15T10:30:00Z"
     __description: ISO 8601 timestamp of the most recent query that accessed this table.
 
 metrics:
   snowflake.table.access.count:
+    __type: long
     __context_names: ["cold_tables"]
-    __example: "42"
+    __example: 42
     __description: Total number of query accesses to this table within the lookback window.
     displayName: Table Access Count
     unit: count
   snowflake.table.days_since_last_access:
+    __type: long
     __context_names: ["cold_tables"]
-    __example: "95"
+    __example: 95
     __description: Number of days since the table was last accessed by any query.
     displayName: Days Since Last Access
-    unit: days
+    unit: d
+dql_queries:
+  - query_string: |
+      timeseries val = avg(snowflake.table.days_since_last_access), by: { snowflake.table.full_name, deployment.environment.name }
+    description: Plot the average number of days since last access per Snowflake table over time.
+    description_copilot: Timeseries of days since last access per Snowflake table.
+    context:
+      - metrics
+  - query_string: |
+      timeseries accesses = sum(snowflake.table.access.count), by: { snowflake.table.full_name, deployment.environment.name }
+    description: Plot access counts per Snowflake table over time to spot rarely-used tables.
+    description_copilot: Timeseries of access counts per Snowflake table.
+    context:
+      - metrics
+  - query_string: |
+      timeseries { days_idle = avg(snowflake.table.days_since_last_access), accesses = sum(snowflake.table.access.count) },
+        by: { snowflake.table.full_name, deployment.environment.name }
+    description: Compare idle days against access counts per Snowflake table to identify cold storage candidates.
+    description_copilot: Timeseries comparing idle days and access counts per Snowflake table.
+    context:
+      - metrics
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "cold_tables"
+      | sort timestamp desc
+      | limit 100
+    description: Fetch the 100 most recent DSOA cold_tables plugin log entries from Grail.
+    description_copilot: Search for all cold_tables plugin logs from the Snowflake observability agent.
+    context:
+      - logs
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "cold_tables"
+      | filter snowflake.table.cold_status == "COLD"
+      | sort timestamp desc
+      | limit 50
+    description: Fetch the 50 most recent tables classified as COLD by the cold_tables plugin.
+    description_copilot: Find Snowflake tables currently classified as cold.
+    context:
+      - logs
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "cold_tables"
+      | filter isNotNull(snowflake.table.full_name)
+      | summarize { idle_days = takeMax(toLong(snowflake.table.days_since_last_access)) }, by: { snowflake.table.full_name }
+      | sort idle_days desc
+      | limit 25
+    description: Rank Snowflake tables by how long they have been idle.
+    description_copilot: Find the Snowflake tables that have been idle the longest.
+    context:
+      - logs

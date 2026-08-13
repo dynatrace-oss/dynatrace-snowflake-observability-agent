@@ -1,0 +1,20 @@
+groups:
+  - id: snowflake.schema
+    type: attribute_group
+    title: Snowflake Schema signal fields
+    brief: Signal-level fields for Snowflake Schema telemetry.
+    attributes:
+      - id: snowflake.schema.id
+        display_name: Snowflake Schema ID
+        type: long
+        stability: experimental
+        brief: The unique identifier of the schema involved in the query.
+        examples:
+          - 78901
+      - id: snowflake.schema.name
+        display_name: Snowflake Schema Name
+        type: string
+        stability: stable
+        brief: The name of the schema in which the query was executed.
+        examples:
+          - public

@@ -235,9 +235,9 @@ class QueryHistoryPlugin(Plugin):
             str: Obfuscated text according to the configured mode.
                  Mode 'full'     → '[OBFUSCATED]'
                  Mode 'literals' → string/numeric literals replaced with '?'
-                 Mode 'off' or unknown → text returned unchanged
+                 Mode 'none' or unknown → text returned unchanged
         """
-        mode = self._configuration.get(plugin_name=self._plugin_name, key="obfuscation_mode", default_value="off")
+        mode = self._configuration.get(plugin_name=self._plugin_name, key="obfuscation_mode", default_value="none")
         if mode == "full":
             return "[OBFUSCATED]"
         if mode == "literals":

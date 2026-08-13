@@ -1,0 +1,62 @@
+groups:
+  - id: snowflake.service
+    type: attribute_group
+    title: Snowflake Service signal fields
+    brief: Signal-level fields for Snowflake Service telemetry.
+    attributes:
+      - id: snowflake.service.entity_id
+        display_name: Snowflake Service Entity ID
+        type: long
+        stability: experimental
+        brief: Unique Snowflake identifier of the service entity.
+        examples:
+          - 12345
+      - id: snowflake.service.name
+        display_name: Snowflake Service Name
+        type: string
+        stability: stable
+        brief: Name of the Snowflake service entity that consumed credits.
+        examples:
+          - MY_PIPE
+      - id: snowflake.service.type
+        display_name: Snowflake Service Type
+        type:
+          allow_custom_values: true
+          members:
+            - id: auto_clustering
+              value: AUTO_CLUSTERING
+              brief: Credits consumed by the background service that continuously re-clusters micro-partitions of tables with an active clustering key.
+            - id: pipe
+              value: PIPE
+              brief: Credits consumed by Snowpipe for continuous micro-batch ingestion of staged files into Snowflake tables via serverless compute.
+            - id: serverless_task
+              value: SERVERLESS_TASK
+              brief: Credits consumed by tasks that run on Snowflake-managed serverless compute rather than a user-provisioned warehouse.
+            - id: telemetry_data_ingest
+              value: TELEMETRY_DATA_INGEST
+              brief: Credits consumed for ingesting OpenTelemetry-compatible logs, traces, and metrics into a Snowflake event table.
+            - id: warehouse_metering
+              value: WAREHOUSE_METERING
+              brief: Virtual warehouse compute credits.
+            - id: cloud_services
+              value: CLOUD_SERVICES
+              brief: Cloud services layer credits.
+            - id: replication
+              value: REPLICATION
+              brief: Credits consumed to replicate databases, schemas, or failover groups across regions or cloud providers for disaster recovery or data proximity.
+            - id: materialized_view
+              value: MATERIALIZED_VIEW
+              brief: Credits consumed by the background service that keeps materialized view results up to date as underlying table data changes.
+            - id: search_optimization
+              value: SEARCH_OPTIMIZATION
+              brief: Credits consumed to build and maintain the search access path that accelerates selective point-lookup and substring-search queries.
+            - id: query_acceleration
+              value: QUERY_ACCELERATION
+              brief: Credits consumed when the Query Acceleration Service offloads eligible query portions to auto-provisioned serverless compute to reduce per-query latency.
+            - id: storage
+              value: STORAGE
+              brief: Credits billed for bytes stored in Snowflake databases, internal stages, Time Travel history, and Fail-safe retention.
+        stability: stable
+        brief: Snowflake service type that consumed credits (e.g. AUTO_CLUSTERING, PIPE, SERVERLESS_TASK, TELEMETRY_DATA_INGEST).
+        examples:
+          - AUTO_CLUSTERING

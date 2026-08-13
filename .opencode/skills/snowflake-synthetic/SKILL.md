@@ -16,17 +16,17 @@ pipelines in Snowflake for validating DSOA telemetry and dashboards.
 
 Validated on: **test-qa** (`YOUR_SNOWFLAKE_TEST_ACCOUNT`, `AWS_US_EAST_1`)
 
-| Item                 | Value                        |
-|----------------------|------------------------------|
-| CLI connection       | `snow_agent_test-qa`         |
-| Snowflake account    | `YOUR_SNOWFLAKE_TEST_ACCOUNT` |
-| Region               | `AWS_US_EAST_1`              |
-| DSOA database        | `DTAGENT_QA_DB`              |
-| Owner role           | `DTAGENT_QA_OWNER`           |
-| Viewer role          | `DTAGENT_QA_VIEWER`          |
-| Default warehouse    | `DTAGENT_WH`                 |
-| Synthetic warehouse  | `DSOA_TEST_WH` (XSMALL, created by setup scripts) |
-| Synthetic database   | `DSOA_TEST_DB` (created by setup scripts)         |
+| Item                | Value                                             |
+|---------------------|---------------------------------------------------|
+| CLI connection      | `snow_agent_test-qa`                              |
+| Snowflake account   | `YOUR_SNOWFLAKE_TEST_ACCOUNT`                     |
+| Region              | `AWS_US_EAST_1`                                   |
+| DSOA database       | `DTAGENT_QA_DB`                                   |
+| Owner role          | `DTAGENT_QA_OWNER`                                |
+| Viewer role         | `DTAGENT_QA_VIEWER`                               |
+| Default warehouse   | `DTAGENT_WH`                                      |
+| Synthetic warehouse | `DSOA_TEST_WH` (XSMALL, created by setup scripts) |
+| Synthetic database  | `DSOA_TEST_DB` (created by setup scripts)         |
 
 > **Note:** The connection's default role (`YOUR_SNOWFLAKE_TEST_ROLE`) cannot see
 > DTAGENT databases. Always use `USE ROLE DTAGENT_QA_OWNER` explicitly when

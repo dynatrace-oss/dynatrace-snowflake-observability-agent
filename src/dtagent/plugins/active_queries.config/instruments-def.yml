@@ -17,56 +17,98 @@
 
 attributes:
   db.operation.name:
+    __semdict: ref
     __example: SELECT
+    __type: string
     __description: |
       The type of operation performed by the query, such as:
       - SELECT,
       - INSERT,
       - UPDATE.
   db.query.text:
+    __semdict: ref
     __example: SELECT * FROM sales_data
+    __type: string
     __description: The text of the SQL query.
   snowflake.session.id:
+    __semdict: otel-only
+    __stability: experimental
+    __type: string
+    __semdict_note: >-
+      OTel semconv Development-tier attribute (session namespace). The semdict session.id is model-scoped/internal in code_monitoring only;
+      no global ref available. Emitting as new id: pending global semdict registration.
     __example: "123456789"
     __description: The unique identifier for the session in which the query was executed.
   snowflake.error.code:
+    __stability: stable
+    __type: string
     __example: "1001"
     __description: The error code if the query failed.
   snowflake.error.message:
+    __stability: stable
+    __type: string
     __example: Syntax error in SQL statement
     __description: The error message if the query failed.
   snowflake.query.hash:
+    __stability: stable
+    __type: string
     __example: hash_abcdef
     __description: The hash value of the query text.
   snowflake.query.hash_version:
-    __example: "1"
+    __type: long
+    __example: 1
     __description: The version of the query hash logic.
   snowflake.query.id:
+    __stability: stable
+    __type: string
     __example: b1bbaa7f-8144-4e50-947a-b7e9bf7d62d5
     __description: The unique identifier for the query.
   snowflake.query.parametrized_hash:
+    __stability: stable
+    __type: string
     __example: param_hash_abcdef
     __description: The hash value of the parameterized query text.
   snowflake.query.parametrized_hash_version:
-    __example: "1"
+    __type: long
+    __example: 1
     __description: The version of the parameterized query hash logic.
   snowflake.query.tag:
+    __stability: stable
+    __type: string
     __example: daily_report
     __description: The tag associated with the query, if any.
   snowflake.schema.name:
+    __stability: stable
+    __type: string
     __example: public
     __description: The name of the schema in which the query was executed.
   snowflake.warehouse.type:
+    __stability: stable
+    __type: string
     __example: STANDARD
     __description: The type of warehouse used to execute the query.
 dimensions:
   db.namespace:
+    __type: string
+    __semdict: ref
+    __stability: stable
+    __semdict_note: >-
+      Defined in OTel Semantic Conventions (db.namespace, stable since v1.28). Not yet present as a globally referenceable field in the
+      Dynatrace Semantic Dictionary. Emitting as id: pending global SD registration.
     __example: analytics_db
     __description: The name of the database in which the query was executed.
   db.user:
+    __type: string
+    __semdict: otel-only
+    __stability: experimental
+    __semdict_note: >-
+      Defined in OTel Semantic Conventions (db.user, experimental). Not yet present as a globally referenceable field in the Dynatrace
+      Semantic Dictionary. Emitting as id: pending global SD registration.
     __example: john_doe
     __description: The name of the user who executed the query.
   snowflake.query.execution_status:
+    __stability: stable
+    __type: string
     __example: FAILED_WITH_ERROR
     __description: |
       The execution status of the query, such as:
@@ -78,9 +120,13 @@ dimensions:
       - FAILED_WITH_ERROR,
       - FAILED_WITH_INCIDENT.
   snowflake.role.name:
+    __stability: stable
+    __type: string
     __example: analyst_role
     __description: The role that was active in the session at the time of the query.
   snowflake.warehouse.name:
+    __stability: stable
+    __type: string
     __example: compute_wh
     __description: The name of the warehouse used to execute the query.
 
@@ -92,34 +138,98 @@ dimensions:
 
 metrics:
   snowflake.time.compilation:
-    __example: "5000"
+    __type: long
+    __example: 5000
     __description: |
       The total compilation time of the currently running query.
     displayName: Query Compilation Time
     unit: ms
   snowflake.time.running:
-    __example: "120000"
+    __type: long
+    __example: 120000
     __description: |
       The total running time of the currently running query.
     displayName: Query Running Time
     unit: ms
   snowflake.time.execution:
-    __example: "100000"
+    __type: long
+    __example: 100000
     __description: Execution time (in milliseconds)
     displayName: Execution Time
     unit: ms
   snowflake.time.total_elapsed:
-    __example: "120000"
+    __type: long
+    __example: 120000
     __description: Elapsed time (in milliseconds).
     displayName: Total Elapsed Time
     unit: ms
   snowflake.data.written_to_result:
-    __example: "1048576"
+    __type: long
+    __example: 1048576
     __description: Number of bytes written to a result object.
     displayName: Bytes Written to Result
-    unit: bytes
+    unit: By
   snowflake.rows.written_to_result:
-    __example: "1"
+    __type: long
+    __example: 1
     __description: Number of rows written to a result object. For CREATE TABLE AS SELECT (CTAS) and all DML operations, this result is 1;.
     displayName: Rows Written to Result
-    unit: rows
+    unit: row
+dql_queries:
+  - query_string: |
+      timeseries val = avg(snowflake.time.execution), by: { snowflake.warehouse.name, deployment.environment.name }
+    description: Plot average execution time of currently running Snowflake queries per warehouse over time.
+    description_copilot: Timeseries of Snowflake query execution time broken down by warehouse.
+    context:
+      - metrics
+  - query_string: |
+      timeseries {
+        execution = avg(snowflake.time.execution),
+        running = avg(snowflake.time.running),
+        compilation = avg(snowflake.time.compilation)
+      },
+        by: { snowflake.warehouse.name, deployment.environment.name }
+    description: Compare average compilation, execution and total running time of active Snowflake queries per warehouse.
+    description_copilot: Timeseries comparing Snowflake query compilation, execution and running times per warehouse.
+    context:
+      - metrics
+  - query_string: |
+      timeseries p90 = percentile(snowflake.time.total_elapsed, 90),
+        by: { snowflake.warehouse.name, snowflake.role.name, deployment.environment.name }
+    description: Plot the 90th percentile total elapsed time of active Snowflake queries broken down by warehouse and role.
+    description_copilot: Timeseries of the p90 total elapsed time of active Snowflake queries per warehouse and role.
+    context:
+      - metrics
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "active_queries"
+      | sort timestamp desc
+      | limit 100
+    description: Fetch the 100 most recent DSOA active_queries plugin log entries from Grail.
+    description_copilot: Search for all active_queries plugin logs from the Snowflake observability agent.
+    context:
+      - logs
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "active_queries"
+      | filter snowflake.query.execution_status == "FAILED_WITH_ERROR"
+      | sort timestamp desc
+      | limit 50
+    description: Fetch the 50 most recent active queries that failed with an error.
+    description_copilot: Find failed Snowflake query executions reported by the active_queries plugin.
+    context:
+      - logs
+  - query_string: |
+      fetch logs
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "active_queries"
+      | filter isNotNull(snowflake.warehouse.name)
+      | summarize { count = count(), avg_running_ms = avg(toLong(snowflake.time.running)) }, by: { snowflake.warehouse.name }
+      | sort avg_running_ms desc
+      | limit 20
+    description: Rank warehouses by the average running time of their currently active Snowflake queries.
+    description_copilot: Find which Snowflake warehouses have the slowest currently running queries by average running time.
+    context:
+      - logs

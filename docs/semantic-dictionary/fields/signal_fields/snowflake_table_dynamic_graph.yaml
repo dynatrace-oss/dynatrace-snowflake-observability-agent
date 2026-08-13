@@ -1,0 +1,45 @@
+groups:
+  - id: snowflake.table.dynamic.graph
+    type: attribute_group
+    title: Snowflake Table Dynamic Graph signal fields
+    brief: Signal-level fields for Snowflake Table Dynamic Graph telemetry.
+    attributes:
+      - id: snowflake.table.dynamic.graph.alter_trigger
+        display_name: Snowflake Table Dynamic Graph Alter Trigger
+        type: string[]
+        stability: experimental
+        brief: |-
+          Describes why a new entry is created in the DYNAMIC_TABLE_GRAPH_HISTORY
+          function. Can be one of the following:
+          - NONE (backwards-compatible),
+          - CREATE_DYNAMIC_TABLE,
+          - ALTER_TARGET_LAG,
+          - SUSPEND, RESUME,
+          - REPLICATION_REFRESH,
+          - ALTER_WAREHOUSE.
+        examples:
+          - - CREATE_DYNAMIC_TABLE
+        note: Array of DDL operation names stored as string[] in Grail (e.g. CREATE_DYNAMIC_TABLE).
+      - id: snowflake.table.dynamic.graph.inputs
+        display_name: Snowflake Table Dynamic Graph Inputs
+        type: string[]
+        stability: experimental
+        brief: Each OBJECT represents a table, view, or dynamic table that serves as the input to this dynamic table.
+        examples:
+          - - '{"kind": "TABLE", "name": "DYNAMIC_TABLE_DB.DYNAMIC_TABLE_SCH.EMPLOYEE"}'
+            - '{"kind": "TABLE", "name": "DYNAMIC_TABLE_DB.DYNAMIC_TABLE_SCH.EMPLOYEE_SKILL"}'
+        note: Array of input table references stored as string[] in Grail. Each element is a JSON-serialized object with kind and name fields.
+      - id: snowflake.table.dynamic.graph.valid_from
+        display_name: Snowflake Table Dynamic Graph Valid From
+        type: long
+        stability: experimental
+        brief: The timestamp after which the description of the dynamic table is valid.
+        examples:
+          - 1732135627448000000
+      - id: snowflake.table.dynamic.graph.valid_to
+        display_name: Snowflake Table Dynamic Graph Valid To
+        type: long
+        stability: experimental
+        brief: If present, the description of the dynamic table is valid up to this time. If null, the description is still accurate.
+        examples:
+          - 1733011200000000000

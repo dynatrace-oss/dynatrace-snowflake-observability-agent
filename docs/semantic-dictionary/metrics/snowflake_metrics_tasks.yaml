@@ -1,0 +1,47 @@
+model:
+  id: snowflake.metrics.tasks
+  title: Snowflake tasks metrics
+  brief: Metrics collected by the DSOA tasks plugin from Snowflake ACCOUNT_USAGE views.
+  model_group_id: snowflake.metrics
+  data_object: metric
+  interfaces: [ i.dsoa_resource ]
+  dql_queries:
+    - query_string: >
+        timeseries failed = sum(snowflake.task.run.failed), by: { snowflake.task.name, deployment.environment.name }
+      description: Plot the number of failed Snowflake task runs per task over time.
+      description_copilot: Timeseries of failed Snowflake task runs per task name.
+    - query_string: |
+        timeseries {
+          successful = sum(snowflake.task.run.successful),
+          failed = sum(snowflake.task.run.failed),
+          cancelled = sum(snowflake.task.run.cancelled)
+        },
+          by: { snowflake.task.name, deployment.environment.name }
+      description: Compare successful, failed and cancelled Snowflake task runs per task over time.
+      description_copilot: Timeseries comparing successful, failed and cancelled Snowflake task runs.
+    - query_string: >
+        timeseries credits = sum(snowflake.credits.used), by: { snowflake.task.name, deployment.environment.name }
+      description: Plot credits consumed by Snowflake task runs per task over time.
+      description_copilot: Timeseries of credits consumed per Snowflake task.
+  groups:
+    - id: snowflake.task.run.cancelled
+      type: metric
+      metric_name: snowflake.task.run.cancelled
+      instrument: gauge
+      brief: Number of Snowflake task runs that ended in CANCELLED state within the collection window.
+      title: Snowflake Task Runs Cancelled
+      unit: count
+    - id: snowflake.task.run.failed
+      type: metric
+      metric_name: snowflake.task.run.failed
+      instrument: gauge
+      brief: Number of Snowflake task runs that ended in FAILED state within the collection window.
+      title: Snowflake Task Runs Failed
+      unit: count
+    - id: snowflake.task.run.successful
+      type: metric
+      metric_name: snowflake.task.run.successful
+      instrument: gauge
+      brief: Number of Snowflake task runs that ended in SUCCEEDED state within the collection window.
+      title: Snowflake Task Runs Successful
+      unit: count

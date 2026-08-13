@@ -1,0 +1,48 @@
+model:
+  id: snowflake.logs.trust_center
+  title: Snowflake trust center log records
+  brief: Log records emitted by the DSOA trust_center plugin.
+  model_group_id: snowflake.logs
+  data_object: log
+  interfaces: [ i.dsoa_resource ]
+  dql_queries:
+    - query_string: |
+        fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "trust_center"
+        | sort timestamp desc
+        | limit 100
+      description: Fetch the 100 most recent DSOA trust_center plugin log entries from Grail.
+      description_copilot: Search for all trust_center plugin logs from the Snowflake observability agent.
+    - query_string: |
+        fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "trust_center"
+        | filter vulnerability.risk.level == "CRITICAL"
+        | sort timestamp desc
+        | limit 50
+      description: Fetch critical-severity Trust Center findings reported by the trust_center plugin.
+      description_copilot: Find critical Snowflake Trust Center security findings.
+    - query_string: |
+        fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "trust_center"
+        | summarize { findings = count() }, by: { snowflake.trust_center.scanner.type, vulnerability.risk.level }
+        | sort findings desc
+        | limit 25
+      description: Break down Trust Center findings by scanner type and risk level.
+      description_copilot: Summarise Snowflake Trust Center findings by scanner type and risk level.
+  groups:
+    - id: snowflake.logs.trust_center.fields
+      type: attribute_group
+      title: Trust center log record fields
+      brief: Attribute fields for Trust Center log records.
+      attributes:
+        - ref: event.kind
+        - ref: snowflake.entity.details
+        - ref: snowflake.entity.id
+        - ref: snowflake.entity.name
+        - ref: snowflake.entity.type
+        - ref: snowflake.trust_center.scanner.description
+        - ref: snowflake.trust_center.scanner.name
+        - ref: snowflake.trust_center.scanner.package.name

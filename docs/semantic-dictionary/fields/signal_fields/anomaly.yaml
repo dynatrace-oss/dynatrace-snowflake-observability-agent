@@ -1,0 +1,55 @@
+groups:
+  - id: anomaly
+    type: attribute_group
+    title: Anomaly signal fields
+    brief: Signal-level fields for Anomaly telemetry.
+    attributes:
+      - id: anomaly.detector
+        display_name: Anomaly Detector
+        type: string
+        stability: experimental
+        brief: Identifies the DSOA workflow or plugin that detected the anomaly. Values follow the ``dsoa.<workflow_name>`` convention (e.g., ``dsoa.data_volume_anomaly``) except for the failed-login detector which uses ``dsoa.failed_login_detection``.
+        examples: [ 'dsoa.data_volume_anomaly' ]
+      - id: anomaly.direction
+        display_name: Anomaly Direction
+        type:
+          allow_custom_values: false
+          members:
+            - id: above
+              value: "above"
+              brief: Metric value exceeded the expected upper threshold.
+            - id: below
+              value: "below"
+              brief: Metric value dropped below the expected lower threshold.
+        stability: experimental
+        brief: 'Direction of the anomaly relative to the Davis AI baseline: ``above`` when the metric exceeded the upper bound, ``below`` when it dropped under the lower bound.'
+        examples: [ 'above' ]
+      - id: anomaly.subject
+        display_name: Anomaly Subject
+        type:
+          allow_custom_values: true
+          members:
+            - id: login
+              value: "login"
+              brief: Anomaly in login attempt counts (security-anomaly-detection workflow).
+            - id: session
+              value: "session"
+              brief: Anomaly in active session counts (security-anomaly-detection workflow).
+            - id: query_count
+              value: "query_count"
+              brief: Anomaly in query execution counts (security-anomaly-detection workflow).
+            - id: data_scan
+              value: "data_scan"
+              brief: Anomaly in data volume scanned (security-anomaly-detection workflow).
+            - id: volume_drop
+              value: "volume_drop"
+              brief: Detected drop in data rows for a share (shares-broken-detection workflow).
+            - id: unavailable
+              value: "unavailable"
+              brief: Share object no longer accessible (shares-broken-detection workflow).
+            - id: disappeared
+              value: "disappeared"
+              brief: Share object no longer present in the account (shares-broken-detection workflow).
+        stability: experimental
+        brief: High-level category classifying the anomaly subject within its detector. Specific values are defined per workflow (e.g., ``login`` / ``session`` / ``query_count`` / ``data_scan`` for security-anomaly-detection; ``unavailable`` / ``disappeared`` / ``volume_drop`` for shares-broken-detection).
+        examples: [ 'login' ]

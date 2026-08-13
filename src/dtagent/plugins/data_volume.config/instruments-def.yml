@@ -19,18 +19,43 @@
 
 dimensions:
   db.collection.name:
+    __semdict: ref
+    __type: string
     __example: analytics_db.public.sales_data
     __description: The full name of the table, including the catalog, schema, and table name.
   db.namespace:
+    __semdict: ref
+    __type: string
     __example: analytics_db
     __description: The name of the database that contains the table.
   snowflake.table.type:
+    __type: string
+    __stability: stable
     __example: BASE TABLE
-    __description: |
-      The type of the table, such as:
-      - BASE TABLE,
-      - TEMPORARY TABLE,
-      - EXTERNAL TABLE.
+    __description: >-
+      The type of the table. Possible values: BASE TABLE, TEMPORARY TABLE, EXTERNAL TABLE.
+    __enum:
+      allow_custom_values: true
+      members:
+        - id: base_table
+          value: BASE TABLE
+          brief: Full permanent table stored in Snowflake micro-partitions; supports all DML, Time Travel, and Fail-safe.
+        - id: temporary_table
+          value: TEMPORARY TABLE
+          brief: Temporary table (session-scoped).
+        - id: external_table
+          value: EXTERNAL TABLE
+          brief: Schema overlay over data files in an external cloud storage stage; data is never loaded into Snowflake and is read-only.
+        - id: view
+          value: VIEW
+          brief: >-
+            Non-materialized virtual table defined by a stored query; the underlying SQL is re-executed on every access with no physical
+            storage.
+        - id: materialized_view
+          value: MATERIALIZED VIEW
+          brief: >-
+            Pre-computed query result stored as a physical table and transparently refreshed by Snowflake's background maintenance service;
+            consumes MATERIALIZED_VIEW credits.
 
 #  * Metric definitions
 #  * KEY                    - will be matched against METRICS object with measurements prepared for sending
@@ -40,35 +65,93 @@ dimensions:
 
 metrics:
   snowflake.data.rows:
-    __example: "1000000"
+    __type: long
+    __example: 1000000
     __description: Sum of all rows in all objects in this scope.
     displayName: Row Count
-    unit: rows
+    unit: row
   snowflake.data.size:
-    __example: "1073741824"
+    __type: long
+    __example: 1073741824
     __description: Total size (in bytes) of all objects in this scope.
     displayName: Table Size in Bytes
-    unit: bytes
+    unit: By
   snowflake.table.time_since.last_ddl:
-    __example: "2880"
+    __type: long
+    __example: 2880
     __description: Time (in minutes) since last time given objects structure was altered.
     displayName: Time Since Last DDL
     unit: min
   snowflake.table.time_since.last_update:
-    __example: "1440"
+    __type: long
+    __example: 1440
     __description: Time (in minutes) since last time content of given objects was updated.
     displayName: Time Since Last Update
     unit: min
 
 event_timestamps:
   snowflake.event.trigger:
+    __type: string
     __example: "snowflake.table.update"
     __description:
       Additionally to sending logs, each entry in `EVENT_TIMESTAMPS` is sent as event with key set to `snowflake.event.trigger`, value to
       key from `EVENT_TIMESTAMPS` and `timestamp` set to the key value.
   snowflake.table.ddl:
-    __example: "2024-11-01 12:00:00.000"
+    __type: long
+    __example: 1730458800000000000
     __description: The timestamp of the last DDL operation performed on the table or view, including CREATE, ALTER, DROP, or UNDROP.
-    snowflake.table.update:
-      __example: "2024-11-10 16:45:00.000"
-      __description: The timestamp of the last time the object was altered by a DML, DDL, or background metadata operation.
+  snowflake.table.update:
+    __type: long
+    __stability: stable
+    __example: 1731256700000000000
+    __description: The timestamp of the last time the object was altered by a DML, DDL, or background metadata operation.
+dql_queries:
+  - query_string: |
+      timeseries val = sum(snowflake.data.size), by: { db.collection.name, deployment.environment.name }
+    description: Plot total storage size in bytes per table over time.
+    description_copilot: Timeseries of Snowflake table storage size in bytes.
+    context:
+      - metrics
+  - query_string: |
+      timeseries rows = sum(snowflake.data.rows), by: { db.collection.name, deployment.environment.name }
+    description: Plot total row count per Snowflake table over time.
+    description_copilot: Timeseries of Snowflake table row count.
+    context:
+      - metrics
+  - query_string: |
+      timeseries { bytes = sum(snowflake.data.size), rows = sum(snowflake.data.rows) },
+        by: { db.collection.name, deployment.environment.name }
+    description: Compare storage size and row count per Snowflake table over time.
+    description_copilot: Timeseries comparing Snowflake table storage size and row count.
+    context:
+      - metrics
+  - query_string: |
+      fetch bizevents
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "data_volume"
+      | sort timestamp desc
+      | limit 20
+    description: Fetch recent DSOA self-monitoring business events for the data_volume plugin.
+    description_copilot: Search for self-monitoring events from the data_volume Snowflake agent plugin.
+    context:
+      - events
+  - query_string: |
+      fetch events
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "data_volume"
+      | sort timestamp desc
+      | limit 50
+    description: Fetch the most recent DSOA data_volume lifecycle events (table DDL and data-update anchors).
+    description_copilot: Search for Snowflake table DDL and data-update lifecycle events from the data_volume plugin.
+    context:
+      - events
+  - query_string: |
+      fetch events
+      | filter db.system == "snowflake"
+      | filter dsoa.run.plugin == "data_volume"
+      | summarize { events = count() }, by: { snowflake.event.type }
+      | sort events desc
+    description: Count DSOA data_volume lifecycle events grouped by event type.
+    description_copilot: Break down Snowflake data_volume lifecycle events by their event type.
+    context:
+      - events

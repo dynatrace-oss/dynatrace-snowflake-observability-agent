@@ -26,6 +26,26 @@ and the `core.tag` multitenancy mechanism:
 - The deploy script now emits a `WARNING:` message at deploy time when custom names are enabled
   but only a partial set of object names has been configured.
 
+### Added
+
+- **Semantic Dictionary export pipeline**: `build_semantic_export.sh` generates SD-compliant YAML
+  from all `instruments-def.yml` files, classifying each field as `ref`, `new`, `deprecated-alias`,
+  or `otel-only` — enabling DSOA telemetry signals to be submitted to the Dynatrace Semantic Dictionary.
+- **Anomaly detection field catalog** (`anomaly.*` namespace): `anomaly.source`, `anomaly.source_metric`,
+  `anomaly.direction`, and `anomaly.category` documented at core level and exported to the SD, with closed
+  enum definitions for `anomaly.direction` and `anomaly.category`.
+- **DQL query examples** for all 20 model-emitting plugins added to the Semantic Dictionary, with
+  per-model-type routing (`metrics`, `logs`, `events`, `spans`) so each model receives only the
+  relevant query form.
+
+### Fixed
+
+- **DQL example queries**: removed invalid `db.system` filter from `timeseries` queries; migrated
+  group-by and filter expressions to `deployment.environment.name`.
+- **`plugins.query_history.obfuscation_mode` default value renamed**: the `off` value (no obfuscation)
+  is now `none`. Update any explicit `obfuscation_mode: off` configuration entries to `obfuscation_mode: none`;
+  the `literals` and `full` values are unchanged.
+
 ## [1.0.0] - 2026-07-13
 
 ### Added
@@ -55,7 +75,7 @@ and the `core.tag` multitenancy mechanism:
   See [Appendix C](APPENDIX.md#appendix-c-sec).
 
   | Old field                                  | New field                                      |
-  |--------------------------------------------|------------------------------------------------|
+  | ------------------------------------------ | ---------------------------------------------- |
   | `ad.source`                                | `anomaly.detector`                             |
   | `ad.source_metric`                         | `metric.key`                                   |
   | `ad.direction`                             | `anomaly.direction`                            |
@@ -84,11 +104,12 @@ and the `core.tag` multitenancy mechanism:
   | `status.message`                           | `snowflake.status.message`                     |
 
   Additional notes:
-  - `snowflake.resource_monitor.threshold.value` changes type from string to double with a `percent` unit.
-  - `snowflake.warehouses.names` (the attached-warehouse name list) takes over the `snowflake.resource_monitor.warehouses` name; the previous warehouse-count metric of that name becomes `snowflake.resource_monitor.warehouses.count`.
-  - `snowflake.warehouse.auto_suspend` is reclassified from attribute to numeric metric with unit `seconds`; `null` or `0` means auto-suspend is disabled.
-  - The `login_history` plugin changes its `anomaly.detector` value from `snowflake_security` to `dsoa.failed_login_detection`.
-  - For DQL queries filtering on the renamed `ad.*` fields, update field names manually (the script handles attribute keys, not query text).
+
+- `snowflake.resource_monitor.threshold.value` changes type from string to double with a `percent` unit.
+- `snowflake.warehouses.names` (the attached-warehouse name list) takes over the `snowflake.resource_monitor.warehouses` name; the previous warehouse-count metric of that name becomes `snowflake.resource_monitor.warehouses.count`.
+- `snowflake.warehouse.auto_suspend` is reclassified from attribute to numeric metric with unit `seconds`; `null` or `0` means auto-suspend is disabled.
+- The `login_history` plugin changes its `anomaly.detector` value from `snowflake_security` to `dsoa.failed_login_detection`.
+- For DQL queries filtering on the renamed `ad.*` fields, update field names manually (the script handles attribute keys, not query text).
 
 ## [0.9.5] - 2026-06-08
 
@@ -128,9 +149,9 @@ and the `core.tag` multitenancy mechanism:
 ### Fixed
 
 - **Resource monitor ownership resilience**: `P_UPDATE_RESOURCE_MONITOR` now catches permission errors gracefully and logs a warning instead of failing the entire `scope=config` deployment. This addresses the scenario where a user modifies the resource monitor quota via Snowflake Web UI with ACCOUNTADMIN, causing ownership to be reassigned.
-- **`snowflake.table.full_name` now emitted by `query_history`, `shares`, and `snowpipes` plugins**: the 0.9.4 refactoring introduced this FQN dimension for `data_volume` and `dynamic_tables` but missed three other plugins. All table-level telemetry now carries a fully-qualified `DB.SCHEMA.TABLE` name alongside `db.collection.name`. The `snowpipes` function resolves FQN from the pipe's own DB/schema when the pipe DDL only stores a partially-qualified table name. (BIZOBS-193)
-- **`db.collection.name` now follows OpenTelemetry Semantic Conventions v1.28+** across all plugins: this field contains only the bare table name (no database or schema prefix). Previously, `query_history` incorrectly emitted the fully-qualified name (`DB.SCHEMA.TABLE`) in this field; starting 0.9.5 it emits only the table name. All other plugins were already compliant. Use `snowflake.table.full_name` when a fully-qualified reference is needed. (BIZOBS-193)
-- **Admin deployment ordering** (`scope=admin`): admin overrides no longer silently clobbered by plugin files. `10_admin.sql` moved to `80_admin.sql` so it sorts after all plugin files. (BIZOBS-115)
+- **`snowflake.table.full_name` now emitted by `query_history`, `shares`, and `snowpipes` plugins**: the 0.9.4 refactoring introduced this FQN dimension for `data_volume` and `dynamic_tables` but missed three other plugins. All table-level telemetry now carries a fully-qualified `DB.SCHEMA.TABLE` name alongside `db.collection.name`. The `snowpipes` function resolves FQN from the pipe's own DB/schema when the pipe DDL only stores a partially-qualified table name.
+- **`db.collection.name` now follows OpenTelemetry Semantic Conventions v1.28+** across all plugins: this field contains only the bare table name (no database or schema prefix). Previously, `query_history` incorrectly emitted the fully-qualified name (`DB.SCHEMA.TABLE`) in this field; starting 0.9.5 it emits only the table name. All other plugins were already compliant. Use `snowflake.table.full_name` when a fully-qualified reference is needed.
+- **Admin deployment ordering** (`scope=admin`): admin overrides no longer silently clobbered by plugin files. `10_admin.sql` moved to `80_admin.sql` so it sorts after all plugin files.
 - `serverless_tasks` context: `db.namespace` and `snowflake.schema.name` no longer emit empty strings for DSOA internal scheduler tasks. New `snowflake.task.is_internal` boolean dimension identifies internal tasks. (BDX-1904)
 - `event_log` plugin setup now adapts to Snowflake BCR Bundle 2026\_02 (`LOG_EVENT_LEVEL` parameter): sets `LOG_EVENT_LEVEL = INFO` at database level when the BCR is active, skips gracefully on pre-BCR accounts.
 - `snowflake.task.run.attempt` now emits as a numeric integer instead of a string. Downstream DQL queries no longer need `toLong()` casts. Redeploy with `--scope=plugins,config` to apply. (BDX-1903)
