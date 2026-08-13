@@ -48,16 +48,6 @@
       "items": {
         "$ref": "#/$defs/DqlQuery"
       }
-    },
-    "model_group_dql": {
-      "type": "object",
-      "description": "Group-level DQL examples for SD model_group YAML files. Only valid in the core instruments-def.yml. Keys are model group IDs (e.g. snowflake.logs). Each entry is a list of DQL queries or use_plugin_dql references that expand to an existing plugin's queries for a given signal context.",
-      "additionalProperties": {
-        "type": "array",
-        "items": {
-          "$ref": "#/$defs/ModelGroupDqlEntry"
-        }
-      }
     }
   },
   "$defs": {
@@ -574,38 +564,6 @@
         "warehouse",
         "Wh",
         "wk"
-      ]
-    },
-    "ModelGroupDqlEntry": {
-      "description": "A single entry in a model_group_dql list. Either a literal DQL query or a use_plugin_dql reference that expands to an existing plugin's queries for a given signal context.",
-      "oneOf": [
-        {
-          "$ref": "#/$defs/DqlQuery"
-        },
-        {
-          "type": "object",
-          "description": "Reference to an existing plugin's dql_queries, filtered by signal context. Expanded at export time; never emitted verbatim.",
-          "required": ["use_plugin_dql"],
-          "additionalProperties": false,
-          "properties": {
-            "use_plugin_dql": {
-              "type": "object",
-              "required": ["plugin", "context"],
-              "additionalProperties": false,
-              "properties": {
-                "plugin": {
-                  "type": "string",
-                  "description": "Plugin name whose dql_queries entries should be used (e.g. metering)."
-                },
-                "context": {
-                  "type": "string",
-                  "description": "Signal context to filter by (metrics, logs, events, or spans).",
-                  "enum": ["metrics", "logs", "events", "spans"]
-                }
-              }
-            }
-          }
-        }
       ]
     }
   }

@@ -872,7 +872,7 @@ def _resolve_model_group_dql(
     raw: Dict[str, Any],
     plugin_dql_queries: Dict[str, List[Dict[str, Any]]],
 ) -> Dict[str, List[Dict[str, Any]]]:
-    """Resolve the ``model_group_dql`` block from the core instruments-def into SD-ready DQL lists.
+    """Resolve the ``model_group_dql`` block from scripts/tools/model-group-dql.yml into SD-ready DQL lists.
 
     Each entry in the raw block is either a literal ``DqlQuery`` dict or a
     ``use_plugin_dql`` reference ``{plugin: <name>, context: <ctx>}``.  References are
@@ -882,7 +882,7 @@ def _resolve_model_group_dql(
     model_group YAML.
 
     Args:
-        raw:                Raw ``model_group_dql`` dict from the core instruments-def.
+        raw:                Raw ``model_group_dql`` dict from scripts/tools/model-group-dql.yml.
         plugin_dql_queries: Per-plugin query lists already collected during export (keyed
                             by plugin name).
 
@@ -2515,16 +2515,17 @@ class SemanticExporter:
         if all_errors:
             raise ExportError("Validation errors found:\n" + "\n".join(all_errors))
 
-        # Resolve model_group_dql from core instruments-def (expands use_plugin_dql references).
+        # Resolve model_group_dql from its dedicated tooling file (expands use_plugin_dql references).
+        _mg_dql_path = self.repo_root / "scripts" / "tools" / "model-group-dql.yml"
         _core_raw: Dict[str, Any] = {}
-        for plugin_name, path in files:
-            if plugin_name == "_core":
-                try:
-                    with open(path, "r", encoding="utf-8") as fh:
-                        _core_raw = yaml.safe_load(fh) or {}
-                except Exception as exc:  # pylint: disable=broad-except
-                    log.warning("Could not re-read core instruments-def from %s: %s", path, exc)
-                break
+        if _mg_dql_path.exists():
+            try:
+                with open(_mg_dql_path, "r", encoding="utf-8") as fh:
+                    _core_raw = yaml.safe_load(fh) or {}
+            except Exception as exc:  # pylint: disable=broad-except
+                log.warning("Could not read model_group_dql file from %s: %s", _mg_dql_path, exc)
+        else:
+            log.warning("model_group_dql file not found at %s", _mg_dql_path)
         resolved_mg_dql = _resolve_model_group_dql(_core_raw.get("model_group_dql"), plugin_dql_queries)
         log.info("Resolved model_group_dql for %d group(s): %s", len(resolved_mg_dql), sorted(resolved_mg_dql))
 
