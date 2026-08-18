@@ -404,14 +404,22 @@ def _merge_into_ruamel(existing, new) -> None:
     Blank-line spacing from the last SD-native attribute is mirrored on each
     appended DSOA attribute so the output matches SD style.
 
-    Also handles ``model_group`` top-level key: updates ``dql_queries`` (and other
-    scalar/list keys like ``brief``, ``title``) from *new* when the value is non-empty,
-    so model-group DQL query lists propagate on re-export without ``--clean``.
+    Also handles ``model_group`` and ``model`` top-level envelope keys: updates
+    ``dql_queries`` (and other scalar/list keys like ``brief``, ``title``, and — for
+    ``model`` — ``data_object``) from *new* when the value is non-empty, so
+    model-group DQL query lists and per-plugin model scalar-field fixes propagate
+    on re-export without ``--clean``. ``groups``/``attributes`` merging is applied
+    relative to whichever envelope (``model``, or the document root for
+    envelope-less files like resource/signal field docs) actually holds them.
     """
     # Scalar fields on an existing attribute that we always overwrite from new.
     _UPDATABLE_KEYS = frozenset({"brief", "stability", "deprecated", "type", "examples", "note"})
     # Top-level model_group keys we propagate from new → existing when new has a value.
     _MG_UPDATABLE_KEYS = frozenset({"brief", "title", "dql_queries"})
+    # Top-level model keys we propagate from new → existing when new has a value.
+    # data_object is included so schema-convention fixes (e.g. singular → plural) on
+    # already-committed model files are picked up on re-export without --clean.
+    _MODEL_UPDATABLE_KEYS = frozenset({"brief", "title", "data_object", "dql_queries"})
 
     # Handle model_group top-level key (model group files use this instead of "groups").
     if "model_group" in existing and "model_group" in new:
@@ -425,10 +433,26 @@ def _merge_into_ruamel(existing, new) -> None:
                 # new explicitly has the key but empty — remove from existing
                 del ex_mg[key]
 
-    if "groups" not in existing or "groups" not in new:
+    # Handle model top-level key (per-plugin log/event/span/metric model files nest their
+    # scalar fields — including data_object — and groups: under this envelope rather than
+    # at the document root). Without this, scalar fixes like a data_object plurality
+    # correction never propagate to already-committed files on re-export.
+    existing_container, new_container = existing, new
+    if "model" in existing and "model" in new:
+        ex_m = existing["model"]
+        new_m = new["model"]
+        for key in _MODEL_UPDATABLE_KEYS:
+            val = new_m.get(key)
+            if val:
+                ex_m[key] = val
+            elif key in ex_m and val is not None:
+                del ex_m[key]
+        existing_container, new_container = ex_m, new_m
+
+    if "groups" not in existing_container or "groups" not in new_container:
         return
-    existing_by_id = {g["id"]: g for g in existing.get("groups", [])}
-    for new_group in new.get("groups", []):
+    existing_by_id = {g["id"]: g for g in existing_container.get("groups", [])}
+    for new_group in new_container.get("groups", []):
         gid = new_group["id"]
         if gid in existing_by_id:
             ex_g = existing_by_id[gid]
@@ -458,7 +482,7 @@ def _merge_into_ruamel(existing, new) -> None:
                         elif key in ex_attr:
                             del ex_attr[key]
         else:
-            existing["groups"].append(new_group)
+            existing_container["groups"].append(new_group)
 
 
 class _IndentedDumper(yaml.Dumper):  # pylint: disable=too-many-ancestors
@@ -2250,20 +2274,21 @@ class SemanticExporter:
         # Model files
         paths.append("source/model/snowflake/**")
 
-        # doc/fields files for DSOA-owned groups
+        # doc/fields files for DSOA-owned groups. snowflake.* groups (signal and resource)
+        # are consolidated into a single doc/fields/snowflake.md — add it once.
         snowflake_doc_added = False
-        for gid in sorted(signal_group_ids):
+        for gid in sorted(signal_group_ids) + sorted(resource_group_ids):
             if not any(gid == p or gid.startswith(p + ".") for p in SD_OWNED_GROUP_PREFIXES):
                 continue
-            if gid.startswith("snowflake"):
+            if gid == "snowflake" or gid.startswith("snowflake."):
                 if not snowflake_doc_added:
-                    # Add each snowflake group's individual doc file
+                    paths.append("doc/fields/snowflake.md")
                     snowflake_doc_added = True
-                md_name = gid.replace(".", "_") + ".md"
-                paths.append(f"doc/fields/{md_name}")
             else:
                 md_name = gid.replace(".", "_") + ".md"
-                paths.append(f"doc/fields/{md_name}")
+                doc_path = f"doc/fields/{md_name}"
+                if doc_path not in paths:
+                    paths.append(doc_path)
 
         # doc/model
         paths.append("doc/model/snowflake/**")
@@ -2308,19 +2333,33 @@ class SemanticExporter:
         log.debug("Wrote %s", gfc_path)
         self._counters["files"] += 1
 
-    def _build_model_doc_stubs(self) -> Dict[str, str]:
+    def _build_model_doc_stubs(self, sub_groups: Optional[Set[str]] = None) -> Dict[str, str]:
         """Generate doc/model/snowflake/{logs,events,spans}/readme.md stubs.
 
         These Markdown files are required by the SD generator (model_group tags).
-        Returns a dict mapping relative output path → file content. Update
-        SD_PM / SD_MAINTAINER / SD_TEAM constants at the top of this module
-        to change the ownership table.
+        Also emits the parent doc/model/snowflake/readme.md stub (group id
+        ``snowflake``) when at least one sub-group was written this run — its
+        ``<!-- model_group snowflake -->`` block links to whichever of the
+        logs/events/spans readmes actually exist.
+
+        Args:
+            sub_groups: Subset of ``{"logs", "events", "spans"}`` identifying which
+                        sub-group model_groups were actually written this run. When
+                        None (default), all three are assumed present (back-compat).
+
+        Returns:
+            Dict mapping relative output path → file content. Update
+            SD_PM / SD_MAINTAINER / SD_TEAM constants at the top of this module
+            to change the ownership table.
         """
-        stubs = {
+        all_stubs = {
             "snowflake.logs": ("Snowflake log records", "Log records emitted by DSOA plugins from Snowflake ACCOUNT_USAGE and system views."),
             "snowflake.events": ("Snowflake lifecycle events", "Timestamp-based state-change events emitted by DSOA plugins via the Dynatrace OpenPipeline Events API."),
             "snowflake.spans": ("Snowflake spans", "Span records emitted by DSOA plugins from Snowflake ACCOUNT_USAGE views."),
         }
+        if sub_groups is None:
+            sub_groups = {"logs", "events", "spans"}
+        stubs = {gid: info for gid, info in all_stubs.items() if gid.split(".")[1] in sub_groups}
         result: Dict[str, str] = {}
         for group_id, (title, description) in stubs.items():
             subdir = group_id.split(".")[1]  # logs, events, spans
@@ -2341,6 +2380,22 @@ class SemanticExporter:
                 "<!-- end_dynatrace_internal -->\n"
             )
             result[f"doc/model/snowflake/{subdir}/readme.md"] = content
+        if sub_groups:
+            content = (
+                "<!-- model_group snowflake -->\n"
+                "<!-- The content between the markdown start and end comments (tags) is generated. Please do not edit manually. -->\n"
+                "\n"
+                "## Snowflake\n"
+                "\n"
+                "<!-- end_model_group -->\n"
+                "\n"
+                "<!-- dynatrace_internal -->\n"
+                "| Responsible PM | Maintainer | Team |\n"
+                "|---|---|---|\n"
+                f"| {SD_PM} | {SD_MAINTAINER} | {SD_TEAM} |\n"
+                "<!-- end_dynatrace_internal -->\n"
+            )
+            result["doc/model/snowflake/readme.md"] = content
         return result
 
     def _build_per_model_doc_stubs(self, models: List[Dict[str, Any]]) -> Dict[str, str]:
@@ -2419,6 +2474,14 @@ class SemanticExporter:
         The filename is the group ID with dots replaced by underscores, matching the SD
         convention (e.g. ``snowflake.account`` → ``doc/fields/snowflake_account.md``).
 
+        Exception: any group whose id is ``snowflake`` or starts with ``snowflake.``
+        (both signal-field groups and the snowflake resource-field groups) is routed
+        into a single consolidated ``doc/fields/snowflake.md`` file instead — one
+        shared ``## Snowflake`` h2 followed by one ``### <title>`` + semconv block per
+        group, mirroring the multi-block-per-file pattern used by
+        ``doc/fields/azure_resource.md`` in the SD repo. The ``dsoa`` resource-field
+        group is a different domain and keeps its own separate file.
+
         The ``## h2`` heading uses the namespace name in sentence case — no ``fields``
         or ``resource`` suffix, matching the SD doc convention seen in
         ``doc/fields/host.md``, ``doc/fields/app.md`` (e.g. ``## Snowflake warehouse``).
@@ -2436,8 +2499,12 @@ class SemanticExporter:
             Dict mapping relative output path (``doc/fields/…``) → stub content.
         """
         result: Dict[str, str] = {}
+        snowflake_groups: List[Dict[str, Any]] = []
         for fg in field_groups:
             group_id = fg["group_id"]
+            if group_id == "snowflake" or group_id.startswith("snowflake."):
+                snowflake_groups.append(fg)
+                continue
             # h2 heading: sentence-case namespace, no "fields" or "resource" suffix.
             # Strip any ".resource" id suffix so "snowflake.warehouse.resource" → "## Snowflake warehouse".
             ns_key = group_id[: -len(".resource")] if group_id.endswith(".resource") else group_id
@@ -2456,6 +2523,26 @@ class SemanticExporter:
                 "<!-- end_dynatrace_internal -->\n"
             )
             result[f"doc/fields/{filename}"] = content
+
+        if snowflake_groups:
+            # Consolidate all snowflake / snowflake.* groups into a single doc/fields/snowflake.md
+            # file: one shared "## Snowflake" h2, then one semconv stub block per group (sorted
+            # by group_id for determinism), and one shared ownership table at the end —
+            # mirroring doc/fields/azure_resource.md's multi-block-per-file pattern. The SD
+            # generator fills in each block's own "### <title>" heading from the YAML title —
+            # no manual h3 is emitted here (matching the azure_resource.md stub shape exactly).
+            blocks: List[str] = ["## Snowflake\n"]
+            for fg in sorted(snowflake_groups, key=lambda x: x["group_id"]):
+                group_id = fg["group_id"]
+                blocks.append(f"\n<!-- semconv {group_id} -->\n<!-- end_semconv -->\n")
+            content = "".join(blocks) + (
+                "\n<!-- dynatrace_internal -->\n"
+                "| Responsible PM | Maintainer | Team |\n"
+                "|---|---|---|\n"
+                f"| {SD_PM} | {SD_MAINTAINER} | {SD_TEAM} |\n"
+                "<!-- end_dynatrace_internal -->\n"
+            )
+            result["doc/fields/snowflake.md"] = content
         return result
 
     ##endregion
@@ -2690,6 +2777,34 @@ class SemanticExporter:
             p = self._write_yaml(doc, "model/snowflake/spans/snowflake.spans.event_log.yaml")
             self._validate_against_schema(doc, p)
 
+        # Step 11b: parent "snowflake" model_group — only when at least one of the
+        # events/logs/spans sub-groups was actually written this run. The bullet list
+        # only references subfolders that exist.
+        written_sub_groups: Set[str] = set()
+        if plugins_with_events:
+            written_sub_groups.add("events")
+        if plugins_with_attrs:
+            written_sub_groups.add("logs")
+        if span_model_plugins or ("event_log" in SPAN_PLUGINS and "event_log" not in span_model_plugins):
+            written_sub_groups.add("spans")
+        if written_sub_groups:
+            bullet_labels = {
+                "events": "[Lifecycle events](./events/readme.md)",
+                "logs": "[Log records](./logs/readme.md)",
+                "spans": "[Spans](./spans/readme.md)",
+            }
+            bullets = "\n".join(f"* {bullet_labels[sg]}" for sg in ("events", "logs", "spans") if sg in written_sub_groups)
+            self._write_yaml(
+                {
+                    "model_group": {
+                        "id": "snowflake",
+                        "title": "Snowflake",
+                        "brief": ("DSOA (Dynatrace Snowflake Observability Agent) telemetry models, organized by signal type:\n\n" + bullets),
+                    }
+                },
+                "model/snowflake/model_group_snowflake.yaml",
+            )
+
         # Step 12: SD metadata — OWNERS, field categories, and doc stubs.
         # Only written when targeting the actual SD repo (--sd-metadata flag).
         # Never written for the regular 'make semantic-dictionary' export to docs/.
@@ -2699,7 +2814,7 @@ class SemanticExporter:
             plugin_names_sorted = sorted(plugin_metric_entries.keys() - {"_core"})
             self._write_owners(self._build_owners_entries(signal_group_ids, resource_group_ids, plugin_names_sorted))
             self._update_field_categories(signal_group_ids, resource_group_ids)
-            for rel_path, content in self._build_model_doc_stubs().items():
+            for rel_path, content in self._build_model_doc_stubs(sub_groups=written_sub_groups).items():
                 self._write_sd_root_text(content, rel_path)
 
             # Per-model doc stubs (logs, events, spans) — required by the SD generator to
