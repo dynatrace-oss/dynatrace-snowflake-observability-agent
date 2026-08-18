@@ -1029,6 +1029,29 @@ class TestExportPipelineMock:
                     all_keys.add(attr.get("id") or attr.get("ref"))
         assert "snowflake.warehouse.event.name" in all_keys, "signal-override dimension must be in signal_fields"
 
+    def test_observed_timestamp_brief_is_lowercase(self, tmp_path):
+        """observed_timestamp group's brief uses lowercase 'observed timestamp', unlike its title."""
+        out_dir = tmp_path / "out"
+        exporter = SemanticExporter(repo_root=REPO_ROOT, output_dir=out_dir)
+        signal_entries = {
+            "observed_timestamp": {
+                "classification": "signal",
+                "semdict": "attr",
+                "entry": {"__type": "long", "__description": "The observed timestamp.", "__example": 1234567890},
+            }
+        }
+        sig_docs = exporter._build_signal_fields_yaml(signal_entries, {})
+        obs_group = None
+        for doc in sig_docs.values():
+            for grp in doc["groups"]:
+                if grp["id"] == "observed_timestamp":
+                    obs_group = grp
+        assert obs_group is not None, "observed_timestamp group must be produced"
+        assert obs_group["title"] == "Observed timestamp signal fields"
+        assert obs_group["brief"] == "Signal-level fields for observed timestamp telemetry.", (
+            f"Expected lowercase 'observed timestamp' in brief, got: {obs_group['brief']!r}"
+        )
+
     def test_interfaces_yaml_has_correct_interfaces(self, tmp_path):
         """interfaces_dsoa.yaml has i.dsoa_resource; interfaces_snowflake.yaml has i.snowflake_warehouse/database."""
         out_dir = tmp_path / "out"
@@ -1106,8 +1129,8 @@ class TestExportPipelineMock:
         assert doc["model"]["id"] == "snowflake.events.mock_plugin"
         assert doc["model"]["model_group_id"] == "snowflake.events"
         # Timestamp events go to the OpenPipeline Events API, not bizevents
-        assert doc["model"]["data_object"] == "event", (
-            "Event-timestamp models must use data_object: event (OpenPipeline Events API). "
+        assert doc["model"]["data_object"] == "events", (
+            "Event-timestamp models must use data_object: events (OpenPipeline Events API). "
             "Only dsoa.* self-monitoring fields are sent to bizevents."
         )
 
@@ -1965,25 +1988,25 @@ class TestBuildSemanticExportScriptOutput:
 
 
 class TestEventModelDataObject:
-    """Verify event-model data_object is 'event', not 'bizevents'.
+    """Verify event-model data_object is 'events' (plural), not 'bizevents'.
 
     Timestamp events (e.g. snowflake.grant.created_on) are routed through
     GenericEvents → /platform/ingest/v1/events (OpenPipeline Events API).
     Only dsoa.* self-monitoring events go through BizEvents.
-    The generated semdict model must declare data_object: event so the
+    The generated semdict model must declare data_object: events so the
     Semantic Dictionary correctly maps the fields to the right table.
     """
 
-    def test_event_model_data_object_is_event(self, tmp_path):
-        """_build_event_model_yaml must produce data_object: event."""
+    def test_event_model_data_object_is_events(self, tmp_path):
+        """_build_event_model_yaml must produce data_object: events."""
         out_dir = tmp_path / "out"
         exporter = SemanticExporter(repo_root=REPO_ROOT, output_dir=out_dir)
         _, entries = exporter._parse_file("mock_plugin", MOCK_FIXTURE)
         event_ts = {k: v for k, v in entries.items() if v["classification"] == "event_timestamp"}
         doc = exporter._build_event_model_yaml("mock_plugin", event_ts)
         actual = doc["model"]["data_object"]
-        assert actual == "event", (
-            f"Expected data_object='event' (OpenPipeline Events API), got '{actual}'. "
+        assert actual == "events", (
+            f"Expected data_object='events' (OpenPipeline Events API), got '{actual}'. "
             "Snowflake telemetry timestamp events are NOT bizevents."
         )
 
@@ -1999,8 +2022,8 @@ class TestEventModelDataObject:
             "Only dsoa.* self-monitoring signals belong in the bizevents table."
         )
 
-    def test_all_event_model_files_use_data_object_event(self):
-        """All generated snowflake.events.*.yaml files must have data_object: event."""
+    def test_all_event_model_files_use_data_object_events(self):
+        """All generated snowflake.events.*.yaml files must have data_object: events."""
         semdict_dir = REPO_ROOT / "build" / "_semdict" / "source" / "model" / "snowflake" / "events"
         if not semdict_dir.exists():
             pytest.skip("Semdict output dir not found — run build_semantic_export.sh first")
@@ -2011,9 +2034,41 @@ class TestEventModelDataObject:
             with open(path, "r", encoding="utf-8") as fh:
                 doc = yaml.safe_load(fh)
             data_obj = doc.get("model", {}).get("data_object")
-            if data_obj != "event":
+            if data_obj != "events":
                 failures.append(f"{path.name}: data_object={data_obj!r}")
-        assert not failures, "The following event model files have wrong data_object (expected 'event'):\n" + "\n".join(failures)
+        assert not failures, "The following event model files have wrong data_object (expected 'events'):\n" + "\n".join(failures)
+
+    def test_all_log_model_files_use_data_object_logs(self):
+        """All generated snowflake.logs.*.yaml files must have data_object: logs."""
+        semdict_dir = REPO_ROOT / "build" / "_semdict" / "source" / "model" / "snowflake" / "logs"
+        if not semdict_dir.exists():
+            pytest.skip("Semdict output dir not found — run build_semantic_export.sh first")
+        log_files = list(semdict_dir.glob("snowflake.logs.*.yaml"))
+        assert log_files, "No snowflake.logs.*.yaml files found in semdict output"
+        failures = []
+        for path in sorted(log_files):
+            with open(path, "r", encoding="utf-8") as fh:
+                doc = yaml.safe_load(fh)
+            data_obj = doc.get("model", {}).get("data_object")
+            if data_obj != "logs":
+                failures.append(f"{path.name}: data_object={data_obj!r}")
+        assert not failures, "The following log model files have wrong data_object (expected 'logs'):\n" + "\n".join(failures)
+
+    def test_all_span_model_files_use_data_object_spans(self):
+        """All generated snowflake.spans.*.yaml files must have data_object: spans."""
+        semdict_dir = REPO_ROOT / "build" / "_semdict" / "source" / "model" / "snowflake" / "spans"
+        if not semdict_dir.exists():
+            pytest.skip("Semdict output dir not found — run build_semantic_export.sh first")
+        span_files = list(semdict_dir.glob("snowflake.spans.*.yaml"))
+        assert span_files, "No snowflake.spans.*.yaml files found in semdict output"
+        failures = []
+        for path in sorted(span_files):
+            with open(path, "r", encoding="utf-8") as fh:
+                doc = yaml.safe_load(fh)
+            data_obj = doc.get("model", {}).get("data_object")
+            if data_obj != "spans":
+                failures.append(f"{path.name}: data_object={data_obj!r}")
+        assert not failures, "The following span model files have wrong data_object (expected 'spans'):\n" + "\n".join(failures)
 
 
 ##endregion
@@ -2263,12 +2318,12 @@ class TestBuildPerFieldDocStubs:
         assert "## Snowflake warehouse resource" not in content
 
     def test_stub_heading_dsoa_resource_group(self, tmp_path):
-        """The DSOA resource group (group_id 'dsoa') renders the full product name via override."""
+        """The DSOA resource group (group_id 'dsoa') renders the abbreviated name via override."""
         exporter = self._make_exporter(tmp_path)
         result = exporter._build_per_field_doc_stubs([{"group_id": "dsoa", "title": "DSOA resource fields", "is_resource": True}])
         content = result["doc/fields/dsoa.md"]
-        assert "## Dynatrace Snowflake Observability Agent (DSOA)\n" in content
-        assert "## DSOA\n" not in content
+        assert "## DSOA\n" in content
+        assert "## Dynatrace Snowflake Observability Agent (DSOA)\n" not in content
 
     def test_stub_heading_signal_group_no_resource_suffix(self, tmp_path):
         """A signal group is never given a ' resource' suffix even when its namespace matches a resource one."""
@@ -2285,11 +2340,11 @@ class TestBuildPerFieldDocStubs:
         exporter = self._make_exporter(tmp_path)
         result = exporter._build_per_field_doc_stubs([{"group_id": "dsoa.debug", "title": "", "is_resource": False}])
         content = result["doc/fields/dsoa_debug.md"]
-        assert "## Dynatrace Snowflake Observability Agent (DSOA) debug\n" in content
+        assert "## DSOA debug\n" in content
         assert "<!--" in content  # some semconv marker follows
 
-    def test_stub_heading_dsoa_subgroups_use_full_name(self, tmp_path):
-        """dsoa.debug and dsoa.plugins stubs use the full product name as h2 prefix."""
+    def test_stub_heading_dsoa_subgroups_use_abbreviated_name(self, tmp_path):
+        """dsoa.debug and dsoa.plugins stubs use the abbreviated 'DSOA' as h2 prefix."""
         exporter = self._make_exporter(tmp_path)
         result = exporter._build_per_field_doc_stubs(
             [
@@ -2297,8 +2352,8 @@ class TestBuildPerFieldDocStubs:
                 {"group_id": "dsoa.plugins", "title": "", "is_resource": False},
             ]
         )
-        assert "## Dynatrace Snowflake Observability Agent (DSOA) debug\n" in result["doc/fields/dsoa_debug.md"]
-        assert "## Dynatrace Snowflake Observability Agent (DSOA) plugins\n" in result["doc/fields/dsoa_plugins.md"]
+        assert "## DSOA debug\n" in result["doc/fields/dsoa_debug.md"]
+        assert "## DSOA plugins\n" in result["doc/fields/dsoa_plugins.md"]
 
     def test_multiple_groups_produce_multiple_files(self, tmp_path):
         """Multiple groups each produce their own stub file."""

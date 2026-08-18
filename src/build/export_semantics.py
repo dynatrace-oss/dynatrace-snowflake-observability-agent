@@ -198,9 +198,9 @@ _WORD_SUBS: Dict[str, str] = {"org": "organization"}
 #: stripping any .resource suffix).  Used when _make_title produces an inadequate
 #: heading — e.g. the top-level "dsoa" group needs the full product name.
 _FIELD_STUB_H2_OVERRIDES: Dict[str, str] = {
-    "dsoa": "Dynatrace Snowflake Observability Agent (DSOA)",
-    "dsoa.debug": "Dynatrace Snowflake Observability Agent (DSOA) debug",
-    "dsoa.plugins": "Dynatrace Snowflake Observability Agent (DSOA) plugins",
+    "dsoa": "DSOA",
+    "dsoa.debug": "DSOA debug",
+    "dsoa.plugins": "DSOA plugins",
 }
 
 #: instruments-def.yml unit: value -> Semantic Dictionary unit abbreviation.
@@ -1553,7 +1553,7 @@ class SemanticExporter:
                     {
                         "id": "dsoa",
                         "type": "resource",
-                        "title": "Dynatrace Snowflake Observability Agent (DSOA) resource fields",
+                        "title": "DSOA resource fields",
                         "brief": "Resource-level DSOA execution metadata and deployment context.",
                         "attributes": dsoa_attrs,
                     }
@@ -1595,11 +1595,12 @@ class SemanticExporter:
         # One file per group_id — snowflake_* groups are combined into a single snowflake.yaml
         docs: Dict[str, Dict[str, Any]] = {}
         for gid in sorted(groups_map):
+            brief_subject = "observed timestamp" if gid == "observed_timestamp" else _make_title(gid)
             group_entry = {
                 "id": gid,
                 "type": groups_map[gid]["type"],
                 "title": (_FIELD_STUB_H2_OVERRIDES.get(gid) or _make_title(gid)) + " signal fields",
-                "brief": f"Signal-level fields for {_make_title(gid)} telemetry.",
+                "brief": f"Signal-level fields for {brief_subject} telemetry.",
                 "attributes": groups_map[gid]["attrs"],
             }
             if gid.startswith("snowflake"):
@@ -1838,7 +1839,7 @@ class SemanticExporter:
             "title": f"Snowflake {_plugin_label(plugin_name)} lifecycle events",
             "brief": f"Timestamp-based state-change events emitted by the DSOA {plugin_name} plugin via the OpenPipeline Events API.",
             "model_group_id": "snowflake.events",
-            "data_object": "event",
+            "data_object": "events",
             "interfaces": ["i.dsoa_resource"],
         }
         if dql_queries:
@@ -1939,7 +1940,7 @@ class SemanticExporter:
             "title": f"Snowflake {_plugin_label(plugin_name)} log records",
             "brief": f"Log records emitted by the DSOA {plugin_name} plugin.",
             "model_group_id": "snowflake.logs",
-            "data_object": "log",
+            "data_object": "logs",
             "interfaces": ["i.dsoa_resource"],
         }
         if dql_queries:
@@ -1982,7 +1983,7 @@ class SemanticExporter:
             "title": f"Snowflake {_plugin_label(plugin_name)} spans",
             "brief": f"Span records emitted by the DSOA {plugin_name} plugin.",
             "model_group_id": "snowflake.spans",
-            "data_object": "span",
+            "data_object": "spans",
             "interfaces": ["i.dsoa_resource"],
         }
         if dql_queries:
