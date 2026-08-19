@@ -91,6 +91,27 @@ because `_merge_into_ruamel` never updated an existing group's own `title`/`brie
 re-export (same root cause discussed for Fix 2 below — see that fix's follow-up note for the
 full explanation and the safety scoping that was required).
 
+**Second follow-up — the abbreviation target was backwards:** having fixed the propagation gap
+above, both the `## h2` and `### h3` ended up abbreviated. Re-reading the actual reviewer
+comment (`bbctl pr comments 1964`, anchored to `doc/fields/dsoa_debug.md`) shows the opposite
+intent: *"As these titles are really long we could write in line 1 as it is and in the group
+then just `### DSOA debug signal fields`. For all groups then, where applicable."* — i.e. line 1
+(the `## h2`) stays the full product name **unchanged**; only "the group" (the `### h3`, whose
+suggested replacement text is literally quoted in the comment) gets abbreviated. Fixed by
+splitting the single `_FIELD_STUB_H2_OVERRIDES` map (which drove both headings identically)
+into two: `_FIELD_STUB_H2_OVERRIDES` reverted to the full name (drives the `## h2` doc-stub
+heading only), and a new `_GROUP_TITLE_OVERRIDES` with the abbreviated form (drives the YAML
+`title:` / `### h3` only). Renamed/updated the affected tests to assert the corrected
+full-`##`/abbreviated-`###` split. Verified against the real SD repo: final rendered output is
+```
+## Dynatrace Snowflake Observability Agent (DSOA) debug
+
+<!-- semconv dsoa.debug -->
+### DSOA debug signal fields
+```
+for all three files (`dsoa.md`, `dsoa_debug.md`, `dsoa_plugins.md`), matching the reviewer's
+suggestion exactly; idempotent across two consecutive `--generate-docs` runs.
+
 ---
 
 ### Fix 4 — Parent `snowflake` model_group + readme
