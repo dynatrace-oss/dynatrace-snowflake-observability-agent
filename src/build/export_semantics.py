@@ -415,7 +415,10 @@ def _merge_into_ruamel(existing, new) -> None:
     # Scalar fields on an existing attribute that we always overwrite from new.
     _UPDATABLE_KEYS = frozenset({"brief", "stability", "deprecated", "type", "examples", "note"})
     # Top-level model_group keys we propagate from new → existing when new has a value.
-    _MG_UPDATABLE_KEYS = frozenset({"brief", "title", "dql_queries"})
+    # parent_model_group_id is included so the sub-model-group hierarchy (e.g. wiring
+    # snowflake.logs/.events/.spans under the parent "snowflake" model_group) is picked
+    # up on re-export without --clean.
+    _MG_UPDATABLE_KEYS = frozenset({"brief", "title", "dql_queries", "parent_model_group_id"})
     # Top-level model keys we propagate from new → existing when new has a value.
     # data_object is included so schema-convention fixes (e.g. singular → plural) on
     # already-committed model files are picked up on re-export without --clean.
@@ -2691,6 +2694,7 @@ class SemanticExporter:
                         "id": "snowflake.events",
                         "title": "Snowflake lifecycle events",
                         "brief": "Timestamp-based state-change events emitted by DSOA plugins via the Dynatrace OpenPipeline Events API.",
+                        "parent_model_group_id": "snowflake",
                         **({} if not resolved_mg_dql.get("snowflake.events") else {"dql_queries": resolved_mg_dql["snowflake.events"]}),
                     }
                 },
@@ -2717,6 +2721,7 @@ class SemanticExporter:
                         "id": "snowflake.logs",
                         "title": "Snowflake log records",
                         "brief": "Log records emitted by DSOA plugins from Snowflake ACCOUNT_USAGE and system views.",
+                        "parent_model_group_id": "snowflake",
                         **({} if not resolved_mg_dql.get("snowflake.logs") else {"dql_queries": resolved_mg_dql["snowflake.logs"]}),
                     }
                 },
@@ -2740,6 +2745,7 @@ class SemanticExporter:
                         "id": "snowflake.spans",
                         "title": "Snowflake spans",
                         "brief": "Span records emitted by DSOA plugins from Snowflake ACCOUNT_USAGE views.",
+                        "parent_model_group_id": "snowflake",
                         **({} if not resolved_mg_dql.get("snowflake.spans") else {"dql_queries": resolved_mg_dql["snowflake.spans"]}),
                     }
                 },
@@ -2764,6 +2770,7 @@ class SemanticExporter:
                             "id": "snowflake.spans",
                             "title": "Snowflake spans",
                             "brief": "Span records emitted by DSOA plugins from Snowflake ACCOUNT_USAGE views.",
+                            "parent_model_group_id": "snowflake",
                             **({} if not resolved_mg_dql.get("snowflake.spans") else {"dql_queries": resolved_mg_dql["snowflake.spans"]}),
                         }
                     },

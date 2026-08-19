@@ -1308,6 +1308,27 @@ class TestSemanticExporterIntegration:
         mg = out_dir / "model" / "snowflake" / "events" / "model_group_snowflake_events.yaml"
         assert mg.exists(), "model_group_snowflake_events.yaml not found"
 
+    def test_sub_model_groups_declare_parent_model_group_id(self, export_output):
+        """snowflake.events/.logs/.spans model_groups declare parent_model_group_id: snowflake.
+
+        This wires them into the sub-model-group hierarchy under the new parent
+        "snowflake" model_group (PR #1964 review comment), not just a markdown link.
+        """
+        out_dir, _ = export_output
+        paths = {
+            "snowflake.events": out_dir / "model" / "snowflake" / "events" / "model_group_snowflake_events.yaml",
+            "snowflake.logs": out_dir / "model" / "snowflake" / "logs" / "model_group_snowflake_logs.yaml",
+            "snowflake.spans": out_dir / "model" / "snowflake" / "spans" / "model_group_snowflake_spans.yaml",
+        }
+        for expected_id, path in paths.items():
+            assert path.exists(), f"{path.name} not found"
+            doc = yaml.safe_load(path.read_text(encoding="utf-8"))
+            assert doc["model_group"]["id"] == expected_id
+            assert doc["model_group"]["parent_model_group_id"] == "snowflake", (
+                f"{path.name}: expected parent_model_group_id='snowflake', "
+                f"got {doc['model_group'].get('parent_model_group_id')!r}"
+            )
+
     def test_parent_snowflake_model_group_exists(self, export_output):
         """model/snowflake/model_group_snowflake.yaml is created with id 'snowflake' and links."""
         out_dir, _ = export_output
@@ -1547,6 +1568,26 @@ class TestMergeIntoRuamelModelEnvelope:
         _merge_into_ruamel(existing, new)
         assert existing["model_group"]["title"] == "New"
         assert existing["model_group"]["brief"] == "New brief."
+
+    def test_parent_model_group_id_propagates_on_existing_model_group_file(self):
+        """An already-committed sub-group model_group file (e.g. snowflake.logs) picks up
+        a newly-added parent_model_group_id on re-export without --clean.
+
+        Regression coverage for the parent 'snowflake' model_group follow-up fix: the
+        first pass added parent_model_group_id to the three sub-groups' fresh-write dicts
+        but not to _MG_UPDATABLE_KEYS, so already-committed SD-repo files would never pick
+        it up on incremental re-export.
+        """
+        existing = self._load("model_group:\n  id: snowflake.logs\n  title: Snowflake log records\n  brief: Old brief.\n")
+        new = self._load(
+            "model_group:\n"
+            "  id: snowflake.logs\n"
+            "  title: Snowflake log records\n"
+            "  brief: Old brief.\n"
+            "  parent_model_group_id: snowflake\n"
+        )
+        _merge_into_ruamel(existing, new)
+        assert existing["model_group"]["parent_model_group_id"] == "snowflake"
 
 
 ##endregion
