@@ -1,0 +1,181 @@
+# Semantic Dictionary Export — PR #1964 Review Fixes
+
+## Summary
+
+Addressed five reviewer comments from Bitbucket PR #1964 (`DEUS/semantic-dictionary`) on the
+DSOA semantic-dictionary export (`src/build/export_semantics.py`). Also fixed a latent
+merge-propagation bug discovered while regenerating the SD repo output for this change.
+
+## Changes
+
+### Fix 1 — `data_object` values must be plural
+
+**Problem:** `_build_log_model_yaml`, `_build_event_model_yaml`, and `_build_span_model_yaml`
+emitted singular `data_object` values (`log`, `event`, `span`), which don't match the SD
+schema's plural convention (`logs`, `events`, `spans`).
+
+**Fix:** Changed all three to their plural form. The metric model's `data_object: metric` is
+intentionally left singular (explicitly out of scope per reviewer feedback).
+
+**Tests:** Updated `test_event_model_produced` / `TestEventModelDataObject` (renamed
+`test_event_model_data_object_is_event` → `test_event_model_data_object_is_events`); added
+`test_all_log_model_files_use_data_object_logs` and
+`test_all_span_model_files_use_data_object_spans` for parity coverage across all three signal
+types.
+
+---
+
+### Fix 2 — `observed_timestamp.yaml` brief casing
+
+**Problem:** `_build_signal_fields_yaml`'s generic brief line
+(`f"Signal-level fields for {_make_title(gid)} telemetry."`) rendered
+`_make_title("observed_timestamp")` → `"Observed timestamp"` (correct capitalization for the
+`title:` field) but produced an oddly-capitalized mid-sentence brief:
+"Signal-level fields for Observed timestamp telemetry."
+
+**Fix:** Special-cased `gid == "observed_timestamp"` to use the lowercase phrase
+`"observed timestamp"` in the brief only — the `title:` field (`"Observed timestamp signal
+fields"`) is unaffected. Other proper-noun/acronym groups (`snowflake`, `dsoa`, `anomaly`)
+intentionally keep their capitalized brief text.
+
+**Tests:** Added `test_observed_timestamp_brief_is_lowercase` asserting the exact brief string.
+
+---
+
+### Fix 3 — Abbreviate DSOA subtitles
+
+**Problem:** `_FIELD_STUB_H2_OVERRIDES` and the `dsoa` resource-fields YAML title spelled out
+the full product name ("Dynatrace Snowflake Observability Agent (DSOA)") in every doc heading —
+redundant repetition per reviewer feedback.
+
+**Fix:** Changed all three `_FIELD_STUB_H2_OVERRIDES` entries (`dsoa`, `dsoa.debug`,
+`dsoa.plugins`) and the `dsoa` resource-fields YAML `title:` to use the abbreviated `"DSOA"` /
+`"DSOA debug"` / `"DSOA plugins"` / `"DSOA resource fields"`.
+
+**Tests:** Updated `test_stub_heading_dsoa_resource_group`,
+`test_stub_heading_derived_from_group_id`, and renamed
+`test_stub_heading_dsoa_subgroups_use_full_name` →
+`test_stub_heading_dsoa_subgroups_use_abbreviated_name` to assert the abbreviated strings.
+
+---
+
+### Fix 4 — Parent `snowflake` model_group + readme
+
+**Problem:** The SD repo has no top-level "Snowflake" model_group tying together the three
+sub-groups (`snowflake.events`, `snowflake.logs`, `snowflake.spans`) — unlike the precedent
+`dt.smartscape` model_group, which links to each subfolder's readme via a bullet list.
+
+**Fix:**
+
+- Added a new write step in `export()` (Step 11b) that writes
+  `model/snowflake/model_group_snowflake.yaml` with `id: snowflake`, `title: Snowflake`, and a
+  `brief:` bullet list linking to whichever of `./events/readme.md`, `./logs/readme.md`,
+  `./spans/readme.md` were actually generated this run — built dynamically from the same
+  `plugins_with_events` / `plugins_with_attrs` / `span_model_plugins` guard variables used for
+  the sub-group writes, so the list never references a non-existent subfolder.
+- Extended `_build_model_doc_stubs(sub_groups=...)` to also emit the corresponding
+  `doc/model/snowflake/readme.md` stub (`<!-- model_group snowflake -->` / `## Snowflake`
+  marker) whenever at least one sub-group stub was written.
+
+**Tests:** Added `TestBuildModelDocStubs` (all-three-groups, partial-groups,
+no-groups-produces-nothing cases) and `test_parent_snowflake_model_group_exists` integration
+test asserting the YAML's `id`, `title`, and brief links.
+
+---
+
+### Fix 5 — Consolidate `doc/fields/snowflake_*.md` into one `doc/fields/snowflake.md`
+
+**Problem:** `_build_per_field_doc_stubs` wrote one file per `attribute_group` id
+(`snowflake_account.md`, `snowflake_budget.md`, …) — 31 separate files for `snowflake` /
+`snowflake.*` groups (signal groups plus the two snowflake resource-field groups), unlike the
+existing SD-repo pattern in `doc/fields/azure_resource.md`, which has one shared `## <Vendor>`
+heading followed by multiple `<!-- semconv id -->` stub blocks in a single file.
+
+**Fix:**
+
+- `_build_per_field_doc_stubs` now buckets any group whose id is `snowflake` or starts with
+  `snowflake.` into a single `doc/fields/snowflake.md` file: one shared `## Snowflake` h2,
+  then one `<!-- semconv {group_id} -->` / `<!-- end_semconv -->` stub block per group (sorted
+  by group_id for determinism), with the ownership table emitted once at the end. No manual
+  `### h3` heading is emitted per block — the SD generator fills in each block's own `###
+  <title>` from the group's YAML `title:` (mirroring `azure_resource.md`'s exact stub shape;
+  an earlier draft emitted a manual h3 per block and had to be corrected after comparing
+  against the real `azure_resource.md` output).
+- The `dsoa` resource-field group is a different domain and keeps its own separate
+  `doc/fields/dsoa.md` file, unaffected.
+- `_build_owners_entries` updated to emit a single `doc/fields/snowflake.md` OWNERS path
+  instead of one path per `snowflake.*` group (signal AND resource groups) — this also fixed a
+  latent gap where resource-only groups (`dsoa`, `snowflake.warehouse.resource`,
+  `snowflake.resource_monitor.resource`) never got a `doc/fields/*.md` path added to OWNERS at
+  all (F030-eligible even before this change, just never previously surfaced since a
+  now-deleted per-group doc file happened to match a signal-group OWNERS entry of the same
+  basename in most cases).
+- Deleted the 31 stale `doc/fields/snowflake_*.md` files from the SD repo checkout after
+  confirming (via `bbctl pr comments 1964`) no PR review comments were anchored to them.
+
+**Tests:** Added `TestBuildOwnersEntries` (consolidated path, non-snowflake paths kept
+individual, resource-only group still adds the consolidated path);
+`test_snowflake_group_consolidated_into_single_file`,
+`test_multiple_snowflake_groups_share_one_file_with_all_markers`,
+`test_dsoa_resource_group_kept_in_separate_file`, `test_snowflake_resource_group_uses_semconv_
+marker_only`; rewrote `test_single_group_produces_correct_filename` /
+`test_dot_in_group_id_replaced_by_underscore` to use non-snowflake ids (since those specific
+assertions no longer apply to `snowflake.*` ids); integration tests
+`test_snowflake_fields_doc_consolidated` / `test_dsoa_fields_doc_stays_separate` against a real
+`sd_metadata=True` export run.
+
+---
+
+### Bonus fix — `_merge_into_ruamel` never propagated `model:` envelope scalars
+
+**Problem (discovered during SD-repo regeneration for this PR):** `_write_yaml`'s merge path
+(used whenever the target file already exists, to preserve inline comments and avoid a full
+`--clean` rewrite) only handled the `model_group:` top-level envelope and document-root
+`groups:` — it never touched the `model:` envelope used by per-plugin log/event/span model
+files. This meant Fix 1's `data_object` plurality correction (and any future `title`/`brief`
+change) silently failed to reach already-committed SD-repo model files on incremental
+re-export; only newly-created files got the correct value.
+
+**Fix:** `_merge_into_ruamel` now also detects a `model:` envelope and propagates its scalar
+fields (`brief`, `title`, `data_object`, `dql_queries`) the same way it already did for
+`model_group:`, then merges `groups:`/`attributes:` relative to whichever envelope (or the
+document root, for envelope-less files like resource/signal field docs) actually holds them.
+
+**Tests:** Added `TestMergeIntoRuamelModelEnvelope` — five cases covering `data_object`
+propagation, `title`/`brief` propagation, new-attribute merging under the `model:` envelope,
+envelope-less documents (unaffected), and the pre-existing `model_group:` envelope handling
+(unaffected).
+
+## Verification
+
+- `.venv/bin/pytest test/core/test_export_semantics.py` — 218 passed (mocked, `--skip-semdict-
+  regen`); 20 passed (integration, `-m integration`).
+- `.venv/bin/flake8` / `.venv/bin/pylint` on `src/build/export_semantics.py` and
+  `test/core/test_export_semantics.py` — no new findings; pylint score unchanged from baseline
+  (9.97/10 — the module's pre-existing baseline issues, e.g. `too-many-lines`, are unrelated to
+  this change and were confirmed present before these fixes too).
+- Regenerated the full SD-repo output via
+  `./scripts/dev/build_semantic_export.sh --generate-docs` targeting
+  `.context/semantic-dictionary` — diff scoped to exactly the expected files (data_object
+  values, brief/title text, new parent model_group + readme, consolidated field doc, OWNERS).
+- Ran `./scripts/dev/build_semantic_export.sh --check` (DSOA-scoped SD generator sanity
+  checks): F030 (OWNERS referencing non-existent files) resolved to zero after the OWNERS
+  consolidation fix. Remaining findings are either pre-existing and unrelated (F014 display_name
+  inconsistency on shared `authentication`/`client`/`db`/`event`/interface groups) or expected
+  given the parent model_group's intentionally minimal content per the approved design (F015/
+  F016 missing `dql_queries`, F021 no inline `groups`/`models` — the parent `snowflake`
+  model_group is a pure navigational grouping, matching the task's specified YAML exactly; no
+  F025 "unused domain-specific group" findings were introduced by the Fix 5 restructuring).
+
+## Notes for reviewers
+
+- The `--check` sanity-check flag on `build_semantic_export.sh` re-runs the
+  `export_semantics.py --sd-metadata` step, which rewrites doc stubs to their blank template
+  form (it does not re-run the Docker markdown-fill generator step). Anyone running `--check`
+  after `--generate-docs` must re-run `--generate-docs` afterward to restore rendered doc
+  content — this tripped us up during verification and is worth calling out in
+  `docs/PLUGIN_DEVELOPMENT.md` or the `semdict-export` skill in a future session.
+- `_write_owners`'s marker-replace logic (`_write_owners` in `export_semantics.py`) leaves a
+  stray blank line before the `## DSOA` section header on repeated re-runs (whitespace-only
+  drift, not content-affecting). Encountered but left unfixed as out-of-scope for this PR;
+  worth a small follow-up cleanup.
