@@ -191,12 +191,22 @@ envelope-less documents (unaffected), and the pre-existing `model_group:` envelo
 
 ## Notes for reviewers
 
-- The `--check` sanity-check flag on `build_semantic_export.sh` re-runs the
-  `export_semantics.py --sd-metadata` step, which rewrites doc stubs to their blank template
-  form (it does not re-run the Docker markdown-fill generator step). Anyone running `--check`
-  after `--generate-docs` must re-run `--generate-docs` afterward to restore rendered doc
-  content — this tripped us up during verification and is worth calling out in
-  `docs/PLUGIN_DEVELOPMENT.md` or the `semdict-export` skill in a future session.
+- **Fixed:** the `--check` sanity-check flag on `build_semantic_export.sh` re-ran the
+  `export_semantics.py --sd-metadata` step internally, which rewrites doc/ files to their blank
+  stub form (bare `<!-- semconv id --><!-- end_semconv -->` markers) — necessary so the sanity
+  checker has something to validate, but it silently discarded any previously-rendered content
+  (attribute tables, DQL examples) from a prior `--generate-docs` run. Reproduced by running
+  `--generate-docs` then `--check`: `doc/fields/snowflake.md` dropped from 884 rendered lines to
+  100 blank-stub lines. Fixed in `run_sanity_checks()` by snapshotting `${SD_REPO}/doc` to a
+  temp dir before the metadata export and unconditionally restoring it on function return (via
+  an inline `trap ... RETURN`, not a named function — a separately-defined function invoked via
+  `trap fn RETURN` runs in its own call frame and hits "unbound variable" under `set -u` on
+  locals declared in the caller; the trap body also clears itself, `trap - RETURN`, as its last
+  action, since a RETURN trap is not auto-unregistered after firing once and would otherwise
+  re-fire — with the same unbound-variable failure — on every subsequent function return in the
+  script). Verified idempotent across repeated `--check` runs: `doc/` byte-identical
+  before/after, `shellcheck` clean (no new findings beyond pre-existing informational SC2310/
+  SC2312 notices).
 - `_write_owners`'s marker-replace logic (`_write_owners` in `export_semantics.py`) leaves a
   stray blank line before the `## DSOA` section header on repeated re-runs (whitespace-only
   drift, not content-affecting). Encountered but left unfixed as out-of-scope for this PR;
