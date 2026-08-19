@@ -207,7 +207,21 @@ envelope-less documents (unaffected), and the pre-existing `model_group:` envelo
   script). Verified idempotent across repeated `--check` runs: `doc/` byte-identical
   before/after, `shellcheck` clean (no new findings beyond pre-existing informational SC2310/
   SC2312 notices).
-- `_write_owners`'s marker-replace logic (`_write_owners` in `export_semantics.py`) leaves a
-  stray blank line before the `## DSOA` section header on repeated re-runs (whitespace-only
-  drift, not content-affecting). Encountered but left unfixed as out-of-scope for this PR;
-  worth a small follow-up cleanup.
+- **Fixed:** `_write_owners`'s marker-replace logic left a stray blank line before the `## DSOA`
+  section header on repeated re-runs. Root cause: `existing[:idx]` (truncating at the `## DSOA`
+  marker) ends right after the marker's own leading indentation (`"    "`, since OWNERS
+  sections are indented and `str.find()` matches only the bare marker text, not its
+  indentation), and `.rstrip("\n")` strips trailing newlines but not trailing spaces — so that
+  4-space indentation survived as an invisible whitespace-only line, compounding by one on every
+  re-export. A second, more serious latent bug in the same function: the next-section-header
+  regex (`\n## `, no indentation) could never match a real indented OWNERS header, so if the
+  DSOA block were ever followed by another section (it currently happens to be last), that
+  section would have been silently deleted along with the DSOA block being replaced. Fixed by
+  backing up to the start of the marker's own line before truncating (so its indentation is
+  removed together with the marker, not left dangling), using `.rstrip()` (all whitespace, not
+  just newlines) when assembling the retained prefix, and making the next-section regex
+  indentation-aware (`\n[ \t]*## `). Added `TestWriteOwners` (3 cases: idempotent re-run
+  produces byte-identical output, an interior DSOA block replace preserves the following
+  section, append when no DSOA marker exists yet). Verified against the real SD-repo `OWNERS`
+  file across two consecutive full `--generate-docs` regenerations: zero diff both times
+  (previously each run added a new stray blank-ish line).

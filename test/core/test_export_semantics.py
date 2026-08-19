@@ -2408,6 +2408,109 @@ class TestBuildOwnersEntries:
 ##endregion
 
 
+##region Tests — SemanticExporter._write_owners (OWNERS file merge)
+
+
+class TestWriteOwners:
+    r"""Unit tests for SemanticExporter._write_owners.
+
+    Regression coverage for a whitespace-accumulation bug found during PR #1964 review:
+    the previous implementation used `.rstrip("\n")` when truncating the existing OWNERS
+    content at the '## DSOA' marker, which strips trailing newlines but not the leading
+    indentation ("    ") that precedes the marker on its own line (OWNERS sections are
+    indented). That stray indentation was never removed, so a whitespace-only line
+    accumulated before '## DSOA' on every re-export. A second, more serious latent bug:
+    the next-section regex (`\n## `) required zero indentation and could never match a
+    real (indented) OWNERS section header, so a DSOA block followed by another section
+    would have had that next section silently deleted too — masked only because DSOA
+    happens to be the last section in the current file.
+    """
+
+    _DSOA_BLOCK = (
+        "    ## DSOA - Dynatrace Snowflake Observability Agent\n"
+        "    path source/fields/resource_fields/dsoa.yaml\n"
+        "        sebastian.kruk\n"
+    )
+
+    def _make_exporter(self, tmp_path):
+        """Return a SemanticExporter instance suitable for OWNERS-writing tests."""
+        return SemanticExporter(repo_root=REPO_ROOT, output_dir=tmp_path / "out")
+
+    def test_idempotent_rerun_does_not_accumulate_whitespace(self, tmp_path):
+        """Writing the same DSOA content twice in a row produces byte-identical output."""
+        sd_root = tmp_path / "sd_root"
+        (sd_root / "source").mkdir(parents=True)
+        owners_path = sd_root / "OWNERS"
+        owners_path.write_text(
+            "some_header_stuff\n\n"
+            "    ## Maintenance Windows\n"
+            "    path source/model/maintenance-windows/**\n"
+            "        @WW_TeamPsOasis_U\n\n" + self._DSOA_BLOCK,
+            encoding="utf-8",
+        )
+        exporter = self._make_exporter(tmp_path)
+        exporter.output_dir = sd_root / "source"
+
+        exporter._write_owners(self._DSOA_BLOCK)
+        first_pass = owners_path.read_text(encoding="utf-8")
+        exporter._write_owners(self._DSOA_BLOCK)
+        second_pass = owners_path.read_text(encoding="utf-8")
+
+        assert first_pass == second_pass, "re-running _write_owners with identical content must be idempotent"
+        # No stray whitespace-only line (trailing spaces followed by a blank line) before the marker.
+        assert "    \n\n    ## DSOA" not in first_pass
+        assert first_pass.count("## DSOA") == 1
+
+    def test_replaces_dsoa_block_when_followed_by_another_section(self, tmp_path):
+        r"""A DSOA block that is NOT the last section is replaced without deleting what follows.
+
+        This is the indentation-aware next-section-header regression: the original regex
+        (`\n## `, no indentation allowed) could never match a real indented OWNERS header,
+        so anything after an interior DSOA block would have been silently dropped.
+        """
+        sd_root = tmp_path / "sd_root"
+        (sd_root / "source").mkdir(parents=True)
+        owners_path = sd_root / "OWNERS"
+        owners_path.write_text(
+            "    ## DSOA - Dynatrace Snowflake Observability Agent\n"
+            "    path source/fields/resource_fields/dsoa.yaml\n"
+            "        old.owner\n\n"
+            "    ## Zzz Trailing Section\n"
+            "    path source/model/zzz/**\n"
+            "        someone.else\n",
+            encoding="utf-8",
+        )
+        exporter = self._make_exporter(tmp_path)
+        exporter.output_dir = sd_root / "source"
+
+        exporter._write_owners(self._DSOA_BLOCK)
+        result = owners_path.read_text(encoding="utf-8")
+
+        assert "sebastian.kruk" in result
+        assert "old.owner" not in result
+        assert "## Zzz Trailing Section" in result, "the following section must be preserved, not deleted"
+        assert "someone.else" in result
+
+    def test_appends_dsoa_section_when_not_present(self, tmp_path):
+        """When OWNERS has no '## DSOA' marker yet, the section is appended cleanly."""
+        sd_root = tmp_path / "sd_root"
+        (sd_root / "source").mkdir(parents=True)
+        owners_path = sd_root / "OWNERS"
+        owners_path.write_text("    ## Other Section\n    path source/model/other/**\n        someone\n", encoding="utf-8")
+        exporter = self._make_exporter(tmp_path)
+        exporter.output_dir = sd_root / "source"
+
+        exporter._write_owners(self._DSOA_BLOCK)
+        result = owners_path.read_text(encoding="utf-8")
+
+        assert "## Other Section" in result
+        assert "## DSOA" in result
+        assert result.count("## DSOA") == 1
+
+
+##endregion
+
+
 ##region Tests — _build_per_field_doc_stubs
 
 

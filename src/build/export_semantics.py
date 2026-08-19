@@ -2201,8 +2201,9 @@ class SemanticExporter:
         """Update the OWNERS file at the SD repo root with the DSOA section.
 
         The OWNERS file lives one level above source/ (i.e. output_dir.parent).
-        An existing '## DSOA' block (from that marker through the next '## ' line
-        or EOF) is replaced; if none exists the section is appended.
+        An existing '## DSOA' block (from the start of that marker's own line
+        through the next section header or EOF) is replaced; if none exists the
+        section is appended.
         """
         owners_path = self._sd_root / "OWNERS"
         if owners_path.exists():
@@ -2210,18 +2211,35 @@ class SemanticExporter:
             marker = "## DSOA"
             idx = existing.find(marker)
             if idx >= 0:
-                # Find next section header after the DSOA block (if any)
+                # Back up to the start of the marker's own line so any leading
+                # indentation on that line (OWNERS sections are indented, e.g.
+                # "    ## DSOA") is removed together with the marker, rather than
+                # left dangling as a stray whitespace-only line in `head` — that
+                # stray indentation (never stripped by a plain .rstrip("\n"), which
+                # only strips newlines, not spaces) is what caused a blank-ish
+                # line to accumulate before "## DSOA" on every re-export.
+                line_start = existing.rfind("\n", 0, idx) + 1
+                head = existing[:line_start].rstrip()
+                head = f"{head}\n\n" if head else ""
+                # Find the next section header after the DSOA block, if any.
+                # Indentation-aware ("\n[ \t]*## ") since OWNERS section headers
+                # are indented — the previous "\n## " (no indentation allowed)
+                # could never match, so a DSOA block followed by another section
+                # would have silently deleted that section too (currently masked
+                # only because DSOA happens to be the last section in the file).
                 rest = existing[idx + len(marker):]
-                next_match = re.search(r"\n## ", rest)
-                if next_match:
-                    existing = existing[:idx] + existing[idx + len(marker) + next_match.start() + 1 :]
-                else:
-                    existing = existing[:idx]
-            base = existing.rstrip("\n") + "\n\n"
+                next_match = re.search(r"\n[ \t]*## ", rest)
+                tail = rest[next_match.start() + 1 :] if next_match else ""
+            else:
+                head = f"{existing.rstrip()}\n\n" if existing.strip() else ""
+                tail = ""
         else:
             owners_path.parent.mkdir(parents=True, exist_ok=True)
-            base = ""
-        owners_path.write_text(base + content, encoding="utf-8")
+            head, tail = "", ""
+        new_text = head + content.rstrip("\n") + "\n"
+        if tail:
+            new_text += f"\n{tail}"
+        owners_path.write_text(new_text, encoding="utf-8")
         log.debug("Wrote %s", owners_path)
         self._counters["files"] += 1
         return owners_path
