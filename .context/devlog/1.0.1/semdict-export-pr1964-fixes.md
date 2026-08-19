@@ -81,6 +81,28 @@ sub-groups (`snowflake.events`, `snowflake.logs`, `snowflake.spans`) — unlike 
 no-groups-produces-nothing cases) and `test_parent_snowflake_model_group_exists` integration
 test asserting the YAML's `id`, `title`, and brief links.
 
+**Follow-up (found during review):** the initial pass only linked the sub-groups to the parent
+via a markdown bullet list — it never set the schema-native `parent_model_group_id` field,
+which is the actual mechanism the SD schema provides for sub-model-group hierarchy (see every
+`smartscape/*/model_group_smartscape_*.yaml`, all of which set
+`parent_model_group_id: dt.smartscape`). This is exactly what the reviewer asked for
+("could then be a **sub model group** of the snowflake model"), not just a doc link. Fixed by
+adding `"parent_model_group_id": "snowflake"` to all three sub-group model_group writes (and
+the `event_log`-only fallback path), and adding `parent_model_group_id` to
+`_MG_UPDATABLE_KEYS` in `_merge_into_ruamel` so the field propagates to the already-committed
+SD-repo files on re-export without `--clean`. Added `test_sub_model_groups_declare_parent_model_group_id`
+(integration) and `test_parent_model_group_id_propagates_on_existing_model_group_file` (unit,
+merge regression coverage) for this.
+
+A related sanity-check precedent worth noting: the new parent `model_group_snowflake.yaml` (no
+`dql_queries`, no inline `groups`) triggers non-blocking F015/F016/F021 findings ("missing DQL
+queries" / "empty DQL query list" / "model groups need content"). This is an accepted, already-
+shipped pattern in the SD repo — `source/model/oneagent/model_group_oneagent.yaml` has the
+exact same minimal shape (just `id`/`title`/`brief`/`internal`) with no `dql_queries` or
+`groups`. Per the SD repo's own conventions (`skills/semdict-pr-review/references/conventions.md`),
+these checks are informational (Warning/Error severity) and don't block the build; leaving as-is
+unless PR review raises it.
+
 ---
 
 ### Fix 5 — Consolidate `doc/fields/snowflake_*.md` into one `doc/fields/snowflake.md`
