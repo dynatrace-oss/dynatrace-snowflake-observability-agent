@@ -2862,12 +2862,16 @@ class TestBuildPerFieldDocStubs:
         assert "### Snowflake warehouse" not in content, "no manual h3 should be emitted in the raw stub"
 
     def test_stub_heading_dsoa_resource_group(self, tmp_path):
-        """The DSOA resource group (group_id 'dsoa') renders the abbreviated name via override."""
+        """The DSOA resource group (group_id 'dsoa') keeps the full product name as its
+        ## h2 heading — per PR #1964 reviewer feedback (Schoenberger): "write in line 1
+        as it is [full name] and in the group then just [abbreviated] ### DSOA ...". Only
+        the YAML title: (rendered as the ### h3, see _GROUP_TITLE_OVERRIDES) is abbreviated.
+        """
         exporter = self._make_exporter(tmp_path)
         result = exporter._build_per_field_doc_stubs([{"group_id": "dsoa", "title": "DSOA resource fields", "is_resource": True}])
         content = result["doc/fields/dsoa.md"]
-        assert "## DSOA\n" in content
-        assert "## Dynatrace Snowflake Observability Agent (DSOA)\n" not in content
+        assert "## Dynatrace Snowflake Observability Agent (DSOA)\n" in content
+        assert "## DSOA\n" not in content
 
     def test_stub_heading_signal_group_no_resource_suffix(self, tmp_path):
         """A snowflake.* signal group in the consolidated file has no manual h3 heading."""
@@ -2884,11 +2888,16 @@ class TestBuildPerFieldDocStubs:
         exporter = self._make_exporter(tmp_path)
         result = exporter._build_per_field_doc_stubs([{"group_id": "dsoa.debug", "title": "", "is_resource": False}])
         content = result["doc/fields/dsoa_debug.md"]
-        assert "## DSOA debug\n" in content
+        assert "## Dynatrace Snowflake Observability Agent (DSOA) debug\n" in content
         assert "<!--" in content  # some semconv marker follows
 
-    def test_stub_heading_dsoa_subgroups_use_abbreviated_name(self, tmp_path):
-        """dsoa.debug and dsoa.plugins stubs use the abbreviated 'DSOA' as h2 prefix."""
+    def test_stub_heading_dsoa_subgroups_keep_full_name(self, tmp_path):
+        """dsoa.debug and dsoa.plugins stubs keep the full product name as their ## h2 heading.
+
+        Only the YAML title: (rendered as the ### h3 by the SD generator, see
+        _GROUP_TITLE_OVERRIDES) is abbreviated — the ## h2 stub heading intentionally
+        stays the full name, per PR #1964 reviewer feedback.
+        """
         exporter = self._make_exporter(tmp_path)
         result = exporter._build_per_field_doc_stubs(
             [
@@ -2896,8 +2905,8 @@ class TestBuildPerFieldDocStubs:
                 {"group_id": "dsoa.plugins", "title": "", "is_resource": False},
             ]
         )
-        assert "## DSOA debug\n" in result["doc/fields/dsoa_debug.md"]
-        assert "## DSOA plugins\n" in result["doc/fields/dsoa_plugins.md"]
+        assert "## Dynatrace Snowflake Observability Agent (DSOA) debug\n" in result["doc/fields/dsoa_debug.md"]
+        assert "## Dynatrace Snowflake Observability Agent (DSOA) plugins\n" in result["doc/fields/dsoa_plugins.md"]
 
     def test_multiple_groups_produce_multiple_files(self, tmp_path):
         """Each non-snowflake group produces its own file; snowflake.* groups share one file."""

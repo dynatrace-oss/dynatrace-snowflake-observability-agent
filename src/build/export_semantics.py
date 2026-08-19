@@ -194,10 +194,26 @@ TITLE_PROPER_NOUNS = (
 #: Word-level substitutions applied in _make_title, _make_display_name, and _plugin_label.
 _WORD_SUBS: Dict[str, str] = {"org": "organization"}
 
-#: Override map for doc/fields/ stub h2 headings keyed by group_id (ns_key after
-#: stripping any .resource suffix).  Used when _make_title produces an inadequate
-#: heading — e.g. the top-level "dsoa" group needs the full product name.
+#: Override map for doc/fields/ stub ## h2 headings (the hand-authored top-of-file
+#: heading in the doc stub, "line 1" per PR #1964 review feedback) keyed by group_id
+#: (ns_key after stripping any .resource suffix). Used when _make_title produces an
+#: inadequate heading — e.g. the top-level "dsoa" group needs the full product name.
+#: Per reviewer feedback (Schoenberger, PR #1964): "write in line 1 as it is [full
+#: name] and in the group then just [abbreviated] ### DSOA debug signal fields" — so
+#: this ## h2 override intentionally stays the FULL product name; only the YAML
+#: title: (rendered as the ### h3 inside the semconv block, see
+#: _GROUP_TITLE_OVERRIDES below) is abbreviated.
 _FIELD_STUB_H2_OVERRIDES: Dict[str, str] = {
+    "dsoa": "Dynatrace Snowflake Observability Agent (DSOA)",
+    "dsoa.debug": "Dynatrace Snowflake Observability Agent (DSOA) debug",
+    "dsoa.plugins": "Dynatrace Snowflake Observability Agent (DSOA) plugins",
+}
+
+#: Override map for a group's YAML title: field (rendered by the SD generator as the
+#: ### h3 heading inside the semconv block — distinct from the ## h2 doc-stub heading
+#: above, which intentionally keeps the full product name per PR #1964 review
+#: feedback). Keyed by group_id the same way as _FIELD_STUB_H2_OVERRIDES.
+_GROUP_TITLE_OVERRIDES: Dict[str, str] = {
     "dsoa": "DSOA",
     "dsoa.debug": "DSOA debug",
     "dsoa.plugins": "DSOA plugins",
@@ -1654,7 +1670,7 @@ class SemanticExporter:
             group_entry = {
                 "id": gid,
                 "type": groups_map[gid]["type"],
-                "title": (_FIELD_STUB_H2_OVERRIDES.get(gid) or _make_title(gid)) + " signal fields",
+                "title": (_GROUP_TITLE_OVERRIDES.get(gid) or _make_title(gid)) + " signal fields",
                 "brief": f"Signal-level fields for {brief_subject} telemetry.",
                 "attributes": groups_map[gid]["attrs"],
             }
