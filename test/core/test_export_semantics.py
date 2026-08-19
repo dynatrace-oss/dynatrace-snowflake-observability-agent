@@ -1589,6 +1589,103 @@ class TestMergeIntoRuamelModelEnvelope:
         _merge_into_ruamel(existing, new)
         assert existing["model_group"]["parent_model_group_id"] == "snowflake"
 
+    def test_existing_group_title_and_brief_propagate_from_new(self):
+        """An already-existing group (matched by id, within a plain 'groups:' document)
+        picks up a text-only title/brief fix on re-export without --clean.
+
+        Regression coverage: found while verifying the DSOA subtitle abbreviation (Fix 3)
+        and observed_timestamp brief casing (Fix 2) fixes — both changed a *group-level*
+        title/brief, but the merge logic previously only updated matched *attributes'*
+        scalar fields, never the group's own title/brief, so both fixes silently failed to
+        reach the already-committed source/fields/signal_fields/{dsoa_debug,observed_timestamp}.yaml
+        files on re-export.
+        """
+        existing = self._load(
+            "groups:\n"
+            "  - id: dsoa.debug\n"
+            "    type: attribute_group\n"
+            "    title: Dynatrace Snowflake Observability Agent (DSOA) debug signal fields\n"
+            "    brief: Signal-level fields for DSOA debug telemetry.\n"
+            "    attributes:\n"
+            "      - id: dsoa.debug.span.events.added\n"
+            "        type: long\n"
+        )
+        new = self._load(
+            "groups:\n"
+            "  - id: dsoa.debug\n"
+            "    type: attribute_group\n"
+            "    title: DSOA debug signal fields\n"
+            "    brief: Signal-level fields for DSOA debug telemetry.\n"
+            "    attributes:\n"
+            "      - id: dsoa.debug.span.events.added\n"
+            "        type: long\n"
+        )
+        _merge_into_ruamel(existing, new)
+        assert existing["groups"][0]["title"] == "DSOA debug signal fields"
+
+    def test_observed_timestamp_group_brief_propagates_on_existing_file(self):
+        """The exact observed_timestamp regression: brief casing fix reaches an existing group."""
+        existing = self._load(
+            "groups:\n"
+            "  - id: observed_timestamp\n"
+            "    type: attribute_group\n"
+            "    title: Observed timestamp signal fields\n"
+            "    brief: Signal-level fields for Observed timestamp telemetry.\n"
+            "    attributes:\n"
+            "      - id: observed_timestamp\n"
+            "        type: long\n"
+        )
+        new = self._load(
+            "groups:\n"
+            "  - id: observed_timestamp\n"
+            "    type: attribute_group\n"
+            "    title: Observed timestamp signal fields\n"
+            "    brief: Signal-level fields for observed timestamp telemetry.\n"
+            "    attributes:\n"
+            "      - id: observed_timestamp\n"
+            "        type: long\n"
+        )
+        _merge_into_ruamel(existing, new)
+        assert existing["groups"][0]["brief"] == "Signal-level fields for observed timestamp telemetry."
+
+    def test_shared_non_dsoa_owned_group_title_brief_not_clobbered(self):
+        """A shared SD-owned group (e.g. 'authentication') that DSOA only contributes
+        attributes into must NOT have its title/brief overwritten by DSOA's generic
+        computed placeholder.
+
+        Regression coverage: the first pass of the group-level title/brief propagation
+        fix (added for Fix 2/Fix 3) applied to ALL groups unconditionally, which silently
+        overwrote real SD-team-owned titles/briefs for shared groups (authentication,
+        client, db, event) with DSOA's own generic "<Title> signal fields" / "Signal-level
+        fields for <Title> telemetry." placeholder text — discovered when regenerating the
+        real SD repo and finding those 4 unrelated files unexpectedly modified. Propagation
+        must be scoped to SD_OWNED_GROUP_PREFIXES (snowflake, dsoa, anomaly,
+        observed_timestamp) only.
+        """
+        existing = self._load(
+            "groups:\n"
+            "  - id: authentication\n"
+            "    type: attribute_group\n"
+            "    title: Authentication fields\n"
+            "    brief: Authentication type and method used to login to a Dynatrace system.\n"
+            "    attributes:\n"
+            "      - id: authentication.type\n"
+            "        type: string\n"
+        )
+        new = self._load(
+            "groups:\n"
+            "  - id: authentication\n"
+            "    type: attribute_group\n"
+            "    title: Authentication signal fields\n"
+            "    brief: Signal-level fields for Authentication telemetry.\n"
+            "    attributes:\n"
+            "      - id: authentication.type\n"
+            "        type: string\n"
+        )
+        _merge_into_ruamel(existing, new)
+        assert existing["groups"][0]["title"] == "Authentication fields", "SD-owned group title must not be clobbered"
+        assert existing["groups"][0]["brief"] == "Authentication type and method used to login to a Dynatrace system."
+
 
 ##endregion
 

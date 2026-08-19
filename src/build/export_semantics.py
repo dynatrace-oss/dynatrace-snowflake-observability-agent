@@ -411,9 +411,25 @@ def _merge_into_ruamel(existing, new) -> None:
     on re-export without ``--clean``. ``groups``/``attributes`` merging is applied
     relative to whichever envelope (``model``, or the document root for
     envelope-less files like resource/signal field docs) actually holds them.
+
+    Also updates an already-existing *group's own* ``title``/``brief`` scalars (not
+    just its attributes) from *new* when present — without this, a group-level
+    text fix (e.g. the observed_timestamp brief casing correction, or the DSOA
+    subtitle abbreviation) computed in memory would never reach an already-committed
+    group of the same id, since only attribute-level scalars were previously updated.
+    This is scoped to DSOA-owned groups only (``SD_OWNED_GROUP_PREFIXES``): many groups
+    DSOA merely contributes attributes into (``authentication``, ``client``, ``db``,
+    ``event``) are owned by the SD team with their own title/brief text, and DSOA's
+    in-memory ``new_group`` for those is only a generic computed placeholder, never
+    meant to be authoritative.
     """
     # Scalar fields on an existing attribute that we always overwrite from new.
     _UPDATABLE_KEYS = frozenset({"brief", "stability", "deprecated", "type", "examples", "note"})
+    # Scalar fields on an existing *group* (not its attributes) that we propagate from
+    # new → existing when new has a non-empty value, for DSOA-owned groups only — e.g.
+    # group-level title/brief text fixes (DSOA subtitle abbreviation, observed_timestamp
+    # brief casing).
+    _GROUP_UPDATABLE_KEYS = frozenset({"title", "brief"})
     # Top-level model_group keys we propagate from new → existing when new has a value.
     # parent_model_group_id is included so the sub-model-group hierarchy (e.g. wiring
     # snowflake.logs/.events/.spans under the parent "snowflake" model_group) is picked
@@ -459,6 +475,18 @@ def _merge_into_ruamel(existing, new) -> None:
         gid = new_group["id"]
         if gid in existing_by_id:
             ex_g = existing_by_id[gid]
+            # Propagate group-level scalar fixes (title/brief) — but ONLY for groups DSOA
+            # actually owns (SD_OWNED_GROUP_PREFIXES). Many groups DSOA merely contributes
+            # attributes into (authentication, client, db, event) are owned by the SD team
+            # with their own carefully-written title/brief; DSOA's in-memory `new_group`
+            # dict for those is only a generic computed placeholder used for its own
+            # bookkeeping, never meant to be authoritative — propagating it here would
+            # silently clobber genuine SD-team content on every DSOA re-export.
+            if any(gid == p or gid.startswith(p + ".") for p in SD_OWNED_GROUP_PREFIXES):
+                for key in _GROUP_UPDATABLE_KEYS:
+                    val = new_group.get(key)
+                    if val:
+                        ex_g[key] = val
             ex_attrs = ex_g.get("attributes", [])
             ex_ids = {a.get("id") or a.get("ref"): i for i, a in enumerate(ex_attrs)}
             # Capture the blank-line token used before the last SD-native attribute.
