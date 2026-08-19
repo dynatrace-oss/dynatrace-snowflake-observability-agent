@@ -40,6 +40,33 @@ intentionally keep their capitalized brief text.
 
 **Tests:** Added `test_observed_timestamp_brief_is_lowercase` asserting the exact brief string.
 
+**Follow-up (found during review, root cause of both this fix's and Fix 3's non-propagation):**
+`source/fields/signal_fields/observed_timestamp.yaml` (and `dsoa_debug.yaml`, `dsoa_plugins.yaml`,
+`resource_fields/dsoa.yaml`) already existed in the SD repo checkout from the original PR #1964
+submission, so every re-export hit `_write_yaml`'s ruamel round-trip **merge** path (not a fresh
+write). `_merge_into_ruamel`'s per-group merge logic only updated an already-matched *attribute's*
+scalar fields (`brief`, `stability`, etc.) — it never touched the *group's own* `title`/`brief`.
+So this brief-casing fix (and the Fix 3 subtitle abbreviation) were computed correctly in memory
+but silently discarded on write, identical in spirit to the `_merge_into_ruamel` `model:`-envelope
+gap already fixed earlier in this PR, just one level down (group scalars vs. envelope scalars).
+
+Fixed by adding `_GROUP_UPDATABLE_KEYS = {"title", "brief"}` and propagating those from the
+in-memory `new_group` to the existing group when the ids match — **but only for groups DSOA
+actually owns** (gated on `SD_OWNED_GROUP_PREFIXES`: `snowflake`, `dsoa`, `anomaly`,
+`observed_timestamp`). An unscoped first attempt at this fix propagated unconditionally and was
+caught immediately by diffing a real regeneration: it silently overwrote the SD team's own
+carefully-written titles/briefs for shared groups DSOA merely contributes attributes into
+(`authentication`, `client`, `db`, `event`) with DSOA's generic computed placeholder text (e.g.
+`"Authentication fields"` → `"Authentication signal fields"`). Added
+`test_existing_group_title_and_brief_propagate_from_new`,
+`test_observed_timestamp_group_brief_propagates_on_existing_file`, and — specifically to guard
+against reintroducing the unscoped version — `test_shared_non_dsoa_owned_group_title_brief_not_clobbered`.
+Verified against the real SD repo: regeneration now touches exactly the 8 expected files (4
+source YAML + 4 rendered doc files) with no collateral changes to shared groups, idempotent
+across two consecutive runs, and the SD generator's rendered `### h3` sub-headings now show the
+abbreviated DSOA text and lowercase `observed timestamp` brief, matching the `## h2` stub
+headings that were already correct.
+
 ---
 
 ### Fix 3 — Abbreviate DSOA subtitles
@@ -56,6 +83,13 @@ redundant repetition per reviewer feedback.
 `test_stub_heading_derived_from_group_id`, and renamed
 `test_stub_heading_dsoa_subgroups_use_full_name` →
 `test_stub_heading_dsoa_subgroups_use_abbreviated_name` to assert the abbreviated strings.
+
+**Follow-up (found during review):** the abbreviation only reached the doc/fields/*.md `##`
+h2 stub headings (hand-authored, always overwritten) — the `### h3` sub-headings, rendered by
+the SD generator directly from each group's YAML `title:`, kept the old unabbreviated text,
+because `_merge_into_ruamel` never updated an existing group's own `title`/`brief` scalars on
+re-export (same root cause discussed for Fix 2 below — see that fix's follow-up note for the
+full explanation and the safety scoping that was required).
 
 ---
 
