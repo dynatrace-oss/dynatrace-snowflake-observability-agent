@@ -1,6 +1,6 @@
 model:
   id: snowflake.metrics.snowpipes
-  title: Snowflake snowpipes metrics
+  title: Snowflake Snowpipes metrics
   brief: Metrics collected by the DSOA snowpipes plugin from Snowflake ACCOUNT_USAGE views.
   model_group_id: snowflake.metrics
   data_object: metric

@@ -1,6 +1,6 @@
 model:
   id: snowflake.metrics.org_costs
-  title: Snowflake org costs metrics
+  title: Snowflake organization costs metrics
   brief: Metrics collected by the DSOA org_costs plugin from Snowflake ACCOUNT_USAGE views.
   model_group_id: snowflake.metrics
   data_object: metric
@@ -95,7 +95,7 @@ model:
       brief: Credit adjustment for cloud services (10% rule offset).
       title: Org Cloud Services Credit Adjustment
       unit: count
-      note: "Original unit: credit."
+      note: 'Original unit: credit.'
       attributes:
         - ref: snowflake.account.name
         - ref: snowflake.org.name
@@ -107,7 +107,7 @@ model:
       brief: Credits used for cloud services by the account on the given day.
       title: Org Cloud Services Credits Used
       unit: count
-      note: "Original unit: credit."
+      note: 'Original unit: credit.'
       attributes:
         - ref: snowflake.account.name
         - ref: snowflake.org.name
@@ -119,7 +119,7 @@ model:
       brief: Credits used for compute by the account on the given day.
       title: Org Compute Credits Used
       unit: count
-      note: "Original unit: credit."
+      note: 'Original unit: credit.'
       attributes:
         - ref: snowflake.account.name
         - ref: snowflake.org.name
@@ -131,7 +131,7 @@ model:
       brief: Total credits used by the account on the given day across all service types.
       title: Org Total Credits Used
       unit: count
-      note: "Original unit: credit."
+      note: 'Original unit: credit.'
       attributes:
         - ref: snowflake.account.name
         - ref: snowflake.org.name

@@ -31,7 +31,7 @@ model:
       brief: The number of credits used for compute.
       title: Compute Credits Used
       unit: count
-      note: "Original unit: credit."
+      note: 'Original unit: credit.'
     - id: snowflake.load.blocked
       type: metric
       metric_name: snowflake.load.blocked

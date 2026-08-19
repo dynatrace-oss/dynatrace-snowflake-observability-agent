@@ -3,7 +3,7 @@ model:
   title: Snowflake users lifecycle events
   brief: Timestamp-based state-change events emitted by the DSOA users plugin via the OpenPipeline Events API.
   model_group_id: snowflake.events
-  data_object: event
+  data_object: events
   interfaces: [ i.dsoa_resource ]
   dql_queries:
     - query_string: |

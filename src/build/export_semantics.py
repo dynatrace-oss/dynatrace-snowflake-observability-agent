@@ -1572,7 +1572,7 @@ class SemanticExporter:
     ##region YAML document builders
 
     def _build_resource_fields_yaml(self, resource_entries: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
-        """Build resource_fields/snowflake_resource.yaml and resource_fields/dsoa.yaml.
+        """Build resource_fields/snowflake_resource.yaml and resource_fields/dsoa_resource.yaml.
 
         Ref entries (``semdict == "ref"``) are intentionally excluded from both output files.
         They belong exclusively in the ``i.dsoa_resource`` interface (emitted by
@@ -1637,7 +1637,10 @@ class SemanticExporter:
 
         Each namespace group (snowflake.query, snowflake.user, etc.) gets its own
         file under ``fields/signal_fields/`` for easier review and future maintenance.
-        Groups that share no natural prefix fall into ``snowflake_misc.yaml``.
+        Groups that share no natural prefix fall into ``snowflake_misc.yaml``. All
+        ``snowflake``/``snowflake.*`` groups are consolidated into a single
+        ``snowflake.yaml``, and all ``dsoa``/``dsoa.*`` groups into a single
+        ``dsoa.yaml`` (mirroring the same domain-file convention).
 
         Args:
             signal_entries:   Signal-classified entries.
@@ -1663,7 +1666,11 @@ class SemanticExporter:
             groups_map[group_id]["attrs"].append(self._build_attribute_node(key, all_signal[key]))
             self._counters["signal_fields"] += 1
 
-        # One file per group_id — snowflake_* groups are combined into a single snowflake.yaml
+        # One file per group_id — snowflake_* groups are combined into a single snowflake.yaml,
+        # and dsoa_* groups are combined into a single dsoa.yaml (mirroring the same pattern
+        # for consistency: source/fields/resource_fields/snowflake_resource.yaml already
+        # establishes the "<domain>.yaml" signal + "<domain>_resource.yaml" resource
+        # convention this dsoa consolidation now also follows).
         docs: Dict[str, Dict[str, Any]] = {}
         for gid in sorted(groups_map):
             brief_subject = "observed timestamp" if gid == "observed_timestamp" else _make_title(gid)
@@ -1676,6 +1683,12 @@ class SemanticExporter:
             }
             if gid.startswith("snowflake"):
                 rel_path = "fields/signal_fields/snowflake.yaml"
+                if rel_path in docs:
+                    docs[rel_path]["groups"].append(group_entry)
+                else:
+                    docs[rel_path] = {"groups": [group_entry]}
+            elif gid == "dsoa" or gid.startswith("dsoa."):
+                rel_path = "fields/signal_fields/dsoa.yaml"
                 if rel_path in docs:
                     docs[rel_path]["groups"].append(group_entry)
                 else:
@@ -2304,7 +2317,7 @@ class SemanticExporter:
 
         # Resource field source files
         sf_res_file = "source/fields/resource_fields/snowflake_resource.yaml"
-        dsoa_res_file = "source/fields/resource_fields/dsoa.yaml"
+        dsoa_res_file = "source/fields/resource_fields/dsoa_resource.yaml"
         if any(gid.startswith("snowflake") or gid.startswith("db") for gid in resource_group_ids):
             paths.append(sf_res_file)
         if any(gid.startswith("dsoa") or gid.startswith("deployment") for gid in resource_group_ids):
@@ -2314,6 +2327,7 @@ class SemanticExporter:
         # (authentication, client, db, event are SD-shared but we write into them; they must be
         # listed in OWNERS so the F027 sanity check does not fire)
         snowflake_added = False
+        dsoa_added = False
         for gid in sorted(signal_group_ids):
             if not any(gid == p or gid.startswith(p + ".") for p in SD_OWNED_GROUP_PREFIXES):
                 continue
@@ -2321,6 +2335,10 @@ class SemanticExporter:
                 if not snowflake_added:
                     paths.append("source/fields/signal_fields/snowflake.yaml")
                     snowflake_added = True
+            elif gid == "dsoa" or gid.startswith("dsoa."):
+                if not dsoa_added:
+                    paths.append("source/fields/signal_fields/dsoa.yaml")
+                    dsoa_added = True
             else:
                 filename = gid.replace(".", "_") + ".yaml"
                 paths.append(f"source/fields/signal_fields/{filename}")
@@ -2340,8 +2358,10 @@ class SemanticExporter:
         paths.append("source/model/snowflake/**")
 
         # doc/fields files for DSOA-owned groups. snowflake.* groups (signal and resource)
-        # are consolidated into a single doc/fields/snowflake.md — add it once.
+        # are consolidated into a single doc/fields/snowflake.md, and dsoa/dsoa.* groups
+        # (signal and resource) into a single doc/fields/dsoa.md — add each once.
         snowflake_doc_added = False
+        dsoa_doc_added = False
         for gid in sorted(signal_group_ids) + sorted(resource_group_ids):
             if not any(gid == p or gid.startswith(p + ".") for p in SD_OWNED_GROUP_PREFIXES):
                 continue
@@ -2349,6 +2369,10 @@ class SemanticExporter:
                 if not snowflake_doc_added:
                     paths.append("doc/fields/snowflake.md")
                     snowflake_doc_added = True
+            elif gid == "dsoa" or gid.startswith("dsoa."):
+                if not dsoa_doc_added:
+                    paths.append("doc/fields/dsoa.md")
+                    dsoa_doc_added = True
             else:
                 md_name = gid.replace(".", "_") + ".md"
                 doc_path = f"doc/fields/{md_name}"
@@ -2539,13 +2563,13 @@ class SemanticExporter:
         The filename is the group ID with dots replaced by underscores, matching the SD
         convention (e.g. ``snowflake.account`` → ``doc/fields/snowflake_account.md``).
 
-        Exception: any group whose id is ``snowflake`` or starts with ``snowflake.``
-        (both signal-field groups and the snowflake resource-field groups) is routed
-        into a single consolidated ``doc/fields/snowflake.md`` file instead — one
-        shared ``## Snowflake`` h2 followed by one ``### <title>`` + semconv block per
+        Exception: any group whose id is ``snowflake``/``dsoa`` or starts with
+        ``snowflake.``/``dsoa.`` (both signal-field groups and their respective
+        resource-field groups) is routed into a single consolidated
+        ``doc/fields/snowflake.md`` / ``doc/fields/dsoa.md`` file instead — one
+        shared ``## <Domain>`` h2 followed by one ``### <title>`` + semconv block per
         group, mirroring the multi-block-per-file pattern used by
-        ``doc/fields/azure_resource.md`` in the SD repo. The ``dsoa`` resource-field
-        group is a different domain and keeps its own separate file.
+        ``doc/fields/azure_resource.md`` in the SD repo.
 
         The ``## h2`` heading uses the namespace name in sentence case — no ``fields``
         or ``resource`` suffix, matching the SD doc convention seen in
@@ -2563,12 +2587,30 @@ class SemanticExporter:
         Returns:
             Dict mapping relative output path (``doc/fields/…``) → stub content.
         """
+        # Domains consolidated into a single doc/fields/<domain>.md file: keyed by the
+        # domain's group-id prefix, mapping to (output filename, ## h2 heading text).
+        # The h2 heading intentionally uses the full override text (e.g. the full
+        # product name for "dsoa" — kept unabbreviated per PR #1964 reviewer feedback),
+        # matching the SD's own multi-block-per-file convention (doc/fields/azure_resource.md).
+        _CONSOLIDATED_DOMAINS: Dict[str, Tuple[str, str]] = {
+            "snowflake": ("snowflake.md", "Snowflake"),
+            "dsoa": ("dsoa.md", _FIELD_STUB_H2_OVERRIDES.get("dsoa") or "DSOA"),
+        }
+
+        def _consolidated_domain(group_id: str) -> Optional[str]:
+            """Return the consolidation domain prefix `group_id` belongs to, if any."""
+            for prefix in _CONSOLIDATED_DOMAINS:
+                if group_id == prefix or group_id.startswith(prefix + "."):
+                    return prefix
+            return None
+
         result: Dict[str, str] = {}
-        snowflake_groups: List[Dict[str, Any]] = []
+        consolidated_groups: Dict[str, List[Dict[str, Any]]] = {}
         for fg in field_groups:
             group_id = fg["group_id"]
-            if group_id == "snowflake" or group_id.startswith("snowflake."):
-                snowflake_groups.append(fg)
+            domain = _consolidated_domain(group_id)
+            if domain is not None:
+                consolidated_groups.setdefault(domain, []).append(fg)
                 continue
             # h2 heading: sentence-case namespace, no "fields" or "resource" suffix.
             # Strip any ".resource" id suffix so "snowflake.warehouse.resource" → "## Snowflake warehouse".
@@ -2589,15 +2631,16 @@ class SemanticExporter:
             )
             result[f"doc/fields/{filename}"] = content
 
-        if snowflake_groups:
-            # Consolidate all snowflake / snowflake.* groups into a single doc/fields/snowflake.md
-            # file: one shared "## Snowflake" h2, then one semconv stub block per group (sorted
+        for domain, groups in consolidated_groups.items():
+            # Consolidate all <domain> / <domain>.* groups into a single doc/fields/<domain>.md
+            # file: one shared "## <Domain>" h2, then one semconv stub block per group (sorted
             # by group_id for determinism), and one shared ownership table at the end —
             # mirroring doc/fields/azure_resource.md's multi-block-per-file pattern. The SD
             # generator fills in each block's own "### <title>" heading from the YAML title —
             # no manual h3 is emitted here (matching the azure_resource.md stub shape exactly).
-            blocks: List[str] = ["## Snowflake\n"]
-            for fg in sorted(snowflake_groups, key=lambda x: x["group_id"]):
+            filename, h2_title = _CONSOLIDATED_DOMAINS[domain]
+            blocks: List[str] = [f"## {h2_title}\n"]
+            for fg in sorted(groups, key=lambda x: x["group_id"]):
                 group_id = fg["group_id"]
                 blocks.append(f"\n<!-- semconv {group_id} -->\n<!-- end_semconv -->\n")
             content = "".join(blocks) + (
@@ -2607,7 +2650,7 @@ class SemanticExporter:
                 f"| {SD_PM} | {SD_MAINTAINER} | {SD_TEAM} |\n"
                 "<!-- end_dynatrace_internal -->\n"
             )
-            result["doc/fields/snowflake.md"] = content
+            result[f"doc/fields/{filename}"] = content
         return result
 
     ##endregion
@@ -2701,7 +2744,7 @@ class SemanticExporter:
             p = self._write_yaml(sf_res_doc, "fields/resource_fields/snowflake_resource.yaml")
             self._validate_against_schema(sf_res_doc, p)
         if dsoa_res_doc.get("groups") and dsoa_res_doc["groups"][0].get("attributes"):
-            p = self._write_yaml(dsoa_res_doc, "fields/resource_fields/dsoa.yaml")
+            p = self._write_yaml(dsoa_res_doc, "fields/resource_fields/dsoa_resource.yaml")
             self._validate_against_schema(dsoa_res_doc, p)
 
         # Step 6: signal_fields — one file per namespace group

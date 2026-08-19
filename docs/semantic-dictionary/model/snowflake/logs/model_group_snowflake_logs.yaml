@@ -2,6 +2,7 @@ model_group:
   id: snowflake.logs
   title: Snowflake log records
   brief: Log records emitted by DSOA plugins from Snowflake ACCOUNT_USAGE and system views.
+  parent_model_group_id: snowflake
   dql_queries:
     - query_string: |
         fetch logs

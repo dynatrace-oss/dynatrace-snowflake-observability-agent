@@ -1,0 +1,9 @@
+model_group:
+  id: snowflake
+  title: Snowflake
+  brief: |-
+    DSOA (Dynatrace Snowflake Observability Agent) telemetry models, organized by signal type:
+
+    * [Lifecycle events](./events/readme.md)
+    * [Log records](./logs/readme.md)
+    * [Spans](./spans/readme.md)

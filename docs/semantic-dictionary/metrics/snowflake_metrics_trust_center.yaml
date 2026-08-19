@@ -1,6 +1,6 @@
 model:
   id: snowflake.metrics.trust_center
-  title: Snowflake trust center metrics
+  title: Snowflake Trust Center metrics
   brief: Metrics collected by the DSOA trust_center plugin from Snowflake ACCOUNT_USAGE views.
   model_group_id: snowflake.metrics
   data_object: metric

@@ -2,6 +2,7 @@ model_group:
   id: snowflake.events
   title: Snowflake lifecycle events
   brief: Timestamp-based state-change events emitted by DSOA plugins via the Dynatrace OpenPipeline Events API.
+  parent_model_group_id: snowflake
   dql_queries:
     - query_string: |
         fetch events

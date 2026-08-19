@@ -43,7 +43,7 @@ model:
       brief: Number of rows written to a result object. For CREATE TABLE AS SELECT (CTAS) and all DML operations, this result is 1;.
       title: Rows Written to Result
       unit: count
-      note: "Original unit: row."
+      note: 'Original unit: row.'
       attributes:
         - ref: db.user
         - ref: snowflake.query.execution_status

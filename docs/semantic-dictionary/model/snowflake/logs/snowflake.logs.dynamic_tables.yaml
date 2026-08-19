@@ -3,7 +3,7 @@ model:
   title: Snowflake dynamic tables log records
   brief: Log records emitted by the DSOA dynamic_tables plugin.
   model_group_id: snowflake.logs
-  data_object: log
+  data_object: logs
   interfaces: [ i.dsoa_resource ]
   dql_queries:
     - query_string: |

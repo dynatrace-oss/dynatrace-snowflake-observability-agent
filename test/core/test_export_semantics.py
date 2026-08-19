@@ -1076,14 +1076,14 @@ class TestExportPipelineMock:
         assert RESOURCE_ATTRIBUTE_KEYS.issubset(interface_keys)
 
     def test_dsoa_resource_file_has_dsoa_fields(self, tmp_path):
-        """resource_fields/dsoa.yaml only has dsoa./deployment. keys (no ref: nodes).
+        """resource_fields/dsoa_resource.yaml only has dsoa./deployment. keys (no ref: nodes).
 
         Refs belong exclusively in the i.dsoa_resource interface (interfaces_dsoa.yaml).
         Field definition files must contain only ``id:`` blocks — never ``ref:`` nodes.
 
         In the mock fixture, ``deployment.environment`` is an attribute with
         ``__semdict: deprecated-alias`` and no ``__field_type`` override, so it
-        is ``signal``-classified.  The dsoa.yaml resource file will therefore be
+        is ``signal``-classified.  The dsoa_resource.yaml resource file will therefore be
         empty (or contain only fields explicitly overridden as resource).
         This test verifies the builder produces the correct structure regardless.
         """
@@ -1098,7 +1098,7 @@ class TestExportPipelineMock:
         # Field definition files must contain ONLY id: nodes — never ref: nodes
         all_attrs = [a for g in dsoa_doc["groups"] for a in g.get("attributes", [])]
         for attr in all_attrs:
-            assert "ref" not in attr, f"ref: node {attr!r} must not appear in dsoa.yaml field file"
+            assert "ref" not in attr, f"ref: node {attr!r} must not appear in dsoa_resource.yaml field file"
 
     def test_metric_model_has_model_envelope(self, tmp_path):
         """Metric model file has model: envelope (not groups: at top level)."""
@@ -1257,10 +1257,10 @@ class TestSemanticExporterIntegration:
         assert rf.exists(), "snowflake_resource.yaml not found"
 
     def test_dsoa_resource_file_exists(self, export_output):
-        """fields/resource_fields/dsoa.yaml is created."""
+        """fields/resource_fields/dsoa_resource.yaml is created."""
         out_dir, _ = export_output
-        df = out_dir / "fields" / "resource_fields" / "dsoa.yaml"
-        assert df.exists(), "dsoa.yaml not found"
+        df = out_dir / "fields" / "resource_fields" / "dsoa_resource.yaml"
+        assert df.exists(), "dsoa_resource.yaml not found"
 
     def test_signal_fields_file_exists(self, export_output):
         """fields/signal_fields/ contains per-namespace YAML files (not a single snowflake.yaml)."""
@@ -1272,6 +1272,10 @@ class TestSemanticExporterIntegration:
         # All snowflake signal groups are combined into a single snowflake.yaml
         names = {f.name for f in yaml_files}
         assert "snowflake.yaml" in names, "snowflake.yaml expected in signal_fields"
+        # All dsoa signal groups (dsoa.debug, dsoa.plugins) are combined into a single dsoa.yaml
+        assert "dsoa.yaml" in names, "dsoa.yaml expected in signal_fields"
+        assert "dsoa_debug.yaml" not in names
+        assert "dsoa_plugins.yaml" not in names
 
     def test_interfaces_file_exists(self, export_output):
         """metrics/interfaces_dsoa.yaml is created."""
@@ -2501,6 +2505,48 @@ class TestBuildOwnersEntries:
         )
         assert "doc/fields/snowflake.md" in entries
 
+    def test_dsoa_doc_path_referenced_once(self, tmp_path):
+        """Multiple dsoa.* signal groups plus the dsoa resource group collapse to a single
+        OWNERS doc/fields/dsoa.md path, mirroring the snowflake.md consolidation.
+        """
+        exporter = self._make_exporter(tmp_path)
+        entries = exporter._build_owners_entries(
+            signal_group_ids=["dsoa.debug", "dsoa.plugins"],
+            resource_group_ids=["dsoa"],
+            plugin_names=[],
+        )
+        assert entries.count("doc/fields/dsoa.md") == 1
+        assert "doc/fields/dsoa_debug.md" not in entries
+        assert "doc/fields/dsoa_plugins.md" not in entries
+
+    def test_dsoa_signal_source_path_referenced_once(self, tmp_path):
+        """Multiple dsoa.* signal groups collapse to a single source/fields/signal_fields/dsoa.yaml
+        OWNERS path, mirroring source/fields/signal_fields/snowflake.yaml.
+        """
+        exporter = self._make_exporter(tmp_path)
+        entries = exporter._build_owners_entries(
+            signal_group_ids=["dsoa.debug", "dsoa.plugins"],
+            resource_group_ids=[],
+            plugin_names=[],
+        )
+        assert entries.count("source/fields/signal_fields/dsoa.yaml") == 1
+        assert "source/fields/signal_fields/dsoa_debug.yaml" not in entries
+        assert "source/fields/signal_fields/dsoa_plugins.yaml" not in entries
+
+    def test_dsoa_resource_source_file_uses_renamed_path(self, tmp_path):
+        """The dsoa resource group references the renamed source/fields/resource_fields/
+        dsoa_resource.yaml path (mirroring source/fields/resource_fields/snowflake_resource.yaml),
+        not the old bare dsoa.yaml name.
+        """
+        exporter = self._make_exporter(tmp_path)
+        entries = exporter._build_owners_entries(
+            signal_group_ids=[],
+            resource_group_ids=["dsoa"],
+            plugin_names=[],
+        )
+        assert "source/fields/resource_fields/dsoa_resource.yaml" in entries
+        assert "source/fields/resource_fields/dsoa.yaml" not in entries
+
 
 ##endregion
 
@@ -2808,10 +2854,10 @@ class TestBuildPerFieldDocStubs:
         assert "<!-- semconv dsoa -->" not in result["doc/fields/snowflake.md"]
 
     def test_dot_in_group_id_replaced_by_underscore(self, tmp_path):
-        """Dots in a non-snowflake group_id are replaced by underscores in the filename."""
+        """Dots in a non-consolidated-domain group_id are replaced by underscores in the filename."""
         exporter = self._make_exporter(tmp_path)
-        result = exporter._build_per_field_doc_stubs([{"group_id": "dsoa.table.dynamic.graph", "title": "T"}])
-        assert "doc/fields/dsoa_table_dynamic_graph.md" in result
+        result = exporter._build_per_field_doc_stubs([{"group_id": "widget.table.dynamic.graph", "title": "T"}])
+        assert "doc/fields/widget_table_dynamic_graph.md" in result
 
     def test_stub_contains_semconv_marker(self, tmp_path):
         """Stub content must contain the <!-- semconv <group_id> --> opening tag."""
@@ -2886,17 +2932,19 @@ class TestBuildPerFieldDocStubs:
     def test_stub_heading_derived_from_group_id(self, tmp_path):
         """The heading is always derived from group_id, regardless of whether title is empty."""
         exporter = self._make_exporter(tmp_path)
-        result = exporter._build_per_field_doc_stubs([{"group_id": "dsoa.debug", "title": "", "is_resource": False}])
-        content = result["doc/fields/dsoa_debug.md"]
-        assert "## Dynatrace Snowflake Observability Agent (DSOA) debug\n" in content
+        result = exporter._build_per_field_doc_stubs([{"group_id": "widget", "title": "", "is_resource": False}])
+        content = result["doc/fields/widget.md"]
+        assert "## Widget\n" in content
         assert "<!--" in content  # some semconv marker follows
 
     def test_stub_heading_dsoa_subgroups_keep_full_name(self, tmp_path):
-        """dsoa.debug and dsoa.plugins stubs keep the full product name as their ## h2 heading.
+        """dsoa.debug and dsoa.plugins share the consolidated doc/fields/dsoa.md file, with
+        the full product name as the single shared ## h2 heading (mirroring how
+        doc/fields/snowflake.md has one shared '## Snowflake' heading, not one per subgroup).
 
-        Only the YAML title: (rendered as the ### h3 by the SD generator, see
-        _GROUP_TITLE_OVERRIDES) is abbreviated — the ## h2 stub heading intentionally
-        stays the full name, per PR #1964 reviewer feedback.
+        Only each group's own YAML title: (rendered as its own ### h3 by the SD generator,
+        see _GROUP_TITLE_OVERRIDES) is abbreviated per group — the shared ## h2 stub heading
+        intentionally stays the full name, per PR #1964 reviewer feedback.
         """
         exporter = self._make_exporter(tmp_path)
         result = exporter._build_per_field_doc_stubs(
@@ -2905,11 +2953,15 @@ class TestBuildPerFieldDocStubs:
                 {"group_id": "dsoa.plugins", "title": "", "is_resource": False},
             ]
         )
-        assert "## Dynatrace Snowflake Observability Agent (DSOA) debug\n" in result["doc/fields/dsoa_debug.md"]
-        assert "## Dynatrace Snowflake Observability Agent (DSOA) plugins\n" in result["doc/fields/dsoa_plugins.md"]
+        content = result["doc/fields/dsoa.md"]
+        assert content.count("## Dynatrace Snowflake Observability Agent (DSOA)\n") == 1, "one shared heading expected"
+        assert "<!-- semconv dsoa.debug -->" in content
+        assert "<!-- semconv dsoa.plugins -->" in content
 
     def test_multiple_groups_produce_multiple_files(self, tmp_path):
-        """Each non-snowflake group produces its own file; snowflake.* groups share one file."""
+        """Each non-consolidated group produces its own file; snowflake.* and dsoa.* groups
+        each share one consolidated file per domain.
+        """
         exporter = self._make_exporter(tmp_path)
         groups = [
             {"group_id": "anomaly", "title": "Anomaly"},
@@ -2919,9 +2971,10 @@ class TestBuildPerFieldDocStubs:
         result = exporter._build_per_field_doc_stubs(groups)
         assert len(result) == 3
         assert "doc/fields/anomaly.md" in result
-        assert "doc/fields/dsoa_debug.md" in result
+        assert "doc/fields/dsoa.md" in result
         assert "doc/fields/snowflake.md" in result
         assert "<!-- semconv snowflake.warehouse -->" in result["doc/fields/snowflake.md"]
+        assert "<!-- semconv dsoa.debug -->" in result["doc/fields/dsoa.md"]
 
     def test_stub_contains_dynatrace_internal_block(self, tmp_path):
         """Stub content includes the <!-- dynatrace_internal --> ownership block."""
