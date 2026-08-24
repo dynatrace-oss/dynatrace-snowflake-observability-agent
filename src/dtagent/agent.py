@@ -136,6 +136,8 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
 
         results: dict = {}
 
+        self._otel_manager.set_run_environment(self._configuration.get(key="deployment.environment", context="resource.attributes"))
+
         for source in sources:
             from dtagent.plugins import _get_plugin_class  # COMPILE_REMOVE
 
@@ -157,6 +159,9 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
                 #
                 # running the plugin
                 #
+                self._otel_manager.set_current_plugin(plugin_name)
+                self._logs.refresh_user_agent()
+                self._spans.refresh_user_agent()
 
                 if is_regular_mode(self._session):
                     self._session.query_tag = json.dumps(

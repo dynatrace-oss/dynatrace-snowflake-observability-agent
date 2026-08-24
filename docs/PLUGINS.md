@@ -885,6 +885,7 @@ plugins:
     is_disabled: false
     telemetry:
       - logs
+      - events
       - biz_events
 ```
 

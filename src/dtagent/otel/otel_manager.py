@@ -26,11 +26,29 @@
 #
 ##endregion COMPILE_REMOVE
 
+import re
 import requests
+from typing import Optional
 from dtagent.otel import _log_warning, USER_AGENT
 from dtagent.otel.ingest_warnings import IngestWarningCollector
 
 ##region ------------------------ OTEL base class---------------------------------
+
+_UNSAFE_CHARS_RE = re.compile(r"[\r\n\x00-\x1f]")
+
+
+def _sanitize_ua_segment(value: Optional[str]) -> Optional[str]:
+    """Strips control and CRLF characters from a User-Agent segment value.
+
+    Args:
+        value (Optional[str]): Raw segment value, may be None or empty.
+
+    Returns:
+        Optional[str]: Sanitized value, or None when blank after stripping.
+    """
+    if not value:
+        return None
+    return _UNSAFE_CHARS_RE.sub("", value).strip() or None
 
 
 class OtelManager:
@@ -40,6 +58,8 @@ class OtelManager:
     _consecutive_fail_count: int = 0
     _to_abort: bool = False
     _last_response: requests.Response
+    _run_environment: Optional[str] = None
+    _current_plugin: Optional[str] = None
 
     @staticmethod
     def set_max_fail_count(set_to: int = 10):
@@ -95,10 +115,47 @@ class OtelManager:
             LOG.error(error_message)
             raise RuntimeError(error_message)
 
-    @staticmethod
-    def get_dsoa_headers() -> dict:
-        """Returns headers required for DSOA to DT communication"""
-        return {"User-Agent": USER_AGENT, "X-Dynatrace-Attr": "dt.ingest.origin=snowflake-dsoa"}
+    def set_run_environment(self, deployment_environment: Optional[str]) -> None:
+        """Stores the deployment environment for inclusion in the User-Agent header.
+
+        Sets class-level state so the value is visible to all callers of get_dsoa_headers(),
+        including per-call senders in metrics and events that build headers fresh each request.
+
+        Args:
+            deployment_environment (Optional[str]): Value of core.deployment_environment from config.
+        """
+        OtelManager._run_environment = _sanitize_ua_segment(deployment_environment)
+
+    def set_current_plugin(self, plugin_name: Optional[str]) -> None:
+        """Stores the currently active plugin name for inclusion in the User-Agent header.
+
+        Sets class-level state so the value is visible to all callers of get_dsoa_headers(),
+        including per-call senders in metrics and events that build headers fresh each request.
+
+        Args:
+            plugin_name (Optional[str]): Name of the plugin about to execute.
+        """
+        OtelManager._current_plugin = _sanitize_ua_segment(plugin_name)
+
+    @classmethod
+    def get_dsoa_headers(cls) -> dict:
+        """Returns headers required for DSOA to DT communication.
+
+        Builds a dynamic User-Agent of the form ``dsoa/{version};env={env};plugin={plugin}``,
+        omitting segments that are not set. Falls back to the bare version string on any error
+        so UA construction never breaks ingestion. Class-level state means per-call senders
+        in metrics and events pick up changes automatically with no per-call modification.
+        """
+        try:
+            parts = [USER_AGENT]
+            if cls._run_environment:
+                parts.append(f"env={cls._run_environment}")
+            if cls._current_plugin:
+                parts.append(f"plugin={cls._current_plugin}")
+            user_agent = ";".join(parts)
+        except Exception:  # pylint: disable=broad-except  # noqa: BLE001 - never let UA construction break ingestion
+            user_agent = USER_AGENT
+        return {"User-Agent": user_agent, "X-Dynatrace-Attr": "dt.ingest.origin=snowflake-dsoa"}
 
 
 class CustomLoggingSession(requests.Session):
