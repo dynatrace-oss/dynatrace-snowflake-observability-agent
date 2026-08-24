@@ -5,6 +5,7 @@
 *.pyc
 __pycache__/
 .venv*
+.idea
 
 # === Configuration Files ===
 connection.json

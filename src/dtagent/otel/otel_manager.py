@@ -158,6 +158,15 @@ class OtelManager:
         return {"User-Agent": user_agent, "X-Dynatrace-Attr": "dt.ingest.origin=snowflake-dsoa"}
 
 
+class SessionUserAgentMixin:
+    """Mixin for signal classes that hold a requests.Session and an OtelManager."""
+
+    def refresh_user_agent(self) -> None:
+        """Updates the HTTP session headers with the current dynamic User-Agent."""
+        if self._session is not None:
+            self._session.headers.update(self._otel_manager.get_dsoa_headers())
+
+
 class CustomLoggingSession(requests.Session):
     """Session wrapper for logs and spans to capture responses when sending payload."""
 

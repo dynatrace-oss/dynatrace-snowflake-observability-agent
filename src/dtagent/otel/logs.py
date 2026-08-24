@@ -31,7 +31,7 @@ from opentelemetry._logs import SeverityNumber
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk._logs import LoggerProvider
 from dtagent.util import process_timestamps_for_telemetry
-from dtagent.otel.otel_manager import CustomLoggingSession, OtelManager
+from dtagent.otel.otel_manager import CustomLoggingSession, OtelManager, SessionUserAgentMixin
 
 ##endregion COMPILE_REMOVE
 
@@ -47,7 +47,7 @@ _SEVERITY_MAP = {
 }
 
 
-class Logs:
+class Logs(SessionUserAgentMixin):
     """Main Logs class for sending logs via Dynatrace OTLP Logs API.
 
     API Specifications:
@@ -118,16 +118,6 @@ class Logs:
             )
         )
         self._otel_logger = self._otel_logger_provider.get_logger(self.__get_logger_name())
-
-    def refresh_user_agent(self) -> None:
-        """Updates the HTTP session headers with the current dynamic User-Agent.
-
-        Note: because logs share a long-lived HTTP session across a full run, the ``plugin``
-        segment reflects the last plugin active before a batch flush rather than exact per-record
-        attribution.
-        """
-        if self._session is not None:
-            self._session.headers.update(self._otel_manager.get_dsoa_headers())
 
     def send_log(
         self,

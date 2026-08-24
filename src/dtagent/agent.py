@@ -159,6 +159,8 @@ class DynatraceSnowAgent(AbstractDynatraceSnowAgentConnector):
                 #
                 # running the plugin
                 #
+                self._logs.flush_logs()
+                self._spans.flush_traces()
                 self._otel_manager.set_current_plugin(plugin_name)
                 self._logs.refresh_user_agent()
                 self._spans.refresh_user_agent()

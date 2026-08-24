@@ -31,7 +31,7 @@ from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider, Tracer
 from opentelemetry.sdk.trace.id_generator import RandomIdGenerator
 from dtagent.otel import logs
-from dtagent.otel.otel_manager import CustomLoggingSession, OtelManager
+from dtagent.otel.otel_manager import CustomLoggingSession, OtelManager, SessionUserAgentMixin
 from dtagent.otel.ingest_warnings import AcquisitionProblemCollector
 
 ##endregion COMPILE_REMOVE
@@ -90,7 +90,7 @@ class ExistingIdGenerator(RandomIdGenerator):
         return trace_id
 
 
-class Spans:
+class Spans(SessionUserAgentMixin):
     """Main Spans class for sending traces via Dynatrace OTLP Traces API.
 
     API Specifications:
@@ -390,16 +390,6 @@ class Spans:
         OtelManager.verify_communication()
 
         return subspan_events_added + events_added, subspan_spans_cnt + spans_cnt, subspan_logs_cnt + logs_cnt
-
-    def refresh_user_agent(self) -> None:
-        """Updates the HTTP session headers with the current dynamic User-Agent.
-
-        Note: because spans share a long-lived HTTP session across a full run, the ``plugin``
-        segment reflects the last plugin active before a batch flush rather than exact per-record
-        attribution.
-        """
-        if self._session is not None:
-            self._session.headers.update(self._otel_manager.get_dsoa_headers())
 
     def flush_traces(self) -> bool:
         """Force flushes the cached traces."""
