@@ -371,13 +371,13 @@ dql_queries:
     context:
       - logs
   - query_string: |
-      fetch bizevents
+      fetch events
       | filter db.system == "snowflake"
       | filter dsoa.run.plugin == "users"
       | sort timestamp desc
       | limit 20
-    description: Fetch recent DSOA self-monitoring business events for the users plugin.
-    description_copilot: Search for self-monitoring events from the users Snowflake agent plugin.
+    description: Fetch recent DSOA users lifecycle events.
+    description_copilot: Search for recent Snowflake users lifecycle events from the users plugin.
     context:
       - events
   - query_string: |
