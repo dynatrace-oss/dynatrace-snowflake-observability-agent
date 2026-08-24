@@ -102,7 +102,7 @@ class NoOpTelemetry:
 
             LOG.warning(f"Method '{name}' is not implemented in NoOpTelemetry.")
 
-        if name in ("send_log", "flush_logs", "shutdown_logger", "shutdown_tracer"):
+        if name in ("send_log", "flush_logs", "shutdown_logger", "shutdown_tracer", "refresh_user_agent"):
             return __void_method
 
         if name in ("flush_events", "send_events", "report_via_api", "flush_metrics"):

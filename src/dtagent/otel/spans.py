@@ -31,7 +31,7 @@ from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider, Tracer
 from opentelemetry.sdk.trace.id_generator import RandomIdGenerator
 from dtagent.otel import logs
-from dtagent.otel.otel_manager import CustomLoggingSession, OtelManager
+from dtagent.otel.otel_manager import CustomLoggingSession, OtelManager, SessionUserAgentMixin
 from dtagent.otel.ingest_warnings import AcquisitionProblemCollector
 
 ##endregion COMPILE_REMOVE
@@ -90,7 +90,7 @@ class ExistingIdGenerator(RandomIdGenerator):
         return trace_id
 
 
-class Spans:
+class Spans(SessionUserAgentMixin):
     """Main Spans class for sending traces via Dynatrace OTLP Traces API.
 
     API Specifications:
@@ -112,13 +112,20 @@ class Spans:
 
     ENDPOINT_PATH = "/api/v2/otlp/v1/traces"
 
-    def __init__(self, resource: Resource, configuration: Configuration):
-        """Initializes tracers."""
+    def __init__(self, resource: Resource, configuration: Configuration, otel_manager: OtelManager):
+        """Initializes tracers.
 
+        Args:
+            resource (Resource):           OTel resource carrying common attributes.
+            configuration (Configuration): Agent configuration.
+            otel_manager (OtelManager):    Shared OtelManager instance used to build dynamic headers.
+        """
         self._otel_tracer: Optional[Tracer] = None
         self._otel_id_generator: Optional[ExistingIdGenerator] = None
         self._otel_tracer_provider: Optional[TracerProvider] = None
         self._configuration = configuration
+        self._otel_manager = otel_manager
+        self._session: Optional[CustomLoggingSession] = None
 
         self._setup_tracer(resource)
 
@@ -135,17 +142,20 @@ class Spans:
             OTLPSpanExporter,
         )
 
+        otel_manager = self._otel_manager
+
         class CustomUserAgentOTLPSpanExporter(OTLPSpanExporter):
             """Custom OTLP Span Exporter that sets a custom User-Agent header."""
 
             def __init__(self, *args, **kwargs):
                 super().__init__(*args, **kwargs)
-                self._session.headers.update(OtelManager.get_dsoa_headers())
+                self._session.headers.update(otel_manager.get_dsoa_headers())
 
+        self._session = CustomLoggingSession()
         exporter = CustomUserAgentOTLPSpanExporter(
             endpoint=f'{self._configuration.get("spans.http")}',
             headers={"Authorization": f'Api-Token {self._configuration.get("dt.token")}'},
-            session=CustomLoggingSession(),
+            session=self._session,
         )
 
         self._otel_id_generator = ExistingIdGenerator()

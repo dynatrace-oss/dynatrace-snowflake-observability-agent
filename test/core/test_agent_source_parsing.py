@@ -92,7 +92,9 @@ class TestAgentSourceParsing:
         agent.telemetry_allowed = {"logs", "spans", "metrics", "events", "biz_events"}
 
         from dtagent.otel import NO_OP_TELEMETRY
+        from dtagent.otel.otel_manager import OtelManager
 
+        agent._otel_manager = OtelManager()
         agent._logs = NO_OP_TELEMETRY
         agent._spans = NO_OP_TELEMETRY
         agent._metrics = NO_OP_TELEMETRY
