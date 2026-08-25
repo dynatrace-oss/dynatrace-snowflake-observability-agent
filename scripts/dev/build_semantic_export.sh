@@ -60,6 +60,12 @@
 #                       from other vendor namespaces are excluded). Implies the same
 #                       SD-metadata export as --generate-docs. Requires Docker and a full SD
 #                       repo checkout. Use --sd-repo to point to a different location.
+#                       --check is read-only with respect to doc/: the SD-metadata export it
+#                       runs internally writes blank doc/ stubs (required for the sanity
+#                       checker to have something to validate), but the SD repo's doc/ tree
+#                       is snapshotted beforehand and restored to its prior state afterward —
+#                       so running --check after --generate-docs never discards previously
+#                       rendered documentation content.
 #   --help              Show this help message
 
 set -euo pipefail
@@ -159,15 +165,17 @@ generate_docs() {
 
     # Step 1: export YAML + SD metadata (OWNERS, definitions, doc stubs) into the SD repo
     log_info "--generate-docs: exporting YAML + SD metadata into SD repo at ${SD_REPO}"
-    cd "${PROJECT_ROOT}"
+    pushd "${PROJECT_ROOT}" > /dev/null
     if ! PYTHONPATH="${PROJECT_ROOT}/src" "${VENV_PYTHON}" "${EXPORT_SCRIPT}" \
         --output "${SD_REPO}/source" \
         --schema "${SCHEMA_PATH}" \
         --sd-metadata \
         "${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}"; then
+        popd > /dev/null
         log_error "--generate-docs: export into SD repo failed"
         return 1
     fi
+    popd > /dev/null
 
     # Step 2: resolve generator image version and SD version from SD repo metadata
     local generator_version sd_version
@@ -212,7 +220,7 @@ generate_docs() {
     #   doc/fields/dsoa_*.md        — DSOA-specific field groups
     #   doc/fields/observed_timestamp.md
     log_info "--generate-docs: restoring non-DSOA doc files touched by the generator"
-    cd "${SD_REPO}"
+    pushd "${SD_REPO}" > /dev/null
     # Collect all doc/ changes, then revert anything that isn't DSOA-owned
     git diff HEAD --name-only -- doc/ | while IFS= read -r f; do
         # Keep DSOA-owned paths; revert everything else
@@ -226,7 +234,7 @@ generate_docs() {
             git checkout HEAD -- "${f}" 2>/dev/null || true
         fi
     done
-    cd "${PROJECT_ROOT}"
+    popd > /dev/null
 
     log_success "--generate-docs: SD repo at ${SD_REPO} is ready."
     log_info "  doc/model/snowflake/ and doc/fields/ stubs generated — commit to SD PR #1903"
@@ -249,19 +257,45 @@ run_sanity_checks() {
         return 1
     fi
 
+    # --check is a read-only diagnostic: it must never leave the SD repo's doc/ tree in a
+    # worse state than it found it. Step 1 below re-runs export_semantics.py --sd-metadata,
+    # which writes blank doc/ stubs (bare <!-- semconv id --><!-- end_semconv --> markers) —
+    # this is required so the sanity checker has something to validate, but it silently wipes
+    # out any previously-rendered content (attribute tables, DQL examples) written by a prior
+    # --generate-docs run. Snapshot doc/ now and restore it unconditionally on return (whether
+    # --check succeeds, fails, or exits early) so callers never have to notice this happened.
+    local doc_backup
+    doc_backup="$(mktemp -d)/doc"
+    if [[ -d "${SD_REPO}/doc" ]]; then
+        cp -R "${SD_REPO}/doc" "${doc_backup}"
+    fi
+    # Use an inline trap command (not a named function called via trap) so the RETURN
+    # trap runs in the same call frame and reliably sees this function's local variables
+    # under `set -u` — a separately-defined function invoked via `trap fn RETURN` executes
+    # in its own frame and can hit "unbound variable" on locals declared in the caller.
+    # The trap body clears itself (`trap - RETURN`) as its last action — a RETURN trap is
+    # NOT auto-unregistered after firing once; left in place it re-fires on every
+    # subsequent function return for the rest of the script (hitting the same
+    # "unbound variable" error once doc_backup is out of scope) unless explicitly cleared.
+    trap 'if [[ -d "${doc_backup}" ]]; then rm -rf "${SD_REPO}/doc"; cp -R "${doc_backup}" "${SD_REPO}/doc"; rm -rf "$(dirname "${doc_backup}")"; fi; trap - RETURN' RETURN
+
     # Step 1: export YAML + SD metadata (OWNERS, definitions, doc stubs) into the SD repo.
     # The sanity checks compare source/ YAML against doc/ Markdown, so the metadata and
-    # doc stubs must be present — this mirrors the --generate-docs export step.
+    # doc stubs must be present — this mirrors the --generate-docs export step. (doc/ is
+    # restored to its pre-check state on return; see comment above.)
     log_info "--check: exporting YAML + SD metadata into SD repo at ${SD_REPO}"
-    cd "${PROJECT_ROOT}"
+    pushd "${PROJECT_ROOT}" > /dev/null
     if ! PYTHONPATH="${PROJECT_ROOT}/src" "${VENV_PYTHON}" "${EXPORT_SCRIPT}" \
         --output "${SD_REPO}/source" \
         --schema "${SCHEMA_PATH}" \
         --sd-metadata \
         "${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}"; then
+        popd > /dev/null
         log_error "--check: export into SD repo failed"
         return 1
     fi
+    popd > /dev/null
+
 
     # Step 2: resolve generator image version and SD version from SD repo metadata
     local generator_version sd_version
@@ -404,14 +438,16 @@ main() {
 
     # Run export
     log_info "Running export_semantics.py..."
-    cd "${PROJECT_ROOT}"
+    pushd "${PROJECT_ROOT}" > /dev/null
     if ! PYTHONPATH="${PROJECT_ROOT}/src" "${VENV_PYTHON}" "${EXPORT_SCRIPT}" \
         --output "${OUTPUT_DIR}" \
         --schema "${SCHEMA_PATH}" \
         "${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}"; then
+        popd > /dev/null
         log_error "Export script failed"
         return 1
     fi
+    popd > /dev/null
 
     log_success "Semantic dictionary export complete"
     log_info "Output: ${OUTPUT_DIR}"

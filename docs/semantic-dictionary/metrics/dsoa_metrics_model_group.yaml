@@ -1,4 +1,0 @@
-model_group:
-  id: dsoa.metrics
-  title: DSOA Snowflake Metrics
-  brief: Metrics collected by the DSOA from Snowflake ACCOUNT_USAGE views.

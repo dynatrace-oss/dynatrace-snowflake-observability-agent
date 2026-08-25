@@ -1,8 +1,8 @@
 groups:
   - id: snowflake.account
     type: attribute_group
-    title: Snowflake Account signal
-    brief: Signal-level fields for Snowflake Account telemetry.
+    title: Snowflake account signal fields
+    brief: Signal-level fields for Snowflake account telemetry.
     attributes:
       - id: snowflake.account.locator
         display_name: 'Snowflake Account Locator'
@@ -24,8 +24,8 @@ groups:
         examples: [ 'US_EAST_1' ]
   - id: snowflake.budget
     type: attribute_group
-    title: Snowflake Budget signal
-    brief: Signal-level fields for Snowflake Budget telemetry.
+    title: Snowflake budget signal fields
+    brief: Signal-level fields for Snowflake budget telemetry.
     attributes:
       - id: snowflake.budget.created_on
         display_name: 'Snowflake Budget Created On'
@@ -67,8 +67,8 @@ groups:
         note: Array of resource names (databases, warehouses) in this budget group, stored as string[] in Grail.
   - id: snowflake.cluster
     type: attribute_group
-    title: Snowflake Cluster signal
-    brief: Signal-level fields for Snowflake Cluster telemetry.
+    title: Snowflake cluster signal fields
+    brief: Signal-level fields for Snowflake cluster telemetry.
     attributes:
       - id: snowflake.cluster_number
         display_name: 'Snowflake Cluster Number'
@@ -78,8 +78,8 @@ groups:
         examples: [ 1 ]
   - id: snowflake.copy
     type: attribute_group
-    title: Snowflake Copy signal
-    brief: Signal-level fields for Snowflake Copy telemetry.
+    title: Snowflake copy signal fields
+    brief: Signal-level fields for Snowflake copy telemetry.
     attributes:
       - id: snowflake.copy.errors.limit
         display_name: 'Snowflake Copy Errors Limit'
@@ -154,8 +154,8 @@ groups:
         examples: [ 'LOADED' ]
   - id: snowflake.cost_attribution
     type: attribute_group
-    title: Snowflake Cost Attribution signal
-    brief: Signal-level fields for Snowflake Cost Attribution telemetry.
+    title: Snowflake cost attribution signal fields
+    brief: Signal-level fields for Snowflake cost attribution telemetry.
     attributes:
       - id: snowflake.cost_attribution.period_end
         display_name: 'Snowflake Cost Attribution Period End'
@@ -171,8 +171,8 @@ groups:
         examples: [ 1730841067000000000 ]
   - id: snowflake.database
     type: attribute_group
-    title: Snowflake Database signal
-    brief: Signal-level fields for Snowflake Database telemetry.
+    title: Snowflake database signal fields
+    brief: Signal-level fields for Snowflake database telemetry.
     attributes:
       - id: snowflake.database.id
         display_name: 'Snowflake Database ID'
@@ -183,8 +183,8 @@ groups:
         note: ACCOUNT_USAGE.DATABASES supplies related fields (name, owner, owner_role_type, type, is_transient, lifecycle, retention_time, comment) but these should be populated by a future inventory plugin, not query_history (≈180-min latency + cost). In query_history, snowflake.database.id stays a foreign key only.
   - id: snowflake.entity
     type: attribute_group
-    title: Snowflake Entity signal
-    brief: Signal-level fields for Snowflake Entity telemetry.
+    title: Snowflake entity signal fields
+    brief: Signal-level fields for Snowflake entity telemetry.
     attributes:
       - id: snowflake.entity.details
         display_name: 'Snowflake Entity Details'
@@ -212,8 +212,8 @@ groups:
         examples: [ 'table' ]
   - id: snowflake.error
     type: attribute_group
-    title: Snowflake Error signal
-    brief: Signal-level fields for Snowflake Error telemetry.
+    title: Snowflake error signal fields
+    brief: Signal-level fields for Snowflake error telemetry.
     attributes:
       - id: snowflake.error.code
         display_name: 'Snowflake Error Code'
@@ -229,8 +229,8 @@ groups:
         examples: [ 'Syntax error in SQL statement' ]
   - id: snowflake.event
     type: attribute_group
-    title: Snowflake Event signal
-    brief: Signal-level fields for Snowflake Event telemetry.
+    title: Snowflake event signal fields
+    brief: Signal-level fields for Snowflake event telemetry.
     attributes:
       - id: snowflake.event.type
         display_name: 'Snowflake Event Type'
@@ -240,8 +240,8 @@ groups:
         examples: [ 'snowflake.table.update' ]
   - id: snowflake.grant
     type: attribute_group
-    title: Snowflake Grant signal
-    brief: Signal-level fields for Snowflake Grant telemetry.
+    title: Snowflake grant signal fields
+    brief: Signal-level fields for Snowflake grant telemetry.
     attributes:
       - id: snowflake.grant.by
         display_name: 'Snowflake Grant By'
@@ -293,8 +293,8 @@ groups:
         examples: [ 'SHARE' ]
   - id: snowflake.object
     type: attribute_group
-    title: Snowflake Object signal
-    brief: Signal-level fields for Snowflake Object telemetry.
+    title: Snowflake object signal fields
+    brief: Signal-level fields for Snowflake object telemetry.
     attributes:
       - id: snowflake.object.ddl.modified
         display_name: 'Snowflake Object DDL Modified'
@@ -382,31 +382,31 @@ groups:
         examples: [ 'Table' ]
   - id: snowflake.org
     type: attribute_group
-    title: Snowflake Org signal
-    brief: Signal-level fields for Snowflake Org telemetry.
+    title: Snowflake organization signal fields
+    brief: Signal-level fields for Snowflake organization telemetry.
     attributes:
       - id: snowflake.org.billing.contract_number
-        display_name: 'Snowflake Org Billing Contract Number'
+        display_name: 'Snowflake Organization Billing Contract Number'
         type: string
         stability: experimental
         brief: The contract number associated with the Snowflake billing balance.
         examples: [ 'CONTRACT-001' ]
       - id: snowflake.org.billing.currency
-        display_name: 'Snowflake Org Billing Currency'
+        display_name: 'Snowflake Organization Billing Currency'
         type: string
         stability: experimental
         brief: The currency in which billing usage amounts are denominated.
         examples: [ 'USD' ]
       - id: snowflake.org.name
-        display_name: 'Snowflake Org Name'
+        display_name: 'Snowflake Organization Name'
         type: string
         stability: stable
         brief: The name of the Snowflake organization.
         examples: [ 'MYORG' ]
   - id: snowflake.pipe
     type: attribute_group
-    title: Snowflake Pipe signal
-    brief: Signal-level fields for Snowflake Pipe telemetry.
+    title: Snowflake pipe signal fields
+    brief: Signal-level fields for Snowflake pipe telemetry.
     attributes:
       - id: snowflake.pipe.catalog
         display_name: 'Snowflake Pipe Catalog'
@@ -508,8 +508,8 @@ groups:
         examples: [ '2025-03-12 08:00:00.000 Z' ]
   - id: snowflake.query
     type: attribute_group
-    title: Snowflake Query signal
-    brief: Signal-level fields for Snowflake Query telemetry.
+    title: Snowflake query signal fields
+    brief: Signal-level fields for Snowflake query telemetry.
     attributes:
       - id: snowflake.query.accel_est.estimated_query_times
         display_name: 'Snowflake Query Accel Est Estimated Query Times'
@@ -727,8 +727,8 @@ groups:
         examples: [ true ]
   - id: snowflake.release
     type: attribute_group
-    title: Snowflake Release signal
-    brief: Signal-level fields for Snowflake Release telemetry.
+    title: Snowflake release signal fields
+    brief: Signal-level fields for Snowflake release telemetry.
     attributes:
       - id: snowflake.release_version
         display_name: 'Snowflake Release Version'
@@ -738,7 +738,7 @@ groups:
         examples: [ '5.0' ]
   - id: snowflake.resource_monitor
     type: attribute_group
-    title: Snowflake Resource Monitor signal
+    title: Snowflake Resource Monitor signal fields
     brief: Signal-level fields for Snowflake Resource Monitor telemetry.
     attributes:
       - id: snowflake.resource_monitor.created_on
@@ -820,8 +820,8 @@ groups:
           - ['COMPUTE_WH']
   - id: snowflake.role
     type: attribute_group
-    title: Snowflake Role signal
-    brief: Signal-level fields for Snowflake Role telemetry.
+    title: Snowflake role signal fields
+    brief: Signal-level fields for Snowflake role telemetry.
     attributes:
       - id: snowflake.role.name
         display_name: 'Snowflake Role Name'
@@ -837,8 +837,8 @@ groups:
         examples: [ 'PRIMARY' ]
   - id: snowflake.schema
     type: attribute_group
-    title: Snowflake Schema signal
-    brief: Signal-level fields for Snowflake Schema telemetry.
+    title: Snowflake schema signal fields
+    brief: Signal-level fields for Snowflake schema telemetry.
     attributes:
       - id: snowflake.schema.id
         display_name: 'Snowflake Schema ID'
@@ -854,8 +854,8 @@ groups:
         examples: [ 'public' ]
   - id: snowflake.secondary
     type: attribute_group
-    title: Snowflake Secondary signal
-    brief: Signal-level fields for Snowflake Secondary telemetry.
+    title: Snowflake secondary signal fields
+    brief: Signal-level fields for Snowflake secondary telemetry.
     attributes:
       - id: snowflake.secondary_role_stats
         display_name: 'Snowflake Secondary Role Stats'
@@ -865,8 +865,8 @@ groups:
         examples: [ 'role_stat1' ]
   - id: snowflake.service
     type: attribute_group
-    title: Snowflake Service signal
-    brief: Signal-level fields for Snowflake Service telemetry.
+    title: Snowflake service signal fields
+    brief: Signal-level fields for Snowflake service telemetry.
     attributes:
       - id: snowflake.service.entity_id
         display_name: 'Snowflake Service Entity ID'
@@ -923,8 +923,8 @@ groups:
         examples: [ 'AUTO_CLUSTERING' ]
   - id: snowflake.session
     type: attribute_group
-    title: Snowflake Session signal
-    brief: Signal-level fields for Snowflake Session telemetry.
+    title: Snowflake session signal fields
+    brief: Signal-level fields for Snowflake session telemetry.
     attributes:
       - id: snowflake.session.closed_reason
         display_name: 'Snowflake Session Closed Reason'
@@ -947,8 +947,8 @@ groups:
         examples: [ 1633046400000000000 ]
   - id: snowflake.share
     type: attribute_group
-    title: Snowflake Share signal
-    brief: Signal-level fields for Snowflake Share telemetry.
+    title: Snowflake share signal fields
+    brief: Signal-level fields for Snowflake share telemetry.
     attributes:
       - id: snowflake.share.created_on
         display_name: 'Snowflake Share Created On'
@@ -1012,8 +1012,8 @@ groups:
         examples: [ 'UNAVAILABLE' ]
   - id: snowflake.status
     type: attribute_group
-    title: Snowflake Status signal
-    brief: Signal-level fields for Snowflake Status telemetry.
+    title: Snowflake status signal fields
+    brief: Signal-level fields for Snowflake status telemetry.
     attributes:
       - id: snowflake.status.code
         display_name: 'Snowflake Status Code'
@@ -1037,8 +1037,8 @@ groups:
         examples: [ 'Login successful' ]
   - id: snowflake.table
     type: attribute_group
-    title: Snowflake Table signal
-    brief: Signal-level fields for Snowflake Table telemetry.
+    title: Snowflake table signal fields
+    brief: Signal-level fields for Snowflake table telemetry.
     attributes:
       - id: snowflake.table.clustering_key
         display_name: 'Snowflake Table Clustering Key'
@@ -1367,8 +1367,8 @@ groups:
         examples: [ 1731256700000000000 ]
   - id: snowflake.table.dynamic.graph
     type: attribute_group
-    title: Snowflake Table Dynamic Graph signal
-    brief: Signal-level fields for Snowflake Table Dynamic Graph telemetry.
+    title: Snowflake table dynamic graph signal fields
+    brief: Signal-level fields for Snowflake table dynamic graph telemetry.
     attributes:
       - id: snowflake.table.dynamic.graph.alter_trigger
         display_name: 'Snowflake Table Dynamic Graph Alter Trigger'
@@ -1400,8 +1400,8 @@ groups:
         examples: [ 1733011200000000000 ]
   - id: snowflake.task
     type: attribute_group
-    title: Snowflake Task signal
-    brief: Signal-level fields for Snowflake Task telemetry.
+    title: Snowflake task signal fields
+    brief: Signal-level fields for Snowflake task telemetry.
     attributes:
       - id: snowflake.task.condition
         display_name: 'Snowflake Task Condition'
@@ -1562,7 +1562,7 @@ groups:
         examples: [ 1633046400000000000 ]
   - id: snowflake.trust_center
     type: attribute_group
-    title: Snowflake Trust Center signal
+    title: Snowflake Trust Center signal fields
     brief: Signal-level fields for Snowflake Trust Center telemetry.
     attributes:
       - id: snowflake.trust_center.scanner.description
@@ -1603,8 +1603,8 @@ groups:
         examples: [ 'CIS Benchmarks' ]
   - id: snowflake.user
     type: attribute_group
-    title: Snowflake User signal
-    brief: Signal-level fields for Snowflake User telemetry.
+    title: Snowflake user signal fields
+    brief: Signal-level fields for Snowflake user telemetry.
     attributes:
       - id: snowflake.user.bypass_mfa_until
         display_name: 'Snowflake User Bypass Mfa Until'
@@ -1876,8 +1876,8 @@ groups:
         examples: [ 'PERSON' ]
   - id: snowflake.warehouse
     type: attribute_group
-    title: Snowflake Warehouse signal
-    brief: Signal-level fields for Snowflake Warehouse telemetry.
+    title: Snowflake warehouse signal fields
+    brief: Signal-level fields for Snowflake warehouse telemetry.
     attributes:
       - id: snowflake.warehouse.cluster.number
         display_name: 'Snowflake Warehouse Cluster Number'

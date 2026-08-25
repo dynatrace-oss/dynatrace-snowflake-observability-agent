@@ -5,13 +5,13 @@ groups:
     brief: Signal-level fields for Anomaly telemetry.
     attributes:
       - id: anomaly.detector
-        display_name: Anomaly Detector
+        display_name: 'Anomaly Detector'
         type: string
         stability: experimental
         brief: Identifies the DSOA workflow or plugin that detected the anomaly. Values follow the ``dsoa.<workflow_name>`` convention (e.g., ``dsoa.data_volume_anomaly``) except for the failed-login detector which uses ``dsoa.failed_login_detection``.
         examples: [ 'dsoa.data_volume_anomaly' ]
       - id: anomaly.direction
-        display_name: Anomaly Direction
+        display_name: 'Anomaly Direction'
         type:
           allow_custom_values: false
           members:
@@ -25,7 +25,7 @@ groups:
         brief: 'Direction of the anomaly relative to the Davis AI baseline: ``above`` when the metric exceeded the upper bound, ``below`` when it dropped under the lower bound.'
         examples: [ 'above' ]
       - id: anomaly.subject
-        display_name: Anomaly Subject
+        display_name: 'Anomaly Subject'
         type:
           allow_custom_values: true
           members:

@@ -46,7 +46,7 @@ model:
       brief: Number of partitions scanned by the query acceleration service.
       title: Query Acceleration Partitions Scanned
       unit: count
-      note: "Original unit: partition."
+      note: 'Original unit: partition.'
       attributes:
         - ref: db.collection.name
         - ref: db.operation.name
@@ -65,7 +65,7 @@ model:
       instrument: gauge
       brief: Upper limit scale factor that a query would have benefited from.
       title: Query Acceleration Upper Limit Scale Factor
-      unit: "1"
+      unit: '1'
       attributes:
         - ref: db.collection.name
         - ref: db.operation.name
@@ -105,7 +105,7 @@ model:
       brief: Compute credits attributed to this query based on weighted resource consumption. Excludes warehouse idle time. NULL for queries within the ~8h QAH latency window.
       title: Query Attributed Compute Credits
       unit: count
-      note: "Original unit: credit."
+      note: 'Original unit: credit.'
       attributes:
         - ref: db.collection.name
         - ref: db.operation.name
@@ -125,7 +125,7 @@ model:
       brief: Number of credits used for cloud services.
       title: Cloud Services Credits Used
       unit: count
-      note: "Original unit: credit."
+      note: 'Original unit: credit.'
       attributes:
         - ref: db.collection.name
         - ref: db.operation.name
@@ -145,7 +145,7 @@ model:
       brief: Credits consumed by Query Acceleration Service for this query. NULL for queries within the ~8h QAH latency window.
       title: Query Acceleration Credits
       unit: count
-      note: "Original unit: credit."
+      note: 'Original unit: credit.'
       attributes:
         - ref: db.collection.name
         - ref: db.operation.name
@@ -412,7 +412,7 @@ model:
       brief: The total number of rows that this query received from all calls to all remote services.
       title: External Function Total Received Rows
       unit: count
-      note: "Original unit: row."
+      note: 'Original unit: row.'
       attributes:
         - ref: db.collection.name
         - ref: db.operation.name
@@ -432,7 +432,7 @@ model:
       brief: The total number of rows that this query sent in all calls to all remote services.
       title: External Function Total Sent Rows
       unit: count
-      note: "Original unit: row."
+      note: 'Original unit: row.'
       attributes:
         - ref: db.collection.name
         - ref: db.operation.name
@@ -451,7 +451,7 @@ model:
       instrument: gauge
       brief: The approximate percentage of active compute resources in the warehouse for this query execution.
       title: Query Load Percent
-      unit: "%"
+      unit: '%'
       attributes:
         - ref: db.collection.name
         - ref: db.operation.name
@@ -471,7 +471,7 @@ model:
       brief: Number of micro-partitions scanned.
       title: Partitions Scanned
       unit: count
-      note: "Original unit: partition."
+      note: 'Original unit: partition.'
       attributes:
         - ref: db.collection.name
         - ref: db.operation.name
@@ -491,7 +491,7 @@ model:
       brief: Total micro-partitions of all tables included in this query.
       title: Partitions Total
       unit: count
-      note: "Original unit: partition."
+      note: 'Original unit: partition.'
       attributes:
         - ref: db.collection.name
         - ref: db.operation.name
@@ -511,7 +511,7 @@ model:
       brief: Number of rows unloaded during data export.
       title: Rows Unloaded
       unit: count
-      note: "Original unit: row."
+      note: 'Original unit: row.'
       attributes:
         - ref: db.collection.name
         - ref: db.operation.name
@@ -531,7 +531,7 @@ model:
       brief: Number of rows updated by the query.
       title: Rows Updated
       unit: count
-      note: "Original unit: row."
+      note: 'Original unit: row.'
       attributes:
         - ref: db.collection.name
         - ref: db.operation.name

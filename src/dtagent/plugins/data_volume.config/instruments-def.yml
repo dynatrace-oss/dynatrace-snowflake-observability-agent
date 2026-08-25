@@ -126,13 +126,13 @@ dql_queries:
     context:
       - metrics
   - query_string: |
-      fetch bizevents
+      fetch events
       | filter db.system == "snowflake"
       | filter dsoa.run.plugin == "data_volume"
       | sort timestamp desc
       | limit 20
-    description: Fetch recent DSOA self-monitoring business events for the data_volume plugin.
-    description_copilot: Search for self-monitoring events from the data_volume Snowflake agent plugin.
+    description: Fetch recent DSOA data_volume lifecycle events.
+    description_copilot: Search for recent Snowflake data_volume lifecycle events from the data_volume plugin.
     context:
       - events
   - query_string: |

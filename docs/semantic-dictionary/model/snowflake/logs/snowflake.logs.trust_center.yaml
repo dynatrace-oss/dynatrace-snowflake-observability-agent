@@ -1,9 +1,9 @@
 model:
   id: snowflake.logs.trust_center
-  title: Snowflake trust center log records
+  title: Snowflake Trust Center log records
   brief: Log records emitted by the DSOA trust_center plugin.
   model_group_id: snowflake.logs
-  data_object: log
+  data_object: logs
   interfaces: [ i.dsoa_resource ]
   dql_queries:
     - query_string: |
@@ -35,10 +35,9 @@ model:
   groups:
     - id: snowflake.logs.trust_center.fields
       type: attribute_group
-      title: Trust center log record fields
+      title: Trust Center log record fields
       brief: Attribute fields for Trust Center log records.
       attributes:
-        - ref: event.kind
         - ref: snowflake.entity.details
         - ref: snowflake.entity.id
         - ref: snowflake.entity.name

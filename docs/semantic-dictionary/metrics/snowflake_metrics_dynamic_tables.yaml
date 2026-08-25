@@ -32,7 +32,7 @@ model:
       brief: The number of partitions added during the refresh.
       title: Partitions Added
       unit: count
-      note: "Original unit: partition."
+      note: 'Original unit: partition.'
       attributes:
         - ref: db.collection.name
         - ref: snowflake.table.full_name
@@ -43,7 +43,7 @@ model:
       brief: The number of partitions removed during the refresh.
       title: Partitions Removed
       unit: count
-      note: "Original unit: partition."
+      note: 'Original unit: partition.'
       attributes:
         - ref: db.collection.name
         - ref: snowflake.table.full_name
@@ -54,7 +54,7 @@ model:
       brief: The number of rows copied during the refresh.
       title: Rows Copied
       unit: count
-      note: "Original unit: row."
+      note: 'Original unit: row.'
       attributes:
         - ref: db.collection.name
         - ref: snowflake.table.full_name
@@ -65,7 +65,7 @@ model:
       brief: The number of rows deleted during the refresh.
       title: Rows Deleted
       unit: count
-      note: "Original unit: row."
+      note: 'Original unit: row.'
       attributes:
         - ref: db.collection.name
         - ref: snowflake.table.full_name
@@ -76,7 +76,7 @@ model:
       brief: The number of rows inserted during the refresh.
       title: Rows Inserted
       unit: count
-      note: "Original unit: row."
+      note: 'Original unit: row.'
       attributes:
         - ref: db.collection.name
         - ref: snowflake.table.full_name

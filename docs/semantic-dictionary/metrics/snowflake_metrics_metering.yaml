@@ -27,7 +27,7 @@ model:
       brief: Cloud services credits consumed by the service in the metering window.
       title: Snowflake Cloud Services Credits Used
       unit: count
-      note: "Original unit: credit."
+      note: 'Original unit: credit.'
       attributes:
         - ref: snowflake.service.name
         - ref: snowflake.service.type
@@ -38,7 +38,7 @@ model:
       brief: Compute credits consumed by the service in the metering window.
       title: Snowflake Compute Credits Used
       unit: count
-      note: "Original unit: credit."
+      note: 'Original unit: credit.'
       attributes:
         - ref: snowflake.service.name
         - ref: snowflake.service.type
@@ -49,7 +49,7 @@ model:
       brief: Number of files processed by the service in the metering window.
       title: Files Processed
       unit: count
-      note: "Original unit: file."
+      note: 'Original unit: file.'
       attributes:
         - ref: snowflake.service.name
         - ref: snowflake.service.type
@@ -60,7 +60,7 @@ model:
       brief: Number of rows processed by the service in the metering window.
       title: Rows Processed
       unit: count
-      note: "Original unit: row."
+      note: 'Original unit: row.'
       attributes:
         - ref: snowflake.service.name
         - ref: snowflake.service.type

@@ -1,9 +1,9 @@
 model:
   id: snowflake.logs.resource_monitors
-  title: Snowflake resource monitors log records
+  title: Snowflake Resource Monitors log records
   brief: Log records emitted by the DSOA resource_monitors plugin.
   model_group_id: snowflake.logs
-  data_object: log
+  data_object: logs
   interfaces: [ i.dsoa_resource ]
   dql_queries:
     - query_string: |
@@ -36,7 +36,7 @@ model:
   groups:
     - id: snowflake.logs.resource_monitors.fields
       type: attribute_group
-      title: Resource monitors log record fields
+      title: Resource Monitors log record fields
       brief: Attribute fields for Resource Monitors log records.
       attributes:
         - ref: snowflake.resource_monitor.frequency

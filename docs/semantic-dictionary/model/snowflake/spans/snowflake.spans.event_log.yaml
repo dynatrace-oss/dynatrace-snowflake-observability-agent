@@ -3,7 +3,7 @@ model:
   title: Snowflake event log spans
   brief: Span records emitted by the DSOA event_log plugin.
   model_group_id: snowflake.spans
-  data_object: span
+  data_object: spans
   interfaces: [ i.dsoa_resource ]
   dql_queries:
     - query_string: |

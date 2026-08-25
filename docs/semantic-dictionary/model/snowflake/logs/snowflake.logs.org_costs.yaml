@@ -1,9 +1,9 @@
 model:
   id: snowflake.logs.org_costs
-  title: Snowflake org costs log records
+  title: Snowflake organization costs log records
   brief: Log records emitted by the DSOA org_costs plugin.
   model_group_id: snowflake.logs
-  data_object: log
+  data_object: logs
   interfaces: [ i.dsoa_resource ]
   dql_queries:
     - query_string: |
@@ -37,7 +37,7 @@ model:
   groups:
     - id: snowflake.logs.org_costs.fields
       type: attribute_group
-      title: Org costs log record fields
-      brief: Attribute fields for Org Costs log records.
+      title: Organization costs log record fields
+      brief: Attribute fields for Organization Costs log records.
       attributes:
         - ref: snowflake.org.billing.contract_number

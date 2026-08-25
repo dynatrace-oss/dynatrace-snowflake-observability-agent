@@ -194,13 +194,29 @@ TITLE_PROPER_NOUNS = (
 #: Word-level substitutions applied in _make_title, _make_display_name, and _plugin_label.
 _WORD_SUBS: Dict[str, str] = {"org": "organization"}
 
-#: Override map for doc/fields/ stub h2 headings keyed by group_id (ns_key after
-#: stripping any .resource suffix).  Used when _make_title produces an inadequate
-#: heading — e.g. the top-level "dsoa" group needs the full product name.
+#: Override map for doc/fields/ stub ## h2 headings (the hand-authored top-of-file
+#: heading in the doc stub, "line 1" per PR #1964 review feedback) keyed by group_id
+#: (ns_key after stripping any .resource suffix). Used when _make_title produces an
+#: inadequate heading — e.g. the top-level "dsoa" group needs the full product name.
+#: Per reviewer feedback (Schoenberger, PR #1964): "write in line 1 as it is [full
+#: name] and in the group then just [abbreviated] ### DSOA debug signal fields" — so
+#: this ## h2 override intentionally stays the FULL product name; only the YAML
+#: title: (rendered as the ### h3 inside the semconv block, see
+#: _GROUP_TITLE_OVERRIDES below) is abbreviated.
 _FIELD_STUB_H2_OVERRIDES: Dict[str, str] = {
     "dsoa": "Dynatrace Snowflake Observability Agent (DSOA)",
     "dsoa.debug": "Dynatrace Snowflake Observability Agent (DSOA) debug",
     "dsoa.plugins": "Dynatrace Snowflake Observability Agent (DSOA) plugins",
+}
+
+#: Override map for a group's YAML title: field (rendered by the SD generator as the
+#: ### h3 heading inside the semconv block — distinct from the ## h2 doc-stub heading
+#: above, which intentionally keeps the full product name per PR #1964 review
+#: feedback). Keyed by group_id the same way as _FIELD_STUB_H2_OVERRIDES.
+_GROUP_TITLE_OVERRIDES: Dict[str, str] = {
+    "dsoa": "DSOA",
+    "dsoa.debug": "DSOA debug",
+    "dsoa.plugins": "DSOA plugins",
 }
 
 #: instruments-def.yml unit: value -> Semantic Dictionary unit abbreviation.
@@ -404,14 +420,41 @@ def _merge_into_ruamel(existing, new) -> None:
     Blank-line spacing from the last SD-native attribute is mirrored on each
     appended DSOA attribute so the output matches SD style.
 
-    Also handles ``model_group`` top-level key: updates ``dql_queries`` (and other
-    scalar/list keys like ``brief``, ``title``) from *new* when the value is non-empty,
-    so model-group DQL query lists propagate on re-export without ``--clean``.
+    Also handles ``model_group`` and ``model`` top-level envelope keys: updates
+    ``dql_queries`` (and other scalar/list keys like ``brief``, ``title``, and — for
+    ``model`` — ``data_object``) from *new* when the value is non-empty, so
+    model-group DQL query lists and per-plugin model scalar-field fixes propagate
+    on re-export without ``--clean``. ``groups``/``attributes`` merging is applied
+    relative to whichever envelope (``model``, or the document root for
+    envelope-less files like resource/signal field docs) actually holds them.
+
+    Also updates an already-existing *group's own* ``title``/``brief`` scalars (not
+    just its attributes) from *new* when present — without this, a group-level
+    text fix (e.g. the observed_timestamp brief casing correction, or the DSOA
+    subtitle abbreviation) computed in memory would never reach an already-committed
+    group of the same id, since only attribute-level scalars were previously updated.
+    This is scoped to DSOA-owned groups only (``SD_OWNED_GROUP_PREFIXES``): many groups
+    DSOA merely contributes attributes into (``authentication``, ``client``, ``db``,
+    ``event``) are owned by the SD team with their own title/brief text, and DSOA's
+    in-memory ``new_group`` for those is only a generic computed placeholder, never
+    meant to be authoritative.
     """
     # Scalar fields on an existing attribute that we always overwrite from new.
     _UPDATABLE_KEYS = frozenset({"brief", "stability", "deprecated", "type", "examples", "note"})
+    # Scalar fields on an existing *group* (not its attributes) that we propagate from
+    # new → existing when new has a non-empty value, for DSOA-owned groups only — e.g.
+    # group-level title/brief text fixes (DSOA subtitle abbreviation, observed_timestamp
+    # brief casing).
+    _GROUP_UPDATABLE_KEYS = frozenset({"title", "brief"})
     # Top-level model_group keys we propagate from new → existing when new has a value.
-    _MG_UPDATABLE_KEYS = frozenset({"brief", "title", "dql_queries"})
+    # parent_model_group_id is included so the sub-model-group hierarchy (e.g. wiring
+    # snowflake.logs/.events/.spans under the parent "snowflake" model_group) is picked
+    # up on re-export without --clean.
+    _MG_UPDATABLE_KEYS = frozenset({"brief", "title", "dql_queries", "parent_model_group_id"})
+    # Top-level model keys we propagate from new → existing when new has a value.
+    # data_object is included so schema-convention fixes (e.g. singular → plural) on
+    # already-committed model files are picked up on re-export without --clean.
+    _MODEL_UPDATABLE_KEYS = frozenset({"brief", "title", "data_object", "dql_queries"})
 
     # Handle model_group top-level key (model group files use this instead of "groups").
     if "model_group" in existing and "model_group" in new:
@@ -425,13 +468,41 @@ def _merge_into_ruamel(existing, new) -> None:
                 # new explicitly has the key but empty — remove from existing
                 del ex_mg[key]
 
-    if "groups" not in existing or "groups" not in new:
+    # Handle model top-level key (per-plugin log/event/span/metric model files nest their
+    # scalar fields — including data_object — and groups: under this envelope rather than
+    # at the document root). Without this, scalar fixes like a data_object plurality
+    # correction never propagate to already-committed files on re-export.
+    existing_container, new_container = existing, new
+    if "model" in existing and "model" in new:
+        ex_m = existing["model"]
+        new_m = new["model"]
+        for key in _MODEL_UPDATABLE_KEYS:
+            val = new_m.get(key)
+            if val:
+                ex_m[key] = val
+            elif key in ex_m and val is not None:
+                del ex_m[key]
+        existing_container, new_container = ex_m, new_m
+
+    if "groups" not in existing_container or "groups" not in new_container:
         return
-    existing_by_id = {g["id"]: g for g in existing.get("groups", [])}
-    for new_group in new.get("groups", []):
+    existing_by_id = {g["id"]: g for g in existing_container.get("groups", [])}
+    for new_group in new_container.get("groups", []):
         gid = new_group["id"]
         if gid in existing_by_id:
             ex_g = existing_by_id[gid]
+            # Propagate group-level scalar fixes (title/brief) — but ONLY for groups DSOA
+            # actually owns (SD_OWNED_GROUP_PREFIXES). Many groups DSOA merely contributes
+            # attributes into (authentication, client, db, event) are owned by the SD team
+            # with their own carefully-written title/brief; DSOA's in-memory `new_group`
+            # dict for those is only a generic computed placeholder used for its own
+            # bookkeeping, never meant to be authoritative — propagating it here would
+            # silently clobber genuine SD-team content on every DSOA re-export.
+            if any(gid == p or gid.startswith(p + ".") for p in SD_OWNED_GROUP_PREFIXES):
+                for key in _GROUP_UPDATABLE_KEYS:
+                    val = new_group.get(key)
+                    if val:
+                        ex_g[key] = val
             ex_attrs = ex_g.get("attributes", [])
             ex_ids = {a.get("id") or a.get("ref"): i for i, a in enumerate(ex_attrs)}
             # Capture the blank-line token used before the last SD-native attribute.
@@ -458,7 +529,7 @@ def _merge_into_ruamel(existing, new) -> None:
                         elif key in ex_attr:
                             del ex_attr[key]
         else:
-            existing["groups"].append(new_group)
+            existing_container["groups"].append(new_group)
 
 
 class _IndentedDumper(yaml.Dumper):  # pylint: disable=too-many-ancestors
@@ -1501,7 +1572,7 @@ class SemanticExporter:
     ##region YAML document builders
 
     def _build_resource_fields_yaml(self, resource_entries: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
-        """Build resource_fields/snowflake_resource.yaml and resource_fields/dsoa.yaml.
+        """Build resource_fields/snowflake_resource.yaml and resource_fields/dsoa_resource.yaml.
 
         Ref entries (``semdict == "ref"``) are intentionally excluded from both output files.
         They belong exclusively in the ``i.dsoa_resource`` interface (emitted by
@@ -1553,7 +1624,7 @@ class SemanticExporter:
                     {
                         "id": "dsoa",
                         "type": "resource",
-                        "title": "Dynatrace Snowflake Observability Agent (DSOA) resource fields",
+                        "title": "DSOA resource fields",
                         "brief": "Resource-level DSOA execution metadata and deployment context.",
                         "attributes": dsoa_attrs,
                     }
@@ -1566,7 +1637,10 @@ class SemanticExporter:
 
         Each namespace group (snowflake.query, snowflake.user, etc.) gets its own
         file under ``fields/signal_fields/`` for easier review and future maintenance.
-        Groups that share no natural prefix fall into ``snowflake_misc.yaml``.
+        Groups that share no natural prefix fall into ``snowflake_misc.yaml``. All
+        ``snowflake``/``snowflake.*`` groups are consolidated into a single
+        ``snowflake.yaml``, and all ``dsoa``/``dsoa.*`` groups into a single
+        ``dsoa.yaml`` (mirroring the same domain-file convention).
 
         Args:
             signal_entries:   Signal-classified entries.
@@ -1592,18 +1666,29 @@ class SemanticExporter:
             groups_map[group_id]["attrs"].append(self._build_attribute_node(key, all_signal[key]))
             self._counters["signal_fields"] += 1
 
-        # One file per group_id — snowflake_* groups are combined into a single snowflake.yaml
+        # One file per group_id — snowflake_* groups are combined into a single snowflake.yaml,
+        # and dsoa_* groups are combined into a single dsoa.yaml (mirroring the same pattern
+        # for consistency: source/fields/resource_fields/snowflake_resource.yaml already
+        # establishes the "<domain>.yaml" signal + "<domain>_resource.yaml" resource
+        # convention this dsoa consolidation now also follows).
         docs: Dict[str, Dict[str, Any]] = {}
         for gid in sorted(groups_map):
+            brief_subject = "observed timestamp" if gid == "observed_timestamp" else _make_title(gid)
             group_entry = {
                 "id": gid,
                 "type": groups_map[gid]["type"],
-                "title": (_FIELD_STUB_H2_OVERRIDES.get(gid) or _make_title(gid)) + " signal fields",
-                "brief": f"Signal-level fields for {_make_title(gid)} telemetry.",
+                "title": (_GROUP_TITLE_OVERRIDES.get(gid) or _make_title(gid)) + " signal fields",
+                "brief": f"Signal-level fields for {brief_subject} telemetry.",
                 "attributes": groups_map[gid]["attrs"],
             }
             if gid.startswith("snowflake"):
                 rel_path = "fields/signal_fields/snowflake.yaml"
+                if rel_path in docs:
+                    docs[rel_path]["groups"].append(group_entry)
+                else:
+                    docs[rel_path] = {"groups": [group_entry]}
+            elif gid == "dsoa" or gid.startswith("dsoa."):
+                rel_path = "fields/signal_fields/dsoa.yaml"
                 if rel_path in docs:
                     docs[rel_path]["groups"].append(group_entry)
                 else:
@@ -1838,7 +1923,7 @@ class SemanticExporter:
             "title": f"Snowflake {_plugin_label(plugin_name)} lifecycle events",
             "brief": f"Timestamp-based state-change events emitted by the DSOA {plugin_name} plugin via the OpenPipeline Events API.",
             "model_group_id": "snowflake.events",
-            "data_object": "event",
+            "data_object": "events",
             "interfaces": ["i.dsoa_resource"],
         }
         if dql_queries:
@@ -1939,7 +2024,7 @@ class SemanticExporter:
             "title": f"Snowflake {_plugin_label(plugin_name)} log records",
             "brief": f"Log records emitted by the DSOA {plugin_name} plugin.",
             "model_group_id": "snowflake.logs",
-            "data_object": "log",
+            "data_object": "logs",
             "interfaces": ["i.dsoa_resource"],
         }
         if dql_queries:
@@ -1982,7 +2067,7 @@ class SemanticExporter:
             "title": f"Snowflake {_plugin_label(plugin_name)} spans",
             "brief": f"Span records emitted by the DSOA {plugin_name} plugin.",
             "model_group_id": "snowflake.spans",
-            "data_object": "span",
+            "data_object": "spans",
             "interfaces": ["i.dsoa_resource"],
         }
         if dql_queries:
@@ -2036,7 +2121,6 @@ class SemanticExporter:
             log.warning("semconv.schema.json not found at %s; skipping schema validation", self.schema_path)
             return None
         import copy  # pylint: disable=import-outside-toplevel
-        import json  # pylint: disable=import-outside-toplevel
 
         with open(self.schema_path, "r", encoding="utf-8") as fh:
             raw_schema = json.load(fh)
@@ -2173,8 +2257,9 @@ class SemanticExporter:
         """Update the OWNERS file at the SD repo root with the DSOA section.
 
         The OWNERS file lives one level above source/ (i.e. output_dir.parent).
-        An existing '## DSOA' block (from that marker through the next '## ' line
-        or EOF) is replaced; if none exists the section is appended.
+        An existing '## DSOA' block (from the start of that marker's own line
+        through the next section header or EOF) is replaced; if none exists the
+        section is appended.
         """
         owners_path = self._sd_root / "OWNERS"
         if owners_path.exists():
@@ -2182,18 +2267,35 @@ class SemanticExporter:
             marker = "## DSOA"
             idx = existing.find(marker)
             if idx >= 0:
-                # Find next section header after the DSOA block (if any)
+                # Back up to the start of the marker's own line so any leading
+                # indentation on that line (OWNERS sections are indented, e.g.
+                # "    ## DSOA") is removed together with the marker, rather than
+                # left dangling as a stray whitespace-only line in `head` — that
+                # stray indentation (never stripped by a plain .rstrip("\n"), which
+                # only strips newlines, not spaces) is what caused a blank-ish
+                # line to accumulate before "## DSOA" on every re-export.
+                line_start = existing.rfind("\n", 0, idx) + 1
+                head = existing[:line_start].rstrip()
+                head = f"{head}\n\n" if head else ""
+                # Find the next section header after the DSOA block, if any.
+                # Indentation-aware ("\n[ \t]*## ") since OWNERS section headers
+                # are indented — the previous "\n## " (no indentation allowed)
+                # could never match, so a DSOA block followed by another section
+                # would have silently deleted that section too (currently masked
+                # only because DSOA happens to be the last section in the file).
                 rest = existing[idx + len(marker):]
-                next_match = re.search(r"\n## ", rest)
-                if next_match:
-                    existing = existing[:idx] + existing[idx + len(marker) + next_match.start() + 1 :]
-                else:
-                    existing = existing[:idx]
-            base = existing.rstrip("\n") + "\n\n"
+                next_match = re.search(r"\n[ \t]*## ", rest)
+                tail = rest[next_match.start() + 1 :] if next_match else ""
+            else:
+                head = f"{existing.rstrip()}\n\n" if existing.strip() else ""
+                tail = ""
         else:
             owners_path.parent.mkdir(parents=True, exist_ok=True)
-            base = ""
-        owners_path.write_text(base + content, encoding="utf-8")
+            head, tail = "", ""
+        new_text = head + content.rstrip("\n") + "\n"
+        if tail:
+            new_text += f"\n{tail}"
+        owners_path.write_text(new_text, encoding="utf-8")
         log.debug("Wrote %s", owners_path)
         self._counters["files"] += 1
         return owners_path
@@ -2214,7 +2316,7 @@ class SemanticExporter:
 
         # Resource field source files
         sf_res_file = "source/fields/resource_fields/snowflake_resource.yaml"
-        dsoa_res_file = "source/fields/resource_fields/dsoa.yaml"
+        dsoa_res_file = "source/fields/resource_fields/dsoa_resource.yaml"
         if any(gid.startswith("snowflake") or gid.startswith("db") for gid in resource_group_ids):
             paths.append(sf_res_file)
         if any(gid.startswith("dsoa") or gid.startswith("deployment") for gid in resource_group_ids):
@@ -2224,6 +2326,7 @@ class SemanticExporter:
         # (authentication, client, db, event are SD-shared but we write into them; they must be
         # listed in OWNERS so the F027 sanity check does not fire)
         snowflake_added = False
+        dsoa_added = False
         for gid in sorted(signal_group_ids):
             if not any(gid == p or gid.startswith(p + ".") for p in SD_OWNED_GROUP_PREFIXES):
                 continue
@@ -2231,6 +2334,10 @@ class SemanticExporter:
                 if not snowflake_added:
                     paths.append("source/fields/signal_fields/snowflake.yaml")
                     snowflake_added = True
+            elif gid == "dsoa" or gid.startswith("dsoa."):
+                if not dsoa_added:
+                    paths.append("source/fields/signal_fields/dsoa.yaml")
+                    dsoa_added = True
             else:
                 filename = gid.replace(".", "_") + ".yaml"
                 paths.append(f"source/fields/signal_fields/{filename}")
@@ -2249,20 +2356,27 @@ class SemanticExporter:
         # Model files
         paths.append("source/model/snowflake/**")
 
-        # doc/fields files for DSOA-owned groups
+        # doc/fields files for DSOA-owned groups. snowflake.* groups (signal and resource)
+        # are consolidated into a single doc/fields/snowflake.md, and dsoa/dsoa.* groups
+        # (signal and resource) into a single doc/fields/dsoa.md — add each once.
         snowflake_doc_added = False
-        for gid in sorted(signal_group_ids):
+        dsoa_doc_added = False
+        for gid in sorted(signal_group_ids) + sorted(resource_group_ids):
             if not any(gid == p or gid.startswith(p + ".") for p in SD_OWNED_GROUP_PREFIXES):
                 continue
-            if gid.startswith("snowflake"):
+            if gid == "snowflake" or gid.startswith("snowflake."):
                 if not snowflake_doc_added:
-                    # Add each snowflake group's individual doc file
+                    paths.append("doc/fields/snowflake.md")
                     snowflake_doc_added = True
-                md_name = gid.replace(".", "_") + ".md"
-                paths.append(f"doc/fields/{md_name}")
+            elif gid == "dsoa" or gid.startswith("dsoa."):
+                if not dsoa_doc_added:
+                    paths.append("doc/fields/dsoa.md")
+                    dsoa_doc_added = True
             else:
                 md_name = gid.replace(".", "_") + ".md"
-                paths.append(f"doc/fields/{md_name}")
+                doc_path = f"doc/fields/{md_name}"
+                if doc_path not in paths:
+                    paths.append(doc_path)
 
         # doc/model
         paths.append("doc/model/snowflake/**")
@@ -2307,19 +2421,33 @@ class SemanticExporter:
         log.debug("Wrote %s", gfc_path)
         self._counters["files"] += 1
 
-    def _build_model_doc_stubs(self) -> Dict[str, str]:
+    def _build_model_doc_stubs(self, sub_groups: Optional[Set[str]] = None) -> Dict[str, str]:
         """Generate doc/model/snowflake/{logs,events,spans}/readme.md stubs.
 
         These Markdown files are required by the SD generator (model_group tags).
-        Returns a dict mapping relative output path → file content. Update
-        SD_PM / SD_MAINTAINER / SD_TEAM constants at the top of this module
-        to change the ownership table.
+        Also emits the parent doc/model/snowflake/readme.md stub (group id
+        ``snowflake``) when at least one sub-group was written this run — its
+        ``<!-- model_group snowflake -->`` block links to whichever of the
+        logs/events/spans readmes actually exist.
+
+        Args:
+            sub_groups: Subset of ``{"logs", "events", "spans"}`` identifying which
+                        sub-group model_groups were actually written this run. When
+                        None (default), all three are assumed present (back-compat).
+
+        Returns:
+            Dict mapping relative output path → file content. Update
+            SD_PM / SD_MAINTAINER / SD_TEAM constants at the top of this module
+            to change the ownership table.
         """
-        stubs = {
+        all_stubs = {
             "snowflake.logs": ("Snowflake log records", "Log records emitted by DSOA plugins from Snowflake ACCOUNT_USAGE and system views."),
             "snowflake.events": ("Snowflake lifecycle events", "Timestamp-based state-change events emitted by DSOA plugins via the Dynatrace OpenPipeline Events API."),
             "snowflake.spans": ("Snowflake spans", "Span records emitted by DSOA plugins from Snowflake ACCOUNT_USAGE views."),
         }
+        if sub_groups is None:
+            sub_groups = {"logs", "events", "spans"}
+        stubs = {gid: info for gid, info in all_stubs.items() if gid.split(".")[1] in sub_groups}
         result: Dict[str, str] = {}
         for group_id, (title, description) in stubs.items():
             subdir = group_id.split(".")[1]  # logs, events, spans
@@ -2340,6 +2468,22 @@ class SemanticExporter:
                 "<!-- end_dynatrace_internal -->\n"
             )
             result[f"doc/model/snowflake/{subdir}/readme.md"] = content
+        if sub_groups:
+            content = (
+                "<!-- model_group snowflake -->\n"
+                "<!-- The content between the markdown start and end comments (tags) is generated. Please do not edit manually. -->\n"
+                "\n"
+                "## Snowflake\n"
+                "\n"
+                "<!-- end_model_group -->\n"
+                "\n"
+                "<!-- dynatrace_internal -->\n"
+                "| Responsible PM | Maintainer | Team |\n"
+                "|---|---|---|\n"
+                f"| {SD_PM} | {SD_MAINTAINER} | {SD_TEAM} |\n"
+                "<!-- end_dynatrace_internal -->\n"
+            )
+            result["doc/model/snowflake/readme.md"] = content
         return result
 
     def _build_per_model_doc_stubs(self, models: List[Dict[str, Any]]) -> Dict[str, str]:
@@ -2418,6 +2562,14 @@ class SemanticExporter:
         The filename is the group ID with dots replaced by underscores, matching the SD
         convention (e.g. ``snowflake.account`` → ``doc/fields/snowflake_account.md``).
 
+        Exception: any group whose id is ``snowflake``/``dsoa`` or starts with
+        ``snowflake.``/``dsoa.`` (both signal-field groups and their respective
+        resource-field groups) is routed into a single consolidated
+        ``doc/fields/snowflake.md`` / ``doc/fields/dsoa.md`` file instead — one
+        shared ``## <Domain>`` h2 followed by one ``### <title>`` + semconv block per
+        group, mirroring the multi-block-per-file pattern used by
+        ``doc/fields/azure_resource.md`` in the SD repo.
+
         The ``## h2`` heading uses the namespace name in sentence case — no ``fields``
         or ``resource`` suffix, matching the SD doc convention seen in
         ``doc/fields/host.md``, ``doc/fields/app.md`` (e.g. ``## Snowflake warehouse``).
@@ -2434,9 +2586,31 @@ class SemanticExporter:
         Returns:
             Dict mapping relative output path (``doc/fields/…``) → stub content.
         """
+        # Domains consolidated into a single doc/fields/<domain>.md file: keyed by the
+        # domain's group-id prefix, mapping to (output filename, ## h2 heading text).
+        # The h2 heading intentionally uses the full override text (e.g. the full
+        # product name for "dsoa" — kept unabbreviated per PR #1964 reviewer feedback),
+        # matching the SD's own multi-block-per-file convention (doc/fields/azure_resource.md).
+        _CONSOLIDATED_DOMAINS: Dict[str, Tuple[str, str]] = {
+            "snowflake": ("snowflake.md", "Snowflake"),
+            "dsoa": ("dsoa.md", _FIELD_STUB_H2_OVERRIDES.get("dsoa") or "DSOA"),
+        }
+
+        def _consolidated_domain(group_id: str) -> Optional[str]:
+            """Return the consolidation domain prefix `group_id` belongs to, if any."""
+            for prefix in _CONSOLIDATED_DOMAINS:
+                if group_id == prefix or group_id.startswith(prefix + "."):
+                    return prefix
+            return None
+
         result: Dict[str, str] = {}
+        consolidated_groups: Dict[str, List[Dict[str, Any]]] = {}
         for fg in field_groups:
             group_id = fg["group_id"]
+            domain = _consolidated_domain(group_id)
+            if domain is not None:
+                consolidated_groups.setdefault(domain, []).append(fg)
+                continue
             # h2 heading: sentence-case namespace, no "fields" or "resource" suffix.
             # Strip any ".resource" id suffix so "snowflake.warehouse.resource" → "## Snowflake warehouse".
             ns_key = group_id[: -len(".resource")] if group_id.endswith(".resource") else group_id
@@ -2449,6 +2623,27 @@ class SemanticExporter:
                 "<!-- end_semconv -->\n"
                 "\n"
                 "<!-- dynatrace_internal -->\n"
+                "| Responsible PM | Maintainer | Team |\n"
+                "|---|---|---|\n"
+                f"| {SD_PM} | {SD_MAINTAINER} | {SD_TEAM} |\n"
+                "<!-- end_dynatrace_internal -->\n"
+            )
+            result[f"doc/fields/{filename}"] = content
+
+        for domain, groups in consolidated_groups.items():
+            # Consolidate all <domain> / <domain>.* groups into a single doc/fields/<domain>.md
+            # file: one shared "## <Domain>" h2, then one semconv stub block per group (sorted
+            # by group_id for determinism), and one shared ownership table at the end —
+            # mirroring doc/fields/azure_resource.md's multi-block-per-file pattern. The SD
+            # generator fills in each block's own "### <title>" heading from the YAML title —
+            # no manual h3 is emitted here (matching the azure_resource.md stub shape exactly).
+            filename, h2_title = _CONSOLIDATED_DOMAINS[domain]
+            blocks: List[str] = [f"## {h2_title}\n"]
+            for fg in sorted(groups, key=lambda x: x["group_id"]):
+                group_id = fg["group_id"]
+                blocks.append(f"\n<!-- semconv {group_id} -->\n<!-- end_semconv -->\n")
+            content = "".join(blocks) + (
+                "\n<!-- dynatrace_internal -->\n"
                 "| Responsible PM | Maintainer | Team |\n"
                 "|---|---|---|\n"
                 f"| {SD_PM} | {SD_MAINTAINER} | {SD_TEAM} |\n"
@@ -2548,7 +2743,7 @@ class SemanticExporter:
             p = self._write_yaml(sf_res_doc, "fields/resource_fields/snowflake_resource.yaml")
             self._validate_against_schema(sf_res_doc, p)
         if dsoa_res_doc.get("groups") and dsoa_res_doc["groups"][0].get("attributes"):
-            p = self._write_yaml(dsoa_res_doc, "fields/resource_fields/dsoa.yaml")
+            p = self._write_yaml(dsoa_res_doc, "fields/resource_fields/dsoa_resource.yaml")
             self._validate_against_schema(dsoa_res_doc, p)
 
         # Step 6: signal_fields — one file per namespace group
@@ -2603,6 +2798,7 @@ class SemanticExporter:
                         "id": "snowflake.events",
                         "title": "Snowflake lifecycle events",
                         "brief": "Timestamp-based state-change events emitted by DSOA plugins via the Dynatrace OpenPipeline Events API.",
+                        "parent_model_group_id": "snowflake",
                         **({} if not resolved_mg_dql.get("snowflake.events") else {"dql_queries": resolved_mg_dql["snowflake.events"]}),
                     }
                 },
@@ -2629,6 +2825,7 @@ class SemanticExporter:
                         "id": "snowflake.logs",
                         "title": "Snowflake log records",
                         "brief": "Log records emitted by DSOA plugins from Snowflake ACCOUNT_USAGE and system views.",
+                        "parent_model_group_id": "snowflake",
                         **({} if not resolved_mg_dql.get("snowflake.logs") else {"dql_queries": resolved_mg_dql["snowflake.logs"]}),
                     }
                 },
@@ -2652,6 +2849,7 @@ class SemanticExporter:
                         "id": "snowflake.spans",
                         "title": "Snowflake spans",
                         "brief": "Span records emitted by DSOA plugins from Snowflake ACCOUNT_USAGE views.",
+                        "parent_model_group_id": "snowflake",
                         **({} if not resolved_mg_dql.get("snowflake.spans") else {"dql_queries": resolved_mg_dql["snowflake.spans"]}),
                     }
                 },
@@ -2676,6 +2874,7 @@ class SemanticExporter:
                             "id": "snowflake.spans",
                             "title": "Snowflake spans",
                             "brief": "Span records emitted by DSOA plugins from Snowflake ACCOUNT_USAGE views.",
+                            "parent_model_group_id": "snowflake",
                             **({} if not resolved_mg_dql.get("snowflake.spans") else {"dql_queries": resolved_mg_dql["snowflake.spans"]}),
                         }
                     },
@@ -2689,6 +2888,35 @@ class SemanticExporter:
             p = self._write_yaml(doc, "model/snowflake/spans/snowflake.spans.event_log.yaml")
             self._validate_against_schema(doc, p)
 
+        # Step 11b: parent "snowflake" model_group — only when at least one of the
+        # events/logs/spans sub-groups was actually written this run. The bullet list
+        # only references subfolders that exist.
+        written_sub_groups: Set[str] = set()
+        if plugins_with_events:
+            written_sub_groups.add("events")
+        if plugins_with_attrs:
+            written_sub_groups.add("logs")
+        if span_model_plugins or ("event_log" in SPAN_PLUGINS and "event_log" not in span_model_plugins):
+            written_sub_groups.add("spans")
+        if written_sub_groups:
+            bullet_labels = {
+                "events": "[Lifecycle events](./events/readme.md)",
+                "logs": "[Log records](./logs/readme.md)",
+                "spans": "[Spans](./spans/readme.md)",
+            }
+            bullets = "\n".join(f"* {bullet_labels[sg]}" for sg in ("events", "logs", "spans") if sg in written_sub_groups)
+            self._write_yaml(
+                {
+                    "model_group": {
+                        "id": "snowflake",
+                        "title": "Snowflake",
+                        "brief": ("DSOA (Dynatrace Snowflake Observability Agent) telemetry models, organized by signal type:\n\n" + bullets),
+                        **({} if not resolved_mg_dql.get("snowflake") else {"dql_queries": resolved_mg_dql["snowflake"]}),
+                    }
+                },
+                "model/snowflake/model_group_snowflake.yaml",
+            )
+
         # Step 12: SD metadata — OWNERS, field categories, and doc stubs.
         # Only written when targeting the actual SD repo (--sd-metadata flag).
         # Never written for the regular 'make semantic-dictionary' export to docs/.
@@ -2698,7 +2926,7 @@ class SemanticExporter:
             plugin_names_sorted = sorted(plugin_metric_entries.keys() - {"_core"})
             self._write_owners(self._build_owners_entries(signal_group_ids, resource_group_ids, plugin_names_sorted))
             self._update_field_categories(signal_group_ids, resource_group_ids)
-            for rel_path, content in self._build_model_doc_stubs().items():
+            for rel_path, content in self._build_model_doc_stubs(sub_groups=written_sub_groups).items():
                 self._write_sd_root_text(content, rel_path)
 
             # Per-model doc stubs (logs, events, spans) — required by the SD generator to

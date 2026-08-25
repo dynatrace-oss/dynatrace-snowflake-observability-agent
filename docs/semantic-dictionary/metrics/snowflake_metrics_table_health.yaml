@@ -134,7 +134,7 @@ model:
         Percentage change in active bytes between the two most recent snapshots.
         Null when the previous snapshot had zero bytes.
       title: Table Growth (%)
-      unit: "%"
+      unit: '%'
       attributes:
         - ref: db.collection.name
         - ref: snowflake.table.full_name

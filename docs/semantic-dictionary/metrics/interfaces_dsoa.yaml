@@ -26,17 +26,3 @@ groups:
         note: Always 'dynatrace.snowagent' — identifies DSOA as the telemetry exporter.
       - ref: telemetry.exporter.version
         note: The installed DSOA agent version in '<major>.<minor>.<patch>.<build>' format.
-  - id: i.dsoa_warehouse
-    type: interface
-    title: DSOA warehouse dimension fields
-    brief: Common warehouse dimensions for per-warehouse metrics.
-    attributes:
-      - ref: snowflake.warehouse.name
-      - ref: snowflake.warehouse.id
-  - id: i.dsoa_database
-    type: interface
-    title: DSOA database dimension fields
-    brief: Common database/schema dimensions for per-database metrics.
-    attributes:
-      - ref: db.namespace
-      - ref: snowflake.schema.name

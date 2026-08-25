@@ -1,4 +1,0 @@
-model_group:
-  id: dsoa.events
-  title: DSOA Snowflake Lifecycle Events
-  brief: Timestamp-based state-change events emitted by DSOA plugins via the Dynatrace OpenPipeline Events API.

@@ -3,17 +3,17 @@ model:
   title: Snowflake shares lifecycle events
   brief: Timestamp-based state-change events emitted by the DSOA shares plugin via the OpenPipeline Events API.
   model_group_id: snowflake.events
-  data_object: event
+  data_object: events
   interfaces: [ i.dsoa_resource ]
   dql_queries:
     - query_string: |
-        fetch bizevents
+        fetch events
         | filter db.system == "snowflake"
         | filter dsoa.run.plugin == "shares"
         | sort timestamp desc
         | limit 20
-      description: Fetch recent DSOA self-monitoring business events for the shares plugin.
-      description_copilot: Search for self-monitoring events from the shares Snowflake agent plugin.
+      description: Fetch recent DSOA shares lifecycle events.
+      description_copilot: Search for recent Snowflake shares lifecycle events from the shares plugin.
     - query_string: |
         fetch events
         | filter db.system == "snowflake"

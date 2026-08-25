@@ -27,7 +27,7 @@ model:
       brief: Sum of all rows in all objects in this scope.
       title: Row Count
       unit: count
-      note: "Original unit: row."
+      note: 'Original unit: row.'
       attributes:
         - ref: db.collection.name
         - ref: snowflake.table.type

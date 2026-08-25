@@ -1,11 +1,11 @@
 groups:
   - id: observed_timestamp
     type: attribute_group
-    title: Observed Timestamp signal fields
-    brief: Signal-level fields for Observed Timestamp telemetry.
+    title: Observed timestamp signal fields
+    brief: Signal-level fields for observed timestamp telemetry.
     attributes:
       - id: observed_timestamp
-        display_name: Observed Timestamp
+        display_name: 'Observed Timestamp'
         type: long
         stability: stable
         brief: The timestamp (in epoch nanoseconds) when the event was observed.
