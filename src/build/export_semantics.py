@@ -2121,7 +2121,6 @@ class SemanticExporter:
             log.warning("semconv.schema.json not found at %s; skipping schema validation", self.schema_path)
             return None
         import copy  # pylint: disable=import-outside-toplevel
-        import json  # pylint: disable=import-outside-toplevel
 
         with open(self.schema_path, "r", encoding="utf-8") as fh:
             raw_schema = json.load(fh)
