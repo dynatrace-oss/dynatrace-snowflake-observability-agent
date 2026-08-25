@@ -732,11 +732,11 @@ class TestDqlQueriesOnModels:
         assert not violations, "dql_queries entries with missing required fields:\n" + "\n".join(violations)
 
     def test_model_groups_have_dql_queries(self):
-        """All four snowflake.* model_group YAML files must contain dql_queries:.
+        """All snowflake.* model_group YAML files must contain dql_queries:.
 
         Validates that the model_group_dql mechanism in instruments-def.yml is wired
         up correctly and the export pipeline attaches DQL examples to every model_group
-        container (metrics, events, logs, spans).
+        container (metrics, events, logs, spans) as well as the parent snowflake group.
         """
         require_semdict_source()
 
@@ -745,6 +745,7 @@ class TestDqlQueriesOnModels:
             (SEMDICT_SOURCE / "model" / "snowflake" / "events" / "model_group_snowflake_events.yaml", "snowflake.events"),
             (SEMDICT_SOURCE / "model" / "snowflake" / "logs" / "model_group_snowflake_logs.yaml", "snowflake.logs"),
             (SEMDICT_SOURCE / "model" / "snowflake" / "spans" / "model_group_snowflake_spans.yaml", "snowflake.spans"),
+            (SEMDICT_SOURCE / "model" / "snowflake" / "model_group_snowflake.yaml", "snowflake"),
         ]
         missing: List[str] = []
         for yaml_path, group_id in model_group_files:

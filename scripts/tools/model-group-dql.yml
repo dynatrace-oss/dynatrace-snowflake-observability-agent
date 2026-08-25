@@ -1,14 +1,130 @@
 # Group-level DQL examples for SD model_group YAML files.
-# Each key is a model group ID (snowflake.*). Values are lists of use_plugin_dql
-# references that expand to an existing plugin's dql_queries at export time,
-# filtered by the specified signal context. This keeps this file as the single
+# Each key is a model group ID (snowflake.*). Values are either use_plugin_dql
+# references that expand to an existing plugin's dql_queries at export time
+# (filtered by the specified signal context), or literal DqlQuery entries for
+# queries that exist only at group level. This keeps this file as the single
 # source of truth for group-level DQL routing without duplicating query strings.
 model_group_dql:
+  # Parent group: cross-signal entry points, not tied to any single plugin.
+  # TODO(BIZOBS-151): replace these placeholders with the hand-picked queries.
+  snowflake:
+    - query_string: |
+        fetch logs, from: -24h
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "query_history"
+        | filter matchesPattern(db.query.text,
+            """'call DTAGENT' ('_' LD:tag)?  '_DB.APP.DTAGENT(ARRAY_CONSTRUCT(' ARRAY{SQS:plugin_name ','?}{1,}:plugin_names '))'""")
+        | parse `db.query.text`, """'call DTAGENT' ('_' LD:env_tag)?  '_DB.APP.DTAGENT(ARRAY_CONSTRUCT(' ARRAY{SQS:plugin_name ', '?}{1,}:plugin_names '))'"""
+        | fieldsAdd plugins_count = arraySize(plugin_names)
+        | expand plugin_name = plugin_names
+        | filter contains(plugin_name, "snowpipes")
+        | fields plugin_name, timestamp, snowflake.query.execution_status,
+          snowflake.time.total_elapsed = toLong(snowflake.time.total_elapsed) / plugins_count,
+          snowflake.time.execution = toLong(snowflake.time.execution) / plugins_count,
+          snowflake.time.compilation = toLong(snowflake.time.compilation) / plugins_count
+        | makeTimeseries sum(snowflake.time.total_elapsed), by: {
+            plugin_name
+        }
+      description:
+        Track execution of the DSOA snowpipes plugin through Snowflake's query history log, as a time series of total elapsed time. Timings
+        are divided by the number of plugins invoked in the same DTAGENT call, so each plugin is attributed its own share.
+      description_copilot:
+        This query measures the execution time trend of a specific DSOA plugin (snowpipes) over the last 24 hours. It parses structured call
+        patterns from Snowflake query logs, normalizes timing metrics per plugin, and produces a time series chart of total elapsed time.
+    - query_string: |
+        fetch spans, from: -7d
+        | filter db.system == "snowflake"
+        | filter dsoa.run.plugin == "query_history"
+        | filter isNotNull(span.events)
+        | fieldsAdd operation_name = coalesce(db.operation.name, db.operation)
+        | fieldsAdd operator_stats = iCollectArray(parse(span.events[][snowflake.query.operator.stats], """JSON:stats"""))
+        | filter iAny(operator_stats[][input_rows] < operator_stats[][output_rows] and
+            span.events[][snowflake.query.operator.type] == "Join")
+        | fields
+            start_time, end_time, snowflake.query.id, operation_name,
+            query_text = coalesce(db.query.text, db.statement), db.user,
+            snowflake.query.execution_status, snowflake.time.total_elapsed, snowflake.time.execution,
+            service_name = coalesce(deployment.environment.name, deployment.environment),
+            span.events, operator_stats
+        | limit 10
+      description:
+        Return a sample of 10 Snowflake queries with row-multiplying (fan-out) joins, where a join operator emits more rows than it consumes.
+        Based on the operator statistics reported to Dynatrace span events from Snowflake's query history traces.
+      description_copilot:
+        This query hunts for inefficient Snowflake JOIN operations over the past 7 days — specifically joins where the output row count
+        exceeds the input row count, which is a classic signal of a row-multiplying (fan-out) join, often caused by missing or incorrect
+        join keys, cartesian products, or unintended data duplication.
+    - query_string: |
+        fetch logs
+        | filter db.system == "snowflake"
+        | filter dsoa.run.context == "warehouse_usage"
+        | filter contains(snowflake.warehouse.event.name, "WAREHOUSE")
+        | fieldsAdd environment = coalesce(deployment.environment.name, deployment.environment)
+        | fieldsAdd key = concat(environment, "|", snowflake.warehouse.name)
+        | joinNested rs = [
+          fetch events
+          | filter db.system == "snowflake"
+          | filter isNotNull(snowflake.warehouse.event)
+          | fieldsAdd environment = coalesce(deployment.environment.name, deployment.environment)
+          | summarize {count()}, by: {
+            snowflake.resource_monitor.name,
+            snowflake.warehouse.name,
+            environment}
+          | fieldsAdd key = concat(environment, "|", snowflake.warehouse.name)
+        ], on: {left[key] == right[key]}
+        , fields: {snowflake.resource_monitor.name}
+        | expand rs = rs
+        | fieldsAdd snowflake.resource_monitor.name = rs[snowflake.resource_monitor.name]
+        | fieldsRemove rs
+        | filter snowflake.resource_monitor.name == "DTAGENT_RS"
+        | fieldsRemove snowflake.resource_monitor.name
+        | parse `observed_timestamp`, """JSONTIMESTAMP:ots"""
+        | fieldsAdd obs_timestamp = asTimestamp(ots)
+        | sort obs_timestamp asc
+        | fields obs_timestamp,
+                environment,
+                snowflake.warehouse.name,
+                snowflake.warehouse.event.name,
+                snowflake.warehouse.event.state,
+                snowflake.warehouse.cluster.number,
+                warehouse_state = if(snowflake.warehouse.event.name == "WAREHOUSE_CONSISTENT", "FINISHED", else: "STARTING"),
+                warehouse_action = if(snowflake.warehouse.event.name == "RESUME_WAREHOUSE", "RESUME",
+                                      else: if(snowflake.warehouse.event.name == "SUSPEND_WAREHOUSE", "SUSPEND"))
+        | fieldsAdd event_start = if(warehouse_state == "STARTING", obs_timestamp),
+                    event_finish = if(warehouse_state == "FINISHED", obs_timestamp)
+        | summarize {
+          start_events = arrayRemoveNulls(collectArray(event_start)),
+          finish_events = arrayRemoveNulls(collectArray(event_finish)),
+          warehouse_action = arrayRemoveNulls(collectArray(warehouse_action))
+        }, by: {
+          environment,
+          snowflake.warehouse.name
+        }
+        | fieldsAdd warehouse_events = record( ts = start_events[], event_delay = finish_events[] - start_events[], warehouse_action = warehouse_action[])
+        | expand warehouse_events
+        | fields event_timestamp = warehouse_events[ts],
+                environment,
+                snowflake.warehouse.name,
+                event_delay = warehouse_events[event_delay],
+                warehouse_action = warehouse_events[warehouse_action]
+        | filterOut isNull(event_timestamp)
+        | makeTimeseries event_delay = sum(event_delay)
+            , by: {warehouse_action, snowflake.warehouse.name, environment}
+            , time: event_timestamp
+
+      description:
+        Produce a time series of warehouse resume/suspend latency, broken down by action type, warehouse name, and environment. Warehouse
+        state-change records (DSOA warehouse_usage plugin) are correlated with the resource monitor assignments reported as events (DSOA
+        resource_monitors plugin), to scope the result to the warehouses governed by the DTAGENT_RS resource monitor.
+      description_copilot:
+        Measures how long Snowflake virtual warehouses take to resume or suspend - the transition delay between a warehouse lifecycle event
+        being triggered and the warehouse reaching a consistent state - for the warehouses governed by a given resource monitor. Useful for
+        tracking warehouse availability and identifying warehouses with abnormally long startup or shutdown times.
   snowflake.metrics:
-    - use_plugin_dql: {plugin: metering, context: metrics}
+    - use_plugin_dql: { plugin: metering, context: metrics }
   snowflake.logs:
-    - use_plugin_dql: {plugin: metering, context: logs}
+    - use_plugin_dql: { plugin: metering, context: logs }
   snowflake.events:
-    - use_plugin_dql: {plugin: budgets, context: events}
+    - use_plugin_dql: { plugin: budgets, context: events }
   snowflake.spans:
-    - use_plugin_dql: {plugin: event_log, context: spans}
+    - use_plugin_dql: { plugin: event_log, context: spans }

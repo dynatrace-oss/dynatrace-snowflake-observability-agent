@@ -2912,6 +2912,7 @@ class SemanticExporter:
                         "id": "snowflake",
                         "title": "Snowflake",
                         "brief": ("DSOA (Dynatrace Snowflake Observability Agent) telemetry models, organized by signal type:\n\n" + bullets),
+                        **({} if not resolved_mg_dql.get("snowflake") else {"dql_queries": resolved_mg_dql["snowflake"]}),
                     }
                 },
                 "model/snowflake/model_group_snowflake.yaml",
