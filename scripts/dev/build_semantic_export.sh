@@ -165,15 +165,17 @@ generate_docs() {
 
     # Step 1: export YAML + SD metadata (OWNERS, definitions, doc stubs) into the SD repo
     log_info "--generate-docs: exporting YAML + SD metadata into SD repo at ${SD_REPO}"
-    cd "${PROJECT_ROOT}"
+    pushd "${PROJECT_ROOT}" > /dev/null
     if ! PYTHONPATH="${PROJECT_ROOT}/src" "${VENV_PYTHON}" "${EXPORT_SCRIPT}" \
         --output "${SD_REPO}/source" \
         --schema "${SCHEMA_PATH}" \
         --sd-metadata \
         "${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}"; then
+        popd > /dev/null
         log_error "--generate-docs: export into SD repo failed"
         return 1
     fi
+    popd > /dev/null
 
     # Step 2: resolve generator image version and SD version from SD repo metadata
     local generator_version sd_version
@@ -218,7 +220,7 @@ generate_docs() {
     #   doc/fields/dsoa_*.md        — DSOA-specific field groups
     #   doc/fields/observed_timestamp.md
     log_info "--generate-docs: restoring non-DSOA doc files touched by the generator"
-    cd "${SD_REPO}"
+    pushd "${SD_REPO}" > /dev/null
     # Collect all doc/ changes, then revert anything that isn't DSOA-owned
     git diff HEAD --name-only -- doc/ | while IFS= read -r f; do
         # Keep DSOA-owned paths; revert everything else
@@ -232,7 +234,7 @@ generate_docs() {
             git checkout HEAD -- "${f}" 2>/dev/null || true
         fi
     done
-    cd "${PROJECT_ROOT}"
+    popd > /dev/null
 
     log_success "--generate-docs: SD repo at ${SD_REPO} is ready."
     log_info "  doc/model/snowflake/ and doc/fields/ stubs generated — commit to SD PR #1903"
@@ -282,15 +284,17 @@ run_sanity_checks() {
     # doc stubs must be present — this mirrors the --generate-docs export step. (doc/ is
     # restored to its pre-check state on return; see comment above.)
     log_info "--check: exporting YAML + SD metadata into SD repo at ${SD_REPO}"
-    cd "${PROJECT_ROOT}"
+    pushd "${PROJECT_ROOT}" > /dev/null
     if ! PYTHONPATH="${PROJECT_ROOT}/src" "${VENV_PYTHON}" "${EXPORT_SCRIPT}" \
         --output "${SD_REPO}/source" \
         --schema "${SCHEMA_PATH}" \
         --sd-metadata \
         "${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}"; then
+        popd > /dev/null
         log_error "--check: export into SD repo failed"
         return 1
     fi
+    popd > /dev/null
 
 
     # Step 2: resolve generator image version and SD version from SD repo metadata
@@ -434,14 +438,16 @@ main() {
 
     # Run export
     log_info "Running export_semantics.py..."
-    cd "${PROJECT_ROOT}"
+    pushd "${PROJECT_ROOT}" > /dev/null
     if ! PYTHONPATH="${PROJECT_ROOT}/src" "${VENV_PYTHON}" "${EXPORT_SCRIPT}" \
         --output "${OUTPUT_DIR}" \
         --schema "${SCHEMA_PATH}" \
         "${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}"; then
+        popd > /dev/null
         log_error "Export script failed"
         return 1
     fi
+    popd > /dev/null
 
     log_success "Semantic dictionary export complete"
     log_info "Output: ${OUTPUT_DIR}"
