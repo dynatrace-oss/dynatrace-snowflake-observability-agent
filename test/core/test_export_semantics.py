@@ -1051,9 +1051,9 @@ class TestExportPipelineMock:
                     obs_group = grp
         assert obs_group is not None, "observed_timestamp group must be produced"
         assert obs_group["title"] == "Observed timestamp signal fields"
-        assert obs_group["brief"] == "Signal-level fields for observed timestamp telemetry.", (
-            f"Expected lowercase 'observed timestamp' in brief, got: {obs_group['brief']!r}"
-        )
+        assert (
+            obs_group["brief"] == "Signal-level fields for observed timestamp telemetry."
+        ), f"Expected lowercase 'observed timestamp' in brief, got: {obs_group['brief']!r}"
 
     def test_interfaces_yaml_has_correct_interfaces(self, tmp_path):
         """interfaces_dsoa.yaml has i.dsoa_resource; interfaces_snowflake.yaml has i.snowflake_warehouse/database."""
@@ -1329,8 +1329,7 @@ class TestSemanticExporterIntegration:
             doc = yaml.safe_load(path.read_text(encoding="utf-8"))
             assert doc["model_group"]["id"] == expected_id
             assert doc["model_group"]["parent_model_group_id"] == "snowflake", (
-                f"{path.name}: expected parent_model_group_id='snowflake', "
-                f"got {doc['model_group'].get('parent_model_group_id')!r}"
+                f"{path.name}: expected parent_model_group_id='snowflake', " f"got {doc['model_group'].get('parent_model_group_id')!r}"
             )
 
     def test_parent_snowflake_model_group_exists(self, export_output):
