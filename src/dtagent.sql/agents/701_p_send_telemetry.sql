@@ -30,6 +30,7 @@ create or replace procedure DTAGENT_DB.APP.SEND_TELEMETRY(sources variant, param
 returns string
 language python
 runtime_version = '3.13'
+artifact_repository = snowflake.snowpark.anaconda_shared_repository
 packages = (
     'requests',
     'pandas',

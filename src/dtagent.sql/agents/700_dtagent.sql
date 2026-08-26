@@ -36,6 +36,7 @@ create or replace procedure DTAGENT_DB.APP.DTAGENT(sources array)
 returns object
 language python
 runtime_version = '3.13'
+artifact_repository = snowflake.snowpark.anaconda_shared_repository
 packages = (
     'requests',
     'pandas',
