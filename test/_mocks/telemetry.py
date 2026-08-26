@@ -25,11 +25,9 @@ import os
 import json
 import re
 import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 from contextlib import contextmanager
 from unittest.mock import MagicMock, patch, Mock
-
-from git import Union
 
 from dtagent.context import RUN_ID_KEY, RUN_RESULTS_KEY
 
