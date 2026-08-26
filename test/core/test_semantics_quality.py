@@ -37,7 +37,7 @@ from typing import Any, Dict, Set
 
 import pytest
 
-from build.export_semantics import (
+from build.semantic_exporter import (
     INTERFACE_DATABASE_KEYS,
     INTERFACE_WAREHOUSE_KEYS,
     RESOURCE_ATTRIBUTE_KEYS,

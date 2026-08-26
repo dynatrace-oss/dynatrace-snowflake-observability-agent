@@ -37,7 +37,7 @@ from typing import Any, Dict, List, Set
 
 import pytest
 
-from build.export_semantics import KNOWN_REFS
+from build.semantic_exporter import KNOWN_REFS
 from test.core._semdict_test_utils import load_all_generated_yaml, load_all_instruments_defs
 
 ##region Fixtures

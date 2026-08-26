@@ -33,7 +33,7 @@ from typing import Any, Dict
 import pytest
 import yaml
 
-from build.export_semantics import (
+from build.semantic_exporter import (
     INTERFACE_DATABASE_KEYS,
     INTERFACE_WAREHOUSE_KEYS,
     RESOURCE_ATTRIBUTE_KEYS,
@@ -404,7 +404,7 @@ class TestNamespaceGrouping:
 
     def test_warehouse_signal_group(self):
         """snowflake.warehouse.* signal fields → snowflake.warehouse group, type: attribute_group."""
-        from build.export_semantics import _SIG_NS  # pylint: disable=import-outside-toplevel
+        from build.semantic_exporter import _SIG_NS  # pylint: disable=import-outside-toplevel
 
         gid, gtype = _ns_group("snowflake.warehouse.name", _SIG_NS, "snowflake.misc", "attribute_group")
         assert gid == "snowflake.warehouse"
@@ -412,7 +412,7 @@ class TestNamespaceGrouping:
 
     def test_warehouse_resource_group(self):
         """snowflake.warehouse.* resource fields → snowflake.warehouse.resource group (avoids collision with signal group)."""
-        from build.export_semantics import _RES_NS  # pylint: disable=import-outside-toplevel
+        from build.semantic_exporter import _RES_NS  # pylint: disable=import-outside-toplevel
 
         gid, gtype = _ns_group("snowflake.warehouse.size", _RES_NS, "snowflake.resource", "resource")
         assert gid == "snowflake.warehouse.resource"
@@ -420,7 +420,7 @@ class TestNamespaceGrouping:
 
     def test_db_resource_group(self):
         """db.* resource fields → db.resource group (avoids collision with db signal attribute_group)."""
-        from build.export_semantics import _RES_NS  # pylint: disable=import-outside-toplevel
+        from build.semantic_exporter import _RES_NS  # pylint: disable=import-outside-toplevel
 
         gid, gtype = _ns_group("db.namespace", _RES_NS, "snowflake.resource", "resource")
         assert gid == "db.resource"
@@ -428,7 +428,7 @@ class TestNamespaceGrouping:
 
     def test_db_signal_group(self):
         """db.* signal fields → db attribute_group (not span — cross-signal per IA guidance)."""
-        from build.export_semantics import _SIG_NS  # pylint: disable=import-outside-toplevel
+        from build.semantic_exporter import _SIG_NS  # pylint: disable=import-outside-toplevel
 
         gid, gtype = _ns_group("db.namespace", _SIG_NS, "snowflake.misc", "attribute_group")
         assert gid == "db"
@@ -436,7 +436,7 @@ class TestNamespaceGrouping:
 
     def test_unknown_key_fallback(self):
         """Unknown key falls back to default group."""
-        from build.export_semantics import _SIG_NS  # pylint: disable=import-outside-toplevel
+        from build.semantic_exporter import _SIG_NS  # pylint: disable=import-outside-toplevel
 
         gid, gtype = _ns_group("completely.unknown.field", _SIG_NS, "snowflake.misc", "attribute_group")
         assert gid == "snowflake.misc"
