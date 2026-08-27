@@ -60,7 +60,7 @@ BEGIN
   -- Step 0: Read current account and schema state
   show PARAMETERS like 'EVENT_TABLE' in ACCOUNT;
   select "value" into s_account_et from TABLE(result_scan(last_query_id()));
-  IF (lower(:s_account_et) = 'snowflake.telemetry.events') THEN
+  IF (upper(:s_account_et) = 'SNOWFLAKE.TELEMETRY.EVENTS') THEN
     s_account_et := 'SNOWFLAKE.TELEMETRY.EVENTS_VIEW';
   END IF;
 
