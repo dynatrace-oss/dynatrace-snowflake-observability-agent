@@ -394,7 +394,9 @@ def _make_display_name(key: str) -> str:
     """
     parts = key.replace("_", " ").replace("-", " ").replace(".", " ").split()
     parts = [_WORD_SUBS.get(p, p) for p in parts]
-    return _restore_acronyms(" ".join(p.title() for p in parts))
+    sentence = " ".join(p.lower() for p in parts)
+    sentence = sentence[0].upper() + sentence[1:] if sentence else sentence
+    return _restore_acronyms(sentence)
 
 
 def _make_title(key: str) -> str:
@@ -919,7 +921,7 @@ def _emit_id_entry(key: str, entry: Dict[str, Any], semdict_flag: str, no_displa
         deprecated_msg = f"Use {entry['__otel_replacement']} instead." if entry.get("__otel_replacement") else "Deprecated."
         node: Dict[str, Any] = {
             "id": key,
-            **({} if no_display_name else {"display_name": _SingleQuotedStr(_make_display_name(key))}),
+            **({} if no_display_name else {"display_name": _SingleQuotedStr(str(entry["__display_name"]).strip() if entry.get("__display_name") else _make_display_name(key))}),
             "type": attr_type,
             "deprecated": deprecated_msg,
             "brief": description,
@@ -928,7 +930,7 @@ def _emit_id_entry(key: str, entry: Dict[str, Any], semdict_flag: str, no_displa
     else:
         node = {
             "id": key,
-            **({} if no_display_name else {"display_name": _SingleQuotedStr(_make_display_name(key))}),
+            **({} if no_display_name else {"display_name": _SingleQuotedStr(str(entry["__display_name"]).strip() if entry.get("__display_name") else _make_display_name(key))}),
             "type": attr_type,
             "stability": stability,
             "brief": description,
