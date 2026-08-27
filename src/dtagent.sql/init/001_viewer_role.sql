@@ -33,6 +33,15 @@ grant MONITOR EXECUTION on ACCOUNT to role DTAGENT_VIEWER;
 
 grant MODIFY SESSION LOG LEVEL on ACCOUNT to role DTAGENT_VIEWER;
 grant IMPORTED PRIVILEGES on database SNOWFLAKE to role DTAGENT_VIEWER;
+execute immediate
+    $$
+begin
+    grant application role SNOWFLAKE.EVENTS_VIEWER to role DTAGENT_VIEWER;
+exception
+    when other then
+        SYSTEM$LOG_WARN(concat('Could not grant application role SNOWFLAKE.EVENTS_VIEWER to role DTAGENT_VIEWER: ', SQLERRM));
+end;
+$$;
 
 grant EXECUTE TASK on ACCOUNT to role DTAGENT_VIEWER;
 
