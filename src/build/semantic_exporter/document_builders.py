@@ -98,7 +98,7 @@ class DocumentBuilder:
                 "id": gid,
                 "type": sf_groups[gid]["type"],
                 "title": _make_title(gid[: -len(".resource")] if gid.endswith(".resource") else gid) + " resource fields",
-                "brief": f"Resource-level fields describing Snowflake {_make_title(gid)} entities.",
+                "brief": f"Resource-level fields describing {_make_title(gid[:-len('.resource')] if gid.endswith('.resource') else gid)} resource entities.",
                 "attributes": sf_groups[gid]["attrs"],
             }
             for gid in sorted(sf_groups)
