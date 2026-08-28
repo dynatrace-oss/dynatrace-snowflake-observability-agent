@@ -802,4 +802,68 @@ class TestSemdicRefProvenance:
         assert not violations, f"{len(violations)} metric(s) with string-quoted numeric __example:\n" + "\n".join(violations)
 
 
+@pytest.mark.integration
+class TestDisplayNameCasing:
+    """displayName values must use Sentence case, not Title Case."""
+
+    # Words allowed to be capitalised after the first word.
+    # Sourced from field_emitters.DISPLAY_NAME_ACRONYMS and TITLE_PROPER_NOUNS.
+    _ALLOWED_CAPS: frozenset = frozenset(
+        {
+            # Acronyms
+            "DSOA", "OTel", "DDL", "DML", "RSS", "URL", "API", "ID", "IDs", "DB", "QA", "SQL", "DQL", "UTC",
+            "IP", "MFA", "RSA", "UID", "CPU", "COPY",
+            # Proper nouns (individual words from multi-word product/feature names)
+            "Snowflake", "Dynatrace", "Iceberg", "Snowpipe", "Snowpipes",
+            "Duo",  # Duo Security (MFA product)
+            "Trust", "Center",  # Snowflake Trust Center
+            "Travel",  # Snowflake Time Travel
+        }
+    )
+
+    def _is_title_case_violation(self, display_name: str) -> bool:
+        words = display_name.split()
+        if len(words) < 2:
+            return False
+        return any(
+            # For hyphenated compounds (e.g. DDL-modified), check the first segment
+            (w.split("-")[0] if "-" in w else w)[0].isupper()
+            and (w.split("-")[0] if "-" in w else w) not in self._ALLOWED_CAPS
+            for w in words[1:]
+        )
+
+    def test_attribute_display_names_are_sentence_case(self):
+        """Attribute displayName values must use Sentence case."""
+        all_defs = _load_all_instruments_defs()
+        violations = []
+        for plugin_name, data in all_defs.items():
+            for key, entry in (data.get("attributes") or {}).items():
+                dn = (entry or {}).get("displayName")
+                if dn and self._is_title_case_violation(dn):
+                    violations.append(f"{plugin_name}/{key}: {dn!r}")
+        assert not violations, f"{len(violations)} attribute displayName(s) in Title Case:\n" + "\n".join(violations)
+
+    def test_dimension_display_names_are_sentence_case(self):
+        """Dimension displayName values must use Sentence case."""
+        all_defs = _load_all_instruments_defs()
+        violations = []
+        for plugin_name, data in all_defs.items():
+            for key, entry in (data.get("dimensions") or {}).items():
+                dn = (entry or {}).get("displayName")
+                if dn and self._is_title_case_violation(dn):
+                    violations.append(f"{plugin_name}/{key}: {dn!r}")
+        assert not violations, f"{len(violations)} dimension displayName(s) in Title Case:\n" + "\n".join(violations)
+
+    def test_metric_display_names_are_sentence_case(self):
+        """Metric displayName values must use Sentence case."""
+        all_defs = _load_all_instruments_defs()
+        violations = []
+        for plugin_name, data in all_defs.items():
+            for key, entry in (data.get("metrics") or {}).items():
+                dn = (entry or {}).get("displayName")
+                if dn and self._is_title_case_violation(dn):
+                    violations.append(f"{plugin_name}/{key}: {dn!r}")
+        assert not violations, f"{len(violations)} metric displayName(s) in Title Case:\n" + "\n".join(violations)
+
+
 ##endregion

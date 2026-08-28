@@ -181,11 +181,12 @@
     },
     "AttributeDefinition": {
       "type": "object",
-      "description": "Annotation for a log/span attribute field. __type is required; when __enum is present __type must be 'string'.",
+      "description": "Annotation for a log/span attribute field. __type and displayName are required; when __enum is present __type must be 'string'.",
       "required": [
         "__description",
         "__example",
-        "__type"
+        "__type",
+        "displayName"
       ],
       "additionalProperties": false,
       "properties": {
@@ -249,10 +250,10 @@
           "type": "boolean",
           "description": "True if this attribute is only reported on span (SPAN_PLUGINS) records and must be excluded from the plugin's dsoa.logs.* model."
         },
-        "__display_name": {
+        "displayName": {
           "type": "string",
           "minLength": 1,
-          "description": "Override the auto-generated Semantic Dictionary display_name for this field. Use Sentence case; acronyms (ID, SQL, DSOA) are preserved automatically when omitted."
+          "description": "Human-readable display name for this field in Dynatrace UI. Use Sentence case; acronyms (ID, SQL, DDL, DSOA) stay all-caps. Example: 'Snowflake query compilation time'."
         }
       },
       "if": {
@@ -270,11 +271,12 @@
     },
     "DimensionDefinition": {
       "type": "object",
-      "description": "Annotation for a metric dimension field. __type is required; when __enum is present __type must be 'string'.",
+      "description": "Annotation for a metric dimension field. __type and displayName are required; when __enum is present __type must be 'string'.",
       "required": [
         "__description",
         "__example",
-        "__type"
+        "__type",
+        "displayName"
       ],
       "additionalProperties": false,
       "properties": {
@@ -334,10 +336,10 @@
           "type": "string",
           "description": "The OTel Semantic Conventions field that replaces this deprecated dimension."
         },
-        "__display_name": {
+        "displayName": {
           "type": "string",
           "minLength": 1,
-          "description": "Override the auto-generated Semantic Dictionary display_name for this field. Use Sentence case; acronyms (ID, SQL, DSOA) are preserved automatically when omitted."
+          "description": "Human-readable display name for this field in Dynatrace UI. Use Sentence case; acronyms (ID, SQL, DDL, DSOA) stay all-caps. Example: 'Snowflake query compilation time'."
         }
       },
       "if": {
@@ -425,11 +427,12 @@
     },
     "EventTimestampDefinition": {
       "type": "object",
-      "description": "Annotation for an event timestamp field used as an event anchor. __type is required.",
+      "description": "Annotation for an event timestamp field used as an event anchor. __type and displayName are required.",
       "required": [
         "__description",
         "__example",
-        "__type"
+        "__type",
+        "displayName"
       ],
       "additionalProperties": false,
       "properties": {
@@ -476,6 +479,11 @@
           "items": {
             "type": "string"
           }
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Human-readable display name for this field in Dynatrace UI. Use Sentence case; acronyms (ID, SQL, DDL, DSOA) stay all-caps."
         }
       }
     },
