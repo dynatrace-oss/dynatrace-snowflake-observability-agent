@@ -49,7 +49,7 @@ attributes:
     __description: A JSON array that specifies the objects that were associated with a write operation in the query.
   snowflake.object.type:
     __type: string
-    displayName: Snowflake DDL object type
+    displayName: Snowflake object type
     __stability: stable
     __example: "Table"
     __description: |
@@ -60,12 +60,12 @@ attributes:
   snowflake.object.id:
     __stability: stable
     __type: long
-    displayName: Snowflake DDL object ID
+    displayName: Snowflake object ID
     __example: 747545
     __description: An identifier for the object, which is unique within a given account and domain.
   snowflake.object.name:
     __type: string
-    displayName: Snowflake DDL object name
+    displayName: Snowflake object name
     __stability: stable
     __example: "DTAGENT_DB.APP.TMP_RECENT_QUERIES"
     __description: The fully qualified name of the object defined or modified by the DDL operation.

@@ -151,7 +151,7 @@ attributes:
       to any reader in code — setting this has no runtime effect yet.
   snowflake.object.type:
     __type: string
-    displayName: Snowflake DDL object type
+    displayName: Snowflake object type
     __stability: stable
     __example: Table
     __description: |
@@ -184,7 +184,7 @@ attributes:
   snowflake.object.id:
     __stability: stable
     __type: long
-    displayName: Snowflake DDL object ID
+    displayName: Snowflake object ID
     __example: 1234567890
     __description: |
       Internal Snowflake identifier of the object modified by the DDL operation. Populated
@@ -193,7 +193,7 @@ attributes:
       warehouse change detection.
   snowflake.object.name:
     __type: string
-    displayName: Snowflake DDL object name
+    displayName: Snowflake object name
     __stability: stable
     __example: DTAGENT_WH
     __description: |
