@@ -9,6 +9,13 @@ All notable changes to this project will be documented in this file.
 >
 > Detailed technical changes and implementation notes are available in the [development log](../.context/devlog/).
 
+## [1.0.0.1] - 2026-08-28
+
+### Fixed
+
+- Installation on Snowflake accounts with `SNOWFLAKE.TELEMETRY.EVENTS` enabled: the `event_log` plugin now correctly discovers and uses the account-level event table instead of the default database-level event table.
+- Python scripts use correct artifact repository on new Snowflake accounts.
+
 ## [1.0.0] - 2026-07-13
 
 ### Added

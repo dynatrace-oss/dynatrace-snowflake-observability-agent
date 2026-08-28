@@ -60,6 +60,9 @@ BEGIN
   -- Step 0: Read current account and schema state
   show PARAMETERS like 'EVENT_TABLE' in ACCOUNT;
   select "value" into s_account_et from TABLE(result_scan(last_query_id()));
+  IF (upper(:s_account_et) = 'SNOWFLAKE.TELEMETRY.EVENTS') THEN
+    s_account_et := 'SNOWFLAKE.TELEMETRY.EVENTS_VIEW';
+  END IF;
 
   -- Detect whether LOG_EVENT_LEVEL parameter is supported (Snowflake BCR Bundle 2026_02+).
   BEGIN
